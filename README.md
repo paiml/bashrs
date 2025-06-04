@@ -1,9 +1,8 @@
 # Rash: Rust-to-Shell Transpiler 🦀 → 🐚
 
-[![CI](https://github.com/rash-sh/rash/workflows/CI/badge.svg)](https://github.com/rash-sh/rash/actions)
-[![Crates.io](https://img.shields.io/crates/v/rash.svg)](https://crates.io/crates/rash)
+[![CI](https://github.com/paiml/rash/workflows/CI/badge.svg)](https://github.com/paiml/rash/actions)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-[![Binary Size](https://img.shields.io/badge/binary%20size-<4.2MB-brightgreen)](https://github.com/rash-sh/rash/releases)
+[![Binary Size](https://img.shields.io/badge/binary%20size-<634KB-brightgreen)](https://github.com/paiml/rash/releases)
 
 > Write your shell scripts in Rust. Deploy them as POSIX shell.
 
@@ -56,16 +55,20 @@ mkdir -p "$prefix/bin"  # Properly quoted!
 
 ## Quick Start
 
-### 5-Second Install
+### Installation
 
 ```bash
-# Universal installer (yes, we dogfood!)
-curl --proto '=https' --tlsv1.2 -sSf https://github.com/rash-sh/rash/releases/latest/download/install.sh | sh
+# Universal installer script
+curl --proto '=https' --tlsv1.2 -sSf https://github.com/paiml/rash/releases/latest/download/install.sh | sh
 
-# Or via package managers
-cargo install rash           # Rust developers
-brew install rash-sh/tap/rash  # macOS
-apt install rash             # Debian/Ubuntu
+# Manual download (choose your platform)
+# Linux x64: https://github.com/paiml/rash/releases/latest/download/rash-linux-amd64.tar.gz
+# macOS x64: https://github.com/paiml/rash/releases/latest/download/rash-darwin-amd64.tar.gz
+# macOS ARM: https://github.com/paiml/rash/releases/latest/download/rash-darwin-arm64.tar.gz
+
+# Or build from source
+git clone https://github.com/paiml/rash && cd rash
+cargo build --release
 ```
 
 ### Your First Transpilation
@@ -173,34 +176,27 @@ All binaries are static—no dependencies required.
 
 ## Documentation
 
-- **[GUIDE.md](GUIDE.md)** - Comprehensive tutorial (start here!)
-- **[API.md](docs/API.md)** - Library usage for Rust projects
+- **[User Guide](docs/user-guide.md)** - Comprehensive tutorial (start here!)
+- **[Project Overview](docs/project-overview.md)** - Architecture and design
 - **[Examples](examples/)** - Real-world installer scripts
 
-## Dogfooding
+## Project Status
 
-Rash installs itself! Our [install.sh](install.sh) is generated from [src/install.rs](src/install.rs):
-
-```bash
-# See the magic happen
-rash build src/install.rs -o install.sh
-diff install.sh <(curl -sL https://github.com/rash-sh/rash/releases/latest/download/install.sh)
-# Files are identical!
-```
+Rash is currently in active development. The transpiler successfully converts Rust code to POSIX shell scripts with safety guarantees. See our [releases](https://github.com/paiml/rash/releases) for the latest stable builds.
 
 ## Contributing
 
 We'd love your help making shell scripts safer for everyone:
 
 ```bash
-git clone https://github.com/rash-sh/rash && cd rash
+git clone https://github.com/paiml/rash && cd rash
 cargo build
 cargo test
 ```
 
-- [Good first issues](https://github.com/rash-sh/rash/labels/good%20first%20issue)
-- [Architecture docs](docs/architecture.md)
-- [Development guide](CONTRIBUTING.md)
+- [Good first issues](https://github.com/paiml/rash/labels/good%20first%20issue)
+- [Project Overview](docs/project-overview.md)
+- [Development Guidelines](CLAUDE.md)
 
 ## FAQ
 
