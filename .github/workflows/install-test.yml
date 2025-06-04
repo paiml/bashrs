@@ -56,7 +56,11 @@ jobs:
         cat > simple.rs << 'EOF'
         #[rash::main]
         fn main() {
+            let msg = "Hello World";
+            echo(msg);
         }
+        
+        fn echo(msg: &str) {}
         EOF
         rash build simple.rs -o simple.sh || echo "Build failed with exit code $?"
         if [ -f simple.sh ]; then
@@ -93,7 +97,11 @@ jobs:
         cat > test.rs << 'EOF'
         #[rash::main]
         fn main() {
+            let x = "test";
+            echo(x);
         }
+        
+        fn echo(msg: &str) {}
         EOF
         echo "Built test.rs, now transpiling..."
         ./rash build test.rs -o test.sh || echo "Build failed with exit code $?"
