@@ -1,54 +1,52 @@
 use chrono::Utc;
 use std::fs;
-use std::io::BufRead;
-use std::os::unix::process::ExitStatusExt;
-use std::process::Command;
+use std::path::Path;
 
-fn count_lines_of_code() -> usize {
-    let output = Command::new("find")
-        .args(["rash/src", "-name", "*.rs", "-exec", "wc", "-l", "{}", "+"])
-        .output()
-        .ok()
-        .unwrap_or_else(|| std::process::Output {
-            status: std::process::ExitStatus::from_raw(1),
-            stdout: Vec::new(),
-            stderr: Vec::new(),
-        });
-
-    String::from_utf8_lossy(&output.stdout)
-        .lines()
-        .last()
-        .and_then(|line| line.split_whitespace().next())
-        .and_then(|n| n.parse().ok())
+fn count_lines_in_file(path: &Path) -> usize {
+    fs::read_to_string(path)
+        .map(|content| content.lines().count())
         .unwrap_or(0)
 }
 
-fn count_tests() -> usize {
-    let output = Command::new("grep")
-        .args(["-r", "#\\[test\\]", "rash/src", "--include=*.rs"])
-        .output()
-        .ok()
-        .unwrap_or_else(|| std::process::Output {
-            status: std::process::ExitStatus::from_raw(1),
-            stdout: Vec::new(),
-            stderr: Vec::new(),
-        });
+fn walk_rust_files(dir: &str) -> Vec<std::path::PathBuf> {
+    let mut rust_files = Vec::new();
 
-    std::io::BufReader::new(&output.stdout[..]).lines().count()
+    fn visit_dirs(dir: &Path, files: &mut Vec<std::path::PathBuf>) -> std::io::Result<()> {
+        if dir.is_dir() {
+            for entry in fs::read_dir(dir)? {
+                let entry = entry?;
+                let path = entry.path();
+                if path.is_dir() {
+                    visit_dirs(&path, files)?;
+                } else if path.extension().map_or(false, |ext| ext == "rs") {
+                    files.push(path);
+                }
+            }
+        }
+        Ok(())
+    }
+
+    let _ = visit_dirs(Path::new(dir), &mut rust_files);
+    rust_files
+}
+
+fn count_lines_of_code() -> usize {
+    walk_rust_files("rash/src")
+        .iter()
+        .map(|path| count_lines_in_file(path))
+        .sum()
+}
+
+fn count_tests() -> usize {
+    walk_rust_files("rash/src")
+        .iter()
+        .filter_map(|path| fs::read_to_string(path).ok())
+        .map(|content| content.matches("#[test]").count())
+        .sum()
 }
 
 fn count_files() -> usize {
-    let output = Command::new("find")
-        .args(["rash/src", "-name", "*.rs", "-type", "f"])
-        .output()
-        .ok()
-        .unwrap_or_else(|| std::process::Output {
-            status: std::process::ExitStatus::from_raw(1),
-            stdout: Vec::new(),
-            stderr: Vec::new(),
-        });
-
-    std::io::BufReader::new(&output.stdout[..]).lines().count()
+    walk_rust_files("rash/src").len()
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
