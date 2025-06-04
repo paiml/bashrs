@@ -261,279 +261,277 @@
 <a href=#261 id=261 data-nosnippet>261</a>    ) -&gt; <span class="prelude-ty">Result</span>&lt;(), String&gt; {
 <a href=#262 id=262 data-nosnippet>262</a>        <span class="kw">if </span>max_iterations.is_none() {
 <a href=#263 id=263 data-nosnippet>263</a>            <span class="kw">return </span><span class="prelude-val">Err</span>(<span class="macro">format!</span>(
-<a href=#264 id=264 data-nosnippet>264</a>                <span class="string">"{} loops must have bounded iterations for verification"</span>,
-<a href=#265 id=265 data-nosnippet>265</a>                loop_type
-<a href=#266 id=266 data-nosnippet>266</a>            ));
-<a href=#267 id=267 data-nosnippet>267</a>        }
-<a href=#268 id=268 data-nosnippet>268</a>        <span class="prelude-val">Ok</span>(())
-<a href=#269 id=269 data-nosnippet>269</a>    }
-<a href=#270 id=270 data-nosnippet>270</a>
-<a href=#271 id=271 data-nosnippet>271</a>    <span class="kw">fn </span>validate_stmt_block(<span class="kw-2">&amp;</span><span class="self">self</span>, stmts: <span class="kw-2">&amp;</span>[Stmt]) -&gt; <span class="prelude-ty">Result</span>&lt;(), String&gt; {
-<a href=#272 id=272 data-nosnippet>272</a>        <span class="kw">for </span>stmt <span class="kw">in </span>stmts {
-<a href=#273 id=273 data-nosnippet>273</a>            stmt.validate()<span class="question-mark">?</span>;
-<a href=#274 id=274 data-nosnippet>274</a>        }
-<a href=#275 id=275 data-nosnippet>275</a>        <span class="prelude-val">Ok</span>(())
-<a href=#276 id=276 data-nosnippet>276</a>    }
-<a href=#277 id=277 data-nosnippet>277</a>
-<a href=#278 id=278 data-nosnippet>278</a>    <span class="kw">pub fn </span>collect_function_calls(<span class="kw-2">&amp;</span><span class="self">self</span>, calls: <span class="kw-2">&amp;mut </span>Vec&lt;String&gt;) {
-<a href=#279 id=279 data-nosnippet>279</a>        <span class="kw">match </span><span class="self">self </span>{
-<a href=#280 id=280 data-nosnippet>280</a>            Stmt::Let { value, .. } =&gt; value.collect_function_calls(calls),
-<a href=#281 id=281 data-nosnippet>281</a>            Stmt::Expr(expr) =&gt; expr.collect_function_calls(calls),
-<a href=#282 id=282 data-nosnippet>282</a>            Stmt::Return(<span class="prelude-val">Some</span>(expr)) =&gt; expr.collect_function_calls(calls),
-<a href=#283 id=283 data-nosnippet>283</a>            Stmt::Return(<span class="prelude-val">None</span>) =&gt; {}
-<a href=#284 id=284 data-nosnippet>284</a>            Stmt::If {
-<a href=#285 id=285 data-nosnippet>285</a>                condition,
-<a href=#286 id=286 data-nosnippet>286</a>                then_block,
-<a href=#287 id=287 data-nosnippet>287</a>                else_block,
-<a href=#288 id=288 data-nosnippet>288</a>            } =&gt; {
-<a href=#289 id=289 data-nosnippet>289</a>                condition.collect_function_calls(calls);
-<a href=#290 id=290 data-nosnippet>290</a>                <span class="kw">for </span>stmt <span class="kw">in </span>then_block {
-<a href=#291 id=291 data-nosnippet>291</a>                    stmt.collect_function_calls(calls);
-<a href=#292 id=292 data-nosnippet>292</a>                }
-<a href=#293 id=293 data-nosnippet>293</a>                <span class="kw">if let </span><span class="prelude-val">Some</span>(else_stmts) = else_block {
-<a href=#294 id=294 data-nosnippet>294</a>                    <span class="kw">for </span>stmt <span class="kw">in </span>else_stmts {
-<a href=#295 id=295 data-nosnippet>295</a>                        stmt.collect_function_calls(calls);
-<a href=#296 id=296 data-nosnippet>296</a>                    }
-<a href=#297 id=297 data-nosnippet>297</a>                }
-<a href=#298 id=298 data-nosnippet>298</a>            }
-<a href=#299 id=299 data-nosnippet>299</a>            Stmt::Match { scrutinee, arms } =&gt; {
-<a href=#300 id=300 data-nosnippet>300</a>                scrutinee.collect_function_calls(calls);
-<a href=#301 id=301 data-nosnippet>301</a>                <span class="kw">for </span>arm <span class="kw">in </span>arms {
-<a href=#302 id=302 data-nosnippet>302</a>                    <span class="kw">if let </span><span class="prelude-val">Some</span>(guard) = <span class="kw-2">&amp;</span>arm.guard {
-<a href=#303 id=303 data-nosnippet>303</a>                        guard.collect_function_calls(calls);
-<a href=#304 id=304 data-nosnippet>304</a>                    }
-<a href=#305 id=305 data-nosnippet>305</a>                    <span class="kw">for </span>stmt <span class="kw">in </span><span class="kw-2">&amp;</span>arm.body {
-<a href=#306 id=306 data-nosnippet>306</a>                        stmt.collect_function_calls(calls);
-<a href=#307 id=307 data-nosnippet>307</a>                    }
-<a href=#308 id=308 data-nosnippet>308</a>                }
-<a href=#309 id=309 data-nosnippet>309</a>            }
-<a href=#310 id=310 data-nosnippet>310</a>            Stmt::For { iter, body, .. } =&gt; {
-<a href=#311 id=311 data-nosnippet>311</a>                iter.collect_function_calls(calls);
-<a href=#312 id=312 data-nosnippet>312</a>                <span class="kw">for </span>stmt <span class="kw">in </span>body {
-<a href=#313 id=313 data-nosnippet>313</a>                    stmt.collect_function_calls(calls);
-<a href=#314 id=314 data-nosnippet>314</a>                }
-<a href=#315 id=315 data-nosnippet>315</a>            }
-<a href=#316 id=316 data-nosnippet>316</a>            Stmt::While {
-<a href=#317 id=317 data-nosnippet>317</a>                condition, body, ..
-<a href=#318 id=318 data-nosnippet>318</a>            } =&gt; {
-<a href=#319 id=319 data-nosnippet>319</a>                condition.collect_function_calls(calls);
-<a href=#320 id=320 data-nosnippet>320</a>                <span class="kw">for </span>stmt <span class="kw">in </span>body {
-<a href=#321 id=321 data-nosnippet>321</a>                    stmt.collect_function_calls(calls);
-<a href=#322 id=322 data-nosnippet>322</a>                }
-<a href=#323 id=323 data-nosnippet>323</a>            }
-<a href=#324 id=324 data-nosnippet>324</a>            Stmt::Break | Stmt::Continue =&gt; {}
-<a href=#325 id=325 data-nosnippet>325</a>        }
-<a href=#326 id=326 data-nosnippet>326</a>    }
-<a href=#327 id=327 data-nosnippet>327</a>}
-<a href=#328 id=328 data-nosnippet>328</a>
-<a href=#329 id=329 data-nosnippet>329</a><span class="attr">#[derive(Debug, Clone, Serialize, Deserialize)]
-<a href=#330 id=330 data-nosnippet>330</a></span><span class="kw">pub enum </span>Expr {
-<a href=#331 id=331 data-nosnippet>331</a>    Literal(Literal),
-<a href=#332 id=332 data-nosnippet>332</a>    Variable(String),
-<a href=#333 id=333 data-nosnippet>333</a>    FunctionCall {
-<a href=#334 id=334 data-nosnippet>334</a>        name: String,
-<a href=#335 id=335 data-nosnippet>335</a>        args: Vec&lt;Expr&gt;,
-<a href=#336 id=336 data-nosnippet>336</a>    },
-<a href=#337 id=337 data-nosnippet>337</a>    Binary {
-<a href=#338 id=338 data-nosnippet>338</a>        op: BinaryOp,
-<a href=#339 id=339 data-nosnippet>339</a>        left: Box&lt;Expr&gt;,
-<a href=#340 id=340 data-nosnippet>340</a>        right: Box&lt;Expr&gt;,
-<a href=#341 id=341 data-nosnippet>341</a>    },
-<a href=#342 id=342 data-nosnippet>342</a>    Unary {
-<a href=#343 id=343 data-nosnippet>343</a>        op: UnaryOp,
-<a href=#344 id=344 data-nosnippet>344</a>        operand: Box&lt;Expr&gt;,
-<a href=#345 id=345 data-nosnippet>345</a>    },
-<a href=#346 id=346 data-nosnippet>346</a>    MethodCall {
-<a href=#347 id=347 data-nosnippet>347</a>        receiver: Box&lt;Expr&gt;,
-<a href=#348 id=348 data-nosnippet>348</a>        method: String,
-<a href=#349 id=349 data-nosnippet>349</a>        args: Vec&lt;Expr&gt;,
-<a href=#350 id=350 data-nosnippet>350</a>    },
-<a href=#351 id=351 data-nosnippet>351</a>    Array(Vec&lt;Expr&gt;),
-<a href=#352 id=352 data-nosnippet>352</a>    Index {
-<a href=#353 id=353 data-nosnippet>353</a>        object: Box&lt;Expr&gt;,
-<a href=#354 id=354 data-nosnippet>354</a>        index: Box&lt;Expr&gt;,
-<a href=#355 id=355 data-nosnippet>355</a>    },
-<a href=#356 id=356 data-nosnippet>356</a>    Try {
-<a href=#357 id=357 data-nosnippet>357</a>        expr: Box&lt;Expr&gt;,
-<a href=#358 id=358 data-nosnippet>358</a>    },
-<a href=#359 id=359 data-nosnippet>359</a>    Block(Vec&lt;Stmt&gt;),
-<a href=#360 id=360 data-nosnippet>360</a>}
-<a href=#361 id=361 data-nosnippet>361</a>
-<a href=#362 id=362 data-nosnippet>362</a><span class="kw">impl </span>Expr {
-<a href=#363 id=363 data-nosnippet>363</a>    <span class="kw">pub fn </span>validate(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;(), String&gt; {
-<a href=#364 id=364 data-nosnippet>364</a>        <span class="comment">// Check nesting depth
-<a href=#365 id=365 data-nosnippet>365</a>        </span><span class="kw">let </span>depth = <span class="self">self</span>.nesting_depth();
-<a href=#366 id=366 data-nosnippet>366</a>        <span class="kw">if </span>depth &gt; <span class="number">30 </span>{
-<a href=#367 id=367 data-nosnippet>367</a>            <span class="kw">return </span><span class="prelude-val">Err</span>(<span class="macro">format!</span>(
-<a href=#368 id=368 data-nosnippet>368</a>                <span class="string">"Expression nesting too deep: {} levels (max 30)"</span>,
-<a href=#369 id=369 data-nosnippet>369</a>                depth
-<a href=#370 id=370 data-nosnippet>370</a>            ));
-<a href=#371 id=371 data-nosnippet>371</a>        }
-<a href=#372 id=372 data-nosnippet>372</a>
-<a href=#373 id=373 data-nosnippet>373</a>        <span class="kw">match </span><span class="self">self </span>{
-<a href=#374 id=374 data-nosnippet>374</a>            Expr::Literal(Literal::Str(s)) =&gt; {
-<a href=#375 id=375 data-nosnippet>375</a>                <span class="kw">if </span>s.contains(<span class="string">'\0'</span>) {
-<a href=#376 id=376 data-nosnippet>376</a>                    <span class="kw">return </span><span class="prelude-val">Err</span>(<span class="string">"Null characters not allowed in strings"</span>.to_string());
-<a href=#377 id=377 data-nosnippet>377</a>                }
-<a href=#378 id=378 data-nosnippet>378</a>                <span class="prelude-val">Ok</span>(())
-<a href=#379 id=379 data-nosnippet>379</a>            }
-<a href=#380 id=380 data-nosnippet>380</a>            Expr::Literal(<span class="kw">_</span>) =&gt; <span class="prelude-val">Ok</span>(()),
-<a href=#381 id=381 data-nosnippet>381</a>            Expr::Variable(<span class="kw">_</span>) =&gt; <span class="prelude-val">Ok</span>(()),
-<a href=#382 id=382 data-nosnippet>382</a>            Expr::FunctionCall { args, .. } =&gt; {
-<a href=#383 id=383 data-nosnippet>383</a>                <span class="kw">for </span>arg <span class="kw">in </span>args {
-<a href=#384 id=384 data-nosnippet>384</a>                    arg.validate()<span class="question-mark">?</span>;
-<a href=#385 id=385 data-nosnippet>385</a>                }
-<a href=#386 id=386 data-nosnippet>386</a>                <span class="prelude-val">Ok</span>(())
-<a href=#387 id=387 data-nosnippet>387</a>            }
-<a href=#388 id=388 data-nosnippet>388</a>            Expr::Binary { left, right, .. } =&gt; {
-<a href=#389 id=389 data-nosnippet>389</a>                left.validate()<span class="question-mark">?</span>;
-<a href=#390 id=390 data-nosnippet>390</a>                right.validate()
-<a href=#391 id=391 data-nosnippet>391</a>            }
-<a href=#392 id=392 data-nosnippet>392</a>            Expr::Unary { operand, .. } =&gt; operand.validate(),
-<a href=#393 id=393 data-nosnippet>393</a>            Expr::MethodCall { receiver, args, .. } =&gt; {
-<a href=#394 id=394 data-nosnippet>394</a>                receiver.validate()<span class="question-mark">?</span>;
-<a href=#395 id=395 data-nosnippet>395</a>                <span class="kw">for </span>arg <span class="kw">in </span>args {
-<a href=#396 id=396 data-nosnippet>396</a>                    arg.validate()<span class="question-mark">?</span>;
-<a href=#397 id=397 data-nosnippet>397</a>                }
-<a href=#398 id=398 data-nosnippet>398</a>                <span class="prelude-val">Ok</span>(())
-<a href=#399 id=399 data-nosnippet>399</a>            }
-<a href=#400 id=400 data-nosnippet>400</a>            <span class="comment">// Placeholder for new expression types - TODO: implement properly
-<a href=#401 id=401 data-nosnippet>401</a>            </span><span class="kw">_ </span>=&gt; <span class="prelude-val">Ok</span>(()), <span class="comment">// Array, Index, Try, Block
-<a href=#402 id=402 data-nosnippet>402</a>        </span>}
-<a href=#403 id=403 data-nosnippet>403</a>    }
-<a href=#404 id=404 data-nosnippet>404</a>
-<a href=#405 id=405 data-nosnippet>405</a>    <span class="kw">fn </span>nesting_depth(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; usize {
-<a href=#406 id=406 data-nosnippet>406</a>        <span class="kw">match </span><span class="self">self </span>{
-<a href=#407 id=407 data-nosnippet>407</a>            Expr::Binary { left, right, .. } =&gt; <span class="number">1 </span>+ left.nesting_depth().max(right.nesting_depth()),
-<a href=#408 id=408 data-nosnippet>408</a>            Expr::Unary { operand, .. } =&gt; <span class="number">1 </span>+ operand.nesting_depth(),
-<a href=#409 id=409 data-nosnippet>409</a>            Expr::FunctionCall { args, .. } =&gt; {
-<a href=#410 id=410 data-nosnippet>410</a>                <span class="number">1 </span>+ args.iter().map(|a| a.nesting_depth()).max().unwrap_or(<span class="number">0</span>)
-<a href=#411 id=411 data-nosnippet>411</a>            }
-<a href=#412 id=412 data-nosnippet>412</a>            Expr::MethodCall { receiver, args, .. } =&gt; {
-<a href=#413 id=413 data-nosnippet>413</a>                <span class="kw">let </span>receiver_depth = receiver.nesting_depth();
-<a href=#414 id=414 data-nosnippet>414</a>                <span class="kw">let </span>args_depth = args.iter().map(|a| a.nesting_depth()).max().unwrap_or(<span class="number">0</span>);
-<a href=#415 id=415 data-nosnippet>415</a>                <span class="number">1 </span>+ receiver_depth.max(args_depth)
-<a href=#416 id=416 data-nosnippet>416</a>            }
-<a href=#417 id=417 data-nosnippet>417</a>            <span class="kw">_ </span>=&gt; <span class="number">0</span>,
-<a href=#418 id=418 data-nosnippet>418</a>        }
-<a href=#419 id=419 data-nosnippet>419</a>    }
-<a href=#420 id=420 data-nosnippet>420</a>
-<a href=#421 id=421 data-nosnippet>421</a>    <span class="kw">pub fn </span>collect_function_calls(<span class="kw-2">&amp;</span><span class="self">self</span>, calls: <span class="kw-2">&amp;mut </span>Vec&lt;String&gt;) {
-<a href=#422 id=422 data-nosnippet>422</a>        <span class="kw">match </span><span class="self">self </span>{
-<a href=#423 id=423 data-nosnippet>423</a>            Expr::FunctionCall { name, args } =&gt; {
-<a href=#424 id=424 data-nosnippet>424</a>                calls.push(name.clone());
-<a href=#425 id=425 data-nosnippet>425</a>                <span class="kw">for </span>arg <span class="kw">in </span>args {
-<a href=#426 id=426 data-nosnippet>426</a>                    arg.collect_function_calls(calls);
-<a href=#427 id=427 data-nosnippet>427</a>                }
-<a href=#428 id=428 data-nosnippet>428</a>            }
-<a href=#429 id=429 data-nosnippet>429</a>            Expr::Binary { left, right, .. } =&gt; {
-<a href=#430 id=430 data-nosnippet>430</a>                left.collect_function_calls(calls);
-<a href=#431 id=431 data-nosnippet>431</a>                right.collect_function_calls(calls);
-<a href=#432 id=432 data-nosnippet>432</a>            }
-<a href=#433 id=433 data-nosnippet>433</a>            Expr::Unary { operand, .. } =&gt; {
-<a href=#434 id=434 data-nosnippet>434</a>                operand.collect_function_calls(calls);
-<a href=#435 id=435 data-nosnippet>435</a>            }
-<a href=#436 id=436 data-nosnippet>436</a>            Expr::MethodCall { receiver, args, .. } =&gt; {
-<a href=#437 id=437 data-nosnippet>437</a>                receiver.collect_function_calls(calls);
-<a href=#438 id=438 data-nosnippet>438</a>                <span class="kw">for </span>arg <span class="kw">in </span>args {
-<a href=#439 id=439 data-nosnippet>439</a>                    arg.collect_function_calls(calls);
-<a href=#440 id=440 data-nosnippet>440</a>                }
-<a href=#441 id=441 data-nosnippet>441</a>            }
-<a href=#442 id=442 data-nosnippet>442</a>            Expr::Array(elements) =&gt; {
-<a href=#443 id=443 data-nosnippet>443</a>                <span class="kw">for </span>element <span class="kw">in </span>elements {
-<a href=#444 id=444 data-nosnippet>444</a>                    element.collect_function_calls(calls);
-<a href=#445 id=445 data-nosnippet>445</a>                }
-<a href=#446 id=446 data-nosnippet>446</a>            }
-<a href=#447 id=447 data-nosnippet>447</a>            Expr::Index { object, index } =&gt; {
-<a href=#448 id=448 data-nosnippet>448</a>                object.collect_function_calls(calls);
-<a href=#449 id=449 data-nosnippet>449</a>                index.collect_function_calls(calls);
-<a href=#450 id=450 data-nosnippet>450</a>            }
-<a href=#451 id=451 data-nosnippet>451</a>            Expr::Try { expr } =&gt; {
-<a href=#452 id=452 data-nosnippet>452</a>                expr.collect_function_calls(calls);
-<a href=#453 id=453 data-nosnippet>453</a>            }
-<a href=#454 id=454 data-nosnippet>454</a>            Expr::Block(stmts) =&gt; {
-<a href=#455 id=455 data-nosnippet>455</a>                <span class="kw">for </span>stmt <span class="kw">in </span>stmts {
-<a href=#456 id=456 data-nosnippet>456</a>                    stmt.collect_function_calls(calls);
-<a href=#457 id=457 data-nosnippet>457</a>                }
-<a href=#458 id=458 data-nosnippet>458</a>            }
-<a href=#459 id=459 data-nosnippet>459</a>            <span class="kw">_ </span>=&gt; {}
-<a href=#460 id=460 data-nosnippet>460</a>        }
-<a href=#461 id=461 data-nosnippet>461</a>    }
-<a href=#462 id=462 data-nosnippet>462</a>}
-<a href=#463 id=463 data-nosnippet>463</a>
-<a href=#464 id=464 data-nosnippet>464</a><span class="attr">#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-<a href=#465 id=465 data-nosnippet>465</a></span><span class="kw">pub enum </span>Literal {
-<a href=#466 id=466 data-nosnippet>466</a>    Bool(bool),
-<a href=#467 id=467 data-nosnippet>467</a>    U32(u32),
-<a href=#468 id=468 data-nosnippet>468</a>    Str(String),
-<a href=#469 id=469 data-nosnippet>469</a>}
-<a href=#470 id=470 data-nosnippet>470</a>
-<a href=#471 id=471 data-nosnippet>471</a><span class="attr">#[derive(Debug, Clone, Serialize, Deserialize)]
-<a href=#472 id=472 data-nosnippet>472</a></span><span class="kw">pub enum </span>BinaryOp {
-<a href=#473 id=473 data-nosnippet>473</a>    Add,
-<a href=#474 id=474 data-nosnippet>474</a>    Sub,
-<a href=#475 id=475 data-nosnippet>475</a>    Mul,
-<a href=#476 id=476 data-nosnippet>476</a>    Div,
-<a href=#477 id=477 data-nosnippet>477</a>    Eq,
-<a href=#478 id=478 data-nosnippet>478</a>    Ne,
-<a href=#479 id=479 data-nosnippet>479</a>    Lt,
-<a href=#480 id=480 data-nosnippet>480</a>    Le,
-<a href=#481 id=481 data-nosnippet>481</a>    Gt,
-<a href=#482 id=482 data-nosnippet>482</a>    Ge,
-<a href=#483 id=483 data-nosnippet>483</a>    And,
-<a href=#484 id=484 data-nosnippet>484</a>    Or,
-<a href=#485 id=485 data-nosnippet>485</a>}
-<a href=#486 id=486 data-nosnippet>486</a>
-<a href=#487 id=487 data-nosnippet>487</a><span class="attr">#[derive(Debug, Clone, Serialize, Deserialize)]
-<a href=#488 id=488 data-nosnippet>488</a></span><span class="kw">pub enum </span>UnaryOp {
-<a href=#489 id=489 data-nosnippet>489</a>    Not,
-<a href=#490 id=490 data-nosnippet>490</a>    Neg,
-<a href=#491 id=491 data-nosnippet>491</a>}
-<a href=#492 id=492 data-nosnippet>492</a>
-<a href=#493 id=493 data-nosnippet>493</a><span class="attr">#[derive(Debug, Clone, Serialize, Deserialize)]
-<a href=#494 id=494 data-nosnippet>494</a></span><span class="kw">pub struct </span>MatchArm {
-<a href=#495 id=495 data-nosnippet>495</a>    <span class="kw">pub </span>pattern: Pattern,
-<a href=#496 id=496 data-nosnippet>496</a>    <span class="kw">pub </span>guard: <span class="prelude-ty">Option</span>&lt;Expr&gt;,
-<a href=#497 id=497 data-nosnippet>497</a>    <span class="kw">pub </span>body: Vec&lt;Stmt&gt;,
-<a href=#498 id=498 data-nosnippet>498</a>}
-<a href=#499 id=499 data-nosnippet>499</a>
-<a href=#500 id=500 data-nosnippet>500</a><span class="attr">#[derive(Debug, Clone, Serialize, Deserialize)]
-<a href=#501 id=501 data-nosnippet>501</a></span><span class="kw">pub enum </span>Pattern {
-<a href=#502 id=502 data-nosnippet>502</a>    Literal(Literal),
-<a href=#503 id=503 data-nosnippet>503</a>    Variable(String),
-<a href=#504 id=504 data-nosnippet>504</a>    Wildcard,
-<a href=#505 id=505 data-nosnippet>505</a>    Tuple(Vec&lt;Pattern&gt;),
-<a href=#506 id=506 data-nosnippet>506</a>    Struct {
-<a href=#507 id=507 data-nosnippet>507</a>        name: String,
-<a href=#508 id=508 data-nosnippet>508</a>        fields: Vec&lt;(String, Pattern)&gt;,
-<a href=#509 id=509 data-nosnippet>509</a>    },
-<a href=#510 id=510 data-nosnippet>510</a>}
-<a href=#511 id=511 data-nosnippet>511</a>
-<a href=#512 id=512 data-nosnippet>512</a><span class="kw">impl </span>Pattern {
-<a href=#513 id=513 data-nosnippet>513</a>    <span class="kw">pub fn </span>validate(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;(), String&gt; {
-<a href=#514 id=514 data-nosnippet>514</a>        <span class="kw">match </span><span class="self">self </span>{
-<a href=#515 id=515 data-nosnippet>515</a>            Pattern::Literal(<span class="kw">_</span>) | Pattern::Variable(<span class="kw">_</span>) | Pattern::Wildcard =&gt; <span class="prelude-val">Ok</span>(()),
-<a href=#516 id=516 data-nosnippet>516</a>            Pattern::Tuple(patterns) =&gt; {
-<a href=#517 id=517 data-nosnippet>517</a>                <span class="kw">for </span>pattern <span class="kw">in </span>patterns {
-<a href=#518 id=518 data-nosnippet>518</a>                    pattern.validate()<span class="question-mark">?</span>;
-<a href=#519 id=519 data-nosnippet>519</a>                }
-<a href=#520 id=520 data-nosnippet>520</a>                <span class="prelude-val">Ok</span>(())
-<a href=#521 id=521 data-nosnippet>521</a>            }
-<a href=#522 id=522 data-nosnippet>522</a>            Pattern::Struct { fields, .. } =&gt; {
-<a href=#523 id=523 data-nosnippet>523</a>                <span class="kw">for </span>(<span class="kw">_</span>, pattern) <span class="kw">in </span>fields {
-<a href=#524 id=524 data-nosnippet>524</a>                    pattern.validate()<span class="question-mark">?</span>;
-<a href=#525 id=525 data-nosnippet>525</a>                }
-<a href=#526 id=526 data-nosnippet>526</a>                <span class="prelude-val">Ok</span>(())
-<a href=#527 id=527 data-nosnippet>527</a>            }
-<a href=#528 id=528 data-nosnippet>528</a>        }
-<a href=#529 id=529 data-nosnippet>529</a>    }
-<a href=#530 id=530 data-nosnippet>530</a>
-<a href=#531 id=531 data-nosnippet>531</a>    <span class="kw">pub fn </span>binds_variable(<span class="kw-2">&amp;</span><span class="self">self</span>, name: <span class="kw-2">&amp;</span>str) -&gt; bool {
-<a href=#532 id=532 data-nosnippet>532</a>        <span class="kw">match </span><span class="self">self </span>{
-<a href=#533 id=533 data-nosnippet>533</a>            Pattern::Variable(var_name) =&gt; var_name == name,
-<a href=#534 id=534 data-nosnippet>534</a>            Pattern::Tuple(patterns) =&gt; patterns.iter().any(|p| p.binds_variable(name)),
-<a href=#535 id=535 data-nosnippet>535</a>            Pattern::Struct { fields, .. } =&gt; fields.iter().any(|(<span class="kw">_</span>, p)| p.binds_variable(name)),
-<a href=#536 id=536 data-nosnippet>536</a>            <span class="kw">_ </span>=&gt; <span class="bool-val">false</span>,
-<a href=#537 id=537 data-nosnippet>537</a>        }
-<a href=#538 id=538 data-nosnippet>538</a>    }
-<a href=#539 id=539 data-nosnippet>539</a>}</code></pre></div></section></main></body></html>
+<a href=#264 id=264 data-nosnippet>264</a>                <span class="string">"{loop_type} loops must have bounded iterations for verification"
+<a href=#265 id=265 data-nosnippet>265</a>            </span>));
+<a href=#266 id=266 data-nosnippet>266</a>        }
+<a href=#267 id=267 data-nosnippet>267</a>        <span class="prelude-val">Ok</span>(())
+<a href=#268 id=268 data-nosnippet>268</a>    }
+<a href=#269 id=269 data-nosnippet>269</a>
+<a href=#270 id=270 data-nosnippet>270</a>    <span class="kw">fn </span>validate_stmt_block(<span class="kw-2">&amp;</span><span class="self">self</span>, stmts: <span class="kw-2">&amp;</span>[Stmt]) -&gt; <span class="prelude-ty">Result</span>&lt;(), String&gt; {
+<a href=#271 id=271 data-nosnippet>271</a>        <span class="kw">for </span>stmt <span class="kw">in </span>stmts {
+<a href=#272 id=272 data-nosnippet>272</a>            stmt.validate()<span class="question-mark">?</span>;
+<a href=#273 id=273 data-nosnippet>273</a>        }
+<a href=#274 id=274 data-nosnippet>274</a>        <span class="prelude-val">Ok</span>(())
+<a href=#275 id=275 data-nosnippet>275</a>    }
+<a href=#276 id=276 data-nosnippet>276</a>
+<a href=#277 id=277 data-nosnippet>277</a>    <span class="kw">pub fn </span>collect_function_calls(<span class="kw-2">&amp;</span><span class="self">self</span>, calls: <span class="kw-2">&amp;mut </span>Vec&lt;String&gt;) {
+<a href=#278 id=278 data-nosnippet>278</a>        <span class="kw">match </span><span class="self">self </span>{
+<a href=#279 id=279 data-nosnippet>279</a>            Stmt::Let { value, .. } =&gt; value.collect_function_calls(calls),
+<a href=#280 id=280 data-nosnippet>280</a>            Stmt::Expr(expr) =&gt; expr.collect_function_calls(calls),
+<a href=#281 id=281 data-nosnippet>281</a>            Stmt::Return(<span class="prelude-val">Some</span>(expr)) =&gt; expr.collect_function_calls(calls),
+<a href=#282 id=282 data-nosnippet>282</a>            Stmt::Return(<span class="prelude-val">None</span>) =&gt; {}
+<a href=#283 id=283 data-nosnippet>283</a>            Stmt::If {
+<a href=#284 id=284 data-nosnippet>284</a>                condition,
+<a href=#285 id=285 data-nosnippet>285</a>                then_block,
+<a href=#286 id=286 data-nosnippet>286</a>                else_block,
+<a href=#287 id=287 data-nosnippet>287</a>            } =&gt; {
+<a href=#288 id=288 data-nosnippet>288</a>                condition.collect_function_calls(calls);
+<a href=#289 id=289 data-nosnippet>289</a>                <span class="kw">for </span>stmt <span class="kw">in </span>then_block {
+<a href=#290 id=290 data-nosnippet>290</a>                    stmt.collect_function_calls(calls);
+<a href=#291 id=291 data-nosnippet>291</a>                }
+<a href=#292 id=292 data-nosnippet>292</a>                <span class="kw">if let </span><span class="prelude-val">Some</span>(else_stmts) = else_block {
+<a href=#293 id=293 data-nosnippet>293</a>                    <span class="kw">for </span>stmt <span class="kw">in </span>else_stmts {
+<a href=#294 id=294 data-nosnippet>294</a>                        stmt.collect_function_calls(calls);
+<a href=#295 id=295 data-nosnippet>295</a>                    }
+<a href=#296 id=296 data-nosnippet>296</a>                }
+<a href=#297 id=297 data-nosnippet>297</a>            }
+<a href=#298 id=298 data-nosnippet>298</a>            Stmt::Match { scrutinee, arms } =&gt; {
+<a href=#299 id=299 data-nosnippet>299</a>                scrutinee.collect_function_calls(calls);
+<a href=#300 id=300 data-nosnippet>300</a>                <span class="kw">for </span>arm <span class="kw">in </span>arms {
+<a href=#301 id=301 data-nosnippet>301</a>                    <span class="kw">if let </span><span class="prelude-val">Some</span>(guard) = <span class="kw-2">&amp;</span>arm.guard {
+<a href=#302 id=302 data-nosnippet>302</a>                        guard.collect_function_calls(calls);
+<a href=#303 id=303 data-nosnippet>303</a>                    }
+<a href=#304 id=304 data-nosnippet>304</a>                    <span class="kw">for </span>stmt <span class="kw">in </span><span class="kw-2">&amp;</span>arm.body {
+<a href=#305 id=305 data-nosnippet>305</a>                        stmt.collect_function_calls(calls);
+<a href=#306 id=306 data-nosnippet>306</a>                    }
+<a href=#307 id=307 data-nosnippet>307</a>                }
+<a href=#308 id=308 data-nosnippet>308</a>            }
+<a href=#309 id=309 data-nosnippet>309</a>            Stmt::For { iter, body, .. } =&gt; {
+<a href=#310 id=310 data-nosnippet>310</a>                iter.collect_function_calls(calls);
+<a href=#311 id=311 data-nosnippet>311</a>                <span class="kw">for </span>stmt <span class="kw">in </span>body {
+<a href=#312 id=312 data-nosnippet>312</a>                    stmt.collect_function_calls(calls);
+<a href=#313 id=313 data-nosnippet>313</a>                }
+<a href=#314 id=314 data-nosnippet>314</a>            }
+<a href=#315 id=315 data-nosnippet>315</a>            Stmt::While {
+<a href=#316 id=316 data-nosnippet>316</a>                condition, body, ..
+<a href=#317 id=317 data-nosnippet>317</a>            } =&gt; {
+<a href=#318 id=318 data-nosnippet>318</a>                condition.collect_function_calls(calls);
+<a href=#319 id=319 data-nosnippet>319</a>                <span class="kw">for </span>stmt <span class="kw">in </span>body {
+<a href=#320 id=320 data-nosnippet>320</a>                    stmt.collect_function_calls(calls);
+<a href=#321 id=321 data-nosnippet>321</a>                }
+<a href=#322 id=322 data-nosnippet>322</a>            }
+<a href=#323 id=323 data-nosnippet>323</a>            Stmt::Break | Stmt::Continue =&gt; {}
+<a href=#324 id=324 data-nosnippet>324</a>        }
+<a href=#325 id=325 data-nosnippet>325</a>    }
+<a href=#326 id=326 data-nosnippet>326</a>}
+<a href=#327 id=327 data-nosnippet>327</a>
+<a href=#328 id=328 data-nosnippet>328</a><span class="attr">#[derive(Debug, Clone, Serialize, Deserialize)]
+<a href=#329 id=329 data-nosnippet>329</a></span><span class="kw">pub enum </span>Expr {
+<a href=#330 id=330 data-nosnippet>330</a>    Literal(Literal),
+<a href=#331 id=331 data-nosnippet>331</a>    Variable(String),
+<a href=#332 id=332 data-nosnippet>332</a>    FunctionCall {
+<a href=#333 id=333 data-nosnippet>333</a>        name: String,
+<a href=#334 id=334 data-nosnippet>334</a>        args: Vec&lt;Expr&gt;,
+<a href=#335 id=335 data-nosnippet>335</a>    },
+<a href=#336 id=336 data-nosnippet>336</a>    Binary {
+<a href=#337 id=337 data-nosnippet>337</a>        op: BinaryOp,
+<a href=#338 id=338 data-nosnippet>338</a>        left: Box&lt;Expr&gt;,
+<a href=#339 id=339 data-nosnippet>339</a>        right: Box&lt;Expr&gt;,
+<a href=#340 id=340 data-nosnippet>340</a>    },
+<a href=#341 id=341 data-nosnippet>341</a>    Unary {
+<a href=#342 id=342 data-nosnippet>342</a>        op: UnaryOp,
+<a href=#343 id=343 data-nosnippet>343</a>        operand: Box&lt;Expr&gt;,
+<a href=#344 id=344 data-nosnippet>344</a>    },
+<a href=#345 id=345 data-nosnippet>345</a>    MethodCall {
+<a href=#346 id=346 data-nosnippet>346</a>        receiver: Box&lt;Expr&gt;,
+<a href=#347 id=347 data-nosnippet>347</a>        method: String,
+<a href=#348 id=348 data-nosnippet>348</a>        args: Vec&lt;Expr&gt;,
+<a href=#349 id=349 data-nosnippet>349</a>    },
+<a href=#350 id=350 data-nosnippet>350</a>    Array(Vec&lt;Expr&gt;),
+<a href=#351 id=351 data-nosnippet>351</a>    Index {
+<a href=#352 id=352 data-nosnippet>352</a>        object: Box&lt;Expr&gt;,
+<a href=#353 id=353 data-nosnippet>353</a>        index: Box&lt;Expr&gt;,
+<a href=#354 id=354 data-nosnippet>354</a>    },
+<a href=#355 id=355 data-nosnippet>355</a>    Try {
+<a href=#356 id=356 data-nosnippet>356</a>        expr: Box&lt;Expr&gt;,
+<a href=#357 id=357 data-nosnippet>357</a>    },
+<a href=#358 id=358 data-nosnippet>358</a>    Block(Vec&lt;Stmt&gt;),
+<a href=#359 id=359 data-nosnippet>359</a>}
+<a href=#360 id=360 data-nosnippet>360</a>
+<a href=#361 id=361 data-nosnippet>361</a><span class="kw">impl </span>Expr {
+<a href=#362 id=362 data-nosnippet>362</a>    <span class="kw">pub fn </span>validate(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;(), String&gt; {
+<a href=#363 id=363 data-nosnippet>363</a>        <span class="comment">// Check nesting depth
+<a href=#364 id=364 data-nosnippet>364</a>        </span><span class="kw">let </span>depth = <span class="self">self</span>.nesting_depth();
+<a href=#365 id=365 data-nosnippet>365</a>        <span class="kw">if </span>depth &gt; <span class="number">30 </span>{
+<a href=#366 id=366 data-nosnippet>366</a>            <span class="kw">return </span><span class="prelude-val">Err</span>(<span class="macro">format!</span>(
+<a href=#367 id=367 data-nosnippet>367</a>                <span class="string">"Expression nesting too deep: {depth} levels (max 30)"
+<a href=#368 id=368 data-nosnippet>368</a>            </span>));
+<a href=#369 id=369 data-nosnippet>369</a>        }
+<a href=#370 id=370 data-nosnippet>370</a>
+<a href=#371 id=371 data-nosnippet>371</a>        <span class="kw">match </span><span class="self">self </span>{
+<a href=#372 id=372 data-nosnippet>372</a>            Expr::Literal(Literal::Str(s)) =&gt; {
+<a href=#373 id=373 data-nosnippet>373</a>                <span class="kw">if </span>s.contains(<span class="string">'\0'</span>) {
+<a href=#374 id=374 data-nosnippet>374</a>                    <span class="kw">return </span><span class="prelude-val">Err</span>(<span class="string">"Null characters not allowed in strings"</span>.to_string());
+<a href=#375 id=375 data-nosnippet>375</a>                }
+<a href=#376 id=376 data-nosnippet>376</a>                <span class="prelude-val">Ok</span>(())
+<a href=#377 id=377 data-nosnippet>377</a>            }
+<a href=#378 id=378 data-nosnippet>378</a>            Expr::Literal(<span class="kw">_</span>) =&gt; <span class="prelude-val">Ok</span>(()),
+<a href=#379 id=379 data-nosnippet>379</a>            Expr::Variable(<span class="kw">_</span>) =&gt; <span class="prelude-val">Ok</span>(()),
+<a href=#380 id=380 data-nosnippet>380</a>            Expr::FunctionCall { args, .. } =&gt; {
+<a href=#381 id=381 data-nosnippet>381</a>                <span class="kw">for </span>arg <span class="kw">in </span>args {
+<a href=#382 id=382 data-nosnippet>382</a>                    arg.validate()<span class="question-mark">?</span>;
+<a href=#383 id=383 data-nosnippet>383</a>                }
+<a href=#384 id=384 data-nosnippet>384</a>                <span class="prelude-val">Ok</span>(())
+<a href=#385 id=385 data-nosnippet>385</a>            }
+<a href=#386 id=386 data-nosnippet>386</a>            Expr::Binary { left, right, .. } =&gt; {
+<a href=#387 id=387 data-nosnippet>387</a>                left.validate()<span class="question-mark">?</span>;
+<a href=#388 id=388 data-nosnippet>388</a>                right.validate()
+<a href=#389 id=389 data-nosnippet>389</a>            }
+<a href=#390 id=390 data-nosnippet>390</a>            Expr::Unary { operand, .. } =&gt; operand.validate(),
+<a href=#391 id=391 data-nosnippet>391</a>            Expr::MethodCall { receiver, args, .. } =&gt; {
+<a href=#392 id=392 data-nosnippet>392</a>                receiver.validate()<span class="question-mark">?</span>;
+<a href=#393 id=393 data-nosnippet>393</a>                <span class="kw">for </span>arg <span class="kw">in </span>args {
+<a href=#394 id=394 data-nosnippet>394</a>                    arg.validate()<span class="question-mark">?</span>;
+<a href=#395 id=395 data-nosnippet>395</a>                }
+<a href=#396 id=396 data-nosnippet>396</a>                <span class="prelude-val">Ok</span>(())
+<a href=#397 id=397 data-nosnippet>397</a>            }
+<a href=#398 id=398 data-nosnippet>398</a>            <span class="comment">// Placeholder for new expression types - TODO: implement properly
+<a href=#399 id=399 data-nosnippet>399</a>            </span><span class="kw">_ </span>=&gt; <span class="prelude-val">Ok</span>(()), <span class="comment">// Array, Index, Try, Block
+<a href=#400 id=400 data-nosnippet>400</a>        </span>}
+<a href=#401 id=401 data-nosnippet>401</a>    }
+<a href=#402 id=402 data-nosnippet>402</a>
+<a href=#403 id=403 data-nosnippet>403</a>    <span class="kw">fn </span>nesting_depth(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; usize {
+<a href=#404 id=404 data-nosnippet>404</a>        <span class="kw">match </span><span class="self">self </span>{
+<a href=#405 id=405 data-nosnippet>405</a>            Expr::Binary { left, right, .. } =&gt; <span class="number">1 </span>+ left.nesting_depth().max(right.nesting_depth()),
+<a href=#406 id=406 data-nosnippet>406</a>            Expr::Unary { operand, .. } =&gt; <span class="number">1 </span>+ operand.nesting_depth(),
+<a href=#407 id=407 data-nosnippet>407</a>            Expr::FunctionCall { args, .. } =&gt; {
+<a href=#408 id=408 data-nosnippet>408</a>                <span class="number">1 </span>+ args.iter().map(|a| a.nesting_depth()).max().unwrap_or(<span class="number">0</span>)
+<a href=#409 id=409 data-nosnippet>409</a>            }
+<a href=#410 id=410 data-nosnippet>410</a>            Expr::MethodCall { receiver, args, .. } =&gt; {
+<a href=#411 id=411 data-nosnippet>411</a>                <span class="kw">let </span>receiver_depth = receiver.nesting_depth();
+<a href=#412 id=412 data-nosnippet>412</a>                <span class="kw">let </span>args_depth = args.iter().map(|a| a.nesting_depth()).max().unwrap_or(<span class="number">0</span>);
+<a href=#413 id=413 data-nosnippet>413</a>                <span class="number">1 </span>+ receiver_depth.max(args_depth)
+<a href=#414 id=414 data-nosnippet>414</a>            }
+<a href=#415 id=415 data-nosnippet>415</a>            <span class="kw">_ </span>=&gt; <span class="number">0</span>,
+<a href=#416 id=416 data-nosnippet>416</a>        }
+<a href=#417 id=417 data-nosnippet>417</a>    }
+<a href=#418 id=418 data-nosnippet>418</a>
+<a href=#419 id=419 data-nosnippet>419</a>    <span class="kw">pub fn </span>collect_function_calls(<span class="kw-2">&amp;</span><span class="self">self</span>, calls: <span class="kw-2">&amp;mut </span>Vec&lt;String&gt;) {
+<a href=#420 id=420 data-nosnippet>420</a>        <span class="kw">match </span><span class="self">self </span>{
+<a href=#421 id=421 data-nosnippet>421</a>            Expr::FunctionCall { name, args } =&gt; {
+<a href=#422 id=422 data-nosnippet>422</a>                calls.push(name.clone());
+<a href=#423 id=423 data-nosnippet>423</a>                <span class="kw">for </span>arg <span class="kw">in </span>args {
+<a href=#424 id=424 data-nosnippet>424</a>                    arg.collect_function_calls(calls);
+<a href=#425 id=425 data-nosnippet>425</a>                }
+<a href=#426 id=426 data-nosnippet>426</a>            }
+<a href=#427 id=427 data-nosnippet>427</a>            Expr::Binary { left, right, .. } =&gt; {
+<a href=#428 id=428 data-nosnippet>428</a>                left.collect_function_calls(calls);
+<a href=#429 id=429 data-nosnippet>429</a>                right.collect_function_calls(calls);
+<a href=#430 id=430 data-nosnippet>430</a>            }
+<a href=#431 id=431 data-nosnippet>431</a>            Expr::Unary { operand, .. } =&gt; {
+<a href=#432 id=432 data-nosnippet>432</a>                operand.collect_function_calls(calls);
+<a href=#433 id=433 data-nosnippet>433</a>            }
+<a href=#434 id=434 data-nosnippet>434</a>            Expr::MethodCall { receiver, args, .. } =&gt; {
+<a href=#435 id=435 data-nosnippet>435</a>                receiver.collect_function_calls(calls);
+<a href=#436 id=436 data-nosnippet>436</a>                <span class="kw">for </span>arg <span class="kw">in </span>args {
+<a href=#437 id=437 data-nosnippet>437</a>                    arg.collect_function_calls(calls);
+<a href=#438 id=438 data-nosnippet>438</a>                }
+<a href=#439 id=439 data-nosnippet>439</a>            }
+<a href=#440 id=440 data-nosnippet>440</a>            Expr::Array(elements) =&gt; {
+<a href=#441 id=441 data-nosnippet>441</a>                <span class="kw">for </span>element <span class="kw">in </span>elements {
+<a href=#442 id=442 data-nosnippet>442</a>                    element.collect_function_calls(calls);
+<a href=#443 id=443 data-nosnippet>443</a>                }
+<a href=#444 id=444 data-nosnippet>444</a>            }
+<a href=#445 id=445 data-nosnippet>445</a>            Expr::Index { object, index } =&gt; {
+<a href=#446 id=446 data-nosnippet>446</a>                object.collect_function_calls(calls);
+<a href=#447 id=447 data-nosnippet>447</a>                index.collect_function_calls(calls);
+<a href=#448 id=448 data-nosnippet>448</a>            }
+<a href=#449 id=449 data-nosnippet>449</a>            Expr::Try { expr } =&gt; {
+<a href=#450 id=450 data-nosnippet>450</a>                expr.collect_function_calls(calls);
+<a href=#451 id=451 data-nosnippet>451</a>            }
+<a href=#452 id=452 data-nosnippet>452</a>            Expr::Block(stmts) =&gt; {
+<a href=#453 id=453 data-nosnippet>453</a>                <span class="kw">for </span>stmt <span class="kw">in </span>stmts {
+<a href=#454 id=454 data-nosnippet>454</a>                    stmt.collect_function_calls(calls);
+<a href=#455 id=455 data-nosnippet>455</a>                }
+<a href=#456 id=456 data-nosnippet>456</a>            }
+<a href=#457 id=457 data-nosnippet>457</a>            <span class="kw">_ </span>=&gt; {}
+<a href=#458 id=458 data-nosnippet>458</a>        }
+<a href=#459 id=459 data-nosnippet>459</a>    }
+<a href=#460 id=460 data-nosnippet>460</a>}
+<a href=#461 id=461 data-nosnippet>461</a>
+<a href=#462 id=462 data-nosnippet>462</a><span class="attr">#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+<a href=#463 id=463 data-nosnippet>463</a></span><span class="kw">pub enum </span>Literal {
+<a href=#464 id=464 data-nosnippet>464</a>    Bool(bool),
+<a href=#465 id=465 data-nosnippet>465</a>    U32(u32),
+<a href=#466 id=466 data-nosnippet>466</a>    Str(String),
+<a href=#467 id=467 data-nosnippet>467</a>}
+<a href=#468 id=468 data-nosnippet>468</a>
+<a href=#469 id=469 data-nosnippet>469</a><span class="attr">#[derive(Debug, Clone, Serialize, Deserialize)]
+<a href=#470 id=470 data-nosnippet>470</a></span><span class="kw">pub enum </span>BinaryOp {
+<a href=#471 id=471 data-nosnippet>471</a>    Add,
+<a href=#472 id=472 data-nosnippet>472</a>    Sub,
+<a href=#473 id=473 data-nosnippet>473</a>    Mul,
+<a href=#474 id=474 data-nosnippet>474</a>    Div,
+<a href=#475 id=475 data-nosnippet>475</a>    Eq,
+<a href=#476 id=476 data-nosnippet>476</a>    Ne,
+<a href=#477 id=477 data-nosnippet>477</a>    Lt,
+<a href=#478 id=478 data-nosnippet>478</a>    Le,
+<a href=#479 id=479 data-nosnippet>479</a>    Gt,
+<a href=#480 id=480 data-nosnippet>480</a>    Ge,
+<a href=#481 id=481 data-nosnippet>481</a>    And,
+<a href=#482 id=482 data-nosnippet>482</a>    Or,
+<a href=#483 id=483 data-nosnippet>483</a>}
+<a href=#484 id=484 data-nosnippet>484</a>
+<a href=#485 id=485 data-nosnippet>485</a><span class="attr">#[derive(Debug, Clone, Serialize, Deserialize)]
+<a href=#486 id=486 data-nosnippet>486</a></span><span class="kw">pub enum </span>UnaryOp {
+<a href=#487 id=487 data-nosnippet>487</a>    Not,
+<a href=#488 id=488 data-nosnippet>488</a>    Neg,
+<a href=#489 id=489 data-nosnippet>489</a>}
+<a href=#490 id=490 data-nosnippet>490</a>
+<a href=#491 id=491 data-nosnippet>491</a><span class="attr">#[derive(Debug, Clone, Serialize, Deserialize)]
+<a href=#492 id=492 data-nosnippet>492</a></span><span class="kw">pub struct </span>MatchArm {
+<a href=#493 id=493 data-nosnippet>493</a>    <span class="kw">pub </span>pattern: Pattern,
+<a href=#494 id=494 data-nosnippet>494</a>    <span class="kw">pub </span>guard: <span class="prelude-ty">Option</span>&lt;Expr&gt;,
+<a href=#495 id=495 data-nosnippet>495</a>    <span class="kw">pub </span>body: Vec&lt;Stmt&gt;,
+<a href=#496 id=496 data-nosnippet>496</a>}
+<a href=#497 id=497 data-nosnippet>497</a>
+<a href=#498 id=498 data-nosnippet>498</a><span class="attr">#[derive(Debug, Clone, Serialize, Deserialize)]
+<a href=#499 id=499 data-nosnippet>499</a></span><span class="kw">pub enum </span>Pattern {
+<a href=#500 id=500 data-nosnippet>500</a>    Literal(Literal),
+<a href=#501 id=501 data-nosnippet>501</a>    Variable(String),
+<a href=#502 id=502 data-nosnippet>502</a>    Wildcard,
+<a href=#503 id=503 data-nosnippet>503</a>    Tuple(Vec&lt;Pattern&gt;),
+<a href=#504 id=504 data-nosnippet>504</a>    Struct {
+<a href=#505 id=505 data-nosnippet>505</a>        name: String,
+<a href=#506 id=506 data-nosnippet>506</a>        fields: Vec&lt;(String, Pattern)&gt;,
+<a href=#507 id=507 data-nosnippet>507</a>    },
+<a href=#508 id=508 data-nosnippet>508</a>}
+<a href=#509 id=509 data-nosnippet>509</a>
+<a href=#510 id=510 data-nosnippet>510</a><span class="kw">impl </span>Pattern {
+<a href=#511 id=511 data-nosnippet>511</a>    <span class="kw">pub fn </span>validate(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;(), String&gt; {
+<a href=#512 id=512 data-nosnippet>512</a>        <span class="kw">match </span><span class="self">self </span>{
+<a href=#513 id=513 data-nosnippet>513</a>            Pattern::Literal(<span class="kw">_</span>) | Pattern::Variable(<span class="kw">_</span>) | Pattern::Wildcard =&gt; <span class="prelude-val">Ok</span>(()),
+<a href=#514 id=514 data-nosnippet>514</a>            Pattern::Tuple(patterns) =&gt; {
+<a href=#515 id=515 data-nosnippet>515</a>                <span class="kw">for </span>pattern <span class="kw">in </span>patterns {
+<a href=#516 id=516 data-nosnippet>516</a>                    pattern.validate()<span class="question-mark">?</span>;
+<a href=#517 id=517 data-nosnippet>517</a>                }
+<a href=#518 id=518 data-nosnippet>518</a>                <span class="prelude-val">Ok</span>(())
+<a href=#519 id=519 data-nosnippet>519</a>            }
+<a href=#520 id=520 data-nosnippet>520</a>            Pattern::Struct { fields, .. } =&gt; {
+<a href=#521 id=521 data-nosnippet>521</a>                <span class="kw">for </span>(<span class="kw">_</span>, pattern) <span class="kw">in </span>fields {
+<a href=#522 id=522 data-nosnippet>522</a>                    pattern.validate()<span class="question-mark">?</span>;
+<a href=#523 id=523 data-nosnippet>523</a>                }
+<a href=#524 id=524 data-nosnippet>524</a>                <span class="prelude-val">Ok</span>(())
+<a href=#525 id=525 data-nosnippet>525</a>            }
+<a href=#526 id=526 data-nosnippet>526</a>        }
+<a href=#527 id=527 data-nosnippet>527</a>    }
+<a href=#528 id=528 data-nosnippet>528</a>
+<a href=#529 id=529 data-nosnippet>529</a>    <span class="kw">pub fn </span>binds_variable(<span class="kw-2">&amp;</span><span class="self">self</span>, name: <span class="kw-2">&amp;</span>str) -&gt; bool {
+<a href=#530 id=530 data-nosnippet>530</a>        <span class="kw">match </span><span class="self">self </span>{
+<a href=#531 id=531 data-nosnippet>531</a>            Pattern::Variable(var_name) =&gt; var_name == name,
+<a href=#532 id=532 data-nosnippet>532</a>            Pattern::Tuple(patterns) =&gt; patterns.iter().any(|p| p.binds_variable(name)),
+<a href=#533 id=533 data-nosnippet>533</a>            Pattern::Struct { fields, .. } =&gt; fields.iter().any(|(<span class="kw">_</span>, p)| p.binds_variable(name)),
+<a href=#534 id=534 data-nosnippet>534</a>            <span class="kw">_ </span>=&gt; <span class="bool-val">false</span>,
+<a href=#535 id=535 data-nosnippet>535</a>        }
+<a href=#536 id=536 data-nosnippet>536</a>    }
+<a href=#537 id=537 data-nosnippet>537</a>}</code></pre></div></section></main></body></html>
