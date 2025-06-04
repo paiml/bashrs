@@ -1,9 +1,9 @@
 #!/bin/sh
-# Rash installer script v0.2.0
+# Rash installer script v0.2.1
 # Auto-generated install script
 set -euf
 
-VERSION="0.2.0"
+VERSION="0.2.1"
 GITHUB_REPO="paiml/rash"
 
 echo "Rash installer v${VERSION}"
