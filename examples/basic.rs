@@ -1,8 +1,7 @@
 #[rash::main]
-fn install() -> Result<(), &'static str> {
+fn install() {
     let message = "Hello from Rash!";
     echo(message);
-    Ok(())
 }
 
 fn echo(msg: &str) {

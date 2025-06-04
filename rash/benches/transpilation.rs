@@ -38,6 +38,7 @@ fn extract_archive() {}
 fn echo_complete() {}
 "#;
 
+#[allow(dead_code)]
 const COMPLEX_RUST: &str = r#"
 fn main() {
     let config = "default";
@@ -162,6 +163,7 @@ fn benchmark_end_to_end(c: &mut Criterion) {
     group.finish();
 }
 
+#[allow(dead_code)]
 fn benchmark_memory_usage(c: &mut Criterion) {
     let mut group = c.benchmark_group("memory");
 
@@ -183,6 +185,7 @@ fn benchmark_memory_usage(c: &mut Criterion) {
     group.finish();
 }
 
+#[allow(dead_code)]
 fn benchmark_scalability(c: &mut Criterion) {
     let mut group = c.benchmark_group("scalability");
 
@@ -206,6 +209,7 @@ fn benchmark_scalability(c: &mut Criterion) {
     group.finish();
 }
 
+#[allow(dead_code)]
 fn generate_large_rust_source(num_functions: usize) -> String {
     let mut source = String::new();
 
