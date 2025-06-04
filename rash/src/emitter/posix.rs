@@ -36,7 +36,7 @@ impl PosixEmitter {
 
         // Set strict error handling
         writeln!(output, "set -euf")?;
-        writeln!(output, "IFS=$'\\n\\t'")?;
+        writeln!(output, "IFS=' \t\n'")?; // POSIX-compatible IFS setting
         writeln!(output, "export LC_ALL=C")?;
         writeln!(output)?;
 
@@ -85,7 +85,7 @@ impl PosixEmitter {
 
     fn write_download_function(&self, output: &mut String) -> Result<()> {
         writeln!(output, "rash_download_verified() {{")?;
-        writeln!(output, "    local url=\"$1\" dst=\"$2\" checksum=\"$3\"")?;
+        writeln!(output, "    url=\"$1\"; dst=\"$2\"; checksum=\"$3\"")?;
         writeln!(output, "    ")?;
 
         self.write_download_logic(output)?;

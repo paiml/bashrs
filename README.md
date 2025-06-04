@@ -72,6 +72,37 @@ mkdir -p "$prefix/bin"  # Properly quoted!
 curl --proto '=https' --tlsv1.2 -sSf https://github.com/paiml/rash/releases/latest/download/install.sh | sh
 ```
 
+After installation, add to your PATH:
+```bash
+export PATH="$HOME/.local/bin:$PATH"
+rash --version
+```
+
+<details>
+<summary>🔧 Installation Troubleshooting</summary>
+
+If the above doesn't work, try these alternatives:
+
+**Option 1: Download then run**
+```bash
+curl --proto '=https' --tlsv1.2 -sSfL -o install.sh https://github.com/paiml/rash/releases/latest/download/install.sh
+sh install.sh
+```
+
+**Option 2: Specific version**
+```bash
+curl --proto '=https' --tlsv1.2 -sSf https://github.com/paiml/rash/releases/download/v0.2.0/install.sh | sh
+```
+
+**Option 3: Manual PATH setup**
+```bash
+# If rash command not found after install
+echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.bashrc  # or ~/.zshrc
+source ~/.bashrc  # or ~/.zshrc
+```
+
+</details>
+
 ### Manual Installation
 
 <details>
