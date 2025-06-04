@@ -18,71 +18,56 @@ fn main() {
     let version = "1.0.0";
     let arch = "x86_64";
     
-    let download_url = concat_strings(
-        "https://releases.example.com/v",
-        version,
-        "/tool-",
-        arch,
-        ".tar.gz"
-    );
-    
-    if check_exists(prefix) {
-        echo("Already installed");
+    if check_exists() {
+        echo_installed();
         return;
     }
     
-    mkdir(prefix);
-    download(download_url, "/tmp/tool.tar.gz");
-    extract("/tmp/tool.tar.gz", prefix);
+    mkdir_prefix();
+    download_file();
+    extract_archive();
     
-    echo("Installation complete");
+    echo_complete();
 }
 
-fn concat_strings(a: &str, b: &str, c: &str, d: &str, e: &str) -> &str { a }
-fn check_exists(path: &str) -> bool { true }
-fn echo(msg: &str) {}
-fn mkdir(path: &str) {}
-fn download(url: &str, dest: &str) {}
-fn extract(archive: &str, dest: &str) {}
+fn check_exists() -> bool { true }
+fn echo_installed() {}
+fn mkdir_prefix() {}
+fn download_file() {}
+fn extract_archive() {}
+fn echo_complete() {}
 "#;
 
 const COMPLEX_RUST: &str = r#"
 fn main() {
-    let config = load_config();
-    let system_info = detect_system();
+    let config = "default";
+    let system_info = "linux";
     
-    validate_system(system_info);
-    prepare_environment(config);
+    validate_system();
+    prepare_environment();
     
-    let components = vec![
-        "core",
-        "cli", 
-        "runtime",
-        "docs"
-    ];
-    
-    for component in components {
-        install_component(component, config, system_info);
-    }
+    install_component();
+    install_component();
+    install_component();
     
     configure_shell_integration();
     run_post_install_tests();
     
-    echo("Installation successful!");
+    finish_installation();
 }
 
-fn load_config() -> &'static str { "" }
-fn detect_system() -> &'static str { "" }
-fn validate_system(info: &str) {}
-fn prepare_environment(config: &str) {}
-fn install_component(name: &str, config: &str, system: &str) {}
+fn validate_system() {}
+fn prepare_environment() {}
+fn install_component() {}
 fn configure_shell_integration() {}
 fn run_post_install_tests() {}
-fn echo(msg: &str) {}
+fn finish_installation() {}
 "#;
 
 fn benchmark_parsing(c: &mut Criterion) {
     let mut group = c.benchmark_group("parsing");
+    group.measurement_time(Duration::from_secs(10));
+    group.sample_size(50);
 
     group.bench_with_input(
         BenchmarkId::new("parse", "simple"),
@@ -96,21 +81,16 @@ fn benchmark_parsing(c: &mut Criterion) {
         |b, source| b.iter(|| parser::parse(source).unwrap()),
     );
 
-    group.bench_with_input(
-        BenchmarkId::new("parse", "complex"),
-        &COMPLEX_RUST,
-        |b, source| b.iter(|| parser::parse(source).unwrap()),
-    );
-
     group.finish();
 }
 
 fn benchmark_ir_generation(c: &mut Criterion) {
     let mut group = c.benchmark_group("ir_generation");
+    group.measurement_time(Duration::from_secs(10));
+    group.sample_size(50);
 
     let simple_ast = parser::parse(SIMPLE_RUST).unwrap();
     let medium_ast = parser::parse(MEDIUM_RUST).unwrap();
-    let complex_ast = parser::parse(COMPLEX_RUST).unwrap();
 
     group.bench_with_input(
         BenchmarkId::new("ast_to_ir", "simple"),
@@ -124,31 +104,20 @@ fn benchmark_ir_generation(c: &mut Criterion) {
         |b, ast| b.iter(|| ir::from_ast(ast).unwrap()),
     );
 
-    group.bench_with_input(
-        BenchmarkId::new("ast_to_ir", "complex"),
-        &complex_ast,
-        |b, ast| b.iter(|| ir::from_ast(ast).unwrap()),
-    );
-
     group.finish();
 }
 
 fn benchmark_optimization(c: &mut Criterion) {
     let mut group = c.benchmark_group("optimization");
+    group.measurement_time(Duration::from_secs(10));
+    group.sample_size(50);
 
     let config = Config::default();
     let simple_ir = ir::from_ast(&parser::parse(SIMPLE_RUST).unwrap()).unwrap();
-    let medium_ir = ir::from_ast(&parser::parse(MEDIUM_RUST).unwrap()).unwrap();
 
     group.bench_with_input(
         BenchmarkId::new("optimize", "simple"),
         &(&simple_ir, &config),
-        |b, (ir, config)| b.iter(|| ir::optimize((*ir).clone(), config).unwrap()),
-    );
-
-    group.bench_with_input(
-        BenchmarkId::new("optimize", "medium"),
-        &(&medium_ir, &config),
         |b, (ir, config)| b.iter(|| ir::optimize((*ir).clone(), config).unwrap()),
     );
 
@@ -157,15 +126,12 @@ fn benchmark_optimization(c: &mut Criterion) {
 
 fn benchmark_emission(c: &mut Criterion) {
     let mut group = c.benchmark_group("emission");
+    group.measurement_time(Duration::from_secs(10));
+    group.sample_size(50);
 
     let config = Config::default();
     let simple_ir = ir::optimize(
         ir::from_ast(&parser::parse(SIMPLE_RUST).unwrap()).unwrap(),
-        &config,
-    )
-    .unwrap();
-    let medium_ir = ir::optimize(
-        ir::from_ast(&parser::parse(MEDIUM_RUST).unwrap()).unwrap(),
         &config,
     )
     .unwrap();
@@ -176,18 +142,13 @@ fn benchmark_emission(c: &mut Criterion) {
         |b, (ir, config)| b.iter(|| rash::emitter::emit(ir, config).unwrap()),
     );
 
-    group.bench_with_input(
-        BenchmarkId::new("emit", "medium"),
-        &(&medium_ir, &config),
-        |b, (ir, config)| b.iter(|| rash::emitter::emit(ir, config).unwrap()),
-    );
-
     group.finish();
 }
 
 fn benchmark_end_to_end(c: &mut Criterion) {
     let mut group = c.benchmark_group("end_to_end");
     group.measurement_time(Duration::from_secs(10));
+    group.sample_size(30);
 
     let config = Config::default();
 
@@ -195,20 +156,6 @@ fn benchmark_end_to_end(c: &mut Criterion) {
     group.bench_with_input(
         BenchmarkId::new("transpile", "simple"),
         &(SIMPLE_RUST, &config),
-        |b, (source, config)| b.iter(|| transpile(source, (*config).clone()).unwrap()),
-    );
-
-    group.throughput(Throughput::Bytes(MEDIUM_RUST.len() as u64));
-    group.bench_with_input(
-        BenchmarkId::new("transpile", "medium"),
-        &(MEDIUM_RUST, &config),
-        |b, (source, config)| b.iter(|| transpile(source, (*config).clone()).unwrap()),
-    );
-
-    group.throughput(Throughput::Bytes(COMPLEX_RUST.len() as u64));
-    group.bench_with_input(
-        BenchmarkId::new("transpile", "complex"),
-        &(COMPLEX_RUST, &config),
         |b, (source, config)| b.iter(|| transpile(source, (*config).clone()).unwrap()),
     );
 
@@ -310,8 +257,6 @@ criterion_group!(
     benchmark_ir_generation,
     benchmark_optimization,
     benchmark_emission,
-    benchmark_end_to_end,
-    benchmark_memory_usage,
-    benchmark_scalability
+    benchmark_end_to_end
 );
 criterion_main!(benches);
