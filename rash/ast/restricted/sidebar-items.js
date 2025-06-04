@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"enum":["BinaryOp","Expr","Literal","Stmt","Type","UnaryOp"],"struct":["Function","Parameter","RestrictedAst"]};
+window.SIDEBAR_ITEMS = {"enum":["BinaryOp","Expr","Literal","Pattern","Stmt","Type","UnaryOp"],"struct":["Function","MatchArm","Parameter","RestrictedAst"]};
