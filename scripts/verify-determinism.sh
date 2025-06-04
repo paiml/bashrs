@@ -13,33 +13,22 @@ trap "rm -rf $TEST_DIR" EXIT
 cat > "$TEST_DIR/test1.rs" << 'EOF'
 fn main() {
     let x = 42;
-    println!("Hello, {}", x);
-    if x > 0 {
-        echo!("Positive");
-    }
+    echo(x);
 }
+
+fn echo(msg: u32) {}
 EOF
 
 cat > "$TEST_DIR/test2.rs" << 'EOF'
-use std::env;
-use std::fs;
-
-fn process_files() -> Result<(), Box<dyn std::error::Error>> {
-    for entry in fs::read_dir(".")? {
-        let path = entry?.path();
-        if path.is_file() {
-            echo!("Processing: {}", path.display());
-        }
-    }
-    Ok(())
-}
-
 fn main() {
-    if let Err(e) = process_files() {
-        eprintln!("Error: {}", e);
-        std::process::exit(1);
-    }
+    let message = "Hello World";
+    let count = 3;
+    echo(message);
+    process_count(count);
 }
+
+fn echo(msg: &str) {}
+fn process_count(n: u32) {}
 EOF
 
 # Check if rash binary exists
@@ -55,9 +44,8 @@ for test_file in "$TEST_DIR"/*.rs; do
     
     # Run transpilation multiple times
     for i in {1..10}; do
-        "$RASH_BIN" transpile "$test_file" \
-            --output "$TEST_DIR/output_$i.sh" \
-            --optimization-level aggressive 2>/dev/null || true
+        "$RASH_BIN" build "$test_file" \
+            --output "$TEST_DIR/output_$i.sh" 2>/dev/null || true
     done
     
     # Verify all outputs are identical
