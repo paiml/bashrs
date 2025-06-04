@@ -4,6 +4,7 @@
 .PHONY: fuzz fuzz-all fuzz-coverage fuzz-trophies fuzz-differential
 .PHONY: verify verify-smt verify-model verify-specs verify-properties
 .PHONY: audit docs build install profile-memory profile-heap profile-flamegraph
+.PHONY: update-deps update-deps-aggressive update-deps-check update-deps-workspace
 
 # Parallel job execution
 MAKEFLAGS += -j$(shell nproc)
@@ -267,6 +268,100 @@ audit:
 		cargo install cargo-audit && cargo audit; \
 	fi
 
+# Dependency management
+update-deps:
+	@echo "🔄 Updating dependencies (semver-compatible)..."
+	@echo "Step 1: Updating within semver-compatible ranges..."
+	@cargo update --aggressive --workspace
+	@echo "Step 2: Running tests to verify compatibility..."
+	@make test-fast
+	@echo "✅ Dependencies updated successfully!"
+	@echo ""
+	@echo "📊 Updated packages summary:"
+	@cargo tree --duplicates --workspace | head -20 || true
+
+update-deps-aggressive:
+	@echo "🔄 Updating dependencies aggressively (requires cargo-edit)..."
+	@echo "Installing cargo-edit for cargo upgrade command..."
+	@if ! command -v cargo-upgrade >/dev/null 2>&1; then \
+		cargo install cargo-edit; \
+	else \
+		echo "cargo-edit already installed"; \
+	fi
+	@echo "Step 1: Updating within semver-compatible ranges..."
+	@cargo update --aggressive --workspace
+	@echo "Step 2: Upgrading to latest incompatible versions (major bumps)..."
+	@for dir in . rash rash-runtime rash-tests; do \
+		if [ -f $$dir/Cargo.toml ]; then \
+			echo "Upgrading $$dir..."; \
+			cd $$dir && cargo upgrade --incompatible && cd ..; \
+		fi; \
+	done
+	@echo "Step 3: Running comprehensive tests..."
+	@make test-fast lint-check
+	@echo "Step 4: Checking for security vulnerabilities..."
+	@make audit
+	@echo "✅ Aggressive update completed!"
+	@echo ""
+	@echo "📊 Final dependency status:"
+	@cargo tree --duplicates --workspace | head -30 || true
+
+update-deps-check:
+	@echo "🔍 Checking for outdated dependencies..."
+	@if ! command -v cargo-outdated >/dev/null 2>&1; then \
+		echo "Installing cargo-outdated..."; \
+		cargo install cargo-outdated; \
+	fi
+	@echo ""
+	@echo "📋 Outdated dependencies in main workspace:"
+	@cargo outdated --workspace --root-deps-only || true
+	@echo ""
+	@echo "📋 Outdated dependencies in rash:"
+	@cd rash && cargo outdated --root-deps-only || true
+	@echo ""
+	@echo "📋 Outdated dependencies in rash-runtime:"
+	@cd rash-runtime && cargo outdated --root-deps-only || true
+	@echo ""
+	@echo "📋 Outdated dependencies in rash-tests:"
+	@cd rash-tests && cargo outdated --root-deps-only || true
+	@echo ""
+	@echo "🔍 Security advisories check:"
+	@make audit || true
+
+update-deps-workspace:
+	@echo "🔄 Updating workspace dependencies with validation..."
+	@echo "Step 1: Backup current Cargo.lock files..."
+	@cp Cargo.lock Cargo.lock.backup 2>/dev/null || true
+	@cp rash/Cargo.lock rash/Cargo.lock.backup 2>/dev/null || true
+	@cp rash-runtime/Cargo.lock rash-runtime/Cargo.lock.backup 2>/dev/null || true
+	@cp rash-tests/Cargo.lock rash-tests/Cargo.lock.backup 2>/dev/null || true
+	@echo "Step 2: Updating workspace dependencies..."
+	@cargo update --workspace
+	@echo "Step 3: Building to check for breaking changes..."
+	@if ! cargo build --workspace --all-features; then \
+		echo "❌ Build failed after update, restoring backups..."; \
+		cp Cargo.lock.backup Cargo.lock 2>/dev/null || true; \
+		cp rash/Cargo.lock.backup rash/Cargo.lock 2>/dev/null || true; \
+		cp rash-runtime/Cargo.lock.backup rash-runtime/Cargo.lock 2>/dev/null || true; \
+		cp rash-tests/Cargo.lock.backup rash-tests/Cargo.lock 2>/dev/null || true; \
+		exit 1; \
+	fi
+	@echo "Step 4: Running tests..."
+	@if ! make test-fast; then \
+		echo "❌ Tests failed after update, restoring backups..."; \
+		cp Cargo.lock.backup Cargo.lock 2>/dev/null || true; \
+		cp rash/Cargo.lock.backup rash/Cargo.lock 2>/dev/null || true; \
+		cp rash-runtime/Cargo.lock.backup rash-runtime/Cargo.lock 2>/dev/null || true; \
+		cp rash-tests/Cargo.lock.backup rash-tests/Cargo.lock 2>/dev/null || true; \
+		exit 1; \
+	fi
+	@echo "Step 5: Cleanup backup files..."
+	@rm -f Cargo.lock.backup rash/Cargo.lock.backup rash-runtime/Cargo.lock.backup rash-tests/Cargo.lock.backup
+	@echo "✅ Workspace dependencies updated and validated!"
+	@echo ""
+	@echo "📊 Dependency tree summary:"
+	@cargo tree --workspace --depth 1
+
 # Documentation
 docs:
 	@echo "📚 Building documentation..."
@@ -348,6 +443,12 @@ help:
 	@echo "  make quality-gate - Run quality checks"
 	@echo "  make quality-report - Generate quality report"
 	@echo "  make audit        - Security audit"
+	@echo ""
+	@echo "Dependencies:"
+	@echo "  make update-deps  - Update dependencies (semver-compatible)"
+	@echo "  make update-deps-aggressive - Update all dependencies including major versions"
+	@echo "  make update-deps-check - Check for outdated dependencies"
+	@echo "  make update-deps-workspace - Safe workspace dependency update with rollback"
 	@echo ""
 	@echo "Advanced:"
 	@echo "  make fuzz         - Run fuzzing tests"

@@ -1,8 +1,8 @@
 use chrono::Utc;
 use std::fs;
-use std::process::Command;
 use std::io::BufRead;
 use std::os::unix::process::ExitStatusExt;
+use std::process::Command;
 
 fn count_lines_of_code() -> usize {
     let output = Command::new("find")
@@ -14,7 +14,7 @@ fn count_lines_of_code() -> usize {
             stdout: Vec::new(),
             stderr: Vec::new(),
         });
-    
+
     String::from_utf8_lossy(&output.stdout)
         .lines()
         .last()
@@ -33,10 +33,8 @@ fn count_tests() -> usize {
             stdout: Vec::new(),
             stderr: Vec::new(),
         });
-    
-    std::io::BufReader::new(&output.stdout[..])
-        .lines()
-        .count()
+
+    std::io::BufReader::new(&output.stdout[..]).lines().count()
 }
 
 fn count_files() -> usize {
@@ -49,10 +47,8 @@ fn count_files() -> usize {
             stdout: Vec::new(),
             stderr: Vec::new(),
         });
-    
-    std::io::BufReader::new(&output.stdout[..])
-        .lines()
-        .count()
+
+    std::io::BufReader::new(&output.stdout[..]).lines().count()
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -96,10 +92,10 @@ Generated: {}
         count_files(),
         count_tests()
     );
-    
+
     fs::create_dir_all("docs")?;
     fs::write("docs/quality-dashboard.md", dashboard)?;
-    
+
     println!("✅ Quality dashboard generated at docs/quality-dashboard.md");
     Ok(())
 }

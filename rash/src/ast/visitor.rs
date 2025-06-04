@@ -1,4 +1,4 @@
-use super::restricted::{RestrictedAst, Function, Stmt, Expr};
+use super::restricted::{Expr, Function, RestrictedAst, Stmt};
 
 pub trait Visitor<T> {
     fn visit_ast(&mut self, ast: &RestrictedAst) -> T;
@@ -15,8 +15,8 @@ pub trait VisitorMut<T> {
 }
 
 /// Walk an AST and call the visitor for each node
-pub fn walk_ast<V, T>(visitor: &mut V, ast: &RestrictedAst) -> T 
-where 
+pub fn walk_ast<V, T>(visitor: &mut V, ast: &RestrictedAst) -> T
+where
     V: Visitor<T>,
     T: Default,
 {
@@ -44,7 +44,11 @@ where
         Stmt::Expr(expr) => transform_expr(expr, transform),
         Stmt::Return(Some(expr)) => transform_expr(expr, transform),
         Stmt::Return(None) => {}
-        Stmt::If { condition, then_block, else_block } => {
+        Stmt::If {
+            condition,
+            then_block,
+            else_block,
+        } => {
             transform_expr(condition, transform);
             for stmt in then_block {
                 transform_stmt_exprs(stmt, transform);
@@ -85,6 +89,6 @@ where
         }
         _ => {}
     }
-    
+
     transform(expr);
 }

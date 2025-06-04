@@ -1,9 +1,9 @@
 // Stress testing module - SQLite-style load and endurance testing
+use crate::models::Config;
+use crate::Result;
 use std::sync::{Arc, Mutex};
 use std::thread;
 use std::time::{Duration, Instant};
-use crate::models::Config;
-use crate::Result;
 
 #[derive(Debug, Clone)]
 pub struct StressTestResults {
@@ -22,7 +22,9 @@ pub struct StressTestResults {
 
 impl StressTestResults {
     pub fn success_rate(&self) -> f64 {
-        if self.total_operations == 0 { return 0.0; }
+        if self.total_operations == 0 {
+            return 0.0;
+        }
         (self.successful_operations as f64 / self.total_operations as f64) * 100.0
     }
 }
@@ -61,7 +63,8 @@ impl StressTester {
 
         results.test_duration_secs = start_time.elapsed().as_secs_f64();
         if results.test_duration_secs > 0.0 {
-            results.operations_per_second = results.total_operations as f64 / results.test_duration_secs;
+            results.operations_per_second =
+                results.total_operations as f64 / results.test_duration_secs;
         }
 
         Ok(results)
@@ -92,7 +95,9 @@ impl StressTester {
                     Ok(_) => results.successful_operations += 1,
                     Err(e) => {
                         results.failed_operations += 1;
-                        results.error_details.push(format!("Transpilation error: {}", e));
+                        results
+                            .error_details
+                            .push(format!("Transpilation error: {}", e));
                     }
                 }
             }
@@ -117,33 +122,37 @@ impl StressTester {
         let error_count = Arc::new(Mutex::new(0));
         let errors = Arc::new(Mutex::new(Vec::new()));
 
-        let handles: Vec<_> = (0..num_threads).map(|_| {
-            let success = Arc::clone(&success_count);
-            let errors_count = Arc::clone(&error_count);
-            let error_details = Arc::clone(&errors);
-            let config = self.config.clone();
+        let handles: Vec<_> = (0..num_threads)
+            .map(|_| {
+                let success = Arc::clone(&success_count);
+                let errors_count = Arc::clone(&error_count);
+                let error_details = Arc::clone(&errors);
+                let config = self.config.clone();
 
-            thread::spawn(move || {
-                for i in 0..operations_per_thread {
-                    let test_code = format!("fn main() {{ let x = {}; }}", i);
-                    match crate::transpile(&test_code, config.clone()) {
-                        Ok(_) => {
-                            let mut count = success.lock().unwrap();
-                            *count += 1;
-                        }
-                        Err(e) => {
-                            let mut count = errors_count.lock().unwrap();
-                            *count += 1;
-                            let mut errs = error_details.lock().unwrap();
-                            errs.push(format!("Concurrent error: {}", e));
+                thread::spawn(move || {
+                    for i in 0..operations_per_thread {
+                        let test_code = format!("fn main() {{ let x = {}; }}", i);
+                        match crate::transpile(&test_code, config.clone()) {
+                            Ok(_) => {
+                                let mut count = success.lock().unwrap();
+                                *count += 1;
+                            }
+                            Err(e) => {
+                                let mut count = errors_count.lock().unwrap();
+                                *count += 1;
+                                let mut errs = error_details.lock().unwrap();
+                                errs.push(format!("Concurrent error: {}", e));
+                            }
                         }
                     }
-                }
+                })
             })
-        }).collect();
+            .collect();
 
         for handle in handles {
-            handle.join().map_err(|_| crate::Error::Internal("Thread panic".to_string()))?;
+            handle
+                .join()
+                .map_err(|_| crate::Error::Internal("Thread panic".to_string()))?;
         }
 
         let successful = *success_count.lock().unwrap();
@@ -170,12 +179,14 @@ impl StressTester {
 
         for large_value in large_values {
             let test_code = format!("{}{};", base_code, large_value);
-            
+
             match crate::transpile(&test_code, self.config.clone()) {
                 Ok(_) => results.successful_operations += 1,
                 Err(e) => {
                     results.failed_operations += 1;
-                    results.error_details.push(format!("Memory pressure error: {}", e));
+                    results
+                        .error_details
+                        .push(format!("Memory pressure error: {}", e));
                 }
             }
             results.total_operations += 1;
@@ -198,13 +209,16 @@ impl StressTester {
 
         while start_time.elapsed() < test_duration {
             let test_code = format!("fn main() {{ let x = {}; }}", operations % 1000);
-            
+
             match crate::transpile(&test_code, self.config.clone()) {
                 Ok(_) => successes += 1,
                 Err(e) => {
                     failures += 1;
-                    if failures < 10 { // Limit error collection
-                        results.error_details.push(format!("Sustained load error: {}", e));
+                    if failures < 10 {
+                        // Limit error collection
+                        results
+                            .error_details
+                            .push(format!("Sustained load error: {}", e));
                     }
                 }
             }
@@ -229,12 +243,14 @@ impl StressTester {
 
             for i in 0..burst_size {
                 let test_code = format!("fn main() {{ let burst_{}_op_{} = {}; }}", burst, i, i);
-                
+
                 match crate::transpile(&test_code, self.config.clone()) {
                     Ok(_) => results.successful_operations += 1,
                     Err(e) => {
                         results.failed_operations += 1;
-                        results.error_details.push(format!("Burst load error: {}", e));
+                        results
+                            .error_details
+                            .push(format!("Burst load error: {}", e));
                     }
                 }
                 results.total_operations += 1;

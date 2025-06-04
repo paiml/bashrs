@@ -1,12 +1,12 @@
 #![cfg(kani)]
 //! Kani verification harnesses for RASH
-//! 
+//!
 //! These harnesses verify critical safety properties using bounded model checking.
 
 use crate::ast::{Expr, Stmt, Type};
 use crate::emitter::escape::{escape_shell_string, escape_shell_value};
 use crate::services::parser;
-use crate::verifier::properties::{validate_rust0_ast, is_valid_rust0};
+use crate::verifier::properties::{is_valid_rust0, validate_rust0_ast};
 
 /// Verify that the parser only accepts valid Rust₀ programs
 #[kani::proof]
@@ -14,7 +14,7 @@ use crate::verifier::properties::{validate_rust0_ast, is_valid_rust0};
 fn verify_parser_soundness() {
     let input: &str = kani::any();
     kani::assume(input.len() < 1000); // Bound input for tractability
-    
+
     match parser::parse(input) {
         Ok(ast) => {
             // Property: Valid AST implies valid Rust₀
@@ -33,15 +33,15 @@ fn verify_parser_soundness() {
 fn verify_escape_safety() {
     let input: String = kani::any();
     kani::assume(input.len() < 100);
-    
+
     let escaped = escape_shell_string(&input);
-    
+
     // Property 1: Result is always single-quoted
     kani::assert!(escaped.starts_with('\'') && escaped.ends_with('\''));
-    
+
     // Property 2: No unescaped metacharacters possible
     kani::assert!(!contains_unescaped_metachar(&escaped));
-    
+
     // Property 3: Original content is preserved (modulo escaping)
     let unescaped = unescape_shell_string(&escaped);
     kani::assert!(unescaped == input);
@@ -54,9 +54,9 @@ fn verify_variable_expansion_safety() {
     let var_name: String = kani::any();
     kani::assume(var_name.len() < 50);
     kani::assume(is_valid_identifier(&var_name));
-    
+
     let expansion = format!("\"${{{}}}\"", var_name);
-    
+
     // Property: Variable expansion is always double-quoted
     kani::assert!(expansion.starts_with('"') && expansion.ends_with('"'));
     kani::assert!(expansion.contains("${") && expansion.contains("}"));
@@ -69,14 +69,17 @@ fn verify_injection_safety() {
     // Generate arbitrary user input that might contain malicious content
     let user_input: String = kani::any();
     kani::assume(user_input.len() < 100);
-    
+
     // Simulate various contexts where user input might appear
     let contexts = vec![
         format!("echo {}", escape_shell_string(&user_input)),
         format!("VAR={}", escape_shell_value(&user_input)),
-        format!("if [ \"${{VAR}}\" = {} ]; then", escape_shell_string(&user_input)),
+        format!(
+            "if [ \"${{VAR}}\" = {} ]; then",
+            escape_shell_string(&user_input)
+        ),
     ];
-    
+
     for context in contexts {
         // Property: No command injection possible
         kani::assert!(!can_inject_command(&context, &user_input));
@@ -89,9 +92,9 @@ fn verify_injection_safety() {
 fn verify_array_bounds_safety() {
     let array_size: usize = kani::any();
     kani::assume(array_size > 0 && array_size < 100);
-    
+
     let index: usize = kani::any();
-    
+
     // Simulated array access check
     if index < array_size {
         // Safe access
@@ -107,13 +110,13 @@ fn verify_array_bounds_safety() {
 fn contains_unescaped_metachar(s: &str) -> bool {
     let mut in_quotes = false;
     let mut escaped = false;
-    
+
     for ch in s.chars() {
         if escaped {
             escaped = false;
             continue;
         }
-        
+
         match ch {
             '\\' => escaped = true,
             '\'' => in_quotes = !in_quotes,
@@ -125,14 +128,14 @@ fn contains_unescaped_metachar(s: &str) -> bool {
             _ => {}
         }
     }
-    
+
     false
 }
 
 /// Helper: Unescape a shell-escaped string
 fn unescape_shell_string(s: &str) -> String {
     if s.starts_with('\'') && s.ends_with('\'') {
-        let inner = &s[1..s.len()-1];
+        let inner = &s[1..s.len() - 1];
         inner.replace("'\"'\"'", "'")
     } else {
         s.to_string()
@@ -141,22 +144,24 @@ fn unescape_shell_string(s: &str) -> String {
 
 /// Helper: Check if string is valid identifier
 fn is_valid_identifier(s: &str) -> bool {
-    !s.is_empty() && 
-    s.chars().all(|c| c.is_alphanumeric() || c == '_') &&
-    s.chars().next().map_or(false, |c| c.is_alphabetic() || c == '_')
+    !s.is_empty()
+        && s.chars().all(|c| c.is_alphanumeric() || c == '_')
+        && s.chars()
+            .next()
+            .map_or(false, |c| c.is_alphabetic() || c == '_')
 }
 
 /// Helper: Check if command injection is possible
 fn can_inject_command(shell_code: &str, user_input: &str) -> bool {
     // Simplified check: look for unquoted user input or command separators
     let dangerous_patterns = [";", "&&", "||", "|", "`", "$(", "\n"];
-    
+
     for pattern in &dangerous_patterns {
         if shell_code.contains(pattern) && !is_properly_escaped(shell_code, pattern) {
             return true;
         }
     }
-    
+
     false
 }
 
@@ -164,6 +169,5 @@ fn can_inject_command(shell_code: &str, user_input: &str) -> bool {
 fn is_properly_escaped(code: &str, pattern: &str) -> bool {
     // This is a simplified check - real implementation would be more sophisticated
     // For Kani verification, we check that dangerous patterns are within quotes
-    code.contains(&format!("'{}'", pattern)) || 
-    code.contains(&format!("\"{}\"", pattern))
+    code.contains(&format!("'{}'", pattern)) || code.contains(&format!("\"{}\"", pattern))
 }

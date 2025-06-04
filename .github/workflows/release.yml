@@ -1,212 +1,155 @@
-name: Automated Release
+name: Release
 
 on:
-  workflow_dispatch:
-    inputs:
-      release-type:
-        type: choice
-        options: [patch, minor, major]
-        required: true
-        description: 'Release type'
+  push:
+    tags:
+      - 'v*'
+
+env:
+  CARGO_TERM_COLOR: always
 
 jobs:
-  prepare-release:
-    runs-on: ubuntu-22.04
+  create-release:
+    name: Create Release
+    runs-on: ubuntu-latest
     outputs:
-      version: ${{ steps.version.outputs.new }}
-      changelog: ${{ steps.changelog.outputs.content }}
+      upload_url: ${{ steps.create_release.outputs.upload_url }}
     steps:
-      - uses: actions/checkout@v4
+      - name: Create Release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          fetch-depth: 0
-          token: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@stable
-
-      - name: Calculate version
-        id: version
-        run: |
-          CURRENT=$(grep '^version = ' Cargo.toml | head -1 | cut -d'"' -f2)
-          IFS='.' read -r major minor patch <<< "$CURRENT"
-          
-          case "${{ inputs.release-type }}" in
-            major) ((major++)); minor=0; patch=0 ;;
-            minor) ((minor++)); patch=0 ;;
-            patch) ((patch++)) ;;
-          esac
-          
-          NEW_VERSION="$major.$minor.$patch"
-          echo "new=$NEW_VERSION" >> "$GITHUB_OUTPUT"
-          echo "New version will be: $NEW_VERSION"
-
-      - name: Generate changelog
-        id: changelog
-        run: |
-          # Generate changelog from commits
-          echo "## Changes in v${{ steps.version.outputs.new }}" > CHANGELOG_NEW.md
-          echo "" >> CHANGELOG_NEW.md
-          
-          # Get commits since last tag
-          LAST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
-          if [ -z "$LAST_TAG" ]; then
-            git log --pretty=format:"- %s" >> CHANGELOG_NEW.md
-          else
-            git log ${LAST_TAG}..HEAD --pretty=format:"- %s" >> CHANGELOG_NEW.md
-          fi
-          
-          echo "content<<EOF" >> "$GITHUB_OUTPUT"
-          cat CHANGELOG_NEW.md >> "$GITHUB_OUTPUT"
-          echo "EOF" >> "$GITHUB_OUTPUT"
-
-      - name: Update version files
-        run: |
-          # Update all Cargo.toml files
-          find . -name Cargo.toml -exec sed -i \
-            "s/^version = \".*\"/version = \"${{ steps.version.outputs.new }}\"/" {} \;
-          
-          # Update dependencies versions in workspace
-          sed -i "s/^rash = { version = \".*\"/rash = { version = \"${{ steps.version.outputs.new }}\"/" \
-            rash-runtime/Cargo.toml rash-tests/Cargo.toml || true
-          sed -i "s/^rash-runtime = { version = \".*\"/rash-runtime = { version = \"${{ steps.version.outputs.new }}\"/" \
-            rash/Cargo.toml rash-tests/Cargo.toml || true
-          
-          # Update Cargo.lock
-          cargo update --workspace
-
-      - name: Run release validation
-        run: |
-          make validate
-          make verify-specs
-          make test-determinism
-
-      - name: Commit and tag
-        run: |
-          git config user.name "RASH Release Bot"
-          git config user.email "rash-bot@example.com"
-          
-          git add -A
-          git commit -m "chore: release v${{ steps.version.outputs.new }}"
-          git tag -a "v${{ steps.version.outputs.new }}" \
-            -m "Release v${{ steps.version.outputs.new }}"
-          
-          git push origin main
-          git push origin "v${{ steps.version.outputs.new }}"
+          tag_name: ${{ github.ref }}
+          release_name: Release ${{ github.ref }}
+          draft: false
+          prerelease: false
 
   build-release:
-    needs: prepare-release
+    name: Build Release Binary
+    needs: create-release
     strategy:
       matrix:
         include:
-          - target: x86_64-unknown-linux-gnu
-            os: ubuntu-22.04
           - target: x86_64-unknown-linux-musl
-            os: ubuntu-22.04
-            cross: true
-          - target: aarch64-unknown-linux-gnu
-            os: ubuntu-22.04
-            cross: true
+            os: ubuntu-latest
+            name: linux-amd64
+          - target: aarch64-unknown-linux-musl
+            os: ubuntu-latest
+            name: linux-arm64
           - target: x86_64-apple-darwin
-            os: macos-13
+            os: macos-latest
+            name: darwin-amd64
           - target: aarch64-apple-darwin
-            os: macos-13
+            os: macos-latest
+            name: darwin-arm64
           - target: x86_64-pc-windows-msvc
-            os: windows-2022
+            os: windows-latest
+            name: windows-amd64
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: v${{ needs.prepare-release.outputs.version }}
-
-      - name: Install Rust toolchain
+      
+      - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
-
-      - name: Install target
-        run: rustup target add ${{ matrix.target }}
-
-      - name: Install cross
-        if: matrix.cross
-        run: cargo install cross
-
-      - name: Build release binary
+        with:
+          target: ${{ matrix.target }}
+      
+      - name: Install musl tools (Linux)
+        if: matrix.os == 'ubuntu-latest'
         run: |
-          if [[ "${{ matrix.cross }}" == "true" ]]; then
-            cross build --release --target ${{ matrix.target }}
-          else
-            cargo build --release --target ${{ matrix.target }}
-          fi
-
-      - name: Create artifact
+          sudo apt-get update
+          sudo apt-get install -y musl-tools
+          rustup target add ${{ matrix.target }}
+      
+      - name: Build release binary
+        run: cargo build --release --target ${{ matrix.target }} --no-default-features --features minimal
+      
+      - name: Create archive
         shell: bash
         run: |
           cd target/${{ matrix.target }}/release
-          if [[ "${{ matrix.os }}" == "windows-2022" ]]; then
-            7z a rash-${{ matrix.target }}.zip rash.exe
+          if [ "${{ matrix.os }}" = "windows-latest" ]; then
+            7z a ../../../rash-${{ github.ref_name }}-${{ matrix.name }}.zip rash.exe
           else
-            tar czf rash-${{ matrix.target }}.tar.gz rash
+            tar czf ../../../rash-${{ github.ref_name }}-${{ matrix.name }}.tar.gz rash
           fi
-          sha256sum rash-${{ matrix.target }}.* > checksums.txt
-
-      - name: Upload artifact
-        uses: actions/upload-artifact@v4
+          cd ../../..
+      
+      - name: Upload Release Asset
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          name: rash-${{ matrix.target }}
-          path: target/${{ matrix.target }}/release/rash-${{ matrix.target }}.*
+          upload_url: ${{ needs.create-release.outputs.upload_url }}
+          asset_path: ./rash-${{ github.ref_name }}-${{ matrix.name }}.${{ matrix.os == 'windows-latest' && 'zip' || 'tar.gz' }}
+          asset_name: rash-${{ github.ref_name }}-${{ matrix.name }}.${{ matrix.os == 'windows-latest' && 'zip' || 'tar.gz' }}
+          asset_content_type: ${{ matrix.os == 'windows-latest' && 'application/zip' || 'application/gzip' }}
 
-  publish-release:
-    needs: [prepare-release, build-release]
-    runs-on: ubuntu-22.04
+  build-installer:
+    name: Build Installer Script
+    needs: create-release
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: v${{ needs.prepare-release.outputs.version }}
-
-      - name: Install Rust toolchain
+      
+      - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
-
-      - name: Download all artifacts
-        uses: actions/download-artifact@v4
-        with:
-          path: artifacts
-
-      - name: Create release notes
-        run: |
-          echo "# RASH v${{ needs.prepare-release.outputs.version }}" > RELEASE.md
-          echo "" >> RELEASE.md
-          echo "${{ needs.prepare-release.outputs.changelog }}" >> RELEASE.md
-          echo "" >> RELEASE.md
-          echo "## Installation" >> RELEASE.md
-          echo "" >> RELEASE.md
-          echo "### Using the installer script:" >> RELEASE.md
-          echo '```bash' >> RELEASE.md
-          echo 'curl -sSfL https://github.com/${{ github.repository }}/releases/download/v${{ needs.prepare-release.outputs.version }}/install-rash.rs | rustc - && ./install-rash' >> RELEASE.md
-          echo '```' >> RELEASE.md
-          echo "" >> RELEASE.md
-          echo "### Manual installation:" >> RELEASE.md
-          echo "Download the appropriate binary for your platform from the assets below." >> RELEASE.md
-
-      - name: Create checksums file
-        run: |
-          cd artifacts
-          find . -name "checksums.txt" -exec cat {} \; > ../checksums-all.txt
-
-      - name: Create GitHub Release
-        uses: softprops/action-gh-release@v1
-        with:
-          tag_name: v${{ needs.prepare-release.outputs.version }}
-          name: RASH v${{ needs.prepare-release.outputs.version }}
-          body_path: RELEASE.md
-          draft: false
-          prerelease: false
-          files: |
-            artifacts/*/*
-            checksums-all.txt
-            install-rash.rs
-
-      - name: Publish to crates.io
+      
+      - name: Build rash
+        run: cargo build --release
+      
+      - name: Transpile installer
+        run: ./target/release/rash build src/install.rs -o install.sh
+      
+      - name: Make installer executable
+        run: chmod +x install.sh
+      
+      - name: Upload installer
+        uses: actions/upload-release-asset@v1
         env:
-          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ needs.create-release.outputs.upload_url }}
+          asset_path: ./install.sh
+          asset_name: install.sh
+          asset_content_type: text/x-shellscript
+
+  generate-checksums:
+    name: Generate Checksums
+    needs: [create-release, build-release, build-installer]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Download all artifacts
+        uses: actions/download-artifact@v3
+      
+      - name: Generate SHA256SUMS
         run: |
-          # Publish in dependency order
-          cd rash-runtime && cargo publish --no-verify || echo "rash-runtime already published"
-          cd ../rash && cargo publish --no-verify || echo "rash already published"
+          sha256sum rash-*.tar.gz rash-*.zip install.sh > SHA256SUMS
+      
+      - name: Upload SHA256SUMS
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ needs.create-release.outputs.upload_url }}
+          asset_path: ./SHA256SUMS
+          asset_name: SHA256SUMS
+          asset_content_type: text/plain
+
+  publish-crate:
+    name: Publish to crates.io
+    needs: [build-release]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+      
+      - name: Publish to crates.io
+        run: cargo publish --token ${{ secrets.CRATES_IO_TOKEN }}
+        working-directory: ./rash

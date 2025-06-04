@@ -1,18 +1,18 @@
+use anyhow::Result;
 use std::fs;
 use std::path::Path;
-use anyhow::Result;
 
 fn main() -> Result<()> {
     // Read the shell runtime library
     let runtime_path = Path::new("src/lib.sh");
     let runtime_content = fs::read_to_string(runtime_path)?;
-    
+
     // Validate shell syntax (basic check)
     // validate_shell_syntax(&runtime_content)?;
-    
+
     // Minify the runtime (remove comments and extra whitespace)
     let minified = minify_shell(&runtime_content);
-    
+
     // Generate Rust code to embed the runtime
     let escaped_runtime = minified.replace('\\', "\\\\").replace('"', "\\\"");
     let output = format!(
@@ -25,15 +25,15 @@ pub fn get_runtime() -> &'static str {{
 "#,
         escaped_runtime
     );
-    
+
     // Write to output file
     let out_dir = std::env::var("OUT_DIR")?;
     let dest_path = Path::new(&out_dir).join("runtime.rs");
     fs::write(dest_path, output)?;
-    
+
     // Tell cargo to rerun if the runtime changes
     println!("cargo:rerun-if-changed=src/lib.sh");
-    
+
     Ok(())
 }
 
@@ -46,13 +46,13 @@ fn validate_shell_syntax(content: &str) -> Result<()> {
     let mut paren_count = 0;
     let mut brace_count = 0;
     let mut bracket_count = 0;
-    
+
     for ch in content.chars() {
         if escape_next {
             escape_next = false;
             continue;
         }
-        
+
         match ch {
             '\\' if !single_quote => escape_next = true,
             '\'' if !double_quote && !escape_next => single_quote = !single_quote,
@@ -66,7 +66,7 @@ fn validate_shell_syntax(content: &str) -> Result<()> {
             _ => {}
         }
     }
-    
+
     if single_quote {
         anyhow::bail!("Unclosed single quote in runtime");
     }
@@ -82,7 +82,7 @@ fn validate_shell_syntax(content: &str) -> Result<()> {
     if bracket_count != 0 {
         anyhow::bail!("Unmatched brackets in runtime: {}", bracket_count);
     }
-    
+
     Ok(())
 }
 
@@ -98,7 +98,7 @@ fn minify_shell(content: &str) -> String {
                 let before_hash = &line[..pos];
                 let single_quotes = before_hash.chars().filter(|&c| c == '\'').count();
                 let double_quotes = before_hash.chars().filter(|&c| c == '"').count();
-                
+
                 // If we're inside quotes, keep the line as-is
                 if single_quotes % 2 != 0 || double_quotes % 2 != 0 {
                     line.trim().to_string()

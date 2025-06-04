@@ -4,7 +4,10 @@ pub mod visitor;
 #[cfg(test)]
 mod tests;
 
-pub use restricted::{RestrictedAst, Function, Type, Expr, Stmt};
+#[cfg(test)]
+mod visitor_tests;
+
+pub use restricted::{Expr, Function, RestrictedAst, Stmt, Type};
 
 use crate::models::{Error, Result};
 

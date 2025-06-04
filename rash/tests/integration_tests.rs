@@ -1,8 +1,8 @@
-use rash::{transpile, check, Config};
 use rash::models::{ShellDialect, VerificationLevel};
+use rash::{check, transpile, Config};
+use std::fs;
 use std::process::Command;
 use tempfile::TempDir;
-use std::fs;
 
 #[test]
 fn test_end_to_end_simple_transpilation() {
@@ -17,7 +17,7 @@ fn echo(msg: &str) {}
 
     let config = Config::default();
     let result = transpile(source, config).unwrap();
-    
+
     // Verify basic structure
     assert!(result.contains("#!/bin/sh"));
     assert!(result.contains("set -euf"));
@@ -37,11 +37,11 @@ fn main() {
 fn echo(msg: &str) {}
 "#;
 
-    let config = Config { 
-        verify: VerificationLevel::Strict, 
-        ..Default::default() 
+    let config = Config {
+        verify: VerificationLevel::Strict,
+        ..Default::default()
     };
-    
+
     let result = transpile(source, config);
     assert!(result.is_ok());
 }
@@ -59,17 +59,17 @@ fn echo(msg: &str) {}
 
     let config = Config::default();
     let shell_script = transpile(source, config).unwrap();
-    
+
     // Write to temporary file and execute
     let temp_dir = TempDir::new().unwrap();
     let script_path = temp_dir.path().join("test.sh");
     fs::write(&script_path, shell_script).unwrap();
-    
+
     let output = Command::new("sh")
         .arg(&script_path)
         .output()
         .expect("Failed to execute shell script");
-    
+
     assert!(output.status.success());
     // The script should execute without errors
 }
@@ -86,30 +86,30 @@ fn main() {
 
     let config = Config::default();
     let shell_script = transpile(source, config).unwrap();
-    
+
     // Execute and verify variables are set correctly
     let temp_dir = TempDir::new().unwrap();
     let script_path = temp_dir.path().join("test.sh");
-    
+
     // Modify script to print variables for verification
-    let modified_script = shell_script.replace(
-        "readonly x=42",
-        "readonly x=42\n    echo \"x=$x\"",
-    ).replace(
-        "readonly name=test",
-        "readonly name=test\n    echo \"name=$name\"",
-    ).replace(
-        "readonly greeting=Hello",
-        "readonly greeting=Hello\n    echo \"greeting=$greeting\"",
-    );
-    
+    let modified_script = shell_script
+        .replace("readonly x=42", "readonly x=42\n    echo \"x=$x\"")
+        .replace(
+            "readonly name=test",
+            "readonly name=test\n    echo \"name=$name\"",
+        )
+        .replace(
+            "readonly greeting=Hello",
+            "readonly greeting=Hello\n    echo \"greeting=$greeting\"",
+        );
+
     fs::write(&script_path, modified_script).unwrap();
-    
+
     let output = Command::new("sh")
         .arg(&script_path)
         .output()
         .expect("Failed to execute shell script");
-    
+
     assert!(output.status.success());
     let stdout = String::from_utf8(output.stdout).unwrap();
     assert!(stdout.contains("x=42"));
@@ -140,10 +140,10 @@ fn echo(msg: &str) {}
             target: *dialect,
             ..Default::default()
         };
-        
+
         let result = transpile(source, config);
         assert!(result.is_ok(), "Failed for dialect: {:?}", dialect);
-        
+
         let script = result.unwrap();
         assert!(script.contains("#!/bin/sh"));
         assert!(script.contains("readonly msg='testing dialects'"));
@@ -173,7 +173,7 @@ fn echo(msg: &str) {}
             verify: *level,
             ..Default::default()
         };
-        
+
         let result = transpile(safe_source, config);
         assert!(result.is_ok(), "Failed for verification level: {:?}", level);
     }
@@ -198,19 +198,19 @@ fn echo(msg: &str) {}
         optimize: true,
         ..Default::default()
     };
-    
+
     let config_unoptimized = Config {
         optimize: false,
         ..Default::default()
     };
-    
+
     let optimized = transpile(source, config_optimized).unwrap();
     let unoptimized = transpile(source, config_unoptimized).unwrap();
-    
+
     // Both should work
     assert!(optimized.contains("readonly part1=Hello"));
     assert!(unoptimized.contains("readonly part1=Hello"));
-    
+
     // Optimization might affect the output structure, but both should be valid
     // For now, just ensure both contain the expected output
     assert!(!optimized.is_empty());
@@ -254,7 +254,7 @@ fn echo(msg: &str) {}
 
     let config = Config::default();
     let result = transpile(source, config);
-    
+
     // Should handle nested if/else structures
     if result.is_ok() {
         let script = result.unwrap();
@@ -280,7 +280,7 @@ fn process_data(num: u32, text: &str) {}
 
     let config = Config::default();
     let result = transpile(source, config).unwrap();
-    
+
     // Function calls should be translated to shell commands
     assert!(result.contains("helper"));
     assert!(result.contains("process_data"));
@@ -289,10 +289,10 @@ fn process_data(num: u32, text: &str) {}
 #[test]
 fn test_error_handling_invalid_source() {
     let invalid_sources = vec![
-        "",  // Empty
-        "invalid rust syntax",  // Not valid Rust
-        "fn not_main() { let x = 1; }",  // No main function
-        "struct NotAllowed {}",  // Not a function (should fail validation)
+        "",                             // Empty
+        "invalid rust syntax",          // Not valid Rust
+        "fn not_main() { let x = 1; }", // No main function
+        "struct NotAllowed {}",         // Not a function (should fail validation)
     ];
 
     for source in invalid_sources {
@@ -319,11 +319,11 @@ fn echo(msg: &str) {}
 
     let config = Config::default();
     let result = transpile(source, config).unwrap();
-    
+
     // Verify proper escaping
     assert!(result.contains("'hello world'"));
-    assert!(result.contains("'don'\"'\"'t break'"));  // Proper quote escaping
-    assert!(result.contains("'test & echo '\"'\"'injected'\"'\"''"));  // Escaped special chars
+    assert!(result.contains("'don'\"'\"'t break'")); // Proper quote escaping
+    assert!(result.contains("'test & echo '\"'\"'injected'\"'\"''")); // Escaped special chars
 }
 
 #[test]
@@ -336,11 +336,11 @@ fn main() {
 
     let config = Config::default();
     let result = transpile(source, config).unwrap();
-    
+
     // Verify runtime functions are included
     assert!(result.contains("rash_require()"));
     assert!(result.contains("rash_download_verified()"));
-    
+
     // Verify they contain expected functionality
     assert!(result.contains("curl"));
     assert!(result.contains("sha256sum"));
@@ -357,13 +357,13 @@ fn main() {
 
     let config = Config::default();
     let result = transpile(source, config).unwrap();
-    
+
     // Check proper header
     assert!(result.starts_with("#!/bin/sh"));
     assert!(result.contains("set -euf"));
     assert!(result.contains("IFS=$'\\n\\t'"));
     assert!(result.contains("export LC_ALL=C"));
-    
+
     // Check proper footer
     assert!(result.contains("trap 'rm -rf"));
     assert!(result.ends_with("main \"$@\"\n"));
@@ -381,12 +381,12 @@ fn echo(msg: &str) {}
 "#;
 
     let config = Config::default();
-    
+
     // Generate the same output multiple times
     let result1 = transpile(source, config.clone()).unwrap();
     let result2 = transpile(source, config.clone()).unwrap();
     let result3 = transpile(source, config).unwrap();
-    
+
     // Should be identical
     assert_eq!(result1, result2);
     assert_eq!(result2, result3);
@@ -396,26 +396,26 @@ fn echo(msg: &str) {}
 fn test_large_input_handling() {
     // Generate a larger Rust program
     let mut source = String::new();
-    
+
     for i in 0..50 {
         source.push_str(&format!(
             "fn function_{}() {{ let var_{} = {}; }}\n",
             i, i, i
         ));
     }
-    
+
     source.push_str("fn main() {\n");
     for i in 0..50 {
         source.push_str(&format!("    function_{}();\n", i));
     }
     source.push_str("}\n");
-    
+
     let config = Config::default();
     let result = transpile(&source, config);
-    
+
     // Should handle large inputs without panicking
     assert!(result.is_ok());
-    
+
     let script = result.unwrap();
     assert!(script.contains("function_0"));
     assert!(script.contains("function_49"));
@@ -437,10 +437,10 @@ fn echo(msg: &str) {}
         verify: VerificationLevel::Strict,
         ..Default::default()
     };
-    
+
     let result = transpile(source, config);
     assert!(result.is_ok());
-    
+
     // The transpile function itself doesn't generate proof files,
     // but it should not fail when proof emission is requested
 }
@@ -448,7 +448,7 @@ fn echo(msg: &str) {}
 #[test]
 fn test_concurrent_transpilation() {
     use std::thread;
-    
+
     let source = r#"
 fn main() {
     let thread_test = "concurrent";
@@ -459,16 +459,16 @@ fn echo(msg: &str) {}
 "#;
 
     let config = Config::default();
-    
+
     // Test concurrent transpilation
-    let handles: Vec<_> = (0..4).map(|_| {
-        let source = source.to_string();
-        let config = config.clone();
-        thread::spawn(move || {
-            transpile(&source, config)
+    let handles: Vec<_> = (0..4)
+        .map(|_| {
+            let source = source.to_string();
+            let config = config.clone();
+            thread::spawn(move || transpile(&source, config))
         })
-    }).collect();
-    
+        .collect();
+
     for handle in handles {
         let result = handle.join().unwrap();
         assert!(result.is_ok());
@@ -480,17 +480,17 @@ fn test_memory_safety() {
     // Test with deeply nested structures that might cause stack overflow
     let mut source = String::new();
     source.push_str("fn main() {\n");
-    
+
     // Create nested variable assignments
     for i in 0..100 {
         source.push_str(&format!("    let var_{} = \"value_{}\";\n", i, i));
     }
-    
+
     source.push_str("}\n");
-    
+
     let config = Config::default();
     let result = transpile(&source, config);
-    
+
     // Should not crash or cause stack overflow
     assert!(result.is_ok());
 }
