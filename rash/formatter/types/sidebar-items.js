@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":["ContractKind","ShellType"],"struct":["BytePos","CharPos","CommentMetadata","ContractMetadata","FormatConfig","FormattedSource","FunctionMetadata","MappedPosition","SemanticMetadata","Span","VariableMetadata"]};

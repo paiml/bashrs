@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":["VerificationResult"],"struct":["LogMetadata","LogStats","LogVerificationData","MerkleProof","MerkleTree","TransformEntry","TransformLog"]};

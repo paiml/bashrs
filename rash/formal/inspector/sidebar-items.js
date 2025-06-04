@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":["EnvChange","FilesystemChange","VerificationResult"],"struct":["AnnotatedAst","CwdChange","CwdComparison","EmitterJustification","EnvComparison","EquivalenceAnalysis","ExecutionStep","ExecutionTrace","ExitCodeComparison","FilesystemComparison","OutputComparison","ProofInspector","StateTransformation","VerificationReport"]};

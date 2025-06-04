@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":["ComparisonOp","ConditionalExpression","FileTestOp","SubstitutionContext","VariableExpansion"],"fn":["validate_all","validate_backticks","validate_cd_usage","validate_glob_pattern","validate_read_command","validate_unicode_quotes"],"struct":["CommandSequence","CommandSubstitution","ExitCodeCheck"]};

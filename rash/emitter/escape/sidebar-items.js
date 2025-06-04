@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"fn":["escape_command_name","escape_shell_string","escape_variable_name","is_safe_command_name","is_safe_unquoted","is_valid_shell_identifier"]};
+window.SIDEBAR_ITEMS = {"fn":["escape_command_name","escape_shell_string","escape_variable_name","is_safe_command_name","is_safe_unquoted","is_valid_shell_identifier","shell_escape"]};

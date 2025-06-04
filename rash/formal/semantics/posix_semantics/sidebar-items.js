@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":["PosixCommand"],"fn":["eval_posix","eval_single_posix_command","parse_command_line","parse_posix_command"]};

@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":["OverflowSemantics","QuoteKind","QuoteReason","QuoteType","SemanticDelta","Transform","WhitespaceContext"],"struct":["IntervalSet","SexprProof","TransformId"]};

@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":["BuiltinProfile","Compatibility","CoreDialect","InferenceEvidence","ShellDialect","SyntaxFeature"],"fn":["check_compatibility"],"struct":["DialectScorer","InferenceConfidence"]};
