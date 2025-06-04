@@ -18,7 +18,7 @@ fn walk_rust_files(dir: &str) -> Vec<std::path::PathBuf> {
                 let path = entry.path();
                 if path.is_dir() {
                     visit_dirs(&path, files)?;
-                } else if path.extension().map_or(false, |ext| ext == "rs") {
+                } else if path.extension().is_some_and(|ext| ext == "rs") {
                     files.push(path);
                 }
             }
