@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"fn":["count_files","count_lines_of_code","count_tests","main"]};
+window.SIDEBAR_ITEMS = {"fn":["count_files","count_lines_in_file","count_lines_of_code","count_tests","main","walk_rust_files"]};
