@@ -308,7 +308,8 @@ shellcheck-test-all: shellcheck-install
 	@echo "🧪 Running comprehensive ShellCheck tests..."
 	@failed=0; \
 	total=0; \
-	for rs_file in examples/*.rs tests/fixtures/shellcheck/*.rs 2>/dev/null; do \
+	shopt -s nullglob; \
+	for rs_file in examples/*.rs tests/fixtures/shellcheck/*.rs; do \
 		if [ -f "$$rs_file" ]; then \
 			total=$$((total + 1)); \
 			base=$$(basename "$$rs_file" .rs); \
