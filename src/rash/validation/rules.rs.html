@@ -71,14 +71,14 @@
 <a href=#71 id=71 data-nosnippet>71</a>    }
 <a href=#72 id=72 data-nosnippet>72</a>}
 <a href=#73 id=73 data-nosnippet>73</a>
-<a href=#74 id=74 data-nosnippet>74</a><span class="kw">pub fn </span>validate_glob_pattern(pattern: <span class="kw-2">&amp;</span>str) -&gt; <span class="prelude-ty">Result</span>&lt;String, ValidationError&gt; {
-<a href=#75 id=75 data-nosnippet>75</a>    <span class="kw">if </span>pattern.starts_with(<span class="string">'-'</span>) {
-<a href=#76 id=76 data-nosnippet>76</a>        <span class="kw">return </span><span class="prelude-val">Err</span>(ValidationError {
-<a href=#77 id=77 data-nosnippet>77</a>            rule: <span class="string">"SC2035"</span>,
-<a href=#78 id=78 data-nosnippet>78</a>            severity: Severity::Warning,
-<a href=#79 id=79 data-nosnippet>79</a>            message: <span class="macro">format!</span>(
-<a href=#80 id=80 data-nosnippet>80</a>                <span class="string">"Use './' or -- to prevent glob patterns being interpreted as options"
-<a href=#81 id=81 data-nosnippet>81</a>            </span>),
+<a href=#74 id=74 data-nosnippet>74</a><span class="attr">#[allow(clippy::result_large_err)]
+<a href=#75 id=75 data-nosnippet>75</a></span><span class="kw">pub fn </span>validate_glob_pattern(pattern: <span class="kw-2">&amp;</span>str) -&gt; <span class="prelude-ty">Result</span>&lt;String, ValidationError&gt; {
+<a href=#76 id=76 data-nosnippet>76</a>    <span class="kw">if </span>pattern.starts_with(<span class="string">'-'</span>) {
+<a href=#77 id=77 data-nosnippet>77</a>        <span class="kw">return </span><span class="prelude-val">Err</span>(ValidationError {
+<a href=#78 id=78 data-nosnippet>78</a>            rule: <span class="string">"SC2035"</span>,
+<a href=#79 id=79 data-nosnippet>79</a>            severity: Severity::Warning,
+<a href=#80 id=80 data-nosnippet>80</a>            message: <span class="string">"Use './' or -- to prevent glob patterns being interpreted as options"
+<a href=#81 id=81 data-nosnippet>81</a>                </span>.to_string(),
 <a href=#82 id=82 data-nosnippet>82</a>            suggestion: <span class="prelude-val">Some</span>(<span class="macro">format!</span>(<span class="string">"Use './{}'"</span>, pattern)),
 <a href=#83 id=83 data-nosnippet>83</a>            auto_fix: <span class="prelude-val">Some</span>(Fix {
 <a href=#84 id=84 data-nosnippet>84</a>                description: <span class="string">"Prefix with './' to prevent option interpretation"</span>.to_string(),
@@ -89,7 +89,7 @@
 <a href=#89 id=89 data-nosnippet>89</a>        });
 <a href=#90 id=90 data-nosnippet>90</a>    }
 <a href=#91 id=91 data-nosnippet>91</a>
-<a href=#92 id=92 data-nosnippet>92</a>    <span class="kw">if </span>pattern.contains(|c| <span class="macro">matches!</span>(c, <span class="string">'*' </span>| <span class="string">'?' </span>| <span class="string">'['</span>)) {
+<a href=#92 id=92 data-nosnippet>92</a>    <span class="kw">if </span>pattern.contains([<span class="string">'*'</span>, <span class="string">'?'</span>, <span class="string">'['</span>]) {
 <a href=#93 id=93 data-nosnippet>93</a>        <span class="prelude-val">Ok</span>(pattern.to_string())
 <a href=#94 id=94 data-nosnippet>94</a>    } <span class="kw">else </span>{
 <a href=#95 id=95 data-nosnippet>95</a>        <span class="prelude-val">Ok</span>(shell_escape(pattern))
@@ -196,94 +196,100 @@
 <a href=#196 id=196 data-nosnippet>196</a>    }
 <a href=#197 id=197 data-nosnippet>197</a>}
 <a href=#198 id=198 data-nosnippet>198</a>
-<a href=#199 id=199 data-nosnippet>199</a><span class="kw">pub fn </span>validate_backticks(command: <span class="kw-2">&amp;</span>str) -&gt; <span class="prelude-ty">Result</span>&lt;(), ValidationError&gt; {
-<a href=#200 id=200 data-nosnippet>200</a>    <span class="kw">if </span>command.contains(<span class="string">'`'</span>) {
-<a href=#201 id=201 data-nosnippet>201</a>        <span class="prelude-val">Err</span>(ValidationError {
-<a href=#202 id=202 data-nosnippet>202</a>            rule: <span class="string">"SC2006"</span>,
-<a href=#203 id=203 data-nosnippet>203</a>            severity: Severity::Style,
-<a href=#204 id=204 data-nosnippet>204</a>            message: <span class="string">"Use $(...) notation instead of legacy backticks"</span>.to_string(),
-<a href=#205 id=205 data-nosnippet>205</a>            suggestion: <span class="prelude-val">Some</span>(<span class="string">"Replace backticks with $()"</span>.to_string()),
-<a href=#206 id=206 data-nosnippet>206</a>            auto_fix: <span class="prelude-val">Some</span>(Fix {
-<a href=#207 id=207 data-nosnippet>207</a>                description: <span class="string">"Convert backticks to modern syntax"</span>.to_string(),
-<a href=#208 id=208 data-nosnippet>208</a>                replacement: command.replace(<span class="string">'`'</span>, <span class="string">"$()"</span>),
-<a href=#209 id=209 data-nosnippet>209</a>            }),
-<a href=#210 id=210 data-nosnippet>210</a>            line: <span class="prelude-val">None</span>,
-<a href=#211 id=211 data-nosnippet>211</a>            column: <span class="prelude-val">None</span>,
-<a href=#212 id=212 data-nosnippet>212</a>        })
-<a href=#213 id=213 data-nosnippet>213</a>    } <span class="kw">else </span>{
-<a href=#214 id=214 data-nosnippet>214</a>        <span class="prelude-val">Ok</span>(())
-<a href=#215 id=215 data-nosnippet>215</a>    }
-<a href=#216 id=216 data-nosnippet>216</a>}
-<a href=#217 id=217 data-nosnippet>217</a>
-<a href=#218 id=218 data-nosnippet>218</a><span class="kw">pub fn </span>validate_cd_usage(command: <span class="kw-2">&amp;</span>str) -&gt; <span class="prelude-ty">Result</span>&lt;(), ValidationError&gt; {
-<a href=#219 id=219 data-nosnippet>219</a>    <span class="kw">if </span>command.trim().starts_with(<span class="string">"cd "</span>) &amp;&amp; !command.contains(<span class="string">"||"</span>) {
-<a href=#220 id=220 data-nosnippet>220</a>        <span class="prelude-val">Err</span>(ValidationError {
-<a href=#221 id=221 data-nosnippet>221</a>            rule: <span class="string">"SC2164"</span>,
-<a href=#222 id=222 data-nosnippet>222</a>            severity: Severity::Warning,
-<a href=#223 id=223 data-nosnippet>223</a>            message: <span class="string">"Use 'cd ... || exit' or 'cd ... || return' in case cd fails"</span>.to_string(),
-<a href=#224 id=224 data-nosnippet>224</a>            suggestion: <span class="prelude-val">Some</span>(<span class="string">"Add error handling for cd command"</span>.to_string()),
-<a href=#225 id=225 data-nosnippet>225</a>            auto_fix: <span class="prelude-val">Some</span>(Fix {
-<a href=#226 id=226 data-nosnippet>226</a>                description: <span class="string">"Add error handling"</span>.to_string(),
-<a href=#227 id=227 data-nosnippet>227</a>                replacement: <span class="macro">format!</span>(<span class="string">"{} || exit 1"</span>, command.trim()),
-<a href=#228 id=228 data-nosnippet>228</a>            }),
-<a href=#229 id=229 data-nosnippet>229</a>            line: <span class="prelude-val">None</span>,
-<a href=#230 id=230 data-nosnippet>230</a>            column: <span class="prelude-val">None</span>,
-<a href=#231 id=231 data-nosnippet>231</a>        })
-<a href=#232 id=232 data-nosnippet>232</a>    } <span class="kw">else </span>{
-<a href=#233 id=233 data-nosnippet>233</a>        <span class="prelude-val">Ok</span>(())
-<a href=#234 id=234 data-nosnippet>234</a>    }
-<a href=#235 id=235 data-nosnippet>235</a>}
-<a href=#236 id=236 data-nosnippet>236</a>
-<a href=#237 id=237 data-nosnippet>237</a><span class="kw">pub fn </span>validate_read_command(command: <span class="kw-2">&amp;</span>str) -&gt; <span class="prelude-ty">Result</span>&lt;(), ValidationError&gt; {
-<a href=#238 id=238 data-nosnippet>238</a>    <span class="kw">if </span>command.contains(<span class="string">"read "</span>) &amp;&amp; !command.contains(<span class="string">"-r"</span>) {
-<a href=#239 id=239 data-nosnippet>239</a>        <span class="prelude-val">Err</span>(ValidationError {
-<a href=#240 id=240 data-nosnippet>240</a>            rule: <span class="string">"SC2162"</span>,
-<a href=#241 id=241 data-nosnippet>241</a>            severity: Severity::Warning,
-<a href=#242 id=242 data-nosnippet>242</a>            message: <span class="string">"read without -r will mangle backslashes"</span>.to_string(),
-<a href=#243 id=243 data-nosnippet>243</a>            suggestion: <span class="prelude-val">Some</span>(<span class="string">"Use 'read -r' to preserve backslashes"</span>.to_string()),
-<a href=#244 id=244 data-nosnippet>244</a>            auto_fix: <span class="prelude-val">Some</span>(Fix {
-<a href=#245 id=245 data-nosnippet>245</a>                description: <span class="string">"Add -r flag"</span>.to_string(),
-<a href=#246 id=246 data-nosnippet>246</a>                replacement: command.replace(<span class="string">"read "</span>, <span class="string">"read -r "</span>),
-<a href=#247 id=247 data-nosnippet>247</a>            }),
-<a href=#248 id=248 data-nosnippet>248</a>            line: <span class="prelude-val">None</span>,
-<a href=#249 id=249 data-nosnippet>249</a>            column: <span class="prelude-val">None</span>,
-<a href=#250 id=250 data-nosnippet>250</a>        })
-<a href=#251 id=251 data-nosnippet>251</a>    } <span class="kw">else </span>{
-<a href=#252 id=252 data-nosnippet>252</a>        <span class="prelude-val">Ok</span>(())
-<a href=#253 id=253 data-nosnippet>253</a>    }
-<a href=#254 id=254 data-nosnippet>254</a>}
-<a href=#255 id=255 data-nosnippet>255</a>
-<a href=#256 id=256 data-nosnippet>256</a><span class="kw">pub fn </span>validate_unicode_quotes(text: <span class="kw-2">&amp;</span>str) -&gt; <span class="prelude-ty">Result</span>&lt;(), ValidationError&gt; {
-<a href=#257 id=257 data-nosnippet>257</a>    <span class="kw">let </span>unicode_quotes = [<span class="string">'\u{201c}'</span>, <span class="string">'\u{201d}'</span>, <span class="string">'\u{2018}'</span>, <span class="string">'\u{2019}'</span>];
+<a href=#199 id=199 data-nosnippet>199</a><span class="attr">#[allow(clippy::result_large_err)]
+<a href=#200 id=200 data-nosnippet>200</a></span><span class="kw">pub fn </span>validate_backticks(command: <span class="kw-2">&amp;</span>str) -&gt; <span class="prelude-ty">Result</span>&lt;(), ValidationError&gt; {
+<a href=#201 id=201 data-nosnippet>201</a>    <span class="kw">if </span>command.contains(<span class="string">'`'</span>) {
+<a href=#202 id=202 data-nosnippet>202</a>        <span class="prelude-val">Err</span>(ValidationError {
+<a href=#203 id=203 data-nosnippet>203</a>            rule: <span class="string">"SC2006"</span>,
+<a href=#204 id=204 data-nosnippet>204</a>            severity: Severity::Style,
+<a href=#205 id=205 data-nosnippet>205</a>            message: <span class="string">"Use $(...) notation instead of legacy backticks"</span>.to_string(),
+<a href=#206 id=206 data-nosnippet>206</a>            suggestion: <span class="prelude-val">Some</span>(<span class="string">"Replace backticks with $()"</span>.to_string()),
+<a href=#207 id=207 data-nosnippet>207</a>            auto_fix: <span class="prelude-val">Some</span>(Fix {
+<a href=#208 id=208 data-nosnippet>208</a>                description: <span class="string">"Convert backticks to modern syntax"</span>.to_string(),
+<a href=#209 id=209 data-nosnippet>209</a>                replacement: command.replace(<span class="string">'`'</span>, <span class="string">"$()"</span>),
+<a href=#210 id=210 data-nosnippet>210</a>            }),
+<a href=#211 id=211 data-nosnippet>211</a>            line: <span class="prelude-val">None</span>,
+<a href=#212 id=212 data-nosnippet>212</a>            column: <span class="prelude-val">None</span>,
+<a href=#213 id=213 data-nosnippet>213</a>        })
+<a href=#214 id=214 data-nosnippet>214</a>    } <span class="kw">else </span>{
+<a href=#215 id=215 data-nosnippet>215</a>        <span class="prelude-val">Ok</span>(())
+<a href=#216 id=216 data-nosnippet>216</a>    }
+<a href=#217 id=217 data-nosnippet>217</a>}
+<a href=#218 id=218 data-nosnippet>218</a>
+<a href=#219 id=219 data-nosnippet>219</a><span class="attr">#[allow(clippy::result_large_err)]
+<a href=#220 id=220 data-nosnippet>220</a></span><span class="kw">pub fn </span>validate_cd_usage(command: <span class="kw-2">&amp;</span>str) -&gt; <span class="prelude-ty">Result</span>&lt;(), ValidationError&gt; {
+<a href=#221 id=221 data-nosnippet>221</a>    <span class="kw">if </span>command.trim().starts_with(<span class="string">"cd "</span>) &amp;&amp; !command.contains(<span class="string">"||"</span>) {
+<a href=#222 id=222 data-nosnippet>222</a>        <span class="prelude-val">Err</span>(ValidationError {
+<a href=#223 id=223 data-nosnippet>223</a>            rule: <span class="string">"SC2164"</span>,
+<a href=#224 id=224 data-nosnippet>224</a>            severity: Severity::Warning,
+<a href=#225 id=225 data-nosnippet>225</a>            message: <span class="string">"Use 'cd ... || exit' or 'cd ... || return' in case cd fails"</span>.to_string(),
+<a href=#226 id=226 data-nosnippet>226</a>            suggestion: <span class="prelude-val">Some</span>(<span class="string">"Add error handling for cd command"</span>.to_string()),
+<a href=#227 id=227 data-nosnippet>227</a>            auto_fix: <span class="prelude-val">Some</span>(Fix {
+<a href=#228 id=228 data-nosnippet>228</a>                description: <span class="string">"Add error handling"</span>.to_string(),
+<a href=#229 id=229 data-nosnippet>229</a>                replacement: <span class="macro">format!</span>(<span class="string">"{} || exit 1"</span>, command.trim()),
+<a href=#230 id=230 data-nosnippet>230</a>            }),
+<a href=#231 id=231 data-nosnippet>231</a>            line: <span class="prelude-val">None</span>,
+<a href=#232 id=232 data-nosnippet>232</a>            column: <span class="prelude-val">None</span>,
+<a href=#233 id=233 data-nosnippet>233</a>        })
+<a href=#234 id=234 data-nosnippet>234</a>    } <span class="kw">else </span>{
+<a href=#235 id=235 data-nosnippet>235</a>        <span class="prelude-val">Ok</span>(())
+<a href=#236 id=236 data-nosnippet>236</a>    }
+<a href=#237 id=237 data-nosnippet>237</a>}
+<a href=#238 id=238 data-nosnippet>238</a>
+<a href=#239 id=239 data-nosnippet>239</a><span class="attr">#[allow(clippy::result_large_err)]
+<a href=#240 id=240 data-nosnippet>240</a></span><span class="kw">pub fn </span>validate_read_command(command: <span class="kw-2">&amp;</span>str) -&gt; <span class="prelude-ty">Result</span>&lt;(), ValidationError&gt; {
+<a href=#241 id=241 data-nosnippet>241</a>    <span class="kw">if </span>command.contains(<span class="string">"read "</span>) &amp;&amp; !command.contains(<span class="string">"-r"</span>) {
+<a href=#242 id=242 data-nosnippet>242</a>        <span class="prelude-val">Err</span>(ValidationError {
+<a href=#243 id=243 data-nosnippet>243</a>            rule: <span class="string">"SC2162"</span>,
+<a href=#244 id=244 data-nosnippet>244</a>            severity: Severity::Warning,
+<a href=#245 id=245 data-nosnippet>245</a>            message: <span class="string">"read without -r will mangle backslashes"</span>.to_string(),
+<a href=#246 id=246 data-nosnippet>246</a>            suggestion: <span class="prelude-val">Some</span>(<span class="string">"Use 'read -r' to preserve backslashes"</span>.to_string()),
+<a href=#247 id=247 data-nosnippet>247</a>            auto_fix: <span class="prelude-val">Some</span>(Fix {
+<a href=#248 id=248 data-nosnippet>248</a>                description: <span class="string">"Add -r flag"</span>.to_string(),
+<a href=#249 id=249 data-nosnippet>249</a>                replacement: command.replace(<span class="string">"read "</span>, <span class="string">"read -r "</span>),
+<a href=#250 id=250 data-nosnippet>250</a>            }),
+<a href=#251 id=251 data-nosnippet>251</a>            line: <span class="prelude-val">None</span>,
+<a href=#252 id=252 data-nosnippet>252</a>            column: <span class="prelude-val">None</span>,
+<a href=#253 id=253 data-nosnippet>253</a>        })
+<a href=#254 id=254 data-nosnippet>254</a>    } <span class="kw">else </span>{
+<a href=#255 id=255 data-nosnippet>255</a>        <span class="prelude-val">Ok</span>(())
+<a href=#256 id=256 data-nosnippet>256</a>    }
+<a href=#257 id=257 data-nosnippet>257</a>}
 <a href=#258 id=258 data-nosnippet>258</a>
-<a href=#259 id=259 data-nosnippet>259</a>    <span class="kw">for </span>quote <span class="kw">in </span><span class="kw-2">&amp;</span>unicode_quotes {
-<a href=#260 id=260 data-nosnippet>260</a>        <span class="kw">if </span>text.contains(<span class="kw-2">*</span>quote) {
-<a href=#261 id=261 data-nosnippet>261</a>            <span class="kw">return </span><span class="prelude-val">Err</span>(ValidationError {
-<a href=#262 id=262 data-nosnippet>262</a>                rule: <span class="string">"SC2220"</span>,
-<a href=#263 id=263 data-nosnippet>263</a>                severity: Severity::Error,
-<a href=#264 id=264 data-nosnippet>264</a>                message: <span class="string">"Unicode quotes must be replaced with ASCII quotes"</span>.to_string(),
-<a href=#265 id=265 data-nosnippet>265</a>                suggestion: <span class="prelude-val">Some</span>(<span class="string">"Use standard ASCII quotes"</span>.to_string()),
-<a href=#266 id=266 data-nosnippet>266</a>                auto_fix: <span class="prelude-val">Some</span>(Fix {
-<a href=#267 id=267 data-nosnippet>267</a>                    description: <span class="string">"Replace Unicode quotes"</span>.to_string(),
-<a href=#268 id=268 data-nosnippet>268</a>                    replacement: text
-<a href=#269 id=269 data-nosnippet>269</a>                        .replace(<span class="string">'\u{201c}'</span>, <span class="string">"\""</span>)
-<a href=#270 id=270 data-nosnippet>270</a>                        .replace(<span class="string">'\u{201d}'</span>, <span class="string">"\""</span>)
-<a href=#271 id=271 data-nosnippet>271</a>                        .replace(<span class="string">'\u{2018}'</span>, <span class="string">"'"</span>)
-<a href=#272 id=272 data-nosnippet>272</a>                        .replace(<span class="string">'\u{2019}'</span>, <span class="string">"'"</span>),
-<a href=#273 id=273 data-nosnippet>273</a>                }),
-<a href=#274 id=274 data-nosnippet>274</a>                line: <span class="prelude-val">None</span>,
-<a href=#275 id=275 data-nosnippet>275</a>                column: <span class="prelude-val">None</span>,
-<a href=#276 id=276 data-nosnippet>276</a>            });
-<a href=#277 id=277 data-nosnippet>277</a>        }
-<a href=#278 id=278 data-nosnippet>278</a>    }
-<a href=#279 id=279 data-nosnippet>279</a>    <span class="prelude-val">Ok</span>(())
-<a href=#280 id=280 data-nosnippet>280</a>}
-<a href=#281 id=281 data-nosnippet>281</a>
-<a href=#282 id=282 data-nosnippet>282</a><span class="kw">pub fn </span>validate_all(snippet: <span class="kw-2">&amp;</span>str) -&gt; RashResult&lt;()&gt; {
-<a href=#283 id=283 data-nosnippet>283</a>    validate_backticks(snippet)<span class="question-mark">?</span>;
-<a href=#284 id=284 data-nosnippet>284</a>    validate_cd_usage(snippet)<span class="question-mark">?</span>;
-<a href=#285 id=285 data-nosnippet>285</a>    validate_read_command(snippet)<span class="question-mark">?</span>;
-<a href=#286 id=286 data-nosnippet>286</a>    validate_unicode_quotes(snippet)<span class="question-mark">?</span>;
-<a href=#287 id=287 data-nosnippet>287</a>
-<a href=#288 id=288 data-nosnippet>288</a>    <span class="prelude-val">Ok</span>(())
-<a href=#289 id=289 data-nosnippet>289</a>}</code></pre></div></section></main></body></html>
+<a href=#259 id=259 data-nosnippet>259</a><span class="attr">#[allow(clippy::result_large_err)]
+<a href=#260 id=260 data-nosnippet>260</a></span><span class="kw">pub fn </span>validate_unicode_quotes(text: <span class="kw-2">&amp;</span>str) -&gt; <span class="prelude-ty">Result</span>&lt;(), ValidationError&gt; {
+<a href=#261 id=261 data-nosnippet>261</a>    <span class="kw">let </span>unicode_quotes = [<span class="string">'\u{201c}'</span>, <span class="string">'\u{201d}'</span>, <span class="string">'\u{2018}'</span>, <span class="string">'\u{2019}'</span>];
+<a href=#262 id=262 data-nosnippet>262</a>
+<a href=#263 id=263 data-nosnippet>263</a>    <span class="kw">for </span>quote <span class="kw">in </span><span class="kw-2">&amp;</span>unicode_quotes {
+<a href=#264 id=264 data-nosnippet>264</a>        <span class="kw">if </span>text.contains(<span class="kw-2">*</span>quote) {
+<a href=#265 id=265 data-nosnippet>265</a>            <span class="kw">return </span><span class="prelude-val">Err</span>(ValidationError {
+<a href=#266 id=266 data-nosnippet>266</a>                rule: <span class="string">"SC2220"</span>,
+<a href=#267 id=267 data-nosnippet>267</a>                severity: Severity::Error,
+<a href=#268 id=268 data-nosnippet>268</a>                message: <span class="string">"Unicode quotes must be replaced with ASCII quotes"</span>.to_string(),
+<a href=#269 id=269 data-nosnippet>269</a>                suggestion: <span class="prelude-val">Some</span>(<span class="string">"Use standard ASCII quotes"</span>.to_string()),
+<a href=#270 id=270 data-nosnippet>270</a>                auto_fix: <span class="prelude-val">Some</span>(Fix {
+<a href=#271 id=271 data-nosnippet>271</a>                    description: <span class="string">"Replace Unicode quotes"</span>.to_string(),
+<a href=#272 id=272 data-nosnippet>272</a>                    replacement: text
+<a href=#273 id=273 data-nosnippet>273</a>                        .replace([<span class="string">'\u{201c}'</span>, <span class="string">'\u{201d}'</span>], <span class="string">"\""</span>)
+<a href=#274 id=274 data-nosnippet>274</a>                        .replace([<span class="string">'\u{2018}'</span>, <span class="string">'\u{2019}'</span>], <span class="string">"'"</span>),
+<a href=#275 id=275 data-nosnippet>275</a>                }),
+<a href=#276 id=276 data-nosnippet>276</a>                line: <span class="prelude-val">None</span>,
+<a href=#277 id=277 data-nosnippet>277</a>                column: <span class="prelude-val">None</span>,
+<a href=#278 id=278 data-nosnippet>278</a>            });
+<a href=#279 id=279 data-nosnippet>279</a>        }
+<a href=#280 id=280 data-nosnippet>280</a>    }
+<a href=#281 id=281 data-nosnippet>281</a>    <span class="prelude-val">Ok</span>(())
+<a href=#282 id=282 data-nosnippet>282</a>}
+<a href=#283 id=283 data-nosnippet>283</a>
+<a href=#284 id=284 data-nosnippet>284</a><span class="kw">pub fn </span>validate_all(snippet: <span class="kw-2">&amp;</span>str) -&gt; RashResult&lt;()&gt; {
+<a href=#285 id=285 data-nosnippet>285</a>    validate_backticks(snippet)
+<a href=#286 id=286 data-nosnippet>286</a>        .map_err(|e| <span class="kw">crate</span>::models::error::Error::ShellCheckValidation(Box::new(e)))<span class="question-mark">?</span>;
+<a href=#287 id=287 data-nosnippet>287</a>    validate_cd_usage(snippet)
+<a href=#288 id=288 data-nosnippet>288</a>        .map_err(|e| <span class="kw">crate</span>::models::error::Error::ShellCheckValidation(Box::new(e)))<span class="question-mark">?</span>;
+<a href=#289 id=289 data-nosnippet>289</a>    validate_read_command(snippet)
+<a href=#290 id=290 data-nosnippet>290</a>        .map_err(|e| <span class="kw">crate</span>::models::error::Error::ShellCheckValidation(Box::new(e)))<span class="question-mark">?</span>;
+<a href=#291 id=291 data-nosnippet>291</a>    validate_unicode_quotes(snippet)
+<a href=#292 id=292 data-nosnippet>292</a>        .map_err(|e| <span class="kw">crate</span>::models::error::Error::ShellCheckValidation(Box::new(e)))<span class="question-mark">?</span>;
+<a href=#293 id=293 data-nosnippet>293</a>
+<a href=#294 id=294 data-nosnippet>294</a>    <span class="prelude-val">Ok</span>(())
+<a href=#295 id=295 data-nosnippet>295</a>}</code></pre></div></section></main></body></html>

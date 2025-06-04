@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"fn":["eval_command","eval_rash"]};
+window.SIDEBAR_ITEMS = {"fn":["create_directory_with_options","eval_command","eval_echo_command","eval_mkdir_command","eval_rash","eval_test_command","eval_unknown_command","parse_mkdir_args","resolve_path","test_directory_exists","test_file_exists","validate_parent_exists"]};
