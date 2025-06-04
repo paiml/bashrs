@@ -1,0 +1,3967 @@
+{
+  "files": [
+    {
+      "classes": [],
+      "functions": [
+        {
+          "line_end": 11,
+          "line_start": 1,
+          "metrics": {
+            "cognitive": 0,
+            "cyclomatic": 0,
+            "lines": 2,
+            "nesting_max": 0
+          },
+          "name": "install"
+        }
+      ],
+      "path": "./test-project/src/main.rs",
+      "total_complexity": {
+        "cognitive": 0,
+        "cyclomatic": 0,
+        "lines": 2,
+        "nesting_max": 0
+      }
+    },
+    {
+      "classes": [],
+      "functions": [
+        {
+          "line_end": 11,
+          "line_start": 1,
+          "metrics": {
+            "cognitive": 0,
+            "cyclomatic": 0,
+            "lines": 7,
+            "nesting_max": 0
+          },
+          "name": "main"
+        },
+        {
+          "line_end": 11,
+          "line_start": 1,
+          "metrics": {
+            "cognitive": 0,
+            "cyclomatic": 0,
+            "lines": 0,
+            "nesting_max": 0
+          },
+          "name": "echo"
+        },
+        {
+          "line_end": 11,
+          "line_start": 1,
+          "metrics": {
+            "cognitive": 0,
+            "cyclomatic": 0,
+            "lines": 0,
+            "nesting_max": 0
+          },
+          "name": "mkdir"
+        },
+        {
+          "line_end": 11,
+          "line_start": 1,
+          "metrics": {
+            "cognitive": 0,
+            "cyclomatic": 0,
+            "lines": 0,
+            "nesting_max": 0
+          },
+          "name": "touch"
+        },
+        {
+          "line_end": 11,
+          "line_start": 1,
+          "metrics": {
+            "cognitive": 0,
+            "cyclomatic": 0,
+            "lines": 1,
+            "nesting_max": 0
+          },
+          "name": "concat"
+        }
+      ],
+      "path": "./examples/installer.rs",
+      "total_complexity": {
+        "cognitive": 0,
+        "cyclomatic": 0,
+        "lines": 8,
+        "nesting_max": 0
+      }
+    },
+    {
+      "classes": [],
+      "functions": [
+        {
+          "line_end": 11,
+          "line_start": 1,
+          "metrics": {
+            "cognitive": 0,
+            "cyclomatic": 0,
+            "lines": 5,
+            "nesting_max": 0
+          },
+          "name": "install"
+        },
+        {
+          "line_end": 11,
+          "line_start": 1,
+          "metrics": {
+            "cognitive": 0,
+            "cyclomatic": 0,
+            "lines": 0,
+            "nesting_max": 0
+          },
+          "name": "echo"
+        },
+        {
+          "line_end": 11,
+          "line_start": 1,
+          "metrics": {
+            "cognitive": 0,
+            "cyclomatic": 0,
+            "lines": 0,
+            "nesting_max": 0
+          },
+          "name": "mkdir"
+        }
+      ],
+      "path": "./examples/simple.rs",
+      "total_complexity": {
+        "cognitive": 0,
+        "cyclomatic": 0,
+        "lines": 5,
+        "nesting_max": 0
+      }
+    },
+    {
+      "classes": [],
+      "functions": [
+        {
+          "line_end": 11,
+          "line_start": 1,
+          "metrics": {
+            "cognitive": 0,
+            "cyclomatic": 0,
+            "lines": 3,
+            "nesting_max": 0
+          },
+          "name": "install"
+        },
+        {
+          "line_end": 11,
+          "line_start": 1,
+          "metrics": {
+            "cognitive": 0,
+            "cyclomatic": 0,
+            "lines": 0,
+            "nesting_max": 0
+          },
+          "name": "echo"
+        }
+      ],
+      "path": "./examples/basic.rs",
+      "total_complexity": {
+        "cognitive": 0,
+        "cyclomatic": 0,
+        "lines": 3,
+        "nesting_max": 0
+      }
+    },
+    {
+      "classes": [],
+      "functions": [
+        {
+          "line_end": 11,
+          "line_start": 1,
+          "metrics": {
+            "cognitive": 0,
+            "cyclomatic": 0,
+            "lines": 1,
+            "nesting_max": 0
+          },
+          "name": "main"
+        }
+      ],
+      "path": "./examples/debug.rs",
+      "total_complexity": {
+        "cognitive": 0,
+        "cyclomatic": 0,
+        "lines": 1,
+        "nesting_max": 0
+      }
+    },
+    {
+      "classes": [],
+      "functions": [
+        {
+          "line_end": 11,
+          "line_start": 1,
+          "metrics": {
+            "cognitive": 0,
+            "cyclomatic": 0,
+            "lines": 2,
+            "nesting_max": 0
+          },
+          "name": "install"
+        }
+      ],
+      "path": "./examples/minimal.rs",
+      "total_complexity": {
+        "cognitive": 0,
+        "cyclomatic": 0,
+        "lines": 2,
+        "nesting_max": 0
+      }
+    },
+    {
+      "classes": [],
+      "functions": [
+        {
+          "line_end": 11,
+          "line_start": 1,
+          "metrics": {
+            "cognitive": 2,
+            "cyclomatic": 2,
+            "lines": 8,
+            "nesting_max": 2
+          },
+          "name": "main"
+        }
+      ],
+      "path": "./rash/src/bin/rash.rs",
+      "total_complexity": {
+        "cognitive": 2,
+        "cyclomatic": 2,
+        "lines": 8,
+        "nesting_max": 2
+      }
+    },
+    {
+      "classes": [
+        {
+          "line_end": 100,
+          "line_start": 1,
+          "methods": [],
+          "metrics": {
+            "cognitive": 0,
+            "cyclomatic": 0,
+            "lines": 0,
+            "nesting_max": 0
+          },
+          "name": "IrConverter"
+        }
+      ],
+      "functions": [
+        {
+          "line_end": 11,
+          "line_start": 1,
+          "metrics": {
+            "cognitive": 0,
+            "cyclomatic": 0,
+            "lines": 2,
+            "nesting_max": 0
+          },
+          "name": "from_ast"
+        },
+        {
+          "line_end": 11,
+          "line_start": 1,
+          "metrics": {
+            "cognitive": 1,
+            "cyclomatic": 1,
+            "lines": 6,
+            "nesting_max": 1
+          },
+          "name": "optimize"
+        },
+        {
+          "line_end": 11,
+          "line_start": 1,
+          "metrics": {
+            "cognitive": 0,
+            "cyclomatic": 0,
+            "lines": 1,
+            "nesting_max": 0
+          },
+          "name": "IrConverter::new"
+        },
+        {
+          "line_end": 11,
+          "line_start": 1,
+          "metrics": {
+            "cognitive": 3,
+            "cyclomatic": 3,
+            "lines": 5,
+            "nesting_max": 1
+          },
+          "name": "IrConverter::convert"
+        },
+        {
+          "line_end": 11,
+          "line_start": 1,
+          "metrics": {
+            "cognitive": 14,
+            "cyclomatic": 13,
+            "lines": 14,
+            "nesting_max": 2
+          },
+          "name": "IrConverter::convert_stmt"
+        },
+        {
+          "line_end": 11,
+          "line_start": 1,
+          "metrics": {
+            "cognitive": 2,
+            "cyclomatic": 2,
+            "lines": 4,
+            "nesting_max": 1
+          },
+          "name": "IrConverter::convert_stmts"
+        },
+        {
+          "line_end": 11,
+          "line_start": 1,
+          "metrics": {
+            "cognitive": 7,
+            "cyclomatic": 6,
+            "lines": 8,
+            "nesting_max": 2
+          },
+          "name": "IrConverter::convert_expr"
+        },
+        {
+          "line_end": 11,
+          "line_start": 1,
+          "metrics": {
+            "cognitive": 14,
+            "cyclomatic": 11,
+            "lines": 7,
+            "nesting_max": 2
+          },
+          "name": "IrConverter::convert_expr_to_value"
+        },
+        {
+          "line_end": 11,
+          "line_start": 1,
+          "metrics": {
+            "cognitive": 4,
+            "cyclomatic": 4,
+            "lines": 5,
+            "nesting_max": 1
+          },
+          "name": "IrConverter::analyze_command_effects"
+        },
+        {
+          "line_end": 11,
+          "line_start": 1,
+          "metrics": {
+            "cognitive": 12,
+            "cyclomatic": 7,
+            "lines": 7,
+            "nesting_max": 3
+          },
+          "name": "constant_fold"
+        },
+        {
+          "line_end": 11,
+          "line_start": 1,
+          "metrics": {
+            "cognitive": 0,
+            "cyclomatic": 0,
+            "lines": 1,
+            "nesting_max": 0
+          },
+          "name": "eliminate_dead_code"
+        },
+        {
+          "line_end": 11,
+          "line_start": 1,
+          "metrics": {
+            "cognitive": 4,
+            "cyclomatic": 4,
+            "lines": 7,
+            "nesting_max": 1
+          },
+          "name": "transform_ir"
+        }
+      ],
+      "path": "./rash/src/ir/mod.rs",
+      "total_complexity": {
+        "cognitive": 105,
+        "cyclomatic": 90,
+        "lines": 111,
+        "nesting_max": 3
+      }
+    },
+    {
+      "classes": [
+        {
+          "line_end": 100,
+          "line_start": 1,
+          "methods": [],
+          "metrics": {
+            "cognitive": 0,
+            "cyclomatic": 0,
+            "lines": 0,
+            "nesting_max": 0
+          },
+          "name": "EffectSet"
+        }
+      ],
+      "functions": [
+        {
+          "line_end": 11,
+          "line_start": 1,
+          "metrics": {
+            "cognitive": 0,
+            "cyclomatic": 0,
+            "lines": 1,
+            "nesting_max": 0
+          },
+          "name": "EffectSet::pure"
+        },
+        {
+          "line_end": 11,
+          "line_start": 1,
+          "metrics": {
+            "cognitive": 0,
+            "cyclomatic": 0,
+            "lines": 3,
+            "nesting_max": 0
+          },
+          "name": "EffectSet::single"
+        },
+        {
+          "line_end": 11,
+          "line_start": 1,
+          "metrics": {
+            "cognitive": 0,
+            "cyclomatic": 0,
+            "lines": 1,
+            "nesting_max": 0
+          },
+          "name": "EffectSet::add"
+        },
+        {
+          "line_end": 11,
+          "line_start": 1,
+          "metrics": {
+            "cognitive": 2,
+            "cyclomatic": 2,
+            "lines": 1,
+            "nesting_max": 0
+          },
+          "name": "EffectSet::is_pure"
+        },
+        {
+          "line_end": 11,
+          "line_start": 1,
+          "metrics": {
+            "cognitive": 0,
+            "cyclomatic": 0,
+            "lines": 1,
+            "nesting_max": 0
+          },
+          "name": "EffectSet::contains"
+        },
+        {
+          "line_end": 11,
+          "line_start": 1,
+          "metrics": {
+            "cognitive": 0,
+            "cyclomatic": 0,
+            "lines": 3,
+            "nesting_max": 0
+          },
+          "name": "EffectSet::union"
+        },
+        {
+          "line_end": 11,
+          "line_start": 1,
+          "metrics": {
+            "cognitive": 0,
+            "cyclomatic": 0,
+            "lines": 1,
+            "nesting_max": 0
+          },
+          "name": "EffectSet::is_subset_of"
+        },
+        {
+          "line_end": 11,
+          "line_start": 1,
+          "metrics": {
+            "cognitive": 0,
+            "cyclomatic": 0,
+            "lines": 1,
+            "nesting_max": 0
+          },
+          "name": "EffectSet::to_vec"
+        },
+        {
+          "line_end": 11,
+          "line_start": 1,
+          "metrics": {
+            "cognitive": 1,
+            "cyclomatic": 1,
+            "lines": 1,
+            "nesting_max": 0
+          },
+          "name": "EffectSet::has_filesystem_effects"
+        },
+        {
+          "line_end": 11,
+          "line_start": 1,
+          "metrics": {
+            "cognitive": 0,
+            "cyclomatic": 0,
+            "lines": 1,
+            "nesting_max": 0
+          },
+          "name": "EffectSet::has_network_effects"
+        },
+        {
+          "line_end": 11,
+          "line_start": 1,
+          "metrics": {
+            "cognitive": 2,
+            "cyclomatic": 2,
+            "lines": 1,
+            "nesting_max": 0
+          },
+          "name": "EffectSet::has_system_effects"
+        },
+        {
+          "line_end": 11,
+          "line_start": 1,
+          "metrics": {
+            "cognitive": 0,
+            "cyclomatic": 0,
+            "lines": 1,
+            "nesting_max": 0
+          },
+          "name": "EffectSet::default"
+        },
+        {
+          "line_end": 11,
+          "line_start": 1,
+          "metrics": {
+            "cognitive": 0,
+            "cyclomatic": 0,
+            "lines": 1,
+            "nesting_max": 0
+          },
+          "name": "EffectSet::from"
+        },
+        {
+          "line_end": 11,
+          "line_start": 1,
+          "metrics": {
+            "cognitive": 1,
+            "cyclomatic": 1,
+            "lines": 4,
+            "nesting_max": 1
+          },
+          "name": "EffectSet::from"
+        },
+        {
+          "line_end": 11,
+          "line_start": 1,
+          "metrics": {
+            "cognitive": 8,
+            "cyclomatic": 8,
+            "lines": 6,
+            "nesting_max": 1
+          },
+          "name": "analyze_command_effects"
+        },
+        {
+          "line_end": 11,
+          "line_start": 1,
+          "metrics": {
+            "cognitive": 0,
+            "cyclomatic": 0,
+            "lines": 3,
+            "nesting_max": 0
+          },
+          "name": "test_pure_effect_set"
+        },
+        {
+          "line_end": 11,
+          "line_start": 1,
+          "metrics": {
+            "cognitive": 0,
+            "cyclomatic": 0,
+            "lines": 6,
+            "nesting_max": 0
+          },
+          "name": "test_effect_set_union"
+        },
+        {
+          "line_end": 11,
+          "line_start": 1,
+          "metrics": {
+            "cognitive": 0,
+            "cyclomatic": 0,
+            "lines": 4,
+            "nesting_max": 0
+          },
+          "name": "test_command_effect_analysis"
+        }
+      ],
+      "path": "./rash/src/ir/effects.rs",
+      "total_complexity": {
+        "cognitive": 20,
+        "cyclomatic": 20,
+        "lines": 61,
+        "nesting_max": 1
+      }
+    },
+    {
+      "classes": [],
+      "functions": [
+        {
+          "line_end": 11,
+          "line_start": 1,
+          "metrics": {
+            "cognitive": 8,
+            "cyclomatic": 6,
+            "lines": 7,
+            "nesting_max": 2
+          },
+          "name": "test_simple_ast_to_ir_conversion"
+        },
+        {
+          "line_end": 11,
+          "line_start": 1,
+          "metrics": {
+            "cognitive": 8,
+            "cyclomatic": 6,
+            "lines": 7,
+            "nesting_max": 2
+          },
+          "name": "test_function_call_to_command"
+        },
+        {
+          "line_end": 11,
+          "line_start": 1,
+          "metrics": {
+            "cognitive": 0,
+            "cyclomatic": 0,
+            "lines": 8,
+            "nesting_max": 0
+          },
+          "name": "test_shell_value_constant_detection"
+        },
+        {
+          "line_end": 11,
+          "line_start": 1,
+          "metrics": {
+            "cognitive": 0,
+            "cyclomatic": 0,
+            "lines": 6,
+            "nesting_max": 0
+          },
+          "name": "test_shell_value_constant_string_extraction"
+        },
+        {
+          "line_end": 11,
+          "line_start": 1,
+          "metrics": {
+            "cognitive": 0,
+            "cyclomatic": 0,
+            "lines": 5,
+            "nesting_max": 0
+          },
+          "name": "test_command_builder"
+        },
+        {
+          "line_end": 11,
+          "line_start": 1,
+          "metrics": {
+            "cognitive": 0,
+            "cyclomatic": 0,
+            "lines": 5,
+            "nesting_max": 0
+          },
+          "name": "test_shell_ir_effects_calculation"
+        },
+        {
+          "line_end": 11,
+          "line_start": 1,
+          "metrics": {
+            "cognitive": 3,
+            "cyclomatic": 3,
+            "lines": 5,
+            "nesting_max": 1
+          },
+          "name": "test_optimization_constant_folding"
+        },
+        {
+          "line_end": 11,
+          "line_start": 1,
+          "metrics": {
+            "cognitive": 3,
+            "cyclomatic": 3,
+            "lines": 6,
+            "nesting_max": 1
+          },
+          "name": "test_optimization_disabled"
+        },
+        {
+          "line_end": 11,
+          "line_start": 1,
+          "metrics": {
+            "cognitive": 8,
+            "cyclomatic": 6,
+            "lines": 8,
+            "nesting_max": 2
+          },
+          "name": "test_if_statement_conversion"
+        },
+        {
+          "line_end": 11,
+          "line_start": 1,
+          "metrics": {
+            "cognitive": 8,
+            "cyclomatic": 6,
+            "lines": 7,
+            "nesting_max": 2
+          },
+          "name": "test_return_statement_conversion"
+        },
+        {
+          "line_end": 11,
+          "line_start": 1,
+          "metrics": {
+            "cognitive": 8,
+            "cyclomatic": 6,
+            "lines": 6,
+            "nesting_max": 2
+          },
+          "name": "test_binary_expression_conversion"
+        },
+        {
+          "line_end": 11,
+          "line_start": 1,
+          "metrics": {
+            "cognitive": 0,
+            "cyclomatic": 0,
+            "lines": 2,
+            "nesting_max": 0
+          },
+          "name": "test_command_effect_classification"
+        },
+        {
+          "line_end": 11,
+          "line_start": 1,
+          "metrics": {
+            "cognitive": 0,
+            "cyclomatic": 0,
+            "lines": 4,
+            "nesting_max": 0
+          },
+          "name": "test_ir_sequence_effects_aggregation"
+        },
+        {
+          "line_end": 11,
+          "line_start": 1,
+          "metrics": {
+            "cognitive": 0,
+            "cyclomatic": 0,
+            "lines": 4,
+            "nesting_max": 0
+          },
+          "name": "test_nested_ir_effects"
+        },
+        {
+          "line_end": 11,
+          "line_start": 1,
+          "metrics": {
+            "cognitive": 0,
+            "cyclomatic": 0,
+            "lines": 2,
+            "nesting_max": 0
+          },
+          "name": "test_error_handling_in_conversion"
+        },
+        {
+          "line_end": 11,
+          "line_start": 1,
+          "metrics": {
+            "cognitive": 0,
+            "cyclomatic": 0,
+            "lines": 3,
+            "nesting_max": 0
+          },
+          "name": "test_complex_nested_structures"
+        }
+      ],
+      "path": "./rash/src/ir/tests.rs",
+      "total_complexity": {
+        "cognitive": 46,
+        "cyclomatic": 36,
+        "lines": 85,
+        "nesting_max": 2
+      }
+    },
+    {
+      "classes": [
+        {
+          "line_end": 100,
+          "line_start": 1,
+          "methods": [],
+          "metrics": {
+            "cognitive": 0,
+            "cyclomatic": 0,
+            "lines": 0,
+            "nesting_max": 0
+          },
+          "name": "Command"
+        }
+      ],
+      "functions": [
+        {
+          "line_end": 11,
+          "line_start": 1,
+          "metrics": {
+            "cognitive": 6,
+            "cyclomatic": 6,
+            "lines": 6,
+            "nesting_max": 2
+          },
+          "name": "ShellIR::effects"
+        },
+        {
+          "line_end": 11,
+          "line_start": 1,
+          "metrics": {
+            "cognitive": 0,
+            "cyclomatic": 0,
+            "lines": 1,
+            "nesting_max": 0
+          },
+          "name": "ShellIR::is_pure"
+        },
+        {
+          "line_end": 11,
+          "line_start": 1,
+          "metrics": {
+            "cognitive": 0,
+            "cyclomatic": 0,
+            "lines": 1,
+            "nesting_max": 0
+          },
+          "name": "Command::new"
+        },
+        {
+          "line_end": 11,
+          "line_start": 1,
+          "metrics": {
+            "cognitive": 0,
+            "cyclomatic": 0,
+            "lines": 2,
+            "nesting_max": 0
+          },
+          "name": "Command::arg"
+        },
+        {
+          "line_end": 11,
+          "line_start": 1,
+          "metrics": {
+            "cognitive": 0,
+            "cyclomatic": 0,
+            "lines": 2,
+            "nesting_max": 0
+          },
+          "name": "Command::args"
+        },
+        {
+          "line_end": 11,
+          "line_start": 1,
+          "metrics": {
+            "cognitive": 4,
+            "cyclomatic": 4,
+            "lines": 1,
+            "nesting_max": 1
+          },
+          "name": "ShellValue::is_constant"
+        },
+        {
+          "line_end": 11,
+          "line_start": 1,
+          "metrics": {
+            "cognitive": 12,
+            "cyclomatic": 9,
+            "lines": 11,
+            "nesting_max": 4
+          },
+          "name": "ShellValue::as_constant_string"
+        }
+      ],
+      "path": "./rash/src/ir/shell_ir.rs",
+      "total_complexity": {
+        "cognitive": 44,
+        "cyclomatic": 38,
+        "lines": 48,
+        "nesting_max": 4
+      }
+    },
+    {
+      "classes": [],
+      "functions": [],
+      "path": "./rash/src/cli/mod.rs",
+      "total_complexity": {
+        "cognitive": 0,
+        "cyclomatic": 0,
+        "lines": 0,
+        "nesting_max": 0
+      }
+    },
+    {
+      "classes": [
+        {
+          "line_end": 100,
+          "line_start": 1,
+          "methods": [],
+          "metrics": {
+            "cognitive": 0,
+            "cyclomatic": 0,
+            "lines": 0,
+            "nesting_max": 0
+          },
+          "name": "Cli"
+        }
+      ],
+      "functions": [
+        {
+          "line_end": 11,
+          "line_start": 1,
+          "metrics": {
+            "cognitive": 0,
+            "cyclomatic": 0,
+            "lines": 1,
+            "nesting_max": 0
+          },
+          "name": "VerificationLevel::value_variants"
+        },
+        {
+          "line_end": 11,
+          "line_start": 1,
+          "metrics": {
+            "cognitive": 5,
+            "cyclomatic": 5,
+            "lines": 1,
+            "nesting_max": 1
+          },
+          "name": "VerificationLevel::to_possible_value"
+        },
+        {
+          "line_end": 11,
+          "line_start": 1,
+          "metrics": {
+            "cognitive": 0,
+            "cyclomatic": 0,
+            "lines": 1,
+            "nesting_max": 0
+          },
+          "name": "ShellDialect::value_variants"
+        },
+        {
+          "line_end": 11,
+          "line_start": 1,
+          "metrics": {
+            "cognitive": 5,
+            "cyclomatic": 5,
+            "lines": 1,
+            "nesting_max": 1
+          },
+          "name": "ShellDialect::to_possible_value"
+        }
+      ],
+      "path": "./rash/src/cli/args.rs",
+      "total_complexity": {
+        "cognitive": 20,
+        "cyclomatic": 20,
+        "lines": 8,
+        "nesting_max": 1
+      }
+    },
+    {
+      "classes": [],
+      "functions": [
+        {
+          "line_end": 11,
+          "line_start": 1,
+          "metrics": {
+            "cognitive": 7,
+            "cyclomatic": 7,
+            "lines": 14,
+            "nesting_max": 1
+          },
+          "name": "execute_command"
+        },
+        {
+          "line_end": 11,
+          "line_start": 1,
+          "metrics": {
+            "cognitive": 5,
+            "cyclomatic": 5,
+            "lines": 9,
+            "nesting_max": 1
+          },
+          "name": "build_command"
+        },
+        {
+          "line_end": 11,
+          "line_start": 1,
+          "metrics": {
+            "cognitive": 2,
+            "cyclomatic": 2,
+            "lines": 4,
+            "nesting_max": 0
+          },
+          "name": "check_command"
+        },
+        {
+          "line_end": 11,
+          "line_start": 1,
+          "metrics": {
+            "cognitive": 6,
+            "cyclomatic": 6,
+            "lines": 15,
+            "nesting_max": 1
+          },
+          "name": "init_command"
+        },
+        {
+          "line_end": 11,
+          "line_start": 1,
+          "metrics": {
+            "cognitive": 4,
+            "cyclomatic": 4,
+            "lines": 9,
+            "nesting_max": 1
+          },
+          "name": "verify_command"
+        },
+        {
+          "line_end": 11,
+          "line_start": 1,
+          "metrics": {
+            "cognitive": 1,
+            "cyclomatic": 1,
+            "lines": 3,
+            "nesting_max": 0
+          },
+          "name": "generate_proof"
+        },
+        {
+          "line_end": 11,
+          "line_start": 1,
+          "metrics": {
+            "cognitive": 0,
+            "cyclomatic": 0,
+            "lines": 1,
+            "nesting_max": 0
+          },
+          "name": "normalize_shell_script"
+        }
+      ],
+      "path": "./rash/src/cli/commands.rs",
+      "total_complexity": {
+        "cognitive": 25,
+        "cyclomatic": 25,
+        "lines": 55,
+        "nesting_max": 1
+      }
+    },
+    {
+      "classes": [],
+      "functions": [
+        {
+          "line_end": 11,
+          "line_start": 1,
+          "metrics": {
+            "cognitive": 5,
+            "cyclomatic": 5,
+            "lines": 1,
+            "nesting_max": 1
+          },
+          "name": "verify"
+        },
+        {
+          "line_end": 11,
+          "line_start": 1,
+          "metrics": {
+            "cognitive": 1,
+            "cyclomatic": 1,
+            "lines": 2,
+            "nesting_max": 0
+          },
+          "name": "verify_basic"
+        },
+        {
+          "line_end": 11,
+          "line_start": 1,
+          "metrics": {
+            "cognitive": 2,
+            "cyclomatic": 2,
+            "lines": 3,
+            "nesting_max": 0
+          },
+          "name": "verify_strict"
+        },
+        {
+          "line_end": 11,
+          "line_start": 1,
+          "metrics": {
+            "cognitive": 3,
+            "cyclomatic": 3,
+            "lines": 4,
+            "nesting_max": 0
+          },
+          "name": "verify_paranoid"
+        }
+      ],
+      "path": "./rash/src/verifier/mod.rs",
+      "total_complexity": {
+        "cognitive": 11,
+        "cyclomatic": 11,
+        "lines": 10,
+        "nesting_max": 1
+      }
+    },
+    {
+      "classes": [],
+      "functions": [
+        {
+          "line_end": 11,
+          "line_start": 1,
+          "metrics": {
+            "cognitive": 6,
+            "cyclomatic": 6,
+            "lines": 5,
+            "nesting_max": 1
+          },
+          "name": "verify_no_command_injection"
+        },
+        {
+          "line_end": 11,
+          "line_start": 1,
+          "metrics": {
+            "cognitive": 4,
+            "cyclomatic": 4,
+            "lines": 5,
+            "nesting_max": 2
+          },
+          "name": "verify_deterministic"
+        },
+        {
+          "line_end": 11,
+          "line_start": 1,
+          "metrics": {
+            "cognitive": 6,
+            "cyclomatic": 5,
+            "lines": 5,
+            "nesting_max": 2
+          },
+          "name": "verify_idempotency"
+        },
+        {
+          "line_end": 11,
+          "line_start": 1,
+          "metrics": {
+            "cognitive": 9,
+            "cyclomatic": 7,
+            "lines": 13,
+            "nesting_max": 3
+          },
+          "name": "verify_resource_safety"
+        },
+        {
+          "line_end": 11,
+          "line_start": 1,
+          "metrics": {
+            "cognitive": 12,
+            "cyclomatic": 10,
+            "lines": 8,
+            "nesting_max": 2
+          },
+          "name": "walk_ir"
+        },
+        {
+          "line_end": 11,
+          "line_start": 1,
+          "metrics": {
+            "cognitive": 3,
+            "cyclomatic": 3,
+            "lines": 5,
+            "nesting_max": 1
+          },
+          "name": "check_command_safety"
+        },
+        {
+          "line_end": 11,
+          "line_start": 1,
+          "metrics": {
+            "cognitive": 10,
+            "cyclomatic": 9,
+            "lines": 7,
+            "nesting_max": 2
+          },
+          "name": "check_value_safety"
+        },
+        {
+          "line_end": 11,
+          "line_start": 1,
+          "metrics": {
+            "cognitive": 0,
+            "cyclomatic": 0,
+            "lines": 1,
+            "nesting_max": 0
+          },
+          "name": "contains_shell_metacharacters"
+        },
+        {
+          "line_end": 11,
+          "line_start": 1,
+          "metrics": {
+            "cognitive": 0,
+            "cyclomatic": 0,
+            "lines": 1,
+            "nesting_max": 0
+          },
+          "name": "is_dangerous_command"
+        },
+        {
+          "line_end": 11,
+          "line_start": 1,
+          "metrics": {
+            "cognitive": 0,
+            "cyclomatic": 0,
+            "lines": 1,
+            "nesting_max": 0
+          },
+          "name": "is_nondeterministic_command"
+        },
+        {
+          "line_end": 11,
+          "line_start": 1,
+          "metrics": {
+            "cognitive": 0,
+            "cyclomatic": 0,
+            "lines": 1,
+            "nesting_max": 0
+          },
+          "name": "requires_idempotency_check"
+        },
+        {
+          "line_end": 11,
+          "line_start": 1,
+          "metrics": {
+            "cognitive": 0,
+            "cyclomatic": 0,
+            "lines": 1,
+            "nesting_max": 0
+          },
+          "name": "is_network_command"
+        },
+        {
+          "line_end": 11,
+          "line_start": 1,
+          "metrics": {
+            "cognitive": 0,
+            "cyclomatic": 0,
+            "lines": 1,
+            "nesting_max": 0
+          },
+          "name": "is_file_operation"
+        },
+        {
+          "line_end": 11,
+          "line_start": 1,
+          "metrics": {
+            "cognitive": 4,
+            "cyclomatic": 4,
+            "lines": 3,
+            "nesting_max": 1
+          },
+          "name": "check_has_idempotency_guard"
+        },
+        {
+          "line_end": 11,
+          "line_start": 1,
+          "metrics": {
+            "cognitive": 0,
+            "cyclomatic": 0,
+            "lines": 3,
+            "nesting_max": 0
+          },
+          "name": "test_command_injection_detection"
+        },
+        {
+          "line_end": 11,
+          "line_start": 1,
+          "metrics": {
+            "cognitive": 0,
+            "cyclomatic": 0,
+            "lines": 3,
+            "nesting_max": 0
+          },
+          "name": "test_safe_command"
+        },
+        {
+          "line_end": 11,
+          "line_start": 1,
+          "metrics": {
+            "cognitive": 0,
+            "cyclomatic": 0,
+            "lines": 3,
+            "nesting_max": 0
+          },
+          "name": "test_dangerous_command_detection"
+        },
+        {
+          "line_end": 11,
+          "line_start": 1,
+          "metrics": {
+            "cognitive": 0,
+            "cyclomatic": 0,
+            "lines": 3,
+            "nesting_max": 0
+          },
+          "name": "test_nondeterministic_command_detection"
+        }
+      ],
+      "path": "./rash/src/verifier/properties.rs",
+      "total_complexity": {
+        "cognitive": 54,
+        "cyclomatic": 48,
+        "lines": 69,
+        "nesting_max": 3
+      }
+    },
+    {
+      "classes": [],
+      "functions": [
+        {
+          "line_end": 11,
+          "line_start": 1,
+          "metrics": {
+            "cognitive": 0,
+            "cyclomatic": 0,
+            "lines": 1,
+            "nesting_max": 0
+          },
+          "name": "validate"
+        }
+      ],
+      "path": "./rash/src/ast/mod.rs",
+      "total_complexity": {
+        "cognitive": 0,
+        "cyclomatic": 0,
+        "lines": 1,
+        "nesting_max": 0
+      }
+    },
+    {
+      "classes": [],
+      "functions": [
+        {
+          "line_end": 11,
+          "line_start": 1,
+          "metrics": {
+            "cognitive": 0,
+            "cyclomatic": 0,
+            "lines": 1,
+            "nesting_max": 0
+          },
+          "name": "walk_ast"
+        },
+        {
+          "line_end": 11,
+          "line_start": 1,
+          "metrics": {
+            "cognitive": 2,
+            "cyclomatic": 2,
+            "lines": 3,
+            "nesting_max": 2
+          },
+          "name": "transform_exprs"
+        },
+        {
+          "line_end": 11,
+          "line_start": 1,
+          "metrics": {
+            "cognitive": 11,
+            "cyclomatic": 10,
+            "lines": 7,
+            "nesting_max": 3
+          },
+          "name": "transform_stmt_exprs"
+        },
+        {
+          "line_end": 11,
+          "line_start": 1,
+          "metrics": {
+            "cognitive": 8,
+            "cyclomatic": 8,
+            "lines": 10,
+            "nesting_max": 2
+          },
+          "name": "transform_expr"
+        }
+      ],
+      "path": "./rash/src/ast/visitor.rs",
+      "total_complexity": {
+        "cognitive": 21,
+        "cyclomatic": 20,
+        "lines": 21,
+        "nesting_max": 3
+      }
+    },
+    {
+      "classes": [
+        {
+          "line_end": 100,
+          "line_start": 1,
+          "methods": [],
+          "metrics": {
+            "cognitive": 0,
+            "cyclomatic": 0,
+            "lines": 0,
+            "nesting_max": 0
+          },
+          "name": "RestrictedAst"
+        },
+        {
+          "line_end": 100,
+          "line_start": 1,
+          "methods": [],
+          "metrics": {
+            "cognitive": 0,
+            "cyclomatic": 0,
+            "lines": 0,
+            "nesting_max": 0
+          },
+          "name": "Function"
+        },
+        {
+          "line_end": 100,
+          "line_start": 1,
+          "methods": [],
+          "metrics": {
+            "cognitive": 0,
+            "cyclomatic": 0,
+            "lines": 0,
+            "nesting_max": 0
+          },
+          "name": "Parameter"
+        },
+        {
+          "line_end": 100,
+          "line_start": 1,
+          "methods": [],
+          "metrics": {
+            "cognitive": 0,
+            "cyclomatic": 0,
+            "lines": 0,
+            "nesting_max": 0
+          },
+          "name": "MatchArm"
+        }
+      ],
+      "functions": [
+        {
+          "line_end": 11,
+          "line_start": 1,
+          "metrics": {
+            "cognitive": 4,
+            "cyclomatic": 4,
+            "lines": 6,
+            "nesting_max": 1
+          },
+          "name": "RestrictedAst::validate"
+        },
+        {
+          "line_end": 11,
+          "line_start": 1,
+          "metrics": {
+            "cognitive": 3,
+            "cyclomatic": 3,
+            "lines": 11,
+            "nesting_max": 2
+          },
+          "name": "RestrictedAst::check_no_recursion"
+        },
+        {
+          "line_end": 11,
+          "line_start": 1,
+          "metrics": {
+            "cognitive": 6,
+            "cyclomatic": 5,
+            "lines": 12,
+            "nesting_max": 3
+          },
+          "name": "RestrictedAst::has_cycle"
+        },
+        {
+          "line_end": 11,
+          "line_start": 1,
+          "metrics": {
+            "cognitive": 3,
+            "cyclomatic": 3,
+            "lines": 5,
+            "nesting_max": 1
+          },
+          "name": "Function::validate"
+        },
+        {
+          "line_end": 11,
+          "line_start": 1,
+          "metrics": {
+            "cognitive": 1,
+            "cyclomatic": 1,
+            "lines": 2,
+            "nesting_max": 1
+          },
+          "name": "Function::collect_function_calls"
+        },
+        {
+          "line_end": 11,
+          "line_start": 1,
+          "metrics": {
+            "cognitive": 5,
+            "cyclomatic": 5,
+            "lines": 2,
+            "nesting_max": 1
+          },
+          "name": "Type::is_allowed"
+        },
+        {
+          "line_end": 11,
+          "line_start": 1,
+          "metrics": {
+            "cognitive": 45,
+            "cyclomatic": 32,
+            "lines": 29,
+            "nesting_max": 3
+          },
+          "name": "Stmt::validate"
+        },
+        {
+          "line_end": 11,
+          "line_start": 1,
+          "metrics": {
+            "cognitive": 21,
+            "cyclomatic": 18,
+            "lines": 19,
+            "nesting_max": 3
+          },
+          "name": "Stmt::collect_function_calls"
+        },
+        {
+          "line_end": 11,
+          "line_start": 1,
+          "metrics": {
+            "cognitive": 15,
+            "cyclomatic": 13,
+            "lines": 10,
+            "nesting_max": 2
+          },
+          "name": "Expr::validate"
+        },
+        {
+          "line_end": 11,
+          "line_start": 1,
+          "metrics": {
+            "cognitive": 14,
+            "cyclomatic": 14,
+            "lines": 17,
+            "nesting_max": 2
+          },
+          "name": "Expr::collect_function_calls"
+        },
+        {
+          "line_end": 11,
+          "line_start": 1,
+          "metrics": {
+            "cognitive": 10,
+            "cyclomatic": 8,
+            "lines": 7,
+            "nesting_max": 2
+          },
+          "name": "Pattern::validate"
+        },
+        {
+          "line_end": 11,
+          "line_start": 1,
+          "metrics": {
+            "cognitive": 5,
+            "cyclomatic": 5,
+            "lines": 1,
+            "nesting_max": 1
+          },
+          "name": "Pattern::binds_variable"
+        }
+      ],
+      "path": "./rash/src/ast/restricted.rs",
+      "total_complexity": {
+        "cognitive": 264,
+        "cyclomatic": 222,
+        "lines": 242,
+        "nesting_max": 3
+      }
+    },
+    {
+      "classes": [],
+      "functions": [
+        {
+          "line_end": 11,
+          "line_start": 1,
+          "metrics": {
+            "cognitive": 0,
+            "cyclomatic": 0,
+            "lines": 2,
+            "nesting_max": 0
+          },
+          "name": "test_restricted_ast_validation"
+        },
+        {
+          "line_end": 11,
+          "line_start": 1,
+          "metrics": {
+            "cognitive": 0,
+            "cyclomatic": 0,
+            "lines": 3,
+            "nesting_max": 0
+          },
+          "name": "test_missing_entry_point"
+        },
+        {
+          "line_end": 11,
+          "line_start": 1,
+          "metrics": {
+            "cognitive": 0,
+            "cyclomatic": 0,
+            "lines": 3,
+            "nesting_max": 0
+          },
+          "name": "test_function_validation"
+        },
+        {
+          "line_end": 11,
+          "line_start": 1,
+          "metrics": {
+            "cognitive": 0,
+            "cyclomatic": 0,
+            "lines": 3,
+            "nesting_max": 0
+          },
+          "name": "test_recursion_detection"
+        },
+        {
+          "line_end": 11,
+          "line_start": 1,
+          "metrics": {
+            "cognitive": 0,
+            "cyclomatic": 0,
+            "lines": 3,
+            "nesting_max": 0
+          },
+          "name": "test_indirect_recursion_detection"
+        },
+        {
+          "line_end": 11,
+          "line_start": 1,
+          "metrics": {
+            "cognitive": 0,
+            "cyclomatic": 0,
+            "lines": 1,
+            "nesting_max": 0
+          },
+          "name": "test_allowed_types"
+        },
+        {
+          "line_end": 11,
+          "line_start": 1,
+          "metrics": {
+            "cognitive": 0,
+            "cyclomatic": 0,
+            "lines": 4,
+            "nesting_max": 0
+          },
+          "name": "test_complex_types_allowed"
+        },
+        {
+          "line_end": 11,
+          "line_start": 1,
+          "metrics": {
+            "cognitive": 0,
+            "cyclomatic": 0,
+            "lines": 4,
+            "nesting_max": 0
+          },
+          "name": "test_expression_validation"
+        },
+        {
+          "line_end": 11,
+          "line_start": 1,
+          "metrics": {
+            "cognitive": 0,
+            "cyclomatic": 0,
+            "lines": 4,
+            "nesting_max": 0
+          },
+          "name": "test_statement_validation"
+        },
+        {
+          "line_end": 11,
+          "line_start": 1,
+          "metrics": {
+            "cognitive": 0,
+            "cyclomatic": 0,
+            "lines": 6,
+            "nesting_max": 0
+          },
+          "name": "test_function_call_collection"
+        },
+        {
+          "line_end": 11,
+          "line_start": 1,
+          "metrics": {
+            "cognitive": 0,
+            "cyclomatic": 0,
+            "lines": 2,
+            "nesting_max": 0
+          },
+          "name": "test_validate_public_api"
+        },
+        {
+          "line_end": 11,
+          "line_start": 1,
+          "metrics": {
+            "cognitive": 3,
+            "cyclomatic": 3,
+            "lines": 2,
+            "nesting_max": 1
+          },
+          "name": "test_invalid_ast_returns_validation_error"
+        }
+      ],
+      "path": "./rash/src/ast/tests.rs",
+      "total_complexity": {
+        "cognitive": 3,
+        "cyclomatic": 3,
+        "lines": 37,
+        "nesting_max": 1
+      }
+    },
+    {
+      "classes": [],
+      "functions": [
+        {
+          "line_end": 11,
+          "line_start": 1,
+          "metrics": {
+            "cognitive": 0,
+            "cyclomatic": 0,
+            "lines": 2,
+            "nesting_max": 0
+          },
+          "name": "test_restricted_ast_validation"
+        },
+        {
+          "line_end": 11,
+          "line_start": 1,
+          "metrics": {
+            "cognitive": 0,
+            "cyclomatic": 0,
+            "lines": 3,
+            "nesting_max": 0
+          },
+          "name": "test_missing_entry_point"
+        },
+        {
+          "line_end": 11,
+          "line_start": 1,
+          "metrics": {
+            "cognitive": 0,
+            "cyclomatic": 0,
+            "lines": 3,
+            "nesting_max": 0
+          },
+          "name": "test_function_validation"
+        },
+        {
+          "line_end": 11,
+          "line_start": 1,
+          "metrics": {
+            "cognitive": 0,
+            "cyclomatic": 0,
+            "lines": 3,
+            "nesting_max": 0
+          },
+          "name": "test_recursion_detection"
+        },
+        {
+          "line_end": 11,
+          "line_start": 1,
+          "metrics": {
+            "cognitive": 0,
+            "cyclomatic": 0,
+            "lines": 3,
+            "nesting_max": 0
+          },
+          "name": "test_indirect_recursion_detection"
+        },
+        {
+          "line_end": 11,
+          "line_start": 1,
+          "metrics": {
+            "cognitive": 0,
+            "cyclomatic": 0,
+            "lines": 7,
+            "nesting_max": 0
+          },
+          "name": "test_type_validation"
+        },
+        {
+          "line_end": 11,
+          "line_start": 1,
+          "metrics": {
+            "cognitive": 0,
+            "cyclomatic": 0,
+            "lines": 4,
+            "nesting_max": 0
+          },
+          "name": "test_expression_validation"
+        },
+        {
+          "line_end": 11,
+          "line_start": 1,
+          "metrics": {
+            "cognitive": 0,
+            "cyclomatic": 0,
+            "lines": 4,
+            "nesting_max": 0
+          },
+          "name": "test_statement_validation"
+        },
+        {
+          "line_end": 11,
+          "line_start": 1,
+          "metrics": {
+            "cognitive": 0,
+            "cyclomatic": 0,
+            "lines": 6,
+            "nesting_max": 0
+          },
+          "name": "test_function_call_collection"
+        }
+      ],
+      "path": "./rash/src/ast/restricted_test.rs",
+      "total_complexity": {
+        "cognitive": 0,
+        "cyclomatic": 0,
+        "lines": 35,
+        "nesting_max": 0
+      }
+    },
+    {
+      "classes": [],
+      "functions": [],
+      "path": "./rash/src/models/mod.rs",
+      "total_complexity": {
+        "cognitive": 0,
+        "cyclomatic": 0,
+        "lines": 0,
+        "nesting_max": 0
+      }
+    },
+    {
+      "classes": [
+        {
+          "line_end": 100,
+          "line_start": 1,
+          "methods": [],
+          "metrics": {
+            "cognitive": 0,
+            "cyclomatic": 0,
+            "lines": 0,
+            "nesting_max": 0
+          },
+          "name": "Config"
+        }
+      ],
+      "functions": [
+        {
+          "line_end": 11,
+          "line_start": 1,
+          "metrics": {
+            "cognitive": 0,
+            "cyclomatic": 0,
+            "lines": 1,
+            "nesting_max": 0
+          },
+          "name": "Config::default"
+        }
+      ],
+      "path": "./rash/src/models/config.rs",
+      "total_complexity": {
+        "cognitive": 0,
+        "cyclomatic": 0,
+        "lines": 2,
+        "nesting_max": 0
+      }
+    },
+    {
+      "classes": [],
+      "functions": [],
+      "path": "./rash/src/models/error.rs",
+      "total_complexity": {
+        "cognitive": 0,
+        "cyclomatic": 0,
+        "lines": 0,
+        "nesting_max": 0
+      }
+    },
+    {
+      "classes": [],
+      "functions": [
+        {
+          "line_end": 11,
+          "line_start": 1,
+          "metrics": {
+            "cognitive": 4,
+            "cyclomatic": 4,
+            "lines": 7,
+            "nesting_max": 1
+          },
+          "name": "emit"
+        }
+      ],
+      "path": "./rash/src/emitter/mod.rs",
+      "total_complexity": {
+        "cognitive": 4,
+        "cyclomatic": 4,
+        "lines": 7,
+        "nesting_max": 1
+      }
+    },
+    {
+      "classes": [
+        {
+          "line_end": 100,
+          "line_start": 1,
+          "methods": [],
+          "metrics": {
+            "cognitive": 0,
+            "cyclomatic": 0,
+            "lines": 0,
+            "nesting_max": 0
+          },
+          "name": "PosixEmitter"
+        }
+      ],
+      "functions": [
+        {
+          "line_end": 11,
+          "line_start": 1,
+          "metrics": {
+            "cognitive": 0,
+            "cyclomatic": 0,
+            "lines": 1,
+            "nesting_max": 0
+          },
+          "name": "PosixEmitter::new"
+        },
+        {
+          "line_end": 11,
+          "line_start": 1,
+          "metrics": {
+            "cognitive": 3,
+            "cyclomatic": 3,
+            "lines": 5,
+            "nesting_max": 0
+          },
+          "name": "PosixEmitter::emit"
+        },
+        {
+          "line_end": 11,
+          "line_start": 1,
+          "metrics": {
+            "cognitive": 12,
+            "cyclomatic": 12,
+            "lines": 13,
+            "nesting_max": 1
+          },
+          "name": "PosixEmitter::write_header"
+        },
+        {
+          "line_end": 11,
+          "line_start": 1,
+          "metrics": {
+            "cognitive": 7,
+            "cyclomatic": 7,
+            "lines": 8,
+            "nesting_max": 0
+          },
+          "name": "PosixEmitter::write_footer"
+        },
+        {
+          "line_end": 11,
+          "line_start": 1,
+          "metrics": {
+            "cognitive": 30,
+            "cyclomatic": 30,
+            "lines": 31,
+            "nesting_max": 0
+          },
+          "name": "PosixEmitter::write_runtime"
+        },
+        {
+          "line_end": 11,
+          "line_start": 1,
+          "metrics": {
+            "cognitive": 0,
+            "cyclomatic": 0,
+            "lines": 1,
+            "nesting_max": 0
+          },
+          "name": "PosixEmitter::needs_runtime"
+        },
+        {
+          "line_end": 11,
+          "line_start": 1,
+          "metrics": {
+            "cognitive": 28,
+            "cyclomatic": 24,
+            "lines": 26,
+            "nesting_max": 2
+          },
+          "name": "PosixEmitter::emit_ir"
+        },
+        {
+          "line_end": 11,
+          "line_start": 1,
+          "metrics": {
+            "cognitive": 42,
+            "cyclomatic": 20,
+            "lines": 20,
+            "nesting_max": 4
+          },
+          "name": "PosixEmitter::emit_shell_value"
+        },
+        {
+          "line_end": 11,
+          "line_start": 1,
+          "metrics": {
+            "cognitive": 2,
+            "cyclomatic": 2,
+            "lines": 5,
+            "nesting_max": 1
+          },
+          "name": "PosixEmitter::emit_command"
+        },
+        {
+          "line_end": 11,
+          "line_start": 1,
+          "metrics": {
+            "cognitive": 10,
+            "cyclomatic": 9,
+            "lines": 7,
+            "nesting_max": 2
+          },
+          "name": "PosixEmitter::emit_test_expression"
+        },
+        {
+          "line_end": 11,
+          "line_start": 1,
+          "metrics": {
+            "cognitive": 0,
+            "cyclomatic": 0,
+            "lines": 5,
+            "nesting_max": 0
+          },
+          "name": "test_emit_simple_let"
+        },
+        {
+          "line_end": 11,
+          "line_start": 1,
+          "metrics": {
+            "cognitive": 0,
+            "cyclomatic": 0,
+            "lines": 6,
+            "nesting_max": 0
+          },
+          "name": "test_emit_command"
+        },
+        {
+          "line_end": 11,
+          "line_start": 1,
+          "metrics": {
+            "cognitive": 0,
+            "cyclomatic": 0,
+            "lines": 7,
+            "nesting_max": 0
+          },
+          "name": "test_emit_if_statement"
+        }
+      ],
+      "path": "./rash/src/emitter/posix.rs",
+      "total_complexity": {
+        "cognitive": 268,
+        "cyclomatic": 214,
+        "lines": 252,
+        "nesting_max": 4
+      }
+    },
+    {
+      "classes": [],
+      "functions": [
+        {
+          "line_end": 11,
+          "line_start": 1,
+          "metrics": {
+            "cognitive": 0,
+            "cyclomatic": 0,
+            "lines": 7,
+            "nesting_max": 0
+          },
+          "name": "test_simple_let_emission"
+        },
+        {
+          "line_end": 11,
+          "line_start": 1,
+          "metrics": {
+            "cognitive": 0,
+            "cyclomatic": 0,
+            "lines": 6,
+            "nesting_max": 0
+          },
+          "name": "test_command_emission"
+        },
+        {
+          "line_end": 11,
+          "line_start": 1,
+          "metrics": {
+            "cognitive": 0,
+            "cyclomatic": 0,
+            "lines": 9,
+            "nesting_max": 0
+          },
+          "name": "test_if_statement_emission"
+        },
+        {
+          "line_end": 11,
+          "line_start": 1,
+          "metrics": {
+            "cognitive": 0,
+            "cyclomatic": 0,
+            "lines": 6,
+            "nesting_max": 0
+          },
+          "name": "test_sequence_emission"
+        },
+        {
+          "line_end": 11,
+          "line_start": 1,
+          "metrics": {
+            "cognitive": 0,
+            "cyclomatic": 0,
+            "lines": 6,
+            "nesting_max": 0
+          },
+          "name": "test_exit_statement_emission"
+        },
+        {
+          "line_end": 11,
+          "line_start": 1,
+          "metrics": {
+            "cognitive": 0,
+            "cyclomatic": 0,
+            "lines": 14,
+            "nesting_max": 0
+          },
+          "name": "test_shell_value_emission"
+        },
+        {
+          "line_end": 11,
+          "line_start": 1,
+          "metrics": {
+            "cognitive": 0,
+            "cyclomatic": 0,
+            "lines": 5,
+            "nesting_max": 0
+          },
+          "name": "test_concatenation_emission"
+        },
+        {
+          "line_end": 11,
+          "line_start": 1,
+          "metrics": {
+            "cognitive": 0,
+            "cyclomatic": 0,
+            "lines": 5,
+            "nesting_max": 0
+          },
+          "name": "test_command_substitution_emission"
+        },
+        {
+          "line_end": 11,
+          "line_start": 1,
+          "metrics": {
+            "cognitive": 0,
+            "cyclomatic": 0,
+            "lines": 5,
+            "nesting_max": 0
+          },
+          "name": "test_noop_emission"
+        },
+        {
+          "line_end": 11,
+          "line_start": 1,
+          "metrics": {
+            "cognitive": 0,
+            "cyclomatic": 0,
+            "lines": 14,
+            "nesting_max": 0
+          },
+          "name": "test_header_and_footer_structure"
+        },
+        {
+          "line_end": 11,
+          "line_start": 1,
+          "metrics": {
+            "cognitive": 0,
+            "cyclomatic": 0,
+            "lines": 9,
+            "nesting_max": 0
+          },
+          "name": "test_runtime_functions_included"
+        },
+        {
+          "line_end": 11,
+          "line_start": 1,
+          "metrics": {
+            "cognitive": 0,
+            "cyclomatic": 0,
+            "lines": 12,
+            "nesting_max": 0
+          },
+          "name": "test_test_expression_emission"
+        },
+        {
+          "line_end": 11,
+          "line_start": 1,
+          "metrics": {
+            "cognitive": 0,
+            "cyclomatic": 0,
+            "lines": 6,
+            "nesting_max": 0
+          },
+          "name": "test_string_escaping"
+        },
+        {
+          "line_end": 11,
+          "line_start": 1,
+          "metrics": {
+            "cognitive": 0,
+            "cyclomatic": 0,
+            "lines": 7,
+            "nesting_max": 0
+          },
+          "name": "test_variable_name_escaping"
+        },
+        {
+          "line_end": 11,
+          "line_start": 1,
+          "metrics": {
+            "cognitive": 0,
+            "cyclomatic": 0,
+            "lines": 5,
+            "nesting_max": 0
+          },
+          "name": "test_command_name_escaping"
+        },
+        {
+          "line_end": 11,
+          "line_start": 1,
+          "metrics": {
+            "cognitive": 0,
+            "cyclomatic": 0,
+            "lines": 4,
+            "nesting_max": 0
+          },
+          "name": "test_shell_value_emission_cases"
+        },
+        {
+          "line_end": 11,
+          "line_start": 1,
+          "metrics": {
+            "cognitive": 0,
+            "cyclomatic": 0,
+            "lines": 12,
+            "nesting_max": 0
+          },
+          "name": "test_complex_nested_emission"
+        },
+        {
+          "line_end": 11,
+          "line_start": 1,
+          "metrics": {
+            "cognitive": 0,
+            "cyclomatic": 0,
+            "lines": 4,
+            "nesting_max": 0
+          },
+          "name": "test_emit_public_api"
+        },
+        {
+          "line_end": 11,
+          "line_start": 1,
+          "metrics": {
+            "cognitive": 0,
+            "cyclomatic": 0,
+            "lines": 8,
+            "nesting_max": 0
+          },
+          "name": "test_different_shell_dialects"
+        },
+        {
+          "line_end": 11,
+          "line_start": 1,
+          "metrics": {
+            "cognitive": 9,
+            "cyclomatic": 6,
+            "lines": 12,
+            "nesting_max": 2
+          },
+          "name": "test_indentation_consistency"
+        }
+      ],
+      "path": "./rash/src/emitter/tests.rs",
+      "total_complexity": {
+        "cognitive": 9,
+        "cyclomatic": 6,
+        "lines": 156,
+        "nesting_max": 2
+      }
+    },
+    {
+      "classes": [],
+      "functions": [
+        {
+          "line_end": 11,
+          "line_start": 1,
+          "metrics": {
+            "cognitive": 3,
+            "cyclomatic": 3,
+            "lines": 8,
+            "nesting_max": 1
+          },
+          "name": "escape_shell_string"
+        },
+        {
+          "line_end": 11,
+          "line_start": 1,
+          "metrics": {
+            "cognitive": 18,
+            "cyclomatic": 7,
+            "lines": 12,
+            "nesting_max": 4
+          },
+          "name": "escape_variable_name"
+        },
+        {
+          "line_end": 11,
+          "line_start": 1,
+          "metrics": {
+            "cognitive": 1,
+            "cyclomatic": 1,
+            "lines": 3,
+            "nesting_max": 1
+          },
+          "name": "escape_command_name"
+        },
+        {
+          "line_end": 11,
+          "line_start": 1,
+          "metrics": {
+            "cognitive": 6,
+            "cyclomatic": 6,
+            "lines": 7,
+            "nesting_max": 1
+          },
+          "name": "is_safe_unquoted"
+        },
+        {
+          "line_end": 11,
+          "line_start": 1,
+          "metrics": {
+            "cognitive": 4,
+            "cyclomatic": 4,
+            "lines": 6,
+            "nesting_max": 1
+          },
+          "name": "is_valid_shell_identifier"
+        },
+        {
+          "line_end": 11,
+          "line_start": 1,
+          "metrics": {
+            "cognitive": 3,
+            "cyclomatic": 3,
+            "lines": 4,
+            "nesting_max": 1
+          },
+          "name": "is_safe_command_name"
+        },
+        {
+          "line_end": 11,
+          "line_start": 1,
+          "metrics": {
+            "cognitive": 0,
+            "cyclomatic": 0,
+            "lines": 3,
+            "nesting_max": 0
+          },
+          "name": "test_escape_simple_string"
+        },
+        {
+          "line_end": 11,
+          "line_start": 1,
+          "metrics": {
+            "cognitive": 0,
+            "cyclomatic": 0,
+            "lines": 1,
+            "nesting_max": 0
+          },
+          "name": "test_escape_string_with_quotes"
+        },
+        {
+          "line_end": 11,
+          "line_start": 1,
+          "metrics": {
+            "cognitive": 0,
+            "cyclomatic": 0,
+            "lines": 3,
+            "nesting_max": 0
+          },
+          "name": "test_variable_name_escaping"
+        },
+        {
+          "line_end": 11,
+          "line_start": 1,
+          "metrics": {
+            "cognitive": 0,
+            "cyclomatic": 0,
+            "lines": 3,
+            "nesting_max": 0
+          },
+          "name": "test_command_name_escaping"
+        },
+        {
+          "line_end": 11,
+          "line_start": 1,
+          "metrics": {
+            "cognitive": 0,
+            "cyclomatic": 0,
+            "lines": 6,
+            "nesting_max": 0
+          },
+          "name": "test_safe_unquoted"
+        }
+      ],
+      "path": "./rash/src/emitter/escape.rs",
+      "total_complexity": {
+        "cognitive": 35,
+        "cyclomatic": 24,
+        "lines": 56,
+        "nesting_max": 4
+      }
+    },
+    {
+      "classes": [],
+      "functions": [
+        {
+          "line_end": 11,
+          "line_start": 1,
+          "metrics": {
+            "cognitive": 4,
+            "cyclomatic": 4,
+            "lines": 5,
+            "nesting_max": 0
+          },
+          "name": "transpile"
+        },
+        {
+          "line_end": 11,
+          "line_start": 1,
+          "metrics": {
+            "cognitive": 2,
+            "cyclomatic": 2,
+            "lines": 3,
+            "nesting_max": 0
+          },
+          "name": "check"
+        }
+      ],
+      "path": "./rash/src/lib.rs",
+      "total_complexity": {
+        "cognitive": 6,
+        "cyclomatic": 6,
+        "lines": 8,
+        "nesting_max": 0
+      }
+    },
+    {
+      "classes": [],
+      "functions": [],
+      "path": "./rash/src/services/mod.rs",
+      "total_complexity": {
+        "cognitive": 0,
+        "cyclomatic": 0,
+        "lines": 0,
+        "nesting_max": 0
+      }
+    },
+    {
+      "classes": [],
+      "functions": [
+        {
+          "line_end": 11,
+          "line_start": 1,
+          "metrics": {
+            "cognitive": 0,
+            "cyclomatic": 0,
+            "lines": 6,
+            "nesting_max": 0
+          },
+          "name": "test_simple_function_parsing"
+        },
+        {
+          "line_end": 11,
+          "line_start": 1,
+          "metrics": {
+            "cognitive": 0,
+            "cyclomatic": 0,
+            "lines": 8,
+            "nesting_max": 0
+          },
+          "name": "test_multiple_functions_parsing"
+        },
+        {
+          "line_end": 11,
+          "line_start": 1,
+          "metrics": {
+            "cognitive": 9,
+            "cyclomatic": 9,
+            "lines": 7,
+            "nesting_max": 1
+          },
+          "name": "test_literal_parsing"
+        },
+        {
+          "line_end": 11,
+          "line_start": 1,
+          "metrics": {
+            "cognitive": 6,
+            "cyclomatic": 6,
+            "lines": 9,
+            "nesting_max": 1
+          },
+          "name": "test_function_call_parsing"
+        },
+        {
+          "line_end": 11,
+          "line_start": 1,
+          "metrics": {
+            "cognitive": 6,
+            "cyclomatic": 6,
+            "lines": 7,
+            "nesting_max": 1
+          },
+          "name": "test_binary_expression_parsing"
+        },
+        {
+          "line_end": 11,
+          "line_start": 1,
+          "metrics": {
+            "cognitive": 3,
+            "cyclomatic": 3,
+            "lines": 7,
+            "nesting_max": 1
+          },
+          "name": "test_method_call_parsing"
+        },
+        {
+          "line_end": 11,
+          "line_start": 1,
+          "metrics": {
+            "cognitive": 3,
+            "cyclomatic": 3,
+            "lines": 5,
+            "nesting_max": 1
+          },
+          "name": "test_return_statement_parsing"
+        },
+        {
+          "line_end": 11,
+          "line_start": 1,
+          "metrics": {
+            "cognitive": 3,
+            "cyclomatic": 3,
+            "lines": 5,
+            "nesting_max": 1
+          },
+          "name": "test_variable_reference_parsing"
+        },
+        {
+          "line_end": 11,
+          "line_start": 1,
+          "metrics": {
+            "cognitive": 0,
+            "cyclomatic": 0,
+            "lines": 6,
+            "nesting_max": 0
+          },
+          "name": "test_parameter_parsing"
+        },
+        {
+          "line_end": 11,
+          "line_start": 1,
+          "metrics": {
+            "cognitive": 0,
+            "cyclomatic": 0,
+            "lines": 6,
+            "nesting_max": 0
+          },
+          "name": "test_return_type_parsing"
+        },
+        {
+          "line_end": 11,
+          "line_start": 1,
+          "metrics": {
+            "cognitive": 0,
+            "cyclomatic": 0,
+            "lines": 4,
+            "nesting_max": 0
+          },
+          "name": "test_error_on_no_main_function"
+        },
+        {
+          "line_end": 11,
+          "line_start": 1,
+          "metrics": {
+            "cognitive": 0,
+            "cyclomatic": 0,
+            "lines": 4,
+            "nesting_max": 0
+          },
+          "name": "test_error_on_multiple_main_functions"
+        },
+        {
+          "line_end": 11,
+          "line_start": 1,
+          "metrics": {
+            "cognitive": 0,
+            "cyclomatic": 0,
+            "lines": 4,
+            "nesting_max": 0
+          },
+          "name": "test_error_on_non_function_items"
+        },
+        {
+          "line_end": 11,
+          "line_start": 1,
+          "metrics": {
+            "cognitive": 3,
+            "cyclomatic": 3,
+            "lines": 6,
+            "nesting_max": 1
+          },
+          "name": "test_complex_expression_parsing"
+        },
+        {
+          "line_end": 11,
+          "line_start": 1,
+          "metrics": {
+            "cognitive": 6,
+            "cyclomatic": 6,
+            "lines": 7,
+            "nesting_max": 1
+          },
+          "name": "test_unary_expression_parsing"
+        },
+        {
+          "line_end": 11,
+          "line_start": 1,
+          "metrics": {
+            "cognitive": 0,
+            "cyclomatic": 0,
+            "lines": 8,
+            "nesting_max": 0
+          },
+          "name": "test_type_conversion_edge_cases"
+        },
+        {
+          "line_end": 11,
+          "line_start": 1,
+          "metrics": {
+            "cognitive": 3,
+            "cyclomatic": 3,
+            "lines": 4,
+            "nesting_max": 1
+          },
+          "name": "test_literal_parsing_cases"
+        },
+        {
+          "line_end": 11,
+          "line_start": 1,
+          "metrics": {
+            "cognitive": 1,
+            "cyclomatic": 1,
+            "lines": 4,
+            "nesting_max": 1
+          },
+          "name": "test_error_handling_invalid_syntax"
+        },
+        {
+          "line_end": 11,
+          "line_start": 1,
+          "metrics": {
+            "cognitive": 3,
+            "cyclomatic": 3,
+            "lines": 7,
+            "nesting_max": 1
+          },
+          "name": "test_nested_expression_parsing"
+        },
+        {
+          "line_end": 11,
+          "line_start": 1,
+          "metrics": {
+            "cognitive": 0,
+            "cyclomatic": 0,
+            "lines": 4,
+            "nesting_max": 0
+          },
+          "name": "test_empty_function_body_handling"
+        },
+        {
+          "line_end": 11,
+          "line_start": 1,
+          "metrics": {
+            "cognitive": 9,
+            "cyclomatic": 9,
+            "lines": 7,
+            "nesting_max": 1
+          },
+          "name": "test_parser_maintains_source_information"
+        }
+      ],
+      "path": "./rash/src/services/tests.rs",
+      "total_complexity": {
+        "cognitive": 55,
+        "cyclomatic": 55,
+        "lines": 125,
+        "nesting_max": 1
+      }
+    },
+    {
+      "classes": [],
+      "functions": [
+        {
+          "line_end": 11,
+          "line_start": 1,
+          "metrics": {
+            "cognitive": 17,
+            "cyclomatic": 10,
+            "lines": 17,
+            "nesting_max": 4
+          },
+          "name": "parse"
+        },
+        {
+          "line_end": 11,
+          "line_start": 1,
+          "metrics": {
+            "cognitive": 16,
+            "cyclomatic": 11,
+            "lines": 13,
+            "nesting_max": 3
+          },
+          "name": "convert_function"
+        },
+        {
+          "line_end": 11,
+          "line_start": 1,
+          "metrics": {
+            "cognitive": 16,
+            "cyclomatic": 10,
+            "lines": 5,
+            "nesting_max": 2
+          },
+          "name": "convert_type"
+        },
+        {
+          "line_end": 11,
+          "line_start": 1,
+          "metrics": {
+            "cognitive": 2,
+            "cyclomatic": 2,
+            "lines": 4,
+            "nesting_max": 1
+          },
+          "name": "convert_block"
+        },
+        {
+          "line_end": 11,
+          "line_start": 1,
+          "metrics": {
+            "cognitive": 11,
+            "cyclomatic": 8,
+            "lines": 9,
+            "nesting_max": 3
+          },
+          "name": "convert_stmt"
+        },
+        {
+          "line_end": 11,
+          "line_start": 1,
+          "metrics": {
+            "cognitive": 26,
+            "cyclomatic": 22,
+            "lines": 28,
+            "nesting_max": 3
+          },
+          "name": "convert_expr"
+        },
+        {
+          "line_end": 11,
+          "line_start": 1,
+          "metrics": {
+            "cognitive": 6,
+            "cyclomatic": 6,
+            "lines": 3,
+            "nesting_max": 1
+          },
+          "name": "convert_literal"
+        },
+        {
+          "line_end": 11,
+          "line_start": 1,
+          "metrics": {
+            "cognitive": 14,
+            "cyclomatic": 14,
+            "lines": 1,
+            "nesting_max": 1
+          },
+          "name": "convert_binary_op"
+        },
+        {
+          "line_end": 11,
+          "line_start": 1,
+          "metrics": {
+            "cognitive": 4,
+            "cyclomatic": 4,
+            "lines": 1,
+            "nesting_max": 1
+          },
+          "name": "convert_unary_op"
+        }
+      ],
+      "path": "./rash/src/services/parser.rs",
+      "total_complexity": {
+        "cognitive": 112,
+        "cyclomatic": 87,
+        "lines": 81,
+        "nesting_max": 4
+      }
+    },
+    {
+      "classes": [],
+      "functions": [
+        {
+          "line_end": 11,
+          "line_start": 1,
+          "metrics": {
+            "cognitive": 0,
+            "cyclomatic": 0,
+            "lines": 8,
+            "nesting_max": 0
+          },
+          "name": "test_end_to_end_simple_transpilation"
+        },
+        {
+          "line_end": 11,
+          "line_start": 1,
+          "metrics": {
+            "cognitive": 0,
+            "cyclomatic": 0,
+            "lines": 5,
+            "nesting_max": 0
+          },
+          "name": "test_end_to_end_with_verification"
+        },
+        {
+          "line_end": 11,
+          "line_start": 1,
+          "metrics": {
+            "cognitive": 0,
+            "cyclomatic": 0,
+            "lines": 8,
+            "nesting_max": 0
+          },
+          "name": "test_generated_script_execution"
+        },
+        {
+          "line_end": 11,
+          "line_start": 1,
+          "metrics": {
+            "cognitive": 0,
+            "cyclomatic": 0,
+            "lines": 13,
+            "nesting_max": 0
+          },
+          "name": "test_generated_script_with_variables"
+        },
+        {
+          "line_end": 11,
+          "line_start": 1,
+          "metrics": {
+            "cognitive": 1,
+            "cyclomatic": 1,
+            "lines": 10,
+            "nesting_max": 1
+          },
+          "name": "test_different_shell_dialects"
+        },
+        {
+          "line_end": 11,
+          "line_start": 1,
+          "metrics": {
+            "cognitive": 1,
+            "cyclomatic": 1,
+            "lines": 7,
+            "nesting_max": 1
+          },
+          "name": "test_verification_levels"
+        },
+        {
+          "line_end": 11,
+          "line_start": 1,
+          "metrics": {
+            "cognitive": 0,
+            "cyclomatic": 0,
+            "lines": 10,
+            "nesting_max": 0
+          },
+          "name": "test_optimization_effects"
+        },
+        {
+          "line_end": 11,
+          "line_start": 1,
+          "metrics": {
+            "cognitive": 0,
+            "cyclomatic": 0,
+            "lines": 4,
+            "nesting_max": 0
+          },
+          "name": "test_check_function"
+        },
+        {
+          "line_end": 11,
+          "line_start": 1,
+          "metrics": {
+            "cognitive": 1,
+            "cyclomatic": 1,
+            "lines": 9,
+            "nesting_max": 1
+          },
+          "name": "test_complex_nested_structures"
+        },
+        {
+          "line_end": 11,
+          "line_start": 1,
+          "metrics": {
+            "cognitive": 0,
+            "cyclomatic": 0,
+            "lines": 5,
+            "nesting_max": 0
+          },
+          "name": "test_function_calls_translation"
+        },
+        {
+          "line_end": 11,
+          "line_start": 1,
+          "metrics": {
+            "cognitive": 1,
+            "cyclomatic": 1,
+            "lines": 5,
+            "nesting_max": 1
+          },
+          "name": "test_error_handling_invalid_source"
+        },
+        {
+          "line_end": 11,
+          "line_start": 1,
+          "metrics": {
+            "cognitive": 0,
+            "cyclomatic": 0,
+            "lines": 6,
+            "nesting_max": 0
+          },
+          "name": "test_shell_escaping_safety"
+        },
+        {
+          "line_end": 11,
+          "line_start": 1,
+          "metrics": {
+            "cognitive": 0,
+            "cyclomatic": 0,
+            "lines": 8,
+            "nesting_max": 0
+          },
+          "name": "test_runtime_functions_included"
+        },
+        {
+          "line_end": 11,
+          "line_start": 1,
+          "metrics": {
+            "cognitive": 0,
+            "cyclomatic": 0,
+            "lines": 9,
+            "nesting_max": 0
+          },
+          "name": "test_script_header_and_footer"
+        },
+        {
+          "line_end": 11,
+          "line_start": 1,
+          "metrics": {
+            "cognitive": 0,
+            "cyclomatic": 0,
+            "lines": 7,
+            "nesting_max": 0
+          },
+          "name": "test_deterministic_output"
+        },
+        {
+          "line_end": 11,
+          "line_start": 1,
+          "metrics": {
+            "cognitive": 2,
+            "cyclomatic": 2,
+            "lines": 13,
+            "nesting_max": 1
+          },
+          "name": "test_large_input_handling"
+        },
+        {
+          "line_end": 11,
+          "line_start": 1,
+          "metrics": {
+            "cognitive": 0,
+            "cyclomatic": 0,
+            "lines": 6,
+            "nesting_max": 0
+          },
+          "name": "test_proof_generation"
+        },
+        {
+          "line_end": 11,
+          "line_start": 1,
+          "metrics": {
+            "cognitive": 1,
+            "cyclomatic": 1,
+            "lines": 11,
+            "nesting_max": 1
+          },
+          "name": "test_concurrent_transpilation"
+        },
+        {
+          "line_end": 11,
+          "line_start": 1,
+          "metrics": {
+            "cognitive": 1,
+            "cyclomatic": 1,
+            "lines": 8,
+            "nesting_max": 1
+          },
+          "name": "test_memory_safety"
+        }
+      ],
+      "path": "./rash/tests/integration_tests.rs",
+      "total_complexity": {
+        "cognitive": 8,
+        "cyclomatic": 8,
+        "lines": 152,
+        "nesting_max": 1
+      }
+    },
+    {
+      "classes": [],
+      "functions": [
+        {
+          "line_end": 11,
+          "line_start": 1,
+          "metrics": {
+            "cognitive": 0,
+            "cyclomatic": 0,
+            "lines": 8,
+            "nesting_max": 0
+          },
+          "name": "benchmark_parsing"
+        },
+        {
+          "line_end": 11,
+          "line_start": 1,
+          "metrics": {
+            "cognitive": 0,
+            "cyclomatic": 0,
+            "lines": 11,
+            "nesting_max": 0
+          },
+          "name": "benchmark_ir_generation"
+        },
+        {
+          "line_end": 11,
+          "line_start": 1,
+          "metrics": {
+            "cognitive": 0,
+            "cyclomatic": 0,
+            "lines": 9,
+            "nesting_max": 0
+          },
+          "name": "benchmark_optimization"
+        },
+        {
+          "line_end": 11,
+          "line_start": 1,
+          "metrics": {
+            "cognitive": 0,
+            "cyclomatic": 0,
+            "lines": 9,
+            "nesting_max": 0
+          },
+          "name": "benchmark_emission"
+        },
+        {
+          "line_end": 11,
+          "line_start": 1,
+          "metrics": {
+            "cognitive": 0,
+            "cyclomatic": 0,
+            "lines": 13,
+            "nesting_max": 0
+          },
+          "name": "benchmark_end_to_end"
+        },
+        {
+          "line_end": 11,
+          "line_start": 1,
+          "metrics": {
+            "cognitive": 0,
+            "cyclomatic": 0,
+            "lines": 11,
+            "nesting_max": 0
+          },
+          "name": "benchmark_memory_usage"
+        },
+        {
+          "line_end": 11,
+          "line_start": 1,
+          "metrics": {
+            "cognitive": 1,
+            "cyclomatic": 1,
+            "lines": 9,
+            "nesting_max": 1
+          },
+          "name": "benchmark_scalability"
+        },
+        {
+          "line_end": 11,
+          "line_start": 1,
+          "metrics": {
+            "cognitive": 2,
+            "cyclomatic": 2,
+            "lines": 8,
+            "nesting_max": 1
+          },
+          "name": "generate_large_rust_source"
+        }
+      ],
+      "path": "./rash/benches/transpilation.rs",
+      "total_complexity": {
+        "cognitive": 3,
+        "cyclomatic": 3,
+        "lines": 78,
+        "nesting_max": 1
+      }
+    },
+    {
+      "classes": [],
+      "functions": [
+        {
+          "line_end": 11,
+          "line_start": 1,
+          "metrics": {
+            "cognitive": 1,
+            "cyclomatic": 1,
+            "lines": 17,
+            "nesting_max": 1
+          },
+          "name": "benchmark_verification_levels"
+        },
+        {
+          "line_end": 11,
+          "line_start": 1,
+          "metrics": {
+            "cognitive": 0,
+            "cyclomatic": 0,
+            "lines": 26,
+            "nesting_max": 0
+          },
+          "name": "benchmark_individual_verifications"
+        },
+        {
+          "line_end": 11,
+          "line_start": 1,
+          "metrics": {
+            "cognitive": 1,
+            "cyclomatic": 1,
+            "lines": 12,
+            "nesting_max": 1
+          },
+          "name": "benchmark_verification_scalability"
+        },
+        {
+          "line_end": 11,
+          "line_start": 1,
+          "metrics": {
+            "cognitive": 1,
+            "cyclomatic": 1,
+            "lines": 8,
+            "nesting_max": 1
+          },
+          "name": "benchmark_verification_with_errors"
+        },
+        {
+          "line_end": 11,
+          "line_start": 1,
+          "metrics": {
+            "cognitive": 1,
+            "cyclomatic": 1,
+            "lines": 9,
+            "nesting_max": 1
+          },
+          "name": "benchmark_effect_analysis"
+        },
+        {
+          "line_end": 11,
+          "line_start": 1,
+          "metrics": {
+            "cognitive": 2,
+            "cyclomatic": 2,
+            "lines": 8,
+            "nesting_max": 1
+          },
+          "name": "generate_complex_rust_for_verification"
+        },
+        {
+          "line_end": 11,
+          "line_start": 1,
+          "metrics": {
+            "cognitive": 0,
+            "cyclomatic": 0,
+            "lines": 1,
+            "nesting_max": 0
+          },
+          "name": "generate_injection_attempt"
+        },
+        {
+          "line_end": 11,
+          "line_start": 1,
+          "metrics": {
+            "cognitive": 0,
+            "cyclomatic": 0,
+            "lines": 1,
+            "nesting_max": 0
+          },
+          "name": "generate_non_deterministic"
+        },
+        {
+          "line_end": 11,
+          "line_start": 1,
+          "metrics": {
+            "cognitive": 4,
+            "cyclomatic": 4,
+            "lines": 14,
+            "nesting_max": 1
+          },
+          "name": "generate_resource_intensive"
+        }
+      ],
+      "path": "./rash/benches/verification.rs",
+      "total_complexity": {
+        "cognitive": 10,
+        "cyclomatic": 10,
+        "lines": 96,
+        "nesting_max": 1
+      }
+    },
+    {
+      "classes": [],
+      "functions": [],
+      "path": "./rash-runtime/src/lib.rs",
+      "total_complexity": {
+        "cognitive": 0,
+        "cyclomatic": 0,
+        "lines": 0,
+        "nesting_max": 0
+      }
+    },
+    {
+      "classes": [],
+      "functions": [
+        {
+          "line_end": 11,
+          "line_start": 1,
+          "metrics": {
+            "cognitive": 3,
+            "cyclomatic": 3,
+            "lines": 10,
+            "nesting_max": 0
+          },
+          "name": "main"
+        },
+        {
+          "line_end": 11,
+          "line_start": 1,
+          "metrics": {
+            "cognitive": 44,
+            "cyclomatic": 26,
+            "lines": 22,
+            "nesting_max": 2
+          },
+          "name": "validate_shell_syntax"
+        },
+        {
+          "line_end": 11,
+          "line_start": 1,
+          "metrics": {
+            "cognitive": 7,
+            "cyclomatic": 4,
+            "lines": 10,
+            "nesting_max": 3
+          },
+          "name": "minify_shell"
+        }
+      ],
+      "path": "./rash-runtime/build.rs",
+      "total_complexity": {
+        "cognitive": 54,
+        "cyclomatic": 33,
+        "lines": 42,
+        "nesting_max": 3
+      }
+    },
+    {
+      "classes": [
+        {
+          "line_end": 100,
+          "line_start": 1,
+          "methods": [],
+          "metrics": {
+            "cognitive": 0,
+            "cyclomatic": 0,
+            "lines": 0,
+            "nesting_max": 0
+          },
+          "name": "Sandbox"
+        }
+      ],
+      "functions": [
+        {
+          "line_end": 11,
+          "line_start": 1,
+          "metrics": {
+            "cognitive": 1,
+            "cyclomatic": 1,
+            "lines": 2,
+            "nesting_max": 0
+          },
+          "name": "Sandbox::new"
+        },
+        {
+          "line_end": 11,
+          "line_start": 1,
+          "metrics": {
+            "cognitive": 2,
+            "cyclomatic": 2,
+            "lines": 4,
+            "nesting_max": 0
+          },
+          "name": "Sandbox::run_shell_script"
+        },
+        {
+          "line_end": 11,
+          "line_start": 1,
+          "metrics": {
+            "cognitive": 0,
+            "cyclomatic": 0,
+            "lines": 1,
+            "nesting_max": 0
+          },
+          "name": "Sandbox::temp_path"
+        }
+      ],
+      "path": "./rash-tests/src/sandbox.rs",
+      "total_complexity": {
+        "cognitive": 6,
+        "cyclomatic": 6,
+        "lines": 14,
+        "nesting_max": 0
+      }
+    },
+    {
+      "classes": [],
+      "functions": [],
+      "path": "./rash-tests/src/lib.rs",
+      "total_complexity": {
+        "cognitive": 0,
+        "cyclomatic": 0,
+        "lines": 0,
+        "nesting_max": 0
+      }
+    },
+    {
+      "classes": [],
+      "functions": [
+        {
+          "line_end": 11,
+          "line_start": 1,
+          "metrics": {
+            "cognitive": 0,
+            "cyclomatic": 0,
+            "lines": 1,
+            "nesting_max": 0
+          },
+          "name": "get_runtime"
+        }
+      ],
+      "path": "./target/release/build/rash-runtime-8575b73446660094/out/runtime.rs",
+      "total_complexity": {
+        "cognitive": 0,
+        "cyclomatic": 0,
+        "lines": 1,
+        "nesting_max": 0
+      }
+    },
+    {
+      "classes": [],
+      "functions": [
+        {
+          "line_end": 11,
+          "line_start": 1,
+          "metrics": {
+            "cognitive": 0,
+            "cyclomatic": 0,
+            "lines": 1,
+            "nesting_max": 0
+          },
+          "name": "get_runtime"
+        }
+      ],
+      "path": "./target/debug/build/rash-runtime-70d7ad748e24ab86/out/runtime.rs",
+      "total_complexity": {
+        "cognitive": 0,
+        "cyclomatic": 0,
+        "lines": 1,
+        "nesting_max": 0
+      }
+    },
+    {
+      "classes": [],
+      "functions": [
+        {
+          "line_end": 11,
+          "line_start": 1,
+          "metrics": {
+            "cognitive": 0,
+            "cyclomatic": 0,
+            "lines": 1,
+            "nesting_max": 0
+          },
+          "name": "get_runtime"
+        }
+      ],
+      "path": "./target/debug/build/rash-runtime-ebb082129b44155d/out/runtime.rs",
+      "total_complexity": {
+        "cognitive": 0,
+        "cyclomatic": 0,
+        "lines": 1,
+        "nesting_max": 0
+      }
+    },
+    {
+      "classes": [],
+      "functions": [
+        {
+          "line_end": 11,
+          "line_start": 1,
+          "metrics": {
+            "cognitive": 0,
+            "cyclomatic": 0,
+            "lines": 1,
+            "nesting_max": 0
+          },
+          "name": "get_runtime"
+        }
+      ],
+      "path": "./target/min-size/build/rash-runtime-3fe0521997695da0/out/runtime.rs",
+      "total_complexity": {
+        "cognitive": 0,
+        "cyclomatic": 0,
+        "lines": 1,
+        "nesting_max": 0
+      }
+    }
+  ],
+  "hotspots": [
+    {
+      "complexity": 32,
+      "complexity_type": "cyclomatic",
+      "file": "./rash/src/ast/restricted.rs",
+      "function": "Stmt::validate",
+      "line": 1
+    },
+    {
+      "complexity": 30,
+      "complexity_type": "cyclomatic",
+      "file": "./rash/src/emitter/posix.rs",
+      "function": "PosixEmitter::write_runtime",
+      "line": 1
+    },
+    {
+      "complexity": 26,
+      "complexity_type": "cyclomatic",
+      "file": "./rash-runtime/build.rs",
+      "function": "validate_shell_syntax",
+      "line": 1
+    },
+    {
+      "complexity": 24,
+      "complexity_type": "cyclomatic",
+      "file": "./rash/src/emitter/posix.rs",
+      "function": "PosixEmitter::emit_ir",
+      "line": 1
+    },
+    {
+      "complexity": 22,
+      "complexity_type": "cyclomatic",
+      "file": "./rash/src/services/parser.rs",
+      "function": "convert_expr",
+      "line": 1
+    },
+    {
+      "complexity": 20,
+      "complexity_type": "cyclomatic",
+      "file": "./rash/src/emitter/posix.rs",
+      "function": "PosixEmitter::emit_shell_value",
+      "line": 1
+    },
+    {
+      "complexity": 18,
+      "complexity_type": "cyclomatic",
+      "file": "./rash/src/ast/restricted.rs",
+      "function": "Stmt::collect_function_calls",
+      "line": 1
+    },
+    {
+      "complexity": 14,
+      "complexity_type": "cyclomatic",
+      "file": "./rash/src/ast/restricted.rs",
+      "function": "Expr::collect_function_calls",
+      "line": 1
+    },
+    {
+      "complexity": 14,
+      "complexity_type": "cyclomatic",
+      "file": "./rash/src/services/parser.rs",
+      "function": "convert_binary_op",
+      "line": 1
+    },
+    {
+      "complexity": 13,
+      "complexity_type": "cyclomatic",
+      "file": "./rash/src/ir/mod.rs",
+      "function": "IrConverter::convert_stmt",
+      "line": 1
+    }
+  ],
+  "summary": {
+    "max_cognitive": 45,
+    "max_cyclomatic": 32,
+    "median_cognitive": 0.0,
+    "median_cyclomatic": 0.0,
+    "p90_cognitive": 9,
+    "p90_cyclomatic": 8,
+    "technical_debt_hours": 59.5,
+    "total_files": 43,
+    "total_functions": 262
+  },
+  "top_files": {
+    "rankings": [
+      {
+        "avg_cognitive": 11.0,
+        "file": "./rash/src/ast/restricted.rs",
+        "function_count": 12,
+        "halstead_effort": 1210.0,
+        "max_cyclomatic": 32,
+        "rank": 1,
+        "total_score": 31.2
+      },
+      {
+        "avg_cognitive": 10.307692307692308,
+        "file": "./rash/src/emitter/posix.rs",
+        "function_count": 13,
+        "halstead_effort": 1350.0,
+        "max_cyclomatic": 30,
+        "rank": 2,
+        "total_score": 29.423076923076923
+      },
+      {
+        "avg_cognitive": 18.0,
+        "file": "./rash-runtime/build.rs",
+        "function_count": 3,
+        "halstead_effort": 420.0,
+        "max_cyclomatic": 26,
+        "rank": 3,
+        "total_score": 28.3
+      },
+      {
+        "avg_cognitive": 12.444444444444445,
+        "file": "./rash/src/services/parser.rs",
+        "function_count": 9,
+        "halstead_effort": 810.0,
+        "max_cyclomatic": 22,
+        "rank": 4,
+        "total_score": 23.477777777777778
+      },
+      {
+        "avg_cognitive": 5.083333333333333,
+        "file": "./rash/src/ir/mod.rs",
+        "function_count": 12,
+        "halstead_effort": 670.0,
+        "max_cyclomatic": 13,
+        "rank": 5,
+        "total_score": 13.633333333333333
+      },
+      {
+        "avg_cognitive": 3.0,
+        "file": "./rash/src/verifier/properties.rs",
+        "function_count": 18,
+        "halstead_effort": 690.0,
+        "max_cyclomatic": 10,
+        "rank": 6,
+        "total_score": 11.0
+      },
+      {
+        "avg_cognitive": 5.25,
+        "file": "./rash/src/ast/visitor.rs",
+        "function_count": 4,
+        "halstead_effort": 210.0,
+        "max_cyclomatic": 10,
+        "rank": 7,
+        "total_score": 10.500000000000002
+      },
+      {
+        "avg_cognitive": 2.619047619047619,
+        "file": "./rash/src/services/tests.rs",
+        "function_count": 21,
+        "halstead_effort": 1250.0,
+        "max_cyclomatic": 9,
+        "rank": 8,
+        "total_score": 10.347619047619046
+      },
+      {
+        "avg_cognitive": 3.142857142857143,
+        "file": "./rash/src/ir/shell_ir.rs",
+        "function_count": 7,
+        "halstead_effort": 240.0,
+        "max_cyclomatic": 9,
+        "rank": 9,
+        "total_score": 9.157142857142857
+      },
+      {
+        "avg_cognitive": 0.7777777777777778,
+        "file": "./rash/src/ir/effects.rs",
+        "function_count": 18,
+        "halstead_effort": 400.0,
+        "max_cyclomatic": 8,
+        "rank": 10,
+        "total_score": 8.511111111111111
+      }
+    ],
+    "requested": 10,
+    "returned": 10
+  },
+  "violations": [
+    {
+      "file": "./rash/src/ir/mod.rs",
+      "function": "IrConverter::convert_stmt",
+      "line": 1,
+      "message": "Cyclomatic complexity of 13 exceeds recommended complexity of 10",
+      "rule": "cyclomatic-complexity",
+      "severity": "warning",
+      "threshold": 10,
+      "value": 13
+    },
+    {
+      "file": "./rash/src/ir/mod.rs",
+      "function": "IrConverter::convert_expr_to_value",
+      "line": 1,
+      "message": "Cyclomatic complexity of 11 exceeds recommended complexity of 10",
+      "rule": "cyclomatic-complexity",
+      "severity": "warning",
+      "threshold": 10,
+      "value": 11
+    },
+    {
+      "file": "./rash/src/ast/restricted.rs",
+      "function": "Stmt::validate",
+      "line": 1,
+      "message": "Cyclomatic complexity of 32 exceeds maximum allowed complexity of 20",
+      "rule": "cyclomatic-complexity",
+      "severity": "error",
+      "threshold": 20,
+      "value": 32
+    },
+    {
+      "file": "./rash/src/ast/restricted.rs",
+      "function": "Stmt::validate",
+      "line": 1,
+      "message": "Cognitive complexity of 45 exceeds maximum allowed complexity of 30",
+      "rule": "cognitive-complexity",
+      "severity": "error",
+      "threshold": 30,
+      "value": 45
+    },
+    {
+      "file": "./rash/src/ast/restricted.rs",
+      "function": "Stmt::collect_function_calls",
+      "line": 1,
+      "message": "Cyclomatic complexity of 18 exceeds recommended complexity of 10",
+      "rule": "cyclomatic-complexity",
+      "severity": "warning",
+      "threshold": 10,
+      "value": 18
+    },
+    {
+      "file": "./rash/src/ast/restricted.rs",
+      "function": "Stmt::collect_function_calls",
+      "line": 1,
+      "message": "Cognitive complexity of 21 exceeds recommended complexity of 15",
+      "rule": "cognitive-complexity",
+      "severity": "warning",
+      "threshold": 15,
+      "value": 21
+    },
+    {
+      "file": "./rash/src/ast/restricted.rs",
+      "function": "Expr::validate",
+      "line": 1,
+      "message": "Cyclomatic complexity of 13 exceeds recommended complexity of 10",
+      "rule": "cyclomatic-complexity",
+      "severity": "warning",
+      "threshold": 10,
+      "value": 13
+    },
+    {
+      "file": "./rash/src/ast/restricted.rs",
+      "function": "Expr::collect_function_calls",
+      "line": 1,
+      "message": "Cyclomatic complexity of 14 exceeds recommended complexity of 10",
+      "rule": "cyclomatic-complexity",
+      "severity": "warning",
+      "threshold": 10,
+      "value": 14
+    },
+    {
+      "file": "./rash/src/emitter/posix.rs",
+      "function": "PosixEmitter::write_header",
+      "line": 1,
+      "message": "Cyclomatic complexity of 12 exceeds recommended complexity of 10",
+      "rule": "cyclomatic-complexity",
+      "severity": "warning",
+      "threshold": 10,
+      "value": 12
+    },
+    {
+      "file": "./rash/src/emitter/posix.rs",
+      "function": "PosixEmitter::write_runtime",
+      "line": 1,
+      "message": "Cyclomatic complexity of 30 exceeds maximum allowed complexity of 20",
+      "rule": "cyclomatic-complexity",
+      "severity": "error",
+      "threshold": 20,
+      "value": 30
+    },
+    {
+      "file": "./rash/src/emitter/posix.rs",
+      "function": "PosixEmitter::write_runtime",
+      "line": 1,
+      "message": "Cognitive complexity of 30 exceeds recommended complexity of 15",
+      "rule": "cognitive-complexity",
+      "severity": "warning",
+      "threshold": 15,
+      "value": 30
+    },
+    {
+      "file": "./rash/src/emitter/posix.rs",
+      "function": "PosixEmitter::emit_ir",
+      "line": 1,
+      "message": "Cyclomatic complexity of 24 exceeds maximum allowed complexity of 20",
+      "rule": "cyclomatic-complexity",
+      "severity": "error",
+      "threshold": 20,
+      "value": 24
+    },
+    {
+      "file": "./rash/src/emitter/posix.rs",
+      "function": "PosixEmitter::emit_ir",
+      "line": 1,
+      "message": "Cognitive complexity of 28 exceeds recommended complexity of 15",
+      "rule": "cognitive-complexity",
+      "severity": "warning",
+      "threshold": 15,
+      "value": 28
+    },
+    {
+      "file": "./rash/src/emitter/posix.rs",
+      "function": "PosixEmitter::emit_shell_value",
+      "line": 1,
+      "message": "Cyclomatic complexity of 20 exceeds recommended complexity of 10",
+      "rule": "cyclomatic-complexity",
+      "severity": "warning",
+      "threshold": 10,
+      "value": 20
+    },
+    {
+      "file": "./rash/src/emitter/posix.rs",
+      "function": "PosixEmitter::emit_shell_value",
+      "line": 1,
+      "message": "Cognitive complexity of 42 exceeds maximum allowed complexity of 30",
+      "rule": "cognitive-complexity",
+      "severity": "error",
+      "threshold": 30,
+      "value": 42
+    },
+    {
+      "file": "./rash/src/emitter/escape.rs",
+      "function": "escape_variable_name",
+      "line": 1,
+      "message": "Cognitive complexity of 18 exceeds recommended complexity of 15",
+      "rule": "cognitive-complexity",
+      "severity": "warning",
+      "threshold": 15,
+      "value": 18
+    },
+    {
+      "file": "./rash/src/services/parser.rs",
+      "function": "parse",
+      "line": 1,
+      "message": "Cognitive complexity of 17 exceeds recommended complexity of 15",
+      "rule": "cognitive-complexity",
+      "severity": "warning",
+      "threshold": 15,
+      "value": 17
+    },
+    {
+      "file": "./rash/src/services/parser.rs",
+      "function": "convert_function",
+      "line": 1,
+      "message": "Cyclomatic complexity of 11 exceeds recommended complexity of 10",
+      "rule": "cyclomatic-complexity",
+      "severity": "warning",
+      "threshold": 10,
+      "value": 11
+    },
+    {
+      "file": "./rash/src/services/parser.rs",
+      "function": "convert_function",
+      "line": 1,
+      "message": "Cognitive complexity of 16 exceeds recommended complexity of 15",
+      "rule": "cognitive-complexity",
+      "severity": "warning",
+      "threshold": 15,
+      "value": 16
+    },
+    {
+      "file": "./rash/src/services/parser.rs",
+      "function": "convert_type",
+      "line": 1,
+      "message": "Cognitive complexity of 16 exceeds recommended complexity of 15",
+      "rule": "cognitive-complexity",
+      "severity": "warning",
+      "threshold": 15,
+      "value": 16
+    },
+    {
+      "file": "./rash/src/services/parser.rs",
+      "function": "convert_expr",
+      "line": 1,
+      "message": "Cyclomatic complexity of 22 exceeds maximum allowed complexity of 20",
+      "rule": "cyclomatic-complexity",
+      "severity": "error",
+      "threshold": 20,
+      "value": 22
+    },
+    {
+      "file": "./rash/src/services/parser.rs",
+      "function": "convert_expr",
+      "line": 1,
+      "message": "Cognitive complexity of 26 exceeds recommended complexity of 15",
+      "rule": "cognitive-complexity",
+      "severity": "warning",
+      "threshold": 15,
+      "value": 26
+    },
+    {
+      "file": "./rash/src/services/parser.rs",
+      "function": "convert_binary_op",
+      "line": 1,
+      "message": "Cyclomatic complexity of 14 exceeds recommended complexity of 10",
+      "rule": "cyclomatic-complexity",
+      "severity": "warning",
+      "threshold": 10,
+      "value": 14
+    },
+    {
+      "file": "./rash-runtime/build.rs",
+      "function": "validate_shell_syntax",
+      "line": 1,
+      "message": "Cyclomatic complexity of 26 exceeds maximum allowed complexity of 20",
+      "rule": "cyclomatic-complexity",
+      "severity": "error",
+      "threshold": 20,
+      "value": 26
+    },
+    {
+      "file": "./rash-runtime/build.rs",
+      "function": "validate_shell_syntax",
+      "line": 1,
+      "message": "Cognitive complexity of 44 exceeds maximum allowed complexity of 30",
+      "rule": "cognitive-complexity",
+      "severity": "error",
+      "threshold": 30,
+      "value": 44
+    }
+  ]
+}

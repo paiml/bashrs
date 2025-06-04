@@ -55,6 +55,8 @@ where
                 }
             }
         }
+        // Placeholder for new AST nodes - TODO: implement properly
+        _ => {} // Match, For, While, Break, Continue
     }
 }
 
