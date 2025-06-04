@@ -1,3 +1,6 @@
+# Use bash for shell commands to support advanced features
+SHELL := /bin/bash
+
 .PHONY: all validate quick-validate release clean help
 .PHONY: format format-check lint lint-check check test test-fast test-comprehensive test-shells test-determinism
 .PHONY: quality-gate quality-baseline quality-report analyze-complexity

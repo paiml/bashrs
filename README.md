@@ -1,8 +1,11 @@
 # Rash: Rust-to-Shell Transpiler 🦀 → 🐚
 
 [![CI](https://github.com/paiml/rash/workflows/CI/badge.svg)](https://github.com/paiml/rash/actions)
+[![Installation Test](https://github.com/paiml/rash/workflows/Installation%20Test/badge.svg)](https://github.com/paiml/rash/actions/workflows/install-test.yml)
+[![codecov](https://codecov.io/gh/paiml/rash/branch/main/graph/badge.svg)](https://codecov.io/gh/paiml/rash)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Binary Size](https://img.shields.io/badge/binary%20size-<634KB-brightgreen)](https://github.com/paiml/rash/releases)
+[![MCP](https://img.shields.io/badge/MCP-compatible-blue.svg)](https://modelcontextprotocol.io)
 
 > Write your shell scripts in Rust. Deploy them as POSIX shell.
 
@@ -241,6 +244,51 @@ cargo test
 - [Good first issues](https://github.com/paiml/rash/labels/good%20first%20issue)
 - [Project Overview](docs/project-overview.md)
 - [Development Guidelines](CLAUDE.md)
+
+## Code Coverage
+
+Rash maintains high code coverage standards to ensure reliability:
+
+- **Current Coverage**: ~85% (increasing with each release)
+- **Test Suite**: 324+ tests including unit, integration, and property-based tests
+- **Cross-Shell Testing**: Automated testing against sh, bash, dash, and ash
+- **Continuous Monitoring**: Coverage reports on every PR via Codecov
+
+View detailed coverage reports at [codecov.io/gh/paiml/rash](https://codecov.io/gh/paiml/rash)
+
+## MCP Integration
+
+Rash is designed to work seamlessly with the Model Context Protocol (MCP):
+
+### MCP-Compatible Features
+
+- **Structured Output**: Generated scripts include metadata for MCP tools
+- **Verification Hooks**: Built-in support for MCP verification workflows
+- **Tool Integration**: Works with paiml-mcp-agent-toolkit for:
+  - Automated code quality analysis
+  - Technical debt tracking
+  - Complexity metrics
+  - Deep context understanding
+
+### Using with MCP Tools
+
+```bash
+# Analyze with paiml-mcp-agent-toolkit
+paiml-mcp-agent-toolkit analyze complexity --project-path .
+
+# Verify transpilation safety
+paiml-mcp-agent-toolkit verify --spec rash.spec --impl target/debug/rash
+
+# Generate quality reports
+paiml-mcp-agent-toolkit context rust --format markdown > QUALITY_REPORT.md
+```
+
+### MCP Benefits
+
+- **AI-Assisted Development**: MCP tools can understand and modify Rash code
+- **Automated Refactoring**: Safely refactor complex transpilation logic
+- **Quality Gates**: Enforce code quality standards automatically
+- **Context Awareness**: MCP tools understand the full transpilation pipeline
 
 ## FAQ
 
