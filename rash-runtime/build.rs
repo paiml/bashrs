@@ -17,13 +17,12 @@ fn main() -> Result<()> {
     let escaped_runtime = minified.replace('\\', "\\\\").replace('"', "\\\"");
     let output = format!(
         r#"/// Embedded Rash runtime library
-pub const RUNTIME_LIBRARY: &str = "{}";
+pub const RUNTIME_LIBRARY: &str = "{escaped_runtime}";
 
 pub fn get_runtime() -> &'static str {{
     RUNTIME_LIBRARY
 }}
-"#,
-        escaped_runtime
+"#
     );
 
     // Write to output file

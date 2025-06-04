@@ -1,0 +1,86 @@
+name: Installation Test
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  schedule:
+    # Run daily to catch any release issues
+    - cron: '0 0 * * *'
+  workflow_dispatch:
+
+jobs:
+  test-install-script:
+    name: Test Installation Script
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+    - name: Test install script download
+      run: |
+        curl --proto '=https' --tlsv1.2 -sSf -I \
+          https://github.com/paiml/rash/releases/latest/download/install.sh
+    
+    - name: Install via curl
+      run: |
+        curl --proto '=https' --tlsv1.2 -sSf \
+          https://github.com/paiml/rash/releases/latest/download/install.sh | sh
+    
+    - name: Verify installation
+      run: |
+        export PATH="$HOME/.local/bin:$PATH"
+        rash --version
+    
+    - name: Test basic transpilation
+      run: |
+        export PATH="$HOME/.local/bin:$PATH"
+        echo 'fn main() { println!("Hello from CI!"); }' > test.rs
+        rash build test.rs -o test.sh
+        sh test.sh | grep "Hello from CI!"
+    
+    - name: Cleanup test
+      run: |
+        export PATH="$HOME/.local/bin:$PATH"
+        which rash
+        ls -la $HOME/.local/bin/rash
+
+  test-manual-install:
+    name: Test Manual Installation
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            platform: linux-amd64
+          - os: macos-latest
+            platform: darwin-amd64
+    runs-on: ${{ matrix.os }}
+    steps:
+    - name: Download and extract binary
+      run: |
+        curl -L https://github.com/paiml/rash/releases/latest/download/rash-${{ matrix.platform }}.tar.gz | tar xz
+        ./rash --version
+    
+    - name: Test binary functionality
+      run: |
+        echo 'fn main() { println!("Manual install test"); }' > test.rs
+        ./rash build test.rs -o test.sh
+        sh test.sh
+
+  test-rust-integration:
+    name: Rust Integration Test
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Install Rust
+      uses: dtolnay/rust-toolchain@stable
+    
+    - name: Run end-to-end test
+      run: |
+        cargo test --test e2e_install_test -- --ignored --nocapture
+    
+    - name: Run accessibility test
+      run: |
+        cargo test --test e2e_install_test test_install_script_accessibility -- --nocapture
