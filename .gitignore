@@ -66,6 +66,7 @@ test_*.rs
 test-*
 *_test.rs
 /tests/fixtures/tmp/
+/tests/shellcheck-output/
 
 # Documentation artifacts
 *SUMMARY.md

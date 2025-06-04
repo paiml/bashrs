@@ -101,12 +101,45 @@ remove_files './-rf'  # Automatically prefixed with ./
 
 ### GitHub Actions
 
+Rash includes comprehensive ShellCheck validation in CI/CD pipelines:
+
 ```yaml
-- name: Validate Rash scripts
-  run: |
-    rash build install.rs --validation strict --strict
-    # Also run external shellcheck for paranoid mode
-    shellcheck -s sh install.sh
+# Complete ShellCheck validation job
+shellcheck-validation:
+  name: ShellCheck Validation
+  runs-on: ubuntu-latest
+  steps:
+  - uses: actions/checkout@v4
+  
+  - name: Install ShellCheck
+    run: |
+      sudo apt-get update
+      sudo apt-get install -y shellcheck
+  
+  - name: Install Rust
+    uses: dtolnay/rust-toolchain@stable
+  
+  - name: Build rash
+    run: cargo build --release --workspace
+  
+  - name: Run ShellCheck validation
+    run: make shellcheck-validate
+  
+  - name: Run ShellCheck integration tests
+    run: cargo test --test shellcheck_validation
+```
+
+### Local Development
+
+```bash
+# Install ShellCheck locally
+make shellcheck-install
+
+# Run validation on generated scripts
+make shellcheck-validate
+
+# Run comprehensive test suite
+make shellcheck-test-all
 ```
 
 ### Pre-commit Hook
@@ -177,6 +210,41 @@ severity = "warning"
        // Unvalidated code
    }
    ```
+
+## Test Suite
+
+Rash includes comprehensive ShellCheck test coverage:
+
+### Test Categories
+
+1. **SC2086 - Variable Quoting**: Ensures all variables are properly quoted
+2. **SC2046 - Command Substitution**: Tests modern `$()` syntax usage
+3. **SC2035 - Glob Protection**: Validates protection against dangerous patterns
+4. **SC2164 - CD Safety**: Ensures `cd` operations include error handling
+5. **SC2068 - Array Expansion**: Tests proper array handling
+6. **SC2006 - Modern Substitution**: Validates command substitution syntax
+7. **SC2115 - Safe RM**: Tests variable validation before destructive operations
+8. **Complex Installers**: Real-world installer script validation
+9. **Error Handling**: Comprehensive error handling patterns
+
+### Running Tests
+
+```bash
+# Run all ShellCheck tests
+cargo test --test shellcheck_validation
+
+# Run specific test category
+cargo test shellcheck_validation::test_variable_quoting_sc2086
+
+# Generate and validate specific test
+make shellcheck-test-all
+```
+
+### Test Files Location
+
+- Test fixtures: `tests/fixtures/shellcheck/*.rs`
+- Generated output: `tests/shellcheck-output/*.sh` (gitignored)
+- Integration tests: `tests/integration/shellcheck_validation.rs`
 
 ## Future Roadmap
 
