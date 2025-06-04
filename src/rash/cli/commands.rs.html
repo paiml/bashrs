@@ -1,6 +1,6 @@
 <!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `rash/src/cli/commands.rs`."><title>commands.rs - source</title><script>if(window.location.protocol!=="file:")document.head.insertAdjacentHTML("beforeend","SourceSerif4-Regular-6b053e98.ttf.woff2,FiraSans-Italic-81dc35de.woff2,FiraSans-Regular-0fe48ade.woff2,FiraSans-MediumItalic-ccf7e434.woff2,FiraSans-Medium-e1aa3f0a.woff2,SourceCodePro-Regular-8badfe75.ttf.woff2,SourceCodePro-Semibold-aa29a496.ttf.woff2".split(",").map(f=>`<link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/${f}">`).join(""))</script><link rel="stylesheet" href="../../../static.files/normalize-9960930a.css"><link rel="stylesheet" href="../../../static.files/rustdoc-916cea96.css"><meta name="rustdoc-vars" data-root-path="../../../" data-static-root-path="../../../static.files/" data-current-crate="rash" data-themes="" data-resource-suffix="" data-rustdoc-version="1.87.0 (17067e9ac 2025-05-09)" data-channel="1.87.0" data-search-js="search-e7298875.js" data-settings-js="settings-d72f25bb.js" ><script src="../../../static.files/storage-82c7156e.js"></script><script defer src="../../../static.files/src-script-63605ae7.js"></script><script defer src="../../../src-files.js"></script><script defer src="../../../static.files/main-fb8c74a8.js"></script><noscript><link rel="stylesheet" href="../../../static.files/noscript-893ab5e7.css"></noscript><link rel="alternate icon" type="image/png" href="../../../static.files/favicon-32x32-6580c154.png"><link rel="icon" type="image/svg+xml" href="../../../static.files/favicon-044be391.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"><div class="src-sidebar-title"><h2>Files</h2></div></nav><div class="sidebar-resizer"></div><main><rustdoc-search></rustdoc-search><section id="main-content" class="content"><div class="main-heading"><h1><div class="sub-heading">rash/cli/</div>commands.rs</h1><rustdoc-toolbar></rustdoc-toolbar></div><div class="example-wrap digits-3"><pre class="rust"><code><a href=#1 id=1 data-nosnippet>1</a><span class="kw">use </span>std::fs;
 <a href=#2 id=2 data-nosnippet>2</a><span class="kw">use </span>std::path::Path;
-<a href=#3 id=3 data-nosnippet>3</a><span class="kw">use </span>tracing::{info, warn, error};
+<a href=#3 id=3 data-nosnippet>3</a><span class="kw">use </span>tracing::{info, warn};
 <a href=#4 id=4 data-nosnippet>4</a><span class="kw">use </span><span class="kw">crate</span>::cli::{Cli, Commands};
 <a href=#5 id=5 data-nosnippet>5</a><span class="kw">use </span><span class="kw">crate</span>::models::{Config, <span class="prelude-ty">Result</span>, Error};
 <a href=#6 id=6 data-nosnippet>6</a><span class="kw">use crate</span>::{transpile, check};
@@ -56,14 +56,14 @@
 <a href=#56 id=56 data-nosnippet>56</a><span class="kw">fn </span>build_command(input: <span class="kw-2">&amp;</span>Path, output: <span class="kw-2">&amp;</span>Path, config: Config) -&gt; <span class="prelude-ty">Result</span>&lt;()&gt; {
 <a href=#57 id=57 data-nosnippet>57</a>    <span class="comment">// Read input file
 <a href=#58 id=58 data-nosnippet>58</a>    </span><span class="kw">let </span>source = fs::read_to_string(input)
-<a href=#59 id=59 data-nosnippet>59</a>        .map_err(|e| Error::Io(e))<span class="question-mark">?</span>;
+<a href=#59 id=59 data-nosnippet>59</a>        .map_err(Error::Io)<span class="question-mark">?</span>;
 <a href=#60 id=60 data-nosnippet>60</a>    
 <a href=#61 id=61 data-nosnippet>61</a>    <span class="comment">// Transpile
 <a href=#62 id=62 data-nosnippet>62</a>    </span><span class="kw">let </span>shell_code = transpile(<span class="kw-2">&amp;</span>source, config.clone())<span class="question-mark">?</span>;
 <a href=#63 id=63 data-nosnippet>63</a>    
 <a href=#64 id=64 data-nosnippet>64</a>    <span class="comment">// Write output
 <a href=#65 id=65 data-nosnippet>65</a>    </span>fs::write(output, shell_code)
-<a href=#66 id=66 data-nosnippet>66</a>        .map_err(|e| Error::Io(e))<span class="question-mark">?</span>;
+<a href=#66 id=66 data-nosnippet>66</a>        .map_err(Error::Io)<span class="question-mark">?</span>;
 <a href=#67 id=67 data-nosnippet>67</a>    
 <a href=#68 id=68 data-nosnippet>68</a>    <span class="macro">info!</span>(<span class="string">"Successfully transpiled to {}"</span>, output.display());
 <a href=#69 id=69 data-nosnippet>69</a>    
@@ -80,7 +80,7 @@
 <a href=#80 id=80 data-nosnippet>80</a><span class="kw">fn </span>check_command(input: <span class="kw-2">&amp;</span>Path) -&gt; <span class="prelude-ty">Result</span>&lt;()&gt; {
 <a href=#81 id=81 data-nosnippet>81</a>    <span class="comment">// Read input file
 <a href=#82 id=82 data-nosnippet>82</a>    </span><span class="kw">let </span>source = fs::read_to_string(input)
-<a href=#83 id=83 data-nosnippet>83</a>        .map_err(|e| Error::Io(e))<span class="question-mark">?</span>;
+<a href=#83 id=83 data-nosnippet>83</a>        .map_err(Error::Io)<span class="question-mark">?</span>;
 <a href=#84 id=84 data-nosnippet>84</a>    
 <a href=#85 id=85 data-nosnippet>85</a>    <span class="comment">// Check compatibility
 <a href=#86 id=86 data-nosnippet>86</a>    </span>check(<span class="kw-2">&amp;</span>source)<span class="question-mark">?</span>;
@@ -93,7 +93,7 @@
 <a href=#93 id=93 data-nosnippet>93</a>    <span class="comment">// Create directory if it doesn't exist
 <a href=#94 id=94 data-nosnippet>94</a>    </span><span class="kw">if </span>!path.exists() {
 <a href=#95 id=95 data-nosnippet>95</a>        fs::create_dir_all(path)
-<a href=#96 id=96 data-nosnippet>96</a>            .map_err(|e| Error::Io(e))<span class="question-mark">?</span>;
+<a href=#96 id=96 data-nosnippet>96</a>            .map_err(Error::Io)<span class="question-mark">?</span>;
 <a href=#97 id=97 data-nosnippet>97</a>    }
 <a href=#98 id=98 data-nosnippet>98</a>    
 <a href=#99 id=99 data-nosnippet>99</a>    <span class="kw">let </span>project_name = name.unwrap_or(
@@ -118,12 +118,12 @@
 <a href=#118 id=118 data-nosnippet>118</a>"#</span>, project_name);
 <a href=#119 id=119 data-nosnippet>119</a>    
 <a href=#120 id=120 data-nosnippet>120</a>    fs::write(path.join(<span class="string">"Cargo.toml"</span>), cargo_toml)
-<a href=#121 id=121 data-nosnippet>121</a>        .map_err(|e| Error::Io(e))<span class="question-mark">?</span>;
+<a href=#121 id=121 data-nosnippet>121</a>        .map_err(Error::Io)<span class="question-mark">?</span>;
 <a href=#122 id=122 data-nosnippet>122</a>    
 <a href=#123 id=123 data-nosnippet>123</a>    <span class="comment">// Create src directory
 <a href=#124 id=124 data-nosnippet>124</a>    </span><span class="kw">let </span>src_dir = path.join(<span class="string">"src"</span>);
 <a href=#125 id=125 data-nosnippet>125</a>    fs::create_dir_all(<span class="kw-2">&amp;</span>src_dir)
-<a href=#126 id=126 data-nosnippet>126</a>        .map_err(|e| Error::Io(e))<span class="question-mark">?</span>;
+<a href=#126 id=126 data-nosnippet>126</a>        .map_err(Error::Io)<span class="question-mark">?</span>;
 <a href=#127 id=127 data-nosnippet>127</a>    
 <a href=#128 id=128 data-nosnippet>128</a>    <span class="comment">// Create main.rs
 <a href=#129 id=129 data-nosnippet>129</a>    </span><span class="kw">let </span>main_rs = <span class="string">r#"#![no_std]
@@ -140,7 +140,7 @@
 <a href=#140 id=140 data-nosnippet>140</a>"#</span>;
 <a href=#141 id=141 data-nosnippet>141</a>    
 <a href=#142 id=142 data-nosnippet>142</a>    fs::write(src_dir.join(<span class="string">"main.rs"</span>), main_rs)
-<a href=#143 id=143 data-nosnippet>143</a>        .map_err(|e| Error::Io(e))<span class="question-mark">?</span>;
+<a href=#143 id=143 data-nosnippet>143</a>        .map_err(Error::Io)<span class="question-mark">?</span>;
 <a href=#144 id=144 data-nosnippet>144</a>    
 <a href=#145 id=145 data-nosnippet>145</a>    <span class="comment">// Create rash.toml
 <a href=#146 id=146 data-nosnippet>146</a>    </span><span class="kw">let </span>rash_toml = <span class="string">r#"[rash]
@@ -154,7 +154,7 @@
 <a href=#154 id=154 data-nosnippet>154</a>"#</span>;
 <a href=#155 id=155 data-nosnippet>155</a>    
 <a href=#156 id=156 data-nosnippet>156</a>    fs::write(path.join(<span class="string">"rash.toml"</span>), rash_toml)
-<a href=#157 id=157 data-nosnippet>157</a>        .map_err(|e| Error::Io(e))<span class="question-mark">?</span>;
+<a href=#157 id=157 data-nosnippet>157</a>        .map_err(Error::Io)<span class="question-mark">?</span>;
 <a href=#158 id=158 data-nosnippet>158</a>    
 <a href=#159 id=159 data-nosnippet>159</a>    <span class="macro">info!</span>(<span class="string">"✓ Initialized Rash project '{}'"</span>, project_name);
 <a href=#160 id=160 data-nosnippet>160</a>    <span class="macro">info!</span>(<span class="string">"  Run 'cd {}' to enter the project"</span>, path.display());
@@ -171,9 +171,9 @@
 <a href=#171 id=171 data-nosnippet>171</a>) -&gt; <span class="prelude-ty">Result</span>&lt;()&gt; {
 <a href=#172 id=172 data-nosnippet>172</a>    <span class="comment">// Read both files
 <a href=#173 id=173 data-nosnippet>173</a>    </span><span class="kw">let </span>rust_code = fs::read_to_string(rust_source)
-<a href=#174 id=174 data-nosnippet>174</a>        .map_err(|e| Error::Io(e))<span class="question-mark">?</span>;
+<a href=#174 id=174 data-nosnippet>174</a>        .map_err(Error::Io)<span class="question-mark">?</span>;
 <a href=#175 id=175 data-nosnippet>175</a>    <span class="kw">let </span>shell_code = fs::read_to_string(shell_script)
-<a href=#176 id=176 data-nosnippet>176</a>        .map_err(|e| Error::Io(e))<span class="question-mark">?</span>;
+<a href=#176 id=176 data-nosnippet>176</a>        .map_err(Error::Io)<span class="question-mark">?</span>;
 <a href=#177 id=177 data-nosnippet>177</a>    
 <a href=#178 id=178 data-nosnippet>178</a>    <span class="comment">// Transpile Rust to shell
 <a href=#179 id=179 data-nosnippet>179</a>    </span><span class="kw">let </span>config = Config {
@@ -214,7 +214,7 @@
 <a href=#214 id=214 data-nosnippet>214</a>    );
 <a href=#215 id=215 data-nosnippet>215</a>    
 <a href=#216 id=216 data-nosnippet>216</a>    fs::write(proof_path, proof)
-<a href=#217 id=217 data-nosnippet>217</a>        .map_err(|e| Error::Io(e))<span class="question-mark">?</span>;
+<a href=#217 id=217 data-nosnippet>217</a>        .map_err(Error::Io)<span class="question-mark">?</span>;
 <a href=#218 id=218 data-nosnippet>218</a>    
 <a href=#219 id=219 data-nosnippet>219</a>    <span class="prelude-val">Ok</span>(())
 <a href=#220 id=220 data-nosnippet>220</a>}

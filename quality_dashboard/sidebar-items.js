@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"fn":["count_files","count_lines_of_code","count_tests","main"]};
