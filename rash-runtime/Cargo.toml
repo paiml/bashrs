@@ -1,0 +1,14 @@
+[package]
+name = "rash-runtime"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Embedded runtime library for Rash-generated shell scripts"
+
+[build-dependencies]
+anyhow.workspace = true
+
+[dependencies]
+# This crate provides the embedded shell runtime

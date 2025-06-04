@@ -1,0 +1,16 @@
+[package]
+name = "rash-tests"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Test harness for Rash transpiler"
+
+[dependencies]
+rash = { path = "../rash" }
+tempfile.workspace = true
+tokio.workspace = true
+anyhow.workspace = true
+serde.workspace = true
+serde_json.workspace = true
