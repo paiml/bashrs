@@ -63,20 +63,56 @@ mkdir -p "$prefix/bin"  # Properly quoted!
 
 ## Quick Start
 
-### Installation
+### Quick Install (Recommended)
 
 ```bash
-# Universal installer script
 curl --proto '=https' --tlsv1.2 -sSf https://github.com/paiml/rash/releases/latest/download/install.sh | sh
+```
 
-# Manual download (choose your platform)
-# Linux x64: https://github.com/paiml/rash/releases/latest/download/rash-linux-amd64.tar.gz
-# macOS x64: https://github.com/paiml/rash/releases/latest/download/rash-darwin-amd64.tar.gz
-# macOS ARM: https://github.com/paiml/rash/releases/latest/download/rash-darwin-arm64.tar.gz
+### Manual Installation
 
-# Or build from source
-git clone https://github.com/paiml/rash && cd rash
+<details>
+<summary>Linux (x86_64)</summary>
+
+```bash
+curl -L https://github.com/paiml/rash/releases/latest/download/rash-linux-amd64.tar.gz | tar xz
+sudo mv rash /usr/local/bin/
+```
+</details>
+
+<details>
+<summary>macOS (Intel)</summary>
+
+```bash
+curl -L https://github.com/paiml/rash/releases/latest/download/rash-darwin-amd64.tar.gz | tar xz
+sudo mv rash /usr/local/bin/
+```
+</details>
+
+<details>
+<summary>macOS (Apple Silicon)</summary>
+
+```bash
+curl -L https://github.com/paiml/rash/releases/latest/download/rash-darwin-arm64.tar.gz | tar xz
+sudo mv rash /usr/local/bin/
+```
+</details>
+
+<details>
+<summary>Build from Source</summary>
+
+```bash
+git clone https://github.com/paiml/rash
+cd rash
 cargo build --release
+sudo cp target/release/rash /usr/local/bin/
+```
+</details>
+
+### Verify Installation
+
+```bash
+rash --version
 ```
 
 ### Your First Transpilation
