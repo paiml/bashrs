@@ -150,6 +150,8 @@ jobs:
       run: |
         sudo apt-get update
         sudo apt-get install -y dash busybox-static
+        # Create ash symlink from busybox
+        sudo ln -sf /bin/busybox /bin/ash || true
     
     - name: Install Rust
       uses: dtolnay/rust-toolchain@stable
