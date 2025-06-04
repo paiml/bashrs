@@ -39,13 +39,13 @@ impl ValidationPipeline {
         self.validate_ir_recursive(ir)
     }
 
-    pub fn validate_output(&self, shell_script: &str) -> RashResult<()> {
+    pub fn validate_output(&self, _shell_script: &str) -> RashResult<()> {
         if self.level == ValidationLevel::None {
             return Ok(());
         }
 
         #[cfg(debug_assertions)]
-        self.verify_with_embedded_rules(shell_script)?;
+        self.verify_with_embedded_rules(_shell_script)?;
 
         Ok(())
     }
