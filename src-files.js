@@ -1,0 +1,3 @@
+var srcIndex = new Map(JSON.parse('[["rash",["",[["ast",[],["mod.rs","restricted.rs","visitor.rs"]],["cli",[],["args.rs","commands.rs","mod.rs"]],["emitter",[],["escape.rs","mod.rs","posix.rs"]],["ir",[],["effects.rs","mod.rs","shell_ir.rs"]],["models",[],["config.rs","error.rs","mod.rs"]],["services",[],["mod.rs","parser.rs"]],["verifier",[],["mod.rs","properties.rs"]]],["lib.rs"]]],["rash_runtime",["",[],["lib.rs"]]],["rash_tests",["",[],["lib.rs","sandbox.rs"]]]]'));
+createSrcSidebar();
+//{"start":36,"fragment_lengths":[350,36,47]}

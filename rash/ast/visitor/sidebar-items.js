@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"fn":["transform_expr","transform_exprs","transform_stmt_exprs","walk_ast"],"trait":["Visitor","VisitorMut"]};

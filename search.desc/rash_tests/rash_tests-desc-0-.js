@@ -1,0 +1,1 @@
+searchState.loadedDescShard("rash_tests", 0, "Returns the argument unchanged.\nCalls <code>U::from(self)</code>.")

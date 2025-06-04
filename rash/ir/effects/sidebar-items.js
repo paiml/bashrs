@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":["Effect"],"fn":["analyze_command_effects"],"struct":["EffectSet"]};

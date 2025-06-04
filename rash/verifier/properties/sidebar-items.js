@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"fn":["check_command_safety","check_has_idempotency_guard","check_value_safety","contains_shell_metacharacters","is_dangerous_command","is_file_operation","is_network_command","is_nondeterministic_command","requires_idempotency_check","verify_deterministic","verify_idempotency","verify_no_command_injection","verify_resource_safety","walk_ir"]};
