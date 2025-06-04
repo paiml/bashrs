@@ -14,9 +14,10 @@ pub fn parse(input: &str) -> Result<RestrictedAst> {
         match item {
             Item::Fn(item_fn) => {
                 // Check if this is the main function marked with #[rash::main]
-                let is_main = item_fn.attrs.iter().any(|attr| {
-                    // For now, just check if function name is "main" 
-                    item_fn.sig.ident == "main"
+                let is_main = item_fn.attrs.iter().any(|_attr| {
+                    // For now, accept any attribute as #[rash::main] 
+                    // TODO: Proper attribute parsing
+                    true
                 }) || item_fn.sig.ident == "main";
                 
                 let function = convert_function(item_fn)?;
@@ -56,7 +57,7 @@ fn convert_function(item_fn: ItemFn) -> Result<Function> {
             FnArg::Typed(pat_type) => {
                 if let Pat::Ident(pat_ident) = &*pat_type.pat {
                     let param_name = pat_ident.ident.to_string();
-                    let param_type = convert_type(&*pat_type.ty)?;
+                    let param_type = convert_type(&pat_type.ty)?;
                     params.push(Parameter {
                         name: param_name,
                         param_type,
@@ -99,7 +100,7 @@ fn convert_type(ty: &SynType) -> Result<Type> {
             match path_str.as_str() {
                 "bool" => Ok(Type::Bool),
                 "u32" => Ok(Type::U32),
-                "str" | "&str" | "String" => Ok(Type::Str),
+                "str" | "String" => Ok(Type::Str),
                 path if path.starts_with("Result") => {
                     // Simple Result type parsing - assumes Result<T, E>
                     Ok(Type::Result {
@@ -114,6 +115,22 @@ fn convert_type(ty: &SynType) -> Result<Type> {
                     })
                 }
                 _ => Err(Error::Validation(format!("Unsupported type: {}", path_str))),
+            }
+        }
+        SynType::Reference(type_ref) => {
+            // Handle &str and other reference types
+            if let SynType::Path(path) = &*type_ref.elem {
+                let path_str = path.path.segments.iter()
+                    .map(|seg| seg.ident.to_string())
+                    .collect::<Vec<_>>()
+                    .join("::");
+                    
+                match path_str.as_str() {
+                    "str" => Ok(Type::Str),
+                    _ => Err(Error::Validation(format!("Unsupported reference type: &{}", path_str))),
+                }
+            } else {
+                Err(Error::Validation("Complex reference types not supported".to_string()))
             }
         }
         _ => Err(Error::Validation("Complex types not supported".to_string())),
@@ -208,6 +225,10 @@ fn convert_expr(expr: &SynExpr) -> Result<Expr> {
             } else {
                 Ok(Expr::Literal(crate::ast::restricted::Literal::Str("()".to_string())))
             }
+        }
+        SynExpr::Paren(expr_paren) => {
+            // Handle parenthesized expressions by unwrapping them
+            convert_expr(&expr_paren.expr)
         }
         _ => Err(Error::Validation("Unsupported expression type".to_string())),
     }

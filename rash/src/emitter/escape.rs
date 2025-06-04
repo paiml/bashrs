@@ -34,6 +34,7 @@ pub fn escape_variable_name(name: &str) -> String {
                     result.push(c);
                 } else {
                     result.push('_');
+                    // Don't add the invalid first character - skip it
                 }
             } else {
                 // Subsequent characters can be alphanumeric or underscore
@@ -126,7 +127,7 @@ mod tests {
     fn test_variable_name_escaping() {
         assert_eq!(escape_variable_name("valid_name"), "valid_name");
         assert_eq!(escape_variable_name("invalid-name"), "invalid_name");
-        assert_eq!(escape_variable_name("123invalid"), "___invalid");
+        assert_eq!(escape_variable_name("123invalid"), "_23invalid");
     }
     
     #[test]

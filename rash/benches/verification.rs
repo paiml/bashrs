@@ -105,7 +105,7 @@ fn benchmark_verification_levels(c: &mut Criterion) {
             &(&safe_ir, level),
             |b, (ir, level)| {
                 b.iter(|| {
-                    let _ = verifier::verify(ir, *level);
+                    let _ = verifier::verify(ir, **level);
                 })
             },
         );
@@ -115,7 +115,7 @@ fn benchmark_verification_levels(c: &mut Criterion) {
             &(&complex_ir, level),
             |b, (ir, level)| {
                 b.iter(|| {
-                    let _ = verifier::verify(ir, *level);
+                    let _ = verifier::verify(ir, **level);
                 })
             },
         );
@@ -125,7 +125,7 @@ fn benchmark_verification_levels(c: &mut Criterion) {
             &(&unsafe_ir, level),
             |b, (ir, level)| {
                 b.iter(|| {
-                    let _ = verifier::verify(ir, *level);
+                    let _ = verifier::verify(ir, **level);
                 })
             },
         );

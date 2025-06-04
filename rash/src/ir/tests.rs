@@ -179,8 +179,10 @@ fn test_optimization_constant_folding() {
 
 #[test]
 fn test_optimization_disabled() {
-    let mut config = crate::models::Config::default();
-    config.optimize = false;
+    let config = crate::models::Config {
+        optimize: false,
+        ..Default::default()
+    };
     
     let ir = ShellIR::Let {
         name: "greeting".to_string(),

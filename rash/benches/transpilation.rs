@@ -156,7 +156,7 @@ fn benchmark_optimization(c: &mut Criterion) {
         BenchmarkId::new("optimize", "simple"),
         &(&simple_ir, &config),
         |b, (ir, config)| {
-            b.iter(|| ir::optimize(ir.clone(), config).unwrap())
+            b.iter(|| ir::optimize((*ir).clone(), config).unwrap())
         },
     );
     
@@ -164,7 +164,7 @@ fn benchmark_optimization(c: &mut Criterion) {
         BenchmarkId::new("optimize", "medium"),
         &(&medium_ir, &config),
         |b, (ir, config)| {
-            b.iter(|| ir::optimize(ir.clone(), config).unwrap())
+            b.iter(|| ir::optimize((*ir).clone(), config).unwrap())
         },
     );
     
@@ -214,7 +214,7 @@ fn benchmark_end_to_end(c: &mut Criterion) {
         BenchmarkId::new("transpile", "simple"),
         &(SIMPLE_RUST, &config),
         |b, (source, config)| {
-            b.iter(|| transpile(source, config.clone()).unwrap())
+            b.iter(|| transpile(source, (*config).clone()).unwrap())
         },
     );
     
@@ -223,7 +223,7 @@ fn benchmark_end_to_end(c: &mut Criterion) {
         BenchmarkId::new("transpile", "medium"),
         &(MEDIUM_RUST, &config),
         |b, (source, config)| {
-            b.iter(|| transpile(source, config.clone()).unwrap())
+            b.iter(|| transpile(source, (*config).clone()).unwrap())
         },
     );
     
@@ -232,7 +232,7 @@ fn benchmark_end_to_end(c: &mut Criterion) {
         BenchmarkId::new("transpile", "complex"),
         &(COMPLEX_RUST, &config),
         |b, (source, config)| {
-            b.iter(|| transpile(source, config.clone()).unwrap())
+            b.iter(|| transpile(source, (*config).clone()).unwrap())
         },
     );
     

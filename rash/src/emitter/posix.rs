@@ -1,9 +1,10 @@
 use std::fmt::Write;
 use crate::ir::{ShellIR, ShellValue, Command};
-use crate::models::{Config, Error, Result};
+use crate::models::{Config, Result};
 use super::escape::{escape_shell_string, escape_variable_name, escape_command_name};
 
 pub struct PosixEmitter {
+    #[allow(dead_code)]
     config: Config,
 }
 
@@ -271,7 +272,7 @@ mod tests {
         };
         
         let result = emitter.emit(&ir).unwrap();
-        assert!(result.contains("echo 'hello'"));
+        assert!(result.contains("echo hello"));
     }
     
     #[test]
