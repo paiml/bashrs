@@ -1,0 +1,19 @@
+# Rash configuration file
+[transpiler]
+target = "posix"          # Target shell dialect
+strict_mode = true        # Fail on warnings
+preserve_comments = false # Strip comments for smaller output
+
+[validation]
+level = "strict"          # ShellCheck compliance level
+rules = ["all"]           # Can disable specific: ["-SC2034"]
+external_check = false    # Run actual shellcheck binary
+
+[output]
+shebang = "#!/bin/sh"     # POSIX shebang
+set_flags = "euf"         # set -euf (no pipefail in POSIX)
+optimize_size = true      # Minimize output script size
+
+[style]
+indent = "    "           # 4 spaces
+max_line_length = 100     # Wrap long commands

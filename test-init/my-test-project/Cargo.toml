@@ -1,0 +1,11 @@
+[package]
+name = "my-test-project"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+# No dependencies needed - Rash transpiles to pure shell
+
+[[bin]]
+name = "install"
+path = "src/main.rs"
