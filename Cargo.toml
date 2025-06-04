@@ -1,7 +1,6 @@
 [workspace]
 members = [
     "rash",
-    "rash-tests",
     "rash-runtime",
 ]
 resolver = "2"
