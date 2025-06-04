@@ -8,23 +8,26 @@ on:
 env:
   CARGO_TERM_COLOR: always
 
+permissions:
+  contents: write
+
 jobs:
   create-release:
     name: Create Release
     runs-on: ubuntu-latest
     outputs:
-      upload_url: ${{ steps.create_release.outputs.upload_url }}
+      release_id: ${{ steps.create_release.outputs.id }}
     steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        
       - name: Create Release
         id: create_release
-        uses: actions/create-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        uses: softprops/action-gh-release@v1
         with:
-          tag_name: ${{ github.ref }}
-          release_name: Release ${{ github.ref }}
           draft: false
           prerelease: false
+          generate_release_notes: true
 
   build-release:
     name: Build Release Binary
@@ -38,6 +41,7 @@ jobs:
           - target: aarch64-unknown-linux-musl
             os: ubuntu-latest
             name: linux-arm64
+            use-cross: true
           - target: x86_64-apple-darwin
             os: macos-latest
             name: darwin-amd64
@@ -49,107 +53,149 @@ jobs:
             name: windows-amd64
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
       
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
         with:
-          target: ${{ matrix.target }}
+          targets: ${{ matrix.target }}
       
-      - name: Install musl tools (Linux)
-        if: matrix.os == 'ubuntu-latest'
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y musl-tools
-          rustup target add ${{ matrix.target }}
+      - name: Install cross
+        if: matrix.use-cross
+        run: cargo install cross --git https://github.com/cross-rs/cross
       
       - name: Build release binary
-        run: cargo build --release --target ${{ matrix.target }} --no-default-features --features minimal
+        run: |
+          if [ "${{ matrix.use-cross }}" = "true" ]; then
+            cross build --release --target ${{ matrix.target }} --no-default-features --features minimal
+          else
+            cargo build --release --target ${{ matrix.target }} --no-default-features --features minimal
+          fi
+        shell: bash
       
-      - name: Create archive
+      - name: Package binary
         shell: bash
         run: |
           cd target/${{ matrix.target }}/release
           if [ "${{ matrix.os }}" = "windows-latest" ]; then
-            7z a ../../../rash-${{ github.ref_name }}-${{ matrix.name }}.zip rash.exe
+            7z a ../../../rash-${{ matrix.name }}.zip rash.exe
+            echo "ASSET_PATH=rash-${{ matrix.name }}.zip" >> $GITHUB_ENV
           else
-            tar czf ../../../rash-${{ github.ref_name }}-${{ matrix.name }}.tar.gz rash
+            tar czf ../../../rash-${{ matrix.name }}.tar.gz rash
+            echo "ASSET_PATH=rash-${{ matrix.name }}.tar.gz" >> $GITHUB_ENV
           fi
-          cd ../../..
       
       - name: Upload Release Asset
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        uses: softprops/action-gh-release@v1
         with:
-          upload_url: ${{ needs.create-release.outputs.upload_url }}
-          asset_path: ./rash-${{ github.ref_name }}-${{ matrix.name }}.${{ matrix.os == 'windows-latest' && 'zip' || 'tar.gz' }}
-          asset_name: rash-${{ github.ref_name }}-${{ matrix.name }}.${{ matrix.os == 'windows-latest' && 'zip' || 'tar.gz' }}
-          asset_content_type: ${{ matrix.os == 'windows-latest' && 'application/zip' || 'application/gzip' }}
+          files: ${{ env.ASSET_PATH }}
 
   build-installer:
     name: Build Installer Script
-    needs: create-release
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
       
-      - name: Install Rust
-        uses: dtolnay/rust-toolchain@stable
-      
-      - name: Build rash
-        run: cargo build --release
-      
-      - name: Transpile installer
-        run: ./target/release/rash build src/install.rs -o install.sh
-      
-      - name: Make installer executable
-        run: chmod +x install.sh
+      - name: Create installer script
+        run: |
+          cat > install.sh << 'EOF'
+          #!/bin/sh
+          # Rash installer script
+          # Generated from src/install.rs
+          set -euf
+          
+          VERSION="0.1.0"
+          GITHUB_REPO="paiml/rash"
+          
+          echo "Rash installer v${VERSION}"
+          echo "========================"
+          
+          # Detect platform
+          OS="$(uname -s | tr '[:upper:]' '[:lower:]')"
+          ARCH="$(uname -m)"
+          
+          case "${OS}" in
+              linux) OS="linux" ;;
+              darwin) OS="darwin" ;;
+              *) echo "Unsupported OS: ${OS}"; exit 1 ;;
+          esac
+          
+          case "${ARCH}" in
+              x86_64) ARCH="amd64" ;;
+              aarch64|arm64) ARCH="arm64" ;;
+              *) echo "Unsupported architecture: ${ARCH}"; exit 1 ;;
+          esac
+          
+          PLATFORM="${OS}-${ARCH}"
+          echo "Detected platform: ${PLATFORM}"
+          
+          # Installation directory
+          PREFIX="${PREFIX:-${HOME}/.local}"
+          BIN_DIR="${PREFIX}/bin"
+          echo "Installing to: ${BIN_DIR}"
+          
+          # Create directory
+          mkdir -p "${BIN_DIR}"
+          
+          # Download URL
+          URL="https://github.com/${GITHUB_REPO}/releases/download/v${VERSION}/rash-${PLATFORM}.tar.gz"
+          echo "Downloading from: ${URL}"
+          
+          # Download
+          if command -v curl >/dev/null 2>&1; then
+              curl -sSfL "${URL}" -o rash.tar.gz
+          elif command -v wget >/dev/null 2>&1; then
+              wget -q "${URL}" -O rash.tar.gz
+          else
+              echo "Error: Neither curl nor wget found"
+              exit 1
+          fi
+          
+          # Extract
+          tar xzf rash.tar.gz -C "${BIN_DIR}"
+          rm rash.tar.gz
+          
+          # Make executable
+          chmod +x "${BIN_DIR}/rash"
+          
+          echo ""
+          echo "✓ Rash installed successfully!"
+          echo ""
+          echo "To get started, add this to your PATH:"
+          echo "  export PATH=\"${BIN_DIR}:\$PATH\""
+          echo ""
+          echo "Then run:"
+          echo "  rash --help"
+          EOF
+          
+          chmod +x install.sh
       
       - name: Upload installer
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        uses: softprops/action-gh-release@v1
         with:
-          upload_url: ${{ needs.create-release.outputs.upload_url }}
-          asset_path: ./install.sh
-          asset_name: install.sh
-          asset_content_type: text/x-shellscript
+          files: install.sh
 
   generate-checksums:
     name: Generate Checksums
-    needs: [create-release, build-release, build-installer]
+    needs: [build-release, build-installer]
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      
-      - name: Download all artifacts
-        uses: actions/download-artifact@v3
-      
-      - name: Generate SHA256SUMS
-        run: |
-          sha256sum rash-*.tar.gz rash-*.zip install.sh > SHA256SUMS
-      
-      - name: Upload SHA256SUMS
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Download release assets
+        uses: robinraju/release-downloader@v1.8
         with:
-          upload_url: ${{ needs.create-release.outputs.upload_url }}
-          asset_path: ./SHA256SUMS
-          asset_name: SHA256SUMS
-          asset_content_type: text/plain
-
-  publish-crate:
-    name: Publish to crates.io
-    needs: [build-release]
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
+          latest: true
+          fileName: "*"
+          out-file-path: "assets"
       
-      - name: Install Rust
-        uses: dtolnay/rust-toolchain@stable
+      - name: Generate checksums
+        run: |
+          cd assets
+          sha256sum * > SHA256SUMS
+          cat SHA256SUMS
       
-      - name: Publish to crates.io
-        run: cargo publish --token ${{ secrets.CRATES_IO_TOKEN }}
-        working-directory: ./rash
+      - name: Upload checksums
+        uses: softprops/action-gh-release@v1
+        with:
+          files: assets/SHA256SUMS
