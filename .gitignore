@@ -35,10 +35,31 @@ lcov.info
 # Analysis outputs
 rash-analysis.json
 dependency-graph.mmd
+*.json
+*-analysis.json
+*-analysis-summary.md
+*-report.json
+complexity-*.json
+complexity-*.txt
+quality-*.json
+final-analysis.md
+deep_context.md
+paiml-*.json
+paiml-*.md
+
+# Coverage reports
+coverage-html/
+coverage-report/
+coverage.json
+coverage-summary.txt
+cobertura.xml
+tarpaulin-report.json
 
 # Build artifacts
 installer.sh
 install.sh
+*.tar.gz
+bootstrap-report.json
 
 # Test project
 test-project/
