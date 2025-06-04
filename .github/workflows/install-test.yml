@@ -53,10 +53,15 @@ jobs:
     - name: Test basic transpilation
       run: |
         export PATH="$HOME/.local/bin:$PATH"
-        echo 'fn main() { }' > simple.rs
-        rash build simple.rs -o simple.sh || echo "Build failed"
+        cat > simple.rs << 'EOF'
+        #[rash::main]
+        fn main() {
+        }
+        EOF
+        rash build simple.rs -o simple.sh || echo "Build failed with exit code $?"
         if [ -f simple.sh ]; then
           echo "✓ Basic transpilation works"
+          echo "Generated script content:"
           cat simple.sh
         else
           echo "✗ No output file generated"
@@ -85,7 +90,11 @@ jobs:
     
     - name: Test binary functionality
       run: |
-        echo 'fn main() { }' > test.rs
+        cat > test.rs << 'EOF'
+        #[rash::main]
+        fn main() {
+        }
+        EOF
         echo "Built test.rs, now transpiling..."
         ./rash build test.rs -o test.sh || echo "Build failed with exit code $?"
         if [ -f test.sh ]; then
