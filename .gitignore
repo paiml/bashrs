@@ -63,3 +63,10 @@ bootstrap-report.json
 
 # Test project
 test-project/
+
+# Documentation artifacts
+*SUMMARY.md
+*REPORT.md
+RELEASE_*.md
+QUALITY_*.md
+TESTING_*.md
