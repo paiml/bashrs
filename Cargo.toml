@@ -8,11 +8,11 @@ resolver = "2"
 
 [workspace.dependencies]
 syn = { version = "2.0", features = ["full", "extra-traits"] }
-quote = "1.0"
-proc-macro2 = "1.0"
-serde = { version = "1.0", features = ["derive"] }
-serde_json = "1.0"
-anyhow = "1.0"
+quote = "1.0.40"
+proc-macro2 = "1.0.95"
+serde = { version = "1.0.219", features = ["derive"] }
+serde_json = "1.0.140"
+anyhow = "1.0.98"
 thiserror = "2.0.12"
 clap = { version = "4.5.39", features = ["derive"] }
 tokio = { version = "1.45.1", features = ["full"] }
@@ -29,27 +29,35 @@ rstest = "0.25"
 [workspace.package]
 version = "0.1.0"
 edition = "2021"
-authors = ["Rash Contributors <rash@example.com>"]
-license = "MIT OR Apache-2.0"
-repository = "https://github.com/yourusername/rash"
+authors = ["Pragmatic AI Labs"]
+license = "MIT"
+repository = "https://github.com/paiml/rash"
 description = "Rust-to-Shell transpiler for deterministic bootstrap scripts"
 
-# Performance and size optimizations
+# Performance and size optimizations (following ripgrep/fd practices)
 [profile.release]
-lto = "fat"              # Full link-time optimization
-codegen-units = 1         # Single codegen unit for better optimization
-panic = "abort"           # Smaller binary size
-strip = "symbols"         # Strip all symbols
-opt-level = 3             # Maximum optimization
+opt-level = 'z'           # Size optimization (not 's')
+lto = true                # Link-time optimization
+codegen-units = 1         # Single unit for better optimization
+strip = true              # Remove symbols
+panic = 'abort'           # No unwinding machinery
 
-# Extreme binary size optimization
+# Optimize dependencies too
+[profile.release.package."*"]
+opt-level = 'z'           # Dependencies also minimized
+
+# Build scripts minimized
+[profile.release.build-override]
+opt-level = 'z'           # Build scripts minimized
+
+# Extreme binary size optimization for distribution
 [profile.min-size]
 inherits = "release"
 opt-level = "z"           # Optimize for size
-lto = "fat"              # Full link-time optimization
+lto = "fat"               # Full link-time optimization
 codegen-units = 1         # Single codegen unit
 panic = "abort"           # Remove panic unwinding
-strip = "symbols"         # Strip all symbols
+strip = true              # Strip all symbols
 
 [profile.dev]
 debug = true

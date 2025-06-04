@@ -1,0 +1,669 @@
+{
+  "ast": {
+    "Sequence": {
+      "commands": [
+        {
+          "SetEnvironmentVariable": {
+            "name": "INSTALL_DIR",
+            "value": "/opt/rash"
+          }
+        },
+        {
+          "ExecuteCommand": {
+            "command_name": "mkdir",
+            "args": [
+              "-p",
+              "/opt/rash/bin"
+            ]
+          }
+        },
+        {
+          "ChangeDirectory": {
+            "path": "/opt/rash"
+          }
+        },
+        {
+          "ExecuteCommand": {
+            "command_name": "echo",
+            "args": [
+              "Installation ready"
+            ]
+          }
+        }
+      ]
+    }
+  },
+  "emitted_code": "INSTALL_DIR=\"/opt/rash\"; mkdir -p /opt/rash/bin; cd /opt/rash; echo \"Installation ready\"",
+  "initial_state": {
+    "env": {},
+    "cwd": "/",
+    "stdout": [],
+    "stderr": [],
+    "exit_code": 0,
+    "filesystem": {
+      "/": "Directory",
+      "/opt": "Directory"
+    }
+  },
+  "annotated_ast": {
+    "node": {
+      "Sequence": {
+        "commands": [
+          {
+            "SetEnvironmentVariable": {
+              "name": "INSTALL_DIR",
+              "value": "/opt/rash"
+            }
+          },
+          {
+            "ExecuteCommand": {
+              "command_name": "mkdir",
+              "args": [
+                "-p",
+                "/opt/rash/bin"
+              ]
+            }
+          },
+          {
+            "ChangeDirectory": {
+              "path": "/opt/rash"
+            }
+          },
+          {
+            "ExecuteCommand": {
+              "command_name": "echo",
+              "args": [
+                "Installation ready"
+              ]
+            }
+          }
+        ]
+      }
+    },
+    "precondition": {
+      "env": {},
+      "cwd": "/",
+      "stdout": [],
+      "stderr": [],
+      "exit_code": 0,
+      "filesystem": {
+        "/": "Directory",
+        "/opt": "Directory"
+      }
+    },
+    "postcondition": {
+      "env": {
+        "INSTALL_DIR": "/opt/rash"
+      },
+      "cwd": "/opt/rash",
+      "stdout": [
+        "Installation ready"
+      ],
+      "stderr": [],
+      "exit_code": 0,
+      "filesystem": {
+        "/": "Directory",
+        "/opt": "Directory",
+        "/opt/rash": "Directory",
+        "/opt/rash/bin": "Directory"
+      }
+    },
+    "transformation": {
+      "env_changes": {
+        "INSTALL_DIR": {
+          "Added": {
+            "value": "/opt/rash"
+          }
+        }
+      },
+      "cwd_change": {
+        "from": "/",
+        "to": "/opt/rash"
+      },
+      "fs_changes": [
+        {
+          "DirectoryCreated": {
+            "path": "/opt/rash"
+          }
+        },
+        {
+          "DirectoryCreated": {
+            "path": "/opt/rash/bin"
+          }
+        }
+      ],
+      "output_produced": [
+        "Installation ready"
+      ],
+      "errors_produced": [],
+      "exit_code_change": null
+    },
+    "children": [
+      {
+        "node": {
+          "SetEnvironmentVariable": {
+            "name": "INSTALL_DIR",
+            "value": "/opt/rash"
+          }
+        },
+        "precondition": {
+          "env": {},
+          "cwd": "/",
+          "stdout": [],
+          "stderr": [],
+          "exit_code": 0,
+          "filesystem": {
+            "/": "Directory",
+            "/opt": "Directory"
+          }
+        },
+        "postcondition": {
+          "env": {
+            "INSTALL_DIR": "/opt/rash"
+          },
+          "cwd": "/",
+          "stdout": [],
+          "stderr": [],
+          "exit_code": 0,
+          "filesystem": {
+            "/": "Directory",
+            "/opt": "Directory"
+          }
+        },
+        "transformation": {
+          "env_changes": {
+            "INSTALL_DIR": {
+              "Added": {
+                "value": "/opt/rash"
+              }
+            }
+          },
+          "cwd_change": null,
+          "fs_changes": [],
+          "output_produced": [],
+          "errors_produced": [],
+          "exit_code_change": null
+        },
+        "children": []
+      },
+      {
+        "node": {
+          "ExecuteCommand": {
+            "command_name": "mkdir",
+            "args": [
+              "-p",
+              "/opt/rash/bin"
+            ]
+          }
+        },
+        "precondition": {
+          "env": {
+            "INSTALL_DIR": "/opt/rash"
+          },
+          "cwd": "/",
+          "stdout": [],
+          "stderr": [],
+          "exit_code": 0,
+          "filesystem": {
+            "/": "Directory",
+            "/opt": "Directory"
+          }
+        },
+        "postcondition": {
+          "env": {
+            "INSTALL_DIR": "/opt/rash"
+          },
+          "cwd": "/",
+          "stdout": [],
+          "stderr": [],
+          "exit_code": 0,
+          "filesystem": {
+            "/": "Directory",
+            "/opt": "Directory",
+            "/opt/rash": "Directory",
+            "/opt/rash/bin": "Directory"
+          }
+        },
+        "transformation": {
+          "env_changes": {},
+          "cwd_change": null,
+          "fs_changes": [
+            {
+              "DirectoryCreated": {
+                "path": "/opt/rash"
+              }
+            },
+            {
+              "DirectoryCreated": {
+                "path": "/opt/rash/bin"
+              }
+            }
+          ],
+          "output_produced": [],
+          "errors_produced": [],
+          "exit_code_change": null
+        },
+        "children": []
+      },
+      {
+        "node": {
+          "ChangeDirectory": {
+            "path": "/opt/rash"
+          }
+        },
+        "precondition": {
+          "env": {
+            "INSTALL_DIR": "/opt/rash"
+          },
+          "cwd": "/",
+          "stdout": [],
+          "stderr": [],
+          "exit_code": 0,
+          "filesystem": {
+            "/": "Directory",
+            "/opt": "Directory",
+            "/opt/rash": "Directory",
+            "/opt/rash/bin": "Directory"
+          }
+        },
+        "postcondition": {
+          "env": {
+            "INSTALL_DIR": "/opt/rash"
+          },
+          "cwd": "/opt/rash",
+          "stdout": [],
+          "stderr": [],
+          "exit_code": 0,
+          "filesystem": {
+            "/": "Directory",
+            "/opt": "Directory",
+            "/opt/rash": "Directory",
+            "/opt/rash/bin": "Directory"
+          }
+        },
+        "transformation": {
+          "env_changes": {},
+          "cwd_change": {
+            "from": "/",
+            "to": "/opt/rash"
+          },
+          "fs_changes": [],
+          "output_produced": [],
+          "errors_produced": [],
+          "exit_code_change": null
+        },
+        "children": []
+      },
+      {
+        "node": {
+          "ExecuteCommand": {
+            "command_name": "echo",
+            "args": [
+              "Installation ready"
+            ]
+          }
+        },
+        "precondition": {
+          "env": {
+            "INSTALL_DIR": "/opt/rash"
+          },
+          "cwd": "/opt/rash",
+          "stdout": [],
+          "stderr": [],
+          "exit_code": 0,
+          "filesystem": {
+            "/": "Directory",
+            "/opt": "Directory",
+            "/opt/rash": "Directory",
+            "/opt/rash/bin": "Directory"
+          }
+        },
+        "postcondition": {
+          "env": {
+            "INSTALL_DIR": "/opt/rash"
+          },
+          "cwd": "/opt/rash",
+          "stdout": [
+            "Installation ready"
+          ],
+          "stderr": [],
+          "exit_code": 0,
+          "filesystem": {
+            "/": "Directory",
+            "/opt": "Directory",
+            "/opt/rash": "Directory",
+            "/opt/rash/bin": "Directory"
+          }
+        },
+        "transformation": {
+          "env_changes": {},
+          "cwd_change": null,
+          "fs_changes": [],
+          "output_produced": [
+            "Installation ready"
+          ],
+          "errors_produced": [],
+          "exit_code_change": null
+        },
+        "children": []
+      }
+    ]
+  },
+  "rash_trace": {
+    "initial_state": {
+      "env": {},
+      "cwd": "/",
+      "stdout": [],
+      "stderr": [],
+      "exit_code": 0,
+      "filesystem": {
+        "/": "Directory",
+        "/opt": "Directory"
+      }
+    },
+    "steps": [
+      {
+        "step_number": 1,
+        "operation": "Set environment variable: INSTALL_DIR=/opt/rash",
+        "state_before": {
+          "env": {},
+          "cwd": "/",
+          "stdout": [],
+          "stderr": [],
+          "exit_code": 0,
+          "filesystem": {
+            "/": "Directory",
+            "/opt": "Directory"
+          }
+        },
+        "state_after": {
+          "env": {
+            "INSTALL_DIR": "/opt/rash"
+          },
+          "cwd": "/",
+          "stdout": [],
+          "stderr": [],
+          "exit_code": 0,
+          "filesystem": {
+            "/": "Directory",
+            "/opt": "Directory"
+          }
+        },
+        "errors": []
+      },
+      {
+        "step_number": 2,
+        "operation": "Execute command: mkdir -p /opt/rash/bin",
+        "state_before": {
+          "env": {
+            "INSTALL_DIR": "/opt/rash"
+          },
+          "cwd": "/",
+          "stdout": [],
+          "stderr": [],
+          "exit_code": 0,
+          "filesystem": {
+            "/": "Directory",
+            "/opt": "Directory"
+          }
+        },
+        "state_after": {
+          "env": {
+            "INSTALL_DIR": "/opt/rash"
+          },
+          "cwd": "/",
+          "stdout": [],
+          "stderr": [],
+          "exit_code": 0,
+          "filesystem": {
+            "/": "Directory",
+            "/opt": "Directory",
+            "/opt/rash": "Directory",
+            "/opt/rash/bin": "Directory"
+          }
+        },
+        "errors": []
+      },
+      {
+        "step_number": 3,
+        "operation": "Change directory to: /opt/rash",
+        "state_before": {
+          "env": {
+            "INSTALL_DIR": "/opt/rash"
+          },
+          "cwd": "/",
+          "stdout": [],
+          "stderr": [],
+          "exit_code": 0,
+          "filesystem": {
+            "/": "Directory",
+            "/opt": "Directory",
+            "/opt/rash": "Directory",
+            "/opt/rash/bin": "Directory"
+          }
+        },
+        "state_after": {
+          "env": {
+            "INSTALL_DIR": "/opt/rash"
+          },
+          "cwd": "/opt/rash",
+          "stdout": [],
+          "stderr": [],
+          "exit_code": 0,
+          "filesystem": {
+            "/": "Directory",
+            "/opt": "Directory",
+            "/opt/rash": "Directory",
+            "/opt/rash/bin": "Directory"
+          }
+        },
+        "errors": []
+      },
+      {
+        "step_number": 4,
+        "operation": "Execute command: echo Installation ready",
+        "state_before": {
+          "env": {
+            "INSTALL_DIR": "/opt/rash"
+          },
+          "cwd": "/opt/rash",
+          "stdout": [],
+          "stderr": [],
+          "exit_code": 0,
+          "filesystem": {
+            "/": "Directory",
+            "/opt": "Directory",
+            "/opt/rash": "Directory",
+            "/opt/rash/bin": "Directory"
+          }
+        },
+        "state_after": {
+          "env": {
+            "INSTALL_DIR": "/opt/rash"
+          },
+          "cwd": "/opt/rash",
+          "stdout": [
+            "Installation ready"
+          ],
+          "stderr": [],
+          "exit_code": 0,
+          "filesystem": {
+            "/": "Directory",
+            "/opt": "Directory",
+            "/opt/rash": "Directory",
+            "/opt/rash/bin": "Directory"
+          }
+        },
+        "errors": []
+      }
+    ],
+    "final_state": {
+      "env": {
+        "INSTALL_DIR": "/opt/rash"
+      },
+      "cwd": "/opt/rash",
+      "stdout": [
+        "Installation ready"
+      ],
+      "stderr": [],
+      "exit_code": 0,
+      "filesystem": {
+        "/": "Directory",
+        "/opt": "Directory",
+        "/opt/rash": "Directory",
+        "/opt/rash/bin": "Directory"
+      }
+    }
+  },
+  "posix_trace": {
+    "initial_state": {
+      "env": {},
+      "cwd": "/",
+      "stdout": [],
+      "stderr": [],
+      "exit_code": 0,
+      "filesystem": {
+        "/": "Directory",
+        "/opt": "Directory"
+      }
+    },
+    "steps": [
+      {
+        "step_number": 1,
+        "operation": "Execute POSIX code: INSTALL_DIR=\"/opt/rash\"; mkdir -p /opt/rash/bin; cd /opt/rash; echo \"Installation ready\"",
+        "state_before": {
+          "env": {},
+          "cwd": "/",
+          "stdout": [],
+          "stderr": [],
+          "exit_code": 0,
+          "filesystem": {
+            "/": "Directory",
+            "/opt": "Directory"
+          }
+        },
+        "state_after": {
+          "env": {
+            "INSTALL_DIR": "/opt/rash"
+          },
+          "cwd": "/opt/rash",
+          "stdout": [
+            "Installation ready"
+          ],
+          "stderr": [],
+          "exit_code": 0,
+          "filesystem": {
+            "/": "Directory",
+            "/opt": "Directory",
+            "/opt/rash": "Directory",
+            "/opt/rash/bin": "Directory"
+          }
+        },
+        "errors": []
+      }
+    ],
+    "final_state": {
+      "env": {
+        "INSTALL_DIR": "/opt/rash"
+      },
+      "cwd": "/opt/rash",
+      "stdout": [
+        "Installation ready"
+      ],
+      "stderr": [],
+      "exit_code": 0,
+      "filesystem": {
+        "/": "Directory",
+        "/opt": "Directory",
+        "/opt/rash": "Directory",
+        "/opt/rash/bin": "Directory"
+      }
+    }
+  },
+  "equivalence_analysis": {
+    "are_equivalent": true,
+    "env_comparison": {
+      "matches": true,
+      "rash_only": {},
+      "posix_only": {},
+      "different_values": {}
+    },
+    "cwd_comparison": {
+      "matches": true,
+      "rash_cwd": "/opt/rash",
+      "posix_cwd": "/opt/rash"
+    },
+    "fs_comparison": {
+      "matches": true,
+      "differences": []
+    },
+    "output_comparison": {
+      "stdout_matches": true,
+      "stderr_matches": true,
+      "rash_stdout": [
+        "Installation ready"
+      ],
+      "posix_stdout": [
+        "Installation ready"
+      ],
+      "rash_stderr": [],
+      "posix_stderr": []
+    },
+    "exit_code_comparison": {
+      "matches": true,
+      "rash_exit_code": 0,
+      "posix_exit_code": 0
+    }
+  },
+  "emitter_justifications": [
+    {
+      "ast_node": "Sequence",
+      "generated_code": "INSTALL_DIR=\"/opt/rash\"; mkdir -p /opt/rash/bin; cd /opt/rash; echo \"Installation ready\"",
+      "reasoning": "Commands are joined with semicolons for sequential execution",
+      "considerations": [
+        "Semicolon separator ensures commands execute in order",
+        "Each command is independently validated"
+      ]
+    },
+    {
+      "ast_node": "SetEnvironmentVariable(INSTALL_DIR, /opt/rash)",
+      "generated_code": "INSTALL_DIR=\"/opt/rash\"",
+      "reasoning": "Variable assignment uses POSIX-compliant syntax with quoted values",
+      "considerations": [
+        "Value is always quoted to handle spaces and special characters",
+        "Variable name is validated to be POSIX-compliant"
+      ]
+    },
+    {
+      "ast_node": "ExecuteCommand(mkdir, [\"-p\", \"/opt/rash/bin\"])",
+      "generated_code": "mkdir -p /opt/rash/bin",
+      "reasoning": "Command arguments are properly quoted to prevent shell injection",
+      "considerations": [
+        "Special characters are escaped within double quotes",
+        "Empty arguments are preserved as empty quoted strings"
+      ]
+    },
+    {
+      "ast_node": "ChangeDirectory(/opt/rash)",
+      "generated_code": "cd /opt/rash",
+      "reasoning": "Change directory uses cd command with quoted path",
+      "considerations": [
+        "Path is quoted to handle spaces and special characters"
+      ]
+    },
+    {
+      "ast_node": "ExecuteCommand(echo, [\"Installation ready\"])",
+      "generated_code": "echo \"Installation ready\"",
+      "reasoning": "Command arguments are properly quoted to prevent shell injection",
+      "considerations": [
+        "Special characters are escaped within double quotes",
+        "Empty arguments are preserved as empty quoted strings"
+      ]
+    }
+  ],
+  "verification_result": {
+    "Success": {
+      "confidence": 1.0
+    }
+  }
+}

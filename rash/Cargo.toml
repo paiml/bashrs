@@ -28,6 +28,7 @@ once_cell.workspace = true
 phf.workspace = true
 chrono = { version = "0.4", features = ["serde"] }
 rand = "0.8"  # Added for testing module
+static_assertions = "1.1"
 
 # Optional dependencies for feature gates (commented out for now)
 # z3 = { version = "0.12", optional = true }
@@ -35,17 +36,25 @@ rand = "0.8"  # Added for testing module
 # libfuzzer-sys = { version = "0.4", optional = true }
 
 [features]
-default = ["basic"]
+# Default includes validation and pretty errors for good DX
+default = ["validation", "pretty-errors", "basic"]
+# Minimal build for smallest binary size (<3MB)
+minimal = []
+# Full build with all features (~6MB)
+full = ["pattern-matching", "loops", "verification", "optimization", "lsp", "completions", "watch"]
+# Individual features
 basic = []
-full = ["pattern-matching", "loops", "verification", "optimization"]
 pattern-matching = []
 loops = []
 verification = []  # ["z3"] when available
 optimization = []
+validation = []
+pretty-errors = []
+lsp = []
+completions = []
+watch = []
 # mutation-testing = ["mutagen"] when available
 # fuzzing = ["libfuzzer-sys"] when available
-# Enable all size-sensitive features for minimum binary
-min-size = []
 
 [dev-dependencies]
 tempfile.workspace = true
@@ -60,3 +69,7 @@ harness = false
 [[bench]]
 name = "verification"
 harness = false
+
+[[example]]
+name = "formal_verification"
+path = "../examples/formal_verification.rs"

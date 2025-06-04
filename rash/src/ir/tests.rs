@@ -1,30 +1,26 @@
 use super::*;
-use crate::ast::{RestrictedAst, Function, Type, Stmt, Expr};
-use crate::ast::restricted::{Literal, BinaryOp};
+use crate::ast::restricted::{BinaryOp, Literal};
+use crate::ast::{Expr, Function, RestrictedAst, Stmt, Type};
 use proptest::prelude::*;
 use rstest::*;
 
 #[test]
 fn test_simple_ast_to_ir_conversion() {
     let ast = RestrictedAst {
-        functions: vec![
-            Function {
-                name: "main".to_string(),
-                params: vec![],
-                return_type: Type::Str,
-                body: vec![
-                    Stmt::Let {
-                        name: "x".to_string(),
-                        value: Expr::Literal(Literal::U32(42)),
-                    }
-                ],
-            }
-        ],
+        functions: vec![Function {
+            name: "main".to_string(),
+            params: vec![],
+            return_type: Type::Str,
+            body: vec![Stmt::Let {
+                name: "x".to_string(),
+                value: Expr::Literal(Literal::U32(42)),
+            }],
+        }],
         entry_point: "main".to_string(),
     };
 
     let ir = from_ast(&ast).unwrap();
-    
+
     match ir {
         ShellIR::Sequence(stmts) => {
             assert_eq!(stmts.len(), 1);
@@ -43,24 +39,20 @@ fn test_simple_ast_to_ir_conversion() {
 #[test]
 fn test_function_call_to_command() {
     let ast = RestrictedAst {
-        functions: vec![
-            Function {
-                name: "main".to_string(),
-                params: vec![],
-                return_type: Type::Str,
-                body: vec![
-                    Stmt::Expr(Expr::FunctionCall {
-                        name: "echo".to_string(),
-                        args: vec![Expr::Literal(Literal::Str("hello".to_string()))],
-                    })
-                ],
-            }
-        ],
+        functions: vec![Function {
+            name: "main".to_string(),
+            params: vec![],
+            return_type: Type::Str,
+            body: vec![Stmt::Expr(Expr::FunctionCall {
+                name: "echo".to_string(),
+                args: vec![Expr::Literal(Literal::Str("hello".to_string()))],
+            })],
+        }],
         entry_point: "main".to_string(),
     };
 
     let ir = from_ast(&ast).unwrap();
-    
+
     match ir {
         ShellIR::Sequence(stmts) => {
             assert_eq!(stmts.len(), 1);
@@ -102,7 +94,7 @@ fn test_shell_value_constant_string_extraction() {
         ShellValue::String("hello".to_string()).as_constant_string(),
         Some("hello".to_string())
     );
-    
+
     assert_eq!(
         ShellValue::Bool(true).as_constant_string(),
         Some("true".to_string())
@@ -157,7 +149,7 @@ fn test_shell_ir_effects_calculation() {
 #[test]
 fn test_optimization_constant_folding() {
     let config = crate::models::Config::default();
-    
+
     let ir = ShellIR::Let {
         name: "greeting".to_string(),
         value: ShellValue::Concat(vec![
@@ -168,9 +160,12 @@ fn test_optimization_constant_folding() {
     };
 
     let optimized = optimize(ir, &config).unwrap();
-    
+
     match optimized {
-        ShellIR::Let { value: ShellValue::String(s), .. } => {
+        ShellIR::Let {
+            value: ShellValue::String(s),
+            ..
+        } => {
             assert_eq!(s, "hello world");
         }
         _ => panic!("Expected optimized constant string"),
@@ -183,7 +178,7 @@ fn test_optimization_disabled() {
         optimize: false,
         ..Default::default()
     };
-    
+
     let ir = ShellIR::Let {
         name: "greeting".to_string(),
         value: ShellValue::Concat(vec![
@@ -194,10 +189,13 @@ fn test_optimization_disabled() {
     };
 
     let result = optimize(ir.clone(), &config).unwrap();
-    
+
     // Should be unchanged when optimization is disabled
     match result {
-        ShellIR::Let { value: ShellValue::Concat(parts), .. } => {
+        ShellIR::Let {
+            value: ShellValue::Concat(parts),
+            ..
+        } => {
             assert_eq!(parts.len(), 2);
         }
         _ => panic!("Expected unoptimized concat"),
@@ -207,40 +205,36 @@ fn test_optimization_disabled() {
 #[test]
 fn test_if_statement_conversion() {
     let ast = RestrictedAst {
-        functions: vec![
-            Function {
-                name: "main".to_string(),
-                params: vec![],
-                return_type: Type::Str,
-                body: vec![
-                    Stmt::If {
-                        condition: Expr::Literal(Literal::Bool(true)),
-                        then_block: vec![
-                            Stmt::Let {
-                                name: "result".to_string(),
-                                value: Expr::Literal(Literal::Str("true_branch".to_string())),
-                            }
-                        ],
-                        else_block: Some(vec![
-                            Stmt::Let {
-                                name: "result".to_string(),
-                                value: Expr::Literal(Literal::Str("false_branch".to_string())),
-                            }
-                        ]),
-                    }
-                ],
-            }
-        ],
+        functions: vec![Function {
+            name: "main".to_string(),
+            params: vec![],
+            return_type: Type::Str,
+            body: vec![Stmt::If {
+                condition: Expr::Literal(Literal::Bool(true)),
+                then_block: vec![Stmt::Let {
+                    name: "result".to_string(),
+                    value: Expr::Literal(Literal::Str("true_branch".to_string())),
+                }],
+                else_block: Some(vec![Stmt::Let {
+                    name: "result".to_string(),
+                    value: Expr::Literal(Literal::Str("false_branch".to_string())),
+                }]),
+            }],
+        }],
         entry_point: "main".to_string(),
     };
 
     let ir = from_ast(&ast).unwrap();
-    
+
     match ir {
         ShellIR::Sequence(stmts) => {
             assert_eq!(stmts.len(), 1);
             match &stmts[0] {
-                ShellIR::If { test, then_branch, else_branch } => {
+                ShellIR::If {
+                    test,
+                    then_branch,
+                    else_branch,
+                } => {
                     assert!(matches!(test, ShellValue::Bool(true)));
                     assert!(then_branch.is_pure()); // Let statements are pure
                     assert!(else_branch.is_some());
@@ -255,21 +249,19 @@ fn test_if_statement_conversion() {
 #[test]
 fn test_return_statement_conversion() {
     let ast = RestrictedAst {
-        functions: vec![
-            Function {
-                name: "main".to_string(),
-                params: vec![],
-                return_type: Type::Str,
-                body: vec![
-                    Stmt::Return(Some(Expr::Literal(Literal::Str("success".to_string()))))
-                ],
-            }
-        ],
+        functions: vec![Function {
+            name: "main".to_string(),
+            params: vec![],
+            return_type: Type::Str,
+            body: vec![Stmt::Return(Some(Expr::Literal(Literal::Str(
+                "success".to_string(),
+            ))))],
+        }],
         entry_point: "main".to_string(),
     };
 
     let ir = from_ast(&ast).unwrap();
-    
+
     match ir {
         ShellIR::Sequence(stmts) => {
             assert_eq!(stmts.len(), 1);
@@ -288,33 +280,32 @@ fn test_return_statement_conversion() {
 #[test]
 fn test_binary_expression_conversion() {
     let ast = RestrictedAst {
-        functions: vec![
-            Function {
-                name: "main".to_string(),
-                params: vec![],
-                return_type: Type::Str,
-                body: vec![
-                    Stmt::Let {
-                        name: "result".to_string(),
-                        value: Expr::Binary {
-                            op: BinaryOp::Add,
-                            left: Box::new(Expr::Literal(Literal::Str("hello".to_string()))),
-                            right: Box::new(Expr::Literal(Literal::Str(" world".to_string()))),
-                        },
-                    }
-                ],
-            }
-        ],
+        functions: vec![Function {
+            name: "main".to_string(),
+            params: vec![],
+            return_type: Type::Str,
+            body: vec![Stmt::Let {
+                name: "result".to_string(),
+                value: Expr::Binary {
+                    op: BinaryOp::Add,
+                    left: Box::new(Expr::Literal(Literal::Str("hello".to_string()))),
+                    right: Box::new(Expr::Literal(Literal::Str(" world".to_string()))),
+                },
+            }],
+        }],
         entry_point: "main".to_string(),
     };
 
     let ir = from_ast(&ast).unwrap();
-    
+
     match ir {
         ShellIR::Sequence(stmts) => {
             assert_eq!(stmts.len(), 1);
             match &stmts[0] {
-                ShellIR::Let { value: ShellValue::Concat(parts), .. } => {
+                ShellIR::Let {
+                    value: ShellValue::Concat(parts),
+                    ..
+                } => {
                     assert_eq!(parts.len(), 2);
                 }
                 _ => panic!("Expected Let with Concat value"),
@@ -332,7 +323,7 @@ proptest! {
     ) {
         let effects1 = effects::analyze_command_effects(&cmd_name);
         let effects2 = effects::analyze_command_effects(&cmd_name);
-        
+
         // Effects should be deterministic for the same command
         assert_eq!(effects1.to_vec().len(), effects2.to_vec().len());
     }
@@ -346,7 +337,7 @@ proptest! {
             ShellValue::String(s1.clone()),
             ShellValue::String(s2.clone()),
         ]);
-        
+
         if let Some(result) = concat.as_constant_string() {
             assert_eq!(result, format!("{}{}", s1, s2));
         }
@@ -415,36 +406,28 @@ fn test_error_handling_in_conversion() {
 #[test]
 fn test_complex_nested_structures() {
     let ast = RestrictedAst {
-        functions: vec![
-            Function {
-                name: "main".to_string(),
-                params: vec![],
-                return_type: Type::Str,
-                body: vec![
-                    Stmt::If {
-                        condition: Expr::Variable("condition".to_string()),
-                        then_block: vec![
-                            Stmt::If {
-                                condition: Expr::Literal(Literal::Bool(true)),
-                                then_block: vec![
-                                    Stmt::Let {
-                                        name: "nested".to_string(),
-                                        value: Expr::Literal(Literal::Str("deep".to_string())),
-                                    }
-                                ],
-                                else_block: None,
-                            }
-                        ],
-                        else_block: None,
-                    }
-                ],
-            }
-        ],
+        functions: vec![Function {
+            name: "main".to_string(),
+            params: vec![],
+            return_type: Type::Str,
+            body: vec![Stmt::If {
+                condition: Expr::Variable("condition".to_string()),
+                then_block: vec![Stmt::If {
+                    condition: Expr::Literal(Literal::Bool(true)),
+                    then_block: vec![Stmt::Let {
+                        name: "nested".to_string(),
+                        value: Expr::Literal(Literal::Str("deep".to_string())),
+                    }],
+                    else_block: None,
+                }],
+                else_block: None,
+            }],
+        }],
         entry_point: "main".to_string(),
     };
 
     let ir = from_ast(&ast).unwrap();
-    
+
     // Should handle nested structures without panicking
     assert!(ir.effects().is_pure()); // Only let statements, should be pure
 }

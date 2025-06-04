@@ -1,3 +1,4 @@
+use crate::validation::ValidationLevel;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -6,6 +7,8 @@ pub struct Config {
     pub verify: VerificationLevel,
     pub emit_proof: bool,
     pub optimize: bool,
+    pub validation_level: Option<ValidationLevel>,
+    pub strict_mode: bool,
 }
 
 impl Default for Config {
@@ -15,11 +18,13 @@ impl Default for Config {
             verify: VerificationLevel::Strict,
             emit_proof: false,
             optimize: true,
+            validation_level: Some(ValidationLevel::Minimal),
+            strict_mode: false,
         }
     }
 }
 
-#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum ShellDialect {
     Posix,
     Bash,
@@ -27,7 +32,7 @@ pub enum ShellDialect {
     Ash,
 }
 
-#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum VerificationLevel {
     None,
     Basic,

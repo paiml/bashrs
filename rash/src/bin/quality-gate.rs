@@ -27,38 +27,45 @@ struct DeadCodeFile {
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let args: Vec<String> = std::env::args().collect();
-    
-    let complexity_threshold: u32 = args.iter()
+
+    let complexity_threshold: u32 = args
+        .iter()
         .position(|arg| arg == "--complexity-threshold")
         .and_then(|i| args.get(i + 1))
         .and_then(|s| s.parse().ok())
         .unwrap_or(10);
-    
-    let cognitive_threshold: u32 = args.iter()
+
+    let cognitive_threshold: u32 = args
+        .iter()
         .position(|arg| arg == "--cognitive-threshold")
         .and_then(|i| args.get(i + 1))
         .and_then(|s| s.parse().ok())
         .unwrap_or(15);
-    
-    let dead_code_threshold: u32 = args.iter()
+
+    let dead_code_threshold: u32 = args
+        .iter()
         .position(|arg| arg == "--dead-code-threshold")
         .and_then(|i| args.get(i + 1))
         .and_then(|s| s.parse().ok())
         .unwrap_or(5);
-    
+
     let mut all_passed = true;
-    
+
     // Check complexity if report exists
     if let Ok(content) = fs::read_to_string("complexity-current.json") {
         if let Ok(report) = serde_json::from_str::<ComplexityReport>(&content) {
-            let complexity_violations: Vec<_> = report.files.iter()
+            let complexity_violations: Vec<_> = report
+                .files
+                .iter()
                 .filter(|f| f.max_cyclomatic > complexity_threshold)
                 .collect();
-            
-            let cognitive_violations: Vec<_> = report.files.iter()
+
+            let cognitive_violations: Vec<_> = report
+                .files
+                .iter()
                 .filter(|f| f.max_cognitive > cognitive_threshold)
                 .collect();
-            
+
             if !complexity_violations.is_empty() {
                 eprintln!("❌ Cyclomatic complexity threshold violations:");
                 for v in complexity_violations {
@@ -66,7 +73,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 }
                 all_passed = false;
             }
-            
+
             if !cognitive_violations.is_empty() {
                 eprintln!("❌ Cognitive complexity threshold violations:");
                 for v in cognitive_violations {
@@ -76,14 +83,16 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             }
         }
     }
-    
+
     // Check dead code if report exists
     if let Ok(content) = fs::read_to_string("deadcode-current.json") {
         if let Ok(report) = serde_json::from_str::<DeadCodeReport>(&content) {
-            let violations: Vec<_> = report.files.iter()
+            let violations: Vec<_> = report
+                .files
+                .iter()
                 .filter(|f| f.dead_code_count > dead_code_threshold)
                 .collect();
-            
+
             if !violations.is_empty() {
                 eprintln!("❌ Dead code threshold violations:");
                 for v in violations {
@@ -93,7 +102,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             }
         }
     }
-    
+
     if all_passed {
         println!("✅ All quality gates passed!");
         println!("  Complexity threshold: {}", complexity_threshold);

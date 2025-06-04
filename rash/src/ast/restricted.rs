@@ -1,5 +1,5 @@
-use std::collections::HashMap;
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct RestrictedAst {
@@ -11,43 +11,49 @@ impl RestrictedAst {
     pub fn validate(&self) -> Result<(), String> {
         // Check for entry point
         if !self.functions.iter().any(|f| f.name == self.entry_point) {
-            return Err(format!("Entry point function '{}' not found", self.entry_point));
+            return Err(format!(
+                "Entry point function '{}' not found",
+                self.entry_point
+            ));
         }
-        
+
         // Validate each function
         for function in &self.functions {
             function.validate()?;
         }
-        
+
         // Check for recursion
         self.check_no_recursion()?;
-        
+
         Ok(())
     }
-    
+
     fn check_no_recursion(&self) -> Result<(), String> {
         let mut call_graph: HashMap<String, Vec<String>> = HashMap::new();
-        
+
         // Build call graph
         for function in &self.functions {
             let mut calls = Vec::new();
             function.collect_function_calls(&mut calls);
             call_graph.insert(function.name.clone(), calls);
         }
-        
+
         // Detect cycles using DFS
         for function in &self.functions {
             let mut visited = std::collections::HashSet::new();
             let mut rec_stack = std::collections::HashSet::new();
-            
+
             if self.has_cycle(&call_graph, &function.name, &mut visited, &mut rec_stack) {
-                return Err(format!("Recursion detected involving function '{}'", function.name));
+                return Err(format!(
+                    "Recursion detected involving function '{}'",
+                    function.name
+                ));
             }
         }
-        
+
         Ok(())
     }
-    
+
     #[allow(clippy::only_used_in_recursion)]
     fn has_cycle(
         &self,
@@ -59,14 +65,14 @@ impl RestrictedAst {
         if rec_stack.contains(node) {
             return true;
         }
-        
+
         if visited.contains(node) {
             return false;
         }
-        
+
         visited.insert(node.to_string());
         rec_stack.insert(node.to_string());
-        
+
         if let Some(neighbors) = graph.get(node) {
             for neighbor in neighbors {
                 if self.has_cycle(graph, neighbor, visited, rec_stack) {
@@ -74,7 +80,7 @@ impl RestrictedAst {
                 }
             }
         }
-        
+
         rec_stack.remove(node);
         false
     }
@@ -90,19 +96,16 @@ pub struct Function {
 
 impl Function {
     pub fn validate(&self) -> Result<(), String> {
-        // Check that body is not empty
-        if self.body.is_empty() {
-            return Err(format!("Function '{}' has empty body", self.name));
-        }
-        
+        // Empty body is OK for functions
+
         // Validate all statements
         for stmt in &self.body {
             stmt.validate()?;
         }
-        
+
         Ok(())
     }
-    
+
     pub fn collect_function_calls(&self, calls: &mut Vec<String>) {
         for stmt in &self.body {
             stmt.collect_function_calls(calls);
@@ -118,20 +121,24 @@ pub struct Parameter {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum Type {
+    Void,
     Bool,
     U32,
     Str,
-    Result { ok_type: Box<Type>, err_type: Box<Type> },
-    Option { inner_type: Box<Type> },
+    Result {
+        ok_type: Box<Type>,
+        err_type: Box<Type>,
+    },
+    Option {
+        inner_type: Box<Type>,
+    },
 }
 
 impl Type {
     pub fn is_allowed(&self) -> bool {
         match self {
-            Type::Bool | Type::U32 | Type::Str => true,
-            Type::Result { ok_type, err_type } => {
-                ok_type.is_allowed() && err_type.is_allowed()
-            }
+            Type::Void | Type::Bool | Type::U32 | Type::Str => true,
+            Type::Result { ok_type, err_type } => ok_type.is_allowed() && err_type.is_allowed(),
             Type::Option { inner_type } => inner_type.is_allowed(),
         }
     }
@@ -139,13 +146,32 @@ impl Type {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum Stmt {
-    Let { name: String, value: Expr },
+    Let {
+        name: String,
+        value: Expr,
+    },
     Expr(Expr),
     Return(Option<Expr>),
-    If { condition: Expr, then_block: Vec<Stmt>, else_block: Option<Vec<Stmt>> },
-    Match { scrutinee: Expr, arms: Vec<MatchArm> },
-    For { pattern: Pattern, iter: Expr, body: Vec<Stmt>, max_iterations: Option<u32> },
-    While { condition: Expr, body: Vec<Stmt>, max_iterations: Option<u32> },
+    If {
+        condition: Expr,
+        then_block: Vec<Stmt>,
+        else_block: Option<Vec<Stmt>>,
+    },
+    Match {
+        scrutinee: Expr,
+        arms: Vec<MatchArm>,
+    },
+    For {
+        pattern: Pattern,
+        iter: Expr,
+        body: Vec<Stmt>,
+        max_iterations: Option<u32>,
+    },
+    While {
+        condition: Expr,
+        body: Vec<Stmt>,
+        max_iterations: Option<u32>,
+    },
     Break,
     Continue,
 }
@@ -157,7 +183,11 @@ impl Stmt {
             Stmt::Expr(expr) => expr.validate(),
             Stmt::Return(Some(expr)) => expr.validate(),
             Stmt::Return(None) => Ok(()),
-            Stmt::If { condition, then_block, else_block } => {
+            Stmt::If {
+                condition,
+                then_block,
+                else_block,
+            } => {
                 condition.validate()?;
                 for stmt in then_block {
                     stmt.validate()?;
@@ -182,10 +212,17 @@ impl Stmt {
                 }
                 Ok(())
             }
-            Stmt::For { pattern, iter, body, max_iterations } => {
+            Stmt::For {
+                pattern,
+                iter,
+                body,
+                max_iterations,
+            } => {
                 // Enforce bounded iteration for verification
                 if max_iterations.is_none() {
-                    return Err("For loops must have bounded iterations for verification".to_string());
+                    return Err(
+                        "For loops must have bounded iterations for verification".to_string()
+                    );
                 }
                 pattern.validate()?;
                 iter.validate()?;
@@ -194,10 +231,16 @@ impl Stmt {
                 }
                 Ok(())
             }
-            Stmt::While { condition, body, max_iterations } => {
+            Stmt::While {
+                condition,
+                body,
+                max_iterations,
+            } => {
                 // Enforce bounded iteration for verification
                 if max_iterations.is_none() {
-                    return Err("While loops must have bounded iterations for verification".to_string());
+                    return Err(
+                        "While loops must have bounded iterations for verification".to_string()
+                    );
                 }
                 condition.validate()?;
                 for stmt in body {
@@ -208,14 +251,18 @@ impl Stmt {
             Stmt::Break | Stmt::Continue => Ok(()),
         }
     }
-    
+
     pub fn collect_function_calls(&self, calls: &mut Vec<String>) {
         match self {
             Stmt::Let { value, .. } => value.collect_function_calls(calls),
             Stmt::Expr(expr) => expr.collect_function_calls(calls),
             Stmt::Return(Some(expr)) => expr.collect_function_calls(calls),
             Stmt::Return(None) => {}
-            Stmt::If { condition, then_block, else_block } => {
+            Stmt::If {
+                condition,
+                then_block,
+                else_block,
+            } => {
                 condition.collect_function_calls(calls);
                 for stmt in then_block {
                     stmt.collect_function_calls(calls);
@@ -243,7 +290,9 @@ impl Stmt {
                     stmt.collect_function_calls(calls);
                 }
             }
-            Stmt::While { condition, body, .. } => {
+            Stmt::While {
+                condition, body, ..
+            } => {
                 condition.collect_function_calls(calls);
                 for stmt in body {
                     stmt.collect_function_calls(calls);
@@ -258,20 +307,55 @@ impl Stmt {
 pub enum Expr {
     Literal(Literal),
     Variable(String),
-    FunctionCall { name: String, args: Vec<Expr> },
-    Binary { op: BinaryOp, left: Box<Expr>, right: Box<Expr> },
-    Unary { op: UnaryOp, operand: Box<Expr> },
-    MethodCall { receiver: Box<Expr>, method: String, args: Vec<Expr> },
+    FunctionCall {
+        name: String,
+        args: Vec<Expr>,
+    },
+    Binary {
+        op: BinaryOp,
+        left: Box<Expr>,
+        right: Box<Expr>,
+    },
+    Unary {
+        op: UnaryOp,
+        operand: Box<Expr>,
+    },
+    MethodCall {
+        receiver: Box<Expr>,
+        method: String,
+        args: Vec<Expr>,
+    },
     Array(Vec<Expr>),
-    Index { object: Box<Expr>, index: Box<Expr> },
-    Try { expr: Box<Expr> },
+    Index {
+        object: Box<Expr>,
+        index: Box<Expr>,
+    },
+    Try {
+        expr: Box<Expr>,
+    },
     Block(Vec<Stmt>),
 }
 
 impl Expr {
     pub fn validate(&self) -> Result<(), String> {
+        // Check nesting depth
+        let depth = self.nesting_depth();
+        if depth > 30 {
+            return Err(format!(
+                "Expression nesting too deep: {} levels (max 30)",
+                depth
+            ));
+        }
+
         match self {
-            Expr::Literal(_) | Expr::Variable(_) => Ok(()),
+            Expr::Literal(Literal::Str(s)) => {
+                if s.contains('\0') {
+                    return Err("Null characters not allowed in strings".to_string());
+                }
+                Ok(())
+            }
+            Expr::Literal(_) => Ok(()),
+            Expr::Variable(_) => Ok(()),
             Expr::FunctionCall { args, .. } => {
                 for arg in args {
                     arg.validate()?;
@@ -294,7 +378,23 @@ impl Expr {
             _ => Ok(()), // Array, Index, Try, Block
         }
     }
-    
+
+    fn nesting_depth(&self) -> usize {
+        match self {
+            Expr::Binary { left, right, .. } => 1 + left.nesting_depth().max(right.nesting_depth()),
+            Expr::Unary { operand, .. } => 1 + operand.nesting_depth(),
+            Expr::FunctionCall { args, .. } => {
+                1 + args.iter().map(|a| a.nesting_depth()).max().unwrap_or(0)
+            }
+            Expr::MethodCall { receiver, args, .. } => {
+                let receiver_depth = receiver.nesting_depth();
+                let args_depth = args.iter().map(|a| a.nesting_depth()).max().unwrap_or(0);
+                1 + receiver_depth.max(args_depth)
+            }
+            _ => 0,
+        }
+    }
+
     pub fn collect_function_calls(&self, calls: &mut Vec<String>) {
         match self {
             Expr::FunctionCall { name, args } => {
@@ -380,7 +480,10 @@ pub enum Pattern {
     Variable(String),
     Wildcard,
     Tuple(Vec<Pattern>),
-    Struct { name: String, fields: Vec<(String, Pattern)> },
+    Struct {
+        name: String,
+        fields: Vec<(String, Pattern)>,
+    },
 }
 
 impl Pattern {
@@ -401,7 +504,7 @@ impl Pattern {
             }
         }
     }
-    
+
     pub fn binds_variable(&self, name: &str) -> bool {
         match self {
             Pattern::Variable(var_name) => var_name == name,

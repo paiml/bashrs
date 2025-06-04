@@ -1,5 +1,5 @@
-pub mod posix;
 pub mod escape;
+pub mod posix;
 
 #[cfg(test)]
 mod tests;

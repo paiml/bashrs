@@ -1,46 +1,53 @@
-use syn::{File, Item, ItemFn, FnArg, ReturnType, Block, Stmt as SynStmt, Expr as SynExpr, 
-         Lit, Pat, Type as SynType, BinOp, UnOp};
-use crate::ast::restricted::{RestrictedAst, Function, Parameter, Type, Stmt, Expr, Literal, BinaryOp, UnaryOp};
+use crate::ast::restricted::{
+    BinaryOp, Expr, Function, Literal, Parameter, RestrictedAst, Stmt, Type, UnaryOp,
+};
 use crate::models::{Error, Result};
+use syn::{
+    BinOp, Block, Expr as SynExpr, File, FnArg, Item, ItemFn, Lit, Pat, ReturnType,
+    Stmt as SynStmt, Type as SynType, UnOp,
+};
 
 /// Parse Rust source code into a RestrictedAst
 pub fn parse(input: &str) -> Result<RestrictedAst> {
     let file: File = syn::parse_str(input)?;
-    
+
     let mut functions = Vec::new();
     let mut entry_point = None;
-    
+
     for item in file.items {
         match item {
             Item::Fn(item_fn) => {
                 // Check if this is the main function marked with #[rash::main]
                 let is_main = item_fn.attrs.iter().any(|_attr| {
-                    // For now, accept any attribute as #[rash::main] 
+                    // For now, accept any attribute as #[rash::main]
                     // TODO: Proper attribute parsing
                     true
                 }) || item_fn.sig.ident == "main";
-                
+
                 let function = convert_function(item_fn)?;
-                
+
                 if is_main {
                     if entry_point.is_some() {
-                        return Err(Error::Validation("Multiple #[rash::main] functions found".to_string()));
+                        return Err(Error::Validation(
+                            "Multiple #[rash::main] functions found".to_string(),
+                        ));
                     }
                     entry_point = Some(function.name.clone());
                 }
-                
+
                 functions.push(function);
             }
             _ => {
-                return Err(Error::Validation("Only functions are allowed in Rash code".to_string()));
+                return Err(Error::Validation(
+                    "Only functions are allowed in Rash code".to_string(),
+                ));
             }
         }
     }
-    
-    let entry_point = entry_point.ok_or_else(|| {
-        Error::Validation("No #[rash::main] function found".to_string())
-    })?;
-    
+
+    let entry_point = entry_point
+        .ok_or_else(|| Error::Validation("No #[rash::main] function found".to_string()))?;
+
     Ok(RestrictedAst {
         functions,
         entry_point,
@@ -49,7 +56,7 @@ pub fn parse(input: &str) -> Result<RestrictedAst> {
 
 fn convert_function(item_fn: ItemFn) -> Result<Function> {
     let name = item_fn.sig.ident.to_string();
-    
+
     // Convert parameters
     let mut params = Vec::new();
     for input in item_fn.sig.inputs {
@@ -63,7 +70,9 @@ fn convert_function(item_fn: ItemFn) -> Result<Function> {
                         param_type,
                     });
                 } else {
-                    return Err(Error::Validation("Complex parameter patterns not supported".to_string()));
+                    return Err(Error::Validation(
+                        "Complex parameter patterns not supported".to_string(),
+                    ));
                 }
             }
             FnArg::Receiver(_) => {
@@ -71,16 +80,16 @@ fn convert_function(item_fn: ItemFn) -> Result<Function> {
             }
         }
     }
-    
+
     // Convert return type
     let return_type = match &item_fn.sig.output {
         ReturnType::Default => Type::Str, // Default to unit type represented as string
         ReturnType::Type(_, ty) => convert_type(ty)?,
     };
-    
+
     // Convert function body
     let body = convert_block(&item_fn.block)?;
-    
+
     Ok(Function {
         name,
         params,
@@ -92,14 +101,17 @@ fn convert_function(item_fn: ItemFn) -> Result<Function> {
 fn convert_type(ty: &SynType) -> Result<Type> {
     match ty {
         SynType::Path(type_path) => {
-            let path_str = type_path.path.segments.iter()
+            let path_str = type_path
+                .path
+                .segments
+                .iter()
                 .map(|seg| seg.ident.to_string())
                 .collect::<Vec<_>>()
                 .join("::");
-            
+
             match path_str.as_str() {
                 "bool" => Ok(Type::Bool),
-                "u32" => Ok(Type::U32),
+                "u32" | "i32" => Ok(Type::U32), // Treat i32 as u32 for now
                 "str" | "String" => Ok(Type::Str),
                 path if path.starts_with("Result") => {
                     // Simple Result type parsing - assumes Result<T, E>
@@ -120,17 +132,25 @@ fn convert_type(ty: &SynType) -> Result<Type> {
         SynType::Reference(type_ref) => {
             // Handle &str and other reference types
             if let SynType::Path(path) = &*type_ref.elem {
-                let path_str = path.path.segments.iter()
+                let path_str = path
+                    .path
+                    .segments
+                    .iter()
                     .map(|seg| seg.ident.to_string())
                     .collect::<Vec<_>>()
                     .join("::");
-                    
+
                 match path_str.as_str() {
                     "str" => Ok(Type::Str),
-                    _ => Err(Error::Validation(format!("Unsupported reference type: &{}", path_str))),
+                    _ => Err(Error::Validation(format!(
+                        "Unsupported reference type: &{}",
+                        path_str
+                    ))),
                 }
             } else {
-                Err(Error::Validation("Complex reference types not supported".to_string()))
+                Err(Error::Validation(
+                    "Complex reference types not supported".to_string(),
+                ))
             }
         }
         _ => Err(Error::Validation("Complex types not supported".to_string())),
@@ -139,11 +159,11 @@ fn convert_type(ty: &SynType) -> Result<Type> {
 
 fn convert_block(block: &Block) -> Result<Vec<Stmt>> {
     let mut statements = Vec::new();
-    
+
     for stmt in &block.stmts {
         statements.push(convert_stmt(stmt)?);
     }
-    
+
     Ok(statements)
 }
 
@@ -156,14 +176,41 @@ fn convert_stmt(stmt: &SynStmt) -> Result<Stmt> {
                     let value = convert_expr(&init.expr)?;
                     Ok(Stmt::Let { name, value })
                 } else {
-                    Err(Error::Validation("Let bindings must have initializers".to_string()))
+                    Err(Error::Validation(
+                        "Let bindings must have initializers".to_string(),
+                    ))
                 }
             } else {
-                Err(Error::Validation("Complex patterns not supported".to_string()))
+                Err(Error::Validation(
+                    "Complex patterns not supported".to_string(),
+                ))
             }
         }
         SynStmt::Expr(expr, _) => {
-            Ok(Stmt::Expr(convert_expr(expr)?))
+            // Check if this is an if expression used as a statement
+            if let SynExpr::If(expr_if) = expr {
+                let condition = convert_expr(&expr_if.cond)?;
+                let then_block = convert_block(&expr_if.then_branch)?;
+                let else_block = if let Some((_, else_expr)) = &expr_if.else_branch {
+                    match &**else_expr {
+                        SynExpr::Block(block) => Some(convert_block(&block.block)?),
+                        SynExpr::If(_) => {
+                            // Handle else-if by converting to nested if statement
+                            Some(vec![Stmt::Expr(convert_expr(else_expr)?)])
+                        }
+                        _ => None,
+                    }
+                } else {
+                    None
+                };
+                Ok(Stmt::If {
+                    condition,
+                    then_block,
+                    else_block,
+                })
+            } else {
+                Ok(Stmt::Expr(convert_expr(expr)?))
+            }
         }
         _ => Err(Error::Validation("Unsupported statement type".to_string())),
     }
@@ -176,7 +223,10 @@ fn convert_expr(expr: &SynExpr) -> Result<Expr> {
             Ok(Expr::Literal(literal))
         }
         SynExpr::Path(expr_path) => {
-            let name = expr_path.path.segments.iter()
+            let name = expr_path
+                .path
+                .segments
+                .iter()
                 .map(|seg| seg.ident.to_string())
                 .collect::<Vec<_>>()
                 .join("::");
@@ -184,19 +234,24 @@ fn convert_expr(expr: &SynExpr) -> Result<Expr> {
         }
         SynExpr::Call(expr_call) => {
             if let SynExpr::Path(path) = &*expr_call.func {
-                let name = path.path.segments.iter()
+                let name = path
+                    .path
+                    .segments
+                    .iter()
                     .map(|seg| seg.ident.to_string())
                     .collect::<Vec<_>>()
                     .join("::");
-                
+
                 let mut args = Vec::new();
                 for arg in &expr_call.args {
                     args.push(convert_expr(arg)?);
                 }
-                
+
                 Ok(Expr::FunctionCall { name, args })
             } else {
-                Err(Error::Validation("Complex function calls not supported".to_string()))
+                Err(Error::Validation(
+                    "Complex function calls not supported".to_string(),
+                ))
             }
         }
         SynExpr::Binary(expr_binary) => {
@@ -217,18 +272,31 @@ fn convert_expr(expr: &SynExpr) -> Result<Expr> {
             for arg in &method_call.args {
                 args.push(convert_expr(arg)?);
             }
-            Ok(Expr::MethodCall { receiver, method, args })
+            Ok(Expr::MethodCall {
+                receiver,
+                method,
+                args,
+            })
         }
         SynExpr::Return(ret_expr) => {
             if let Some(expr) = &ret_expr.expr {
                 convert_expr(expr)
             } else {
-                Ok(Expr::Literal(crate::ast::restricted::Literal::Str("()".to_string())))
+                Ok(Expr::Literal(crate::ast::restricted::Literal::Str(
+                    "()".to_string(),
+                )))
             }
         }
         SynExpr::Paren(expr_paren) => {
             // Handle parenthesized expressions by unwrapping them
             convert_expr(&expr_paren.expr)
+        }
+        SynExpr::If(_) => {
+            // For now, reject if expressions in expression position
+            // They should be used as statements instead
+            Err(Error::Validation(
+                "If expressions not supported in expression position".to_string(),
+            ))
         }
         _ => Err(Error::Validation("Unsupported expression type".to_string())),
     }
@@ -238,7 +306,8 @@ fn convert_literal(lit: &Lit) -> Result<Literal> {
     match lit {
         Lit::Bool(lit_bool) => Ok(Literal::Bool(lit_bool.value)),
         Lit::Int(lit_int) => {
-            let value: u32 = lit_int.base10_parse()
+            let value: u32 = lit_int
+                .base10_parse()
                 .map_err(|_| Error::Validation("Invalid integer literal".to_string()))?;
             Ok(Literal::U32(value))
         }

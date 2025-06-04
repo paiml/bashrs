@@ -1,5 +1,5 @@
-use serde::{Deserialize, Serialize};
 use super::effects::EffectSet;
+use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum ShellIR {
@@ -9,29 +9,23 @@ pub enum ShellIR {
         value: ShellValue,
         effects: EffectSet,
     },
-    
+
     /// Command execution
-    Exec {
-        cmd: Command,
-        effects: EffectSet,
-    },
-    
+    Exec { cmd: Command, effects: EffectSet },
+
     /// Conditional execution
     If {
         test: ShellValue,
         then_branch: Box<ShellIR>,
         else_branch: Option<Box<ShellIR>>,
     },
-    
+
     /// Exit with code
-    Exit {
-        code: u8,
-        message: Option<String>,
-    },
-    
+    Exit { code: u8, message: Option<String> },
+
     /// Sequence of operations
     Sequence(Vec<ShellIR>),
-    
+
     /// No-op
     Noop,
 }
@@ -41,20 +35,24 @@ impl ShellIR {
     pub fn effects(&self) -> EffectSet {
         match self {
             ShellIR::Let { effects, .. } | ShellIR::Exec { effects, .. } => effects.clone(),
-            ShellIR::If { then_branch, else_branch, .. } => {
+            ShellIR::If {
+                then_branch,
+                else_branch,
+                ..
+            } => {
                 let mut combined = then_branch.effects();
                 if let Some(else_ir) = else_branch {
                     combined = combined.union(&else_ir.effects());
                 }
                 combined
             }
-            ShellIR::Sequence(items) => {
-                items.iter().fold(EffectSet::pure(), |acc, item| acc.union(&item.effects()))
-            }
+            ShellIR::Sequence(items) => items
+                .iter()
+                .fold(EffectSet::pure(), |acc, item| acc.union(&item.effects())),
             ShellIR::Exit { .. } | ShellIR::Noop => EffectSet::pure(),
         }
     }
-    
+
     /// Check if this IR node is pure (has no side effects)
     pub fn is_pure(&self) -> bool {
         self.effects().is_pure()
@@ -74,12 +72,12 @@ impl Command {
             args: Vec::new(),
         }
     }
-    
+
     pub fn arg(mut self, arg: ShellValue) -> Self {
         self.args.push(arg);
         self
     }
-    
+
     pub fn args(mut self, args: Vec<ShellValue>) -> Self {
         self.args.extend(args);
         self
@@ -90,16 +88,16 @@ impl Command {
 pub enum ShellValue {
     /// String literal
     String(String),
-    
+
     /// Boolean value (converted to "true"/"false")
     Bool(bool),
-    
+
     /// Variable reference
     Variable(String),
-    
+
     /// Concatenated values
     Concat(Vec<ShellValue>),
-    
+
     /// Command substitution
     CommandSubst(Command),
 }
@@ -113,12 +111,16 @@ impl ShellValue {
             ShellValue::Concat(parts) => parts.iter().all(|p| p.is_constant()),
         }
     }
-    
+
     /// Get the string representation for constant values
     pub fn as_constant_string(&self) -> Option<String> {
         match self {
             ShellValue::String(s) => Some(s.clone()),
-            ShellValue::Bool(b) => Some(if *b { "true".to_string() } else { "false".to_string() }),
+            ShellValue::Bool(b) => Some(if *b {
+                "true".to_string()
+            } else {
+                "false".to_string()
+            }),
             ShellValue::Concat(parts) => {
                 if parts.iter().all(|p| p.is_constant()) {
                     let mut result = String::new();
@@ -135,6 +137,25 @@ impl ShellValue {
                 }
             }
             _ => None,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum ShellExpression {
+    String(String),
+    Variable(String, bool), // (name, is_quoted)
+    Command(String),
+    Arithmetic(String),
+}
+
+impl ShellExpression {
+    pub fn is_quoted(&self) -> bool {
+        match self {
+            ShellExpression::String(s) => s.starts_with('"') && s.ends_with('"'),
+            ShellExpression::Variable(_, quoted) => *quoted,
+            ShellExpression::Command(_) => false,
+            ShellExpression::Arithmetic(_) => true,
         }
     }
 }
