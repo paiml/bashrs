@@ -101,6 +101,8 @@ impl IrConverter {
                     else_branch: else_ir,
                 })
             }
+        // Placeholder for new AST nodes - TODO: implement properly
+        _ => Ok(ShellIR::Noop), // Match, For, While, Break, Continue
         }
     }
     

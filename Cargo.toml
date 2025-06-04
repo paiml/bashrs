@@ -36,11 +36,28 @@ description = "Rust-to-Shell transpiler for deterministic bootstrap scripts"
 
 # Performance and size optimizations
 [profile.release]
-lto = true
-codegen-units = 1
-panic = "abort"
-strip = true
+lto = "fat"              # Full link-time optimization
+codegen-units = 1         # Single codegen unit for better optimization
+panic = "abort"           # Smaller binary size
+strip = "symbols"         # Strip all symbols
+opt-level = 3             # Maximum optimization
+
+# Extreme binary size optimization
+[profile.min-size]
+inherits = "release"
+opt-level = "z"           # Optimize for size
+lto = "fat"              # Full link-time optimization
+codegen-units = 1         # Single codegen unit
+panic = "abort"           # Remove panic unwinding
+strip = "symbols"         # Strip all symbols
 
 [profile.dev]
 debug = true
 opt-level = 0
+
+# Fast compilation for development
+[profile.dev-fast]
+inherits = "dev"
+opt-level = 1
+incremental = true
+codegen-units = 16

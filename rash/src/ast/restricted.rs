@@ -142,6 +142,11 @@ pub enum Stmt {
     Expr(Expr),
     Return(Option<Expr>),
     If { condition: Expr, then_block: Vec<Stmt>, else_block: Option<Vec<Stmt>> },
+    Match { scrutinee: Expr, arms: Vec<MatchArm> },
+    For { pattern: Pattern, iter: Expr, body: Vec<Stmt>, max_iterations: Option<u32> },
+    While { condition: Expr, body: Vec<Stmt>, max_iterations: Option<u32> },
+    Break,
+    Continue,
 }
 
 impl Stmt {
@@ -163,6 +168,43 @@ impl Stmt {
                 }
                 Ok(())
             }
+            Stmt::Match { scrutinee, arms } => {
+                scrutinee.validate()?;
+                for arm in arms {
+                    arm.pattern.validate()?;
+                    if let Some(guard) = &arm.guard {
+                        guard.validate()?;
+                    }
+                    for stmt in &arm.body {
+                        stmt.validate()?;
+                    }
+                }
+                Ok(())
+            }
+            Stmt::For { pattern, iter, body, max_iterations } => {
+                // Enforce bounded iteration for verification
+                if max_iterations.is_none() {
+                    return Err("For loops must have bounded iterations for verification".to_string());
+                }
+                pattern.validate()?;
+                iter.validate()?;
+                for stmt in body {
+                    stmt.validate()?;
+                }
+                Ok(())
+            }
+            Stmt::While { condition, body, max_iterations } => {
+                // Enforce bounded iteration for verification
+                if max_iterations.is_none() {
+                    return Err("While loops must have bounded iterations for verification".to_string());
+                }
+                condition.validate()?;
+                for stmt in body {
+                    stmt.validate()?;
+                }
+                Ok(())
+            }
+            Stmt::Break | Stmt::Continue => Ok(()),
         }
     }
     
@@ -183,6 +225,30 @@ impl Stmt {
                     }
                 }
             }
+            Stmt::Match { scrutinee, arms } => {
+                scrutinee.collect_function_calls(calls);
+                for arm in arms {
+                    if let Some(guard) = &arm.guard {
+                        guard.collect_function_calls(calls);
+                    }
+                    for stmt in &arm.body {
+                        stmt.collect_function_calls(calls);
+                    }
+                }
+            }
+            Stmt::For { iter, body, .. } => {
+                iter.collect_function_calls(calls);
+                for stmt in body {
+                    stmt.collect_function_calls(calls);
+                }
+            }
+            Stmt::While { condition, body, .. } => {
+                condition.collect_function_calls(calls);
+                for stmt in body {
+                    stmt.collect_function_calls(calls);
+                }
+            }
+            Stmt::Break | Stmt::Continue => {}
         }
     }
 }
@@ -195,6 +261,10 @@ pub enum Expr {
     Binary { op: BinaryOp, left: Box<Expr>, right: Box<Expr> },
     Unary { op: UnaryOp, operand: Box<Expr> },
     MethodCall { receiver: Box<Expr>, method: String, args: Vec<Expr> },
+    Array(Vec<Expr>),
+    Index { object: Box<Expr>, index: Box<Expr> },
+    TryExpr { expr: Box<Expr> },
+    Block(Vec<Stmt>),
 }
 
 impl Expr {
@@ -219,6 +289,8 @@ impl Expr {
                 }
                 Ok(())
             }
+            // Placeholder for new expression types - TODO: implement properly
+            _ => Ok(()), // Array, Index, TryExpr, Block
         }
     }
     
@@ -241,6 +313,23 @@ impl Expr {
                 receiver.collect_function_calls(calls);
                 for arg in args {
                     arg.collect_function_calls(calls);
+                }
+            }
+            Expr::Array(elements) => {
+                for element in elements {
+                    element.collect_function_calls(calls);
+                }
+            }
+            Expr::Index { object, index } => {
+                object.collect_function_calls(calls);
+                index.collect_function_calls(calls);
+            }
+            Expr::TryExpr { expr } => {
+                expr.collect_function_calls(calls);
+            }
+            Expr::Block(stmts) => {
+                for stmt in stmts {
+                    stmt.collect_function_calls(calls);
                 }
             }
             _ => {}
@@ -275,4 +364,49 @@ pub enum BinaryOp {
 pub enum UnaryOp {
     Not,
     Neg,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct MatchArm {
+    pub pattern: Pattern,
+    pub guard: Option<Expr>,
+    pub body: Vec<Stmt>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum Pattern {
+    Literal(Literal),
+    Variable(String),
+    Wildcard,
+    Tuple(Vec<Pattern>),
+    Struct { name: String, fields: Vec<(String, Pattern)> },
+}
+
+impl Pattern {
+    pub fn validate(&self) -> Result<(), String> {
+        match self {
+            Pattern::Literal(_) | Pattern::Variable(_) | Pattern::Wildcard => Ok(()),
+            Pattern::Tuple(patterns) => {
+                for pattern in patterns {
+                    pattern.validate()?;
+                }
+                Ok(())
+            }
+            Pattern::Struct { fields, .. } => {
+                for (_, pattern) in fields {
+                    pattern.validate()?;
+                }
+                Ok(())
+            }
+        }
+    }
+    
+    pub fn binds_variable(&self, name: &str) -> bool {
+        match self {
+            Pattern::Variable(var_name) => var_name == name,
+            Pattern::Tuple(patterns) => patterns.iter().any(|p| p.binds_variable(name)),
+            Pattern::Struct { fields, .. } => fields.iter().any(|(_, p)| p.binds_variable(name)),
+            _ => false,
+        }
+    }
 }

@@ -1,0 +1,1333 @@
+{
+  "metadata": {
+    "generated_at": "2025-06-04T01:40:23.594557132Z",
+    "tool_version": "0.21.0",
+    "project_root": ".",
+    "cache_stats": {
+      "hit_rate": 0.0,
+      "memory_efficiency": 0.0,
+      "time_saved_ms": 0
+    },
+    "analysis_duration": {
+      "secs": 0,
+      "nanos": 542570
+    }
+  },
+  "file_tree": {
+    "root": {
+      "name": "",
+      "path": ".",
+      "node_type": "Directory",
+      "children": [
+        {
+          "name": "README.md",
+          "path": "./README.md",
+          "node_type": "File",
+          "children": [],
+          "annotations": {
+            "defect_score": null,
+            "complexity_score": null,
+            "churn_score": null,
+            "dead_code_items": 0,
+            "satd_items": 0
+          }
+        },
+        {
+          "name": "quality-report.json",
+          "path": "./quality-report.json",
+          "node_type": "File",
+          "children": [],
+          "annotations": {
+            "defect_score": null,
+            "complexity_score": null,
+            "churn_score": null,
+            "dead_code_items": 0,
+            "satd_items": 0
+          }
+        },
+        {
+          "name": "LICENSE",
+          "path": "./LICENSE",
+          "node_type": "File",
+          "children": [],
+          "annotations": {
+            "defect_score": null,
+            "complexity_score": null,
+            "churn_score": null,
+            "dead_code_items": 0,
+            "satd_items": 0
+          }
+        },
+        {
+          "name": "Cargo.toml",
+          "path": "./Cargo.toml",
+          "node_type": "File",
+          "children": [],
+          "annotations": {
+            "defect_score": null,
+            "complexity_score": null,
+            "churn_score": null,
+            "dead_code_items": 0,
+            "satd_items": 0
+          }
+        },
+        {
+          "name": ".gitignore",
+          "path": "./.gitignore",
+          "node_type": "File",
+          "children": [],
+          "annotations": {
+            "defect_score": null,
+            "complexity_score": null,
+            "churn_score": null,
+            "dead_code_items": 0,
+            "satd_items": 0
+          }
+        },
+        {
+          "name": "test_output.sh",
+          "path": "./test_output.sh",
+          "node_type": "File",
+          "children": [],
+          "annotations": {
+            "defect_score": null,
+            "complexity_score": null,
+            "churn_score": null,
+            "dead_code_items": 0,
+            "satd_items": 0
+          }
+        },
+        {
+          "name": "TESTING_REPORT.md",
+          "path": "./TESTING_REPORT.md",
+          "node_type": "File",
+          "children": [],
+          "annotations": {
+            "defect_score": null,
+            "complexity_score": null,
+            "churn_score": null,
+            "dead_code_items": 0,
+            "satd_items": 0
+          }
+        },
+        {
+          "name": "complexity-analysis.json",
+          "path": "./complexity-analysis.json",
+          "node_type": "File",
+          "children": [],
+          "annotations": {
+            "defect_score": null,
+            "complexity_score": null,
+            "churn_score": null,
+            "dead_code_items": 0,
+            "satd_items": 0
+          }
+        },
+        {
+          "name": "deep_context.md",
+          "path": "./deep_context.md",
+          "node_type": "File",
+          "children": [],
+          "annotations": {
+            "defect_score": null,
+            "complexity_score": null,
+            "churn_score": null,
+            "dead_code_items": 0,
+            "satd_items": 0
+          }
+        },
+        {
+          "name": "dependency-graph.mmd",
+          "path": "./dependency-graph.mmd",
+          "node_type": "File",
+          "children": [],
+          "annotations": {
+            "defect_score": null,
+            "complexity_score": null,
+            "churn_score": null,
+            "dead_code_items": 0,
+            "satd_items": 0
+          }
+        },
+        {
+          "name": "rash-analysis.json",
+          "path": "./rash-analysis.json",
+          "node_type": "File",
+          "children": [],
+          "annotations": {
+            "defect_score": null,
+            "complexity_score": null,
+            "churn_score": null,
+            "dead_code_items": 0,
+            "satd_items": 0
+          }
+        },
+        {
+          "name": "PROJECT_CONTEXT.md",
+          "path": "./PROJECT_CONTEXT.md",
+          "node_type": "File",
+          "children": [],
+          "annotations": {
+            "defect_score": null,
+            "complexity_score": null,
+            "churn_score": null,
+            "dead_code_items": 0,
+            "satd_items": 0
+          }
+        },
+        {
+          "name": "test-project",
+          "path": "./test-project",
+          "node_type": "Directory",
+          "children": [
+            {
+              "name": "Cargo.toml",
+              "path": "./test-project/Cargo.toml",
+              "node_type": "File",
+              "children": [],
+              "annotations": {
+                "defect_score": null,
+                "complexity_score": null,
+                "churn_score": null,
+                "dead_code_items": 0,
+                "satd_items": 0
+              }
+            },
+            {
+              "name": "src",
+              "path": "./test-project/src",
+              "node_type": "Directory",
+              "children": [
+                {
+                  "name": "main.rs",
+                  "path": "./test-project/src/main.rs",
+                  "node_type": "File",
+                  "children": [],
+                  "annotations": {
+                    "defect_score": null,
+                    "complexity_score": null,
+                    "churn_score": null,
+                    "dead_code_items": 0,
+                    "satd_items": 0
+                  }
+                }
+              ],
+              "annotations": {
+                "defect_score": null,
+                "complexity_score": null,
+                "churn_score": null,
+                "dead_code_items": 0,
+                "satd_items": 0
+              }
+            },
+            {
+              "name": "rash.toml",
+              "path": "./test-project/rash.toml",
+              "node_type": "File",
+              "children": [],
+              "annotations": {
+                "defect_score": null,
+                "complexity_score": null,
+                "churn_score": null,
+                "dead_code_items": 0,
+                "satd_items": 0
+              }
+            }
+          ],
+          "annotations": {
+            "defect_score": null,
+            "complexity_score": null,
+            "churn_score": null,
+            "dead_code_items": 0,
+            "satd_items": 0
+          }
+        },
+        {
+          "name": "docs",
+          "path": "./docs",
+          "node_type": "Directory",
+          "children": [
+            {
+              "name": "rash-spec.md",
+              "path": "./docs/rash-spec.md",
+              "node_type": "File",
+              "children": [],
+              "annotations": {
+                "defect_score": null,
+                "complexity_score": null,
+                "churn_score": null,
+                "dead_code_items": 0,
+                "satd_items": 0
+              }
+            },
+            {
+              "name": "continued-spec.md",
+              "path": "./docs/continued-spec.md",
+              "node_type": "File",
+              "children": [],
+              "annotations": {
+                "defect_score": null,
+                "complexity_score": null,
+                "churn_score": null,
+                "dead_code_items": 0,
+                "satd_items": 0
+              }
+            }
+          ],
+          "annotations": {
+            "defect_score": null,
+            "complexity_score": null,
+            "churn_score": null,
+            "dead_code_items": 0,
+            "satd_items": 0
+          }
+        },
+        {
+          "name": "rustfmt.toml",
+          "path": "./rustfmt.toml",
+          "node_type": "File",
+          "children": [],
+          "annotations": {
+            "defect_score": null,
+            "complexity_score": null,
+            "churn_score": null,
+            "dead_code_items": 0,
+            "satd_items": 0
+          }
+        },
+        {
+          "name": ".git",
+          "path": "./.git",
+          "node_type": "Directory",
+          "children": [],
+          "annotations": {
+            "defect_score": null,
+            "complexity_score": null,
+            "churn_score": null,
+            "dead_code_items": 0,
+            "satd_items": 0
+          }
+        },
+        {
+          "name": "examples",
+          "path": "./examples",
+          "node_type": "Directory",
+          "children": [
+            {
+              "name": "installer.rs",
+              "path": "./examples/installer.rs",
+              "node_type": "File",
+              "children": [],
+              "annotations": {
+                "defect_score": null,
+                "complexity_score": null,
+                "churn_score": null,
+                "dead_code_items": 0,
+                "satd_items": 0
+              }
+            },
+            {
+              "name": "simple.rs",
+              "path": "./examples/simple.rs",
+              "node_type": "File",
+              "children": [],
+              "annotations": {
+                "defect_score": null,
+                "complexity_score": null,
+                "churn_score": null,
+                "dead_code_items": 0,
+                "satd_items": 0
+              }
+            },
+            {
+              "name": "basic.rs",
+              "path": "./examples/basic.rs",
+              "node_type": "File",
+              "children": [],
+              "annotations": {
+                "defect_score": null,
+                "complexity_score": null,
+                "churn_score": null,
+                "dead_code_items": 0,
+                "satd_items": 0
+              }
+            },
+            {
+              "name": "debug.rs",
+              "path": "./examples/debug.rs",
+              "node_type": "File",
+              "children": [],
+              "annotations": {
+                "defect_score": null,
+                "complexity_score": null,
+                "churn_score": null,
+                "dead_code_items": 0,
+                "satd_items": 0
+              }
+            },
+            {
+              "name": "minimal.rs",
+              "path": "./examples/minimal.rs",
+              "node_type": "File",
+              "children": [],
+              "annotations": {
+                "defect_score": null,
+                "complexity_score": null,
+                "churn_score": null,
+                "dead_code_items": 0,
+                "satd_items": 0
+              }
+            }
+          ],
+          "annotations": {
+            "defect_score": null,
+            "complexity_score": null,
+            "churn_score": null,
+            "dead_code_items": 0,
+            "satd_items": 0
+          }
+        },
+        {
+          "name": "Cargo.lock",
+          "path": "./Cargo.lock",
+          "node_type": "File",
+          "children": [],
+          "annotations": {
+            "defect_score": null,
+            "complexity_score": null,
+            "churn_score": null,
+            "dead_code_items": 0,
+            "satd_items": 0
+          }
+        },
+        {
+          "name": "rash",
+          "path": "./rash",
+          "node_type": "Directory",
+          "children": [
+            {
+              "name": "proptest-regressions",
+              "path": "./rash/proptest-regressions",
+              "node_type": "Directory",
+              "children": [
+                {
+                  "name": "services",
+                  "path": "./rash/proptest-regressions/services",
+                  "node_type": "Directory",
+                  "children": [
+                    {
+                      "name": "tests.txt",
+                      "path": "./rash/proptest-regressions/services/tests.txt",
+                      "node_type": "File",
+                      "children": [],
+                      "annotations": {
+                        "defect_score": null,
+                        "complexity_score": null,
+                        "churn_score": null,
+                        "dead_code_items": 0,
+                        "satd_items": 0
+                      }
+                    }
+                  ],
+                  "annotations": {
+                    "defect_score": null,
+                    "complexity_score": null,
+                    "churn_score": null,
+                    "dead_code_items": 0,
+                    "satd_items": 0
+                  }
+                }
+              ],
+              "annotations": {
+                "defect_score": null,
+                "complexity_score": null,
+                "churn_score": null,
+                "dead_code_items": 0,
+                "satd_items": 0
+              }
+            },
+            {
+              "name": "Cargo.toml",
+              "path": "./rash/Cargo.toml",
+              "node_type": "File",
+              "children": [],
+              "annotations": {
+                "defect_score": null,
+                "complexity_score": null,
+                "churn_score": null,
+                "dead_code_items": 0,
+                "satd_items": 0
+              }
+            },
+            {
+              "name": "src",
+              "path": "./rash/src",
+              "node_type": "Directory",
+              "children": [
+                {
+                  "name": "bin",
+                  "path": "./rash/src/bin",
+                  "node_type": "Directory",
+                  "children": [
+                    {
+                      "name": "rash.rs",
+                      "path": "./rash/src/bin/rash.rs",
+                      "node_type": "File",
+                      "children": [],
+                      "annotations": {
+                        "defect_score": null,
+                        "complexity_score": null,
+                        "churn_score": null,
+                        "dead_code_items": 0,
+                        "satd_items": 0
+                      }
+                    }
+                  ],
+                  "annotations": {
+                    "defect_score": null,
+                    "complexity_score": null,
+                    "churn_score": null,
+                    "dead_code_items": 0,
+                    "satd_items": 0
+                  }
+                },
+                {
+                  "name": "ir",
+                  "path": "./rash/src/ir",
+                  "node_type": "Directory",
+                  "children": [
+                    {
+                      "name": "mod.rs",
+                      "path": "./rash/src/ir/mod.rs",
+                      "node_type": "File",
+                      "children": [],
+                      "annotations": {
+                        "defect_score": null,
+                        "complexity_score": null,
+                        "churn_score": null,
+                        "dead_code_items": 0,
+                        "satd_items": 0
+                      }
+                    },
+                    {
+                      "name": "effects.rs",
+                      "path": "./rash/src/ir/effects.rs",
+                      "node_type": "File",
+                      "children": [],
+                      "annotations": {
+                        "defect_score": null,
+                        "complexity_score": null,
+                        "churn_score": null,
+                        "dead_code_items": 0,
+                        "satd_items": 0
+                      }
+                    },
+                    {
+                      "name": "tests.rs",
+                      "path": "./rash/src/ir/tests.rs",
+                      "node_type": "File",
+                      "children": [],
+                      "annotations": {
+                        "defect_score": null,
+                        "complexity_score": null,
+                        "churn_score": null,
+                        "dead_code_items": 0,
+                        "satd_items": 0
+                      }
+                    },
+                    {
+                      "name": "shell_ir.rs",
+                      "path": "./rash/src/ir/shell_ir.rs",
+                      "node_type": "File",
+                      "children": [],
+                      "annotations": {
+                        "defect_score": null,
+                        "complexity_score": null,
+                        "churn_score": null,
+                        "dead_code_items": 0,
+                        "satd_items": 0
+                      }
+                    }
+                  ],
+                  "annotations": {
+                    "defect_score": null,
+                    "complexity_score": null,
+                    "churn_score": null,
+                    "dead_code_items": 0,
+                    "satd_items": 0
+                  }
+                },
+                {
+                  "name": "cli",
+                  "path": "./rash/src/cli",
+                  "node_type": "Directory",
+                  "children": [
+                    {
+                      "name": "mod.rs",
+                      "path": "./rash/src/cli/mod.rs",
+                      "node_type": "File",
+                      "children": [],
+                      "annotations": {
+                        "defect_score": null,
+                        "complexity_score": null,
+                        "churn_score": null,
+                        "dead_code_items": 0,
+                        "satd_items": 0
+                      }
+                    },
+                    {
+                      "name": "args.rs",
+                      "path": "./rash/src/cli/args.rs",
+                      "node_type": "File",
+                      "children": [],
+                      "annotations": {
+                        "defect_score": null,
+                        "complexity_score": null,
+                        "churn_score": null,
+                        "dead_code_items": 0,
+                        "satd_items": 0
+                      }
+                    },
+                    {
+                      "name": "commands.rs",
+                      "path": "./rash/src/cli/commands.rs",
+                      "node_type": "File",
+                      "children": [],
+                      "annotations": {
+                        "defect_score": null,
+                        "complexity_score": null,
+                        "churn_score": null,
+                        "dead_code_items": 0,
+                        "satd_items": 0
+                      }
+                    }
+                  ],
+                  "annotations": {
+                    "defect_score": null,
+                    "complexity_score": null,
+                    "churn_score": null,
+                    "dead_code_items": 0,
+                    "satd_items": 0
+                  }
+                },
+                {
+                  "name": "verifier",
+                  "path": "./rash/src/verifier",
+                  "node_type": "Directory",
+                  "children": [
+                    {
+                      "name": "mod.rs",
+                      "path": "./rash/src/verifier/mod.rs",
+                      "node_type": "File",
+                      "children": [],
+                      "annotations": {
+                        "defect_score": null,
+                        "complexity_score": null,
+                        "churn_score": null,
+                        "dead_code_items": 0,
+                        "satd_items": 0
+                      }
+                    },
+                    {
+                      "name": "properties.rs",
+                      "path": "./rash/src/verifier/properties.rs",
+                      "node_type": "File",
+                      "children": [],
+                      "annotations": {
+                        "defect_score": null,
+                        "complexity_score": null,
+                        "churn_score": null,
+                        "dead_code_items": 0,
+                        "satd_items": 0
+                      }
+                    }
+                  ],
+                  "annotations": {
+                    "defect_score": null,
+                    "complexity_score": null,
+                    "churn_score": null,
+                    "dead_code_items": 0,
+                    "satd_items": 0
+                  }
+                },
+                {
+                  "name": "ast",
+                  "path": "./rash/src/ast",
+                  "node_type": "Directory",
+                  "children": [
+                    {
+                      "name": "mod.rs",
+                      "path": "./rash/src/ast/mod.rs",
+                      "node_type": "File",
+                      "children": [],
+                      "annotations": {
+                        "defect_score": null,
+                        "complexity_score": null,
+                        "churn_score": null,
+                        "dead_code_items": 0,
+                        "satd_items": 0
+                      }
+                    },
+                    {
+                      "name": "visitor.rs",
+                      "path": "./rash/src/ast/visitor.rs",
+                      "node_type": "File",
+                      "children": [],
+                      "annotations": {
+                        "defect_score": null,
+                        "complexity_score": null,
+                        "churn_score": null,
+                        "dead_code_items": 0,
+                        "satd_items": 0
+                      }
+                    },
+                    {
+                      "name": "restricted.rs",
+                      "path": "./rash/src/ast/restricted.rs",
+                      "node_type": "File",
+                      "children": [],
+                      "annotations": {
+                        "defect_score": null,
+                        "complexity_score": null,
+                        "churn_score": null,
+                        "dead_code_items": 0,
+                        "satd_items": 0
+                      }
+                    },
+                    {
+                      "name": "tests.rs",
+                      "path": "./rash/src/ast/tests.rs",
+                      "node_type": "File",
+                      "children": [],
+                      "annotations": {
+                        "defect_score": null,
+                        "complexity_score": null,
+                        "churn_score": null,
+                        "dead_code_items": 0,
+                        "satd_items": 0
+                      }
+                    },
+                    {
+                      "name": "restricted_test.rs",
+                      "path": "./rash/src/ast/restricted_test.rs",
+                      "node_type": "File",
+                      "children": [],
+                      "annotations": {
+                        "defect_score": null,
+                        "complexity_score": null,
+                        "churn_score": null,
+                        "dead_code_items": 0,
+                        "satd_items": 0
+                      }
+                    }
+                  ],
+                  "annotations": {
+                    "defect_score": null,
+                    "complexity_score": null,
+                    "churn_score": null,
+                    "dead_code_items": 0,
+                    "satd_items": 0
+                  }
+                },
+                {
+                  "name": "models",
+                  "path": "./rash/src/models",
+                  "node_type": "Directory",
+                  "children": [
+                    {
+                      "name": "mod.rs",
+                      "path": "./rash/src/models/mod.rs",
+                      "node_type": "File",
+                      "children": [],
+                      "annotations": {
+                        "defect_score": null,
+                        "complexity_score": null,
+                        "churn_score": null,
+                        "dead_code_items": 0,
+                        "satd_items": 0
+                      }
+                    },
+                    {
+                      "name": "config.rs",
+                      "path": "./rash/src/models/config.rs",
+                      "node_type": "File",
+                      "children": [],
+                      "annotations": {
+                        "defect_score": null,
+                        "complexity_score": null,
+                        "churn_score": null,
+                        "dead_code_items": 0,
+                        "satd_items": 0
+                      }
+                    },
+                    {
+                      "name": "error.rs",
+                      "path": "./rash/src/models/error.rs",
+                      "node_type": "File",
+                      "children": [],
+                      "annotations": {
+                        "defect_score": null,
+                        "complexity_score": null,
+                        "churn_score": null,
+                        "dead_code_items": 0,
+                        "satd_items": 0
+                      }
+                    }
+                  ],
+                  "annotations": {
+                    "defect_score": null,
+                    "complexity_score": null,
+                    "churn_score": null,
+                    "dead_code_items": 0,
+                    "satd_items": 0
+                  }
+                },
+                {
+                  "name": "emitter",
+                  "path": "./rash/src/emitter",
+                  "node_type": "Directory",
+                  "children": [
+                    {
+                      "name": "mod.rs",
+                      "path": "./rash/src/emitter/mod.rs",
+                      "node_type": "File",
+                      "children": [],
+                      "annotations": {
+                        "defect_score": null,
+                        "complexity_score": null,
+                        "churn_score": null,
+                        "dead_code_items": 0,
+                        "satd_items": 0
+                      }
+                    },
+                    {
+                      "name": "posix.rs",
+                      "path": "./rash/src/emitter/posix.rs",
+                      "node_type": "File",
+                      "children": [],
+                      "annotations": {
+                        "defect_score": null,
+                        "complexity_score": null,
+                        "churn_score": null,
+                        "dead_code_items": 0,
+                        "satd_items": 0
+                      }
+                    },
+                    {
+                      "name": "tests.rs",
+                      "path": "./rash/src/emitter/tests.rs",
+                      "node_type": "File",
+                      "children": [],
+                      "annotations": {
+                        "defect_score": null,
+                        "complexity_score": null,
+                        "churn_score": null,
+                        "dead_code_items": 0,
+                        "satd_items": 0
+                      }
+                    },
+                    {
+                      "name": "escape.rs",
+                      "path": "./rash/src/emitter/escape.rs",
+                      "node_type": "File",
+                      "children": [],
+                      "annotations": {
+                        "defect_score": null,
+                        "complexity_score": null,
+                        "churn_score": null,
+                        "dead_code_items": 0,
+                        "satd_items": 0
+                      }
+                    }
+                  ],
+                  "annotations": {
+                    "defect_score": null,
+                    "complexity_score": null,
+                    "churn_score": null,
+                    "dead_code_items": 0,
+                    "satd_items": 0
+                  }
+                },
+                {
+                  "name": "lib.rs",
+                  "path": "./rash/src/lib.rs",
+                  "node_type": "File",
+                  "children": [],
+                  "annotations": {
+                    "defect_score": null,
+                    "complexity_score": null,
+                    "churn_score": null,
+                    "dead_code_items": 0,
+                    "satd_items": 0
+                  }
+                },
+                {
+                  "name": "services",
+                  "path": "./rash/src/services",
+                  "node_type": "Directory",
+                  "children": [
+                    {
+                      "name": "mod.rs",
+                      "path": "./rash/src/services/mod.rs",
+                      "node_type": "File",
+                      "children": [],
+                      "annotations": {
+                        "defect_score": null,
+                        "complexity_score": null,
+                        "churn_score": null,
+                        "dead_code_items": 0,
+                        "satd_items": 0
+                      }
+                    },
+                    {
+                      "name": "tests.rs",
+                      "path": "./rash/src/services/tests.rs",
+                      "node_type": "File",
+                      "children": [],
+                      "annotations": {
+                        "defect_score": null,
+                        "complexity_score": null,
+                        "churn_score": null,
+                        "dead_code_items": 0,
+                        "satd_items": 0
+                      }
+                    },
+                    {
+                      "name": "parser.rs",
+                      "path": "./rash/src/services/parser.rs",
+                      "node_type": "File",
+                      "children": [],
+                      "annotations": {
+                        "defect_score": null,
+                        "complexity_score": null,
+                        "churn_score": null,
+                        "dead_code_items": 0,
+                        "satd_items": 0
+                      }
+                    }
+                  ],
+                  "annotations": {
+                    "defect_score": null,
+                    "complexity_score": null,
+                    "churn_score": null,
+                    "dead_code_items": 0,
+                    "satd_items": 0
+                  }
+                }
+              ],
+              "annotations": {
+                "defect_score": null,
+                "complexity_score": null,
+                "churn_score": null,
+                "dead_code_items": 0,
+                "satd_items": 0
+              }
+            },
+            {
+              "name": "tests",
+              "path": "./rash/tests",
+              "node_type": "Directory",
+              "children": [
+                {
+                  "name": "integration_tests.rs",
+                  "path": "./rash/tests/integration_tests.rs",
+                  "node_type": "File",
+                  "children": [],
+                  "annotations": {
+                    "defect_score": null,
+                    "complexity_score": null,
+                    "churn_score": null,
+                    "dead_code_items": 0,
+                    "satd_items": 0
+                  }
+                }
+              ],
+              "annotations": {
+                "defect_score": null,
+                "complexity_score": null,
+                "churn_score": null,
+                "dead_code_items": 0,
+                "satd_items": 0
+              }
+            },
+            {
+              "name": "benches",
+              "path": "./rash/benches",
+              "node_type": "Directory",
+              "children": [
+                {
+                  "name": "transpilation.rs",
+                  "path": "./rash/benches/transpilation.rs",
+                  "node_type": "File",
+                  "children": [],
+                  "annotations": {
+                    "defect_score": null,
+                    "complexity_score": null,
+                    "churn_score": null,
+                    "dead_code_items": 0,
+                    "satd_items": 0
+                  }
+                },
+                {
+                  "name": "verification.rs",
+                  "path": "./rash/benches/verification.rs",
+                  "node_type": "File",
+                  "children": [],
+                  "annotations": {
+                    "defect_score": null,
+                    "complexity_score": null,
+                    "churn_score": null,
+                    "dead_code_items": 0,
+                    "satd_items": 0
+                  }
+                }
+              ],
+              "annotations": {
+                "defect_score": null,
+                "complexity_score": null,
+                "churn_score": null,
+                "dead_code_items": 0,
+                "satd_items": 0
+              }
+            }
+          ],
+          "annotations": {
+            "defect_score": null,
+            "complexity_score": null,
+            "churn_score": null,
+            "dead_code_items": 0,
+            "satd_items": 0
+          }
+        },
+        {
+          "name": "final-analysis.md",
+          "path": "./final-analysis.md",
+          "node_type": "File",
+          "children": [],
+          "annotations": {
+            "defect_score": null,
+            "complexity_score": null,
+            "churn_score": null,
+            "dead_code_items": 0,
+            "satd_items": 0
+          }
+        },
+        {
+          "name": "clippy.toml",
+          "path": "./clippy.toml",
+          "node_type": "File",
+          "children": [],
+          "annotations": {
+            "defect_score": null,
+            "complexity_score": null,
+            "churn_score": null,
+            "dead_code_items": 0,
+            "satd_items": 0
+          }
+        },
+        {
+          "name": "rash-runtime",
+          "path": "./rash-runtime",
+          "node_type": "Directory",
+          "children": [
+            {
+              "name": "Cargo.toml",
+              "path": "./rash-runtime/Cargo.toml",
+              "node_type": "File",
+              "children": [],
+              "annotations": {
+                "defect_score": null,
+                "complexity_score": null,
+                "churn_score": null,
+                "dead_code_items": 0,
+                "satd_items": 0
+              }
+            },
+            {
+              "name": "src",
+              "path": "./rash-runtime/src",
+              "node_type": "Directory",
+              "children": [
+                {
+                  "name": "lib.sh",
+                  "path": "./rash-runtime/src/lib.sh",
+                  "node_type": "File",
+                  "children": [],
+                  "annotations": {
+                    "defect_score": null,
+                    "complexity_score": null,
+                    "churn_score": null,
+                    "dead_code_items": 0,
+                    "satd_items": 0
+                  }
+                },
+                {
+                  "name": "lib.rs",
+                  "path": "./rash-runtime/src/lib.rs",
+                  "node_type": "File",
+                  "children": [],
+                  "annotations": {
+                    "defect_score": null,
+                    "complexity_score": null,
+                    "churn_score": null,
+                    "dead_code_items": 0,
+                    "satd_items": 0
+                  }
+                }
+              ],
+              "annotations": {
+                "defect_score": null,
+                "complexity_score": null,
+                "churn_score": null,
+                "dead_code_items": 0,
+                "satd_items": 0
+              }
+            },
+            {
+              "name": "build.rs",
+              "path": "./rash-runtime/build.rs",
+              "node_type": "File",
+              "children": [],
+              "annotations": {
+                "defect_score": null,
+                "complexity_score": null,
+                "churn_score": null,
+                "dead_code_items": 0,
+                "satd_items": 0
+              }
+            }
+          ],
+          "annotations": {
+            "defect_score": null,
+            "complexity_score": null,
+            "churn_score": null,
+            "dead_code_items": 0,
+            "satd_items": 0
+          }
+        },
+        {
+          "name": "rash-tests",
+          "path": "./rash-tests",
+          "node_type": "Directory",
+          "children": [
+            {
+              "name": "Cargo.toml",
+              "path": "./rash-tests/Cargo.toml",
+              "node_type": "File",
+              "children": [],
+              "annotations": {
+                "defect_score": null,
+                "complexity_score": null,
+                "churn_score": null,
+                "dead_code_items": 0,
+                "satd_items": 0
+              }
+            },
+            {
+              "name": "src",
+              "path": "./rash-tests/src",
+              "node_type": "Directory",
+              "children": [
+                {
+                  "name": "sandbox.rs",
+                  "path": "./rash-tests/src/sandbox.rs",
+                  "node_type": "File",
+                  "children": [],
+                  "annotations": {
+                    "defect_score": null,
+                    "complexity_score": null,
+                    "churn_score": null,
+                    "dead_code_items": 0,
+                    "satd_items": 0
+                  }
+                },
+                {
+                  "name": "lib.rs",
+                  "path": "./rash-tests/src/lib.rs",
+                  "node_type": "File",
+                  "children": [],
+                  "annotations": {
+                    "defect_score": null,
+                    "complexity_score": null,
+                    "churn_score": null,
+                    "dead_code_items": 0,
+                    "satd_items": 0
+                  }
+                }
+              ],
+              "annotations": {
+                "defect_score": null,
+                "complexity_score": null,
+                "churn_score": null,
+                "dead_code_items": 0,
+                "satd_items": 0
+              }
+            }
+          ],
+          "annotations": {
+            "defect_score": null,
+            "complexity_score": null,
+            "churn_score": null,
+            "dead_code_items": 0,
+            "satd_items": 0
+          }
+        },
+        {
+          "name": ".github",
+          "path": "./.github",
+          "node_type": "Directory",
+          "children": [
+            {
+              "name": "workflows",
+              "path": "./.github/workflows",
+              "node_type": "Directory",
+              "children": [
+                {
+                  "name": "ci.yml",
+                  "path": "./.github/workflows/ci.yml",
+                  "node_type": "File",
+                  "children": [],
+                  "annotations": {
+                    "defect_score": null,
+                    "complexity_score": null,
+                    "churn_score": null,
+                    "dead_code_items": 0,
+                    "satd_items": 0
+                  }
+                }
+              ],
+              "annotations": {
+                "defect_score": null,
+                "complexity_score": null,
+                "churn_score": null,
+                "dead_code_items": 0,
+                "satd_items": 0
+              }
+            }
+          ],
+          "annotations": {
+            "defect_score": null,
+            "complexity_score": null,
+            "churn_score": null,
+            "dead_code_items": 0,
+            "satd_items": 0
+          }
+        },
+        {
+          "name": "target",
+          "path": "./target",
+          "node_type": "Directory",
+          "children": [],
+          "annotations": {
+            "defect_score": null,
+            "complexity_score": null,
+            "churn_score": null,
+            "dead_code_items": 0,
+            "satd_items": 0
+          }
+        }
+      ],
+      "annotations": {
+        "defect_score": null,
+        "complexity_score": null,
+        "churn_score": null,
+        "dead_code_items": 0,
+        "satd_items": 0
+      }
+    },
+    "total_files": 65,
+    "total_size_bytes": 503216
+  },
+  "analyses": {
+    "ast_contexts": [],
+    "complexity_report": {
+      "summary": {
+        "total_files": 0,
+        "total_functions": 0,
+        "median_cyclomatic": 0.0,
+        "median_cognitive": 0.0,
+        "max_cyclomatic": 0,
+        "max_cognitive": 0,
+        "p90_cyclomatic": 0,
+        "p90_cognitive": 0,
+        "technical_debt_hours": 0.0
+      },
+      "violations": [],
+      "hotspots": [],
+      "files": []
+    },
+    "churn_analysis": {
+      "generated_at": "2025-06-04T01:40:23.594398302Z",
+      "period_days": 0,
+      "repository_root": "",
+      "files": [],
+      "summary": {
+        "total_commits": 0,
+        "total_files_changed": 0,
+        "hotspot_files": [],
+        "stable_files": [],
+        "author_contributions": {}
+      }
+    },
+    "dependency_graph": {
+      "nodes": {},
+      "edges": []
+    },
+    "dead_code_results": {
+      "summary": {
+        "total_files_analyzed": 0,
+        "files_with_dead_code": 0,
+        "total_dead_lines": 0,
+        "dead_percentage": 0.0,
+        "dead_functions": 0,
+        "dead_classes": 0,
+        "dead_modules": 0,
+        "unreachable_blocks": 0
+      },
+      "ranked_files": [],
+      "analysis_timestamp": "2025-06-04T01:40:23.594399784Z",
+      "config": {
+        "include_unreachable": false,
+        "include_tests": false,
+        "min_dead_lines": 10
+      }
+    },
+    "satd_results": {
+      "items": [],
+      "summary": {
+        "total_items": 0,
+        "by_severity": {},
+        "by_category": {},
+        "files_with_satd": 0,
+        "avg_age_days": 0.0
+      },
+      "total_files_analyzed": 0,
+      "files_with_debt": 0,
+      "analysis_timestamp": "2025-06-04T01:40:23.594462018Z"
+    },
+    "cross_language_refs": []
+  },
+  "quality_scorecard": {
+    "overall_health": 75.0,
+    "complexity_score": 80.0,
+    "maintainability_index": 70.0,
+    "modularity_score": 85.0,
+    "test_coverage": 65.0,
+    "technical_debt_hours": 40.0
+  },
+  "template_provenance": null,
+  "defect_summary": {
+    "total_defects": 0,
+    "by_severity": {
+      "Normal": 0,
+      "Critical": 0,
+      "Warning": 0
+    },
+    "by_type": {
+      "TDG": 0
+    },
+    "defect_density": 0.0
+  },
+  "hotspots": [],
+  "recommendations": []
+}
