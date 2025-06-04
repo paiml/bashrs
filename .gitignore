@@ -61,8 +61,11 @@ install.sh
 *.tar.gz
 bootstrap-report.json
 
-# Test project
-test-project/
+# Test artifacts (consolidated under tests/)
+test_*.rs
+test-*
+*_test.rs
+/tests/fixtures/tmp/
 
 # Documentation artifacts
 *SUMMARY.md
