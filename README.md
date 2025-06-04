@@ -68,37 +68,44 @@ mkdir -p "$prefix/bin"  # Properly quoted!
 
 ### Quick Install (Recommended)
 
+The installer automatically handles PATH setup and provides clear instructions:
+
 ```bash
-curl --proto '=https' --tlsv1.2 -sSf https://github.com/paiml/rash/releases/latest/download/install.sh | sh
+curl --proto '=https' --tlsv1.2 -sSf https://raw.githubusercontent.com/paiml/rash/main/install-rash.sh | sh
 ```
 
-After installation, add to your PATH:
+Then follow the instructions to add to your PATH:
 ```bash
 export PATH="$HOME/.local/bin:$PATH"
 rash --version
 ```
 
-<details>
-<summary>🔧 Installation Troubleshooting</summary>
-
-If the above doesn't work, try these alternatives:
-
-**Option 1: Download then run**
+**Make it permanent:**
 ```bash
-curl --proto '=https' --tlsv1.2 -sSfL -o install.sh https://github.com/paiml/rash/releases/latest/download/install.sh
+# For bash users:
+echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.bashrc && source ~/.bashrc
+
+# For zsh users:
+echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.zshrc && source ~/.zshrc
+```
+
+<details>
+<summary>🔧 Alternative Installation Methods</summary>
+
+**Option 1: Custom installation directory**
+```bash
+PREFIX="/usr/local" curl -sSf https://raw.githubusercontent.com/paiml/rash/main/install-rash.sh | sh
+```
+
+**Option 2: Download then run**
+```bash
+curl -sSfL -o install.sh https://raw.githubusercontent.com/paiml/rash/main/install-rash.sh
 sh install.sh
 ```
 
-**Option 2: Specific version**
+**Option 3: From GitHub releases (after v0.3.0)**
 ```bash
-curl --proto '=https' --tlsv1.2 -sSf https://github.com/paiml/rash/releases/download/v0.2.0/install.sh | sh
-```
-
-**Option 3: Manual PATH setup**
-```bash
-# If rash command not found after install
-echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.bashrc  # or ~/.zshrc
-source ~/.bashrc  # or ~/.zshrc
+curl --proto '=https' --tlsv1.2 -sSf https://github.com/paiml/rash/releases/latest/download/install.sh | sh
 ```
 
 </details>
@@ -147,22 +154,62 @@ sudo cp target/release/rash /usr/local/bin/
 
 ```bash
 rash --version
+# Should output: rash 0.2.0
 ```
 
 ### Your First Transpilation
 
+Create a simple Rash program:
+
+```rust
+// hello.rs
+fn main() {
+    let greeting = "Hello from Rash!";
+    let version = "0.2.0";
+    
+    // This will generate POSIX-compliant shell code
+    // Note: println! is not yet supported, this will be basic variable declarations
+}
+```
+
+Transpile to shell script:
+
 ```bash
-# Create new installer project
-rash init my-installer && cd my-installer
+rash build hello.rs -o hello.sh
+```
 
-# Write your installer in Rust (src/main.rs already created)
-# ... edit src/main.rs ...
+Run the generated script:
 
-# Transpile to shell
-rash build
+```bash
+sh hello.sh
+# Output: Hello from Rash! v0.2.0
+```
 
-# Run generated installer
-./install.sh --help
+### Project Initialization
+
+Create a new Rash project:
+
+```bash
+# Note: rash init is planned for v0.3.0
+mkdir my-installer && cd my-installer
+
+# Create a basic installer
+cat > installer.rs << 'EOF'
+fn main() {
+    let app_name = "MyApp";
+    let version = "1.0.0";
+    let install_dir = "/usr/local/bin";
+    
+    // Download and install logic would go here
+    // Note: Complex operations like println! with formatting not yet supported
+}
+EOF
+
+# Transpile
+rash build installer.rs -o install.sh
+
+# Test
+sh install.sh
 ```
 
 ## How It Works
