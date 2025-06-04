@@ -1,6 +1,6 @@
 use std::fs;
 use std::path::Path;
-use tracing::{info, warn, error};
+use tracing::{info, warn};
 use crate::cli::{Cli, Commands};
 use crate::models::{Config, Result, Error};
 use crate::{transpile, check};
@@ -56,14 +56,14 @@ pub fn execute_command(cli: Cli) -> Result<()> {
 fn build_command(input: &Path, output: &Path, config: Config) -> Result<()> {
     // Read input file
     let source = fs::read_to_string(input)
-        .map_err(|e| Error::Io(e))?;
+        .map_err(Error::Io)?;
     
     // Transpile
     let shell_code = transpile(&source, config.clone())?;
     
     // Write output
     fs::write(output, shell_code)
-        .map_err(|e| Error::Io(e))?;
+        .map_err(Error::Io)?;
     
     info!("Successfully transpiled to {}", output.display());
     
@@ -80,7 +80,7 @@ fn build_command(input: &Path, output: &Path, config: Config) -> Result<()> {
 fn check_command(input: &Path) -> Result<()> {
     // Read input file
     let source = fs::read_to_string(input)
-        .map_err(|e| Error::Io(e))?;
+        .map_err(Error::Io)?;
     
     // Check compatibility
     check(&source)?;
@@ -93,7 +93,7 @@ fn init_command(path: &Path, name: Option<&str>) -> Result<()> {
     // Create directory if it doesn't exist
     if !path.exists() {
         fs::create_dir_all(path)
-            .map_err(|e| Error::Io(e))?;
+            .map_err(Error::Io)?;
     }
     
     let project_name = name.unwrap_or(
@@ -118,12 +118,12 @@ verify = "strict"
 "#, project_name);
     
     fs::write(path.join("Cargo.toml"), cargo_toml)
-        .map_err(|e| Error::Io(e))?;
+        .map_err(Error::Io)?;
     
     // Create src directory
     let src_dir = path.join("src");
     fs::create_dir_all(&src_dir)
-        .map_err(|e| Error::Io(e))?;
+        .map_err(Error::Io)?;
     
     // Create main.rs
     let main_rs = r#"#![no_std]
@@ -140,7 +140,7 @@ fn install() -> Result<(), &'static str> {
 "#;
     
     fs::write(src_dir.join("main.rs"), main_rs)
-        .map_err(|e| Error::Io(e))?;
+        .map_err(Error::Io)?;
     
     // Create rash.toml
     let rash_toml = r#"[rash]
@@ -154,7 +154,7 @@ output = "install.sh"
 "#;
     
     fs::write(path.join("rash.toml"), rash_toml)
-        .map_err(|e| Error::Io(e))?;
+        .map_err(Error::Io)?;
     
     info!("✓ Initialized Rash project '{}'", project_name);
     info!("  Run 'cd {}' to enter the project", path.display());
@@ -171,9 +171,9 @@ fn verify_command(
 ) -> Result<()> {
     // Read both files
     let rust_code = fs::read_to_string(rust_source)
-        .map_err(|e| Error::Io(e))?;
+        .map_err(Error::Io)?;
     let shell_code = fs::read_to_string(shell_script)
-        .map_err(|e| Error::Io(e))?;
+        .map_err(Error::Io)?;
     
     // Transpile Rust to shell
     let config = Config {
@@ -214,7 +214,7 @@ r#"{{
     );
     
     fs::write(proof_path, proof)
-        .map_err(|e| Error::Io(e))?;
+        .map_err(Error::Io)?;
     
     Ok(())
 }

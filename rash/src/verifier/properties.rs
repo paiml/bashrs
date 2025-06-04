@@ -20,15 +20,12 @@ pub fn verify_no_command_injection(ir: &ShellIR) -> Result<()> {
 /// Verify that the IR is deterministic (same inputs produce same outputs)
 pub fn verify_deterministic(ir: &ShellIR) -> Result<()> {
     walk_ir(ir, &mut |node| {
-        match node {
-            ShellIR::Exec { cmd, .. } => {
-                if is_nondeterministic_command(&cmd.program) {
-                    return Err(Error::Verification(
-                        format!("Non-deterministic command: {}", cmd.program)
-                    ));
-                }
+        if let ShellIR::Exec { cmd, .. } = node {
+            if is_nondeterministic_command(&cmd.program) {
+                return Err(Error::Verification(
+                    format!("Non-deterministic command: {}", cmd.program)
+                ));
             }
-            _ => {}
         }
         Ok(())
     })
@@ -38,15 +35,12 @@ pub fn verify_deterministic(ir: &ShellIR) -> Result<()> {
 pub fn verify_idempotency(ir: &ShellIR) -> Result<()> {
     // Check for operations that could fail on second run
     walk_ir(ir, &mut |node| {
-        match node {
-            ShellIR::Exec { cmd, .. } => {
-                if requires_idempotency_check(&cmd.program) {
-                    // Look for corresponding existence checks
-                    // This is simplified - real implementation would be more sophisticated
-                    check_has_idempotency_guard(ir, cmd)?;
-                }
+        if let ShellIR::Exec { cmd, .. } = node {
+            if requires_idempotency_check(&cmd.program) {
+                // Look for corresponding existence checks
+                // This is simplified - real implementation would be more sophisticated
+                check_has_idempotency_guard(ir, cmd)?;
             }
-            _ => {}
         }
         Ok(())
     })
@@ -58,27 +52,24 @@ pub fn verify_resource_safety(ir: &ShellIR) -> Result<()> {
     let mut file_operations = 0;
     
     walk_ir(ir, &mut |node| {
-        match node {
-            ShellIR::Exec { cmd, .. } => {
-                if is_network_command(&cmd.program) {
-                    network_calls += 1;
-                    if network_calls > 10 {
-                        return Err(Error::Verification(
-                            "Too many network operations".to_string()
-                        ));
-                    }
-                }
-                
-                if is_file_operation(&cmd.program) {
-                    file_operations += 1;
-                    if file_operations > 50 {
-                        return Err(Error::Verification(
-                            "Too many file operations".to_string()
-                        ));
-                    }
+        if let ShellIR::Exec { cmd, .. } = node {
+            if is_network_command(&cmd.program) {
+                network_calls += 1;
+                if network_calls > 10 {
+                    return Err(Error::Verification(
+                        "Too many network operations".to_string()
+                    ));
                 }
             }
-            _ => {}
+            
+            if is_file_operation(&cmd.program) {
+                file_operations += 1;
+                if file_operations > 50 {
+                    return Err(Error::Verification(
+                        "Too many file operations".to_string()
+                    ));
+                }
+            }
         }
         Ok(())
     })
@@ -183,7 +174,7 @@ fn is_file_operation(cmd: &str) -> bool {
     )
 }
 
-fn check_has_idempotency_guard(ir: &ShellIR, cmd: &Command) -> Result<()> {
+fn check_has_idempotency_guard(_ir: &ShellIR, cmd: &Command) -> Result<()> {
     // This is a simplified check - real implementation would analyze the IR structure
     // to ensure that potentially non-idempotent operations have appropriate guards
     
@@ -204,7 +195,7 @@ fn check_has_idempotency_guard(ir: &ShellIR, cmd: &Command) -> Result<()> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::ir::{ShellIR, ShellValue, Command};
+    use crate::ir::{ShellValue, Command};
     
     #[test]
     fn test_command_injection_detection() {

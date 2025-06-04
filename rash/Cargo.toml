@@ -27,6 +27,7 @@ blake3.workspace = true
 once_cell.workspace = true
 phf.workspace = true
 chrono = { version = "0.4", features = ["serde"] }
+rand = "0.8"  # Added for testing module
 
 # Optional dependencies for feature gates (commented out for now)
 # z3 = { version = "0.12", optional = true }

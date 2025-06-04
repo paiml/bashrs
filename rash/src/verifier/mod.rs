@@ -1,7 +1,10 @@
 pub mod properties;
 
+#[cfg(kani)]
+pub mod kani_harnesses;
+
 use crate::ir::ShellIR;
-use crate::models::{VerificationLevel, Result, Error};
+use crate::models::{VerificationLevel, Result};
 
 /// Verify that the given IR satisfies safety properties
 pub fn verify(ir: &ShellIR, level: VerificationLevel) -> Result<()> {

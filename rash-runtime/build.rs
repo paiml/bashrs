@@ -37,6 +37,7 @@ pub fn get_runtime() -> &'static str {{
     Ok(())
 }
 
+#[allow(dead_code)]
 fn validate_shell_syntax(content: &str) -> Result<()> {
     // Basic validation - check for balanced quotes and brackets
     let mut single_quote = false;

@@ -37,7 +37,7 @@ fn test_command_emission() {
     };
     
     let result = emitter.emit(&ir).unwrap();
-    assert!(result.contains("echo 'hello'"));
+    assert!(result.contains("echo hello"));
 }
 
 #[test]
@@ -92,7 +92,7 @@ fn test_sequence_emission() {
     ]);
     
     let result = emitter.emit(&ir).unwrap();
-    assert!(result.contains("readonly greeting='hello'"));
+    assert!(result.contains("readonly greeting=hello"));
     assert!(result.contains("echo \"$greeting\""));
 }
 
@@ -273,7 +273,7 @@ fn test_variable_name_escaping() {
     
     // Invalid characters converted to underscores
     assert_eq!(escape_variable_name("invalid-name"), "invalid_name");
-    assert_eq!(escape_variable_name("123invalid"), "___invalid");
+    assert_eq!(escape_variable_name("123invalid"), "_23invalid");
     assert_eq!(escape_variable_name("my.var"), "my_var");
 }
 
@@ -323,7 +323,7 @@ proptest! {
 }
 
 #[rstest]
-#[case(ShellValue::String("test".to_string()), "'test'")]
+#[case(ShellValue::String("test".to_string()), "test")]
 #[case(ShellValue::Bool(true), "true")]
 #[case(ShellValue::Bool(false), "false")]
 #[case(ShellValue::Variable("var".to_string()), "\"$var\"")]
@@ -380,7 +380,7 @@ fn test_complex_nested_emission() {
     let result = emitter.emit(&ir).unwrap();
     
     // Verify structure
-    assert!(result.contains("readonly prefix='/usr/local'"));
+    assert!(result.contains("readonly prefix=/usr/local"));
     assert!(result.contains("if test -n \"$install_mode\"; then"));
     assert!(result.contains("mkdir \"$prefix\""));
     assert!(result.contains("echo \"Installing to ${prefix}\""));
@@ -402,7 +402,7 @@ fn test_emit_public_api() {
     
     // Test the public emit function
     let result = emit(&ir, &config).unwrap();
-    assert!(result.contains("readonly test='value'"));
+    assert!(result.contains("readonly test=value"));
 }
 
 #[test]

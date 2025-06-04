@@ -6,6 +6,9 @@ pub mod models;
 pub mod services;
 pub mod verifier;
 
+#[cfg(test)]
+pub mod testing;
+
 pub use models::{Config, Error, Result};
 
 /// Transpile Rust source code to POSIX shell script

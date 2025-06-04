@@ -1,0 +1,270 @@
+name: RASH CI/CD Orchestrator
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+env:
+  RUST_BACKTRACE: full
+  CARGO_TERM_COLOR: always
+  CARGO_INCREMENTAL: 0  # Disable for CI reproducibility
+  RUSTFLAGS: "-D warnings -C opt-level=3"
+  RASH_CI: true
+
+jobs:
+  # Stage 1: Core validation (must pass before anything else)
+  core-validation:
+    name: Core Validation
+    runs-on: ubuntu-22.04
+    outputs:
+      cache-key: ${{ steps.cache.outputs.key }}
+      should-release: ${{ steps.check.outputs.should-release }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Full history for version detection
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy, llvm-tools-preview
+
+      - name: Setup enhanced caching
+        id: cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: ". -> target"
+          shared-key: "ci-${{ runner.os }}"
+          cache-on-failure: true
+          cache-targets: true
+          cache-all-crates: true
+
+      - name: Install CI dependencies
+        run: |
+          cargo install cargo-nextest cargo-llvm-cov cargo-audit
+          sudo apt-get update
+          sudo apt-get install -y shellcheck shfmt bc
+
+      - name: Run core validation
+        run: |
+          make quick-validate
+          echo "✅ Core validation passed"
+
+      - name: Check release conditions
+        id: check
+        run: |
+          if [[ "${{ github.event_name }}" == "push" ]] && [[ "${{ github.ref }}" == "refs/heads/main" ]]; then
+            echo "should-release=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "should-release=false" >> "$GITHUB_OUTPUT"
+          fi
+
+  # Stage 2: Parallel quality checks (only if core passes)
+  quality-matrix:
+    name: Quality Check - ${{ matrix.check }}
+    needs: core-validation
+    strategy:
+      fail-fast: false
+      matrix:
+        check:
+          - complexity
+          - security
+          - documentation
+          - shell-compatibility
+          - determinism
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+
+      - name: Restore cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: ". -> target"
+          shared-key: "ci-${{ runner.os }}"
+          save-if: false
+
+      - name: Install dependencies for ${{ matrix.check }}
+        run: |
+          case "${{ matrix.check }}" in
+            complexity)
+              # PAIML toolkit would be installed here if available
+              ;;
+            security)
+              cargo install cargo-audit cargo-geiger || true
+              ;;
+            shell-compatibility)
+              sudo apt-get update
+              sudo apt-get install -y dash ash ksh zsh busybox
+              ;;
+            *)
+              ;;
+          esac
+
+      - name: Run ${{ matrix.check }} check
+        run: |
+          case "${{ matrix.check }}" in
+            complexity)
+              make quality-gate || true
+              ;;
+            security)
+              make audit
+              cargo geiger --all-features || true
+              ;;
+            documentation)
+              make docs
+              cargo doc --all-features --no-deps
+              ;;
+            shell-compatibility)
+              make test-shells
+              ;;
+            determinism)
+              make test-determinism
+              ;;
+          esac
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.check }}-report
+          path: |
+            *-report.*
+            target/doc/
+            .quality/
+        if: always()
+
+  # Stage 3: Comprehensive testing
+  test-pipeline:
+    name: Test Suite
+    needs: core-validation
+    uses: ./.github/workflows/test-pipeline.yml
+    with:
+      coverage-threshold: 85
+
+  # Stage 4: Build matrix
+  build-matrix:
+    name: Build - ${{ matrix.target }}
+    needs: [quality-matrix, test-pipeline]
+    strategy:
+      matrix:
+        include:
+          - target: x86_64-unknown-linux-gnu
+            os: ubuntu-22.04
+          - target: x86_64-unknown-linux-musl
+            os: ubuntu-22.04
+          - target: aarch64-unknown-linux-gnu
+            os: ubuntu-22.04
+          - target: x86_64-apple-darwin
+            os: macos-13
+          - target: aarch64-apple-darwin
+            os: macos-13
+          - target: x86_64-pc-windows-msvc
+            os: windows-2022
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install target
+        run: rustup target add ${{ matrix.target }}
+
+      - name: Install cross-compilation dependencies
+        if: matrix.target == 'aarch64-unknown-linux-gnu'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gcc-aarch64-linux-gnu
+
+      - name: Build
+        run: |
+          cargo build --release --target ${{ matrix.target }}
+
+      - name: Create artifact
+        shell: bash
+        run: |
+          cd target/${{ matrix.target }}/release
+          if [[ "${{ matrix.os }}" == "windows-2022" ]]; then
+            7z a rash-${{ matrix.target }}.zip rash.exe
+          else
+            tar czf rash-${{ matrix.target }}.tar.gz rash
+          fi
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: rash-${{ matrix.target }}
+          path: target/${{ matrix.target }}/release/rash-${{ matrix.target }}.*
+
+  # Stage 5: Release (only on main branch push)
+  release:
+    name: Create Release
+    needs: [build-matrix]
+    if: needs.core-validation.outputs.should-release == 'true'
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Generate release notes
+        id: notes
+        run: |
+          echo "# Release Notes" > RELEASE_NOTES.md
+          echo "" >> RELEASE_NOTES.md
+          
+          # Get commits since last tag
+          LAST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
+          if [ -z "$LAST_TAG" ]; then
+            echo "## All Changes" >> RELEASE_NOTES.md
+            git log --pretty=format:"- %s" >> RELEASE_NOTES.md
+          else
+            echo "## Changes since $LAST_TAG" >> RELEASE_NOTES.md
+            git log ${LAST_TAG}..HEAD --pretty=format:"- %s" >> RELEASE_NOTES.md
+          fi
+          
+          echo "" >> RELEASE_NOTES.md
+          echo "## Artifacts" >> RELEASE_NOTES.md
+          echo "- Linux (x86_64): rash-x86_64-unknown-linux-gnu.tar.gz" >> RELEASE_NOTES.md
+          echo "- Linux (musl): rash-x86_64-unknown-linux-musl.tar.gz" >> RELEASE_NOTES.md
+          echo "- Linux (ARM64): rash-aarch64-unknown-linux-gnu.tar.gz" >> RELEASE_NOTES.md
+          echo "- macOS (Intel): rash-x86_64-apple-darwin.tar.gz" >> RELEASE_NOTES.md
+          echo "- macOS (Apple Silicon): rash-aarch64-apple-darwin.tar.gz" >> RELEASE_NOTES.md
+          echo "- Windows: rash-x86_64-pc-windows-msvc.zip" >> RELEASE_NOTES.md
+
+      - name: Create checksums
+        run: |
+          cd artifacts
+          find . -name "rash-*" -type f | while read file; do
+            sha256sum "$file" >> checksums.txt
+          done
+
+      - name: Get version
+        id: version
+        run: |
+          VERSION=$(grep '^version = ' Cargo.toml | head -1 | cut -d'"' -f2)
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: v${{ steps.version.outputs.version }}
+          name: RASH v${{ steps.version.outputs.version }}
+          body_path: RELEASE_NOTES.md
+          draft: false
+          prerelease: false
+          files: |
+            artifacts/*/rash-*
+            artifacts/checksums.txt

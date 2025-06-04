@@ -48,6 +48,7 @@ impl RestrictedAst {
         Ok(())
     }
     
+    #[allow(clippy::only_used_in_recursion)]
     fn has_cycle(
         &self,
         graph: &HashMap<String, Vec<String>>,
@@ -263,7 +264,7 @@ pub enum Expr {
     MethodCall { receiver: Box<Expr>, method: String, args: Vec<Expr> },
     Array(Vec<Expr>),
     Index { object: Box<Expr>, index: Box<Expr> },
-    TryExpr { expr: Box<Expr> },
+    Try { expr: Box<Expr> },
     Block(Vec<Stmt>),
 }
 
@@ -290,7 +291,7 @@ impl Expr {
                 Ok(())
             }
             // Placeholder for new expression types - TODO: implement properly
-            _ => Ok(()), // Array, Index, TryExpr, Block
+            _ => Ok(()), // Array, Index, Try, Block
         }
     }
     
@@ -324,7 +325,7 @@ impl Expr {
                 object.collect_function_calls(calls);
                 index.collect_function_calls(calls);
             }
-            Expr::TryExpr { expr } => {
+            Expr::Try { expr } => {
                 expr.collect_function_calls(calls);
             }
             Expr::Block(stmts) => {

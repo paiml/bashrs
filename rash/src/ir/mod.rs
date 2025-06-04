@@ -141,6 +141,7 @@ impl IrConverter {
         }
     }
     
+    #[allow(clippy::only_used_in_recursion)]
     fn convert_expr_to_value(&self, expr: &crate::ast::Expr) -> Result<ShellValue> {
         use crate::ast::{Expr, restricted::Literal};
         
@@ -155,7 +156,7 @@ impl IrConverter {
             Expr::Variable(name) => {
                 Ok(ShellValue::Variable(name.clone()))
             }
-            Expr::Binary { op, left, right } => {
+            Expr::Binary { op: _, left, right } => {
                 let left_val = self.convert_expr_to_value(left)?;
                 let right_val = self.convert_expr_to_value(right)?;
                 Ok(ShellValue::Concat(vec![left_val, right_val])) // Simplified
