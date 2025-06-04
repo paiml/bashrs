@@ -36,8 +36,8 @@
 <a href=#36 id=36 data-nosnippet>36</a>
 <a href=#37 id=37 data-nosnippet>37</a>        <span class="comment">// Set strict error handling
 <a href=#38 id=38 data-nosnippet>38</a>        </span><span class="macro">writeln!</span>(output, <span class="string">"set -euf"</span>)<span class="question-mark">?</span>;
-<a href=#39 id=39 data-nosnippet>39</a>        <span class="macro">writeln!</span>(output, <span class="string">"IFS=$'\\n\\t'"</span>)<span class="question-mark">?</span>;
-<a href=#40 id=40 data-nosnippet>40</a>        <span class="macro">writeln!</span>(output, <span class="string">"export LC_ALL=C"</span>)<span class="question-mark">?</span>;
+<a href=#39 id=39 data-nosnippet>39</a>        <span class="macro">writeln!</span>(output, <span class="string">"IFS=' \t\n'"</span>)<span class="question-mark">?</span>; <span class="comment">// POSIX-compatible IFS setting
+<a href=#40 id=40 data-nosnippet>40</a>        </span><span class="macro">writeln!</span>(output, <span class="string">"export LC_ALL=C"</span>)<span class="question-mark">?</span>;
 <a href=#41 id=41 data-nosnippet>41</a>        <span class="macro">writeln!</span>(output)<span class="question-mark">?</span>;
 <a href=#42 id=42 data-nosnippet>42</a>
 <a href=#43 id=43 data-nosnippet>43</a>        <span class="comment">// Include runtime functions if needed
@@ -85,7 +85,7 @@
 <a href=#85 id=85 data-nosnippet>85</a>
 <a href=#86 id=86 data-nosnippet>86</a>    <span class="kw">fn </span>write_download_function(<span class="kw-2">&amp;</span><span class="self">self</span>, output: <span class="kw-2">&amp;mut </span>String) -&gt; <span class="prelude-ty">Result</span>&lt;()&gt; {
 <a href=#87 id=87 data-nosnippet>87</a>        <span class="macro">writeln!</span>(output, <span class="string">"rash_download_verified() {{"</span>)<span class="question-mark">?</span>;
-<a href=#88 id=88 data-nosnippet>88</a>        <span class="macro">writeln!</span>(output, <span class="string">"    local url=\"$1\" dst=\"$2\" checksum=\"$3\""</span>)<span class="question-mark">?</span>;
+<a href=#88 id=88 data-nosnippet>88</a>        <span class="macro">writeln!</span>(output, <span class="string">"    url=\"$1\"; dst=\"$2\"; checksum=\"$3\""</span>)<span class="question-mark">?</span>;
 <a href=#89 id=89 data-nosnippet>89</a>        <span class="macro">writeln!</span>(output, <span class="string">"    "</span>)<span class="question-mark">?</span>;
 <a href=#90 id=90 data-nosnippet>90</a>
 <a href=#91 id=91 data-nosnippet>91</a>        <span class="self">self</span>.write_download_logic(output)<span class="question-mark">?</span>;
