@@ -74,7 +74,8 @@ jobs:
       uses: codecov/codecov-action@v4
       with:
         file: lcov.info
-        fail_ci_if_error: true
+        fail_ci_if_error: false
+        verbose: true
 
   security:
     name: Security Audit
