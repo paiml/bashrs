@@ -71,14 +71,14 @@ impl Validate for CommandSubstitution {
     }
 }
 
+#[allow(clippy::result_large_err)]
 pub fn validate_glob_pattern(pattern: &str) -> Result<String, ValidationError> {
     if pattern.starts_with('-') {
         return Err(ValidationError {
             rule: "SC2035",
             severity: Severity::Warning,
-            message: format!(
-                "Use './' or -- to prevent glob patterns being interpreted as options"
-            ),
+            message: "Use './' or -- to prevent glob patterns being interpreted as options"
+                .to_string(),
             suggestion: Some(format!("Use './{}'", pattern)),
             auto_fix: Some(Fix {
                 description: "Prefix with './' to prevent option interpretation".to_string(),
@@ -89,7 +89,7 @@ pub fn validate_glob_pattern(pattern: &str) -> Result<String, ValidationError> {
         });
     }
 
-    if pattern.contains(|c| matches!(c, '*' | '?' | '[')) {
+    if pattern.contains(['*', '?', '[']) {
         Ok(pattern.to_string())
     } else {
         Ok(shell_escape(pattern))
@@ -196,6 +196,7 @@ impl Validate for ConditionalExpression {
     }
 }
 
+#[allow(clippy::result_large_err)]
 pub fn validate_backticks(command: &str) -> Result<(), ValidationError> {
     if command.contains('`') {
         Err(ValidationError {
@@ -215,6 +216,7 @@ pub fn validate_backticks(command: &str) -> Result<(), ValidationError> {
     }
 }
 
+#[allow(clippy::result_large_err)]
 pub fn validate_cd_usage(command: &str) -> Result<(), ValidationError> {
     if command.trim().starts_with("cd ") && !command.contains("||") {
         Err(ValidationError {
@@ -234,6 +236,7 @@ pub fn validate_cd_usage(command: &str) -> Result<(), ValidationError> {
     }
 }
 
+#[allow(clippy::result_large_err)]
 pub fn validate_read_command(command: &str) -> Result<(), ValidationError> {
     if command.contains("read ") && !command.contains("-r") {
         Err(ValidationError {
@@ -253,6 +256,7 @@ pub fn validate_read_command(command: &str) -> Result<(), ValidationError> {
     }
 }
 
+#[allow(clippy::result_large_err)]
 pub fn validate_unicode_quotes(text: &str) -> Result<(), ValidationError> {
     let unicode_quotes = ['\u{201c}', '\u{201d}', '\u{2018}', '\u{2019}'];
 
@@ -266,10 +270,8 @@ pub fn validate_unicode_quotes(text: &str) -> Result<(), ValidationError> {
                 auto_fix: Some(Fix {
                     description: "Replace Unicode quotes".to_string(),
                     replacement: text
-                        .replace('\u{201c}', "\"")
-                        .replace('\u{201d}', "\"")
-                        .replace('\u{2018}', "'")
-                        .replace('\u{2019}', "'"),
+                        .replace(['\u{201c}', '\u{201d}'], "\"")
+                        .replace(['\u{2018}', '\u{2019}'], "'"),
                 }),
                 line: None,
                 column: None,
@@ -280,10 +282,14 @@ pub fn validate_unicode_quotes(text: &str) -> Result<(), ValidationError> {
 }
 
 pub fn validate_all(snippet: &str) -> RashResult<()> {
-    validate_backticks(snippet)?;
-    validate_cd_usage(snippet)?;
-    validate_read_command(snippet)?;
-    validate_unicode_quotes(snippet)?;
+    validate_backticks(snippet)
+        .map_err(|e| crate::models::error::Error::ShellCheckValidation(Box::new(e)))?;
+    validate_cd_usage(snippet)
+        .map_err(|e| crate::models::error::Error::ShellCheckValidation(Box::new(e)))?;
+    validate_read_command(snippet)
+        .map_err(|e| crate::models::error::Error::ShellCheckValidation(Box::new(e)))?;
+    validate_unicode_quotes(snippet)
+        .map_err(|e| crate::models::error::Error::ShellCheckValidation(Box::new(e)))?;
 
     Ok(())
 }

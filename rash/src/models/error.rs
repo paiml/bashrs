@@ -34,8 +34,9 @@ pub enum Error {
     Internal(String),
 
     #[error("ShellCheck validation error: {0}")]
-    ShellCheckValidation(#[from] crate::validation::ValidationError),
+    ShellCheckValidation(#[from] Box<crate::validation::ValidationError>),
 
     #[error("Validation error: {0}")]
+    #[allow(clippy::enum_variant_names)]
     ValidationError(String),
 }

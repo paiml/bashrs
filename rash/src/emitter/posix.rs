@@ -65,52 +65,70 @@ impl PosixEmitter {
 
     fn write_runtime(&self, output: &mut String) -> Result<()> {
         writeln!(output, "# Rash runtime functions")?;
-        writeln!(output, "rash_require() {{")?;
-        writeln!(output, "    if ! \"$@\"; then")?;
-        writeln!(output, "        echo \"FATAL: Requirement failed: $*\" >&2")?;
-        writeln!(output, "        exit 1")?;
-        writeln!(output, "    fi")?;
-        writeln!(output, "}}")?;
-        writeln!(output)?;
+        self.write_require_function(output)?;
+        self.write_download_function(output)?;
+        Ok(())
+    }
 
+    fn write_require_function(&self, output: &mut String) -> Result<()> {
+        let lines = [
+            "rash_require() {",
+            "    if ! \"$@\"; then",
+            "        echo \"FATAL: Requirement failed: $*\" >&2",
+            "        exit 1",
+            "    fi",
+            "}",
+            "",
+        ];
+        self.write_shell_lines(output, &lines)
+    }
+
+    fn write_download_function(&self, output: &mut String) -> Result<()> {
         writeln!(output, "rash_download_verified() {{")?;
         writeln!(output, "    local url=\"$1\" dst=\"$2\" checksum=\"$3\"")?;
         writeln!(output, "    ")?;
-        writeln!(output, "    if command -v curl >/dev/null 2>&1; then")?;
-        writeln!(
-            output,
-            "        curl -fsSL --proto '=https' --tlsv1.2 \"$url\" -o \"$dst\""
-        )?;
-        writeln!(output, "    elif command -v wget >/dev/null 2>&1; then")?;
-        writeln!(output, "        wget -qO \"$dst\" \"$url\"")?;
-        writeln!(output, "    else")?;
-        writeln!(
-            output,
-            "        echo \"FATAL: Neither curl nor wget found\" >&2"
-        )?;
-        writeln!(output, "        return 1")?;
-        writeln!(output, "    fi")?;
-        writeln!(output, "    ")?;
-        writeln!(output, "    if command -v sha256sum >/dev/null 2>&1; then")?;
-        writeln!(
-            output,
-            "        echo \"$checksum  $dst\" | sha256sum -c >/dev/null"
-        )?;
-        writeln!(output, "    elif command -v shasum >/dev/null 2>&1; then")?;
-        writeln!(
-            output,
-            "        echo \"$checksum  $dst\" | shasum -a 256 -c >/dev/null"
-        )?;
-        writeln!(output, "    else")?;
-        writeln!(
-            output,
-            "        echo \"FATAL: No checksum utility found\" >&2"
-        )?;
-        writeln!(output, "        return 1")?;
-        writeln!(output, "    fi")?;
+
+        self.write_download_logic(output)?;
+        self.write_checksum_logic(output)?;
+
         writeln!(output, "}}")?;
         writeln!(output)?;
+        Ok(())
+    }
 
+    fn write_download_logic(&self, output: &mut String) -> Result<()> {
+        let lines = [
+            "    if command -v curl >/dev/null 2>&1; then",
+            "        curl -fsSL --proto '=https' --tlsv1.2 \"$url\" -o \"$dst\"",
+            "    elif command -v wget >/dev/null 2>&1; then",
+            "        wget -qO \"$dst\" \"$url\"",
+            "    else",
+            "        echo \"FATAL: Neither curl nor wget found\" >&2",
+            "        return 1",
+            "    fi",
+            "    ",
+        ];
+        self.write_shell_lines(output, &lines)
+    }
+
+    fn write_checksum_logic(&self, output: &mut String) -> Result<()> {
+        let lines = [
+            "    if command -v sha256sum >/dev/null 2>&1; then",
+            "        echo \"$checksum  $dst\" | sha256sum -c >/dev/null",
+            "    elif command -v shasum >/dev/null 2>&1; then",
+            "        echo \"$checksum  $dst\" | shasum -a 256 -c >/dev/null",
+            "    else",
+            "        echo \"FATAL: No checksum utility found\" >&2",
+            "        return 1",
+            "    fi",
+        ];
+        self.write_shell_lines(output, &lines)
+    }
+
+    fn write_shell_lines(&self, output: &mut String, lines: &[&str]) -> Result<()> {
+        for line in lines {
+            writeln!(output, "{}", line)?;
+        }
         Ok(())
     }
 
@@ -122,104 +140,150 @@ impl PosixEmitter {
     fn emit_ir(&self, output: &mut String, ir: &ShellIR, indent: usize) -> Result<()> {
         match ir {
             ShellIR::Let { name, value, .. } => {
-                let indent_str = "    ".repeat(indent + 1);
-                let var_name = escape_variable_name(name);
-                let var_value = self.emit_shell_value(value)?;
-                writeln!(output, "{}readonly {}={}", indent_str, var_name, var_value)?;
+                self.emit_let_statement(output, name, value, indent)
             }
-
-            ShellIR::Exec { cmd, .. } => {
-                let indent_str = "    ".repeat(indent + 1);
-                let command_str = self.emit_command(cmd)?;
-                writeln!(output, "{}{}", indent_str, command_str)?;
-            }
-
+            ShellIR::Exec { cmd, .. } => self.emit_exec_statement(output, cmd, indent),
             ShellIR::If {
                 test,
                 then_branch,
                 else_branch,
-            } => {
-                let indent_str = "    ".repeat(indent + 1);
-                let test_expr = self.emit_test_expression(test)?;
-                writeln!(output, "{}if {}; then", indent_str, test_expr)?;
-
-                self.emit_ir(output, then_branch, indent + 1)?;
-
-                if let Some(else_ir) = else_branch {
-                    writeln!(output, "{}else", indent_str)?;
-                    self.emit_ir(output, else_ir, indent + 1)?;
-                }
-
-                writeln!(output, "{}fi", indent_str)?;
-            }
-
+            } => self.emit_if_statement(output, test, then_branch, else_branch.as_deref(), indent),
             ShellIR::Exit { code, message } => {
-                let indent_str = "    ".repeat(indent + 1);
-                if let Some(msg) = message {
-                    let escaped_msg = escape_shell_string(msg);
-                    writeln!(output, "{}echo {} >&2", indent_str, escaped_msg)?;
-                }
-                writeln!(output, "{}exit {}", indent_str, code)?;
+                self.emit_exit_statement(output, (*code).into(), message.as_ref(), indent)
             }
+            ShellIR::Sequence(items) => self.emit_sequence(output, items, indent),
+            ShellIR::Noop => self.emit_noop(output, indent),
+        }
+    }
 
-            ShellIR::Sequence(items) => {
-                for item in items {
-                    self.emit_ir(output, item, indent)?;
-                }
-            }
+    fn emit_let_statement(
+        &self,
+        output: &mut String,
+        name: &str,
+        value: &ShellValue,
+        indent: usize,
+    ) -> Result<()> {
+        let indent_str = "    ".repeat(indent + 1);
+        let var_name = escape_variable_name(name);
+        let var_value = self.emit_shell_value(value)?;
+        writeln!(output, "{}readonly {}={}", indent_str, var_name, var_value)?;
+        Ok(())
+    }
 
-            ShellIR::Noop => {
-                // Emit a comment for no-ops to maintain structure
-                let indent_str = "    ".repeat(indent + 1);
-                writeln!(output, "{}# noop", indent_str)?;
-            }
+    fn emit_exec_statement(&self, output: &mut String, cmd: &Command, indent: usize) -> Result<()> {
+        let indent_str = "    ".repeat(indent + 1);
+        let command_str = self.emit_command(cmd)?;
+        writeln!(output, "{}{}", indent_str, command_str)?;
+        Ok(())
+    }
+
+    fn emit_if_statement(
+        &self,
+        output: &mut String,
+        test: &ShellValue,
+        then_branch: &ShellIR,
+        else_branch: Option<&ShellIR>,
+        indent: usize,
+    ) -> Result<()> {
+        let indent_str = "    ".repeat(indent + 1);
+        let test_expr = self.emit_test_expression(test)?;
+        writeln!(output, "{}if {}; then", indent_str, test_expr)?;
+
+        self.emit_ir(output, then_branch, indent + 1)?;
+
+        if let Some(else_ir) = else_branch {
+            writeln!(output, "{}else", indent_str)?;
+            self.emit_ir(output, else_ir, indent + 1)?;
         }
 
+        writeln!(output, "{}fi", indent_str)?;
+        Ok(())
+    }
+
+    fn emit_exit_statement(
+        &self,
+        output: &mut String,
+        code: i32,
+        message: Option<&String>,
+        indent: usize,
+    ) -> Result<()> {
+        let indent_str = "    ".repeat(indent + 1);
+        if let Some(msg) = message {
+            let escaped_msg = escape_shell_string(msg);
+            writeln!(output, "{}echo {} >&2", indent_str, escaped_msg)?;
+        }
+        writeln!(output, "{}exit {}", indent_str, code)?;
+        Ok(())
+    }
+
+    fn emit_sequence(&self, output: &mut String, items: &[ShellIR], indent: usize) -> Result<()> {
+        for item in items {
+            self.emit_ir(output, item, indent)?;
+        }
+        Ok(())
+    }
+
+    fn emit_noop(&self, output: &mut String, indent: usize) -> Result<()> {
+        let indent_str = "    ".repeat(indent + 1);
+        writeln!(output, "{}# noop", indent_str)?;
         Ok(())
     }
 
     pub fn emit_shell_value(&self, value: &ShellValue) -> Result<String> {
         match value {
             ShellValue::String(s) => Ok(escape_shell_string(s)),
-            ShellValue::Bool(b) => Ok(if *b {
-                "true".to_string()
-            } else {
-                "false".to_string()
-            }),
+            ShellValue::Bool(b) => Ok(self.emit_bool_value(*b)),
             ShellValue::Variable(name) => Ok(format!("\"${}\"", escape_variable_name(name))),
-            ShellValue::Concat(parts) => {
-                let mut result = String::new();
-                result.push('"');
-                for part in parts {
-                    match part {
-                        ShellValue::String(s) => result.push_str(s),
-                        ShellValue::Bool(b) => result.push_str(if *b { "true" } else { "false" }),
-                        ShellValue::Variable(name) => {
-                            result.push_str(&format!("${{{}}}", escape_variable_name(name)));
-                        }
-                        ShellValue::CommandSubst(cmd) => {
-                            let cmd_str = self.emit_command(cmd)?;
-                            result.push_str(&format!("$({})", cmd_str));
-                        }
-                        ShellValue::Concat(_) => {
-                            // Nested concatenation - flatten it
-                            let nested = self.emit_shell_value(part)?;
-                            // Remove quotes from nested value and add content
-                            if nested.starts_with('"') && nested.ends_with('"') {
-                                result.push_str(&nested[1..nested.len() - 1]);
-                            } else {
-                                result.push_str(&nested);
-                            }
-                        }
-                    }
-                }
-                result.push('"');
-                Ok(result)
-            }
+            ShellValue::Concat(parts) => self.emit_concatenation(parts),
             ShellValue::CommandSubst(cmd) => {
                 let cmd_str = self.emit_command(cmd)?;
                 Ok(format!("\"$({})\"", cmd_str))
             }
+        }
+    }
+
+    fn emit_bool_value(&self, value: bool) -> String {
+        if value { "true" } else { "false" }.to_string()
+    }
+
+    fn emit_concatenation(&self, parts: &[ShellValue]) -> Result<String> {
+        let mut result = String::new();
+        result.push('"');
+
+        for part in parts {
+            self.append_concat_part(&mut result, part)?;
+        }
+
+        result.push('"');
+        Ok(result)
+    }
+
+    fn append_concat_part(&self, result: &mut String, part: &ShellValue) -> Result<()> {
+        match part {
+            ShellValue::String(s) => result.push_str(s),
+            ShellValue::Bool(b) => result.push_str(&self.emit_bool_value(*b)),
+            ShellValue::Variable(name) => {
+                result.push_str(&format!("${{{}}}", escape_variable_name(name)));
+            }
+            ShellValue::CommandSubst(cmd) => {
+                let cmd_str = self.emit_command(cmd)?;
+                result.push_str(&format!("$({})", cmd_str));
+            }
+            ShellValue::Concat(_) => {
+                // Nested concatenation - flatten it
+                let nested = self.emit_shell_value(part)?;
+                self.append_flattened_content(result, &nested);
+            }
+        }
+        Ok(())
+    }
+
+    fn append_flattened_content(&self, result: &mut String, nested: &str) {
+        // Remove quotes from nested value and add content
+        if nested.starts_with('"') && nested.ends_with('"') {
+            result.push_str(&nested[1..nested.len() - 1]);
+        } else {
+            result.push_str(nested);
         }
     }
 

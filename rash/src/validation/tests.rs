@@ -220,7 +220,9 @@ fn test_validation_pipeline_integration() {
             params: vec![],
             body: vec![crate::ast::Stmt::Expr(crate::ast::Expr::FunctionCall {
                 name: "echo".to_string(),
-                args: vec![crate::ast::Expr::Literal(crate::ast::restricted::Literal::Str("test".to_string()))],
+                args: vec![crate::ast::Expr::Literal(
+                    crate::ast::restricted::Literal::Str("test".to_string()),
+                )],
             })],
             return_type: crate::ast::Type::Void,
         }],

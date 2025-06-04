@@ -187,69 +187,92 @@ impl Stmt {
                 condition,
                 then_block,
                 else_block,
-            } => {
-                condition.validate()?;
-                for stmt in then_block {
-                    stmt.validate()?;
-                }
-                if let Some(else_stmts) = else_block {
-                    for stmt in else_stmts {
-                        stmt.validate()?;
-                    }
-                }
-                Ok(())
-            }
-            Stmt::Match { scrutinee, arms } => {
-                scrutinee.validate()?;
-                for arm in arms {
-                    arm.pattern.validate()?;
-                    if let Some(guard) = &arm.guard {
-                        guard.validate()?;
-                    }
-                    for stmt in &arm.body {
-                        stmt.validate()?;
-                    }
-                }
-                Ok(())
-            }
+            } => self.validate_if_stmt(condition, then_block, else_block.as_ref()),
+            Stmt::Match { scrutinee, arms } => self.validate_match_stmt(scrutinee, arms),
             Stmt::For {
                 pattern,
                 iter,
                 body,
                 max_iterations,
-            } => {
-                // Enforce bounded iteration for verification
-                if max_iterations.is_none() {
-                    return Err(
-                        "For loops must have bounded iterations for verification".to_string()
-                    );
-                }
-                pattern.validate()?;
-                iter.validate()?;
-                for stmt in body {
-                    stmt.validate()?;
-                }
-                Ok(())
-            }
+            } => self.validate_for_stmt(pattern, iter, body, *max_iterations),
             Stmt::While {
                 condition,
                 body,
                 max_iterations,
-            } => {
-                // Enforce bounded iteration for verification
-                if max_iterations.is_none() {
-                    return Err(
-                        "While loops must have bounded iterations for verification".to_string()
-                    );
-                }
-                condition.validate()?;
-                for stmt in body {
-                    stmt.validate()?;
-                }
-                Ok(())
-            }
+            } => self.validate_while_stmt(condition, body, *max_iterations),
             Stmt::Break | Stmt::Continue => Ok(()),
         }
+    }
+
+    fn validate_if_stmt(
+        &self,
+        condition: &Expr,
+        then_block: &[Stmt],
+        else_block: Option<&Vec<Stmt>>,
+    ) -> Result<(), String> {
+        condition.validate()?;
+        self.validate_stmt_block(then_block)?;
+        if let Some(else_stmts) = else_block {
+            self.validate_stmt_block(else_stmts)?
+        }
+        Ok(())
+    }
+
+    fn validate_match_stmt(&self, scrutinee: &Expr, arms: &[MatchArm]) -> Result<(), String> {
+        scrutinee.validate()?;
+        for arm in arms {
+            arm.pattern.validate()?;
+            if let Some(guard) = &arm.guard {
+                guard.validate()?;
+            }
+            self.validate_stmt_block(&arm.body)?;
+        }
+        Ok(())
+    }
+
+    fn validate_for_stmt(
+        &self,
+        pattern: &Pattern,
+        iter: &Expr,
+        body: &[Stmt],
+        max_iterations: Option<u32>,
+    ) -> Result<(), String> {
+        self.validate_bounded_iteration(max_iterations, "For")?;
+        pattern.validate()?;
+        iter.validate()?;
+        self.validate_stmt_block(body)
+    }
+
+    fn validate_while_stmt(
+        &self,
+        condition: &Expr,
+        body: &[Stmt],
+        max_iterations: Option<u32>,
+    ) -> Result<(), String> {
+        self.validate_bounded_iteration(max_iterations, "While")?;
+        condition.validate()?;
+        self.validate_stmt_block(body)
+    }
+
+    fn validate_bounded_iteration(
+        &self,
+        max_iterations: Option<u32>,
+        loop_type: &str,
+    ) -> Result<(), String> {
+        if max_iterations.is_none() {
+            return Err(format!(
+                "{} loops must have bounded iterations for verification",
+                loop_type
+            ));
+        }
+        Ok(())
+    }
+
+    fn validate_stmt_block(&self, stmts: &[Stmt]) -> Result<(), String> {
+        for stmt in stmts {
+            stmt.validate()?;
+        }
+        Ok(())
     }
 
     pub fn collect_function_calls(&self, calls: &mut Vec<String>) {

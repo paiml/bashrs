@@ -7,18 +7,25 @@ pub mod rules;
 #[cfg(test)]
 mod tests;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, serde::Serialize, serde::Deserialize)]
+#[derive(
+    Debug,
+    Clone,
+    Copy,
+    PartialEq,
+    Eq,
+    PartialOrd,
+    Ord,
+    Hash,
+    serde::Serialize,
+    serde::Deserialize,
+    Default,
+)]
 pub enum ValidationLevel {
     None,
+    #[default]
     Minimal,
     Strict,
     Paranoid,
-}
-
-impl Default for ValidationLevel {
-    fn default() -> Self {
-        ValidationLevel::Minimal
-    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -74,6 +81,7 @@ impl fmt::Display for ValidationError {
 impl std::error::Error for ValidationError {}
 
 pub trait Validate {
+    #[allow(clippy::result_large_err)]
     fn validate(&self) -> Result<(), ValidationError>;
 }
 
