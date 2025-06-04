@@ -261,8 +261,7 @@ impl Stmt {
     ) -> Result<(), String> {
         if max_iterations.is_none() {
             return Err(format!(
-                "{} loops must have bounded iterations for verification",
-                loop_type
+                "{loop_type} loops must have bounded iterations for verification"
             ));
         }
         Ok(())
@@ -365,8 +364,7 @@ impl Expr {
         let depth = self.nesting_depth();
         if depth > 30 {
             return Err(format!(
-                "Expression nesting too deep: {} levels (max 30)",
-                depth
+                "Expression nesting too deep: {depth} levels (max 30)"
             ));
         }
 
