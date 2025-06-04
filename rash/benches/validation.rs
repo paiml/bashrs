@@ -1,6 +1,7 @@
-use criterion::{black_box, criterion_group, criterion_main, BenchmarkId, Criterion};
+use criterion::{criterion_group, criterion_main, BenchmarkId, Criterion};
 use rash::validation::ValidationLevel;
 use rash::{transpile, Config};
+use std::hint::black_box;
 use std::time::Instant;
 
 fn generate_test_script(lines: usize) -> String {
@@ -31,8 +32,10 @@ fn bench_validation_overhead(c: &mut Criterion) {
         let script = generate_test_script(*size);
 
         group.bench_with_input(BenchmarkId::new("none", size), size, |b, _| {
-            let mut config = Config::default();
-            config.validation_level = Some(ValidationLevel::None);
+            let config = Config {
+                validation_level: Some(ValidationLevel::None),
+                ..Default::default()
+            };
 
             b.iter(|| {
                 let _ = transpile(black_box(&script), config.clone());
@@ -40,8 +43,10 @@ fn bench_validation_overhead(c: &mut Criterion) {
         });
 
         group.bench_with_input(BenchmarkId::new("minimal", size), size, |b, _| {
-            let mut config = Config::default();
-            config.validation_level = Some(ValidationLevel::Minimal);
+            let config = Config {
+                validation_level: Some(ValidationLevel::Minimal),
+                ..Default::default()
+            };
 
             b.iter(|| {
                 let _ = transpile(black_box(&script), config.clone());
@@ -49,8 +54,10 @@ fn bench_validation_overhead(c: &mut Criterion) {
         });
 
         group.bench_with_input(BenchmarkId::new("strict", size), size, |b, _| {
-            let mut config = Config::default();
-            config.validation_level = Some(ValidationLevel::Strict);
+            let config = Config {
+                validation_level: Some(ValidationLevel::Strict),
+                ..Default::default()
+            };
 
             b.iter(|| {
                 let _ = transpile(black_box(&script), config.clone());
@@ -62,7 +69,7 @@ fn bench_validation_overhead(c: &mut Criterion) {
 }
 
 fn bench_individual_rules(c: &mut Criterion) {
-    use rash::validation::rules::*;
+    use rash::validation::{rules::*, Validate};
 
     let mut group = c.benchmark_group("individual_rules");
 
@@ -123,7 +130,7 @@ fn bench_individual_rules(c: &mut Criterion) {
     group.finish();
 }
 
-fn measure_validation_percentage(c: &mut Criterion) {
+fn measure_validation_percentage(_c: &mut Criterion) {
     let script = generate_test_script(1000);
     let config_no_validation = Config {
         validation_level: Some(ValidationLevel::None),

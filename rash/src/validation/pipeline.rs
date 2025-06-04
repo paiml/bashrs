@@ -52,7 +52,7 @@ impl ValidationPipeline {
 
     fn validate_stmt(&self, stmt: &crate::ast::Stmt) -> RashResult<()> {
         use crate::ast::Stmt;
-        
+
         match stmt {
             Stmt::Let { value, .. } => {
                 self.validate_expr(value)?;
@@ -60,7 +60,11 @@ impl ValidationPipeline {
             Stmt::Expr(expr) => {
                 self.validate_expr(expr)?;
             }
-            Stmt::If { condition, then_block, else_block } => {
+            Stmt::If {
+                condition,
+                then_block,
+                else_block,
+            } => {
                 self.validate_expr(condition)?;
                 for stmt in then_block {
                     self.validate_stmt(stmt)?;
@@ -75,7 +79,7 @@ impl ValidationPipeline {
         }
         Ok(())
     }
-    
+
     fn validate_expr(&self, _expr: &crate::ast::Expr) -> RashResult<()> {
         // TODO: Implement expression validation
         Ok(())
@@ -111,10 +115,10 @@ impl ValidationPipeline {
         }
         Ok(())
     }
-    
+
     fn validate_shell_value(&self, value: &crate::ir::ShellValue) -> RashResult<()> {
         use crate::ir::ShellValue;
-        
+
         match value {
             ShellValue::Variable(_name) => {
                 if self.level >= ValidationLevel::Minimal {
@@ -139,6 +143,7 @@ impl ValidationPipeline {
         Ok(())
     }
 
+    #[allow(dead_code)]
     fn validate_expression(&self, expr: &crate::ir::ShellExpression) -> RashResult<()> {
         use crate::ir::ShellExpression;
 

@@ -162,7 +162,7 @@ fn get_install_dir() -> String {
 fn download_file(url: &str, dest: &str) -> io::Result<()> {
     println!("Downloading {}...", url);
     
-    // Use curl with proper flags for security
+    // Security: Force HTTPS protocol and modern TLS version
     let status = Command::new("curl")
         .args(&[
             "--proto", "=https",

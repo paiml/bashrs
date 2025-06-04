@@ -4,7 +4,7 @@
 //! the tiny rash AST subset and the corresponding POSIX shell commands.
 
 use crate::formal::{AbstractState, TinyAst};
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 /// Result of evaluating an AST node or shell command
 pub type EvalResult = Result<AbstractState, String>;
@@ -49,121 +49,138 @@ pub mod rash_semantics {
         args: &[String],
     ) -> Result<(), String> {
         match command {
-            "echo" => {
-                // Echo writes its arguments to stdout
-                let output = if args.is_empty() {
-                    String::new()
-                } else {
-                    args.join(" ")
-                };
-                state.write_stdout(output);
-                Ok(())
+            "echo" => eval_echo_command(state, args),
+            "mkdir" => eval_mkdir_command(state, args),
+            "test" => eval_test_command(state, args),
+            _ => eval_unknown_command(state, command),
+        }
+    }
+
+    fn eval_echo_command(state: &mut AbstractState, args: &[String]) -> Result<(), String> {
+        let output = if args.is_empty() {
+            String::new()
+        } else {
+            args.join(" ")
+        };
+        state.write_stdout(output);
+        Ok(())
+    }
+
+    fn eval_mkdir_command(state: &mut AbstractState, args: &[String]) -> Result<(), String> {
+        let (parent_flag, paths) = parse_mkdir_args(state, args)?;
+
+        for path_str in paths {
+            let path = resolve_path(state, &path_str);
+            create_directory_with_options(state, path, parent_flag)?;
+        }
+        Ok(())
+    }
+
+    fn parse_mkdir_args(
+        state: &mut AbstractState,
+        args: &[String],
+    ) -> Result<(bool, Vec<String>), String> {
+        let mut parent_flag = false;
+        let mut paths = Vec::new();
+
+        for arg in args.iter() {
+            if arg == "-p" {
+                parent_flag = true;
+            } else if arg.starts_with('-') {
+                state.write_stderr(format!("mkdir: invalid option -- '{}'", arg));
+                state.exit_code = 1;
+                return Err("Invalid option".to_string());
+            } else {
+                paths.push(arg.clone());
             }
+        }
+        Ok((parent_flag, paths))
+    }
 
-            "mkdir" => {
-                // Support mkdir -p behavior
-                let mut skip_next = false;
-                let mut parent_flag = false;
-                let mut paths = Vec::new();
+    fn resolve_path(state: &AbstractState, path_str: &str) -> PathBuf {
+        if path_str.starts_with('/') {
+            PathBuf::from(path_str)
+        } else {
+            state.cwd.join(path_str)
+        }
+    }
 
-                for arg in args.iter() {
-                    if skip_next {
-                        skip_next = false;
-                        continue;
-                    }
+    fn create_directory_with_options(
+        state: &mut AbstractState,
+        path: PathBuf,
+        parent_flag: bool,
+    ) -> Result<(), String> {
+        if parent_flag {
+            state.create_directory(path)
+        } else {
+            validate_parent_exists(state, &path)?;
+            state.create_directory(path)
+        }
+    }
 
-                    if arg == "-p" {
-                        parent_flag = true;
-                    } else if arg.starts_with('-') {
-                        // Unsupported flag
-                        state.write_stderr(format!("mkdir: invalid option -- '{}'", arg));
-                        state.exit_code = 1;
-                        return Err("Invalid option".to_string());
-                    } else {
-                        paths.push(arg);
-                    }
-                }
-
-                // Create directories
-                for path_str in paths {
-                    let path = if path_str.starts_with('/') {
-                        PathBuf::from(path_str)
-                    } else {
-                        state.cwd.join(path_str)
-                    };
-
-                    if parent_flag {
-                        state.create_directory(path)?;
-                    } else {
-                        // Without -p, fail if parent doesn't exist
-                        if let Some(parent) = path.parent() {
-                            if !state.filesystem.contains_key(parent) {
-                                state.write_stderr(format!("mkdir: cannot create directory '{}': No such file or directory", path.display()));
-                                state.exit_code = 1;
-                                return Err("Parent directory does not exist".to_string());
-                            }
-                        }
-                        state.create_directory(path)?;
-                    }
-                }
-                Ok(())
+    fn validate_parent_exists(state: &mut AbstractState, path: &Path) -> Result<(), String> {
+        if let Some(parent) = path.parent() {
+            if !state.filesystem.contains_key(parent) {
+                let error_msg = format!(
+                    "mkdir: cannot create directory '{}': No such file or directory",
+                    path.display()
+                );
+                state.write_stderr(error_msg);
+                state.exit_code = 1;
+                return Err("Parent directory does not exist".to_string());
             }
+        }
+        Ok(())
+    }
 
-            "test" => {
-                // Simple test command implementation
-                if args.is_empty() {
-                    state.exit_code = 1;
-                    return Ok(());
-                }
+    fn eval_test_command(state: &mut AbstractState, args: &[String]) -> Result<(), String> {
+        if args.is_empty() {
+            state.exit_code = 1;
+            return Ok(());
+        }
 
-                match args[0].as_str() {
-                    "-d" => {
-                        // Test if directory exists
-                        if args.len() < 2 {
-                            state.exit_code = 1;
-                            return Ok(());
-                        }
-                        let path = PathBuf::from(&args[1]);
-                        match state.filesystem.get(&path) {
-                            Some(crate::formal::FileSystemEntry::Directory) => {
-                                state.exit_code = 0;
-                            }
-                            _ => {
-                                state.exit_code = 1;
-                            }
-                        }
-                    }
-                    "-f" => {
-                        // Test if file exists
-                        if args.len() < 2 {
-                            state.exit_code = 1;
-                            return Ok(());
-                        }
-                        let path = PathBuf::from(&args[1]);
-                        match state.filesystem.get(&path) {
-                            Some(crate::formal::FileSystemEntry::File(_)) => {
-                                state.exit_code = 0;
-                            }
-                            _ => {
-                                state.exit_code = 1;
-                            }
-                        }
-                    }
-                    _ => {
-                        state.exit_code = 1;
-                    }
-                }
-                Ok(())
-            }
-
+        match args[0].as_str() {
+            "-d" => test_directory_exists(state, args),
+            "-f" => test_file_exists(state, args),
             _ => {
-                // For other allowed commands, we simulate success
-                // In a real implementation, we would model their behavior
-                state.write_stderr(format!("{}: command not fully modeled", command));
-                state.exit_code = 0;
+                state.exit_code = 1;
                 Ok(())
             }
         }
+    }
+
+    fn test_directory_exists(state: &mut AbstractState, args: &[String]) -> Result<(), String> {
+        if args.len() < 2 {
+            state.exit_code = 1;
+            return Ok(());
+        }
+
+        let path = PathBuf::from(&args[1]);
+        state.exit_code = match state.filesystem.get(&path) {
+            Some(crate::formal::FileSystemEntry::Directory) => 0,
+            _ => 1,
+        };
+        Ok(())
+    }
+
+    fn test_file_exists(state: &mut AbstractState, args: &[String]) -> Result<(), String> {
+        if args.len() < 2 {
+            state.exit_code = 1;
+            return Ok(());
+        }
+
+        let path = PathBuf::from(&args[1]);
+        state.exit_code = match state.filesystem.get(&path) {
+            Some(crate::formal::FileSystemEntry::File(_)) => 0,
+            _ => 1,
+        };
+        Ok(())
+    }
+
+    fn eval_unknown_command(state: &mut AbstractState, command: &str) -> Result<(), String> {
+        state.write_stderr(format!("{}: command not fully modeled", command));
+        state.exit_code = 0;
+        Ok(())
     }
 }
 
