@@ -164,6 +164,38 @@ jobs:
       run: |
         ${{ matrix.shell }} test-${{ matrix.shell }}.sh
 
+  shellcheck-validation:
+    name: ShellCheck Validation
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Install ShellCheck
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y shellcheck
+    
+    - name: Install Rust
+      uses: dtolnay/rust-toolchain@stable
+    
+    - name: Build rash
+      run: cargo build --release --workspace
+    
+    - name: Run ShellCheck validation
+      run: make shellcheck-validate
+    
+    - name: Run ShellCheck integration tests
+      run: cargo test --test shellcheck_validation
+    
+    - name: Upload ShellCheck results
+      if: always()
+      uses: actions/upload-artifact@v3
+      with:
+        name: shellcheck-results
+        path: |
+          tests/shellcheck-output/
+          *.log
+
   quality:
     name: Code Quality Analysis
     runs-on: ubuntu-latest

@@ -3,6 +3,7 @@
 .PHONY: quality-gate quality-baseline quality-report analyze-complexity
 .PHONY: fuzz fuzz-all fuzz-coverage fuzz-trophies fuzz-differential
 .PHONY: verify verify-smt verify-model verify-specs verify-properties
+.PHONY: shellcheck-install shellcheck-validate shellcheck-test-all
 .PHONY: audit docs build install profile-memory profile-heap profile-flamegraph
 .PHONY: update-deps update-deps-aggressive update-deps-check update-deps-workspace
 
@@ -20,7 +21,7 @@ quick-validate: format-check lint-check check test-fast
 	@echo "✅ Quick validation passed!"
 
 # Full validation pipeline with quality gates
-validate: format lint check test quality-gate verify-specs test-shells audit
+validate: format lint check test quality-gate verify-specs test-shells shellcheck-validate audit
 	@echo "✅ All validation passed!"
 	@echo "  ✓ Code formatting"
 	@echo "  ✓ Linting (clippy + custom)"
@@ -29,6 +30,7 @@ validate: format lint check test quality-gate verify-specs test-shells audit
 	@echo "  ✓ Quality metrics"
 	@echo "  ✓ Specification compliance"
 	@echo "  ✓ Cross-shell compatibility"
+	@echo "  ✓ ShellCheck validation"
 	@echo "  ✓ Security audit"
 
 # Formatting
@@ -268,6 +270,71 @@ audit:
 		cargo install cargo-audit && cargo audit; \
 	fi
 
+# ShellCheck installation and validation
+shellcheck-install:
+	@echo "📥 Installing ShellCheck..."
+	@if command -v shellcheck >/dev/null 2>&1; then \
+		echo "✅ ShellCheck already installed: $$(shellcheck --version | head -1)"; \
+	else \
+		echo "📦 Installing ShellCheck..."; \
+		if command -v apt-get >/dev/null 2>&1; then \
+			sudo apt-get update && sudo apt-get install -y shellcheck; \
+		elif command -v brew >/dev/null 2>&1; then \
+			brew install shellcheck; \
+		elif command -v dnf >/dev/null 2>&1; then \
+			sudo dnf install -y ShellCheck; \
+		elif command -v pacman >/dev/null 2>&1; then \
+			sudo pacman -S shellcheck; \
+		elif command -v cabal >/dev/null 2>&1; then \
+			cabal update && cabal install ShellCheck; \
+		else \
+			echo "❌ No supported package manager found. Install manually from https://shellcheck.net"; \
+			exit 1; \
+		fi; \
+		echo "✅ ShellCheck installed: $$(shellcheck --version | head -1)"; \
+	fi
+
+shellcheck-validate: shellcheck-install
+	@echo "🐚 Running ShellCheck validation on generated scripts..."
+	@mkdir -p tests/shellcheck-output
+	@echo "🔨 Building test scripts for validation..."
+	@$(MAKE) shellcheck-test-all
+	@echo "✅ ShellCheck validation completed!"
+
+shellcheck-test-all: shellcheck-install
+	@echo "🧪 Running comprehensive ShellCheck tests..."
+	@failed=0; \
+	total=0; \
+	for rs_file in examples/*.rs tests/fixtures/shellcheck/*.rs 2>/dev/null; do \
+		if [ -f "$$rs_file" ]; then \
+			total=$$((total + 1)); \
+			base=$$(basename "$$rs_file" .rs); \
+			echo "Testing $$rs_file -> $$base.sh"; \
+			if cargo run --bin rash -- build "$$rs_file" -o "tests/shellcheck-output/$$base.sh" 2>/dev/null; then \
+				if shellcheck -s sh "tests/shellcheck-output/$$base.sh"; then \
+					echo "✅ $$base: PASS"; \
+				else \
+					echo "❌ $$base: FAIL (ShellCheck errors)"; \
+					failed=$$((failed + 1)); \
+				fi; \
+			else \
+				echo "❌ $$base: FAIL (transpilation failed)"; \
+				failed=$$((failed + 1)); \
+			fi; \
+		fi; \
+	done; \
+	echo ""; \
+	echo "📊 ShellCheck Test Results:"; \
+	echo "  Total: $$total"; \
+	echo "  Passed: $$((total - failed))"; \
+	echo "  Failed: $$failed"; \
+	if [ $$failed -gt 0 ]; then \
+		echo "❌ Some ShellCheck tests failed!"; \
+		exit 1; \
+	else \
+		echo "✅ All ShellCheck tests passed!"; \
+	fi
+
 # Dependency management
 update-deps:
 	@echo "🔄 Updating dependencies (semver-compatible)..."
@@ -438,6 +505,8 @@ help:
 	@echo "  make test-fast    - Run fast tests"
 	@echo "  make test-shells  - Test cross-shell compatibility"
 	@echo "  make test-determinism - Verify deterministic transpilation"
+	@echo "  make shellcheck-validate - Run ShellCheck validation on generated scripts"
+	@echo "  make shellcheck-test-all - Run comprehensive ShellCheck test suite"
 	@echo ""
 	@echo "Quality:"
 	@echo "  make quality-gate - Run quality checks"
