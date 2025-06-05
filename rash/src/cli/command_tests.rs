@@ -1,5 +1,7 @@
 use super::*;
 use crate::models::{ShellDialect, VerificationLevel};
+use crate::validation::ValidationLevel;
+use crate::cli::args::{CompileRuntime, ContainerFormatArg};
 use std::path::PathBuf;
 use tempfile::TempDir;
 
@@ -67,6 +69,47 @@ fn test_init_command() {
     // Check Cargo.toml contains project name
     let cargo_toml = fs::read_to_string(project_path.join("Cargo.toml")).unwrap();
     assert!(cargo_toml.contains("name = \"test_project\""));
+}
+
+#[test]
+fn test_compile_command_self_extracting() {
+    let temp_dir = TempDir::new().unwrap();
+    let input_path = temp_dir.path().join("test.rs");
+    let output_path = temp_dir.path().join("test_self_extract.sh");
+    
+    // Create test input
+    fs::write(&input_path, "fn main() { let msg = \"test\"; }").unwrap();
+    
+    let config = Config {
+        target: ShellDialect::Posix,
+        verify: VerificationLevel::Basic,
+        emit_proof: false,
+        optimize: true,
+        validation_level: Some(ValidationLevel::Minimal),
+        strict_mode: false,
+    };
+    
+    // Test self-extracting script
+    let result = handle_compile(
+        &input_path,
+        &output_path,
+        CompileRuntime::Dash,
+        true, // self_extracting
+        false, // container
+        ContainerFormatArg::Oci,
+        &config
+    );
+    
+    assert!(result.is_ok());
+    assert!(output_path.exists());
+    
+    // Verify it's executable on Unix
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        let metadata = fs::metadata(&output_path).unwrap();
+        assert_eq!(metadata.permissions().mode() & 0o111, 0o111);
+    }
 }
 
 #[test]

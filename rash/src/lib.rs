@@ -8,9 +8,14 @@ pub mod models;
 pub mod services;
 pub mod validation;
 pub mod verifier;
+pub mod compiler;
+pub mod container;
 
 #[cfg(test)]
 pub mod testing;
+
+#[cfg(feature = "playground")]
+pub mod playground;
 
 pub use models::{Config, Error, Result};
 
