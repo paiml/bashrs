@@ -96,27 +96,74 @@ jobs:
       run: |
         echo "Generating code coverage..."
         cargo llvm-cov --all-features --workspace --lcov --output-path lcov.info
+        cargo llvm-cov --all-features --workspace --html --output-dir coverage-html
         echo "Coverage file size: $(wc -c < lcov.info) bytes"
         echo "Coverage file lines: $(wc -l < lcov.info) lines"
     
-    - name: Upload coverage to Codecov
-      uses: codecov/codecov-action@v4
-      with:
-        token: ${{ secrets.CODECOV_TOKEN }}
-        file: lcov.info
-        flags: unittests
-        name: codecov-umbrella
-        fail_ci_if_error: false
-        verbose: true
+    - name: Parse coverage percentage
+      id: coverage
+      run: |
+        # Extract coverage percentage from LCOV file
+        COVERAGE=$(python3 -c "
+        import re
+        with open('lcov.info', 'r') as f:
+            content = f.read()
+        
+        # Count covered and total lines
+        covered = len(re.findall(r'^DA:\d+,[1-9]\d*', content, re.MULTILINE))
+        total = len(re.findall(r'^DA:\d+,\d+', content, re.MULTILINE))
+        
+        if total > 0:
+            percentage = round((covered / total) * 100, 1)
+            print(f'{percentage}')
+        else:
+            print('0')
+        ")
+        echo "coverage=$COVERAGE" >> $GITHUB_OUTPUT
+        echo "Coverage: $COVERAGE%"
     
-    - name: Upload coverage report artifact
+    - name: Generate coverage badge
+      run: |
+        COVERAGE="${{ steps.coverage.outputs.coverage }}"
+        COLOR="red"
+        if (( $(echo "$COVERAGE >= 80" | bc -l) )); then
+          COLOR="brightgreen"
+        elif (( $(echo "$COVERAGE >= 60" | bc -l) )); then
+          COLOR="yellow"
+        elif (( $(echo "$COVERAGE >= 40" | bc -l) )); then
+          COLOR="orange"
+        fi
+        
+        mkdir -p badges
+        curl -s "https://img.shields.io/badge/coverage-${COVERAGE}%25-${COLOR}" > badges/coverage.svg
+        echo "Generated coverage badge: ${COVERAGE}% (${COLOR})"
+    
+    - name: Deploy to GitHub Pages
+      if: github.ref == 'refs/heads/main'
+      uses: peaceiris/actions-gh-pages@v3
+      with:
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+        publish_dir: ./coverage-html
+        destination_dir: coverage
+    
+    - name: Deploy badges to GitHub Pages
+      if: github.ref == 'refs/heads/main'
+      uses: peaceiris/actions-gh-pages@v3
+      with:
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+        publish_dir: ./badges
+        destination_dir: badges
+        keep_files: true
+    
+    - name: Upload coverage artifacts
       uses: actions/upload-artifact@v4
       if: always()
       with:
         name: coverage-report
         path: |
           lcov.info
-          target/llvm-cov/html/
+          coverage-html/
+          badges/
 
   security:
     name: Security Audit
