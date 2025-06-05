@@ -76,7 +76,8 @@ impl Default for LoaderConfig {
 
 /// Generate loader code for embedding in binary
 pub fn generate_loader_code(config: &LoaderConfig) -> String {
-    format!(r#"
+    format!(
+        r#"
 // Auto-generated loader stub
 #[no_mangle]
 #[link_section = ".rash_loader"]
@@ -86,7 +87,9 @@ pub unsafe extern "C" fn _rash_start() -> ! {{
     let decompressed = decompress(script_data, CompressionType::{:?});
     execute_script(decompressed);
 }}
-"#, config.script_section, config.compression)
+"#,
+        config.script_section, config.compression
+    )
 }
 
 /// Simple zstd decompression for no_std environments
@@ -99,14 +102,14 @@ pub fn decompress_zstd_minimal(_compressed: &[u8], _output: &mut [u8]) -> usize 
 #[cfg(test)]
 mod tests {
     use super::*;
-    
+
     #[test]
     fn test_loader_config_default() {
         let config = LoaderConfig::default();
         assert_eq!(config.script_section, ".rash_script");
         matches!(config.compression, CompressionType::Zstd);
     }
-    
+
     #[test]
     fn test_generate_loader_code() {
         let config = LoaderConfig::default();

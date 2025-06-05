@@ -114,28 +114,28 @@ pub enum Commands {
         #[arg(long)]
         no_vi: bool,
     },
-    
+
     /// Compile to standalone binary
     Compile {
         /// Input Rust source file
         rust_source: PathBuf,
-        
+
         /// Output binary path
         #[arg(short, long)]
         output: PathBuf,
-        
+
         /// Runtime type
         #[arg(long, value_enum, default_value = "dash")]
         runtime: CompileRuntime,
-        
+
         /// Create self-extracting script instead of binary
         #[arg(long)]
         self_extracting: bool,
-        
+
         /// Build distroless container
         #[arg(long)]
         container: bool,
-        
+
         /// Container format
         #[arg(long, value_enum, default_value = "oci")]
         container_format: ContainerFormatArg,

@@ -8,7 +8,7 @@ pub struct DocumentStore {
 
     #[cfg(feature = "playground")]
     syntax_tree: Option<tree_sitter::Tree>,
-    
+
     #[cfg(feature = "playground")]
     parser: IncrementalParser,
 
@@ -92,11 +92,11 @@ impl DocumentStore {
                 old_end_byte: end,
                 new_end_byte: start + text.len(),
             };
-            
+
             // Apply the edit to the rope first
             self.rope.remove(start..end);
             self.rope.insert(start, text);
-            
+
             // Then update the syntax tree incrementally
             let parse_delta = self.parser.apply_edit(tree, &edit, &self.rope)?;
             self.syntax_tree = Some(parse_delta.tree);
@@ -104,12 +104,12 @@ impl DocumentStore {
             // No syntax tree yet, just update the rope
             self.rope.remove(start..end);
             self.rope.insert(start, text);
-            
+
             // Parse from scratch
             let content = self.rope.to_string();
             self.syntax_tree = Some(self.parser.parse_initial(&content)?);
         }
-        
+
         self.version += 1;
         Ok(())
     }

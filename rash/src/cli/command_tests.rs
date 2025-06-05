@@ -1,7 +1,7 @@
 use super::*;
+use crate::cli::args::{CompileRuntime, ContainerFormatArg};
 use crate::models::{ShellDialect, VerificationLevel};
 use crate::validation::ValidationLevel;
-use crate::cli::args::{CompileRuntime, ContainerFormatArg};
 use std::path::PathBuf;
 use tempfile::TempDir;
 
@@ -76,10 +76,10 @@ fn test_compile_command_self_extracting() {
     let temp_dir = TempDir::new().unwrap();
     let input_path = temp_dir.path().join("test.rs");
     let output_path = temp_dir.path().join("test_self_extract.sh");
-    
+
     // Create test input
     fs::write(&input_path, "fn main() { let msg = \"test\"; }").unwrap();
-    
+
     let config = Config {
         target: ShellDialect::Posix,
         verify: VerificationLevel::Basic,
@@ -88,21 +88,21 @@ fn test_compile_command_self_extracting() {
         validation_level: Some(ValidationLevel::Minimal),
         strict_mode: false,
     };
-    
+
     // Test self-extracting script
     let result = handle_compile(
         &input_path,
         &output_path,
         CompileRuntime::Dash,
-        true, // self_extracting
+        true,  // self_extracting
         false, // container
         ContainerFormatArg::Oci,
-        &config
+        &config,
     );
-    
+
     assert!(result.is_ok());
     assert!(output_path.exists());
-    
+
     // Verify it's executable on Unix
     #[cfg(unix)]
     {

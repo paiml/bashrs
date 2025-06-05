@@ -1,7 +1,7 @@
-use proptest::prelude::*;
-use crate::playground::*;
-use crate::playground::session::LayoutStrategy;
 use crate::models::*;
+use crate::playground::session::LayoutStrategy;
+use crate::playground::*;
+use proptest::prelude::*;
 
 /// Generate arbitrary user actions for property testing
 #[derive(Debug, Clone)]
@@ -83,13 +83,13 @@ mod tests {
     use crate::playground::document::DocumentStore;
     use crate::playground::highlighting::SyntaxHighlighter;
     use crate::playground::session::SessionState;
-    
+
     proptest! {
         #[test]
         fn prop_document_store_invariants(actions in prop::collection::vec(arb_user_action(1000), 0..50)) {
             let mut store = DocumentStore::new().unwrap();
             let mut current_pos = 0;
-            
+
             for action in actions {
                 match action {
                     UserAction::TypeText(text) => {
@@ -118,12 +118,12 @@ mod tests {
                     }
                     _ => {} // Other actions don't affect document
                 }
-                
+
                 // Invariants
                 let content = store.get_content();
                 prop_assert!(current_pos <= content.len());
                 prop_assert_eq!(store.get_version() > 0, true);
-                
+
                 #[cfg(feature = "playground")]
                 {
                     let rope = store.get_rope();
@@ -131,16 +131,16 @@ mod tests {
                 }
             }
         }
-        
+
         #[test]
         fn prop_syntax_highlighting_deterministic(text: String) {
             let mut highlighter1 = SyntaxHighlighter::new();
             let mut highlighter2 = SyntaxHighlighter::new();
-            
+
             let line_id = highlighting::LineId(0);
             let tokens1 = highlighter1.highlight_line(&text, line_id);
             let tokens2 = highlighter2.highlight_line(&text, line_id);
-            
+
             // Should produce identical results
             prop_assert_eq!(tokens1.len(), tokens2.len());
             for (t1, t2) in tokens1.iter().zip(tokens2.iter()) {
@@ -150,51 +150,51 @@ mod tests {
                 prop_assert_eq!(t1.style.fg.b, t2.style.fg.b);
             }
         }
-        
+
         #[test]
         fn prop_session_state_roundtrip(source in "[a-zA-Z0-9\\n ]{0,1000}") {
             let mut state = SessionState::new();
             state.document = ropey::Rope::from_str(&source);
-            
+
             // Test file persistence
             let temp_path = std::env::temp_dir().join("test_session.json");
             state.save_to_file(&temp_path).unwrap();
             let loaded = SessionState::load_from_file(&temp_path).unwrap();
-            
+
             prop_assert_eq!(state.document.to_string(), loaded.document.to_string());
             prop_assert_eq!(state.cursor_position.offset, loaded.cursor_position.offset);
-            
+
             // Test URL encoding
             if source.len() < 500 { // URL encoding has size limits
                 let url = state.to_url().unwrap();
                 let restored = SessionState::from_url(&url).unwrap();
-                
+
                 prop_assert_eq!(state.document.to_string(), restored.document.to_string());
             }
-            
+
             // Cleanup
             let _ = std::fs::remove_file(temp_path);
         }
-        
+
         #[test]
         fn prop_transpilation_cancellation(source in "[a-zA-Z0-9\\n ]{0,100}") {
             use std::sync::Arc;
-            
+
             let config = Config::default();
             let mut controller = transpiler::TranspilationController::new(config);
-            
+
             // Create multiple overlapping transpilation requests
             let runtime = tokio::runtime::Builder::new_current_thread()
                 .enable_time()
                 .build()
                 .unwrap();
-            
+
             runtime.block_on(async {
                 let source_arc: Arc<str> = Arc::from(source.as_str());
-                
+
                 // Test that transpilation works
                 let result = controller.transpile_with_cancellation(source_arc.clone(), 1).await;
-                
+
                 // Return result for proptest
                 if result.is_ok() {
                     Ok(())
@@ -203,51 +203,51 @@ mod tests {
                 }
             })?;
         }
-        
+
         #[test]
         fn prop_highlighting_cache_consistency(
             lines in prop::collection::vec("[a-zA-Z0-9 ]{0,50}", 1..20)
         ) {
             let mut highlighter = SyntaxHighlighter::new();
-            
+
             // Highlight all lines twice
             let first_pass: Vec<_> = lines.iter().enumerate()
                 .map(|(i, line)| highlighter.highlight_line(line, highlighting::LineId(i)))
                 .collect();
-            
+
             let second_pass: Vec<_> = lines.iter().enumerate()
                 .map(|(i, line)| highlighter.highlight_line(line, highlighting::LineId(i)))
                 .collect();
-            
+
             // Should get same results (from cache)
             for (tokens1, tokens2) in first_pass.iter().zip(second_pass.iter()) {
                 prop_assert_eq!(tokens1.len(), tokens2.len());
             }
-            
+
             // Invalidate some lines
             highlighter.invalidate_lines(0, lines.len() / 2);
-            
+
             // Third pass should still match for non-invalidated lines
             let third_pass: Vec<_> = lines.iter().enumerate()
                 .map(|(i, line)| highlighter.highlight_line(line, highlighting::LineId(i)))
                 .collect();
-            
+
             for i in (lines.len() / 2 + 1)..lines.len() {
                 prop_assert_eq!(second_pass[i].len(), third_pass[i].len());
             }
         }
-        
+
         #[test]
         fn prop_computation_graph_no_cycles(
             node_count in 1..20usize,
             edge_count in 0..40usize,
         ) {
             let graph = computation::ComputationGraph::new().unwrap();
-            
+
             #[cfg(feature = "playground")]
             {
                 use crate::playground::computation::{ComputeNode, ByteRange};
-                
+
                 // Add nodes
                 let node_ids: Vec<_> = (0..node_count)
                     .map(|i| {
@@ -258,7 +258,7 @@ mod tests {
                         graph.add_node(node)
                     })
                     .collect();
-                
+
                 // Add random edges (avoiding cycles by only adding forward edges)
                 for _ in 0..edge_count {
                     let from = node_ids[0];
@@ -267,7 +267,7 @@ mod tests {
                         let _ = graph.add_dependency(from, to);
                     }
                 }
-                
+
                 // Process should not hang (no cycles)
                 let result = graph.process_pending();
                 prop_assert!(result.is_ok());

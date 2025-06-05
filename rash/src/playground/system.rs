@@ -294,7 +294,7 @@ impl PlaygroundSystem {
         // TODO: Get actual transpiled output from computation graph
         "// Transpiled shell output will appear here\necho \"Hello, World!\"".to_string()
     }
-    
+
     /// Get access to document content for testing
     #[cfg(test)]
     pub fn get_document_content(&self) -> String {

@@ -1,3 +1,3 @@
 pub mod distroless;
 
-pub use distroless::{DistrolessBuilder, ContainerFormat};
+pub use distroless::{ContainerFormat, DistrolessBuilder};
