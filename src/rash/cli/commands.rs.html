@@ -1,4 +1,4 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `rash/src/cli/commands.rs`."><title>commands.rs - source</title><script>if(window.location.protocol!=="file:")document.head.insertAdjacentHTML("beforeend","SourceSerif4-Regular-6b053e98.ttf.woff2,FiraSans-Italic-81dc35de.woff2,FiraSans-Regular-0fe48ade.woff2,FiraSans-MediumItalic-ccf7e434.woff2,FiraSans-Medium-e1aa3f0a.woff2,SourceCodePro-Regular-8badfe75.ttf.woff2,SourceCodePro-Semibold-aa29a496.ttf.woff2".split(",").map(f=>`<link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/${f}">`).join(""))</script><link rel="stylesheet" href="../../../static.files/normalize-9960930a.css"><link rel="stylesheet" href="../../../static.files/rustdoc-916cea96.css"><meta name="rustdoc-vars" data-root-path="../../../" data-static-root-path="../../../static.files/" data-current-crate="rash" data-themes="" data-resource-suffix="" data-rustdoc-version="1.87.0 (17067e9ac 2025-05-09)" data-channel="1.87.0" data-search-js="search-e7298875.js" data-settings-js="settings-d72f25bb.js" ><script src="../../../static.files/storage-82c7156e.js"></script><script defer src="../../../static.files/src-script-63605ae7.js"></script><script defer src="../../../src-files.js"></script><script defer src="../../../static.files/main-fb8c74a8.js"></script><noscript><link rel="stylesheet" href="../../../static.files/noscript-893ab5e7.css"></noscript><link rel="alternate icon" type="image/png" href="../../../static.files/favicon-32x32-6580c154.png"><link rel="icon" type="image/svg+xml" href="../../../static.files/favicon-044be391.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"><div class="src-sidebar-title"><h2>Files</h2></div></nav><div class="sidebar-resizer"></div><main><rustdoc-search></rustdoc-search><section id="main-content" class="content"><div class="main-heading"><h1><div class="sub-heading">rash/cli/</div>commands.rs</h1><rustdoc-toolbar></rustdoc-toolbar></div><div class="example-wrap digits-3"><pre class="rust"><code><a href=#1 id=1 data-nosnippet>1</a><span class="kw">use </span><span class="kw">crate</span>::cli::args::{InspectionFormat, CompileRuntime, ContainerFormatArg};
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `rash/src/cli/commands.rs`."><title>commands.rs - source</title><script>if(window.location.protocol!=="file:")document.head.insertAdjacentHTML("beforeend","SourceSerif4-Regular-6b053e98.ttf.woff2,FiraSans-Italic-81dc35de.woff2,FiraSans-Regular-0fe48ade.woff2,FiraSans-MediumItalic-ccf7e434.woff2,FiraSans-Medium-e1aa3f0a.woff2,SourceCodePro-Regular-8badfe75.ttf.woff2,SourceCodePro-Semibold-aa29a496.ttf.woff2".split(",").map(f=>`<link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/${f}">`).join(""))</script><link rel="stylesheet" href="../../../static.files/normalize-9960930a.css"><link rel="stylesheet" href="../../../static.files/rustdoc-916cea96.css"><meta name="rustdoc-vars" data-root-path="../../../" data-static-root-path="../../../static.files/" data-current-crate="rash" data-themes="" data-resource-suffix="" data-rustdoc-version="1.87.0 (17067e9ac 2025-05-09)" data-channel="1.87.0" data-search-js="search-e7298875.js" data-settings-js="settings-d72f25bb.js" ><script src="../../../static.files/storage-82c7156e.js"></script><script defer src="../../../static.files/src-script-63605ae7.js"></script><script defer src="../../../src-files.js"></script><script defer src="../../../static.files/main-fb8c74a8.js"></script><noscript><link rel="stylesheet" href="../../../static.files/noscript-893ab5e7.css"></noscript><link rel="alternate icon" type="image/png" href="../../../static.files/favicon-32x32-6580c154.png"><link rel="icon" type="image/svg+xml" href="../../../static.files/favicon-044be391.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"><div class="src-sidebar-title"><h2>Files</h2></div></nav><div class="sidebar-resizer"></div><main><rustdoc-search></rustdoc-search><section id="main-content" class="content"><div class="main-heading"><h1><div class="sub-heading">rash/cli/</div>commands.rs</h1><rustdoc-toolbar></rustdoc-toolbar></div><div class="example-wrap digits-3"><pre class="rust"><code><a href=#1 id=1 data-nosnippet>1</a><span class="kw">use </span><span class="kw">crate</span>::cli::args::{CompileRuntime, ContainerFormatArg, InspectionFormat};
 <a href=#2 id=2 data-nosnippet>2</a><span class="kw">use </span><span class="kw">crate</span>::cli::{Cli, Commands};
 <a href=#3 id=3 data-nosnippet>3</a><span class="kw">use </span><span class="kw">crate</span>::models::{Config, Error, <span class="prelude-ty">Result</span>};
 <a href=#4 id=4 data-nosnippet>4</a><span class="kw">use crate</span>::{check, transpile};
@@ -74,14 +74,14 @@
 <a href=#74 id=74 data-nosnippet>74</a>            <span class="macro">info!</span>(<span class="string">"Generating inspection report for: {}"</span>, input);
 <a href=#75 id=75 data-nosnippet>75</a>            inspect_command(<span class="kw-2">&amp;</span>input, format, output.as_deref(), detailed)
 <a href=#76 id=76 data-nosnippet>76</a>        }
-<a href=#77 id=77 data-nosnippet>77</a>        
-<a href=#78 id=78 data-nosnippet>78</a>        Commands::Compile { 
-<a href=#79 id=79 data-nosnippet>79</a>            rust_source, 
-<a href=#80 id=80 data-nosnippet>80</a>            output, 
-<a href=#81 id=81 data-nosnippet>81</a>            runtime, 
-<a href=#82 id=82 data-nosnippet>82</a>            self_extracting, 
+<a href=#77 id=77 data-nosnippet>77</a>
+<a href=#78 id=78 data-nosnippet>78</a>        Commands::Compile {
+<a href=#79 id=79 data-nosnippet>79</a>            rust_source,
+<a href=#80 id=80 data-nosnippet>80</a>            output,
+<a href=#81 id=81 data-nosnippet>81</a>            runtime,
+<a href=#82 id=82 data-nosnippet>82</a>            self_extracting,
 <a href=#83 id=83 data-nosnippet>83</a>            container,
-<a href=#84 id=84 data-nosnippet>84</a>            container_format 
+<a href=#84 id=84 data-nosnippet>84</a>            container_format,
 <a href=#85 id=85 data-nosnippet>85</a>        } =&gt; {
 <a href=#86 id=86 data-nosnippet>86</a>            <span class="kw">let </span>config = Config {
 <a href=#87 id=87 data-nosnippet>87</a>                target: cli.target,
@@ -91,7 +91,7 @@
 <a href=#91 id=91 data-nosnippet>91</a>                validation_level: <span class="prelude-val">Some</span>(cli.validation),
 <a href=#92 id=92 data-nosnippet>92</a>                strict_mode: cli.strict,
 <a href=#93 id=93 data-nosnippet>93</a>            };
-<a href=#94 id=94 data-nosnippet>94</a>            
+<a href=#94 id=94 data-nosnippet>94</a>
 <a href=#95 id=95 data-nosnippet>95</a>            handle_compile(
 <a href=#96 id=96 data-nosnippet>96</a>                <span class="kw-2">&amp;</span>rust_source,
 <a href=#97 id=97 data-nosnippet>97</a>                <span class="kw-2">&amp;</span>output,
@@ -99,7 +99,7 @@
 <a href=#99 id=99 data-nosnippet>99</a>                self_extracting,
 <a href=#100 id=100 data-nosnippet>100</a>                container,
 <a href=#101 id=101 data-nosnippet>101</a>                container_format,
-<a href=#102 id=102 data-nosnippet>102</a>                <span class="kw-2">&amp;</span>config
+<a href=#102 id=102 data-nosnippet>102</a>                <span class="kw-2">&amp;</span>config,
 <a href=#103 id=103 data-nosnippet>103</a>            )
 <a href=#104 id=104 data-nosnippet>104</a>        }
 <a href=#105 id=105 data-nosnippet>105</a>
@@ -472,68 +472,74 @@
 <a href=#472 id=472 data-nosnippet>472</a>    container_format: ContainerFormatArg,
 <a href=#473 id=473 data-nosnippet>473</a>    config: <span class="kw-2">&amp;</span>Config,
 <a href=#474 id=474 data-nosnippet>474</a>) -&gt; <span class="prelude-ty">Result</span>&lt;()&gt; {
-<a href=#475 id=475 data-nosnippet>475</a>    <span class="kw">use </span><span class="kw">crate</span>::compiler::{BinaryCompiler, RuntimeType, create_self_extracting_script};
-<a href=#476 id=476 data-nosnippet>476</a>    <span class="kw">use </span><span class="kw">crate</span>::container::{DistrolessBuilder, ContainerFormat};
-<a href=#477 id=477 data-nosnippet>477</a>    
-<a href=#478 id=478 data-nosnippet>478</a>    <span class="macro">info!</span>(<span class="string">"Compiling {} to {}"</span>, rust_source.display(), output.display());
-<a href=#479 id=479 data-nosnippet>479</a>    
-<a href=#480 id=480 data-nosnippet>480</a>    <span class="comment">// Read and transpile the source
-<a href=#481 id=481 data-nosnippet>481</a>    </span><span class="kw">let </span>source = fs::read_to_string(rust_source).map_err(Error::Io)<span class="question-mark">?</span>;
-<a href=#482 id=482 data-nosnippet>482</a>    <span class="kw">let </span>shell_code = transpile(<span class="kw-2">&amp;</span>source, config.clone())<span class="question-mark">?</span>;
-<a href=#483 id=483 data-nosnippet>483</a>    
-<a href=#484 id=484 data-nosnippet>484</a>    <span class="kw">if </span>self_extracting {
-<a href=#485 id=485 data-nosnippet>485</a>        <span class="comment">// Create self-extracting script
-<a href=#486 id=486 data-nosnippet>486</a>        </span>create_self_extracting_script(<span class="kw-2">&amp;</span>shell_code, output.to_str().unwrap())<span class="question-mark">?</span>;
-<a href=#487 id=487 data-nosnippet>487</a>        <span class="macro">info!</span>(<span class="string">"Created self-extracting script at {}"</span>, output.display());
-<a href=#488 id=488 data-nosnippet>488</a>    } <span class="kw">else if </span>container {
-<a href=#489 id=489 data-nosnippet>489</a>        <span class="comment">// Create container image
-<a href=#490 id=490 data-nosnippet>490</a>        </span><span class="kw">let </span>runtime_type = <span class="kw">match </span>runtime {
-<a href=#491 id=491 data-nosnippet>491</a>            CompileRuntime::Dash =&gt; RuntimeType::Dash,
-<a href=#492 id=492 data-nosnippet>492</a>            CompileRuntime::Busybox =&gt; RuntimeType::Busybox,
-<a href=#493 id=493 data-nosnippet>493</a>            CompileRuntime::Minimal =&gt; RuntimeType::Minimal,
-<a href=#494 id=494 data-nosnippet>494</a>        };
-<a href=#495 id=495 data-nosnippet>495</a>        
-<a href=#496 id=496 data-nosnippet>496</a>        <span class="kw">let </span>compiler = BinaryCompiler::new(runtime_type);
-<a href=#497 id=497 data-nosnippet>497</a>        <span class="kw">let </span>binary = compiler.compile(<span class="kw-2">&amp;</span>shell_code)<span class="question-mark">?</span>;
-<a href=#498 id=498 data-nosnippet>498</a>        
-<a href=#499 id=499 data-nosnippet>499</a>        <span class="kw">let </span>format = <span class="kw">match </span>container_format {
-<a href=#500 id=500 data-nosnippet>500</a>            ContainerFormatArg::Oci =&gt; ContainerFormat::OCI,
-<a href=#501 id=501 data-nosnippet>501</a>            ContainerFormatArg::Docker =&gt; ContainerFormat::Docker,
-<a href=#502 id=502 data-nosnippet>502</a>        };
-<a href=#503 id=503 data-nosnippet>503</a>        
-<a href=#504 id=504 data-nosnippet>504</a>        <span class="kw">let </span>builder = DistrolessBuilder::new(binary).with_format(format);
-<a href=#505 id=505 data-nosnippet>505</a>        <span class="kw">let </span>container_data = builder.build()<span class="question-mark">?</span>;
-<a href=#506 id=506 data-nosnippet>506</a>        
-<a href=#507 id=507 data-nosnippet>507</a>        fs::write(output, container_data).map_err(Error::Io)<span class="question-mark">?</span>;
-<a href=#508 id=508 data-nosnippet>508</a>        <span class="macro">info!</span>(<span class="string">"Created container image at {}"</span>, output.display());
-<a href=#509 id=509 data-nosnippet>509</a>    } <span class="kw">else </span>{
-<a href=#510 id=510 data-nosnippet>510</a>        <span class="comment">// Create standalone binary (not fully implemented)
-<a href=#511 id=511 data-nosnippet>511</a>        </span><span class="macro">warn!</span>(<span class="string">"Binary compilation not yet fully implemented, creating self-extracting script instead"</span>);
-<a href=#512 id=512 data-nosnippet>512</a>        create_self_extracting_script(<span class="kw-2">&amp;</span>shell_code, output.to_str().unwrap())<span class="question-mark">?</span>;
-<a href=#513 id=513 data-nosnippet>513</a>    }
-<a href=#514 id=514 data-nosnippet>514</a>    
-<a href=#515 id=515 data-nosnippet>515</a>    <span class="prelude-val">Ok</span>(())
-<a href=#516 id=516 data-nosnippet>516</a>}
-<a href=#517 id=517 data-nosnippet>517</a>
-<a href=#518 id=518 data-nosnippet>518</a><span class="attr">#[cfg(feature = <span class="string">"playground"</span>)]
-<a href=#519 id=519 data-nosnippet>519</a></span><span class="kw">fn </span>playground_command(file: <span class="prelude-ty">Option</span>&lt;<span class="kw-2">&amp;</span>Path&gt;, restore: <span class="prelude-ty">Option</span>&lt;<span class="kw-2">&amp;</span>str&gt;, vi_mode: bool) -&gt; <span class="prelude-ty">Result</span>&lt;()&gt; {
-<a href=#520 id=520 data-nosnippet>520</a>    <span class="kw">use </span><span class="kw">crate</span>::playground::PlaygroundSystem;
-<a href=#521 id=521 data-nosnippet>521</a>
-<a href=#522 id=522 data-nosnippet>522</a>    <span class="kw">let </span><span class="kw-2">mut </span>playground = PlaygroundSystem::new(vi_mode)<span class="question-mark">?</span>;
+<a href=#475 id=475 data-nosnippet>475</a>    <span class="kw">use </span><span class="kw">crate</span>::compiler::{create_self_extracting_script, BinaryCompiler, RuntimeType};
+<a href=#476 id=476 data-nosnippet>476</a>    <span class="kw">use </span><span class="kw">crate</span>::container::{ContainerFormat, DistrolessBuilder};
+<a href=#477 id=477 data-nosnippet>477</a>
+<a href=#478 id=478 data-nosnippet>478</a>    <span class="macro">info!</span>(
+<a href=#479 id=479 data-nosnippet>479</a>        <span class="string">"Compiling {} to {}"</span>,
+<a href=#480 id=480 data-nosnippet>480</a>        rust_source.display(),
+<a href=#481 id=481 data-nosnippet>481</a>        output.display()
+<a href=#482 id=482 data-nosnippet>482</a>    );
+<a href=#483 id=483 data-nosnippet>483</a>
+<a href=#484 id=484 data-nosnippet>484</a>    <span class="comment">// Read and transpile the source
+<a href=#485 id=485 data-nosnippet>485</a>    </span><span class="kw">let </span>source = fs::read_to_string(rust_source).map_err(Error::Io)<span class="question-mark">?</span>;
+<a href=#486 id=486 data-nosnippet>486</a>    <span class="kw">let </span>shell_code = transpile(<span class="kw-2">&amp;</span>source, config.clone())<span class="question-mark">?</span>;
+<a href=#487 id=487 data-nosnippet>487</a>
+<a href=#488 id=488 data-nosnippet>488</a>    <span class="kw">if </span>self_extracting {
+<a href=#489 id=489 data-nosnippet>489</a>        <span class="comment">// Create self-extracting script
+<a href=#490 id=490 data-nosnippet>490</a>        </span>create_self_extracting_script(<span class="kw-2">&amp;</span>shell_code, output.to_str().unwrap())<span class="question-mark">?</span>;
+<a href=#491 id=491 data-nosnippet>491</a>        <span class="macro">info!</span>(<span class="string">"Created self-extracting script at {}"</span>, output.display());
+<a href=#492 id=492 data-nosnippet>492</a>    } <span class="kw">else if </span>container {
+<a href=#493 id=493 data-nosnippet>493</a>        <span class="comment">// Create container image
+<a href=#494 id=494 data-nosnippet>494</a>        </span><span class="kw">let </span>runtime_type = <span class="kw">match </span>runtime {
+<a href=#495 id=495 data-nosnippet>495</a>            CompileRuntime::Dash =&gt; RuntimeType::Dash,
+<a href=#496 id=496 data-nosnippet>496</a>            CompileRuntime::Busybox =&gt; RuntimeType::Busybox,
+<a href=#497 id=497 data-nosnippet>497</a>            CompileRuntime::Minimal =&gt; RuntimeType::Minimal,
+<a href=#498 id=498 data-nosnippet>498</a>        };
+<a href=#499 id=499 data-nosnippet>499</a>
+<a href=#500 id=500 data-nosnippet>500</a>        <span class="kw">let </span>compiler = BinaryCompiler::new(runtime_type);
+<a href=#501 id=501 data-nosnippet>501</a>        <span class="kw">let </span>binary = compiler.compile(<span class="kw-2">&amp;</span>shell_code)<span class="question-mark">?</span>;
+<a href=#502 id=502 data-nosnippet>502</a>
+<a href=#503 id=503 data-nosnippet>503</a>        <span class="kw">let </span>format = <span class="kw">match </span>container_format {
+<a href=#504 id=504 data-nosnippet>504</a>            ContainerFormatArg::Oci =&gt; ContainerFormat::OCI,
+<a href=#505 id=505 data-nosnippet>505</a>            ContainerFormatArg::Docker =&gt; ContainerFormat::Docker,
+<a href=#506 id=506 data-nosnippet>506</a>        };
+<a href=#507 id=507 data-nosnippet>507</a>
+<a href=#508 id=508 data-nosnippet>508</a>        <span class="kw">let </span>builder = DistrolessBuilder::new(binary).with_format(format);
+<a href=#509 id=509 data-nosnippet>509</a>        <span class="kw">let </span>container_data = builder.build()<span class="question-mark">?</span>;
+<a href=#510 id=510 data-nosnippet>510</a>
+<a href=#511 id=511 data-nosnippet>511</a>        fs::write(output, container_data).map_err(Error::Io)<span class="question-mark">?</span>;
+<a href=#512 id=512 data-nosnippet>512</a>        <span class="macro">info!</span>(<span class="string">"Created container image at {}"</span>, output.display());
+<a href=#513 id=513 data-nosnippet>513</a>    } <span class="kw">else </span>{
+<a href=#514 id=514 data-nosnippet>514</a>        <span class="comment">// Create standalone binary (not fully implemented)
+<a href=#515 id=515 data-nosnippet>515</a>        </span><span class="macro">warn!</span>(
+<a href=#516 id=516 data-nosnippet>516</a>            <span class="string">"Binary compilation not yet fully implemented, creating self-extracting script instead"
+<a href=#517 id=517 data-nosnippet>517</a>        </span>);
+<a href=#518 id=518 data-nosnippet>518</a>        create_self_extracting_script(<span class="kw-2">&amp;</span>shell_code, output.to_str().unwrap())<span class="question-mark">?</span>;
+<a href=#519 id=519 data-nosnippet>519</a>    }
+<a href=#520 id=520 data-nosnippet>520</a>
+<a href=#521 id=521 data-nosnippet>521</a>    <span class="prelude-val">Ok</span>(())
+<a href=#522 id=522 data-nosnippet>522</a>}
 <a href=#523 id=523 data-nosnippet>523</a>
-<a href=#524 id=524 data-nosnippet>524</a>    <span class="comment">// Load initial file if provided
-<a href=#525 id=525 data-nosnippet>525</a>    </span><span class="kw">if let </span><span class="prelude-val">Some</span>(path) = file {
-<a href=#526 id=526 data-nosnippet>526</a>        <span class="kw">let </span>content = fs::read_to_string(path).map_err(Error::Io)<span class="question-mark">?</span>;
-<a href=#527 id=527 data-nosnippet>527</a>        playground.load_content(<span class="kw-2">&amp;</span>content)<span class="question-mark">?</span>;
-<a href=#528 id=528 data-nosnippet>528</a>    }
+<a href=#524 id=524 data-nosnippet>524</a><span class="attr">#[cfg(feature = <span class="string">"playground"</span>)]
+<a href=#525 id=525 data-nosnippet>525</a></span><span class="kw">fn </span>playground_command(file: <span class="prelude-ty">Option</span>&lt;<span class="kw-2">&amp;</span>Path&gt;, restore: <span class="prelude-ty">Option</span>&lt;<span class="kw-2">&amp;</span>str&gt;, vi_mode: bool) -&gt; <span class="prelude-ty">Result</span>&lt;()&gt; {
+<a href=#526 id=526 data-nosnippet>526</a>    <span class="kw">use </span><span class="kw">crate</span>::playground::PlaygroundSystem;
+<a href=#527 id=527 data-nosnippet>527</a>
+<a href=#528 id=528 data-nosnippet>528</a>    <span class="kw">let </span><span class="kw-2">mut </span>playground = PlaygroundSystem::new(vi_mode)<span class="question-mark">?</span>;
 <a href=#529 id=529 data-nosnippet>529</a>
-<a href=#530 id=530 data-nosnippet>530</a>    <span class="comment">// Restore session state if provided
-<a href=#531 id=531 data-nosnippet>531</a>    </span><span class="kw">if let </span><span class="prelude-val">Some</span>(url) = restore {
-<a href=#532 id=532 data-nosnippet>532</a>        playground.restore_from_url(url)<span class="question-mark">?</span>;
-<a href=#533 id=533 data-nosnippet>533</a>    }
-<a href=#534 id=534 data-nosnippet>534</a>
-<a href=#535 id=535 data-nosnippet>535</a>    <span class="comment">// Run the playground
-<a href=#536 id=536 data-nosnippet>536</a>    </span>playground.run()<span class="question-mark">?</span>;
-<a href=#537 id=537 data-nosnippet>537</a>
-<a href=#538 id=538 data-nosnippet>538</a>    <span class="prelude-val">Ok</span>(())
-<a href=#539 id=539 data-nosnippet>539</a>}</code></pre></div></section></main></body></html>
+<a href=#530 id=530 data-nosnippet>530</a>    <span class="comment">// Load initial file if provided
+<a href=#531 id=531 data-nosnippet>531</a>    </span><span class="kw">if let </span><span class="prelude-val">Some</span>(path) = file {
+<a href=#532 id=532 data-nosnippet>532</a>        <span class="kw">let </span>content = fs::read_to_string(path).map_err(Error::Io)<span class="question-mark">?</span>;
+<a href=#533 id=533 data-nosnippet>533</a>        playground.load_content(<span class="kw-2">&amp;</span>content)<span class="question-mark">?</span>;
+<a href=#534 id=534 data-nosnippet>534</a>    }
+<a href=#535 id=535 data-nosnippet>535</a>
+<a href=#536 id=536 data-nosnippet>536</a>    <span class="comment">// Restore session state if provided
+<a href=#537 id=537 data-nosnippet>537</a>    </span><span class="kw">if let </span><span class="prelude-val">Some</span>(url) = restore {
+<a href=#538 id=538 data-nosnippet>538</a>        playground.restore_from_url(url)<span class="question-mark">?</span>;
+<a href=#539 id=539 data-nosnippet>539</a>    }
+<a href=#540 id=540 data-nosnippet>540</a>
+<a href=#541 id=541 data-nosnippet>541</a>    <span class="comment">// Run the playground
+<a href=#542 id=542 data-nosnippet>542</a>    </span>playground.run()<span class="question-mark">?</span>;
+<a href=#543 id=543 data-nosnippet>543</a>
+<a href=#544 id=544 data-nosnippet>544</a>    <span class="prelude-val">Ok</span>(())
+<a href=#545 id=545 data-nosnippet>545</a>}</code></pre></div></section></main></body></html>
