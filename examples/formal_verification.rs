@@ -4,19 +4,19 @@
 fn main() {
     // Demonstrate formal verification patterns
     let install_dir = "/opt/rash";
-    
+
     // Verify preconditions
     verify_preconditions();
-    
+
     // Create directories with verification
     create_verified_directory(install_dir);
-    
+
     // Download with verification
     download_with_verification();
-    
+
     // Install with formal checks
     install_with_verification(install_dir);
-    
+
     // Verify postconditions
     verify_postconditions();
 }
