@@ -13,7 +13,9 @@ pub mod generators {
     use super::*;
 
     pub fn any_valid_identifier() -> impl Strategy<Value = String> {
-        "[a-zA-Z_][a-zA-Z0-9_]{0,20}"
+        "[a-zA-Z_][a-zA-Z0-9_]{0,20}".prop_filter("Avoid reserved identifiers", |s| {
+            s != "_" && s != "main" && !s.starts_with("__") && s.len() > 0
+        })
     }
 
     pub fn any_safe_string() -> impl Strategy<Value = String> {
@@ -122,6 +124,15 @@ pub mod generators {
         prop::collection::vec(any_function(), 1..3).prop_map(|mut functions| {
             // Ensure we have a main function
             functions[0].name = "main".to_string();
+            
+            // Ensure other function names are valid (not "_" which is reserved)
+            for i in 1..functions.len() {
+                let name = &functions[i].name;
+                if name == "_" || name == "main" || name.starts_with("__") {
+                    functions[i].name = format!("func_{}", i);
+                }
+            }
+            
             RestrictedAst {
                 functions,
                 entry_point: "main".to_string(),

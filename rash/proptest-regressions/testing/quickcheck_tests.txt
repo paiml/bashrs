@@ -6,3 +6,4 @@
 # everyone who runs the test benefits from these saved cases.
 cc 99a631b283de445f92cca583c00949ad666e07c0b858c33ddb874bd23e361b6d # shrinks to s = "a"
 cc b41e4233b7f5aaed6e715460d102e7904c878d82d78e44a4902b9c7cc61dd281 # shrinks to name = "_"
+cc d1cd836f14f7fcb29ad1899ac36247ba39c941c5686bf75468cacaf7d69d1030 # shrinks to ast = RestrictedAst { functions: [Function { name: "main", params: [], return_type: Void, body: [] }, Function { name: "_", params: [], return_type: Void, body: [Let { name: "a", value: FunctionCall { name: "_", args: [] } }] }], entry_point: "main" }
