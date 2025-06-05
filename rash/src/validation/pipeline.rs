@@ -80,9 +80,79 @@ impl ValidationPipeline {
         Ok(())
     }
 
-    fn validate_expr(&self, _expr: &crate::ast::Expr) -> RashResult<()> {
-        // TODO: Implement expression validation
-        Ok(())
+    fn validate_expr(&self, expr: &crate::ast::Expr) -> RashResult<()> {
+        use crate::ast::Expr;
+        
+        match expr {
+            Expr::Literal(_) => Ok(()),
+            Expr::Variable(name) => {
+                // Validate variable names
+                if name.is_empty() {
+                    return Err(RashError::ValidationError(
+                        "Empty variable name".to_string(),
+                    ));
+                }
+                if name.contains(char::is_whitespace) {
+                    return Err(RashError::ValidationError(
+                        format!("Variable name '{}' contains whitespace", name),
+                    ));
+                }
+                Ok(())
+            }
+            Expr::Binary { left, right, .. } => {
+                self.validate_expr(left)?;
+                self.validate_expr(right)?;
+                Ok(())
+            }
+            Expr::Unary { operand, .. } => {
+                self.validate_expr(operand)?;
+                Ok(())
+            }
+            Expr::FunctionCall { name, args } => {
+                if name.is_empty() {
+                    return Err(RashError::ValidationError(
+                        "Empty function name".to_string(),
+                    ));
+                }
+                for arg in args {
+                    self.validate_expr(arg)?;
+                }
+                Ok(())
+            }
+            Expr::MethodCall { receiver, method, args } => {
+                if method.is_empty() {
+                    return Err(RashError::ValidationError(
+                        "Empty method name".to_string(),
+                    ));
+                }
+                self.validate_expr(receiver)?;
+                for arg in args {
+                    self.validate_expr(arg)?;
+                }
+                Ok(())
+            }
+            Expr::Array(items) => {
+                for item in items {
+                    self.validate_expr(item)?;
+                }
+                Ok(())
+            }
+            Expr::Index { object, index } => {
+                self.validate_expr(object)?;
+                self.validate_expr(index)?;
+                Ok(())
+            }
+            Expr::Try { expr } => {
+                self.validate_expr(expr)?;
+                Ok(())
+            }
+            Expr::Block(stmts) => {
+                for stmt in stmts {
+                    self.validate_stmt(stmt)?;
+                }
+                Ok(())
+            }
+        }
     }
 
     fn validate_ir_recursive(&self, ir: &ShellIR) -> RashResult<()> {
@@ -144,7 +214,7 @@ impl ValidationPipeline {
     }
 
     #[allow(dead_code)]
-    fn validate_expression(&self, expr: &crate::ir::ShellExpression) -> RashResult<()> {
+    pub(crate) fn validate_expression(&self, expr: &crate::ir::ShellExpression) -> RashResult<()> {
         use crate::ir::ShellExpression;
 
         match expr {
@@ -162,7 +232,8 @@ impl ValidationPipeline {
                     ));
                 }
             }
-            _ => {}
+            ShellExpression::String(_) => {}
+            ShellExpression::Arithmetic(_) => {}
         }
         Ok(())
     }

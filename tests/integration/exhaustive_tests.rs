@@ -4,10 +4,79 @@
 use rash::models::{Config, ShellDialect, VerificationLevel};
 use rash::transpile;
 
-#[test]
-fn test_sqlite_style_exhaustive_suite() {
-    // Test with various configurations
-    let configs = vec![
+// Test case definition for better organization
+struct TestCase {
+    code: &'static str,
+    should_succeed: bool,
+    description: &'static str,
+}
+
+impl TestCase {
+    fn new(code: &'static str, should_succeed: bool, description: &'static str) -> Self {
+        TestCase {
+            code,
+            should_succeed,
+            description,
+        }
+    }
+}
+
+// Test runner helper to reduce duplication
+struct TestRunner {
+    total: usize,
+    passed: usize,
+}
+
+impl TestRunner {
+    fn new() -> Self {
+        TestRunner { total: 0, passed: 0 }
+    }
+
+    fn run_test(&mut self, code: &str, config: &Config, expected: bool) -> bool {
+        self.total += 1;
+        let result = transpile(code, config.clone());
+        let success = result.is_ok() == expected;
+        if success {
+            self.passed += 1;
+        }
+        success
+    }
+
+    fn run_test_case(&mut self, test_case: &TestCase, config: &Config) {
+        if !self.run_test(test_case.code, config, test_case.should_succeed) {
+            println!(
+                "FAILED: {} - code='{}' expected={} actual={}",
+                test_case.description,
+                &test_case.code[..test_case.code.len().min(50)],
+                test_case.should_succeed,
+                !test_case.should_succeed
+            );
+        }
+    }
+
+    fn success_rate(&self) -> f64 {
+        (self.passed as f64 / self.total as f64) * 100.0
+    }
+
+    fn assert_success_rate(&self, min_rate: f64, test_name: &str) {
+        let rate = self.success_rate();
+        assert!(
+            rate >= min_rate,
+            "{} success rate below standard: {:.1}% (expected >= {:.1}%)",
+            test_name,
+            rate,
+            min_rate
+        );
+        println!(
+            "✅ {}: {}/{} passed ({:.1}%)",
+            test_name, self.passed, self.total, rate
+        );
+    }
+}
+
+// Configuration sets for testing
+fn get_test_configs() -> Vec<Config> {
+    vec![
         Config::default(),
         Config {
             verify: VerificationLevel::Strict,
@@ -19,188 +88,119 @@ fn test_sqlite_style_exhaustive_suite() {
             target: ShellDialect::Bash,
             ..Default::default()
         },
-    ];
+    ]
+}
 
-    let mut total_tests = 0;
-    let mut passed_tests = 0;
-
-    // Test various edge cases
+#[test]
+fn test_sqlite_style_exhaustive_suite() {
     let test_cases = vec![
         // Empty and minimal
-        ("", false),
-        ("fn main() {}", true),
-        ("fn main() { let x = 42; }", true),
+        TestCase::new("", false, "empty input"),
+        TestCase::new("fn main() {}", true, "empty main"),
+        TestCase::new("fn main() { let x = 42; }", true, "simple assignment"),
         // Complex expressions
-        ("fn main() { let x = 1 + 2 * 3 - 4; }", true),
-        (
+        TestCase::new("fn main() { let x = 1 + 2 * 3 - 4; }", true, "arithmetic"),
+        TestCase::new(
             "fn main() { let s = \"hello\" + \" \" + \"world\"; }",
             false,
-        ), // String concat not supported this way
+            "string concat not supported",
+        ),
         // Function calls
-        ("fn main() { echo(\"test\"); } fn echo(msg: &str) {}", true),
-        (
+        TestCase::new(
+            "fn main() { echo(\"test\"); } fn echo(msg: &str) {}",
+            true,
+            "function call",
+        ),
+        TestCase::new(
             "fn main() { let r = add(1, 2); } fn add(a: i32, b: i32) -> i32 { a + b }",
             true,
+            "function with return",
         ),
         // Edge cases
-        ("fn main() { let x = -2147483648; }", true), // Min i32
-        ("fn main() { let x = 2147483647; }", true),  // Max i32
-        ("fn main() { let x = \"a\".repeat(1000); }", false), // String method not supported
+        TestCase::new("fn main() { let x = -2147483648; }", true, "min i32"),
+        TestCase::new("fn main() { let x = 2147483647; }", true, "max i32"),
+        TestCase::new(
+            "fn main() { let x = \"a\".repeat(1000); }",
+            false,
+            "unsupported method",
+        ),
     ];
 
-    for config in configs {
-        for (code, should_succeed) in &test_cases {
-            total_tests += 1;
-            let result = transpile(code, config.clone());
-            if result.is_ok() == *should_succeed {
-                passed_tests += 1;
-            } else {
-                println!(
-                    "SQLite test failed: code='{}' expected={} actual={}",
-                    &code[..code.len().min(50)],
-                    should_succeed,
-                    result.is_ok()
-                );
-                if let Err(e) = result {
-                    println!("  Error: {}", e);
-                }
-            }
+    let mut runner = TestRunner::new();
+    for config in get_test_configs() {
+        for test_case in &test_cases {
+            runner.run_test_case(test_case, &config);
         }
     }
 
-    let success_rate = (passed_tests as f64 / total_tests as f64) * 100.0;
-
-    println!("🚀 SQLite-style exhaustive testing completed!");
-    println!("   Tests executed: {}", total_tests);
-    println!("   Success rate: {:.2}%", success_rate);
-
-    assert!(
-        total_tests >= 30,
-        "Insufficient test coverage: {}",
-        total_tests
-    );
-    assert!(
-        success_rate >= 80.0,
-        "Success rate below standard: {:.1}%",
-        success_rate
-    );
+    runner.assert_success_rate(80.0, "SQLite-style exhaustive testing");
 }
 
 #[test]
 fn test_boundary_conditions_comprehensive() {
-    let config = Config::default();
-
-    // Test various boundary conditions
-    let boundary_tests = vec![
+    let test_cases = vec![
         // Variable name lengths
-        ("fn main() { let x = 1; }", true),
-        (
+        TestCase::new("fn main() { let x = 1; }", true, "short var name"),
+        TestCase::new(
             "fn main() { let very_long_variable_name_that_is_still_valid = 1; }",
             true,
+            "long var name",
         ),
         // Nested blocks
-        ("fn main() { if true { if true { let x = 1; } } }", true),
+        TestCase::new(
+            "fn main() { if true { if true { let x = 1; } } }",
+            true,
+            "nested if",
+        ),
         // Multiple functions
-        ("fn a() {} fn b() {} fn c() {} fn main() {}", true),
+        TestCase::new("fn a() {} fn b() {} fn c() {} fn main() {}", true, "multiple functions"),
         // Complex control flow
-        (
+        TestCase::new(
             "fn main() { if true { let x = 1; } else { let y = 2; } }",
             true,
+            "if-else",
         ),
     ];
 
-    let mut total = 0;
-    let mut passed = 0;
-
-    for (code, should_succeed) in boundary_tests {
-        total += 1;
-        let result = transpile(code, config.clone());
-        if result.is_ok() == should_succeed {
-            passed += 1;
-        } else {
-            println!(
-                "FAILED: code='{}' expected={} actual={}",
-                code,
-                should_succeed,
-                result.is_ok()
-            );
-            if let Err(e) = result {
-                println!("  Error: {}", e);
-            }
-        }
+    let mut runner = TestRunner::new();
+    let config = Config::default();
+    
+    for test_case in &test_cases {
+        runner.run_test_case(test_case, &config);
     }
 
-    let success_rate = (passed as f64 / total as f64) * 100.0;
-    assert!(
-        success_rate >= 80.0,
-        "Boundary test success rate too low: {:.1}%",
-        success_rate
-    );
-
-    println!(
-        "✅ Boundary testing: {}/{} passed ({:.1}%)",
-        passed, total, success_rate
-    );
+    runner.assert_success_rate(80.0, "Boundary testing");
 }
 
 #[test]
 fn test_error_injection_comprehensive() {
-    let config = Config::default();
-
-    // Test error scenarios
-    let error_cases = vec![
+    let test_cases = vec![
         // Parser errors
-        ("fn", false),
-        ("fn main(", false),
-        ("fn main() {", false),
-        ("fn main() { let", false),
-        ("fn main() { let x", false),
-        ("fn main() { let x =", false),
+        TestCase::new("fn", false, "incomplete fn"),
+        TestCase::new("fn main(", false, "unclosed paren"),
+        TestCase::new("fn main() {", false, "unclosed brace"),
+        TestCase::new("fn main() { let", false, "incomplete let"),
+        TestCase::new("fn main() { let x", false, "missing equals"),
+        TestCase::new("fn main() { let x =", false, "missing value"),
         // Invalid constructs
-        ("struct Foo {}", false),
-        ("impl Foo {}", false),
-        ("use std::io;", false),
-        ("mod test;", false),
-        // Memory stress - skipped as it needs to be a &str
+        TestCase::new("struct Foo {}", false, "struct not allowed"),
+        TestCase::new("impl Foo {}", false, "impl not allowed"),
+        TestCase::new("use std::io;", false, "use not allowed"),
+        TestCase::new("mod test;", false, "mod not allowed"),
     ];
 
-    // Add memory stress test separately since it needs String
+    let mut runner = TestRunner::new();
+    let config = Config::default();
+    
+    for test_case in &test_cases {
+        runner.run_test_case(test_case, &config);
+    }
+
+    // Test large string separately
     let large_string_test = format!("fn main() {{ let x = \"{}\"; }}", "a".repeat(10000));
+    runner.run_test(&large_string_test, &config, true);
 
-    let mut total = 0;
-    let mut handled_gracefully = 0;
-
-    for (code, should_succeed) in error_cases {
-        total += 1;
-        let result = transpile(code, config.clone());
-
-        // We consider it handled gracefully if:
-        // 1. It succeeds when it should
-        // 2. It fails with a proper error (not a panic) when it shouldn't
-        match (result.is_ok(), should_succeed) {
-            (true, true) | (false, false) => handled_gracefully += 1,
-            _ => {}
-        }
-    }
-
-    // Test the large string case
-    total += 1;
-    let result = transpile(&large_string_test, config.clone());
-    if result.is_ok() {
-        handled_gracefully += 1;
-    }
-
-    let success_rate = (handled_gracefully as f64 / total as f64) * 100.0;
-    assert!(
-        success_rate >= 85.0,
-        "Error handling success rate too low: {:.1}%",
-        success_rate
-    );
-
-    println!(
-        "✅ Error injection testing: {}/{} handled gracefully ({:.1}%)",
-        handled_gracefully, total, success_rate
-    );
+    runner.assert_success_rate(85.0, "Error injection testing");
 }
 
 #[test]
@@ -209,17 +209,12 @@ fn test_extended_fuzz_testing() {
     use rand::Rng;
     let mut rng = rand::thread_rng();
 
+    let mut runner = TestRunner::new();
     let config = Config::default();
-    let mut total_tests = 0;
-    let mut passed_tests = 0;
 
-    // Run many randomized tests
-    for _ in 0..10_000 {
-        total_tests += 1;
-
-        // Generate random test cases
-        let test_type = rng.gen_range(0..5);
-        let code = match test_type {
+    // Generate test code based on pattern
+    fn generate_test_code(rng: &mut impl Rng, pattern: usize) -> String {
+        match pattern {
             0 => format!("fn main() {{ let x = {}; }}", rng.gen_range(-1000..1000)),
             1 => format!(
                 "fn main() {{ let x = \"{}\"; }}",
@@ -228,152 +223,106 @@ fn test_extended_fuzz_testing() {
             2 => format!("fn main() {{ if {} {{ let x = 1; }} }}", rng.gen_bool(0.5)),
             3 => format!("fn f{}() {{}} fn main() {{}}", rng.gen_range(0..100)),
             _ => "fn main() { let x = 42; }".to_string(),
-        };
-
-        let result = transpile(&code, config.clone());
-        if result.is_ok() {
-            passed_tests += 1;
         }
     }
 
-    let success_rate = (passed_tests as f64 / total_tests as f64) * 100.0;
-    assert!(
-        success_rate >= 90.0,
-        "Extended fuzz success rate insufficient: {:.3}%",
-        success_rate
-    );
+    // Run many randomized tests
+    for _ in 0..10_000 {
+        let test_type = rng.gen_range(0..5);
+        let code = generate_test_code(&mut rng, test_type);
+        runner.run_test(&code, &config, true);
+    }
 
-    println!(
-        "🎯 Extended fuzzing completed: {:.3}% success rate over {} tests",
-        success_rate, total_tests
-    );
+    runner.assert_success_rate(90.0, "Extended fuzzing");
 }
 
 #[test]
 fn test_nasa_grade_reliability_standards() {
-    // Test comprehensive reliability
-    let configs = vec![
-        Config::default(),
-        Config {
-            verify: VerificationLevel::Strict,
-            ..Default::default()
-        },
-        Config {
-            verify: VerificationLevel::Paranoid,
-            ..Default::default()
-        },
-        Config {
-            optimize: true,
-            ..Default::default()
-        },
-    ];
-
-    let test_suite = vec![
+    let test_cases = vec![
         // Basic functionality
-        ("fn main() {}", true),
-        ("fn main() { let x = 42; }", true),
-        ("fn main() { let x = -42; }", true),
-        ("fn main() { let s = \"test\"; }", true),
+        TestCase::new("fn main() {}", true, "empty main"),
+        TestCase::new("fn main() { let x = 42; }", true, "positive int"),
+        TestCase::new("fn main() { let x = -42; }", true, "negative int"),
+        TestCase::new("fn main() { let s = \"test\"; }", true, "string literal"),
         // Functions
-        ("fn helper() {} fn main() {}", true),
-        ("fn main() { helper(); } fn helper() {}", true),
-        ("fn add(a: i32, b: i32) -> i32 { a + b } fn main() {}", true),
+        TestCase::new("fn helper() {} fn main() {}", true, "helper function"),
+        TestCase::new("fn main() { helper(); } fn helper() {}", true, "function call"),
+        TestCase::new(
+            "fn add(a: i32, b: i32) -> i32 { a + b } fn main() {}",
+            true,
+            "function with params",
+        ),
         // Control flow
-        ("fn main() { if true { let x = 1; } }", true),
-        (
+        TestCase::new("fn main() { if true { let x = 1; } }", true, "if statement"),
+        TestCase::new(
             "fn main() { if false { let x = 1; } else { let y = 2; } }",
             true,
+            "if-else",
         ),
         // Complex expressions
-        ("fn main() { let x = 1 + 2 * 3 - 4 / 2; }", true),
-        ("fn main() { let x = (1 + 2) * (3 - 4); }", true),
+        TestCase::new("fn main() { let x = 1 + 2 * 3 - 4 / 2; }", true, "arithmetic"),
+        TestCase::new("fn main() { let x = (1 + 2) * (3 - 4); }", true, "parens"),
     ];
 
-    let mut total_tests = 0;
-    let mut passed_tests = 0;
-
-    for config in &configs {
-        for (code, should_pass) in &test_suite {
-            total_tests += 1;
-            let result = transpile(code, config.clone());
-            if result.is_ok() == *should_pass {
-                passed_tests += 1;
-            } else {
-                println!(
-                    "NASA test failed: code='{}' expected={} actual={}",
-                    &code[..code.len().min(50)],
-                    should_pass,
-                    result.is_ok()
-                );
-                if let Err(e) = result {
-                    println!("  Error: {}", e);
-                }
-            }
+    let mut runner = TestRunner::new();
+    for config in &get_test_configs() {
+        for test_case in &test_cases {
+            runner.run_test_case(test_case, config);
         }
     }
 
-    let success_rate = (passed_tests as f64 / total_tests as f64) * 100.0;
-    assert!(
-        success_rate >= 99.0,
-        "Success rate below NASA requirement: {:.3}%",
-        success_rate
-    );
-
-    println!("🛰️  NASA-grade reliability verification PASSED");
-    println!("   Reliability: {:.4}%", success_rate);
-    println!("   Tests: {}", total_tests);
+    runner.assert_success_rate(99.0, "NASA-grade reliability verification");
 }
 
-/// Test specific edge cases that have caused issues in real systems
 #[test]
 fn test_real_world_edge_cases() {
-    // Pre-compute the dynamic strings to avoid lifetime issues
-    let many_vars = "fn main() { ".to_string() + &"let x = 1; ".repeat(100) + " }";
-    let deep_nesting =
-        "fn main() { let x = ".to_string() + &"(".repeat(50) + "42" + &")".repeat(50) + "; }";
+    // Pre-compute the dynamic strings
+    let many_vars = format!("fn main() {{ {} }}", "let x = 1; ".repeat(100));
+    let deep_nesting = format!(
+        "fn main() {{ let x = {}42{}; }}",
+        "(".repeat(50),
+        ")".repeat(50)
+    );
 
-    let test_cases = vec![
-        // Cases inspired by actual bugs found in transpilers/compilers
-        ("", false),                                            // Empty input
-        ("fn main() { let x = 18446744073709551615; }", false), // u64::MAX in u32 context
-        ("fn main() { let x = \"\\u{10FFFF}\"; }", true),       // Max Unicode
-        ("fn main() { let x = \"\\0\"; }", false),              // Null character
-        (r#"fn main() { let x = "'; rm -rf /"; }"#, true),      // Shell injection attempt
-        (many_vars.as_str(), true),                             // Many variables
-        (deep_nesting.as_str(), true), // Deep nesting - parser handles redundant parens correctly
-    ];
-
-    let mut passed = 0;
-    let mut failed = 0;
-
-    for (input, should_succeed) in test_cases {
-        let result = transpile(input, Config::default());
-
-        match (result.is_ok(), should_succeed) {
-            (true, true) | (false, false) => {
-                passed += 1;
+    // Using a macro to handle lifetime issues with mixed static and dynamic strings
+    macro_rules! edge_test {
+        ($code:expr, $expected:expr, $desc:expr) => {
+            TestCase {
+                code: $code,
+                should_succeed: $expected,
+                description: $desc,
             }
-            (actual, expected) => {
-                failed += 1;
-                println!(
-                    "❌ Edge case failed: input='{}' expected={} actual={}",
-                    &input[..input.len().min(50)],
-                    expected,
-                    actual
-                );
-            }
-        }
+        };
     }
 
+    let mut runner = TestRunner::new();
+    let config = Config::default();
+
+    // Static test cases
+    let static_tests = vec![
+        TestCase::new("", false, "empty input"),
+        TestCase::new("fn main() { let x = 18446744073709551615; }", false, "u64::MAX"),
+        TestCase::new("fn main() { let x = \"\\u{10FFFF}\"; }", true, "max unicode"),
+        TestCase::new("fn main() { let x = \"\\0\"; }", false, "null char"),
+        TestCase::new(r#"fn main() { let x = "'; rm -rf /"; }"#, true, "injection attempt"),
+    ];
+
+    for test in &static_tests {
+        runner.run_test_case(test, &config);
+    }
+
+    // Dynamic test cases
+    runner.run_test(&many_vars, &config, true);
+    runner.run_test(&deep_nesting, &config, true);
+
+    let failed = runner.total - runner.passed;
     assert_eq!(failed, 0, "Real-world edge case failures: {}", failed);
     println!(
         "✅ Real-world edge cases: {}/{} passed",
-        passed,
-        passed + failed
+        runner.passed, runner.total
     );
 }
 
-/// Memory safety verification test
 #[test]
 fn test_memory_safety_verification() {
     use std::sync::{Arc, Mutex};
@@ -388,7 +337,7 @@ fn test_memory_safety_verification() {
 
     // Run transpilation in multiple threads to check for data races
     let handles: Vec<_> = (0..10)
-        .map(|_i| {
+        .map(|_| {
             let inputs = test_inputs.clone();
             let errors = Arc::clone(&error_count);
 
@@ -409,16 +358,11 @@ fn test_memory_safety_verification() {
     }
 
     let final_error_count = *error_count.lock().unwrap();
-
-    // Some errors are expected, but not thread safety issues
-    assert!(
-        final_error_count < 50,
-        "Too many errors in concurrent test: {}",
+    assert_eq!(
+        final_error_count, 0,
+        "Unexpected errors in concurrent test: {}",
         final_error_count
     );
 
-    println!(
-        "✅ Memory safety verification passed (concurrent errors: {})",
-        final_error_count
-    );
+    println!("✅ Memory safety verification passed (no concurrent errors)");
 }

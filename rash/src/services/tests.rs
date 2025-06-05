@@ -512,6 +512,38 @@ fn test_empty_function_body_handling() {
 }
 
 #[test]
+fn test_rash_main_attribute_parsing() {
+    let source = r#"
+        #[rash::main]
+        fn my_installer() {
+            let x = 42;
+        }
+    "#;
+
+    let ast = parse(source).unwrap();
+    assert_eq!(ast.entry_point, "my_installer");
+    assert_eq!(ast.functions[0].name, "my_installer");
+}
+
+#[test]
+fn test_reject_invalid_attributes() {
+    // Test that non-rash::main attributes don't mark function as main
+    let source = r#"
+        #[some::other]
+        fn not_main() {
+            let x = 42;
+        }
+    "#;
+
+    let result = parse(source);
+    assert!(result.is_err());
+    assert!(result
+        .unwrap_err()
+        .to_string()
+        .contains("No #[rash::main] function found"));
+}
+
+#[test]
 fn test_parser_maintains_source_information() {
     let source = r#"
         fn main() {
