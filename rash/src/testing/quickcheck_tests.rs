@@ -14,7 +14,7 @@ pub mod generators {
 
     pub fn any_valid_identifier() -> impl Strategy<Value = String> {
         "[a-zA-Z_][a-zA-Z0-9_]{0,20}".prop_filter("Avoid reserved identifiers", |s| {
-            s != "_" && s != "main" && !s.starts_with("__") && s.len() > 0
+            s != "_" && s != "main" && !s.starts_with("__") && !s.is_empty()
         })
     }
 
@@ -124,15 +124,15 @@ pub mod generators {
         prop::collection::vec(any_function(), 1..3).prop_map(|mut functions| {
             // Ensure we have a main function
             functions[0].name = "main".to_string();
-            
+
             // Ensure other function names are valid (not "_" which is reserved)
-            for i in 1..functions.len() {
-                let name = &functions[i].name;
+            for (i, function) in functions.iter_mut().enumerate().skip(1) {
+                let name = &function.name;
                 if name == "_" || name == "main" || name.starts_with("__") {
-                    functions[i].name = format!("func_{}", i);
+                    function.name = format!("func_{i}");
                 }
             }
-            
+
             RestrictedAst {
                 functions,
                 entry_point: "main".to_string(),
