@@ -115,7 +115,7 @@ mod tests {
     fn test_verify_resource_safety_with_effects() {
         let mut effects = EffectSet::pure();
         effects.add(crate::ir::Effect::FileWrite);
-        
+
         let ir = ShellIR::Exec {
             cmd: Command::new("touch").arg(ShellValue::String("file.txt".to_string())),
             effects,
