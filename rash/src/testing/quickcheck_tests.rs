@@ -14,7 +14,21 @@ pub mod generators {
 
     pub fn any_valid_identifier() -> impl Strategy<Value = String> {
         "[a-zA-Z_][a-zA-Z0-9_]{0,20}".prop_filter("Avoid reserved identifiers", |s| {
-            s != "_" && s != "main" && !s.starts_with("__") && !s.is_empty()
+            // Rust keywords that should be filtered out
+            const RUST_KEYWORDS: &[&str] = &[
+                "as", "break", "const", "continue", "crate", "else", "enum", "extern",
+                "false", "fn", "for", "if", "impl", "in", "let", "loop", "match",
+                "mod", "move", "mut", "pub", "ref", "return", "self", "Self", "static",
+                "struct", "super", "trait", "true", "type", "unsafe", "use", "where",
+                "while", "async", "await", "dyn", "abstract", "become", "box", "do",
+                "final", "macro", "override", "priv", "typeof", "unsized", "virtual", "yield"
+            ];
+            
+            !s.is_empty() 
+                && s != "_" 
+                && s != "main" 
+                && !s.starts_with("__") 
+                && !RUST_KEYWORDS.contains(&s.as_str())
         })
     }
 
@@ -180,8 +194,24 @@ proptest! {
     /// Property: Valid identifiers should always parse correctly
     #[test]
     fn prop_valid_identifiers_parse(name in "[a-zA-Z][a-zA-Z0-9_]{0,20}") {
+        // Rust keywords that should be filtered out
+        const RUST_KEYWORDS: &[&str] = &[
+            "as", "break", "const", "continue", "crate", "else", "enum", "extern",
+            "false", "fn", "for", "if", "impl", "in", "let", "loop", "match",
+            "mod", "move", "mut", "pub", "ref", "return", "self", "Self", "static",
+            "struct", "super", "trait", "true", "type", "unsafe", "use", "where",
+            "while", "async", "await", "dyn", "abstract", "become", "box", "do",
+            "final", "macro", "override", "priv", "typeof", "unsized", "virtual", "yield"
+        ];
+        
         // Skip reserved keywords and problematic names
-        prop_assume!(name != "_" && name != "main" && !name.starts_with("__"));
+        prop_assume!(
+            !name.is_empty() 
+                && name != "_" 
+                && name != "main" 
+                && !name.starts_with("__") 
+                && !RUST_KEYWORDS.contains(&name.as_str())
+        );
 
         let source = format!("fn {name}() {{ let x = 42; }} fn main() {{ {name}(); }}");
 
