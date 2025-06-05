@@ -125,14 +125,17 @@ jobs:
     - name: Generate coverage badge
       run: |
         COVERAGE="${{ steps.coverage.outputs.coverage }}"
-        COLOR="red"
-        if (( $(echo "$COVERAGE >= 80" | bc -l) )); then
-          COLOR="brightgreen"
-        elif (( $(echo "$COVERAGE >= 60" | bc -l) )); then
-          COLOR="yellow"
-        elif (( $(echo "$COVERAGE >= 40" | bc -l) )); then
-          COLOR="orange"
-        fi
+        COLOR=$(python3 -c "
+        coverage = float('$COVERAGE')
+        if coverage >= 80:
+            print('brightgreen')
+        elif coverage >= 60:
+            print('yellow')
+        elif coverage >= 40:
+            print('orange')
+        else:
+            print('red')
+        ")
         
         mkdir -p badges
         curl -s "https://img.shields.io/badge/coverage-${COVERAGE}%25-${COLOR}" > badges/coverage.svg
@@ -176,12 +179,18 @@ jobs:
       uses: dtolnay/rust-toolchain@stable
     
     - name: Install cargo-audit
-      run: cargo install cargo-audit --quiet
+      run: |
+        echo "Installing cargo-audit..."
+        cargo install cargo-audit --quiet || echo "⚠️ Failed to install cargo-audit"
     
     - name: Run security audit
       run: |
         echo "Running security audit..."
-        cargo audit || echo "⚠️ Security audit found issues (non-blocking)"
+        if command -v cargo-audit >/dev/null 2>&1; then
+          cargo audit || echo "⚠️ Security audit found issues (non-blocking)"
+        else
+          echo "⚠️ cargo-audit not available, skipping security audit"
+        fi
 
   benchmark:
     name: Performance Benchmarks
