@@ -74,3 +74,28 @@ test-*
 RELEASE_*.md
 QUALITY_*.md
 TESTING_*.md
+kaizen-*.md
+deep_context.md
+*-validation.md
+
+# Development artifacts
+*.rs (in root)
+hello*.rs
+minimal*.rs
+simple*.rs
+tiny*.rs
+install-*.rs
+install-*.sh
+test-*.sh
+*-binary.sh
+*-out.sh
+*-portable.sh
+Dockerfile
+shellcheck
+shellcheck-stable/
+analyze_*.py
+
+# Temporary directories
+test-*/
+test_*/
+/src/ (if in root)
