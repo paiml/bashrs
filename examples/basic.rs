@@ -1,4 +1,4 @@
-#[rash::main]
+
 fn install() {
     let message = "Hello from Rash!";
     echo(message);

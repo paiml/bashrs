@@ -1,6 +1,6 @@
 // Test SC2086: Double quote to prevent globbing and word splitting
 
-#[rash::main]
+
 fn main() {
     let user = "unknown";
     let home = "/home/user";

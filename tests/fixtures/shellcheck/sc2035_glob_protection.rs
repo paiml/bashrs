@@ -1,6 +1,6 @@
 // Test SC2035: Use ./* to prevent filenames starting with dashes being interpreted as options
 
-#[rash::main]
+
 fn main() {
     // These patterns could be dangerous without proper protection
     remove_dash_rf();

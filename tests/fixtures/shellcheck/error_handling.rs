@@ -1,6 +1,6 @@
 // Test error handling patterns for ShellCheck compliance
 
-#[rash::main]
+
 fn main() {
     // Test various error handling scenarios
     handle_missing_file();

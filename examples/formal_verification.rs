@@ -1,6 +1,5 @@
 //! Example demonstrating formal verification concepts
 
-#[rash::main]
 fn main() {
     // Demonstrate formal verification patterns
     let install_dir = "/opt/rash";
@@ -25,7 +24,7 @@ fn verify_preconditions() {
     // Check system state before installation
 }
 
-fn create_verified_directory(dir: &str) {
+fn create_verified_directory(_dir: &str) {
     // Create directory with formal verification
 }
 
@@ -33,7 +32,7 @@ fn download_with_verification() {
     // Download with checksums and verification
 }
 
-fn install_with_verification(dir: &str) {
+fn install_with_verification(_dir: &str) {
     // Install with formal verification steps
 }
 

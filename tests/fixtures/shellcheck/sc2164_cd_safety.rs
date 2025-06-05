@@ -1,6 +1,6 @@
 // Test SC2164: Use cd ... || exit in case cd fails
 
-#[rash::main]
+
 fn main() {
     let dir1 = "/tmp";
     let dir2 = "/nonexistent/path";

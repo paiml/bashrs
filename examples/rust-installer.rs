@@ -1,7 +1,7 @@
 /// Rust installer example for Rash
 /// This demonstrates installing Rust via rustup
 
-#[rash::main]
+
 fn main() {
     let rustup_url = "https://sh.rustup.rs";
     let install_dir = "/home/user/.cargo";

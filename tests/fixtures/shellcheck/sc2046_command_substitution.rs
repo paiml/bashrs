@@ -1,6 +1,6 @@
 // Test SC2046: Quote command substitutions to prevent word splitting
 
-#[rash::main]
+
 fn main() {
     // Command substitutions that should be quoted
     find_txt_files();

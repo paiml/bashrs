@@ -1,6 +1,6 @@
 // Test SC2006: Use $(...) instead of legacy `...`
 
-#[rash::main]
+
 fn main() {
     // Modern command substitution patterns
     get_timestamp();
