@@ -5,6 +5,24 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.1] - 2025-06-05
+
+### 🔧 Default Features Update
+
+#### Changed
+- **Default Features**: Now includes compile mode and playground by default
+  - Binary compilation and self-extracting scripts work out-of-the-box
+  - Interactive playground available without additional features
+  - No need for `--all-features` flag anymore
+
+#### Added
+- Minimal build option for smaller binaries (`--no-default-features --features minimal`)
+- Updated documentation to reflect new defaults
+
+#### Binary Sizes
+- Default build: ~4.6MB (includes all core features)
+- Minimal build: ~3.2MB (transpilation only)
+
 ## [0.3.0] - 2025-06-05
 
 ### 🚀 Major Features
