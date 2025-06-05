@@ -5,6 +5,7 @@ use crate::models::*;
 
 /// Generate arbitrary user actions for property testing
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 enum UserAction {
     TypeText(String),
     MoveCursor(CursorMotion),
@@ -15,6 +16,7 @@ enum UserAction {
 }
 
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 enum CursorMotion {
     Left(usize),
     Right(usize),
@@ -29,10 +31,10 @@ enum CursorMotion {
 prop_compose! {
     fn arb_cursor_motion()(
         motion in prop_oneof![
-            (1..=10usize).prop_map(|n| CursorMotion::Left(n)),
-            (1..=10usize).prop_map(|n| CursorMotion::Right(n)),
-            (1..=10usize).prop_map(|n| CursorMotion::Up(n)),
-            (1..=10usize).prop_map(|n| CursorMotion::Down(n)),
+            (1..=10usize).prop_map(CursorMotion::Left),
+            (1..=10usize).prop_map(CursorMotion::Right),
+            (1..=10usize).prop_map(CursorMotion::Up),
+            (1..=10usize).prop_map(CursorMotion::Down),
             Just(CursorMotion::StartOfLine),
             Just(CursorMotion::EndOfLine),
             Just(CursorMotion::StartOfFile),
@@ -187,7 +189,7 @@ mod tests {
                 .build()
                 .unwrap();
             
-            let _ = runtime.block_on(async {
+            runtime.block_on(async {
                 let source_arc: Arc<str> = Arc::from(source.as_str());
                 
                 // Test that transpilation works

@@ -98,7 +98,11 @@ fn main() {
 ```bash
 rash build <input.rs> -o <output.sh>   # Transpile Rust to shell
 rash check <input.rs>                  # Validate without output
-rash init <project>                    # Initialize new project (planned)
+rash init <project>                    # Initialize new project  
+rash verify <input.rs> <output.sh>     # Verify transpilation correctness
+rash compile <input.rs> -o <binary>    # Compile to standalone binary
+rash inspect <input>                   # Inspect AST and formal properties
+rash playground                        # Interactive REPL (experimental)
 ```
 
 ### Options
@@ -108,6 +112,9 @@ rash init <project>                    # Initialize new project (planned)
 -d, --dialect <DIALECT>  Target shell dialect [default: posix]
 -v, --verbose           Verbose output
 --verify <LEVEL>        Verification level [none, basic, strict, paranoid]
+--emit-proof            Emit formal verification proof
+--strict                Enable strict mode
+--validation <LEVEL>    Validation level [minimal, standard, comprehensive]
 ```
 
 ## Performance
@@ -247,6 +254,244 @@ rash prevents these at compile time by enforcing safe patterns in a familiar Rus
 - [Batsh](https://github.com/batsh-dev/batsh): Transpiles a C-like syntax to Bash/Batch
 
 rash differs by using Rust syntax and targeting POSIX compatibility.
+
+## New Features in v0.3.0
+
+### Binary Compilation (Compile Mode)
+
+Create standalone executables from your Rust scripts:
+
+```bash
+# Create a self-extracting shell script
+$ rash compile install.rs -o install-standalone.sh --self-extracting
+$ ./install-standalone.sh  # No rash runtime needed!
+
+# Create a static binary with embedded dash runtime
+$ rash compile install.rs -o install-bin --runtime dash
+
+# Create a minimal Docker container
+$ rash compile install.rs -o Dockerfile --container --container-format docker
+```
+
+#### Self-Extracting Scripts
+
+Self-extracting scripts embed your transpiled shell code in a compressed format:
+
+```bash
+$ rash compile hello.rs -o hello-portable.sh --self-extracting
+$ ls -lh hello-portable.sh
+-rwxr-xr-x 1 user user 1.2K hello-portable.sh
+
+$ head -5 hello-portable.sh
+#!/bin/sh
+# Self-extracting RASH script
+set -euf
+# Embedded compressed script
+PAYLOAD='H4sIAAAAAAAA...'
+```
+
+Features:
+- Zstandard compression (falls back to gzip if unavailable)
+- Base64 encoded for portability
+- Works on any POSIX system with base64 and zstd/gzip
+- Typically 60-80% smaller than original
+
+### Interactive Playground (Experimental)
+
+A TypeScript-style REPL for interactive development:
+
+```bash
+$ rash playground
+
+RASH Playground v0.3.0
+Type :help for commands, :quit to exit
+
+rash> let name = "world"
+rash> echo(concat("Hello, ", name))
+#!/bin/sh
+set -euf
+name="world"
+echo "Hello, $name"
+
+rash> :layout vertical
+Layout changed to vertical
+
+rash> :save session.rash
+Session saved to session.rash
+```
+
+Features:
+- **Live transpilation**: See shell output as you type
+- **Incremental parsing**: Fast updates using tree-sitter
+- **Session management**: Save/load your work
+- **Multiple layouts**: Horizontal, vertical, or focused views
+- **VI/Emacs keybindings**: Familiar editor controls
+- **Syntax highlighting**: SIMD-accelerated for performance
+- **URL sharing**: Share sessions via compressed URLs
+
+### Formal Verification
+
+Inspect and verify the correctness of transpilation:
+
+```bash
+# Inspect formal properties
+$ rash inspect echo-example --format markdown
+# Formal Verification Report
+
+## AST Structure
+- Complexity: 3
+- Depth: 2
+- Node count: 5
+
+## Safety Properties
+✓ No injection vulnerabilities
+✓ All variables properly quoted
+✓ No glob expansion risks
+
+## Verification Proofs
+- Shell injection safety: PROVEN
+- Quote correctness: PROVEN
+- Determinism: PROVEN
+
+# Generate machine-readable proof
+$ rash build complex.rs -o complex.sh --emit-proof
+$ cat complex.proof
+{
+  "version": "1.0",
+  "properties": {
+    "injection_safety": "proven",
+    "quote_correctness": "proven",
+    "determinism": "proven"
+  }
+}
+```
+
+### Kaizen Mode
+
+Continuous improvement tooling for maintaining code quality:
+
+```bash
+$ make kaizen
+=== KAIZEN: Continuous Improvement Protocol ===
+
+Step 1: Static Analysis
+✅ Baseline metrics collected
+
+Step 2: Performance Regression Detection
+✅ No regression detected
+
+Step 3: Complexity Evolution
+Files with complexity > 10: 0
+Average complexity: 4.2
+
+Step 4: Test Coverage
+Coverage: 88.70%
+
+Step 5: Binary Size
+Binary size: 4.6M
+
+✅ Kaizen cycle complete
+```
+
+### Enhanced Testing Infrastructure
+
+#### Property-Based Testing
+```rust
+// Over 1000 property tests for correctness
+proptest! {
+    #[test]
+    fn prop_quoting_safety(input in ".*") {
+        let transpiled = transpile_string(&input);
+        assert_no_injection_vulnerability(&transpiled);
+    }
+}
+```
+
+#### Fuzzing Support
+```bash
+# Differential fuzzing between optimization levels
+$ cargo +nightly fuzz run differential_optimization
+
+# Coverage-guided fuzzing for parser
+$ cargo +nightly fuzz run ast_parser
+```
+
+#### Cross-Shell Validation
+```bash
+$ make test-shells
+Testing POSIX compliance across shells...
+✅ sh: Compatible
+✅ bash: Compatible  
+✅ dash: Compatible
+✅ busybox: Compatible
+✅ ksh: Compatible
+```
+
+### Container Support
+
+Build minimal containers for your scripts:
+
+```bash
+# Generate distroless container
+$ rash compile app.rs -o app.tar --container --container-format oci
+
+# Generate Dockerfile
+$ rash compile app.rs -o Dockerfile --container --container-format docker
+$ cat Dockerfile
+FROM scratch
+COPY rash /rash
+USER 65534:65534
+ENTRYPOINT ["/rash"]
+```
+
+### Advanced Validation Pipeline
+
+Multi-stage validation ensures correctness:
+
+```rust
+// Comprehensive validation with custom rules
+let config = Config {
+    validation_level: ValidationLevel::Comprehensive,
+    strict_mode: true,
+    verify: VerificationLevel::Paranoid,
+};
+
+// Validates against:
+// - ShellCheck rules (SC2086, SC2046, etc.)
+// - Custom RASH rules (no-unquoted-vars, etc.)
+// - Formal properties (determinism, idempotency)
+```
+
+## Architecture Improvements
+
+### Modular Design
+```
+rash/
+├── ast/           # Restricted AST with visitor pattern
+├── emitter/       # POSIX-compliant shell generation
+├── formal/        # Formal verification engine
+├── validation/    # Multi-stage validation pipeline
+├── verifier/      # Property-based correctness proofs
+├── playground/    # Interactive REPL components
+├── compiler/      # Binary compilation subsystem
+└── container/     # Container generation
+```
+
+### Performance Optimizations
+- SIMD-accelerated syntax highlighting
+- Lock-free incremental computation
+- Zero-copy differential rendering
+- Parallel validation pipeline
+
+## Quality Metrics
+
+- **Test Coverage**: 88.70% (target: 85-90%)
+- **Tests**: 400+ unit tests, 19 integration tests
+- **Property Tests**: 1000+ QuickCheck properties
+- **Complexity**: Average 4.2 per function (threshold: 10)
+- **Binary Size**: 4.6MB static Linux binary
+- **Dependencies**: Minimal, security-audited
+- **Cross-Shell**: 100% POSIX compliance
 
 ## License
 

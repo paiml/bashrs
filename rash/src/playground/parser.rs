@@ -7,6 +7,7 @@ pub struct IncrementalParser {
     parser: tree_sitter::Parser,
     
     #[cfg(feature = "playground")]
+    #[allow(dead_code)]
     query_cache: std::collections::HashMap<&'static str, tree_sitter::Query>,
     
     edit_distance_threshold: usize,
@@ -67,8 +68,13 @@ impl IncrementalParser {
     
     #[cfg(feature = "playground")]
     pub fn parse_initial(&mut self, text: &str) -> Result<tree_sitter::Tree> {
+        // For testing without tree-sitter-rust, we'll create a dummy tree
+        // In production, this would use tree_sitter_rust::language()
         let tree = self.parser.parse(text, None)
-            .ok_or_else(|| Error::Internal("Failed to parse initial text".to_string()))?;
+            .ok_or_else(|| {
+                // If parse fails (no language set), return a more descriptive error
+                Error::Internal("Tree-sitter language not configured - tree-sitter-rust dependency needed".to_string())
+            })?;
         Ok(tree)
     }
     
@@ -94,14 +100,8 @@ impl IncrementalParser {
         tree.edit(&ts_edit);
         
         // Incremental parse with rope as input
-        let new_tree = self.parser.parse_with(
-            &mut |offset, _| {
-                let chunk = rope.byte_slice(offset..)
-                    .chunks()
-                    .next()
-                    .unwrap_or("");
-                chunk
-            },
+        let new_tree = self.parser.parse(
+            rope.to_string(),
             Some(tree),
         ).ok_or_else(|| Error::Internal("Incremental parse failed".to_string()))?;
         
@@ -150,6 +150,7 @@ impl IncrementalParser {
     }
     
     #[cfg(feature = "playground")]
+    #[allow(clippy::only_used_in_recursion)]
     fn collect_nodes_recursive(
         &self,
         cursor: &mut tree_sitter::TreeCursor,
@@ -195,6 +196,7 @@ impl IncrementalParser {
 // In production, we'd add tree-sitter-rust as a dependency
 #[cfg(feature = "playground")]
 impl IncrementalParser {
+    #[allow(dead_code)]
     fn setup_language(_parser: &mut tree_sitter::Parser) -> Result<()> {
         // For now, we'll skip language setup
         // In production: parser.set_language(&tree_sitter_rust::language())?;

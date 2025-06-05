@@ -80,8 +80,8 @@ pub struct MinimalState {
     pub config: Config,
 }
 
-impl SessionState {
-    pub fn new() -> Self {
+impl Default for SessionState {
+    fn default() -> Self {
         Self {
             document: ropey::Rope::new(),
             cursor_position: CursorPosition {
@@ -103,6 +103,12 @@ impl SessionState {
             },
         }
     }
+}
+
+impl SessionState {
+    pub fn new() -> Self {
+        Self::default()
+    }
     
     /// Convert to URL-encoded string for sharing
     pub fn to_url(&self) -> Result<String> {
@@ -113,12 +119,12 @@ impl SessionState {
         
         // Serialize to JSON
         let json = serde_json::to_vec(&minimal)
-            .map_err(|e| Error::Internal(format!("Failed to serialize state: {}", e)))?;
+            .map_err(|e| Error::Internal(format!("Failed to serialize state: {e}")))?;
         
         // Compress with Brotli
         let mut encoder = brotli::CompressorWriter::new(Vec::new(), 4096, 11, 22);
         std::io::Write::write_all(&mut encoder, &json)
-            .map_err(|e| Error::Internal(format!("Compression failed: {}", e)))?;
+            .map_err(|e| Error::Internal(format!("Compression failed: {e}")))?;
         let compressed_data = encoder.into_inner();
         
         // Base64 encode
@@ -126,7 +132,7 @@ impl SessionState {
         let encoded = base64::engine::general_purpose::URL_SAFE_NO_PAD
             .encode(&compressed_data);
         
-        Ok(format!("https://play.rash-lang.org/?c={}", encoded))
+        Ok(format!("https://play.rash-lang.org/?c={encoded}"))
     }
     
     /// Restore from URL-encoded string
@@ -140,17 +146,17 @@ impl SessionState {
         use base64::Engine;
         let compressed = base64::engine::general_purpose::URL_SAFE_NO_PAD
             .decode(encoded)
-            .map_err(|e| Error::Internal(format!("Failed to decode base64: {}", e)))?;
+            .map_err(|e| Error::Internal(format!("Failed to decode base64: {e}")))?;
         
         // Decompress
         let mut decompressor = brotli::Decompressor::new(&compressed[..], 4096);
         let mut decompressed = Vec::new();
         std::io::Read::read_to_end(&mut decompressor, &mut decompressed)
-            .map_err(|e| Error::Internal(format!("Failed to decompress: {}", e)))?;
+            .map_err(|e| Error::Internal(format!("Failed to decompress: {e}")))?;
         
         // Deserialize
         let minimal: MinimalState = serde_json::from_slice(&decompressed)
-            .map_err(|e| Error::Internal(format!("Failed to deserialize: {}", e)))?;
+            .map_err(|e| Error::Internal(format!("Failed to deserialize: {e}")))?;
         
         // Create full state from minimal
         let mut state = Self::new();
@@ -163,10 +169,10 @@ impl SessionState {
     /// Save session to file
     pub fn save_to_file(&self, path: &std::path::Path) -> Result<()> {
         let json = serde_json::to_string_pretty(self)
-            .map_err(|e| Error::Internal(format!("Failed to serialize session: {}", e)))?;
+            .map_err(|e| Error::Internal(format!("Failed to serialize session: {e}")))?;
         
         std::fs::write(path, json)
-            .map_err(|e| Error::Internal(format!("Failed to write session file: {}", e)))?;
+            .map_err(|e| Error::Internal(format!("Failed to write session file: {e}")))?;
         
         Ok(())
     }
@@ -174,10 +180,10 @@ impl SessionState {
     /// Load session from file
     pub fn load_from_file(path: &std::path::Path) -> Result<Self> {
         let json = std::fs::read_to_string(path)
-            .map_err(|e| Error::Internal(format!("Failed to read session file: {}", e)))?;
+            .map_err(|e| Error::Internal(format!("Failed to read session file: {e}")))?;
         
         let state = serde_json::from_str(&json)
-            .map_err(|e| Error::Internal(format!("Failed to deserialize session: {}", e)))?;
+            .map_err(|e| Error::Internal(format!("Failed to deserialize session: {e}")))?;
         
         Ok(state)
     }
