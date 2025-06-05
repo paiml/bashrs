@@ -40,6 +40,7 @@ base64 = "0.22"
 ratatui = { version = "0.29", default-features = false, features = ["crossterm"], optional = true }
 ropey = { version = "1.6", optional = true }
 tree-sitter = { version = "0.25", optional = true }
+tree-sitter-rust = { version = "0.23", optional = true }
 # syntect = { version = "5.1", default-features = false, features = ["parsing"], optional = true }
 crossbeam = { version = "0.8", optional = true }
 dashmap = { version = "6.1", optional = true }
@@ -74,7 +75,7 @@ pretty-errors = []
 lsp = []
 completions = []
 watch = []
-playground = ["ratatui", "ropey", "tree-sitter", "crossbeam", "dashmap", "petgraph", "rayon", "brotli", "simdutf8", "bit-vec", "lru"]
+playground = ["ratatui", "ropey", "tree-sitter", "tree-sitter-rust", "crossbeam", "dashmap", "petgraph", "rayon", "brotli", "simdutf8", "bit-vec", "lru"]
 # mutation-testing = ["mutagen"] when available
 # fuzzing = ["libfuzzer-sys"] when available
 

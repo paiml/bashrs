@@ -68,15 +68,23 @@ impl IncrementalParser {
 
     #[cfg(feature = "playground")]
     pub fn parse_initial(&mut self, text: &str) -> Result<tree_sitter::Tree> {
-        // For testing without tree-sitter-rust, we'll create a dummy tree
-        // In production, this would use tree_sitter_rust::language()
-        let tree = self.parser.parse(text, None).ok_or_else(|| {
-            // If parse fails (no language set), return a more descriptive error
-            Error::Internal(
-                "Tree-sitter language not configured - tree-sitter-rust dependency needed"
-                    .to_string(),
-            )
-        })?;
+        // Set up the Rust language grammar
+        #[cfg(feature = "playground")]
+        {
+            extern crate tree_sitter_rust;
+            if self.parser.language().is_none() {
+                self.parser
+                    .set_language(&tree_sitter_rust::LANGUAGE.into())
+                    .map_err(|e| {
+                        Error::Internal(format!("Failed to set Rust language grammar: {e}"))
+                    })?;
+            }
+        }
+
+        let tree = self
+            .parser
+            .parse(text, None)
+            .ok_or_else(|| Error::Internal("Failed to parse Rust code".to_string()))?;
         Ok(tree)
     }
 
@@ -197,9 +205,16 @@ impl IncrementalParser {
 #[cfg(feature = "playground")]
 impl IncrementalParser {
     #[allow(dead_code)]
-    fn setup_language(_parser: &mut tree_sitter::Parser) -> Result<()> {
-        // For now, we'll skip language setup
-        // In production: parser.set_language(&tree_sitter_rust::language())?;
+    fn setup_language(parser: &mut tree_sitter::Parser) -> Result<()> {
+        #[cfg(feature = "playground")]
+        {
+            extern crate tree_sitter_rust;
+            parser
+                .set_language(&tree_sitter_rust::LANGUAGE.into())
+                .map_err(|e| {
+                    Error::Internal(format!("Failed to set Rust language grammar: {e}"))
+                })?;
+        }
         Ok(())
     }
 }
