@@ -397,9 +397,7 @@ fn test_large_input_handling() {
     let mut source = String::new();
 
     for i in 0..50 {
-        source.push_str(&format!(
-            "fn function_{i}() {{ let var_{i} = {i}; }}\n"
-        ));
+        source.push_str(&format!("fn function_{i}() {{ let var_{i} = {i}; }}\n"));
     }
 
     source.push_str("fn main() {\n");

@@ -248,9 +248,7 @@ impl StressTester {
                     Ok(_) => results.successful_operations += 1,
                     Err(e) => {
                         results.failed_operations += 1;
-                        results
-                            .error_details
-                            .push(format!("Burst load error: {e}"));
+                        results.error_details.push(format!("Burst load error: {e}"));
                     }
                 }
                 results.total_operations += 1;
