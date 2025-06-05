@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":["CompressionLevel","RuntimeType","StripLevel"],"fn":["compress_gzip","create_self_extracting_script"],"mod":["loader","optimize"],"struct":["BinaryCompiler"]};

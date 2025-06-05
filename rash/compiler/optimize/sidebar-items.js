@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"fn":["size_linker_flags","size_optimization_flags"],"struct":["BinaryOptimizer"]};

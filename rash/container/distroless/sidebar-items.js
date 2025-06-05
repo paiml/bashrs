@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":["ContainerFormat"],"fn":["generate_build_dockerfile"],"struct":["DistrolessBuilder"]};

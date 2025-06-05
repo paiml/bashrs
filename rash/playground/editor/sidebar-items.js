@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":["Action","EditorMode","Operator","TrieResult","VisualMode"],"struct":["CompletionContext","KeymapEngine","Selection","SnippetEngine","TrieNode"],"type":["KeyEvent"]};
