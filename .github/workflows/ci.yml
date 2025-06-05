@@ -200,7 +200,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
+        os: [ubuntu-latest]  # Focus on Linux only
     steps:
     - uses: actions/checkout@v4
     

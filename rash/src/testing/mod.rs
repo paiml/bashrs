@@ -313,7 +313,7 @@ impl ExhaustiveTestHarness {
     // Helper methods for test implementation
     fn generate_random_input(&self) -> Result<String> {
         use rand::Rng;
-        let mut rng = rand::thread_rng();
+        let mut rng = rand::rng();
 
         // Generate random but somewhat valid Rust-like input
         let templates = [
@@ -322,7 +322,7 @@ impl ExhaustiveTestHarness {
             "fn func(param: {}) {{ return {}; }}",
         ];
 
-        let template = templates[rng.gen_range(0..templates.len())];
+        let template = templates[rng.random_range(0..templates.len())];
         let random_values = self.generate_random_values(&mut rng);
 
         Ok(self.fill_template(template, &random_values))
@@ -330,16 +330,15 @@ impl ExhaustiveTestHarness {
 
     fn generate_random_values(&self, rng: &mut impl rand::Rng) -> Vec<String> {
         vec![
-            rng.gen::<u32>().to_string(),
+            rng.random::<u32>().to_string(),
             format!("\"{}\"", self.generate_random_string(rng, 100)),
-            if rng.gen_bool(0.5) { "true" } else { "false" }.to_string(),
+            if rng.random_bool(0.5) { "true" } else { "false" }.to_string(),
         ]
     }
 
     fn generate_random_string(&self, rng: &mut impl rand::Rng, max_len: usize) -> String {
-        use rand::distributions::{Alphanumeric, DistString};
-        let len = rng.gen_range(0..max_len);
-        Alphanumeric.sample_string(rng, len)
+        let len = rng.random_range(0..max_len);
+        (0..len).map(|_| (rng.random::<u8>() % 26 + b'a') as char).collect()
     }
 
     fn fill_template(&self, template: &str, values: &[String]) -> String {

@@ -98,6 +98,68 @@ pub enum Commands {
         #[arg(long)]
         detailed: bool,
     },
+
+    /// Launch interactive playground REPL
+    #[cfg(feature = "playground")]
+    Playground {
+        /// Initial file to load
+        #[arg(short, long)]
+        file: Option<PathBuf>,
+
+        /// Session state URL to restore
+        #[arg(long)]
+        restore: Option<String>,
+
+        /// Disable VI-style key bindings
+        #[arg(long)]
+        no_vi: bool,
+    },
+    
+    /// Compile to standalone binary
+    Compile {
+        /// Input Rust source file
+        rust_source: PathBuf,
+        
+        /// Output binary path
+        #[arg(short, long)]
+        output: PathBuf,
+        
+        /// Runtime type
+        #[arg(long, value_enum, default_value = "dash")]
+        runtime: CompileRuntime,
+        
+        /// Create self-extracting script instead of binary
+        #[arg(long)]
+        self_extracting: bool,
+        
+        /// Build distroless container
+        #[arg(long)]
+        container: bool,
+        
+        /// Container format
+        #[arg(long, value_enum, default_value = "oci")]
+        container_format: ContainerFormatArg,
+    },
+}
+
+/// Runtime options for compilation
+#[derive(Clone, Debug, ValueEnum)]
+pub enum CompileRuntime {
+    /// Dash shell (180KB)
+    Dash,
+    /// Busybox (900KB)
+    Busybox,
+    /// Minimal interpreter (50KB)
+    Minimal,
+}
+
+/// Container format options
+#[derive(Clone, Debug, ValueEnum)]
+pub enum ContainerFormatArg {
+    /// OCI format
+    Oci,
+    /// Docker format
+    Docker,
 }
 
 /// Output format for inspection reports

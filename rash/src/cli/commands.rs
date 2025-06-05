@@ -1,4 +1,4 @@
-use crate::cli::args::InspectionFormat;
+use crate::cli::args::{InspectionFormat, CompileRuntime, ContainerFormatArg};
 use crate::cli::{Cli, Commands};
 use crate::models::{Config, Error, Result};
 use crate::{check, transpile};
@@ -73,6 +73,44 @@ pub fn execute_command(cli: Cli) -> Result<()> {
         } => {
             info!("Generating inspection report for: {}", input);
             inspect_command(&input, format, output.as_deref(), detailed)
+        }
+        
+        Commands::Compile { 
+            rust_source, 
+            output, 
+            runtime, 
+            self_extracting, 
+            container,
+            container_format 
+        } => {
+            let config = Config {
+                target: cli.target,
+                verify: cli.verify,
+                emit_proof: false,
+                optimize: true,
+                validation_level: Some(cli.validation),
+                strict_mode: cli.strict,
+            };
+            
+            handle_compile(
+                &rust_source,
+                &output,
+                runtime,
+                self_extracting,
+                container,
+                container_format,
+                &config
+            )
+        }
+
+        #[cfg(feature = "playground")]
+        Commands::Playground {
+            file,
+            restore,
+            no_vi,
+        } => {
+            info!("Launching playground REPL");
+            playground_command(file.as_deref(), restore.as_deref(), !no_vi)
         }
     }
 }
@@ -421,6 +459,81 @@ fn inspect_command(
             println!("{output_content}");
         }
     }
+
+    Ok(())
+}
+
+fn handle_compile(
+    rust_source: &Path,
+    output: &Path,
+    runtime: CompileRuntime,
+    self_extracting: bool,
+    container: bool,
+    container_format: ContainerFormatArg,
+    config: &Config,
+) -> Result<()> {
+    use crate::compiler::{BinaryCompiler, RuntimeType, create_self_extracting_script};
+    use crate::container::{DistrolessBuilder, ContainerFormat};
+    
+    info!("Compiling {} to {}", rust_source.display(), output.display());
+    
+    // Read and transpile the source
+    let source = fs::read_to_string(rust_source).map_err(Error::Io)?;
+    let shell_code = transpile(&source, config.clone())?;
+    
+    if self_extracting {
+        // Create self-extracting script
+        create_self_extracting_script(&shell_code, output.to_str().unwrap())?;
+        info!("Created self-extracting script at {}", output.display());
+    } else if container {
+        // Create container image
+        let runtime_type = match runtime {
+            CompileRuntime::Dash => RuntimeType::Dash,
+            CompileRuntime::Busybox => RuntimeType::Busybox,
+            CompileRuntime::Minimal => RuntimeType::Minimal,
+        };
+        
+        let compiler = BinaryCompiler::new(runtime_type);
+        let binary = compiler.compile(&shell_code)?;
+        
+        let format = match container_format {
+            ContainerFormatArg::Oci => ContainerFormat::OCI,
+            ContainerFormatArg::Docker => ContainerFormat::Docker,
+        };
+        
+        let builder = DistrolessBuilder::new(binary).with_format(format);
+        let container_data = builder.build()?;
+        
+        fs::write(output, container_data).map_err(Error::Io)?;
+        info!("Created container image at {}", output.display());
+    } else {
+        // Create standalone binary (not fully implemented)
+        warn!("Binary compilation not yet fully implemented, creating self-extracting script instead");
+        create_self_extracting_script(&shell_code, output.to_str().unwrap())?;
+    }
+    
+    Ok(())
+}
+
+#[cfg(feature = "playground")]
+fn playground_command(file: Option<&Path>, restore: Option<&str>, vi_mode: bool) -> Result<()> {
+    use crate::playground::PlaygroundSystem;
+
+    let mut playground = PlaygroundSystem::new(vi_mode)?;
+
+    // Load initial file if provided
+    if let Some(path) = file {
+        let content = fs::read_to_string(path).map_err(Error::Io)?;
+        playground.load_content(&content)?;
+    }
+
+    // Restore session state if provided
+    if let Some(url) = restore {
+        playground.restore_from_url(url)?;
+    }
+
+    // Run the playground
+    playground.run()?;
 
     Ok(())
 }

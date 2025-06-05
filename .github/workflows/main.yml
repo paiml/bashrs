@@ -150,7 +150,7 @@ jobs:
     with:
       coverage-threshold: 85
 
-  # Stage 4: Build matrix (simplified - removed edge case cross-compilation)
+  # Stage 4: Build matrix (Linux-focused)
   build-matrix:
     name: Build - ${{ matrix.target }}
     needs: [quality-matrix, test-pipeline]
@@ -159,10 +159,6 @@ jobs:
         include:
           - target: x86_64-unknown-linux-gnu
             os: ubuntu-22.04
-          - target: x86_64-apple-darwin
-            os: macos-13
-          - target: x86_64-pc-windows-msvc
-            os: windows-2022
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
@@ -181,11 +177,7 @@ jobs:
         shell: bash
         run: |
           cd target/${{ matrix.target }}/release
-          if [[ "${{ matrix.os }}" == "windows-2022" ]]; then
-            7z a rash-${{ matrix.target }}.zip rash.exe
-          else
-            tar czf rash-${{ matrix.target }}.tar.gz rash
-          fi
+          tar czf rash-${{ matrix.target }}.tar.gz rash
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
@@ -228,8 +220,6 @@ jobs:
           echo "" >> RELEASE_NOTES.md
           echo "## Artifacts" >> RELEASE_NOTES.md
           echo "- Linux (x86_64): rash-x86_64-unknown-linux-gnu.tar.gz" >> RELEASE_NOTES.md
-          echo "- macOS (Intel): rash-x86_64-apple-darwin.tar.gz" >> RELEASE_NOTES.md
-          echo "- Windows: rash-x86_64-pc-windows-msvc.zip" >> RELEASE_NOTES.md
 
       - name: Create checksums
         run: |

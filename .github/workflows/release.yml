@@ -42,15 +42,6 @@ jobs:
             os: ubuntu-latest
             name: linux-arm64
             use-cross: true
-          - target: x86_64-apple-darwin
-            os: macos-latest
-            name: darwin-amd64
-          - target: aarch64-apple-darwin
-            os: macos-latest
-            name: darwin-arm64
-          - target: x86_64-pc-windows-msvc
-            os: windows-latest
-            name: windows-amd64
     runs-on: ${{ matrix.os }}
     steps:
       - name: Checkout
@@ -78,13 +69,8 @@ jobs:
         shell: bash
         run: |
           cd target/${{ matrix.target }}/release
-          if [ "${{ matrix.os }}" = "windows-latest" ]; then
-            7z a ../../../rash-${{ matrix.name }}.zip rash.exe
-            echo "ASSET_PATH=rash-${{ matrix.name }}.zip" >> $GITHUB_ENV
-          else
-            tar czf ../../../rash-${{ matrix.name }}.tar.gz rash
-            echo "ASSET_PATH=rash-${{ matrix.name }}.tar.gz" >> $GITHUB_ENV
-          fi
+          tar czf ../../../rash-${{ matrix.name }}.tar.gz rash
+          echo "ASSET_PATH=rash-${{ matrix.name }}.tar.gz" >> $GITHUB_ENV
       
       - name: Upload Release Asset
         uses: softprops/action-gh-release@v1
@@ -121,8 +107,7 @@ jobs:
           
           case "\${OS}" in
               linux) OS="linux" ;;
-              darwin) OS="darwin" ;;
-              *) echo "Unsupported OS: \${OS}"; exit 1 ;;
+              *) echo "Unsupported OS: \${OS}. RASH currently only supports Linux."; exit 1 ;;
           esac
           
           case "\${ARCH}" in
