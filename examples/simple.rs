@@ -1,5 +1,5 @@
 
-fn install() {
+fn main() {
     let prefix = "/usr/local";
     let version = "1.0.0";
     
