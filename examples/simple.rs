@@ -1,18 +1,21 @@
 #[rash::main]
-fn install() -> Result<(), &'static str> {
+fn install() {
     let prefix = "/usr/local";
     let version = "1.0.0";
     
     // Simple echo command
-    echo("Installing version", version);
+    echo_message("Installing version");
+    echo_value(version);
     
     // Create directory
     mkdir(prefix);
-    
-    Ok(())
 }
 
-fn echo(message: &str, value: &str) {
+fn echo_message(message: &str) {
+    // This will be converted to shell echo command
+}
+
+fn echo_value(value: &str) {
     // This will be converted to shell echo command
 }
 

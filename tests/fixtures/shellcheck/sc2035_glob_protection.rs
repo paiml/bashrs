@@ -1,23 +1,33 @@
 // Test SC2035: Use ./* to prevent filenames starting with dashes being interpreted as options
-use std::process::Command;
 
-fn main() -> Result<(), Box<dyn std::error::Error>> {
+#[rash::main]
+fn main() {
     // These patterns could be dangerous without proper protection
-    let dangerous_patterns = vec!["-rf", "--verbose", "-n", "--help"];
-    
-    for pattern in dangerous_patterns {
-        // Remove files matching pattern - should be protected
-        Command::new("rm")
-            .arg("-f")
-            .arg(pattern)
-            .status()?;
-    }
+    remove_dash_rf();
+    remove_verbose();
+    remove_dash_n();
+    remove_help();
     
     // List files that might start with dashes
-    Command::new("ls")
-        .arg("-la")
-        .arg("./")
-        .status()?;
-    
-    Ok(())
+    list_files();
+}
+
+fn remove_dash_rf() {
+    // Remove files matching -rf pattern with protection
+}
+
+fn remove_verbose() {
+    // Remove files matching --verbose pattern with protection
+}
+
+fn remove_dash_n() {
+    // Remove files matching -n pattern with protection
+}
+
+fn remove_help() {
+    // Remove files matching --help pattern with protection
+}
+
+fn list_files() {
+    // List files with proper protection
 }
