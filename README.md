@@ -3,7 +3,7 @@
 rash transpiles a subset of Rust to POSIX shell, with automatic safety validation.
 
 [![CI](https://github.com/paiml/rash/workflows/CI/badge.svg)](https://github.com/paiml/rash/actions)
-[![codecov](https://codecov.io/gh/paiml/rash/branch/main/graph/badge.svg)](https://codecov.io/gh/paiml/rash)
+[![Coverage](https://paiml.github.io/rash/badges/coverage.svg)](https://paiml.github.io/rash/coverage/)
 [![Tests](https://img.shields.io/badge/tests-400%2B%20passing-brightgreen)](https://github.com/paiml/rash/actions)
 [![QuickCheck](https://img.shields.io/badge/QuickCheck-1000%2B%20properties-blue)](https://github.com/paiml/rash/blob/main/rash/src/testing/quickcheck_tests.rs)
 
