@@ -56,14 +56,15 @@ lru = { version = "0.14", optional = true }
 # libfuzzer-sys = { version = "0.4", optional = true }
 
 [features]
-# Default includes validation and pretty errors for good DX
-default = ["validation", "pretty-errors", "basic"]
+# Default includes core features for full functionality
+default = ["validation", "pretty-errors", "basic", "compile", "playground"]
 # Minimal build for smallest binary size (<3MB)
 minimal = []
 # Full build with all features (~6MB)
-full = ["pattern-matching", "loops", "verification", "optimization", "lsp", "completions", "watch", "playground"]
+full = ["pattern-matching", "loops", "verification", "optimization", "lsp", "completions", "watch", "playground", "compile"]
 # Individual features
 basic = []
+compile = []  # Binary compilation and self-extracting scripts
 pattern-matching = []
 loops = []
 verification = []  # ["z3"] when available

@@ -40,11 +40,13 @@ mkdir -p "$install_dir"
 
 ### Binary releases
 
+Pre-built binaries include all features (compile mode, playground, verification) by default:
+
 ```bash
 # Linux x86_64
 curl -L https://github.com/paiml/rash/releases/latest/download/rash-x86_64-unknown-linux-gnu.tar.gz | tar xz
 
-# macOS x86_64
+# macOS x86_64  
 curl -L https://github.com/paiml/rash/releases/latest/download/rash-x86_64-apple-darwin.tar.gz | tar xz
 
 # macOS ARM64
@@ -54,7 +56,11 @@ curl -L https://github.com/paiml/rash/releases/latest/download/rash-aarch64-appl
 ### From source
 
 ```bash
+# Install with default features (includes compile mode and playground)
 cargo install --git https://github.com/paiml/rash
+
+# Install minimal version (smaller binary, core features only)
+cargo install --git https://github.com/paiml/rash --no-default-features --features minimal
 ```
 
 ## Supported Rust subset
@@ -127,8 +133,9 @@ real    0m0.024s
 ```
 
 Binary sizes:
-- Linux x86_64: ~4.2MB (static, musl)
-- macOS: ~4.4MB
+- Linux x86_64: ~4.6MB (static, with all features)
+- macOS: ~4.8MB (with all features)
+- Minimal build: ~3.2MB (core transpilation only)
 - No runtime dependencies
 
 ## Examples
@@ -255,7 +262,7 @@ rash prevents these at compile time by enforcing safe patterns in a familiar Rus
 
 rash differs by using Rust syntax and targeting POSIX compatibility.
 
-## New Features in v0.3.0
+## Core Features (Included by Default)
 
 ### Binary Compilation (Compile Mode)
 
