@@ -1,4 +1,4 @@
-# Quick Test Commands for v0.3.0 Features
+# Quick Test Commands for Core Features (v0.3.1+)
 
 ## Testing Compile Mode (Working!)
 
@@ -61,9 +61,9 @@ cat hello.proof
 
 ## All Features Are Working! 🎉
 
-The features are now available because you built with:
+As of v0.3.1, all features are included by default! Just install normally:
 ```bash
-cargo install --path rash --all-features --force
+cargo install --git https://github.com/paiml/rash
 ```
 
-Without `--all-features`, only the basic commands are included.
+No need for `--all-features` anymore!
