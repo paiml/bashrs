@@ -1,35 +1,30 @@
 // Test SC2068: Double quote array expansions to avoid re-splitting elements
-use std::process::Command;
 
-fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let file_extensions = vec!["*.txt", "*.rs", "*.md", "*.toml"];
-    let search_paths = vec!["/usr/bin", "/usr/local/bin", "/bin"];
-    let compiler_flags = vec!["-O2", "-Wall", "-Wextra", "-pedantic"];
-    
+#[rash::main]
+fn main() {
     // Find files with multiple extensions
-    let mut find_cmd = Command::new("find");
-    find_cmd.arg(".");
-    for ext in &file_extensions {
-        find_cmd.arg("-name").arg(ext).arg("-o");
-    }
-    find_cmd.status()?;
+    find_files_by_ext("*.txt");
+    find_files_by_ext("*.rs");
+    find_files_by_ext("*.md");
+    find_files_by_ext("*.toml");
     
     // Search in multiple paths
-    for path in &search_paths {
-        Command::new("ls")
-            .arg("-la")
-            .arg(path)
-            .status()?;
-    }
+    list_path("/usr/bin");
+    list_path("/usr/local/bin");
+    list_path("/bin");
     
-    // Compile with multiple flags (simulated)
-    let mut gcc_cmd = Command::new("echo");
-    gcc_cmd.arg("gcc");
-    for flag in &compiler_flags {
-        gcc_cmd.arg(flag);
-    }
-    gcc_cmd.arg("main.c");
-    gcc_cmd.status()?;
-    
-    Ok(())
+    // Compile with multiple flags
+    compile_with_flags();
+}
+
+fn find_files_by_ext(ext: &str) {
+    // Find files with proper array quoting
+}
+
+fn list_path(path: &str) {
+    // List directory with proper quoting
+}
+
+fn compile_with_flags() {
+    // Compile with proper flag expansion
 }

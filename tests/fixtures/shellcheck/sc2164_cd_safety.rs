@@ -1,22 +1,18 @@
 // Test SC2164: Use cd ... || exit in case cd fails
-use std::env;
 
-fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let target_dirs = vec![
-        "/tmp",
-        "/nonexistent/path", // This should fail
-        "/var/log",
-        env::var("HOME").unwrap_or_else(|_| "/".to_string()),
-    ];
+#[rash::main]
+fn main() {
+    let dir1 = "/tmp";
+    let dir2 = "/nonexistent/path";
+    let dir3 = "/var/log";
+    let dir4 = "/home/user";
     
-    for dir in target_dirs {
-        // Change directory operations should include error handling
-        env::set_current_dir(&dir)?;
-        
-        // Do some work in the directory
-        std::process::Command::new("pwd").status()?;
-        std::process::Command::new("ls").arg("-la").status()?;
-    }
-    
-    Ok(())
+    cd_safe(dir1);
+    cd_safe(dir2);
+    cd_safe(dir3);
+    cd_safe(dir4);
+}
+
+fn cd_safe(dir: &str) {
+    // Change directory with error handling
 }

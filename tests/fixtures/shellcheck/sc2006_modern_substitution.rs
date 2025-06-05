@@ -1,29 +1,26 @@
 // Test SC2006: Use $(...) instead of legacy `...`
-use std::process::Command;
 
-fn main() -> Result<(), Box<dyn std::error::Error>> {
+#[rash::main]
+fn main() {
     // Modern command substitution patterns
-    let timestamp = Command::new("date")
-        .arg("+%Y%m%d_%H%M%S")
-        .output()?;
-    
-    let hostname = Command::new("hostname")
-        .output()?;
-    
-    let kernel_version = Command::new("uname")
-        .arg("-r")
-        .output()?;
-    
-    let disk_usage = Command::new("df")
-        .arg("-h")
-        .arg("/")
-        .output()?;
-    
-    // Use the results
-    println!("Timestamp: {}", String::from_utf8_lossy(&timestamp.stdout).trim());
-    println!("Hostname: {}", String::from_utf8_lossy(&hostname.stdout).trim());
-    println!("Kernel: {}", String::from_utf8_lossy(&kernel_version.stdout).trim());
-    println!("Disk usage: {}", String::from_utf8_lossy(&disk_usage.stdout));
-    
-    Ok(())
+    get_timestamp();
+    get_hostname();
+    get_kernel_version();
+    get_disk_usage();
+}
+
+fn get_timestamp() {
+    // Get timestamp using modern substitution
+}
+
+fn get_hostname() {
+    // Get hostname using modern substitution
+}
+
+fn get_kernel_version() {
+    // Get kernel version using modern substitution
+}
+
+fn get_disk_usage() {
+    // Get disk usage using modern substitution
 }

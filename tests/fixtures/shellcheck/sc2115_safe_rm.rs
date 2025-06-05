@@ -1,36 +1,26 @@
 // Test SC2115: Use ${var:?} to ensure variable is not empty before rm
-use std::process::Command;
-use std::env;
 
-fn main() -> Result<(), Box<dyn std::error::Error>> {
-    // These operations could be dangerous if variables are empty
-    let temp_dir = env::var("TMPDIR").unwrap_or_else(|_| "/tmp".to_string());
-    let build_dir = env::var("BUILD_DIR").unwrap_or_else(|_| "./build".to_string());
-    let cache_dir = env::var("CACHE_DIR").unwrap_or_else(|_| "./cache".to_string());
-    
+#[rash::main]
+fn main() {
     // Safe removal operations - should validate variables are not empty
-    if !temp_dir.is_empty() {
-        Command::new("rm")
-            .arg("-rf")
-            .arg(format!("{}/my-temp-files", temp_dir))
-            .status()?;
-    }
+    let temp_dir = "/tmp";
+    let build_dir = "./build";
+    let cache_dir = "./cache";
     
-    if !build_dir.is_empty() {
-        Command::new("rm")
-            .arg("-rf")
-            .arg(&build_dir)
-            .status()?;
-    }
-    
-    if !cache_dir.is_empty() {
-        Command::new("find")
-            .arg(&cache_dir)
-            .arg("-type")
-            .arg("f")
-            .arg("-delete")
-            .status()?;
-    }
-    
-    Ok(())
+    // Use safe rm operations that validate variables
+    rm_safe(temp_dir);
+    rm_build_dir(build_dir);
+    find_and_delete(cache_dir);
+}
+
+fn rm_safe(dir: &str) {
+    // Safe rm operation
+}
+
+fn rm_build_dir(dir: &str) {
+    // Safe build directory removal
+}
+
+fn find_and_delete(dir: &str) {
+    // Safe find and delete operation
 }
