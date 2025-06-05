@@ -151,41 +151,40 @@
 <a href=#151 id=151 data-nosnippet>151</a>            ShellExpression::Variable(name, quoted) =&gt; {
 <a href=#152 id=152 data-nosnippet>152</a>                <span class="kw">if </span>!quoted &amp;&amp; <span class="self">self</span>.level &gt;= ValidationLevel::Minimal {
 <a href=#153 id=153 data-nosnippet>153</a>                    <span class="kw">return </span><span class="prelude-val">Err</span>(RashError::ValidationError(<span class="macro">format!</span>(
-<a href=#154 id=154 data-nosnippet>154</a>                        <span class="string">"Unquoted variable ${} (SC2086)"</span>,
-<a href=#155 id=155 data-nosnippet>155</a>                        name
-<a href=#156 id=156 data-nosnippet>156</a>                    )));
-<a href=#157 id=157 data-nosnippet>157</a>                }
-<a href=#158 id=158 data-nosnippet>158</a>            }
-<a href=#159 id=159 data-nosnippet>159</a>            ShellExpression::Command(cmd) =&gt; {
-<a href=#160 id=160 data-nosnippet>160</a>                <span class="kw">if </span>cmd.contains(<span class="string">'`'</span>) &amp;&amp; <span class="self">self</span>.level &gt;= ValidationLevel::Minimal {
-<a href=#161 id=161 data-nosnippet>161</a>                    <span class="kw">return </span><span class="prelude-val">Err</span>(RashError::ValidationError(
-<a href=#162 id=162 data-nosnippet>162</a>                        <span class="string">"Use $(...) instead of backticks (SC2006)"</span>.to_string(),
-<a href=#163 id=163 data-nosnippet>163</a>                    ));
-<a href=#164 id=164 data-nosnippet>164</a>                }
-<a href=#165 id=165 data-nosnippet>165</a>            }
-<a href=#166 id=166 data-nosnippet>166</a>            <span class="kw">_ </span>=&gt; {}
-<a href=#167 id=167 data-nosnippet>167</a>        }
-<a href=#168 id=168 data-nosnippet>168</a>        <span class="prelude-val">Ok</span>(())
-<a href=#169 id=169 data-nosnippet>169</a>    }
-<a href=#170 id=170 data-nosnippet>170</a>
-<a href=#171 id=171 data-nosnippet>171</a>    <span class="attr">#[cfg(debug_assertions)]
-<a href=#172 id=172 data-nosnippet>172</a>    </span><span class="kw">fn </span>verify_with_embedded_rules(<span class="kw-2">&amp;</span><span class="self">self</span>, script: <span class="kw-2">&amp;</span>str) -&gt; RashResult&lt;()&gt; {
-<a href=#173 id=173 data-nosnippet>173</a>        <span class="kw">super</span>::rules::validate_all(script)
-<a href=#174 id=174 data-nosnippet>174</a>    }
-<a href=#175 id=175 data-nosnippet>175</a>
-<a href=#176 id=176 data-nosnippet>176</a>    <span class="kw">pub fn </span>report_error(<span class="kw-2">&amp;</span><span class="self">self</span>, error: <span class="kw-2">&amp;</span>ValidationError) -&gt; String {
-<a href=#177 id=177 data-nosnippet>177</a>        <span class="kw">if </span><span class="self">self</span>.strict_mode &amp;&amp; error.severity == <span class="kw">super</span>::Severity::Error {
-<a href=#178 id=178 data-nosnippet>178</a>            <span class="macro">format!</span>(<span class="string">"ERROR: {}"</span>, error)
-<a href=#179 id=179 data-nosnippet>179</a>        } <span class="kw">else </span>{
-<a href=#180 id=180 data-nosnippet>180</a>            <span class="macro">format!</span>(<span class="string">"{}"</span>, error)
-<a href=#181 id=181 data-nosnippet>181</a>        }
-<a href=#182 id=182 data-nosnippet>182</a>    }
-<a href=#183 id=183 data-nosnippet>183</a>
-<a href=#184 id=184 data-nosnippet>184</a>    <span class="kw">pub fn </span>should_fail(<span class="kw-2">&amp;</span><span class="self">self</span>, errors: <span class="kw-2">&amp;</span>[ValidationError]) -&gt; bool {
-<a href=#185 id=185 data-nosnippet>185</a>        <span class="kw">if </span><span class="self">self</span>.strict_mode {
-<a href=#186 id=186 data-nosnippet>186</a>            !errors.is_empty()
-<a href=#187 id=187 data-nosnippet>187</a>        } <span class="kw">else </span>{
-<a href=#188 id=188 data-nosnippet>188</a>            errors.iter().any(|e| e.severity == <span class="kw">super</span>::Severity::Error)
-<a href=#189 id=189 data-nosnippet>189</a>        }
-<a href=#190 id=190 data-nosnippet>190</a>    }
-<a href=#191 id=191 data-nosnippet>191</a>}</code></pre></div></section></main></body></html>
+<a href=#154 id=154 data-nosnippet>154</a>                        <span class="string">"Unquoted variable ${name} (SC2086)"
+<a href=#155 id=155 data-nosnippet>155</a>                    </span>)));
+<a href=#156 id=156 data-nosnippet>156</a>                }
+<a href=#157 id=157 data-nosnippet>157</a>            }
+<a href=#158 id=158 data-nosnippet>158</a>            ShellExpression::Command(cmd) =&gt; {
+<a href=#159 id=159 data-nosnippet>159</a>                <span class="kw">if </span>cmd.contains(<span class="string">'`'</span>) &amp;&amp; <span class="self">self</span>.level &gt;= ValidationLevel::Minimal {
+<a href=#160 id=160 data-nosnippet>160</a>                    <span class="kw">return </span><span class="prelude-val">Err</span>(RashError::ValidationError(
+<a href=#161 id=161 data-nosnippet>161</a>                        <span class="string">"Use $(...) instead of backticks (SC2006)"</span>.to_string(),
+<a href=#162 id=162 data-nosnippet>162</a>                    ));
+<a href=#163 id=163 data-nosnippet>163</a>                }
+<a href=#164 id=164 data-nosnippet>164</a>            }
+<a href=#165 id=165 data-nosnippet>165</a>            <span class="kw">_ </span>=&gt; {}
+<a href=#166 id=166 data-nosnippet>166</a>        }
+<a href=#167 id=167 data-nosnippet>167</a>        <span class="prelude-val">Ok</span>(())
+<a href=#168 id=168 data-nosnippet>168</a>    }
+<a href=#169 id=169 data-nosnippet>169</a>
+<a href=#170 id=170 data-nosnippet>170</a>    <span class="attr">#[cfg(debug_assertions)]
+<a href=#171 id=171 data-nosnippet>171</a>    </span><span class="kw">fn </span>verify_with_embedded_rules(<span class="kw-2">&amp;</span><span class="self">self</span>, script: <span class="kw-2">&amp;</span>str) -&gt; RashResult&lt;()&gt; {
+<a href=#172 id=172 data-nosnippet>172</a>        <span class="kw">super</span>::rules::validate_all(script)
+<a href=#173 id=173 data-nosnippet>173</a>    }
+<a href=#174 id=174 data-nosnippet>174</a>
+<a href=#175 id=175 data-nosnippet>175</a>    <span class="kw">pub fn </span>report_error(<span class="kw-2">&amp;</span><span class="self">self</span>, error: <span class="kw-2">&amp;</span>ValidationError) -&gt; String {
+<a href=#176 id=176 data-nosnippet>176</a>        <span class="kw">if </span><span class="self">self</span>.strict_mode &amp;&amp; error.severity == <span class="kw">super</span>::Severity::Error {
+<a href=#177 id=177 data-nosnippet>177</a>            <span class="macro">format!</span>(<span class="string">"ERROR: {error}"</span>)
+<a href=#178 id=178 data-nosnippet>178</a>        } <span class="kw">else </span>{
+<a href=#179 id=179 data-nosnippet>179</a>            <span class="macro">format!</span>(<span class="string">"{error}"</span>)
+<a href=#180 id=180 data-nosnippet>180</a>        }
+<a href=#181 id=181 data-nosnippet>181</a>    }
+<a href=#182 id=182 data-nosnippet>182</a>
+<a href=#183 id=183 data-nosnippet>183</a>    <span class="kw">pub fn </span>should_fail(<span class="kw-2">&amp;</span><span class="self">self</span>, errors: <span class="kw-2">&amp;</span>[ValidationError]) -&gt; bool {
+<a href=#184 id=184 data-nosnippet>184</a>        <span class="kw">if </span><span class="self">self</span>.strict_mode {
+<a href=#185 id=185 data-nosnippet>185</a>            !errors.is_empty()
+<a href=#186 id=186 data-nosnippet>186</a>        } <span class="kw">else </span>{
+<a href=#187 id=187 data-nosnippet>187</a>            errors.iter().any(|e| e.severity == <span class="kw">super</span>::Severity::Error)
+<a href=#188 id=188 data-nosnippet>188</a>        }
+<a href=#189 id=189 data-nosnippet>189</a>    }
+<a href=#190 id=190 data-nosnippet>190</a>}</code></pre></div></section></main></body></html>

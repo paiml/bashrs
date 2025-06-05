@@ -389,7 +389,7 @@
 <a href=#389 id=389 data-nosnippet>389</a>                <span class="kw">if </span>!<span class="self">self</span>.type_env.contains_key(var) {
 <a href=#390 id=390 data-nosnippet>390</a>                    <span class="kw">return </span><span class="prelude-val">Some</span>(ContractViolation {
 <a href=#391 id=391 data-nosnippet>391</a>                        contract: contract.clone(),
-<a href=#392 id=392 data-nosnippet>392</a>                        reason: <span class="macro">format!</span>(<span class="string">"Variable '{}' is not defined"</span>, var),
+<a href=#392 id=392 data-nosnippet>392</a>                        reason: <span class="macro">format!</span>(<span class="string">"Variable '{var}' is not defined"</span>),
 <a href=#393 id=393 data-nosnippet>393</a>                    });
 <a href=#394 id=394 data-nosnippet>394</a>                }
 <a href=#395 id=395 data-nosnippet>395</a>            }

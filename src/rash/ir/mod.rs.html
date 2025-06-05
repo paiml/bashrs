@@ -77,7 +77,7 @@
 <a href=#77 id=77 data-nosnippet>77</a>                <span class="kw">let </span>value = <span class="self">self</span>.convert_expr_to_value(expr)<span class="question-mark">?</span>;
 <a href=#78 id=78 data-nosnippet>78</a>                <span class="prelude-val">Ok</span>(ShellIR::Exit {
 <a href=#79 id=79 data-nosnippet>79</a>                    code: <span class="number">0</span>,
-<a href=#80 id=80 data-nosnippet>80</a>                    message: <span class="prelude-val">Some</span>(<span class="macro">format!</span>(<span class="string">"{:?}"</span>, value)), <span class="comment">// Simplified
+<a href=#80 id=80 data-nosnippet>80</a>                    message: <span class="prelude-val">Some</span>(<span class="macro">format!</span>(<span class="string">"{value:?}"</span>)), <span class="comment">// Simplified
 <a href=#81 id=81 data-nosnippet>81</a>                </span>})
 <a href=#82 id=82 data-nosnippet>82</a>            }
 <a href=#83 id=83 data-nosnippet>83</a>            Stmt::Return(<span class="prelude-val">None</span>) =&gt; <span class="prelude-val">Ok</span>(ShellIR::Exit {

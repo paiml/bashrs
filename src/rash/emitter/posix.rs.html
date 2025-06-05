@@ -127,7 +127,7 @@
 <a href=#127 id=127 data-nosnippet>127</a>
 <a href=#128 id=128 data-nosnippet>128</a>    <span class="kw">fn </span>write_shell_lines(<span class="kw-2">&amp;</span><span class="self">self</span>, output: <span class="kw-2">&amp;mut </span>String, lines: <span class="kw-2">&amp;</span>[<span class="kw-2">&amp;</span>str]) -&gt; <span class="prelude-ty">Result</span>&lt;()&gt; {
 <a href=#129 id=129 data-nosnippet>129</a>        <span class="kw">for </span>line <span class="kw">in </span>lines {
-<a href=#130 id=130 data-nosnippet>130</a>            <span class="macro">writeln!</span>(output, <span class="string">"{}"</span>, line)<span class="question-mark">?</span>;
+<a href=#130 id=130 data-nosnippet>130</a>            <span class="macro">writeln!</span>(output, <span class="string">"{line}"</span>)<span class="question-mark">?</span>;
 <a href=#131 id=131 data-nosnippet>131</a>        }
 <a href=#132 id=132 data-nosnippet>132</a>        <span class="prelude-val">Ok</span>(())
 <a href=#133 id=133 data-nosnippet>133</a>    }
@@ -166,14 +166,14 @@
 <a href=#166 id=166 data-nosnippet>166</a>        <span class="kw">let </span>indent_str = <span class="string">"    "</span>.repeat(indent + <span class="number">1</span>);
 <a href=#167 id=167 data-nosnippet>167</a>        <span class="kw">let </span>var_name = escape_variable_name(name);
 <a href=#168 id=168 data-nosnippet>168</a>        <span class="kw">let </span>var_value = <span class="self">self</span>.emit_shell_value(value)<span class="question-mark">?</span>;
-<a href=#169 id=169 data-nosnippet>169</a>        <span class="macro">writeln!</span>(output, <span class="string">"{}readonly {}={}"</span>, indent_str, var_name, var_value)<span class="question-mark">?</span>;
+<a href=#169 id=169 data-nosnippet>169</a>        <span class="macro">writeln!</span>(output, <span class="string">"{indent_str}readonly {var_name}={var_value}"</span>)<span class="question-mark">?</span>;
 <a href=#170 id=170 data-nosnippet>170</a>        <span class="prelude-val">Ok</span>(())
 <a href=#171 id=171 data-nosnippet>171</a>    }
 <a href=#172 id=172 data-nosnippet>172</a>
 <a href=#173 id=173 data-nosnippet>173</a>    <span class="kw">fn </span>emit_exec_statement(<span class="kw-2">&amp;</span><span class="self">self</span>, output: <span class="kw-2">&amp;mut </span>String, cmd: <span class="kw-2">&amp;</span>Command, indent: usize) -&gt; <span class="prelude-ty">Result</span>&lt;()&gt; {
 <a href=#174 id=174 data-nosnippet>174</a>        <span class="kw">let </span>indent_str = <span class="string">"    "</span>.repeat(indent + <span class="number">1</span>);
 <a href=#175 id=175 data-nosnippet>175</a>        <span class="kw">let </span>command_str = <span class="self">self</span>.emit_command(cmd)<span class="question-mark">?</span>;
-<a href=#176 id=176 data-nosnippet>176</a>        <span class="macro">writeln!</span>(output, <span class="string">"{}{}"</span>, indent_str, command_str)<span class="question-mark">?</span>;
+<a href=#176 id=176 data-nosnippet>176</a>        <span class="macro">writeln!</span>(output, <span class="string">"{indent_str}{command_str}"</span>)<span class="question-mark">?</span>;
 <a href=#177 id=177 data-nosnippet>177</a>        <span class="prelude-val">Ok</span>(())
 <a href=#178 id=178 data-nosnippet>178</a>    }
 <a href=#179 id=179 data-nosnippet>179</a>
@@ -187,16 +187,16 @@
 <a href=#187 id=187 data-nosnippet>187</a>    ) -&gt; <span class="prelude-ty">Result</span>&lt;()&gt; {
 <a href=#188 id=188 data-nosnippet>188</a>        <span class="kw">let </span>indent_str = <span class="string">"    "</span>.repeat(indent + <span class="number">1</span>);
 <a href=#189 id=189 data-nosnippet>189</a>        <span class="kw">let </span>test_expr = <span class="self">self</span>.emit_test_expression(test)<span class="question-mark">?</span>;
-<a href=#190 id=190 data-nosnippet>190</a>        <span class="macro">writeln!</span>(output, <span class="string">"{}if {}; then"</span>, indent_str, test_expr)<span class="question-mark">?</span>;
+<a href=#190 id=190 data-nosnippet>190</a>        <span class="macro">writeln!</span>(output, <span class="string">"{indent_str}if {test_expr}; then"</span>)<span class="question-mark">?</span>;
 <a href=#191 id=191 data-nosnippet>191</a>
 <a href=#192 id=192 data-nosnippet>192</a>        <span class="self">self</span>.emit_ir(output, then_branch, indent + <span class="number">1</span>)<span class="question-mark">?</span>;
 <a href=#193 id=193 data-nosnippet>193</a>
 <a href=#194 id=194 data-nosnippet>194</a>        <span class="kw">if let </span><span class="prelude-val">Some</span>(else_ir) = else_branch {
-<a href=#195 id=195 data-nosnippet>195</a>            <span class="macro">writeln!</span>(output, <span class="string">"{}else"</span>, indent_str)<span class="question-mark">?</span>;
+<a href=#195 id=195 data-nosnippet>195</a>            <span class="macro">writeln!</span>(output, <span class="string">"{indent_str}else"</span>)<span class="question-mark">?</span>;
 <a href=#196 id=196 data-nosnippet>196</a>            <span class="self">self</span>.emit_ir(output, else_ir, indent + <span class="number">1</span>)<span class="question-mark">?</span>;
 <a href=#197 id=197 data-nosnippet>197</a>        }
 <a href=#198 id=198 data-nosnippet>198</a>
-<a href=#199 id=199 data-nosnippet>199</a>        <span class="macro">writeln!</span>(output, <span class="string">"{}fi"</span>, indent_str)<span class="question-mark">?</span>;
+<a href=#199 id=199 data-nosnippet>199</a>        <span class="macro">writeln!</span>(output, <span class="string">"{indent_str}fi"</span>)<span class="question-mark">?</span>;
 <a href=#200 id=200 data-nosnippet>200</a>        <span class="prelude-val">Ok</span>(())
 <a href=#201 id=201 data-nosnippet>201</a>    }
 <a href=#202 id=202 data-nosnippet>202</a>
@@ -210,9 +210,9 @@
 <a href=#210 id=210 data-nosnippet>210</a>        <span class="kw">let </span>indent_str = <span class="string">"    "</span>.repeat(indent + <span class="number">1</span>);
 <a href=#211 id=211 data-nosnippet>211</a>        <span class="kw">if let </span><span class="prelude-val">Some</span>(msg) = message {
 <a href=#212 id=212 data-nosnippet>212</a>            <span class="kw">let </span>escaped_msg = escape_shell_string(msg);
-<a href=#213 id=213 data-nosnippet>213</a>            <span class="macro">writeln!</span>(output, <span class="string">"{}echo {} &gt;&amp;2"</span>, indent_str, escaped_msg)<span class="question-mark">?</span>;
+<a href=#213 id=213 data-nosnippet>213</a>            <span class="macro">writeln!</span>(output, <span class="string">"{indent_str}echo {escaped_msg} &gt;&amp;2"</span>)<span class="question-mark">?</span>;
 <a href=#214 id=214 data-nosnippet>214</a>        }
-<a href=#215 id=215 data-nosnippet>215</a>        <span class="macro">writeln!</span>(output, <span class="string">"{}exit {}"</span>, indent_str, code)<span class="question-mark">?</span>;
+<a href=#215 id=215 data-nosnippet>215</a>        <span class="macro">writeln!</span>(output, <span class="string">"{indent_str}exit {code}"</span>)<span class="question-mark">?</span>;
 <a href=#216 id=216 data-nosnippet>216</a>        <span class="prelude-val">Ok</span>(())
 <a href=#217 id=217 data-nosnippet>217</a>    }
 <a href=#218 id=218 data-nosnippet>218</a>
@@ -225,7 +225,7 @@
 <a href=#225 id=225 data-nosnippet>225</a>
 <a href=#226 id=226 data-nosnippet>226</a>    <span class="kw">fn </span>emit_noop(<span class="kw-2">&amp;</span><span class="self">self</span>, output: <span class="kw-2">&amp;mut </span>String, indent: usize) -&gt; <span class="prelude-ty">Result</span>&lt;()&gt; {
 <a href=#227 id=227 data-nosnippet>227</a>        <span class="kw">let </span>indent_str = <span class="string">"    "</span>.repeat(indent + <span class="number">1</span>);
-<a href=#228 id=228 data-nosnippet>228</a>        <span class="macro">writeln!</span>(output, <span class="string">"{}# noop"</span>, indent_str)<span class="question-mark">?</span>;
+<a href=#228 id=228 data-nosnippet>228</a>        <span class="macro">writeln!</span>(output, <span class="string">"{indent_str}# noop"</span>)<span class="question-mark">?</span>;
 <a href=#229 id=229 data-nosnippet>229</a>        <span class="prelude-val">Ok</span>(())
 <a href=#230 id=230 data-nosnippet>230</a>    }
 <a href=#231 id=231 data-nosnippet>231</a>
@@ -237,7 +237,7 @@
 <a href=#237 id=237 data-nosnippet>237</a>            ShellValue::Concat(parts) =&gt; <span class="self">self</span>.emit_concatenation(parts),
 <a href=#238 id=238 data-nosnippet>238</a>            ShellValue::CommandSubst(cmd) =&gt; {
 <a href=#239 id=239 data-nosnippet>239</a>                <span class="kw">let </span>cmd_str = <span class="self">self</span>.emit_command(cmd)<span class="question-mark">?</span>;
-<a href=#240 id=240 data-nosnippet>240</a>                <span class="prelude-val">Ok</span>(<span class="macro">format!</span>(<span class="string">"\"$({})\""</span>, cmd_str))
+<a href=#240 id=240 data-nosnippet>240</a>                <span class="prelude-val">Ok</span>(<span class="macro">format!</span>(<span class="string">"\"$({cmd_str})\""</span>))
 <a href=#241 id=241 data-nosnippet>241</a>            }
 <a href=#242 id=242 data-nosnippet>242</a>        }
 <a href=#243 id=243 data-nosnippet>243</a>    }
@@ -267,7 +267,7 @@
 <a href=#267 id=267 data-nosnippet>267</a>            }
 <a href=#268 id=268 data-nosnippet>268</a>            ShellValue::CommandSubst(cmd) =&gt; {
 <a href=#269 id=269 data-nosnippet>269</a>                <span class="kw">let </span>cmd_str = <span class="self">self</span>.emit_command(cmd)<span class="question-mark">?</span>;
-<a href=#270 id=270 data-nosnippet>270</a>                result.push_str(<span class="kw-2">&amp;</span><span class="macro">format!</span>(<span class="string">"$({})"</span>, cmd_str));
+<a href=#270 id=270 data-nosnippet>270</a>                result.push_str(<span class="kw-2">&amp;</span><span class="macro">format!</span>(<span class="string">"$({cmd_str})"</span>));
 <a href=#271 id=271 data-nosnippet>271</a>            }
 <a href=#272 id=272 data-nosnippet>272</a>            ShellValue::Concat(<span class="kw">_</span>) =&gt; {
 <a href=#273 id=273 data-nosnippet>273</a>                <span class="comment">// Nested concatenation - flatten it
@@ -316,7 +316,7 @@
 <a href=#316 id=316 data-nosnippet>316</a>            other =&gt; {
 <a href=#317 id=317 data-nosnippet>317</a>                <span class="comment">// For complex expressions, evaluate them and test the result
 <a href=#318 id=318 data-nosnippet>318</a>                </span><span class="kw">let </span>value = <span class="self">self</span>.emit_shell_value(other)<span class="question-mark">?</span>;
-<a href=#319 id=319 data-nosnippet>319</a>                <span class="prelude-val">Ok</span>(<span class="macro">format!</span>(<span class="string">"test -n {}"</span>, value))
+<a href=#319 id=319 data-nosnippet>319</a>                <span class="prelude-val">Ok</span>(<span class="macro">format!</span>(<span class="string">"test -n {value}"</span>))
 <a href=#320 id=320 data-nosnippet>320</a>            }
 <a href=#321 id=321 data-nosnippet>321</a>        }
 <a href=#322 id=322 data-nosnippet>322</a>    }

@@ -427,7 +427,7 @@
 <a href=#427 id=427 data-nosnippet>427</a>            }
 <a href=#428 id=428 data-nosnippet>428</a>
 <a href=#429 id=429 data-nosnippet>429</a>            TinyAst::SetEnvironmentVariable { name, value } =&gt; {
-<a href=#430 id=430 data-nosnippet>430</a>                <span class="kw">let </span>operation = <span class="macro">format!</span>(<span class="string">"Set environment variable: {}={}"</span>, name, value);
+<a href=#430 id=430 data-nosnippet>430</a>                <span class="kw">let </span>operation = <span class="macro">format!</span>(<span class="string">"Set environment variable: {name}={value}"</span>);
 <a href=#431 id=431 data-nosnippet>431</a>                current_state.set_env(name.clone(), value.clone());
 <a href=#432 id=432 data-nosnippet>432</a>
 <a href=#433 id=433 data-nosnippet>433</a>                steps.push(ExecutionStep {
@@ -441,7 +441,7 @@
 <a href=#441 id=441 data-nosnippet>441</a>            }
 <a href=#442 id=442 data-nosnippet>442</a>
 <a href=#443 id=443 data-nosnippet>443</a>            TinyAst::ChangeDirectory { path } =&gt; {
-<a href=#444 id=444 data-nosnippet>444</a>                <span class="kw">let </span>operation = <span class="macro">format!</span>(<span class="string">"Change directory to: {}"</span>, path);
+<a href=#444 id=444 data-nosnippet>444</a>                <span class="kw">let </span>operation = <span class="macro">format!</span>(<span class="string">"Change directory to: {path}"</span>);
 <a href=#445 id=445 data-nosnippet>445</a>                <span class="kw">let </span><span class="kw-2">mut </span>errors = Vec::new();
 <a href=#446 id=446 data-nosnippet>446</a>
 <a href=#447 id=447 data-nosnippet>447</a>                <span class="kw">if let </span><span class="prelude-val">Err</span>(e) = current_state.change_directory(std::path::PathBuf::from(path)) {
@@ -484,7 +484,7 @@
 <a href=#484 id=484 data-nosnippet>484</a>
 <a href=#485 id=485 data-nosnippet>485</a>        steps.push(ExecutionStep {
 <a href=#486 id=486 data-nosnippet>486</a>            step_number: <span class="number">1</span>,
-<a href=#487 id=487 data-nosnippet>487</a>            operation: <span class="macro">format!</span>(<span class="string">"Execute POSIX code: {}"</span>, code),
+<a href=#487 id=487 data-nosnippet>487</a>            operation: <span class="macro">format!</span>(<span class="string">"Execute POSIX code: {code}"</span>),
 <a href=#488 id=488 data-nosnippet>488</a>            state_before,
 <a href=#489 id=489 data-nosnippet>489</a>            state_after: current_state.clone(),
 <a href=#490 id=490 data-nosnippet>490</a>            errors,
@@ -660,7 +660,7 @@
 <a href=#660 id=660 data-nosnippet>660</a>            TinyAst::ExecuteCommand { command_name, args } =&gt; {
 <a href=#661 id=661 data-nosnippet>661</a>                <span class="kw">let </span>generated_code = FormalEmitter::emit(ast);
 <a href=#662 id=662 data-nosnippet>662</a>                justifications.push(EmitterJustification {
-<a href=#663 id=663 data-nosnippet>663</a>                    ast_node: <span class="macro">format!</span>(<span class="string">"ExecuteCommand({}, {:?})"</span>, command_name, args),
+<a href=#663 id=663 data-nosnippet>663</a>                    ast_node: <span class="macro">format!</span>(<span class="string">"ExecuteCommand({command_name}, {args:?})"</span>),
 <a href=#664 id=664 data-nosnippet>664</a>                    generated_code,
 <a href=#665 id=665 data-nosnippet>665</a>                    reasoning: <span class="string">"Command arguments are properly quoted to prevent shell injection"
 <a href=#666 id=666 data-nosnippet>666</a>                        </span>.to_string(),
@@ -674,7 +674,7 @@
 <a href=#674 id=674 data-nosnippet>674</a>            TinyAst::SetEnvironmentVariable { name, value } =&gt; {
 <a href=#675 id=675 data-nosnippet>675</a>                <span class="kw">let </span>generated_code = FormalEmitter::emit(ast);
 <a href=#676 id=676 data-nosnippet>676</a>                justifications.push(EmitterJustification {
-<a href=#677 id=677 data-nosnippet>677</a>                    ast_node: <span class="macro">format!</span>(<span class="string">"SetEnvironmentVariable({}, {})"</span>, name, value),
+<a href=#677 id=677 data-nosnippet>677</a>                    ast_node: <span class="macro">format!</span>(<span class="string">"SetEnvironmentVariable({name}, {value})"</span>),
 <a href=#678 id=678 data-nosnippet>678</a>                    generated_code,
 <a href=#679 id=679 data-nosnippet>679</a>                    reasoning: <span class="string">"Variable assignment uses POSIX-compliant syntax with quoted values"
 <a href=#680 id=680 data-nosnippet>680</a>                        </span>.to_string(),
@@ -689,7 +689,7 @@
 <a href=#689 id=689 data-nosnippet>689</a>            TinyAst::ChangeDirectory { path } =&gt; {
 <a href=#690 id=690 data-nosnippet>690</a>                <span class="kw">let </span>generated_code = FormalEmitter::emit(ast);
 <a href=#691 id=691 data-nosnippet>691</a>                justifications.push(EmitterJustification {
-<a href=#692 id=692 data-nosnippet>692</a>                    ast_node: <span class="macro">format!</span>(<span class="string">"ChangeDirectory({})"</span>, path),
+<a href=#692 id=692 data-nosnippet>692</a>                    ast_node: <span class="macro">format!</span>(<span class="string">"ChangeDirectory({path})"</span>),
 <a href=#693 id=693 data-nosnippet>693</a>                    generated_code,
 <a href=#694 id=694 data-nosnippet>694</a>                    reasoning: <span class="string">"Change directory uses cd command with quoted path"</span>.to_string(),
 <a href=#695 id=695 data-nosnippet>695</a>                    considerations: <span class="macro">vec!</span>[
@@ -743,14 +743,14 @@
 <a href=#743 id=743 data-nosnippet>743</a>            VerificationResult::Failure { reasons } =&gt; {
 <a href=#744 id=744 data-nosnippet>744</a>                output.push_str(<span class="string">"❌ **FAILURE**\n"</span>);
 <a href=#745 id=745 data-nosnippet>745</a>                <span class="kw">for </span>reason <span class="kw">in </span>reasons {
-<a href=#746 id=746 data-nosnippet>746</a>                    output.push_str(<span class="kw-2">&amp;</span><span class="macro">format!</span>(<span class="string">"- {}\n"</span>, reason));
+<a href=#746 id=746 data-nosnippet>746</a>                    output.push_str(<span class="kw-2">&amp;</span><span class="macro">format!</span>(<span class="string">"- {reason}\n"</span>));
 <a href=#747 id=747 data-nosnippet>747</a>                }
 <a href=#748 id=748 data-nosnippet>748</a>                output.push(<span class="string">'\n'</span>);
 <a href=#749 id=749 data-nosnippet>749</a>            }
 <a href=#750 id=750 data-nosnippet>750</a>            VerificationResult::Partial { issues } =&gt; {
 <a href=#751 id=751 data-nosnippet>751</a>                output.push_str(<span class="string">"⚠️ **PARTIAL**\n"</span>);
 <a href=#752 id=752 data-nosnippet>752</a>                <span class="kw">for </span>issue <span class="kw">in </span>issues {
-<a href=#753 id=753 data-nosnippet>753</a>                    output.push_str(<span class="kw-2">&amp;</span><span class="macro">format!</span>(<span class="string">"- {}\n"</span>, issue));
+<a href=#753 id=753 data-nosnippet>753</a>                    output.push_str(<span class="kw-2">&amp;</span><span class="macro">format!</span>(<span class="string">"- {issue}\n"</span>));
 <a href=#754 id=754 data-nosnippet>754</a>                }
 <a href=#755 id=755 data-nosnippet>755</a>                output.push(<span class="string">'\n'</span>);
 <a href=#756 id=756 data-nosnippet>756</a>            }
@@ -820,7 +820,7 @@
 <a href=#820 id=820 data-nosnippet>820</a>            <span class="kw">if </span>!justification.considerations.is_empty() {
 <a href=#821 id=821 data-nosnippet>821</a>                output.push_str(<span class="string">"**Considerations:**\n"</span>);
 <a href=#822 id=822 data-nosnippet>822</a>                <span class="kw">for </span>consideration <span class="kw">in </span><span class="kw-2">&amp;</span>justification.considerations {
-<a href=#823 id=823 data-nosnippet>823</a>                    output.push_str(<span class="kw-2">&amp;</span><span class="macro">format!</span>(<span class="string">"- {}\n"</span>, consideration));
+<a href=#823 id=823 data-nosnippet>823</a>                    output.push_str(<span class="kw-2">&amp;</span><span class="macro">format!</span>(<span class="string">"- {consideration}\n"</span>));
 <a href=#824 id=824 data-nosnippet>824</a>                }
 <a href=#825 id=825 data-nosnippet>825</a>            }
 <a href=#826 id=826 data-nosnippet>826</a>            output.push(<span class="string">'\n'</span>);

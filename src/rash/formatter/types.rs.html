@@ -170,7 +170,7 @@
 <a href=#170 id=170 data-nosnippet>170</a>            ShellType::FileDescriptor =&gt; <span class="string">"fd"</span>.to_string(),
 <a href=#171 id=171 data-nosnippet>171</a>            ShellType::ExitCode =&gt; <span class="string">"exit_code"</span>.to_string(),
 <a href=#172 id=172 data-nosnippet>172</a>            ShellType::Signal =&gt; <span class="string">"signal"</span>.to_string(),
-<a href=#173 id=173 data-nosnippet>173</a>            ShellType::TypeVar(id) =&gt; <span class="macro">format!</span>(<span class="string">"T{}"</span>, id),
+<a href=#173 id=173 data-nosnippet>173</a>            ShellType::TypeVar(id) =&gt; <span class="macro">format!</span>(<span class="string">"T{id}"</span>),
 <a href=#174 id=174 data-nosnippet>174</a>            ShellType::Union(types) =&gt; {
 <a href=#175 id=175 data-nosnippet>175</a>                <span class="kw">let </span>type_strs: Vec&lt;<span class="kw">_</span>&gt; = types.iter().map(|t| t.display()).collect();
 <a href=#176 id=176 data-nosnippet>176</a>                <span class="macro">format!</span>(<span class="string">"({})"</span>, type_strs.join(<span class="string">" | "</span>))

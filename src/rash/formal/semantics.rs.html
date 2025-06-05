@@ -87,7 +87,7 @@
 <a href=#87 id=87 data-nosnippet>87</a>            <span class="kw">if </span>arg == <span class="string">"-p" </span>{
 <a href=#88 id=88 data-nosnippet>88</a>                parent_flag = <span class="bool-val">true</span>;
 <a href=#89 id=89 data-nosnippet>89</a>            } <span class="kw">else if </span>arg.starts_with(<span class="string">'-'</span>) {
-<a href=#90 id=90 data-nosnippet>90</a>                state.write_stderr(<span class="macro">format!</span>(<span class="string">"mkdir: invalid option -- '{}'"</span>, arg));
+<a href=#90 id=90 data-nosnippet>90</a>                state.write_stderr(<span class="macro">format!</span>(<span class="string">"mkdir: invalid option -- '{arg}'"</span>));
 <a href=#91 id=91 data-nosnippet>91</a>                state.exit_code = <span class="number">1</span>;
 <a href=#92 id=92 data-nosnippet>92</a>                <span class="kw">return </span><span class="prelude-val">Err</span>(<span class="string">"Invalid option"</span>.to_string());
 <a href=#93 id=93 data-nosnippet>93</a>            } <span class="kw">else </span>{
@@ -178,7 +178,7 @@
 <a href=#178 id=178 data-nosnippet>178</a>    }
 <a href=#179 id=179 data-nosnippet>179</a>
 <a href=#180 id=180 data-nosnippet>180</a>    <span class="kw">fn </span>eval_unknown_command(state: <span class="kw-2">&amp;mut </span>AbstractState, command: <span class="kw-2">&amp;</span>str) -&gt; <span class="prelude-ty">Result</span>&lt;(), String&gt; {
-<a href=#181 id=181 data-nosnippet>181</a>        state.write_stderr(<span class="macro">format!</span>(<span class="string">"{}: command not fully modeled"</span>, command));
+<a href=#181 id=181 data-nosnippet>181</a>        state.write_stderr(<span class="macro">format!</span>(<span class="string">"{command}: command not fully modeled"</span>));
 <a href=#182 id=182 data-nosnippet>182</a>        state.exit_code = <span class="number">0</span>;
 <a href=#183 id=183 data-nosnippet>183</a>        <span class="prelude-val">Ok</span>(())
 <a href=#184 id=184 data-nosnippet>184</a>    }
