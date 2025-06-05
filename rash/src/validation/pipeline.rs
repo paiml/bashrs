@@ -82,7 +82,7 @@ impl ValidationPipeline {
 
     fn validate_expr(&self, expr: &crate::ast::Expr) -> RashResult<()> {
         use crate::ast::Expr;
-        
+
         match expr {
             Expr::Literal(_) => Ok(()),
             Expr::Variable(name) => {
@@ -93,9 +93,9 @@ impl ValidationPipeline {
                     ));
                 }
                 if name.contains(char::is_whitespace) {
-                    return Err(RashError::ValidationError(
-                        format!("Variable name '{}' contains whitespace", name),
-                    ));
+                    return Err(RashError::ValidationError(format!(
+                        "Variable name '{name}' contains whitespace"
+                    )));
                 }
                 Ok(())
             }
@@ -119,11 +119,13 @@ impl ValidationPipeline {
                 }
                 Ok(())
             }
-            Expr::MethodCall { receiver, method, args } => {
+            Expr::MethodCall {
+                receiver,
+                method,
+                args,
+            } => {
                 if method.is_empty() {
-                    return Err(RashError::ValidationError(
-                        "Empty method name".to_string(),
-                    ));
+                    return Err(RashError::ValidationError("Empty method name".to_string()));
                 }
                 self.validate_expr(receiver)?;
                 for arg in args {

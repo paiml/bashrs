@@ -78,7 +78,10 @@ pub mod generators {
                 op,
                 operand: Box::new(expr),
             }),
-            (any_valid_identifier(), prop::collection::vec(leaf_expr(), 0..3))
+            (
+                any_valid_identifier(),
+                prop::collection::vec(leaf_expr(), 0..3)
+            )
                 .prop_map(|(name, args)| Expr::FunctionCall { name, args }),
         ]
     }
@@ -94,7 +97,8 @@ pub mod generators {
 
     pub fn simple_stmt() -> impl Strategy<Value = Stmt> {
         prop_oneof![
-            (any_valid_identifier(), simple_expr()).prop_map(|(name, value)| Stmt::Let { name, value }),
+            (any_valid_identifier(), simple_expr())
+                .prop_map(|(name, value)| Stmt::Let { name, value }),
             simple_expr().prop_map(Stmt::Expr),
             prop::option::of(simple_expr()).prop_map(Stmt::Return),
         ]
@@ -167,9 +171,9 @@ proptest! {
     fn prop_valid_identifiers_parse(name in "[a-zA-Z][a-zA-Z0-9_]{0,20}") {
         // Skip reserved keywords and problematic names
         prop_assume!(name != "_" && name != "main" && !name.starts_with("__"));
-        
+
         let source = format!("fn {name}() {{ let x = 42; }} fn main() {{ {name}(); }}");
-        
+
         let result = parse(&source);
         prop_assert!(result.is_ok(), "Failed to parse with identifier: {}", name);
         if let Ok(ast) = result {
@@ -186,7 +190,7 @@ proptest! {
             Literal::U32(n) => format!("fn main() {{ let x = {n}; }}"),
             Literal::Str(s) => format!(r#"fn main() {{ let x = "{s}"; }}"#),
         };
-        
+
         let result = transpile(&source, Config::default());
         prop_assert!(result.is_ok(), "Failed to transpile literal: {:?}", lit);
     }
@@ -201,13 +205,13 @@ proptest! {
     ) {
         // Skip division to avoid divide by zero
         prop_assume!(!matches!(op, BinaryOp::Div));
-        
+
         let left_assoc = format!("fn main() {{ let x = ({a} + {b}) + {c}; }}");
         let right_assoc = format!("fn main() {{ let x = {a} + ({b} + {c}); }}");
-        
+
         let result1 = transpile(&left_assoc, Config::default());
         let result2 = transpile(&right_assoc, Config::default());
-        
+
         prop_assert!(result1.is_ok() && result2.is_ok());
     }
 
@@ -215,7 +219,7 @@ proptest! {
     #[test]
     fn prop_function_names_preserved(name in generators::any_valid_identifier()) {
         let source = format!("fn {name}() {{}} fn main() {{ {name}(); }}");
-        
+
         if let Ok(shell_code) = transpile(&source, Config::default()) {
             // Function name should appear in the generated shell code
             prop_assert!(shell_code.contains(&name));
@@ -225,8 +229,8 @@ proptest! {
     /// Property: Nested expressions should have balanced parentheses
     #[test]
     fn prop_balanced_parentheses(_expr in generators::simple_expr()) {
-        let source = format!("fn main() {{ let x = 1; }}"); // Simplified for now
-        
+        let source = "fn main() { let x = 1; }".to_string(); // Simplified for now
+
         if let Ok(shell_code) = transpile(&source, Config::default()) {
             let open_count = shell_code.chars().filter(|&c| c == '(').count();
             let close_count = shell_code.chars().filter(|&c| c == ')').count();
@@ -238,7 +242,7 @@ proptest! {
     #[test]
     fn prop_generated_scripts_non_empty(_ast in generators::valid_ast()) {
         let source = "fn main() { let x = 42; }"; // Simplified
-        
+
         if let Ok(shell_code) = transpile(source, Config::default()) {
             prop_assert!(!shell_code.trim().is_empty());
             prop_assert!(shell_code.contains("#!/bin/sh") || shell_code.contains("#!/bin/bash"));
@@ -249,10 +253,10 @@ proptest! {
     #[test]
     fn prop_transpilation_deterministic(config in generators::any_config()) {
         let source = "fn main() { let x = 42; let y = \"hello\"; }";
-        
+
         let result1 = transpile(source, config.clone());
         let result2 = transpile(source, config.clone());
-        
+
         match (result1, result2) {
             (Ok(code1), Ok(code2)) => prop_assert_eq!(code1, code2),
             (Err(_), Err(_)) => {}, // Both failing is okay
@@ -264,7 +268,7 @@ proptest! {
     #[test]
     fn prop_string_literals_quoted(s in generators::any_safe_string()) {
         let source = format!(r#"fn main() {{ let x = "{s}"; }}"#);
-        
+
         if let Ok(shell_code) = transpile(&source, Config::default()) {
             // Generated shell should quote the string
             prop_assert!(shell_code.contains(&s));
@@ -275,7 +279,7 @@ proptest! {
     #[test]
     fn prop_variable_names_shell_safe(name in generators::any_valid_identifier()) {
         let source = format!("fn main() {{ let {name} = 42; }}");
-        
+
         if let Ok(shell_code) = transpile(&source, Config::default()) {
             // Variable should appear in shell code and be shell-safe
             if shell_code.contains(&name) {
@@ -294,7 +298,7 @@ proptest! {
             "fn main() { let s = \"test\"; }",
             "fn helper() {} fn main() { helper(); }",
         ];
-        
+
         for source in test_sources {
             let result = transpile(source, config.clone());
             // Should either succeed or fail gracefully (no panics)
@@ -377,14 +381,14 @@ mod performance_tests {
         #[test]
         fn prop_transpilation_performance(_ast in generators::valid_ast()) {
             let source = "fn main() { let x = 42; }"; // Simplified for performance testing
-            
+
             let start = Instant::now();
             let result = transpile(source, Config::default());
             let duration = start.elapsed();
-            
+
             // Should complete within 1 second for simple cases
             prop_assert!(duration < Duration::from_secs(1));
-            
+
             if result.is_ok() {
                 // Generated code should be reasonably sized (< 10KB for simple cases)
                 let code = result.unwrap();
@@ -396,12 +400,12 @@ mod performance_tests {
         #[test]
         fn prop_memory_bounded(config in generators::any_config()) {
             let source = "fn main() { let x = 42; }";
-            
+
             // Multiple transpilations shouldn't cause memory leaks
             for _ in 0..10 {
                 let _ = transpile(source, config.clone());
             }
-            
+
             // This test mainly checks that we don't panic or run out of memory
             prop_assert!(true);
         }
@@ -420,11 +424,11 @@ mod fuzz_integration {
         #[test]
         fn prop_no_panics_on_valid_input(_ast in generators::valid_ast()) {
             let source = "fn main() { let x = 42; }"; // Using simplified source
-            
+
             // These operations should never panic
             let parse_result = std::panic::catch_unwind(|| parse(source));
             prop_assert!(parse_result.is_ok());
-            
+
             let transpile_result = std::panic::catch_unwind(|| transpile(source, Config::default()));
             prop_assert!(transpile_result.is_ok());
         }
@@ -437,7 +441,7 @@ mod fuzz_integration {
             // Random garbage should not panic, just return an error
             let result = std::panic::catch_unwind(|| parse(&garbage));
             prop_assert!(result.is_ok()); // No panic
-            
+
             if let Ok(parse_result) = result {
                 // Should return an error, not succeed on garbage
                 prop_assert!(parse_result.is_err());
@@ -458,19 +462,19 @@ mod security_tests {
         #[test]
         fn prop_no_shell_injection(s in generators::any_safe_string()) {
             let source = format!(r#"fn main() {{ let x = "{s}"; }}"#);
-            
+
             if let Ok(shell_code) = transpile(&source, Config::default()) {
                 // Should not contain dangerous injection patterns from user input
                 let dangerous_patterns = [
                     "; rm -rf", "$(rm", "`rm"
                 ];
-                
+
                 for pattern in &dangerous_patterns {
                     if shell_code.contains(pattern) {
                         // Dangerous pattern should only exist if it came from safe runtime functions
                         prop_assert!(
                             !shell_code.contains(&s) || shell_code.contains("rash_"),
-                            "Dangerous pattern '{}' found from user input in: {}", 
+                            "Dangerous pattern '{}' found from user input in: {}",
                             pattern, shell_code
                         );
                     }
@@ -482,7 +486,7 @@ mod security_tests {
         #[test]
         fn prop_safe_variable_expansion(name in generators::any_valid_identifier()) {
             let source = format!("fn main() {{ let {name} = 42; }}");
-            
+
             if let Ok(shell_code) = transpile(&source, Config::default()) {
                 // Variables should be properly quoted when expanded
                 if shell_code.contains(&format!("${{{name}}}")) {

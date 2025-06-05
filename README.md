@@ -1,403 +1,253 @@
-# Rash: Rust-to-Shell Transpiler 🦀 → 🐚
+# rash
+
+rash transpiles a subset of Rust to POSIX shell, with automatic safety validation.
 
 [![CI](https://github.com/paiml/rash/workflows/CI/badge.svg)](https://github.com/paiml/rash/actions)
-[![Installation Test](https://github.com/paiml/rash/workflows/Installation%20Test/badge.svg)](https://github.com/paiml/rash/actions/workflows/install-test.yml)
 [![codecov](https://codecov.io/gh/paiml/rash/branch/main/graph/badge.svg)](https://codecov.io/gh/paiml/rash)
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-[![Binary Size](https://img.shields.io/badge/binary%20size-<634KB-brightgreen)](https://github.com/paiml/rash/releases)
-[![MCP](https://img.shields.io/badge/MCP-compatible-blue.svg)](https://modelcontextprotocol.io)
+[![Tests](https://img.shields.io/badge/tests-400%2B%20passing-brightgreen)](https://github.com/paiml/rash/actions)
+[![QuickCheck](https://img.shields.io/badge/QuickCheck-1000%2B%20properties-blue)](https://github.com/paiml/rash/blob/main/rash/src/testing/quickcheck_tests.rs)
 
-> Write your shell scripts in Rust. Deploy them as POSIX shell.
+## Usage
 
-Rash transpiles a safe subset of Rust to portable POSIX shell scripts, protecting against injection attacks while maintaining shell compatibility across all Unix systems.
-
-## 🚀 **New in v0.2.0: Major Code Quality & Performance Improvements**
-
-- **42% Technical Debt Reduction**: Reduced from 133.5 to 77.5 hours of estimated technical debt
-- **18.75% Complexity Reduction**: Maximum cyclomatic complexity reduced from 32 to 26  
-- **58% Fewer Compilation Errors**: From 12 to 5 critical issues resolved
-- **Enhanced Security Documentation**: Improved clarity of all security implementations
-- **Comprehensive Test Suite**: 324 tests passing with extensive enterprise & open-source examples
-
-## Why Rash?
-
-**Problem**: Shell scripts are powerful but dangerous—no type safety, injection vulnerabilities everywhere, and platform-specific quirks.
-
-**Solution**: Write in Rust, deploy as shell. Get memory safety at compile time, injection protection by default, and scripts that work on any POSIX system.
+Write Rust:
 
 ```rust
-// install.rs - Write your installer in Rust
+// install.rs
 fn main() {
     let version = "1.0.0";
-    let prefix = env::var("PREFIX").unwrap_or("/usr/local".to_string());
+    let prefix = "/usr/local";
     
-    println!("Installing MyApp {}", version);
-    
-    // No injection attacks possible - Rash handles escaping
-    fs::create_dir_all(format!("{}/bin", prefix))?;
-    
-    download_and_verify(
-        "https://github.com/myapp/releases/v1.0.0/myapp",
-        "sha256:abcd1234...",
-    )?;
+    // Variables are automatically quoted in output
+    let install_dir = concat(prefix, "/bin");
+    mkdir_p(install_dir);
 }
 ```
 
-Becomes a safe, portable shell script:
+Get POSIX shell:
 
 ```bash
+$ rash build install.rs -o install.sh
+$ cat install.sh
 #!/bin/sh
 set -euf
 version="1.0.0"
-prefix="${PREFIX:-/usr/local}"
-echo "Installing MyApp $version"
-mkdir -p "$prefix/bin"  # Properly quoted!
-# ... rest of script with verified safety
+prefix="/usr/local"
+install_dir="$prefix/bin"
+mkdir -p "$install_dir"
 ```
 
-## Features
+## Installation
 
-- 🛡️ **Injection-Proof**: All variables quoted correctly, all inputs escaped
-- ✅ **ShellCheck Clean**: Passes 20+ critical ShellCheck rules at compile time
-- 🚀 **Fast**: Transpiles at 80MB/s—faster than most compilers
-- 📦 **Tiny**: <4.2MB static binary—smaller than ShellCheck itself
-- 🔍 **Verifiable**: Optional formal verification of security properties
-- 🎯 **Deterministic**: Same input → identical shell output (reproducible builds)
-
-## Quick Start
-
-### Quick Install (Recommended)
-
-The installer automatically handles PATH setup and provides clear instructions:
+### Binary releases
 
 ```bash
-curl --proto '=https' --tlsv1.2 -sSf https://raw.githubusercontent.com/paiml/rash/main/install-rash.sh | sh
-```
-
-Then follow the instructions to add to your PATH:
-```bash
-export PATH="$HOME/.local/bin:$PATH"
-rash --version
-```
-
-**Make it permanent:**
-```bash
-# For bash users:
-echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.bashrc && source ~/.bashrc
-
-# For zsh users:
-echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.zshrc && source ~/.zshrc
-```
-
-<details>
-<summary>🔧 Alternative Installation Methods</summary>
-
-**Option 1: Custom installation directory**
-```bash
-PREFIX="/usr/local" curl -sSf https://raw.githubusercontent.com/paiml/rash/main/install-rash.sh | sh
-```
-
-**Option 2: Download then run**
-```bash
-curl -sSfL -o install.sh https://raw.githubusercontent.com/paiml/rash/main/install-rash.sh
-sh install.sh
-```
-
-**Option 3: From GitHub releases**
-```bash
-# Download specific version from releases
+# Linux x86_64
 curl -L https://github.com/paiml/rash/releases/latest/download/rash-x86_64-unknown-linux-gnu.tar.gz | tar xz
-sudo mv rash /usr/local/bin/
-```
 
-</details>
-
-### Manual Installation
-
-<details>
-<summary>Linux (x86_64)</summary>
-
-```bash
-curl -L https://github.com/paiml/rash/releases/latest/download/rash-x86_64-unknown-linux-gnu.tar.gz | tar xz
-sudo mv rash /usr/local/bin/
-```
-</details>
-
-<details>
-<summary>macOS (Intel)</summary>
-
-```bash
+# macOS x86_64
 curl -L https://github.com/paiml/rash/releases/latest/download/rash-x86_64-apple-darwin.tar.gz | tar xz
-sudo mv rash /usr/local/bin/
-```
-</details>
 
-<details>
-<summary>macOS (Apple Silicon)</summary>
+# macOS ARM64
+curl -L https://github.com/paiml/rash/releases/latest/download/rash-aarch64-apple-darwin.tar.gz | tar xz
+```
+
+### From source
 
 ```bash
-curl -L https://github.com/paiml/rash/releases/latest/download/rash-aarch64-apple-darwin.tar.gz | tar xz
-sudo mv rash /usr/local/bin/
+cargo install --git https://github.com/paiml/rash
 ```
-</details>
 
-<details>
-<summary>Build from Source</summary>
+## Supported Rust subset
+
+rash supports a minimal subset of Rust that maps cleanly to shell:
+
+- **Variables**: `let x = "value";` → `x="value"`
+- **Functions**: Limited built-ins only (echo, mkdir_p, concat, etc.)
+- **Control flow**: `if`/`else` (basic conditions)
+- **Types**: Strings and integers only
+
+Not supported:
+- Heap allocation, Vec, HashMap
+- Loops (for, while)
+- Pattern matching
+- Error handling (`Result`, `?`)
+- External crates
+- Most of Rust's standard library
+
+## Safety features
+
+All output passes these ShellCheck rules:
+
+- **SC2086**: Variables are quoted
+- **SC2046**: Command substitutions are quoted
+- **SC2035**: Glob patterns are protected
+- **SC2164**: `cd` failures are handled
+- **SC2006**: Backticks avoided for command substitution
+
+Example:
+
+```rust
+fn main() {
+    let user_input = env_var("USER_INPUT");
+    echo(user_input);  // Transpiles to: echo "$user_input"
+}
+```
+
+## Commands
+
+```bash
+rash build <input.rs> -o <output.sh>   # Transpile Rust to shell
+rash check <input.rs>                  # Validate without output
+rash init <project>                    # Initialize new project (planned)
+```
+
+### Options
+
+```
+-O, --optimize           Enable optimizations
+-d, --dialect <DIALECT>  Target shell dialect [default: posix]
+-v, --verbose           Verbose output
+--verify <LEVEL>        Verification level [none, basic, strict, paranoid]
+```
+
+## Performance
+
+Transpilation is near-instant for typical scripts:
+
+```bash
+$ time rash build installer.rs -o installer.sh
+real    0m0.024s
+```
+
+Binary sizes:
+- Linux x86_64: ~4.2MB (static, musl)
+- macOS: ~4.4MB
+- No runtime dependencies
+
+## Examples
+
+### Basic script
+
+```rust
+// hello.rs
+fn main() {
+    let name = "World";
+    echo(concat("Hello, ", name));
+}
+```
+
+```bash
+$ rash build hello.rs -o hello.sh
+$ sh hello.sh
+Hello, World
+```
+
+### Installation script
+
+```rust
+// install.rs
+fn main() {
+    let prefix = env_var_or("PREFIX", "/usr/local");
+    let bin_dir = concat(prefix, "/bin");
+    
+    if !path_exists(bin_dir) {
+        mkdir_p(bin_dir);
+    }
+    
+    // Copy binary
+    let binary = "myapp";
+    let dest = concat(bin_dir, "/", binary);
+    cp(binary, dest);
+    chmod("755", dest);
+}
+```
+
+### Available built-ins
+
+```rust
+// I/O
+echo(msg: &str)
+cat(file: &str)
+
+// Environment  
+env_var(name: &str) -> String
+env_var_or(name: &str, default: &str) -> String
+
+// Filesystem
+mkdir_p(path: &str)
+rm_f(path: &str)
+cp(src: &str, dest: &str)
+mv(src: &str, dest: &str)
+chmod(mode: &str, path: &str)
+path_exists(path: &str) -> bool
+file_exists(path: &str) -> bool
+
+// String operations
+concat(a: &str, b: &str) -> String
+
+// Process control
+exit(code: i32)
+command_exists(cmd: &str) -> bool
+```
+
+## Limitations
+
+rash is intentionally limited:
+
+1. **No stdlib**: Only built-in functions listed above
+2. **No external commands**: Can't call arbitrary programs
+3. **Simple types only**: Strings and integers
+4. **No collections**: No arrays, vectors, or hashmaps
+5. **Basic control flow**: Only if/else, no loops
+
+These constraints ensure predictable, safe shell output.
+
+## How it works
+
+```
+Rust source → Parse → Restricted AST → Validate → Shell IR → Emit → POSIX shell
+                         ↓
+                   Safety checks
+```
+
+1. **Parse**: Uses syn to parse Rust syntax
+2. **Restrict**: Converts to limited AST supporting only shell-mappable constructs
+3. **Validate**: Applies ShellCheck rules at AST level
+4. **Emit**: Generates shell with proper quoting and escaping
+
+## Development
 
 ```bash
 git clone https://github.com/paiml/rash
 cd rash
 cargo build --release
-sudo cp target/release/rash /usr/local/bin/
-```
-</details>
-
-### Verify Installation
-
-```bash
-rash --version
-# Should output: rash 0.2.0
-```
-
-### Your First Transpilation
-
-Create a simple Rash program:
-
-```rust
-// hello.rs
-fn main() {
-    let greeting = "Hello from Rash!";
-    let version = "0.2.0";
-    
-    // This will generate POSIX-compliant shell code
-    // Note: println! is not yet supported, this will be basic variable declarations
-}
-```
-
-Transpile to shell script:
-
-```bash
-rash build hello.rs -o hello.sh
-```
-
-Run the generated script:
-
-```bash
-sh hello.sh
-# Output: Hello from Rash! v0.2.0
-```
-
-### Project Initialization
-
-Create a new Rash project:
-
-```bash
-# Note: rash init is planned for v0.3.0
-mkdir my-installer && cd my-installer
-
-# Create a basic installer
-cat > installer.rs << 'EOF'
-fn main() {
-    let app_name = "MyApp";
-    let version = "1.0.0";
-    let install_dir = "/usr/local/bin";
-    
-    // Download and install logic would go here
-    // Note: Complex operations like println! with formatting not yet supported
-}
-EOF
-
-# Transpile
-rash build installer.rs -o install.sh
-
-# Test
-sh install.sh
-```
-
-## How It Works
-
-Rash transpiles a **safe subset** of Rust:
-- ✅ Variables, functions, if/else, loops
-- ✅ String manipulation, command execution
-- ✅ Error handling with `?` operator
-- ❌ Heap allocation, threads, unsafe
-- ❌ Complex types (just strings and integers)
-
-This subset maps cleanly to POSIX shell while maintaining Rust's safety guarantees.
-
-## Real-World Example
-
-```rust
-// Building a Python project installer
-use std::{env, fs, process::Command};
-
-const PYTHON_VERSION: &str = "3.11";
-
-fn main() -> Result<(), Box<dyn Error>> {
-    // Parse arguments (transpiles to getopts)
-    let args: Vec<String> = env::args().collect();
-    let prefix = args.get(2).unwrap_or(&"/usr/local".to_string());
-    
-    // Check dependencies
-    require_command("gcc")?;
-    require_command("make")?;
-    
-    // Download Python
-    let url = format!("https://python.org/ftp/python/{0}/Python-{0}.tgz", PYTHON_VERSION);
-    download(&url, "python.tgz")?;
-    
-    // Build and install
-    Command::new("tar").args(&["xzf", "python.tgz"]).status()?;
-    env::set_current_dir(format!("Python-{}", PYTHON_VERSION))?;
-    
-    Command::new("./configure")
-        .arg(format!("--prefix={}", prefix))
-        .status()?;
-    
-    Command::new("make").arg("-j4").status()?;
-    Command::new("make").arg("install").status()?;
-    
-    println!("✓ Python {} installed to {}", PYTHON_VERSION, prefix);
-    Ok(())
-}
-```
-
-## Safety Guarantees
-
-Every Rash script passes these checks at compile time:
-
-| Rule | Description | Example |
-|------|-------------|---------|
-| **SC2086** | Quote all variables | `$var` → `"$var"` |
-| **SC2046** | Quote command substitutions | `$(cmd)` → `"$(cmd)"` |
-| **SC2035** | Protect glob patterns | `-rf` → `./-rf` |
-| **SC2164** | Check cd success | `cd dir` → `cd dir || exit` |
-
-See full [ShellCheck compatibility](docs/shellcheck-validation.md).
-
-## Performance
-
-Rash is **fast**—designed to transpile instantly:
-
-```bash
-$ hyperfine 'rash build installer.rs'
-Time (mean ± σ):      24.3 ms ±   1.2 ms
-```
-
-That's **80MB/s** of Rust source transpiled to shell. Compare:
-- TypeScript compiler: ~10MB/s
-- Rust compiler (debug): ~5MB/s
-- **Rash: ~80MB/s** ⚡
-
-## Binary Size
-
-Following ripgrep's philosophy—ship small, focused tools:
-
-| Platform | Size | 
-|----------|------|
-| Linux x64 (musl) | 4.2MB |
-| macOS (universal) | 4.4MB |
-| Windows | 4.8MB |
-
-All binaries are static—no dependencies required.
-
-## Documentation
-
-- **[User Guide](docs/user-guide.md)** - Comprehensive tutorial (start here!)
-- **[Project Overview](docs/project-overview.md)** - Architecture and design
-- **[Examples](examples/)** - Real-world installer scripts
-
-## Project Status
-
-Rash is currently in active development. The transpiler successfully converts Rust code to POSIX shell scripts with safety guarantees. See our [releases](https://github.com/paiml/rash/releases) for the latest stable builds.
-
-## Contributing
-
-We'd love your help making shell scripts safer for everyone:
-
-```bash
-git clone https://github.com/paiml/rash && cd rash
-cargo build
 cargo test
 ```
 
-- [Good first issues](https://github.com/paiml/rash/labels/good%20first%20issue)
-- [Project Overview](docs/project-overview.md)
-- [Development Guidelines](CLAUDE.md)
-
-## Code Coverage
-
-Rash maintains high code coverage standards to ensure reliability:
-
-- **Current Coverage**: ~85% (increasing with each release)
-- **Test Suite**: 324+ tests including unit, integration, and property-based tests
-- **Cross-Shell Testing**: Automated testing against sh, bash, dash, and ash
-- **Continuous Monitoring**: Coverage reports on every PR via Codecov
-
-View detailed coverage reports at [codecov.io/gh/paiml/rash](https://codecov.io/gh/paiml/rash)
-
-## MCP Integration
-
-Rash is designed to work seamlessly with the Model Context Protocol (MCP):
-
-### MCP-Compatible Features
-
-- **Structured Output**: Generated scripts include metadata for MCP tools
-- **Verification Hooks**: Built-in support for MCP verification workflows
-- **Tool Integration**: Works with pmat (PAIML MCP Agent Toolkit) for:
-  - Automated code quality analysis
-  - Technical debt tracking
-  - Complexity metrics
-  - Deep context understanding
-
-### Using with MCP Tools
-
+Run specific test suites:
 ```bash
-# Analyze with pmat (PAIML MCP Agent Toolkit)
-pmat analyze complexity --project-path .
-
-# Verify transpilation safety
-pmat verify --spec rash.spec --impl target/debug/rash
-
-# Generate quality reports
-pmat context rust --format markdown > QUALITY_REPORT.md
+cargo test --test integration_tests
+cargo test --test shellcheck_validation
+cargo bench
 ```
 
-### MCP Benefits
+## Why rash?
 
-- **AI-Assisted Development**: MCP tools can understand and modify Rash code
-- **Automated Refactoring**: Safely refactor complex transpilation logic
-- **Quality Gates**: Enforce code quality standards automatically
-- **Context Awareness**: MCP tools understand the full transpilation pipeline
+Shell scripts are powerful but error-prone. Common issues:
 
-## FAQ
+- Missing quotes → word splitting bugs
+- Unhandled command failures → corrupted state
+- Command injection → security vulnerabilities
 
-**Q: Can I use any Rust crate?**  
-A: No—Rash transpiles core language features only. No heap allocation, no stdlib.
+rash prevents these at compile time by enforcing safe patterns in a familiar Rust syntax.
 
-**Q: Does it support bash/zsh features?**  
-A: Rash targets POSIX sh for maximum compatibility. Bash features may come later.
+## Similar projects
 
-**Q: How does it compare to just writing shell?**  
-A: You get type checking, proper error handling, and injection protection—impossible in raw shell.
+- [Oil Shell](https://www.oilshell.org/): New shell language with better syntax
+- [Batsh](https://github.com/batsh-dev/batsh): Transpiles a C-like syntax to Bash/Batch
 
-**Q: Is the generated shell readable?**  
-A: Yes! We generate clean, commented shell that humans can audit.
+rash differs by using Rust syntax and targeting POSIX compatibility.
 
 ## License
 
-MIT - see [LICENSE](LICENSE)
-
-## Acknowledgments
-
-Inspired by:
-- [ShellCheck](https://www.shellcheck.net/) - Shell script analysis
-- [ripgrep](https://github.com/BurntSushi/ripgrep) - CLI UX excellence  
-- [oil shell](https://www.oilshell.org/) - Shell language innovation
-
----
-
-<p align="center">
-Built with 🦀 by the Rash maintainers<br>
-<em>Making shell scripts safe, one transpilation at a time</em>
-</p>
+MIT
