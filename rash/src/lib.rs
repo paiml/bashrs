@@ -1,5 +1,7 @@
 pub mod ast;
 pub mod cli;
+pub mod compiler;
+pub mod container;
 pub mod emitter;
 pub mod formal;
 pub mod formatter;
@@ -8,8 +10,6 @@ pub mod models;
 pub mod services;
 pub mod validation;
 pub mod verifier;
-pub mod compiler;
-pub mod container;
 
 #[cfg(test)]
 pub mod testing;

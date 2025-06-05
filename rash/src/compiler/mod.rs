@@ -1,4 +1,4 @@
-use crate::models::{Result, Error};
+use crate::models::{Error, Result};
 use std::io::Write;
 
 pub mod loader;
@@ -6,9 +6,9 @@ pub mod optimize;
 
 #[derive(Debug, Clone, Copy)]
 pub enum RuntimeType {
-    Dash,        // 180KB static binary
-    Busybox,     // 900KB with coreutils
-    Minimal,     // 50KB custom interpreter
+    Dash,    // 180KB static binary
+    Busybox, // 900KB with coreutils
+    Minimal, // 50KB custom interpreter
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -49,73 +49,75 @@ impl BinaryCompiler {
             strip_level: StripLevel::All,
         }
     }
-    
+
     pub fn with_compression(mut self, level: CompressionLevel) -> Self {
         self.compression = level;
         self
     }
-    
+
     pub fn with_strip_level(mut self, level: StripLevel) -> Self {
         self.strip_level = level;
         self
     }
-    
+
     pub fn compile(&self, script: &str) -> Result<Vec<u8>> {
         // Step 1: Compress script with Zstandard
         let compressed = zstd::encode_all(script.as_bytes(), self.compression.level())
             .map_err(|e| Error::Internal(format!("Compression failed: {e}")))?;
-        
+
         // Step 2: Load base runtime
         let mut binary = self.load_runtime()?;
-        
+
         // Step 3: Inject script as ELF section
         let section_offset = self.inject_section(&mut binary, ".rash_script", &compressed)?;
-        
+
         // Step 4: Patch entrypoint to our loader
         self.patch_entrypoint(binary.as_mut_slice(), section_offset)?;
-        
+
         // Step 5: Strip unnecessary symbols
         self.strip_binary(binary.as_mut_slice())?;
-        
+
         Ok(binary)
     }
-    
+
     fn load_runtime(&self) -> Result<Vec<u8>> {
         let runtime_path = match self.runtime {
             RuntimeType::Dash => "/usr/bin/dash",
             RuntimeType::Busybox => "/bin/busybox",
             RuntimeType::Minimal => {
-                return Err(Error::Unsupported("Minimal runtime not yet implemented".to_string()));
+                return Err(Error::Unsupported(
+                    "Minimal runtime not yet implemented".to_string(),
+                ));
             }
         };
-        
+
         // For now, use the system's dash binary
         if !std::path::Path::new(runtime_path).exists() {
             return Err(Error::Internal(format!("{runtime_path} not found")));
         }
-        
+
         std::fs::read(runtime_path)
             .map_err(|e| Error::Internal(format!("Failed to read runtime: {e}")))
     }
-    
+
     fn inject_section(&self, binary: &mut Vec<u8>, _name: &str, data: &[u8]) -> Result<usize> {
         // Simplified: append data at the end and return offset
         let offset = binary.len();
-        
+
         // Add section header
         binary.extend_from_slice(&(data.len() as u32).to_le_bytes());
         binary.extend_from_slice(&(data.len() as u32).to_le_bytes()); // uncompressed size
         binary.extend_from_slice(data);
-        
+
         Ok(offset)
     }
-    
+
     fn patch_entrypoint(&self, _binary: &mut [u8], _section_offset: usize) -> Result<()> {
         // TODO: Implement actual ELF patching
         // For now, we'll create a wrapper script
         Ok(())
     }
-    
+
     fn strip_binary(&self, _binary: &mut [u8]) -> Result<()> {
         match self.strip_level {
             StripLevel::None => Ok(()),
@@ -131,13 +133,11 @@ impl BinaryCompiler {
 pub fn create_self_extracting_script(script: &str, output_path: &str) -> Result<()> {
     let compressed = zstd::encode_all(script.as_bytes(), 11)
         .map_err(|e| Error::Internal(format!("Compression failed: {e}")))?;
-    
-    let encoded = base64::Engine::encode(
-        &base64::engine::general_purpose::STANDARD,
-        &compressed
-    );
-    
-    let self_extract = format!(r#"#!/bin/sh
+
+    let encoded = base64::Engine::encode(&base64::engine::general_purpose::STANDARD, &compressed);
+
+    let self_extract = format!(
+        r#"#!/bin/sh
 # Self-extracting RASH script
 set -euf
 
@@ -156,17 +156,17 @@ else
     echo "Error: base64 and compression tools required" >&2
     exit 1
 fi
-"#, 
+"#,
         encoded,
         base64::Engine::encode(
             &base64::engine::general_purpose::STANDARD,
             compress_gzip(script.as_bytes())
         )
     );
-    
+
     std::fs::write(output_path, self_extract)
         .map_err(|e| Error::Internal(format!("Failed to write output: {e}")))?;
-    
+
     // Make executable
     #[cfg(unix)]
     {
@@ -178,14 +178,14 @@ fi
         std::fs::set_permissions(output_path, perms)
             .map_err(|e| Error::Internal(format!("Failed to set permissions: {e}")))?;
     }
-    
+
     Ok(())
 }
 
 fn compress_gzip(data: &[u8]) -> Vec<u8> {
-    use flate2::Compression;
     use flate2::write::GzEncoder;
-    
+    use flate2::Compression;
+
     let mut encoder = GzEncoder::new(Vec::new(), Compression::best());
     encoder.write_all(data).unwrap();
     encoder.finish().unwrap()

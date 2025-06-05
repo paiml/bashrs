@@ -61,7 +61,10 @@ impl Default for Theme {
             keyword: Style {
                 fg: Color::rgb(198, 120, 221), // Purple
                 bg: None,
-                modifiers: StyleModifiers { bold: true, ..Default::default() },
+                modifiers: StyleModifiers {
+                    bold: true,
+                    ..Default::default()
+                },
             },
             string: Style {
                 fg: Color::rgb(152, 195, 121), // Green
@@ -76,7 +79,10 @@ impl Default for Theme {
             comment: Style {
                 fg: Color::rgb(92, 99, 112), // Gray
                 bg: None,
-                modifiers: StyleModifiers { italic: true, ..Default::default() },
+                modifiers: StyleModifiers {
+                    italic: true,
+                    ..Default::default()
+                },
             },
             function: Style {
                 fg: Color::rgb(97, 175, 239), // Blue
@@ -115,14 +121,14 @@ impl SyntaxHighlighter {
     pub fn new() -> Self {
         Self::default()
     }
-    
+
     pub fn with_theme(theme: Theme) -> Self {
         Self {
             theme,
             token_cache: lru::LruCache::new(std::num::NonZeroUsize::new(1000).unwrap()),
         }
     }
-    
+
     /// Highlight a line using SIMD-accelerated token classification
     #[allow(clippy::while_let_on_iterator)]
     pub fn highlight_line(&mut self, line: &str, line_id: LineId) -> Vec<StyledToken> {
@@ -130,20 +136,20 @@ impl SyntaxHighlighter {
         if let Some(cached) = self.token_cache.get(&line_id) {
             return cached.clone();
         }
-        
+
         // SIMD-accelerated highlighting
         let tokens = self.highlight_line_simd(line);
-        
+
         // Cache the result
         self.token_cache.put(line_id, tokens.clone());
-        
+
         tokens
     }
-    
+
     #[cfg(feature = "playground")]
     fn highlight_line_simd(&self, line: &str) -> Vec<StyledToken> {
         use simdutf8::basic::from_utf8;
-        
+
         // Validate UTF-8 using SIMD
         if from_utf8(line.as_bytes()).is_err() {
             return vec![StyledToken {
@@ -151,12 +157,12 @@ impl SyntaxHighlighter {
                 style: self.theme.default,
             }];
         }
-        
+
         // Tokenize and classify
         let mut tokens = Vec::new();
         let mut chars = line.chars().peekable();
         let mut current_token = String::new();
-        
+
         while let Some(ch) = chars.next() {
             match ch {
                 // String literals
@@ -173,7 +179,7 @@ impl SyntaxHighlighter {
                         style: self.theme.string,
                     });
                 }
-                
+
                 // Comments
                 '/' if chars.peek() == Some(&'/') => {
                     current_token.push(ch);
@@ -185,7 +191,7 @@ impl SyntaxHighlighter {
                         style: self.theme.comment,
                     });
                 }
-                
+
                 // Numbers
                 '0'..='9' => {
                     current_token.push(ch);
@@ -201,7 +207,7 @@ impl SyntaxHighlighter {
                         style: self.theme.number,
                     });
                 }
-                
+
                 // Identifiers and keywords
                 'a'..='z' | 'A'..='Z' | '_' => {
                     current_token.push(ch);
@@ -212,7 +218,7 @@ impl SyntaxHighlighter {
                             break;
                         }
                     }
-                    
+
                     let style = if self.is_keyword(&current_token) {
                         self.theme.keyword
                     } else if self.is_function_call(&current_token, &mut chars) {
@@ -220,23 +226,33 @@ impl SyntaxHighlighter {
                     } else {
                         self.theme.variable
                     };
-                    
+
                     tokens.push(StyledToken {
                         text: std::mem::take(&mut current_token),
                         style,
                     });
                 }
-                
+
                 // Operators
                 '+' | '-' | '*' | '/' | '=' | '<' | '>' | '!' | '&' | '|' | '^' | '%' => {
                     current_token.push(ch);
                     // Check for multi-char operators
                     if let Some(&next_ch) = chars.peek() {
-                        if matches!((ch, next_ch), 
-                            ('=', '=') | ('!', '=') | ('<', '=') | ('>', '=') |
-                            ('&', '&') | ('|', '|') | ('<', '<') | ('>', '>') |
-                            ('+', '=') | ('-', '=') | ('*', '=') | ('/', '='))
-                        {
+                        if matches!(
+                            (ch, next_ch),
+                            ('=', '=')
+                                | ('!', '=')
+                                | ('<', '=')
+                                | ('>', '=')
+                                | ('&', '&')
+                                | ('|', '|')
+                                | ('<', '<')
+                                | ('>', '>')
+                                | ('+', '=')
+                                | ('-', '=')
+                                | ('*', '=')
+                                | ('/', '=')
+                        ) {
                             current_token.push(chars.next().unwrap());
                         }
                     }
@@ -245,7 +261,7 @@ impl SyntaxHighlighter {
                         style: self.theme.operator,
                     });
                 }
-                
+
                 // Whitespace and other characters
                 _ => {
                     if !current_token.is_empty() {
@@ -261,7 +277,7 @@ impl SyntaxHighlighter {
                 }
             }
         }
-        
+
         // Handle any remaining token
         if !current_token.is_empty() {
             tokens.push(StyledToken {
@@ -269,10 +285,10 @@ impl SyntaxHighlighter {
                 style: self.theme.default,
             });
         }
-        
+
         tokens
     }
-    
+
     #[cfg(not(feature = "playground"))]
     fn highlight_line_simd(&self, line: &str) -> Vec<StyledToken> {
         vec![StyledToken {
@@ -280,18 +296,51 @@ impl SyntaxHighlighter {
             style: self.theme.default,
         }]
     }
-    
+
     fn is_keyword(&self, word: &str) -> bool {
-        matches!(word,
-            "fn" | "let" | "mut" | "if" | "else" | "while" | "for" | "loop" |
-            "match" | "return" | "break" | "continue" | "struct" | "enum" |
-            "impl" | "trait" | "pub" | "mod" | "use" | "self" | "super" |
-            "crate" | "const" | "static" | "type" | "where" | "async" |
-            "await" | "move" | "ref" | "in" | "as" | "true" | "false"
+        matches!(
+            word,
+            "fn" | "let"
+                | "mut"
+                | "if"
+                | "else"
+                | "while"
+                | "for"
+                | "loop"
+                | "match"
+                | "return"
+                | "break"
+                | "continue"
+                | "struct"
+                | "enum"
+                | "impl"
+                | "trait"
+                | "pub"
+                | "mod"
+                | "use"
+                | "self"
+                | "super"
+                | "crate"
+                | "const"
+                | "static"
+                | "type"
+                | "where"
+                | "async"
+                | "await"
+                | "move"
+                | "ref"
+                | "in"
+                | "as"
+                | "true"
+                | "false"
         )
     }
-    
-    fn is_function_call(&self, _word: &str, chars: &mut std::iter::Peekable<std::str::Chars>) -> bool {
+
+    fn is_function_call(
+        &self,
+        _word: &str,
+        chars: &mut std::iter::Peekable<std::str::Chars>,
+    ) -> bool {
         // Check if followed by '('
         let mut _whitespace_count = 0;
         while let Some(&ch) = chars.peek() {
@@ -306,12 +355,12 @@ impl SyntaxHighlighter {
         }
         false
     }
-    
+
     /// Clear the token cache
     pub fn clear_cache(&mut self) {
         self.token_cache.clear();
     }
-    
+
     /// Invalidate cache for specific lines
     pub fn invalidate_lines(&mut self, start_line: usize, end_line: usize) {
         for line in start_line..=end_line {
@@ -327,20 +376,20 @@ pub mod simd_utils {
     #[cfg(target_arch = "x86_64")]
     pub fn is_ascii_alphanumeric_simd(bytes: &[u8]) -> bool {
         use std::arch::x86_64::*;
-        
+
         unsafe {
             let chunks = bytes.chunks_exact(16);
             let remainder = chunks.remainder();
-            
+
             for chunk in chunks {
                 let data = _mm_loadu_si128(chunk.as_ptr() as *const __m128i);
-                
+
                 // Check for ASCII range
                 let ascii_mask = _mm_cmplt_epi8(data, _mm_set1_epi8(-128i8));
                 if _mm_movemask_epi8(ascii_mask) != 0xFFFF {
                     return false;
                 }
-                
+
                 // Check for alphanumeric
                 // Implement comparisons using available intrinsics
                 // For >= we use NOT(a < b), for <= we use NOT(a > b)
@@ -348,42 +397,46 @@ pub mod simd_utils {
                 let nine = _mm_set1_epi8(b'9' as i8);
                 let is_digit = _mm_and_si128(
                     _mm_xor_si128(_mm_cmplt_epi8(data, zero), _mm_set1_epi8(-1i8)),
-                    _mm_xor_si128(_mm_cmpgt_epi8(data, nine), _mm_set1_epi8(-1i8))
+                    _mm_xor_si128(_mm_cmpgt_epi8(data, nine), _mm_set1_epi8(-1i8)),
                 );
-                
+
                 let upper_a = _mm_set1_epi8(b'A' as i8);
                 let upper_z = _mm_set1_epi8(b'Z' as i8);
                 let is_upper = _mm_and_si128(
                     _mm_xor_si128(_mm_cmplt_epi8(data, upper_a), _mm_set1_epi8(-1i8)),
-                    _mm_xor_si128(_mm_cmpgt_epi8(data, upper_z), _mm_set1_epi8(-1i8))
+                    _mm_xor_si128(_mm_cmpgt_epi8(data, upper_z), _mm_set1_epi8(-1i8)),
                 );
-                
+
                 let lower_a = _mm_set1_epi8(b'a' as i8);
                 let lower_z = _mm_set1_epi8(b'z' as i8);
                 let is_lower = _mm_and_si128(
                     _mm_xor_si128(_mm_cmplt_epi8(data, lower_a), _mm_set1_epi8(-1i8)),
-                    _mm_xor_si128(_mm_cmpgt_epi8(data, lower_z), _mm_set1_epi8(-1i8))
+                    _mm_xor_si128(_mm_cmpgt_epi8(data, lower_z), _mm_set1_epi8(-1i8)),
                 );
-                
+
                 let is_underscore = _mm_cmpeq_epi8(data, _mm_set1_epi8(b'_' as i8));
-                
+
                 let is_valid = _mm_or_si128(
                     _mm_or_si128(is_digit, is_upper),
-                    _mm_or_si128(is_lower, is_underscore)
+                    _mm_or_si128(is_lower, is_underscore),
                 );
-                
+
                 if _mm_movemask_epi8(is_valid) != 0xFFFF {
                     return false;
                 }
             }
-            
+
             // Check remainder
-            remainder.iter().all(|&b| b.is_ascii_alphanumeric() || b == b'_')
+            remainder
+                .iter()
+                .all(|&b| b.is_ascii_alphanumeric() || b == b'_')
         }
     }
-    
+
     #[cfg(not(target_arch = "x86_64"))]
     pub fn is_ascii_alphanumeric_simd(bytes: &[u8]) -> bool {
-        bytes.iter().all(|&b| b.is_ascii_alphanumeric() || b == b'_')
+        bytes
+            .iter()
+            .all(|&b| b.is_ascii_alphanumeric() || b == b'_')
     }
 }

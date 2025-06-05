@@ -1,4 +1,4 @@
-use crate::cli::args::{InspectionFormat, CompileRuntime, ContainerFormatArg};
+use crate::cli::args::{CompileRuntime, ContainerFormatArg, InspectionFormat};
 use crate::cli::{Cli, Commands};
 use crate::models::{Config, Error, Result};
 use crate::{check, transpile};
@@ -74,14 +74,14 @@ pub fn execute_command(cli: Cli) -> Result<()> {
             info!("Generating inspection report for: {}", input);
             inspect_command(&input, format, output.as_deref(), detailed)
         }
-        
-        Commands::Compile { 
-            rust_source, 
-            output, 
-            runtime, 
-            self_extracting, 
+
+        Commands::Compile {
+            rust_source,
+            output,
+            runtime,
+            self_extracting,
             container,
-            container_format 
+            container_format,
         } => {
             let config = Config {
                 target: cli.target,
@@ -91,7 +91,7 @@ pub fn execute_command(cli: Cli) -> Result<()> {
                 validation_level: Some(cli.validation),
                 strict_mode: cli.strict,
             };
-            
+
             handle_compile(
                 &rust_source,
                 &output,
@@ -99,7 +99,7 @@ pub fn execute_command(cli: Cli) -> Result<()> {
                 self_extracting,
                 container,
                 container_format,
-                &config
+                &config,
             )
         }
 
@@ -472,15 +472,19 @@ fn handle_compile(
     container_format: ContainerFormatArg,
     config: &Config,
 ) -> Result<()> {
-    use crate::compiler::{BinaryCompiler, RuntimeType, create_self_extracting_script};
-    use crate::container::{DistrolessBuilder, ContainerFormat};
-    
-    info!("Compiling {} to {}", rust_source.display(), output.display());
-    
+    use crate::compiler::{create_self_extracting_script, BinaryCompiler, RuntimeType};
+    use crate::container::{ContainerFormat, DistrolessBuilder};
+
+    info!(
+        "Compiling {} to {}",
+        rust_source.display(),
+        output.display()
+    );
+
     // Read and transpile the source
     let source = fs::read_to_string(rust_source).map_err(Error::Io)?;
     let shell_code = transpile(&source, config.clone())?;
-    
+
     if self_extracting {
         // Create self-extracting script
         create_self_extracting_script(&shell_code, output.to_str().unwrap())?;
@@ -492,26 +496,28 @@ fn handle_compile(
             CompileRuntime::Busybox => RuntimeType::Busybox,
             CompileRuntime::Minimal => RuntimeType::Minimal,
         };
-        
+
         let compiler = BinaryCompiler::new(runtime_type);
         let binary = compiler.compile(&shell_code)?;
-        
+
         let format = match container_format {
             ContainerFormatArg::Oci => ContainerFormat::OCI,
             ContainerFormatArg::Docker => ContainerFormat::Docker,
         };
-        
+
         let builder = DistrolessBuilder::new(binary).with_format(format);
         let container_data = builder.build()?;
-        
+
         fs::write(output, container_data).map_err(Error::Io)?;
         info!("Created container image at {}", output.display());
     } else {
         // Create standalone binary (not fully implemented)
-        warn!("Binary compilation not yet fully implemented, creating self-extracting script instead");
+        warn!(
+            "Binary compilation not yet fully implemented, creating self-extracting script instead"
+        );
         create_self_extracting_script(&shell_code, output.to_str().unwrap())?;
     }
-    
+
     Ok(())
 }
 

@@ -39,7 +39,7 @@ pub enum Error {
     #[error("Validation error: {0}")]
     #[allow(clippy::enum_variant_names)]
     ValidationError(String),
-    
+
     #[error("Unsupported feature: {0}")]
     Unsupported(String),
 }
