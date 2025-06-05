@@ -38,51 +38,112 @@ pub fn get_runtime() -> &'static str {{
 
 #[allow(dead_code)]
 fn validate_shell_syntax(content: &str) -> Result<()> {
-    // Basic validation - check for balanced quotes and brackets
-    let mut single_quote = false;
-    let mut double_quote = false;
-    let mut escape_next = false;
-    let mut paren_count = 0;
-    let mut brace_count = 0;
-    let mut bracket_count = 0;
+    let mut validator = SyntaxValidator::new();
+    validator.validate(content)
+}
 
-    for ch in content.chars() {
-        if escape_next {
-            escape_next = false;
-            continue;
+struct SyntaxValidator {
+    single_quote: bool,
+    double_quote: bool,
+    escape_next: bool,
+    paren_count: i32,
+    brace_count: i32,
+    bracket_count: i32,
+}
+
+impl SyntaxValidator {
+    fn new() -> Self {
+        Self {
+            single_quote: false,
+            double_quote: false,
+            escape_next: false,
+            paren_count: 0,
+            brace_count: 0,
+            bracket_count: 0,
+        }
+    }
+
+    fn validate(&mut self, content: &str) -> Result<()> {
+        for ch in content.chars() {
+            if self.escape_next {
+                self.escape_next = false;
+                continue;
+            }
+
+            self.process_char(ch);
+        }
+
+        self.check_final_state()
+    }
+
+    fn process_char(&mut self, ch: char) {
+        if self.handle_escape(ch) {
+            return;
+        }
+
+        if self.handle_quotes(ch) {
+            return;
+        }
+
+        self.handle_brackets(ch);
+    }
+
+    fn handle_escape(&mut self, ch: char) -> bool {
+        if ch == '\\' && !self.single_quote {
+            self.escape_next = true;
+            return true;
+        }
+        false
+    }
+
+    fn handle_quotes(&mut self, ch: char) -> bool {
+        match ch {
+            '\'' if !self.double_quote && !self.escape_next => {
+                self.single_quote = !self.single_quote;
+                true
+            }
+            '"' if !self.single_quote && !self.escape_next => {
+                self.double_quote = !self.double_quote;
+                true
+            }
+            _ => false,
+        }
+    }
+
+    fn handle_brackets(&mut self, ch: char) {
+        if self.single_quote || self.double_quote {
+            return;
         }
 
         match ch {
-            '\\' if !single_quote => escape_next = true,
-            '\'' if !double_quote && !escape_next => single_quote = !single_quote,
-            '"' if !single_quote && !escape_next => double_quote = !double_quote,
-            '(' if !single_quote && !double_quote => paren_count += 1,
-            ')' if !single_quote && !double_quote => paren_count -= 1,
-            '{' if !single_quote && !double_quote => brace_count += 1,
-            '}' if !single_quote && !double_quote => brace_count -= 1,
-            '[' if !single_quote && !double_quote => bracket_count += 1,
-            ']' if !single_quote && !double_quote => bracket_count -= 1,
+            '(' => self.paren_count += 1,
+            ')' => self.paren_count -= 1,
+            '{' => self.brace_count += 1,
+            '}' => self.brace_count -= 1,
+            '[' => self.bracket_count += 1,
+            ']' => self.bracket_count -= 1,
             _ => {}
         }
     }
 
-    if single_quote {
-        anyhow::bail!("Unclosed single quote in runtime");
+    fn check_final_state(&self) -> Result<()> {
+        if self.single_quote {
+            anyhow::bail!("Unclosed single quote in runtime");
+        }
+        if self.double_quote {
+            anyhow::bail!("Unclosed double quote in runtime");
+        }
+        if self.paren_count != 0 {
+            anyhow::bail!("Unmatched parentheses in runtime: {}", self.paren_count);
+        }
+        if self.brace_count != 0 {
+            anyhow::bail!("Unmatched braces in runtime: {}", self.brace_count);
+        }
+        if self.bracket_count != 0 {
+            anyhow::bail!("Unmatched brackets in runtime: {}", self.bracket_count);
+        }
+        Ok(())
     }
-    if double_quote {
-        anyhow::bail!("Unclosed double quote in runtime");
-    }
-    if paren_count != 0 {
-        anyhow::bail!("Unmatched parentheses in runtime: {}", paren_count);
-    }
-    if brace_count != 0 {
-        anyhow::bail!("Unmatched braces in runtime: {}", brace_count);
-    }
-    if bracket_count != 0 {
-        anyhow::bail!("Unmatched brackets in runtime: {}", bracket_count);
-    }
-
-    Ok(())
 }
 
 fn minify_shell(content: &str) -> String {

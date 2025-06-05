@@ -18,10 +18,12 @@ pub fn parse(input: &str) -> Result<RestrictedAst> {
         match item {
             Item::Fn(item_fn) => {
                 // Check if this is the main function marked with #[rash::main]
-                let is_main = item_fn.attrs.iter().any(|_attr| {
-                    // For now, accept any attribute as #[rash::main]
-                    // TODO: Proper attribute parsing
-                    true
+                let is_main = item_fn.attrs.iter().any(|attr| {
+                    // Check if the attribute path matches "rash::main"
+                    let path = attr.path();
+                    path.segments.len() == 2
+                        && path.segments[0].ident == "rash"
+                        && path.segments[1].ident == "main"
                 }) || item_fn.sig.ident == "main";
 
                 let function = convert_function(item_fn)?;
