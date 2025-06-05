@@ -103,9 +103,11 @@ curl -sSfL -o install.sh https://raw.githubusercontent.com/paiml/rash/main/insta
 sh install.sh
 ```
 
-**Option 3: From GitHub releases (after v0.3.0)**
+**Option 3: From GitHub releases**
 ```bash
-curl --proto '=https' --tlsv1.2 -sSf https://github.com/paiml/rash/releases/latest/download/install.sh | sh
+# Download specific version from releases
+curl -L https://github.com/paiml/rash/releases/latest/download/rash-x86_64-unknown-linux-gnu.tar.gz | tar xz
+sudo mv rash /usr/local/bin/
 ```
 
 </details>
@@ -116,7 +118,7 @@ curl --proto '=https' --tlsv1.2 -sSf https://github.com/paiml/rash/releases/late
 <summary>Linux (x86_64)</summary>
 
 ```bash
-curl -L https://github.com/paiml/rash/releases/latest/download/rash-linux-amd64.tar.gz | tar xz
+curl -L https://github.com/paiml/rash/releases/latest/download/rash-x86_64-unknown-linux-gnu.tar.gz | tar xz
 sudo mv rash /usr/local/bin/
 ```
 </details>
@@ -125,7 +127,7 @@ sudo mv rash /usr/local/bin/
 <summary>macOS (Intel)</summary>
 
 ```bash
-curl -L https://github.com/paiml/rash/releases/latest/download/rash-darwin-amd64.tar.gz | tar xz
+curl -L https://github.com/paiml/rash/releases/latest/download/rash-x86_64-apple-darwin.tar.gz | tar xz
 sudo mv rash /usr/local/bin/
 ```
 </details>
@@ -134,7 +136,7 @@ sudo mv rash /usr/local/bin/
 <summary>macOS (Apple Silicon)</summary>
 
 ```bash
-curl -L https://github.com/paiml/rash/releases/latest/download/rash-darwin-arm64.tar.gz | tar xz
+curl -L https://github.com/paiml/rash/releases/latest/download/rash-aarch64-apple-darwin.tar.gz | tar xz
 sudo mv rash /usr/local/bin/
 ```
 </details>
@@ -342,7 +344,7 @@ Rash is designed to work seamlessly with the Model Context Protocol (MCP):
 
 - **Structured Output**: Generated scripts include metadata for MCP tools
 - **Verification Hooks**: Built-in support for MCP verification workflows
-- **Tool Integration**: Works with paiml-mcp-agent-toolkit for:
+- **Tool Integration**: Works with pmat (PAIML MCP Agent Toolkit) for:
   - Automated code quality analysis
   - Technical debt tracking
   - Complexity metrics
@@ -351,14 +353,14 @@ Rash is designed to work seamlessly with the Model Context Protocol (MCP):
 ### Using with MCP Tools
 
 ```bash
-# Analyze with paiml-mcp-agent-toolkit
-paiml-mcp-agent-toolkit analyze complexity --project-path .
+# Analyze with pmat (PAIML MCP Agent Toolkit)
+pmat analyze complexity --project-path .
 
 # Verify transpilation safety
-paiml-mcp-agent-toolkit verify --spec rash.spec --impl target/debug/rash
+pmat verify --spec rash.spec --impl target/debug/rash
 
 # Generate quality reports
-paiml-mcp-agent-toolkit context rust --format markdown > QUALITY_REPORT.md
+pmat context rust --format markdown > QUALITY_REPORT.md
 ```
 
 ### MCP Benefits
