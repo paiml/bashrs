@@ -1,7 +1,7 @@
 /// Node.js installer example for Rash
 /// This demonstrates a real-world installer that downloads and installs Node.js
 
-#[rash::main]
+
 fn main() {
     let node_version = "20.10.0";
     let install_prefix = "/usr/local";

@@ -1,6 +1,6 @@
 // Test SC2068: Double quote array expansions to avoid re-splitting elements
 
-#[rash::main]
+
 fn main() {
     // Find files with multiple extensions
     find_files_by_ext("*.txt");

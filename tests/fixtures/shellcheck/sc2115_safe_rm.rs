@@ -1,6 +1,6 @@
 // Test SC2115: Use ${var:?} to ensure variable is not empty before rm
 
-#[rash::main]
+
 fn main() {
     // Safe removal operations - should validate variables are not empty
     let temp_dir = "/tmp";

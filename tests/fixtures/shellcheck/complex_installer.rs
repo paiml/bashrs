@@ -1,6 +1,6 @@
 // Complex installer script that tests multiple ShellCheck rules
 
-#[rash::main]
+
 fn main() {
     let version = "1.0.0";
     let binary_name = "myapp";

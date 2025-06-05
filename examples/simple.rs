@@ -1,4 +1,4 @@
-#[rash::main]
+
 fn install() {
     let prefix = "/usr/local";
     let version = "1.0.0";

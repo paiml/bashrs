@@ -4,7 +4,7 @@
 /// preventing common shell scripting errors like unquoted variables,
 /// unsafe command substitutions, and improper glob patterns.
 
-#[rash::main]
+
 fn main() {
     // Demonstrate various ShellCheck validations
     
