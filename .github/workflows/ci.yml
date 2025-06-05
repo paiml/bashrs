@@ -77,18 +77,46 @@ jobs:
       with:
         components: llvm-tools-preview
     
+    - name: Cache dependencies
+      uses: actions/cache@v4
+      with:
+        path: |
+          ~/.cargo/registry
+          ~/.cargo/git
+          target
+        key: ${{ runner.os }}-coverage-${{ hashFiles('**/Cargo.lock') }}
+        restore-keys: |
+          ${{ runner.os }}-coverage-
+          ${{ runner.os }}-stable-cargo-
+    
     - name: Install cargo-llvm-cov
       uses: taiki-e/install-action@cargo-llvm-cov
     
     - name: Generate code coverage
-      run: cargo llvm-cov --all-features --workspace --lcov --output-path lcov.info
+      run: |
+        echo "Generating code coverage..."
+        cargo llvm-cov --all-features --workspace --lcov --output-path lcov.info
+        echo "Coverage file size: $(wc -c < lcov.info) bytes"
+        echo "Coverage file lines: $(wc -l < lcov.info) lines"
     
     - name: Upload coverage to Codecov
       uses: codecov/codecov-action@v4
       with:
+        token: ${{ secrets.CODECOV_TOKEN }}
         file: lcov.info
+        flags: unittests
+        name: codecov-umbrella
         fail_ci_if_error: false
         verbose: true
+    
+    - name: Upload coverage report artifact
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: coverage-report
+        path: |
+          lcov.info
+          target/llvm-cov/html/
 
   security:
     name: Security Audit

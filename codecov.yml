@@ -1,0 +1,38 @@
+codecov:
+  require_ci_to_pass: yes
+
+coverage:
+  precision: 2
+  round: down
+  range: "70...100"
+
+  status:
+    project:
+      default:
+        target: 80%
+        threshold: 5%
+        informational: false
+    patch:
+      default:
+        target: 70%
+        threshold: 10%
+        informational: false
+
+comment:
+  layout: "reach,diff,flags,files"
+  behavior: default
+  require_changes: false
+
+flags:
+  unittests:
+    paths:
+      - "rash/src/"
+      - "rash-runtime/src/"
+
+ignore:
+  - "target/"
+  - "examples/"
+  - "tests/"
+  - "benches/"
+  - "scripts/"
+  - "docs/"
