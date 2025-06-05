@@ -17,9 +17,7 @@ impl Validate for VariableExpansion {
             VariableExpansion::Unquoted(var) => Err(ValidationError {
                 rule: "SC2086",
                 severity: Severity::Error,
-                message: format!(
-                    "Double quote to prevent globbing and word splitting: ${var}"
-                ),
+                message: format!("Double quote to prevent globbing and word splitting: ${var}"),
                 suggestion: Some(format!("Use \"${var}\" instead")),
                 auto_fix: Some(Fix {
                     description: "Add quotes around variable".to_string(),

@@ -9,9 +9,7 @@ fn generate_test_script(lines: usize) -> String {
 
     for i in 0..lines {
         script.push_str(&format!("    let var{i} = \"value{i}\";\n"));
-        script.push_str(&format!(
-            "    println!(\"Variable {i} = {{}}\", var{i});\n"
-        ));
+        script.push_str(&format!("    println!(\"Variable {i} = {{}}\", var{i});\n"));
 
         if i % 10 == 0 {
             script.push_str(&format!("    if var{i} == \"value{i}\" {{\n"));
