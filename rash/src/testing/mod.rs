@@ -18,6 +18,8 @@ mod mutation_tests;
 mod regression_tests;
 #[cfg(test)]
 mod stress_tests;
+#[cfg(test)]
+pub mod quickcheck_tests;
 
 use crate::models::{Config, Result};
 use std::panic;
