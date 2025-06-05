@@ -93,6 +93,3 @@ harness = false
 name = "verification"
 harness = false
 
-[[example]]
-name = "formal_verification"
-path = "../examples/formal_verification.rs"
