@@ -180,7 +180,7 @@ fn test_stress_test_results_debug() {
         error_details: vec!["Debug test error".to_string()],
     };
 
-    let debug_string = format!("{:?}", results);
+    let debug_string = format!("{results:?}");
     assert!(debug_string.contains("total_operations: 5"));
     assert!(debug_string.contains("successful_operations: 4"));
 }

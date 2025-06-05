@@ -105,9 +105,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     if all_passed {
         println!("✅ All quality gates passed!");
-        println!("  Complexity threshold: {}", complexity_threshold);
-        println!("  Cognitive threshold: {}", cognitive_threshold);
-        println!("  Dead code threshold: {}", dead_code_threshold);
+        println!("  Complexity threshold: {complexity_threshold}");
+        println!("  Cognitive threshold: {cognitive_threshold}");
+        println!("  Dead code threshold: {dead_code_threshold}");
         Ok(())
     } else {
         process::exit(1);

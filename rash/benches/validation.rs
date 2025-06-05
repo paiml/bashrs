@@ -8,14 +8,13 @@ fn generate_test_script(lines: usize) -> String {
     let mut script = String::from("fn main() {\n");
 
     for i in 0..lines {
-        script.push_str(&format!("    let var{} = \"value{}\";\n", i, i));
+        script.push_str(&format!("    let var{i} = \"value{i}\";\n"));
         script.push_str(&format!(
-            "    println!(\"Variable {} = {{}}\", var{});\n",
-            i, i
+            "    println!(\"Variable {i} = {{}}\", var{i});\n"
         ));
 
         if i % 10 == 0 {
-            script.push_str(&format!("    if var{} == \"value{}\" {{\n", i, i));
+            script.push_str(&format!("    if var{i} == \"value{i}\" {{\n"));
             script.push_str("        println!(\"Match!\");\n");
             script.push_str("    }\n");
         }
@@ -159,13 +158,12 @@ fn measure_validation_percentage(_c: &mut Criterion) {
         / time_without.as_nanos() as f64)
         * 100.0;
 
-    println!("Validation overhead: {:.2}%", overhead_percentage);
+    println!("Validation overhead: {overhead_percentage:.2}%");
 
     // Assert that overhead is less than 1%
     assert!(
         overhead_percentage < 1.0,
-        "Validation overhead ({:.2}%) exceeds 1% requirement",
-        overhead_percentage
+        "Validation overhead ({overhead_percentage:.2}%) exceeds 1% requirement"
     );
 }
 

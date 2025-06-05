@@ -18,13 +18,12 @@ impl Validate for VariableExpansion {
                 rule: "SC2086",
                 severity: Severity::Error,
                 message: format!(
-                    "Double quote to prevent globbing and word splitting: ${}",
-                    var
+                    "Double quote to prevent globbing and word splitting: ${var}"
                 ),
-                suggestion: Some(format!("Use \"${}\" instead", var)),
+                suggestion: Some(format!("Use \"${var}\" instead")),
                 auto_fix: Some(Fix {
                     description: "Add quotes around variable".to_string(),
-                    replacement: format!("\"${}\"", var),
+                    replacement: format!("\"${var}\""),
                 }),
                 line: None,
                 column: None,
@@ -79,10 +78,10 @@ pub fn validate_glob_pattern(pattern: &str) -> Result<String, ValidationError> {
             severity: Severity::Warning,
             message: "Use './' or -- to prevent glob patterns being interpreted as options"
                 .to_string(),
-            suggestion: Some(format!("Use './{}'", pattern)),
+            suggestion: Some(format!("Use './{pattern}'")),
             auto_fix: Some(Fix {
                 description: "Prefix with './' to prevent option interpretation".to_string(),
-                replacement: format!("./{}", pattern),
+                replacement: format!("./{pattern}"),
             }),
             line: None,
             column: None,

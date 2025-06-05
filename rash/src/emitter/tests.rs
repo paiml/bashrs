@@ -311,7 +311,7 @@ proptest! {
         // Escaped strings should either be the original (if safe) or quoted
         if s.chars().all(|c| c.is_alphanumeric() || "_.-/+=:@".contains(c)) && !s.is_empty() {
             // Safe strings might be unquoted
-            assert!(escaped == s || escaped == format!("'{}'", s));
+            assert!(escaped == s || escaped == format!("'{s}'"));
         } else {
             // Unsafe strings should be quoted
             assert!(escaped.starts_with('\'') && escaped.ends_with('\'') || escaped == "''");
@@ -468,8 +468,7 @@ fn test_indentation_consistency() {
         // Should start with spaces (indentation)
         assert!(
             line.starts_with("    ") || line.starts_with("        "),
-            "Line not properly indented: '{}'",
-            line
+            "Line not properly indented: '{line}'"
         );
     }
 }

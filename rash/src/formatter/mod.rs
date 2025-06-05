@@ -67,7 +67,7 @@ impl PreflightFormatter for RashFormatter {
     ) -> std::result::Result<FormattedSource<'a>, Self::Error> {
         // Convert input to string for processing
         let source_str = std::str::from_utf8(source)
-            .map_err(|e| crate::Error::Internal(format!("Invalid UTF-8: {}", e)))?;
+            .map_err(|e| crate::Error::Internal(format!("Invalid UTF-8: {e}")))?;
 
         // Fast path: check if already canonical
         if self.engine.is_canonical(source) {

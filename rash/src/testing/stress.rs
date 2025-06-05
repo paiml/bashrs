@@ -97,7 +97,7 @@ impl StressTester {
                         results.failed_operations += 1;
                         results
                             .error_details
-                            .push(format!("Transpilation error: {}", e));
+                            .push(format!("Transpilation error: {e}"));
                     }
                 }
             }
@@ -131,7 +131,7 @@ impl StressTester {
 
                 thread::spawn(move || {
                     for i in 0..operations_per_thread {
-                        let test_code = format!("fn main() {{ let x = {}; }}", i);
+                        let test_code = format!("fn main() {{ let x = {i}; }}");
                         match crate::transpile(&test_code, config.clone()) {
                             Ok(_) => {
                                 let mut count = success.lock().unwrap();
@@ -141,7 +141,7 @@ impl StressTester {
                                 let mut count = errors_count.lock().unwrap();
                                 *count += 1;
                                 let mut errs = error_details.lock().unwrap();
-                                errs.push(format!("Concurrent error: {}", e));
+                                errs.push(format!("Concurrent error: {e}"));
                             }
                         }
                     }
@@ -178,7 +178,7 @@ impl StressTester {
         ];
 
         for large_value in large_values {
-            let test_code = format!("{}{};", base_code, large_value);
+            let test_code = format!("{base_code}{large_value};");
 
             match crate::transpile(&test_code, self.config.clone()) {
                 Ok(_) => results.successful_operations += 1,
@@ -186,7 +186,7 @@ impl StressTester {
                     results.failed_operations += 1;
                     results
                         .error_details
-                        .push(format!("Memory pressure error: {}", e));
+                        .push(format!("Memory pressure error: {e}"));
                 }
             }
             results.total_operations += 1;
@@ -218,7 +218,7 @@ impl StressTester {
                         // Limit error collection
                         results
                             .error_details
-                            .push(format!("Sustained load error: {}", e));
+                            .push(format!("Sustained load error: {e}"));
                     }
                 }
             }
@@ -242,7 +242,7 @@ impl StressTester {
             let burst_start = Instant::now();
 
             for i in 0..burst_size {
-                let test_code = format!("fn main() {{ let burst_{}_op_{} = {}; }}", burst, i, i);
+                let test_code = format!("fn main() {{ let burst_{burst}_op_{i} = {i}; }}");
 
                 match crate::transpile(&test_code, self.config.clone()) {
                     Ok(_) => results.successful_operations += 1,
@@ -250,7 +250,7 @@ impl StressTester {
                         results.failed_operations += 1;
                         results
                             .error_details
-                            .push(format!("Burst load error: {}", e));
+                            .push(format!("Burst load error: {e}"));
                     }
                 }
                 results.total_operations += 1;

@@ -126,7 +126,7 @@ fn convert_type(ty: &SynType) -> Result<Type> {
                         inner_type: Box::new(Type::Str), // Simplified
                     })
                 }
-                _ => Err(Error::Validation(format!("Unsupported type: {}", path_str))),
+                _ => Err(Error::Validation(format!("Unsupported type: {path_str}"))),
             }
         }
         SynType::Reference(type_ref) => {
@@ -143,8 +143,7 @@ fn convert_type(ty: &SynType) -> Result<Type> {
                 match path_str.as_str() {
                     "str" => Ok(Type::Str),
                     _ => Err(Error::Validation(format!(
-                        "Unsupported reference type: &{}",
-                        path_str
+                        "Unsupported reference type: &{path_str}"
                     ))),
                 }
             } else {

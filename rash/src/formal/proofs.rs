@@ -63,8 +63,8 @@ fn arb_path() -> impl Strategy<Value = String> {
         Just("/tmp".to_string()),
         Just("/opt".to_string()),
         Just("/home".to_string()),
-        "[a-z]{1,8}".prop_map(|s| format!("/tmp/{}", s)),
-        "[a-z]{1,8}".prop_map(|s| format!("/opt/{}", s)),
+        "[a-z]{1,8}".prop_map(|s| format!("/tmp/{s}")),
+        "[a-z]{1,8}".prop_map(|s| format!("/opt/{s}")),
     ]
 }
 

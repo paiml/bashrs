@@ -279,7 +279,7 @@ impl SourceMapStats {
     pub fn memory_usage_human(&self) -> String {
         let bytes = self.memory_usage_bytes;
         if bytes < 1024 {
-            format!("{} B", bytes)
+            format!("{bytes} B")
         } else if bytes < 1024 * 1024 {
             format!("{:.1} KB", bytes as f64 / 1024.0)
         } else {

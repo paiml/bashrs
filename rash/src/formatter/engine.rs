@@ -98,7 +98,7 @@ impl NormalizationEngine {
         config: FormatConfig,
     ) -> crate::Result<FormattedSource<'a>> {
         let input_str = std::str::from_utf8(input)
-            .map_err(|e| crate::Error::Internal(format!("Invalid UTF-8: {}", e)))?;
+            .map_err(|e| crate::Error::Internal(format!("Invalid UTF-8: {e}")))?;
 
         // Fast path: already canonical
         if self.is_canonical(input) {
@@ -365,8 +365,7 @@ impl NormalizationEngine {
                     kind: QuoteKind::Double,
                     reason: QuoteReason::WordSplitting,
                     proof: SexprProof::new(format!(
-                        "(= (word-split ${}) (word-split \"${}\"))",
-                        var_name, var_name
+                        "(= (word-split ${var_name}) (word-split \"${var_name}\"))"
                     )),
                 };
 

@@ -101,7 +101,7 @@ fn benchmark_verification_levels(c: &mut Criterion) {
 
     for level in levels.iter() {
         group.bench_with_input(
-            BenchmarkId::new("safe_code", format!("{:?}", level)),
+            BenchmarkId::new("safe_code", format!("{level:?}")),
             &(&safe_ir, level),
             |b, (ir, level)| {
                 b.iter(|| {
@@ -111,7 +111,7 @@ fn benchmark_verification_levels(c: &mut Criterion) {
         );
 
         group.bench_with_input(
-            BenchmarkId::new("complex_code", format!("{:?}", level)),
+            BenchmarkId::new("complex_code", format!("{level:?}")),
             &(&complex_ir, level),
             |b, (ir, level)| {
                 b.iter(|| {
@@ -121,7 +121,7 @@ fn benchmark_verification_levels(c: &mut Criterion) {
         );
 
         group.bench_with_input(
-            BenchmarkId::new("unsafe_code", format!("{:?}", level)),
+            BenchmarkId::new("unsafe_code", format!("{level:?}")),
             &(&unsafe_ir, level),
             |b, (ir, level)| {
                 b.iter(|| {
@@ -282,14 +282,13 @@ fn process_step_{i}() {{
 fn transform_{i}(data: &str) -> &str {{ data }}
 fn validate_{i}(data: &str) -> bool {{ true }}
 fn store_{i}(data: &str) {{}}
-"#,
-            i = i
+"#
         ));
     }
 
     source.push_str("fn main() {\n");
     for i in 0..complexity {
-        source.push_str(&format!("    process_step_{}();\n", i));
+        source.push_str(&format!("    process_step_{i}();\n"));
     }
     source.push_str("}\n");
 
@@ -333,27 +332,25 @@ fn generate_resource_intensive() -> String {
 
     // Generate many network operations
     for i in 0..20 {
-        source.push_str(&format!("    download_file_{}();\n", i));
+        source.push_str(&format!("    download_file_{i}();\n"));
     }
 
     // Generate many file operations
     for i in 0..60 {
-        source.push_str(&format!("    process_file_{}();\n", i));
+        source.push_str(&format!("    process_file_{i}();\n"));
     }
 
     source.push_str("}\n");
 
     for i in 0..20 {
         source.push_str(&format!(
-            "fn download_file_{}() {{ curl(\"http://example.com/file{}\"); }}\n",
-            i, i
+            "fn download_file_{i}() {{ curl(\"http://example.com/file{i}\"); }}\n"
         ));
     }
 
     for i in 0..60 {
         source.push_str(&format!(
-            "fn process_file_{}() {{ cp(\"/src/file{}\", \"/dst/file{}\"); }}\n",
-            i, i, i
+            "fn process_file_{i}() {{ cp(\"/src/file{i}\", \"/dst/file{i}\"); }}\n"
         ));
     }
 

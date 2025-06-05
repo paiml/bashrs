@@ -154,7 +154,7 @@ impl ExhaustiveTestHarness {
 
         for i in 0..iterations {
             if i % 100_000 == 0 {
-                println!("  Progress: {}/{} iterations", i, iterations);
+                println!("  Progress: {i}/{iterations} iterations");
             }
 
             let random_input = self.generate_random_input()?;
@@ -276,9 +276,9 @@ impl ExhaustiveTestHarness {
         self.stats.coverage_percentage = estimated_coverage;
 
         if estimated_coverage < 90.0 {
-            println!("  ⚠️  Coverage below target: {:.1}%", estimated_coverage);
+            println!("  ⚠️  Coverage below target: {estimated_coverage:.1}%");
         } else {
-            println!("  ✅ Coverage target met: {:.1}%", estimated_coverage);
+            println!("  ✅ Coverage target met: {estimated_coverage:.1}%");
         }
 
         Ok(())

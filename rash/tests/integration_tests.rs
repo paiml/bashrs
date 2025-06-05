@@ -142,7 +142,7 @@ fn echo(msg: &str) {}
         };
 
         let result = transpile(source, config);
-        assert!(result.is_ok(), "Failed for dialect: {:?}", dialect);
+        assert!(result.is_ok(), "Failed for dialect: {dialect:?}");
 
         let script = result.unwrap();
         assert!(script.contains("#!/bin/sh"));
@@ -175,7 +175,7 @@ fn echo(msg: &str) {}
         };
 
         let result = transpile(safe_source, config);
-        assert!(result.is_ok(), "Failed for verification level: {:?}", level);
+        assert!(result.is_ok(), "Failed for verification level: {level:?}");
     }
 }
 
@@ -256,8 +256,7 @@ fn echo(msg: &str) {}
     let result = transpile(source, config);
 
     // Should handle nested if/else structures
-    if result.is_ok() {
-        let script = result.unwrap();
+    if let Ok(script) = result {
         assert!(script.contains("if "));
         assert!(script.contains("then"));
         assert!(script.contains("else"));
@@ -298,7 +297,7 @@ fn test_error_handling_invalid_source() {
     for source in invalid_sources {
         let config = Config::default();
         let result = transpile(source, config);
-        assert!(result.is_err(), "Should fail for: {}", source);
+        assert!(result.is_err(), "Should fail for: {source}");
     }
 }
 
@@ -399,14 +398,13 @@ fn test_large_input_handling() {
 
     for i in 0..50 {
         source.push_str(&format!(
-            "fn function_{}() {{ let var_{} = {}; }}\n",
-            i, i, i
+            "fn function_{i}() {{ let var_{i} = {i}; }}\n"
         ));
     }
 
     source.push_str("fn main() {\n");
     for i in 0..50 {
-        source.push_str(&format!("    function_{}();\n", i));
+        source.push_str(&format!("    function_{i}();\n"));
     }
     source.push_str("}\n");
 
@@ -483,7 +481,7 @@ fn test_memory_safety() {
 
     // Create nested variable assignments
     for i in 0..100 {
-        source.push_str(&format!("    let var_{} = \"value_{}\";\n", i, i));
+        source.push_str(&format!("    let var_{i} = \"value_{i}\";\n"));
     }
 
     source.push_str("}\n");

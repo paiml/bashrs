@@ -130,8 +130,7 @@ fn check_value_safety(value: &ShellValue) -> Result<()> {
         ShellValue::String(s) => {
             if contains_shell_metacharacters(s) {
                 return Err(Error::Verification(format!(
-                    "Unsafe string contains shell metacharacters: {}",
-                    s
+                    "Unsafe string contains shell metacharacters: {s}"
                 )));
             }
         }

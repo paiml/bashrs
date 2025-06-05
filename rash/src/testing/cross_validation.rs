@@ -37,7 +37,7 @@ impl CrossValidationTester {
     pub fn run_cross_validation_tests(&mut self) -> Result<()> {
         // Simulate cross-validation across all dialects
         for dialect in &self.dialects {
-            let key = format!("{:?}", dialect);
+            let key = format!("{dialect:?}");
             let success = self.validate_dialect(dialect)?;
             self.validation_results.insert(key, success);
         }
@@ -127,7 +127,7 @@ impl CrossValidationTester {
 
         for (test, success) in &self.validation_results {
             let status = if *success { "✓" } else { "✗" };
-            report.push_str(&format!("{} {}\n", status, test));
+            report.push_str(&format!("{status} {test}\n"));
         }
 
         report

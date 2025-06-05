@@ -427,7 +427,7 @@ impl ProofInspector {
             }
 
             TinyAst::SetEnvironmentVariable { name, value } => {
-                let operation = format!("Set environment variable: {}={}", name, value);
+                let operation = format!("Set environment variable: {name}={value}");
                 current_state.set_env(name.clone(), value.clone());
 
                 steps.push(ExecutionStep {
@@ -441,7 +441,7 @@ impl ProofInspector {
             }
 
             TinyAst::ChangeDirectory { path } => {
-                let operation = format!("Change directory to: {}", path);
+                let operation = format!("Change directory to: {path}");
                 let mut errors = Vec::new();
 
                 if let Err(e) = current_state.change_directory(std::path::PathBuf::from(path)) {
@@ -484,7 +484,7 @@ impl ProofInspector {
 
         steps.push(ExecutionStep {
             step_number: 1,
-            operation: format!("Execute POSIX code: {}", code),
+            operation: format!("Execute POSIX code: {code}"),
             state_before,
             state_after: current_state.clone(),
             errors,
@@ -660,7 +660,7 @@ impl ProofInspector {
             TinyAst::ExecuteCommand { command_name, args } => {
                 let generated_code = FormalEmitter::emit(ast);
                 justifications.push(EmitterJustification {
-                    ast_node: format!("ExecuteCommand({}, {:?})", command_name, args),
+                    ast_node: format!("ExecuteCommand({command_name}, {args:?})"),
                     generated_code,
                     reasoning: "Command arguments are properly quoted to prevent shell injection"
                         .to_string(),
@@ -674,7 +674,7 @@ impl ProofInspector {
             TinyAst::SetEnvironmentVariable { name, value } => {
                 let generated_code = FormalEmitter::emit(ast);
                 justifications.push(EmitterJustification {
-                    ast_node: format!("SetEnvironmentVariable({}, {})", name, value),
+                    ast_node: format!("SetEnvironmentVariable({name}, {value})"),
                     generated_code,
                     reasoning: "Variable assignment uses POSIX-compliant syntax with quoted values"
                         .to_string(),
@@ -689,7 +689,7 @@ impl ProofInspector {
             TinyAst::ChangeDirectory { path } => {
                 let generated_code = FormalEmitter::emit(ast);
                 justifications.push(EmitterJustification {
-                    ast_node: format!("ChangeDirectory({})", path),
+                    ast_node: format!("ChangeDirectory({path})"),
                     generated_code,
                     reasoning: "Change directory uses cd command with quoted path".to_string(),
                     considerations: vec![
@@ -743,14 +743,14 @@ impl ProofInspector {
             VerificationResult::Failure { reasons } => {
                 output.push_str("❌ **FAILURE**\n");
                 for reason in reasons {
-                    output.push_str(&format!("- {}\n", reason));
+                    output.push_str(&format!("- {reason}\n"));
                 }
                 output.push('\n');
             }
             VerificationResult::Partial { issues } => {
                 output.push_str("⚠️ **PARTIAL**\n");
                 for issue in issues {
-                    output.push_str(&format!("- {}\n", issue));
+                    output.push_str(&format!("- {issue}\n"));
                 }
                 output.push('\n');
             }
@@ -820,7 +820,7 @@ impl ProofInspector {
             if !justification.considerations.is_empty() {
                 output.push_str("**Considerations:**\n");
                 for consideration in &justification.considerations {
-                    output.push_str(&format!("- {}\n", consideration));
+                    output.push_str(&format!("- {consideration}\n"));
                 }
             }
             output.push('\n');
