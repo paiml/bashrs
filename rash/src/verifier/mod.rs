@@ -6,6 +6,9 @@ pub mod kani_harnesses;
 #[cfg(test)]
 mod tests;
 
+#[cfg(test)]
+mod properties_tests;
+
 use crate::ir::ShellIR;
 use crate::models::{Result, VerificationLevel};
 
