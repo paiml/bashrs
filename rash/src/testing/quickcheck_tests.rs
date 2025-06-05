@@ -16,18 +16,18 @@ pub mod generators {
         "[a-zA-Z_][a-zA-Z0-9_]{0,20}".prop_filter("Avoid reserved identifiers", |s| {
             // Rust keywords that should be filtered out
             const RUST_KEYWORDS: &[&str] = &[
-                "as", "break", "const", "continue", "crate", "else", "enum", "extern",
-                "false", "fn", "for", "if", "impl", "in", "let", "loop", "match",
-                "mod", "move", "mut", "pub", "ref", "return", "self", "Self", "static",
-                "struct", "super", "trait", "true", "type", "unsafe", "use", "where",
-                "while", "async", "await", "dyn", "abstract", "become", "box", "do",
-                "final", "macro", "override", "priv", "typeof", "unsized", "virtual", "yield"
+                "as", "break", "const", "continue", "crate", "else", "enum", "extern", "false",
+                "fn", "for", "if", "impl", "in", "let", "loop", "match", "mod", "move", "mut",
+                "pub", "ref", "return", "self", "Self", "static", "struct", "super", "trait",
+                "true", "type", "unsafe", "use", "where", "while", "async", "await", "dyn",
+                "abstract", "become", "box", "do", "final", "macro", "override", "priv", "typeof",
+                "unsized", "virtual", "yield",
             ];
-            
-            !s.is_empty() 
-                && s != "_" 
-                && s != "main" 
-                && !s.starts_with("__") 
+
+            !s.is_empty()
+                && s != "_"
+                && s != "main"
+                && !s.starts_with("__")
                 && !RUST_KEYWORDS.contains(&s.as_str())
         })
     }
@@ -203,13 +203,13 @@ proptest! {
             "while", "async", "await", "dyn", "abstract", "become", "box", "do",
             "final", "macro", "override", "priv", "typeof", "unsized", "virtual", "yield"
         ];
-        
+
         // Skip reserved keywords and problematic names
         prop_assume!(
-            !name.is_empty() 
-                && name != "_" 
-                && name != "main" 
-                && !name.starts_with("__") 
+            !name.is_empty()
+                && name != "_"
+                && name != "main"
+                && !name.starts_with("__")
                 && !RUST_KEYWORDS.contains(&name.as_str())
         );
 
