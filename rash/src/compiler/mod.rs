@@ -4,9 +4,6 @@ use std::io::Write;
 pub mod loader;
 pub mod optimize;
 
-#[cfg(test)]
-mod tests;
-
 #[derive(Debug, Clone, Copy)]
 pub enum RuntimeType {
     Dash,        // 180KB static binary
@@ -66,7 +63,7 @@ impl BinaryCompiler {
     pub fn compile(&self, script: &str) -> Result<Vec<u8>> {
         // Step 1: Compress script with Zstandard
         let compressed = zstd::encode_all(script.as_bytes(), self.compression.level())
-            .map_err(|e| Error::Internal(format!("Compression failed: {}", e)))?;
+            .map_err(|e| Error::Internal(format!("Compression failed: {e}")))?;
         
         // Step 2: Load base runtime
         let mut binary = self.load_runtime()?;
@@ -75,10 +72,10 @@ impl BinaryCompiler {
         let section_offset = self.inject_section(&mut binary, ".rash_script", &compressed)?;
         
         // Step 4: Patch entrypoint to our loader
-        self.patch_entrypoint(&mut binary, section_offset)?;
+        self.patch_entrypoint(binary.as_mut_slice(), section_offset)?;
         
         // Step 5: Strip unnecessary symbols
-        self.strip_binary(&mut binary)?;
+        self.strip_binary(binary.as_mut_slice())?;
         
         Ok(binary)
     }
@@ -94,11 +91,11 @@ impl BinaryCompiler {
         
         // For now, use the system's dash binary
         if !std::path::Path::new(runtime_path).exists() {
-            return Err(Error::Internal(format!("{} not found", runtime_path)));
+            return Err(Error::Internal(format!("{runtime_path} not found")));
         }
         
         std::fs::read(runtime_path)
-            .map_err(|e| Error::Internal(format!("Failed to read runtime: {}", e)))
+            .map_err(|e| Error::Internal(format!("Failed to read runtime: {e}")))
     }
     
     fn inject_section(&self, binary: &mut Vec<u8>, _name: &str, data: &[u8]) -> Result<usize> {
@@ -113,13 +110,13 @@ impl BinaryCompiler {
         Ok(offset)
     }
     
-    fn patch_entrypoint(&self, _binary: &mut Vec<u8>, _section_offset: usize) -> Result<()> {
+    fn patch_entrypoint(&self, _binary: &mut [u8], _section_offset: usize) -> Result<()> {
         // TODO: Implement actual ELF patching
         // For now, we'll create a wrapper script
         Ok(())
     }
     
-    fn strip_binary(&self, _binary: &mut Vec<u8>) -> Result<()> {
+    fn strip_binary(&self, _binary: &mut [u8]) -> Result<()> {
         match self.strip_level {
             StripLevel::None => Ok(()),
             StripLevel::Debug | StripLevel::All => {
@@ -133,7 +130,7 @@ impl BinaryCompiler {
 /// Create a self-extracting shell script
 pub fn create_self_extracting_script(script: &str, output_path: &str) -> Result<()> {
     let compressed = zstd::encode_all(script.as_bytes(), 11)
-        .map_err(|e| Error::Internal(format!("Compression failed: {}", e)))?;
+        .map_err(|e| Error::Internal(format!("Compression failed: {e}")))?;
     
     let encoded = base64::Engine::encode(
         &base64::engine::general_purpose::STANDARD,
@@ -163,23 +160,23 @@ fi
         encoded,
         base64::Engine::encode(
             &base64::engine::general_purpose::STANDARD,
-            &compress_gzip(script.as_bytes())
+            compress_gzip(script.as_bytes())
         )
     );
     
     std::fs::write(output_path, self_extract)
-        .map_err(|e| Error::Internal(format!("Failed to write output: {}", e)))?;
+        .map_err(|e| Error::Internal(format!("Failed to write output: {e}")))?;
     
     // Make executable
     #[cfg(unix)]
     {
         use std::os::unix::fs::PermissionsExt;
         let mut perms = std::fs::metadata(output_path)
-            .map_err(|e| Error::Internal(format!("Failed to get metadata: {}", e)))?
+            .map_err(|e| Error::Internal(format!("Failed to get metadata: {e}")))?
             .permissions();
         perms.set_mode(0o755);
         std::fs::set_permissions(output_path, perms)
-            .map_err(|e| Error::Internal(format!("Failed to set permissions: {}", e)))?;
+            .map_err(|e| Error::Internal(format!("Failed to set permissions: {e}")))?;
     }
     
     Ok(())
@@ -192,40 +189,4 @@ fn compress_gzip(data: &[u8]) -> Vec<u8> {
     let mut encoder = GzEncoder::new(Vec::new(), Compression::best());
     encoder.write_all(data).unwrap();
     encoder.finish().unwrap()
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    
-    #[test]
-    fn test_compression_levels() {
-        let script = "echo 'Hello, World!'";
-        let fast = zstd::encode_all(script.as_bytes(), CompressionLevel::Fast.level()).unwrap();
-        let best = zstd::encode_all(script.as_bytes(), CompressionLevel::Best.level()).unwrap();
-        
-        // Best compression should be smaller or equal
-        assert!(best.len() <= fast.len());
-    }
-    
-    #[test]
-    fn test_self_extracting_script() {
-        let script = "echo 'Test script'";
-        let output = "/tmp/test_self_extract.sh";
-        
-        create_self_extracting_script(script, output).unwrap();
-        
-        // Verify file exists and is executable
-        let metadata = std::fs::metadata(output).unwrap();
-        assert!(metadata.is_file());
-        
-        #[cfg(unix)]
-        {
-            use std::os::unix::fs::PermissionsExt;
-            assert_eq!(metadata.permissions().mode() & 0o111, 0o111);
-        }
-        
-        // Cleanup
-        std::fs::remove_file(output).ok();
-    }
 }

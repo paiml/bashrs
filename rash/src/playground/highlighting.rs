@@ -102,12 +102,18 @@ impl Default for Theme {
     }
 }
 
-impl SyntaxHighlighter {
-    pub fn new() -> Self {
+impl Default for SyntaxHighlighter {
+    fn default() -> Self {
         Self {
             theme: Theme::default(),
             token_cache: lru::LruCache::new(std::num::NonZeroUsize::new(1000).unwrap()),
         }
+    }
+}
+
+impl SyntaxHighlighter {
+    pub fn new() -> Self {
+        Self::default()
     }
     
     pub fn with_theme(theme: Theme) -> Self {
@@ -118,6 +124,7 @@ impl SyntaxHighlighter {
     }
     
     /// Highlight a line using SIMD-accelerated token classification
+    #[allow(clippy::while_let_on_iterator)]
     pub fn highlight_line(&mut self, line: &str, line_id: LineId) -> Vec<StyledToken> {
         // Check cache first
         if let Some(cached) = self.token_cache.get(&line_id) {
@@ -155,7 +162,7 @@ impl SyntaxHighlighter {
                 // String literals
                 '"' => {
                     current_token.push(ch);
-                    while let Some(ch) = chars.next() {
+                    for ch in chars.by_ref() {
                         current_token.push(ch);
                         if ch == '"' && !current_token.ends_with("\\\"") {
                             break;

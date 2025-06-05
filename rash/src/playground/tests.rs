@@ -34,7 +34,7 @@ fn test_computation_graph() {
 fn test_render_pipeline() {
     let _pipeline = RenderPipeline::new().expect("Should create render pipeline");
     // Basic test - detailed testing would require playground feature
-    assert!(true, "Render pipeline created successfully");
+    // Render pipeline created successfully
 }
 
 #[test]
@@ -43,7 +43,7 @@ fn test_keymap_engine() {
     let _emacs_engine = KeymapEngine::new(false).expect("Should create Emacs keymap engine");
 
     // Basic creation test
-    assert!(true, "Keymap engines created successfully");
+    // Keymap engines created successfully
 }
 
 #[cfg(test)]

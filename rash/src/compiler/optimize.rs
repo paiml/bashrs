@@ -23,33 +23,33 @@ impl BinaryOptimizer {
     
     pub fn optimize(&self, elf_data: &mut Vec<u8>) -> Result<()> {
         if self.merge_strings {
-            self.merge_duplicate_strings(elf_data)?;
+            self.merge_duplicate_strings(elf_data.as_mut_slice())?;
         }
         
         if self.gc_sections {
-            self.garbage_collect_sections(elf_data)?;
+            self.garbage_collect_sections(elf_data.as_mut_slice())?;
         }
         
         if self.pack_rodata {
-            self.compress_rodata(elf_data)?;
+            self.compress_rodata(elf_data.as_mut_slice())?;
         }
         
         Ok(())
     }
     
-    fn merge_duplicate_strings(&self, _elf_data: &mut Vec<u8>) -> Result<()> {
+    fn merge_duplicate_strings(&self, _elf_data: &mut [u8]) -> Result<()> {
         // TODO: Implement string merging
         // This would scan for duplicate strings in .rodata and merge them
         Ok(())
     }
     
-    fn garbage_collect_sections(&self, _elf_data: &mut Vec<u8>) -> Result<()> {
+    fn garbage_collect_sections(&self, _elf_data: &mut [u8]) -> Result<()> {
         // TODO: Implement dead code elimination
         // This would remove unreferenced functions and data
         Ok(())
     }
     
-    fn compress_rodata(&self, _elf_data: &mut Vec<u8>) -> Result<()> {
+    fn compress_rodata(&self, _elf_data: &mut [u8]) -> Result<()> {
         // TODO: Implement .rodata compression
         // This would compress read-only data sections
         Ok(())

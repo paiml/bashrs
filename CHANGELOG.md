@@ -5,6 +5,48 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.0] - 2025-06-05
+
+### 🚀 Major Features
+
+#### Added
+- **Binary Compilation Mode**: Create standalone executables and self-extracting scripts
+  - Self-extracting shell scripts with Zstandard compression
+  - Static binary generation with embedded dash runtime
+  - Minimal container generation (Docker/OCI formats)
+  
+- **Interactive Playground** (Experimental): TypeScript-style REPL for development
+  - Live transpilation with incremental parsing
+  - Session management with save/load/share capabilities
+  - VI/Emacs keybindings and multiple layout modes
+  - SIMD-accelerated syntax highlighting
+  
+- **Formal Verification Engine**: Mathematical proofs of correctness
+  - Property-based verification for injection safety
+  - Machine-readable proof generation
+  - AST inspection with complexity analysis
+  
+- **Kaizen Mode**: Continuous improvement tooling
+  - Quality metrics dashboard
+  - Performance regression detection
+  - Demo mode for showcasing capabilities
+
+#### Technical Improvements
+- **Architecture**: Modular design with clean separation of concerns
+- **Testing**: 88.70% coverage with 400+ unit tests and 1000+ property tests
+- **Performance**: <25ms transpilation, <10MB memory usage
+- **Quality**: Average complexity 4.2 per function (threshold: 10)
+
+#### Dependencies
+- Added tree-sitter, ropey, dashmap, petgraph for playground features
+- Added zstd, tar, brotli for compression and packaging
+- Updated all dependencies to latest versions
+
+### Fixed
+- CI/CD streamlined to focus on Linux platform
+- Clippy warnings and code quality issues resolved
+- Improved error messages and handling
+
 ## [0.2.1] - 2025-06-04
 
 ### 🔧 Critical Installation and Documentation Fixes

@@ -2,6 +2,7 @@ use crate::models::{Result, Error};
 
 #[derive(Debug, Clone)]
 pub enum ContainerFormat {
+    #[allow(clippy::upper_case_acronyms)]
     OCI,
     Docker,
 }
@@ -39,24 +40,24 @@ impl DistrolessBuilder {
         let layer = self.create_binary_layer()?;
         
         // For now, return a simple tar archive
-        Ok(self.create_tar_archive(config, layer)?)
+        self.create_tar_archive(config, layer)
     }
     
     fn build_docker(&self) -> Result<Vec<u8>> {
         // Create Dockerfile
         let dockerfile = if self.scratch {
-            format!(r#"FROM scratch
+            r#"FROM scratch
 COPY rash /rash
 USER 65534:65534
 ENTRYPOINT ["/rash"]
-"#)
+"#.to_string()
         } else {
-            format!(r#"FROM alpine:3.19
+            r#"FROM alpine:3.19
 RUN apk add --no-cache dash
 COPY rash /usr/local/bin/rash
 USER nobody
 ENTRYPOINT ["/usr/local/bin/rash"]
-"#)
+"#.to_string()
         };
         
         Ok(dockerfile.into_bytes())
@@ -79,13 +80,13 @@ ENTRYPOINT ["/usr/local/bin/rash"]
         });
         
         serde_json::to_vec(&config)
-            .map_err(|e| Error::Internal(format!("Failed to serialize config: {}", e)))
+            .map_err(|e| Error::Internal(format!("Failed to serialize config: {e}")))
     }
     
     fn create_binary_layer(&self) -> Result<Vec<u8>> {
         // Compress binary with zstd
         zstd::encode_all(&self.static_binary[..], 19)
-            .map_err(|e| Error::Internal(format!("Failed to compress layer: {}", e)))
+            .map_err(|e| Error::Internal(format!("Failed to compress layer: {e}")))
     }
     
     fn create_tar_archive(&self, config: Vec<u8>, layer: Vec<u8>) -> Result<Vec<u8>> {
@@ -125,7 +126,7 @@ ENTRYPOINT ["/usr/local/bin/rash"]
         ar.append(&header, &manifest_bytes[..])?;
         
         ar.into_inner()
-            .map_err(|e| Error::Internal(format!("Failed to create tar: {}", e)))
+            .map_err(|e| Error::Internal(format!("Failed to create tar: {e}")))
     }
 }
 

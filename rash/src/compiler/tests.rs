@@ -1,6 +1,5 @@
 #[cfg(test)]
 mod tests {
-    use super::*;
     use crate::compiler::{BinaryCompiler, RuntimeType, CompressionLevel, create_self_extracting_script};
     
     #[test]

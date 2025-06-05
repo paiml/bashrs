@@ -33,7 +33,7 @@ static_assertions = "1.1"
 # Compile mode dependencies
 zstd = "0.13"
 tar = "0.4"
-flate2 = "1.0"
+flate2 = "1.1"
 base64 = "0.22"
 
 # Playground dependencies

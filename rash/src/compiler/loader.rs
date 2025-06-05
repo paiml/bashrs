@@ -1,11 +1,12 @@
-/// Minimal runtime loader for embedded scripts
-/// This module provides the loader stub that extracts and executes
-/// compressed shell scripts from within the binary.
+//! Minimal runtime loader for embedded scripts
+//! This module provides the loader stub that extracts and executes
+//! compressed shell scripts from within the binary.
 
 // use core::slice;
 
 /// ELF structures for parsing
 #[repr(C)]
+#[allow(dead_code)]
 struct Elf64Ehdr {
     e_ident: [u8; 16],
     e_type: u16,
@@ -24,6 +25,7 @@ struct Elf64Ehdr {
 }
 
 #[repr(C)]
+#[allow(dead_code)]
 struct Elf64Phdr {
     p_type: u32,
     p_flags: u32,
@@ -36,6 +38,7 @@ struct Elf64Phdr {
 }
 
 #[repr(C)]
+#[allow(dead_code)]
 struct Elf64Shdr {
     sh_name: u32,
     sh_type: u32,
