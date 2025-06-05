@@ -5,8 +5,8 @@ use crate::models::config::Config;
 use crate::models::error::{RashError, RashResult};
 
 pub struct ValidationPipeline {
-    level: ValidationLevel,
-    strict_mode: bool,
+    pub(crate) level: ValidationLevel,
+    pub(crate) strict_mode: bool,
 }
 
 impl ValidationPipeline {
@@ -116,7 +116,7 @@ impl ValidationPipeline {
         Ok(())
     }
 
-    fn validate_shell_value(&self, value: &crate::ir::ShellValue) -> RashResult<()> {
+    pub(crate) fn validate_shell_value(&self, value: &crate::ir::ShellValue) -> RashResult<()> {
         use crate::ir::ShellValue;
 
         match value {

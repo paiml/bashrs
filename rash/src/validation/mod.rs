@@ -7,6 +7,9 @@ pub mod rules;
 #[cfg(test)]
 mod tests;
 
+#[cfg(test)]
+mod pipeline_tests;
+
 #[derive(
     Debug,
     Clone,
