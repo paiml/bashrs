@@ -170,7 +170,7 @@ impl ShellType {
             ShellType::FileDescriptor => "fd".to_string(),
             ShellType::ExitCode => "exit_code".to_string(),
             ShellType::Signal => "signal".to_string(),
-            ShellType::TypeVar(id) => format!("T{}", id),
+            ShellType::TypeVar(id) => format!("T{id}"),
             ShellType::Union(types) => {
                 let type_strs: Vec<_> = types.iter().map(|t| t.display()).collect();
                 format!("({})", type_strs.join(" | "))

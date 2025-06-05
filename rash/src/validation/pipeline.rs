@@ -151,8 +151,7 @@ impl ValidationPipeline {
             ShellExpression::Variable(name, quoted) => {
                 if !quoted && self.level >= ValidationLevel::Minimal {
                     return Err(RashError::ValidationError(format!(
-                        "Unquoted variable ${} (SC2086)",
-                        name
+                        "Unquoted variable ${name} (SC2086)"
                     )));
                 }
             }
@@ -175,9 +174,9 @@ impl ValidationPipeline {
 
     pub fn report_error(&self, error: &ValidationError) -> String {
         if self.strict_mode && error.severity == super::Severity::Error {
-            format!("ERROR: {}", error)
+            format!("ERROR: {error}")
         } else {
-            format!("{}", error)
+            format!("{error}")
         }
     }
 

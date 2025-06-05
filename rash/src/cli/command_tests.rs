@@ -286,6 +286,6 @@ fn test_inspect_command_all_formats() {
         InspectionFormat::Html,
     ] {
         let result = inspect_command("echo-example", format.clone(), None, false);
-        assert!(result.is_ok(), "Failed with format: {:?}", format);
+        assert!(result.is_ok(), "Failed with format: {format:?}");
     }
 }

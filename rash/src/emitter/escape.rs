@@ -16,12 +16,12 @@ pub fn escape_shell_string(s: &str) -> String {
 
     // Use single quotes for simplicity and safety
     if !s.contains('\'') {
-        return format!("'{}'", s);
+        return format!("'{s}'");
     }
 
     // Handle strings with single quotes by escaping them
     let escaped = s.replace('\'', "'\"'\"'");
-    format!("'{}'", escaped)
+    format!("'{escaped}'")
 }
 
 /// Escape a variable name for shell

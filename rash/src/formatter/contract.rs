@@ -389,7 +389,7 @@ impl ContractSystem {
                 if !self.type_env.contains_key(var) {
                     return Some(ContractViolation {
                         contract: contract.clone(),
-                        reason: format!("Variable '{}' is not defined", var),
+                        reason: format!("Variable '{var}' is not defined"),
                     });
                 }
             }

@@ -117,7 +117,7 @@ impl ErrorInjectionTester {
             } else {
                 results
                     .failure_details
-                    .push(format!("Unexpected error with {} bytes", size));
+                    .push(format!("Unexpected error with {size} bytes"));
             }
         }
 
@@ -197,12 +197,12 @@ impl ErrorInjectionTester {
                 Ok(_) => {
                     results
                         .failure_details
-                        .push(format!("Unexpectedly succeeded: {}", input));
+                        .push(format!("Unexpectedly succeeded: {input}"));
                 }
                 Err(e) => {
                     results
                         .failure_details
-                        .push(format!("Wrong error type for '{}': {:?}", input, e));
+                        .push(format!("Wrong error type for '{input}': {e:?}"));
                 }
             }
         }
@@ -248,12 +248,12 @@ impl ErrorInjectionTester {
                 Ok(_) => {
                     results
                         .failure_details
-                        .push(format!("Should have failed validation: {}", input));
+                        .push(format!("Should have failed validation: {input}"));
                 }
                 Err(e) => {
                     results
                         .failure_details
-                        .push(format!("Wrong error type: {:?}", e));
+                        .push(format!("Wrong error type: {e:?}"));
                 }
             }
         }
@@ -271,13 +271,13 @@ impl ErrorInjectionTester {
             "very_long_variable_name".repeat(100)
         );
         let many_vars = (0..1000)
-            .map(|i| format!("let var{} = {};", i, i))
+            .map(|i| format!("let var{i} = {i};"))
             .collect::<Vec<_>>()
             .join(" ");
         let many_func_calls = format!(
             "fn main() {{ {}; }}",
             (0..100)
-                .map(|i| format!("func{}", i))
+                .map(|i| format!("func{i}"))
                 .collect::<Vec<_>>()
                 .join("(); ")
         );
@@ -297,7 +297,7 @@ impl ErrorInjectionTester {
             let full_input = if input.starts_with("fn main()") {
                 input.to_string()
             } else {
-                format!("fn main() {{ {} }}", input)
+                format!("fn main() {{ {input} }}")
             };
 
             let result = transpile(&full_input, self.config.clone());
@@ -334,7 +334,7 @@ impl ErrorInjectionTester {
         let mut input = "fn main() {".to_string();
 
         for i in 0..depth {
-            input.push_str(&format!("if true {{ let x{} = {}; ", i, i));
+            input.push_str(&format!("if true {{ let x{i} = {i}; "));
         }
 
         for _ in 0..depth {

@@ -75,7 +75,7 @@ impl fmt::Display for ValidationError {
             self.message
         )?;
         if let Some(ref suggestion) = self.suggestion {
-            write!(f, "\n  Suggestion: {}", suggestion)?;
+            write!(f, "\n  Suggestion: {suggestion}")?;
         }
         Ok(())
     }

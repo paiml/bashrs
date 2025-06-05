@@ -127,7 +127,7 @@ impl PosixEmitter {
 
     fn write_shell_lines(&self, output: &mut String, lines: &[&str]) -> Result<()> {
         for line in lines {
-            writeln!(output, "{}", line)?;
+            writeln!(output, "{line}")?;
         }
         Ok(())
     }
@@ -166,14 +166,14 @@ impl PosixEmitter {
         let indent_str = "    ".repeat(indent + 1);
         let var_name = escape_variable_name(name);
         let var_value = self.emit_shell_value(value)?;
-        writeln!(output, "{}readonly {}={}", indent_str, var_name, var_value)?;
+        writeln!(output, "{indent_str}readonly {var_name}={var_value}")?;
         Ok(())
     }
 
     fn emit_exec_statement(&self, output: &mut String, cmd: &Command, indent: usize) -> Result<()> {
         let indent_str = "    ".repeat(indent + 1);
         let command_str = self.emit_command(cmd)?;
-        writeln!(output, "{}{}", indent_str, command_str)?;
+        writeln!(output, "{indent_str}{command_str}")?;
         Ok(())
     }
 
@@ -187,16 +187,16 @@ impl PosixEmitter {
     ) -> Result<()> {
         let indent_str = "    ".repeat(indent + 1);
         let test_expr = self.emit_test_expression(test)?;
-        writeln!(output, "{}if {}; then", indent_str, test_expr)?;
+        writeln!(output, "{indent_str}if {test_expr}; then")?;
 
         self.emit_ir(output, then_branch, indent + 1)?;
 
         if let Some(else_ir) = else_branch {
-            writeln!(output, "{}else", indent_str)?;
+            writeln!(output, "{indent_str}else")?;
             self.emit_ir(output, else_ir, indent + 1)?;
         }
 
-        writeln!(output, "{}fi", indent_str)?;
+        writeln!(output, "{indent_str}fi")?;
         Ok(())
     }
 
@@ -210,9 +210,9 @@ impl PosixEmitter {
         let indent_str = "    ".repeat(indent + 1);
         if let Some(msg) = message {
             let escaped_msg = escape_shell_string(msg);
-            writeln!(output, "{}echo {} >&2", indent_str, escaped_msg)?;
+            writeln!(output, "{indent_str}echo {escaped_msg} >&2")?;
         }
-        writeln!(output, "{}exit {}", indent_str, code)?;
+        writeln!(output, "{indent_str}exit {code}")?;
         Ok(())
     }
 
@@ -225,7 +225,7 @@ impl PosixEmitter {
 
     fn emit_noop(&self, output: &mut String, indent: usize) -> Result<()> {
         let indent_str = "    ".repeat(indent + 1);
-        writeln!(output, "{}# noop", indent_str)?;
+        writeln!(output, "{indent_str}# noop")?;
         Ok(())
     }
 
@@ -237,7 +237,7 @@ impl PosixEmitter {
             ShellValue::Concat(parts) => self.emit_concatenation(parts),
             ShellValue::CommandSubst(cmd) => {
                 let cmd_str = self.emit_command(cmd)?;
-                Ok(format!("\"$({})\"", cmd_str))
+                Ok(format!("\"$({cmd_str})\""))
             }
         }
     }
@@ -267,7 +267,7 @@ impl PosixEmitter {
             }
             ShellValue::CommandSubst(cmd) => {
                 let cmd_str = self.emit_command(cmd)?;
-                result.push_str(&format!("$({})", cmd_str));
+                result.push_str(&format!("$({cmd_str})"));
             }
             ShellValue::Concat(_) => {
                 // Nested concatenation - flatten it
@@ -316,7 +316,7 @@ impl PosixEmitter {
             other => {
                 // For complex expressions, evaluate them and test the result
                 let value = self.emit_shell_value(other)?;
-                Ok(format!("test -n {}", value))
+                Ok(format!("test -n {value}"))
             }
         }
     }

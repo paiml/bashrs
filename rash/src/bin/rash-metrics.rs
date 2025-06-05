@@ -46,7 +46,7 @@ fn main() {
     let (total, code, comments, blank) = analyze_directory(Path::new("rash/src"));
 
     println!("### Code Statistics");
-    println!("- Total Lines: {}", total);
+    println!("- Total Lines: {total}");
     println!(
         "- Code Lines: {} ({:.1}%)",
         code,
@@ -69,13 +69,13 @@ fn main() {
         let module_path = Path::new("rash/src").join(module);
         if module_path.exists() {
             let (mt, mc, _, _) = analyze_directory(&module_path);
-            println!("- {}: {} lines ({} code)", module, mt, mc);
+            println!("- {module}: {mt} lines ({mc} code)");
         }
     }
 
     println!("\n### Quality Indicators");
     let comment_ratio = comments as f64 / code as f64;
-    println!("- Comment to Code Ratio: {:.2}", comment_ratio);
+    println!("- Comment to Code Ratio: {comment_ratio:.2}");
     println!("- Average File Size: ~{} lines", total / 50); // Rough estimate
 
     if comment_ratio < 0.1 {

@@ -395,7 +395,7 @@ fn test_type_conversion_edge_cases() {
 proptest! {
     #[test]
     fn test_valid_identifier_parsing(name in "[a-zA-Z_][a-zA-Z0-9_]*") {
-        let source = format!("fn {}() {{ let x = 42; }}", name);
+        let source = format!("fn {name}() {{ let x = 42; }}");
 
         if name == "main" {
             let ast = parse(&source).unwrap();
@@ -408,7 +408,7 @@ proptest! {
 
     #[test]
     fn test_numeric_literal_parsing(num in 0u32..1000u32) {
-        let source = format!("fn main() {{ let x = {}; }}", num);
+        let source = format!("fn main() {{ let x = {num}; }}");
 
         let ast = parse(&source).unwrap();
         match &ast.functions[0].body[0] {
@@ -422,7 +422,7 @@ proptest! {
     #[test]
     fn test_string_literal_parsing(s in "[a-zA-Z0-9 _.-]*") {
         // Use safe characters that don't need escaping
-        let source = format!(r#"fn main() {{ let x = "{}"; }}"#, s);
+        let source = format!(r#"fn main() {{ let x = "{s}"; }}"#);
 
         let result = parse(&source);
         if result.is_ok() {
@@ -444,7 +444,7 @@ proptest! {
 #[case("42", Literal::U32(42))]
 #[case("0", Literal::U32(0))]
 fn test_literal_parsing_cases(#[case] input: &str, #[case] expected: Literal) {
-    let source = format!("fn main() {{ let x = {}; }}", input);
+    let source = format!("fn main() {{ let x = {input}; }}");
 
     let ast = parse(&source).unwrap();
     match &ast.functions[0].body[0] {
@@ -469,7 +469,7 @@ fn test_error_handling_invalid_syntax() {
 
     for source in invalid_sources {
         let result = parse(source);
-        assert!(result.is_err(), "Expected error for: {}", source);
+        assert!(result.is_err(), "Expected error for: {source}");
     }
 }
 

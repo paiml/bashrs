@@ -227,8 +227,7 @@ fn helper_{i}(msg: &str) {{
     let local = {i} * 2;
     echo(msg);
 }}
-"#,
-            i = i
+"#
         ));
     }
 
@@ -241,7 +240,7 @@ fn main() {
     );
 
     for i in 0..num_functions {
-        source.push_str(&format!("    function_{}();\n", i));
+        source.push_str(&format!("    function_{i}();\n"));
     }
 
     source.push_str(

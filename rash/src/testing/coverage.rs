@@ -64,7 +64,7 @@ impl CoverageTester {
     pub fn generate_coverage_report(&self) -> String {
         let total = self.calculate_total_coverage();
         let mut report = "Coverage Report\n===============\n".to_string();
-        report.push_str(&format!("Total Coverage: {:.1}%\n", total));
+        report.push_str(&format!("Total Coverage: {total:.1}%\n"));
         report.push_str(&format!(
             "Target Coverage: {:.1}%\n\n",
             self.target_coverage
@@ -76,7 +76,7 @@ impl CoverageTester {
             } else {
                 "✗"
             };
-            report.push_str(&format!("{} {}: {:.1}%\n", status, module, coverage));
+            report.push_str(&format!("{status} {module}: {coverage:.1}%\n"));
         }
 
         report

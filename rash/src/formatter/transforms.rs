@@ -280,10 +280,10 @@ impl Transform {
         match self {
             Transform::Identity => "identity".to_string(),
             Transform::WhitespaceNormalize { context, .. } => {
-                format!("normalize whitespace in {:?} context", context)
+                format!("normalize whitespace in {context:?} context")
             }
             Transform::QuoteExpansion { kind, reason, .. } => {
-                format!("add {:?} quotes for {:?}", kind, reason)
+                format!("add {kind:?} quotes for {reason:?}")
             }
             Transform::ArithToTest {
                 preserve_short_circuit,

@@ -10,7 +10,7 @@ fn test_sc2086_quoted_variables_pass() {
     ];
 
     for case in cases {
-        assert!(case.validate().is_ok(), "Failed on: {:?}", case);
+        assert!(case.validate().is_ok(), "Failed on: {case:?}");
     }
 }
 
@@ -44,7 +44,7 @@ fn test_sc2046_command_substitution_quoted_pass() {
     ];
 
     for case in cases {
-        assert!(case.validate().is_ok(), "Failed on: {:?}", case);
+        assert!(case.validate().is_ok(), "Failed on: {case:?}");
     }
 }
 
@@ -263,7 +263,7 @@ fn test_validation_error_reporting() {
         column: Some(5),
     };
 
-    let display = format!("{}", error);
+    let display = format!("{error}");
     assert!(display.contains("SC2086"));
     assert!(display.contains("error"));
     assert!(display.contains("Unquoted variable"));

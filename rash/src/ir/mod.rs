@@ -77,7 +77,7 @@ impl IrConverter {
                 let value = self.convert_expr_to_value(expr)?;
                 Ok(ShellIR::Exit {
                     code: 0,
-                    message: Some(format!("{:?}", value)), // Simplified
+                    message: Some(format!("{value:?}")), // Simplified
                 })
             }
             Stmt::Return(None) => Ok(ShellIR::Exit {

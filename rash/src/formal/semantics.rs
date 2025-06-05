@@ -87,7 +87,7 @@ pub mod rash_semantics {
             if arg == "-p" {
                 parent_flag = true;
             } else if arg.starts_with('-') {
-                state.write_stderr(format!("mkdir: invalid option -- '{}'", arg));
+                state.write_stderr(format!("mkdir: invalid option -- '{arg}'"));
                 state.exit_code = 1;
                 return Err("Invalid option".to_string());
             } else {
@@ -178,7 +178,7 @@ pub mod rash_semantics {
     }
 
     fn eval_unknown_command(state: &mut AbstractState, command: &str) -> Result<(), String> {
-        state.write_stderr(format!("{}: command not fully modeled", command));
+        state.write_stderr(format!("{command}: command not fully modeled"));
         state.exit_code = 0;
         Ok(())
     }

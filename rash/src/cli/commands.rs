@@ -20,7 +20,7 @@ pub fn execute_command(cli: Cli) -> Result<()> {
         })
         .finish();
     tracing::subscriber::set_global_default(subscriber)
-        .map_err(|e| Error::Internal(format!("Failed to initialize logging: {}", e)))?;
+        .map_err(|e| Error::Internal(format!("Failed to initialize logging: {e}")))?;
 
     match cli.command {
         Commands::Build {
@@ -125,7 +125,7 @@ fn init_command(path: &Path, name: Option<&str>) -> Result<()> {
     // Create Cargo.toml
     let cargo_toml = format!(
         r#"[package]
-name = "{}"
+name = "{project_name}"
 version = "0.1.0"
 edition = "2021"
 
@@ -135,8 +135,7 @@ edition = "2021"
 [[bin]]
 name = "install"
 path = "src/main.rs"
-"#,
-        project_name
+"#
     );
 
     fs::write(path.join("Cargo.toml"), cargo_toml).map_err(Error::Io)?;
@@ -331,7 +330,7 @@ fn inspect_command(
     let ast = if input.starts_with('{') {
         // JSON input
         serde_json::from_str::<TinyAst>(input)
-            .map_err(|e| Error::Internal(format!("Invalid AST JSON: {}", e)))?
+            .map_err(|e| Error::Internal(format!("Invalid AST JSON: {e}")))?
     } else {
         // Predefined examples or simple DSL
         match input {
@@ -359,7 +358,7 @@ fn inspect_command(
                 ],
             },
             _ => {
-                return Err(Error::Internal(format!("Unknown example: {}. Try 'echo-example' or 'bootstrap-example', or provide JSON AST", input)));
+                return Err(Error::Internal(format!("Unknown example: {input}. Try 'echo-example' or 'bootstrap-example', or provide JSON AST")));
             }
         }
     };
@@ -383,7 +382,7 @@ fn inspect_command(
     let output_content = match format {
         InspectionFormat::Markdown => ProofInspector::generate_report(&report),
         InspectionFormat::Json => serde_json::to_string_pretty(&report)
-            .map_err(|e| Error::Internal(format!("JSON serialization failed: {}", e)))?,
+            .map_err(|e| Error::Internal(format!("JSON serialization failed: {e}")))?,
         InspectionFormat::Html => {
             // Convert markdown to HTML (simplified)
             let markdown = ProofInspector::generate_report(&report);
@@ -419,7 +418,7 @@ fn inspect_command(
             info!("Inspection report written to {}", path.display());
         }
         None => {
-            println!("{}", output_content);
+            println!("{output_content}");
         }
     }
 

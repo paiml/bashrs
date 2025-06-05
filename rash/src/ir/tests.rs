@@ -339,7 +339,7 @@ proptest! {
         ]);
 
         if let Some(result) = concat.as_constant_string() {
-            assert_eq!(result, format!("{}{}", s1, s2));
+            assert_eq!(result, format!("{s1}{s2}"));
         }
     }
 }

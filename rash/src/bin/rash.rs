@@ -7,12 +7,12 @@ fn main() {
     let cli = Cli::parse();
 
     if let Err(error) = execute_command(cli) {
-        eprintln!("Error: {}", error);
+        eprintln!("Error: {error}");
 
         // Print error chain if available
         let mut source = error.source();
         while let Some(err) = source {
-            eprintln!("  Caused by: {}", err);
+            eprintln!("  Caused by: {err}");
             source = err.source();
         }
 

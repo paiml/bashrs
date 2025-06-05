@@ -145,8 +145,7 @@ pub fn verify_semantic_equivalence(ast: &TinyAst) -> Result<(), String> {
         Ok(())
     } else {
         Err(format!(
-            "Semantic equivalence failed for AST: {:?}\nEmitted: {}\nRash state: {:?}\nPOSIX state: {:?}",
-            ast, posix_code, rash_result, posix_result
+            "Semantic equivalence failed for AST: {ast:?}\nEmitted: {posix_code}\nRash state: {rash_result:?}\nPOSIX state: {posix_result:?}"
         ))
     }
 }
