@@ -352,11 +352,11 @@ proptest! {
         for value in test_values {
             let result = emitter.emit_shell_value(&value);
             prop_assert!(result.is_ok(), "Failed to emit shell value: {:?}", value);
-            
+
             if let Ok(code) = result {
                 // Generated code should not be empty
                 prop_assert!(!code.trim().is_empty());
-                
+
                 // Should not contain unescaped dangerous characters
                 prop_assert!(!code.contains("$(rm"), "Potential command injection in: {}", code);
                 prop_assert!(!code.contains("; rm"), "Potential command injection in: {}", code);
@@ -393,11 +393,11 @@ proptest! {
         if let Ok(shell_code) = result {
             // Should contain the command name
             prop_assert!(shell_code.contains(&cmd_name));
-            
+
             // Should have balanced quotes
             let single_quotes = shell_code.chars().filter(|&c| c == '\'').count();
             prop_assert!(single_quotes % 2 == 0, "Unbalanced single quotes in: {}", shell_code);
-            
+
             // Should contain proper shell structure
             prop_assert!(shell_code.contains("#!/bin/sh"));
             prop_assert!(shell_code.contains("set -euf"));
@@ -425,11 +425,11 @@ proptest! {
         if let Ok(shell_code) = result {
             // Should contain readonly assignment
             prop_assert!(shell_code.contains("readonly"));
-            
+
             // Variable name should be properly escaped
             let escaped_name = super::escape::escape_variable_name(&var_name);
             prop_assert!(shell_code.contains(&escaped_name));
-            
+
             // Should be valid shell syntax (basic check)
             prop_assert!(!shell_code.contains("readonly ="), "Invalid assignment syntax");
         }
@@ -458,7 +458,7 @@ proptest! {
                     let if_count = main_content.matches("if ").count();
                     let fi_count = main_content.matches("fi").count();
                     prop_assert_eq!(if_count, fi_count, "Unbalanced if/fi in main function");
-                    
+
                     // Should contain then and else in main function
                     prop_assert!(main_content.contains("then"));
                     prop_assert!(main_content.contains("else"));
@@ -481,7 +481,7 @@ proptest! {
 
         let concat_value = ShellValue::Concat(shell_values);
         let result = emitter.emit_shell_value(&concat_value);
-        
+
         prop_assert!(result.is_ok(), "Failed to emit concatenation");
 
         if let Ok(shell_code) = result {
@@ -551,7 +551,7 @@ proptest! {
         prop_assert!(result.is_ok(), "Failed to emit exit statement with code: {}", code);
 
         if let Ok(shell_code) = result {
-            let exit_string = format!("exit {}", code);
+            let exit_string = format!("exit {code}");
             prop_assert!(shell_code.contains(&exit_string));
         }
     }

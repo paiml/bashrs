@@ -271,15 +271,15 @@ mod tests {
     #[test]
     fn test_validate_shell_value_various_types() {
         let pipeline = create_test_pipeline(ValidationLevel::Minimal, false);
-        
+
         // Test Bool value
         let bool_val = ShellValue::Bool(true);
         assert!(pipeline.validate_shell_value(&bool_val).is_ok());
-        
+
         // Test String value
         let str_val = ShellValue::String("test".to_string());
         assert!(pipeline.validate_shell_value(&str_val).is_ok());
-        
+
         // Test empty Concat
         let empty_concat = ShellValue::Concat(vec![]);
         assert!(pipeline.validate_shell_value(&empty_concat).is_ok());
@@ -288,7 +288,10 @@ mod tests {
     #[test]
     fn test_validate_ir_exit() {
         let pipeline = create_test_pipeline(ValidationLevel::Minimal, false);
-        let ir = ShellIR::Exit { code: 0, message: None };
+        let ir = ShellIR::Exit {
+            code: 0,
+            message: None,
+        };
         assert!(pipeline.validate_ir(&ir).is_ok());
     }
 
@@ -323,7 +326,7 @@ mod tests {
     fn test_should_fail_empty_errors() {
         let pipeline = create_test_pipeline(ValidationLevel::Minimal, false);
         assert!(!pipeline.should_fail(&[]));
-        
+
         let strict_pipeline = create_test_pipeline(ValidationLevel::Minimal, true);
         assert!(!strict_pipeline.should_fail(&[]));
     }
@@ -357,7 +360,10 @@ mod tests {
         let outer_if = ShellIR::If {
             test: ShellValue::String("true".to_string()),
             then_branch: Box::new(inner_if),
-            else_branch: Some(Box::new(ShellIR::Exit { code: 1, message: None })),
+            else_branch: Some(Box::new(ShellIR::Exit {
+                code: 1,
+                message: None,
+            })),
         };
         assert!(pipeline.validate_ir(&outer_if).is_ok());
     }
@@ -376,7 +382,10 @@ mod tests {
         };
         let result = pipeline.validate_ast(&ast);
         assert!(result.is_err());
-        assert!(result.unwrap_err().to_string().contains("Empty variable name"));
+        assert!(result
+            .unwrap_err()
+            .to_string()
+            .contains("Empty variable name"));
     }
 
     #[test]
@@ -393,7 +402,10 @@ mod tests {
         };
         let result = pipeline.validate_ast(&ast);
         assert!(result.is_err());
-        assert!(result.unwrap_err().to_string().contains("contains whitespace"));
+        assert!(result
+            .unwrap_err()
+            .to_string()
+            .contains("contains whitespace"));
     }
 
     #[test]
@@ -413,7 +425,10 @@ mod tests {
         };
         let result = pipeline.validate_ast(&ast);
         assert!(result.is_err());
-        assert!(result.unwrap_err().to_string().contains("Empty function name"));
+        assert!(result
+            .unwrap_err()
+            .to_string()
+            .contains("Empty function name"));
     }
 
     #[test]
@@ -434,7 +449,10 @@ mod tests {
         };
         let result = pipeline.validate_ast(&ast);
         assert!(result.is_err());
-        assert!(result.unwrap_err().to_string().contains("Empty method name"));
+        assert!(result
+            .unwrap_err()
+            .to_string()
+            .contains("Empty method name"));
     }
 
     #[test]
