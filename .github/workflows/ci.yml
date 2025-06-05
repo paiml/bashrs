@@ -47,9 +47,6 @@ jobs:
     - name: Run tests
       run: cargo test --all-features --workspace
     
-    - name: Run integration tests
-      run: cargo test --test integration_tests
-    
     - name: Run doc tests
       run: cargo test --doc
 

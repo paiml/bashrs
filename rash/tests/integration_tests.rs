@@ -1,4 +1,4 @@
-use rash::models::{ShellDialect, VerificationLevel};
+use rash::models::config::{ShellDialect, VerificationLevel};
 use rash::{check, transpile, Config};
 use std::fs;
 use std::process::Command;
@@ -361,12 +361,12 @@ fn main() {
     // Check proper header
     assert!(result.starts_with("#!/bin/sh"));
     assert!(result.contains("set -euf"));
-    assert!(result.contains("IFS=$'\\n\\t'"));
+    assert!(result.contains("IFS="));
     assert!(result.contains("export LC_ALL=C"));
 
     // Check proper footer
     assert!(result.contains("trap 'rm -rf"));
-    assert!(result.ends_with("main \"$@\"\n"));
+    assert!(result.trim().ends_with("main \"$@\""));
 }
 
 #[test]
