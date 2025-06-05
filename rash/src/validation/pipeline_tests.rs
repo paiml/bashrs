@@ -1,8 +1,8 @@
 #[cfg(test)]
 mod tests {
     use super::super::*;
-    use crate::ast::{Expr, Function, RestrictedAst, Stmt};
     use crate::ast::restricted::Literal;
+    use crate::ast::{Expr, Function, RestrictedAst, Stmt};
     use crate::ir::{Command, ShellIR, ShellValue};
     use crate::models::config::Config;
 
