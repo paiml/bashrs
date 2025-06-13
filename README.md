@@ -40,18 +40,20 @@ mkdir -p "$install_dir"
 
 ### Binary releases
 
-Pre-built binaries include all features (compile mode, playground, verification) by default:
+Pre-built binaries are available for Linux:
 
 ```bash
 # Linux x86_64
-curl -L https://github.com/paiml/rash/releases/latest/download/rash-x86_64-unknown-linux-gnu.tar.gz | tar xz
+curl -L https://github.com/paiml/rash/releases/latest/download/rash-x86_64-unknown-linux-musl.tar.gz | tar xz
 
-# macOS x86_64  
-curl -L https://github.com/paiml/rash/releases/latest/download/rash-x86_64-apple-darwin.tar.gz | tar xz
+# Linux ARM64
+curl -L https://github.com/paiml/rash/releases/latest/download/rash-aarch64-unknown-linux-musl.tar.gz | tar xz
 
-# macOS ARM64
-curl -L https://github.com/paiml/rash/releases/latest/download/rash-aarch64-apple-darwin.tar.gz | tar xz
+# Or use the install script
+curl --proto '=https' --tlsv1.2 -sSf https://github.com/paiml/rash/releases/latest/download/install.sh | sh
 ```
+
+macOS support is planned for future releases.
 
 ### From source
 
@@ -134,7 +136,7 @@ real    0m0.024s
 
 Binary sizes:
 - Linux x86_64: ~4.6MB (static, with all features)
-- macOS: ~4.8MB (with all features)
+- Linux ARM64: ~4.6MB (static, with all features)
 - Minimal build: ~3.2MB (core transpilation only)
 - No runtime dependencies
 
@@ -255,12 +257,6 @@ Shell scripts are powerful but error-prone. Common issues:
 
 rash prevents these at compile time by enforcing safe patterns in a familiar Rust syntax.
 
-## Similar projects
-
-- [Oil Shell](https://www.oilshell.org/): New shell language with better syntax
-- [Batsh](https://github.com/batsh-dev/batsh): Transpiles a C-like syntax to Bash/Batch
-
-rash differs by using Rust syntax and targeting POSIX compatibility.
 
 ## Core Features (Included by Default)
 
