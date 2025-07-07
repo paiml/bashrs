@@ -31,11 +31,11 @@ fn test_variable_quoting_sc2086() {
     
     // Build the test script
     let build_result = Command::new("cargo")
-        .args(&["run", "--bin", "rash", "--", "build", test_file, "-o", output_file])
+        .args(&["run", "--bin", "bashrs", "--", "build", test_file, "-o", output_file])
         .status();
         
-    assert!(build_result.is_ok(), "Failed to execute rash build command");
-    assert!(build_result.unwrap().success(), "Rash build failed for SC2086 test");
+    assert!(build_result.is_ok(), "Failed to execute bashrs build command");
+    assert!(build_result.unwrap().success(), "Bashrs build failed for SC2086 test");
     
     // Verify file was created
     assert!(Path::new(output_file).exists(), "Output shell script was not created");
@@ -57,11 +57,11 @@ fn test_command_substitution_sc2046() {
     fs::create_dir_all("tests/shellcheck-output").unwrap();
     
     let build_result = Command::new("cargo")
-        .args(&["run", "--bin", "rash", "--", "build", test_file, "-o", output_file])
+        .args(&["run", "--bin", "bashrs", "--", "build", test_file, "-o", output_file])
         .status();
         
     assert!(build_result.is_ok() && build_result.unwrap().success(), 
-           "Rash build failed for SC2046 test");
+           "Bashrs build failed for SC2046 test");
     
     assert!(Path::new(output_file).exists(), "Output shell script was not created");
     
@@ -81,11 +81,11 @@ fn test_glob_protection_sc2035() {
     fs::create_dir_all("tests/shellcheck-output").unwrap();
     
     let build_result = Command::new("cargo")
-        .args(&["run", "--bin", "rash", "--", "build", test_file, "-o", output_file])
+        .args(&["run", "--bin", "bashrs", "--", "build", test_file, "-o", output_file])
         .status();
         
     assert!(build_result.is_ok() && build_result.unwrap().success(), 
-           "Rash build failed for SC2035 test");
+           "Bashrs build failed for SC2035 test");
     
     assert!(Path::new(output_file).exists(), "Output shell script was not created");
     
@@ -105,11 +105,11 @@ fn test_cd_safety_sc2164() {
     fs::create_dir_all("tests/shellcheck-output").unwrap();
     
     let build_result = Command::new("cargo")
-        .args(&["run", "--bin", "rash", "--", "build", test_file, "-o", output_file])
+        .args(&["run", "--bin", "bashrs", "--", "build", test_file, "-o", output_file])
         .status();
         
     assert!(build_result.is_ok() && build_result.unwrap().success(), 
-           "Rash build failed for SC2164 test");
+           "Bashrs build failed for SC2164 test");
     
     assert!(Path::new(output_file).exists(), "Output shell script was not created");
     
@@ -129,11 +129,11 @@ fn test_array_expansion_sc2068() {
     fs::create_dir_all("tests/shellcheck-output").unwrap();
     
     let build_result = Command::new("cargo")
-        .args(&["run", "--bin", "rash", "--", "build", test_file, "-o", output_file])
+        .args(&["run", "--bin", "bashrs", "--", "build", test_file, "-o", output_file])
         .status();
         
     assert!(build_result.is_ok() && build_result.unwrap().success(), 
-           "Rash build failed for SC2068 test");
+           "Bashrs build failed for SC2068 test");
     
     assert!(Path::new(output_file).exists(), "Output shell script was not created");
     
@@ -153,11 +153,11 @@ fn test_modern_substitution_sc2006() {
     fs::create_dir_all("tests/shellcheck-output").unwrap();
     
     let build_result = Command::new("cargo")
-        .args(&["run", "--bin", "rash", "--", "build", test_file, "-o", output_file])
+        .args(&["run", "--bin", "bashrs", "--", "build", test_file, "-o", output_file])
         .status();
         
     assert!(build_result.is_ok() && build_result.unwrap().success(), 
-           "Rash build failed for SC2006 test");
+           "Bashrs build failed for SC2006 test");
     
     assert!(Path::new(output_file).exists(), "Output shell script was not created");
     
@@ -177,11 +177,11 @@ fn test_safe_rm_sc2115() {
     fs::create_dir_all("tests/shellcheck-output").unwrap();
     
     let build_result = Command::new("cargo")
-        .args(&["run", "--bin", "rash", "--", "build", test_file, "-o", output_file])
+        .args(&["run", "--bin", "bashrs", "--", "build", test_file, "-o", output_file])
         .status();
         
     assert!(build_result.is_ok() && build_result.unwrap().success(), 
-           "Rash build failed for SC2115 test");
+           "Bashrs build failed for SC2115 test");
     
     assert!(Path::new(output_file).exists(), "Output shell script was not created");
     
@@ -201,11 +201,11 @@ fn test_complex_installer() {
     fs::create_dir_all("tests/shellcheck-output").unwrap();
     
     let build_result = Command::new("cargo")
-        .args(&["run", "--bin", "rash", "--", "build", test_file, "-o", output_file])
+        .args(&["run", "--bin", "bashrs", "--", "build", test_file, "-o", output_file])
         .status();
         
     assert!(build_result.is_ok() && build_result.unwrap().success(), 
-           "Rash build failed for complex installer test");
+           "Bashrs build failed for complex installer test");
     
     assert!(Path::new(output_file).exists(), "Output shell script was not created");
     
@@ -225,11 +225,11 @@ fn test_error_handling() {
     fs::create_dir_all("tests/shellcheck-output").unwrap();
     
     let build_result = Command::new("cargo")
-        .args(&["run", "--bin", "rash", "--", "build", test_file, "-o", output_file])
+        .args(&["run", "--bin", "bashrs", "--", "build", test_file, "-o", output_file])
         .status();
         
     assert!(build_result.is_ok() && build_result.unwrap().success(), 
-           "Rash build failed for error handling test");
+           "Bashrs build failed for error handling test");
     
     assert!(Path::new(output_file).exists(), "Output shell script was not created");
     

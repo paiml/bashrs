@@ -43,26 +43,11 @@ Rash is a Rust-to-Shell transpiler targeting deterministic, idempotent bootstrap
 2. **Determinism**: Same Rust input must produce byte-identical shell output
 3. **Safety**: No user input can escape proper quoting in generated scripts
 
-## Quality Assurance with paiml-mcp-agent-toolkit
+## Verification with paiml-mcp-agent-toolkit
 ```bash
-# Run quality gate checks
-pmat quality-gate
+# Verify transpiler correctness
+pmat verify --spec rash.spec --impl target/debug/bashrs
 
-# Analyze code metrics and patterns
-pmat analyze comprehensive
-
-# Check for technical debt
-pmat analyze satd
-
-# Analyze code complexity
-pmat analyze complexity
-
-# Generate quality reports
-pmat report --format detailed
-
-# Check for dead code
-pmat analyze dead-code
-
-# Analyze code duplication
-pmat analyze duplicates
+# Test generated scripts
+pmat test --shell-matrix "sh,dash,ash" --input examples/*.rs
 ```

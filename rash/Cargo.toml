@@ -1,5 +1,5 @@
 [package]
-name = "rash"
+name = "bashrs"
 version.workspace = true
 edition.workspace = true
 authors.workspace = true
@@ -8,8 +8,8 @@ repository.workspace = true
 description.workspace = true
 
 [[bin]]
-name = "rash"
-path = "src/bin/rash.rs"
+name = "bashrs"
+path = "src/bin/bashrs.rs"
 
 [dependencies]
 syn.workspace = true

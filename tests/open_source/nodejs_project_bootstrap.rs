@@ -1,7 +1,7 @@
 // Node.js project bootstrap installer
 // Demonstrates setting up a complete Node.js development environment
 
-#[rash::main]
+#[bashrs::main]
 fn nodejs_project_bootstrap() {
     let project_name = env_var_or("PROJECT_NAME", "my-nodejs-app");
     let node_version = env_var_or("NODE_VERSION", "18.17.1");

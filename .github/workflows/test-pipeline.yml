@@ -88,7 +88,7 @@ jobs:
               # Test basic shell compatibility
               cargo build --release
               echo 'fn main() { let x = "test"; }' > test.rs
-              ./target/release/rash build test.rs -o test.sh || echo "Basic test failed"
+              ./target/release/bashrs build test.rs -o test.sh || echo "Basic test failed"
               [ -f test.sh ] && echo "✓ Basic shell generation works"
               ;;
           esac

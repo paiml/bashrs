@@ -229,14 +229,14 @@ jobs:
       run: cargo build --release --workspace
     
     - name: Test release build
-      run: ./target/release/rash --version
+      run: ./target/release/bashrs --version
       shell: bash
     
     - name: Upload binary
       uses: actions/upload-artifact@v4
       with:
-        name: rash-${{ matrix.os }}
-        path: target/release/rash*
+        name: bashrs-${{ matrix.os }}
+        path: target/release/bashrs*
 
   shell-compatibility:
     name: Shell Compatibility Tests
@@ -248,7 +248,7 @@ jobs:
     - name: Install Rust
       uses: dtolnay/rust-toolchain@stable
     
-    - name: Build rash
+    - name: Build bashrs
       run: cargo build --release
     
     - name: Create test script
@@ -266,7 +266,7 @@ jobs:
     - name: Test shell compatibility
       run: |
         echo "Testing shell compatibility..."
-        ./target/release/rash build test_simple.rs --output test.sh || {
+        ./target/release/bashrs build test_simple.rs --output test.sh || {
           echo "⚠️ Transpilation failed"
           exit 0
         }
@@ -307,7 +307,7 @@ jobs:
     - name: Install Rust
       uses: dtolnay/rust-toolchain@stable
     
-    - name: Build rash
+    - name: Build bashrs
       run: cargo build --release --workspace
     
     - name: Run ShellCheck validation

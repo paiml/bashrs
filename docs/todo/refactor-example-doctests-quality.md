@@ -70,7 +70,7 @@ For each core module, add:
    //! ## Examples
    //! 
    //! ```rust
-   //! use rash::ast::{RestrictedAst, Function};
+   //! use bashrs::ast::{RestrictedAst, Function};
    //! 
    //! # fn main() -> Result<(), Box<dyn std::error::Error>> {
    //! let ast = RestrictedAst::new(vec![
@@ -145,9 +145,9 @@ Each example should follow this structure:
 //! 
 //! The generated shell script will [describe output].
 
-use rash::prelude::*;
+use bashrs::prelude::*;
 
-#[rash::main]
+#[bashrs::main]
 fn main() {
     // Example implementation
     println!("Hello from Rash!");
@@ -187,10 +187,10 @@ required-features = ["verification"]
 
 1. **Add Badges**
    ```markdown
-   [![Crates.io](https://img.shields.io/crates/v/rash.svg)](https://crates.io/crates/rash)
-   [![Documentation](https://docs.rs/rash/badge.svg)](https://docs.rs/rash)
-   [![License](https://img.shields.io/crates/l/rash.svg)](LICENSE)
-   [![CI](https://github.com/rashproject/rash/workflows/CI/badge.svg)](https://github.com/rashproject/rash/actions)
+   [![Crates.io](https://img.shields.io/crates/v/bashrs.svg)](https://crates.io/crates/bashrs)
+   [![Documentation](https://docs.rs/bashrs/badge.svg)](https://docs.rs/bashrs)
+   [![License](https://img.shields.io/crates/l/bashrs.svg)](LICENSE)
+   [![CI](https://github.com/paiml/bashrs/workflows/CI/badge.svg)](https://github.com/paiml/bashrs/actions)
    ```
 
 2. **Quick Start Section**
@@ -198,9 +198,9 @@ required-features = ["verification"]
    ## Quick Start
    
    ```rust
-   use rash::prelude::*;
+   use bashrs::prelude::*;
    
-   #[rash::main]
+   #[bashrs::main]
    fn main() {
        let name = env("USER");
        println!("Hello, {name}!");
@@ -209,7 +209,7 @@ required-features = ["verification"]
    
    Compile to shell:
    ```bash
-   rash build hello.rs -o hello.sh
+   bashrs build hello.rs -o hello.sh
    ```
    ```
 
@@ -240,7 +240,7 @@ required-features = ["verification"]
    /// # Examples
    /// 
    /// ```rust
-   /// use rash::builder::TranspilerBuilder;
+   /// use bashrs::builder::TranspilerBuilder;
    /// 
    /// let transpiler = TranspilerBuilder::new()
    ///     .optimization_level(OptimizationLevel::Size)
@@ -264,13 +264,13 @@ Create integration tests that serve as examples:
 #[test]
 fn example_bootstrap_script() {
     let source = include_str!("../../examples/bootstrap/minimal_installer.rs");
-    let result = rash::transpile(source)?;
+    let result = bashrs::transpile(source)?;
     
     // Verify POSIX compliance
     assert!(shellcheck::verify(&result.shell_script).is_ok());
     
     // Verify determinism
-    let result2 = rash::transpile(source)?;
+    let result2 = bashrs::transpile(source)?;
     assert_eq!(result.shell_script, result2.shell_script);
 }
 ```

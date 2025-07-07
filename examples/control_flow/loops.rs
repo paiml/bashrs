@@ -8,7 +8,7 @@
 //! ```bash
 //! cargo run --example loops
 //! # or transpile to shell:
-//! cargo run --bin rash -- build examples/control_flow/loops.rs -o loops.sh
+//! cargo run --bin bashrs -- build examples/control_flow/loops.rs -o loops.sh
 //! ```
 //! 
 //! ## Expected Output
@@ -16,7 +16,7 @@
 //! The generated shell script will demonstrate various loop patterns
 //! with guaranteed termination.
 
-#[rash::main]
+#[bashrs::main]
 fn main() {
     echo("Loop examples:");
     

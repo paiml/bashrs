@@ -318,7 +318,7 @@ impl ExhaustiveTestHarness {
         // Generate random but somewhat valid Rust-like input
         let templates = [
             "fn main() { let x = {}; }",
-            "#[rash::main] fn test() -> {} {{ {} }}",
+            "#[bashrs::main] fn test() -> {} {{ {} }}",
             "fn func(param: {}) {{ return {}; }}",
         ];
 

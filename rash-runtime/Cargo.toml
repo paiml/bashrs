@@ -1,5 +1,5 @@
 [package]
-name = "rash-runtime"
+name = "bashrs-runtime"
 version.workspace = true
 edition.workspace = true
 authors.workspace = true

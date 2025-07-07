@@ -48,7 +48,7 @@ jobs:
         echo 'fn main() { echo("Hello from RASH!"); }' > test.rs
         
         # Compile to self-extracting script
-        ./target/release/rash compile test.rs -o test-self-extract.sh --self-extracting
+        ./target/release/bashrs compile test.rs -o test-self-extract.sh --self-extracting
         
         # Verify output exists and is executable
         test -f test-self-extract.sh
@@ -62,12 +62,12 @@ jobs:
     - name: Test container generation
       run: |
         # Test Docker format
-        ./target/release/rash compile test.rs -o Dockerfile --container --container-format docker
+        ./target/release/bashrs compile test.rs -o Dockerfile --container --container-format docker
         test -f Dockerfile
         grep -q "FROM scratch" Dockerfile
         
         # Test OCI format
-        ./target/release/rash compile test.rs -o container.tar --container --container-format oci
+        ./target/release/bashrs compile test.rs -o container.tar --container --container-format oci
         test -f container.tar
     
     - name: Run compile mode tests
@@ -101,7 +101,7 @@ jobs:
     - name: Check playground binary
       run: |
         # Verify playground command is available
-        ./target/release/rash playground --help || echo "Playground help available"
+        ./target/release/bashrs playground --help || echo "Playground help available"
     
     - name: Run playground tests
       run: cargo test --features playground -- playground
@@ -130,11 +130,11 @@ jobs:
             base=$(basename "$example" .rs)
             
             # Standard transpilation
-            ./target/release/rash build "$example" -o "$base.sh"
+            ./target/release/bashrs build "$example" -o "$base.sh"
             test -f "$base.sh"
             
             # Self-extracting
-            ./target/release/rash compile "$example" -o "$base-self.sh" --self-extracting
+            ./target/release/bashrs compile "$example" -o "$base-self.sh" --self-extracting
             test -f "$base-self.sh"
           fi
         done

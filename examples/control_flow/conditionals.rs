@@ -7,7 +7,7 @@
 //! ```bash
 //! cargo run --example conditionals
 //! # or transpile to shell:
-//! cargo run --bin rash -- build examples/control_flow/conditionals.rs -o conditionals.sh
+//! cargo run --bin bashrs -- build examples/control_flow/conditionals.rs -o conditionals.sh
 //! ```
 //! 
 //! ## Expected Output
@@ -15,7 +15,7 @@
 //! The generated shell script will demonstrate various conditional
 //! patterns with proper shell syntax.
 
-#[rash::main]
+#[bashrs::main]
 fn main() {
     // Simple if statement
     let user = env("USER");

@@ -72,18 +72,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 #### Fixed
 - **Installation Script**: Fixed broken install.sh in GitHub releases with proper error handling and verification
 - **POSIX Compliance**: Fixed generated shell scripts to use POSIX-compatible IFS setting instead of bash-specific `$'\n\t'`
-- **Documentation**: Corrected README.md examples to use supported Rust syntax (removed unsupported `#[rash::main]`)
+- **Documentation**: Corrected README.md examples to use supported Rust syntax (removed unsupported `#[bashrs::main]`)
 - **Release Workflow**: Updated to generate proper install.sh with dynamic versioning from git tags
 
 #### Added  
-- **Robust Installer**: Created install-rash.sh with comprehensive error checking and user guidance
+- **Robust Installer**: Created install-bashrs.sh with comprehensive error checking and user guidance
 - **Installation Tests**: Added comprehensive Rust test suite for installation workflows
 - **Troubleshooting Guide**: Added detailed installation troubleshooting with multiple methods
 - **PATH Setup Instructions**: Clear instructions for bash and zsh users
 
 #### Changed
 - **README.md**: Complete overhaul with accurate installation instructions and examples
-- **Installation Method**: Primary installer now hosted in repository (install-rash.sh) with fallback to GitHub releases
+- **Installation Method**: Primary installer now hosted in repository (install-bashrs.sh) with fallback to GitHub releases
 - **Error Messages**: Improved error messages in generated shell scripts
 
 ## [0.2.0] - 2025-06-04
@@ -126,5 +126,5 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Formal verification framework
 - Comprehensive test suite
 
-[0.2.0]: https://github.com/paiml/rash/compare/v0.1.0...v0.2.0
-[0.1.0]: https://github.com/paiml/rash/releases/tag/v0.1.0
+[0.2.0]: https://github.com/paiml/bashrs/compare/v0.1.0...v0.2.0
+[0.1.0]: https://github.com/paiml/bashrs/releases/tag/v0.1.0

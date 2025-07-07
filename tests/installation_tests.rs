@@ -30,7 +30,7 @@ fn test_local_installer_script() {
     let version_output = Command::new(&binary_path)
         .arg("--version")
         .output()
-        .expect("Failed to run rash --version");
+        .expect("Failed to run bashrs --version");
     
     assert!(version_output.status.success());
     let version_str = String::from_utf8_lossy(&version_output.stdout);
@@ -44,7 +44,7 @@ fn test_rash_transpilation_basic() {
     
     // Create a simple Rash program
     let test_program = r#"
-        #[rash::main]
+        #[bashrs::main]
         fn main() {
             let greeting = "Hello from Rash!";
         }
@@ -57,16 +57,16 @@ fn test_rash_transpilation_basic() {
     
     // Use the installed rash binary to transpile
     let output = Command::new("cargo")
-        .args(&["run", "--bin", "rash", "--"])
+        .args(&["run", "--bin", "bashrs", "--"])
         .args(&["build", input_file.to_str().unwrap()])
         .args(&["-o", output_file.to_str().unwrap()])
         .output()
-        .expect("Failed to run rash build");
+        .expect("Failed to run bashrs build");
     
     if !output.status.success() {
-        eprintln!("Rash build failed: {}", String::from_utf8_lossy(&output.stderr));
+        eprintln!("Bashrs build failed: {}", String::from_utf8_lossy(&output.stderr));
     }
-    assert!(output.status.success(), "Rash transpilation failed");
+    assert!(output.status.success(), "Bashrs transpilation failed");
     
     // Verify output file exists and is valid shell
     assert!(output_file.exists(), "Output file not generated");
@@ -90,9 +90,9 @@ fn test_rash_transpilation_basic() {
 fn test_rash_help_and_commands() {
     // Test help command
     let help_output = Command::new("cargo")
-        .args(&["run", "--bin", "rash", "--", "--help"])
+        .args(&["run", "--bin", "bashrs", "--", "--help"])
         .output()
-        .expect("Failed to run rash --help");
+        .expect("Failed to run bashrs --help");
     
     assert!(help_output.status.success());
     let help_text = String::from_utf8_lossy(&help_output.stdout);
@@ -108,10 +108,10 @@ fn test_rash_init_command() {
     
     // Test init command
     let output = Command::new("cargo")
-        .args(&["run", "--bin", "rash", "--"])
+        .args(&["run", "--bin", "bashrs", "--"])
         .args(&["init", project_dir.to_str().unwrap()])
         .output()
-        .expect("Failed to run rash init");
+        .expect("Failed to run bashrs init");
     
     if !output.status.success() {
         eprintln!("Rash init failed: {}", String::from_utf8_lossy(&output.stderr));
@@ -125,7 +125,7 @@ fn test_rash_init_command() {
     let main_rs = project_dir.join("src").join("main.rs");
     if main_rs.exists() {
         let content = fs::read_to_string(&main_rs).expect("Failed to read main.rs");
-        assert!(content.contains("#[rash::main]") || content.contains("fn main"));
+        assert!(content.contains("#[bashrs::main]") || content.contains("fn main"));
     }
 }
 
@@ -156,7 +156,7 @@ fn test_generated_script_posix_compliance() {
     let temp_dir = tempfile::tempdir().expect("Failed to create temp dir");
     
     let test_program = r#"
-        #[rash::main]
+        #[bashrs::main]
         fn main() {
             let x = 42;
             let y = "test";
@@ -169,11 +169,11 @@ fn test_generated_script_posix_compliance() {
     fs::write(&input_file, test_program).expect("Failed to write test file");
     
     let output = Command::new("cargo")
-        .args(&["run", "--bin", "rash", "--"])
+        .args(&["run", "--bin", "bashrs", "--"])
         .args(&["build", input_file.to_str().unwrap()])
         .args(&["-o", output_file.to_str().unwrap()])
         .output()
-        .expect("Failed to run rash build");
+        .expect("Failed to run bashrs build");
     
     if !output.status.success() {
         // Skip test if transpilation fails
@@ -208,7 +208,7 @@ fn test_error_handling_in_generated_scripts() {
     let temp_dir = tempfile::tempdir().expect("Failed to create temp dir");
     
     let test_program = r#"
-        #[rash::main]
+        #[bashrs::main]
         fn main() {
             // This should generate a script that handles errors properly
         }
@@ -220,11 +220,11 @@ fn test_error_handling_in_generated_scripts() {
     fs::write(&input_file, test_program).expect("Failed to write test file");
     
     let output = Command::new("cargo")
-        .args(&["run", "--bin", "rash", "--"])
+        .args(&["run", "--bin", "bashrs", "--"])
         .args(&["build", input_file.to_str().unwrap()])
         .args(&["-o", output_file.to_str().unwrap()])
         .output()
-        .expect("Failed to run rash build");
+        .expect("Failed to run bashrs build");
     
     if !output.status.success() {
         return; // Skip if transpilation fails
@@ -263,7 +263,7 @@ mod integration {
         fs::create_dir_all(&project_dir).expect("Failed to create project dir");
         
         let test_program = r#"
-            #[rash::main]
+            #[bashrs::main]
             fn main() {
                 println!("Hello from Rash integration test!");
             }

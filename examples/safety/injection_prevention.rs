@@ -8,7 +8,7 @@
 //! ```bash
 //! cargo run --example injection_prevention
 //! # or transpile to shell:
-//! cargo run --bin rash -- build examples/safety/injection_prevention.rs -o injection_prevention.sh
+//! cargo run --bin bashrs -- build examples/safety/injection_prevention.rs -o injection_prevention.sh
 //! ```
 //! 
 //! ## Expected Output
@@ -16,7 +16,7 @@
 //! The generated shell script will safely handle malicious inputs
 //! without allowing command injection.
 
-#[rash::main]
+#[bashrs::main]
 fn main() {
     echo("=== Command Injection Prevention Demo ===");
     

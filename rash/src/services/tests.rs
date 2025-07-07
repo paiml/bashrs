@@ -219,7 +219,7 @@ fn test_variable_reference_parsing() {
 #[test]
 fn test_parameter_parsing() {
     let source = r#"
-        #[rash::main]
+        #[bashrs::main]
         fn greet(name: &str, age: u32) {
             let message = "hello";
         }
@@ -236,7 +236,7 @@ fn test_parameter_parsing() {
 #[test]
 fn test_return_type_parsing() {
     let source = r#"
-        #[rash::main]
+        #[bashrs::main]
         fn get_number() -> u32 {
             let x = 42;
         }
@@ -265,7 +265,7 @@ fn test_error_on_no_main_function() {
     assert!(result
         .unwrap_err()
         .to_string()
-        .contains("No #[rash::main] function found"));
+        .contains("No #[bashrs::main] function found"));
 }
 
 #[test]
@@ -285,7 +285,7 @@ fn test_error_on_multiple_main_functions() {
     assert!(result
         .unwrap_err()
         .to_string()
-        .contains("Multiple #[rash::main] functions found"));
+        .contains("Multiple #[bashrs::main] functions found"));
 }
 
 #[test]
@@ -311,7 +311,7 @@ fn test_error_on_non_function_items() {
 #[test]
 fn test_complex_expression_parsing() {
     let source = r#"
-        #[rash::main]
+        #[bashrs::main]
         fn main() {
             let result = (x + y) * (a - b);
             let nested = call(other(value));
@@ -370,7 +370,7 @@ fn test_unary_expression_parsing() {
 fn test_type_conversion_edge_cases() {
     // Test various type syntax that should be converted correctly
     let source = r#"
-        #[rash::main]
+        #[bashrs::main]
         fn test(s: &str, st: String, opt: Option<u32>) -> bool {
             let x = 42;
         }
@@ -514,7 +514,7 @@ fn test_empty_function_body_handling() {
 #[test]
 fn test_rash_main_attribute_parsing() {
     let source = r#"
-        #[rash::main]
+        #[bashrs::main]
         fn my_installer() {
             let x = 42;
         }
@@ -527,7 +527,7 @@ fn test_rash_main_attribute_parsing() {
 
 #[test]
 fn test_reject_invalid_attributes() {
-    // Test that non-rash::main attributes don't mark function as main
+    // Test that non-bashrs::main attributes don't mark function as main
     let source = r#"
         #[some::other]
         fn not_main() {
@@ -540,7 +540,7 @@ fn test_reject_invalid_attributes() {
     assert!(result
         .unwrap_err()
         .to_string()
-        .contains("No #[rash::main] function found"));
+        .contains("No #[bashrs::main] function found"));
 }
 
 #[test]

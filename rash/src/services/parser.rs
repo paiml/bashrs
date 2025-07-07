@@ -17,9 +17,9 @@ pub fn parse(input: &str) -> Result<RestrictedAst> {
     for item in file.items {
         match item {
             Item::Fn(item_fn) => {
-                // Check if this is the main function marked with #[rash::main]
+                // Check if this is the main function marked with #[bashrs::main]
                 let is_main = item_fn.attrs.iter().any(|attr| {
-                    // Check if the attribute path matches "rash::main"
+                    // Check if the attribute path matches "bashrs::main"
                     let path = attr.path();
                     path.segments.len() == 2
                         && path.segments[0].ident == "rash"
@@ -31,7 +31,7 @@ pub fn parse(input: &str) -> Result<RestrictedAst> {
                 if is_main {
                     if entry_point.is_some() {
                         return Err(Error::Validation(
-                            "Multiple #[rash::main] functions found".to_string(),
+                            "Multiple #[bashrs::main] functions found".to_string(),
                         ));
                     }
                     entry_point = Some(function.name.clone());
@@ -48,7 +48,7 @@ pub fn parse(input: &str) -> Result<RestrictedAst> {
     }
 
     let entry_point = entry_point
-        .ok_or_else(|| Error::Validation("No #[rash::main] function found".to_string()))?;
+        .ok_or_else(|| Error::Validation("No #[bashrs::main] function found".to_string()))?;
 
     Ok(RestrictedAst {
         functions,

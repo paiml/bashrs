@@ -4,7 +4,7 @@
 mod components;
 use components::*;
 
-#[rash::main]
+#[bashrs::main]
 fn python_project_bootstrap() {
     let config = ProjectConfig::from_env();
     
