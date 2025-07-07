@@ -1,0 +1,222 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Embedded Rash runtime library"><title>RUNTIME_LIBRARY in bashrs_runtime - Rust</title><script>if(window.location.protocol!=="file:")document.head.insertAdjacentHTML("beforeend","SourceSerif4-Regular-6b053e98.ttf.woff2,FiraSans-Italic-81dc35de.woff2,FiraSans-Regular-0fe48ade.woff2,FiraSans-MediumItalic-ccf7e434.woff2,FiraSans-Medium-e1aa3f0a.woff2,SourceCodePro-Regular-8badfe75.ttf.woff2,SourceCodePro-Semibold-aa29a496.ttf.woff2".split(",").map(f=>`<link rel="preload" as="font" type="font/woff2" crossorigin href="../static.files/${f}">`).join(""))</script><link rel="stylesheet" href="../static.files/normalize-9960930a.css"><link rel="stylesheet" href="../static.files/rustdoc-1a91846b.css"><meta name="rustdoc-vars" data-root-path="../" data-static-root-path="../static.files/" data-current-crate="bashrs_runtime" data-themes="" data-resource-suffix="" data-rustdoc-version="1.88.0 (6b00bc388 2025-06-23)" data-channel="1.88.0" data-search-js="search-f7877310.js" data-settings-js="settings-5514c975.js" ><script src="../static.files/storage-4e99c027.js"></script><script defer src="sidebar-items.js"></script><script defer src="../static.files/main-7ef8a74a.js"></script><noscript><link rel="stylesheet" href="../static.files/noscript-893ab5e7.css"></noscript><link rel="alternate icon" type="image/png" href="../static.files/favicon-32x32-6580c154.png"><link rel="icon" type="image/svg+xml" href="../static.files/favicon-044be391.svg"></head><body class="rustdoc constant"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="mobile-topbar"><button class="sidebar-menu-toggle" title="show sidebar"></button></nav><nav class="sidebar"><div class="sidebar-crate"><h2><a href="../bashrs_runtime/index.html">bashrs_<wbr>runtime</a><span class="version">0.3.2</span></h2></div><div class="sidebar-elems"><div id="rustdoc-modnav"></div></div></nav><div class="sidebar-resizer"></div><main><div class="width-limiter"><rustdoc-search></rustdoc-search><section id="main-content" class="content"><div class="main-heading"><div class="rustdoc-breadcrumbs"><a href="index.html">bashrs_runtime</a></div><h1>Constant <span class="constant">RUNTIME_LIBRARY</span><button id="copy-path" title="Copy item path to clipboard">Copy item path</button></h1><rustdoc-toolbar></rustdoc-toolbar><span class="sub-heading"><a class="src" href="../src/bashrs_runtime/home/runner/work/rash/rash/target/debug/build/bashrs-runtime-8d4cc97838f8d2a2/out/runtime.rs.html#2-222">Source</a> </span></div><pre class="rust item-decl"><code>pub const RUNTIME_LIBRARY: &amp;<a class="primitive" href="https://doc.rust-lang.org/1.88.0/std/primitive.str.html">str</a> = &quot;#!/bin/sh
+rash_require() {
+if ! \&quot;$@\&quot;; then
+echo \&quot;FATAL: Requirement failed: $*\&quot; &gt;&amp;2
+exit 1
+fi
+}
+rash_assert() {
+if ! \&quot;$@\&quot;; then
+echo \&quot;ASSERTION FAILED: $*\&quot; &gt;&amp;2
+exit 2
+fi
+}
+rash_file_exists() {
+test -f \&quot;$1\&quot;
+}
+rash_dir_exists() {
+test -d \&quot;$1\&quot;
+}
+rash_is_writable() {
+test -w \&quot;$1\&quot;
+}
+rash_is_readable() {
+test -r \&quot;$1\&quot;
+}
+rash_atomic_write() {
+local content=\&quot;$1\&quot;
+local target=\&quot;$2\&quot;
+local temp=\&quot;${target}.tmp.$$\&quot;
+echo \&quot;$content\&quot; &gt; \&quot;$temp\&quot;
+mv \&quot;$temp\&quot; \&quot;$target\&quot;
+}
+rash_download_verified() {
+local url=\&quot;$1\&quot;
+local dst=\&quot;$2\&quot;
+local checksum=\&quot;$3\&quot;
+if command -v curl &gt;/dev/null 2&gt;&amp;1; then
+curl -fsSL --proto &#39;=https&#39; --tlsv1.2 \&quot;$url\&quot; -o \&quot;$dst\&quot;
+elif command -v wget &gt;/dev/null 2&gt;&amp;1; then
+wget -qO \&quot;$dst\&quot; \&quot;$url\&quot;
+else
+echo \&quot;FATAL: Neither curl nor wget found\&quot; &gt;&amp;2
+return 1
+fi
+if command -v sha256sum &gt;/dev/null 2&gt;&amp;1; then
+echo \&quot;$checksum  $dst\&quot; | sha256sum -c &gt;/dev/null
+elif command -v shasum &gt;/dev/null 2&gt;&amp;1; then
+echo \&quot;$checksum  $dst\&quot; | shasum -a 256 -c &gt;/dev/null
+else
+echo \&quot;FATAL: No checksum utility found\&quot; &gt;&amp;2
+return 1
+fi
+}
+rash_extract_tar() {
+local archive=\&quot;$1\&quot;
+local dest=\&quot;$2\&quot;
+tar -xf \&quot;$archive\&quot; -C \&quot;$dest\&quot; --no-same-owner --no-same-permissions
+}
+rash_extract_tar_gz() {
+local archive=\&quot;$1\&quot;
+local dest=\&quot;$2\&quot;
+if command -v gzip &gt;/dev/null 2&gt;&amp;1; then
+gzip -dc \&quot;$archive\&quot; | tar -xf - -C \&quot;$dest\&quot; --no-same-owner --no-same-permissions
+else
+tar -xzf \&quot;$archive\&quot; -C \&quot;$dest\&quot; --no-same-owner --no-same-permissions
+fi
+}
+rash_detect_arch() {
+local arch
+arch=\&quot;$(uname -m)\&quot;
+case \&quot;$arch\&quot; in
+x86_64|amd64)
+echo \&quot;x86_64\&quot;
+;;
+aarch64|arm64)
+echo \&quot;aarch64\&quot;
+;;
+armv7l|armhf)
+echo \&quot;armv7\&quot;
+;;
+i386|i686)
+echo \&quot;i386\&quot;
+;;
+*)
+echo \&quot;unknown\&quot;
+return 1
+;;
+esac
+}
+rash_detect_os() {
+local os
+os=\&quot;$(uname -s)\&quot;
+case \&quot;$os\&quot; in
+Linux)
+echo \&quot;linux\&quot;
+;;
+Darwin)
+echo \&quot;macos\&quot;
+;;
+FreeBSD)
+echo \&quot;freebsd\&quot;
+;;
+OpenBSD)
+echo \&quot;openbsd\&quot;
+;;
+NetBSD)
+echo \&quot;netbsd\&quot;
+;;
+*)
+echo \&quot;unknown\&quot;
+return 1
+;;
+esac
+}
+rash_detect_platform() {
+local os arch
+os=\&quot;$(rash_detect_os)\&quot; || return 1
+arch=\&quot;$(rash_detect_arch)\&quot; || return 1
+echo \&quot;${arch}-${os}\&quot;
+}
+rash_log_info() {
+echo \&quot;INFO: $*\&quot; &gt;&amp;2
+}
+rash_log_warn() {
+echo \&quot;WARN: $*\&quot; &gt;&amp;2
+}
+rash_log_error() {
+echo \&quot;ERROR: $*\&quot; &gt;&amp;2
+}
+rash_log_debug() {
+if [ \&quot;${RASH_DEBUG:-}\&quot; = \&quot;1\&quot; ]; then
+echo \&quot;DEBUG: $*\&quot; &gt;&amp;2
+fi
+}
+rash_has_command() {
+command -v \&quot;$1\&quot; &gt;/dev/null 2&gt;&amp;1
+}
+rash_require_command() {
+local cmd=\&quot;$1\&quot;
+if ! rash_has_command \&quot;$cmd\&quot;; then
+echo \&quot;FATAL: Required command &#39;$cmd&#39; not found\&quot; &gt;&amp;2
+exit 1
+fi
+}
+rash_mktemp_dir() {
+local template=\&quot;${1:-rash.XXXXXX}\&quot;
+local tmpdir=\&quot;${TMPDIR:-/tmp}\&quot;
+if command -v mktemp &gt;/dev/null 2&gt;&amp;1; then
+mktemp -d \&quot;$tmpdir/$template\&quot;
+else
+local dir=\&quot;$tmpdir/$template.$$\&quot;
+mkdir -p \&quot;$dir\&quot;
+echo \&quot;$dir\&quot;
+fi
+}
+rash_chmod() {
+local perms=\&quot;$1\&quot;
+local file=\&quot;$2\&quot;
+case \&quot;$perms\&quot; in
+[0-7][0-7][0-7])
+chmod \&quot;$perms\&quot; \&quot;$file\&quot;
+;;
+*)
+echo \&quot;ERROR: Invalid permission format: $perms\&quot; &gt;&amp;2
+return 1
+;;
+esac
+}
+rash_str_contains() {
+local string=\&quot;$1\&quot;
+local substring=\&quot;$2\&quot;
+case \&quot;$string\&quot; in
+*\&quot;$substring\&quot;*)
+return 0
+;;
+*)
+return 1
+;;
+esac
+}
+rash_str_starts_with() {
+local string=\&quot;$1\&quot;
+local prefix=\&quot;$2\&quot;
+case \&quot;$string\&quot; in
+\&quot;$prefix\&quot;*)
+return 0
+;;
+*)
+return 1
+;;
+esac
+}
+rash_str_ends_with() {
+local string=\&quot;$1\&quot;
+local suffix=\&quot;$2\&quot;
+case \&quot;$string\&quot; in
+*\&quot;$suffix\&quot;)
+return 0
+;;
+*)
+return 1
+;;
+esac
+}
+rash_version_compare() {
+local version1=\&quot;$1\&quot;
+local operator=\&quot;$2\&quot;
+local version2=\&quot;$3\&quot;
+case \&quot;$operator\&quot; in
+\&quot;=\&quot;|\&quot;==\&quot;)
+[ \&quot;$version1\&quot; = \&quot;$version2\&quot; ]
+;;
+\&quot;!=\&quot;|\&quot;&lt;&gt;\&quot;)
+[ \&quot;$version1\&quot; != \&quot;$version2\&quot; ]
+;;
+*)
+echo \&quot;ERROR: Unsupported version operator: $operator\&quot; &gt;&amp;2
+return 1
+;;
+esac
+}&quot;;</code></pre><details class="toggle top-doc" open><summary class="hideme"><span>Expand description</span></summary><div class="docblock"><p>Embedded Rash runtime library</p>
+</div></details></section></div></main></body></html>

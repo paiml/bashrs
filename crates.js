@@ -1,2 +1,2 @@
-window.ALL_CRATES = ["quality_dashboard","quality_gate","rash","rash_metrics","rash_runtime"];
-//{"start":21,"fragment_lengths":[19,15,7,15,15]}
+window.ALL_CRATES = ["bashrs","bashrs_runtime","quality_dashboard","quality_gate","rash_metrics"];
+//{"start":21,"fragment_lengths":[8,17,20,15,15]}
