@@ -55,7 +55,7 @@ jobs:
           CARGO_VERSION=$(grep -m1 '^version = ' rash/Cargo.toml | cut -d'"' -f2)
           
           # Check if this version already exists on crates.io
-          if cargo search rash --limit 1 | grep -q "rash = \"$CARGO_VERSION\""; then
+          if cargo search bashrs --limit 1 | grep -q "bashrs = \"$CARGO_VERSION\""; then
             echo "Version $CARGO_VERSION is already published on crates.io"
             exit 0
           fi

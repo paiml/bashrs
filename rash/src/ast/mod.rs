@@ -16,8 +16,8 @@
 //! ### Creating a Simple AST
 //!
 //! ```rust
-//! use rash::ast::{RestrictedAst, Function, Stmt, Expr, Type};
-//! use rash::ast::restricted::Literal;
+//! use bashrs::ast::{RestrictedAst, Function, Stmt, Expr, Type};
+//! use bashrs::ast::restricted::Literal;
 //!
 //! # fn main() -> Result<(), Box<dyn std::error::Error>> {
 //! // Create a simple "Hello, World!" function
@@ -47,8 +47,8 @@
 //! ### Variable Usage
 //!
 //! ```rust
-//! use rash::ast::{RestrictedAst, Function, Stmt, Expr, Type};
-//! use rash::ast::restricted::Literal;
+//! use bashrs::ast::{RestrictedAst, Function, Stmt, Expr, Type};
+//! use bashrs::ast::restricted::Literal;
 //!
 //! # fn main() -> Result<(), Box<dyn std::error::Error>> {
 //! let main_fn = Function {
@@ -88,8 +88,8 @@
 //! ### Invalid AST Example
 //!
 //! ```rust
-//! use rash::ast::{RestrictedAst, Function, Stmt, Expr, Type};
-//! use rash::ast::restricted::{Literal, BinaryOp};
+//! use bashrs::ast::{RestrictedAst, Function, Stmt, Expr, Type};
+//! use bashrs::ast::restricted::{Literal, BinaryOp};
 //!
 //! # fn main() {
 //! // Functions cannot have empty names
@@ -130,7 +130,7 @@ use crate::models::{Error, Result};
 /// # Examples
 ///
 /// ```rust
-/// use rash::ast::{validate, RestrictedAst, Function, Type};
+/// use bashrs::ast::{validate, RestrictedAst, Function, Type};
 ///
 /// # fn main() -> Result<(), Box<dyn std::error::Error>> {
 /// let ast = RestrictedAst {

@@ -69,8 +69,8 @@ jobs:
         shell: bash
         run: |
           cd target/${{ matrix.target }}/release
-          tar czf ../../../rash-${{ matrix.target }}.tar.gz rash
-          echo "ASSET_PATH=rash-${{ matrix.target }}.tar.gz" >> $GITHUB_ENV
+          tar czf ../../../bashrs-${{ matrix.target }}.tar.gz bashrs
+          echo "ASSET_PATH=bashrs-${{ matrix.target }}.tar.gz" >> $GITHUB_ENV
       
       - name: Upload Release Asset
         uses: softprops/action-gh-release@v1
@@ -128,17 +128,17 @@ jobs:
           mkdir -p "\${BIN_DIR}"
           
           # Download URL
-          URL="https://github.com/\${GITHUB_REPO}/releases/download/v\${VERSION}/rash-\${TARGET}.tar.gz"
+          URL="https://github.com/\${GITHUB_REPO}/releases/download/v\${VERSION}/bashrs-\${TARGET}.tar.gz"
           echo "Downloading from: \${URL}"
           
           # Download and verify
           if command -v curl >/dev/null 2>&1; then
-              if ! curl -sSfL "\${URL}" -o rash.tar.gz; then
+              if ! curl -sSfL "\${URL}" -o bashrs.tar.gz; then
                   echo "Error: Failed to download from \${URL}"
                   exit 1
               fi
           elif command -v wget >/dev/null 2>&1; then
-              if ! wget -q "\${URL}" -O rash.tar.gz; then
+              if ! wget -q "\${URL}" -O bashrs.tar.gz; then
                   echo "Error: Failed to download from \${URL}"
                   exit 1
               fi
@@ -148,25 +148,25 @@ jobs:
           fi
           
           # Verify download
-          if [ ! -f rash.tar.gz ] || [ ! -s rash.tar.gz ]; then
+          if [ ! -f bashrs.tar.gz ] || [ ! -s bashrs.tar.gz ]; then
               echo "Error: Download failed or file is empty"
               exit 1
           fi
           
           # Extract
-          if ! tar xzf rash.tar.gz -C "\${BIN_DIR}"; then
+          if ! tar xzf bashrs.tar.gz -C "\${BIN_DIR}"; then
               echo "Error: Failed to extract archive"
               exit 1
           fi
           
           # Cleanup
-          rm rash.tar.gz
+          rm bashrs.tar.gz
           
           # Make executable
-          chmod +x "\${BIN_DIR}/rash"
+          chmod +x "\${BIN_DIR}/bashrs"
           
           # Verify installation
-          if ! "\${BIN_DIR}/rash" --version >/dev/null 2>&1; then
+          if ! "\${BIN_DIR}/bashrs" --version >/dev/null 2>&1; then
               echo "Error: Installation verification failed"
               exit 1
           fi
@@ -182,7 +182,7 @@ jobs:
           echo "  source ~/.bashrc  # or ~/.zshrc"
           echo ""
           echo "Then run:"
-          echo "  rash --help"
+          echo "  bashrs --help"
           EOF
           
           chmod +x install.sh

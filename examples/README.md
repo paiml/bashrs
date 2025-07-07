@@ -12,7 +12,7 @@ To transpile an example to a shell script:
 
 ```bash
 # From the project root
-cargo run --bin rash -- build examples/basic/hello_world.rs -o hello.sh
+cargo run --bin bashrs -- build examples/basic/hello_world.rs -o hello.sh
 
 # Make it executable and run
 chmod +x hello.sh
@@ -57,7 +57,7 @@ mkdir -p examples_output
 # Transpile all examples
 for example in examples/**/*.rs; do
     name=$(basename "$example" .rs)
-    cargo run --bin rash -- build "$example" -o "examples_output/$name.sh"
+    cargo run --bin bashrs -- build "$example" -o "examples_output/$name.sh"
 done
 ```
 
@@ -73,7 +73,7 @@ When creating new examples, follow this template:
 //! ## Usage
 //! 
 //! ```bash
-//! cargo run --bin rash -- build examples/category/name.rs -o name.sh
+//! cargo run --bin bashrs -- build examples/category/name.rs -o name.sh
 //! ```
 //! 
 //! ## Expected Output

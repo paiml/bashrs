@@ -1,5 +1,5 @@
 use clap::Parser;
-use rash::cli::{execute_command, Cli};
+use bashrs::cli::{execute_command, Cli};
 use std::error::Error;
 use std::process;
 

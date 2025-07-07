@@ -40,9 +40,9 @@ kaizen: ## Continuous improvement cycle: analyze, benchmark, optimize, validate
 	@echo "=== STEP 2: Performance Regression Detection ==="
 	@if command -v hyperfine >/dev/null 2>&1; then \
 		hyperfine --warmup 5 --min-runs 10 --export-json /tmp/kaizen/perf-current.json \
-			'./target/release/rash build examples/installer.rs -o /dev/null' \
-			'./target/release/rash check examples/simple.rs' \
-			'./target/release/rash verify examples/hello.rs --verify basic' || true; \
+			'./target/release/bashrs build examples/installer.rs -o /dev/null' \
+			'./target/release/bashrs check examples/simple.rs' \
+			'./target/release/bashrs verify examples/hello.rs --verify basic' || true; \
 		if [ -f .kaizen/perf-baseline.json ]; then \
 			echo "Comparing with baseline..."; \
 		else \
@@ -69,14 +69,14 @@ kaizen: ## Continuous improvement cycle: analyze, benchmark, optimize, validate
 	@echo "=== STEP 5: Memory Allocation Profiling ==="
 	@echo "Testing memory usage..."
 	@if command -v /usr/bin/time >/dev/null 2>&1; then \
-		/usr/bin/time -f "Peak memory: %M KB" ./target/release/rash build examples/installer.rs -o /dev/null 2>&1 | \
+		/usr/bin/time -f "Peak memory: %M KB" ./target/release/bashrs build examples/installer.rs -o /dev/null 2>&1 | \
 			grep "Peak memory" || echo "Peak memory: ~5000 KB"; \
 	else \
 		echo "Peak memory: ~5000 KB (estimated)"; \
 	fi
 	@echo ""
 	@echo "=== STEP 6: Binary Size Analysis ==="
-	@ls -lh ./target/release/rash | awk '{print "Binary size: " $$5}'
+	@ls -lh ./target/release/bashrs | awk '{print "Binary size: " $$5}'
 	@echo ""
 	@echo "=== STEP 7: Dependency Audit ==="
 	@if command -v cargo-outdated >/dev/null 2>&1; then \
@@ -92,7 +92,7 @@ kaizen: ## Continuous improvement cycle: analyze, benchmark, optimize, validate
 	@echo ""
 	@echo "=== STEP 9: Improvement Recommendations ==="
 	@echo "Analysis complete. Key metrics:"
-	@echo "  - Binary size: $$(ls -lh ./target/release/rash | awk '{print $$5}')"
+	@echo "  - Binary size: $$(ls -lh ./target/release/bashrs | awk '{print $$5}')"
 	@echo "  - Test coverage: $$(grep -o '[0-9]*\.[0-9]*%' /tmp/kaizen/coverage.txt | head -1 || echo '77.33%')"
 	@echo "  - Clippy warnings: 0"
 	@echo "  - Performance: ✅ Within targets"
@@ -101,7 +101,7 @@ kaizen: ## Continuous improvement cycle: analyze, benchmark, optimize, validate
 	@date '+%Y-%m-%d %H:%M:%S' > /tmp/kaizen/timestamp.txt
 	@echo "Session: $$(cat /tmp/kaizen/timestamp.txt)" >> .kaizen/improvement.log
 	@echo "Coverage: $$(grep -o '[0-9]*\.[0-9]*%' /tmp/kaizen/coverage.txt | head -1 || echo '77.33%')" >> .kaizen/improvement.log
-	@echo "Binary Size: $$(ls -lh ./target/release/rash | awk '{print $$5}')" >> .kaizen/improvement.log
+	@echo "Binary Size: $$(ls -lh ./target/release/bashrs | awk '{print $$5}')" >> .kaizen/improvement.log
 	@rm -rf /tmp/kaizen
 	@echo ""
 	@echo "✅ Kaizen cycle complete - 継続的改善"
@@ -125,7 +125,7 @@ demo-mode: ## Launch interactive RASH demonstration with live transpilation
 		if [ -f $$rs ]; then \
 			base=$$(basename $$rs .rs); \
 			echo -n "  - $$base.rs -> $$base.sh ... "; \
-			if ./target/release/rash build $$rs -o /tmp/rash-demo/shell/$$base.sh 2>/dev/null; then \
+			if ./target/release/bashrs build $$rs -o /tmp/rash-demo/shell/$$base.sh 2>/dev/null; then \
 				echo "✅ Success"; \
 			else \
 				echo "❌ Failed"; \
@@ -141,7 +141,7 @@ demo-mode: ## Launch interactive RASH demonstration with live transpilation
 		if [ -f $$rs ]; then \
 			base=$$(basename $$rs .rs); \
 			start=$$(date +%s%N); \
-			./target/release/rash build $$rs -o /tmp/rash-demo/$$base.sh 2>/dev/null; \
+			./target/release/bashrs build $$rs -o /tmp/rash-demo/$$base.sh 2>/dev/null; \
 			end=$$(date +%s%N); \
 			duration=$$(( (end - start) / 1000000 )); \
 			size=$$(stat -c%s /tmp/rash-demo/$$base.sh 2>/dev/null || echo "0"); \
@@ -152,7 +152,7 @@ demo-mode: ## Launch interactive RASH demonstration with live transpilation
 	@echo "=== STEP 4: Safety Demonstration ==="
 	@echo "Testing injection protection..."
 	@echo 'fn main() { let user = "*"; echo(user); }' > /tmp/rash-demo/rust/glob_injection.rs
-	@./target/release/rash build /tmp/rash-demo/rust/glob_injection.rs -o /tmp/rash-demo/shell/glob_injection.sh 2>/dev/null || true
+	@./target/release/bashrs build /tmp/rash-demo/rust/glob_injection.rs -o /tmp/rash-demo/shell/glob_injection.sh 2>/dev/null || true
 	@if [ -f /tmp/rash-demo/shell/glob_injection.sh ]; then \
 		echo "Generated safe shell code:"; \
 		grep -v "^#" /tmp/rash-demo/shell/glob_injection.sh | grep -v "^set" | head -5; \
@@ -161,7 +161,7 @@ demo-mode: ## Launch interactive RASH demonstration with live transpilation
 	@echo "=== STEP 5: Determinism Verification ==="
 	@echo "Testing transpilation determinism..."
 	@for i in 1 2 3; do \
-		./target/release/rash build examples/hello.rs -o /tmp/rash-demo/determ$$i.sh 2>/dev/null; \
+		./target/release/bashrs build examples/hello.rs -o /tmp/rash-demo/determ$$i.sh 2>/dev/null; \
 		if command -v sha256sum >/dev/null 2>&1; then \
 			sha256sum /tmp/rash-demo/determ$$i.sh; \
 		else \
@@ -171,7 +171,7 @@ demo-mode: ## Launch interactive RASH demonstration with live transpilation
 	@echo ""
 	@echo "=== STEP 6: Cross-Shell Compatibility Test ==="
 	@echo "Testing POSIX compliance..."
-	@./target/release/rash build examples/hello.rs -o /tmp/rash-demo/cross-shell.sh 2>/dev/null || true
+	@./target/release/bashrs build examples/hello.rs -o /tmp/rash-demo/cross-shell.sh 2>/dev/null || true
 	@for shell in sh bash dash; do \
 		if command -v $$shell >/dev/null 2>&1; then \
 			printf "  %-8s: " $$shell; \
@@ -184,9 +184,9 @@ demo-mode: ## Launch interactive RASH demonstration with live transpilation
 	done
 	@echo ""
 	@echo "=== STEP 7: Playground Mode Demo ==="
-	@if ./target/release/rash playground --help >/dev/null 2>&1; then \
+	@if ./target/release/bashrs playground --help >/dev/null 2>&1; then \
 		echo "Playground feature available!"; \
-		echo "Run: ./target/release/rash playground"; \
+		echo "Run: ./target/release/bashrs playground"; \
 	else \
 		echo "Playground feature not enabled in this build"; \
 	fi
@@ -528,7 +528,7 @@ shellcheck-test-all: shellcheck-install
 			total=$$((total + 1)); \
 			base=$$(basename "$$rs_file" .rs); \
 			echo "Testing $$rs_file -> $$base.sh"; \
-			if cargo run --bin rash -- build "$$rs_file" -o "tests/shellcheck-output/$$base.sh" 2>/dev/null; then \
+			if cargo run --bin bashrs -- build "$$rs_file" -o "tests/shellcheck-output/$$base.sh" 2>/dev/null; then \
 				if shellcheck -s sh "tests/shellcheck-output/$$base.sh"; then \
 					echo "✅ $$base: PASS"; \
 				else \
@@ -660,7 +660,7 @@ build:
 
 # Install
 install: build
-	@echo "📦 Installing rash..."
+	@echo "📦 Installing bashrs..."
 	@cargo install --path rash --force
 
 # Release
@@ -675,7 +675,7 @@ profile-memory:
 	@if command -v valgrind >/dev/null 2>&1; then \
 		valgrind --tool=massif \
 			--massif-out-file=massif.out \
-			./target/release/rash transpile examples/complex.rs || true; \
+			./target/release/bashrs transpile examples/complex.rs || true; \
 		ms_print massif.out > memory-profile.txt || true; \
 		echo "Memory profile saved to memory-profile.txt"; \
 	fi

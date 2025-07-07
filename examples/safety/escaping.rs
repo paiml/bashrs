@@ -8,7 +8,7 @@
 //! ```bash
 //! cargo run --example escaping
 //! # or transpile to shell:
-//! cargo run --bin rash -- build examples/safety/escaping.rs -o escaping.sh
+//! cargo run --bin bashrs -- build examples/safety/escaping.rs -o escaping.sh
 //! ```
 //! 
 //! ## Expected Output
@@ -16,7 +16,7 @@
 //! The generated shell script will properly escape all special characters
 //! while preserving the intended string content.
 
-#[rash::main]
+#[bashrs::main]
 fn main() {
     echo("=== String Escaping Examples ===");
     

@@ -4,7 +4,7 @@ use clap::{Parser, Subcommand, ValueEnum};
 use std::path::PathBuf;
 
 #[derive(Parser)]
-#[command(name = "rash")]
+#[command(name = "bashrs")]
 #[command(about = "Rust-to-Shell transpiler for deterministic bootstrap scripts")]
 #[command(version = env!("CARGO_PKG_VERSION"))]
 pub struct Cli {

@@ -7,7 +7,7 @@
 //! ```bash
 //! cargo run --example variables
 //! # or transpile to shell:
-//! cargo run --bin rash -- build examples/basic/variables.rs -o variables.sh
+//! cargo run --bin bashrs -- build examples/basic/variables.rs -o variables.sh
 //! ```
 //! 
 //! ## Expected Output
@@ -15,7 +15,7 @@
 //! The generated shell script will demonstrate safe variable handling
 //! and proper escaping of shell-special characters.
 
-#[rash::main]
+#[bashrs::main]
 fn main() {
     // Simple variable assignment
     let name = "Alice";

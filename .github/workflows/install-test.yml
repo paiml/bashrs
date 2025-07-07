@@ -37,17 +37,17 @@ jobs:
         restore-keys: |
           ${{ runner.os }}-cargo-
     
-    - name: Build rash binary
+    - name: Build bashrs binary
       run: |
-        echo "Building rash from source..."
+        echo "Building bashrs from source..."
         cargo build --release --workspace
         echo "✓ Build completed"
         ls -la target/release/
     
     - name: Test binary functionality
       run: |
-        echo "Testing rash binary..."
-        ./target/release/rash --version
+        echo "Testing bashrs binary..."
+        ./target/release/bashrs --version
         echo "✓ Binary version check passed"
     
     - name: Create test Rust file
@@ -64,7 +64,7 @@ jobs:
     - name: Test transpilation
       run: |
         echo "Testing transpilation..."
-        ./target/release/rash build test_install.rs -o test_output.sh
+        ./target/release/bashrs build test_install.rs -o test_output.sh
         if [ -f test_output.sh ]; then
           echo "✓ Transpilation successful"
           echo "Generated shell script:"
@@ -95,20 +95,20 @@ jobs:
     - name: Test CLI commands
       run: |
         echo "Testing CLI commands..."
-        ./target/release/rash check test_install.rs && echo "✓ Check command works" || echo "⚠️ Check command failed"
+        ./target/release/bashrs check test_install.rs && echo "✓ Check command works" || echo "⚠️ Check command failed"
         
         # Test help output
-        ./target/release/rash --help | head -5
+        ./target/release/bashrs --help | head -5
         echo "✓ Help command works"
     
     - name: Install to local path (simulation)
       run: |
         echo "Testing local installation simulation..."
         mkdir -p ~/.local/bin
-        cp target/release/rash ~/.local/bin/
+        cp target/release/bashrs ~/.local/bin/
         export PATH="$HOME/.local/bin:$PATH"
-        which rash
-        rash --version
+        which bashrs
+        bashrs --version
         echo "✓ Local installation simulation successful"
 
   test-release-install:
@@ -151,16 +151,16 @@ jobs:
         # Download the install script first to check if it will work
         curl -sSfL https://github.com/${{ github.repository }}/releases/latest/download/install.sh -o install.sh
         
-        # The current install script (v0.3.1) expects rash-linux-amd64.tar.gz
-        # but the release contains rash-x86_64-unknown-linux-gnu.tar.gz
+        # The current install script (v0.3.1) expects bashrs-linux-amd64.tar.gz
+        # but the release contains bashrs-x86_64-unknown-linux-gnu.tar.gz
         # This is a known issue that will be fixed in the next release
         
         echo "⚠️ Known issue: Asset naming mismatch in v0.3.1"
-        echo "  - Install script expects: rash-linux-amd64.tar.gz"
-        echo "  - Release contains: rash-x86_64-unknown-linux-gnu.tar.gz"
+        echo "  - Install script expects: bashrs-linux-amd64.tar.gz"
+        echo "  - Release contains: bashrs-x86_64-unknown-linux-gnu.tar.gz"
         echo ""
         echo "The install script will fail with this error:"
-        echo "  'Error: Failed to download from https://github.com/paiml/rash/releases/download/v0.3.1/rash-linux-amd64.tar.gz'"
+        echo "  'Error: Failed to download from https://github.com/paiml/bashrs/releases/download/v0.3.1/bashrs-linux-amd64.tar.gz'"
         echo ""
         echo "This has been fixed in the release workflow for future releases."
         echo "Skipping install test for now."
@@ -196,7 +196,7 @@ jobs:
         for example in examples/*.rs; do
           if [ -f "$example" ]; then
             echo "Testing $example..."
-            ./target/release/rash build "$example" -o "test_$(basename "$example" .rs).sh" || echo "⚠️ $example failed"
+            ./target/release/bashrs build "$example" -o "test_$(basename "$example" .rs).sh" || echo "⚠️ $example failed"
           fi
         done
         

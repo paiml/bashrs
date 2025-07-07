@@ -23,10 +23,10 @@
 //! ### Basic Usage
 //!
 //! ```rust
-//! use rash::emitter::emit;
-//! use rash::ir::{ShellIR, ShellValue, Command};
-//! use rash::ir::effects::EffectSet;
-//! use rash::models::Config;
+//! use bashrs::emitter::emit;
+//! use bashrs::ir::{ShellIR, ShellValue, Command};
+//! use bashrs::ir::effects::EffectSet;
+//! use bashrs::models::Config;
 //!
 //! # fn main() -> Result<(), Box<dyn std::error::Error>> {
 //! // Create a simple echo command
@@ -50,10 +50,10 @@
 //! ### Variable Assignment
 //!
 //! ```rust
-//! use rash::emitter::emit;
-//! use rash::ir::{ShellIR, ShellValue};
-//! use rash::ir::effects::EffectSet;
-//! use rash::models::Config;
+//! use bashrs::emitter::emit;
+//! use bashrs::ir::{ShellIR, ShellValue};
+//! use bashrs::ir::effects::EffectSet;
+//! use bashrs::models::Config;
 //!
 //! # fn main() -> Result<(), Box<dyn std::error::Error>> {
 //! let ir = ShellIR::Let {
@@ -73,10 +73,10 @@
 //! ### Safe String Escaping
 //!
 //! ```rust
-//! use rash::emitter::emit;
-//! use rash::ir::{ShellIR, ShellValue, Command};
-//! use rash::ir::effects::EffectSet;
-//! use rash::models::Config;
+//! use bashrs::emitter::emit;
+//! use bashrs::ir::{ShellIR, ShellValue, Command};
+//! use bashrs::ir::effects::EffectSet;
+//! use bashrs::models::Config;
 //!
 //! # fn main() -> Result<(), Box<dyn std::error::Error>> {
 //! // Even with special characters, output is safe
@@ -126,9 +126,9 @@ use crate::models::{Config, Result};
 /// # Examples
 ///
 /// ```rust
-/// use rash::emitter::emit;
-/// use rash::ir::ShellIR;
-/// use rash::models::{Config, config::ShellDialect};
+/// use bashrs::emitter::emit;
+/// use bashrs::ir::ShellIR;
+/// use bashrs::models::{Config, config::ShellDialect};
 ///
 /// # fn main() -> Result<(), Box<dyn std::error::Error>> {
 /// let ir = ShellIR::Noop;

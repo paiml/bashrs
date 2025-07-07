@@ -1,8 +1,8 @@
 // Exhaustive SQLite-style testing suite
 // Implements comprehensive edge case testing with NASA-grade reliability standards
 
-use rash::models::{Config, ShellDialect, VerificationLevel};
-use rash::transpile;
+use bashrs::models::{Config, ShellDialect, VerificationLevel};
+use bashrs::transpile;
 
 // Test case definition for better organization
 struct TestCase {

@@ -56,45 +56,45 @@ Rash transpiles this to safe shell with all variables quoted, all errors handled
 
 ```bash
 # Our self-hosted installer (yes, it's transpiled from Rust!)
-curl --proto '=https' --tlsv1.2 -sSf https://github.com/rash-sh/rash/releases/latest/download/install.sh | sh
+curl --proto '=https' --tlsv1.2 -sSf https://github.com/paiml/bashrs/releases/latest/download/install.sh | sh
 ```
 
 ### Package Managers
 
 ```bash
 # Cargo (Rust developers)
-cargo install rash
+cargo install bashrs
 
 # Homebrew (macOS/Linux)
-brew install rash-sh/tap/rash
+brew install paiml/tap/bashrs
 
 # APT (Debian/Ubuntu)
-echo "deb https://rash.sh/apt stable main" | sudo tee /etc/apt/sources.list.d/rash.list
-sudo apt update && sudo apt install rash
+echo "deb https://bashrs.sh/apt stable main" | sudo tee /etc/apt/sources.list.d/bashrs.list
+sudo apt update && sudo apt install bashrs
 
 # Nix
-nix-env -iA nixpkgs.rash
+nix-env -iA nixpkgs.bashrs
 ```
 
 ### Build from Source
 
 ```bash
-git clone https://github.com/rash-sh/rash
-cd rash
+git clone https://github.com/paiml/bashrs
+cd bashrs
 cargo build --release
-sudo cp target/release/rash /usr/local/bin/
+sudo cp target/release/bashrs /usr/local/bin/
 ```
 
 ### Verify Installation
 
 ```bash
-$ rash --version
-rash 0.1.0 (17b4a23 2025-01-04)
+$ bashrs --version
+bashrs 0.1.0 (17b4a23 2025-01-04)
 
-$ rash --help
+$ bashrs --help
 Rust-to-Shell transpiler for deterministic bootstrap scripts
 
-Usage: rash <COMMAND>
+Usage: bashrs <COMMAND>
 
 Commands:
   build    Transpile Rust source to shell script
@@ -109,15 +109,15 @@ Commands:
 ### Step 1: Initialize a Project
 
 ```bash
-$ rash init hello-installer
+$ bashrs init hello-installer
 ✓ Created hello-installer/
 ✓ Generated Cargo.toml with Rash configuration
 ✓ Created src/main.rs with example installer
-✓ Added .rash.toml for transpiler settings
+✓ Added .bashrs.toml for transpiler settings
 
 Next steps:
   cd hello-installer
-  rash build              # Transpile to install.sh
+  bashrs build              # Transpile to install.sh
   ./install.sh --help     # Run generated script
 ```
 
@@ -151,7 +151,7 @@ fn main() {
 ### Step 3: Transpile to Shell
 
 ```bash
-$ rash build
+$ bashrs build
 ✓ Validated 47 lines of Rust
 ✓ Generated POSIX-compliant shell (312 lines)
 ✓ ShellCheck validation passed (0 warnings)
@@ -481,7 +481,7 @@ cd /tmp || exit 1  # Exit on failure
 
 ### Custom Validation
 
-Add your own rules in `.rash.toml`:
+Add your own rules in `.bashrs.toml`:
 
 ```toml
 [validation]
@@ -625,26 +625,26 @@ Command::new("curl").args(&[url]).output()?;
 
 ### Debugging Tips
 
-1. **Use rash check frequently**
+1. **Use bashrs check frequently**
    ```bash
-   rash check src/main.rs
+   bashrs check src/main.rs
    ```
 
 2. **Enable verbose output**
    ```bash
-   rash build -v src/main.rs
+   bashrs build -v src/main.rs
    ```
 
 3. **Inspect generated IR**
    ```bash
-   rash build --emit-ir src/main.rs
+   bashrs build --emit-ir src/main.rs
    ```
 
 4. **Validate incrementally**
    ```bash
-   rash build --validation-level=none  # See raw output
-   rash build --validation-level=minimal  # Add basic checks
-   rash build --validation-level=strict  # Full validation
+   bashrs build --validation-level=none  # See raw output
+   bashrs build --validation-level=minimal  # Add basic checks
+   bashrs build --validation-level=strict  # Full validation
    ```
 
 ## Performance Tuning
@@ -652,7 +652,7 @@ Command::new("curl").args(&[url]).output()?;
 ### Minimize Binary Size
 
 ```toml
-# .rash.toml
+# .bashrs.toml
 [output]
 optimize_size = true
 strip_comments = true
@@ -688,8 +688,8 @@ We welcome contributions! Here's how to get started:
 ### Development Setup
 
 ```bash
-git clone https://github.com/rash-sh/rash
-cd rash
+git clone https://github.com/paiml/bashrs
+cd bashrs
 cargo build
 cargo test
 ```
@@ -731,8 +731,8 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for detailed guidelines.
 ---
 
 This guide covered the essentials of using Rash. For more:
-- [API Documentation](https://docs.rs/rash)
-- [Examples](https://github.com/rash-sh/rash/tree/main/examples)
-- [Discord Community](https://discord.gg/rash)
+- [API Documentation](https://docs.rs/bashrs)
+- [Examples](https://github.com/paiml/bashrs/tree/main/examples)
+- [Discord Community](https://discord.gg/bashrs)
 
 Happy transpiling! 🦀 → 🐚

@@ -115,14 +115,14 @@ jobs:
       - name: Create archive
         run: |
           cd target/${{ matrix.target }}/release
-          tar -czf ../../../rash-${{ matrix.target }}.tar.gz rash
+          tar -czf ../../../bashrs-${{ matrix.target }}.tar.gz bashrs
           cd ../../..
           
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: binary-${{ matrix.target }}
-          path: rash-${{ matrix.target }}.tar.gz
+          path: bashrs-${{ matrix.target }}.tar.gz
 
   create-release:
     needs: [bump-version, build-binaries]
