@@ -35,10 +35,10 @@ jobs:
     strategy:
       matrix:
         include:
-          - target: x86_64-unknown-linux-musl
+          - target: x86_64-unknown-linux-gnu
             os: ubuntu-latest
             name: linux-amd64
-          - target: aarch64-unknown-linux-musl
+          - target: aarch64-unknown-linux-gnu
             os: ubuntu-latest
             name: linux-arm64
             use-cross: true
@@ -59,9 +59,9 @@ jobs:
       - name: Build release binary
         run: |
           if [ "${{ matrix.use-cross }}" = "true" ]; then
-            cross build --release --target ${{ matrix.target }} --no-default-features --features minimal
+            cross build --release --target ${{ matrix.target }}
           else
-            cargo build --release --target ${{ matrix.target }} --no-default-features --features minimal
+            cargo build --release --target ${{ matrix.target }}
           fi
         shell: bash
       
@@ -69,8 +69,8 @@ jobs:
         shell: bash
         run: |
           cd target/${{ matrix.target }}/release
-          tar czf ../../../rash-${{ matrix.name }}.tar.gz rash
-          echo "ASSET_PATH=rash-${{ matrix.name }}.tar.gz" >> $GITHUB_ENV
+          tar czf ../../../rash-${{ matrix.target }}.tar.gz rash
+          echo "ASSET_PATH=rash-${{ matrix.target }}.tar.gz" >> $GITHUB_ENV
       
       - name: Upload Release Asset
         uses: softprops/action-gh-release@v1
@@ -96,7 +96,7 @@ jobs:
           set -euf
           
           VERSION="${VERSION}"
-          GITHUB_REPO="paiml/rash"
+          GITHUB_REPO="${{ github.repository }}"
           
           echo "Rash installer v\${VERSION}"
           echo "========================"
@@ -111,13 +111,13 @@ jobs:
           esac
           
           case "\${ARCH}" in
-              x86_64) ARCH="amd64" ;;
-              aarch64|arm64) ARCH="arm64" ;;
+              x86_64) TARGET="x86_64-unknown-linux-gnu" ;;
+              aarch64|arm64) TARGET="aarch64-unknown-linux-gnu" ;;
               *) echo "Unsupported architecture: \${ARCH}"; exit 1 ;;
           esac
           
-          PLATFORM="\${OS}-\${ARCH}"
-          echo "Detected platform: \${PLATFORM}"
+          echo "Detected platform: \${OS} \${ARCH}"
+          echo "Using target: \${TARGET}"
           
           # Installation directory
           PREFIX="\${PREFIX:-\${HOME}/.local}"
@@ -128,7 +128,7 @@ jobs:
           mkdir -p "\${BIN_DIR}"
           
           # Download URL
-          URL="https://github.com/\${GITHUB_REPO}/releases/download/v\${VERSION}/rash-\${PLATFORM}.tar.gz"
+          URL="https://github.com/\${GITHUB_REPO}/releases/download/v\${VERSION}/rash-\${TARGET}.tar.gz"
           echo "Downloading from: \${URL}"
           
           # Download and verify
@@ -210,7 +210,12 @@ jobs:
           sha256sum * > SHA256SUMS
           cat SHA256SUMS
       
+      - name: Rename checksums file
+        run: |
+          cd assets
+          mv SHA256SUMS checksums.txt
+      
       - name: Upload checksums
         uses: softprops/action-gh-release@v1
         with:
-          files: assets/SHA256SUMS
+          files: assets/checksums.txt

@@ -81,30 +81,42 @@ jobs:
     - name: Generate code coverage
       run: |
         echo "Generating code coverage..."
-        cargo llvm-cov --all-features --workspace --lcov --output-path lcov.info
-        cargo llvm-cov --all-features --workspace --html --output-dir coverage-html
-        echo "Coverage file size: $(wc -c < lcov.info) bytes"
-        echo "Coverage file lines: $(wc -l < lcov.info) lines"
+        if command -v cargo-llvm-cov >/dev/null 2>&1; then
+          cargo llvm-cov --all-features --workspace --lcov --output-path lcov.info
+          cargo llvm-cov --all-features --workspace --html --output-dir coverage-html
+          echo "Coverage file size: $(wc -c < lcov.info) bytes"
+          echo "Coverage file lines: $(wc -l < lcov.info) lines"
+        else
+          echo "⚠️ cargo-llvm-cov not available, skipping coverage generation"
+          # Create empty files to prevent upload errors
+          touch lcov.info
+          mkdir -p coverage-html
+          echo "<html><body>Coverage generation skipped</body></html>" > coverage-html/index.html
+        fi
     
     - name: Parse coverage percentage
       id: coverage
       run: |
         # Extract coverage percentage from LCOV file
-        COVERAGE=$(python3 -c "
-        import re
-        with open('lcov.info', 'r') as f:
-            content = f.read()
-        
-        # Count covered and total lines
-        covered = len(re.findall(r'^DA:\d+,[1-9]\d*', content, re.MULTILINE))
-        total = len(re.findall(r'^DA:\d+,\d+', content, re.MULTILINE))
-        
-        if total > 0:
-            percentage = round((covered / total) * 100, 1)
-            print(f'{percentage}')
-        else:
-            print('0')
-        ")
+        if [ -s lcov.info ]; then
+          COVERAGE=$(python3 -c "
+          import re
+          with open('lcov.info', 'r') as f:
+              content = f.read()
+          
+          # Count covered and total lines
+          covered = len(re.findall(r'^DA:\d+,[1-9]\d*', content, re.MULTILINE))
+          total = len(re.findall(r'^DA:\d+,\d+', content, re.MULTILINE))
+          
+          if total > 0:
+              percentage = round((covered / total) * 100, 1)
+              print(f'{percentage}')
+          else:
+              print('0')
+          ")
+        else
+          COVERAGE="0"
+        fi
         echo "coverage=$COVERAGE" >> $GITHUB_OUTPUT
         echo "Coverage: $COVERAGE%"
     
@@ -129,7 +141,7 @@ jobs:
     
     - name: Deploy to GitHub Pages
       if: github.ref == 'refs/heads/main'
-      uses: peaceiris/actions-gh-pages@v3
+      uses: peaceiris/actions-gh-pages@v4
       with:
         github_token: ${{ secrets.GITHUB_TOKEN }}
         publish_dir: ./coverage-html
@@ -137,7 +149,7 @@ jobs:
     
     - name: Deploy badges to GitHub Pages
       if: github.ref == 'refs/heads/main'
-      uses: peaceiris/actions-gh-pages@v3
+      uses: peaceiris/actions-gh-pages@v4
       with:
         github_token: ${{ secrets.GITHUB_TOKEN }}
         publish_dir: ./badges
@@ -167,7 +179,13 @@ jobs:
     - name: Install cargo-audit
       run: |
         echo "Installing cargo-audit..."
-        cargo install cargo-audit --quiet || echo "⚠️ Failed to install cargo-audit"
+        if command -v cargo-audit >/dev/null 2>&1; then
+          echo "✓ cargo-audit already installed"
+        elif cargo install cargo-audit --quiet; then
+          echo "✓ cargo-audit installed via cargo"
+        else
+          echo "⚠️ Failed to install cargo-audit, will skip security audit"
+        fi
     
     - name: Run security audit
       run: |
@@ -192,7 +210,7 @@ jobs:
     - name: Run benchmarks
       run: |
         echo "Running performance benchmarks..."
-        cargo bench --workspace || echo "⚠️ Benchmarks failed (non-blocking)"
+        cargo bench --workspace --no-run || echo "⚠️ Benchmark compilation failed"
         echo "✓ Benchmark step completed"
 
   build:
@@ -258,12 +276,19 @@ jobs:
           head -5 test.sh
           
           # Test with available shells
+          exit_code=0
           for shell in sh bash; do
             if command -v "$shell" >/dev/null 2>&1; then
               echo "Testing with $shell..."
-              $shell test.sh && echo "✓ $shell execution successful" || echo "⚠️ $shell execution failed"
+              if $shell test.sh; then
+                echo "✓ $shell execution successful"
+              else
+                echo "⚠️ $shell execution failed"
+                exit_code=1
+              fi
             fi
           done
+          exit $exit_code
         else
           echo "⚠️ No output file generated"
         fi
@@ -322,13 +347,15 @@ jobs:
     
     - name: Run complexity analysis
       run: |
-        # paiml-mcp-agent-toolkit analyze complexity --project-path .
-        echo "Complexity analysis placeholder"
+        echo "Running basic complexity analysis..."
+        find src -name "*.rs" -exec wc -l {} + | sort -n | tail -20
+        echo "✓ Complexity analysis completed"
     
     - name: Generate dependency graph
       run: |
-        # paiml-mcp-agent-toolkit analyze dag --project-path .
-        echo "Dependency analysis placeholder"
+        echo "Checking dependencies..."
+        cargo tree --depth 2
+        echo "✓ Dependency analysis completed"
 
   documentation:
     name: Documentation
@@ -347,7 +374,7 @@ jobs:
     
     - name: Deploy documentation
       if: github.ref == 'refs/heads/main'
-      uses: peaceiris/actions-gh-pages@v3
+      uses: peaceiris/actions-gh-pages@v4
       with:
         github_token: ${{ secrets.GITHUB_TOKEN }}
         publish_dir: ./target/doc

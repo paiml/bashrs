@@ -362,46 +362,9 @@ fn install_framework_dependencies(framework: &str, manager: &str) {
 fn setup_database_integration(database: &str, manager: &str) {
     echo(&format!("🗄️ Setting up {} database integration...", database));
     
-    let (deps, dev_deps) = match database {
-        "mongodb" => {
-            let deps = vec!["mongoose", "mongodb-memory-server"];
-            let dev_deps = vec![];
-            (deps, dev_deps)
-        },
-        "postgresql" => {
-            let deps = vec!["pg", "pg-pool"];
-            let dev_deps = vec!["@types/pg"];
-            (deps, dev_deps)
-        },
-        "mysql" => {
-            let deps = vec!["mysql2"];
-            let dev_deps = vec![];
-            (deps, dev_deps)
-        },
-        "sqlite" => {
-            let deps = vec!["sqlite3"];
-            let dev_deps = vec![];
-            (deps, dev_deps)
-        },
-        _ => panic!("Unsupported database: {}", database),
-    };
+    let (deps, dev_deps) = get_database_dependencies(database);
     
-    // Install database dependencies
-    if !deps.is_empty() {
-        let deps_str = deps.join(" ");
-        exec(&format!("{} install {}", manager, deps_str));
-    }
-    
-    if !dev_deps.is_empty() {
-        let dev_deps_str = dev_deps.join(" ");
-        let dev_flag = match manager {
-            "npm" => "--save-dev",
-            "yarn" => "--dev", 
-            "pnpm" => "--save-dev",
-            _ => "--save-dev",
-        };
-        exec(&format!("{} install {} {}", manager, dev_flag, dev_deps_str));
-    }
+    install_database_deps(&deps, &dev_deps, manager);
     
     // Create database configuration
     create_database_config(database);
@@ -409,10 +372,73 @@ fn setup_database_integration(database: &str, manager: &str) {
     echo(&format!("✅ {} integration configured", database));
 }
 
+fn get_database_dependencies(database: &str) -> (Vec<&str>, Vec<&str>) {
+    match database {
+        "mongodb" => (vec!["mongoose", "mongodb-memory-server"], vec![]),
+        "postgresql" => (vec!["pg", "pg-pool"], vec!["@types/pg"]),
+        "mysql" => (vec!["mysql2"], vec![]),
+        "sqlite" => (vec!["sqlite3"], vec![]),
+        _ => panic!("Unsupported database: {}", database),
+    }
+}
+
+fn install_database_deps(deps: &[&str], dev_deps: &[&str], manager: &str) {
+    if !deps.is_empty() {
+        let deps_str = deps.join(" ");
+        exec(&format!("{} install {}", manager, deps_str));
+    }
+    
+    if !dev_deps.is_empty() {
+        let dev_deps_str = dev_deps.join(" ");
+        let dev_flag = get_dev_flag(manager);
+        exec(&format!("{} install {} {}", manager, dev_flag, dev_deps_str));
+    }
+}
+
+fn get_dev_flag(manager: &str) -> &str {
+    match manager {
+        "yarn" => "--dev",
+        _ => "--save-dev",
+    }
+}
+
 fn create_database_config(database: &str) {
     match database {
-        "mongodb" => {
-            let mongo_config = r#"const mongoose = require('mongoose');
+        "mongodb" => create_mongodb_config(),
+        "postgresql" => create_postgresql_config(),
+        "mysql" => create_mysql_config(),
+        "sqlite" => create_sqlite_config(),
+        _ => {},
+    }
+}
+
+fn create_mongodb_config() {
+    let config = get_mongodb_config_template();
+    write_file("src/config/database.js", &config);
+    append_to_file(".env.example", "MONGODB_URI=mongodb://localhost:27017/myapp\n");
+}
+
+fn create_postgresql_config() {
+    let config = get_postgresql_config_template();
+    write_file("src/config/database.js", &config);
+    append_to_file(".env.example", "DATABASE_URL=postgresql://localhost:5432/myapp\n");
+}
+
+fn create_mysql_config() {
+    let config = get_mysql_config_template();
+    write_file("src/config/database.js", &config);
+    append_to_file(".env.example", "DB_HOST=localhost\nDB_USER=root\nDB_PASSWORD=\nDB_NAME=myapp\n");
+}
+
+fn create_sqlite_config() {
+    let config = get_sqlite_config_template();
+    write_file("src/config/database.js", &config);
+    mkdir_p("data");
+    append_to_file(".env.example", "DATABASE_PATH=./data/database.sqlite\n");
+}
+
+fn get_mongodb_config_template() -> &'static str {
+    r#"const mongoose = require('mongoose');
 
 const connectDB = async () => {
   try {
@@ -445,15 +471,11 @@ const connectDB = async () => {
   }
 };
 
-module.exports = connectDB;"#;
-            
-            write_file("src/config/database.js", mongo_config);
-            
-            // Add to .env.example
-            append_to_file(".env.example", "MONGODB_URI=mongodb://localhost:27017/myapp\n");
-        },
-        "postgresql" => {
-            let pg_config = r#"const { Pool } = require('pg');
+module.exports = connectDB;"#
+}
+
+fn get_postgresql_config_template() -> &'static str {
+    r#"const { Pool } = require('pg');
 
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL || 'postgresql://localhost:5432/myapp',
@@ -480,14 +502,11 @@ process.on('SIGINT', async () => {
   process.exit(0);
 });
 
-module.exports = pool;"#;
-            
-            write_file("src/config/database.js", pg_config);
-            
-            append_to_file(".env.example", "DATABASE_URL=postgresql://localhost:5432/myapp\n");
-        },
-        "mysql" => {
-            let mysql_config = r#"const mysql = require('mysql2/promise');
+module.exports = pool;"#
+}
+
+fn get_mysql_config_template() -> &'static str {
+    r#"const mysql = require('mysql2/promise');
 
 const createConnection = async () => {
   const connection = await mysql.createConnection({
@@ -504,14 +523,11 @@ const createConnection = async () => {
   return connection;
 };
 
-module.exports = { createConnection };"#;
-            
-            write_file("src/config/database.js", mysql_config);
-            
-            append_to_file(".env.example", "DB_HOST=localhost\nDB_USER=root\nDB_PASSWORD=\nDB_NAME=myapp\n");
-        },
-        "sqlite" => {
-            let sqlite_config = r#"const sqlite3 = require('sqlite3').verbose();
+module.exports = { createConnection };"#
+}
+
+fn get_sqlite_config_template() -> &'static str {
+    r#"const sqlite3 = require('sqlite3').verbose();
 const path = require('path');
 
 const dbPath = process.env.DATABASE_PATH || path.join(__dirname, '../../data/database.sqlite');
@@ -536,15 +552,7 @@ process.on('SIGINT', () => {
   });
 });
 
-module.exports = db;"#;
-            
-            write_file("src/config/database.js", sqlite_config);
-            mkdir_p("data");
-            
-            append_to_file(".env.example", "DATABASE_PATH=./data/database.sqlite\n");
-        },
-        _ => {},
-    }
+module.exports = db;"#
 }
 
 fn setup_testing_framework(testing: &str, manager: &str) {
