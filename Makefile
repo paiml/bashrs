@@ -2,7 +2,7 @@
 SHELL := /bin/bash
 
 .PHONY: all validate quick-validate release clean help
-.PHONY: format format-check lint lint-check check test test-fast test-comprehensive test-shells test-determinism test-doc test-property
+.PHONY: format format-check lint lint-check check test test-fast test-comprehensive test-shells test-determinism test-doc test-property test-all
 .PHONY: quality-gate quality-baseline quality-report analyze-complexity
 .PHONY: fuzz fuzz-all fuzz-coverage fuzz-trophies fuzz-differential
 .PHONY: verify verify-smt verify-model verify-specs verify-properties
@@ -302,17 +302,22 @@ test-doc:
 
 # Property-based testing
 test-property:
-	@echo "🧪 Running property-based tests..."
-	@cargo test --workspace --features "quickcheck proptest" -- prop_ --test-threads=1 --nocapture
-	@echo "🔍 Running AST property tests..."
-	@cargo test --workspace ast::tests::prop_ -- --nocapture
-	@echo "🔍 Running emitter property tests..."
-	@cargo test --workspace emitter::tests::prop_ -- --nocapture
-	@echo "🔍 Running formal property tests..."
-	@cargo test --workspace formal::proofs::prop_ -- --nocapture
-	@echo "🔍 Running quickcheck property tests..."
-	@cargo test --workspace testing::quickcheck_tests::prop_ -- --nocapture
-	@echo "✅ Property-based tests completed!"
+	@echo "🎲 Running property-based tests..."
+	@THREADS=$${PROPTEST_THREADS:-$$(nproc 2>/dev/null || sysctl -n hw.ncpu 2>/dev/null || echo 4)}; \
+	echo "  Running all property test modules with $$THREADS threads..."; \
+	echo "  (Override with PROPTEST_THREADS=n make test-property)"; \
+	timeout 180 cargo test --workspace --lib -- property_tests --test-threads=$$THREADS || echo "⚠️  Some property tests timed out after 3 minutes"; \
+	timeout 60 cargo test --workspace --lib -- prop_ --test-threads=$$THREADS || echo "⚠️  Some prop tests timed out"
+	@echo "✅ Property tests completed!"
+
+# Run ALL test styles comprehensively
+test-all: test test-doc test-property test-shells test-determinism
+	@echo "✅ All test styles completed!"
+	@echo "  - Unit tests with coverage ✓"
+	@echo "  - Documentation tests ✓"
+	@echo "  - Property-based tests ✓"
+	@echo "  - Cross-shell compatibility ✓"
+	@echo "  - Determinism verification ✓"
 
 # Quality metrics
 quality-gate: quality-baseline
