@@ -6,6 +6,11 @@ authors.workspace = true
 license.workspace = true
 repository.workspace = true
 description.workspace = true
+readme.workspace = true
+homepage.workspace = true
+documentation.workspace = true
+keywords.workspace = true
+categories.workspace = true
 
 [[bin]]
 name = "bashrs"

@@ -26,12 +26,17 @@ proptest = "1.6"
 rstest = "0.25"
 
 [workspace.package]
-version = "0.3.2"
+version = "0.3.3"
 edition = "2021"
 authors = ["Pragmatic AI Labs"]
 license = "MIT"
 repository = "https://github.com/paiml/bashrs"
 description = "Rust-to-Shell transpiler for deterministic bootstrap scripts"
+readme = "README.md"
+homepage = "https://github.com/paiml/bashrs"
+documentation = "https://docs.rs/bashrs"
+keywords = ["shell", "bash", "transpiler", "rust", "scripting"]
+categories = ["command-line-utilities", "development-tools", "compilers"]
 
 # Performance and size optimizations (following ripgrep/fd practices)
 [profile.release]
