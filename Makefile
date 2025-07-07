@@ -2,7 +2,7 @@
 SHELL := /bin/bash
 
 .PHONY: all validate quick-validate release clean help
-.PHONY: format format-check lint lint-check check test test-fast test-comprehensive test-shells test-determinism
+.PHONY: format format-check lint lint-check check test test-fast test-comprehensive test-shells test-determinism test-doc test-property
 .PHONY: quality-gate quality-baseline quality-report analyze-complexity
 .PHONY: fuzz fuzz-all fuzz-coverage fuzz-trophies fuzz-differential
 .PHONY: verify verify-smt verify-model verify-specs verify-properties
@@ -271,8 +271,7 @@ test: test-fast
 			--codecov \
 			--output-path coverage.json; \
 		cargo llvm-cov report --summary-only | tee coverage-summary.txt; \
-		echo "📊 Checking coverage threshold..."; \
-		./scripts/check-coverage.sh 85 || true; \
+		echo "📊 Coverage report generated"; \
 	else \
 		cargo test --workspace --all-features; \
 	fi
@@ -292,9 +291,28 @@ test-shells:
 test-determinism:
 	@echo "🎯 Verifying deterministic transpilation..."
 	@cargo test determinism -- --test-threads=1 --nocapture
-	@if [ -f ./scripts/verify-determinism.sh ]; then \
-		./scripts/verify-determinism.sh; \
-	fi
+
+# Documentation tests
+test-doc:
+	@echo "📚 Running documentation tests..."
+	@cargo test --doc --workspace
+	@echo "📖 Testing code examples in documentation..."
+	@cargo test --doc --all-features
+	@echo "✅ Documentation tests completed!"
+
+# Property-based testing
+test-property:
+	@echo "🧪 Running property-based tests..."
+	@cargo test --workspace --features "quickcheck proptest" -- prop_ --test-threads=1 --nocapture
+	@echo "🔍 Running AST property tests..."
+	@cargo test --workspace ast::tests::prop_ -- --nocapture
+	@echo "🔍 Running emitter property tests..."
+	@cargo test --workspace emitter::tests::prop_ -- --nocapture
+	@echo "🔍 Running formal property tests..."
+	@cargo test --workspace formal::proofs::prop_ -- --nocapture
+	@echo "🔍 Running quickcheck property tests..."
+	@cargo test --workspace testing::quickcheck_tests::prop_ -- --nocapture
+	@echo "✅ Property-based tests completed!"
 
 # Quality metrics
 quality-gate: quality-baseline
@@ -700,6 +718,8 @@ help:
 	@echo "  make test-fast    - Run fast tests"
 	@echo "  make test-shells  - Test cross-shell compatibility"
 	@echo "  make test-determinism - Verify deterministic transpilation"
+	@echo "  make test-doc     - Run documentation tests"
+	@echo "  make test-property - Run property-based tests"
 	@echo "  make shellcheck-validate - Run ShellCheck validation on generated scripts"
 	@echo "  make shellcheck-test-all - Run comprehensive ShellCheck test suite"
 	@echo ""

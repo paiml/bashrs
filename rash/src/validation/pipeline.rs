@@ -85,76 +85,97 @@ impl ValidationPipeline {
 
         match expr {
             Expr::Literal(_) => Ok(()),
-            Expr::Variable(name) => {
-                // Validate variable names
-                if name.is_empty() {
-                    return Err(RashError::ValidationError(
-                        "Empty variable name".to_string(),
-                    ));
-                }
-                if name.contains(char::is_whitespace) {
-                    return Err(RashError::ValidationError(format!(
-                        "Variable name '{name}' contains whitespace"
-                    )));
-                }
-                Ok(())
-            }
-            Expr::Binary { left, right, .. } => {
-                self.validate_expr(left)?;
-                self.validate_expr(right)?;
-                Ok(())
-            }
-            Expr::Unary { operand, .. } => {
-                self.validate_expr(operand)?;
-                Ok(())
-            }
-            Expr::FunctionCall { name, args } => {
-                if name.is_empty() {
-                    return Err(RashError::ValidationError(
-                        "Empty function name".to_string(),
-                    ));
-                }
-                for arg in args {
-                    self.validate_expr(arg)?;
-                }
-                Ok(())
-            }
+            Expr::Variable(name) => self.validate_variable_name(name),
+            Expr::Binary { left, right, .. } => self.validate_binary_expr(left, right),
+            Expr::Unary { operand, .. } => self.validate_expr(operand),
+            Expr::FunctionCall { name, args } => self.validate_function_call(name, args),
             Expr::MethodCall {
                 receiver,
                 method,
                 args,
-            } => {
-                if method.is_empty() {
-                    return Err(RashError::ValidationError("Empty method name".to_string()));
-                }
-                self.validate_expr(receiver)?;
-                for arg in args {
-                    self.validate_expr(arg)?;
-                }
-                Ok(())
-            }
-            Expr::Array(items) => {
-                for item in items {
-                    self.validate_expr(item)?;
-                }
-                Ok(())
-            }
-            Expr::Index { object, index } => {
-                self.validate_expr(object)?;
-                self.validate_expr(index)?;
-                Ok(())
-            }
-            Expr::Try { expr } => {
-                self.validate_expr(expr)?;
-                Ok(())
-            }
-            Expr::Block(stmts) => {
-                for stmt in stmts {
-                    self.validate_stmt(stmt)?;
-                }
-                Ok(())
-            }
+            } => self.validate_method_call(receiver, method, args),
+            Expr::Array(items) => self.validate_array_items(items),
+            Expr::Index { object, index } => self.validate_index_expr(object, index),
+            Expr::Try { expr } => self.validate_expr(expr),
+            Expr::Block(stmts) => self.validate_block_statements(stmts),
         }
+    }
+
+    // Helper methods to reduce complexity
+    fn validate_variable_name(&self, name: &str) -> RashResult<()> {
+        if name.is_empty() {
+            return Err(RashError::ValidationError(
+                "Empty variable name".to_string(),
+            ));
+        }
+        if name.contains(char::is_whitespace) {
+            return Err(RashError::ValidationError(format!(
+                "Variable name '{name}' contains whitespace"
+            )));
+        }
+        Ok(())
+    }
+
+    fn validate_binary_expr(
+        &self,
+        left: &crate::ast::Expr,
+        right: &crate::ast::Expr,
+    ) -> RashResult<()> {
+        self.validate_expr(left)?;
+        self.validate_expr(right)?;
+        Ok(())
+    }
+
+    fn validate_function_call(&self, name: &str, args: &[crate::ast::Expr]) -> RashResult<()> {
+        if name.is_empty() {
+            return Err(RashError::ValidationError(
+                "Empty function name".to_string(),
+            ));
+        }
+        for arg in args {
+            self.validate_expr(arg)?;
+        }
+        Ok(())
+    }
+
+    fn validate_method_call(
+        &self,
+        receiver: &crate::ast::Expr,
+        method: &str,
+        args: &[crate::ast::Expr],
+    ) -> RashResult<()> {
+        if method.is_empty() {
+            return Err(RashError::ValidationError("Empty method name".to_string()));
+        }
+        self.validate_expr(receiver)?;
+        for arg in args {
+            self.validate_expr(arg)?;
+        }
+        Ok(())
+    }
+
+    fn validate_array_items(&self, items: &[crate::ast::Expr]) -> RashResult<()> {
+        for item in items {
+            self.validate_expr(item)?;
+        }
+        Ok(())
+    }
+
+    fn validate_index_expr(
+        &self,
+        object: &crate::ast::Expr,
+        index: &crate::ast::Expr,
+    ) -> RashResult<()> {
+        self.validate_expr(object)?;
+        self.validate_expr(index)?;
+        Ok(())
+    }
+
+    fn validate_block_statements(&self, stmts: &[crate::ast::Stmt]) -> RashResult<()> {
+        for stmt in stmts {
+            self.validate_stmt(stmt)?;
+        }
+        Ok(())
     }
 
     fn validate_ir_recursive(&self, ir: &ShellIR) -> RashResult<()> {

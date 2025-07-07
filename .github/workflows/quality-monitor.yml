@@ -22,11 +22,9 @@ jobs:
           workspaces: ". -> target"
           shared-key: "ci-${{ runner.os }}"
 
-      - name: Build analysis tools
+      - name: Build project
         run: |
-          cargo build --release --bin quality-trend-analyzer 2>/dev/null || true
-          cargo build --release --bin quality-dashboard 2>/dev/null || true
-          cargo build --release --bin rash-metrics 2>/dev/null || true
+          cargo build --release
 
       - name: Analyze code quality metrics
         run: |
@@ -77,28 +75,15 @@ jobs:
             echo "⚠️  Warning: Low test count ($TEST_COUNT tests)"
           fi
 
-      - name: Commit quality dashboard
-        run: |
-          # Check if dashboard changed
-          if git diff --quiet docs/quality-dashboard.md 2>/dev/null; then
-            echo "No quality changes detected"
-          else
-            git config user.name "RASH Quality Bot"
-            git config user.email "quality-bot@example.com"
-            git add docs/quality-dashboard.md
-            git commit -m "docs: update quality dashboard [skip ci]" || echo "No changes to commit"
-            git push || echo "No changes to push"
-          fi
-
-      - name: Alert on quality issues
-        if: failure()
-        uses: actions/github-script@v7
+      - name: Upload quality dashboard
+        uses: actions/upload-artifact@v4
         with:
-          script: |
-            await github.rest.issues.create({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              title: '⚠️ Quality Monitoring Alert',
-              body: 'Automated quality analysis detected potential issues. Check the [workflow run](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}).',
-              labels: ['quality', 'automated']
-            });
+          name: quality-dashboard
+          path: docs/quality-dashboard.md
+
+      - name: Report quality issues
+        if: failure()
+        run: |
+          echo "⚠️ Quality checks failed"
+          echo "Please review the workflow logs for details"
+          echo "Workflow run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
