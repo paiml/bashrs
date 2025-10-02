@@ -1,5 +1,5 @@
 use criterion::{criterion_group, criterion_main, BenchmarkId, Criterion, Throughput};
-use rash::{ir, services::parser, transpile, Config};
+use bashrs::{ir, services::parser, transpile, Config};
 use std::time::Duration;
 
 const SIMPLE_RUST: &str = r#"
@@ -140,7 +140,7 @@ fn benchmark_emission(c: &mut Criterion) {
     group.bench_with_input(
         BenchmarkId::new("emit", "simple"),
         &(&simple_ir, &config),
-        |b, (ir, config)| b.iter(|| rash::emitter::emit(ir, config).unwrap()),
+        |b, (ir, config)| b.iter(|| bashrs::emitter::emit(ir, config).unwrap()),
     );
 
     group.finish();

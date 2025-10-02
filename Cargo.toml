@@ -73,3 +73,11 @@ inherits = "dev"
 opt-level = 1
 incremental = true
 codegen-units = 16
+
+# Coverage testing profile (CRITICAL for LLVM coverage)
+# Following: docs/specifications/COVERAGE.md
+[profile.test]
+inherits = "dev"
+incremental = false  # CRITICAL: Prevents stale coverage data
+opt-level = 0
+codegen-units = 1
