@@ -28,6 +28,13 @@ pub enum ShellIR {
 
     /// No-op
     Noop,
+
+    /// Function definition
+    Function {
+        name: String,
+        params: Vec<String>,
+        body: Box<ShellIR>,
+    },
 }
 
 impl ShellIR {
@@ -50,6 +57,7 @@ impl ShellIR {
                 .iter()
                 .fold(EffectSet::pure(), |acc, item| acc.union(&item.effects())),
             ShellIR::Exit { .. } | ShellIR::Noop => EffectSet::pure(),
+            ShellIR::Function { body, .. } => body.effects(),
         }
     }
 

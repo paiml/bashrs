@@ -153,6 +153,9 @@ impl PosixEmitter {
             }
             ShellIR::Sequence(items) => self.emit_sequence(output, items, indent),
             ShellIR::Noop => self.emit_noop(output, indent),
+            ShellIR::Function { name, params, body } => {
+                self.emit_function(output, name, params, body, indent)
+            }
         }
     }
 
@@ -166,7 +169,9 @@ impl PosixEmitter {
         let indent_str = "    ".repeat(indent + 1);
         let var_name = escape_variable_name(name);
         let var_value = self.emit_shell_value(value)?;
-        writeln!(output, "{indent_str}readonly {var_name}={var_value}")?;
+        // TODO: Add proper variable shadowing with renaming to restore readonly safety
+        // For now, use mutable variables to support Rust's let-shadowing semantics
+        writeln!(output, "{indent_str}{var_name}={var_value}")?;
         Ok(())
     }
 
@@ -217,15 +222,55 @@ impl PosixEmitter {
     }
 
     fn emit_sequence(&self, output: &mut String, items: &[ShellIR], indent: usize) -> Result<()> {
-        for item in items {
-            self.emit_ir(output, item, indent)?;
+        if items.is_empty() {
+            // Empty sequence needs at least ':' for valid POSIX syntax
+            self.emit_noop(output, indent)?;
+        } else {
+            for item in items {
+                self.emit_ir(output, item, indent)?;
+            }
         }
         Ok(())
     }
 
     fn emit_noop(&self, output: &mut String, indent: usize) -> Result<()> {
         let indent_str = "    ".repeat(indent + 1);
-        writeln!(output, "{indent_str}# noop")?;
+        // Use ':' (true command) instead of comment for valid POSIX syntax
+        writeln!(output, "{indent_str}:")?;
+        Ok(())
+    }
+
+    fn emit_function(
+        &self,
+        output: &mut String,
+        name: &str,
+        params: &[String],
+        body: &ShellIR,
+        indent: usize,
+    ) -> Result<()> {
+        let indent_str = "    ".repeat(indent + 1);
+
+        // Shell function definition
+        writeln!(output, "{indent_str}{name}() {{")?;
+
+        // Bind positional parameters to named variables
+        for (i, param) in params.iter().enumerate() {
+            let pos = i + 1;
+            let param_name = escape_variable_name(param);
+            // TODO: Restore readonly once proper variable shadowing is implemented
+            writeln!(output, "{indent_str}    {param_name}=\"${pos}\"")?;
+        }
+
+        if !params.is_empty() {
+            writeln!(output)?;
+        }
+
+        // Emit function body
+        self.emit_ir(output, body, indent + 1)?;
+
+        writeln!(output, "{indent_str}}}")?;
+        writeln!(output)?;
+
         Ok(())
     }
 
@@ -340,7 +385,9 @@ mod tests {
         };
 
         let result = emitter.emit(&ir).unwrap();
-        assert!(result.contains("readonly test_var='hello world'"));
+        // Updated: Variables are now mutable to support let-shadowing semantics
+        assert!(result.contains("test_var='hello world'"));
+        assert!(!result.contains("readonly"));
     }
 
     #[test]
