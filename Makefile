@@ -773,26 +773,57 @@ help:
 # Code Coverage (Toyota Way: "make coverage" just works)
 # Following: docs/specifications/COVERAGE.md (Two-Phase Pattern)
 coverage: ## Generate HTML coverage report and open in browser
-	@echo "=== Code Coverage (Two-Phase LLVM Pattern) ==="
-	@echo "Phase 1: Running tests with instrumentation..."
+	@echo "📊 Running comprehensive test coverage analysis..."
+	@echo "🔍 Checking for cargo-llvm-cov and cargo-nextest..."
+	@which cargo-llvm-cov > /dev/null 2>&1 || (echo "📦 Installing cargo-llvm-cov..." && cargo install cargo-llvm-cov --locked)
+	@which cargo-nextest > /dev/null 2>&1 || (echo "📦 Installing cargo-nextest..." && cargo install cargo-nextest --locked)
+	@echo "🧹 Cleaning old coverage data..."
 	@cargo llvm-cov clean --workspace
-	@cargo llvm-cov --no-report nextest
-	@echo "Phase 2: Generating HTML report..."
-	@cargo llvm-cov report --html --open
-	@echo "✓ Coverage report opened in browser"
+	@mkdir -p target/coverage
+	@echo "⚙️  Temporarily disabling global cargo config (mold breaks coverage)..."
+	@test -f ~/.cargo/config.toml && mv ~/.cargo/config.toml ~/.cargo/config.toml.cov-backup || true
+	@echo "🧪 Phase 1: Running tests with instrumentation (no report)..."
+	@cargo llvm-cov --no-report nextest --no-tests=warn --all-features --workspace
+	@echo "📊 Phase 2: Generating coverage reports..."
+	@cargo llvm-cov report --html --output-dir target/coverage/html
+	@cargo llvm-cov report --lcov --output-path target/coverage/lcov.info
+	@echo "⚙️  Restoring global cargo config..."
+	@test -f ~/.cargo/config.toml.cov-backup && mv ~/.cargo/config.toml.cov-backup ~/.cargo/config.toml || true
+	@echo ""
+	@echo "📊 Coverage Summary:"
+	@echo "=================="
+	@cargo llvm-cov report --summary-only
+	@echo ""
+	@echo "💡 COVERAGE INSIGHTS:"
+	@echo "- HTML report: target/coverage/html/index.html"
+	@echo "- LCOV file: target/coverage/lcov.info"
+	@echo "- Open HTML: make coverage-open"
+	@echo ""
+
+coverage-summary: ## Show coverage summary
+	@cargo llvm-cov report --summary-only 2>/dev/null || echo "Run 'make coverage' first"
+
+coverage-open: ## Open HTML coverage report in browser
+	@if [ -f target/coverage/html/index.html ]; then \
+		xdg-open target/coverage/html/index.html 2>/dev/null || \
+		open target/coverage/html/index.html 2>/dev/null || \
+		echo "Please open: target/coverage/html/index.html"; \
+	else \
+		echo "❌ Run 'make coverage' first to generate the HTML report"; \
+	fi
 
 coverage-ci: ## Generate LCOV report for CI/CD
 	@echo "=== Code Coverage for CI/CD ==="
 	@echo "Phase 1: Running tests with instrumentation..."
 	@cargo llvm-cov clean --workspace
-	@cargo llvm-cov --no-report nextest --all-features
+	@cargo llvm-cov --no-report nextest --no-tests=warn --all-features --workspace
 	@echo "Phase 2: Generating LCOV report..."
 	@cargo llvm-cov report --lcov --output-path lcov.info
 	@echo "✓ Coverage report generated: lcov.info"
 
 coverage-clean: ## Clean coverage artifacts
 	@cargo llvm-cov clean --workspace
-	@rm -f lcov.info coverage.xml
+	@rm -f lcov.info coverage.xml target/coverage/lcov.info
 	@rm -rf target/llvm-cov target/coverage
 	@find . -name "*.profraw" -delete
 	@echo "✓ Coverage artifacts cleaned"
