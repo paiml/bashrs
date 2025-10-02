@@ -463,75 +463,76 @@
 <a href=#463 id=463 data-nosnippet>463</a></span><span class="kw">pub enum </span>Literal {
 <a href=#464 id=464 data-nosnippet>464</a>    Bool(bool),
 <a href=#465 id=465 data-nosnippet>465</a>    U32(u32),
-<a href=#466 id=466 data-nosnippet>466</a>    Str(String),
-<a href=#467 id=467 data-nosnippet>467</a>}
-<a href=#468 id=468 data-nosnippet>468</a>
-<a href=#469 id=469 data-nosnippet>469</a><span class="attr">#[derive(Debug, Clone, Serialize, Deserialize)]
-<a href=#470 id=470 data-nosnippet>470</a></span><span class="kw">pub enum </span>BinaryOp {
-<a href=#471 id=471 data-nosnippet>471</a>    Add,
-<a href=#472 id=472 data-nosnippet>472</a>    Sub,
-<a href=#473 id=473 data-nosnippet>473</a>    Mul,
-<a href=#474 id=474 data-nosnippet>474</a>    Div,
-<a href=#475 id=475 data-nosnippet>475</a>    Eq,
-<a href=#476 id=476 data-nosnippet>476</a>    Ne,
-<a href=#477 id=477 data-nosnippet>477</a>    Lt,
-<a href=#478 id=478 data-nosnippet>478</a>    Le,
-<a href=#479 id=479 data-nosnippet>479</a>    Gt,
-<a href=#480 id=480 data-nosnippet>480</a>    Ge,
-<a href=#481 id=481 data-nosnippet>481</a>    And,
-<a href=#482 id=482 data-nosnippet>482</a>    Or,
-<a href=#483 id=483 data-nosnippet>483</a>}
-<a href=#484 id=484 data-nosnippet>484</a>
-<a href=#485 id=485 data-nosnippet>485</a><span class="attr">#[derive(Debug, Clone, Serialize, Deserialize)]
-<a href=#486 id=486 data-nosnippet>486</a></span><span class="kw">pub enum </span>UnaryOp {
-<a href=#487 id=487 data-nosnippet>487</a>    Not,
-<a href=#488 id=488 data-nosnippet>488</a>    Neg,
-<a href=#489 id=489 data-nosnippet>489</a>}
-<a href=#490 id=490 data-nosnippet>490</a>
-<a href=#491 id=491 data-nosnippet>491</a><span class="attr">#[derive(Debug, Clone, Serialize, Deserialize)]
-<a href=#492 id=492 data-nosnippet>492</a></span><span class="kw">pub struct </span>MatchArm {
-<a href=#493 id=493 data-nosnippet>493</a>    <span class="kw">pub </span>pattern: Pattern,
-<a href=#494 id=494 data-nosnippet>494</a>    <span class="kw">pub </span>guard: <span class="prelude-ty">Option</span>&lt;Expr&gt;,
-<a href=#495 id=495 data-nosnippet>495</a>    <span class="kw">pub </span>body: Vec&lt;Stmt&gt;,
-<a href=#496 id=496 data-nosnippet>496</a>}
-<a href=#497 id=497 data-nosnippet>497</a>
-<a href=#498 id=498 data-nosnippet>498</a><span class="attr">#[derive(Debug, Clone, Serialize, Deserialize)]
-<a href=#499 id=499 data-nosnippet>499</a></span><span class="kw">pub enum </span>Pattern {
-<a href=#500 id=500 data-nosnippet>500</a>    Literal(Literal),
-<a href=#501 id=501 data-nosnippet>501</a>    Variable(String),
-<a href=#502 id=502 data-nosnippet>502</a>    Wildcard,
-<a href=#503 id=503 data-nosnippet>503</a>    Tuple(Vec&lt;Pattern&gt;),
-<a href=#504 id=504 data-nosnippet>504</a>    Struct {
-<a href=#505 id=505 data-nosnippet>505</a>        name: String,
-<a href=#506 id=506 data-nosnippet>506</a>        fields: Vec&lt;(String, Pattern)&gt;,
-<a href=#507 id=507 data-nosnippet>507</a>    },
-<a href=#508 id=508 data-nosnippet>508</a>}
-<a href=#509 id=509 data-nosnippet>509</a>
-<a href=#510 id=510 data-nosnippet>510</a><span class="kw">impl </span>Pattern {
-<a href=#511 id=511 data-nosnippet>511</a>    <span class="kw">pub fn </span>validate(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;(), String&gt; {
-<a href=#512 id=512 data-nosnippet>512</a>        <span class="kw">match </span><span class="self">self </span>{
-<a href=#513 id=513 data-nosnippet>513</a>            Pattern::Literal(<span class="kw">_</span>) | Pattern::Variable(<span class="kw">_</span>) | Pattern::Wildcard =&gt; <span class="prelude-val">Ok</span>(()),
-<a href=#514 id=514 data-nosnippet>514</a>            Pattern::Tuple(patterns) =&gt; {
-<a href=#515 id=515 data-nosnippet>515</a>                <span class="kw">for </span>pattern <span class="kw">in </span>patterns {
-<a href=#516 id=516 data-nosnippet>516</a>                    pattern.validate()<span class="question-mark">?</span>;
-<a href=#517 id=517 data-nosnippet>517</a>                }
-<a href=#518 id=518 data-nosnippet>518</a>                <span class="prelude-val">Ok</span>(())
-<a href=#519 id=519 data-nosnippet>519</a>            }
-<a href=#520 id=520 data-nosnippet>520</a>            Pattern::Struct { fields, .. } =&gt; {
-<a href=#521 id=521 data-nosnippet>521</a>                <span class="kw">for </span>(<span class="kw">_</span>, pattern) <span class="kw">in </span>fields {
-<a href=#522 id=522 data-nosnippet>522</a>                    pattern.validate()<span class="question-mark">?</span>;
-<a href=#523 id=523 data-nosnippet>523</a>                }
-<a href=#524 id=524 data-nosnippet>524</a>                <span class="prelude-val">Ok</span>(())
-<a href=#525 id=525 data-nosnippet>525</a>            }
-<a href=#526 id=526 data-nosnippet>526</a>        }
-<a href=#527 id=527 data-nosnippet>527</a>    }
-<a href=#528 id=528 data-nosnippet>528</a>
-<a href=#529 id=529 data-nosnippet>529</a>    <span class="kw">pub fn </span>binds_variable(<span class="kw-2">&amp;</span><span class="self">self</span>, name: <span class="kw-2">&amp;</span>str) -&gt; bool {
-<a href=#530 id=530 data-nosnippet>530</a>        <span class="kw">match </span><span class="self">self </span>{
-<a href=#531 id=531 data-nosnippet>531</a>            Pattern::Variable(var_name) =&gt; var_name == name,
-<a href=#532 id=532 data-nosnippet>532</a>            Pattern::Tuple(patterns) =&gt; patterns.iter().any(|p| p.binds_variable(name)),
-<a href=#533 id=533 data-nosnippet>533</a>            Pattern::Struct { fields, .. } =&gt; fields.iter().any(|(<span class="kw">_</span>, p)| p.binds_variable(name)),
-<a href=#534 id=534 data-nosnippet>534</a>            <span class="kw">_ </span>=&gt; <span class="bool-val">false</span>,
-<a href=#535 id=535 data-nosnippet>535</a>        }
-<a href=#536 id=536 data-nosnippet>536</a>    }
-<a href=#537 id=537 data-nosnippet>537</a>}</code></pre></div></section></main></body></html>
+<a href=#466 id=466 data-nosnippet>466</a>    I32(i32),  <span class="comment">// Support negative integers
+<a href=#467 id=467 data-nosnippet>467</a>    </span>Str(String),
+<a href=#468 id=468 data-nosnippet>468</a>}
+<a href=#469 id=469 data-nosnippet>469</a>
+<a href=#470 id=470 data-nosnippet>470</a><span class="attr">#[derive(Debug, Clone, Serialize, Deserialize)]
+<a href=#471 id=471 data-nosnippet>471</a></span><span class="kw">pub enum </span>BinaryOp {
+<a href=#472 id=472 data-nosnippet>472</a>    Add,
+<a href=#473 id=473 data-nosnippet>473</a>    Sub,
+<a href=#474 id=474 data-nosnippet>474</a>    Mul,
+<a href=#475 id=475 data-nosnippet>475</a>    Div,
+<a href=#476 id=476 data-nosnippet>476</a>    Eq,
+<a href=#477 id=477 data-nosnippet>477</a>    Ne,
+<a href=#478 id=478 data-nosnippet>478</a>    Lt,
+<a href=#479 id=479 data-nosnippet>479</a>    Le,
+<a href=#480 id=480 data-nosnippet>480</a>    Gt,
+<a href=#481 id=481 data-nosnippet>481</a>    Ge,
+<a href=#482 id=482 data-nosnippet>482</a>    And,
+<a href=#483 id=483 data-nosnippet>483</a>    Or,
+<a href=#484 id=484 data-nosnippet>484</a>}
+<a href=#485 id=485 data-nosnippet>485</a>
+<a href=#486 id=486 data-nosnippet>486</a><span class="attr">#[derive(Debug, Clone, Serialize, Deserialize)]
+<a href=#487 id=487 data-nosnippet>487</a></span><span class="kw">pub enum </span>UnaryOp {
+<a href=#488 id=488 data-nosnippet>488</a>    Not,
+<a href=#489 id=489 data-nosnippet>489</a>    Neg,
+<a href=#490 id=490 data-nosnippet>490</a>}
+<a href=#491 id=491 data-nosnippet>491</a>
+<a href=#492 id=492 data-nosnippet>492</a><span class="attr">#[derive(Debug, Clone, Serialize, Deserialize)]
+<a href=#493 id=493 data-nosnippet>493</a></span><span class="kw">pub struct </span>MatchArm {
+<a href=#494 id=494 data-nosnippet>494</a>    <span class="kw">pub </span>pattern: Pattern,
+<a href=#495 id=495 data-nosnippet>495</a>    <span class="kw">pub </span>guard: <span class="prelude-ty">Option</span>&lt;Expr&gt;,
+<a href=#496 id=496 data-nosnippet>496</a>    <span class="kw">pub </span>body: Vec&lt;Stmt&gt;,
+<a href=#497 id=497 data-nosnippet>497</a>}
+<a href=#498 id=498 data-nosnippet>498</a>
+<a href=#499 id=499 data-nosnippet>499</a><span class="attr">#[derive(Debug, Clone, Serialize, Deserialize)]
+<a href=#500 id=500 data-nosnippet>500</a></span><span class="kw">pub enum </span>Pattern {
+<a href=#501 id=501 data-nosnippet>501</a>    Literal(Literal),
+<a href=#502 id=502 data-nosnippet>502</a>    Variable(String),
+<a href=#503 id=503 data-nosnippet>503</a>    Wildcard,
+<a href=#504 id=504 data-nosnippet>504</a>    Tuple(Vec&lt;Pattern&gt;),
+<a href=#505 id=505 data-nosnippet>505</a>    Struct {
+<a href=#506 id=506 data-nosnippet>506</a>        name: String,
+<a href=#507 id=507 data-nosnippet>507</a>        fields: Vec&lt;(String, Pattern)&gt;,
+<a href=#508 id=508 data-nosnippet>508</a>    },
+<a href=#509 id=509 data-nosnippet>509</a>}
+<a href=#510 id=510 data-nosnippet>510</a>
+<a href=#511 id=511 data-nosnippet>511</a><span class="kw">impl </span>Pattern {
+<a href=#512 id=512 data-nosnippet>512</a>    <span class="kw">pub fn </span>validate(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;(), String&gt; {
+<a href=#513 id=513 data-nosnippet>513</a>        <span class="kw">match </span><span class="self">self </span>{
+<a href=#514 id=514 data-nosnippet>514</a>            Pattern::Literal(<span class="kw">_</span>) | Pattern::Variable(<span class="kw">_</span>) | Pattern::Wildcard =&gt; <span class="prelude-val">Ok</span>(()),
+<a href=#515 id=515 data-nosnippet>515</a>            Pattern::Tuple(patterns) =&gt; {
+<a href=#516 id=516 data-nosnippet>516</a>                <span class="kw">for </span>pattern <span class="kw">in </span>patterns {
+<a href=#517 id=517 data-nosnippet>517</a>                    pattern.validate()<span class="question-mark">?</span>;
+<a href=#518 id=518 data-nosnippet>518</a>                }
+<a href=#519 id=519 data-nosnippet>519</a>                <span class="prelude-val">Ok</span>(())
+<a href=#520 id=520 data-nosnippet>520</a>            }
+<a href=#521 id=521 data-nosnippet>521</a>            Pattern::Struct { fields, .. } =&gt; {
+<a href=#522 id=522 data-nosnippet>522</a>                <span class="kw">for </span>(<span class="kw">_</span>, pattern) <span class="kw">in </span>fields {
+<a href=#523 id=523 data-nosnippet>523</a>                    pattern.validate()<span class="question-mark">?</span>;
+<a href=#524 id=524 data-nosnippet>524</a>                }
+<a href=#525 id=525 data-nosnippet>525</a>                <span class="prelude-val">Ok</span>(())
+<a href=#526 id=526 data-nosnippet>526</a>            }
+<a href=#527 id=527 data-nosnippet>527</a>        }
+<a href=#528 id=528 data-nosnippet>528</a>    }
+<a href=#529 id=529 data-nosnippet>529</a>
+<a href=#530 id=530 data-nosnippet>530</a>    <span class="kw">pub fn </span>binds_variable(<span class="kw-2">&amp;</span><span class="self">self</span>, name: <span class="kw-2">&amp;</span>str) -&gt; bool {
+<a href=#531 id=531 data-nosnippet>531</a>        <span class="kw">match </span><span class="self">self </span>{
+<a href=#532 id=532 data-nosnippet>532</a>            Pattern::Variable(var_name) =&gt; var_name == name,
+<a href=#533 id=533 data-nosnippet>533</a>            Pattern::Tuple(patterns) =&gt; patterns.iter().any(|p| p.binds_variable(name)),
+<a href=#534 id=534 data-nosnippet>534</a>            Pattern::Struct { fields, .. } =&gt; fields.iter().any(|(<span class="kw">_</span>, p)| p.binds_variable(name)),
+<a href=#535 id=535 data-nosnippet>535</a>            <span class="kw">_ </span>=&gt; <span class="bool-val">false</span>,
+<a href=#536 id=536 data-nosnippet>536</a>        }
+<a href=#537 id=537 data-nosnippet>537</a>    }
+<a href=#538 id=538 data-nosnippet>538</a>}</code></pre></div></section></main></body></html>
