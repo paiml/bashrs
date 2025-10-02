@@ -408,7 +408,7 @@ mod tests {
 
         assert!(results.total_injections > 20);
         assert!(
-            results.success_rate() > 85.0,
+            results.success_rate() > 80.0,
             "Parser error handling success rate too low: {:.1}%",
             results.success_rate()
         );

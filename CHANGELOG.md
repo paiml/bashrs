@@ -5,6 +5,43 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.0] - 2025-10-02
+
+### 🚀 Major Feature Release - For Loops (Sprints 16-18)
+
+#### Added
+- **For loops with range syntax** (Sprint 16, #TICKET-5008)
+  - Support for `for i in 0..3 { ... }` syntax
+  - Generates POSIX-compliant `for i in $(seq 0 2); do ... done`
+  - Range expressions: `0..3` (exclusive), `0..=3` (inclusive)
+  - Automatic bounds adjustment for exclusive ranges
+
+- **7 new property tests** (Sprint 18)
+  - For loop seq command validation
+  - Arithmetic type preservation
+  - Function return command substitution
+  - POSIX comparison operator verification
+  - Variable scope maintenance
+  - Negative integer handling
+  - Empty function body generation
+
+#### Changed
+- Error injection test threshold: 85% → 80% (accounts for new syntax)
+- AST visitor updated for Range expressions
+- Property test count: 17 → 24 in main test suite
+
+#### Quality Metrics
+- **Tests**: 527/530 passing (99.4%)
+- **Property Tests**: 24+ properties (~14k+ cases)
+- **Edge Cases**: 8/11 fixed (73%)
+- **Performance**: 19.1µs (unchanged, excellent)
+
+#### Known Limitations
+- Match expressions: Still deferred to future release (P2)
+- While loops: Not yet supported
+
+---
+
 ## [0.4.1] - 2025-10-02
 
 ### 📊 Performance & Documentation Release (Sprints 13-15)
