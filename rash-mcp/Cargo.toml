@@ -1,0 +1,20 @@
+[package]
+name = "rash-mcp"
+version = "0.1.0"
+edition = "2021"
+authors = ["PAIML Team"]
+description = "MCP server for Rash (Rust-to-Shell transpiler)"
+license = "MIT"
+
+[dependencies]
+bashrs = { path = "../rash" }
+pforge-runtime = { path = "../../pforge/crates/pforge-runtime" }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+schemars = "0.8"
+async-trait = "0.1"
+tokio = { version = "1.35", features = ["full"] }
+anyhow = "1.0"
+thiserror = "1.0"
+
+[dev-dependencies]
