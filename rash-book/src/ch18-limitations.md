@@ -452,17 +452,17 @@ main() {
 
 | # | Issue | Priority | Impact | Status | Fix Sprint |
 |---|-------|----------|--------|--------|-----------|
-| 1 | Empty function bodies → `:` | 🔴 P0 | Critical | Bug | Sprint 10 |
-| 2 | `println!` not supported | 🔴 P0 | Critical | Feature Gap | Sprint 10 |
-| 3 | Negative integers → `unknown` | 🔴 P0 | Critical | Bug | Sprint 10 |
-| 4 | Comparisons wrong (`test -n`) | 🟡 P1 | High | Bug | Sprint 10 |
-| 5 | Functions nested in main | 🟡 P1 | High | Design | Sprint 11 |
-| 6 | For loops unsupported | 🟢 P2 | Medium | Feature Gap | Sprint 11 |
-| 7 | Match unsupported | 🟢 P2 | Medium | Feature Gap | Sprint 12 |
-| 8 | Return values → `unknown` | 🟢 P2 | Medium | Feature Gap | Sprint 11 |
-| 9 | Arithmetic → `:` | 🟢 P2 | Medium | Bug | Sprint 11 |
-| 10 | Empty main → `:` | 🔵 P3 | Low | Edge Case | Sprint 12 |
-| 11 | Integer overflow undefined | 🔵 P3 | Low | Unknown | Document |
+| 1 | Empty function bodies → `:` | 🔴 P0 | Critical | ✅ Fixed | Sprint 10 |
+| 2 | `println!` not supported | 🔴 P0 | Critical | ✅ Fixed | Sprint 10 |
+| 3 | Negative integers → `unknown` | 🔴 P0 | Critical | ✅ Fixed | Sprint 10 |
+| 4 | Comparisons wrong (`test -n`) | 🟡 P1 | High | ✅ Fixed | Sprint 10 |
+| 5 | Functions nested in main | 🟡 P1 | High | ✅ Fixed | Sprint 10 |
+| 6 | For loops unsupported | 🟢 P2 | Medium | 🔲 Pending | Sprint 11 |
+| 7 | Match unsupported | 🟢 P2 | Medium | 🔲 Pending | Sprint 12 |
+| 8 | Return values → `unknown` | 🟢 P2 | Medium | 🔲 Pending | Sprint 11 |
+| 9 | Arithmetic → `:` | 🟢 P2 | Medium | ✅ Fixed | Sprint 11 |
+| 10 | Empty main → `:` | 🔵 P3 | Low | 🔲 Pending | Sprint 12 |
+| 11 | Integer overflow undefined | 🔵 P3 | Low | 🔲 Pending | Document |
 
 ---
 
