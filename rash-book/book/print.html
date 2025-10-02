@@ -846,9 +846,16 @@ $ make test-ch01
 <div style="break-before: page; page-break-before: always;"></div><h1 id="placeholder-ch16-mcp-server-tddmd"><a class="header" href="#placeholder-ch16-mcp-server-tddmd">Placeholder: ch16-mcp-server-tdd.md</a></h1>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="placeholder-ch17-testing-tddmd"><a class="header" href="#placeholder-ch17-testing-tddmd">Placeholder: ch17-testing-tdd.md</a></h1>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="chapter-18-known-limitations-and-edge-cases"><a class="header" href="#chapter-18-known-limitations-and-edge-cases">Chapter 18: Known Limitations and Edge Cases</a></h1>
-<p><strong>Chapter Status</strong>: ✅ 100% Documented (11/11 edge cases discovered)</p>
+<p><strong>Chapter Status</strong>: 🎯 <strong>3/11 Fixed</strong> (All P0 critical issues resolved!)</p>
 <p><em>Last updated: 2025-10-02</em>
-<em>Rash version: 0.1.0</em></p>
+<em>Rash version: 0.3.3</em></p>
+<p><strong>Sprint 10 Progress</strong>:</p>
+<ul>
+<li>✅ <strong>3 P0 Critical</strong>: All fixed (empty functions, println!, negative integers)</li>
+<li>🟡 <strong>2 P1 High</strong>: Pending (comparison operators, function nesting)</li>
+<li>🔵 <strong>4 P2 Medium</strong>: Pending (loops, match, returns, arithmetic)</li>
+<li>⚪ <strong>2 P3 Low</strong>: Backlog (empty main, integer overflow)</li>
+</ul>
 <hr />
 <h2 id="overview"><a class="header" href="#overview">Overview</a></h2>
 <p>This chapter documents all known limitations, edge cases, and unsupported features in Rash. Every limitation is:</p>
@@ -858,11 +865,12 @@ $ make test-ch01
 <li><strong>Categorized</strong>: Critical, High, Medium, or Low priority</li>
 <li><strong>Tracked</strong>: Linked to issues/roadmap items</li>
 </ol>
-<h2 id="critical-issues-blockers"><a class="header" href="#critical-issues-blockers">Critical Issues (Blockers)</a></h2>
-<h3 id="-edge-case-1-empty-function-bodies-generate-no-ops"><a class="header" href="#-edge-case-1-empty-function-bodies-generate-no-ops">🔴 EDGE CASE #1: Empty Function Bodies Generate No-ops</a></h3>
-<p><strong>Status</strong>: 🔴 Critical Bug
+<h2 id="-critical-issues-all-fixed"><a class="header" href="#-critical-issues-all-fixed">✅ Critical Issues (All Fixed!)</a></h2>
+<h3 id="-edge-case-1-empty-function-bodies-generate-no-ops"><a class="header" href="#-edge-case-1-empty-function-bodies-generate-no-ops">✅ EDGE CASE #1: Empty Function Bodies Generate No-ops</a></h3>
+<p><strong>Status</strong>: ✅ FIXED in v0.3.3 (commit ef6f81f)
 <strong>Discovered</strong>: 2025-10-02
-<strong>Test</strong>: <code>tests/edge-cases/test_01_empty_function.rs</code></p>
+<strong>Fixed</strong>: 2025-10-02
+<strong>Test</strong>: <code>tests/edge_cases_test.rs::test_edge_case_01_empty_function_bodies</code></p>
 <p><strong>Problem</strong>:
 Functions with empty bodies generate shell <code>:</code> (no-op) instead of the intended behavior.</p>
 <p><strong>Example</strong>:</p>
@@ -888,14 +896,15 @@ fn echo(msg: &amp;str) {
 }
 main "$@"
 </code></pre>
-<p><strong>Impact</strong>: ❌ <strong>CRITICAL</strong> - Makes most example code non-functional
-<strong>Workaround</strong>: None - must fix
-<strong>Fix Priority</strong>: P0 - Sprint 10</p>
+<p><strong>Impact</strong>: ❌ <strong>CRITICAL</strong> - Made most example code non-functional
+<strong>Solution</strong>: IR generator now skips empty functions - calls fall through to shell builtins
+<strong>Fix Commit</strong>: ef6f81f (TICKET-5001)</p>
 <hr />
-<h3 id="-edge-case-2-println-macro-not-supported"><a class="header" href="#-edge-case-2-println-macro-not-supported">🔴 EDGE CASE #2: <code>println!</code> Macro Not Supported</a></h3>
-<p><strong>Status</strong>: 🔴 Critical Feature Gap
+<h3 id="-edge-case-2-println-macro-not-supported"><a class="header" href="#-edge-case-2-println-macro-not-supported">✅ EDGE CASE #2: <code>println!</code> Macro Not Supported</a></h3>
+<p><strong>Status</strong>: ✅ FIXED in v0.3.3 (commit fa20f43)
 <strong>Discovered</strong>: 2025-10-02
-<strong>Test</strong>: <code>tests/edge-cases/test_02_println_macro.rs</code></p>
+<strong>Fixed</strong>: 2025-10-02
+<strong>Test</strong>: <code>tests/edge_cases_test.rs::test_edge_case_02_println_macro</code></p>
 <p><strong>Problem</strong>:
 Standard Rust <code>println!</code> macro fails with “Unsupported statement type”.</p>
 <p><strong>Example</strong>:</p>
@@ -905,14 +914,15 @@ Standard Rust <code>println!</code> macro fails with “Unsupported statement ty
 <p><strong>Error</strong>:</p>
 <pre><code>Error: AST validation error: Unsupported statement type
 </code></pre>
-<p><strong>Impact</strong>: ❌ <strong>CRITICAL</strong> - Book examples in Ch1 don’t work
-<strong>Workaround</strong>: Use custom echo function (not ergonomic)
-<strong>Fix Priority</strong>: P0 - Sprint 10</p>
+<p><strong>Impact</strong>: ❌ <strong>CRITICAL</strong> - Book examples in Ch1 didn’t work
+<strong>Solution</strong>: Parser now handles <code>StmtMacro</code>, converts <code>println!</code> to <code>rash_println</code> runtime function
+<strong>Fix Commit</strong>: fa20f43 (TICKET-5002)</p>
 <hr />
-<h3 id="-edge-case-3-negative-integers-transpile-to-unknown"><a class="header" href="#-edge-case-3-negative-integers-transpile-to-unknown">🔴 EDGE CASE #3: Negative Integers Transpile to <code>unknown</code></a></h3>
-<p><strong>Status</strong>: 🔴 Critical Bug
+<h3 id="-edge-case-3-negative-integers-transpile-to-unknown"><a class="header" href="#-edge-case-3-negative-integers-transpile-to-unknown">✅ EDGE CASE #3: Negative Integers Transpile to <code>unknown</code></a></h3>
+<p><strong>Status</strong>: ✅ FIXED in v0.3.3 (commit 71e974d)
 <strong>Discovered</strong>: 2025-10-02
-<strong>Test</strong>: <code>tests/edge-cases/test_03_negative_integers.rs</code></p>
+<strong>Fixed</strong>: 2025-10-02
+<strong>Test</strong>: <code>tests/edge_cases_test.rs::test_edge_case_03_negative_integers</code></p>
 <p><strong>Problem</strong>:
 Negative integer literals transpile to the string <code>"unknown"</code> instead of the numeric value.</p>
 <p><strong>Example</strong>:</p>
@@ -932,9 +942,9 @@ Negative integer literals transpile to the string <code>"unknown"</code> instead
     y=-42
 }
 </code></pre>
-<p><strong>Impact</strong>: ❌ <strong>CRITICAL</strong> - Negative numbers completely broken
-<strong>Workaround</strong>: None - can’t represent negative numbers
-<strong>Fix Priority</strong>: P0 - Sprint 10</p>
+<p><strong>Impact</strong>: ❌ <strong>CRITICAL</strong> - Negative numbers were completely broken
+<strong>Solution</strong>: Added <code>Literal::I32(i32)</code>, parser simplifies <code>-literal</code> to <code>Literal::I32(-n)</code>
+<strong>Fix Commit</strong>: 71e974d (TICKET-5003)</p>
 <hr />
 <h2 id="high-priority-issues"><a class="header" href="#high-priority-issues">High Priority Issues</a></h2>
 <h3 id="-edge-case-4-comparison-operators-generate-wrong-shell-code"><a class="header" href="#-edge-case-4-comparison-operators-generate-wrong-shell-code">🟡 EDGE CASE #4: Comparison Operators Generate Wrong Shell Code</a></h3>
