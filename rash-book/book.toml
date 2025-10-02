@@ -18,7 +18,6 @@ create-missing = false  # Prevent accidental file creation
 [preprocessor.links]
 
 [output.html]
-theme = "theme"
 default-theme = "rust"
 preferred-dark-theme = "coal"
 smart-punctuation = true
