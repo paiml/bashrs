@@ -1,0 +1,358 @@
+<!DOCTYPE HTML>
+<html lang="en" class="rust sidebar-visible" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>Introduction - The Rash Programming Language</title>
+
+
+        <!-- Custom HTML head -->
+
+        <meta name="description" content="The official book for Rash - Test-Driven Rust-to-Shell Transpilation">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="favicon.svg">
+        <link rel="shortcut icon" href="favicon.png">
+        <link rel="stylesheet" href="css/variables.css">
+        <link rel="stylesheet" href="css/general.css">
+        <link rel="stylesheet" href="css/chrome.css">
+        <link rel="stylesheet" href="css/print.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="FontAwesome/css/font-awesome.css">
+        <link rel="stylesheet" href="fonts/fonts.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" href="highlight.css">
+        <link rel="stylesheet" href="tomorrow-night.css">
+        <link rel="stylesheet" href="ayu-highlight.css">
+
+        <!-- Custom theme stylesheets -->
+
+
+        <!-- Provide site root to javascript -->
+        <script>
+            var path_to_root = "";
+            var default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "coal" : "rust";
+        </script>
+        <!-- Start loading toc.js asap -->
+        <script src="toc.js"></script>
+    </head>
+    <body>
+    <div id="body-container">
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                var theme = localStorage.getItem('mdbook-theme');
+                var sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            var theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            const html = document.documentElement;
+            html.classList.remove('rust')
+            html.classList.add(theme);
+            html.classList.add("js");
+        </script>
+
+        <input type="checkbox" id="sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            var sidebar = null;
+            var sidebar_toggle = document.getElementById("sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+            }
+            sidebar_toggle.checked = sidebar === 'visible';
+            html.classList.remove('sidebar-visible');
+            html.classList.add("sidebar-" + sidebar);
+        </script>
+
+        <nav id="sidebar" class="sidebar" aria-label="Table of contents">
+            <!-- populated by js -->
+            <mdbook-sidebar-scrollbox class="sidebar-scrollbox"></mdbook-sidebar-scrollbox>
+            <noscript>
+                <iframe class="sidebar-iframe-outer" src="toc.html"></iframe>
+            </noscript>
+            <div id="sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <div id="page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="menu-bar-hover-placeholder"></div>
+                <div id="menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="sidebar-toggle" class="icon-button" for="sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="sidebar">
+                            <i class="fa fa-bars"></i>
+                        </label>
+                        <button id="theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="theme-list">
+                            <i class="fa fa-paint-brush"></i>
+                        </button>
+                        <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
+                        </ul>
+                        <button id="search-toggle" class="icon-button" type="button" title="Search. (Shortkey: s)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="S" aria-controls="searchbar">
+                            <i class="fa fa-search"></i>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">The Rash Programming Language</h1>
+
+                    <div class="right-buttons">
+                        <a href="print.html" title="Print this book" aria-label="Print this book">
+                            <i id="print-button" class="fa fa-print"></i>
+                        </a>
+                        <a href="https://github.com/paiml/bashrs" title="Git repository" aria-label="Git repository">
+                            <i id="git-repository-button" class="fa fa-github"></i>
+                        </a>
+                        <a href="https://github.com/paiml/bashrs/edit/main/rash-book/src/ch00-00-introduction.md" title="Suggest an edit" aria-label="Suggest an edit">
+                            <i id="git-edit-button" class="fa fa-edit"></i>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="search-wrapper" class="hidden">
+                    <form id="searchbar-outer" class="searchbar-outer">
+                        <input type="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                    </form>
+                    <div id="searchresults-outer" class="searchresults-outer hidden">
+                        <div id="searchresults-header" class="searchresults-header"></div>
+                        <ul id="searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="content" class="content">
+                    <main>
+                        <h1 id="introduction"><a class="header" href="#introduction">Introduction</a></h1>
+<p>Welcome to <strong>The Rash Programming Language</strong> - a practical guide to writing deterministic, POSIX-compliant shell scripts using Rust syntax.</p>
+<h2 id="why-rash"><a class="header" href="#why-rash">Why Rash?</a></h2>
+<p>Shell scripts are powerful but dangerous. They’re everywhere in DevOps, CI/CD, and system administration, but they’re notoriously hard to get right:</p>
+<ul>
+<li><strong>Quoting Hell</strong>: One wrong quote and your script breaks or becomes vulnerable</li>
+<li><strong>Injection Attacks</strong>: User input can easily escape and execute arbitrary commands</li>
+<li><strong>Non-determinism</strong>: Same script produces different results on different runs</li>
+<li><strong>No Type Safety</strong>: Everything is a string until runtime</li>
+</ul>
+<p>Rash solves these problems by:</p>
+<ol>
+<li>Writing in a restricted Rust subset (type-safe, familiar)</li>
+<li>Transpiling to POSIX shell (universally compatible)</li>
+<li>Verifying correctness (ShellCheck, injection prevention)</li>
+<li>Ensuring determinism (same input → same output, always)</li>
+</ol>
+<h2 id="who-this-book-is-for"><a class="header" href="#who-this-book-is-for">Who This Book Is For</a></h2>
+<p>This book is for:</p>
+<ul>
+<li><strong>DevOps Engineers</strong> building bootstrap installers</li>
+<li><strong>SREs</strong> writing deployment scripts</li>
+<li><strong>Systems Programmers</strong> needing portable shell automation</li>
+<li><strong>Security Engineers</strong> requiring verifiable script generation</li>
+</ul>
+<p>You should have:</p>
+<ul>
+<li>Basic Rust knowledge (variables, functions, control flow)</li>
+<li>Familiarity with shell scripting (bash, sh)</li>
+<li>Understanding of POSIX compliance concepts</li>
+</ul>
+<h2 id="how-this-book-works"><a class="header" href="#how-this-book-works">How This Book Works</a></h2>
+<p>This book follows <strong>EXTREME TDD</strong> (Test-Driven Development):</p>
+<h3 id="every-chapter-has"><a class="header" href="#every-chapter-has">Every Chapter Has:</a></h3>
+<ol>
+<li><strong>Problem Statement</strong>: What we’re solving</li>
+<li><strong>Test Cases</strong>: Examples that must work</li>
+<li><strong>Implementation</strong>: How Rash transpiles it</li>
+<li><strong>Generated Shell</strong>: Actual output with ShellCheck validation</li>
+<li><strong>Edge Cases</strong>: Known limitations and workarounds</li>
+</ol>
+<h3 id="status-indicators"><a class="header" href="#status-indicators">Status Indicators:</a></h3>
+<ul>
+<li>✅ <strong>Working</strong>: Feature fully implemented and tested</li>
+<li>⚠️ <strong>Partial</strong>: Some cases work, some don’t</li>
+<li>❌ <strong>Broken</strong>: Known issues, needs fixing</li>
+<li>📋 <strong>Planned</strong>: Future feature, not yet implemented</li>
+</ul>
+<h2 id="test-driven-philosophy"><a class="header" href="#test-driven-philosophy">Test-Driven Philosophy</a></h2>
+<p>Every code example in this book is:</p>
+<ol>
+<li><strong>Tested</strong>: Has a corresponding test in <code>tests/</code></li>
+<li><strong>Verified</strong>: Passes ShellCheck POSIX validation</li>
+<li><strong>Deterministic</strong>: Same input produces same output</li>
+<li><strong>Documented</strong>: Edge cases and limitations clearly stated</li>
+</ol>
+<p>When you see a code block like this:</p>
+<pre><code class="language-rust">// Example: hello.rs
+#[bashrs::main]
+fn main() {
+    println!("Hello, World!");
+}</code></pre>
+<p>It corresponds to a test file <code>tests/ch01-hello-shell/test_01_basic.rs</code> that:</p>
+<ul>
+<li>Transpiles the Rust to shell</li>
+<li>Runs ShellCheck validation</li>
+<li>Executes the generated script</li>
+<li>Verifies output matches expectations</li>
+</ul>
+<h2 id="how-to-read-this-book"><a class="header" href="#how-to-read-this-book">How to Read This Book</a></h2>
+<h3 id="linear-reading-recommended"><a class="header" href="#linear-reading-recommended">Linear Reading (Recommended)</a></h3>
+<p>Start at Chapter 1 and work through sequentially. Each chapter builds on previous concepts.</p>
+<h3 id="reference-reading"><a class="header" href="#reference-reading">Reference Reading</a></h3>
+<p>Jump to specific chapters when you need to solve a particular problem. Use the appendices for quick API lookups.</p>
+<h3 id="hands-on-learning"><a class="header" href="#hands-on-learning">Hands-On Learning</a></h3>
+<p>Every chapter has runnable examples. Clone the repository and run:</p>
+<pre><code class="language-bash">git clone https://github.com/paiml/bashrs
+cd bashrs
+make test-book  # Run all book examples
+make test-ch01  # Run Chapter 1 examples
+</code></pre>
+<h2 id="project-structure"><a class="header" href="#project-structure">Project Structure</a></h2>
+<pre><code>bashrs/
+├── rash/           # Core transpiler
+│   ├── src/
+│   │   ├── services/   # Parser, IR generation
+│   │   ├── emitter/    # Shell code generation
+│   │   ├── verifier/   # Safety verification
+│   │   └── ...
+│   └── tests/      # Unit and integration tests
+├── rash-book/      # This book
+│   ├── src/        # Markdown chapters
+│   └── tests/      # Test cases for examples
+└── examples/       # Example Rash programs
+</code></pre>
+<h2 id="quality-metrics"><a class="header" href="#quality-metrics">Quality Metrics</a></h2>
+<p>Current Rash quality (as of Sprint 9):</p>
+<ul>
+<li><strong>Test Suite</strong>: 539 passing (100% pass rate)</li>
+<li><strong>Coverage</strong>: 85.36% (core modules)</li>
+<li><strong>Complexity</strong>: All core functions &lt;10 (cognitive)</li>
+<li><strong>Property Tests</strong>: 23 properties, ~13,300 test cases</li>
+<li><strong>ShellCheck</strong>: 100% pass rate (24 validation tests)</li>
+<li><strong>Determinism</strong>: 11 idempotence tests passing</li>
+</ul>
+<h2 id="conventions-used-in-this-book"><a class="header" href="#conventions-used-in-this-book">Conventions Used in This Book</a></h2>
+<h3 id="code-blocks"><a class="header" href="#code-blocks">Code Blocks</a></h3>
+<p><strong>Rust input</strong>:</p>
+<pre><code class="language-rust">// input.rs
+fn main() { ... }</code></pre>
+<p><strong>Generated shell output</strong>:</p>
+<pre><code class="language-sh">#!/bin/sh
+# Generated by bashrs
+...
+</code></pre>
+<p><strong>Terminal commands</strong>:</p>
+<pre><code class="language-bash">$ bashrs build input.rs -o script.sh
+$ shellcheck -s sh script.sh
+</code></pre>
+<h3 id="information-boxes"><a class="header" href="#information-boxes">Information Boxes</a></h3>
+<blockquote>
+<p><strong>Note</strong>: Additional context or tips</p>
+</blockquote>
+<blockquote>
+<p><strong>Warning</strong>: Common pitfalls or gotchas</p>
+</blockquote>
+<blockquote>
+<p><strong>Advanced</strong>: Deep dive into implementation details</p>
+</blockquote>
+<h2 id="getting-help"><a class="header" href="#getting-help">Getting Help</a></h2>
+<ul>
+<li><strong>Book Issues</strong>: https://github.com/paiml/bashrs/issues</li>
+<li><strong>Examples</strong>: https://github.com/paiml/bashrs/tree/main/examples</li>
+<li><strong>API Docs</strong>: https://docs.rs/rash (coming soon)</li>
+<li><strong>Test Status</strong>: See <a href="test-status.html">Test Status Dashboard</a></li>
+</ul>
+<h2 id="lets-begin"><a class="header" href="#lets-begin">Let’s Begin!</a></h2>
+<p>Ready to write safe, deterministic shell scripts? Let’s start with <a href="ch01-hello-shell-tdd.html">Chapter 1: Hello Shell Script</a>.</p>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="title-page.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <i class="fa fa-angle-left"></i>
+                            </a>
+
+                            <a rel="next prefetch" href="test-status.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <i class="fa fa-angle-right"></i>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="title-page.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <i class="fa fa-angle-left"></i>
+                    </a>
+
+                    <a rel="next prefetch" href="test-status.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <i class="fa fa-angle-right"></i>
+                    </a>
+            </nav>
+
+        </div>
+
+
+
+        <script>
+            window.playground_line_numbers = true;
+        </script>
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+        <script src="ace.js"></script>
+        <script src="editor.js"></script>
+        <script src="mode-rust.js"></script>
+        <script src="theme-dawn.js"></script>
+        <script src="theme-tomorrow_night.js"></script>
+
+        <script src="elasticlunr.min.js"></script>
+        <script src="mark.min.js"></script>
+        <script src="searcher.js"></script>
+
+        <script src="clipboard.min.js"></script>
+        <script src="highlight.js"></script>
+        <script src="book.js"></script>
+
+        <!-- Custom JS scripts -->
+
+
+    </div>
+    </body>
+</html>

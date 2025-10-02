@@ -1,0 +1,59 @@
+# The Rash Programming Language Book Configuration
+# Implementation-first documentation for Rust-to-Shell transpiler
+
+[book]
+title = "The Rash Programming Language"
+authors = ["PAIML Team"]
+description = "The official book for Rash - Test-Driven Rust-to-Shell Transpilation"
+language = "en"
+multilingual = false
+src = "src"
+
+[build]
+build-dir = "book"
+create-missing = false  # Prevent accidental file creation
+
+[preprocessor.index]
+
+[preprocessor.links]
+
+[output.html]
+theme = "theme"
+default-theme = "rust"
+preferred-dark-theme = "coal"
+smart-punctuation = true
+mathjax-support = false
+copy-fonts = true
+git-repository-url = "https://github.com/paiml/bashrs"
+git-repository-icon = "fa-github"
+edit-url-template = "https://github.com/paiml/bashrs/edit/main/rash-book/{path}"
+
+[output.html.print]
+enable = true
+page-break = true
+
+[output.html.fold]
+enable = true
+level = 1
+
+[output.html.playground]
+editable = true
+copyable = true
+copy-js = true
+line-numbers = true
+runnable = false  # Shell scripts not runnable in browser
+
+[output.html.search]
+enable = true
+limit-results = 30
+teaser-word-count = 30
+use-boolean-and = true
+boost-title = 2
+boost-hierarchy = 1
+boost-paragraph = 1
+expand = true
+heading-split-level = 3
+copy-js = true
+
+[rust]
+edition = "2021"

@@ -1,0 +1,517 @@
+<!DOCTYPE HTML>
+<html lang="en" class="rust sidebar-visible" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>Chapter 1: Hello Shell Script - The Rash Programming Language</title>
+
+
+        <!-- Custom HTML head -->
+
+        <meta name="description" content="The official book for Rash - Test-Driven Rust-to-Shell Transpilation">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="favicon.svg">
+        <link rel="shortcut icon" href="favicon.png">
+        <link rel="stylesheet" href="css/variables.css">
+        <link rel="stylesheet" href="css/general.css">
+        <link rel="stylesheet" href="css/chrome.css">
+        <link rel="stylesheet" href="css/print.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="FontAwesome/css/font-awesome.css">
+        <link rel="stylesheet" href="fonts/fonts.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" href="highlight.css">
+        <link rel="stylesheet" href="tomorrow-night.css">
+        <link rel="stylesheet" href="ayu-highlight.css">
+
+        <!-- Custom theme stylesheets -->
+
+
+        <!-- Provide site root to javascript -->
+        <script>
+            var path_to_root = "";
+            var default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "coal" : "rust";
+        </script>
+        <!-- Start loading toc.js asap -->
+        <script src="toc.js"></script>
+    </head>
+    <body>
+    <div id="body-container">
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                var theme = localStorage.getItem('mdbook-theme');
+                var sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            var theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            const html = document.documentElement;
+            html.classList.remove('rust')
+            html.classList.add(theme);
+            html.classList.add("js");
+        </script>
+
+        <input type="checkbox" id="sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            var sidebar = null;
+            var sidebar_toggle = document.getElementById("sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+            }
+            sidebar_toggle.checked = sidebar === 'visible';
+            html.classList.remove('sidebar-visible');
+            html.classList.add("sidebar-" + sidebar);
+        </script>
+
+        <nav id="sidebar" class="sidebar" aria-label="Table of contents">
+            <!-- populated by js -->
+            <mdbook-sidebar-scrollbox class="sidebar-scrollbox"></mdbook-sidebar-scrollbox>
+            <noscript>
+                <iframe class="sidebar-iframe-outer" src="toc.html"></iframe>
+            </noscript>
+            <div id="sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <div id="page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="menu-bar-hover-placeholder"></div>
+                <div id="menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="sidebar-toggle" class="icon-button" for="sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="sidebar">
+                            <i class="fa fa-bars"></i>
+                        </label>
+                        <button id="theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="theme-list">
+                            <i class="fa fa-paint-brush"></i>
+                        </button>
+                        <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
+                        </ul>
+                        <button id="search-toggle" class="icon-button" type="button" title="Search. (Shortkey: s)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="S" aria-controls="searchbar">
+                            <i class="fa fa-search"></i>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">The Rash Programming Language</h1>
+
+                    <div class="right-buttons">
+                        <a href="print.html" title="Print this book" aria-label="Print this book">
+                            <i id="print-button" class="fa fa-print"></i>
+                        </a>
+                        <a href="https://github.com/paiml/bashrs" title="Git repository" aria-label="Git repository">
+                            <i id="git-repository-button" class="fa fa-github"></i>
+                        </a>
+                        <a href="https://github.com/paiml/bashrs/edit/main/rash-book/src/ch01-hello-shell-tdd.md" title="Suggest an edit" aria-label="Suggest an edit">
+                            <i id="git-edit-button" class="fa fa-edit"></i>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="search-wrapper" class="hidden">
+                    <form id="searchbar-outer" class="searchbar-outer">
+                        <input type="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                    </form>
+                    <div id="searchresults-outer" class="searchresults-outer hidden">
+                        <div id="searchresults-header" class="searchresults-header"></div>
+                        <ul id="searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="content" class="content">
+                    <main>
+                        <h1 id="chapter-1-hello-shell-script"><a class="header" href="#chapter-1-hello-shell-script">Chapter 1: Hello Shell Script</a></h1>
+<!-- DOC_STATUS_START -->
+<p><strong>Chapter Status</strong>: ✅ 100% Working (5/5 examples)</p>
+<div class="table-wrapper"><table><thead><tr><th>Status</th><th>Count</th><th>Examples</th></tr></thead><tbody>
+<tr><td>✅ Working</td><td>5</td><td>Ready for production use</td></tr>
+<tr><td>⚠️ Partial</td><td>0</td><td>Some edge cases not covered</td></tr>
+<tr><td>❌ Broken</td><td>0</td><td>Known issues, needs fixing</td></tr>
+<tr><td>📋 Planned</td><td>0</td><td>Future roadmap features</td></tr>
+</tbody></table>
+</div>
+<p><em>Last updated: 2025-10-02</em>
+<em>Rash version: 0.1.0</em></p>
+<!-- DOC_STATUS_END -->
+<hr />
+<h2 id="the-problem"><a class="header" href="#the-problem">The Problem</a></h2>
+<p>Every Rash journey begins with “Hello, Shell!” - your first proof that Rust can generate safe, POSIX-compliant shell scripts.</p>
+<p>Unlike traditional shell scripting where you write raw shell code, Rash lets you write in familiar Rust syntax and transpiles to verified, deterministic shell output.</p>
+<h2 id="test-driven-examples"><a class="header" href="#test-driven-examples">Test-Driven Examples</a></h2>
+<h3 id="example-1-basic-hello-world"><a class="header" href="#example-1-basic-hello-world">Example 1: Basic Hello World</a></h3>
+<p>This example is tested in <code>tests/ch01-hello-shell/test_01_basic.rs</code>:</p>
+<pre><code class="language-rust">// examples/hello.rs
+#[bashrs::main]
+fn main() {
+    println!("Hello, Shell!");
+}</code></pre>
+<p><strong>Generated Shell Output:</strong></p>
+<pre><code class="language-sh">#!/bin/sh
+# Generated by bashrs
+
+rash_println() {
+    printf '%s\n' "$1"
+}
+
+main() {
+    rash_println "Hello, Shell!"
+}
+
+main "$@"
+</code></pre>
+<p><strong>ShellCheck Validation:</strong></p>
+<pre><code class="language-bash">$ bashrs build examples/hello.rs -o hello.sh
+✓ Transpiled successfully
+$ shellcheck -s sh hello.sh
+✓ No issues detected (POSIX compliant)
+$ ./hello.sh
+Hello, Shell!
+</code></pre>
+<p><strong>Key Points:</strong></p>
+<ul>
+<li><code>#[bashrs::main]</code> marks the entry point</li>
+<li><code>println!</code> transpiles to safe <code>printf</code> wrapper</li>
+<li>Output is POSIX-compliant and passes ShellCheck</li>
+<li>Deterministic: same Rust → same shell output</li>
+</ul>
+<h3 id="example-2-multiple-print-statements"><a class="header" href="#example-2-multiple-print-statements">Example 2: Multiple Print Statements</a></h3>
+<p>This example is tested in <code>tests/ch01-hello-shell/test_02_multiple_prints.rs</code>:</p>
+<pre><code class="language-rust">#[bashrs::main]
+fn main() {
+    println!("Installing dependencies...");
+    println!("Configuring system...");
+    println!("Done!");
+}</code></pre>
+<p><strong>Generated Shell Output:</strong></p>
+<pre><code class="language-sh">#!/bin/sh
+# Generated by bashrs
+
+rash_println() {
+    printf '%s\n' "$1"
+}
+
+main() {
+    rash_println "Installing dependencies..."
+    rash_println "Configuring system..."
+    rash_println "Done!"
+}
+
+main "$@"
+</code></pre>
+<p><strong>Output:</strong></p>
+<pre><code>Installing dependencies...
+Configuring system...
+Done!
+</code></pre>
+<h3 id="example-3-using-variables"><a class="header" href="#example-3-using-variables">Example 3: Using Variables</a></h3>
+<p>This example is tested in <code>tests/ch01-hello-shell/test_03_with_variable.rs</code>:</p>
+<pre><code class="language-rust">#[bashrs::main]
+fn main() {
+    let greeting = "Hello from Rash!";
+    println!(greeting);
+}</code></pre>
+<p><strong>Generated Shell Output:</strong></p>
+<pre><code class="language-sh">#!/bin/sh
+# Generated by bashrs
+
+rash_println() {
+    printf '%s\n' "$1"
+}
+
+main() {
+    greeting="Hello from Rash!"
+    rash_println "$greeting"
+}
+
+main "$@"
+</code></pre>
+<p><strong>Key Points:</strong></p>
+<ul>
+<li>Variables are properly quoted (<code>"$greeting"</code>)</li>
+<li>No injection risk (quotes are mandatory)</li>
+<li>POSIX-compliant variable assignment</li>
+</ul>
+<h3 id="example-4-string-literals-with-special-characters"><a class="header" href="#example-4-string-literals-with-special-characters">Example 4: String Literals with Special Characters</a></h3>
+<p>This example is tested in <code>tests/ch01-hello-shell/test_04_special_chars.rs</code>:</p>
+<pre><code class="language-rust">#[bashrs::main]
+fn main() {
+    println!("Hello, \"World\"!");
+    println!("Path: /usr/local/bin");
+    println!("Price: $100");
+}</code></pre>
+<p><strong>Generated Shell Output:</strong></p>
+<pre><code class="language-sh">#!/bin/sh
+# Generated by bashrs
+
+rash_println() {
+    printf '%s\n' "$1"
+}
+
+main() {
+    rash_println "Hello, \"World\"!"
+    rash_println "Path: /usr/local/bin"
+    rash_println "Price: \$100"
+}
+
+main "$@"
+</code></pre>
+<p><strong>Output:</strong></p>
+<pre><code>Hello, "World"!
+Path: /usr/local/bin
+Price: $100
+</code></pre>
+<p><strong>Key Points:</strong></p>
+<ul>
+<li>Double quotes inside strings are escaped</li>
+<li>Dollar signs are escaped to prevent variable expansion</li>
+<li>Paths with special characters are safe</li>
+</ul>
+<h3 id="example-5-unicode-support"><a class="header" href="#example-5-unicode-support">Example 5: Unicode Support</a></h3>
+<p>This example is tested in <code>tests/ch01-hello-shell/test_05_unicode.rs</code>:</p>
+<pre><code class="language-rust">#[bashrs::main]
+fn main() {
+    println!("Hello, 世界!");
+    println!("emoji: 🦀");
+}</code></pre>
+<p><strong>Generated Shell Output:</strong></p>
+<pre><code class="language-sh">#!/bin/sh
+# Generated by bashrs
+
+rash_println() {
+    printf '%s\n' "$1"
+}
+
+main() {
+    rash_println "Hello, 世界!"
+    rash_println "emoji: 🦀"
+}
+
+main "$@"
+</code></pre>
+<p><strong>Output:</strong></p>
+<pre><code>Hello, 世界!
+emoji: 🦀
+</code></pre>
+<p><strong>Key Points:</strong></p>
+<ul>
+<li>Unicode characters are preserved</li>
+<li>UTF-8 encoding is maintained</li>
+<li>Works on all POSIX-compliant shells</li>
+</ul>
+<h2 id="core-concepts"><a class="header" href="#core-concepts">Core Concepts</a></h2>
+<h3 id="the-bashrsmain-attribute"><a class="header" href="#the-bashrsmain-attribute">The <code>#[bashrs::main]</code> Attribute</a></h3>
+<ul>
+<li>Marks the entry point function</li>
+<li>Must be applied to exactly one function</li>
+<li>Function must be named <code>main()</code> or have this attribute</li>
+<li>Generates wrapper that calls your function</li>
+</ul>
+<h3 id="the-println-macro"><a class="header" href="#the-println-macro">The <code>println!</code> Macro</a></h3>
+<ul>
+<li>Transpiles to safe <code>printf</code> wrapper</li>
+<li>Automatically escapes special characters</li>
+<li>Adds newline after output</li>
+<li>Injection-proof by design</li>
+</ul>
+<h3 id="variable-quoting"><a class="header" href="#variable-quoting">Variable Quoting</a></h3>
+<ul>
+<li>All variables are double-quoted: <code>"$var"</code></li>
+<li>Prevents word splitting and globbing</li>
+<li>POSIX-compliant and ShellCheck-approved</li>
+<li>No way to accidentally create injection vulnerabilities</li>
+</ul>
+<h3 id="runtime-functions"><a class="header" href="#runtime-functions">Runtime Functions</a></h3>
+<p>Rash generates helper functions for common operations:</p>
+<ul>
+<li><code>rash_println()</code>: Safe printing with printf</li>
+<li>More helpers in later chapters</li>
+</ul>
+<h2 id="how-transpilation-works"><a class="header" href="#how-transpilation-works">How Transpilation Works</a></h2>
+<pre><code>Rust Source Code
+      ↓
+   Parser (syn)
+      ↓
+Restricted AST
+      ↓
+  IR Generation
+      ↓
+  Verification
+      ↓
+Shell Emission
+      ↓
+ShellCheck Validation
+      ↓
+POSIX Shell Script
+</code></pre>
+<h2 id="verification-levels"><a class="header" href="#verification-levels">Verification Levels</a></h2>
+<p>Rash supports multiple verification levels:</p>
+<pre><code class="language-bash"># Basic (default): Essential safety checks
+$ bashrs build hello.rs -o hello.sh
+
+# Strict: Paranoid quoting and escaping
+$ bashrs build hello.rs -o hello.sh --verify strict
+
+# Paranoid: Maximum safety, no dynamic content
+$ bashrs build hello.rs -o hello.sh --verify paranoid
+</code></pre>
+<h2 id="common-patterns"><a class="header" href="#common-patterns">Common Patterns</a></h2>
+<h3 id="bootstrap-installer-header"><a class="header" href="#bootstrap-installer-header">Bootstrap Installer Header</a></h3>
+<pre><code class="language-rust">#[bashrs::main]
+fn main() {
+    println!("=== System Bootstrap Installer ===");
+    println!("Version: 1.0.0");
+    println!("");
+    // ... installation logic
+}</code></pre>
+<h3 id="progress-messages"><a class="header" href="#progress-messages">Progress Messages</a></h3>
+<pre><code class="language-rust">#[bashrs::main]
+fn main() {
+    println!("[1/3] Downloading packages...");
+    println!("[2/3] Installing...");
+    println!("[3/3] Configuring...");
+    println!("✓ Installation complete!");
+}</code></pre>
+<h2 id="edge-cases-and-limitations"><a class="header" href="#edge-cases-and-limitations">Edge Cases and Limitations</a></h2>
+<h3 id="-supported"><a class="header" href="#-supported">✅ Supported</a></h3>
+<ul>
+<li>UTF-8 string literals</li>
+<li>Escaped quotes and special chars</li>
+<li>Variables with safe quoting</li>
+<li>Multiple print statements</li>
+</ul>
+<h3 id="-partial-support"><a class="header" href="#-partial-support">⚠️ Partial Support</a></h3>
+<ul>
+<li>Format strings (coming in Chapter 2)</li>
+<li>String interpolation (coming in Chapter 2)</li>
+</ul>
+<h3 id="-not-supported"><a class="header" href="#-not-supported">❌ Not Supported</a></h3>
+<ul>
+<li><code>print!</code> (use <code>println!</code> instead)</li>
+<li>Raw strings <code>r#"..."#</code> (use regular strings)</li>
+<li>Byte strings <code>b"..."</code> (not applicable to shell)</li>
+</ul>
+<h2 id="testing-your-examples"><a class="header" href="#testing-your-examples">Testing Your Examples</a></h2>
+<p>Run all Chapter 1 examples:</p>
+<pre><code class="language-bash">$ cd bashrs
+$ make test-ch01
+✓ test_01_basic ... ok
+✓ test_02_multiple_prints ... ok
+✓ test_03_with_variable ... ok
+✓ test_04_special_chars ... ok
+✓ test_05_unicode ... ok
+
+5 tests passed
+</code></pre>
+<h2 id="next-steps"><a class="header" href="#next-steps">Next Steps</a></h2>
+<p>Now that you can print to the console, let’s explore <a href="ch02-variables-tdd.html">Chapter 2: Variables and Assignment</a> to learn about:</p>
+<ul>
+<li>Variable types (strings, integers, booleans)</li>
+<li>Assignments and mutations</li>
+<li>Scope and shadowing</li>
+<li>Type conversions</li>
+</ul>
+<h2 id="reference"><a class="header" href="#reference">Reference</a></h2>
+<ul>
+<li>Test files: <code>tests/ch01-hello-shell/</code></li>
+<li>Example files: <code>examples/ch01-*.rs</code></li>
+<li>Generated output: <code>target/test-examples/ch01-*.sh</code></li>
+<li>ShellCheck reports: <code>target/shellcheck-reports/ch01-*.txt</code></li>
+</ul>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="test-status.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <i class="fa fa-angle-left"></i>
+                            </a>
+
+                            <a rel="next prefetch" href="ch02-variables-tdd.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <i class="fa fa-angle-right"></i>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="test-status.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <i class="fa fa-angle-left"></i>
+                    </a>
+
+                    <a rel="next prefetch" href="ch02-variables-tdd.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <i class="fa fa-angle-right"></i>
+                    </a>
+            </nav>
+
+        </div>
+
+
+
+        <script>
+            window.playground_line_numbers = true;
+        </script>
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+        <script src="ace.js"></script>
+        <script src="editor.js"></script>
+        <script src="mode-rust.js"></script>
+        <script src="theme-dawn.js"></script>
+        <script src="theme-tomorrow_night.js"></script>
+
+        <script src="elasticlunr.min.js"></script>
+        <script src="mark.min.js"></script>
+        <script src="searcher.js"></script>
+
+        <script src="clipboard.min.js"></script>
+        <script src="highlight.js"></script>
+        <script src="book.js"></script>
+
+        <!-- Custom JS scripts -->
+
+
+    </div>
+    </body>
+</html>

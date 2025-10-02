@@ -1,0 +1,2 @@
+# Disable Jekyll processing for GitHub Pages
+# This ensures mdBook assets are served correctly

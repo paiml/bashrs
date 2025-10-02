@@ -1,0 +1,595 @@
+<!DOCTYPE HTML>
+<html lang="en" class="rust sidebar-visible" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>Chapter 18: Known Limitations - The Rash Programming Language</title>
+
+
+        <!-- Custom HTML head -->
+
+        <meta name="description" content="The official book for Rash - Test-Driven Rust-to-Shell Transpilation">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="favicon.svg">
+        <link rel="shortcut icon" href="favicon.png">
+        <link rel="stylesheet" href="css/variables.css">
+        <link rel="stylesheet" href="css/general.css">
+        <link rel="stylesheet" href="css/chrome.css">
+        <link rel="stylesheet" href="css/print.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="FontAwesome/css/font-awesome.css">
+        <link rel="stylesheet" href="fonts/fonts.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" href="highlight.css">
+        <link rel="stylesheet" href="tomorrow-night.css">
+        <link rel="stylesheet" href="ayu-highlight.css">
+
+        <!-- Custom theme stylesheets -->
+
+
+        <!-- Provide site root to javascript -->
+        <script>
+            var path_to_root = "";
+            var default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "coal" : "rust";
+        </script>
+        <!-- Start loading toc.js asap -->
+        <script src="toc.js"></script>
+    </head>
+    <body>
+    <div id="body-container">
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                var theme = localStorage.getItem('mdbook-theme');
+                var sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            var theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            const html = document.documentElement;
+            html.classList.remove('rust')
+            html.classList.add(theme);
+            html.classList.add("js");
+        </script>
+
+        <input type="checkbox" id="sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            var sidebar = null;
+            var sidebar_toggle = document.getElementById("sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+            }
+            sidebar_toggle.checked = sidebar === 'visible';
+            html.classList.remove('sidebar-visible');
+            html.classList.add("sidebar-" + sidebar);
+        </script>
+
+        <nav id="sidebar" class="sidebar" aria-label="Table of contents">
+            <!-- populated by js -->
+            <mdbook-sidebar-scrollbox class="sidebar-scrollbox"></mdbook-sidebar-scrollbox>
+            <noscript>
+                <iframe class="sidebar-iframe-outer" src="toc.html"></iframe>
+            </noscript>
+            <div id="sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <div id="page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="menu-bar-hover-placeholder"></div>
+                <div id="menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="sidebar-toggle" class="icon-button" for="sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="sidebar">
+                            <i class="fa fa-bars"></i>
+                        </label>
+                        <button id="theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="theme-list">
+                            <i class="fa fa-paint-brush"></i>
+                        </button>
+                        <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
+                        </ul>
+                        <button id="search-toggle" class="icon-button" type="button" title="Search. (Shortkey: s)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="S" aria-controls="searchbar">
+                            <i class="fa fa-search"></i>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">The Rash Programming Language</h1>
+
+                    <div class="right-buttons">
+                        <a href="print.html" title="Print this book" aria-label="Print this book">
+                            <i id="print-button" class="fa fa-print"></i>
+                        </a>
+                        <a href="https://github.com/paiml/bashrs" title="Git repository" aria-label="Git repository">
+                            <i id="git-repository-button" class="fa fa-github"></i>
+                        </a>
+                        <a href="https://github.com/paiml/bashrs/edit/main/rash-book/src/ch18-limitations.md" title="Suggest an edit" aria-label="Suggest an edit">
+                            <i id="git-edit-button" class="fa fa-edit"></i>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="search-wrapper" class="hidden">
+                    <form id="searchbar-outer" class="searchbar-outer">
+                        <input type="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                    </form>
+                    <div id="searchresults-outer" class="searchresults-outer hidden">
+                        <div id="searchresults-header" class="searchresults-header"></div>
+                        <ul id="searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="content" class="content">
+                    <main>
+                        <h1 id="chapter-18-known-limitations-and-edge-cases"><a class="header" href="#chapter-18-known-limitations-and-edge-cases">Chapter 18: Known Limitations and Edge Cases</a></h1>
+<p><strong>Chapter Status</strong>: ✅ 100% Documented (11/11 edge cases discovered)</p>
+<p><em>Last updated: 2025-10-02</em>
+<em>Rash version: 0.1.0</em></p>
+<hr />
+<h2 id="overview"><a class="header" href="#overview">Overview</a></h2>
+<p>This chapter documents all known limitations, edge cases, and unsupported features in Rash. Every limitation is:</p>
+<ol>
+<li><strong>Tested</strong>: Has a test case demonstrating the issue</li>
+<li><strong>Documented</strong>: Clear explanation of the problem</li>
+<li><strong>Categorized</strong>: Critical, High, Medium, or Low priority</li>
+<li><strong>Tracked</strong>: Linked to issues/roadmap items</li>
+</ol>
+<h2 id="critical-issues-blockers"><a class="header" href="#critical-issues-blockers">Critical Issues (Blockers)</a></h2>
+<h3 id="-edge-case-1-empty-function-bodies-generate-no-ops"><a class="header" href="#-edge-case-1-empty-function-bodies-generate-no-ops">🔴 EDGE CASE #1: Empty Function Bodies Generate No-ops</a></h3>
+<p><strong>Status</strong>: 🔴 Critical Bug
+<strong>Discovered</strong>: 2025-10-02
+<strong>Test</strong>: <code>tests/edge-cases/test_01_empty_function.rs</code></p>
+<p><strong>Problem</strong>:
+Functions with empty bodies generate shell <code>:</code> (no-op) instead of the intended behavior.</p>
+<p><strong>Example</strong>:</p>
+<pre><code class="language-rust">fn main() {
+    echo("Hello");
+}
+
+fn echo(msg: &amp;str) {
+    // Empty - should call shell echo
+}</code></pre>
+<p><strong>Generated (WRONG)</strong>:</p>
+<pre><code class="language-sh">main() {
+    echo() {
+        msg="$1"
+        :  # ← BUG: Should call actual shell echo!
+    }
+    echo Hello
+}
+</code></pre>
+<p><strong>Expected</strong>:</p>
+<pre><code class="language-sh">main() {
+    echo "$1"  # Call shell echo directly
+}
+main "$@"
+</code></pre>
+<p><strong>Impact</strong>: ❌ <strong>CRITICAL</strong> - Makes most example code non-functional
+<strong>Workaround</strong>: None - must fix
+<strong>Fix Priority</strong>: P0 - Sprint 10</p>
+<hr />
+<h3 id="-edge-case-2-println-macro-not-supported"><a class="header" href="#-edge-case-2-println-macro-not-supported">🔴 EDGE CASE #2: <code>println!</code> Macro Not Supported</a></h3>
+<p><strong>Status</strong>: 🔴 Critical Feature Gap
+<strong>Discovered</strong>: 2025-10-02
+<strong>Test</strong>: <code>tests/edge-cases/test_02_println_macro.rs</code></p>
+<p><strong>Problem</strong>:
+Standard Rust <code>println!</code> macro fails with “Unsupported statement type”.</p>
+<p><strong>Example</strong>:</p>
+<pre><code class="language-rust">fn main() {
+    println!("Hello, World!");
+}</code></pre>
+<p><strong>Error</strong>:</p>
+<pre><code>Error: AST validation error: Unsupported statement type
+</code></pre>
+<p><strong>Impact</strong>: ❌ <strong>CRITICAL</strong> - Book examples in Ch1 don’t work
+<strong>Workaround</strong>: Use custom echo function (not ergonomic)
+<strong>Fix Priority</strong>: P0 - Sprint 10</p>
+<hr />
+<h3 id="-edge-case-3-negative-integers-transpile-to-unknown"><a class="header" href="#-edge-case-3-negative-integers-transpile-to-unknown">🔴 EDGE CASE #3: Negative Integers Transpile to <code>unknown</code></a></h3>
+<p><strong>Status</strong>: 🔴 Critical Bug
+<strong>Discovered</strong>: 2025-10-02
+<strong>Test</strong>: <code>tests/edge-cases/test_03_negative_integers.rs</code></p>
+<p><strong>Problem</strong>:
+Negative integer literals transpile to the string <code>"unknown"</code> instead of the numeric value.</p>
+<p><strong>Example</strong>:</p>
+<pre><code class="language-rust">fn main() {
+    let x = -1;
+    let y = -42;
+}</code></pre>
+<p><strong>Generated (WRONG)</strong>:</p>
+<pre><code class="language-sh">main() {
+    x=unknown  # ← BUG!
+    y=unknown  # ← BUG!
+}
+</code></pre>
+<p><strong>Expected</strong>:</p>
+<pre><code class="language-sh">main() {
+    x=-1
+    y=-42
+}
+</code></pre>
+<p><strong>Impact</strong>: ❌ <strong>CRITICAL</strong> - Negative numbers completely broken
+<strong>Workaround</strong>: None - can’t represent negative numbers
+<strong>Fix Priority</strong>: P0 - Sprint 10</p>
+<hr />
+<h2 id="high-priority-issues"><a class="header" href="#high-priority-issues">High Priority Issues</a></h2>
+<h3 id="-edge-case-4-comparison-operators-generate-wrong-shell-code"><a class="header" href="#-edge-case-4-comparison-operators-generate-wrong-shell-code">🟡 EDGE CASE #4: Comparison Operators Generate Wrong Shell Code</a></h3>
+<p><strong>Status</strong>: 🟡 High Priority Bug
+<strong>Discovered</strong>: 2025-10-02
+<strong>Test</strong>: <code>tests/edge-cases/test_04_comparisons.rs</code></p>
+<p><strong>Problem</strong>:
+Integer comparisons like <code>x &gt; 0</code> transpile to string tests like <code>test -n "${x}0"</code> which is incorrect.</p>
+<p><strong>Example</strong>:</p>
+<pre><code class="language-rust">fn main() {
+    let x = 1;
+    if x &gt; 0 {
+        let y = 2;
+    }
+}</code></pre>
+<p><strong>Generated (WRONG)</strong>:</p>
+<pre><code class="language-sh">main() {
+    x=1
+    if test -n "${x}0"; then  # ← BUG: Wrong comparison!
+        y=2
+    fi
+}
+</code></pre>
+<p><strong>Expected</strong>:</p>
+<pre><code class="language-sh">main() {
+    x=1
+    if [ "$x" -gt 0 ]; then  # Use -gt for integer comparison
+        y=2
+    fi
+}
+</code></pre>
+<p><strong>Impact</strong>: ⚠️ <strong>HIGH</strong> - Control flow broken for numeric comparisons
+<strong>Workaround</strong>: None - control flow chapter blocked
+<strong>Fix Priority</strong>: P1 - Sprint 10</p>
+<hr />
+<h3 id="-edge-case-5-functions-nested-inside-main-instead-of-global"><a class="header" href="#-edge-case-5-functions-nested-inside-main-instead-of-global">🟡 EDGE CASE #5: Functions Nested Inside main() Instead of Global</a></h3>
+<p><strong>Status</strong>: 🟡 High Priority Design Issue
+<strong>Discovered</strong>: 2025-10-02
+<strong>Test</strong>: <code>tests/edge-cases/test_05_function_nesting.rs</code></p>
+<p><strong>Problem</strong>:
+Helper functions are defined inside <code>main()</code> instead of as global shell functions.</p>
+<p><strong>Example</strong>:</p>
+<pre><code class="language-rust">fn main() {
+    helper();
+}
+
+fn helper() {
+    let x = 1;
+}</code></pre>
+<p><strong>Generated (SUBOPTIMAL)</strong>:</p>
+<pre><code class="language-sh">main() {
+    helper() {  # ← Function defined inside main!
+        x=1
+    }
+    helper
+}
+</code></pre>
+<p><strong>Expected</strong>:</p>
+<pre><code class="language-sh">helper() {
+    x=1
+}
+
+main() {
+    helper
+}
+
+main "$@"
+</code></pre>
+<p><strong>Impact</strong>: ⚠️ <strong>HIGH</strong> - Makes code harder to test, reuse
+<strong>Workaround</strong>: Works but not idiomatic shell
+<strong>Fix Priority</strong>: P1 - Sprint 11</p>
+<hr />
+<h2 id="medium-priority-issues"><a class="header" href="#medium-priority-issues">Medium Priority Issues</a></h2>
+<h3 id="-edge-case-6-for-loops-not-supported"><a class="header" href="#-edge-case-6-for-loops-not-supported">🟢 EDGE CASE #6: For Loops Not Supported</a></h3>
+<p><strong>Status</strong>: 🟢 Medium Priority Feature Gap
+<strong>Discovered</strong>: 2025-10-02
+<strong>Test</strong>: <code>tests/edge-cases/test_06_for_loops.rs</code></p>
+<p><strong>Problem</strong>:
+Rust <code>for</code> loops fail with “Unsupported expression type”.</p>
+<p><strong>Example</strong>:</p>
+<pre><code class="language-rust">fn main() {
+    for i in 0..3 {
+        let x = i;
+    }
+}</code></pre>
+<p><strong>Error</strong>:</p>
+<pre><code>Error: AST validation error: Unsupported expression type
+</code></pre>
+<p><strong>Impact</strong>: 🟡 <strong>MEDIUM</strong> - Iteration not possible
+<strong>Workaround</strong>: Use while loops (if supported)
+<strong>Fix Priority</strong>: P2 - Sprint 11</p>
+<hr />
+<h3 id="-edge-case-7-match-statements-not-supported"><a class="header" href="#-edge-case-7-match-statements-not-supported">🟢 EDGE CASE #7: Match Statements Not Supported</a></h3>
+<p><strong>Status</strong>: 🟢 Medium Priority Feature Gap
+<strong>Discovered</strong>: 2025-10-02
+<strong>Test</strong>: <code>tests/edge-cases/test_07_match_statements.rs</code></p>
+<p><strong>Problem</strong>:
+Rust <code>match</code> expressions fail with “Unsupported expression type”.</p>
+<p><strong>Example</strong>:</p>
+<pre><code class="language-rust">fn main() {
+    let x = 1;
+    match x {
+        1 =&gt; {},
+        _ =&gt; {},
+    }
+}</code></pre>
+<p><strong>Error</strong>:</p>
+<pre><code>Error: AST validation error: Unsupported expression type
+</code></pre>
+<p><strong>Impact</strong>: 🟡 <strong>MEDIUM</strong> - Pattern matching not available
+<strong>Workaround</strong>: Use if/else chains
+<strong>Fix Priority</strong>: P2 - Sprint 12</p>
+<hr />
+<h3 id="-edge-case-8-function-return-values-not-implemented"><a class="header" href="#-edge-case-8-function-return-values-not-implemented">🟢 EDGE CASE #8: Function Return Values Not Implemented</a></h3>
+<p><strong>Status</strong>: 🟢 Medium Priority Feature Gap
+<strong>Discovered</strong>: 2025-10-02
+<strong>Test</strong>: <code>tests/edge-cases/test_08_return_values.rs</code></p>
+<p><strong>Problem</strong>:
+Functions with return values transpile to <code>unknown</code> instead of capturing output.</p>
+<p><strong>Example</strong>:</p>
+<pre><code class="language-rust">fn main() {
+    let x = add(1, 2);
+}
+
+fn add(a: i32, b: i32) -&gt; i32 {
+    a + b
+}</code></pre>
+<p><strong>Generated (WRONG)</strong>:</p>
+<pre><code class="language-sh">main() {
+    add() {
+        a="$1"
+        b="$2"
+        :  # ← BUG: Expression not transpiled
+    }
+    x=unknown  # ← BUG: Return value not captured
+}
+</code></pre>
+<p><strong>Expected</strong>:</p>
+<pre><code class="language-sh">add() {
+    a="$1"
+    b="$2"
+    echo $((a + b))  # Return via echo
+}
+
+main() {
+    x=$(add 1 2)  # Capture via command substitution
+}
+</code></pre>
+<p><strong>Impact</strong>: 🟡 <strong>MEDIUM</strong> - Can’t return values from functions
+<strong>Workaround</strong>: Use global variables (not clean)
+<strong>Fix Priority</strong>: P2 - Sprint 11</p>
+<hr />
+<h3 id="-edge-case-9-arithmetic-expressions-generate-no-ops"><a class="header" href="#-edge-case-9-arithmetic-expressions-generate-no-ops">🟢 EDGE CASE #9: Arithmetic Expressions Generate No-ops</a></h3>
+<p><strong>Status</strong>: 🟢 Medium Priority Bug
+<strong>Discovered</strong>: 2025-10-02
+<strong>Test</strong>: <code>tests/edge-cases/test_09_arithmetic.rs</code></p>
+<p><strong>Problem</strong>:
+Arithmetic expressions like <code>a + b</code> transpile to <code>:</code> (no-op).</p>
+<p><strong>Example</strong>:</p>
+<pre><code class="language-rust">fn add(a: i32, b: i32) -&gt; i32 {
+    a + b
+}</code></pre>
+<p><strong>Generated (WRONG)</strong>:</p>
+<pre><code class="language-sh">add() {
+    a="$1"
+    b="$2"
+    :  # ← BUG: Should be $((a + b))
+}
+</code></pre>
+<p><strong>Expected</strong>:</p>
+<pre><code class="language-sh">add() {
+    a="$1"
+    b="$2"
+    echo $((a + b))
+}
+</code></pre>
+<p><strong>Impact</strong>: 🟡 <strong>MEDIUM</strong> - Arithmetic operations don’t work
+<strong>Workaround</strong>: None for shell arithmetic
+<strong>Fix Priority</strong>: P2 - Sprint 11</p>
+<hr />
+<h2 id="low-priority-issues"><a class="header" href="#low-priority-issues">Low Priority Issues</a></h2>
+<h3 id="-edge-case-10-empty-main-generates-no-op"><a class="header" href="#-edge-case-10-empty-main-generates-no-op">🔵 EDGE CASE #10: Empty main() Generates No-op</a></h3>
+<p><strong>Status</strong>: 🔵 Low Priority Edge Case
+<strong>Discovered</strong>: 2025-10-02
+<strong>Test</strong>: <code>tests/edge-cases/test_10_empty_main.rs</code></p>
+<p><strong>Problem</strong>:
+Empty <code>main()</code> function generates <code>:</code> (no-op).</p>
+<p><strong>Example</strong>:</p>
+<pre><code class="language-rust">fn main() {
+}</code></pre>
+<p><strong>Generated</strong>:</p>
+<pre><code class="language-sh">main() {
+    :  # No-op
+}
+</code></pre>
+<p><strong>Impact</strong>: 🔵 <strong>LOW</strong> - Technically correct, just not useful
+<strong>Workaround</strong>: Don’t write empty main functions
+<strong>Fix Priority</strong>: P3 - Nice to have</p>
+<hr />
+<h3 id="-edge-case-11-large-integer-overflow-behavior-undefined"><a class="header" href="#-edge-case-11-large-integer-overflow-behavior-undefined">🔵 EDGE CASE #11: Large Integer Overflow Behavior Undefined</a></h3>
+<p><strong>Status</strong>: 🔵 Low Priority Unknown
+<strong>Discovered</strong>: 2025-10-02
+<strong>Test</strong>: <code>tests/edge-cases/test_11_integer_overflow.rs</code></p>
+<p><strong>Problem</strong>:
+Behavior with very large integers (&gt;2^31) is undefined.</p>
+<p><strong>Example</strong>:</p>
+<pre><code class="language-rust">fn main() {
+    let x = 9999999999;  // Larger than i32::MAX
+}</code></pre>
+<p><strong>Generated</strong>:</p>
+<pre><code class="language-sh">main() {
+    x=9999999999  # May overflow in shell arithmetic
+}
+</code></pre>
+<p><strong>Impact</strong>: 🔵 <strong>LOW</strong> - Rarely used
+<strong>Workaround</strong>: Document limits (i32 range)
+<strong>Fix Priority</strong>: P3 - Document only</p>
+<hr />
+<h2 id="summary-table"><a class="header" href="#summary-table">Summary Table</a></h2>
+<div class="table-wrapper"><table><thead><tr><th>#</th><th>Issue</th><th>Priority</th><th>Impact</th><th>Status</th><th>Fix Sprint</th></tr></thead><tbody>
+<tr><td>1</td><td>Empty function bodies → <code>:</code></td><td>🔴 P0</td><td>Critical</td><td>Bug</td><td>Sprint 10</td></tr>
+<tr><td>2</td><td><code>println!</code> not supported</td><td>🔴 P0</td><td>Critical</td><td>Feature Gap</td><td>Sprint 10</td></tr>
+<tr><td>3</td><td>Negative integers → <code>unknown</code></td><td>🔴 P0</td><td>Critical</td><td>Bug</td><td>Sprint 10</td></tr>
+<tr><td>4</td><td>Comparisons wrong (<code>test -n</code>)</td><td>🟡 P1</td><td>High</td><td>Bug</td><td>Sprint 10</td></tr>
+<tr><td>5</td><td>Functions nested in main</td><td>🟡 P1</td><td>High</td><td>Design</td><td>Sprint 11</td></tr>
+<tr><td>6</td><td>For loops unsupported</td><td>🟢 P2</td><td>Medium</td><td>Feature Gap</td><td>Sprint 11</td></tr>
+<tr><td>7</td><td>Match unsupported</td><td>🟢 P2</td><td>Medium</td><td>Feature Gap</td><td>Sprint 12</td></tr>
+<tr><td>8</td><td>Return values → <code>unknown</code></td><td>🟢 P2</td><td>Medium</td><td>Feature Gap</td><td>Sprint 11</td></tr>
+<tr><td>9</td><td>Arithmetic → <code>:</code></td><td>🟢 P2</td><td>Medium</td><td>Bug</td><td>Sprint 11</td></tr>
+<tr><td>10</td><td>Empty main → <code>:</code></td><td>🔵 P3</td><td>Low</td><td>Edge Case</td><td>Sprint 12</td></tr>
+<tr><td>11</td><td>Integer overflow undefined</td><td>🔵 P3</td><td>Low</td><td>Unknown</td><td>Document</td></tr>
+</tbody></table>
+</div>
+<hr />
+<h2 id="testing-edge-cases"><a class="header" href="#testing-edge-cases">Testing Edge Cases</a></h2>
+<p>Run all edge case tests:</p>
+<pre><code class="language-bash">$ cd bashrs
+$ make test-edge-cases
+✓ test_01_empty_function ... FAIL (expected)
+✓ test_02_println_macro ... FAIL (expected)
+✓ test_03_negative_integers ... FAIL (expected)
+✓ test_04_comparisons ... FAIL (expected)
+✓ test_05_function_nesting ... PASS (suboptimal)
+✓ test_06_for_loops ... FAIL (expected)
+✓ test_07_match_statements ... FAIL (expected)
+✓ test_08_return_values ... FAIL (expected)
+✓ test_09_arithmetic ... FAIL (expected)
+✓ test_10_empty_main ... PASS (acceptable)
+✓ test_11_integer_overflow ... UNKNOWN
+
+11 edge cases documented
+</code></pre>
+<hr />
+<h2 id="next-steps"><a class="header" href="#next-steps">Next Steps</a></h2>
+<p><strong>Sprint 10 (Immediate)</strong>: Fix P0 critical issues</p>
+<ol>
+<li>Implement <code>println!</code> macro support</li>
+<li>Fix negative integer transpilation</li>
+<li>Fix empty function body handling</li>
+<li>Fix comparison operator transpilation</li>
+</ol>
+<p><strong>Sprint 11</strong>: Fix P1-P2 issues</p>
+<ol>
+<li>Move functions to global scope</li>
+<li>Implement for loops</li>
+<li>Implement return values</li>
+<li>Fix arithmetic expressions</li>
+</ol>
+<p><strong>Sprint 12</strong>: Documentation and polish</p>
+<ol>
+<li>Document known limitations clearly</li>
+<li>Add warning messages for unsupported features</li>
+<li>Improve error messages with suggestions</li>
+</ol>
+<hr />
+<h2 id="contributing"><a class="header" href="#contributing">Contributing</a></h2>
+<p>Found a new edge case? Please:</p>
+<ol>
+<li>Create test case: <code>tests/edge-cases/test_XX_your_case.rs</code></li>
+<li>Document in this chapter</li>
+<li>File issue: https://github.com/paiml/bashrs/issues</li>
+<li>Tag with <code>edge-case</code> label</li>
+</ol>
+<hr />
+<p><strong>Next Chapter</strong>: <a href="ch19-best-practices.html">Chapter 19: Workarounds and Best Practices</a></p>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="ch17-testing-tdd.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <i class="fa fa-angle-left"></i>
+                            </a>
+
+                            <a rel="next prefetch" href="ch19-best-practices.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <i class="fa fa-angle-right"></i>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="ch17-testing-tdd.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <i class="fa fa-angle-left"></i>
+                    </a>
+
+                    <a rel="next prefetch" href="ch19-best-practices.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <i class="fa fa-angle-right"></i>
+                    </a>
+            </nav>
+
+        </div>
+
+
+
+        <script>
+            window.playground_line_numbers = true;
+        </script>
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+        <script src="ace.js"></script>
+        <script src="editor.js"></script>
+        <script src="mode-rust.js"></script>
+        <script src="theme-dawn.js"></script>
+        <script src="theme-tomorrow_night.js"></script>
+
+        <script src="elasticlunr.min.js"></script>
+        <script src="mark.min.js"></script>
+        <script src="searcher.js"></script>
+
+        <script src="clipboard.min.js"></script>
+        <script src="highlight.js"></script>
+        <script src="book.js"></script>
+
+        <!-- Custom JS scripts -->
+
+
+    </div>
+    </body>
+</html>
