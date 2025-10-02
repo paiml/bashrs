@@ -334,6 +334,9 @@ impl PosixEmitter {
             ShellValue::Comparison { op, left, right } => {
                 self.emit_comparison(op, left, right)
             }
+            ShellValue::Arithmetic { op, left, right } => {
+                self.emit_arithmetic(op, left, right)
+            }
         }
     }
 
@@ -359,6 +362,54 @@ impl PosixEmitter {
 
         // Generate POSIX test command: [ "$left" -op "$right" ]
         Ok(format!("[ {left_val} {op_str} {right_val} ]"))
+    }
+
+    fn emit_arithmetic(
+        &self,
+        op: &crate::ir::shell_ir::ArithmeticOp,
+        left: &ShellValue,
+        right: &ShellValue,
+    ) -> Result<String> {
+        use crate::ir::shell_ir::ArithmeticOp;
+
+        // For arithmetic, emit raw values (no quotes needed inside $((...)))
+        let left_str = self.emit_arithmetic_operand(left)?;
+        let right_str = self.emit_arithmetic_operand(right)?;
+
+        let op_str = match op {
+            ArithmeticOp::Add => "+",
+            ArithmeticOp::Sub => "-",
+            ArithmeticOp::Mul => "*",
+            ArithmeticOp::Div => "/",
+            ArithmeticOp::Mod => "%",
+        };
+
+        // Generate POSIX arithmetic expansion: $((expr))
+        Ok(format!("$(({left_str} {op_str} {right_str}))"))
+    }
+
+    fn emit_arithmetic_operand(&self, value: &ShellValue) -> Result<String> {
+        match value {
+            ShellValue::String(s) => Ok(s.clone()),
+            ShellValue::Variable(name) => Ok(escape_variable_name(name)),
+            ShellValue::Arithmetic { op, left, right } => {
+                // Nested arithmetic - just emit the expression without outer $(())
+                let left_str = self.emit_arithmetic_operand(left)?;
+                let right_str = self.emit_arithmetic_operand(right)?;
+                let op_str = match op {
+                    crate::ir::shell_ir::ArithmeticOp::Add => "+",
+                    crate::ir::shell_ir::ArithmeticOp::Sub => "-",
+                    crate::ir::shell_ir::ArithmeticOp::Mul => "*",
+                    crate::ir::shell_ir::ArithmeticOp::Div => "/",
+                    crate::ir::shell_ir::ArithmeticOp::Mod => "%",
+                };
+                Ok(format!("({left_str} {op_str} {right_str})"))
+            }
+            _ => Err(crate::models::Error::Emission(format!(
+                "Unsupported value in arithmetic expression: {:?}",
+                value
+            ))),
+        }
     }
 
     fn emit_bool_value(&self, value: bool) -> String {
@@ -399,6 +450,11 @@ impl PosixEmitter {
                 return Err(crate::models::Error::IrGeneration(
                     "Comparison expression cannot be used in string concatenation".to_string(),
                 ));
+            }
+            ShellValue::Arithmetic { op, left, right } => {
+                // Arithmetic in concat context - emit the $((...)) form
+                let arith_str = self.emit_arithmetic(op, left, right)?;
+                result.push_str(&arith_str);
             }
         }
         Ok(())
