@@ -195,9 +195,30 @@ fn convert_stmt(stmt: &SynStmt) -> Result<Stmt> {
                 let else_block = if let Some((_, else_expr)) = &expr_if.else_branch {
                     match &**else_expr {
                         SynExpr::Block(block) => Some(convert_block(&block.block)?),
-                        SynExpr::If(_) => {
+                        SynExpr::If(nested_if) => {
                             // Handle else-if by converting to nested if statement
-                            Some(vec![Stmt::Expr(convert_expr(else_expr)?)])
+                            // Convert the nested if as a statement, not an expression
+                            let nested_condition = convert_expr(&nested_if.cond)?;
+                            let nested_then = convert_block(&nested_if.then_branch)?;
+                            let nested_else = if let Some((_, nested_else_expr)) = &nested_if.else_branch {
+                                match &**nested_else_expr {
+                                    SynExpr::Block(block) => Some(convert_block(&block.block)?),
+                                    SynExpr::If(_) => {
+                                        // Recursively handle else-if-else-if chains
+                                        // Wrap in Expr statement which will recursively process
+                                        let stmt = SynStmt::Expr((**nested_else_expr).clone(), None);
+                                        Some(vec![convert_stmt(&stmt)?])
+                                    }
+                                    _ => None,
+                                }
+                            } else {
+                                None
+                            };
+                            Some(vec![Stmt::If {
+                                condition: nested_condition,
+                                then_block: nested_then,
+                                else_block: nested_else,
+                            }])
                         }
                         _ => None,
                     }
