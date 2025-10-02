@@ -11,7 +11,7 @@
 - ✅ **Coverage infrastructure**: "make coverage" just works (82.14% coverage)
 - ✅ **Toyota Way applied**: Jidoka, Hansei, Kaizen, Five Whys
 
-## Current Status: Sprint 10 COMPLETE | 5/11 Edge Cases Fixed 🎯
+## Current Status: Sprint 11 COMPLETE | 7/11 Edge Cases Fixed 🎯
 
 ### Sprint History
 **Sprint 1**: Critical bug fixes (5 bugs, 22 property tests)
@@ -24,6 +24,7 @@
 **Sprint 8**: **Parse refactoring** (cognitive 35→5, 86% reduction) ✅
 **Sprint 9**: **Coverage enhancement** (85.36% core coverage achieved) ✅
 **Sprint 10**: **Edge case fixes + MCP server** (5/11 fixed, MCP operational) ✅
+**Sprint 11**: **P2 edge cases** (arithmetic + returns fixed, 7/11 total) ✅
 
 ### 🎯 Project Goals (Derived from CLAUDE.md)
 Rash is a **Rust-to-Shell transpiler** with these critical invariants:
@@ -45,7 +46,7 @@ Rash is a **Rust-to-Shell transpiler** with these critical invariants:
 | **ShellCheck** | 24 validation tests | 100% pass rate | 🟢 Good |
 | **Determinism** | 11 idempotence tests | Comprehensive suite | 🟢 Good |
 | **Performance** | 21.1µs simple transpile | <10ms transpile | 🟢 EXCEEDS (100x) |
-| **Edge Cases** | 5/11 fixed (all P0 + all P1) | 11/11 | 🟢 Critical Done |
+| **Edge Cases** | 7/11 fixed (all P0 + all P1 + 2 P2) | 11/11 | 🟢 Core Done |
 | **MCP Server** | rash-mcp operational | Full stdio transport | 🟢 Functional |
 
 ### 🏆 Quality Achievements
