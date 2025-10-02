@@ -182,8 +182,9 @@ impl IrConverter {
                 let left_val = self.convert_expr_to_value(left)?;
                 let right_val = self.convert_expr_to_value(right)?;
 
-                // Convert comparison operators to Comparison variant
+                // Convert comparison and arithmetic operators to proper variants
                 match op {
+                    // Comparison operators
                     BinaryOp::Eq => Ok(ShellValue::Comparison {
                         op: shell_ir::ComparisonOp::Eq,
                         left: Box::new(left_val),
@@ -214,7 +215,28 @@ impl IrConverter {
                         left: Box::new(left_val),
                         right: Box::new(right_val),
                     }),
-                    // For other operators (Add, Sub, etc.), use Concat as fallback
+                    // Arithmetic operators
+                    BinaryOp::Add => Ok(ShellValue::Arithmetic {
+                        op: shell_ir::ArithmeticOp::Add,
+                        left: Box::new(left_val),
+                        right: Box::new(right_val),
+                    }),
+                    BinaryOp::Sub => Ok(ShellValue::Arithmetic {
+                        op: shell_ir::ArithmeticOp::Sub,
+                        left: Box::new(left_val),
+                        right: Box::new(right_val),
+                    }),
+                    BinaryOp::Mul => Ok(ShellValue::Arithmetic {
+                        op: shell_ir::ArithmeticOp::Mul,
+                        left: Box::new(left_val),
+                        right: Box::new(right_val),
+                    }),
+                    BinaryOp::Div => Ok(ShellValue::Arithmetic {
+                        op: shell_ir::ArithmeticOp::Div,
+                        left: Box::new(left_val),
+                        right: Box::new(right_val),
+                    }),
+                    // For other operators (logical, etc.), use Concat as fallback
                     _ => Ok(ShellValue::Concat(vec![left_val, right_val])),
                 }
             }

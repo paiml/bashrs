@@ -303,12 +303,15 @@ fn test_binary_expression_conversion() {
             assert_eq!(stmts.len(), 1);
             match &stmts[0] {
                 ShellIR::Let {
-                    value: ShellValue::Concat(parts),
+                    value: ShellValue::Arithmetic { op, left, right },
                     ..
                 } => {
-                    assert_eq!(parts.len(), 2);
+                    // After TICKET-5006: Addition now generates Arithmetic variant
+                    assert!(matches!(op, crate::ir::shell_ir::ArithmeticOp::Add));
+                    assert!(matches!(**left, ShellValue::String(_)));
+                    assert!(matches!(**right, ShellValue::String(_)));
                 }
-                _ => panic!("Expected Let with Concat value"),
+                _ => panic!("Expected Let with Arithmetic value (after TICKET-5006)"),
             }
         }
         _ => panic!("Expected Sequence"),

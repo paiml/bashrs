@@ -115,6 +115,13 @@ pub enum ShellValue {
         left: Box<ShellValue>,
         right: Box<ShellValue>,
     },
+
+    /// Arithmetic operation (for $((expr)))
+    Arithmetic {
+        op: ArithmeticOp,
+        left: Box<ShellValue>,
+        right: Box<ShellValue>,
+    },
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -133,6 +140,20 @@ pub enum ComparisonOp {
     Le,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub enum ArithmeticOp {
+    /// + : addition
+    Add,
+    /// - : subtraction
+    Sub,
+    /// * : multiplication
+    Mul,
+    /// / : division
+    Div,
+    /// % : modulo
+    Mod,
+}
+
 impl ShellValue {
     /// Check if this value is a constant (doesn't depend on variables or commands)
     pub fn is_constant(&self) -> bool {
@@ -140,7 +161,7 @@ impl ShellValue {
             ShellValue::String(_) | ShellValue::Bool(_) => true,
             ShellValue::Variable(_) | ShellValue::CommandSubst(_) => false,
             ShellValue::Concat(parts) => parts.iter().all(|p| p.is_constant()),
-            ShellValue::Comparison { left, right, .. } => {
+            ShellValue::Comparison { left, right, .. } | ShellValue::Arithmetic { left, right, .. } => {
                 left.is_constant() && right.is_constant()
             }
         }
