@@ -186,6 +186,7 @@ fn convert_stmt(stmt: &SynStmt) -> Result<Stmt> {
     match stmt {
         SynStmt::Local(local) => convert_let_stmt(local),
         SynStmt::Expr(expr, _) => convert_expr_stmt(expr),
+        SynStmt::Macro(macro_stmt) => convert_macro_stmt(macro_stmt),
         _ => Err(Error::Validation("Unsupported statement type".to_string())),
     }
 }
@@ -214,6 +215,36 @@ fn convert_expr_stmt(expr: &SynExpr) -> Result<Stmt> {
         convert_if_stmt(expr_if)
     } else {
         Ok(Stmt::Expr(convert_expr(expr)?))
+    }
+}
+
+fn convert_macro_stmt(macro_stmt: &syn::StmtMacro) -> Result<Stmt> {
+    let macro_path = &macro_stmt.mac.path;
+    let macro_name = macro_path
+        .segments
+        .last()
+        .ok_or_else(|| Error::Validation("Empty macro path".to_string()))?
+        .ident
+        .to_string();
+
+    if macro_name == "println" {
+        // Parse macro tokens to extract the format string
+        let tokens = macro_stmt.mac.tokens.clone();
+        let parsed: syn::Expr = syn::parse2(tokens)
+            .map_err(|_| Error::Validation("Invalid println! arguments".to_string()))?;
+
+        // Convert the first argument as the format string
+        let arg = convert_expr(&parsed)?;
+
+        // Generate a function call to rash_println
+        Ok(Stmt::Expr(Expr::FunctionCall {
+            name: "rash_println".to_string(),
+            args: vec![arg],
+        }))
+    } else {
+        Err(Error::Validation(format!(
+            "Unsupported macro: {macro_name}!"
+        )))
     }
 }
 
