@@ -202,6 +202,7 @@ impl PosixEmitter {
             ShellIR::Function { name, params, body } => {
                 self.emit_function(output, name, params, body, indent)
             }
+            ShellIR::Echo { value } => self.emit_echo_statement(output, value, indent),
         }
     }
 
@@ -283,6 +284,19 @@ impl PosixEmitter {
         let indent_str = "    ".repeat(indent + 1);
         // Use ':' (true command) instead of comment for valid POSIX syntax
         writeln!(output, "{indent_str}:")?;
+        Ok(())
+    }
+
+    fn emit_echo_statement(
+        &self,
+        output: &mut String,
+        value: &ShellValue,
+        indent: usize,
+    ) -> Result<()> {
+        let indent_str = "    ".repeat(indent + 1);
+        let value_str = self.emit_shell_value(value)?;
+        // Use echo to return value from function
+        writeln!(output, "{indent_str}echo {value_str}")?;
         Ok(())
     }
 

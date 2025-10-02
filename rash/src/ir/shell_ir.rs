@@ -35,6 +35,9 @@ pub enum ShellIR {
         params: Vec<String>,
         body: Box<ShellIR>,
     },
+
+    /// Echo a value (for function returns)
+    Echo { value: ShellValue },
 }
 
 impl ShellIR {
@@ -56,7 +59,7 @@ impl ShellIR {
             ShellIR::Sequence(items) => items
                 .iter()
                 .fold(EffectSet::pure(), |acc, item| acc.union(&item.effects())),
-            ShellIR::Exit { .. } | ShellIR::Noop => EffectSet::pure(),
+            ShellIR::Exit { .. } | ShellIR::Noop | ShellIR::Echo { .. } => EffectSet::pure(),
             ShellIR::Function { body, .. } => body.effects(),
         }
     }
