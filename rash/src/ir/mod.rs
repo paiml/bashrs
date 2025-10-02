@@ -48,6 +48,11 @@ impl IrConverter {
         // Convert all user-defined functions (except main) to shell functions
         for function in &ast.functions {
             if function.name != ast.entry_point {
+                // Skip empty functions - they delegate to shell builtins
+                if function.body.is_empty() {
+                    continue;
+                }
+
                 let params: Vec<String> = function.params.iter().map(|p| p.name.clone()).collect();
                 let mut body_stmts = Vec::new();
                 for stmt in &function.body {
