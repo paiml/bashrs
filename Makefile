@@ -9,6 +9,7 @@ SHELL := /bin/bash
 .PHONY: shellcheck-install shellcheck-validate shellcheck-test-all
 .PHONY: audit docs build install profile-memory profile-heap profile-flamegraph
 .PHONY: update-deps update-deps-aggressive update-deps-check update-deps-workspace
+.PHONY: coverage coverage-ci coverage-clean
 .PHONY: kaizen demo-mode
 
 # Kaizen - Continuous Improvement Protocol
@@ -733,6 +734,11 @@ help:
 	@echo "  make quality-report - Generate quality report"
 	@echo "  make audit        - Security audit"
 	@echo ""
+	@echo "Coverage:"
+	@echo "  make coverage     - Generate HTML coverage report (opens in browser)"
+	@echo "  make coverage-ci  - Generate LCOV report for CI/CD"
+	@echo "  make coverage-clean - Clean coverage artifacts"
+	@echo ""
 	@echo "Dependencies:"
 	@echo "  make update-deps  - Update dependencies (semver-compatible)"
 	@echo "  make update-deps-aggressive - Update all dependencies including major versions"
@@ -748,3 +754,29 @@ help:
 	@echo "  make docs         - Build documentation"
 	@echo "  make clean        - Clean build artifacts"
 	@echo "  make help         - Show this help"
+# Code Coverage (Toyota Way: "make coverage" just works)
+# Following: docs/specifications/COVERAGE.md (Two-Phase Pattern)
+coverage: ## Generate HTML coverage report and open in browser
+	@echo "=== Code Coverage (Two-Phase LLVM Pattern) ==="
+	@echo "Phase 1: Running tests with instrumentation..."
+	@cargo llvm-cov clean --workspace
+	@cargo llvm-cov --no-report nextest
+	@echo "Phase 2: Generating HTML report..."
+	@cargo llvm-cov report --html --open
+	@echo "✓ Coverage report opened in browser"
+
+coverage-ci: ## Generate LCOV report for CI/CD
+	@echo "=== Code Coverage for CI/CD ==="
+	@echo "Phase 1: Running tests with instrumentation..."
+	@cargo llvm-cov clean --workspace
+	@cargo llvm-cov --no-report nextest --all-features
+	@echo "Phase 2: Generating LCOV report..."
+	@cargo llvm-cov report --lcov --output-path lcov.info
+	@echo "✓ Coverage report generated: lcov.info"
+
+coverage-clean: ## Clean coverage artifacts
+	@cargo llvm-cov clean --workspace
+	@rm -f lcov.info coverage.xml
+	@rm -rf target/llvm-cov target/coverage
+	@find . -name "*.profraw" -delete
+	@echo "✓ Coverage artifacts cleaned"
