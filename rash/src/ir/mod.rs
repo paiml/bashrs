@@ -177,10 +177,46 @@ impl IrConverter {
                 Literal::Str(s) => Ok(ShellValue::String(s.clone())),
             },
             Expr::Variable(name) => Ok(ShellValue::Variable(name.clone())),
-            Expr::Binary { op: _, left, right } => {
+            Expr::Binary { op, left, right } => {
+                use crate::ast::restricted::BinaryOp;
                 let left_val = self.convert_expr_to_value(left)?;
                 let right_val = self.convert_expr_to_value(right)?;
-                Ok(ShellValue::Concat(vec![left_val, right_val])) // Simplified
+
+                // Convert comparison operators to Comparison variant
+                match op {
+                    BinaryOp::Eq => Ok(ShellValue::Comparison {
+                        op: shell_ir::ComparisonOp::Eq,
+                        left: Box::new(left_val),
+                        right: Box::new(right_val),
+                    }),
+                    BinaryOp::Ne => Ok(ShellValue::Comparison {
+                        op: shell_ir::ComparisonOp::Ne,
+                        left: Box::new(left_val),
+                        right: Box::new(right_val),
+                    }),
+                    BinaryOp::Gt => Ok(ShellValue::Comparison {
+                        op: shell_ir::ComparisonOp::Gt,
+                        left: Box::new(left_val),
+                        right: Box::new(right_val),
+                    }),
+                    BinaryOp::Ge => Ok(ShellValue::Comparison {
+                        op: shell_ir::ComparisonOp::Ge,
+                        left: Box::new(left_val),
+                        right: Box::new(right_val),
+                    }),
+                    BinaryOp::Lt => Ok(ShellValue::Comparison {
+                        op: shell_ir::ComparisonOp::Lt,
+                        left: Box::new(left_val),
+                        right: Box::new(right_val),
+                    }),
+                    BinaryOp::Le => Ok(ShellValue::Comparison {
+                        op: shell_ir::ComparisonOp::Le,
+                        left: Box::new(left_val),
+                        right: Box::new(right_val),
+                    }),
+                    // For other operators (Add, Sub, etc.), use Concat as fallback
+                    _ => Ok(ShellValue::Concat(vec![left_val, right_val])),
+                }
             }
             _ => Ok(ShellValue::String("unknown".to_string())), // Fallback
         }

@@ -108,6 +108,29 @@ pub enum ShellValue {
 
     /// Command substitution
     CommandSubst(Command),
+
+    /// Comparison operation (for test conditions)
+    Comparison {
+        op: ComparisonOp,
+        left: Box<ShellValue>,
+        right: Box<ShellValue>,
+    },
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub enum ComparisonOp {
+    /// -eq: numeric equality
+    Eq,
+    /// -ne: numeric inequality
+    Ne,
+    /// -gt: greater than
+    Gt,
+    /// -ge: greater than or equal
+    Ge,
+    /// -lt: less than
+    Lt,
+    /// -le: less than or equal
+    Le,
 }
 
 impl ShellValue {
@@ -117,6 +140,9 @@ impl ShellValue {
             ShellValue::String(_) | ShellValue::Bool(_) => true,
             ShellValue::Variable(_) | ShellValue::CommandSubst(_) => false,
             ShellValue::Concat(parts) => parts.iter().all(|p| p.is_constant()),
+            ShellValue::Comparison { left, right, .. } => {
+                left.is_constant() && right.is_constant()
+            }
         }
     }
 

@@ -295,7 +295,34 @@ impl PosixEmitter {
                 let cmd_str = self.emit_command(cmd)?;
                 Ok(format!("\"$({cmd_str})\""))
             }
+            ShellValue::Comparison { op, left, right } => {
+                self.emit_comparison(op, left, right)
+            }
         }
+    }
+
+    fn emit_comparison(
+        &self,
+        op: &crate::ir::shell_ir::ComparisonOp,
+        left: &ShellValue,
+        right: &ShellValue,
+    ) -> Result<String> {
+        use crate::ir::shell_ir::ComparisonOp;
+
+        let left_val = self.emit_shell_value(left)?;
+        let right_val = self.emit_shell_value(right)?;
+
+        let op_str = match op {
+            ComparisonOp::Eq => "-eq",
+            ComparisonOp::Ne => "-ne",
+            ComparisonOp::Gt => "-gt",
+            ComparisonOp::Ge => "-ge",
+            ComparisonOp::Lt => "-lt",
+            ComparisonOp::Le => "-le",
+        };
+
+        // Generate POSIX test command: [ "$left" -op "$right" ]
+        Ok(format!("[ {left_val} {op_str} {right_val} ]"))
     }
 
     fn emit_bool_value(&self, value: bool) -> String {
@@ -329,6 +356,13 @@ impl PosixEmitter {
                 // Nested concatenation - flatten it
                 let nested = self.emit_shell_value(part)?;
                 self.append_flattened_content(result, &nested);
+            }
+            ShellValue::Comparison { .. } => {
+                // Comparisons don't make sense in concatenation context
+                // This should be caught at validation, but handle gracefully
+                return Err(crate::models::Error::IrGeneration(
+                    "Comparison expression cannot be used in string concatenation".to_string(),
+                ));
             }
         }
         Ok(())
@@ -368,6 +402,10 @@ impl PosixEmitter {
                 } else {
                     Ok("false".to_string())
                 }
+            }
+            ShellValue::Comparison { .. } => {
+                // Comparisons already generate complete test expressions
+                self.emit_shell_value(test)
             }
             other => {
                 // For complex expressions, evaluate them and test the result
