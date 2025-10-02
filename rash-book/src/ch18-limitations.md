@@ -1,9 +1,15 @@
 # Chapter 18: Known Limitations and Edge Cases
 
-**Chapter Status**: ✅ 100% Documented (11/11 edge cases discovered)
+**Chapter Status**: 🎯 **3/11 Fixed** (All P0 critical issues resolved!)
 
 *Last updated: 2025-10-02*
-*Rash version: 0.1.0*
+*Rash version: 0.3.3*
+
+**Sprint 10 Progress**:
+- ✅ **3 P0 Critical**: All fixed (empty functions, println!, negative integers)
+- 🟡 **2 P1 High**: Pending (comparison operators, function nesting)
+- 🔵 **4 P2 Medium**: Pending (loops, match, returns, arithmetic)
+- ⚪ **2 P3 Low**: Backlog (empty main, integer overflow)
 
 ---
 
@@ -15,13 +21,14 @@ This chapter documents all known limitations, edge cases, and unsupported featur
 3. **Categorized**: Critical, High, Medium, or Low priority
 4. **Tracked**: Linked to issues/roadmap items
 
-## Critical Issues (Blockers)
+## ✅ Critical Issues (All Fixed!)
 
-### 🔴 EDGE CASE #1: Empty Function Bodies Generate No-ops
+### ✅ EDGE CASE #1: Empty Function Bodies Generate No-ops
 
-**Status**: 🔴 Critical Bug
+**Status**: ✅ FIXED in v0.3.3 (commit ef6f81f)
 **Discovered**: 2025-10-02
-**Test**: `tests/edge-cases/test_01_empty_function.rs`
+**Fixed**: 2025-10-02
+**Test**: `tests/edge_cases_test.rs::test_edge_case_01_empty_function_bodies`
 
 **Problem**:
 Functions with empty bodies generate shell `:` (no-op) instead of the intended behavior.
@@ -56,17 +63,18 @@ main() {
 main "$@"
 ```
 
-**Impact**: ❌ **CRITICAL** - Makes most example code non-functional
-**Workaround**: None - must fix
-**Fix Priority**: P0 - Sprint 10
+**Impact**: ❌ **CRITICAL** - Made most example code non-functional
+**Solution**: IR generator now skips empty functions - calls fall through to shell builtins
+**Fix Commit**: ef6f81f (TICKET-5001)
 
 ---
 
-### 🔴 EDGE CASE #2: `println!` Macro Not Supported
+### ✅ EDGE CASE #2: `println!` Macro Not Supported
 
-**Status**: 🔴 Critical Feature Gap
+**Status**: ✅ FIXED in v0.3.3 (commit fa20f43)
 **Discovered**: 2025-10-02
-**Test**: `tests/edge-cases/test_02_println_macro.rs`
+**Fixed**: 2025-10-02
+**Test**: `tests/edge_cases_test.rs::test_edge_case_02_println_macro`
 
 **Problem**:
 Standard Rust `println!` macro fails with "Unsupported statement type".
@@ -83,17 +91,18 @@ fn main() {
 Error: AST validation error: Unsupported statement type
 ```
 
-**Impact**: ❌ **CRITICAL** - Book examples in Ch1 don't work
-**Workaround**: Use custom echo function (not ergonomic)
-**Fix Priority**: P0 - Sprint 10
+**Impact**: ❌ **CRITICAL** - Book examples in Ch1 didn't work
+**Solution**: Parser now handles `StmtMacro`, converts `println!` to `rash_println` runtime function
+**Fix Commit**: fa20f43 (TICKET-5002)
 
 ---
 
-### 🔴 EDGE CASE #3: Negative Integers Transpile to `unknown`
+### ✅ EDGE CASE #3: Negative Integers Transpile to `unknown`
 
-**Status**: 🔴 Critical Bug
+**Status**: ✅ FIXED in v0.3.3 (commit 71e974d)
 **Discovered**: 2025-10-02
-**Test**: `tests/edge-cases/test_03_negative_integers.rs`
+**Fixed**: 2025-10-02
+**Test**: `tests/edge_cases_test.rs::test_edge_case_03_negative_integers`
 
 **Problem**:
 Negative integer literals transpile to the string `"unknown"` instead of the numeric value.
@@ -122,9 +131,9 @@ main() {
 }
 ```
 
-**Impact**: ❌ **CRITICAL** - Negative numbers completely broken
-**Workaround**: None - can't represent negative numbers
-**Fix Priority**: P0 - Sprint 10
+**Impact**: ❌ **CRITICAL** - Negative numbers were completely broken
+**Solution**: Added `Literal::I32(i32)`, parser simplifies `-literal` to `Literal::I32(-n)`
+**Fix Commit**: 71e974d (TICKET-5003)
 
 ---
 
