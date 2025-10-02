@@ -38,6 +38,14 @@ pub enum ShellIR {
 
     /// Echo a value (for function returns)
     Echo { value: ShellValue },
+
+    /// For loop with range
+    For {
+        var: String,
+        start: ShellValue,
+        end: ShellValue,
+        body: Box<ShellIR>,
+    },
 }
 
 impl ShellIR {
@@ -61,6 +69,7 @@ impl ShellIR {
                 .fold(EffectSet::pure(), |acc, item| acc.union(&item.effects())),
             ShellIR::Exit { .. } | ShellIR::Noop | ShellIR::Echo { .. } => EffectSet::pure(),
             ShellIR::Function { body, .. } => body.effects(),
+            ShellIR::For { body, .. } => body.effects(),
         }
     }
 

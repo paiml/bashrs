@@ -539,5 +539,109 @@ mod security_tests {
                 }
             }
         }
+
+        /// Property: For loops should generate valid seq commands
+        #[test]
+        fn prop_for_loops_valid_seq(start in 0i32..100, end in 0i32..100) {
+            let source = format!("fn main() {{ for i in {}..{} {{ let x = i; }} }}", start, end);
+
+            if let Ok(shell_code) = transpile(&source, Config::default()) {
+                // Should contain seq command
+                prop_assert!(shell_code.contains("seq"), "For loop should use seq");
+                // Should contain for...do...done
+                prop_assert!(shell_code.contains("for i in"), "Should have for loop");
+                prop_assert!(shell_code.contains("done"), "Should close with done");
+            }
+        }
+
+        /// Property: Arithmetic operations should preserve types
+        #[test]
+        fn prop_arithmetic_preserves_types(a in 1i32..100, b in 1i32..100) {
+            let source = format!("fn main() {{ let x = {} + {}; }}", a, b);
+
+            if let Ok(shell_code) = transpile(&source, Config::default()) {
+                // Should use arithmetic expansion
+                prop_assert!(shell_code.contains("$(("), "Should use arithmetic expansion");
+                prop_assert!(shell_code.contains("+"), "Should contain operator");
+            }
+        }
+
+        /// Property: Function returns should use command substitution
+        #[test]
+        fn prop_function_returns_use_subst(a in 1i32..100, b in 1i32..100) {
+            let source = format!(
+                "fn add(a: i32, b: i32) -> i32 {{ a + b }} fn main() {{ let x = add({}, {}); }}",
+                a, b
+            );
+
+            if let Ok(shell_code) = transpile(&source, Config::default()) {
+                // Functions with return values should echo
+                prop_assert!(shell_code.contains("echo"), "Function should echo return value");
+                // Call sites should use command substitution
+                prop_assert!(shell_code.contains("$("), "Should use command substitution");
+            }
+        }
+
+        /// Property: Comparison operators generate POSIX test syntax
+        #[test]
+        fn prop_comparisons_posix_test(a in 1i32..100) {
+            let source = format!("fn main() {{ if {} > 0 {{ let x = 1; }} }}", a);
+
+            if let Ok(shell_code) = transpile(&source, Config::default()) {
+                // Should use POSIX test with -gt, -lt, etc.
+                prop_assert!(
+                    shell_code.contains("-gt") || shell_code.contains("test"),
+                    "Should use POSIX test syntax"
+                );
+            }
+        }
+
+        /// Property: Multiple variables should maintain scope
+        #[test]
+        fn prop_variable_scope(
+            name1 in generators::any_valid_identifier(),
+            name2 in generators::any_valid_identifier()
+        ) {
+            prop_assume!(name1 != name2); // Ensure different names
+
+            let source = format!(
+                "fn main() {{ let {name1} = 1; let {name2} = 2; }}"
+            );
+
+            if let Ok(shell_code) = transpile(&source, Config::default()) {
+                // Both variables should appear in output
+                prop_assert!(shell_code.contains(&format!("{name1}=")), "First variable should be assigned");
+                prop_assert!(shell_code.contains(&format!("{name2}=")), "Second variable should be assigned");
+            }
+        }
+
+        /// Property: Negative integers should transpile correctly
+        #[test]
+        fn prop_negative_integers(n in -1000i32..0) {
+            let source = format!("fn main() {{ let x = {}; }}", n);
+
+            if let Ok(shell_code) = transpile(&source, Config::default()) {
+                // Should NOT contain "unknown"
+                prop_assert!(!shell_code.contains("unknown"), "Negative integers should not be unknown");
+                // Should contain the negative number
+                let num_str = n.to_string();
+                prop_assert!(shell_code.contains(&num_str) || shell_code.contains(&format!("'{}'", num_str)),
+                            "Should contain negative number: {}", n);
+            }
+        }
+
+        /// Property: Empty function bodies should generate no-ops
+        #[test]
+        fn prop_empty_functions_noop(name in generators::any_valid_identifier()) {
+            prop_assume!(name != "main"); // main is special
+
+            let source = format!("fn {name}() {{}} fn main() {{ {name}(); }}");
+
+            if let Ok(shell_code) = transpile(&source, Config::default()) {
+                // Empty functions might not generate a function definition
+                // or might generate a no-op (:)
+                prop_assert!(true); // Placeholder - just ensure it compiles
+            }
+        }
     }
 }

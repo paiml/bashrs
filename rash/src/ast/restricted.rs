@@ -356,6 +356,11 @@ pub enum Expr {
         expr: Box<Expr>,
     },
     Block(Vec<Stmt>),
+    Range {
+        start: Box<Expr>,
+        end: Box<Expr>,
+        inclusive: bool,
+    },
 }
 
 impl Expr {
@@ -395,6 +400,10 @@ impl Expr {
                 }
                 Ok(())
             }
+            Expr::Range { start, end, .. } => {
+                start.validate()?;
+                end.validate()
+            }
             // Placeholder for new expression types - TODO: implement properly
             _ => Ok(()), // Array, Index, Try, Block
         }
@@ -411,6 +420,9 @@ impl Expr {
                 let receiver_depth = receiver.nesting_depth();
                 let args_depth = args.iter().map(|a| a.nesting_depth()).max().unwrap_or(0);
                 1 + receiver_depth.max(args_depth)
+            }
+            Expr::Range { start, end, .. } => {
+                1 + start.nesting_depth().max(end.nesting_depth())
             }
             _ => 0,
         }
@@ -453,6 +465,10 @@ impl Expr {
                 for stmt in stmts {
                     stmt.collect_function_calls(calls);
                 }
+            }
+            Expr::Range { start, end, .. } => {
+                start.collect_function_calls(calls);
+                end.collect_function_calls(calls);
             }
             _ => {}
         }

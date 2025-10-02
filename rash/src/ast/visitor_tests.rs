@@ -68,6 +68,7 @@ impl Visitor<()> for ExprTypeVisitor {
             Expr::Array(_) => "Array",
             Expr::Try { .. } => "Try",
             Expr::Block(_) => "Block",
+            Expr::Range { .. } => "Range",
         };
         self.types.push(type_name.to_string());
     }

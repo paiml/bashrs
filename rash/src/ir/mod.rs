@@ -144,8 +144,59 @@ impl IrConverter {
                     else_branch: else_ir,
                 })
             }
+            Stmt::For {
+                pattern,
+                iter,
+                body,
+                ..
+            } => {
+                // Extract variable name from pattern
+                let var = match pattern {
+                    crate::ast::restricted::Pattern::Variable(name) => name.clone(),
+                    _ => {
+                        return Err(crate::models::Error::Validation(
+                            "Only simple variable patterns supported in for loops".to_string(),
+                        ))
+                    }
+                };
+
+                // Convert range expression to start/end values
+                let (start, end) = match iter {
+                    crate::ast::Expr::Range { start, end, inclusive } => {
+                        let start_val = self.convert_expr_to_value(start)?;
+                        let mut end_val = self.convert_expr_to_value(end)?;
+
+                        // For exclusive range (0..3), adjust end to be inclusive (0..=2)
+                        if !inclusive {
+                            // Subtract 1 from end value
+                            if let ShellValue::String(s) = &end_val {
+                                if let Ok(n) = s.parse::<i32>() {
+                                    end_val = ShellValue::String((n - 1).to_string());
+                                }
+                            }
+                        }
+
+                        (start_val, end_val)
+                    }
+                    _ => {
+                        return Err(crate::models::Error::Validation(
+                            "For loops only support range expressions (e.g., 0..10)".to_string(),
+                        ))
+                    }
+                };
+
+                // Convert body
+                let body_ir = self.convert_stmts(body)?;
+
+                Ok(ShellIR::For {
+                    var,
+                    start,
+                    end,
+                    body: Box::new(body_ir),
+                })
+            }
             // Placeholder for new AST nodes - TODO: implement properly
-            _ => Ok(ShellIR::Noop), // Match, For, While, Break, Continue
+            _ => Ok(ShellIR::Noop), // Match, While, Break, Continue
         }
     }
 

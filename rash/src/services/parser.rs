@@ -1,5 +1,5 @@
 use crate::ast::restricted::{
-    BinaryOp, Expr, Function, Literal, Parameter, RestrictedAst, Stmt, Type, UnaryOp,
+    BinaryOp, Expr, Function, Literal, Parameter, Pattern, RestrictedAst, Stmt, Type, UnaryOp,
 };
 use crate::models::{Error, Result};
 use syn::{
@@ -211,10 +211,10 @@ fn convert_let_stmt(local: &syn::Local) -> Result<Stmt> {
 }
 
 fn convert_expr_stmt(expr: &SynExpr) -> Result<Stmt> {
-    if let SynExpr::If(expr_if) = expr {
-        convert_if_stmt(expr_if)
-    } else {
-        Ok(Stmt::Expr(convert_expr(expr)?))
+    match expr {
+        SynExpr::If(expr_if) => convert_if_stmt(expr_if),
+        SynExpr::ForLoop(for_loop) => convert_for_loop(for_loop),
+        _ => Ok(Stmt::Expr(convert_expr(expr)?)),
     }
 }
 
@@ -313,6 +313,7 @@ fn convert_expr(expr: &SynExpr) -> Result<Expr> {
         SynExpr::If(_) => Err(Error::Validation(
             "If expressions not supported in expression position".to_string(),
         )),
+        SynExpr::Range(range_expr) => convert_range_expr(range_expr),
         _ => Err(Error::Validation("Unsupported expression type".to_string())),
     }
 }
@@ -449,6 +450,48 @@ fn convert_unary_op(op: &UnOp) -> Result<UnaryOp> {
         UnOp::Neg(_) => Ok(UnaryOp::Neg),
         _ => Err(Error::Validation("Unsupported unary operator".to_string())),
     }
+}
+
+fn convert_range_expr(range_expr: &syn::ExprRange) -> Result<Expr> {
+    let start = range_expr
+        .start
+        .as_ref()
+        .ok_or_else(|| Error::Validation("Range must have start".to_string()))?;
+    let end = range_expr
+        .end
+        .as_ref()
+        .ok_or_else(|| Error::Validation("Range must have end".to_string()))?;
+
+    let inclusive = matches!(range_expr.limits, syn::RangeLimits::Closed(_));
+
+    Ok(Expr::Range {
+        start: Box::new(convert_expr(start)?),
+        end: Box::new(convert_expr(end)?),
+        inclusive,
+    })
+}
+
+fn convert_for_loop(for_loop: &syn::ExprForLoop) -> Result<Stmt> {
+    // Extract pattern (e.g., "i" in "for i in...")
+    let Pat::Ident(pat_ident) = &*for_loop.pat else {
+        return Err(Error::Validation(
+            "Complex patterns in for loops not supported".to_string(),
+        ));
+    };
+    let pattern = Pattern::Variable(pat_ident.ident.to_string());
+
+    // Convert iterator expression (e.g., 0..3)
+    let iter = convert_expr(&for_loop.expr)?;
+
+    // Convert body
+    let body = convert_block(&for_loop.body)?;
+
+    Ok(Stmt::For {
+        pattern,
+        iter,
+        body,
+        max_iterations: Some(1000), // Default safety limit
+    })
 }
 
 #[cfg(test)]
