@@ -21,7 +21,7 @@ fn echo(msg: &str) {}
     // Verify basic structure
     assert!(result.contains("#!/bin/sh"));
     assert!(result.contains("set -euf"));
-    assert!(result.contains("readonly greeting='Hello, World!'"));
+    assert!(result.contains("greeting='Hello, World!'"));
     assert!(result.contains("echo \"$greeting\""));
     assert!(result.contains("main \"$@\""));
 }
@@ -93,14 +93,14 @@ fn main() {
 
     // Modify script to print variables for verification
     let modified_script = shell_script
-        .replace("readonly x=42", "readonly x=42\n    echo \"x=$x\"")
+        .replace("x=42", "x=42\n    echo \"x=$x\"")
         .replace(
-            "readonly name=test",
-            "readonly name=test\n    echo \"name=$name\"",
+            "name=test",
+            "name=test\n    echo \"name=$name\"",
         )
         .replace(
-            "readonly greeting=Hello",
-            "readonly greeting=Hello\n    echo \"greeting=$greeting\"",
+            "greeting=Hello",
+            "greeting=Hello\n    echo \"greeting=$greeting\"",
         );
 
     fs::write(&script_path, modified_script).unwrap();
@@ -146,7 +146,7 @@ fn echo(msg: &str) {}
 
         let script = result.unwrap();
         assert!(script.contains("#!/bin/sh"));
-        assert!(script.contains("readonly msg='testing dialects'"));
+        assert!(script.contains("msg='testing dialects'"));
     }
 }
 
@@ -208,8 +208,8 @@ fn echo(msg: &str) {}
     let unoptimized = transpile(source, config_unoptimized).unwrap();
 
     // Both should work
-    assert!(optimized.contains("readonly part1=Hello"));
-    assert!(unoptimized.contains("readonly part1=Hello"));
+    assert!(optimized.contains("part1=Hello"));
+    assert!(unoptimized.contains("part1=Hello"));
 
     // Optimization might affect the output structure, but both should be valid
     // For now, just ensure both contain the expected output

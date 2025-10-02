@@ -170,71 +170,88 @@ fn convert_block(block: &Block) -> Result<Vec<Stmt>> {
 
 fn convert_stmt(stmt: &SynStmt) -> Result<Stmt> {
     match stmt {
-        SynStmt::Local(local) => {
-            if let Pat::Ident(pat_ident) = &local.pat {
-                let name = pat_ident.ident.to_string();
-                if let Some(init) = &local.init {
-                    let value = convert_expr(&init.expr)?;
-                    Ok(Stmt::Let { name, value })
-                } else {
-                    Err(Error::Validation(
-                        "Let bindings must have initializers".to_string(),
-                    ))
-                }
-            } else {
-                Err(Error::Validation(
-                    "Complex patterns not supported".to_string(),
-                ))
-            }
-        }
-        SynStmt::Expr(expr, _) => {
-            // Check if this is an if expression used as a statement
-            if let SynExpr::If(expr_if) = expr {
-                let condition = convert_expr(&expr_if.cond)?;
-                let then_block = convert_block(&expr_if.then_branch)?;
-                let else_block = if let Some((_, else_expr)) = &expr_if.else_branch {
-                    match &**else_expr {
-                        SynExpr::Block(block) => Some(convert_block(&block.block)?),
-                        SynExpr::If(nested_if) => {
-                            // Handle else-if by converting to nested if statement
-                            // Convert the nested if as a statement, not an expression
-                            let nested_condition = convert_expr(&nested_if.cond)?;
-                            let nested_then = convert_block(&nested_if.then_branch)?;
-                            let nested_else = if let Some((_, nested_else_expr)) = &nested_if.else_branch {
-                                match &**nested_else_expr {
-                                    SynExpr::Block(block) => Some(convert_block(&block.block)?),
-                                    SynExpr::If(_) => {
-                                        // Recursively handle else-if-else-if chains
-                                        // Wrap in Expr statement which will recursively process
-                                        let stmt = SynStmt::Expr((**nested_else_expr).clone(), None);
-                                        Some(vec![convert_stmt(&stmt)?])
-                                    }
-                                    _ => None,
-                                }
-                            } else {
-                                None
-                            };
-                            Some(vec![Stmt::If {
-                                condition: nested_condition,
-                                then_block: nested_then,
-                                else_block: nested_else,
-                            }])
-                        }
-                        _ => None,
-                    }
-                } else {
-                    None
-                };
-                Ok(Stmt::If {
-                    condition,
-                    then_block,
-                    else_block,
-                })
-            } else {
-                Ok(Stmt::Expr(convert_expr(expr)?))
-            }
-        }
+        SynStmt::Local(local) => convert_let_stmt(local),
+        SynStmt::Expr(expr, _) => convert_expr_stmt(expr),
         _ => Err(Error::Validation("Unsupported statement type".to_string())),
+    }
+}
+
+fn convert_let_stmt(local: &syn::Local) -> Result<Stmt> {
+    let Pat::Ident(pat_ident) = &local.pat else {
+        return Err(Error::Validation(
+            "Complex patterns not supported".to_string(),
+        ));
+    };
+
+    let name = pat_ident.ident.to_string();
+
+    let Some(init) = &local.init else {
+        return Err(Error::Validation(
+            "Let bindings must have initializers".to_string(),
+        ));
+    };
+
+    let value = convert_expr(&init.expr)?;
+    Ok(Stmt::Let { name, value })
+}
+
+fn convert_expr_stmt(expr: &SynExpr) -> Result<Stmt> {
+    if let SynExpr::If(expr_if) = expr {
+        convert_if_stmt(expr_if)
+    } else {
+        Ok(Stmt::Expr(convert_expr(expr)?))
+    }
+}
+
+fn convert_if_stmt(expr_if: &syn::ExprIf) -> Result<Stmt> {
+    let condition = convert_expr(&expr_if.cond)?;
+    let then_block = convert_block(&expr_if.then_branch)?;
+    let else_block = convert_else_block(&expr_if.else_branch)?;
+
+    Ok(Stmt::If {
+        condition,
+        then_block,
+        else_block,
+    })
+}
+
+fn convert_else_block(else_branch: &Option<(syn::token::Else, Box<SynExpr>)>) -> Result<Option<Vec<Stmt>>> {
+    let Some((_, else_expr)) = else_branch else {
+        return Ok(None);
+    };
+
+    match &**else_expr {
+        SynExpr::Block(block) => Ok(Some(convert_block(&block.block)?)),
+        SynExpr::If(nested_if) => convert_else_if(nested_if),
+        _ => Ok(None),
+    }
+}
+
+fn convert_else_if(nested_if: &syn::ExprIf) -> Result<Option<Vec<Stmt>>> {
+    let nested_condition = convert_expr(&nested_if.cond)?;
+    let nested_then = convert_block(&nested_if.then_branch)?;
+    let nested_else = convert_nested_else(&nested_if.else_branch)?;
+
+    Ok(Some(vec![Stmt::If {
+        condition: nested_condition,
+        then_block: nested_then,
+        else_block: nested_else,
+    }]))
+}
+
+fn convert_nested_else(else_branch: &Option<(syn::token::Else, Box<SynExpr>)>) -> Result<Option<Vec<Stmt>>> {
+    let Some((_, nested_else_expr)) = else_branch else {
+        return Ok(None);
+    };
+
+    match &**nested_else_expr {
+        SynExpr::Block(block) => Ok(Some(convert_block(&block.block)?)),
+        SynExpr::If(_) => {
+            // Recursively handle else-if-else-if chains
+            let stmt = SynStmt::Expr((**nested_else_expr).clone(), None);
+            Ok(Some(vec![convert_stmt(&stmt)?]))
+        }
+        _ => Ok(None),
     }
 }
 
@@ -361,5 +378,253 @@ fn convert_unary_op(op: &UnOp) -> Result<UnaryOp> {
         UnOp::Not(_) => Ok(UnaryOp::Not),
         UnOp::Neg(_) => Ok(UnaryOp::Neg),
         _ => Err(Error::Validation("Unsupported unary operator".to_string())),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_convert_stmt_simple_let_binding() {
+        let source = r#"
+            fn main() {
+                let x = 42;
+            }
+        "#;
+        let ast = parse(source).unwrap();
+        assert_eq!(ast.functions.len(), 1);
+        assert_eq!(ast.functions[0].body.len(), 1);
+
+        match &ast.functions[0].body[0] {
+            Stmt::Let { name, value } => {
+                assert_eq!(name, "x");
+                assert!(matches!(value, Expr::Literal(Literal::U32(42))));
+            }
+            _ => panic!("Expected Let statement"),
+        }
+    }
+
+    #[test]
+    fn test_convert_stmt_string_let_binding() {
+        let source = r#"
+            fn main() {
+                let greeting = "Hello, world!";
+            }
+        "#;
+        let ast = parse(source).unwrap();
+
+        match &ast.functions[0].body[0] {
+            Stmt::Let { name, value } => {
+                assert_eq!(name, "greeting");
+                assert!(matches!(value, Expr::Literal(Literal::Str(_))));
+            }
+            _ => panic!("Expected Let statement"),
+        }
+    }
+
+    #[test]
+    fn test_convert_stmt_let_without_init() {
+        let source = r#"
+            fn main() {
+                let x;
+            }
+        "#;
+        let result = parse(source);
+        assert!(result.is_err());
+        assert!(result.unwrap_err().to_string().contains("must have initializers"));
+    }
+
+    #[test]
+    fn test_convert_stmt_simple_if() {
+        let source = r#"
+            fn main() {
+                if true {
+                    let x = 1;
+                }
+            }
+        "#;
+        let ast = parse(source).unwrap();
+
+        match &ast.functions[0].body[0] {
+            Stmt::If { condition, then_block, else_block } => {
+                assert!(matches!(condition, Expr::Literal(Literal::Bool(true))));
+                assert_eq!(then_block.len(), 1);
+                assert!(else_block.is_none());
+            }
+            _ => panic!("Expected If statement"),
+        }
+    }
+
+    #[test]
+    fn test_convert_stmt_if_else() {
+        let source = r#"
+            fn main() {
+                if true {
+                    let x = 1;
+                } else {
+                    let y = 2;
+                }
+            }
+        "#;
+        let ast = parse(source).unwrap();
+
+        match &ast.functions[0].body[0] {
+            Stmt::If { condition, then_block, else_block } => {
+                assert!(matches!(condition, Expr::Literal(Literal::Bool(true))));
+                assert_eq!(then_block.len(), 1);
+                assert!(else_block.is_some());
+                assert_eq!(else_block.as_ref().unwrap().len(), 1);
+            }
+            _ => panic!("Expected If statement"),
+        }
+    }
+
+    #[test]
+    fn test_convert_stmt_else_if_chain_two_levels() {
+        let source = r#"
+            fn main() {
+                if true {
+                    let x = 1;
+                } else if false {
+                    let y = 2;
+                }
+            }
+        "#;
+        let ast = parse(source).unwrap();
+
+        match &ast.functions[0].body[0] {
+            Stmt::If { condition, then_block, else_block } => {
+                assert!(matches!(condition, Expr::Literal(Literal::Bool(true))));
+                assert_eq!(then_block.len(), 1);
+
+                // Verify else block contains nested if
+                assert!(else_block.is_some());
+                let else_stmts = else_block.as_ref().unwrap();
+                assert_eq!(else_stmts.len(), 1);
+
+                match &else_stmts[0] {
+                    Stmt::If { condition: nested_cond, then_block: nested_then, else_block: nested_else } => {
+                        assert!(matches!(nested_cond, Expr::Literal(Literal::Bool(false))));
+                        assert_eq!(nested_then.len(), 1);
+                        assert!(nested_else.is_none());
+                    }
+                    _ => panic!("Expected nested If statement in else block"),
+                }
+            }
+            _ => panic!("Expected If statement"),
+        }
+    }
+
+    #[test]
+    fn test_convert_stmt_else_if_chain_three_levels() {
+        let source = r#"
+            fn main() {
+                if true {
+                    let x = 1;
+                } else if false {
+                    let y = 2;
+                } else if true {
+                    let z = 3;
+                }
+            }
+        "#;
+        let ast = parse(source).unwrap();
+
+        // Verify first level if
+        match &ast.functions[0].body[0] {
+            Stmt::If { else_block, .. } => {
+                assert!(else_block.is_some());
+                let first_else = else_block.as_ref().unwrap();
+                assert_eq!(first_else.len(), 1);
+
+                // Verify second level else-if
+                match &first_else[0] {
+                    Stmt::If { else_block: second_else_block, .. } => {
+                        assert!(second_else_block.is_some());
+                        let second_else = second_else_block.as_ref().unwrap();
+                        assert_eq!(second_else.len(), 1);
+
+                        // Verify third level else-if
+                        match &second_else[0] {
+                            Stmt::If { condition, else_block: third_else, .. } => {
+                                assert!(matches!(condition, Expr::Literal(Literal::Bool(true))));
+                                assert!(third_else.is_none());
+                            }
+                            _ => panic!("Expected third-level If statement"),
+                        }
+                    }
+                    _ => panic!("Expected second-level If statement"),
+                }
+            }
+            _ => panic!("Expected If statement"),
+        }
+    }
+
+    #[test]
+    fn test_convert_stmt_else_if_with_final_else() {
+        let source = r#"
+            fn main() {
+                if true {
+                    let x = 1;
+                } else if false {
+                    let y = 2;
+                } else {
+                    let z = 3;
+                }
+            }
+        "#;
+        let ast = parse(source).unwrap();
+
+        match &ast.functions[0].body[0] {
+            Stmt::If { else_block, .. } => {
+                let first_else = else_block.as_ref().unwrap();
+
+                // Second level should be else-if with an else block
+                match &first_else[0] {
+                    Stmt::If { else_block: second_else_block, .. } => {
+                        assert!(second_else_block.is_some());
+                        let final_else = second_else_block.as_ref().unwrap();
+                        assert_eq!(final_else.len(), 1);
+
+                        // Final else should contain a Let statement, not another If
+                        assert!(matches!(final_else[0], Stmt::Let { .. }));
+                    }
+                    _ => panic!("Expected second-level If statement"),
+                }
+            }
+            _ => panic!("Expected If statement"),
+        }
+    }
+
+    #[test]
+    fn test_convert_stmt_expr_call() {
+        let source = r#"
+            fn main() {
+                echo("test");
+            }
+        "#;
+        let ast = parse(source).unwrap();
+
+        match &ast.functions[0].body[0] {
+            Stmt::Expr(expr) => {
+                assert!(matches!(expr, Expr::FunctionCall { .. }));
+            }
+            _ => panic!("Expected Expr statement"),
+        }
+    }
+
+    #[test]
+    fn test_convert_stmt_unsupported_type() {
+        let source = r#"
+            fn main() {
+                loop { }
+            }
+        "#;
+        let result = parse(source);
+        assert!(result.is_err());
+        let err_msg = result.unwrap_err().to_string();
+        // Loop statements are unsupported and produce validation error
+        assert!(err_msg.contains("Unsupported") || err_msg.contains("loop"));
     }
 }
