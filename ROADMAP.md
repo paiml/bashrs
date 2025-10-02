@@ -11,7 +11,7 @@
 - ✅ **Coverage infrastructure**: "make coverage" just works (82.14% coverage)
 - ✅ **Toyota Way applied**: Jidoka, Hansei, Kaizen, Five Whys
 
-## Current Status: Sprint 10 IN PROGRESS | 4/11 Edge Cases Fixed 🎯
+## Current Status: Sprint 10 COMPLETE | 5/11 Edge Cases Fixed 🎯
 
 ### Sprint History
 **Sprint 1**: Critical bug fixes (5 bugs, 22 property tests)
@@ -23,7 +23,7 @@
 **Sprint 7**: **Complexity reduction** (96% cognitive complexity reduction) ✅
 **Sprint 8**: **Parse refactoring** (cognitive 35→5, 86% reduction) ✅
 **Sprint 9**: **Coverage enhancement** (85.36% core coverage achieved) ✅
-**Sprint 10**: **Edge case fixes + MCP server** (4/11 fixed, MCP operational) 🚧
+**Sprint 10**: **Edge case fixes + MCP server** (5/11 fixed, MCP operational) ✅
 
 ### 🎯 Project Goals (Derived from CLAUDE.md)
 Rash is a **Rust-to-Shell transpiler** with these critical invariants:
@@ -45,7 +45,7 @@ Rash is a **Rust-to-Shell transpiler** with these critical invariants:
 | **ShellCheck** | 24 validation tests | 100% pass rate | 🟢 Good |
 | **Determinism** | 11 idempotence tests | Comprehensive suite | 🟢 Good |
 | **Performance** | 21.1µs simple transpile | <10ms transpile | 🟢 EXCEEDS (100x) |
-| **Edge Cases** | 4/11 fixed (all P0 + 1 P1) | 11/11 | 🟡 In Progress |
+| **Edge Cases** | 5/11 fixed (all P0 + all P1) | 11/11 | 🟢 Critical Done |
 | **MCP Server** | rash-mcp operational | Full stdio transport | 🟢 Functional |
 
 ### 🏆 Quality Achievements
@@ -127,7 +127,9 @@ Rash is a **Rust-to-Shell transpiler** with these critical invariants:
 4. ✅ **TICKET-5004**: Comparison operators generate wrong shell code (commit 71d0a9e)
    - Added `Comparison` variant to ShellValue IR
    - Now generates proper POSIX test syntax: `[ "$x" -gt 0 ]`
-5. 🔲 **TICKET-5005**: Function nesting (helper functions inside main) - PENDING
+5. ✅ **TICKET-5005**: Function nesting (helper functions inside main) (commit 02ee895)
+   - Refactored emitter to separate helpers from main body
+   - Now emits helpers at global scope before main()
 
 **P2 Medium Priority**:
 6. 🔲 For loops not supported
