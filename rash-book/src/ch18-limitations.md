@@ -1,13 +1,14 @@
 # Chapter 18: Known Limitations and Edge Cases
 
-**Chapter Status**: 🎯 **3/11 Fixed** (All P0 critical issues resolved!)
+**Chapter Status**: 🎯 **4/11 Fixed** (All P0 + 1 P1 resolved!)
 
 *Last updated: 2025-10-02*
 *Rash version: 0.3.3*
 
 **Sprint 10 Progress**:
 - ✅ **3 P0 Critical**: All fixed (empty functions, println!, negative integers)
-- 🟡 **2 P1 High**: Pending (comparison operators, function nesting)
+- ✅ **1 P1 High**: Fixed (comparison operators)
+- 🟡 **1 P1 High**: Pending (function nesting)
 - 🔵 **4 P2 Medium**: Pending (loops, match, returns, arithmetic)
 - ⚪ **2 P3 Low**: Backlog (empty main, integer overflow)
 
@@ -139,11 +140,12 @@ main() {
 
 ## High Priority Issues
 
-### 🟡 EDGE CASE #4: Comparison Operators Generate Wrong Shell Code
+### ✅ EDGE CASE #4: Comparison Operators Generate Wrong Shell Code
 
-**Status**: 🟡 High Priority Bug
+**Status**: ✅ FIXED in v0.3.3 (commit 71d0a9e)
 **Discovered**: 2025-10-02
-**Test**: `tests/edge-cases/test_04_comparisons.rs`
+**Fixed**: 2025-10-02
+**Test**: `tests/edge_cases_test.rs::test_edge_case_04_comparison_operators`
 
 **Problem**:
 Integer comparisons like `x > 0` transpile to string tests like `test -n "${x}0"` which is incorrect.
@@ -178,9 +180,9 @@ main() {
 }
 ```
 
-**Impact**: ⚠️ **HIGH** - Control flow broken for numeric comparisons
-**Workaround**: None - control flow chapter blocked
-**Fix Priority**: P1 - Sprint 10
+**Impact**: ⚠️ **HIGH** - Control flow was broken for numeric comparisons
+**Solution**: Added Comparison variant to ShellValue IR, emits proper POSIX test syntax
+**Fix Commit**: 71d0a9e (TICKET-5004)
 
 ---
 
