@@ -65,9 +65,20 @@ impl PosixEmitter {
 
     fn write_runtime(&self, output: &mut String) -> Result<()> {
         writeln!(output, "# Rash runtime functions")?;
+        self.write_println_function(output)?;
         self.write_require_function(output)?;
         self.write_download_function(output)?;
         Ok(())
+    }
+
+    fn write_println_function(&self, output: &mut String) -> Result<()> {
+        let lines = [
+            "rash_println() {",
+            "    printf '%s\\n' \"$1\"",
+            "}",
+            "",
+        ];
+        self.write_shell_lines(output, &lines)
     }
 
     fn write_require_function(&self, output: &mut String) -> Result<()> {
