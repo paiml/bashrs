@@ -345,14 +345,15 @@ fn test_unary_expression_parsing() {
     let ast = parse(source).unwrap();
     let main_func = &ast.functions[0];
 
+    // After TICKET-5003 fix: -42 is simplified to Literal::I32(-42), not Unary
     match &main_func.body[0] {
         crate::ast::Stmt::Let {
-            value: crate::ast::Expr::Unary { op, .. },
+            value: crate::ast::Expr::Literal(crate::ast::restricted::Literal::I32(n)),
             ..
         } => {
-            assert!(matches!(op, crate::ast::restricted::UnaryOp::Neg));
+            assert_eq!(*n, -42, "Negative literal should be -42");
         }
-        _ => panic!("Expected unary negation"),
+        _ => panic!("Expected negative integer literal (simplified from unary)"),
     }
 
     match &main_func.body[1] {

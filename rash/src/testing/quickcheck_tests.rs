@@ -231,6 +231,7 @@ proptest! {
         let source = match &lit {
             Literal::Bool(b) => format!("fn main() {{ let x = {b}; }}"),
             Literal::U32(n) => format!("fn main() {{ let x = {n}; }}"),
+            Literal::I32(n) => format!("fn main() {{ let x = {n}; }}"),
             Literal::Str(s) => format!(r#"fn main() {{ let x = "{s}"; }}"#),
         };
 

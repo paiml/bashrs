@@ -168,6 +168,7 @@ impl IrConverter {
             Expr::Literal(literal) => match literal {
                 Literal::Bool(b) => Ok(ShellValue::Bool(*b)),
                 Literal::U32(n) => Ok(ShellValue::String(n.to_string())),
+                Literal::I32(n) => Ok(ShellValue::String(n.to_string())),
                 Literal::Str(s) => Ok(ShellValue::String(s.clone())),
             },
             Expr::Variable(name) => Ok(ShellValue::Variable(name.clone())),

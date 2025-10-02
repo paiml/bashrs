@@ -463,6 +463,7 @@ impl Expr {
 pub enum Literal {
     Bool(bool),
     U32(u32),
+    I32(i32),  // Support negative integers
     Str(String),
 }
 
