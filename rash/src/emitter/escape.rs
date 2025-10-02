@@ -34,16 +34,16 @@ pub fn escape_variable_name(name: &str) -> String {
         let mut result = String::new();
         for (i, c) in name.chars().enumerate() {
             if i == 0 {
-                // First character must be letter or underscore
-                if c.is_alphabetic() || c == '_' {
+                // First character must be ASCII letter or underscore (POSIX shell requirement)
+                if c.is_ascii_alphabetic() || c == '_' {
                     result.push(c);
                 } else {
                     result.push('_');
                     // Don't add the invalid first character - skip it
                 }
             } else {
-                // Subsequent characters can be alphanumeric or underscore
-                if c.is_alphanumeric() || c == '_' {
+                // Subsequent characters can be ASCII alphanumeric or underscore
+                if c.is_ascii_alphanumeric() || c == '_' {
                     result.push(c);
                 } else {
                     result.push('_');
@@ -70,34 +70,44 @@ fn is_safe_unquoted(s: &str) -> bool {
         return false;
     }
 
-    // Must start with alphanumeric or safe characters
+    // Must start with ASCII alphanumeric or safe characters
     let first_char = s.chars().next().unwrap();
-    if !first_char.is_alphanumeric() && first_char != '_' && first_char != '.' && first_char != '/'
+    if !first_char.is_ascii_alphanumeric() && first_char != '_' && first_char != '.' && first_char != '/'
     {
         return false;
     }
 
-    // All characters must be safe
-    s.chars()
-        .all(|c| c.is_alphanumeric() || matches!(c, '_' | '.' | '/' | '-' | '+' | '=' | ':' | '@'))
+    // All characters must be ASCII and safe (no control chars, no unicode, no bidi overrides)
+    s.chars().all(|c| {
+        if !c.is_ascii() {
+            // No non-ASCII characters allowed unquoted (includes bidi overrides, emoji, etc.)
+            return false;
+        }
+        if c.is_ascii_control() {
+            // No control characters allowed unquoted
+            return false;
+        }
+        // Only specific safe ASCII characters allowed
+        c.is_ascii_alphanumeric() || matches!(c, '_' | '.' | '/' | '-' | '+' | '=' | ':' | '@')
+    })
 }
 
-/// Check if a string is a valid shell identifier
+/// Check if a string is a valid POSIX shell identifier (ASCII only)
 fn is_valid_shell_identifier(name: &str) -> bool {
     if name.is_empty() {
         return false;
     }
 
-    // Must start with letter or underscore
+    // Must start with ASCII letter or underscore (POSIX requirement)
     let first_char = name.chars().next().unwrap();
-    if !first_char.is_alphabetic() && first_char != '_' {
+    if !first_char.is_ascii_alphabetic() && first_char != '_' {
         return false;
     }
 
-    // Rest must be alphanumeric or underscore
+    // Rest must be ASCII alphanumeric or underscore
     name.chars()
         .skip(1)
-        .all(|c| c.is_alphanumeric() || c == '_')
+        .all(|c| c.is_ascii_alphanumeric() || c == '_')
 }
 
 /// Check if a command name is safe
