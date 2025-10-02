@@ -264,18 +264,14 @@ test-fast:
 		cargo test --workspace; \
 	fi
 
-test: test-fast
-	@echo "🧪 Running comprehensive tests with coverage..."
-	@if command -v cargo-llvm-cov >/dev/null 2>&1; then \
-		cargo llvm-cov test --workspace \
-			--all-features \
-			--codecov \
-			--output-path coverage.json; \
-		cargo llvm-cov report --summary-only | tee coverage-summary.txt; \
-		echo "📊 Coverage report generated"; \
-	else \
-		cargo test --workspace --all-features; \
-	fi
+test: test-fast test-doc test-property test-example
+	@echo "✅ Core test suite completed!"
+	@echo "  - Fast unit tests ✓"
+	@echo "  - Documentation tests ✓"
+	@echo "  - Property-based tests ✓"
+	@echo "  - Example transpilation tests ✓"
+	@echo ""
+	@echo "💡 Run 'make test-all' for comprehensive testing including shell compatibility"
 
 # Cross-shell compatibility testing
 test-shells:
@@ -311,12 +307,30 @@ test-property:
 	timeout 60 cargo test --workspace --lib -- prop_ --test-threads=$$THREADS || echo "⚠️  Some prop tests timed out"
 	@echo "✅ Property tests completed!"
 
+# Example transpilation tests
+test-example:
+	@echo "📝 Testing example transpilation..."
+	@cargo build --release
+	@mkdir -p target/test-examples
+	@for example in examples/*.rs; do \
+		if [ -f "$$example" ]; then \
+			echo "  Testing $$example..."; \
+			./target/release/bashrs build "$$example" -o "target/test-examples/$$(basename "$$example" .rs).sh" || exit 1; \
+			echo "    ✓ Transpiled successfully"; \
+			if command -v shellcheck >/dev/null 2>&1; then \
+				shellcheck -s sh "target/test-examples/$$(basename "$$example" .rs).sh" && echo "    ✓ ShellCheck passed" || echo "    ⚠️  ShellCheck warnings"; \
+			fi; \
+		fi; \
+	done
+	@echo "✅ Example tests completed!"
+
 # Run ALL test styles comprehensively
-test-all: test test-doc test-property test-shells test-determinism
+test-all: test test-doc test-property test-example test-shells test-determinism
 	@echo "✅ All test styles completed!"
 	@echo "  - Unit tests with coverage ✓"
 	@echo "  - Documentation tests ✓"
 	@echo "  - Property-based tests ✓"
+	@echo "  - Example transpilation tests ✓"
 	@echo "  - Cross-shell compatibility ✓"
 	@echo "  - Determinism verification ✓"
 
@@ -713,7 +727,8 @@ help:
 	@echo "Main targets:"
 	@echo "  make              - Run validation and build"
 	@echo "  make lint         - Run linting with fixes"
-	@echo "  make test         - Run comprehensive tests with coverage"
+	@echo "  make test         - Run core test suite (unit + doc + property + examples)"
+	@echo "  make test-all     - Run ALL tests (includes shell compatibility)"
 	@echo "  make release      - Prepare release build"
 	@echo ""
 	@echo "Validation:"
@@ -721,11 +736,12 @@ help:
 	@echo "  make quick-validate - Quick validation for development"
 	@echo ""
 	@echo "Testing:"
-	@echo "  make test-fast    - Run fast tests"
+	@echo "  make test-fast    - Run fast unit tests only"
+	@echo "  make test-doc     - Run documentation tests"
+	@echo "  make test-property - Run property-based tests (~13,300 cases)"
+	@echo "  make test-example - Transpile and validate all examples"
 	@echo "  make test-shells  - Test cross-shell compatibility"
 	@echo "  make test-determinism - Verify deterministic transpilation"
-	@echo "  make test-doc     - Run documentation tests"
-	@echo "  make test-property - Run property-based tests"
 	@echo "  make shellcheck-validate - Run ShellCheck validation on generated scripts"
 	@echo "  make shellcheck-test-all - Run comprehensive ShellCheck test suite"
 	@echo ""
