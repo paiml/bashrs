@@ -8,6 +8,7 @@ pub mod error_injection;
 pub mod fuzz;
 pub mod idempotence_tests;
 pub mod unicode_escape_tests;
+pub mod shellcheck_validation_tests;
 pub mod mutation;
 pub mod regression;
 pub mod stress;
