@@ -2,6 +2,7 @@
 members = [
     "rash",
     "rash-runtime",
+    "rash-mcp",
 ]
 resolver = "2"
 
