@@ -15,36 +15,7 @@ pub fn parse(input: &str) -> Result<RestrictedAst> {
     let mut entry_point = None;
 
     for item in file.items {
-        match item {
-            Item::Fn(item_fn) => {
-                // Check if this is the main function marked with #[bashrs::main]
-                let is_main = item_fn.attrs.iter().any(|attr| {
-                    // Check if the attribute path matches "bashrs::main" or legacy "rash::main"
-                    let path = attr.path();
-                    path.segments.len() == 2
-                        && (path.segments[0].ident == "bashrs" || path.segments[0].ident == "rash")
-                        && path.segments[1].ident == "main"
-                }) || item_fn.sig.ident == "main";
-
-                let function = convert_function(item_fn)?;
-
-                if is_main {
-                    if entry_point.is_some() {
-                        return Err(Error::Validation(
-                            "Multiple #[bashrs::main] functions found".to_string(),
-                        ));
-                    }
-                    entry_point = Some(function.name.clone());
-                }
-
-                functions.push(function);
-            }
-            _ => {
-                return Err(Error::Validation(
-                    "Only functions are allowed in Rash code".to_string(),
-                ));
-            }
-        }
+        process_item(item, &mut functions, &mut entry_point)?;
     }
 
     let entry_point = entry_point
@@ -54,6 +25,49 @@ pub fn parse(input: &str) -> Result<RestrictedAst> {
         functions,
         entry_point,
     })
+}
+
+fn process_item(
+    item: Item,
+    functions: &mut Vec<Function>,
+    entry_point: &mut Option<String>,
+) -> Result<()> {
+    let Item::Fn(item_fn) = item else {
+        return Err(Error::Validation(
+            "Only functions are allowed in Rash code".to_string(),
+        ));
+    };
+
+    let is_main = has_main_attribute(&item_fn) || item_fn.sig.ident == "main";
+    let function = convert_function(item_fn)?;
+
+    if is_main {
+        check_single_entry_point(entry_point, &function.name)?;
+        *entry_point = Some(function.name.clone());
+    }
+
+    functions.push(function);
+    Ok(())
+}
+
+fn has_main_attribute(item_fn: &ItemFn) -> bool {
+    item_fn.attrs.iter().any(is_main_attribute)
+}
+
+fn is_main_attribute(attr: &syn::Attribute) -> bool {
+    let path = attr.path();
+    path.segments.len() == 2
+        && (path.segments[0].ident == "bashrs" || path.segments[0].ident == "rash")
+        && path.segments[1].ident == "main"
+}
+
+fn check_single_entry_point(current: &Option<String>, _new_name: &str) -> Result<()> {
+    if current.is_some() {
+        return Err(Error::Validation(
+            "Multiple #[bashrs::main] functions found".to_string(),
+        ));
+    }
+    Ok(())
 }
 
 fn convert_function(item_fn: ItemFn) -> Result<Function> {
@@ -781,5 +795,105 @@ mod tests {
             }
             _ => panic!("Expected Let statement"),
         }
+    }
+
+    // Tests for parse function entry point
+    #[test]
+    fn test_parse_simple_main() {
+        let source = r#"
+            fn main() {
+                let x = 42;
+            }
+        "#;
+        let ast = parse(source).unwrap();
+        assert_eq!(ast.entry_point, "main");
+        assert_eq!(ast.functions.len(), 1);
+        assert_eq!(ast.functions[0].name, "main");
+    }
+
+    #[test]
+    fn test_parse_with_bashrs_main_attribute() {
+        let source = r#"
+            #[bashrs::main]
+            fn custom_entry() {
+                let x = 1;
+            }
+        "#;
+        let ast = parse(source).unwrap();
+        assert_eq!(ast.entry_point, "custom_entry");
+        assert_eq!(ast.functions[0].name, "custom_entry");
+    }
+
+    #[test]
+    fn test_parse_multiple_functions() {
+        let source = r#"
+            fn main() {
+                helper();
+            }
+
+            fn helper() {
+                let x = 1;
+            }
+        "#;
+        let ast = parse(source).unwrap();
+        assert_eq!(ast.entry_point, "main");
+        assert_eq!(ast.functions.len(), 2);
+        assert_eq!(ast.functions[0].name, "main");
+        assert_eq!(ast.functions[1].name, "helper");
+    }
+
+    #[test]
+    fn test_parse_no_main_function_error() {
+        let source = r#"
+            fn helper() {
+                let x = 1;
+            }
+        "#;
+        let result = parse(source);
+        assert!(result.is_err());
+        assert!(result.unwrap_err().to_string().contains("No #[bashrs::main] function found"));
+    }
+
+    #[test]
+    fn test_parse_multiple_main_functions_error() {
+        let source = r#"
+            fn main() {
+                let x = 1;
+            }
+
+            #[bashrs::main]
+            fn another_main() {
+                let y = 2;
+            }
+        "#;
+        let result = parse(source);
+        assert!(result.is_err());
+        assert!(result.unwrap_err().to_string().contains("Multiple #[bashrs::main] functions found"));
+    }
+
+    #[test]
+    fn test_parse_non_function_item_error() {
+        let source = r#"
+            const X: u32 = 42;
+
+            fn main() {
+                let x = 1;
+            }
+        "#;
+        let result = parse(source);
+        assert!(result.is_err());
+        assert!(result.unwrap_err().to_string().contains("Only functions are allowed"));
+    }
+
+    #[test]
+    fn test_parse_legacy_rash_main_attribute() {
+        let source = r#"
+            #[rash::main]
+            fn entry() {
+                let x = 1;
+            }
+        "#;
+        let ast = parse(source).unwrap();
+        assert_eq!(ast.entry_point, "entry");
     }
 }
