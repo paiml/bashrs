@@ -1,5 +1,5 @@
-use rash::models::config::{ShellDialect, VerificationLevel};
-use rash::{check, transpile, Config};
+use bashrs::models::config::{ShellDialect, VerificationLevel};
+use bashrs::{check, transpile, Config};
 use std::fs;
 use std::process::Command;
 use tempfile::TempDir;
