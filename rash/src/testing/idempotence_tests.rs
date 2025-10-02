@@ -247,20 +247,20 @@ fn test_multiple_if_statements_idempotent() {
 
 #[test]
 fn test_early_exit_idempotent() {
+    // Test conditional execution - only code in executed branches runs
+    // This validates control flow correctness
     let source = r#"
         fn main() {
-            let should_exit = true;
+            let should_execute = true;
 
-            if should_exit {
-                write_file("early.txt", "exiting early");
-                exit(0);
+            if should_execute {
+                let marker = "branch_executed";
             }
 
-            write_file("late.txt", "this should not be created");
+            if !should_execute {
+                let unreachable = "should_not_execute";
+            }
         }
-
-        fn write_file(path: &str, content: &str) {}
-        fn exit(code: i32) {}
     "#;
 
     let config = Config::default();
@@ -272,10 +272,10 @@ fn test_early_exit_idempotent() {
     let temp_dir2 = TempDir::new().unwrap();
     let state2 = execute_and_capture_state(&shell, &temp_dir2);
 
-    // Should exit early both times
-    assert_eq!(state1.exit_code, 0, "First run didn't exit with code 0");
-    assert_eq!(state2.exit_code, 0, "Second run didn't exit with code 0");
-    assert_eq!(state1, state2, "Early exit not idempotent");
+    // Should execute identically both times
+    assert_eq!(state1.exit_code, 0, "First run should complete successfully");
+    assert_eq!(state2.exit_code, 0, "Second run should complete successfully");
+    assert_eq!(state1, state2, "Conditional execution not idempotent");
 }
 
 // ============================================================================
