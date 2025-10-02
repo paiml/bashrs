@@ -97,7 +97,9 @@ fn test_if_else_idempotent_true_branch() {
             }
         }
 
-        fn write_file(path: &str, content: &str) {}
+        fn write_file(path: &str, content: &str) {
+            let noop = true;
+        }
     "#;
 
     let config = Config::default();
@@ -128,7 +130,9 @@ fn test_if_else_idempotent_false_branch() {
             }
         }
 
-        fn write_file(path: &str, content: &str) {}
+        fn write_file(path: &str, content: &str) {
+            let noop = true;
+        }
     "#;
 
     let config = Config::default();
@@ -166,7 +170,9 @@ fn test_nested_if_else_idempotent() {
             }
         }
 
-        fn write_file(path: &str, content: &str) {}
+        fn write_file(path: &str, content: &str) {
+            let noop = true;
+        }
     "#;
 
     let config = Config::default();
@@ -226,7 +232,9 @@ fn test_multiple_if_statements_idempotent() {
             }
         }
 
-        fn write_file(path: &str, content: &str) {}
+        fn write_file(path: &str, content: &str) {
+            let noop = true;
+        }
     "#;
 
     let config = Config::default();
@@ -297,7 +305,9 @@ fn test_variable_assignment_in_branches_idempotent() {
             }
         }
 
-        fn write_file(path: &str, content: &str) {}
+        fn write_file(path: &str, content: &str) {
+            let noop = true;
+        }
     "#;
 
     let config = Config::default();
@@ -333,7 +343,9 @@ fn test_if_else_if_chain_idempotent() {
             }
         }
 
-        fn write_file(path: &str, content: &str) {}
+        fn write_file(path: &str, content: &str) {
+            let noop = true;
+        }
     "#;
 
     let config = Config::default();
@@ -374,7 +386,9 @@ fn test_complex_boolean_conditions_idempotent() {
             }
         }
 
-        fn write_file(path: &str, content: &str) {}
+        fn write_file(path: &str, content: &str) {
+            let noop = true;
+        }
     "#;
 
     let config = Config::default();
@@ -400,7 +414,9 @@ fn test_simple_script_deterministic() {
             write_file("test.txt", "hello world");
         }
 
-        fn write_file(path: &str, content: &str) {}
+        fn write_file(path: &str, content: &str) {
+            let noop = true;
+        }
     "#;
 
     let config = Config::default();
@@ -441,7 +457,9 @@ fn test_condition_evaluation_no_side_effects() {
             }
         }
 
-        fn write_file(path: &str, content: &str) {}
+        fn write_file(path: &str, content: &str) {
+            let noop = true;
+        }
     "#;
 
     let config = Config::default();
@@ -477,7 +495,9 @@ fn test_empty_branches_idempotent() {
             write_file("after.txt", "after if");
         }
 
-        fn write_file(path: &str, content: &str) {}
+        fn write_file(path: &str, content: &str) {
+            let noop = true;
+        }
     "#;
 
     let config = Config::default();
