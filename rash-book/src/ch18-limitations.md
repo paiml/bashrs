@@ -1,6 +1,6 @@
 # Chapter 18: Known Limitations and Edge Cases
 
-**Chapter Status**: 🎯 **6/11 Fixed** (All P0 + All P1 + 1 P2 resolved!)
+**Chapter Status**: 🎯 **7/11 Fixed** (All P0 + All P1 + 2 P2 resolved!)
 
 *Last updated: 2025-10-02*
 *Rash version: 0.3.3*
@@ -8,7 +8,7 @@
 **Sprint 11 Progress**:
 - ✅ **3 P0 Critical**: All fixed (empty functions, println!, negative integers)
 - ✅ **2 P1 High**: All fixed (comparison operators, function nesting)
-- 🟡 **4 P2 Medium**: 1/4 fixed (arithmetic ✅, loops/match/returns pending)
+- 🟡 **4 P2 Medium**: 2/4 fixed (arithmetic ✅, returns ✅, loops/match pending)
 - ⚪ **2 P3 Low**: Backlog (empty main, integer overflow)
 
 ---
@@ -297,14 +297,15 @@ Error: AST validation error: Unsupported expression type
 
 ---
 
-### 🟢 EDGE CASE #8: Function Return Values Not Implemented
+### ✅ EDGE CASE #8: Function Return Values Not Implemented
 
-**Status**: 🟢 Medium Priority Feature Gap
+**Status**: ✅ FIXED in v0.3.3 (commit 4c0ddd1)
 **Discovered**: 2025-10-02
-**Test**: `tests/edge-cases/test_08_return_values.rs`
+**Fixed**: 2025-10-02
+**Test**: `tests/edge_cases_test.rs::test_edge_case_08_function_return_values`
 
 **Problem**:
-Functions with return values transpile to `unknown` instead of capturing output.
+Functions with return values transpiled to `unknown` instead of capturing output.
 
 **Example**:
 ```rust
@@ -342,9 +343,9 @@ main() {
 }
 ```
 
-**Impact**: 🟡 **MEDIUM** - Can't return values from functions
-**Workaround**: Use global variables (not clean)
-**Fix Priority**: P2 - Sprint 11
+**Impact**: 🟡 **MEDIUM** - Couldn't return values from functions
+**Solution**: Added Echo IR variant, emit `echo` for last expression in functions with return type, capture with `$(...)` at call sites
+**Fix Commit**: 4c0ddd1 (TICKET-5007)
 
 ---
 
@@ -459,7 +460,7 @@ main() {
 | 5 | Functions nested in main | 🟡 P1 | High | ✅ Fixed | Sprint 10 |
 | 6 | For loops unsupported | 🟢 P2 | Medium | 🔲 Pending | Sprint 11 |
 | 7 | Match unsupported | 🟢 P2 | Medium | 🔲 Pending | Sprint 12 |
-| 8 | Return values → `unknown` | 🟢 P2 | Medium | 🔲 Pending | Sprint 11 |
+| 8 | Return values → `unknown` | 🟢 P2 | Medium | ✅ Fixed | Sprint 11 |
 | 9 | Arithmetic → `:` | 🟢 P2 | Medium | ✅ Fixed | Sprint 11 |
 | 10 | Empty main → `:` | 🔵 P3 | Low | 🔲 Pending | Sprint 12 |
 | 11 | Integer overflow undefined | 🔵 P3 | Low | 🔲 Pending | Document |
