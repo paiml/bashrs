@@ -189,55 +189,57 @@ Rash is a **Rust-to-Shell transpiler** with these critical invariants:
 
 ---
 
-### Sprint 10: Performance Optimization (PLANNED)
-**Goal**: Optimize transpilation performance
-**Duration**: 2-3 hours
-**Current**: 21.1µs simple transpile (already 100x better than target!)
+### Sprint 11: P2 Edge Cases ✅ COMPLETE
+**Goal**: Fix medium priority edge cases
+**Duration**: 3 hours
+**Achievement**: 2/4 P2 edge cases fixed (arithmetic + returns)
 
-#### Tasks:
-- [ ] Run criterion benchmarks comprehensively
-- [ ] Profile memory usage
-- [ ] Optimize hot paths if needed
-- [ ] Document performance characteristics
+#### Completed:
+- ✅ **TICKET-5006**: Arithmetic expressions → `$((expr))` syntax
+- ✅ **TICKET-5007**: Function return values → `echo` + `$(...)` capture
+- ✅ 520/520 tests passing (100% pass rate)
+- ✅ Quality metrics maintained
 
-**Note**: Current performance already exceeds targets significantly. May skip if no bottlenecks found.
-
----
-
-### Sprint 11: Property Test Enhancement (PLANNED)
-**Goal**: Expand property test coverage
-**Duration**: 2-3 hours
-**Current**: 23 properties, ~13,300 cases
-
-#### Missing Properties (identified):
-- [ ] **prop_control_flow_preserves_semantics** - if/else correctness
-- [ ] **prop_function_call_argument_order** - Argument order preserved
-- [ ] **prop_error_messages_actionable** - Error quality
-- [ ] **prop_shell_dialect_compatibility** - Cross-shell compatibility
-
-#### Tasks:
-- [ ] Implement 4 new property tests
-- [ ] Increase case counts for critical paths (1000→5000)
-- [ ] Add mutation testing to verify property strength
-- [ ] Document property coverage story
-
-**Success Criteria**:
-- ✅ 30+ property tests
-- ✅ Control flow properties covered
-- ✅ Shell compatibility properties covered
+#### Deferred:
+- 🔲 For loops (parser complexity, 2-3 hours)
+- 🔲 Match expressions (complex feature, 3-4 hours)
 
 ---
 
 ### Sprint 12: Documentation & Release (PLANNED)
-**Goal**: Prepare for production release
+**Goal**: Prepare for v0.4.0 production release
 **Duration**: 3-4 hours
 
 #### Tasks:
-- [ ] Update all documentation
+- [ ] Update all documentation (README, API docs, examples)
 - [ ] Generate comprehensive quality report
-- [ ] Create release notes
-- [ ] Tag release version
-- [ ] Publish to crates.io
+- [ ] Create release notes (CHANGELOG.md)
+- [ ] Verify all quality gates pass
+- [ ] Tag release version v0.4.0
+- [ ] Consider: Publish to crates.io
+
+**Success Criteria**:
+- ✅ All documentation current
+- ✅ Release notes complete
+- ✅ Quality gates: 100% pass
+- ✅ Version tagged
+
+---
+
+### Future Sprints (Post v0.4.0)
+
+**Sprint 13: Remaining P2 Edge Cases** (Optional)
+- For loops support
+- Match expressions support
+
+**Sprint 14: Performance Optimization** (Optional)
+- Current: 21.1µs (already 100x target!)
+- Run criterion benchmarks if bottlenecks found
+
+**Sprint 15: Property Test Enhancement** (Optional)
+- Expand from 23 to 30+ properties
+- Control flow semantics properties
+- Shell compatibility properties
 
 ---
 
