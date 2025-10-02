@@ -333,6 +333,22 @@ fn convert_binary_expr(expr_binary: &syn::ExprBinary) -> Result<Expr> {
 }
 
 fn convert_unary_expr(expr_unary: &syn::ExprUnary) -> Result<Expr> {
+    // Special case: negative integer literals (-1, -42, etc.)
+    // Simplify UnaryOp(Neg, Literal(n)) to Literal(-n)
+    if let UnOp::Neg(_) = &expr_unary.op {
+        if let SynExpr::Lit(lit_expr) = &*expr_unary.expr {
+            if let Lit::Int(lit_int) = &lit_expr.lit {
+                // Parse as i32 instead of u32 for negative numbers
+                let value: i32 = lit_int
+                    .base10_parse()
+                    .map_err(|_| Error::Validation("Invalid integer literal".to_string()))?;
+                // Return as negative literal
+                return Ok(Expr::Literal(Literal::I32(-value)));
+            }
+        }
+    }
+
+    // General case: convert normally
     let operand = Box::new(convert_expr(&expr_unary.expr)?);
     let op = convert_unary_op(&expr_unary.op)?;
     Ok(Expr::Unary { op, operand })

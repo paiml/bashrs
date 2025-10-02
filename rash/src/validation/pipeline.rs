@@ -111,7 +111,7 @@ impl ValidationPipeline {
 
         match lit {
             Literal::Str(s) => self.validate_string_literal(s),
-            Literal::Bool(_) | Literal::U32(_) => Ok(()),
+            Literal::Bool(_) | Literal::U32(_) | Literal::I32(_) => Ok(()),
         }
     }
 
