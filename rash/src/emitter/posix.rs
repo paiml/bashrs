@@ -203,6 +203,9 @@ impl PosixEmitter {
                 self.emit_function(output, name, params, body, indent)
             }
             ShellIR::Echo { value } => self.emit_echo_statement(output, value, indent),
+            ShellIR::For { var, start, end, body } => {
+                self.emit_for_statement(output, var, start, end, body, indent)
+            }
         }
     }
 
@@ -297,6 +300,34 @@ impl PosixEmitter {
         let value_str = self.emit_shell_value(value)?;
         // Use echo to return value from function
         writeln!(output, "{indent_str}echo {value_str}")?;
+        Ok(())
+    }
+
+    fn emit_for_statement(
+        &self,
+        output: &mut String,
+        var: &str,
+        start: &ShellValue,
+        end: &ShellValue,
+        body: &ShellIR,
+        indent: usize,
+    ) -> Result<()> {
+        let indent_str = "    ".repeat(indent + 1);
+        let var_name = escape_variable_name(var);
+
+        // Emit shell values for start and end
+        let start_str = self.emit_shell_value(start)?;
+        let end_str = self.emit_shell_value(end)?;
+
+        // Generate POSIX for loop using seq
+        // for i in $(seq 0 2); do
+        writeln!(output, "{indent_str}for {var_name} in $(seq {start_str} {end_str}); do")?;
+
+        // Emit body
+        self.emit_ir(output, body, indent + 1)?;
+
+        // Close loop
+        writeln!(output, "{indent_str}done")?;
         Ok(())
     }
 

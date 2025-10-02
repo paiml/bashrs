@@ -102,6 +102,10 @@ impl ValidationPipeline {
             Expr::Index { object, index } => self.validate_index_expr(object, index),
             Expr::Try { expr } => self.validate_expr(expr),
             Expr::Block(stmts) => self.validate_block_statements(stmts),
+            Expr::Range { start, end, .. } => {
+                self.validate_expr(start)?;
+                self.validate_expr(end)
+            }
         }
     }
 
@@ -306,6 +310,19 @@ impl ValidationPipeline {
             ShellIR::Exit { .. } | ShellIR::Noop => {}
             ShellIR::Echo { value } => {
                 self.validate_shell_value(value)?;
+            }
+            ShellIR::For { var, start, end, body } => {
+                // Validate variable name
+                if var.is_empty() {
+                    return Err(RashError::ValidationError(
+                        "For loop variable name cannot be empty".to_string(),
+                    ));
+                }
+                // Validate range values
+                self.validate_shell_value(start)?;
+                self.validate_shell_value(end)?;
+                // Validate body
+                self.validate_ir_recursive(body)?;
             }
         }
         Ok(())
