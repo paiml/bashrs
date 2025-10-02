@@ -1,14 +1,14 @@
 # Chapter 18: Known Limitations and Edge Cases
 
-**Chapter Status**: 🎯 **5/11 Fixed** (All P0 + All P1 resolved!)
+**Chapter Status**: 🎯 **6/11 Fixed** (All P0 + All P1 + 1 P2 resolved!)
 
 *Last updated: 2025-10-02*
 *Rash version: 0.3.3*
 
-**Sprint 10 Progress**:
+**Sprint 11 Progress**:
 - ✅ **3 P0 Critical**: All fixed (empty functions, println!, negative integers)
 - ✅ **2 P1 High**: All fixed (comparison operators, function nesting)
-- 🔵 **4 P2 Medium**: Pending (loops, match, returns, arithmetic)
+- 🟡 **4 P2 Medium**: 1/4 fixed (arithmetic ✅, loops/match/returns pending)
 - ⚪ **2 P3 Low**: Backlog (empty main, integer overflow)
 
 ---
@@ -348,14 +348,15 @@ main() {
 
 ---
 
-### 🟢 EDGE CASE #9: Arithmetic Expressions Generate No-ops
+### ✅ EDGE CASE #9: Arithmetic Expressions Generate No-ops
 
-**Status**: 🟢 Medium Priority Bug
+**Status**: ✅ FIXED in v0.3.3 (commit 1cd984d)
 **Discovered**: 2025-10-02
-**Test**: `tests/edge-cases/test_09_arithmetic.rs`
+**Fixed**: 2025-10-02
+**Test**: `tests/edge_cases_test.rs::test_edge_case_09_arithmetic_expressions`
 
 **Problem**:
-Arithmetic expressions like `a + b` transpile to `:` (no-op).
+Arithmetic expressions like `a + b` transpiled to `:` (no-op) or string concatenation.
 
 **Example**:
 ```rust
@@ -382,9 +383,9 @@ add() {
 }
 ```
 
-**Impact**: 🟡 **MEDIUM** - Arithmetic operations don't work
-**Workaround**: None for shell arithmetic
-**Fix Priority**: P2 - Sprint 11
+**Impact**: 🟡 **MEDIUM** - Arithmetic operations didn't work
+**Solution**: Added Arithmetic variant to ShellValue IR, emits proper POSIX `$((expr))` syntax
+**Fix Commit**: 1cd984d (TICKET-5006)
 
 ---
 
