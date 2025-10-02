@@ -84,7 +84,7 @@ impl ValidationPipeline {
         use crate::ast::Expr;
 
         match expr {
-            Expr::Literal(_) => Ok(()),
+            Expr::Literal(lit) => self.validate_literal(lit),
             Expr::Variable(name) => self.validate_variable_name(name),
             Expr::Binary { left, right, .. } => self.validate_binary_expr(left, right),
             Expr::Unary { operand, .. } => self.validate_expr(operand),
@@ -102,6 +102,73 @@ impl ValidationPipeline {
     }
 
     // Helper methods to reduce complexity
+    fn validate_literal(&self, lit: &crate::ast::restricted::Literal) -> RashResult<()> {
+        use crate::ast::restricted::Literal;
+
+        match lit {
+            Literal::Str(s) => self.validate_string_literal(s),
+            Literal::Bool(_) | Literal::U32(_) => Ok(()),
+        }
+    }
+
+    fn validate_string_literal(&self, s: &str) -> RashResult<()> {
+        if self.level == ValidationLevel::None {
+            return Ok(());
+        }
+
+        // Special handling for shellshock-style attacks
+        if s.contains("() { :; }") {
+            return Err(RashError::ValidationError(
+                "Shellshock-style function definition detected in string literal".to_string(),
+            ));
+        }
+
+        // Check for command injection patterns
+        let dangerous_patterns = [
+            ("; ", "Semicolon command separator detected in string literal"),
+            ("| ", "Pipe operator detected in string literal"),
+            ("$(", "Command substitution detected in string literal"),
+            ("`", "Backtick command substitution detected in string literal (SC2006)"),
+            ("&& ", "AND operator detected in string literal"),
+            ("|| ", "OR operator detected in string literal"),
+            ("'; ", "Quote escape with semicolon detected in string literal"),
+            ("\"; ", "Quote escape with semicolon detected in string literal"),
+            ("<<", "Here-doc syntax detected in string literal"),
+            ("eval", "eval command detected in string literal"),
+            ("exec", "exec command detected in string literal"),
+        ];
+
+        for (pattern, message) in &dangerous_patterns {
+            if s.contains(pattern) {
+                return Err(RashError::ValidationError(format!(
+                    "{}: '{}'",
+                    message,
+                    s.chars().take(50).collect::<String>()
+                )));
+            }
+        }
+
+        // Check for newlines/carriage returns followed by dangerous commands
+        if s.contains('\n') || s.contains('\r') {
+            let lines: Vec<&str> = s.split(&['\n', '\r'][..]).collect();
+            for line in lines {
+                let trimmed = line.trim();
+                // Check if any line starts with a shell command that could be dangerous
+                let dangerous_starts = ["rm ", "curl ", "wget ", "eval ", "exec ", "bash ", "sh "];
+                for start in &dangerous_starts {
+                    if trimmed.starts_with(start) {
+                        return Err(RashError::ValidationError(format!(
+                            "Newline followed by dangerous command detected: '{}'",
+                            trimmed.chars().take(50).collect::<String>()
+                        )));
+                    }
+                }
+            }
+        }
+
+        Ok(())
+    }
+
     fn validate_variable_name(&self, name: &str) -> RashResult<()> {
         if name.is_empty() {
             return Err(RashError::ValidationError(
