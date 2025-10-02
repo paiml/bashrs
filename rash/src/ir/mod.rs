@@ -34,7 +34,7 @@ pub fn optimize(ir: ShellIR, config: &Config) -> Result<ShellIR> {
 }
 
 struct IrConverter {
-    // Converter state
+    // Converter state (currently stateless)
 }
 
 impl IrConverter {
@@ -55,8 +55,13 @@ impl IrConverter {
 
                 let params: Vec<String> = function.params.iter().map(|p| p.name.clone()).collect();
                 let mut body_stmts = Vec::new();
-                for stmt in &function.body {
-                    body_stmts.push(self.convert_stmt(stmt)?);
+
+                // Convert function body statements
+                for (i, stmt) in function.body.iter().enumerate() {
+                    let is_last = i == function.body.len() - 1;
+                    let has_return_type = !matches!(function.return_type, crate::ast::restricted::Type::Void);
+
+                    body_stmts.push(self.convert_stmt_in_function(stmt, is_last && has_return_type)?);
                 }
 
                 all_ir.push(ShellIR::Function {
@@ -80,6 +85,20 @@ impl IrConverter {
         }
 
         Ok(ShellIR::Sequence(all_ir))
+    }
+
+    /// Convert a statement in a function context (handles return values)
+    fn convert_stmt_in_function(&self, stmt: &crate::ast::Stmt, should_echo: bool) -> Result<ShellIR> {
+        use crate::ast::Stmt;
+
+        match stmt {
+            Stmt::Expr(expr) if should_echo => {
+                // Last expression in function with return type - emit as echo
+                let value = self.convert_expr_to_value(expr)?;
+                Ok(ShellIR::Echo { value })
+            }
+            _ => self.convert_stmt(stmt),
+        }
     }
 
     fn convert_stmt(&self, stmt: &crate::ast::Stmt) -> Result<ShellIR> {
@@ -177,6 +196,17 @@ impl IrConverter {
                 Literal::Str(s) => Ok(ShellValue::String(s.clone())),
             },
             Expr::Variable(name) => Ok(ShellValue::Variable(name.clone())),
+            Expr::FunctionCall { name, args } => {
+                // Function call used as value - capture output with command substitution
+                let mut cmd_args = Vec::new();
+                for arg in args {
+                    cmd_args.push(self.convert_expr_to_value(arg)?);
+                }
+                Ok(ShellValue::CommandSubst(Command {
+                    program: name.clone(),
+                    args: cmd_args,
+                }))
+            }
             Expr::Binary { op, left, right } => {
                 use crate::ast::restricted::BinaryOp;
                 let left_val = self.convert_expr_to_value(left)?;
