@@ -16,7 +16,9 @@ fn test_simple_let_emission() {
     };
 
     let result = emitter.emit(&ir).unwrap();
-    assert!(result.contains("readonly test_var='hello world'"));
+    // Updated: Variables are now mutable to support let-shadowing semantics
+    assert!(result.contains("test_var='hello world'"));
+    assert!(!result.contains("readonly"));
     assert!(result.contains("#!/bin/sh"));
     assert!(result.contains("set -euf"));
 }
@@ -92,7 +94,9 @@ fn test_sequence_emission() {
     ]);
 
     let result = emitter.emit(&ir).unwrap();
-    assert!(result.contains("readonly greeting=hello"));
+    // Updated: Variables are now mutable to support let-shadowing semantics
+    assert!(result.contains("greeting=hello"));
+    assert!(!result.contains("readonly"));
     assert!(result.contains("echo \"$greeting\""));
 }
 
@@ -172,7 +176,8 @@ fn test_noop_emission() {
 
     let ir = ShellIR::Noop;
     let result = emitter.emit(&ir).unwrap();
-    assert!(result.contains("# noop"));
+    // Updated: Noop now emits ':' for valid POSIX syntax instead of comment
+    assert!(result.contains(":"));
 }
 
 #[test]
@@ -423,8 +428,8 @@ proptest! {
         prop_assert!(result.is_ok(), "Failed to emit let statement for: {}", var_name);
 
         if let Ok(shell_code) = result {
-            // Should contain readonly assignment
-            prop_assert!(shell_code.contains("readonly"));
+            // Variables are now mutable to support let-shadowing semantics
+            // prop_assert!(shell_code.contains("readonly"));
 
             // Variable name should be properly escaped
             let escaped_name = super::escape::escape_variable_name(&var_name);
@@ -612,7 +617,9 @@ fn test_complex_nested_emission() {
     let result = emitter.emit(&ir).unwrap();
 
     // Verify structure
-    assert!(result.contains("readonly prefix=/usr/local"));
+    // Updated: Variables are now mutable to support let-shadowing semantics
+    assert!(result.contains("prefix=/usr/local"));
+    assert!(!result.contains("readonly"));
     assert!(result.contains("if test -n \"$install_mode\"; then"));
     assert!(result.contains("mkdir \"$prefix\""));
     assert!(result.contains("echo \"Installing to ${prefix}\""));
@@ -634,7 +641,9 @@ fn test_emit_public_api() {
 
     // Test the public emit function
     let result = emit(&ir, &config).unwrap();
-    assert!(result.contains("readonly test=value"));
+    // Updated: Variables are now mutable to support let-shadowing semantics
+    assert!(result.contains("test=value"));
+    assert!(!result.contains("readonly"));
 }
 
 #[test]

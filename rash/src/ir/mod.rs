@@ -43,21 +43,38 @@ impl IrConverter {
     }
 
     fn convert(&self, ast: &RestrictedAst) -> Result<ShellIR> {
-        // Find the entry point function
+        let mut all_ir = Vec::new();
+
+        // Convert all user-defined functions (except main) to shell functions
+        for function in &ast.functions {
+            if function.name != ast.entry_point {
+                let params: Vec<String> = function.params.iter().map(|p| p.name.clone()).collect();
+                let mut body_stmts = Vec::new();
+                for stmt in &function.body {
+                    body_stmts.push(self.convert_stmt(stmt)?);
+                }
+
+                all_ir.push(ShellIR::Function {
+                    name: function.name.clone(),
+                    params,
+                    body: Box::new(ShellIR::Sequence(body_stmts)),
+                });
+            }
+        }
+
+        // Find and convert the entry point function
         let entry_function = ast
             .functions
             .iter()
             .find(|f| f.name == ast.entry_point)
             .ok_or_else(|| Error::IrGeneration("Entry point not found".to_string()))?;
 
-        // Convert the main function to IR
-        let mut statements = Vec::new();
-
+        // Convert the main function body
         for stmt in &entry_function.body {
-            statements.push(self.convert_stmt(stmt)?);
+            all_ir.push(self.convert_stmt(stmt)?);
         }
 
-        Ok(ShellIR::Sequence(statements))
+        Ok(ShellIR::Sequence(all_ir))
     }
 
     fn convert_stmt(&self, stmt: &crate::ast::Stmt) -> Result<ShellIR> {
@@ -243,6 +260,14 @@ where
                 test,
                 then_branch: new_then,
                 else_branch: new_else,
+            }
+        }
+        ShellIR::Function { name, params, body } => {
+            let new_body = Box::new(transform_ir(*body, transform));
+            ShellIR::Function {
+                name,
+                params,
+                body: new_body,
             }
         }
         other => other,

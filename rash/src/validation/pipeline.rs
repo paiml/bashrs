@@ -204,6 +204,9 @@ impl ValidationPipeline {
                     self.validate_ir_recursive(ir)?;
                 }
             }
+            ShellIR::Function { body, .. } => {
+                self.validate_ir_recursive(body)?;
+            }
             ShellIR::Exit { .. } | ShellIR::Noop => {}
         }
         Ok(())
