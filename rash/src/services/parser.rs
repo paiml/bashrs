@@ -257,87 +257,96 @@ fn convert_nested_else(else_branch: &Option<(syn::token::Else, Box<SynExpr>)>) -
 
 fn convert_expr(expr: &SynExpr) -> Result<Expr> {
     match expr {
-        SynExpr::Lit(expr_lit) => {
-            let literal = convert_literal(&expr_lit.lit)?;
-            Ok(Expr::Literal(literal))
-        }
-        SynExpr::Path(expr_path) => {
-            let name = expr_path
-                .path
-                .segments
-                .iter()
-                .map(|seg| seg.ident.to_string())
-                .collect::<Vec<_>>()
-                .join("::");
-            Ok(Expr::Variable(name))
-        }
-        SynExpr::Call(expr_call) => {
-            if let SynExpr::Path(path) = &*expr_call.func {
-                let name = path
-                    .path
-                    .segments
-                    .iter()
-                    .map(|seg| seg.ident.to_string())
-                    .collect::<Vec<_>>()
-                    .join("::");
-
-                let mut args = Vec::new();
-                for arg in &expr_call.args {
-                    args.push(convert_expr(arg)?);
-                }
-
-                Ok(Expr::FunctionCall { name, args })
-            } else {
-                Err(Error::Validation(
-                    "Complex function calls not supported".to_string(),
-                ))
-            }
-        }
-        SynExpr::Binary(expr_binary) => {
-            let left = Box::new(convert_expr(&expr_binary.left)?);
-            let right = Box::new(convert_expr(&expr_binary.right)?);
-            let op = convert_binary_op(&expr_binary.op)?;
-            Ok(Expr::Binary { op, left, right })
-        }
-        SynExpr::Unary(expr_unary) => {
-            let operand = Box::new(convert_expr(&expr_unary.expr)?);
-            let op = convert_unary_op(&expr_unary.op)?;
-            Ok(Expr::Unary { op, operand })
-        }
-        SynExpr::MethodCall(method_call) => {
-            let receiver = Box::new(convert_expr(&method_call.receiver)?);
-            let method = method_call.method.to_string();
-            let mut args = Vec::new();
-            for arg in &method_call.args {
-                args.push(convert_expr(arg)?);
-            }
-            Ok(Expr::MethodCall {
-                receiver,
-                method,
-                args,
-            })
-        }
-        SynExpr::Return(ret_expr) => {
-            if let Some(expr) = &ret_expr.expr {
-                convert_expr(expr)
-            } else {
-                Ok(Expr::Literal(crate::ast::restricted::Literal::Str(
-                    "()".to_string(),
-                )))
-            }
-        }
-        SynExpr::Paren(expr_paren) => {
-            // Handle parenthesized expressions by unwrapping them
-            convert_expr(&expr_paren.expr)
-        }
-        SynExpr::If(_) => {
-            // For now, reject if expressions in expression position
-            // They should be used as statements instead
-            Err(Error::Validation(
-                "If expressions not supported in expression position".to_string(),
-            ))
-        }
+        SynExpr::Lit(expr_lit) => convert_literal_expr(expr_lit),
+        SynExpr::Path(expr_path) => convert_path_expr(expr_path),
+        SynExpr::Call(expr_call) => convert_call_expr(expr_call),
+        SynExpr::Binary(expr_binary) => convert_binary_expr(expr_binary),
+        SynExpr::Unary(expr_unary) => convert_unary_expr(expr_unary),
+        SynExpr::MethodCall(method_call) => convert_method_call_expr(method_call),
+        SynExpr::Return(ret_expr) => convert_return_expr(ret_expr),
+        SynExpr::Paren(expr_paren) => convert_expr(&expr_paren.expr),
+        SynExpr::If(_) => Err(Error::Validation(
+            "If expressions not supported in expression position".to_string(),
+        )),
         _ => Err(Error::Validation("Unsupported expression type".to_string())),
+    }
+}
+
+fn convert_literal_expr(expr_lit: &syn::ExprLit) -> Result<Expr> {
+    let literal = convert_literal(&expr_lit.lit)?;
+    Ok(Expr::Literal(literal))
+}
+
+fn convert_path_expr(expr_path: &syn::ExprPath) -> Result<Expr> {
+    let name = expr_path
+        .path
+        .segments
+        .iter()
+        .map(|seg| seg.ident.to_string())
+        .collect::<Vec<_>>()
+        .join("::");
+    Ok(Expr::Variable(name))
+}
+
+fn convert_call_expr(expr_call: &syn::ExprCall) -> Result<Expr> {
+    let SynExpr::Path(path) = &*expr_call.func else {
+        return Err(Error::Validation(
+            "Complex function calls not supported".to_string(),
+        ));
+    };
+
+    let name = path
+        .path
+        .segments
+        .iter()
+        .map(|seg| seg.ident.to_string())
+        .collect::<Vec<_>>()
+        .join("::");
+
+    let mut args = Vec::new();
+    for arg in &expr_call.args {
+        args.push(convert_expr(arg)?);
+    }
+
+    Ok(Expr::FunctionCall { name, args })
+}
+
+fn convert_binary_expr(expr_binary: &syn::ExprBinary) -> Result<Expr> {
+    let left = Box::new(convert_expr(&expr_binary.left)?);
+    let right = Box::new(convert_expr(&expr_binary.right)?);
+    let op = convert_binary_op(&expr_binary.op)?;
+    Ok(Expr::Binary { op, left, right })
+}
+
+fn convert_unary_expr(expr_unary: &syn::ExprUnary) -> Result<Expr> {
+    let operand = Box::new(convert_expr(&expr_unary.expr)?);
+    let op = convert_unary_op(&expr_unary.op)?;
+    Ok(Expr::Unary { op, operand })
+}
+
+fn convert_method_call_expr(method_call: &syn::ExprMethodCall) -> Result<Expr> {
+    let receiver = Box::new(convert_expr(&method_call.receiver)?);
+    let method = method_call.method.to_string();
+
+    let mut args = Vec::new();
+    for arg in &method_call.args {
+        args.push(convert_expr(arg)?);
+    }
+
+    Ok(Expr::MethodCall {
+        receiver,
+        method,
+        args,
+    })
+}
+
+fn convert_return_expr(ret_expr: &syn::ExprReturn) -> Result<Expr> {
+    if let Some(expr) = &ret_expr.expr {
+        convert_expr(expr)
+    } else {
+        Ok(Expr::Literal(crate::ast::restricted::Literal::Str(
+            "()".to_string(),
+        )))
     }
 }
 
@@ -626,5 +635,151 @@ mod tests {
         let err_msg = result.unwrap_err().to_string();
         // Loop statements are unsupported and produce validation error
         assert!(err_msg.contains("Unsupported") || err_msg.contains("loop"));
+    }
+
+    // Tests for convert_expr function
+    #[test]
+    fn test_convert_expr_literal_bool() {
+        let source = r#"
+            fn main() {
+                let x = true;
+            }
+        "#;
+        let ast = parse(source).unwrap();
+        match &ast.functions[0].body[0] {
+            Stmt::Let { value, .. } => {
+                assert!(matches!(value, Expr::Literal(Literal::Bool(true))));
+            }
+            _ => panic!("Expected Let statement"),
+        }
+    }
+
+    #[test]
+    fn test_convert_expr_literal_int() {
+        let source = r#"
+            fn main() {
+                let x = 42;
+            }
+        "#;
+        let ast = parse(source).unwrap();
+        match &ast.functions[0].body[0] {
+            Stmt::Let { value, .. } => {
+                assert!(matches!(value, Expr::Literal(Literal::U32(42))));
+            }
+            _ => panic!("Expected Let statement"),
+        }
+    }
+
+    #[test]
+    fn test_convert_expr_variable() {
+        let source = r#"
+            fn main() {
+                let x = 42;
+                let y = x;
+            }
+        "#;
+        let ast = parse(source).unwrap();
+        match &ast.functions[0].body[1] {
+            Stmt::Let { value, .. } => {
+                match value {
+                    Expr::Variable(name) => assert_eq!(name, "x"),
+                    _ => panic!("Expected Variable expression"),
+                }
+            }
+            _ => panic!("Expected Let statement"),
+        }
+    }
+
+    #[test]
+    fn test_convert_expr_function_call() {
+        let source = r#"
+            fn main() {
+                echo("test");
+            }
+        "#;
+        let ast = parse(source).unwrap();
+        match &ast.functions[0].body[0] {
+            Stmt::Expr(expr) => {
+                match expr {
+                    Expr::FunctionCall { name, args } => {
+                        assert_eq!(name, "echo");
+                        assert_eq!(args.len(), 1);
+                    }
+                    _ => panic!("Expected FunctionCall expression"),
+                }
+            }
+            _ => panic!("Expected Expr statement"),
+        }
+    }
+
+    #[test]
+    fn test_convert_expr_binary_op() {
+        let source = r#"
+            fn main() {
+                let x = 1 + 2;
+            }
+        "#;
+        let ast = parse(source).unwrap();
+        match &ast.functions[0].body[0] {
+            Stmt::Let { value, .. } => {
+                assert!(matches!(value, Expr::Binary { .. }));
+            }
+            _ => panic!("Expected Let statement"),
+        }
+    }
+
+    #[test]
+    fn test_convert_expr_unary_op() {
+        let source = r#"
+            fn main() {
+                let x = !true;
+            }
+        "#;
+        let ast = parse(source).unwrap();
+        match &ast.functions[0].body[0] {
+            Stmt::Let { value, .. } => {
+                assert!(matches!(value, Expr::Unary { .. }));
+            }
+            _ => panic!("Expected Let statement"),
+        }
+    }
+
+    #[test]
+    fn test_convert_expr_parenthesized() {
+        let source = r#"
+            fn main() {
+                let x = (42);
+            }
+        "#;
+        let ast = parse(source).unwrap();
+        match &ast.functions[0].body[0] {
+            Stmt::Let { value, .. } => {
+                // Parentheses should be unwrapped
+                assert!(matches!(value, Expr::Literal(Literal::U32(42))));
+            }
+            _ => panic!("Expected Let statement"),
+        }
+    }
+
+    #[test]
+    fn test_convert_expr_nested_binary() {
+        let source = r#"
+            fn main() {
+                let x = 1 + 2 * 3;
+            }
+        "#;
+        let ast = parse(source).unwrap();
+        match &ast.functions[0].body[0] {
+            Stmt::Let { value, .. } => {
+                match value {
+                    Expr::Binary { left, right, .. } => {
+                        assert!(matches!(**left, Expr::Literal(Literal::U32(1))));
+                        assert!(matches!(**right, Expr::Binary { .. }));
+                    }
+                    _ => panic!("Expected Binary expression"),
+                }
+            }
+            _ => panic!("Expected Let statement"),
+        }
     }
 }
