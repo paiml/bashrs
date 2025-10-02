@@ -1,14 +1,13 @@
 # Chapter 18: Known Limitations and Edge Cases
 
-**Chapter Status**: 🎯 **4/11 Fixed** (All P0 + 1 P1 resolved!)
+**Chapter Status**: 🎯 **5/11 Fixed** (All P0 + All P1 resolved!)
 
 *Last updated: 2025-10-02*
 *Rash version: 0.3.3*
 
 **Sprint 10 Progress**:
 - ✅ **3 P0 Critical**: All fixed (empty functions, println!, negative integers)
-- ✅ **1 P1 High**: Fixed (comparison operators)
-- 🟡 **1 P1 High**: Pending (function nesting)
+- ✅ **2 P1 High**: All fixed (comparison operators, function nesting)
 - 🔵 **4 P2 Medium**: Pending (loops, match, returns, arithmetic)
 - ⚪ **2 P3 Low**: Backlog (empty main, integer overflow)
 
@@ -186,11 +185,12 @@ main() {
 
 ---
 
-### 🟡 EDGE CASE #5: Functions Nested Inside main() Instead of Global
+### ✅ EDGE CASE #5: Functions Nested Inside main() Instead of Global
 
-**Status**: 🟡 High Priority Design Issue
+**Status**: ✅ FIXED in v0.3.3 (commit 02ee895)
 **Discovered**: 2025-10-02
-**Test**: `tests/edge-cases/test_05_function_nesting.rs`
+**Fixed**: 2025-10-02
+**Test**: Manual verification with helper function example
 
 **Problem**:
 Helper functions are defined inside `main()` instead of as global shell functions.
@@ -229,9 +229,9 @@ main() {
 main "$@"
 ```
 
-**Impact**: ⚠️ **HIGH** - Makes code harder to test, reuse
-**Workaround**: Works but not idiomatic shell
-**Fix Priority**: P1 - Sprint 11
+**Impact**: ⚠️ **HIGH** - Made code harder to test, reuse
+**Solution**: Refactored emitter to separate helpers from main body, emit at global scope
+**Fix Commit**: 02ee895 (TICKET-5005)
 
 ---
 
