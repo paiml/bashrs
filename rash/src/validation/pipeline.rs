@@ -22,8 +22,12 @@ impl ValidationPipeline {
             return Ok(());
         }
 
-        // Validate the main function
+        // Validate all functions
         for function in &ast.functions {
+            // Validate function name is not a shell builtin
+            self.validate_function_name(&function.name)?;
+
+            // Validate function body
             for stmt in &function.body {
                 self.validate_stmt(stmt)?;
             }
@@ -134,8 +138,8 @@ impl ValidationPipeline {
             ("'; ", "Quote escape with semicolon detected in string literal"),
             ("\"; ", "Quote escape with semicolon detected in string literal"),
             ("<<", "Here-doc syntax detected in string literal"),
-            ("eval", "eval command detected in string literal"),
-            ("exec", "exec command detected in string literal"),
+            ("eval ", "eval command detected in string literal"),
+            ("exec ", "exec command detected in string literal"),
         ];
 
         for (pattern, message) in &dangerous_patterns {
@@ -164,6 +168,31 @@ impl ValidationPipeline {
                     }
                 }
             }
+        }
+
+        Ok(())
+    }
+
+    fn validate_function_name(&self, name: &str) -> RashResult<()> {
+        if name.is_empty() {
+            return Err(RashError::ValidationError(
+                "Empty function name".to_string(),
+            ));
+        }
+
+        // Check for reserved shell builtins that cannot be redefined
+        // These are POSIX special builtins and common builtins that cause errors
+        let reserved_builtins = [
+            "break", "continue", "exit", "return", "shift", "trap",
+            "unset", "export", "readonly", "set", "times", "exec",
+            "eval", ".", ":", "true", "false", "test", "[",
+        ];
+
+        if reserved_builtins.contains(&name) {
+            return Err(RashError::ValidationError(format!(
+                "Function name '{}' is a reserved shell builtin and cannot be redefined",
+                name
+            )));
         }
 
         Ok(())
