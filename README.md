@@ -4,9 +4,8 @@
 [![Documentation](https://docs.rs/bashrs/badge.svg)](https://docs.rs/bashrs)
 [![License](https://img.shields.io/crates/l/bashrs.svg)](LICENSE)
 [![CI](https://github.com/paiml/bashrs/workflows/CI/badge.svg)](https://github.com/paiml/bashrs/actions)
-[![Coverage](https://paiml.github.io/bashrs/badges/coverage.svg)](https://github.com/paiml/bashrs/actions)
-[![Tests](https://img.shields.io/badge/tests-520%20passing-brightgreen)](https://github.com/paiml/bashrs/actions)
-[![PropertyTests](https://img.shields.io/badge/property%20tests-23%20(~13.3k%20cases)-blue)](https://github.com/paiml/bashrs/blob/main/rash/tests/)
+[![Tests](https://img.shields.io/badge/tests-603%20passing-brightgreen)](https://github.com/paiml/bashrs/actions)
+[![PropertyTests](https://img.shields.io/badge/property_tests-52_properties_(26k_cases)-blue)](https://github.com/paiml/bashrs/blob/main/rash/src/testing/)
 
 **Rash** transpiles a safe subset of Rust to POSIX-compliant shell scripts, enabling you to write maintainable and type-safe shell scripts using familiar Rust syntax.
 
@@ -294,11 +293,12 @@ exec("echo {user_input}");  // Safe: becomes echo "$user_input"
 See the [`examples/`](examples/) directory for complete examples:
 
 - **Basic**
-  - [Hello World](examples/basic/hello_world.rs) - Simplest example
+  - [Hello World](examples/hello.rs) - Simplest example
   - [Variables](examples/basic/variables.rs) - Variable usage and escaping
   - [Functions](examples/basic/functions.rs) - Built-in functions
+  - [Standard Library](examples/stdlib_demo.rs) - Stdlib functions demo
 
-- **Control Flow**  
+- **Control Flow**
   - [Conditionals](examples/control_flow/conditionals.rs) - If/else statements
   - [Loops](examples/control_flow/loops.rs) - Bounded iteration
 
@@ -307,7 +307,8 @@ See the [`examples/`](examples/) directory for complete examples:
   - [String Escaping](examples/safety/escaping.rs) - Special character handling
 
 - **Real-World**
-  - [Minimal Installer](examples/bootstrap/minimal_installer.rs) - Bootstrap script
+  - [Node Installer](examples/node-installer.rs) - Node.js bootstrap script
+  - [Rust Installer](examples/rust-installer.rs) - Rust toolchain installer
 
 ## Shell Compatibility
 

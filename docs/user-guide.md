@@ -726,7 +726,7 @@ We follow standard Rust conventions:
 4. Update documentation
 5. Submit PR with clear description
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) for detailed guidelines.
+See [CONTRIBUTING.md](../CONTRIBUTING.md) for detailed guidelines.
 
 ---
 
