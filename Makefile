@@ -827,3 +827,54 @@ coverage-clean: ## Clean coverage artifacts
 	@rm -rf target/llvm-cov target/coverage
 	@find . -name "*.profraw" -delete
 	@echo "✓ Coverage artifacts cleaned"
+
+# Mutation Testing Targets
+mutants: ## Run full mutation testing analysis (7-10 hours)
+	@echo "🧬 Running full mutation testing analysis..."
+	@echo "⚠️  This will take 7-10 hours. Use 'make mutants-quick' for faster feedback."
+	@cargo mutants --workspace --no-times
+	@echo ""
+	@echo "📊 Mutation testing complete. Review mutants.out/ for detailed results."
+
+mutants-quick: ## Run mutation testing on recently changed files only (~1 hour)
+	@echo "🧬 Running quick mutation testing (recently changed files)..."
+	@cargo mutants --workspace --no-times --in-diff HEAD~5..HEAD
+	@echo ""
+	@echo "📊 Quick mutation testing complete."
+
+mutants-parser: ## Run mutation testing on parser module only
+	@echo "🧬 Running mutation testing on parser module..."
+	@cargo mutants --file 'rash/src/services/parser.rs' --no-times
+	@echo "📊 Parser mutation testing complete."
+
+mutants-ir: ## Run mutation testing on IR converter module
+	@echo "🧬 Running mutation testing on IR converter..."
+	@cargo mutants --file 'rash/src/ir/mod.rs' --no-times
+	@echo "📊 IR mutation testing complete."
+
+mutants-emitter: ## Run mutation testing on emitter module
+	@echo "🧬 Running mutation testing on emitter..."
+	@cargo mutants --file 'rash/src/emitter/posix.rs' --no-times
+	@echo "📊 Emitter mutation testing complete."
+
+mutants-validation: ## Run mutation testing on validation module
+	@echo "🧬 Running mutation testing on validation..."
+	@cargo mutants --file 'rash/src/validation/pipeline.rs' --no-times
+	@echo "📊 Validation mutation testing complete."
+
+mutants-report: ## Generate mutation testing report
+	@echo "📊 Generating mutation testing report..."
+	@if [ -f mutants.out/mutants.json ]; then \
+		echo "=== Mutation Testing Summary ==="; \
+		echo ""; \
+		cat mutants.out/mutants.json | jq -r '.summary // empty'; \
+		echo ""; \
+		echo "📄 Full report: mutants.out/mutants.json"; \
+		echo "📋 Detailed logs: mutants.out/"; \
+	else \
+		echo "❌ No mutation results found. Run 'make mutants' first."; \
+	fi
+
+mutants-clean: ## Clean mutation testing artifacts
+	@rm -rf mutants.out mutants.out.old
+	@echo "✓ Mutation testing artifacts cleaned"
