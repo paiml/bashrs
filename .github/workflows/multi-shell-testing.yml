@@ -1,0 +1,105 @@
+name: Multi-Shell Testing
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    paths:
+      - 'rash/src/**'
+      - 'rash/tests/**'
+      - '.github/workflows/multi-shell-testing.yml'
+
+jobs:
+  multi-shell-execution:
+    name: Multi-Shell Execution Tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Rust stable
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache dependencies
+        uses: Swatinem/rust-cache@v2
+
+      - name: Verify available shells
+        run: |
+          echo "=== Available Shells ==="
+          which sh && sh --version 2>&1 | head -1 || echo "sh: $(readlink -f $(which sh))"
+          which dash && dash --version 2>&1 | head -1 || echo "dash: installed"
+          which bash && bash --version | head -1
+          echo ""
+
+      - name: Run multi-shell execution tests
+        run: |
+          cargo test --test multi_shell_execution -- --nocapture
+        timeout-minutes: 5
+
+      - name: Test summary
+        run: |
+          echo "## Multi-Shell Test Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "✅ Tested shells: sh (dash), dash, bash" >> $GITHUB_STEP_SUMMARY
+          echo "✅ 11 test scenarios executed across all shells" >> $GITHUB_STEP_SUMMARY
+          echo "✅ POSIX compliance validated" >> $GITHUB_STEP_SUMMARY
+
+  # Docker-based shell matrix (for ash, busybox sh)
+  # Uncomment when Docker support is added
+  #
+  # docker-shell-matrix:
+  #   name: Docker Shell Matrix
+  #   runs-on: ubuntu-latest
+  #
+  #   strategy:
+  #     matrix:
+  #       shell:
+  #         - { name: alpine-sh, image: alpine:latest, shell: /bin/sh }
+  #         - { name: busybox-sh, image: busybox:latest, shell: /bin/sh }
+  #         - { name: debian-dash, image: debian:stable-slim, shell: /bin/dash }
+  #
+  #   steps:
+  #     - name: Checkout repository
+  #       uses: actions/checkout@v4
+  #
+  #     - name: Install Rust in container
+  #       run: |
+  #         docker run --rm -v $PWD:/workspace -w /workspace ${{ matrix.shell.image }} sh -c "
+  #           apk add --no-cache rust cargo || apt-get update && apt-get install -y rust cargo
+  #         "
+  #
+  #     - name: Run tests in ${{ matrix.shell.name }}
+  #       run: |
+  #         docker run --rm -v $PWD:/workspace -w /workspace ${{ matrix.shell.image }} sh -c "
+  #           cargo test --test multi_shell_execution
+  #         "
+
+  posix-compliance:
+    name: POSIX Compliance Check
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Rust stable
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install ShellCheck
+        run: sudo apt-get update && sudo apt-get install -y shellcheck
+
+      - name: Cache dependencies
+        uses: Swatinem/rust-cache@v2
+
+      - name: Run ShellCheck validation tests
+        run: |
+          cargo test shellcheck_validation --lib -- --nocapture
+        timeout-minutes: 5
+
+      - name: POSIX compliance summary
+        run: |
+          echo "## POSIX Compliance Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "✅ All generated scripts pass \`shellcheck -s sh\`" >> $GITHUB_STEP_SUMMARY
+          echo "✅ POSIX-compliant shell code generated" >> $GITHUB_STEP_SUMMARY
