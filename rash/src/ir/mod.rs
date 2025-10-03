@@ -195,8 +195,35 @@ impl IrConverter {
                     body: Box::new(body_ir),
                 })
             }
+            Stmt::Match { scrutinee, arms } => {
+                // Convert the scrutinee to a shell value
+                let scrutinee_value = self.convert_expr_to_value(scrutinee)?;
+
+                // Convert each match arm to a case arm
+                let mut case_arms = Vec::new();
+                for arm in arms {
+                    let pattern = self.convert_match_pattern(&arm.pattern)?;
+                    let guard = if let Some(guard_expr) = &arm.guard {
+                        Some(self.convert_expr_to_value(guard_expr)?)
+                    } else {
+                        None
+                    };
+                    let body = self.convert_stmts(&arm.body)?;
+
+                    case_arms.push(shell_ir::CaseArm {
+                        pattern,
+                        guard,
+                        body: Box::new(body),
+                    });
+                }
+
+                Ok(ShellIR::Case {
+                    scrutinee: scrutinee_value,
+                    arms: case_arms,
+                })
+            }
             // Placeholder for new AST nodes - TODO: implement properly
-            _ => Ok(ShellIR::Noop), // Match, While, Break, Continue
+            _ => Ok(ShellIR::Noop), // While, Break, Continue
         }
     }
 
@@ -340,6 +367,35 @@ impl IrConverter {
         }
 
         effects
+    }
+
+    fn convert_match_pattern(
+        &self,
+        pattern: &crate::ast::restricted::Pattern,
+    ) -> Result<shell_ir::CasePattern> {
+        use crate::ast::restricted::{Literal, Pattern};
+
+        match pattern {
+            Pattern::Literal(literal) => {
+                // Convert literal to string representation for case pattern
+                let lit_str = match literal {
+                    Literal::Bool(b) => b.to_string(),
+                    Literal::U32(n) => n.to_string(),
+                    Literal::I32(n) => n.to_string(),
+                    Literal::Str(s) => s.clone(),
+                };
+                Ok(shell_ir::CasePattern::Literal(lit_str))
+            }
+            Pattern::Wildcard => Ok(shell_ir::CasePattern::Wildcard),
+            Pattern::Variable(_) => {
+                // Variables in patterns are treated as wildcards for now
+                // (proper binding would require more complex analysis)
+                Ok(shell_ir::CasePattern::Wildcard)
+            }
+            Pattern::Tuple(_) | Pattern::Struct { .. } => Err(crate::models::Error::Validation(
+                "Tuple and struct patterns not yet supported in match expressions".to_string(),
+            )),
+        }
     }
 }
 

@@ -324,6 +324,25 @@ impl ValidationPipeline {
                 // Validate body
                 self.validate_ir_recursive(body)?;
             }
+            ShellIR::Case { scrutinee, arms } => {
+                // Validate scrutinee
+                self.validate_shell_value(scrutinee)?;
+
+                // Validate each arm
+                for arm in arms {
+                    if let Some(guard) = &arm.guard {
+                        self.validate_shell_value(guard)?;
+                    }
+                    self.validate_ir_recursive(&arm.body)?;
+                }
+
+                // Check for at least one arm
+                if arms.is_empty() {
+                    return Err(RashError::ValidationError(
+                        "Match expression must have at least one arm".to_string(),
+                    ));
+                }
+            }
         }
         Ok(())
     }
