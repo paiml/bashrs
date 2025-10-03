@@ -1,30 +1,21 @@
 # Mutation Testing Configuration for Rash
-# Based on docs/specifications/MUTATION-TESTING.md
+# See: https://mutants.rs/config.html
 
-# Exclude rash-mcp (has external pforge dependency), tests, binary utilities, and examples
+# Test only the main rash package (exclude rash-mcp which has external deps)
+test_package = ["bashrs"]
+
+# Increase timeout for property tests (they can be slow)
+timeout_multiplier = 2.0
+
+# Files to always skip
 exclude_globs = [
-    "rash-mcp/**",
-    "rash/tests/**",
-    "rash/benches/**",
-    "rash/examples/**",
-    "rash/src/bin/**",
+    "**/tests/**",
+    "**/benches/**",
+    "**/*_test.rs",
 ]
 
-# Focus on core transpiler modules
-# Priority: parser, IR converter, emitter, validation
-minimum_test_timeout = 60
-
-# Configure test commands
-# Use cargo nextest for faster execution
-# test_tool = "nextest"
-
-# Skip regex patterns for known acceptable survivors
-# (Will add after baseline analysis)
-# skip_calls_matching = []
-
-# Baseline target: ≥90% kill rate overall
-# Module-specific targets:
-# - Parser: ≥92% (~150 mutants expected)
-# - IR: ≥90% (~120 mutants expected)
-# - Emitter: ≥90% (~100 mutants expected)
-# - Validation: ≥95% (~60 mutants expected)
+# Don't test generated code or vendored dependencies
+exclude_re = [
+    "generated",
+    "vendor",
+]

@@ -1,8 +1,0 @@
-rash/src/ir/mod.rs:61:60: replace - with + in IrConverter::convert
-rash/src/ir/mod.rs:165:21: delete match arm crate::ast::Expr::Range{start, end, inclusive} in IrConverter::convert_stmt
-rash/src/ir/mod.rs:95:33: replace match guard should_echo with true in IrConverter::convert_stmt_in_function
-rash/src/ir/mod.rs:95:33: replace match guard should_echo with false in IrConverter::convert_stmt_in_function
-rash/src/ir/mod.rs:327:21: delete match arm BinaryOp::Eq in IrConverter::convert_expr_to_value
-rash/src/ir/mod.rs:391:13: delete match arm "curl" | "wget" in IrConverter::analyze_command_effects
-rash/src/ir/mod.rs:61:60: replace - with / in IrConverter::convert
-rash/src/ir/mod.rs:363:21: delete match arm BinaryOp::Sub in IrConverter::convert_expr_to_value
