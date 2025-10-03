@@ -215,7 +215,10 @@ fn convert_expr_stmt(expr: &SynExpr) -> Result<Stmt> {
     match expr {
         SynExpr::If(expr_if) => convert_if_stmt(expr_if),
         SynExpr::ForLoop(for_loop) => convert_for_loop(for_loop),
+        SynExpr::While(expr_while) => convert_while_loop(expr_while),
         SynExpr::Match(expr_match) => convert_match_stmt(expr_match),
+        SynExpr::Break(_) => Ok(Stmt::Break),
+        SynExpr::Continue(_) => Ok(Stmt::Continue),
         _ => Ok(Stmt::Expr(convert_expr(expr)?)),
     }
 }
@@ -500,6 +503,20 @@ fn convert_for_loop(for_loop: &syn::ExprForLoop) -> Result<Stmt> {
         iter,
         body,
         max_iterations: Some(1000), // Default safety limit
+    })
+}
+
+fn convert_while_loop(expr_while: &syn::ExprWhile) -> Result<Stmt> {
+    // Convert condition expression
+    let condition = convert_expr(&expr_while.cond)?;
+
+    // Convert body
+    let body = convert_block(&expr_while.body)?;
+
+    Ok(Stmt::While {
+        condition,
+        body,
+        max_iterations: Some(10000), // Safety limit for infinite loops
     })
 }
 
