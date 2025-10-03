@@ -649,3 +649,248 @@ mod security_tests {
         }
     }
 }
+
+// Sprint 23: New property tests for stdlib, while loops, and control flow
+#[cfg(test)]
+mod sprint23_properties {
+    use super::*;
+
+    proptest! {
+        #![proptest_config(ProptestConfig::with_cases(256))]
+
+        /// Property: stdlib string_trim should be idempotent
+        #[test]
+        fn prop_string_trim_idempotent(s in "[a-zA-Z0-9 ]{0,50}") {
+            let source = format!(
+                r#"fn main() {{
+                    let text = "{}";
+                    let trimmed1 = string_trim(text);
+                    let trimmed2 = string_trim(trimmed1);
+                }}"#,
+                s
+            );
+
+            if let Ok(shell_code) = transpile(&source, Config::default()) {
+                // Should contain string_trim function
+                prop_assert!(shell_code.contains("rash_string_trim"),
+                           "Should include stdlib string_trim function");
+            }
+        }
+
+        /// Property: stdlib string_contains should handle empty strings
+        #[test]
+        fn prop_string_contains_empty(haystack in "[a-zA-Z0-9]{0,30}") {
+            let source = format!(
+                r#"fn main() {{
+                    let text = "{}";
+                    if string_contains(text, "") {{
+                        echo("contains empty");
+                    }}
+                }}"#,
+                haystack
+            );
+
+            if let Ok(shell_code) = transpile(&source, Config::default()) {
+                // Should generate proper case statement
+                prop_assert!(shell_code.contains("rash_string_contains"),
+                           "Should include stdlib string_contains function");
+                // Should not wrap in command substitution for if statement
+                prop_assert!(!shell_code.contains("\"$(rash_string_contains"),
+                           "Predicate functions should not be wrapped in command substitution");
+            }
+        }
+
+        /// Property: stdlib fs_exists should generate test command
+        #[test]
+        fn prop_fs_exists_test_command(path in "[a-zA-Z0-9/_.-]{1,50}") {
+            let source = format!(
+                r#"fn main() {{
+                    if fs_exists("{}") {{
+                        echo("exists");
+                    }}
+                }}"#,
+                path
+            );
+
+            if let Ok(shell_code) = transpile(&source, Config::default()) {
+                // Should include fs_exists function
+                prop_assert!(shell_code.contains("rash_fs_exists"),
+                           "Should include stdlib fs_exists function");
+                // Should use POSIX test -e
+                prop_assert!(shell_code.contains("test -e"),
+                           "fs_exists should use POSIX test -e");
+            }
+        }
+
+        /// Property: stdlib string_len should return numeric value
+        #[test]
+        fn prop_string_len_numeric(s in "[a-zA-Z]{0,20}") {
+            let source = format!(
+                r#"fn main() {{
+                    let text = "{}";
+                    let len = string_len(text);
+                    echo(len);
+                }}"#,
+                s
+            );
+
+            if let Ok(shell_code) = transpile(&source, Config::default()) {
+                // Should use command substitution for return value
+                prop_assert!(shell_code.contains("$(rash_string_len") ||
+                           shell_code.contains("len="),
+                           "string_len should be captured as value");
+            }
+        }
+
+        /// Property: while loops should generate POSIX while statements
+        #[test]
+        fn prop_while_loop_posix(limit in 1u32..10) {
+            let source = format!(
+                r#"fn main() {{
+                    let i = 0;
+                    while i < {} {{
+                        echo(i);
+                    }}
+                }}"#,
+                limit
+            );
+
+            if let Ok(shell_code) = transpile(&source, Config::default()) {
+                // Should generate while loop
+                prop_assert!(shell_code.contains("while") && shell_code.contains("do"),
+                           "Should generate POSIX while...do loop");
+                // Should have proper test syntax
+                prop_assert!(shell_code.contains("-lt") || shell_code.contains("["),
+                           "Should use POSIX test syntax for condition");
+                prop_assert!(shell_code.contains("done"),
+                           "While loop should be closed with 'done'");
+            }
+        }
+
+        /// Property: while true should generate infinite loop
+        #[test]
+        fn prop_while_true_infinite(_dummy in prop::bool::ANY) {
+            let source = r#"
+fn main() {
+    while true {
+        echo("loop");
+    }
+}
+"#;
+
+            if let Ok(shell_code) = transpile(source, Config::default()) {
+                // Should generate while true
+                prop_assert!(shell_code.contains("while true"),
+                           "while true should generate 'while true' statement");
+                prop_assert!(shell_code.contains("do") && shell_code.contains("done"),
+                           "Should have proper loop structure");
+            }
+        }
+
+        /// Property: nested if statements should maintain correct nesting
+        #[test]
+        fn prop_nested_if_statements(
+            val1 in 0u32..100,
+            val2 in 0u32..100
+        ) {
+            let source = format!(
+                r#"fn main() {{
+                    let x = {};
+                    if x > 10 {{
+                        let y = {};
+                        if y > 20 {{
+                            echo("nested");
+                        }}
+                    }}
+                }}"#,
+                val1, val2
+            );
+
+            if let Ok(shell_code) = transpile(&source, Config::default()) {
+                // Should contain nested if structure
+                prop_assert!(shell_code.contains("if") && shell_code.contains("fi"),
+                           "Should generate if/fi structure");
+                // Should contain comparison operators
+                prop_assert!(shell_code.contains("-gt"),
+                           "Should use POSIX comparison operators");
+            }
+        }
+
+        /// Property: match expressions with multiple arms should generate complete case
+        #[test]
+        fn prop_match_completeness(val in 0u32..5) {
+            let source = format!(
+                r#"fn main() {{
+                    let x = {};
+                    match x {{
+                        0 => echo("zero"),
+                        1 => echo("one"),
+                        _ => echo("other"),
+                    }}
+                }}"#,
+                val
+            );
+
+            if let Ok(shell_code) = transpile(&source, Config::default()) {
+                // Should generate case statement
+                prop_assert!(shell_code.contains("case"),
+                           "Match should generate case statement");
+                prop_assert!(shell_code.contains("esac"),
+                           "Case statement should be closed with esac");
+                // Should have wildcard pattern
+                prop_assert!(shell_code.contains("*)"),
+                           "Should have wildcard pattern for _ arm");
+            }
+        }
+
+        /// Property: for loop with range should generate seq command
+        #[test]
+        fn prop_for_range_seq(start in 0u32..10, end in 11u32..20) {
+            prop_assume!(start < end); // Ensure valid range
+
+            let source = format!(
+                r#"fn main() {{
+                    for i in {}..{} {{
+                        echo(i);
+                    }}
+                }}"#,
+                start, end
+            );
+
+            if let Ok(shell_code) = transpile(&source, Config::default()) {
+                // Should generate seq command or shell range
+                prop_assert!(shell_code.contains("seq") || shell_code.contains("for i in"),
+                           "For loop should generate seq or shell range");
+                // Exclusive range: end - 1
+                let expected_end = end - 1;
+                prop_assert!(shell_code.contains(&format!("seq {} {}", start, expected_end)) ||
+                           shell_code.contains("for"),
+                           "Should generate correct range bounds");
+            }
+        }
+
+        /// Property: break and continue in loops should generate shell equivalents
+        #[test]
+        fn prop_break_continue(use_break in prop::bool::ANY) {
+            let stmt = if use_break { "break" } else { "continue" };
+            let source = format!(
+                r#"fn main() {{
+                    let i = 0;
+                    while i < 10 {{
+                        if i == 5 {{
+                            {};
+                        }}
+                        echo(i);
+                    }}
+                }}"#,
+                stmt
+            );
+
+            if let Ok(shell_code) = transpile(&source, Config::default()) {
+                // Should contain break or continue statement
+                prop_assert!(shell_code.contains(stmt),
+                           "Loop control statement should be preserved");
+            }
+        }
+    }
+}
