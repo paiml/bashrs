@@ -324,6 +324,12 @@ impl ValidationPipeline {
                 // Validate body
                 self.validate_ir_recursive(body)?;
             }
+            ShellIR::While { condition, body } => {
+                // Validate condition
+                self.validate_shell_value(condition)?;
+                // Validate body
+                self.validate_ir_recursive(body)?;
+            }
             ShellIR::Case { scrutinee, arms } => {
                 // Validate scrutinee
                 self.validate_shell_value(scrutinee)?;
@@ -342,6 +348,10 @@ impl ValidationPipeline {
                         "Match expression must have at least one arm".to_string(),
                     ));
                 }
+            }
+            ShellIR::Break | ShellIR::Continue => {
+                // Break and continue are always valid in IR
+                // Context validation (must be inside loop) happens during AST validation
             }
         }
         Ok(())

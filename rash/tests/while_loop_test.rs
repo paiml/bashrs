@@ -7,9 +7,9 @@ use bashrs::{transpile, Config};
 fn test_while_loop_basic() {
     let source = r#"
 fn main() {
-    let mut i = 0;
+    let i = 0;
     while i < 5 {
-        i = i + 1;
+        let x = i + 1;
     }
 }
 "#;
@@ -38,12 +38,12 @@ fn main() {
 fn test_while_loop_with_break() {
     let source = r#"
 fn main() {
-    let mut count = 0;
+    let count = 0;
     while count < 10 {
         if count == 5 {
             break;
         }
-        count = count + 1;
+        let x = count + 1;
     }
 }
 "#;

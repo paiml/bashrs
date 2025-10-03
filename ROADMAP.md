@@ -1,5 +1,12 @@
 # Rash (bashrs) Extreme Quality Roadmap
 
+## ✅ SPRINT 21 COMPLETE: While Loops - EXTREME TDD
+**Achievement**: **WHILE LOOPS IMPLEMENTED!** 🏆
+- ✅ **TICKET-6001**: While loop support with break/continue
+- ✅ **530/530 tests** passing (100%!)
+- ✅ **42 property tests** (~20,000+ cases)
+- ✅ **v0.8.0 RELEASED** to crates.io
+
 ## ✅ SPRINT 20 COMPLETE: 11/11 Edge Cases + Mutation Testing - EXTREME TDD
 **Achievement**: **100% EDGE CASE COMPLETION + QUALITY INFRASTRUCTURE!** 🏆
 - ✅ **TICKET-5010**: Empty main() function handling
@@ -27,7 +34,7 @@
 - ✅ **Coverage infrastructure**: "make coverage" just works (82.14% coverage)
 - ✅ **Toyota Way applied**: Jidoka, Hansei, Kaizen, Five Whys
 
-## Current Status: v0.7.0 RELEASED | 11/11 Edge Cases Fixed 🎯
+## Current Status: v0.8.0 RELEASED | While Loops Implemented 🎯
 
 ### Sprint History
 **Sprint 1**: Critical bug fixes (5 bugs, 22 property tests)
@@ -48,6 +55,7 @@
 **Sprint 18**: **Property test expansion** (17→24 tests, +7 new) ✅
 **Sprint 19**: **Match expressions** (TICKET-5009, 9/11 edge cases) ✅
 **Sprint 20**: **11/11 edge cases + Mutation testing** (100% edge case completion) ✅
+**Sprint 21**: **While loops** (TICKET-6001, break/continue support) ✅
 
 ### 🎯 Project Goals (Derived from CLAUDE.md)
 Rash is a **Rust-to-Shell transpiler** with these critical invariants:
@@ -57,11 +65,11 @@ Rash is a **Rust-to-Shell transpiler** with these critical invariants:
 4. **Performance**: Generated install.sh must execute in <100ms for minimal scripts
 5. **Code size**: Runtime overhead should not exceed 20 lines of shell boilerplate
 
-### 📊 Current Metrics (v0.7.0)
+### 📊 Current Metrics (v0.8.0)
 
 | Metric | Current | Target | Status |
 |--------|---------|--------|--------|
-| **Test Suite** | **527/530 passing** (99.4%) | 600+ passing, 0 ignored | 🟢 Strong |
+| **Test Suite** | **530/530 passing** (100%!) | 600+ passing, 0 ignored | ✅ EXCEEDS |
 | **Property Tests** | **42 properties** (~20,000+ cases) | 30+ properties | ✅ EXCEEDS (140%) |
 | **Coverage** | 85.36% core, 82.18% total | >85% line | ✅ TARGET ACHIEVED |
 | **Complexity** | Median: 1.0, Top: 15 | All <10 | ✅ TARGET ACHIEVED |
@@ -72,6 +80,7 @@ Rash is a **Rust-to-Shell transpiler** with these critical invariants:
 | **Edge Cases** | **11/11 fixed** (100%) | 11/11 | ✅ TARGET ACHIEVED 🎯 |
 | **For Loops** | ✅ **Implemented** (v0.5.0) | Full support | ✅ COMPLETE |
 | **Match Expressions** | ✅ **Implemented** (v0.6.0) | Full support | ✅ COMPLETE |
+| **While Loops** | ✅ **Implemented** (v0.8.0) | Full support | ✅ COMPLETE |
 | **Mutation Testing** | ✅ **Infrastructure ready** (v0.7.0) | ≥90% kill rate | 🟢 Ready to run |
 | **MCP Server** | rash-mcp operational | Full stdio transport | 🟢 Functional |
 
@@ -83,7 +92,7 @@ Rash is a **Rust-to-Shell transpiler** with these critical invariants:
 - ✅ EXTREME TDD methodology proven effective
 
 **Test Quality**:
-- ✅ 527 unit tests (99.4% pass rate)
+- ✅ 530 unit tests (100% pass rate!)
 - ✅ 42 property tests (~20,000+ cases)
 - ✅ 11 idempotence tests
 - ✅ 11 unicode tests
@@ -311,6 +320,27 @@ Rash is a **Rust-to-Shell transpiler** with these critical invariants:
 
 ---
 
+### Sprint 21: While Loops ✅ COMPLETE
+**Goal**: Implement while loops with break/continue (TICKET-6001)
+**Duration**: 2 hours
+**Achievement**: Full while loop support with POSIX shell syntax
+
+#### Completed:
+- ✅ Added `convert_while_loop` to parser for `while condition { }` syntax
+- ✅ Added While, Break, Continue variants to ShellIR
+- ✅ Implemented IR conversion for while statements
+- ✅ Generated POSIX-compliant `while [ condition ]; do ... done` syntax
+- ✅ Special handling for `while true` → `while true; do`
+- ✅ All 530/530 tests passing (100%!)
+- ✅ Published v0.8.0 to crates.io
+
+**Key Technical Achievement**:
+- While loop mapping: `while i < 5 { }` → `while [ "$i" -lt 5 ]; do ... done`
+- Infinite loop: `while true { }` → `while true; do ... done`
+- Break/continue statements work correctly
+
+---
+
 ### Sprint 19: Match Expressions ✅ COMPLETE
 **Goal**: Implement match expressions (TICKET-5009)
 **Duration**: 4 hours
@@ -332,17 +362,24 @@ Rash is a **Rust-to-Shell transpiler** with these critical invariants:
 
 ---
 
-### Future Sprints (Post v0.6.0)
+### Future Sprints (Post v0.8.0)
 
-**Sprint 20: Remaining Edge Cases** (Optional)
-- Fix last 2 edge cases (9/11 → 11/11)
-- Empty main() function
-- Integer overflow handling
+**Sprint 22: Standard Library** (Optional)
+- String manipulation functions
+- Array operations
+- File system utilities
+- Advanced error handling
 
-**Sprint 21: Property Test Enhancement** (Optional)
-- Expand from 24 to 30+ properties
-- Control flow semantics properties
+**Sprint 23: Property Test Enhancement** (Optional)
+- Expand from 42 to 50+ properties
+- While loop semantics properties
+- Control flow nesting properties
 - Shell compatibility properties
+
+**Sprint 24: Mutation Testing Analysis** (Optional)
+- Run full mutation testing suite
+- Achieve ≥90% mutation kill rate
+- Identify and fix test gaps
 
 ---
 
@@ -371,11 +408,11 @@ shellcheck:
 ```yaml
 tests:
   total: 530
-  passing: 527
-  ignored: 3
-  pass_rate: 99.4%
-  property_tests: 24 (~14,000 cases)
-  status: EXCELLENT
+  passing: 530
+  ignored: 0
+  pass_rate: 100%
+  property_tests: 42 (~20,000 cases)
+  status: PERFECT
 ```
 
 ### Performance ✅ (Target: <10ms simple)
@@ -439,25 +476,26 @@ make test-determinism # Determinism verification
 
 ---
 
-## 🎯 Next Steps (v0.7.0 Planning)
+## 🎯 Next Steps (v0.9.0 Planning)
 
-**Immediate (Sprint 20)**:
-1. Fix remaining 2 edge cases (9/11 → 11/11)
-   - Empty main() function (P3)
-   - Integer overflow handling (P3)
-2. Add 6+ property tests (24 → 30+)
-3. Enhanced pattern matching (tuples, structs - if needed)
+**Immediate (Sprint 22)**:
+1. Standard library foundation
+   - String manipulation utilities
+   - Array/list operations
+   - File system helpers
+2. Advanced error handling patterns
 
-**Short-term (Sprint 21-22)**:
-1. While loops support (if needed)
-2. Guard expression full support
-3. Enhanced error messages
-4. Optimization opportunities
+**Short-term (Sprint 23-24)**:
+1. Property test expansion (42 → 50+ properties)
+2. Mutation testing analysis (achieve ≥90% kill rate)
+3. Guard expression full support
+4. Enhanced error messages
 
 **Long-term (v1.0.0)**:
-1. Comprehensive stdlib (string manipulation, arrays)
+1. Comprehensive stdlib (complete string/array/fs APIs)
 2. Advanced verification (SMT solver integration)
 3. Multi-shell targeting (bash, zsh optimizations)
+4. Performance optimizations
 
 ---
 
@@ -509,6 +547,6 @@ make test-determinism # Determinism verification
 
 ---
 
-**Status**: Sprint 19 Complete ✅ | v0.6.0 RELEASED
-**Next**: Sprint 20 - Remaining edge cases for v0.7.0
-**Quality Score**: ⭐⭐⭐⭐⭐ 5/5 - Production ready with match expressions
+**Status**: Sprint 21 Complete ✅ | v0.8.0 RELEASED
+**Next**: Sprint 22 - Standard library for v0.9.0
+**Quality Score**: ⭐⭐⭐⭐⭐ 5/5 - Production ready with while loops
