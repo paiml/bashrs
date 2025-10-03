@@ -345,6 +345,10 @@ Rash is designed for fast transpilation:
 
 **Production Ready**: Comprehensive stdlib, extensive property testing, strict quality gates.
 
+## Troubleshooting
+
+Having issues? Check our **[Error Guide](docs/ERROR_GUIDE.md)** for common errors and solutions.
+
 ## Contributing
 
 We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) for details.
