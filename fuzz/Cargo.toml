@@ -1,0 +1,28 @@
+[package]
+name = "bashrs-fuzz"
+version = "0.0.0"
+publish = false
+edition = "2021"
+
+[package.metadata]
+cargo-fuzz = true
+
+[dependencies]
+libfuzzer-sys = "0.4"
+
+[dependencies.bashrs]
+path = "../rash"
+
+[[bin]]
+name = "transpile_robustness"
+path = "fuzz_targets/transpile_robustness.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "injection_detection"
+path = "fuzz_targets/injection_detection.rs"
+test = false
+doc = false
+bench = false
