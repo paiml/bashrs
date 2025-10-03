@@ -2,6 +2,19 @@ use super::effects::EffectSet;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CaseArm {
+    pub pattern: CasePattern,
+    pub guard: Option<ShellValue>,
+    pub body: Box<ShellIR>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum CasePattern {
+    Literal(String),  // Literal value to match
+    Wildcard,          // * pattern
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum ShellIR {
     /// Variable assignment: readonly NAME=VALUE
     Let {
@@ -46,6 +59,12 @@ pub enum ShellIR {
         end: ShellValue,
         body: Box<ShellIR>,
     },
+
+    /// Case statement (for match expressions)
+    Case {
+        scrutinee: ShellValue,
+        arms: Vec<CaseArm>,
+    },
 }
 
 impl ShellIR {
@@ -70,6 +89,9 @@ impl ShellIR {
             ShellIR::Exit { .. } | ShellIR::Noop | ShellIR::Echo { .. } => EffectSet::pure(),
             ShellIR::Function { body, .. } => body.effects(),
             ShellIR::For { body, .. } => body.effects(),
+            ShellIR::Case { arms, .. } => arms
+                .iter()
+                .fold(EffectSet::pure(), |acc, arm| acc.union(&arm.body.effects())),
         }
     }
 

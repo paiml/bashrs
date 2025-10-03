@@ -1,5 +1,6 @@
 use crate::ast::restricted::{
-    BinaryOp, Expr, Function, Literal, Parameter, Pattern, RestrictedAst, Stmt, Type, UnaryOp,
+    BinaryOp, Expr, Function, Literal, MatchArm, Parameter, Pattern, RestrictedAst, Stmt, Type,
+    UnaryOp,
 };
 use crate::models::{Error, Result};
 use syn::{
@@ -214,6 +215,7 @@ fn convert_expr_stmt(expr: &SynExpr) -> Result<Stmt> {
     match expr {
         SynExpr::If(expr_if) => convert_if_stmt(expr_if),
         SynExpr::ForLoop(for_loop) => convert_for_loop(for_loop),
+        SynExpr::Match(expr_match) => convert_match_stmt(expr_match),
         _ => Ok(Stmt::Expr(convert_expr(expr)?)),
     }
 }
@@ -492,6 +494,60 @@ fn convert_for_loop(for_loop: &syn::ExprForLoop) -> Result<Stmt> {
         body,
         max_iterations: Some(1000), // Default safety limit
     })
+}
+
+fn convert_match_stmt(expr_match: &syn::ExprMatch) -> Result<Stmt> {
+    // Convert the scrutinee (the expression being matched)
+    let scrutinee = convert_expr(&expr_match.expr)?;
+
+    // Convert each match arm
+    let mut arms = Vec::new();
+    for arm in &expr_match.arms {
+        let pattern = convert_pattern(&arm.pat)?;
+        let guard = if let Some((_, guard_expr)) = &arm.guard {
+            Some(convert_expr(guard_expr)?)
+        } else {
+            None
+        };
+
+        // Convert the arm body
+        let body = match &*arm.body {
+            SynExpr::Block(block) => convert_block(&block.block)?,
+            expr => vec![Stmt::Expr(convert_expr(expr)?)],
+        };
+
+        arms.push(MatchArm {
+            pattern,
+            guard,
+            body,
+        });
+    }
+
+    Ok(Stmt::Match { scrutinee, arms })
+}
+
+fn convert_pattern(pat: &Pat) -> Result<Pattern> {
+    match pat {
+        Pat::Lit(lit_pat) => {
+            // Convert literal patterns like 1, 2, "hello"
+            let literal = convert_literal(&lit_pat.lit)?;
+            Ok(Pattern::Literal(literal))
+        }
+        Pat::Ident(ident_pat) => {
+            // Check if this is a wildcard (_)
+            let name = ident_pat.ident.to_string();
+            if name == "_" {
+                Ok(Pattern::Wildcard)
+            } else {
+                Ok(Pattern::Variable(name))
+            }
+        }
+        Pat::Wild(_) => Ok(Pattern::Wildcard),
+        _ => Err(Error::Validation(format!(
+            "Unsupported pattern type: {:?}",
+            pat
+        ))),
+    }
 }
 
 #[cfg(test)]
