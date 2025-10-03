@@ -206,8 +206,21 @@ impl PosixEmitter {
             ShellIR::For { var, start, end, body } => {
                 self.emit_for_statement(output, var, start, end, body, indent)
             }
+            ShellIR::While { condition, body } => {
+                self.emit_while_statement(output, condition, body, indent)
+            }
             ShellIR::Case { scrutinee, arms } => {
                 self.emit_case_statement(output, scrutinee, arms, indent)
+            }
+            ShellIR::Break => {
+                let indent_str = "    ".repeat(indent + 1);
+                writeln!(output, "{indent_str}break")?;
+                Ok(())
+            }
+            ShellIR::Continue => {
+                let indent_str = "    ".repeat(indent + 1);
+                writeln!(output, "{indent_str}continue")?;
+                Ok(())
             }
         }
     }
@@ -325,6 +338,43 @@ impl PosixEmitter {
         // Generate POSIX for loop using seq
         // for i in $(seq 0 2); do
         writeln!(output, "{indent_str}for {var_name} in $(seq {start_str} {end_str}); do")?;
+
+        // Emit body
+        self.emit_ir(output, body, indent + 1)?;
+
+        // Close loop
+        writeln!(output, "{indent_str}done")?;
+        Ok(())
+    }
+
+    fn emit_while_statement(
+        &self,
+        output: &mut String,
+        condition: &ShellValue,
+        body: &ShellIR,
+        indent: usize,
+    ) -> Result<()> {
+        let indent_str = "    ".repeat(indent + 1);
+
+        // Handle special cases for condition
+        let condition_test = match condition {
+            ShellValue::Bool(true) => {
+                // while true - infinite loop
+                "true".to_string()
+            }
+            ShellValue::Comparison { .. } => {
+                // Comparison expression - use emit_shell_value which handles it
+                self.emit_shell_value(condition)?
+            }
+            _ => {
+                // General expression - treat as test
+                let cond_str = self.emit_shell_value(condition)?;
+                format!("[ {cond_str} ]")
+            }
+        };
+
+        // Emit while loop
+        writeln!(output, "{indent_str}while {condition_test}; do")?;
 
         // Emit body
         self.emit_ir(output, body, indent + 1)?;

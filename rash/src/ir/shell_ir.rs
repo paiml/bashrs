@@ -65,6 +65,18 @@ pub enum ShellIR {
         scrutinee: ShellValue,
         arms: Vec<CaseArm>,
     },
+
+    /// While loop
+    While {
+        condition: ShellValue,
+        body: Box<ShellIR>,
+    },
+
+    /// Break statement
+    Break,
+
+    /// Continue statement
+    Continue,
 }
 
 impl ShellIR {
@@ -89,9 +101,11 @@ impl ShellIR {
             ShellIR::Exit { .. } | ShellIR::Noop | ShellIR::Echo { .. } => EffectSet::pure(),
             ShellIR::Function { body, .. } => body.effects(),
             ShellIR::For { body, .. } => body.effects(),
+            ShellIR::While { body, .. } => body.effects(),
             ShellIR::Case { arms, .. } => arms
                 .iter()
                 .fold(EffectSet::pure(), |acc, arm| acc.union(&arm.body.effects())),
+            ShellIR::Break | ShellIR::Continue => EffectSet::pure(),
         }
     }
 

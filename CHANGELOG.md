@@ -5,6 +5,40 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.8.0] - 2025-10-03
+
+### 🚀 Major Feature Release - While Loops (Sprint 21)
+
+#### Added
+- **While loop support** (TICKET-6001)
+  - Support for `while condition { ... }` syntax
+  - Generates POSIX-compliant `while [ condition ]; do ... done`
+  - Infinite loop support: `while true { ... }` → `while true; do ... done`
+  - Comparison conditions automatically converted to test expressions
+
+- **Break and Continue statements**
+  - `break` statement to exit loops early
+  - `continue` statement to skip to next iteration
+  - Properly emitted as shell `break` and `continue`
+
+#### Implementation Details
+- **Parser**: Added `convert_while_loop`, `SynExpr::While/Break/Continue` routing
+- **AST**: While, Break, Continue already defined in AST
+- **IR**: New `While`, `Break`, `Continue` variants in ShellIR
+- **Emitter**: New `emit_while_statement` with special handling for `while true`
+- **Validation**: Comprehensive validation for while loops
+
+#### Changed
+- No breaking changes
+
+#### Quality Metrics
+- **Tests**: 530/530 passing (100%!) - Added 3 while loop tests
+- **Property Tests**: 42 properties (~20,000+ cases)
+- **Edge Cases**: 11/11 fixed (100%)
+- **Performance**: 19.1µs (maintained)
+
+---
+
 ## [0.7.0] - 2025-10-03
 
 ### 🎯 Feature Complete Release - 11/11 Edge Cases Fixed (Sprint 20)

@@ -222,8 +222,24 @@ impl IrConverter {
                     arms: case_arms,
                 })
             }
-            // Placeholder for new AST nodes - TODO: implement properly
-            _ => Ok(ShellIR::Noop), // While, Break, Continue
+            Stmt::While {
+                condition,
+                body,
+                ..
+            } => {
+                // Convert condition to shell value
+                let condition_value = self.convert_expr_to_value(condition)?;
+
+                // Convert body
+                let body_ir = self.convert_stmts(body)?;
+
+                Ok(ShellIR::While {
+                    condition: condition_value,
+                    body: Box::new(body_ir),
+                })
+            }
+            Stmt::Break => Ok(ShellIR::Break),
+            Stmt::Continue => Ok(ShellIR::Continue),
         }
     }
 
