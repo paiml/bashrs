@@ -103,6 +103,16 @@ impl PosixEmitter {
         self.write_println_function(output)?;
         self.write_require_function(output)?;
         self.write_download_function(output)?;
+
+        // Stdlib functions
+        writeln!(output, "# Rash stdlib functions")?;
+        self.write_string_trim_function(output)?;
+        self.write_string_contains_function(output)?;
+        self.write_string_len_function(output)?;
+        self.write_fs_exists_function(output)?;
+        self.write_fs_read_file_function(output)?;
+        self.write_fs_write_file_function(output)?;
+
         Ok(())
     }
 
@@ -176,6 +186,87 @@ impl PosixEmitter {
             writeln!(output, "{line}")?;
         }
         Ok(())
+    }
+
+    // Stdlib function implementations
+
+    fn write_string_trim_function(&self, output: &mut String) -> Result<()> {
+        let lines = [
+            "rash_string_trim() {",
+            "    s=\"$1\"",
+            "    # Remove leading whitespace",
+            "    s=\"${s#\"${s%%[![:space:]]*}\"}\"",
+            "    # Remove trailing whitespace",
+            "    s=\"${s%\"${s##*[![:space:]]}\"}\"",
+            "    printf '%s' \"$s\"",
+            "}",
+            "",
+        ];
+        self.write_shell_lines(output, &lines)
+    }
+
+    fn write_string_contains_function(&self, output: &mut String) -> Result<()> {
+        let lines = [
+            "rash_string_contains() {",
+            "    haystack=\"$1\"",
+            "    needle=\"$2\"",
+            "    case \"$haystack\" in",
+            "        *\"$needle\"*) return 0 ;;",
+            "        *) return 1 ;;",
+            "    esac",
+            "}",
+            "",
+        ];
+        self.write_shell_lines(output, &lines)
+    }
+
+    fn write_string_len_function(&self, output: &mut String) -> Result<()> {
+        let lines = [
+            "rash_string_len() {",
+            "    s=\"$1\"",
+            "    printf '%s' \"$s\" | wc -c | tr -d ' '",
+            "}",
+            "",
+        ];
+        self.write_shell_lines(output, &lines)
+    }
+
+    fn write_fs_exists_function(&self, output: &mut String) -> Result<()> {
+        let lines = [
+            "rash_fs_exists() {",
+            "    path=\"$1\"",
+            "    test -e \"$path\"",
+            "}",
+            "",
+        ];
+        self.write_shell_lines(output, &lines)
+    }
+
+    fn write_fs_read_file_function(&self, output: &mut String) -> Result<()> {
+        let lines = [
+            "rash_fs_read_file() {",
+            "    path=\"$1\"",
+            "    if [ ! -f \"$path\" ]; then",
+            "        echo \"ERROR: File not found: $path\" >&2",
+            "        return 1",
+            "    fi",
+            "    cat \"$path\"",
+            "}",
+            "",
+        ];
+        self.write_shell_lines(output, &lines)
+    }
+
+    fn write_fs_write_file_function(&self, output: &mut String) -> Result<()> {
+        let lines = [
+            "rash_fs_write_file() {",
+            "    path=\"$1\"",
+            "    content=\"$2\"",
+            "    printf '%s' \"$content\" > \"$path\"",
+            "}",
+            "",
+        ];
+        self.write_shell_lines(output, &lines)
     }
 
     fn needs_runtime(&self) -> bool {
@@ -640,12 +731,31 @@ impl PosixEmitter {
                 // Comparisons already generate complete test expressions
                 self.emit_shell_value(test)
             }
+            ShellValue::CommandSubst(cmd) => {
+                // Check if this is a predicate function (returns bool via exit code)
+                if self.is_predicate_function(&cmd.program) {
+                    // Execute directly - exit code is the test result
+                    self.emit_command(cmd)
+                } else {
+                    // For other functions, test if output is non-empty
+                    let value = self.emit_shell_value(test)?;
+                    Ok(format!("test -n {value}"))
+                }
+            }
             other => {
                 // For complex expressions, evaluate them and test the result
                 let value = self.emit_shell_value(other)?;
                 Ok(format!("test -n {value}"))
             }
         }
+    }
+
+    fn is_predicate_function(&self, name: &str) -> bool {
+        // Predicate functions return bool via exit code (0 = true, 1 = false)
+        matches!(
+            name,
+            "rash_string_contains" | "rash_fs_exists" | "test" | "["
+        )
     }
 }
 

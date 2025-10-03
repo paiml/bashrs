@@ -262,9 +262,16 @@ impl IrConverter {
                     cmd_args.push(self.convert_expr_to_value(arg)?);
                 }
 
+                // Check if this is a stdlib function - if so, use the shell function name
+                let program = if crate::stdlib::is_stdlib_function(name) {
+                    crate::stdlib::get_shell_function_name(name)
+                } else {
+                    name.clone()
+                };
+
                 Ok(ShellIR::Exec {
                     cmd: Command {
-                        program: name.clone(),
+                        program,
                         args: cmd_args,
                     },
                     effects: self.analyze_command_effects(name),
@@ -296,8 +303,16 @@ impl IrConverter {
                 for arg in args {
                     cmd_args.push(self.convert_expr_to_value(arg)?);
                 }
+
+                // Check if this is a stdlib function - if so, use the shell function name
+                let program = if crate::stdlib::is_stdlib_function(name) {
+                    crate::stdlib::get_shell_function_name(name)
+                } else {
+                    name.clone()
+                };
+
                 Ok(ShellValue::CommandSubst(Command {
-                    program: name.clone(),
+                    program,
                     args: cmd_args,
                 }))
             }
