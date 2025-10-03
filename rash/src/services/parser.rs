@@ -372,7 +372,14 @@ fn convert_unary_expr(expr_unary: &syn::ExprUnary) -> Result<Expr> {
     if let UnOp::Neg(_) = &expr_unary.op {
         if let SynExpr::Lit(lit_expr) = &*expr_unary.expr {
             if let Lit::Int(lit_int) = &lit_expr.lit {
-                // Parse as i32 instead of u32 for negative numbers
+                // Special case: i32::MIN (-2147483648)
+                // Can't parse 2147483648 as i32 since i32::MAX = 2147483647
+                let lit_str = lit_int.to_string();
+                if lit_str == "2147483648" {
+                    return Ok(Expr::Literal(Literal::I32(i32::MIN)));
+                }
+
+                // Parse as i32 for other negative numbers
                 let value: i32 = lit_int
                     .base10_parse()
                     .map_err(|_| Error::Validation("Invalid integer literal".to_string()))?;
