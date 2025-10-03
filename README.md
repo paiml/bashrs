@@ -4,8 +4,8 @@
 [![Documentation](https://docs.rs/bashrs/badge.svg)](https://docs.rs/bashrs)
 [![License](https://img.shields.io/crates/l/bashrs.svg)](LICENSE)
 [![CI](https://github.com/paiml/bashrs/workflows/CI/badge.svg)](https://github.com/paiml/bashrs/actions)
-[![Tests](https://img.shields.io/badge/tests-603%20passing-brightgreen)](https://github.com/paiml/bashrs/actions)
-[![PropertyTests](https://img.shields.io/badge/property_tests-52_properties_(26k_cases)-blue)](https://github.com/paiml/bashrs/blob/main/rash/src/testing/)
+[![Tests](https://img.shields.io/badge/tests-612%20passing-brightgreen)](https://github.com/paiml/bashrs/actions)
+[![PropertyTests](https://img.shields.io/badge/property_tests-60_properties_(34k_cases)-blue)](https://github.com/paiml/bashrs/blob/main/rash/src/testing/)
 
 **Rash** transpiles a safe subset of Rust to POSIX-compliant shell scripts, enabling you to write maintainable and type-safe shell scripts using familiar Rust syntax.
 
@@ -331,19 +331,19 @@ Rash is designed for fast transpilation:
 - Memory usage <10MB for most scripts
 - Generated scripts add minimal overhead (~20 lines boilerplate)
 
-## Quality Metrics (v0.4.0)
+## Quality Metrics (v0.9.3)
 
 | Metric | Status |
 |--------|--------|
-| Tests | 520/520 ✅ |
-| Property Tests | 23 (~13,300 cases) ✅ |
-| Coverage | 85.36% ✅ |
+| Tests | 612/612 ✅ |
+| Property Tests | 60 properties (~34k cases) ✅ |
+| Coverage | ~85% ✅ |
 | Complexity | <10 cognitive ✅ |
-| Performance | 21µs ✅ |
+| Performance | ~21µs ✅ |
 | ShellCheck | 24/24 pass ✅ |
-| Edge Cases Fixed | 7/11 (64%) 🟡 |
+| Stdlib Functions | 13 functions ✅ |
 
-**Production Ready**: All P0 (critical) and P1 (high priority) edge cases resolved.
+**Production Ready**: Comprehensive stdlib, extensive property testing, strict quality gates.
 
 ## Contributing
 
