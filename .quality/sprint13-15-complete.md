@@ -14,7 +14,7 @@ Following the successful v0.4.0 release and publication to crates.io, Sprints 13
 2. **Sprint 14** (Performance Optimization): Benchmarks confirm **19.1µs** end-to-end transpilation (exceeds 10ms target by 100x)
 3. **Sprint 15** (Property Test Enhancement): Documented existing comprehensive property test coverage (23 properties, ~13,300 cases)
 
-**Key Achievement**: v0.4.0 published to [crates.io](https://crates.io/crates/bashrs)
+**Key Achievement**: v0.4.0 published to crates.io (package: bashrs)
 
 ---
 

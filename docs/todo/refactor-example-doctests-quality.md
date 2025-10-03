@@ -324,6 +324,5 @@ fn example_bootstrap_script() {
 
 ## References
 
-- [paiml-mcp-agent-toolkit](../paiml-mcp-agent-toolkit) - Example of well-structured Rust project
 - [Rust API Guidelines](https://rust-lang.github.io/api-guidelines/) - Official Rust API guidelines
 - [Crates.io Publishing Guide](https://doc.rust-lang.org/cargo/reference/publishing.html) - Publishing documentation
