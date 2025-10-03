@@ -1,0 +1,5 @@
+rash/src/ir/mod.rs:15:5: replace from_ast -> Result<ShellIR> with Ok(Default::default())
+rash/src/ir/mod.rs:247:9: replace IrConverter::convert_stmts -> Result<ShellIR> with Ok(Default::default())
+rash/src/ir/mod.rs:476:5: replace transform_ir -> ShellIR with Default::default()
+rash/src/ir/mod.rs:435:5: replace constant_fold -> ShellIR with Default::default()
+rash/src/ir/mod.rs:105:9: replace IrConverter::convert_stmt -> Result<ShellIR> with Ok(Default::default())

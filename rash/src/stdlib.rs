@@ -13,10 +13,16 @@ pub fn is_stdlib_function(name: &str) -> bool {
             | "string_len"
             | "string_split"
             | "string_replace"
+            | "string_to_upper"
+            | "string_to_lower"
             // File system module
             | "fs_exists"
             | "fs_read_file"
             | "fs_write_file"
+            | "fs_copy"
+            | "fs_remove"
+            | "fs_is_file"
+            | "fs_is_dir"
             // Array module
             | "array_len"
             | "array_join"
@@ -58,6 +64,24 @@ pub const STDLIB_FUNCTIONS: &[StdlibFunction] = &[
         module: "string",
         description: "Get string length",
     },
+    StdlibFunction {
+        name: "string_replace",
+        shell_name: "rash_string_replace",
+        module: "string",
+        description: "Replace substring with another string",
+    },
+    StdlibFunction {
+        name: "string_to_upper",
+        shell_name: "rash_string_to_upper",
+        module: "string",
+        description: "Convert string to uppercase",
+    },
+    StdlibFunction {
+        name: "string_to_lower",
+        shell_name: "rash_string_to_lower",
+        module: "string",
+        description: "Convert string to lowercase",
+    },
     // File system module
     StdlibFunction {
         name: "fs_exists",
@@ -77,6 +101,30 @@ pub const STDLIB_FUNCTIONS: &[StdlibFunction] = &[
         module: "fs",
         description: "Write string to file",
     },
+    StdlibFunction {
+        name: "fs_copy",
+        shell_name: "rash_fs_copy",
+        module: "fs",
+        description: "Copy file from source to destination",
+    },
+    StdlibFunction {
+        name: "fs_remove",
+        shell_name: "rash_fs_remove",
+        module: "fs",
+        description: "Remove file or directory",
+    },
+    StdlibFunction {
+        name: "fs_is_file",
+        shell_name: "rash_fs_is_file",
+        module: "fs",
+        description: "Check if path is a regular file",
+    },
+    StdlibFunction {
+        name: "fs_is_dir",
+        shell_name: "rash_fs_is_dir",
+        module: "fs",
+        description: "Check if path is a directory",
+    },
 ];
 
 #[cfg(test)]
@@ -85,8 +133,20 @@ mod tests {
 
     #[test]
     fn test_is_stdlib_function() {
+        // String functions
         assert!(is_stdlib_function("string_trim"));
+        assert!(is_stdlib_function("string_replace"));
+        assert!(is_stdlib_function("string_to_upper"));
+        assert!(is_stdlib_function("string_to_lower"));
+
+        // File system functions
         assert!(is_stdlib_function("fs_exists"));
+        assert!(is_stdlib_function("fs_copy"));
+        assert!(is_stdlib_function("fs_remove"));
+        assert!(is_stdlib_function("fs_is_file"));
+        assert!(is_stdlib_function("fs_is_dir"));
+
+        // Not stdlib functions
         assert!(!is_stdlib_function("custom_function"));
         assert!(!is_stdlib_function("println"));
     }

@@ -1,0 +1,2 @@
+rash/src/ir/mod.rs:299:13: delete match arm Expr::Variable(name) in IrConverter::convert_expr_to_value
+rash/src/ir/mod.rs:436:9: delete match arm ShellIR::Let{name, value:ShellValue::Concat(parts), effects,} in constant_fold
