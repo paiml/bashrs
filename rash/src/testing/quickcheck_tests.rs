@@ -892,5 +892,181 @@ fn main() {
                            "Loop control statement should be preserved");
             }
         }
+
+        // =============== Sprint 25: Extended Stdlib Property Tests ===============
+
+        /// Property: string_to_upper should always include the runtime function
+        #[test]
+        fn prop_string_to_upper_includes_runtime(text in "[a-zA-Z0-9 ]{1,30}") {
+            let source = format!(
+                r#"fn main() {{
+                    let result = string_to_upper("{}");
+                    echo(result);
+                }}"#,
+                text
+            );
+
+            if let Ok(shell_code) = transpile(&source, Config::default()) {
+                prop_assert!(shell_code.contains("rash_string_to_upper"),
+                           "Generated shell should include string_to_upper runtime function");
+            }
+        }
+
+        /// Property: string_to_lower should always include the runtime function
+        #[test]
+        fn prop_string_to_lower_includes_runtime(text in "[a-zA-Z0-9 ]{1,30}") {
+            let source = format!(
+                r#"fn main() {{
+                    let result = string_to_lower("{}");
+                    echo(result);
+                }}"#,
+                text
+            );
+
+            if let Ok(shell_code) = transpile(&source, Config::default()) {
+                prop_assert!(shell_code.contains("rash_string_to_lower"),
+                           "Generated shell should include string_to_lower runtime function");
+            }
+        }
+
+        /// Property: string_replace should handle any valid string inputs
+        #[test]
+        fn prop_string_replace_transpiles(
+            text in "[a-zA-Z0-9 ]{1,20}",
+            old in "[a-zA-Z]{1,5}",
+            new in "[a-zA-Z]{1,5}"
+        ) {
+            let source = format!(
+                r#"fn main() {{
+                    let result = string_replace("{}", "{}", "{}");
+                    echo(result);
+                }}"#,
+                text, old, new
+            );
+
+            let result = transpile(&source, Config::default());
+            prop_assert!(result.is_ok(), "string_replace should transpile successfully");
+            if let Ok(shell_code) = result {
+                prop_assert!(shell_code.contains("rash_string_replace"),
+                           "Generated shell should include string_replace runtime function");
+            }
+        }
+
+        /// Property: fs_is_file should always include the runtime function
+        #[test]
+        fn prop_fs_is_file_includes_runtime(path in "/[a-z]{1,20}") {
+            let source = format!(
+                r#"fn main() {{
+                    let is_file = fs_is_file("{}");
+                    if is_file {{
+                        echo("yes");
+                    }}
+                }}"#,
+                path
+            );
+
+            if let Ok(shell_code) = transpile(&source, Config::default()) {
+                prop_assert!(shell_code.contains("rash_fs_is_file"),
+                           "Generated shell should include fs_is_file runtime function");
+            }
+        }
+
+        /// Property: fs_is_dir should always include the runtime function
+        #[test]
+        fn prop_fs_is_dir_includes_runtime(path in "/[a-z]{1,20}") {
+            let source = format!(
+                r#"fn main() {{
+                    let is_dir = fs_is_dir("{}");
+                    if is_dir {{
+                        echo("yes");
+                    }}
+                }}"#,
+                path
+            );
+
+            if let Ok(shell_code) = transpile(&source, Config::default()) {
+                prop_assert!(shell_code.contains("rash_fs_is_dir"),
+                           "Generated shell should include fs_is_dir runtime function");
+            }
+        }
+
+        /// Property: fs_copy should handle valid paths
+        #[test]
+        fn prop_fs_copy_transpiles(
+            src in "/tmp/[a-z]{1,10}",
+            dst in "/tmp/[a-z]{1,10}"
+        ) {
+            let source = format!(
+                r#"fn main() {{
+                    let result = fs_copy("{}", "{}");
+                    if result {{
+                        echo("copied");
+                    }}
+                }}"#,
+                src, dst
+            );
+
+            let result = transpile(&source, Config::default());
+            prop_assert!(result.is_ok(), "fs_copy should transpile successfully");
+            if let Ok(shell_code) = result {
+                prop_assert!(shell_code.contains("rash_fs_copy"),
+                           "Generated shell should include fs_copy runtime function");
+            }
+        }
+
+        /// Property: fs_remove should handle valid paths
+        #[test]
+        fn prop_fs_remove_transpiles(path in "/tmp/[a-z]{1,10}") {
+            let source = format!(
+                r#"fn main() {{
+                    let result = fs_remove("{}");
+                    if result {{
+                        echo("removed");
+                    }}
+                }}"#,
+                path
+            );
+
+            let result = transpile(&source, Config::default());
+            prop_assert!(result.is_ok(), "fs_remove should transpile successfully");
+            if let Ok(shell_code) = result {
+                prop_assert!(shell_code.contains("rash_fs_remove"),
+                           "Generated shell should include fs_remove runtime function");
+            }
+        }
+
+        /// Property: Combining multiple new stdlib functions should transpile
+        #[test]
+        fn prop_multiple_new_stdlib_functions(text in "[a-zA-Z ]{5,15}") {
+            let source = format!(
+                r#"fn main() {{
+                    let lower = string_to_lower("{}");
+                    let upper = string_to_upper(lower);
+
+                    if fs_is_dir("/tmp") {{
+                        fs_write_file("/tmp/test.txt", upper);
+                        if fs_is_file("/tmp/test.txt") {{
+                            fs_remove("/tmp/test.txt");
+                        }}
+                    }}
+                }}"#,
+                text
+            );
+
+            let result = transpile(&source, Config::default());
+            prop_assert!(result.is_ok(), "Multiple stdlib functions should transpile successfully");
+            if let Ok(shell_code) = result {
+                prop_assert!(shell_code.contains("rash_string_to_lower"),
+                           "Should include string_to_lower");
+                prop_assert!(shell_code.contains("rash_string_to_upper"),
+                           "Should include string_to_upper");
+                prop_assert!(shell_code.contains("rash_fs_is_dir"),
+                           "Should include fs_is_dir");
+                prop_assert!(shell_code.contains("rash_fs_is_file"),
+                           "Should include fs_is_file");
+                prop_assert!(shell_code.contains("rash_fs_remove"),
+                           "Should include fs_remove");
+            }
+        }
     }
 }

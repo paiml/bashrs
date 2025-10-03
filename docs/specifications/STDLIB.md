@@ -100,6 +100,98 @@ rash_string_contains() {
 
 ---
 
+### `replace(s: &str, old: &str, new: &str) -> String`
+Replace first occurrence of substring.
+
+**Rust Signature**:
+```rust
+use rash::stdlib::string::replace;
+
+fn main() {
+    let result = replace("hello world", "world", "rust");
+    println!("{}", result); // "hello rust"
+}
+```
+
+**Shell Implementation**:
+```sh
+rash_string_replace() {
+    s="$1"
+    old="$2"
+    new="$3"
+    # POSIX-compliant string replacement
+    if [ -z "$old" ]; then
+        printf '%s' "$s"
+        return
+    fi
+    # Replace first occurrence using parameter expansion
+    printf '%s' "${s%%"$old"*}${new}${s#*"$old"}"
+}
+```
+
+**Properties**:
+- Empty old string returns original: `replace(s, "", x) == s`
+- Only replaces first occurrence
+- Case sensitive
+
+---
+
+### `to_upper(s: &str) -> String`
+Convert string to uppercase.
+
+**Rust Signature**:
+```rust
+use rash::stdlib::string::to_upper;
+
+fn main() {
+    let result = to_upper("hello");
+    println!("{}", result); // "HELLO"
+}
+```
+
+**Shell Implementation**:
+```sh
+rash_string_to_upper() {
+    s="$1"
+    # POSIX-compliant uppercase conversion
+    printf '%s' "$s" | tr '[:lower:]' '[:upper:]'
+}
+```
+
+**Properties**:
+- Idempotent: `to_upper(to_upper(s)) == to_upper(s)`
+- Handles UTF-8 (depends on locale)
+
+---
+
+### `to_lower(s: &str) -> String`
+Convert string to lowercase.
+
+**Rust Signature**:
+```rust
+use rash::stdlib::string::to_lower;
+
+fn main() {
+    let result = to_lower("HELLO");
+    println!("{}", result); // "hello"
+}
+```
+
+**Shell Implementation**:
+```sh
+rash_string_to_lower() {
+    s="$1"
+    # POSIX-compliant lowercase conversion
+    printf '%s' "$s" | tr '[:upper:]' '[:lower:]'
+}
+```
+
+**Properties**:
+- Idempotent: `to_lower(to_lower(s)) == to_lower(s)`
+- Handles UTF-8 (depends on locale)
+
+---
+
 ### `split(s: &str, delimiter: &str) -> Vec<String>`
 Split string by delimiter.
 
@@ -322,6 +414,127 @@ rash_fs_write_file() {
 
 ---
 
+### `copy(src: &str, dst: &str) -> Result<()>`
+Copy file from source to destination.
+
+**Rust Signature**:
+```rust
+use rash::stdlib::fs::copy;
+
+fn main() {
+    copy("/tmp/source.txt", "/tmp/dest.txt").unwrap();
+}
+```
+
+**Shell Implementation**:
+```sh
+rash_fs_copy() {
+    src="$1"
+    dst="$2"
+    if [ ! -f "$src" ]; then
+        echo "ERROR: Source file not found: $src" >&2
+        return 1
+    fi
+    cp "$src" "$dst"
+}
+```
+
+**Properties**:
+- Fails if source doesn't exist
+- Overwrites destination if it exists
+- Preserves file permissions
+
+---
+
+### `remove(path: &str) -> Result<()>`
+Remove file or directory.
+
+**Rust Signature**:
+```rust
+use rash::stdlib::fs::remove;
+
+fn main() {
+    remove("/tmp/test.txt").unwrap();
+}
+```
+
+**Shell Implementation**:
+```sh
+rash_fs_remove() {
+    path="$1"
+    if [ ! -e "$path" ]; then
+        echo "ERROR: Path not found: $path" >&2
+        return 1
+    fi
+    rm -f "$path"
+}
+```
+
+**Properties**:
+- Fails if path doesn't exist
+- Uses `rm -f` for forced removal
+- Safe with special characters in paths
+
+---
+
+### `is_file(path: &str) -> bool`
+Check if path is a regular file.
+
+**Rust Signature**:
+```rust
+use rash::stdlib::fs::is_file;
+
+fn main() {
+    if is_file("/etc/passwd") {
+        println!("It's a file!");
+    }
+}
+```
+
+**Shell Implementation**:
+```sh
+rash_fs_is_file() {
+    path="$1"
+    test -f "$path"
+}
+```
+
+**Properties**:
+- Returns false for directories
+- Returns false for symlinks (unless they point to files)
+- POSIX `test -f` semantics
+
+---
+
+### `is_dir(path: &str) -> bool`
+Check if path is a directory.
+
+**Rust Signature**:
+```rust
+use rash::stdlib::fs::is_dir;
+
+fn main() {
+    if is_dir("/tmp") {
+        println!("It's a directory!");
+    }
+}
+```
+
+**Shell Implementation**:
+```sh
+rash_fs_is_dir() {
+    path="$1"
+    test -d "$path"
+}
+```
+
+**Properties**:
+- Returns false for files
+- Returns false for symlinks (unless they point to directories)
+- POSIX `test -d` semantics
+
+---
+
 ## Prelude Module (`rash::stdlib::prelude`)
 
 Auto-imported essentials:
@@ -355,6 +568,14 @@ pub use crate::stdlib::fs::{exists, read_file, write_file};
 - ✅ Update examples
 - ✅ Update documentation
 - ✅ Release v0.9.0
+
+### Phase 5: Extended Stdlib Functions (Sprint 25 - 4 hours)
+- ✅ Implement `string_replace()`, `string_to_upper()`, `string_to_lower()`
+- ✅ Implement `fs_copy()`, `fs_remove()`, `fs_is_file()`, `fs_is_dir()`
+- ✅ Add 8 property tests for new functions
+- ✅ Add integration tests
+- ✅ Update STDLIB.md documentation
+- ✅ Target: v0.9.3
 
 ---
 
@@ -416,17 +637,17 @@ fn test_shell_execution_trim() {
 
 ## Future Extensions (v1.0.0+)
 
-- `string::replace(s, from, to)` - String replacement
-- `string::to_upper(s)`, `to_lower(s)` - Case conversion
 - `array::map(arr, fn)` - Map function (requires closures)
 - `array::filter(arr, fn)` - Filter function
-- `fs::mkdir(path)` - Create directory
-- `fs::remove(path)` - Remove file
-- `fs::copy(src, dst)` - Copy file
+- `fs::mkdir(path)` - Create directory (recursive option)
+- `fs::move(src, dst)` - Move/rename file
+- `fs::chmod(path, mode)` - Change file permissions
+- `string::starts_with(s, prefix)` - Check string prefix
+- `string::ends_with(s, suffix)` - Check string suffix
 
 ---
 
-**Version**: 0.9.0-draft
-**Status**: RFC / Planning
+**Version**: 0.9.3 (Sprint 25)
+**Status**: Implemented
 **Author**: Rash Development Team
 **Date**: 2025-10-03

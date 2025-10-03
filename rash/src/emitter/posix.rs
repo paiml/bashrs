@@ -109,9 +109,16 @@ impl PosixEmitter {
         self.write_string_trim_function(output)?;
         self.write_string_contains_function(output)?;
         self.write_string_len_function(output)?;
+        self.write_string_replace_function(output)?;
+        self.write_string_to_upper_function(output)?;
+        self.write_string_to_lower_function(output)?;
         self.write_fs_exists_function(output)?;
         self.write_fs_read_file_function(output)?;
         self.write_fs_write_file_function(output)?;
+        self.write_fs_copy_function(output)?;
+        self.write_fs_remove_function(output)?;
+        self.write_fs_is_file_function(output)?;
+        self.write_fs_is_dir_function(output)?;
 
         Ok(())
     }
@@ -263,6 +270,102 @@ impl PosixEmitter {
             "    path=\"$1\"",
             "    content=\"$2\"",
             "    printf '%s' \"$content\" > \"$path\"",
+            "}",
+            "",
+        ];
+        self.write_shell_lines(output, &lines)
+    }
+
+    fn write_string_replace_function(&self, output: &mut String) -> Result<()> {
+        let lines = [
+            "rash_string_replace() {",
+            "    s=\"$1\"",
+            "    old=\"$2\"",
+            "    new=\"$3\"",
+            "    # POSIX-compliant string replacement using case/sed fallback",
+            "    if [ -z \"$old\" ]; then",
+            "        printf '%s' \"$s\"",
+            "        return",
+            "    fi",
+            "    # Replace first occurrence using parameter expansion",
+            "    printf '%s' \"${s%%\"$old\"*}${new}${s#*\"$old\"}\"",
+            "}",
+            "",
+        ];
+        self.write_shell_lines(output, &lines)
+    }
+
+    fn write_string_to_upper_function(&self, output: &mut String) -> Result<()> {
+        let lines = [
+            "rash_string_to_upper() {",
+            "    s=\"$1\"",
+            "    # POSIX-compliant uppercase conversion",
+            "    printf '%s' \"$s\" | tr '[:lower:]' '[:upper:]'",
+            "}",
+            "",
+        ];
+        self.write_shell_lines(output, &lines)
+    }
+
+    fn write_string_to_lower_function(&self, output: &mut String) -> Result<()> {
+        let lines = [
+            "rash_string_to_lower() {",
+            "    s=\"$1\"",
+            "    # POSIX-compliant lowercase conversion",
+            "    printf '%s' \"$s\" | tr '[:upper:]' '[:lower:]'",
+            "}",
+            "",
+        ];
+        self.write_shell_lines(output, &lines)
+    }
+
+    fn write_fs_copy_function(&self, output: &mut String) -> Result<()> {
+        let lines = [
+            "rash_fs_copy() {",
+            "    src=\"$1\"",
+            "    dst=\"$2\"",
+            "    if [ ! -f \"$src\" ]; then",
+            "        echo \"ERROR: Source file not found: $src\" >&2",
+            "        return 1",
+            "    fi",
+            "    cp \"$src\" \"$dst\"",
+            "}",
+            "",
+        ];
+        self.write_shell_lines(output, &lines)
+    }
+
+    fn write_fs_remove_function(&self, output: &mut String) -> Result<()> {
+        let lines = [
+            "rash_fs_remove() {",
+            "    path=\"$1\"",
+            "    if [ ! -e \"$path\" ]; then",
+            "        echo \"ERROR: Path not found: $path\" >&2",
+            "        return 1",
+            "    fi",
+            "    rm -f \"$path\"",
+            "}",
+            "",
+        ];
+        self.write_shell_lines(output, &lines)
+    }
+
+    fn write_fs_is_file_function(&self, output: &mut String) -> Result<()> {
+        let lines = [
+            "rash_fs_is_file() {",
+            "    path=\"$1\"",
+            "    test -f \"$path\"",
+            "}",
+            "",
+        ];
+        self.write_shell_lines(output, &lines)
+    }
+
+    fn write_fs_is_dir_function(&self, output: &mut String) -> Result<()> {
+        let lines = [
+            "rash_fs_is_dir() {",
+            "    path=\"$1\"",
+            "    test -d \"$path\"",
             "}",
             "",
         ];
