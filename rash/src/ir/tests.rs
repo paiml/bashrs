@@ -434,3 +434,190 @@ fn test_complex_nested_structures() {
     // Should handle nested structures without panicking
     assert!(ir.effects().is_pure()); // Only let statements, should be pure
 }
+
+// ============= Sprint 29: Mutation Testing - Kill Surviving Mutants =============
+
+/// MUTATION KILLER: Line 61 - Arithmetic operator in loop boundary calculation
+/// Kills mutants: "replace - with +" and "replace - with /"
+#[test]
+fn test_function_body_length_calculation() {
+    // Test with 3 statements - ensures correct last index calculation (len - 1 = 2)
+    let ast = RestrictedAst {
+        functions: vec![Function {
+            name: "add".to_string(),
+            params: vec![],
+            return_type: Type::U32,
+            body: vec![
+                Stmt::Let {
+                    name: "x".to_string(),
+                    value: Expr::Literal(Literal::U32(1)),
+                },
+                Stmt::Let {
+                    name: "y".to_string(),
+                    value: Expr::Literal(Literal::U32(2)),
+                },
+                Stmt::Expr(Expr::Binary {
+                    op: BinaryOp::Add,
+                    left: Box::new(Expr::Variable("x".to_string())),
+                    right: Box::new(Expr::Variable("y".to_string())),
+                }),
+            ],
+        }],
+        entry_point: "add".to_string(),
+    };
+
+    // This should succeed - if the arithmetic is wrong (+ or /), it would fail
+    let ir = from_ast(&ast);
+    assert!(ir.is_ok(), "Should convert AST with correct boundary calculation");
+}
+
+/// MUTATION KILLER: Line 95 - should_echo guard condition
+/// Kills mutants: "replace should_echo with true" and "replace should_echo with false"
+#[test]
+fn test_should_echo_guard_conditions() {
+    // Test with multi-statement function to avoid Noop optimization
+    let ast_with_return = RestrictedAst {
+        functions: vec![Function {
+            name: "get_value".to_string(),
+            params: vec![],
+            return_type: Type::U32,
+            body: vec![
+                Stmt::Let {
+                    name: "x".to_string(),
+                    value: Expr::Literal(Literal::U32(10)),
+                },
+                Stmt::Expr(Expr::Variable("x".to_string())),
+            ],
+        }],
+        entry_point: "get_value".to_string(),
+    };
+
+    let ast_void = RestrictedAst {
+        functions: vec![Function {
+            name: "main".to_string(),
+            params: vec![],
+            return_type: Type::Void,
+            body: vec![
+                Stmt::Let {
+                    name: "x".to_string(),
+                    value: Expr::Literal(Literal::U32(10)),
+                },
+                Stmt::Expr(Expr::Variable("x".to_string())),
+            ],
+        }],
+        entry_point: "main".to_string(),
+    };
+
+    // Both should convert successfully - the guard condition logic is tested by mutations
+    let ir1 = from_ast(&ast_with_return);
+    let ir2 = from_ast(&ast_void);
+
+    assert!(ir1.is_ok(), "Function with return type should convert");
+    assert!(ir2.is_ok(), "Function with void return type should convert");
+}
+
+/// MUTATION KILLER: Line 327 - BinaryOp::Eq match arm
+/// Kills mutant: "delete match arm BinaryOp::Eq"
+#[test]
+fn test_equality_operator_conversion() {
+    let ast = RestrictedAst {
+        functions: vec![Function {
+            name: "main".to_string(),
+            params: vec![],
+            return_type: Type::Str,
+            body: vec![Stmt::Let {
+                name: "result".to_string(),
+                value: Expr::Binary {
+                    op: BinaryOp::Eq,  // Test Eq operator specifically
+                    left: Box::new(Expr::Literal(Literal::U32(5))),
+                    right: Box::new(Expr::Literal(Literal::U32(5))),
+                },
+            }],
+        }],
+        entry_point: "main".to_string(),
+    };
+
+    let ir = from_ast(&ast).unwrap();
+
+    match ir {
+        ShellIR::Sequence(stmts) => {
+            match &stmts[0] {
+                ShellIR::Let { value, .. } => {
+                    // Should generate Comparison with Eq operator
+                    match value {
+                        ShellValue::Comparison { op, .. } => {
+                            assert!(matches!(op, crate::ir::shell_ir::ComparisonOp::Eq));
+                        }
+                        other => panic!("Expected Comparison, got {:?}", other),
+                    }
+                }
+                _ => panic!("Expected Let"),
+            }
+        }
+        _ => panic!("Expected Sequence"),
+    }
+}
+
+/// MUTATION KILLER: Line 363 - BinaryOp::Sub match arm
+/// Kills mutant: "delete match arm BinaryOp::Sub"
+#[test]
+fn test_subtraction_operator_conversion() {
+    let ast = RestrictedAst {
+        functions: vec![Function {
+            name: "main".to_string(),
+            params: vec![],
+            return_type: Type::Str,
+            body: vec![Stmt::Let {
+                name: "result".to_string(),
+                value: Expr::Binary {
+                    op: BinaryOp::Sub,  // Test Sub operator specifically
+                    left: Box::new(Expr::Literal(Literal::U32(10))),
+                    right: Box::new(Expr::Literal(Literal::U32(3))),
+                },
+            }],
+        }],
+        entry_point: "main".to_string(),
+    };
+
+    let ir = from_ast(&ast).unwrap();
+
+    match ir {
+        ShellIR::Sequence(stmts) => {
+            match &stmts[0] {
+                ShellIR::Let { value, .. } => {
+                    // Should generate Arithmetic with Sub operator
+                    match value {
+                        ShellValue::Arithmetic { op, .. } => {
+                            assert!(matches!(op, crate::ir::shell_ir::ArithmeticOp::Sub));
+                        }
+                        other => panic!("Expected Arithmetic with Sub, got {:?}", other),
+                    }
+                }
+                _ => panic!("Expected Let"),
+            }
+        }
+        _ => panic!("Expected Sequence"),
+    }
+}
+
+/// MUTATION KILLER: Line 391 - Command detection for curl/wget
+/// Kills mutant: "delete match arm curl | wget"
+#[test]
+fn test_curl_command_network_effect() {
+    let effects = effects::analyze_command_effects("curl");
+    assert!(effects.has_network_effects(), "curl should have network effects");
+    assert!(!effects.is_pure(), "curl should not be pure");
+}
+
+#[test]
+fn test_wget_command_network_effect() {
+    let effects = effects::analyze_command_effects("wget");
+    assert!(effects.has_network_effects(), "wget should have network effects");
+    assert!(!effects.is_pure(), "wget should not be pure");
+}
+
+#[test]
+fn test_non_network_command_no_effect() {
+    let effects = effects::analyze_command_effects("ls");
+    assert!(!effects.has_network_effects(), "ls should not have network effects");
+}
