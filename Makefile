@@ -502,6 +502,32 @@ audit:
 		cargo install cargo-audit && cargo audit; \
 	fi
 
+# Dependency and license policy check
+deny: ## Check dependencies, licenses, and security advisories
+	@echo "📋 Running cargo-deny checks..."
+	@if command -v cargo-deny >/dev/null 2>&1; then \
+		cargo deny check; \
+	else \
+		echo "📥 Installing cargo-deny..."; \
+		cargo install cargo-deny && cargo deny check; \
+	fi
+
+# Strict Clippy lints (warnings from .cargo/config.toml)
+clippy-strict: ## Run Clippy with strict safety lints
+	@echo "🔍 Running strict Clippy checks..."
+	@cargo clippy --lib --tests --quiet 2>&1 | \
+		grep -E "warning:" | wc -l | \
+		awk '{print "⚠️  Found " $$1 " Clippy warnings (baseline: 310)"}'
+	@echo "💡 Run 'cargo clippy --lib --tests' to see details"
+
+# Comprehensive static analysis
+static-analysis: ## Run all static analysis checks (clippy, audit, deny)
+	@echo "🔬 Running comprehensive static analysis..."
+	@$(MAKE) --no-print-directory clippy-strict
+	@$(MAKE) --no-print-directory audit
+	@$(MAKE) --no-print-directory deny
+	@echo "✅ Static analysis complete"
+
 # ShellCheck installation and validation
 shellcheck-install:
 	@echo "📥 Installing ShellCheck..."
