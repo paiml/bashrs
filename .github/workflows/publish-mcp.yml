@@ -50,14 +50,21 @@ jobs:
           cargo publish -p rash-mcp
         continue-on-error: true
 
-      - name: Install MCP Publisher
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.21'
+
+      - name: Build MCP Publisher
         run: |
-          npm install -g @modelcontextprotocol/publisher
+          git clone https://github.com/modelcontextprotocol/registry /tmp/mcp-registry
+          cd /tmp/mcp-registry
+          make publisher
 
       - name: Login to MCP Registry (GitHub OIDC)
-        run: mcp-publisher login github-oidc
+        run: /tmp/mcp-registry/bin/mcp-publisher login github-oidc
 
       - name: Publish to MCP Registry
         run: |
           cd rash-mcp
-          mcp-publisher publish
+          /tmp/mcp-registry/bin/mcp-publisher publish
