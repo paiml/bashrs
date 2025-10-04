@@ -15,9 +15,6 @@ pub mod verifier;
 #[cfg(test)]
 pub mod testing;
 
-#[cfg(feature = "playground")]
-pub mod playground;
-
 pub use models::{Config, Error, Result};
 
 /// Transpile Rust source code to POSIX shell script

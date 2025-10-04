@@ -41,20 +41,20 @@ tar = "0.4"
 flate2 = "1.1"
 base64 = "0.22"
 
-# Playground dependencies
-ratatui = { version = "0.29", default-features = false, features = ["crossterm"], optional = true }
-ropey = { version = "1.6", optional = true }
-tree-sitter = { version = "0.25", optional = true }
-tree-sitter-rust = { version = "0.23", optional = true }
+# Playground dependencies (removed from v1.0 - will be moved to separate rash-playground crate)
+# ratatui = { version = "0.29", default-features = false, features = ["crossterm"], optional = true }
+# ropey = { version = "1.6", optional = true }
+# tree-sitter = { version = "0.25", optional = true }
+# tree-sitter-rust = { version = "0.23", optional = true }
 # syntect = { version = "5.1", default-features = false, features = ["parsing"], optional = true }
-crossbeam = { version = "0.8", optional = true }
-dashmap = { version = "6.1", optional = true }
-petgraph = { version = "0.8", optional = true }
-rayon = { version = "1.10", optional = true }
-brotli = { version = "8.0", optional = true }
-simdutf8 = { version = "0.1", optional = true }
-bit-vec = { version = "0.8", optional = true }
-lru = { version = "0.14", optional = true }
+# crossbeam = { version = "0.8", optional = true }
+# dashmap = { version = "6.1", optional = true }
+# petgraph = { version = "0.8", optional = true }
+# rayon = { version = "1.10", optional = true }
+# brotli = { version = "8.0", optional = true }
+# simdutf8 = { version = "0.1", optional = true }
+# bit-vec = { version = "0.8", optional = true }
+# lru = { version = "0.14", optional = true }
 
 # Optional dependencies for feature gates (commented out for now)
 # z3 = { version = "0.12", optional = true }
@@ -63,11 +63,11 @@ lru = { version = "0.14", optional = true }
 
 [features]
 # Default includes core features for full functionality
-default = ["validation", "pretty-errors", "basic", "compile", "playground"]
+default = ["validation", "pretty-errors", "basic", "compile"]
 # Minimal build for smallest binary size (<3MB)
 minimal = []
 # Full build with all features (~6MB)
-full = ["pattern-matching", "loops", "verification", "optimization", "lsp", "completions", "watch", "playground", "compile"]
+full = ["pattern-matching", "loops", "verification", "optimization", "lsp", "completions", "watch", "compile"]
 # Individual features
 basic = []
 compile = []  # Binary compilation and self-extracting scripts
@@ -80,7 +80,7 @@ pretty-errors = []
 lsp = []
 completions = []
 watch = []
-playground = ["ratatui", "ropey", "tree-sitter", "tree-sitter-rust", "crossbeam", "dashmap", "petgraph", "rayon", "brotli", "simdutf8", "bit-vec", "lru"]
+# playground = ["ratatui", "ropey", "tree-sitter", "tree-sitter-rust", "crossbeam", "dashmap", "petgraph", "rayon", "brotli", "simdutf8", "bit-vec", "lru"]  # Removed from v1.0 - move to separate crate
 # mutation-testing = ["mutagen"] when available
 # fuzzing = ["libfuzzer-sys"] when available
 
