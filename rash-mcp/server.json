@@ -2,7 +2,7 @@
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-09-29/server.schema.json",
   "name": "io.github.paiml.rash",
   "displayName": "Rash MCP Server",
-  "description": "MCP server for Rash - Rust-to-Shell transpiler with formal correctness guarantees. Transpile Rust code to POSIX-compliant shell scripts with verification.",
+  "description": "Transpile Rust code to POSIX-compliant shell scripts with formal correctness guarantees",
   "version": "0.1.0",
   "homepage": "https://github.com/paiml/bashrs",
   "sourceUrl": "https://github.com/paiml/bashrs/tree/main/rash-mcp",
