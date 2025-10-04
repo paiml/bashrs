@@ -316,7 +316,7 @@ Property Tests:   53/53 passing ✅ (100%)
 - [x] Verify all examples work
 
 ### Short Term (Recommended)
-- [ ] Address shellcheck style warnings (SC2005, SC2116)
+- [x] Address shellcheck style warnings (SC2005, SC2116) - FIXED in commit 9d7141a
 - [ ] Add more complex control flow examples
 - [ ] Document control flow limitations in user guide
 - [ ] Add mutation testing for control flow logic
