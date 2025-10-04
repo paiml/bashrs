@@ -407,6 +407,22 @@ Rash is designed for fast transpilation:
 
 Having issues? Check our **[Error Guide](docs/ERROR_GUIDE.md)** for common errors and solutions.
 
+## MCP Server
+
+Rash provides a Model Context Protocol (MCP) server for AI-assisted shell script generation:
+
+```bash
+# Install from crates.io
+cargo install rash-mcp
+
+# Run MCP server
+rash-mcp
+```
+
+The MCP server is available in the official registry as `io.github.paiml/rash`.
+
+**For developers**: See [MCP Registry Publishing Guide](docs/mcp-registry-publish.md) for details on the automated publishing process.
+
 ## Contributing
 
 We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) for details.
@@ -427,6 +443,10 @@ make validate
 # Build release binary
 make release
 ```
+
+### Publishing to MCP Registry
+
+For maintainers publishing new MCP server versions, see the [MCP Registry Publishing Guide](docs/mcp-registry-publish.md).
 
 ## License
 
