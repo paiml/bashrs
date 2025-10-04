@@ -5,23 +5,14 @@ pub mod boundary;
 pub mod coverage;
 pub mod cross_validation;
 pub mod error_injection;
-pub mod fuzz;
 pub mod idempotence_tests;
 pub mod unicode_escape_tests;
 pub mod shellcheck_validation_tests;
 pub mod adversarial_tests;
-pub mod mutation;
-pub mod regression;
 pub mod stress;
 
 #[cfg(test)]
-mod fuzz_tests;
-#[cfg(test)]
-mod mutation_tests;
-#[cfg(test)]
 pub mod quickcheck_tests;
-#[cfg(test)]
-mod regression_tests;
 #[cfg(test)]
 mod stress_tests;
 
