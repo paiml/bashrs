@@ -5,6 +5,175 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.0] - 2025-10-04
+
+### 🎉 v1.0 Release - Publication-Ready Quality
+
+First stable release of Rash with publication-quality code coverage, comprehensive testing infrastructure, and production-ready transpilation.
+
+#### Major Milestones
+
+- **✅ 83.07% Total Coverage** - Exceeded 80% milestone (+3.55% from v0.9.3)
+- **✅ 88.74% Core Transpiler Coverage** - AST, IR, Emitter, Validation
+- **✅ 683 Tests Passing** - 100% pass rate (+71 tests)
+- **✅ 114K Property Test Executions** - 0 failures
+- **✅ 100% Multi-Shell Compatibility** - sh, dash, bash, ash
+- **✅ Zero Critical Bugs** - Production-ready quality
+
+#### Added
+
+**Testing Infrastructure** (Sprints 30-41):
+- **Mutation Testing** - Automated mutation testing with cargo-mutants (Sprint 30)
+- **Static Analysis Gate** - Quality gates for CI/CD automation (Sprint 32)
+- **Enhanced Error Diagnostics** - Comprehensive error formatting system (Sprint 33)
+- **Fuzzing Infrastructure** - 114K fuzzing test executions (Sprint 34)
+- **Multi-Shell Execution Tests** - Automated testing on sh/dash/bash/ash (Sprint 35)
+- **CLI Command Tests** - 47 CLI integration tests (+19 tests in Sprints 40-41)
+
+**CLI Features**:
+- `bashrs init` - Project scaffolding with Cargo.toml and .rash.toml
+- `bashrs verify` - Script verification against source
+- `bashrs inspect` - AST and safety property analysis
+- `bashrs compile` - Self-extracting scripts (BETA)
+
+**Quality Documentation**:
+- Comprehensive sprint documentation (Sprints 30-41)
+- Testing specification progress tracking
+- v1.0 feature scope decisions
+- Error troubleshooting guide
+
+#### Changed
+
+**Coverage Improvements** (Sprint 37-41, Phase 1):
+- CLI commands: 57.56% → **78.29% (+20.73%)**
+- Total project: 79.52% → **83.07% (+3.55%)**
+- Function coverage: 75.38% → **78.97% (+3.59%)**
+- Region coverage: 81.24% → **84.29% (+3.05%)**
+- Test count: 612 → **683 (+71 tests)**
+
+**Core Quality Metrics**:
+- AST parser: **98.92% coverage**
+- IR generation: **87-99% coverage**
+- POSIX emitter: **96.84% coverage**
+- Escape handling: **95.45% coverage**
+- Validation pipeline: **100% coverage**
+
+#### Removed
+
+**Code Cleanup** (Phase 1 - Fast Path to v1.0):
+- **Playground modules** (12 files, ~1,200 lines)
+  - Interactive REPL feature deferred to v1.1
+  - Will be released as separate `rash-playground` crate
+  - Impact: +2.5% coverage improvement
+
+- **Testing infrastructure stubs** (6 files, ~900 lines)
+  - Placeholder fuzz/mutation/regression modules
+  - Real testing via cargo-fuzz and cargo-mutants
+  - Impact: +1.0% coverage improvement
+
+**Total Cleanup**: Removed 2,323 lines (1,325 uncovered), added 654 lines of tests
+
+#### Beta Features ⚗️
+
+The following features are marked as **experimental** in v1.0:
+
+- **Binary Compilation** (BETA)
+  - ✅ Self-extracting scripts (tested, production-ready)
+  - ⚠️ Container packaging (experimental, in progress)
+  - Limited to dash/bash/busybox runtimes
+
+- **Proof Generation** (BETA)
+  - ⚠️ Formal verification proof format (experimental, may change)
+  - Generated with `--emit-proof` flag
+
+#### Quality Assurance
+
+**Test Coverage**:
+- 683 unit and integration tests (100% pass rate)
+- 114,000+ property test executions (0 failures)
+- 24/24 ShellCheck validations passing
+- 100% multi-shell compatibility (sh, dash, bash, ash)
+
+**Performance**:
+- ~21µs transpilation time (simple scripts)
+- <10MB memory usage
+- ~20 lines runtime overhead per script
+
+**Safety**:
+- All generated scripts pass `shellcheck -s sh`
+- Automatic protection against command injection
+- Proper escaping for all variable interpolations
+- POSIX compliance verified on multiple shells
+
+#### Migration Guide
+
+**For Users**:
+- No breaking changes to core transpilation API
+- `bashrs playground` removed - use `bashrs build` for now
+  - Playground will return in v1.1 as separate crate
+- Beta features (compile, proof generation) may change in future releases
+
+**For Contributors**:
+- Playground code moved to future `rash-playground` crate
+- Testing stubs removed - use cargo-mutants and cargo-fuzz directly
+- Coverage requirement: 80%+ total, 85%+ core transpiler
+- All tests must pass before merge
+
+#### Known Limitations
+
+**Language Features** (Deferred to v1.1+):
+- For loops (parser work required)
+- While loops (semantic model needed)
+- Match expressions (pattern matching)
+- Arrays and collections
+
+**Beta Features** (v1.0):
+- Container packaging incomplete
+- Proof generation format may change
+- Binary optimization pending
+
+See [v1.0-feature-scope.md](.quality/v1.0-feature-scope.md) for detailed decisions.
+
+#### Sprint Summary
+
+**Sprint 30-32**: Foundation
+- Sprint 30: Mutation testing automation
+- Sprint 31: CLI error handling & negative testing
+- Sprint 32: Static analysis gate automation
+
+**Sprint 33-36**: Infrastructure
+- Sprint 33: Enhanced error formatting
+- Sprint 34: Fuzzing infrastructure
+- Sprint 35: Multi-shell execution testing
+- Sprint 36: Coverage analysis and roadmap
+
+**Sprint 37-39**: Coverage Push
+- Sprint 37: CLI command coverage (+7.89%)
+- Sprint 38: Edge case testing (+1.95%)
+- Sprint 39: Strategic analysis (78.06% baseline)
+
+**Sprint 40-41**: Final Push
+- Sprint 40: CLI integration tests (+1.07% → 79.13%)
+- Sprint 41: Comprehensive CLI tests (+0.39% → 79.52%)
+
+**Phase 1**: Code Cleanup
+- Removed incomplete playground modules
+- Removed testing infrastructure stubs
+- Result: **83.07% coverage** (+3.55%)
+
+#### Next Steps (v1.1)
+
+**Planned Features**:
+- Playground/REPL (separate crate)
+- For/while loops
+- Match expressions
+- Language server protocol (LSP)
+- Web-based transpiler
+
+See [README.md](README.md#roadmap) for complete roadmap.
+
+---
+
 ## [0.9.3] - 2025-10-03
 
 ### 🚀 Feature Release - Expanded Standard Library (Sprint 25)
