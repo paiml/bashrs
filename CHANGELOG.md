@@ -5,7 +5,41 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [1.0.0] - 2025-10-04
+## [1.0.0-rc1] - 2025-10-04
+
+### 🧪 Release Candidate - Ready for User Feedback
+
+First release candidate for v1.0.0 with critical bugfixes and enhanced testing.
+
+#### Fixed
+- **CRITICAL**: String comparison operators now use `=` for strings instead of `-eq`
+- **CRITICAL**: Logical operators (&&, ||, !) now fully supported
+- **CRITICAL**: NOT operator (!) now properly transpiled
+- Shellcheck warnings SC2005 and SC2116 eliminated
+- Parser void return type inference corrected
+
+#### Added
+- 5 mutation killer tests (97.7% mutation kill rate - 42/43 mutants caught)
+- 6 control flow regression tests
+- BUGFIX_SUMMARY.md - Comprehensive 380-line analysis
+- RELEASE_NOTES_RC1.md - Detailed release notes
+
+#### Changed
+- Test suite: 667 tests (up from 662)
+- Book examples: 37/37 passing (up from 29/37)
+- Zero shellcheck warnings (down from multiple)
+
+#### Quality Metrics
+```
+Tests:              667/667 passing (100%)
+Book Examples:      37/37 passing (100%)
+Mutation Kill Rate: 97.7% (42/43)
+Property Tests:     53/53 passing (2000 cases)
+Code Coverage:      83.07% total
+Shellcheck:         0 warnings
+```
+
+## [1.0.0] - TBD
 
 ### 🎉 v1.0 Release - Publication-Ready Quality
 
