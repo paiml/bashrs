@@ -546,7 +546,7 @@ fn test_equality_operator_conversion() {
                     // Should generate Comparison with Eq operator
                     match value {
                         ShellValue::Comparison { op, .. } => {
-                            assert!(matches!(op, crate::ir::shell_ir::ComparisonOp::Eq));
+                            assert!(matches!(op, crate::ir::shell_ir::ComparisonOp::NumEq));
                         }
                         other => panic!("Expected Comparison, got {:?}", other),
                     }

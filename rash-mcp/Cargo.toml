@@ -5,6 +5,9 @@ edition = "2021"
 authors = ["PAIML Team"]
 description = "MCP server for Rash (Rust-to-Shell transpiler)"
 license = "MIT"
+repository = "https://github.com/paiml/bashrs"
+keywords = ["shell", "bash", "transpiler", "rust", "mcp"]
+categories = ["command-line-utilities", "development-tools"]
 
 [dependencies]
 bashrs = { path = "../rash" }

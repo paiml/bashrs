@@ -672,6 +672,20 @@ impl PosixEmitter {
             ShellValue::Arithmetic { op, left, right } => {
                 self.emit_arithmetic(op, left, right)
             }
+            ShellValue::LogicalAnd { left, right } => {
+                let left_str = self.emit_shell_value(left)?;
+                let right_str = self.emit_shell_value(right)?;
+                Ok(format!("{left_str} && {right_str}"))
+            }
+            ShellValue::LogicalOr { left, right } => {
+                let left_str = self.emit_shell_value(left)?;
+                let right_str = self.emit_shell_value(right)?;
+                Ok(format!("{left_str} || {right_str}"))
+            }
+            ShellValue::LogicalNot { operand } => {
+                let operand_str = self.emit_shell_value(operand)?;
+                Ok(format!("! {operand_str}"))
+            }
         }
     }
 
@@ -687,12 +701,14 @@ impl PosixEmitter {
         let right_val = self.emit_shell_value(right)?;
 
         let op_str = match op {
-            ComparisonOp::Eq => "-eq",
-            ComparisonOp::Ne => "-ne",
+            ComparisonOp::NumEq => "-eq",
+            ComparisonOp::NumNe => "-ne",
             ComparisonOp::Gt => "-gt",
             ComparisonOp::Ge => "-ge",
             ComparisonOp::Lt => "-lt",
             ComparisonOp::Le => "-le",
+            ComparisonOp::StrEq => "=",
+            ComparisonOp::StrNe => "!=",
         };
 
         // Generate POSIX test command: [ "$left" -op "$right" ]
@@ -791,6 +807,12 @@ impl PosixEmitter {
                 let arith_str = self.emit_arithmetic(op, left, right)?;
                 result.push_str(&arith_str);
             }
+            ShellValue::LogicalAnd { .. } | ShellValue::LogicalOr { .. } | ShellValue::LogicalNot { .. } => {
+                // Logical operators don't make sense in concatenation context
+                return Err(crate::models::Error::IrGeneration(
+                    "Logical expression cannot be used in string concatenation".to_string(),
+                ));
+            }
         }
         Ok(())
     }
@@ -832,6 +854,10 @@ impl PosixEmitter {
             }
             ShellValue::Comparison { .. } => {
                 // Comparisons already generate complete test expressions
+                self.emit_shell_value(test)
+            }
+            ShellValue::LogicalAnd { .. } | ShellValue::LogicalOr { .. } | ShellValue::LogicalNot { .. } => {
+                // Logical operators already generate complete test expressions
                 self.emit_shell_value(test)
             }
             ShellValue::CommandSubst(cmd) => {

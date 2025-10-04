@@ -159,14 +159,14 @@
                 <div id="content" class="content">
                     <main>
                         <h1 id="chapter-18-known-limitations-and-edge-cases"><a class="header" href="#chapter-18-known-limitations-and-edge-cases">Chapter 18: Known Limitations and Edge Cases</a></h1>
-<p><strong>Chapter Status</strong>: 🎯 <strong>5/11 Fixed</strong> (All P0 + All P1 resolved!)</p>
+<p><strong>Chapter Status</strong>: 🎯 <strong>7/11 Fixed</strong> (All P0 + All P1 + 2 P2 resolved!)</p>
 <p><em>Last updated: 2025-10-02</em>
 <em>Rash version: 0.3.3</em></p>
-<p><strong>Sprint 10 Progress</strong>:</p>
+<p><strong>Sprint 11 Progress</strong>:</p>
 <ul>
 <li>✅ <strong>3 P0 Critical</strong>: All fixed (empty functions, println!, negative integers)</li>
 <li>✅ <strong>2 P1 High</strong>: All fixed (comparison operators, function nesting)</li>
-<li>🔵 <strong>4 P2 Medium</strong>: Pending (loops, match, returns, arithmetic)</li>
+<li>🟡 <strong>4 P2 Medium</strong>: 2/4 fixed (arithmetic ✅, returns ✅, loops/match pending)</li>
 <li>⚪ <strong>2 P3 Low</strong>: Backlog (empty main, integer overflow)</li>
 </ul>
 <hr />
@@ -373,12 +373,13 @@ Rust <code>match</code> expressions fail with “Unsupported expression type”.
 <strong>Workaround</strong>: Use if/else chains
 <strong>Fix Priority</strong>: P2 - Sprint 12</p>
 <hr />
-<h3 id="-edge-case-8-function-return-values-not-implemented"><a class="header" href="#-edge-case-8-function-return-values-not-implemented">🟢 EDGE CASE #8: Function Return Values Not Implemented</a></h3>
-<p><strong>Status</strong>: 🟢 Medium Priority Feature Gap
+<h3 id="-edge-case-8-function-return-values-not-implemented"><a class="header" href="#-edge-case-8-function-return-values-not-implemented">✅ EDGE CASE #8: Function Return Values Not Implemented</a></h3>
+<p><strong>Status</strong>: ✅ FIXED in v0.3.3 (commit 4c0ddd1)
 <strong>Discovered</strong>: 2025-10-02
-<strong>Test</strong>: <code>tests/edge-cases/test_08_return_values.rs</code></p>
+<strong>Fixed</strong>: 2025-10-02
+<strong>Test</strong>: <code>tests/edge_cases_test.rs::test_edge_case_08_function_return_values</code></p>
 <p><strong>Problem</strong>:
-Functions with return values transpile to <code>unknown</code> instead of capturing output.</p>
+Functions with return values transpiled to <code>unknown</code> instead of capturing output.</p>
 <p><strong>Example</strong>:</p>
 <pre><code class="language-rust">fn main() {
     let x = add(1, 2);
@@ -408,16 +409,17 @@ main() {
     x=$(add 1 2)  # Capture via command substitution
 }
 </code></pre>
-<p><strong>Impact</strong>: 🟡 <strong>MEDIUM</strong> - Can’t return values from functions
-<strong>Workaround</strong>: Use global variables (not clean)
-<strong>Fix Priority</strong>: P2 - Sprint 11</p>
+<p><strong>Impact</strong>: 🟡 <strong>MEDIUM</strong> - Couldn’t return values from functions
+<strong>Solution</strong>: Added Echo IR variant, emit <code>echo</code> for last expression in functions with return type, capture with <code>$(...)</code> at call sites
+<strong>Fix Commit</strong>: 4c0ddd1 (TICKET-5007)</p>
 <hr />
-<h3 id="-edge-case-9-arithmetic-expressions-generate-no-ops"><a class="header" href="#-edge-case-9-arithmetic-expressions-generate-no-ops">🟢 EDGE CASE #9: Arithmetic Expressions Generate No-ops</a></h3>
-<p><strong>Status</strong>: 🟢 Medium Priority Bug
+<h3 id="-edge-case-9-arithmetic-expressions-generate-no-ops"><a class="header" href="#-edge-case-9-arithmetic-expressions-generate-no-ops">✅ EDGE CASE #9: Arithmetic Expressions Generate No-ops</a></h3>
+<p><strong>Status</strong>: ✅ FIXED in v0.3.3 (commit 1cd984d)
 <strong>Discovered</strong>: 2025-10-02
-<strong>Test</strong>: <code>tests/edge-cases/test_09_arithmetic.rs</code></p>
+<strong>Fixed</strong>: 2025-10-02
+<strong>Test</strong>: <code>tests/edge_cases_test.rs::test_edge_case_09_arithmetic_expressions</code></p>
 <p><strong>Problem</strong>:
-Arithmetic expressions like <code>a + b</code> transpile to <code>:</code> (no-op).</p>
+Arithmetic expressions like <code>a + b</code> transpiled to <code>:</code> (no-op) or string concatenation.</p>
 <p><strong>Example</strong>:</p>
 <pre><code class="language-rust">fn add(a: i32, b: i32) -&gt; i32 {
     a + b
@@ -436,9 +438,9 @@ Arithmetic expressions like <code>a + b</code> transpile to <code>:</code> (no-o
     echo $((a + b))
 }
 </code></pre>
-<p><strong>Impact</strong>: 🟡 <strong>MEDIUM</strong> - Arithmetic operations don’t work
-<strong>Workaround</strong>: None for shell arithmetic
-<strong>Fix Priority</strong>: P2 - Sprint 11</p>
+<p><strong>Impact</strong>: 🟡 <strong>MEDIUM</strong> - Arithmetic operations didn’t work
+<strong>Solution</strong>: Added Arithmetic variant to ShellValue IR, emits proper POSIX <code>$((expr))</code> syntax
+<strong>Fix Commit</strong>: 1cd984d (TICKET-5006)</p>
 <hr />
 <h2 id="low-priority-issues"><a class="header" href="#low-priority-issues">Low Priority Issues</a></h2>
 <h3 id="-edge-case-10-empty-main-generates-no-op"><a class="header" href="#-edge-case-10-empty-main-generates-no-op">🔵 EDGE CASE #10: Empty main() Generates No-op</a></h3>
@@ -480,17 +482,17 @@ Behavior with very large integers (&gt;2^31) is undefined.</p>
 <hr />
 <h2 id="summary-table"><a class="header" href="#summary-table">Summary Table</a></h2>
 <div class="table-wrapper"><table><thead><tr><th>#</th><th>Issue</th><th>Priority</th><th>Impact</th><th>Status</th><th>Fix Sprint</th></tr></thead><tbody>
-<tr><td>1</td><td>Empty function bodies → <code>:</code></td><td>🔴 P0</td><td>Critical</td><td>Bug</td><td>Sprint 10</td></tr>
-<tr><td>2</td><td><code>println!</code> not supported</td><td>🔴 P0</td><td>Critical</td><td>Feature Gap</td><td>Sprint 10</td></tr>
-<tr><td>3</td><td>Negative integers → <code>unknown</code></td><td>🔴 P0</td><td>Critical</td><td>Bug</td><td>Sprint 10</td></tr>
-<tr><td>4</td><td>Comparisons wrong (<code>test -n</code>)</td><td>🟡 P1</td><td>High</td><td>Bug</td><td>Sprint 10</td></tr>
-<tr><td>5</td><td>Functions nested in main</td><td>🟡 P1</td><td>High</td><td>Design</td><td>Sprint 11</td></tr>
-<tr><td>6</td><td>For loops unsupported</td><td>🟢 P2</td><td>Medium</td><td>Feature Gap</td><td>Sprint 11</td></tr>
-<tr><td>7</td><td>Match unsupported</td><td>🟢 P2</td><td>Medium</td><td>Feature Gap</td><td>Sprint 12</td></tr>
-<tr><td>8</td><td>Return values → <code>unknown</code></td><td>🟢 P2</td><td>Medium</td><td>Feature Gap</td><td>Sprint 11</td></tr>
-<tr><td>9</td><td>Arithmetic → <code>:</code></td><td>🟢 P2</td><td>Medium</td><td>Bug</td><td>Sprint 11</td></tr>
-<tr><td>10</td><td>Empty main → <code>:</code></td><td>🔵 P3</td><td>Low</td><td>Edge Case</td><td>Sprint 12</td></tr>
-<tr><td>11</td><td>Integer overflow undefined</td><td>🔵 P3</td><td>Low</td><td>Unknown</td><td>Document</td></tr>
+<tr><td>1</td><td>Empty function bodies → <code>:</code></td><td>🔴 P0</td><td>Critical</td><td>✅ Fixed</td><td>Sprint 10</td></tr>
+<tr><td>2</td><td><code>println!</code> not supported</td><td>🔴 P0</td><td>Critical</td><td>✅ Fixed</td><td>Sprint 10</td></tr>
+<tr><td>3</td><td>Negative integers → <code>unknown</code></td><td>🔴 P0</td><td>Critical</td><td>✅ Fixed</td><td>Sprint 10</td></tr>
+<tr><td>4</td><td>Comparisons wrong (<code>test -n</code>)</td><td>🟡 P1</td><td>High</td><td>✅ Fixed</td><td>Sprint 10</td></tr>
+<tr><td>5</td><td>Functions nested in main</td><td>🟡 P1</td><td>High</td><td>✅ Fixed</td><td>Sprint 10</td></tr>
+<tr><td>6</td><td>For loops unsupported</td><td>🟢 P2</td><td>Medium</td><td>🔲 Pending</td><td>Sprint 11</td></tr>
+<tr><td>7</td><td>Match unsupported</td><td>🟢 P2</td><td>Medium</td><td>🔲 Pending</td><td>Sprint 12</td></tr>
+<tr><td>8</td><td>Return values → <code>unknown</code></td><td>🟢 P2</td><td>Medium</td><td>✅ Fixed</td><td>Sprint 11</td></tr>
+<tr><td>9</td><td>Arithmetic → <code>:</code></td><td>🟢 P2</td><td>Medium</td><td>✅ Fixed</td><td>Sprint 11</td></tr>
+<tr><td>10</td><td>Empty main → <code>:</code></td><td>🔵 P3</td><td>Low</td><td>🔲 Pending</td><td>Sprint 12</td></tr>
+<tr><td>11</td><td>Integer overflow undefined</td><td>🔵 P3</td><td>Low</td><td>🔲 Pending</td><td>Document</td></tr>
 </tbody></table>
 </div>
 <hr />

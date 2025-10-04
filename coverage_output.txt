@@ -1,0 +1,916 @@
+📊 Running comprehensive test coverage analysis...
+🔍 Checking for cargo-llvm-cov and cargo-nextest...
+🧹 Cleaning old coverage data...
+⚙️  Temporarily disabling global cargo config (mold breaks coverage)...
+🧪 Phase 1: Running tests with instrumentation (no report)...
+info: cargo-llvm-cov currently setting cfg(coverage) and cfg(coverage_nightly); you can opt-out it by passing --no-cfg-coverage and --no-cfg-coverage-nightly
+   Compiling bashrs v0.9.3 (/home/noah/src/rash/rash)
+   Compiling bashrs-runtime v0.9.3 (/home/noah/src/rash/rash-runtime)
+warning: unused import: `proptest::prelude::*`
+  --> rash/src/testing/idempotence_tests.rs:17:5
+   |
+17 | use proptest::prelude::*;
+   |     ^^^^^^^^^^^^^^^^^^^^
+   |
+   = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: use of deprecated function `rand::thread_rng`: Renamed to `rng`
+   --> rash/src/testing/unicode_escape_tests.rs:399:25
+    |
+399 |     let mut rng = rand::thread_rng();
+    |                         ^^^^^^^^^^
+    |
+    = note: `#[warn(deprecated)]` on by default
+
+warning: use of deprecated method `rand::Rng::gen_range`: Renamed to `random_range`
+   --> rash/src/testing/unicode_escape_tests.rs:403:23
+    |
+403 |         let len = rng.gen_range(1..50);
+    |                       ^^^^^^^^^
+
+warning: use of deprecated method `rand::Rng::gen_range`: Renamed to `random_range`
+   --> rash/src/testing/unicode_escape_tests.rs:406:37
+    |
+406 |                 let codepoint = rng.gen_range(0x0000..0x10FFFF);
+    |                                     ^^^^^^^^^
+
+warning: unused variable: `shell_code`
+   --> rash/src/testing/quickcheck_tests.rs:644:23
+    |
+644 |             if let Ok(shell_code) = transpile(&source, Config::default()) {
+    |                       ^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_shell_code`
+    |
+    = note: `#[warn(unused_variables)]` (part of `#[warn(unused)]`) on by default
+
+   Compiling rash-mcp v0.1.0 (/home/noah/src/rash/rash-mcp)
+warning: unused variable: `stderr`
+   --> rash/tests/cli_error_handling_tests.rs:220:9
+    |
+220 |     let stderr = String::from_utf8_lossy(&output.stderr);
+    |         ^^^^^^ help: if this is intentional, prefix it with an underscore: `_stderr`
+    |
+    = note: `#[warn(unused_variables)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused variable: `stderr`
+   --> rash/tests/cli_error_handling_tests.rs:251:9
+    |
+251 |     let stderr = String::from_utf8_lossy(&output.stderr);
+    |         ^^^^^^ help: if this is intentional, prefix it with an underscore: `_stderr`
+
+warning: unused variable: `stderr`
+   --> rash/tests/cli_error_handling_tests.rs:306:9
+    |
+306 |     let stderr = String::from_utf8_lossy(&output.stderr);
+    |         ^^^^^^ help: if this is intentional, prefix it with an underscore: `_stderr`
+
+warning: fields `has_source_location`, `has_code_snippet`, `has_caret_indicator`, `has_explanation`, `has_suggestion`, and `message_length` are never read
+  --> rash/tests/cli_error_handling_tests.rs:22:5
+   |
+20 | struct ErrorMessageQuality {
+   |        ------------------- fields in this struct
+21 |     has_error_prefix: bool,        // "error:" or "Error:" present
+22 |     has_source_location: bool,     // Line/column information
+   |     ^^^^^^^^^^^^^^^^^^^
+23 |     has_code_snippet: bool,        // Shows problematic code
+   |     ^^^^^^^^^^^^^^^^
+24 |     has_caret_indicator: bool,     // ^ pointing to issue
+   |     ^^^^^^^^^^^^^^^^^^^
+25 |     has_explanation: bool,         // "note:" with context
+   |     ^^^^^^^^^^^^^^^
+26 |     has_suggestion: bool,          // "help:" with alternative
+   |     ^^^^^^^^^^^^^^
+27 |     message_length: usize,
+   |     ^^^^^^^^^^^^^^
+   |
+   = note: `ErrorMessageQuality` has a derived impl for the trait `Debug`, but this is intentionally ignored during dead code analysis
+   = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: method `score` is never used
+  --> rash/tests/cli_error_handling_tests.rs:48:8
+   |
+30 | impl ErrorMessageQuality {
+   | ------------------------ method in this implementation
+...
+48 |     fn score(&self) -> f32 {
+   |        ^^^^^
+
+warning: `bashrs` (test "cli_error_handling_tests") generated 5 warnings
+warning: `bashrs` (lib test) generated 5 warnings (run `cargo fix --lib -p bashrs --tests` to apply 1 suggestion)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 9.97s
+────────────
+ Nextest run ID a31aec9d-7ca9-4929-828d-3932cf186f18 with nextest profile: default
+    Starting 687 tests across 16 binaries (4 tests skipped)
+        PASS [   0.007s] bashrs ast::tests::test_allowed_types::case_1
+        PASS [   0.007s] bashrs ast::tests::test_expr_collect_function_calls_comprehensive
+        PASS [   0.007s] bashrs ast::tests::test_allowed_types::case_3
+        PASS [   0.007s] bashrs ast::tests::test_statement_validation
+        PASS [   0.007s] bashrs ast::tests::test_expression_validation
+        PASS [   0.007s] bashrs ast::tests::test_recursion_detection
+        PASS [   0.008s] bashrs ast::tests::test_allowed_types::case_2
+        PASS [   0.008s] bashrs ast::tests::test_expr_array_try_block_handling
+        PASS [   0.008s] bashrs ast::tests::test_pattern_validation
+        PASS [   0.011s] bashrs ast::tests::test_restricted_ast_validation
+        PASS [   0.011s] bashrs ast::tests::test_missing_entry_point
+        PASS [   0.011s] bashrs ast::tests::test_function_call_collection
+        PASS [   0.013s] bashrs ast::tests::test_invalid_ast_returns_validation_error
+        PASS [   0.013s] bashrs ast::tests::test_indirect_recursion_detection
+        PASS [   0.015s] bashrs ast::tests::test_pattern_binds_variable
+        PASS [   0.016s] bashrs ast::tests::test_function_validation
+        PASS [   0.016s] bashrs ast::tests::test_stmt_for_while_function_call_collection
+        PASS [   0.016s] bashrs ast::visitor_tests::test_transform_exprs_method_call
+        PASS [   0.016s] bashrs ast::tests::test_stmt_break_continue
+        PASS [   0.016s] bashrs cli::commands::command_tests::test_build_command
+        PASS [   0.016s] bashrs ast::visitor_tests::test_transform_exprs_unary
+        PASS [   0.017s] bashrs cli::commands::command_tests::test_inspect_command_all_formats
+        PASS [   0.017s] bashrs ast::tests::test_stmt_for_while_bounded_validation
+        PASS [   0.017s] bashrs cli::commands::command_tests::test_error_handling
+        PASS [   0.012s] bashrs cli::commands::command_tests::test_inspect_command_invalid_input
+        PASS [   0.019s] bashrs ast::tests::test_bool_literal_validation
+        PASS [   0.012s] bashrs cli::commands::command_tests::test_inspect_command_json_ast
+        PASS [   0.012s] bashrs cli::commands::command_tests::test_inspect_command_html_format
+        PASS [   0.012s] bashrs cli::commands::command_tests::test_inspect_command_echo_example
+        PASS [   0.012s] bashrs cli::commands::command_tests::test_normalize_shell_script
+        PASS [   0.012s] bashrs cli::commands::command_tests::test_inspect_command_with_output_file
+        PASS [   0.012s] bashrs cli::commands::command_tests::test_inspect_command_invalid_json
+        PASS [   0.012s] bashrs cli::tests::test_cli_build_command
+        PASS [   0.012s] bashrs cli::commands::command_tests::test_verify_command
+        PASS [   0.009s] bashrs cli::tests::test_cli_build_with_options
+        PASS [   0.008s] bashrs cli::tests::test_cli_init_command
+        PASS [   0.007s] bashrs cli::tests::test_cli_inspect_command
+        PASS [   0.009s] bashrs cli::tests::test_cli_check_command
+        PASS [   0.008s] bashrs cli::tests::test_cli_inspect_with_options
+        PASS [   0.022s] bashrs ast::tests::test_complex_types_allowed
+        PASS [   0.008s] bashrs cli::tests::test_shell_dialect_value_enum
+        PASS [   0.009s] bashrs cli::tests::test_cli_verbose_flag
+        PASS [   0.008s] bashrs cli::tests::test_inspection_format_value_enum
+        PASS [   0.009s] bashrs cli::tests::test_cli_verify_command
+        PASS [   0.008s] bashrs compiler::loader::tests::test_generate_loader_code
+        PASS [   0.008s] bashrs cli::tests::test_cli_with_all_options
+        PASS [   0.008s] bashrs compiler::loader::tests::test_loader_config_default
+        PASS [   0.008s] bashrs compiler::optimize::tests::test_optimization_flags
+        PASS [   0.009s] bashrs cli::tests::test_verification_level_value_enum
+        PASS [   0.009s] bashrs cli::tests::test_init_with_path
+        PASS [   0.008s] bashrs compiler::optimize::tests::test_size_estimation
+        PASS [   0.008s] bashrs container::distroless::tests::test_build_dockerfile
+        PASS [   0.008s] bashrs container::distroless::tests::test_dockerfile_generation
+        PASS [   0.009s] bashrs emitter::escape::tests::test_escape_simple_string
+        PASS [   0.009s] bashrs emitter::escape::tests::test_command_name_escaping
+        PASS [   0.009s] bashrs emitter::escape::tests::test_escape_string_with_quotes
+        PASS [   0.009s] bashrs emitter::posix::tests::test_emit_command
+        PASS [   0.009s] bashrs emitter::posix::tests::test_emit_simple_let
+        PASS [   0.010s] bashrs emitter::escape::tests::test_safe_unquoted
+        PASS [   0.009s] bashrs emitter::posix::tests::test_emit_if_statement
+        PASS [   0.010s] bashrs emitter::escape::tests::test_variable_name_escaping
+        PASS [   0.032s] bashrs ast::visitor_tests::test_transform_exprs_nested_expressions
+        PASS [   0.031s] bashrs ast::tests::test_type_is_allowed
+        PASS [   0.032s] bashrs ast::visitor_tests::test_transform_exprs_empty_function
+        PASS [   0.032s] bashrs ast::tests::test_stmt_match_validation_and_collection
+        PASS [   0.032s] bashrs cli::commands::command_tests::test_init_command
+        PASS [   0.033s] bashrs ast::visitor_tests::test_visitor_traits_exist
+        PASS [   0.033s] bashrs ast::tests::test_validate_public_api
+        PASS [   0.011s] bashrs ast::visitor_tests::test_transform_exprs_literal
+        PASS [   0.033s] bashrs cli::commands::command_tests::test_generate_proof
+        PASS [   0.012s] bashrs ast::visitor_tests::test_counting_visitor
+        PASS [   0.010s] bashrs emitter::tests::test_concatenation_emission
+        PASS [   0.035s] bashrs ast::visitor_tests::test_transform_exprs_if_stmt
+        PASS [   0.010s] bashrs emitter::tests::test_emit_public_api
+        PASS [   0.035s] bashrs ast::visitor_tests::test_transform_exprs_function_call
+        PASS [   0.010s] bashrs emitter::tests::test_different_shell_dialects
+        PASS [   0.011s] bashrs emitter::tests::test_command_name_escaping
+        PASS [   0.012s] bashrs emitter::tests::test_command_emission
+        PASS [   0.036s] bashrs cli::commands::command_tests::test_inspect_command_bootstrap_example
+        PASS [   0.014s] bashrs ast::visitor_tests::test_expr_type_visitor
+        PASS [   0.036s] bashrs ast::visitor_tests::test_transform_exprs_return_stmt
+        PASS [   0.015s] bashrs emitter::tests::test_command_substitution_emission
+        PASS [   0.040s] bashrs cli::commands::command_tests::test_check_command
+        PASS [   0.018s] bashrs emitter::tests::test_complex_nested_emission
+        PASS [   0.045s] bashrs cli::commands::command_tests::test_execute_command_integration
+        PASS [   0.019s] bashrs emitter::tests::test_header_and_footer_structure
+        PASS [   0.047s] bashrs ast::visitor_tests::test_transform_exprs_binary
+        PASS [   0.018s] bashrs emitter::tests::test_shell_value_emission_cases::case_3
+        PASS [   0.020s] bashrs emitter::tests::test_exit_statement_emission
+        PASS [   0.020s] bashrs emitter::tests::test_if_statement_emission
+        PASS [   0.018s] bashrs emitter::tests::test_sequence_emission
+        PASS [   0.019s] bashrs emitter::tests::test_shell_value_emission_cases::case_2
+        PASS [   0.020s] bashrs emitter::tests::test_runtime_functions_included
+        PASS [   0.019s] bashrs emitter::tests::test_shell_value_emission
+        PASS [   0.020s] bashrs emitter::tests::test_noop_emission
+        PASS [   0.020s] bashrs emitter::tests::test_indentation_consistency
+        PASS [   0.019s] bashrs emitter::tests::test_shell_value_emission_cases::case_1
+        PASS [   0.048s] bashrs ast::tests::test_u32_literal_validation
+        PASS [   0.017s] bashrs emitter::tests::test_simple_let_emission
+        PASS [   0.018s] bashrs emitter::tests::test_string_escaping
+        PASS [   0.018s] bashrs emitter::tests::test_shell_value_emission_cases::case_4
+        PASS [   0.017s] bashrs emitter::tests::test_variable_name_escaping
+        PASS [   0.017s] bashrs emitter::tests::test_test_expression_emission
+        PASS [   0.017s] bashrs formal::abstract_state::tests::test_default_state
+        PASS [   0.018s] bashrs formal::abstract_state::tests::test_create_directory
+        PASS [   0.019s] bashrs formal::abstract_state::tests::test_change_directory
+        PASS [   0.017s] bashrs formal::emitter::tests::test_emit_sequence
+        PASS [   0.018s] bashrs formal::emitter::tests::test_quote_special_characters
+        PASS [   0.019s] bashrs formal::emitter::tests::test_emit_assignment
+        PASS [   0.019s] bashrs formal::emitter::tests::test_semantic_equivalence_sequence
+        PASS [   0.019s] bashrs formal::emitter::tests::test_semantic_equivalence_echo
+        PASS [   0.019s] bashrs formal::emitter::tests::test_semantic_equivalence_assignment
+        PASS [   0.019s] bashrs formal::emitter::tests::test_emit_simple_command
+        PASS [   0.019s] bashrs formal::inspector::tests::test_proof_inspection
+        PASS [   0.021s] bashrs formal::abstract_state::tests::test_state_equivalence
+        PASS [   0.021s] bashrs formal::abstract_state::tests::test_environment_variables
+        PASS [   0.017s] bashrs formal::inspector::tests::test_transformation_analysis
+        PASS [   0.057s] bashrs cli::commands::command_tests::test_compile_command_self_extracting
+        PASS [   0.017s] bashrs formal::proofs::formal_tests::test_theorem_documentation
+        PASS [   0.058s] bashrs ast::tests::test_string_literal_validation
+        PASS [   0.013s] bashrs formal::tiny_ast::tests::test_validate_command
+        PASS [   0.014s] bashrs formal::semantics::tests::test_posix_sequence
+        PASS [   0.014s] bashrs formal::semantics::tests::test_rash_set_env
+        PASS [   0.014s] bashrs formal::semantics::tests::test_rash_sequence
+        PASS [   0.015s] bashrs formal::semantics::tests::test_posix_assignment
+        PASS [   0.015s] bashrs formal::semantics::tests::test_rash_echo
+        PASS [   0.015s] bashrs formal::semantics::tests::test_posix_echo
+        PASS [   0.015s] bashrs formal::tiny_ast::tests::test_ast_validation
+        PASS [   0.014s] bashrs formatter::contract::tests::test_array_type_inference
+        PASS [   0.015s] bashrs formatter::contract::tests::test_arithmetic_context_inference
+        PASS [   0.015s] bashrs formal::tiny_ast::tests::test_validate_variable_name
+        PASS [   0.014s] bashrs formatter::contract::tests::test_function_call_inference
+        PASS [   0.016s] bashrs formatter::contract::tests::test_contract_condition_logic
+        PASS [   0.015s] bashrs formatter::contract::tests::test_contract_validation
+        PASS [   0.016s] bashrs formatter::contract::tests::test_contract_system_creation
+        PASS [   0.014s] bashrs formatter::contract::tests::test_non_null_contract
+        PASS [   0.015s] bashrs formatter::contract::tests::test_function_signature_registration
+        PASS [   0.014s] bashrs formatter::dialect::tests::test_compatibility_check
+        PASS [   0.017s] bashrs formatter::contract::tests::test_shell_type_compatibility
+        PASS [   0.016s] bashrs formatter::contract::tests::test_type_inference_basic
+        PASS [   0.014s] bashrs formatter::dialect::tests::test_dialect_default
+        PASS [   0.014s] bashrs formatter::dialect::tests::test_dialect_inference
+        PASS [   0.014s] bashrs formatter::dialect::tests::test_posix_inference
+        PASS [   0.014s] bashrs formatter::dialect::tests::test_dialect_scorer
+        PASS [   0.015s] bashrs formatter::dialect::tests::test_feature_support
+        PASS [   0.016s] bashrs formatter::dialect::tests::test_dialect_display_names
+        PASS [   0.015s] bashrs formatter::dialect::tests::test_parse_shebang
+        PASS [   0.016s] bashrs formatter::dialect::tests::test_extract_syntax_features
+        PASS [   0.016s] bashrs formatter::engine::tests::test_engine_creation
+        PASS [   0.016s] bashrs formatter::engine::tests::test_config_effects
+        PASS [   0.016s] bashrs formatter::engine::tests::test_engine_with_config
+        PASS [   0.016s] bashrs formatter::engine::tests::test_has_proper_quoting
+        PASS [   0.073s] bashrs ast::tests::test_variable_names_are_valid_identifiers
+        PASS [   0.016s] bashrs formatter::engine::tests::test_is_canonical_quoting
+        PASS [   0.015s] bashrs formatter::engine::tests::test_normalize_identity
+        PASS [   0.014s] bashrs formatter::logging::tests::test_hash_entry_deterministic
+        PASS [   0.016s] bashrs formatter::engine::tests::test_is_canonical_simple
+        PASS [   0.016s] bashrs formatter::engine::tests::test_normalize_comments
+        PASS [   0.014s] bashrs formatter::logging::tests::test_log_stats
+        PASS [   0.015s] bashrs formatter::logging::tests::test_export_verification_data
+        PASS [   0.016s] bashrs formatter::engine::tests::test_normalize_whitespace
+        PASS [   0.016s] bashrs formatter::engine::tests::test_normalize_multiline
+        PASS [   0.017s] bashrs formatter::engine::tests::test_normalize_quoted_strings
+        PASS [   0.017s] bashrs formatter::engine::tests::test_normalize_variable_quoting
+        PASS [   0.057s] bashrs emitter::tests::prop_if_statements_balanced
+        PASS [   0.017s] bashrs formatter::logging::tests::test_log_metadata_time_span
+        PASS [   0.016s] bashrs formatter::logging::tests::test_merkle_proof_generation
+        PASS [   0.016s] bashrs formatter::logging::tests::test_merkle_tree_empty
+        PASS [   0.016s] bashrs formatter::logging::tests::test_merkle_tree_single_leaf
+        PASS [   0.019s] bashrs formatter::logging::tests::test_add_log_entry
+        PASS [   0.016s] bashrs formatter::logging::tests::test_merkle_tree_multiple_leaves
+        PASS [   0.016s] bashrs formatter::logging::tests::test_root_hash_changes
+        PASS [   0.016s] bashrs formatter::logging::tests::test_transform_log_creation
+        PASS [   0.015s] bashrs formatter::source_map::tests::test_mappings_in_range
+        PASS [   0.015s] bashrs formatter::source_map::tests::test_source_map_builder
+        PASS [   0.016s] bashrs formatter::source_map::tests::test_bplus_tree_operations
+        PASS [   0.015s] bashrs formatter::source_map::tests::test_source_map_identity
+        PASS [   0.015s] bashrs formatter::source_map::tests::test_source_map_reverse
+        PASS [   0.015s] bashrs formatter::source_map::tests::test_span_delta_creation
+        PASS [   0.015s] bashrs formatter::source_map::tests::test_token_boundaries
+        PASS [   0.015s] bashrs formatter::source_map::tests::test_source_map_stats
+        PASS [   0.016s] bashrs formatter::source_map::tests::test_source_map_mappings
+        PASS [   0.013s] bashrs formatter::transforms::tests::test_interval_set_union
+        PASS [   0.015s] bashrs formatter::tests::test_formatter_creation
+        PASS [   0.015s] bashrs formatter::tests::test_format_identity
+        PASS [   0.014s] bashrs formatter::transforms::tests::test_interval_set_operations
+        PASS [   0.015s] bashrs formatter::tests::test_format_invalid_utf8
+        PASS [   0.013s] bashrs formatter::transforms::tests::test_semantic_delta_composition
+        PASS [   0.014s] bashrs formatter::transforms::tests::test_semantic_delta_descriptions
+        PASS [   0.013s] bashrs formatter::transforms::tests::test_sexpr_proof
+        PASS [   0.013s] bashrs formatter::transforms::tests::test_transform_semantic_preserving
+        PASS [   0.014s] bashrs formatter::transforms::tests::test_transform_id_uniqueness
+        PASS [   0.014s] bashrs formatter::transforms::tests::test_transform_descriptions
+        PASS [   0.014s] bashrs formatter::transforms::tests::test_transform_identity
+        PASS [   0.013s] bashrs formatter::transforms::tests::test_transform_sequence_flattening
+        PASS [   0.013s] bashrs formatter::types::tests::test_char_pos_byte_pos
+        PASS [   0.015s] bashrs formatter::transforms::tests::test_whitespace_normalization_merge
+        PASS [   0.014s] bashrs formatter::types::tests::test_shell_type_display
+        PASS [   0.014s] bashrs formatter::types::tests::test_format_config_default
+        PASS [   0.014s] bashrs formatter::types::tests::test_shell_type_union_compatibility
+        PASS [   0.015s] bashrs formatter::types::tests::test_shell_type_compatibility
+        PASS [   0.015s] bashrs formatter::types::tests::test_span_operations
+        PASS [   0.015s] bashrs ir::effects::tests::test_effect_set_union
+        PASS [   0.017s] bashrs ir::effects::tests::test_command_effect_analysis
+        PASS [   0.016s] bashrs ir::effects::tests::test_pure_effect_set
+        PASS [   0.017s] bashrs ir::shell_ir_tests::test_arithmetic_ops_equality
+        PASS [   0.017s] bashrs ir::shell_ir_tests::test_arithmetic_ops_variants
+        PASS [   0.016s] bashrs ir::shell_ir_tests::test_case_pattern_wildcard
+        PASS [   0.016s] bashrs ir::shell_ir_tests::test_command_new
+        PASS [   0.017s] bashrs ir::shell_ir_tests::test_case_pattern_literal
+        PASS [   0.058s] bashrs formal::proofs::prop_assignment_preserves_env
+        PASS [   0.017s] bashrs ir::shell_ir_tests::test_case_arm_serialization
+        PASS [   0.101s] bashrs emitter::tests::prop_exit_codes_valid
+        PASS [   0.061s] bashrs ir::shell_ir_tests::test_command_args_method
+        PASS [   0.060s] bashrs ir::shell_ir_tests::test_comparison_ops_equality
+        PASS [   0.060s] bashrs ir::shell_ir_tests::test_shell_expression_command_not_quoted
+        PASS [   0.060s] bashrs ir::shell_ir_tests::test_shell_expression_variable_unquoted
+        PASS [   0.061s] bashrs ir::shell_ir_tests::test_shell_expression_arithmetic_quoted
+        PASS [   0.061s] bashrs ir::shell_ir_tests::test_shell_expression_string_quoted
+        PASS [   0.062s] bashrs ir::shell_ir_tests::test_command_with_multiple_args
+        PASS [   0.066s] bashrs ir::shell_ir_tests::test_command_with_single_arg
+        PASS [   0.066s] bashrs ir::shell_ir_tests::test_shell_expression_variable_quoted
+        PASS [   0.066s] bashrs ir::shell_ir_tests::test_shell_ir_break
+        PASS [   0.066s] bashrs ir::shell_ir_tests::test_shell_expression_string_unquoted
+        PASS [   0.067s] bashrs ir::shell_ir_tests::test_comparison_ops_variants
+        PASS [   0.066s] bashrs ir::shell_ir_tests::test_shell_ir_case
+        PASS [   0.068s] bashrs ir::shell_ir_tests::test_shell_ir_continue
+        PASS [   0.066s] bashrs ir::shell_ir_tests::test_shell_ir_function
+        PASS [   0.066s] bashrs ir::shell_ir_tests::test_shell_ir_exit
+        PASS [   0.066s] bashrs ir::shell_ir_tests::test_shell_ir_if_effects
+        PASS [   0.067s] bashrs ir::shell_ir_tests::test_shell_ir_for_loop
+        PASS [   0.068s] bashrs ir::shell_ir_tests::test_shell_ir_echo
+        PASS [   0.067s] bashrs ir::shell_ir_tests::test_shell_ir_exit_no_message
+        PASS [   0.066s] bashrs ir::shell_ir_tests::test_shell_ir_let_effects
+        PASS [   0.060s] bashrs ir::shell_ir_tests::test_shell_value_string_constant
+        PASS [   0.065s] bashrs ir::shell_ir_tests::test_shell_value_arithmetic
+        PASS [   0.067s] bashrs ir::shell_ir_tests::test_shell_ir_sequence
+        PASS [   0.063s] bashrs ir::shell_ir_tests::test_shell_value_bool_true
+        PASS [   0.067s] bashrs ir::shell_ir_tests::test_shell_ir_if_no_else
+        PASS [   0.067s] bashrs ir::shell_ir_tests::test_shell_ir_serialization
+        PASS [   0.061s] bashrs ir::shell_ir_tests::test_shell_value_concat_with_variable
+        PASS [   0.063s] bashrs ir::shell_ir_tests::test_shell_value_command_subst_not_constant
+        PASS [   0.115s] bashrs formal::proofs::prop_echo_preserves_output
+        PASS [   0.064s] bashrs ir::shell_ir_tests::test_shell_value_arithmetic_with_variable
+        PASS [   0.062s] bashrs ir::shell_ir_tests::test_shell_value_comparison_with_variable
+        PASS [   0.061s] bashrs ir::shell_ir_tests::test_shell_value_concat_constant
+        PASS [   0.039s] bashrs ir::shell_ir_tests::test_shell_value_variable_not_constant
+        PASS [   0.067s] bashrs ir::shell_ir_tests::test_shell_ir_while_loop
+        PASS [   0.064s] bashrs ir::shell_ir_tests::test_shell_value_bool_false
+        PASS [   0.063s] bashrs ir::shell_ir_tests::test_shell_value_comparison
+        PASS [   0.062s] bashrs ir::shell_ir_tests::test_shell_value_serialization
+        PASS [   0.130s] bashrs emitter::tests::test_string_escaping_preserves_content
+        PASS [   0.142s] bashrs emitter::tests::prop_emission_deterministic
+        PASS [   0.143s] bashrs emitter::tests::prop_concatenation_preserves_order
+        PASS [   0.139s] bashrs emitter::tests::prop_special_chars_escaped
+        PASS [   0.019s] bashrs ir::tests::test_binary_expression_conversion
+        PASS [   0.018s] bashrs ir::tests::test_command_builder
+        PASS [   0.017s] bashrs ir::tests::test_command_effect_classification::case_4
+        PASS [   0.018s] bashrs ir::tests::test_command_effect_classification::case_1
+        PASS [   0.018s] bashrs ir::tests::test_command_effect_classification::case_2
+        PASS [   0.018s] bashrs ir::tests::test_command_effect_classification::case_3
+        PASS [   0.133s] bashrs emitter::tests::test_variable_name_escaping_produces_valid_identifiers
+        PASS [   0.015s] bashrs ir::tests::test_error_handling_in_conversion
+        PASS [   0.015s] bashrs ir::tests::test_equality_operator_conversion
+        PASS [   0.016s] bashrs ir::tests::test_complex_nested_structures
+        PASS [   0.015s] bashrs ir::tests::test_function_body_length_calculation
+        PASS [   0.014s] bashrs ir::tests::test_function_call_to_command
+        PASS [   0.016s] bashrs ir::tests::test_curl_command_network_effect
+        PASS [   0.016s] bashrs ir::tests::test_if_statement_conversion
+        PASS [   0.015s] bashrs ir::tests::test_nested_ir_effects
+        PASS [   0.019s] bashrs ir::tests::test_ir_sequence_effects_aggregation
+        PASS [   0.011s] bashrs services::parser::tests::test_convert_stmt_let_without_init
+        PASS [   0.025s] bashrs ir::tests::test_optimization_disabled
+        PASS [   0.015s] bashrs services::parser::tests::test_convert_stmt_else_if_with_final_else
+        PASS [   0.023s] bashrs models::diagnostic::tests::test_unsupported_feature_diagnostic
+        PASS [   0.023s] bashrs models::diagnostic::tests::test_diagnostic_quality_score
+        PASS [   0.018s] bashrs services::parser::tests::test_convert_expr_unary_op
+        PASS [   0.024s] bashrs ir::tests::test_should_echo_guard_conditions
+        PASS [   0.026s] bashrs ir::tests::test_optimization_constant_folding
+        PASS [   0.016s] bashrs services::parser::tests::test_convert_stmt_if_else
+        PASS [   0.017s] bashrs services::parser::tests::test_convert_expr_variable
+        PASS [   0.025s] bashrs ir::tests::test_subtraction_operator_conversion
+        PASS [   0.027s] bashrs ir::tests::test_non_network_command_no_effect
+        PASS [   0.021s] bashrs services::parser::tests::test_convert_expr_literal_int
+        PASS [   0.023s] bashrs playground::tests::test_playground_system_creation
+        PASS [   0.017s] bashrs services::parser::tests::test_convert_stmt_expr_call
+        PASS [   0.027s] bashrs ir::tests::test_shell_ir_effects_calculation
+        PASS [   0.028s] bashrs ir::tests::test_return_statement_conversion
+        PASS [   0.024s] bashrs playground::tests::test_document_store_operations
+        PASS [   0.010s] bashrs services::parser::tests::test_convert_stmt_simple_let_binding
+        PASS [   0.026s] bashrs models::diagnostic::tests::test_diagnostic_display
+        PASS [   0.025s] bashrs playground::tests::test_computation_graph
+        PASS [   0.023s] bashrs services::parser::tests::test_convert_expr_function_call
+        PASS [   0.027s] bashrs ir::tests::test_shell_value_constant_string_extraction
+        PASS [   0.026s] bashrs ir::tests::test_wget_command_network_effect
+        PASS [   0.025s] bashrs playground::tests::test_keymap_engine
+        PASS [   0.032s] bashrs ir::tests::test_shell_value_constant_detection
+        PASS [   0.024s] bashrs services::parser::tests::test_convert_stmt_else_if_chain_three_levels
+        PASS [   0.028s] bashrs playground::tests::test_render_pipeline
+        PASS [   0.009s] bashrs services::parser::tests::test_convert_stmt_string_let_binding
+        PASS [   0.027s] bashrs services::parser::tests::test_convert_expr_parenthesized
+        PASS [   0.024s] bashrs services::parser::tests::test_convert_stmt_else_if_chain_two_levels
+        PASS [   0.031s] bashrs playground::tests::integration_tests::test_playground_integration
+        PASS [   0.045s] bashrs ir::tests::test_command_effects_are_deterministic
+        PASS [   0.027s] bashrs services::parser::tests::test_convert_expr_nested_binary
+        PASS [   0.032s] bashrs ir::tests::test_simple_ast_to_ir_conversion
+        PASS [   0.028s] bashrs services::parser::tests::test_convert_expr_binary_op
+        PASS [   0.031s] bashrs playground::tests::integration_tests::test_adaptive_debouncer
+        PASS [   0.028s] bashrs services::parser::tests::test_convert_expr_literal_bool
+        PASS [   0.020s] bashrs services::parser::tests::test_convert_stmt_simple_if
+        PASS [   0.011s] bashrs services::parser::tests::test_parse_with_bashrs_main_attribute
+        PASS [   0.013s] bashrs services::parser::tests::test_convert_stmt_unsupported_type
+        PASS [   0.008s] bashrs services::tests::test_method_call_parsing
+        PASS [   0.014s] bashrs services::parser::tests::test_parse_legacy_rash_main_attribute
+        PASS [   0.014s] bashrs services::parser::tests::test_parse_multiple_functions
+        PASS [   0.014s] bashrs services::parser::tests::test_parse_multiple_main_functions_error
+        PASS [   0.011s] bashrs services::tests::test_multiple_functions_parsing
+        PASS [   0.012s] bashrs services::tests::test_literal_parsing_cases::case_2
+        PASS [   0.015s] bashrs services::parser::tests::test_parse_non_function_item_error
+        PASS [   0.018s] bashrs services::tests::test_error_on_non_function_items
+        PASS [   0.007s] bashrs services::tests::test_return_type_parsing
+        PASS [   0.007s] bashrs testing::adversarial_tests::test_injection_and_operator
+        PASS [   0.020s] bashrs services::tests::test_error_handling_invalid_syntax
+        PASS [   0.020s] bashrs services::tests::test_function_call_parsing
+        PASS [   0.010s] bashrs stdlib::tests::test_get_shell_function_name
+        PASS [   0.015s] bashrs services::tests::test_variable_reference_parsing
+        PASS [   0.051s] bashrs ir::tests::test_shell_value_concat_preserves_constants
+        PASS [   0.014s] bashrs services::tests::test_parameter_parsing
+        PASS [   0.015s] bashrs testing::adversarial_tests::test_glob_asterisk
+        PASS [   0.025s] bashrs services::tests::test_literal_parsing
+        PASS [   0.024s] bashrs services::tests::test_literal_parsing_cases::case_4
+        PASS [   0.026s] bashrs services::tests::test_complex_expression_parsing
+        PASS [   0.024s] bashrs services::tests::test_nested_expression_parsing
+        PASS [   0.016s] bashrs services::tests::test_unary_expression_parsing
+        PASS [   0.028s] bashrs services::parser::tests::test_parse_no_main_function_error
+        PASS [   0.015s] bashrs testing::adversarial_tests::test_glob_question_mark
+        PASS [   0.028s] bashrs services::tests::test_error_on_multiple_main_functions
+        PASS [   0.012s] bashrs testing::adversarial_tests::test_injection_newline_command
+        PASS [   0.032s] bashrs services::parser::tests::test_parse_simple_main
+        PASS [   0.021s] bashrs services::tests::test_type_conversion_edge_cases
+        PASS [   0.029s] bashrs services::tests::test_literal_parsing_cases::case_3
+        PASS [   0.033s] bashrs services::tests::test_empty_function_body_handling
+        PASS [   0.024s] bashrs services::tests::test_simple_function_parsing
+        PASS [   0.023s] bashrs services::tests::test_return_statement_parsing
+        PASS [   0.037s] bashrs services::tests::test_literal_parsing_cases::case_1
+        PASS [   0.021s] bashrs testing::adversarial_tests::test_injection_heredoc_syntax
+        PASS [   0.029s] bashrs services::tests::test_rash_main_attribute_parsing
+        PASS [   0.013s] bashrs testing::adversarial_tests::test_real_world_command_injection_via_filename
+        PASS [   0.020s] bashrs testing::adversarial_tests::test_injection_ifs_manipulation
+        PASS [   0.020s] bashrs testing::adversarial_tests::test_injection_or_operator
+        PASS [   0.015s] bashrs testing::adversarial_tests::test_obfuscated_injection
+        PASS [   0.041s] bashrs services::tests::test_error_on_no_main_function
+        PASS [   0.017s] bashrs testing::adversarial_tests::test_injection_semicolon_command
+        PASS [   0.018s] bashrs testing::adversarial_tests::test_real_world_log4j_style
+        PASS [   0.069s] bashrs playground::tests::property_tests::tests::prop_syntax_highlighting_deterministic
+        PASS [   0.019s] bashrs testing::adversarial_tests::test_injection_quote_escape
+        PASS [   0.046s] bashrs services::tests::test_binary_expression_parsing
+        PASS [   0.022s] bashrs testing::adversarial_tests::test_injection_unquoted_variable
+        PASS [   0.014s] bashrs testing::coverage::tests::test_coverage_tester_new
+        PASS [   0.022s] bashrs testing::adversarial_tests::test_path_traversal_absolute
+        PASS [   0.215s] bashrs emitter::tests::prop_commands_emit_valid_shell
+        PASS [   0.035s] bashrs testing::adversarial_tests::test_injection_dollar_in_string
+        PASS [   0.035s] bashrs testing::adversarial_tests::test_injection_carriage_return
+        PASS [   0.023s] bashrs testing::adversarial_tests::test_real_world_shellshock
+        PASS [   0.024s] bashrs testing::adversarial_tests::test_injection_pipe_command
+        PASS [   0.043s] bashrs services::tests::test_reject_invalid_attributes
+        PASS [   0.024s] bashrs testing::adversarial_tests::test_path_traversal_dotdot
+        PASS [   0.008s] bashrs testing::cross_validation::tests::test_generate_validation_report
+        PASS [   0.043s] bashrs services::tests::test_parser_maintains_source_information
+        PASS [   0.029s] bashrs testing::adversarial_tests::test_injection_path_manipulation
+        PASS [   0.025s] bashrs testing::adversarial_tests::test_validation_catches_known_patterns
+        PASS [   0.012s] bashrs testing::cross_validation::tests::test_get_success_rate_empty
+        PASS [   0.016s] bashrs testing::cross_validation::tests::test_cross_validation_tester_with_dialects
+        PASS [   0.047s] bashrs stdlib::tests::test_is_stdlib_function
+        PASS [   0.017s] bashrs testing::coverage::tests::test_verify_coverage_failure
+        PASS [   0.045s] bashrs testing::adversarial_tests::test_injection_backtick_substitution
+        PASS [   0.039s] bashrs testing::adversarial_tests::test_injection_double_quote_escape
+        PASS [   0.009s] bashrs testing::cross_validation::tests::test_validate_dialect
+        PASS [   0.017s] bashrs testing::cross_validation::tests::test_cross_validation_tester_new
+        PASS [   0.025s] bashrs testing::boundary::tests::test_integer_boundaries
+        PASS [   0.044s] bashrs testing::adversarial_tests::test_injection_command_substitution
+        PASS [   0.018s] bashrs testing::coverage::tests::test_get_low_coverage_modules
+        PASS [   0.037s] bashrs testing::adversarial_tests::test_injection_null_byte
+        PASS [   0.046s] bashrs testing::adversarial_tests::test_complex_injection_chain
+        PASS [   0.018s] bashrs testing::coverage::tests::test_generate_coverage_report
+        PASS [   0.051s] bashrs services::tests::test_numeric_literal_parsing
+        PASS [   0.021s] bashrs testing::coverage::tests::test_set_module_coverage
+        PASS [   0.032s] bashrs testing::adversarial_tests::test_safe_strings_allowed
+        PASS [   0.020s] bashrs testing::coverage::tests::test_verify_coverage_success
+        PASS [   0.029s] bashrs testing::coverage::tests::test_calculate_total_coverage
+        PASS [   0.018s] bashrs testing::cross_validation::tests::test_get_success_rate_with_results
+        PASS [   0.054s] bashrs services::tests::test_string_literal_parsing
+        PASS [   0.012s] bashrs testing::fuzz_tests::test_fuzz_tester_new
+        PASS [   0.013s] bashrs testing::fuzz_tests::test_fuzz_tester_default
+        PASS [   0.015s] bashrs testing::cross_validation::tests::test_validation_results_getter
+        PASS [   0.013s] bashrs testing::fuzz_tests::test_fuzz_tester_multiple_runs
+        PASS [   0.017s] bashrs testing::cross_validation::tests::test_validate_across_configs
+        PASS [   0.025s] bashrs testing::coverage::tests::test_empty_coverage
+        PASS [   0.033s] bashrs testing::coverage::tests::test_coverage_tester_with_target
+        PASS [   0.022s] bashrs testing::cross_validation::tests::test_run_cross_validation_tests_success
+        PASS [   0.019s] bashrs testing::error_injection::tests::test_validation_error_injection
+        PASS [   0.015s] bashrs testing::mutation_tests::test_mutation_tester_new
+        PASS [   0.024s] bashrs testing::idempotence_tests::test_complex_boolean_conditions_idempotent
+        PASS [   0.026s] bashrs testing::error_injection::tests::test_parser_error_injection
+        PASS [   0.066s] bashrs services::tests::test_valid_identifier_parsing
+        PASS [   0.014s] bashrs testing::quickcheck_tests::regression_tests::test_backslash_quote_handling
+        PASS [   0.021s] bashrs testing::mutation_tests::test_mutation_tester_consistency
+        PASS [   0.031s] bashrs testing::idempotence_tests::test_condition_evaluation_no_side_effects
+        PASS [   0.025s] bashrs testing::idempotence_tests::test_if_else_idempotent_true_branch
+        PASS [   0.018s] bashrs testing::quickcheck_tests::regression_tests::test_null_character_handling
+        PASS [   0.022s] bashrs testing::quickcheck_tests::regression_tests::test_long_identifier_names
+        PASS [   0.039s] bashrs testing::idempotence_tests::test_early_exit_idempotent
+        PASS [   0.032s] bashrs testing::mutation_tests::test_mutation_tester_default
+        PASS [   0.062s] bashrs testing::boundary::tests::test_string_boundaries
+        PASS [   0.028s] bashrs testing::quickcheck_tests::regression_tests::test_empty_string_literal
+        PASS [   0.235s] bashrs formal::proofs::prop_emitter_produces_valid_posix
+        PASS [   0.034s] bashrs testing::mutation_tests::test_mutation_tester_repeated_runs
+        PASS [   0.044s] bashrs testing::idempotence_tests::test_if_else_idempotent_false_branch
+        PASS [   0.038s] bashrs testing::idempotence_tests::test_multiple_if_statements_idempotent
+        PASS [   0.030s] bashrs testing::quickcheck_tests::regression_tests::test_very_large_numbers
+        PASS [   0.036s] bashrs testing::idempotence_tests::test_variable_assignment_in_branches_idempotent
+        PASS [   0.054s] bashrs testing::idempotence_tests::test_empty_branches_idempotent
+        PASS [   0.248s] bashrs formal::proofs::prop_semantic_equivalence
+        PASS [   0.047s] bashrs testing::quickcheck_tests::regression_tests::test_deeply_nested_expressions
+        PASS [   0.053s] bashrs testing::idempotence_tests::test_if_else_if_chain_idempotent
+        PASS [   0.066s] bashrs testing::idempotence_tests::test_nested_if_else_idempotent
+        PASS [   0.108s] bashrs testing::boundary::tests::test_all_boundaries
+        PASS [   0.080s] bashrs testing::idempotence_tests::test_simple_script_deterministic
+        PASS [   0.079s] bashrs testing::quickcheck_tests::fuzz_integration::prop_graceful_failure_on_invalid_input
+        PASS [   0.013s] bashrs testing::regression_tests::test_regression_tester_instantiation_methods
+        PASS [   0.014s] bashrs testing::regression_tests::test_regression_tester_default
+        PASS [   0.016s] bashrs testing::regression_tests::test_regression_tester_sequential_runs
+        PASS [   0.020s] bashrs testing::regression_tests::test_regression_tester_new
+        PASS [   0.124s] bashrs testing::quickcheck_tests::security_tests::prop_comparisons_posix_test
+        PASS [   0.124s] bashrs testing::quickcheck_tests::security_tests::prop_for_loops_valid_seq
+        PASS [   0.139s] bashrs testing::quickcheck_tests::performance_tests::prop_transpilation_performance
+        PASS [   0.128s] bashrs testing::quickcheck_tests::security_tests::prop_empty_functions_noop
+        PASS [   0.132s] bashrs testing::quickcheck_tests::security_tests::prop_variable_scope
+        PASS [   0.165s] bashrs testing::quickcheck_tests::security_tests::prop_negative_integers
+        PASS [   0.076s] bashrs testing::shellcheck_validation_tests::test_deterministic_output
+        PASS [   0.161s] bashrs testing::quickcheck_tests::sprint23_properties::prop_for_range_seq
+        PASS [   0.076s] bashrs testing::shellcheck_validation_tests::test_shellcheck_boolean_false
+        PASS [   0.416s] bashrs emitter::tests::prop_shell_values_emit_valid_code
+        PASS [   0.173s] bashrs testing::quickcheck_tests::security_tests::prop_no_shell_injection
+        PASS [   0.417s] bashrs emitter::tests::prop_let_statements_valid
+        PASS [   0.195s] bashrs testing::quickcheck_tests::security_tests::prop_arithmetic_preserves_types
+        PASS [   0.173s] bashrs testing::quickcheck_tests::sprint23_properties::prop_fs_copy_transpiles
+        PASS [   0.189s] bashrs testing::quickcheck_tests::security_tests::prop_safe_variable_expansion
+        PASS [   0.170s] bashrs testing::quickcheck_tests::sprint23_properties::prop_string_replace_transpiles
+        PASS [   0.136s] bashrs testing::quickcheck_tests::sprint23_properties::prop_while_true_infinite
+        PASS [   0.214s] bashrs testing::quickcheck_tests::security_tests::prop_function_returns_use_subst
+        PASS [   0.089s] bashrs testing::shellcheck_validation_tests::test_shellcheck_empty_else_branch
+        PASS [   0.238s] bashrs testing::quickcheck_tests::prop_valid_identifiers_parse
+        PASS [   0.184s] bashrs testing::quickcheck_tests::sprint23_properties::prop_while_loop_posix
+        PASS [   0.335s] bashrs playground::tests::property_tests::tests::prop_computation_graph_no_cycles
+        PASS [   0.097s] bashrs testing::shellcheck_validation_tests::test_shellcheck_empty_if_branch
+        PASS [   0.205s] bashrs testing::quickcheck_tests::sprint23_properties::prop_string_to_lower_includes_runtime
+        PASS [   0.115s] bashrs testing::shellcheck_validation_tests::test_shellcheck_both_branches_empty
+        PASS [   0.225s] bashrs testing::quickcheck_tests::sprint23_properties::prop_nested_if_statements
+        PASS [   0.122s] bashrs testing::shellcheck_validation_tests::test_shellcheck_echo_command
+        PASS [   0.008s] bashrs testing::stress_tests::test_stress_test_results_debug
+        PASS [   0.124s] bashrs testing::shellcheck_validation_tests::test_shellcheck_boolean_true
+        PASS [   0.009s] bashrs testing::stress_tests::test_stress_test_results_all_failures
+        PASS [   0.010s] bashrs testing::stress_tests::test_stress_test_results_clone
+        PASS [   0.064s] bashrs testing::shellcheck_validation_tests::test_shellcheck_nested_if
+        PASS [   0.229s] bashrs testing::quickcheck_tests::sprint23_properties::prop_string_len_numeric
+        PASS [   0.084s] bashrs testing::shellcheck_validation_tests::test_shellcheck_empty_main
+        PASS [   0.077s] bashrs testing::shellcheck_validation_tests::test_shellcheck_installer_pattern
+        PASS [   0.008s] bashrs testing::stress_tests::test_stress_test_results_success_rate
+        PASS [   0.008s] bashrs testing::stress_tests::test_stress_test_results_perfect_success
+        PASS [   0.010s] bashrs testing::stress_tests::test_stress_test_results_zero_operations
+        PASS [   0.238s] bashrs testing::quickcheck_tests::sprint23_properties::prop_fs_exists_test_command
+        PASS [   0.060s] bashrs testing::shellcheck_validation_tests::test_shellcheck_newlines_tabs
+        PASS [   0.086s] bashrs testing::shellcheck_validation_tests::test_shellcheck_if_statement
+        PASS [   0.241s] bashrs testing::quickcheck_tests::sprint23_properties::prop_match_completeness
+        PASS [   0.010s] bashrs testing::tests::test_random_input_generation
+        PASS [   0.010s] bashrs testing::unicode_escape_tests::test_unicode_long_strings_safe
+        PASS [   0.013s] bashrs testing::unicode_escape_tests::test_unicode_bidi_override_safe
+        PASS [   0.069s] bashrs testing::shellcheck_validation_tests::test_shellcheck_simple_variable
+        PASS [   0.013s] bashrs testing::unicode_escape_tests::test_unicode_combining_characters_safe
+        PASS [   0.008s] bashrs testing::unicode_escape_tests::test_unicode_variable_names_sanitized
+        PASS [   0.094s] bashrs testing::shellcheck_validation_tests::test_shellcheck_function_with_params
+        PASS [   0.012s] bashrs testing::unicode_escape_tests::test_unicode_normalization_forms_safe
+        PASS [   0.015s] bashrs testing::unicode_escape_tests::test_unicode_control_characters_safe
+        PASS [   0.012s] bashrs testing::unicode_escape_tests::test_unicode_rtl_languages_safe
+        PASS [   0.015s] bashrs testing::unicode_escape_tests::test_unicode_cjk_characters_safe
+        PASS [   0.015s] bashrs testing::unicode_escape_tests::test_unicode_emoji_no_injection
+        PASS [   0.234s] bashrs testing::quickcheck_tests::sprint23_properties::prop_string_to_upper_includes_runtime
+        PASS [   0.102s] bashrs testing::shellcheck_validation_tests::test_shellcheck_error_handling_pattern
+        PASS [   0.093s] bashrs testing::shellcheck_validation_tests::test_shellcheck_multiple_functions
+        PASS [   0.058s] bashrs testing::shellcheck_validation_tests::test_shellcheck_unicode_arabic
+        PASS [   0.007s] bashrs validation::pipeline_tests::tests::test_pipeline_creation
+        PASS [   0.096s] bashrs testing::shellcheck_validation_tests::test_shellcheck_long_variable_names
+        PASS [   0.014s] bashrs testing::unicode_escape_tests::test_unicode_with_shell_metacharacters
+        PASS [   0.009s] bashrs validation::pipeline_tests::tests::test_report_error_non_strict
+        PASS [   0.007s] bashrs validation::pipeline_tests::tests::test_report_error_strict_mode
+        PASS [   0.013s] bashrs testing::unicode_escape_tests::test_unicode_zero_width_characters_safe
+        PASS [   0.007s] bashrs validation::pipeline_tests::tests::test_should_fail_empty_errors
+        PASS [   0.076s] bashrs testing::shellcheck_validation_tests::test_shellcheck_special_chars_in_strings
+        PASS [   0.009s] bashrs validation::pipeline_tests::tests::test_should_fail_non_strict_with_error
+        PASS [   0.009s] bashrs validation::pipeline_tests::tests::test_should_not_fail_non_strict_with_warning
+        PASS [   0.011s] bashrs validation::pipeline_tests::tests::test_should_fail_strict_mode
+        PASS [   0.259s] bashrs testing::quickcheck_tests::sprint23_properties::prop_multiple_new_stdlib_functions
+        PASS [   0.009s] bashrs validation::pipeline_tests::tests::test_validate_expr_binary_operations
+        PASS [   0.009s] bashrs validation::pipeline_tests::tests::test_validate_ast_with_statements
+        PASS [   0.008s] bashrs validation::pipeline_tests::tests::test_validate_expr_empty_method_name
+        PASS [   0.009s] bashrs validation::pipeline_tests::tests::test_validate_command_with_backtick_in_args
+        PASS [   0.009s] bashrs validation::pipeline_tests::tests::test_validate_concat_shell_value
+        PASS [   0.010s] bashrs validation::pipeline_tests::tests::test_validate_ast_none_level
+        PASS [   0.094s] bashrs testing::shellcheck_validation_tests::test_shellcheck_multiple_variables
+        PASS [   0.009s] bashrs validation::pipeline_tests::tests::test_validate_backticks_error
+        PASS [   0.010s] bashrs validation::pipeline_tests::tests::test_validate_expr_empty_function_name
+        PASS [   0.009s] bashrs validation::pipeline_tests::tests::test_validate_expr_empty_variable_name
+        PASS [   0.065s] bashrs testing::shellcheck_validation_tests::test_shellcheck_unicode_cjk
+        PASS [   0.008s] bashrs validation::pipeline_tests::tests::test_validate_expr_variable_with_whitespace
+        PASS [   0.008s] bashrs validation::pipeline_tests::tests::test_validate_expression_backtick_command
+        PASS [   0.009s] bashrs validation::pipeline_tests::tests::test_validate_expr_unary_operations
+        PASS [   0.008s] bashrs validation::pipeline_tests::tests::test_validate_expression_quoted_variable
+        PASS [   0.009s] bashrs validation::pipeline_tests::tests::test_validate_expression_literal
+        PASS [   0.009s] bashrs validation::pipeline_tests::tests::test_validate_expression_safe_command
+        PASS [   0.008s] bashrs validation::pipeline_tests::tests::test_validate_expression_unquoted_variable
+        PASS [   0.008s] bashrs validation::pipeline_tests::tests::test_validate_if_with_complex_branches
+        PASS [   0.009s] bashrs validation::pipeline_tests::tests::test_validate_if_statement
+        PASS [   0.277s] bashrs testing::quickcheck_tests::sprint23_properties::prop_break_continue
+        PASS [   0.008s] bashrs validation::pipeline_tests::tests::test_validate_method_call_with_args
+        PASS [   0.061s] bashrs testing::shellcheck_validation_tests::test_shellcheck_unicode_emoji
+        PASS [   0.010s] bashrs validation::pipeline_tests::tests::test_validate_ir_none_level
+        PASS [   0.010s] bashrs validation::pipeline_tests::tests::test_validate_ir_exit
+        PASS [   0.008s] bashrs validation::pipeline_tests::tests::test_validate_output_with_rules
+        PASS [   0.009s] bashrs validation::pipeline_tests::tests::test_validate_ir_sequence
+        PASS [   0.008s] bashrs validation::pipeline_tests::tests::test_validate_shell_value_various_types
+        PASS [   0.009s] bashrs validation::pipeline_tests::tests::test_validate_ir_with_effects
+        PASS [   0.009s] bashrs validation::pipeline_tests::tests::test_validate_nested_concat
+        PASS [   0.009s] bashrs validation::pipeline_tests::tests::test_validate_output_none_level
+        PASS [   0.010s] bashrs validation::tests::test_conditional_expression_validation
+        PASS [   0.009s] bashrs validation::tests::test_sc2006_backticks
+        PASS [   0.011s] bashrs validation::pipeline_tests::tests::test_validate_nested_if_statements
+        PASS [   0.009s] bashrs validation::tests::test_sc2035_glob_protection
+        PASS [   0.009s] bashrs validation::tests::test_sc2086_unquoted_variables_fail
+        PASS [   0.009s] bashrs validation::tests::test_sc2086_quoted_variables_pass
+        PASS [   0.008s] bashrs validation::tests::test_sc2162_read_command
+        PASS [   0.008s] bashrs validation::tests::test_sc2164_cd_usage
+        PASS [   0.059s] bashrs testing::shellcheck_validation_tests::test_shellcheck_user_function
+        PASS [   0.009s] bashrs validation::tests::test_sc2046_command_substitution_unquoted_fail
+        PASS [   0.010s] bashrs validation::tests::test_sc2046_command_substitution_quoted_pass
+        PASS [   0.009s] bashrs validation::tests::test_validate_all
+        PASS [   0.258s] bashrs testing::quickcheck_tests::sprint23_properties::prop_string_trim_idempotent
+        PASS [   0.062s] bashrs testing::shellcheck_validation_tests::test_shellcheck_variable_shadowing
+        PASS [   0.010s] bashrs validation::tests::test_validation_error_reporting
+        PASS [   0.011s] bashrs validation::tests::test_sc2220_unicode_quotes
+        PASS [   0.012s] bashrs validation::tests::test_sc2181_exit_code_preservation
+        PASS [   0.008s] bashrs verifier::properties::tests::test_dangerous_command_detection
+        PASS [   0.008s] bashrs verifier::properties::tests::test_command_injection_detection
+        PASS [   0.008s] bashrs verifier::properties_tests::tests::test_verify_deterministic_safe
+        PASS [   0.009s] bashrs verifier::properties::tests::test_nondeterministic_command_detection
+        PASS [   0.008s] bashrs verifier::properties_tests::tests::test_verify_deterministic_random
+        PASS [   0.009s] bashrs validation::tests::test_validation_pipeline_integration
+        PASS [   0.008s] bashrs verifier::properties_tests::tests::test_verify_idempotency_mkdir
+        PASS [   0.008s] bashrs verifier::properties_tests::tests::test_verify_idempotency_mkdir_p
+        PASS [   0.400s] bashrs playground::tests::property_tests::tests::prop_highlighting_cache_consistency
+        PASS [   0.010s] bashrs verifier::properties_tests::tests::test_verify_deterministic_unsafe
+        PASS [   0.008s] bashrs verifier::properties_tests::tests::test_verify_no_command_injection_nested
+        PASS [   0.009s] bashrs verifier::properties_tests::tests::test_verify_idempotency_safe_command
+        PASS [   0.011s] bashrs verifier::properties::tests::test_safe_command
+        PASS [   0.008s] bashrs verifier::tests::test_verify_command_injection
+        PASS [   0.008s] bashrs verifier::properties_tests::tests::test_verify_resource_safety_with_effects
+        PASS [   0.009s] bashrs verifier::properties_tests::tests::test_verify_no_command_injection_safe
+        PASS [   0.009s] bashrs verifier::properties_tests::tests::test_verify_resource_safety_excessive
+        PASS [   0.008s] bashrs verifier::properties_tests::tests::test_verify_resource_safety_safe
+        PASS [   0.009s] bashrs verifier::tests::test_verify_command_substitution
+        PASS [   0.009s] bashrs verifier::properties_tests::tests::test_verify_no_command_injection_unsafe
+        PASS [   0.009s] bashrs verifier::tests::test_verify_concat_operations
+        PASS [   0.012s] bashrs verifier::tests::test_verify_basic
+        PASS [   0.010s] bashrs verifier::tests::test_verify_empty_ir
+        PASS [   0.010s] bashrs verifier::tests::test_verify_nested_sequence
+        PASS [   0.009s] bashrs verifier::tests::test_verify_strict
+        PASS [   0.287s] bashrs testing::quickcheck_tests::sprint23_properties::prop_fs_remove_transpiles
+        PASS [   0.288s] bashrs testing::quickcheck_tests::sprint23_properties::prop_fs_is_file_includes_runtime
+        PASS [   0.011s] bashrs verifier::tests::test_verify_exit_codes
+        PASS [   0.009s] bashrs::cli_error_handling_tests test_check_subcommand_invalid_file
+        PASS [   0.011s] bashrs verifier::tests::test_verify_paranoid
+        PASS [   0.009s] bashrs::cli_error_handling_tests test_help_flag
+        PASS [   0.010s] bashrs::cli_error_handling_tests test_check_subcommand_valid_file
+        PASS [   0.010s] bashrs::cli_error_handling_tests test_generic_type_error_message
+        PASS [   0.006s] bashrs::edge_cases_test test_edge_case_02_println_macro
+        PASS [   0.007s] bashrs::edge_cases_test test_edge_case_01_empty_function_bodies
+        PASS [   0.006s] bashrs::edge_cases_test test_edge_case_06_for_loops
+        PASS [   0.007s] bashrs::edge_cases_test test_edge_case_04_comparison_operators
+        PASS [   0.010s] bashrs::cli_error_handling_tests test_loop_statement_error_message
+        PASS [   0.012s] bashrs::cli_error_handling_tests test_async_syntax_error_message
+        PASS [   0.010s] bashrs::cli_error_handling_tests test_macro_definition_error_message
+        PASS [   0.013s] bashrs verifier::tests::test_verify_none_level
+        PASS [   0.008s] bashrs::edge_cases_test test_edge_case_03_negative_integers
+        PASS [   0.010s] bashrs::cli_error_handling_tests test_impl_block_error_message
+        PASS [   0.292s] bashrs testing::quickcheck_tests::sprint23_properties::prop_fs_is_dir_includes_runtime
+        PASS [   0.008s] bashrs::cli_error_handling_tests test_version_flag
+        PASS [   0.010s] bashrs::cli_error_handling_tests test_syntax_error_diagnostic
+        PASS [   0.010s] bashrs::cli_error_handling_tests test_trait_definition_error_message
+        PASS [   0.011s] bashrs::cli_error_handling_tests test_multiple_errors_detected
+        PASS [   0.006s] bashrs::edge_cases_test test_edge_case_07_match_expressions
+        PASS [   0.006s] bashrs::edge_cases_test test_edge_case_09_arithmetic_expressions
+        PASS [   0.011s] bashrs::cli_error_handling_tests test_missing_input_file_error
+        PASS [   0.009s] bashrs::cli_error_handling_tests test_unsafe_block_error_message
+        PASS [   0.006s] bashrs::edge_cases_test test_edge_case_10_empty_main
+        PASS [   0.007s] bashrs::edge_cases_test test_edge_case_08_function_return_values
+        PASS [   0.006s] bashrs::integration_tests test_check_function
+        PASS [   0.010s] bashrs::cli_error_handling_tests test_use_statement_error_message
+        PASS [   0.006s] bashrs::edge_cases_test test_edge_case_11_integer_overflow
+        PASS [   0.007s] bashrs::integration_tests test_complex_nested_structures
+        PASS [   0.329s] bashrs testing::quickcheck_tests::performance_tests::prop_memory_bounded
+        PASS [   0.006s] bashrs::integration_tests test_deterministic_output
+        PASS [   0.006s] bashrs::integration_tests test_end_to_end_simple_transpilation
+        PASS [   0.006s] bashrs::integration_tests test_error_handling_invalid_source
+        PASS [   0.007s] bashrs::integration_tests test_different_shell_dialects
+        PASS [   0.008s] bashrs::integration_tests test_concurrent_transpilation
+        PASS [   0.006s] bashrs::integration_tests test_function_calls_translation
+        PASS [   0.007s] bashrs::integration_tests test_end_to_end_with_verification
+        PASS [   0.006s] bashrs::integration_tests test_proof_generation
+        PASS [   0.006s] bashrs::integration_tests test_runtime_functions_included
+        PASS [   0.007s] bashrs::integration_tests test_optimization_effects
+        PASS [   0.007s] bashrs::integration_tests test_shell_escaping_safety
+        PASS [   0.007s] bashrs::integration_tests test_script_header_and_footer
+        PASS [   0.010s] bashrs::integration_tests test_generated_script_execution
+        PASS [   0.009s] bashrs::integration_tests test_generated_script_with_variables
+        PASS [   0.008s] bashrs::integration_tests test_verification_levels
+        PASS [   0.021s] bashrs::cli_error_handling_tests test_error_message_quality_baseline
+        PASS [   0.009s] bashrs::integration_tests test_memory_safety
+        PASS [   0.010s] bashrs::integration_tests test_large_input_handling
+        PASS [   0.008s] bashrs::mutation_coverage_test test_arithmetic_operator_distinctness
+        PASS [   0.006s] bashrs::mutation_coverage_test test_download_command_effects
+        PASS [   0.007s] bashrs::mutation_coverage_test test_echo_guard_in_function
+        PASS [   0.008s] bashrs::mutation_coverage_test test_range_expression_conversion
+        PASS [   0.007s] bashrs::mutation_coverage_test test_equality_operator_conversion
+        PASS [   0.008s] bashrs::mutation_coverage_test test_last_statement_detection_in_function
+        PASS [   0.008s] bashrs::mutation_coverage_test test_range_inclusive_vs_exclusive
+        PASS [   0.007s] bashrs::stdlib_comprehensive_test test_fs_read_file
+        PASS [   0.007s] bashrs::stdlib_comprehensive_test test_fs_exists
+        PASS [   0.006s] bashrs::stdlib_comprehensive_test test_fs_write_file
+        PASS [   0.006s] bashrs::stdlib_comprehensive_test test_string_contains_found
+        PASS [   0.008s] bashrs::mutation_coverage_test test_subtraction_operator_conversion
+        PASS [   0.006s] bashrs::stdlib_comprehensive_test test_multiple_stdlib_functions
+        PASS [   0.006s] bashrs::stdlib_comprehensive_test test_string_len
+        PASS [   0.007s] bashrs::stdlib_comprehensive_test test_string_contains_not_found
+        PASS [   0.006s] bashrs::stdlib_extended_test test_fs_copy_transpiles
+        PASS [   0.303s] bashrs testing::quickcheck_tests::sprint23_properties::prop_string_contains_empty
+        PASS [   0.006s] bashrs::stdlib_extended_test test_fs_is_file_transpiles
+        PASS [   0.006s] bashrs::stdlib_extended_test test_fs_remove_transpiles
+        PASS [   0.006s] bashrs::stdlib_extended_test test_fs_is_dir_transpiles
+        PASS [   0.006s] bashrs::stdlib_extended_test test_multiple_new_stdlib_functions
+        PASS [   0.006s] bashrs::stdlib_extended_test test_string_replace_transpiles
+        PASS [   0.006s] bashrs::stdlib_extended_test test_string_to_lower_transpiles
+        PASS [   0.006s] bashrs::stdlib_extended_test test_string_to_upper_transpiles
+        PASS [   0.006s] bashrs::stdlib_string_test test_stdlib_string_trim_basic
+        PASS [   0.006s] bashrs::stdlib_string_test test_stdlib_string_trim_empty
+        PASS [   0.006s] bashrs::while_loop_test test_while_true_infinite_loop
+        PASS [   0.007s] bashrs::while_loop_test test_while_loop_with_break
+        PASS [   0.007s] rash-mcp::bin/rash-mcp handlers::transpile::tests::test_transpile_invalid_syntax
+        PASS [   0.006s] bashrs::stdlib_string_test test_stdlib_string_trim_no_whitespace
+        PASS [   0.007s] bashrs::while_loop_test test_while_loop_basic
+        PASS [   0.019s] bashrs::multi_shell_execution test_multi_shell_empty_main
+        PASS [   0.007s] rash-mcp::bin/rash-mcp handlers::transpile::tests::test_transpile_println
+        PASS [   0.007s] rash-mcp::bin/rash-mcp handlers::transpile::tests::test_transpile_simple
+        PASS [   0.018s] bashrs::multi_shell_execution test_multi_shell_special_chars_escaped
+        PASS [   0.017s] bashrs::multi_shell_execution test_multi_shell_variables
+        PASS [   0.019s] bashrs::multi_shell_execution test_multi_shell_if_statement
+        PASS [   0.019s] bashrs::multi_shell_execution test_multi_shell_posix_exit_codes
+        PASS [   0.019s] bashrs::multi_shell_execution test_multi_shell_match_expression
+        PASS [   0.020s] bashrs::multi_shell_execution test_multi_shell_arithmetic
+        PASS [   0.018s] bashrs::multi_shell_execution test_multi_shell_while_loop
+        PASS [   0.018s] bashrs::multi_shell_execution test_multi_shell_string_operations
+        PASS [   0.020s] bashrs::multi_shell_execution test_multi_shell_simple_echo
+        PASS [   0.022s] bashrs::multi_shell_execution test_multi_shell_for_loop
+        PASS [   0.120s] bashrs testing::tests::test_exhaustive_harness_basic
+        PASS [   0.453s] bashrs testing::quickcheck_tests::prop_function_names_preserved
+        PASS [   0.458s] bashrs testing::quickcheck_tests::prop_literals_transpile
+        PASS [   0.483s] bashrs testing::error_injection::tests::test_full_error_injection_suite
+        PASS [   0.489s] bashrs testing::quickcheck_tests::prop_string_literals_quoted
+        PASS [   0.518s] bashrs testing::quickcheck_tests::prop_variable_names_shell_safe
+        PASS [   0.579s] bashrs testing::quickcheck_tests::prop_transpilation_deterministic
+        PASS [   0.646s] bashrs testing::quickcheck_tests::fuzz_integration::prop_no_panics_on_valid_input
+        PASS [   0.709s] bashrs testing::quickcheck_tests::prop_binary_ops_associative
+        PASS [   0.778s] bashrs testing::quickcheck_tests::prop_valid_asts_validate
+        PASS [   0.839s] bashrs testing::quickcheck_tests::prop_config_robustness
+        PASS [   1.058s] bashrs testing::quickcheck_tests::prop_generated_scripts_non_empty
+        PASS [   2.083s] bashrs playground::tests::property_tests::tests::prop_session_state_roundtrip
+        PASS [  11.280s] bashrs testing::stress_tests::test_stress_tester_new
+        PASS [  33.813s] bashrs testing::stress_tests::test_stress_tester_with_different_configs
+────────────
+     Summary [  34.323s] 687 tests run: 687 passed, 4 skipped
+📊 Phase 2: Generating coverage reports...
+[0;31mwarning: 9 functions have mismatched data
+[0m
+    Finished report saved to target/coverage/html/html
+
+    Finished report saved to target/coverage/lcov.info
+⚙️  Restoring global cargo config...
+
+📊 Coverage Summary:
+==================
+warning: 9 functions have mismatched data
+Filename                                                  Regions    Missed Regions     Cover   Functions  Missed Functions  Executed       Lines      Missed Lines     Cover    Branches   Missed Branches     Cover
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+pforge/crates/pforge-config/src/parser.rs                      19                19     0.00%           4                 4     0.00%          10                10     0.00%           0                 0         -
+pforge/crates/pforge-config/src/types.rs                       14                14     0.00%           2                 2     0.00%          10                10     0.00%           0                 0         -
+pforge/crates/pforge-config/src/validator.rs                   32                32     0.00%           2                 2     0.00%          25                25     0.00%           0                 0         -
+pforge/crates/pforge-runtime/src/handler.rs                     6                 6     0.00%           2                 2     0.00%           6                 6     0.00%           0                 0         -
+pforge/crates/pforge-runtime/src/handlers/cli.rs               68                68     0.00%           5                 5     0.00%          55                55     0.00%           0                 0         -
+pforge/crates/pforge-runtime/src/handlers/http.rs              91                91     0.00%           4                 4     0.00%          60                60     0.00%           0                 0         -
+pforge/crates/pforge-runtime/src/handlers/pipeline.rs         128               128     0.00%           6                 6     0.00%          87                87     0.00%           0                 0         -
+pforge/crates/pforge-runtime/src/handlers/wrappers.rs           4                 4     0.00%           2                 2     0.00%           4                 4     0.00%           0                 0         -
+pforge/crates/pforge-runtime/src/middleware.rs                 78                78     0.00%          17                17     0.00%          62                62     0.00%           0                 0         -
+pforge/crates/pforge-runtime/src/prompt.rs                    123               123     0.00%          12                12     0.00%          84                84     0.00%           0                 0         -
+pforge/crates/pforge-runtime/src/recovery.rs                  190               190     0.00%          31                31     0.00%         149               149     0.00%           0                 0         -
+pforge/crates/pforge-runtime/src/registry.rs                   89                89     0.00%          18                18     0.00%          62                62     0.00%           0                 0         -
+pforge/crates/pforge-runtime/src/resource.rs                  171               171     0.00%          19                19     0.00%         118               118     0.00%           0                 0         -
+pforge/crates/pforge-runtime/src/server.rs                    114               114     0.00%           7                 7     0.00%          89                89     0.00%           0                 0         -
+pforge/crates/pforge-runtime/src/state.rs                      46                46     0.00%          19                19     0.00%          37                37     0.00%           0                 0         -
+pforge/crates/pforge-runtime/src/telemetry.rs                 332               332     0.00%          30                30     0.00%         221               221     0.00%           0                 0         -
+pforge/crates/pforge-runtime/src/timeout.rs                   137               137     0.00%          26                26     0.00%         118               118     0.00%           0                 0         -
+pforge/crates/pforge-runtime/src/transport.rs                  33                33     0.00%           2                 2     0.00%          34                34     0.00%           0                 0         -
+rash/rash-mcp/src/handlers/transpile.rs                        51                 0   100.00%           7                 0   100.00%          50                 0   100.00%           0                 0         -
+rash/rash-mcp/src/main.rs                                      46                46     0.00%           2                 2     0.00%          55                55     0.00%           0                 0         -
+rash/rash/src/ast/mod.rs                                        5                 0   100.00%           1                 0   100.00%           3                 0   100.00%           0                 0         -
+rash/rash/src/ast/restricted.rs                               497                19    96.18%          24                 0   100.00%         304                 3    99.01%           0                 0         -
+rash/rash/src/ast/tests.rs                                    521                 2    99.62%          20                 0   100.00%         405                 1    99.75%           0                 0         -
+rash/rash/src/ast/visitor.rs                                   76                21    72.37%           4                 0   100.00%          59                11    81.36%           0                 0         -
+rash/rash/src/ast/visitor_tests.rs                            318                60    81.13%          45                19    57.78%         310                53    82.90%           0                 0         -
+rash/rash/src/bin/bashrs.rs                                    29                12    58.62%           1                 0   100.00%          17                 7    58.82%           0                 0         -
+rash/rash/src/bin/quality-dashboard.rs                         84                84     0.00%          12                12     0.00%          89                89     0.00%           0                 0         -
+rash/rash/src/bin/quality-gate.rs                             118               118     0.00%          13                13     0.00%          85                85     0.00%           0                 0         -
+rash/rash/src/bin/rash-metrics.rs                             113               113     0.00%           3                 3     0.00%          67                67     0.00%           0                 0         -
+rash/rash/src/cli/args.rs                                      30                 0   100.00%           6                 0   100.00%          45                 0   100.00%           0                 0         -
+rash/rash/src/cli/command_tests.rs                            361                 1    99.72%          17                 0   100.00%         199                 0   100.00%           0                 0         -
+rash/rash/src/cli/commands.rs                                 450               191    57.56%          17                 3    82.35%         392                85    78.32%           0                 0         -
+rash/rash/src/cli/tests.rs                                    301                20    93.36%          13                 0   100.00%         172                 9    94.77%           0                 0         -
+rash/rash/src/compiler/loader.rs                               28                 4    85.71%           5                 1    80.00%          34                 3    91.18%           0                 0         -
+rash/rash/src/compiler/mod.rs                                 148               101    31.76%          17                15    11.76%         107                64    40.19%           0                 0         -
+rash/rash/src/compiler/optimize.rs                            106                33    68.87%          11                 4    63.64%          83                21    74.70%           0                 0         -
+rash/rash/src/container/distroless.rs                         164               123    25.00%          14                 9    35.71%         123                71    42.28%           0                 0         -
+rash/rash/src/emitter/escape.rs                               180                 2    98.89%          15                 0   100.00%         107                 2    98.13%           0                 0         -
+rash/rash/src/emitter/mod.rs                                   24                 0   100.00%           1                 0   100.00%           9                 0   100.00%           0                 0         -
+rash/rash/src/emitter/posix.rs                               1205               168    86.06%          52                 1    98.08%         675                36    94.67%           0                 0         -
+rash/rash/src/emitter/tests.rs                                518                 3    99.42%          26                 0   100.00%         312                 1    99.68%           0                 0         -
+rash/rash/src/formal/abstract_state.rs                        239                14    94.14%          15                 0   100.00%         131                 9    93.13%           0                 0         -
+rash/rash/src/formal/emitter.rs                               211                15    92.89%          17                 0   100.00%         137                 7    94.89%           0                 0         -
+rash/rash/src/formal/inspector.rs                             690               101    85.36%          17                 0   100.00%         514                68    86.77%           0                 0         -
+rash/rash/src/formal/proofs.rs                                114                 0   100.00%          18                 0   100.00%          64                 0   100.00%           0                 0         -
+rash/rash/src/formal/semantics.rs                             475                48    89.89%          22                 2    90.91%         276                31    88.77%           0                 0         -
+rash/rash/src/formal/tiny_ast.rs                               99                 0   100.00%           8                 0   100.00%          59                 0   100.00%           0                 0         -
+rash/rash/src/formatter/contract.rs                           528                97    81.63%          28                 4    85.71%         349                46    86.82%           0                 0         -
+rash/rash/src/formatter/dialect.rs                            420                69    83.57%          27                 1    96.30%         260                42    83.85%           0                 0         -
+rash/rash/src/formatter/engine.rs                             632                45    92.88%          26                 2    92.31%         446                29    93.50%           0                 0         -
+rash/rash/src/formatter/logging.rs                            556                65    88.31%          28                 4    85.71%         374                50    86.63%           0                 0         -
+rash/rash/src/formatter/mod.rs                                 83                12    85.54%           7                 1    85.71%          50                 6    88.00%           0                 0         -
+rash/rash/src/formatter/source_map.rs                         462                39    91.56%          38                 4    89.47%         277                19    93.14%           0                 0         -
+rash/rash/src/formatter/transforms.rs                         411                86    79.08%          34                 8    76.47%         269                53    80.30%           0                 0         -
+rash/rash/src/formatter/types.rs                              237                37    84.39%          21                 1    95.24%         119                13    89.08%           0                 0         -
+rash/rash/src/ir/effects.rs                                   196                23    88.27%          18                 2    88.89%          88                10    88.64%           0                 0         -
+rash/rash/src/ir/mod.rs                                       496                64    87.10%          22                 0   100.00%         342                45    86.84%           0                 0         -
+rash/rash/src/ir/shell_ir.rs                                  121                 1    99.17%          12                 0   100.00%          76                 1    98.68%           0                 0         -
+rash/rash/src/ir/shell_ir_tests.rs                            423                 4    99.05%          43                 0   100.00%         284                 2    99.30%           0                 0         -
+rash/rash/src/ir/tests.rs                                     551                54    90.20%          22                 0   100.00%         424                18    95.75%           0                 0         -
+rash/rash/src/lib.rs                                           49                 6    87.76%           2                 0   100.00%          17                 0   100.00%           0                 0         -
+rash/rash/src/models/config.rs                                  4                 0   100.00%           1                 0   100.00%          10                 0   100.00%           0                 0         -
+rash/rash/src/models/diagnostic.rs                            223                52    76.68%           7                 0   100.00%         142                31    78.17%           0                 0         -
+rash/rash/src/playground/computation.rs                       191               103    46.07%          21                 9    57.14%         131                60    54.20%           0                 0         -
+rash/rash/src/playground/document.rs                          166               142    14.46%          12                 8    33.33%          92                71    22.83%           0                 0         -
+rash/rash/src/playground/editor.rs                            338               154    54.44%          14                 6    57.14%         149                71    52.35%           0                 0         -
+rash/rash/src/playground/highlighting.rs                      344               114    66.86%          13                 4    69.23%         261                57    78.16%           0                 0         -
+rash/rash/src/playground/parser.rs                            157               137    12.74%          13                11    15.38%         116                97    16.38%           0                 0         -
+rash/rash/src/playground/property_tests.rs                     46                27    41.30%           6                 2    66.67%          22                12    45.45%           0                 0         -
+rash/rash/src/playground/render.rs                            161               142    11.80%          16                13    18.75%         139               116    16.55%           0                 0         -
+rash/rash/src/playground/session.rs                           167                34    79.64%          23                11    52.17%         120                11    90.83%           0                 0         -
+rash/rash/src/playground/system.rs                            260               228    12.31%          22                19    13.64%         162               133    17.90%           0                 0         -
+rash/rash/src/playground/tests.rs                              90                 6    93.33%           7                 0   100.00%          41                 0   100.00%           0                 0         -
+rash/rash/src/playground/transpiler.rs                        208               187    10.10%          18                16    11.11%         155               138    10.97%           0                 0         -
+rash/rash/src/services/parser.rs                             1110               142    87.21%          68                 4    94.12%         789                77    90.24%           0                 0         -
+rash/rash/src/services/tests.rs                               417                48    88.49%          25                 0   100.00%         342                17    95.03%           0                 0         -
+rash/rash/src/stdlib.rs                                        65                 0   100.00%           4                 0   100.00%          40                 0   100.00%           0                 0         -
+rash/rash/src/testing/adversarial_tests.rs                    337                46    86.35%          28                 0   100.00%         343                37    89.21%           0                 0         -
+rash/rash/src/testing/boundary.rs                             464                23    95.04%          15                 0   100.00%         250                12    95.20%           0                 0         -
+rash/rash/src/testing/coverage.rs                             225                 3    98.67%          19                 1    94.74%         124                 3    97.58%           0                 0         -
+rash/rash/src/testing/cross_validation.rs                     248                 7    97.18%          19                 1    94.74%         156                 7    95.51%           0                 0         -
+rash/rash/src/testing/error_injection.rs                      377                69    81.70%          21                 3    85.71%         259                57    77.99%           0                 0         -
+rash/rash/src/testing/fuzz.rs                                   9                 3    66.67%           3                 1    66.67%           9                 3    66.67%           0                 0         -
+rash/rash/src/testing/fuzz_tests.rs                            31                 0   100.00%           3                 0   100.00%          16                 0   100.00%           0                 0         -
+rash/rash/src/testing/idempotence_tests.rs                    403                31    92.31%          15                 0   100.00%         341                 9    97.36%           0                 0         -
+rash/rash/src/testing/mod.rs                                  398                38    90.45%          37                 0   100.00%         292                31    89.38%           0                 0         -
+rash/rash/src/testing/mutation.rs                               9                 3    66.67%           3                 1    66.67%           9                 3    66.67%           0                 0         -
+rash/rash/src/testing/mutation_tests.rs                        49                 0   100.00%           4                 0   100.00%          24                 0   100.00%           0                 0         -
+rash/rash/src/testing/quickcheck_tests.rs                     256                13    94.92%          35                 2    94.29%         178                 3    98.31%           0                 0         -
+rash/rash/src/testing/regression.rs                             9                 3    66.67%           3                 1    66.67%           9                 3    66.67%           0                 0         -
+rash/rash/src/testing/regression_tests.rs                      48                 0   100.00%           5                 0   100.00%          23                 0   100.00%           0                 0         -
+rash/rash/src/testing/shellcheck_validation_tests.rs          256                12    95.31%          28                 1    96.43%         357                 8    97.76%           0                 0         -
+rash/rash/src/testing/stress.rs                               278                35    87.41%          13                 1    92.31%         183                22    87.98%           0                 0         -
+rash/rash/src/testing/stress_tests.rs                         105                 1    99.05%           9                 0   100.00%         152                 1    99.34%           0                 0         -
+rash/rash/src/testing/unicode_escape_tests.rs                 312                62    80.13%          16                 2    87.50%         193                40    79.27%           0                 0         -
+rash/rash/src/validation/mod.rs                                26                 7    73.08%           3                 1    66.67%          20                 5    75.00%           0                 0         -
+rash/rash/src/validation/pipeline.rs                          489                93    80.98%          23                 3    86.96%         305                42    86.23%           0                 0         -
+rash/rash/src/validation/pipeline_tests.rs                    607                 0   100.00%          36                 0   100.00%         440                 0   100.00%           0                 0         -
+rash/rash/src/validation/rules.rs                             178                13    92.70%          14                 1    92.86%         185                14    92.43%           0                 0         -
+rash/rash/src/validation/tests.rs                             334                 2    99.40%          14                 0   100.00%         197                 0   100.00%           0                 0         -
+rash/rash/src/verifier/mod.rs                                  37                 4    89.19%           4                 0   100.00%          22                 0   100.00%           0                 0         -
+rash/rash/src/verifier/properties.rs                          290                28    90.34%          24                 0   100.00%         222                16    92.79%           0                 0         -
+rash/rash/src/verifier/properties_tests.rs                    127                 0   100.00%          12                 0   100.00%         107                 0   100.00%           0                 0         -
+rash/rash/src/verifier/tests.rs                               164                 0   100.00%          10                 0   100.00%         117                 0   100.00%           0                 0         -
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+TOTAL                                                       24054              5588    76.77%        1645               441    73.19%       16733              3550    78.78%           0                 0         -
+
+💡 COVERAGE INSIGHTS:
+- HTML report: target/coverage/html/index.html
+- LCOV file: target/coverage/lcov.info
+- Open HTML: make coverage-open
+

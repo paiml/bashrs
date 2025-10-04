@@ -641,7 +641,7 @@ mod security_tests {
 
             let source = format!("fn {name}() {{}} fn main() {{ {name}(); }}");
 
-            if let Ok(shell_code) = transpile(&source, Config::default()) {
+            if let Ok(_shell_code) = transpile(&source, Config::default()) {
                 // Empty functions might not generate a function definition
                 // or might generate a no-op (:)
                 prop_assert!(true); // Placeholder - just ensure it compiles

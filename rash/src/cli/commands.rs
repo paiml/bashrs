@@ -103,15 +103,7 @@ pub fn execute_command(cli: Cli) -> Result<()> {
             )
         }
 
-        #[cfg(feature = "playground")]
-        Commands::Playground {
-            file,
-            restore,
-            no_vi,
-        } => {
-            info!("Launching playground REPL");
-            playground_command(file.as_deref(), restore.as_deref(), !no_vi)
-        }
+        // Playground feature removed in v1.0 - will be moved to separate rash-playground crate in v1.1
     }
 }
 
@@ -487,7 +479,10 @@ fn handle_compile(
 
     if self_extracting {
         // Create self-extracting script
-        create_self_extracting_script(&shell_code, output.to_str().unwrap())?;
+        let output_str = output
+            .to_str()
+            .ok_or_else(|| Error::Validation("Output path contains invalid UTF-8".to_string()))?;
+        create_self_extracting_script(&shell_code, output_str)?;
         info!("Created self-extracting script at {}", output.display());
     } else if container {
         // Create container image
@@ -515,31 +510,13 @@ fn handle_compile(
         warn!(
             "Binary compilation not yet fully implemented, creating self-extracting script instead"
         );
-        create_self_extracting_script(&shell_code, output.to_str().unwrap())?;
+        let output_str = output
+            .to_str()
+            .ok_or_else(|| Error::Validation("Output path contains invalid UTF-8".to_string()))?;
+        create_self_extracting_script(&shell_code, output_str)?;
     }
 
     Ok(())
 }
 
-#[cfg(feature = "playground")]
-fn playground_command(file: Option<&Path>, restore: Option<&str>, vi_mode: bool) -> Result<()> {
-    use crate::playground::PlaygroundSystem;
-
-    let mut playground = PlaygroundSystem::new(vi_mode)?;
-
-    // Load initial file if provided
-    if let Some(path) = file {
-        let content = fs::read_to_string(path).map_err(Error::Io)?;
-        playground.load_content(&content)?;
-    }
-
-    // Restore session state if provided
-    if let Some(url) = restore {
-        playground.restore_from_url(url)?;
-    }
-
-    // Run the playground
-    playground.run()?;
-
-    Ok(())
-}
+// Playground command removed in v1.0 - will be moved to separate rash-playground crate in v1.1

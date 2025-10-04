@@ -6,6 +6,9 @@ authors.workspace = true
 license.workspace = true
 repository.workspace = true
 description = "Embedded runtime library for Rash-generated shell scripts"
+readme.workspace = true
+keywords.workspace = true
+categories.workspace = true
 
 [build-dependencies]
 anyhow.workspace = true

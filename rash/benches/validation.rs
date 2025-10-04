@@ -1,6 +1,6 @@
 use criterion::{criterion_group, criterion_main, BenchmarkId, Criterion};
-use rash::validation::ValidationLevel;
-use rash::{transpile, Config};
+use bashrs::validation::ValidationLevel;
+use bashrs::{transpile, Config};
 use std::hint::black_box;
 use std::time::Instant;
 
@@ -66,7 +66,7 @@ fn bench_validation_overhead(c: &mut Criterion) {
 }
 
 fn bench_individual_rules(c: &mut Criterion) {
-    use rash::validation::{rules::*, Validate};
+    use bashrs::validation::{rules::*, Validate};
 
     let mut group = c.benchmark_group("individual_rules");
 

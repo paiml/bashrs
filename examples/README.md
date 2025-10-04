@@ -26,6 +26,60 @@ chmod +x hello.sh
 - `basic/variables.rs` - Variable usage and string escaping
 - `basic/functions.rs` - Function calls and command execution
 
+### Book Examples
+
+These examples correspond to the official Rash book chapters and are fully tested.
+
+#### Chapter 2: Variables (10 examples) ✅
+- `ch02_variables/ex01_basic_string.rs` - Basic string variable assignment
+- `ch02_variables/ex02_integer_variables.rs` - Integer literals
+- `ch02_variables/ex03_multiple_strings.rs` - Multiple variable declarations
+- `ch02_variables/ex04_string_interpolation.rs` - String interpolation patterns
+- `ch02_variables/ex05_special_chars.rs` - Special character escaping ($, ", *)
+- `ch02_variables/ex06_boolean_values.rs` - Boolean literals (true/false)
+- `ch02_variables/ex07_paths_with_spaces.rs` - Path handling with spaces
+- `ch02_variables/ex08_environment_style.rs` - Environment variable patterns
+- `ch02_variables/ex09_version_numbers.rs` - Version number handling
+- `ch02_variables/ex10_unicode.rs` - Unicode support
+
+#### Chapter 3: Functions (12 examples) ✅
+- `ch03_functions/ex01_basic_function.rs` - No-parameter function
+- `ch03_functions/ex02_function_with_params.rs` - Single parameter
+- `ch03_functions/ex03_multiple_params.rs` - Multiple parameters
+- `ch03_functions/ex04_nested_calls.rs` - Function calling function
+- `ch03_functions/ex05_function_composition.rs` - Chained function calls
+- `ch03_functions/ex06_conditional_execution.rs` - Functions with if statements
+- `ch03_functions/ex07_helper_functions.rs` - Utility helpers
+- `ch03_functions/ex08_installer_pattern.rs` - Real-world installer stages
+- `ch03_functions/ex09_utility_functions.rs` - String/file utilities
+- `ch03_functions/ex10_string_operations.rs` - String manipulation
+- `ch03_functions/ex11_file_operations.rs` - File I/O operations
+- `ch03_functions/ex12_download_verify.rs` - Download with verification
+
+#### Chapter 4: Control Flow (15 examples) ⚠️
+**Note**: Some examples expose transpiler bugs and are pending fixes.
+
+Working examples (7/15):
+- `ch04_control_flow/ex01_basic_if.rs` - Basic if with integer comparison ✅
+- `ch04_control_flow/ex02_if_else.rs` - If-else with boolean ✅
+- `ch04_control_flow/ex03_if_elif_else.rs` - If-elif-else chain ✅
+- `ch04_control_flow/ex04_integer_comparisons.rs` - Comparison operators ✅
+- `ch04_control_flow/ex09_nested_if.rs` - Nested conditionals ✅
+- `ch04_control_flow/ex11_early_return.rs` - Early return pattern ✅
+- `ch04_control_flow/ex14_boolean_variables.rs` - Boolean conditions ✅
+
+Known issues (8/15 - transpiler bugs):
+- `ch04_control_flow/ex05_string_comparison.rs` - String equality (Bug: uses -eq instead of =)
+- `ch04_control_flow/ex06_logical_and.rs` - AND operator (Bug: IR generation error)
+- `ch04_control_flow/ex07_logical_or.rs` - OR operator (Bug: IR generation error)
+- `ch04_control_flow/ex08_not_operator.rs` - NOT operator (Bug: operator not transpiled)
+- `ch04_control_flow/ex10_conditional_calls.rs` - Function dispatch (Bug: string comparison)
+- `ch04_control_flow/ex12_guard_clauses.rs` - Guard pattern (Bug: logical operators)
+- `ch04_control_flow/ex13_complex_logic.rs` - Complex conditions (Bug: logical operators)
+- `ch04_control_flow/ex15_installer_logic.rs` - Installer logic (Bug: string comparison)
+
+See `TEST_RESULTS.md` for detailed bug reports.
+
 ### Control Flow
 - `control_flow/conditionals.rs` - If/else statements
 - `control_flow/loops.rs` - Bounded loops (requires `loops` feature)

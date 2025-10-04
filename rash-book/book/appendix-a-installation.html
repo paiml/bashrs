@@ -158,7 +158,424 @@
 
                 <div id="content" class="content">
                     <main>
-                        <h1 id="placeholder-appendix-a-installationmd"><a class="header" href="#placeholder-appendix-a-installationmd">Placeholder: appendix-a-installation.md</a></h1>
+                        <h1 id="appendix-a-installation-guide"><a class="header" href="#appendix-a-installation-guide">Appendix A: Installation Guide</a></h1>
+<p>This appendix provides complete installation instructions for Rash on all supported platforms.</p>
+<hr />
+<h2 id="prerequisites"><a class="header" href="#prerequisites">Prerequisites</a></h2>
+<h3 id="required"><a class="header" href="#required">Required</a></h3>
+<ul>
+<li><strong>Rust 1.70.0 or later</strong>: Rash requires Rust toolchain for installation from source or crates.io</li>
+<li><strong>Operating System</strong>: Linux, macOS, or WSL2 (Windows Subsystem for Linux)</li>
+<li><strong>Shell</strong>: POSIX-compliant shell (sh, dash, bash, ash)</li>
+</ul>
+<h3 id="optional"><a class="header" href="#optional">Optional</a></h3>
+<ul>
+<li><strong>ShellCheck</strong>: For validation of generated scripts (highly recommended)</li>
+<li><strong>Git</strong>: For installing from source</li>
+<li><strong>make</strong>: For using the provided Makefile (optional convenience)</li>
+</ul>
+<h3 id="system-requirements"><a class="header" href="#system-requirements">System Requirements</a></h3>
+<ul>
+<li><strong>Disk Space</strong>: ~50MB for binary + dependencies</li>
+<li><strong>RAM</strong>: Minimal (transpilation uses &lt;100MB typically)</li>
+<li><strong>CPU</strong>: Any modern x86_64 or ARM64 processor</li>
+</ul>
+<hr />
+<h2 id="installation-methods"><a class="header" href="#installation-methods">Installation Methods</a></h2>
+<h3 id="method-1-install-from-cratesio-recommended"><a class="header" href="#method-1-install-from-cratesio-recommended">Method 1: Install from crates.io (Recommended)</a></h3>
+<p>The easiest way to install Rash:</p>
+<pre><code class="language-bash">cargo install bashrs
+</code></pre>
+<p>This installs the <code>bashrs</code> binary to <code>~/.cargo/bin/</code>. Ensure this directory is in your <code>PATH</code>:</p>
+<pre><code class="language-bash">export PATH="$HOME/.cargo/bin:$PATH"
+</code></pre>
+<p>Add this to your shell profile (<code>~/.bashrc</code>, <code>~/.zshrc</code>, etc.) to make it permanent.</p>
+<p><strong>Verify installation:</strong></p>
+<pre><code class="language-bash">bashrs --version
+</code></pre>
+<p>Expected output:</p>
+<pre><code>bashrs 0.9.3
+</code></pre>
+<hr />
+<h3 id="method-2-install-from-source"><a class="header" href="#method-2-install-from-source">Method 2: Install from Source</a></h3>
+<p>For latest development features or custom builds:</p>
+<h4 id="clone-the-repository"><a class="header" href="#clone-the-repository">Clone the Repository</a></h4>
+<pre><code class="language-bash">git clone https://github.com/paiml/bashrs
+cd bashrs
+</code></pre>
+<h4 id="build-from-source"><a class="header" href="#build-from-source">Build from Source</a></h4>
+<pre><code class="language-bash"># Development build (faster compilation, slower runtime)
+cargo build
+
+# Release build (slower compilation, optimized binary)
+cargo build --release
+</code></pre>
+<p>The binary will be in <code>target/release/bashrs</code>.</p>
+<h4 id="install-locally"><a class="header" href="#install-locally">Install Locally</a></h4>
+<pre><code class="language-bash"># Install to ~/.cargo/bin
+cargo install --path rash
+
+# Or copy manually
+cp target/release/bashrs ~/.local/bin/  # Or any directory in $PATH
+</code></pre>
+<p><strong>Verify installation:</strong></p>
+<pre><code class="language-bash">bashrs --version
+</code></pre>
+<hr />
+<h3 id="method-3-pre-built-binaries"><a class="header" href="#method-3-pre-built-binaries">Method 3: Pre-built Binaries</a></h3>
+<p>Download pre-built binaries from GitHub Releases (when v1.0 is released):</p>
+<pre><code class="language-bash"># Linux x86_64
+wget https://github.com/paiml/bashrs/releases/download/v1.0.0/bashrs-linux-x86_64.tar.gz
+tar -xzf bashrs-linux-x86_64.tar.gz
+sudo mv bashrs /usr/local/bin/
+
+# macOS (ARM64)
+wget https://github.com/paiml/bashrs/releases/download/v1.0.0/bashrs-macos-arm64.tar.gz
+tar -xzf bashrs-macos-arm64.tar.gz
+sudo mv bashrs /usr/local/bin/
+
+# macOS (x86_64)
+wget https://github.com/paiml/bashrs/releases/download/v1.0.0/bashrs-macos-x86_64.tar.gz
+tar -xzf bashrs-macos-x86_64.tar.gz
+sudo mv bashrs /usr/local/bin/
+</code></pre>
+<p><strong>Verify installation:</strong></p>
+<pre><code class="language-bash">bashrs --version
+</code></pre>
+<hr />
+<h2 id="installing-shellcheck-recommended"><a class="header" href="#installing-shellcheck-recommended">Installing ShellCheck (Recommended)</a></h2>
+<p>ShellCheck validates generated shell scripts. Rash can optionally use it for verification.</p>
+<h3 id="debianubuntu"><a class="header" href="#debianubuntu">Debian/Ubuntu</a></h3>
+<pre><code class="language-bash">sudo apt-get install shellcheck
+</code></pre>
+<h3 id="macos"><a class="header" href="#macos">macOS</a></h3>
+<pre><code class="language-bash">brew install shellcheck
+</code></pre>
+<h3 id="from-source"><a class="header" href="#from-source">From Source</a></h3>
+<pre><code class="language-bash">cabal install ShellCheck
+</code></pre>
+<p><strong>Verify ShellCheck:</strong></p>
+<pre><code class="language-bash">shellcheck --version
+</code></pre>
+<hr />
+<h2 id="shell-completion"><a class="header" href="#shell-completion">Shell Completion</a></h2>
+<p>Rash supports shell completion for bash, zsh, and fish.</p>
+<h3 id="generate-completion-scripts"><a class="header" href="#generate-completion-scripts">Generate Completion Scripts</a></h3>
+<h4 id="bash"><a class="header" href="#bash">Bash</a></h4>
+<pre><code class="language-bash">bashrs completions bash &gt; ~/.local/share/bash-completion/completions/bashrs
+source ~/.local/share/bash-completion/completions/bashrs
+</code></pre>
+<p>Add to <code>~/.bashrc</code>:</p>
+<pre><code class="language-bash">source ~/.local/share/bash-completion/completions/bashrs
+</code></pre>
+<h4 id="zsh"><a class="header" href="#zsh">Zsh</a></h4>
+<pre><code class="language-bash">bashrs completions zsh &gt; ~/.zsh/completions/_bashrs
+</code></pre>
+<p>Add to <code>~/.zshrc</code>:</p>
+<pre><code class="language-bash">fpath=(~/.zsh/completions $fpath)
+autoload -Uz compinit &amp;&amp; compinit
+</code></pre>
+<h4 id="fish"><a class="header" href="#fish">Fish</a></h4>
+<pre><code class="language-bash">bashrs completions fish &gt; ~/.config/fish/completions/bashrs.fish
+</code></pre>
+<hr />
+<h2 id="testing-installation"><a class="header" href="#testing-installation">Testing Installation</a></h2>
+<h3 id="quick-test"><a class="header" href="#quick-test">Quick Test</a></h3>
+<p>Create a test file:</p>
+<pre><code class="language-bash">cat &gt; test.rs &lt;&lt;'EOF'
+fn main() {
+    let greeting = "Hello, Rash!";
+    println(greeting);
+}
+
+fn println(msg: &amp;str) {}
+EOF
+</code></pre>
+<p>Transpile it:</p>
+<pre><code class="language-bash">bashrs build test.rs -o test.sh
+</code></pre>
+<p>Run the generated script:</p>
+<pre><code class="language-bash">sh test.sh
+</code></pre>
+<p>Expected output:</p>
+<pre><code>Hello, Rash!
+</code></pre>
+<h3 id="run-test-suite"><a class="header" href="#run-test-suite">Run Test Suite</a></h3>
+<p>From source repository:</p>
+<pre><code class="language-bash">cd bashrs
+cargo test
+</code></pre>
+<p>Expected: All tests pass</p>
+<pre><code>test result: ok. 237 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out
+</code></pre>
+<hr />
+<h2 id="configuration"><a class="header" href="#configuration">Configuration</a></h2>
+<h3 id="default-configuration-file"><a class="header" href="#default-configuration-file">Default Configuration File</a></h3>
+<p>Rash looks for configuration in:</p>
+<ul>
+<li><code>./rash.toml</code> (project-specific)</li>
+<li><code>~/.config/rash/config.toml</code> (user-wide)</li>
+<li><code>/etc/rash/config.toml</code> (system-wide)</li>
+</ul>
+<h3 id="example-configuration"><a class="header" href="#example-configuration">Example Configuration</a></h3>
+<p>Create <code>~/.config/rash/config.toml</code>:</p>
+<pre><code class="language-toml">[transpile]
+# Default target shell dialect
+target = "posix"  # Options: posix, bash, dash, ash
+
+# Verification level
+verify = "strict"  # Options: none, basic, strict, paranoid
+
+# Enable optimizations
+optimize = true
+
+# Emit formal verification proofs
+emit_proof = false
+
+[validation]
+# ShellCheck validation level
+shellcheck_level = "minimal"  # Options: none, minimal, standard, strict
+
+# Strict POSIX mode (no extensions)
+strict_mode = false
+</code></pre>
+<hr />
+<h2 id="environment-variables"><a class="header" href="#environment-variables">Environment Variables</a></h2>
+<p>Rash respects these environment variables:</p>
+<div class="table-wrapper"><table><thead><tr><th>Variable</th><th>Purpose</th><th>Default</th></tr></thead><tbody>
+<tr><td><code>RASH_TARGET</code></td><td>Default shell dialect</td><td><code>posix</code></td></tr>
+<tr><td><code>RASH_VERIFY</code></td><td>Verification level</td><td><code>strict</code></td></tr>
+<tr><td><code>RASH_OPTIMIZE</code></td><td>Enable optimizations</td><td><code>true</code></td></tr>
+<tr><td><code>SHELLCHECK_OPTS</code></td><td>ShellCheck options</td><td><code>-s sh</code></td></tr>
+</tbody></table>
+</div>
+<p>Example:</p>
+<pre><code class="language-bash">export RASH_TARGET=bash
+export RASH_VERIFY=paranoid
+bashrs build script.rs
+</code></pre>
+<hr />
+<h2 id="uninstalling"><a class="header" href="#uninstalling">Uninstalling</a></h2>
+<h3 id="if-installed-via-cargo"><a class="header" href="#if-installed-via-cargo">If Installed via Cargo</a></h3>
+<pre><code class="language-bash">cargo uninstall bashrs
+</code></pre>
+<h3 id="if-installed-manually"><a class="header" href="#if-installed-manually">If Installed Manually</a></h3>
+<pre><code class="language-bash"># Remove binary
+rm ~/.local/bin/bashrs  # Or wherever you installed it
+
+# Remove configuration
+rm -rf ~/.config/rash
+
+# Remove completion scripts
+rm ~/.local/share/bash-completion/completions/bashrs  # Bash
+rm ~/.zsh/completions/_bashrs                         # Zsh
+rm ~/.config/fish/completions/bashrs.fish             # Fish
+</code></pre>
+<hr />
+<h2 id="troubleshooting"><a class="header" href="#troubleshooting">Troubleshooting</a></h2>
+<h3 id="issue-bashrs-command-not-found"><a class="header" href="#issue-bashrs-command-not-found">Issue: <code>bashrs: command not found</code></a></h3>
+<p><strong>Solution</strong>: Ensure <code>~/.cargo/bin</code> is in your <code>PATH</code>:</p>
+<pre><code class="language-bash">echo 'export PATH="$HOME/.cargo/bin:$PATH"' &gt;&gt; ~/.bashrc
+source ~/.bashrc
+</code></pre>
+<h3 id="issue-error-failed-to-compile-bashrs"><a class="header" href="#issue-error-failed-to-compile-bashrs">Issue: <code>error: failed to compile bashrs</code></a></h3>
+<p><strong>Solution</strong>: Update Rust toolchain:</p>
+<pre><code class="language-bash">rustup update stable
+cargo install bashrs
+</code></pre>
+<h3 id="issue-generated-script-fails-shellcheck"><a class="header" href="#issue-generated-script-fails-shellcheck">Issue: Generated script fails shellcheck</a></h3>
+<p><strong>Solution</strong>: Check ShellCheck version (Rash requires 0.8.0+):</p>
+<pre><code class="language-bash">shellcheck --version
+</code></pre>
+<p>Update if needed:</p>
+<pre><code class="language-bash"># Debian/Ubuntu
+sudo apt-get update &amp;&amp; sudo apt-get install shellcheck
+
+# macOS
+brew upgrade shellcheck
+</code></pre>
+<h3 id="issue-unsupported-feature-error"><a class="header" href="#issue-unsupported-feature-error">Issue: <code>Unsupported feature</code> error</a></h3>
+<p><strong>Solution</strong>: Check that your Rash code uses only supported features (see <a href="ch18-limitations.html">Chapter 18: Limitations</a>).</p>
+<p>Common unsupported features in v1.0:</p>
+<ul>
+<li><code>for</code> loops (use function iteration pattern)</li>
+<li><code>match</code> expressions (use if/else-if chains)</li>
+<li><code>while</code> loops (planned for v1.1)</li>
+</ul>
+<h3 id="issue-permission-denied-when-running-generated-script"><a class="header" href="#issue-permission-denied-when-running-generated-script">Issue: Permission denied when running generated script</a></h3>
+<p><strong>Solution</strong>: Make the script executable:</p>
+<pre><code class="language-bash">chmod +x generated.sh
+./generated.sh
+</code></pre>
+<p>Or run with explicit shell:</p>
+<pre><code class="language-bash">sh generated.sh
+</code></pre>
+<h3 id="issue-slow-transpilation"><a class="header" href="#issue-slow-transpilation">Issue: Slow transpilation</a></h3>
+<p><strong>Solution</strong>: Use release build for better performance:</p>
+<pre><code class="language-bash">cargo build --release
+./target/release/bashrs build input.rs
+</code></pre>
+<p>Or install optimized version:</p>
+<pre><code class="language-bash">cargo install bashrs --release
+</code></pre>
+<hr />
+<h2 id="platform-specific-notes"><a class="header" href="#platform-specific-notes">Platform-Specific Notes</a></h2>
+<h3 id="linux"><a class="header" href="#linux">Linux</a></h3>
+<ul>
+<li><strong>Recommended shells</strong>: dash (fastest), ash (minimal), bash (feature-rich)</li>
+<li><strong>Default sh</strong>: Usually <code>/bin/dash</code> on Debian/Ubuntu, <code>/bin/bash</code> on RHEL/CentOS</li>
+<li><strong>Binary location</strong>: <code>~/.cargo/bin/bashrs</code> or <code>/usr/local/bin/bashrs</code></li>
+</ul>
+<h3 id="macos-1"><a class="header" href="#macos-1">macOS</a></h3>
+<ul>
+<li><strong>Recommended shell</strong>: bash 3.2+ (built-in) or zsh</li>
+<li><strong>Default sh</strong>: <code>/bin/sh</code> (bash 3.2 compatibility mode)</li>
+<li><strong>Binary location</strong>: <code>~/.cargo/bin/bashrs</code> or <code>/usr/local/bin/bashrs</code></li>
+<li><strong>Note</strong>: macOS bash is old (3.2); generated scripts are still compatible</li>
+</ul>
+<h3 id="windows-wsl2"><a class="header" href="#windows-wsl2">Windows (WSL2)</a></h3>
+<ul>
+<li><strong>Use WSL2</strong>: Rash is not supported on native Windows (no POSIX shell)</li>
+<li><strong>Recommended</strong>: Ubuntu or Debian WSL2 image</li>
+<li><strong>Installation</strong>: Same as Linux (use Ubuntu/Debian WSL2 terminal)</li>
+</ul>
+<h3 id="freebsdopenbsd"><a class="header" href="#freebsdopenbsd">FreeBSD/OpenBSD</a></h3>
+<ul>
+<li><strong>Status</strong>: Should work (POSIX-compliant shells available)</li>
+<li><strong>Testing</strong>: Limited testing, report issues at https://github.com/paiml/bashrs/issues</li>
+<li><strong>Shell</strong>: <code>/bin/sh</code> is typically ash or dash</li>
+</ul>
+<hr />
+<h2 id="upgrading"><a class="header" href="#upgrading">Upgrading</a></h2>
+<h3 id="from-cratesio"><a class="header" href="#from-cratesio">From crates.io</a></h3>
+<pre><code class="language-bash">cargo install bashrs --force
+</code></pre>
+<h3 id="from-source-1"><a class="header" href="#from-source-1">From Source</a></h3>
+<pre><code class="language-bash">cd bashrs
+git pull origin main
+cargo build --release
+cargo install --path rash --force
+</code></pre>
+<h3 id="check-current-version"><a class="header" href="#check-current-version">Check Current Version</a></h3>
+<pre><code class="language-bash">bashrs --version
+</code></pre>
+<hr />
+<h2 id="development-setup"><a class="header" href="#development-setup">Development Setup</a></h2>
+<p>For contributors and advanced users:</p>
+<h3 id="clone-and-setup"><a class="header" href="#clone-and-setup">Clone and Setup</a></h3>
+<pre><code class="language-bash">git clone https://github.com/paiml/bashrs
+cd bashrs
+</code></pre>
+<h3 id="install-development-dependencies"><a class="header" href="#install-development-dependencies">Install Development Dependencies</a></h3>
+<pre><code class="language-bash"># Rust toolchain (nightly for coverage)
+rustup install nightly
+
+# Development tools
+cargo install cargo-watch  # Auto-rebuild on changes
+cargo install cargo-tarpaulin  # Code coverage
+cargo install cargo-mutants  # Mutation testing
+cargo install mdbook  # For building documentation
+</code></pre>
+<h3 id="run-development-commands"><a class="header" href="#run-development-commands">Run Development Commands</a></h3>
+<pre><code class="language-bash"># Run tests on file change
+cargo watch -x test
+
+# Generate code coverage
+cargo tarpaulin --out Html
+
+# Build documentation
+cd rash-book &amp;&amp; mdbook build
+
+# Run mutation tests
+cargo mutants
+</code></pre>
+<h3 id="run-quality-gates-as-in-ci"><a class="header" href="#run-quality-gates-as-in-ci">Run Quality Gates (as in CI)</a></h3>
+<pre><code class="language-bash">make test          # Run all tests
+make lint          # Run clippy
+make coverage      # Generate coverage report
+make integration   # Run integration tests
+make quality       # Run all quality checks
+</code></pre>
+<hr />
+<h2 id="docker-usage"><a class="header" href="#docker-usage">Docker Usage</a></h2>
+<p>Run Rash in Docker for isolated environments:</p>
+<pre><code class="language-bash"># Build Docker image
+docker build -t bashrs .
+
+# Run transpilation
+docker run --rm -v $(pwd):/workspace bashrs build /workspace/input.rs -o /workspace/output.sh
+
+# Interactive shell
+docker run --rm -it -v $(pwd):/workspace bashrs bash
+</code></pre>
+<hr />
+<h2 id="continuous-integration"><a class="header" href="#continuous-integration">Continuous Integration</a></h2>
+<p>Example GitHub Actions workflow:</p>
+<pre><code class="language-yaml">name: Transpile
+on: [push]
+jobs:
+  transpile:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+      - run: cargo install bashrs
+      - run: bashrs build installer.rs -o install.sh
+      - run: shellcheck install.sh
+      - uses: actions/upload-artifact@v3
+        with:
+          name: installer
+          path: install.sh
+</code></pre>
+<hr />
+<h2 id="getting-help"><a class="header" href="#getting-help">Getting Help</a></h2>
+<ul>
+<li><strong>Documentation</strong>: https://docs.bashrs.dev (or local: <code>mdbook serve rash-book</code>)</li>
+<li><strong>GitHub Issues</strong>: https://github.com/paiml/bashrs/issues</li>
+<li><strong>Discord</strong>: https://discord.gg/bashrs</li>
+<li><strong>Email</strong>: support@pragmaticai.com</li>
+</ul>
+<hr />
+<h2 id="quick-reference"><a class="header" href="#quick-reference">Quick Reference</a></h2>
+<h3 id="common-commands"><a class="header" href="#common-commands">Common Commands</a></h3>
+<pre><code class="language-bash"># Transpile to shell script
+bashrs build input.rs -o output.sh
+
+# Check syntax only (no output)
+bashrs check input.rs
+
+# Verify with ShellCheck
+bashrs build input.rs --verify strict
+
+# Specify target shell
+bashrs build input.rs --target bash
+
+# Enable optimizations
+bashrs build input.rs --optimize
+
+# Compile to self-extracting binary
+bashrs compile input.rs -o installer
+
+# Show IR (intermediate representation)
+bashrs inspect ir input.rs
+
+# Show AST
+bashrs inspect ast input.rs
+
+# Initialize new project
+bashrs init my-installer
+</code></pre>
+<h3 id="file-locations"><a class="header" href="#file-locations">File Locations</a></h3>
+<ul>
+<li><strong>Binary</strong>: <code>~/.cargo/bin/bashrs</code></li>
+<li><strong>Config</strong>: <code>~/.config/rash/config.toml</code></li>
+<li><strong>Completions</strong>: <code>~/.local/share/bash-completion/completions/bashrs</code></li>
+<li><strong>Cache</strong>: <code>~/.cache/rash/</code></li>
+</ul>
+<hr />
+<p><strong>Next Steps</strong>: Now that Rash is installed, start with <a href="ch01-hello-shell-tdd.html">Chapter 1: Hello Shell</a> to learn the basics!</p>
 
                     </main>
 

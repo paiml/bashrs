@@ -4,6 +4,12 @@ pub mod shell_ir;
 #[cfg(test)]
 mod tests;
 
+#[cfg(test)]
+mod shell_ir_tests;
+
+#[cfg(test)]
+mod control_flow_tests;
+
 pub use effects::{Effect, EffectSet};
 pub use shell_ir::{Command, ShellExpression, ShellIR, ShellValue};
 
@@ -316,6 +322,21 @@ impl IrConverter {
                     args: cmd_args,
                 }))
             }
+            Expr::Unary { op, operand } => {
+                use crate::ast::restricted::UnaryOp;
+                let operand_val = self.convert_expr_to_value(operand)?;
+
+                match op {
+                    UnaryOp::Not => Ok(ShellValue::LogicalNot {
+                        operand: Box::new(operand_val),
+                    }),
+                    UnaryOp::Neg => Ok(ShellValue::Arithmetic {
+                        op: shell_ir::ArithmeticOp::Sub,
+                        left: Box::new(ShellValue::String("0".to_string())),
+                        right: Box::new(operand_val),
+                    }),
+                }
+            }
             Expr::Binary { op, left, right } => {
                 use crate::ast::restricted::BinaryOp;
                 let left_val = self.convert_expr_to_value(left)?;
@@ -323,17 +344,31 @@ impl IrConverter {
 
                 // Convert comparison and arithmetic operators to proper variants
                 match op {
-                    // Comparison operators
-                    BinaryOp::Eq => Ok(ShellValue::Comparison {
-                        op: shell_ir::ComparisonOp::Eq,
-                        left: Box::new(left_val),
-                        right: Box::new(right_val),
-                    }),
-                    BinaryOp::Ne => Ok(ShellValue::Comparison {
-                        op: shell_ir::ComparisonOp::Ne,
-                        left: Box::new(left_val),
-                        right: Box::new(right_val),
-                    }),
+                    // Comparison operators - detect string vs numeric
+                    BinaryOp::Eq => {
+                        let is_string = is_string_value(&left_val) || is_string_value(&right_val);
+                        Ok(ShellValue::Comparison {
+                            op: if is_string {
+                                shell_ir::ComparisonOp::StrEq
+                            } else {
+                                shell_ir::ComparisonOp::NumEq
+                            },
+                            left: Box::new(left_val),
+                            right: Box::new(right_val),
+                        })
+                    }
+                    BinaryOp::Ne => {
+                        let is_string = is_string_value(&left_val) || is_string_value(&right_val);
+                        Ok(ShellValue::Comparison {
+                            op: if is_string {
+                                shell_ir::ComparisonOp::StrNe
+                            } else {
+                                shell_ir::ComparisonOp::NumNe
+                            },
+                            left: Box::new(left_val),
+                            right: Box::new(right_val),
+                        })
+                    }
                     BinaryOp::Gt => Ok(ShellValue::Comparison {
                         op: shell_ir::ComparisonOp::Gt,
                         left: Box::new(left_val),
@@ -375,8 +410,15 @@ impl IrConverter {
                         left: Box::new(left_val),
                         right: Box::new(right_val),
                     }),
-                    // For other operators (logical, etc.), use Concat as fallback
-                    _ => Ok(ShellValue::Concat(vec![left_val, right_val])),
+                    // Logical operators
+                    BinaryOp::And => Ok(ShellValue::LogicalAnd {
+                        left: Box::new(left_val),
+                        right: Box::new(right_val),
+                    }),
+                    BinaryOp::Or => Ok(ShellValue::LogicalOr {
+                        left: Box::new(left_val),
+                        right: Box::new(right_val),
+                    }),
                 }
             }
             _ => Ok(ShellValue::String("unknown".to_string())), // Fallback
@@ -467,6 +509,23 @@ fn constant_fold(ir: ShellIR) -> ShellIR {
 fn eliminate_dead_code(ir: ShellIR) -> ShellIR {
     // Simple dead code elimination
     ir // Placeholder - would implement actual DCE
+}
+
+/// Check if a ShellValue represents a string type (not a number)
+fn is_string_value(value: &ShellValue) -> bool {
+    match value {
+        ShellValue::String(s) => {
+            // Check if it's a string literal (not parseable as number)
+            s.parse::<i64>().is_err() && s.parse::<f64>().is_err()
+        }
+        ShellValue::Bool(_) => false, // Bools are not strings for comparison
+        ShellValue::Variable(_) => false, // Can't determine at compile time
+        ShellValue::Concat(_) => true, // String concatenation
+        ShellValue::CommandSubst(_) => false, // Could be numeric
+        ShellValue::Comparison { .. } => false,
+        ShellValue::Arithmetic { .. } => false,
+        ShellValue::LogicalAnd { .. } | ShellValue::LogicalOr { .. } | ShellValue::LogicalNot { .. } => false,
+    }
 }
 
 fn transform_ir<F>(ir: ShellIR, transform: &mut F) -> ShellIR
