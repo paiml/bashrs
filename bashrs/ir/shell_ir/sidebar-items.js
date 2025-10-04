@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"enum":["ShellExpression","ShellIR","ShellValue"],"struct":["Command"]};
+window.SIDEBAR_ITEMS = {"enum":["ArithmeticOp","CasePattern","ComparisonOp","ShellExpression","ShellIR","ShellValue"],"struct":["CaseArm","Command"]};

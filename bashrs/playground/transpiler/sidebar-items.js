@@ -1,1 +1,0 @@
-window.SIDEBAR_ITEMS = {"struct":["AdaptiveDebouncer","CancellationToken","TranspilationController","TranspilationMetrics","TranspilationOutput"]};

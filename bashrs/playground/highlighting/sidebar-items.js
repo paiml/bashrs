@@ -1,1 +1,0 @@
-window.SIDEBAR_ITEMS = {"mod":["simd_utils"],"struct":["Color","LineId","Style","StyleModifiers","StyledToken","SyntaxHighlighter","Theme"]};

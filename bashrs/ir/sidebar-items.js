@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"fn":["constant_fold","eliminate_dead_code","from_ast","optimize","transform_ir"],"mod":["effects","shell_ir"],"struct":["IrConverter"]};
+window.SIDEBAR_ITEMS = {"fn":["constant_fold","eliminate_dead_code","from_ast","is_string_value","optimize","transform_ir"],"mod":["effects","shell_ir"],"struct":["IrConverter"]};

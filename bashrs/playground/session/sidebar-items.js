@@ -1,1 +1,0 @@
-window.SIDEBAR_ITEMS = {"enum":["EditAction","LayoutStrategy"],"mod":["compressed_history","rope_serde"],"struct":["CursorPosition","History","HistoryEntry","MinimalState","SessionMetrics","SessionState"]};

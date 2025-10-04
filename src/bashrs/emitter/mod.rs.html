@@ -103,61 +103,64 @@
 <a href=#103 id=103 data-nosnippet>103</a><span class="attr">#[cfg(test)]
 <a href=#104 id=104 data-nosnippet>104</a></span><span class="kw">mod </span>tests;
 <a href=#105 id=105 data-nosnippet>105</a>
-<a href=#106 id=106 data-nosnippet>106</a><span class="kw">pub use </span>posix::PosixEmitter;
-<a href=#107 id=107 data-nosnippet>107</a>
-<a href=#108 id=108 data-nosnippet>108</a><span class="kw">use </span><span class="kw">crate</span>::ir::ShellIR;
-<a href=#109 id=109 data-nosnippet>109</a><span class="kw">use </span><span class="kw">crate</span>::models::{Config, <span class="prelude-ty">Result</span>};
+<a href=#106 id=106 data-nosnippet>106</a><span class="attr">#[cfg(test)]
+<a href=#107 id=107 data-nosnippet>107</a></span><span class="kw">mod </span>posix_tests;
+<a href=#108 id=108 data-nosnippet>108</a>
+<a href=#109 id=109 data-nosnippet>109</a><span class="kw">pub use </span>posix::PosixEmitter;
 <a href=#110 id=110 data-nosnippet>110</a>
-<a href=#111 id=111 data-nosnippet>111</a><span class="doccomment">/// Emit shell code from IR based on target dialect
-<a href=#112 id=112 data-nosnippet>112</a>///
-<a href=#113 id=113 data-nosnippet>113</a>/// This function selects the appropriate emitter based on the configured
-<a href=#114 id=114 data-nosnippet>114</a>/// shell dialect and generates the corresponding shell code.
+<a href=#111 id=111 data-nosnippet>111</a><span class="kw">use </span><span class="kw">crate</span>::ir::ShellIR;
+<a href=#112 id=112 data-nosnippet>112</a><span class="kw">use </span><span class="kw">crate</span>::models::{Config, <span class="prelude-ty">Result</span>};
+<a href=#113 id=113 data-nosnippet>113</a>
+<a href=#114 id=114 data-nosnippet>114</a><span class="doccomment">/// Emit shell code from IR based on target dialect
 <a href=#115 id=115 data-nosnippet>115</a>///
-<a href=#116 id=116 data-nosnippet>116</a>/// # Arguments
-<a href=#117 id=117 data-nosnippet>117</a>///
-<a href=#118 id=118 data-nosnippet>118</a>/// * `ir` - The intermediate representation to emit
-<a href=#119 id=119 data-nosnippet>119</a>/// * `config` - Configuration specifying target dialect and options
+<a href=#116 id=116 data-nosnippet>116</a>/// This function selects the appropriate emitter based on the configured
+<a href=#117 id=117 data-nosnippet>117</a>/// shell dialect and generates the corresponding shell code.
+<a href=#118 id=118 data-nosnippet>118</a>///
+<a href=#119 id=119 data-nosnippet>119</a>/// # Arguments
 <a href=#120 id=120 data-nosnippet>120</a>///
-<a href=#121 id=121 data-nosnippet>121</a>/// # Returns
-<a href=#122 id=122 data-nosnippet>122</a>///
-<a href=#123 id=123 data-nosnippet>123</a>/// A `Result` containing the generated shell code as a string, or an error
-<a href=#124 id=124 data-nosnippet>124</a>/// if emission fails.
+<a href=#121 id=121 data-nosnippet>121</a>/// * `ir` - The intermediate representation to emit
+<a href=#122 id=122 data-nosnippet>122</a>/// * `config` - Configuration specifying target dialect and options
+<a href=#123 id=123 data-nosnippet>123</a>///
+<a href=#124 id=124 data-nosnippet>124</a>/// # Returns
 <a href=#125 id=125 data-nosnippet>125</a>///
-<a href=#126 id=126 data-nosnippet>126</a>/// # Examples
-<a href=#127 id=127 data-nosnippet>127</a>///
-<a href=#128 id=128 data-nosnippet>128</a>/// ```rust
-<a href=#129 id=129 data-nosnippet>129</a>/// use bashrs::emitter::emit;
-<a href=#130 id=130 data-nosnippet>130</a>/// use bashrs::ir::ShellIR;
-<a href=#131 id=131 data-nosnippet>131</a>/// use bashrs::models::{Config, config::ShellDialect};
-<a href=#132 id=132 data-nosnippet>132</a>///
-<a href=#133 id=133 data-nosnippet>133</a>/// # fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
-<a href=#134 id=134 data-nosnippet>134</a>/// let ir = ShellIR::Noop;
+<a href=#126 id=126 data-nosnippet>126</a>/// A `Result` containing the generated shell code as a string, or an error
+<a href=#127 id=127 data-nosnippet>127</a>/// if emission fails.
+<a href=#128 id=128 data-nosnippet>128</a>///
+<a href=#129 id=129 data-nosnippet>129</a>/// # Examples
+<a href=#130 id=130 data-nosnippet>130</a>///
+<a href=#131 id=131 data-nosnippet>131</a>/// ```rust
+<a href=#132 id=132 data-nosnippet>132</a>/// use bashrs::emitter::emit;
+<a href=#133 id=133 data-nosnippet>133</a>/// use bashrs::ir::ShellIR;
+<a href=#134 id=134 data-nosnippet>134</a>/// use bashrs::models::{Config, config::ShellDialect};
 <a href=#135 id=135 data-nosnippet>135</a>///
-<a href=#136 id=136 data-nosnippet>136</a>/// // Target POSIX shell
-<a href=#137 id=137 data-nosnippet>137</a>/// let mut config = Config::default();
-<a href=#138 id=138 data-nosnippet>138</a>/// config.target = ShellDialect::Posix;
-<a href=#139 id=139 data-nosnippet>139</a>///
-<a href=#140 id=140 data-nosnippet>140</a>/// let shell_code = emit(&amp;ir, &amp;config)?;
-<a href=#141 id=141 data-nosnippet>141</a>/// // The generated code includes boilerplate for safety
-<a href=#142 id=142 data-nosnippet>142</a>/// assert!(shell_code.contains("main()"));
-<a href=#143 id=143 data-nosnippet>143</a>/// # Ok(())
-<a href=#144 id=144 data-nosnippet>144</a>/// # }
-<a href=#145 id=145 data-nosnippet>145</a>/// ```
-<a href=#146 id=146 data-nosnippet>146</a></span><span class="kw">pub fn </span>emit(ir: <span class="kw-2">&amp;</span>ShellIR, config: <span class="kw-2">&amp;</span>Config) -&gt; <span class="prelude-ty">Result</span>&lt;String&gt; {
-<a href=#147 id=147 data-nosnippet>147</a>    <span class="kw">match </span>config.target {
-<a href=#148 id=148 data-nosnippet>148</a>        <span class="kw">crate</span>::models::config::ShellDialect::Posix =&gt; {
-<a href=#149 id=149 data-nosnippet>149</a>            <span class="kw">let </span>emitter = PosixEmitter::new(config.clone());
-<a href=#150 id=150 data-nosnippet>150</a>            emitter.emit(ir)
-<a href=#151 id=151 data-nosnippet>151</a>        }
-<a href=#152 id=152 data-nosnippet>152</a>        <span class="kw">crate</span>::models::config::ShellDialect::Bash =&gt; {
-<a href=#153 id=153 data-nosnippet>153</a>            <span class="comment">// For now, use POSIX emitter for Bash too
-<a href=#154 id=154 data-nosnippet>154</a>            </span><span class="kw">let </span>emitter = PosixEmitter::new(config.clone());
-<a href=#155 id=155 data-nosnippet>155</a>            emitter.emit(ir)
-<a href=#156 id=156 data-nosnippet>156</a>        }
-<a href=#157 id=157 data-nosnippet>157</a>        <span class="kw">_ </span>=&gt; {
-<a href=#158 id=158 data-nosnippet>158</a>            <span class="comment">// Default to POSIX for other dialects
-<a href=#159 id=159 data-nosnippet>159</a>            </span><span class="kw">let </span>emitter = PosixEmitter::new(config.clone());
-<a href=#160 id=160 data-nosnippet>160</a>            emitter.emit(ir)
-<a href=#161 id=161 data-nosnippet>161</a>        }
-<a href=#162 id=162 data-nosnippet>162</a>    }
-<a href=#163 id=163 data-nosnippet>163</a>}</code></pre></div></section></main></body></html>
+<a href=#136 id=136 data-nosnippet>136</a>/// # fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
+<a href=#137 id=137 data-nosnippet>137</a>/// let ir = ShellIR::Noop;
+<a href=#138 id=138 data-nosnippet>138</a>///
+<a href=#139 id=139 data-nosnippet>139</a>/// // Target POSIX shell
+<a href=#140 id=140 data-nosnippet>140</a>/// let mut config = Config::default();
+<a href=#141 id=141 data-nosnippet>141</a>/// config.target = ShellDialect::Posix;
+<a href=#142 id=142 data-nosnippet>142</a>///
+<a href=#143 id=143 data-nosnippet>143</a>/// let shell_code = emit(&amp;ir, &amp;config)?;
+<a href=#144 id=144 data-nosnippet>144</a>/// // The generated code includes boilerplate for safety
+<a href=#145 id=145 data-nosnippet>145</a>/// assert!(shell_code.contains("main()"));
+<a href=#146 id=146 data-nosnippet>146</a>/// # Ok(())
+<a href=#147 id=147 data-nosnippet>147</a>/// # }
+<a href=#148 id=148 data-nosnippet>148</a>/// ```
+<a href=#149 id=149 data-nosnippet>149</a></span><span class="kw">pub fn </span>emit(ir: <span class="kw-2">&amp;</span>ShellIR, config: <span class="kw-2">&amp;</span>Config) -&gt; <span class="prelude-ty">Result</span>&lt;String&gt; {
+<a href=#150 id=150 data-nosnippet>150</a>    <span class="kw">match </span>config.target {
+<a href=#151 id=151 data-nosnippet>151</a>        <span class="kw">crate</span>::models::config::ShellDialect::Posix =&gt; {
+<a href=#152 id=152 data-nosnippet>152</a>            <span class="kw">let </span>emitter = PosixEmitter::new(config.clone());
+<a href=#153 id=153 data-nosnippet>153</a>            emitter.emit(ir)
+<a href=#154 id=154 data-nosnippet>154</a>        }
+<a href=#155 id=155 data-nosnippet>155</a>        <span class="kw">crate</span>::models::config::ShellDialect::Bash =&gt; {
+<a href=#156 id=156 data-nosnippet>156</a>            <span class="comment">// For now, use POSIX emitter for Bash too
+<a href=#157 id=157 data-nosnippet>157</a>            </span><span class="kw">let </span>emitter = PosixEmitter::new(config.clone());
+<a href=#158 id=158 data-nosnippet>158</a>            emitter.emit(ir)
+<a href=#159 id=159 data-nosnippet>159</a>        }
+<a href=#160 id=160 data-nosnippet>160</a>        <span class="kw">_ </span>=&gt; {
+<a href=#161 id=161 data-nosnippet>161</a>            <span class="comment">// Default to POSIX for other dialects
+<a href=#162 id=162 data-nosnippet>162</a>            </span><span class="kw">let </span>emitter = PosixEmitter::new(config.clone());
+<a href=#163 id=163 data-nosnippet>163</a>            emitter.emit(ir)
+<a href=#164 id=164 data-nosnippet>164</a>        }
+<a href=#165 id=165 data-nosnippet>165</a>    }
+<a href=#166 id=166 data-nosnippet>166</a>}</code></pre></div></section></main></body></html>

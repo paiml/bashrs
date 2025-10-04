@@ -1,1 +1,0 @@
-window.SIDEBAR_ITEMS = {"mod":["computation","document","editor","highlighting","parser","render","session","system","transpiler"]};
