@@ -1,0 +1,6 @@
+rash/src/ir/mod.rs:487:25: delete match arm ShellValue::String(s) in constant_fold
+rash/src/ir/mod.rs:477:5: replace constant_fold -> ShellIR with Default::default()
+rash/src/ir/mod.rs:52:9: replace IrConverter::convert -> Result<ShellIR> with Ok(Default::default())
+rash/src/ir/mod.rs:27:5: replace optimize -> Result<ShellIR> with Ok(Default::default())
+rash/src/ir/mod.rs:449:9: replace IrConverter::convert_match_pattern -> Result<shell_ir::CasePattern> with Ok(Default::default())
+rash/src/ir/mod.rs:21:5: replace from_ast -> Result<ShellIR> with Ok(Default::default())

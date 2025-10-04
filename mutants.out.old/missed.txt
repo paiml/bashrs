@@ -1,0 +1,5 @@
+rash/src/ir/mod.rs:306:13: delete match arm Expr::FunctionCall{name, args} in IrConverter::convert_expr_to_value
+rash/src/ir/mod.rs:161:21: delete match arm crate::ast::restricted::Pattern::Variable(name) in IrConverter::convert_stmt
+rash/src/ir/mod.rs:436:13: delete match arm "echo" | "printf" in IrConverter::analyze_command_effects
+rash/src/ir/mod.rs:70:81: replace && with || in IrConverter::convert
+rash/src/ir/mod.rs:180:69: replace - with + in IrConverter::convert_stmt
