@@ -265,26 +265,27 @@ if condition {
     // ...
 }
 
-// ⚠️ Pattern matching - Not yet supported (P2 backlog)
-// match value {
-//     "linux" => echo("Linux detected"),
-//     "darwin" => echo("macOS detected"),
-//     _ => echo("Unknown OS"),
-// }
+// ✅ Pattern matching - SUPPORTED (experimental in v1.0.0-rc1)
+match value {
+    "linux" => echo("Linux detected"),
+    "darwin" => echo("macOS detected"),
+    _ => echo("Unknown OS"),
+}
 ```
 
-#### Loops
+#### Loops ✅ (Supported in v1.0.0-rc1)
 ```rust
-// ⚠️ For loops - Not yet supported (P2 backlog)
-// for i in 0..10 {
-//     echo("Iteration: {i}");
-// }
+// ✅ For loops - FULLY SUPPORTED
+for i in 0..10 {
+    echo("Iteration: {i}");
+}
 
-// ⚠️ While loops - Not yet supported
-// let mut count = 0;
-// while count < 10 {
-//     count = count + 1;
-// }
+// ✅ While loops - FULLY SUPPORTED
+let mut count = 0;
+while count < 10 {
+    count = count + 1;
+    echo("Count: {count}");
+}
 ```
 
 ### Safety Features
@@ -472,9 +473,15 @@ Rash is built with safety principles inspired by:
 - [x] `bashrs verify` - Script verification
 - [x] `bashrs inspect` - Formal verification reports
 
-**Beta Features**:
-- [x] Self-extracting scripts (tested, production-ready)
-- [ ] Container packaging (experimental, in progress)
+**Shipped in v1.0.0-rc1**:
+- [x] Control flow (if/else if/else) - STABLE
+- [x] For loops (0..n, 0..=n) - STABLE
+- [x] While loops (with max_iterations safety) - STABLE
+- [x] Match expressions (basic pattern matching) - EXPERIMENTAL
+- [x] Logical operators (&&, ||, !) - STABLE
+- [x] String and integer comparisons - STABLE
+- [x] Self-extracting scripts - STABLE
+- [ ] Container packaging (in progress)
 - [ ] Proof generation (experimental format)
 
 ### v1.1 (Planned)
@@ -485,10 +492,11 @@ Rash is built with safety principles inspired by:
 - [ ] Live syntax highlighting
 
 **Language Features**:
-- [ ] For loops (`for i in 0..10`)
-- [ ] Match expressions (pattern matching)
-- [ ] While loops
-- [ ] Arrays and collections
+- [x] For loops (`for i in 0..10`) - SHIPPED in v1.0.0-rc1
+- [x] Match expressions (pattern matching) - SHIPPED in v1.0.0-rc1
+- [x] While loops - SHIPPED in v1.0.0-rc1
+- [ ] Arrays and collections (advanced operations)
+- [ ] Enhanced pattern matching guards
 
 **Tooling**:
 - [ ] Language server protocol (LSP)
