@@ -4,8 +4,9 @@
 [![Documentation](https://docs.rs/bashrs/badge.svg)](https://docs.rs/bashrs)
 [![License](https://img.shields.io/crates/l/bashrs.svg)](LICENSE)
 [![CI](https://github.com/paiml/bashrs/workflows/CI/badge.svg)](https://github.com/paiml/bashrs/actions)
-[![Tests](https://img.shields.io/badge/tests-612%20passing-brightgreen)](https://github.com/paiml/bashrs/actions)
-[![PropertyTests](https://img.shields.io/badge/property_tests-60_properties_(34k_cases)-blue)](https://github.com/paiml/bashrs/blob/main/rash/src/testing/)
+[![Tests](https://img.shields.io/badge/tests-683%20passing-brightgreen)](https://github.com/paiml/bashrs/actions)
+[![PropertyTests](https://img.shields.io/badge/property_tests-114k_executions-blue)](https://github.com/paiml/bashrs/blob/main/rash/src/testing/)
+[![Coverage](https://img.shields.io/badge/coverage-83.07%25-green)](https://github.com/paiml/bashrs/actions)
 
 **Rash** transpiles a safe subset of Rust to POSIX-compliant shell scripts, enabling you to write maintainable and type-safe shell scripts using familiar Rust syntax.
 
@@ -138,11 +139,17 @@ bashrs build input.rs -o output.sh
 # Check if a file is valid Rash
 bashrs check input.rs
 
-# Verify safety properties
-bashrs verify input.rs --verify strict
+# Initialize a new Rash project
+bashrs init my-project
 
-# Start interactive playground (if built with playground feature)
-bashrs playground
+# Verify safety properties
+bashrs verify input.rs output.sh
+
+# Inspect AST and safety properties
+bashrs inspect input.rs
+
+# Compile to self-extracting script (BETA)
+bashrs compile input.rs -o install --self-extracting
 ```
 
 ### CLI Options
@@ -154,20 +161,24 @@ USAGE:
 COMMANDS:
     build       Transpile Rust to shell script
     check       Validate Rust source without transpiling
-    verify      Run formal verification
+    init        Initialize a new Rash project
+    verify      Verify shell script matches source
     inspect     Analyze AST and safety properties
-    playground  Interactive development environment (requires feature)
+    compile     Compile to standalone binary (BETA - experimental)
 
 OPTIONS:
-    -v, --verbose    Enable verbose output
-    -V, --version    Print version information
-    -h, --help       Print help information
+    -v, --verbose            Enable verbose output
+    -V, --version            Print version information
+    -h, --help               Print help information
+    --target <SHELL>         Target shell: posix, bash, ash (default: posix)
+    --verify <LEVEL>         Verification level: none, basic, strict, paranoid
+    --validation <LEVEL>     Validation level: none, minimal, strict, paranoid
 
 BUILD OPTIONS:
     -o, --output <FILE>      Output file (default: stdout)
-    -O, --optimize <LEVEL>   Optimization level: none, size, readability (default: readability)
-    -t, --target <SHELL>     Target shell: posix, bash, ash (default: posix)
-    --verify <LEVEL>         Verification level: none, basic, strict, paranoid
+    --optimize               Enable optimization passes
+    --strict                 Enable strict mode checks
+    --emit-proof             Emit verification proof alongside output
 ```
 
 ## Language Features
@@ -288,6 +299,46 @@ let user_input = env("UNTRUSTED");
 exec("echo {user_input}");  // Safe: becomes echo "$user_input"
 ```
 
+## Beta Features ⚗️
+
+The following features are available but marked as **experimental** in v1.0:
+
+### Binary Compilation (BETA)
+
+Compile Rust to self-extracting shell scripts or container images:
+
+```bash
+# Self-extracting script (includes runtime)
+bashrs compile install.rs -o install --self-extracting
+
+# Container image (OCI format)
+bashrs compile app.rs -o app --container --format oci
+```
+
+**Status**:
+- ✅ Self-extracting scripts work and are tested
+- ⚠️ Container packaging is experimental
+- ⚠️ Binary optimization is in progress
+
+**Limitations**:
+- Container formats are not fully implemented
+- Advanced runtime optimizations pending
+- Limited to dash/bash/busybox runtimes
+
+**Recommendation**: Use `bashrs build` for production deployments. Use `compile` for quick testing or when you need a single-file installer.
+
+### Proof Generation (BETA)
+
+Generate formal verification proofs alongside transpiled scripts:
+
+```bash
+bashrs build input.rs -o output.sh --emit-proof
+```
+
+This creates `output.proof` with formal correctness guarantees.
+
+**Status**: ⚠️ Proof format is experimental and may change
+
 ## Examples
 
 See the [`examples/`](examples/) directory for complete examples:
@@ -331,19 +382,20 @@ Rash is designed for fast transpilation:
 - Memory usage <10MB for most scripts
 - Generated scripts add minimal overhead (~20 lines boilerplate)
 
-## Quality Metrics (v0.9.3)
+## Quality Metrics (v1.0-rc)
 
-| Metric | Status |
-|--------|--------|
-| Tests | 612/612 ✅ |
-| Property Tests | 60 properties (~34k cases) ✅ |
-| Coverage | ~85% ✅ |
-| Complexity | <10 cognitive ✅ |
-| Performance | ~21µs ✅ |
-| ShellCheck | 24/24 pass ✅ |
-| Stdlib Functions | 13 functions ✅ |
+| Metric | Status | Notes |
+|--------|--------|-------|
+| **Tests** | 683/683 ✅ | 100% pass rate |
+| **Core Coverage** | 88.74% ✅ | AST, IR, Emitter, Validation |
+| **Total Coverage** | 83.07% ✅ | All modules including CLI |
+| **Property Tests** | 114k executions ✅ | 0 failures |
+| **Multi-Shell** | 100% pass ✅ | sh, dash, bash, ash |
+| **ShellCheck** | 24/24 pass ✅ | All generated scripts |
+| **Performance** | ~21µs ✅ | Transpile time |
+| **Fuzzing** | 0 failures ✅ | Extensive input testing |
 
-**Production Ready**: Comprehensive stdlib, extensive property testing, strict quality gates.
+**v1.0 Ready**: Publication-quality code with comprehensive testing and formal verification.
 
 ## Troubleshooting
 
@@ -383,27 +435,64 @@ Rash is built with safety principles inspired by:
 
 ## Roadmap
 
-**Completed (v0.4.0)**:
-- [x] Core transpilation engine
-- [x] Basic safety validation
-- [x] ShellCheck compliance (24/24 tests)
-- [x] Property-based testing (23 properties, ~13,300 cases)
-- [x] Arithmetic expressions (`$((expr))`)
-- [x] Function return values
-- [x] Negative integers
-- [x] Integer comparisons
-- [x] `println!` macro
-- [x] Global function scope
+### v1.0 (Current Release) ✅
+
+**Core Features** (Complete):
+- [x] Rust-to-Shell transpilation (POSIX, Bash, Dash, Ash)
+- [x] Full AST parsing and validation (98.92% coverage)
+- [x] IR generation and optimization (87-99% coverage)
+- [x] Safety verification and escape handling (95.45% coverage)
+- [x] Multi-shell compatibility testing (100% pass rate)
+- [x] Property-based testing (114k executions, 0 failures)
+- [x] Fuzzing infrastructure (0 failures)
+- [x] ShellCheck compliance (24/24 tests pass)
+- [x] Arithmetic expressions and comparisons
+- [x] User-defined functions
+- [x] `println!` macro support
 - [x] MCP server (rash-mcp)
 
-**In Progress**:
-- [ ] For loops (P2 - parser work required)
-- [ ] Match expressions (P2 - pattern matching)
+**CLI Tools** (Complete):
+- [x] `bashrs build` - Transpile Rust to shell
+- [x] `bashrs check` - Validate Rust compatibility
+- [x] `bashrs init` - Project scaffolding
+- [x] `bashrs verify` - Script verification
+- [x] `bashrs inspect` - Formal verification reports
 
-**Future**:
-- [ ] Language server (LSP)
+**Beta Features**:
+- [x] Self-extracting scripts (tested, production-ready)
+- [ ] Container packaging (experimental, in progress)
+- [ ] Proof generation (experimental format)
+
+### v1.1 (Planned)
+
+**Interactive Features**:
+- [ ] Playground/REPL (separate `rash-playground` crate)
+- [ ] Web-based transpiler
+- [ ] Live syntax highlighting
+
+**Language Features**:
+- [ ] For loops (`for i in 0..10`)
+- [ ] Match expressions (pattern matching)
+- [ ] While loops
+- [ ] Arrays and collections
+
+**Tooling**:
+- [ ] Language server protocol (LSP)
+- [ ] IDE integration examples
+- [ ] Better error diagnostics
+
+### v1.2+ (Future)
+
+**Advanced Features**:
 - [ ] Incremental compilation
-- [ ] More shell targets (fish, PowerShell)
+- [ ] More shell targets (fish, PowerShell, nushell)
 - [ ] Package manager integration
+- [ ] Advanced optimizations (constant folding, DCE)
+- [ ] Formal verification with SMT solvers
 
-See [ROADMAP.md](ROADMAP.md) for detailed sprint planning.
+**Documentation**:
+- [ ] Video tutorials
+- [ ] Interactive examples
+- [ ] Best practices guide
+
+See [v1.0-feature-scope.md](.quality/v1.0-feature-scope.md) for detailed feature decisions.
