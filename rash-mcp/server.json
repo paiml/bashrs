@@ -1,0 +1,27 @@
+{
+  "$schema": "https://registry.modelcontextprotocol.io/v0/server.schema.json",
+  "name": "io.github.paiml.rash",
+  "displayName": "Rash MCP Server",
+  "description": "MCP server for Rash - Rust-to-Shell transpiler with formal correctness guarantees. Transpile Rust code to POSIX-compliant shell scripts with verification.",
+  "version": "0.1.0",
+  "homepage": "https://github.com/paiml/bashrs",
+  "sourceUrl": "https://github.com/paiml/bashrs/tree/main/rash-mcp",
+  "icon": "https://raw.githubusercontent.com/paiml/bashrs/main/rash-mcp/icon.png",
+  "author": {
+    "name": "PAIML Team",
+    "email": "team@paiml.com",
+    "url": "https://github.com/paiml"
+  },
+  "license": "MIT",
+  "readme": "https://raw.githubusercontent.com/paiml/bashrs/main/rash-mcp/README.md",
+  "categories": ["development-tools", "code-generation"],
+  "tags": ["rust", "shell", "bash", "transpiler", "posix", "verification"],
+  "deployment": {
+    "type": "package",
+    "package": {
+      "type": "cargo",
+      "name": "rash-mcp",
+      "binaryName": "rash-mcp"
+    }
+  }
+}

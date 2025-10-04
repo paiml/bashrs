@@ -1,0 +1,63 @@
+name: Publish MCP Server
+
+on:
+  push:
+    tags:
+      - 'mcp-v*.*.*'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache cargo registry
+        uses: actions/cache@v4
+        with:
+          path: ~/.cargo/registry
+          key: ${{ runner.os }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Cache cargo index
+        uses: actions/cache@v4
+        with:
+          path: ~/.cargo/git
+          key: ${{ runner.os }}-cargo-index-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Cache cargo build
+        uses: actions/cache@v4
+        with:
+          path: target
+          key: ${{ runner.os }}-cargo-build-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Run tests
+        run: cargo test -p rash-mcp
+
+      - name: Build rash-mcp
+        run: cargo build --release -p rash-mcp
+
+      - name: Publish to crates.io
+        run: |
+          cargo login ${{ secrets.CARGO_TOKEN }}
+          cargo publish -p rash-mcp
+        continue-on-error: true
+
+      - name: Install MCP Publisher
+        run: |
+          npm install -g @modelcontextprotocol/publisher
+
+      - name: Login to MCP Registry (GitHub OIDC)
+        run: mcp-publisher login github-oidc
+
+      - name: Publish to MCP Registry
+        run: |
+          cd rash-mcp
+          mcp-publisher publish
