@@ -1,6 +1,6 @@
 [package]
 name = "bashrs"
-version.workspace = true
+version = "1.0.0-rc1"
 edition.workspace = true
 authors.workspace = true
 license.workspace = true
