@@ -100,7 +100,7 @@ fn convert_function(item_fn: ItemFn) -> Result<Function> {
 
     // Convert return type
     let return_type = match &item_fn.sig.output {
-        ReturnType::Default => Type::Str, // Default to unit type represented as string
+        ReturnType::Default => Type::Void, // Default to void/unit type
         ReturnType::Type(_, ty) => convert_type(ty)?,
     };
 
