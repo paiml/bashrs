@@ -103,6 +103,9 @@ pub mod posix;
 #[cfg(test)]
 mod tests;
 
+#[cfg(test)]
+mod posix_tests;
+
 pub use posix::PosixEmitter;
 
 use crate::ir::ShellIR;

@@ -170,22 +170,43 @@ pub enum ShellValue {
         left: Box<ShellValue>,
         right: Box<ShellValue>,
     },
+
+    /// Logical AND (&&) operation
+    LogicalAnd {
+        left: Box<ShellValue>,
+        right: Box<ShellValue>,
+    },
+
+    /// Logical OR (||) operation
+    LogicalOr {
+        left: Box<ShellValue>,
+        right: Box<ShellValue>,
+    },
+
+    /// Logical NOT (!) operation
+    LogicalNot {
+        operand: Box<ShellValue>,
+    },
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum ComparisonOp {
     /// -eq: numeric equality
-    Eq,
+    NumEq,
     /// -ne: numeric inequality
-    Ne,
-    /// -gt: greater than
+    NumNe,
+    /// -gt: numeric greater than
     Gt,
-    /// -ge: greater than or equal
+    /// -ge: numeric greater than or equal
     Ge,
-    /// -lt: less than
+    /// -lt: numeric less than
     Lt,
-    /// -le: less than or equal
+    /// -le: numeric less than or equal
     Le,
+    /// =: string equality
+    StrEq,
+    /// !=: string inequality
+    StrNe,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -209,9 +230,13 @@ impl ShellValue {
             ShellValue::String(_) | ShellValue::Bool(_) => true,
             ShellValue::Variable(_) | ShellValue::CommandSubst(_) => false,
             ShellValue::Concat(parts) => parts.iter().all(|p| p.is_constant()),
-            ShellValue::Comparison { left, right, .. } | ShellValue::Arithmetic { left, right, .. } => {
+            ShellValue::Comparison { left, right, .. }
+            | ShellValue::Arithmetic { left, right, .. }
+            | ShellValue::LogicalAnd { left, right }
+            | ShellValue::LogicalOr { left, right } => {
                 left.is_constant() && right.is_constant()
             }
+            ShellValue::LogicalNot { operand } => operand.is_constant(),
         }
     }
 

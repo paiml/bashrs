@@ -1,5 +1,5 @@
 use criterion::{criterion_group, criterion_main, BenchmarkId, Criterion};
-use rash::{ir, models::VerificationLevel, services::parser, verifier};
+use bashrs::{ir, models::VerificationLevel, services::parser, verifier};
 use std::time::Duration;
 
 const SAFE_RUST: &str = r#"
@@ -144,13 +144,13 @@ fn benchmark_individual_verifications(c: &mut Criterion) {
     group.bench_with_input(
         BenchmarkId::new("command_injection", "safe"),
         &safe_ir,
-        |b, ir| b.iter(|| rash::verifier::properties::verify_no_command_injection(ir).unwrap()),
+        |b, ir| b.iter(|| bashrs::verifier::properties::verify_no_command_injection(ir).unwrap()),
     );
 
     group.bench_with_input(
         BenchmarkId::new("command_injection", "complex"),
         &complex_ir,
-        |b, ir| b.iter(|| rash::verifier::properties::verify_no_command_injection(ir).unwrap()),
+        |b, ir| b.iter(|| bashrs::verifier::properties::verify_no_command_injection(ir).unwrap()),
     );
 
     group.bench_with_input(
@@ -158,7 +158,7 @@ fn benchmark_individual_verifications(c: &mut Criterion) {
         &unsafe_ir,
         |b, ir| {
             b.iter(|| {
-                let _ = rash::verifier::properties::verify_no_command_injection(ir);
+                let _ = bashrs::verifier::properties::verify_no_command_injection(ir);
             })
         },
     );
@@ -166,25 +166,25 @@ fn benchmark_individual_verifications(c: &mut Criterion) {
     group.bench_with_input(
         BenchmarkId::new("determinism", "safe"),
         &safe_ir,
-        |b, ir| b.iter(|| rash::verifier::properties::verify_deterministic(ir).unwrap()),
+        |b, ir| b.iter(|| bashrs::verifier::properties::verify_deterministic(ir).unwrap()),
     );
 
     group.bench_with_input(
         BenchmarkId::new("determinism", "complex"),
         &complex_ir,
-        |b, ir| b.iter(|| rash::verifier::properties::verify_deterministic(ir).unwrap()),
+        |b, ir| b.iter(|| bashrs::verifier::properties::verify_deterministic(ir).unwrap()),
     );
 
     group.bench_with_input(
         BenchmarkId::new("idempotency", "safe"),
         &safe_ir,
-        |b, ir| b.iter(|| rash::verifier::properties::verify_idempotency(ir).unwrap()),
+        |b, ir| b.iter(|| bashrs::verifier::properties::verify_idempotency(ir).unwrap()),
     );
 
     group.bench_with_input(
         BenchmarkId::new("resource_safety", "complex"),
         &complex_ir,
-        |b, ir| b.iter(|| rash::verifier::properties::verify_resource_safety(ir).unwrap()),
+        |b, ir| b.iter(|| bashrs::verifier::properties::verify_resource_safety(ir).unwrap()),
     );
 
     group.finish();

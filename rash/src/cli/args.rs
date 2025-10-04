@@ -99,21 +99,7 @@ pub enum Commands {
         detailed: bool,
     },
 
-    /// Launch interactive playground REPL
-    #[cfg(feature = "playground")]
-    Playground {
-        /// Initial file to load
-        #[arg(short, long)]
-        file: Option<PathBuf>,
-
-        /// Session state URL to restore
-        #[arg(long)]
-        restore: Option<String>,
-
-        /// Disable VI-style key bindings
-        #[arg(long)]
-        no_vi: bool,
-    },
+    // Playground feature removed in v1.0 - will be moved to separate rash-playground crate in v1.1
 
     /// Compile to standalone binary
     Compile {

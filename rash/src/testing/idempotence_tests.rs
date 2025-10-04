@@ -14,7 +14,7 @@
 //! - State modifications
 
 use crate::{transpile, Config};
-use proptest::prelude::*;
+// use proptest::prelude::*; // Commented out - not currently used
 use std::collections::HashMap;
 use std::fs;
 use std::process::Command;
@@ -63,7 +63,7 @@ fn execute_and_capture_state(script: &str, working_dir: &TempDir) -> ScriptState
         for entry in entries.flatten() {
             if let Ok(path) = entry.path().strip_prefix(working_dir.path()) {
                 if path.to_str() != Some("script.sh") {
-                    if let Ok(content) = fs::read(&entry.path()) {
+                    if let Ok(content) = fs::read(entry.path()) {
                         let hash = blake3::hash(&content).to_string();
                         files.insert(path.display().to_string(), hash);
                     }

@@ -396,14 +396,14 @@ fn is_valid_shell_identifier(name: &str) -> bool {
 fn test_unicode_fuzzing_random_strings() {
     use rand::Rng;
 
-    let mut rng = rand::thread_rng();
+    let mut rng = rand::rng();
 
     for _ in 0..100 {
         // Generate random unicode string
-        let len = rng.gen_range(1..50);
+        let len = rng.random_range(1..50);
         let random_string: String = (0..len)
             .map(|_| {
-                let codepoint = rng.gen_range(0x0000..0x10FFFF);
+                let codepoint = rng.random_range(0x0000..0x10FFFF);
                 char::from_u32(codepoint).unwrap_or('?')
             })
             .collect();

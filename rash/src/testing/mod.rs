@@ -1,6 +1,18 @@
 // Comprehensive SQLite-style testing framework for Rash
 // Implementing exhaustive edge case testing with NASA-grade reliability standards
 
+#![allow(clippy::unwrap_used)]
+#![allow(clippy::expect_used)]
+#![allow(clippy::panic)]
+#![allow(clippy::indexing_slicing)]
+#![allow(clippy::len_zero)]
+#![allow(clippy::single_match)]
+#![allow(clippy::print_stdout)]
+#![allow(clippy::print_stderr)]
+#![allow(clippy::dbg_macro)]
+#![allow(clippy::missing_panics_doc)]
+#![allow(clippy::missing_errors_doc)]
+
 pub mod boundary;
 pub mod coverage;
 pub mod cross_validation;
