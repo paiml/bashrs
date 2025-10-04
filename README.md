@@ -4,9 +4,10 @@
 [![Documentation](https://docs.rs/bashrs/badge.svg)](https://docs.rs/bashrs)
 [![License](https://img.shields.io/crates/l/bashrs.svg)](LICENSE)
 [![CI](https://github.com/paiml/bashrs/workflows/CI/badge.svg)](https://github.com/paiml/bashrs/actions)
-[![Tests](https://img.shields.io/badge/tests-683%20passing-brightgreen)](https://github.com/paiml/bashrs/actions)
-[![PropertyTests](https://img.shields.io/badge/property_tests-114k_executions-blue)](https://github.com/paiml/bashrs/blob/main/rash/src/testing/)
+[![Tests](https://img.shields.io/badge/tests-667%20passing-brightgreen)](https://github.com/paiml/bashrs/actions)
+[![PropertyTests](https://img.shields.io/badge/property_tests-53%20passing-blue)](https://github.com/paiml/bashrs/blob/main/rash/src/testing/)
 [![Coverage](https://img.shields.io/badge/coverage-83.07%25-green)](https://github.com/paiml/bashrs/actions)
+[![Mutation](https://img.shields.io/badge/mutation-97.7%25-success)](https://github.com/paiml/bashrs)
 
 **Rash** transpiles a safe subset of Rust to POSIX-compliant shell scripts, enabling you to write maintainable and type-safe shell scripts using familiar Rust syntax.
 
@@ -94,6 +95,10 @@ main "$@"
 ### From crates.io (Recommended)
 
 ```bash
+# Install latest release candidate
+cargo install bashrs --version 1.0.0-rc1
+
+# Or install latest stable
 cargo install bashrs
 ```
 
@@ -435,7 +440,16 @@ Rash is built with safety principles inspired by:
 
 ## Roadmap
 
-### v1.0 (Current Release) ✅
+### v1.0.0-rc1 (Current Release) 🧪
+
+**Status**: Release Candidate - Ready for Testing
+**Released**: 2025-10-04
+**Quality Metrics**:
+- 667 tests passing (100% pass rate)
+- 97.7% mutation kill rate (42/43 mutants caught)
+- 83.07% code coverage (88.74% core transpiler)
+- 0 shellcheck warnings
+- 37/37 book examples passing
 
 **Core Features** (Complete):
 - [x] Rust-to-Shell transpilation (POSIX, Bash, Dash, Ash)
