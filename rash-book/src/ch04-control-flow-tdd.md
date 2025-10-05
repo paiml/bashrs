@@ -11,16 +11,16 @@
 | 📋 Planned | 0 | Future roadmap features |
 
 *Last updated: 2025-10-04*
-*Rash version: 0.9.3*
+*bashrs version: 0.9.3*
 <!-- DOC_STATUS_END -->
 
 ---
 
 ## The Problem
 
-Shell scripts need conditional logic, but bash's `if [ ... ]` syntax is error-prone: missing spaces, wrong operators, unquoted variables. Rash brings Rust's clean `if/else` syntax with compile-time validation.
+Shell scripts need conditional logic, but bash's `if [ ... ]` syntax is error-prone: missing spaces, wrong operators, unquoted variables. bashrs brings Rust's clean `if/else` syntax with compile-time validation.
 
-In this chapter, you'll learn how Rash transpiles Rust control flow into POSIX-compliant shell conditionals with verified safety.
+In this chapter, you'll learn how bashrs transpiles Rust control flow into POSIX-compliant shell conditionals with verified safety.
 
 ## Test-Driven Examples
 
@@ -896,7 +896,7 @@ main "$@"
 
 ### If Statements
 
-Rash if statements map directly to shell conditionals:
+bashrs if statements map directly to shell conditionals:
 
 ```rust
 if condition {
@@ -926,7 +926,7 @@ fi
 | `>` | `-gt` | N/A | Greater than |
 | `>=` | `-ge` | N/A | Greater or equal |
 
-**Important**: Rash chooses the correct operator based on operand types (compile-time).
+**Important**: bashrs chooses the correct operator based on operand types (compile-time).
 
 ### Logical Operators
 
@@ -1154,7 +1154,7 @@ $ bashrs build control.rs --verify paranoid
 ## Next Steps
 
 Now that you understand control flow, let's explore [Appendix A: Installation](appendix-a-installation.md) to learn about:
-- Installing Rash from source
+- Installing bashrs from source
 - Installing from crates.io
 - Binary releases
 - Shell completion setup

@@ -3,7 +3,7 @@
 **Chapter Status**: 🎯 **7/11 Fixed** (All P0 + All P1 + 2 P2 resolved!)
 
 *Last updated: 2025-10-02*
-*Rash version: 0.3.3*
+*bashrs version: 0.3.3*
 
 **Sprint 11 Progress**:
 - ✅ **3 P0 Critical**: All fixed (empty functions, println!, negative integers)
@@ -15,7 +15,7 @@
 
 ## Overview
 
-This chapter documents all known limitations, edge cases, and unsupported features in Rash. Every limitation is:
+This chapter documents all known limitations, edge cases, and unsupported features in bashrs. Every limitation is:
 1. **Tested**: Has a test case demonstrating the issue
 2. **Documented**: Clear explanation of the problem
 3. **Categorized**: Critical, High, Medium, or Low priority

@@ -1,6 +1,6 @@
 # Appendix A: Installation Guide
 
-This appendix provides complete installation instructions for Rash on all supported platforms.
+This appendix provides complete installation instructions for bashrs on all supported platforms.
 
 ---
 
@@ -8,7 +8,7 @@ This appendix provides complete installation instructions for Rash on all suppor
 
 ### Required
 
-- **Rust 1.70.0 or later**: Rash requires Rust toolchain for installation from source or crates.io
+- **Rust 1.70.0 or later**: bashrs requires Rust toolchain for installation from source or crates.io
 - **Operating System**: Linux, macOS, or WSL2 (Windows Subsystem for Linux)
 - **Shell**: POSIX-compliant shell (sh, dash, bash, ash)
 
@@ -30,7 +30,7 @@ This appendix provides complete installation instructions for Rash on all suppor
 
 ### Method 1: Install from crates.io (Recommended)
 
-The easiest way to install Rash:
+The easiest way to install bashrs:
 
 ```bash
 cargo install bashrs
@@ -126,7 +126,7 @@ bashrs --version
 
 ## Installing ShellCheck (Recommended)
 
-ShellCheck validates generated shell scripts. Rash can optionally use it for verification.
+ShellCheck validates generated shell scripts. bashrs can optionally use it for verification.
 
 ### Debian/Ubuntu
 ```bash
@@ -152,7 +152,7 @@ shellcheck --version
 
 ## Shell Completion
 
-Rash supports shell completion for bash, zsh, and fish.
+bashrs supports shell completion for bash, zsh, and fish.
 
 ### Generate Completion Scripts
 
@@ -194,7 +194,7 @@ Create a test file:
 ```bash
 cat > test.rs <<'EOF'
 fn main() {
-    let greeting = "Hello, Rash!";
+    let greeting = "Hello, bashrs!";
     println(greeting);
 }
 
@@ -216,7 +216,7 @@ sh test.sh
 
 Expected output:
 ```
-Hello, Rash!
+Hello, bashrs!
 ```
 
 ### Run Test Suite
@@ -239,7 +239,7 @@ test result: ok. 237 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out
 
 ### Default Configuration File
 
-Rash looks for configuration in:
+bashrs looks for configuration in:
 - `./rash.toml` (project-specific)
 - `~/.config/rash/config.toml` (user-wide)
 - `/etc/rash/config.toml` (system-wide)
@@ -274,7 +274,7 @@ strict_mode = false
 
 ## Environment Variables
 
-Rash respects these environment variables:
+bashrs respects these environment variables:
 
 | Variable | Purpose | Default |
 |----------|---------|---------|
@@ -339,7 +339,7 @@ cargo install bashrs
 
 ### Issue: Generated script fails shellcheck
 
-**Solution**: Check ShellCheck version (Rash requires 0.8.0+):
+**Solution**: Check ShellCheck version (bashrs requires 0.8.0+):
 
 ```bash
 shellcheck --version
@@ -356,7 +356,7 @@ brew upgrade shellcheck
 
 ### Issue: `Unsupported feature` error
 
-**Solution**: Check that your Rash code uses only supported features (see [Chapter 18: Limitations](ch18-limitations.md)).
+**Solution**: Check that your bashrs code uses only supported features (see [Chapter 18: Limitations](ch18-limitations.md)).
 
 Common unsupported features in v1.0:
 - `for` loops (use function iteration pattern)
@@ -410,7 +410,7 @@ cargo install bashrs --release
 
 ### Windows (WSL2)
 
-- **Use WSL2**: Rash is not supported on native Windows (no POSIX shell)
+- **Use WSL2**: bashrs is not supported on native Windows (no POSIX shell)
 - **Recommended**: Ubuntu or Debian WSL2 image
 - **Installation**: Same as Linux (use Ubuntu/Debian WSL2 terminal)
 
@@ -501,7 +501,7 @@ make quality       # Run all quality checks
 
 ## Docker Usage
 
-Run Rash in Docker for isolated environments:
+Run bashrs in Docker for isolated environments:
 
 ```bash
 # Build Docker image
@@ -593,4 +593,4 @@ bashrs init my-installer
 
 ---
 
-**Next Steps**: Now that Rash is installed, start with [Chapter 1: Hello Shell](ch01-hello-shell-tdd.md) to learn the basics!
+**Next Steps**: Now that bashrs is installed, start with [Chapter 1: Hello Shell](ch01-hello-shell-tdd.md) to learn the basics!

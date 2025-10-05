@@ -1,8 +1,8 @@
 # Introduction
 
-Welcome to **The Rash Programming Language** - a practical guide to writing deterministic, POSIX-compliant shell scripts using Rust syntax.
+Welcome to **The bashrs Programming Language** - a practical guide to writing deterministic, POSIX-compliant shell scripts using Rust syntax.
 
-## Why Rash?
+## Why bashrs?
 
 Shell scripts are powerful but dangerous. They're everywhere in DevOps, CI/CD, and system administration, but they're notoriously hard to get right:
 
@@ -11,7 +11,7 @@ Shell scripts are powerful but dangerous. They're everywhere in DevOps, CI/CD, a
 - **Non-determinism**: Same script produces different results on different runs
 - **No Type Safety**: Everything is a string until runtime
 
-Rash solves these problems by:
+bashrs solves these problems by:
 1. Writing in a restricted Rust subset (type-safe, familiar)
 2. Transpiling to POSIX shell (universally compatible)
 3. Verifying correctness (ShellCheck, injection prevention)
@@ -37,7 +37,7 @@ This book follows **EXTREME TDD** (Test-Driven Development):
 ### Every Chapter Has:
 1. **Problem Statement**: What we're solving
 2. **Test Cases**: Examples that must work
-3. **Implementation**: How Rash transpiles it
+3. **Implementation**: How bashrs transpiles it
 4. **Generated Shell**: Actual output with ShellCheck validation
 5. **Edge Cases**: Known limitations and workarounds
 
@@ -103,12 +103,12 @@ bashrs/
 ├── rash-book/      # This book
 │   ├── src/        # Markdown chapters
 │   └── tests/      # Test cases for examples
-└── examples/       # Example Rash programs
+└── examples/       # Example bashrs programs
 ```
 
 ## Quality Metrics
 
-Current Rash quality (as of Sprint 9):
+Current bashrs quality (as of Sprint 9):
 - **Test Suite**: 539 passing (100% pass rate)
 - **Coverage**: 85.36% (core modules)
 - **Complexity**: All core functions <10 (cognitive)
@@ -151,7 +151,7 @@ $ shellcheck -s sh script.sh
 
 - **Book Issues**: https://github.com/paiml/bashrs/issues
 - **Examples**: https://github.com/paiml/bashrs/tree/main/examples
-- **API Docs**: https://docs.rs/rash (coming soon)
+- **API Docs**: https://docs.rs/bashrs (coming soon)
 - **Test Status**: See [Test Status Dashboard](test-status.md)
 
 ## Let's Begin!

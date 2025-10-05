@@ -11,26 +11,26 @@
 | 📋 Planned | 0 | Future roadmap features |
 
 *Last updated: 2025-10-04*
-*Rash version: 0.9.3*
+*bashrs version: 0.9.3*
 <!-- DOC_STATUS_END -->
 
 ---
 
 ## The Problem
 
-Shell scripts are notorious for variable-related bugs: missing quotes, uninitialized variables, type confusion. Rash brings Rust's type safety and explicit declarations to shell scripting.
+Shell scripts are notorious for variable-related bugs: missing quotes, uninitialized variables, type confusion. bashrs brings Rust's type safety and explicit declarations to shell scripting.
 
-In this chapter, you'll learn how Rash transpiles Rust's `let` bindings into safe, properly-quoted shell variables that are immune to injection attacks.
+In this chapter, you'll learn how bashrs transpiles Rust's `let` bindings into safe, properly-quoted shell variables that are immune to injection attacks.
 
 ## Test-Driven Examples
 
 ### Example 1: Basic String Variable
 
-The foundation of Rash variables - simple string assignment and usage:
+The foundation of bashrs variables - simple string assignment and usage:
 
 ```rust
 fn main() {
-    let greeting = "Hello, Rash!";
+    let greeting = "Hello, bashrs!";
     println(greeting);
 }
 
@@ -47,7 +47,7 @@ println() {
 }
 
 main() {
-    greeting="Hello, Rash!"
+    greeting="Hello, bashrs!"
     println "$greeting"
 }
 
@@ -62,7 +62,7 @@ main "$@"
 
 ### Example 2: Integer Variables
 
-Rash handles numeric literals safely:
+bashrs handles numeric literals safely:
 
 ```rust
 fn main() {
@@ -194,7 +194,7 @@ main "$@"
 
 ### Example 5: Variables with Special Characters
 
-Rash automatically escapes special characters in variable values:
+bashrs automatically escapes special characters in variable values:
 
 ```rust
 fn main() {
@@ -287,7 +287,7 @@ main "$@"
 
 ### Example 7: Paths with Spaces
 
-Rash handles the notorious "path with spaces" problem:
+bashrs handles the notorious "path with spaces" problem:
 
 ```rust
 fn main() {
@@ -398,7 +398,7 @@ main "$@"
 
 ### Example 9: Variable Naming Conventions
 
-Rash preserves Rust naming conventions in generated shell:
+bashrs preserves Rust naming conventions in generated shell:
 
 ```rust
 fn main() {
@@ -445,7 +445,7 @@ main "$@"
 
 ### Example 10: Unicode in Variable Values
 
-Rash supports Unicode in string values:
+bashrs supports Unicode in string values:
 
 ```rust
 fn main() {
@@ -494,7 +494,7 @@ main "$@"
 
 ### The `let` Binding
 
-In Rash, all variables are declared with `let`:
+In bashrs, all variables are declared with `let`:
 
 ```rust
 let variable_name = value;
@@ -508,7 +508,7 @@ variable_name="value"  # For strings
 
 ### Variable Types
 
-Rash supports these types (compile-time only):
+bashrs supports these types (compile-time only):
 
 | Rust Type | Shell Representation | Example |
 |-----------|---------------------|---------|
@@ -520,7 +520,7 @@ Rash supports these types (compile-time only):
 
 ### Automatic Quoting
 
-Rash follows the "quote everything" principle:
+bashrs follows the "quote everything" principle:
 
 - **Variable assignment**: Only quoted if it's a string literal
 - **Variable usage**: Always quoted: `"$var"`
@@ -534,7 +534,7 @@ This eliminates entire categories of shell bugs:
 
 ### Variable Scope
 
-Rash v1.0 has simple scoping rules:
+bashrs v1.0 has simple scoping rules:
 
 - Variables in `main()` are in main function scope
 - Variables in other functions are local to that function
@@ -554,7 +554,7 @@ fn foo() {
 
 ### Immutability
 
-All Rash variables are **immutable** (v1.0):
+All bashrs variables are **immutable** (v1.0):
 
 ```rust
 let x = 10;

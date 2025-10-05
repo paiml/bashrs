@@ -11,16 +11,16 @@
 | 📋 Planned | 0 | Future roadmap features |
 
 *Last updated: 2025-10-02*
-*Rash version: 0.1.0*
+*bashrs version: 0.1.0*
 <!-- DOC_STATUS_END -->
 
 ---
 
 ## The Problem
 
-Every Rash journey begins with "Hello, Shell!" - your first proof that Rust can generate safe, POSIX-compliant shell scripts.
+Every bashrs journey begins with "Hello, Shell!" - your first proof that Rust can generate safe, POSIX-compliant shell scripts.
 
-Unlike traditional shell scripting where you write raw shell code, Rash lets you write in familiar Rust syntax and transpiles to verified, deterministic shell output.
+Unlike traditional shell scripting where you write raw shell code, bashrs lets you write in familiar Rust syntax and transpiles to verified, deterministic shell output.
 
 ## Test-Driven Examples
 
@@ -113,7 +113,7 @@ This example is tested in `tests/ch01-hello-shell/test_03_with_variable.rs`:
 ```rust
 #[bashrs::main]
 fn main() {
-    let greeting = "Hello from Rash!";
+    let greeting = "Hello from bashrs!";
     println!(greeting);
 }
 ```
@@ -128,7 +128,7 @@ rash_println() {
 }
 
 main() {
-    greeting="Hello from Rash!"
+    greeting="Hello from bashrs!"
     rash_println "$greeting"
 }
 
@@ -244,7 +244,7 @@ emoji: 🦀
 - No way to accidentally create injection vulnerabilities
 
 ### Runtime Functions
-Rash generates helper functions for common operations:
+bashrs generates helper functions for common operations:
 - `rash_println()`: Safe printing with printf
 - More helpers in later chapters
 
@@ -270,7 +270,7 @@ POSIX Shell Script
 
 ## Verification Levels
 
-Rash supports multiple verification levels:
+bashrs supports multiple verification levels:
 
 ```bash
 # Basic (default): Essential safety checks

@@ -11,22 +11,22 @@
 | 📋 Planned | 0 | Future roadmap features |
 
 *Last updated: 2025-10-04*
-*Rash version: 0.9.3*
+*bashrs version: 0.9.3*
 <!-- DOC_STATUS_END -->
 
 ---
 
 ## The Problem
 
-Shell functions are powerful but brittle. Missing parameter checks, unsafe variable expansion, and unclear interfaces make maintenance difficult. Rash brings Rust's type-safe function signatures to shell scripting.
+Shell functions are powerful but brittle. Missing parameter checks, unsafe variable expansion, and unclear interfaces make maintenance difficult. bashrs brings Rust's type-safe function signatures to shell scripting.
 
-In this chapter, you'll learn how Rash transpiles Rust functions into POSIX shell functions with verified parameter handling and type safety.
+In this chapter, you'll learn how bashrs transpiles Rust functions into POSIX shell functions with verified parameter handling and type safety.
 
 ## Test-Driven Examples
 
 ### Example 1: Basic Function (No Parameters)
 
-The simplest Rash function - no parameters, just execution:
+The simplest bashrs function - no parameters, just execution:
 
 ```rust
 fn main() {
@@ -768,7 +768,7 @@ main "$@"
 
 ### Function Definitions
 
-In Rash, all functions are defined with `fn`:
+In bashrs, all functions are defined with `fn`:
 
 ```rust
 fn function_name(param1: Type1, param2: Type2) {
@@ -787,7 +787,7 @@ function_name() {
 
 ### Parameter Types
 
-Rash v1.0 supports these parameter types:
+bashrs v1.0 supports these parameter types:
 
 | Rust Type | Shell Access | Example |
 |-----------|-------------|---------|
@@ -813,7 +813,7 @@ Arguments are always quoted for safety.
 
 ### Parameter Limits
 
-POSIX shells support positional parameters `$1` through `$9`, with `${10}` onwards requiring braces. Rash v1.0:
+POSIX shells support positional parameters `$1` through `$9`, with `${10}` onwards requiring braces. bashrs v1.0:
 
 - ✅ Supports any number of parameters
 - ✅ Uses `$1`, `$2`, ... `$9`

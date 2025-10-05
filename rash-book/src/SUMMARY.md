@@ -1,6 +1,6 @@
 # Summary
 
-[The Rash Programming Language](title-page.md)
+[The bashrs Programming Language](title-page.md)
 [Introduction](ch00-00-introduction.md)
 [📊 Test Status Dashboard](test-status.md)
 

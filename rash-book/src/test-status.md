@@ -1,7 +1,7 @@
 # Test Status Dashboard
 
 **Last Updated**: 2025-10-02
-**Rash Version**: 0.1.0
+**bashrs Version**: 0.1.0
 **Total Tests**: 539 passing, 3 ignored
 **Coverage**: 85.36% (core modules)
 

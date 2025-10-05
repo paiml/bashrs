@@ -1,4 +1,4 @@
-# The Rash Programming Language
+# The bashrs Programming Language
 
 **Deterministic Rust-to-Shell Transpilation**
 
@@ -11,9 +11,9 @@
 
 ---
 
-## What is Rash?
+## What is bashrs?
 
-Rash (Rust-to-Shell) is a transpiler that converts a restricted subset of Rust into POSIX-compliant shell scripts. It's designed for creating deterministic, verifiable bootstrap installers with formal correctness guarantees.
+bashrs (Rust-to-Shell) is a transpiler that converts a restricted subset of Rust into POSIX-compliant shell scripts. It's designed for creating deterministic, verifiable bootstrap installers with formal correctness guarantees.
 
 ## Key Features
 
@@ -26,7 +26,7 @@ Rash (Rust-to-Shell) is a transpiler that converts a restricted subset of Rust i
 
 ## Philosophy
 
-Rash follows **EXTREME TDD** principles:
+bashrs follows **EXTREME TDD** principles:
 - **RED**: Write tests first, documenting expected behavior
 - **GREEN**: Implement features to make tests pass
 - **REFACTOR**: Optimize while maintaining tests
@@ -36,7 +36,7 @@ Rash follows **EXTREME TDD** principles:
 
 This book documents working features through test-driven examples. Every code sample in this book:
 1. Has a corresponding test case
-2. Is verified to work with the current Rash version
+2. Is verified to work with the current bashrs version
 3. Generates valid, ShellCheck-compliant shell scripts
 4. Is deterministic and idempotent
 
