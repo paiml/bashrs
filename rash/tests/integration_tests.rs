@@ -94,10 +94,7 @@ fn main() {
     // Modify script to print variables for verification
     let modified_script = shell_script
         .replace("x=42", "x=42\n    echo \"x=$x\"")
-        .replace(
-            "name=test",
-            "name=test\n    echo \"name=$name\"",
-        )
+        .replace("name=test", "name=test\n    echo \"name=$name\"")
         .replace(
             "greeting=Hello",
             "greeting=Hello\n    echo \"greeting=$greeting\"",

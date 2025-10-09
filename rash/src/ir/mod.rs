@@ -65,9 +65,11 @@ impl IrConverter {
                 // Convert function body statements
                 for (i, stmt) in function.body.iter().enumerate() {
                     let is_last = i == function.body.len() - 1;
-                    let has_return_type = !matches!(function.return_type, crate::ast::restricted::Type::Void);
+                    let has_return_type =
+                        !matches!(function.return_type, crate::ast::restricted::Type::Void);
 
-                    body_stmts.push(self.convert_stmt_in_function(stmt, is_last && has_return_type)?);
+                    body_stmts
+                        .push(self.convert_stmt_in_function(stmt, is_last && has_return_type)?);
                 }
 
                 all_ir.push(ShellIR::Function {
@@ -94,7 +96,11 @@ impl IrConverter {
     }
 
     /// Convert a statement in a function context (handles return values)
-    fn convert_stmt_in_function(&self, stmt: &crate::ast::Stmt, should_echo: bool) -> Result<ShellIR> {
+    fn convert_stmt_in_function(
+        &self,
+        stmt: &crate::ast::Stmt,
+        should_echo: bool,
+    ) -> Result<ShellIR> {
         use crate::ast::Stmt;
 
         match stmt {
@@ -168,7 +174,11 @@ impl IrConverter {
 
                 // Convert range expression to start/end values
                 let (start, end) = match iter {
-                    crate::ast::Expr::Range { start, end, inclusive } => {
+                    crate::ast::Expr::Range {
+                        start,
+                        end,
+                        inclusive,
+                    } => {
                         let start_val = self.convert_expr_to_value(start)?;
                         let mut end_val = self.convert_expr_to_value(end)?;
 
@@ -229,9 +239,7 @@ impl IrConverter {
                 })
             }
             Stmt::While {
-                condition,
-                body,
-                ..
+                condition, body, ..
             } => {
                 // Convert condition to shell value
                 let condition_value = self.convert_expr_to_value(condition)?;
@@ -524,7 +532,9 @@ fn is_string_value(value: &ShellValue) -> bool {
         ShellValue::CommandSubst(_) => false, // Could be numeric
         ShellValue::Comparison { .. } => false,
         ShellValue::Arithmetic { .. } => false,
-        ShellValue::LogicalAnd { .. } | ShellValue::LogicalOr { .. } | ShellValue::LogicalNot { .. } => false,
+        ShellValue::LogicalAnd { .. }
+        | ShellValue::LogicalOr { .. }
+        | ShellValue::LogicalNot { .. } => false,
     }
 }
 

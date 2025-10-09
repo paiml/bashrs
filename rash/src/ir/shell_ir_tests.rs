@@ -1,7 +1,7 @@
 //! Tests for shell_ir.rs - improving coverage from 70% to 85%+
 
-use super::shell_ir::*;
 use super::effects::EffectSet;
+use super::shell_ir::*;
 
 // ============================================================================
 // ShellIR Tests
@@ -44,7 +44,9 @@ fn test_shell_ir_if_no_else() {
 fn test_shell_ir_sequence() {
     let ir = ShellIR::Sequence(vec![
         ShellIR::Noop,
-        ShellIR::Echo { value: ShellValue::String("test".to_string()) },
+        ShellIR::Echo {
+            value: ShellValue::String("test".to_string()),
+        },
     ]);
 
     assert!(ir.is_pure());
@@ -181,7 +183,8 @@ fn test_shell_value_variable_not_constant() {
 
 #[test]
 fn test_shell_value_command_subst_not_constant() {
-    let val = ShellValue::CommandSubst(Command::new("echo").arg(ShellValue::String("test".to_string())));
+    let val =
+        ShellValue::CommandSubst(Command::new("echo").arg(ShellValue::String("test".to_string())));
     assert!(!val.is_constant());
     assert_eq!(val.as_constant_string(), None);
 }
@@ -348,7 +351,7 @@ fn test_case_pattern_literal() {
 fn test_case_pattern_wildcard() {
     let pattern = CasePattern::Wildcard;
     match pattern {
-        CasePattern::Wildcard => {},
+        CasePattern::Wildcard => {}
         _ => panic!("Expected Wildcard pattern"),
     }
 }

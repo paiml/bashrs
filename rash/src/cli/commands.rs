@@ -101,9 +101,7 @@ pub fn execute_command(cli: Cli) -> Result<()> {
                 container_format,
                 &config,
             )
-        }
-
-        // Playground feature removed in v1.0 - will be moved to separate rash-playground crate in v1.1
+        } // Playground feature removed in v1.0 - will be moved to separate rash-playground crate in v1.1
     }
 }
 

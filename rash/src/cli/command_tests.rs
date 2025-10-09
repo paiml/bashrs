@@ -403,7 +403,7 @@ fn test_build_command_with_proof_emission() {
     let config = Config {
         target: ShellDialect::Posix,
         verify: VerificationLevel::Basic,
-        emit_proof: true,  // Enable proof emission
+        emit_proof: true, // Enable proof emission
         optimize: true,
         strict_mode: false,
         validation_level: None,
@@ -425,7 +425,7 @@ fn test_build_command_no_optimization() {
         target: ShellDialect::Posix,
         verify: VerificationLevel::Basic,
         emit_proof: false,
-        optimize: false,  // Disable optimization
+        optimize: false, // Disable optimization
         strict_mode: false,
         validation_level: None,
     };
@@ -447,7 +447,7 @@ fn test_build_command_strict_mode() {
         verify: VerificationLevel::Strict,
         emit_proof: false,
         optimize: true,
-        strict_mode: true,  // Enable strict mode
+        strict_mode: true, // Enable strict mode
         validation_level: Some(ValidationLevel::Strict),
     };
 
@@ -462,7 +462,15 @@ fn test_build_command_validation_levels() {
     let input_path = temp_dir.path().join("test.rs");
     fs::write(&input_path, "fn main() { let x = 42; }").unwrap();
 
-    for (idx, level) in [ValidationLevel::None, ValidationLevel::Minimal, ValidationLevel::Strict, ValidationLevel::Paranoid].iter().enumerate() {
+    for (idx, level) in [
+        ValidationLevel::None,
+        ValidationLevel::Minimal,
+        ValidationLevel::Strict,
+        ValidationLevel::Paranoid,
+    ]
+    .iter()
+    .enumerate()
+    {
         let output_path = temp_dir.path().join(format!("test_{}.sh", idx));
         let config = Config {
             target: ShellDialect::Posix,
@@ -496,7 +504,11 @@ fn test_compile_command_different_runtimes() {
         strict_mode: false,
     };
 
-    for runtime in [CompileRuntime::Dash, CompileRuntime::Busybox, CompileRuntime::Minimal] {
+    for runtime in [
+        CompileRuntime::Dash,
+        CompileRuntime::Busybox,
+        CompileRuntime::Minimal,
+    ] {
         let output_path = temp_dir.path().join(format!("test_{:?}.sh", runtime));
         let result = handle_compile(
             &input_path,
@@ -527,7 +539,7 @@ fn test_compile_command_container_formats() {
             &output_path,
             CompileRuntime::Dash,
             false,
-            true,  // container = true
+            true, // container = true
             format,
             &config,
         );
@@ -564,7 +576,10 @@ fn test_build_command_different_dialects() {
     let input_path = temp_dir.path().join("test.rs");
     fs::write(&input_path, "fn main() { let x = 42; }").unwrap();
 
-    for (idx, dialect) in [ShellDialect::Posix, ShellDialect::Bash, ShellDialect::Ash].iter().enumerate() {
+    for (idx, dialect) in [ShellDialect::Posix, ShellDialect::Bash, ShellDialect::Ash]
+        .iter()
+        .enumerate()
+    {
         let output_path = temp_dir.path().join(format!("test_{}.sh", idx));
         let config = Config {
             target: *dialect,
@@ -587,7 +602,15 @@ fn test_build_command_all_verification_levels() {
     let input_path = temp_dir.path().join("test.rs");
     fs::write(&input_path, "fn main() { let x = 42; }").unwrap();
 
-    for (idx, level) in [VerificationLevel::None, VerificationLevel::Basic, VerificationLevel::Strict, VerificationLevel::Paranoid].iter().enumerate() {
+    for (idx, level) in [
+        VerificationLevel::None,
+        VerificationLevel::Basic,
+        VerificationLevel::Strict,
+        VerificationLevel::Paranoid,
+    ]
+    .iter()
+    .enumerate()
+    {
         let output_path = temp_dir.path().join(format!("verify_{}.sh", idx));
         let config = Config {
             target: ShellDialect::Posix,
@@ -699,7 +722,7 @@ fn test_compile_command_with_optimization() {
         &input_path,
         &output_path,
         CompileRuntime::Dash,
-        true,  // self_extracting
+        true, // self_extracting
         false,
         ContainerFormatArg::Oci,
         &config,
@@ -711,7 +734,10 @@ fn test_compile_command_with_optimization() {
 fn test_generate_proof_different_dialects() {
     let temp_dir = TempDir::new().unwrap();
 
-    for (idx, dialect) in [ShellDialect::Posix, ShellDialect::Bash, ShellDialect::Ash].iter().enumerate() {
+    for (idx, dialect) in [ShellDialect::Posix, ShellDialect::Bash, ShellDialect::Ash]
+        .iter()
+        .enumerate()
+    {
         let proof_path = temp_dir.path().join(format!("proof_{}.json", idx));
         let config = Config {
             target: *dialect,

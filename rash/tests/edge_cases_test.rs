@@ -19,12 +19,16 @@ fn add(a: i32, b: i32) -> i32 {
     let result = transpile(source, config).unwrap();
 
     // Function should emit echo for return value
-    assert!(result.contains("echo $((a + b))") || result.contains("echo \"$((a + b))\""),
-            "Function with return type should echo result");
+    assert!(
+        result.contains("echo $((a + b))") || result.contains("echo \"$((a + b))\""),
+        "Function with return type should echo result"
+    );
 
     // Call site should capture with command substitution
-    assert!(result.contains("x=\"$(add 1 2)\"") || result.contains("x=$(add 1 2)"),
-            "Function call result should be captured with $(...)");
+    assert!(
+        result.contains("x=\"$(add 1 2)\"") || result.contains("x=$(add 1 2)"),
+        "Function call result should be captured with $(...)"
+    );
 
     // Should NOT contain "unknown"
     assert!(!result.contains("x=unknown"), "Should not assign unknown");
@@ -45,13 +49,28 @@ fn main() {
     let result = transpile(source, config).unwrap();
 
     // Verify arithmetic expansion syntax
-    assert!(result.contains("$((1 + 2))"), "Should use arithmetic expansion for addition");
-    assert!(result.contains("$((10 - 3))"), "Should use arithmetic expansion for subtraction");
-    assert!(result.contains("$((4 * 5))"), "Should use arithmetic expansion for multiplication");
-    assert!(result.contains("$((20 / 4))"), "Should use arithmetic expansion for division");
+    assert!(
+        result.contains("$((1 + 2))"),
+        "Should use arithmetic expansion for addition"
+    );
+    assert!(
+        result.contains("$((10 - 3))"),
+        "Should use arithmetic expansion for subtraction"
+    );
+    assert!(
+        result.contains("$((4 * 5))"),
+        "Should use arithmetic expansion for multiplication"
+    );
+    assert!(
+        result.contains("$((20 / 4))"),
+        "Should use arithmetic expansion for division"
+    );
 
     // Should NOT contain string concatenation patterns
-    assert!(!result.contains("\"${x}${y}\""), "Should not use string concatenation for arithmetic");
+    assert!(
+        !result.contains("\"${x}${y}\""),
+        "Should not use string concatenation for arithmetic"
+    );
 }
 
 #[test]
@@ -68,11 +87,20 @@ fn main() {
     let result = transpile(source, config).unwrap();
 
     // Should NOT contain "unknown"
-    assert!(!result.contains("unknown"), "Negative integers should not transpile to 'unknown'");
+    assert!(
+        !result.contains("unknown"),
+        "Negative integers should not transpile to 'unknown'"
+    );
 
     // Should contain actual negative numbers
-    assert!(result.contains("x=-1") || result.contains("x='-1'"), "Should assign x=-1");
-    assert!(result.contains("y=-42") || result.contains("y='-42'"), "Should assign y=-42");
+    assert!(
+        result.contains("x=-1") || result.contains("x='-1'"),
+        "Should assign x=-1"
+    );
+    assert!(
+        result.contains("y=-42") || result.contains("y='-42'"),
+        "Should assign y=-42"
+    );
     assert!(result.contains("z=0"), "Should assign z=0");
 }
 
@@ -93,9 +121,14 @@ fn main() {
     let script = result.unwrap();
 
     // Should generate printf or echo
-    assert!(script.contains("printf") || script.contains("echo"),
-            "println! should generate output command");
-    assert!(script.contains("Hello, World!"), "Should preserve the string");
+    assert!(
+        script.contains("printf") || script.contains("echo"),
+        "println! should generate output command"
+    );
+    assert!(
+        script.contains("Hello, World!"),
+        "Should preserve the string"
+    );
 }
 
 #[test]
@@ -114,12 +147,16 @@ fn echo(msg: &str) {
     let result = transpile(source, config).unwrap();
 
     // Should NOT define an echo function (should use shell builtin)
-    assert!(!result.contains("echo() {"),
-            "Empty function body should not generate function definition");
+    assert!(
+        !result.contains("echo() {"),
+        "Empty function body should not generate function definition"
+    );
 
     // Should still call echo command
-    assert!(result.contains("echo ") || result.contains("echo test"),
-            "Should call shell echo builtin");
+    assert!(
+        result.contains("echo ") || result.contains("echo test"),
+        "Should call shell echo builtin"
+    );
 }
 
 #[test]
@@ -137,12 +174,17 @@ fn main() {
     let result = transpile(source, config).unwrap();
 
     // Should NOT contain wrong string concatenation test
-    assert!(!result.contains("test -n \"${x}0\""),
-            "Comparison should not use string concatenation test");
+    assert!(
+        !result.contains("test -n \"${x}0\""),
+        "Comparison should not use string concatenation test"
+    );
 
     // Should contain proper integer comparison
-    assert!(result.contains("-gt") || result.contains("test") && result.contains("$x") && result.contains("0"),
-            "Should use POSIX integer comparison (-gt, -lt, -eq, etc.)");
+    assert!(
+        result.contains("-gt")
+            || result.contains("test") && result.contains("$x") && result.contains("0"),
+        "Should use POSIX integer comparison (-gt, -lt, -eq, etc.)"
+    );
 }
 
 /// TICKET-5008: For loops with range syntax (P2)
@@ -160,14 +202,20 @@ fn main() {
 
     // Should generate POSIX for loop with seq
     assert!(result.contains("for i in"), "Should have for loop");
-    assert!(result.contains("seq") || result.contains("$(seq"),
-            "Should use seq for range iteration");
-    assert!(result.contains("0") && result.contains("2"),
-            "Range 0..3 should be 0 to 2 inclusive");
+    assert!(
+        result.contains("seq") || result.contains("$(seq"),
+        "Should use seq for range iteration"
+    );
+    assert!(
+        result.contains("0") && result.contains("2"),
+        "Range 0..3 should be 0 to 2 inclusive"
+    );
 
     // Should NOT contain "unsupported"
-    assert!(!result.to_lowercase().contains("unsupported"),
-            "For loops should be supported");
+    assert!(
+        !result.to_lowercase().contains("unsupported"),
+        "For loops should be supported"
+    );
 }
 
 /// TICKET-5009: Match expressions (P2)
@@ -202,11 +250,16 @@ fn main() {
     assert!(result.contains("*)"), "Should have wildcard pattern");
 
     // Each case should end with ;;
-    assert!(result.matches(";;").count() >= 3, "Each case should end with ;;");
+    assert!(
+        result.matches(";;").count() >= 3,
+        "Each case should end with ;;"
+    );
 
     // Should NOT contain "unsupported"
-    assert!(!result.to_lowercase().contains("unsupported"),
-            "Match expressions should be supported");
+    assert!(
+        !result.to_lowercase().contains("unsupported"),
+        "Match expressions should be supported"
+    );
 }
 
 /// TICKET-5010: Empty main() function (P3)
@@ -225,14 +278,18 @@ fn main() {
     let script = result.unwrap();
 
     // Should be valid shell script (starts with shebang or has main)
-    assert!(script.starts_with("#!/") || script.contains("main()"),
-            "Should be a valid shell script");
+    assert!(
+        script.starts_with("#!/") || script.contains("main()"),
+        "Should be a valid shell script"
+    );
 
     // Should NOT contain errors or warnings in the main function
     // (stdlib functions may contain "ERROR" in their error handling code)
     let main_section = script.split("# Main script begins").last().unwrap_or("");
-    assert!(!main_section.to_lowercase().contains("error:"),
-            "Main script should not contain error messages");
+    assert!(
+        !main_section.to_lowercase().contains("error:"),
+        "Main script should not contain error messages"
+    );
 }
 
 /// TICKET-5011: Integer overflow handling (P3)
@@ -254,10 +311,14 @@ fn main() {
 
     // Should contain the actual values (not "unknown")
     assert!(script.contains("2147483647"), "Should handle i32::MAX");
-    assert!(script.contains("-2147483648") || script.contains("2147483648"),
-            "Should handle i32::MIN");
+    assert!(
+        script.contains("-2147483648") || script.contains("2147483648"),
+        "Should handle i32::MIN"
+    );
 
     // Should NOT contain "unknown"
-    assert!(!script.contains("unknown"),
-            "Should not transpile to unknown for boundary values");
+    assert!(
+        !script.contains("unknown"),
+        "Should not transpile to unknown for boundary values"
+    );
 }

@@ -28,7 +28,9 @@ fn test_string_comparison_equality() {
                     },
                     then_block: vec![Stmt::Expr(Expr::FunctionCall {
                         name: "echo".to_string(),
-                        args: vec![Expr::Literal(Literal::Str("Running in production".to_string()))],
+                        args: vec![Expr::Literal(Literal::Str(
+                            "Running in production".to_string(),
+                        ))],
                     })],
                     else_block: None,
                 },
@@ -49,8 +51,12 @@ fn test_string_comparison_equality() {
     println!("Generated shell code:\n{}", shell_code);
 
     // This test will FAIL until we fix string comparison
-    assert!(shell_code.contains("[ \"$env\" = ") || shell_code.contains("[ \"$env\" = \"production\" ]"),
-        "String comparison should use = not -eq. Got:\n{}", shell_code);
+    assert!(
+        shell_code.contains("[ \"$env\" = ")
+            || shell_code.contains("[ \"$env\" = \"production\" ]"),
+        "String comparison should use = not -eq. Got:\n{}",
+        shell_code
+    );
 }
 
 #[test]
@@ -91,8 +97,11 @@ fn test_integer_comparison_equality() {
     let shell_code = emitter.emit(&ir).expect("Should emit shell code");
 
     // Integer comparison should use -eq
-    assert!(shell_code.contains("-eq"),
-        "Integer comparison should use -eq. Got:\n{}", shell_code);
+    assert!(
+        shell_code.contains("-eq"),
+        "Integer comparison should use -eq. Got:\n{}",
+        shell_code
+    );
 }
 
 #[test]
@@ -147,8 +156,11 @@ fn test_logical_and_operator() {
     // Should generate: [ "$x" -gt 5 ] && [ "$y" -gt 15 ]
     // Currently FAILS with "Comparison expression cannot be used in string concatenation"
     println!("AND test generated:\n{}", shell_code);
-    assert!(shell_code.contains("&&") || shell_code.contains("-a"),
-        "Logical AND should generate && or -a. Got:\n{}", shell_code);
+    assert!(
+        shell_code.contains("&&") || shell_code.contains("-a"),
+        "Logical AND should generate && or -a. Got:\n{}",
+        shell_code
+    );
 }
 
 #[test]
@@ -198,8 +210,11 @@ fn test_logical_or_operator() {
 
     // Should generate: [ "$x" -lt 0 ] || [ "$x" -gt 100 ]
     println!("OR test generated:\n{}", shell_code);
-    assert!(shell_code.contains("||") || shell_code.contains("-o"),
-        "Logical OR should generate || or -o. Got:\n{}", shell_code);
+    assert!(
+        shell_code.contains("||") || shell_code.contains("-o"),
+        "Logical OR should generate || or -o. Got:\n{}",
+        shell_code
+    );
 }
 
 #[test]
@@ -222,7 +237,9 @@ fn test_not_operator() {
                     },
                     then_block: vec![Stmt::Expr(Expr::FunctionCall {
                         name: "echo".to_string(),
-                        args: vec![Expr::Literal(Literal::Str("Feature is disabled".to_string()))],
+                        args: vec![Expr::Literal(Literal::Str(
+                            "Feature is disabled".to_string(),
+                        ))],
                     })],
                     else_block: None,
                 },
@@ -240,8 +257,13 @@ fn test_not_operator() {
 
     // Should generate: if ! "$enabled"; then or if ! $enabled; then or if ! false; then
     println!("NOT test generated:\n{}", shell_code);
-    assert!(shell_code.contains("if ! \"$enabled\"") || shell_code.contains("if ! $enabled") || shell_code.contains("if ! false"),
-        "NOT operator should be in if condition. Got:\n{}", shell_code);
+    assert!(
+        shell_code.contains("if ! \"$enabled\"")
+            || shell_code.contains("if ! $enabled")
+            || shell_code.contains("if ! false"),
+        "NOT operator should be in if condition. Got:\n{}",
+        shell_code
+    );
 }
 
 #[test]
@@ -284,8 +306,11 @@ fn test_string_inequality() {
     // Should generate: [ "$env" != "production" ]
     // Currently generates: [ "$env" -ne production ] (wrong)
     println!("String inequality test generated:\n{}", shell_code);
-    assert!(shell_code.contains("!=") || shell_code.contains("[ \"$env\" != "),
-        "String inequality should use != not -ne. Got:\n{}", shell_code);
+    assert!(
+        shell_code.contains("!=") || shell_code.contains("[ \"$env\" != "),
+        "String inequality should use != not -ne. Got:\n{}",
+        shell_code
+    );
 }
 
 // ============================================================================
@@ -325,11 +350,14 @@ fn test_function_call_as_value() {
     };
 
     let ir = from_ast(&ast).expect("Should convert AST to IR");
-    
+
     // Verify the Let statement contains a CommandSubst value
     let ir_str = format!("{:?}", ir);
-    assert!(ir_str.contains("CommandSubst"), 
-        "Function call should generate CommandSubst value. Got:\n{}", ir_str);
+    assert!(
+        ir_str.contains("CommandSubst"),
+        "Function call should generate CommandSubst value. Got:\n{}",
+        ir_str
+    );
 }
 
 /// MUTATION KILLER: Line 161 - delete match arm Pattern::Variable in convert_stmt
@@ -359,18 +387,20 @@ fn test_for_loop_variable_pattern() {
     };
 
     let ir = from_ast(&ast).expect("Should convert for loop with variable pattern");
-    
+
     // Verify it generates a For IR node
     let ir_str = format!("{:?}", ir);
-    assert!(ir_str.contains("For"), 
-        "For loop should generate For IR node. Got:\n{}", ir_str);
+    assert!(
+        ir_str.contains("For"),
+        "For loop should generate For IR node. Got:\n{}",
+        ir_str
+    );
 }
 
 /// MUTATION KILLER: Line 436 - delete match arm "echo" | "printf" in analyze_command_effects
 /// Tests that echo and printf commands have FileWrite effect
 #[test]
 fn test_echo_printf_file_write_effect() {
-    
     // Test echo command
     let ast_echo = RestrictedAst {
         functions: vec![Function {
@@ -386,11 +416,14 @@ fn test_echo_printf_file_write_effect() {
     };
 
     let ir_echo = from_ast(&ast_echo).expect("Should convert echo");
-    
+
     // Verify echo has FileWrite effect
     let ir_str = format!("{:?}", ir_echo);
-    assert!(ir_str.contains("FileWrite") || ir_str.contains("effects"),
-        "Echo should have FileWrite effect. Got:\n{}", ir_str);
+    assert!(
+        ir_str.contains("FileWrite") || ir_str.contains("effects"),
+        "Echo should have FileWrite effect. Got:\n{}",
+        ir_str
+    );
 
     // Test printf command
     let ast_printf = RestrictedAst {
@@ -407,11 +440,14 @@ fn test_echo_printf_file_write_effect() {
     };
 
     let ir_printf = from_ast(&ast_printf).expect("Should convert printf");
-    
+
     // Verify printf has FileWrite effect
     let ir_str = format!("{:?}", ir_printf);
-    assert!(ir_str.contains("FileWrite") || ir_str.contains("effects"),
-        "Printf should have FileWrite effect. Got:\n{}", ir_str);
+    assert!(
+        ir_str.contains("FileWrite") || ir_str.contains("effects"),
+        "Printf should have FileWrite effect. Got:\n{}",
+        ir_str
+    );
 }
 
 /// MUTATION KILLER: Line 70 - replace && with || in convert
@@ -457,9 +493,11 @@ fn test_only_last_statement_echoed_with_return_type() {
     // Verify only the last statement is wrapped in Echo
     let ir_str = format!("{:?}", ir);
     let echo_count = ir_str.matches("Echo {").count();
-    assert_eq!(echo_count, 1,
+    assert_eq!(
+        echo_count, 1,
         "Only the last statement should be wrapped in Echo. Found {} Echo nodes. Got:\n{}",
-        echo_count, ir_str);
+        echo_count, ir_str
+    );
 }
 
 /// MUTATION KILLER: Line 180 - replace - with + in convert_stmt
@@ -489,7 +527,7 @@ fn test_exclusive_range_adjustment() {
     };
 
     let ir = from_ast(&ast).expect("Should convert exclusive range");
-    
+
     // Emit to shell code
     let config = Config::default();
     let emitter = PosixEmitter::new(config.clone());
@@ -497,6 +535,9 @@ fn test_exclusive_range_adjustment() {
 
     // Verify the range end is 2 (3 - 1), not 3 or 4
     println!("Exclusive range test generated:\n{}", shell_code);
-    assert!(shell_code.contains("seq 0 2") || shell_code.contains("0 2"),
-        "Exclusive range 0..3 should generate 'seq 0 2' (end adjusted to 2). Got:\n{}", shell_code);
+    assert!(
+        shell_code.contains("seq 0 2") || shell_code.contains("0 2"),
+        "Exclusive range 0..3 should generate 'seq 0 2' (end adjusted to 2). Got:\n{}",
+        shell_code
+    );
 }

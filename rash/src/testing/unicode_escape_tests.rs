@@ -54,10 +54,10 @@ fn test_unicode_emoji_no_injection() {
 #[test]
 fn test_unicode_cjk_characters_safe() {
     let test_cases = vec![
-        "你好世界",           // Chinese
-        "こんにちは",         // Japanese Hiragana
-        "コンニチハ",         // Japanese Katakana
-        "안녕하세요",         // Korean
+        "你好世界",   // Chinese
+        "こんにちは", // Japanese Hiragana
+        "コンニチハ", // Japanese Katakana
+        "안녕하세요", // Korean
         "Mixed English 中文",
     ];
 
@@ -79,8 +79,8 @@ fn test_unicode_cjk_characters_safe() {
 #[test]
 fn test_unicode_rtl_languages_safe() {
     let test_cases = vec![
-        "مرحبا",              // Arabic
-        "שלום",               // Hebrew
+        "مرحبا", // Arabic
+        "שלום",  // Hebrew
         "Mixed مرحبا English",
     ];
 
@@ -102,10 +102,10 @@ fn test_unicode_rtl_languages_safe() {
 #[test]
 fn test_unicode_combining_characters_safe() {
     let test_cases = vec![
-        "café",               // é = e + combining acute
-        "naïve",              // ï = i + combining diaeresis
-        "Zürich",             // ü = u + combining diaeresis
-        "e\u{0301}",          // e + combining acute accent
+        "café",      // é = e + combining acute
+        "naïve",     // ï = i + combining diaeresis
+        "Zürich",    // ü = u + combining diaeresis
+        "e\u{0301}", // e + combining acute accent
     ];
 
     for input in test_cases {
@@ -130,11 +130,11 @@ fn test_unicode_combining_characters_safe() {
 #[test]
 fn test_unicode_control_characters_safe() {
     let test_cases = vec![
-        "line1\nline2",       // Newline
-        "tab\there",          // Tab
-        "null\0byte",         // Null byte
-        "bell\x07",           // Bell character
-        "escape\x1b[0m",      // ANSI escape sequence
+        "line1\nline2",  // Newline
+        "tab\there",     // Tab
+        "null\0byte",    // Null byte
+        "bell\x07",      // Bell character
+        "escape\x1b[0m", // ANSI escape sequence
     ];
 
     for input in test_cases {
@@ -169,10 +169,10 @@ fn test_unicode_control_characters_safe() {
 #[test]
 fn test_unicode_zero_width_characters_safe() {
     let test_cases = vec![
-        "test\u{200B}invisible",      // Zero-width space
-        "test\u{200C}joiner",          // Zero-width non-joiner
-        "test\u{200D}joiner",          // Zero-width joiner
-        "test\u{FEFF}bom",             // Zero-width no-break space (BOM)
+        "test\u{200B}invisible", // Zero-width space
+        "test\u{200C}joiner",    // Zero-width non-joiner
+        "test\u{200D}joiner",    // Zero-width joiner
+        "test\u{FEFF}bom",       // Zero-width no-break space (BOM)
     ];
 
     for input in test_cases {
@@ -197,8 +197,8 @@ fn test_unicode_zero_width_characters_safe() {
 #[test]
 fn test_unicode_normalization_forms_safe() {
     // Same visual character in different unicode representations
-    let nfc = "café";       // NFC: é as single codepoint U+00E9
-    let nfd = "café";       // NFD: e + ́ (combining acute U+0301)
+    let nfc = "café"; // NFC: é as single codepoint U+00E9
+    let nfd = "café"; // NFD: e + ́ (combining acute U+0301)
 
     let escaped_nfc = escape_shell_string(nfc);
     let escaped_nfd = escape_shell_string(nfd);
@@ -276,11 +276,11 @@ fn test_unicode_long_strings_safe() {
 #[test]
 fn test_unicode_variable_names_sanitized() {
     let test_cases = vec![
-        ("hello_世界", "hello___"),       // CJK replaced (世界 is 2 chars)
-        ("test_🚀", "test__"),            // Emoji replaced
-        ("café_var", "caf__var"),         // Accented chars replaced (é is 2 chars in NFD form, but here it's 1)
-        ("_valid", "_valid"),             // Valid name unchanged
-        ("123_invalid", "_23_invalid"),   // Leading digit fixed
+        ("hello_世界", "hello___"),     // CJK replaced (世界 is 2 chars)
+        ("test_🚀", "test__"),          // Emoji replaced
+        ("café_var", "caf__var"), // Accented chars replaced (é is 2 chars in NFD form, but here it's 1)
+        ("_valid", "_valid"),     // Valid name unchanged
+        ("123_invalid", "_23_invalid"), // Leading digit fixed
     ];
 
     for (input, expected) in test_cases {
@@ -308,9 +308,9 @@ fn test_unicode_variable_names_sanitized() {
 fn test_unicode_bidi_override_safe() {
     // Unicode bidirectional override can be used for obfuscation attacks
     let test_cases = vec![
-        "test\u{202E}esrever",           // Right-to-left override
-        "normal\u{202D}forced_ltr",      // Left-to-right override
-        "embed\u{202A}rtl\u{202C}end",   // Left-to-right embedding
+        "test\u{202E}esrever",         // Right-to-left override
+        "normal\u{202D}forced_ltr",    // Left-to-right override
+        "embed\u{202A}rtl\u{202C}end", // Left-to-right embedding
     ];
 
     for input in test_cases {
@@ -347,10 +347,7 @@ fn execute_shell_echo(escaped: &str) -> String {
     let temp_dir = TempDir::new().unwrap();
     let script_path = temp_dir.path().join("test.sh");
 
-    let script = format!(
-        "#!/bin/sh\necho {}\n",
-        escaped
-    );
+    let script = format!("#!/bin/sh\necho {}\n", escaped);
 
     std::fs::write(&script_path, script).unwrap();
 
@@ -382,8 +379,7 @@ fn is_valid_shell_identifier(name: &str) -> bool {
         return false;
     }
 
-    name.chars()
-        .all(|c| c.is_ascii_alphanumeric() || c == '_')
+    name.chars().all(|c| c.is_ascii_alphanumeric() || c == '_')
 }
 
 // ============================================================================
@@ -417,9 +413,9 @@ fn test_unicode_fuzzing_random_strings() {
         if !escaped.starts_with('\'') {
             // If unquoted, must be safe
             assert!(
-                !random_string.contains('$') &&
-                !random_string.contains('`') &&
-                !random_string.contains(';'),
+                !random_string.contains('$')
+                    && !random_string.contains('`')
+                    && !random_string.contains(';'),
                 "Dangerous chars unquoted: {:?} -> {}",
                 random_string,
                 escaped

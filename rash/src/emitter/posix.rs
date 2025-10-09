@@ -124,12 +124,7 @@ impl PosixEmitter {
     }
 
     fn write_println_function(&self, output: &mut String) -> Result<()> {
-        let lines = [
-            "rash_println() {",
-            "    printf '%s\\n' \"$1\"",
-            "}",
-            "",
-        ];
+        let lines = ["rash_println() {", "    printf '%s\\n' \"$1\"", "}", ""];
         self.write_shell_lines(output, &lines)
     }
 
@@ -397,9 +392,12 @@ impl PosixEmitter {
                 self.emit_function(output, name, params, body, indent)
             }
             ShellIR::Echo { value } => self.emit_echo_statement(output, value, indent),
-            ShellIR::For { var, start, end, body } => {
-                self.emit_for_statement(output, var, start, end, body, indent)
-            }
+            ShellIR::For {
+                var,
+                start,
+                end,
+                body,
+            } => self.emit_for_statement(output, var, start, end, body, indent),
             ShellIR::While { condition, body } => {
                 self.emit_while_statement(output, condition, body, indent)
             }
@@ -531,7 +529,10 @@ impl PosixEmitter {
 
         // Generate POSIX for loop using seq
         // for i in $(seq 0 2); do
-        writeln!(output, "{indent_str}for {var_name} in $(seq {start_str} {end_str}); do")?;
+        writeln!(
+            output,
+            "{indent_str}for {var_name} in $(seq {start_str} {end_str}); do"
+        )?;
 
         // Emit body
         self.emit_ir(output, body, indent + 1)?;
@@ -666,12 +667,8 @@ impl PosixEmitter {
                 let cmd_str = self.emit_command(cmd)?;
                 Ok(format!("\"$({cmd_str})\""))
             }
-            ShellValue::Comparison { op, left, right } => {
-                self.emit_comparison(op, left, right)
-            }
-            ShellValue::Arithmetic { op, left, right } => {
-                self.emit_arithmetic(op, left, right)
-            }
+            ShellValue::Comparison { op, left, right } => self.emit_comparison(op, left, right),
+            ShellValue::Arithmetic { op, left, right } => self.emit_arithmetic(op, left, right),
             ShellValue::LogicalAnd { left, right } => {
                 let left_str = self.emit_shell_value(left)?;
                 let right_str = self.emit_shell_value(right)?;
@@ -807,7 +804,9 @@ impl PosixEmitter {
                 let arith_str = self.emit_arithmetic(op, left, right)?;
                 result.push_str(&arith_str);
             }
-            ShellValue::LogicalAnd { .. } | ShellValue::LogicalOr { .. } | ShellValue::LogicalNot { .. } => {
+            ShellValue::LogicalAnd { .. }
+            | ShellValue::LogicalOr { .. }
+            | ShellValue::LogicalNot { .. } => {
                 // Logical operators don't make sense in concatenation context
                 return Err(crate::models::Error::IrGeneration(
                     "Logical expression cannot be used in string concatenation".to_string(),
@@ -856,7 +855,9 @@ impl PosixEmitter {
                 // Comparisons already generate complete test expressions
                 self.emit_shell_value(test)
             }
-            ShellValue::LogicalAnd { .. } | ShellValue::LogicalOr { .. } | ShellValue::LogicalNot { .. } => {
+            ShellValue::LogicalAnd { .. }
+            | ShellValue::LogicalOr { .. }
+            | ShellValue::LogicalNot { .. } => {
                 // Logical operators already generate complete test expressions
                 self.emit_shell_value(test)
             }

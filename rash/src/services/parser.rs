@@ -265,7 +265,9 @@ fn convert_if_stmt(expr_if: &syn::ExprIf) -> Result<Stmt> {
     })
 }
 
-fn convert_else_block(else_branch: &Option<(syn::token::Else, Box<SynExpr>)>) -> Result<Option<Vec<Stmt>>> {
+fn convert_else_block(
+    else_branch: &Option<(syn::token::Else, Box<SynExpr>)>,
+) -> Result<Option<Vec<Stmt>>> {
     let Some((_, else_expr)) = else_branch else {
         return Ok(None);
     };
@@ -289,7 +291,9 @@ fn convert_else_if(nested_if: &syn::ExprIf) -> Result<Option<Vec<Stmt>>> {
     }]))
 }
 
-fn convert_nested_else(else_branch: &Option<(syn::token::Else, Box<SynExpr>)>) -> Result<Option<Vec<Stmt>>> {
+fn convert_nested_else(
+    else_branch: &Option<(syn::token::Else, Box<SynExpr>)>,
+) -> Result<Option<Vec<Stmt>>> {
     let Some((_, nested_else_expr)) = else_branch else {
         return Ok(None);
     };
@@ -625,7 +629,10 @@ mod tests {
         "#;
         let result = parse(source);
         assert!(result.is_err());
-        assert!(result.unwrap_err().to_string().contains("must have initializers"));
+        assert!(result
+            .unwrap_err()
+            .to_string()
+            .contains("must have initializers"));
     }
 
     #[test]
@@ -640,7 +647,11 @@ mod tests {
         let ast = parse(source).unwrap();
 
         match &ast.functions[0].body[0] {
-            Stmt::If { condition, then_block, else_block } => {
+            Stmt::If {
+                condition,
+                then_block,
+                else_block,
+            } => {
                 assert!(matches!(condition, Expr::Literal(Literal::Bool(true))));
                 assert_eq!(then_block.len(), 1);
                 assert!(else_block.is_none());
@@ -663,7 +674,11 @@ mod tests {
         let ast = parse(source).unwrap();
 
         match &ast.functions[0].body[0] {
-            Stmt::If { condition, then_block, else_block } => {
+            Stmt::If {
+                condition,
+                then_block,
+                else_block,
+            } => {
                 assert!(matches!(condition, Expr::Literal(Literal::Bool(true))));
                 assert_eq!(then_block.len(), 1);
                 assert!(else_block.is_some());
@@ -687,7 +702,11 @@ mod tests {
         let ast = parse(source).unwrap();
 
         match &ast.functions[0].body[0] {
-            Stmt::If { condition, then_block, else_block } => {
+            Stmt::If {
+                condition,
+                then_block,
+                else_block,
+            } => {
                 assert!(matches!(condition, Expr::Literal(Literal::Bool(true))));
                 assert_eq!(then_block.len(), 1);
 
@@ -697,7 +716,11 @@ mod tests {
                 assert_eq!(else_stmts.len(), 1);
 
                 match &else_stmts[0] {
-                    Stmt::If { condition: nested_cond, then_block: nested_then, else_block: nested_else } => {
+                    Stmt::If {
+                        condition: nested_cond,
+                        then_block: nested_then,
+                        else_block: nested_else,
+                    } => {
                         assert!(matches!(nested_cond, Expr::Literal(Literal::Bool(false))));
                         assert_eq!(nested_then.len(), 1);
                         assert!(nested_else.is_none());
@@ -733,14 +756,21 @@ mod tests {
 
                 // Verify second level else-if
                 match &first_else[0] {
-                    Stmt::If { else_block: second_else_block, .. } => {
+                    Stmt::If {
+                        else_block: second_else_block,
+                        ..
+                    } => {
                         assert!(second_else_block.is_some());
                         let second_else = second_else_block.as_ref().unwrap();
                         assert_eq!(second_else.len(), 1);
 
                         // Verify third level else-if
                         match &second_else[0] {
-                            Stmt::If { condition, else_block: third_else, .. } => {
+                            Stmt::If {
+                                condition,
+                                else_block: third_else,
+                                ..
+                            } => {
                                 assert!(matches!(condition, Expr::Literal(Literal::Bool(true))));
                                 assert!(third_else.is_none());
                             }
@@ -775,7 +805,10 @@ mod tests {
 
                 // Second level should be else-if with an else block
                 match &first_else[0] {
-                    Stmt::If { else_block: second_else_block, .. } => {
+                    Stmt::If {
+                        else_block: second_else_block,
+                        ..
+                    } => {
                         assert!(second_else_block.is_some());
                         let final_else = second_else_block.as_ref().unwrap();
                         assert_eq!(final_else.len(), 1);
@@ -864,12 +897,10 @@ mod tests {
         "#;
         let ast = parse(source).unwrap();
         match &ast.functions[0].body[1] {
-            Stmt::Let { value, .. } => {
-                match value {
-                    Expr::Variable(name) => assert_eq!(name, "x"),
-                    _ => panic!("Expected Variable expression"),
-                }
-            }
+            Stmt::Let { value, .. } => match value {
+                Expr::Variable(name) => assert_eq!(name, "x"),
+                _ => panic!("Expected Variable expression"),
+            },
             _ => panic!("Expected Let statement"),
         }
     }
@@ -883,15 +914,13 @@ mod tests {
         "#;
         let ast = parse(source).unwrap();
         match &ast.functions[0].body[0] {
-            Stmt::Expr(expr) => {
-                match expr {
-                    Expr::FunctionCall { name, args } => {
-                        assert_eq!(name, "echo");
-                        assert_eq!(args.len(), 1);
-                    }
-                    _ => panic!("Expected FunctionCall expression"),
+            Stmt::Expr(expr) => match expr {
+                Expr::FunctionCall { name, args } => {
+                    assert_eq!(name, "echo");
+                    assert_eq!(args.len(), 1);
                 }
-            }
+                _ => panic!("Expected FunctionCall expression"),
+            },
             _ => panic!("Expected Expr statement"),
         }
     }
@@ -954,15 +983,13 @@ mod tests {
         "#;
         let ast = parse(source).unwrap();
         match &ast.functions[0].body[0] {
-            Stmt::Let { value, .. } => {
-                match value {
-                    Expr::Binary { left, right, .. } => {
-                        assert!(matches!(**left, Expr::Literal(Literal::U32(1))));
-                        assert!(matches!(**right, Expr::Binary { .. }));
-                    }
-                    _ => panic!("Expected Binary expression"),
+            Stmt::Let { value, .. } => match value {
+                Expr::Binary { left, right, .. } => {
+                    assert!(matches!(**left, Expr::Literal(Literal::U32(1))));
+                    assert!(matches!(**right, Expr::Binary { .. }));
                 }
-            }
+                _ => panic!("Expected Binary expression"),
+            },
             _ => panic!("Expected Let statement"),
         }
     }
@@ -1021,7 +1048,10 @@ mod tests {
         "#;
         let result = parse(source);
         assert!(result.is_err());
-        assert!(result.unwrap_err().to_string().contains("No #[bashrs::main] function found"));
+        assert!(result
+            .unwrap_err()
+            .to_string()
+            .contains("No #[bashrs::main] function found"));
     }
 
     #[test]
@@ -1038,7 +1068,10 @@ mod tests {
         "#;
         let result = parse(source);
         assert!(result.is_err());
-        assert!(result.unwrap_err().to_string().contains("Multiple #[bashrs::main] functions found"));
+        assert!(result
+            .unwrap_err()
+            .to_string()
+            .contains("Multiple #[bashrs::main] functions found"));
     }
 
     #[test]
@@ -1052,7 +1085,10 @@ mod tests {
         "#;
         let result = parse(source);
         assert!(result.is_err());
-        assert!(result.unwrap_err().to_string().contains("Only functions are allowed"));
+        assert!(result
+            .unwrap_err()
+            .to_string()
+            .contains("Only functions are allowed"));
     }
 
     #[test]

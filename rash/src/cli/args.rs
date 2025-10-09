@@ -100,7 +100,6 @@ pub enum Commands {
     },
 
     // Playground feature removed in v1.0 - will be moved to separate rash-playground crate in v1.1
-
     /// Compile to standalone binary
     Compile {
         /// Input Rust source file

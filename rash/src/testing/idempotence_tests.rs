@@ -281,8 +281,14 @@ fn test_early_exit_idempotent() {
     let state2 = execute_and_capture_state(&shell, &temp_dir2);
 
     // Should execute identically both times
-    assert_eq!(state1.exit_code, 0, "First run should complete successfully");
-    assert_eq!(state2.exit_code, 0, "Second run should complete successfully");
+    assert_eq!(
+        state1.exit_code, 0,
+        "First run should complete successfully"
+    );
+    assert_eq!(
+        state2.exit_code, 0,
+        "Second run should complete successfully"
+    );
     assert_eq!(state1, state2, "Conditional execution not idempotent");
 }
 
@@ -319,7 +325,10 @@ fn test_variable_assignment_in_branches_idempotent() {
     let temp_dir2 = TempDir::new().unwrap();
     let state2 = execute_and_capture_state(&shell, &temp_dir2);
 
-    assert_eq!(state1, state2, "Variable assignment in branches not idempotent");
+    assert_eq!(
+        state1, state2,
+        "Variable assignment in branches not idempotent"
+    );
 }
 
 // ============================================================================

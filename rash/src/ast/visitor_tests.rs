@@ -903,9 +903,7 @@ fn test_transform_exprs_block_expression() {
             return_type: Type::Void,
             body: vec![Stmt::Let {
                 name: "x".to_string(),
-                value: Expr::Block(vec![Stmt::Return(Some(Expr::Literal(
-                    Literal::U32(42),
-                )))]),
+                value: Expr::Block(vec![Stmt::Return(Some(Expr::Literal(Literal::U32(42))))]),
             }],
         }],
         entry_point: "main".to_string(),
