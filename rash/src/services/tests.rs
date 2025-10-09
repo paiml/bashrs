@@ -1,5 +1,5 @@
 use super::*;
-use crate::ast::restricted::{BinaryOp, Literal};
+use crate::ast::restricted::{BinaryOp, Literal, Pattern};
 use proptest::prelude::*;
 use rstest::*;
 
@@ -573,5 +573,340 @@ fn test_parser_maintains_source_information() {
     match &main_func.body[2] {
         crate::ast::Stmt::Let { name, .. } => assert_eq!(name, "third"),
         _ => panic!("Expected third let statement"),
+    }
+}
+
+// ============================================================================
+// MUTATION TESTING: Targeted tests for MISSED mutants (Sprint 25 RASH-2501)
+// ============================================================================
+
+#[test]
+fn test_is_main_attribute_requires_both_conditions() {
+    // RED: Targets mutation at line 62: replace && with ||
+    // This test ensures BOTH conditions must be true for is_main_attribute
+
+    // Case 1: Only bashrs segment, wrong second segment (should reject)
+    let source_wrong_segment = r#"
+        #[bashrs::wrong]
+        fn not_main() {
+            let x = 42;
+        }
+    "#;
+    let result = parse(source_wrong_segment);
+    assert!(result.is_err(), "Should reject non-main attribute");
+
+    // Case 2: Wrong first segment, correct second segment (should reject)
+    let source_wrong_namespace = r#"
+        #[other::main]
+        fn also_not_main() {
+            let x = 42;
+        }
+    "#;
+    let result2 = parse(source_wrong_namespace);
+    assert!(result2.is_err(), "Should reject wrong namespace");
+
+    // Case 3: Both conditions true - bashrs::main (should accept)
+    let source_valid = r#"
+        #[bashrs::main]
+        fn installer() {
+            let x = 42;
+        }
+    "#;
+    let result3 = parse(source_valid);
+    assert!(result3.is_ok(), "Should accept bashrs::main");
+    assert_eq!(result3.unwrap().entry_point, "installer");
+
+    // Case 4: Both conditions true - rash::main (should accept)
+    let source_rash = r#"
+        #[rash::main]
+        fn script() {
+            let x = 42;
+        }
+    "#;
+    let result4 = parse(source_rash);
+    assert!(result4.is_ok(), "Should accept rash::main");
+    assert_eq!(result4.unwrap().entry_point, "script");
+}
+
+#[test]
+fn test_binary_op_not_equal_conversion() {
+    // RED: Targets mutation at line 452: delete match arm BinOp::Ne(_)
+    // This test ensures the != operator is properly converted
+
+    let source = r#"
+        fn main() {
+            let not_equal = x != y;
+            let also_ne = a != 42;
+        }
+    "#;
+
+    let ast = parse(source).unwrap();
+    let main_func = &ast.functions[0];
+
+    // First != expression
+    match &main_func.body[0] {
+        crate::ast::Stmt::Let {
+            value: crate::ast::Expr::Binary { op, .. },
+            ..
+        } => {
+            assert!(matches!(op, BinaryOp::Ne), "Expected Ne (not equal) operator");
+        }
+        _ => panic!("Expected binary expression with != operator"),
+    }
+
+    // Second != expression
+    match &main_func.body[1] {
+        crate::ast::Stmt::Let {
+            value: crate::ast::Expr::Binary { op, .. },
+            ..
+        } => {
+            assert!(matches!(op, BinaryOp::Ne), "Expected Ne (not equal) operator");
+        }
+        _ => panic!("Expected binary expression with != operator"),
+    }
+}
+
+#[test]
+fn test_all_binary_operators_converted() {
+    // RED: Comprehensive test for all binary operators including Ne
+    // Ensures complete coverage of convert_binary_op function
+
+    let source = r#"
+        fn main() {
+            let add = a + b;
+            let sub = a - b;
+            let mul = a * b;
+            let div = a / b;
+            let eq = a == b;
+            let ne = a != b;
+            let lt = a < b;
+            let le = a <= b;
+            let gt = a > b;
+            let ge = a >= b;
+        }
+    "#;
+
+    let ast = parse(source).unwrap();
+    let main_func = &ast.functions[0];
+
+    // Verify all operators are present
+    let expected_ops = vec![
+        BinaryOp::Add,
+        BinaryOp::Sub,
+        BinaryOp::Mul,
+        BinaryOp::Div,
+        BinaryOp::Eq,
+        BinaryOp::Ne,  // Critical: ensures Ne branch is tested
+        BinaryOp::Lt,
+        BinaryOp::Le,
+        BinaryOp::Gt,
+        BinaryOp::Ge,
+    ];
+
+    for (i, expected_op) in expected_ops.iter().enumerate() {
+        match &main_func.body[i] {
+            crate::ast::Stmt::Let {
+                value: crate::ast::Expr::Binary { op, .. },
+                ..
+            } => {
+                assert!(
+                    std::mem::discriminant(op) == std::mem::discriminant(expected_op),
+                    "Expected {:?} at position {}, got {:?}",
+                    expected_op,
+                    i,
+                    op
+                );
+            }
+            _ => panic!("Expected binary expression at position {}", i),
+        }
+    }
+}
+
+#[test]
+fn test_pattern_wildcard_vs_identifier() {
+    // RED: Targets mutation at line 567: replace == with !=
+    // Tests the condition: if name == "_" for wildcard detection
+    // This must distinguish between "_" (wildcard) and named identifiers
+
+    // Test wildcard pattern (_)
+    let source_wildcard = r#"
+        fn main() {
+            match value {
+                _ => {
+                    let default = true;
+                }
+            }
+        }
+    "#;
+    let ast = parse(source_wildcard).unwrap();
+    let main_func = &ast.functions[0];
+
+    match &main_func.body[0] {
+        crate::ast::Stmt::Match { arms, .. } => {
+            assert!(arms.len() > 0, "Should have at least one match arm");
+            // Wildcard pattern should be detected
+            match &arms[0].pattern {
+                Pattern::Wildcard => {
+                    // Success: _ was recognized as Wildcard
+                }
+                _ => panic!("Expected Wildcard pattern for _, got {:?}", arms[0].pattern),
+            }
+        }
+        _ => panic!("Expected match statement"),
+    }
+
+    // Test named identifier pattern (not wildcard)
+    let source_ident = r#"
+        fn main() {
+            match value {
+                x => {
+                    let named = x;
+                }
+            }
+        }
+    "#;
+    let ast2 = parse(source_ident).unwrap();
+    let main_func2 = &ast2.functions[0];
+
+    match &main_func2.body[0] {
+        crate::ast::Stmt::Match { arms, .. } => {
+            assert!(arms.len() > 0, "Should have at least one match arm");
+            // Named identifier should NOT be Wildcard
+            match &arms[0].pattern {
+                Pattern::Variable(name) => {
+                    assert_eq!(name, "x", "Expected variable pattern 'x'");
+                }
+                Pattern::Wildcard => {
+                    panic!("Named identifier 'x' should NOT be treated as Wildcard");
+                }
+                _ => panic!("Expected Variable pattern for x, got {:?}", arms[0].pattern),
+            }
+        }
+        _ => panic!("Expected match statement"),
+    }
+}
+
+#[test]
+fn test_pattern_ident_arm_execution() {
+    // RED: Targets mutation at line 564: delete match arm Pat::Ident(ident_pat)
+    // This ensures the Pat::Ident branch in convert_pattern is exercised
+
+    let source = r#"
+        fn main() {
+            match status {
+                0 => {
+                    let success = true;
+                }
+                code => {
+                    let error_code = code;
+                }
+                _ => {
+                    let unknown = true;
+                }
+            }
+        }
+    "#;
+
+    let ast = parse(source).unwrap();
+    let main_func = &ast.functions[0];
+
+    match &main_func.body[0] {
+        crate::ast::Stmt::Match { arms, .. } => {
+            assert_eq!(arms.len(), 3, "Should have 3 match arms");
+
+            // First arm: literal pattern (0)
+            match &arms[0].pattern {
+                Pattern::Literal(Literal::U32(0)) => {
+                    // Correct
+                }
+                _ => panic!("Expected literal pattern 0"),
+            }
+
+            // Second arm: identifier pattern (code) - this tests Pat::Ident!
+            match &arms[1].pattern {
+                Pattern::Variable(name) => {
+                    assert_eq!(name, "code", "Expected variable pattern 'code'");
+                }
+                _ => panic!("Expected identifier pattern 'code', got {:?}", arms[1].pattern),
+            }
+
+            // Third arm: wildcard pattern (_)
+            match &arms[2].pattern {
+                Pattern::Wildcard => {
+                    // Correct
+                }
+                _ => panic!("Expected wildcard pattern"),
+            }
+        }
+        _ => panic!("Expected match statement"),
+    }
+}
+
+#[test]
+fn test_comprehensive_pattern_matching() {
+    // RED: Comprehensive test covering all pattern types
+    // Ensures complete coverage of convert_pattern function
+
+    let source = r#"
+        fn main() {
+            match value {
+                42 => { let num = true; }
+                "test" => { let str = true; }
+                true => { let bool = true; }
+                x => { let var = x; }
+                _ => { let wild = true; }
+            }
+        }
+    "#;
+
+    let ast = parse(source).unwrap();
+    let main_func = &ast.functions[0];
+
+    match &main_func.body[0] {
+        crate::ast::Stmt::Match { arms, .. } => {
+            assert_eq!(arms.len(), 5, "Should have 5 match arms");
+
+            // Numeric literal
+            assert!(
+                matches!(
+                    &arms[0].pattern,
+                    Pattern::Literal(Literal::U32(42))
+                ),
+                "Expected numeric literal 42"
+            );
+
+            // String literal
+            assert!(
+                matches!(
+                    &arms[1].pattern,
+                    Pattern::Literal(Literal::Str(_))
+                ),
+                "Expected string literal"
+            );
+
+            // Boolean literal
+            assert!(
+                matches!(
+                    &arms[2].pattern,
+                    Pattern::Literal(Literal::Bool(true))
+                ),
+                "Expected boolean literal true"
+            );
+
+            // Variable pattern (identifier)
+            match &arms[3].pattern {
+                Pattern::Variable(name) => {
+                    assert_eq!(name, "x", "Expected variable 'x'");
+                }
+                _ => panic!("Expected variable pattern"),
+            }
+
+            // Wildcard pattern
+            assert!(
+                matches!(&arms[4].pattern, Pattern::Wildcard),
+                "Expected wildcard pattern"
+            );
+        }
+        _ => panic!("Expected match statement"),
     }
 }
