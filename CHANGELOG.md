@@ -5,6 +5,41 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.0-rc2] - 2025-10-09
+
+### 🧬 Mutation Testing Excellence - Sprint 25 Day 2
+
+Parser module mutation testing with targeted test additions.
+
+#### Added
+- **6 targeted mutation tests** (336 lines) - Catch specific parser mutations
+  - `test_is_main_attribute_requires_both_conditions` - Boolean logic (line 62)
+  - `test_binary_op_not_equal_conversion` - != operator (line 452)
+  - `test_all_binary_operators_converted` - All 10 binary operators
+  - `test_pattern_wildcard_vs_identifier` - Pattern equality (line 567)
+  - `test_pattern_ident_arm_execution` - Pat::Ident branch (line 564)
+  - `test_comprehensive_pattern_matching` - Complete pattern coverage
+
+#### Changed
+- Test count: **673 tests** (up from 667) - 100% passing
+- Parser mutations: **100% kill rate** on analyzed sample (17/17 viable caught)
+- Mutation analysis: 107 total parser mutants identified
+
+#### Quality Metrics
+```
+Tests:              673/673 passing (100%)
+Mutation Kill Rate: 100% on sample (17/17 viable)
+Property Tests:     53/53 passing
+Code Coverage:      90.53%
+```
+
+#### Sprint 25 Progress
+- Day 1: Quality infrastructure + tool installation
+- Day 2: Targeted mutation test writing (this release)
+- Target: ≥90% mutation kill rate by Oct 23
+
+---
+
 ## [1.0.0-rc1] - 2025-10-04
 
 ### 🧪 Release Candidate - Ready for User Feedback
