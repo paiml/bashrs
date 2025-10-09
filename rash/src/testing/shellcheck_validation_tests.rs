@@ -44,8 +44,8 @@ fn shellcheck_validate(shell_script: &str) -> Result<(), String> {
 /// Helper to transpile and validate with shellcheck
 fn transpile_and_validate(source: &str) -> Result<String, String> {
     let config = Config::default();
-    let shell_script = transpile(source, config)
-        .map_err(|e| format!("Transpilation failed: {}", e))?;
+    let shell_script =
+        transpile(source, config).map_err(|e| format!("Transpilation failed: {}", e))?;
 
     shellcheck_validate(&shell_script)?;
 

@@ -141,18 +141,30 @@ impl Diagnostic {
         score += 1.0;
 
         // Has source location (file is most important)
-        if self.file.is_some() { score += 1.0; }
-        if self.line.is_some() { score += 0.25; }
-        if self.column.is_some() { score += 0.25; }
+        if self.file.is_some() {
+            score += 1.0;
+        }
+        if self.line.is_some() {
+            score += 0.25;
+        }
+        if self.column.is_some() {
+            score += 0.25;
+        }
 
         // Has code snippet (nice to have but not always possible)
-        if self.snippet.is_some() { score += 1.0; }
+        if self.snippet.is_some() {
+            score += 1.0;
+        }
 
         // Has explanation (note) - CRITICAL for user understanding
-        if self.note.is_some() { score += 2.5; }
+        if self.note.is_some() {
+            score += 2.5;
+        }
 
         // Has suggestion (help) - CRITICAL for actionability
-        if self.help.is_some() { score += 2.5; }
+        if self.help.is_some() {
+            score += 2.5;
+        }
 
         score / 8.5 // Normalize to 0-1 (max 8.5 points)
     }
@@ -243,8 +255,11 @@ mod tests {
         assert!(diag.help.is_some());
 
         // Should achieve ≥0.7 quality score
-        assert!(diag.quality_score() >= 0.7,
-            "Quality score {} should be ≥0.7", diag.quality_score());
+        assert!(
+            diag.quality_score() >= 0.7,
+            "Quality score {} should be ≥0.7",
+            diag.quality_score()
+        );
     }
 
     #[test]

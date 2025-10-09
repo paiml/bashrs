@@ -50,11 +50,11 @@ fn assert_rejects_malicious(source: &str, attack_description: &str) {
             let error_str = e.to_string();
             let error_lower = error_str.to_lowercase();
             assert!(
-                error_lower.contains("validation") ||
-                error_lower.contains("unsafe") ||
-                error_lower.contains("injection") ||
-                error_lower.contains("detected") ||
-                error_str.contains("SC"),
+                error_lower.contains("validation")
+                    || error_lower.contains("unsafe")
+                    || error_lower.contains("injection")
+                    || error_lower.contains("detected")
+                    || error_str.contains("SC"),
                 "{}: Rejected but wrong error: {}",
                 attack_description,
                 error_str
@@ -164,8 +164,8 @@ fn test_path_traversal_dotdot() {
             // Check that the path is either:
             // 1. Quoted in assignment: path='...' or path="..."
             // 2. Or quoted when used: echo "$path" or echo '$path'
-            let has_quoted_assignment = script.contains("path='../../../etc/passwd'") ||
-                                       script.contains("path=\"../../../etc/passwd\"");
+            let has_quoted_assignment = script.contains("path='../../../etc/passwd'")
+                || script.contains("path=\"../../../etc/passwd\"");
             let has_quoted_usage = script.contains("\"$path\"") || script.contains("'$path'");
 
             assert!(
@@ -193,7 +193,10 @@ fn test_path_traversal_absolute() {
     let config = Config::default();
     let result = transpile(source, config);
 
-    assert!(result.is_ok(), "Absolute paths should be allowed in strings");
+    assert!(
+        result.is_ok(),
+        "Absolute paths should be allowed in strings"
+    );
 }
 
 // ============================================================================
@@ -514,12 +517,15 @@ fn test_validation_catches_known_patterns() {
     ];
 
     for pattern in patterns {
-        let source = format!(r#"
+        let source = format!(
+            r#"
             fn main() {{
                 let cmd = "{}";
                 echo(cmd);
             }}
-        "#, pattern);
+        "#,
+            pattern
+        );
 
         assert_rejects_malicious(&source, &format!("Pattern: {}", pattern));
     }
@@ -537,20 +543,19 @@ fn test_safe_strings_allowed() {
     ];
 
     for safe in safe_strings {
-        let source = format!(r#"
+        let source = format!(
+            r#"
             fn main() {{
                 let msg = "{}";
                 echo(msg);
             }}
-        "#, safe);
+        "#,
+            safe
+        );
 
         let config = Config::default();
         let result = transpile(&source, config);
 
-        assert!(
-            result.is_ok(),
-            "Safe string '{}' should be allowed",
-            safe
-        );
+        assert!(result.is_ok(), "Safe string '{}' should be allowed", safe);
     }
 }

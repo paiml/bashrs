@@ -160,25 +160,25 @@ impl ErrorInjectionTester {
 
         // Malformed inputs that should be rejected gracefully
         let malformed_inputs = vec![
-            "",                                        // Empty input
-            "fn",                                      // Incomplete syntax
-            "fn main(",                                // Incomplete function
-            "fn main() {",                             // Incomplete body
-            "fn main() { let; }",                      // Incomplete let
-            "fn main() { let x; }",                    // Missing initializer
-            "fn main() { let x = ; }",                 // Missing value
-            "fn main() { 42 }",                        // Missing let
-            "fn main() { let x = y }",                 // Undefined variable
-            "struct Foo {}",                           // Unsupported construct
-            "impl Foo {}",                             // Unsupported construct
-            "fn main() { loop {} }",                   // Unsupported loop
-            "fn main() { while true {} }",             // Unsupported while
+            "",                            // Empty input
+            "fn",                          // Incomplete syntax
+            "fn main(",                    // Incomplete function
+            "fn main() {",                 // Incomplete body
+            "fn main() { let; }",          // Incomplete let
+            "fn main() { let x; }",        // Missing initializer
+            "fn main() { let x = ; }",     // Missing value
+            "fn main() { 42 }",            // Missing let
+            "fn main() { let x = y }",     // Undefined variable
+            "struct Foo {}",               // Unsupported construct
+            "impl Foo {}",                 // Unsupported construct
+            "fn main() { loop {} }",       // Unsupported loop
+            "fn main() { while true {} }", // Unsupported while
             // Note: for loops and match are now supported (v0.5.0, v0.6.0)
-            "use std::collections::HashMap;",          // Unsupported use
+            "use std::collections::HashMap;", // Unsupported use
             "fn main() { let x: Vec<u32> = vec![]; }", // Unsupported types
-            "fn main() { unsafe { } }",                // Unsupported unsafe
-            "async fn main() {}",                      // Unsupported async
-            "fn main<T>() {}",                         // Unsupported generics
+            "fn main() { unsafe { } }",       // Unsupported unsafe
+            "async fn main() {}",             // Unsupported async
+            "fn main<T>() {}",                // Unsupported generics
             "fn main() -> impl Iterator<Item=u32> {}", // Unsupported return types
         ];
 

@@ -1,5 +1,5 @@
-use criterion::{criterion_group, criterion_main, BenchmarkId, Criterion};
 use bashrs::{ir, models::VerificationLevel, services::parser, verifier};
+use criterion::{criterion_group, criterion_main, BenchmarkId, Criterion};
 use std::time::Duration;
 
 const SAFE_RUST: &str = r#"

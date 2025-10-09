@@ -26,8 +26,10 @@ fn main() {
     let script = result.unwrap();
 
     // The last statement `result` should be echoed in the add function
-    assert!(script.contains("echo \"$result\""),
-            "Last statement in function with return type should be echoed");
+    assert!(
+        script.contains("echo \"$result\""),
+        "Last statement in function with return type should be echoed"
+    );
 }
 
 /// MUTATION GAP #2: Line 95:33 - match guard `should_echo` in convert_stmt_in_function
@@ -56,13 +58,23 @@ fn main() {
     let script = result.unwrap();
 
     // get_value should echo 42
-    assert!(script.contains("echo \"42\"") || script.contains("echo 42"),
-            "Function with return type should echo return value");
+    assert!(
+        script.contains("echo \"42\"") || script.contains("echo 42"),
+        "Function with return type should echo return value"
+    );
 
     // no_return should NOT echo x assignment
-    let no_return_section = script.split("no_return() {").nth(1).unwrap().split('}').next().unwrap();
-    assert!(!no_return_section.contains("echo \"$x\""),
-            "Function without return type should not echo variables");
+    let no_return_section = script
+        .split("no_return() {")
+        .nth(1)
+        .unwrap()
+        .split('}')
+        .next()
+        .unwrap();
+    assert!(
+        !no_return_section.contains("echo \"$x\""),
+        "Function without return type should not echo variables"
+    );
 }
 
 /// MUTATION GAP #3: Line 165:21 - delete Range expression match arm
@@ -84,8 +96,10 @@ fn main() {
     let script = result.unwrap();
 
     // Should generate seq command for range
-    assert!(script.contains("seq") || script.contains("for i in"),
-            "Range expression should be converted to seq or shell range");
+    assert!(
+        script.contains("seq") || script.contains("for i in"),
+        "Range expression should be converted to seq or shell range"
+    );
 }
 
 /// MUTATION GAP #4: Line 327:21 - delete BinaryOp::Eq match arm
@@ -108,8 +122,10 @@ fn main() {
     let script = result.unwrap();
 
     // Should generate POSIX test with -eq for integer comparison
-    assert!(script.contains("-eq") || script.contains("="),
-            "Equality operator should generate comparison test");
+    assert!(
+        script.contains("-eq") || script.contains("="),
+        "Equality operator should generate comparison test"
+    );
 }
 
 /// MUTATION GAP #5: Line 363:21 - delete BinaryOp::Sub match arm
@@ -132,8 +148,10 @@ fn main() {
     let script = result.unwrap();
 
     // Should generate arithmetic expansion with subtraction
-    assert!(script.contains("$((") && (script.contains("-") || script.contains("sub")),
-            "Subtraction should generate arithmetic expansion");
+    assert!(
+        script.contains("$((") && (script.contains("-") || script.contains("sub")),
+        "Subtraction should generate arithmetic expansion"
+    );
 }
 
 /// MUTATION GAP #6: Line 391:13 - delete curl|wget match arm in analyze_command_effects
@@ -155,8 +173,10 @@ fn main() {
     let script = result.unwrap();
 
     // The generated script should have download function available
-    assert!(script.contains("rash_download_verified"),
-            "Runtime should include download verification function");
+    assert!(
+        script.contains("rash_download_verified"),
+        "Runtime should include download verification function"
+    );
 }
 
 /// MUTATION GAP #7: Arithmetic operator mutations (- vs + vs /)
@@ -189,17 +209,32 @@ fn main() {
     let div_script = transpile(div_source, Config::default()).unwrap();
 
     // Each operator should produce different shell code
-    assert_ne!(add_script, sub_script, "Addition and subtraction should generate different code");
-    assert_ne!(add_script, div_script, "Addition and division should generate different code");
-    assert_ne!(sub_script, div_script, "Subtraction and division should generate different code");
+    assert_ne!(
+        add_script, sub_script,
+        "Addition and subtraction should generate different code"
+    );
+    assert_ne!(
+        add_script, div_script,
+        "Addition and division should generate different code"
+    );
+    assert_ne!(
+        sub_script, div_script,
+        "Subtraction and division should generate different code"
+    );
 
     // Verify operators appear in code
-    assert!(add_script.contains("+") || add_script.contains("add"),
-            "Addition operator should appear in generated code");
-    assert!(sub_script.contains("-") || sub_script.contains("sub"),
-            "Subtraction operator should appear in generated code");
-    assert!(div_script.contains("/") || div_script.contains("div"),
-            "Division operator should appear in generated code");
+    assert!(
+        add_script.contains("+") || add_script.contains("add"),
+        "Addition operator should appear in generated code"
+    );
+    assert!(
+        sub_script.contains("-") || sub_script.contains("sub"),
+        "Subtraction operator should appear in generated code"
+    );
+    assert!(
+        div_script.contains("/") || div_script.contains("div"),
+        "Division operator should appear in generated code"
+    );
 }
 
 /// MUTATION GAP #8: Range expression inclusive vs exclusive
@@ -226,13 +261,19 @@ fn main() {
     let inclusive_script = transpile(inclusive_source, Config::default()).unwrap();
 
     // Inclusive and exclusive ranges should generate different seq commands
-    assert_ne!(exclusive_script, inclusive_script,
-               "Inclusive and exclusive ranges should generate different code");
+    assert_ne!(
+        exclusive_script, inclusive_script,
+        "Inclusive and exclusive ranges should generate different code"
+    );
 
     // Exclusive: 0..3 should be seq 0 2
     // Inclusive: 0..=3 should be seq 0 3
-    assert!(exclusive_script.contains("seq 0 2") || exclusive_script.contains("0 1 2"),
-            "Exclusive range 0..3 should generate seq 0 2");
-    assert!(inclusive_script.contains("seq 0 3") || inclusive_script.contains("0 1 2 3"),
-            "Inclusive range 0..=3 should generate seq 0 3");
+    assert!(
+        exclusive_script.contains("seq 0 2") || exclusive_script.contains("0 1 2"),
+        "Exclusive range 0..3 should generate seq 0 2"
+    );
+    assert!(
+        inclusive_script.contains("seq 0 3") || inclusive_script.contains("0 1 2 3"),
+        "Inclusive range 0..=3 should generate seq 0 3"
+    );
 }

@@ -26,12 +26,16 @@ fn main() {
     assert!(script.contains("done"), "While loop should end with 'done'");
 
     // Should have condition check
-    assert!(script.contains("$i") && script.contains("5"),
-            "Should contain loop variable and limit");
+    assert!(
+        script.contains("$i") && script.contains("5"),
+        "Should contain loop variable and limit"
+    );
 
     // Should NOT contain unsupported
-    assert!(!script.to_lowercase().contains("unsupported"),
-            "While loops should be supported");
+    assert!(
+        !script.to_lowercase().contains("unsupported"),
+        "While loops should be supported"
+    );
 }
 
 #[test]
@@ -76,6 +80,8 @@ fn main() {
     let script = result.unwrap();
 
     // Should generate while true or while : syntax
-    assert!(script.contains("while true") || script.contains("while :"),
-            "Should have infinite loop construct");
+    assert!(
+        script.contains("while true") || script.contains("while :"),
+        "Should have infinite loop construct"
+    );
 }

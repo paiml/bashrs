@@ -133,14 +133,26 @@ impl ValidationPipeline {
 
         // Check for command injection patterns
         let dangerous_patterns = [
-            ("; ", "Semicolon command separator detected in string literal"),
+            (
+                "; ",
+                "Semicolon command separator detected in string literal",
+            ),
             ("| ", "Pipe operator detected in string literal"),
             ("$(", "Command substitution detected in string literal"),
-            ("`", "Backtick command substitution detected in string literal (SC2006)"),
+            (
+                "`",
+                "Backtick command substitution detected in string literal (SC2006)",
+            ),
             ("&& ", "AND operator detected in string literal"),
             ("|| ", "OR operator detected in string literal"),
-            ("'; ", "Quote escape with semicolon detected in string literal"),
-            ("\"; ", "Quote escape with semicolon detected in string literal"),
+            (
+                "'; ",
+                "Quote escape with semicolon detected in string literal",
+            ),
+            (
+                "\"; ",
+                "Quote escape with semicolon detected in string literal",
+            ),
             ("<<", "Here-doc syntax detected in string literal"),
             ("eval ", "eval command detected in string literal"),
             ("exec ", "exec command detected in string literal"),
@@ -187,9 +199,8 @@ impl ValidationPipeline {
         // Check for reserved shell builtins that cannot be redefined
         // These are POSIX special builtins and common builtins that cause errors
         let reserved_builtins = [
-            "break", "continue", "exit", "return", "shift", "trap",
-            "unset", "export", "readonly", "set", "times", "exec",
-            "eval", ".", ":", "true", "false", "test", "[",
+            "break", "continue", "exit", "return", "shift", "trap", "unset", "export", "readonly",
+            "set", "times", "exec", "eval", ".", ":", "true", "false", "test", "[",
         ];
 
         if reserved_builtins.contains(&name) {
@@ -311,7 +322,12 @@ impl ValidationPipeline {
             ShellIR::Echo { value } => {
                 self.validate_shell_value(value)?;
             }
-            ShellIR::For { var, start, end, body } => {
+            ShellIR::For {
+                var,
+                start,
+                end,
+                body,
+            } => {
                 // Validate variable name
                 if var.is_empty() {
                     return Err(RashError::ValidationError(

@@ -1,6 +1,6 @@
-use clap::Parser;
 use bashrs::cli::{execute_command, Cli};
 use bashrs::models::Diagnostic;
+use clap::Parser;
 use std::error::Error;
 use std::process;
 

@@ -1,0 +1,150 @@
+# Bashrs Quality Configuration
+# EXTREME TDD with Zero Tolerance Quality Gates
+# Inspired by paiml-mcp-agent-toolkit quality standards
+
+[complexity]
+# Transpiler-specific thresholds - stricter than typical
+cyclomatic_threshold = 10      # Core transpiler functions must be simple
+cognitive_threshold = 15       # Cognitive complexity for safety-critical code
+max_nesting_depth = 4          # Shallow nesting for readability
+max_function_lines = 80        # Short functions for testability
+max_file_lines = 800           # Modular file organization
+
+[entropy]
+# Code duplication detection for transpiler patterns
+enabled = true
+min_pattern_occurrences = 12   # Detect repetitive IR conversion patterns
+min_pattern_lines = 8          # Ignore trivial patterns
+max_violations_to_report = 50  # Focus on significant duplication
+pattern_similarity_threshold = 0.95  # High similarity for duplicates
+ignore_test_files = true
+ignore_generated_files = true
+ignore_patterns = [
+    "*/target/*",
+    "*/node_modules/*",
+    "*_test.rs",
+    "*_tests.rs",
+    "*/tests/*",
+    "*.proptest-regressions",
+    "*/examples/*",          # Examples may have intentional duplication
+    "*/rash-book/*"          # Documentation examples
+]
+
+[satd]
+# ZERO TOLERANCE for technical debt comments
+enabled = true
+zero_tolerance = true
+patterns = [
+    "TODO",
+    "FIXME",
+    "HACK",
+    "XXX",
+    "REFACTOR",
+    "OPTIMIZE",
+    "BUG",
+    "KLUDGE",
+    "WORKAROUND"
+]
+
+[dead_code]
+# Dead code detection with transpiler-specific rules
+enabled = true
+ignore_test_functions = true
+ignore_cfg_test = true
+threshold_percentage = 0.5  # Very strict - no dead code in transpiler
+
+[coverage]
+# Coverage requirements for safety-critical transpiler
+minimum_coverage = 85.0      # Current: 85.36% core, maintain this
+enforce_on_new_code = true
+ignore_test_files = true
+target_core_modules = [
+    "src/parser/",
+    "src/ir/",
+    "src/emitter/",
+    "src/verifier/"
+]
+
+[documentation]
+# Documentation requirements for transpiler correctness
+minimum_doc_coverage = 75.0  # Public API must be documented
+require_examples = true      # All public functions need examples
+require_safety_docs = true   # Safety-critical code requires docs
+require_panic_docs = true    # Document panic conditions
+
+[security]
+# Security scanning for injection prevention
+enabled = true
+scan_dependencies = true
+check_unsafe_code = true
+max_unsafe_blocks = 0        # Zero unsafe code in transpiler
+enforce_shell_escaping = true
+check_injection_vectors = true
+
+[performance]
+# Performance requirements for transpiler
+enabled = true
+max_transpile_time_us = 50   # Current: 19.1µs, target <50µs
+max_memory_mb = 100          # Memory budget for transpilation
+track_benchmarks = true
+
+[quality_gate]
+# Overall quality gate configuration - EXTREME TDD
+fail_on_any_violation = false  # Use weighted scoring
+aggregate_scoring = true
+weights = {
+    complexity = 0.30,       # High weight - complexity is critical
+    entropy = 0.10,          # Moderate - some duplication acceptable
+    satd = 0.25,             # High - zero tolerance policy
+    dead_code = 0.15,        # Important - no unused code
+    coverage = 0.15,         # Important - test everything
+    documentation = 0.05     # Lower - focus on critical APIs
+}
+
+# Grade thresholds - EXTREME QUALITY
+[grades]
+a_plus = 98      # Perfection
+a = 95           # Excellent
+a_minus = 90     # Very good
+b_plus = 85      # Good
+b = 80           # Acceptable
+b_minus = 75     # Needs improvement
+c_plus = 70      # Warning
+c = 65           # Poor
+d = 55           # Critical
+f = 0            # Unacceptable
+
+[verification]
+# Transpiler-specific verification requirements
+enabled = true
+check_posix_compliance = true
+check_determinism = true
+check_idempotence = true
+shellcheck_severity = "error"
+require_shellcheck_pass = true
+
+[mutation_testing]
+# Mutation testing configuration
+enabled = true
+minimum_kill_rate = 0.90     # Target: ≥90% mutation kill rate
+timeout_seconds = 120        # 2 minutes per mutant
+smart_test_filtering = true  # Only run relevant tests per mutant
+target_modules = [
+    "parser",
+    "ir",
+    "emitter"
+]
+
+[property_testing]
+# Property-based testing requirements
+enabled = true
+minimum_properties = 50      # Current: 52, maintain 50+
+cases_per_property = 500     # 500 cases per property = 25,000+ total
+timeout_per_property = 30    # 30 seconds max per property
+
+[toyota_way]
+# Toyota Production System principles
+jidoka = true               # Build quality in (zero defects)
+hansei = true              # Reflection via Five Whys
+kaizen = true              # Continuous improvement
+genchi_genbutsu = true     # Go and see (dogfooding)

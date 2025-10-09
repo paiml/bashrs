@@ -421,9 +421,7 @@ impl Expr {
                 let args_depth = args.iter().map(|a| a.nesting_depth()).max().unwrap_or(0);
                 1 + receiver_depth.max(args_depth)
             }
-            Expr::Range { start, end, .. } => {
-                1 + start.nesting_depth().max(end.nesting_depth())
-            }
+            Expr::Range { start, end, .. } => 1 + start.nesting_depth().max(end.nesting_depth()),
             _ => 0,
         }
     }
@@ -479,7 +477,7 @@ impl Expr {
 pub enum Literal {
     Bool(bool),
     U32(u32),
-    I32(i32),  // Support negative integers
+    I32(i32), // Support negative integers
     Str(String),
 }
 

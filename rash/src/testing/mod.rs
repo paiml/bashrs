@@ -13,15 +13,15 @@
 #![allow(clippy::missing_panics_doc)]
 #![allow(clippy::missing_errors_doc)]
 
+pub mod adversarial_tests;
 pub mod boundary;
 pub mod coverage;
 pub mod cross_validation;
 pub mod error_injection;
 pub mod idempotence_tests;
-pub mod unicode_escape_tests;
 pub mod shellcheck_validation_tests;
-pub mod adversarial_tests;
 pub mod stress;
+pub mod unicode_escape_tests;
 
 #[cfg(test)]
 pub mod quickcheck_tests;

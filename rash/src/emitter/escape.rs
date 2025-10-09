@@ -72,7 +72,10 @@ fn is_safe_unquoted(s: &str) -> bool {
 
     // Must start with ASCII alphanumeric or safe characters
     let first_char = s.chars().next().unwrap();
-    if !first_char.is_ascii_alphanumeric() && first_char != '_' && first_char != '.' && first_char != '/'
+    if !first_char.is_ascii_alphanumeric()
+        && first_char != '_'
+        && first_char != '.'
+        && first_char != '/'
     {
         return false;
     }

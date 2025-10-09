@@ -18,12 +18,12 @@ use tempfile::NamedTempFile;
 
 #[derive(Debug)]
 struct ErrorMessageQuality {
-    has_error_prefix: bool,        // "error:" or "Error:" present
-    has_source_location: bool,     // Line/column information
-    has_code_snippet: bool,        // Shows problematic code
-    has_caret_indicator: bool,     // ^ pointing to issue
-    has_explanation: bool,         // "note:" with context
-    has_suggestion: bool,          // "help:" with alternative
+    has_error_prefix: bool,    // "error:" or "Error:" present
+    has_source_location: bool, // Line/column information
+    has_code_snippet: bool,    // Shows problematic code
+    has_caret_indicator: bool, // ^ pointing to issue
+    has_explanation: bool,     // "note:" with context
+    has_suggestion: bool,      // "help:" with alternative
     message_length: usize,
 }
 
@@ -31,13 +31,14 @@ impl ErrorMessageQuality {
     fn from_stderr(stderr: &str) -> Self {
         Self {
             has_error_prefix: stderr.contains("error:") || stderr.contains("Error:"),
-            has_source_location: stderr.contains(':') &&
-                stderr.chars().filter(|c| c.is_numeric()).count() > 0,
-            has_code_snippet: stderr.lines()
-                .any(|l| !l.starts_with("error:") &&
-                        !l.starts_with("Error:") &&
-                        !l.starts_with("note:") &&
-                        !l.starts_with("help:")),
+            has_source_location: stderr.contains(':')
+                && stderr.chars().filter(|c| c.is_numeric()).count() > 0,
+            has_code_snippet: stderr.lines().any(|l| {
+                !l.starts_with("error:")
+                    && !l.starts_with("Error:")
+                    && !l.starts_with("note:")
+                    && !l.starts_with("help:")
+            }),
             has_caret_indicator: stderr.contains('^'),
             has_explanation: stderr.contains("note:"),
             has_suggestion: stderr.contains("help:") || stderr.contains("consider"),
@@ -47,12 +48,24 @@ impl ErrorMessageQuality {
 
     fn score(&self) -> f32 {
         let mut score = 0.0;
-        if self.has_error_prefix { score += 1.0; }
-        if self.has_source_location { score += 1.5; }
-        if self.has_code_snippet { score += 1.5; }
-        if self.has_caret_indicator { score += 1.0; }
-        if self.has_explanation { score += 2.0; }
-        if self.has_suggestion { score += 2.0; }
+        if self.has_error_prefix {
+            score += 1.0;
+        }
+        if self.has_source_location {
+            score += 1.5;
+        }
+        if self.has_code_snippet {
+            score += 1.5;
+        }
+        if self.has_caret_indicator {
+            score += 1.0;
+        }
+        if self.has_explanation {
+            score += 2.0;
+        }
+        if self.has_suggestion {
+            score += 2.0;
+        }
 
         // Penalize excessively long messages (>500 chars)
         if self.message_length > 500 {
@@ -94,12 +107,17 @@ fn test_async_syntax_error_message() {
     // Should contain error about async
     assert!(
         stderr.contains("async") || stderr.contains("Unsupported"),
-        "Error should mention async or unsupported. Got: {}", stderr
+        "Error should mention async or unsupported. Got: {}",
+        stderr
     );
 
     // Should fail with exit code 1
-    assert_eq!(output.status.code(), Some(1),
-        "Should fail with exit code 1. Got: {:?}", output.status.code());
+    assert_eq!(
+        output.status.code(),
+        Some(1),
+        "Should fail with exit code 1. Got: {:?}",
+        output.status.code()
+    );
 }
 
 #[test]
@@ -127,7 +145,8 @@ fn test_trait_definition_error_message() {
     // Error message says "Only functions are allowed" which correctly identifies traits as unsupported
     assert!(
         stderr.contains("Only functions are allowed") || stderr.contains("trait"),
-        "Error should mention trait or function restriction. Got: {}", stderr
+        "Error should mention trait or function restriction. Got: {}",
+        stderr
     );
 
     // Should fail with exit code 1
@@ -160,8 +179,11 @@ fn test_impl_block_error_message() {
 
     // Error message says "Only functions are allowed" which correctly identifies the problem
     assert!(
-        stderr.contains("Only functions are allowed") || stderr.contains("impl") || stderr.contains("struct"),
-        "Error should mention impl/struct or function restriction. Got: {}", stderr
+        stderr.contains("Only functions are allowed")
+            || stderr.contains("impl")
+            || stderr.contains("struct"),
+        "Error should mention impl/struct or function restriction. Got: {}",
+        stderr
     );
 
     assert_eq!(output.status.code(), Some(1));
@@ -191,7 +213,8 @@ fn test_unsafe_block_error_message() {
 
     assert!(
         stderr.contains("unsafe") || stderr.contains("Unsupported"),
-        "Error should mention unsafe or unsupported. Got: {}", stderr
+        "Error should mention unsafe or unsupported. Got: {}",
+        stderr
     );
 
     assert_eq!(output.status.code(), Some(1));
@@ -222,7 +245,8 @@ fn test_generic_type_error_message() {
     // Generics might be unsupported or cause parse errors
     assert!(
         output.status.code() == Some(1),
-        "Generic types should cause error. Got exit code: {:?}", output.status.code()
+        "Generic types should cause error. Got exit code: {:?}",
+        output.status.code()
     );
 }
 
@@ -251,8 +275,12 @@ fn test_macro_definition_error_message() {
     let stderr = String::from_utf8_lossy(&output.stderr);
 
     // Macro definitions should fail
-    assert_eq!(output.status.code(), Some(1),
-        "Macro definitions should fail. Got: {:?}", output.status.code());
+    assert_eq!(
+        output.status.code(),
+        Some(1),
+        "Macro definitions should fail. Got: {:?}",
+        output.status.code()
+    );
 }
 
 #[test]
@@ -279,7 +307,8 @@ fn test_loop_statement_error_message() {
 
     assert!(
         stderr.contains("loop") || stderr.contains("Unsupported"),
-        "Error should mention loop or unsupported. Got: {}", stderr
+        "Error should mention loop or unsupported. Got: {}",
+        stderr
     );
 
     assert_eq!(output.status.code(), Some(1));
@@ -306,8 +335,7 @@ fn test_use_statement_error_message() {
     let stderr = String::from_utf8_lossy(&output.stderr);
 
     // Use statements should fail (not supported)
-    assert_eq!(output.status.code(), Some(1),
-        "Use statements should fail");
+    assert_eq!(output.status.code(), Some(1), "Use statements should fail");
 }
 
 // ============================================================================
@@ -337,7 +365,8 @@ fn test_syntax_error_diagnostic() {
     // Should have some error about syntax or expression
     assert!(
         stderr.contains("error") || stderr.contains("Error"),
-        "Should contain error message. Got: {}", stderr
+        "Should contain error message. Got: {}",
+        stderr
     );
 
     assert_eq!(output.status.code(), Some(1));
@@ -456,8 +485,7 @@ fn test_error_message_quality_baseline() {
         assert!(
             quality.has_error_prefix,
             "Error message for '{}' should have error prefix. Quality: {:?}",
-            feature,
-            quality
+            feature, quality
         );
     }
 }
@@ -493,7 +521,8 @@ fn test_multiple_errors_detected() {
     // Should detect at least one error
     assert!(
         stderr.contains("error") || stderr.contains("Error"),
-        "Should detect errors. Got: {}", stderr
+        "Should detect errors. Got: {}",
+        stderr
     );
 
     assert_eq!(output.status.code(), Some(1));

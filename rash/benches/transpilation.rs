@@ -1,5 +1,5 @@
-use criterion::{criterion_group, criterion_main, BenchmarkId, Criterion, Throughput};
 use bashrs::{ir, services::parser, transpile, Config};
+use criterion::{criterion_group, criterion_main, BenchmarkId, Criterion, Throughput};
 use std::time::Duration;
 
 const SIMPLE_RUST: &str = r#"

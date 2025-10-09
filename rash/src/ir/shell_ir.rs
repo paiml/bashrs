@@ -10,8 +10,8 @@ pub struct CaseArm {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum CasePattern {
-    Literal(String),  // Literal value to match
-    Wildcard,          // * pattern
+    Literal(String), // Literal value to match
+    Wildcard,        // * pattern
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -184,9 +184,7 @@ pub enum ShellValue {
     },
 
     /// Logical NOT (!) operation
-    LogicalNot {
-        operand: Box<ShellValue>,
-    },
+    LogicalNot { operand: Box<ShellValue> },
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -233,9 +231,7 @@ impl ShellValue {
             ShellValue::Comparison { left, right, .. }
             | ShellValue::Arithmetic { left, right, .. }
             | ShellValue::LogicalAnd { left, right }
-            | ShellValue::LogicalOr { left, right } => {
-                left.is_constant() && right.is_constant()
-            }
+            | ShellValue::LogicalOr { left, right } => left.is_constant() && right.is_constant(),
             ShellValue::LogicalNot { operand } => operand.is_constant(),
         }
     }

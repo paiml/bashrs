@@ -12,18 +12,18 @@
 //! 4. Differential testing: Shell output matches Rust execution
 
 use bashrs::{transpile, Config};
-use std::process::{Command, Output};
 use std::fs;
+use std::process::{Command, Output};
 use tempfile::TempDir;
 
 /// Represents a shell interpreter
 #[derive(Debug, Clone)]
 pub enum Shell {
-    Sh,          // System sh (usually dash symlink)
-    Dash,        // Debian Almquist Shell
-    Bash,        // Bourne Again Shell
-    Ash,         // BusyBox ash (requires Docker)
-    BusyboxSh,   // BusyBox sh (requires Docker)
+    Sh,        // System sh (usually dash symlink)
+    Dash,      // Debian Almquist Shell
+    Bash,      // Bourne Again Shell
+    Ash,       // BusyBox ash (requires Docker)
+    BusyboxSh, // BusyBox sh (requires Docker)
 }
 
 impl Shell {
@@ -39,13 +39,11 @@ impl Shell {
 
     fn is_available(&self) -> bool {
         match self {
-            Shell::Sh | Shell::Dash | Shell::Bash => {
-                Command::new(self.command())
-                    .arg("-c")
-                    .arg("true")
-                    .output()
-                    .is_ok()
-            }
+            Shell::Sh | Shell::Dash | Shell::Bash => Command::new(self.command())
+                .arg("-c")
+                .arg("true")
+                .output()
+                .is_ok(),
             Shell::Ash | Shell::BusyboxSh => {
                 // These require Docker
                 false
@@ -54,10 +52,16 @@ impl Shell {
     }
 
     fn all_available() -> Vec<Shell> {
-        vec![Shell::Sh, Shell::Dash, Shell::Bash, Shell::Ash, Shell::BusyboxSh]
-            .into_iter()
-            .filter(|s| s.is_available())
-            .collect()
+        vec![
+            Shell::Sh,
+            Shell::Dash,
+            Shell::Bash,
+            Shell::Ash,
+            Shell::BusyboxSh,
+        ]
+        .into_iter()
+        .filter(|s| s.is_available())
+        .collect()
     }
 }
 
@@ -66,8 +70,7 @@ fn execute_shell_script(shell: &Shell, script: &str) -> Result<Output, String> {
     let temp_dir = TempDir::new().map_err(|e| format!("Failed to create temp dir: {}", e))?;
     let script_path = temp_dir.path().join("test.sh");
 
-    fs::write(&script_path, script)
-        .map_err(|e| format!("Failed to write script: {}", e))?;
+    fs::write(&script_path, script).map_err(|e| format!("Failed to write script: {}", e))?;
 
     let output = Command::new(shell.command())
         .arg(&script_path)
@@ -84,8 +87,7 @@ fn execute_rust_source(source: &str) -> Result<Output, String> {
     let source_path = temp_dir.path().join("main.rs");
     let binary_path = temp_dir.path().join("main");
 
-    fs::write(&source_path, source)
-        .map_err(|e| format!("Failed to write Rust source: {}", e))?;
+    fs::write(&source_path, source).map_err(|e| format!("Failed to write Rust source: {}", e))?;
 
     // Compile
     let compile_output = Command::new("rustc")
@@ -116,10 +118,7 @@ fn transpile_and_execute_multi_shell(source: &str) -> Vec<(Shell, Result<Output,
     let shell_script = match transpile(source, config) {
         Ok(script) => script,
         Err(e) => {
-            return vec![(
-                Shell::Sh,
-                Err(format!("Transpilation failed: {}", e)),
-            )];
+            return vec![(Shell::Sh, Err(format!("Transpilation failed: {}", e)))];
         }
     };
 
@@ -215,7 +214,11 @@ fn test_multi_shell_arithmetic() {
 
     for (shell, result) in results {
         let output = result.unwrap_or_else(|e| panic!("{:?} failed: {}", shell, e));
-        assert!(output.status.success(), "{:?} failed with arithmetic", shell);
+        assert!(
+            output.status.success(),
+            "{:?} failed with arithmetic",
+            shell
+        );
     }
 }
 
@@ -267,7 +270,11 @@ fn test_multi_shell_for_loop() {
         let stdout = String::from_utf8_lossy(&output.stdout);
         // Should print "loop" 3 times
         let count = stdout.matches("loop").count();
-        assert_eq!(count, 3, "{:?} for loop didn't iterate 3 times. Got {count} iterations", shell);
+        assert_eq!(
+            count, 3,
+            "{:?} for loop didn't iterate 3 times. Got {count} iterations",
+            shell
+        );
     }
 }
 

@@ -468,7 +468,10 @@ fn test_function_body_length_calculation() {
 
     // This should succeed - if the arithmetic is wrong (+ or /), it would fail
     let ir = from_ast(&ast);
-    assert!(ir.is_ok(), "Should convert AST with correct boundary calculation");
+    assert!(
+        ir.is_ok(),
+        "Should convert AST with correct boundary calculation"
+    );
 }
 
 /// MUTATION KILLER: Line 95 - should_echo guard condition
@@ -528,7 +531,7 @@ fn test_equality_operator_conversion() {
             body: vec![Stmt::Let {
                 name: "result".to_string(),
                 value: Expr::Binary {
-                    op: BinaryOp::Eq,  // Test Eq operator specifically
+                    op: BinaryOp::Eq, // Test Eq operator specifically
                     left: Box::new(Expr::Literal(Literal::U32(5))),
                     right: Box::new(Expr::Literal(Literal::U32(5))),
                 },
@@ -570,7 +573,7 @@ fn test_subtraction_operator_conversion() {
             body: vec![Stmt::Let {
                 name: "result".to_string(),
                 value: Expr::Binary {
-                    op: BinaryOp::Sub,  // Test Sub operator specifically
+                    op: BinaryOp::Sub, // Test Sub operator specifically
                     left: Box::new(Expr::Literal(Literal::U32(10))),
                     right: Box::new(Expr::Literal(Literal::U32(3))),
                 },
@@ -605,19 +608,28 @@ fn test_subtraction_operator_conversion() {
 #[test]
 fn test_curl_command_network_effect() {
     let effects = effects::analyze_command_effects("curl");
-    assert!(effects.has_network_effects(), "curl should have network effects");
+    assert!(
+        effects.has_network_effects(),
+        "curl should have network effects"
+    );
     assert!(!effects.is_pure(), "curl should not be pure");
 }
 
 #[test]
 fn test_wget_command_network_effect() {
     let effects = effects::analyze_command_effects("wget");
-    assert!(effects.has_network_effects(), "wget should have network effects");
+    assert!(
+        effects.has_network_effects(),
+        "wget should have network effects"
+    );
     assert!(!effects.is_pure(), "wget should not be pure");
 }
 
 #[test]
 fn test_non_network_command_no_effect() {
     let effects = effects::analyze_command_effects("ls");
-    assert!(!effects.has_network_effects(), "ls should not have network effects");
+    assert!(
+        !effects.has_network_effects(),
+        "ls should not have network effects"
+    );
 }
