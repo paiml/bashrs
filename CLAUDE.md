@@ -1,103 +1,49 @@
-# CLAUDE.md - bashrs Development Guidelines
+# CLAUDE.md - Rash Development Guidelines
 
 ## Project Context
-**bashrs** is a **Bash-to-Rust** converter that transforms bash scripts into safe, tested Rust programs. There is NO "Rash" language - we convert bash to actual Rust code that can be compiled and tested.
+**Rash (bashrs)** is a bidirectional shell safety tool with two workflows:
 
-## What bashrs Does
+### PRIMARY WORKFLOW (Production-Ready): Rash → Safe Shell
+Write Rust-like code (Rash DSL) with full Rust tooling and testing, then transpile to provably safe, deterministic POSIX shell scripts.
 
-1. **Parses Bash scripts** → Bash AST
-2. **Converts to Rust** → Actual Rust code (using `fn`, not `fun`)
-3. **Generates tests** → Unit tests, property tests, integration tests
-4. **Validates quality** → Coverage, mutation testing, complexity
+**Why this is powerful**:
+- Write with Rust syntax, tooling, and type safety
+- Test with `cargo test` BEFORE generating shell
+- Get deterministic, idempotent shell output
+- Guaranteed safe against injection attacks
+- POSIX compliant (passes shellcheck)
 
-This is NOT a transpiler creating a new language. This is a converter from bash to Rust.
+### SECONDARY WORKFLOW (Recently Added): Bash → Rust → Purified Bash
+Ingest messy bash scripts, convert to Rust with tests, then transpile to purified, safe bash.
 
-## Development Principles
+**Purification pipeline**:
+1. Parse legacy bash (with $RANDOM, timestamps, non-idempotent code)
+2. Convert to Rash/Rust + generate comprehensive tests
+3. Transpile to purified bash (deterministic, idempotent, safe)
 
-### 自働化 (Jidoka) - Build Quality In
-- **Never ship incomplete code**: All bash-to-Rust conversions must include complete error handling
-- **Verification-first development**: Every conversion pattern requires corresponding tests
-- **Example**: When implementing bash function conversion:
-  ```rust
-  // CORRECT: Complete conversion with error handling
-  fn convert_bash_function(func: &BashFunction) -> Result<RustFunction, ConversionError> {
-      validate_function_safety(func)?;
-      convert_to_rust_fn(func)
-  }
-  // NEVER: Partial conversions with TODO
-  ```
+This "cleans up" existing bash scripts by running them through the bashrs safety pipeline.
 
-### 現地現物 (Genchi Genbutsu) - Direct Observation
-- **Test against real bash**: Parse actual bash scripts from the wild
-- **Verify Rust output**: Generated Rust must compile and pass cargo test
-- **Compare behavior**: Ensure bash script and Rust program produce identical results
+---
 
-### 反省 (Hansei) - Fix Before Adding
-- **Current priorities**:
-    1. Bash parsing completeness (handle all bash constructs)
-    2. Safe Rust code generation (proper error handling)
-    3. Test generation quality (comprehensive test coverage)
-- **Do not add**: Advanced features until core bash→Rust conversion is bulletproof
+## Workflow 1: Rash → Shell (PRIMARY)
 
-### 改善 (Kaizen) - Continuous Improvement
-- **Incremental conversion**: Support more bash patterns incrementally
-- **Quality baselines**: Generated Rust must pass all quality gates
-- **Test coverage**: Aim for >85% coverage on generated Rust code
-
-## Critical Invariants
-1. **Valid Rust**: All generated code must compile with `cargo build`
-2. **Comprehensive tests**: Generated tests must achieve >85% coverage
-3. **Behavioral equivalence**: Rust program behavior matches original bash script
-
-## Verification with paiml-mcp-agent-toolkit
-```bash
-# Verify converter correctness
-pmat analyze complexity --max 10
-pmat analyze satd --zero-tolerance
-pmat quality-score --min 9.0
-
-# Test generated Rust code
-cd generated/
-cargo test
-cargo llvm-cov --lcov
-```
-
-## Example Workflow
-
-### Input: Bash Script
-```bash
-#!/bin/bash
-# deploy.sh - Deploy application
-
-deploy_app() {
-    local version=$1
-    echo "Deploying version $version"
-    mkdir -p /app/releases/v${version}
-    cp app.tar.gz /app/releases/v${version}/
-}
-
-deploy_app "1.0.0"
-```
-
-### Output: Rust Program
+### Input: Rash Code
 ```rust
-// deploy.rs - Generated from deploy.sh
-use std::fs;
-use std::io::Result;
+// install.rash - Write Rust-like code
+fun install_app(version: &str) -> Result<(), String> {
+    let prefix = "/usr/local";
 
-fn deploy_app(version: &str) -> Result<()> {
-    println!("Deploying version {}", version);
+    println!("Installing version {}", version);
 
-    let release_dir = format!("/app/releases/v{}", version);
-    fs::create_dir_all(&release_dir)?;
-
-    fs::copy("app.tar.gz", format!("{}/app.tar.gz", release_dir))?;
+    // Use Rust patterns
+    std::fs::create_dir_all(format!("{}/bin", prefix))?;
+    std::fs::copy("myapp", format!("{}/bin/myapp", prefix))?;
 
     Ok(())
 }
 
-fn main() -> Result<()> {
-    deploy_app("1.0.0")
+fn main() -> Result<(), String> {
+    install_app("1.0.0")
 }
 
 #[cfg(test)]
@@ -105,64 +51,205 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_deploy_app_creates_directory() {
-        // Test implementation
-    }
-
-    #[test]
-    fn test_deploy_app_copies_file() {
-        // Test implementation
+    fn test_install_idempotent() {
+        // Test BEFORE generating shell
+        assert!(install_app("1.0.0").is_ok());
+        assert!(install_app("1.0.0").is_ok()); // Safe to re-run
     }
 }
 ```
 
-### Generated Tests
+### Output: Safe POSIX Shell
+```bash
+#!/bin/sh
+# Generated by Rash v1.0.0 - Provably safe and deterministic
+
+install_app() {
+    _version="$1"
+    prefix="/usr/local"
+
+    printf '%s\n' "Installing version ${_version}"
+
+    # Idempotent operations (safe to re-run)
+    mkdir -p "${prefix}/bin" || return 1
+    cp myapp "${prefix}/bin/myapp" || return 1
+
+    return 0
+}
+
+install_app "1.0.0"
+```
+
+**Quality Guarantees**:
+- ✅ Deterministic (same input = same output)
+- ✅ Idempotent (safe to re-run)
+- ✅ POSIX compliant (shellcheck passes)
+- ✅ No injection vectors (all vars quoted)
+- ✅ Tested before generation
+
+---
+
+## Workflow 2: Bash → Rust → Purified Bash (SECONDARY)
+
+### Input: Messy Bash
+```bash
+#!/bin/bash
+# deploy.sh - PROBLEMATIC
+
+# Non-deterministic
+SESSION_ID=$RANDOM
+RELEASE="release-$(date +%s)"
+
+# Non-idempotent
+mkdir /app/releases/$RELEASE
+rm /app/current
+ln -s /app/releases/$RELEASE /app/current
+```
+
+### Step 1: Parse to Rust
 ```rust
+// deploy.rs - Generated from deploy.sh
+use std::fs;
+
+fn deploy_app(version: &str) -> Result<(), String> {
+    // Purified: deterministic (not $RANDOM)
+    let session_id = format!("session-{}", version);
+
+    // Purified: deterministic (not timestamp)
+    let release = format!("release-{}", version);
+
+    // Purified: idempotent (mkdir -p)
+    let release_dir = format!("/app/releases/{}", release);
+    fs::create_dir_all(&release_dir)?;
+
+    // Purified: idempotent (remove if exists)
+    let _ = fs::remove_file("/app/current");
+
+    // Purified: idempotent (symlink)
+    std::os::unix::fs::symlink(&release_dir, "/app/current")?;
+
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::fs;
-    use tempfile::TempDir;
 
     #[test]
-    fn test_deploy_app() {
-        let temp = TempDir::new().unwrap();
-        let version = "1.0.0";
-
-        deploy_app(version).unwrap();
-
-        assert!(Path::new(&format!("/app/releases/v{}", version)).exists());
-    }
-}
-
-#[cfg(test)]
-mod property_tests {
-    use super::*;
-    use proptest::prelude::*;
-
-    proptest! {
-        #[test]
-        fn prop_deploy_idempotent(version in "[0-9]+\\.[0-9]+\\.[0-9]+") {
-            // Running twice with same version should succeed
-            assert!(deploy_app(&version).is_ok());
-            assert!(deploy_app(&version).is_ok());
-        }
+    fn test_deploy_deterministic() {
+        // Same version = same behavior
+        assert!(deploy_app("1.0.0").is_ok());
+        assert!(deploy_app("1.0.0").is_ok());
     }
 }
 ```
+
+### Step 2: Purified Bash Output
+```bash
+#!/bin/sh
+# Purified by Rash v1.0.0
+
+deploy_app() {
+    _version="$1"
+
+    # Deterministic (was $RANDOM)
+    session_id="session-${_version}"
+
+    # Deterministic (was timestamp)
+    release="release-${_version}"
+
+    # Idempotent (was mkdir)
+    release_dir="/app/releases/${release}"
+    mkdir -p "${release_dir}" || return 1
+
+    # Idempotent (was rm)
+    rm -f "/app/current"
+
+    # Idempotent (was ln -s)
+    ln -s "${release_dir}" "/app/current" || return 1
+}
+
+deploy_app "$1"
+```
+
+**Purification Report**:
+```
+Issues Fixed: 5
+- $RANDOM → version-based ID
+- $(date +%s) → fixed release tag
+- mkdir → mkdir -p (idempotent)
+- rm → rm -f (idempotent)
+- ln -s → remove + ln -s (idempotent)
+
+Quality: ✅ Deterministic, ✅ Idempotent, ✅ POSIX
+```
+
+---
+
+## Development Principles
+
+### 自働化 (Jidoka) - Build Quality In
+- **Workflow 1**: Test Rash code with `cargo test` before transpiling
+- **Workflow 2**: Generate tests when converting bash, validate purified output
+- **Never ship incomplete code**: All transpiler outputs must be fully safe
+
+### 現地現物 (Genchi Genbutsu) - Direct Observation
+- **Test against real shells**: dash, ash, busybox sh, bash
+- **Profile actual scenarios**: Bootstrap installers on Alpine containers
+- **Verify purification**: Ensure purified bash behaves identically to original
+
+### 反省 (Hansei) - Fix Before Adding
+- **Current priorities**:
+    1. Rash → Shell quality (primary workflow)
+    2. Bash → Rust parsing completeness
+    3. Purification accuracy (behavioral equivalence)
+
+### 改善 (Kaizen) - Continuous Improvement
+- **Quality baselines**: All generated shell must pass quality gates
+- **Performance**: <100ms transpilation, <10MB memory
+- **Test coverage**: >85% on all modules
+
+## Critical Invariants
+
+### Workflow 1 (Rash → Shell)
+1. **POSIX compliance**: Every generated script must pass `shellcheck -s sh`
+2. **Determinism**: Same Rash input must produce byte-identical shell output
+3. **Safety**: No injection vectors in generated scripts
+4. **Idempotency**: Operations safe to re-run
+
+### Workflow 2 (Bash → Purified Bash)
+1. **Behavioral equivalence**: Purified bash must behave same as original
+2. **Determinism**: Remove all $RANDOM, timestamps, process IDs
+3. **Idempotency**: Add -p, -f flags for safe re-run
+4. **Test coverage**: >85% on converted Rust code
+
+## Verification with paiml-mcp-agent-toolkit
+```bash
+# Verify transpiler correctness (Workflow 1)
+pmat verify --spec rash.spec --impl target/debug/bashrs
+
+# Test generated scripts
+pmat test --shell-matrix "sh,dash,ash" --input examples/*.rs
+
+# Verify purification (Workflow 2)
+pmat analyze complexity --max 10
+pmat quality-score --min 9.0
+```
+
+## Tools
+- `cargo test` - Test Rash code (Workflow 1) or converted Rust (Workflow 2)
+- `cargo llvm-cov` - Measure coverage (we use llvm, not tarpaulin)
+- `cargo mutants` - Mutation testing
+- `shellcheck` - Validate generated shell output
+- `pmat` - Quality analysis with paiml-mcp-agent-toolkit
 
 ## Quality Standards
 
-All generated Rust code must meet:
-- ✅ Compiles without warnings
-- ✅ Passes all generated tests
+All outputs must meet:
+- ✅ 100% shellcheck compliance (POSIX)
+- ✅ 100% determinism tests pass
+- ✅ 100% idempotency tests pass
 - ✅ >85% code coverage
 - ✅ Complexity <10
-- ✅ No SATD (Self-Admitted Technical Debt)
 - ✅ Mutation score >80%
-
-## Tools
-- `pmat` - Quality analysis with paiml-mcp-agent-toolkit
-- `cargo test` - Run generated tests
-- `cargo llvm-cov` - Measure coverage (we use llvm, not tarpaulin)
-- `cargo mutants` - Mutation testing
+- ✅ Zero defects policy
