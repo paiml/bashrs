@@ -7,6 +7,8 @@
 // 3. Error message quality score ≥0.7
 // 4. CLI flags work correctly (--help, --version, --check)
 
+#![allow(dead_code)] // score() method reserved for future quality analysis
+
 use assert_cmd::Command;
 use predicates::prelude::*;
 use std::io::Write;

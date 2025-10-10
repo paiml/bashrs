@@ -649,7 +649,10 @@ fn test_binary_op_not_equal_conversion() {
             value: crate::ast::Expr::Binary { op, .. },
             ..
         } => {
-            assert!(matches!(op, BinaryOp::Ne), "Expected Ne (not equal) operator");
+            assert!(
+                matches!(op, BinaryOp::Ne),
+                "Expected Ne (not equal) operator"
+            );
         }
         _ => panic!("Expected binary expression with != operator"),
     }
@@ -660,7 +663,10 @@ fn test_binary_op_not_equal_conversion() {
             value: crate::ast::Expr::Binary { op, .. },
             ..
         } => {
-            assert!(matches!(op, BinaryOp::Ne), "Expected Ne (not equal) operator");
+            assert!(
+                matches!(op, BinaryOp::Ne),
+                "Expected Ne (not equal) operator"
+            );
         }
         _ => panic!("Expected binary expression with != operator"),
     }
@@ -696,7 +702,7 @@ fn test_all_binary_operators_converted() {
         BinaryOp::Mul,
         BinaryOp::Div,
         BinaryOp::Eq,
-        BinaryOp::Ne,  // Critical: ensures Ne branch is tested
+        BinaryOp::Ne, // Critical: ensures Ne branch is tested
         BinaryOp::Lt,
         BinaryOp::Le,
         BinaryOp::Gt,
@@ -827,7 +833,10 @@ fn test_pattern_ident_arm_execution() {
                 Pattern::Variable(name) => {
                     assert_eq!(name, "code", "Expected variable pattern 'code'");
                 }
-                _ => panic!("Expected identifier pattern 'code', got {:?}", arms[1].pattern),
+                _ => panic!(
+                    "Expected identifier pattern 'code', got {:?}",
+                    arms[1].pattern
+                ),
             }
 
             // Third arm: wildcard pattern (_)
@@ -868,28 +877,19 @@ fn test_comprehensive_pattern_matching() {
 
             // Numeric literal
             assert!(
-                matches!(
-                    &arms[0].pattern,
-                    Pattern::Literal(Literal::U32(42))
-                ),
+                matches!(&arms[0].pattern, Pattern::Literal(Literal::U32(42))),
                 "Expected numeric literal 42"
             );
 
             // String literal
             assert!(
-                matches!(
-                    &arms[1].pattern,
-                    Pattern::Literal(Literal::Str(_))
-                ),
+                matches!(&arms[1].pattern, Pattern::Literal(Literal::Str(_))),
                 "Expected string literal"
             );
 
             // Boolean literal
             assert!(
-                matches!(
-                    &arms[2].pattern,
-                    Pattern::Literal(Literal::Bool(true))
-                ),
+                matches!(&arms[2].pattern, Pattern::Literal(Literal::Bool(true))),
                 "Expected boolean literal true"
             );
 
