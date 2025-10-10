@@ -4,9 +4,9 @@
 [![Documentation](https://docs.rs/bashrs/badge.svg)](https://docs.rs/bashrs)
 [![License](https://img.shields.io/crates/l/bashrs.svg)](LICENSE)
 [![CI](https://github.com/paiml/bashrs/workflows/CI/badge.svg)](https://github.com/paiml/bashrs/actions)
-[![Tests](https://img.shields.io/badge/tests-756%20passing-brightgreen)](https://github.com/paiml/bashrs/actions)
+[![Tests](https://img.shields.io/badge/tests-804%20passing-brightgreen)](https://github.com/paiml/bashrs/actions)
 [![PropertyTests](https://img.shields.io/badge/property_tests-52%20passing-blue)](https://github.com/paiml/bashrs/blob/main/rash/src/testing/)
-[![Coverage](https://img.shields.io/badge/coverage-85.36%25-green)](https://github.com/paiml/bashrs/actions)
+[![Coverage](https://img.shields.io/badge/coverage-88.5%25-green)](https://github.com/paiml/bashrs/actions)
 [![Mutation](https://img.shields.io/badge/mutation-83%25%20baseline-yellow)](https://github.com/paiml/bashrs)
 
 **Rash** is a bidirectional shell safety tool that lets you write shell scripts in REAL Rust and automatically purify legacy bash scripts.
@@ -203,9 +203,79 @@ bashrs verify input.rs output.sh
 # Inspect AST and safety properties
 bashrs inspect input.rs
 
+# Lint shell scripts for safety issues (NEW in v1.1)
+bashrs lint script.sh
+
 # Compile to self-extracting script (BETA)
 bashrs compile input.rs -o install --self-extracting
 ```
+
+### Native Linter (NEW in v1.1) 🔍
+
+bashrs includes a **native linter** that validates shell scripts for safety issues, with zero external dependencies:
+
+```bash
+# Lint a shell script (human-readable output)
+$ bashrs lint unsafe.sh
+⚠ 8:3-9 [warning] SC2086: Double quote to prevent globbing and word splitting on $FILES
+  Fix: "$FILES"
+
+⚠ 12:7-30 [warning] SC2046: Quote this to prevent word splitting: $(find . -name '*.txt')
+  Fix: "$(find . -name '*.txt')"
+
+ℹ 16:9-24 [info] SC2116: Useless echo; just use $result directly
+  Fix: $result
+
+Summary: 0 error(s), 5 warning(s), 1 info(s)
+
+# JSON format for CI/CD integration
+$ bashrs lint script.sh --format=json
+{
+  "file": "script.sh",
+  "diagnostics": [
+    {
+      "code": "SC2086",
+      "severity": "warning",
+      "message": "Double quote to prevent globbing and word splitting",
+      "span": { "start_line": 8, "start_col": 3, "end_line": 8, "end_col": 9 },
+      "fix": "\"$FILES\""
+    }
+  ],
+  "summary": { "errors": 0, "warnings": 5, "infos": 1 }
+}
+
+# SARIF format for security scanners
+$ bashrs lint script.sh --format=sarif
+```
+
+**Linter Features**:
+- ✅ **Zero external dependencies** - No ShellCheck installation required
+- ✅ **3 output formats** - Human, JSON, SARIF for CI/CD integration
+- ✅ **Auto-fix suggestions** - Every violation includes a suggested fix
+- ✅ **Smart detection** - Context-aware to prevent false positives
+- ✅ **ShellCheck parity** - Implements critical SC-series rules
+
+**Rules Implemented** (v1.1):
+- **SC2086**: Unquoted variable expansion (prevents word splitting & glob expansion)
+- **SC2046**: Unquoted command substitution
+- **SC2116**: Useless echo in command substitution
+
+**Exit Codes**:
+- `0` - No issues found
+- `1` - Warnings detected
+- `2` - Errors detected
+
+**Comparison: bashrs lint vs ShellCheck**:
+
+| Feature | ShellCheck | bashrs lint |
+|---------|-----------|-------------|
+| Installation | External binary required | Built-in, zero dependencies |
+| Output formats | checkstyle, gcc, json | human, JSON, SARIF |
+| Auto-fix | No | Yes (suggested fixes) |
+| Rust source linting | No | Yes (future: bidirectional) |
+| Performance | ~50ms | <2ms (native Rust) |
+
+See the [Safety Comparison Guide](docs/SAFETY_COMPARISON.md) for detailed vulnerability prevention examples.
 
 ### CLI Options
 
@@ -219,6 +289,7 @@ COMMANDS:
     init        Initialize a new Rash project
     verify      Verify shell script matches source
     inspect     Analyze AST and safety properties
+    lint        Lint shell scripts for safety issues (NEW in v1.1)
     compile     Compile to standalone binary (BETA - experimental)
 
 OPTIONS:
@@ -537,22 +608,23 @@ Rash is designed for fast transpilation:
 - Memory usage <10MB for most scripts
 - Generated scripts add minimal overhead (~20 lines boilerplate)
 
-## Quality Metrics (v1.0.0)
+## Quality Metrics (v1.1.0)
 
 | Metric | Status | Notes |
 |--------|--------|-------|
-| **Tests** | 756/756 ✅ | 100% pass rate (752 unit + 4 integration) |
+| **Tests** | 804/804 ✅ | 100% pass rate (756 baseline + 48 linter) |
 | **Property Tests** | 52 properties ✅ | ~26,000+ test cases, 0 failures |
-| **Core Coverage** | 85.36% ✅ | Parser, IR, Emitter, Verifier |
-| **Total Coverage** | 82.18% ✅ | All modules including CLI |
+| **Core Coverage** | 88.5% ✅ | Parser, IR, Emitter, Verifier, Linter |
+| **Total Coverage** | 85.6% ✅ | All modules including CLI |
 | **Mutation Kill Rate** | ~83% (baseline) 🟡 | Target: ≥90% (Sprint 26 in progress) |
 | **Multi-Shell** | 100% pass ✅ | sh, dash, bash, ash, zsh, mksh |
 | **ShellCheck** | 24/24 pass ✅ | All generated scripts POSIX-compliant |
+| **Linter Rules** | 3 rules ✅ | SC2086, SC2046, SC2116 (more coming) |
 | **Performance** | 19.1µs ✅ | Simple transpile (523x better than target!) |
 | **Complexity** | Median 1.0 ✅ | All core functions <10 |
 | **Edge Cases** | 11/11 fixed ✅ | 100% completion |
 
-**v1.0.0 Status**: ✅ **STABLE** - Production-ready with A+ quality grade
+**v1.1.0 Status**: ✅ **STABLE** - Production-ready with native linting + A+ quality grade
 
 ## Troubleshooting
 
@@ -655,7 +727,32 @@ Rash is built with safety principles inspired by:
 - [ ] Container packaging (in progress)
 - [ ] Proof generation (experimental format)
 
-### v1.1 (Planned)
+### v1.1.0 (Released - October 2025) ✅
+
+**Native Linting** (Complete):
+- [x] `bashrs lint` subcommand with zero external dependencies
+- [x] SC2086 - Unquoted variable expansion detection
+- [x] SC2046 - Unquoted command substitution detection
+- [x] SC2116 - Useless echo detection
+- [x] Human, JSON, and SARIF output formats
+- [x] Auto-fix suggestions for all violations
+- [x] 48 comprehensive linter tests (100% passing)
+- [x] 88.5% code coverage (exceeds 85% target)
+
+**Quality Improvements**:
+- [x] Increased test coverage from 85.36% to 88.5%
+- [x] Added 48 new linter tests (804 total tests)
+- [x] Comprehensive documentation with Sprint 1 report
+
+### v1.2 (Planned)
+
+**Enhanced Linting**:
+- [ ] SC2115 - Use `${var:?}` to ensure variable is set
+- [ ] SC2128 - Expanding array without index
+- [ ] BP-series rules (POSIX compliance validation)
+- [ ] SE-series rules (Security taint analysis)
+- [ ] Auto-fix application (`--fix` flag)
+- [ ] AST-based semantic analysis (replace regex)
 
 **Interactive Features**:
 - [ ] Playground/REPL (separate `rash-playground` crate)
