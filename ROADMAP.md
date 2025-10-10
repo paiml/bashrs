@@ -1,5 +1,31 @@
 # Rash (bashrs) Extreme Quality Roadmap
 
+## 🎯 Project Overview: Bidirectional Shell Safety Tool
+
+**Rash (bashrs)** is a bidirectional shell safety tool using REAL Rust (not a DSL):
+
+### 🚀 PRIMARY WORKFLOW (Production-Ready): Rust → Safe Shell
+Write actual Rust code, test with standard Rust tooling, then transpile to provably safe, deterministic POSIX shell scripts.
+
+**Status**: ✅ **Production-ready and working very well**
+- Write new bootstrap installers, deployment scripts, CI/CD tools
+- Full Rust std library support
+- Test with `cargo test`, lint with `cargo clippy`
+- Generate deterministic, idempotent, injection-safe shell scripts
+
+### 🔄 SECONDARY WORKFLOW (Recently Added): Bash → Rust → Purified Bash
+Ingest messy bash scripts, convert to Rust with automatic test generation, then transpile to purified, safe bash.
+
+**Status**: ✅ **Functional, for cleaning legacy scripts**
+- Remove non-deterministic constructs ($RANDOM, timestamps, $$)
+- Enforce idempotency (mkdir -p, rm -f)
+- Generate comprehensive test suites
+- Output is safe, deterministic, verifiable bash
+
+See `examples/PURIFICATION_WORKFLOW.md` for details on Workflow 2.
+
+---
+
 ## ✅ v1.0.0 RELEASED: Stable Production Release 🎉
 **Achievement**: **FIRST STABLE 1.0.0 RELEASE!** 🏆
 - ✅ **Test Generator Implementation Complete** (automatic test generation from bash AST)
@@ -106,7 +132,7 @@
 **v1.0.0**: **STABLE RELEASE** (first production release, published to GitHub) ✅
 
 ### 🎯 Project Goals (Derived from CLAUDE.md)
-Rash is a **Rust-to-Shell transpiler** with these critical invariants:
+Rash is a **bidirectional shell safety tool** with these critical invariants:
 1. **POSIX compliance**: Every generated script must pass `shellcheck -s sh`
 2. **Determinism**: Same Rust input must produce byte-identical shell output
 3. **Safety**: No user input can escape proper quoting in generated scripts
