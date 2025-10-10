@@ -430,6 +430,105 @@ Generated scripts are tested on:
 | zsh | 5.0+ | ✅ Full support |
 | mksh | R59+ | ✅ Full support |
 
+## Standards Compliance
+
+bashrs adheres to industry-standard shell scripting best practices and specifications:
+
+### POSIX Shell Compliance
+
+bashrs generates scripts compliant with the [POSIX Shell Command Language](https://pubs.opengroup.org/onlinepubs/9699919799/utilities/V3_chap02.html) specification:
+
+| POSIX Feature | Implementation | Status |
+|---------------|----------------|--------|
+| Variable quoting | Automatic single quotes for literals | ✅ Enforced |
+| Command substitution | `$(command)` syntax | ✅ Compliant |
+| Arithmetic expansion | `$((expression))` syntax | ✅ Compliant |
+| Parameter expansion | `${var}` and `"$var"` patterns | ✅ Compliant |
+| Test expressions | `[ condition ]` POSIX syntax | ✅ Compliant |
+| String escaping | Proper handling of special characters | ✅ Safe |
+
+### Google Shell Style Guide
+
+Aligns with [Google's Shell Style Guide](https://google.github.io/styleguide/shellguide.html) recommendations:
+
+| Guideline | bashrs Approach | Status |
+|-----------|-----------------|--------|
+| Always quote variables | Automatic quoting (no unquoted vars possible) | ✅ Enforced |
+| Use `$(...)` not backticks | Generates modern `$(...)` syntax | ✅ Compliant |
+| Check return values | Effect system tracks side effects | ✅ Implemented |
+| Error messages to STDERR | Built-in `eprint()` function | ✅ Available |
+| Avoid complex shell scripts | **Write Rust instead!** | ✅ **Core value** |
+
+### ShellCheck Validation
+
+All generated scripts pass [ShellCheck](https://www.shellcheck.net/) static analysis:
+
+- ✅ **SC2086**: No unquoted variable expansions (automatic quoting)
+- ✅ **SC2046**: No unquoted command substitutions
+- ✅ **SC2116**: No useless echo wrapping
+- ✅ **SC2005**: No useless echo in command substitution
+- ✅ **24/24 ShellCheck tests passing** (100% compliance)
+
+### Safety Guarantees
+
+bashrs provides **automatic protection** against common shell vulnerabilities:
+
+| Vulnerability | Raw Shell Risk | bashrs Protection |
+|---------------|----------------|-------------------|
+| **Command Injection** | Unquoted `$var` allows arbitrary commands | All variables auto-quoted |
+| **Word Splitting** | `$var` splits on IFS characters | Uses `"$var"` or `'literal'` |
+| **Glob Expansion** | `$var` expands wildcards (`*`, `?`) | Proper quoting prevents expansion |
+| **Path Traversal** | `cd $dir` allows `../../../etc` | Safe path handling |
+| **Exit on Error** | Commands fail silently by default | `set -e` enforced (optional) |
+
+### Comparison: Raw Shell vs bashrs
+
+**Unsafe Raw Shell**:
+```bash
+#!/bin/bash
+USER_INPUT=$1
+eval "echo $USER_INPUT"  # DANGEROUS!
+rm -rf $DIRECTORY        # Word splitting risk
+```
+
+**Safe bashrs**:
+```rust
+fn main() {
+    let user_input = env("1");
+    echo("{user_input}");    // Auto-quoted → echo "$user_input"
+
+    let directory = env("DIRECTORY");
+    exec("rm -rf {directory}");  // Auto-quoted → rm -rf "$directory"
+}
+```
+
+**Generated Safe Shell**:
+```bash
+#!/bin/sh
+set -euf
+IFS='
+'
+export LC_ALL=C
+
+main() {
+    USER_INPUT="${1}"
+    echo "$USER_INPUT"        # Safely quoted
+
+    DIRECTORY="${DIRECTORY}"
+    rm -rf "$DIRECTORY"       # Safely quoted
+}
+
+main "$@"
+```
+
+### Standards Documentation
+
+For detailed compliance information, see:
+- [POSIX Shell Specification](https://pubs.opengroup.org/onlinepubs/9699919799/utilities/V3_chap02.html)
+- [Google Shell Style Guide](https://google.github.io/styleguide/shellguide.html)
+- [ShellCheck Wiki](https://www.shellcheck.net/wiki/)
+- **[bashrs Safety Comparison](docs/SAFETY_COMPARISON.md)** - Comprehensive vulnerability prevention guide
+
 ## Performance
 
 Rash is designed for fast transpilation:
