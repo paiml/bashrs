@@ -24,13 +24,31 @@ meta:
     - "Code size: <20 lines shell boilerplate"
 
 sprints:
-  # SPRINT 25: Mutation Testing Full Coverage (Week 1-2)
+  # SPRINT 25: COMPLETED - Test Generator & Integration Testing
   - id: sprint-25
+    name: "Test Generator & Integration Testing"
+    status: "✅ COMPLETE"
+    goal: "Implement automatic test generation and integration testing"
+    duration: 2_weeks
+    completion_date: "2025-10-10"
+    achievements:
+      - "Test generator module fully implemented"
+      - "4 integration tests covering end-to-end workflows"
+      - "Doctest extraction and unit test generation working"
+      - "756/756 tests passing (100%)"
+      - "v1.0.0 stable release"
+    tickets_completed:
+      - "Test generator core implementation"
+      - "Integration test framework"
+      - "Bug fixes (doctest extraction, Rust code generation)"
+
+  # SPRINT 26: Mutation Testing Full Coverage (Week 1-2)
+  - id: sprint-26
     name: "Mutation Testing Excellence"
     goal: "Achieve ≥90% mutation kill rate across core modules"
     duration: 2_weeks
     tickets:
-      - id: RASH-2501
+      - id: RASH-2601
         title: "Run full mutation analysis on parser"
         priority: critical
         requirements:
@@ -47,7 +65,7 @@ sprints:
           - "All surviving mutants analyzed"
           - "Gap analysis complete"
 
-      - id: RASH-2502
+      - id: RASH-2602
         title: "Close parser mutation gaps"
         priority: critical
         requirements:
@@ -63,7 +81,7 @@ sprints:
           - "All critical mutants killed"
           - "Property tests added for patterns"
 
-      - id: RASH-2503
+      - id: RASH-2603
         title: "IR module mutation coverage"
         priority: high
         requirements:
@@ -79,7 +97,7 @@ sprints:
           - "All IR conversions tested"
           - "Documentation updated"
 
-      - id: RASH-2504
+      - id: RASH-2604
         title: "Emitter module mutation coverage"
         priority: high
         requirements:
@@ -95,7 +113,7 @@ sprints:
           - "All shell emission tested"
           - "Output validation complete"
 
-      - id: RASH-2505
+      - id: RASH-2605
         title: "Verifier module mutation coverage"
         priority: medium
         requirements:
@@ -452,11 +470,16 @@ toyota_way_principles:
     enforcement: "Required before major releases"
 
 current_status:
-  version: "v0.9.2"
-  quality_grade: "A+ (98/100)"
-  test_pass_rate: "100% (603/603)"
+  version: "v1.0.0"
+  release_date: "2025-10-10"
+  quality_grade: "A+ (100/100)"
+  test_pass_rate: "100% (756/756)"
+  unit_tests: 752
+  integration_tests: 4
   property_tests: 52
   mutation_kill_rate: "~83% (baseline)"
   coverage: "85.36% (core)"
   complexity_median: 1.0
   edge_cases_fixed: "11/11 (100%)"
+  test_generator: "operational"
+  status: "STABLE - Production Ready"
