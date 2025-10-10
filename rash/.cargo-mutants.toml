@@ -1,0 +1,10 @@
+# Mutation Testing Configuration for Rash
+# Target: ≥85% mutation score per specification
+
+# Timeout configuration
+timeout = 60  # 60 seconds per mutant
+timeout_multiplier = 2.0
+minimum_test_timeout = 10
+
+# Run tests in parallel
+jobs = 4

@@ -58,8 +58,11 @@ fn has_main_attribute(item_fn: &ItemFn) -> bool {
 fn is_main_attribute(attr: &syn::Attribute) -> bool {
     let path = attr.path();
     path.segments.len() == 2
-        && (path.segments[0].ident == "bashrs" || path.segments[0].ident == "rash")
-        && path.segments[1].ident == "main"
+        && path
+            .segments
+            .get(0)
+            .is_some_and(|seg| seg.ident == "bashrs" || seg.ident == "rash")
+        && path.segments.get(1).is_some_and(|seg| seg.ident == "main")
 }
 
 fn check_single_entry_point(current: &Option<String>, _new_name: &str) -> Result<()> {

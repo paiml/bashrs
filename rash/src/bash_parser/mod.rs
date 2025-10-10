@@ -1,0 +1,31 @@
+//! Bash-to-Rash Parser Module
+//!
+//! This module implements Phase 1 of the bash-to-rash transpilation workflow:
+//! - Formal parsing of bash scripts into AST
+//! - Semantic analysis (variable scopes, command effects)
+//! - Support for POSIX shell subset
+//!
+//! ## Design Principles
+//! - Jidoka: Complete error handling for all parsing paths
+//! - Genchi Genbutsu: Test against real shell scripts
+//! - Hansei: Fix broken functionality before adding features
+//! - Kaizen: Incremental verification with property tests
+
+pub mod ast;
+pub mod lexer;
+pub mod parser;
+pub mod semantic;
+
+pub use ast::{BashAst, BashExpr, BashNode, BashStmt};
+pub use parser::{BashParser, ParseResult};
+pub use semantic::{EffectTracker, ScopeInfo, SemanticAnalyzer};
+
+#[cfg(test)]
+mod tests;
+
+#[cfg(test)]
+mod property_tests;
+
+// Property-based test generators - only compiled during tests
+#[cfg(test)]
+pub mod generators;

@@ -52,6 +52,8 @@
 //! ```
 
 pub mod ast;
+pub mod bash_parser;
+pub mod bash_transpiler;
 pub mod cli;
 pub mod compiler;
 pub mod container;

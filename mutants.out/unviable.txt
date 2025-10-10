@@ -1,6 +1,0 @@
-rash/src/ir/mod.rs:487:25: delete match arm ShellValue::String(s) in constant_fold
-rash/src/ir/mod.rs:52:9: replace IrConverter::convert -> Result<ShellIR> with Ok(Default::default())
-rash/src/ir/mod.rs:449:9: replace IrConverter::convert_match_pattern -> Result<shell_ir::CasePattern> with Ok(Default::default())
-rash/src/ir/mod.rs:176:28: delete ! in IrConverter::convert_stmt
-rash/src/ir/mod.rs:535:5: replace transform_ir -> ShellIR with Default::default()
-rash/src/ir/mod.rs:261:9: replace IrConverter::convert_expr -> Result<ShellIR> with Ok(Default::default())
