@@ -3,7 +3,10 @@
 # Inspired by paiml-mcp-agent-toolkit standards
 
 meta:
-  project: Bashrs (Rash) - Rust-to-Shell Transpiler
+  project: Bashrs (Rash) - Bidirectional Shell Safety Tool
+  description: |
+    PRIMARY: Rust → Safe Shell (production-ready)
+    SECONDARY: Bash → Rust → Purified Bash (for legacy cleanup)
   approach: Extreme Test-Driven Development
   quality_gates:
     max_complexity: 10
@@ -129,13 +132,13 @@ sprints:
           - "All verification paths tested"
           - "False positive/negative tests added"
 
-  # SPRINT 26: Advanced Standard Library (Week 3-4)
-  - id: sprint-26
+  # SPRINT 27: Advanced Standard Library (Week 3-4)
+  - id: sprint-27
     name: "Standard Library Expansion"
     goal: "Expand stdlib to 20+ functions with full testing"
     duration: 2_weeks
     tickets:
-      - id: RASH-2601
+      - id: RASH-2701
         title: "String manipulation functions"
         priority: high
         requirements:
@@ -152,7 +155,7 @@ sprints:
           - "100% test coverage on new functions"
           - "Property tests for all operations"
 
-      - id: RASH-2602
+      - id: RASH-2702
         title: "Array/List operations"
         priority: high
         requirements:
@@ -169,7 +172,7 @@ sprints:
           - "Functional programming patterns supported"
           - "Performance benchmarks documented"
 
-      - id: RASH-2603
+      - id: RASH-2703
         title: "File system utilities"
         priority: medium
         requirements:
@@ -186,7 +189,7 @@ sprints:
           - "Error handling comprehensive"
           - "Shell safety verified"
 
-      - id: RASH-2604
+      - id: RASH-2704
         title: "Advanced error handling"
         priority: high
         requirements:
@@ -204,13 +207,13 @@ sprints:
           - "Error propagation works"
           - "Shell exit codes correct"
 
-  # SPRINT 27: SMT Verification Foundation (Week 5-6)
-  - id: sprint-27
+  # SPRINT 28: SMT Verification Foundation (Week 5-6)
+  - id: sprint-28
     name: "Formal Verification Foundation"
     goal: "Add SMT solver integration for correctness proofs"
     duration: 2_weeks
     tickets:
-      - id: RASH-2701
+      - id: RASH-2801
         title: "Z3 integration setup"
         priority: critical
         requirements:
@@ -226,7 +229,7 @@ sprints:
           - "Formula generation working"
           - "Basic proofs verified"
 
-      - id: RASH-2702
+      - id: RASH-2802
         title: "Safety property verification"
         priority: critical
         requirements:
@@ -242,7 +245,7 @@ sprints:
           - "All injection vectors proven safe"
           - "Documentation complete"
 
-      - id: RASH-2703
+      - id: RASH-2803
         title: "Correctness property verification"
         priority: high
         requirements:
@@ -258,13 +261,13 @@ sprints:
           - "All properties proven"
           - "Examples documented"
 
-  # SPRINT 28: Multi-Shell Optimization (Week 7-8)
-  - id: sprint-28
+  # SPRINT 29: Multi-Shell Optimization (Week 7-8)
+  - id: sprint-29
     name: "Multi-Shell Target Support"
     goal: "Optimize for bash, zsh while maintaining POSIX"
     duration: 2_weeks
     tickets:
-      - id: RASH-2801
+      - id: RASH-2901
         title: "Shell dialect detection"
         priority: high
         requirements:
@@ -280,7 +283,7 @@ sprints:
           - "Feature matrix complete"
           - "Fallback to POSIX works"
 
-      - id: RASH-2802
+      - id: RASH-2902
         title: "Bash optimizations"
         priority: medium
         requirements:
@@ -296,7 +299,7 @@ sprints:
           - "20% size reduction for bash"
           - "All tests pass"
 
-      - id: RASH-2803
+      - id: RASH-2903
         title: "Zsh optimizations"
         priority: low
         requirements:
@@ -312,13 +315,13 @@ sprints:
           - "Advanced features supported"
           - "Tests pass on zsh"
 
-  # SPRINT 29: Performance Optimization (Week 9-10)
-  - id: sprint-29
+  # SPRINT 30: Performance Optimization (Week 9-10)
+  - id: sprint-30
     name: "Performance Excellence"
     goal: "Maintain <50µs transpilation, optimize memory"
     duration: 2_weeks
     tickets:
-      - id: RASH-2901
+      - id: RASH-3001
         title: "Parser performance optimization"
         priority: high
         requirements:
@@ -334,7 +337,7 @@ sprints:
           - "30% fewer allocations"
           - "Benchmarks documented"
 
-      - id: RASH-2902
+      - id: RASH-3002
         title: "IR optimization passes"
         priority: medium
         requirements:
@@ -350,7 +353,7 @@ sprints:
           - "20% smaller IR for typical code"
           - "Output still correct"
 
-      - id: RASH-2903
+      - id: RASH-3003
         title: "Emitter code generation optimization"
         priority: medium
         requirements:
