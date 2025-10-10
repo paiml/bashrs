@@ -1,6 +1,6 @@
 [package]
 name = "rash-mcp"
-version = "0.1.0"
+version = "1.0.0"
 edition = "2021"
 authors = ["PAIML Team"]
 description = "MCP server for Rash (Rust-to-Shell transpiler)"
@@ -10,7 +10,7 @@ keywords = ["shell", "bash", "transpiler", "rust", "mcp"]
 categories = ["command-line-utilities", "development-tools"]
 
 [dependencies]
-bashrs = { version = "1.0.0-rc2", path = "../rash" }
+bashrs = { version = "1.0.0", path = "../rash" }
 pforge-runtime = "0.1.2"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
