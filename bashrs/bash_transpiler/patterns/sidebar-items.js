@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"struct":["CommandPattern","ForPattern","FunctionPattern","IfPattern","VariablePattern","WhilePattern"]};

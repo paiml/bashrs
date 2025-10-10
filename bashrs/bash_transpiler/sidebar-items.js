@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":["TranspileError"],"mod":["codegen","patterns","purification"],"type":["TranspileResult"]};

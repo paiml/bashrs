@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":["InferredType","SemanticError"],"struct":["AnalysisReport","EffectTracker","FunctionInfo","ScopeInfo","SemanticAnalyzer","VarInfo"],"type":["SemanticResult"]};

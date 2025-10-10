@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":["ArithExpr","BashExpr","BashStmt","TestExpr"],"struct":["AstMetadata","BashAst","BashNode","Span"]};
