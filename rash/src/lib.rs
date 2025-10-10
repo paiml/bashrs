@@ -61,6 +61,7 @@ pub mod emitter;
 pub mod formal;
 pub mod formatter;
 pub mod ir;
+pub mod linter;
 pub mod models;
 pub mod services;
 pub mod stdlib;

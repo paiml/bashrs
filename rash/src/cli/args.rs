@@ -125,6 +125,21 @@ pub enum Commands {
         #[arg(long, value_enum, default_value = "oci")]
         container_format: ContainerFormatArg,
     },
+
+    /// Lint shell scripts or Rust source for safety issues
+    Lint {
+        /// Input file (shell script or Rust source)
+        #[arg(value_name = "FILE")]
+        input: PathBuf,
+
+        /// Output format
+        #[arg(long, value_enum, default_value = "human")]
+        format: LintFormat,
+
+        /// Enable auto-fix suggestions
+        #[arg(long)]
+        fix: bool,
+    },
 }
 
 /// Runtime options for compilation
@@ -152,10 +167,21 @@ pub enum ContainerFormatArg {
 pub enum InspectionFormat {
     /// Markdown report
     Markdown,
-    /// JSON report  
+    /// JSON report
     Json,
     /// HTML report
     Html,
+}
+
+/// Output format for lint results
+#[derive(Clone, Debug, ValueEnum)]
+pub enum LintFormat {
+    /// Human-readable format
+    Human,
+    /// JSON format
+    Json,
+    /// SARIF format
+    Sarif,
 }
 
 impl ValueEnum for VerificationLevel {
