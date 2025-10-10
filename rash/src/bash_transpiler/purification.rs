@@ -123,7 +123,7 @@ impl Purifier {
                 })
             }
 
-            BashStmt::Command { name, args, span } => {
+            BashStmt::Command { name, args, .. } => {
                 // Detect and transform non-idempotent operations
                 let (purified_cmd, idempotent_wrapper) =
                     self.make_command_idempotent(name, args)?;

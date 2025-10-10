@@ -15,7 +15,6 @@ pub mod purification;
 pub use codegen::{BashToRashTranspiler, TranspileOptions};
 pub use purification::{PurificationOptions, PurificationReport, Purifier};
 
-use crate::bash_parser::ast::*;
 use thiserror::Error;
 
 #[derive(Error, Debug)]
