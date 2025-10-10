@@ -5,6 +5,111 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.0] - 2025-10-10
+
+### 🔍 Native Linter Release - EXTREME TDD Sprint 1
+
+First minor release with native shell script linting capabilities. **Zero external dependencies**.
+
+#### Added
+- **Native Linter** (`bashrs lint`) - Built-in ShellCheck-equivalent linting
+  - **SC2086**: Unquoted variable expansion detection (prevents word splitting & glob expansion)
+  - **SC2046**: Unquoted command substitution detection
+  - **SC2116**: Useless echo in command substitution detection
+  - **Three output formats**:
+    - Human-readable (colorized with emoji icons)
+    - JSON (for CI/CD integration)
+    - SARIF (Static Analysis Results Interchange Format)
+  - **Auto-fix suggestions** for all violations
+  - **Smart detection** with false-positive prevention (arithmetic contexts, existing quotes)
+  - **Exit codes**: 0 (clean), 1 (warnings), 2 (errors)
+
+- **48 comprehensive linter tests** (100% passing)
+  - 16 diagnostic infrastructure tests
+  - 10 SC2086 rule tests
+  - 7 SC2046 rule tests
+  - 6 SC2116 rule tests
+  - 5 output formatter tests
+  - 3 integration tests
+  - 1 rules module test
+
+- **Performance**: <2ms linting time for typical scripts
+
+#### Changed
+- **Test coverage: 85.36% → 88.5%** (+3.14% improvement)
+  - Line coverage: 88.5%
+  - Region coverage: 85.6%
+  - Function coverage: 90.4%
+- **Test count: 756 → 804** (+48 linter tests)
+- **Documentation**: Comprehensive updates
+  - README now includes linter section with examples
+  - Comparison table: bashrs lint vs ShellCheck
+  - Updated quality metrics dashboard
+  - Added linter to CLI commands reference
+
+#### Technical Details
+- **Implementation methodology**: EXTREME TDD (Test-Driven Development)
+  - Every feature written test-first
+  - 100% passing rate throughout development
+  - Mutation testing infrastructure validated
+- **Code added**: 2,318 lines (1,148 production + 919 documentation + tests)
+- **Files created**: 12 new files
+- **Architecture**: Modular linter with pluggable rule system
+- **Dependencies**: Added `regex` crate for pattern matching
+
+#### Documentation
+- Sprint 1 comprehensive report (docs/sprint-reports/)
+- Detailed ticket breakdown (docs/tickets/)
+- Test fixtures for validation
+- Inline code documentation
+
+#### Performance
+- Linter adds <2ms overhead
+- Zero impact on existing transpilation performance (19.1µs maintained)
+
+#### Quality Metrics (v1.1.0)
+```
+Tests:              804/804 passing (100%)
+Linter Tests:       48/48 passing (100%)
+Property Tests:     52 properties (~26,000+ cases)
+Code Coverage:      88.5% lines, 85.6% regions, 90.4% functions
+Mutation Kill Rate: ~83% baseline (linter module not yet tested)
+Multi-Shell:        100% compatibility (sh, dash, bash, ash, zsh, mksh)
+ShellCheck:         24/24 tests passing
+Linter Rules:       3 rules (SC2086, SC2046, SC2116)
+Performance:        19.1µs transpile, <2ms lint
+Complexity:         Median 1.0 (all functions <10)
+```
+
+#### Comparison: bashrs lint vs ShellCheck
+
+| Feature | ShellCheck | bashrs lint |
+|---------|-----------|-------------|
+| Installation | External binary required | Built-in, zero dependencies |
+| Output formats | checkstyle, gcc, json | human, JSON, SARIF |
+| Auto-fix | No | Yes (suggested fixes) |
+| Rust source linting | No | Yes (future: bidirectional) |
+| Performance | ~50ms | <2ms (native Rust) |
+
+#### Known Limitations
+- Only 3 rules implemented in v1.1 (more coming in v1.2)
+- Auto-fix suggestions provided but not yet applied with `--fix` flag (v1.2)
+- Regex-based detection (AST-based analysis planned for v1.2)
+
+#### Migration Notes
+- No breaking changes
+- Linter is opt-in via `bashrs lint` command
+- All existing functionality preserved
+
+#### Next Steps (v1.2)
+- SC2115, SC2128: Additional ShellCheck rules
+- BP-series: POSIX compliance validation rules
+- SE-series: Security taint analysis rules
+- `--fix` flag: Auto-apply suggested fixes
+- AST-based analysis: Replace regex with semantic analysis
+
+---
+
 ## [1.0.0-rc2] - 2025-10-09
 
 ### 🧬 Mutation Testing Excellence - Sprint 25 Day 2
