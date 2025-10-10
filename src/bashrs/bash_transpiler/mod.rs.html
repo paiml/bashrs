@@ -15,22 +15,21 @@
 <a href=#15 id=15 data-nosnippet>15</a><span class="kw">pub use </span>codegen::{BashToRashTranspiler, TranspileOptions};
 <a href=#16 id=16 data-nosnippet>16</a><span class="kw">pub use </span>purification::{PurificationOptions, PurificationReport, Purifier};
 <a href=#17 id=17 data-nosnippet>17</a>
-<a href=#18 id=18 data-nosnippet>18</a><span class="kw">use </span><span class="kw">crate</span>::bash_parser::ast::<span class="kw-2">*</span>;
-<a href=#19 id=19 data-nosnippet>19</a><span class="kw">use </span>thiserror::Error;
-<a href=#20 id=20 data-nosnippet>20</a>
-<a href=#21 id=21 data-nosnippet>21</a><span class="attr">#[derive(Error, Debug)]
-<a href=#22 id=22 data-nosnippet>22</a></span><span class="kw">pub enum </span>TranspileError {
-<a href=#23 id=23 data-nosnippet>23</a>    <span class="attr">#[error(<span class="string">"Unsupported bash construct: {0}"</span>)]
-<a href=#24 id=24 data-nosnippet>24</a>    </span>UnsupportedConstruct(String),
-<a href=#25 id=25 data-nosnippet>25</a>
-<a href=#26 id=26 data-nosnippet>26</a>    <span class="attr">#[error(<span class="string">"Code generation failed: {0}"</span>)]
-<a href=#27 id=27 data-nosnippet>27</a>    </span>CodeGenFailed(String),
-<a href=#28 id=28 data-nosnippet>28</a>
-<a href=#29 id=29 data-nosnippet>29</a>    <span class="attr">#[error(<span class="string">"Invalid bash syntax cannot be transpiled: {0}"</span>)]
-<a href=#30 id=30 data-nosnippet>30</a>    </span>InvalidSyntax(String),
-<a href=#31 id=31 data-nosnippet>31</a>}
-<a href=#32 id=32 data-nosnippet>32</a>
-<a href=#33 id=33 data-nosnippet>33</a><span class="kw">pub type </span>TranspileResult&lt;T&gt; = <span class="prelude-ty">Result</span>&lt;T, TranspileError&gt;;
-<a href=#34 id=34 data-nosnippet>34</a>
-<a href=#35 id=35 data-nosnippet>35</a><span class="attr">#[cfg(test)]
-<a href=#36 id=36 data-nosnippet>36</a></span><span class="kw">mod </span>tests;</code></pre></div></section></main></body></html>
+<a href=#18 id=18 data-nosnippet>18</a><span class="kw">use </span>thiserror::Error;
+<a href=#19 id=19 data-nosnippet>19</a>
+<a href=#20 id=20 data-nosnippet>20</a><span class="attr">#[derive(Error, Debug)]
+<a href=#21 id=21 data-nosnippet>21</a></span><span class="kw">pub enum </span>TranspileError {
+<a href=#22 id=22 data-nosnippet>22</a>    <span class="attr">#[error(<span class="string">"Unsupported bash construct: {0}"</span>)]
+<a href=#23 id=23 data-nosnippet>23</a>    </span>UnsupportedConstruct(String),
+<a href=#24 id=24 data-nosnippet>24</a>
+<a href=#25 id=25 data-nosnippet>25</a>    <span class="attr">#[error(<span class="string">"Code generation failed: {0}"</span>)]
+<a href=#26 id=26 data-nosnippet>26</a>    </span>CodeGenFailed(String),
+<a href=#27 id=27 data-nosnippet>27</a>
+<a href=#28 id=28 data-nosnippet>28</a>    <span class="attr">#[error(<span class="string">"Invalid bash syntax cannot be transpiled: {0}"</span>)]
+<a href=#29 id=29 data-nosnippet>29</a>    </span>InvalidSyntax(String),
+<a href=#30 id=30 data-nosnippet>30</a>}
+<a href=#31 id=31 data-nosnippet>31</a>
+<a href=#32 id=32 data-nosnippet>32</a><span class="kw">pub type </span>TranspileResult&lt;T&gt; = <span class="prelude-ty">Result</span>&lt;T, TranspileError&gt;;
+<a href=#33 id=33 data-nosnippet>33</a>
+<a href=#34 id=34 data-nosnippet>34</a><span class="attr">#[cfg(test)]
+<a href=#35 id=35 data-nosnippet>35</a></span><span class="kw">mod </span>tests;</code></pre></div></section></main></body></html>

@@ -107,7 +107,7 @@
 <a href=#107 id=107 data-nosnippet>107</a>    }
 <a href=#108 id=108 data-nosnippet>108</a>
 <a href=#109 id=109 data-nosnippet>109</a>    <span class="doccomment">/// Build configuration based on complexity metrics
-<a href=#110 id=110 data-nosnippet>110</a>    </span><span class="kw">fn </span>build_config(<span class="kw-2">&amp;</span><span class="self">self</span>, ast: <span class="kw-2">&amp;</span>BashAst, complexity: <span class="kw-2">&amp;</span>ComplexityMetrics) -&gt; TestGenResult&lt;MutationConfig&gt; {
+<a href=#110 id=110 data-nosnippet>110</a>    </span><span class="kw">fn </span>build_config(<span class="kw-2">&amp;</span><span class="self">self</span>, _ast: <span class="kw-2">&amp;</span>BashAst, complexity: <span class="kw-2">&amp;</span>ComplexityMetrics) -&gt; TestGenResult&lt;MutationConfig&gt; {
 <a href=#111 id=111 data-nosnippet>111</a>        <span class="comment">// Determine timeout based on code size
 <a href=#112 id=112 data-nosnippet>112</a>        </span><span class="kw">let </span>timeout = <span class="self">self</span>.calculate_timeout(complexity);
 <a href=#113 id=113 data-nosnippet>113</a>
