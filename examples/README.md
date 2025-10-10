@@ -19,6 +19,40 @@ chmod +x hello.sh
 ./hello.sh
 ```
 
+## 🌟 Purification Workflow Examples (NEW!)
+
+Rash's killer feature is **purification** - transforming messy bash into verified, deterministic POSIX shell scripts.
+
+See **[PURIFICATION_WORKFLOW.md](PURIFICATION_WORKFLOW.md)** for complete documentation.
+
+### Workflow 1: Deployment Script
+- **Before**: `deploy-messy.sh` - Uses $RANDOM, timestamps, non-idempotent operations
+- **After**: `deploy-clean.rs` - Version-based IDs, deterministic, idempotent
+- **Run**: `cargo run --example deploy-clean`
+- **Issues Fixed**: 7 (4 non-deterministic, 3 non-idempotent)
+
+### Workflow 2: Database Backup
+- **Before**: `backup-messy.sh` - Random backup IDs, timestamp filenames
+- **After**: `backup-clean.rs` - Deterministic names, safe re-run
+- **Run**: `cargo run --example backup-clean mydb 1.0.0`
+- **Issues Fixed**: 6 (5 non-deterministic, 2 non-idempotent)
+
+### Quick Start: Purification
+
+```bash
+# Compare messy bash vs purified shell
+diff examples/deploy-messy.sh <(cargo run -- transpile examples/deploy-clean.rs)
+
+# Verify determinism (all outputs identical)
+for i in {1..10}; do cargo run --example deploy-clean > out-$i.txt; done
+diff out-*.txt
+
+# Verify idempotency (runs 5 times successfully)
+for i in {1..5}; do cargo run --example deploy-clean; done
+```
+
+See **Chapter 9** (Determinism and Idempotence) and **Chapter 17** (Testing and TDD) in the Rash book for full details.
+
 ## Example Categories
 
 ### Basic Examples
