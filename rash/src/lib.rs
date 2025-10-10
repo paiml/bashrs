@@ -64,6 +64,7 @@ pub mod ir;
 pub mod models;
 pub mod services;
 pub mod stdlib;
+pub mod test_generator;
 pub mod validation;
 pub mod verifier;
 
