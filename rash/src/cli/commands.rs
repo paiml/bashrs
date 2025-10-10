@@ -1,4 +1,4 @@
-use crate::cli::args::{CompileRuntime, ContainerFormatArg, InspectionFormat};
+use crate::cli::args::{CompileRuntime, ContainerFormatArg, InspectionFormat, LintFormat};
 use crate::cli::{Cli, Commands};
 use crate::models::{Config, Error, Result};
 use crate::{check, transpile};
@@ -101,6 +101,11 @@ pub fn execute_command(cli: Cli) -> Result<()> {
                 container_format,
                 &config,
             )
+        }
+
+        Commands::Lint { input, format, fix } => {
+            info!("Linting {}", input.display());
+            lint_command(&input, format, fix)
         } // Playground feature removed in v1.0 - will be moved to separate rash-playground crate in v1.1
     }
 }
@@ -512,6 +517,37 @@ fn handle_compile(
             .to_str()
             .ok_or_else(|| Error::Validation("Output path contains invalid UTF-8".to_string()))?;
         create_self_extracting_script(&shell_code, output_str)?;
+    }
+
+    Ok(())
+}
+
+fn lint_command(input: &Path, format: LintFormat, _fix: bool) -> Result<()> {
+    use crate::linter::{rules::lint_shell, output::{write_results, OutputFormat}};
+
+    // Read input file
+    let source = fs::read_to_string(input).map_err(Error::Io)?;
+
+    // Run linter
+    let result = lint_shell(&source);
+
+    // Convert format
+    let output_format = match format {
+        LintFormat::Human => OutputFormat::Human,
+        LintFormat::Json => OutputFormat::Json,
+        LintFormat::Sarif => OutputFormat::Sarif,
+    };
+
+    // Write results to stdout
+    let file_path = input.to_str().unwrap_or("unknown");
+    write_results(&mut std::io::stdout(), &result, output_format, file_path)
+        .map_err(|e| Error::Internal(format!("Failed to write lint results: {e}")))?;
+
+    // Exit with appropriate code
+    if result.has_errors() {
+        std::process::exit(2);
+    } else if result.has_warnings() {
+        std::process::exit(1);
     }
 
     Ok(())
