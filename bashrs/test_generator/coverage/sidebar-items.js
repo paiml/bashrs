@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":["BranchType","UncoveredPath"],"struct":["BranchId","CoverageTracker","FunctionCoverage","QualityReport"]};
