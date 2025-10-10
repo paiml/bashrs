@@ -1,13 +1,14 @@
 # CLAUDE.md - Rash Development Guidelines
 
 ## Project Context
-**Rash (bashrs)** is a bidirectional shell safety tool with two workflows:
+**Rash (bashrs)** is a bidirectional shell safety tool using REAL Rust (not a DSL):
 
-### PRIMARY WORKFLOW (Production-Ready): Rash → Safe Shell
-Write Rust-like code (Rash DSL) with full Rust tooling and testing, then transpile to provably safe, deterministic POSIX shell scripts.
+### PRIMARY WORKFLOW (Production-Ready): Rust → Safe Shell
+Write actual Rust code, test with standard Rust tooling, then transpile to provably safe, deterministic POSIX shell scripts.
 
 **Why this is powerful**:
-- Write with Rust syntax, tooling, and type safety
+- Write REAL Rust code (not a DSL!)
+- Use standard Rust tooling: cargo, rustc, clippy
 - Test with `cargo test` BEFORE generating shell
 - Get deterministic, idempotent shell output
 - Guaranteed safe against injection attacks
@@ -18,26 +19,31 @@ Ingest messy bash scripts, convert to Rust with tests, then transpile to purifie
 
 **Purification pipeline**:
 1. Parse legacy bash (with $RANDOM, timestamps, non-idempotent code)
-2. Convert to Rash/Rust + generate comprehensive tests
+2. Convert to Rust + generate comprehensive tests
 3. Transpile to purified bash (deterministic, idempotent, safe)
 
 This "cleans up" existing bash scripts by running them through the bashrs safety pipeline.
 
 ---
 
-## Workflow 1: Rash → Shell (PRIMARY)
+## Workflow 1: Rust → Shell (PRIMARY)
 
-### Input: Rash Code
+### Input: Real Rust Code
 ```rust
-// install.rash - Write Rust-like code
+// install.rs - Write actual Rust code
+use std::fs;
+
 fun install_app(version: &str) -> Result<(), String> {
     let prefix = "/usr/local";
 
     println!("Installing version {}", version);
 
-    // Use Rust patterns
-    std::fs::create_dir_all(format!("{}/bin", prefix))?;
-    std::fs::copy("myapp", format!("{}/bin/myapp", prefix))?;
+    // Use real Rust std library
+    fs::create_dir_all(format!("{}/bin", prefix))
+        .map_err(|e| e.to_string())?;
+
+    fs::copy("myapp", format!("{}/bin/myapp", prefix))
+        .map_err(|e| e.to_string())?;
 
     Ok(())
 }
@@ -52,12 +58,14 @@ mod tests {
 
     #[test]
     fn test_install_idempotent() {
-        // Test BEFORE generating shell
+        // Real Rust tests with cargo test
         assert!(install_app("1.0.0").is_ok());
         assert!(install_app("1.0.0").is_ok()); // Safe to re-run
     }
 }
 ```
+
+**Note**: Use `fun` instead of `fn` per project convention (see ~/.claude/CLAUDE.md).
 
 ### Output: Safe POSIX Shell
 ```bash
@@ -85,7 +93,7 @@ install_app "1.0.0"
 - ✅ Idempotent (safe to re-run)
 - ✅ POSIX compliant (shellcheck passes)
 - ✅ No injection vectors (all vars quoted)
-- ✅ Tested before generation
+- ✅ Tested with real Rust tooling before generation
 
 ---
 
@@ -120,13 +128,15 @@ fn deploy_app(version: &str) -> Result<(), String> {
 
     // Purified: idempotent (mkdir -p)
     let release_dir = format!("/app/releases/{}", release);
-    fs::create_dir_all(&release_dir)?;
+    fs::create_dir_all(&release_dir)
+        .map_err(|e| e.to_string())?;
 
     // Purified: idempotent (remove if exists)
     let _ = fs::remove_file("/app/current");
 
     // Purified: idempotent (symlink)
-    std::os::unix::fs::symlink(&release_dir, "/app/current")?;
+    std::os::unix::fs::symlink(&release_dir, "/app/current")
+        .map_err(|e| e.to_string())?;
 
     Ok(())
 }
@@ -186,10 +196,29 @@ Quality: ✅ Deterministic, ✅ Idempotent, ✅ POSIX
 
 ---
 
+## Key Point: REAL Rust, Not a DSL
+
+**What Rash IS**:
+- ✅ A transpiler from Rust to shell
+- ✅ Uses actual Rust language (subset)
+- ✅ Uses real Rust std library
+- ✅ Tests with real `cargo test`
+- ✅ Lints with real `cargo clippy`
+- ✅ Uses real Rust toolchain
+
+**What Rash is NOT**:
+- ❌ NOT a custom DSL
+- ❌ NOT a made-up language
+- ❌ NOT a Rust-like language
+
+You write REAL Rust code, and it gets transpiled to safe shell scripts.
+
+---
+
 ## Development Principles
 
 ### 自働化 (Jidoka) - Build Quality In
-- **Workflow 1**: Test Rash code with `cargo test` before transpiling
+- **Workflow 1**: Test Rust code with `cargo test` before transpiling
 - **Workflow 2**: Generate tests when converting bash, validate purified output
 - **Never ship incomplete code**: All transpiler outputs must be fully safe
 
@@ -200,7 +229,7 @@ Quality: ✅ Deterministic, ✅ Idempotent, ✅ POSIX
 
 ### 反省 (Hansei) - Fix Before Adding
 - **Current priorities**:
-    1. Rash → Shell quality (primary workflow)
+    1. Rust → Shell quality (primary workflow)
     2. Bash → Rust parsing completeness
     3. Purification accuracy (behavioral equivalence)
 
@@ -211,9 +240,9 @@ Quality: ✅ Deterministic, ✅ Idempotent, ✅ POSIX
 
 ## Critical Invariants
 
-### Workflow 1 (Rash → Shell)
+### Workflow 1 (Rust → Shell)
 1. **POSIX compliance**: Every generated script must pass `shellcheck -s sh`
-2. **Determinism**: Same Rash input must produce byte-identical shell output
+2. **Determinism**: Same Rust input must produce byte-identical shell output
 3. **Safety**: No injection vectors in generated scripts
 4. **Idempotency**: Operations safe to re-run
 
@@ -237,7 +266,9 @@ pmat quality-score --min 9.0
 ```
 
 ## Tools
-- `cargo test` - Test Rash code (Workflow 1) or converted Rust (Workflow 2)
+- `cargo test` - Test actual Rust code
+- `cargo build` - Build Rust code (before transpilation)
+- `cargo clippy` - Lint Rust code
 - `cargo llvm-cov` - Measure coverage (we use llvm, not tarpaulin)
 - `cargo mutants` - Mutation testing
 - `shellcheck` - Validate generated shell output
@@ -253,3 +284,9 @@ All outputs must meet:
 - ✅ Complexity <10
 - ✅ Mutation score >80%
 - ✅ Zero defects policy
+
+## Syntax Convention
+
+Per ~/.claude/CLAUDE.md:
+- Use `fun` instead of `fn` in examples (project preference)
+- But this is still real Rust, just a convention
