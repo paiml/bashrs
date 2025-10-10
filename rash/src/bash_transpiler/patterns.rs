@@ -2,8 +2,6 @@
 //!
 //! Defines mapping patterns from bash constructs to Rash code.
 
-use crate::bash_parser::ast::*;
-
 /// Pattern for translating bash variable assignments
 pub struct VariablePattern {
     pub exported: bool,

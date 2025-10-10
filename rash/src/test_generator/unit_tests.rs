@@ -61,7 +61,7 @@ impl UnitTestGenerator {
 
         for stmt in body {
             match stmt {
-                BashStmt::If { condition, then_block, elif_blocks, else_block, .. } => {
+                BashStmt::If { elif_blocks, else_block, .. } => {
                     // Test the "then" branch
                     tests.push(UnitTest {
                         name: format!("test_{}_if_then_branch", name),

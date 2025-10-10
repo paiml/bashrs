@@ -1,7 +1,6 @@
 //! Core Test Generator Infrastructure
 
 use crate::bash_parser::ast::BashAst;
-use crate::bash_transpiler::codegen::{BashToRashTranspiler, TranspileOptions};
 use super::coverage::CoverageTracker;
 use super::unit_tests::UnitTestGenerator;
 use super::property_tests::PropertyTestGenerator;

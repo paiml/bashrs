@@ -26,10 +26,12 @@ pub struct CoverageTracker {
     branches_covered: HashSet<BranchId>,
     total_lines: usize,
     total_branches: usize,
+    #[allow(dead_code)]
     function_coverage: HashMap<String, FunctionCoverage>,
 }
 
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 struct FunctionCoverage {
     lines: HashSet<usize>,
     branches: HashSet<BranchId>,
@@ -53,7 +55,7 @@ impl CoverageTracker {
         // For each unit test, determine which lines/branches it covers
         for test in &suite.unit_tests {
             // Extract coverage information from test assertions
-            for assertion in &test.assertions {
+            for _assertion in &test.assertions {
                 // Mark lines as covered based on assertion targets
                 // This is a simplified version - real implementation would
                 // use AST analysis or instrumentation

@@ -1,7 +1,7 @@
 //! Code Generation for Bash-to-Rash Transpiler
 
 use super::patterns::*;
-use super::{TranspileError, TranspileResult};
+use super::TranspileResult;
 use crate::bash_parser::ast::*;
 
 pub struct TranspileOptions {

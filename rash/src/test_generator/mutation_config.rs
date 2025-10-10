@@ -107,7 +107,7 @@ impl MutationConfigGenerator {
     }
 
     /// Build configuration based on complexity metrics
-    fn build_config(&self, ast: &BashAst, complexity: &ComplexityMetrics) -> TestGenResult<MutationConfig> {
+    fn build_config(&self, _ast: &BashAst, complexity: &ComplexityMetrics) -> TestGenResult<MutationConfig> {
         // Determine timeout based on code size
         let timeout = self.calculate_timeout(complexity);
 
