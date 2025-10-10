@@ -33,7 +33,7 @@ This "cleans up" existing bash scripts by running them through the bashrs safety
 // install.rs - Write actual Rust code
 use std::fs;
 
-fun install_app(version: &str) -> Result<(), String> {
+fn install_app(version: &str) -> Result<(), String> {
     let prefix = "/usr/local";
 
     println!("Installing version {}", version);
@@ -64,8 +64,6 @@ mod tests {
     }
 }
 ```
-
-**Note**: Use `fun` instead of `fn` per project convention (see ~/.claude/CLAUDE.md).
 
 ### Output: Safe POSIX Shell
 ```bash
@@ -285,8 +283,3 @@ All outputs must meet:
 - ✅ Mutation score >80%
 - ✅ Zero defects policy
 
-## Syntax Convention
-
-Per ~/.claude/CLAUDE.md:
-- Use `fun` instead of `fn` in examples (project preference)
-- But this is still real Rust, just a convention
