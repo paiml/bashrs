@@ -310,7 +310,7 @@ impl UnitTest {
             }
         }
 
-        code.push_str(&format!("fun {}() {{\n", self.name));
+        code.push_str(&format!("fn {}() {{\n", self.name));
 
         for assertion in &self.assertions {
             code.push_str(&format!("    {}\n", assertion.to_rust_code()));
@@ -447,7 +447,7 @@ mod tests {
 
         let code = test.to_rust_code();
         assert!(code.contains("#[test]"));
-        assert!(code.contains("fun test_example()"));
+        assert!(code.contains("fn test_example()"));
         assert!(code.contains("assert_eq!(result, 42);"));
     }
 }

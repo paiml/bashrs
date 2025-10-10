@@ -110,7 +110,9 @@ impl TestGenerator {
 
         // 3. Generate doctests
         if self.options.generate_doctests {
-            suite.doctests = self.doctest_gen.generate_doctests(ast)?;
+            let mut doctests = self.doctest_gen.generate_doctests(ast)?;
+            doctests.extend(self.doctest_gen.extract_inline_examples(ast)?);
+            suite.doctests = doctests;
         }
 
         // 4. Generate mutation config
