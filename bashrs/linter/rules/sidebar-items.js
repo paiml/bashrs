@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"fn":["lint_shell"],"mod":["sc2046","sc2086","sc2116"]};

@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":["OutputFormat"],"fn":["write_human","write_json","write_results","write_sarif"],"struct":["JsonDiagnostic","JsonOutput","JsonSpan","JsonSummary","SarifArtifactLocation","SarifDriver","SarifLocation","SarifMessage","SarifOutput","SarifPhysicalLocation","SarifRegion","SarifResult","SarifRun","SarifTool"]};

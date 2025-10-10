@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"enum":["Commands","CompileRuntime","ContainerFormatArg","InspectionFormat"],"struct":["Cli"]};
+window.SIDEBAR_ITEMS = {"enum":["Commands","CompileRuntime","ContainerFormatArg","InspectionFormat","LintFormat"],"struct":["Cli"]};
