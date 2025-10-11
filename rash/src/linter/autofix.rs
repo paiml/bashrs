@@ -5,11 +5,52 @@
 //! - Span-based replacement
 //! - Dry-run mode for preview
 //! - Safe application (reverse order to preserve positions)
+//! - Priority-based conflict resolution
 
 use crate::linter::{Diagnostic, LintResult, Span};
 use std::fs;
 use std::io;
 use std::path::Path;
+
+/// Priority for applying fixes when multiple fixes overlap
+/// Higher priority fixes are applied first
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+enum FixPriority {
+    /// Remove useless constructs (SC2116: useless echo)
+    /// Applied FIRST to simplify code before quoting
+    RemoveUseless = 3,
+
+    /// Quote command substitutions (SC2046)
+    /// Applied SECOND after simplification
+    QuoteCommandSub = 2,
+
+    /// Quote variables (SC2086)
+    /// Applied LAST (lowest priority)
+    QuoteVariable = 1,
+}
+
+impl FixPriority {
+    /// Get priority for a diagnostic rule code
+    fn from_code(code: &str) -> Self {
+        match code {
+            "SC2116" => FixPriority::RemoveUseless,
+            "SC2046" => FixPriority::QuoteCommandSub,
+            "SC2086" => FixPriority::QuoteVariable,
+            _ => FixPriority::QuoteVariable, // Default to lowest priority
+        }
+    }
+}
+
+/// Check if two spans overlap
+fn spans_overlap(a: &Span, b: &Span) -> bool {
+    if a.start_line != b.start_line {
+        return false; // Different lines, no overlap
+    }
+
+    // Check if ranges overlap on same line
+    // a.start_col..a.end_col overlaps with b.start_col..b.end_col
+    !(a.end_col <= b.start_col || b.end_col <= a.start_col)
+}
 
 /// Options for auto-fix application
 #[derive(Debug, Clone)]
@@ -52,30 +93,59 @@ pub struct FixResult {
 ///
 /// # Returns
 /// Result containing number of fixes applied and modified source
+///
+/// # Conflict Resolution
+/// When multiple fixes overlap on the same span, they are applied in priority order:
+/// 1. SC2116 (remove useless constructs) - Highest priority
+/// 2. SC2046 (quote command substitutions)
+/// 3. SC2086 (quote variables) - Lowest priority
+///
+/// This ensures correct transformation: `$(echo $VAR)` → `$VAR` → `"$VAR"`
 pub fn apply_fixes(source: &str, result: &LintResult, options: &FixOptions) -> io::Result<FixResult> {
     let mut modified = source.to_string();
     let mut fixes_applied = 0;
 
-    // Get diagnostics with fixes, sorted by position (reverse order to preserve positions)
+    // Get diagnostics with fixes
     let mut diagnostics_with_fixes: Vec<&Diagnostic> = result
         .diagnostics
         .iter()
         .filter(|d| d.fix.is_some())
         .collect();
 
-    // Sort in reverse order (bottom to top, right to left)
+    // Sort by priority (high to low), then by position (reverse order)
+    // This ensures:
+    // 1. High-priority fixes are applied first (SC2116 before SC2086)
+    // 2. Within same priority, fixes are applied bottom-to-top, right-to-left
     diagnostics_with_fixes.sort_by(|a, b| {
-        b.span
-            .start_line
-            .cmp(&a.span.start_line)
+        let priority_a = FixPriority::from_code(&a.code);
+        let priority_b = FixPriority::from_code(&b.code);
+
+        // Higher priority first (reverse order)
+        priority_b
+            .cmp(&priority_a)
+            // Then by position (reverse order)
+            .then(b.span.start_line.cmp(&a.span.start_line))
             .then(b.span.start_col.cmp(&a.span.start_col))
     });
 
-    // Apply fixes in reverse order to preserve positions
+    // Track which spans we've already fixed to skip conflicts
+    let mut applied_spans: Vec<Span> = Vec::new();
+
+    // Apply fixes with conflict detection
     for diagnostic in diagnostics_with_fixes {
         if let Some(fix) = &diagnostic.fix {
+            // Check if this span overlaps with any already-applied fix
+            let has_conflict = applied_spans.iter().any(|s| spans_overlap(s, &diagnostic.span));
+
+            if has_conflict {
+                // Skip this fix - higher priority fix already applied
+                continue;
+            }
+
+            // Apply the fix
             modified = apply_single_fix(&modified, &diagnostic.span, &fix.replacement)?;
             fixes_applied += 1;
+            applied_spans.push(diagnostic.span.clone());
         }
     }
 
@@ -277,5 +347,106 @@ mod tests {
 
         let result = apply_single_fix(source, &span, "replacement");
         assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_conflicting_fixes_priority() {
+        // Test the edge case: $(echo $VAR)
+        // SC2116 wants to remove useless echo: $VAR
+        // SC2046 wants to quote command sub: "$(echo $VAR)"
+        // SC2086 wants to quote variable: "$(echo "$VAR")"
+        //
+        // Priority order should apply SC2116 first (highest priority)
+        // Then the result won't have the command sub anymore, so SC2046/SC2086 become moot
+        let source = "RELEASE=$(echo $TIMESTAMP)\n";
+
+        let mut result = LintResult::new();
+
+        // Add SC2116 diagnostic (remove useless echo) - Priority 3
+        result.add(
+            Diagnostic::new(
+                "SC2116",
+                Severity::Warning,
+                "Useless echo".to_string(),
+                Span::new(1, 9, 1, 27), // $(echo $TIMESTAMP)
+            )
+            .with_fix(Fix::new("$TIMESTAMP".to_string())),
+        );
+
+        // Add SC2046 diagnostic (quote command sub) - Priority 2
+        result.add(
+            Diagnostic::new(
+                "SC2046",
+                Severity::Warning,
+                "Unquoted command substitution".to_string(),
+                Span::new(1, 9, 1, 27), // $(echo $TIMESTAMP) - OVERLAPS
+            )
+            .with_fix(Fix::new("\"$(echo $TIMESTAMP)\"".to_string())),
+        );
+
+        let options = FixOptions::default();
+        let fix_result = apply_fixes(source, &result, &options).unwrap();
+
+        // Should apply SC2116 (highest priority) and skip SC2046 (conflict)
+        assert_eq!(fix_result.fixes_applied, 1);
+        assert_eq!(
+            fix_result.modified_source.unwrap(),
+            "RELEASE=$TIMESTAMP\n"
+        );
+    }
+
+    #[test]
+    fn test_non_overlapping_fixes() {
+        // Test that non-overlapping fixes all get applied
+        let source = "cp $FILE1 $FILE2\n";
+
+        let mut result = LintResult::new();
+
+        // Two non-overlapping SC2086 diagnostics
+        result.add(
+            Diagnostic::new(
+                "SC2086",
+                Severity::Warning,
+                "Unquoted $FILE1".to_string(),
+                Span::new(1, 4, 1, 10),
+            )
+            .with_fix(Fix::new("\"$FILE1\"".to_string())),
+        );
+
+        result.add(
+            Diagnostic::new(
+                "SC2086",
+                Severity::Warning,
+                "Unquoted $FILE2".to_string(),
+                Span::new(1, 11, 1, 17),
+            )
+            .with_fix(Fix::new("\"$FILE2\"".to_string())),
+        );
+
+        let options = FixOptions::default();
+        let fix_result = apply_fixes(source, &result, &options).unwrap();
+
+        // Both should be applied (no overlap)
+        assert_eq!(fix_result.fixes_applied, 2);
+        assert_eq!(
+            fix_result.modified_source.unwrap(),
+            "cp \"$FILE1\" \"$FILE2\"\n"
+        );
+    }
+
+    #[test]
+    fn test_overlap_detection() {
+        // Test spans_overlap function
+        let span_a = Span::new(1, 5, 1, 10);
+        let span_b = Span::new(1, 8, 1, 12); // Overlaps with A
+
+        assert!(spans_overlap(&span_a, &span_b));
+        assert!(spans_overlap(&span_b, &span_a)); // Symmetric
+
+        let span_c = Span::new(1, 11, 1, 15); // No overlap with A
+        assert!(!spans_overlap(&span_a, &span_c));
+
+        let span_d = Span::new(2, 5, 2, 10); // Different line
+        assert!(!spans_overlap(&span_a, &span_d));
     }
 }
