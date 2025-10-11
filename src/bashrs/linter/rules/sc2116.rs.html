@@ -32,10 +32,10 @@
 <a href=#32 id=32 data-nosnippet>32</a>            }
 <a href=#33 id=33 data-nosnippet>33</a>
 <a href=#34 id=34 data-nosnippet>34</a>            <span class="kw">let </span>content = cap.name(<span class="string">"content"</span>).unwrap().as_str().trim();
-<a href=#35 id=35 data-nosnippet>35</a>            <span class="kw">let </span>col = full_match.start() + <span class="number">1</span>;
-<a href=#36 id=36 data-nosnippet>36</a>            <span class="kw">let </span>end_col = full_match.end() + <span class="number">1</span>;
+<a href=#35 id=35 data-nosnippet>35</a>            <span class="kw">let </span>col = full_match.start() + <span class="number">1</span>; <span class="comment">// 1-indexed
+<a href=#36 id=36 data-nosnippet>36</a>            </span><span class="kw">let </span>end_col = full_match.end(); <span class="comment">// Don't add 1, already at correct position
 <a href=#37 id=37 data-nosnippet>37</a>
-<a href=#38 id=38 data-nosnippet>38</a>            <span class="kw">let </span>span = Span::new(line_num, col, line_num, end_col);
+<a href=#38 id=38 data-nosnippet>38</a>            </span><span class="kw">let </span>span = Span::new(line_num, col, line_num, end_col);
 <a href=#39 id=39 data-nosnippet>39</a>
 <a href=#40 id=40 data-nosnippet>40</a>            <span class="comment">// Simple fix: just use the content directly
 <a href=#41 id=41 data-nosnippet>41</a>            </span><span class="kw">let </span>fix = Fix::new(content.to_string());

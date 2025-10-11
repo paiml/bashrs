@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"mod":["diagnostic","output","rules"]};
+window.SIDEBAR_ITEMS = {"mod":["autofix","diagnostic","output","rules"]};

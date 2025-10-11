@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"fn":["apply_fixes","apply_fixes_to_file","apply_single_fix"],"struct":["FixOptions","FixResult"]};
