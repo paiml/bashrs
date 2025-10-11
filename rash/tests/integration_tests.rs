@@ -487,3 +487,113 @@ fn test_memory_safety() {
     // Should not crash or cause stack overflow
     assert!(result.is_ok());
 }
+
+/// P0-POSITIONAL-PARAMETERS: RED Phase
+/// Test positional parameters via std::env::args()
+/// Expected to FAIL until implementation is complete
+#[test]
+#[ignore] // Remove this once implementation starts
+fn test_positional_parameters_basic() {
+    let source = r#"
+fn main() {
+    let args: Vec<String> = std::env::args().collect();
+    let first = args.get(1).unwrap_or("default");
+    echo(first);
+}
+
+fn echo(msg: &str) {}
+"#;
+
+    let config = Config::default();
+    let result = transpile(source, config);
+
+    assert!(result.is_ok(), "Should transpile positional parameters");
+
+    let shell = result.unwrap();
+
+    // Verify positional parameter syntax
+    assert!(
+        shell.contains("${1:-default}") || shell.contains("first=\"${1:-default}\""),
+        "Should use positional parameter $1 with default"
+    );
+
+    // Verify proper quoting
+    assert!(shell.contains("\"$first\""), "Should quote variable usage");
+
+    // Verify main receives arguments
+    assert!(shell.contains("main \"$@\""), "Should pass all arguments to main");
+}
+
+/// P0-POSITIONAL-PARAMETERS: RED Phase
+/// Test multiple positional parameters
+#[test]
+#[ignore] // Remove this once implementation starts
+fn test_positional_parameters_multiple() {
+    let source = r#"
+fn main() {
+    let args: Vec<String> = std::env::args().collect();
+    let first = args.get(1).unwrap_or("a");
+    let second = args.get(2).unwrap_or("b");
+    let third = args.get(3).unwrap_or("c");
+    echo(first);
+    echo(second);
+    echo(third);
+}
+
+fn echo(msg: &str) {}
+"#;
+
+    let config = Config::default();
+    let shell = transpile(source, config).unwrap();
+
+    // Verify all positional parameters
+    assert!(shell.contains("${1:-a}") || shell.contains("first=\"${1:-a}\""));
+    assert!(shell.contains("${2:-b}") || shell.contains("second=\"${2:-b}\""));
+    assert!(shell.contains("${3:-c}") || shell.contains("third=\"${3:-c}\""));
+}
+
+/// P0-POSITIONAL-PARAMETERS: RED Phase
+/// Test positional parameters with execution
+#[test]
+#[ignore] // Remove this once implementation starts
+fn test_positional_parameters_execution() {
+    let source = r#"
+fn main() {
+    let args: Vec<String> = std::env::args().collect();
+    let name = args.get(1).unwrap_or("World");
+    echo(name);
+}
+
+fn echo(msg: &str) {}
+"#;
+
+    let config = Config::default();
+    let shell = transpile(source, config).unwrap();
+
+    // Write to temporary file and execute with arguments
+    use tempfile::TempDir;
+    let temp_dir = TempDir::new().unwrap();
+    let script_path = temp_dir.path().join("test_positional.sh");
+    fs::write(&script_path, &shell).unwrap();
+
+    // Test with argument
+    let output = Command::new("sh")
+        .arg(&script_path)
+        .arg("Alice")
+        .output()
+        .expect("Failed to execute shell script");
+
+    assert!(output.status.success());
+    let stdout = String::from_utf8(output.stdout).unwrap();
+    assert!(stdout.contains("Alice"), "Should use provided argument");
+
+    // Test without argument (should use default)
+    let output = Command::new("sh")
+        .arg(&script_path)
+        .output()
+        .expect("Failed to execute shell script");
+
+    assert!(output.status.success());
+    let stdout = String::from_utf8(output.stdout).unwrap();
+    assert!(stdout.contains("World"), "Should use default value");
+}
