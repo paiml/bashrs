@@ -43,19 +43,26 @@ pub fn check(source: &str) -> LintResult {
         let is_arithmetic = line.contains("$((") || line.contains("(( ");
 
         for cap in var_pattern.captures_iter(line) {
-            let var_match = cap.get(0).unwrap();
-            let var_name = cap.name("brace")
-                .or_else(|| cap.name("simple"))
-                .map(|m| m.as_str())
-                .unwrap_or("");
+            // Get the actual variable match (not including 'pre' capture group)
+            let var_capture = cap.name("brace").or_else(|| cap.name("simple"));
 
-            let col = var_match.start() + 1; // Account for the 'pre' capture group
-            let end_col = var_match.end();
+            if var_capture.is_none() {
+                continue;
+            }
+
+            let var_match = var_capture.unwrap();
+            let var_name = var_match.as_str();
+
+            // Column positions for the actual $VAR or ${VAR} (including $)
+            // We need to go back one character from the capture to include the $
+            let dollar_pos = line[..var_match.start()].rfind('$').unwrap_or(var_match.start());
+            let col = dollar_pos + 1; // 1-indexed
+            let end_col = var_match.end() + 1; // 1-indexed (after last char)
 
             // Skip if in arithmetic context
             if is_arithmetic {
                 // Check if this variable is inside $(( ))
-                let before = &line[..var_match.start()];
+                let before = &line[..dollar_pos];
                 let after = &line[var_match.end()..];
                 if before.contains("$((") && after.contains("))") {
                     continue;
@@ -63,7 +70,7 @@ pub fn check(source: &str) -> LintResult {
             }
 
             // Check if already quoted
-            let before_context = &line[..var_match.start()];
+            let before_context = &line[..dollar_pos];
             let after_context = &line[var_match.end()..];
 
             // Simple quote detection
@@ -76,9 +83,7 @@ pub fn check(source: &str) -> LintResult {
 
             // Create diagnostic
             let span = Span::new(line_num, col, line_num, end_col);
-            let var_text = if var_name.is_empty() {
-                var_match.as_str().to_string()
-            } else if cap.name("brace").is_some() {
+            let var_text = if cap.name("brace").is_some() {
                 format!("${{{}}}", var_name)
             } else {
                 format!("${}", var_name)

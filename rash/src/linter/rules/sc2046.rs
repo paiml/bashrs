@@ -29,17 +29,20 @@ pub fn check(source: &str) -> LintResult {
 
         // Check $(...) substitutions
         for cap in cmd_sub_pattern.captures_iter(line) {
-            let full_match = cap.get(0).unwrap();
-            let col = full_match.start() + 1;
-            let end_col = full_match.end();
+            // Find the actual $( position (not including 'pre' capture)
+            let cmd_match = cap.name("cmd").unwrap();
+            let dollar_paren_pos = line[..cmd_match.start()].rfind("$(").unwrap_or(cmd_match.start());
+
+            let col = dollar_paren_pos + 1; // 1-indexed
+            let end_col = cmd_match.end() + 2; // +1 for ) and +1 for 1-indexing
 
             // Check if already quoted
-            if col > 1 && line.chars().nth(col - 2) == Some('"') {
+            if dollar_paren_pos > 0 && line.chars().nth(dollar_paren_pos - 1) == Some('"') {
                 continue;
             }
 
             let span = Span::new(line_num, col, line_num, end_col);
-            let cmd_text = format!("$({})", cap.name("cmd").unwrap().as_str());
+            let cmd_text = format!("$({})", cmd_match.as_str());
             let fix = Fix::new(format!("\"{}\"", cmd_text));
 
             let diag = Diagnostic::new(
@@ -55,12 +58,15 @@ pub fn check(source: &str) -> LintResult {
 
         // Check backtick substitutions
         for cap in backtick_pattern.captures_iter(line) {
-            let full_match = cap.get(0).unwrap();
-            let col = full_match.start() + 1;
-            let end_col = full_match.end();
+            // Find the actual backtick position (not including 'pre' capture)
+            let cmd_match = cap.name("cmd").unwrap();
+            let backtick_pos = line[..cmd_match.start()].rfind('`').unwrap_or(cmd_match.start());
+
+            let col = backtick_pos + 1; // 1-indexed
+            let end_col = cmd_match.end() + 2; // +1 for closing ` and +1 for 1-indexing
 
             let span = Span::new(line_num, col, line_num, end_col);
-            let cmd = cap.name("cmd").unwrap().as_str();
+            let cmd = cmd_match.as_str();
             let fix = Fix::new(format!("\"$({})\"", cmd));
 
             let diag = Diagnostic::new(

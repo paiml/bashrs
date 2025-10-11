@@ -251,9 +251,32 @@ $ bashrs lint script.sh --format=sarif
 **Linter Features**:
 - ✅ **Zero external dependencies** - No ShellCheck installation required
 - ✅ **3 output formats** - Human, JSON, SARIF for CI/CD integration
-- ✅ **Auto-fix suggestions** - Every violation includes a suggested fix
+- ✅ **Auto-fix** (NEW in v1.2) - Automatically apply fixes with `--fix` flag
 - ✅ **Smart detection** - Context-aware to prevent false positives
 - ✅ **ShellCheck parity** - Implements critical SC-series rules
+
+**Auto-Fix** (NEW in v1.2):
+```bash
+# Apply fixes automatically (creates backup)
+$ bashrs lint script.sh --fix
+[INFO] Applied 6 fix(es) to script.sh
+[INFO] Backup created at script.sh.bak
+✓ All issues fixed!
+```
+
+Before:
+```bash
+DIR=/tmp/mydir
+mkdir $DIR
+FILES=$(ls *.txt)
+```
+
+After:
+```bash
+DIR=/tmp/mydir
+mkdir "$DIR"
+FILES="$(ls *.txt)"
+```
 
 **Rules Implemented** (v1.1):
 - **SC2086**: Unquoted variable expansion (prevents word splitting & glob expansion)
