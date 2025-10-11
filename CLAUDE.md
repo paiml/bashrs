@@ -236,6 +236,210 @@ You write REAL Rust code, and it gets transpiled to safe shell scripts.
 - **Performance**: <100ms transpilation, <10MB memory
 - **Test coverage**: >85% on all modules
 
+---
+
+## 🚨 STOP THE LINE Protocol (Andon Cord)
+
+**CRITICAL**: When validating GNU Bash Manual transformations (Workflow 2), **STOP THE LINE** immediately when a bug is discovered.
+
+### When to Pull the Andon Cord
+
+**STOP IMMEDIATELY** if you discover:
+1. ❌ **Missing implementation** - Bash construct not parsed correctly
+2. ❌ **Incorrect transformation** - Bash→Rust or Rust→Purified output is wrong
+3. ❌ **Non-deterministic output** - Purified bash contains $RANDOM, $$, timestamps, etc.
+4. ❌ **Non-idempotent output** - Purified bash not safe to re-run (missing -p, -f flags)
+5. ❌ **Test failure** - EXTREME TDD test fails (RED without GREEN)
+6. ❌ **POSIX violation** - Generated shell fails `shellcheck -s sh`
+
+### STOP THE LINE Procedure
+
+When you find a bug during Bash manual validation:
+
+```
+🚨 STOP THE LINE - P0 BUG DETECTED 🚨
+
+1. HALT all validation work
+2. Document the bug clearly
+3. Create P0 ticket
+4. Fix with EXTREME TDD
+5. Verify fix with comprehensive testing
+6. ONLY THEN resume validation
+```
+
+### P0 Ticket Creation
+
+Create ticket following this template:
+
+```markdown
+## P0: [Short Description]
+
+**Severity**: P0 - STOP THE LINE
+**Category**: [Parser|Transformer|Emitter|Verifier]
+**Found During**: GNU Bash Manual validation (Task ID: <TASK-ID>)
+
+### Bug Description
+Clear description of what's broken.
+
+### Expected Behavior
+- Input: `<bash code>`
+- Rust: `<expected rust>`
+- Purified: `<expected purified bash>`
+
+### Actual Behavior
+- Input: `<bash code>`
+- Actual Rust: `<actual rust output>`
+- Actual Purified: `<actual purified output>`
+- Error: `<error message if any>`
+
+### Reproduction
+1. Step-by-step reproduction
+2. Minimal test case
+
+### Impact
+How this affects Bash manual coverage and workflows.
+```
+
+### Fix with EXTREME TDD + PmaT
+
+**MANDATORY FIX PROCESS**:
+
+#### Step 1: RED Phase (Write Failing Test)
+```rust
+#[test]
+fn test_<bug_description>() {
+    // ARRANGE: Set up test case from bug report
+    let bash_input = "<failing bash code>";
+
+    // ACT: Run transformation
+    let result = transform(bash_input);
+
+    // ASSERT: Verify expected behavior
+    assert_eq!(result.rust_code, "<expected rust>");
+    assert_eq!(result.purified_bash, "<expected purified>");
+    assert!(result.is_deterministic());
+    assert!(result.is_idempotent());
+}
+```
+
+Run test: `cargo test test_<bug_description>`
+**VERIFY IT FAILS** ❌ (This is RED phase)
+
+#### Step 2: GREEN Phase (Implement Fix)
+- Fix the parser/transformer/emitter code
+- Run test: `cargo test test_<bug_description>`
+- **VERIFY IT PASSES** ✅ (This is GREEN phase)
+
+#### Step 3: REFACTOR Phase
+- Clean up implementation
+- Extract helper functions if needed
+- Ensure complexity <10
+- Run full test suite: `cargo test`
+- **ALL 808+ TESTS MUST PASS** ✅
+
+#### Step 4: Property Testing
+```rust
+#[cfg(test)]
+mod property_tests {
+    use proptest::prelude::*;
+
+    proptest! {
+        #[test]
+        fn prop_<bug_description>_always_deterministic(
+            input in "<regex pattern for valid inputs>"
+        ) {
+            let result = transform(&input);
+            // Verify determinism property
+            prop_assert!(result.is_deterministic());
+        }
+    }
+}
+```
+
+Run: `cargo test prop_<bug_description>`
+**VERIFY PROPERTY HOLDS** ✅
+
+#### Step 5: Mutation Testing
+```bash
+# Run mutation testing on fixed module
+cargo mutants --file src/<module>/<fixed_file>.rs
+
+# TARGET: ≥90% kill rate
+```
+
+**VERIFY** mutation score ≥90% ✅
+
+#### Step 6: Integration Testing
+```rust
+#[test]
+fn test_integration_<bug_description>() {
+    // End-to-end test: bash → rust → purified → shellcheck
+    let bash = "<original bash>";
+    let rust = bash_to_rust(bash);
+    let purified = rust_to_purified(&rust);
+
+    // Verify shellcheck passes
+    assert!(shellcheck_passes(&purified));
+
+    // Verify determinism
+    let purified2 = rust_to_purified(&rust);
+    assert_eq!(purified, purified2);
+}
+```
+
+Run: `cargo test test_integration_<bug_description>`
+**VERIFY INTEGRATION WORKS** ✅
+
+#### Step 7: Regression Prevention
+- Add test to permanent test suite
+- Update BASH-INGESTION-ROADMAP.yaml
+- Mark task as "completed"
+- Document in CHANGELOG.md
+
+### Verification Checklist
+
+Before resuming validation, verify ALL of these:
+
+- [ ] ✅ **RED**: Failing test written and verified to fail
+- [ ] ✅ **GREEN**: Implementation fixed, test passes
+- [ ] ✅ **REFACTOR**: Code cleaned up, complexity <10
+- [ ] ✅ **All tests pass**: 808+ tests, 100% pass rate
+- [ ] ✅ **Property test**: Determinism/idempotency verified
+- [ ] ✅ **Mutation test**: ≥90% kill rate on fixed module
+- [ ] ✅ **Integration test**: End-to-end workflow verified
+- [ ] ✅ **Shellcheck**: Purified output passes POSIX compliance
+- [ ] ✅ **Documentation**: CHANGELOG, roadmap updated
+- [ ] ✅ **Ticket closed**: P0 marked as RESOLVED
+
+### Resume Validation
+
+**ONLY AFTER** all checklist items are ✅, you may resume GNU Bash manual validation.
+
+### Example: Real STOP THE LINE Event
+
+```
+🚨 STOP THE LINE 🚨
+
+Task: PARAM-POS-001 (Positional parameters $1, $2)
+Bug: Parser treats "$1" in double quotes as Literal("$1")
+     instead of Variable("1")
+
+Action Taken:
+1. HALTED validation work
+2. Created test: test_positional_parameters_in_quotes
+3. Test FAILED ❌ (RED confirmed)
+4. Fixed parser to expand variables in double quotes
+5. Test PASSED ✅ (GREEN confirmed)
+6. Ran all 808 tests: PASSED ✅
+7. Added property test: PASSED ✅
+8. Mutation test: 92% kill rate ✅
+9. Updated CHANGELOG, roadmap
+
+Status: ✅ RESOLVED - Resuming validation
+```
+
+---
+
 ## Critical Invariants
 
 ### Workflow 1 (Rust → Shell)
@@ -262,6 +466,64 @@ pmat test --shell-matrix "sh,dash,ash" --input examples/*.rs
 pmat analyze complexity --max 10
 pmat quality-score --min 9.0
 ```
+
+## Documentation Standards
+
+### Roadmap Format
+**CRITICAL**: All project roadmaps MUST be in YAML format (.yaml extension).
+
+**Required Format**:
+- ✅ **ONLY YAML**: All roadmaps must use `.yaml` extension
+- ❌ **NO MARKDOWN**: Do NOT create `.md` roadmap files
+- ✅ **Structured Data**: Use YAML for machine-readable task tracking
+- ✅ **Consistency**: All roadmaps follow same schema
+
+**Roadmap Locations**:
+- Project roadmap: `ROADMAP.yaml`
+- Feature roadmaps: `docs/<feature>-ROADMAP.yaml`
+- Sprint roadmaps: Embedded in `ROADMAP.yaml` under `sprints` key
+
+**Required YAML Schema**:
+```yaml
+roadmap:
+  title: "Roadmap Name"
+  goal: "Clear objective"
+  methodology: "EXTREME TDD"
+  status: "IN_PROGRESS|COMPLETE|READY"
+
+  statistics:
+    total_tasks: <number>
+    completed: <number>
+    in_progress: <number>
+    coverage_percent: <number>
+
+chapters:  # or sections/tasks depending on structure
+  - id: <unique-id>
+    name: "Chapter/Section Name"
+    tasks:
+      - id: "<TASK-ID>"
+        title: "Task description"
+        status: "pending|in_progress|completed"
+        priority: "HIGH|MEDIUM|LOW"
+        input: "Example input"
+        rust: "Rust transformation"
+        purified: "Purified bash output"
+        test_name: "test_function_name"
+        notes: "Additional context"
+```
+
+**Why YAML for Roadmaps**:
+1. Machine-readable for automation
+2. Easy to query with tools (yq, jq)
+3. Structured schema enforcement
+4. Integration with CI/CD pipelines
+5. Better version control diffs
+
+**Existing Roadmaps**:
+- `ROADMAP.yaml` - Main project roadmap
+- `docs/BASH-INGESTION-ROADMAP.yaml` - Bash transformation roadmap
+
+---
 
 ## Tools
 - `cargo test` - Test actual Rust code

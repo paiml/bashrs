@@ -1,0 +1,1122 @@
+---
+roadmap:
+  title: "Bash Ingestion Roadmap - EXTREME TDD"
+  goal: "Document every Bash construct transformation to Rust and Purified Bash"
+  methodology: "EXTREME TDD (Test-First, RED-GREEN-REFACTOR)"
+  reference: "GNU Bash Manual (bash.pdf)"
+  status: "IN_PROGRESS"
+  completion: "13%"
+
+  statistics:
+    total_tasks: 120
+    completed: 15
+    in_progress: 105
+    coverage_percent: 13
+
+extreme_tdd_workflow:
+  description: "Standard workflow for each task"
+  steps:
+    - id: 1
+      name: "RED"
+      description: "Write failing test first"
+      example: |
+        #[test]
+        fn test_<feature>_transformation() {
+            let bash = "<bash input>";
+            let rust = "<expected rust>";
+            let purified = "<expected purified bash>";
+
+            assert_eq!(bash_to_rust(bash), rust);
+            assert_eq!(bash_to_purified(bash), purified);
+        }
+
+    - id: 2
+      name: "GREEN"
+      description: "Implement transformation"
+      substeps:
+        - "Update parser for bash construct"
+        - "Update Rust AST generation"
+        - "Update purified bash emission"
+
+    - id: 3
+      name: "REFACTOR"
+      description: "Clean up implementation"
+      substeps:
+        - "Extract common patterns"
+        - "Add helper functions"
+        - "Document edge cases"
+
+    - id: 4
+      name: "DOCUMENT"
+      description: "Add to examples"
+      substeps:
+        - "Update PURIFICATION_WORKFLOW.md"
+        - "Add to test fixtures"
+        - "Update CHANGELOG"
+
+chapters:
+  - id: 1
+    name: "Introduction"
+    tasks:
+      - id: "1.1"
+        title: "Document bash shebang transformation"
+        status: "pending"
+        input: "#!/bin/bash"
+        rust: "fn main() {}"
+        purified: "#!/bin/sh"
+        test_name: "test_shebang_transformation"
+        notes: "POSIX sh shebang"
+
+      - id: "1.2"
+        title: "Document interactive vs script mode"
+        status: "pending"
+        input: "Interactive bash session"
+        rust: "Not applicable (compile-time only)"
+        purified: "Script mode only (deterministic)"
+        test_name: "test_script_mode_only"
+
+  - id: 2
+    name: "Definitions"
+    tasks:
+      - id: "2.1"
+        title: "Document POSIX-only constructs"
+        status: "pending"
+        input: "Bash-specific syntax"
+        rust: "Standard Rust constructs"
+        purified: "POSIX sh syntax only"
+        test_name: "test_posix_compliance_check"
+
+  - id: 3
+    name: "Basic Shell Features"
+    sections:
+      - id: "3.1"
+        name: "Shell Syntax"
+        subsections:
+          - id: "3.1.1"
+            name: "Shell Operation"
+            tasks:
+              - id: "3.1.1.1"
+                title: "Document command execution"
+                status: "pending"
+                input: "echo \"hello\""
+                rust: "fn main() { echo(\"hello\"); }"
+                purified: "printf '%s\\n' \"hello\""
+                test_name: "test_echo_to_printf_transformation"
+                notes: "POSIX printf preferred over echo"
+
+          - id: "3.1.2"
+            name: "Quoting"
+            tasks:
+              - id: "3.1.2.1"
+                title: "Document backslash escaping"
+                status: "pending"
+                input: "echo \"Hello \\\"World\\\"\""
+                rust: "println!(\"Hello \\\"World\\\"\")"
+                purified: "printf '%s\\n' \"Hello \\\"World\\\"\""
+                test_name: "test_escape_character_preservation"
+
+              - id: "3.1.2.2"
+                title: "Document single quote literals"
+                status: "pending"
+                input: "echo 'It'\\''s working'"
+                rust: "println!(\"It's working\")"
+                purified: "printf '%s\\n' \"It's working\""
+                test_name: "test_single_quote_transformation"
+                notes: "Use double quotes in purified output"
+
+              - id: "3.1.2.3"
+                title: "Document double quote preservation"
+                status: "pending"
+                input: "echo \"Value: $VAR\""
+                rust: "println!(\"Value: {}\", var)"
+                purified: "printf '%s\\n' \"Value: $VAR\""
+                test_name: "test_double_quote_variable_expansion"
+
+              - id: "3.1.2.4"
+                title: "Document $'...' transformation"
+                status: "pending"
+                input: "echo $'Hello\\nWorld'"
+                rust: "println!(\"Hello\\nWorld\")"
+                purified: "printf '%s\\n%s\\n' \"Hello\" \"World\""
+                test_name: "test_ansi_c_quoting_to_explicit"
+                notes: "ANSI-C quoting to explicit printf"
+
+      - id: "3.2"
+        name: "Shell Commands"
+        subsections:
+          - id: "3.2.1"
+            name: "Simple Commands"
+            tasks:
+              - id: "3.2.1.1"
+                title: "Document command with arguments"
+                status: "pending"
+                input: "mkdir -p /tmp/data"
+                rust: "fn main() { mkdir_p(\"/tmp/data\"); }"
+                purified: "mkdir -p \"/tmp/data\""
+                test_name: "test_simple_command_transformation"
+                notes: "Quoted, idempotent with -p"
+
+          - id: "3.2.2"
+            name: "Pipelines"
+            tasks:
+              - id: "3.2.2.1"
+                title: "Document pipe transformation"
+                status: "pending"
+                input: "cat file.txt | grep \"pattern\""
+                rust: "grep(cat(\"file.txt\"), \"pattern\")"
+                purified: "cat \"file.txt\" | grep \"pattern\""
+                test_name: "test_pipeline_transformation"
+                notes: "Quoted paths"
+
+          - id: "3.2.3"
+            name: "Lists"
+            tasks:
+              - id: "3.2.3.1"
+                title: "Document command lists (&&, ||, ;)"
+                status: "pending"
+                input: "cmd1 && cmd2 || cmd3"
+                rust: "if cmd1() { cmd2() } else { cmd3() }"
+                purified: "cmd1 && cmd2 || cmd3"
+                test_name: "test_command_list_transformation"
+                notes: "Same syntax, but ensure quoting"
+
+          - id: "3.2.4"
+            name: "Compound Commands"
+            subsections:
+              - id: "3.2.4.1"
+                name: "Looping Constructs"
+                tasks:
+                  - id: "LOOP-001"
+                    title: "Document until loop transformation"
+                    status: "pending"
+                    input: "until [ $i -gt 5 ]; do echo $i; i=$((i+1)); done"
+                    rust: "while !(i > 5) { println!(\"{}\", i); i += 1; }"
+                    purified: "while [ ! \"$i\" -gt 5 ]; do printf '%s\\n' \"$i\"; i=$((i+1)); done"
+                    test_name: "test_until_to_while_transformation"
+
+                  - id: "LOOP-002"
+                    title: "Document while loop"
+                    status: "completed"
+                    version: "v0.8.0"
+                    input: "while [ $i -lt 5 ]; do echo $i; i=$((i+1)); done"
+                    rust: "while i < 5 { println!(\"{}\", i); i += 1; }"
+                    purified: "while [ \"$i\" -lt 5 ]; do printf '%s\\n' \"$i\"; i=$((i+1)); done"
+                    test_name: "test_while_loop_transformation"
+
+                  - id: "LOOP-003"
+                    title: "Document for loop"
+                    status: "completed"
+                    version: "v0.5.0"
+                    input: "for i in {1..5}; do echo $i; done"
+                    rust: "for i in 1..=5 { println!(\"{}\", i); }"
+                    purified: "for i in $(seq 1 5); do printf '%s\\n' \"$i\"; done"
+                    test_name: "test_for_loop_transformation"
+
+              - id: "3.2.4.2"
+                name: "Conditional Constructs"
+                tasks:
+                  - id: "COND-001"
+                    title: "Document if/else"
+                    status: "completed"
+                    version: "v0.4.0"
+                    input: "if [ \"$VAR\" = \"value\" ]; then echo \"yes\"; else echo \"no\"; fi"
+                    rust: "if var == \"value\" { println!(\"yes\") } else { println!(\"no\") }"
+                    purified: "if [ \"$VAR\" = \"value\" ]; then printf '%s\\n' \"yes\"; else printf '%s\\n' \"no\"; fi"
+                    test_name: "test_if_statement_transformation"
+
+                  - id: "COND-002"
+                    title: "Document case/match"
+                    status: "completed"
+                    version: "v0.6.0"
+                    input: "case $VAR in 1) echo \"one\";; 2) echo \"two\";; esac"
+                    rust: "match var { 1 => println!(\"one\"), 2 => println!(\"two\"), _ => {} }"
+                    purified: "case \"$VAR\" in 1) printf '%s\\n' \"one\";; 2) printf '%s\\n' \"two\";; esac"
+                    test_name: "test_case_statement_transformation"
+
+                  - id: "COND-003"
+                    title: "Document select menu transformation"
+                    status: "pending"
+                    input: "select opt in \"A\" \"B\"; do echo $opt; break; done"
+                    rust: "Not supported (interactive only)"
+                    purified: "Not supported (non-deterministic)"
+                    test_name: "test_select_not_supported"
+                    notes: "Interactive feature, not deterministic"
+
+      - id: "3.3"
+        name: "Shell Functions"
+        tasks:
+          - id: "FUNC-001"
+            title: "Document function syntax"
+            status: "completed"
+            version: "v0.4.0"
+            input: "function greet() { echo \"Hello $1\"; }"
+            rust: "fn greet(name: &str) { println!(\"Hello {}\", name); }"
+            purified: "greet() { printf '%s %s\\n' \"Hello\" \"$1\"; }"
+            test_name: "test_function_definition"
+
+          - id: "FUNC-002"
+            title: "Document return values"
+            status: "completed"
+            version: "v0.4.0"
+            input: "add() { echo $(($1 + $2)); }; result=$(add 3 5)"
+            rust: "fn add(a: i32, b: i32) -> i32 { a + b }; let result = add(3, 5);"
+            purified: "add() { echo \"$(($1 + $2))\"; }; result=\"$(add 3 5)\""
+            test_name: "test_function_return_values"
+
+      - id: "3.4"
+        name: "Shell Parameters"
+        subsections:
+          - id: "3.4.1"
+            name: "Positional Parameters"
+            tasks:
+              - id: "PARAM-POS-001"
+                title: "Document $1, $2, etc."
+                status: "pending"
+                priority: "HIGH"
+                input: "echo \"First: $1, Second: $2\""
+                rust: "fn main(args: Vec<String>) { println!(\"First: {}, Second: {}\", args[0], args[1]); }"
+                purified: "printf '%s %s, %s %s\\n' \"First:\" \"$1\" \"Second:\" \"$2\""
+                test_name: "test_positional_parameters"
+
+          - id: "3.4.2"
+            name: "Special Parameters"
+            tasks:
+              - id: "PARAM-SPEC-001"
+                title: "Document $# (argument count)"
+                status: "pending"
+                priority: "HIGH"
+                input: "echo \"Args: $#\""
+                rust: "println!(\"Args: {}\", args.len())"
+                purified: "printf '%s %s\\n' \"Args:\" \"$#\""
+                test_name: "test_arg_count_parameter"
+
+              - id: "PARAM-SPEC-002"
+                title: "Document $? (exit status)"
+                status: "pending"
+                priority: "HIGH"
+                input: "cmd; echo \"Exit: $?\""
+                rust: "let exit = cmd(); println!(\"Exit: {}\", exit);"
+                purified: "cmd; _exit=\"$?\"; printf '%s %s\\n' \"Exit:\" \"$_exit\""
+                test_name: "test_exit_status_parameter"
+
+              - id: "PARAM-SPEC-003"
+                title: "Document $$ (process ID) purification"
+                status: "pending"
+                priority: "HIGH"
+                input: "echo \"PID: $$\""
+                rust: "Not supported (non-deterministic)"
+                purified: "Remove (use fixed identifier)"
+                test_name: "test_pid_removed_for_determinism"
+                notes: "Non-deterministic, must remove"
+
+              - id: "PARAM-SPEC-004"
+                title: "Document $! (background PID) purification"
+                status: "pending"
+                priority: "HIGH"
+                input: "cmd & echo \"BG: $!\""
+                rust: "Not supported (background jobs non-deterministic)"
+                purified: "Remove (use synchronous execution)"
+                test_name: "test_background_pid_removed"
+                notes: "Non-deterministic, must remove"
+
+              - id: "PARAM-SPEC-005"
+                title: "Document $0 (script name)"
+                status: "pending"
+                priority: "MEDIUM"
+                input: "echo \"Script: $0\""
+                rust: "println!(\"Script: {}\", std::env::args().nth(0).unwrap())"
+                purified: "printf '%s %s\\n' \"Script:\" \"$0\""
+                test_name: "test_script_name_parameter"
+
+              - id: "PARAM-SPEC-006"
+                title: "Document $- (shell options) purification"
+                status: "pending"
+                priority: "LOW"
+                input: "echo \"Options: $-\""
+                rust: "Not supported (runtime-specific)"
+                purified: "Remove (not needed in purified scripts)"
+                test_name: "test_shell_options_removed"
+
+      - id: "3.5"
+        name: "Shell Expansions"
+        subsections:
+          - id: "3.5.1"
+            name: "Brace Expansion"
+            tasks:
+              - id: "EXP-BRACE-001"
+                title: "Document brace expansion"
+                status: "pending"
+                priority: "MEDIUM"
+                input: "echo {1..5}"
+                rust: "for i in 1..=5 { print!(\"{} \", i); }"
+                purified: "seq 1 5 | tr '\\n' ' '"
+                test_name: "test_brace_expansion_to_seq"
+                notes: "Explicit seq command"
+
+          - id: "3.5.2"
+            name: "Tilde Expansion"
+            tasks:
+              - id: "EXP-TILDE-001"
+                title: "Document ~ expansion"
+                status: "pending"
+                priority: "MEDIUM"
+                input: "cd ~/docs"
+                rust: "std::env::home_dir()"
+                purified: "cd \"$HOME/docs\""
+                test_name: "test_tilde_to_home_expansion"
+                notes: "Explicit $HOME variable"
+
+          - id: "3.5.3"
+            name: "Shell Parameter Expansion"
+            tasks:
+              - id: "EXP-PARAM-001"
+                title: "Document ${parameter:-word} (default value)"
+                status: "pending"
+                priority: "HIGH"
+                input: "echo \"${VAR:-default}\""
+                rust: "let val = var.unwrap_or(\"default\");"
+                purified: "printf '%s\\n' \"${VAR:-default}\""
+                test_name: "test_default_value_expansion"
+
+              - id: "EXP-PARAM-002"
+                title: "Document ${parameter:=word} (assign default)"
+                status: "pending"
+                priority: "HIGH"
+                input: "echo \"${VAR:=default}\""
+                rust: "let val = var.get_or_insert(\"default\");"
+                purified: "VAR=\"${VAR:=default}\"; printf '%s\\n' \"$VAR\""
+                test_name: "test_assign_default_expansion"
+
+              - id: "EXP-PARAM-003"
+                title: "Document ${parameter:?word} (error if unset)"
+                status: "pending"
+                priority: "MEDIUM"
+                input: "echo \"${VAR:?error message}\""
+                rust: "let val = var.expect(\"error message\");"
+                purified: ": \"${VAR:?error message}\"; printf '%s\\n' \"$VAR\""
+                test_name: "test_error_if_unset_expansion"
+
+              - id: "EXP-PARAM-004"
+                title: "Document ${parameter:+word} (alternative value)"
+                status: "pending"
+                priority: "MEDIUM"
+                input: "echo \"${VAR:+set}\""
+                rust: "let val = if var.is_some() { \"set\" } else { \"\" };"
+                purified: "printf '%s\\n' \"${VAR:+set}\""
+                test_name: "test_alternative_value_expansion"
+
+              - id: "EXP-PARAM-005"
+                title: "Document ${#parameter} (string length)"
+                status: "pending"
+                priority: "HIGH"
+                input: "echo \"${#VAR}\""
+                rust: "println!(\"{}\", var.len())"
+                purified: "printf '%s\\n' \"${#VAR}\""
+                test_name: "test_string_length_expansion"
+
+              - id: "EXP-PARAM-006"
+                title: "Document ${parameter%word} (remove suffix)"
+                status: "pending"
+                priority: "HIGH"
+                input: "file=\"test.txt\"; echo \"${file%.txt}\""
+                rust: "file.strip_suffix(\".txt\").unwrap_or(file)"
+                purified: "printf '%s\\n' \"${file%.txt}\""
+                test_name: "test_remove_suffix_expansion"
+
+              - id: "EXP-PARAM-007"
+                title: "Document ${parameter#word} (remove prefix)"
+                status: "pending"
+                priority: "HIGH"
+                input: "path=\"/tmp/file\"; echo \"${path#/tmp/}\""
+                rust: "path.strip_prefix(\"/tmp/\").unwrap_or(path)"
+                purified: "printf '%s\\n' \"${path#/tmp/}\""
+                test_name: "test_remove_prefix_expansion"
+
+              - id: "EXP-PARAM-008"
+                title: "Document ${parameter/pattern/string} (substitution)"
+                status: "pending"
+                priority: "MEDIUM"
+                input: "text=\"hello\"; echo \"${text/l/L}\""
+                rust: "text.replacen(\"l\", \"L\", 1)"
+                purified: "Use sed or awk (POSIX doesn't support ${//})"
+                test_name: "test_pattern_substitution_to_sed"
+                notes: "POSIX sh lacks ${//}, use sed"
+
+          - id: "3.5.4"
+            name: "Command Substitution"
+            tasks:
+              - id: "EXP-CMD-001"
+                title: "Document $() and backticks"
+                status: "completed"
+                version: "v0.4.0"
+                input: "result=$(date); result=`date`"
+                rust: "let result = date();"
+                purified: "result=\"$(date)\""
+                test_name: "test_command_substitution"
+                notes: "Prefer $() over backticks"
+
+          - id: "3.5.5"
+            name: "Arithmetic Expansion"
+            tasks:
+              - id: "EXP-ARITH-001"
+                title: "Document $((...)) arithmetic"
+                status: "completed"
+                version: "v0.4.0"
+                input: "result=$((3 + 5 * 2))"
+                rust: "let result = 3 + 5 * 2;"
+                purified: "result=\"$((3 + 5 * 2))\""
+                test_name: "test_arithmetic_expansion"
+
+          - id: "3.5.6"
+            name: "Process Substitution"
+            tasks:
+              - id: "EXP-PROC-001"
+                title: "Document <(...) and >(...)"
+                status: "pending"
+                priority: "MEDIUM"
+                input: "diff <(cmd1) <(cmd2)"
+                rust: "Not supported (bash-specific)"
+                purified: "Use temporary files instead"
+                test_name: "test_process_substitution_to_temp_files"
+                notes: "Bash-specific, use temp files in POSIX"
+
+          - id: "3.5.7"
+            name: "Word Splitting"
+            tasks:
+              - id: "EXP-SPLIT-001"
+                title: "Document IFS-based splitting purification"
+                status: "pending"
+                priority: "MEDIUM"
+                input: "IFS=':'; read -ra PARTS <<< \"$PATH\""
+                rust: "let parts: Vec<_> = path.split(':').collect();"
+                purified: "Use explicit tr or cut (avoid IFS manipulation)"
+                test_name: "test_word_splitting_purification"
+                notes: "Avoid IFS manipulation for determinism"
+
+          - id: "3.5.8"
+            name: "Filename Expansion (Globbing)"
+            tasks:
+              - id: "EXP-GLOB-001"
+                title: "Document glob patterns"
+                status: "pending"
+                priority: "MEDIUM"
+                input: "for f in *.txt; do echo $f; done"
+                rust: "for f in glob(\"*.txt\") { println!(\"{}\", f); }"
+                purified: "for f in *.txt; do printf '%s\\n' \"$f\"; done"
+                test_name: "test_glob_pattern_transformation"
+
+      - id: "3.6"
+        name: "Redirections"
+        tasks:
+          - id: "REDIR-001"
+            title: "Document < redirection (input)"
+            status: "pending"
+            priority: "HIGH"
+            input: "cmd < input.txt"
+            rust: "cmd(File::open(\"input.txt\"))"
+            purified: "cmd < \"input.txt\""
+            test_name: "test_input_redirection"
+
+          - id: "REDIR-002"
+            title: "Document > and >> redirection (output)"
+            status: "pending"
+            priority: "HIGH"
+            input: "echo \"text\" > file.txt; echo \"more\" >> file.txt"
+            rust: "write_file(\"file.txt\", \"text\"); append_file(\"file.txt\", \"more\");"
+            purified: "printf '%s\\n' \"text\" > \"file.txt\"; printf '%s\\n' \"more\" >> \"file.txt\""
+            test_name: "test_output_redirection"
+
+          - id: "REDIR-003"
+            title: "Document &> redirection (stdout+stderr)"
+            status: "pending"
+            priority: "HIGH"
+            input: "cmd &> output.txt"
+            rust: "cmd_redirect(\"output.txt\")"
+            purified: "cmd > \"output.txt\" 2>&1"
+            test_name: "test_stderr_stdout_redirection"
+            notes: "POSIX equivalent: > file 2>&1"
+
+          - id: "REDIR-004"
+            title: "Document << heredoc"
+            status: "pending"
+            priority: "HIGH"
+            input: "cat << EOF\\nHello\\nWorld\\nEOF"
+            rust: "println!(\"Hello\\nWorld\")"
+            purified: "cat << 'EOF'\\nHello\\nWorld\\nEOF"
+            test_name: "test_heredoc_transformation"
+            notes: "Quote delimiter to prevent expansion"
+
+          - id: "REDIR-005"
+            title: "Document <<< herestring"
+            status: "pending"
+            priority: "MEDIUM"
+            input: "cmd <<< \"input string\""
+            rust: "cmd(\"input string\")"
+            purified: "printf '%s' \"input string\" | cmd"
+            test_name: "test_herestring_to_pipe"
+            notes: "Bash-specific, use printf | in POSIX"
+
+  - id: 4
+    name: "Shell Builtin Commands"
+    sections:
+      - id: "4.1"
+        name: "Bourne Shell Builtins"
+        tasks:
+          - id: "BUILTIN-001"
+            title: "Document : (no-op)"
+            status: "pending"
+            priority: "LOW"
+            input: ": # comment"
+            rust: "// comment"
+            purified: ": # comment"
+            test_name: "test_noop_colon"
+
+          - id: "BUILTIN-002"
+            title: "Document . (source)"
+            status: "pending"
+            priority: "MEDIUM"
+            input: ". ./config.sh"
+            rust: "include!(\"config.rs\")"
+            purified: ". \"./config.sh\""
+            test_name: "test_source_command"
+
+          - id: "BUILTIN-003"
+            title: "Document break"
+            status: "completed"
+            version: "v0.8.0"
+            input: "while true; do break; done"
+            rust: "while true { break; }"
+            purified: "while true; do break; done"
+            test_name: "test_break_statement"
+
+          - id: "BUILTIN-004"
+            title: "Document continue"
+            status: "completed"
+            version: "v0.8.0"
+            input: "for i in 1 2 3; do continue; done"
+            rust: "for i in 1..=3 { continue; }"
+            purified: "for i in 1 2 3; do continue; done"
+            test_name: "test_continue_statement"
+
+          - id: "BUILTIN-005"
+            title: "Document cd"
+            status: "pending"
+            priority: "HIGH"
+            input: "cd /tmp"
+            rust: "std::env::set_current_dir(\"/tmp\")"
+            purified: "cd \"/tmp\""
+            test_name: "test_cd_command"
+
+          - id: "BUILTIN-006"
+            title: "Document echo"
+            status: "completed"
+            version: "v0.4.0"
+            input: "echo \"Hello World\""
+            rust: "println!(\"Hello World\")"
+            purified: "printf '%s\\n' \"Hello World\""
+            test_name: "test_echo_to_printf"
+            notes: "Prefer printf over echo"
+
+          - id: "BUILTIN-007"
+            title: "Document eval"
+            status: "pending"
+            priority: "LOW"
+            input: "cmd=\"echo hello\"; eval $cmd"
+            rust: "Not supported (dynamic execution unsafe)"
+            purified: "Remove (security risk, not deterministic)"
+            test_name: "test_eval_not_supported"
+            notes: "Security risk, must remove"
+
+          - id: "BUILTIN-008"
+            title: "Document exec"
+            status: "pending"
+            priority: "LOW"
+            input: "exec ./new-script.sh"
+            rust: "std::process::Command::new(\"./new-script.sh\").exec()"
+            purified: "Remove (replaces process, not idempotent)"
+            test_name: "test_exec_not_supported"
+
+          - id: "BUILTIN-009"
+            title: "Document exit"
+            status: "pending"
+            priority: "MEDIUM"
+            input: "exit 0"
+            rust: "std::process::exit(0)"
+            purified: "exit 0"
+            test_name: "test_exit_command"
+
+          - id: "BUILTIN-010"
+            title: "Document export"
+            status: "pending"
+            priority: "HIGH"
+            input: "export VAR=\"value\""
+            rust: "std::env::set_var(\"VAR\", \"value\")"
+            purified: "VAR=\"value\"; export VAR"
+            test_name: "test_export_command"
+
+          - id: "BUILTIN-011"
+            title: "Document pwd"
+            status: "pending"
+            priority: "HIGH"
+            input: "current=$(pwd)"
+            rust: "let current = std::env::current_dir()?;"
+            purified: "current=\"$(pwd)\""
+            test_name: "test_pwd_command"
+
+          - id: "BUILTIN-012"
+            title: "Document read"
+            status: "pending"
+            priority: "LOW"
+            input: "read -r var"
+            rust: "Not supported (interactive input non-deterministic)"
+            purified: "Remove (use command-line args instead)"
+            test_name: "test_read_not_supported"
+            notes: "Interactive, non-deterministic"
+
+          - id: "BUILTIN-013"
+            title: "Document return"
+            status: "completed"
+            version: "v0.4.0"
+            input: "func() { return 1; }"
+            rust: "fn func() -> Result<(), String> { Err(\"error\".into()) }"
+            purified: "func() { return 1; }"
+            test_name: "test_return_statement"
+
+          - id: "BUILTIN-014"
+            title: "Document set"
+            status: "pending"
+            priority: "MEDIUM"
+            input: "set -e"
+            rust: "Not applicable (compile-time checking)"
+            purified: "set -e"
+            test_name: "test_set_flags"
+            notes: "Preserve safety flags like -e, -u"
+
+          - id: "BUILTIN-015"
+            title: "Document shift"
+            status: "pending"
+            priority: "MEDIUM"
+            input: "shift; echo $1"
+            rust: "args.remove(0); println!(\"{}\", args[0])"
+            purified: "shift; printf '%s\\n' \"$1\""
+            test_name: "test_shift_command"
+
+          - id: "BUILTIN-016"
+            title: "Document test / ["
+            status: "pending"
+            priority: "HIGH"
+            input: "if [ -f \"file.txt\" ]; then echo \"exists\"; fi"
+            rust: "if std::path::Path::new(\"file.txt\").exists() { println!(\"exists\"); }"
+            purified: "if [ -f \"file.txt\" ]; then printf '%s\\n' \"exists\"; fi"
+            test_name: "test_test_command"
+
+          - id: "BUILTIN-017"
+            title: "Document times"
+            status: "pending"
+            priority: "LOW"
+            input: "times"
+            rust: "Not supported (profiling, non-deterministic)"
+            purified: "Remove (use external profiling tools)"
+            test_name: "test_times_not_supported"
+
+          - id: "BUILTIN-018"
+            title: "Document trap"
+            status: "pending"
+            priority: "MEDIUM"
+            input: "trap 'cleanup' EXIT"
+            rust: "Use Drop trait"
+            purified: "trap 'cleanup' EXIT"
+            test_name: "test_trap_signal_handling"
+
+          - id: "BUILTIN-019"
+            title: "Document umask"
+            status: "pending"
+            priority: "LOW"
+            input: "umask 022"
+            rust: "std::fs::set_permissions()"
+            purified: "umask 022"
+            test_name: "test_umask_command"
+
+          - id: "BUILTIN-020"
+            title: "Document unset"
+            status: "pending"
+            priority: "HIGH"
+            input: "unset VAR"
+            rust: "Variables go out of scope"
+            purified: "unset VAR"
+            test_name: "test_unset_command"
+
+      - id: "4.2"
+        name: "Bash Builtin Commands"
+        tasks:
+          - id: "BASH-BUILTIN-001"
+            title: "Document alias"
+            status: "pending"
+            priority: "MEDIUM"
+            input: "alias ll='ls -la'"
+            rust: "Not supported (interactive feature)"
+            purified: "Remove (use functions instead)"
+            test_name: "test_alias_to_function"
+
+          - id: "BASH-BUILTIN-002"
+            title: "Document declare/typeset"
+            status: "pending"
+            priority: "MEDIUM"
+            input: "declare -i num=5"
+            rust: "let num: i32 = 5;"
+            purified: "num=5"
+            test_name: "test_declare_to_assignment"
+
+          - id: "BASH-BUILTIN-003"
+            title: "Document let"
+            status: "pending"
+            priority: "LOW"
+            input: "let \"x = 5 + 3\""
+            rust: "let x = 5 + 3;"
+            purified: "x=$((5 + 3))"
+            test_name: "test_let_to_arithmetic"
+
+          - id: "BASH-BUILTIN-004"
+            title: "Document local"
+            status: "pending"
+            priority: "MEDIUM"
+            input: "func() { local var=5; }"
+            rust: "fn func() { let var = 5; }"
+            purified: "func() { _var=5; }"
+            test_name: "test_local_to_scoped_var"
+            notes: "Use naming convention for scoping"
+
+          - id: "BASH-BUILTIN-005"
+            title: "Document printf"
+            status: "pending"
+            priority: "HIGH"
+            input: "printf '%s %d\\n' \"Number:\" 42"
+            rust: "println!(\"Number: {}\", 42)"
+            purified: "printf '%s %d\\n' \"Number:\" 42"
+            test_name: "test_printf_preservation"
+            notes: "printf is preferred, preserve it"
+
+          - id: "BASH-BUILTIN-006"
+            title: "Document readarray/mapfile"
+            status: "pending"
+            priority: "LOW"
+            input: "readarray -t lines < file.txt"
+            rust: "let lines: Vec<_> = read_lines(\"file.txt\")?;"
+            purified: "Use while read loop (POSIX)"
+            test_name: "test_readarray_to_while_read"
+
+  - id: 5
+    name: "Shell Variables"
+    sections:
+      - id: "5.1"
+        name: "Bourne Shell Variables"
+        tasks:
+          - id: "VAR-001"
+            title: "Document HOME"
+            status: "pending"
+            priority: "HIGH"
+            input: "cd $HOME"
+            rust: "std::env::home_dir()"
+            purified: "cd \"$HOME\""
+            test_name: "test_home_variable"
+
+          - id: "VAR-002"
+            title: "Document PATH"
+            status: "pending"
+            priority: "HIGH"
+            input: "PATH=\"/usr/local/bin:$PATH\""
+            rust: "std::env::set_var(\"PATH\", format!(\"/usr/local/bin:{}\", env::var(\"PATH\")))"
+            purified: "PATH=\"/usr/local/bin:$PATH\"; export PATH"
+            test_name: "test_path_variable"
+
+          - id: "VAR-003"
+            title: "Document IFS purification"
+            status: "pending"
+            priority: "MEDIUM"
+            input: "IFS=':'; read -ra parts <<< \"$PATH\""
+            rust: "let parts: Vec<_> = path.split(':').collect();"
+            purified: "Avoid IFS manipulation (use tr/cut)"
+            test_name: "test_ifs_purification"
+
+          - id: "VAR-004"
+            title: "Document PS1, PS2, etc."
+            status: "pending"
+            priority: "LOW"
+            input: "PS1='$ '"
+            rust: "Not applicable (no interactive mode)"
+            purified: "Remove (not needed in scripts)"
+            test_name: "test_prompt_vars_removed"
+
+      - id: "5.2"
+        name: "Bash Variables"
+        tasks:
+          - id: "BASH-VAR-001"
+            title: "Document BASH_VERSION"
+            status: "pending"
+            priority: "LOW"
+            input: "echo $BASH_VERSION"
+            rust: "const VERSION: &str = \"1.0.0\";"
+            purified: "Remove (not available in sh)"
+            test_name: "test_bash_version_removed"
+
+          - id: "BASH-VAR-002"
+            title: "Document RANDOM purification"
+            status: "pending"
+            priority: "HIGH"
+            input: "num=$RANDOM"
+            rust: "Not supported (non-deterministic)"
+            purified: "Remove (use deterministic seed)"
+            test_name: "test_random_removed_for_determinism"
+            notes: "Non-deterministic, MUST remove"
+
+          - id: "BASH-VAR-003"
+            title: "Document SECONDS purification"
+            status: "pending"
+            priority: "MEDIUM"
+            input: "echo $SECONDS"
+            rust: "Use std::time::Instant"
+            purified: "Remove (non-deterministic timing)"
+            test_name: "test_seconds_removed"
+            notes: "Non-deterministic, remove"
+
+  - id: 6
+    name: "Bash Features"
+    sections:
+      - id: "6.1"
+        name: "Arrays"
+        tasks:
+          - id: "ARRAY-001"
+            title: "Document indexed arrays"
+            status: "pending"
+            priority: "MEDIUM"
+            input: "arr=(1 2 3); echo ${arr[0]}"
+            rust: "let arr = vec![1, 2, 3]; println!(\"{}\", arr[0]);"
+            purified: "Use whitespace-separated strings (POSIX sh has no arrays)"
+            test_name: "test_array_to_whitespace_list"
+
+          - id: "ARRAY-002"
+            title: "Document associative arrays"
+            status: "pending"
+            priority: "LOW"
+            input: "declare -A map; map[key]=value"
+            rust: "let mut map = HashMap::new(); map.insert(\"key\", \"value\");"
+            purified: "Not supported (use multiple variables)"
+            test_name: "test_associative_array_not_supported"
+
+      - id: "6.2"
+        name: "The Directory Stack (pushd/popd)"
+        tasks:
+          - id: "DIRSTACK-001"
+            title: "Document pushd/popd"
+            status: "pending"
+            priority: "LOW"
+            input: "pushd /tmp; popd"
+            rust: "Not supported (use explicit cd tracking)"
+            purified: "_prev=\"$(pwd)\"; cd \"/tmp\"; cd \"$_prev\""
+            test_name: "test_pushd_popd_to_explicit_cd"
+
+      - id: "6.3"
+        name: "Controlling the Prompt"
+        tasks:
+          - id: "PROMPT-001"
+            title: "Document PROMPT_COMMAND"
+            status: "pending"
+            priority: "LOW"
+            input: "PROMPT_COMMAND='date'"
+            rust: "Not applicable (no interactive mode)"
+            purified: "Remove (not needed)"
+            test_name: "test_prompt_command_removed"
+
+  - id: 7
+    name: "Job Control"
+    tasks:
+      - id: "JOB-001"
+        title: "Document background jobs (&)"
+        status: "pending"
+        priority: "HIGH"
+        input: "cmd &"
+        rust: "Not supported (non-deterministic)"
+        purified: "Remove (use synchronous execution)"
+        test_name: "test_background_jobs_removed"
+        notes: "Non-deterministic, MUST remove"
+
+      - id: "JOB-002"
+        title: "Document jobs command"
+        status: "pending"
+        priority: "LOW"
+        input: "jobs"
+        rust: "Not supported"
+        purified: "Remove"
+        test_name: "test_jobs_command_removed"
+
+      - id: "JOB-003"
+        title: "Document fg/bg commands"
+        status: "pending"
+        priority: "LOW"
+        input: "fg %1"
+        rust: "Not supported"
+        purified: "Remove"
+        test_name: "test_fg_bg_removed"
+
+  - id: 8
+    name: "Command Line Editing"
+    tasks:
+      - id: "EDIT-001"
+        title: "Document readline features"
+        status: "pending"
+        priority: "LOW"
+        input: "Interactive editing (Ctrl+A, Ctrl+E, etc.)"
+        rust: "Not applicable (no interactive mode)"
+        purified: "Not applicable"
+        test_name: "test_no_interactive_editing"
+
+  - id: 9
+    name: "Using History Interactively"
+    tasks:
+      - id: "HISTORY-001"
+        title: "Document history expansion"
+        status: "pending"
+        priority: "LOW"
+        input: "!! (repeat last command), !$ (last arg)"
+        rust: "Not applicable (no interactive mode)"
+        purified: "Remove (not deterministic)"
+        test_name: "test_history_expansion_removed"
+
+completed_features:
+  - title: "While loops"
+    version: "v0.8.0"
+    tasks: ["LOOP-002"]
+
+  - title: "For loops"
+    version: "v0.5.0"
+    tasks: ["LOOP-003"]
+
+  - title: "If/else statements"
+    version: "v0.4.0"
+    tasks: ["COND-001"]
+
+  - title: "Case/match statements"
+    version: "v0.6.0"
+    tasks: ["COND-002"]
+
+  - title: "Functions"
+    version: "v0.4.0"
+    tasks: ["FUNC-001"]
+
+  - title: "Return values"
+    version: "v0.4.0"
+    tasks: ["FUNC-002"]
+
+  - title: "Command substitution"
+    version: "v0.4.0"
+    tasks: ["EXP-CMD-001"]
+
+  - title: "Arithmetic expansion"
+    version: "v0.4.0"
+    tasks: ["EXP-ARITH-001"]
+
+  - title: "Break/continue"
+    version: "v0.8.0"
+    tasks: ["BUILTIN-003", "BUILTIN-004"]
+
+  - title: "Echo transformation"
+    version: "v0.4.0"
+    tasks: ["BUILTIN-006"]
+
+high_priority_next_tasks:
+  description: "Next 20 tasks to implement"
+  tasks:
+    - id: "PARAM-POS-001"
+      title: "Positional parameters ($1, $2)"
+      priority: 1
+
+    - id: "PARAM-SPEC-001"
+      title: "Special parameter $#"
+      priority: 2
+
+    - id: "PARAM-SPEC-002"
+      title: "Special parameter $?"
+      priority: 3
+
+    - id: "EXP-PARAM-001"
+      title: "String parameter expansion (${var:-default})"
+      priority: 4
+
+    - id: "REDIR-001"
+      title: "Input redirection (<)"
+      priority: 5
+
+    - id: "REDIR-002"
+      title: "Output redirection (>, >>)"
+      priority: 6
+
+    - id: "REDIR-003"
+      title: "Combined redirection (&>)"
+      priority: 7
+
+    - id: "REDIR-004"
+      title: "Here documents (<<)"
+      priority: 8
+
+    - id: "BUILTIN-005"
+      title: "cd command"
+      priority: 9
+
+    - id: "BUILTIN-011"
+      title: "pwd command"
+      priority: 10
+
+    - id: "BUILTIN-009"
+      title: "exit command"
+      priority: 11
+
+    - id: "BUILTIN-010"
+      title: "export command"
+      priority: 12
+
+    - id: "BUILTIN-020"
+      title: "unset command"
+      priority: 13
+
+    - id: "BUILTIN-016"
+      title: "test/[ command"
+      priority: 14
+
+    - id: "BASH-BUILTIN-005"
+      title: "printf preservation"
+      priority: 15
+
+    - id: "VAR-001"
+      title: "PATH variable"
+      priority: 16
+
+    - id: "VAR-002"
+      title: "HOME variable"
+      priority: 17
+
+    - id: "EXP-PARAM-005"
+      title: "String length ${#var}"
+      priority: 18
+
+    - id: "EXP-PARAM-006"
+      title: "Remove suffix ${var%suffix}"
+      priority: 19
+
+    - id: "BASH-VAR-002"
+      title: "Remove RANDOM (non-deterministic)"
+      priority: 20
+
+next_steps:
+  - "Start with high priority tasks (positional parameters, special vars)"
+  - "Follow EXTREME TDD religiously (test-first, always)"
+  - "Document each transformation with examples"
+  - "Track progress in this roadmap (update task status)"
+  - "Release incrementally (v1.3.0, v1.4.0, etc.)"
+
+status:
+  overall: "IN_PROGRESS"
+  completion_percent: 13
+  completed_tasks: 15
+  total_tasks: 120
+  methodology: "EXTREME TDD (RED-GREEN-REFACTOR)"
+  goal: "100% Bash manual coverage"
