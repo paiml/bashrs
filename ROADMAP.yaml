@@ -359,21 +359,62 @@ sprints:
         - "./scripts/mutants-run.sh"
         - "./scripts/mutants-analyze.sh"
 
-  future:
     - id: "SPRINT-27"
-      title: "Rust Macro Support (v1.3.0)"
+      status: "🟢 READY TO EXECUTE"
+      title: "Core Shell Features (v1.3.0)"
+      estimated_duration: "20-30 hours (1-2 weeks)"
+      description: "Batch implementation of three P0 shell features"
+      target_version: "v1.3.0"
+      prerequisites:
+        - "✅ v1.2.1 released and stable"
+        - "✅ 808 tests passing (100%)"
+        - "✅ RED Phase complete: 9 failing tests written"
+        - "✅ Three P0 tickets documented"
+      features:
+        - name: "Positional Parameters"
+          description: "std::env::args() → $1, $2, $3"
+          estimated: "10-15 hours"
+          tests: 3
+        - name: "Parameter Expansion"
+          description: "unwrap_or() → ${VAR:-default}"
+          estimated: "6-8 hours"
+          tests: 3
+        - name: "Exit Status"
+          description: "$? special parameter for exit codes"
+          estimated: "4-6 hours"
+          tests: 3
+      tasks_unblocked: 18
+      validation_progress: "15% → 28%"
+      documentation: "docs/sprints/SPRINT-27-CORE-SHELL-FEATURES.md"
+      success_criteria:
+        - "All 9 RED tests pass (GREEN phase)"
+        - "≥85% code coverage on new code"
+        - "≥90% mutation kill rate"
+        - "100% POSIX compliance (shellcheck)"
+        - "Property tests pass (determinism, quoting)"
+
+  future:
+    - id: "SPRINT-28"
+      title: "Continue Bash Manual Validation"
+      estimated_duration: "Ongoing"
+      description: "Complete remaining 84 validation tasks"
+      target: "60/120 tasks (50% completion)"
+      status: "PLANNED"
+
+    - id: "SPRINT-29"
+      title: "Rust Macro Support (v1.4.0)"
       estimated_duration: "10+ hours"
       description: "Implement support for Rust macros (dbg!(), assert!())"
       status: "PLANNED"
 
-    - id: "SPRINT-28"
-      title: "Parallel Execution (v1.4.0)"
+    - id: "SPRINT-30"
+      title: "Parallel Execution (v1.5.0)"
       estimated_duration: "8-12 hours"
       description: "Add rayon support for parallel execution"
       status: "PLANNED"
 
-    - id: "SPRINT-29"
-      title: "Additional Linter Rules (v1.5.0)"
+    - id: "SPRINT-31"
+      title: "Additional Linter Rules (v1.6.0)"
       estimated_duration: "6-8 hours"
       description: "Expand linter with SC2115, SC2128, BP-series rules"
       status: "PLANNED"
