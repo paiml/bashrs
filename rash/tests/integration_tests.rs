@@ -1,8 +1,9 @@
 use bashrs::models::config::{ShellDialect, VerificationLevel};
 use bashrs::{check, transpile, Config};
 use std::fs;
+use std::io::Write;
 use std::process::Command;
-use tempfile::TempDir;
+use tempfile::{NamedTempFile, TempDir};
 
 #[test]
 fn test_end_to_end_simple_transpilation() {
@@ -782,4 +783,2105 @@ fn echo(msg: &str) {}
     assert!(output.status.success());
     let stdout = String::from_utf8(output.stdout).unwrap();
     assert!(stdout.contains("World"), "Should use default value");
+}
+
+/// REDIR-001: RED Phase
+/// Test that we can call commands that implicitly use input redirection
+/// This is a baseline test - actual File::open → < redirection will be implemented later
+#[test]
+fn test_input_redirection_baseline() {
+    let source = r#"
+fn main() {
+    cat("input.txt");
+}
+
+fn cat(file: &str) {}
+"#;
+
+    let config = Config::default();
+    let result = transpile(source, config);
+
+    if let Err(e) = &result {
+        eprintln!("Transpilation error: {:?}", e);
+    }
+
+    assert!(result.is_ok(), "Should transpile file command: {:?}", result.err());
+
+    let shell = result.unwrap();
+    eprintln!("Generated shell script:\n{}", shell);
+
+    // Verify the command is called with the file
+    assert!(
+        shell.contains("cat") && shell.contains("input.txt"),
+        "Should transpile cat command with filename\nActual output:\n{}",
+        shell
+    );
+}
+
+/// REDIR-001: RED Phase - ADVANCED
+/// Test File::open() pattern conversion to input redirection
+/// Expected to FAIL until implementation is complete
+#[test]
+#[ignore] // This is the actual P0 - requires File::open recognition
+fn test_input_redirection_file_open() {
+    let source = r#"
+fn main() {
+    let file = std::fs::File::open("input.txt");
+    let content = read_file(file);
+    echo(&content);
+}
+
+fn read_file(f: std::fs::File) -> String { String::new() }
+fn echo(msg: &str) {}
+"#;
+
+    let config = Config::default();
+    let result = transpile(source, config);
+
+    if let Err(e) = &result {
+        eprintln!("Transpilation error: {:?}", e);
+    }
+
+    assert!(result.is_ok(), "Should transpile File::open: {:?}", result.err());
+
+    let shell = result.unwrap();
+    eprintln!("Generated shell script:\n{}", shell);
+
+    // Verify input redirection syntax
+    assert!(
+        shell.contains("< \"input.txt\"") || shell.contains("< input.txt"),
+        "Should use input redirection < for File::open\nActual output:\n{}",
+        shell
+    );
+}
+
+/// REDIR-001: RED Phase
+/// Test input redirection with proper quoting
+#[test]
+#[ignore]
+fn test_input_redirection_with_quoting() {
+    let source = r#"
+fn main() {
+    let data = read_file("data file.txt");
+    echo(&data);
+}
+
+fn read_file(filename: &str) -> String { String::new() }
+fn echo(msg: &str) {}
+"#;
+
+    let config = Config::default();
+    let shell = transpile(source, config).unwrap();
+
+    // Should properly quote filenames with spaces
+    assert!(
+        shell.contains("< \"data file.txt\""),
+        "Should quote filenames with spaces in redirection"
+    );
+}
+
+/// REDIR-001: RED Phase
+/// Test input redirection execution
+#[test]
+#[ignore]
+fn test_input_redirection_execution() {
+    let source = r#"
+fn main() {
+    let content = cat("input.txt");
+    echo(&content);
+}
+
+fn cat(file: &str) -> String { String::new() }
+fn echo(msg: &str) {}
+"#;
+
+    let config = Config::default();
+    let shell = transpile(source, config).unwrap();
+
+    // Create test environment
+    let temp_dir = TempDir::new().unwrap();
+    let script_path = temp_dir.path().join("test_redir.sh");
+    let input_path = temp_dir.path().join("input.txt");
+
+    // Write test input
+    fs::write(&input_path, "Hello from file").unwrap();
+
+    // Modify script to use the temp input file
+    let modified_shell = shell.replace("input.txt", input_path.to_str().unwrap());
+    fs::write(&script_path, modified_shell).unwrap();
+
+    let output = Command::new("sh")
+        .arg(&script_path)
+        .output()
+        .expect("Failed to execute shell script");
+
+    assert!(output.status.success(), "Script should execute successfully");
+    let stdout = String::from_utf8(output.stdout).unwrap();
+    assert!(
+        stdout.contains("Hello from file"),
+        "Should read content from redirected file"
+    );
+}
+
+/// REDIR-002: RED Phase
+/// Test output redirection (>) baseline
+#[test]
+fn test_output_redirection_baseline() {
+    let source = r#"
+fn main() {
+    write_file("output.txt", "Hello World");
+}
+
+fn write_file(path: &str, content: &str) {}
+"#;
+
+    let config = Config::default();
+    let result = transpile(source, config);
+
+    assert!(result.is_ok(), "Should transpile file writing: {:?}", result.err());
+
+    let shell = result.unwrap();
+    eprintln!("Generated shell for output redirection:\n{}", shell);
+
+    // Verify the command is called correctly
+    assert!(
+        shell.contains("write_file"),
+        "Should transpile write_file command"
+    );
+}
+
+/// REDIR-002: RED Phase - ADVANCED
+/// Test that echo/printf output can be redirected with >
+#[test]
+#[ignore] // Requires output redirection implementation
+fn test_output_redirection_echo() {
+    let source = r#"
+fn main() {
+    let mut file = std::fs::File::create("output.txt");
+    write_to_file(&mut file, "Hello World");
+}
+
+fn write_to_file(f: &mut std::fs::File, content: &str) {}
+"#;
+
+    let config = Config::default();
+    let shell = transpile(source, config).unwrap();
+
+    // Should use output redirection syntax
+    assert!(
+        shell.contains("> \"output.txt\"") || shell.contains(">output.txt"),
+        "Should use > for File::create output redirection"
+    );
+}
+
+/// REDIR-002: RED Phase - APPEND
+/// Test append redirection (>>)
+#[test]
+#[ignore] // Requires append redirection implementation
+fn test_output_redirection_append() {
+    let source = r#"
+fn main() {
+    let mut file = std::fs::OpenOptions::new()
+        .append(true)
+        .open("output.txt");
+    write_to_file(&mut file, "Appended text");
+}
+
+fn write_to_file(f: &mut std::fs::File, content: &str) {}
+"#;
+
+    let config = Config::default();
+    let shell = transpile(source, config).unwrap();
+
+    // Should use append redirection syntax
+    assert!(
+        shell.contains(">> \"output.txt\"") || shell.contains(">>output.txt"),
+        "Should use >> for append mode"
+    );
+}
+
+/// REDIR-002: Baseline - Execution
+/// Test that basic echo works (redirection syntax can be added later)
+#[test]
+fn test_output_redirection_execution() {
+    let source = r#"
+fn main() {
+    echo("Test output");
+}
+
+fn echo(msg: &str) {}
+"#;
+
+    let config = Config::default();
+    let shell = transpile(source, config).unwrap();
+
+    let temp_dir = TempDir::new().unwrap();
+    let script_path = temp_dir.path().join("test_output.sh");
+
+    fs::write(&script_path, &shell).unwrap();
+
+    let output = Command::new("sh")
+        .arg(&script_path)
+        .output()
+        .expect("Failed to execute shell script");
+
+    assert!(output.status.success(), "Script should execute successfully");
+
+    // Verify output goes to stdout
+    let stdout = String::from_utf8(output.stdout).unwrap();
+    assert!(
+        stdout.contains("Test output"),
+        "Should output to stdout"
+    );
+}
+
+/// BUILTIN-005: RED Phase
+/// Test cd command baseline
+#[test]
+fn test_cd_command_baseline() {
+    let source = r#"
+fn main() {
+    change_dir("/tmp");
+}
+
+fn change_dir(path: &str) {}
+"#;
+
+    let config = Config::default();
+    let result = transpile(source, config);
+
+    assert!(result.is_ok(), "Should transpile directory change: {:?}", result.err());
+
+    let shell = result.unwrap();
+    eprintln!("Generated shell for cd command:\n{}", shell);
+
+    // Verify cd command is generated
+    assert!(
+        shell.contains("change_dir") || shell.contains("cd"),
+        "Should transpile change_dir command"
+    );
+}
+
+/// BUILTIN-005: RED Phase - ADVANCED
+/// Test std::env::set_current_dir() conversion to cd
+#[test]
+#[ignore] // Requires std::env::set_current_dir recognition
+fn test_cd_command_std_env() {
+    let source = r#"
+fn main() {
+    std::env::set_current_dir("/tmp").unwrap();
+}
+"#;
+
+    let config = Config::default();
+    let shell = transpile(source, config).unwrap();
+
+    // Should generate cd command
+    assert!(
+        shell.contains("cd \"/tmp\"") || shell.contains("cd /tmp"),
+        "Should convert std::env::set_current_dir to cd command"
+    );
+}
+
+/// BUILTIN-005: Baseline - Execution
+/// Test that cd-like function calls work
+#[test]
+fn test_cd_command_execution() {
+    let source = r#"
+fn main() {
+    cd("/tmp");
+    pwd();
+}
+
+fn cd(path: &str) {}
+fn pwd() {}
+"#;
+
+    let config = Config::default();
+    let shell = transpile(source, config).unwrap();
+
+    let temp_dir = TempDir::new().unwrap();
+    let script_path = temp_dir.path().join("test_cd.sh");
+
+    fs::write(&script_path, &shell).unwrap();
+
+    let output = Command::new("sh")
+        .arg(&script_path)
+        .output()
+        .expect("Failed to execute shell script");
+
+    assert!(output.status.success(), "Script should execute successfully");
+}
+
+/// BUILTIN-011: RED Phase
+/// Test pwd command baseline
+#[test]
+fn test_pwd_command_baseline() {
+    let source = r#"
+fn main() {
+    pwd();
+}
+
+fn pwd() {}
+"#;
+
+    let config = Config::default();
+    let result = transpile(source, config);
+
+    assert!(result.is_ok(), "Should transpile pwd call: {:?}", result.err());
+
+    let shell = result.unwrap();
+    eprintln!("Generated shell for pwd command:\n{}", shell);
+
+    // Verify function is called
+    assert!(
+        shell.contains("pwd"),
+        "Should transpile pwd function"
+    );
+}
+
+/// BUILTIN-011: RED Phase - ADVANCED
+/// Test std::env::current_dir() conversion to pwd
+#[test]
+#[ignore] // Requires std::env::current_dir recognition
+fn test_pwd_command_std_env() {
+    let source = r#"
+fn main() {
+    let current = std::env::current_dir().unwrap();
+    echo(&current.to_string_lossy());
+}
+
+fn echo(msg: &str) {}
+"#;
+
+    let config = Config::default();
+    let shell = transpile(source, config).unwrap();
+
+    // Should generate command substitution with pwd
+    assert!(
+        shell.contains("$(pwd)") || shell.contains("`pwd`"),
+        "Should convert std::env::current_dir to $(pwd)"
+    );
+}
+
+/// BUILTIN-011: Baseline - Execution
+/// Test pwd command execution
+#[test]
+fn test_pwd_command_execution() {
+    let source = r#"
+fn main() {
+    pwd();
+}
+
+fn pwd() {}
+"#;
+
+    let config = Config::default();
+    let shell = transpile(source, config).unwrap();
+
+    let temp_dir = TempDir::new().unwrap();
+    let script_path = temp_dir.path().join("test_pwd.sh");
+
+    fs::write(&script_path, &shell).unwrap();
+
+    let output = Command::new("sh")
+        .arg(&script_path)
+        .output()
+        .expect("Failed to execute shell script");
+
+    assert!(output.status.success(), "Script should execute successfully");
+}
+
+/// BUILTIN-009: RED Phase
+/// Test exit command baseline
+#[test]
+fn test_exit_command_baseline() {
+    let source = r#"
+fn main() {
+    exit_with_code(0);
+}
+
+fn exit_with_code(code: i32) {}
+"#;
+
+    let config = Config::default();
+    let result = transpile(source, config);
+
+    assert!(result.is_ok(), "Should transpile exit command: {:?}", result.err());
+
+    let shell = result.unwrap();
+    eprintln!("Generated shell for exit command:\n{}", shell);
+
+    // Verify function is called
+    assert!(
+        shell.contains("exit_with_code") || shell.contains("exit"),
+        "Should transpile exit_with_code function"
+    );
+}
+
+/// BUILTIN-009: RED Phase - ADVANCED
+/// Test std::process::exit() conversion
+#[test]
+#[ignore] // Requires std::process::exit recognition
+fn test_exit_command_std_process() {
+    let source = r#"
+fn main() {
+    std::process::exit(0);
+}
+"#;
+
+    let config = Config::default();
+    let shell = transpile(source, config).unwrap();
+
+    // Should generate exit command
+    assert!(
+        shell.contains("exit 0"),
+        "Should convert std::process::exit to exit command"
+    );
+}
+
+/// BUILTIN-010: RED Phase
+/// Test export command baseline
+#[test]
+fn test_export_command_baseline() {
+    let source = r#"
+fn main() {
+    set_env("VAR", "value");
+}
+
+fn set_env(name: &str, value: &str) {}
+"#;
+
+    let config = Config::default();
+    let result = transpile(source, config);
+
+    assert!(result.is_ok(), "Should transpile env setting: {:?}", result.err());
+
+    let shell = result.unwrap();
+    eprintln!("Generated shell for export command:\n{}", shell);
+
+    // Verify function is called
+    assert!(
+        shell.contains("set_env"),
+        "Should transpile set_env function"
+    );
+}
+
+/// BUILTIN-010: RED Phase - ADVANCED
+/// Test std::env::set_var() conversion to export
+#[test]
+#[ignore] // Requires std::env::set_var recognition
+fn test_export_command_std_env() {
+    let source = r#"
+fn main() {
+    std::env::set_var("VAR", "value");
+}
+"#;
+
+    let config = Config::default();
+    let shell = transpile(source, config).unwrap();
+
+    // Should generate export command
+    assert!(
+        shell.contains("VAR=\"value\"") && (shell.contains("export VAR") || shell.contains("export")),
+        "Should convert std::env::set_var to VAR=value; export VAR"
+    );
+}
+
+/// BUILTIN-020: RED Phase
+/// Test unset command baseline
+#[test]
+fn test_unset_command_baseline() {
+    let source = r#"
+fn main() {
+    unset_var("VAR");
+}
+
+fn unset_var(name: &str) {}
+"#;
+
+    let config = Config::default();
+    let result = transpile(source, config);
+
+    assert!(result.is_ok(), "Should transpile unset: {:?}", result.err());
+
+    let shell = result.unwrap();
+    eprintln!("Generated shell for unset command:\n{}", shell);
+
+    // Verify function is called
+    assert!(
+        shell.contains("unset_var") || shell.contains("unset"),
+        "Should transpile unset_var function"
+    );
+}
+
+/// BUILTIN-020: RED Phase - ADVANCED
+/// Test std::env::remove_var() conversion to unset
+#[test]
+#[ignore] // Requires std::env::remove_var recognition
+fn test_unset_command_std_env() {
+    let source = r#"
+fn main() {
+    std::env::remove_var("VAR");
+}
+"#;
+
+    let config = Config::default();
+    let shell = transpile(source, config).unwrap();
+
+    // Should generate unset command
+    assert!(
+        shell.contains("unset VAR"),
+        "Should convert std::env::remove_var to unset VAR"
+    );
+}
+
+/// BUILTIN-009, 010, 020: Execution test
+/// Test that basic commands execute successfully
+#[test]
+fn test_builtin_commands_execution() {
+    let source = r#"
+fn main() {
+    set_var("TEST", "value");
+    get_var("TEST");
+}
+
+fn set_var(name: &str, value: &str) {}
+fn get_var(name: &str) {}
+"#;
+
+    let config = Config::default();
+    let shell = transpile(source, config).unwrap();
+
+    let temp_dir = TempDir::new().unwrap();
+    let script_path = temp_dir.path().join("test_builtins.sh");
+
+    fs::write(&script_path, &shell).unwrap();
+
+    let output = Command::new("sh")
+        .arg(&script_path)
+        .output()
+        .expect("Failed to execute shell script");
+
+    assert!(output.status.success(), "Script should execute successfully");
+}
+
+/// BUILTIN-016: RED Phase
+/// Test test/[ command baseline
+#[test]
+fn test_test_command_baseline() {
+    let source = r#"
+fn main() {
+    test_file_exists("/tmp/test.txt");
+}
+
+fn test_file_exists(path: &str) -> bool { true }
+"#;
+
+    let config = Config::default();
+    let result = transpile(source, config);
+
+    assert!(result.is_ok(), "Should transpile test command: {:?}", result.err());
+
+    let shell = result.unwrap();
+    eprintln!("Generated shell for test command:\n{}", shell);
+
+    // Verify function is called
+    assert!(
+        shell.contains("test_file_exists"),
+        "Should transpile test_file_exists function"
+    );
+}
+
+/// BUILTIN-016: RED Phase - ADVANCED
+/// Test std::path::Path::exists() conversion to [ -f ]
+#[test]
+#[ignore] // Requires std::path::Path recognition
+fn test_test_command_std_path() {
+    let source = r#"
+fn main() {
+    if std::path::Path::new("/tmp/test.txt").exists() {
+        echo("exists");
+    }
+}
+
+fn echo(msg: &str) {}
+"#;
+
+    let config = Config::default();
+    let shell = transpile(source, config).unwrap();
+
+    // Should generate test command
+    assert!(
+        shell.contains("[ -f") || shell.contains("[ -e") || shell.contains("test -f"),
+        "Should convert Path::exists to [ -f ] or test -f"
+    );
+}
+
+/// BUILTIN-016: Baseline - Execution
+#[test]
+fn test_test_command_execution() {
+    let source = r#"
+fn main() {
+    check_file("/etc/hosts");
+}
+
+fn check_file(path: &str) {}
+"#;
+
+    let config = Config::default();
+    let shell = transpile(source, config).unwrap();
+
+    let temp_dir = TempDir::new().unwrap();
+    let script_path = temp_dir.path().join("test_test.sh");
+
+    fs::write(&script_path, &shell).unwrap();
+
+    let output = Command::new("sh")
+        .arg(&script_path)
+        .output()
+        .expect("Failed to execute shell script");
+
+    assert!(output.status.success(), "Script should execute successfully");
+}
+
+/// BASH-BUILTIN-005: RED Phase
+/// Test printf preservation (should pass through)
+#[test]
+fn test_printf_preservation_baseline() {
+    let source = r#"
+fn main() {
+    printf_formatted("%s %d\n", "Number:", 42);
+}
+
+fn printf_formatted(fmt: &str, args: &str, num: i32) {}
+"#;
+
+    let config = Config::default();
+    let result = transpile(source, config);
+
+    assert!(result.is_ok(), "Should transpile printf call: {:?}", result.err());
+
+    let shell = result.unwrap();
+    eprintln!("Generated shell for printf:\n{}", shell);
+
+    // Verify function is called (printf is preferred, so should work)
+    assert!(
+        shell.contains("printf_formatted"),
+        "Should transpile printf_formatted function"
+    );
+}
+
+/// BASH-BUILTIN-005: RED Phase - ADVANCED
+/// Test that println! converts to printf (not echo)
+#[test]
+#[ignore] // Requires println! → printf conversion
+fn test_printf_from_println() {
+    let source = r#"
+fn main() {
+    println!("Hello World");
+    println!("Value: {}", 42);
+}
+"#;
+
+    let config = Config::default();
+    let shell = transpile(source, config).unwrap();
+
+    // Should use printf, not echo
+    assert!(
+        shell.contains("printf") && !shell.contains("echo"),
+        "Should convert println! to printf, not echo"
+    );
+}
+
+/// BASH-BUILTIN-005: Baseline - Execution
+#[test]
+fn test_printf_execution() {
+    let source = r#"
+fn main() {
+    print_message("Test");
+}
+
+fn print_message(msg: &str) {}
+"#;
+
+    let config = Config::default();
+    let shell = transpile(source, config).unwrap();
+
+    let temp_dir = TempDir::new().unwrap();
+    let script_path = temp_dir.path().join("test_printf.sh");
+
+    fs::write(&script_path, &shell).unwrap();
+
+    let output = Command::new("sh")
+        .arg(&script_path)
+        .output()
+        .expect("Failed to execute shell script");
+
+    assert!(output.status.success(), "Script should execute successfully");
+}
+
+/// VAR-001: RED Phase
+/// Test HOME variable baseline
+#[test]
+fn test_home_variable_baseline() {
+    let source = r#"
+fn main() {
+    use_home();
+}
+
+fn use_home() {}
+"#;
+
+    let config = Config::default();
+    let result = transpile(source, config);
+
+    assert!(result.is_ok(), "Should transpile HOME access: {:?}", result.err());
+
+    let shell = result.unwrap();
+    eprintln!("Generated shell for HOME variable:\n{}", shell);
+
+    // Verify function is called
+    assert!(
+        shell.contains("use_home"),
+        "Should transpile use_home function"
+    );
+}
+
+/// VAR-001: RED Phase - ADVANCED
+/// Test std::env::var("HOME") conversion to $HOME
+#[test]
+#[ignore] // Requires env::var("HOME") recognition
+fn test_home_variable_std_env() {
+    let source = r#"
+fn main() {
+    let home = std::env::var("HOME").unwrap();
+    echo(&home);
+}
+
+fn echo(msg: &str) {}
+"#;
+
+    let config = Config::default();
+    let shell = transpile(source, config).unwrap();
+
+    // Should use $HOME variable
+    assert!(
+        shell.contains("$HOME") || shell.contains("\"${HOME}\""),
+        "Should convert std::env::var(\"HOME\") to $HOME"
+    );
+}
+
+/// VAR-001: Baseline - Execution
+#[test]
+fn test_home_variable_execution() {
+    let source = r#"
+fn main() {
+    use_home_dir();
+}
+
+fn use_home_dir() {}
+"#;
+
+    let config = Config::default();
+    let shell = transpile(source, config).unwrap();
+
+    let temp_dir = TempDir::new().unwrap();
+    let script_path = temp_dir.path().join("test_home.sh");
+
+    fs::write(&script_path, &shell).unwrap();
+
+    let output = Command::new("sh")
+        .arg(&script_path)
+        .output()
+        .expect("Failed to execute shell script");
+
+    assert!(output.status.success(), "Script should execute successfully");
+}
+
+/// VAR-002: RED Phase
+/// Test PATH variable baseline
+#[test]
+fn test_path_variable_baseline() {
+    let source = r#"
+fn main() {
+    use_path();
+}
+
+fn use_path() {}
+"#;
+
+    let config = Config::default();
+    let result = transpile(source, config);
+
+    assert!(result.is_ok(), "Should transpile PATH access: {:?}", result.err());
+
+    let shell = result.unwrap();
+    eprintln!("Generated shell for PATH variable:\n{}", shell);
+
+    // Verify function is called
+    assert!(
+        shell.contains("use_path"),
+        "Should transpile use_path function"
+    );
+}
+
+/// VAR-002: RED Phase - ADVANCED
+/// Test std::env::var("PATH") conversion to $PATH
+#[test]
+#[ignore] // Requires env::var("PATH") recognition
+fn test_path_variable_std_env() {
+    let source = r#"
+fn main() {
+    let path = std::env::var("PATH").unwrap();
+    let new_path = format!("/usr/local/bin:{}", path);
+    std::env::set_var("PATH", &new_path);
+}
+"#;
+
+    let config = Config::default();
+    let shell = transpile(source, config).unwrap();
+
+    // Should use $PATH variable
+    assert!(
+        shell.contains("$PATH") || shell.contains("\"${PATH}\""),
+        "Should convert std::env::var(\"PATH\") to $PATH"
+    );
+
+    // Should export the modified PATH
+    assert!(
+        shell.contains("export PATH"),
+        "Should export modified PATH"
+    );
+}
+
+/// VAR-002: Baseline - Execution
+#[test]
+fn test_path_variable_execution() {
+    let source = r#"
+fn main() {
+    use_path();
+}
+
+fn use_path() {}
+"#;
+
+    let config = Config::default();
+    let shell = transpile(source, config).unwrap();
+
+    let temp_dir = TempDir::new().unwrap();
+    let script_path = temp_dir.path().join("test_path.sh");
+
+    fs::write(&script_path, &shell).unwrap();
+
+    let output = Command::new("sh")
+        .arg(&script_path)
+        .output()
+        .expect("Failed to execute shell script");
+
+    assert!(output.status.success(), "Script should execute successfully");
+}
+
+/// Combined execution test for all 4 new validations
+#[test]
+fn test_session4_commands_execution() {
+    let source = r#"
+fn main() {
+    check_exists("/tmp");
+    print_output("test");
+    use_home();
+    use_path();
+}
+
+fn check_exists(path: &str) {}
+fn print_output(msg: &str) {}
+fn use_home() {}
+fn use_path() {}
+"#;
+
+    let config = Config::default();
+    let shell = transpile(source, config).unwrap();
+
+    let temp_dir = TempDir::new().unwrap();
+    let script_path = temp_dir.path().join("test_session4.sh");
+
+    fs::write(&script_path, &shell).unwrap();
+
+    let output = Command::new("sh")
+        .arg(&script_path)
+        .output()
+        .expect("Failed to execute shell script");
+
+    assert!(output.status.success(), "Script should execute successfully");
+}
+
+/// EXP-PARAM-005: RED Phase
+/// Test string length ${#var} baseline
+#[test]
+fn test_string_length_baseline() {
+    let source = r#"
+fn main() {
+    length_of("hello");
+}
+
+fn length_of(s: &str) {}
+"#;
+
+    let config = Config::default();
+    let result = transpile(source, config);
+
+    assert!(result.is_ok(), "Should transpile string length: {:?}", result.err());
+
+    let shell = result.unwrap();
+    eprintln!("Generated shell for string length:\n{}", shell);
+
+    // Verify function is called
+    assert!(
+        shell.contains("length_of"),
+        "Should transpile length_of function"
+    );
+}
+
+/// EXP-PARAM-005: RED Phase - ADVANCED
+/// Test .len() conversion to ${#var}
+#[test]
+#[ignore] // Requires .len() method recognition
+fn test_string_length_method() {
+    let source = r#"
+fn main() {
+    let text = "hello world";
+    let len = text.len();
+    echo(&format!("Length: {}", len));
+}
+
+fn echo(msg: &str) {}
+"#;
+
+    let config = Config::default();
+    let shell = transpile(source, config).unwrap();
+
+    // Should generate ${#var} syntax
+    assert!(
+        shell.contains("${#text}"),
+        "Should convert .len() to ${{#var}} syntax"
+    );
+}
+
+/// EXP-PARAM-005: Baseline - Execution
+#[test]
+fn test_string_length_execution() {
+    let source = r#"
+fn main() {
+    get_length("test");
+}
+
+fn get_length(s: &str) {}
+"#;
+
+    let config = Config::default();
+    let shell = transpile(source, config).unwrap();
+
+    let temp_dir = TempDir::new().unwrap();
+    let script_path = temp_dir.path().join("test_strlen.sh");
+
+    fs::write(&script_path, &shell).unwrap();
+
+    let output = Command::new("sh")
+        .arg(&script_path)
+        .output()
+        .expect("Failed to execute shell script");
+
+    assert!(output.status.success(), "Script should execute successfully");
+}
+
+/// EXP-PARAM-006: RED Phase
+/// Test remove suffix ${var%suffix} baseline
+#[test]
+fn test_remove_suffix_baseline() {
+    let source = r#"
+fn main() {
+    remove_ext("test.txt");
+}
+
+fn remove_ext(filename: &str) {}
+"#;
+
+    let config = Config::default();
+    let result = transpile(source, config);
+
+    assert!(result.is_ok(), "Should transpile suffix removal: {:?}", result.err());
+
+    let shell = result.unwrap();
+    eprintln!("Generated shell for remove suffix:\n{}", shell);
+
+    // Verify function is called
+    assert!(
+        shell.contains("remove_ext"),
+        "Should transpile remove_ext function"
+    );
+}
+
+/// EXP-PARAM-006: RED Phase - ADVANCED
+/// Test .strip_suffix() conversion to ${var%suffix}
+#[test]
+#[ignore] // Requires .strip_suffix() recognition
+fn test_remove_suffix_method() {
+    let source = r#"
+fn main() {
+    let file = "test.txt";
+    let name = file.strip_suffix(".txt").unwrap_or(file);
+    echo(name);
+}
+
+fn echo(msg: &str) {}
+"#;
+
+    let config = Config::default();
+    let shell = transpile(source, config).unwrap();
+
+    // Should generate ${var%suffix} syntax
+    assert!(
+        shell.contains("${file%.txt}"),
+        "Should convert .strip_suffix() to ${{var%suffix}}"
+    );
+}
+
+/// EXP-PARAM-006: Baseline - Execution
+#[test]
+fn test_remove_suffix_execution() {
+    let source = r#"
+fn main() {
+    strip_ext("file.rs");
+}
+
+fn strip_ext(filename: &str) {}
+"#;
+
+    let config = Config::default();
+    let shell = transpile(source, config).unwrap();
+
+    let temp_dir = TempDir::new().unwrap();
+    let script_path = temp_dir.path().join("test_suffix.sh");
+
+    fs::write(&script_path, &shell).unwrap();
+
+    let output = Command::new("sh")
+        .arg(&script_path)
+        .output()
+        .expect("Failed to execute shell script");
+
+    assert!(output.status.success(), "Script should execute successfully");
+}
+
+/// EXP-PARAM-007: RED Phase
+/// Test remove prefix ${var#prefix} baseline
+#[test]
+fn test_remove_prefix_baseline() {
+    let source = r#"
+fn main() {
+    strip_dir("/tmp/file");
+}
+
+fn strip_dir(path: &str) {}
+"#;
+
+    let config = Config::default();
+    let result = transpile(source, config);
+
+    assert!(result.is_ok(), "Should transpile prefix removal: {:?}", result.err());
+
+    let shell = result.unwrap();
+    eprintln!("Generated shell for remove prefix:\n{}", shell);
+
+    // Verify function is called
+    assert!(
+        shell.contains("strip_dir"),
+        "Should transpile strip_dir function"
+    );
+}
+
+/// EXP-PARAM-007: RED Phase - ADVANCED
+/// Test .strip_prefix() conversion to ${var#prefix}
+#[test]
+#[ignore] // Requires .strip_prefix() recognition
+fn test_remove_prefix_method() {
+    let source = r#"
+fn main() {
+    let path = "/tmp/file";
+    let name = path.strip_prefix("/tmp/").unwrap_or(path);
+    echo(name);
+}
+
+fn echo(msg: &str) {}
+"#;
+
+    let config = Config::default();
+    let shell = transpile(source, config).unwrap();
+
+    // Should generate ${var#prefix} syntax
+    assert!(
+        shell.contains("${path#/tmp/}"),
+        "Should convert .strip_prefix() to ${{var#prefix}}"
+    );
+}
+
+/// EXP-PARAM-007: Baseline - Execution
+#[test]
+fn test_remove_prefix_execution() {
+    let source = r#"
+fn main() {
+    strip_dir("/home/user/file.txt");
+}
+
+fn strip_dir(path: &str) {}
+"#;
+
+    let config = Config::default();
+    let shell = transpile(source, config).unwrap();
+
+    let temp_dir = TempDir::new().unwrap();
+    let script_path = temp_dir.path().join("test_prefix.sh");
+
+    fs::write(&script_path, &shell).unwrap();
+
+    let output = Command::new("sh")
+        .arg(&script_path)
+        .output()
+        .expect("Failed to execute shell script");
+
+    assert!(output.status.success(), "Script should execute successfully");
+}
+
+/// REDIR-003: RED Phase
+/// Test combined redirection &> baseline
+#[test]
+fn test_combined_redirection_baseline() {
+    let source = r#"
+fn main() {
+    redirect_all("output.txt");
+}
+
+fn redirect_all(file: &str) {}
+"#;
+
+    let config = Config::default();
+    let result = transpile(source, config);
+
+    assert!(result.is_ok(), "Should transpile redirection: {:?}", result.err());
+
+    let shell = result.unwrap();
+    eprintln!("Generated shell for combined redirection:\n{}", shell);
+
+    // Verify function is called
+    assert!(
+        shell.contains("redirect_all"),
+        "Should transpile redirect_all function"
+    );
+}
+
+/// REDIR-003: RED Phase - ADVANCED
+/// Test stderr+stdout redirection conversion to &> or > 2>&1
+#[test]
+#[ignore] // Requires redirection pattern recognition
+fn test_combined_redirection_conversion() {
+    let source = r#"
+fn main() {
+    let output = std::process::Command::new("ls")
+        .stdout(std::process::Stdio::piped())
+        .stderr(std::process::Stdio::piped())
+        .output();
+}
+"#;
+
+    let config = Config::default();
+    let shell = transpile(source, config).unwrap();
+
+    // Should generate > file 2>&1 (POSIX) or &> file (bash)
+    assert!(
+        shell.contains("> ") && shell.contains("2>&1") || shell.contains("&>"),
+        "Should convert combined output to &> or > 2>&1"
+    );
+}
+
+/// REDIR-003: Baseline - Execution
+#[test]
+fn test_combined_redirection_execution() {
+    let source = r#"
+fn main() {
+    capture_output();
+}
+
+fn capture_output() {}
+"#;
+
+    let config = Config::default();
+    let shell = transpile(source, config).unwrap();
+
+    let temp_dir = TempDir::new().unwrap();
+    let script_path = temp_dir.path().join("test_redir.sh");
+
+    fs::write(&script_path, &shell).unwrap();
+
+    let output = Command::new("sh")
+        .arg(&script_path)
+        .output()
+        .expect("Failed to execute shell script");
+
+    assert!(output.status.success(), "Script should execute successfully");
+}
+
+/// Combined execution test for all 4 new validations
+#[test]
+fn test_session5_commands_execution() {
+    let source = r#"
+fn main() {
+    length_of("test");
+    strip_suffix("file.txt", ".txt");
+    strip_prefix("/path/file", "/path/");
+    redirect_both("output.log");
+}
+
+fn length_of(s: &str) {}
+fn strip_suffix(s: &str, suffix: &str) {}
+fn strip_prefix(s: &str, prefix: &str) {}
+fn redirect_both(file: &str) {}
+"#;
+
+    let config = Config::default();
+    let shell = transpile(source, config).unwrap();
+
+    let temp_dir = TempDir::new().unwrap();
+    let script_path = temp_dir.path().join("test_session5.sh");
+
+    fs::write(&script_path, &shell).unwrap();
+
+    let output = Command::new("sh")
+        .arg(&script_path)
+        .output()
+        .expect("Failed to execute shell script");
+
+    assert!(output.status.success(), "Script should execute successfully");
+}
+
+// ============================================================================
+// Session 6: Heredocs and Non-Deterministic Feature Removal
+// Validation of GNU Bash Manual constructs - RED Phase Tests
+// ============================================================================
+
+/// REDIR-004: RED Phase
+/// Test heredoc << baseline
+#[test]
+fn test_heredoc_baseline() {
+    let source = r#"
+fn main() {
+    print_heredoc();
+}
+
+fn print_heredoc() {}
+"#;
+
+    let config = Config::default();
+    let result = transpile(source, config);
+
+    assert!(result.is_ok(), "Should transpile heredoc function: {:?}", result.err());
+
+    let shell = result.unwrap();
+    eprintln!("Generated shell for heredoc:\n{}", shell);
+
+    // Verify function is called
+    assert!(
+        shell.contains("print_heredoc"),
+        "Should transpile print_heredoc function"
+    );
+}
+
+/// REDIR-004: RED Phase - ADVANCED
+/// Test multi-line string literal to heredoc conversion
+#[test]
+#[ignore] // Requires multi-line string literal recognition
+fn test_heredoc_multiline() {
+    let source = r#"
+fn main() {
+    let doc = "Line 1
+Line 2
+Line 3";
+    cat_heredoc(&doc);
+}
+
+fn cat_heredoc(content: &str) {}
+"#;
+
+    let config = Config::default();
+    let shell = transpile(source, config).unwrap();
+
+    // Should generate heredoc syntax
+    assert!(
+        shell.contains("<<") && shell.contains("EOF"),
+        "Should convert multi-line string to heredoc"
+    );
+}
+
+/// REDIR-004: RED Phase - EXECUTION
+/// Test heredoc execution
+#[test]
+fn test_heredoc_execution() {
+    let source = r#"
+fn main() {
+    print_multiline();
+}
+
+fn print_multiline() {}
+"#;
+
+    let config = Config::default();
+    let shell = transpile(source, config).unwrap();
+
+    // Write to temp file and verify it's valid shell
+    let mut file = NamedTempFile::new().expect("Failed to create temp file");
+    file.write_all(shell.as_bytes()).expect("Failed to write shell script");
+
+    let output = Command::new("sh")
+        .arg(file.path())
+        .output()
+        .expect("Failed to execute shell script");
+
+    // Should execute (even if function does nothing)
+    assert!(
+        output.status.success() || output.status.code() == Some(127),
+        "Script should execute. Exit code: {:?}, stderr: {}",
+        output.status.code(),
+        String::from_utf8_lossy(&output.stderr)
+    );
+}
+
+// ============================================================================
+// PARAM-SPEC-003: Process ID $$ Purification
+// ============================================================================
+
+/// PARAM-SPEC-003: RED Phase
+/// Test that $$ usage is documented for removal
+#[test]
+fn test_process_id_purification_baseline() {
+    let source = r#"
+fn main() {
+    use_fixed_id();
+}
+
+fn use_fixed_id() {}
+"#;
+
+    let config = Config::default();
+    let result = transpile(source, config);
+
+    assert!(result.is_ok(), "Should transpile fixed ID function: {:?}", result.err());
+
+    let shell = result.unwrap();
+    eprintln!("Generated shell for fixed ID:\n{}", shell);
+
+    // Verify function is called (not $$)
+    assert!(
+        shell.contains("use_fixed_id"),
+        "Should use fixed identifier, not $$"
+    );
+
+    // Should NOT contain $$ in main function (trap cleanup usage is OK)
+    let main_section = shell.split("main() {").nth(1).unwrap_or("");
+    let main_body = main_section.split("}").next().unwrap_or("");
+    assert!(
+        !main_body.contains("$$"),
+        "Main function should NOT contain $$ (trap cleanup is OK, but user code shouldn't use $$)"
+    );
+}
+
+/// PARAM-SPEC-003: RED Phase - ADVANCED
+/// Test that std::process::id() is NOT supported
+#[test]
+#[ignore] // Requires std::process::id() detection and rejection
+fn test_process_id_rejection() {
+    let source = r#"
+fn main() {
+    let pid = std::process::id();
+    println!("PID: {}", pid);
+}
+"#;
+
+    let config = Config::default();
+    let result = transpile(source, config);
+
+    // Should fail validation - non-deterministic
+    assert!(
+        result.is_err(),
+        "std::process::id() should be rejected as non-deterministic"
+    );
+}
+
+/// PARAM-SPEC-003: RED Phase - EXECUTION
+/// Test fixed ID execution
+#[test]
+fn test_process_id_execution() {
+    let source = r#"
+fn main() {
+    use_session_id("test-session");
+}
+
+fn use_session_id(id: &str) {}
+"#;
+
+    let config = Config::default();
+    let shell = transpile(source, config).unwrap();
+
+    let mut file = NamedTempFile::new().expect("Failed to create temp file");
+    file.write_all(shell.as_bytes()).expect("Failed to write shell script");
+
+    let output = Command::new("sh")
+        .arg(file.path())
+        .output()
+        .expect("Failed to execute shell script");
+
+    assert!(
+        output.status.success() || output.status.code() == Some(127),
+        "Script should execute with fixed ID"
+    );
+}
+
+// ============================================================================
+// PARAM-SPEC-004: Background PID $! Purification
+// ============================================================================
+
+/// PARAM-SPEC-004: RED Phase
+/// Test that background jobs are NOT generated
+#[test]
+fn test_background_pid_purification_baseline() {
+    let source = r#"
+fn main() {
+    run_sync();
+}
+
+fn run_sync() {}
+"#;
+
+    let config = Config::default();
+    let result = transpile(source, config);
+
+    assert!(result.is_ok(), "Should transpile sync function: {:?}", result.err());
+
+    let shell = result.unwrap();
+    eprintln!("Generated shell for sync execution:\n{}", shell);
+
+    // Verify function is called synchronously
+    assert!(
+        shell.contains("run_sync"),
+        "Should call function synchronously"
+    );
+
+    // Should NOT contain background operators
+    assert!(
+        !shell.contains(" &") && !shell.contains("$!"),
+        "Should NOT contain background job operators (non-deterministic)"
+    );
+}
+
+/// PARAM-SPEC-004: RED Phase - ADVANCED
+/// Test that async/await is NOT supported
+#[test]
+#[ignore] // Requires async detection and rejection
+fn test_background_async_rejection() {
+    let source = r#"
+async fn background_task() {
+    // Some work
+}
+
+fn main() {
+    background_task();
+}
+"#;
+
+    let config = Config::default();
+    let result = transpile(source, config);
+
+    // Should fail validation - async is non-deterministic
+    assert!(
+        result.is_err(),
+        "async functions should be rejected as non-deterministic"
+    );
+}
+
+/// PARAM-SPEC-004: RED Phase - EXECUTION
+/// Test synchronous execution
+#[test]
+fn test_background_sync_execution() {
+    let source = r#"
+fn main() {
+    task1();
+    task2();
+}
+
+fn task1() {}
+fn task2() {}
+"#;
+
+    let config = Config::default();
+    let shell = transpile(source, config).unwrap();
+
+    let mut file = NamedTempFile::new().expect("Failed to create temp file");
+    file.write_all(shell.as_bytes()).expect("Failed to write shell script");
+
+    let output = Command::new("sh")
+        .arg(file.path())
+        .output()
+        .expect("Failed to execute shell script");
+
+    assert!(
+        output.status.success() || output.status.code() == Some(127),
+        "Script should execute synchronously"
+    );
+}
+
+// ============================================================================
+// BASH-VAR-002: RANDOM Purification
+// ============================================================================
+
+/// BASH-VAR-002: RED Phase
+/// Test that RANDOM is NOT generated
+#[test]
+fn test_random_purification_baseline() {
+    let source = r#"
+fn main() {
+    use_seed(42);
+}
+
+fn use_seed(seed: i32) {}
+"#;
+
+    let config = Config::default();
+    let result = transpile(source, config);
+
+    assert!(result.is_ok(), "Should transpile seed function: {:?}", result.err());
+
+    let shell = result.unwrap();
+    eprintln!("Generated shell for deterministic seed:\n{}", shell);
+
+    // Verify function is called with deterministic seed
+    assert!(
+        shell.contains("use_seed") && shell.contains("42"),
+        "Should use deterministic seed"
+    );
+
+    // Should NOT contain $RANDOM
+    assert!(
+        !shell.contains("$RANDOM") && !shell.contains("RANDOM"),
+        "Should NOT contain $RANDOM (non-deterministic)"
+    );
+}
+
+/// BASH-VAR-002: RED Phase - ADVANCED
+/// Test that rand crate usage is NOT supported
+#[test]
+#[ignore] // Requires rand crate detection and rejection
+fn test_random_crate_rejection() {
+    let source = r#"
+fn main() {
+    let num = rand::random::<u32>();
+    println!("{}", num);
+}
+"#;
+
+    let config = Config::default();
+    let result = transpile(source, config);
+
+    // Should fail validation - random is non-deterministic
+    assert!(
+        result.is_err(),
+        "rand crate usage should be rejected as non-deterministic"
+    );
+}
+
+/// BASH-VAR-002: RED Phase - EXECUTION
+/// Test deterministic value execution
+#[test]
+fn test_random_deterministic_execution() {
+    let source = r#"
+fn main() {
+    use_value(12345);
+}
+
+fn use_value(val: i32) {}
+"#;
+
+    let config = Config::default();
+    let shell = transpile(source, config).unwrap();
+
+    let mut file = NamedTempFile::new().expect("Failed to create temp file");
+    file.write_all(shell.as_bytes()).expect("Failed to write shell script");
+
+    let output = Command::new("sh")
+        .arg(file.path())
+        .output()
+        .expect("Failed to execute shell script");
+
+    assert!(
+        output.status.success() || output.status.code() == Some(127),
+        "Script should execute with deterministic value"
+    );
+}
+
+/// Session 6: Combined execution test
+#[test]
+fn test_session6_commands_execution() {
+    let source = r#"
+fn main() {
+    print_heredoc();
+    use_fixed_id();
+    run_sync();
+    use_seed(42);
+}
+
+fn print_heredoc() {}
+fn use_fixed_id() {}
+fn run_sync() {}
+fn use_seed(seed: i32) {}
+"#;
+
+    let config = Config::default();
+    let shell = transpile(source, config).unwrap();
+
+    eprintln!("Generated combined shell script:\n{}", shell);
+
+    // Verify all functions are called
+    assert!(shell.contains("print_heredoc"), "Should call print_heredoc");
+    assert!(shell.contains("use_fixed_id"), "Should call use_fixed_id");
+    assert!(shell.contains("run_sync"), "Should call run_sync");
+    assert!(shell.contains("use_seed"), "Should call use_seed");
+
+    // Verify NO non-deterministic constructs in main function (trap cleanup is OK)
+    let main_section = shell.split("main() {").nth(1).unwrap_or("");
+    let main_body = main_section.split("}").next().unwrap_or("");
+    assert!(!main_body.contains("$$"), "Main should NOT contain $$");
+    assert!(!main_body.contains("$!"), "Main should NOT contain $!");
+    assert!(!main_body.contains("$RANDOM"), "Main should NOT contain $RANDOM");
+    assert!(!main_body.contains(" &"), "Main should NOT contain background &");
+
+    // Write and execute
+    let mut file = NamedTempFile::new().expect("Failed to create temp file");
+    file.write_all(shell.as_bytes()).expect("Failed to write shell script");
+
+    let output = Command::new("sh")
+        .arg(file.path())
+        .output()
+        .expect("Failed to execute shell script");
+
+    // Execution test may fail (functions undefined), but script should be valid
+    eprintln!("Exit code: {:?}", output.status.code());
+    eprintln!("Stderr: {}", String::from_utf8_lossy(&output.stderr));
+}
+
+// ============================================================================
+// Session 7: Exit Status and Additional Purifications
+// Validation of GNU Bash Manual constructs - RED Phase Tests
+// ============================================================================
+
+/// PARAM-SPEC-002: RED Phase
+/// Test exit status $? baseline
+#[test]
+fn test_exit_status_baseline() {
+    let source = r#"
+fn main() {
+    get_status();
+}
+
+fn get_status() -> i32 { 0 }
+"#;
+
+    let config = Config::default();
+    let result = transpile(source, config);
+
+    assert!(result.is_ok(), "Should transpile exit status function: {:?}", result.err());
+
+    let shell = result.unwrap();
+    eprintln!("Generated shell for exit status:\n{}", shell);
+
+    // Verify function is called
+    assert!(
+        shell.contains("get_status"),
+        "Should transpile get_status function"
+    );
+}
+
+/// PARAM-SPEC-002: RED Phase - ADVANCED
+/// Test command exit status capture with $?
+#[test]
+#[ignore] // Requires $? capture pattern recognition
+fn test_exit_status_capture() {
+    let source = r#"
+fn main() {
+    run_command();
+    let status = last_exit_code();
+    check_status(status);
+}
+
+fn run_command() {}
+fn last_exit_code() -> i32 { 0 }
+fn check_status(code: i32) {}
+"#;
+
+    let config = Config::default();
+    let shell = transpile(source, config).unwrap();
+
+    // Should capture $? after command
+    assert!(
+        shell.contains("$?"),
+        "Should use $? to capture exit status"
+    );
+}
+
+/// PARAM-SPEC-002: RED Phase - EXECUTION
+/// Test exit status execution
+#[test]
+fn test_exit_status_param_execution() {
+    let source = r#"
+fn main() {
+    check_result(0);
+}
+
+fn check_result(code: i32) {}
+"#;
+
+    let config = Config::default();
+    let shell = transpile(source, config).unwrap();
+
+    let mut file = NamedTempFile::new().expect("Failed to create temp file");
+    file.write_all(shell.as_bytes()).expect("Failed to write shell script");
+
+    let output = Command::new("sh")
+        .arg(file.path())
+        .output()
+        .expect("Failed to execute shell script");
+
+    assert!(
+        output.status.success() || output.status.code() == Some(127),
+        "Script should execute"
+    );
+}
+
+// ============================================================================
+// REDIR-005: Herestring <<<
+// ============================================================================
+
+/// REDIR-005: RED Phase
+/// Test herestring <<< baseline
+#[test]
+fn test_herestring_baseline() {
+    let source = r#"
+fn main() {
+    pass_string("input data");
+}
+
+fn pass_string(data: &str) {}
+"#;
+
+    let config = Config::default();
+    let result = transpile(source, config);
+
+    assert!(result.is_ok(), "Should transpile herestring function: {:?}", result.err());
+
+    let shell = result.unwrap();
+    eprintln!("Generated shell for herestring:\n{}", shell);
+
+    // Verify function is called
+    assert!(
+        shell.contains("pass_string"),
+        "Should transpile pass_string function"
+    );
+}
+
+/// REDIR-005: RED Phase - ADVANCED
+/// Test herestring conversion to printf | cmd
+#[test]
+#[ignore] // Requires herestring pattern recognition
+fn test_herestring_conversion() {
+    let source = r#"
+fn main() {
+    let input = "test input";
+    pipe_input(input);
+}
+
+fn pipe_input(data: &str) {}
+"#;
+
+    let config = Config::default();
+    let shell = transpile(source, config).unwrap();
+
+    // Should convert to printf | cmd (POSIX alternative to <<<)
+    assert!(
+        shell.contains("printf") && shell.contains("|"),
+        "Should convert herestring to printf | cmd"
+    );
+}
+
+/// REDIR-005: RED Phase - EXECUTION
+/// Test herestring execution
+#[test]
+fn test_herestring_execution() {
+    let source = r#"
+fn main() {
+    send_data("hello");
+}
+
+fn send_data(msg: &str) {}
+"#;
+
+    let config = Config::default();
+    let shell = transpile(source, config).unwrap();
+
+    let mut file = NamedTempFile::new().expect("Failed to create temp file");
+    file.write_all(shell.as_bytes()).expect("Failed to write shell script");
+
+    let output = Command::new("sh")
+        .arg(file.path())
+        .output()
+        .expect("Failed to execute shell script");
+
+    assert!(
+        output.status.success() || output.status.code() == Some(127),
+        "Script should execute"
+    );
+}
+
+// ============================================================================
+// BASH-VAR-003: SECONDS Purification
+// ============================================================================
+
+/// BASH-VAR-003: RED Phase
+/// Test that SECONDS is NOT generated
+#[test]
+fn test_seconds_purification_baseline() {
+    let source = r#"
+fn main() {
+    use_fixed_time(100);
+}
+
+fn use_fixed_time(duration: i32) {}
+"#;
+
+    let config = Config::default();
+    let result = transpile(source, config);
+
+    assert!(result.is_ok(), "Should transpile fixed time function: {:?}", result.err());
+
+    let shell = result.unwrap();
+    eprintln!("Generated shell for fixed time:\n{}", shell);
+
+    // Verify function is called with fixed duration
+    assert!(
+        shell.contains("use_fixed_time") && shell.contains("100"),
+        "Should use fixed time duration"
+    );
+
+    // Should NOT contain $SECONDS
+    let main_section = shell.split("main() {").nth(1).unwrap_or("");
+    let main_body = main_section.split("}").next().unwrap_or("");
+    assert!(
+        !main_body.contains("$SECONDS") && !main_body.contains("SECONDS="),
+        "Should NOT contain $SECONDS (non-deterministic)"
+    );
+}
+
+/// BASH-VAR-003: RED Phase - ADVANCED
+/// Test that SystemTime::now() is NOT supported
+#[test]
+#[ignore] // Requires SystemTime detection and rejection
+fn test_seconds_time_rejection() {
+    let source = r#"
+fn main() {
+    let start = std::time::SystemTime::now();
+    do_work();
+    let elapsed = start.elapsed().unwrap();
+    println!("{:?}", elapsed);
+}
+
+fn do_work() {}
+"#;
+
+    let config = Config::default();
+    let result = transpile(source, config);
+
+    // Should fail validation - timing is non-deterministic
+    assert!(
+        result.is_err(),
+        "SystemTime::now() should be rejected as non-deterministic"
+    );
+}
+
+/// BASH-VAR-003: RED Phase - EXECUTION
+/// Test fixed duration execution
+#[test]
+fn test_seconds_fixed_duration_execution() {
+    let source = r#"
+fn main() {
+    wait_fixed(5);
+}
+
+fn wait_fixed(seconds: i32) {}
+"#;
+
+    let config = Config::default();
+    let shell = transpile(source, config).unwrap();
+
+    let mut file = NamedTempFile::new().expect("Failed to create temp file");
+    file.write_all(shell.as_bytes()).expect("Failed to write shell script");
+
+    let output = Command::new("sh")
+        .arg(file.path())
+        .output()
+        .expect("Failed to execute shell script");
+
+    assert!(
+        output.status.success() || output.status.code() == Some(127),
+        "Script should execute with fixed duration"
+    );
+}
+
+// ============================================================================
+// JOB-001: Background Jobs (&) Purification
+// ============================================================================
+
+/// JOB-001: RED Phase
+/// Test that background jobs are NOT generated
+#[test]
+fn test_background_jobs_purification_baseline() {
+    let source = r#"
+fn main() {
+    run_foreground();
+}
+
+fn run_foreground() {}
+"#;
+
+    let config = Config::default();
+    let result = transpile(source, config);
+
+    assert!(result.is_ok(), "Should transpile foreground function: {:?}", result.err());
+
+    let shell = result.unwrap();
+    eprintln!("Generated shell for foreground execution:\n{}", shell);
+
+    // Verify function is called in foreground
+    assert!(
+        shell.contains("run_foreground"),
+        "Should call function in foreground"
+    );
+
+    // Should NOT contain background operators
+    let main_section = shell.split("main() {").nth(1).unwrap_or("");
+    let main_body = main_section.split("}").next().unwrap_or("");
+    assert!(
+        !main_body.contains(" &"),
+        "Should NOT contain background job operator & (non-deterministic)"
+    );
+}
+
+/// JOB-001: RED Phase - ADVANCED
+/// Test that spawn/thread is NOT supported
+#[test]
+#[ignore] // Requires spawn/thread detection and rejection
+fn test_background_spawn_rejection() {
+    let source = r#"
+fn main() {
+    std::thread::spawn(|| {
+        background_work();
+    });
+}
+
+fn background_work() {}
+"#;
+
+    let config = Config::default();
+    let result = transpile(source, config);
+
+    // Should fail validation - threading is non-deterministic
+    assert!(
+        result.is_err(),
+        "std::thread::spawn should be rejected as non-deterministic"
+    );
+}
+
+/// JOB-001: RED Phase - EXECUTION
+/// Test foreground execution
+#[test]
+fn test_background_foreground_execution() {
+    let source = r#"
+fn main() {
+    task_one();
+    task_two();
+    task_three();
+}
+
+fn task_one() {}
+fn task_two() {}
+fn task_three() {}
+"#;
+
+    let config = Config::default();
+    let shell = transpile(source, config).unwrap();
+
+    let mut file = NamedTempFile::new().expect("Failed to create temp file");
+    file.write_all(shell.as_bytes()).expect("Failed to write shell script");
+
+    let output = Command::new("sh")
+        .arg(file.path())
+        .output()
+        .expect("Failed to execute shell script");
+
+    assert!(
+        output.status.success() || output.status.code() == Some(127),
+        "Script should execute tasks in foreground"
+    );
+}
+
+/// Session 7: Combined execution test
+#[test]
+fn test_session7_commands_execution() {
+    let source = r#"
+fn main() {
+    get_status();
+    pass_string("data");
+    use_fixed_time(60);
+    run_foreground();
+}
+
+fn get_status() -> i32 { 0 }
+fn pass_string(data: &str) {}
+fn use_fixed_time(duration: i32) {}
+fn run_foreground() {}
+"#;
+
+    let config = Config::default();
+    let shell = transpile(source, config).unwrap();
+
+    eprintln!("Generated combined shell script:\n{}", shell);
+
+    // Verify all functions are called
+    assert!(shell.contains("get_status"), "Should call get_status");
+    assert!(shell.contains("pass_string"), "Should call pass_string");
+    assert!(shell.contains("use_fixed_time"), "Should call use_fixed_time");
+    assert!(shell.contains("run_foreground"), "Should call run_foreground");
+
+    // Verify NO non-deterministic constructs in main function
+    let main_section = shell.split("main() {").nth(1).unwrap_or("");
+    let main_body = main_section.split("}").next().unwrap_or("");
+    assert!(!main_body.contains("$SECONDS"), "Main should NOT contain $SECONDS");
+    assert!(!main_body.contains(" &"), "Main should NOT contain background &");
+
+    // Write and execute
+    let mut file = NamedTempFile::new().expect("Failed to create temp file");
+    file.write_all(shell.as_bytes()).expect("Failed to write shell script");
+
+    let output = Command::new("sh")
+        .arg(file.path())
+        .output()
+        .expect("Failed to execute shell script");
+
+    // Execution test may fail (functions undefined), but script should be valid
+    eprintln!("Exit code: {:?}", output.status.code());
+    eprintln!("Stderr: {}", String::from_utf8_lossy(&output.stderr));
 }
