@@ -271,19 +271,26 @@ chapters:
             tasks:
               - id: "PARAM-POS-001"
                 title: "Document $1, $2, etc."
-                status: "pending"
+                status: "blocked"
+                blocked_by: "P0-POSITIONAL-PARAMETERS"
+                blocked_reason: "Parser does not support std::env::args() pattern"
+                target_version: "v1.3.0"
                 priority: "HIGH"
                 input: "echo \"First: $1, Second: $2\""
                 rust: "fn main(args: Vec<String>) { println!(\"First: {}, Second: {}\", args[0], args[1]); }"
                 purified: "printf '%s %s, %s %s\\n' \"First:\" \"$1\" \"Second:\" \"$2\""
                 test_name: "test_positional_parameters"
+                red_phase_tests: "rash/tests/integration_tests.rs:494-525"
 
           - id: "3.4.2"
             name: "Special Parameters"
             tasks:
               - id: "PARAM-SPEC-001"
                 title: "Document $# (argument count)"
-                status: "pending"
+                status: "blocked"
+                blocked_by: "P0-POSITIONAL-PARAMETERS"
+                blocked_reason: "Depends on std::env::args() support"
+                target_version: "v1.3.0"
                 priority: "HIGH"
                 input: "echo \"Args: $#\""
                 rust: "println!(\"Args: {}\", args.len())"
@@ -321,7 +328,10 @@ chapters:
 
               - id: "PARAM-SPEC-005"
                 title: "Document $0 (script name)"
-                status: "pending"
+                status: "blocked"
+                blocked_by: "P0-POSITIONAL-PARAMETERS"
+                blocked_reason: "Uses std::env::args().nth(0) pattern"
+                target_version: "v1.3.0"
                 priority: "MEDIUM"
                 input: "echo \"Script: $0\""
                 rust: "println!(\"Script: {}\", std::env::args().nth(0).unwrap())"
@@ -1029,10 +1039,12 @@ high_priority_next_tasks:
     - id: "PARAM-POS-001"
       title: "Positional parameters ($1, $2)"
       priority: 1
+      status: "🔴 BLOCKED - P0 (deferred to v1.3.0)"
 
     - id: "PARAM-SPEC-001"
       title: "Special parameter $#"
       priority: 2
+      status: "🔴 BLOCKED - P0 (deferred to v1.3.0)"
 
     - id: "PARAM-SPEC-002"
       title: "Special parameter $?"
