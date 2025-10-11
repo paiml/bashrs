@@ -578,6 +578,102 @@ fn echo(msg: &str) {}
     assert!(shell.contains("${PROTO:-http}"));
 }
 
+/// PARAM-SPEC-002: RED Phase
+/// Test exit status special parameter $?
+/// Expected to FAIL until implementation is complete
+#[test]
+#[ignore] // Remove this once implementation starts
+fn test_exit_status_parameter_basic() {
+    let source = r#"
+fn main() {
+    let result = run_command();
+    let exit_code = result;
+    echo(&format!("Exit code: {}", exit_code));
+}
+
+fn run_command() -> i32 { 0 }
+fn echo(msg: &str) {}
+"#;
+
+    let config = Config::default();
+    let shell = transpile(source, config).unwrap();
+
+    // Should capture exit status with $?
+    assert!(
+        shell.contains("$?"),
+        "Should use $? to capture exit status"
+    );
+
+    // Should store in variable
+    assert!(
+        shell.contains("exit_code=") || shell.contains("_exit="),
+        "Should store exit code in variable"
+    );
+}
+
+/// PARAM-SPEC-002: RED Phase
+/// Test exit status in conditional
+#[test]
+#[ignore] // Remove this once implementation starts
+fn test_exit_status_conditional() {
+    let source = r#"
+fn main() {
+    some_command();
+    if last_exit_status() == 0 {
+        echo("Success");
+    } else {
+        echo("Failed");
+    }
+}
+
+fn some_command() {}
+fn last_exit_status() -> i32 { 0 }
+fn echo(msg: &str) {}
+"#;
+
+    let config = Config::default();
+    let shell = transpile(source, config).unwrap();
+
+    // Should check $? in conditional
+    assert!(
+        shell.contains("$?") && shell.contains("if"),
+        "Should use $? in conditional check"
+    );
+}
+
+/// PARAM-SPEC-002: RED Phase
+/// Test exit status with command execution
+#[test]
+#[ignore] // Remove this once implementation starts
+fn test_exit_status_execution() {
+    let source = r#"
+fn main() {
+    run_test();
+    let status = get_exit_status();
+    echo(&format!("Status: {}", status));
+}
+
+fn run_test() {}
+fn get_exit_status() -> i32 { 0 }
+fn echo(msg: &str) {}
+"#;
+
+    let config = Config::default();
+    let shell = transpile(source, config).unwrap();
+
+    // Write to temporary file and execute
+    let temp_dir = TempDir::new().unwrap();
+    let script_path = temp_dir.path().join("test_exit_status.sh");
+    fs::write(&script_path, &shell).unwrap();
+
+    let output = Command::new("sh")
+        .arg(&script_path)
+        .output()
+        .expect("Failed to execute shell script");
+
+    assert!(output.status.success(), "Script should execute successfully");
+}
+
 /// P0-POSITIONAL-PARAMETERS: RED Phase
 /// Test positional parameters via std::env::args()
 /// Expected to FAIL until implementation is complete
