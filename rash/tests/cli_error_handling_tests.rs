@@ -242,7 +242,7 @@ fn test_generic_type_error_message() {
         .output()
         .unwrap();
 
-    let stderr = String::from_utf8_lossy(&output.stderr);
+    let _stderr = String::from_utf8_lossy(&output.stderr);
 
     // Generics might be unsupported or cause parse errors
     assert!(
@@ -274,7 +274,7 @@ fn test_macro_definition_error_message() {
         .output()
         .unwrap();
 
-    let stderr = String::from_utf8_lossy(&output.stderr);
+    let _stderr = String::from_utf8_lossy(&output.stderr);
 
     // Macro definitions should fail
     assert_eq!(
@@ -334,7 +334,7 @@ fn test_use_statement_error_message() {
         .output()
         .unwrap();
 
-    let stderr = String::from_utf8_lossy(&output.stderr);
+    let _stderr = String::from_utf8_lossy(&output.stderr);
 
     // Use statements should fail (not supported)
     assert_eq!(output.status.code(), Some(1), "Use statements should fail");

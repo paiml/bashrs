@@ -226,7 +226,6 @@ impl GeneratedTestSuite {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::bash_parser::ast::*;
 
     #[test]
     fn test_generator_creation() {

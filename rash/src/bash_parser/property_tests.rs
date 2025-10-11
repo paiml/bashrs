@@ -3,7 +3,7 @@
 //! These tests use proptest to verify key properties with generated inputs.
 
 use super::generators::*;
-use super::{BashParser, SemanticAnalyzer};
+use super::SemanticAnalyzer;
 use crate::bash_transpiler::codegen::{BashToRashTranspiler, TranspileOptions};
 use proptest::prelude::*;
 
