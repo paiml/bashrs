@@ -522,8 +522,12 @@ fn handle_compile(
     Ok(())
 }
 
-fn lint_command(input: &Path, format: LintFormat, _fix: bool) -> Result<()> {
-    use crate::linter::{rules::lint_shell, output::{write_results, OutputFormat}};
+fn lint_command(input: &Path, format: LintFormat, fix: bool) -> Result<()> {
+    use crate::linter::{
+        autofix::{apply_fixes_to_file, FixOptions},
+        output::{write_results, OutputFormat},
+        rules::lint_shell,
+    };
 
     // Read input file
     let source = fs::read_to_string(input).map_err(Error::Io)?;
@@ -531,23 +535,71 @@ fn lint_command(input: &Path, format: LintFormat, _fix: bool) -> Result<()> {
     // Run linter
     let result = lint_shell(&source);
 
-    // Convert format
-    let output_format = match format {
-        LintFormat::Human => OutputFormat::Human,
-        LintFormat::Json => OutputFormat::Json,
-        LintFormat::Sarif => OutputFormat::Sarif,
-    };
+    // Apply fixes if requested
+    if fix && result.diagnostics.iter().any(|d| d.fix.is_some()) {
+        let options = FixOptions {
+            create_backup: true,
+            dry_run: false,
+            backup_suffix: ".bak".to_string(),
+        };
 
-    // Write results to stdout
-    let file_path = input.to_str().unwrap_or("unknown");
-    write_results(&mut std::io::stdout(), &result, output_format, file_path)
-        .map_err(|e| Error::Internal(format!("Failed to write lint results: {e}")))?;
+        match apply_fixes_to_file(input, &result, &options) {
+            Ok(fix_result) => {
+                info!(
+                    "Applied {} fix(es) to {}",
+                    fix_result.fixes_applied,
+                    input.display()
+                );
+                if let Some(backup_path) = &fix_result.backup_path {
+                    info!("Backup created at {}", backup_path);
+                }
 
-    // Exit with appropriate code
-    if result.has_errors() {
-        std::process::exit(2);
-    } else if result.has_warnings() {
-        std::process::exit(1);
+                // Re-lint to show remaining issues
+                let source_after = fs::read_to_string(input).map_err(Error::Io)?;
+                let result_after = lint_shell(&source_after);
+
+                if result_after.diagnostics.is_empty() {
+                    info!("✓ All issues fixed!");
+                    return Ok(());
+                } else {
+                    info!("Remaining issues after auto-fix:");
+                    let output_format = match format {
+                        LintFormat::Human => OutputFormat::Human,
+                        LintFormat::Json => OutputFormat::Json,
+                        LintFormat::Sarif => OutputFormat::Sarif,
+                    };
+                    let file_path = input.to_str().unwrap_or("unknown");
+                    write_results(
+                        &mut std::io::stdout(),
+                        &result_after,
+                        output_format,
+                        file_path,
+                    )
+                    .map_err(|e| Error::Internal(format!("Failed to write lint results: {e}")))?;
+                }
+            }
+            Err(e) => {
+                return Err(Error::Internal(format!("Failed to apply fixes: {e}")));
+            }
+        }
+    } else {
+        // Just show lint results
+        let output_format = match format {
+            LintFormat::Human => OutputFormat::Human,
+            LintFormat::Json => OutputFormat::Json,
+            LintFormat::Sarif => OutputFormat::Sarif,
+        };
+
+        let file_path = input.to_str().unwrap_or("unknown");
+        write_results(&mut std::io::stdout(), &result, output_format, file_path)
+            .map_err(|e| Error::Internal(format!("Failed to write lint results: {e}")))?;
+
+        // Exit with appropriate code
+        if result.has_errors() {
+            std::process::exit(2);
+        } else if result.has_warnings() {
+            std::process::exit(1);
+        }
     }
 
     Ok(())

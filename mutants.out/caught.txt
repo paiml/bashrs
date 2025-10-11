@@ -1,0 +1,2 @@
+rash/src/linter/diagnostic.rs:39:9: replace <impl fmt::Display for Span>::fmt -> fmt::Result with Ok(Default::default())
+rash/src/linter/diagnostic.rs:39:28: replace == with != in <impl fmt::Display for Span>::fmt

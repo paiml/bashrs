@@ -32,8 +32,8 @@ pub fn check(source: &str) -> LintResult {
             }
 
             let content = cap.name("content").unwrap().as_str().trim();
-            let col = full_match.start() + 1;
-            let end_col = full_match.end() + 1;
+            let col = full_match.start() + 1; // 1-indexed
+            let end_col = full_match.end(); // Don't add 1, already at correct position
 
             let span = Span::new(line_num, col, line_num, end_col);
 
