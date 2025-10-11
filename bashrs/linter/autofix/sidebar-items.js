@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"fn":["apply_fixes","apply_fixes_to_file","apply_single_fix"],"struct":["FixOptions","FixResult"]};
+window.SIDEBAR_ITEMS = {"enum":["FixPriority"],"fn":["apply_fixes","apply_fixes_to_file","apply_single_fix","spans_overlap"],"struct":["FixOptions","FixResult"]};
