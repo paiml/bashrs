@@ -488,6 +488,96 @@ fn test_memory_safety() {
     assert!(result.is_ok());
 }
 
+/// EXP-PARAM-001: RED Phase
+/// Test string parameter expansion with default values ${var:-default}
+/// Expected to FAIL until implementation is complete
+#[test]
+#[ignore] // Remove this once implementation starts
+fn test_string_parameter_expansion_default() {
+    let source = r#"
+fn main() {
+    let value = Some("configured");
+    let result = value.unwrap_or("default");
+    echo(result);
+}
+
+fn echo(msg: &str) {}
+"#;
+
+    let config = Config::default();
+    let result = transpile(source, config);
+
+    assert!(result.is_ok(), "Should transpile Option::unwrap_or() pattern");
+
+    let shell = result.unwrap();
+    eprintln!("Generated shell script:\n{}", shell);
+
+    // Verify shell parameter expansion syntax
+    assert!(
+        shell.contains("${value:-default}"),
+        "Should use ${{var:-default}} syntax for Option::unwrap_or()\nActual output:\n{}",
+        shell
+    );
+
+    // Verify proper quoting
+    assert!(shell.contains("\"$result\""), "Should quote variable usage");
+}
+
+/// EXP-PARAM-001: RED Phase
+/// Test environment variable with default value pattern
+#[test]
+#[ignore] // Remove this once implementation starts
+fn test_env_var_with_default() {
+    let source = r#"
+fn main() {
+    let config_path = std::env::var("CONFIG_PATH").unwrap_or("/etc/default/config".to_string());
+    echo(&config_path);
+}
+
+fn echo(msg: &str) {}
+"#;
+
+    let config = Config::default();
+    let shell = transpile(source, config).unwrap();
+
+    // Verify ${VAR:-default} expansion
+    assert!(
+        shell.contains("${CONFIG_PATH:-/etc/default/config}"),
+        "Should convert env::var().unwrap_or() to ${{VAR:-default}}"
+    );
+
+    // Verify proper quoting
+    assert!(shell.contains("\"$config_path\""), "Should quote expanded variable");
+}
+
+/// EXP-PARAM-001: RED Phase
+/// Test multiple variables with defaults
+#[test]
+#[ignore] // Remove this once implementation starts
+fn test_multiple_defaults() {
+    let source = r#"
+fn main() {
+    let host = std::env::var("HOST").unwrap_or("localhost".to_string());
+    let port = std::env::var("PORT").unwrap_or("8080".to_string());
+    let proto = std::env::var("PROTO").unwrap_or("http".to_string());
+
+    echo(&host);
+    echo(&port);
+    echo(&proto);
+}
+
+fn echo(msg: &str) {}
+"#;
+
+    let config = Config::default();
+    let shell = transpile(source, config).unwrap();
+
+    // Verify all three expansions
+    assert!(shell.contains("${HOST:-localhost}"));
+    assert!(shell.contains("${PORT:-8080}"));
+    assert!(shell.contains("${PROTO:-http}"));
+}
+
 /// P0-POSITIONAL-PARAMETERS: RED Phase
 /// Test positional parameters via std::env::args()
 /// Expected to FAIL until implementation is complete
