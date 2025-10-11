@@ -1,0 +1,543 @@
+---
+project:
+  name: "Rash (bashrs) Extreme Quality Roadmap"
+  description: "Bidirectional shell safety tool using REAL Rust (not a DSL)"
+  version: "1.2.1"
+  status: "Production Ready"
+
+workflows:
+  primary:
+    name: "Rust → Safe Shell"
+    status: "✅ Production-ready and working very well"
+    description: "Write actual Rust code, test with standard Rust tooling, then transpile to provably safe, deterministic POSIX shell scripts"
+    features:
+      - "Write new bootstrap installers, deployment scripts, CI/CD tools"
+      - "Full Rust std library support"
+      - "Test with cargo test, lint with cargo clippy"
+      - "Generate deterministic, idempotent, injection-safe shell scripts"
+
+  secondary:
+    name: "Bash → Rust → Purified Bash"
+    status: "✅ Functional, for cleaning legacy scripts"
+    description: "Ingest messy bash scripts, convert to Rust with automatic test generation, then transpile to purified, safe bash"
+    features:
+      - "Remove non-deterministic constructs ($RANDOM, timestamps, $$)"
+      - "Enforce idempotency (mkdir -p, rm -f)"
+      - "Generate comprehensive test suites"
+      - "Output is safe, deterministic, verifiable bash"
+
+releases:
+  - version: "1.2.1"
+    date: "2025-10-11"
+    status: "CURRENT"
+    title: "Auto-Fix Perfection"
+    description: "100% auto-fix success rate with priority-based conflict resolution"
+
+  - version: "1.2.0"
+    date: "2025-10-11"
+    status: "RELEASED"
+    title: "Auto-Fix Implementation"
+    description: "Automatic linter fix application with 99% success rate"
+
+  - version: "1.1.0"
+    date: "2025-10-10"
+    status: "RELEASED"
+    title: "Native Linter"
+    description: "Zero-dependency shell script linter with ShellCheck-equivalent rules"
+
+  - version: "1.0.0"
+    date: "2025-10-11"
+    status: "RELEASED"
+    title: "Stable Production Release"
+    achievements:
+      - "FIRST STABLE 1.0.0 RELEASE"
+      - "Test Generator Implementation Complete"
+      - "Integration Testing Framework"
+      - "756 tests passing (100%)"
+      - "A+ Quality Grade - Production ready"
+
+metrics:
+  current:
+    version: "1.2.1"
+    tests:
+      total: 808
+      passing: 808
+      pass_rate: "100%"
+      property_tests: 52
+      property_cases: "~26,000+"
+      integration_tests: 4
+      unit_tests: "~700"
+      linter_tests: 48
+      autofix_tests: 8
+
+    coverage:
+      lines: "88.5%"
+      functions: "90.4%"
+      target: ">85%"
+      status: "✅ EXCEEDS TARGET"
+
+    performance:
+      transpile_simple: "19.1µs"
+      lint: "<2ms"
+      autofix: "<5ms"
+      target: "<10ms"
+      status: "✅ EXCEEDS (523x better)"
+
+    quality:
+      autofix_success_rate: "100%"
+      complexity_median: 1.0
+      complexity_max: 15
+      complexity_target: "<10"
+      binary_size: "~1.5MB"
+      mutation_kill_rate: "~83% (IR baseline)"
+      mutation_target: "≥90%"
+
+sprints:
+  completed:
+    - id: "SPRINT-26-PREP"
+      status: "✅ COMPLETE"
+      title: "Sprint 26 Preparation"
+      date: "2025-10-11"
+      duration: "1 hour"
+      description: "Comprehensive documentation and tooling for mutation testing sprint"
+      achievements:
+        - "Sprint 26 kickoff document created"
+        - "Sprint 2-3 achievements documented"
+        - "Ready guide with execution plan"
+        - "Helper scripts (mutants-run.sh, mutants-analyze.sh)"
+      deliverables:
+        - "docs/sprints/SPRINT-26-KICKOFF.md"
+        - "docs/sprints/SPRINT-2-3-ACHIEVEMENTS.md"
+        - "docs/SPRINT-26-READY.md"
+        - "scripts/mutants-run.sh"
+        - "scripts/mutants-analyze.sh"
+
+    - id: "SPRINT-3"
+      status: "✅ COMPLETE"
+      title: "Auto-Fix Perfection (v1.2.1)"
+      date: "2025-10-11"
+      duration: "1 hour"
+      description: "Priority-based conflict resolution for overlapping fixes"
+      achievements:
+        - "FixPriority enum with 3 priority levels"
+        - "spans_overlap() conflict detection"
+        - "100% auto-fix success rate (was 99%)"
+        - "3 new conflict resolution tests"
+        - "Published v1.2.1 to crates.io"
+      tests_added: 3
+      total_tests: 808
+
+    - id: "SPRINT-2"
+      status: "✅ COMPLETE"
+      title: "Auto-Fix Implementation (v1.2.0)"
+      date: "2025-10-11"
+      duration: "2 hours"
+      description: "Automatic linter fix application capability"
+      achievements:
+        - "Auto-fix module (autofix.rs, 200+ lines)"
+        - "CLI integration (--fix flag)"
+        - "Automatic backups (.bak files)"
+        - "Re-linting verification"
+        - "99% success rate"
+        - "Published v1.2.0 to crates.io"
+      tests_added: 5
+      total_tests: 805
+
+    - id: "SPRINT-1"
+      status: "✅ COMPLETE"
+      title: "Native Linter (v1.1.0)"
+      date: "2025-10-10"
+      duration: "4 hours"
+      description: "Zero-dependency shell script linter implementation"
+      achievements:
+        - "3 linter rules (SC2086, SC2046, SC2116)"
+        - "3 output formats (human, JSON, SARIF)"
+        - "48 comprehensive tests"
+        - "Auto-fix suggestions"
+        - "<2ms linting performance"
+        - "Published v1.1.0 to crates.io"
+      tests_added: 48
+      total_tests: 804
+
+    - id: "SPRINT-25"
+      status: "✅ COMPLETE"
+      title: "Test Generator & Integration Testing"
+      description: "Automatic test generation from bash AST"
+      achievements:
+        - "Test Generator Module (unit, property, doctest, mutation config)"
+        - "4 integration tests"
+        - "Bug fixes (doctest extraction, Rust code generation)"
+        - "756/756 tests passing"
+        - "v1.0.0 stable release"
+      tests_added: 83
+      total_tests: 756
+
+    - id: "SPRINT-23"
+      status: "✅ COMPLETE"
+      title: "Property Test Enhancement"
+      description: "Expand property tests to 52 properties"
+      achievements:
+        - "10 new property tests"
+        - "52 properties (~26,000+ cases)"
+        - "Exceeds 50+ target"
+        - "v0.9.2 released"
+      tests_added: 10
+      total_tests: 603
+
+    - id: "SPRINT-24"
+      status: "✅ COMPLETE"
+      title: "Mutation Testing Analysis"
+      description: "Establish mutation testing baseline"
+      achievements:
+        - "8 new mutation coverage tests"
+        - "47 mutants analyzed in IR module"
+        - "83% kill rate baseline"
+        - "v0.9.1 released"
+      tests_added: 8
+      total_tests: 593
+
+    - id: "SPRINT-22"
+      status: "✅ COMPLETE"
+      title: "Standard Library"
+      description: "Implement stdlib functions"
+      achievements:
+        - "6 stdlib functions (string: trim/contains/len, fs: exists/read/write)"
+        - "Predicate function support"
+        - "v0.9.0 released"
+      tests_added: 10
+      total_tests: 532
+
+    - id: "SPRINT-21"
+      status: "✅ COMPLETE"
+      title: "While Loops (TICKET-6001)"
+      description: "Implement while loop support with break/continue"
+      achievements:
+        - "While loop support"
+        - "Break/continue statements"
+        - "v0.8.0 released"
+      tests_added: 2
+      total_tests: 530
+
+    - id: "SPRINT-20"
+      status: "✅ COMPLETE"
+      title: "Edge Cases + Mutation Testing Infrastructure"
+      description: "100% edge case completion + quality infrastructure"
+      achievements:
+        - "11/11 edge cases fixed"
+        - "Mutation testing infrastructure ready"
+        - "42 property tests"
+        - "v0.7.0 released"
+      tests_added: 7
+      total_tests: 530
+
+    - id: "SPRINT-19"
+      status: "✅ COMPLETE"
+      title: "Match Expressions (TICKET-5009)"
+      description: "Implement match expressions with POSIX case statements"
+      achievements:
+        - "Match expression support"
+        - "POSIX case statement generation"
+        - "9/11 edge cases fixed"
+        - "v0.6.0 released"
+      tests_added: 3
+      total_tests: 527
+
+    - id: "SPRINT-16"
+      status: "✅ COMPLETE"
+      title: "For Loops (TICKET-5008)"
+      description: "Implement for loops with range syntax"
+      achievements:
+        - "Range expression support (0..3, 0..=3)"
+        - "POSIX for loop generation"
+        - "8/11 edge cases fixed"
+        - "v0.5.0 released"
+      tests_added: 7
+      total_tests: 527
+
+    - id: "SPRINT-11"
+      status: "✅ COMPLETE"
+      title: "P2 Edge Cases"
+      description: "Fix medium priority edge cases"
+      achievements:
+        - "TICKET-5006: Arithmetic expressions"
+        - "TICKET-5007: Function return values"
+        - "7/11 edge cases fixed"
+      tests_added: 5
+      total_tests: 520
+
+    - id: "SPRINT-10"
+      status: "✅ COMPLETE"
+      title: "Edge Cases + MCP Server"
+      description: "Fix critical edge cases + enable MCP server"
+      achievements:
+        - "TICKET-5001: Empty function bodies"
+        - "TICKET-5002: println! macro support"
+        - "TICKET-5003: Negative integers"
+        - "TICKET-5004: Comparison operators"
+        - "TICKET-5005: Function nesting"
+        - "MCP server operational"
+        - "5/11 edge cases fixed"
+      tests_added: 4
+      total_tests: 524
+
+    - id: "SPRINT-9"
+      status: "✅ COMPLETE"
+      title: "Coverage Enhancement"
+      description: "Achieve >85% line coverage"
+      achievements:
+        - "85.36% core module coverage"
+        - "make coverage infrastructure"
+        - "Coverage documentation"
+      tests_added: 0
+      total_tests: 520
+
+    - id: "SPRINT-8"
+      status: "✅ COMPLETE"
+      title: "Parse Refactoring"
+      description: "Reduce parse function complexity"
+      achievements:
+        - "TICKET-4004: parse function (cognitive 35 → 5, 86% reduction)"
+        - "7 new unit tests"
+        - "4 helper functions extracted"
+      tests_added: 7
+      total_tests: 520
+
+    - id: "SPRINT-7"
+      status: "✅ COMPLETE"
+      title: "Complexity Reduction"
+      description: "96% complexity reduction in core functions"
+      achievements:
+        - "TICKET-4001: convert_stmt refactored (cognitive 61→1, 97% reduction)"
+        - "TICKET-4002: convert_expr refactored (cognitive 51→3, 94% reduction)"
+        - "Combined: cognitive 112→4 (96% improvement)"
+        - "13 helper functions extracted"
+        - "18 new unit tests"
+      tests_added: 18
+      total_tests: 513
+
+  ready:
+    - id: "SPRINT-26"
+      status: "🟢 READY TO EXECUTE"
+      title: "Mutation Testing Excellence"
+      estimated_duration: "5-7 days (35-50 hours)"
+      description: "Comprehensive mutation testing to achieve ≥90% kill rate"
+      prerequisites:
+        - "✅ v1.2.1 released and stable"
+        - "✅ 808 tests passing (100%)"
+        - "✅ cargo-mutants v25.3.1 installed"
+        - "✅ 2323 mutants identified"
+      phases:
+        - name: "Phase 1: Baseline"
+          duration: "3-5 hours"
+          description: "Run full mutation baseline (2323 mutants)"
+        - name: "Phase 2: Analysis"
+          duration: "4-6 hours"
+          description: "Analyze results, categorize survivors"
+        - name: "Phase 3: Test Writing"
+          duration: "20-30 hours"
+          description: "Write targeted tests using EXTREME TDD"
+        - name: "Phase 4: Verification"
+          duration: "3-5 hours"
+          description: "Re-run mutations, verify ≥90% kill rate"
+        - name: "Phase 5: Documentation"
+          duration: "2-4 hours"
+          description: "Sprint completion report, optional v1.2.2 release"
+      success_criteria:
+        - "≥90% mutation kill rate project-wide"
+        - "Parser module at ≥90%"
+        - "IR module at ≥90%"
+        - "Emitter module at ≥90%"
+        - "Verifier module at ≥90%"
+        - "Linter module at ≥95% (stretch)"
+        - "Gap analysis documented"
+        - "50-100 targeted tests added"
+      documentation:
+        - "docs/sprints/SPRINT-26-KICKOFF.md"
+        - "docs/specifications/sprint-26-mutation-testing.md"
+        - "docs/SPRINT-26-READY.md"
+      scripts:
+        - "./scripts/mutants-run.sh"
+        - "./scripts/mutants-analyze.sh"
+
+  future:
+    - id: "SPRINT-27"
+      title: "Rust Macro Support (v1.3.0)"
+      estimated_duration: "10+ hours"
+      description: "Implement support for Rust macros (dbg!(), assert!())"
+      status: "PLANNED"
+
+    - id: "SPRINT-28"
+      title: "Parallel Execution (v1.4.0)"
+      estimated_duration: "8-12 hours"
+      description: "Add rayon support for parallel execution"
+      status: "PLANNED"
+
+    - id: "SPRINT-29"
+      title: "Additional Linter Rules (v1.5.0)"
+      estimated_duration: "6-8 hours"
+      description: "Expand linter with SC2115, SC2128, BP-series rules"
+      status: "PLANNED"
+
+quality_gates:
+  coverage:
+    target: ">85%"
+    current:
+      lines: "88.5%"
+      functions: "90.4%"
+      regions: "86.88%"
+    status: "✅ EXCEEDS TARGET"
+
+  shellcheck:
+    target: "100% pass"
+    tests: 24
+    pass_rate: "100%"
+    status: "✅ PASS"
+
+  tests:
+    target: "100% pass"
+    total: 808
+    passing: 808
+    pass_rate: "100%"
+    status: "✅ PERFECT"
+
+  performance:
+    target: "<10ms simple"
+    transpile_simple: "19.1µs"
+    status: "✅ EXCEEDS (523x better)"
+
+  complexity:
+    target: "All <10"
+    median_cyclomatic: 1.0
+    median_cognitive: 0.0
+    top_function: 15
+    status: "✅ EXCELLENT"
+
+  determinism:
+    target: "Comprehensive"
+    idempotence_tests: 11
+    byte_identical: true
+    status: "✅ GOOD"
+
+infrastructure:
+  testing:
+    commands:
+      - name: "make test"
+        description: "Core suite (unit + doc + property + examples)"
+      - name: "make test-all"
+        description: "Comprehensive (adds shells + determinism)"
+      - name: "make test-fast"
+        description: "Fast unit tests only"
+      - name: "make test-doc"
+        description: "Documentation tests"
+      - name: "make test-property"
+        description: "Property-based tests (~26,000 cases)"
+      - name: "make test-example"
+        description: "Transpile all examples + ShellCheck"
+      - name: "make test-shells"
+        description: "Cross-shell compatibility"
+      - name: "make test-determinism"
+        description: "Determinism verification"
+
+  coverage:
+    commands:
+      - name: "make coverage"
+        description: "HTML coverage report (opens in browser)"
+      - name: "make coverage-ci"
+        description: "LCOV for CI/CD"
+      - name: "make coverage-clean"
+        description: "Clean artifacts"
+      - name: "make coverage-summary"
+        description: "Display coverage summary"
+      - name: "make coverage-open"
+        description: "Open HTML report"
+
+  mutation:
+    commands:
+      - name: "make mutants"
+        description: "Run mutation testing (8 targets)"
+      - name: "./scripts/mutants-run.sh"
+        description: "Full baseline (2323 mutants, 3-5 hours)"
+      - name: "./scripts/mutants-analyze.sh"
+        description: "Analyze results and calculate kill rate"
+
+  ci_cd:
+    platform: "GitHub Actions"
+    jobs:
+      - "Coverage job with two-phase LLVM pattern"
+      - "Uses taiki-e/install-action for cargo-llvm-cov + nextest"
+      - "Uploads to Codecov (fail_ci_if_error: false)"
+
+toyota_way:
+  jidoka:
+    principle: "Build Quality In"
+    practices:
+      - "EXTREME TDD methodology (RED-GREEN-REFACTOR)"
+      - "Zero defects policy (100% test pass rate)"
+      - "Quality gates enforced (complexity <10)"
+
+  hansei:
+    principle: "Reflection & Root Cause Analysis"
+    practices:
+      - "Five Whys analysis on blockers"
+      - "Root cause identification and fixes"
+      - "Deep complexity analysis and refactoring"
+
+  kaizen:
+    principle: "Continuous Improvement"
+    practices:
+      - "96% complexity reduction (Sprint 7)"
+      - "Coverage infrastructure improvements"
+      - "Test infrastructure enhancements"
+      - "Feature implementations (loops, match, stdlib)"
+
+  genchi_genbutsu:
+    principle: "Direct Observation"
+    practices:
+      - "Used pmat for actual complexity metrics"
+      - "Measured real coverage with cargo-llvm-cov"
+      - "Benchmarked actual performance with criterion"
+
+documentation:
+  quality_reports:
+    - ".quality/sprint1-complete.md"
+    - ".quality/sprint2-complete.md"
+    - ".quality/sprint3-complete.md"
+    - ".quality/sprint4-complete.md"
+    - ".quality/sprint5-blocked.md"
+    - ".quality/sprint7-ticket4001-complete.md"
+    - ".quality/sprint16-18-complete.md"
+    - ".quality/sprint19-complete.md"
+    - "docs/sprints/SPRINT-26-KICKOFF.md"
+    - "docs/sprints/SPRINT-2-3-ACHIEVEMENTS.md"
+    - "docs/SPRINT-26-READY.md"
+
+  specifications:
+    - "docs/specifications/COVERAGE.md"
+    - "docs/specifications/sprint-26-mutation-testing.md"
+
+  user_guides:
+    - "README.md"
+    - "CHANGELOG.md"
+    - "examples/PURIFICATION_WORKFLOW.md"
+
+next_steps:
+  immediate:
+    option: "Execute Sprint 26 (Mutation Testing Excellence)"
+    duration: "5-7 days"
+    description: "Run comprehensive mutation testing to achieve ≥90% kill rate"
+
+  alternative_1:
+    option: "Start feature work (v1.3.0 - Macro Support)"
+    duration: "10+ hours"
+    description: "Implement Rust macro support"
+
+  alternative_2:
+    option: "Bash Ingestion Roadmap Execution"
+    duration: "Ongoing"
+    description: "Execute tasks from BASH-INGESTION-ROADMAP.yaml"
+
+project_status:
+  overall: "✅ PRODUCTION READY"
+  version: "1.2.1"
+  quality_score: "⭐⭐⭐⭐⭐ 5/5 (A+ Grade)"
+  next_milestone: "Sprint 26 (Mutation Testing) or Bash Ingestion Tasks"
