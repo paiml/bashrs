@@ -274,6 +274,74 @@ mod tests {
         assert_eq!(metadata[0].module, "status", "exit_code should be in 'status' module");
         assert_eq!(metadata[0].shell_name, "inline_exit_code", "exit_code should use inline shell syntax");
     }
+
+    // Sprint 28: Complete Missing Stdlib Functions - RED PHASE
+
+    #[test]
+    fn test_stdlib_string_split_recognized() {
+        // RED: string_split is in is_stdlib_function() but needs metadata
+        assert!(
+            is_stdlib_function("string_split"),
+            "string_split() should be recognized as stdlib function"
+        );
+    }
+
+    #[test]
+    fn test_stdlib_string_split_metadata() {
+        // RED: This test will fail until we add metadata for string_split
+        let metadata: Vec<&StdlibFunction> = STDLIB_FUNCTIONS
+            .iter()
+            .filter(|f| f.name == "string_split")
+            .collect();
+
+        assert_eq!(metadata.len(), 1, "string_split should have metadata entry");
+        assert_eq!(metadata[0].module, "string", "string_split should be in 'string' module");
+        assert_eq!(metadata[0].shell_name, "rash_string_split", "string_split should use rash_ prefix");
+    }
+
+    #[test]
+    fn test_stdlib_array_len_recognized() {
+        // RED: array_len is in is_stdlib_function() but needs metadata
+        assert!(
+            is_stdlib_function("array_len"),
+            "array_len() should be recognized as stdlib function"
+        );
+    }
+
+    #[test]
+    fn test_stdlib_array_len_metadata() {
+        // RED: This test will fail until we add metadata for array_len
+        let metadata: Vec<&StdlibFunction> = STDLIB_FUNCTIONS
+            .iter()
+            .filter(|f| f.name == "array_len")
+            .collect();
+
+        assert_eq!(metadata.len(), 1, "array_len should have metadata entry");
+        assert_eq!(metadata[0].module, "array", "array_len should be in 'array' module");
+        assert_eq!(metadata[0].shell_name, "rash_array_len", "array_len should use rash_ prefix");
+    }
+
+    #[test]
+    fn test_stdlib_array_join_recognized() {
+        // RED: array_join is in is_stdlib_function() but needs metadata
+        assert!(
+            is_stdlib_function("array_join"),
+            "array_join() should be recognized as stdlib function"
+        );
+    }
+
+    #[test]
+    fn test_stdlib_array_join_metadata() {
+        // RED: This test will fail until we add metadata for array_join
+        let metadata: Vec<&StdlibFunction> = STDLIB_FUNCTIONS
+            .iter()
+            .filter(|f| f.name == "array_join")
+            .collect();
+
+        assert_eq!(metadata.len(), 1, "array_join should have metadata entry");
+        assert_eq!(metadata[0].module, "array", "array_join should be in 'array' module");
+        assert_eq!(metadata[0].shell_name, "rash_array_join", "array_join should use rash_ prefix");
+    }
 }
 
 // Sprint 27a: Security Tests - RED PHASE
