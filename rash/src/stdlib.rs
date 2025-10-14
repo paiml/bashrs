@@ -173,6 +173,25 @@ pub const STDLIB_FUNCTIONS: &[StdlibFunction] = &[
         module: "status",
         description: "Get exit code of last command (inline $?)",
     },
+    // Sprint 28: Complete Missing Stdlib Functions - GREEN PHASE
+    StdlibFunction {
+        name: "string_split",
+        shell_name: "rash_string_split",
+        module: "string",
+        description: "Split string by delimiter into newline-separated output",
+    },
+    StdlibFunction {
+        name: "array_len",
+        shell_name: "rash_array_len",
+        module: "array",
+        description: "Count elements in newline-separated array",
+    },
+    StdlibFunction {
+        name: "array_join",
+        shell_name: "rash_array_join",
+        module: "array",
+        description: "Join newline-separated array elements with separator",
+    },
 ];
 
 #[cfg(test)]
