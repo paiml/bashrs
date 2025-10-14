@@ -15,6 +15,7 @@ proptest! {
     })]
 
     /// Property: Valid bash scripts can be analyzed
+    /// FIXED: TICKET-6002 - bash_script() now generates unique function names
     #[test]
     fn prop_valid_scripts_analyze_successfully(script in bash_script()) {
         let mut analyzer = SemanticAnalyzer::new();
