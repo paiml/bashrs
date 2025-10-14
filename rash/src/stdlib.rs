@@ -33,6 +33,8 @@ pub fn is_stdlib_function(name: &str) -> bool {
             | "arg"
             | "args"
             | "arg_count"
+            // Exit code module (Sprint 27c)
+            | "exit_code"
     )
 }
 
@@ -163,6 +165,13 @@ pub const STDLIB_FUNCTIONS: &[StdlibFunction] = &[
         shell_name: "inline_arg_count",
         module: "args",
         description: "Get command-line argument count (inline $#)",
+    },
+    // Exit code module (Sprint 27c)
+    StdlibFunction {
+        name: "exit_code",
+        shell_name: "inline_exit_code",
+        module: "status",
+        description: "Get exit code of last command (inline $?)",
     },
 ];
 

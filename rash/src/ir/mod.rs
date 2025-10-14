@@ -618,8 +618,8 @@ fn is_string_value(value: &ShellValue) -> bool {
         | ShellValue::LogicalNot { .. } => false,
         // Sprint 27b: Command-line arguments are not determinable at compile time
         ShellValue::Arg { .. } | ShellValue::ArgCount => false,
-        // Sprint 27c: Exit code handling - RED PHASE STUB
-        ShellValue::ExitCode => panic!("ExitCode in is_string_value not yet implemented - GREEN phase"),
+        // Sprint 27c: Exit code handling - GREEN PHASE (exit codes are numeric, not string)
+        ShellValue::ExitCode => false,
     }
 }
 
