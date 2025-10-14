@@ -242,6 +242,29 @@ mod tests {
             "arg_count() should be recognized as stdlib function"
         );
     }
+
+    // Sprint 27c: Exit Code Handling - RED PHASE
+    #[test]
+    fn test_stdlib_exit_code_function_recognized() {
+        // RED: This test will fail until we add "exit_code" to is_stdlib_function()
+        assert!(
+            is_stdlib_function("exit_code"),
+            "exit_code() should be recognized as stdlib function"
+        );
+    }
+
+    #[test]
+    fn test_stdlib_exit_code_metadata() {
+        // RED: This test will fail until we add metadata for exit_code
+        let metadata: Vec<&StdlibFunction> = STDLIB_FUNCTIONS
+            .iter()
+            .filter(|f| f.name == "exit_code")
+            .collect();
+
+        assert_eq!(metadata.len(), 1, "exit_code should have metadata entry");
+        assert_eq!(metadata[0].module, "status", "exit_code should be in 'status' module");
+        assert_eq!(metadata[0].shell_name, "inline_exit_code", "exit_code should use inline shell syntax");
+    }
 }
 
 // Sprint 27a: Security Tests - RED PHASE

@@ -1020,3 +1020,133 @@ fn test_multiple_args_in_sequence() {
         output
     );
 }
+
+// ============= Sprint 27c: Exit Code Handling - RED PHASE =============
+
+/// RED TEST: exit_code() should emit "$?" syntax
+/// Tests that ShellValue::ExitCode generates "$?" in shell
+#[test]
+fn test_exit_code_emits_question_mark_syntax() {
+    use crate::models::Config;
+
+    let ir = crate::ir::shell_ir::ShellIR::Let {
+        name: "status".to_string(),
+        value: ShellValue::ExitCode,
+        effects: crate::ir::effects::EffectSet::pure(),
+    };
+
+    let config = Config::default();
+    let output = super::emit(&ir, &config).unwrap();
+
+    // RED: This will fail until we implement ExitCode emission
+    assert!(
+        output.contains("\"$?\""),
+        "exit_code() should emit $? with quotes, got: {}",
+        output
+    );
+    assert!(
+        output.contains("status=\"$?\""),
+        "Should assign quoted exit code to variable, got: {}",
+        output
+    );
+}
+
+/// RED TEST: exit_code() in comparison context
+/// Tests that exit_code() works in if condition comparisons
+#[test]
+fn test_exit_code_in_comparison() {
+    use crate::models::Config;
+    use crate::ir::shell_ir::ComparisonOp;
+
+    let ir = crate::ir::shell_ir::ShellIR::If {
+        test: ShellValue::Comparison {
+            op: ComparisonOp::StrEq,
+            left: Box::new(ShellValue::ExitCode),
+            right: Box::new(ShellValue::String("0".to_string())),
+        },
+        then_branch: Box::new(crate::ir::shell_ir::ShellIR::Echo {
+            value: ShellValue::String("success".to_string()),
+        }),
+        else_branch: None,
+    };
+
+    let config = Config::default();
+    let output = super::emit(&ir, &config).unwrap();
+
+    // RED: This will fail until ExitCode is implemented in comparison
+    assert!(
+        output.contains("\"$?\""),
+        "Should contain exit code in comparison, got: {}",
+        output
+    );
+    assert!(
+        output.contains("[ \"$?\" = "),
+        "Should emit exit code comparison, got: {}",
+        output
+    );
+}
+
+/// RED TEST: Exit code must be quoted for safety
+/// Tests that exit code accesses include proper quoting
+#[test]
+fn test_exit_code_quoted_for_safety() {
+    use crate::models::Config;
+
+    let ir = crate::ir::shell_ir::ShellIR::Sequence(vec![
+        crate::ir::shell_ir::ShellIR::Let {
+            name: "x".to_string(),
+            value: ShellValue::ExitCode,
+            effects: crate::ir::effects::EffectSet::pure(),
+        },
+        crate::ir::shell_ir::ShellIR::Let {
+            name: "y".to_string(),
+            value: ShellValue::ExitCode,
+            effects: crate::ir::effects::EffectSet::pure(),
+        },
+    ]);
+
+    let config = Config::default();
+    let output = super::emit(&ir, &config).unwrap();
+
+    // RED: Must have quotes around $? for safety and consistency
+    assert!(
+        output.contains("\"$?\""),
+        "Exit code accesses must be quoted: {}",
+        output
+    );
+
+    // Should appear twice (for both variables)
+    let count = output.matches("\"$?\"").count();
+    assert!(
+        count >= 2,
+        "Should have at least 2 quoted exit code accesses, found {}: {}",
+        count,
+        output
+    );
+}
+
+/// RED TEST: exit_code() in concatenation
+/// Tests that exit_code() can be used in string concatenation
+#[test]
+fn test_exit_code_in_concatenation() {
+    use crate::models::Config;
+
+    let ir = crate::ir::shell_ir::ShellIR::Let {
+        name: "msg".to_string(),
+        value: ShellValue::Concat(vec![
+            ShellValue::String("Exit code: ".to_string()),
+            ShellValue::ExitCode,
+        ]),
+        effects: crate::ir::effects::EffectSet::pure(),
+    };
+
+    let config = Config::default();
+    let output = super::emit(&ir, &config).unwrap();
+
+    // RED: This will fail until ExitCode works in concatenation
+    assert!(
+        output.contains("msg=\"Exit code: $?\""),
+        "Should emit concatenated exit code, got: {}",
+        output
+    );
+}

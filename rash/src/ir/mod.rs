@@ -387,6 +387,11 @@ impl IrConverter {
                     return Ok(ShellValue::ArgCount);
                 }
 
+                // Sprint 27c: Handle exit_code() specially
+                if name == "exit_code" {
+                    return Ok(ShellValue::ExitCode);
+                }
+
                 // Function call used as value - capture output with command substitution
                 let mut cmd_args = Vec::new();
                 for arg in args {
@@ -613,6 +618,8 @@ fn is_string_value(value: &ShellValue) -> bool {
         | ShellValue::LogicalNot { .. } => false,
         // Sprint 27b: Command-line arguments are not determinable at compile time
         ShellValue::Arg { .. } | ShellValue::ArgCount => false,
+        // Sprint 27c: Exit code handling - RED PHASE STUB
+        ShellValue::ExitCode => panic!("ExitCode in is_string_value not yet implemented - GREEN phase"),
     }
 }
 
