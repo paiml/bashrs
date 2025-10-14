@@ -119,6 +119,10 @@ impl PosixEmitter {
         self.write_fs_remove_function(output)?;
         self.write_fs_is_file_function(output)?;
         self.write_fs_is_dir_function(output)?;
+        // Sprint 28: Complete Missing Stdlib Functions - GREEN PHASE
+        self.write_string_split_function(output)?;
+        self.write_array_len_function(output)?;
+        self.write_array_join_function(output)?;
 
         Ok(())
     }
@@ -361,6 +365,63 @@ impl PosixEmitter {
             "rash_fs_is_dir() {",
             "    path=\"$1\"",
             "    test -d \"$path\"",
+            "}",
+            "",
+        ];
+        self.write_shell_lines(output, &lines)
+    }
+
+    // Sprint 28: Complete Missing Stdlib Functions - GREEN PHASE
+
+    fn write_string_split_function(&self, output: &mut String) -> Result<()> {
+        let lines = [
+            "rash_string_split() {",
+            "    text=\"$1\"",
+            "    delimiter=\"$2\"",
+            "    # Use tr to replace delimiter with newline for POSIX compliance",
+            "    printf '%s\\n' \"$text\" | tr \"$delimiter\" '\\n'",
+            "}",
+            "",
+        ];
+        self.write_shell_lines(output, &lines)
+    }
+
+    fn write_array_len_function(&self, output: &mut String) -> Result<()> {
+        let lines = [
+            "rash_array_len() {",
+            "    array=\"$1\"",
+            "    # Count non-empty lines",
+            "    if [ -z \"$array\" ]; then",
+            "        printf '0'",
+            "    else",
+            "        printf '%s\\n' \"$array\" | wc -l | tr -d ' '",
+            "    fi",
+            "}",
+            "",
+        ];
+        self.write_shell_lines(output, &lines)
+    }
+
+    fn write_array_join_function(&self, output: &mut String) -> Result<()> {
+        let lines = [
+            "rash_array_join() {",
+            "    array=\"$1\"",
+            "    separator=\"$2\"",
+            "    ",
+            "    # Read lines and join with separator",
+            "    first=1",
+            "    result=\"\"",
+            "    while IFS= read -r line; do",
+            "        if [ \"$first\" = 1 ]; then",
+            "            result=\"$line\"",
+            "            first=0",
+            "        else",
+            "            result=\"${result}${separator}${line}\"",
+            "        fi",
+            "    done <<EOF",
+            "$array",
+            "EOF",
+            "    printf '%s' \"$result\"",
             "}",
             "",
         ];
