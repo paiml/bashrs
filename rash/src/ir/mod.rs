@@ -353,6 +353,40 @@ impl IrConverter {
                     });
                 }
 
+                // Sprint 27b: Handle arg(), args(), and arg_count() specially
+                if name == "arg" {
+                    // Extract position from first argument
+                    let position = match &args[0] {
+                        Expr::Literal(Literal::U32(n)) => *n as usize,
+                        Expr::Literal(Literal::I32(n)) => *n as usize,
+                        _ => {
+                            return Err(crate::models::Error::Validation(
+                                "arg() requires integer literal for position".to_string(),
+                            ))
+                        }
+                    };
+
+                    // Validate position (must be >= 1)
+                    if position == 0 {
+                        return Err(crate::models::Error::Validation(
+                            "arg() position must be >= 1 (use arg(1) for first argument)"
+                                .to_string(),
+                        ));
+                    }
+
+                    return Ok(ShellValue::Arg {
+                        position: Some(position),
+                    });
+                }
+
+                if name == "args" {
+                    return Ok(ShellValue::Arg { position: None }); // None = $@
+                }
+
+                if name == "arg_count" {
+                    return Ok(ShellValue::ArgCount);
+                }
+
                 // Function call used as value - capture output with command substitution
                 let mut cmd_args = Vec::new();
                 for arg in args {
