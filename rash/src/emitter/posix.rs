@@ -694,6 +694,8 @@ impl PosixEmitter {
                 None => Ok("\"$@\"".to_string()),     // All args
             },
             ShellValue::ArgCount => Ok("\"$#\"".to_string()), // Argument count
+            // Sprint 27c: Exit code access - RED PHASE STUB
+            ShellValue::ExitCode => panic!("ExitCode not yet implemented - GREEN phase"),
         }
     }
 
@@ -835,6 +837,10 @@ impl PosixEmitter {
             },
             ShellValue::ArgCount => {
                 result.push_str("$#");
+            }
+            // Sprint 27c: Exit code in concatenation - RED PHASE STUB
+            ShellValue::ExitCode => {
+                panic!("ExitCode in concatenation not yet implemented - GREEN phase")
             }
         }
         Ok(())

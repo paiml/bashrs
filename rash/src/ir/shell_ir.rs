@@ -202,6 +202,10 @@ pub enum ShellValue {
     /// Argument count: $#
     /// Sprint 27b: Command-Line Arguments Support
     ArgCount,
+
+    /// Exit code of last command: $?
+    /// Sprint 27c: Exit Code Handling
+    ExitCode,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -247,7 +251,8 @@ impl ShellValue {
             | ShellValue::CommandSubst(_)
             | ShellValue::EnvVar { .. }
             | ShellValue::Arg { .. }
-            | ShellValue::ArgCount => false,
+            | ShellValue::ArgCount
+            | ShellValue::ExitCode => false,
             ShellValue::Concat(parts) => parts.iter().all(|p| p.is_constant()),
             ShellValue::Comparison { left, right, .. }
             | ShellValue::Arithmetic { left, right, .. }

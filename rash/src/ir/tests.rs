@@ -1154,3 +1154,158 @@ fn test_arg_rejects_zero_position() {
         error_msg
     );
 }
+
+// ============= Sprint 27c: Exit Code Handling - RED PHASE =============
+
+/// RED TEST: exit_code() call should convert to ExitCode variant in IR
+/// Tests that exit_code() is properly recognized and converted to ShellValue::ExitCode
+#[test]
+fn test_exit_code_call_converts_to_ir() {
+    let ast = RestrictedAst {
+        functions: vec![Function {
+            name: "main".to_string(),
+            params: vec![],
+            return_type: Type::Str,
+            body: vec![Stmt::Let {
+                name: "status".to_string(),
+                value: Expr::FunctionCall {
+                    name: "exit_code".to_string(),
+                    args: vec![],
+                },
+            }],
+        }],
+        entry_point: "main".to_string(),
+    };
+
+    let ir = from_ast(&ast).unwrap();
+
+    match ir {
+        ShellIR::Sequence(stmts) => {
+            match &stmts[0] {
+                ShellIR::Let { name, value, .. } => {
+                    assert_eq!(name, "status");
+                    // RED: This will fail until we implement ExitCode variant
+                    match value {
+                        ShellValue::ExitCode => {
+                            // Success!
+                        }
+                        other => panic!("Expected ExitCode, got {:?}", other),
+                    }
+                }
+                _ => panic!("Expected Let statement"),
+            }
+        }
+        _ => panic!("Expected Sequence"),
+    }
+}
+
+/// RED TEST: exit_code() in comparison context
+/// Tests that exit_code() works in if condition comparisons
+#[test]
+fn test_exit_code_in_comparison() {
+    let ast = RestrictedAst {
+        functions: vec![Function {
+            name: "main".to_string(),
+            params: vec![],
+            return_type: Type::Str,
+            body: vec![Stmt::If {
+                condition: Expr::Binary {
+                    op: BinaryOp::Eq,
+                    left: Box::new(Expr::FunctionCall {
+                        name: "exit_code".to_string(),
+                        args: vec![],
+                    }),
+                    right: Box::new(Expr::Literal(Literal::Str("0".to_string()))),
+                },
+                then_block: vec![Stmt::Expr(Expr::Literal(Literal::Str("success".to_string())))],
+                else_block: None,
+            }],
+        }],
+        entry_point: "main".to_string(),
+    };
+
+    let ir = from_ast(&ast).unwrap();
+
+    // RED: This will fail until ExitCode variant exists
+    match ir {
+        ShellIR::Sequence(stmts) => {
+            match &stmts[0] {
+                ShellIR::If { test, .. } => {
+                    // Should contain Comparison with ExitCode on the left
+                    match test {
+                        ShellValue::Comparison { left, .. } => {
+                            assert!(
+                                matches!(**left, ShellValue::ExitCode),
+                                "Expected ExitCode in comparison"
+                            );
+                        }
+                        _ => panic!("Expected Comparison in if condition"),
+                    }
+                }
+                _ => panic!("Expected If statement"),
+            }
+        }
+        _ => panic!("Expected Sequence"),
+    }
+}
+
+/// RED TEST: Multiple exit_code() calls in sequence
+/// Tests that multiple exit_code() calls work correctly
+#[test]
+fn test_multiple_exit_code_calls() {
+    let ast = RestrictedAst {
+        functions: vec![Function {
+            name: "main".to_string(),
+            params: vec![],
+            return_type: Type::Str,
+            body: vec![
+                Stmt::Let {
+                    name: "status1".to_string(),
+                    value: Expr::FunctionCall {
+                        name: "exit_code".to_string(),
+                        args: vec![],
+                    },
+                },
+                Stmt::Let {
+                    name: "status2".to_string(),
+                    value: Expr::FunctionCall {
+                        name: "exit_code".to_string(),
+                        args: vec![],
+                    },
+                },
+            ],
+        }],
+        entry_point: "main".to_string(),
+    };
+
+    let ir = from_ast(&ast).unwrap();
+
+    // RED: This will fail until ExitCode variant exists
+    match ir {
+        ShellIR::Sequence(stmts) => {
+            assert_eq!(stmts.len(), 2);
+
+            // Check both calls convert to ExitCode
+            match &stmts[0] {
+                ShellIR::Let { value, .. } => {
+                    assert!(
+                        matches!(value, ShellValue::ExitCode),
+                        "First exit_code() should be ExitCode variant"
+                    );
+                }
+                _ => panic!("Expected Let statement"),
+            }
+
+            match &stmts[1] {
+                ShellIR::Let { value, .. } => {
+                    assert!(
+                        matches!(value, ShellValue::ExitCode),
+                        "Second exit_code() should be ExitCode variant"
+                    );
+                }
+                _ => panic!("Expected Let statement"),
+            }
+        }
+        _ => panic!("Expected Sequence"),
+    }
+}
