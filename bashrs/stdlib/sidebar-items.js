@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"constant":["STDLIB_FUNCTIONS"],"fn":["get_shell_function_name","is_stdlib_function"],"struct":["StdlibFunction"]};
+window.SIDEBAR_ITEMS = {"constant":["STDLIB_FUNCTIONS"],"fn":["contains_injection_attempt","get_shell_function_name","is_safe_default_value","is_stdlib_function","is_valid_var_name"],"struct":["StdlibFunction"]};
