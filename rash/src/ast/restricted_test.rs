@@ -192,9 +192,95 @@ mod tests {
 
         let mut calls = Vec::new();
         func.collect_function_calls(&mut calls);
-        
+
         assert_eq!(calls.len(), 2);
         assert!(calls.contains(&"helper1".to_string()));
         assert!(calls.contains(&"helper2".to_string()));
+    }
+
+    // Sprint 29 Mutation Testing - Nesting Depth Validation
+    // These tests kill mutants #6, #7, #8: boundary condition tests for depth > 30
+
+    #[test]
+    fn test_expr_nesting_depth_at_limit() {
+        // Create expression with EXACTLY depth=30 (at the limit)
+        let mut expr = Expr::Literal(Literal::U32(1));
+        for _ in 0..30 {
+            expr = Expr::Unary {
+                op: UnaryOp::Not,
+                operand: Box::new(expr),
+            };
+        }
+
+        let result = expr.validate();
+        assert!(result.is_ok(), "Depth=30 should be allowed");
+    }
+
+    #[test]
+    fn test_expr_nesting_depth_exceeds_limit() {
+        // Create expression with depth=31 (exceeds limit by 1)
+        let mut expr = Expr::Literal(Literal::U32(1));
+        for _ in 0..31 {
+            expr = Expr::Unary {
+                op: UnaryOp::Not,
+                operand: Box::new(expr),
+            };
+        }
+
+        let result = expr.validate();
+        assert!(result.is_err(), "Depth=31 should be rejected");
+        assert!(
+            result.unwrap_err().contains("nesting too deep"),
+            "Error message should mention nesting"
+        );
+        // Verify it reports depth=31 specifically
+        let mut expr2 = Expr::Literal(Literal::U32(1));
+        for _ in 0..31 {
+            expr2 = Expr::Unary {
+                op: UnaryOp::Not,
+                operand: Box::new(expr2),
+            };
+        }
+        let err = expr2.validate().unwrap_err();
+        assert!(err.contains("31"), "Error should report depth=31");
+    }
+
+    #[test]
+    fn test_expr_nesting_depth_way_exceeds_limit() {
+        // Create expression with depth=50 (way over limit)
+        let mut expr = Expr::Literal(Literal::U32(1));
+        for _ in 0..50 {
+            expr = Expr::Binary {
+                op: BinaryOp::Add,
+                left: Box::new(expr),
+                right: Box::new(Expr::Literal(Literal::U32(1))),
+            };
+        }
+
+        let result = expr.validate();
+        assert!(result.is_err(), "Depth=50 should be rejected");
+        let err = result.unwrap_err();
+        assert!(err.contains("nesting too deep"));
+        assert!(err.contains("50"));
+    }
+
+    // Sprint 29 Mutation Testing - String Literal Validation
+    // This test kills potential mutants related to null character checking
+
+    #[test]
+    fn test_string_literal_rejects_null_characters() {
+        let expr = Expr::Literal(Literal::Str("hello\0world".to_string()));
+        let result = expr.validate();
+        assert!(result.is_err(), "Strings with null characters should be rejected");
+        assert!(
+            result.unwrap_err().contains("Null characters not allowed"),
+            "Error should mention null characters"
+        );
+    }
+
+    #[test]
+    fn test_string_literal_allows_valid_strings() {
+        let expr = Expr::Literal(Literal::Str("hello world".to_string()));
+        assert!(expr.validate().is_ok(), "Valid strings should pass");
     }
 }

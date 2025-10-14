@@ -1,3 +1,18 @@
-rash/src/ir/mod.rs:520:5: replace is_string_value -> bool with true
-rash/src/ir/mod.rs:520:5: replace is_string_value -> bool with false
-rash/src/ir/mod.rs:523:39: replace && with || in is_string_value
+rash/src/ast/mod.rs:154:5: replace validate -> Result<()> with Ok(())
+rash/src/ast/restricted.rs:13:9: replace RestrictedAst::validate -> Result<(), String> with Ok(())
+rash/src/ast/restricted.rs:13:12: delete ! in RestrictedAst::validate
+rash/src/ast/restricted.rs:13:50: replace == with != in RestrictedAst::validate
+rash/src/ast/restricted.rs:32:9: replace RestrictedAst::check_no_recursion -> Result<(), String> with Ok(())
+rash/src/ast/restricted.rs:65:9: replace RestrictedAst::has_cycle -> bool with true
+rash/src/ast/restricted.rs:65:9: replace RestrictedAst::has_cycle -> bool with false
+rash/src/ast/restricted.rs:102:9: replace Function::validate -> Result<(), String> with Ok(())
+rash/src/ast/restricted.rs:110:9: replace Function::collect_function_calls with ()
+rash/src/ast/restricted.rs:139:9: replace Type::is_allowed -> bool with false
+rash/src/ast/restricted.rs:181:9: replace Stmt::validate -> Result<(), String> with Ok(())
+rash/src/ast/restricted.rs:240:9: replace Stmt::validate_for_stmt -> Result<(), String> with Ok(())
+rash/src/ast/restricted.rs:252:9: replace Stmt::validate_while_stmt -> Result<(), String> with Ok(())
+rash/src/ast/restricted.rs:262:9: replace Stmt::validate_bounded_iteration -> Result<(), String> with Ok(())
+rash/src/ast/restricted.rs:278:9: replace Stmt::collect_function_calls with ()
+rash/src/ast/restricted.rs:369:9: replace Expr::validate -> Result<(), String> with Ok(())
+rash/src/ast/restricted.rs:370:18: replace > with < in Expr::validate
+rash/src/ast/restricted.rs:377:13: delete match arm Expr::Literal(Literal::Str(s)) in Expr::validate
