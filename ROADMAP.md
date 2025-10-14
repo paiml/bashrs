@@ -76,8 +76,8 @@ releases:
 
 current_metrics:
   tests:
-    total: 845
-    passing: 845
+    total: 857
+    passing: 857
     pass_rate: "100%"
     ignored: 42
     property_tests: 52
@@ -86,6 +86,7 @@ current_metrics:
     sprint_27a_tests: 10
     sprint_27b_tests: 12
     sprint_27c_tests: 7
+    sprint_28_tests: 12
 
   mutation_testing:
     is_string_value_kill_rate: "100% (3/3)"
@@ -350,6 +351,9 @@ sprint_history:
   - sprint: 27c
     focus: "Exit code handling support"
     results: "exit_code() function, 7 new tests, 845 total passing"
+  - sprint: 28
+    focus: "Complete missing stdlib functions"
+    results: "string_split(), array_len(), array_join() functions, 12 new tests, 857 total passing"
 
 project_goals:
   critical_invariants:
@@ -420,54 +424,55 @@ quality_achievements:
     - "CI/CD coverage job (two-phase LLVM pattern)"
 
 current_sprint:
-  sprint_28:
-    name: "Sprint 28 - Standard Library Expansion (NEXT)"
+  sprint_29:
+    name: "Sprint 29 - TBD (NEXT)"
     status: "pending"
-    priority: "P2_MEDIUM"
-    duration: "2-3 hours"
-    description: "Expand stdlib beyond current functions"
-    note: "Sprint 27 (Shell Variable Access) is now complete!"
+    priority: "TBD"
+    duration: "TBD"
+    description: "Next sprint to be determined"
+    note: "Sprint 28 complete! See options in next_priorities section"
 
 previous_sprint:
-  sprint_27c:
-    name: "Sprint 27c - Exit Code Handling"
+  sprint_28:
+    name: "Sprint 28 - Standard Library Expansion"
     status: "complete"
-    priority: "P1_HIGH"
-    duration: "1-2 hours"
-    actual_duration: "~1 hour (RED + GREEN phases)"
+    priority: "P2_MEDIUM"
+    duration: "2-3 hours"
+    actual_duration: "~2 hours (RED + GREEN phases)"
     philosophy: "自働化 (Jidoka) - Build quality in through EXTREME TDD"
-    parent_sprint: "Sprint 27 - Core Shell Features Enhancement"
-    achievement: "EXIT CODE HANDLING IMPLEMENTED - SPRINT 27 COMPLETE!"
+    achievement: "MISSING STDLIB FUNCTIONS IMPLEMENTED"
 
     scope:
-      focus: "Exit code access ($?)"
+      focus: "Complete 3 missing stdlib functions"
       completed:
-        - "exit_code() stdlib function"
-        - "Safe \"$?\" syntax generation"
-        - "Support in all contexts (assignment, comparison, concatenation)"
-      note: "Completes Sprint 27 - All shell variable access features implemented"
+        - "string_split() - Split string by delimiter"
+        - "array_len() - Count array elements"
+        - "array_join() - Join array elements with separator"
+      note: "Functions were already declared in is_stdlib_function() but lacked implementation"
 
     results:
-      tests_passing: "845/845 (100%)"
-      new_tests_added: 7
+      tests_passing: "857/857 (100%)"
+      new_tests_added: 12
       phases_complete: "RED + GREEN"
       refactor_phase: "not_needed"
-      files_modified: 3
-      lines_changed: "+15/-6"
+      files_modified: 2
+      lines_changed: "+80/-0"
 
     implementation:
-      - "IR: Added ShellValue::ExitCode variant"
-      - "Stdlib: Registered exit_code function (module: status)"
-      - "Converter: exit_code() → ShellValue::ExitCode (already implemented in RED)"
-      - "Emitter: Generates properly quoted \"$?\" shell syntax"
+      - "Stdlib: Added 3 metadata entries to STDLIB_FUNCTIONS array"
+      - "Emitter: Implemented write_string_split_function()"
+      - "Emitter: Implemented write_array_len_function()"
+      - "Emitter: Implemented write_array_join_function()"
+      - "Emitter: Updated write_runtime() to include new functions"
 
     quality:
       test_errors: 0
       clippy_warnings: 0
-      security: "Exit codes quoted for consistency and safety"
-      notes: "Simplest sprint in series - only 1 function vs 2-3 in previous sprints"
+      posix_compliance: "All functions use POSIX-compliant commands (tr, wc, printf)"
+      notes: "Clean implementation - no refactoring needed"
 
-    specification: "docs/specifications/SPRINT_27C.md"
+    specification: "docs/specifications/SPRINT_28.md"
+    completion_report: ".quality/sprint28-complete.md"
 
 previous_sprint_backup:
   sprint_27b:
