@@ -577,6 +577,8 @@ fn is_string_value(value: &ShellValue) -> bool {
         ShellValue::LogicalAnd { .. }
         | ShellValue::LogicalOr { .. }
         | ShellValue::LogicalNot { .. } => false,
+        // Sprint 27b: Command-line arguments are not determinable at compile time
+        ShellValue::Arg { .. } | ShellValue::ArgCount => false,
     }
 }
 

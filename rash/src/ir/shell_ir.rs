@@ -192,6 +192,16 @@ pub enum ShellValue {
         name: String,
         default: Option<String>,
     },
+
+    /// Command-line argument access: $1, $2, $@, etc.
+    /// Sprint 27b: Command-Line Arguments Support
+    Arg {
+        position: Option<usize>,  // None = all args ($@)
+    },
+
+    /// Argument count: $#
+    /// Sprint 27b: Command-Line Arguments Support
+    ArgCount,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -233,7 +243,11 @@ impl ShellValue {
     pub fn is_constant(&self) -> bool {
         match self {
             ShellValue::String(_) | ShellValue::Bool(_) => true,
-            ShellValue::Variable(_) | ShellValue::CommandSubst(_) | ShellValue::EnvVar { .. } => {
+            ShellValue::Variable(_)
+            | ShellValue::CommandSubst(_)
+            | ShellValue::EnvVar { .. }
+            | ShellValue::Arg { .. }
+            | ShellValue::ArgCount => {
                 false
             }
             ShellValue::Concat(parts) => parts.iter().all(|p| p.is_constant()),

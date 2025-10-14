@@ -992,3 +992,163 @@ fn test_env_in_assignment() {
         _ => panic!("Expected Sequence"),
     }
 }
+
+// ============= Sprint 27b: Command-Line Arguments Support - RED PHASE =============
+
+/// RED TEST: arg(1) call should convert to Arg variant in IR
+/// Tests that arg(1) is properly recognized and converted to ShellValue::Arg
+#[test]
+fn test_arg_call_converts_to_ir() {
+    let ast = RestrictedAst {
+        functions: vec![Function {
+            name: "main".to_string(),
+            params: vec![],
+            return_type: Type::Str,
+            body: vec![Stmt::Let {
+                name: "first".to_string(),
+                value: Expr::FunctionCall {
+                    name: "arg".to_string(),
+                    args: vec![Expr::Literal(Literal::U32(1))],
+                },
+            }],
+        }],
+        entry_point: "main".to_string(),
+    };
+
+    let ir = from_ast(&ast).unwrap();
+
+    match ir {
+        ShellIR::Sequence(stmts) => {
+            match &stmts[0] {
+                ShellIR::Let { name, value, .. } => {
+                    assert_eq!(name, "first");
+                    // RED: This will fail until we implement Arg variant
+                    match value {
+                        ShellValue::Arg { position } => {
+                            assert_eq!(position, &Some(1));
+                        }
+                        other => panic!("Expected Arg, got {:?}", other),
+                    }
+                }
+                _ => panic!("Expected Let statement"),
+            }
+        }
+        _ => panic!("Expected Sequence"),
+    }
+}
+
+/// RED TEST: args() call should convert to Arg variant with None position
+/// Tests that args() converts to Arg { position: None } (representing $@)
+#[test]
+fn test_args_call_converts_to_ir() {
+    let ast = RestrictedAst {
+        functions: vec![Function {
+            name: "main".to_string(),
+            params: vec![],
+            return_type: Type::Str,
+            body: vec![Stmt::Let {
+                name: "all".to_string(),
+                value: Expr::FunctionCall {
+                    name: "args".to_string(),
+                    args: vec![],
+                },
+            }],
+        }],
+        entry_point: "main".to_string(),
+    };
+
+    let ir = from_ast(&ast).unwrap();
+
+    match ir {
+        ShellIR::Sequence(stmts) => {
+            match &stmts[0] {
+                ShellIR::Let { name, value, .. } => {
+                    assert_eq!(name, "all");
+                    // RED: This will fail until we implement Arg variant with None
+                    match value {
+                        ShellValue::Arg { position } => {
+                            assert_eq!(position, &None);
+                        }
+                        other => panic!("Expected Arg with None position, got {:?}", other),
+                    }
+                }
+                _ => panic!("Expected Let statement"),
+            }
+        }
+        _ => panic!("Expected Sequence"),
+    }
+}
+
+/// RED TEST: arg_count() call should convert to ArgCount variant
+/// Tests that arg_count() is properly recognized and converted to ShellValue::ArgCount
+#[test]
+fn test_arg_count_converts_to_ir() {
+    let ast = RestrictedAst {
+        functions: vec![Function {
+            name: "main".to_string(),
+            params: vec![],
+            return_type: Type::Str,
+            body: vec![Stmt::Let {
+                name: "count".to_string(),
+                value: Expr::FunctionCall {
+                    name: "arg_count".to_string(),
+                    args: vec![],
+                },
+            }],
+        }],
+        entry_point: "main".to_string(),
+    };
+
+    let ir = from_ast(&ast).unwrap();
+
+    match ir {
+        ShellIR::Sequence(stmts) => {
+            match &stmts[0] {
+                ShellIR::Let { name, value, .. } => {
+                    assert_eq!(name, "count");
+                    // RED: This will fail until we implement ArgCount variant
+                    match value {
+                        ShellValue::ArgCount => {
+                            // Success!
+                        }
+                        other => panic!("Expected ArgCount, got {:?}", other),
+                    }
+                }
+                _ => panic!("Expected Let statement"),
+            }
+        }
+        _ => panic!("Expected Sequence"),
+    }
+}
+
+/// RED TEST: arg(0) should be rejected (validation)
+/// Tests that arg(0) is rejected because shell arguments start at $1
+#[test]
+fn test_arg_rejects_zero_position() {
+    let ast = RestrictedAst {
+        functions: vec![Function {
+            name: "main".to_string(),
+            params: vec![],
+            return_type: Type::Str,
+            body: vec![Stmt::Let {
+                name: "x".to_string(),
+                value: Expr::FunctionCall {
+                    name: "arg".to_string(),
+                    args: vec![Expr::Literal(Literal::U32(0))],
+                },
+            }],
+        }],
+        entry_point: "main".to_string(),
+    };
+
+    // RED: This will fail until we implement position validation
+    let result = from_ast(&ast);
+    assert!(result.is_err(), "arg(0) should be rejected");
+
+    let error_msg = result.unwrap_err().to_string();
+    assert!(
+        error_msg.contains("position must be >= 1") || error_msg.contains("position") || error_msg.contains("1"),
+        "Error message should mention position requirement, got: {}",
+        error_msg
+    );
+}
