@@ -6,8 +6,8 @@
 //! - Bounds checking
 //! - Type preservation
 
-use crate::bash_parser::ast::*;
 use super::core::TestGenResult;
+use crate::bash_parser::ast::*;
 use std::collections::HashSet;
 
 pub struct PropertyTestGenerator {
@@ -152,14 +152,16 @@ impl PropertyTestGenerator {
         for stmt in body {
             match stmt {
                 BashStmt::Command { name, .. } => {
-                    if matches!(
-                        name.as_str(),
-                        "random" | "date" | "time" | "rand" | "uuid"
-                    ) {
+                    if matches!(name.as_str(), "random" | "date" | "time" | "rand" | "uuid") {
                         return true;
                     }
                 }
-                BashStmt::If { then_block, elif_blocks, else_block, .. } => {
+                BashStmt::If {
+                    then_block,
+                    elif_blocks,
+                    else_block,
+                    ..
+                } => {
                     if self.has_nondeterministic_operations(then_block) {
                         return true;
                     }
@@ -310,8 +312,14 @@ impl PropertyTest {
                     .map(|i| format!("arg{}", i))
                     .collect::<Vec<_>>()
                     .join(", ");
-                code.push_str(&format!("        let result1 = function_under_test({});\n", args));
-                code.push_str(&format!("        let result2 = function_under_test({});\n", args));
+                code.push_str(&format!(
+                    "        let result1 = function_under_test({});\n",
+                    args
+                ));
+                code.push_str(&format!(
+                    "        let result2 = function_under_test({});\n",
+                    args
+                ));
                 code.push_str("        prop_assert_eq!(result1, result2);\n");
             }
             Property::Idempotency => {
@@ -320,7 +328,10 @@ impl PropertyTest {
                     .map(|i| format!("arg{}", i))
                     .collect::<Vec<_>>()
                     .join(", ");
-                code.push_str(&format!("        let result1 = function_under_test({});\n", args));
+                code.push_str(&format!(
+                    "        let result1 = function_under_test({});\n",
+                    args
+                ));
                 code.push_str("        let result2 = function_under_test(&result1);\n");
                 code.push_str("        prop_assert_eq!(result1, result2);\n");
             }
@@ -341,7 +352,10 @@ impl PropertyTest {
                     .map(|i| format!("arg{}", i))
                     .collect::<Vec<_>>()
                     .join(", ");
-                code.push_str(&format!("        let result = function_under_test({});\n", args));
+                code.push_str(&format!(
+                    "        let result = function_under_test({});\n",
+                    args
+                ));
                 code.push_str(&format!("        prop_assert!(result >= {});\n", min));
                 code.push_str(&format!("        prop_assert!(result <= {});\n", max));
             }
@@ -351,17 +365,25 @@ impl PropertyTest {
                     .map(|i| format!("arg{}", i))
                     .collect::<Vec<_>>()
                     .join(", ");
-                code.push_str(&format!("        let result = function_under_test({});\n", args));
+                code.push_str(&format!(
+                    "        let result = function_under_test({});\n",
+                    args
+                ));
                 code.push_str("        // Verify result has expected type\n");
                 code.push_str("        prop_assert!(std::mem::size_of_val(&result) > 0);\n");
             }
             Property::NoSideEffects => {
-                code.push_str("        // Test no side effects: function doesn't modify external state\n");
+                code.push_str(
+                    "        // Test no side effects: function doesn't modify external state\n",
+                );
                 let args = (0..self.generators.len())
                     .map(|i| format!("arg{}", i))
                     .collect::<Vec<_>>()
                     .join(", ");
-                code.push_str(&format!("        let _result = function_under_test({});\n", args));
+                code.push_str(&format!(
+                    "        let _result = function_under_test({});\n",
+                    args
+                ));
                 code.push_str("        // Verify no side effects occurred\n");
             }
         }

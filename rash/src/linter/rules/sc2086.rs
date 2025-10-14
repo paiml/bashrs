@@ -55,7 +55,9 @@ pub fn check(source: &str) -> LintResult {
 
             // Column positions for the actual $VAR or ${VAR} (including $)
             // We need to go back one character from the capture to include the $
-            let dollar_pos = line[..var_match.start()].rfind('$').unwrap_or(var_match.start());
+            let dollar_pos = line[..var_match.start()]
+                .rfind('$')
+                .unwrap_or(var_match.start());
             let col = dollar_pos + 1; // 1-indexed
             let end_col = var_match.end() + 1; // 1-indexed (after last char)
 
@@ -94,7 +96,10 @@ pub fn check(source: &str) -> LintResult {
             let diag = Diagnostic::new(
                 "SC2086",
                 Severity::Warning,
-                format!("Double quote to prevent globbing and word splitting on {}", var_text),
+                format!(
+                    "Double quote to prevent globbing and word splitting on {}",
+                    var_text
+                ),
                 span,
             )
             .with_fix(fix);
@@ -119,7 +124,11 @@ ls $FILES
 "#;
 
         let result = check(bash_code);
-        assert_eq!(result.diagnostics.len(), 1, "Should detect one unquoted variable");
+        assert_eq!(
+            result.diagnostics.len(),
+            1,
+            "Should detect one unquoted variable"
+        );
         assert_eq!(result.diagnostics[0].code, "SC2086");
         assert!(result.diagnostics[0].message.contains("Double quote"));
         assert!(result.diagnostics[0].message.contains("$FILES"));
@@ -132,7 +141,10 @@ ls $FILES
 
         assert_eq!(result.diagnostics.len(), 1);
         assert!(result.diagnostics[0].fix.is_some());
-        assert_eq!(result.diagnostics[0].fix.as_ref().unwrap().replacement, "\"$FILES\"");
+        assert_eq!(
+            result.diagnostics[0].fix.as_ref().unwrap().replacement,
+            "\"$FILES\""
+        );
     }
 
     #[test]
@@ -141,7 +153,11 @@ ls $FILES
         let result = check(bash_code);
 
         // Should NOT trigger SC2086 in arithmetic context
-        assert_eq!(result.diagnostics.len(), 0, "Should not trigger in arithmetic context");
+        assert_eq!(
+            result.diagnostics.len(),
+            0,
+            "Should not trigger in arithmetic context"
+        );
     }
 
     #[test]
@@ -152,7 +168,11 @@ cat $FILE1 $FILE2
 "#;
 
         let result = check(bash_code);
-        assert_eq!(result.diagnostics.len(), 3, "Should detect three unquoted variables");
+        assert_eq!(
+            result.diagnostics.len(),
+            3,
+            "Should detect three unquoted variables"
+        );
 
         let codes: Vec<&str> = result.diagnostics.iter().map(|d| d.code.as_str()).collect();
         assert_eq!(codes, vec!["SC2086", "SC2086", "SC2086"]);
@@ -175,7 +195,11 @@ echo $ACTUAL
 "#;
 
         let result = check(bash_code);
-        assert_eq!(result.diagnostics.len(), 1, "Should only detect variable in echo, not comment");
+        assert_eq!(
+            result.diagnostics.len(),
+            1,
+            "Should only detect variable in echo, not comment"
+        );
         assert!(result.diagnostics[0].message.contains("$ACTUAL"));
     }
 
@@ -185,7 +209,11 @@ echo $ACTUAL
         let result = check(bash_code);
 
         // Should NOT trigger - already quoted
-        assert_eq!(result.diagnostics.len(), 0, "Should not trigger on already-quoted variables");
+        assert_eq!(
+            result.diagnostics.len(),
+            0,
+            "Should not trigger on already-quoted variables"
+        );
     }
 
     #[test]
@@ -197,7 +225,11 @@ echo "$VAR3"
 "#;
 
         let result = check(bash_code);
-        assert_eq!(result.diagnostics.len(), 1, "Should only detect unquoted $VAR2");
+        assert_eq!(
+            result.diagnostics.len(),
+            1,
+            "Should only detect unquoted $VAR2"
+        );
         assert!(result.diagnostics[0].message.contains("$VAR2"));
     }
 

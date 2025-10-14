@@ -163,7 +163,9 @@ fn echo(msg: &str) {
 
     // Should still call the echo function
     assert!(
-        result.contains("echo ") || result.contains("echo \"$msg\"") || result.contains("echo test"),
+        result.contains("echo ")
+            || result.contains("echo \"$msg\"")
+            || result.contains("echo test"),
         "Should call the echo function"
     );
 }

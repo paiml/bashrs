@@ -13,7 +13,8 @@ pub fn check(source: &str) -> LintResult {
     let mut result = LintResult::new();
 
     // Pattern: $(echo SOMETHING) where SOMETHING doesn't need echo
-    let pattern = Regex::new(r#"\$\(\s*echo\s+(?P<flags>-[a-z]+\s+)?(?P<content>[^)]+)\)"#).unwrap();
+    let pattern =
+        Regex::new(r#"\$\(\s*echo\s+(?P<flags>-[a-z]+\s+)?(?P<content>[^)]+)\)"#).unwrap();
 
     for (line_num, line) in source.lines().enumerate() {
         let line_num = line_num + 1;
@@ -75,7 +76,10 @@ mod tests {
         let result = check(bash_code);
 
         assert!(result.diagnostics[0].fix.is_some());
-        assert_eq!(result.diagnostics[0].fix.as_ref().unwrap().replacement, "$var");
+        assert_eq!(
+            result.diagnostics[0].fix.as_ref().unwrap().replacement,
+            "$var"
+        );
     }
 
     #[test]
@@ -93,7 +97,10 @@ mod tests {
         let result = check(bash_code);
 
         assert_eq!(result.diagnostics.len(), 1);
-        assert_eq!(result.diagnostics[0].fix.as_ref().unwrap().replacement, "hello");
+        assert_eq!(
+            result.diagnostics[0].fix.as_ref().unwrap().replacement,
+            "hello"
+        );
     }
 
     #[test]

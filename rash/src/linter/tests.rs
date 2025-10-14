@@ -14,7 +14,11 @@ echo "$FILES"
 "#;
 
         let result = lint_shell(safe_script);
-        assert_eq!(result.diagnostics.len(), 0, "Safe script should have no diagnostics");
+        assert_eq!(
+            result.diagnostics.len(),
+            0,
+            "Safe script should have no diagnostics"
+        );
     }
 
     #[test]
@@ -27,7 +31,10 @@ result=$(echo $FILES)
 "#;
 
         let result = lint_shell(unsafe_script);
-        assert!(result.diagnostics.len() > 0, "Unsafe script should have diagnostics");
+        assert!(
+            result.diagnostics.len() > 0,
+            "Unsafe script should have diagnostics"
+        );
 
         // Should detect SC2086 (unquoted variables)
         assert!(result.diagnostics.iter().any(|d| d.code == "SC2086"));
