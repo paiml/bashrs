@@ -1150,3 +1150,135 @@ fn test_exit_code_in_concatenation() {
         output
     );
 }
+
+// ============= Sprint 28: Complete Missing Stdlib Functions - RED PHASE =============
+
+/// RED TEST: string_split() should be in runtime
+/// Tests that string_split generates shell function
+#[test]
+fn test_string_split_in_runtime() {
+    use crate::models::Config;
+
+    // Simple IR that will trigger runtime generation
+    let ir = crate::ir::shell_ir::ShellIR::Noop;
+
+    let config = Config::default();
+    let output = super::emit(&ir, &config).unwrap();
+
+    // RED: Will fail until write_string_split_function() is implemented
+    assert!(
+        output.contains("rash_string_split()"),
+        "Runtime should include rash_string_split function, got: {}",
+        output
+    );
+}
+
+/// RED TEST: string_split() basic usage
+/// Tests that string_split splits correctly
+#[test]
+fn test_string_split_basic() {
+    use crate::models::Config;
+
+    let ir = crate::ir::shell_ir::ShellIR::Noop;
+
+    let config = Config::default();
+    let output = super::emit(&ir, &config).unwrap();
+
+    // RED: Check for basic implementation pattern
+    assert!(
+        output.contains("rash_string_split()"),
+        "Should have string_split function"
+    );
+
+    // Should use tr or similar for POSIX split
+    assert!(
+        output.contains("tr") || output.contains("sed"),
+        "string_split should use POSIX tools for splitting"
+    );
+}
+
+/// RED TEST: array_len() should be in runtime
+/// Tests that array_len generates shell function
+#[test]
+fn test_array_len_in_runtime() {
+    use crate::models::Config;
+
+    let ir = crate::ir::shell_ir::ShellIR::Noop;
+
+    let config = Config::default();
+    let output = super::emit(&ir, &config).unwrap();
+
+    // RED: Will fail until write_array_len_function() is implemented
+    assert!(
+        output.contains("rash_array_len()"),
+        "Runtime should include rash_array_len function, got: {}",
+        output
+    );
+}
+
+/// RED TEST: array_len() basic usage
+/// Tests that array_len counts correctly
+#[test]
+fn test_array_len_basic() {
+    use crate::models::Config;
+
+    let ir = crate::ir::shell_ir::ShellIR::Noop;
+
+    let config = Config::default();
+    let output = super::emit(&ir, &config).unwrap();
+
+    // RED: Check for basic implementation pattern
+    assert!(
+        output.contains("rash_array_len()"),
+        "Should have array_len function"
+    );
+
+    // Should use wc -l for counting lines
+    assert!(
+        output.contains("wc -l"),
+        "array_len should use wc -l for counting"
+    );
+}
+
+/// RED TEST: array_join() should be in runtime
+/// Tests that array_join generates shell function
+#[test]
+fn test_array_join_in_runtime() {
+    use crate::models::Config;
+
+    let ir = crate::ir::shell_ir::ShellIR::Noop;
+
+    let config = Config::default();
+    let output = super::emit(&ir, &config).unwrap();
+
+    // RED: Will fail until write_array_join_function() is implemented
+    assert!(
+        output.contains("rash_array_join()"),
+        "Runtime should include rash_array_join function, got: {}",
+        output
+    );
+}
+
+/// RED TEST: array_join() basic usage
+/// Tests that array_join joins correctly
+#[test]
+fn test_array_join_basic() {
+    use crate::models::Config;
+
+    let ir = crate::ir::shell_ir::ShellIR::Noop;
+
+    let config = Config::default();
+    let output = super::emit(&ir, &config).unwrap();
+
+    // RED: Check for basic implementation pattern
+    assert!(
+        output.contains("rash_array_join()"),
+        "Should have array_join function"
+    );
+
+    // Should use while loop or similar for joining
+    assert!(
+        output.contains("while") || output.contains("for"),
+        "array_join should use while/for loop for joining"
+    );
+}
