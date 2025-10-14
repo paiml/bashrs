@@ -191,6 +191,34 @@ mod tests {
             "env_var_or() should be recognized as stdlib function"
         );
     }
+
+    // Sprint 27b: Command-Line Arguments Support - RED PHASE
+    #[test]
+    fn test_stdlib_arg_function_recognized() {
+        // RED: This test will fail until we add "arg" to is_stdlib_function()
+        assert!(
+            is_stdlib_function("arg"),
+            "arg() should be recognized as stdlib function"
+        );
+    }
+
+    #[test]
+    fn test_stdlib_args_function_recognized() {
+        // RED: This test will fail until we add "args" to is_stdlib_function()
+        assert!(
+            is_stdlib_function("args"),
+            "args() should be recognized as stdlib function"
+        );
+    }
+
+    #[test]
+    fn test_stdlib_arg_count_function_recognized() {
+        // RED: This test will fail until we add "arg_count" to is_stdlib_function()
+        assert!(
+            is_stdlib_function("arg_count"),
+            "arg_count() should be recognized as stdlib function"
+        );
+    }
 }
 
 // Sprint 27a: Security Tests - RED PHASE

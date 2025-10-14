@@ -850,3 +850,173 @@ fn test_env_complex_default_value() {
         output
     );
 }
+
+// ============= Sprint 27b: Command-Line Arguments Support - RED PHASE =============
+
+/// RED TEST: arg(1) should emit "$1" syntax
+/// Tests that ShellValue::Arg { position: Some(1) } generates "$1" in shell
+#[test]
+fn test_arg_emits_positional_syntax() {
+    use crate::models::Config;
+
+    let ir = crate::ir::shell_ir::ShellIR::Let {
+        name: "first".to_string(),
+        value: ShellValue::Arg { position: Some(1) },
+        effects: crate::ir::effects::EffectSet::pure(),
+    };
+
+    let config = Config::default();
+    let output = super::emit(&ir, &config).unwrap();
+
+    // RED: This will fail until we implement Arg emission
+    assert!(
+        output.contains("\"$1\""),
+        "arg(1) should emit $1 with quotes, got: {}",
+        output
+    );
+    assert!(
+        output.contains("first=\"$1\""),
+        "Should assign quoted positional arg to variable, got: {}",
+        output
+    );
+}
+
+/// RED TEST: args() should emit "$@" syntax
+/// Tests that ShellValue::Arg { position: None } generates "$@" in shell
+#[test]
+fn test_args_emits_all_args_syntax() {
+    use crate::models::Config;
+
+    let ir = crate::ir::shell_ir::ShellIR::Let {
+        name: "all".to_string(),
+        value: ShellValue::Arg { position: None },
+        effects: crate::ir::effects::EffectSet::pure(),
+    };
+
+    let config = Config::default();
+    let output = super::emit(&ir, &config).unwrap();
+
+    // RED: This will fail until we implement args() emission
+    assert!(
+        output.contains("\"$@\""),
+        "args() should emit $@ with quotes, got: {}",
+        output
+    );
+    assert!(
+        output.contains("all=\"$@\""),
+        "Should assign quoted all args to variable, got: {}",
+        output
+    );
+}
+
+/// RED TEST: arg_count() should emit "$#" syntax
+/// Tests that ShellValue::ArgCount generates "$#" in shell
+#[test]
+fn test_arg_count_emits_count_syntax() {
+    use crate::models::Config;
+
+    let ir = crate::ir::shell_ir::ShellIR::Let {
+        name: "count".to_string(),
+        value: ShellValue::ArgCount,
+        effects: crate::ir::effects::EffectSet::pure(),
+    };
+
+    let config = Config::default();
+    let output = super::emit(&ir, &config).unwrap();
+
+    // RED: This will fail until we implement ArgCount emission
+    assert!(
+        output.contains("\"$#\""),
+        "arg_count() should emit $# with quotes, got: {}",
+        output
+    );
+    assert!(
+        output.contains("count=\"$#\""),
+        "Should assign quoted arg count to variable, got: {}",
+        output
+    );
+}
+
+/// RED TEST: Arguments must be quoted for safety
+/// Tests that all argument accesses include proper quoting
+#[test]
+fn test_args_quoted_for_safety() {
+    use crate::models::Config;
+
+    let ir = crate::ir::shell_ir::ShellIR::Sequence(vec![
+        crate::ir::shell_ir::ShellIR::Let {
+            name: "x".to_string(),
+            value: ShellValue::Arg { position: Some(1) },
+            effects: crate::ir::effects::EffectSet::pure(),
+        },
+        crate::ir::shell_ir::ShellIR::Let {
+            name: "y".to_string(),
+            value: ShellValue::Arg { position: None },
+            effects: crate::ir::effects::EffectSet::pure(),
+        },
+    ]);
+
+    let config = Config::default();
+    let output = super::emit(&ir, &config).unwrap();
+
+    // RED: Must have quotes around $1 and $@ for safety
+    // Should NOT have unquoted versions like =$ 1 or =$1 (without quotes)
+    // The proper form is ="$1" and ="$@"
+
+    // Must have quoted versions
+    assert!(
+        output.contains("\"$1\""),
+        "Should have quoted $1: {}",
+        output
+    );
+    assert!(
+        output.contains("\"$@\""),
+        "Should have quoted $@: {}",
+        output
+    );
+}
+
+/// RED TEST: Multiple arg() calls in sequence
+/// Tests that multiple positional arguments can be accessed together
+#[test]
+fn test_multiple_args_in_sequence() {
+    use crate::models::Config;
+
+    let ir = crate::ir::shell_ir::ShellIR::Sequence(vec![
+        crate::ir::shell_ir::ShellIR::Let {
+            name: "first".to_string(),
+            value: ShellValue::Arg { position: Some(1) },
+            effects: crate::ir::effects::EffectSet::pure(),
+        },
+        crate::ir::shell_ir::ShellIR::Let {
+            name: "second".to_string(),
+            value: ShellValue::Arg { position: Some(2) },
+            effects: crate::ir::effects::EffectSet::pure(),
+        },
+        crate::ir::shell_ir::ShellIR::Let {
+            name: "count".to_string(),
+            value: ShellValue::ArgCount,
+            effects: crate::ir::effects::EffectSet::pure(),
+        },
+    ]);
+
+    let config = Config::default();
+    let output = super::emit(&ir, &config).unwrap();
+
+    // RED: All three should be emitted correctly
+    assert!(
+        output.contains("first=\"$1\""),
+        "Should contain first=$1, got: {}",
+        output
+    );
+    assert!(
+        output.contains("second=\"$2\""),
+        "Should contain second=$2, got: {}",
+        output
+    );
+    assert!(
+        output.contains("count=\"$#\""),
+        "Should contain count=$#, got: {}",
+        output
+    );
+}

@@ -688,6 +688,11 @@ impl PosixEmitter {
                 let operand_str = self.emit_shell_value(operand)?;
                 Ok(format!("! {operand_str}"))
             }
+            // Sprint 27b: Command-line argument access (RED PHASE STUB)
+            ShellValue::Arg { .. } | ShellValue::ArgCount => {
+                // RED: Stub implementation - tests should fail
+                panic!("Sprint 27b RED: Arg/ArgCount not yet implemented in emit_shell_value")
+            }
         }
     }
 
@@ -821,6 +826,11 @@ impl PosixEmitter {
                 return Err(crate::models::Error::IrGeneration(
                     "Logical expression cannot be used in string concatenation".to_string(),
                 ));
+            }
+            // Sprint 27b: Command-line argument access in concatenation (RED PHASE STUB)
+            ShellValue::Arg { .. } | ShellValue::ArgCount => {
+                // RED: Stub implementation - tests should fail
+                panic!("Sprint 27b RED: Arg/ArgCount not yet implemented in append_concat_part")
             }
         }
         Ok(())
