@@ -756,38 +756,89 @@ fn test_ir_converter_printf_command_effect() {
 /// MUTATION KILLER: Line 523 - Replace && with || in is_string_value
 /// Kills mutant: "replace && with || in is_string_value condition"
 /// Tests that is_string_value correctly uses && logic (both parse failures required)
+///
+/// The mutant changes line 523 from:
+///   s.parse::<i64>().is_err() && s.parse::<f64>().is_err()
+/// to:
+///   s.parse::<i64>().is_err() || s.parse::<f64>().is_err()
+///
+/// This would cause numeric strings like "123" to be treated as strings,
+/// resulting in string comparison (=) instead of numeric comparison (-eq)
 #[test]
 fn test_is_string_value_requires_both_parse_failures() {
-    // Test that "123" is NOT a string value (parses as i64)
-    let _numeric_value = ShellValue::String("123".to_string());
-    // This should be false because "123" parses successfully as i64
-    // The correct && logic: parse::<i64>().is_err() && parse::<f64>().is_err()
-    // For "123": is_err()=false && is_err()=false = false (not a string)
-    // If mutated to ||: is_err()=false || is_err()=false = false (would still work)
-
-    // Test that "123.45" is NOT a string value (parses as f64)
-    let _float_value = ShellValue::String("123.45".to_string());
-    // For "123.45": is_err()=true && is_err()=false = false (not a string)
-    // If mutated to ||: is_err()=true || is_err()=false = true (WRONG - would think it's a string!)
-
-    // Test conversion to verify is_string_value is used correctly
-    let ast_with_float = RestrictedAst {
+    // Test that integer comparison uses numeric operators, not string operators
+    // "123" == "124" should use NumEq, not StrEq
+    let ast = RestrictedAst {
         functions: vec![Function {
             name: "main".to_string(),
             params: vec![],
             return_type: Type::Str,
             body: vec![Stmt::Let {
-                name: "x".to_string(),
-                value: Expr::Literal(Literal::Str("123.45".to_string())),
+                name: "result".to_string(),
+                value: Expr::Binary {
+                    op: BinaryOp::Eq,
+                    left: Box::new(Expr::Literal(Literal::Str("123".to_string()))),
+                    right: Box::new(Expr::Literal(Literal::Str("124".to_string()))),
+                },
             }],
         }],
         entry_point: "main".to_string(),
     };
 
-    // This should convert successfully with correct && logic
-    let ir = from_ast(&ast_with_float);
-    assert!(
-        ir.is_ok(),
-        "Float string literal should convert correctly with && logic in is_string_value"
-    );
+    let _ir = from_ast(&ast).unwrap();
+
+    // With correct && logic: "123" and "124" parse as i64, so NOT strings -> NumEq
+    // With mutated || logic: "123".parse::<f64>().is_err() = false, so || = false -> NumEq (would still work)
+    // BUT: Let's test with a float string "123.5" which DOES expose the bug
+
+    let ast_float = RestrictedAst {
+        functions: vec![Function {
+            name: "main".to_string(),
+            params: vec![],
+            return_type: Type::Str,
+            body: vec![Stmt::Let {
+                name: "result".to_string(),
+                value: Expr::Binary {
+                    op: BinaryOp::Eq,
+                    left: Box::new(Expr::Literal(Literal::Str("123.5".to_string()))),
+                    right: Box::new(Expr::Literal(Literal::Str("124.5".to_string()))),
+                },
+            }],
+        }],
+        entry_point: "main".to_string(),
+    };
+
+    let ir_float = from_ast(&ast_float).unwrap();
+
+    // With correct && logic:
+    // "123.5".parse::<i64>().is_err() = true && "123.5".parse::<f64>().is_err() = false
+    // = false (NOT a string, should use NumEq)
+    //
+    // With mutated || logic:
+    // "123.5".parse::<i64>().is_err() = true || "123.5".parse::<f64>().is_err() = false
+    // = true (WRONG! would think it's a string, use StrEq)
+
+    // Check that float strings use NumEq (numeric comparison), not StrEq
+    match ir_float {
+        ShellIR::Sequence(stmts) => {
+            match &stmts[0] {
+                ShellIR::Let { value, .. } => {
+                    match value {
+                        ShellValue::Comparison { op, .. } => {
+                            // CRITICAL: Must be NumEq, not StrEq
+                            // If mutant survives (|| instead of &&), this would be StrEq
+                            assert!(
+                                matches!(op, crate::ir::shell_ir::ComparisonOp::NumEq),
+                                "Float strings like '123.5' should use NumEq, not StrEq. \
+                                If this fails, is_string_value is using || instead of &&"
+                            );
+                        }
+                        other => panic!("Expected Comparison, got {:?}", other),
+                    }
+                }
+                _ => panic!("Expected Let"),
+            }
+        }
+        _ => panic!("Expected Sequence"),
+    }
 }
