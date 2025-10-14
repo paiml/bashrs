@@ -170,3 +170,84 @@ mod tests {
         assert!(is_stdlib_function("env_var_or"), "env_var_or() should be recognized as stdlib function");
     }
 }
+
+// Sprint 27a: Security Tests - RED PHASE
+
+/// RED TEST: Invalid variable names should be rejected
+/// Tests that env() rejects variable names with invalid characters
+#[test]
+fn test_env_rejects_invalid_var_names() {
+    // Valid var names: alphanumeric + underscore only
+    assert!(is_valid_var_name("HOME"));
+    assert!(is_valid_var_name("MY_VAR"));
+    assert!(is_valid_var_name("VAR123"));
+    assert!(is_valid_var_name("_PRIVATE"));
+
+    // Invalid var names (injection attempts)
+    assert!(!is_valid_var_name("'; rm -rf /; #"));
+    assert!(!is_valid_var_name("VAR; echo hack"));
+    assert!(!is_valid_var_name("$(whoami)"));
+    assert!(!is_valid_var_name("VAR`id`"));
+    assert!(!is_valid_var_name("VAR$OTHER"));
+    assert!(!is_valid_var_name("VAR-NAME")); // Dash not allowed
+    assert!(!is_valid_var_name("VAR.NAME")); // Dot not allowed
+}
+
+/// RED TEST: Default values must be properly escaped
+/// Tests that env_var_or() safely handles special characters in defaults
+#[test]
+fn test_env_var_or_escapes_default() {
+    // These should be safely handled (no injection)
+    let safe_defaults = vec![
+        "/usr/local",
+        "hello world",
+        "/path/to/file",
+        "value-with-dash",
+    ];
+
+    for default in safe_defaults {
+        // RED: This will fail until we implement escaping
+        assert!(
+            is_safe_default_value(default),
+            "Default '{}' should be considered safe",
+            default
+        );
+    }
+
+    // These are dangerous and should either be escaped or rejected
+    let dangerous_defaults = vec![
+        "\"; rm -rf /; echo \"",
+        "value`whoami`",
+        "value$(id)",
+        "value;ls",
+    ];
+
+    for default in dangerous_defaults {
+        // RED: This will fail until we implement injection detection
+        assert!(
+            !contains_injection_attempt(default),
+            "Default '{}' contains injection attempt and must be escaped",
+            default
+        );
+    }
+}
+
+// Helper functions that need to be implemented in GREEN phase
+fn is_valid_var_name(name: &str) -> bool {
+    // RED: Stub - will implement in GREEN phase
+    name.chars()
+        .all(|c| c.is_ascii_alphanumeric() || c == '_')
+}
+
+fn is_safe_default_value(_value: &str) -> bool {
+    // RED: Stub - will implement in GREEN phase
+    true // Placeholder
+}
+
+fn contains_injection_attempt(value: &str) -> bool {
+    // RED: Stub - will implement in GREEN phase
+    value.contains(';')
+        || value.contains('`')
+        || value.contains("$(")
+        || value.contains("${")
+}

@@ -706,3 +706,146 @@ fn test_indentation_consistency() {
         );
     }
 }
+
+// ============= Sprint 27a: Environment Variables Support - RED PHASE =============
+
+/// RED TEST: env() should emit ${VAR} syntax
+/// Tests that ShellValue::EnvVar without default generates "${VAR}" in shell
+#[test]
+fn test_env_emits_dollar_brace_syntax() {
+    use crate::models::Config;
+    
+    let ir = crate::ir::shell_ir::ShellIR::Let {
+        name: "home".to_string(),
+        value: ShellValue::EnvVar {
+            name: "HOME".to_string(),
+            default: None,
+        },
+        effects: crate::ir::effects::EffectSet::pure(),
+    };
+
+    let config = Config::default();
+    let output = super::emit(&ir, &config).unwrap();
+
+    // RED: This will fail until we implement EnvVar emission
+    assert!(
+        output.contains("\"${HOME}\""),
+        "env() should emit ${{VAR}} with quotes, got: {}",
+        output
+    );
+    assert!(
+        output.contains("home=\"${HOME}\""),
+        "Should assign quoted env var to variable, got: {}",
+        output
+    );
+}
+
+/// RED TEST: env_var_or() should emit ${VAR:-default} syntax
+/// Tests that ShellValue::EnvVar with default generates "${VAR:-default}"
+#[test]
+fn test_env_var_or_emits_with_default() {
+    use crate::models::Config;
+    
+    let ir = crate::ir::shell_ir::ShellIR::Let {
+        name: "prefix".to_string(),
+        value: ShellValue::EnvVar {
+            name: "PREFIX".to_string(),
+            default: Some("/usr/local".to_string()),
+        },
+        effects: crate::ir::effects::EffectSet::pure(),
+    };
+
+    let config = Config::default();
+    let output = super::emit(&ir, &config).unwrap();
+
+    // RED: This will fail until we implement EnvVar with default emission
+    assert!(
+        output.contains("\"${PREFIX:-/usr/local}\""),
+        "env_var_or() should emit ${{VAR:-default}} with quotes, got: {}",
+        output
+    );
+    assert!(
+        output.contains("prefix=\"${PREFIX:-/usr/local}\""),
+        "Should assign quoted env var with default, got: {}",
+        output
+    );
+}
+
+/// RED TEST: Environment variables must be quoted for safety
+/// Tests that all env var expansions include proper quoting
+#[test]
+fn test_env_var_quoted_for_safety() {
+    use crate::models::Config;
+    
+    let ir = crate::ir::shell_ir::ShellIR::Sequence(vec![
+        crate::ir::shell_ir::ShellIR::Let {
+            name: "user".to_string(),
+            value: ShellValue::EnvVar {
+                name: "USER".to_string(),
+                default: None,
+            },
+            effects: crate::ir::effects::EffectSet::pure(),
+        },
+        crate::ir::shell_ir::ShellIR::Let {
+            name: "home".to_string(),
+            value: ShellValue::EnvVar {
+                name: "HOME".to_string(),
+                default: Some("/tmp".to_string()),
+            },
+            effects: crate::ir::effects::EffectSet::pure(),
+        },
+    ]);
+
+    let config = Config::default();
+    let output = super::emit(&ir, &config).unwrap();
+
+    // RED: Must have quotes around ${{VAR}} for safety
+    assert!(
+        !output.contains("=$USER") && !output.contains("= $USER"),
+        "Env vars must be quoted, found unquoted $USER: {}",
+        output
+    );
+    assert!(
+        !output.contains("=$HOME:"),
+        "Env vars with defaults must be quoted, found unquoted $HOME:-...: {}",
+        output
+    );
+
+    // Should have quoted versions
+    assert!(
+        output.contains("\"${{USER}}\"") || output.contains("\"$USER\""),
+        "Should have quoted $USER: {}",
+        output
+    );
+    assert!(
+        output.contains("\"${{HOME:-/tmp}}\"") || output.contains("\"$HOME:-/tmp\""),
+        "Should have quoted $HOME:-/tmp: {}",
+        output
+    );
+}
+
+/// RED TEST: Complex default values must be properly escaped
+/// Tests that default values with special characters are handled safely
+#[test]
+fn test_env_complex_default_value() {
+    use crate::models::Config;
+    
+    let ir = crate::ir::shell_ir::ShellIR::Let {
+        name: "message".to_string(),
+        value: ShellValue::EnvVar {
+            name: "MESSAGE".to_string(),
+            default: Some("hello world".to_string()), // Space in default
+        },
+        effects: crate::ir::effects::EffectSet::pure(),
+    };
+
+    let config = Config::default();
+    let output = super::emit(&ir, &config).unwrap();
+
+    // RED: Default values with spaces must work correctly
+    assert!(
+        output.contains("${{MESSAGE:-hello world}}") || output.contains("${{MESSAGE:-\"hello world\"}}"),
+        "Should handle default with spaces, got: {}",
+        output
+    );
+}
