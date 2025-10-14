@@ -210,11 +210,11 @@ cargo mutants --no-shuffle --timeout 180 --jobs 2 \
 
 ## Current Metrics
 
-### Baseline Progress
-- **AST:** 🔄 Testing mutants (0/66 complete)
-- **Emitter:** ⏳ Queued
-- **Bash Parser:** ⏳ Queued
-- **Overall:** ~0% complete
+### Baseline Progress (Updated 17:39 UTC)
+- **AST:** 🔄 Testing mutants (5/66 complete, **5 MISSED** found)
+- **Emitter:** ⏳ Queued (waiting for lock)
+- **Bash Parser:** ⏳ Queued (waiting for lock)
+- **Overall:** ~8% complete (5 of ~66 AST mutants tested)
 
 ### Test Suite Status
 - **Total Tests:** 857
@@ -330,6 +330,20 @@ cargo mutants --no-shuffle --timeout 180 --jobs 2 \
 **Lesson:** The POSIX emitter is the most complex module requiring extensive testing.
 
 **Impact:** Expect significant analysis work in Phase 2 for emitter surviving mutants.
+
+### 4. Early AST Findings - Validation Functions Weak
+**Discovery:** First 5 mutants tested in AST module were ALL MISSED:
+- `Type::is_allowed` → replaced with `true` (not caught)
+- `Type::is_allowed` → replaced `&&` with `||` (not caught)
+- `Stmt::validate_if_stmt` → replaced with `Ok(())` (not caught)
+- `Stmt::validate_match_stmt` → replaced with `Ok(())` (not caught)
+- `Stmt::validate_stmt_block` → replaced with `Ok(())` (not caught)
+
+**Pattern:** All surviving mutants are in validation/safety functions in `rash/src/ast/restricted.rs`.
+
+**Lesson:** Validation functions lack direct tests verifying they reject invalid inputs.
+
+**Impact:** Phase 2 will need targeted tests for restriction enforcement (Five Whys analysis required).
 
 ---
 
