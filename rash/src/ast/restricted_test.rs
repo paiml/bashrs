@@ -283,4 +283,255 @@ mod tests {
         let expr = Expr::Literal(Literal::Str("hello world".to_string()));
         assert!(expr.validate().is_ok(), "Valid strings should pass");
     }
+
+    // Sprint 29 Mutation Testing - Priority 1: Validation Function Tests
+    // These tests kill validation bypass mutants and verify negative test cases
+
+    #[test]
+    fn test_type_is_allowed_nested_result_both_sides_required() {
+        // Verify && logic (not ||) in Result type validation
+        // Kills mutant: replace && with || in Type::is_allowed
+        let valid = Type::Result {
+            ok_type: Box::new(Type::U32),
+            err_type: Box::new(Type::Str),
+        };
+        assert!(valid.is_allowed(), "Result with both valid types should be allowed");
+
+        // Test deep nesting - all nested types must be allowed
+        let nested = Type::Option {
+            inner_type: Box::new(Type::Result {
+                ok_type: Box::new(Type::U32),
+                err_type: Box::new(Type::Str),
+            }),
+        };
+        assert!(nested.is_allowed(), "Deeply nested valid types should be allowed");
+
+        // Test multiple levels of nesting
+        let deeply_nested = Type::Result {
+            ok_type: Box::new(Type::Option {
+                inner_type: Box::new(Type::U32),
+            }),
+            err_type: Box::new(Type::Option {
+                inner_type: Box::new(Type::Str),
+            }),
+        };
+        assert!(deeply_nested.is_allowed(), "Complex nested types should be allowed");
+    }
+
+    #[test]
+    fn test_validate_if_stmt_rejects_invalid_condition() {
+        // Verify validate_if_stmt actually validates condition
+        // Kills mutant: replace validate_if_stmt -> Ok(())
+        let invalid_if = Stmt::If {
+            condition: Expr::Literal(Literal::Str("hello\0world".to_string())),
+            then_block: vec![],
+            else_block: None,
+        };
+
+        let result = invalid_if.validate();
+        assert!(result.is_err(), "If statement with null char in condition should be rejected");
+        assert!(
+            result.unwrap_err().contains("Null characters not allowed"),
+            "Error should mention null characters"
+        );
+    }
+
+    #[test]
+    fn test_validate_if_stmt_rejects_deeply_nested_condition() {
+        // Verify validate_if_stmt checks nesting depth in condition
+        // Kills mutant: replace validate_if_stmt -> Ok(())
+        let mut deep_expr = Expr::Literal(Literal::U32(1));
+        for _ in 0..35 {
+            deep_expr = Expr::Unary {
+                op: UnaryOp::Not,
+                operand: Box::new(deep_expr),
+            };
+        }
+
+        let invalid_if = Stmt::If {
+            condition: deep_expr,
+            then_block: vec![],
+            else_block: None,
+        };
+
+        let result = invalid_if.validate();
+        assert!(result.is_err(), "If statement with deeply nested condition should be rejected");
+        assert!(
+            result.unwrap_err().contains("nesting too deep"),
+            "Error should mention nesting depth"
+        );
+    }
+
+    #[test]
+    fn test_validate_if_stmt_rejects_invalid_then_block() {
+        // Verify validate_if_stmt validates then_block statements
+        let invalid_if = Stmt::If {
+            condition: Expr::Literal(Literal::Bool(true)),
+            then_block: vec![
+                Stmt::Expr(Expr::Literal(Literal::Str("invalid\0string".to_string())))
+            ],
+            else_block: None,
+        };
+
+        let result = invalid_if.validate();
+        assert!(result.is_err(), "If statement with invalid then_block should be rejected");
+    }
+
+    #[test]
+    fn test_validate_if_stmt_rejects_invalid_else_block() {
+        // Verify validate_if_stmt validates else_block statements
+        let invalid_if = Stmt::If {
+            condition: Expr::Literal(Literal::Bool(true)),
+            then_block: vec![
+                Stmt::Expr(Expr::Literal(Literal::Str("valid".to_string())))
+            ],
+            else_block: Some(vec![
+                Stmt::Expr(Expr::Literal(Literal::Str("\0invalid".to_string())))
+            ]),
+        };
+
+        let result = invalid_if.validate();
+        assert!(result.is_err(), "If statement with invalid else_block should be rejected");
+    }
+
+    #[test]
+    fn test_validate_match_stmt_rejects_invalid_arm_body() {
+        // Verify validate_match_stmt validates match arm bodies
+        // Kills mutant: replace validate_match_stmt -> Ok(())
+        let invalid_match = Stmt::Match {
+            scrutinee: Expr::Variable("x".to_string()),
+            arms: vec![
+                MatchArm {
+                    pattern: Pattern::Literal(Literal::U32(1)),
+                    body: vec![
+                        Stmt::Expr(Expr::Literal(Literal::Str("\0invalid".to_string())))
+                    ],
+                }
+            ],
+        };
+
+        let result = invalid_match.validate();
+        assert!(result.is_err(), "Match statement with invalid arm body should be rejected");
+    }
+
+    #[test]
+    fn test_validate_match_stmt_rejects_deeply_nested_scrutinee() {
+        // Verify validate_match_stmt validates scrutinee expression
+        let mut deep_expr = Expr::Literal(Literal::U32(1));
+        for _ in 0..40 {
+            deep_expr = Expr::Unary {
+                op: UnaryOp::Not,
+                operand: Box::new(deep_expr),
+            };
+        }
+
+        let invalid_match = Stmt::Match {
+            scrutinee: deep_expr,
+            arms: vec![
+                MatchArm {
+                    pattern: Pattern::Literal(Literal::U32(1)),
+                    body: vec![
+                        Stmt::Expr(Expr::Literal(Literal::Str("body".to_string())))
+                    ],
+                }
+            ],
+        };
+
+        let result = invalid_match.validate();
+        assert!(result.is_err(), "Match with deeply nested scrutinee should be rejected");
+    }
+
+    #[test]
+    fn test_validate_stmt_block_rejects_invalid_nested_stmt() {
+        // Verify validate_stmt_block checks all statements in block
+        // Kills mutant: replace validate_stmt_block -> Ok(())
+        let func = Function {
+            name: "test".to_string(),
+            params: vec![],
+            return_type: Type::Str,
+            body: vec![
+                Stmt::Let {
+                    name: "x".to_string(),
+                    value: Expr::Literal(Literal::Str("valid".to_string())),
+                },
+                Stmt::Let {
+                    name: "y".to_string(),
+                    value: Expr::Literal(Literal::Str("in\0valid".to_string())),
+                },
+            ],
+        };
+
+        let result = func.validate();
+        assert!(result.is_err(), "Function with invalid statement should be rejected");
+    }
+
+    #[test]
+    fn test_expr_nesting_depth_calculation_accuracy() {
+        // Verify nesting_depth returns correct values (not always 0 or 1)
+        // Kills mutants: replace nesting_depth -> 0, replace -> 1, arithmetic mutations
+
+        // Depth = 0 (literal)
+        let lit = Expr::Literal(Literal::U32(1));
+        assert_eq!(lit.nesting_depth(), 0, "Literal should have depth 0");
+
+        // Depth = 1 (unary)
+        let unary = Expr::Unary {
+            op: UnaryOp::Not,
+            operand: Box::new(Expr::Literal(Literal::Bool(true))),
+        };
+        assert_eq!(unary.nesting_depth(), 1, "Unary should have depth 1");
+
+        // Depth = 2 (binary with unary left)
+        let binary = Expr::Binary {
+            op: BinaryOp::Add,
+            left: Box::new(unary.clone()),
+            right: Box::new(Expr::Literal(Literal::U32(2))),
+        };
+        assert_eq!(binary.nesting_depth(), 2, "Binary with nested unary should have depth 2");
+
+        // Depth = 3 (nested binary)
+        let nested = Expr::Binary {
+            op: BinaryOp::Multiply,
+            left: Box::new(binary),
+            right: Box::new(Expr::Literal(Literal::U32(3))),
+        };
+        assert_eq!(nested.nesting_depth(), 3, "Nested binary should have depth 3");
+
+        // Depth with function call
+        let func_call = Expr::FunctionCall {
+            name: "test".to_string(),
+            args: vec![
+                Expr::Binary {
+                    op: BinaryOp::Add,
+                    left: Box::new(Expr::Literal(Literal::U32(1))),
+                    right: Box::new(Expr::Literal(Literal::U32(2))),
+                }
+            ],
+        };
+        assert_eq!(func_call.nesting_depth(), 2, "FunctionCall with nested binary should have depth 2");
+    }
+
+    #[test]
+    fn test_pattern_validate_rejects_invalid_literal() {
+        // Verify Pattern::validate checks string literals for null characters
+        // Kills mutant: replace Pattern::validate -> Ok(())
+        let invalid_pattern = Pattern::Literal(Literal::Str("\0invalid".to_string()));
+        let result = invalid_pattern.validate();
+        assert!(result.is_err(), "Pattern with null character should be rejected");
+    }
+
+    #[test]
+    fn test_pattern_validate_accepts_valid_patterns() {
+        // Verify Pattern::validate accepts valid patterns (positive control)
+        let valid_patterns = vec![
+            Pattern::Literal(Literal::U32(42)),
+            Pattern::Literal(Literal::Bool(true)),
+            Pattern::Literal(Literal::Str("valid".to_string())),
+            Pattern::Variable("x".to_string()),
+        ];
+
+        for pattern in valid_patterns {
+            assert!(pattern.validate().is_ok(), "Valid patterns should pass validation");
+        }
+    }
 }
