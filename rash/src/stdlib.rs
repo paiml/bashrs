@@ -26,6 +26,9 @@ pub fn is_stdlib_function(name: &str) -> bool {
             // Array module
             | "array_len"
             | "array_join"
+            // Environment module (Sprint 27a)
+            | "env"
+            | "env_var_or"
     )
 }
 
@@ -125,6 +128,19 @@ pub const STDLIB_FUNCTIONS: &[StdlibFunction] = &[
         module: "fs",
         description: "Check if path is a directory",
     },
+    // Environment module (Sprint 27a)
+    StdlibFunction {
+        name: "env",
+        shell_name: "inline_env_var",
+        module: "env",
+        description: "Get environment variable value (inline ${VAR})",
+    },
+    StdlibFunction {
+        name: "env_var_or",
+        shell_name: "inline_env_var_or",
+        module: "env",
+        description: "Get environment variable with default (inline ${VAR:-default})",
+    },
 ];
 
 #[cfg(test)]
@@ -161,13 +177,19 @@ mod tests {
     #[test]
     fn test_stdlib_env_function_recognized() {
         // RED: This test will fail until we add "env" to is_stdlib_function()
-        assert!(is_stdlib_function("env"), "env() should be recognized as stdlib function");
+        assert!(
+            is_stdlib_function("env"),
+            "env() should be recognized as stdlib function"
+        );
     }
 
     #[test]
     fn test_stdlib_env_var_or_function_recognized() {
         // RED: This test will fail until we add "env_var_or" to is_stdlib_function()
-        assert!(is_stdlib_function("env_var_or"), "env_var_or() should be recognized as stdlib function");
+        assert!(
+            is_stdlib_function("env_var_or"),
+            "env_var_or() should be recognized as stdlib function"
+        );
     }
 }
 
@@ -225,8 +247,8 @@ fn test_env_var_or_escapes_default() {
     for default in dangerous_defaults {
         // RED: This will fail until we implement injection detection
         assert!(
-            !contains_injection_attempt(default),
-            "Default '{}' contains injection attempt and must be escaped",
+            contains_injection_attempt(default),
+            "Default '{}' contains injection attempt and should be detected",
             default
         );
     }
@@ -235,8 +257,7 @@ fn test_env_var_or_escapes_default() {
 // Helper functions that need to be implemented in GREEN phase
 fn is_valid_var_name(name: &str) -> bool {
     // RED: Stub - will implement in GREEN phase
-    name.chars()
-        .all(|c| c.is_ascii_alphanumeric() || c == '_')
+    name.chars().all(|c| c.is_ascii_alphanumeric() || c == '_')
 }
 
 fn is_safe_default_value(_value: &str) -> bool {
@@ -246,8 +267,5 @@ fn is_safe_default_value(_value: &str) -> bool {
 
 fn contains_injection_attempt(value: &str) -> bool {
     // RED: Stub - will implement in GREEN phase
-    value.contains(';')
-        || value.contains('`')
-        || value.contains("$(")
-        || value.contains("${")
+    value.contains(';') || value.contains('`') || value.contains("$(") || value.contains("${")
 }

@@ -308,6 +308,51 @@ impl IrConverter {
             },
             Expr::Variable(name) => Ok(ShellValue::Variable(name.clone())),
             Expr::FunctionCall { name, args } => {
+                // Sprint 27a: Handle env() and env_var_or() specially
+                if name == "env" || name == "env_var_or" {
+                    // Extract variable name from first argument
+                    let var_name = match &args[0] {
+                        Expr::Literal(Literal::Str(s)) => s.clone(),
+                        _ => {
+                            return Err(crate::models::Error::Validation(format!(
+                                "{}() requires string literal for variable name",
+                                name
+                            )))
+                        }
+                    };
+
+                    // Validate var name (security)
+                    if !var_name
+                        .chars()
+                        .all(|c| c.is_ascii_alphanumeric() || c == '_')
+                    {
+                        return Err(crate::models::Error::Validation(format!(
+                            "Invalid environment variable name: '{}'",
+                            var_name
+                        )));
+                    }
+
+                    // Extract default value for env_var_or()
+                    let default = if name == "env_var_or" {
+                        match &args.get(1) {
+                            Some(Expr::Literal(Literal::Str(s))) => Some(s.clone()),
+                            _ => {
+                                return Err(crate::models::Error::Validation(
+                                    "env_var_or() requires string literal for default value"
+                                        .to_string(),
+                                ))
+                            }
+                        }
+                    } else {
+                        None
+                    };
+
+                    return Ok(ShellValue::EnvVar {
+                        name: var_name,
+                        default,
+                    });
+                }
+
                 // Function call used as value - capture output with command substitution
                 let mut cmd_args = Vec::new();
                 for arg in args {
@@ -524,6 +569,7 @@ fn is_string_value(value: &ShellValue) -> bool {
         }
         ShellValue::Bool(_) => false, // Bools are not strings for comparison
         ShellValue::Variable(_) => false, // Can't determine at compile time
+        ShellValue::EnvVar { .. } => false, // Can't determine at compile time
         ShellValue::Concat(_) => true, // String concatenation
         ShellValue::CommandSubst(_) => false, // Could be numeric
         ShellValue::Comparison { .. } => false,

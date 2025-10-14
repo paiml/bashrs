@@ -649,7 +649,9 @@ fn test_ir_converter_analyze_command_effects_used() {
             return_type: Type::Str,
             body: vec![Stmt::Expr(Expr::FunctionCall {
                 name: "curl".to_string(),
-                args: vec![Expr::Literal(Literal::Str("http://example.com".to_string()))],
+                args: vec![Expr::Literal(Literal::Str(
+                    "http://example.com".to_string(),
+                ))],
             })],
         }],
         entry_point: "main".to_string(),
@@ -660,21 +662,16 @@ fn test_ir_converter_analyze_command_effects_used() {
     // If the mutant survives (returns Default::default()), effects would be empty/pure
     // The correct implementation should return effects with NetworkAccess
     match ir {
-        ShellIR::Sequence(stmts) => {
-            match &stmts[0] {
-                ShellIR::Exec { effects, .. } => {
-                    assert!(
-                        effects.has_network_effects(),
-                        "curl command should have NetworkAccess effect via IR converter"
-                    );
-                    assert!(
-                        !effects.is_pure(),
-                        "curl command should not be pure"
-                    );
-                }
-                _ => panic!("Expected Exec statement for curl"),
+        ShellIR::Sequence(stmts) => match &stmts[0] {
+            ShellIR::Exec { effects, .. } => {
+                assert!(
+                    effects.has_network_effects(),
+                    "curl command should have NetworkAccess effect via IR converter"
+                );
+                assert!(!effects.is_pure(), "curl command should not be pure");
             }
-        }
+            _ => panic!("Expected Exec statement for curl"),
+        },
         _ => panic!("Expected Sequence"),
     }
 }
@@ -691,7 +688,9 @@ fn test_ir_converter_wget_command_effect() {
             return_type: Type::Str,
             body: vec![Stmt::Expr(Expr::FunctionCall {
                 name: "wget".to_string(),
-                args: vec![Expr::Literal(Literal::Str("http://example.com".to_string()))],
+                args: vec![Expr::Literal(Literal::Str(
+                    "http://example.com".to_string(),
+                ))],
             })],
         }],
         entry_point: "main".to_string(),
@@ -700,18 +699,16 @@ fn test_ir_converter_wget_command_effect() {
     let ir = from_ast(&ast).unwrap();
 
     match ir {
-        ShellIR::Sequence(stmts) => {
-            match &stmts[0] {
-                ShellIR::Exec { cmd, effects } => {
-                    assert_eq!(cmd.program, "wget");
-                    assert!(
-                        effects.has_network_effects(),
-                        "wget should have NetworkAccess effect through IR converter"
-                    );
-                }
-                _ => panic!("Expected Exec statement for wget"),
+        ShellIR::Sequence(stmts) => match &stmts[0] {
+            ShellIR::Exec { cmd, effects } => {
+                assert_eq!(cmd.program, "wget");
+                assert!(
+                    effects.has_network_effects(),
+                    "wget should have NetworkAccess effect through IR converter"
+                );
             }
-        }
+            _ => panic!("Expected Exec statement for wget"),
+        },
         _ => panic!("Expected Sequence"),
     }
 }
@@ -737,18 +734,16 @@ fn test_ir_converter_printf_command_effect() {
     let ir = from_ast(&ast).unwrap();
 
     match ir {
-        ShellIR::Sequence(stmts) => {
-            match &stmts[0] {
-                ShellIR::Exec { cmd, effects } => {
-                    assert_eq!(cmd.program, "printf");
-                    assert!(
-                        effects.has_filesystem_effects(),
-                        "printf should have FileWrite effect through IR converter"
-                    );
-                }
-                _ => panic!("Expected Exec statement for printf"),
+        ShellIR::Sequence(stmts) => match &stmts[0] {
+            ShellIR::Exec { cmd, effects } => {
+                assert_eq!(cmd.program, "printf");
+                assert!(
+                    effects.has_filesystem_effects(),
+                    "printf should have FileWrite effect through IR converter"
+                );
             }
-        }
+            _ => panic!("Expected Exec statement for printf"),
+        },
         _ => panic!("Expected Sequence"),
     }
 }

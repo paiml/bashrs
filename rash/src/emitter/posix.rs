@@ -662,6 +662,11 @@ impl PosixEmitter {
             ShellValue::String(s) => Ok(escape_shell_string(s)),
             ShellValue::Bool(b) => Ok(self.emit_bool_value(*b)),
             ShellValue::Variable(name) => Ok(format!("\"${}\"", escape_variable_name(name))),
+            // Sprint 27a: Environment variable expansion
+            ShellValue::EnvVar { name, default } => match default {
+                None => Ok(format!("\"${{{}}}\"", name)),
+                Some(def) => Ok(format!("\"${{{}:-{}}}\"", name, def)),
+            },
             ShellValue::Concat(parts) => self.emit_concatenation(parts),
             ShellValue::CommandSubst(cmd) => {
                 let cmd_str = self.emit_command(cmd)?;
@@ -783,6 +788,11 @@ impl PosixEmitter {
             ShellValue::Variable(name) => {
                 result.push_str(&format!("${{{}}}", escape_variable_name(name)));
             }
+            // Sprint 27a: Environment variable expansion in concatenation
+            ShellValue::EnvVar { name, default } => match default {
+                None => result.push_str(&format!("${{{}}}", name)),
+                Some(def) => result.push_str(&format!("${{{}:-{}}}", name, def)),
+            },
             ShellValue::CommandSubst(cmd) => {
                 let cmd_str = self.emit_command(cmd)?;
                 result.push_str(&format!("$({cmd_str})"));

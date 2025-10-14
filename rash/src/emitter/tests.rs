@@ -714,7 +714,7 @@ fn test_indentation_consistency() {
 #[test]
 fn test_env_emits_dollar_brace_syntax() {
     use crate::models::Config;
-    
+
     let ir = crate::ir::shell_ir::ShellIR::Let {
         name: "home".to_string(),
         value: ShellValue::EnvVar {
@@ -745,7 +745,7 @@ fn test_env_emits_dollar_brace_syntax() {
 #[test]
 fn test_env_var_or_emits_with_default() {
     use crate::models::Config;
-    
+
     let ir = crate::ir::shell_ir::ShellIR::Let {
         name: "prefix".to_string(),
         value: ShellValue::EnvVar {
@@ -776,7 +776,7 @@ fn test_env_var_or_emits_with_default() {
 #[test]
 fn test_env_var_quoted_for_safety() {
     use crate::models::Config;
-    
+
     let ir = crate::ir::shell_ir::ShellIR::Sequence(vec![
         crate::ir::shell_ir::ShellIR::Let {
             name: "user".to_string(),
@@ -813,12 +813,12 @@ fn test_env_var_quoted_for_safety() {
 
     // Should have quoted versions
     assert!(
-        output.contains("\"${{USER}}\"") || output.contains("\"$USER\""),
+        output.contains("\"${USER}\"") || output.contains("\"$USER\""),
         "Should have quoted $USER: {}",
         output
     );
     assert!(
-        output.contains("\"${{HOME:-/tmp}}\"") || output.contains("\"$HOME:-/tmp\""),
+        output.contains("\"${HOME:-/tmp}\"") || output.contains("\"$HOME:-/tmp\""),
         "Should have quoted $HOME:-/tmp: {}",
         output
     );
@@ -829,7 +829,7 @@ fn test_env_var_quoted_for_safety() {
 #[test]
 fn test_env_complex_default_value() {
     use crate::models::Config;
-    
+
     let ir = crate::ir::shell_ir::ShellIR::Let {
         name: "message".to_string(),
         value: ShellValue::EnvVar {
@@ -844,7 +844,8 @@ fn test_env_complex_default_value() {
 
     // RED: Default values with spaces must work correctly
     assert!(
-        output.contains("${{MESSAGE:-hello world}}") || output.contains("${{MESSAGE:-\"hello world\"}}"),
+        output.contains("${MESSAGE:-hello world}")
+            || output.contains("${MESSAGE:-\"hello world\"}"),
         "Should handle default with spaces, got: {}",
         output
     );

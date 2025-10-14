@@ -185,6 +185,13 @@ pub enum ShellValue {
 
     /// Logical NOT (!) operation
     LogicalNot { operand: Box<ShellValue> },
+
+    /// Environment variable expansion: ${VAR} or ${VAR:-default}
+    /// Sprint 27a: Environment Variables Support
+    EnvVar {
+        name: String,
+        default: Option<String>,
+    },
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -226,7 +233,9 @@ impl ShellValue {
     pub fn is_constant(&self) -> bool {
         match self {
             ShellValue::String(_) | ShellValue::Bool(_) => true,
-            ShellValue::Variable(_) | ShellValue::CommandSubst(_) => false,
+            ShellValue::Variable(_) | ShellValue::CommandSubst(_) | ShellValue::EnvVar { .. } => {
+                false
+            }
             ShellValue::Concat(parts) => parts.iter().all(|p| p.is_constant()),
             ShellValue::Comparison { left, right, .. }
             | ShellValue::Arithmetic { left, right, .. }
