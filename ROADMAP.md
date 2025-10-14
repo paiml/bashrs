@@ -407,22 +407,52 @@ quality_achievements:
     - "make mutants - Mutation testing ready"
     - "CI/CD coverage job (two-phase LLVM pattern)"
 
+current_sprint:
+  sprint_27a:
+    name: "Sprint 27a - Environment Variables Only"
+    status: "in_progress"
+    priority: "P1_HIGH"
+    duration: "2-3 hours"
+    progress: "16.7% (2/12 RED tests)"
+    philosophy: "自働化 (Jidoka) - Build quality in through EXTREME TDD"
+    parent_sprint: "Sprint 27 - Core Shell Features Enhancement"
+
+    scope:
+      focus: "Environment variable access only"
+      deferred:
+        - "Command-line arguments ($1, $2, $@) - Sprint 27b"
+        - "Exit code handling ($?) - Sprint 27c"
+        - "Subshell support - Sprint 27d"
+        - "Pipe operator support - Sprint 27e"
+
+    objectives:
+      - "Implement env(var_name) stdlib function"
+      - "Implement env_var_or(var_name, default) stdlib function"
+      - "Generate safe ${VAR} syntax in shell output"
+      - "Maintain 100% test pass rate"
+      - "Apply EXTREME TDD (RED-GREEN-REFACTOR)"
+
+    current_phase: "RED (Test Writing)"
+    tests_written: 2
+    tests_remaining: 10
+
+    specification: "docs/specifications/SPRINT_27A.md"
+    checkpoint: ".quality/sprint27a-checkpoint.md"
+
 next_priorities:
   option_1:
-    name: "Sprint 27: Core Shell Features Enhancement"
+    name: "Sprint 27b: Command-Line Arguments"
     priority: "P1_HIGH"
-    duration: "3-4 hours"
-    description: "Expand core shell feature support"
-    tasks:
-      - "Environment variable support ($HOME, $USER, $PATH)"
-      - "Command-line argument parsing ($1, $2, $@)"
-      - "Exit code handling ($?)"
-      - "Subshell support"
-      - "Pipe operator support"
-    benefits:
-      - "More realistic shell script generation"
-      - "Better CLI tool support"
-      - "Enhanced error handling"
+    duration: "2-3 hours"
+    description: "Implement $1, $2, $@ support"
+    depends_on: "Sprint 27a complete"
+
+  option_2:
+    name: "Sprint 27c: Exit Code Handling"
+    priority: "P1_HIGH"
+    duration: "1-2 hours"
+    description: "Implement $? support"
+    depends_on: "Sprint 27b complete"
 
   option_2:
     name: "Sprint 28: Standard Library Expansion"
