@@ -1,0 +1,7 @@
+# Seeds for failure cases proptest has generated in the past. It is
+# automatically read and these particular cases re-run before any
+# novel cases are generated.
+#
+# It is recommended to check this file in to source control so that
+# everyone who runs the test benefits from these saved cases.
+cc d3bb0f8c95bae6bf09d859260baddce5e58428096512cb2c9cf25dba096f33f6 # shrinks to script = BashAst { statements: [Function { name: "_", body: [Assignment { name: "FOO", value: Literal(""), exported: false, span: Span { start_line: 0, start_col: 0, end_line: 0, end_col: 0 } }], span: Span { start_line: 0, start_col: 0, end_line: 0, end_col: 0 } }, Function { name: "_", body: [Assignment { name: "FOO", value: Literal(""), exported: false, span: Span { start_line: 0, start_col: 0, end_line: 0, end_col: 0 } }], span: Span { start_line: 0, start_col: 0, end_line: 0, end_col: 0 } }], metadata: AstMetadata { source_file: None, line_count: 0, parse_time_ms: 0 } }

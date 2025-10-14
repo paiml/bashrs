@@ -14,6 +14,12 @@ use super::coverage::UncoveredPath;
 /// Generates unit tests for bash functions
 pub struct UnitTestGenerator;
 
+impl Default for UnitTestGenerator {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl UnitTestGenerator {
     pub fn new() -> Self {
         Self
@@ -24,12 +30,9 @@ impl UnitTestGenerator {
         let mut tests = Vec::new();
 
         for stmt in &ast.statements {
-            match stmt {
-                BashStmt::Function { name, body, .. } => {
-                    // Generate tests for this function
-                    tests.extend(self.generate_function_tests(name, body)?);
-                }
-                _ => {}
+            if let BashStmt::Function { name, body, .. } = stmt {
+                // Generate tests for this function
+                tests.extend(self.generate_function_tests(name, body)?);
             }
         }
 
@@ -272,13 +275,10 @@ impl UnitTestGenerator {
     /// Check if function body uses arithmetic operations
     fn uses_arithmetic(&self, body: &[BashStmt]) -> bool {
         for stmt in body {
-            match stmt {
-                BashStmt::Assignment { value, .. } => {
-                    if matches!(value, BashExpr::Arithmetic(_)) {
-                        return true;
-                    }
+            if let BashStmt::Assignment { value, .. } = stmt {
+                if matches!(value, BashExpr::Arithmetic(_)) {
+                    return true;
                 }
-                _ => {}
             }
         }
         false
@@ -296,7 +296,7 @@ pub struct UnitTest {
 impl UnitTest {
     /// Convert to Rust test code
     pub fn to_rust_code(&self) -> String {
-        let mut code = format!("#[test]\n");
+        let mut code = "#[test]\n".to_string();
 
         // Add #[should_panic] if needed
         for assertion in &self.assertions {
