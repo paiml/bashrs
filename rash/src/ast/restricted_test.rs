@@ -534,4 +534,326 @@ mod tests {
             assert!(pattern.validate().is_ok(), "Valid patterns should pass validation");
         }
     }
+
+    // Sprint 29 Mutation Testing - Priority 2: Match Arm Coverage Tests
+    // These tests kill match arm deletion mutants by exercising all variants
+
+    #[test]
+    fn test_expr_validate_all_variants_comprehensive() {
+        // Comprehensive test covering all Expr variants in validate()
+        // Kills: 6 match arm deletion mutants in Expr::validate (lines 383-403)
+
+        // Test all expression types validate successfully
+        let expressions = vec![
+            // Literal variants
+            Expr::Literal(Literal::U32(42)),
+            Expr::Literal(Literal::Bool(true)),
+            Expr::Literal(Literal::Str("valid string".to_string())),
+
+            // Variable
+            Expr::Variable("x".to_string()),
+
+            // FunctionCall with nested args
+            Expr::FunctionCall {
+                name: "test_func".to_string(),
+                args: vec![
+                    Expr::Literal(Literal::U32(1)),
+                    Expr::Variable("y".to_string()),
+                ],
+            },
+
+            // Binary with nested expressions
+            Expr::Binary {
+                op: BinaryOp::Add,
+                left: Box::new(Expr::Literal(Literal::U32(1))),
+                right: Box::new(Expr::Literal(Literal::U32(2))),
+            },
+
+            // Unary
+            Expr::Unary {
+                op: UnaryOp::Not,
+                operand: Box::new(Expr::Literal(Literal::Bool(true))),
+            },
+
+            // MethodCall with receiver and args
+            Expr::MethodCall {
+                receiver: Box::new(Expr::Variable("obj".to_string())),
+                method: "process".to_string(),
+                args: vec![Expr::Literal(Literal::U32(10))],
+            },
+
+            // Range (inclusive and exclusive)
+            Expr::Range {
+                start: Box::new(Expr::Literal(Literal::U32(1))),
+                end: Box::new(Expr::Literal(Literal::U32(10))),
+                inclusive: false,
+            },
+            Expr::Range {
+                start: Box::new(Expr::Literal(Literal::U32(1))),
+                end: Box::new(Expr::Literal(Literal::U32(10))),
+                inclusive: true,
+            },
+        ];
+
+        // All expressions should validate successfully
+        for (i, expr) in expressions.iter().enumerate() {
+            assert!(
+                expr.validate().is_ok(),
+                "Expression variant {} should validate successfully",
+                i
+            );
+        }
+
+        // Test nested combinations to ensure recursive validation
+        let complex = Expr::Binary {
+            op: BinaryOp::Multiply,
+            left: Box::new(Expr::FunctionCall {
+                name: "compute".to_string(),
+                args: vec![
+                    Expr::Unary {
+                        op: UnaryOp::Negate,
+                        operand: Box::new(Expr::Literal(Literal::U32(5))),
+                    }
+                ],
+            }),
+            right: Box::new(Expr::MethodCall {
+                receiver: Box::new(Expr::Variable("data".to_string())),
+                method: "len".to_string(),
+                args: vec![],
+            }),
+        };
+        assert!(complex.validate().is_ok(), "Complex nested expression should validate");
+    }
+
+    #[test]
+    fn test_expr_nesting_depth_all_variants_accurate() {
+        // Test that nesting_depth correctly calculates depth for all Expr variants
+        // Kills: 5 match arm deletion mutants in Expr::nesting_depth (lines 414-424)
+        // Kills: 9 arithmetic operator mutations (+ to - or *)
+
+        // Test Binary expression depth calculation
+        let binary_depth_2 = Expr::Binary {
+            op: BinaryOp::Add,
+            left: Box::new(Expr::Unary {
+                op: UnaryOp::Not,
+                operand: Box::new(Expr::Literal(Literal::Bool(true))),
+            }),
+            right: Box::new(Expr::Literal(Literal::U32(2))),
+        };
+        assert_eq!(
+            binary_depth_2.nesting_depth(),
+            2,
+            "Binary with unary left should have depth 2"
+        );
+
+        // Test Unary expression depth
+        let unary_depth_2 = Expr::Unary {
+            op: UnaryOp::Negate,
+            operand: Box::new(Expr::Unary {
+                op: UnaryOp::Not,
+                operand: Box::new(Expr::Literal(Literal::Bool(true))),
+            }),
+        };
+        assert_eq!(
+            unary_depth_2.nesting_depth(),
+            2,
+            "Nested unary should have depth 2"
+        );
+
+        // Test FunctionCall with nested args
+        let func_call_depth_2 = Expr::FunctionCall {
+            name: "test".to_string(),
+            args: vec![
+                Expr::Binary {
+                    op: BinaryOp::Multiply,
+                    left: Box::new(Expr::Literal(Literal::U32(3))),
+                    right: Box::new(Expr::Literal(Literal::U32(4))),
+                }
+            ],
+        };
+        assert_eq!(
+            func_call_depth_2.nesting_depth(),
+            2,
+            "FunctionCall with binary arg should have depth 2"
+        );
+
+        // Test MethodCall with nested receiver
+        let method_depth_3 = Expr::MethodCall {
+            receiver: Box::new(Expr::Binary {
+                op: BinaryOp::Add,
+                left: Box::new(Expr::Unary {
+                    op: UnaryOp::Not,
+                    operand: Box::new(Expr::Literal(Literal::Bool(false))),
+                }),
+                right: Box::new(Expr::Literal(Literal::U32(1))),
+            }),
+            method: "to_string".to_string(),
+            args: vec![],
+        };
+        assert!(
+            method_depth_3.nesting_depth() >= 2,
+            "MethodCall with nested receiver should have depth >= 2"
+        );
+
+        // Test MethodCall with nested args
+        let method_with_args = Expr::MethodCall {
+            receiver: Box::new(Expr::Variable("x".to_string())),
+            method: "process".to_string(),
+            args: vec![
+                Expr::Binary {
+                    op: BinaryOp::Add,
+                    left: Box::new(Expr::Literal(Literal::U32(1))),
+                    right: Box::new(Expr::Literal(Literal::U32(2))),
+                }
+            ],
+        };
+        assert!(
+            method_with_args.nesting_depth() >= 2,
+            "MethodCall with nested args should have depth >= 2"
+        );
+
+        // Test Range with nested start/end
+        let range_depth_2 = Expr::Range {
+            start: Box::new(Expr::Unary {
+                op: UnaryOp::Negate,
+                operand: Box::new(Expr::Literal(Literal::U32(1))),
+            }),
+            end: Box::new(Expr::Unary {
+                op: UnaryOp::Not,
+                operand: Box::new(Expr::Literal(Literal::Bool(true))),
+            }),
+            inclusive: true,
+        };
+        assert_eq!(
+            range_depth_2.nesting_depth(),
+            2,
+            "Range with unary start/end should have depth 2"
+        );
+
+        // Test that depth increases correctly with nesting
+        let deeply_nested = Expr::Binary {
+            op: BinaryOp::Add,
+            left: Box::new(Expr::Binary {
+                op: BinaryOp::Multiply,
+                left: Box::new(Expr::Binary {
+                    op: BinaryOp::Subtract,
+                    left: Box::new(Expr::Literal(Literal::U32(1))),
+                    right: Box::new(Expr::Literal(Literal::U32(2))),
+                }),
+                right: Box::new(Expr::Literal(Literal::U32(3))),
+            }),
+            right: Box::new(Expr::Literal(Literal::U32(4))),
+        };
+        assert_eq!(
+            deeply_nested.nesting_depth(),
+            3,
+            "Triple-nested binary should have depth 3"
+        );
+    }
+
+    #[test]
+    fn test_collect_function_calls_all_expr_types() {
+        // Test collect_function_calls covers all expression types
+        // Kills: 4 match arm deletion mutants in collect_function_calls (lines 437-467)
+
+        // Test Binary expression with function calls in both branches
+        let binary_with_calls = Expr::Binary {
+            op: BinaryOp::Add,
+            left: Box::new(Expr::FunctionCall {
+                name: "left_func".to_string(),
+                args: vec![],
+            }),
+            right: Box::new(Expr::FunctionCall {
+                name: "right_func".to_string(),
+                args: vec![],
+            }),
+        };
+        let mut calls = Vec::new();
+        binary_with_calls.collect_function_calls(&mut calls);
+        assert_eq!(calls.len(), 2, "Should find 2 function calls in binary");
+        assert!(calls.contains(&"left_func".to_string()), "Should find left_func");
+        assert!(calls.contains(&"right_func".to_string()), "Should find right_func");
+
+        // Test Unary expression with nested function call
+        let unary_with_call = Expr::Unary {
+            op: UnaryOp::Not,
+            operand: Box::new(Expr::FunctionCall {
+                name: "inner_func".to_string(),
+                args: vec![],
+            }),
+        };
+        let mut calls2 = Vec::new();
+        unary_with_call.collect_function_calls(&mut calls2);
+        assert_eq!(calls2.len(), 1, "Should find 1 function call in unary");
+        assert!(calls2.contains(&"inner_func".to_string()), "Should find inner_func");
+
+        // Test MethodCall with function calls in receiver and args
+        let method_with_calls = Expr::MethodCall {
+            receiver: Box::new(Expr::FunctionCall {
+                name: "receiver_func".to_string(),
+                args: vec![],
+            }),
+            method: "process".to_string(),
+            args: vec![
+                Expr::FunctionCall {
+                    name: "arg_func".to_string(),
+                    args: vec![],
+                }
+            ],
+        };
+        let mut calls3 = Vec::new();
+        method_with_calls.collect_function_calls(&mut calls3);
+        assert_eq!(calls3.len(), 2, "Should find 2 function calls in method call");
+        assert!(calls3.contains(&"receiver_func".to_string()), "Should find receiver_func");
+        assert!(calls3.contains(&"arg_func".to_string()), "Should find arg_func");
+
+        // Test Range with function calls in start and end
+        let range_with_calls = Expr::Range {
+            start: Box::new(Expr::FunctionCall {
+                name: "start_func".to_string(),
+                args: vec![],
+            }),
+            end: Box::new(Expr::FunctionCall {
+                name: "end_func".to_string(),
+                args: vec![],
+            }),
+            inclusive: false,
+        };
+        let mut calls4 = Vec::new();
+        range_with_calls.collect_function_calls(&mut calls4);
+        assert_eq!(calls4.len(), 2, "Should find 2 function calls in range");
+        assert!(calls4.contains(&"start_func".to_string()), "Should find start_func");
+        assert!(calls4.contains(&"end_func".to_string()), "Should find end_func");
+
+        // Test complex nested expression with multiple calls
+        let complex = Expr::Binary {
+            op: BinaryOp::Multiply,
+            left: Box::new(Expr::MethodCall {
+                receiver: Box::new(Expr::FunctionCall {
+                    name: "outer".to_string(),
+                    args: vec![],
+                }),
+                method: "map".to_string(),
+                args: vec![
+                    Expr::FunctionCall {
+                        name: "mapper".to_string(),
+                        args: vec![],
+                    }
+                ],
+            }),
+            right: Box::new(Expr::Unary {
+                op: UnaryOp::Not,
+                operand: Box::new(Expr::FunctionCall {
+                    name: "checker".to_string(),
+                    args: vec![],
+                }),
+            }),
+        };
+        let mut calls5 = Vec::new();
+        complex.collect_function_calls(&mut calls5);
+        assert_eq!(calls5.len(), 3, "Should find 3 function calls in complex expression");
+        assert!(calls5.contains(&"outer".to_string()), "Should find outer");
+        assert!(calls5.contains(&"mapper".to_string()), "Should find mapper");
+        assert!(calls5.contains(&"checker".to_string()), "Should find checker");
+    }
 }
