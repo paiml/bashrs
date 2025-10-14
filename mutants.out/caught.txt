@@ -1,2 +1,3 @@
-rash/src/linter/diagnostic.rs:39:9: replace <impl fmt::Display for Span>::fmt -> fmt::Result with Ok(Default::default())
-rash/src/linter/diagnostic.rs:39:28: replace == with != in <impl fmt::Display for Span>::fmt
+rash/src/ir/mod.rs:520:5: replace is_string_value -> bool with true
+rash/src/ir/mod.rs:520:5: replace is_string_value -> bool with false
+rash/src/ir/mod.rs:523:39: replace && with || in is_string_value

@@ -1,0 +1,58 @@
+
+audit_date: 2025-10-14
+auditor: Gemini
+project: bashrs
+version: 1.2.1
+
+summary: |
+  The bashrs project is a promising tool for improving shell script safety.
+  The codebase is generally well-structured and has a good amount of test coverage.
+  However, the audit revealed two critical bugs that prevent the project from being
+  used as intended. There is also a parsing error in one of the examples that
+  needs to be addressed.
+
+findings:
+  - id: BUG-001
+    title: Transpiler does not generate empty functions
+    description: |
+      The transpiler does not generate shell functions for Rust functions with
+      empty bodies. This causes a "command not found" error when the generated
+      shell script is executed.
+    reproduction: |
+      1. Create a Rust file with an empty function that is called from `main`.
+      2. Transpile the file using `bashrs build`.
+      3. Execute the generated shell script.
+      4. The script will fail with a "command not found" error.
+    recommendation: |
+      The transpiler should be modified to generate empty shell functions
+      (e.g., `my_func() { :; }`) for all functions defined in the Rust source,
+      even if they have empty bodies.
+
+  - id: BUG-002
+    title: Parse error in `examples/backup-clean.rs`
+    description: |
+      The `test-example` make target fails with a parse error when processing
+      `examples/backup-clean.rs`. The error message "expected square brackets"
+      suggests that the transpiler is failing to parse some of the Rust code
+      that uses square brackets. The most likely culprit is the use of the `?`
+      operator, which may not be supported by the version of the Rust parser
+      being used by `bashrs`.
+    reproduction: |
+      1. Run `make test-example`
+      2. The build will fail with a parse error.
+    recommendation: |
+      The Rust parser used by `bashrs` should be updated to a version that
+      supports the `?` operator and other modern Rust syntax. Alternatively,
+      the example file could be modified to not use the `?` operator.
+
+recommendations:
+  - id: REC-001
+    title: Improve test failure reporting
+    description: |
+      The test suite does not provide enough information about why a test
+      failed. When a test fails, the generated shell script should be printed
+      to the console to make it easier to debug the issue.
+    recommendation: |
+      Modify the test suite to print the generated shell script to the console
+      when a test fails. This can be done by adding a `println!` macro to the
+      test functions that execute shell scripts.

@@ -7,6 +7,12 @@ use super::core::TestGenResult;
 
 pub struct DoctestGenerator;
 
+impl Default for DoctestGenerator {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl DoctestGenerator {
     pub fn new() -> Self {
         Self
@@ -17,12 +23,9 @@ impl DoctestGenerator {
         let mut doctests = Vec::new();
 
         for stmt in &ast.statements {
-            match stmt {
-                BashStmt::Function { name, body, .. } => {
-                    // Extract doctests from function comments
-                    doctests.extend(self.extract_from_function(name, body)?);
-                }
-                _ => {}
+            if let BashStmt::Function { name, body, .. } = stmt {
+                // Extract doctests from function comments
+                doctests.extend(self.extract_from_function(name, body)?);
             }
         }
 

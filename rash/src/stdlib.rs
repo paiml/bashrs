@@ -156,4 +156,17 @@ mod tests {
         assert_eq!(get_shell_function_name("string_trim"), "rash_string_trim");
         assert_eq!(get_shell_function_name("fs_exists"), "rash_fs_exists");
     }
+
+    // Sprint 27a: Environment Variables Support - RED PHASE
+    #[test]
+    fn test_stdlib_env_function_recognized() {
+        // RED: This test will fail until we add "env" to is_stdlib_function()
+        assert!(is_stdlib_function("env"), "env() should be recognized as stdlib function");
+    }
+
+    #[test]
+    fn test_stdlib_env_var_or_function_recognized() {
+        // RED: This test will fail until we add "env_var_or" to is_stdlib_function()
+        assert!(is_stdlib_function("env_var_or"), "env_var_or() should be recognized as stdlib function");
+    }
 }

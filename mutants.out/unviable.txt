@@ -1,1 +1,0 @@
-rash/src/linter/diagnostic.rs:33:9: replace Span::point -> Self with Default::default()

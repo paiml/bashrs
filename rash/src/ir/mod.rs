@@ -54,11 +54,6 @@ impl IrConverter {
         // Convert all user-defined functions (except main) to shell functions
         for function in &ast.functions {
             if function.name != ast.entry_point {
-                // Skip empty functions - they delegate to shell builtins
-                if function.body.is_empty() {
-                    continue;
-                }
-
                 let params: Vec<String> = function.params.iter().map(|p| p.name.clone()).collect();
                 let mut body_stmts = Vec::new();
 
@@ -72,6 +67,7 @@ impl IrConverter {
                         .push(self.convert_stmt_in_function(stmt, is_last && has_return_type)?);
                 }
 
+                // Generate function with body (empty functions get Noop via emit_sequence)
                 all_ir.push(ShellIR::Function {
                     name: function.name.clone(),
                     params,

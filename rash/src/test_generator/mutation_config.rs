@@ -13,6 +13,12 @@ pub struct MutationConfigGenerator {
     base_timeout: u64,
 }
 
+impl Default for MutationConfigGenerator {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl MutationConfigGenerator {
     pub fn new() -> Self {
         Self {

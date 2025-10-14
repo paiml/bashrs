@@ -145,7 +145,7 @@ pub fn apply_fixes(source: &str, result: &LintResult, options: &FixOptions) -> i
             // Apply the fix
             modified = apply_single_fix(&modified, &diagnostic.span, &fix.replacement)?;
             fixes_applied += 1;
-            applied_spans.push(diagnostic.span.clone());
+            applied_spans.push(diagnostic.span);
         }
     }
 

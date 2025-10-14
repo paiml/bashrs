@@ -1,0 +1,14 @@
+rash/src/ir/mod.rs:21:5: replace from_ast -> Result<ShellIR> with Ok(Default::default())
+rash/src/ir/mod.rs:27:5: replace optimize -> Result<ShellIR> with Ok(Default::default())
+rash/src/ir/mod.rs:52:9: replace IrConverter::convert -> Result<ShellIR> with Ok(Default::default())
+rash/src/ir/mod.rs:100:9: replace IrConverter::convert_stmt_in_function -> Result<ShellIR> with Ok(Default::default())
+rash/src/ir/mod.rs:113:9: replace IrConverter::convert_stmt -> Result<ShellIR> with Ok(Default::default())
+rash/src/ir/mod.rs:182:28: delete ! in IrConverter::convert_stmt
+rash/src/ir/mod.rs:257:9: replace IrConverter::convert_stmts -> Result<ShellIR> with Ok(Default::default())
+rash/src/ir/mod.rs:265:9: replace IrConverter::convert_expr -> Result<ShellIR> with Ok(Default::default())
+rash/src/ir/mod.rs:300:9: replace IrConverter::convert_expr_to_value -> Result<ShellValue> with Ok(Default::default())
+rash/src/ir/mod.rs:453:9: replace IrConverter::convert_match_pattern -> Result<shell_ir::CasePattern> with Ok(Default::default())
+rash/src/ir/mod.rs:481:5: replace constant_fold -> ShellIR with Default::default()
+rash/src/ir/mod.rs:491:25: delete match arm ShellValue::String(s) in constant_fold
+rash/src/ir/mod.rs:515:5: replace eliminate_dead_code -> ShellIR with Default::default()
+rash/src/ir/mod.rs:541:5: replace transform_ir -> ShellIR with Default::default()

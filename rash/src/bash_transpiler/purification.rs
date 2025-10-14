@@ -383,15 +383,14 @@ impl Purifier {
     fn purify_arithmetic(&mut self, arith: &ArithExpr) -> PurificationResult<ArithExpr> {
         match arith {
             ArithExpr::Variable(name) => {
-                if self.non_deterministic_vars.contains(name) {
-                    if self.options.remove_non_deterministic {
+                if self.non_deterministic_vars.contains(name)
+                    && self.options.remove_non_deterministic {
                         self.report.determinism_fixes.push(format!(
                             "Removed non-deterministic variable in arithmetic: {}",
                             name
                         ));
                         return Ok(ArithExpr::Number(0));
                     }
-                }
                 Ok(arith.clone())
             }
 
@@ -445,9 +444,7 @@ impl Purifier {
                     .iter()
                     .any(|arg| matches!(arg, BashExpr::Literal(s) if s.contains("-p")))
                 {
-                    Some(format!(
-                        "Command 'mkdir' should use -p flag for idempotency"
-                    ))
+                    Some("Command 'mkdir' should use -p flag for idempotency".to_string())
                 } else {
                     None
                 }
@@ -459,7 +456,7 @@ impl Purifier {
                     .iter()
                     .any(|arg| matches!(arg, BashExpr::Literal(s) if s.contains("-f")))
                 {
-                    Some(format!("Command 'rm' should use -f flag for idempotency"))
+                    Some("Command 'rm' should use -f flag for idempotency".to_string())
                 } else {
                     None
                 }

@@ -15,6 +15,12 @@ pub struct PropertyTestGenerator {
     max_test_cases: usize,
 }
 
+impl Default for PropertyTestGenerator {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl PropertyTestGenerator {
     pub fn new() -> Self {
         Self {
@@ -27,27 +33,24 @@ impl PropertyTestGenerator {
         let mut tests = Vec::new();
 
         for stmt in &ast.statements {
-            match stmt {
-                BashStmt::Function { name, body, .. } => {
-                    // Generate determinism tests
-                    if let Some(test) = self.generate_determinism_test(name, body)? {
-                        tests.push(test);
-                    }
-
-                    // Generate idempotency tests
-                    if let Some(test) = self.generate_idempotency_test(name, body)? {
-                        tests.push(test);
-                    }
-
-                    // Generate bounds tests
-                    tests.extend(self.generate_bounds_tests(name, body)?);
-
-                    // Generate type preservation tests
-                    if let Some(test) = self.generate_type_preservation_test(name, body)? {
-                        tests.push(test);
-                    }
+            if let BashStmt::Function { name, body, .. } = stmt {
+                // Generate determinism tests
+                if let Some(test) = self.generate_determinism_test(name, body)? {
+                    tests.push(test);
                 }
-                _ => {}
+
+                // Generate idempotency tests
+                if let Some(test) = self.generate_idempotency_test(name, body)? {
+                    tests.push(test);
+                }
+
+                // Generate bounds tests
+                tests.extend(self.generate_bounds_tests(name, body)?);
+
+                // Generate type preservation tests
+                if let Some(test) = self.generate_type_preservation_test(name, body)? {
+                    tests.push(test);
+                }
             }
         }
 
@@ -214,36 +217,33 @@ impl PropertyTestGenerator {
         let mut seen_types = HashSet::new();
 
         for stmt in body {
-            match stmt {
-                BashStmt::Assignment { value, .. } => {
-                    match value {
-                        BashExpr::Literal(lit) => {
-                            if lit.parse::<i64>().is_ok() && !seen_types.contains("integer") {
-                                generators.push(Generator::Integer {
-                                    min: -1000,
-                                    max: 1000,
-                                });
-                                seen_types.insert("integer");
-                            } else if !seen_types.contains("string") {
-                                generators.push(Generator::String {
-                                    pattern: "[a-zA-Z0-9]{1,20}".to_string(),
-                                });
-                                seen_types.insert("string");
-                            }
+            if let BashStmt::Assignment { value, .. } = stmt {
+                match value {
+                    BashExpr::Literal(lit) => {
+                        if lit.parse::<i64>().is_ok() && !seen_types.contains("integer") {
+                            generators.push(Generator::Integer {
+                                min: -1000,
+                                max: 1000,
+                            });
+                            seen_types.insert("integer");
+                        } else if !seen_types.contains("string") {
+                            generators.push(Generator::String {
+                                pattern: "[a-zA-Z0-9]{1,20}".to_string(),
+                            });
+                            seen_types.insert("string");
                         }
-                        BashExpr::Arithmetic(_) => {
-                            if !seen_types.contains("integer") {
-                                generators.push(Generator::Integer {
-                                    min: -1000,
-                                    max: 1000,
-                                });
-                                seen_types.insert("integer");
-                            }
-                        }
-                        _ => {}
                     }
+                    BashExpr::Arithmetic(_) => {
+                        if !seen_types.contains("integer") {
+                            generators.push(Generator::Integer {
+                                min: -1000,
+                                max: 1000,
+                            });
+                            seen_types.insert("integer");
+                        }
+                    }
+                    _ => {}
                 }
-                _ => {}
             }
         }
 
@@ -259,15 +259,12 @@ impl PropertyTestGenerator {
 
     /// Extract bounds from conditional statements
     fn extract_bounds(&self, stmt: &BashStmt) -> Option<BoundsInfo> {
-        match stmt {
-            BashStmt::If { condition, .. } => {
-                // Try to extract bounds from conditions like [ $x -gt 0 ] && [ $x -lt 100 ]
-                if let BashExpr::Test { .. } = condition {
-                    // Simplified: assume reasonable bounds
-                    return Some(BoundsInfo { min: 0, max: 100 });
-                }
+        if let BashStmt::If { condition, .. } = stmt {
+            // Try to extract bounds from conditions like [ $x -gt 0 ] && [ $x -lt 100 ]
+            if let BashExpr::Test { .. } = condition {
+                // Simplified: assume reasonable bounds
+                return Some(BoundsInfo { min: 0, max: 100 });
             }
-            _ => {}
         }
         None
     }
@@ -292,8 +289,8 @@ impl PropertyTest {
         let mut code = String::new();
 
         // Generate the proptest macro invocation
-        code.push_str(&format!("proptest! {{\n"));
-        code.push_str(&format!("    #[test]\n"));
+        code.push_str(&"proptest! {\n".to_string());
+        code.push_str(&"    #[test]\n".to_string());
         code.push_str(&format!("    fn {}(\n", self.name));
 
         // Generate parameter list from generators

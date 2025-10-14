@@ -72,7 +72,7 @@ pub fn check(source: &str) -> LintResult {
             let diag = Diagnostic::new(
                 "SC2046",
                 Severity::Warning,
-                format!("Quote this and use $(...) instead of backticks"),
+                "Quote this and use $(...) instead of backticks".to_string(),
                 span,
             )
             .with_fix(fix);
