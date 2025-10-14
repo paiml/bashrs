@@ -1147,7 +1147,9 @@ fn test_arg_rejects_zero_position() {
 
     let error_msg = result.unwrap_err().to_string();
     assert!(
-        error_msg.contains("position must be >= 1") || error_msg.contains("position") || error_msg.contains("1"),
+        error_msg.contains("position must be >= 1")
+            || error_msg.contains("position")
+            || error_msg.contains("1"),
         "Error message should mention position requirement, got: {}",
         error_msg
     );

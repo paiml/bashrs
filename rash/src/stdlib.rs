@@ -29,6 +29,10 @@ pub fn is_stdlib_function(name: &str) -> bool {
             // Environment module (Sprint 27a)
             | "env"
             | "env_var_or"
+            // Arguments module (Sprint 27b)
+            | "arg"
+            | "args"
+            | "arg_count"
     )
 }
 
@@ -140,6 +144,25 @@ pub const STDLIB_FUNCTIONS: &[StdlibFunction] = &[
         shell_name: "inline_env_var_or",
         module: "env",
         description: "Get environment variable with default (inline ${VAR:-default})",
+    },
+    // Arguments module (Sprint 27b)
+    StdlibFunction {
+        name: "arg",
+        shell_name: "inline_positional_arg",
+        module: "args",
+        description: "Get command-line argument by position (inline $n)",
+    },
+    StdlibFunction {
+        name: "args",
+        shell_name: "inline_all_args",
+        module: "args",
+        description: "Get all command-line arguments (inline $@)",
+    },
+    StdlibFunction {
+        name: "arg_count",
+        shell_name: "inline_arg_count",
+        module: "args",
+        description: "Get command-line argument count (inline $#)",
     },
 ];
 

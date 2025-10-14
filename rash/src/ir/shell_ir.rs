@@ -196,7 +196,7 @@ pub enum ShellValue {
     /// Command-line argument access: $1, $2, $@, etc.
     /// Sprint 27b: Command-Line Arguments Support
     Arg {
-        position: Option<usize>,  // None = all args ($@)
+        position: Option<usize>, // None = all args ($@)
     },
 
     /// Argument count: $#
@@ -247,9 +247,7 @@ impl ShellValue {
             | ShellValue::CommandSubst(_)
             | ShellValue::EnvVar { .. }
             | ShellValue::Arg { .. }
-            | ShellValue::ArgCount => {
-                false
-            }
+            | ShellValue::ArgCount => false,
             ShellValue::Concat(parts) => parts.iter().all(|p| p.is_constant()),
             ShellValue::Comparison { left, right, .. }
             | ShellValue::Arithmetic { left, right, .. }

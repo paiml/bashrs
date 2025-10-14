@@ -688,11 +688,12 @@ impl PosixEmitter {
                 let operand_str = self.emit_shell_value(operand)?;
                 Ok(format!("! {operand_str}"))
             }
-            // Sprint 27b: Command-line argument access (RED PHASE STUB)
-            ShellValue::Arg { .. } | ShellValue::ArgCount => {
-                // RED: Stub implementation - tests should fail
-                panic!("Sprint 27b RED: Arg/ArgCount not yet implemented in emit_shell_value")
-            }
+            // Sprint 27b: Command-line argument access
+            ShellValue::Arg { position } => match position {
+                Some(n) => Ok(format!("\"${}\"", n)), // "$1", "$2", etc.
+                None => Ok("\"$@\"".to_string()),     // All args
+            },
+            ShellValue::ArgCount => Ok("\"$#\"".to_string()), // Argument count
         }
     }
 
@@ -827,10 +828,13 @@ impl PosixEmitter {
                     "Logical expression cannot be used in string concatenation".to_string(),
                 ));
             }
-            // Sprint 27b: Command-line argument access in concatenation (RED PHASE STUB)
-            ShellValue::Arg { .. } | ShellValue::ArgCount => {
-                // RED: Stub implementation - tests should fail
-                panic!("Sprint 27b RED: Arg/ArgCount not yet implemented in append_concat_part")
+            // Sprint 27b: Command-line argument access in concatenation
+            ShellValue::Arg { position } => match position {
+                Some(n) => result.push_str(&format!("${}", n)),
+                None => result.push_str("$@"),
+            },
+            ShellValue::ArgCount => {
+                result.push_str("$#");
             }
         }
         Ok(())
