@@ -164,15 +164,40 @@ pub fn bash_stmt(depth: u32) -> BoxedStrategy<BashStmt> {
     }
 }
 
-/// Generate a complete bash script
+/// Generate a complete bash script with unique function names
+/// 🟢 GREEN: TICKET-6002 - Ensure no duplicate function names
 pub fn bash_script() -> impl Strategy<Value = BashAst> {
-    prop::collection::vec(bash_stmt(2), 1..10).prop_map(|statements| BashAst {
-        statements,
-        metadata: AstMetadata {
-            source_file: None,
-            line_count: 0,
-            parse_time_ms: 0,
-        },
+    prop::collection::vec(bash_stmt(2), 1..10).prop_map(|statements| {
+        use std::collections::HashSet;
+
+        // Track seen function names to ensure uniqueness
+        let mut seen_functions: HashSet<String> = HashSet::new();
+        let mut deduplicated_statements = Vec::new();
+
+        for stmt in statements {
+            match &stmt {
+                BashStmt::Function { name, .. } => {
+                    // Only include if this function name hasn't been seen
+                    if seen_functions.insert(name.clone()) {
+                        deduplicated_statements.push(stmt);
+                    }
+                    // If duplicate, skip it (don't add to deduplicated_statements)
+                }
+                _ => {
+                    // Non-function statements always included
+                    deduplicated_statements.push(stmt);
+                }
+            }
+        }
+
+        BashAst {
+            statements: deduplicated_statements,
+            metadata: AstMetadata {
+                source_file: None,
+                line_count: 0,
+                parse_time_ms: 0,
+            },
+        }
     })
 }
 
@@ -220,6 +245,38 @@ mod tests {
             // Scripts should have at least one statement
             assert!(!script.statements.is_empty());
             assert!(script.statements.len() <= 10);
+        }
+
+        /// 🔴 RED: Property test for unique function names
+        /// TICKET-6002: bash_script() should generate scripts with unique function names
+        #[test]
+        fn test_generated_scripts_have_unique_function_names(script in bash_script()) {
+            use std::collections::HashSet;
+
+            // Collect all function names
+            let mut function_names = HashSet::new();
+            let mut duplicate_found = false;
+            let mut duplicate_name = String::new();
+
+            for stmt in &script.statements {
+                if let BashStmt::Function { name, .. } = stmt {
+                    if !function_names.insert(name.clone()) {
+                        // Duplicate found!
+                        duplicate_found = true;
+                        duplicate_name = name.clone();
+                        break;
+                    }
+                }
+            }
+
+            prop_assert!(
+                !duplicate_found,
+                "Generated script has duplicate function name: '{}'. \
+                All function names in a script must be unique. \
+                Function names found: {:?}",
+                duplicate_name,
+                function_names
+            );
         }
     }
 }

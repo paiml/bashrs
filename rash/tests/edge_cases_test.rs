@@ -139,23 +139,32 @@ fn main() {
 }
 
 fn echo(msg: &str) {
-    // Empty - should call shell echo builtin
+    // Empty function - should generate : no-op
 }
 "#;
 
     let config = Config::default();
     let result = transpile(source, config).unwrap();
 
-    // Should NOT define an echo function (should use shell builtin)
+    // FIXED: Empty functions now SHOULD be generated with : no-op
+    // This was BUG-001 from Gemini audit, fixed Oct 14, 2025
     assert!(
-        !result.contains("echo() {"),
-        "Empty function body should not generate function definition"
+        result.contains("echo() {"),
+        "Empty function should generate function definition with : no-op"
     );
 
-    // Should still call echo command
+    // Should contain the : no-op command in the function body
+    let echo_section = result.split("echo() {").nth(1).unwrap_or("");
+    let echo_body = echo_section.split("}").next().unwrap_or("");
     assert!(
-        result.contains("echo ") || result.contains("echo test"),
-        "Should call shell echo builtin"
+        echo_body.trim().contains(":"),
+        "Empty function should contain : no-op command"
+    );
+
+    // Should still call the echo function
+    assert!(
+        result.contains("echo ") || result.contains("echo \"$msg\"") || result.contains("echo test"),
+        "Should call the echo function"
     );
 }
 
