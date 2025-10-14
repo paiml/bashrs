@@ -28,7 +28,11 @@ fn require_var(name: &str) {}
     let config = Config::default();
     let result = transpile(source, config);
 
-    assert!(result.is_ok(), "Should transpile require function: {:?}", result.err());
+    assert!(
+        result.is_ok(),
+        "Should transpile require function: {:?}",
+        result.err()
+    );
 
     let shell = result.unwrap();
     eprintln!("Generated shell for error-if-unset:\n{}", shell);
@@ -80,7 +84,8 @@ fn check_required(val: &str) {}
     let shell = transpile(source, config).unwrap();
 
     let mut file = NamedTempFile::new().expect("Failed to create temp file");
-    file.write_all(shell.as_bytes()).expect("Failed to write shell script");
+    file.write_all(shell.as_bytes())
+        .expect("Failed to write shell script");
 
     let output = Command::new("sh")
         .arg(file.path())
@@ -112,7 +117,11 @@ fn check_if_set(name: &str) {}
     let config = Config::default();
     let result = transpile(source, config);
 
-    assert!(result.is_ok(), "Should transpile check function: {:?}", result.err());
+    assert!(
+        result.is_ok(),
+        "Should transpile check function: {:?}",
+        result.err()
+    );
 
     let shell = result.unwrap();
     eprintln!("Generated shell for alternative value:\n{}", shell);
@@ -165,7 +174,8 @@ fn use_if_available(name: &str) {}
     let shell = transpile(source, config).unwrap();
 
     let mut file = NamedTempFile::new().expect("Failed to create temp file");
-    file.write_all(shell.as_bytes()).expect("Failed to write shell script");
+    file.write_all(shell.as_bytes())
+        .expect("Failed to write shell script");
 
     let output = Command::new("sh")
         .arg(file.path())
@@ -197,7 +207,11 @@ fn generate_sequence(start: i32, end: i32) {}
     let config = Config::default();
     let result = transpile(source, config);
 
-    assert!(result.is_ok(), "Should transpile sequence function: {:?}", result.err());
+    assert!(
+        result.is_ok(),
+        "Should transpile sequence function: {:?}",
+        result.err()
+    );
 
     let shell = result.unwrap();
     eprintln!("Generated shell for brace expansion:\n{}", shell);
@@ -250,7 +264,8 @@ fn iterate_range(start: i32, end: i32) {}
     let shell = transpile(source, config).unwrap();
 
     let mut file = NamedTempFile::new().expect("Failed to create temp file");
-    file.write_all(shell.as_bytes()).expect("Failed to write shell script");
+    file.write_all(shell.as_bytes())
+        .expect("Failed to write shell script");
 
     let output = Command::new("sh")
         .arg(file.path())
@@ -282,7 +297,11 @@ fn use_home_path() {}
     let config = Config::default();
     let result = transpile(source, config);
 
-    assert!(result.is_ok(), "Should transpile home path function: {:?}", result.err());
+    assert!(
+        result.is_ok(),
+        "Should transpile home path function: {:?}",
+        result.err()
+    );
 
     let shell = result.unwrap();
     eprintln!("Generated shell for tilde expansion:\n{}", shell);
@@ -335,7 +354,8 @@ fn access_home_dir() {}
     let shell = transpile(source, config).unwrap();
 
     let mut file = NamedTempFile::new().expect("Failed to create temp file");
-    file.write_all(shell.as_bytes()).expect("Failed to write shell script");
+    file.write_all(shell.as_bytes())
+        .expect("Failed to write shell script");
 
     let output = Command::new("sh")
         .arg(file.path())
@@ -373,12 +393,16 @@ fn use_home_path() {}
     // Verify all functions are called
     assert!(shell.contains("require_var"), "Should call require_var");
     assert!(shell.contains("check_if_set"), "Should call check_if_set");
-    assert!(shell.contains("generate_sequence"), "Should call generate_sequence");
+    assert!(
+        shell.contains("generate_sequence"),
+        "Should call generate_sequence"
+    );
     assert!(shell.contains("use_home_path"), "Should call use_home_path");
 
     // Write and execute
     let mut file = NamedTempFile::new().expect("Failed to create temp file");
-    file.write_all(shell.as_bytes()).expect("Failed to write shell script");
+    file.write_all(shell.as_bytes())
+        .expect("Failed to write shell script");
 
     let output = Command::new("sh")
         .arg(file.path())

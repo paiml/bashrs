@@ -292,9 +292,15 @@ mod tests {
 
     #[test]
     fn test_output_format_from_str() {
-        assert_eq!("human".parse::<OutputFormat>().unwrap(), OutputFormat::Human);
+        assert_eq!(
+            "human".parse::<OutputFormat>().unwrap(),
+            OutputFormat::Human
+        );
         assert_eq!("json".parse::<OutputFormat>().unwrap(), OutputFormat::Json);
-        assert_eq!("sarif".parse::<OutputFormat>().unwrap(), OutputFormat::Sarif);
+        assert_eq!(
+            "sarif".parse::<OutputFormat>().unwrap(),
+            OutputFormat::Sarif
+        );
         assert!("invalid".parse::<OutputFormat>().is_err());
     }
 
@@ -313,7 +319,12 @@ mod tests {
     fn test_human_output_with_diagnostics() {
         let mut result = LintResult::new();
         let span = Span::new(1, 5, 1, 10);
-        result.add(Diagnostic::new("SC2086", Severity::Warning, "Test warning", span));
+        result.add(Diagnostic::new(
+            "SC2086",
+            Severity::Warning,
+            "Test warning",
+            span,
+        ));
 
         let mut buffer = Vec::new();
         write_human(&mut buffer, &result, "test.sh").unwrap();

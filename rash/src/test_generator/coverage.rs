@@ -1,7 +1,7 @@
 //! Coverage Tracking and Analysis
 
-use std::collections::{HashSet, HashMap};
 use super::core::GeneratedTestSuite;
+use std::collections::{HashMap, HashSet};
 
 /// Unique identifier for a code branch
 #[derive(Debug, Clone, Hash, Eq, PartialEq)]
@@ -166,11 +166,23 @@ Quality Gates: {}
 
 {}
 "#,
-            if self.fmt_passed { "✅ PASS" } else { "❌ FAIL" },
-            if self.clippy_passed { "✅ PASS" } else { "❌ FAIL" },
+            if self.fmt_passed {
+                "✅ PASS"
+            } else {
+                "❌ FAIL"
+            },
+            if self.clippy_passed {
+                "✅ PASS"
+            } else {
+                "❌ FAIL"
+            },
             self.coverage_percentage,
             self.mutation_score,
-            if self.meets_quality_gates { "✅ PASS" } else { "❌ FAIL" },
+            if self.meets_quality_gates {
+                "✅ PASS"
+            } else {
+                "❌ FAIL"
+            },
             self.suggestions.join("\n")
         )
     }

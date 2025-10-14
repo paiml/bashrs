@@ -101,7 +101,11 @@ pub struct FixResult {
 /// 3. SC2086 (quote variables) - Lowest priority
 ///
 /// This ensures correct transformation: `$(echo $VAR)` → `$VAR` → `"$VAR"`
-pub fn apply_fixes(source: &str, result: &LintResult, options: &FixOptions) -> io::Result<FixResult> {
+pub fn apply_fixes(
+    source: &str,
+    result: &LintResult,
+    options: &FixOptions,
+) -> io::Result<FixResult> {
     let mut modified = source.to_string();
     let mut fixes_applied = 0;
 
@@ -135,7 +139,9 @@ pub fn apply_fixes(source: &str, result: &LintResult, options: &FixOptions) -> i
     for diagnostic in diagnostics_with_fixes {
         if let Some(fix) = &diagnostic.fix {
             // Check if this span overlaps with any already-applied fix
-            let has_conflict = applied_spans.iter().any(|s| spans_overlap(s, &diagnostic.span));
+            let has_conflict = applied_spans
+                .iter()
+                .any(|s| spans_overlap(s, &diagnostic.span));
 
             if has_conflict {
                 // Skip this fix - higher priority fix already applied
@@ -151,7 +157,11 @@ pub fn apply_fixes(source: &str, result: &LintResult, options: &FixOptions) -> i
 
     Ok(FixResult {
         fixes_applied,
-        modified_source: if options.dry_run { None } else { Some(modified) },
+        modified_source: if options.dry_run {
+            None
+        } else {
+            Some(modified)
+        },
         backup_path: None,
     })
 }
@@ -389,10 +399,7 @@ mod tests {
 
         // Should apply SC2116 (highest priority) and skip SC2046 (conflict)
         assert_eq!(fix_result.fixes_applied, 1);
-        assert_eq!(
-            fix_result.modified_source.unwrap(),
-            "RELEASE=$TIMESTAMP\n"
-        );
+        assert_eq!(fix_result.modified_source.unwrap(), "RELEASE=$TIMESTAMP\n");
     }
 
     #[test]

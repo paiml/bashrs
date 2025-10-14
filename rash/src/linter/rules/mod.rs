@@ -1,7 +1,7 @@
 //! Lint rules for shell script analysis
 
-pub mod sc2086;
 pub mod sc2046;
+pub mod sc2086;
 pub mod sc2116;
 
 use crate::linter::LintResult;

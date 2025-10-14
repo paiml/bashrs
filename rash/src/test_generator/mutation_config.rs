@@ -2,8 +2,8 @@
 //!
 //! Generates .cargo-mutants.toml configuration based on code complexity
 
-use crate::bash_parser::ast::*;
 use super::core::TestGenResult;
+use crate::bash_parser::ast::*;
 use std::collections::HashMap;
 
 pub struct MutationConfigGenerator {
@@ -63,7 +63,12 @@ impl MutationConfigGenerator {
                     self.analyze_statement(stmt, metrics);
                 }
             }
-            BashStmt::If { then_block, elif_blocks, else_block, .. } => {
+            BashStmt::If {
+                then_block,
+                elif_blocks,
+                else_block,
+                ..
+            } => {
                 metrics.branch_count += 1;
                 metrics.total_lines += then_block.len();
 
@@ -113,7 +118,11 @@ impl MutationConfigGenerator {
     }
 
     /// Build configuration based on complexity metrics
-    fn build_config(&self, _ast: &BashAst, complexity: &ComplexityMetrics) -> TestGenResult<MutationConfig> {
+    fn build_config(
+        &self,
+        _ast: &BashAst,
+        complexity: &ComplexityMetrics,
+    ) -> TestGenResult<MutationConfig> {
         // Determine timeout based on code size
         let timeout = self.calculate_timeout(complexity);
 
@@ -167,10 +176,7 @@ impl MutationConfigGenerator {
 
     /// Select mutation operators based on code patterns
     fn select_operators(&self, complexity: &ComplexityMetrics) -> Vec<MutationOperator> {
-        let mut operators = vec![
-            MutationOperator::ReturnValue,
-            MutationOperator::Conditional,
-        ];
+        let mut operators = vec![MutationOperator::ReturnValue, MutationOperator::Conditional];
 
         if complexity.arithmetic_ops > 0 {
             operators.push(MutationOperator::ArithmeticOp);
@@ -215,7 +221,10 @@ impl MutationConfig {
         // Global settings
         config.push_str(&format!("timeout = {}\n", self.timeout));
         config.push_str(&format!("jobs = {}\n", self.parallel_jobs));
-        config.push_str(&format!("# Target mutation score: {:.0}%\n\n", self.target_score * 100.0));
+        config.push_str(&format!(
+            "# Target mutation score: {:.0}%\n\n",
+            self.target_score * 100.0
+        ));
 
         // Exclude patterns
         if !self.exclude_patterns.is_empty() {
@@ -286,14 +295,12 @@ mod tests {
         let ast = BashAst {
             statements: vec![BashStmt::Function {
                 name: "test_func".to_string(),
-                body: vec![
-                    BashStmt::Assignment {
-                        name: "x".to_string(),
-                        value: BashExpr::Literal("42".to_string()),
-                        exported: false,
-                        span: Span::dummy(),
-                    },
-                ],
+                body: vec![BashStmt::Assignment {
+                    name: "x".to_string(),
+                    value: BashExpr::Literal("42".to_string()),
+                    exported: false,
+                    span: Span::dummy(),
+                }],
                 span: Span::dummy(),
             }],
             metadata: AstMetadata {
@@ -313,32 +320,30 @@ mod tests {
     fn test_complexity_analysis() {
         let gen = MutationConfigGenerator::new();
         let ast = BashAst {
-            statements: vec![
-                BashStmt::Function {
-                    name: "complex_func".to_string(),
-                    body: vec![
-                        BashStmt::If {
-                            condition: BashExpr::Test(Box::new(TestExpr::IntGt(
-                                BashExpr::Variable("x".to_string()),
-                                BashExpr::Literal("0".to_string()),
-                            ))),
-                            then_block: vec![],
-                            elif_blocks: vec![],
-                            else_block: None,
-                            span: Span::dummy(),
-                        },
-                        BashStmt::While {
-                            condition: BashExpr::Test(Box::new(TestExpr::IntLt(
-                                BashExpr::Variable("i".to_string()),
-                                BashExpr::Literal("10".to_string()),
-                            ))),
-                            body: vec![],
-                            span: Span::dummy(),
-                        },
-                    ],
-                    span: Span::dummy(),
-                },
-            ],
+            statements: vec![BashStmt::Function {
+                name: "complex_func".to_string(),
+                body: vec![
+                    BashStmt::If {
+                        condition: BashExpr::Test(Box::new(TestExpr::IntGt(
+                            BashExpr::Variable("x".to_string()),
+                            BashExpr::Literal("0".to_string()),
+                        ))),
+                        then_block: vec![],
+                        elif_blocks: vec![],
+                        else_block: None,
+                        span: Span::dummy(),
+                    },
+                    BashStmt::While {
+                        condition: BashExpr::Test(Box::new(TestExpr::IntLt(
+                            BashExpr::Variable("i".to_string()),
+                            BashExpr::Literal("10".to_string()),
+                        ))),
+                        body: vec![],
+                        span: Span::dummy(),
+                    },
+                ],
+                span: Span::dummy(),
+            }],
             metadata: AstMetadata {
                 source_file: None,
                 line_count: 1,
@@ -357,50 +362,44 @@ mod tests {
         let gen = MutationConfigGenerator::new();
 
         // Simple function: complexity = 1
-        let simple_body = vec![
-            BashStmt::Assignment {
-                name: "x".to_string(),
-                value: BashExpr::Literal("1".to_string()),
-                exported: false,
-                span: Span::dummy(),
-            },
-        ];
+        let simple_body = vec![BashStmt::Assignment {
+            name: "x".to_string(),
+            value: BashExpr::Literal("1".to_string()),
+            exported: false,
+            span: Span::dummy(),
+        }];
         assert_eq!(gen.calculate_cyclomatic_complexity(&simple_body), 1);
 
         // Function with if: complexity = 2
-        let with_if = vec![
-            BashStmt::If {
-                condition: BashExpr::Test(Box::new(TestExpr::IntGt(
-                    BashExpr::Variable("x".to_string()),
-                    BashExpr::Literal("0".to_string()),
-                ))),
-                then_block: vec![],
-                elif_blocks: vec![],
-                else_block: None,
-                span: Span::dummy(),
-            },
-        ];
+        let with_if = vec![BashStmt::If {
+            condition: BashExpr::Test(Box::new(TestExpr::IntGt(
+                BashExpr::Variable("x".to_string()),
+                BashExpr::Literal("0".to_string()),
+            ))),
+            then_block: vec![],
+            elif_blocks: vec![],
+            else_block: None,
+            span: Span::dummy(),
+        }];
         assert_eq!(gen.calculate_cyclomatic_complexity(&with_if), 2);
 
         // Function with if + elif: complexity = 3
-        let with_elif = vec![
-            BashStmt::If {
-                condition: BashExpr::Test(Box::new(TestExpr::IntGt(
+        let with_elif = vec![BashStmt::If {
+            condition: BashExpr::Test(Box::new(TestExpr::IntGt(
+                BashExpr::Variable("x".to_string()),
+                BashExpr::Literal("0".to_string()),
+            ))),
+            then_block: vec![],
+            elif_blocks: vec![(
+                BashExpr::Test(Box::new(TestExpr::IntLt(
                     BashExpr::Variable("x".to_string()),
                     BashExpr::Literal("0".to_string()),
                 ))),
-                then_block: vec![],
-                elif_blocks: vec![(
-                    BashExpr::Test(Box::new(TestExpr::IntLt(
-                        BashExpr::Variable("x".to_string()),
-                        BashExpr::Literal("0".to_string()),
-                    ))),
-                    vec![],
-                )],
-                else_block: None,
-                span: Span::dummy(),
-            },
-        ];
+                vec![],
+            )],
+            else_block: None,
+            span: Span::dummy(),
+        }];
         assert_eq!(gen.calculate_cyclomatic_complexity(&with_elif), 3);
     }
 
@@ -469,24 +468,20 @@ mod tests {
         }
 
         let ast = BashAst {
-            statements: vec![
-                BashStmt::Function {
-                    name: "critical_func".to_string(),
-                    body: vec![
-                        BashStmt::If {
-                            condition: BashExpr::Test(Box::new(TestExpr::IntGt(
-                                BashExpr::Variable("x".to_string()),
-                                BashExpr::Literal("0".to_string()),
-                            ))),
-                            then_block: vec![],
-                            elif_blocks,
-                            else_block: None,
-                            span: Span::dummy(),
-                        },
-                    ],
+            statements: vec![BashStmt::Function {
+                name: "critical_func".to_string(),
+                body: vec![BashStmt::If {
+                    condition: BashExpr::Test(Box::new(TestExpr::IntGt(
+                        BashExpr::Variable("x".to_string()),
+                        BashExpr::Literal("0".to_string()),
+                    ))),
+                    then_block: vec![],
+                    elif_blocks,
+                    else_block: None,
                     span: Span::dummy(),
-                },
-            ],
+                }],
+                span: Span::dummy(),
+            }],
             metadata: AstMetadata {
                 source_file: None,
                 line_count: 1,
@@ -495,7 +490,9 @@ mod tests {
         };
 
         let complexity = gen.analyze_complexity(&ast);
-        assert!(complexity.critical_functions.contains(&"critical_func".to_string()));
+        assert!(complexity
+            .critical_functions
+            .contains(&"critical_func".to_string()));
     }
 
     #[test]
@@ -526,23 +523,19 @@ mod tests {
     fn test_arithmetic_ops_detection() {
         let gen = MutationConfigGenerator::new();
         let ast = BashAst {
-            statements: vec![
-                BashStmt::Function {
-                    name: "math_func".to_string(),
-                    body: vec![
-                        BashStmt::Assignment {
-                            name: "result".to_string(),
-                            value: BashExpr::Arithmetic(Box::new(ArithExpr::Add(
-                                Box::new(ArithExpr::Number(1)),
-                                Box::new(ArithExpr::Number(2)),
-                            ))),
-                            exported: false,
-                            span: Span::dummy(),
-                        },
-                    ],
+            statements: vec![BashStmt::Function {
+                name: "math_func".to_string(),
+                body: vec![BashStmt::Assignment {
+                    name: "result".to_string(),
+                    value: BashExpr::Arithmetic(Box::new(ArithExpr::Add(
+                        Box::new(ArithExpr::Number(1)),
+                        Box::new(ArithExpr::Number(2)),
+                    ))),
+                    exported: false,
                     span: Span::dummy(),
-                },
-            ],
+                }],
+                span: Span::dummy(),
+            }],
             metadata: AstMetadata {
                 source_file: None,
                 line_count: 1,

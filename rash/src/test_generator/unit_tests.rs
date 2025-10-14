@@ -7,9 +7,9 @@
 //!
 //! Target: ≥80% line coverage
 
-use crate::bash_parser::ast::*;
 use super::core::TestGenResult;
 use super::coverage::UncoveredPath;
+use crate::bash_parser::ast::*;
 
 /// Generates unit tests for bash functions
 pub struct UnitTestGenerator;
@@ -46,7 +46,11 @@ impl UnitTestGenerator {
     }
 
     /// Generate tests for a specific function
-    fn generate_function_tests(&self, name: &str, body: &[BashStmt]) -> TestGenResult<Vec<UnitTest>> {
+    fn generate_function_tests(
+        &self,
+        name: &str,
+        body: &[BashStmt],
+    ) -> TestGenResult<Vec<UnitTest>> {
         let mut tests = Vec::new();
 
         // 1. Generate branch coverage tests
@@ -64,14 +68,16 @@ impl UnitTestGenerator {
 
         for stmt in body {
             match stmt {
-                BashStmt::If { elif_blocks, else_block, .. } => {
+                BashStmt::If {
+                    elif_blocks,
+                    else_block,
+                    ..
+                } => {
                     // Test the "then" branch
                     tests.push(UnitTest {
                         name: format!("test_{}_if_then_branch", name),
                         test_fn: format!("{}()", name),
-                        assertions: vec![
-                            Assertion::Comment("Test if-then branch".to_string()),
-                        ],
+                        assertions: vec![Assertion::Comment("Test if-then branch".to_string())],
                     });
 
                     // Test elif branches
@@ -79,9 +85,7 @@ impl UnitTestGenerator {
                         tests.push(UnitTest {
                             name: format!("test_{}_elif_{}_branch", name, i),
                             test_fn: format!("{}()", name),
-                            assertions: vec![
-                                Assertion::Comment(format!("Test elif {} branch", i)),
-                            ],
+                            assertions: vec![Assertion::Comment(format!("Test elif {} branch", i))],
                         });
                     }
 
@@ -90,9 +94,7 @@ impl UnitTestGenerator {
                         tests.push(UnitTest {
                             name: format!("test_{}_else_branch", name),
                             test_fn: format!("{}()", name),
-                            assertions: vec![
-                                Assertion::Comment("Test else branch".to_string()),
-                            ],
+                            assertions: vec![Assertion::Comment("Test else branch".to_string())],
                         });
                     }
                 }
@@ -102,9 +104,9 @@ impl UnitTestGenerator {
                     tests.push(UnitTest {
                         name: format!("test_{}_while_loop", name),
                         test_fn: format!("{}()", name),
-                        assertions: vec![
-                            Assertion::Comment("Test while loop execution".to_string()),
-                        ],
+                        assertions: vec![Assertion::Comment(
+                            "Test while loop execution".to_string(),
+                        )],
                     });
                 }
 
@@ -113,9 +115,7 @@ impl UnitTestGenerator {
                     tests.push(UnitTest {
                         name: format!("test_{}_for_loop", name),
                         test_fn: format!("{}()", name),
-                        assertions: vec![
-                            Assertion::Comment("Test for loop iteration".to_string()),
-                        ],
+                        assertions: vec![Assertion::Comment("Test for loop iteration".to_string())],
                     });
                 }
 
@@ -127,23 +127,26 @@ impl UnitTestGenerator {
     }
 
     /// Generate boundary value tests
-    fn generate_boundary_tests(&self, name: &str, _body: &[BashStmt]) -> TestGenResult<Vec<UnitTest>> {
+    fn generate_boundary_tests(
+        &self,
+        name: &str,
+        _body: &[BashStmt],
+    ) -> TestGenResult<Vec<UnitTest>> {
         vec![
             UnitTest {
                 name: format!("test_{}_boundary_zero", name),
                 test_fn: format!("{}(0)", name),
-                assertions: vec![
-                    Assertion::Comment("Test with zero value".to_string()),
-                ],
+                assertions: vec![Assertion::Comment("Test with zero value".to_string())],
             },
             UnitTest {
                 name: format!("test_{}_boundary_one", name),
                 test_fn: format!("{}(1)", name),
-                assertions: vec![
-                    Assertion::Comment("Test with one value".to_string()),
-                ],
+                assertions: vec![Assertion::Comment("Test with one value".to_string())],
             },
-        ].into_iter().map(Ok).collect()
+        ]
+        .into_iter()
+        .map(Ok)
+        .collect()
     }
 
     /// Generate edge case tests (empty strings, null, max values)
@@ -156,27 +159,23 @@ impl UnitTestGenerator {
                 tests.push(UnitTest {
                     name: format!("test_{}_edge_case_empty_string", name),
                     test_fn: format!("{}(\"\")", name),
-                    assertions: vec![
-                        Assertion::Comment("Test with empty string input".to_string()),
-                    ],
+                    assertions: vec![Assertion::Comment(
+                        "Test with empty string input".to_string(),
+                    )],
                 });
 
                 // Negative number test
                 tests.push(UnitTest {
                     name: format!("test_{}_edge_case_negative", name),
                     test_fn: format!("{}(-1)", name),
-                    assertions: vec![
-                        Assertion::Comment("Test with negative value".to_string()),
-                    ],
+                    assertions: vec![Assertion::Comment("Test with negative value".to_string())],
                 });
 
                 // Large number test
                 tests.push(UnitTest {
                     name: format!("test_{}_edge_case_large_value", name),
                     test_fn: format!("{}(i64::MAX)", name),
-                    assertions: vec![
-                        Assertion::Comment("Test with maximum value".to_string()),
-                    ],
+                    assertions: vec![Assertion::Comment("Test with maximum value".to_string())],
                 });
             }
         }
@@ -195,11 +194,9 @@ impl UnitTestGenerator {
                     tests.push(UnitTest {
                         name: format!("test_{}_error_file_not_found", name),
                         test_fn: format!("{}(\"/nonexistent/file\")", name),
-                        assertions: vec![
-                            Assertion::ShouldPanic {
-                                expected_message: Some("File not found".to_string()),
-                            },
-                        ],
+                        assertions: vec![Assertion::ShouldPanic {
+                            expected_message: Some("File not found".to_string()),
+                        }],
                     });
                 }
 
@@ -208,11 +205,9 @@ impl UnitTestGenerator {
                     tests.push(UnitTest {
                         name: format!("test_{}_error_invalid_input", name),
                         test_fn: format!("{}(\"invalid\")", name),
-                        assertions: vec![
-                            Assertion::ShouldPanic {
-                                expected_message: Some("Invalid input".to_string()),
-                            },
-                        ],
+                        assertions: vec![Assertion::ShouldPanic {
+                            expected_message: Some("Invalid input".to_string()),
+                        }],
                     });
                 }
             }
@@ -222,7 +217,10 @@ impl UnitTestGenerator {
     }
 
     /// Generate targeted tests for specific uncovered paths
-    pub fn generate_targeted_tests(&self, uncovered: &[UncoveredPath]) -> TestGenResult<Vec<UnitTest>> {
+    pub fn generate_targeted_tests(
+        &self,
+        uncovered: &[UncoveredPath],
+    ) -> TestGenResult<Vec<UnitTest>> {
         let mut tests = Vec::new();
 
         for path in uncovered {
@@ -231,27 +229,24 @@ impl UnitTestGenerator {
                     tests.push(UnitTest {
                         name: format!("test_coverage_line_{}", line),
                         test_fn: "target_line()".to_string(),
-                        assertions: vec![
-                            Assertion::Comment(format!("Cover line {}", line)),
-                        ],
+                        assertions: vec![Assertion::Comment(format!("Cover line {}", line))],
                     });
                 }
                 UncoveredPath::Branch(branch) => {
                     tests.push(UnitTest {
                         name: format!("test_coverage_branch_{}", branch.function),
                         test_fn: format!("{}()", branch.function),
-                        assertions: vec![
-                            Assertion::Comment(format!("Cover branch {:?}", branch.branch_type)),
-                        ],
+                        assertions: vec![Assertion::Comment(format!(
+                            "Cover branch {:?}",
+                            branch.branch_type
+                        ))],
                     });
                 }
                 UncoveredPath::Function(func) => {
                     tests.push(UnitTest {
                         name: format!("test_coverage_function_{}", func),
                         test_fn: format!("{}()", func),
-                        assertions: vec![
-                            Assertion::Comment(format!("Cover function {}", func)),
-                        ],
+                        assertions: vec![Assertion::Comment(format!("Cover function {}", func))],
                     });
                 }
             }
@@ -301,7 +296,10 @@ impl UnitTest {
         // Add #[should_panic] if needed
         for assertion in &self.assertions {
             if let Assertion::ShouldPanic { .. } = assertion {
-                if let Assertion::ShouldPanic { expected_message: Some(msg) } = assertion {
+                if let Assertion::ShouldPanic {
+                    expected_message: Some(msg),
+                } = assertion
+                {
                     code.push_str(&format!("#[should_panic(expected = \"{}\")]\n", msg));
                 } else {
                     code.push_str("#[should_panic]\n");
@@ -394,18 +392,14 @@ mod tests {
     fn test_generates_tests_for_function() {
         let gen = UnitTestGenerator::new();
         let ast = BashAst {
-            statements: vec![
-                BashStmt::Function {
-                    name: "test_func".to_string(),
-                    body: vec![
-                        BashStmt::Comment {
-                            text: " Empty function".to_string(),
-                            span: Span::dummy(),
-                        }
-                    ],
+            statements: vec![BashStmt::Function {
+                name: "test_func".to_string(),
+                body: vec![BashStmt::Comment {
+                    text: " Empty function".to_string(),
                     span: Span::dummy(),
-                }
-            ],
+                }],
+                span: Span::dummy(),
+            }],
             metadata: AstMetadata {
                 source_file: None,
                 line_count: 1,

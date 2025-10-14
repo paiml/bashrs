@@ -2,8 +2,8 @@
 //!
 //! Extracts doctests from bash comments and usage examples
 
-use crate::bash_parser::ast::*;
 use super::core::TestGenResult;
+use crate::bash_parser::ast::*;
 
 pub struct DoctestGenerator;
 
@@ -48,7 +48,10 @@ impl DoctestGenerator {
 
                 // Check for "Example: expr => output" pattern
                 if text_lower.contains("example:") {
-                    if let Some(after_example) = text.split_once("example:").or_else(|| text.split_once("Example:")) {
+                    if let Some(after_example) = text
+                        .split_once("example:")
+                        .or_else(|| text.split_once("Example:"))
+                    {
                         let content = after_example.1.trim();
 
                         // Check if it has " => " separator
@@ -67,14 +70,20 @@ impl DoctestGenerator {
 
                 // Check for "Usage: ..." pattern (not else if - can have both)
                 if text_lower.contains("usage:") {
-                    if let Some(after_usage) = text.split_once("usage:").or_else(|| text.split_once("Usage:")) {
+                    if let Some(after_usage) = text
+                        .split_once("usage:")
+                        .or_else(|| text.split_once("Usage:"))
+                    {
                         current_example = Some(after_usage.1.trim().to_string());
                     }
                 }
 
                 // Check for "Output: ..." pattern (not else if - can have both)
                 if text_lower.contains("output:") {
-                    if let Some(after_output) = text.split_once("output:").or_else(|| text.split_once("Output:")) {
+                    if let Some(after_output) = text
+                        .split_once("output:")
+                        .or_else(|| text.split_once("Output:"))
+                    {
                         current_output = Some(after_output.1.trim().to_string());
                     }
                 }
@@ -110,7 +119,9 @@ impl DoctestGenerator {
         let mut examples = Vec::new();
 
         // Analyze function to create meaningful examples
-        let has_return = body.iter().any(|stmt| matches!(stmt, BashStmt::Return { .. }));
+        let has_return = body
+            .iter()
+            .any(|stmt| matches!(stmt, BashStmt::Return { .. }));
 
         // Create a basic example
         examples.push(Doctest {
@@ -141,14 +152,15 @@ impl DoctestGenerator {
 
                     // Check if this comment has an example with => separator
                     if text_lower.contains("example:") {
-                        if let Some(after_example) = text.split_once("example:").or_else(|| text.split_once("Example:")) {
+                        if let Some(after_example) = text
+                            .split_once("example:")
+                            .or_else(|| text.split_once("Example:"))
+                        {
                             let content = after_example.1.trim();
 
                             if let Some((example, output)) = content.split_once("=>") {
-                                pending_examples.push((
-                                    example.trim().to_string(),
-                                    output.trim().to_string(),
-                                ));
+                                pending_examples
+                                    .push((example.trim().to_string(), output.trim().to_string()));
                             }
                         }
                     }
@@ -200,7 +212,10 @@ impl Doctest {
 
         // Add assertion for expected output if meaningful
         if !self.expected_output.starts_with("//") {
-            code.push_str(&format!("/// assert_eq!(result, {});\n", self.expected_output));
+            code.push_str(&format!(
+                "/// assert_eq!(result, {});\n",
+                self.expected_output
+            ));
         } else {
             code.push_str(&format!("/// {}\n", self.expected_output));
         }

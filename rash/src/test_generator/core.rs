@@ -1,11 +1,11 @@
 //! Core Test Generator Infrastructure
 
-use crate::bash_parser::ast::BashAst;
 use super::coverage::CoverageTracker;
-use super::unit_tests::UnitTestGenerator;
-use super::property_tests::PropertyTestGenerator;
 use super::doctests::DoctestGenerator;
 use super::mutation_config::MutationConfigGenerator;
+use super::property_tests::PropertyTestGenerator;
+use super::unit_tests::UnitTestGenerator;
+use crate::bash_parser::ast::BashAst;
 use thiserror::Error;
 
 #[derive(Error, Debug)]
@@ -121,7 +121,10 @@ impl TestGenerator {
 
         // 5. Verify coverage
         self.coverage_tracker.analyze(&suite);
-        if !self.coverage_tracker.is_sufficient(self.options.target_coverage) {
+        if !self
+            .coverage_tracker
+            .is_sufficient(self.options.target_coverage)
+        {
             return Err(TestGenError::CoverageInsufficient {
                 actual: self.coverage_tracker.coverage_percentage(),
                 target: self.options.target_coverage,
@@ -132,14 +135,21 @@ impl TestGenerator {
     }
 
     /// Generate tests until coverage target is met
-    pub fn generate_until_coverage_met(&mut self, ast: &BashAst) -> TestGenResult<GeneratedTestSuite> {
+    pub fn generate_until_coverage_met(
+        &mut self,
+        ast: &BashAst,
+    ) -> TestGenResult<GeneratedTestSuite> {
         let mut suite = self.generate(ast)?;
 
         // Iteratively add tests until coverage is sufficient
         let mut iterations = 0;
         const MAX_ITERATIONS: usize = 10;
 
-        while !self.coverage_tracker.is_sufficient(self.options.target_coverage) && iterations < MAX_ITERATIONS {
+        while !self
+            .coverage_tracker
+            .is_sufficient(self.options.target_coverage)
+            && iterations < MAX_ITERATIONS
+        {
             // Identify uncovered paths
             let uncovered = self.coverage_tracker.uncovered_paths();
 
@@ -152,7 +162,10 @@ impl TestGenerator {
             iterations += 1;
         }
 
-        if !self.coverage_tracker.is_sufficient(self.options.target_coverage) {
+        if !self
+            .coverage_tracker
+            .is_sufficient(self.options.target_coverage)
+        {
             return Err(TestGenError::CoverageInsufficient {
                 actual: self.coverage_tracker.coverage_percentage(),
                 target: self.options.target_coverage,

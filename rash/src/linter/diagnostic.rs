@@ -178,7 +178,10 @@ impl LintResult {
 
     /// Count diagnostics by severity
     pub fn count_by_severity(&self, severity: Severity) -> usize {
-        self.diagnostics.iter().filter(|d| d.severity == severity).count()
+        self.diagnostics
+            .iter()
+            .filter(|d| d.severity == severity)
+            .count()
     }
 
     /// Get the highest severity level present
@@ -244,7 +247,12 @@ mod tests {
     #[test]
     fn test_diagnostic_creation() {
         let span = Span::new(1, 5, 1, 10);
-        let diag = Diagnostic::new("SC2086", Severity::Warning, "Double quote to prevent globbing", span);
+        let diag = Diagnostic::new(
+            "SC2086",
+            Severity::Warning,
+            "Double quote to prevent globbing",
+            span,
+        );
 
         assert_eq!(diag.code, "SC2086");
         assert_eq!(diag.severity, Severity::Warning);

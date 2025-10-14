@@ -307,7 +307,10 @@ fn another_empty() {}
     // Functions should contain the : no-op command
     let empty_func_section = result.split("empty_func() {").nth(1).unwrap();
     let empty_func_body = empty_func_section.split("}").next().unwrap();
-    assert!(empty_func_body.trim().contains(":"), "Empty function should contain : no-op");
+    assert!(
+        empty_func_body.trim().contains(":"),
+        "Empty function should contain : no-op"
+    );
 
     // Write to temporary file and execute
     let temp_dir = TempDir::new().unwrap();
@@ -552,7 +555,10 @@ fn echo(msg: &str) {}
     let config = Config::default();
     let result = transpile(source, config);
 
-    assert!(result.is_ok(), "Should transpile Option::unwrap_or() pattern");
+    assert!(
+        result.is_ok(),
+        "Should transpile Option::unwrap_or() pattern"
+    );
 
     let shell = result.unwrap();
     eprintln!("Generated shell script:\n{}", shell);
@@ -592,7 +598,10 @@ fn echo(msg: &str) {}
     );
 
     // Verify proper quoting
-    assert!(shell.contains("\"$config_path\""), "Should quote expanded variable");
+    assert!(
+        shell.contains("\"$config_path\""),
+        "Should quote expanded variable"
+    );
 }
 
 /// EXP-PARAM-001: RED Phase
@@ -644,10 +653,7 @@ fn echo(msg: &str) {}
     let shell = transpile(source, config).unwrap();
 
     // Should capture exit status with $?
-    assert!(
-        shell.contains("$?"),
-        "Should use $? to capture exit status"
-    );
+    assert!(shell.contains("$?"), "Should use $? to capture exit status");
 
     // Should store in variable
     assert!(
@@ -716,7 +722,10 @@ fn echo(msg: &str) {}
         .output()
         .expect("Failed to execute shell script");
 
-    assert!(output.status.success(), "Script should execute successfully");
+    assert!(
+        output.status.success(),
+        "Script should execute successfully"
+    );
 }
 
 /// P0-POSITIONAL-PARAMETERS: RED Phase
@@ -752,7 +761,10 @@ fn echo(msg: &str) {}
     assert!(shell.contains("\"$first\""), "Should quote variable usage");
 
     // Verify main receives arguments
-    assert!(shell.contains("main \"$@\""), "Should pass all arguments to main");
+    assert!(
+        shell.contains("main \"$@\""),
+        "Should pass all arguments to main"
+    );
 }
 
 /// P0-POSITIONAL-PARAMETERS: RED Phase
@@ -849,7 +861,11 @@ fn cat(file: &str) {}
         eprintln!("Transpilation error: {:?}", e);
     }
 
-    assert!(result.is_ok(), "Should transpile file command: {:?}", result.err());
+    assert!(
+        result.is_ok(),
+        "Should transpile file command: {:?}",
+        result.err()
+    );
 
     let shell = result.unwrap();
     eprintln!("Generated shell script:\n{}", shell);
@@ -886,7 +902,11 @@ fn echo(msg: &str) {}
         eprintln!("Transpilation error: {:?}", e);
     }
 
-    assert!(result.is_ok(), "Should transpile File::open: {:?}", result.err());
+    assert!(
+        result.is_ok(),
+        "Should transpile File::open: {:?}",
+        result.err()
+    );
 
     let shell = result.unwrap();
     eprintln!("Generated shell script:\n{}", shell);
@@ -959,7 +979,10 @@ fn echo(msg: &str) {}
         .output()
         .expect("Failed to execute shell script");
 
-    assert!(output.status.success(), "Script should execute successfully");
+    assert!(
+        output.status.success(),
+        "Script should execute successfully"
+    );
     let stdout = String::from_utf8(output.stdout).unwrap();
     assert!(
         stdout.contains("Hello from file"),
@@ -982,7 +1005,11 @@ fn write_file(path: &str, content: &str) {}
     let config = Config::default();
     let result = transpile(source, config);
 
-    assert!(result.is_ok(), "Should transpile file writing: {:?}", result.err());
+    assert!(
+        result.is_ok(),
+        "Should transpile file writing: {:?}",
+        result.err()
+    );
 
     let shell = result.unwrap();
     eprintln!("Generated shell for output redirection:\n{}", shell);
@@ -1071,14 +1098,14 @@ fn echo(msg: &str) {}
         .output()
         .expect("Failed to execute shell script");
 
-    assert!(output.status.success(), "Script should execute successfully");
+    assert!(
+        output.status.success(),
+        "Script should execute successfully"
+    );
 
     // Verify output goes to stdout
     let stdout = String::from_utf8(output.stdout).unwrap();
-    assert!(
-        stdout.contains("Test output"),
-        "Should output to stdout"
-    );
+    assert!(stdout.contains("Test output"), "Should output to stdout");
 }
 
 /// BUILTIN-005: RED Phase
@@ -1096,7 +1123,11 @@ fn change_dir(path: &str) {}
     let config = Config::default();
     let result = transpile(source, config);
 
-    assert!(result.is_ok(), "Should transpile directory change: {:?}", result.err());
+    assert!(
+        result.is_ok(),
+        "Should transpile directory change: {:?}",
+        result.err()
+    );
 
     let shell = result.unwrap();
     eprintln!("Generated shell for cd command:\n{}", shell);
@@ -1156,7 +1187,10 @@ fn pwd() {}
         .output()
         .expect("Failed to execute shell script");
 
-    assert!(output.status.success(), "Script should execute successfully");
+    assert!(
+        output.status.success(),
+        "Script should execute successfully"
+    );
 }
 
 /// BUILTIN-011: RED Phase
@@ -1174,16 +1208,17 @@ fn pwd() {}
     let config = Config::default();
     let result = transpile(source, config);
 
-    assert!(result.is_ok(), "Should transpile pwd call: {:?}", result.err());
+    assert!(
+        result.is_ok(),
+        "Should transpile pwd call: {:?}",
+        result.err()
+    );
 
     let shell = result.unwrap();
     eprintln!("Generated shell for pwd command:\n{}", shell);
 
     // Verify function is called
-    assert!(
-        shell.contains("pwd"),
-        "Should transpile pwd function"
-    );
+    assert!(shell.contains("pwd"), "Should transpile pwd function");
 }
 
 /// BUILTIN-011: RED Phase - ADVANCED
@@ -1235,7 +1270,10 @@ fn pwd() {}
         .output()
         .expect("Failed to execute shell script");
 
-    assert!(output.status.success(), "Script should execute successfully");
+    assert!(
+        output.status.success(),
+        "Script should execute successfully"
+    );
 }
 
 /// BUILTIN-009: RED Phase
@@ -1253,7 +1291,11 @@ fn exit_with_code(code: i32) {}
     let config = Config::default();
     let result = transpile(source, config);
 
-    assert!(result.is_ok(), "Should transpile exit command: {:?}", result.err());
+    assert!(
+        result.is_ok(),
+        "Should transpile exit command: {:?}",
+        result.err()
+    );
 
     let shell = result.unwrap();
     eprintln!("Generated shell for exit command:\n{}", shell);
@@ -1301,7 +1343,11 @@ fn set_env(name: &str, value: &str) {}
     let config = Config::default();
     let result = transpile(source, config);
 
-    assert!(result.is_ok(), "Should transpile env setting: {:?}", result.err());
+    assert!(
+        result.is_ok(),
+        "Should transpile env setting: {:?}",
+        result.err()
+    );
 
     let shell = result.unwrap();
     eprintln!("Generated shell for export command:\n{}", shell);
@@ -1329,7 +1375,8 @@ fn main() {
 
     // Should generate export command
     assert!(
-        shell.contains("VAR=\"value\"") && (shell.contains("export VAR") || shell.contains("export")),
+        shell.contains("VAR=\"value\"")
+            && (shell.contains("export VAR") || shell.contains("export")),
         "Should convert std::env::set_var to VAR=value; export VAR"
     );
 }
@@ -1409,7 +1456,10 @@ fn get_var(name: &str) {}
         .output()
         .expect("Failed to execute shell script");
 
-    assert!(output.status.success(), "Script should execute successfully");
+    assert!(
+        output.status.success(),
+        "Script should execute successfully"
+    );
 }
 
 /// BUILTIN-016: RED Phase
@@ -1427,7 +1477,11 @@ fn test_file_exists(path: &str) -> bool { true }
     let config = Config::default();
     let result = transpile(source, config);
 
-    assert!(result.is_ok(), "Should transpile test command: {:?}", result.err());
+    assert!(
+        result.is_ok(),
+        "Should transpile test command: {:?}",
+        result.err()
+    );
 
     let shell = result.unwrap();
     eprintln!("Generated shell for test command:\n{}", shell);
@@ -1488,7 +1542,10 @@ fn check_file(path: &str) {}
         .output()
         .expect("Failed to execute shell script");
 
-    assert!(output.status.success(), "Script should execute successfully");
+    assert!(
+        output.status.success(),
+        "Script should execute successfully"
+    );
 }
 
 /// BASH-BUILTIN-005: RED Phase
@@ -1506,7 +1563,11 @@ fn printf_formatted(fmt: &str, args: &str, num: i32) {}
     let config = Config::default();
     let result = transpile(source, config);
 
-    assert!(result.is_ok(), "Should transpile printf call: {:?}", result.err());
+    assert!(
+        result.is_ok(),
+        "Should transpile printf call: {:?}",
+        result.err()
+    );
 
     let shell = result.unwrap();
     eprintln!("Generated shell for printf:\n{}", shell);
@@ -1564,7 +1625,10 @@ fn print_message(msg: &str) {}
         .output()
         .expect("Failed to execute shell script");
 
-    assert!(output.status.success(), "Script should execute successfully");
+    assert!(
+        output.status.success(),
+        "Script should execute successfully"
+    );
 }
 
 /// VAR-001: RED Phase
@@ -1582,7 +1646,11 @@ fn use_home() {}
     let config = Config::default();
     let result = transpile(source, config);
 
-    assert!(result.is_ok(), "Should transpile HOME access: {:?}", result.err());
+    assert!(
+        result.is_ok(),
+        "Should transpile HOME access: {:?}",
+        result.err()
+    );
 
     let shell = result.unwrap();
     eprintln!("Generated shell for HOME variable:\n{}", shell);
@@ -1642,7 +1710,10 @@ fn use_home_dir() {}
         .output()
         .expect("Failed to execute shell script");
 
-    assert!(output.status.success(), "Script should execute successfully");
+    assert!(
+        output.status.success(),
+        "Script should execute successfully"
+    );
 }
 
 /// VAR-002: RED Phase
@@ -1660,7 +1731,11 @@ fn use_path() {}
     let config = Config::default();
     let result = transpile(source, config);
 
-    assert!(result.is_ok(), "Should transpile PATH access: {:?}", result.err());
+    assert!(
+        result.is_ok(),
+        "Should transpile PATH access: {:?}",
+        result.err()
+    );
 
     let shell = result.unwrap();
     eprintln!("Generated shell for PATH variable:\n{}", shell);
@@ -1695,10 +1770,7 @@ fn main() {
     );
 
     // Should export the modified PATH
-    assert!(
-        shell.contains("export PATH"),
-        "Should export modified PATH"
-    );
+    assert!(shell.contains("export PATH"), "Should export modified PATH");
 }
 
 /// VAR-002: Baseline - Execution
@@ -1725,7 +1797,10 @@ fn use_path() {}
         .output()
         .expect("Failed to execute shell script");
 
-    assert!(output.status.success(), "Script should execute successfully");
+    assert!(
+        output.status.success(),
+        "Script should execute successfully"
+    );
 }
 
 /// Combined execution test for all 4 new validations
@@ -1758,7 +1833,10 @@ fn use_path() {}
         .output()
         .expect("Failed to execute shell script");
 
-    assert!(output.status.success(), "Script should execute successfully");
+    assert!(
+        output.status.success(),
+        "Script should execute successfully"
+    );
 }
 
 /// EXP-PARAM-005: RED Phase
@@ -1776,7 +1854,11 @@ fn length_of(s: &str) {}
     let config = Config::default();
     let result = transpile(source, config);
 
-    assert!(result.is_ok(), "Should transpile string length: {:?}", result.err());
+    assert!(
+        result.is_ok(),
+        "Should transpile string length: {:?}",
+        result.err()
+    );
 
     let shell = result.unwrap();
     eprintln!("Generated shell for string length:\n{}", shell);
@@ -1837,7 +1919,10 @@ fn get_length(s: &str) {}
         .output()
         .expect("Failed to execute shell script");
 
-    assert!(output.status.success(), "Script should execute successfully");
+    assert!(
+        output.status.success(),
+        "Script should execute successfully"
+    );
 }
 
 /// EXP-PARAM-006: RED Phase
@@ -1855,7 +1940,11 @@ fn remove_ext(filename: &str) {}
     let config = Config::default();
     let result = transpile(source, config);
 
-    assert!(result.is_ok(), "Should transpile suffix removal: {:?}", result.err());
+    assert!(
+        result.is_ok(),
+        "Should transpile suffix removal: {:?}",
+        result.err()
+    );
 
     let shell = result.unwrap();
     eprintln!("Generated shell for remove suffix:\n{}", shell);
@@ -1916,7 +2005,10 @@ fn strip_ext(filename: &str) {}
         .output()
         .expect("Failed to execute shell script");
 
-    assert!(output.status.success(), "Script should execute successfully");
+    assert!(
+        output.status.success(),
+        "Script should execute successfully"
+    );
 }
 
 /// EXP-PARAM-007: RED Phase
@@ -1934,7 +2026,11 @@ fn strip_dir(path: &str) {}
     let config = Config::default();
     let result = transpile(source, config);
 
-    assert!(result.is_ok(), "Should transpile prefix removal: {:?}", result.err());
+    assert!(
+        result.is_ok(),
+        "Should transpile prefix removal: {:?}",
+        result.err()
+    );
 
     let shell = result.unwrap();
     eprintln!("Generated shell for remove prefix:\n{}", shell);
@@ -1995,7 +2091,10 @@ fn strip_dir(path: &str) {}
         .output()
         .expect("Failed to execute shell script");
 
-    assert!(output.status.success(), "Script should execute successfully");
+    assert!(
+        output.status.success(),
+        "Script should execute successfully"
+    );
 }
 
 /// REDIR-003: RED Phase
@@ -2013,7 +2112,11 @@ fn redirect_all(file: &str) {}
     let config = Config::default();
     let result = transpile(source, config);
 
-    assert!(result.is_ok(), "Should transpile redirection: {:?}", result.err());
+    assert!(
+        result.is_ok(),
+        "Should transpile redirection: {:?}",
+        result.err()
+    );
 
     let shell = result.unwrap();
     eprintln!("Generated shell for combined redirection:\n{}", shell);
@@ -2073,7 +2176,10 @@ fn capture_output() {}
         .output()
         .expect("Failed to execute shell script");
 
-    assert!(output.status.success(), "Script should execute successfully");
+    assert!(
+        output.status.success(),
+        "Script should execute successfully"
+    );
 }
 
 /// Combined execution test for all 4 new validations
@@ -2106,7 +2212,10 @@ fn redirect_both(file: &str) {}
         .output()
         .expect("Failed to execute shell script");
 
-    assert!(output.status.success(), "Script should execute successfully");
+    assert!(
+        output.status.success(),
+        "Script should execute successfully"
+    );
 }
 
 // ============================================================================
@@ -2129,7 +2238,11 @@ fn print_heredoc() {}
     let config = Config::default();
     let result = transpile(source, config);
 
-    assert!(result.is_ok(), "Should transpile heredoc function: {:?}", result.err());
+    assert!(
+        result.is_ok(),
+        "Should transpile heredoc function: {:?}",
+        result.err()
+    );
 
     let shell = result.unwrap();
     eprintln!("Generated shell for heredoc:\n{}", shell);
@@ -2184,7 +2297,8 @@ fn print_multiline() {}
 
     // Write to temp file and verify it's valid shell
     let mut file = NamedTempFile::new().expect("Failed to create temp file");
-    file.write_all(shell.as_bytes()).expect("Failed to write shell script");
+    file.write_all(shell.as_bytes())
+        .expect("Failed to write shell script");
 
     let output = Command::new("sh")
         .arg(file.path())
@@ -2219,7 +2333,11 @@ fn use_fixed_id() {}
     let config = Config::default();
     let result = transpile(source, config);
 
-    assert!(result.is_ok(), "Should transpile fixed ID function: {:?}", result.err());
+    assert!(
+        result.is_ok(),
+        "Should transpile fixed ID function: {:?}",
+        result.err()
+    );
 
     let shell = result.unwrap();
     eprintln!("Generated shell for fixed ID:\n{}", shell);
@@ -2277,7 +2395,8 @@ fn use_session_id(id: &str) {}
     let shell = transpile(source, config).unwrap();
 
     let mut file = NamedTempFile::new().expect("Failed to create temp file");
-    file.write_all(shell.as_bytes()).expect("Failed to write shell script");
+    file.write_all(shell.as_bytes())
+        .expect("Failed to write shell script");
 
     let output = Command::new("sh")
         .arg(file.path())
@@ -2309,7 +2428,11 @@ fn run_sync() {}
     let config = Config::default();
     let result = transpile(source, config);
 
-    assert!(result.is_ok(), "Should transpile sync function: {:?}", result.err());
+    assert!(
+        result.is_ok(),
+        "Should transpile sync function: {:?}",
+        result.err()
+    );
 
     let shell = result.unwrap();
     eprintln!("Generated shell for sync execution:\n{}", shell);
@@ -2370,7 +2493,8 @@ fn task2() {}
     let shell = transpile(source, config).unwrap();
 
     let mut file = NamedTempFile::new().expect("Failed to create temp file");
-    file.write_all(shell.as_bytes()).expect("Failed to write shell script");
+    file.write_all(shell.as_bytes())
+        .expect("Failed to write shell script");
 
     let output = Command::new("sh")
         .arg(file.path())
@@ -2402,7 +2526,11 @@ fn use_seed(seed: i32) {}
     let config = Config::default();
     let result = transpile(source, config);
 
-    assert!(result.is_ok(), "Should transpile seed function: {:?}", result.err());
+    assert!(
+        result.is_ok(),
+        "Should transpile seed function: {:?}",
+        result.err()
+    );
 
     let shell = result.unwrap();
     eprintln!("Generated shell for deterministic seed:\n{}", shell);
@@ -2458,7 +2586,8 @@ fn use_value(val: i32) {}
     let shell = transpile(source, config).unwrap();
 
     let mut file = NamedTempFile::new().expect("Failed to create temp file");
-    file.write_all(shell.as_bytes()).expect("Failed to write shell script");
+    file.write_all(shell.as_bytes())
+        .expect("Failed to write shell script");
 
     let output = Command::new("sh")
         .arg(file.path())
@@ -2504,12 +2633,19 @@ fn use_seed(seed: i32) {}
     let main_body = main_section.split("}").next().unwrap_or("");
     assert!(!main_body.contains("$$"), "Main should NOT contain $$");
     assert!(!main_body.contains("$!"), "Main should NOT contain $!");
-    assert!(!main_body.contains("$RANDOM"), "Main should NOT contain $RANDOM");
-    assert!(!main_body.contains(" &"), "Main should NOT contain background &");
+    assert!(
+        !main_body.contains("$RANDOM"),
+        "Main should NOT contain $RANDOM"
+    );
+    assert!(
+        !main_body.contains(" &"),
+        "Main should NOT contain background &"
+    );
 
     // Write and execute
     let mut file = NamedTempFile::new().expect("Failed to create temp file");
-    file.write_all(shell.as_bytes()).expect("Failed to write shell script");
+    file.write_all(shell.as_bytes())
+        .expect("Failed to write shell script");
 
     let output = Command::new("sh")
         .arg(file.path())
@@ -2541,7 +2677,11 @@ fn get_status() -> i32 { 0 }
     let config = Config::default();
     let result = transpile(source, config);
 
-    assert!(result.is_ok(), "Should transpile exit status function: {:?}", result.err());
+    assert!(
+        result.is_ok(),
+        "Should transpile exit status function: {:?}",
+        result.err()
+    );
 
     let shell = result.unwrap();
     eprintln!("Generated shell for exit status:\n{}", shell);
@@ -2574,10 +2714,7 @@ fn check_status(code: i32) {}
     let shell = transpile(source, config).unwrap();
 
     // Should capture $? after command
-    assert!(
-        shell.contains("$?"),
-        "Should use $? to capture exit status"
-    );
+    assert!(shell.contains("$?"), "Should use $? to capture exit status");
 }
 
 /// PARAM-SPEC-002: RED Phase - EXECUTION
@@ -2596,7 +2733,8 @@ fn check_result(code: i32) {}
     let shell = transpile(source, config).unwrap();
 
     let mut file = NamedTempFile::new().expect("Failed to create temp file");
-    file.write_all(shell.as_bytes()).expect("Failed to write shell script");
+    file.write_all(shell.as_bytes())
+        .expect("Failed to write shell script");
 
     let output = Command::new("sh")
         .arg(file.path())
@@ -2628,7 +2766,11 @@ fn pass_string(data: &str) {}
     let config = Config::default();
     let result = transpile(source, config);
 
-    assert!(result.is_ok(), "Should transpile herestring function: {:?}", result.err());
+    assert!(
+        result.is_ok(),
+        "Should transpile herestring function: {:?}",
+        result.err()
+    );
 
     let shell = result.unwrap();
     eprintln!("Generated shell for herestring:\n{}", shell);
@@ -2680,7 +2822,8 @@ fn send_data(msg: &str) {}
     let shell = transpile(source, config).unwrap();
 
     let mut file = NamedTempFile::new().expect("Failed to create temp file");
-    file.write_all(shell.as_bytes()).expect("Failed to write shell script");
+    file.write_all(shell.as_bytes())
+        .expect("Failed to write shell script");
 
     let output = Command::new("sh")
         .arg(file.path())
@@ -2712,7 +2855,11 @@ fn use_fixed_time(duration: i32) {}
     let config = Config::default();
     let result = transpile(source, config);
 
-    assert!(result.is_ok(), "Should transpile fixed time function: {:?}", result.err());
+    assert!(
+        result.is_ok(),
+        "Should transpile fixed time function: {:?}",
+        result.err()
+    );
 
     let shell = result.unwrap();
     eprintln!("Generated shell for fixed time:\n{}", shell);
@@ -2774,7 +2921,8 @@ fn wait_fixed(seconds: i32) {}
     let shell = transpile(source, config).unwrap();
 
     let mut file = NamedTempFile::new().expect("Failed to create temp file");
-    file.write_all(shell.as_bytes()).expect("Failed to write shell script");
+    file.write_all(shell.as_bytes())
+        .expect("Failed to write shell script");
 
     let output = Command::new("sh")
         .arg(file.path())
@@ -2806,7 +2954,11 @@ fn run_foreground() {}
     let config = Config::default();
     let result = transpile(source, config);
 
-    assert!(result.is_ok(), "Should transpile foreground function: {:?}", result.err());
+    assert!(
+        result.is_ok(),
+        "Should transpile foreground function: {:?}",
+        result.err()
+    );
 
     let shell = result.unwrap();
     eprintln!("Generated shell for foreground execution:\n{}", shell);
@@ -2871,7 +3023,8 @@ fn task_three() {}
     let shell = transpile(source, config).unwrap();
 
     let mut file = NamedTempFile::new().expect("Failed to create temp file");
-    file.write_all(shell.as_bytes()).expect("Failed to write shell script");
+    file.write_all(shell.as_bytes())
+        .expect("Failed to write shell script");
 
     let output = Command::new("sh")
         .arg(file.path())
@@ -2909,18 +3062,31 @@ fn run_foreground() {}
     // Verify all functions are called
     assert!(shell.contains("get_status"), "Should call get_status");
     assert!(shell.contains("pass_string"), "Should call pass_string");
-    assert!(shell.contains("use_fixed_time"), "Should call use_fixed_time");
-    assert!(shell.contains("run_foreground"), "Should call run_foreground");
+    assert!(
+        shell.contains("use_fixed_time"),
+        "Should call use_fixed_time"
+    );
+    assert!(
+        shell.contains("run_foreground"),
+        "Should call run_foreground"
+    );
 
     // Verify NO non-deterministic constructs in main function
     let main_section = shell.split("main() {").nth(1).unwrap_or("");
     let main_body = main_section.split("}").next().unwrap_or("");
-    assert!(!main_body.contains("$SECONDS"), "Main should NOT contain $SECONDS");
-    assert!(!main_body.contains(" &"), "Main should NOT contain background &");
+    assert!(
+        !main_body.contains("$SECONDS"),
+        "Main should NOT contain $SECONDS"
+    );
+    assert!(
+        !main_body.contains(" &"),
+        "Main should NOT contain background &"
+    );
 
     // Write and execute
     let mut file = NamedTempFile::new().expect("Failed to create temp file");
-    file.write_all(shell.as_bytes()).expect("Failed to write shell script");
+    file.write_all(shell.as_bytes())
+        .expect("Failed to write shell script");
 
     let output = Command::new("sh")
         .arg(file.path())

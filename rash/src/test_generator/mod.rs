@@ -9,15 +9,15 @@
 //! Targets: ≥80% coverage, ≥85% mutation score
 
 pub mod core;
-pub mod unit_tests;
-pub mod property_tests;
+pub mod coverage;
 pub mod doctests;
 pub mod mutation_config;
-pub mod coverage;
+pub mod property_tests;
+pub mod unit_tests;
 
-pub use core::{TestGenerator, TestGenOptions, TestGenError, TestGenResult};
-pub use unit_tests::{UnitTestGenerator, UnitTest, Assertion};
-pub use property_tests::{PropertyTestGenerator, PropertyTest, Property};
-pub use doctests::{DoctestGenerator, Doctest};
-pub use mutation_config::{MutationConfigGenerator, MutationConfig};
+pub use core::{TestGenError, TestGenOptions, TestGenResult, TestGenerator};
 pub use coverage::{CoverageTracker, QualityReport};
+pub use doctests::{Doctest, DoctestGenerator};
+pub use mutation_config::{MutationConfig, MutationConfigGenerator};
+pub use property_tests::{Property, PropertyTest, PropertyTestGenerator};
+pub use unit_tests::{Assertion, UnitTest, UnitTestGenerator};

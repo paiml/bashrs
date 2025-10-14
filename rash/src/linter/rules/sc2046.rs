@@ -31,7 +31,9 @@ pub fn check(source: &str) -> LintResult {
         for cap in cmd_sub_pattern.captures_iter(line) {
             // Find the actual $( position (not including 'pre' capture)
             let cmd_match = cap.name("cmd").unwrap();
-            let dollar_paren_pos = line[..cmd_match.start()].rfind("$(").unwrap_or(cmd_match.start());
+            let dollar_paren_pos = line[..cmd_match.start()]
+                .rfind("$(")
+                .unwrap_or(cmd_match.start());
 
             let col = dollar_paren_pos + 1; // 1-indexed
             let end_col = cmd_match.end() + 2; // +1 for ) and +1 for 1-indexing
@@ -60,7 +62,9 @@ pub fn check(source: &str) -> LintResult {
         for cap in backtick_pattern.captures_iter(line) {
             // Find the actual backtick position (not including 'pre' capture)
             let cmd_match = cap.name("cmd").unwrap();
-            let backtick_pos = line[..cmd_match.start()].rfind('`').unwrap_or(cmd_match.start());
+            let backtick_pos = line[..cmd_match.start()]
+                .rfind('`')
+                .unwrap_or(cmd_match.start());
 
             let col = backtick_pos + 1; // 1-indexed
             let end_col = cmd_match.end() + 2; // +1 for closing ` and +1 for 1-indexing
@@ -104,7 +108,10 @@ mod tests {
         let result = check(bash_code);
 
         assert!(result.diagnostics[0].fix.is_some());
-        assert_eq!(result.diagnostics[0].fix.as_ref().unwrap().replacement, "\"$(ls)\"");
+        assert_eq!(
+            result.diagnostics[0].fix.as_ref().unwrap().replacement,
+            "\"$(ls)\""
+        );
     }
 
     #[test]
@@ -123,7 +130,10 @@ mod tests {
         let result = check(bash_code);
 
         assert!(result.diagnostics[0].fix.is_some());
-        assert_eq!(result.diagnostics[0].fix.as_ref().unwrap().replacement, "\"$(ls)\"");
+        assert_eq!(
+            result.diagnostics[0].fix.as_ref().unwrap().replacement,
+            "\"$(ls)\""
+        );
     }
 
     #[test]

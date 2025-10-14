@@ -384,13 +384,14 @@ impl Purifier {
         match arith {
             ArithExpr::Variable(name) => {
                 if self.non_deterministic_vars.contains(name)
-                    && self.options.remove_non_deterministic {
-                        self.report.determinism_fixes.push(format!(
-                            "Removed non-deterministic variable in arithmetic: {}",
-                            name
-                        ));
-                        return Ok(ArithExpr::Number(0));
-                    }
+                    && self.options.remove_non_deterministic
+                {
+                    self.report.determinism_fixes.push(format!(
+                        "Removed non-deterministic variable in arithmetic: {}",
+                        name
+                    ));
+                    return Ok(ArithExpr::Number(0));
+                }
                 Ok(arith.clone())
             }
 
