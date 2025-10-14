@@ -76,14 +76,15 @@ releases:
 
 current_metrics:
   tests:
-    total: 824
-    passing: 824
+    total: 838
+    passing: 838
     pass_rate: "100%"
     ignored: 42
     property_tests: 52
     property_cases: "~26,000+"
     integration_tests: 4
     sprint_27a_tests: 10
+    sprint_27b_tests: 12
 
   mutation_testing:
     is_string_value_kill_rate: "100% (3/3)"
@@ -342,6 +343,9 @@ sprint_history:
   - sprint: 27a
     focus: "Environment variables support"
     results: "env() and env_var_or() functions, 10 new tests, 824 total passing"
+  - sprint: 27b
+    focus: "Command-line arguments support"
+    results: "arg(), args(), arg_count() functions, 12 new tests, 838 total passing"
 
 project_goals:
   critical_invariants:
@@ -412,14 +416,60 @@ quality_achievements:
     - "CI/CD coverage job (two-phase LLVM pattern)"
 
 current_sprint:
-  sprint_27b:
-    name: "Sprint 27b - Command-Line Arguments (NEXT)"
+  sprint_27c:
+    name: "Sprint 27c - Exit Code Handling (NEXT)"
     status: "pending"
     priority: "P1_HIGH"
-    duration: "2-3 hours"
-    description: "Implement $1, $2, $@ support for command-line arguments"
+    duration: "1-2 hours"
+    description: "Implement $? support for exit code handling"
 
 previous_sprint:
+  sprint_27b:
+    name: "Sprint 27b - Command-Line Arguments"
+    status: "complete"
+    priority: "P1_HIGH"
+    duration: "2-3 hours"
+    actual_duration: "~2.5 hours (RED + GREEN phases)"
+    philosophy: "自働化 (Jidoka) - Build quality in through EXTREME TDD"
+    parent_sprint: "Sprint 27 - Core Shell Features Enhancement"
+    achievement: "COMMAND-LINE ARGUMENTS IMPLEMENTED"
+
+    scope:
+      focus: "Command-line argument access"
+      completed:
+        - "arg(position) stdlib function"
+        - "args() stdlib function (all arguments)"
+        - "arg_count() stdlib function"
+        - "Safe $1, $2, $@, $# syntax generation"
+        - "Position validation (must be >= 1)"
+      deferred:
+        - "Exit code handling ($?) - Sprint 27c"
+        - "Subshell support - Sprint 27d"
+        - "Pipe operator support - Sprint 27e"
+
+    results:
+      tests_passing: "838/838 (100%)"
+      new_tests_added: 12
+      phases_complete: "RED + GREEN"
+      refactor_phase: "optional"
+      files_modified: 6
+      lines_changed: "+223/-17"
+
+    implementation:
+      - "IR: Added ShellValue::Arg and ShellValue::ArgCount variants"
+      - "Stdlib: Registered arg/args/arg_count functions"
+      - "Converter: Added AST→IR transformation with position validation"
+      - "Emitter: Generates properly quoted $1, $@, $# shell syntax"
+
+    quality:
+      test_errors: 0
+      clippy_warnings: 0
+      security: "Position validation prevents $0 confusion (position >= 1)"
+      notes: "Zero errors during implementation (improvement over Sprint 27a)"
+
+    specification: "docs/specifications/SPRINT_27B.md"
+    completion_report: ".quality/sprint27b-complete.md"
+
   sprint_27a:
     name: "Sprint 27a - Environment Variables"
     status: "complete"
@@ -465,19 +515,58 @@ previous_sprint:
     specification: "docs/specifications/SPRINT_27A.md"
     completion_report: ".quality/sprint27a-red-complete.md"
 
-next_priorities:
-  option_1:
-    name: "Sprint 27b: Command-Line Arguments"
+  sprint_27b:
+    name: "Sprint 27b - Command-Line Arguments"
+    status: "complete"
     priority: "P1_HIGH"
     duration: "2-3 hours"
-    description: "Implement $1, $2, $@ support"
-    depends_on: "Sprint 27a complete"
+    actual_duration: "~2.5 hours (RED + GREEN phases)"
+    philosophy: "自働化 (Jidoka) - Build quality in through EXTREME TDD"
+    parent_sprint: "Sprint 27 - Core Shell Features Enhancement"
+    achievement: "COMMAND-LINE ARGUMENTS IMPLEMENTED"
 
-  option_2:
+    scope:
+      focus: "Command-line argument access"
+      completed:
+        - "arg(position) stdlib function"
+        - "args() stdlib function (all arguments)"
+        - "arg_count() stdlib function"
+        - "Safe $1, $2, $@, $# syntax generation"
+        - "Position validation (must be >= 1)"
+      deferred:
+        - "Exit code handling ($?) - Sprint 27c"
+        - "Subshell support - Sprint 27d"
+        - "Pipe operator support - Sprint 27e"
+
+    results:
+      tests_passing: "838/838 (100%)"
+      new_tests_added: 12
+      phases_complete: "RED + GREEN"
+      refactor_phase: "optional"
+      files_modified: 6
+      lines_changed: "+223/-17"
+
+    implementation:
+      - "IR: Added ShellValue::Arg and ShellValue::ArgCount variants"
+      - "Stdlib: Registered arg/args/arg_count functions"
+      - "Converter: Added AST→IR transformation with position validation"
+      - "Emitter: Generates properly quoted $1, $@, $# shell syntax"
+
+    quality:
+      test_errors: 0
+      clippy_warnings: 0
+      security: "Position validation prevents $0 confusion (position >= 1)"
+      notes: "Zero errors during implementation (improvement over Sprint 27a)"
+
+    specification: "docs/specifications/SPRINT_27B.md"
+    completion_report: ".quality/sprint27b-complete.md"
+
+next_priorities:
+  option_1:
     name: "Sprint 27c: Exit Code Handling"
     priority: "P1_HIGH"
     duration: "1-2 hours"
-    description: "Implement $? support"
+    description: "Implement $? support for exit code handling"
     depends_on: "Sprint 27b complete"
 
   option_2:
