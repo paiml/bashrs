@@ -610,19 +610,25 @@ documentation:
 
 next_steps:
   immediate:
-    option: "Execute Sprint 26 (Mutation Testing Excellence)"
-    duration: "5-7 days"
-    description: "Run comprehensive mutation testing to achieve ≥90% kill rate"
+    option: "Continue GNU Bash Manual Validation (RECOMMENDED)"
+    duration: "Ongoing"
+    description: "Execute tasks from BASH-INGESTION-ROADMAP.yaml (35% complete, 15/120 tasks)"
+    methodology: "EXTREME TDD + Mutation Testing + Property Testing"
+    workflow: "RED (write failing test) → GREEN (implement) → REFACTOR → DOCUMENT"
+    current_progress: "35% (15/120 tasks completed)"
+    rationale: "Sprint 29 delivered critical security fixes. Project mature enough for systematic bash validation."
 
   alternative_1:
-    option: "Start feature work (v1.3.0 - Macro Support)"
-    duration: "10+ hours"
-    description: "Implement Rust macro support"
+    option: "Sprint 26 (Full Mutation Testing Excellence)"
+    duration: "5-7 days"
+    description: "Run comprehensive mutation testing to achieve ≥90% kill rate (2323 mutants project-wide)"
+    defer_reason: "Sprint 29 Phase 1 fixed critical security issues. Defer until v2.0.0 release."
 
   alternative_2:
-    option: "Bash Ingestion Roadmap Execution"
-    duration: "Ongoing"
-    description: "Execute tasks from BASH-INGESTION-ROADMAP.yaml"
+    option: "Feature Work (v1.3.0 - Core Shell Features)"
+    duration: "20-30 hours"
+    description: "Positional parameters, parameter expansion, exit status"
+    defer_reason: "Bash manual validation provides more systematic coverage"
 
 project_status:
   overall: "✅ PRODUCTION READY"
