@@ -60,15 +60,16 @@ metrics:
   current:
     version: "1.2.1"
     tests:
-      total: 808
-      passing: 808
+      total: 887
+      passing: 887
       pass_rate: "100%"
       property_tests: 52
       property_cases: "~26,000+"
       integration_tests: 4
-      unit_tests: "~700"
+      unit_tests: "~730"
       linter_tests: 48
       autofix_tests: 8
+      validation_tests: 30
 
     coverage:
       lines: "88.5%"
@@ -94,6 +95,52 @@ metrics:
 
 sprints:
   completed:
+    - id: "SPRINT-29"
+      status: "✅ COMPLETE (Phase 1)"
+      title: "AST Validation Enhancement & Security Fixes"
+      date: "2025-10-15"
+      duration: "5 hours"
+      description: "Enhanced AST validation with identifier safety checks to prevent injection attacks"
+      option_chosen: "Option C - Deep Dive (enhance production code, then test)"
+      achievements:
+        - "Analyzed all validation gaps (570-line analysis document)"
+        - "Added 4 validate_identifier() helper functions"
+        - "Enhanced Pattern/Expr/Stmt/Function validation"
+        - "Prevents null character injection in all identifiers"
+        - "Prevents shell-unsafe characters ($, `, \\) in identifiers"
+        - "Detects empty identifiers and duplicate parameters"
+        - "30 comprehensive validation tests added"
+        - "Test count: 857 → 887 (+30 tests)"
+        - "100% test pass rate maintained"
+        - "1,019 lines of professional documentation"
+      security_improvements:
+        - "Identifier validation (null chars, unsafe chars, empty)"
+        - "Duplicate parameter detection"
+        - "Empty tuple/struct pattern rejection"
+        - "Validation propagation through entire AST"
+      tests_added: 30
+      total_tests: 887
+      deliverables:
+        - "rash/src/ast/restricted.rs (enhanced validation)"
+        - "rash/src/ast/restricted_validation_test.rs (30 tests)"
+        - ".quality/sprint29-validation-gap-analysis.md"
+        - ".quality/sprint29-option-c-progress.md"
+        - ".quality/SPRINT29-FINAL-STATUS.md"
+      phase_completed: "Phase 1 (Critical Security Fixes)"
+      phases_future:
+        - "Phase 2: Expression validation (Array/Index/Try/Block)"
+        - "Phase 3: Nesting depth fixes"
+      mutation_results:
+        baseline_kill_rate: "45.5% (30/66 mutants)"
+        phase1_kill_rate: "~50-59% (estimated)"
+        validation_improvement: "0% → ~83% (validation mutants)"
+      lessons_learned:
+        - "Identifier validation is fundamental security"
+        - "Mutation testing reveals design issues, not just bugs"
+        - "Adding validation code increases mutant count (good!)"
+        - "Focus on security value, not just kill rate percentage"
+      recommendation: "Phase 1 delivered critical security value. Return to Bash manual validation (35% complete). Defer Phase 2-3 until v2.0.0 release."
+
     - id: "SPRINT-26-PREP"
       status: "✅ COMPLETE"
       title: "Sprint 26 Preparation"
