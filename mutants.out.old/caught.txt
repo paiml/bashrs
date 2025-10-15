@@ -1,0 +1,10 @@
+rash/src/bash_parser/lexer.rs:108:9: replace Lexer::tokenize -> Result<Vec<Token>, LexerError> with Ok(vec![])
+rash/src/bash_parser/lexer.rs:121:22: replace == with != in Lexer::tokenize
+rash/src/bash_parser/lexer.rs:137:15: replace == with != in Lexer::next_token
+rash/src/bash_parser/lexer.rs:142:15: replace == with != in Lexer::next_token
+rash/src/bash_parser/lexer.rs:148:15: replace == with != in Lexer::next_token
+rash/src/bash_parser/lexer.rs:153:22: replace || with && in Lexer::next_token
+rash/src/bash_parser/lexer.rs:153:15: replace == with != in Lexer::next_token
+rash/src/bash_parser/lexer.rs:153:28: replace == with != in Lexer::next_token
+rash/src/bash_parser/lexer.rs:163:31: replace || with && in Lexer::next_token
+rash/src/bash_parser/lexer.rs:169:61: replace || with && in Lexer::next_token
