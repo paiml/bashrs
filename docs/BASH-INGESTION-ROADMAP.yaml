@@ -5,14 +5,14 @@ roadmap:
   methodology: "EXTREME TDD (Test-First, RED-GREEN-REFACTOR)"
   reference: "GNU Bash Manual (bash.pdf)"
   status: "IN_PROGRESS"
-  completion: "35%"
+  completion: "36%"
 
   statistics:
     total_tasks: 120
-    completed: 15
+    completed: 16
     partial_support: 27
-    in_progress: 78
-    coverage_percent: 35
+    in_progress: 77
+    coverage_percent: 36
 
 extreme_tdd_workflow:
   description: "Standard workflow for each task"
@@ -61,12 +61,21 @@ chapters:
     tasks:
       - id: "1.1"
         title: "Document bash shebang transformation"
-        status: "pending"
+        status: "completed"
+        version: "v1.3.0"
         input: "#!/bin/bash"
         rust: "fn main() {}"
         purified: "#!/bin/sh"
         test_name: "test_shebang_transformation"
-        notes: "POSIX sh shebang"
+        tests_added:
+          - "test_shebang_transformation (unit test)"
+          - "prop_purified_bash_uses_posix_shebang (property test, 100 cases)"
+          - "prop_purified_bash_preserves_commands (property test, 100 cases)"
+        notes: "POSIX sh shebang always generated in purified output. Verified with EXTREME TDD: RED->GREEN->REFACTOR->PROPERTY TESTING."
+        implementation:
+          module: "rash/src/bash_parser/generators.rs"
+          function: "generate_purified_bash()"
+          lines_of_code: 170
 
       - id: "1.2"
         title: "Document interactive vs script mode"
@@ -1064,6 +1073,12 @@ chapters:
         test_name: "test_history_expansion_removed"
 
 completed_features:
+  - title: "Shebang transformation (#!/bin/bash → #!/bin/sh)"
+    version: "v1.3.0"
+    tasks: ["1.1"]
+    tests: 3
+    methodology: "EXTREME TDD + Property Testing"
+
   - title: "While loops"
     version: "v0.8.0"
     tasks: ["LOOP-002"]
@@ -1198,8 +1213,13 @@ next_steps:
 
 status:
   overall: "IN_PROGRESS"
-  completion_percent: 13
-  completed_tasks: 15
+  completion_percent: 36
+  completed_tasks: 16
   total_tasks: 120
-  methodology: "EXTREME TDD (RED-GREEN-REFACTOR)"
+  methodology: "EXTREME TDD (RED-GREEN-REFACTOR) + Property Testing"
   goal: "100% Bash manual coverage"
+  last_completed:
+    task_id: "1.1"
+    title: "Shebang transformation"
+    version: "v1.3.0"
+    date: "2025-10-15"

@@ -111,3 +111,30 @@ fn test_semantic_analysis_detects_file_operations() {
 
     assert!(!report.effects.file_reads.is_empty());
 }
+
+// BASH MANUAL VALIDATION - Task 1.1: Shebang Transformation
+// EXTREME TDD RED Phase - This test MUST fail first
+
+#[test]
+fn test_shebang_transformation() {
+    // INPUT: Bash script with bash shebang
+    let bash_script = "#!/bin/bash\necho 'Hello'";
+
+    // Parse bash
+    let mut parser = BashParser::new(bash_script).unwrap();
+    let ast = parser.parse().unwrap();
+
+    // Generate purified bash
+    let purified = generators::generate_purified_bash(&ast);
+
+    // ASSERT: Shebang should be transformed to POSIX sh
+    assert!(
+        purified.starts_with("#!/bin/sh"),
+        "Purified bash must use POSIX sh shebang, got: {}",
+        purified.lines().next().unwrap_or("")
+    );
+
+    // PROPERTY: Purified output must be deterministic
+    let purified2 = generators::generate_purified_bash(&ast);
+    assert_eq!(purified, purified2, "Purification must be deterministic");
+}

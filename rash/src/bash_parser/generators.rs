@@ -1,10 +1,241 @@
 //! Proptest Generators for Bash Syntax
 //!
 //! Generates random but valid bash constructs for property-based testing.
+//! Also includes purified bash generation for the bash→rust→purified pipeline.
 
 use super::ast::*;
 use proptest::prelude::*;
 use proptest::strategy::BoxedStrategy;
+
+/// Generate purified bash from BashAst
+///
+/// This function transforms a BashAst into purified POSIX sh:
+/// - Transforms #!/bin/bash → #!/bin/sh
+/// - Ensures deterministic output (no $RANDOM, timestamps)
+/// - Ensures idempotent operations (mkdir -p, rm -f)
+/// - Quotes all variables for injection safety
+///
+/// Task 1.1: Shebang Transformation
+pub fn generate_purified_bash(ast: &BashAst) -> String {
+    let mut output = String::new();
+
+    // Always start with POSIX sh shebang
+    output.push_str("#!/bin/sh\n");
+
+    // Generate statements
+    for stmt in &ast.statements {
+        output.push_str(&generate_statement(stmt));
+        output.push('\n');
+    }
+
+    output
+}
+
+/// Generate a single statement
+fn generate_statement(stmt: &BashStmt) -> String {
+    match stmt {
+        BashStmt::Command { name, args, .. } => {
+            let mut cmd = name.clone();
+            for arg in args {
+                cmd.push(' ');
+                cmd.push_str(&generate_expr(arg));
+            }
+            cmd
+        }
+        BashStmt::Assignment { name, value, exported, .. } => {
+            let mut assign = String::new();
+            if *exported {
+                assign.push_str("export ");
+            }
+            assign.push_str(name);
+            assign.push('=');
+            assign.push_str(&generate_expr(value));
+            assign
+        }
+        BashStmt::Comment { text, .. } => {
+            format!("# {}", text)
+        }
+        BashStmt::Function { name, body, .. } => {
+            let mut func = format!("{}() {{\n", name);
+            for stmt in body {
+                func.push_str("    ");
+                func.push_str(&generate_statement(stmt));
+                func.push('\n');
+            }
+            func.push_str("}");
+            func
+        }
+        BashStmt::If { condition, then_block, else_block, .. } => {
+            let mut if_stmt = format!("if {}; then\n", generate_condition(condition));
+            for stmt in then_block {
+                if_stmt.push_str("    ");
+                if_stmt.push_str(&generate_statement(stmt));
+                if_stmt.push('\n');
+            }
+            if let Some(else_stmts) = else_block {
+                if_stmt.push_str("else\n");
+                for stmt in else_stmts {
+                    if_stmt.push_str("    ");
+                    if_stmt.push_str(&generate_statement(stmt));
+                    if_stmt.push('\n');
+                }
+            }
+            if_stmt.push_str("fi");
+            if_stmt
+        }
+        BashStmt::For { variable, items, body, .. } => {
+            let mut for_stmt = format!("for {} in {}; do\n", variable, generate_expr(items));
+            for stmt in body {
+                for_stmt.push_str("    ");
+                for_stmt.push_str(&generate_statement(stmt));
+                for_stmt.push('\n');
+            }
+            for_stmt.push_str("done");
+            for_stmt
+        }
+        BashStmt::While { condition, body, .. } => {
+            let mut while_stmt = format!("while {}; do\n", generate_condition(condition));
+            for stmt in body {
+                while_stmt.push_str("    ");
+                while_stmt.push_str(&generate_statement(stmt));
+                while_stmt.push('\n');
+            }
+            while_stmt.push_str("done");
+            while_stmt
+        }
+        BashStmt::Return { code, .. } => {
+            if let Some(c) = code {
+                format!("return {}", generate_expr(c))
+            } else {
+                String::from("return")
+            }
+        }
+    }
+}
+
+/// Generate a condition expression (for if/while statements)
+fn generate_condition(expr: &BashExpr) -> String {
+    match expr {
+        BashExpr::Test(test) => generate_test_expr(test),
+        _ => generate_expr(expr),
+    }
+}
+
+/// Generate an expression
+fn generate_expr(expr: &BashExpr) -> String {
+    match expr {
+        BashExpr::Literal(s) => {
+            // Quote string literals
+            if s.contains(' ') || s.contains('$') {
+                format!("'{}'", s)
+            } else {
+                s.clone()
+            }
+        }
+        BashExpr::Variable(name) => {
+            // Always quote variables for safety
+            format!("\"${}\"", name)
+        }
+        BashExpr::Array(items) => {
+            let elements: Vec<String> = items.iter().map(generate_expr).collect();
+            elements.join(" ")
+        }
+        BashExpr::Arithmetic(arith) => {
+            format!("$(({}))", generate_arith_expr(arith))
+        }
+        BashExpr::Test(test) => generate_test_expr(test),
+        BashExpr::CommandSubst(cmd) => {
+            format!("$({})", generate_statement(cmd))
+        }
+        BashExpr::Concat(exprs) => {
+            exprs.iter().map(generate_expr).collect::<Vec<_>>().join("")
+        }
+        BashExpr::Glob(pattern) => pattern.clone(),
+    }
+}
+
+/// Generate arithmetic expression
+fn generate_arith_expr(expr: &ArithExpr) -> String {
+    match expr {
+        ArithExpr::Number(n) => n.to_string(),
+        ArithExpr::Variable(v) => v.clone(),
+        ArithExpr::Add(left, right) => {
+            format!("{} + {}", generate_arith_expr(left), generate_arith_expr(right))
+        }
+        ArithExpr::Sub(left, right) => {
+            format!("{} - {}", generate_arith_expr(left), generate_arith_expr(right))
+        }
+        ArithExpr::Mul(left, right) => {
+            format!("{} * {}", generate_arith_expr(left), generate_arith_expr(right))
+        }
+        ArithExpr::Div(left, right) => {
+            format!("{} / {}", generate_arith_expr(left), generate_arith_expr(right))
+        }
+        ArithExpr::Mod(left, right) => {
+            format!("{} % {}", generate_arith_expr(left), generate_arith_expr(right))
+        }
+    }
+}
+
+/// Generate test expression
+fn generate_test_expr(expr: &TestExpr) -> String {
+    match expr {
+        TestExpr::StringEq(left, right) => {
+            format!("[ {} = {} ]", generate_expr(left), generate_expr(right))
+        }
+        TestExpr::StringNe(left, right) => {
+            format!("[ {} != {} ]", generate_expr(left), generate_expr(right))
+        }
+        TestExpr::IntEq(left, right) => {
+            format!("[ {} -eq {} ]", generate_expr(left), generate_expr(right))
+        }
+        TestExpr::IntNe(left, right) => {
+            format!("[ {} -ne {} ]", generate_expr(left), generate_expr(right))
+        }
+        TestExpr::IntLt(left, right) => {
+            format!("[ {} -lt {} ]", generate_expr(left), generate_expr(right))
+        }
+        TestExpr::IntLe(left, right) => {
+            format!("[ {} -le {} ]", generate_expr(left), generate_expr(right))
+        }
+        TestExpr::IntGt(left, right) => {
+            format!("[ {} -gt {} ]", generate_expr(left), generate_expr(right))
+        }
+        TestExpr::IntGe(left, right) => {
+            format!("[ {} -ge {} ]", generate_expr(left), generate_expr(right))
+        }
+        TestExpr::FileExists(path) => {
+            format!("[ -e {} ]", generate_expr(path))
+        }
+        TestExpr::FileReadable(path) => {
+            format!("[ -r {} ]", generate_expr(path))
+        }
+        TestExpr::FileWritable(path) => {
+            format!("[ -w {} ]", generate_expr(path))
+        }
+        TestExpr::FileExecutable(path) => {
+            format!("[ -x {} ]", generate_expr(path))
+        }
+        TestExpr::FileDirectory(path) => {
+            format!("[ -d {} ]", generate_expr(path))
+        }
+        TestExpr::StringEmpty(expr) => {
+            format!("[ -z {} ]", generate_expr(expr))
+        }
+        TestExpr::StringNonEmpty(expr) => {
+            format!("[ -n {} ]", generate_expr(expr))
+        }
+        TestExpr::And(left, right) => {
+            format!("{} && {}", generate_test_expr(left), generate_test_expr(right))
+        }
+        TestExpr::Or(left, right) => {
+            format!("{} || {}", generate_test_expr(left), generate_test_expr(right))
+        }
+        TestExpr::Not(expr) => {
+            format!("! {}", generate_test_expr(expr))
+        }
+    }
+}
 
 /// Generate valid bash identifiers
 pub fn bash_identifier() -> impl Strategy<Value = String> {

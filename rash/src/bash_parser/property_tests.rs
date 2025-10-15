@@ -85,4 +85,52 @@ proptest! {
 
         prop_assert!(report.effects.env_modifications.contains(&name));
     }
+
+    /// Property: Purified bash always uses POSIX sh shebang
+    /// Task 1.1: Shebang transformation property test
+    #[test]
+    fn prop_purified_bash_uses_posix_shebang(script in bash_script()) {
+        let purified = generate_purified_bash(&script);
+
+        // Property 1: Must start with #!/bin/sh
+        prop_assert!(
+            purified.starts_with("#!/bin/sh"),
+            "Purified bash must use POSIX sh shebang, got: {}",
+            purified.lines().next().unwrap_or("")
+        );
+
+        // Property 3: Must not contain bash-specific shebangs
+        prop_assert!(
+            !purified.contains("#!/bin/bash") && !purified.contains("#!/usr/bin/bash"),
+            "Purified bash must not contain bash-specific shebangs"
+        );
+
+        // Property 2: Must be deterministic (compare after other checks)
+        let purified2 = generate_purified_bash(&script);
+        prop_assert_eq!(purified, purified2, "Purification must be deterministic");
+    }
+
+    /// Property: Purified bash preserves command structure
+    #[test]
+    fn prop_purified_bash_preserves_commands(name in bash_identifier(), arg in bash_string()) {
+        use crate::bash_parser::ast::*;
+
+        let ast = BashAst {
+            statements: vec![BashStmt::Command {
+                name: name.clone(),
+                args: vec![BashExpr::Literal(arg.clone())],
+                span: Span::dummy(),
+            }],
+            metadata: AstMetadata {
+                source_file: None,
+                line_count: 1,
+                parse_time_ms: 0,
+            },
+        };
+
+        let purified = generate_purified_bash(&ast);
+
+        // Command name should be preserved
+        prop_assert!(purified.contains(&name), "Command name '{}' not preserved in: {}", name, purified);
+    }
 }
