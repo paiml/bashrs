@@ -121,6 +121,9 @@ mod tests;
 #[cfg(test)]
 mod visitor_tests;
 
+#[cfg(test)]
+mod restricted_validation_test;
+
 pub use restricted::{Expr, Function, RestrictedAst, Stmt, Type};
 
 use crate::models::{Error, Result};

@@ -96,6 +96,18 @@ pub struct Function {
 
 impl Function {
     pub fn validate(&self) -> Result<(), String> {
+        // Validate function name
+        Self::validate_identifier(&self.name)?;
+
+        // Validate parameter names and check for duplicates
+        let mut param_names = std::collections::HashSet::new();
+        for param in &self.params {
+            Self::validate_identifier(&param.name)?;
+            if !param_names.insert(&param.name) {
+                return Err(format!("Duplicate parameter name: {}", param.name));
+            }
+        }
+
         // Empty body is OK for functions
 
         // Validate all statements
@@ -103,6 +115,20 @@ impl Function {
             stmt.validate()?;
         }
 
+        Ok(())
+    }
+
+    fn validate_identifier(name: &str) -> Result<(), String> {
+        if name.is_empty() {
+            return Err("Identifiers cannot be empty".to_string());
+        }
+        if name.contains('\0') {
+            return Err("Null characters not allowed in identifiers".to_string());
+        }
+        // Check for shell-unsafe characters
+        if name.contains('$') || name.contains('`') || name.contains('\\') {
+            return Err(format!("Unsafe characters in identifier: {}", name));
+        }
         Ok(())
     }
 
@@ -179,7 +205,10 @@ pub enum Stmt {
 impl Stmt {
     pub fn validate(&self) -> Result<(), String> {
         match self {
-            Stmt::Let { value, .. } => value.validate(),
+            Stmt::Let { name, value } => {
+                Self::validate_identifier(name)?;
+                value.validate()
+            }
             Stmt::Expr(expr) => expr.validate(),
             Stmt::Return(Some(expr)) => expr.validate(),
             Stmt::Return(None) => Ok(()),
@@ -202,6 +231,20 @@ impl Stmt {
             } => self.validate_while_stmt(condition, body, *max_iterations),
             Stmt::Break | Stmt::Continue => Ok(()),
         }
+    }
+
+    fn validate_identifier(name: &str) -> Result<(), String> {
+        if name.is_empty() {
+            return Err("Identifiers cannot be empty".to_string());
+        }
+        if name.contains('\0') {
+            return Err("Null characters not allowed in identifiers".to_string());
+        }
+        // Check for shell-unsafe characters
+        if name.contains('$') || name.contains('`') || name.contains('\\') {
+            return Err(format!("Unsafe characters in identifier: {}", name));
+        }
+        Ok(())
     }
 
     fn validate_if_stmt(
@@ -381,8 +424,9 @@ impl Expr {
                 Ok(())
             }
             Expr::Literal(_) => Ok(()),
-            Expr::Variable(_) => Ok(()),
-            Expr::FunctionCall { args, .. } => {
+            Expr::Variable(name) => Self::validate_identifier(name),
+            Expr::FunctionCall { name, args } => {
+                Self::validate_identifier(name)?;
                 for arg in args {
                     arg.validate()?;
                 }
@@ -393,8 +437,9 @@ impl Expr {
                 right.validate()
             }
             Expr::Unary { operand, .. } => operand.validate(),
-            Expr::MethodCall { receiver, args, .. } => {
+            Expr::MethodCall { receiver, method, args } => {
                 receiver.validate()?;
+                Self::validate_identifier(method)?;
                 for arg in args {
                     arg.validate()?;
                 }
@@ -407,6 +452,20 @@ impl Expr {
             // Placeholder for new expression types - TODO: implement properly
             _ => Ok(()), // Array, Index, Try, Block
         }
+    }
+
+    fn validate_identifier(name: &str) -> Result<(), String> {
+        if name.is_empty() {
+            return Err("Identifiers cannot be empty".to_string());
+        }
+        if name.contains('\0') {
+            return Err("Null characters not allowed in identifiers".to_string());
+        }
+        // Check for shell-unsafe characters
+        if name.contains('$') || name.contains('`') || name.contains('\\') {
+            return Err(format!("Unsafe characters in identifier: {}", name));
+        }
+        Ok(())
     }
 
     fn nesting_depth(&self) -> usize {
@@ -525,20 +584,50 @@ pub enum Pattern {
 impl Pattern {
     pub fn validate(&self) -> Result<(), String> {
         match self {
-            Pattern::Literal(_) | Pattern::Variable(_) | Pattern::Wildcard => Ok(()),
+            Pattern::Literal(Literal::Str(s)) => {
+                if s.contains('\0') {
+                    return Err("Null characters not allowed in pattern string literals".to_string());
+                }
+                Ok(())
+            }
+            Pattern::Literal(_) => Ok(()),
+            Pattern::Variable(name) => Self::validate_identifier(name),
+            Pattern::Wildcard => Ok(()),
             Pattern::Tuple(patterns) => {
+                if patterns.is_empty() {
+                    return Err("Empty tuple patterns not allowed".to_string());
+                }
                 for pattern in patterns {
                     pattern.validate()?;
                 }
                 Ok(())
             }
-            Pattern::Struct { fields, .. } => {
-                for (_, pattern) in fields {
+            Pattern::Struct { name, fields } => {
+                Self::validate_identifier(name)?;
+                if fields.is_empty() {
+                    return Err("Empty struct patterns not allowed".to_string());
+                }
+                for (field_name, pattern) in fields {
+                    Self::validate_identifier(field_name)?;
                     pattern.validate()?;
                 }
                 Ok(())
             }
         }
+    }
+
+    fn validate_identifier(name: &str) -> Result<(), String> {
+        if name.is_empty() {
+            return Err("Identifiers cannot be empty".to_string());
+        }
+        if name.contains('\0') {
+            return Err("Null characters not allowed in identifiers".to_string());
+        }
+        // Check for shell-unsafe characters
+        if name.contains('$') || name.contains('`') || name.contains('\\') {
+            return Err(format!("Unsafe characters in identifier: {}", name));
+        }
+        Ok(())
     }
 
     pub fn binds_variable(&self, name: &str) -> bool {
