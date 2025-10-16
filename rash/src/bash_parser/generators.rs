@@ -103,12 +103,99 @@ fn generate_statement(stmt: &BashStmt) -> String {
             while_stmt.push_str("done");
             while_stmt
         }
+        BashStmt::Until { condition, body, .. } => {
+            // Transform until loop to while loop with negated condition
+            // until [ $i -gt 5 ] → while [ ! "$i" -gt 5 ]
+            let negated_condition = negate_condition(condition);
+            let mut while_stmt = format!("while {}; do\n", negated_condition);
+            for stmt in body {
+                while_stmt.push_str("    ");
+                while_stmt.push_str(&generate_statement(stmt));
+                while_stmt.push('\n');
+            }
+            while_stmt.push_str("done");
+            while_stmt
+        }
         BashStmt::Return { code, .. } => {
             if let Some(c) = code {
                 format!("return {}", generate_expr(c))
             } else {
                 String::from("return")
             }
+        }
+    }
+}
+
+/// Negate a condition for until → while transformation
+fn negate_condition(condition: &BashExpr) -> String {
+    match condition {
+        BashExpr::Test(test) => {
+            // Wrap the test in negation
+            format!("[ ! {} ]", generate_test_condition(test))
+        }
+        _ => {
+            // For other expressions, use ! prefix
+            format!("! {}", generate_condition(condition))
+        }
+    }
+}
+
+/// Generate the inner part of a test condition (without brackets)
+fn generate_test_condition(expr: &TestExpr) -> String {
+    match expr {
+        TestExpr::StringEq(left, right) => {
+            format!("{} = {}", generate_expr(left), generate_expr(right))
+        }
+        TestExpr::StringNe(left, right) => {
+            format!("{} != {}", generate_expr(left), generate_expr(right))
+        }
+        TestExpr::IntEq(left, right) => {
+            format!("{} -eq {}", generate_expr(left), generate_expr(right))
+        }
+        TestExpr::IntNe(left, right) => {
+            format!("{} -ne {}", generate_expr(left), generate_expr(right))
+        }
+        TestExpr::IntLt(left, right) => {
+            format!("{} -lt {}", generate_expr(left), generate_expr(right))
+        }
+        TestExpr::IntLe(left, right) => {
+            format!("{} -le {}", generate_expr(left), generate_expr(right))
+        }
+        TestExpr::IntGt(left, right) => {
+            format!("{} -gt {}", generate_expr(left), generate_expr(right))
+        }
+        TestExpr::IntGe(left, right) => {
+            format!("{} -ge {}", generate_expr(left), generate_expr(right))
+        }
+        TestExpr::FileExists(path) => {
+            format!("-e {}", generate_expr(path))
+        }
+        TestExpr::FileReadable(path) => {
+            format!("-r {}", generate_expr(path))
+        }
+        TestExpr::FileWritable(path) => {
+            format!("-w {}", generate_expr(path))
+        }
+        TestExpr::FileExecutable(path) => {
+            format!("-x {}", generate_expr(path))
+        }
+        TestExpr::FileDirectory(path) => {
+            format!("-d {}", generate_expr(path))
+        }
+        TestExpr::StringEmpty(expr) => {
+            format!("-z {}", generate_expr(expr))
+        }
+        TestExpr::StringNonEmpty(expr) => {
+            format!("-n {}", generate_expr(expr))
+        }
+        TestExpr::And(left, right) => {
+            format!("{} && {}", generate_test_expr(left), generate_test_expr(right))
+        }
+        TestExpr::Or(left, right) => {
+            format!("{} || {}", generate_test_expr(left), generate_test_expr(right))
+        }
+        TestExpr::Not(expr) => {
+            format!("! {}", generate_test_expr(expr))
         }
     }
 }
@@ -151,6 +238,50 @@ fn generate_expr(expr: &BashExpr) -> String {
             exprs.iter().map(generate_expr).collect::<Vec<_>>().join("")
         }
         BashExpr::Glob(pattern) => pattern.clone(),
+        BashExpr::DefaultValue { variable, default } => {
+            // Generate ${VAR:-default} syntax
+            let default_val = generate_expr(default);
+            format!("\"${{{}:-{}}}\"", variable, default_val.trim_matches('"'))
+        }
+        BashExpr::AssignDefault { variable, default } => {
+            // Generate ${VAR:=default} syntax
+            let default_val = generate_expr(default);
+            format!("\"${{{}:={}}}\"", variable, default_val.trim_matches('"'))
+        }
+        BashExpr::ErrorIfUnset { variable, message } => {
+            // Generate ${VAR:?message} syntax
+            let msg_val = generate_expr(message);
+            format!("\"${{{}:?{}}}\"", variable, msg_val.trim_matches('"'))
+        }
+        BashExpr::AlternativeValue { variable, alternative } => {
+            // Generate ${VAR:+alt_value} syntax
+            let alt_val = generate_expr(alternative);
+            format!("\"${{{}:+{}}}\"", variable, alt_val.trim_matches('"'))
+        }
+        BashExpr::StringLength { variable } => {
+            // Generate ${#VAR} syntax
+            format!("\"${{#{}}}\"", variable)
+        }
+        BashExpr::RemoveSuffix { variable, pattern } => {
+            // Generate ${VAR%pattern} syntax
+            let pattern_val = generate_expr(pattern);
+            format!("\"${{{}%{}}}\"", variable, pattern_val.trim_matches('"'))
+        }
+        BashExpr::RemovePrefix { variable, pattern } => {
+            // Generate ${VAR#pattern} syntax
+            let pattern_val = generate_expr(pattern);
+            format!("\"${{{}#{}}}\"", variable, pattern_val.trim_matches('"'))
+        }
+        BashExpr::RemoveLongestPrefix { variable, pattern } => {
+            // Generate ${VAR##pattern} syntax (greedy prefix removal)
+            let pattern_val = generate_expr(pattern);
+            format!("\"${{{}##{}}}\"", variable, pattern_val.trim_matches('"'))
+        }
+        BashExpr::RemoveLongestSuffix { variable, pattern } => {
+            // Generate ${VAR%%pattern} syntax (greedy suffix removal)
+            let pattern_val = generate_expr(pattern);
+            format!("\"${{{}%%{}}}\"", variable, pattern_val.trim_matches('"'))
+        }
     }
 }
 

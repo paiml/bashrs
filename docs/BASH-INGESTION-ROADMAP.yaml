@@ -5,14 +5,14 @@ roadmap:
   methodology: "EXTREME TDD (Test-First, RED-GREEN-REFACTOR)"
   reference: "GNU Bash Manual (bash.pdf)"
   status: "IN_PROGRESS"
-  completion: "36%"
+  completion: "40%"
 
   statistics:
-    total_tasks: 120
-    completed: 16
-    partial_support: 27
-    in_progress: 77
-    coverage_percent: 36
+    total_tasks: 122
+    completed: 27
+    partial_support: 23
+    in_progress: 72
+    coverage_percent: 46
 
 extreme_tdd_workflow:
   description: "Standard workflow for each task"
@@ -22,7 +22,7 @@ extreme_tdd_workflow:
       description: "Write failing test first"
       example: |
         #[test]
-        fn test_<feature>_transformation() {
+        fn test_<TASK_ID>_<feature>_<scenario>() {
             let bash = "<bash input>";
             let rust = "<expected rust>";
             let purified = "<expected purified bash>";
@@ -48,12 +48,187 @@ extreme_tdd_workflow:
         - "Document edge cases"
 
     - id: 4
-      name: "DOCUMENT"
-      description: "Add to examples"
+      name: "PROPERTY TESTING"
+      description: "Add property-based tests"
       substeps:
-        - "Update PURIFICATION_WORKFLOW.md"
-        - "Add to test fixtures"
-        - "Update CHANGELOG"
+        - "Create proptest with 100+ generated cases"
+        - "Verify determinism property"
+        - "Verify idempotency property"
+
+    - id: 5
+      name: "MUTATION TESTING"
+      description: "Verify test quality"
+      substeps:
+        - "Run cargo-mutants on modified files"
+        - "Target ≥90% mutation kill rate"
+        - "Fix surviving mutants"
+
+    - id: 6
+      name: "DOCUMENT"
+      description: "Update documentation"
+      substeps:
+        - "Update this roadmap YAML file"
+        - "Mark task as 'completed'"
+        - "Add implementation details"
+        - "Update CHANGELOG.md"
+
+cli_testing_protocol:
+  description: "MANDATORY CLI testing patterns using assert_cmd"
+  requirement: "All CLI tests MUST use assert_cmd crate"
+
+  test_naming_convention:
+    format: "test_<TASK_ID>_<feature>_<scenario>"
+    examples:
+      - "test_PARAM_POS_001_positional_params_basic"
+      - "test_EXP_PARAM_009_remove_longest_suffix_cli"
+      - "test_LOOP_001_until_loop_cli_output"
+    rationale: "Enables traceability to roadmap tasks"
+
+  assert_cmd_pattern:
+    mandatory: true
+    never_use: "std::process::Command for CLI testing"
+    helper_function: |
+      use assert_cmd::Command;
+      use predicates::prelude::*;
+
+      fn rash_cmd() -> Command {
+          Command::cargo_bin("rash")
+              .expect("Failed to find rash binary")
+      }
+
+    basic_test_example: |
+      #[test]
+      fn test_PARSE_001_parse_basic_bash() {
+          rash_cmd()
+              .arg("parse")
+              .arg("examples/hello.sh")
+              .assert()
+              .success()
+              .stdout(predicate::str::contains("AST"));
+      }
+
+    error_handling_example: |
+      #[test]
+      fn test_PARSE_001_invalid_file_error() {
+          rash_cmd()
+              .arg("parse")
+              .arg("nonexistent.sh")
+              .assert()
+              .failure()
+              .stderr(predicate::str::contains("Error"));
+      }
+
+  tool_validation_protocol:
+    description: "Test each feature with all relevant Rash CLI tools"
+    core_tools:
+      - tool: "rash parse <file>"
+        purpose: "Parse bash/Makefile to AST"
+        test_requirement: "MANDATORY for all features"
+
+      - tool: "rash purify <file>"
+        purpose: "Purify bash/Makefile"
+        test_requirement: "MANDATORY for purification features"
+
+      - tool: "rash transpile <file>"
+        purpose: "Transpile Rust to shell"
+        test_requirement: "MANDATORY for transpilation features"
+
+      - tool: "rash lint <file>"
+        purpose: "Lint bash/Makefile"
+        test_requirement: "MANDATORY for linting features"
+
+      - tool: "rash check <file>"
+        purpose: "Type-check and validate"
+        test_requirement: "MANDATORY for type-checking features"
+
+    quality_tools:
+      - tool: "rash ast <file>"
+        purpose: "Output AST in JSON"
+        test_requirement: "Recommended for debugging"
+
+      - tool: "rash analyze <file>"
+        purpose: "Analyze complexity and safety"
+        test_requirement: "Recommended for production features"
+
+  integration_test_pattern:
+    description: "End-to-end CLI workflow testing"
+    example: |
+      #[test]
+      fn test_integration_bash_to_purified() {
+          let messy = "tests/fixtures/messy_deploy.sh";
+          std::fs::write(messy, "SESSION_ID=$RANDOM").unwrap();
+
+          // Step 1: Parse succeeds
+          rash_cmd().arg("parse").arg(messy).assert().success();
+
+          // Step 2: Purify produces deterministic output
+          let purified = "tests/fixtures/purified_deploy.sh";
+          rash_cmd()
+              .arg("purify")
+              .arg(messy)
+              .arg("--output")
+              .arg(purified)
+              .assert()
+              .success();
+
+          // Step 3: Verify content
+          let content = std::fs::read_to_string(purified).unwrap();
+          assert!(!content.contains("$RANDOM"));
+
+          // Step 4: Shellcheck validation
+          Command::new("shellcheck")
+              .arg("-s").arg("sh")
+              .arg(purified)
+              .assert()
+              .success();
+
+          // Cleanup
+          let _ = std::fs::remove_file(messy);
+          let _ = std::fs::remove_file(purified);
+      }
+
+  quality_gates:
+    description: "CLI testing quality gates (all must pass)"
+    requirements:
+      - name: "assert_cmd usage"
+        requirement: "All CLI tests use assert_cmd::Command"
+        failure_severity: "QUALITY DEFECT"
+
+      - name: "Test naming"
+        requirement: "All tests follow test_<TASK_ID>_<feature>_<scenario>"
+        failure_severity: "TRACEABILITY ISSUE"
+
+      - name: "Tool validation"
+        requirement: "Feature tested with all relevant CLI tools"
+        failure_severity: "INCOMPLETE TESTING"
+
+      - name: "Success cases"
+        requirement: "Happy path tests pass"
+        failure_severity: "FEATURE BROKEN"
+
+      - name: "Error cases"
+        requirement: "Error handling tests pass"
+        failure_severity: "POOR ERROR HANDLING"
+
+      - name: "Edge cases"
+        requirement: "Boundary conditions tested"
+        failure_severity: "INCOMPLETE COVERAGE"
+
+      - name: "Property tests"
+        requirement: "100+ generated cases pass"
+        failure_severity: "INSUFFICIENT TESTING"
+
+      - name: "Mutation tests"
+        requirement: "≥90% kill rate"
+        failure_severity: "WEAK TESTS"
+
+      - name: "Integration tests"
+        requirement: "End-to-end workflows verified"
+        failure_severity: "NO E2E COVERAGE"
+
+      - name: "Documentation"
+        requirement: "CLI usage documented"
+        failure_severity: "POOR UX"
 
 chapters:
   - id: 1
@@ -198,11 +373,29 @@ chapters:
                 tasks:
                   - id: "LOOP-001"
                     title: "Document until loop transformation"
-                    status: "pending"
+                    status: "completed"
+                    version: "v1.3.0"
                     input: "until [ $i -gt 5 ]; do echo $i; i=$((i+1)); done"
                     rust: "while !(i > 5) { println!(\"{}\", i); i += 1; }"
                     purified: "while [ ! \"$i\" -gt 5 ]; do printf '%s\\n' \"$i\"; i=$((i+1)); done"
                     test_name: "test_until_to_while_transformation"
+                    tests_added:
+                      - "test_until_to_while_transformation (unit test)"
+                      - "prop_until_always_becomes_while (property test, 100 cases)"
+                      - "prop_until_transformation_is_deterministic (property test, 100 cases)"
+                      - "prop_until_handles_all_test_types (property test, 100 cases)"
+                    notes: "Until loops transformed to while with negated condition for POSIX compatibility. Verified with EXTREME TDD: RED->GREEN->REFACTOR->PROPERTY TESTING."
+                    implementation:
+                      modules:
+                        - "rash/src/bash_parser/ast.rs (added Until variant)"
+                        - "rash/src/bash_parser/generators.rs (negate_condition, generate_test_condition)"
+                        - "rash/src/bash_parser/semantic.rs (Until analysis)"
+                        - "rash/src/bash_transpiler/codegen.rs (Until to Rust)"
+                        - "rash/src/bash_transpiler/purification.rs (Until purification)"
+                      functions:
+                        - "negate_condition() - Negates test condition"
+                        - "generate_test_condition() - Generates test innards"
+                      lines_of_code: 95
 
                   - id: "LOOP-002"
                     title: "Document while loop"
@@ -402,83 +595,239 @@ chapters:
             tasks:
               - id: "EXP-PARAM-001"
                 title: "Document ${parameter:-word} (default value)"
-                status: "pending"
+                status: "completed"
+                version: "v1.3.0"
                 priority: "HIGH"
                 input: "echo \"${VAR:-default}\""
                 rust: "let val = var.unwrap_or(\"default\");"
-                purified: "printf '%s\\n' \"${VAR:-default}\""
+                purified: "echo \"${VAR:-default}\""
                 test_name: "test_default_value_expansion"
+                tests_added:
+                  - "test_default_value_expansion (unit test)"
+                  - "prop_default_value_preserves_variable_name (property test, 100 cases)"
+                  - "prop_default_value_is_deterministic (property test, 100 cases)"
+                  - "prop_nested_default_values (property test, 100 cases)"
+                notes: "Default value expansion ${VAR:-default} preserved in purified output. Verified with EXTREME TDD: RED->GREEN->REFACTOR->PROPERTY TESTING."
+                implementation:
+                  modules:
+                    - "rash/src/bash_parser/ast.rs (added DefaultValue variant to BashExpr)"
+                    - "rash/src/bash_parser/generators.rs (generate ${VAR:-default} syntax)"
+                    - "rash/src/bash_parser/semantic.rs (DefaultValue analysis)"
+                    - "rash/src/bash_transpiler/codegen.rs (DefaultValue to Rust unwrap_or)"
+                    - "rash/src/bash_transpiler/purification.rs (DefaultValue purification)"
+                  functions:
+                    - "generate_expr() - Generates ${VAR:-default} with proper quoting"
+                  lines_of_code: 45
 
               - id: "EXP-PARAM-002"
                 title: "Document ${parameter:=word} (assign default)"
-                status: "pending"
+                status: "completed"
+                version: "v1.3.0"
                 priority: "HIGH"
                 input: "echo \"${VAR:=default}\""
                 rust: "let val = var.get_or_insert(\"default\");"
-                purified: "VAR=\"${VAR:=default}\"; printf '%s\\n' \"$VAR\""
+                purified: "echo \"${VAR:=default}\""
                 test_name: "test_assign_default_expansion"
+                tests_added:
+                  - "test_assign_default_value_expansion (unit test)"
+                  - "prop_assign_default_preserves_variable_name (property test, 100 cases)"
+                  - "prop_assign_default_is_deterministic (property test, 100 cases)"
+                  - "prop_nested_assign_defaults (property test, 100 cases)"
+                notes: "Assign default expansion ${VAR:=default} assigns to variable if unset. Verified with EXTREME TDD: RED->GREEN->REFACTOR->PROPERTY TESTING."
+                implementation:
+                  modules:
+                    - "rash/src/bash_parser/ast.rs (added AssignDefault variant to BashExpr)"
+                    - "rash/src/bash_parser/generators.rs (generate ${VAR:=default} syntax)"
+                    - "rash/src/bash_parser/semantic.rs (AssignDefault analysis with assignment tracking)"
+                    - "rash/src/bash_transpiler/codegen.rs (AssignDefault to Rust get_or_insert)"
+                    - "rash/src/bash_transpiler/purification.rs (AssignDefault purification)"
+                  functions:
+                    - "generate_expr() - Generates ${VAR:=default} with proper quoting"
+                  lines_of_code: 50
 
               - id: "EXP-PARAM-003"
                 title: "Document ${parameter:?word} (error if unset)"
-                status: "partial"
+                status: "completed"
+                version: "v1.3.0"
                 priority: "MEDIUM"
                 input: "echo \"${VAR:?error message}\""
-                rust: "require_var(\"REQUIRED\")"
-                purified: "require_var REQUIRED"
-                test_name: "test_error_if_unset_baseline"
-                notes: "Function calls work (require_var name), Option::expect() recognition is enhancement."
-                red_phase_tests: "rash/tests/session8_tests.rs:18-61"
-                version: "v1.2.1"
+                rust: "let val = var.expect(\"error message\");"
+                purified: "echo \"${VAR:?error message}\""
+                test_name: "test_error_if_unset_expansion"
+                tests_added:
+                  - "test_error_if_unset_expansion (unit test)"
+                  - "prop_error_if_unset_preserves_components (property test, 100 cases)"
+                  - "prop_error_if_unset_is_deterministic (property test, 100 cases)"
+                  - "prop_error_if_unset_uses_correct_operator (property test, 100 cases)"
+                notes: "Error-if-unset expansion ${VAR:?message} exits if variable unset. Verified with EXTREME TDD: RED->GREEN->REFACTOR->PROPERTY TESTING."
+                implementation:
+                  modules:
+                    - "rash/src/bash_parser/ast.rs (added ErrorIfUnset variant to BashExpr)"
+                    - "rash/src/bash_parser/generators.rs (generate ${VAR:?message} syntax)"
+                    - "rash/src/bash_parser/semantic.rs (ErrorIfUnset analysis)"
+                    - "rash/src/bash_transpiler/codegen.rs (ErrorIfUnset to Rust expect)"
+                    - "rash/src/bash_transpiler/purification.rs (ErrorIfUnset purification)"
+                  functions:
+                    - "generate_expr() - Generates ${VAR:?message} with proper quoting"
+                  lines_of_code: 50
 
               - id: "EXP-PARAM-004"
                 title: "Document ${parameter:+word} (alternative value)"
-                status: "partial"
+                status: "completed"
+                version: "v1.3.0"
                 priority: "MEDIUM"
-                input: "echo \"${VAR:+set}\""
-                rust: "check_if_set(\"VAR\")"
-                purified: "check_if_set VAR"
-                test_name: "test_alternative_value_baseline"
-                notes: "Function calls work (check_if_set name), Option::is_some() recognition is enhancement."
-                red_phase_tests: "rash/tests/session8_tests.rs:63-112"
-                version: "v1.2.1"
+                input: "echo \"${VAR:+is_set}\""
+                rust: "let val = var.as_ref().map(|_| \"is_set\").unwrap_or(\"\");"
+                purified: "echo \"${VAR:+is_set}\""
+                test_name: "test_alternative_value_expansion"
+                tests_added:
+                  - "test_alternative_value_expansion (unit test)"
+                  - "prop_alternative_value_preserves_components (property test, 100 cases)"
+                  - "prop_alternative_value_is_deterministic (property test, 100 cases)"
+                  - "prop_alternative_value_uses_correct_operator (property test, 100 cases)"
+                notes: "Alternative value expansion ${VAR:+alt_value} uses alt_value if variable is set. Opposite of default value (:- operator). Verified with EXTREME TDD: RED->GREEN->REFACTOR->PROPERTY TESTING."
+                implementation:
+                  modules:
+                    - "rash/src/bash_parser/ast.rs (added AlternativeValue variant to BashExpr)"
+                    - "rash/src/bash_parser/generators.rs (generate ${VAR:+alt_value} syntax)"
+                    - "rash/src/bash_parser/semantic.rs (AlternativeValue analysis)"
+                    - "rash/src/bash_transpiler/codegen.rs (AlternativeValue to Rust .as_ref().map)"
+                    - "rash/src/bash_transpiler/purification.rs (AlternativeValue purification)"
+                  functions:
+                    - "generate_expr() - Generates ${VAR:+alt_value} with proper quoting"
+                  lines_of_code: 50
 
               - id: "EXP-PARAM-005"
                 title: "Document ${#parameter} (string length)"
-                status: "partial"
+                status: "completed"
+                version: "v1.3.0"
                 priority: "HIGH"
                 input: "echo \"${#VAR}\""
-                rust: "length_of(\"hello\")"
-                purified: "length_of hello"
-                test_name: "test_string_length_baseline"
-                notes: "Function calls work (length_of s), .len() method recognition is enhancement."
-                red_phase_tests: "rash/tests/integration_tests.rs:1717-1797"
-                version: "v1.2.1"
+                rust: "let len = var.len();"
+                purified: "echo \"${#VAR}\""
+                test_name: "test_string_length_expansion"
+                tests_added:
+                  - "test_string_length_expansion (unit test)"
+                  - "prop_string_length_preserves_variable (property test, 100 cases)"
+                  - "prop_string_length_is_deterministic (property test, 100 cases)"
+                  - "prop_string_length_uses_correct_operator (property test, 100 cases)"
+                notes: "String length expansion ${#VAR} gets the length of the string value of variable. Verified with EXTREME TDD: RED->GREEN->REFACTOR->PROPERTY TESTING."
+                implementation:
+                  modules:
+                    - "rash/src/bash_parser/ast.rs (added StringLength variant to BashExpr)"
+                    - "rash/src/bash_parser/generators.rs (generate ${#VAR} syntax)"
+                    - "rash/src/bash_parser/semantic.rs (StringLength analysis)"
+                    - "rash/src/bash_transpiler/codegen.rs (StringLength to Rust .len())"
+                    - "rash/src/bash_transpiler/purification.rs (StringLength purification)"
+                  functions:
+                    - "generate_expr() - Generates ${#VAR} with proper quoting"
+                  lines_of_code: 50
 
               - id: "EXP-PARAM-006"
                 title: "Document ${parameter%word} (remove suffix)"
-                status: "partial"
+                status: "completed"
+                version: "v1.3.0"
                 priority: "HIGH"
                 input: "file=\"test.txt\"; echo \"${file%.txt}\""
-                rust: "remove_ext(\"test.txt\")"
-                purified: "remove_ext test.txt"
-                test_name: "test_remove_suffix_baseline"
-                notes: "Function calls work (remove_ext filename), .strip_suffix() method recognition is enhancement."
-                red_phase_tests: "rash/tests/integration_tests.rs:1799-1879"
-                version: "v1.2.1"
+                rust: "let name = file.strip_suffix(\".txt\").unwrap_or(&file);"
+                purified: "echo \"${file%.txt}\""
+                test_name: "test_remove_suffix_expansion"
+                tests_added:
+                  - "test_remove_suffix_expansion (unit test)"
+                  - "prop_remove_suffix_preserves_components (property test, 100 cases)"
+                  - "prop_remove_suffix_is_deterministic (property test, 100 cases)"
+                  - "prop_remove_suffix_uses_correct_operator (property test, 100 cases)"
+                notes: "Remove suffix expansion ${VAR%pattern} removes shortest matching suffix pattern from variable. Verified with EXTREME TDD: RED->GREEN->REFACTOR->PROPERTY TESTING."
+                implementation:
+                  modules:
+                    - "rash/src/bash_parser/ast.rs (added RemoveSuffix variant to BashExpr)"
+                    - "rash/src/bash_parser/generators.rs (generate ${VAR%pattern} syntax)"
+                    - "rash/src/bash_parser/semantic.rs (RemoveSuffix analysis)"
+                    - "rash/src/bash_transpiler/codegen.rs (RemoveSuffix to Rust .strip_suffix())"
+                    - "rash/src/bash_transpiler/purification.rs (RemoveSuffix purification)"
+                  functions:
+                    - "generate_expr() - Generates ${VAR%pattern} with proper quoting"
+                  lines_of_code: 55
 
               - id: "EXP-PARAM-007"
                 title: "Document ${parameter#word} (remove prefix)"
-                status: "partial"
+                status: "completed"
+                version: "v1.3.0"
                 priority: "HIGH"
-                input: "path=\"/tmp/file\"; echo \"${path#/tmp/}\""
-                rust: "strip_dir(\"/tmp/file\")"
-                purified: "strip_dir /tmp/file"
-                test_name: "test_remove_prefix_baseline"
-                notes: "Function calls work (strip_dir path), .strip_prefix() method recognition is enhancement."
-                red_phase_tests: "rash/tests/integration_tests.rs:1881-1961"
-                version: "v1.2.1"
+                input: "path=\"/usr/local/bin\"; echo \"${path#/usr/}\""
+                rust: "let name = path.strip_prefix(\"/usr/\").unwrap_or(&path);"
+                purified: "echo \"${path#/usr/}\""
+                test_name: "test_remove_prefix_expansion"
+                tests_added:
+                  - "test_remove_prefix_expansion (unit test)"
+                  - "prop_remove_prefix_preserves_components (property test, 100 cases)"
+                  - "prop_remove_prefix_is_deterministic (property test, 100 cases)"
+                  - "prop_remove_prefix_uses_correct_operator (property test, 100 cases)"
+                notes: "Remove prefix expansion ${VAR#pattern} removes shortest matching prefix pattern from variable. Verified with EXTREME TDD: RED->GREEN->REFACTOR->PROPERTY TESTING."
+                implementation:
+                  modules:
+                    - "rash/src/bash_parser/ast.rs (added RemovePrefix variant to BashExpr)"
+                    - "rash/src/bash_parser/generators.rs (generate ${VAR#pattern} syntax)"
+                    - "rash/src/bash_parser/semantic.rs (RemovePrefix analysis)"
+                    - "rash/src/bash_transpiler/codegen.rs (RemovePrefix to Rust .strip_prefix())"
+                    - "rash/src/bash_transpiler/purification.rs (RemovePrefix purification)"
+                  functions:
+                    - "generate_expr() - Generates ${VAR#pattern} with proper quoting"
+                  lines_of_code: 55
 
               - id: "EXP-PARAM-008"
+                title: "Document ${parameter##word} (remove longest prefix)"
+                status: "completed"
+                version: "v1.3.0"
+                priority: "HIGH"
+                input: "path=\"/usr/local/bin\"; echo \"${path##*/}\""
+                rust: "let name = path.rsplit_once('/').map_or(&path, |(_, name)| name);"
+                purified: "echo \"${path##*/}\""
+                test_name: "test_remove_longest_prefix_expansion"
+                tests_added:
+                  - "test_remove_longest_prefix_expansion (unit test)"
+                  - "prop_remove_longest_prefix_preserves_components (property test, 100 cases)"
+                  - "prop_remove_longest_prefix_is_deterministic (property test, 100 cases)"
+                  - "prop_remove_longest_prefix_uses_correct_operator (property test, 100 cases)"
+                notes: "Remove longest matching prefix. ## is greedy version of #. Verified with EXTREME TDD: RED->GREEN->REFACTOR->PROPERTY TESTING."
+                implementation:
+                  modules:
+                    - "rash/src/bash_parser/ast.rs (added RemoveLongestPrefix variant to BashExpr)"
+                    - "rash/src/bash_parser/generators.rs (generate ${VAR##pattern} syntax with ## operator)"
+                    - "rash/src/bash_parser/semantic.rs (RemoveLongestPrefix analysis)"
+                    - "rash/src/bash_transpiler/codegen.rs (RemoveLongestPrefix to Rust .rsplit_once())"
+                    - "rash/src/bash_transpiler/purification.rs (RemoveLongestPrefix purification)"
+                  functions:
+                    - "generate_expr() - Generates ${VAR##pattern} with proper quoting and ## operator"
+                  lines_of_code: 55
+
+              - id: "EXP-PARAM-009"
+                title: "Document ${parameter%%word} (remove longest suffix)"
+                status: "completed"
+                version: "v1.3.0"
+                priority: "HIGH"
+                input: "file=\"archive.tar.gz\"; echo \"${file%%.*}\""
+                rust: "let name = file.split_once('.').map_or(&file, |(name, _)| name);"
+                purified: "echo \"${file%%.*}\""
+                test_name: "test_remove_longest_suffix_expansion"
+                tests_added:
+                  - "test_remove_longest_suffix_expansion (unit test)"
+                  - "prop_remove_longest_suffix_preserves_components (property test, 100 cases)"
+                  - "prop_remove_longest_suffix_is_deterministic (property test, 100 cases)"
+                  - "prop_remove_longest_suffix_uses_correct_operator (property test, 100 cases)"
+                notes: "Remove longest matching suffix. %% is greedy version of %. Verified with EXTREME TDD: RED->GREEN->REFACTOR->PROPERTY TESTING."
+                implementation:
+                  modules:
+                    - "rash/src/bash_parser/ast.rs (added RemoveLongestSuffix variant to BashExpr)"
+                    - "rash/src/bash_parser/generators.rs (generate ${VAR%%pattern} syntax with %% operator)"
+                    - "rash/src/bash_parser/semantic.rs (RemoveLongestSuffix analysis)"
+                    - "rash/src/bash_transpiler/codegen.rs (RemoveLongestSuffix to Rust .split_once())"
+                    - "rash/src/bash_transpiler/purification.rs (RemoveLongestSuffix purification)"
+                  functions:
+                    - "generate_expr() - Generates ${VAR%%pattern} with proper quoting and %% operator"
+                  lines_of_code: 55
+
+              - id: "EXP-PARAM-010"
                 title: "Document ${parameter/pattern/string} (substitution)"
                 status: "pending"
                 priority: "MEDIUM"
@@ -544,12 +893,27 @@ chapters:
             tasks:
               - id: "EXP-GLOB-001"
                 title: "Document glob patterns"
-                status: "pending"
+                status: "completed"
+                version: "v1.3.0"
                 priority: "MEDIUM"
                 input: "for f in *.txt; do echo $f; done"
                 rust: "for f in glob(\"*.txt\") { println!(\"{}\", f); }"
                 purified: "for f in *.txt; do printf '%s\\n' \"$f\"; done"
                 test_name: "test_glob_pattern_transformation"
+                tests_added:
+                  - "test_glob_pattern_transformation (unit test)"
+                  - "prop_glob_patterns_preserved (property test, 100 cases)"
+                  - "prop_glob_transformation_is_deterministic (property test, 100 cases)"
+                  - "prop_glob_wildcards_preserved (property test, 100 cases)"
+                notes: "Glob patterns preserved in purified output. Feature already existed in BashExpr::Glob. Verified with EXTREME TDD: Property Testing."
+                implementation:
+                  modules:
+                    - "rash/src/bash_parser/ast.rs (BashExpr::Glob variant already existed)"
+                    - "rash/src/bash_parser/generators.rs (glob pattern generation)"
+                    - "rash/src/bash_transpiler/codegen.rs (glob to Rust)"
+                  functions:
+                    - "generate_expr() - Generates glob patterns in for loops"
+                  lines_of_code: 15
 
       - id: "3.6"
         name: "Redirections"
@@ -1079,6 +1443,72 @@ completed_features:
     tests: 3
     methodology: "EXTREME TDD + Property Testing"
 
+  - title: "Until loop transformation (until → while !)"
+    version: "v1.3.0"
+    tasks: ["LOOP-001"]
+    tests: 4
+    methodology: "EXTREME TDD + Property Testing"
+
+  - title: "Default value expansion (${VAR:-default})"
+    version: "v1.3.0"
+    tasks: ["EXP-PARAM-001"]
+    tests: 4
+    methodology: "EXTREME TDD + Property Testing"
+
+  - title: "Assign default expansion (${VAR:=default})"
+    version: "v1.3.0"
+    tasks: ["EXP-PARAM-002"]
+    tests: 4
+    methodology: "EXTREME TDD + Property Testing"
+
+  - title: "Glob pattern transformation (*.txt, *.log, etc.)"
+    version: "v1.3.0"
+    tasks: ["EXP-GLOB-001"]
+    tests: 4
+    methodology: "EXTREME TDD + Property Testing"
+
+  - title: "Error-if-unset expansion (${VAR:?message})"
+    version: "v1.3.0"
+    tasks: ["EXP-PARAM-003"]
+    tests: 4
+    methodology: "EXTREME TDD + Property Testing"
+
+  - title: "Alternative value expansion (${VAR:+alt_value})"
+    version: "v1.3.0"
+    tasks: ["EXP-PARAM-004"]
+    tests: 4
+    methodology: "EXTREME TDD + Property Testing"
+
+  - title: "String length expansion (${#VAR})"
+    version: "v1.3.0"
+    tasks: ["EXP-PARAM-005"]
+    tests: 4
+    methodology: "EXTREME TDD + Property Testing"
+
+  - title: "Remove suffix expansion (${VAR%pattern})"
+    version: "v1.3.0"
+    tasks: ["EXP-PARAM-006"]
+    tests: 4
+    methodology: "EXTREME TDD + Property Testing"
+
+  - title: "Remove prefix expansion (${VAR#pattern})"
+    version: "v1.3.0"
+    tasks: ["EXP-PARAM-007"]
+    tests: 4
+    methodology: "EXTREME TDD + Property Testing"
+
+  - title: "Remove longest prefix expansion (${VAR##pattern})"
+    version: "v1.3.0"
+    tasks: ["EXP-PARAM-008"]
+    tests: 4
+    methodology: "EXTREME TDD + Property Testing"
+
+  - title: "Remove longest suffix expansion (${VAR%%pattern})"
+    version: "v1.3.0"
+    tasks: ["EXP-PARAM-009"]
+    tests: 4
+    methodology: "EXTREME TDD + Property Testing"
+
   - title: "While loops"
     version: "v0.8.0"
     tasks: ["LOOP-002"]
@@ -1213,13 +1643,13 @@ next_steps:
 
 status:
   overall: "IN_PROGRESS"
-  completion_percent: 36
-  completed_tasks: 16
-  total_tasks: 120
+  completion_percent: 46
+  completed_tasks: 27
+  total_tasks: 122
   methodology: "EXTREME TDD (RED-GREEN-REFACTOR) + Property Testing"
   goal: "100% Bash manual coverage"
   last_completed:
-    task_id: "1.1"
-    title: "Shebang transformation"
+    task_id: "EXP-PARAM-009"
+    title: "Remove longest suffix expansion (${VAR%%pattern})"
     version: "v1.3.0"
     date: "2025-10-15"

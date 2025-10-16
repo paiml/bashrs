@@ -209,6 +209,24 @@ impl Purifier {
                 })
             }
 
+            BashStmt::Until {
+                condition,
+                body,
+                span,
+            } => {
+                let purified_condition = self.purify_expression(condition)?;
+                let mut purified_body = Vec::new();
+                for stmt in body {
+                    purified_body.push(self.purify_statement(stmt)?);
+                }
+
+                Ok(BashStmt::Until {
+                    condition: purified_condition,
+                    body: purified_body,
+                    span: *span,
+                })
+            }
+
             BashStmt::For {
                 variable,
                 items,
@@ -304,6 +322,152 @@ impl Purifier {
 
             // Literals and globs are deterministic
             BashExpr::Literal(_) | BashExpr::Glob(_) => Ok(expr.clone()),
+
+            BashExpr::DefaultValue { variable, default } => {
+                // Check variable for non-determinism
+                if self.non_deterministic_vars.contains(variable) {
+                    self.report.determinism_fixes.push(format!(
+                        "Default value expansion uses non-deterministic variable: ${}",
+                        variable
+                    ));
+                }
+                // Purify the default value expression
+                let purified_default = self.purify_expression(default)?;
+                Ok(BashExpr::DefaultValue {
+                    variable: variable.clone(),
+                    default: Box::new(purified_default),
+                })
+            }
+
+            BashExpr::AssignDefault { variable, default } => {
+                // Check variable for non-determinism
+                if self.non_deterministic_vars.contains(variable) {
+                    self.report.determinism_fixes.push(format!(
+                        "Assign default expansion uses non-deterministic variable: ${}",
+                        variable
+                    ));
+                }
+                // Purify the default value expression
+                let purified_default = self.purify_expression(default)?;
+                Ok(BashExpr::AssignDefault {
+                    variable: variable.clone(),
+                    default: Box::new(purified_default),
+                })
+            }
+
+            BashExpr::ErrorIfUnset { variable, message } => {
+                // Check variable for non-determinism
+                if self.non_deterministic_vars.contains(variable) {
+                    self.report.determinism_fixes.push(format!(
+                        "Error-if-unset expansion uses non-deterministic variable: ${}",
+                        variable
+                    ));
+                }
+                // Purify the error message expression
+                let purified_message = self.purify_expression(message)?;
+                Ok(BashExpr::ErrorIfUnset {
+                    variable: variable.clone(),
+                    message: Box::new(purified_message),
+                })
+            }
+
+            BashExpr::AlternativeValue { variable, alternative } => {
+                // Check variable for non-determinism
+                if self.non_deterministic_vars.contains(variable) {
+                    self.report.determinism_fixes.push(format!(
+                        "Alternative value expansion uses non-deterministic variable: ${}",
+                        variable
+                    ));
+                }
+                // Purify the alternative value expression
+                let purified_alternative = self.purify_expression(alternative)?;
+                Ok(BashExpr::AlternativeValue {
+                    variable: variable.clone(),
+                    alternative: Box::new(purified_alternative),
+                })
+            }
+
+            BashExpr::StringLength { variable } => {
+                // Check variable for non-determinism
+                // ${#VAR} gets the length of variable's value
+                if self.non_deterministic_vars.contains(variable) {
+                    self.report.determinism_fixes.push(format!(
+                        "String length expansion uses non-deterministic variable: ${}",
+                        variable
+                    ));
+                }
+                Ok(BashExpr::StringLength {
+                    variable: variable.clone(),
+                })
+            }
+
+            BashExpr::RemoveSuffix { variable, pattern } => {
+                // Check variable for non-determinism
+                // ${VAR%pattern} removes shortest matching suffix
+                if self.non_deterministic_vars.contains(variable) {
+                    self.report.determinism_fixes.push(format!(
+                        "Remove suffix expansion uses non-deterministic variable: ${}",
+                        variable
+                    ));
+                }
+                // Purify the pattern expression
+                let purified_pattern = Box::new(self.purify_expression(pattern)?);
+                Ok(BashExpr::RemoveSuffix {
+                    variable: variable.clone(),
+                    pattern: purified_pattern,
+                })
+            }
+
+            BashExpr::RemovePrefix { variable, pattern } => {
+                // Check variable for non-determinism
+                // ${VAR#pattern} removes shortest matching prefix
+                if self.non_deterministic_vars.contains(variable) {
+                    self.report.determinism_fixes.push(format!(
+                        "Remove prefix expansion uses non-deterministic variable: ${}",
+                        variable
+                    ));
+                }
+                // Purify the pattern expression
+                let purified_pattern = Box::new(self.purify_expression(pattern)?);
+                Ok(BashExpr::RemovePrefix {
+                    variable: variable.clone(),
+                    pattern: purified_pattern,
+                })
+            }
+
+            BashExpr::RemoveLongestPrefix { variable, pattern } => {
+                // Check variable for non-determinism
+                // ${VAR##pattern} removes longest matching prefix (greedy)
+                if self.non_deterministic_vars.contains(variable) {
+                    self.report.determinism_fixes.push(format!(
+                        "Remove longest prefix expansion uses non-deterministic variable: ${}",
+                        variable
+                    ));
+                }
+                // Purify the pattern expression
+                let purified_pattern = Box::new(self.purify_expression(pattern)?);
+                Ok(BashExpr::RemoveLongestPrefix {
+                    variable: variable.clone(),
+                    pattern: purified_pattern,
+                })
+            }
+
+            BashExpr::RemoveLongestSuffix { variable, pattern } => {
+                // Check variable for non-determinism
+                // ${VAR%%pattern} removes longest matching suffix (greedy)
+                if self.non_deterministic_vars.contains(variable) {
+                    self.report.determinism_fixes.push(format!(
+                        "Remove longest suffix expansion uses non-deterministic variable: ${}",
+                        variable
+                    ));
+                }
+                // Purify the pattern expression
+                let purified_pattern = Box::new(self.purify_expression(pattern)?);
+                Ok(BashExpr::RemoveLongestSuffix {
+                    variable: variable.clone(),
+                    pattern: purified_pattern,
+                })
+            }
         }
     }
 

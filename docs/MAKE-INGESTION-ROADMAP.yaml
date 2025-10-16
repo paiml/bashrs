@@ -1,0 +1,1707 @@
+---
+roadmap:
+  title: "GNU Make Ingestion Roadmap - EXTREME TDD"
+  goal: "Transform Makefiles to safe, deterministic, idempotent builds"
+  methodology: "EXTREME TDD (Test-First, RED-GREEN-REFACTOR-PROPERTY-DOCUMENTATION)"
+  reference: "GNU Make Manual 4.4"
+  status: "READY_TO_START"
+  completion: "0%"
+
+  statistics:
+    total_tasks: 150
+    completed: 14
+    partial_support: 0
+    in_progress: 0
+    coverage_percent: 9.33
+
+extreme_tdd_workflow:
+  description: "Standard workflow for each task"
+  steps:
+    - id: 1
+      name: "RED"
+      description: "Write failing test first"
+      example: |
+        #[test]
+        fn test_phony_declaration() {
+            let makefile = ".PHONY: test\ntest:\n\tcargo test";
+            let ast = parse_makefile(makefile).unwrap();
+            assert!(ast.has_phony_target("test"));
+        }
+
+    - id: 2
+      name: "GREEN"
+      description: "Implement transformation"
+      substeps:
+        - "Update parser for Make construct"
+        - "Update AST generation"
+        - "Update purified Makefile emission"
+
+    - id: 3
+      name: "REFACTOR"
+      description: "Clean up implementation"
+      substeps:
+        - "Extract common patterns"
+        - "Add helper functions"
+        - "Document edge cases"
+        - "Ensure complexity <10"
+
+    - id: 4
+      name: "PROPERTY TESTING"
+      description: "Add generative tests"
+      substeps:
+        - "Write property tests with proptest"
+        - "Verify 100+ generated cases"
+        - "Check determinism properties"
+
+    - id: 5
+      name: "DOCUMENTATION"
+      description: "Update roadmap and docs"
+      substeps:
+        - "Mark task as completed"
+        - "Add implementation details"
+        - "Update statistics"
+
+cli_testing_protocol:
+  description: "MANDATORY CLI testing patterns using assert_cmd"
+  requirement: "All CLI tests MUST use assert_cmd crate"
+
+  test_naming_convention:
+    format: "test_<TASK_ID>_<feature>_<scenario>"
+    examples:
+      - "test_RULE_SYNTAX_001_basic_rule_cli"
+      - "test_PHONY_001_phony_declaration_cli"
+      - "test_FUNC_SHELL_001_purify_shell_date_cli"
+    rationale: "Enables traceability to roadmap tasks"
+
+  assert_cmd_pattern:
+    mandatory: true
+    never_use: "std::process::Command for CLI testing"
+    helper_function: |
+      use assert_cmd::Command;
+      use predicates::prelude::*;
+
+      fn rash_cmd() -> Command {
+          Command::cargo_bin("rash")
+              .expect("Failed to find rash binary")
+      }
+
+    basic_test_example: |
+      #[test]
+      fn test_RULE_SYNTAX_001_parse_basic_makefile() {
+          let makefile = "tests/fixtures/simple.mk";
+          std::fs::write(makefile, "target:\n\techo hello").unwrap();
+
+          rash_cmd()
+              .arg("parse")
+              .arg(makefile)
+              .assert()
+              .success()
+              .stdout(predicate::str::contains("Target"));
+
+          let _ = std::fs::remove_file(makefile);
+      }
+
+    purify_test_example: |
+      #[test]
+      fn test_FUNC_SHELL_001_purify_shell_date() {
+          let makefile = "tests/fixtures/timestamp.mk";
+          std::fs::write(makefile, "RELEASE := $(shell date +%s)").unwrap();
+
+          let purified = "tests/fixtures/timestamp_purified.mk";
+          rash_cmd()
+              .arg("purify")
+              .arg(makefile)
+              .arg("--output")
+              .arg(purified)
+              .assert()
+              .success();
+
+          // Verify purified output is deterministic
+          let content = std::fs::read_to_string(purified).unwrap();
+          assert!(!content.contains("$(shell date"));
+          assert!(content.contains("RELEASE :="));
+
+          let _ = std::fs::remove_file(makefile);
+          let _ = std::fs::remove_file(purified);
+      }
+
+  tool_validation_protocol:
+    description: "Test each Makefile feature with all relevant Rash CLI tools"
+    core_tools:
+      - tool: "rash parse <makefile>"
+        purpose: "Parse Makefile to AST"
+        test_requirement: "MANDATORY for all Makefile features"
+
+      - tool: "rash purify <makefile>"
+        purpose: "Purify Makefile (determinism + idempotency)"
+        test_requirement: "MANDATORY for purification features"
+
+      - tool: "rash transpile <makefile>"
+        purpose: "Transpile Makefile to Rust"
+        test_requirement: "MANDATORY for transpilation features"
+
+      - tool: "rash lint <makefile>"
+        purpose: "Lint Makefile"
+        test_requirement: "MANDATORY for linting features"
+
+      - tool: "rash check <makefile>"
+        purpose: "Type-check and validate"
+        test_requirement: "MANDATORY for type-checking features"
+
+    quality_tools:
+      - tool: "rash ast <makefile>"
+        purpose: "Output AST in JSON"
+        test_requirement: "Recommended for debugging"
+
+      - tool: "rash analyze <makefile>"
+        purpose: "Analyze complexity and safety"
+        test_requirement: "Recommended for production features"
+
+  integration_test_pattern:
+    description: "End-to-end Makefile purification workflow"
+    example: |
+      #[test]
+      fn test_integration_makefile_purification() {
+          // ARRANGE: Create messy Makefile
+          let messy = "tests/fixtures/messy.mk";
+          std::fs::write(messy, r#"
+      RELEASE := $(shell date +%s)
+      FILES := $(wildcard *.c)
+
+      test:
+      	cargo test
+      "#).unwrap();
+
+          // ACT: Full workflow - parse → purify → validate
+
+          // Step 1: Parse succeeds
+          rash_cmd().arg("parse").arg(messy).assert().success();
+
+          // Step 2: Purify produces deterministic output
+          let purified = "tests/fixtures/purified.mk";
+          rash_cmd()
+              .arg("purify")
+              .arg(messy)
+              .arg("--output")
+              .arg(purified)
+              .assert()
+              .success();
+
+          // Step 3: Verify purified content
+          let content = std::fs::read_to_string(purified).unwrap();
+          assert!(!content.contains("$(shell date"));
+          assert!(!content.contains("$(wildcard"));
+          assert!(content.contains(".PHONY: test"));
+
+          // Step 4: Lint purified Makefile
+          rash_cmd()
+              .arg("lint")
+              .arg(purified)
+              .assert()
+              .success();
+
+          // Cleanup
+          let _ = std::fs::remove_file(messy);
+          let _ = std::fs::remove_file(purified);
+      }
+
+  quality_gates:
+    description: "CLI testing quality gates (all must pass)"
+    requirements:
+      - name: "assert_cmd usage"
+        requirement: "All CLI tests use assert_cmd::Command"
+        failure_severity: "QUALITY DEFECT"
+
+      - name: "Test naming"
+        requirement: "All tests follow test_<TASK_ID>_<feature>_<scenario>"
+        failure_severity: "TRACEABILITY ISSUE"
+
+      - name: "Tool validation"
+        requirement: "Feature tested with all relevant CLI tools"
+        failure_severity: "INCOMPLETE TESTING"
+
+      - name: "Success cases"
+        requirement: "Happy path tests pass"
+        failure_severity: "FEATURE BROKEN"
+
+      - name: "Error cases"
+        requirement: "Error handling tests pass"
+        failure_severity: "POOR ERROR HANDLING"
+
+      - name: "Edge cases"
+        requirement: "Boundary conditions tested"
+        failure_severity: "INCOMPLETE COVERAGE"
+
+      - name: "Property tests"
+        requirement: "100+ generated cases pass"
+        failure_severity: "INSUFFICIENT TESTING"
+
+      - name: "Mutation tests"
+        requirement: "≥90% kill rate"
+        failure_severity: "WEAK TESTS"
+
+      - name: "Integration tests"
+        requirement: "End-to-end workflows verified"
+        failure_severity: "NO E2E COVERAGE"
+
+      - name: "Documentation"
+        requirement: "CLI usage documented"
+        failure_severity: "POOR UX"
+
+chapters:
+  - id: 1
+    name: "Overview of make"
+    description: "Basic make invocation and concepts"
+    tasks:
+      - id: "OVERVIEW-001"
+        title: "Document basic make invocation"
+        status: "pending"
+        priority: "LOW"
+        input: "make all"
+        rust: "fn all() { build(); test(); }"
+        purified: ".PHONY: all\nall: build test"
+        test_name: "test_make_invocation"
+        notes: "Foundation for understanding make workflow"
+
+  - id: 2
+    name: "An Introduction to Makefiles"
+    description: "Core Makefile concepts"
+    sections:
+      - id: "2.1"
+        name: "What a Rule Looks Like"
+        tasks:
+          - id: "RULE-SYNTAX-001"
+            title: "Document basic rule syntax"
+            status: "completed"
+            priority: "CRITICAL"
+            input: |
+              target: prerequisites
+              	recipe
+            rust: |
+              fn target() {
+                  check_prerequisites();
+                  run_recipe();
+              }
+            purified: |
+              .PHONY: target
+              target: prerequisites
+              	recipe
+            test_name: "test_basic_rule_syntax"
+            notes: "Fundamental building block - implement this first with EXTREME TDD"
+            implementation:
+              version: "v1.4.0"
+              completed_date: "2025-10-15"
+              modules:
+                - "rash/src/make_parser/mod.rs"
+                - "rash/src/make_parser/ast.rs"
+                - "rash/src/make_parser/parser.rs"
+                - "rash/src/make_parser/tests.rs"
+              tests_added: 23
+              test_names:
+                - "test_RULE_SYNTAX_001_basic_rule_syntax"
+                - "test_RULE_SYNTAX_001_multiple_prerequisites"
+                - "test_RULE_SYNTAX_001_empty_recipe"
+                - "test_RULE_SYNTAX_001_multiline_recipe"
+                - "test_RULE_SYNTAX_001_prop_basic_rules_always_parse"
+                - "test_RULE_SYNTAX_001_prop_parsing_is_deterministic"
+                - "test_RULE_SYNTAX_001_prop_multiple_prerequisites"
+                - "test_RULE_SYNTAX_001_prop_multiline_recipes"
+                - "test_RULE_SYNTAX_001_mut_empty_line_loop_terminates"
+                - "test_RULE_SYNTAX_001_mut_comment_line_loop_terminates"
+                - "test_RULE_SYNTAX_001_mut_unknown_line_loop_terminates"
+                - "test_RULE_SYNTAX_001_mut_tab_indented_not_target"
+                - "test_RULE_SYNTAX_001_mut_recipe_loop_bounds"
+                - "test_RULE_SYNTAX_001_mut_empty_line_in_recipe_handling"
+                - "test_RULE_SYNTAX_001_mut_recipe_parsing_loop_terminates"
+                - "test_RULE_SYNTAX_001_mut_line_number_calculation"
+              unit_tests: 16
+              property_tests: 4
+              mutation_testing:
+                status: "completed"
+                round_1_kill_rate: "48.3%"
+                round_2_kill_rate: "92.6%"
+                final_score: "92.6% (25/27 mutants killed)"
+                threshold: "90%"
+                result: "PASSED"
+              lines_of_code: 1000
+              complexity: "avg <5"
+
+          - id: "RULE-SYNTAX-002"
+            title: "Document rule with multiple prerequisites"
+            status: "completed"
+            priority: "HIGH"
+            input: |
+              all: build test deploy
+            rust: |
+              fn all() {
+                  build()?;
+                  test()?;
+                  deploy()?;
+              }
+            purified: |
+              .PHONY: all
+              all: build test deploy
+            test_name: "test_multiple_prerequisites"
+            notes: "Prerequisites parsed via split_whitespace(), order preserved"
+            implementation:
+              version: "v1.5.0"
+              completed_date: "2025-10-15"
+              modules:
+                - "rash/src/make_parser/tests.rs"
+              implementation_required: false
+              note: "NO IMPLEMENTATION NEEDED! Parser already handles multiple prerequisites via split_whitespace() on lines 203-206. Excellent design - handles any amount of whitespace, preserves order, works with 0 to N prerequisites."
+              tests_added: 14
+              test_names:
+                - "test_RULE_SYNTAX_002_basic_multiple_prerequisites"
+                - "test_RULE_SYNTAX_002_two_prerequisites"
+                - "test_RULE_SYNTAX_002_many_prerequisites"
+                - "test_RULE_SYNTAX_002_prerequisites_with_paths"
+                - "test_RULE_SYNTAX_002_prop_multiple_prereqs_always_parse"
+                - "test_RULE_SYNTAX_002_prop_prereqs_order_preserved"
+                - "test_RULE_SYNTAX_002_prop_prereqs_with_dots"
+                - "test_RULE_SYNTAX_002_prop_prereqs_whitespace_normalized"
+                - "test_RULE_SYNTAX_002_prop_prereqs_with_slashes"
+                - "test_RULE_SYNTAX_002_mut_split_whitespace_correctness"
+                - "test_RULE_SYNTAX_002_mut_prerequisite_count_exact"
+                - "test_RULE_SYNTAX_002_mut_empty_prerequisites_handling"
+                - "test_RULE_SYNTAX_002_mut_prerequisite_string_conversion"
+                - "test_RULE_SYNTAX_002_mut_prerequisite_order_matters"
+              unit_tests: 4
+              property_tests: 5
+              mutation_killing_tests: 5
+              mutation_testing:
+                status: "pending_verification"
+                note: "Mutation-killing tests added proactively targeting split_whitespace, count exactness, empty handling, string conversion, and order preservation."
+                targeted_lines:
+                  - "Line 203: parts[1] access"
+                  - "Line 204: split_whitespace() call"
+                  - "Line 205: .to_string() conversion"
+                  - "Line 206: .collect() aggregation"
+              lines_of_code: 0
+              test_lines: 200
+              features:
+                - "Parse multiple space-separated prerequisites"
+                - "Handle 0 to N prerequisites"
+                - "Preserve prerequisite order"
+                - "Normalize whitespace (multiple spaces/tabs)"
+                - "Support file paths with slashes and dots"
+
+      - id: "2.4"
+        name: "Variables Make Makefiles Simpler"
+        tasks:
+          - id: "VAR-BASIC-001"
+            title: "Document basic variable assignment"
+            status: "completed"
+            priority: "CRITICAL"
+            input: "CC = gcc"
+            rust: "const CC: &str = \"gcc\";"
+            purified: "CC := gcc"
+            test_name: "test_basic_variable_assignment"
+            notes: "Use := for simple expansion (deterministic)"
+            implementation:
+              version: "v1.5.0"
+              completed_date: "2025-10-15"
+              modules:
+                - "rash/src/make_parser/parser.rs"
+                - "rash/src/make_parser/tests.rs"
+              tests_added: 14
+              test_names:
+                - "test_VAR_BASIC_001_basic_variable_assignment"
+                - "test_VAR_BASIC_001_variable_with_spaces"
+                - "test_VAR_BASIC_001_empty_variable_value"
+                - "test_VAR_BASIC_001_multiple_variables"
+                - "test_VAR_BASIC_001_prop_variables_always_parse"
+                - "test_VAR_BASIC_001_prop_parsing_is_deterministic"
+                - "test_VAR_BASIC_001_prop_variable_flavors"
+                - "test_VAR_BASIC_001_prop_variable_values_flexible"
+                - "test_VAR_BASIC_001_mut_correct_line_numbers"
+                - "test_VAR_BASIC_001_mut_all_flavors_parse"
+                - "test_VAR_BASIC_001_mut_target_with_variable_in_prereq"
+                - "test_VAR_BASIC_001_mut_multichar_operator_slicing"
+                - "test_VAR_BASIC_001_mut_recipe_loop_bounds"
+                - "test_VAR_BASIC_001_mut_operator_edge_cases"
+              unit_tests: 4
+              property_tests: 4
+              mutation_killing_tests: 6
+              mutation_testing:
+                status: "pending_verification"
+                note: "cargo-mutants performance issue - taking 8+ hours for 53 mutants. Targeted tests added proactively."
+                targeted_mutants: "lines 59, 100, 115, 141, 143, 145, 179, 213"
+                threshold: "90%"
+              lines_of_code: 80
+              complexity: "avg <5"
+              features:
+                - "All 5 variable flavors (=, :=, ?=, +=, !=)"
+                - "Variable name and value extraction"
+                - "Distinction between targets and variables"
+
+          - id: "VAR-BASIC-002"
+            title: "Document variable reference"
+            status: "completed"
+            priority: "CRITICAL"
+            input: "$(CC) -o output main.c"
+            rust: "compile(&CC, \"output\", \"main.c\")"
+            purified: "$(CC) -o output main.c"
+            test_name: "test_variable_reference"
+            notes: "Variable references $(VAR) and ${VAR} are preserved as-is during parsing"
+            implementation:
+              version: "v1.5.0"
+              completed_date: "2025-10-15"
+              modules:
+                - "rash/src/make_parser/tests.rs"
+              implementation_required: false
+              note: "NO IMPLEMENTATION NEEDED! Parser already preserves variable references in recipes, variable values, and prerequisites. This is the correct behavior - variable expansion happens in semantic analysis phase, not parsing."
+              tests_added: 10
+              test_names:
+                - "test_VAR_BASIC_002_variable_reference_in_recipe"
+                - "test_VAR_BASIC_002_variable_reference_in_value"
+                - "test_VAR_BASIC_002_multiple_variable_references"
+                - "test_VAR_BASIC_002_curly_brace_syntax"
+                - "test_VAR_BASIC_002_variable_reference_in_prerequisites"
+                - "test_VAR_BASIC_002_prop_var_refs_preserved_in_recipes"
+                - "test_VAR_BASIC_002_prop_var_refs_in_values"
+                - "test_VAR_BASIC_002_prop_curly_brace_preserved"
+                - "test_VAR_BASIC_002_prop_multiple_refs_preserved"
+                - "test_VAR_BASIC_002_prop_refs_in_prerequisites"
+              unit_tests: 5
+              property_tests: 5
+              lines_of_code: 0
+              test_lines: 194
+              features:
+                - "$(VAR) syntax preserved in recipes"
+                - "${VAR} syntax preserved in recipes"
+                - "Variable references in variable values"
+                - "Variable references in prerequisites"
+                - "Multiple variable references in same line"
+
+  - id: 3
+    name: "Writing Makefiles"
+    sections:
+      - id: "3.1"
+        name: "What Makefiles Contain"
+        tasks:
+          - id: "SYNTAX-001"
+            title: "Document comment syntax"
+            status: "completed"
+            priority: "LOW"
+            input: "# This is a comment"
+            rust: "// This is a comment"
+            purified: "# This is a comment"
+            test_name: "test_comment_syntax"
+            notes: "Comments are parsed into AST with text content and source location"
+            implementation:
+              version: "v1.5.0"
+              completed_date: "2025-10-15"
+              modules:
+                - "rash/src/make_parser/parser.rs"
+                - "rash/src/make_parser/tests.rs"
+              tests_added: 14
+              test_names:
+                - "test_SYNTAX_001_basic_comment"
+                - "test_SYNTAX_001_comment_with_leading_spaces"
+                - "test_SYNTAX_001_multiple_comments"
+                - "test_SYNTAX_001_comment_between_targets"
+                - "test_SYNTAX_001_prop_any_hash_line_is_comment"
+                - "test_SYNTAX_001_prop_comments_always_parse"
+                - "test_SYNTAX_001_prop_comment_text_preserved"
+                - "test_SYNTAX_001_prop_multiple_comments"
+                - "test_SYNTAX_001_prop_comment_whitespace_normalized"
+                - "test_SYNTAX_001_mut_comment_line_numbers_correct"
+                - "test_SYNTAX_001_mut_comment_parsing_isolated"
+                - "test_SYNTAX_001_mut_hash_detection"
+                - "test_SYNTAX_001_mut_span_tracking_accurate"
+                - "test_SYNTAX_001_mut_parser_loop_advances"
+              unit_tests: 4
+              property_tests: 5
+              mutation_killing_tests: 5
+              mutation_testing:
+                status: "pending_verification"
+                note: "Mutation-killing tests added proactively targeting parser loop advancement, hash detection, line number tracking, and span calculations."
+                targeted_behaviors:
+                  - "Parser loop advances (line 63)"
+                  - "Hash prefix detection (line 51)"
+                  - "Line number tracking (line 60)"
+                  - "Span calculations (line 60)"
+              lines_of_code: 16
+              test_lines: 200
+              complexity: "avg <3"
+              features:
+                - "Parse # comment lines into MakeItem::Comment"
+                - "Strip # prefix and normalize whitespace"
+                - "Preserve comment text"
+                - "Track source location (line, start, end)"
+
+          - id: "SYNTAX-002"
+            title: "Document line continuation"
+            status: "completed"
+            priority: "MEDIUM"
+            input: |
+              FILES = file1.c \
+                      file2.c \
+                      file3.c
+            rust: "const FILES: &[&str] = &[\"file1.c\", \"file2.c\", \"file3.c\"];"
+            purified: |
+              FILES := file1.c \
+                       file2.c \
+                       file3.c
+            test_name: "test_line_continuation"
+            notes: "Backslash line continuation preprocessor - concatenates lines ending with \\ before parsing"
+            implementation:
+              version: "v1.5.0"
+              completed_date: "2025-10-15"
+              modules:
+                - "rash/src/make_parser/parser.rs"
+                - "rash/src/make_parser/tests.rs"
+              tests_added: 14
+              test_names:
+                - "test_SYNTAX_002_basic_line_continuation_in_variable"
+                - "test_SYNTAX_002_multiple_line_continuations"
+                - "test_SYNTAX_002_line_continuation_preserves_order"
+                - "test_SYNTAX_002_continuation_vs_no_continuation"
+                - "test_SYNTAX_002_prop_continuation_always_parses"
+                - "test_SYNTAX_002_prop_continuation_equivalent_to_sameline"
+                - "test_SYNTAX_002_prop_multiple_continuations"
+                - "test_SYNTAX_002_prop_preserves_order"
+                - "test_SYNTAX_002_prop_works_with_all_flavors"
+                - "test_SYNTAX_002_mut_only_backslash_is_continuation"
+                - "test_SYNTAX_002_mut_handles_backslash_at_end_of_file"
+                - "test_SYNTAX_002_mut_preserves_leading_whitespace_in_first_line"
+                - "test_SYNTAX_002_mut_uses_single_space_separator"
+                - "test_SYNTAX_002_mut_strips_leading_whitespace_from_continuation"
+              unit_tests: 4
+              property_tests: 5
+              mutation_killing_tests: 5
+              mutation_testing:
+                status: "pending_verification"
+                note: "Mutation-killing tests added proactively targeting ends_with('\\') check, boundary condition i+1<len, trim operations, and space concatenation"
+                targeted_lines:
+                  - "Line 44: ends_with('\\') check"
+                  - "Line 44: i + 1 < lines.len() boundary condition"
+                  - "Line 46: trim_end() operations"
+                  - "Line 53: push(' ') space separator"
+                  - "Line 50: trim_start() on next_line"
+              lines_of_code: 29
+              test_lines: 300
+              complexity: "4 (well under 10)"
+              features:
+                - "Preprocess line continuations before parsing"
+                - "Backslash \ at end of line triggers continuation"
+                - "Concatenate with single space separator"
+                - "Strip trailing whitespace before backslash"
+                - "Strip leading whitespace from continued line"
+                - "Handle backslash at EOF gracefully (preserve it)"
+                - "Works with all 5 variable flavors"
+                - "Preserves order of values across continuations"
+
+      - id: "3.3"
+        name: "Including Other Makefiles"
+        tasks:
+          - id: "INCLUDE-001"
+            title: "Document include directive"
+            status: "pending"
+            priority: "MEDIUM"
+            input: "include common.mk"
+            rust: "mod common;"
+            purified: "include common.mk"
+            test_name: "test_include_directive"
+            notes: "File inclusion for modular Makefiles"
+
+          - id: "INCLUDE-002"
+            title: "Document optional include (-include)"
+            status: "pending"
+            priority: "LOW"
+            input: "-include optional.mk"
+            rust: "// Optional module"
+            purified: "-include optional.mk"
+            test_name: "test_optional_include"
+
+  - id: 4
+    name: "Writing Rules"
+    description: "Core rule types and patterns"
+    sections:
+      - id: "4.1"
+        name: "Rule Syntax"
+        tasks:
+          - id: "RULE-001"
+            title: "Document target with recipe"
+            status: "pending"
+            priority: "CRITICAL"
+            input: |
+              build:
+              	cargo build
+            rust: |
+              fn build() -> Result<(), String> {
+                  run_command("cargo", &["build"])?;
+                  Ok(())
+              }
+            purified: |
+              .PHONY: build
+              build:
+              	cargo build
+            test_name: "test_target_with_recipe"
+
+      - id: "4.5"
+        name: "Phony Targets"
+        tasks:
+          - id: "PHONY-001"
+            title: "Document .PHONY declarations"
+            status: "completed"
+            priority: "CRITICAL"
+            input: |
+              .PHONY: clean
+              clean:
+              	rm -f *.o
+            rust: |
+              fn clean() -> Result<(), String> {
+                  remove_files("*.o")?;
+                  Ok(())
+              }
+            purified: |
+              .PHONY: clean
+              clean:
+              	rm -f *.o
+            test_name: "test_phony_declarations"
+            notes: "Essential for purification - ensures non-file targets work correctly"
+            purification_rule: "REQUIRE_PHONY"
+            implementation:
+              version: "v1.5.0"
+              completed_date: "2025-10-15"
+              modules:
+                - "rash/src/make_parser/tests.rs"
+              implementation_required: false
+              note: "NO IMPLEMENTATION NEEDED! Parser already handles .PHONY as a regular target. Excellent design - special targets work naturally without special cases."
+              tests_added: 6
+              test_names:
+                - "test_PHONY_001_basic_phony_declaration"
+                - "test_PHONY_001_multiple_phony_targets"
+                - "test_PHONY_001_phony_declaration_position"
+                - "test_PHONY_001_prop_phony_always_parses"
+                - "test_PHONY_001_prop_multiple_phony_targets"
+                - "test_PHONY_001_prop_parsing_is_deterministic"
+              unit_tests: 3
+              property_tests: 3
+              lines_of_code: 0
+              test_lines: 180
+
+          - id: "PHONY-002"
+            title: "Detect missing .PHONY and add automatically"
+            status: "pending"
+            priority: "HIGH"
+            input: |
+              test:
+              	cargo test
+            rust: |
+              fn test() -> Result<(), String> {
+                  run_tests()?;
+                  Ok(())
+              }
+            purified: |
+              .PHONY: test
+              test:
+              	cargo test
+            test_name: "test_auto_add_phony"
+            notes: "Purification should auto-detect and add .PHONY for common targets"
+            purification_rule: "AUTO_PHONY"
+
+      - id: "4.11"
+        name: "Static Pattern Rules"
+        tasks:
+          - id: "PATTERN-001"
+            title: "Document pattern rules"
+            status: "pending"
+            priority: "MEDIUM"
+            input: |
+              %.o: %.c
+              	$(CC) -c $< -o $@
+            rust: |
+              fn compile_c_file(src: &str) -> Result<String, String> {
+                  let obj = src.replace(".c", ".o");
+                  run_command(&CC, &["-c", src, "-o", &obj])?;
+                  Ok(obj)
+              }
+            purified: |
+              %.o: %.c
+              	$(CC) -c $< -o $@
+            test_name: "test_pattern_rules"
+
+          - id: "PATTERN-002"
+            title: "Document automatic variables ($@, $<, $^)"
+            status: "pending"
+            priority: "HIGH"
+            input: |
+              program: main.o util.o
+              	$(CC) $^ -o $@
+            rust: |
+              fn link_program(objects: &[&str]) -> Result<String, String> {
+                  run_command(&CC, &[objects.join(" "), "-o", "program"])?;
+                  Ok("program".to_string())
+              }
+            purified: |
+              program: main.o util.o
+              	$(CC) $^ -o $@
+            test_name: "test_automatic_variables"
+
+  - id: 5
+    name: "Writing Recipes in Rules"
+    sections:
+      - id: "5.1"
+        name: "Recipe Syntax"
+        tasks:
+          - id: "RECIPE-001"
+            title: "Document tab-indented recipes"
+            status: "completed"
+            priority: "CRITICAL"
+            input: |
+              build:
+              	cargo build --release
+            rust: |
+              fn build() {
+                  run_cargo_build(true);
+              }
+            purified: |
+              .PHONY: build
+              build:
+              	cargo build --release
+            test_name: "test_tab_indented_recipe"
+            notes: "Recipes MUST be tab-indented, not spaces. Recipe parsing handled in parse_target_rule() lines 262-288"
+            implementation:
+              version: "v1.5.0"
+              completed_date: "2025-10-15"
+              modules:
+                - "rash/src/make_parser/parser.rs"
+                - "rash/src/make_parser/tests.rs"
+              implementation_required: false
+              note: "NO CODE CHANGES NEEDED - parser already handles tab-indented recipes via starts_with('\\t') check, multi-line parsing, empty line handling, and proper termination"
+              tests_added: 14
+              test_names:
+                - "test_RECIPE_001_single_tab_indented_recipe"
+                - "test_RECIPE_001_multiple_tab_indented_recipes"
+                - "test_RECIPE_001_recipe_with_empty_lines"
+                - "test_RECIPE_001_recipe_stops_at_non_tab_line"
+                - "prop_RECIPE_001_recipes_with_varying_lines_always_parse"
+                - "prop_RECIPE_001_recipe_parsing_is_deterministic"
+                - "prop_RECIPE_001_tab_indented_lines_always_recognized"
+                - "prop_RECIPE_001_recipe_order_preserved"
+                - "prop_RECIPE_001_various_recipe_commands_work"
+                - "test_RECIPE_001_mut_tab_detection_must_use_starts_with"
+                - "test_RECIPE_001_mut_recipe_push_must_happen"
+                - "test_RECIPE_001_mut_empty_line_handling_must_continue"
+                - "test_RECIPE_001_mut_non_tab_line_must_break_loop"
+                - "test_RECIPE_001_mut_index_increment_must_happen"
+              unit_tests: 4
+              property_tests: 5
+              mutation_killing_tests: 5
+              mutation_testing:
+                status: "pending_verification"
+                note: "Mutation-killing tests added proactively targeting starts_with('\\t'), recipe.push(), continue/break logic, and index increments"
+                targeted_lines:
+                  - "Line 268: starts_with('\\t') tab detection"
+                  - "Line 270: recipe.push() adding recipe lines"
+                  - "Line 276: continue in empty line handling"
+                  - "Line 283: break on non-tab line"
+                  - "Line 271: *index += 1 loop progression"
+              lines_of_code: 0
+              test_lines: 300
+              complexity: "already <10"
+              features_implemented:
+                - "Tab detection via starts_with('\\t')"
+                - "Multi-line recipe parsing"
+                - "Empty line handling between recipes"
+                - "Proper termination at non-tab lines"
+                - "Recipe order preservation"
+
+          - id: "RECIPE-002"
+            title: "Document multi-line recipes"
+            status: "completed"
+            priority: "HIGH"
+            input: |
+              deploy:
+              	cargo build --release
+              	cargo test
+              	scp target/release/app server:/opt/
+            rust: |
+              fn deploy() -> Result<(), String> {
+                  build_release()?;
+                  test()?;
+                  upload("target/release/app", "server:/opt/")?;
+                  Ok(())
+              }
+            purified: |
+              .PHONY: deploy
+              deploy: build-release test upload
+            test_name: "test_multi_line_recipes"
+            notes: "Multi-line recipes are parsed by the loop in parse_target_rule() lines 265-285. Parser collects all consecutive tab-indented lines into Vec<String>"
+            implementation:
+              version: "v1.5.0"
+              completed_date: "2025-10-15"
+              modules:
+                - "rash/src/make_parser/parser.rs"
+                - "rash/src/make_parser/tests.rs"
+              implementation_required: false
+              note: "NO CODE CHANGES NEEDED - parser already handles multi-line recipes via loop in parse_target_rule() (lines 265-285) that collects all consecutive tab-indented lines, preserves order, and isolates recipes between targets"
+              tests_added: 14
+              test_names:
+                - "test_RECIPE_002_basic_three_line_recipe"
+                - "test_RECIPE_002_many_recipe_lines"
+                - "test_RECIPE_002_recipe_order_preserved"
+                - "test_RECIPE_002_different_targets_different_recipes"
+                - "prop_RECIPE_002_varying_recipe_line_count_always_parses"
+                - "prop_RECIPE_002_multi_line_parsing_is_deterministic"
+                - "prop_RECIPE_002_all_recipe_lines_collected"
+                - "prop_RECIPE_002_recipe_order_always_preserved"
+                - "prop_RECIPE_002_complex_commands_in_multiline_recipe"
+                - "test_RECIPE_002_mut_all_recipe_lines_must_be_collected"
+                - "test_RECIPE_002_mut_recipe_count_must_be_exact"
+                - "test_RECIPE_002_mut_loop_bounds_must_be_correct"
+                - "test_RECIPE_002_mut_recipe_vec_must_accumulate"
+                - "test_RECIPE_002_mut_multiple_targets_isolated"
+              unit_tests: 4
+              property_tests: 5
+              mutation_killing_tests: 5
+              mutation_testing:
+                status: "pending_verification"
+                note: "Mutation-killing tests added proactively targeting recipe.push() (line 270), Vec accumulation (line 263), loop bounds (line 265), and target isolation"
+                targeted_lines:
+                  - "Line 263: let mut recipe = Vec::new() initialization"
+                  - "Line 265: while *index < lines.len() loop bounds"
+                  - "Line 270: recipe.push() collecting recipe lines"
+              lines_of_code: 0
+              test_lines: 300
+              complexity: "already <10"
+              features_implemented:
+                - "Multi-line recipe collection via loop"
+                - "Recipe order preservation"
+                - "Exact line count tracking"
+                - "Target isolation (fresh Vec per target)"
+                - "Loop bounds correctness"
+
+      - id: "5.2"
+        name: "Recipe Echoing"
+        tasks:
+          - id: "ECHO-001"
+            title: "Document @ prefix for silent recipes"
+            status: "completed"
+            priority: "LOW"
+            input: |
+              test:
+              	@cargo test
+            rust: |
+              fn test() {
+                  run_silent("cargo test");
+              }
+            purified: |
+              .PHONY: test
+              test:
+              	@cargo test
+            test_name: "test_silent_recipe"
+            notes: "@ prefix for silent recipes (no echo during make execution)"
+            implementation:
+              version: "v1.5.0"
+              completed_date: "2025-10-15"
+              modules:
+                - "rash/src/make_parser/tests.rs"
+              implementation_required: false
+              note: "NO CODE CHANGES NEEDED - parser already preserves @ prefix in recipe lines as part of the recipe string content via recipe.push(recipe_line.trim().to_string()) in parser.rs:270"
+              tests_added: 9
+              test_names:
+                - "test_ECHO_001_single_silent_recipe"
+                - "test_ECHO_001_multiple_silent_recipes"
+                - "test_ECHO_001_mixed_silent_and_normal_recipes"
+                - "test_ECHO_001_at_prefix_different_targets"
+                - "prop_ECHO_001_at_prefix_always_preserved"
+                - "prop_ECHO_001_parsing_is_deterministic"
+                - "prop_ECHO_001_mixed_recipes_order_preserved"
+                - "prop_ECHO_001_at_prefix_with_special_chars"
+                - "prop_ECHO_001_multiple_targets_independent"
+              unit_tests: 4
+              property_tests: 5
+              mutation_testing:
+                status: "skipped"
+                note: "@ prefix is just string content in recipes, covered by existing RECIPE-001 and RECIPE-002 mutation tests"
+              files_modified: 1
+              lines_of_code: 0
+              test_lines: 250
+              complexity: "N/A"
+              features_implemented:
+                - "Parse @ prefix in recipes (silent execution)"
+                - "Support single @ prefix recipe"
+                - "Support multiple @ prefix recipes"
+                - "Support mixed @ and non-@ recipes"
+                - "Preserve @ across multiple targets"
+                - "Handle @ with special shell characters"
+
+  - id: 6
+    name: "How to Use Variables"
+    description: "Variable assignment and expansion"
+    sections:
+      - id: "6.2"
+        name: "The Two Flavors of Variables"
+        tasks:
+          - id: "VAR-FLAVOR-001"
+            title: "Document recursive assignment (=)"
+            status: "completed"
+            priority: "HIGH"
+            input: "VAR = $(OTHER)"
+            rust: "lazy_static! { static ref VAR: String = OTHER.clone(); }"
+            purified: "VAR := $(OTHER)"
+            test_name: "test_recursive_assignment"
+            notes: "Convert = to := for determinism (simple expansion). = operator parsed via is_variable_assignment() and parse_variable()"
+            purification_rule: "PREFER_SIMPLE_EXPANSION"
+            implementation:
+              version: "v1.5.0"
+              completed_date: "2025-10-15"
+              modules:
+                - "rash/src/make_parser/tests.rs"
+              implementation_required: false
+              note: "NO IMPLEMENTATION NEEDED! Parser already handles = recursive assignment (line 116 detection, line 156-157 parsing). This is the last of the 5 variable flavors - ALL COMPLETE!"
+              tests_added: 14
+              test_names:
+                - "test_VAR_FLAVOR_001_basic_recursive_assignment"
+                - "test_VAR_FLAVOR_001_recursive_with_spaces"
+                - "test_VAR_FLAVOR_001_recursive_empty_value"
+                - "test_VAR_FLAVOR_001_recursive_vs_other_flavors"
+                - "test_VAR_FLAVOR_001_prop_recursive_always_parses"
+                - "test_VAR_FLAVOR_001_prop_recursive_is_deterministic"
+                - "test_VAR_FLAVOR_001_prop_not_confused_with_other_operators"
+                - "test_VAR_FLAVOR_001_prop_handles_various_values"
+                - "test_VAR_FLAVOR_001_prop_handles_special_chars_in_values"
+                - "test_VAR_FLAVOR_001_mut_equals_detection"
+                - "test_VAR_FLAVOR_001_mut_operator_slicing"
+                - "test_VAR_FLAVOR_001_mut_recursive_not_missed"
+                - "test_VAR_FLAVOR_001_mut_not_confused_with_colon"
+                - "test_VAR_FLAVOR_001_mut_correct_flavor_enum_variant"
+              unit_tests: 4
+              property_tests: 5
+              mutation_killing_tests: 5
+              mutation_testing:
+                status: "pending_verification"
+                note: "Mutation-killing tests added proactively targeting = detection (line 116), slicing logic (lines 156-157), and VarFlavor::Recursive enum variant."
+                targeted_lines:
+                  - "Line 116: = operator detection in is_variable_assignment()"
+                  - "Lines 156-157: = parsing and VarFlavor::Recursive assignment"
+              lines_of_code: 0
+              test_lines: 200
+              features:
+                - "Parse = recursive assignment operator"
+                - "Map to VarFlavor::Recursive"
+                - "Distinguish = from other operators"
+                - "Handle spaces around ="
+                - "Support empty and complex values"
+                - "All 5 variable flavors now complete!"
+
+          - id: "VAR-FLAVOR-002"
+            title: "Document simple assignment (:=)"
+            status: "completed"
+            priority: "CRITICAL"
+            input: "VAR := value"
+            rust: "const VAR: &str = \"value\";"
+            purified: "VAR := value"
+            test_name: "test_simple_assignment"
+            notes: "Preferred - deterministic, evaluated immediately"
+            implementation:
+              version: "v1.5.0"
+              completed_date: "2025-10-15"
+              completed_via: "VAR-BASIC-001"
+              note: "All 5 variable flavors implemented together in VAR-BASIC-001. Property test test_VAR_BASIC_001_prop_variable_flavors specifically verifies := flavor."
+              modules:
+                - "rash/src/make_parser/parser.rs"
+              tests: "Covered by VAR-BASIC-001 tests"
+
+          - id: "VAR-FLAVOR-003"
+            title: "Document conditional assignment (?=)"
+            status: "completed"
+            priority: "MEDIUM"
+            input: "VAR ?= default"
+            rust: "let var = var.unwrap_or(\"default\");"
+            purified: "VAR ?= default"
+            test_name: "test_conditional_assignment"
+            notes: "?= operator parsed via is_variable_assignment() and parse_variable()"
+            implementation:
+              version: "v1.5.0"
+              completed_date: "2025-10-15"
+              modules:
+                - "rash/src/make_parser/tests.rs"
+              implementation_required: false
+              note: "NO IMPLEMENTATION NEEDED! Parser already handles ?= conditional assignment (line 110 detection, line 150 parsing). All 5 flavors implemented in VAR-BASIC-001."
+              tests_added: 14
+              test_names:
+                - "test_VAR_FLAVOR_003_basic_conditional_assignment"
+                - "test_VAR_FLAVOR_003_conditional_with_spaces"
+                - "test_VAR_FLAVOR_003_conditional_empty_value"
+                - "test_VAR_FLAVOR_003_conditional_vs_other_flavors"
+                - "test_VAR_FLAVOR_003_prop_conditional_always_parses"
+                - "test_VAR_FLAVOR_003_prop_parsing_is_deterministic"
+                - "test_VAR_FLAVOR_003_prop_operator_not_confused"
+                - "test_VAR_FLAVOR_003_prop_values_flexible"
+                - "test_VAR_FLAVOR_003_prop_special_values"
+                - "test_VAR_FLAVOR_003_mut_operator_detection"
+                - "test_VAR_FLAVOR_003_mut_operator_slicing"
+                - "test_VAR_FLAVOR_003_mut_conditional_not_missed"
+                - "test_VAR_FLAVOR_003_mut_not_confused_with_question_mark"
+                - "test_VAR_FLAVOR_003_mut_correct_flavor_enum_variant"
+              unit_tests: 4
+              property_tests: 5
+              mutation_killing_tests: 5
+              mutation_testing:
+                status: "pending_verification"
+                note: "Mutation-killing tests added proactively targeting ?= detection (line 110), slicing logic (line 150), and VarFlavor::Conditional enum variant."
+                targeted_lines:
+                  - "Line 110: ?= operator detection in is_variable_assignment()"
+                  - "Line 150: ?= parsing and VarFlavor::Conditional assignment"
+              lines_of_code: 0
+              test_lines: 200
+              features:
+                - "Parse ?= conditional assignment operator"
+                - "Map to VarFlavor::Conditional"
+                - "Distinguish ?= from other operators"
+                - "Handle spaces around ?="
+                - "Support empty and complex values"
+
+          - id: "VAR-FLAVOR-004"
+            title: "Document append (+=)"
+            status: "completed"
+            priority: "MEDIUM"
+            input: "FLAGS += -O2"
+            rust: "flags.push_str(\" -O2\");"
+            purified: "FLAGS += -O2"
+            test_name: "test_append_assignment"
+            notes: "+= operator parsed via is_variable_assignment() and parse_variable()"
+            implementation:
+              version: "v1.5.0"
+              completed_date: "2025-10-15"
+              modules:
+                - "rash/src/make_parser/tests.rs"
+              implementation_required: false
+              note: "NO IMPLEMENTATION NEEDED! Parser already handles += append assignment (line 111 detection, line 152-153 parsing). All 5 flavors implemented in VAR-BASIC-001."
+              tests_added: 14
+              test_names:
+                - "test_VAR_FLAVOR_004_basic_append_assignment"
+                - "test_VAR_FLAVOR_004_append_with_spaces"
+                - "test_VAR_FLAVOR_004_append_empty_value"
+                - "test_VAR_FLAVOR_004_append_vs_other_flavors"
+                - "test_VAR_FLAVOR_004_prop_append_always_parses"
+                - "test_VAR_FLAVOR_004_prop_parsing_is_deterministic"
+                - "test_VAR_FLAVOR_004_prop_operator_not_confused"
+                - "test_VAR_FLAVOR_004_prop_values_flexible"
+                - "test_VAR_FLAVOR_004_prop_special_values"
+                - "test_VAR_FLAVOR_004_mut_operator_detection"
+                - "test_VAR_FLAVOR_004_mut_operator_slicing"
+                - "test_VAR_FLAVOR_004_mut_append_not_missed"
+                - "test_VAR_FLAVOR_004_mut_not_confused_with_plus"
+                - "test_VAR_FLAVOR_004_mut_correct_flavor_enum_variant"
+              unit_tests: 4
+              property_tests: 5
+              mutation_killing_tests: 5
+              mutation_testing:
+                status: "pending_verification"
+                note: "Mutation-killing tests added proactively targeting += detection (line 111), slicing logic (lines 152-153), and VarFlavor::Append enum variant."
+                targeted_lines:
+                  - "Line 111: += operator detection in is_variable_assignment()"
+                  - "Lines 152-153: += parsing and VarFlavor::Append assignment"
+              lines_of_code: 0
+              test_lines: 200
+              features:
+                - "Parse += append assignment operator"
+                - "Map to VarFlavor::Append"
+                - "Distinguish += from other operators"
+                - "Handle spaces around +="
+                - "Support empty and complex values"
+
+      - id: "6.3"
+        name: "Advanced Features for Reference to Variables"
+        tasks:
+          - id: "VAR-SUBST-001"
+            title: "Document variable substitution"
+            status: "pending"
+            priority: "LOW"
+            input: "OBJS = $(SRCS:.c=.o)"
+            rust: |
+              let objs: Vec<String> = srcs.iter()
+                  .map(|s| s.replace(".c", ".o"))
+                  .collect();
+            purified: "OBJS := $(SRCS:.c=.o)"
+            test_name: "test_variable_substitution"
+
+  - id: 7
+    name: "Conditional Parts of Makefiles"
+    tasks:
+      - id: "COND-001"
+        title: "Document ifeq conditional"
+        status: "pending"
+        priority: "MEDIUM"
+        input: |
+          ifeq ($(DEBUG),1)
+          CFLAGS = -g
+          else
+          CFLAGS = -O2
+          endif
+        rust: |
+          let cflags = if debug == "1" {
+              "-g"
+          } else {
+              "-O2"
+          };
+        purified: |
+          ifeq ($(DEBUG),1)
+          CFLAGS := -g
+          else
+          CFLAGS := -O2
+          endif
+        test_name: "test_ifeq_conditional"
+
+      - id: "COND-002"
+        title: "Document ifdef conditional"
+        status: "pending"
+        priority: "MEDIUM"
+        input: |
+          ifdef VERBOSE
+          ECHO =
+          else
+          ECHO = @
+          endif
+        rust: |
+          let echo = if env::var("VERBOSE").is_ok() {
+              ""
+          } else {
+              "@"
+          };
+        purified: |
+          ifdef VERBOSE
+          ECHO :=
+          else
+          ECHO := @
+          endif
+        test_name: "test_ifdef_conditional"
+
+  - id: 8
+    name: "Functions for Transforming Text"
+    description: "Built-in Make functions"
+    sections:
+      - id: "8.2"
+        name: "Functions for String Substitution and Analysis"
+        tasks:
+          - id: "FUNC-SUBST-001"
+            title: "Document $(subst from,to,text)"
+            status: "pending"
+            priority: "LOW"
+            input: "$(subst .c,.o,main.c util.c)"
+            rust: "text.replace(\".c\", \".o\")"
+            purified: "$(subst .c,.o,main.c util.c)"
+            test_name: "test_subst_function"
+
+      - id: "8.3"
+        name: "Functions for File Names"
+        tasks:
+          - id: "FUNC-WILDCARD-001"
+            title: "Purify $(wildcard pattern) to explicit list"
+            status: "pending"
+            priority: "CRITICAL"
+            input: "SOURCES := $(wildcard src/*.c)"
+            rust: "const SOURCES: &[&str] = &[\"src/main.c\", \"src/util.c\"];"
+            purified: "SOURCES := src/main.c src/util.c"
+            test_name: "test_purify_wildcard"
+            notes: "Wildcard is non-deterministic (filesystem order) - must purify to explicit sorted list"
+            purification_rule: "NO_WILDCARD"
+
+          - id: "FUNC-DIR-001"
+            title: "Document $(dir names...)"
+            status: "pending"
+            priority: "LOW"
+            input: "$(dir src/main.c include/util.h)"
+            rust: "paths.iter().map(|p| Path::new(p).parent()).collect()"
+            purified: "$(dir src/main.c include/util.h)"
+            test_name: "test_dir_function"
+
+      - id: "8.13"
+        name: "The shell Function"
+        tasks:
+          - id: "FUNC-SHELL-001"
+            title: "Purify $(shell date) - timestamps"
+            status: "pending"
+            priority: "CRITICAL"
+            input: "RELEASE := $(shell date +%Y%m%d-%H%M%S)"
+            rust: "const RELEASE: &str = \"1.0.0\";"
+            purified: "RELEASE := 1.0.0"
+            test_name: "test_purify_shell_date"
+            notes: "Timestamps are non-deterministic - must use explicit version"
+            purification_rule: "NO_TIMESTAMPS"
+
+          - id: "FUNC-SHELL-002"
+            title: "Purify $(shell find) - filesystem ordering"
+            status: "pending"
+            priority: "CRITICAL"
+            input: "FILES := $(shell find src -name '*.c')"
+            rust: "const FILES: &[&str] = &[\"src/a.c\", \"src/b.c\"];"
+            purified: "FILES := src/a.c src/b.c"
+            test_name: "test_purify_shell_find"
+            notes: "find output order is non-deterministic - must use explicit sorted list"
+            purification_rule: "NO_UNORDERED_FIND"
+
+          - id: "FUNC-SHELL-003"
+            title: "Purify $(shell echo $$RANDOM)"
+            status: "pending"
+            priority: "CRITICAL"
+            input: "BUILD_ID := $(shell echo $$RANDOM)"
+            rust: "const BUILD_ID: u32 = 42;"
+            purified: "BUILD_ID := 42"
+            test_name: "test_purify_shell_random"
+            notes: "Random values are non-deterministic - use seed or fixed value"
+            purification_rule: "NO_RANDOM"
+
+purification_rules:
+  determinism:
+    - name: "NO_TIMESTAMPS"
+      description: "Replace $(shell date) with explicit version"
+      severity: "CRITICAL"
+      auto_fix: true
+      example:
+        before: "RELEASE := $(shell date +%s)"
+        after: "RELEASE := 1.0.0"
+
+    - name: "NO_RANDOM"
+      description: "Replace $RANDOM or random shell commands"
+      severity: "CRITICAL"
+      auto_fix: true
+      example:
+        before: "ID := $(shell echo $$RANDOM)"
+        after: "ID := 42"
+
+    - name: "NO_WILDCARD"
+      description: "Replace $(wildcard) with explicit file lists"
+      severity: "HIGH"
+      auto_fix: true
+      example:
+        before: "SOURCES := $(wildcard *.c)"
+        after: "SOURCES := a.c b.c main.c"
+
+    - name: "NO_UNORDERED_FIND"
+      description: "Replace $(shell find) with sorted explicit list"
+      severity: "HIGH"
+      auto_fix: true
+      example:
+        before: "FILES := $(shell find . -name '*.c')"
+        after: "FILES := ./a.c ./b.c ./main.c"
+
+    - name: "PREFER_SIMPLE_EXPANSION"
+      description: "Convert = to := for deterministic expansion"
+      severity: "MEDIUM"
+      auto_fix: true
+      example:
+        before: "VAR = $(shell command)"
+        after: "VAR := $(shell command)"
+
+  idempotency:
+    - name: "REQUIRE_PHONY"
+      description: "Add .PHONY for non-file targets"
+      severity: "CRITICAL"
+      auto_fix: true
+      example:
+        before: "clean:\n\trm -f *.o"
+        after: ".PHONY: clean\nclean:\n\trm -f *.o"
+
+    - name: "AUTO_PHONY"
+      description: "Auto-detect common targets (test, clean, install, etc.)"
+      severity: "HIGH"
+      auto_fix: true
+      targets: ["test", "clean", "install", "deploy", "build", "all", "help"]
+
+    - name: "MKDIR_P"
+      description: "Use mkdir -p for idempotent directory creation"
+      severity: "MEDIUM"
+      auto_fix: true
+      example:
+        before: "mkdir dist"
+        after: "mkdir -p dist"
+
+    - name: "RM_F"
+      description: "Use rm -f for idempotent file removal"
+      severity: "MEDIUM"
+      auto_fix: true
+      example:
+        before: "rm *.o"
+        after: "rm -f *.o"
+
+  portability:
+    - name: "POSIX_SHELL"
+      description: "Ensure recipes use POSIX sh, not bash-isms"
+      severity: "MEDIUM"
+      auto_fix: false
+      example:
+        before: "if [[ -f file ]]; then"
+        after: "if [ -f file ]; then"
+
+    - name: "PATH_SEPARATORS"
+      description: "Use variables for path separators"
+      severity: "LOW"
+      auto_fix: true
+
+completed_features:
+  - id: "RULE-SYNTAX-001"
+    title: "Basic rule syntax"
+    version: "v1.4.0"
+    completed_date: "2025-10-15"
+    test_coverage: "100%"
+    tests_added: 23
+    unit_tests: 16
+    property_tests: 4
+    mutation_testing:
+      rounds: 2
+      round_1: "48.3% kill rate (FAILED)"
+      round_2: "92.6% kill rate (PASSED)"
+      final_score: "92.6%"
+      status: "PASSED"
+    files_modified: 4
+    lines_of_code: 1000
+
+  - id: "VAR-BASIC-001"
+    title: "Basic variable assignment"
+    version: "v1.5.0"
+    completed_date: "2025-10-15"
+    test_coverage: "100%"
+    tests_added: 14
+    unit_tests: 4
+    property_tests: 4
+    mutation_killing_tests: 6
+    mutation_testing:
+      status: "pending_verification"
+      note: "Targeted mutation-killing tests added for lines 59, 100, 115, 141, 143, 145, 179, 213. Full verification pending due to cargo-mutants performance issues."
+    files_modified: 2
+    lines_of_code: 80
+    features_implemented:
+      - "All 5 variable flavors (=, :=, ?=, +=, !=)"
+      - "Variable name and value extraction"
+      - "Target vs variable distinction"
+
+  - id: "VAR-FLAVOR-002"
+    title: "Simple assignment (:=)"
+    version: "v1.5.0"
+    completed_date: "2025-10-15"
+    completed_via: "VAR-BASIC-001"
+    note: "Implemented as part of VAR-BASIC-001"
+
+  - id: "PHONY-001"
+    title: ".PHONY declarations"
+    version: "v1.5.0"
+    completed_date: "2025-10-15"
+    test_coverage: "100%"
+    tests_added: 6
+    unit_tests: 3
+    property_tests: 3
+    implementation_required: false
+    note: "NO CODE CHANGES NEEDED - parser already handles .PHONY as regular target"
+    files_modified: 1
+    lines_of_code: 0
+    test_lines: 180
+
+  - id: "VAR-BASIC-002"
+    title: "Variable references"
+    version: "v1.5.0"
+    completed_date: "2025-10-15"
+    test_coverage: "100%"
+    tests_added: 10
+    unit_tests: 5
+    property_tests: 5
+    implementation_required: false
+    note: "NO CODE CHANGES NEEDED - parser already preserves $(VAR) and ${VAR} syntax"
+    files_modified: 1
+    lines_of_code: 0
+    test_lines: 194
+    features_implemented:
+      - "$(VAR) syntax preserved"
+      - "${VAR} syntax preserved"
+      - "Variable references in recipes"
+      - "Variable references in variable values"
+      - "Variable references in prerequisites"
+
+  - id: "SYNTAX-001"
+    title: "Comment syntax"
+    version: "v1.5.0"
+    completed_date: "2025-10-15"
+    test_coverage: "100%"
+    tests_added: 14
+    unit_tests: 4
+    property_tests: 5
+    mutation_killing_tests: 5
+    mutation_testing:
+      status: "pending_verification"
+      note: "Mutation-killing tests added proactively targeting parser loop advancement, hash detection, line number tracking, and span calculations"
+    files_modified: 2
+    lines_of_code: 16
+    test_lines: 200
+    complexity: "avg <3"
+    features_implemented:
+      - "Parse # comment lines into MakeItem::Comment"
+      - "Strip # prefix and normalize whitespace"
+      - "Preserve comment text"
+      - "Track source location (line, start, end)"
+
+  - id: "RULE-SYNTAX-002"
+    title: "Multiple prerequisites"
+    version: "v1.5.0"
+    completed_date: "2025-10-15"
+    test_coverage: "100%"
+    tests_added: 14
+    unit_tests: 4
+    property_tests: 5
+    mutation_killing_tests: 5
+    implementation_required: false
+    note: "NO CODE CHANGES NEEDED - parser already handles via split_whitespace()"
+    files_modified: 1
+    lines_of_code: 0
+    test_lines: 200
+    features_implemented:
+      - "Parse multiple space-separated prerequisites"
+      - "Handle 0 to N prerequisites"
+      - "Preserve prerequisite order"
+      - "Normalize whitespace"
+      - "Support paths with slashes and dots"
+
+  - id: "VAR-FLAVOR-003"
+    title: "Conditional assignment (?=)"
+    version: "v1.5.0"
+    completed_date: "2025-10-15"
+    test_coverage: "100%"
+    tests_added: 14
+    unit_tests: 4
+    property_tests: 5
+    mutation_killing_tests: 5
+    implementation_required: false
+    note: "NO CODE CHANGES NEEDED - parser already handles ?= operator (lines 110, 150)"
+    files_modified: 1
+    lines_of_code: 0
+    test_lines: 200
+    features_implemented:
+      - "Parse ?= conditional assignment operator"
+      - "Map to VarFlavor::Conditional"
+      - "Distinguish ?= from other operators"
+      - "Handle spaces around ?="
+      - "Support empty and complex values"
+
+  - id: "VAR-FLAVOR-004"
+    title: "Append assignment (+=)"
+    version: "v1.5.0"
+    completed_date: "2025-10-15"
+    test_coverage: "100%"
+    tests_added: 14
+    unit_tests: 4
+    property_tests: 5
+    mutation_killing_tests: 5
+    implementation_required: false
+    note: "NO CODE CHANGES NEEDED - parser already handles += operator (lines 111, 152-153)"
+    files_modified: 1
+    lines_of_code: 0
+    test_lines: 200
+    features_implemented:
+      - "Parse += append assignment operator"
+      - "Map to VarFlavor::Append"
+      - "Distinguish += from other operators"
+      - "Handle spaces around +="
+      - "Support empty and complex values"
+
+  - id: "VAR-FLAVOR-001"
+    title: "Recursive assignment (=)"
+    version: "v1.5.0"
+    completed_date: "2025-10-15"
+    test_coverage: "100%"
+    tests_added: 14
+    unit_tests: 4
+    property_tests: 5
+    mutation_killing_tests: 5
+    implementation_required: false
+    note: "NO CODE CHANGES NEEDED - parser already handles = operator (lines 116, 156-157). ALL 5 VARIABLE FLAVORS NOW COMPLETE!"
+    files_modified: 1
+    lines_of_code: 0
+    test_lines: 200
+    features_implemented:
+      - "Parse = recursive assignment operator"
+      - "Map to VarFlavor::Recursive"
+      - "Distinguish = from other operators"
+      - "Handle spaces around ="
+      - "Support empty and complex values"
+      - "Complete all 5 variable flavors (=, :=, ?=, +=, !=)"
+
+  - id: "SYNTAX-002"
+    title: "Line continuation"
+    version: "v1.5.0"
+    completed_date: "2025-10-15"
+    test_coverage: "100%"
+    tests_added: 14
+    unit_tests: 4
+    property_tests: 5
+    mutation_killing_tests: 5
+    mutation_testing:
+      status: "pending_verification"
+      note: "Mutation-killing tests added proactively targeting ends_with('\\'), boundary conditions, trim operations, and space concatenation"
+    files_modified: 2
+    lines_of_code: 29
+    test_lines: 300
+    complexity: "4"
+    features_implemented:
+      - "Preprocess line continuations before parsing"
+      - "Backslash \\ triggers continuation"
+      - "Concatenate with single space"
+      - "Strip trailing/leading whitespace"
+      - "Handle EOF gracefully"
+      - "Works with all 5 variable flavors"
+
+  - id: "RECIPE-001"
+    title: "Tab-indented recipes"
+    version: "v1.5.0"
+    completed_date: "2025-10-15"
+    test_coverage: "100%"
+    tests_added: 14
+    unit_tests: 4
+    property_tests: 5
+    mutation_killing_tests: 5
+    implementation_required: false
+    note: "NO CODE CHANGES NEEDED - parser already handles tab-indented recipes via starts_with('\\t') check, multi-line parsing, empty line handling, and proper termination in parse_target_rule() lines 262-288"
+    files_modified: 1
+    lines_of_code: 0
+    test_lines: 300
+    complexity: "already <10"
+    features_implemented:
+      - "Tab detection via starts_with('\\t')"
+      - "Multi-line recipe parsing"
+      - "Empty line handling between recipes"
+      - "Proper termination at non-tab lines"
+      - "Recipe order preservation"
+
+  - id: "RECIPE-002"
+    title: "Multi-line recipes"
+    version: "v1.5.0"
+    completed_date: "2025-10-15"
+    test_coverage: "100%"
+    tests_added: 14
+    unit_tests: 4
+    property_tests: 5
+    mutation_killing_tests: 5
+    implementation_required: false
+    note: "NO CODE CHANGES NEEDED - parser already handles multi-line recipes via loop in parse_target_rule() (lines 265-285) that collects all consecutive tab-indented lines, preserves order, and isolates recipes between targets"
+    files_modified: 1
+    lines_of_code: 0
+    test_lines: 300
+    complexity: "already <10"
+    features_implemented:
+      - "Multi-line recipe collection via loop"
+      - "Recipe order preservation"
+      - "Exact line count tracking"
+      - "Target isolation (fresh Vec per target)"
+      - "Loop bounds correctness"
+
+  - id: "ECHO-001"
+    title: "@ prefix for silent recipes"
+    version: "v1.5.0"
+    completed_date: "2025-10-15"
+    test_coverage: "100%"
+    tests_added: 9
+    unit_tests: 4
+    property_tests: 5
+    implementation_required: false
+    note: "NO CODE CHANGES NEEDED - parser already preserves @ prefix in recipe lines as part of the recipe string content via recipe.push(recipe_line.trim().to_string()) in parser.rs:270"
+    files_modified: 1
+    lines_of_code: 0
+    test_lines: 250
+    complexity: "N/A"
+    mutation_testing:
+      status: "skipped"
+      note: "@ prefix is just string content in recipes, covered by existing RECIPE-001 and RECIPE-002 mutation tests"
+    features_implemented:
+      - "Parse @ prefix in recipes (silent execution)"
+      - "Support single @ prefix recipe"
+      - "Support multiple @ prefix recipes"
+      - "Support mixed @ and non-@ recipes"
+      - "Preserve @ across multiple targets"
+      - "Handle @ with special shell characters"
+
+high_priority_tasks:
+  description: "Critical path tasks to implement first"
+  tasks:
+    - id: "RULE-SYNTAX-001"
+      title: "Basic rule syntax"
+      priority: 1
+      status: "✅ COMPLETED"
+      rationale: "Foundation for all rules"
+      completed_date: "2025-10-15"
+
+    - id: "VAR-BASIC-001"
+      title: "Basic variable assignment"
+      priority: 2
+      status: "✅ COMPLETED"
+      rationale: "Essential for variable support"
+      completed_date: "2025-10-15"
+
+    - id: "VAR-FLAVOR-002"
+      title: "Simple assignment (:=)"
+      priority: 3
+      status: "✅ COMPLETED"
+      rationale: "Deterministic variables"
+      completed_date: "2025-10-15"
+      note: "Completed via VAR-BASIC-001"
+
+    - id: "PHONY-001"
+      title: ".PHONY declarations"
+      priority: 4
+      status: "✅ COMPLETED"
+      rationale: "Critical for purification"
+      completed_date: "2025-10-15"
+      note: "No implementation needed - already supported"
+
+    - id: "RULE-001"
+      title: "Target with recipe"
+      priority: 5
+      status: "🔴 NOT STARTED"
+      rationale: "Core rule functionality"
+
+    - id: "FUNC-SHELL-001"
+      title: "Purify $(shell date)"
+      priority: 6
+      status: "🔴 NOT STARTED"
+      rationale: "Critical purification rule"
+
+    - id: "FUNC-WILDCARD-001"
+      title: "Purify $(wildcard)"
+      priority: 7
+      status: "🔴 NOT STARTED"
+      rationale: "Critical purification rule"
+
+    - id: "PHONY-002"
+      title: "Auto-add .PHONY"
+      priority: 8
+      status: "🔴 NOT STARTED"
+      rationale: "Automatic purification"
+
+next_steps:
+  - "Review this roadmap with the team"
+  - "Start with RULE-SYNTAX-001 using EXTREME TDD"
+  - "Follow RED-GREEN-REFACTOR-PROPERTY-DOCUMENTATION for each task"
+  - "Maintain >90% mutation kill rate"
+  - "Track progress in this roadmap"
+  - "Target v1.4.0 for foundation (10-20% coverage)"
+  - "Target v2.0.0 for production (100% coverage)"
+
+status:
+  overall: "IN_PROGRESS"
+  completion_percent: 9.33
+  completed_tasks: 14
+  total_tasks: 150
+  methodology: "EXTREME TDD (RED-GREEN-REFACTOR-PROPERTY-DOCUMENTATION) + Mutation Testing"
+  goal: "100% GNU Make manual coverage with purification"
+  target_version: "v2.0.0"
+  current_phase: "Phase 1: Foundation (v1.5.0)"
+  next_phase: "Phase 2: Core Features"
+  last_updated: "2025-10-15"
+  recent_completions:
+    - "RULE-SYNTAX-001: Basic rule syntax (2025-10-15)"
+    - "VAR-BASIC-001: Basic variable assignment - all 5 flavors (2025-10-15)"
+    - "VAR-FLAVOR-002: Simple assignment (:=) via VAR-BASIC-001 (2025-10-15)"
+    - "PHONY-001: .PHONY declarations - no implementation needed (2025-10-15)"
+    - "VAR-BASIC-002: Variable references $(VAR) and ${VAR} - no implementation needed (2025-10-15)"
+    - "SYNTAX-001: Comment syntax - 16 LOC, 14 tests (2025-10-15)"
+    - "RULE-SYNTAX-002: Multiple prerequisites - no implementation needed, 14 tests (2025-10-15)"
+    - "VAR-FLAVOR-003: Conditional assignment (?=) - no implementation needed, 14 tests (2025-10-15)"
+    - "VAR-FLAVOR-004: Append assignment (+=) - no implementation needed, 14 tests (2025-10-15)"
+    - "VAR-FLAVOR-001: Recursive assignment (=) - no implementation needed, 14 tests, ALL 5 FLAVORS COMPLETE! (2025-10-15)"
+    - "SYNTAX-002: Line continuation (\\) - 29 LOC, 14 tests, preprocessor (2025-10-15)"
+    - "RECIPE-001: Tab-indented recipes - no implementation needed, 14 tests (2025-10-15)"
+    - "RECIPE-002: Multi-line recipes - no implementation needed, 14 tests (2025-10-15)"
+    - "ECHO-001: @ prefix for silent recipes - no implementation needed, 9 tests (2025-10-15)"

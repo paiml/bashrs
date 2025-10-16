@@ -525,7 +525,288 @@ chapters:  # or sections/tasks depending on structure
 
 ---
 
+---
+
+## 🧪 CLI Testing Protocol (MANDATORY)
+
+**CRITICAL**: All CLI testing MUST use `assert_cmd` crate. Using `std::process::Command` directly for CLI testing is a **quality defect**.
+
+### assert_cmd Pattern (Mandatory)
+
+```rust
+// MANDATORY: Add to dev-dependencies in Cargo.toml
+// [dev-dependencies]
+// assert_cmd = "2.0"
+// predicates = "3.0"
+
+use assert_cmd::Command;
+use predicates::prelude::*;
+
+/// Helper function to create rash command
+fn rash_cmd() -> Command {
+    Command::cargo_bin("rash").expect("Failed to find rash binary")
+}
+
+#[test]
+fn test_rash_parse_basic() {
+    rash_cmd()
+        .arg("parse")
+        .arg("examples/hello.sh")
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("AST"));
+}
+
+#[test]
+fn test_rash_purify_deterministic() {
+    rash_cmd()
+        .arg("purify")
+        .arg("examples/messy.sh")
+        .arg("--output")
+        .arg("output.sh")
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("Purified"));
+}
+
+#[test]
+fn test_rash_transpile_rust_to_shell() {
+    rash_cmd()
+        .arg("transpile")
+        .arg("examples/install.rs")
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("#!/bin/sh"));
+}
+```
+
+**Never Use**: `std::process::Command` for CLI testing. This bypasses cargo's test infrastructure and is considered a quality defect.
+
+### Test Naming Convention (Mandatory)
+
+**Format**: `test_<TASK_ID>_<feature>_<scenario>`
+
+**Examples**:
+```rust
+// GOOD: Traceability to BASH-INGESTION-ROADMAP.yaml
+#[test]
+fn test_PARAM_POS_001_positional_params_basic() { }
+
+#[test]
+fn test_PARAM_POS_001_positional_params_in_quotes() { }
+
+#[test]
+fn test_EXP_PARAM_009_remove_longest_suffix_basic() { }
+
+#[test]
+fn test_EXP_PARAM_009_remove_longest_suffix_property() { }
+
+// BAD: No task ID traceability
+#[test]
+fn test_params() { }  // ❌ Not traceable
+
+#[test]
+fn test_expansion() { }  // ❌ Not traceable
+```
+
+### Rash CLI Tool Validation Protocol
+
+For every new Rash CLI feature, test with ALL relevant tools:
+
+**Core Tools** (validate EVERY feature):
+1. `rash parse <file>` - Parse bash/Makefile to AST
+2. `rash purify <file>` - Purify bash/Makefile
+3. `rash transpile <file>` - Transpile Rust to shell
+4. `rash lint <file>` - Lint bash/Makefile
+5. `rash check <file>` - Type-check and validate
+
+**Quality Tools** (validate for production features):
+6. `rash ast <file>` - Output AST in JSON format
+7. `rash analyze <file>` - Analyze complexity and safety
+
+**Testing Tools** (validate test infrastructure):
+8. Property tests (proptest) - 100+ cases per feature
+9. Mutation tests (cargo-mutants) - ≥90% kill rate
+10. Integration tests - End-to-end workflows
+
+### Complete CLI Test Example (EXTREME TDD)
+
+```rust
+use assert_cmd::Command;
+use predicates::prelude::*;
+use std::fs;
+
+fn rash_cmd() -> Command {
+    Command::cargo_bin("rash").expect("Failed to find rash binary")
+}
+
+// RED: Write failing test first
+#[test]
+fn test_PHONY_001_parse_phony_declarations() {
+    // ARRANGE: Create test Makefile with .PHONY
+    let makefile = "tests/fixtures/makefiles/phony_test.mk";
+    fs::write(makefile, ".PHONY: clean\nclean:\n\trm -f *.o").unwrap();
+
+    // ACT & ASSERT: Parse should succeed
+    rash_cmd()
+        .arg("parse")
+        .arg(makefile)
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("Target"))
+        .stdout(predicate::str::contains("phony: true"));
+
+    // Cleanup
+    let _ = fs::remove_file(makefile);
+}
+
+// GREEN: Implement feature to make test pass
+// (Implement MakeItem::Target with phony field)
+
+// REFACTOR: Clean up implementation
+// (Extract helper functions, ensure complexity <10)
+
+// PROPERTY TESTING: Add generative tests
+#[cfg(test)]
+mod property_tests {
+    use super::*;
+    use proptest::prelude::*;
+
+    proptest! {
+        #[test]
+        fn test_PHONY_001_prop_phony_preserved(
+            target in "[a-z]{1,10}"
+        ) {
+            let makefile_content = format!(".PHONY: {}\n{}:\n\techo test", target, target);
+            let temp = format!("/tmp/test_{}.mk", target);
+            fs::write(&temp, &makefile_content).unwrap();
+
+            // Verify parse succeeds
+            rash_cmd()
+                .arg("parse")
+                .arg(&temp)
+                .assert()
+                .success();
+
+            // Verify purify preserves .PHONY
+            rash_cmd()
+                .arg("purify")
+                .arg(&temp)
+                .assert()
+                .success()
+                .stdout(predicate::str::contains(format!(".PHONY: {}", target)));
+
+            let _ = fs::remove_file(&temp);
+        }
+    }
+}
+
+// DOCUMENTATION: Update MAKE-INGESTION-ROADMAP.yaml
+// Mark PHONY-001 as completed
+```
+
+### CLI Testing Quality Gates
+
+Before marking any CLI feature as "completed":
+
+- [ ] ✅ **assert_cmd**: All CLI tests use `assert_cmd::Command`
+- [ ] ✅ **Test naming**: All tests follow `test_<TASK_ID>_<feature>_<scenario>` convention
+- [ ] ✅ **Tool validation**: Feature tested with all relevant Rash CLI tools
+- [ ] ✅ **Success cases**: Happy path tests pass
+- [ ] ✅ **Error cases**: Error handling tests pass
+- [ ] ✅ **Edge cases**: Boundary conditions tested
+- [ ] ✅ **Property tests**: Generative tests pass (100+ cases)
+- [ ] ✅ **Mutation tests**: ≥90% kill rate on CLI-related code
+- [ ] ✅ **Integration tests**: End-to-end CLI workflows verified
+- [ ] ✅ **Documentation**: CLI usage documented in README/docs
+
+### CLI Error Handling Pattern
+
+```rust
+#[test]
+fn test_PARSE_001_invalid_file_error() {
+    rash_cmd()
+        .arg("parse")
+        .arg("nonexistent.sh")
+        .assert()
+        .failure()
+        .stderr(predicate::str::contains("Error"))
+        .stderr(predicate::str::contains("nonexistent.sh"));
+}
+
+#[test]
+fn test_PARSE_001_malformed_input_error() {
+    let malformed = "tests/fixtures/malformed.sh";
+    fs::write(malformed, "if then fi").unwrap();
+
+    rash_cmd()
+        .arg("parse")
+        .arg(malformed)
+        .assert()
+        .failure()
+        .stderr(predicate::str::contains("Parse error"));
+
+    let _ = fs::remove_file(malformed);
+}
+```
+
+### CLI Integration Test Pattern
+
+```rust
+#[test]
+fn test_integration_bash_to_purified_workflow() {
+    // ARRANGE: Create messy bash
+    let messy_bash = "tests/fixtures/integration/messy_deploy.sh";
+    fs::write(messy_bash, r#"
+#!/bin/bash
+SESSION_ID=$RANDOM
+RELEASE="release-$(date +%s)"
+mkdir /tmp/releases/$RELEASE
+"#).unwrap();
+
+    // ACT: Full workflow - parse → purify → shellcheck
+
+    // Step 1: Parse should succeed
+    rash_cmd()
+        .arg("parse")
+        .arg(messy_bash)
+        .assert()
+        .success();
+
+    // Step 2: Purify should produce deterministic output
+    let purified = "tests/fixtures/integration/purified_deploy.sh";
+    rash_cmd()
+        .arg("purify")
+        .arg(messy_bash)
+        .arg("--output")
+        .arg(purified)
+        .assert()
+        .success();
+
+    // Step 3: Verify purified content
+    let purified_content = fs::read_to_string(purified).unwrap();
+    assert!(!purified_content.contains("$RANDOM"));
+    assert!(!purified_content.contains("date +%s"));
+    assert!(purified_content.contains("mkdir -p"));
+
+    // Step 4: Shellcheck validation
+    Command::new("shellcheck")
+        .arg("-s")
+        .arg("sh")
+        .arg(purified)
+        .assert()
+        .success();
+
+    // Cleanup
+    let _ = fs::remove_file(messy_bash);
+    let _ = fs::remove_file(purified);
+}
+```
+
+---
+
 ## Tools
+
 - `cargo test` - Test actual Rust code
 - `cargo build` - Build Rust code (before transpilation)
 - `cargo clippy` - Lint Rust code
@@ -533,6 +814,7 @@ chapters:  # or sections/tasks depending on structure
 - `cargo mutants` - Mutation testing
 - `shellcheck` - Validate generated shell output
 - `pmat` - Quality analysis with paiml-mcp-agent-toolkit
+- `assert_cmd` - **MANDATORY** for all CLI testing
 
 ## Quality Standards
 
@@ -542,6 +824,8 @@ All outputs must meet:
 - ✅ 100% idempotency tests pass
 - ✅ >85% code coverage
 - ✅ Complexity <10
-- ✅ Mutation score >80%
+- ✅ Mutation score >90% (updated target)
 - ✅ Zero defects policy
+- ✅ **NEW**: All CLI tests use `assert_cmd`
+- ✅ **NEW**: All tests follow `test_<TASK_ID>_<feature>_<scenario>` naming
 

@@ -62,6 +62,14 @@ pub enum BashStmt {
         span: Span,
     },
 
+    /// Until loop: until CONDITION; do BODY; done
+    /// Note: Purified to `while ! CONDITION` for POSIX compatibility
+    Until {
+        condition: BashExpr,
+        body: Vec<BashStmt>,
+        span: Span,
+    },
+
     /// For loop: for VAR in LIST; do BODY; done
     For {
         variable: String,
@@ -103,6 +111,66 @@ pub enum BashExpr {
 
     /// Glob pattern: *.txt
     Glob(String),
+
+    /// Default value expansion: ${VAR:-default}
+    /// If variable is unset or null, use default value
+    DefaultValue {
+        variable: String,
+        default: Box<BashExpr>,
+    },
+
+    /// Assign default value expansion: ${VAR:=default}
+    /// If variable is unset or null, assign default value to variable and use it
+    AssignDefault {
+        variable: String,
+        default: Box<BashExpr>,
+    },
+
+    /// Error if unset expansion: ${VAR:?message}
+    /// If variable is unset or null, exit with error message
+    ErrorIfUnset {
+        variable: String,
+        message: Box<BashExpr>,
+    },
+
+    /// Alternative value expansion: ${VAR:+alt_value}
+    /// If variable is set and non-null, use alt_value, otherwise empty string
+    AlternativeValue {
+        variable: String,
+        alternative: Box<BashExpr>,
+    },
+
+    /// String length expansion: ${#VAR}
+    /// Get the length of the string value of variable
+    StringLength { variable: String },
+
+    /// Remove suffix expansion: ${VAR%pattern}
+    /// Remove shortest matching suffix pattern from variable
+    RemoveSuffix {
+        variable: String,
+        pattern: Box<BashExpr>,
+    },
+
+    /// Remove prefix expansion: ${VAR#pattern}
+    /// Remove shortest matching prefix pattern from variable
+    RemovePrefix {
+        variable: String,
+        pattern: Box<BashExpr>,
+    },
+
+    /// Remove longest prefix expansion: ${VAR##pattern}
+    /// Remove longest matching prefix pattern from variable (greedy)
+    RemoveLongestPrefix {
+        variable: String,
+        pattern: Box<BashExpr>,
+    },
+
+    /// Remove longest suffix expansion: ${VAR%%pattern}
+    /// Remove longest matching suffix pattern from variable (greedy)
+    RemoveLongestSuffix {
+        variable: String,
+        pattern: Box<BashExpr>,
+    },
 }
 
 /// Arithmetic expression
@@ -181,6 +249,7 @@ impl fmt::Display for BashStmt {
             BashStmt::Function { name, .. } => write!(f, "Function({})", name),
             BashStmt::If { .. } => write!(f, "If"),
             BashStmt::While { .. } => write!(f, "While"),
+            BashStmt::Until { .. } => write!(f, "Until"),
             BashStmt::For { variable, .. } => write!(f, "For({})", variable),
             BashStmt::Return { .. } => write!(f, "Return"),
             BashStmt::Comment { .. } => write!(f, "Comment"),
