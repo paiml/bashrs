@@ -229,6 +229,9 @@ impl SemanticAnalyzer {
             BashStmt::While {
                 condition, body, ..
             }
+            | BashStmt::Until {
+                condition, body, ..
+            }
             | BashStmt::For {
                 items: condition,
                 body,
@@ -285,6 +288,106 @@ impl SemanticAnalyzer {
 
             BashExpr::Arithmetic(arith) => {
                 self.analyze_arithmetic(arith, scope)?;
+            }
+
+            BashExpr::DefaultValue { variable, default } => {
+                // Mark variable as used (even if it might be unset)
+                if let Some(var) = scope.variables.get_mut(variable) {
+                    var.used = true;
+                }
+                // Analyze the default value expression
+                self.analyze_expression(default, scope)?;
+            }
+
+            BashExpr::AssignDefault { variable, default } => {
+                // Mark variable as both used and assigned
+                // ${VAR:=default} assigns to VAR if unset
+                if let Some(var) = scope.variables.get_mut(variable) {
+                    var.used = true;
+                    var.assigned = true;
+                } else {
+                    // Variable doesn't exist yet, will be assigned
+                    scope.variables.insert(
+                        variable.clone(),
+                        VarInfo {
+                            name: variable.clone(),
+                            exported: false,
+                            assigned: true,
+                            used: true,
+                            inferred_type: InferredType::Unknown,
+                        },
+                    );
+                }
+                // Analyze the default value expression
+                self.analyze_expression(default, scope)?;
+            }
+
+            BashExpr::ErrorIfUnset { variable, message } => {
+                // Mark variable as used
+                // ${VAR:?message} exits if VAR is unset
+                if let Some(var) = scope.variables.get_mut(variable) {
+                    var.used = true;
+                }
+                // Analyze the error message expression
+                self.analyze_expression(message, scope)?;
+            }
+
+            BashExpr::AlternativeValue { variable, alternative } => {
+                // Mark variable as used
+                // ${VAR:+alt_value} uses alt_value if VAR is set
+                if let Some(var) = scope.variables.get_mut(variable) {
+                    var.used = true;
+                }
+                // Analyze the alternative value expression
+                self.analyze_expression(alternative, scope)?;
+            }
+
+            BashExpr::StringLength { variable } => {
+                // Mark variable as used
+                // ${#VAR} gets the length of variable's value
+                if let Some(var) = scope.variables.get_mut(variable) {
+                    var.used = true;
+                }
+            }
+
+            BashExpr::RemoveSuffix { variable, pattern } => {
+                // Mark variable as used
+                // ${VAR%pattern} removes shortest matching suffix
+                if let Some(var) = scope.variables.get_mut(variable) {
+                    var.used = true;
+                }
+                // Analyze the pattern expression
+                self.analyze_expression(pattern, scope)?;
+            }
+
+            BashExpr::RemovePrefix { variable, pattern } => {
+                // Mark variable as used
+                // ${VAR#pattern} removes shortest matching prefix
+                if let Some(var) = scope.variables.get_mut(variable) {
+                    var.used = true;
+                }
+                // Analyze the pattern expression
+                self.analyze_expression(pattern, scope)?;
+            }
+
+            BashExpr::RemoveLongestPrefix { variable, pattern } => {
+                // Mark variable as used
+                // ${VAR##pattern} removes longest matching prefix (greedy)
+                if let Some(var) = scope.variables.get_mut(variable) {
+                    var.used = true;
+                }
+                // Analyze the pattern expression
+                self.analyze_expression(pattern, scope)?;
+            }
+
+            BashExpr::RemoveLongestSuffix { variable, pattern } => {
+                // Mark variable as used
+                // ${VAR%%pattern} removes longest matching suffix (greedy)
+                if let Some(var) = scope.variables.get_mut(variable) {
+                    var.used = true;
+                }
+                // Analyze the pattern expression
+                self.analyze_expression(pattern, scope)?;
             }
         }
 

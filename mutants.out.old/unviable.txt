@@ -1,2 +1,0 @@
-rash/src/bash_parser/lexer.rs:108:9: replace Lexer::tokenize -> Result<Vec<Token>, LexerError> with Ok(vec![Default::default()])
-rash/src/bash_parser/lexer.rs:130:9: replace Lexer::next_token -> Result<Token, LexerError> with Ok(Default::default())

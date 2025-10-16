@@ -131,6 +131,20 @@ impl BashToRashTranspiler {
                 Ok(WhilePattern::to_rash(&cond_rash, &body_rash))
             }
 
+            BashStmt::Until {
+                condition, body, ..
+            } => {
+                // Until loop transpiles to while with negated condition
+                let cond_rash = self.transpile_test_expression(condition)?;
+                let negated_cond = format!("!({})", cond_rash);
+
+                self.current_indent += 1;
+                let body_rash = self.transpile_block(body)?;
+                self.current_indent -= 1;
+
+                Ok(WhilePattern::to_rash(&negated_cond, &body_rash))
+            }
+
             BashStmt::For {
                 variable,
                 items,
@@ -215,6 +229,75 @@ impl BashToRashTranspiler {
             BashExpr::Glob(pattern) => {
                 // Convert glob to Rust code that returns matching paths
                 Ok(format!("glob(\"{}\")", pattern.escape_default()))
+            }
+
+            BashExpr::DefaultValue { variable, default } => {
+                // ${VAR:-default} → var.unwrap_or("default")
+                let default_rash = self.transpile_expression(default)?;
+                Ok(format!("{}.unwrap_or({})", variable, default_rash))
+            }
+
+            BashExpr::AssignDefault { variable, default } => {
+                // ${VAR:=default} → var.get_or_insert("default")
+                // or: if var.is_none() { var = Some("default"); } var.unwrap()
+                let default_rash = self.transpile_expression(default)?;
+                Ok(format!("{}.get_or_insert({})", variable, default_rash))
+            }
+
+            BashExpr::ErrorIfUnset { variable, message } => {
+                // ${VAR:?message} → var.expect("message")
+                let message_rash = self.transpile_expression(message)?;
+                Ok(format!("{}.expect({})", variable, message_rash))
+            }
+
+            BashExpr::AlternativeValue { variable, alternative } => {
+                // ${VAR:+alt} → var.as_ref().map(|_| alt).unwrap_or("")
+                // or: if var.is_some() { alt } else { "" }
+                let alt_rash = self.transpile_expression(alternative)?;
+                Ok(format!("{}.as_ref().map(|_| {}).unwrap_or(\"\")", variable, alt_rash))
+            }
+
+            BashExpr::StringLength { variable } => {
+                // ${#VAR} → var.len()
+                Ok(format!("{}.len()", variable))
+            }
+
+            BashExpr::RemoveSuffix { variable, pattern } => {
+                // ${VAR%pattern} → var.strip_suffix(pattern).unwrap_or(&var)
+                let pattern_rash = self.transpile_expression(pattern)?;
+                Ok(format!(
+                    "{}.strip_suffix({}).unwrap_or(&{})",
+                    variable, pattern_rash, variable
+                ))
+            }
+
+            BashExpr::RemovePrefix { variable, pattern } => {
+                // ${VAR#pattern} → var.strip_prefix(pattern).unwrap_or(&var)
+                let pattern_rash = self.transpile_expression(pattern)?;
+                Ok(format!(
+                    "{}.strip_prefix({}).unwrap_or(&{})",
+                    variable, pattern_rash, variable
+                ))
+            }
+
+            BashExpr::RemoveLongestPrefix { variable, pattern } => {
+                // ${VAR##pattern} → var.rsplit_once(pattern).map_or(&var, |(_, suffix)| suffix)
+                // For greedy prefix removal, find last occurrence of pattern
+                let pattern_rash = self.transpile_expression(pattern)?;
+                Ok(format!(
+                    "{}.rsplit_once({}).map_or(&{}, |(_, suffix)| suffix)",
+                    variable, pattern_rash, variable
+                ))
+            }
+
+            BashExpr::RemoveLongestSuffix { variable, pattern } => {
+                // ${VAR%%pattern} → var.split_once(pattern).map_or(&var, |(prefix, _)| prefix)
+                // For greedy suffix removal, find first occurrence of pattern
+                let pattern_rash = self.transpile_expression(pattern)?;
+                Ok(format!(
+                    "{}.split_once({}).map_or(&{}, |(prefix, _)| prefix)",
+                    variable, pattern_rash, variable
+                ))
             }
         }
     }

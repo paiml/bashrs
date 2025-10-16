@@ -1,10 +1,5 @@
-rash/src/bash_parser/lexer.rs:108:9: replace Lexer::tokenize -> Result<Vec<Token>, LexerError> with Ok(vec![])
-rash/src/bash_parser/lexer.rs:121:22: replace == with != in Lexer::tokenize
-rash/src/bash_parser/lexer.rs:137:15: replace == with != in Lexer::next_token
-rash/src/bash_parser/lexer.rs:142:15: replace == with != in Lexer::next_token
-rash/src/bash_parser/lexer.rs:148:15: replace == with != in Lexer::next_token
-rash/src/bash_parser/lexer.rs:153:22: replace || with && in Lexer::next_token
-rash/src/bash_parser/lexer.rs:153:15: replace == with != in Lexer::next_token
-rash/src/bash_parser/lexer.rs:153:28: replace == with != in Lexer::next_token
-rash/src/bash_parser/lexer.rs:163:31: replace || with && in Lexer::next_token
-rash/src/bash_parser/lexer.rs:169:61: replace || with && in Lexer::next_token
+rash/src/ast/restricted.rs:129:31: replace || with && in Function::validate_identifier
+rash/src/ast/restricted.rs:474:46: replace + with * in Expr::nesting_depth
+rash/src/ast/restricted.rs:420:13: delete match arm Expr::Literal(Literal::Str(s)) in Expr::validate
+rash/src/ast/restricted.rs:636:13: delete match arm Pattern::Tuple(patterns) in Pattern::binds_variable
+rash/src/ast/restricted.rs:473:13: delete match arm Expr::Binary{left, right, ..} in Expr::nesting_depth

@@ -1,9 +1,2 @@
-rash/src/bash_parser/lexer.rs:64:9: replace <impl fmt::Display for Token>::fmt -> fmt::Result with Ok(Default::default())
-rash/src/bash_parser/lexer.rs:65:13: delete match arm Token::If in <impl fmt::Display for Token>::fmt
-rash/src/bash_parser/lexer.rs:66:13: delete match arm Token::Then in <impl fmt::Display for Token>::fmt
-rash/src/bash_parser/lexer.rs:67:13: delete match arm Token::Identifier(s) in <impl fmt::Display for Token>::fmt
-rash/src/bash_parser/lexer.rs:68:13: delete match arm Token::String(s) in <impl fmt::Display for Token>::fmt
-rash/src/bash_parser/lexer.rs:69:13: delete match arm Token::Number(n) in <impl fmt::Display for Token>::fmt
-rash/src/bash_parser/lexer.rs:70:13: delete match arm Token::Variable(v) in <impl fmt::Display for Token>::fmt
-rash/src/bash_parser/lexer.rs:71:13: delete match arm Token::Comment(c) in <impl fmt::Display for Token>::fmt
-rash/src/bash_parser/lexer.rs:72:13: delete match arm Token::Eof in <impl fmt::Display for Token>::fmt
+rash/src/ast/restricted.rs:167:72: replace && with || in Type::is_allowed
+rash/src/ast/restricted.rs:129:53: replace || with && in Function::validate_identifier

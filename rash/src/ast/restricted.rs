@@ -468,7 +468,7 @@ impl Expr {
         Ok(())
     }
 
-    fn nesting_depth(&self) -> usize {
+    pub fn nesting_depth(&self) -> usize {
         match self {
             Expr::Binary { left, right, .. } => 1 + left.nesting_depth().max(right.nesting_depth()),
             Expr::Unary { operand, .. } => 1 + operand.nesting_depth(),
