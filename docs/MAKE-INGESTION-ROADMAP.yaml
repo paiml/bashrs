@@ -9,10 +9,10 @@ roadmap:
 
   statistics:
     total_tasks: 150
-    completed: 20
+    completed: 21
     partial_support: 0
     in_progress: 0
-    coverage_percent: 13.33
+    coverage_percent: 14.0
 
 extreme_tdd_workflow:
   description: "Standard workflow for each task"
@@ -1264,7 +1264,7 @@ chapters:
         tasks:
           - id: "VAR-SUBST-001"
             title: "Document variable substitution"
-            status: "pending"
+            status: "completed"
             priority: "LOW"
             input: "OBJS = $(SRCS:.c=.o)"
             rust: |
@@ -1273,6 +1273,43 @@ chapters:
                   .collect();
             purified: "OBJS := $(SRCS:.c=.o)"
             test_name: "test_variable_substitution"
+            notes: "Variable substitution syntax ($(VAR:pattern=replacement)) is preserved in variable values - parser treats it as opaque text"
+            implementation:
+              version: "v1.14.0"
+              completed_date: "2025-10-17"
+              modules:
+                - "rash/src/make_parser/tests.rs"
+              implementation_required: false
+              note: "NO IMPLEMENTATION NEEDED! Parser already preserves variable substitution syntax in values via value.trim().to_string(). Substitution is runtime text that make expands during execution."
+              tests_added: 12
+              test_names:
+                - "test_VAR_SUBST_001_basic_substitution"
+                - "test_VAR_SUBST_001_multiple_substitutions"
+                - "test_VAR_SUBST_001_substitution_with_path"
+                - "test_VAR_SUBST_001_substitution_in_recipe"
+                - "test_VAR_SUBST_001_percent_substitution"
+                - "test_VAR_SUBST_001_complex_substitution"
+                - "prop_VAR_SUBST_001_substitution_always_preserved"
+                - "prop_VAR_SUBST_001_percent_patterns_preserved"
+                - "prop_VAR_SUBST_001_parsing_is_deterministic"
+                - "prop_VAR_SUBST_001_path_patterns_preserved"
+                - "prop_VAR_SUBST_001_in_prerequisites_preserved"
+                - "prop_VAR_SUBST_001_multiple_substitutions_preserved"
+              unit_tests: 6
+              property_tests: 6
+              mutation_testing:
+                status: "skipped"
+                note: "Variable substitution is string content preserved by existing variable parsing logic, covered by VAR-BASIC tests"
+              lines_of_code: 0
+              test_lines: 193
+              complexity: "N/A"
+              features_implemented:
+                - "$(VAR:.c=.o) simple suffix substitution preserved"
+                - "$(VAR:%.c=%.o) pattern substitution with % preserved"
+                - "$(VAR:src/%.c=build/%.o) path pattern substitution preserved"
+                - "Substitution in variable values preserved"
+                - "Substitution in target prerequisites preserved"
+                - "Multiple substitutions in same Makefile preserved"
 
   - id: 7
     name: "Conditional Parts of Makefiles"
@@ -2094,21 +2131,21 @@ next_steps:
 
 status:
   overall: "IN_PROGRESS"
-  completion_percent: 13.33
-  completed_tasks: 20
+  completion_percent: 14.0
+  completed_tasks: 21
   total_tasks: 150
   methodology: "EXTREME TDD (RED-GREEN-REFACTOR-PROPERTY-DOCUMENTATION) + Mutation Testing"
   goal: "100% GNU Make manual coverage with purification"
   target_version: "v2.0.0"
-  current_phase: "Phase 1: Foundation (v1.13.0)"
+  current_phase: "Phase 1: Foundation (v1.14.0)"
   next_phase: "Phase 2: Core Features & Purification"
   last_updated: "2025-10-17"
   recent_completions:
+    - "VAR-SUBST-001: Variable substitution $(VAR:.c=.o) - no implementation needed, 12 tests (6 unit + 6 property, 193 test lines) (2025-10-17)"
     - "COND-001: ifeq/ifneq/ifdef/ifndef conditionals - 173 LOC, 12 tests (6 unit + 6 property), depth tracking, recursive parsing (2025-10-17)"
     - "PATTERN-002: Automatic variables ($@, $<, $^, $?) - no implementation needed, 10 tests (148 test lines) (2025-10-17)"
     - "PATTERN-001: Pattern rules (%) - 6 LOC, 9 tests, simple if-check in parser (2025-10-17)"
     - "PHONY-002: Auto-add .PHONY - 55 LOC, 24 tests, 100% mutation kill rate, semantic analysis (2025-10-17)"
-    - "FUNC-WILDCARD-001: Purify $(wildcard) - 26 LOC, 22 tests, 100% mutation kill rate, semantic analysis (2025-10-17)"
     - "FUNC-SHELL-001: Purify $(shell date) - 132 LOC, 24 tests, 100% mutation kill rate, semantic analysis (2025-10-17)"
     - "INCLUDE-001: Include directive (include/-include) - 47 LOC, 14 tests (2025-10-16)"
     - "ECHO-001: @ prefix for silent recipes - no implementation needed, 9 tests (2025-10-15)"
