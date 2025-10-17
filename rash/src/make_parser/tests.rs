@@ -5630,6 +5630,350 @@ fn test_INCLUDE_001_mut_parser_advances() {
 }
 
 // ==============================================================================
+// INCLUDE-002: Optional Include Directives (-include, sinclude)
+// ==============================================================================
+// Task: Document optional include directives that don't error if file is missing
+// Input: -include optional.mk or sinclude optional.mk
+// Goal: Parser sets optional=true flag for -include and sinclude variants
+
+#[test]
+fn test_INCLUDE_002_dash_include() {
+    // ARRANGE: Optional include with -include syntax
+    let makefile = "-include optional.mk";
+
+    // ACT: Parse makefile
+    let result = parse_makefile(makefile);
+
+    // ASSERT: Successfully parsed
+    assert!(
+        result.is_ok(),
+        "Should parse -include directive, got error: {:?}",
+        result.err()
+    );
+
+    let ast = result.unwrap();
+    assert_eq!(ast.items.len(), 1, "Should have 1 include");
+
+    // ASSERT: Include item with optional=true
+    match &ast.items[0] {
+        MakeItem::Include { path, optional, .. } => {
+            assert_eq!(path, "optional.mk", "Path should be optional.mk");
+            assert!(*optional, "-include should set optional=true");
+        }
+        other => panic!("Expected Include item, got {:?}", other),
+    }
+}
+
+#[test]
+fn test_INCLUDE_002_sinclude() {
+    // ARRANGE: Optional include with sinclude syntax (GNU Make synonym)
+    let makefile = "sinclude optional.mk";
+
+    // ACT: Parse makefile
+    let result = parse_makefile(makefile);
+
+    // ASSERT: Successfully parsed
+    assert!(
+        result.is_ok(),
+        "Should parse sinclude directive, got error: {:?}",
+        result.err()
+    );
+
+    let ast = result.unwrap();
+    assert_eq!(ast.items.len(), 1, "Should have 1 include");
+
+    // ASSERT: Include item with optional=true
+    match &ast.items[0] {
+        MakeItem::Include { path, optional, .. } => {
+            assert_eq!(path, "optional.mk", "Path should be optional.mk");
+            assert!(*optional, "sinclude should set optional=true");
+        }
+        other => panic!("Expected Include item, got {:?}", other),
+    }
+}
+
+#[test]
+fn test_INCLUDE_002_dash_include_with_path() {
+    // ARRANGE: Optional include with directory path
+    let makefile = "-include config/optional.mk";
+
+    // ACT: Parse makefile
+    let result = parse_makefile(makefile);
+
+    // ASSERT: Successfully parsed
+    assert!(result.is_ok(), "Should parse -include with path");
+
+    let ast = result.unwrap();
+    match &ast.items[0] {
+        MakeItem::Include { path, optional, .. } => {
+            assert_eq!(path, "config/optional.mk");
+            assert!(*optional, "Should be optional");
+        }
+        other => panic!("Expected Include, got {:?}", other),
+    }
+}
+
+#[test]
+fn test_INCLUDE_002_mixed_includes() {
+    // ARRANGE: Mix of required and optional includes
+    let makefile = "include required.mk\n-include optional.mk\nsinclude also_optional.mk";
+
+    // ACT: Parse makefile
+    let result = parse_makefile(makefile);
+
+    // ASSERT: Successfully parsed
+    assert!(result.is_ok(), "Should parse mixed includes");
+
+    let ast = result.unwrap();
+    assert_eq!(ast.items.len(), 3, "Should have 3 includes");
+
+    // First: required (optional=false)
+    match &ast.items[0] {
+        MakeItem::Include { path, optional, .. } => {
+            assert_eq!(path, "required.mk");
+            assert!(!optional, "include should be required");
+        }
+        other => panic!("Expected Include, got {:?}", other),
+    }
+
+    // Second: -include (optional=true)
+    match &ast.items[1] {
+        MakeItem::Include { path, optional, .. } => {
+            assert_eq!(path, "optional.mk");
+            assert!(*optional, "-include should be optional");
+        }
+        other => panic!("Expected Include, got {:?}", other),
+    }
+
+    // Third: sinclude (optional=true)
+    match &ast.items[2] {
+        MakeItem::Include { path, optional, .. } => {
+            assert_eq!(path, "also_optional.mk");
+            assert!(*optional, "sinclude should be optional");
+        }
+        other => panic!("Expected Include, got {:?}", other),
+    }
+}
+
+#[test]
+fn test_INCLUDE_002_dash_include_with_variables() {
+    // ARRANGE: Optional include with variable reference
+    let makefile = "-include $(CONFIG_DIR)/optional.mk";
+
+    // ACT: Parse makefile
+    let result = parse_makefile(makefile);
+
+    // ASSERT: Successfully parsed
+    assert!(result.is_ok(), "Should parse -include with variables");
+
+    let ast = result.unwrap();
+    match &ast.items[0] {
+        MakeItem::Include { path, optional, .. } => {
+            assert!(path.contains("$(CONFIG_DIR)"), "Should preserve variable");
+            assert!(*optional, "Should be optional");
+        }
+        other => panic!("Expected Include, got {:?}", other),
+    }
+}
+
+#[test]
+fn test_INCLUDE_002_multiple_optional_includes() {
+    // ARRANGE: Multiple optional includes
+    let makefile = "-include file1.mk file2.mk file3.mk";
+
+    // ACT: Parse makefile
+    let result = parse_makefile(makefile);
+
+    // ASSERT: This tests current behavior - parser may handle this differently
+    // GNU Make allows multiple files in one include directive
+    assert!(result.is_ok(), "Should not crash on multiple files");
+}
+
+// ==============================================================================
+// INCLUDE-002: Property Tests
+// ==============================================================================
+
+#[cfg(test)]
+mod include_002_property_tests {
+    use super::*;
+    use proptest::prelude::*;
+
+    proptest! {
+        #[test]
+        fn prop_INCLUDE_002_dash_include_always_optional(
+            filename in "[a-zA-Z0-9_.-]{1,30}\\.mk"
+        ) {
+            // ARRANGE: -include directive
+            let makefile = format!("-include {}", filename);
+
+            // ACT: Parse makefile
+            let result = parse_makefile(&makefile);
+
+            // ASSERT: Always parses and sets optional=true
+            prop_assert!(result.is_ok(), "-include should always parse");
+
+            let ast = result.unwrap();
+            prop_assert_eq!(ast.items.len(), 1);
+
+            match &ast.items[0] {
+                MakeItem::Include { path, optional, .. } => {
+                    prop_assert_eq!(path, &filename);
+                    prop_assert!(*optional, "-include should always be optional");
+                }
+                other => return Err(TestCaseError::fail(format!("Expected Include, got {:?}", other))),
+            }
+        }
+
+        #[test]
+        fn prop_INCLUDE_002_sinclude_always_optional(
+            filename in "[a-zA-Z0-9_.-]{1,30}\\.mk"
+        ) {
+            // ARRANGE: sinclude directive
+            let makefile = format!("sinclude {}", filename);
+
+            // ACT: Parse makefile
+            let result = parse_makefile(&makefile);
+
+            // ASSERT: Always parses and sets optional=true
+            prop_assert!(result.is_ok(), "sinclude should always parse");
+
+            let ast = result.unwrap();
+            prop_assert_eq!(ast.items.len(), 1);
+
+            match &ast.items[0] {
+                MakeItem::Include { path, optional, .. } => {
+                    prop_assert_eq!(path, &filename);
+                    prop_assert!(*optional, "sinclude should always be optional");
+                }
+                other => return Err(TestCaseError::fail(format!("Expected Include, got {:?}", other))),
+            }
+        }
+
+        #[test]
+        fn prop_INCLUDE_002_parsing_is_deterministic(
+            filename in "[a-zA-Z0-9/_.-]{1,50}\\.mk"
+        ) {
+            // ARRANGE: -include directive
+            let makefile = format!("-include {}", filename);
+
+            // ACT: Parse twice
+            let ast1 = parse_makefile(&makefile);
+            let ast2 = parse_makefile(&makefile);
+
+            // ASSERT: Results are identical
+            match (ast1, ast2) {
+                (Ok(a1), Ok(a2)) => {
+                    prop_assert_eq!(a1.items.len(), a2.items.len());
+                    match (&a1.items[0], &a2.items[0]) {
+                        (MakeItem::Include { path: p1, optional: o1, .. },
+                         MakeItem::Include { path: p2, optional: o2, .. }) => {
+                            prop_assert_eq!(p1, p2);
+                            prop_assert_eq!(o1, o2);
+                        }
+                        _ => return Err(TestCaseError::fail("Expected matching Include items")),
+                    }
+                }
+                _ => return Err(TestCaseError::fail("Parsing should be deterministic")),
+            }
+        }
+
+        #[test]
+        fn prop_INCLUDE_002_optional_vs_required(
+            filename in "[a-z]{3,10}\\.mk"
+        ) {
+            // ARRANGE: Test that include vs -include vs sinclude set optional correctly
+            let include_reg = format!("include {}", filename);
+            let include_dash = format!("-include {}", filename);
+            let include_s = format!("sinclude {}", filename);
+
+            // ACT: Parse all three variants
+            let ast_reg = parse_makefile(&include_reg);
+            let ast_dash = parse_makefile(&include_dash);
+            let ast_s = parse_makefile(&include_s);
+
+            // ASSERT: All parse successfully
+            prop_assert!(ast_reg.is_ok());
+            prop_assert!(ast_dash.is_ok());
+            prop_assert!(ast_s.is_ok());
+
+            // Regular include: optional=false
+            match &ast_reg.unwrap().items[0] {
+                MakeItem::Include { optional, .. } => {
+                    prop_assert!(!optional, "include should be required");
+                }
+                other => return Err(TestCaseError::fail(format!("Expected Include, got {:?}", other))),
+            }
+
+            // -include: optional=true
+            match &ast_dash.unwrap().items[0] {
+                MakeItem::Include { optional, .. } => {
+                    prop_assert!(*optional, "-include should be optional");
+                }
+                other => return Err(TestCaseError::fail(format!("Expected Include, got {:?}", other))),
+            }
+
+            // sinclude: optional=true
+            match &ast_s.unwrap().items[0] {
+                MakeItem::Include { optional, .. } => {
+                    prop_assert!(*optional, "sinclude should be optional");
+                }
+                other => return Err(TestCaseError::fail(format!("Expected Include, got {:?}", other))),
+            }
+        }
+
+        #[test]
+        fn prop_INCLUDE_002_paths_with_directories(
+            dir in "[a-z]{3,10}",
+            file in "[a-z]{3,10}\\.mk"
+        ) {
+            // ARRANGE: Optional include with directory path
+            let makefile = format!("-include {}/{}", dir, file);
+
+            // ACT: Parse makefile
+            let result = parse_makefile(&makefile);
+
+            // ASSERT: Path preserved with directory
+            prop_assert!(result.is_ok());
+
+            let ast = result.unwrap();
+            match &ast.items[0] {
+                MakeItem::Include { path, optional, .. } => {
+                    prop_assert!(path.contains('/'));
+                    prop_assert!(path.ends_with(".mk"));
+                    prop_assert!(*optional);
+                }
+                other => return Err(TestCaseError::fail(format!("Expected Include, got {:?}", other))),
+            }
+        }
+
+        #[test]
+        fn prop_INCLUDE_002_var_refs_preserved(
+            var_name in "[A-Z_]{2,10}",
+            file in "[a-z]{3,10}\\.mk"
+        ) {
+            // ARRANGE: Optional include with variable reference
+            let makefile = format!("-include $({})/{}", var_name, file);
+
+            // ACT: Parse makefile
+            let result = parse_makefile(&makefile);
+
+            // ASSERT: Variable reference preserved
+            prop_assert!(result.is_ok());
+
+            let ast = result.unwrap();
+            match &ast.items[0] {
+                MakeItem::Include { path, optional, .. } => {
+                    prop_assert!(path.contains("$("));
+                    prop_assert!(path.contains(&var_name));
+                    prop_assert!(*optional);
+                }
+                other => return Err(TestCaseError::fail(format!("Expected Include, got {:?}", other))),
+            }
+        }
+    }
+}
+
+// ==============================================================================
 // PATTERN-001: Pattern Rules (%.o: %.c)
 // ==============================================================================
 

@@ -118,7 +118,7 @@ pub fn parse_makefile(input: &str) -> Result<MakeAst, String> {
         }
 
         // Parse include directives
-        if line.trim_start().starts_with("include ") || line.trim_start().starts_with("-include ") {
+        if line.trim_start().starts_with("include ") || line.trim_start().starts_with("-include ") || line.trim_start().starts_with("sinclude ") {
             match parse_include(line, i + 1) {
                 Ok(include) => items.push(include),
                 Err(e) => return Err(format!("Line {}: {}", i + 1, e)),
@@ -283,18 +283,24 @@ fn parse_variable(line: &str, line_num: usize) -> Result<MakeItem, String> {
 /// ```makefile
 /// include common.mk
 /// -include optional.mk
+/// sinclude optional.mk
 /// ```
 ///
-/// The `-include` variant silently ignores missing files.
+/// The `-include` and `sinclude` variants silently ignore missing files.
 fn parse_include(line: &str, line_num: usize) -> Result<MakeItem, String> {
     let trimmed = line.trim();
 
-    // Check if this is optional include (-include)
-    let optional = trimmed.starts_with("-include ");
+    // Check if this is optional include (-include or sinclude)
+    let optional = trimmed.starts_with("-include ") || trimmed.starts_with("sinclude ");
 
     // Extract the keyword and path
-    let path = if optional {
+    let path = if trimmed.starts_with("-include ") {
         trimmed.strip_prefix("-include ")
+            .unwrap_or("")
+            .trim()
+            .to_string()
+    } else if trimmed.starts_with("sinclude ") {
+        trimmed.strip_prefix("sinclude ")
             .unwrap_or("")
             .trim()
             .to_string()
