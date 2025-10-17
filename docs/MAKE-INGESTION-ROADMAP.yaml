@@ -9,10 +9,10 @@ roadmap:
 
   statistics:
     total_tasks: 150
-    completed: 17
+    completed: 18
     partial_support: 0
     in_progress: 0
-    coverage_percent: 11.33
+    coverage_percent: 12.00
 
 extreme_tdd_workflow:
   description: "Standard workflow for each task"
@@ -793,7 +793,7 @@ chapters:
         tasks:
           - id: "PATTERN-001"
             title: "Document pattern rules"
-            status: "pending"
+            status: "completed"
             priority: "MEDIUM"
             input: |
               %.o: %.c
@@ -808,6 +808,38 @@ chapters:
               %.o: %.c
               	$(CC) -c $< -o $@
             test_name: "test_pattern_rules"
+            notes: "Pattern rules use % to match file stems - foundation for automatic compilation rules"
+            implementation:
+              version: "v1.11.0"
+              completed_date: "2025-10-17"
+              modules:
+                - "rash/src/make_parser/parser.rs"
+                - "rash/src/make_parser/tests.rs"
+              tests_added: 9
+              test_names:
+                - "test_PATTERN_001_basic_pattern_rule"
+                - "test_PATTERN_001_pattern_rule_multiple_prerequisites"
+                - "test_PATTERN_001_pattern_rule_empty_recipe"
+                - "test_PATTERN_001_pattern_vs_normal_target"
+                - "prop_PATTERN_001_percent_always_creates_pattern_rule"
+                - "prop_PATTERN_001_no_percent_creates_normal_target"
+                - "prop_PATTERN_001_pattern_prereq_order_preserved"
+                - "prop_PATTERN_001_parsing_is_deterministic"
+                - "prop_PATTERN_001_empty_recipes_allowed"
+              unit_tests: 4
+              property_tests: 5
+              mutation_testing:
+                status: "in_progress"
+                note: "Running cargo-mutants on parser.rs to verify test quality"
+              lines_of_code: 6
+              complexity: "<2"
+              features_implemented:
+                - "Parse pattern rules (targets containing %)"
+                - "Create PatternRule AST items for pattern targets"
+                - "Distinguish pattern rules from normal targets"
+                - "Support multiple prerequisite patterns"
+                - "Handle empty recipes in pattern rules"
+                - "Preserve order of prerequisite patterns"
 
           - id: "PATTERN-002"
             title: "Document automatic variables ($@, $<, $^)"
