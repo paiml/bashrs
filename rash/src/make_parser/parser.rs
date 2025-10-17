@@ -315,6 +315,12 @@ fn parse_include(line: &str, line_num: usize) -> Result<MakeItem, String> {
 ///     recipe line 1
 ///     recipe line 2
 /// ```
+///
+/// Pattern rule syntax:
+/// ```makefile
+/// %.o: %.c
+///     $(CC) -c $< -o $@
+/// ```
 fn parse_target_rule(lines: &[&str], index: &mut usize) -> Result<MakeItem, String> {
     let line = lines[*index];
     let line_num = *index + 1;
@@ -362,13 +368,23 @@ fn parse_target_rule(lines: &[&str], index: &mut usize) -> Result<MakeItem, Stri
         }
     }
 
-    Ok(MakeItem::Target {
-        name,
-        prerequisites,
-        recipe,
-        phony: false, // Will be detected in semantic analysis
-        span: Span::new(0, line.len(), line_num),
-    })
+    // Check if this is a pattern rule (target contains %)
+    if name.contains('%') {
+        Ok(MakeItem::PatternRule {
+            target_pattern: name,
+            prereq_patterns: prerequisites,
+            recipe,
+            span: Span::new(0, line.len(), line_num),
+        })
+    } else {
+        Ok(MakeItem::Target {
+            name,
+            prerequisites,
+            recipe,
+            phony: false, // Will be detected in semantic analysis
+            span: Span::new(0, line.len(), line_num),
+        })
+    }
 }
 
 #[cfg(test)]

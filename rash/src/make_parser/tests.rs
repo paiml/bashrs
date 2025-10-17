@@ -5628,3 +5628,310 @@ fn test_INCLUDE_001_mut_parser_advances() {
         _ => panic!("Second item should be Variable"),
     }
 }
+
+// ==============================================================================
+// PATTERN-001: Pattern Rules (%.o: %.c)
+// ==============================================================================
+
+/// RED PHASE: Test for PATTERN-001 - Basic pattern rule
+///
+/// Pattern rules use % to match file stems. This is foundational for
+/// automatic compilation rules like %.o: %.c
+///
+/// Input Makefile:
+/// ```makefile
+/// %.o: %.c
+///     $(CC) -c $< -o $@
+/// ```
+///
+/// Expected AST:
+/// - One MakeItem::PatternRule
+/// - target_pattern: "%.o"
+/// - prereq_patterns: ["%.c"]
+/// - recipe: ["$(CC) -c $< -o $@"]
+#[test]
+fn test_PATTERN_001_basic_pattern_rule() {
+    // ARRANGE: Simple pattern rule
+    let makefile = "%.o: %.c\n\t$(CC) -c $< -o $@";
+
+    // ACT: Parse makefile
+    let result = parse_makefile(makefile);
+
+    // ASSERT: Successfully parsed
+    assert!(
+        result.is_ok(),
+        "Should parse basic pattern rule, got error: {:?}",
+        result.err()
+    );
+
+    let ast = result.unwrap();
+
+    // ASSERT: One item in AST
+    assert_eq!(
+        ast.items.len(),
+        1,
+        "Should have exactly one item, got {}",
+        ast.items.len()
+    );
+
+    // ASSERT: Item is a PatternRule
+    match &ast.items[0] {
+        MakeItem::PatternRule {
+            target_pattern,
+            prereq_patterns,
+            recipe,
+            ..
+        } => {
+            assert_eq!(target_pattern, "%.o", "Target pattern should be '%.o'");
+            assert_eq!(
+                prereq_patterns.len(),
+                1,
+                "Should have one prerequisite pattern"
+            );
+            assert_eq!(
+                prereq_patterns[0], "%.c",
+                "Prerequisite pattern should be '%.c'"
+            );
+            assert_eq!(recipe.len(), 1, "Should have one recipe line");
+            assert_eq!(recipe[0], "$(CC) -c $< -o $@", "Recipe should contain automatic variables");
+        }
+        other => panic!("Expected PatternRule item, got {:?}", other),
+    }
+}
+
+/// RED PHASE: Test for PATTERN-001 - Pattern rule with multiple prerequisites
+#[test]
+fn test_PATTERN_001_pattern_rule_multiple_prerequisites() {
+    // ARRANGE: Pattern rule with multiple prerequisites
+    let makefile = "%.o: %.c %.h\n\t$(CC) -c $< -o $@";
+
+    // ACT: Parse makefile
+    let result = parse_makefile(makefile);
+
+    // ASSERT: Successfully parsed
+    assert!(result.is_ok());
+
+    let ast = result.unwrap();
+    assert_eq!(ast.items.len(), 1);
+
+    // ASSERT: Check prerequisites
+    match &ast.items[0] {
+        MakeItem::PatternRule {
+            target_pattern,
+            prereq_patterns,
+            ..
+        } => {
+            assert_eq!(target_pattern, "%.o");
+            assert_eq!(prereq_patterns.len(), 2);
+            assert_eq!(prereq_patterns[0], "%.c");
+            assert_eq!(prereq_patterns[1], "%.h");
+        }
+        other => panic!("Expected PatternRule, got {:?}", other),
+    }
+}
+
+/// RED PHASE: Test for PATTERN-001 - Pattern rule without recipe
+#[test]
+fn test_PATTERN_001_pattern_rule_empty_recipe() {
+    // ARRANGE: Pattern rule with no recipe (just dependencies)
+    let makefile = "%.o: %.c";
+
+    // ACT: Parse makefile
+    let result = parse_makefile(makefile);
+
+    // ASSERT: Successfully parsed
+    assert!(result.is_ok());
+
+    let ast = result.unwrap();
+    assert_eq!(ast.items.len(), 1);
+
+    // ASSERT: Empty recipe
+    match &ast.items[0] {
+        MakeItem::PatternRule {
+            target_pattern,
+            prereq_patterns,
+            recipe,
+            ..
+        } => {
+            assert_eq!(target_pattern, "%.o");
+            assert_eq!(prereq_patterns.len(), 1);
+            assert_eq!(prereq_patterns[0], "%.c");
+            assert_eq!(recipe.len(), 0, "Recipe should be empty");
+        }
+        other => panic!("Expected PatternRule, got {:?}", other),
+    }
+}
+
+/// RED PHASE: Test for PATTERN-001 - Distinguish pattern rule from normal target
+#[test]
+fn test_PATTERN_001_pattern_vs_normal_target() {
+    // ARRANGE: Both pattern rule and normal target
+    let makefile = "%.o: %.c\n\t$(CC) -c $< -o $@\n\nmain.o: main.c\n\t$(CC) -c main.c";
+
+    // ACT: Parse makefile
+    let result = parse_makefile(makefile);
+
+    // ASSERT: Successfully parsed
+    assert!(result.is_ok());
+
+    let ast = result.unwrap();
+    assert_eq!(ast.items.len(), 2);
+
+    // ASSERT: First is pattern, second is normal target
+    match &ast.items[0] {
+        MakeItem::PatternRule { target_pattern, .. } => {
+            assert_eq!(target_pattern, "%.o");
+        }
+        other => panic!("First item should be PatternRule, got {:?}", other),
+    }
+
+    match &ast.items[1] {
+        MakeItem::Target { name, .. } => {
+            assert_eq!(name, "main.o");
+        }
+        other => panic!("Second item should be Target, got {:?}", other),
+    }
+}
+
+// ==============================================================================
+// PATTERN-001: Property Tests
+// ==============================================================================
+
+#[cfg(test)]
+mod prop_pattern_001 {
+    use super::*;
+    use proptest::prelude::*;
+
+    proptest! {
+        /// Property: Pattern rules with % are always parsed as PatternRule
+        #[test]
+        fn prop_PATTERN_001_percent_always_creates_pattern_rule(
+            target_ext in "[a-z]{1,3}",
+            prereq_ext in "[a-z]{1,3}"
+        ) {
+            let makefile = format!("%.{}: %.{}\n\techo test", target_ext, prereq_ext);
+
+            let result = parse_makefile(&makefile);
+            prop_assert!(result.is_ok());
+
+            let ast = result.unwrap();
+            prop_assert_eq!(ast.items.len(), 1);
+
+            // Verify it's a PatternRule
+            match &ast.items[0] {
+                MakeItem::PatternRule { target_pattern, prereq_patterns, .. } => {
+                    prop_assert_eq!(target_pattern, &format!("%.{}", target_ext));
+                    prop_assert_eq!(prereq_patterns.len(), 1);
+                    prop_assert_eq!(&prereq_patterns[0], &format!("%.{}", prereq_ext));
+                }
+                other => return Err(TestCaseError::fail(format!("Expected PatternRule, got {:?}", other))),
+            }
+        }
+
+        /// Property: Targets without % are never parsed as PatternRule
+        #[test]
+        fn prop_PATTERN_001_no_percent_creates_normal_target(
+            target in "[a-z]{1,10}\\.o",
+            prereq in "[a-z]{1,10}\\.c"
+        ) {
+            let makefile = format!("{}: {}\n\techo test", target, prereq);
+
+            let result = parse_makefile(&makefile);
+            prop_assert!(result.is_ok());
+
+            let ast = result.unwrap();
+            prop_assert_eq!(ast.items.len(), 1);
+
+            // Verify it's a Target, not PatternRule
+            match &ast.items[0] {
+                MakeItem::Target { name, .. } => {
+                    prop_assert_eq!(name, &target);
+                }
+                MakeItem::PatternRule { .. } => {
+                    return Err(TestCaseError::fail("Should not create PatternRule without %"));
+                }
+                other => return Err(TestCaseError::fail(format!("Expected Target, got {:?}", other))),
+            }
+        }
+
+        /// Property: Pattern rules with multiple prerequisites preserve order
+        #[test]
+        fn prop_PATTERN_001_pattern_prereq_order_preserved(
+            ext1 in "[a-z]{1,3}",
+            ext2 in "[a-z]{1,3}",
+            ext3 in "[a-z]{1,3}"
+        ) {
+            let makefile = format!("%.o: %.{} %.{} %.{}\n\techo test", ext1, ext2, ext3);
+
+            let result = parse_makefile(&makefile);
+            prop_assert!(result.is_ok());
+
+            let ast = result.unwrap();
+            match &ast.items[0] {
+                MakeItem::PatternRule { prereq_patterns, .. } => {
+                    prop_assert_eq!(prereq_patterns.len(), 3);
+                    prop_assert_eq!(&prereq_patterns[0], &format!("%.{}", ext1));
+                    prop_assert_eq!(&prereq_patterns[1], &format!("%.{}", ext2));
+                    prop_assert_eq!(&prereq_patterns[2], &format!("%.{}", ext3));
+                }
+                other => return Err(TestCaseError::fail(format!("Expected PatternRule, got {:?}", other))),
+            }
+        }
+
+        /// Property: Pattern rule parsing is deterministic
+        #[test]
+        fn prop_PATTERN_001_parsing_is_deterministic(
+            target_ext in "[a-z]{1,5}",
+            prereq_ext in "[a-z]{1,5}"
+        ) {
+            let makefile = format!("%.{}: %.{}\n\t$(CC) -c $< -o $@", target_ext, prereq_ext);
+
+            // Parse twice
+            let result1 = parse_makefile(&makefile);
+            let result2 = parse_makefile(&makefile);
+
+            prop_assert!(result1.is_ok());
+            prop_assert!(result2.is_ok());
+
+            let ast1 = result1.unwrap();
+            let ast2 = result2.unwrap();
+
+            // Should produce identical ASTs
+            prop_assert_eq!(ast1.items.len(), ast2.items.len());
+
+            match (&ast1.items[0], &ast2.items[0]) {
+                (
+                    MakeItem::PatternRule { target_pattern: t1, prereq_patterns: p1, recipe: r1, .. },
+                    MakeItem::PatternRule { target_pattern: t2, prereq_patterns: p2, recipe: r2, .. }
+                ) => {
+                    prop_assert_eq!(t1, t2);
+                    prop_assert_eq!(p1, p2);
+                    prop_assert_eq!(r1, r2);
+                }
+                _ => return Err(TestCaseError::fail("Both should be PatternRule")),
+            }
+        }
+
+        /// Property: Empty recipes are handled correctly for pattern rules
+        #[test]
+        fn prop_PATTERN_001_empty_recipes_allowed(
+            target_ext in "[a-z]{1,4}",
+            prereq_ext in "[a-z]{1,4}"
+        ) {
+            let makefile = format!("%.{}: %.{}", target_ext, prereq_ext);
+
+            let result = parse_makefile(&makefile);
+            prop_assert!(result.is_ok());
+
+            let ast = result.unwrap();
+            match &ast.items[0] {
+                MakeItem::PatternRule { target_pattern, prereq_patterns, recipe, .. } => {
+                    prop_assert_eq!(target_pattern, &format!("%.{}", target_ext));
+                    prop_assert_eq!(prereq_patterns.len(), 1);
+                    prop_assert_eq!(recipe.len(), 0, "Recipe should be empty");
+                }
+                other => return Err(TestCaseError::fail(format!("Expected PatternRule, got {:?}", other))),
+            }
+        }
+    }
+}
