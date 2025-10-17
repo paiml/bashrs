@@ -97,6 +97,33 @@ const COMMON_PHONY_TARGETS: &[&str] = &[
     "test", "clean", "install", "deploy", "build", "all", "help",
 ];
 
+/// Detect non-deterministic $RANDOM or $(shell echo $$RANDOM) patterns
+///
+/// This function identifies random value generation that makes builds
+/// non-reproducible.
+///
+/// # Arguments
+///
+/// * `value` - Variable value to analyze
+///
+/// # Returns
+///
+/// * `true` if $RANDOM or $(shell echo $$RANDOM) pattern is detected
+/// * `false` otherwise
+///
+/// # Examples
+///
+/// ```
+/// use bashrs::make_parser::semantic::detect_random;
+///
+/// assert!(detect_random("$(shell echo $$RANDOM)"));
+/// assert!(detect_random("ID := $RANDOM"));
+/// assert!(!detect_random("VERSION := 1.0.0"));
+/// ```
+pub fn detect_random(value: &str) -> bool {
+    value.contains("$RANDOM") || value.contains("$$RANDOM")
+}
+
 /// Detect non-deterministic $(shell find) patterns in a variable value
 ///
 /// This function identifies shell find commands that produce non-deterministic
@@ -220,6 +247,20 @@ pub fn analyze_makefile(ast: &MakeAst) -> Vec<SemanticIssue> {
                         span: *span,
                         rule: "NO_UNORDERED_FIND".to_string(),
                         suggestion: Some(format!("{} := src/a.c src/b.c src/main.c", name)),
+                    });
+                }
+
+                // Check for non-deterministic random values
+                if detect_random(value) {
+                    issues.push(SemanticIssue {
+                        message: format!(
+                            "Variable '{}' uses non-deterministic $RANDOM - replace with fixed value or seed",
+                            name
+                        ),
+                        severity: IssueSeverity::Critical,
+                        span: *span,
+                        rule: "NO_RANDOM".to_string(),
+                        suggestion: Some(format!("{} := 42", name)),
                     });
                 }
             }
