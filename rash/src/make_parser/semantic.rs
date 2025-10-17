@@ -92,6 +92,38 @@ pub fn detect_wildcard(value: &str) -> bool {
     value.contains("$(wildcard")
 }
 
+/// Common non-file targets that should be marked as .PHONY
+const COMMON_PHONY_TARGETS: &[&str] = &[
+    "test", "clean", "install", "deploy", "build", "all", "help",
+];
+
+/// Check if a target name is a common non-file target that should be .PHONY
+///
+/// This function identifies targets that don't represent actual files
+/// and should be declared as .PHONY for idempotent builds.
+///
+/// # Arguments
+///
+/// * `target_name` - The name of the Makefile target
+///
+/// # Returns
+///
+/// * `true` if target is a common non-file target (test, clean, install, etc.)
+/// * `false` otherwise
+///
+/// # Examples
+///
+/// ```
+/// use bashrs::make_parser::semantic::is_common_phony_target;
+///
+/// assert!(is_common_phony_target("test"));
+/// assert!(is_common_phony_target("clean"));
+/// assert!(!is_common_phony_target("main.o"));
+/// ```
+pub fn is_common_phony_target(target_name: &str) -> bool {
+    COMMON_PHONY_TARGETS.contains(&target_name)
+}
+
 /// Analyze a Makefile AST for semantic issues
 ///
 /// Scans the entire AST for non-deterministic patterns, style issues,
@@ -120,33 +152,53 @@ pub fn analyze_makefile(ast: &MakeAst) -> Vec<SemanticIssue> {
     let mut issues = Vec::new();
 
     for item in &ast.items {
-        if let MakeItem::Variable { name, value, span, .. } = item {
-            // Check for non-deterministic shell date
-            if detect_shell_date(value) {
-                issues.push(SemanticIssue {
-                    message: format!(
-                        "Variable '{}' uses non-deterministic $(shell date) - replace with explicit version",
-                        name
-                    ),
-                    severity: IssueSeverity::Critical,
-                    span: *span,
-                    rule: "NO_TIMESTAMPS".to_string(),
-                    suggestion: Some(format!("{} := 1.0.0", name)),
-                });
-            }
+        match item {
+            MakeItem::Variable { name, value, span, .. } => {
+                // Check for non-deterministic shell date
+                if detect_shell_date(value) {
+                    issues.push(SemanticIssue {
+                        message: format!(
+                            "Variable '{}' uses non-deterministic $(shell date) - replace with explicit version",
+                            name
+                        ),
+                        severity: IssueSeverity::Critical,
+                        span: *span,
+                        rule: "NO_TIMESTAMPS".to_string(),
+                        suggestion: Some(format!("{} := 1.0.0", name)),
+                    });
+                }
 
-            // Check for non-deterministic wildcard
-            if detect_wildcard(value) {
-                issues.push(SemanticIssue {
-                    message: format!(
-                        "Variable '{}' uses non-deterministic $(wildcard) - replace with explicit sorted file list",
-                        name
-                    ),
-                    severity: IssueSeverity::High,
-                    span: *span,
-                    rule: "NO_WILDCARD".to_string(),
-                    suggestion: Some(format!("{} := file1.c file2.c file3.c", name)),
-                });
+                // Check for non-deterministic wildcard
+                if detect_wildcard(value) {
+                    issues.push(SemanticIssue {
+                        message: format!(
+                            "Variable '{}' uses non-deterministic $(wildcard) - replace with explicit sorted file list",
+                            name
+                        ),
+                        severity: IssueSeverity::High,
+                        span: *span,
+                        rule: "NO_WILDCARD".to_string(),
+                        suggestion: Some(format!("{} := file1.c file2.c file3.c", name)),
+                    });
+                }
+            }
+            MakeItem::Target { name, phony, span, .. } => {
+                // Check for missing .PHONY on common non-file targets
+                if !phony && is_common_phony_target(name) {
+                    issues.push(SemanticIssue {
+                        message: format!(
+                            "Target '{}' should be marked as .PHONY (common non-file target)",
+                            name
+                        ),
+                        severity: IssueSeverity::High,
+                        span: *span,
+                        rule: "AUTO_PHONY".to_string(),
+                        suggestion: Some(format!(".PHONY: {}", name)),
+                    });
+                }
+            }
+            _ => {
+                // Ignore other MakeItem variants
             }
         }
     }
@@ -349,12 +401,14 @@ BUILD_TIME := $(shell date +%Y%m%d)"#;
         use crate::make_parser::parse_makefile;
 
         // Should NOT detect shell date in recipe commands (only in variables)
+        // But WILL detect missing .PHONY for "build" target
         let makefile = "build:\n\techo $(shell date +%s)";
         let ast = parse_makefile(makefile).unwrap();
         let issues = analyze_makefile(&ast);
 
-        // Currently only checks variables, not recipe commands
-        assert_eq!(issues.len(), 0);
+        // Should only detect AUTO_PHONY (not NO_TIMESTAMPS)
+        assert_eq!(issues.len(), 1);
+        assert_eq!(issues[0].rule, "AUTO_PHONY");
     }
 
     #[test]
@@ -549,5 +603,218 @@ SOURCES := $(wildcard *.c)"#;
         // Second issue is wildcard (High)
         assert_eq!(issues[1].rule, "NO_WILDCARD");
         assert_eq!(issues[1].severity, IssueSeverity::High);
+    }
+
+    // Unit tests for auto-PHONY detection (PHONY-002)
+    #[test]
+    fn test_PHONY_002_is_common_phony_target_test() {
+        assert!(is_common_phony_target("test"));
+    }
+
+    #[test]
+    fn test_PHONY_002_is_common_phony_target_clean() {
+        assert!(is_common_phony_target("clean"));
+    }
+
+    #[test]
+    fn test_PHONY_002_is_common_phony_target_install() {
+        assert!(is_common_phony_target("install"));
+    }
+
+    #[test]
+    fn test_PHONY_002_is_common_phony_target_deploy() {
+        assert!(is_common_phony_target("deploy"));
+    }
+
+    #[test]
+    fn test_PHONY_002_is_common_phony_target_build() {
+        assert!(is_common_phony_target("build"));
+    }
+
+    #[test]
+    fn test_PHONY_002_is_common_phony_target_all() {
+        assert!(is_common_phony_target("all"));
+    }
+
+    #[test]
+    fn test_PHONY_002_is_common_phony_target_help() {
+        assert!(is_common_phony_target("help"));
+    }
+
+    #[test]
+    fn test_PHONY_002_not_common_phony_target_file() {
+        assert!(!is_common_phony_target("main.o"));
+    }
+
+    #[test]
+    fn test_PHONY_002_not_common_phony_target_program() {
+        assert!(!is_common_phony_target("program"));
+    }
+
+    #[test]
+    fn test_PHONY_002_empty_string() {
+        assert!(!is_common_phony_target(""));
+    }
+
+    #[test]
+    fn test_PHONY_002_case_sensitive() {
+        // Should be case-sensitive - "TEST" is not the same as "test"
+        assert!(!is_common_phony_target("TEST"));
+    }
+
+    // Mutation-killing tests
+    #[test]
+    fn test_PHONY_002_mut_contains_check() {
+        // Ensures we use .contains() to check the list
+        assert!(is_common_phony_target("test"));
+        assert!(is_common_phony_target("clean"));
+    }
+
+    #[test]
+    fn test_PHONY_002_mut_exact_match() {
+        // Ensures we match exact target names, not substrings
+        assert!(!is_common_phony_target("testing"));
+        assert!(!is_common_phony_target("cleanup"));
+    }
+
+    #[test]
+    fn test_PHONY_002_mut_non_empty_list() {
+        // Ensures COMMON_PHONY_TARGETS is not empty
+        assert!(is_common_phony_target("test") || is_common_phony_target("clean"));
+    }
+
+    // Property-based tests for auto-PHONY detection
+    #[cfg(test)]
+    mod phony_property_tests {
+        use super::*;
+        use proptest::prelude::*;
+
+        proptest! {
+            #[test]
+            fn prop_PHONY_002_any_string_no_panic(s in "\\PC*") {
+                // Should never panic on any string
+                let _ = is_common_phony_target(&s);
+            }
+
+            #[test]
+            fn prop_PHONY_002_deterministic(s in "\\PC*") {
+                // Same input always gives same output
+                let result1 = is_common_phony_target(&s);
+                let result2 = is_common_phony_target(&s);
+                prop_assert_eq!(result1, result2);
+            }
+
+            #[test]
+            fn prop_PHONY_002_known_targets_always_detected(
+                target in "(test|clean|install|deploy|build|all|help)"
+            ) {
+                // Known common targets should always be detected
+                prop_assert!(is_common_phony_target(&target));
+            }
+
+            #[test]
+            fn prop_PHONY_002_file_extensions_not_phony(
+                ext in "(c|h|o|a|so|rs|py|js|java|go)"
+            ) {
+                // Files with extensions should not be phony
+                let filename = format!("file.{}", ext);
+                prop_assert!(!is_common_phony_target(&filename));
+            }
+
+            #[test]
+            fn prop_PHONY_002_uppercase_not_detected(
+                target in "(TEST|CLEAN|INSTALL|DEPLOY|BUILD|ALL|HELP)"
+            ) {
+                // Uppercase versions should not be detected (case-sensitive)
+                prop_assert!(!is_common_phony_target(&target));
+            }
+        }
+    }
+
+    // Integration tests for analyze_makefile() with auto-PHONY detection (PHONY-002)
+    #[test]
+    fn test_PHONY_002_analyze_detects_missing_phony() {
+        use crate::make_parser::parse_makefile;
+
+        // RED: Test target without .PHONY
+        let makefile = "test:\n\tcargo test";
+        let ast = parse_makefile(makefile).unwrap();
+        let issues = analyze_makefile(&ast);
+
+        assert_eq!(issues.len(), 1);
+        assert_eq!(issues[0].rule, "AUTO_PHONY");
+        assert_eq!(issues[0].severity, IssueSeverity::High);
+        assert!(issues[0].message.contains("test"));
+        assert!(issues[0].suggestion.is_some());
+        assert!(issues[0].suggestion.as_ref().unwrap().contains(".PHONY: test"));
+    }
+
+    #[test]
+    fn test_PHONY_002_analyze_no_issue_with_phony() {
+        use crate::make_parser::parse_makefile;
+
+        // GREEN: Test target WITH .PHONY should not trigger issue
+        let makefile = ".PHONY: test\ntest:\n\tcargo test";
+        let ast = parse_makefile(makefile).unwrap();
+        let issues = analyze_makefile(&ast);
+
+        // Should not report missing .PHONY
+        let phony_issues: Vec<_> = issues.iter().filter(|i| i.rule == "AUTO_PHONY").collect();
+        assert_eq!(phony_issues.len(), 0);
+    }
+
+    #[test]
+    fn test_PHONY_002_analyze_multiple_missing_phony() {
+        use crate::make_parser::parse_makefile;
+
+        let makefile = r#"test:
+	cargo test
+
+clean:
+	rm -f *.o
+
+build:
+	cargo build"#;
+        let ast = parse_makefile(makefile).unwrap();
+        let issues = analyze_makefile(&ast);
+
+        // Should detect all 3 missing .PHONY declarations
+        let phony_issues: Vec<_> = issues.iter().filter(|i| i.rule == "AUTO_PHONY").collect();
+        assert_eq!(phony_issues.len(), 3);
+    }
+
+    #[test]
+    fn test_PHONY_002_analyze_file_target_no_issue() {
+        use crate::make_parser::parse_makefile;
+
+        // Real file targets should NOT trigger AUTO_PHONY
+        let makefile = "main.o: main.c\n\tgcc -c main.c";
+        let ast = parse_makefile(makefile).unwrap();
+        let issues = analyze_makefile(&ast);
+
+        let phony_issues: Vec<_> = issues.iter().filter(|i| i.rule == "AUTO_PHONY").collect();
+        assert_eq!(phony_issues.len(), 0);
+    }
+
+    #[test]
+    fn test_PHONY_002_analyze_mixed_targets() {
+        use crate::make_parser::parse_makefile;
+
+        let makefile = r#".PHONY: clean
+clean:
+	rm -f *.o
+
+main.o: main.c
+	gcc -c main.c
+
+test:
+	cargo test"#;
+        let ast = parse_makefile(makefile).unwrap();
+        let issues = analyze_makefile(&ast);
+
+        // Only 'test' is missing .PHONY
+        let phony_issues: Vec<_> = issues.iter().filter(|i| i.rule == "AUTO_PHONY").collect();
+        assert_eq!(phony_issues.len(), 1);
+        assert!(phony_issues[0].message.contains("test"));
     }
 }

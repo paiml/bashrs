@@ -1002,8 +1002,8 @@ fn test_PHONY_001_basic_phony_declaration() {
             assert_eq!(name, "clean", "Second target should be clean");
             assert_eq!(recipe.len(), 1, "Should have one recipe line");
             assert_eq!(recipe[0], "rm -f *.o");
-            // Note: phony will be detected in semantic analysis phase
-            assert_eq!(*phony, false, "Phony detection happens in semantic analysis");
+            // Parser now detects .PHONY declarations and marks targets
+            assert_eq!(*phony, true, "clean should be marked as phony since .PHONY: clean was declared");
         }
         other => panic!("Expected Target item for clean, got {:?}", other),
     }

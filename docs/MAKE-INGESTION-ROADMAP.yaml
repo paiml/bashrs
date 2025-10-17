@@ -718,7 +718,7 @@ chapters:
 
           - id: "PHONY-002"
             title: "Detect missing .PHONY and add automatically"
-            status: "pending"
+            status: "completed"
             priority: "HIGH"
             input: |
               test:
@@ -735,6 +735,58 @@ chapters:
             test_name: "test_auto_add_phony"
             notes: "Purification should auto-detect and add .PHONY for common targets"
             purification_rule: "AUTO_PHONY"
+            implementation:
+              version: "v1.8.0"
+              completed_date: "2025-10-17"
+              modules:
+                - "rash/src/make_parser/semantic.rs"
+                - "rash/src/make_parser/parser.rs"
+              tests_added: 24
+              test_names:
+                - "test_PHONY_002_is_common_phony_target_test"
+                - "test_PHONY_002_is_common_phony_target_clean"
+                - "test_PHONY_002_is_common_phony_target_install"
+                - "test_PHONY_002_is_common_phony_target_deploy"
+                - "test_PHONY_002_is_common_phony_target_build"
+                - "test_PHONY_002_is_common_phony_target_all"
+                - "test_PHONY_002_is_common_phony_target_help"
+                - "test_PHONY_002_not_common_phony_target_file"
+                - "test_PHONY_002_not_common_phony_target_program"
+                - "test_PHONY_002_empty_string"
+                - "test_PHONY_002_case_sensitive"
+                - "test_PHONY_002_mut_contains_check"
+                - "test_PHONY_002_mut_exact_match"
+                - "test_PHONY_002_mut_non_empty_list"
+                - "prop_PHONY_002_any_string_no_panic"
+                - "prop_PHONY_002_deterministic"
+                - "prop_PHONY_002_known_targets_always_detected"
+                - "prop_PHONY_002_file_extensions_not_phony"
+                - "prop_PHONY_002_uppercase_not_detected"
+                - "test_PHONY_002_analyze_detects_missing_phony"
+                - "test_PHONY_002_analyze_no_issue_with_phony"
+                - "test_PHONY_002_analyze_multiple_missing_phony"
+                - "test_PHONY_002_analyze_file_target_no_issue"
+                - "test_PHONY_002_analyze_mixed_targets"
+              unit_tests: 14
+              property_tests: 5
+              integration_tests: 5
+              mutation_killing_tests: 3
+              mutation_testing:
+                status: "completed"
+                kill_rate: "100% (10/10 viable mutants)"
+                mutants_tested: 12
+                mutants_caught: 10
+                mutants_unviable: 2
+                result: "PASSED"
+              lines_of_code: 55
+              complexity: "<5"
+              features_implemented:
+                - "COMMON_PHONY_TARGETS constant with 7 common targets"
+                - "is_common_phony_target() detection function"
+                - "Parser two-pass approach: collect .PHONY, then mark targets"
+                - "Integration with analyze_makefile() for missing .PHONY detection"
+                - "HIGH severity for AUTO_PHONY rule"
+                - "Automatic suggestion generation (.PHONY: targetname)"
 
       - id: "4.11"
         name: "Static Pattern Rules"
