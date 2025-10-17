@@ -1,0 +1,146 @@
+# Pre-commit hooks for Rash (bashrs) project
+# Install: pip install pre-commit && pre-commit install
+# Run manually: pre-commit run --all-files
+
+repos:
+  # Rust formatting
+  - repo: https://github.com/doublify/pre-commit-rust
+    rev: v1.0
+    hooks:
+      - id: fmt
+        name: cargo fmt
+        description: Format Rust code with rustfmt
+        entry: cargo fmt --all -- --check
+        language: system
+        types: [rust]
+        pass_filenames: false
+
+      - id: clippy
+        name: cargo clippy
+        description: Lint Rust code with clippy
+        entry: cargo clippy --all-targets --all-features -- -D warnings
+        language: system
+        types: [rust]
+        pass_filenames: false
+
+  # Rust testing
+  - repo: local
+    hooks:
+      - id: cargo-test
+        name: cargo test
+        description: Run all Rust tests
+        entry: cargo test --all-features --workspace
+        language: system
+        types: [rust]
+        pass_filenames: false
+        stages: [commit]
+
+      - id: cargo-test-doc
+        name: cargo test --doc
+        description: Run documentation tests
+        entry: cargo test --doc
+        language: system
+        types: [rust]
+        pass_filenames: false
+        stages: [commit]
+
+  # ShellCheck validation
+  - repo: https://github.com/shellcheck-py/shellcheck-py
+    rev: v0.9.0.6
+    hooks:
+      - id: shellcheck
+        name: shellcheck
+        description: Validate shell scripts with ShellCheck
+        args: ["-s", "sh", "-e", "SC2148"]
+        types: [shell]
+
+  # Security audit
+  - repo: local
+    hooks:
+      - id: cargo-audit
+        name: cargo audit
+        description: Security audit for Rust dependencies
+        entry: cargo audit --deny warnings
+        language: system
+        types: [rust]
+        pass_filenames: false
+        stages: [push]
+
+  # pmat tdg - Test-Driven Generation
+  - repo: local
+    hooks:
+      - id: pmat-tdg
+        name: pmat tdg
+        description: Test-driven generation with pmat
+        entry: bash -c 'if command -v pmat >/dev/null 2>&1; then pmat tdg --verify; else echo "pmat not installed, skipping tdg check"; fi'
+        language: system
+        types: [rust]
+        pass_filenames: false
+        stages: [commit]
+
+  # pmat quality score
+  - repo: local
+    hooks:
+      - id: pmat-quality
+        name: pmat quality-score
+        description: Verify quality score meets minimum threshold
+        entry: bash -c 'if command -v pmat >/dev/null 2>&1; then pmat quality-score --min 9.0; else echo "pmat not installed, skipping quality check"; fi'
+        language: system
+        types: [rust]
+        pass_filenames: false
+        stages: [push]
+
+  # pmat complexity check
+  - repo: local
+    hooks:
+      - id: pmat-complexity
+        name: pmat analyze complexity
+        description: Verify code complexity <10
+        entry: bash -c 'if command -v pmat >/dev/null 2>&1; then pmat analyze complexity --max 10; else echo "pmat not installed, skipping complexity check"; fi'
+        language: system
+        types: [rust]
+        pass_filenames: false
+        stages: [commit]
+
+  # General file checks
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.5.0
+    hooks:
+      - id: trailing-whitespace
+        name: trim trailing whitespace
+        description: Remove trailing whitespace
+
+      - id: end-of-file-fixer
+        name: fix end of files
+        description: Ensure files end with newline
+
+      - id: check-yaml
+        name: check yaml syntax
+        description: Validate YAML files
+
+      - id: check-added-large-files
+        name: check for large files
+        description: Prevent large files from being committed
+        args: ['--maxkb=500']
+
+      - id: check-merge-conflict
+        name: check for merge conflicts
+        description: Detect merge conflict markers
+
+      - id: mixed-line-ending
+        name: check line endings
+        description: Ensure consistent line endings
+        args: ['--fix=lf']
+
+# Configuration for specific stages
+# - commit: Runs before git commit
+# - push: Runs before git push
+# - manual: Only runs with pre-commit run --all-files
+
+default_stages: [commit]
+
+# Fail fast - stop after first failure
+fail_fast: false
+
+# Minimum pre-commit version
+minimum_pre_commit_version: '2.20.0'
