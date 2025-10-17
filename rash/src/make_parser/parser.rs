@@ -150,6 +150,34 @@ pub fn parse_makefile(input: &str) -> Result<MakeAst, String> {
         i += 1;
     }
 
+    // Second pass: Mark targets as .PHONY
+    // Collect all .PHONY declarations
+    let mut phony_targets: std::collections::HashSet<String> = std::collections::HashSet::new();
+    for item in &items {
+        if let MakeItem::Target { name, prerequisites, .. } = item {
+            if name == ".PHONY" {
+                for prereq in prerequisites {
+                    phony_targets.insert(prereq.clone());
+                }
+            }
+        }
+    }
+
+    // Update targets to mark them as phony if declared
+    items = items.into_iter().map(|item| {
+        if let MakeItem::Target { name, prerequisites, recipe, phony: _, span } = item {
+            MakeItem::Target {
+                phony: phony_targets.contains(&name),
+                name,
+                prerequisites,
+                recipe,
+                span,
+            }
+        } else {
+            item
+        }
+    }).collect();
+
     Ok(MakeAst {
         items,
         metadata: MakeMetadata::with_line_count(line_count),
