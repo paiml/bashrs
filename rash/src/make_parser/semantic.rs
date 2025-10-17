@@ -97,6 +97,33 @@ const COMMON_PHONY_TARGETS: &[&str] = &[
     "test", "clean", "install", "deploy", "build", "all", "help",
 ];
 
+/// Detect non-deterministic $(shell find) patterns in a variable value
+///
+/// This function identifies shell find commands that produce non-deterministic
+/// filesystem ordering, making builds non-reproducible.
+///
+/// # Arguments
+///
+/// * `value` - Variable value to analyze
+///
+/// # Returns
+///
+/// * `true` if $(shell find...) pattern is detected
+/// * `false` otherwise
+///
+/// # Examples
+///
+/// ```
+/// use bashrs::make_parser::semantic::detect_shell_find;
+///
+/// assert!(detect_shell_find("$(shell find . -name '*.c')"));
+/// assert!(detect_shell_find("FILES := $(shell find src -type f)"));
+/// assert!(!detect_shell_find("FILES := main.c util.c"));
+/// ```
+pub fn detect_shell_find(value: &str) -> bool {
+    value.contains("$(shell find")
+}
+
 /// Check if a target name is a common non-file target that should be .PHONY
 ///
 /// This function identifies targets that don't represent actual files
@@ -179,6 +206,20 @@ pub fn analyze_makefile(ast: &MakeAst) -> Vec<SemanticIssue> {
                         span: *span,
                         rule: "NO_WILDCARD".to_string(),
                         suggestion: Some(format!("{} := file1.c file2.c file3.c", name)),
+                    });
+                }
+
+                // Check for non-deterministic shell find
+                if detect_shell_find(value) {
+                    issues.push(SemanticIssue {
+                        message: format!(
+                            "Variable '{}' uses non-deterministic $(shell find) - replace with explicit sorted file list",
+                            name
+                        ),
+                        severity: IssueSeverity::High,
+                        span: *span,
+                        rule: "NO_UNORDERED_FIND".to_string(),
+                        suggestion: Some(format!("{} := src/a.c src/b.c src/main.c", name)),
                     });
                 }
             }
@@ -729,6 +770,161 @@ SOURCES := $(wildcard *.c)"#;
                 prop_assert!(!is_common_phony_target(&target));
             }
         }
+    }
+
+    // Unit tests for shell find detection (FUNC-SHELL-002)
+    #[test]
+    fn test_FUNC_SHELL_002_detect_shell_find_basic() {
+        // Should detect $(shell find . -name '*.c')
+        assert!(detect_shell_find("$(shell find . -name '*.c')"));
+    }
+
+    #[test]
+    fn test_FUNC_SHELL_002_detect_shell_find_with_type() {
+        // Should detect $(shell find src -type f)
+        assert!(detect_shell_find("$(shell find src -type f)"));
+    }
+
+    #[test]
+    fn test_FUNC_SHELL_002_no_false_positive() {
+        // Should NOT detect when no shell find
+        assert!(!detect_shell_find("FILES := main.c util.c"));
+    }
+
+    #[test]
+    fn test_FUNC_SHELL_002_detect_in_variable_context() {
+        // Should detect in full variable assignment context
+        let value = "FILES := $(shell find src -name '*.c')";
+        assert!(detect_shell_find(value));
+    }
+
+    // Edge cases
+    #[test]
+    fn test_FUNC_SHELL_002_empty_string() {
+        assert!(!detect_shell_find(""));
+    }
+
+    #[test]
+    fn test_FUNC_SHELL_002_no_shell_command() {
+        assert!(!detect_shell_find("$(CC) -o output"));
+    }
+
+    #[test]
+    fn test_FUNC_SHELL_002_shell_but_not_find() {
+        assert!(!detect_shell_find("$(shell pwd)"));
+    }
+
+    #[test]
+    fn test_FUNC_SHELL_002_multiple_shell_commands() {
+        // Should detect if ANY contain shell find
+        assert!(detect_shell_find("A=$(shell pwd) B=$(shell find . -name '*.c')"));
+    }
+
+    #[test]
+    fn test_FUNC_SHELL_002_find_without_shell() {
+        // "find" alone is not a problem
+        assert!(!detect_shell_find("# Use find to locate files"));
+    }
+
+    #[test]
+    fn test_FUNC_SHELL_002_case_sensitive() {
+        // Should be case-sensitive (shell commands are case-sensitive)
+        assert!(!detect_shell_find("$(SHELL FIND)"));
+    }
+
+    // Mutation-killing tests
+    #[test]
+    fn test_FUNC_SHELL_002_mut_contains_must_check_substring() {
+        // Ensures we use .contains() not .eq()
+        assert!(detect_shell_find("prefix $(shell find . -name '*.c') suffix"));
+    }
+
+    #[test]
+    fn test_FUNC_SHELL_002_mut_exact_pattern() {
+        // Ensures we check for "$(shell find" not just "find"
+        assert!(!detect_shell_find("findutils"));
+    }
+
+    #[test]
+    fn test_FUNC_SHELL_002_mut_non_empty_check() {
+        // Ensures we don't crash on empty strings
+        let result = detect_shell_find("");
+        assert_eq!(result, false);
+    }
+
+    // Property-based tests for shell find detection (FUNC-SHELL-002)
+    #[cfg(test)]
+    mod shell_find_property_tests {
+        use super::*;
+        use proptest::prelude::*;
+
+        proptest! {
+            #[test]
+            fn prop_FUNC_SHELL_002_any_string_no_panic(s in "\\PC*") {
+                // Should never panic on any string
+                let _ = detect_shell_find(&s);
+            }
+
+            #[test]
+            fn prop_FUNC_SHELL_002_shell_find_always_detected(
+                args in "[a-zA-Z0-9/. -]*"
+            ) {
+                let input = format!("$(shell find {})", args);
+                prop_assert!(detect_shell_find(&input));
+            }
+
+            #[test]
+            fn prop_FUNC_SHELL_002_no_dollar_never_detected(
+                s in "[^$]*"
+            ) {
+                // Strings without $ should never be detected
+                prop_assert!(!detect_shell_find(&s));
+            }
+
+            #[test]
+            fn prop_FUNC_SHELL_002_deterministic(s in "\\PC*") {
+                // Same input always gives same output
+                let result1 = detect_shell_find(&s);
+                let result2 = detect_shell_find(&s);
+                prop_assert_eq!(result1, result2);
+            }
+
+            #[test]
+            fn prop_FUNC_SHELL_002_shell_without_find_not_detected(
+                cmd in "(pwd|date|echo|ls|cat|grep|awk|sed)"
+            ) {
+                // $(shell <non-find-command>) should not be detected
+                let input = format!("$(shell {})", cmd);
+                prop_assert!(!detect_shell_find(&input));
+            }
+        }
+    }
+
+    // Integration tests for analyze_makefile() with shell find (FUNC-SHELL-002)
+    #[test]
+    fn test_FUNC_SHELL_002_analyze_detects_shell_find() {
+        use crate::make_parser::parse_makefile;
+
+        let makefile = "FILES := $(shell find src -name '*.c')";
+        let ast = parse_makefile(makefile).unwrap();
+        let issues = analyze_makefile(&ast);
+
+        assert_eq!(issues.len(), 1);
+        assert_eq!(issues[0].rule, "NO_UNORDERED_FIND");
+        assert_eq!(issues[0].severity, IssueSeverity::High);
+        assert!(issues[0].message.contains("FILES"));
+        assert!(issues[0].suggestion.is_some());
+    }
+
+    #[test]
+    fn test_FUNC_SHELL_002_analyze_no_issues_clean_makefile() {
+        use crate::make_parser::parse_makefile;
+
+        let makefile = "FILES := src/a.c src/b.c";
+        let ast = parse_makefile(makefile).unwrap();
+        let issues = analyze_makefile(&ast);
+
+        assert_eq!(issues.len(), 0);
     }
 
     // Integration tests for analyze_makefile() with auto-PHONY detection (PHONY-002)
