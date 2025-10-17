@@ -5935,3 +5935,287 @@ mod prop_pattern_001 {
         }
     }
 }
+
+// ==============================================================================
+// PATTERN-002: Automatic Variables ($@, $<, $^)
+// ==============================================================================
+
+/// RED PHASE: Test for PATTERN-002 - Automatic variable $@ (target name)
+///
+/// Automatic variables are special variables set by make for each rule.
+/// $@ expands to the target name.
+///
+/// Input Makefile:
+/// ```makefile
+/// program: main.o
+///     $(CC) -o $@ main.o
+/// ```
+///
+/// Expected: Recipe preserves "$@" exactly as-is
+#[test]
+fn test_PATTERN_002_automatic_variable_at() {
+    // ARRANGE: Target with $@ automatic variable
+    let makefile = "program: main.o\n\t$(CC) -o $@ main.o";
+
+    // ACT: Parse makefile
+    let result = parse_makefile(makefile);
+
+    // ASSERT: Successfully parsed
+    assert!(result.is_ok());
+
+    let ast = result.unwrap();
+    assert_eq!(ast.items.len(), 1);
+
+    // ASSERT: Recipe contains $@
+    match &ast.items[0] {
+        MakeItem::Target { recipe, .. } => {
+            assert_eq!(recipe.len(), 1);
+            assert!(recipe[0].contains("$@"), "Recipe should contain $@");
+            assert_eq!(recipe[0], "$(CC) -o $@ main.o");
+        }
+        other => panic!("Expected Target, got {:?}", other),
+    }
+}
+
+/// RED PHASE: Test for PATTERN-002 - Automatic variable $< (first prerequisite)
+///
+/// $< expands to the name of the first prerequisite.
+/// Commonly used in pattern rules.
+#[test]
+fn test_PATTERN_002_automatic_variable_less_than() {
+    // ARRANGE: Pattern rule with $< automatic variable
+    let makefile = "%.o: %.c\n\t$(CC) -c $< -o $@";
+
+    // ACT: Parse makefile
+    let result = parse_makefile(makefile);
+
+    // ASSERT: Successfully parsed
+    assert!(result.is_ok());
+
+    let ast = result.unwrap();
+    assert_eq!(ast.items.len(), 1);
+
+    // ASSERT: Recipe contains $<
+    match &ast.items[0] {
+        MakeItem::PatternRule { recipe, .. } => {
+            assert_eq!(recipe.len(), 1);
+            assert!(recipe[0].contains("$<"), "Recipe should contain $<");
+            assert!(recipe[0].contains("$@"), "Recipe should contain $@");
+            assert_eq!(recipe[0], "$(CC) -c $< -o $@");
+        }
+        other => panic!("Expected PatternRule, got {:?}", other),
+    }
+}
+
+/// RED PHASE: Test for PATTERN-002 - Automatic variable $^ (all prerequisites)
+///
+/// $^ expands to the names of all prerequisites, with spaces between them.
+#[test]
+fn test_PATTERN_002_automatic_variable_caret() {
+    // ARRANGE: Target with $^ automatic variable
+    let makefile = "program: main.o util.o\n\t$(CC) $^ -o $@";
+
+    // ACT: Parse makefile
+    let result = parse_makefile(makefile);
+
+    // ASSERT: Successfully parsed
+    assert!(result.is_ok());
+
+    let ast = result.unwrap();
+    assert_eq!(ast.items.len(), 1);
+
+    // ASSERT: Recipe contains $^
+    match &ast.items[0] {
+        MakeItem::Target { recipe, .. } => {
+            assert_eq!(recipe.len(), 1);
+            assert!(recipe[0].contains("$^"), "Recipe should contain $^");
+            assert!(recipe[0].contains("$@"), "Recipe should contain $@");
+            assert_eq!(recipe[0], "$(CC) $^ -o $@");
+        }
+        other => panic!("Expected Target, got {:?}", other),
+    }
+}
+
+/// RED PHASE: Test for PATTERN-002 - Multiple automatic variables in one recipe
+#[test]
+fn test_PATTERN_002_multiple_automatic_variables() {
+    // ARRANGE: Recipe with multiple automatic variables
+    let makefile = "%.o: %.c %.h\n\t$(CC) -c $< -o $@ -I $^";
+
+    // ACT: Parse makefile
+    let result = parse_makefile(makefile);
+
+    // ASSERT: Successfully parsed
+    assert!(result.is_ok());
+
+    let ast = result.unwrap();
+    assert_eq!(ast.items.len(), 1);
+
+    // ASSERT: All automatic variables preserved
+    match &ast.items[0] {
+        MakeItem::PatternRule { recipe, .. } => {
+            assert_eq!(recipe.len(), 1);
+            assert!(recipe[0].contains("$<"));
+            assert!(recipe[0].contains("$@"));
+            assert!(recipe[0].contains("$^"));
+        }
+        other => panic!("Expected PatternRule, got {:?}", other),
+    }
+}
+
+/// RED PHASE: Test for PATTERN-002 - Automatic variable $? (newer prerequisites)
+#[test]
+fn test_PATTERN_002_automatic_variable_question() {
+    // ARRANGE: Target with $? automatic variable
+    let makefile = "archive.a: foo.o bar.o\n\tar rcs $@ $?";
+
+    // ACT: Parse makefile
+    let result = parse_makefile(makefile);
+
+    // ASSERT: Successfully parsed
+    assert!(result.is_ok());
+
+    let ast = result.unwrap();
+    assert_eq!(ast.items.len(), 1);
+
+    // ASSERT: Recipe contains $?
+    match &ast.items[0] {
+        MakeItem::Target { recipe, .. } => {
+            assert_eq!(recipe.len(), 1);
+            assert!(recipe[0].contains("$?"), "Recipe should contain $?");
+            assert_eq!(recipe[0], "ar rcs $@ $?");
+        }
+        other => panic!("Expected Target, got {:?}", other),
+    }
+}
+
+// ==============================================================================
+// PATTERN-002: Property Tests
+// ==============================================================================
+
+#[cfg(test)]
+mod prop_pattern_002 {
+    use super::*;
+    use proptest::prelude::*;
+
+    proptest! {
+        /// Property: Automatic variables in recipes are always preserved
+        #[test]
+        fn prop_PATTERN_002_automatic_vars_always_preserved(
+            target in "[a-z]{1,10}",
+            prereq in "[a-z]{1,10}\\.[a-z]{1,3}"
+        ) {
+            let makefile = format!("{}: {}\n\t$(CC) $< -o $@", target, prereq);
+
+            let result = parse_makefile(&makefile);
+            prop_assert!(result.is_ok());
+
+            let ast = result.unwrap();
+            match &ast.items[0] {
+                MakeItem::Target { recipe, .. } => {
+                    prop_assert!(recipe[0].contains("$<"));
+                    prop_assert!(recipe[0].contains("$@"));
+                }
+                _ => return Err(TestCaseError::fail("Expected Target")),
+            }
+        }
+
+        /// Property: All common automatic variables are preserved
+        #[test]
+        fn prop_PATTERN_002_all_auto_vars_preserved(
+            target in "[a-z]{1,8}"
+        ) {
+            // Test $@, $<, $^, $?
+            let makefile = format!("{}: a.o b.o\n\techo $@ $< $^ $?", target);
+
+            let result = parse_makefile(&makefile);
+            prop_assert!(result.is_ok());
+
+            let ast = result.unwrap();
+            match &ast.items[0] {
+                MakeItem::Target { recipe, .. } => {
+                    prop_assert!(recipe[0].contains("$@"));
+                    prop_assert!(recipe[0].contains("$<"));
+                    prop_assert!(recipe[0].contains("$^"));
+                    prop_assert!(recipe[0].contains("$?"));
+                }
+                _ => return Err(TestCaseError::fail("Expected Target")),
+            }
+        }
+
+        /// Property: Automatic variables in pattern rules are preserved
+        #[test]
+        fn prop_PATTERN_002_pattern_rules_preserve_auto_vars(
+            ext1 in "[a-z]{1,3}",
+            ext2 in "[a-z]{1,3}"
+        ) {
+            let makefile = format!("%.{}: %.{}\n\t$(CC) -c $< -o $@", ext1, ext2);
+
+            let result = parse_makefile(&makefile);
+            prop_assert!(result.is_ok());
+
+            let ast = result.unwrap();
+            match &ast.items[0] {
+                MakeItem::PatternRule { recipe, .. } => {
+                    prop_assert!(recipe[0].contains("$<"));
+                    prop_assert!(recipe[0].contains("$@"));
+                }
+                _ => return Err(TestCaseError::fail("Expected PatternRule")),
+            }
+        }
+
+        /// Property: Parsing with automatic variables is deterministic
+        #[test]
+        fn prop_PATTERN_002_parsing_is_deterministic(
+            target in "[a-z]{1,10}",
+            prereq in "[a-z]{1,10}\\.[a-z]{1,3}"
+        ) {
+            let makefile = format!("{}: {}\n\t$(CC) $^ -o $@", target, prereq);
+
+            // Parse twice
+            let result1 = parse_makefile(&makefile);
+            let result2 = parse_makefile(&makefile);
+
+            prop_assert!(result1.is_ok());
+            prop_assert!(result2.is_ok());
+
+            let ast1 = result1.unwrap();
+            let ast2 = result2.unwrap();
+
+            // Should produce identical ASTs
+            match (&ast1.items[0], &ast2.items[0]) {
+                (
+                    MakeItem::Target { recipe: r1, .. },
+                    MakeItem::Target { recipe: r2, .. }
+                ) => {
+                    prop_assert_eq!(r1, r2);
+                }
+                _ => return Err(TestCaseError::fail("Expected Target in both")),
+            }
+        }
+
+        /// Property: Mix of automatic variables and normal text preserved
+        #[test]
+        fn prop_PATTERN_002_mixed_content_preserved(
+            target in "[a-z]{1,8}",
+            flag in "-[a-zA-Z]"
+        ) {
+            let makefile = format!("{}: a.o\n\tgcc {} $< -o $@", target, flag);
+
+            let result = parse_makefile(&makefile);
+            prop_assert!(result.is_ok());
+
+            let ast = result.unwrap();
+            match &ast.items[0] {
+                MakeItem::Target { recipe, .. } => {
+                    // Verify automatic variables preserved
+                    prop_assert!(recipe[0].contains("$<"));
+                    prop_assert!(recipe[0].contains("$@"));
+                    // Verify flag preserved
+                    prop_assert!(recipe[0].contains(&flag));
+                }
+                _ => return Err(TestCaseError::fail("Expected Target")),
+            }
+        }
+    }
+}
