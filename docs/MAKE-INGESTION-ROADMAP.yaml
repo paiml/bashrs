@@ -9,10 +9,10 @@ roadmap:
 
   statistics:
     total_tasks: 150
-    completed: 26
+    completed: 27
     partial_support: 0
     in_progress: 0
-    coverage_percent: 17.33
+    coverage_percent: 18.00
 
 extreme_tdd_workflow:
   description: "Standard workflow for each task"
@@ -1430,7 +1430,7 @@ chapters:
 
       - id: "COND-002"
         title: "Document ifdef conditional"
-        status: "pending"
+        status: "completed"
         priority: "MEDIUM"
         input: |
           ifdef VERBOSE
@@ -1451,6 +1451,17 @@ chapters:
           ECHO := @
           endif
         test_name: "test_ifdef_conditional"
+        notes: "Already implemented under COND-001 - ifdef/ifndef conditionals are part of the comprehensive conditional parsing implementation"
+        implementation:
+          version: "v1.13.0"
+          completed_date: "2025-10-17 (original implementation), Sprint 56 (documentation audit)"
+          covered_by: "COND-001"
+          modules:
+            - "rash/src/make_parser/parser.rs"
+            - "rash/src/make_parser/tests.rs"
+          tests_included_in_cond_001: true
+          test_count: "12 tests total in COND-001 (covers ifeq/ifneq/ifdef/ifndef)"
+          audit_discovery: "Sprint 56 - found COND-002 was duplicate/covered by COND-001"
 
   - id: 8
     name: "Functions for Transforming Text"
