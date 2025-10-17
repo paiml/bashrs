@@ -127,6 +127,18 @@ pub fn parse_makefile(input: &str) -> Result<MakeAst, String> {
             continue;
         }
 
+        // Parse conditional blocks (ifeq, ifdef, ifndef, ifneq)
+        if line.trim_start().starts_with("ifeq ") ||
+           line.trim_start().starts_with("ifdef ") ||
+           line.trim_start().starts_with("ifndef ") ||
+           line.trim_start().starts_with("ifneq ") {
+            match parse_conditional(&lines, &mut i) {
+                Ok(conditional) => items.push(conditional),
+                Err(e) => return Err(format!("Line {}: {}", i + 1, e)),
+            }
+            continue;
+        }
+
         // Parse variable assignments (contains '=' but is not a target rule)
         if is_variable_assignment(line) {
             match parse_variable(line, i + 1) {
@@ -303,6 +315,207 @@ fn parse_include(line: &str, line_num: usize) -> Result<MakeItem, String> {
         optional,
         span: Span::new(0, line.len(), line_num),
     })
+}
+
+/// Parse a conditional block starting at the given line index
+///
+/// Updates the index to point past the parsed conditional (past 'endif').
+///
+/// Conditional block syntax:
+/// ```makefile
+/// ifeq ($(VAR),value)
+///     CFLAGS = -g
+/// else
+///     CFLAGS = -O2
+/// endif
+/// ```
+///
+/// Supported directives: ifeq, ifneq, ifdef, ifndef
+fn parse_conditional(lines: &[&str], index: &mut usize) -> Result<MakeItem, String> {
+    let start_line = lines[*index];
+    let start_line_num = *index + 1;
+    let trimmed = start_line.trim();
+
+    // Parse the condition type and expression
+    let condition = if trimmed.starts_with("ifeq ") {
+        // ifeq (arg1,arg2)
+        let rest = trimmed.strip_prefix("ifeq ").unwrap().trim();
+        if !rest.starts_with('(') || !rest.ends_with(')') {
+            return Err(format!("Invalid ifeq syntax at line {}", start_line_num));
+        }
+        let inner = &rest[1..rest.len()-1];
+        let parts: Vec<&str> = inner.splitn(2, ',').collect();
+        if parts.len() != 2 {
+            return Err(format!("ifeq requires two arguments at line {}", start_line_num));
+        }
+        MakeCondition::IfEq(parts[0].to_string(), parts[1].to_string())
+    } else if trimmed.starts_with("ifneq ") {
+        // ifneq (arg1,arg2)
+        let rest = trimmed.strip_prefix("ifneq ").unwrap().trim();
+        if !rest.starts_with('(') || !rest.ends_with(')') {
+            return Err(format!("Invalid ifneq syntax at line {}", start_line_num));
+        }
+        let inner = &rest[1..rest.len()-1];
+        let parts: Vec<&str> = inner.splitn(2, ',').collect();
+        if parts.len() != 2 {
+            return Err(format!("ifneq requires two arguments at line {}", start_line_num));
+        }
+        MakeCondition::IfNeq(parts[0].to_string(), parts[1].to_string())
+    } else if trimmed.starts_with("ifdef ") {
+        // ifdef VAR
+        let var_name = trimmed.strip_prefix("ifdef ").unwrap().trim().to_string();
+        if var_name.is_empty() {
+            return Err(format!("ifdef requires variable name at line {}", start_line_num));
+        }
+        MakeCondition::IfDef(var_name)
+    } else if trimmed.starts_with("ifndef ") {
+        // ifndef VAR
+        let var_name = trimmed.strip_prefix("ifndef ").unwrap().trim().to_string();
+        if var_name.is_empty() {
+            return Err(format!("ifndef requires variable name at line {}", start_line_num));
+        }
+        MakeCondition::IfNdef(var_name)
+    } else {
+        return Err(format!("Unknown conditional directive at line {}", start_line_num));
+    };
+
+    // Move past the ifeq/ifdef/ifndef/ifneq line
+    *index += 1;
+
+    // Parse items in the 'then' branch until we hit 'else' or 'endif'
+    let mut then_items = Vec::new();
+    let mut else_items = None;
+    let mut depth = 1; // Track nested conditionals
+
+    while *index < lines.len() {
+        let line = lines[*index];
+        let trimmed = line.trim();
+
+        // Check for nested conditionals
+        if trimmed.starts_with("ifeq ") || trimmed.starts_with("ifneq ") ||
+           trimmed.starts_with("ifdef ") || trimmed.starts_with("ifndef ") {
+            depth += 1;
+        }
+
+        // Check for endif
+        if trimmed == "endif" {
+            depth -= 1;
+            if depth == 0 {
+                // This endif closes our conditional
+                *index += 1;
+                break;
+            }
+        }
+
+        // Check for else at our level
+        if trimmed == "else" && depth == 1 {
+            *index += 1;
+            // Parse items in the 'else' branch
+            let mut else_vec = Vec::new();
+            while *index < lines.len() {
+                let else_line = lines[*index];
+                let else_trimmed = else_line.trim();
+
+                // Check for nested conditionals in else branch
+                if else_trimmed.starts_with("ifeq ") || else_trimmed.starts_with("ifneq ") ||
+                   else_trimmed.starts_with("ifdef ") || else_trimmed.starts_with("ifndef ") {
+                    depth += 1;
+                }
+
+                if else_trimmed == "endif" {
+                    depth -= 1;
+                    if depth == 0 {
+                        *index += 1;
+                        break;
+                    }
+                }
+
+                // Parse item in else branch
+                if let Some(item) = parse_conditional_item(lines, index)? {
+                    else_vec.push(item);
+                    // Note: index was already incremented by parse_conditional_item
+                } else {
+                    // Empty line or unrecognized - skip it
+                    *index += 1;
+                }
+            }
+            else_items = Some(else_vec);
+            break;
+        }
+
+        // Parse item in then branch
+        if let Some(item) = parse_conditional_item(lines, index)? {
+            then_items.push(item);
+            // Note: index was already incremented by parse_conditional_item
+        } else {
+            // Empty line or unrecognized - skip it
+            *index += 1;
+        }
+    }
+
+    Ok(MakeItem::Conditional {
+        condition,
+        then_items,
+        else_items,
+        span: Span::new(0, start_line.len(), start_line_num),
+    })
+}
+
+/// Parse a single item within a conditional block
+///
+/// Returns None for empty lines or lines that should be skipped
+///
+/// IMPORTANT: This function does NOT increment index for simple items like variables or comments,
+/// but parse_target_rule DOES increment index (it advances past recipes).
+/// The caller must increment index when Ok(None) is returned.
+fn parse_conditional_item(lines: &[&str], index: &mut usize) -> Result<Option<MakeItem>, String> {
+    let line = lines[*index];
+    let line_num = *index + 1;
+
+    // Skip empty lines
+    if line.trim().is_empty() {
+        return Ok(None);
+    }
+
+    // Don't parse conditional keywords here (handled by parent)
+    let trimmed = line.trim();
+    if trimmed == "else" || trimmed == "endif" ||
+       trimmed.starts_with("ifeq ") || trimmed.starts_with("ifneq ") ||
+       trimmed.starts_with("ifdef ") || trimmed.starts_with("ifndef ") {
+        return Ok(None);
+    }
+
+    // Parse variable assignment
+    if is_variable_assignment(line) {
+        let var = parse_variable(line, line_num)?;
+        *index += 1; // Move past this variable line
+        return Ok(Some(var));
+    }
+
+    // Parse target rule (THIS INCREMENTS INDEX - it advances past recipes)
+    if line.contains(':') && !line.trim_start().starts_with('\t') {
+        let target = parse_target_rule(lines, index)?;
+        // parse_target_rule already incremented index past the target and its recipe
+        // So we DON'T increment it again
+        return Ok(Some(target));
+    }
+
+    // Parse comment
+    if line.trim_start().starts_with('#') {
+        let text = line.trim_start()
+            .strip_prefix('#')
+            .unwrap_or("")
+            .trim()
+            .to_string();
+        *index += 1; // Move past this comment line
+        return Ok(Some(MakeItem::Comment {
+            text,
+            span: Span::new(0, line.len(), line_num),
+        }));
+    }
+
+    // Unknown item - skip
+    Ok(None)
 }
 
 /// Parse a target rule starting at the given line index
