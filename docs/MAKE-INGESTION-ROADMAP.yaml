@@ -9,10 +9,10 @@ roadmap:
 
   statistics:
     total_tasks: 150
-    completed: 22
+    completed: 23
     partial_support: 0
     in_progress: 0
-    coverage_percent: 14.67
+    coverage_percent: 15.33
 
 extreme_tdd_workflow:
   description: "Standard workflow for each task"
@@ -1448,12 +1448,48 @@ chapters:
         tasks:
           - id: "FUNC-SUBST-001"
             title: "Document $(subst from,to,text)"
-            status: "pending"
+            status: "completed"
             priority: "LOW"
             input: "$(subst .c,.o,main.c util.c)"
             rust: "text.replace(\".c\", \".o\")"
             purified: "$(subst .c,.o,main.c util.c)"
             test_name: "test_subst_function"
+            notes: "NO IMPLEMENTATION NEEDED - Parser already preserves $(subst) function syntax correctly in variable values as opaque text"
+            implementation:
+              version: "v1.16.0"
+              completed_date: "2025-10-17"
+              modules:
+                - "rash/src/make_parser/tests.rs"
+              tests_added: 12
+              test_names:
+                - "test_FUNC_SUBST_001_basic_subst"
+                - "test_FUNC_SUBST_001_subst_in_prerequisites"
+                - "test_FUNC_SUBST_001_multiple_subst"
+                - "test_FUNC_SUBST_001_subst_with_spaces"
+                - "test_FUNC_SUBST_001_nested_subst"
+                - "test_FUNC_SUBST_001_subst_with_other_functions"
+                - "prop_FUNC_SUBST_001_basic_subst_always_preserved"
+                - "prop_FUNC_SUBST_001_parsing_is_deterministic"
+                - "prop_FUNC_SUBST_001_nested_functions_preserved"
+                - "prop_FUNC_SUBST_001_multiple_functions_preserved"
+                - "prop_FUNC_SUBST_001_combined_with_wildcard"
+                - "prop_FUNC_SUBST_001_no_spaces_in_function"
+              unit_tests: 6
+              property_tests: 6
+              mutation_testing:
+                status: "skipped"
+                note: "NO IMPLEMENTATION NEEDED - Parser already handles $(subst) correctly by preserving it as opaque text (covered by existing VAR-BASIC tests)"
+              lines_of_code: 0
+              test_lines: 219
+              complexity: "N/A"
+              features_implemented:
+                - "$(subst from,to,text) preserved in variable values"
+                - "$(subst) with nested functions (e.g., $(subst .c,.o,$(SRCS)))"
+                - "$(subst) combined with $(wildcard) and other functions"
+                - "$(subst) in target prerequisites (split on whitespace)"
+                - "Multiple $(subst) functions in same Makefile"
+                - "Nested $(subst) functions preserved correctly"
+                - "Parser treats $(subst) as opaque text - Make expands at runtime"
 
       - id: "8.3"
         name: "Functions for File Names"
