@@ -9,10 +9,10 @@ roadmap:
 
   statistics:
     total_tasks: 150
-    completed: 14
+    completed: 16
     partial_support: 0
     in_progress: 0
-    coverage_percent: 9.33
+    coverage_percent: 10.67
 
 extreme_tdd_workflow:
   description: "Standard workflow for each task"
@@ -598,13 +598,46 @@ chapters:
         tasks:
           - id: "INCLUDE-001"
             title: "Document include directive"
-            status: "pending"
+            status: "completed"
             priority: "MEDIUM"
             input: "include common.mk"
             rust: "mod common;"
             purified: "include common.mk"
             test_name: "test_include_directive"
-            notes: "File inclusion for modular Makefiles"
+            notes: "File inclusion for modular Makefiles. Also covers INCLUDE-002 (-include)"
+            implementation:
+              version: "v1.6.0"
+              completed_date: "2025-10-16"
+              modules:
+                - "rash/src/make_parser/parser.rs"
+                - "rash/src/make_parser/tests.rs"
+              tests_added: 14
+              test_names:
+                - "test_INCLUDE_001_basic_include_directive"
+                - "test_INCLUDE_001_include_with_path"
+                - "test_INCLUDE_001_multiple_includes"
+                - "test_INCLUDE_001_include_with_variables"
+                - "prop_INCLUDE_001_includes_always_parse"
+                - "prop_INCLUDE_001_parsing_is_deterministic"
+                - "prop_INCLUDE_001_multiple_includes_order_preserved"
+                - "prop_INCLUDE_001_paths_with_directories"
+                - "prop_INCLUDE_001_var_refs_preserved"
+                - "test_INCLUDE_001_mut_keyword_detection"
+                - "test_INCLUDE_001_mut_path_extraction"
+                - "test_INCLUDE_001_mut_include_vs_target"
+                - "test_INCLUDE_001_mut_empty_path"
+                - "test_INCLUDE_001_mut_parser_advances"
+              unit_tests: 4
+              property_tests: 5
+              mutation_killing_tests: 5
+              lines_of_code: 47
+              complexity: "<5"
+              features_implemented:
+                - "Parse include directive"
+                - "Parse -include (optional) directive"
+                - "Support file paths with directories"
+                - "Preserve variable references in paths"
+                - "Handle multiple includes"
 
           - id: "INCLUDE-002"
             title: "Document optional include (-include)"
@@ -1217,14 +1250,63 @@ chapters:
         tasks:
           - id: "FUNC-SHELL-001"
             title: "Purify $(shell date) - timestamps"
-            status: "pending"
+            status: "completed"
             priority: "CRITICAL"
             input: "RELEASE := $(shell date +%Y%m%d-%H%M%S)"
             rust: "const RELEASE: &str = \"1.0.0\";"
             purified: "RELEASE := 1.0.0"
             test_name: "test_purify_shell_date"
-            notes: "Timestamps are non-deterministic - must use explicit version"
+            notes: "Timestamps are non-deterministic - must use explicit version. Implementation completed with detect_shell_date() and analyze_makefile() functions."
             purification_rule: "NO_TIMESTAMPS"
+            implementation:
+              version: "v1.7.0"
+              completed_date: "2025-10-17"
+              modules:
+                - "rash/src/make_parser/semantic.rs"
+              tests_added: 24
+              test_names:
+                - "test_FUNC_SHELL_001_detect_shell_date_basic"
+                - "test_FUNC_SHELL_001_detect_shell_date_with_format"
+                - "test_FUNC_SHELL_001_no_false_positive"
+                - "test_FUNC_SHELL_001_detect_in_variable_context"
+                - "test_FUNC_SHELL_001_empty_string"
+                - "test_FUNC_SHELL_001_no_shell_command"
+                - "test_FUNC_SHELL_001_shell_but_not_date"
+                - "test_FUNC_SHELL_001_multiple_shell_commands"
+                - "test_FUNC_SHELL_001_date_without_shell"
+                - "test_FUNC_SHELL_001_case_sensitive"
+                - "test_FUNC_SHELL_001_mut_contains_must_check_substring"
+                - "test_FUNC_SHELL_001_mut_exact_pattern"
+                - "test_FUNC_SHELL_001_mut_non_empty_check"
+                - "prop_FUNC_SHELL_001_any_string_no_panic"
+                - "prop_FUNC_SHELL_001_shell_date_always_detected"
+                - "prop_FUNC_SHELL_001_no_shell_never_detected"
+                - "prop_FUNC_SHELL_001_deterministic"
+                - "prop_FUNC_SHELL_001_shell_without_date_not_detected"
+                - "test_FUNC_SHELL_001_analyze_detects_shell_date"
+                - "test_FUNC_SHELL_001_analyze_no_issues_clean_makefile"
+                - "test_FUNC_SHELL_001_analyze_multiple_issues"
+                - "test_FUNC_SHELL_001_analyze_suggestion_format"
+                - "test_FUNC_SHELL_001_analyze_ignores_targets"
+                - "test_FUNC_SHELL_001_analyze_span_preserved"
+              unit_tests: 13
+              property_tests: 5
+              integration_tests: 6
+              mutation_testing:
+                status: "completed"
+                kill_rate: "100% (3/3 viable mutants)"
+                mutants_tested: 4
+                mutants_caught: 3
+                mutants_unviable: 1
+                result: "PASSED"
+              lines_of_code: 132
+              complexity: "<5"
+              features_implemented:
+                - "detect_shell_date() function to identify $(shell date) patterns"
+                - "analyze_makefile() function to scan AST for semantic issues"
+                - "SemanticIssue struct with severity levels"
+                - "Critical severity for NO_TIMESTAMPS rule"
+                - "Automatic suggestion generation (RELEASE := 1.0.0)"
 
           - id: "FUNC-SHELL-002"
             title: "Purify $(shell find) - filesystem ordering"
@@ -1613,6 +1695,53 @@ completed_features:
       - "Preserve @ across multiple targets"
       - "Handle @ with special shell characters"
 
+  - id: "INCLUDE-001"
+    title: "Include directive (include and -include)"
+    version: "v1.6.0"
+    completed_date: "2025-10-16"
+    test_coverage: "100%"
+    tests_added: 14
+    unit_tests: 4
+    property_tests: 5
+    mutation_killing_tests: 5
+    files_modified: 2
+    lines_of_code: 47
+    complexity: "<5"
+    note: "Also covers INCLUDE-002 (-include directive)"
+    features_implemented:
+      - "Parse include directive"
+      - "Parse -include (optional) directive"
+      - "Support file paths with directories"
+      - "Preserve variable references in paths"
+      - "Handle multiple includes"
+
+  - id: "FUNC-SHELL-001"
+    title: "Purify $(shell date) - timestamps"
+    version: "v1.7.0"
+    completed_date: "2025-10-17"
+    test_coverage: "100%"
+    tests_added: 24
+    unit_tests: 13
+    property_tests: 5
+    integration_tests: 6
+    files_modified: 1
+    lines_of_code: 132
+    complexity: "<5"
+    mutation_testing:
+      status: "completed"
+      kill_rate: "100%"
+      mutants_tested: 4
+      viable_mutants: 3
+      caught: 3
+      result: "PASSED"
+    features_implemented:
+      - "detect_shell_date() to identify $(shell date) patterns"
+      - "analyze_makefile() to scan AST for semantic issues"
+      - "SemanticIssue struct with severity levels (Critical/High/Medium/Low)"
+      - "NO_TIMESTAMPS purification rule"
+      - "Automatic suggestion generation for fixes"
+      - "Full integration with MakeAst parsing"
+
 high_priority_tasks:
   description: "Critical path tasks to implement first"
   tasks:
@@ -1655,8 +1784,10 @@ high_priority_tasks:
     - id: "FUNC-SHELL-001"
       title: "Purify $(shell date)"
       priority: 6
-      status: "🔴 NOT STARTED"
+      status: "✅ COMPLETED"
       rationale: "Critical purification rule"
+      completed_date: "2025-10-17"
+      note: "Semantic analysis infrastructure complete"
 
     - id: "FUNC-WILDCARD-001"
       title: "Purify $(wildcard)"
@@ -1681,27 +1812,27 @@ next_steps:
 
 status:
   overall: "IN_PROGRESS"
-  completion_percent: 9.33
-  completed_tasks: 14
+  completion_percent: 10.67
+  completed_tasks: 16
   total_tasks: 150
   methodology: "EXTREME TDD (RED-GREEN-REFACTOR-PROPERTY-DOCUMENTATION) + Mutation Testing"
   goal: "100% GNU Make manual coverage with purification"
   target_version: "v2.0.0"
-  current_phase: "Phase 1: Foundation (v1.5.0)"
-  next_phase: "Phase 2: Core Features"
-  last_updated: "2025-10-15"
+  current_phase: "Phase 1: Foundation (v1.7.0)"
+  next_phase: "Phase 2: Core Features & Purification"
+  last_updated: "2025-10-17"
   recent_completions:
-    - "RULE-SYNTAX-001: Basic rule syntax (2025-10-15)"
-    - "VAR-BASIC-001: Basic variable assignment - all 5 flavors (2025-10-15)"
-    - "VAR-FLAVOR-002: Simple assignment (:=) via VAR-BASIC-001 (2025-10-15)"
-    - "PHONY-001: .PHONY declarations - no implementation needed (2025-10-15)"
-    - "VAR-BASIC-002: Variable references $(VAR) and ${VAR} - no implementation needed (2025-10-15)"
-    - "SYNTAX-001: Comment syntax - 16 LOC, 14 tests (2025-10-15)"
-    - "RULE-SYNTAX-002: Multiple prerequisites - no implementation needed, 14 tests (2025-10-15)"
-    - "VAR-FLAVOR-003: Conditional assignment (?=) - no implementation needed, 14 tests (2025-10-15)"
-    - "VAR-FLAVOR-004: Append assignment (+=) - no implementation needed, 14 tests (2025-10-15)"
-    - "VAR-FLAVOR-001: Recursive assignment (=) - no implementation needed, 14 tests, ALL 5 FLAVORS COMPLETE! (2025-10-15)"
-    - "SYNTAX-002: Line continuation (\\) - 29 LOC, 14 tests, preprocessor (2025-10-15)"
-    - "RECIPE-001: Tab-indented recipes - no implementation needed, 14 tests (2025-10-15)"
-    - "RECIPE-002: Multi-line recipes - no implementation needed, 14 tests (2025-10-15)"
+    - "FUNC-SHELL-001: Purify $(shell date) - 132 LOC, 24 tests, 100% mutation kill rate, semantic analysis (2025-10-17)"
+    - "INCLUDE-001: Include directive (include/-include) - 47 LOC, 14 tests (2025-10-16)"
     - "ECHO-001: @ prefix for silent recipes - no implementation needed, 9 tests (2025-10-15)"
+    - "RECIPE-002: Multi-line recipes - no implementation needed, 14 tests (2025-10-15)"
+    - "RECIPE-001: Tab-indented recipes - no implementation needed, 14 tests (2025-10-15)"
+    - "SYNTAX-002: Line continuation (\\) - 29 LOC, 14 tests, preprocessor (2025-10-15)"
+    - "VAR-FLAVOR-001: Recursive assignment (=) - no implementation needed, 14 tests, ALL 5 FLAVORS COMPLETE! (2025-10-15)"
+    - "VAR-FLAVOR-004: Append assignment (+=) - no implementation needed, 14 tests (2025-10-15)"
+    - "VAR-FLAVOR-003: Conditional assignment (?=) - no implementation needed, 14 tests (2025-10-15)"
+    - "RULE-SYNTAX-002: Multiple prerequisites - no implementation needed, 14 tests (2025-10-15)"
+    - "SYNTAX-001: Comment syntax - 16 LOC, 14 tests (2025-10-15)"
+    - "VAR-BASIC-002: Variable references $(VAR) and ${VAR} - no implementation needed (2025-10-15)"
+    - "PHONY-001: .PHONY declarations - no implementation needed (2025-10-15)"
+    - "VAR-FLAVOR-002: Simple assignment (:=) via VAR-BASIC-001 (2025-10-15)"
