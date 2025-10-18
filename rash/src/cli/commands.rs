@@ -1,4 +1,4 @@
-use crate::cli::args::{CompileRuntime, ContainerFormatArg, InspectionFormat, LintFormat};
+use crate::cli::args::{CompileRuntime, ContainerFormatArg, InspectionFormat, LintFormat, MakeCommands, MakeOutputFormat, ReportFormat};
 use crate::cli::{Cli, Commands};
 use crate::models::{Config, Error, Result};
 use crate::{check, transpile};
@@ -106,6 +106,10 @@ pub fn execute_command(cli: Cli) -> Result<()> {
         Commands::Lint { input, format, fix } => {
             info!("Linting {}", input.display());
             lint_command(&input, format, fix)
+        }
+
+        Commands::Make { command } => {
+            handle_make_command(command)
         } // Playground feature removed in v1.0 - will be moved to separate rash-playground crate in v1.1
     }
 }
@@ -603,6 +607,131 @@ fn lint_command(input: &Path, format: LintFormat, fix: bool) -> Result<()> {
     }
 
     Ok(())
+}
+
+fn handle_make_command(command: MakeCommands) -> Result<()> {
+    match command {
+        MakeCommands::Parse { input, format } => {
+            info!("Parsing {}", input.display());
+            make_parse_command(&input, format)
+        }
+        MakeCommands::Purify {
+            input,
+            output,
+            fix,
+            report,
+            format,
+        } => {
+            info!("Purifying {}", input.display());
+            make_purify_command(&input, output.as_deref(), fix, report, format)
+        }
+    }
+}
+
+fn make_parse_command(input: &Path, format: MakeOutputFormat) -> Result<()> {
+    use crate::make_parser::parser::parse_makefile;
+
+    let source = fs::read_to_string(input).map_err(Error::Io)?;
+    let ast = parse_makefile(&source)
+        .map_err(|e| Error::Validation(format!("Failed to parse Makefile: {}", e)))?;
+
+    match format {
+        MakeOutputFormat::Text => {
+            println!("{:#?}", ast);
+        }
+        MakeOutputFormat::Json => {
+            // Note: MakeAst doesn't derive Serialize yet, so we'll use Debug format
+            println!("{:#?}", ast);
+        }
+        MakeOutputFormat::Debug => {
+            println!("{:?}", ast);
+        }
+    }
+
+    Ok(())
+}
+
+fn make_purify_command(
+    input: &Path,
+    output: Option<&Path>,
+    fix: bool,
+    report: bool,
+    format: ReportFormat,
+) -> Result<()> {
+    use crate::make_parser::{
+        generators::generate_purified_makefile, parser::parse_makefile, purify::purify_makefile,
+    };
+
+    let source = fs::read_to_string(input).map_err(Error::Io)?;
+    let ast = parse_makefile(&source)
+        .map_err(|e| Error::Validation(format!("Failed to parse Makefile: {}", e)))?;
+    let purify_result = purify_makefile(&ast);
+
+    if report {
+        // Print transformation report
+        print_purify_report(&purify_result, format);
+    }
+
+    if fix {
+        let purified = generate_purified_makefile(&purify_result.ast);
+
+        if let Some(output_path) = output {
+            // Write to specified output file
+            fs::write(output_path, purified).map_err(Error::Io)?;
+            info!("Purified Makefile written to {}", output_path.display());
+        } else {
+            // In-place: create backup and overwrite
+            let backup_path = input.with_extension("mk.bak");
+            fs::copy(input, &backup_path).map_err(Error::Io)?;
+            fs::write(input, purified).map_err(Error::Io)?;
+            info!("Purified Makefile written to {}", input.display());
+            info!("Backup created at {}", backup_path.display());
+        }
+    } else {
+        // Dry-run: print purified output to stdout
+        let purified = generate_purified_makefile(&purify_result.ast);
+        println!("{}", purified);
+    }
+
+    Ok(())
+}
+
+fn print_purify_report(result: &crate::make_parser::purify::PurificationResult, format: ReportFormat) {
+    match format {
+        ReportFormat::Human => {
+            println!("Makefile Purification Report");
+            println!("============================");
+            println!("Transformations Applied: {}", result.transformations_applied);
+            println!("Issues Fixed: {}", result.issues_fixed);
+            println!("Manual Fixes Needed: {}", result.manual_fixes_needed);
+            println!();
+            for (i, report_item) in result.report.iter().enumerate() {
+                println!("{}: {}", i + 1, report_item);
+            }
+        }
+        ReportFormat::Json => {
+            println!("{{");
+            println!("  \"transformations_applied\": {},", result.transformations_applied);
+            println!("  \"issues_fixed\": {},", result.issues_fixed);
+            println!("  \"manual_fixes_needed\": {},", result.manual_fixes_needed);
+            println!("  \"report\": [");
+            for (i, report_item) in result.report.iter().enumerate() {
+                let comma = if i < result.report.len() - 1 { "," } else { "" };
+                println!("    \"{}\"{}",  report_item.replace('"', "\\\""), comma);
+            }
+            println!("  ]");
+            println!("}}");
+        }
+        ReportFormat::Markdown => {
+            println!("# Makefile Purification Report\n");
+            println!("**Transformations**: {}", result.transformations_applied);
+            println!("**Issues Fixed**: {}", result.issues_fixed);
+            println!("**Manual Fixes Needed**: {}\n", result.manual_fixes_needed);
+            for (i, report_item) in result.report.iter().enumerate() {
+                println!("{}. {}", i + 1, report_item);
+            }
+        }
+    }
 }
 
 // Playground command removed in v1.0 - will be moved to separate rash-playground crate in v1.1
