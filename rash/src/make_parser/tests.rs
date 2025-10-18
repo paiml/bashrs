@@ -7841,3 +7841,316 @@ mod property_tests_func_subst {
         }
     }
 }
+
+// ============================================================================
+// SPRINT 64: Function Call Parser Tests
+// ============================================================================
+// Goal: Parse GNU Make function calls like $(filter %.o, foo.o bar.c)
+// Context: Enables recursive purification for 13 deterministic functions
+// Reference: SPRINT-63-HANDOFF.md, SPRINT-61-HANDOFF.md, SPRINT-62-HANDOFF.md
+
+#[test]
+fn test_PARSER_FUNC_001_basic_filter() {
+    // ARRANGE: Makefile with filter function
+    let makefile = "OBJS := $(filter %.o, foo.o bar.c baz.o)";
+
+    // ACT: Parse makefile
+    let ast = parse_makefile(makefile).unwrap();
+
+    // ASSERT: Should parse variable with function call
+    assert_eq!(ast.items.len(), 1);
+
+    match &ast.items[0] {
+        MakeItem::Variable { name, value, .. } => {
+            assert_eq!(name, "OBJS");
+            // For now, just verify it contains the function call
+            // Later: will verify FunctionCall AST node structure
+            assert!(value.contains("$(filter"));
+        }
+        _ => panic!("Expected Variable, got {:?}", ast.items[0]),
+    }
+}
+
+#[test]
+fn test_PARSER_FUNC_002_basic_sort() {
+    // ARRANGE: Makefile with sort function
+    let makefile = "SORTED := $(sort foo bar baz foo)";
+
+    // ACT: Parse makefile
+    let ast = parse_makefile(makefile).unwrap();
+
+    // ASSERT: Should parse variable with sort function call
+    assert_eq!(ast.items.len(), 1);
+
+    match &ast.items[0] {
+        MakeItem::Variable { name, value, .. } => {
+            assert_eq!(name, "SORTED");
+            assert!(value.contains("$(sort"));
+        }
+        _ => panic!("Expected Variable, got {:?}", ast.items[0]),
+    }
+}
+
+#[test]
+fn test_PARSER_FUNC_003_filter_multiple_patterns() {
+    // ARRANGE: filter with multiple pattern arguments
+    let makefile = "OBJS := $(filter %.o %.a, foo.o bar.c baz.a)";
+
+    // ACT: Parse makefile
+    let ast = parse_makefile(makefile).unwrap();
+
+    // ASSERT: Should parse both patterns
+    assert_eq!(ast.items.len(), 1);
+
+    match &ast.items[0] {
+        MakeItem::Variable { name, value, .. } => {
+            assert_eq!(name, "OBJS");
+            assert!(value.contains("$(filter"));
+            assert!(value.contains("%.o"));
+            assert!(value.contains("%.a"));
+        }
+        _ => panic!("Expected Variable, got {:?}", ast.items[0]),
+    }
+}
+
+#[test]
+fn test_PARSER_FUNC_004_nested_wildcard() {
+    // ARRANGE: CRITICAL - nested function calls
+    // This is the key pattern for recursive purification
+    let makefile = "OBJS := $(filter %.o, $(wildcard *.c))";
+
+    // ACT: Parse makefile
+    let ast = parse_makefile(makefile).unwrap();
+
+    // ASSERT: Should parse nested $(wildcard) inside $(filter)
+    assert_eq!(ast.items.len(), 1);
+
+    match &ast.items[0] {
+        MakeItem::Variable { name, value, .. } => {
+            assert_eq!(name, "OBJS");
+            assert!(value.contains("$(filter"));
+            assert!(value.contains("$(wildcard"));
+        }
+        _ => panic!("Expected Variable, got {:?}", ast.items[0]),
+    }
+}
+
+#[test]
+fn test_PARSER_FUNC_005_word() {
+    // ARRANGE: word function (extracts Nth word)
+    let makefile = "SECOND := $(word 2, foo bar baz)";
+
+    // ACT: Parse makefile
+    let ast = parse_makefile(makefile).unwrap();
+
+    // ASSERT: Should parse word function
+    assert_eq!(ast.items.len(), 1);
+
+    match &ast.items[0] {
+        MakeItem::Variable { name, value, .. } => {
+            assert_eq!(name, "SECOND");
+            assert!(value.contains("$(word"));
+        }
+        _ => panic!("Expected Variable, got {:?}", ast.items[0]),
+    }
+}
+
+#[test]
+fn test_PARSER_FUNC_006_notdir() {
+    // ARRANGE: notdir function (remove directory part)
+    let makefile = "FILES := $(notdir src/main.c include/util.h)";
+
+    // ACT: Parse makefile
+    let ast = parse_makefile(makefile).unwrap();
+
+    // ASSERT: Should parse notdir function
+    assert_eq!(ast.items.len(), 1);
+
+    match &ast.items[0] {
+        MakeItem::Variable { name, value, .. } => {
+            assert_eq!(name, "FILES");
+            assert!(value.contains("$(notdir"));
+        }
+        _ => panic!("Expected Variable, got {:?}", ast.items[0]),
+    }
+}
+
+#[test]
+fn test_PARSER_FUNC_007_addsuffix() {
+    // ARRANGE: addsuffix function
+    let makefile = "OBJS := $(addsuffix .o, foo bar baz)";
+
+    // ACT: Parse makefile
+    let ast = parse_makefile(makefile).unwrap();
+
+    // ASSERT: Should parse addsuffix function
+    assert_eq!(ast.items.len(), 1);
+
+    match &ast.items[0] {
+        MakeItem::Variable { name, value, .. } => {
+            assert_eq!(name, "OBJS");
+            assert!(value.contains("$(addsuffix"));
+        }
+        _ => panic!("Expected Variable, got {:?}", ast.items[0]),
+    }
+}
+
+#[test]
+fn test_PARSER_FUNC_008_addprefix() {
+    // ARRANGE: addprefix function
+    let makefile = "OBJS := $(addprefix obj/, foo.o bar.o)";
+
+    // ACT: Parse makefile
+    let ast = parse_makefile(makefile).unwrap();
+
+    // ASSERT: Should parse addprefix function
+    assert_eq!(ast.items.len(), 1);
+
+    match &ast.items[0] {
+        MakeItem::Variable { name, value, .. } => {
+            assert_eq!(name, "OBJS");
+            assert!(value.contains("$(addprefix"));
+        }
+        _ => panic!("Expected Variable, got {:?}", ast.items[0]),
+    }
+}
+
+#[test]
+fn test_PARSER_FUNC_009_filter_out() {
+    // ARRANGE: filter-out function (inverse of filter)
+    let makefile = "SOURCES := $(filter-out test_%, main.c test_foo.c util.c)";
+
+    // ACT: Parse makefile
+    let ast = parse_makefile(makefile).unwrap();
+
+    // ASSERT: Should parse filter-out function
+    assert_eq!(ast.items.len(), 1);
+
+    match &ast.items[0] {
+        MakeItem::Variable { name, value, .. } => {
+            assert_eq!(name, "SOURCES");
+            assert!(value.contains("$(filter-out"));
+        }
+        _ => panic!("Expected Variable, got {:?}", ast.items[0]),
+    }
+}
+
+#[test]
+fn test_PARSER_FUNC_010_wordlist() {
+    // ARRANGE: wordlist function (extract range of words)
+    let makefile = "MIDDLE := $(wordlist 2, 4, foo bar baz qux quux)";
+
+    // ACT: Parse makefile
+    let ast = parse_makefile(makefile).unwrap();
+
+    // ASSERT: Should parse wordlist function
+    assert_eq!(ast.items.len(), 1);
+
+    match &ast.items[0] {
+        MakeItem::Variable { name, value, .. } => {
+            assert_eq!(name, "MIDDLE");
+            assert!(value.contains("$(wordlist"));
+        }
+        _ => panic!("Expected Variable, got {:?}", ast.items[0]),
+    }
+}
+
+#[test]
+fn test_PARSER_FUNC_011_words() {
+    // ARRANGE: words function (count words)
+    let makefile = "COUNT := $(words foo bar baz)";
+
+    // ACT: Parse makefile
+    let ast = parse_makefile(makefile).unwrap();
+
+    // ASSERT: Should parse words function
+    assert_eq!(ast.items.len(), 1);
+
+    match &ast.items[0] {
+        MakeItem::Variable { name, value, .. } => {
+            assert_eq!(name, "COUNT");
+            assert!(value.contains("$(words"));
+        }
+        _ => panic!("Expected Variable, got {:?}", ast.items[0]),
+    }
+}
+
+#[test]
+fn test_PARSER_FUNC_012_firstword() {
+    // ARRANGE: firstword function
+    let makefile = "FIRST := $(firstword foo bar baz)";
+
+    // ACT: Parse makefile
+    let ast = parse_makefile(makefile).unwrap();
+
+    // ASSERT: Should parse firstword function
+    assert_eq!(ast.items.len(), 1);
+
+    match &ast.items[0] {
+        MakeItem::Variable { name, value, .. } => {
+            assert_eq!(name, "FIRST");
+            assert!(value.contains("$(firstword"));
+        }
+        _ => panic!("Expected Variable, got {:?}", ast.items[0]),
+    }
+}
+
+#[test]
+fn test_PARSER_FUNC_013_lastword() {
+    // ARRANGE: lastword function
+    let makefile = "LAST := $(lastword foo bar baz)";
+
+    // ACT: Parse makefile
+    let ast = parse_makefile(makefile).unwrap();
+
+    // ASSERT: Should parse lastword function
+    assert_eq!(ast.items.len(), 1);
+
+    match &ast.items[0] {
+        MakeItem::Variable { name, value, .. } => {
+            assert_eq!(name, "LAST");
+            assert!(value.contains("$(lastword"));
+        }
+        _ => panic!("Expected Variable, got {:?}", ast.items[0]),
+    }
+}
+
+#[test]
+fn test_PARSER_FUNC_014_suffix() {
+    // ARRANGE: suffix function (extract file suffixes)
+    let makefile = "SUFFIXES := $(suffix foo.c bar.o baz.txt)";
+
+    // ACT: Parse makefile
+    let ast = parse_makefile(makefile).unwrap();
+
+    // ASSERT: Should parse suffix function
+    assert_eq!(ast.items.len(), 1);
+
+    match &ast.items[0] {
+        MakeItem::Variable { name, value, .. } => {
+            assert_eq!(name, "SUFFIXES");
+            assert!(value.contains("$(suffix"));
+        }
+        _ => panic!("Expected Variable, got {:?}", ast.items[0]),
+    }
+}
+
+#[test]
+fn test_PARSER_FUNC_015_basename() {
+    // ARRANGE: basename function (remove suffix)
+    let makefile = "BASES := $(basename foo.c bar.o baz.txt)";
+
+    // ACT: Parse makefile
+    let ast = parse_makefile(makefile).unwrap();
+
+    // ASSERT: Should parse basename function
+    assert_eq!(ast.items.len(), 1);
+
+    match &ast.items[0] {
+        MakeItem::Variable { name, value, .. } => {
+            assert_eq!(name, "BASES");
+            assert!(value.contains("$(basename"));
+        }
+        _ => panic!("Expected Variable, got {:?}", ast.items[0]),
+    }
+}
