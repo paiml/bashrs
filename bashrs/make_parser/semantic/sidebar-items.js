@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {};
+window.SIDEBAR_ITEMS = {"constant":["COMMON_PHONY_TARGETS"],"enum":["IssueSeverity"],"fn":["analyze_makefile","detect_random","detect_shell_date","detect_shell_find","detect_wildcard","is_common_phony_target"],"struct":["SemanticIssue"]};

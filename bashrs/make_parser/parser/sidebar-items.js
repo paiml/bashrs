@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"fn":["is_variable_assignment","parse_include","parse_makefile","parse_target_rule","parse_variable","preprocess_line_continuations"]};
+window.SIDEBAR_ITEMS = {"fn":["is_variable_assignment","parse_conditional","parse_conditional_item","parse_include","parse_makefile","parse_target_rule","parse_variable","preprocess_line_continuations"]};

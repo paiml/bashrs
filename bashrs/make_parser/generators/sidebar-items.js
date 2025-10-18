@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"fn":["generate_purified_makefile"]};
+window.SIDEBAR_ITEMS = {"fn":["generate_comment","generate_conditional","generate_include","generate_item","generate_pattern_rule","generate_purified_makefile","generate_target","generate_variable"]};

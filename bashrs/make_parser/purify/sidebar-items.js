@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":["Transformation"],"fn":["apply_transformations","extract_variable_name","find_matching_paren","generate_report","is_safe_transformation","plan_transformations","purify_makefile","wrap_pattern_with_sort","wrap_variable_with_sort"],"struct":["PurificationResult"]};

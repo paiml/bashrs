@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"fn":["build_command","check_command","execute_command","generate_proof","handle_compile","init_command","inspect_command","lint_command","normalize_shell_script","verify_command"]};
+window.SIDEBAR_ITEMS = {"fn":["build_command","check_command","execute_command","generate_proof","handle_compile","handle_make_command","init_command","inspect_command","lint_command","make_parse_command","make_purify_command","normalize_shell_script","print_purify_report","verify_command"]};
