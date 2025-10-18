@@ -8850,3 +8850,234 @@ OUTPUT := $(call process_files, $(shell find src -name '*.c'))
     assert!(!issues.is_empty(), "Expected to detect shell find");
     assert!(issues.iter().any(|i| i.rule == "NO_UNORDERED_FIND"));
 }
+
+// ============================================================================
+// Sprint 67: Purification Engine Tests
+// ============================================================================
+//
+// Goal: Implement purification engine that auto-fixes non-deterministic
+//       patterns detected by semantic analysis.
+//
+// Approach: EXTREME TDD - Write RED tests first, then implement
+
+#[test]
+fn test_PURIFY_001_wrap_simple_wildcard_with_sort() {
+    use crate::make_parser::parse_makefile;
+    use crate::make_parser::purify::purify_makefile;
+
+    // ARRANGE: Simple wildcard (non-deterministic)
+    let makefile = "FILES := $(wildcard *.c)";
+    let ast = parse_makefile(makefile).unwrap();
+
+    // ACT: Purify
+    let result = purify_makefile(&ast);
+
+    // ASSERT: Wildcard wrapped with sort
+    assert_eq!(result.transformations_applied, 1, "Should apply 1 transformation");
+    assert_eq!(result.issues_fixed, 1, "Should fix 1 issue");
+    assert_eq!(result.manual_fixes_needed, 0, "No manual fixes needed");
+
+    // Check purified output
+    let purified_var = &result.ast.items[0];
+    if let crate::make_parser::ast::MakeItem::Variable { value, .. } = purified_var {
+        assert!(value.contains("$(sort $(wildcard"), "Should contain $(sort $(wildcard");
+        assert_eq!(value, "$(sort $(wildcard *.c))", "Should be fully wrapped");
+    } else {
+        panic!("Expected Variable");
+    }
+}
+
+#[test]
+fn test_PURIFY_002_wrap_nested_wildcard_in_filter() {
+    use crate::make_parser::parse_makefile;
+    use crate::make_parser::purify::purify_makefile;
+
+    // ARRANGE: Wildcard nested in filter
+    let makefile = "OBJS := $(filter %.o, $(wildcard *.c))";
+    let ast = parse_makefile(makefile).unwrap();
+
+    // ACT: Purify
+    let result = purify_makefile(&ast);
+
+    // ASSERT: Inner wildcard wrapped with sort
+    assert_eq!(result.transformations_applied, 1);
+    assert_eq!(result.issues_fixed, 1);
+
+    let purified_var = &result.ast.items[0];
+    if let crate::make_parser::ast::MakeItem::Variable { value, .. } = purified_var {
+        assert!(value.contains("$(sort $(wildcard"), "Should wrap inner wildcard");
+        assert_eq!(value, "$(filter %.o, $(sort $(wildcard *.c)))", "Should preserve filter");
+    } else {
+        panic!("Expected Variable");
+    }
+}
+
+#[test]
+fn test_PURIFY_003_wrap_shell_find_with_sort() {
+    use crate::make_parser::parse_makefile;
+    use crate::make_parser::purify::purify_makefile;
+
+    // ARRANGE: Shell find (non-deterministic)
+    let makefile = "FILES := $(shell find src -name '*.c')";
+    let ast = parse_makefile(makefile).unwrap();
+
+    // ACT: Purify
+    let result = purify_makefile(&ast);
+
+    // ASSERT: Shell find wrapped with sort
+    assert_eq!(result.transformations_applied, 1);
+    assert_eq!(result.issues_fixed, 1);
+
+    let purified_var = &result.ast.items[0];
+    if let crate::make_parser::ast::MakeItem::Variable { value, .. } = purified_var {
+        assert!(value.contains("$(sort $(shell find"), "Should wrap shell find");
+    } else {
+        panic!("Expected Variable");
+    }
+}
+
+#[test]
+fn test_PURIFY_004_nested_wildcard_in_foreach() {
+    use crate::make_parser::parse_makefile;
+    use crate::make_parser::purify::purify_makefile;
+
+    // ARRANGE: Wildcard in foreach list
+    let makefile = "OBJS := $(foreach file, $(wildcard *.c), $(file:.c=.o))";
+    let ast = parse_makefile(makefile).unwrap();
+
+    // ACT: Purify
+    let result = purify_makefile(&ast);
+
+    // ASSERT: Wildcard in foreach list wrapped with sort
+    assert_eq!(result.transformations_applied, 1);
+    assert_eq!(result.issues_fixed, 1);
+
+    let purified_var = &result.ast.items[0];
+    if let crate::make_parser::ast::MakeItem::Variable { value, .. } = purified_var {
+        assert!(value.contains("$(sort $(wildcard"), "Should wrap wildcard");
+        assert!(value.contains("$(foreach file, $(sort $(wildcard"), "Should preserve foreach");
+    } else {
+        panic!("Expected Variable");
+    }
+}
+
+#[test]
+fn test_PURIFY_005_nested_wildcard_in_call() {
+    use crate::make_parser::parse_makefile;
+    use crate::make_parser::purify::purify_makefile;
+
+    // ARRANGE: Wildcard in call arguments
+    let makefile = r#"
+process = Processing $(1)
+FILES := $(call process, $(wildcard *.c))
+"#;
+    let ast = parse_makefile(makefile).unwrap();
+
+    // ACT: Purify
+    let result = purify_makefile(&ast);
+
+    // ASSERT: Wildcard in call args wrapped with sort
+    // We should have 2 items: function definition + variable
+    assert!(result.transformations_applied >= 1, "Should apply at least 1 transformation");
+
+    // Find the FILES variable
+    let files_var = result.ast.items.iter().find(|item| {
+        if let crate::make_parser::ast::MakeItem::Variable { name, .. } = item {
+            name == "FILES"
+        } else {
+            false
+        }
+    }).expect("FILES variable should exist");
+
+    if let crate::make_parser::ast::MakeItem::Variable { value, .. } = files_var {
+        assert!(value.contains("$(sort $(wildcard"), "Should wrap wildcard");
+        assert!(value.contains("$(call process, $(sort $(wildcard"), "Should preserve call");
+    } else {
+        panic!("Expected Variable");
+    }
+}
+
+#[test]
+fn test_PURIFY_006_shell_date_manual_fix() {
+    use crate::make_parser::parse_makefile;
+    use crate::make_parser::purify::purify_makefile;
+
+    // ARRANGE: Shell date (cannot auto-fix)
+    let makefile = "RELEASE := release-$(shell date +%s)";
+    let ast = parse_makefile(makefile).unwrap();
+
+    // ACT: Purify
+    let result = purify_makefile(&ast);
+
+    // ASSERT: Manual fix needed
+    assert_eq!(result.manual_fixes_needed, 1, "Should need 1 manual fix");
+    assert!(result.transformations_applied >= 1, "Should plan transformation");
+
+    // Check report mentions manual fix
+    assert!(!result.report.is_empty(), "Should have report");
+    assert!(result.report.iter().any(|r| r.contains("Manual fix")),
+            "Report should mention manual fix");
+}
+
+#[test]
+fn test_PURIFY_007_random_manual_fix() {
+    use crate::make_parser::parse_makefile;
+    use crate::make_parser::purify::purify_makefile;
+
+    // ARRANGE: $RANDOM (cannot auto-fix)
+    let makefile = "SESSION := session-$RANDOM";
+    let ast = parse_makefile(makefile).unwrap();
+
+    // ACT: Purify
+    let result = purify_makefile(&ast);
+
+    // ASSERT: Manual fix needed
+    assert_eq!(result.manual_fixes_needed, 1, "Should need 1 manual fix");
+    assert!(result.transformations_applied >= 1, "Should plan transformation");
+}
+
+#[test]
+fn test_PURIFY_008_safe_patterns_unchanged() {
+    use crate::make_parser::parse_makefile;
+    use crate::make_parser::purify::purify_makefile;
+
+    // ARRANGE: Safe deterministic patterns
+    let makefile = "FILES := foo.c bar.c baz.c";
+    let ast = parse_makefile(makefile).unwrap();
+
+    // ACT: Purify
+    let result = purify_makefile(&ast);
+
+    // ASSERT: No transformations needed
+    assert_eq!(result.transformations_applied, 0, "Should apply 0 transformations");
+    assert_eq!(result.issues_fixed, 0, "Should fix 0 issues");
+    assert_eq!(result.manual_fixes_needed, 0, "Should need 0 manual fixes");
+
+    // AST should be unchanged
+    assert_eq!(result.ast.items.len(), ast.items.len(), "AST should be unchanged");
+}
+
+#[test]
+fn test_PURIFY_009_report_generation() {
+    use crate::make_parser::parse_makefile;
+    use crate::make_parser::purify::purify_makefile;
+
+    // ARRANGE: Mix of auto-fix and manual fix
+    let makefile = r#"
+FILES := $(wildcard *.c)
+RELEASE := release-$(shell date +%s)
+"#;
+    let ast = parse_makefile(makefile).unwrap();
+
+    // ACT: Purify
+    let result = purify_makefile(&ast);
+
+    // ASSERT: Report generated
+    assert!(!result.report.is_empty(), "Should generate report");
+    assert!(result.report.len() >= 2, "Should have at least 2 report entries");
+
+    // Check report contains expected information
+    let report_text = result.report.join("\n");
+    assert!(report_text.contains("Wrapped") || report_text.contains("Manual fix"),
+            "Report should describe transformations");
+}
