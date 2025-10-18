@@ -9621,3 +9621,202 @@ fn test_GENERATE_006_complex_makefile() {
     assert!(output.contains("build: main.c"));
     assert!(output.contains("\t$(CC) $(CFLAGS) -o build main.c"));
 }
+
+// ============================================================================
+// GENERATOR PROPERTY TESTS - Sprint 68 Phase 2
+// ============================================================================
+
+#[cfg(test)]
+mod generator_property_tests {
+    use super::*;
+    use proptest::prelude::*;
+
+    proptest! {
+        /// PROPERTY TEST: Round-trip variable generation
+        ///
+        /// Property: parse(generate(variable)) should preserve variable semantics
+        ///
+        /// This test generates 100+ random variable names and values, then verifies
+        /// that generating Makefile text and parsing it back produces equivalent AST.
+        #[test]
+        fn prop_GENERATE_007_roundtrip_variables(
+            var_name in "[A-Z_][A-Z0-9_]{0,15}",
+            var_value in "[a-zA-Z0-9 ./_-]{1,30}",
+        ) {
+            // ARRANGE: Create variable AST
+            let ast = MakeAst {
+                items: vec![MakeItem::Variable {
+                    name: var_name.clone(),
+                    value: var_value.clone(),
+                    flavor: VarFlavor::Simple,
+                    span: Span::dummy(),
+                }],
+                metadata: MakeMetadata::new(),
+            };
+
+            // ACT: Generate and re-parse
+            let generated = generate_purified_makefile(&ast);
+            let reparsed = parse_makefile(&generated);
+
+            // ASSERT: Should parse successfully
+            prop_assert!(reparsed.is_ok(), "Failed to parse generated Makefile: {}", generated);
+
+            let reparsed_ast = reparsed.unwrap();
+
+            // ASSERT: Should have same number of items
+            prop_assert_eq!(reparsed_ast.items.len(), 1);
+
+            // ASSERT: Should preserve variable name and value
+            if let MakeItem::Variable { name, value, flavor, .. } = &reparsed_ast.items[0] {
+                prop_assert_eq!(name, &var_name);
+                prop_assert_eq!(value.trim(), var_value.trim());
+                prop_assert_eq!(flavor, &VarFlavor::Simple);
+            } else {
+                prop_assert!(false, "Expected Variable item, got {:?}", reparsed_ast.items[0]);
+            }
+        }
+
+        /// PROPERTY TEST: Round-trip target generation
+        ///
+        /// Property: parse(generate(target)) should preserve target structure
+        #[test]
+        fn prop_GENERATE_008_roundtrip_targets(
+            target_name in "[a-z][a-z0-9_-]{0,15}",
+            prereq in "[a-z][a-z0-9_.]{0,15}",
+        ) {
+            // ARRANGE: Create target AST
+            let ast = MakeAst {
+                items: vec![MakeItem::Target {
+                    name: target_name.clone(),
+                    prerequisites: vec![prereq.clone()],
+                    recipe: vec!["echo test".to_string()],
+                    phony: false,
+                    span: Span::dummy(),
+                }],
+                metadata: MakeMetadata::new(),
+            };
+
+            // ACT: Generate and re-parse
+            let generated = generate_purified_makefile(&ast);
+            let reparsed = parse_makefile(&generated);
+
+            // ASSERT: Should parse successfully
+            prop_assert!(reparsed.is_ok(), "Failed to parse generated Makefile: {}", generated);
+
+            let reparsed_ast = reparsed.unwrap();
+
+            // ASSERT: Should have same number of items
+            prop_assert_eq!(reparsed_ast.items.len(), 1);
+
+            // ASSERT: Should preserve target structure
+            if let MakeItem::Target { name, prerequisites, recipe, .. } = &reparsed_ast.items[0] {
+                prop_assert_eq!(name, &target_name);
+                prop_assert_eq!(prerequisites.len(), 1);
+                prop_assert_eq!(&prerequisites[0], &prereq);
+                prop_assert_eq!(recipe.len(), 1);
+                prop_assert_eq!(&recipe[0], "echo test");
+            } else {
+                prop_assert!(false, "Expected Target item, got {:?}", reparsed_ast.items[0]);
+            }
+        }
+
+        /// PROPERTY TEST: Generation is deterministic
+        ///
+        /// Property: generate(ast) always produces same output for same input
+        #[test]
+        fn prop_GENERATE_009_deterministic_generation(
+            var_name in "[A-Z_]{2,10}",
+            var_value in "[a-z]{1,20}",
+        ) {
+            // ARRANGE: Create AST
+            let ast = MakeAst {
+                items: vec![MakeItem::Variable {
+                    name: var_name,
+                    value: var_value,
+                    flavor: VarFlavor::Simple,
+                    span: Span::dummy(),
+                }],
+                metadata: MakeMetadata::new(),
+            };
+
+            // ACT: Generate twice
+            let output1 = generate_purified_makefile(&ast);
+            let output2 = generate_purified_makefile(&ast);
+
+            // ASSERT: Should be byte-identical
+            prop_assert_eq!(output1, output2, "Generation is not deterministic");
+        }
+    }
+}
+
+// ============================================================================
+// END-TO-END INTEGRATION TEST - Sprint 68
+// ============================================================================
+
+/// Integration test: Complete purification workflow
+///
+/// Tests the full pipeline: Parse → Analyze → Purify → Generate → Verify
+///
+/// This verifies the entire end-to-end workflow works correctly.
+#[test]
+fn test_GENERATE_010_end_to_end_purification() {
+    // ARRANGE: Input Makefile with non-deterministic wildcard
+    let input_makefile = r#"# Build configuration
+CC := gcc
+CFLAGS := -O2 -Wall
+
+FILES := $(wildcard src/*.c)
+
+build: $(FILES)
+	$(CC) $(CFLAGS) -o build $(FILES)
+"#;
+
+    // ACT: Parse
+    let ast = parse_makefile(input_makefile).expect("Failed to parse input");
+
+    // ACT: Purify (wrap wildcard with sort)
+    let purified_result = purify_makefile(&ast);
+
+    // ASSERT: Should have applied transformations
+    assert!(
+        purified_result.transformations_applied > 0,
+        "Expected transformations to be applied"
+    );
+
+    // ACT: Generate purified Makefile
+    let purified_makefile = generate_purified_makefile(&purified_result.ast);
+
+    // ASSERT: Should contain sorted wildcard
+    assert!(
+        purified_makefile.contains("$(sort $(wildcard"),
+        "Generated Makefile should contain sorted wildcard"
+    );
+
+    // ASSERT: Should preserve structure
+    assert!(purified_makefile.contains("CC := gcc"));
+    assert!(purified_makefile.contains("CFLAGS := -O2 -Wall"));
+    assert!(purified_makefile.contains("build: $(FILES)"));
+    assert!(purified_makefile.contains("\t$(CC) $(CFLAGS) -o build $(FILES)"));
+
+    // ACT: Re-parse generated Makefile to verify it's valid
+    let reparsed = parse_makefile(&purified_makefile);
+    assert!(
+        reparsed.is_ok(),
+        "Generated Makefile should be parseable: {:?}",
+        reparsed.err()
+    );
+
+    // ASSERT: Re-purification should be idempotent (no changes)
+    let reparsed_ast = reparsed.unwrap();
+    let repurified = purify_makefile(&reparsed_ast);
+    assert_eq!(
+        repurified.transformations_applied, 0,
+        "Second purification should apply zero transformations (idempotent)"
+    );
+
+    println!("\n=== Original Makefile ===");
+    println!("{}", input_makefile);
+    println!("\n=== Purified Makefile ===");
+    println!("{}", purified_makefile);
+    println!("\n=== End-to-End Test: PASSED ✅ ===\n");
+}
