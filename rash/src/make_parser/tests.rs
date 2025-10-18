@@ -8521,40 +8521,38 @@ fn test_SEMANTIC_ANALYZE_004_no_issue_for_safe_filter() {
 }
 
 #[test]
-fn test_SEMANTIC_ANALYZE_005_purified_wildcard_still_detected() {
+fn test_SEMANTIC_ANALYZE_005_purified_wildcard_not_detected() {
     use crate::make_parser::parse_makefile;
     use crate::make_parser::semantic::analyze_makefile;
 
     // ARRANGE: PURIFIED wildcard wrapped with sort
-    // NOTE: Current implementation will still flag this as wildcard usage
-    // This is actually CORRECT behavior - it's flagging the presence of wildcard
-    // Future enhancement: detect $(sort $(wildcard)) as "already purified"
+    // Enhancement IMPLEMENTED: detect $(sort $(wildcard)) as "already purified"
     let makefile = "PURIFIED := $(filter %.c, $(sort $(wildcard src/*.c)))";
     let ast = parse_makefile(makefile).unwrap();
 
     // ACT: Run semantic analysis
     let issues = analyze_makefile(&ast);
 
-    // ASSERT: Current behavior - still detects wildcard
-    // (Enhancement opportunity: recognize $(sort $(wildcard)) as purified)
-    assert!(!issues.is_empty(), "Wildcard detected even when wrapped with sort");
-    assert_eq!(issues[0].rule, "NO_WILDCARD");
+    // ASSERT: Purified wildcards should NOT be detected
+    assert_eq!(issues.len(), 0, "Purified wildcard should not be detected: {:?}", issues);
 }
 
 #[test]
-fn test_SEMANTIC_ANALYZE_006_deeply_nested_wildcard() {
+fn test_SEMANTIC_ANALYZE_006_deeply_nested_unpurified_wildcard() {
     use crate::make_parser::parse_makefile;
     use crate::make_parser::semantic::analyze_makefile;
 
-    // ARRANGE: deeply nested - wildcard in filter in sort
+    // ARRANGE: deeply nested - wildcard in filter in sort (NOT PURIFIED PROPERLY)
+    // This is NOT purified because the wildcard itself is not wrapped with sort
+    // The outer sort only sorts the filter results, not the wildcard results
     let makefile = "DEEP := $(sort $(filter %.c, $(wildcard src/*.c)))";
     let ast = parse_makefile(makefile).unwrap();
 
     // ACT: Run semantic analysis
     let issues = analyze_makefile(&ast);
 
-    // ASSERT: Should detect wildcard at any nesting level
-    assert!(!issues.is_empty());
+    // ASSERT: Should detect wildcard because it's not directly wrapped with sort
+    assert!(!issues.is_empty(), "Wildcard should be detected when not directly wrapped with sort");
     assert_eq!(issues.len(), 1);
     assert_eq!(issues[0].rule, "NO_WILDCARD");
 }
@@ -9080,4 +9078,321 @@ RELEASE := release-$(shell date +%s)
     let report_text = result.report.join("\n");
     assert!(report_text.contains("Wrapped") || report_text.contains("Manual fix"),
             "Report should describe transformations");
+}
+
+// ============================================================================
+// Property-Based Tests for Purification
+// ============================================================================
+
+#[cfg(test)]
+mod purify_property_tests {
+    use super::*;
+    use proptest::prelude::*;
+
+    proptest! {
+        /// Property: Purifying wildcard patterns always wraps with $(sort)
+        #[test]
+        fn prop_PURIFY_010_wildcard_always_wraps_with_sort(
+            pattern in "[a-zA-Z0-9*._/-]{1,20}",
+        ) {
+            let makefile = format!("FILES := $(wildcard {})", pattern);
+            let ast = parse_makefile(&makefile).unwrap();
+            let result = purify_makefile(&ast);
+
+            // Should apply transformation
+            prop_assert!(result.transformations_applied >= 1,
+                        "Should apply at least 1 transformation");
+
+            // Should wrap with sort
+            let purified_var = &result.ast.items[0];
+            if let MakeItem::Variable { value, .. } = purified_var {
+                prop_assert!(value.contains("$(sort $(wildcard"),
+                           "Should wrap wildcard with sort");
+            } else {
+                prop_assert!(false, "Expected Variable item");
+            }
+        }
+
+        /// Property: Purifying shell find patterns always wraps with $(sort)
+        #[test]
+        fn prop_PURIFY_011_shell_find_always_wraps_with_sort(
+            dir in "[a-zA-Z0-9/_-]{1,15}",
+            ext in "[a-z]{1,5}",
+        ) {
+            let makefile = format!("FILES := $(shell find {} -name '*.{}')", dir, ext);
+            let ast = parse_makefile(&makefile).unwrap();
+            let result = purify_makefile(&ast);
+
+            // Should apply transformation
+            prop_assert!(result.transformations_applied >= 1,
+                        "Should apply at least 1 transformation");
+
+            // Should wrap with sort
+            let purified_var = &result.ast.items[0];
+            if let MakeItem::Variable { value, .. } = purified_var {
+                prop_assert!(value.contains("$(sort $(shell find"),
+                           "Should wrap shell find with sort");
+            } else {
+                prop_assert!(false, "Expected Variable item");
+            }
+        }
+
+        /// Property: Purification is idempotent - purifying twice gives same result
+        #[test]
+        fn prop_PURIFY_012_idempotent(
+            pattern in "[a-zA-Z0-9*._/-]{1,15}",
+        ) {
+            let makefile = format!("FILES := $(wildcard {})", pattern);
+            let ast = parse_makefile(&makefile).unwrap();
+
+            // Purify once
+            let result1 = purify_makefile(&ast);
+
+            // Purify again
+            let result2 = purify_makefile(&result1.ast);
+
+            // Second purification should do nothing (already purified)
+            prop_assert_eq!(result2.transformations_applied, 0,
+                           "Second purification should apply 0 transformations");
+            prop_assert_eq!(result2.issues_fixed, 0,
+                           "Second purification should fix 0 issues");
+        }
+
+        /// Property: Purification preserves variable count
+        #[test]
+        fn prop_PURIFY_013_preserves_variable_count(
+            var_name in "[A-Z][A-Z0-9_]{0,10}",
+            pattern in "[a-zA-Z0-9*._/-]{1,15}",
+        ) {
+            let makefile = format!("{} := $(wildcard {})", var_name, pattern);
+            let ast = parse_makefile(&makefile).unwrap();
+            let original_count = ast.items.len();
+
+            let result = purify_makefile(&ast);
+
+            prop_assert_eq!(result.ast.items.len(), original_count,
+                           "Purification should preserve variable count");
+        }
+
+        /// Property: Safe patterns require zero transformations
+        #[test]
+        fn prop_PURIFY_014_safe_patterns_unchanged(
+            var_name in "[A-Z][A-Z0-9_]{0,10}",
+            value in "[a-zA-Z0-9. _-]{1,30}",
+        ) {
+            // Only test values that don't contain special characters
+            prop_assume!(!value.contains('$'));
+            prop_assume!(!value.contains('('));
+
+            let makefile = format!("{} := {}", var_name, value);
+            let ast = parse_makefile(&makefile).unwrap();
+
+            let result = purify_makefile(&ast);
+
+            prop_assert_eq!(result.transformations_applied, 0,
+                           "Safe patterns should apply 0 transformations");
+            prop_assert_eq!(result.issues_fixed, 0,
+                           "Safe patterns should fix 0 issues");
+        }
+
+        /// Property: Nested patterns are correctly handled
+        #[test]
+        fn prop_PURIFY_015_nested_in_filter(
+            pattern in "[a-zA-Z0-9*._-]{1,15}",
+            filter_pattern in "%\\.[a-z]{1,3}",
+        ) {
+            let makefile = format!("OBJS := $(filter {}, $(wildcard {}))", filter_pattern, pattern);
+            let ast = parse_makefile(&makefile).unwrap();
+
+            let result = purify_makefile(&ast);
+
+            // Should apply transformation
+            prop_assert!(result.transformations_applied >= 1,
+                        "Should apply at least 1 transformation");
+
+            // Inner wildcard should be wrapped
+            let purified_var = &result.ast.items[0];
+            if let MakeItem::Variable { value, .. } = purified_var {
+                prop_assert!(value.contains("$(sort $(wildcard"),
+                           "Inner wildcard should be wrapped");
+                prop_assert!(value.contains("$(filter"),
+                           "Outer filter should be preserved");
+            } else {
+                prop_assert!(false, "Expected Variable item");
+            }
+        }
+
+        /// Property: Multiple variables are all purified
+        #[test]
+        fn prop_PURIFY_016_multiple_variables(
+            pattern1 in "[a-zA-Z0-9*._-]{1,10}",
+            pattern2 in "[a-zA-Z0-9*._-]{1,10}",
+        ) {
+            let makefile = format!(
+                "FILES1 := $(wildcard {})\nFILES2 := $(wildcard {})",
+                pattern1, pattern2
+            );
+            let ast = parse_makefile(&makefile).unwrap();
+
+            let result = purify_makefile(&ast);
+
+            // Should apply at least 2 transformations (one per variable)
+            prop_assert!(result.transformations_applied >= 2,
+                        "Should apply at least 2 transformations");
+
+            // Both variables should be purified
+            prop_assert_eq!(result.ast.items.len(), 2,
+                           "Should have 2 variables");
+        }
+    }
+}
+
+// ============================================================================
+// Edge Case Tests for Purification (Mutation Killers)
+// ============================================================================
+
+#[test]
+fn test_PURIFY_017_edge_case_variable_name_match() {
+    use crate::make_parser::parse_makefile;
+    use crate::make_parser::purify::purify_makefile;
+
+    // ARRANGE: Test that && logic in wrap_variable_with_sort works correctly
+    // If replaced with ||, would wrap wrong variables
+    let makefile = r#"
+FILES := $(wildcard *.c)
+OTHER := foo.c bar.c
+"#;
+    let ast = parse_makefile(makefile).unwrap();
+
+    // ACT: Purify
+    let result = purify_makefile(&ast);
+
+    // ASSERT: Only FILES should be transformed, not OTHER
+    assert_eq!(result.transformations_applied, 1, "Should apply 1 transformation");
+
+    // Check FILES is wrapped
+    let files_var = &result.ast.items[0];
+    if let MakeItem::Variable { value, .. } = files_var {
+        assert!(value.contains("$(sort $(wildcard"), "FILES should be wrapped with sort");
+    }
+
+    // Check OTHER is unchanged
+    let other_var = &result.ast.items[1];
+    if let MakeItem::Variable { value, .. } = other_var {
+        assert_eq!(value, "foo.c bar.c", "OTHER should be unchanged");
+    }
+}
+
+#[test]
+fn test_PURIFY_018_edge_case_parenthesis_matching_boundary() {
+    use crate::make_parser::parse_makefile;
+    use crate::make_parser::purify::purify_makefile;
+
+    // ARRANGE: Test boundary condition for parenthesis matching
+    // Tests the < vs <= condition in find_matching_paren
+    let makefile = "X := $(wildcard a)";
+    let ast = parse_makefile(makefile).unwrap();
+
+    // ACT: Purify
+    let result = purify_makefile(&ast);
+
+    // ASSERT: Should successfully wrap even single-char pattern
+    assert_eq!(result.transformations_applied, 1);
+    let var = &result.ast.items[0];
+    if let MakeItem::Variable { value, .. } = var {
+        assert_eq!(value, "$(sort $(wildcard a))");
+    }
+}
+
+#[test]
+fn test_PURIFY_019_edge_case_nested_dollar_paren() {
+    use crate::make_parser::parse_makefile;
+    use crate::make_parser::purify::purify_makefile;
+
+    // ARRANGE: Test $( detection logic in find_matching_paren
+    // If && replaced with ||, would fail to detect nested patterns
+    let makefile = "FILES := $(filter %.c, $(wildcard *.c))";
+    let ast = parse_makefile(makefile).unwrap();
+
+    // ACT: Purify
+    let result = purify_makefile(&ast);
+
+    // ASSERT: Should wrap inner wildcard
+    assert_eq!(result.transformations_applied, 1);
+    let var = &result.ast.items[0];
+    if let MakeItem::Variable { value, .. } = var {
+        assert!(value.contains("$(sort $(wildcard"), "Should wrap wildcard");
+        assert!(value.contains("$(filter"), "Should preserve filter");
+    }
+}
+
+#[test]
+fn test_PURIFY_020_edge_case_empty_pattern() {
+    use crate::make_parser::parse_makefile;
+    use crate::make_parser::purify::purify_makefile;
+
+    // ARRANGE: Empty wildcard pattern
+    let makefile = "EMPTY := $(wildcard )";
+    let ast = parse_makefile(makefile).unwrap();
+
+    // ACT: Purify
+    let result = purify_makefile(&ast);
+
+    // ASSERT: Should still wrap even empty pattern
+    assert_eq!(result.transformations_applied, 1);
+}
+
+#[test]
+fn test_PURIFY_021_edge_case_multiple_wildcards_same_variable() {
+    use crate::make_parser::parse_makefile;
+    use crate::make_parser::purify::purify_makefile;
+
+    // ARRANGE: Multiple wildcard calls in same variable
+    let makefile = "FILES := $(wildcard *.c) $(wildcard *.h)";
+    let ast = parse_makefile(makefile).unwrap();
+
+    // ACT: Purify
+    let result = purify_makefile(&ast);
+
+    // ASSERT: Currently wraps first occurrence
+    // Future enhancement: wrap all occurrences
+    assert!(result.transformations_applied >= 1);
+}
+
+#[test]
+fn test_PURIFY_022_edge_case_already_purified_no_double_wrap() {
+    use crate::make_parser::parse_makefile;
+    use crate::make_parser::purify::purify_makefile;
+
+    // ARRANGE: Already purified with $(sort $(wildcard))
+    let makefile = "FILES := $(sort $(wildcard *.c))";
+    let ast = parse_makefile(makefile).unwrap();
+
+    // ACT: Purify twice
+    let result1 = purify_makefile(&ast);
+    let result2 = purify_makefile(&result1.ast);
+
+    // ASSERT: Second purification should do nothing
+    assert_eq!(result2.transformations_applied, 0, "Already purified should not be re-wrapped");
+    assert_eq!(result2.issues_fixed, 0);
+}
+
+#[test]
+fn test_PURIFY_023_edge_case_shell_find_with_complex_args() {
+    use crate::make_parser::parse_makefile;
+    use crate::make_parser::purify::purify_makefile;
+
+    // ARRANGE: Shell find with complex arguments
+    let makefile = "FILES := $(shell find src -type f -name '*.c' -not -path '*/test/*')";
+    let ast = parse_makefile(makefile).unwrap();
+
+    // ACT: Purify
+    let result = purify_makefile(&ast);
+
+    // ASSERT: Should wrap complex shell find
+    assert_eq!(result.transformations_applied, 1);
+    let var = &result.ast.items[0];
+    if let MakeItem::Variable { value, .. } = var {
+        assert!(value.contains("$(sort $(shell find"), "Should wrap shell find with sort");
+    }
 }
