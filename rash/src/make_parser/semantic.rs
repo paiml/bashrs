@@ -68,7 +68,8 @@ pub fn detect_shell_date(value: &str) -> bool {
 /// Detect non-deterministic $(wildcard) patterns in a variable value
 ///
 /// This function identifies wildcard function calls that produce
-/// non-deterministic filesystem ordering.
+/// non-deterministic filesystem ordering. It EXCLUDES already-purified
+/// patterns like `$(sort $(wildcard ...))`.
 ///
 /// # Arguments
 ///
@@ -76,20 +77,39 @@ pub fn detect_shell_date(value: &str) -> bool {
 ///
 /// # Returns
 ///
-/// * `true` if $(wildcard ...) pattern is detected
-/// * `false` otherwise
+/// * `true` if $(wildcard ...) pattern is detected AND not already purified
+/// * `false` otherwise (no wildcard OR already wrapped with sort)
 ///
 /// # Examples
 ///
 /// ```
 /// use bashrs::make_parser::semantic::detect_wildcard;
 ///
+/// // Non-purified wildcards are detected
 /// assert!(detect_wildcard("$(wildcard *.c)"));
 /// assert!(detect_wildcard("SOURCES := $(wildcard src/*.c)"));
+///
+/// // Already purified wildcards are NOT detected
+/// assert!(!detect_wildcard("$(sort $(wildcard *.c))"));
+/// assert!(!detect_wildcard("SOURCES := $(sort $(wildcard src/*.c))"));
+///
+/// // Safe patterns are NOT detected
 /// assert!(!detect_wildcard("SOURCES := main.c util.c"));
 /// ```
 pub fn detect_wildcard(value: &str) -> bool {
-    value.contains("$(wildcard")
+    // Check if contains wildcard
+    if !value.contains("$(wildcard") {
+        return false;
+    }
+
+    // Check if already purified with $(sort $(wildcard ...))
+    // Look for the pattern "$(sort $(wildcard"
+    if value.contains("$(sort $(wildcard") {
+        return false;
+    }
+
+    // Found unpurified wildcard
+    true
 }
 
 /// Common non-file targets that should be marked as .PHONY
@@ -127,7 +147,8 @@ pub fn detect_random(value: &str) -> bool {
 /// Detect non-deterministic $(shell find) patterns in a variable value
 ///
 /// This function identifies shell find commands that produce non-deterministic
-/// filesystem ordering, making builds non-reproducible.
+/// filesystem ordering, making builds non-reproducible. It EXCLUDES already-purified
+/// patterns like `$(sort $(shell find ...))`.
 ///
 /// # Arguments
 ///
@@ -135,20 +156,39 @@ pub fn detect_random(value: &str) -> bool {
 ///
 /// # Returns
 ///
-/// * `true` if $(shell find...) pattern is detected
-/// * `false` otherwise
+/// * `true` if $(shell find...) pattern is detected AND not already purified
+/// * `false` otherwise (no shell find OR already wrapped with sort)
 ///
 /// # Examples
 ///
 /// ```
 /// use bashrs::make_parser::semantic::detect_shell_find;
 ///
+/// // Non-purified shell find is detected
 /// assert!(detect_shell_find("$(shell find . -name '*.c')"));
 /// assert!(detect_shell_find("FILES := $(shell find src -type f)"));
+///
+/// // Already purified shell find is NOT detected
+/// assert!(!detect_shell_find("$(sort $(shell find . -name '*.c'))"));
+/// assert!(!detect_shell_find("FILES := $(sort $(shell find src -type f))"));
+///
+/// // Safe patterns are NOT detected
 /// assert!(!detect_shell_find("FILES := main.c util.c"));
 /// ```
 pub fn detect_shell_find(value: &str) -> bool {
-    value.contains("$(shell find")
+    // Check if contains shell find
+    if !value.contains("$(shell find") {
+        return false;
+    }
+
+    // Check if already purified with $(sort $(shell find ...))
+    // Look for the pattern "$(sort $(shell find"
+    if value.contains("$(sort $(shell find") {
+        return false;
+    }
+
+    // Found unpurified shell find
+    true
 }
 
 /// Check if a target name is a common non-file target that should be .PHONY

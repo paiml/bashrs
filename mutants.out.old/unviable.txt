@@ -1,2 +1,4 @@
-rash/src/make_parser/semantic.rs:187:20: delete ! in analyze_makefile
-rash/src/make_parser/semantic.rs:152:5: replace analyze_makefile -> Vec<SemanticIssue> with vec![Default::default()]
+rash/src/make_parser/parser.rs:278:5: replace parse_include -> Result<MakeItem, String> with Ok(Default::default())
+rash/src/make_parser/parser.rs:236:5: replace parse_variable -> Result<MakeItem, String> with Ok(Default::default())
+rash/src/make_parser/parser.rs:325:5: replace parse_target_rule -> Result<MakeItem, String> with Ok(Default::default())
+rash/src/make_parser/parser.rs:87:5: replace parse_makefile -> Result<MakeAst, String> with Ok(Default::default())
