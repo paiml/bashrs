@@ -1,0 +1,46 @@
+# Example Makefile with non-deterministic constructs
+# This demonstrates the types of issues that bashrs make purify can fix
+
+# Compiler settings
+CC := gcc
+CFLAGS := -O2 -Wall -Wextra
+LDFLAGS := -lm
+
+# Non-deterministic wildcards (will be purified)
+SOURCES := $(wildcard src/*.c)
+HEADERS := $(wildcard include/*.h)
+TEST_FILES := $(wildcard tests/*.c)
+OBJECTS := $(wildcard build/*.o)
+
+# Derived variables
+TEST_OBJS := $(TEST_FILES:.c=.o)
+
+# Build targets
+.PHONY: all clean test install
+
+all: build/myapp
+
+build/myapp: $(OBJECTS)
+	$(CC) $(CFLAGS) -o $@ $(OBJECTS) $(LDFLAGS)
+
+build/%.o: src/%.c $(HEADERS)
+	@mkdir -p build
+	$(CC) $(CFLAGS) -c -o $@ $<
+
+test: $(TEST_OBJS)
+	@echo "Running tests..."
+	@for test in $(TEST_OBJS); do ./$$test; done
+
+clean:
+	rm -f build/*.o build/myapp $(TEST_OBJS)
+
+install: build/myapp
+	install -m 755 build/myapp /usr/local/bin/
+
+# Help target
+help:
+	@echo "Available targets:"
+	@echo "  all      - Build the application"
+	@echo "  test     - Run tests"
+	@echo "  clean    - Remove build artifacts"
+	@echo "  install  - Install to /usr/local/bin"
