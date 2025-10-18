@@ -6,7 +6,7 @@
 //! Test naming convention: test_<TASK_ID>_<feature>_<scenario>
 
 use super::*;
-use crate::make_parser::ast::{MakeCondition, VarFlavor};
+use crate::make_parser::ast::{MakeCondition, Span, VarFlavor};
 
 /// RED PHASE: Test for RULE-SYNTAX-001 - Basic rule syntax
 ///
@@ -9395,4 +9395,229 @@ fn test_PURIFY_023_edge_case_shell_find_with_complex_args() {
     if let MakeItem::Variable { value, .. } = var {
         assert!(value.contains("$(sort $(shell find"), "Should wrap shell find with sort");
     }
+}
+
+// ============================================================================
+// CODE GENERATOR TESTS - Sprint 68
+// ============================================================================
+
+/// RED PHASE: Test for GENERATE-001 - Simple variable generation
+///
+/// Tests that a simple variable assignment can be generated from AST.
+///
+/// Input AST:
+/// ```
+/// Variable { name: "CC", value: "gcc", flavor: Simple }
+/// ```
+///
+/// Expected Output:
+/// ```makefile
+/// CC := gcc
+/// ```
+#[test]
+fn test_GENERATE_001_simple_variable() {
+    // ARRANGE: Create AST with simple variable
+    let ast = MakeAst {
+        items: vec![MakeItem::Variable {
+            name: "CC".to_string(),
+            value: "gcc".to_string(),
+            flavor: VarFlavor::Simple,
+            span: Span::dummy(),
+        }],
+        metadata: MakeMetadata::new(),
+    };
+
+    // ACT: Generate Makefile text
+    let output = generate_purified_makefile(&ast);
+
+    // ASSERT: Should generate variable assignment
+    assert_eq!(output.trim(), "CC := gcc");
+}
+
+/// RED PHASE: Test for GENERATE-002 - All variable flavors
+///
+/// Tests that all 5 variable flavors can be generated correctly.
+#[test]
+fn test_GENERATE_002_all_variable_flavors() {
+    // ARRANGE: Create AST with all variable flavors
+    let ast = MakeAst {
+        items: vec![
+            MakeItem::Variable {
+                name: "SIMPLE".to_string(),
+                value: "value1".to_string(),
+                flavor: VarFlavor::Simple,
+                span: Span::dummy(),
+            },
+            MakeItem::Variable {
+                name: "RECURSIVE".to_string(),
+                value: "value2".to_string(),
+                flavor: VarFlavor::Recursive,
+                span: Span::dummy(),
+            },
+            MakeItem::Variable {
+                name: "CONDITIONAL".to_string(),
+                value: "value3".to_string(),
+                flavor: VarFlavor::Conditional,
+                span: Span::dummy(),
+            },
+            MakeItem::Variable {
+                name: "APPEND".to_string(),
+                value: "value4".to_string(),
+                flavor: VarFlavor::Append,
+                span: Span::dummy(),
+            },
+            MakeItem::Variable {
+                name: "SHELL".to_string(),
+                value: "command".to_string(),
+                flavor: VarFlavor::Shell,
+                span: Span::dummy(),
+            },
+        ],
+        metadata: MakeMetadata::new(),
+    };
+
+    // ACT: Generate Makefile text
+    let output = generate_purified_makefile(&ast);
+
+    // ASSERT: Should generate all variable types with correct operators
+    assert!(output.contains("SIMPLE := value1"));
+    assert!(output.contains("RECURSIVE = value2"));
+    assert!(output.contains("CONDITIONAL ?= value3"));
+    assert!(output.contains("APPEND += value4"));
+    assert!(output.contains("SHELL != command"));
+}
+
+/// RED PHASE: Test for GENERATE-003 - Target with recipe
+///
+/// Tests that a target with prerequisites and recipe can be generated.
+///
+/// Expected Output:
+/// ```makefile
+/// build: main.c
+/// 	gcc -o build main.c
+/// ```
+#[test]
+fn test_GENERATE_003_target_with_recipe() {
+    // ARRANGE: Create AST with target
+    let ast = MakeAst {
+        items: vec![MakeItem::Target {
+            name: "build".to_string(),
+            prerequisites: vec!["main.c".to_string()],
+            recipe: vec!["gcc -o build main.c".to_string()],
+            phony: false,
+            span: Span::dummy(),
+        }],
+        metadata: MakeMetadata::new(),
+    };
+
+    // ACT: Generate Makefile text
+    let output = generate_purified_makefile(&ast);
+
+    // ASSERT: Should generate target with tab-indented recipe
+    let lines: Vec<&str> = output.trim().lines().collect();
+    assert_eq!(lines.len(), 2);
+    assert_eq!(lines[0], "build: main.c");
+    assert_eq!(lines[1], "\tgcc -o build main.c");
+}
+
+/// RED PHASE: Test for GENERATE-004 - Comment preservation
+///
+/// Tests that comments are preserved in generated output.
+#[test]
+fn test_GENERATE_004_comment_preservation() {
+    // ARRANGE: Create AST with comment
+    let ast = MakeAst {
+        items: vec![MakeItem::Comment {
+            text: "This is a comment".to_string(),
+            span: Span::dummy(),
+        }],
+        metadata: MakeMetadata::new(),
+    };
+
+    // ACT: Generate Makefile text
+    let output = generate_purified_makefile(&ast);
+
+    // ASSERT: Should generate comment with # prefix
+    assert_eq!(output.trim(), "# This is a comment");
+}
+
+/// RED PHASE: Test for GENERATE-005 - PHONY target
+///
+/// Tests that .PHONY targets are generated correctly.
+#[test]
+fn test_GENERATE_005_phony_target() {
+    // ARRANGE: Create AST with phony target
+    let ast = MakeAst {
+        items: vec![MakeItem::Target {
+            name: "clean".to_string(),
+            prerequisites: vec![],
+            recipe: vec!["rm -f *.o".to_string()],
+            phony: true,
+            span: Span::dummy(),
+        }],
+        metadata: MakeMetadata::new(),
+    };
+
+    // ACT: Generate Makefile text
+    let output = generate_purified_makefile(&ast);
+
+    // ASSERT: Should generate .PHONY declaration before target
+    assert!(output.contains(".PHONY: clean"));
+    assert!(output.contains("clean:"));
+    assert!(output.contains("\trm -f *.o"));
+}
+
+/// RED PHASE: Test for GENERATE-006 - Complex Makefile
+///
+/// Tests generation of a complex Makefile with multiple items.
+#[test]
+fn test_GENERATE_006_complex_makefile() {
+    // ARRANGE: Create AST with multiple items
+    let ast = MakeAst {
+        items: vec![
+            MakeItem::Comment {
+                text: "Build configuration".to_string(),
+                span: Span::dummy(),
+            },
+            MakeItem::Variable {
+                name: "CC".to_string(),
+                value: "gcc".to_string(),
+                flavor: VarFlavor::Simple,
+                span: Span::dummy(),
+            },
+            MakeItem::Variable {
+                name: "CFLAGS".to_string(),
+                value: "-O2 -Wall".to_string(),
+                flavor: VarFlavor::Simple,
+                span: Span::dummy(),
+            },
+            MakeItem::Target {
+                name: "all".to_string(),
+                prerequisites: vec!["build".to_string()],
+                recipe: vec![],
+                phony: true,
+                span: Span::dummy(),
+            },
+            MakeItem::Target {
+                name: "build".to_string(),
+                prerequisites: vec!["main.c".to_string()],
+                recipe: vec!["$(CC) $(CFLAGS) -o build main.c".to_string()],
+                phony: false,
+                span: Span::dummy(),
+            },
+        ],
+        metadata: MakeMetadata::new(),
+    };
+
+    // ACT: Generate Makefile text
+    let output = generate_purified_makefile(&ast);
+
+    // ASSERT: Should contain all items in order
+    assert!(output.contains("# Build configuration"));
+    assert!(output.contains("CC := gcc"));
+    assert!(output.contains("CFLAGS := -O2 -Wall"));
+    assert!(output.contains(".PHONY: all"));
+    assert!(output.contains("all: build"));
+    assert!(output.contains("build: main.c"));
+    assert!(output.contains("\t$(CC) $(CFLAGS) -o build main.c"));
 }

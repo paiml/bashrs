@@ -1,0 +1,2 @@
+rash/src/make_parser/purify.rs:89:5: replace plan_transformations -> Vec<Transformation> with vec![Default::default()]
+rash/src/make_parser/purify.rs:135:5: replace apply_transformations -> MakeAst with Default::default()

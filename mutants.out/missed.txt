@@ -3,3 +3,7 @@ rash/src/make_parser/purify.rs:156:38: replace && with || in wrap_variable_with_
 rash/src/make_parser/purify.rs:227:41: replace && with || in find_matching_paren
 rash/src/make_parser/purify.rs:210:13: replace < with <= in find_matching_paren
 rash/src/make_parser/purify.rs:227:23: replace + with - in find_matching_paren
+rash/src/make_parser/purify.rs:227:57: replace == with != in find_matching_paren
+rash/src/make_parser/purify.rs:228:23: replace += with *= in find_matching_paren
+rash/src/make_parser/purify.rs:228:23: replace += with -= in find_matching_paren
+rash/src/make_parser/purify.rs:211:34: replace > with >= in find_matching_paren
