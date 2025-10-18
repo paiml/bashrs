@@ -27,9 +27,15 @@ workflows:
       - "Output is safe, deterministic, verifiable bash"
 
 releases:
+  - version: "1.4.0"
+    date: "2025-10-18"
+    status: "CURRENT"
+    title: "CLI Integration for Makefile Purification - Sprint 69"
+    description: "Complete CLI interface for Makefile purification (bashrs make parse/purify)"
+
   - version: "1.2.1"
     date: "2025-10-11"
-    status: "CURRENT"
+    status: "RELEASED"
     title: "Auto-Fix Perfection"
     description: "100% auto-fix success rate with priority-based conflict resolution"
 
@@ -58,18 +64,20 @@ releases:
 
 metrics:
   current:
-    version: "1.2.1"
+    version: "1.4.0"
     tests:
-      total: 887
-      passing: 887
+      total: 1435
+      passing: 1435
       pass_rate: "100%"
       property_tests: 52
       property_cases: "~26,000+"
       integration_tests: 4
-      unit_tests: "~730"
+      cli_make_tests: 17
+      unit_tests: "~1280"
       linter_tests: 48
       autofix_tests: 8
       validation_tests: 30
+      makefile_tests: "~100"
 
     coverage:
       lines: "88.5%"
@@ -95,6 +103,84 @@ metrics:
 
 sprints:
   completed:
+    - id: "SPRINT-69"
+      status: "✅ COMPLETE"
+      title: "CLI Integration for Makefile Purification"
+      date: "2025-10-18"
+      duration: "~4 hours"
+      description: "Complete CLI interface for Makefile purification with parse and purify commands"
+      achievements:
+        - "17 CLI integration tests (100% passing)"
+        - "bashrs make parse command with multiple output formats"
+        - "bashrs make purify command with --fix, -o, --report flags"
+        - "Automatic backup creation (.bak files)"
+        - "Comprehensive transformation reporting"
+        - "Zero regressions (1,435 tests, 100% pass rate)"
+        - "Complete documentation (SPRINT-69-PLAN, HANDOFF, QRC)"
+        - "Working demonstration in examples/demo_makefile/"
+      tests_added: 17
+      total_tests: 1435
+      code_added: "~230 lines CLI + 510 lines tests + 233 lines demo"
+      documentation: "~929 lines (3 sprint docs + demo guide)"
+      deliverables:
+        - "rash/src/cli/args.rs (Make subcommand + formats)"
+        - "rash/src/cli/commands.rs (CLI handlers)"
+        - "rash/tests/cli_make_tests.rs (17 tests)"
+        - "examples/demo_makefile/ (demonstration)"
+        - "SPRINT-69-PLAN.md, SPRINT-69-HANDOFF.md, SPRINT-69-QRC.md"
+        - "SESSION-SUMMARY-2025-10-18-SPRINT-69.md"
+        - "CURRENT-STATUS.md"
+      methodology: "EXTREME TDD (RED-GREEN-REFACTOR-INTEGRATION)"
+      quality_metrics:
+        test_pass_rate: "100% (1,435/1,435)"
+        regressions: 0
+        clippy_warnings: 0
+        function_complexity: "<10"
+        integration_coverage: "Complete end-to-end workflow"
+
+    - id: "SPRINT-68"
+      status: "✅ COMPLETE"
+      title: "Makefile Purification - Code Generation"
+      date: "2025-10-18"
+      duration: "~4 hours"
+      description: "Code generator for purified Makefiles with idempotency verification"
+      achievements:
+        - "Code generation module (generators.rs)"
+        - "Property-based tests (300+ generated cases)"
+        - "Round-trip testing (parse → purify → generate → re-parse)"
+        - "Idempotency verification (re-purification = 0 changes)"
+        - "Tab character preservation (POSIX Make requirement)"
+        - "Complete documentation"
+      tests_added: "~20"
+      methodology: "EXTREME TDD + Property Testing"
+      deliverables:
+        - "rash/src/make_parser/generators.rs"
+        - "SPRINT-68-PLAN.md, SPRINT-68-HANDOFF.md, SPRINT-68-QRC.md"
+
+    - id: "SPRINT-67"
+      status: "✅ COMPLETE (Phase 1 + Phase 2)"
+      title: "Makefile Purification - Parser, AST, Semantic Analysis"
+      date: "2025-10-18"
+      duration: "~8 hours (Phase 1: 4h, Phase 2: 4h)"
+      description: "Complete Makefile parsing and purification pipeline"
+      achievements:
+        - "Phase 1: Parser, AST, Semantic Analysis, Purification"
+        - "Phase 2: Property tests, idempotency enhancements"
+        - "Wildcard wrapping for determinism: $(wildcard) → $(sort $(wildcard))"
+        - "89% mutation kill rate on semantic analysis"
+        - "Property-based testing infrastructure"
+        - "Complete documentation (2 phases)"
+      tests_added: "~80"
+      methodology: "EXTREME TDD + Mutation Testing"
+      deliverables:
+        - "rash/src/make_parser/parser.rs"
+        - "rash/src/make_parser/ast.rs"
+        - "rash/src/make_parser/semantic.rs"
+        - "rash/src/make_parser/purify.rs"
+        - "rash/src/make_parser/tests.rs"
+        - "SPRINT-67-PLAN.md, SPRINT-67-HANDOFF.md, SPRINT-67-QRC.md"
+        - "SPRINT-67-PHASE2-HANDOFF.md, SPRINT-67-PHASE2-QRC.md"
+
     - id: "SPRINT-29"
       status: "✅ COMPLETE (Phase 1)"
       title: "AST Validation Enhancement & Security Fixes"
