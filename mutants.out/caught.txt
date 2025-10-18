@@ -45,3 +45,7 @@ rash/src/make_parser/purify.rs:227:52: replace + with * in find_matching_paren
 rash/src/make_parser/purify.rs:89:5: replace plan_transformations -> Vec<Transformation> with vec![]
 rash/src/make_parser/purify.rs:240:11: replace += with -= in find_matching_paren
 rash/src/make_parser/purify.rs:232:13: delete match arm b')' in find_matching_paren
+rash/src/make_parser/purify.rs:156:21: replace == with != in wrap_variable_with_sort
+rash/src/make_parser/purify.rs:260:5: replace is_safe_transformation -> bool with true
+rash/src/make_parser/purify.rs:229:19: replace += with -= in find_matching_paren
+rash/src/make_parser/purify.rs:251:42: replace + with - in extract_variable_name
