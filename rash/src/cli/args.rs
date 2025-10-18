@@ -140,6 +140,49 @@ pub enum Commands {
         #[arg(long)]
         fix: bool,
     },
+
+    /// Makefile parsing, purification, and transformation
+    Make {
+        #[command(subcommand)]
+        command: MakeCommands,
+    },
+}
+
+#[derive(Subcommand)]
+pub enum MakeCommands {
+    /// Parse Makefile to AST
+    Parse {
+        /// Input Makefile
+        #[arg(value_name = "FILE")]
+        input: PathBuf,
+
+        /// Output format
+        #[arg(long, value_enum, default_value = "text")]
+        format: MakeOutputFormat,
+    },
+
+    /// Purify Makefile (determinism + idempotency)
+    Purify {
+        /// Input Makefile
+        #[arg(value_name = "FILE")]
+        input: PathBuf,
+
+        /// Output file (defaults to stdout or in-place with --fix)
+        #[arg(short, long)]
+        output: Option<PathBuf>,
+
+        /// Apply fixes in-place (creates .bak backup)
+        #[arg(long)]
+        fix: bool,
+
+        /// Show detailed transformation report
+        #[arg(long)]
+        report: bool,
+
+        /// Report format
+        #[arg(long, value_enum, default_value = "human")]
+        format: ReportFormat,
+    },
 }
 
 /// Runtime options for compilation
@@ -182,6 +225,28 @@ pub enum LintFormat {
     Json,
     /// SARIF format
     Sarif,
+}
+
+/// Output format for Makefile parse results
+#[derive(Clone, Debug, ValueEnum)]
+pub enum MakeOutputFormat {
+    /// Human-readable text
+    Text,
+    /// JSON AST
+    Json,
+    /// Debug format
+    Debug,
+}
+
+/// Output format for purification reports
+#[derive(Clone, Debug, ValueEnum)]
+pub enum ReportFormat {
+    /// Human-readable report
+    Human,
+    /// JSON format
+    Json,
+    /// Markdown format
+    Markdown,
 }
 
 impl ValueEnum for VerificationLevel {
