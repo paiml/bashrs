@@ -59,25 +59,48 @@
 
 ### 4. Auto-Fix Capabilities (Ruff + Deno-inspired)
 
-**Automatic fixes** for 70%+ of detected issues:
+**Automatic fixes** for 70%+ of detected issues with **safety classification**:
+
+#### Fix Safety Classification (Jidoka - Build Quality In)
+
+Auto-fixes are categorized by safety to build developer trust:
+
+**Safe Fixes** (applied by `--fix`):
+- Adding quotes to unquoted variables
+- Adding idempotent flags (-p, -f) to commands
+- Wrapping $(wildcard) with $(sort) for determinism
+- Replacing $RANDOM with deterministic alternatives
+- Simple syntax corrections
+
+**Potentially Unsafe Fixes** (require `--fix-unsafe`):
+- Complex logic changes (e.g., converting bash arrays to POSIX alternatives)
+- Shell dialect conversions that may change semantics
+- Fixes that require context understanding (IDEM003: rm + ln)
+- Command replacements with different behavior
+
+**Manual Review Required** (not auto-fixable):
+- Command injection vulnerabilities (SEC001)
+- Complex eval replacements
+- Architecture-specific logic
 
 ```bash
-# Preview fixes without applying
+# Preview all fixes without applying
 bashrs lint --fix --dry-run script.sh
 
-# Apply fixes automatically
+# Apply safe fixes automatically
 bashrs lint --fix script.sh
+
+# Apply all fixes (including potentially unsafe)
+bashrs lint --fix --fix-unsafe script.sh
+
+# Interactive mode (approve each fix)
+bashrs lint --fix --interactive script.sh
 
 # Fix all scripts in directory
 bashrs lint --fix .
 ```
 
-**Fixable issues include**:
-- Adding missing quotes to variables
-- Converting non-POSIX syntax to POSIX equivalents
-- Replacing deprecated commands with modern alternatives
-- Adding idempotent flags (-p, -f, etc.)
-- Wrapping $(wildcard) with $(sort) for determinism
+**Fix Quality Guarantee**: All auto-fixes produce idiomatic, readable code that humans would write, not just functionally equivalent transformations.
 
 ### 5. Purification-Aware Linting (bashrs-specific)
 
@@ -156,11 +179,27 @@ bashrs lint --purified deploy-purified.sh
 - Load `.bashrs.toml` or `bashrs.toml`
 - Hierarchical configuration (monorepo-friendly)
 - Rule selection (tags, include, exclude)
+- Configuration resolver with `--show-config` support
 
 **lint/fix.rs** - Auto-fix engine
-- Safe fix application
+- Safe fix application (default)
+- Potentially unsafe fix application (`--fix-unsafe`)
+- Interactive fix approval (`--interactive`)
 - Dry-run mode
 - Fix conflict resolution
+
+**lint/metadata.rs** - Rule metadata system
+- Rule categorization (safe/unsafe fix classification)
+- Rule severity levels (error/warning/info)
+- Rule explanations and rationale
+- False-positive rate tracking (Kaizen feedback loop)
+- Auto-fix confidence scores
+
+**lint/feedback.rs** - Rule feedback system (Kaizen)
+- Collect user feedback on rule effectiveness
+- Track false-positive rates per rule
+- Automated rule promotion/demotion based on metrics
+- Community-driven rule improvement
 
 ---
 
@@ -275,14 +314,19 @@ arr=(foo bar baz)
 set -- foo bar baz
 ```
 
-**P002: Non-POSIX [[ ]] Syntax**
+**P002: Non-POSIX [[ ]] Syntax (Dialect-Sensitive)**
 ```bash
-# ❌ BAD
+# ❌ BAD (when target shell is 'sh')
 if [[ -f "$file" ]]; then
 
-# ✅ GOOD (auto-fixable)
+# ✅ GOOD (auto-fixable when --shell sh)
 if [ -f "$file" ]; then
+
+# ✅ ALSO GOOD (when target shell is 'bash', no warning)
+if [[ -f "$file" ]]; then
 ```
+
+**Note**: This rule is dialect-aware. When targeting bash, `[[` is preferred for safety (prevents word splitting and pathname expansion). Only flags when POSIX sh compatibility is required.
 
 ---
 
@@ -412,6 +456,10 @@ bashrs lint --list-rules
 
 # Explain a specific rule
 bashrs lint --explain DET001
+
+# Show resolved configuration (TPS: Visual Management)
+bashrs lint --show-config script.sh
+bashrs lint --show-config src/deploy.sh  # For hierarchical config debugging
 ```
 
 ### CI/CD Integration
@@ -608,6 +656,27 @@ Run with --fix to apply automatic fixes
 
 ## Implementation Roadmap
 
+### Phased Release Strategy (Heijunka - Production Leveling)
+
+Rather than a big-bang release, bashrs lint will follow an incremental delivery model to provide value sooner and gather early feedback:
+
+**Alpha Releases** (after each major milestone):
+- v0.1.0-alpha: Core infrastructure + DET/IDEM rules only
+- v0.2.0-alpha: Add security rules
+- v0.3.0-alpha: Add portability rules
+- v0.4.0-alpha: Add all remaining rules
+
+**Beta Releases** (feature-complete):
+- v0.9.0-beta: Full rule set, performance optimization
+- v0.10.0-beta: Plugin system, LSP integration
+
+**Production Release**:
+- v1.0.0: Production-ready with all features, docs, and integrations
+
+**Rationale**: Early releases enable community feedback on unique features (DET/IDEM) before investing in comprehensive rule coverage. This aligns with Lean principles of delivering value incrementally and reducing waste from potential misdirection.
+
+---
+
 ### Phase 1: Core Infrastructure (4-6 weeks)
 
 **Week 1-2: Basic Linting Framework**
@@ -685,6 +754,60 @@ Run with --fix to apply automatic fixes
 - [ ] Configuration guide
 - [ ] Migration guide from shellcheck
 - [ ] Tutorial and examples
+
+---
+
+## Rule Feedback & Continuous Improvement (Kaizen)
+
+### Rule Quality Metrics
+
+Every rule tracks quality metrics to enable data-driven improvement:
+
+**Metrics Tracked**:
+- **False-Positive Rate**: % of rule violations marked as incorrect by users
+- **Auto-Fix Success Rate**: % of auto-fixes accepted vs reverted
+- **Rule Adoption**: % of users who disable/enable this rule
+- **Time-to-Fix**: Average time developers spend addressing violations
+
+### Feedback Collection
+
+```bash
+# Mark false positive (tracked anonymously)
+bashrs lint --report-false-positive DET001:line:5 script.sh
+
+# Report auto-fix issue
+bashrs lint --report-bad-fix DET001:line:5 script.sh
+
+# Submit rule feedback
+bashrs lint --feedback "DET001: Should ignore VERSION var from config"
+```
+
+### Automated Rule Promotion/Demotion
+
+Rules move between tags based on quality metrics:
+
+**Promotion Criteria** (WARNING → RECOMMENDED):
+- False-positive rate < 5%
+- Auto-fix success rate > 90%
+- Adoption rate > 80%
+- Time-to-fix < 2 minutes
+
+**Demotion Criteria** (RECOMMENDED → WARNING):
+- False-positive rate > 15%
+- Auto-fix success rate < 70%
+- Adoption rate < 50%
+- Frequent user complaints
+
+**Example**: If DET001 consistently shows 20% false-positives, it's automatically demoted from `recommended` to `optional` and flagged for refinement.
+
+### Community-Driven Improvement
+
+- Monthly release of rule quality reports
+- Public dashboard showing rule effectiveness metrics
+- GitHub Issues for rule refinement proposals
+- Quarterly review of demoted rules for fixes
+
+**Rationale**: This creates a continuous improvement loop (Kaizen) where rules get better over time based on real-world usage data, preventing "alert fatigue" and maintaining developer trust.
 
 ---
 
@@ -909,22 +1032,108 @@ jobs:
 
 ---
 
-## Open Questions
+## Design Decisions (Resolved)
 
-1. **Rule Naming Convention**: Use shellcheck's SC#### format or create bashrs-specific format (DET###, IDEM###)?
-   - **Recommendation**: bashrs format for clarity and extensibility
+### 1. Rule Naming Convention ✅
 
-2. **Shell Dialect Detection**: Auto-detect from shebang vs require explicit configuration?
-   - **Recommendation**: Auto-detect with override option
+**Decision**: Use bashrs-specific format (DET###, IDEM###, SEC###, etc.)
 
-3. **Fix Safety**: Apply all fixes at once or require user approval for certain categories?
-   - **Recommendation**: Auto-fix safe changes, warn for manual review on risky fixes
+**Rationale**:
+- Provides immediate context about rule category
+- Reinforces bashrs identity and unique value proposition
+- Avoids confusion with shellcheck's SC#### numbering
+- Enables clear categorization for dialect-sensitive rules
 
-4. **Plugin System Priority**: Implement in Phase 3 or defer to Phase 5?
-   - **Recommendation**: Phase 3 for extensibility
+### 2. Shell Dialect Detection ✅
 
-5. **LSP Integration**: Build into bashrs or separate project?
-   - **Recommendation**: Separate but coordinated (bashrs-lsp)
+**Decision**: Auto-detect from shebang with explicit override option
+
+**Rationale**:
+- Zero-configuration principle (sensible defaults)
+- Power users can override with `--shell` flag or config file
+- Prevents false positives on dialect-specific features (e.g., P002 bash `[[`)
+
+**Implementation**:
+- Parse shebang: `#!/bin/bash` → bash mode
+- Parse shebang: `#!/bin/sh` → POSIX sh mode
+- Override: `--shell sh` or `shell = "sh"` in config
+
+### 3. Fix Safety Classification ✅
+
+**Decision**: Three-tier safety system
+
+**Tiers**:
+1. **Safe fixes** (default `--fix`): Quotes, idempotent flags, simple corrections
+2. **Potentially unsafe fixes** (`--fix-unsafe`): Logic changes, dialect conversions
+3. **Manual review required** (not auto-fixable): Security issues, complex eval replacements
+
+**Rationale**:
+- Builds developer trust by being conservative
+- Prevents production breakages from over-aggressive fixes
+- Aligns with Jidoka (build quality in) - don't automate unsafe changes
+
+### 4. Plugin System Priority ✅
+
+**Decision**: Implement in Phase 3 (weeks 15-18)
+
+**Rationale**:
+- Core functionality must be stable first
+- Plugin API benefits from real-world usage patterns
+- Premature API can lock in suboptimal design
+- Phase 3 timing allows for informed API design
+
+### 5. LSP Integration ✅
+
+**Decision**: Separate `bashrs-lsp` project, coordinated development
+
+**Rationale**:
+- Follows industry standard (rust-analyzer, typescript-language-server)
+- Decouples linter logic from LSP protocol implementation
+- Enables independent versioning and release cadence
+- Allows core linter to be used in non-LSP contexts
+
+### 6. Configuration Transparency (NEW) ✅
+
+**Decision**: Add `--show-config` command for hierarchical config debugging
+
+**Rationale**:
+- TPS principle of visual management
+- Hierarchical configs can be confusing without visibility
+- Helps users debug unexpected rule behavior
+- Shows exact resolved configuration for any file path
+
+**Output Example**:
+```bash
+$ bashrs lint --show-config src/deploy.sh
+Configuration for: src/deploy.sh
+├─ /project/bashrs.toml (root)
+│  └─ tags = ["recommended"]
+└─ /project/src/bashrs.toml (override)
+   └─ shell = "bash"
+   └─ exclude = ["S042"]
+
+Resolved Configuration:
+  shell: bash
+  tags: ["recommended"]
+  exclude: ["S042"]
+  source: /project/src/bashrs.toml (merged)
+```
+
+### 7. Rule Feedback Loop (NEW) ✅
+
+**Decision**: Automated promotion/demotion based on quality metrics
+
+**Rationale**:
+- Kaizen (continuous improvement) through data-driven decisions
+- Prevents "alert fatigue" from low-quality rules
+- Builds trust through community feedback
+- Scales rule quality without manual review of all 800+ rules
+
+**Metrics**:
+- False-positive rate < 5% for `recommended` tag
+- Auto-fix success rate > 90% for safe fixes
+- Monthly quality reports published
+- Quarterly review of demoted rules
 
 ---
 
@@ -953,8 +1162,29 @@ jobs:
 
 ---
 
-**Status**: 📋 SPECIFICATION COMPLETE
+**Status**: 📋 SPECIFICATION COMPLETE (Reviewed & Enhanced)
 **Next Step**: Phase 1 implementation (Core infrastructure)
 **Ready for**: EXTREME TDD development
-**Version**: 1.0.0-spec
+**Version**: 1.1.0-spec (Gemini Review Incorporated)
 **Date**: October 18, 2025
+
+---
+
+## Acknowledgments
+
+This specification has been significantly enhanced through critical review feedback from Gemini Code Review Assistant, applying principles from the Toyota Production System (TPS):
+
+### Key Improvements from Review
+
+1. **Fix Safety Classification** (Jidoka): Three-tier safety system prevents over-aggressive auto-fixes and builds developer trust
+2. **Configuration Transparency** (Visual Management): `--show-config` command for hierarchical config debugging
+3. **Rule Feedback Loop** (Kaizen): Automated promotion/demotion based on quality metrics to prevent alert fatigue
+4. **Dialect-Sensitive Rules** (Genchi Genbutsu): P002 and similar rules respect target shell dialect context
+5. **Phased Releases** (Heijunka): Incremental delivery model provides value sooner and enables early feedback
+6. **Rule Metadata System**: Comprehensive tracking of false-positive rates, auto-fix success, and adoption metrics
+
+These enhancements align the specification with TPS principles of continuous improvement (*Kaizen*), building quality in (*Jidoka*), eliminating waste (*Muda*), and going to see for yourself (*Genchi Genbutsu*).
+
+**Review Date**: October 18, 2025
+**Reviewer**: Gemini Code Review Assistant
+**Review Focus**: Critical thinking + Toyota Production System principles
