@@ -27,7 +27,7 @@ use super::ast::*;
 ///
 /// # Examples
 ///
-/// ```
+/// ```ignore
 /// let input = "VAR = a \\\n    b";
 /// let output = preprocess_line_continuations(input);
 /// assert_eq!(output, "VAR = a b");

@@ -5,6 +5,171 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.4.0] - 2025-10-18
+
+### 🎯 CLI Integration for Makefile Purification - Sprint 69
+
+**Achievement**: **Complete CLI Interface for Makefile Purification** 🏆
+
+This release represents the completion of Sprint 69 (CLI Integration), delivering a production-ready command-line interface for Makefile purification. Users can now easily parse, purify, and fix non-deterministic Makefiles using simple CLI commands.
+
+#### Added (Sprint 69)
+
+**CLI Commands**:
+- **`bashrs make parse <file>`** - Parse Makefile to AST with multiple output formats
+  - `--format text|json|debug` - Control output format
+  - Displays complete Abstract Syntax Tree
+
+- **`bashrs make purify <file>`** - Purify Makefile for determinism and idempotency
+  - `--fix` - Apply fixes in-place (creates automatic .bak backup)
+  - `-o <file>` - Output purified Makefile to new file
+  - `--report` - Show detailed transformation report
+  - `--format human|json|markdown` - Control report format
+
+**Features**:
+- Automatic backup creation (`.bak` files) for in-place fixes
+- Multiple output formats (text, JSON, debug, markdown)
+- Comprehensive transformation reporting
+- Idempotency verification (re-purification = 0 transformations)
+- Complete error handling for file I/O and parse errors
+
+**Testing**:
+- **17 CLI integration tests** - Comprehensive coverage using assert_cmd pattern
+  - Parse command tests (3)
+  - Purify dry-run tests (2)
+  - Purify --fix tests (2)
+  - Purify -o tests (2)
+  - Purify --report tests (3)
+  - Error handling tests (3)
+  - Edge case tests (2)
+  - Full integration workflow test (1)
+
+**Documentation**:
+- Complete Sprint 69 documentation suite (SPRINT-69-PLAN.md, SPRINT-69-HANDOFF.md, SPRINT-69-QRC.md)
+- Working demonstration in `examples/demo_makefile/`
+- Comprehensive session summary (SESSION-SUMMARY-2025-10-18-SPRINT-69.md)
+- Updated project status document (CURRENT-STATUS.md)
+
+#### Changed
+
+- Test count: **1,418 → 1,435** (+17 CLI tests)
+- CLI structure: Added `Make` subcommand with `Parse` and `Purify` variants
+- Environment tests: Updated to use new CLI structure (`bashrs build` instead of bare `bashrs`)
+
+#### Technical Implementation
+
+**Files Modified**:
+- `rash/src/cli/args.rs` (+100 lines) - Added Make subcommand, output formats
+- `rash/src/cli/commands.rs` (+130 lines) - Added CLI command handlers
+- `rash/tests/environment_test.rs` (~10 lines) - Fixed CLI invocations
+
+**Files Created**:
+- `rash/tests/cli_make_tests.rs` (510 lines) - 17 CLI integration tests
+- `examples/demo_makefile/Makefile.original` (50 lines) - Demo input file
+- `examples/demo_makefile/README.md` (183 lines) - Complete usage guide
+- Sprint 69 documentation (3 files, ~929 lines total)
+
+**Methodology**: EXTREME TDD (RED-GREEN-REFACTOR-INTEGRATION)
+- Phase 1 RED: 16 failing tests written first
+- Phase 2 GREEN: All 17 tests passing after implementation
+- Phase 3 REFACTOR: Code quality verified (complexity <10, clippy clean)
+- Phase 5 INTEGRATION: End-to-end workflow verified
+
+#### CLI Demo
+
+**Parse Makefile**:
+```bash
+$ bashrs make parse Makefile
+MakeAst {
+    items: [
+        Variable { name: "SOURCES", value: "$(wildcard src/*.c)" },
+        ...
+    ]
+}
+```
+
+**Purify with Report**:
+```bash
+$ bashrs make purify --report Makefile
+Makefile Purification Report
+============================
+Transformations Applied: 4
+Issues Fixed: 4
+
+1: ✅ Wrapped $(wildcard in variable 'SOURCES' with $(sort ...)
+2: ✅ Wrapped $(wildcard in variable 'HEADERS' with $(sort ...)
+3: ✅ Wrapped $(wildcard in variable 'TEST_FILES' with $(sort ...)
+4: ✅ Wrapped $(wildcard in variable 'OBJECTS' with $(sort ...)
+```
+
+**In-Place Fix**:
+```bash
+$ bashrs make purify --fix Makefile
+# Original saved to Makefile.bak
+# Makefile updated with purified content
+```
+
+**Output to New File**:
+```bash
+$ bashrs make purify --fix -o purified.mk Makefile
+# Creates purified.mk with deterministic wildcards
+```
+
+#### Quality Metrics (v1.4.0)
+```
+Tests:                  1,435/1,435 passing (100%)
+CLI Tests:              17/17 passing (100%)
+Regressions:            0
+Clippy Warnings:        0 (code-related)
+Function Complexity:    <10 (all functions)
+Test Pass Rate:         100%
+Integration Coverage:   Complete end-to-end workflow
+```
+
+#### Sprint 69 Results
+
+- **Duration**: ~4 hours
+- **Tests Added**: 17 CLI integration tests
+- **Code Added**: ~230 lines (CLI) + 510 lines (tests) + 233 lines (demo)
+- **Documentation**: ~929 lines (3 sprint docs + demo guide)
+- **Pass Rate**: 100% (1,435/1,435 tests)
+- **Regressions**: 0
+- **Production Ready**: ✅
+
+#### Key Learnings
+
+1. **EXTREME TDD is highly effective** - Writing tests first caught design issues early
+2. **assert_cmd pattern is excellent** - Clean, readable CLI testing following project standards
+3. **Integration tests more valuable for CLI** - End-to-end workflows better than property tests for thin wrapper layers
+4. **Parser leniency acceptable for MVP** - Can improve strictness in future sprints
+
+#### Migration Notes
+
+- No breaking changes
+- New CLI commands are additions to existing interface
+- All existing functionality preserved (Rust → Shell transpilation, linting, etc.)
+- `bashrs make` commands are opt-in
+
+#### Next Steps (v1.5)
+
+**Sprint 70 (Recommended)**: User Documentation
+- Update main README.md with Makefile purification examples
+- Create getting-started tutorial
+- Improve CLI help text
+- Add troubleshooting guide
+
+**Sprint 71**: Enhanced Features
+- Shellcheck integration for purified Makefiles
+- Additional Makefile construct support
+- Performance optimization for large Makefiles
+
+**Sprint 72**: CI/CD Integration
+- GitHub Actions workflow for Makefile validation
+- Pre-commit hooks for automatic purification
+- Integration with existing build systems
+
+---
+
 ## [1.3.0] - 2025-10-14
 
 ### 🎯 Mutation Testing Excellence - Sprint 26 + 26.1

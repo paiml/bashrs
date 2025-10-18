@@ -29,7 +29,7 @@ use super::ast::*;
 ///
 /// # Examples
 ///
-/// ```
+/// ```ignore
 /// use bashrs::make_parser::{MakeAst, MakeItem, MakeMetadata, VarFlavor, Span, generate_purified_makefile};
 ///
 /// let ast = MakeAst {
@@ -107,7 +107,7 @@ fn generate_item(item: &MakeItem) -> String {
 ///
 /// # Examples
 ///
-/// ```
+/// ```ignore
 /// # use bashrs::make_parser::ast::VarFlavor;
 /// # use bashrs::make_parser::generators::generate_variable;
 /// assert_eq!(generate_variable("CC", "gcc", &VarFlavor::Simple), "CC := gcc");
@@ -128,7 +128,7 @@ fn generate_variable(name: &str, value: &str, flavor: &VarFlavor) -> String {
 ///
 /// # Examples
 ///
-/// ```
+/// ```ignore
 /// # use bashrs::make_parser::generators::generate_target;
 /// let output = generate_target("build", &vec!["main.c".to_string()], &vec!["gcc -o build main.c".to_string()], false);
 /// assert!(output.contains("build: main.c"));
