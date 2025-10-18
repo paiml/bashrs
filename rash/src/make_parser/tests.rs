@@ -8154,3 +8154,487 @@ fn test_PARSER_FUNC_015_basename() {
         _ => panic!("Expected Variable, got {:?}", ast.items[0]),
     }
 }
+
+// ============================================================================
+// Sprint 65: Recursive Semantic Analysis Tests
+// ============================================================================
+// These tests verify that semantic analysis detects non-deterministic patterns
+// even when they're nested inside function arguments.
+//
+// Example: $(filter %.c, $(wildcard src/*.c))
+//                         ^^^^^^^^^^^^^^^^^
+//                         Nested wildcard needs detection
+
+#[test]
+fn test_SEMANTIC_RECURSIVE_001_detect_wildcard_in_filter_args() {
+    // ARRANGE: wildcard nested in filter arguments
+    let makefile = "FILES := $(filter %.c, $(wildcard src/*.c))";
+    let ast = parse_makefile(makefile).unwrap();
+
+    // ACT: Check if value contains nested wildcard
+    match &ast.items[0] {
+        MakeItem::Variable { name, value, .. } => {
+            assert_eq!(name, "FILES");
+            // This test verifies we can DETECT the pattern
+            // (actual semantic analysis implementation will come in GREEN phase)
+            assert!(value.contains("$(wildcard"));
+            assert!(value.contains("$(filter"));
+        }
+        _ => panic!("Expected Variable"),
+    }
+}
+
+#[test]
+fn test_SEMANTIC_RECURSIVE_002_detect_wildcard_in_sort_args() {
+    // ARRANGE: wildcard nested in sort arguments
+    let makefile = "SORTED := $(sort $(wildcard *.c))";
+    let ast = parse_makefile(makefile).unwrap();
+
+    // ACT & ASSERT: Verify nested pattern detected
+    match &ast.items[0] {
+        MakeItem::Variable { name, value, .. } => {
+            assert_eq!(name, "SORTED");
+            assert!(value.contains("$(wildcard"));
+            assert!(value.contains("$(sort"));
+        }
+        _ => panic!("Expected Variable"),
+    }
+}
+
+#[test]
+fn test_SEMANTIC_RECURSIVE_003_detect_shell_date_in_addsuffix_args() {
+    // ARRANGE: shell date nested in addsuffix arguments
+    let makefile = "TIMESTAMPED := $(addsuffix -$(shell date +%s), foo bar)";
+    let ast = parse_makefile(makefile).unwrap();
+
+    // ACT & ASSERT: Verify nested shell date detected
+    match &ast.items[0] {
+        MakeItem::Variable { name, value, .. } => {
+            assert_eq!(name, "TIMESTAMPED");
+            assert!(value.contains("$(shell date"));
+            assert!(value.contains("$(addsuffix"));
+        }
+        _ => panic!("Expected Variable"),
+    }
+}
+
+#[test]
+fn test_SEMANTIC_RECURSIVE_004_detect_random_in_word_args() {
+    // ARRANGE: $RANDOM nested in word arguments
+    let makefile = "PICK := $(word $RANDOM, foo bar baz)";
+    let ast = parse_makefile(makefile).unwrap();
+
+    // ACT & ASSERT: Verify nested $RANDOM detected
+    match &ast.items[0] {
+        MakeItem::Variable { name, value, .. } => {
+            assert_eq!(name, "PICK");
+            assert!(value.contains("$RANDOM") || value.contains("RANDOM"));
+            assert!(value.contains("$(word"));
+        }
+        _ => panic!("Expected Variable"),
+    }
+}
+
+#[test]
+fn test_SEMANTIC_RECURSIVE_005_detect_shell_find_in_filter_args() {
+    // ARRANGE: shell find nested in filter arguments
+    let makefile = "FOUND := $(filter %.c, $(shell find src -name '*.c'))";
+    let ast = parse_makefile(makefile).unwrap();
+
+    // ACT & ASSERT: Verify nested shell find detected
+    match &ast.items[0] {
+        MakeItem::Variable { name, value, .. } => {
+            assert_eq!(name, "FOUND");
+            assert!(value.contains("$(shell find"));
+            assert!(value.contains("$(filter"));
+        }
+        _ => panic!("Expected Variable"),
+    }
+}
+
+#[test]
+fn test_SEMANTIC_RECURSIVE_006_detect_deeply_nested_wildcard() {
+    // ARRANGE: deeply nested - wildcard in filter in sort
+    let makefile = "DEEP := $(sort $(filter %.c, $(wildcard src/*.c)))";
+    let ast = parse_makefile(makefile).unwrap();
+
+    // ACT & ASSERT: Verify all nesting levels detected
+    match &ast.items[0] {
+        MakeItem::Variable { name, value, .. } => {
+            assert_eq!(name, "DEEP");
+            assert!(value.contains("$(wildcard"));
+            assert!(value.contains("$(filter"));
+            assert!(value.contains("$(sort"));
+        }
+        _ => panic!("Expected Variable"),
+    }
+}
+
+#[test]
+fn test_SEMANTIC_RECURSIVE_007_detect_multiple_nested_wildcards() {
+    // ARRANGE: multiple wildcard calls in single function
+    let makefile = "MULTI := $(filter %.c %.h, $(wildcard src/*.c) $(wildcard inc/*.h))";
+    let ast = parse_makefile(makefile).unwrap();
+
+    // ACT & ASSERT: Verify multiple nested patterns detected
+    match &ast.items[0] {
+        MakeItem::Variable { name, value, .. } => {
+            assert_eq!(name, "MULTI");
+            // Should contain two wildcard calls
+            let wildcard_count = value.matches("$(wildcard").count();
+            assert!(wildcard_count >= 2, "Expected at least 2 wildcard calls, found {}", wildcard_count);
+        }
+        _ => panic!("Expected Variable"),
+    }
+}
+
+#[test]
+fn test_SEMANTIC_RECURSIVE_008_safe_filter_no_wildcard() {
+    // ARRANGE: filter without nested non-deterministic code (SAFE)
+    let makefile = "SAFE := $(filter %.c, foo.c bar.c baz.c)";
+    let ast = parse_makefile(makefile).unwrap();
+
+    // ACT & ASSERT: Verify no non-deterministic patterns
+    match &ast.items[0] {
+        MakeItem::Variable { name, value, .. } => {
+            assert_eq!(name, "SAFE");
+            // Should NOT contain wildcard/shell/random
+            assert!(!value.contains("$(wildcard"));
+            assert!(!value.contains("$(shell"));
+            assert!(!value.contains("$RANDOM"));
+        }
+        _ => panic!("Expected Variable"),
+    }
+}
+
+#[test]
+fn test_SEMANTIC_RECURSIVE_009_purified_sort_wrapped_wildcard() {
+    // ARRANGE: PURIFIED - wildcard wrapped with sort (SAFE)
+    let makefile = "PURIFIED := $(filter %.c, $(sort $(wildcard src/*.c)))";
+    let ast = parse_makefile(makefile).unwrap();
+
+    // ACT & ASSERT: Verify purified pattern (sort wraps wildcard)
+    match &ast.items[0] {
+        MakeItem::Variable { name, value, .. } => {
+            assert_eq!(name, "PURIFIED");
+            // Should contain both wildcard (non-deterministic) and sort (purifier)
+            assert!(value.contains("$(wildcard"));
+            assert!(value.contains("$(sort"));
+            // Verify sort comes BEFORE wildcard (wrapping)
+            let sort_pos = value.find("$(sort").unwrap();
+            let wildcard_pos = value.find("$(wildcard").unwrap();
+            assert!(sort_pos < wildcard_pos, "sort should wrap wildcard");
+        }
+        _ => panic!("Expected Variable"),
+    }
+}
+
+#[test]
+fn test_SEMANTIC_RECURSIVE_010_detect_wildcard_in_firstword() {
+    // ARRANGE: wildcard in firstword (HIGH RISK - returns different results)
+    let makefile = "FIRST := $(firstword $(wildcard *.c))";
+    let ast = parse_makefile(makefile).unwrap();
+
+    // ACT & ASSERT: Critical case - firstword depends on order
+    match &ast.items[0] {
+        MakeItem::Variable { name, value, .. } => {
+            assert_eq!(name, "FIRST");
+            assert!(value.contains("$(wildcard"));
+            assert!(value.contains("$(firstword"));
+        }
+        _ => panic!("Expected Variable"),
+    }
+}
+
+#[test]
+fn test_SEMANTIC_RECURSIVE_011_detect_wildcard_in_lastword() {
+    // ARRANGE: wildcard in lastword (HIGH RISK - returns different results)
+    let makefile = "LAST := $(lastword $(wildcard *.c))";
+    let ast = parse_makefile(makefile).unwrap();
+
+    // ACT & ASSERT: Critical case - lastword depends on order
+    match &ast.items[0] {
+        MakeItem::Variable { name, value, .. } => {
+            assert_eq!(name, "LAST");
+            assert!(value.contains("$(wildcard"));
+            assert!(value.contains("$(lastword"));
+        }
+        _ => panic!("Expected Variable"),
+    }
+}
+
+#[test]
+fn test_SEMANTIC_RECURSIVE_012_detect_wildcard_in_wordlist() {
+    // ARRANGE: wildcard in wordlist (HIGH RISK - indices depend on order)
+    let makefile = "RANGE := $(wordlist 2, 4, $(wildcard *.c))";
+    let ast = parse_makefile(makefile).unwrap();
+
+    // ACT & ASSERT: Critical case - wordlist indices depend on order
+    match &ast.items[0] {
+        MakeItem::Variable { name, value, .. } => {
+            assert_eq!(name, "RANGE");
+            assert!(value.contains("$(wildcard"));
+            assert!(value.contains("$(wordlist"));
+        }
+        _ => panic!("Expected Variable"),
+    }
+}
+
+#[test]
+fn test_SEMANTIC_RECURSIVE_013_detect_shell_date_in_filter() {
+    // ARRANGE: shell date in filter arguments (timestamp in filtering)
+    let makefile = "DATED := $(filter release-%, $(shell date +%Y%m%d))";
+    let ast = parse_makefile(makefile).unwrap();
+
+    // ACT & ASSERT: Verify shell date nested in filter
+    match &ast.items[0] {
+        MakeItem::Variable { name, value, .. } => {
+            assert_eq!(name, "DATED");
+            assert!(value.contains("$(shell date"));
+            assert!(value.contains("$(filter"));
+        }
+        _ => panic!("Expected Variable"),
+    }
+}
+
+#[test]
+fn test_SEMANTIC_RECURSIVE_014_detect_multiple_nested_issues() {
+    // ARRANGE: multiple different non-deterministic patterns nested
+    let makefile = r#"
+COMPLEX := $(filter %.c, $(wildcard *.c)) $(word $RANDOM, $(shell find src))
+"#;
+    let ast = parse_makefile(makefile).unwrap();
+
+    // ACT & ASSERT: Verify all three types of issues detected
+    match &ast.items[0] {
+        MakeItem::Variable { name, value, .. } => {
+            assert_eq!(name, "COMPLEX");
+            // Should detect wildcard, $RANDOM, and shell find
+            assert!(value.contains("$(wildcard"));
+            assert!(value.contains("RANDOM"));
+            assert!(value.contains("$(shell find"));
+        }
+        _ => panic!("Expected Variable"),
+    }
+}
+
+#[test]
+fn test_SEMANTIC_RECURSIVE_015_pattern_rule_with_nested_wildcard() {
+    // ARRANGE: pattern rule with wildcard in prerequisites
+    let makefile = r#"
+%.o: $(filter %.c, $(wildcard src/*.c))
+	gcc -c $< -o $@
+"#;
+    let ast = parse_makefile(makefile).unwrap();
+
+    // ACT & ASSERT: Verify pattern rule contains nested wildcard
+    match &ast.items[0] {
+        MakeItem::PatternRule { target_pattern, prereq_patterns, .. } => {
+            assert_eq!(target_pattern, "%.o");
+            // Prerequisites should contain nested wildcard
+            let prereqs = prereq_patterns.join(" ");
+            assert!(prereqs.contains("$(wildcard"));
+            assert!(prereqs.contains("$(filter"));
+        }
+        _ => panic!("Expected PatternRule, got {:?}", ast.items[0]),
+    }
+}
+
+// ============================================================================
+// Sprint 65: Integration Tests for analyze_makefile() with Nested Patterns
+// ============================================================================
+// These tests verify that analyze_makefile() detects non-deterministic patterns
+// even when nested inside function arguments
+
+#[test]
+fn test_SEMANTIC_ANALYZE_001_detect_nested_wildcard_in_filter() {
+    use crate::make_parser::parse_makefile;
+    use crate::make_parser::semantic::analyze_makefile;
+
+    // ARRANGE: wildcard nested in filter arguments
+    let makefile = "FILES := $(filter %.c, $(wildcard src/*.c))";
+    let ast = parse_makefile(makefile).unwrap();
+
+    // ACT: Run semantic analysis
+    let issues = analyze_makefile(&ast);
+
+    // ASSERT: Should detect nested wildcard
+    assert!(!issues.is_empty(), "Expected to detect nested wildcard, but got no issues");
+    assert_eq!(issues.len(), 1, "Expected exactly 1 issue for nested wildcard");
+    assert_eq!(issues[0].rule, "NO_WILDCARD");
+    assert!(issues[0].message.contains("FILES"));
+    assert!(issues[0].message.contains("wildcard"));
+}
+
+#[test]
+fn test_SEMANTIC_ANALYZE_002_detect_nested_shell_date_in_addsuffix() {
+    use crate::make_parser::parse_makefile;
+    use crate::make_parser::semantic::analyze_makefile;
+
+    // ARRANGE: shell date nested in addsuffix arguments
+    let makefile = "TIMESTAMPED := $(addsuffix -$(shell date +%s), foo bar)";
+    let ast = parse_makefile(makefile).unwrap();
+
+    // ACT: Run semantic analysis
+    let issues = analyze_makefile(&ast);
+
+    // ASSERT: Should detect nested shell date
+    assert!(!issues.is_empty(), "Expected to detect nested shell date");
+    assert_eq!(issues.len(), 1);
+    assert_eq!(issues[0].rule, "NO_TIMESTAMPS");
+    assert!(issues[0].message.contains("TIMESTAMPED"));
+}
+
+#[test]
+fn test_SEMANTIC_ANALYZE_003_detect_nested_random_in_word() {
+    use crate::make_parser::parse_makefile;
+    use crate::make_parser::semantic::analyze_makefile;
+
+    // ARRANGE: $RANDOM nested in word arguments
+    let makefile = "PICK := $(word $RANDOM, foo bar baz)";
+    let ast = parse_makefile(makefile).unwrap();
+
+    // ACT: Run semantic analysis
+    let issues = analyze_makefile(&ast);
+
+    // ASSERT: Should detect nested $RANDOM
+    assert!(!issues.is_empty(), "Expected to detect nested $RANDOM");
+    assert_eq!(issues.len(), 1);
+    assert_eq!(issues[0].rule, "NO_RANDOM");
+    assert!(issues[0].message.contains("PICK"));
+}
+
+#[test]
+fn test_SEMANTIC_ANALYZE_004_no_issue_for_safe_filter() {
+    use crate::make_parser::parse_makefile;
+    use crate::make_parser::semantic::analyze_makefile;
+
+    // ARRANGE: filter without nested non-deterministic code (SAFE)
+    let makefile = "SAFE := $(filter %.c, foo.c bar.c baz.c)";
+    let ast = parse_makefile(makefile).unwrap();
+
+    // ACT: Run semantic analysis
+    let issues = analyze_makefile(&ast);
+
+    // ASSERT: Should NOT detect any issues (no wildcard, no shell, no random)
+    assert_eq!(issues.len(), 0, "Expected no issues for safe filter, but got: {:?}", issues);
+}
+
+#[test]
+fn test_SEMANTIC_ANALYZE_005_purified_wildcard_still_detected() {
+    use crate::make_parser::parse_makefile;
+    use crate::make_parser::semantic::analyze_makefile;
+
+    // ARRANGE: PURIFIED wildcard wrapped with sort
+    // NOTE: Current implementation will still flag this as wildcard usage
+    // This is actually CORRECT behavior - it's flagging the presence of wildcard
+    // Future enhancement: detect $(sort $(wildcard)) as "already purified"
+    let makefile = "PURIFIED := $(filter %.c, $(sort $(wildcard src/*.c)))";
+    let ast = parse_makefile(makefile).unwrap();
+
+    // ACT: Run semantic analysis
+    let issues = analyze_makefile(&ast);
+
+    // ASSERT: Current behavior - still detects wildcard
+    // (Enhancement opportunity: recognize $(sort $(wildcard)) as purified)
+    assert!(!issues.is_empty(), "Wildcard detected even when wrapped with sort");
+    assert_eq!(issues[0].rule, "NO_WILDCARD");
+}
+
+#[test]
+fn test_SEMANTIC_ANALYZE_006_deeply_nested_wildcard() {
+    use crate::make_parser::parse_makefile;
+    use crate::make_parser::semantic::analyze_makefile;
+
+    // ARRANGE: deeply nested - wildcard in filter in sort
+    let makefile = "DEEP := $(sort $(filter %.c, $(wildcard src/*.c)))";
+    let ast = parse_makefile(makefile).unwrap();
+
+    // ACT: Run semantic analysis
+    let issues = analyze_makefile(&ast);
+
+    // ASSERT: Should detect wildcard at any nesting level
+    assert!(!issues.is_empty());
+    assert_eq!(issues.len(), 1);
+    assert_eq!(issues[0].rule, "NO_WILDCARD");
+}
+
+#[test]
+fn test_SEMANTIC_ANALYZE_007_multiple_nested_wildcards() {
+    use crate::make_parser::parse_makefile;
+    use crate::make_parser::semantic::analyze_makefile;
+
+    // ARRANGE: multiple wildcard calls in single function
+    let makefile = "MULTI := $(filter %.c %.h, $(wildcard src/*.c) $(wildcard inc/*.h))";
+    let ast = parse_makefile(makefile).unwrap();
+
+    // ACT: Run semantic analysis
+    let issues = analyze_makefile(&ast);
+
+    // ASSERT: Should detect wildcard (may report as 1 issue for the variable)
+    assert!(!issues.is_empty());
+    assert_eq!(issues[0].rule, "NO_WILDCARD");
+    assert!(issues[0].message.contains("MULTI"));
+}
+
+#[test]
+fn test_SEMANTIC_ANALYZE_008_nested_shell_find_in_filter() {
+    use crate::make_parser::parse_makefile;
+    use crate::make_parser::semantic::analyze_makefile;
+
+    // ARRANGE: shell find nested in filter arguments
+    let makefile = "FOUND := $(filter %.c, $(shell find src -name '*.c'))";
+    let ast = parse_makefile(makefile).unwrap();
+
+    // ACT: Run semantic analysis
+    let issues = analyze_makefile(&ast);
+
+    // ASSERT: Should detect nested shell find
+    assert!(!issues.is_empty());
+    assert_eq!(issues.len(), 1);
+    assert_eq!(issues[0].rule, "NO_UNORDERED_FIND");
+    assert!(issues[0].message.contains("FOUND"));
+}
+
+#[test]
+fn test_SEMANTIC_ANALYZE_009_multiple_different_nested_issues() {
+    use crate::make_parser::parse_makefile;
+    use crate::make_parser::semantic::analyze_makefile;
+
+    // ARRANGE: multiple different non-deterministic patterns nested
+    let makefile = r#"
+COMPLEX := $(filter %.c, $(wildcard *.c)) $(word $RANDOM, $(shell find src))
+"#;
+    let ast = parse_makefile(makefile).unwrap();
+
+    // ACT: Run semantic analysis
+    let issues = analyze_makefile(&ast);
+
+    // ASSERT: Should detect all three types of issues
+    // Current implementation detects all patterns in the value string
+    assert!(issues.len() >= 3, "Expected at least 3 issues (wildcard, random, shell find), got {}", issues.len());
+
+    // Verify all three rule types are detected
+    let rules: Vec<&str> = issues.iter().map(|i| i.rule.as_str()).collect();
+    assert!(rules.contains(&"NO_WILDCARD"), "Should detect wildcard");
+    assert!(rules.contains(&"NO_RANDOM"), "Should detect $RANDOM");
+    assert!(rules.contains(&"NO_UNORDERED_FIND"), "Should detect shell find");
+}
+
+#[test]
+fn test_SEMANTIC_ANALYZE_010_nested_wildcard_in_firstword() {
+    use crate::make_parser::parse_makefile;
+    use crate::make_parser::semantic::analyze_makefile;
+
+    // ARRANGE: wildcard in firstword (HIGH RISK - different results based on order)
+    let makefile = "FIRST := $(firstword $(wildcard *.c))";
+    let ast = parse_makefile(makefile).unwrap();
+
+    // ACT: Run semantic analysis
+    let issues = analyze_makefile(&ast);
+
+    // ASSERT: Should detect wildcard (critical case for firstword)
+    assert!(!issues.is_empty());
+    assert_eq!(issues[0].rule, "NO_WILDCARD");
+    assert!(issues[0].message.contains("FIRST"));
+}
