@@ -8638,3 +8638,215 @@ fn test_SEMANTIC_ANALYZE_010_nested_wildcard_in_firstword() {
     assert_eq!(issues[0].rule, "NO_WILDCARD");
     assert!(issues[0].message.contains("FIRST"));
 }
+
+// ============================================================================
+// Sprint 66: High-Risk Functions - FOREACH Detection Tests
+// ============================================================================
+//
+// Goal: Verify semantic analysis detects non-deterministic patterns in
+//       $(foreach) loops where iteration order matters.
+//
+// Hypothesis (based on Sprint 64-65): Existing .contains() approach
+// already detects these patterns at any nesting level.
+//
+// Test Strategy: Write verification tests first (EXTREME TDD RED phase)
+
+#[test]
+fn test_SEMANTIC_FOREACH_001_detect_wildcard_in_foreach_list() {
+    use crate::make_parser::parse_makefile;
+    use crate::make_parser::semantic::analyze_makefile;
+
+    // ARRANGE: $(foreach) iterating over $(wildcard) - ORDER MATTERS!
+    // This is CRITICAL because foreach processes items in iteration order
+    let makefile = "OBJS := $(foreach file, $(wildcard *.c), $(file:.c=.o))";
+    let ast = parse_makefile(makefile).unwrap();
+
+    // ACT: Run semantic analysis
+    let issues = analyze_makefile(&ast);
+
+    // ASSERT: Should detect wildcard in foreach list (non-deterministic order)
+    // Based on Sprint 65 discovery: .contains("$(wildcard") should catch this!
+    assert!(!issues.is_empty(), "Expected to detect wildcard in foreach list");
+
+    // Verify it's detected as NO_WILDCARD
+    let wildcard_issues: Vec<_> = issues.iter()
+        .filter(|i| i.rule == "NO_WILDCARD")
+        .collect();
+    assert!(!wildcard_issues.is_empty(), "Should detect as NO_WILDCARD");
+}
+
+#[test]
+fn test_SEMANTIC_FOREACH_002_safe_foreach_with_explicit_list() {
+    use crate::make_parser::parse_makefile;
+    use crate::make_parser::semantic::analyze_makefile;
+
+    // ARRANGE: $(foreach) with explicit list (SAFE - deterministic order)
+    let makefile = "OBJS := $(foreach file, foo.c bar.c baz.c, $(file:.c=.o))";
+    let ast = parse_makefile(makefile).unwrap();
+
+    // ACT: Run semantic analysis
+    let issues = analyze_makefile(&ast);
+
+    // ASSERT: Should NOT detect issues (explicit list is deterministic)
+    assert_eq!(issues.len(), 0, "Expected no issues for explicit list: {:?}", issues);
+}
+
+#[test]
+fn test_SEMANTIC_FOREACH_003_nested_shell_date_in_foreach() {
+    use crate::make_parser::parse_makefile;
+    use crate::make_parser::semantic::analyze_makefile;
+
+    // ARRANGE: $(shell date) nested in foreach body
+    let makefile = "TIMESTAMPED := $(foreach f, foo bar, $(f)-$(shell date +%s))";
+    let ast = parse_makefile(makefile).unwrap();
+
+    // ACT: Run semantic analysis
+    let issues = analyze_makefile(&ast);
+
+    // ASSERT: Should detect shell date
+    assert!(!issues.is_empty(), "Expected to detect shell date");
+    assert!(issues.iter().any(|i| i.rule == "NO_TIMESTAMPS"));
+}
+
+#[test]
+fn test_SEMANTIC_FOREACH_004_random_in_foreach_body() {
+    use crate::make_parser::parse_makefile;
+    use crate::make_parser::semantic::analyze_makefile;
+
+    // ARRANGE: $RANDOM in foreach body
+    let makefile = "IDS := $(foreach item, a b c, id-$RANDOM)";
+    let ast = parse_makefile(makefile).unwrap();
+
+    // ACT: Run semantic analysis
+    let issues = analyze_makefile(&ast);
+
+    // ASSERT: Should detect random
+    assert!(!issues.is_empty(), "Expected to detect $RANDOM");
+    assert!(issues.iter().any(|i| i.rule == "NO_RANDOM"));
+}
+
+#[test]
+fn test_SEMANTIC_FOREACH_005_shell_find_in_foreach_list() {
+    use crate::make_parser::parse_makefile;
+    use crate::make_parser::semantic::analyze_makefile;
+
+    // ARRANGE: $(shell find) as foreach list source
+    let makefile = "PROCESSED := $(foreach f, $(shell find src -name '*.c'), process-$(f))";
+    let ast = parse_makefile(makefile).unwrap();
+
+    // ACT: Run semantic analysis
+    let issues = analyze_makefile(&ast);
+
+    // ASSERT: Should detect shell find
+    assert!(!issues.is_empty(), "Expected to detect shell find");
+    assert!(issues.iter().any(|i| i.rule == "NO_UNORDERED_FIND"));
+}
+
+// ============================================================================
+// Sprint 66: High-Risk Functions - CALL Detection Tests
+// ============================================================================
+
+#[test]
+fn test_SEMANTIC_CALL_001_detect_wildcard_in_call_args() {
+    use crate::make_parser::parse_makefile;
+    use crate::make_parser::semantic::analyze_makefile;
+
+    // ARRANGE: $(call) with $(wildcard) in arguments
+    // Define a function and call it with wildcard
+    let makefile = r#"
+reverse = $(2) $(1)
+FILES := $(call reverse, $(wildcard *.c), foo.c)
+"#;
+    let ast = parse_makefile(makefile).unwrap();
+
+    // ACT: Run semantic analysis
+    let issues = analyze_makefile(&ast);
+
+    // ASSERT: Should detect wildcard in call arguments
+    assert!(!issues.is_empty(), "Expected to detect wildcard in call args");
+
+    // Check that FILES variable has wildcard issue
+    let files_issues: Vec<_> = issues.iter()
+        .filter(|i| i.message.contains("FILES"))
+        .collect();
+    assert!(!files_issues.is_empty(), "Should detect wildcard in FILES variable");
+}
+
+#[test]
+fn test_SEMANTIC_CALL_002_safe_call_with_explicit_args() {
+    use crate::make_parser::parse_makefile;
+    use crate::make_parser::semantic::analyze_makefile;
+
+    // ARRANGE: $(call) with explicit arguments (SAFE)
+    let makefile = r#"
+reverse = $(2) $(1)
+RESULT := $(call reverse, foo.c, bar.c)
+"#;
+    let ast = parse_makefile(makefile).unwrap();
+
+    // ACT: Run semantic analysis
+    let issues = analyze_makefile(&ast);
+
+    // ASSERT: Should NOT detect issues (explicit args are deterministic)
+    assert_eq!(issues.len(), 0, "Expected no issues for explicit args: {:?}", issues);
+}
+
+#[test]
+fn test_SEMANTIC_CALL_003_shell_date_in_call_args() {
+    use crate::make_parser::parse_makefile;
+    use crate::make_parser::semantic::analyze_makefile;
+
+    // ARRANGE: $(call) with $(shell date) in arguments
+    let makefile = r#"
+timestamp = build-$(1)-$(2)
+RELEASE := $(call timestamp, v1.0, $(shell date +%s))
+"#;
+    let ast = parse_makefile(makefile).unwrap();
+
+    // ACT: Run semantic analysis
+    let issues = analyze_makefile(&ast);
+
+    // ASSERT: Should detect shell date
+    assert!(!issues.is_empty(), "Expected to detect shell date");
+    assert!(issues.iter().any(|i| i.rule == "NO_TIMESTAMPS"));
+}
+
+#[test]
+fn test_SEMANTIC_CALL_004_random_in_call_args() {
+    use crate::make_parser::parse_makefile;
+    use crate::make_parser::semantic::analyze_makefile;
+
+    // ARRANGE: $RANDOM in call arguments
+    let makefile = r#"
+generate_id = id-$(1)-$(2)
+SESSION := $(call generate_id, sess, $RANDOM)
+"#;
+    let ast = parse_makefile(makefile).unwrap();
+
+    // ACT: Run semantic analysis
+    let issues = analyze_makefile(&ast);
+
+    // ASSERT: Should detect random
+    assert!(!issues.is_empty(), "Expected to detect $RANDOM");
+    assert!(issues.iter().any(|i| i.rule == "NO_RANDOM"));
+}
+
+#[test]
+fn test_SEMANTIC_CALL_005_shell_find_in_call_args() {
+    use crate::make_parser::parse_makefile;
+    use crate::make_parser::semantic::analyze_makefile;
+
+    // ARRANGE: $(shell find) in call arguments
+    let makefile = r#"
+process_files = Processing: $(1)
+OUTPUT := $(call process_files, $(shell find src -name '*.c'))
+"#;
+    let ast = parse_makefile(makefile).unwrap();
+
+    // ACT: Run semantic analysis
+    let issues = analyze_makefile(&ast);
+
+    // ASSERT: Should detect shell find
+    assert!(!issues.is_empty(), "Expected to detect shell find");
+    assert!(issues.iter().any(|i| i.rule == "NO_UNORDERED_FIND"));
+}
