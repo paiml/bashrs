@@ -28,6 +28,7 @@ pub mod ast;
 pub mod generators;
 pub mod lexer;
 pub mod parser;
+pub mod purify;
 pub mod semantic;
 
 #[cfg(test)]
@@ -36,3 +37,4 @@ pub mod tests;
 pub use ast::{MakeAst, MakeItem, MakeMetadata};
 pub use parser::parse_makefile;
 pub use generators::generate_purified_makefile;
+pub use purify::{purify_makefile, PurificationResult};
