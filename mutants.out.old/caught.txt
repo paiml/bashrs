@@ -1,5 +1,10 @@
-rash/src/ast/restricted.rs:129:31: replace || with && in Function::validate_identifier
-rash/src/ast/restricted.rs:474:46: replace + with * in Expr::nesting_depth
-rash/src/ast/restricted.rs:420:13: delete match arm Expr::Literal(Literal::Str(s)) in Expr::validate
-rash/src/ast/restricted.rs:636:13: delete match arm Pattern::Tuple(patterns) in Pattern::binds_variable
-rash/src/ast/restricted.rs:473:13: delete match arm Expr::Binary{left, right, ..} in Expr::nesting_depth
+rash/src/make_parser/semantic.rs:92:5: replace detect_wildcard -> bool with false
+rash/src/make_parser/semantic.rs:187:27: replace && with || in analyze_makefile
+rash/src/make_parser/semantic.rs:92:5: replace detect_wildcard -> bool with true
+rash/src/make_parser/semantic.rs:124:5: replace is_common_phony_target -> bool with false
+rash/src/make_parser/semantic.rs:185:13: delete match arm MakeItem::Target{name, phony, span, ..} in analyze_makefile
+rash/src/make_parser/semantic.rs:65:5: replace detect_shell_date -> bool with true
+rash/src/make_parser/semantic.rs:156:13: delete match arm MakeItem::Variable{name, value, span, ..} in analyze_makefile
+rash/src/make_parser/semantic.rs:152:5: replace analyze_makefile -> Vec<SemanticIssue> with vec![]
+rash/src/make_parser/semantic.rs:65:5: replace detect_shell_date -> bool with false
+rash/src/make_parser/semantic.rs:124:5: replace is_common_phony_target -> bool with true

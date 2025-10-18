@@ -1,0 +1,2 @@
+rash/src/make_parser/semantic.rs:187:20: delete ! in analyze_makefile
+rash/src/make_parser/semantic.rs:152:5: replace analyze_makefile -> Vec<SemanticIssue> with vec![Default::default()]

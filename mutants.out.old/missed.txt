@@ -1,2 +1,0 @@
-rash/src/ast/restricted.rs:167:72: replace && with || in Type::is_allowed
-rash/src/ast/restricted.rs:129:53: replace || with && in Function::validate_identifier

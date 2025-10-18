@@ -1,0 +1,13 @@
+rash/src/make_parser/parser.rs:59:11: replace += with -= in preprocess_line_continuations
+rash/src/make_parser/parser.rs:346:12: replace += with -= in parse_target_rule
+rash/src/make_parser/parser.rs:358:20: replace += with -= in parse_target_rule
+rash/src/make_parser/parser.rs:99:15: replace += with *= in parse_makefile
+rash/src/make_parser/parser.rs:59:11: replace += with *= in preprocess_line_continuations
+rash/src/make_parser/parser.rs:150:11: replace += with *= in parse_makefile
+rash/src/make_parser/parser.rs:346:12: replace += with *= in parse_target_rule
+rash/src/make_parser/parser.rs:355:20: replace += with -= in parse_target_rule
+rash/src/make_parser/parser.rs:136:15: replace += with *= in parse_makefile
+rash/src/make_parser/parser.rs:150:11: replace += with -= in parse_makefile
+rash/src/make_parser/parser.rs:136:15: replace += with -= in parse_makefile
+rash/src/make_parser/parser.rs:116:15: replace += with -= in parse_makefile
+rash/src/make_parser/parser.rs:49:15: replace += with *= in preprocess_line_continuations

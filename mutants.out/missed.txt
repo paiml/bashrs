@@ -1,2 +1,5 @@
-rash/src/ast/restricted.rs:426:13: delete match arm Expr::Literal(_) in Expr::validate
-rash/src/ast/restricted.rs:165:9: replace Type::is_allowed -> bool with true
+rash/src/make_parser/parser.rs:201:57: replace || with && in is_variable_assignment
+rash/src/make_parser/parser.rs:122:41: replace + with * in parse_makefile
+rash/src/make_parser/parser.rs:216:26: replace < with <= in is_variable_assignment
+rash/src/make_parser/parser.rs:202:31: replace || with && in is_variable_assignment
+rash/src/make_parser/parser.rs:360:23: replace < with <= in parse_target_rule
