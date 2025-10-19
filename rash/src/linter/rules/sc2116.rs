@@ -33,8 +33,15 @@ pub fn check(source: &str) -> LintResult {
             }
 
             let content = cap.name("content").unwrap().as_str().trim();
+
+            // Skip if content has a pipe - this is a pipeline, not useless echo
+            // Example: $(echo "$x" | cut -d. -f1) is NOT useless
+            if content.contains('|') {
+                continue;
+            }
+
             let col = full_match.start() + 1; // 1-indexed
-            let end_col = full_match.end(); // Don't add 1, already at correct position
+            let end_col = full_match.end() + 1; // 1-indexed (after last char)
 
             let span = Span::new(line_num, col, line_num, end_col);
 
@@ -117,5 +124,14 @@ mod tests {
         let result = check(bash_code);
 
         assert_eq!(result.diagnostics.len(), 0);
+    }
+
+    #[test]
+    fn test_sc2116_skip_pipelines() {
+        // Should NOT trigger when echo is part of a pipeline
+        let bash_code = r#"val=$(echo "$x" | cut -d. -f1)"#;
+        let result = check(bash_code);
+
+        assert_eq!(result.diagnostics.len(), 0, "Should not trigger on pipelines");
     }
 }

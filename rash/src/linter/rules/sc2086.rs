@@ -59,7 +59,20 @@ pub fn check(source: &str) -> LintResult {
                 .rfind('$')
                 .unwrap_or(var_match.start());
             let col = dollar_pos + 1; // 1-indexed
-            let end_col = var_match.end() + 1; // 1-indexed (after last char)
+
+            // For braced variables ${VAR}, we need to include the closing }
+            let is_braced = cap.name("brace").is_some();
+            let end_col = if is_braced {
+                // Find the closing } after the variable name
+                let after_var = &line[var_match.end()..];
+                if let Some(brace_pos) = after_var.find('}') {
+                    var_match.end() + brace_pos + 2 // +1 for }, +1 for 1-indexing
+                } else {
+                    var_match.end() + 1 // Fallback
+                }
+            } else {
+                var_match.end() + 1 // Simple $VAR case
+            };
 
             // Skip if in arithmetic context
             if is_arithmetic {
