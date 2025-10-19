@@ -937,3 +937,37 @@ mutants-report: ## Generate mutation testing report
 mutants-clean: ## Clean mutation testing artifacts
 	@rm -rf mutants.out mutants.out.old
 	@echo "✓ Mutation testing artifacts cleaned"
+
+# Book Validation and Pre-commit Hooks
+.PHONY: hooks-install validate-book test-book
+
+hooks-install: ## Install pre-commit hooks for book validation
+	@echo "🔒 Installing pre-commit hooks..."
+	@mkdir -p .git/hooks
+	@cat > .git/hooks/pre-commit << 'HOOK'
+#!/bin/bash
+# Pre-commit hook: Run book validation
+set -e
+
+# Run book validation script
+./scripts/validate-book.sh
+
+# Run full test suite (optional, comment out if too slow)
+# cargo test --lib --quiet
+HOOK
+	@chmod +x .git/hooks/pre-commit
+	@chmod +x scripts/validate-book.sh
+	@echo "✓ Pre-commit hook installed at .git/hooks/pre-commit"
+	@echo ""
+	@echo "The hook will:"
+	@echo "  1. Validate book examples compile"
+	@echo "  2. Enforce 90%+ accuracy on new chapters (Ch21+)"
+	@echo ""
+	@echo "To skip hook temporarily: git commit --no-verify"
+
+validate-book: ## Run book validation tests
+	@echo "📖 Validating book examples..."
+	@./scripts/validate-book.sh
+
+test-book: ## Run book validation tests (alias)
+	@$(MAKE) --no-print-directory validate-book

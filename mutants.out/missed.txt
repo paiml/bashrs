@@ -1,0 +1,10 @@
+rash/src/make_parser/error.rs:219:21: delete match arm "ifdef" in MakeParseError::help
+rash/src/make_parser/error.rs:226:21: delete match arm "ifeq" | "ifneq" in MakeParseError::help
+rash/src/make_parser/error.rs:173:21: delete match arm "ifdef" | "ifndef" in MakeParseError::note
+rash/src/make_parser/error.rs:227:21: delete match arm "ifdef" | "ifndef" in MakeParseError::help
+rash/src/make_parser/error.rs:217:21: delete match arm "ifeq" in MakeParseError::help
+rash/src/make_parser/error.rs:220:21: delete match arm "ifndef" in MakeParseError::help
+rash/src/make_parser/error.rs:170:21: delete match arm "ifeq" | "ifneq" in MakeParseError::note
+rash/src/make_parser/error.rs:218:21: delete match arm "ifneq" in MakeParseError::help
+rash/src/make_parser/error.rs:267:60: replace + with * in MakeParseError::to_detailed_string
+rash/src/make_parser/error.rs:267:64: replace + with * in MakeParseError::to_detailed_string

@@ -1,0 +1,4 @@
+rash/src/make_parser/error.rs:46:9: replace SourceLocation::with_source_line -> Self with Default::default()
+rash/src/make_parser/error.rs:36:9: replace SourceLocation::with_file -> Self with Default::default()
+rash/src/make_parser/error.rs:138:9: replace MakeParseError::location -> Option<&SourceLocation> with Some(Box::leak(Box::new(Default::default())))
+rash/src/make_parser/error.rs:41:9: replace SourceLocation::with_column -> Self with Default::default()

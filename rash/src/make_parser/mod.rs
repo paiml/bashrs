@@ -25,6 +25,7 @@
 //! ```
 
 pub mod ast;
+pub mod error;
 pub mod generators;
 pub mod lexer;
 pub mod parser;
@@ -35,6 +36,7 @@ pub mod semantic;
 pub mod tests;
 
 pub use ast::{MakeAst, MakeItem, MakeMetadata};
+pub use error::{MakeParseError, SourceLocation};
 pub use parser::parse_makefile;
 pub use generators::generate_purified_makefile;
 pub use purify::{purify_makefile, PurificationResult};

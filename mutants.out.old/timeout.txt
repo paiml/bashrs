@@ -1,3 +1,0 @@
-rash/src/make_parser/purify.rs:217:11: replace += with *= in find_matching_paren
-rash/src/make_parser/purify.rs:240:11: replace += with -= in find_matching_paren
-rash/src/make_parser/purify.rs:240:11: replace += with *= in find_matching_paren

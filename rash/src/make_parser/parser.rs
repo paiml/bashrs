@@ -10,6 +10,7 @@
 //! - Support incremental parsing
 
 use super::ast::*;
+use super::error::{MakeParseError, SourceLocation};
 
 /// Preprocess Makefile input to handle line continuations
 ///
@@ -121,7 +122,7 @@ pub fn parse_makefile(input: &str) -> Result<MakeAst, String> {
         if line.trim_start().starts_with("include ") || line.trim_start().starts_with("-include ") || line.trim_start().starts_with("sinclude ") {
             match parse_include(line, i + 1) {
                 Ok(include) => items.push(include),
-                Err(e) => return Err(format!("Line {}: {}", i + 1, e)),
+                Err(e) => return Err(e.to_detailed_string()),
             }
             i += 1;
             continue;
@@ -134,7 +135,7 @@ pub fn parse_makefile(input: &str) -> Result<MakeAst, String> {
            line.trim_start().starts_with("ifneq ") {
             match parse_conditional(&lines, &mut i) {
                 Ok(conditional) => items.push(conditional),
-                Err(e) => return Err(format!("Line {}: {}", i + 1, e)),
+                Err(e) => return Err(e.to_detailed_string()),
             }
             continue;
         }
@@ -143,7 +144,7 @@ pub fn parse_makefile(input: &str) -> Result<MakeAst, String> {
         if is_variable_assignment(line) {
             match parse_variable(line, i + 1) {
                 Ok(var) => items.push(var),
-                Err(e) => return Err(format!("Line {}: {}", i + 1, e)),
+                Err(e) => return Err(e.to_detailed_string()),
             }
             i += 1;
             continue;
@@ -153,7 +154,7 @@ pub fn parse_makefile(input: &str) -> Result<MakeAst, String> {
         if line.contains(':') && !line.trim_start().starts_with('\t') {
             match parse_target_rule(&lines, &mut i) {
                 Ok(target) => items.push(target),
-                Err(e) => return Err(format!("Line {}: {}", i + 1, e)),
+                Err(e) => return Err(e.to_detailed_string()),
             }
             continue;
         }
@@ -244,7 +245,7 @@ fn is_variable_assignment(line: &str) -> bool {
 /// VAR += value     # Append
 /// VAR != command   # Shell (execute command)
 /// ```
-fn parse_variable(line: &str, line_num: usize) -> Result<MakeItem, String> {
+fn parse_variable(line: &str, line_num: usize) -> Result<MakeItem, MakeParseError> {
     let trimmed = line.trim();
 
     // Determine the flavor by finding the assignment operator
@@ -259,12 +260,19 @@ fn parse_variable(line: &str, line_num: usize) -> Result<MakeItem, String> {
     } else if let Some(pos) = trimmed.find('=') {
         (&trimmed[..pos], &trimmed[pos + 1..], VarFlavor::Recursive)
     } else {
-        return Err("No assignment operator found".to_string());
+        let location = SourceLocation::new(line_num)
+            .with_source_line(line.to_string());
+        return Err(MakeParseError::NoAssignmentOperator {
+            location,
+            found: trimmed.to_string(),
+        });
     };
 
     let name = name_part.trim();
     if name.is_empty() {
-        return Err("Empty variable name".to_string());
+        let location = SourceLocation::new(line_num)
+            .with_source_line(line.to_string());
+        return Err(MakeParseError::EmptyVariableName { location });
     }
 
     let value = value_part.trim();
@@ -287,7 +295,7 @@ fn parse_variable(line: &str, line_num: usize) -> Result<MakeItem, String> {
 /// ```
 ///
 /// The `-include` and `sinclude` variants silently ignore missing files.
-fn parse_include(line: &str, line_num: usize) -> Result<MakeItem, String> {
+fn parse_include(line: &str, line_num: usize) -> Result<MakeItem, MakeParseError> {
     let trimmed = line.trim();
 
     // Check if this is optional include (-include or sinclude)
@@ -310,7 +318,12 @@ fn parse_include(line: &str, line_num: usize) -> Result<MakeItem, String> {
             .trim()
             .to_string()
     } else {
-        return Err("Invalid include syntax".to_string());
+        let location = SourceLocation::new(line_num)
+            .with_source_line(line.to_string());
+        return Err(MakeParseError::InvalidIncludeSyntax {
+            location,
+            found: trimmed.to_string(),
+        });
     };
 
     // Path can be empty (edge case handled in tests)
@@ -337,7 +350,7 @@ fn parse_include(line: &str, line_num: usize) -> Result<MakeItem, String> {
 /// ```
 ///
 /// Supported directives: ifeq, ifneq, ifdef, ifndef
-fn parse_conditional(lines: &[&str], index: &mut usize) -> Result<MakeItem, String> {
+fn parse_conditional(lines: &[&str], index: &mut usize) -> Result<MakeItem, MakeParseError> {
     let start_line = lines[*index];
     let start_line_num = *index + 1;
     let trimmed = start_line.trim();
@@ -347,42 +360,83 @@ fn parse_conditional(lines: &[&str], index: &mut usize) -> Result<MakeItem, Stri
         // ifeq (arg1,arg2)
         let rest = trimmed.strip_prefix("ifeq ").unwrap().trim();
         if !rest.starts_with('(') || !rest.ends_with(')') {
-            return Err(format!("Invalid ifeq syntax at line {}", start_line_num));
+            let location = SourceLocation::new(start_line_num)
+                .with_source_line(start_line.to_string());
+            return Err(MakeParseError::InvalidConditionalSyntax {
+                location,
+                directive: "ifeq".to_string(),
+                found: rest.to_string(),
+            });
         }
         let inner = &rest[1..rest.len()-1];
         let parts: Vec<&str> = inner.splitn(2, ',').collect();
         if parts.len() != 2 {
-            return Err(format!("ifeq requires two arguments at line {}", start_line_num));
+            let location = SourceLocation::new(start_line_num)
+                .with_source_line(start_line.to_string());
+            return Err(MakeParseError::MissingConditionalArguments {
+                location,
+                directive: "ifeq".to_string(),
+                expected_args: 2,
+                found_args: parts.len(),
+            });
         }
         MakeCondition::IfEq(parts[0].to_string(), parts[1].to_string())
     } else if trimmed.starts_with("ifneq ") {
         // ifneq (arg1,arg2)
         let rest = trimmed.strip_prefix("ifneq ").unwrap().trim();
         if !rest.starts_with('(') || !rest.ends_with(')') {
-            return Err(format!("Invalid ifneq syntax at line {}", start_line_num));
+            let location = SourceLocation::new(start_line_num)
+                .with_source_line(start_line.to_string());
+            return Err(MakeParseError::InvalidConditionalSyntax {
+                location,
+                directive: "ifneq".to_string(),
+                found: rest.to_string(),
+            });
         }
         let inner = &rest[1..rest.len()-1];
         let parts: Vec<&str> = inner.splitn(2, ',').collect();
         if parts.len() != 2 {
-            return Err(format!("ifneq requires two arguments at line {}", start_line_num));
+            let location = SourceLocation::new(start_line_num)
+                .with_source_line(start_line.to_string());
+            return Err(MakeParseError::MissingConditionalArguments {
+                location,
+                directive: "ifneq".to_string(),
+                expected_args: 2,
+                found_args: parts.len(),
+            });
         }
         MakeCondition::IfNeq(parts[0].to_string(), parts[1].to_string())
     } else if trimmed.starts_with("ifdef ") {
         // ifdef VAR
         let var_name = trimmed.strip_prefix("ifdef ").unwrap().trim().to_string();
         if var_name.is_empty() {
-            return Err(format!("ifdef requires variable name at line {}", start_line_num));
+            let location = SourceLocation::new(start_line_num)
+                .with_source_line(start_line.to_string());
+            return Err(MakeParseError::MissingVariableName {
+                location,
+                directive: "ifdef".to_string(),
+            });
         }
         MakeCondition::IfDef(var_name)
     } else if trimmed.starts_with("ifndef ") {
         // ifndef VAR
         let var_name = trimmed.strip_prefix("ifndef ").unwrap().trim().to_string();
         if var_name.is_empty() {
-            return Err(format!("ifndef requires variable name at line {}", start_line_num));
+            let location = SourceLocation::new(start_line_num)
+                .with_source_line(start_line.to_string());
+            return Err(MakeParseError::MissingVariableName {
+                location,
+                directive: "ifndef".to_string(),
+            });
         }
         MakeCondition::IfNdef(var_name)
     } else {
-        return Err(format!("Unknown conditional directive at line {}", start_line_num));
+        let location = SourceLocation::new(start_line_num)
+            .with_source_line(start_line.to_string());
+        return Err(MakeParseError::UnknownConditional {
+            location,
+            found: trimmed.to_string(),
+        });
     };
 
     // Move past the ifeq/ifdef/ifndef/ifneq line
@@ -437,12 +491,22 @@ fn parse_conditional(lines: &[&str], index: &mut usize) -> Result<MakeItem, Stri
                 }
 
                 // Parse item in else branch
-                if let Some(item) = parse_conditional_item(lines, index)? {
-                    else_vec.push(item);
-                    // Note: index was already incremented by parse_conditional_item
-                } else {
-                    // Empty line or unrecognized - skip it
-                    *index += 1;
+                match parse_conditional_item(lines, index) {
+                    Ok(Some(item)) => {
+                        else_vec.push(item);
+                        // Note: index was already incremented by parse_conditional_item
+                    }
+                    Ok(None) => {
+                        // Empty line or unrecognized - skip it
+                        *index += 1;
+                    }
+                    Err(e) => {
+                        let location = SourceLocation::new(*index + 1);
+                        return Err(MakeParseError::InvalidTargetRule {
+                            location,
+                            found: e,
+                        });
+                    }
                 }
             }
             else_items = Some(else_vec);
@@ -450,12 +514,22 @@ fn parse_conditional(lines: &[&str], index: &mut usize) -> Result<MakeItem, Stri
         }
 
         // Parse item in then branch
-        if let Some(item) = parse_conditional_item(lines, index)? {
-            then_items.push(item);
-            // Note: index was already incremented by parse_conditional_item
-        } else {
-            // Empty line or unrecognized - skip it
-            *index += 1;
+        match parse_conditional_item(lines, index) {
+            Ok(Some(item)) => {
+                then_items.push(item);
+                // Note: index was already incremented by parse_conditional_item
+            }
+            Ok(None) => {
+                // Empty line or unrecognized - skip it
+                *index += 1;
+            }
+            Err(e) => {
+                let location = SourceLocation::new(*index + 1);
+                return Err(MakeParseError::InvalidTargetRule {
+                    location,
+                    found: e,
+                });
+            }
         }
     }
 
@@ -493,14 +567,14 @@ fn parse_conditional_item(lines: &[&str], index: &mut usize) -> Result<Option<Ma
 
     // Parse variable assignment
     if is_variable_assignment(line) {
-        let var = parse_variable(line, line_num)?;
+        let var = parse_variable(line, line_num).map_err(|e| e.to_string())?;
         *index += 1; // Move past this variable line
         return Ok(Some(var));
     }
 
     // Parse target rule (THIS INCREMENTS INDEX - it advances past recipes)
     if line.contains(':') && !line.trim_start().starts_with('\t') {
-        let target = parse_target_rule(lines, index)?;
+        let target = parse_target_rule(lines, index).map_err(|e| e.to_string())?;
         // parse_target_rule already incremented index past the target and its recipe
         // So we DON'T increment it again
         return Ok(Some(target));
@@ -540,19 +614,26 @@ fn parse_conditional_item(lines: &[&str], index: &mut usize) -> Result<Option<Ma
 /// %.o: %.c
 ///     $(CC) -c $< -o $@
 /// ```
-fn parse_target_rule(lines: &[&str], index: &mut usize) -> Result<MakeItem, String> {
+fn parse_target_rule(lines: &[&str], index: &mut usize) -> Result<MakeItem, MakeParseError> {
     let line = lines[*index];
     let line_num = *index + 1;
 
     // Split on ':' to get target and prerequisites
     let parts: Vec<&str> = line.splitn(2, ':').collect();
     if parts.len() != 2 {
-        return Err(format!("Invalid target rule syntax at line {}", line_num));
+        let location = SourceLocation::new(line_num)
+            .with_source_line(line.to_string());
+        return Err(MakeParseError::InvalidTargetRule {
+            location,
+            found: line.trim().to_string(),
+        });
     }
 
     let name = parts[0].trim().to_string();
     if name.is_empty() {
-        return Err(format!("Empty target name at line {}", line_num));
+        let location = SourceLocation::new(line_num)
+            .with_source_line(line.to_string());
+        return Err(MakeParseError::EmptyTargetName { location });
     }
 
     // Parse prerequisites (space-separated)

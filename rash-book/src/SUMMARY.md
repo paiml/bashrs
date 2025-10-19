@@ -33,7 +33,11 @@
 - [Chapter 16: MCP Server Integration](ch16-mcp-server-tdd.md)
 - [Chapter 17: Testing and Quality](ch17-testing-tdd.md)
 
-## Part V: Edge Cases and Limitations
+## Part V: Quality Enforcement
+
+- [Chapter 21: Makefile and Shell Linting](ch21-makefile-linting-tdd.md)
+
+## Part VI: Edge Cases and Limitations
 
 - [Chapter 18: Known Limitations](ch18-limitations.md)
 - [Chapter 19: Workarounds and Best Practices](ch19-best-practices.md)
