@@ -183,6 +183,29 @@ pub enum MakeCommands {
         #[arg(long, value_enum, default_value = "human")]
         format: ReportFormat,
     },
+
+    /// Lint Makefile for quality issues
+    Lint {
+        /// Input Makefile
+        #[arg(value_name = "FILE")]
+        input: PathBuf,
+
+        /// Output format
+        #[arg(long, value_enum, default_value = "human")]
+        format: LintFormat,
+
+        /// Apply automatic fixes
+        #[arg(long)]
+        fix: bool,
+
+        /// Output file (defaults to in-place with --fix)
+        #[arg(short, long)]
+        output: Option<PathBuf>,
+
+        /// Filter by specific rules (comma-separated: MAKE001,MAKE003)
+        #[arg(long)]
+        rules: Option<String>,
+    },
 }
 
 /// Runtime options for compilation

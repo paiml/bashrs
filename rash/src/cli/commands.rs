@@ -625,6 +625,16 @@ fn handle_make_command(command: MakeCommands) -> Result<()> {
             info!("Purifying {}", input.display());
             make_purify_command(&input, output.as_deref(), fix, report, format)
         }
+        MakeCommands::Lint {
+            input,
+            format,
+            fix,
+            output,
+            rules,
+        } => {
+            info!("Linting {}", input.display());
+            make_lint_command(&input, format, fix, output.as_deref(), rules.as_deref())
+        }
     }
 }
 
@@ -732,6 +742,146 @@ fn print_purify_report(result: &crate::make_parser::purify::PurificationResult, 
             }
         }
     }
+}
+
+fn make_lint_command(
+    input: &Path,
+    format: LintFormat,
+    fix: bool,
+    output: Option<&Path>,
+    rules: Option<&str>,
+) -> Result<()> {
+    use crate::linter::{
+        autofix::{apply_fixes_to_file, FixOptions},
+        output::{write_results, OutputFormat},
+        rules::lint_makefile,
+    };
+
+    // Read input file
+    let source = fs::read_to_string(input).map_err(Error::Io)?;
+
+    // Run linter
+    let mut result = lint_makefile(&source);
+
+    // Filter by specific rules if requested
+    if let Some(rule_filter) = rules {
+        let allowed_rules: Vec<&str> = rule_filter.split(',').map(|s| s.trim()).collect();
+        result.diagnostics.retain(|d| {
+            allowed_rules.iter().any(|rule| d.code.contains(rule))
+        });
+    }
+
+    // Apply fixes if requested
+    if fix && result.diagnostics.iter().any(|d| d.fix.is_some()) {
+        if let Some(output_path) = output {
+            // Output to separate file: don't modify original
+            // Apply fixes in memory and write to output
+            use crate::linter::autofix::{apply_fixes, FixOptions};
+
+            let fix_options = FixOptions {
+                create_backup: false,  // Don't create backup for output file
+                dry_run: false,
+                backup_suffix: String::new(),
+            };
+
+            let fix_result = apply_fixes(&source, &result, &fix_options)
+                .map_err(|e| Error::Internal(format!("Failed to apply fixes: {e}")))?;
+
+            if let Some(fixed_source) = fix_result.modified_source {
+                fs::write(output_path, &fixed_source).map_err(Error::Io)?;
+                info!("Fixed Makefile written to {}", output_path.display());
+
+                // Re-lint the fixed content
+                let result_after = lint_makefile(&fixed_source);
+                if result_after.diagnostics.is_empty() {
+                    info!("✓ All issues fixed!");
+                    return Ok(());
+                } else {
+                    info!("Remaining issues after auto-fix:");
+                    let output_format = match format {
+                        LintFormat::Human => OutputFormat::Human,
+                        LintFormat::Json => OutputFormat::Json,
+                        LintFormat::Sarif => OutputFormat::Sarif,
+                    };
+                    let file_path = output_path.to_str().unwrap_or("unknown");
+                    write_results(
+                        &mut std::io::stdout(),
+                        &result_after,
+                        output_format,
+                        file_path,
+                    )
+                    .map_err(|e| Error::Internal(format!("Failed to write lint results: {e}")))?;
+                }
+            }
+        } else {
+            // In-place fixing: modify original file
+            let options = FixOptions {
+                create_backup: true,
+                dry_run: false,
+                backup_suffix: ".bak".to_string(),
+            };
+
+            match apply_fixes_to_file(input, &result, &options) {
+                Ok(fix_result) => {
+                    info!(
+                        "Applied {} fix(es) to {}",
+                        fix_result.fixes_applied,
+                        input.display()
+                    );
+                    if let Some(backup_path) = &fix_result.backup_path {
+                        info!("Backup created at {}", backup_path);
+                    }
+
+                    // Re-lint to show remaining issues
+                    let source_after = fs::read_to_string(input).map_err(Error::Io)?;
+                    let result_after = lint_makefile(&source_after);
+
+                    if result_after.diagnostics.is_empty() {
+                        info!("✓ All issues fixed!");
+                        return Ok(());
+                    } else {
+                        info!("Remaining issues after auto-fix:");
+                        let output_format = match format {
+                            LintFormat::Human => OutputFormat::Human,
+                            LintFormat::Json => OutputFormat::Json,
+                            LintFormat::Sarif => OutputFormat::Sarif,
+                        };
+                        let file_path = input.to_str().unwrap_or("unknown");
+                        write_results(
+                            &mut std::io::stdout(),
+                            &result_after,
+                            output_format,
+                            file_path,
+                        )
+                        .map_err(|e| Error::Internal(format!("Failed to write lint results: {e}")))?;
+                    }
+                }
+                Err(e) => {
+                    return Err(Error::Internal(format!("Failed to apply fixes: {e}")));
+                }
+            }
+        }
+    } else {
+        // Just show lint results
+        let output_format = match format {
+            LintFormat::Human => OutputFormat::Human,
+            LintFormat::Json => OutputFormat::Json,
+            LintFormat::Sarif => OutputFormat::Sarif,
+        };
+
+        let file_path = input.to_str().unwrap_or("unknown");
+        write_results(&mut std::io::stdout(), &result, output_format, file_path)
+            .map_err(|e| Error::Internal(format!("Failed to write lint results: {e}")))?;
+
+        // Exit with appropriate code
+        if result.has_errors() {
+            std::process::exit(2);
+        } else if result.has_warnings() {
+            std::process::exit(1);
+        }
+    }
+
+    Ok(())
 }
 
 // Playground command removed in v1.0 - will be moved to separate rash-playground crate in v1.1
