@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"constant":["SECRET_PATTERNS"],"fn":["check"]};

@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"fn":["lint_shell"],"mod":["sc2046","sc2086","sc2116"]};
+window.SIDEBAR_ITEMS = {"fn":["lint_makefile","lint_shell"],"mod":["det001","det002","det003","idem001","idem002","idem003","make001","make002","make003","make004","make005","sc2046","sc2086","sc2116","sec001","sec002","sec003","sec004","sec005","sec006","sec007","sec008"]};

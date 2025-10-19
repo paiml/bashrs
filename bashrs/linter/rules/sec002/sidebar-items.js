@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"constant":["DANGEROUS_COMMANDS"],"fn":["check"]};
