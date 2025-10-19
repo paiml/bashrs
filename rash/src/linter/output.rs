@@ -59,6 +59,8 @@ fn write_human<W: Write>(
         let icon = match diag.severity {
             Severity::Error => "✗",
             Severity::Warning => "⚠",
+            Severity::Risk => "◆",
+            Severity::Perf => "⚡",
             Severity::Info => "ℹ",
             Severity::Note => "→",
         };
@@ -238,6 +240,8 @@ fn write_sarif<W: Write>(
             let level = match d.severity {
                 Severity::Error => "error",
                 Severity::Warning => "warning",
+                Severity::Risk => "warning", // Map Risk to warning in SARIF
+                Severity::Perf => "note",    // Map Perf to note in SARIF
                 Severity::Info | Severity::Note => "note",
             };
 

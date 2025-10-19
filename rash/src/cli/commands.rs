@@ -103,9 +103,9 @@ pub fn execute_command(cli: Cli) -> Result<()> {
             )
         }
 
-        Commands::Lint { input, format, fix } => {
+        Commands::Lint { input, format, fix, fix_assumptions, output } => {
             info!("Linting {}", input.display());
-            lint_command(&input, format, fix)
+            lint_command(&input, format, fix, fix_assumptions, output.as_deref())
         }
 
         Commands::Make { command } => {
@@ -526,7 +526,7 @@ fn handle_compile(
     Ok(())
 }
 
-fn lint_command(input: &Path, format: LintFormat, fix: bool) -> Result<()> {
+fn lint_command(input: &Path, format: LintFormat, fix: bool, fix_assumptions: bool, output: Option<&Path>) -> Result<()> {
     use crate::linter::{
         autofix::{apply_fixes_to_file, FixOptions},
         output::{write_results, OutputFormat},
@@ -545,6 +545,8 @@ fn lint_command(input: &Path, format: LintFormat, fix: bool) -> Result<()> {
             create_backup: true,
             dry_run: false,
             backup_suffix: ".bak".to_string(),
+            apply_assumptions: fix_assumptions,  // NEW: Pass fix_assumptions flag
+            output_path: output.map(|p| p.to_path_buf()),  // NEW: Optional output path
         };
 
         match apply_fixes_to_file(input, &result, &options) {
@@ -782,6 +784,8 @@ fn make_lint_command(
                 create_backup: false,  // Don't create backup for output file
                 dry_run: false,
                 backup_suffix: String::new(),
+                apply_assumptions: false,  // TODO: Wire up fix_assumptions flag
+                output_path: None,
             };
 
             let fix_result = apply_fixes(&source, &result, &fix_options)
@@ -819,6 +823,8 @@ fn make_lint_command(
                 create_backup: true,
                 dry_run: false,
                 backup_suffix: ".bak".to_string(),
+                apply_assumptions: false,  // TODO: Wire up fix_assumptions flag
+                output_path: None,
             };
 
             match apply_fixes_to_file(input, &result, &options) {

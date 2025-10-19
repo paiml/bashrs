@@ -35,13 +35,19 @@ pub fn check(source: &str) -> LintResult {
                 col + 8,       // end_col ($RANDOM is 7 chars, +1 for 1-indexed)
             );
 
+            let fix = Fix::new_unsafe(vec![
+                "Option 1: Use version/build ID: SESSION_ID=\"session-${VERSION}\"".to_string(),
+                "Option 2: Use timestamp as argument: SESSION_ID=\"$1\"".to_string(),
+                "Option 3: Use hash of input: SESSION_ID=$(echo \"$INPUT\" | sha256sum | cut -c1-8)".to_string(),
+            ]);
+
             let diag = Diagnostic::new(
                 "DET001",
                 Severity::Error,
-                "Non-deterministic $RANDOM usage",
+                "Non-deterministic $RANDOM usage - requires manual fix (UNSAFE)",
                 span,
             )
-            .with_fix(Fix::new("${VERSION}"));
+            .with_fix(fix);
 
             result.add(diag);
         }
@@ -63,7 +69,7 @@ mod tests {
         let diag = &result.diagnostics[0];
         assert_eq!(diag.code, "DET001");
         assert_eq!(diag.severity, Severity::Error);
-        assert_eq!(diag.message, "Non-deterministic $RANDOM usage");
+        assert_eq!(diag.message, "Non-deterministic $RANDOM usage - requires manual fix (UNSAFE)");
     }
 
     #[test]
@@ -73,7 +79,11 @@ mod tests {
 
         assert!(result.diagnostics[0].fix.is_some());
         let fix = result.diagnostics[0].fix.as_ref().unwrap();
-        assert_eq!(fix.replacement, "${VERSION}");
+        // UNSAFE fix: no automatic replacement, provides suggestions
+        assert_eq!(fix.replacement, "");
+        assert!(fix.is_unsafe());
+        assert!(!fix.suggested_alternatives.is_empty());
+        assert!(fix.suggested_alternatives.len() >= 3);
     }
 
     #[test]

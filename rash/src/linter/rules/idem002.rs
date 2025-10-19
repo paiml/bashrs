@@ -37,13 +37,18 @@ pub fn check(source: &str) -> LintResult {
                     col + 3,
                 );
 
+                let fix = Fix::new_with_assumptions(
+                    "rm -f",
+                    vec!["Missing file is not an error condition".to_string()],
+                );
+
                 let diag = Diagnostic::new(
                     "IDEM002",
                     Severity::Warning,
-                    "Non-idempotent rm - add -f flag",
+                    "Non-idempotent rm - add -f flag (SAFE-WITH-ASSUMPTIONS)",
                     span,
                 )
-                .with_fix(Fix::new("rm -f"));
+                .with_fix(fix);
 
                 result.add(diag);
             }

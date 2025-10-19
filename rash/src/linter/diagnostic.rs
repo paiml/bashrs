@@ -51,13 +51,17 @@ impl fmt::Display for Span {
 /// Severity level of a diagnostic
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum Severity {
-    /// Informational message
+    /// Informational message (style, best practices)
     Info,
     /// Suggestion or note
     Note,
-    /// Warning (should fix but not critical)
+    /// Performance anti-pattern (not critical)
+    Perf,
+    /// Risk: potential runtime failure (context-dependent)
+    Risk,
+    /// Warning (likely bug, should fix)
     Warning,
-    /// Error (must fix)
+    /// Error (definite syntax or semantic error, must fix)
     Error,
 }
 
@@ -66,8 +70,67 @@ impl fmt::Display for Severity {
         match self {
             Severity::Info => write!(f, "info"),
             Severity::Note => write!(f, "note"),
+            Severity::Perf => write!(f, "perf"),
+            Severity::Risk => write!(f, "risk"),
             Severity::Warning => write!(f, "warning"),
             Severity::Error => write!(f, "error"),
+        }
+    }
+}
+
+/// Fix safety level (following APR research best practices)
+///
+/// Based on peer-reviewed research in Automated Program Repair:
+/// - Le et al. (2017): S3: Syntax- and Semantic-Guided Repair Synthesis
+/// - Monperrus (2018): Automatic Software Repair: A Bibliography
+///
+/// Key insight: Plausible patches ≠ Correct patches
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum FixSafetyLevel {
+    /// SAFE: Semantic preservation guaranteed
+    ///
+    /// Criteria:
+    /// - No change to control flow
+    /// - No change to data flow
+    /// - No change to observable side effects
+    /// - Equivalent AST modulo formatting/style
+    ///
+    /// Examples: Quoting variables (SC2086), formatting
+    ///
+    /// Applied by: `--fix` (default)
+    Safe,
+
+    /// SAFE-WITH-ASSUMPTIONS: Semantic preservation under documented assumptions
+    ///
+    /// Criteria:
+    /// - Semantics preserved for 95%+ of real-world usage
+    /// - Edge cases are well-documented
+    /// - Failure mode is fail-safe (errors become explicit, not silent)
+    ///
+    /// Examples: `rm -f` (IDEM002), `mkdir -p` (IDEM001)
+    ///
+    /// Applied by: `--fix --fix-assumptions` (explicit opt-in)
+    SafeWithAssumptions,
+
+    /// UNSAFE: Semantic transformation required
+    ///
+    /// Criteria:
+    /// - Changes control flow or data flow
+    /// - Adds or removes operations
+    /// - Requires understanding of developer intent
+    ///
+    /// Examples: IDEM003 (adds `rm -f`), DET001 (needs intent)
+    ///
+    /// Applied by: NEVER (human-only, provides suggestions)
+    Unsafe,
+}
+
+impl fmt::Display for FixSafetyLevel {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            FixSafetyLevel::Safe => write!(f, "safe"),
+            FixSafetyLevel::SafeWithAssumptions => write!(f, "safe-with-assumptions"),
+            FixSafetyLevel::Unsafe => write!(f, "unsafe"),
         }
     }
 }
@@ -77,14 +140,64 @@ impl fmt::Display for Severity {
 pub struct Fix {
     /// The replacement text
     pub replacement: String,
+    /// Safety level of this fix
+    pub safety_level: FixSafetyLevel,
+    /// Assumptions required for this fix (for SafeWithAssumptions)
+    pub assumptions: Vec<String>,
+    /// Alternative suggested fixes (for Unsafe - human must choose)
+    pub suggested_alternatives: Vec<String>,
 }
 
 impl Fix {
-    /// Create a new fix
+    /// Create a new SAFE fix (default)
     pub fn new(replacement: impl Into<String>) -> Self {
         Self {
             replacement: replacement.into(),
+            safety_level: FixSafetyLevel::Safe,
+            assumptions: Vec::new(),
+            suggested_alternatives: Vec::new(),
         }
+    }
+
+    /// Create a SAFE-WITH-ASSUMPTIONS fix
+    pub fn new_with_assumptions(
+        replacement: impl Into<String>,
+        assumptions: Vec<String>,
+    ) -> Self {
+        Self {
+            replacement: replacement.into(),
+            safety_level: FixSafetyLevel::SafeWithAssumptions,
+            assumptions,
+            suggested_alternatives: Vec::new(),
+        }
+    }
+
+    /// Create an UNSAFE fix (provides suggestions, no automatic replacement)
+    pub fn new_unsafe(suggested_alternatives: Vec<String>) -> Self {
+        Self {
+            replacement: String::new(), // No automatic replacement
+            safety_level: FixSafetyLevel::Unsafe,
+            assumptions: Vec::new(),
+            suggested_alternatives,
+        }
+    }
+
+    /// Check if this fix can be applied with `--fix`
+    pub fn is_safe(&self) -> bool {
+        self.safety_level == FixSafetyLevel::Safe
+    }
+
+    /// Check if this fix can be applied with `--fix --fix-assumptions`
+    pub fn is_safe_with_assumptions(&self) -> bool {
+        matches!(
+            self.safety_level,
+            FixSafetyLevel::Safe | FixSafetyLevel::SafeWithAssumptions
+        )
+    }
+
+    /// Check if this fix should never be auto-applied
+    pub fn is_unsafe(&self) -> bool {
+        self.safety_level == FixSafetyLevel::Unsafe
     }
 }
 
