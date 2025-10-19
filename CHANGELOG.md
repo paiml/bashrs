@@ -5,6 +5,94 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.1.0] - 2025-10-19 (Unreleased)
+
+### 🏗️ Major Feature - Fix Safety Taxonomy
+
+**Achievement**: **Scientific Auto-Fix with 3-Tier Safety Classification** 🏆
+
+This feature release implements a scientifically-grounded **Fix Safety Taxonomy** that enables safe automated fixes while preventing dangerous automatic transformations, based on Automated Program Repair (APR) research.
+
+#### Added
+
+**Fix Safety Taxonomy** (Sprint 79):
+- **3-tier safety classification**:
+  - **SAFE**: Auto-applied by default (SC2086, SC2046, SC2116)
+  - **SAFE-WITH-ASSUMPTIONS**: Require explicit opt-in (IDEM001, IDEM002)
+  - **UNSAFE**: Never auto-applied, provide suggestions (DET001, DET002, IDEM003)
+
+- **New CLI flags**:
+  - `--fix-assumptions`: Apply SAFE + SAFE-WITH-ASSUMPTIONS fixes (requires `--fix`)
+  - `--output <PATH>`: Write fixed content to specified file
+
+- **Enhanced severity system**:
+  - Added `Perf` (⚡): Performance anti-patterns
+  - Added `Risk` (◆): Context-dependent runtime failures
+  - Total: 6 severity levels (Error, Warning, Risk, Perf, Info, Note)
+
+- **Enhanced Fix struct**:
+  - `safety_level: FixSafetyLevel` - Classify fix safety
+  - `assumptions: Vec<String>` - Document SAFE-WITH-ASSUMPTIONS requirements
+  - `suggested_alternatives: Vec<String>` - Provide UNSAFE fix suggestions
+
+**Rule Classifications**:
+- **SAFE** (3 rules): SC2086, SC2046, SC2116
+- **SAFE-WITH-ASSUMPTIONS** (2 rules): IDEM001, IDEM002
+- **UNSAFE** (3 rules): IDEM003, DET001, DET002
+
+**Test Coverage**:
+- 17 comprehensive EXTREME TDD tests (`test_fix_safety_taxonomy.rs`)
+- 2/2 critical integration tests passing
+- 1,538/1,538 library tests passing (0 regressions)
+
+**Scientific Grounding**:
+- APR research: Le et al. (2017), Monperrus (2018)
+- Reproducible Builds: Lamb et al. (2017)
+- IaC verification: Rahman et al. (2020)
+
+#### Changed
+
+**Updated Rules**:
+- **IDEM001**: Now SAFE-WITH-ASSUMPTIONS (was SAFE)
+  - Assumption: "Directory creation failure is not a critical error"
+- **IDEM002**: Now SAFE-WITH-ASSUMPTIONS (was SAFE)
+  - Assumption: "Missing file is not an error condition"
+- **IDEM003**: Now UNSAFE (was SAFE)
+  - Provides 3 manual fix suggestions instead of auto-fix
+- **DET001**: Now UNSAFE (was SAFE)
+  - Provides 3 manual fix suggestions instead of auto-fix
+- **DET002**: Now UNSAFE (was SAFE)
+  - Provides 4 manual fix suggestions instead of auto-fix
+
+#### Examples
+
+```bash
+# Apply SAFE fixes only (default)
+bashrs lint script.sh --fix
+
+# Apply SAFE + SAFE-WITH-ASSUMPTIONS
+bashrs lint script.sh --fix --fix-assumptions
+
+# Output to different file
+bashrs lint script.sh --fix --output fixed.sh
+```
+
+**Before (all auto-fixed)**:
+```bash
+echo $VAR          # Auto-fixed to "$VAR"
+mkdir /tmp/dir     # Auto-fixed to mkdir -p
+SESSION_ID=$RANDOM # Auto-fixed to ${VERSION}
+```
+
+**After (safety-aware)**:
+```bash
+echo $VAR          # ✅ Auto-fixed to "$VAR" (SAFE)
+mkdir /tmp/dir     # ⚠️  Requires --fix-assumptions (SAFE-WITH-ASSUMPTIONS)
+SESSION_ID=$RANDOM # ❌ Never auto-fixed, provides suggestions (UNSAFE)
+```
+
+---
+
 ## [2.0.1] - 2025-10-19
 
 ### 🔧 Critical Bug Fix - Auto-Fix Syntax Preservation (Issue #1)

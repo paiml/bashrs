@@ -45,13 +45,20 @@ pub fn check(source: &str) -> LintResult {
                     col + len + 1,
                 );
 
+                let fix = Fix::new_unsafe(vec![
+                    "Option 1: Use version: RELEASE=\"release-${VERSION}\"".to_string(),
+                    "Option 2: Use git commit: RELEASE=\"release-$(git rev-parse --short HEAD)\"".to_string(),
+                    "Option 3: Pass as argument: RELEASE=\"release-$1\"".to_string(),
+                    "Option 4: Use SOURCE_DATE_EPOCH for reproducible builds".to_string(),
+                ]);
+
                 let diag = Diagnostic::new(
                     "DET002",
                     Severity::Error,
-                    "Non-deterministic timestamp usage",
+                    "Non-deterministic timestamp usage - requires manual fix (UNSAFE)",
                     span,
                 )
-                .with_fix(Fix::new("${VERSION}"));
+                .with_fix(fix);
 
                 result.add(diag);
                 break; // Only report once per line
@@ -100,7 +107,11 @@ mod tests {
 
         assert!(result.diagnostics[0].fix.is_some());
         let fix = result.diagnostics[0].fix.as_ref().unwrap();
-        assert_eq!(fix.replacement, "${VERSION}");
+        // UNSAFE fix: no automatic replacement, provides suggestions
+        assert_eq!(fix.replacement, "");
+        assert!(fix.is_unsafe());
+        assert!(!fix.suggested_alternatives.is_empty());
+        assert!(fix.suggested_alternatives.len() >= 3);
     }
 
     #[test]

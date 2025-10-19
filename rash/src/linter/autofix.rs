@@ -61,6 +61,11 @@ pub struct FixOptions {
     pub dry_run: bool,
     /// Backup file suffix
     pub backup_suffix: String,
+    /// Apply fixes with assumptions (SAFE + SAFE-WITH-ASSUMPTIONS)
+    /// If false, only SAFE fixes are applied
+    pub apply_assumptions: bool,
+    /// Optional output path (if None, modifies file in-place)
+    pub output_path: Option<std::path::PathBuf>,
 }
 
 impl Default for FixOptions {
@@ -69,6 +74,8 @@ impl Default for FixOptions {
             create_backup: true,
             dry_run: false,
             backup_suffix: ".bak".to_string(),
+            apply_assumptions: false,  // Default: SAFE fixes only
+            output_path: None,
         }
     }
 }
@@ -109,11 +116,24 @@ pub fn apply_fixes(
     let mut modified = source.to_string();
     let mut fixes_applied = 0;
 
-    // Get diagnostics with fixes
+    // Get diagnostics with fixes, filtered by safety level
     let mut diagnostics_with_fixes: Vec<&Diagnostic> = result
         .diagnostics
         .iter()
-        .filter(|d| d.fix.is_some())
+        .filter(|d| {
+            if let Some(fix) = &d.fix {
+                // Apply based on safety level and options
+                if options.apply_assumptions {
+                    // With --fix-assumptions: SAFE + SAFE-WITH-ASSUMPTIONS
+                    fix.is_safe_with_assumptions()
+                } else {
+                    // Default (--fix only): SAFE only
+                    fix.is_safe()
+                }
+            } else {
+                false
+            }
+        })
         .collect();
 
     // Sort by priority (high to low), then by position (reverse order)
@@ -194,7 +214,13 @@ pub fn apply_fixes_to_file(
     // Write modified source if not dry-run
     if !options.dry_run {
         if let Some(ref modified) = fix_result.modified_source {
-            fs::write(file_path, modified)?;
+            // Write to output_path if specified, otherwise in-place
+            let output = if let Some(ref out_path) = options.output_path {
+                out_path
+            } else {
+                file_path
+            };
+            fs::write(output, modified)?;
         }
     }
 

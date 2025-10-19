@@ -136,9 +136,17 @@ pub enum Commands {
         #[arg(long, value_enum, default_value = "human")]
         format: LintFormat,
 
-        /// Enable auto-fix suggestions
+        /// Enable auto-fix suggestions (SAFE fixes only)
         #[arg(long)]
         fix: bool,
+
+        /// Apply fixes with assumptions (requires --fix, includes SAFE + SAFE-WITH-ASSUMPTIONS fixes)
+        #[arg(long, requires = "fix")]
+        fix_assumptions: bool,
+
+        /// Output file for fixed content
+        #[arg(short, long)]
+        output: Option<PathBuf>,
     },
 
     /// Makefile parsing, purification, and transformation

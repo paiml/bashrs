@@ -37,13 +37,19 @@ pub fn check(source: &str) -> LintResult {
                     col + 6,
                 );
 
+                let fix = Fix::new_unsafe(vec![
+                    "Option 1: rm -f /target && ln -s /source /target".to_string(),
+                    "Option 2: ln -sf /source /target (may not work on all systems)".to_string(),
+                    "Option 3: [ -e /target ] && rm /target; ln -s /source /target".to_string(),
+                ]);
+
                 let diag = Diagnostic::new(
                     "IDEM003",
                     Severity::Warning,
-                    "Non-idempotent ln - remove target first",
+                    "Non-idempotent ln - requires manual fix (UNSAFE)",
                     span,
                 )
-                .with_fix(Fix::new("rm -f <target> && ln -s"));
+                .with_fix(fix);
 
                 result.add(diag);
             }
@@ -83,6 +89,11 @@ mod tests {
 
         assert!(result.diagnostics[0].fix.is_some());
         let fix = result.diagnostics[0].fix.as_ref().unwrap();
-        assert!(fix.replacement.contains("rm -f"));
+        // UNSAFE fix: no automatic replacement, provides suggestions
+        assert_eq!(fix.replacement, "");
+        assert!(fix.is_unsafe());
+        assert!(!fix.suggested_alternatives.is_empty());
+        // Verify suggestions mention rm -f
+        assert!(fix.suggested_alternatives.iter().any(|s| s.contains("rm -f")));
     }
 }

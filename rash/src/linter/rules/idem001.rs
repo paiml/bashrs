@@ -37,13 +37,18 @@ pub fn check(source: &str) -> LintResult {
                     col + 6,
                 );
 
+                let fix = Fix::new_with_assumptions(
+                    "mkdir -p",
+                    vec!["Directory creation failure is not a critical error".to_string()],
+                );
+
                 let diag = Diagnostic::new(
                     "IDEM001",
                     Severity::Warning,
-                    "Non-idempotent mkdir - add -p flag",
+                    "Non-idempotent mkdir - add -p flag (SAFE-WITH-ASSUMPTIONS)",
                     span,
                 )
-                .with_fix(Fix::new("mkdir -p"));
+                .with_fix(fix);
 
                 result.add(diag);
             }
