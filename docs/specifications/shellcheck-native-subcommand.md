@@ -1073,8 +1073,6 @@ The **`bashrs lint` subcommand** provides:
 - [POSIX Shell Specification](https://pubs.opengroup.org/onlinepubs/9699919799/utilities/V3_chap02.html)
 - [SARIF Specification](https://github.com/oasis-tcs/sarif-spec)
 - [Language Server Protocol](https://microsoft.github.io/language-server-protocol/)
-- [bashrs Formal Verification](../FORMAL_VERIFICATION.md)
-- [bashrs Effect System](../EFFECT_SYSTEM.md)
 
 ---
 

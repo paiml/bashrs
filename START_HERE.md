@@ -133,7 +133,7 @@ I've created comprehensive quality infrastructure:
 ### **Templates** (3 files)
 - **[.quality/SPRINT_TEMPLATE.md](.quality/SPRINT_TEMPLATE.md)** - Sprint tracking
 - **[.github/PULL_REQUEST_TEMPLATE.md](.github/PULL_REQUEST_TEMPLATE.md)** - PR checklist
-- **[.github/ISSUE_TEMPLATE/](. github/ISSUE_TEMPLATE/)** - Bug & feature templates
+- **[.github/ISSUE_TEMPLATE/](.github/ISSUE_TEMPLATE/)** - Bug & feature templates
 
 ### **Automation** (1 file)
 - **[scripts/quality-gates.sh](scripts/quality-gates.sh)** - 9-gate runner
