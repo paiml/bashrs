@@ -797,3 +797,192 @@ All outputs must meet:
 - ✅ **NEW**: All CLI tests use `assert_cmd`
 - ✅ **NEW**: All tests follow `test_<TASK_ID>_<feature>_<scenario>` naming
 
+---
+
+## 📦 Release Protocol (MANDATORY)
+
+**CRITICAL**: Every release MUST be published to both GitHub AND crates.io. Following Toyota Way principles, releasing is NOT complete until both distribution channels are updated.
+
+### Release Checklist
+
+**MANDATORY steps for ALL releases** (major, minor, patch):
+
+#### Phase 1: Quality Verification (STOP THE LINE if any fail)
+- [ ] ✅ **All tests pass**: `cargo test --lib` (100% pass rate required)
+- [ ] ✅ **Integration tests pass**: All CLI and end-to-end tests
+- [ ] ✅ **Clippy clean**: `cargo clippy --all-targets -- -D warnings`
+- [ ] ✅ **Format check**: `cargo fmt -- --check`
+- [ ] ✅ **No regressions**: All existing features still work
+- [ ] ✅ **Shellcheck**: All generated scripts pass `shellcheck -s sh`
+
+#### Phase 2: Documentation (Required before release)
+- [ ] ✅ **CHANGELOG.md updated**: Complete release notes with:
+  - Version number and date
+  - All bug fixes with issue numbers
+  - All new features
+  - Breaking changes (if any)
+  - Migration guide (if needed)
+  - Quality metrics (tests passing, coverage, etc.)
+- [ ] ✅ **README.md updated**: If new features added
+- [ ] ✅ **Version bumped**: Update `Cargo.toml` workspace version
+
+#### Phase 3: Git Release
+- [ ] ✅ **Commit created**: `git add` all changes, create commit with:
+  ```bash
+  git commit -m "release: v<version> - <brief description>
+
+  <detailed release notes>
+
+  🤖 Generated with Claude Code
+  Co-Authored-By: Claude <noreply@anthropic.com>"
+  ```
+- [ ] ✅ **Git tag created**: Annotated tag with release notes
+  ```bash
+  git tag -a v<version> -m "v<version> - <description>
+
+  <release notes summary>"
+  ```
+- [ ] ✅ **Pushed to GitHub**: Both commit and tags
+  ```bash
+  git push && git push --tags
+  ```
+
+#### Phase 4: crates.io Release (MANDATORY - DO NOT SKIP)
+- [ ] ✅ **Dry run verification**: Test the publish process
+  ```bash
+  cargo publish --dry-run
+  ```
+- [ ] ✅ **Review package contents**: Verify what will be published
+  ```bash
+  cargo package --list
+  ```
+- [ ] ✅ **Publish to crates.io**: Actually publish the release
+  ```bash
+  cargo publish
+  ```
+- [ ] ✅ **Verify publication**: Check https://crates.io/crates/bashrs
+- [ ] ✅ **Test installation**: Verify users can install
+  ```bash
+  cargo install bashrs --version <version>
+  ```
+
+#### Phase 5: Verification (Post-Release)
+- [ ] ✅ **GitHub release visible**: Check https://github.com/paiml/bashrs/releases
+- [ ] ✅ **crates.io listing updated**: Verify version on crates.io
+- [ ] ✅ **Installation works**: Test `cargo install bashrs`
+- [ ] ✅ **Documentation builds**: Check docs.rs/bashrs
+
+### Release Types and Versioning
+
+Following [Semantic Versioning](https://semver.org/):
+
+**MAJOR version** (x.0.0) - Breaking changes:
+- Incompatible API changes
+- Removal of deprecated features
+- Major workflow changes
+- Example: v1.0.0 → v2.0.0
+
+**MINOR version** (0.x.0) - New features (backward compatible):
+- New CLI commands
+- New linter rules
+- New features without breaking existing code
+- Example: v2.0.0 → v2.1.0
+
+**PATCH version** (0.0.x) - Bug fixes only:
+- Critical bug fixes (like Issue #1 auto-fix bug)
+- Security fixes
+- Documentation fixes
+- No new features
+- Example: v2.0.0 → v2.0.1
+
+### Example: Complete Release Process (v2.0.1)
+
+Following the v2.0.1 release (Issue #1 fix) as reference:
+
+```bash
+# Phase 1: Quality Verification
+cargo test --lib                    # All 1,545 tests pass ✅
+cargo clippy --all-targets         # No warnings ✅
+cargo fmt -- --check                # Formatted ✅
+
+# Phase 2: Documentation
+# - Updated CHANGELOG.md with Issue #1 fix details ✅
+# - Bumped Cargo.toml version 2.0.0 → 2.0.1 ✅
+
+# Phase 3: Git Release
+git add CHANGELOG.md Cargo.toml rash/src/linter/rules/*.rs rash/tests/test_issue_001_autofix.rs docs/
+git commit -m "fix: v2.0.1 - Critical auto-fix bug (Issue #1)..."
+git tag -a v2.0.1 -m "v2.0.1 - Critical Auto-Fix Bug Fix..."
+git push && git push --tags         # Pushed to GitHub ✅
+
+# Phase 4: crates.io Release (MANDATORY)
+cargo publish --dry-run             # Verify package ✅
+cargo package --list                # Review contents ✅
+cargo publish                       # Publish to crates.io ✅
+
+# Phase 5: Verification
+# - Check GitHub: https://github.com/paiml/bashrs/releases/tag/v2.0.1 ✅
+# - Check crates.io: https://crates.io/crates/bashrs ✅
+# - Test install: cargo install bashrs --version 2.0.1 ✅
+```
+
+### Common Release Mistakes to Avoid
+
+❌ **DO NOT**:
+1. Skip crates.io publishing (users won't get the update)
+2. Release without updating CHANGELOG.md
+3. Release with failing tests
+4. Release without testing the package
+5. Create release without git tag
+6. Push tag before verifying local tests
+
+✅ **ALWAYS**:
+1. Publish to BOTH GitHub and crates.io
+2. Follow all 5 phases in order
+3. Test the package before publishing
+4. Update all documentation
+5. Verify the release after publishing
+
+### crates.io Publishing Requirements
+
+Before you can publish to crates.io, ensure:
+
+1. **Cargo.toml metadata complete**:
+   - `description` field filled
+   - `license` specified (MIT)
+   - `repository` URL correct
+   - `homepage` URL set
+   - `keywords` relevant (max 5)
+   - `categories` appropriate
+
+2. **crates.io API token configured**:
+   ```bash
+   cargo login <your-token>
+   ```
+
+3. **No local uncommitted changes**:
+   ```bash
+   git status  # Should be clean
+   ```
+
+4. **Version not already published**:
+   - Check https://crates.io/crates/bashrs/versions
+   - Cannot republish same version
+
+### Release Frequency
+
+**Patch releases** (bug fixes): As needed, within 24-48 hours of critical bugs
+**Minor releases** (new features): Monthly or when feature is complete
+**Major releases** (breaking changes): Quarterly or when necessary
+
+### Toyota Way Applied to Releases
+
+- **🚨 Jidoka (自働化)**: Build quality into the release process - all tests must pass
+- **🔍 Hansei (反省)**: Reflect on what could be improved in release process
+- **📈 Kaizen (改善)**: Continuously improve release automation
+- **🎯 Genchi Genbutsu (現地現物)**: Verify the release works for real users (test install)
+
+**Remember**: A release is NOT complete until it's available on crates.io. GitHub releases alone are insufficient for Rust projects.
+
+---
+
