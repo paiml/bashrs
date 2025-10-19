@@ -11,6 +11,7 @@ SHELL := /bin/bash
 .PHONY: update-deps update-deps-aggressive update-deps-check update-deps-workspace
 .PHONY: coverage coverage-ci coverage-clean
 .PHONY: kaizen demo-mode
+.PHONY: lint-scripts lint-makefile
 
 # Kaizen - Continuous Improvement Protocol
 kaizen: ## Continuous improvement cycle: analyze, benchmark, optimize, validate
@@ -971,3 +972,14 @@ validate-book: ## Run book validation tests
 
 test-book: ## Run book validation tests (alias)
 	@$(MAKE) --no-print-directory validate-book
+
+# Sprint 79: Quality Enforcement with pmat Integration
+lint-scripts: ## Lint all shell scripts with bashrs
+	@echo "🔍 Linting shell scripts..."
+	@find scripts -name "*.sh" -type f -exec bashrs lint {} \; || true
+	@echo "✅ All scripts linted!"
+
+lint-makefile: ## Lint Makefile with bashrs
+	@echo "🔍 Linting Makefile..."
+	@bashrs make lint Makefile --format human || true
+	@echo "✅ Makefile linted!"

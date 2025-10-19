@@ -79,7 +79,7 @@ check_format() {
     else
         print_failure "Code formatting issues detected"
         print_info "Run: cargo fmt"
-        return $EXIT_FORMAT_FAIL
+        return "$EXIT_FORMAT_FAIL"
     fi
 }
 
@@ -92,7 +92,7 @@ check_lint() {
     else
         print_failure "Clippy warnings detected"
         print_info "Run: cargo clippy --all-targets --all-features"
-        return $EXIT_LINT_FAIL
+        return "$EXIT_LINT_FAIL"
     fi
 }
 
@@ -104,7 +104,7 @@ check_tests() {
         print_success "Unit tests passed"
     else
         print_failure "Unit tests failed"
-        return $EXIT_TEST_FAIL
+        return "$EXIT_TEST_FAIL"
     fi
 
     print_info "Running doc tests..."
@@ -112,21 +112,21 @@ check_tests() {
         print_success "Doc tests passed"
     else
         print_failure "Doc tests failed"
-        return $EXIT_TEST_FAIL
+        return "$EXIT_TEST_FAIL"
     fi
 
     print_info "Running property tests..."
     if cargo test --test property_tests --quiet 2>&1 | grep -q "test result: ok"; then
-        local prop_count=$(cargo test --test property_tests -- --list 2>/dev/null | grep -c "test " || echo 0)
+        local prop_count="$(cargo test --test property_tests -- --list 2>/dev/null | grep -c "test " || echo 0)"
         if [ "$prop_count" -ge "$MIN_PROPERTY_TESTS" ]; then
             print_success "Property tests passed ($prop_count properties, ≥$MIN_PROPERTY_TESTS required)"
         else
             print_failure "Not enough property tests ($prop_count < $MIN_PROPERTY_TESTS)"
-            return $EXIT_TEST_FAIL
+            return "$EXIT_TEST_FAIL"
         fi
     else
         print_failure "Property tests failed"
-        return $EXIT_TEST_FAIL
+        return "$EXIT_TEST_FAIL"
     fi
 
     return 0
@@ -154,7 +154,7 @@ check_coverage() {
             return 0
         else
             print_failure "Coverage: ${coverage}% (< ${MIN_COVERAGE}% required)"
-            return $EXIT_COVERAGE_FAIL
+            return "$EXIT_COVERAGE_FAIL"
         fi
     else
         print_warning "Coverage report not generated"
@@ -178,7 +178,7 @@ check_complexity() {
     else
         print_failure "Complexity exceeds limits"
         print_info "Run: pmat analyze complexity src/ --detailed"
-        return $EXIT_COMPLEXITY_FAIL
+        return "$EXIT_COMPLEXITY_FAIL"
     fi
 }
 
@@ -200,7 +200,7 @@ check_satd() {
         return 0
     else
         print_info "Run: grep -rn 'TODO\\|FIXME\\|HACK' src/"
-        return $EXIT_SATD_FAIL
+        return "$EXIT_SATD_FAIL"
     fi
 }
 
@@ -215,20 +215,20 @@ check_shellcheck() {
     print_info "Validating generated shell scripts..."
 
     # Generate test script
-    local test_script=$(mktemp)
+    local test_script="$(mktemp)"
     if cargo run --quiet -- transpile examples/hello.rs > "$test_script" 2>/dev/null; then
         if shellcheck -s sh "$test_script" > /dev/null 2>&1; then
             print_success "ShellCheck validation passed (POSIX compliant)"
-            rm "$test_script"
+            rm -f "$test_script"
             return 0
         else
             print_failure "ShellCheck validation failed"
-            rm "$test_script"
-            return $EXIT_SHELLCHECK_FAIL
+            rm -f "$test_script"
+            return "$EXIT_SHELLCHECK_FAIL"
         fi
     else
         print_warning "Could not generate test script for ShellCheck"
-        rm "$test_script"
+        rm -f "$test_script"
         return 0
     fi
 }
@@ -239,24 +239,24 @@ check_determinism() {
     print_info "Verifying byte-identical output..."
 
     # Generate same code twice
-    local output1=$(mktemp)
-    local output2=$(mktemp)
+    local output1="$(mktemp)"
+    local output2="$(mktemp)"
 
     if cargo run --quiet -- transpile examples/hello.rs > "$output1" 2>/dev/null; then
         cargo run --quiet -- transpile examples/hello.rs > "$output2" 2>/dev/null
 
         if diff -q "$output1" "$output2" > /dev/null 2>&1; then
             print_success "Determinism verified (byte-identical output)"
-            rm "$output1" "$output2"
+            rm -f "$output1" "$output2"
             return 0
         else
             print_failure "Determinism check failed (output differs)"
-            rm "$output1" "$output2"
-            return $EXIT_DETERMINISM_FAIL
+            rm -f "$output1" "$output2"
+            return "$EXIT_DETERMINISM_FAIL"
         fi
     else
         print_warning "Could not generate test output for determinism check"
-        rm "$output1" "$output2"
+        rm -f "$output1" "$output2"
         return 0
     fi
 }
@@ -297,7 +297,7 @@ print_summary() {
         echo -e "${GREEN}  EXTREME TDD: Quality Built In (Jidoka)${NC}"
         echo -e "${GREEN}  Toyota Way: 自働化 - Automation with Human Intelligence${NC}"
         echo ""
-        return $EXIT_SUCCESS
+        return "$EXIT_SUCCESS"
     else
         echo -e "${RED}✗ Quality gates failed! ✗${NC}"
         echo ""
@@ -309,7 +309,7 @@ print_summary() {
 }
 
 main() {
-    local exit_code=$EXIT_SUCCESS
+    local exit_code="$EXIT_SUCCESS"
 
     print_header
 
@@ -326,7 +326,7 @@ main() {
 
     print_summary || exit_code=$?
 
-    exit $exit_code
+    exit "$exit_code"
 }
 
 # Run main if executed directly
