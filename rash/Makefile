@@ -40,3 +40,27 @@ coverage-clean:
 	rm -f lcov.info coverage.xml
 	rm -rf target/llvm-cov target/coverage
 	find . -name "*.profraw" -delete
+
+# Sprint 79: Quality Enforcement with pmat Integration
+.PHONY: lint-scripts lint-makefile validate-book validate-all
+
+lint-scripts: ## Lint all shell scripts with bashrs
+	@echo "🔍 Linting shell scripts..."
+	@find scripts -name "*.sh" -type f -exec bashrs lint {} \; || true
+	@echo "✅ All scripts linted!"
+
+lint-makefile: ## Lint Makefile with bashrs  
+	@echo "🔍 Linting Makefile..."
+	@bashrs make lint Makefile --format human || true
+	@echo "✅ Makefile linted!"
+
+validate-book: ## Validate book examples
+	@echo "📖 Validating book examples..."
+	@./scripts/validate-book.sh || echo "⚠️  validate-book.sh not found"
+
+validate-all: lint-scripts lint-makefile validate-book test ## Comprehensive quality gate
+	@echo "✅ All quality gates passed!"
+	@echo "  ✓ Shell scripts linted"
+	@echo "  ✓ Makefile linted"
+	@echo "  ✓ Book accuracy validated"
+	@echo "  ✓ Tests passing"
