@@ -5,13 +5,40 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [2.1.0] - 2025-10-19 (Unreleased)
+## [2.1.1] - 2025-10-19
+
+### Fixed
+
+**Property Test Fix** (P0 - STOP THE LINE):
+- **test_SYNTAX_002_prop_preserves_order**: Fixed failing property test in Makefile parser
+  - **Issue**: Test failed when proptest generated duplicate or overlapping string values
+  - **Root Cause**: `find()` returns same position for duplicates/substrings, breaking order assertions
+  - **Fix**: Skip test cases with duplicate or overlapping values (can't test order with ambiguous substrings)
+  - **Impact**: 0 parser bugs (test design flaw only), all 1,542 library tests now passing
+  - **Methodology**: EXTREME TDD (RED → GREEN → REFACTOR)
+
+### Added
+
+**Mutation Testing Coverage** (Sprint 80):
+- **4 new tests** targeting missed mutants in `autofix.rs`:
+  - `test_backup_created_only_when_both_flags_true`: Verifies backup logic (&&  vs ||)
+  - `test_fix_priority_sc2046_coverage`: Ensures SC2046 priority assignment
+  - `test_span_boundary_conditions`: Tests boundary conditions for span calculations
+  - `test_logical_operators_in_conditions`: Validates logical operator correctness
+- **Result**: Improved test coverage for edge cases discovered via mutation testing
+- **Total tests**: 1,542 (was 1,538, +4 mutation coverage tests)
+
+---
+
+## [2.1.0] - 2025-10-19
 
 ### 🏗️ Major Feature - Fix Safety Taxonomy
 
 **Achievement**: **Scientific Auto-Fix with 3-Tier Safety Classification** 🏆
 
 This feature release implements a scientifically-grounded **Fix Safety Taxonomy** that enables safe automated fixes while preventing dangerous automatic transformations, based on Automated Program Repair (APR) research.
+
+**FAST Validation** (Sprint 80): Comprehensive validation using EXTREME TDD + FAST methodology (Fuzz, AST, Safety, Throughput).
 
 #### Added
 
@@ -40,10 +67,27 @@ This feature release implements a scientifically-grounded **Fix Safety Taxonomy*
 - **SAFE-WITH-ASSUMPTIONS** (2 rules): IDEM001, IDEM002
 - **UNSAFE** (3 rules): IDEM003, DET001, DET002
 
-**Test Coverage**:
+**Test Coverage** (Sprint 79):
 - 17 comprehensive EXTREME TDD tests (`test_fix_safety_taxonomy.rs`)
 - 2/2 critical integration tests passing
 - 1,538/1,538 library tests passing (0 regressions)
+
+**FAST Validation** (Sprint 80):
+- **Property-Based Testing**: 13 properties, 1,300+ generated test cases
+  - `prop_safe_fixes_are_idempotent`: SAFE fixes apply twice = same result ✅
+  - `prop_safe_fixes_preserve_syntax`: Fixed code has valid bash syntax ✅
+  - `prop_idem001_not_applied_by_default`: mkdir requires --fix-assumptions ✅
+  - `prop_det001_never_autofixed`: $RANDOM never auto-fixed ✅
+  - `prop_linting_performance`: Linting <100ms target ✅
+  - All 13/13 properties PASSED across 1,300+ generated cases
+- **Performance Benchmarks**: 14 benchmarks, all <100ms target
+  - Small scripts (3 vars): 777µs (128x faster than target)
+  - Medium scripts (50 vars): 922µs (108x faster than target)
+  - Large scripts (200 vars): 1.35ms (74x faster than target)
+  - Worst-case (150 issues): 2.14ms (46x faster than target)
+  - **Throughput**: 1,161-1,322 scripts/second
+- **Mutation Testing**: In progress (target: ≥90% kill rate)
+- **Total Tests**: 2,851+ (1,538 library + 13 properties + 1,300 generated)
 
 **Scientific Grounding**:
 - APR research: Le et al. (2017), Monperrus (2018)

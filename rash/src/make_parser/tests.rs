@@ -3896,6 +3896,17 @@ mod property_tests_syntax_002 {
             value2 in "[a-z]{3,5}",
             value3 in "[a-z]{3,5}"
         ) {
+            // Skip if any values are duplicates or substrings of each other
+            // (can't reliably test order with overlapping strings)
+            if value1 == value2 || value2 == value3 || value1 == value3 {
+                return Ok(());
+            }
+            if value1.contains(&value2) || value2.contains(&value1) ||
+               value2.contains(&value3) || value3.contains(&value2) ||
+               value1.contains(&value3) || value3.contains(&value1) {
+                return Ok(());
+            }
+
             // ARRANGE: Variable with 3 values on continued lines
             let makefile = format!("{} = {} \\\n    {} \\\n    {}", var_name, value1, value2, value3);
 
