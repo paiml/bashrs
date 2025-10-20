@@ -74,7 +74,7 @@ impl Default for FixOptions {
             create_backup: true,
             dry_run: false,
             backup_suffix: ".bak".to_string(),
-            apply_assumptions: false,  // Default: SAFE fixes only
+            apply_assumptions: false, // Default: SAFE fixes only
             output_path: None,
         }
     }
@@ -493,8 +493,8 @@ mod tests {
     fn test_backup_created_only_when_both_flags_true() {
         // MUTANT: Line 208 - replace && with || in apply_fixes_to_file
         // This test ensures backup is created ONLY when create_backup=true AND dry_run=false
-        use tempfile::NamedTempFile;
         use std::io::Write;
+        use tempfile::NamedTempFile;
 
         let mut temp_file = NamedTempFile::new().unwrap();
         writeln!(temp_file, "echo $VAR").unwrap();
@@ -521,7 +521,10 @@ mod tests {
         };
 
         let fix_result = apply_fixes_to_file(temp_path, &result, &options).unwrap();
-        assert!(fix_result.backup_path.is_some(), "Backup should be created when create_backup=true AND dry_run=false");
+        assert!(
+            fix_result.backup_path.is_some(),
+            "Backup should be created when create_backup=true AND dry_run=false"
+        );
 
         // Cleanup backup
         if let Some(backup) = fix_result.backup_path {
@@ -530,7 +533,7 @@ mod tests {
 
         // Test 2: create_backup=false OR dry_run=true → backup should NOT be created
         let options_no_backup = FixOptions {
-            create_backup: false,  // FALSE
+            create_backup: false, // FALSE
             dry_run: false,
             backup_suffix: ".bak".to_string(),
             apply_assumptions: false,
@@ -543,12 +546,15 @@ mod tests {
         let temp_path2 = temp_file2.path();
 
         let fix_result2 = apply_fixes_to_file(temp_path2, &result, &options_no_backup).unwrap();
-        assert!(fix_result2.backup_path.is_none(), "Backup should NOT be created when create_backup=false");
+        assert!(
+            fix_result2.backup_path.is_none(),
+            "Backup should NOT be created when create_backup=false"
+        );
 
         // Test 3: create_backup=true BUT dry_run=true → backup should NOT be created
         let options_dry_run = FixOptions {
             create_backup: true,
-            dry_run: true,  // TRUE
+            dry_run: true, // TRUE
             backup_suffix: ".bak".to_string(),
             apply_assumptions: false,
             output_path: None,
@@ -559,7 +565,10 @@ mod tests {
         let temp_path3 = temp_file3.path();
 
         let fix_result3 = apply_fixes_to_file(temp_path3, &result, &options_dry_run).unwrap();
-        assert!(fix_result3.backup_path.is_none(), "Backup should NOT be created when dry_run=true");
+        assert!(
+            fix_result3.backup_path.is_none(),
+            "Backup should NOT be created when dry_run=true"
+        );
     }
 
     #[test]
@@ -585,7 +594,10 @@ mod tests {
         // Verify SC2046 fix is applied
         assert_eq!(fix_result.fixes_applied, 1);
         assert!(fix_result.modified_source.is_some());
-        assert!(fix_result.modified_source.unwrap().contains("\"$(cat file.txt)\""));
+        assert!(fix_result
+            .modified_source
+            .unwrap()
+            .contains("\"$(cat file.txt)\""));
     }
 
     #[test]

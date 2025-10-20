@@ -90,7 +90,12 @@ mod tests {
         let result = check(script);
         assert_eq!(result.diagnostics.len(), 1);
         assert!(result.diagnostics[0].fix.is_some());
-        assert!(result.diagnostics[0].fix.as_ref().unwrap().replacement.contains("bc"));
+        assert!(result.diagnostics[0]
+            .fix
+            .as_ref()
+            .unwrap()
+            .replacement
+            .contains("bc"));
     }
 
     #[test]

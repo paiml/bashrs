@@ -38,7 +38,7 @@ pub fn check(source: &str) -> LintResult {
                     line_num + 1,
                     col + 1,
                     line_num + 1,
-                    col + 23,  // "--no-check-certificate" is 22 chars
+                    col + 23, // "--no-check-certificate" is 22 chars
                 );
 
                 let diag = Diagnostic::new(
@@ -58,9 +58,9 @@ pub fn check(source: &str) -> LintResult {
             if let Some(col) = line.find(" -k") {
                 let span = Span::new(
                     line_num + 1,
-                    col + 2,  // Space before -k
+                    col + 2, // Space before -k
                     line_num + 1,
-                    col + 4,  // -k is 2 chars
+                    col + 4, // -k is 2 chars
                 );
 
                 let diag = Diagnostic::new(
@@ -77,7 +77,7 @@ pub fn check(source: &str) -> LintResult {
                     line_num + 1,
                     col + 1,
                     line_num + 1,
-                    col + 11,  // "--insecure" is 10 chars
+                    col + 11, // "--insecure" is 10 chars
                 );
 
                 let diag = Diagnostic::new(

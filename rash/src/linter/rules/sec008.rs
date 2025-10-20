@@ -36,9 +36,12 @@ pub fn check(source: &str) -> LintResult {
         // Look for curl | sh/bash patterns
         if (line.contains("curl") || line.contains("wget")) && line.contains('|') {
             // Check if piping to shell (possibly with sudo in between)
-            let piped_to_shell = line.contains("| sh") || line.contains("| bash") ||
-                                 line.contains("|sh") || line.contains("|bash") ||
-                                 line.contains("| sudo sh") || line.contains("| sudo bash");
+            let piped_to_shell = line.contains("| sh")
+                || line.contains("| bash")
+                || line.contains("|sh")
+                || line.contains("|bash")
+                || line.contains("| sudo sh")
+                || line.contains("| sudo bash");
 
             if piped_to_shell {
                 // Find the pipe position

@@ -30,12 +30,7 @@ pub fn check(source: &str) -> LintResult {
         // Look for rm without -f (but allow -rf, -fr)
         if line.contains("rm ") && !line.contains("rm -") {
             if let Some(col) = line.find("rm ") {
-                let span = Span::new(
-                    line_num + 1,
-                    col + 1,
-                    line_num + 1,
-                    col + 3,
-                );
+                let span = Span::new(line_num + 1, col + 1, line_num + 1, col + 3);
 
                 let fix = Fix::new_with_assumptions(
                     "rm -f",

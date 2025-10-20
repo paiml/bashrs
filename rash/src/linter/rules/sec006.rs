@@ -44,7 +44,7 @@ pub fn check(source: &str) -> LintResult {
                             line_num + 1,
                             col + 1,
                             line_num + 1,
-                            col + 6,  // "/tmp/" is 5 chars
+                            col + 6, // "/tmp/" is 5 chars
                         );
 
                         let diag = Diagnostic::new(

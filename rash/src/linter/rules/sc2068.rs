@@ -147,9 +147,7 @@ done
         let result = check(script);
         assert_eq!(result.diagnostics.len(), 1);
         assert_eq!(result.diagnostics[0].code, "SC2068");
-        assert!(result.diagnostics[0]
-            .message
-            .contains("array expansion"));
+        assert!(result.diagnostics[0].message.contains("array expansion"));
     }
 
     #[test]

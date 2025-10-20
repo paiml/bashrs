@@ -1055,8 +1055,8 @@ fn test_exit_code_emits_question_mark_syntax() {
 /// Tests that exit_code() works in if condition comparisons
 #[test]
 fn test_exit_code_in_comparison() {
-    use crate::models::Config;
     use crate::ir::shell_ir::ComparisonOp;
+    use crate::models::Config;
 
     let ir = crate::ir::shell_ir::ShellIR::If {
         test: ShellValue::Comparison {

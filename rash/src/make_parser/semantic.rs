@@ -113,9 +113,8 @@ pub fn detect_wildcard(value: &str) -> bool {
 }
 
 /// Common non-file targets that should be marked as .PHONY
-const COMMON_PHONY_TARGETS: &[&str] = &[
-    "test", "clean", "install", "deploy", "build", "all", "help",
-];
+const COMMON_PHONY_TARGETS: &[&str] =
+    &["test", "clean", "install", "deploy", "build", "all", "help"];
 
 /// Detect non-deterministic $RANDOM or $(shell echo $$RANDOM) patterns
 ///
@@ -247,7 +246,9 @@ pub fn analyze_makefile(ast: &MakeAst) -> Vec<SemanticIssue> {
 
     for item in &ast.items {
         match item {
-            MakeItem::Variable { name, value, span, .. } => {
+            MakeItem::Variable {
+                name, value, span, ..
+            } => {
                 // Check for non-deterministic shell date
                 if detect_shell_date(value) {
                     issues.push(SemanticIssue {
@@ -304,7 +305,9 @@ pub fn analyze_makefile(ast: &MakeAst) -> Vec<SemanticIssue> {
                     });
                 }
             }
-            MakeItem::Target { name, phony, span, .. } => {
+            MakeItem::Target {
+                name, phony, span, ..
+            } => {
                 // Check for missing .PHONY on common non-file targets
                 if !phony && is_common_phony_target(name) {
                     issues.push(SemanticIssue {
@@ -898,7 +901,9 @@ SOURCES := $(wildcard *.c)"#;
     #[test]
     fn test_FUNC_SHELL_002_multiple_shell_commands() {
         // Should detect if ANY contain shell find
-        assert!(detect_shell_find("A=$(shell pwd) B=$(shell find . -name '*.c')"));
+        assert!(detect_shell_find(
+            "A=$(shell pwd) B=$(shell find . -name '*.c')"
+        ));
     }
 
     #[test]
@@ -917,7 +922,9 @@ SOURCES := $(wildcard *.c)"#;
     #[test]
     fn test_FUNC_SHELL_002_mut_contains_must_check_substring() {
         // Ensures we use .contains() not .eq()
-        assert!(detect_shell_find("prefix $(shell find . -name '*.c') suffix"));
+        assert!(detect_shell_find(
+            "prefix $(shell find . -name '*.c') suffix"
+        ));
     }
 
     #[test]
@@ -1023,7 +1030,11 @@ SOURCES := $(wildcard *.c)"#;
         assert_eq!(issues[0].severity, IssueSeverity::High);
         assert!(issues[0].message.contains("test"));
         assert!(issues[0].suggestion.is_some());
-        assert!(issues[0].suggestion.as_ref().unwrap().contains(".PHONY: test"));
+        assert!(issues[0]
+            .suggestion
+            .as_ref()
+            .unwrap()
+            .contains(".PHONY: test"));
     }
 
     #[test]

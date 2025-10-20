@@ -1217,7 +1217,9 @@ fn test_exit_code_in_comparison() {
                     }),
                     right: Box::new(Expr::Literal(Literal::Str("0".to_string()))),
                 },
-                then_block: vec![Stmt::Expr(Expr::Literal(Literal::Str("success".to_string())))],
+                then_block: vec![Stmt::Expr(Expr::Literal(Literal::Str(
+                    "success".to_string(),
+                )))],
                 else_block: None,
             }],
         }],

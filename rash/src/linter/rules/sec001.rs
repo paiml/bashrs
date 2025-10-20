@@ -37,7 +37,10 @@ pub fn check(source: &str) -> LintResult {
                 true
             } else {
                 let char_before = line.chars().nth(col - 1);
-                matches!(char_before, Some(' ') | Some('\t') | Some(';') | Some('&') | Some('|') | Some('('))
+                matches!(
+                    char_before,
+                    Some(' ') | Some('\t') | Some(';') | Some('&') | Some('|') | Some('(')
+                )
             };
 
             let after_idx = col + 4; // "eval" is 4 chars
@@ -45,7 +48,10 @@ pub fn check(source: &str) -> LintResult {
                 true
             } else {
                 let char_after = line.chars().nth(after_idx);
-                matches!(char_after, Some(' ') | Some('\t') | Some('"') | Some('\'') | Some(';'))
+                matches!(
+                    char_after,
+                    Some(' ') | Some('\t') | Some('"') | Some('\'') | Some(';')
+                )
             };
 
             if before_ok && after_ok {
@@ -53,7 +59,7 @@ pub fn check(source: &str) -> LintResult {
                     line_num + 1,
                     col + 1,
                     line_num + 1,
-                    col + 5,  // "eval" is 4 chars, +1 for 1-indexed
+                    col + 5, // "eval" is 4 chars, +1 for 1-indexed
                 );
 
                 let diag = Diagnostic::new(

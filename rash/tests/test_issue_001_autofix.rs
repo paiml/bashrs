@@ -16,11 +16,15 @@ fn test_ISSUE_001_autofix_preserves_syntax() {
     let test_file = temp.path().join("test.sh");
 
     // ARRANGE: Create bash script with shellcheck warnings
-    fs::write(&test_file, r#"#!/bin/bash
+    fs::write(
+        &test_file,
+        r#"#!/bin/bash
 echo -e "${RED}Error${NC}"
 local val=$(echo "$x" | cut -d. -f1)
 rm file.txt
-"#).unwrap();
+"#,
+    )
+    .unwrap();
 
     // ACT: Apply auto-fix
     rash_cmd()
@@ -52,11 +56,15 @@ fn test_ISSUE_001_autofix_no_extra_braces() {
     let test_file = temp.path().join("test.sh");
 
     // ARRANGE: Script with color variables (common pattern)
-    fs::write(&test_file, r#"#!/bin/bash
+    fs::write(
+        &test_file,
+        r#"#!/bin/bash
 NC='\033[0m'
 BLUE='\033[0;34m'
 echo -e "${BLUE}text${NC}"
-"#).unwrap();
+"#,
+    )
+    .unwrap();
 
     // ACT: Apply auto-fix
     rash_cmd()
@@ -101,11 +109,15 @@ fn test_ISSUE_001_autofix_sc2116_correctly() {
     let test_file = temp.path().join("test.sh");
 
     // ARRANGE: Script with useless echo
-    fs::write(&test_file, r#"#!/bin/bash
+    fs::write(
+        &test_file,
+        r#"#!/bin/bash
 x="3.14"
 local val=$(echo "$x" | cut -d. -f1)
 echo $val
-"#).unwrap();
+"#,
+    )
+    .unwrap();
 
     // ACT: Apply auto-fix
     rash_cmd()
@@ -147,7 +159,9 @@ fn test_ISSUE_001_autofix_multiple_issues() {
     let test_file = temp.path().join("complex.sh");
 
     // ARRANGE: Complex script with multiple issues
-    fs::write(&test_file, r#"#!/bin/bash
+    fs::write(
+        &test_file,
+        r#"#!/bin/bash
 RED='\033[0;31m'
 NC='\033[0m'
 
@@ -160,7 +174,9 @@ process() {
     local count=$(echo "$1" | wc -l)
     echo $count
 }
-"#).unwrap();
+"#,
+    )
+    .unwrap();
 
     // ACT: Apply auto-fix
     rash_cmd()

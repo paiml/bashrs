@@ -132,6 +132,10 @@ mod tests {
         let bash_code = r#"val=$(echo "$x" | cut -d. -f1)"#;
         let result = check(bash_code);
 
-        assert_eq!(result.diagnostics.len(), 0, "Should not trigger on pipelines");
+        assert_eq!(
+            result.diagnostics.len(),
+            0,
+            "Should not trigger on pipelines"
+        );
     }
 }

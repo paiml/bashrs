@@ -36,10 +36,29 @@ use std::collections::HashSet;
 
 /// Common non-file targets that should be .PHONY
 const PHONY_TARGETS: &[&str] = &[
-    "all", "clean", "test", "install", "uninstall", "check",
-    "build", "run", "help", "dist", "distclean", "lint",
-    "format", "fmt", "doc", "docs", "benchmark", "bench",
-    "coverage", "deploy", "release", "dev", "prod",
+    "all",
+    "clean",
+    "test",
+    "install",
+    "uninstall",
+    "check",
+    "build",
+    "run",
+    "help",
+    "dist",
+    "distclean",
+    "lint",
+    "format",
+    "fmt",
+    "doc",
+    "docs",
+    "benchmark",
+    "bench",
+    "coverage",
+    "deploy",
+    "release",
+    "dev",
+    "prod",
 ];
 
 /// Check for missing .PHONY declarations
@@ -78,12 +97,7 @@ pub fn check(source: &str) -> LintResult {
 
                 // Check if this is a common phony target
                 if PHONY_TARGETS.contains(&target) && !phony_targets.contains(target) {
-                    let span = Span::new(
-                        line_num + 1,
-                        1,
-                        line_num + 1,
-                        target.len() + 1,
-                    );
+                    let span = Span::new(line_num + 1, 1, line_num + 1, target.len() + 1);
 
                     let fix = format!(".PHONY: {}", target);
 

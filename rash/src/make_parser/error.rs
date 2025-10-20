@@ -74,9 +74,7 @@ pub enum MakeParseError {
     },
 
     #[error("Empty variable name at {location}")]
-    EmptyVariableName {
-        location: SourceLocation,
-    },
+    EmptyVariableName { location: SourceLocation },
 
     #[error("No assignment operator found at {location}")]
     NoAssignmentOperator {
@@ -124,9 +122,7 @@ pub enum MakeParseError {
     },
 
     #[error("Empty target name at {location}")]
-    EmptyTargetName {
-        location: SourceLocation,
-    },
+    EmptyTargetName { location: SourceLocation },
 
     #[error("Unterminated define block for variable '{var_name}' at {location}")]
     UnterminatedDefine {
@@ -441,7 +437,11 @@ mod tests {
         for error in errors {
             let note = error.note();
             assert!(!note.is_empty(), "Note should not be empty for {:?}", error);
-            assert!(note.len() > 10, "Note should be descriptive for {:?}", error);
+            assert!(
+                note.len() > 10,
+                "Note should be descriptive for {:?}",
+                error
+            );
         }
     }
 

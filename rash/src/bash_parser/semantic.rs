@@ -332,7 +332,10 @@ impl SemanticAnalyzer {
                 self.analyze_expression(message, scope)?;
             }
 
-            BashExpr::AlternativeValue { variable, alternative } => {
+            BashExpr::AlternativeValue {
+                variable,
+                alternative,
+            } => {
                 // Mark variable as used
                 // ${VAR:+alt_value} uses alt_value if VAR is set
                 if let Some(var) = scope.variables.get_mut(variable) {

@@ -9,6 +9,128 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [3.1.0] - 2025-10-20
+
+### 🚀 Feature Release - ShellCheck Phase 2: 15 New Linter Rules
+
+**Achievement**: Expanded ShellCheck-equivalent linting capabilities with 15 new rules across three categories.
+
+This minor release implements **Phase 2 (ShellCheck Expansion)** with comprehensive linting for quoting, command substitution, and array operations.
+
+### Added
+
+**Sprint 86 - Implementation** (COMPLETE):
+- **15 new ShellCheck-equivalent rules** across 3 categories:
+  1. **Quoting & Escaping (5 rules)**:
+     - **SC2001**: Use parameter expansion instead of sed
+       - Detects: `echo "$var" | sed 's/old/new/'`
+       - Auto-fix: `${var//old/new}`
+     - **SC2027**: Wrong quoting in printf format strings
+       - Detects: `printf "$var\n"` (variable in format string)
+       - Suggests: `printf '%s\n' "$var"`
+     - **SC2028**: Echo with escape sequences without -e
+       - Detects: `echo "\n"` (won't expand)
+       - Auto-fix: `printf "\n"` or `echo -e "\n"`
+     - **SC2050**: Constant expression (missing $)
+       - Detects: `[ "var" = "value" ]` (no $)
+       - Warns: Forgot $ on 'var'
+     - **SC2081**: Variables in single quotes don't expand
+       - Detects: `echo '$var'`
+       - Auto-fix: `echo "$var"`
+  2. **Command Substitution (5 rules)**:
+     - **SC2002**: Useless use of cat
+       - Detects: `cat file.txt | grep pattern`
+       - Auto-fix: `grep pattern file.txt`
+     - **SC2162**: read without -r mangles backslashes
+       - Detects: `read line`
+       - Auto-fix: `read -r line`
+     - **SC2164**: cd without error handling
+       - Detects: `cd /path` (no || exit)
+       - Auto-fix: `cd /path || exit`
+     - **SC2181**: Check exit code directly
+       - Detects: `if [ $? -eq 0 ]`
+       - Suggests: `if command; then`
+     - **SC2196**: egrep/fgrep deprecated
+       - Detects: `egrep`, `fgrep`
+       - Auto-fix: `grep -E`, `grep -F`
+  3. **Array Operations (5 rules)**:
+     - **SC2128**: Array without index
+       - Detects: `$array` (no [@] or [*])
+       - Warning: Only expands first element
+       - Auto-fix: `${array[@]}`
+     - **SC2145**: Array syntax without braces
+       - Detects: `$array[@]` (no braces)
+       - Auto-fix: `${array[@]}`
+     - **SC2178**: String assigned to array variable
+       - Detects: `array=(a b); array="str"`
+       - Warning: Converts array to string
+     - **SC2190**: Associative array without keys
+       - Detects: `declare -A map; map=(a b)`
+       - Error: Need [key]=value syntax
+     - **SC2191**: Space between = and (
+       - Detects: `array= (value)` (space)
+       - Auto-fix: `array=(value)`
+- **150 comprehensive tests** (10 tests per rule)
+- **12/15 rules** include auto-fix suggestions
+- **False positive prevention**: Comment skipping, proper syntax detection
+- **Consistent architecture**: All rules follow same pattern
+
+**Sprint 87 - Quality Validation** (COMPLETE):
+- **Test metrics**: 2,028 passing (100% pass rate, 0 failures)
+- **Code coverage**: 86.58% overall
+  - Function coverage: 94.03%
+  - Region coverage: 89.04%
+  - Lines covered: 48,444 / 55,952
+- **Performance**: 36.58s for 2,028 tests (55 tests/second)
+- **Zero regressions** across all modules
+- **Module-level coverage**:
+  - Linter rules: 95-100% coverage
+  - Parser modules: 90-95% coverage
+  - Test infrastructure: 95-100% coverage
+
+**Sprint 88 - Integration & Examples** (COMPLETE):
+- **Integration example**: `examples/shellcheck-phase2-demo.sh`
+  - Demonstrates all 15 new rules
+  - Bad examples for each rule
+  - Good (fixed) examples
+  - Real-world deploy script with all issues
+  - Fixed version showing correct patterns
+  - Verified with linter (detects all issues)
+- **Documentation**: `docs/SPRINT-86-87-SUMMARY.md`
+  - Complete implementation details
+  - Quality metrics and coverage breakdown
+  - Error resolution documentation
+  - Before/after project comparison
+
+### Quality Metrics
+
+**Project Totals**:
+- **ShellCheck rules**: 31 total (16 baseline + 15 new)
+- **Growth**: +93.75% increase in ShellCheck rule coverage
+- **Tests**: 2,028 passing (+100 new tests, +5.19%)
+- **Coverage**: 86.58% (maintained >85% target)
+- **Performance**: Zero regressions (55 tests/second)
+
+**Quality Gates** ✅:
+- ✅ Test pass rate: 100%
+- ✅ Coverage: 86.58% (exceeds >85% target)
+- ✅ Zero regressions
+- ✅ All new rules have 10 comprehensive tests
+- ✅ Compilation clean (zero critical warnings)
+- ✅ Module integration verified
+
+### Commits
+- `1143abda` - Sprint 86 Day 1-2: Quoting & Escaping rules
+- `9657b26c` - Sprint 86 Day 3-4: Command Substitution rules
+- `5c7701a3` - Sprint 86 Day 5-6: Array Operation rules
+- `ddf10588` - Sprint 87: Comprehensive summary
+- `9414ded1` - Sprint 88: Integration example
+
+### Breaking Changes
+None - All changes are additive.
+
+---
+
 ## [3.0.0] - 2025-10-20
 
 ### 🎉 Major Release - Phase 1 Complete: Makefile World-Class

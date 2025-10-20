@@ -371,7 +371,10 @@ impl Purifier {
                 })
             }
 
-            BashExpr::AlternativeValue { variable, alternative } => {
+            BashExpr::AlternativeValue {
+                variable,
+                alternative,
+            } => {
                 // Check variable for non-determinism
                 if self.non_deterministic_vars.contains(variable) {
                     self.report.determinism_fixes.push(format!(

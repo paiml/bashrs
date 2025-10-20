@@ -30,24 +30,16 @@ pub fn check(source: &str) -> LintResult {
 
     for (line_num, line) in source.lines().enumerate() {
         // Check for various date patterns
-        let patterns = [
-            ("date +%s", 8),
-            ("$(date", 6),
-            ("`date", 5),
-        ];
+        let patterns = [("date +%s", 8), ("$(date", 6), ("`date", 5)];
 
         for (pattern, len) in patterns {
             if let Some(col) = line.find(pattern) {
-                let span = Span::new(
-                    line_num + 1,
-                    col + 1,
-                    line_num + 1,
-                    col + len + 1,
-                );
+                let span = Span::new(line_num + 1, col + 1, line_num + 1, col + len + 1);
 
                 let fix = Fix::new_unsafe(vec![
                     "Option 1: Use version: RELEASE=\"release-${VERSION}\"".to_string(),
-                    "Option 2: Use git commit: RELEASE=\"release-$(git rev-parse --short HEAD)\"".to_string(),
+                    "Option 2: Use git commit: RELEASE=\"release-$(git rev-parse --short HEAD)\""
+                        .to_string(),
                     "Option 3: Pass as argument: RELEASE=\"release-$1\"".to_string(),
                     "Option 4: Use SOURCE_DATE_EPOCH for reproducible builds".to_string(),
                 ]);

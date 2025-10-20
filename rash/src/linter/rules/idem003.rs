@@ -30,12 +30,7 @@ pub fn check(source: &str) -> LintResult {
         // Look for ln -s without preceding rm -f
         if line.contains("ln -s") && !line.contains("rm -f") {
             if let Some(col) = line.find("ln -s") {
-                let span = Span::new(
-                    line_num + 1,
-                    col + 1,
-                    line_num + 1,
-                    col + 6,
-                );
+                let span = Span::new(line_num + 1, col + 1, line_num + 1, col + 6);
 
                 let fix = Fix::new_unsafe(vec![
                     "Option 1: rm -f /target && ln -s /source /target".to_string(),
@@ -94,6 +89,9 @@ mod tests {
         assert!(fix.is_unsafe());
         assert!(!fix.suggested_alternatives.is_empty());
         // Verify suggestions mention rm -f
-        assert!(fix.suggested_alternatives.iter().any(|s| s.contains("rm -f")));
+        assert!(fix
+            .suggested_alternatives
+            .iter()
+            .any(|s| s.contains("rm -f")));
     }
 }

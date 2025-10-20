@@ -55,7 +55,12 @@ fn extract_code_blocks(markdown: &str, language: &str) -> Vec<(usize, String)> {
                 let lang = line.trim_start_matches("```").trim();
 
                 // Skip blocks marked as ```ignore or ```text
-                if lang == "ignore" || lang == "text" || lang == "sh" || lang == "bash" || lang == "makefile" {
+                if lang == "ignore"
+                    || lang == "text"
+                    || lang == "sh"
+                    || lang == "bash"
+                    || lang == "makefile"
+                {
                     in_skipped_block = true;
                     continue;
                 }
@@ -132,11 +137,7 @@ fn test_rust_example(code: &str, example_name: &str) -> Result<(), String> {
     if !output.status.success() {
         let stderr = String::from_utf8_lossy(&output.stderr);
         // Only show first few lines of error to keep output readable
-        let error_preview: String = stderr
-            .lines()
-            .take(3)
-            .collect::<Vec<_>>()
-            .join("\n");
+        let error_preview: String = stderr.lines().take(3).collect::<Vec<_>>().join("\n");
         return Err(format!("Compilation failed: {}", error_preview));
     }
 
@@ -146,15 +147,17 @@ fn test_rust_example(code: &str, example_name: &str) -> Result<(), String> {
 /// Validate README.md - CRITICAL, must be 100% accurate
 #[test]
 fn test_readme_rust_examples() {
-    let readme_path = Path::new(env!("CARGO_MANIFEST_DIR")).parent().unwrap().join("README.md");
+    let readme_path = Path::new(env!("CARGO_MANIFEST_DIR"))
+        .parent()
+        .unwrap()
+        .join("README.md");
 
     if !readme_path.exists() {
         eprintln!("⚠️  README.md not found at {:?}", readme_path);
         return;
     }
 
-    let readme = fs::read_to_string(&readme_path)
-        .expect("Failed to read README.md");
+    let readme = fs::read_to_string(&readme_path).expect("Failed to read README.md");
 
     let code_blocks = extract_code_blocks(&readme, "rust");
 
@@ -163,7 +166,10 @@ fn test_readme_rust_examples() {
         return;
     }
 
-    println!("📖 Testing {} Rust examples from README.md", code_blocks.len());
+    println!(
+        "📖 Testing {} Rust examples from README.md",
+        code_blocks.len()
+    );
 
     let mut passed = 0;
     let mut failed = 0;
@@ -267,7 +273,12 @@ fn test_book_chapter_examples() {
                     passed += 1;
                 }
                 Err(e) => {
-                    eprintln!("  ❌ {}:{}  FAIL: {}", chapter, line_num, e.lines().next().unwrap_or("Unknown error"));
+                    eprintln!(
+                        "  ❌ {}:{}  FAIL: {}",
+                        chapter,
+                        line_num,
+                        e.lines().next().unwrap_or("Unknown error")
+                    );
                     failed += 1;
                 }
             }
@@ -283,7 +294,12 @@ fn test_book_chapter_examples() {
             0.0
         };
 
-        println!("   ✅ {} / {} passed ({:.1}%)", passed, passed + failed, chapter_pass_rate);
+        println!(
+            "   ✅ {} / {} passed ({:.1}%)",
+            passed,
+            passed + failed,
+            chapter_pass_rate
+        );
     }
 
     println!("\n📊 Overall Book Results:");
@@ -327,7 +343,10 @@ fn test_documented_features_exist() {
     for file in potential_files {
         if file.exists() {
             if let Ok(content) = fs::read_to_string(&file) {
-                if content.contains("lint") || content.contains("MAKE001") || content.contains("DET001") {
+                if content.contains("lint")
+                    || content.contains("MAKE001")
+                    || content.contains("DET001")
+                {
                     linting_documented = true;
                     break;
                 }

@@ -27,7 +27,7 @@
 
 use crate::linter::{Diagnostic, LintResult, Severity, Span};
 use regex::Regex;
-use std::collections::{HashSet, HashMap};
+use std::collections::{HashMap, HashSet};
 
 /// Check for variables assigned but never used
 pub fn check(source: &str) -> LintResult {

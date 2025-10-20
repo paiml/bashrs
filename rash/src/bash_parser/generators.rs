@@ -42,7 +42,12 @@ fn generate_statement(stmt: &BashStmt) -> String {
             }
             cmd
         }
-        BashStmt::Assignment { name, value, exported, .. } => {
+        BashStmt::Assignment {
+            name,
+            value,
+            exported,
+            ..
+        } => {
             let mut assign = String::new();
             if *exported {
                 assign.push_str("export ");
@@ -65,7 +70,12 @@ fn generate_statement(stmt: &BashStmt) -> String {
             func.push_str("}");
             func
         }
-        BashStmt::If { condition, then_block, else_block, .. } => {
+        BashStmt::If {
+            condition,
+            then_block,
+            else_block,
+            ..
+        } => {
             let mut if_stmt = format!("if {}; then\n", generate_condition(condition));
             for stmt in then_block {
                 if_stmt.push_str("    ");
@@ -83,7 +93,12 @@ fn generate_statement(stmt: &BashStmt) -> String {
             if_stmt.push_str("fi");
             if_stmt
         }
-        BashStmt::For { variable, items, body, .. } => {
+        BashStmt::For {
+            variable,
+            items,
+            body,
+            ..
+        } => {
             let mut for_stmt = format!("for {} in {}; do\n", variable, generate_expr(items));
             for stmt in body {
                 for_stmt.push_str("    ");
@@ -93,7 +108,9 @@ fn generate_statement(stmt: &BashStmt) -> String {
             for_stmt.push_str("done");
             for_stmt
         }
-        BashStmt::While { condition, body, .. } => {
+        BashStmt::While {
+            condition, body, ..
+        } => {
             let mut while_stmt = format!("while {}; do\n", generate_condition(condition));
             for stmt in body {
                 while_stmt.push_str("    ");
@@ -103,7 +120,9 @@ fn generate_statement(stmt: &BashStmt) -> String {
             while_stmt.push_str("done");
             while_stmt
         }
-        BashStmt::Until { condition, body, .. } => {
+        BashStmt::Until {
+            condition, body, ..
+        } => {
             // Transform until loop to while loop with negated condition
             // until [ $i -gt 5 ] → while [ ! "$i" -gt 5 ]
             let negated_condition = negate_condition(condition);
@@ -189,10 +208,18 @@ fn generate_test_condition(expr: &TestExpr) -> String {
             format!("-n {}", generate_expr(expr))
         }
         TestExpr::And(left, right) => {
-            format!("{} && {}", generate_test_expr(left), generate_test_expr(right))
+            format!(
+                "{} && {}",
+                generate_test_expr(left),
+                generate_test_expr(right)
+            )
         }
         TestExpr::Or(left, right) => {
-            format!("{} || {}", generate_test_expr(left), generate_test_expr(right))
+            format!(
+                "{} || {}",
+                generate_test_expr(left),
+                generate_test_expr(right)
+            )
         }
         TestExpr::Not(expr) => {
             format!("! {}", generate_test_expr(expr))
@@ -234,9 +261,7 @@ fn generate_expr(expr: &BashExpr) -> String {
         BashExpr::CommandSubst(cmd) => {
             format!("$({})", generate_statement(cmd))
         }
-        BashExpr::Concat(exprs) => {
-            exprs.iter().map(generate_expr).collect::<Vec<_>>().join("")
-        }
+        BashExpr::Concat(exprs) => exprs.iter().map(generate_expr).collect::<Vec<_>>().join(""),
         BashExpr::Glob(pattern) => pattern.clone(),
         BashExpr::DefaultValue { variable, default } => {
             // Generate ${VAR:-default} syntax
@@ -253,7 +278,10 @@ fn generate_expr(expr: &BashExpr) -> String {
             let msg_val = generate_expr(message);
             format!("\"${{{}:?{}}}\"", variable, msg_val.trim_matches('"'))
         }
-        BashExpr::AlternativeValue { variable, alternative } => {
+        BashExpr::AlternativeValue {
+            variable,
+            alternative,
+        } => {
             // Generate ${VAR:+alt_value} syntax
             let alt_val = generate_expr(alternative);
             format!("\"${{{}:+{}}}\"", variable, alt_val.trim_matches('"'))
@@ -291,19 +319,39 @@ fn generate_arith_expr(expr: &ArithExpr) -> String {
         ArithExpr::Number(n) => n.to_string(),
         ArithExpr::Variable(v) => v.clone(),
         ArithExpr::Add(left, right) => {
-            format!("{} + {}", generate_arith_expr(left), generate_arith_expr(right))
+            format!(
+                "{} + {}",
+                generate_arith_expr(left),
+                generate_arith_expr(right)
+            )
         }
         ArithExpr::Sub(left, right) => {
-            format!("{} - {}", generate_arith_expr(left), generate_arith_expr(right))
+            format!(
+                "{} - {}",
+                generate_arith_expr(left),
+                generate_arith_expr(right)
+            )
         }
         ArithExpr::Mul(left, right) => {
-            format!("{} * {}", generate_arith_expr(left), generate_arith_expr(right))
+            format!(
+                "{} * {}",
+                generate_arith_expr(left),
+                generate_arith_expr(right)
+            )
         }
         ArithExpr::Div(left, right) => {
-            format!("{} / {}", generate_arith_expr(left), generate_arith_expr(right))
+            format!(
+                "{} / {}",
+                generate_arith_expr(left),
+                generate_arith_expr(right)
+            )
         }
         ArithExpr::Mod(left, right) => {
-            format!("{} % {}", generate_arith_expr(left), generate_arith_expr(right))
+            format!(
+                "{} % {}",
+                generate_arith_expr(left),
+                generate_arith_expr(right)
+            )
         }
     }
 }
@@ -357,10 +405,18 @@ fn generate_test_expr(expr: &TestExpr) -> String {
             format!("[ -n {} ]", generate_expr(expr))
         }
         TestExpr::And(left, right) => {
-            format!("{} && {}", generate_test_expr(left), generate_test_expr(right))
+            format!(
+                "{} && {}",
+                generate_test_expr(left),
+                generate_test_expr(right)
+            )
         }
         TestExpr::Or(left, right) => {
-            format!("{} || {}", generate_test_expr(left), generate_test_expr(right))
+            format!(
+                "{} || {}",
+                generate_test_expr(left),
+                generate_test_expr(right)
+            )
         }
         TestExpr::Not(expr) => {
             format!("! {}", generate_test_expr(expr))

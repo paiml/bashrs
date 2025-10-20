@@ -39,7 +39,8 @@ pub fn check(source: &str) -> LintResult {
     // Pattern: [[ ... ]] with unquoted variables
     // We look for $VAR or ${VAR} inside [[ ... ]]
     let bracket_pattern = Regex::new(r#"\[\[([^\]]+)\]\]"#).unwrap();
-    let var_pattern = Regex::new(r#"\$(?:\{([A-Za-z_][A-Za-z0-9_]*)\}|([A-Za-z_][A-Za-z0-9_]*))"#).unwrap();
+    let var_pattern =
+        Regex::new(r#"\$(?:\{([A-Za-z_][A-Za-z0-9_]*)\}|([A-Za-z_][A-Za-z0-9_]*))"#).unwrap();
 
     for (line_num, line) in source.lines().enumerate() {
         let line_num = line_num + 1; // 1-indexed
@@ -122,7 +123,8 @@ fn is_pattern_position(content: &str, var_pos: usize) -> bool {
     let before = &content[..var_pos];
 
     // Find the start of the current condition (after last && or ||)
-    let condition_start = before.rfind("&&")
+    let condition_start = before
+        .rfind("&&")
         .or_else(|| before.rfind("||"))
         .map(|pos| pos + 2)
         .unwrap_or(0);

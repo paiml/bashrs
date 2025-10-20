@@ -38,9 +38,9 @@ pub fn check(source: &str) -> LintResult {
                 if !before.ends_with('"') {
                     let span = Span::new(
                         line_num + 1,
-                        col + 2,  // Space before {}
+                        col + 2, // Space before {}
                         line_num + 1,
-                        col + 4,  // {} is 2 chars
+                        col + 4, // {} is 2 chars
                     );
 
                     let diag = Diagnostic::new(

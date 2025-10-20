@@ -463,7 +463,10 @@ clean:
         .clone();
 
     let report = String::from_utf8(report_output.stdout).unwrap();
-    assert!(report.contains("wildcard"), "Report should mention wildcard transformations");
+    assert!(
+        report.contains("wildcard"),
+        "Report should mention wildcard transformations"
+    );
 
     // Step 3: Purify to output file
     bashrs_cmd()
@@ -478,10 +481,22 @@ clean:
 
     // Step 4: Verify purified content
     let purified_content = fs::read_to_string(purified).unwrap();
-    assert!(purified_content.contains("$(sort $(wildcard src/*.c))"), "Should wrap wildcards with sort");
-    assert!(purified_content.contains("$(sort $(wildcard inc/*.h))"), "Should wrap all wildcards");
-    assert!(purified_content.contains("$(sort $(wildcard obj/*.o))"), "Should wrap all wildcards");
-    assert!(purified_content.contains(".PHONY: build clean"), "Should preserve .PHONY");
+    assert!(
+        purified_content.contains("$(sort $(wildcard src/*.c))"),
+        "Should wrap wildcards with sort"
+    );
+    assert!(
+        purified_content.contains("$(sort $(wildcard inc/*.h))"),
+        "Should wrap all wildcards"
+    );
+    assert!(
+        purified_content.contains("$(sort $(wildcard obj/*.o))"),
+        "Should wrap all wildcards"
+    );
+    assert!(
+        purified_content.contains(".PHONY: build clean"),
+        "Should preserve .PHONY"
+    );
 
     // Step 5: Parse purified file (should succeed)
     bashrs_cmd()
@@ -503,7 +518,10 @@ clean:
         .clone();
 
     let second_report = String::from_utf8(second_purify.stdout).unwrap();
-    assert!(second_report.contains("Transformations Applied: 0"), "Should be idempotent");
+    assert!(
+        second_report.contains("Transformations Applied: 0"),
+        "Should be idempotent"
+    );
 
     cleanup(input);
     cleanup(purified);

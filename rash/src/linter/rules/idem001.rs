@@ -30,12 +30,7 @@ pub fn check(source: &str) -> LintResult {
         // Look for mkdir without -p
         if line.contains("mkdir ") && !line.contains("mkdir -p") {
             if let Some(col) = line.find("mkdir ") {
-                let span = Span::new(
-                    line_num + 1,
-                    col + 1,
-                    line_num + 1,
-                    col + 6,
-                );
+                let span = Span::new(line_num + 1, col + 1, line_num + 1, col + 6);
 
                 let fix = Fix::new_with_assumptions(
                     "mkdir -p",

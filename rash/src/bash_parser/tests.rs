@@ -327,7 +327,10 @@ fn test_assign_default_value_expansion() {
 
     // ASSERT: Should contain parameter expansion syntax with :=
     assert!(
-        purified.contains("$") && purified.contains("VAR") && purified.contains(":=") && purified.contains("default"),
+        purified.contains("$")
+            && purified.contains("VAR")
+            && purified.contains(":=")
+            && purified.contains("default"),
         "Purified output should preserve ${{VAR:=default}} syntax, got: {}",
         purified
     );
@@ -386,7 +389,10 @@ fn test_default_value_expansion() {
 
     // ASSERT: Should contain parameter expansion syntax
     assert!(
-        purified.contains("$") && purified.contains("VAR") && purified.contains(":-") && purified.contains("default"),
+        purified.contains("$")
+            && purified.contains("VAR")
+            && purified.contains(":-")
+            && purified.contains("default"),
         "Purified output should preserve ${{VAR:-default}} syntax, got: {}",
         purified
     );
