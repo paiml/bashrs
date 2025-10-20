@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"constant":["CRITICAL_COMMANDS"],"fn":["check","find_critical_command","has_error_handling"]};

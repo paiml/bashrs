@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"fn":["check","is_pattern_position","is_quoted_at_position"]};

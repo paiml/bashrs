@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"fn":["check","create_guard_fix","has_ifndef","should_have_guard"]};

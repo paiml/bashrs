@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"constant":["INTERNAL_VARS"],"fn":["check","create_fix","extract_var_name","is_internal_variable"]};

@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"constant":["RECURSIVE_MAKE_PATTERNS"],"fn":["check","create_fix","extract_subdir"]};

@@ -29,10 +29,10 @@
 <a href=#29 id=29 data-nosnippet>29</a>    <span class="kw">for </span>(line_num, line) <span class="kw">in </span>source.lines().enumerate() {
 <a href=#30 id=30 data-nosnippet>30</a>        <span class="kw">if let </span><span class="prelude-val">Some</span>(col) = line.find(<span class="string">"$RANDOM"</span>) {
 <a href=#31 id=31 data-nosnippet>31</a>            <span class="kw">let </span>span = Span::new(
-<a href=#32 id=32 data-nosnippet>32</a>                line_num + <span class="number">1</span>,  <span class="comment">// start_line
-<a href=#33 id=33 data-nosnippet>33</a>                </span>col + <span class="number">1</span>,       <span class="comment">// start_col
-<a href=#34 id=34 data-nosnippet>34</a>                </span>line_num + <span class="number">1</span>,  <span class="comment">// end_line
-<a href=#35 id=35 data-nosnippet>35</a>                </span>col + <span class="number">8</span>,       <span class="comment">// end_col ($RANDOM is 7 chars, +1 for 1-indexed)
+<a href=#32 id=32 data-nosnippet>32</a>                line_num + <span class="number">1</span>, <span class="comment">// start_line
+<a href=#33 id=33 data-nosnippet>33</a>                </span>col + <span class="number">1</span>,      <span class="comment">// start_col
+<a href=#34 id=34 data-nosnippet>34</a>                </span>line_num + <span class="number">1</span>, <span class="comment">// end_line
+<a href=#35 id=35 data-nosnippet>35</a>                </span>col + <span class="number">8</span>,      <span class="comment">// end_col ($RANDOM is 7 chars, +1 for 1-indexed)
 <a href=#36 id=36 data-nosnippet>36</a>            </span>);
 <a href=#37 id=37 data-nosnippet>37</a>
 <a href=#38 id=38 data-nosnippet>38</a>            <span class="kw">let </span>fix = Fix::new_unsafe(<span class="macro">vec!</span>[
@@ -69,36 +69,39 @@
 <a href=#69 id=69 data-nosnippet>69</a>        <span class="kw">let </span>diag = <span class="kw-2">&amp;</span>result.diagnostics[<span class="number">0</span>];
 <a href=#70 id=70 data-nosnippet>70</a>        <span class="macro">assert_eq!</span>(diag.code, <span class="string">"DET001"</span>);
 <a href=#71 id=71 data-nosnippet>71</a>        <span class="macro">assert_eq!</span>(diag.severity, Severity::Error);
-<a href=#72 id=72 data-nosnippet>72</a>        <span class="macro">assert_eq!</span>(diag.message, <span class="string">"Non-deterministic $RANDOM usage - requires manual fix (UNSAFE)"</span>);
-<a href=#73 id=73 data-nosnippet>73</a>    }
-<a href=#74 id=74 data-nosnippet>74</a>
-<a href=#75 id=75 data-nosnippet>75</a>    <span class="attr">#[test]
-<a href=#76 id=76 data-nosnippet>76</a>    </span><span class="kw">fn </span>test_DET001_provides_fix() {
-<a href=#77 id=77 data-nosnippet>77</a>        <span class="kw">let </span>script = <span class="string">"ID=$RANDOM"</span>;
-<a href=#78 id=78 data-nosnippet>78</a>        <span class="kw">let </span>result = check(script);
-<a href=#79 id=79 data-nosnippet>79</a>
-<a href=#80 id=80 data-nosnippet>80</a>        <span class="macro">assert!</span>(result.diagnostics[<span class="number">0</span>].fix.is_some());
-<a href=#81 id=81 data-nosnippet>81</a>        <span class="kw">let </span>fix = result.diagnostics[<span class="number">0</span>].fix.as_ref().unwrap();
-<a href=#82 id=82 data-nosnippet>82</a>        <span class="comment">// UNSAFE fix: no automatic replacement, provides suggestions
-<a href=#83 id=83 data-nosnippet>83</a>        </span><span class="macro">assert_eq!</span>(fix.replacement, <span class="string">""</span>);
-<a href=#84 id=84 data-nosnippet>84</a>        <span class="macro">assert!</span>(fix.is_unsafe());
-<a href=#85 id=85 data-nosnippet>85</a>        <span class="macro">assert!</span>(!fix.suggested_alternatives.is_empty());
-<a href=#86 id=86 data-nosnippet>86</a>        <span class="macro">assert!</span>(fix.suggested_alternatives.len() &gt;= <span class="number">3</span>);
-<a href=#87 id=87 data-nosnippet>87</a>    }
-<a href=#88 id=88 data-nosnippet>88</a>
-<a href=#89 id=89 data-nosnippet>89</a>    <span class="attr">#[test]
-<a href=#90 id=90 data-nosnippet>90</a>    </span><span class="kw">fn </span>test_DET001_no_false_positive() {
-<a href=#91 id=91 data-nosnippet>91</a>        <span class="kw">let </span>script = <span class="string">"ID=\"session-${VERSION}\""</span>;
-<a href=#92 id=92 data-nosnippet>92</a>        <span class="kw">let </span>result = check(script);
-<a href=#93 id=93 data-nosnippet>93</a>
-<a href=#94 id=94 data-nosnippet>94</a>        <span class="macro">assert_eq!</span>(result.diagnostics.len(), <span class="number">0</span>);
-<a href=#95 id=95 data-nosnippet>95</a>    }
+<a href=#72 id=72 data-nosnippet>72</a>        <span class="macro">assert_eq!</span>(
+<a href=#73 id=73 data-nosnippet>73</a>            diag.message,
+<a href=#74 id=74 data-nosnippet>74</a>            <span class="string">"Non-deterministic $RANDOM usage - requires manual fix (UNSAFE)"
+<a href=#75 id=75 data-nosnippet>75</a>        </span>);
+<a href=#76 id=76 data-nosnippet>76</a>    }
+<a href=#77 id=77 data-nosnippet>77</a>
+<a href=#78 id=78 data-nosnippet>78</a>    <span class="attr">#[test]
+<a href=#79 id=79 data-nosnippet>79</a>    </span><span class="kw">fn </span>test_DET001_provides_fix() {
+<a href=#80 id=80 data-nosnippet>80</a>        <span class="kw">let </span>script = <span class="string">"ID=$RANDOM"</span>;
+<a href=#81 id=81 data-nosnippet>81</a>        <span class="kw">let </span>result = check(script);
+<a href=#82 id=82 data-nosnippet>82</a>
+<a href=#83 id=83 data-nosnippet>83</a>        <span class="macro">assert!</span>(result.diagnostics[<span class="number">0</span>].fix.is_some());
+<a href=#84 id=84 data-nosnippet>84</a>        <span class="kw">let </span>fix = result.diagnostics[<span class="number">0</span>].fix.as_ref().unwrap();
+<a href=#85 id=85 data-nosnippet>85</a>        <span class="comment">// UNSAFE fix: no automatic replacement, provides suggestions
+<a href=#86 id=86 data-nosnippet>86</a>        </span><span class="macro">assert_eq!</span>(fix.replacement, <span class="string">""</span>);
+<a href=#87 id=87 data-nosnippet>87</a>        <span class="macro">assert!</span>(fix.is_unsafe());
+<a href=#88 id=88 data-nosnippet>88</a>        <span class="macro">assert!</span>(!fix.suggested_alternatives.is_empty());
+<a href=#89 id=89 data-nosnippet>89</a>        <span class="macro">assert!</span>(fix.suggested_alternatives.len() &gt;= <span class="number">3</span>);
+<a href=#90 id=90 data-nosnippet>90</a>    }
+<a href=#91 id=91 data-nosnippet>91</a>
+<a href=#92 id=92 data-nosnippet>92</a>    <span class="attr">#[test]
+<a href=#93 id=93 data-nosnippet>93</a>    </span><span class="kw">fn </span>test_DET001_no_false_positive() {
+<a href=#94 id=94 data-nosnippet>94</a>        <span class="kw">let </span>script = <span class="string">"ID=\"session-${VERSION}\""</span>;
+<a href=#95 id=95 data-nosnippet>95</a>        <span class="kw">let </span>result = check(script);
 <a href=#96 id=96 data-nosnippet>96</a>
-<a href=#97 id=97 data-nosnippet>97</a>    <span class="attr">#[test]
-<a href=#98 id=98 data-nosnippet>98</a>    </span><span class="kw">fn </span>test_DET001_multiple_random() {
-<a href=#99 id=99 data-nosnippet>99</a>        <span class="kw">let </span>script = <span class="string">"A=$RANDOM\nB=$RANDOM"</span>;
-<a href=#100 id=100 data-nosnippet>100</a>        <span class="kw">let </span>result = check(script);
-<a href=#101 id=101 data-nosnippet>101</a>
-<a href=#102 id=102 data-nosnippet>102</a>        <span class="macro">assert_eq!</span>(result.diagnostics.len(), <span class="number">2</span>);
-<a href=#103 id=103 data-nosnippet>103</a>    }
-<a href=#104 id=104 data-nosnippet>104</a>}</code></pre></div></section></main></body></html>
+<a href=#97 id=97 data-nosnippet>97</a>        <span class="macro">assert_eq!</span>(result.diagnostics.len(), <span class="number">0</span>);
+<a href=#98 id=98 data-nosnippet>98</a>    }
+<a href=#99 id=99 data-nosnippet>99</a>
+<a href=#100 id=100 data-nosnippet>100</a>    <span class="attr">#[test]
+<a href=#101 id=101 data-nosnippet>101</a>    </span><span class="kw">fn </span>test_DET001_multiple_random() {
+<a href=#102 id=102 data-nosnippet>102</a>        <span class="kw">let </span>script = <span class="string">"A=$RANDOM\nB=$RANDOM"</span>;
+<a href=#103 id=103 data-nosnippet>103</a>        <span class="kw">let </span>result = check(script);
+<a href=#104 id=104 data-nosnippet>104</a>
+<a href=#105 id=105 data-nosnippet>105</a>        <span class="macro">assert_eq!</span>(result.diagnostics.len(), <span class="number">2</span>);
+<a href=#106 id=106 data-nosnippet>106</a>    }
+<a href=#107 id=107 data-nosnippet>107</a>}</code></pre></div></section></main></body></html>

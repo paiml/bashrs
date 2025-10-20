@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"constant":["SHARED_STATE_PATTERNS"],"fn":["check","collect_targets_with_shared_state","find_parallel_conflicts","has_notparallel"],"struct":["TargetState"]};

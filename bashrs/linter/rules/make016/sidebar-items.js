@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"fn":["check","create_fix","extract_prerequisites","extract_variable_ref","find_unquoted_variables","is_automatic_variable","is_target_line"]};

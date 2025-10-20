@@ -132,6 +132,10 @@
 <a href=#132 id=132 data-nosnippet>132</a>        </span><span class="kw">let </span>bash_code = <span class="string">r#"val=$(echo "$x" | cut -d. -f1)"#</span>;
 <a href=#133 id=133 data-nosnippet>133</a>        <span class="kw">let </span>result = check(bash_code);
 <a href=#134 id=134 data-nosnippet>134</a>
-<a href=#135 id=135 data-nosnippet>135</a>        <span class="macro">assert_eq!</span>(result.diagnostics.len(), <span class="number">0</span>, <span class="string">"Should not trigger on pipelines"</span>);
-<a href=#136 id=136 data-nosnippet>136</a>    }
-<a href=#137 id=137 data-nosnippet>137</a>}</code></pre></div></section></main></body></html>
+<a href=#135 id=135 data-nosnippet>135</a>        <span class="macro">assert_eq!</span>(
+<a href=#136 id=136 data-nosnippet>136</a>            result.diagnostics.len(),
+<a href=#137 id=137 data-nosnippet>137</a>            <span class="number">0</span>,
+<a href=#138 id=138 data-nosnippet>138</a>            <span class="string">"Should not trigger on pipelines"
+<a href=#139 id=139 data-nosnippet>139</a>        </span>);
+<a href=#140 id=140 data-nosnippet>140</a>    }
+<a href=#141 id=141 data-nosnippet>141</a>}</code></pre></div></section></main></body></html>

@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"constant":["DANGEROUS_PATTERNS"],"fn":["check","check_line_for_dangerous_pattern","create_fix","is_dangerous_pattern","is_target_line"]};

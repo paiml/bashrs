@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"constant":["INEFFICIENT_PATTERNS"],"fn":["check","create_fix"]};
