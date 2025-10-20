@@ -5,6 +5,10 @@ pub mod sc2046;
 pub mod sc2048;
 pub mod sc2066;
 pub mod sc2068;
+pub mod sc2070;
+pub mod sc2071;
+pub mod sc2072;
+pub mod sc2076;
 pub mod sc2086;
 pub mod sc2116;
 
@@ -66,6 +70,10 @@ pub fn lint_shell(source: &str) -> LintResult {
     result.merge(sc2048::check(source));
     result.merge(sc2066::check(source));
     result.merge(sc2068::check(source));
+    result.merge(sc2070::check(source));
+    result.merge(sc2071::check(source));
+    result.merge(sc2072::check(source));
+    result.merge(sc2076::check(source));
     result.merge(sc2116::check(source));
 
     // Run determinism rules
