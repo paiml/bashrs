@@ -46,7 +46,11 @@ clean:
         .filter(|item| matches!(item, MakeItem::Target { .. }))
         .collect();
 
-    assert_eq!(targets.len(), 4, "Expected 4 targets (build, test, clean, .PHONY)");
+    assert_eq!(
+        targets.len(),
+        4,
+        "Expected 4 targets (build, test, clean, .PHONY)"
+    );
 }
 
 #[test]
@@ -140,10 +144,16 @@ build:
         assert_eq!(recipe.len(), 4);
 
         // Verify @ prefix preserved
-        assert!(!recipe[0].starts_with('@'), "First recipe should not be silent");
+        assert!(
+            !recipe[0].starts_with('@'),
+            "First recipe should not be silent"
+        );
         assert!(recipe[1].starts_with('@'), "Second recipe should be silent");
         assert!(recipe[2].starts_with('@'), "Third recipe should be silent");
-        assert!(!recipe[3].starts_with('@'), "Fourth recipe should not be silent");
+        assert!(
+            !recipe[3].starts_with('@'),
+            "Fourth recipe should not be silent"
+        );
     } else {
         panic!("Expected Target");
     }
@@ -184,9 +194,7 @@ test: build
     let all_target = ast
         .items
         .iter()
-        .find(|item| {
-            matches!(item, MakeItem::Target { name, .. } if name == "all")
-        })
+        .find(|item| matches!(item, MakeItem::Target { name, .. } if name == "all"))
         .expect("'all' target not found");
 
     if let MakeItem::Target { prerequisites, .. } = all_target {
@@ -317,9 +325,10 @@ build:
     let ast = result.unwrap();
 
     // Verify .PHONY is parsed
-    let phony_found = ast.items.iter().any(|item| {
-        matches!(item, MakeItem::Target { name, .. } if name == ".PHONY")
-    });
+    let phony_found = ast
+        .items
+        .iter()
+        .any(|item| matches!(item, MakeItem::Target { name, .. } if name == ".PHONY"));
 
     assert!(phony_found, ".PHONY target should be parsed");
 }

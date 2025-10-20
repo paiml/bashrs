@@ -290,8 +290,14 @@ mod tests {
             .collect();
 
         assert_eq!(metadata.len(), 1, "exit_code should have metadata entry");
-        assert_eq!(metadata[0].module, "status", "exit_code should be in 'status' module");
-        assert_eq!(metadata[0].shell_name, "inline_exit_code", "exit_code should use inline shell syntax");
+        assert_eq!(
+            metadata[0].module, "status",
+            "exit_code should be in 'status' module"
+        );
+        assert_eq!(
+            metadata[0].shell_name, "inline_exit_code",
+            "exit_code should use inline shell syntax"
+        );
     }
 
     // Sprint 28: Complete Missing Stdlib Functions - RED PHASE
@@ -314,8 +320,14 @@ mod tests {
             .collect();
 
         assert_eq!(metadata.len(), 1, "string_split should have metadata entry");
-        assert_eq!(metadata[0].module, "string", "string_split should be in 'string' module");
-        assert_eq!(metadata[0].shell_name, "rash_string_split", "string_split should use rash_ prefix");
+        assert_eq!(
+            metadata[0].module, "string",
+            "string_split should be in 'string' module"
+        );
+        assert_eq!(
+            metadata[0].shell_name, "rash_string_split",
+            "string_split should use rash_ prefix"
+        );
     }
 
     #[test]
@@ -336,8 +348,14 @@ mod tests {
             .collect();
 
         assert_eq!(metadata.len(), 1, "array_len should have metadata entry");
-        assert_eq!(metadata[0].module, "array", "array_len should be in 'array' module");
-        assert_eq!(metadata[0].shell_name, "rash_array_len", "array_len should use rash_ prefix");
+        assert_eq!(
+            metadata[0].module, "array",
+            "array_len should be in 'array' module"
+        );
+        assert_eq!(
+            metadata[0].shell_name, "rash_array_len",
+            "array_len should use rash_ prefix"
+        );
     }
 
     #[test]
@@ -358,8 +376,14 @@ mod tests {
             .collect();
 
         assert_eq!(metadata.len(), 1, "array_join should have metadata entry");
-        assert_eq!(metadata[0].module, "array", "array_join should be in 'array' module");
-        assert_eq!(metadata[0].shell_name, "rash_array_join", "array_join should use rash_ prefix");
+        assert_eq!(
+            metadata[0].module, "array",
+            "array_join should be in 'array' module"
+        );
+        assert_eq!(
+            metadata[0].shell_name, "rash_array_join",
+            "array_join should use rash_ prefix"
+        );
     }
 }
 

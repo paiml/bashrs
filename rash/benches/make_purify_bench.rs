@@ -368,10 +368,7 @@ fn generate_makefile_with_issues(num_issues: usize) -> String {
 
     // Add timestamp-based variables
     for i in 0..num_issues / 3 {
-        makefile.push_str(&format!(
-            "VERSION_{} := $(shell date +%s)\n",
-            i
-        ));
+        makefile.push_str(&format!("VERSION_{} := $(shell date +%s)\n", i));
     }
 
     makefile.push_str("\n.PHONY: all clean\n\n");

@@ -399,10 +399,7 @@ fn generate_makefile(num_targets: usize) -> String {
 
     // Individual targets
     for i in 0..num_targets {
-        makefile.push_str(&format!(
-            "target{}: file{}.o\n\t$(CC) -o $@ $<\n\n",
-            i, i
-        ));
+        makefile.push_str(&format!("target{}: file{}.o\n\t$(CC) -o $@ $<\n\n", i, i));
         makefile.push_str(&format!(
             "file{}.o: file{}.c\n\t$(CC) $(CFLAGS) -c $< -o $@\n\n",
             i, i

@@ -1,4 +1,7 @@
-use crate::cli::args::{CompileRuntime, ContainerFormatArg, InspectionFormat, LintFormat, MakeCommands, MakeOutputFormat, ReportFormat};
+use crate::cli::args::{
+    CompileRuntime, ContainerFormatArg, InspectionFormat, LintFormat, MakeCommands,
+    MakeOutputFormat, ReportFormat,
+};
 use crate::cli::{Cli, Commands};
 use crate::models::{Config, Error, Result};
 use crate::{check, transpile};
@@ -103,14 +106,18 @@ pub fn execute_command(cli: Cli) -> Result<()> {
             )
         }
 
-        Commands::Lint { input, format, fix, fix_assumptions, output } => {
+        Commands::Lint {
+            input,
+            format,
+            fix,
+            fix_assumptions,
+            output,
+        } => {
             info!("Linting {}", input.display());
             lint_command(&input, format, fix, fix_assumptions, output.as_deref())
         }
 
-        Commands::Make { command } => {
-            handle_make_command(command)
-        } // Playground feature removed in v1.0 - will be moved to separate rash-playground crate in v1.1
+        Commands::Make { command } => handle_make_command(command), // Playground feature removed in v1.0 - will be moved to separate rash-playground crate in v1.1
     }
 }
 
@@ -526,7 +533,13 @@ fn handle_compile(
     Ok(())
 }
 
-fn lint_command(input: &Path, format: LintFormat, fix: bool, fix_assumptions: bool, output: Option<&Path>) -> Result<()> {
+fn lint_command(
+    input: &Path,
+    format: LintFormat,
+    fix: bool,
+    fix_assumptions: bool,
+    output: Option<&Path>,
+) -> Result<()> {
     use crate::linter::{
         autofix::{apply_fixes_to_file, FixOptions},
         output::{write_results, OutputFormat},
@@ -545,8 +558,8 @@ fn lint_command(input: &Path, format: LintFormat, fix: bool, fix_assumptions: bo
             create_backup: true,
             dry_run: false,
             backup_suffix: ".bak".to_string(),
-            apply_assumptions: fix_assumptions,  // NEW: Pass fix_assumptions flag
-            output_path: output.map(|p| p.to_path_buf()),  // NEW: Optional output path
+            apply_assumptions: fix_assumptions, // NEW: Pass fix_assumptions flag
+            output_path: output.map(|p| p.to_path_buf()), // NEW: Optional output path
         };
 
         match apply_fixes_to_file(input, &result, &options) {
@@ -708,12 +721,18 @@ fn make_purify_command(
     Ok(())
 }
 
-fn print_purify_report(result: &crate::make_parser::purify::PurificationResult, format: ReportFormat) {
+fn print_purify_report(
+    result: &crate::make_parser::purify::PurificationResult,
+    format: ReportFormat,
+) {
     match format {
         ReportFormat::Human => {
             println!("Makefile Purification Report");
             println!("============================");
-            println!("Transformations Applied: {}", result.transformations_applied);
+            println!(
+                "Transformations Applied: {}",
+                result.transformations_applied
+            );
             println!("Issues Fixed: {}", result.issues_fixed);
             println!("Manual Fixes Needed: {}", result.manual_fixes_needed);
             println!();
@@ -723,13 +742,16 @@ fn print_purify_report(result: &crate::make_parser::purify::PurificationResult, 
         }
         ReportFormat::Json => {
             println!("{{");
-            println!("  \"transformations_applied\": {},", result.transformations_applied);
+            println!(
+                "  \"transformations_applied\": {},",
+                result.transformations_applied
+            );
             println!("  \"issues_fixed\": {},", result.issues_fixed);
             println!("  \"manual_fixes_needed\": {},", result.manual_fixes_needed);
             println!("  \"report\": [");
             for (i, report_item) in result.report.iter().enumerate() {
                 let comma = if i < result.report.len() - 1 { "," } else { "" };
-                println!("    \"{}\"{}",  report_item.replace('"', "\\\""), comma);
+                println!("    \"{}\"{}", report_item.replace('"', "\\\""), comma);
             }
             println!("  ]");
             println!("}}");
@@ -768,9 +790,9 @@ fn make_lint_command(
     // Filter by specific rules if requested
     if let Some(rule_filter) = rules {
         let allowed_rules: Vec<&str> = rule_filter.split(',').map(|s| s.trim()).collect();
-        result.diagnostics.retain(|d| {
-            allowed_rules.iter().any(|rule| d.code.contains(rule))
-        });
+        result
+            .diagnostics
+            .retain(|d| allowed_rules.iter().any(|rule| d.code.contains(rule)));
     }
 
     // Apply fixes if requested
@@ -781,10 +803,10 @@ fn make_lint_command(
             use crate::linter::autofix::{apply_fixes, FixOptions};
 
             let fix_options = FixOptions {
-                create_backup: false,  // Don't create backup for output file
+                create_backup: false, // Don't create backup for output file
                 dry_run: false,
                 backup_suffix: String::new(),
-                apply_assumptions: false,  // TODO: Wire up fix_assumptions flag
+                apply_assumptions: false, // TODO: Wire up fix_assumptions flag
                 output_path: None,
             };
 
@@ -823,7 +845,7 @@ fn make_lint_command(
                 create_backup: true,
                 dry_run: false,
                 backup_suffix: ".bak".to_string(),
-                apply_assumptions: false,  // TODO: Wire up fix_assumptions flag
+                apply_assumptions: false, // TODO: Wire up fix_assumptions flag
                 output_path: None,
             };
 
@@ -859,7 +881,9 @@ fn make_lint_command(
                             output_format,
                             file_path,
                         )
-                        .map_err(|e| Error::Internal(format!("Failed to write lint results: {e}")))?;
+                        .map_err(|e| {
+                            Error::Internal(format!("Failed to write lint results: {e}"))
+                        })?;
                     }
                 }
                 Err(e) => {

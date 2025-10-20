@@ -30,10 +30,14 @@ fn test_safe_sc2086_unquoted_variable_autofix() {
     let temp = TempDir::new().unwrap();
     let script = temp.path().join("unquoted.sh");
 
-    fs::write(&script, r#"#!/bin/bash
+    fs::write(
+        &script,
+        r#"#!/bin/bash
 echo $variable
 rm $file
-"#).unwrap();
+"#,
+    )
+    .unwrap();
 
     // Without --fix: Should report diagnostics
     rash_cmd()
@@ -57,7 +61,10 @@ rm $file
 
     // Verify fix applied
     let content = fs::read_to_string(&fixed).unwrap();
-    assert!(content.contains(r#"echo "$variable""#), "Should quote $variable");
+    assert!(
+        content.contains(r#"echo "$variable""#),
+        "Should quote $variable"
+    );
     assert!(content.contains(r#"rm "$file""#), "Should quote $file");
 }
 
@@ -67,11 +74,15 @@ fn test_safe_sc2046_unquoted_command_substitution_autofix() {
     let temp = TempDir::new().unwrap();
     let script = temp.path().join("cmd_sub.sh");
 
-    fs::write(&script, r#"#!/bin/bash
+    fs::write(
+        &script,
+        r#"#!/bin/bash
 for file in $(ls *.txt); do
     echo $file
 done
-"#).unwrap();
+"#,
+    )
+    .unwrap();
 
     // With --fix: Should apply SAFE fixes
     let fixed = temp.path().join("fixed.sh");
@@ -86,8 +97,10 @@ done
 
     // Verify fix applied (quoting command substitution)
     let content = fs::read_to_string(&fixed).unwrap();
-    assert!(content.contains(r#""$(ls *.txt)""#) || content.contains("*.txt"),
-            "Should quote command substitution or suggest glob");
+    assert!(
+        content.contains(r#""$(ls *.txt)""#) || content.contains("*.txt"),
+        "Should quote command substitution or suggest glob"
+    );
 }
 
 #[test]
@@ -96,10 +109,14 @@ fn test_safe_sc2116_useless_echo_autofix() {
     let temp = TempDir::new().unwrap();
     let script = temp.path().join("useless_echo.sh");
 
-    fs::write(&script, r#"#!/bin/bash
+    fs::write(
+        &script,
+        r#"#!/bin/bash
 var=$(echo $other_var)
 result=$(echo "hello world")
-"#).unwrap();
+"#,
+    )
+    .unwrap();
 
     // With --fix: Should apply SAFE fixes
     let fixed = temp.path().join("fixed.sh");
@@ -114,8 +131,10 @@ result=$(echo "hello world")
 
     // Verify fix applied (removed useless echo)
     let content = fs::read_to_string(&fixed).unwrap();
-    assert!(content.contains(r#"var="$other_var""#) || content.contains("var=$other_var"),
-            "Should remove useless echo");
+    assert!(
+        content.contains(r#"var="$other_var""#) || content.contains("var=$other_var"),
+        "Should remove useless echo"
+    );
 }
 
 // ============================================================================
@@ -129,10 +148,14 @@ fn test_safe_with_assumptions_idem001_mkdir_not_applied_by_default() {
     let temp = TempDir::new().unwrap();
     let script = temp.path().join("mkdir.sh");
 
-    fs::write(&script, r#"#!/bin/bash
+    fs::write(
+        &script,
+        r#"#!/bin/bash
 mkdir /tmp/mydir
 mkdir /app/releases
-"#).unwrap();
+"#,
+    )
+    .unwrap();
 
     // Without --fix-assumptions: Should NOT apply fix
     let fixed = temp.path().join("fixed.sh");
@@ -147,8 +170,10 @@ mkdir /app/releases
 
     let content = fs::read_to_string(&fixed).unwrap();
     // Should NOT have -p flag (only SAFE fixes applied)
-    assert!(!content.contains("mkdir -p"),
-            "Should NOT apply SAFE-WITH-ASSUMPTIONS fix without --fix-assumptions");
+    assert!(
+        !content.contains("mkdir -p"),
+        "Should NOT apply SAFE-WITH-ASSUMPTIONS fix without --fix-assumptions"
+    );
 }
 
 #[test]
@@ -157,9 +182,13 @@ fn test_safe_with_assumptions_idem001_mkdir_with_flag() {
     let temp = TempDir::new().unwrap();
     let script = temp.path().join("mkdir.sh");
 
-    fs::write(&script, r#"#!/bin/bash
+    fs::write(
+        &script,
+        r#"#!/bin/bash
 mkdir /tmp/mydir
-"#).unwrap();
+"#,
+    )
+    .unwrap();
 
     // With --fix-assumptions: Should apply fix
     let fixed = temp.path().join("fixed.sh");
@@ -174,8 +203,10 @@ mkdir /tmp/mydir
         .success();
 
     let content = fs::read_to_string(&fixed).unwrap();
-    assert!(content.contains("mkdir -p"),
-            "Should apply mkdir -p with --fix-assumptions");
+    assert!(
+        content.contains("mkdir -p"),
+        "Should apply mkdir -p with --fix-assumptions"
+    );
 }
 
 #[test]
@@ -185,10 +216,14 @@ fn test_safe_with_assumptions_idem002_rm_not_applied_by_default() {
     let temp = TempDir::new().unwrap();
     let script = temp.path().join("rm.sh");
 
-    fs::write(&script, r#"#!/bin/bash
+    fs::write(
+        &script,
+        r#"#!/bin/bash
 rm /tmp/cache.txt
 rm /app/current
-"#).unwrap();
+"#,
+    )
+    .unwrap();
 
     // Without --fix-assumptions: Should NOT apply fix
     let fixed = temp.path().join("fixed.sh");
@@ -202,8 +237,10 @@ rm /app/current
         .success();
 
     let content = fs::read_to_string(&fixed).unwrap();
-    assert!(!content.contains("rm -f"),
-            "Should NOT apply SAFE-WITH-ASSUMPTIONS fix without --fix-assumptions");
+    assert!(
+        !content.contains("rm -f"),
+        "Should NOT apply SAFE-WITH-ASSUMPTIONS fix without --fix-assumptions"
+    );
 }
 
 #[test]
@@ -212,9 +249,13 @@ fn test_safe_with_assumptions_idem002_rm_with_flag() {
     let temp = TempDir::new().unwrap();
     let script = temp.path().join("rm.sh");
 
-    fs::write(&script, r#"#!/bin/bash
+    fs::write(
+        &script,
+        r#"#!/bin/bash
 rm /tmp/cache.txt
-"#).unwrap();
+"#,
+    )
+    .unwrap();
 
     // With --fix-assumptions: Should apply fix
     let fixed = temp.path().join("fixed.sh");
@@ -229,8 +270,10 @@ rm /tmp/cache.txt
         .success();
 
     let content = fs::read_to_string(&fixed).unwrap();
-    assert!(content.contains("rm -f"),
-            "Should apply rm -f with --fix-assumptions");
+    assert!(
+        content.contains("rm -f"),
+        "Should apply rm -f with --fix-assumptions"
+    );
 }
 
 // ============================================================================
@@ -244,9 +287,13 @@ fn test_unsafe_idem003_symlink_never_autofix() {
     let temp = TempDir::new().unwrap();
     let script = temp.path().join("symlink.sh");
 
-    fs::write(&script, r#"#!/bin/bash
+    fs::write(
+        &script,
+        r#"#!/bin/bash
 ln -s /app/releases/v1.0.0 /app/current
-"#).unwrap();
+"#,
+    )
+    .unwrap();
 
     // Even with --fix --fix-assumptions: Should NOT apply UNSAFE fix
     let fixed = temp.path().join("fixed.sh");
@@ -263,8 +310,10 @@ ln -s /app/releases/v1.0.0 /app/current
     let content = fs::read_to_string(&fixed).unwrap();
     // Should NOT have ln -sf or rm before ln
     assert!(!content.contains("ln -sf"), "Should NOT apply UNSAFE fix");
-    assert!(!content.contains("rm") || !content.contains("ln -s"),
-            "Should NOT add rm before ln -s (semantic change)");
+    assert!(
+        !content.contains("rm") || !content.contains("ln -s"),
+        "Should NOT add rm before ln -s (semantic change)"
+    );
 
     // Should provide suggestions in diagnostic output
     rash_cmd()
@@ -283,10 +332,14 @@ fn test_unsafe_det001_random_never_autofix() {
     let temp = TempDir::new().unwrap();
     let script = temp.path().join("random.sh");
 
-    fs::write(&script, r#"#!/bin/bash
+    fs::write(
+        &script,
+        r#"#!/bin/bash
 SESSION_ID=$RANDOM
 echo "Session: $SESSION_ID"
-"#).unwrap();
+"#,
+    )
+    .unwrap();
 
     // Even with --fix --fix-assumptions: Should NOT apply UNSAFE fix
     let fixed = temp.path().join("fixed.sh");
@@ -302,8 +355,10 @@ echo "Session: $SESSION_ID"
 
     let content = fs::read_to_string(&fixed).unwrap();
     // Should still contain $RANDOM (no automatic transformation)
-    assert!(content.contains("$RANDOM"),
-            "Should NOT automatically replace $RANDOM (UNSAFE)");
+    assert!(
+        content.contains("$RANDOM"),
+        "Should NOT automatically replace $RANDOM (UNSAFE)"
+    );
 
     // Should provide suggestions
     rash_cmd()
@@ -321,9 +376,13 @@ fn test_unsafe_det002_timestamp_never_autofix() {
     let temp = TempDir::new().unwrap();
     let script = temp.path().join("timestamp.sh");
 
-    fs::write(&script, r#"#!/bin/bash
+    fs::write(
+        &script,
+        r#"#!/bin/bash
 RELEASE="release-$(date +%s)"
-"#).unwrap();
+"#,
+    )
+    .unwrap();
 
     let fixed = temp.path().join("fixed.sh");
     rash_cmd()
@@ -337,8 +396,10 @@ RELEASE="release-$(date +%s)"
         .success();
 
     let content = fs::read_to_string(&fixed).unwrap();
-    assert!(content.contains("date +%s"),
-            "Should NOT automatically replace timestamp (UNSAFE)");
+    assert!(
+        content.contains("date +%s"),
+        "Should NOT automatically replace timestamp (UNSAFE)"
+    );
 }
 
 // ============================================================================
@@ -352,11 +413,15 @@ fn test_property_safe_fixes_preserve_syntax() {
     let script = temp.path().join("input.sh");
 
     // Script with multiple SAFE issues
-    fs::write(&script, r#"#!/bin/bash
+    fs::write(
+        &script,
+        r#"#!/bin/bash
 echo $var1
 echo $var2
 var3=$(echo $var4)
-"#).unwrap();
+"#,
+    )
+    .unwrap();
 
     let fixed = temp.path().join("fixed.sh");
     rash_cmd()
@@ -383,9 +448,13 @@ fn test_property_safe_fixes_are_idempotent() {
     let temp = TempDir::new().unwrap();
     let script = temp.path().join("input.sh");
 
-    fs::write(&script, r#"#!/bin/bash
+    fs::write(
+        &script,
+        r#"#!/bin/bash
 echo $variable
-"#).unwrap();
+"#,
+    )
+    .unwrap();
 
     // First fix
     let fixed1 = temp.path().join("fixed1.sh");
@@ -421,10 +490,14 @@ fn test_property_assumptions_require_explicit_opt_in() {
     let temp = TempDir::new().unwrap();
     let script = temp.path().join("input.sh");
 
-    fs::write(&script, r#"#!/bin/bash
+    fs::write(
+        &script,
+        r#"#!/bin/bash
 mkdir /tmp/dir
 rm /tmp/file
-"#).unwrap();
+"#,
+    )
+    .unwrap();
 
     let fixed = temp.path().join("fixed.sh");
     rash_cmd()
@@ -452,7 +525,9 @@ fn test_integration_mixed_safety_levels() {
     let temp = TempDir::new().unwrap();
     let script = temp.path().join("mixed.sh");
 
-    fs::write(&script, r#"#!/bin/bash
+    fs::write(
+        &script,
+        r#"#!/bin/bash
 # SAFE: SC2086
 echo $unquoted_var
 
@@ -461,7 +536,9 @@ mkdir /tmp/mydir
 
 # UNSAFE: DET001
 SESSION_ID=$RANDOM
-"#).unwrap();
+"#,
+    )
+    .unwrap();
 
     // Test 1: Default --fix (only SAFE)
     let fixed1 = temp.path().join("fixed1.sh");
@@ -475,8 +552,14 @@ SESSION_ID=$RANDOM
         .success();
 
     let content1 = fs::read_to_string(&fixed1).unwrap();
-    assert!(content1.contains(r#""$unquoted_var""#), "Should fix SAFE issue");
-    assert!(!content1.contains("mkdir -p"), "Should NOT fix SAFE-WITH-ASSUMPTIONS");
+    assert!(
+        content1.contains(r#""$unquoted_var""#),
+        "Should fix SAFE issue"
+    );
+    assert!(
+        !content1.contains("mkdir -p"),
+        "Should NOT fix SAFE-WITH-ASSUMPTIONS"
+    );
     assert!(content1.contains("$RANDOM"), "Should NOT fix UNSAFE");
 
     // Test 2: --fix --fix-assumptions (SAFE + SAFE-WITH-ASSUMPTIONS)
@@ -492,8 +575,14 @@ SESSION_ID=$RANDOM
         .success();
 
     let content2 = fs::read_to_string(&fixed2).unwrap();
-    assert!(content2.contains(r#""$unquoted_var""#), "Should fix SAFE issue");
-    assert!(content2.contains("mkdir -p"), "Should fix SAFE-WITH-ASSUMPTIONS");
+    assert!(
+        content2.contains(r#""$unquoted_var""#),
+        "Should fix SAFE issue"
+    );
+    assert!(
+        content2.contains("mkdir -p"),
+        "Should fix SAFE-WITH-ASSUMPTIONS"
+    );
     assert!(content2.contains("$RANDOM"), "Should NOT fix UNSAFE");
 }
 
@@ -503,7 +592,9 @@ fn test_integration_real_world_deploy_script() {
     let temp = TempDir::new().unwrap();
     let script = temp.path().join("deploy.sh");
 
-    fs::write(&script, r#"#!/bin/bash
+    fs::write(
+        &script,
+        r#"#!/bin/bash
 # Real-world deployment script
 
 VERSION=$1
@@ -520,7 +611,9 @@ rm /app/current
 
 # UNSAFE: Should never auto-fix
 ln -s $RELEASE_DIR /app/current
-"#).unwrap();
+"#,
+    )
+    .unwrap();
 
     // With --fix only
     let fixed_safe = temp.path().join("fixed_safe.sh");
@@ -535,9 +628,18 @@ ln -s $RELEASE_DIR /app/current
 
     let safe_content = fs::read_to_string(&fixed_safe).unwrap();
     // Only SAFE fixes applied (quoting)
-    assert!(safe_content.contains(r#""$VERSION""#), "Should quote variables");
-    assert!(!safe_content.contains("mkdir -p"), "Should not add -p without assumptions");
-    assert!(!safe_content.contains("ln -sf"), "Should not fix unsafe symlink");
+    assert!(
+        safe_content.contains(r#""$VERSION""#),
+        "Should quote variables"
+    );
+    assert!(
+        !safe_content.contains("mkdir -p"),
+        "Should not add -p without assumptions"
+    );
+    assert!(
+        !safe_content.contains("ln -sf"),
+        "Should not fix unsafe symlink"
+    );
 
     // With --fix --fix-assumptions
     let fixed_assumptions = temp.path().join("fixed_assumptions.sh");
@@ -553,10 +655,22 @@ ln -s $RELEASE_DIR /app/current
 
     let assumptions_content = fs::read_to_string(&fixed_assumptions).unwrap();
     // SAFE + SAFE-WITH-ASSUMPTIONS applied
-    assert!(assumptions_content.contains(r#""$VERSION""#), "Should quote variables");
-    assert!(assumptions_content.contains("mkdir -p"), "Should add -p with assumptions");
-    assert!(assumptions_content.contains("rm -f"), "Should add -f with assumptions");
-    assert!(!assumptions_content.contains("ln -sf"), "Should still not fix unsafe symlink");
+    assert!(
+        assumptions_content.contains(r#""$VERSION""#),
+        "Should quote variables"
+    );
+    assert!(
+        assumptions_content.contains("mkdir -p"),
+        "Should add -p with assumptions"
+    );
+    assert!(
+        assumptions_content.contains("rm -f"),
+        "Should add -f with assumptions"
+    );
+    assert!(
+        !assumptions_content.contains("ln -sf"),
+        "Should still not fix unsafe symlink"
+    );
 }
 
 // ============================================================================

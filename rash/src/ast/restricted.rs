@@ -437,7 +437,11 @@ impl Expr {
                 right.validate()
             }
             Expr::Unary { operand, .. } => operand.validate(),
-            Expr::MethodCall { receiver, method, args } => {
+            Expr::MethodCall {
+                receiver,
+                method,
+                args,
+            } => {
                 receiver.validate()?;
                 Self::validate_identifier(method)?;
                 for arg in args {
@@ -586,7 +590,9 @@ impl Pattern {
         match self {
             Pattern::Literal(Literal::Str(s)) => {
                 if s.contains('\0') {
-                    return Err("Null characters not allowed in pattern string literals".to_string());
+                    return Err(
+                        "Null characters not allowed in pattern string literals".to_string()
+                    );
                 }
                 Ok(())
             }

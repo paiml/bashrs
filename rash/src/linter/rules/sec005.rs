@@ -62,8 +62,9 @@ pub fn check(source: &str) -> LintResult {
                     let after_eq = &line[eq_pos + 1..].trim_start();
 
                     // Check if it's a quoted literal (not a variable expansion)
-                    if (after_eq.starts_with('"') && !after_eq.starts_with("\"$")) ||
-                       (after_eq.starts_with('\'')) {
+                    if (after_eq.starts_with('"') && !after_eq.starts_with("\"$"))
+                        || (after_eq.starts_with('\''))
+                    {
                         // This looks like a hardcoded secret
                         if let Some(col) = line.find(pattern) {
                             let span = Span::new(
@@ -76,7 +77,10 @@ pub fn check(source: &str) -> LintResult {
                             let diag = Diagnostic::new(
                                 "SEC005",
                                 Severity::Error,
-                                format!("Hardcoded secret detected: {} - use environment variables", description),
+                                format!(
+                                    "Hardcoded secret detected: {} - use environment variables",
+                                    description
+                                ),
                                 span,
                             );
                             // NO AUTO-FIX: requires manual review

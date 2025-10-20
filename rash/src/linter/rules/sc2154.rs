@@ -39,8 +39,12 @@ pub fn check(source: &str) -> LintResult {
     let mut used_vars: Vec<(String, usize, usize)> = Vec::new();
 
     // Common built-in/environment variables to skip
-    let builtins: HashSet<&str> = ["HOME", "PATH", "PWD", "USER", "SHELL", "TERM", "LANG", "LC_ALL"]
-        .iter().cloned().collect();
+    let builtins: HashSet<&str> = [
+        "HOME", "PATH", "PWD", "USER", "SHELL", "TERM", "LANG", "LC_ALL",
+    ]
+    .iter()
+    .cloned()
+    .collect();
 
     // Collect assignments and uses
     for (line_num, line) in source.lines().enumerate() {

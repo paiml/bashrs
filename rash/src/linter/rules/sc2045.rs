@@ -58,7 +58,9 @@ pub fn check(source: &str) -> LintResult {
             let fix_text = if ls_args.is_empty() {
                 full_match.as_str().replace("$(ls)", "*")
             } else {
-                full_match.as_str().replace(&format!("$(ls {})", ls_args), &format!("{}*", ls_args))
+                full_match
+                    .as_str()
+                    .replace(&format!("$(ls {})", ls_args), &format!("{}*", ls_args))
             };
 
             let diagnostic = Diagnostic::new(
@@ -113,7 +115,12 @@ mod tests {
         let result = check(script);
         assert_eq!(result.diagnostics.len(), 1);
         assert!(result.diagnostics[0].fix.is_some());
-        assert!(result.diagnostics[0].fix.as_ref().unwrap().replacement.contains("*"));
+        assert!(result.diagnostics[0]
+            .fix
+            .as_ref()
+            .unwrap()
+            .replacement
+            .contains("*"));
     }
 
     #[test]

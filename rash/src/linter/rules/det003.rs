@@ -35,12 +35,7 @@ pub fn check(source: &str) -> LintResult {
             // Check if it's in a potentially problematic context
             if line.contains("$(ls") || line.contains("for ") && line.contains(" in ") {
                 if let Some(col) = line.find('*') {
-                    let span = Span::new(
-                        line_num + 1,
-                        col + 1,
-                        line_num + 1,
-                        col + 2,
-                    );
+                    let span = Span::new(line_num + 1, col + 1, line_num + 1, col + 2);
 
                     let diag = Diagnostic::new(
                         "DET003",

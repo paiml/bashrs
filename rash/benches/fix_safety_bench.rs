@@ -7,9 +7,9 @@
 //!
 //! Using criterion for statistical benchmarking
 
-use criterion::{black_box, criterion_group, criterion_main, BenchmarkId, Criterion, Throughput};
 use bashrs::linter::autofix::{apply_fixes, FixOptions};
-use bashrs::linter::rules::{lint_shell, sc2086, idem001, idem002, det001};
+use bashrs::linter::rules::{det001, idem001, idem002, lint_shell, sc2086};
+use criterion::{black_box, criterion_group, criterion_main, BenchmarkId, Criterion, Throughput};
 
 // ============================================================================
 // Benchmark 1: Linting Performance
@@ -120,7 +120,7 @@ SESSION_ID=$RANDOM
             create_backup: false,
             dry_run: false,
             backup_suffix: String::new(),
-            apply_assumptions: false,  // SAFE only
+            apply_assumptions: false, // SAFE only
             output_path: None,
         };
         b.iter(|| {
@@ -134,7 +134,7 @@ SESSION_ID=$RANDOM
             create_backup: false,
             dry_run: false,
             backup_suffix: String::new(),
-            apply_assumptions: true,  // SAFE + SAFE-WITH-ASSUMPTIONS
+            apply_assumptions: true, // SAFE + SAFE-WITH-ASSUMPTIONS
             output_path: None,
         };
         b.iter(|| {
@@ -284,11 +284,11 @@ fn bench_worst_case_many_issues(c: &mut Criterion) {
     // Script with many different types of issues
     let mut script = String::from("#!/bin/bash\n");
     for i in 0..50 {
-        script.push_str(&format!("echo $VAR{}\n", i));        // SC2086
-        script.push_str(&format!("mkdir /tmp/dir{}\n", i));   // IDEM001
-        script.push_str(&format!("rm /tmp/file{}\n", i));     // IDEM002
+        script.push_str(&format!("echo $VAR{}\n", i)); // SC2086
+        script.push_str(&format!("mkdir /tmp/dir{}\n", i)); // IDEM001
+        script.push_str(&format!("rm /tmp/file{}\n", i)); // IDEM002
     }
-    script.push_str("ID=$RANDOM\n");  // DET001
+    script.push_str("ID=$RANDOM\n"); // DET001
 
     c.bench_function("worst_case_150_issues", |b| {
         b.iter(|| {

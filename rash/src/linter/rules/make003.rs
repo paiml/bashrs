@@ -87,12 +87,7 @@ fn check_unquoted_vars(line: &str, line_num: usize, result: &mut LintResult) {
                 // Check if there's a quote after the variable
                 let after_var = if end < chars.len() { chars[end] } else { ' ' };
                 if after_var != '"' && after_var != '\'' {
-                    let span = Span::new(
-                        line_num + 1,
-                        start + 1,
-                        line_num + 1,
-                        end + 1,
-                    );
+                    let span = Span::new(line_num + 1, start + 1, line_num + 1, end + 1);
 
                     let var_text: String = chars[start..end].iter().collect();
                     let fix_replacement = format!("\"{}\"", var_text);

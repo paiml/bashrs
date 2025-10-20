@@ -1,0 +1,988 @@
+---
+roadmap:
+  title: "Rash v3.0 - World-Class Bash/Shell AND Makefile + WASM Backend"
+  goal: "Achieve world-class status for both Bash/Shell AND Makefile support with incremental WASM integration"
+  methodology: "EXTREME TDD + FAST (Fuzz, AST, Safety, Throughput)"
+  version: "3.0.0"
+  status: "PLANNED"
+  estimated_duration: "16-20 weeks (Q1-Q2 2026)"
+
+  context:
+    current_version: "2.1.1"
+    bash_shell_status: "Production-ready (14 rules, 1,542 tests)"
+    makefile_status: "Functional (5 rules, 100+ tests)"
+    wasm_status: "Specification complete, implementation planned"
+
+  strategic_vision:
+    - "World-class Bash/Shell linting and purification"
+    - "World-class Makefile linting and purification"
+    - "WASM backend for browser/serverless execution (if feasible)"
+    - "Unified quality enforcement for build toolchains"
+
+  statistics:
+    total_features: 63
+    bash_shell_features: 23
+    makefile_features: 25
+    wasm_features: 15
+    infrastructure_features: 0
+
+phases:
+  - id: "PHASE-1-MAKEFILE-WORLD-CLASS"
+    name: "Makefile World-Class Enhancement"
+    duration: "6-8 weeks"
+    status: "PLANNED"
+    priority: "P0 - CRITICAL"
+    description: "Elevate Makefile support from functional to world-class"
+
+    sprints:
+      - id: "SPRINT-81"
+        title: "Makefile Linter Expansion - Advanced Rules (15 new rules)"
+        duration: "2 weeks"
+        estimated_hours: "60-80 hours"
+        priority: "P0"
+
+        objectives:
+          - "Add 15 new Makefile linting rules (MAKE006-MAKE020)"
+          - "Achieve 20 total rules (current: 5)"
+          - "100% auto-fix coverage"
+          - "Comprehensive test coverage (≥90%)"
+
+        deliverables:
+          rules:
+            - id: "MAKE006"
+              name: "Missing target dependencies"
+              description: "Detect when targets don't declare dependencies"
+              severity: "warning"
+              auto_fix: "Suggest common dependencies"
+
+            - id: "MAKE007"
+              name: "Silent recipe errors (missing @ or -)"
+              description: "Detect recipes that should use @ or - prefix"
+              severity: "info"
+              auto_fix: "Add @ prefix for echo commands"
+
+            - id: "MAKE008"
+              name: "Tab vs spaces in recipes"
+              description: "Detect spaces instead of tabs (fatal Make error)"
+              severity: "error"
+              auto_fix: "Replace leading spaces with tab"
+
+            - id: "MAKE009"
+              name: "Hardcoded paths (non-portable)"
+              description: "Detect /usr/local hardcoded paths"
+              severity: "warning"
+              auto_fix: "Suggest $(PREFIX) variable"
+
+            - id: "MAKE010"
+              name: "Missing error handling (|| exit 1)"
+              description: "Detect commands without error handling"
+              severity: "warning"
+              auto_fix: "Add || exit 1"
+
+            - id: "MAKE011"
+              name: "Dangerous pattern rules (%)"
+              description: "Detect pattern rules without proper guards"
+              severity: "warning"
+              auto_fix: "Suggest explicit dependencies"
+
+            - id: "MAKE012"
+              name: "Recursive make considered harmful"
+              description: "Detect $(MAKE) -C pattern (Miller's paper)"
+              severity: "info"
+              auto_fix: "Suggest non-recursive alternatives"
+
+            - id: "MAKE013"
+              name: "Missing .SUFFIXES management"
+              description: "Detect builtin suffix rules pollution"
+              severity: "info"
+              auto_fix: "Add .SUFFIXES: to disable builtins"
+
+            - id: "MAKE014"
+              name: "Inefficient shell invocation"
+              description: "Detect multiple shell invocations per recipe"
+              severity: "info"
+              auto_fix: "Combine commands with &&"
+
+            - id: "MAKE015"
+              name: "Missing .DELETE_ON_ERROR"
+              description: "Detect Makefiles without .DELETE_ON_ERROR"
+              severity: "warning"
+              auto_fix: "Add .DELETE_ON_ERROR: special target"
+
+            - id: "MAKE016"
+              name: "Unquoted variable in prerequisites"
+              description: "Detect $(VAR) in prerequisites without quotes"
+              severity: "warning"
+              auto_fix: "Add quotes: \"$(VAR)\""
+
+            - id: "MAKE017"
+              name: "Missing .ONESHELL for multi-line recipes"
+              description: "Detect multi-line recipes without .ONESHELL"
+              severity: "info"
+              auto_fix: "Suggest .ONESHELL: or && chaining"
+
+            - id: "MAKE018"
+              name: "Parallel-unsafe targets (race conditions)"
+              description: "Detect targets that modify shared state"
+              severity: "warning"
+              auto_fix: "Suggest .NOTPARALLEL or dependencies"
+
+            - id: "MAKE019"
+              name: "Environment variable pollution"
+              description: "Detect export without careful control"
+              severity: "warning"
+              auto_fix: "Suggest unexport or .UNEXPORT_ALL_VARIABLES"
+
+            - id: "MAKE020"
+              name: "Missing include guard for -include"
+              description: "Detect include without error handling"
+              severity: "info"
+              auto_fix: "Use -include instead of include"
+
+          tests:
+            unit_tests: 120  # 8 tests per rule x 15 rules
+            property_tests: 15  # 1 per rule
+            integration_tests: 5
+            total: 140
+
+          documentation:
+            - "docs/linting/MAKEFILE-RULES-COMPLETE.md"
+            - "SPRINT-81-PLAN.md"
+            - "SPRINT-81-COMPLETE.md"
+
+        success_criteria:
+          - "All 15 rules implemented with 100% test coverage"
+          - "All 15 rules provide auto-fix suggestions"
+          - "120 unit tests passing (8 per rule)"
+          - "15 property tests passing (100+ cases each)"
+          - "Zero regressions (all existing 1,542 tests pass)"
+          - "Clippy clean (zero warnings)"
+          - "Mutation testing ≥90% kill rate on new rules"
+
+        methodology: "EXTREME TDD (RED-GREEN-REFACTOR)"
+
+      - id: "SPRINT-82"
+        title: "Makefile Parser Enhancement - Advanced Features"
+        duration: "1.5 weeks"
+        estimated_hours: "40-60 hours"
+        priority: "P0"
+
+        objectives:
+          - "Support advanced GNU Make features"
+          - "Handle complex variable expansion"
+          - "Parse conditional directives (ifeq, ifneq, ifdef, ifndef)"
+          - "Support function calls ($(call), $(eval), $(shell))"
+
+        deliverables:
+          features:
+            - name: "Conditional Directives"
+              description: "Parse ifeq/ifneq/ifdef/ifndef/else/endif"
+              tests: 20
+
+            - name: "Function Calls"
+              description: "Parse $(call func,args), $(eval), $(value)"
+              tests: 15
+
+            - name: "Advanced Variable Expansion"
+              description: "Handle nested expansions, substitution references"
+              tests: 15
+
+            - name: "Include Directives"
+              description: "Parse include/-include/sinclude"
+              tests: 10
+
+            - name: "Multi-line Variables"
+              description: "Handle define...endef blocks"
+              tests: 10
+
+          tests:
+            total: 70
+            unit_tests: 60
+            integration_tests: 10
+
+          documentation:
+            - "docs/make-parser/ADVANCED-FEATURES.md"
+            - "SPRINT-82-PLAN.md"
+            - "SPRINT-82-COMPLETE.md"
+
+        success_criteria:
+          - "All advanced features parsed correctly"
+          - "70 new tests passing"
+          - "Property tests validate round-trip parsing"
+          - "Handles complex real-world Makefiles (1000+ lines)"
+          - "Zero regressions"
+
+        methodology: "EXTREME TDD + Property Testing"
+
+      - id: "SPRINT-83"
+        title: "Makefile Purification Enhancement - GNU Make Best Practices"
+        duration: "1.5 weeks"
+        estimated_hours: "40-60 hours"
+        priority: "P0"
+
+        objectives:
+          - "Implement advanced purification transformations"
+          - "Apply GNU Make best practices automatically"
+          - "Optimize for parallel execution safety"
+          - "Generate reproducible builds"
+
+        deliverables:
+          transformations:
+            - name: "Parallel Safety"
+              description: "Detect and fix race conditions for make -j"
+              auto_fix: "Add order-only prerequisites (|)"
+
+            - name: "Reproducible Builds"
+              description: "Remove timestamps, ensure determinism"
+              auto_fix: "Replace $(shell date) with fixed dates"
+
+            - name: "Performance Optimization"
+              description: "Combine shell invocations, use := over ="
+              auto_fix: "Batch commands with && and ;"
+
+            - name: "Error Handling"
+              description: "Add .DELETE_ON_ERROR, proper status checks"
+              auto_fix: "Insert special targets"
+
+            - name: "Portability"
+              description: "Replace GNU-isms with portable alternatives"
+              auto_fix: "Use POSIX-compatible constructs"
+
+          tests:
+            total: 50
+            transformation_tests: 40
+            idempotency_tests: 10
+
+          documentation:
+            - "docs/make-purification/BEST-PRACTICES.md"
+            - "SPRINT-83-PLAN.md"
+            - "SPRINT-83-COMPLETE.md"
+
+        success_criteria:
+          - "All transformations preserve Makefile semantics"
+          - "Purified Makefiles are idempotent (can re-run)"
+          - "Purified Makefiles are parallel-safe (make -j works)"
+          - "50 new tests passing"
+          - "Property tests validate idempotency"
+          - "Zero regressions"
+
+        methodology: "EXTREME TDD + Property Testing"
+
+      - id: "SPRINT-84"
+        title: "Makefile Performance & Quality Validation"
+        duration: "1 week"
+        estimated_hours: "30-40 hours"
+        priority: "P0"
+
+        objectives:
+          - "Benchmark Makefile parsing/linting/purification performance"
+          - "Validate on large production Makefiles"
+          - "Achieve world-class quality metrics"
+          - "Complete documentation"
+
+        deliverables:
+          benchmarks:
+            - "Small Makefiles (<100 lines): <10ms"
+            - "Medium Makefiles (100-500 lines): <50ms"
+            - "Large Makefiles (500-2000 lines): <200ms"
+            - "Huge Makefiles (2000+ lines): <500ms"
+
+          validation:
+            - "Linux kernel Makefile (23,000+ lines)"
+            - "GNU coreutils Makefiles"
+            - "LLVM build system"
+            - "Real-world production Makefiles"
+
+          documentation:
+            - "docs/MAKEFILE-WORLD-CLASS-REPORT.md"
+            - "docs/MAKEFILE-BENCHMARKS.md"
+            - "SPRINT-84-COMPLETE.md"
+
+          quality_metrics:
+            linting_rules: 20
+            test_coverage: "≥90%"
+            mutation_kill_rate: "≥90%"
+            performance: "<200ms for typical Makefiles"
+
+        success_criteria:
+          - "All benchmarks meet performance targets"
+          - "Successfully lint/purify large production Makefiles"
+          - "Comprehensive documentation complete"
+          - "Quality metrics meet world-class standards"
+
+        methodology: "FAST (Fuzz, AST, Safety, Throughput)"
+
+  - id: "PHASE-2-BASH-SHELL-WORLD-CLASS"
+    name: "Bash/Shell World-Class Enhancement"
+    duration: "5-7 weeks"
+    status: "PLANNED"
+    priority: "P0 - CRITICAL"
+    description: "Elevate Bash/Shell support to world-class (target: 45/800 rules)"
+
+    sprints:
+      - id: "SPRINT-85"
+        title: "ShellCheck Parity - High Priority Rules (15 rules)"
+        duration: "2 weeks"
+        estimated_hours: "60-80 hours"
+        priority: "P0"
+
+        objectives:
+          - "Achieve parity with ShellCheck top 15 most critical rules"
+          - "Expand from 14 rules to 29 rules"
+          - "100% auto-fix coverage"
+
+        deliverables:
+          rules:
+            - "SC2006: Use $(...) instead of backticks"
+            - "SC2155: Declare and assign separately"
+            - "SC2164: Use cd ... || exit"
+            - "SC2115: Use ${var:?} to prevent rm -rf /"
+            - "SC2001: Use ${var//search/replace} over sed"
+            - "SC2236: Use -n/-z instead of ! -z/! -n"
+            - "SC2166: Prefer [[ over [ for conditionals"
+            - "SC2166: Use && instead of -a in [ ... ]"
+            - "SC2035: Use ./*.txt instead of *.txt in rm/cp"
+            - "SC2119: Use foo \"$@\" if function takes arguments"
+            - "SC2120: References arguments but none are passed"
+            - "SC2196: egrep is deprecated, use grep -E"
+            - "SC2097: Can't assign to readonly variable"
+            - "SC2103: Can't cd back after cd in subshell"
+            - "SC2181: Check exit code directly, not $?"
+
+          tests:
+            unit_tests: 120  # 8 per rule
+            property_tests: 15  # 1 per rule
+            total: 135
+
+          documentation:
+            - "docs/SHELLCHECK-PARITY.md (updated)"
+            - "SPRINT-85-PLAN.md"
+            - "SPRINT-85-COMPLETE.md"
+
+        success_criteria:
+          - "All 15 rules implemented with tests"
+          - "100% auto-fix coverage"
+          - "Mutation testing ≥90%"
+          - "Zero regressions"
+
+        methodology: "EXTREME TDD"
+
+      - id: "SPRINT-86"
+        title: "Security Linter - Critical Rules (10 rules)"
+        duration: "1.5 weeks"
+        estimated_hours: "50-60 hours"
+        priority: "P0"
+
+        objectives:
+          - "Add 10 critical security linting rules (SEC009-SEC018)"
+          - "Detect injection vulnerabilities"
+          - "Detect privilege escalation risks"
+          - "Detect credential leakage"
+
+        deliverables:
+          rules:
+            - id: "SEC009"
+              name: "Command injection via eval"
+              severity: "critical"
+
+            - id: "SEC010"
+              name: "SQL injection in database commands"
+              severity: "critical"
+
+            - id: "SEC011"
+              name: "Unsafe sudo usage"
+              severity: "high"
+
+            - id: "SEC012"
+              name: "Hardcoded credentials in scripts"
+              severity: "critical"
+
+            - id: "SEC013"
+              name: "Insecure temporary file creation"
+              severity: "high"
+
+            - id: "SEC014"
+              name: "Path traversal vulnerabilities"
+              severity: "high"
+
+            - id: "SEC015"
+              name: "Unsafe curl/wget usage"
+              severity: "medium"
+
+            - id: "SEC016"
+              name: "Missing input validation"
+              severity: "medium"
+
+            - id: "SEC017"
+              name: "Unsafe file permissions (chmod 777)"
+              severity: "high"
+
+            - id: "SEC018"
+              name: "Unsafe deserialization"
+              severity: "critical"
+
+          tests:
+            total: 80  # 8 per rule
+
+          documentation:
+            - "docs/linting/SECURITY-RULES.md"
+            - "SPRINT-86-PLAN.md"
+            - "SPRINT-86-COMPLETE.md"
+
+        success_criteria:
+          - "All 10 security rules implemented"
+          - "Detection accuracy ≥95%"
+          - "False positive rate <5%"
+          - "Mutation testing ≥90%"
+
+        methodology: "EXTREME TDD + Security Review"
+
+      - id: "SPRINT-87"
+        title: "Bash Best Practices Linter (10 rules)"
+        duration: "1.5 weeks"
+        estimated_hours: "40-50 hours"
+        priority: "P1"
+
+        objectives:
+          - "Add Bash-specific best practice rules"
+          - "Beyond ShellCheck coverage"
+          - "Focus on maintainability and robustness"
+
+        deliverables:
+          rules:
+            - "BASH001: Missing set -e in scripts"
+            - "BASH002: Missing set -o pipefail in pipelines"
+            - "BASH003: cd && command anti-pattern"
+            - "BASH004: Dangerous rm -rf without validation"
+            - "BASH005: Repeated tool dependency checks (DRY)"
+            - "BASH006: Missing function documentation"
+            - "BASH007: Hardcoded absolute paths"
+            - "BASH008: Missing error messages"
+            - "BASH009: Inefficient loops (use builtin alternatives)"
+            - "BASH010: Missing script header (shebang/description)"
+
+          tests:
+            total: 80
+
+          documentation:
+            - "docs/linting/BASH-BEST-PRACTICES.md"
+            - "SPRINT-87-PLAN.md"
+            - "SPRINT-87-COMPLETE.md"
+
+        success_criteria:
+          - "All 10 rules implemented"
+          - "Auto-fix suggestions for all rules"
+          - "Mutation testing ≥90%"
+          - "Zero regressions"
+
+        methodology: "EXTREME TDD"
+
+      - id: "SPRINT-88"
+        title: "Bash/Shell World-Class Validation"
+        duration: "1 week"
+        estimated_hours: "30-40 hours"
+        priority: "P0"
+
+        objectives:
+          - "Validate against real-world shell scripts"
+          - "Performance benchmarking"
+          - "Quality metrics validation"
+
+        deliverables:
+          validation:
+            - "Lint 1000+ GitHub shell scripts"
+            - "Performance benchmarks (<100ms target)"
+            - "Quality report"
+
+          documentation:
+            - "docs/BASH-SHELL-WORLD-CLASS-REPORT.md"
+            - "docs/BASH-BENCHMARKS.md"
+            - "SPRINT-88-COMPLETE.md"
+
+          quality_metrics:
+            total_rules: 45  # 14 + 15 + 10 + 10 - 4 overlap
+            test_coverage: "≥90%"
+            mutation_kill_rate: "≥90%"
+            performance: "<100ms for typical scripts"
+
+        success_criteria:
+          - "45 total linting rules implemented"
+          - "Successfully lint large production codebases"
+          - "Performance targets met"
+          - "World-class quality metrics achieved"
+
+        methodology: "FAST (Fuzz, AST, Safety, Throughput)"
+
+  - id: "PHASE-3-WASM-BACKEND"
+    name: "WASM Backend (Incremental, Conditional)"
+    duration: "5-8 weeks (if Phase 0 succeeds)"
+    status: "PLANNED - CONDITIONAL"
+    priority: "P2 - EXPLORATION"
+    description: "Incrementally add WASM backend for browser/serverless execution"
+
+    prerequisite:
+      phase: "PHASE-0-WASM-FEASIBILITY"
+      duration: "3 weeks"
+      description: "Mandatory feasibility study for streaming I/O"
+      success_criteria:
+        - "Streaming I/O solution identified and validated"
+        - "VFS architecture designed and prototyped"
+        - "Capability-based security model proven"
+
+      decision_gate:
+        condition: "If Phase 0 succeeds, proceed with WASM backend"
+        fallback: "If Phase 0 fails, defer WASM to v4.0 and focus on core quality"
+
+    sprints:
+      - id: "SPRINT-89"
+        title: "Phase 0: WASM Feasibility Study - Streaming I/O"
+        duration: "3 weeks"
+        estimated_hours: "80-100 hours"
+        priority: "P2 - EXPLORATION"
+        status: "MANDATORY BEFORE PROCEEDING"
+
+        objectives:
+          - "Solve streaming I/O challenge for WASM"
+          - "Validate architectural approach"
+          - "Prototype critical components"
+
+        deliverables:
+          research:
+            - "Survey existing solutions (wasi-common, lunatic, etc.)"
+            - "Evaluate lazy vs eager evaluation models"
+            - "Design streaming I/O architecture"
+
+          prototypes:
+            - "Streaming stdout/stderr prototype"
+            - "Async command execution prototype"
+            - "VFS integration prototype"
+
+          documentation:
+            - "docs/wasm/PHASE-0-FEASIBILITY-REPORT.md"
+            - "docs/wasm/STREAMING-IO-SOLUTION.md"
+            - "SPRINT-89-COMPLETE.md"
+
+        decision_criteria:
+          go: "Streaming I/O solution validated with <10% performance overhead"
+          no_go: "No viable solution found OR >25% performance overhead"
+
+        methodology: "Research + Prototyping + Benchmarking"
+
+      - id: "SPRINT-90"
+        title: "WASM Linting Rules (5 rules)"
+        duration: "1 week"
+        estimated_hours: "30-40 hours"
+        priority: "P2"
+        condition: "Only if SPRINT-89 succeeds"
+
+        objectives:
+          - "Implement 5 WASM compatibility linting rules"
+          - "Detect shell constructs incompatible with WASM"
+
+        deliverables:
+          rules:
+            - id: "WASM001"
+              name: "Process spawning not available"
+              description: "Detect fork/exec calls"
+
+            - id: "WASM002"
+              name: "Filesystem access requires VFS"
+              description: "Detect direct filesystem access"
+
+            - id: "WASM003"
+              name: "Environment variables limited"
+              description: "Detect env var manipulation"
+
+            - id: "WASM004"
+              name: "Network access restricted"
+              description: "Detect network calls"
+
+            - id: "WASM005"
+              name: "Signal handling not supported"
+              description: "Detect signal handlers"
+
+          tests:
+            total: 40  # 8 per rule
+
+          documentation:
+            - "docs/wasm/WASM-LINTING-RULES.md"
+            - "SPRINT-90-COMPLETE.md"
+
+        success_criteria:
+          - "All 5 rules implemented"
+          - "Accurate detection of WASM-incompatible code"
+          - "Helpful error messages with alternatives"
+
+        methodology: "EXTREME TDD"
+
+      - id: "SPRINT-91"
+        title: "WASM Backend Implementation - Core"
+        duration: "2 weeks"
+        estimated_hours: "60-80 hours"
+        priority: "P2"
+        condition: "Only if SPRINT-89 succeeds"
+
+        objectives:
+          - "Implement WASM backend with streaming I/O"
+          - "VFS integration"
+          - "Async command execution"
+
+        deliverables:
+          components:
+            - "wasm_backend.rs (500+ lines)"
+            - "VFS implementation (300+ lines)"
+            - "Async runtime integration (200+ lines)"
+            - "JavaScript bindings (TypeScript definitions)"
+
+          tests:
+            total: 50
+            unit_tests: 35
+            integration_tests: 15
+
+          documentation:
+            - "docs/wasm/WASM-BACKEND-GUIDE.md"
+            - "docs/wasm/API-REFERENCE.md"
+            - "SPRINT-91-COMPLETE.md"
+
+        success_criteria:
+          - "Basic WASM backend functional"
+          - "Can execute simple shell scripts in browser"
+          - "Streaming I/O works correctly"
+          - "All tests passing"
+
+        methodology: "EXTREME TDD + Integration Testing"
+
+      - id: "SPRINT-92"
+        title: "WASM Backend - Browser Integration & npm Package"
+        duration: "1.5 weeks"
+        estimated_hours: "40-60 hours"
+        priority: "P2"
+        condition: "Only if SPRINT-91 succeeds"
+
+        objectives:
+          - "Create npm package for WASM backend"
+          - "Browser examples and documentation"
+          - "Performance optimization"
+
+        deliverables:
+          npm_package:
+            - "Package: @rash/wasm (published to npm)"
+            - "TypeScript definitions"
+            - "Bundled WASM binary"
+            - "Browser examples (React, Vue, vanilla JS)"
+
+          examples:
+            - "Browser-based shell script validator"
+            - "Live linting demo"
+            - "Shell script playground"
+
+          documentation:
+            - "docs/wasm/NPM-PACKAGE-GUIDE.md"
+            - "docs/wasm/BROWSER-EXAMPLES.md"
+            - "SPRINT-92-COMPLETE.md"
+
+        success_criteria:
+          - "npm package published successfully"
+          - "Examples work in modern browsers"
+          - "Performance acceptable (<500ms for typical scripts)"
+
+        methodology: "Integration Testing + User Experience"
+
+      - id: "SPRINT-93"
+        title: "WASM Backend - Validation & Documentation"
+        duration: "1 week"
+        estimated_hours: "30-40 hours"
+        priority: "P2"
+        condition: "Only if SPRINT-92 succeeds"
+
+        objectives:
+          - "Comprehensive WASM backend validation"
+          - "Performance benchmarking"
+          - "Complete documentation"
+
+        deliverables:
+          validation:
+            - "Cross-browser testing (Chrome, Firefox, Safari, Edge)"
+            - "Performance benchmarks"
+            - "Memory usage analysis"
+
+          documentation:
+            - "docs/wasm/WASM-COMPLETE-GUIDE.md"
+            - "docs/wasm/PERFORMANCE-ANALYSIS.md"
+            - "SPRINT-93-COMPLETE.md"
+
+        success_criteria:
+          - "Works in all major browsers"
+          - "Performance targets met"
+          - "Complete documentation"
+
+        methodology: "FAST (Fuzz, AST, Safety, Throughput)"
+
+  - id: "PHASE-4-INTEGRATION-QUALITY"
+    name: "Integration, Quality, and Release"
+    duration: "2-3 weeks"
+    status: "PLANNED"
+    priority: "P0 - CRITICAL"
+    description: "Final integration, quality validation, and v3.0 release"
+
+    sprints:
+      - id: "SPRINT-94"
+        title: "Integration Testing & Quality Validation"
+        duration: "1.5 weeks"
+        estimated_hours: "50-60 hours"
+        priority: "P0"
+
+        objectives:
+          - "End-to-end integration testing"
+          - "Cross-module validation"
+          - "Performance optimization"
+
+        deliverables:
+          integration_tests:
+            - "Bash + Makefile workflow tests (20 tests)"
+            - "CLI integration tests (30 tests)"
+            - "Cross-platform tests (Linux, macOS, Windows)"
+            - "Performance regression tests"
+
+          quality_validation:
+            - "Final mutation testing (≥90% kill rate)"
+            - "Final code coverage (≥90%)"
+            - "Complexity analysis (all functions <10)"
+            - "Memory profiling (<50MB for typical usage)"
+
+          documentation:
+            - "docs/INTEGRATION-TESTING-REPORT.md"
+            - "docs/V3.0-QUALITY-METRICS.md"
+            - "SPRINT-94-COMPLETE.md"
+
+        success_criteria:
+          - "All integration tests passing"
+          - "Quality metrics meet targets"
+          - "Zero regressions"
+          - "Performance optimized"
+
+        methodology: "FAST + Toyota Way Jidoka"
+
+      - id: "SPRINT-95"
+        title: "Documentation, Examples, and Release"
+        duration: "1 week"
+        estimated_hours: "30-40 hours"
+        priority: "P0"
+
+        objectives:
+          - "Complete v3.0 documentation"
+          - "Create comprehensive examples"
+          - "Prepare and execute release"
+
+        deliverables:
+          documentation:
+            - "README.md (updated for v3.0)"
+            - "CHANGELOG.md (comprehensive v3.0 notes)"
+            - "docs/MIGRATION-GUIDE-v3.0.md"
+            - "docs/V3.0-RELEASE-NOTES.md"
+            - "Book updates (new chapters for Makefile + WASM)"
+
+          examples:
+            - "examples/makefile-linting/"
+            - "examples/bash-linting-advanced/"
+            - "examples/wasm-browser/" (if WASM phase completed)
+            - "examples/ci-cd-integration/"
+
+          release:
+            - "Version bump to 3.0.0"
+            - "Git tag and GitHub release"
+            - "crates.io publication"
+            - "npm publication (if WASM included)"
+            - "Blog post announcement"
+
+        success_criteria:
+          - "All documentation complete and accurate"
+          - "Examples work correctly"
+          - "Release published to all channels"
+          - "Zero critical bugs"
+
+        methodology: "Documentation + Release Management"
+
+release_schedule:
+  v3_0_0_milestone_releases:
+    - version: "3.0.0-alpha.1"
+      timing: "After Phase 1 (Makefile World-Class)"
+      scope: "20 Makefile rules, advanced parser"
+
+    - version: "3.0.0-alpha.2"
+      timing: "After Phase 2 (Bash World-Class)"
+      scope: "45 Bash/Shell rules, full linter"
+
+    - version: "3.0.0-beta.1"
+      timing: "After Phase 3 (WASM - if applicable)"
+      scope: "WASM backend (conditional)"
+
+    - version: "3.0.0"
+      timing: "After Phase 4 (Integration & Quality)"
+      scope: "Final release with all features"
+
+quality_metrics:
+  targets:
+    total_linting_rules: 70  # 45 Bash + 20 Makefile + 5 WASM
+    test_coverage: "≥90%"
+    mutation_kill_rate: "≥90%"
+    performance_bash: "<100ms for typical scripts"
+    performance_makefile: "<200ms for typical Makefiles"
+    complexity: "All functions <10"
+    total_tests: "~3000+"  # Current 1,542 + ~1,500 new
+
+  validation:
+    real_world_bash_scripts: "1000+ GitHub repositories"
+    real_world_makefiles: "500+ production Makefiles"
+    cross_platform: "Linux, macOS, Windows (WSL)"
+    cross_browser: "Chrome, Firefox, Safari, Edge (if WASM)"
+
+methodology:
+  extreme_tdd:
+    phases:
+      - "RED: Write failing test first"
+      - "GREEN: Implement minimal code to pass"
+      - "REFACTOR: Clean up, extract helpers, reduce complexity"
+      - "DOCUMENT: Update docs and examples"
+
+  fast_validation:
+    components:
+      - "Fuzz: Property-based testing with proptest"
+      - "AST: Mutation testing with cargo-mutants"
+      - "Safety: Security review and validation"
+      - "Throughput: Performance benchmarking with criterion"
+
+  toyota_way:
+    principles:
+      - "Jidoka (自働化): Build quality in, stop the line for bugs"
+      - "Hansei (反省): Reflect on failures, root cause analysis"
+      - "Kaizen (改善): Continuous improvement"
+      - "Genchi Genbutsu (現地現物): Direct observation and validation"
+
+risk_assessment:
+  wasm_backend:
+    risk_level: "HIGH"
+    mitigation:
+      - "Mandatory Phase 0 feasibility study (3 weeks)"
+      - "Go/No-Go decision gate after Phase 0"
+      - "If infeasible, defer to v4.0 and focus on core quality"
+      - "Do not compromise Bash/Makefile quality for WASM"
+
+    blockers:
+      - "Streaming I/O architecture"
+      - "VFS integration complexity"
+      - "Capability-based security model"
+      - "Performance overhead >25%"
+
+  scope_creep:
+    risk_level: "MEDIUM"
+    mitigation:
+      - "Strict sprint boundaries"
+      - "Focus on defined deliverables"
+      - "Defer nice-to-have features to v3.1+"
+
+  timeline_overrun:
+    risk_level: "MEDIUM"
+    mitigation:
+      - "Conservative time estimates (1.5x buffer)"
+      - "Weekly progress reviews"
+      - "Ready to cut WASM if blocking release"
+
+dependencies:
+  external:
+    - "cargo-llvm-cov (coverage)"
+    - "cargo-mutants (mutation testing)"
+    - "criterion (benchmarking)"
+    - "proptest (property testing)"
+    - "assert_cmd (CLI testing)"
+    - "wasm-pack (WASM build - if applicable)"
+    - "wasm-bindgen (WASM bindings - if applicable)"
+
+  internal:
+    - "All existing v2.1.1 infrastructure"
+    - "Existing test frameworks"
+    - "CI/CD pipelines"
+
+success_criteria:
+  phase_1_makefile:
+    - "20 Makefile linting rules (100% auto-fix)"
+    - "Advanced parser (conditionals, functions, includes)"
+    - "Purification with GNU Make best practices"
+    - "Performance <200ms for typical Makefiles"
+    - "World-class quality metrics achieved"
+
+  phase_2_bash:
+    - "45 total Bash/Shell linting rules"
+    - "ShellCheck parity (top 15 rules)"
+    - "10 critical security rules"
+    - "10 Bash best practice rules"
+    - "Performance <100ms for typical scripts"
+    - "World-class quality metrics achieved"
+
+  phase_3_wasm:
+    - "Phase 0 feasibility study completed (Go/No-Go decision)"
+    - "If Go: 5 WASM linting rules implemented"
+    - "If Go: WASM backend functional with streaming I/O"
+    - "If Go: npm package published"
+    - "If No-Go: Defer to v4.0, maintain schedule"
+
+  phase_4_release:
+    - "All integration tests passing"
+    - "Quality metrics ≥90% across all modules"
+    - "Complete documentation"
+    - "v3.0.0 published to crates.io (and npm if WASM included)"
+    - "Zero critical bugs"
+
+deliverables:
+  code:
+    new_files: "~80-100"
+    new_lines: "~15,000-20,000"
+    new_tests: "~1,500"
+    new_rules: "~40 (35 linting + 5 WASM)"
+
+  documentation:
+    sprint_plans: 11
+    completion_reports: 11
+    technical_guides: 15
+    api_documentation: 5
+    book_chapters: "3-5 new chapters"
+
+  infrastructure:
+    benchmarks: "20+ benchmark suites"
+    property_tests: "50+ new properties"
+    integration_tests: "100+ new tests"
+
+communication:
+  weekly_updates: "Progress reports every Friday"
+  decision_gates:
+    - "After Phase 1: Review Makefile quality"
+    - "After SPRINT-89 (Phase 0): Go/No-Go for WASM"
+    - "After Phase 2: Review Bash quality"
+    - "Before Phase 4: Final quality review"
+
+next_steps:
+  immediate:
+    action: "Review and approve v3.0 roadmap"
+    duration: "1-2 days"
+    stakeholders: "Development team, project maintainers"
+
+  phase_1_start:
+    action: "Begin SPRINT-81 (Makefile Linter Expansion)"
+    prerequisite: "Roadmap approved"
+    estimated_start: "Q1 2026"
+
+notes:
+  - "WASM backend is CONDITIONAL on Phase 0 feasibility study success"
+  - "If WASM infeasible, redirect time to Bash/Makefile quality improvements"
+  - "Conservative estimates with 1.5x buffer for timeline"
+  - "Focus on world-class Bash + Makefile first, WASM is bonus"
+  - "All phases follow EXTREME TDD + FAST methodology"
+  - "Toyota Way principles applied throughout"
+  - "Zero regressions policy maintained"
+
+references:
+  - "docs/specifications/wasm-bash-feature-requests.md"
+  - "docs/specifications/world-class-bash-linter-spec.md"
+  - "docs/SHELLCHECK-PARITY.md"
+  - "ROADMAP.yaml (v2.1.1)"
+  - "SPRINT-80-FINAL-SUMMARY.md"

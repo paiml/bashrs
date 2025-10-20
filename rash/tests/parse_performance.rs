@@ -39,7 +39,10 @@ where
     let elapsed = start.elapsed();
     let avg_duration = elapsed / iterations;
 
-    println!("{}: avg {:?} (threshold {:?})", name, avg_duration, threshold);
+    println!(
+        "{}: avg {:?} (threshold {:?})",
+        name, avg_duration, threshold
+    );
 
     assert!(
         avg_duration <= threshold,
@@ -58,13 +61,9 @@ where
 fn bench_parse_simple_makefile() {
     let makefile = "target:\n\techo hello";
 
-    benchmark(
-        "parse_simple_makefile",
-        PARSE_SIMPLE_THRESHOLD,
-        || {
-            let _ = parse_makefile(makefile);
-        },
-    );
+    benchmark("parse_simple_makefile", PARSE_SIMPLE_THRESHOLD, || {
+        let _ = parse_makefile(makefile);
+    });
 }
 
 #[test]
@@ -123,13 +122,9 @@ fn bench_parse_many_variables() {
         makefile.push_str(&format!("VAR_{} = value_{}\n", i, i));
     }
 
-    benchmark(
-        "parse_many_variables",
-        PARSE_COMPLEX_THRESHOLD,
-        || {
-            let _ = parse_makefile(&makefile);
-        },
-    );
+    benchmark("parse_many_variables", PARSE_COMPLEX_THRESHOLD, || {
+        let _ = parse_makefile(&makefile);
+    });
 }
 
 #[test]
@@ -162,13 +157,9 @@ build: $(FILES)
 	cargo build
 "#;
 
-    benchmark(
-        "parse_line_continuations",
-        PARSE_COMPLEX_THRESHOLD,
-        || {
-            let _ = parse_makefile(makefile);
-        },
-    );
+    benchmark("parse_line_continuations", PARSE_COMPLEX_THRESHOLD, || {
+        let _ = parse_makefile(makefile);
+    });
 }
 
 // ============================================================================
@@ -197,13 +188,9 @@ clean :
 	rm edit main.o kbd.o command.o display.o
 "#;
 
-    benchmark(
-        "parse_gnu_make_example",
-        PARSE_COMPLEX_THRESHOLD,
-        || {
-            let _ = parse_makefile(makefile);
-        },
-    );
+    benchmark("parse_gnu_make_example", PARSE_COMPLEX_THRESHOLD, || {
+        let _ = parse_makefile(makefile);
+    });
 }
 
 // ============================================================================
@@ -216,7 +203,11 @@ fn generate_performance_report() {
     println!("\n=== Bashrs Parser Performance Report ===\n");
 
     let test_cases = vec![
-        ("Simple target", "target:\n\techo hello", PARSE_SIMPLE_THRESHOLD),
+        (
+            "Simple target",
+            "target:\n\techo hello",
+            PARSE_SIMPLE_THRESHOLD,
+        ),
         ("Variable", "VAR = value", PARSE_SIMPLE_THRESHOLD),
         ("Comment", "# Comment", PARSE_SIMPLE_THRESHOLD),
         (
@@ -243,7 +234,11 @@ test:
         let elapsed = start.elapsed();
         let avg = elapsed / iterations;
 
-        let status = if avg <= threshold { "✅ PASS" } else { "❌ FAIL" };
+        let status = if avg <= threshold {
+            "✅ PASS"
+        } else {
+            "❌ FAIL"
+        };
 
         println!(
             "{:<30} {:>10?} (threshold {:>10?}) {}",

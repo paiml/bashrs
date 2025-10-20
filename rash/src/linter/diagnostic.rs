@@ -160,10 +160,7 @@ impl Fix {
     }
 
     /// Create a SAFE-WITH-ASSUMPTIONS fix
-    pub fn new_with_assumptions(
-        replacement: impl Into<String>,
-        assumptions: Vec<String>,
-    ) -> Self {
+    pub fn new_with_assumptions(replacement: impl Into<String>, assumptions: Vec<String>) -> Self {
         Self {
             replacement: replacement.into(),
             safety_level: FixSafetyLevel::SafeWithAssumptions,

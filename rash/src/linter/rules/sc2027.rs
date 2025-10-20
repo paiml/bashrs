@@ -32,7 +32,8 @@ pub fn check(source: &str) -> LintResult {
     let mut result = LintResult::new();
 
     // Pattern: printf "...$var..." or printf '...$var...'
-    let pattern = Regex::new(r#"printf\s+["']([^"']*\$\{?[A-Za-z_][A-Za-z0-9_]*\}?[^"']*)["']"#).unwrap();
+    let pattern =
+        Regex::new(r#"printf\s+["']([^"']*\$\{?[A-Za-z_][A-Za-z0-9_]*\}?[^"']*)["']"#).unwrap();
 
     for (line_num, line) in source.lines().enumerate() {
         let line_num = line_num + 1;

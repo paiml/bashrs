@@ -29,12 +29,7 @@
 use crate::linter::{Diagnostic, LintResult, Severity, Span};
 
 /// Dangerous commands that should never be run with sudo + unquoted vars
-const DANGEROUS_SUDO_COMMANDS: &[&str] = &[
-    "rm -rf",
-    "chmod 777",
-    "chmod -R",
-    "chown -R",
-];
+const DANGEROUS_SUDO_COMMANDS: &[&str] = &["rm -rf", "chmod 777", "chmod -R", "chown -R"];
 
 /// Check for unsafe sudo operations
 pub fn check(source: &str) -> LintResult {
@@ -52,7 +47,7 @@ pub fn check(source: &str) -> LintResult {
                                 line_num + 1,
                                 col + 1,
                                 line_num + 1,
-                                col + 5,  // "sudo" is 4 chars
+                                col + 5, // "sudo" is 4 chars
                             );
 
                             let diag = Diagnostic::new(
@@ -64,7 +59,7 @@ pub fn check(source: &str) -> LintResult {
                             // NO AUTO-FIX: requires context-dependent validation logic
 
                             result.add(diag);
-                            break;  // Only report once per line
+                            break; // Only report once per line
                         }
                     }
                 }

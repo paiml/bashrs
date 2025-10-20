@@ -29,10 +29,10 @@ pub fn check(source: &str) -> LintResult {
     for (line_num, line) in source.lines().enumerate() {
         if let Some(col) = line.find("$RANDOM") {
             let span = Span::new(
-                line_num + 1,  // start_line
-                col + 1,       // start_col
-                line_num + 1,  // end_line
-                col + 8,       // end_col ($RANDOM is 7 chars, +1 for 1-indexed)
+                line_num + 1, // start_line
+                col + 1,      // start_col
+                line_num + 1, // end_line
+                col + 8,      // end_col ($RANDOM is 7 chars, +1 for 1-indexed)
             );
 
             let fix = Fix::new_unsafe(vec![
@@ -69,7 +69,10 @@ mod tests {
         let diag = &result.diagnostics[0];
         assert_eq!(diag.code, "DET001");
         assert_eq!(diag.severity, Severity::Error);
-        assert_eq!(diag.message, "Non-deterministic $RANDOM usage - requires manual fix (UNSAFE)");
+        assert_eq!(
+            diag.message,
+            "Non-deterministic $RANDOM usage - requires manual fix (UNSAFE)"
+        );
     }
 
     #[test]

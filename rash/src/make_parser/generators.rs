@@ -134,12 +134,7 @@ fn generate_variable(name: &str, value: &str, flavor: &VarFlavor) -> String {
 /// assert!(output.contains("build: main.c"));
 /// assert!(output.contains("\tgcc -o build main.c"));
 /// ```
-fn generate_target(
-    name: &str,
-    prerequisites: &[String],
-    recipe: &[String],
-    phony: bool,
-) -> String {
+fn generate_target(name: &str, prerequisites: &[String], recipe: &[String], phony: bool) -> String {
     let mut output = String::new();
 
     // Add .PHONY declaration if needed

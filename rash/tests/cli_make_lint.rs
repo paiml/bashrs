@@ -18,7 +18,9 @@ fn test_CLI_MAKE_LINT_001_basic_lint_detects_issues() {
     let temp_dir = TempDir::new().unwrap();
     let makefile_path = temp_dir.path().join("Makefile");
 
-    fs::write(&makefile_path, r#"
+    fs::write(
+        &makefile_path,
+        r#"
 VERSION = $(shell git describe)
 SOURCES = $(wildcard src/*.c)
 
@@ -28,7 +30,9 @@ build:
 
 clean:
 	rm -rf $BUILD_DIR
-"#).unwrap();
+"#,
+    )
+    .unwrap();
 
     // ACT & ASSERT: Run linter should detect issues
     bashrs_cmd()
@@ -36,9 +40,9 @@ clean:
         .arg("lint")
         .arg(&makefile_path)
         .assert()
-        .failure()  // Should fail with issues found
-        .stdout(predicate::str::contains("MAKE"))  // Should show MAKE rule codes
-        .stdout(predicate::str::contains("wildcard"));  // Should mention wildcard issue
+        .failure() // Should fail with issues found
+        .stdout(predicate::str::contains("MAKE")) // Should show MAKE rule codes
+        .stdout(predicate::str::contains("wildcard")); // Should mention wildcard issue
 }
 
 #[test]
@@ -47,7 +51,9 @@ fn test_CLI_MAKE_LINT_002_clean_makefile_passes() {
     let temp_dir = TempDir::new().unwrap();
     let makefile_path = temp_dir.path().join("Makefile");
 
-    fs::write(&makefile_path, r#"
+    fs::write(
+        &makefile_path,
+        r#"
 VERSION := 1.0.0
 SOURCES := $(sort $(wildcard src/*.c))
 
@@ -59,7 +65,9 @@ build:
 
 clean:
 	rm -rf "$(BUILD_DIR)"
-"#).unwrap();
+"#,
+    )
+    .unwrap();
 
     // ACT & ASSERT: Clean Makefile should pass
     bashrs_cmd()
@@ -77,9 +85,13 @@ fn test_CLI_MAKE_LINT_003_fix_flag_applies_fixes() {
     let temp_dir = TempDir::new().unwrap();
     let makefile_path = temp_dir.path().join("Makefile");
 
-    fs::write(&makefile_path, r#"VERSION = $(shell git describe)
+    fs::write(
+        &makefile_path,
+        r#"VERSION = $(shell git describe)
 SOURCES = $(wildcard src/*.c)
-"#).unwrap();
+"#,
+    )
+    .unwrap();
 
     // ACT: Run linter with --fix
     bashrs_cmd()
@@ -107,8 +119,12 @@ fn test_CLI_MAKE_LINT_004_output_flag_writes_to_file() {
     let makefile_path = temp_dir.path().join("Makefile");
     let output_path = temp_dir.path().join("Makefile.fixed");
 
-    fs::write(&makefile_path, r#"VERSION = $(shell git describe)
-"#).unwrap();
+    fs::write(
+        &makefile_path,
+        r#"VERSION = $(shell git describe)
+"#,
+    )
+    .unwrap();
 
     // ACT: Run linter with --fix and -o
     let result = bashrs_cmd()
@@ -125,11 +141,17 @@ fn test_CLI_MAKE_LINT_004_output_flag_writes_to_file() {
     // If fix failed due to no fixes being available, that's okay
     if result.status.success() || result.status.code() == Some(0) {
         // ASSERT: Output file should exist if fix succeeded
-        assert!(output_path.exists(), "Output file should be created on success");
+        assert!(
+            output_path.exists(),
+            "Output file should be created on success"
+        );
 
         // ASSERT: Original file should be unchanged when using -o flag
         let original_content = fs::read_to_string(&makefile_path).unwrap();
-        assert!(original_content.contains("VERSION = $(shell"), "Original should be unchanged");
+        assert!(
+            original_content.contains("VERSION = $(shell"),
+            "Original should be unchanged"
+        );
 
         // ASSERT: Output file should contain the content (may or may not be fixed depending on autofix support)
         let fixed_content = fs::read_to_string(&output_path).unwrap();
@@ -138,7 +160,10 @@ fn test_CLI_MAKE_LINT_004_output_flag_writes_to_file() {
         // Fix may not be fully implemented yet for Makefile linters
         // Just verify the original file is unchanged
         let original_content = fs::read_to_string(&makefile_path).unwrap();
-        assert!(original_content.contains("VERSION = $(shell"), "Original should be unchanged");
+        assert!(
+            original_content.contains("VERSION = $(shell"),
+            "Original should be unchanged"
+        );
     }
 }
 
@@ -148,13 +173,17 @@ fn test_CLI_MAKE_LINT_005_rules_filter_specific_rules() {
     let temp_dir = TempDir::new().unwrap();
     let makefile_path = temp_dir.path().join("Makefile");
 
-    fs::write(&makefile_path, r#"
+    fs::write(
+        &makefile_path,
+        r#"
 VERSION = $(shell git describe)
 SOURCES = $(wildcard src/*.c)
 
 build:
 	mkdir build
-"#).unwrap();
+"#,
+    )
+    .unwrap();
 
     // ACT: Run linter with --rules MAKE001 (only wildcard issues)
     let output = bashrs_cmd()
@@ -180,10 +209,14 @@ fn test_CLI_MAKE_LINT_006_rules_filter_multiple() {
     let temp_dir = TempDir::new().unwrap();
     let makefile_path = temp_dir.path().join("Makefile");
 
-    fs::write(&makefile_path, r#"
+    fs::write(
+        &makefile_path,
+        r#"
 VERSION = $(shell git describe)
 SOURCES = $(wildcard src/*.c)
-"#).unwrap();
+"#,
+    )
+    .unwrap();
 
     // ACT: Run linter with --rules MAKE001,MAKE005 (wildcard + assignment)
     let output = bashrs_cmd()
@@ -208,8 +241,12 @@ fn test_CLI_MAKE_LINT_007_json_format() {
     let temp_dir = TempDir::new().unwrap();
     let makefile_path = temp_dir.path().join("Makefile");
 
-    fs::write(&makefile_path, r#"VERSION = $(shell git describe)
-"#).unwrap();
+    fs::write(
+        &makefile_path,
+        r#"VERSION = $(shell git describe)
+"#,
+    )
+    .unwrap();
 
     // ACT: Run linter with --format json
     bashrs_cmd()
@@ -219,8 +256,8 @@ fn test_CLI_MAKE_LINT_007_json_format() {
         .arg("--format")
         .arg("json")
         .assert()
-        .failure()  // Has issues
-        .stdout(predicate::str::contains("{"))  // JSON output
+        .failure() // Has issues
+        .stdout(predicate::str::contains("{")) // JSON output
         .stdout(predicate::str::contains("MAKE005"));
 }
 
@@ -230,8 +267,12 @@ fn test_CLI_MAKE_LINT_008_human_format() {
     let temp_dir = TempDir::new().unwrap();
     let makefile_path = temp_dir.path().join("Makefile");
 
-    fs::write(&makefile_path, r#"VERSION = $(shell git describe)
-"#).unwrap();
+    fs::write(
+        &makefile_path,
+        r#"VERSION = $(shell git describe)
+"#,
+    )
+    .unwrap();
 
     // ACT: Run linter with --format human (default)
     bashrs_cmd()
@@ -263,7 +304,9 @@ fn test_CLI_MAKE_LINT_010_all_five_rules_detected() {
     let temp_dir = TempDir::new().unwrap();
     let makefile_path = temp_dir.path().join("Makefile");
 
-    fs::write(&makefile_path, r#"
+    fs::write(
+        &makefile_path,
+        r#"
 # MAKE005: Recursive assignment with shell command
 VERSION = $(shell git describe)
 
@@ -279,7 +322,9 @@ build:
 # MAKE003: Unsafe variable expansion
 clean:
 	rm -rf $BUILD_DIR
-"#).unwrap();
+"#,
+    )
+    .unwrap();
 
     // ACT: Run linter
     let output = bashrs_cmd()
@@ -292,11 +337,23 @@ clean:
     let stdout = String::from_utf8_lossy(&output.stdout);
 
     // ASSERT: Should detect all 5 rule violations
-    assert!(stdout.contains("MAKE001"), "Should detect MAKE001 (wildcard)");
+    assert!(
+        stdout.contains("MAKE001"),
+        "Should detect MAKE001 (wildcard)"
+    );
     assert!(stdout.contains("MAKE002"), "Should detect MAKE002 (mkdir)");
-    assert!(stdout.contains("MAKE003"), "Should detect MAKE003 (unsafe var)");
-    assert!(stdout.contains("MAKE004"), "Should detect MAKE004 (missing .PHONY)");
-    assert!(stdout.contains("MAKE005"), "Should detect MAKE005 (recursive assignment)");
+    assert!(
+        stdout.contains("MAKE003"),
+        "Should detect MAKE003 (unsafe var)"
+    );
+    assert!(
+        stdout.contains("MAKE004"),
+        "Should detect MAKE004 (missing .PHONY)"
+    );
+    assert!(
+        stdout.contains("MAKE005"),
+        "Should detect MAKE005 (recursive assignment)"
+    );
 }
 
 #[test]
@@ -305,9 +362,13 @@ fn test_CLI_MAKE_LINT_011_integration_with_purify() {
     let temp_dir = TempDir::new().unwrap();
     let makefile_path = temp_dir.path().join("Makefile");
 
-    fs::write(&makefile_path, r#"VERSION = $(shell git describe)
+    fs::write(
+        &makefile_path,
+        r#"VERSION = $(shell git describe)
 SOURCES = $(wildcard src/*.c)
-"#).unwrap();
+"#,
+    )
+    .unwrap();
 
     // ACT: First lint (should find issues)
     let lint_before = bashrs_cmd()
@@ -317,7 +378,10 @@ SOURCES = $(wildcard src/*.c)
         .output()
         .unwrap();
 
-    assert!(!lint_before.status.success(), "Should have issues before purify");
+    assert!(
+        !lint_before.status.success(),
+        "Should have issues before purify"
+    );
 
     // ACT: Purify the Makefile
     bashrs_cmd()
@@ -360,12 +424,16 @@ fn test_CLI_MAKE_LINT_012_exit_codes() {
 
     // Test 1: No issues = exit 0
     let clean_makefile = temp_dir.path().join("Makefile.clean");
-    fs::write(&clean_makefile, r#"
+    fs::write(
+        &clean_makefile,
+        r#"
 VERSION := 1.0.0
 .PHONY: build
 build:
 	mkdir -p build
-"#).unwrap();
+"#,
+    )
+    .unwrap();
 
     let output = bashrs_cmd()
         .arg("make")
@@ -374,15 +442,23 @@ build:
         .output()
         .unwrap();
 
-    assert_eq!(output.status.code(), Some(0), "Clean Makefile should exit 0");
+    assert_eq!(
+        output.status.code(),
+        Some(0),
+        "Clean Makefile should exit 0"
+    );
 
     // Test 2: Has warnings = exit 1
     // (Makefile linter currently treats all issues as errors, so this may need adjustment)
 
     // Test 3: Has errors = exit 2
     let error_makefile = temp_dir.path().join("Makefile.error");
-    fs::write(&error_makefile, r#"VERSION = $(shell git describe)
-"#).unwrap();
+    fs::write(
+        &error_makefile,
+        r#"VERSION = $(shell git describe)
+"#,
+    )
+    .unwrap();
 
     let output = bashrs_cmd()
         .arg("make")
@@ -392,7 +468,10 @@ build:
         .unwrap();
 
     // Should exit with non-zero (1 for warnings, 2 for errors)
-    assert!(output.status.code().unwrap() > 0, "Makefile with issues should exit non-zero");
+    assert!(
+        output.status.code().unwrap() > 0,
+        "Makefile with issues should exit non-zero"
+    );
 }
 
 #[test]
@@ -401,11 +480,15 @@ fn test_CLI_MAKE_LINT_013_fix_preserves_comments() {
     let temp_dir = TempDir::new().unwrap();
     let makefile_path = temp_dir.path().join("Makefile");
 
-    fs::write(&makefile_path, r#"# This is a comment
+    fs::write(
+        &makefile_path,
+        r#"# This is a comment
 VERSION = $(shell git describe)
 # Another comment
 SOURCES = $(wildcard src/*.c)
-"#).unwrap();
+"#,
+    )
+    .unwrap();
 
     // ACT: Run linter with --fix
     bashrs_cmd()
@@ -418,8 +501,14 @@ SOURCES = $(wildcard src/*.c)
 
     // ASSERT: Comments should be preserved
     let fixed_content = fs::read_to_string(&makefile_path).unwrap();
-    assert!(fixed_content.contains("# This is a comment"), "Should preserve first comment");
-    assert!(fixed_content.contains("# Another comment"), "Should preserve second comment");
+    assert!(
+        fixed_content.contains("# This is a comment"),
+        "Should preserve first comment"
+    );
+    assert!(
+        fixed_content.contains("# Another comment"),
+        "Should preserve second comment"
+    );
 }
 
 #[test]
@@ -428,8 +517,12 @@ fn test_CLI_MAKE_LINT_014_verbose_output() {
     let temp_dir = TempDir::new().unwrap();
     let makefile_path = temp_dir.path().join("Makefile");
 
-    fs::write(&makefile_path, r#"VERSION = $(shell git describe)
-"#).unwrap();
+    fs::write(
+        &makefile_path,
+        r#"VERSION = $(shell git describe)
+"#,
+    )
+    .unwrap();
 
     // ACT: Run linter with -v (global verbose flag)
     let output = bashrs_cmd()
@@ -446,8 +539,14 @@ fn test_CLI_MAKE_LINT_014_verbose_output() {
     let stdout = String::from_utf8_lossy(&output.stdout);
     let combined = format!("{}{}", stdout, stderr);
 
-    assert!(combined.contains("Linting") || combined.contains("INFO") || combined.contains(&makefile_path.to_string_lossy().to_string()),
-        "Verbose mode should show logging output, got:\nstdout: {}\nstderr: {}", stdout, stderr);
+    assert!(
+        combined.contains("Linting")
+            || combined.contains("INFO")
+            || combined.contains(&makefile_path.to_string_lossy().to_string()),
+        "Verbose mode should show logging output, got:\nstdout: {}\nstderr: {}",
+        stdout,
+        stderr
+    );
 }
 
 #[test]
@@ -456,8 +555,12 @@ fn test_CLI_MAKE_LINT_015_sarif_format() {
     let temp_dir = TempDir::new().unwrap();
     let makefile_path = temp_dir.path().join("Makefile");
 
-    fs::write(&makefile_path, r#"VERSION = $(shell git describe)
-"#).unwrap();
+    fs::write(
+        &makefile_path,
+        r#"VERSION = $(shell git describe)
+"#,
+    )
+    .unwrap();
 
     // ACT: Run linter with --format sarif
     bashrs_cmd()
@@ -467,7 +570,7 @@ fn test_CLI_MAKE_LINT_015_sarif_format() {
         .arg("--format")
         .arg("sarif")
         .assert()
-        .failure()  // Has issues
-        .stdout(predicate::str::contains("\"version\""))  // SARIF has version field
-        .stdout(predicate::str::contains("\"results\""));  // SARIF has results field
+        .failure() // Has issues
+        .stdout(predicate::str::contains("\"version\"")) // SARIF has version field
+        .stdout(predicate::str::contains("\"results\"")); // SARIF has results field
 }

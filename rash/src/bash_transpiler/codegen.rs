@@ -250,11 +250,17 @@ impl BashToRashTranspiler {
                 Ok(format!("{}.expect({})", variable, message_rash))
             }
 
-            BashExpr::AlternativeValue { variable, alternative } => {
+            BashExpr::AlternativeValue {
+                variable,
+                alternative,
+            } => {
                 // ${VAR:+alt} → var.as_ref().map(|_| alt).unwrap_or("")
                 // or: if var.is_some() { alt } else { "" }
                 let alt_rash = self.transpile_expression(alternative)?;
-                Ok(format!("{}.as_ref().map(|_| {}).unwrap_or(\"\")", variable, alt_rash))
+                Ok(format!(
+                    "{}.as_ref().map(|_| {}).unwrap_or(\"\")",
+                    variable, alt_rash
+                ))
             }
 
             BashExpr::StringLength { variable } => {

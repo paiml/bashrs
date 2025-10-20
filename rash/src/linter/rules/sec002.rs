@@ -31,14 +31,7 @@ use crate::linter::{Diagnostic, Fix, LintResult, Severity, Span};
 
 /// Dangerous commands that should never have unquoted variables
 const DANGEROUS_COMMANDS: &[&str] = &[
-    "curl",
-    "wget",
-    "ssh",
-    "scp",
-    "git",
-    "rsync",
-    "docker",
-    "kubectl",
+    "curl", "wget", "ssh", "scp", "git", "rsync", "docker", "kubectl",
 ];
 
 /// Check for unquoted variables in dangerous commands
@@ -70,13 +63,12 @@ pub fn check(source: &str) -> LintResult {
                         '$' if !in_double_quotes && !in_single_quotes => {
                             // Found unquoted $
                             // Check if followed by variable name
-                            if chars.peek().map(|c| c.is_alphanumeric() || *c == '_').unwrap_or(false) {
-                                let span = Span::new(
-                                    line_num + 1,
-                                    col,
-                                    line_num + 1,
-                                    col + 1,
-                                );
+                            if chars
+                                .peek()
+                                .map(|c| c.is_alphanumeric() || *c == '_')
+                                .unwrap_or(false)
+                            {
+                                let span = Span::new(line_num + 1, col, line_num + 1, col + 1);
 
                                 let diag = Diagnostic::new(
                                     "SEC002",

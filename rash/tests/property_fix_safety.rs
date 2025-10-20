@@ -10,7 +10,7 @@
 //! Using proptest for generative testing (100+ cases per property)
 
 use bashrs::linter::autofix::{apply_fixes, FixOptions};
-use bashrs::linter::rules::{lint_shell, sc2086, idem001, idem002, det001};
+use bashrs::linter::rules::{det001, idem001, idem002, lint_shell, sc2086};
 use proptest::prelude::*;
 use std::process::Command;
 

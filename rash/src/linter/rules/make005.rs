@@ -49,8 +49,11 @@ pub fn check(source: &str) -> LintResult {
                 None
             };
 
-            if before_eq == Some(':') || before_eq == Some('!') ||
-               before_eq == Some('+') || before_eq == Some('?') {
+            if before_eq == Some(':')
+                || before_eq == Some('!')
+                || before_eq == Some('+')
+                || before_eq == Some('?')
+            {
                 continue;
             }
 
@@ -60,12 +63,7 @@ pub fn check(source: &str) -> LintResult {
                 // Get variable name for better diagnostics
                 let var_name = line[..eq_pos].trim();
 
-                let span = Span::new(
-                    line_num + 1,
-                    eq_pos + 1,
-                    line_num + 1,
-                    eq_pos + 2,
-                );
+                let span = Span::new(line_num + 1, eq_pos + 1, line_num + 1, eq_pos + 2);
 
                 // Create fix by replacing = with :=
                 let fix_replacement = format!("{}:={}", var_name, after_eq);
