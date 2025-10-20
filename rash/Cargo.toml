@@ -113,6 +113,10 @@ harness = false
 name = "fix_safety_bench"
 harness = false
 
+[[bench]]
+name = "makefile_benchmarks"
+harness = false
+
 # Note: The actual Rash examples are in the examples/ directory
 # They are written in Rash syntax and must be transpiled, not compiled
 # See examples/README.md for usage instructions
