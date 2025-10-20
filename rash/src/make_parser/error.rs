@@ -128,6 +128,12 @@ pub enum MakeParseError {
         location: SourceLocation,
     },
 
+    #[error("Unterminated define block for variable '{var_name}' at {location}")]
+    UnterminatedDefine {
+        location: SourceLocation,
+        var_name: String,
+    },
+
     #[error("Unexpected end of file")]
     UnexpectedEof,
 }
@@ -146,6 +152,7 @@ impl MakeParseError {
             Self::UnknownConditional { location, .. } => Some(location),
             Self::InvalidTargetRule { location, .. } => Some(location),
             Self::EmptyTargetName { location } => Some(location),
+            Self::UnterminatedDefine { location, .. } => Some(location),
             Self::UnexpectedEof => None,
         }
     }
@@ -190,6 +197,9 @@ impl MakeParseError {
             }
             Self::EmptyTargetName { .. } => {
                 "Target names cannot be empty. A valid target must have a name before the colon.".to_string()
+            }
+            Self::UnterminatedDefine { .. } => {
+                "define blocks must be terminated with 'endef'".to_string()
             }
             Self::UnexpectedEof => {
                 "The Makefile ended unexpectedly. Check for unclosed conditional blocks or incomplete rules.".to_string()
@@ -239,6 +249,9 @@ impl MakeParseError {
             }
             Self::EmptyTargetName { .. } => {
                 "Provide a target name before the colon.\nExample: build: main.c\n\t$(CC) -o build main.c".to_string()
+            }
+            Self::UnterminatedDefine { .. } => {
+                "Ensure all define blocks are closed with 'endef'.\nExample:\ndefine VAR_NAME\ncontent\nendef".to_string()
             }
             Self::UnexpectedEof => {
                 "Ensure all conditional blocks (ifeq/ifdef/etc.) are closed with 'endif'.\nCheck that all target rules are complete.".to_string()
