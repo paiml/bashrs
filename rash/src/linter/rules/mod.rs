@@ -3,9 +3,12 @@
 // ShellCheck-equivalent rules
 pub mod sc2001;
 pub mod sc2002;
+pub mod sc2005;
 pub mod sc2006;
+pub mod sc2026;
 pub mod sc2027;
 pub mod sc2028;
+pub mod sc2033;
 pub mod sc2034;
 pub mod sc2035;
 pub mod sc2043;
@@ -14,6 +17,7 @@ pub mod sc2045;
 pub mod sc2046;
 pub mod sc2048;
 pub mod sc2050;
+pub mod sc2061;
 pub mod sc2066;
 pub mod sc2068;
 pub mod sc2070;
@@ -62,6 +66,7 @@ pub mod sc2178;
 pub mod sc2181;
 pub mod sc2190;
 pub mod sc2191;
+pub mod sc2194;
 pub mod sc2196;
 pub mod sc2198;
 pub mod sc2199;
@@ -123,9 +128,12 @@ pub fn lint_shell(source: &str) -> LintResult {
     // Run ShellCheck-equivalent rules
     result.merge(sc2001::check(source));
     result.merge(sc2002::check(source));
+    result.merge(sc2005::check(source));
     result.merge(sc2006::check(source));
+    result.merge(sc2026::check(source));
     result.merge(sc2027::check(source));
     result.merge(sc2028::check(source));
+    result.merge(sc2033::check(source));
     result.merge(sc2034::check(source));
     result.merge(sc2035::check(source));
     result.merge(sc2043::check(source));
@@ -134,6 +142,7 @@ pub fn lint_shell(source: &str) -> LintResult {
     result.merge(sc2046::check(source));
     result.merge(sc2048::check(source));
     result.merge(sc2050::check(source));
+    result.merge(sc2061::check(source));
     result.merge(sc2066::check(source));
     result.merge(sc2068::check(source));
     result.merge(sc2070::check(source));
@@ -182,6 +191,7 @@ pub fn lint_shell(source: &str) -> LintResult {
     result.merge(sc2181::check(source));
     result.merge(sc2190::check(source));
     result.merge(sc2191::check(source));
+    result.merge(sc2194::check(source));
     result.merge(sc2196::check(source));
     result.merge(sc2198::check(source));
     result.merge(sc2199::check(source));
