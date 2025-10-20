@@ -140,6 +140,15 @@ pub fn parse_makefile(input: &str) -> Result<MakeAst, String> {
             continue;
         }
 
+        // Parse define...endef blocks
+        if line.trim_start().starts_with("define ") {
+            match parse_define_block(&lines, &mut i) {
+                Ok(var) => items.push(var),
+                Err(e) => return Err(e.to_detailed_string()),
+            }
+            continue;
+        }
+
         // Parse variable assignments (contains '=' but is not a target rule)
         if is_variable_assignment(line) {
             match parse_variable(line, i + 1) {
@@ -283,6 +292,119 @@ fn parse_variable(line: &str, line_num: usize) -> Result<MakeItem, MakeParseErro
         flavor,
         span: Span::new(0, line.len(), line_num),
     })
+}
+
+/// Detect if a string contains a GNU Make function call
+///
+/// Function call syntax: $(function_name arg1,arg2,...)
+/// Examples: $(wildcard *.c), $(patsubst %.c,%.o,$(SOURCES))
+fn contains_function_call(text: &str) -> bool {
+    // Check for $( pattern which indicates potential function call
+    text.contains("$(") && !text.starts_with('$')
+}
+
+/// Extract function calls from a string
+///
+/// Returns a vector of (function_name, args_string) tuples
+/// Handles nested function calls by extracting the outermost one first
+///
+/// # Examples
+///
+/// ```ignore
+/// let calls = extract_function_calls("$(wildcard *.c)");
+/// assert_eq!(calls[0].0, "wildcard");
+/// ```
+pub fn extract_function_calls(text: &str) -> Vec<(String, String)> {
+    let mut functions = Vec::new();
+    let mut chars = text.chars().peekable();
+    let mut pos = 0;
+
+    while pos < text.len() {
+        // Look for $( pattern
+        if text[pos..].starts_with("$(") {
+            // Find the matching closing parenthesis
+            let start = pos + 2; // Skip "$("
+            let mut depth = 1;
+            let mut end = start;
+
+            for (i, ch) in text[start..].chars().enumerate() {
+                if ch == '(' {
+                    depth += 1;
+                } else if ch == ')' {
+                    depth -= 1;
+                    if depth == 0 {
+                        end = start + i;
+                        break;
+                    }
+                }
+            }
+
+            if depth == 0 {
+                // Extract function content
+                let content = &text[start..end];
+
+                // Split by first space or comma to get function name
+                let (func_name, args) = if let Some(space_pos) = content.find(|c: char| c == ' ' || c == ',') {
+                    let name = &content[..space_pos];
+                    let args = content[space_pos..].trim_start_matches(|c: char| c == ' ' || c == ',');
+                    (name.to_string(), args.to_string())
+                } else {
+                    // No args (e.g., $(CURDIR))
+                    (content.to_string(), String::new())
+                };
+
+                functions.push((func_name, args));
+                pos = end + 1; // Skip past ')'
+                continue;
+            }
+        }
+
+        pos += 1;
+    }
+
+    functions
+}
+
+/// Split function arguments by commas, respecting nested parentheses
+///
+/// Example: "%.c,%.o,$(SOURCES)" -> ["%.c", "%.o", "$(SOURCES)"]
+fn split_function_args(args: &str) -> Vec<String> {
+    let mut result = Vec::new();
+    let mut current = String::new();
+    let mut depth = 0;
+
+    for ch in args.chars() {
+        match ch {
+            '(' => {
+                depth += 1;
+                current.push(ch);
+            }
+            ')' => {
+                depth -= 1;
+                current.push(ch);
+            }
+            ',' if depth == 0 => {
+                // Top-level comma - split here
+                if !current.trim().is_empty() {
+                    result.push(current.trim().to_string());
+                }
+                current.clear();
+            }
+            _ => current.push(ch),
+        }
+    }
+
+    // Add last argument
+    if !current.trim().is_empty() {
+        result.push(current.trim().to_string());
+    }
+
+    // If no commas found, return the whole string as single arg
+    if result.is_empty() && !args.trim().is_empty() {
+        result.push(args.trim().to_string());
+    }
+
+    result
 }
 
 /// Parse an include directive
@@ -538,6 +660,88 @@ fn parse_conditional(lines: &[&str], index: &mut usize) -> Result<MakeItem, Make
         then_items,
         else_items,
         span: Span::new(0, start_line.len(), start_line_num),
+    })
+}
+
+/// Parse a define...endef block for multi-line variable definitions
+///
+/// Syntax:
+/// ```makefile
+/// define VAR_NAME [=|:=]
+/// multi-line
+/// content
+/// endef
+/// ```
+///
+/// The index is moved past the endef line.
+fn parse_define_block(lines: &[&str], index: &mut usize) -> Result<MakeItem, MakeParseError> {
+    let start_line = lines[*index];
+    let start_line_num = *index + 1;
+    let trimmed = start_line.trim();
+
+    // Parse: define VAR_NAME [=|:=]
+    let after_define = trimmed.strip_prefix("define ").unwrap().trim();
+
+    // Check for assignment flavor (=, :=, ?=, +=, !=)
+    let (var_name, flavor) = if let Some(name) = after_define.strip_suffix(" =") {
+        (name.trim().to_string(), VarFlavor::Recursive)
+    } else if let Some(name) = after_define.strip_suffix(" :=") {
+        (name.trim().to_string(), VarFlavor::Simple)
+    } else if let Some(name) = after_define.strip_suffix(" ?=") {
+        (name.trim().to_string(), VarFlavor::Conditional)
+    } else if let Some(name) = after_define.strip_suffix(" +=") {
+        (name.trim().to_string(), VarFlavor::Append)
+    } else if let Some(name) = after_define.strip_suffix(" !=") {
+        (name.trim().to_string(), VarFlavor::Shell)
+    } else {
+        // No explicit flavor - defaults to recursive
+        (after_define.to_string(), VarFlavor::Recursive)
+    };
+
+    if var_name.is_empty() {
+        let location = SourceLocation::new(start_line_num)
+            .with_source_line(start_line.to_string());
+        return Err(MakeParseError::MissingVariableName {
+            location,
+            directive: "define".to_string(),
+        });
+    }
+
+    // Move past the define line
+    *index += 1;
+
+    // Collect lines until we find endef
+    let mut value_lines = Vec::new();
+    while *index < lines.len() {
+        let line = lines[*index];
+
+        // Check for endef
+        if line.trim() == "endef" {
+            // Move past the endef line
+            *index += 1;
+
+            // Join the collected lines (preserve newlines and indentation)
+            let value = value_lines.join("\n");
+
+            return Ok(MakeItem::Variable {
+                name: var_name,
+                value,
+                flavor,
+                span: Span::new(0, start_line.len(), start_line_num),
+            });
+        }
+
+        // Add this line to the value
+        value_lines.push(line.to_string());
+        *index += 1;
+    }
+
+    // If we got here, we never found endef
+    let location = SourceLocation::new(start_line_num)
+        .with_source_line(start_line.to_string());
+    Err(MakeParseError::UnterminatedDefine {
+        location,
+        var_name,
     })
 }
 

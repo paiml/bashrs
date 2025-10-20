@@ -9831,3 +9831,1040 @@ build: $(FILES)
     println!("{}", purified_makefile);
     println!("\n=== End-to-End Test: PASSED ✅ ===\n");
 }
+
+// ============================================================================
+// FUNC-CALL-001: Function Call Parsing Tests (Sprint 82, Day 2)
+// ============================================================================
+//
+// These tests validate parsing of GNU Make function calls:
+// - $(wildcard pattern)
+// - $(patsubst pattern,replacement,text)
+// - $(call function,args)
+// - $(eval code)
+// - $(shell command)
+// - $(foreach var,list,text)
+// - $(if condition,then,else)
+// - $(or a,b)
+// - $(and a,b)
+// - $(value var)
+// - $(origin var)
+//
+// RED PHASE: These tests are expected to FAIL initially.
+// The parser currently stores function calls as raw strings in variable values.
+// We need to implement explicit function call parsing.
+
+/// Test for basic $(wildcard) function parsing
+///
+/// Input: SOURCES := $(wildcard src/*.c)
+/// Expected: Parser stores function call in variable value, can extract it
+#[test]
+fn test_FUNC_CALL_001_wildcard_basic() {
+    // ARRANGE: Variable with $(wildcard) function
+    let makefile = "SOURCES := $(wildcard src/*.c)";
+
+    // ACT: Parse makefile
+    let result = parse_makefile(makefile);
+
+    // ASSERT: Successfully parsed
+    assert!(
+        result.is_ok(),
+        "Should parse $(wildcard) function, got error: {:?}",
+        result.err()
+    );
+
+    let ast = result.unwrap();
+    assert_eq!(ast.items.len(), 1, "Should have 1 variable");
+
+    // ASSERT: Variable contains the function call
+    match &ast.items[0] {
+        MakeItem::Variable { name, value, .. } => {
+            assert_eq!(name, "SOURCES");
+            assert_eq!(value, "$(wildcard src/*.c)");
+
+            // ASSERT: Can extract function calls from value
+            let function_calls = extract_function_calls(value);
+            assert_eq!(function_calls.len(), 1, "Should extract 1 function call");
+            assert_eq!(function_calls[0].0, "wildcard", "Function name should be 'wildcard'");
+            assert!(function_calls[0].1.contains("src/*.c"), "Args should contain pattern");
+        }
+        _ => panic!("Expected Variable item"),
+    }
+}
+
+/// RED PHASE: Test for $(wildcard) with multiple patterns
+///
+/// Input: FILES := $(wildcard *.c *.h)
+#[test]
+fn test_FUNC_CALL_002_wildcard_multiple_patterns() {
+    // ARRANGE: $(wildcard) with multiple patterns
+    let makefile = "FILES := $(wildcard *.c *.h)";
+
+    // ACT: Parse makefile
+    let result = parse_makefile(makefile);
+    assert!(result.is_ok());
+
+    let ast = result.unwrap();
+    assert_eq!(ast.items.len(), 1, "Should have 1 variable");
+
+    // ASSERT: Should store as Variable and allow extraction
+    match &ast.items[0] {
+        MakeItem::Variable { name, value, .. } => {
+            assert_eq!(name, "FILES");
+            assert_eq!(value, "$(wildcard *.c *.h)");
+
+            // Can extract function calls from value
+            let function_calls = extract_function_calls(value);
+            assert_eq!(function_calls.len(), 1, "Should extract 1 function call");
+            assert_eq!(function_calls[0].0, "wildcard", "Function name should be 'wildcard'");
+            assert!(function_calls[0].1.contains("*.c"), "Args should contain *.c pattern");
+            assert!(function_calls[0].1.contains("*.h"), "Args should contain *.h pattern");
+        }
+        _ => panic!("Expected Variable item"),
+    }
+}
+
+/// RED PHASE: Test for basic $(patsubst) function
+///
+/// Input: OBJS := $(patsubst %.c,%.o,$(SOURCES))
+#[test]
+fn test_FUNC_CALL_003_patsubst_basic() {
+    // ARRANGE: $(patsubst) function
+    let makefile = "OBJS := $(patsubst %.c,%.o,$(SOURCES))";
+
+    // ACT: Parse makefile
+    let result = parse_makefile(makefile);
+    assert!(result.is_ok());
+
+    let ast = result.unwrap();
+    assert_eq!(ast.items.len(), 1, "Should have 1 variable");
+
+    // ASSERT: Should store as Variable and allow extraction
+    match &ast.items[0] {
+        MakeItem::Variable { name, value, .. } => {
+            assert_eq!(name, "OBJS");
+            assert_eq!(value, "$(patsubst %.c,%.o,$(SOURCES))");
+
+            // Can extract function calls from value
+            let function_calls = extract_function_calls(value);
+            assert_eq!(function_calls.len(), 1, "Should extract 1 function call");
+            assert_eq!(function_calls[0].0, "patsubst", "Function name should be 'patsubst'");
+            assert!(function_calls[0].1.contains("%.c"), "Args should contain %.c pattern");
+            assert!(function_calls[0].1.contains("%.o"), "Args should contain %.o pattern");
+        }
+        _ => panic!("Expected Variable item"),
+    }
+}
+
+/// RED PHASE: Test for $(patsubst) with nested variable
+///
+/// Input: OBJS := $(patsubst %.c,%.o,$(wildcard src/*.c))
+#[test]
+fn test_FUNC_CALL_004_patsubst_nested() {
+    // ARRANGE: $(patsubst) with nested $(wildcard)
+    let makefile = "OBJS := $(patsubst %.c,%.o,$(wildcard src/*.c))";
+
+    // ACT: Parse makefile
+    let result = parse_makefile(makefile);
+    assert!(result.is_ok());
+
+    let ast = result.unwrap();
+    assert_eq!(ast.items.len(), 1, "Should have 1 variable");
+
+    // ASSERT: Should store as Variable and allow extraction (outer function)
+    match &ast.items[0] {
+        MakeItem::Variable { name, value, .. } => {
+            assert_eq!(name, "OBJS");
+            assert_eq!(value, "$(patsubst %.c,%.o,$(wildcard src/*.c))");
+
+            // Can extract function calls from value (extracts outermost)
+            let function_calls = extract_function_calls(value);
+            assert_eq!(function_calls.len(), 1, "Should extract 1 outermost function call");
+            assert_eq!(function_calls[0].0, "patsubst", "Function name should be 'patsubst'");
+            assert!(function_calls[0].1.contains("$(wildcard"), "Args should contain nested $(wildcard)");
+        }
+        _ => panic!("Expected Variable item"),
+    }
+}
+
+/// RED PHASE: Test for $(call) function
+///
+/// Input: RESULT := $(call my_func,arg1,arg2)
+#[test]
+fn test_FUNC_CALL_005_call_basic() {
+    // ARRANGE: $(call) function
+    let makefile = "RESULT := $(call my_func,arg1,arg2)";
+
+    // ACT: Parse makefile
+    let result = parse_makefile(makefile);
+    assert!(result.is_ok());
+
+    let ast = result.unwrap();
+    assert_eq!(ast.items.len(), 1, "Should have 1 variable");
+
+    // ASSERT: Should store as Variable and allow extraction
+    match &ast.items[0] {
+        MakeItem::Variable { name, value, .. } => {
+            assert_eq!(name, "RESULT");
+            assert_eq!(value, "$(call my_func,arg1,arg2)");
+
+            // Can extract function calls from value
+            let function_calls = extract_function_calls(value);
+            assert_eq!(function_calls.len(), 1, "Should extract 1 function call");
+            assert_eq!(function_calls[0].0, "call", "Function name should be 'call'");
+            assert!(function_calls[0].1.contains("my_func"), "Args should contain my_func");
+            assert!(function_calls[0].1.contains("arg1"), "Args should contain arg1");
+        }
+        _ => panic!("Expected Variable item"),
+    }
+}
+
+/// RED PHASE: Test for nested $(call) function
+///
+/// Input: RESULT := $(call outer,$(call inner,x))
+#[test]
+fn test_FUNC_CALL_006_call_nested() {
+    // ARRANGE: Nested $(call) functions
+    let makefile = "RESULT := $(call outer,$(call inner,x))";
+
+    // ACT: Parse makefile
+    let result = parse_makefile(makefile);
+    assert!(result.is_ok());
+
+    let ast = result.unwrap();
+    assert_eq!(ast.items.len(), 1, "Should have 1 variable");
+
+    // ASSERT: Should store as Variable and allow extraction (outer call)
+    match &ast.items[0] {
+        MakeItem::Variable { name, value, .. } => {
+            assert_eq!(name, "RESULT");
+            assert_eq!(value, "$(call outer,$(call inner,x))");
+
+            // Can extract function calls from value (extracts outermost)
+            let function_calls = extract_function_calls(value);
+            assert_eq!(function_calls.len(), 1, "Should extract 1 outermost function call");
+            assert_eq!(function_calls[0].0, "call", "Function name should be 'call'");
+            assert!(function_calls[0].1.contains("outer"), "Args should contain outer");
+            assert!(function_calls[0].1.contains("$(call inner"), "Args should contain nested $(call inner)");
+        }
+        _ => panic!("Expected Variable item"),
+    }
+}
+
+/// RED PHASE: Test for $(eval) function
+///
+/// Input: $(eval VAR = value)
+#[test]
+fn test_FUNC_CALL_007_eval_basic() {
+    // ARRANGE: $(eval) function (note: eval is typically standalone, not in assignment)
+    let makefile = "DUMMY := $(eval NEW_VAR = value)";
+
+    // ACT: Parse makefile
+    let result = parse_makefile(makefile);
+    assert!(result.is_ok());
+
+    let ast = result.unwrap();
+    assert_eq!(ast.items.len(), 1, "Should have 1 variable");
+
+    // ASSERT: Should store as Variable and allow extraction
+    match &ast.items[0] {
+        MakeItem::Variable { name, value, .. } => {
+            assert_eq!(name, "DUMMY");
+            assert_eq!(value, "$(eval NEW_VAR = value)");
+
+            // Can extract function calls from value
+            let function_calls = extract_function_calls(value);
+            assert_eq!(function_calls.len(), 1, "Should extract 1 function call");
+            assert_eq!(function_calls[0].0, "eval", "Function name should be 'eval'");
+            assert!(function_calls[0].1.contains("NEW_VAR"), "Args should contain NEW_VAR");
+        }
+        _ => panic!("Expected Variable item"),
+    }
+}
+
+/// RED PHASE: Test for $(shell) function
+///
+/// Input: FILES := $(shell ls -la)
+#[test]
+fn test_FUNC_CALL_008_shell_basic() {
+    // ARRANGE: $(shell) function
+    let makefile = "FILES := $(shell ls -la)";
+
+    // ACT: Parse makefile
+    let result = parse_makefile(makefile);
+    assert!(result.is_ok());
+
+    let ast = result.unwrap();
+    assert_eq!(ast.items.len(), 1, "Should have 1 variable");
+
+    // ASSERT: Should store as Variable and allow extraction
+    match &ast.items[0] {
+        MakeItem::Variable { name, value, .. } => {
+            assert_eq!(name, "FILES");
+            assert_eq!(value, "$(shell ls -la)");
+
+            // Can extract function calls from value
+            let function_calls = extract_function_calls(value);
+            assert_eq!(function_calls.len(), 1, "Should extract 1 function call");
+            assert_eq!(function_calls[0].0, "shell", "Function name should be 'shell'");
+            assert!(function_calls[0].1.contains("ls -la"), "Args should contain shell command");
+        }
+        _ => panic!("Expected Variable item"),
+    }
+}
+
+/// RED PHASE: Test for $(foreach) function
+///
+/// Input: FILES := $(foreach dir,src test,$(wildcard $(dir)/*.c))
+#[test]
+fn test_FUNC_CALL_009_foreach_basic() {
+    // ARRANGE: $(foreach) function with nested wildcard
+    let makefile = "FILES := $(foreach dir,src test,$(wildcard $(dir)/*.c))";
+
+    // ACT: Parse makefile
+    let result = parse_makefile(makefile);
+    assert!(result.is_ok());
+
+    let ast = result.unwrap();
+    assert_eq!(ast.items.len(), 1, "Should have 1 variable");
+
+    // ASSERT: Should store as Variable and allow extraction
+    match &ast.items[0] {
+        MakeItem::Variable { name, value, .. } => {
+            assert_eq!(name, "FILES");
+            assert_eq!(value, "$(foreach dir,src test,$(wildcard $(dir)/*.c))");
+
+            // Can extract function calls from value (extracts outermost)
+            let function_calls = extract_function_calls(value);
+            assert_eq!(function_calls.len(), 1, "Should extract 1 outermost function call");
+            assert_eq!(function_calls[0].0, "foreach", "Function name should be 'foreach'");
+            assert!(function_calls[0].1.contains("dir,src test"), "Args should contain foreach parameters");
+        }
+        _ => panic!("Expected Variable item"),
+    }
+}
+
+/// RED PHASE: Test for $(if) function
+///
+/// Input: RESULT := $(if $(DEBUG),debug,release)
+#[test]
+fn test_FUNC_CALL_010_if_basic() {
+    // ARRANGE: $(if) function with condition and branches
+    let makefile = "RESULT := $(if $(DEBUG),debug,release)";
+
+    // ACT: Parse makefile
+    let result = parse_makefile(makefile);
+    assert!(result.is_ok());
+
+    let ast = result.unwrap();
+    assert_eq!(ast.items.len(), 1, "Should have 1 variable");
+
+    // ASSERT: Should store as Variable and allow extraction
+    match &ast.items[0] {
+        MakeItem::Variable { name, value, .. } => {
+            assert_eq!(name, "RESULT");
+            assert_eq!(value, "$(if $(DEBUG),debug,release)");
+
+            // Can extract function calls from value
+            let function_calls = extract_function_calls(value);
+            assert_eq!(function_calls.len(), 1, "Should extract 1 function call");
+            assert_eq!(function_calls[0].0, "if", "Function name should be 'if'");
+            assert!(function_calls[0].1.contains("DEBUG"), "Args should contain condition");
+            assert!(function_calls[0].1.contains("debug"), "Args should contain then-branch");
+        }
+        _ => panic!("Expected Variable item"),
+    }
+}
+
+/// RED PHASE: Test for $(or) function
+///
+/// Input: ENABLED := $(or $(USE_FEATURE_A),$(USE_FEATURE_B))
+#[test]
+fn test_FUNC_CALL_011_or_basic() {
+    // ARRANGE: $(or) function with multiple conditions
+    let makefile = "ENABLED := $(or $(USE_FEATURE_A),$(USE_FEATURE_B))";
+
+    // ACT: Parse makefile
+    let result = parse_makefile(makefile);
+    assert!(result.is_ok());
+
+    let ast = result.unwrap();
+    assert_eq!(ast.items.len(), 1, "Should have 1 variable");
+
+    // ASSERT: Should store as Variable and allow extraction
+    match &ast.items[0] {
+        MakeItem::Variable { name, value, .. } => {
+            assert_eq!(name, "ENABLED");
+            assert_eq!(value, "$(or $(USE_FEATURE_A),$(USE_FEATURE_B))");
+
+            // Can extract function calls from value
+            let function_calls = extract_function_calls(value);
+            assert_eq!(function_calls.len(), 1, "Should extract 1 function call");
+            assert_eq!(function_calls[0].0, "or", "Function name should be 'or'");
+            assert!(function_calls[0].1.contains("USE_FEATURE_A"), "Args should contain first condition");
+            assert!(function_calls[0].1.contains("USE_FEATURE_B"), "Args should contain second condition");
+        }
+        _ => panic!("Expected Variable item"),
+    }
+}
+
+/// RED PHASE: Test for $(and) function
+///
+/// Input: VALID := $(and $(HAS_COMPILER),$(HAS_LIBS))
+#[test]
+fn test_FUNC_CALL_012_and_basic() {
+    // ARRANGE: $(and) function with multiple conditions
+    let makefile = "VALID := $(and $(HAS_COMPILER),$(HAS_LIBS))";
+
+    // ACT: Parse makefile
+    let result = parse_makefile(makefile);
+    assert!(result.is_ok());
+
+    let ast = result.unwrap();
+    assert_eq!(ast.items.len(), 1, "Should have 1 variable");
+
+    // ASSERT: Should store as Variable and allow extraction
+    match &ast.items[0] {
+        MakeItem::Variable { name, value, .. } => {
+            assert_eq!(name, "VALID");
+            assert_eq!(value, "$(and $(HAS_COMPILER),$(HAS_LIBS))");
+
+            // Can extract function calls from value
+            let function_calls = extract_function_calls(value);
+            assert_eq!(function_calls.len(), 1, "Should extract 1 function call");
+            assert_eq!(function_calls[0].0, "and", "Function name should be 'and'");
+            assert!(function_calls[0].1.contains("HAS_COMPILER"), "Args should contain first condition");
+            assert!(function_calls[0].1.contains("HAS_LIBS"), "Args should contain second condition");
+        }
+        _ => panic!("Expected Variable item"),
+    }
+}
+
+/// RED PHASE: Test for $(value) function
+///
+/// Input: VAR_CONTENT := $(value VARIABLE_NAME)
+#[test]
+fn test_FUNC_CALL_013_value_basic() {
+    // ARRANGE: $(value) function to get variable value without expansion
+    let makefile = "VAR_CONTENT := $(value VARIABLE_NAME)";
+
+    // ACT: Parse makefile
+    let result = parse_makefile(makefile);
+    assert!(result.is_ok());
+
+    let ast = result.unwrap();
+    assert_eq!(ast.items.len(), 1, "Should have 1 variable");
+
+    // ASSERT: Should store as Variable and allow extraction
+    match &ast.items[0] {
+        MakeItem::Variable { name, value, .. } => {
+            assert_eq!(name, "VAR_CONTENT");
+            assert_eq!(value, "$(value VARIABLE_NAME)");
+
+            // Can extract function calls from value
+            let function_calls = extract_function_calls(value);
+            assert_eq!(function_calls.len(), 1, "Should extract 1 function call");
+            assert_eq!(function_calls[0].0, "value", "Function name should be 'value'");
+            assert!(function_calls[0].1.contains("VARIABLE_NAME"), "Args should contain variable name");
+        }
+        _ => panic!("Expected Variable item"),
+    }
+}
+
+/// RED PHASE: Test for $(origin) function
+///
+/// Input: VAR_ORIGIN := $(origin CC)
+#[test]
+fn test_FUNC_CALL_014_origin_basic() {
+    // ARRANGE: $(origin) function to check variable origin
+    let makefile = "VAR_ORIGIN := $(origin CC)";
+
+    // ACT: Parse makefile
+    let result = parse_makefile(makefile);
+    assert!(result.is_ok());
+
+    let ast = result.unwrap();
+    assert_eq!(ast.items.len(), 1, "Should have 1 variable");
+
+    // ASSERT: Should store as Variable and allow extraction
+    match &ast.items[0] {
+        MakeItem::Variable { name, value, .. } => {
+            assert_eq!(name, "VAR_ORIGIN");
+            assert_eq!(value, "$(origin CC)");
+
+            // Can extract function calls from value
+            let function_calls = extract_function_calls(value);
+            assert_eq!(function_calls.len(), 1, "Should extract 1 function call");
+            assert_eq!(function_calls[0].0, "origin", "Function name should be 'origin'");
+            assert!(function_calls[0].1.contains("CC"), "Args should contain variable name");
+        }
+        _ => panic!("Expected Variable item"),
+    }
+}
+
+/// RED PHASE: Test for multiple function calls in one variable
+///
+/// Input: ALL := $(wildcard *.c) $(patsubst %.c,%.o,$(wildcard *.c))
+#[test]
+fn test_FUNC_CALL_015_multiple_functions() {
+    // ARRANGE: Multiple function calls in one variable value
+    let makefile = "ALL := $(wildcard *.c) $(patsubst %.c,%.o,$(wildcard *.c))";
+
+    // ACT: Parse makefile
+    let result = parse_makefile(makefile);
+    assert!(result.is_ok());
+
+    let ast = result.unwrap();
+    assert_eq!(ast.items.len(), 1, "Should have 1 variable");
+
+    // ASSERT: Should store as Variable and allow extraction of multiple calls
+    match &ast.items[0] {
+        MakeItem::Variable { name, value, .. } => {
+            assert_eq!(name, "ALL");
+            assert_eq!(value, "$(wildcard *.c) $(patsubst %.c,%.o,$(wildcard *.c))");
+
+            // Can extract multiple function calls from value
+            let function_calls = extract_function_calls(value);
+            assert_eq!(function_calls.len(), 2, "Should extract 2 function calls");
+            assert_eq!(function_calls[0].0, "wildcard", "First function should be 'wildcard'");
+            assert_eq!(function_calls[1].0, "patsubst", "Second function should be 'patsubst'");
+            assert!(function_calls[0].1.contains("*.c"), "First function args should contain *.c");
+            assert!(function_calls[1].1.contains("%.c"), "Second function args should contain %.c");
+        }
+        _ => panic!("Expected Variable item"),
+    }
+}
+
+// =============================================================================
+// define...endef Tests (Sprint 82 Day 4-5)
+// =============================================================================
+
+/// RED PHASE: Test for basic define...endef
+///
+/// Input:
+/// define COMPILE_RULE
+/// gcc -c $< -o $@
+/// endef
+#[test]
+fn test_DEFINE_001_basic_define() {
+    // ARRANGE: Basic define...endef block
+    let makefile = r#"define COMPILE_RULE
+gcc -c $< -o $@
+endef"#;
+
+    // ACT: Parse makefile
+    let result = parse_makefile(makefile);
+    assert!(result.is_ok(), "Parsing should succeed");
+
+    let ast = result.unwrap();
+    assert_eq!(ast.items.len(), 1, "Should have 1 variable");
+
+    // ASSERT: Should store as multi-line Variable
+    match &ast.items[0] {
+        MakeItem::Variable { name, value, .. } => {
+            assert_eq!(name, "COMPILE_RULE");
+            assert!(value.contains("gcc -c $< -o $@"), "Value should contain command");
+        }
+        _ => panic!("Expected Variable item for define block"),
+    }
+}
+
+/// RED PHASE: Test for empty define...endef
+///
+/// Input:
+/// define EMPTY_VAR
+/// endef
+#[test]
+fn test_DEFINE_002_empty_define() {
+    // ARRANGE: Empty define block
+    let makefile = r#"define EMPTY_VAR
+endef"#;
+
+    // ACT: Parse makefile
+    let result = parse_makefile(makefile);
+    assert!(result.is_ok(), "Parsing should succeed");
+
+    let ast = result.unwrap();
+    assert_eq!(ast.items.len(), 1, "Should have 1 variable");
+
+    // ASSERT: Should store as Variable with empty or whitespace value
+    match &ast.items[0] {
+        MakeItem::Variable { name, value, .. } => {
+            assert_eq!(name, "EMPTY_VAR");
+            assert!(value.trim().is_empty() || value.is_empty(), "Value should be empty");
+        }
+        _ => panic!("Expected Variable item"),
+    }
+}
+
+/// RED PHASE: Test for multi-line define...endef
+///
+/// Input:
+/// define HELP_TEXT
+/// Usage: make [target]
+/// Targets:
+///   all    - Build everything
+///   clean  - Remove build artifacts
+/// endef
+#[test]
+fn test_DEFINE_003_multiline_text() {
+    // ARRANGE: Multi-line define block
+    let makefile = r#"define HELP_TEXT
+Usage: make [target]
+Targets:
+  all    - Build everything
+  clean  - Remove build artifacts
+endef"#;
+
+    // ACT: Parse makefile
+    let result = parse_makefile(makefile);
+    assert!(result.is_ok(), "Parsing should succeed");
+
+    let ast = result.unwrap();
+    assert_eq!(ast.items.len(), 1, "Should have 1 variable");
+
+    // ASSERT: Should preserve multi-line content
+    match &ast.items[0] {
+        MakeItem::Variable { name, value, .. } => {
+            assert_eq!(name, "HELP_TEXT");
+            assert!(value.contains("Usage: make [target]"), "Should contain first line");
+            assert!(value.contains("Targets:"), "Should contain second line");
+            assert!(value.contains("all    - Build everything"), "Should contain third line");
+            assert!(value.contains("clean  - Remove build artifacts"), "Should contain fourth line");
+        }
+        _ => panic!("Expected Variable item"),
+    }
+}
+
+/// RED PHASE: Test for define with tab-indented commands
+///
+/// Input:
+/// define BUILD_CMD
+/// 	@echo "Building..."
+/// 	gcc -o output main.c
+/// endef
+#[test]
+fn test_DEFINE_004_with_tabs() {
+    // ARRANGE: define block with tab-indented commands (like recipe lines)
+    let makefile = "define BUILD_CMD\n\t@echo \"Building...\"\n\tgcc -o output main.c\nendef";
+
+    // ACT: Parse makefile
+    let result = parse_makefile(makefile);
+    assert!(result.is_ok(), "Parsing should succeed");
+
+    let ast = result.unwrap();
+    assert_eq!(ast.items.len(), 1, "Should have 1 variable");
+
+    // ASSERT: Should preserve tabs in multi-line value
+    match &ast.items[0] {
+        MakeItem::Variable { name, value, .. } => {
+            assert_eq!(name, "BUILD_CMD");
+            assert!(value.contains("echo"), "Should contain echo command");
+            assert!(value.contains("gcc -o output main.c"), "Should contain gcc command");
+        }
+        _ => panic!("Expected Variable item"),
+    }
+}
+
+/// RED PHASE: Test for define with variable references
+///
+/// Input:
+/// define INSTALL_CMD
+/// install -m 755 $(BIN) $(DESTDIR)$(PREFIX)/bin
+/// install -m 644 $(MAN) $(DESTDIR)$(PREFIX)/share/man
+/// endef
+#[test]
+fn test_DEFINE_005_with_variables() {
+    // ARRANGE: define block with variable references
+    let makefile = r#"define INSTALL_CMD
+install -m 755 $(BIN) $(DESTDIR)$(PREFIX)/bin
+install -m 644 $(MAN) $(DESTDIR)$(PREFIX)/share/man
+endef"#;
+
+    // ACT: Parse makefile
+    let result = parse_makefile(makefile);
+    assert!(result.is_ok(), "Parsing should succeed");
+
+    let ast = result.unwrap();
+    assert_eq!(ast.items.len(), 1, "Should have 1 variable");
+
+    // ASSERT: Should preserve variable references
+    match &ast.items[0] {
+        MakeItem::Variable { name, value, .. } => {
+            assert_eq!(name, "INSTALL_CMD");
+            assert!(value.contains("$(BIN)"), "Should contain BIN variable");
+            assert!(value.contains("$(DESTDIR)"), "Should contain DESTDIR variable");
+            assert!(value.contains("$(PREFIX)"), "Should contain PREFIX variable");
+        }
+        _ => panic!("Expected Variable item"),
+    }
+}
+
+/// RED PHASE: Test for define with recipe-style commands
+///
+/// Input:
+/// define RUN_TESTS
+/// 	cd tests && ./run_tests.sh
+/// 	if [ $$? -ne 0 ]; then exit 1; fi
+/// endef
+#[test]
+fn test_DEFINE_006_with_commands() {
+    // ARRANGE: define block with shell commands
+    let makefile = "define RUN_TESTS\n\tcd tests && ./run_tests.sh\n\tif [ $$? -ne 0 ]; then exit 1; fi\nendef";
+
+    // ACT: Parse makefile
+    let result = parse_makefile(makefile);
+    assert!(result.is_ok(), "Parsing should succeed");
+
+    let ast = result.unwrap();
+    assert_eq!(ast.items.len(), 1, "Should have 1 variable");
+
+    // ASSERT: Should preserve shell commands with $$
+    match &ast.items[0] {
+        MakeItem::Variable { name, value, .. } => {
+            assert_eq!(name, "RUN_TESTS");
+            assert!(value.contains("cd tests"), "Should contain cd command");
+            assert!(value.contains("$$?") || value.contains("$?"), "Should contain exit code check");
+        }
+        _ => panic!("Expected Variable item"),
+    }
+}
+
+/// RED PHASE: Test for recursive expansion define (=)
+///
+/// Input:
+/// define RECURSIVE =
+/// This is $(FLAVOR) expansion
+/// endef
+#[test]
+fn test_DEFINE_007_recursive_expansion() {
+    // ARRANGE: define with recursive expansion (=)
+    let makefile = r#"define RECURSIVE =
+This is $(FLAVOR) expansion
+endef"#;
+
+    // ACT: Parse makefile
+    let result = parse_makefile(makefile);
+    assert!(result.is_ok(), "Parsing should succeed");
+
+    let ast = result.unwrap();
+    assert_eq!(ast.items.len(), 1, "Should have 1 variable");
+
+    // ASSERT: Should handle = flavor
+    match &ast.items[0] {
+        MakeItem::Variable { name, value, flavor, .. } => {
+            assert_eq!(name, "RECURSIVE");
+            assert!(value.contains("$(FLAVOR)"), "Should contain variable reference");
+            assert_eq!(*flavor, VarFlavor::Recursive, "Should be recursive expansion");
+        }
+        _ => panic!("Expected Variable item"),
+    }
+}
+
+/// RED PHASE: Test for simple expansion define (:=)
+///
+/// Input:
+/// define SIMPLE :=
+/// Expanded at $(shell date)
+/// endef
+#[test]
+fn test_DEFINE_008_simple_expansion() {
+    // ARRANGE: define with simple expansion (:=)
+    let makefile = r#"define SIMPLE :=
+Expanded at $(shell date)
+endef"#;
+
+    // ACT: Parse makefile
+    let result = parse_makefile(makefile);
+    assert!(result.is_ok(), "Parsing should succeed");
+
+    let ast = result.unwrap();
+    assert_eq!(ast.items.len(), 1, "Should have 1 variable");
+
+    // ASSERT: Should handle := flavor
+    match &ast.items[0] {
+        MakeItem::Variable { name, value, flavor, .. } => {
+            assert_eq!(name, "SIMPLE");
+            assert!(value.contains("shell") || value.contains("date"), "Should contain function call");
+            assert_eq!(*flavor, VarFlavor::Simple, "Should be simple expansion");
+        }
+        _ => panic!("Expected Variable item"),
+    }
+}
+
+/// RED PHASE: Test for define with nested variable expansion
+///
+/// Input:
+/// define COMPLEX
+/// SRC = $(wildcard src/*.c)
+/// OBJ = $(patsubst %.c,%.o,$(SRC))
+/// endef
+#[test]
+fn test_DEFINE_009_nested_variables() {
+    // ARRANGE: define block with nested variable assignments
+    let makefile = r#"define COMPLEX
+SRC = $(wildcard src/*.c)
+OBJ = $(patsubst %.c,%.o,$(SRC))
+endef"#;
+
+    // ACT: Parse makefile
+    let result = parse_makefile(makefile);
+    assert!(result.is_ok(), "Parsing should succeed");
+
+    let ast = result.unwrap();
+    assert_eq!(ast.items.len(), 1, "Should have 1 variable");
+
+    // ASSERT: Should preserve nested content as multi-line value
+    match &ast.items[0] {
+        MakeItem::Variable { name, value, .. } => {
+            assert_eq!(name, "COMPLEX");
+            assert!(value.contains("SRC ="), "Should contain SRC assignment");
+            assert!(value.contains("OBJ ="), "Should contain OBJ assignment");
+            assert!(value.contains("$(wildcard"), "Should contain wildcard function");
+            assert!(value.contains("$(patsubst"), "Should contain patsubst function");
+        }
+        _ => panic!("Expected Variable item"),
+    }
+}
+
+/// RED PHASE: Test for real-world define example
+///
+/// Input: Complex real-world define block from Linux kernel
+#[test]
+fn test_DEFINE_010_real_world_example() {
+    // ARRANGE: Real-world complex define block
+    let makefile = r#"define COMPILE_TEMPLATE
+$(1)_OBJS := $$(patsubst %.c,%.o,$$($(1)_SOURCES))
+$(1)_DEPS := $$($(1)_OBJS:.o=.d)
+
+$(1): $$($(1)_OBJS)
+	$$(CC) $$(CFLAGS) -o $$@ $$^
+
+-include $$($(1)_DEPS)
+endef"#;
+
+    // ACT: Parse makefile
+    let result = parse_makefile(makefile);
+    assert!(result.is_ok(), "Parsing should succeed");
+
+    let ast = result.unwrap();
+    assert_eq!(ast.items.len(), 1, "Should have 1 variable");
+
+    // ASSERT: Should preserve complex multi-line template
+    match &ast.items[0] {
+        MakeItem::Variable { name, value, .. } => {
+            assert_eq!(name, "COMPILE_TEMPLATE");
+            assert!(value.contains("_OBJS"), "Should contain OBJS assignment");
+            assert!(value.contains("_DEPS"), "Should contain DEPS assignment");
+            assert!(value.contains("$(CC)"), "Should contain CC variable");
+            assert!(value.contains("$$@"), "Should contain automatic variable");
+            assert!(value.contains("-include"), "Should contain include directive");
+        }
+        _ => panic!("Expected Variable item"),
+    }
+}
+
+// =============================================================================
+// Conditional Edge Cases (Day 6)
+// =============================================================================
+
+/// RED PHASE: Test for nested conditionals (ifeq inside ifdef)
+#[test]
+fn test_COND_EDGE_001_nested_ifeq_ifdef() {
+    let makefile = r#"
+ifdef DEBUG
+ifeq ($(VERBOSE),1)
+CFLAGS += -DDEBUG_VERBOSE
+endif
+endif
+"#;
+
+    // ARRANGE: Parse Makefile with nested conditionals
+    let result = parse_makefile(makefile);
+    assert!(result.is_ok(), "Parsing should succeed");
+
+    let ast = result.unwrap();
+
+    // ASSERT: Should have conditional structure
+    // Outer ifdef DEBUG should contain inner ifeq
+    let has_ifdef = ast.items.iter().any(|item| {
+        matches!(item, MakeItem::Conditional { .. })
+    });
+
+    assert!(has_ifdef, "Should have conditional items for nested structure");
+}
+
+/// RED PHASE: Test for conditionals with function calls in condition
+#[test]
+fn test_COND_EDGE_002_conditional_with_functions() {
+    let makefile = r#"
+ifeq ($(shell uname),Linux)
+PLATFORM = linux
+else
+PLATFORM = other
+endif
+"#;
+
+    // ARRANGE: Parse Makefile with function call in condition
+    let result = parse_makefile(makefile);
+    assert!(result.is_ok(), "Parsing should succeed");
+
+    let ast = result.unwrap();
+
+    // ASSERT: Should parse ifeq with shell function
+    let has_conditional = ast.items.iter().any(|item| {
+        matches!(item, MakeItem::Conditional { .. })
+    });
+
+    assert!(has_conditional, "Should have conditional item");
+
+    // ASSERT: Should have variable assignment in then or else branch
+    let has_var_in_conditional = ast.items.iter().any(|item| {
+        if let MakeItem::Conditional { then_items, else_items, .. } = item {
+            let in_then = then_items.iter().any(|i| {
+                matches!(i, MakeItem::Variable { name, .. } if name == "PLATFORM")
+            });
+            let in_else = else_items.as_ref().map(|items| {
+                items.iter().any(|i| {
+                    matches!(i, MakeItem::Variable { name, .. } if name == "PLATFORM")
+                })
+            }).unwrap_or(false);
+            in_then || in_else
+        } else {
+            false
+        }
+    });
+
+    assert!(has_var_in_conditional, "Should have PLATFORM variable in conditional branches");
+}
+
+/// RED PHASE: Test for empty conditional blocks
+#[test]
+fn test_COND_EDGE_003_empty_conditional_blocks() {
+    let makefile = r#"
+ifdef DEBUG
+# Empty then block
+endif
+
+ifndef RELEASE
+# Empty then block
+else
+# Empty else block
+endif
+"#;
+
+    // ARRANGE: Parse Makefile with empty conditional blocks
+    let result = parse_makefile(makefile);
+    assert!(result.is_ok(), "Parsing should succeed for empty blocks");
+
+    let ast = result.unwrap();
+
+    // ASSERT: Should have conditional items even if empty
+    let conditional_count = ast.items.iter().filter(|item| {
+        matches!(item, MakeItem::Conditional { .. })
+    }).count();
+
+    assert!(conditional_count >= 2, "Should have 2 conditional items (ifdef + ifndef)");
+}
+
+/// RED PHASE: Test for complex real-world nesting
+#[test]
+fn test_COND_EDGE_004_complex_nesting_real_world() {
+    let makefile = r#"
+ifdef USE_PYTHON
+PYTHON := python3
+ifeq ($(shell which python3),)
+$(error Python 3 not found)
+endif
+else ifdef USE_PYTHON2
+PYTHON := python2
+else
+PYTHON := python
+endif
+
+ifneq ($(PYTHON),)
+PYTHON_CONFIG := $(PYTHON)-config
+endif
+"#;
+
+    // ARRANGE: Parse complex real-world conditional nesting
+    let result = parse_makefile(makefile);
+    assert!(result.is_ok(), "Parsing should succeed for complex nesting");
+
+    let ast = result.unwrap();
+
+    // ASSERT: Should have multiple conditional items
+    let conditional_count = ast.items.iter().filter(|item| {
+        matches!(item, MakeItem::Conditional { .. })
+    }).count();
+
+    assert!(conditional_count >= 2, "Should have at least 2 conditional items");
+
+    // ASSERT: Should have variable assignments in conditional branches
+    let has_python_var = ast.items.iter().any(|item| {
+        if let MakeItem::Conditional { then_items, else_items, .. } = item {
+            let check_items = |items: &[MakeItem]| {
+                items.iter().any(|i| {
+                    matches!(i, MakeItem::Variable { name, .. } if name == "PYTHON" || name == "PYTHON_CONFIG")
+                })
+            };
+
+            let in_then = check_items(then_items);
+            let in_else = else_items.as_ref().map(|items| check_items(items)).unwrap_or(false);
+            in_then || in_else
+        } else {
+            false
+        }
+    });
+
+    assert!(has_python_var, "Should have PYTHON or PYTHON_CONFIG variable in conditional branches");
+}
+
+/// RED PHASE: Test for multiple nested conditional levels
+#[test]
+fn test_COND_EDGE_005_multiple_nested_levels() {
+    let makefile = r#"
+ifdef ENABLE_FEATURE_A
+FEATURE_A = 1
+ifdef ENABLE_FEATURE_A_VERBOSE
+FEATURE_A_FLAGS = -v
+else
+FEATURE_A_FLAGS =
+endif
+else
+FEATURE_A = 0
+endif
+"#;
+
+    // ARRANGE: Parse conditional with multiple nesting levels
+    let result = parse_makefile(makefile);
+    assert!(result.is_ok(), "Parsing should succeed for multiple nesting levels");
+
+    let ast = result.unwrap();
+
+    // ASSERT: Should have conditional item
+    let has_conditional = ast.items.iter().any(|item| {
+        matches!(item, MakeItem::Conditional { .. })
+    });
+
+    assert!(has_conditional, "Should have conditional item");
+
+    // ASSERT: Should have variable assignments in conditional branches
+    let has_var = ast.items.iter().any(|item| {
+        if let MakeItem::Conditional { then_items, else_items, .. } = item {
+            let check_items = |items: &[MakeItem]| {
+                items.iter().any(|i| {
+                    matches!(i, MakeItem::Variable { name, .. }
+                        if name == "FEATURE_A" || name == "FEATURE_A_FLAGS")
+                })
+            };
+
+            let in_then = check_items(then_items);
+            let in_else = else_items.as_ref().map(|items| check_items(items)).unwrap_or(false);
+            in_then || in_else
+        } else {
+            false
+        }
+    });
+
+    assert!(has_var, "Should have FEATURE_A or FEATURE_A_FLAGS variable in conditional branches");
+}
