@@ -2,6 +2,7 @@
 
 // ShellCheck-equivalent rules
 pub mod sc2001;
+pub mod sc2002;
 pub mod sc2006;
 pub mod sc2027;
 pub mod sc2028;
@@ -22,6 +23,10 @@ pub mod sc2081;
 pub mod sc2086;
 pub mod sc2116;
 pub mod sc2154;
+pub mod sc2162;
+pub mod sc2164;
+pub mod sc2181;
+pub mod sc2196;
 
 // Determinism rules (bashrs-specific)
 pub mod det001;
@@ -77,6 +82,7 @@ pub fn lint_shell(source: &str) -> LintResult {
 
     // Run ShellCheck-equivalent rules
     result.merge(sc2001::check(source));
+    result.merge(sc2002::check(source));
     result.merge(sc2006::check(source));
     result.merge(sc2027::check(source));
     result.merge(sc2028::check(source));
@@ -97,6 +103,10 @@ pub fn lint_shell(source: &str) -> LintResult {
     result.merge(sc2086::check(source));
     result.merge(sc2116::check(source));
     result.merge(sc2154::check(source));
+    result.merge(sc2162::check(source));
+    result.merge(sc2164::check(source));
+    result.merge(sc2181::check(source));
+    result.merge(sc2196::check(source));
 
     // Run determinism rules
     result.merge(det001::check(source));
