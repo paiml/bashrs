@@ -2,6 +2,9 @@
 
 // ShellCheck-equivalent rules
 pub mod sc2046;
+pub mod sc2048;
+pub mod sc2066;
+pub mod sc2068;
 pub mod sc2086;
 pub mod sc2116;
 
@@ -31,6 +34,21 @@ pub mod make002;
 pub mod make003;
 pub mod make004;
 pub mod make005;
+pub mod make006;
+pub mod make007;
+pub mod make008;
+pub mod make009;
+pub mod make010;
+pub mod make011;
+pub mod make012;
+pub mod make013;
+pub mod make014;
+pub mod make015;
+pub mod make016;
+pub mod make017;
+pub mod make018;
+pub mod make019;
+pub mod make020;
 
 use crate::linter::LintResult;
 
@@ -45,6 +63,9 @@ pub fn lint_shell(source: &str) -> LintResult {
     // Run ShellCheck-equivalent rules
     result.merge(sc2086::check(source));
     result.merge(sc2046::check(source));
+    result.merge(sc2048::check(source));
+    result.merge(sc2066::check(source));
+    result.merge(sc2068::check(source));
     result.merge(sc2116::check(source));
 
     // Run determinism rules
@@ -80,6 +101,21 @@ pub fn lint_makefile(source: &str) -> LintResult {
     result.merge(make003::check(source));
     result.merge(make004::check(source));
     result.merge(make005::check(source));
+    result.merge(make006::check(source));
+    result.merge(make007::check(source));
+    result.merge(make008::check(source)); // CRITICAL: Tab vs spaces
+    result.merge(make009::check(source));
+    result.merge(make010::check(source));
+    result.merge(make011::check(source));
+    result.merge(make012::check(source));
+    result.merge(make013::check(source));
+    result.merge(make014::check(source));
+    result.merge(make015::check(source));
+    result.merge(make016::check(source));
+    result.merge(make017::check(source));
+    result.merge(make018::check(source));
+    result.merge(make019::check(source));
+    result.merge(make020::check(source));
 
     result
 }
