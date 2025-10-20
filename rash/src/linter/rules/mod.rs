@@ -22,10 +22,15 @@ pub mod sc2076;
 pub mod sc2081;
 pub mod sc2086;
 pub mod sc2116;
+pub mod sc2128;
+pub mod sc2145;
 pub mod sc2154;
 pub mod sc2162;
 pub mod sc2164;
+pub mod sc2178;
 pub mod sc2181;
+pub mod sc2190;
+pub mod sc2191;
 pub mod sc2196;
 
 // Determinism rules (bashrs-specific)
@@ -102,10 +107,15 @@ pub fn lint_shell(source: &str) -> LintResult {
     result.merge(sc2081::check(source));
     result.merge(sc2086::check(source));
     result.merge(sc2116::check(source));
+    result.merge(sc2128::check(source));
+    result.merge(sc2145::check(source));
     result.merge(sc2154::check(source));
     result.merge(sc2162::check(source));
     result.merge(sc2164::check(source));
+    result.merge(sc2178::check(source));
     result.merge(sc2181::check(source));
+    result.merge(sc2190::check(source));
+    result.merge(sc2191::check(source));
     result.merge(sc2196::check(source));
 
     // Run determinism rules
