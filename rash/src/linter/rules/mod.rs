@@ -29,8 +29,13 @@ pub mod sc2107;
 pub mod sc2114;
 pub mod sc2115;
 pub mod sc2116;
+// pub mod sc2119;  // TODO: Requires AST parsing for proper function analysis
+// pub mod sc2120;  // TODO: Requires AST parsing for proper function analysis
+pub mod sc2123;
+pub mod sc2124;
 pub mod sc2125;
 pub mod sc2128;
+pub mod sc2129;
 pub mod sc2145;
 pub mod sc2153;
 pub mod sc2154;
@@ -134,8 +139,13 @@ pub fn lint_shell(source: &str) -> LintResult {
     result.merge(sc2114::check(source));
     result.merge(sc2115::check(source));
     result.merge(sc2116::check(source));
+    // result.merge(sc2119::check(source));  // Deferred: Requires AST parsing
+    // result.merge(sc2120::check(source));  // Deferred: Requires AST parsing
+    result.merge(sc2123::check(source));
+    result.merge(sc2124::check(source));
     result.merge(sc2125::check(source));
     result.merge(sc2128::check(source));
+    result.merge(sc2129::check(source));
     result.merge(sc2145::check(source));
     result.merge(sc2153::check(source));
     result.merge(sc2154::check(source));
