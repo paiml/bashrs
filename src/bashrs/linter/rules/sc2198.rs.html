@@ -69,11 +69,11 @@
 <a href=#69 id=69 data-nosnippet>69</a>                }
 <a href=#70 id=70 data-nosnippet>70</a>
 <a href=#71 id=71 data-nosnippet>71</a>                <span class="comment">// Heuristic: plural names or common array indicators
-<a href=#72 id=72 data-nosnippet>72</a>                </span><span class="kw">if </span>var_name.ends_with(<span class="string">'s'</span>) ||
-<a href=#73 id=73 data-nosnippet>73</a>                   var_name.contains(<span class="string">"array"</span>) ||
-<a href=#74 id=74 data-nosnippet>74</a>                   var_name.contains(<span class="string">"list"</span>) ||
-<a href=#75 id=75 data-nosnippet>75</a>                   var_name.contains(<span class="string">"items"</span>) {
-<a href=#76 id=76 data-nosnippet>76</a>
+<a href=#72 id=72 data-nosnippet>72</a>                </span><span class="kw">if </span>var_name.ends_with(<span class="string">'s'</span>)
+<a href=#73 id=73 data-nosnippet>73</a>                    || var_name.contains(<span class="string">"array"</span>)
+<a href=#74 id=74 data-nosnippet>74</a>                    || var_name.contains(<span class="string">"list"</span>)
+<a href=#75 id=75 data-nosnippet>75</a>                    || var_name.contains(<span class="string">"items"</span>)
+<a href=#76 id=76 data-nosnippet>76</a>                {
 <a href=#77 id=77 data-nosnippet>77</a>                    <span class="kw">let </span>start_col = line.find(bracket_text).unwrap_or(<span class="number">0</span>) + <span class="number">1</span>;
 <a href=#78 id=78 data-nosnippet>78</a>                    <span class="kw">let </span>end_col = start_col + bracket_text.len();
 <a href=#79 id=79 data-nosnippet>79</a>

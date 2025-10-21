@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"fn":["check"],"static":["PRINTF_WITH_EXPANSION","PRINTF_WITH_VAR"]};

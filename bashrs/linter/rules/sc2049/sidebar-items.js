@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"fn":["check"],"static":["REGEX_MATCH_DOUBLE_QUOTED","REGEX_MATCH_SINGLE_QUOTED"]};

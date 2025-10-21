@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"fn":["check"],"static":["BACKTICK_WITH_UNESCAPED_QUOTES"]};

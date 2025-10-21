@@ -37,7 +37,7 @@
 <a href=#37 id=37 data-nosnippet>37</a>                <span class="kw">let </span>after_eq = <span class="kw-2">&amp;</span>line[eq_pos + <span class="number">1</span>..].trim_start();
 <a href=#38 id=38 data-nosnippet>38</a>
 <a href=#39 id=39 data-nosnippet>39</a>                <span class="comment">// Check for quoted /tmp/ path (predictable filename)
-<a href=#40 id=40 data-nosnippet>40</a>                </span><span class="kw">if </span>(after_eq.starts_with(<span class="string">"\"/tmp/"</span>) || after_eq.starts_with(<span class="string">"'/tmp/"</span>)) {
+<a href=#40 id=40 data-nosnippet>40</a>                </span><span class="kw">if </span>after_eq.starts_with(<span class="string">"\"/tmp/"</span>) || after_eq.starts_with(<span class="string">"'/tmp/"</span>) {
 <a href=#41 id=41 data-nosnippet>41</a>                    <span class="comment">// Check if it uses $$ (process ID) - still vulnerable
 <a href=#42 id=42 data-nosnippet>42</a>                    </span><span class="kw">if let </span><span class="prelude-val">Some</span>(col) = line.find(<span class="string">"/tmp/"</span>) {
 <a href=#43 id=43 data-nosnippet>43</a>                        <span class="kw">let </span>span = Span::new(
