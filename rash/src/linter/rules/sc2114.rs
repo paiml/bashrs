@@ -26,7 +26,8 @@ static DANGEROUS_RM_RF: Lazy<Regex> = Lazy::new(|| {
 
 static UNGUARDED_RM_RF_VAR: Lazy<Regex> = Lazy::new(|| {
     // Match: rm -rf "$var" without :? guard - support -rf or -fr
-    Regex::new(r#"rm\s+-[a-zA-Z]*[rf][a-zA-Z]*[rf][a-zA-Z]*\s+"\$\{?([A-Za-z_][A-Za-z0-9_]*)\}?""#).unwrap()
+    Regex::new(r#"rm\s+-[a-zA-Z]*[rf][a-zA-Z]*[rf][a-zA-Z]*\s+"\$\{?([A-Za-z_][A-Za-z0-9_]*)\}?""#)
+        .unwrap()
 });
 
 pub fn check(source: &str) -> LintResult {

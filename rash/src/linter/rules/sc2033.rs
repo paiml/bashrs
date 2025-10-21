@@ -50,7 +50,8 @@ pub fn check(source: &str) -> LintResult {
         if let Some(m) = EXPORT_IN_SUBSHELL.find(line) {
             // Skip if this is actually $(export ...) (command substitution)
             let match_start = m.start();
-            let is_command_subst = match_start > 0 && line.chars().nth(match_start - 1) == Some('$');
+            let is_command_subst =
+                match_start > 0 && line.chars().nth(match_start - 1) == Some('$');
 
             if !is_command_subst {
                 let start_col = match_start + 1;
@@ -135,7 +136,9 @@ mod tests {
         let code = r#"result=$(export PATH=$PATH:/new)"#;
         let result = check(code);
         assert_eq!(result.diagnostics.len(), 1);
-        assert!(result.diagnostics[0].message.contains("command substitution"));
+        assert!(result.diagnostics[0]
+            .message
+            .contains("command substitution"));
     }
 
     #[test]

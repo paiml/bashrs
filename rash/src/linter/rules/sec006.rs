@@ -37,7 +37,7 @@ pub fn check(source: &str) -> LintResult {
                 let after_eq = &line[eq_pos + 1..].trim_start();
 
                 // Check for quoted /tmp/ path (predictable filename)
-                if (after_eq.starts_with("\"/tmp/") || after_eq.starts_with("'/tmp/")) {
+                if after_eq.starts_with("\"/tmp/") || after_eq.starts_with("'/tmp/") {
                     // Check if it uses $$ (process ID) - still vulnerable
                     if let Some(col) = line.find("/tmp/") {
                         let span = Span::new(

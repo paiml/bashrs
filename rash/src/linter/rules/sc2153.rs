@@ -17,13 +17,11 @@ use once_cell::sync::Lazy;
 use regex::Regex;
 use std::collections::HashSet;
 
-static VAR_ASSIGNMENT: Lazy<Regex> = Lazy::new(|| {
-    Regex::new(r"([A-Za-z_][A-Za-z0-9_]*)=").unwrap()
-});
+static VAR_ASSIGNMENT: Lazy<Regex> =
+    Lazy::new(|| Regex::new(r"([A-Za-z_][A-Za-z0-9_]*)=").unwrap());
 
-static VAR_REFERENCE: Lazy<Regex> = Lazy::new(|| {
-    Regex::new(r"\$\{?([A-Za-z_][A-Za-z0-9_]*)\}?").unwrap()
-});
+static VAR_REFERENCE: Lazy<Regex> =
+    Lazy::new(|| Regex::new(r"\$\{?([A-Za-z_][A-Za-z0-9_]*)\}?").unwrap());
 
 pub fn check(source: &str) -> LintResult {
     let mut result = LintResult::new();
@@ -61,16 +59,18 @@ pub fn check(source: &str) -> LintResult {
                 }
 
                 // Skip common environment variables
-                let env_vars = ["PATH", "HOME", "USER", "SHELL", "PWD", "OLDPWD",
-                               "LANG", "LC_ALL", "TERM", "EDITOR", "PAGER"];
+                let env_vars = [
+                    "PATH", "HOME", "USER", "SHELL", "PWD", "OLDPWD", "LANG", "LC_ALL", "TERM",
+                    "EDITOR", "PAGER",
+                ];
                 if env_vars.contains(&var_name) {
                     continue;
                 }
 
                 // Check if lowercase version exists
                 let lowercase = var_name.to_lowercase();
-                if var_name.chars().any(|c| c.is_uppercase()) &&
-                   assigned_vars.contains(&lowercase) {
+                if var_name.chars().any(|c| c.is_uppercase()) && assigned_vars.contains(&lowercase)
+                {
                     let start_col = var.start() + 1;
                     let end_col = var.end() + 1;
 

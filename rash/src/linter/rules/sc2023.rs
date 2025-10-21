@@ -49,7 +49,8 @@ pub fn check(source: &str) -> LintResult {
             let diagnostic = Diagnostic::new(
                 "SC2023",
                 Severity::Info,
-                "The shell may override PATH. Use 'command -v cmd' instead of 'which cmd'".to_string(),
+                "The shell may override PATH. Use 'command -v cmd' instead of 'which cmd'"
+                    .to_string(),
                 Span::new(line_num, start_col, line_num, end_col),
             );
 

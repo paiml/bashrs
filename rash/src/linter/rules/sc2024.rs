@@ -37,7 +37,9 @@ pub fn check(source: &str) -> LintResult {
         }
 
         // Look for sudo with output redirection
-        if line.contains("sudo") && (line.contains('>') && !line.contains("2>") && !line.contains("&>")) {
+        if line.contains("sudo")
+            && (line.contains('>') && !line.contains("2>") && !line.contains("&>"))
+        {
             for cap in SUDO_WITH_REDIRECT.captures_iter(line) {
                 let redirect_op = cap.get(1).unwrap().as_str();
 

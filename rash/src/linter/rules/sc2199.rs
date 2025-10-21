@@ -26,9 +26,7 @@ static ARRAY_IN_CONDITIONAL: Lazy<Regex> = Lazy::new(|| {
     Regex::new(r"\$\{?([a-z_][a-z0-9_]*)(\[[^\]]*\])?\}?").unwrap()
 });
 
-static DOUBLE_BRACKET: Lazy<Regex> = Lazy::new(|| {
-    Regex::new(r"\[\[.*?\]\]").unwrap()
-});
+static DOUBLE_BRACKET: Lazy<Regex> = Lazy::new(|| Regex::new(r"\[\[.*?\]\]").unwrap());
 
 pub fn check(source: &str) -> LintResult {
     let mut result = LintResult::new();
@@ -62,11 +60,11 @@ pub fn check(source: &str) -> LintResult {
 
                 // Heuristic: lowercase variables starting with common array names or plurals
                 // are likely arrays (arrays, items, files, paths, etc.)
-                if var_name.ends_with('s') ||
-                   var_name.contains("array") ||
-                   var_name.contains("list") ||
-                   var_name.contains("items") {
-
+                if var_name.ends_with('s')
+                    || var_name.contains("array")
+                    || var_name.contains("list")
+                    || var_name.contains("items")
+                {
                     let start_col = line.find(bracket_text).unwrap_or(0) + 1;
                     let end_col = start_col + bracket_text.len();
 

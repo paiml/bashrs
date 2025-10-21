@@ -29,7 +29,10 @@ use regex::Regex;
 static ASSIGNMENT_BEFORE_COMMAND: Lazy<Regex> = Lazy::new(|| {
     // Match: VAR=value ... command (but not just VAR=value)
     // Allows multiple assignments before a command
-    Regex::new(r"^\s*([A-Z_][A-Z0-9_]*=[^\s]+)(?:\s+[A-Z_][A-Z0-9_]*=[^\s]+)*\s+([a-z./][^\s;|&<>]+)").unwrap()
+    Regex::new(
+        r"^\s*([A-Z_][A-Z0-9_]*=[^\s]+)(?:\s+[A-Z_][A-Z0-9_]*=[^\s]+)*\s+([a-z./][^\s;|&<>]+)",
+    )
+    .unwrap()
 });
 
 pub fn check(source: &str) -> LintResult {
@@ -48,8 +51,11 @@ pub fn check(source: &str) -> LintResult {
         }
 
         // Skip common intentional one-time env vars
-        if line.contains("LC_ALL=") || line.contains("LANG=") ||
-           line.contains("TZ=") || line.contains("HOME=") {
+        if line.contains("LC_ALL=")
+            || line.contains("LANG=")
+            || line.contains("TZ=")
+            || line.contains("HOME=")
+        {
             continue;
         }
 

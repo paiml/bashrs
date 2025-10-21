@@ -16,17 +16,13 @@ use crate::linter::{Diagnostic, LintResult, Severity, Span};
 use once_cell::sync::Lazy;
 use regex::Regex;
 
-static LOCAL_KEYWORD: Lazy<Regex> = Lazy::new(|| {
-    Regex::new(r"\blocal\s+").unwrap()
-});
+static LOCAL_KEYWORD: Lazy<Regex> = Lazy::new(|| Regex::new(r"\blocal\s+").unwrap());
 
 static FUNCTION_START: Lazy<Regex> = Lazy::new(|| {
     Regex::new(r"\b(function\s+[A-Za-z_][A-Za-z0-9_]*|[A-Za-z_][A-Za-z0-9_]*\s*\(\s*\))").unwrap()
 });
 
-static FUNCTION_END: Lazy<Regex> = Lazy::new(|| {
-    Regex::new(r"^\s*\}").unwrap()
-});
+static FUNCTION_END: Lazy<Regex> = Lazy::new(|| Regex::new(r"^\s*\}").unwrap());
 
 pub fn check(source: &str) -> LintResult {
     let mut result = LintResult::new();

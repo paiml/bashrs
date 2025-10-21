@@ -54,14 +54,16 @@ pub fn check(source: &str) -> LintResult {
                 let start_col = arith_start + var_pos_in_arith + 1;
                 let end_col = start_col + var_ref.len();
 
-                let var_name = var_ref.trim_start_matches('$').trim_start_matches('{').trim_end_matches('}');
+                let var_name = var_ref
+                    .trim_start_matches('$')
+                    .trim_start_matches('{')
+                    .trim_end_matches('}');
                 let diagnostic = Diagnostic::new(
                     "SC2004",
                     Severity::Info,
                     format!(
                         "$/${{}} is unnecessary on arithmetic variables. Use '{}' instead of '{}'",
-                        var_name,
-                        var_ref
+                        var_name, var_ref
                     ),
                     Span::new(line_num, start_col, line_num, end_col),
                 );

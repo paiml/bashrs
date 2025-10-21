@@ -62,7 +62,19 @@ pub struct SemanticIssue {
 /// assert!(!detect_shell_date("VERSION := 1.0.0"));
 /// ```
 pub fn detect_shell_date(value: &str) -> bool {
-    value.contains("$(shell date")
+    // Check for $(shell date ...) with word boundary after "date"
+    // Must match "date" as a complete command, not as part of another word
+    if let Some(pos) = value.find("$(shell date") {
+        let after_date = pos + "$(shell date".len();
+        if after_date >= value.len() {
+            return true; // "$(shell date" at end
+        }
+        // Check next character is whitespace, ), or other delimiter
+        let next_char = value.as_bytes()[after_date] as char;
+        next_char.is_whitespace() || next_char == ')' || next_char == '+' || next_char == '-'
+    } else {
+        false
+    }
 }
 
 /// Detect non-deterministic $(wildcard) patterns in a variable value

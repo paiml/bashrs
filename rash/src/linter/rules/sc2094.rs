@@ -48,10 +48,7 @@ pub fn check(source: &str) -> LintResult {
         let after_redirect = parts[1];
 
         // Extract potential filename after >
-        let output_file = after_redirect
-            .split_whitespace()
-            .next()
-            .unwrap_or("");
+        let output_file = after_redirect.split_whitespace().next().unwrap_or("");
 
         if output_file.is_empty() || !output_file.contains('.') {
             continue;

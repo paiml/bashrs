@@ -44,7 +44,8 @@ pub fn check(source: &str) -> LintResult {
             let diagnostic = Diagnostic::new(
                 "SC2003",
                 Severity::Info,
-                "expr is antiquated. Consider rewriting this using $((..)), ${} or [[ ]]".to_string(),
+                "expr is antiquated. Consider rewriting this using $((..)), ${} or [[ ]]"
+                    .to_string(),
                 Span::new(line_num, start_col, line_num, end_col),
             );
 

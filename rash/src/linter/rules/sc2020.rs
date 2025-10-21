@@ -56,9 +56,12 @@ pub fn check(source: &str) -> LintResult {
 
             // Warn if the word looks like a common word being replaced
             // Common patterns: yes/no, true/false, on/off, foo/bar, etc.
-            let common_words = ["yes", "no", "true", "false", "on", "off", "foo", "bar", "old", "new"];
+            let common_words = [
+                "yes", "no", "true", "false", "on", "off", "foo", "bar", "old", "new",
+            ];
             if common_words.contains(&word) {
-                let start_col = line.find(&format!("'{}'", word))
+                let start_col = line
+                    .find(&format!("'{}'", word))
                     .or_else(|| line.find(&format!("\"{}\"", word)))
                     .map(|p| p + 1)
                     .unwrap_or(1);
