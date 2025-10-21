@@ -3,8 +3,13 @@
 // ShellCheck-equivalent rules
 pub mod sc2001;
 pub mod sc2002;
+pub mod sc2003;
+pub mod sc2004;
 pub mod sc2005;
 pub mod sc2006;
+pub mod sc2007;
+pub mod sc2015;
+pub mod sc2017;
 pub mod sc2026;
 pub mod sc2027;
 pub mod sc2028;
@@ -128,8 +133,13 @@ pub fn lint_shell(source: &str) -> LintResult {
     // Run ShellCheck-equivalent rules
     result.merge(sc2001::check(source));
     result.merge(sc2002::check(source));
+    result.merge(sc2003::check(source));
+    result.merge(sc2004::check(source));
     result.merge(sc2005::check(source));
     result.merge(sc2006::check(source));
+    result.merge(sc2007::check(source));
+    result.merge(sc2015::check(source));
+    result.merge(sc2017::check(source));
     result.merge(sc2026::check(source));
     result.merge(sc2027::check(source));
     result.merge(sc2028::check(source));
