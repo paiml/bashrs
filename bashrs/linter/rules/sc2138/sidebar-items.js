@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"fn":["check"],"static":["FUNCTION_AS_NAME","FUNCTION_IN_IF","FUNCTION_IN_LOOP"]};

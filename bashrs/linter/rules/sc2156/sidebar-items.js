@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"fn":["check"],"static":["COMMAND_SUB_IN_FOR","UNQUOTED_COMMAND_SUB"]};

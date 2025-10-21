@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"fn":["check"]};
+window.SIDEBAR_ITEMS = {"fn":["check"],"static":["UNQUOTED_AT_IN_QUOTES","UNQUOTED_STAR_IN_QUOTES"]};
