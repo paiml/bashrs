@@ -22,9 +22,9 @@ use once_cell::sync::Lazy;
 use regex::Regex;
 
 static UNQUOTED_EQUALS: Lazy<Regex> = Lazy::new(|| {
-    // Match word containing = that's not a variable assignment
-    // Look for = after the first character (not at start of word)
-    Regex::new(r"\b([a-zA-Z_][a-zA-Z0-9_]*=[a-zA-Z0-9_]+=[a-zA-Z0-9_]+)\b").unwrap()
+    // Match word containing multiple = signs (including paths)
+    // Look for pattern: NAME=value=value (where values can include /, -, .)
+    Regex::new(r"\b([a-zA-Z_][a-zA-Z0-9_]*=[a-zA-Z0-9_/.:-]+=[a-zA-Z0-9_/.:-]+)\b").unwrap()
 });
 
 pub fn check(source: &str) -> LintResult {

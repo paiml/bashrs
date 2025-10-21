@@ -22,18 +22,18 @@ use once_cell::sync::Lazy;
 use regex::Regex;
 
 static EXPORT_IN_SUBSHELL: Lazy<Regex> = Lazy::new(|| {
-    // Match: (export VAR=...) or ( ... export VAR ...)
-    Regex::new(r"\(\s*export\s+[A-Z_][A-Z0-9_]*").unwrap()
+    // Match: (export ...) - any export statement in subshell
+    Regex::new(r"\(\s*export\b").unwrap()
 });
 
 static EXPORT_IN_PIPE: Lazy<Regex> = Lazy::new(|| {
-    // Match: | export VAR=...
-    Regex::new(r"\|\s*export\s+[A-Z_][A-Z0-9_]*").unwrap()
+    // Match: | export ... - any export statement in pipeline
+    Regex::new(r"\|\s*export\b").unwrap()
 });
 
 static EXPORT_IN_COMMAND_SUBST: Lazy<Regex> = Lazy::new(|| {
-    // Match: $(export VAR=...)
-    Regex::new(r"\$\(\s*export\s+[A-Z_][A-Z0-9_]*").unwrap()
+    // Match: $(export ...) - any export statement in command substitution
+    Regex::new(r"\$\(\s*export\b").unwrap()
 });
 
 pub fn check(source: &str) -> LintResult {
@@ -46,19 +46,25 @@ pub fn check(source: &str) -> LintResult {
             continue;
         }
 
-        // Check for export in (subshell)
+        // Check for export in (subshell) - but not $(command substitution)
         if let Some(m) = EXPORT_IN_SUBSHELL.find(line) {
-            let start_col = m.start() + 1;
-            let end_col = m.end() + 1;
+            // Skip if this is actually $(export ...) (command substitution)
+            let match_start = m.start();
+            let is_command_subst = match_start > 0 && line.chars().nth(match_start - 1) == Some('$');
 
-            let diagnostic = Diagnostic::new(
-                "SC2033",
-                Severity::Warning,
-                "Shell can't see variables exported in a subshell. Remove parentheses or export in the current shell".to_string(),
-                Span::new(line_num, start_col, line_num, end_col),
-            );
+            if !is_command_subst {
+                let start_col = match_start + 1;
+                let end_col = m.end() + 1;
 
-            result.add(diagnostic);
+                let diagnostic = Diagnostic::new(
+                    "SC2033",
+                    Severity::Warning,
+                    "Shell can't see variables exported in a subshell. Remove parentheses or export in the current shell".to_string(),
+                    Span::new(line_num, start_col, line_num, end_col),
+                );
+
+                result.add(diagnostic);
+            }
         }
 
         // Check for export in pipeline
@@ -177,7 +183,7 @@ result=$(export VAR3=c)
     fn test_sc2033_lowercase_var() {
         let code = r#"(export path=/usr/bin)"#;
         let result = check(code);
-        // Lowercase variables are less common but still affected
-        assert_eq!(result.diagnostics.len(), 0); // Our pattern only catches uppercase
+        // Lowercase variables are less common but still affected by the same issue
+        assert_eq!(result.diagnostics.len(), 1); // Now correctly catches all exports
     }
 }

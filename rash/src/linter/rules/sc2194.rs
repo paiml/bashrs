@@ -163,8 +163,9 @@ other_cmd="find"
 $other_cmd
 "#;
         let result = check(code);
-        // Different variable used
-        assert_eq!(result.diagnostics.len(), 0);
+        // other_cmd is still a constant usage (cmd is not flagged since it's not used)
+        assert_eq!(result.diagnostics.len(), 1);
+        assert!(result.diagnostics[0].message.contains("other_cmd"));
     }
 
     #[test]
