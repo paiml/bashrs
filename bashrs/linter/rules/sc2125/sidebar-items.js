@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"fn":["check"],"static":["GLOB_IN_ASSIGNMENT"]};

@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"fn":["check"],"static":["FUNCTION_END","FUNCTION_START","LOCAL_KEYWORD"]};

@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"fn":["check"],"static":["NEGATION_OUTSIDE_BRACKETS"]};

@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"fn":["check"],"static":["ARRAY_IN_TEST","SINGLE_BRACKET"]};

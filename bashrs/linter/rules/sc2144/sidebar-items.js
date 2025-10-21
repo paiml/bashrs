@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"fn":["check"],"static":["DOUBLE_BRACKET","FILE_TEST_WITH_GLOB"]};

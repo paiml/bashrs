@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"fn":["check"],"static":["PIPE_TO_READ","SUBSHELL_ASSIGNMENT","WHILE_PIPE_READ"]};

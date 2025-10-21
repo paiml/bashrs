@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"fn":["check"],"static":["VAR_ASSIGNMENT","VAR_REFERENCE"]};

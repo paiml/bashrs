@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"fn":["check"],"static":["DANGEROUS_RM_RF","UNGUARDED_RM_RF_VAR"]};

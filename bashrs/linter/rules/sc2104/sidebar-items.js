@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"fn":["check"],"static":["MISSING_SPACE_BEFORE_BRACKET","TEST_COMMAND"]};

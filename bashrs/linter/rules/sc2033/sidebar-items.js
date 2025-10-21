@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"fn":["check"],"static":["EXPORT_IN_COMMAND_SUBST","EXPORT_IN_PIPE","EXPORT_IN_SUBSHELL"]};

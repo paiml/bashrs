@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"fn":["check"],"static":["COMMAND_VAR_ASSIGNMENT","COMMAND_VAR_USAGE"]};

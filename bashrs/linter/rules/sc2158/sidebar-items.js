@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"fn":["check"],"static":["LITERAL_BOOL_IN_BRACKETS"]};
