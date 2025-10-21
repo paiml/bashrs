@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"fn":["check"],"static":["ARITH_EXPR","INCOMPLETE_ARITH","VAR_NAME"]};

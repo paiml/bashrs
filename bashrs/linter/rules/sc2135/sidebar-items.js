@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"fn":["check"],"static":["FOR_THEN","MISSING_SEMICOLON_THEN","WHILE_THEN"]};
