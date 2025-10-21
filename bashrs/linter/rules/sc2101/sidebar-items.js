@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"fn":["check"],"static":["POSIX_CLASS_NO_OUTER_BRACKET"]};

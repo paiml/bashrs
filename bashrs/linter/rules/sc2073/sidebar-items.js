@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"fn":["check"],"static":["UNESCAPED_BACKSLASH_IN_CLASS"]};

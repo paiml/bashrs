@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"fn":["check"],"static":["DECIMAL_IN_ARITHMETIC"]};

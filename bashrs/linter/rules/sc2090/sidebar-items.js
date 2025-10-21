@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"fn":["check"],"static":["VAR_EXPANSION_UNQUOTED"]};
