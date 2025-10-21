@@ -10,7 +10,7 @@ keywords = ["shell", "bash", "transpiler", "rust", "mcp"]
 categories = ["command-line-utilities", "development-tools"]
 
 [dependencies]
-bashrs = { version = "3.0.0", path = "../rash" }
+bashrs = { version = "4.0.0", path = "../rash" }
 pforge-runtime = "0.1.2"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
