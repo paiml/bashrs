@@ -23,8 +23,9 @@ use regex::Regex;
 
 static TR_UNQUOTED_BRACKETS: Lazy<Regex> = Lazy::new(|| {
     // Match: tr followed by unquoted bracket expressions
-    // Look for tr with [anything] not in quotes
-    Regex::new(r"\btr\s+([^\s]+\[[^\]]+\])").unwrap()
+    // Look for tr with [anything] patterns like [a-z] or [:lower:], but not in quotes
+    // [^\s'"]* excludes spaces and quotes
+    Regex::new(r#"\btr\s+([^\s'"]*\[[^\]]+\])"#).unwrap()
 });
 
 pub fn check(source: &str) -> LintResult {
