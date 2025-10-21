@@ -3,7 +3,7 @@ project:
   name: "Rash (bashrs) Extreme Quality Roadmap"
   description: "Bidirectional shell safety tool using REAL Rust (not a DSL)"
   version: "4.0.0"
-  status: "Production Ready - 109 Active Linter Rules (Sprint 100 Milestone!)"
+  status: "Production Ready - 144 Active Linter Rules (Sprint 107 Complete!)"
 
 workflows:
   primary:
@@ -177,6 +177,311 @@ metrics:
 
 sprints:
   completed:
+    - id: "SPRINT-107"
+      status: "✅ COMPLETE"
+      title: "Function Syntax and Control Flow Safety"
+      date: "2025-10-21"
+      duration: "~2 hours"
+      description: "Function syntax portability, control flow safety, operator validation"
+      achievements:
+        - "5 new ShellCheck-equivalent rules (SC2113, SC2117-SC2118, SC2121-SC2122)"
+        - "SC2113: 'function' keyword with () is redundant"
+        - "SC2117: Unreachable code after exit or return"
+        - "SC2118: Ksh-specific set -A won't work in sh"
+        - "SC2121: Don't use $ on left side of assignment"
+        - "SC2122: >= not valid in [ ]. Use -ge"
+        - "50 comprehensive tests (10 tests per rule, no ignored edge cases)"
+        - "3,142 tests passing (100% pass rate, 24 ignored total)"
+        - "144 active linter rules (+5 from Sprint 106)"
+        - "48% ShellCheck SC2xxx coverage (144/300 rules)"
+        - "Zero regressions maintained"
+      tests_added: 50
+      total_tests: 3142
+      code_added: "~1150 lines (5 rules + tests)"
+      documentation: "CHANGELOG.md, ROADMAP.yaml updates"
+      deliverables:
+        - "rash/src/linter/rules/sc2113.rs (function with parens)"
+        - "rash/src/linter/rules/sc2117.rs (unreachable code)"
+        - "rash/src/linter/rules/sc2118.rs (ksh set -A arrays)"
+        - "rash/src/linter/rules/sc2121.rs (dollar in assignment)"
+        - "rash/src/linter/rules/sc2122.rs (>= operator in test)"
+        - "rash/src/linter/rules/mod.rs (integration)"
+      methodology: "EXTREME TDD (RED → GREEN → REFACTOR)"
+      quality_metrics:
+        test_pass_rate: "100% (3,142/3,142)"
+        rules_added: 5
+        rule_count_total: 144
+        regressions: 0
+        complexity: "<10 (all functions)"
+      technical_challenges:
+        - "Unreachable code detection after control flow statements"
+        - "Shebang-aware portability warnings (ksh vs sh)"
+        - "Assignment vs expansion context differentiation"
+        - "Operator validation in single vs double bracket tests"
+        - "Control flow statement detection (fi, done, esac)"
+
+    - id: "SPRINT-106"
+      status: "✅ COMPLETE"
+      title: "Logical Operator Consistency in [[ ]]"
+      date: "2025-10-21"
+      duration: "~2 hours"
+      description: "Logical operator consistency, function keyword portability"
+      achievements:
+        - "5 new ShellCheck-equivalent rules (SC2108-SC2112)"
+        - "SC2108: In [[ ]], use && instead of -a"
+        - "SC2109: In [[ ]], use || instead of -o"
+        - "SC2110: Don't mix && and || with -a and -o"
+        - "SC2111: `ksh` style 'function' keyword not supported in sh"
+        - "SC2112: 'function' keyword is non-standard"
+        - "49 comprehensive tests (10 tests per rule, 1 ignored edge case)"
+        - "3,092 tests passing (100% pass rate, 24 ignored)"
+        - "139 active linter rules (+5 from Sprint 105)"
+        - "46.3% ShellCheck SC2xxx coverage (139/300 rules)"
+        - "Zero regressions maintained"
+      tests_added: 49
+      total_tests: 3092
+      code_added: "~1100 lines (5 rules + tests)"
+      documentation: "CHANGELOG.md, ROADMAP.yaml updates"
+      deliverables:
+        - "rash/src/linter/rules/sc2108.rs (double bracket -a operator)"
+        - "rash/src/linter/rules/sc2109.rs (double bracket -o operator)"
+        - "rash/src/linter/rules/sc2110.rs (mixed operator styles)"
+        - "rash/src/linter/rules/sc2111.rs (function keyword in sh)"
+        - "rash/src/linter/rules/sc2112.rs (function keyword portability)"
+        - "rash/src/linter/rules/mod.rs (integration)"
+      methodology: "EXTREME TDD (RED → GREEN → REFACTOR)"
+      quality_metrics:
+        test_pass_rate: "100% (3,092/3,092)"
+        rules_added: 5
+        rule_count_total: 139
+        regressions: 0
+        complexity: "<10 (all functions)"
+      technical_challenges:
+        - "Multiple operator detection in single [[ ]] expression"
+        - "Distinguishing -a/-o operators from file tests"
+        - "Quote context detection (function in strings)"
+        - "POSIX function syntax vs ksh/bash style"
+        - "Shebang-aware portability warnings"
+
+    - id: "SPRINT-105"
+      status: "✅ COMPLETE"
+      title: "Deprecated Syntax and Style Modernization"
+      date: "2025-10-21"
+      duration: "~2 hours"
+      description: "Modern syntax recommendations, POSIX class usage, process management"
+      achievements:
+        - "5 new ShellCheck-equivalent rules (SC2099-SC2102, SC2106)"
+        - "SC2099: Use $(...) instead of deprecated backticks"
+        - "SC2100: Use $((...)) instead of deprecated expr"
+        - "SC2101: Named POSIX class needs outer brackets [[:digit:]]"
+        - "SC2102: Ranges only match single chars (not regex +)"
+        - "SC2106: Consider using pgrep instead of ps | grep"
+        - "48 comprehensive tests (9-10 tests per rule, 2 ignored edge cases)"
+        - "3,043 tests passing (100% pass rate, 23 ignored)"
+        - "134 active linter rules (+5 from Sprint 104)"
+        - "44.7% ShellCheck SC2xxx coverage (134/300 rules)"
+        - "Zero regressions maintained"
+      tests_added: 48
+      total_tests: 3043
+      code_added: "~1000 lines (5 rules + tests)"
+      documentation: "CHANGELOG.md, ROADMAP.yaml updates"
+      deliverables:
+        - "rash/src/linter/rules/sc2099.rs (backticks deprecation)"
+        - "rash/src/linter/rules/sc2100.rs (expr deprecation)"
+        - "rash/src/linter/rules/sc2101.rs (POSIX class nesting)"
+        - "rash/src/linter/rules/sc2102.rs (range + quantifier)"
+        - "rash/src/linter/rules/sc2106.rs (pgrep recommendation)"
+        - "rash/src/linter/rules/mod.rs (integration)"
+      methodology: "EXTREME TDD (RED → GREEN → REFACTOR)"
+      quality_metrics:
+        test_pass_rate: "100% (3,043/3,043)"
+        rules_added: 5
+        rule_count_total: 134
+        regressions: 0
+        complexity: "<10 (all functions)"
+      technical_challenges:
+        - "Backtick vs $() detection in all contexts"
+        - "expr command identification in substitution"
+        - "POSIX character class nesting validation"
+        - "Glob vs regex pattern differentiation"
+        - "ps | grep pattern matching"
+        - "Nested backtick detection"
+
+    - id: "SPRINT-104"
+      status: "✅ COMPLETE"
+      title: "Assignment and Command Execution Safety"
+      date: "2025-10-21"
+      duration: "~2.5 hours"
+      description: "Quote handling in assignments, command substitution execution safety"
+      achievements:
+        - "5 new ShellCheck-equivalent rules (SC2089-SC2093)"
+        - "SC2089: Quotes in assignment treated literally"
+        - "SC2090: Quotes in expansion treated literally"
+        - "SC2091: Remove $() to avoid executing output"
+        - "SC2092: Remove backticks to avoid executing output"
+        - "SC2093: Remove exec if script should continue"
+        - "47 comprehensive tests (9-10 tests per rule, 3 ignored edge cases)"
+        - "2,995 tests passing (100% pass rate, 21 ignored)"
+        - "129 active linter rules (+5 from Sprint 103)"
+        - "43% ShellCheck SC2xxx coverage (129/300 rules)"
+        - "Zero regressions maintained"
+      tests_added: 47
+      total_tests: 2995
+      code_added: "~1100 lines (5 rules + tests)"
+      documentation: "CHANGELOG.md, ROADMAP.yaml updates"
+      deliverables:
+        - "rash/src/linter/rules/sc2089.rs (quotes in assignment)"
+        - "rash/src/linter/rules/sc2090.rs (quotes in expansion)"
+        - "rash/src/linter/rules/sc2091.rs (command substitution execution)"
+        - "rash/src/linter/rules/sc2092.rs (backticks execution)"
+        - "rash/src/linter/rules/sc2093.rs (exec continuation)"
+        - "rash/src/linter/rules/mod.rs (integration)"
+      methodology: "EXTREME TDD (RED → GREEN → REFACTOR)"
+      quality_metrics:
+        test_pass_rate: "100% (2,995/2,995)"
+        rules_added: 5
+        rule_count_total: 129
+        regressions: 0
+        complexity: "<10 (all functions)"
+      technical_challenges:
+        - "Nested quote detection in assignments"
+        - "Command context vs assignment context"
+        - "Backtick escaping in regex"
+        - "Quote detection in variable expansion"
+        - "exec with redirection vs exec with command"
+        - "Distinguishing echo/printf context from command position"
+
+    - id: "SPRINT-103"
+      status: "✅ COMPLETE"
+      title: "Shell Execution and Path Safety"
+      date: "2025-10-21"
+      duration: "~2 hours"
+      description: "Shebang, arithmetic execution, tilde expansion, and sh -c safety"
+      achievements:
+        - "5 new ShellCheck-equivalent rules (SC2083-SC2085, SC2087-SC2088)"
+        - "SC2083: Spaces after shebang (#! vs #!/)"
+        - "SC2084: Arithmetic as command execution"
+        - "SC2085: Local variable with arithmetic side effects"
+        - "SC2087: Variable quoting in sh -c / bash -c"
+        - "SC2088: Tilde expansion in quotes"
+        - "48 comprehensive tests (9-10 tests per rule, 3 ignored edge cases)"
+        - "2,948 tests passing (100% pass rate, 18 ignored)"
+        - "124 active linter rules (+5 from Sprint 102)"
+        - "41.3% ShellCheck SC2xxx coverage (124/300 rules)"
+        - "Zero regressions maintained"
+      tests_added: 48
+      total_tests: 2948
+      code_added: "~1100 lines (5 rules + tests)"
+      documentation: "CHANGELOG.md, ROADMAP.yaml updates"
+      deliverables:
+        - "rash/src/linter/rules/sc2083.rs (shebang spaces)"
+        - "rash/src/linter/rules/sc2084.rs (arithmetic as command)"
+        - "rash/src/linter/rules/sc2085.rs (local with arithmetic)"
+        - "rash/src/linter/rules/sc2087.rs (sh -c quoting)"
+        - "rash/src/linter/rules/sc2088.rs (tilde in quotes)"
+        - "rash/src/linter/rules/mod.rs (integration)"
+      methodology: "EXTREME TDD (RED → GREEN → REFACTOR)"
+      quality_metrics:
+        test_pass_rate: "100% (2,948/2,948)"
+        rules_added: 5
+        rule_count_total: 124
+        regressions: 0
+        complexity: "<10 (all functions)"
+      technical_challenges:
+        - "Shebang detection on first line only"
+        - "Arithmetic expansion as command vs in expressions"
+        - "Local/declare with optional flags"
+        - "sh -c with multiple flag formats (-c -e vs -ce)"
+        - "Tilde expansion for ~/ vs ~user paths"
+        - "Regex quote escaping in raw strings"
+
+    - id: "SPRINT-102"
+      status: "✅ COMPLETE"
+      title: "Arithmetic and Variable Safety"
+      date: "2025-10-21"
+      duration: "~2 hours"
+      description: "Arithmetic operations, variable indirection, and constant expressions"
+      achievements:
+        - "5 new ShellCheck-equivalent rules (SC2077-SC2080, SC2082)"
+        - "SC2077: Quote regex parameters to prevent word splitting"
+        - "SC2078: Constant expression detection (forgot $ on variable)"
+        - "SC2079: Decimals not supported in (( )) arithmetic"
+        - "SC2080: Leading zero numbers interpreted as octal"
+        - "SC2082: Variable indirection with $$ (should use ${!var})"
+        - "44 comprehensive tests (8-10 tests per rule, 6 ignored edge cases)"
+        - "2,900 tests passing (100% pass rate, 16 ignored)"
+        - "119 active linter rules (+5 from Sprint 101)"
+        - "39.7% ShellCheck SC2xxx coverage (119/300 rules)"
+        - "Zero regressions maintained"
+      tests_added: 44
+      total_tests: 2900
+      code_added: "~1050 lines (5 rules + tests)"
+      documentation: "CHANGELOG.md, ROADMAP.yaml updates"
+      deliverables:
+        - "rash/src/linter/rules/sc2077.rs (regex parameter quoting)"
+        - "rash/src/linter/rules/sc2078.rs (constant expressions)"
+        - "rash/src/linter/rules/sc2079.rs (decimal in arithmetic)"
+        - "rash/src/linter/rules/sc2080.rs (octal numbers)"
+        - "rash/src/linter/rules/sc2082.rs (variable indirection)"
+        - "rash/src/linter/rules/mod.rs (integration)"
+      methodology: "EXTREME TDD (RED → GREEN → REFACTOR)"
+      quality_metrics:
+        test_pass_rate: "100% (2,900/2,900)"
+        rules_added: 5
+        rule_count_total: 119
+        regressions: 0
+        complexity: "<10 (all functions)"
+      technical_challenges:
+        - "Regex matching in [[ ]] with variable expansion"
+        - "Detecting constant expressions vs actual constants"
+        - "Decimal number detection in arithmetic contexts"
+        - "Octal vs decimal number disambiguation"
+        - "Variable indirection patterns ($$ vs ${!})"
+        - "Edge cases: negation, double brackets, multiple occurrences"
+
+    - id: "SPRINT-101"
+      status: "✅ COMPLETE"
+      title: "Array/Quote/Bracket Safety"
+      date: "2025-10-21"
+      duration: "~2.5 hours"
+      description: "Array indexing, quote escaping, and bracket usage safety rules"
+      achievements:
+        - "5 new ShellCheck-equivalent rules (SC2067, SC2069, SC2073-SC2075)"
+        - "SC2067: Missing $ on array index variables"
+        - "SC2069: Wrong redirection direction (2>&1 vs >&2)"
+        - "SC2073: Escape backslashes in character classes (\\d vs [[:digit:]])"
+        - "SC2074: Can't use =~ in single brackets (use [[ ]])"
+        - "SC2075: Escaping quotes in single quotes won't work"
+        - "49 comprehensive tests (10 tests per rule, 1 ignored)"
+        - "2,856 tests passing (100% pass rate, 10 ignored)"
+        - "114 active linter rules (+5 from Sprint 100)"
+        - "38% ShellCheck SC2xxx coverage (114/300 rules)"
+        - "Zero regressions maintained"
+      tests_added: 49
+      total_tests: 2856
+      code_added: "~1000 lines (5 rules + tests)"
+      documentation: "CHANGELOG.md, ROADMAP.yaml updates"
+      deliverables:
+        - "rash/src/linter/rules/sc2067.rs (array index $ detection)"
+        - "rash/src/linter/rules/sc2069.rs (redirection direction)"
+        - "rash/src/linter/rules/sc2073.rs (backslash escaping)"
+        - "rash/src/linter/rules/sc2074.rs (=~ in single brackets)"
+        - "rash/src/linter/rules/sc2075.rs (quote escaping in single quotes)"
+        - "rash/src/linter/rules/mod.rs (integration)"
+      methodology: "EXTREME TDD (RED → GREEN → REFACTOR)"
+      quality_metrics:
+        test_pass_rate: "100% (2,856/2,856)"
+        rules_added: 5
+        rule_count_total: 114
+        regressions: 0
+        complexity: "<10 (all functions)"
+      technical_challenges:
+        - "Array index detection without $ prefix"
+        - "Distinguishing [[ ]] from [ ] in regex detection"
+        - "Backslash escaping detection (single vs double backslash)"
+        - "Quote escaping validation in single-quoted strings"
+        - "Redirection direction inference for echo commands"
+
     - id: "SPRINT-100"
       status: "✅ COMPLETE"
       title: "Grep/Trap Safety and Shell Redirection (MILESTONE: 100 Sprints!)"
