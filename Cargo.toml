@@ -28,7 +28,7 @@ proptest = "1.6"
 rstest = "0.25"
 
 [workspace.package]
-version = "4.2.0"
+version = "4.3.0"
 edition = "2021"
 authors = ["Pragmatic AI Labs"]
 license = "MIT"
