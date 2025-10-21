@@ -7,6 +7,140 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+**Sprint 107 - Function Syntax and Control Flow** (5 rules):
+- **SC2113**: 'function' keyword with () is redundant
+  - Detects: `function foo() { ... }` (mixing styles)
+  - Fix: `foo() { ... }` (POSIX) or `function foo { ... }` (ksh)
+- **SC2117**: Unreachable code after exit or return
+  - Detects: Code after `exit 1` or `return 0`
+  - Fix: Remove unreachable code or fix logic
+- **SC2118**: Ksh-specific `set -A` won't work in sh
+  - Detects: `set -A array val1 val2` (ksh arrays)
+  - Fix: Use bash arrays or add `#!/bin/ksh` shebang
+- **SC2121**: Don't use $ on left side of assignment
+  - Detects: `$var=value` (tries to execute value)
+  - Fix: `var=value` (correct assignment)
+- **SC2122**: '>=' not valid in [ ]. Use -ge
+  - Detects: `[ $x >= 10 ]` (wrong operator)
+  - Fix: `[ $x -ge 10 ]` (numeric) or `[[ $x >= 10 ]]` (lexical)
+
+**Sprint 106 - Logical Operator Consistency in [[ ]]** (5 rules):
+- **SC2108**: In [[ ]], use && instead of -a
+  - Detects: `[[ $x -eq 1 -a $y -eq 2 ]]` (deprecated -a)
+  - Fix: `[[ $x -eq 1 && $y -eq 2 ]]` (modern &&)
+- **SC2109**: In [[ ]], use || instead of -o
+  - Detects: `[[ $x -eq 1 -o $y -eq 2 ]]` (deprecated -o)
+  - Fix: `[[ $x -eq 1 || $y -eq 2 ]]` (modern ||)
+- **SC2110**: Don't mix && and || with -a and -o
+  - Detects: `[[ $x -eq 1 -a $y -eq 2 || $z -eq 3 ]]` (mixing styles)
+  - Fix: `[[ $x -eq 1 && $y -eq 2 || $z -eq 3 ]]` (consistent style)
+- **SC2111**: `ksh` style 'function' keyword not supported in sh
+  - Detects: `function foo { echo "bar"; }` (ksh/bash only)
+  - Fix: `foo() { echo "bar"; }` (POSIX style)
+- **SC2112**: 'function' keyword is non-standard
+  - Detects: `function deploy { ... }` (even in bash)
+  - Fix: `deploy() { ... }` (better portability)
+
+**Sprint 105 - Deprecated Syntax and Style** (5 rules):
+- **SC2099**: Use $(...) instead of deprecated backticks
+  - Detects: `` result=`date` `` (deprecated syntax)
+  - Fix: `result=$(date)` (modern syntax)
+- **SC2100**: Use $((...)) instead of deprecated expr
+  - Detects: `` result=`expr $a + $b` `` (deprecated command)
+  - Fix: `result=$((a + b))` (modern arithmetic)
+- **SC2101**: Named class needs outer brackets
+  - Detects: `[[ $var =~ [:digit:] ]]` (missing outer [])
+  - Fix: `[[ $var =~ [[:digit:]] ]]` (correct nesting)
+- **SC2102**: Ranges only match single chars
+  - Detects: `[[ $var = [0-9]+ ]]` (+ doesn't work in glob)
+  - Fix: `[[ $var =~ [0-9]+ ]]` (use =~ for regex)
+- **SC2106**: Consider using pgrep
+  - Detects: `ps aux | grep process` (fragile)
+  - Fix: `pgrep process` (designed for this)
+
+**Sprint 104 - Assignment and Command Execution** (5 rules):
+- **SC2089**: Quotes in assignment treated literally
+  - Detects: `args="-name '*.txt'"` (quotes stored literally)
+  - Fix: Use array: `args=(-name '*.txt')` and `"${args[@]}"`
+- **SC2090**: Quotes in expansion treated literally
+  - Detects: `find . $args` (if args contains quotes)
+  - Fix: Use array expansion: `"${args[@]}"`
+- **SC2091**: Remove $() to avoid executing output
+  - Detects: `$(which cp) file1 file2` (executes path as command)
+  - Fix: Remove `$()`: `which cp` or `cp file1 file2`
+- **SC2092**: Remove backticks to avoid executing output
+  - Detects: `` `which cp` file1 file2 `` (executes output)
+  - Fix: Remove backticks or use `eval` if intentional
+- **SC2093**: Remove 'exec' if script should continue
+  - Detects: `exec command` followed by more code
+  - Fix: Remove `exec` or move to end of script
+
+**Sprint 103 - Shell Execution and Path Safety** (5 rules):
+- **SC2083**: Don't add spaces after shebang
+  - Detects: `#! /bin/bash` (space after #!)
+  - Fix: `#!/bin/bash` (no space)
+- **SC2084**: Remove $ or assign to avoid executing output
+  - Detects: `$((i++))` as command (executes result)
+  - Fix: `: $((i++))` or `_=$((i++))` or `((i++))`
+- **SC2085**: Use local var; (( )) for side effects
+  - Detects: `local x=$((i++))` (assigns result to x)
+  - Fix: `local x; ((i++))` for side effect only
+- **SC2087**: Quote variables in sh -c / bash -c
+  - Detects: `sh -c "echo $var"` (expands in outer shell)
+  - Fix: `sh -c 'echo $var'` or `sh -c "echo \$var"`
+- **SC2088**: Tilde doesn't expand in quotes
+  - Detects: `path="~/Documents"` (literal tilde)
+  - Fix: `path=~/Documents` or `path="$HOME/Documents"`
+
+**Sprint 102 - Arithmetic and Variable Safety** (5 rules):
+- **SC2077**: Quote regex parameters to prevent word splitting
+  - Detects: `[[ $text =~ $pattern ]]` (may word split if pattern has spaces)
+  - Fix: `[[ $text =~ "$pattern" ]]` for literal match
+- **SC2078**: Constant expression, forgot $ on variable
+  - Detects: `[ count -gt 5 ]` (count is literal string, not variable)
+  - Fix: `[ $count -gt 5 ]` or `[ "$count" -gt 5 ]`
+- **SC2079**: Arithmetic doesn't support decimals
+  - Detects: `result=$((3.14 * 2))` (decimals not supported)
+  - Fix: Use `bc` or `awk` for floating point: `result=$(echo "3.14 * 2" | bc)`
+- **SC2080**: Leading zero makes numbers octal
+  - Detects: `[ $x -eq 08 ]` (08 is invalid octal, contains 8)
+  - Fix: Remove leading zero: `[ $x -eq 8 ]`
+- **SC2082**: Variable indirection with $$
+  - Detects: `value=$$var` ($$ is PID, not indirection)
+  - Fix: Use `${!var}` for indirection or `eval "value=\$$var"`
+
+**Sprint 101 - Array/Quote/Bracket Safety** (5 rules):
+- **SC2067**: Missing $ on array index variables
+  - Detects: `${array[i]}` (should be `${array[$i]}`)
+  - Fix: Add $ to index variable
+- **SC2069**: Wrong redirection direction
+  - Detects: `echo "Error" 2>&1` (redirects stderr to stdout, not stdout to stderr)
+  - Fix: Use `>&2` or `1>&2` to redirect stdout to stderr
+- **SC2073**: Escape backslashes in character classes
+  - Detects: `[[ $var =~ [\d+] ]]` (\d doesn't work in shell)
+  - Fix: Use `[[:digit:]]` or escape: `[\\d+]`
+- **SC2074**: Can't use =~ in single brackets
+  - Detects: `[ "$var" =~ pattern ]` (syntax error)
+  - Fix: Use `[[ "$var" =~ pattern ]]` for regex matching
+- **SC2075**: Escaping quotes in single quotes won't work
+  - Detects: `echo 'can\'t'` (backslash is literal in single quotes)
+  - Fix: Use `'can'"'"'t'` or double quotes: `"can't"`
+
+### Changed
+
+- **Test Suite**: 2,807 → 3,142 tests (+335 tests across Sprints 96-107)
+- **Sprint 107 Additions**: +50 tests, +5 rules (SC2113, SC2117-SC2118, SC2121-SC2122)
+- **Sprint 106 Additions**: +49 tests, +5 rules (SC2108-SC2112)
+- **Rule Count**: 109 → 144 active rules (+35 rules across 7 sprints)
+- **Rule Count**: 109 → 134 active rules (+25 rules)
+- **Sprint 105 Additions**: +48 tests, +5 rules (SC2099-SC2102, SC2106)
+- **Sprint 104 Additions**: +47 tests, +5 rules (SC2089-SC2093)
+- **Sprint 103 Additions**: +48 tests, +5 rules (SC2083-SC2085, SC2087-SC2088)
+- **Sprint 102 Additions**: +44 tests, +5 rules (SC2077-SC2080, SC2082)
+- **Sprint 101 Additions**: +49 tests, +5 rules (SC2067, SC2069, SC2073-SC2075)
+
 ---
 
 ## [4.1.0] - 2025-10-21
