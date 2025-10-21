@@ -1,42 +1,38 @@
-//! SC2145: Argument mixes string and array. Use * or separate arguments.
-//!
-//! # Examples
-//!
-//! Bad:
-//! ```bash
-//! args=(a b c)
-//! echo "Arguments: $args[@]"  # Incorrect syntax
-//! ```
-//!
-//! Good:
-//! ```bash
-//! args=(a b c)
-//! echo "Arguments: ${args[*]}"  # Correct
-//! echo "Arguments: ${args[@]}"  # Also correct
-//! ```
-//!
-//! # Rationale
-//!
-//! Mixing string and array without braces:
-//! - `$array[@]` is incorrect syntax
-//! - Should be `${array[@]}` or `${array[*]}`
-//! - `[@]` treated as literal text without braces
-//!
-//! Always use braces for array expansion with indices.
-//!
-//! # Auto-fix
-//!
-//! Add braces around array reference
+// SC2145: Argument mixin in arrays - unquoted $@ or $* in quotes.
+//
+// When using $@ or $* inside double quotes without proper quoting, array elements
+// concatenate incorrectly. Use "$@" for separate arguments or "$*" for concatenation.
+//
+// Examples:
+// Bad:
+//   echo "Args: $@"              // Elements concatenate with spaces
+//   echo "All: $*"                // Same issue, unclear intent
+//   msg="Files: $@"               // Array elements join incorrectly
+//
+// Good:
+//   echo "Args: $*"               // Explicit concatenation with IFS
+//   printf '%s\n' "$@"            // Each arg separate
+//   for arg in "$@"; do           // Proper iteration
+//
+// Impact: Incorrect argument handling and word splitting
 
-use crate::linter::{Diagnostic, Fix, LintResult, Severity, Span};
+use crate::linter::{Diagnostic, LintResult, Severity, Span};
+use once_cell::sync::Lazy;
 use regex::Regex;
 
-/// Check for array reference without braces
+static UNQUOTED_AT_IN_QUOTES: Lazy<Regex> = Lazy::new(|| {
+    // Match: "...$@..." (unquoted $@ inside double quotes)
+    // Look for $@ that's NOT immediately preceded by opening quote or space-quote
+    Regex::new(r#""[^"]*\$@[^"]*""#).unwrap()
+});
+
+static UNQUOTED_STAR_IN_QUOTES: Lazy<Regex> = Lazy::new(|| {
+    // Match: "...$*..." (unquoted $* inside double quotes)
+    Regex::new(r#""[^"]*\$\*[^"]*""#).unwrap()
+});
+
 pub fn check(source: &str) -> LintResult {
     let mut result = LintResult::new();
-
-    // Pattern: $array[@] or $array[*] (without braces)
-    let pattern = Regex::new(r"\$([A-Za-z_][A-Za-z0-9_]*)\[[@*]\]").unwrap();
 
     for (line_num, line) in source.lines().enumerate() {
         let line_num = line_num + 1;
@@ -45,29 +41,48 @@ pub fn check(source: &str) -> LintResult {
             continue;
         }
 
-        for cap in pattern.captures_iter(line) {
-            let full_match = cap.get(0).unwrap();
-            let var_name = cap.get(1).unwrap().as_str();
+        // Check for unquoted $@ in double quotes
+        for mat in UNQUOTED_AT_IN_QUOTES.find_iter(line) {
+            let matched = mat.as_str();
 
-            let start_col = full_match.start() + 1;
-            let end_col = full_match.end() + 1;
+            // Skip if it's properly quoted: "$@" (the entire quoted string is just "$@")
+            if matched == r#""$@""# {
+                continue;
+            }
 
-            // Determine if [@] or [*]
-            let index = if full_match.as_str().contains("[@]") {
-                "[@]"
-            } else {
-                "[*]"
-            };
-
-            let fix_text = format!("${{{}{}}} ", var_name, index);
+            let start_col = mat.start() + 1;
+            let end_col = mat.end() + 1;
 
             let diagnostic = Diagnostic::new(
                 "SC2145",
                 Severity::Warning,
-                "Argument mixes string and array. Use * or separate arguments.",
+                "Argument mixin: Use \"$*\" for concatenation or \"$@\" as separate arguments"
+                    .to_string(),
                 Span::new(line_num, start_col, line_num, end_col),
-            )
-            .with_fix(Fix::new(fix_text.trim()));
+            );
+
+            result.add(diagnostic);
+        }
+
+        // Check for unquoted $* in double quotes
+        for mat in UNQUOTED_STAR_IN_QUOTES.find_iter(line) {
+            let matched = mat.as_str();
+
+            // Skip if it's properly quoted: "$*" (the entire quoted string is just "$*")
+            if matched == r#""$*""# {
+                continue;
+            }
+
+            let start_col = mat.start() + 1;
+            let end_col = mat.end() + 1;
+
+            let diagnostic = Diagnostic::new(
+                "SC2145",
+                Severity::Warning,
+                "Argument mixin: Use \"$*\" for concatenation or \"$@\" as separate arguments"
+                    .to_string(),
+                Span::new(line_num, start_col, line_num, end_col),
+            );
 
             result.add(diagnostic);
         }
@@ -81,83 +96,78 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_sc2145_basic_detection() {
-        let script = "args=(a b c)\necho \"Arguments: $args[@]\"";
-        let result = check(script);
+    fn test_sc2145_unquoted_at_in_quotes() {
+        let code = r#"echo "Args: $@""#;
+        let result = check(code);
         assert_eq!(result.diagnostics.len(), 1);
-        assert_eq!(result.diagnostics[0].code, "SC2145");
+        assert!(result.diagnostics[0].message.contains("Argument mixin"));
     }
 
     #[test]
-    fn test_sc2145_autofix_at() {
-        let script = "files=(*.txt)\ncat $files[@]";
-        let result = check(script);
+    fn test_sc2145_unquoted_star_in_quotes() {
+        let code = r#"echo "All: $*""#;
+        let result = check(code);
         assert_eq!(result.diagnostics.len(), 1);
-        assert!(result.diagnostics[0].fix.is_some());
-        assert_eq!(
-            result.diagnostics[0].fix.as_ref().unwrap().replacement,
-            "${files[@]}"
-        );
+        assert!(result.diagnostics[0].message.contains("Argument mixin"));
     }
 
     #[test]
-    fn test_sc2145_autofix_star() {
-        let script = "items=(x y z)\necho \"$items[*]\"";
-        let result = check(script);
-        assert_eq!(result.diagnostics.len(), 1);
-        assert!(result.diagnostics[0].fix.is_some());
-        assert_eq!(
-            result.diagnostics[0].fix.as_ref().unwrap().replacement,
-            "${items[*]}"
-        );
-    }
-
-    #[test]
-    fn test_sc2145_in_string() {
-        let script = "array=(1 2 3)\nprintf \"Values: $array[@]\"";
-        let result = check(script);
-        assert_eq!(result.diagnostics.len(), 1);
-    }
-
-    #[test]
-    fn test_sc2145_false_positive_with_braces() {
-        let script = "args=(a b c)\necho \"${args[@]}\"";
-        let result = check(script);
+    fn test_sc2145_quoted_at_ok() {
+        let code = r#"printf '%s\n' "$@""#;
+        let result = check(code);
         assert_eq!(result.diagnostics.len(), 0);
     }
 
     #[test]
-    fn test_sc2145_false_positive_braces_star() {
-        let script = "files=(*.txt)\necho \"${files[*]}\"";
-        let result = check(script);
+    fn test_sc2145_quoted_star_ok() {
+        let code = r#"echo "$*""#;
+        let result = check(code);
         assert_eq!(result.diagnostics.len(), 0);
     }
 
     #[test]
-    fn test_sc2145_false_positive_in_comment() {
-        let script = "# echo \"$args[@]\"";
-        let result = check(script);
+    fn test_sc2145_unquoted_at_ok() {
+        let code = r#"for arg in $@; do"#;
+        let result = check(code);
+        // Unquoted outside of quotes is a different issue (SC2068)
         assert_eq!(result.diagnostics.len(), 0);
     }
 
     #[test]
-    fn test_sc2145_multiple_occurrences() {
-        let script = "args=(a b)\nfiles=(*.txt)\necho \"$args[@] $files[*]\"";
-        let result = check(script);
+    fn test_sc2145_in_assignment() {
+        let code = r#"msg="Files: $@""#;
+        let result = check(code);
+        assert_eq!(result.diagnostics.len(), 1);
+    }
+
+    #[test]
+    fn test_sc2145_comment_ok() {
+        let code = r#"# echo "Args: $@""#;
+        let result = check(code);
+        assert_eq!(result.diagnostics.len(), 0);
+    }
+
+    #[test]
+    fn test_sc2145_multiple() {
+        let code = r#"
+echo "Args: $@"
+msg="All: $*"
+"#;
+        let result = check(code);
         assert_eq!(result.diagnostics.len(), 2);
     }
 
     #[test]
-    fn test_sc2145_in_command_substitution() {
-        let script = "result=$(process $items[@])";
-        let result = check(script);
+    fn test_sc2145_at_beginning() {
+        let code = r#"echo "$@ are the args""#;
+        let result = check(code);
         assert_eq!(result.diagnostics.len(), 1);
     }
 
     #[test]
-    fn test_sc2145_with_underscore() {
-        let script = "my_array=(x y)\necho $my_array[@]";
-        let result = check(script);
+    fn test_sc2145_at_end() {
+        let code = r#"echo "Arguments: $@""#;
+        let result = check(code);
         assert_eq!(result.diagnostics.len(), 1);
     }
 }
