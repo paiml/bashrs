@@ -22,9 +22,7 @@ static FILE_TEST_WITH_GLOB: Lazy<Regex> = Lazy::new(|| {
     Regex::new(r"-[efd]\s+([^\s\]]*[\*\?][^\s\]]*)").unwrap()
 });
 
-static DOUBLE_BRACKET: Lazy<Regex> = Lazy::new(|| {
-    Regex::new(r"\[\[.*?\]\]").unwrap()
-});
+static DOUBLE_BRACKET: Lazy<Regex> = Lazy::new(|| Regex::new(r"\[\[.*?\]\]").unwrap());
 
 pub fn check(source: &str) -> LintResult {
     let mut result = LintResult::new();

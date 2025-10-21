@@ -2,8 +2,8 @@
 project:
   name: "Rash (bashrs) Extreme Quality Roadmap"
   description: "Bidirectional shell safety tool using REAL Rust (not a DSL)"
-  version: "3.0.0"
-  status: "Production Ready - Phase 1 Complete"
+  version: "4.0.0"
+  status: "Production Ready - 109 Active Linter Rules (Sprint 100 Milestone!)"
 
 workflows:
   primary:
@@ -27,6 +27,29 @@ workflows:
       - "Output is safe, deterministic, verifiable bash"
 
 releases:
+  - version: "4.0.0"
+    date: "2025-10-21"
+    status: "RELEASED"
+    title: "Major Expansion: 84 Total Rules (Sprints 89-95)"
+    description: "Massive linter expansion with 25+ new ShellCheck-equivalent rules"
+    achievements:
+      - "Sprint 95: Shell Command Safety (SC2022-SC2025, SC2029)"
+      - "Sprint 94: Character Classes & Quoting (SC2016, SC2018-SC2021)"
+      - "Sprint 93: Arithmetic & Expressions (SC2003-SC2007, SC2015, SC2017)"
+      - "Sprint 92: Command Execution Safety (SC2005, SC2026, SC2033, SC2061, SC2194)"
+      - "Sprint 91: Variable & Array Safety (SC2198-SC2201, SC2144)"
+      - "Sprint 90: Redirection & Process Safety (~15 rules)"
+      - "Sprint 89: Control Flow & Testing (~15 rules)"
+      - "2,557 tests passing (99.96% pass rate)"
+      - "84 active linter rules (42% growth from v3.1.0)"
+      - "~28% coverage of ShellCheck SC2xxx series"
+      - "EXTREME TDD methodology maintained throughout"
+      - ">85% code coverage across all modules"
+    breaking_changes: "Major version bump for significant feature additions"
+    published:
+      crates_io: "https://crates.io/crates/bashrs/4.0.0"
+      github: "https://github.com/paiml/bashrs/releases/tag/v4.0.0"
+
   - version: "3.0.0"
     date: "2025-10-20"
     status: "RELEASED"
@@ -154,6 +177,226 @@ metrics:
 
 sprints:
   completed:
+    - id: "SPRINT-100"
+      status: "✅ COMPLETE"
+      title: "Grep/Trap Safety and Shell Redirection (MILESTONE: 100 Sprints!)"
+      date: "2025-10-21"
+      duration: "~3 hours"
+      description: "Grep pattern safety, trap timing, and shell redirection interpretation"
+      achievements:
+        - "🎉 100TH SPRINT MILESTONE - 100 sprints of EXTREME TDD!"
+        - "5 new ShellCheck-equivalent rules (SC2054, SC2062-SC2065)"
+        - "SC2064: Trap command quoting (CRITICAL - timing bug)"
+        - "SC2062: Grep pattern glob expansion prevention"
+        - "SC2063: Grep regex vs literal string matching"
+        - "SC2054: Comma interpretation in [[ ]] tests"
+        - "SC2065: Shell redirection interpretation in strings"
+        - "47 comprehensive tests (9-10 tests per rule)"
+        - "2,807 tests passing (100% pass rate, 9 ignored)"
+        - "109 active linter rules (+5 from Sprint 99)"
+        - "36% ShellCheck SC2xxx coverage (109/300 rules)"
+        - "Security-critical trap timing rule (SC2064)"
+        - "Zero regressions maintained"
+      tests_added: 47
+      total_tests: 2807
+      code_added: "~950 lines (5 rules + tests)"
+      documentation: "CHANGELOG.md, ROADMAP.yaml updates"
+      deliverables:
+        - "rash/src/linter/rules/sc2064.rs (trap timing - CRITICAL)"
+        - "rash/src/linter/rules/sc2062.rs (grep glob expansion)"
+        - "rash/src/linter/rules/sc2063.rs (grep literal matching)"
+        - "rash/src/linter/rules/sc2054.rs (comma in tests)"
+        - "rash/src/linter/rules/sc2065.rs (redirect interpretation)"
+        - "rash/src/linter/rules/mod.rs (integration)"
+      methodology: "EXTREME TDD (RED → GREEN → REFACTOR)"
+      quality_metrics:
+        test_pass_rate: "100% (2,807/2,807)"
+        rules_added: 5
+        rule_count_total: 109
+        regressions: 0
+        complexity: "<10 (all functions)"
+        milestone: "100 SPRINTS COMPLETE!"
+      technical_challenges:
+        - "Trap command timing: early vs deferred expansion"
+        - "Quote context detection for grep patterns"
+        - "Regex metacharacter identification in patterns"
+        - "Character literal escaping in Rust regex"
+        - "Comma detection inside vs outside quotes in [[ ]]"
+
+    - id: "SPRINT-99"
+      status: "✅ COMPLETE"
+      title: "Test Operator Safety and Security"
+      date: "2025-10-21"
+      duration: "~2 hours"
+      description: "Deprecated operators, operator validation, and critical security fixes"
+      achievements:
+        - "5 new ShellCheck-equivalent rules (SC2055-SC2057, SC2059-SC2060)"
+        - "SC2055: Deprecated -a operator in test commands (use &&)"
+        - "SC2056: Deprecated -o operator in test commands (use ||)"
+        - "SC2057: Unknown binary operator detection (===, =!, <>, etc.)"
+        - "SC2059: Printf format string injection (CRITICAL security)"
+        - "SC2060: Unquoted tr parameters (glob expansion prevention)"
+        - "50 comprehensive tests (10 tests per rule)"
+        - "2,760 tests passing (100% pass rate)"
+        - "104 active linter rules (+5 from Sprint 98)"
+        - "Security-critical rule for format string vulnerabilities"
+        - "Operator deprecation warnings for POSIX compliance"
+        - "Zero regressions maintained"
+      tests_added: 50
+      total_tests: 2760
+      code_added: "~1000 lines (5 rules + tests)"
+      documentation: "CHANGELOG.md, ROADMAP.yaml updates"
+      deliverables:
+        - "rash/src/linter/rules/sc2055.rs (deprecated -a operator)"
+        - "rash/src/linter/rules/sc2056.rs (deprecated -o operator)"
+        - "rash/src/linter/rules/sc2057.rs (invalid binary operators)"
+        - "rash/src/linter/rules/sc2059.rs (printf format injection)"
+        - "rash/src/linter/rules/sc2060.rs (unquoted tr params)"
+        - "rash/src/linter/rules/mod.rs (integration)"
+      methodology: "EXTREME TDD (RED → GREEN → REFACTOR)"
+      quality_metrics:
+        test_pass_rate: "100% (2,760/2,760)"
+        rules_added: 5
+        rule_count_total: 104
+        regressions: 0
+        complexity: "<10 (all functions)"
+      technical_challenges:
+        - "Distinguishing logical -a from file test -a"
+        - "Avoiding false positives on set -o / shopt -o"
+        - "Regex escaping issues with bracket expressions"
+        - "Detecting unquoted brackets in tr commands with flags"
+        - "Format string security analysis"
+
+    - id: "SPRINT-98"
+      status: "✅ COMPLETE"
+      title: "Test Syntax and Pattern Matching Safety"
+      date: "2025-10-21"
+      duration: "~3 hours"
+      description: "Safe test syntax, glob matching, and pattern handling in [ ] and [[ ]]"
+      achievements:
+        - "5 new ShellCheck-equivalent rules (SC2047, SC2049, SC2051-SC2053)"
+        - "SC2047: Quote variables in [ ] to prevent word splitting"
+        - "SC2049: =~ is for regex - use = for literal strings"
+        - "SC2051: Bash doesn't expand variables in brace ranges"
+        - "SC2052: Use [[ ]] instead of [ ] for glob patterns"
+        - "SC2053: Quote RHS of = in [ ] to prevent glob matching"
+        - "50 comprehensive tests (10 tests per rule)"
+        - "2,709 tests passing (99.96% pass rate)"
+        - "99 active linter rules (+5 from Sprint 97)"
+        - "Regex lookahead/backreference workarounds (Rust regex limitations)"
+        - "Improved quote and glob pattern detection"
+        - "Zero regressions maintained"
+      tests_added: 50
+      total_tests: 2709
+      code_added: "~950 lines (5 rules + tests)"
+      documentation: "CHANGELOG.md, ROADMAP.yaml updates"
+      deliverables:
+        - "rash/src/linter/rules/sc2047.rs (word splitting in tests)"
+        - "rash/src/linter/rules/sc2049.rs (regex vs literal matching)"
+        - "rash/src/linter/rules/sc2051.rs (brace range expansion)"
+        - "rash/src/linter/rules/sc2052.rs (glob pattern matching)"
+        - "rash/src/linter/rules/sc2053.rs (glob RHS quoting)"
+        - "rash/src/linter/rules/mod.rs (integration)"
+      methodology: "EXTREME TDD (RED → GREEN → REFACTOR)"
+      quality_metrics:
+        test_pass_rate: "99.96% (2,709/2,710)"
+        rules_added: 5
+        rule_count_total: 99
+        regressions: 0
+        complexity: "<10 (all functions)"
+      technical_challenges:
+        - "Rust regex crate doesn't support lookahead/lookbehind"
+        - "Rust regex crate doesn't support backreferences"
+        - "Detecting quoted vs unquoted glob patterns"
+        - "Multiple variable matches in single test command"
+        - "Brace expansion vs variable expansion order"
+
+    - id: "SPRINT-97"
+      status: "✅ COMPLETE"
+      title: "Loop Safety and POSIX Compliance"
+      date: "2025-10-21"
+      duration: "~2 hours"
+      description: "Safe iteration patterns and POSIX shell compatibility rules"
+      achievements:
+        - "5 new ShellCheck-equivalent rules (SC2038-SC2042)"
+        - "SC2038: Use find -exec or -print0 instead of for loop over find"
+        - "SC2039: Bash features undefined in POSIX sh (arrays, [[]], source, etc.)"
+        - "SC2040: Avoid passing -o to commands (confuses shell options)"
+        - "SC2041: Use while read, not read in for loop (stdin vs loop data)"
+        - "SC2042: Use printf instead of echo with backslash escapes (portability)"
+        - "50 comprehensive tests (10 tests per rule)"
+        - "2,659 tests passing (99.96% pass rate)"
+        - "94 active linter rules (+5 from Sprint 96)"
+        - "Loop context tracking for stateful analysis"
+        - "POSIX compliance checking for #!/bin/sh scripts"
+        - "Zero regressions maintained"
+      tests_added: 50
+      total_tests: 2659
+      code_added: "~950 lines (5 rules + tests)"
+      documentation: "CHANGELOG.md, ROADMAP.yaml updates"
+      deliverables:
+        - "rash/src/linter/rules/sc2038.rs (find loop safety)"
+        - "rash/src/linter/rules/sc2039.rs (POSIX compliance)"
+        - "rash/src/linter/rules/sc2040.rs (shell option confusion)"
+        - "rash/src/linter/rules/sc2041.rs (read in for loop)"
+        - "rash/src/linter/rules/sc2042.rs (echo escape portability)"
+        - "rash/src/linter/rules/mod.rs (integration)"
+      methodology: "EXTREME TDD (RED → GREEN → REFACTOR)"
+      quality_metrics:
+        test_pass_rate: "99.96% (2,658/2,659)"
+        rules_added: 5
+        rule_count_total: 94
+        regressions: 0
+        complexity: "<10 (all functions)"
+      technical_challenges:
+        - "Single-line for loop detection (for x in y; do cmd; done)"
+        - "Escape sequence position in single vs double quotes"
+        - "POSIX feature detection with shebang awareness"
+        - "Loop context tracking across multiple lines"
+
+    - id: "SPRINT-96"
+      status: "✅ COMPLETE"
+      title: "Subshell and Variable Scope Safety"
+      date: "2025-10-21"
+      duration: "~2 hours"
+      description: "Subshell variable scope and backtick quoting safety rules"
+      achievements:
+        - "5 new ShellCheck-equivalent rules (SC2030-SC2032, SC2036-SC2037)"
+        - "SC2030: Variable modified in subshell (won't affect parent)"
+        - "SC2031: Variable was modified in subshell (stateful tracking)"
+        - "SC2032: Variables in scripts with shebangs (sourcing vs execution)"
+        - "SC2036: Unescaped quotes in backticks (old-style command substitution)"
+        - "SC2037: Redirect to variable vs command substitution"
+        - "52 comprehensive tests (10+ tests per rule)"
+        - "2,609 tests passing (99.96% pass rate)"
+        - "89 active linter rules (+5 from Sprint 95)"
+        - "Character-level subshell detection (vs command substitution)"
+        - "Improved quote handling (single vs double quote expansion)"
+        - "Zero regressions maintained"
+      tests_added: 52
+      total_tests: 2609
+      code_added: "~900 lines (5 rules + tests)"
+      documentation: "CHANGELOG.md, ROADMAP.yaml updates"
+      deliverables:
+        - "rash/src/linter/rules/sc2030.rs (subshell assignments)"
+        - "rash/src/linter/rules/sc2031.rs (subshell usage tracking)"
+        - "rash/src/linter/rules/sc2032.rs (shebang sourcing)"
+        - "rash/src/linter/rules/sc2036.rs (backtick escaping)"
+        - "rash/src/linter/rules/sc2037.rs (redirect vs capture)"
+        - "rash/src/linter/rules/mod.rs (integration)"
+      methodology: "EXTREME TDD (RED → GREEN → REFACTOR)"
+      quality_metrics:
+        test_pass_rate: "99.96% (2,608/2,609)"
+        rules_added: 5
+        rule_count_total: 89
+        regressions: 0
+        complexity: "<10 (all functions)"
+      technical_challenges:
+        - "Distinguishing subshells from command substitutions"
+        - "Single vs double quote expansion contexts"
+        - "Multi-variable assignments in single subshell"
+        - "Trimmed line vs original line position calculations"
+
     - id: "SPRINT-84"
       status: "✅ COMPLETE"
       title: "Performance & Quality Validation (Phase 1 Final Sprint)"

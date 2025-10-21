@@ -9,6 +9,146 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [4.1.0] - 2025-10-21
+
+### 🎉 Sprint 100 MILESTONE - 100 Sprints of EXTREME TDD!
+
+**Achievement**: Completed 100th sprint with grep/trap safety rules, reaching 109 total linter rules (36% ShellCheck coverage).
+
+This release represents a major milestone: **100 sprints of continuous EXTREME TDD development**, adding critical safety rules for grep patterns, trap command timing, and shell redirection interpretation.
+
+### Added
+
+**🎉 Sprint 100 - MILESTONE: Grep/Trap Safety** (5 rules):
+- **SC2064**: Trap command quoting (CRITICAL - Timing)
+  - Detects: `trap "rm $tmpfile" EXIT` (expands now, not when signalled)
+  - Fix: `trap 'rm "$tmpfile"' EXIT` (expands when trap fires)
+- **SC2062**: Grep pattern glob expansion
+  - Detects: `grep *.txt file` (shell expands before grep sees it)
+  - Fix: `grep '*.txt' file` (literal pattern)
+- **SC2063**: Grep regex vs literal strings
+  - Detects: `grep "file.txt" *` (dot matches any character)
+  - Fix: `grep -F "file.txt" *` (literal matching)
+- **SC2054**: Commas in [[ ]] tests
+  - Detects: `[[ $a,$b == "1,2" ]]` (literal comma, not separator)
+  - Fix: `[[ "$a $b" == "1 2" ]]` or `[[ $a == 1 && $b == 2 ]]`
+- **SC2065**: Shell redirection interpretation
+  - Detects: `echo "Success > $file"` (confusing redirect syntax)
+  - Fix: `echo "Success: $file"` (clearer intent)
+
+**Sprint 99 - Test Operator Safety and Security** (5 rules):
+- **SC2055**: Deprecated -a operator in test commands
+  - Detects: `[ $a -eq 1 -a $b -eq 2 ]` (obsolete operator)
+  - Issue: POSIX marks -a as deprecated, confusing precedence
+  - Fix: `[ $a -eq 1 ] && [ $b -eq 2 ]` or `[[ $a -eq 1 && $b -eq 2 ]]`
+- **SC2056**: Deprecated -o operator in test commands
+  - Detects: `[ $a -eq 1 -o $b -eq 2 ]` (obsolete operator)
+  - Issue: POSIX marks -o as deprecated, confusing with shell options
+  - Fix: `[ $a -eq 1 ] || [ $b -eq 2 ]` or `[[ $a -eq 1 || $b -eq 2 ]]`
+- **SC2057**: Unknown binary operator
+  - Detects: `[ "$a" === "$b" ]`, `[ $x =! $y ]` (invalid operators)
+  - Issue: Syntax errors from typos or wrong operator syntax
+  - Fix: Use valid operators (=, ==, !=, -eq, -ne, -lt, -gt, -le, -ge)
+- **SC2059**: Printf format string injection (CRITICAL - Security)
+  - Detects: `printf "$format" "$value"` (format string vulnerability)
+  - Issue: Variables in format strings can lead to arbitrary code execution
+  - Fix: `printf '%s\n' "$value"` (always use literal format strings)
+- **SC2060**: Unquoted tr parameters
+  - Detects: `echo "$str" | tr [a-z] [A-Z]` (glob expansion)
+  - Issue: Unquoted brackets expand as globs, causing wrong behavior
+  - Fix: `echo "$str" | tr '[a-z]' '[A-Z]'` (quote to prevent expansion)
+
+**Sprint 98 - Test Syntax and Pattern Matching Safety** (5 rules):
+- **SC2047**: Quote variables in `[ ]` to prevent word splitting
+  - Detects: `[ -z $var ]` (syntax error if var is empty)
+  - Issue: Unquoted variables split on spaces
+  - Fix: `[ -z "$var" ]` or use `[[ -z $var ]]`
+- **SC2049**: `=~` is for regex - use `=` for literal strings
+  - Detects: `[[ $var =~ "pattern" ]]` (quoted regex defeats purpose)
+  - Issue: Quoted patterns match literally, not as regex
+  - Fix: `[[ $var =~ pattern ]]` (unquoted) or `[[ $var = "pattern" ]]` (literal)
+- **SC2051**: Bash doesn't expand variables in brace ranges
+  - Detects: `{$start..$end}` (doesn't work as expected)
+  - Issue: Brace expansion happens before variable substitution
+  - Fix: `seq $start $end` or `for ((i=start; i<=end; i++))`
+- **SC2052**: Use `[[ ]]` instead of `[ ]` for glob patterns
+  - Detects: `[ "$file" != *.txt ]` (literal comparison, not pattern)
+  - Issue: `[ ]` does literal string matching, not glob matching
+  - Fix: `[[ "$file" != *.txt ]]` or `[ "$file" != "*.txt" ]` (quoted for literal)
+- **SC2053**: Quote RHS of `=` in `[ ]` to prevent glob matching
+  - Detects: `[ "$var" = *.txt ]` (unintended glob match)
+  - Issue: Unquoted RHS treated as glob pattern in `[ ]`
+  - Fix: `[ "$var" = "*.txt" ]` (literal) or `[[ "$var" = *.txt ]]` (pattern)
+
+**Sprint 97 - Loop Safety and POSIX Compliance** (5 rules):
+- **SC2038**: Use -print0/-0 or find -exec + instead of for loop
+  - Detects: `for file in $(find . -name "*.txt")`
+  - Issue: Filenames with spaces/newlines break word splitting
+  - Fix: `find . -name "*.txt" -print0 | while IFS= read -r -d '' file`
+- **SC2039**: In POSIX sh, feature is undefined
+  - Detects bash-specific features in `#!/bin/sh` scripts
+  - Issues: Arrays, `[[ ]]`, `source`, `function` keyword, `**` exponentiation
+  - Fix: Use POSIX-compatible alternatives or change shebang to `#!/bin/bash`
+- **SC2040**: Avoid passing -o to other commands
+  - Detects: `rm -o file` (confuses shell option with command flag)
+  - Fix: Use correct flags for the command
+- **SC2041**: Use while read, not read in for loop
+  - Detects: `for i in 1 2 3; do read var; done`
+  - Issue: `read` reads from stdin, not from loop data
+  - Fix: `while read -r var; do ... done < file`
+- **SC2042**: Use printf instead of echo with backslash escapes
+  - Detects: `echo "line1\nline2"` (non-portable behavior)
+  - Fix: `printf "line1\nline2\n"` (POSIX-standard)
+
+**Sprint 96 - Subshell and Variable Scope Safety** (5 rules):
+- **SC2030**: Variable modified in subshell won't affect parent
+  - Detects: `(foo=bar); echo "$foo"` (empty in parent)
+  - Fix: Assign in current shell or use `var=$(cmd)`
+- **SC2031**: Variable was modified in subshell
+  - Warns when using variables assigned in subshells
+  - Tracks assignments across lines for stateful analysis
+- **SC2032**: Use own script's variable
+  - Detects variables in scripts with shebangs
+  - Suggests sourcing script or removing shebang to affect caller
+- **SC2036**: Quotes in backticks need escaping
+  - Detects: `` `echo "hello"` `` (unescaped quotes)
+  - Fix: `` `echo \"hello\"` `` or use `$(echo "hello")`
+- **SC2037**: To assign output, use var=$(cmd)
+  - Detects: `echo "result" > $VAR` (redirects to file)
+  - Fix: `VAR=$(echo "result")` (captures output)
+
+### Fixed
+
+- **Technical Debt Cleanup**:
+  - Fixed clippy warning: unnecessary parentheses in `sec006.rs` condition
+  - Fixed `detect_shell_date()` false positive: Now correctly uses word boundaries to distinguish "date" command from words containing "date" (e.g., "datea", "update")
+  - All 2,710 tests passing (100% pass rate, +1 from previous 2,709)
+  - Zero clippy errors (down from 1 warning)
+
+### Changed
+
+- **Test Suite**: 2,557 → 2,807 tests (+250 tests across Sprints 96-100)
+- **Rule Count**: 84 → 109 active rules (+25 rules across Sprints 96-100)
+- **🎉 Sprint 100 Milestone**: 100 sprints of EXTREME TDD completed!
+- **Sprint 100 Additions**: +47 tests, +5 rules (SC2054, SC2062-SC2065)
+- **Sprint 99 Additions**: +50 tests, +5 rules (SC2055-SC2057, SC2059-SC2060)
+- **Sprint 98 Additions**: +50 tests, +5 rules (SC2047, SC2049, SC2051-SC2053)
+- **Sprint 97 Additions**: +50 tests, +5 rules (SC2038-SC2042)
+- **Sprint 96 Additions**: +52 tests, +5 rules (SC2030-SC2032, SC2036-SC2037)
+- **Security Hardening**: Critical printf format string injection detection (SC2059)
+- **Operator Deprecation**: Detection of obsolete -a/-o operators in test commands
+- **Operator Validation**: Unknown binary operator detection prevents syntax errors
+- **Command Safety**: Unquoted tr parameter detection prevents glob expansion
+- **Test Syntax Safety**: Detection of word splitting, glob matching, and pattern confusion in test commands
+- **Regex Pattern Validation**: Proper handling of `=~` operator and quoted/unquoted patterns
+- **Brace Expansion**: Detection of invalid variable use in brace range expansions
+- **Subshell Detection**: Character-level parsing to distinguish subshells from command substitutions
+- **Quote Handling**: Improved single vs double quote detection for variable expansion
+- **Loop Context Tracking**: Stateful analysis to detect problematic `read` usage in for loops
+- **POSIX Compliance**: Detection of bash-specific features in POSIX sh scripts
+
+---
+
 ## [4.0.0] - 2025-10-21
 
 ### 🚀 Major Release - 84 Total Rules: 50+ New Rules Across 7 Sprints

@@ -52,7 +52,11 @@ pub fn check(source: &str) -> LintResult {
         if trimmed.starts_with('#') || trimmed.is_empty() {
             // End current group on blank lines or comments
             if current_count >= 2 {
-                consecutive_groups.push((current_file.clone().unwrap(), current_start, current_count));
+                consecutive_groups.push((
+                    current_file.clone().unwrap(),
+                    current_start,
+                    current_count,
+                ));
             }
             current_file = None;
             current_count = 0;
@@ -84,7 +88,11 @@ pub fn check(source: &str) -> LintResult {
         } else {
             // Line doesn't have redirect, end current group
             if current_count >= 2 {
-                consecutive_groups.push((current_file.clone().unwrap(), current_start, current_count));
+                consecutive_groups.push((
+                    current_file.clone().unwrap(),
+                    current_start,
+                    current_count,
+                ));
             }
             current_file = None;
             current_count = 0;

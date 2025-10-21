@@ -39,7 +39,11 @@ pub fn check(source: &str) -> LintResult {
                 let end_col = cap.get(0).unwrap().end() + 1;
 
                 let cmd_text = command.as_str();
-                let expected = if cmd_text == "false" { "always true" } else { "always true" };
+                let expected = if cmd_text == "false" {
+                    "always true"
+                } else {
+                    "always true"
+                };
 
                 let diagnostic = Diagnostic::new(
                     "SC2158",

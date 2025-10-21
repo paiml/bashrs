@@ -45,9 +45,7 @@ pub fn check(source: &str) -> LintResult {
 
         for cap in RM_SLASH_VAR.captures_iter(line) {
             // Get the variable name from either capture group
-            let var_name = cap.get(1)
-                .or_else(|| cap.get(2))
-                .map(|m| m.as_str());
+            let var_name = cap.get(1).or_else(|| cap.get(2)).map(|m| m.as_str());
 
             if let Some(var) = var_name {
                 let start_col = cap.get(0).unwrap().start() + 1;

@@ -43,7 +43,10 @@ pub fn check(source: &str) -> LintResult {
 
         // Skip if line is inside a comment or string
         // Simple heuristic: skip lines that start with if/elif/while (proper control flow)
-        if trimmed.starts_with("if ") || trimmed.starts_with("elif ") || trimmed.starts_with("while ") {
+        if trimmed.starts_with("if ")
+            || trimmed.starts_with("elif ")
+            || trimmed.starts_with("while ")
+        {
             continue;
         }
 

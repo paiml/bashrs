@@ -69,11 +69,11 @@ pub fn check(source: &str) -> LintResult {
                 }
 
                 // Heuristic: plural names or common array indicators
-                if var_name.ends_with('s') ||
-                   var_name.contains("array") ||
-                   var_name.contains("list") ||
-                   var_name.contains("items") {
-
+                if var_name.ends_with('s')
+                    || var_name.contains("array")
+                    || var_name.contains("list")
+                    || var_name.contains("items")
+                {
                     let start_col = line.find(bracket_text).unwrap_or(0) + 1;
                     let end_col = start_col + bracket_text.len();
 

@@ -27,7 +27,8 @@ static DIV_MULT_PATTERN: Lazy<Regex> = Lazy::new(|| {
     // Match: a/b*c pattern inside $((...))
     // Look for division followed by multiplication
     // Allow variables or numbers
-    Regex::new(r"\$\(\([^)]*([a-zA-Z_0-9]+)\s*/\s*([a-zA-Z_0-9]+)\s*\*\s*([a-zA-Z_0-9]+)[^)]*\)\)").unwrap()
+    Regex::new(r"\$\(\([^)]*([a-zA-Z_0-9]+)\s*/\s*([a-zA-Z_0-9]+)\s*\*\s*([a-zA-Z_0-9]+)[^)]*\)\)")
+        .unwrap()
 });
 
 pub fn check(source: &str) -> LintResult {

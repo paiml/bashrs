@@ -20,15 +20,12 @@ use crate::linter::{Diagnostic, LintResult, Severity, Span};
 use once_cell::sync::Lazy;
 use regex::Regex;
 
-static LOOP_START: Lazy<Regex> = Lazy::new(|| {
-    Regex::new(r"\b(while|for|until|select)\s+").unwrap()
-});
+static LOOP_START: Lazy<Regex> =
+    Lazy::new(|| Regex::new(r"\b(while|for|until|select)\s+").unwrap());
 
 static LOOP_END: Lazy<Regex> = Lazy::new(|| Regex::new(r"\bdone\b").unwrap());
 
-static BREAK_CONTINUE: Lazy<Regex> = Lazy::new(|| {
-    Regex::new(r"\b(break|continue)\b").unwrap()
-});
+static BREAK_CONTINUE: Lazy<Regex> = Lazy::new(|| Regex::new(r"\b(break|continue)\b").unwrap());
 
 pub fn check(source: &str) -> LintResult {
     let mut result = LintResult::new();

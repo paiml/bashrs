@@ -23,9 +23,7 @@ static BRACE_EXPANSION: Lazy<Regex> = Lazy::new(|| {
     Regex::new(r"\{[a-zA-Z0-9_/.]+([,]|\.\.)[a-zA-Z0-9_/.]*\}").unwrap()
 });
 
-static DOUBLE_BRACKET: Lazy<Regex> = Lazy::new(|| {
-    Regex::new(r"\[\[.*?\]\]").unwrap()
-});
+static DOUBLE_BRACKET: Lazy<Regex> = Lazy::new(|| Regex::new(r"\[\[.*?\]\]").unwrap());
 
 pub fn check(source: &str) -> LintResult {
     let mut result = LintResult::new();
