@@ -14,6 +14,7 @@
 pub mod aliaser; // CONFIG-003: Consolidate duplicate aliases
 pub mod analyzer;
 pub mod deduplicator;
+pub mod nondeterminism; // CONFIG-004: Detect non-deterministic constructs
 pub mod purifier;
 pub mod quoter; // CONFIG-002: Quote variable expansions
 

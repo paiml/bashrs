@@ -4,7 +4,7 @@
 //! and provide insights.
 
 use super::{ConfigAnalysis, ConfigIssue, ConfigType, PathEntry, PerformanceIssue};
-use crate::config::{aliaser, deduplicator, quoter};
+use crate::config::{aliaser, deduplicator, nondeterminism, quoter};
 use std::path::PathBuf;
 
 /// Analyze a shell configuration file
@@ -28,8 +28,12 @@ pub fn analyze_config(source: &str, file_path: PathBuf) -> ConfigAnalysis {
     let alias_issues = aliaser::detect_duplicate_aliases(&aliases);
     issues.extend(alias_issues);
 
+    // Analyze non-deterministic constructs (CONFIG-004)
+    let nondeterministic_constructs = nondeterminism::analyze_nondeterminism(source);
+    let nondeterminism_issues = nondeterminism::detect_nondeterminism(&nondeterministic_constructs);
+    issues.extend(nondeterminism_issues);
+
     // TODO: Add more analysis rules
-    // - CONFIG-004: Non-deterministic constructs
     // - CONFIG-005: Expensive operations
 
     let complexity_score = calculate_complexity(source);

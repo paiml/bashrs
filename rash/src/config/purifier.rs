@@ -2,7 +2,7 @@
 //!
 //! Applies automatic fixes to shell configuration files.
 
-use crate::config::{aliaser, deduplicator, quoter};
+use crate::config::{aliaser, deduplicator, nondeterminism, quoter};
 
 /// Purify a shell configuration file
 pub fn purify_config(source: &str) -> String {
@@ -11,6 +11,9 @@ pub fn purify_config(source: &str) -> String {
     // Apply CONFIG-001: Deduplicate PATH entries
     result = deduplicator::deduplicate_path_entries(&result);
 
+    // Apply CONFIG-004: Remove non-deterministic constructs (BEFORE quoting)
+    result = nondeterminism::remove_nondeterminism(&result);
+
     // Apply CONFIG-002: Quote variable expansions
     result = quoter::quote_variables(&result);
 
@@ -18,7 +21,6 @@ pub fn purify_config(source: &str) -> String {
     result = aliaser::consolidate_aliases(&result);
 
     // TODO: Apply more purification rules
-    // - CONFIG-004: Remove non-deterministic constructs
     // - CONFIG-005: Lazy-load expensive operations
 
     result
