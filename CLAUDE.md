@@ -814,6 +814,7 @@ All outputs must meet:
 - [ ] ✅ **Format check**: `cargo fmt -- --check`
 - [ ] ✅ **No regressions**: All existing features still work
 - [ ] ✅ **Shellcheck**: All generated scripts pass `shellcheck -s sh`
+- [ ] ✅ **Book updated**: `./scripts/check-book-updated.sh` (enforces book examples pass and book is updated)
 
 #### Phase 2: Documentation (Required before release)
 - [ ] ✅ **CHANGELOG.md updated**: Complete release notes with:
@@ -825,6 +826,11 @@ All outputs must meet:
   - Quality metrics (tests passing, coverage, etc.)
 - [ ] ✅ **README.md updated**: If new features added
 - [ ] ✅ **Version bumped**: Update `Cargo.toml` workspace version
+- [ ] ✅ **Book updated**: New features documented in `book/` with tested examples
+  - Run `mdbook test book` to verify all examples compile and pass
+  - Update relevant chapters (getting-started, concepts, linting, config, etc.)
+  - Add new examples for significant features
+  - **CRITICAL**: Cannot release without book update (enforced by `./scripts/check-book-updated.sh`)
 
 #### Phase 3: Git Release
 - [ ] ✅ **Commit created**: `git add` all changes, create commit with:

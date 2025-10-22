@@ -56,6 +56,7 @@ pub mod bash_parser;
 pub mod bash_transpiler;
 pub mod cli;
 pub mod compiler;
+pub mod config; // NEW: Shell config file management (v7.0)
 pub mod container;
 pub mod emitter;
 pub mod formal;

@@ -1,6 +1,6 @@
 use crate::cli::args::{
-    CompileRuntime, ContainerFormatArg, InspectionFormat, LintFormat, MakeCommands,
-    MakeOutputFormat, ReportFormat,
+    CompileRuntime, ConfigCommands, ConfigOutputFormat, ContainerFormatArg, InspectionFormat,
+    LintFormat, MakeCommands, MakeOutputFormat, ReportFormat,
 };
 use crate::cli::{Cli, Commands};
 use crate::models::{Config, Error, Result};
@@ -118,6 +118,8 @@ pub fn execute_command(cli: Cli) -> Result<()> {
         }
 
         Commands::Make { command } => handle_make_command(command), // Playground feature removed in v1.0 - will be moved to separate rash-playground crate in v1.1
+
+        Commands::Config { command } => handle_config_command(command),
     }
 }
 
@@ -915,3 +917,271 @@ fn make_lint_command(
 }
 
 // Playground command removed in v1.0 - will be moved to separate rash-playground crate in v1.1
+
+// =============================================================================
+// Config Command Handlers (v7.0)
+// =============================================================================
+
+fn handle_config_command(command: ConfigCommands) -> Result<()> {
+    match command {
+        ConfigCommands::Analyze { input, format } => {
+            info!("Analyzing {}", input.display());
+            config_analyze_command(&input, format)
+        }
+        ConfigCommands::Lint { input, format } => {
+            info!("Linting {}", input.display());
+            config_lint_command(&input, format)
+        }
+        ConfigCommands::Purify {
+            input,
+            output,
+            fix,
+            no_backup,
+            dry_run,
+        } => {
+            info!("Purifying {}", input.display());
+            config_purify_command(&input, output.as_deref(), fix, no_backup, dry_run)
+        }
+    }
+}
+
+fn config_analyze_command(input: &Path, format: ConfigOutputFormat) -> Result<()> {
+    use crate::config::analyzer;
+
+    // Read input file
+    let source = fs::read_to_string(input).map_err(Error::Io)?;
+
+    // Analyze config
+    let analysis = analyzer::analyze_config(&source, input.to_path_buf());
+
+    // Output results
+    match format {
+        ConfigOutputFormat::Human => {
+            println!("Analysis: {}", input.display());
+            println!("=========={}=", "=".repeat(input.display().to_string().len()));
+            println!();
+            println!("Statistics:");
+            println!("  - Lines: {}", analysis.line_count);
+            println!("  - Complexity score: {}/10", analysis.complexity_score);
+            println!("  - Config type: {:?}", analysis.config_type);
+            println!();
+
+            if !analysis.path_entries.is_empty() {
+                println!("PATH Entries ({}):", analysis.path_entries.len());
+                for entry in &analysis.path_entries {
+                    let marker = if entry.is_duplicate { "  ✗" } else { "  ✓" };
+                    println!("{}  Line {}: {}", marker, entry.line, entry.path);
+                }
+                println!();
+            }
+
+            if !analysis.performance_issues.is_empty() {
+                println!(
+                    "Performance Issues ({}):",
+                    analysis.performance_issues.len()
+                );
+                for issue in &analysis.performance_issues {
+                    println!("  - Line {}: {} (~{}ms)", issue.line, issue.command, issue.estimated_cost_ms);
+                    println!("    Suggestion: {}", issue.suggestion);
+                }
+                println!();
+            }
+
+            if analysis.issues.is_empty() {
+                println!("✓ No issues found");
+            } else {
+                println!("Issues Found: {}", analysis.issues.len());
+                for issue in &analysis.issues {
+                    let severity_marker = match issue.severity {
+                        crate::config::Severity::Error => "✗",
+                        crate::config::Severity::Warning => "⚠",
+                        crate::config::Severity::Info => "ℹ",
+                    };
+                    println!(
+                        "  {} [{}] Line {}: {}",
+                        severity_marker, issue.rule_id, issue.line, issue.message
+                    );
+                    if let Some(suggestion) = &issue.suggestion {
+                        println!("    → {}", suggestion);
+                    }
+                }
+            }
+        }
+        ConfigOutputFormat::Json => {
+            // Simple JSON output
+            println!("{{");
+            println!("  \"file\": \"{}\",", input.display());
+            println!("  \"line_count\": {},", analysis.line_count);
+            println!("  \"complexity_score\": {},", analysis.complexity_score);
+            println!("  \"path_entries\": {},", analysis.path_entries.len());
+            println!("  \"performance_issues\": {},", analysis.performance_issues.len());
+            println!("  \"issues\": [");
+            for (i, issue) in analysis.issues.iter().enumerate() {
+                let comma = if i < analysis.issues.len() - 1 { "," } else { "" };
+                println!("    {{");
+                println!("      \"rule_id\": \"{}\",", issue.rule_id);
+                println!("      \"line\": {},", issue.line);
+                println!("      \"message\": \"{}\"", issue.message);
+                println!("    }}{}", comma);
+            }
+            println!("  ]");
+            println!("}}");
+        }
+    }
+
+    Ok(())
+}
+
+fn config_lint_command(input: &Path, format: ConfigOutputFormat) -> Result<()> {
+    use crate::config::analyzer;
+
+    // Read input file
+    let source = fs::read_to_string(input).map_err(Error::Io)?;
+
+    // Analyze config
+    let analysis = analyzer::analyze_config(&source, input.to_path_buf());
+
+    // Output results
+    match format {
+        ConfigOutputFormat::Human => {
+            if analysis.issues.is_empty() {
+                println!("✓ No issues found in {}", input.display());
+                return Ok(());
+            }
+
+            for issue in &analysis.issues {
+                let severity = match issue.severity {
+                    crate::config::Severity::Error => "error",
+                    crate::config::Severity::Warning => "warning",
+                    crate::config::Severity::Info => "info",
+                };
+                println!(
+                    "{}:{}:{}: {}: {} [{}]",
+                    input.display(),
+                    issue.line,
+                    issue.column,
+                    severity,
+                    issue.message,
+                    issue.rule_id
+                );
+                if let Some(suggestion) = &issue.suggestion {
+                    println!("  suggestion: {}", suggestion);
+                }
+            }
+        }
+        ConfigOutputFormat::Json => {
+            println!("{{");
+            println!("  \"file\": \"{}\",", input.display());
+            println!("  \"issues\": [");
+            for (i, issue) in analysis.issues.iter().enumerate() {
+                let comma = if i < analysis.issues.len() - 1 { "," } else { "" };
+                println!("    {{");
+                println!("      \"rule_id\": \"{}\",", issue.rule_id);
+                println!("      \"line\": {},", issue.line);
+                println!("      \"column\": {},", issue.column);
+                println!("      \"message\": \"{}\"", issue.message);
+                println!("    }}{}", comma);
+            }
+            println!("  ]");
+            println!("}}");
+        }
+    }
+
+    // Exit with code 1 if there are warnings or errors
+    if !analysis.issues.is_empty() {
+        std::process::exit(1);
+    }
+
+    Ok(())
+}
+
+fn config_purify_command(
+    input: &Path,
+    output: Option<&Path>,
+    fix: bool,
+    no_backup: bool,
+    dry_run: bool,
+) -> Result<()> {
+    use crate::config::{analyzer, purifier};
+    use chrono::Local;
+
+    // Read input file
+    let source = fs::read_to_string(input).map_err(Error::Io)?;
+
+    // Analyze first
+    let analysis = analyzer::analyze_config(&source, input.to_path_buf());
+
+    // Purify
+    let purified = purifier::purify_config(&source);
+
+    // Determine mode
+    if let Some(output_path) = output {
+        // Output to specific file
+        if output_path.to_str() == Some("-") {
+            // Output to stdout
+            println!("{}", purified);
+        } else {
+            fs::write(output_path, &purified).map_err(Error::Io)?;
+            info!("Purified config written to {}", output_path.display());
+        }
+    } else if fix && !dry_run {
+        // Apply fixes in-place
+        
+        // Create backup unless --no-backup
+        if !no_backup {
+            let timestamp = Local::now().format("%Y-%m-%d_%H-%M-%S");
+            let backup_path = input.with_extension(format!("bak.{}", timestamp));
+            fs::copy(input, &backup_path).map_err(Error::Io)?;
+            info!("Backup: {}", backup_path.display());
+        }
+
+        // Write purified content
+        fs::write(input, &purified).map_err(Error::Io)?;
+        
+        let fixed_count = analysis.issues.len();
+        println!("Applying {} fixes...", fixed_count);
+        println!("  ✓ Deduplicated {} PATH entries", 
+            analysis.path_entries.iter().filter(|e| e.is_duplicate).count());
+        println!("✓ Done! {} has been purified.", input.display());
+        
+        if !no_backup {
+            let timestamp = Local::now().format("%Y-%m-%d_%H-%M-%S");
+            let backup_path = input.with_extension(format!("bak.{}", timestamp));
+            println!("\nTo rollback: cp {} {}", backup_path.display(), input.display());
+        }
+    } else {
+        // Dry-run mode (default)
+        println!("Preview of changes to {}:", input.display());
+        println!("================================{}=", "=".repeat(input.display().to_string().len()));
+        println!();
+        
+        if analysis.issues.is_empty() {
+            println!("✓ No issues found - file is already clean!");
+        } else {
+            println!("Would fix {} issue(s):", analysis.issues.len());
+            for issue in &analysis.issues {
+                println!("  - {}: {}", issue.rule_id, issue.message);
+            }
+            println!();
+            println!("--- {} (original)", input.display());
+            println!("+++ {} (purified)", input.display());
+            println!();
+            
+            // Simple diff output
+            let original_lines: Vec<&str> = source.lines().collect();
+            let purified_lines: Vec<&str> = purified.lines().collect();
+            
+            for (i, (orig, pure)) in original_lines.iter().zip(purified_lines.iter()).enumerate() {
+                if orig != pure {
+                    println!("-{}: {}", i + 1, orig);
+                    println!("+{}: {}", i + 1, pure);
+                }
+            }
+            
+            println!();
+            println!("Apply fixes: bashrs config purify {} --fix", input.display());
+        }
+    }
+
+    Ok(())
+}

@@ -1,0 +1,1 @@
+# Purifying .bashrc and .zshrc
