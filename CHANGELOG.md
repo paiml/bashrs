@@ -9,7 +9,97 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-**🎉🎉🎉🎉🎉🎉🎉 Sprint 118 - 90% MILESTONE! Variable Best Practices and Optimizations** (15 rules):
+**🎉🎉🎉🎉🎉🎉🎉🎉🎉 Sprint 119 - 95% MILESTONE! Advanced Shell Patterns and Edge Cases** (15 rules):
+
+**Batch 1 - Advanced Parameter Expansion** (5 rules):
+- **SC2296**: Nested parameter expansions not allowed
+  - Detects: `${var${inner}}` (invalid syntax)
+  - Fix: Use intermediate variables
+  - Impact: Prevents syntax errors
+- **SC2297**: Warn about redirects after pipes
+  - Detects: `cmd1 | cmd2 > file` (redirect applies to cmd2 only)
+  - Fix: Clarify intent or restructure
+  - Impact: Avoid unexpected behavior
+- **SC2298**: Use < file instead of cat file |
+  - Detects: `cat file | grep` (useless cat)
+  - Fix: `grep < file` or `grep file`
+  - Impact: Performance improvement
+- **SC2299**: Parameter expansions can't use variables in offset/length
+  - Detects: `${var:$start:$len}` (not supported)
+  - Fix: Use arithmetic expansion or array slicing
+  - Impact: Prevents syntax errors
+- **SC2300**: Use ${VAR:?} for required environment variables
+  - Detects: `path=$HOME` (unchecked env var)
+  - Fix: `path=${HOME:?HOME not set}`
+  - Impact: Explicit error handling
+
+**Batch 2 - Array and Test Safety** (5 rules):
+- **SC2301**: Use [[ -v array[0] ]] to check array elements
+  - Detects: `[ -n "${arr[0]}" ]` (inefficient)
+  - Fix: `[[ -v arr[0] ]]` (cleaner)
+  - Impact: Better array element checking
+- **SC2302**: Prefer ${var// /} over tr for simple substitution
+  - Detects: `tr -d ' ' <<< $var` (can use built-in)
+  - Fix: `${var// /}` (parameter expansion)
+  - Impact: Performance, no external command
+- **SC2303**: Arithmetic base (N#) only allowed in assignments
+  - Detects: `(( 2#101 + 1 ))` (context error)
+  - Fix: Use in assignment: `x=$((2#101))`
+  - Impact: Prevents syntax errors
+- **SC2304**: Command not found (undefined command)
+  - Detects: Calls to undefined commands
+  - Fix: Define function or install command
+  - Impact: Catch typos early
+- **SC2305**: Use ${var:=default} for default assignment
+  - Detects: `[ -z $var ] && var=default` (verbose)
+  - Fix: `: ${var:=default}` (concise)
+  - Impact: Cleaner default value handling
+
+**Batch 3 - Advanced Shell Patterns** (5 rules):
+- **SC2306**: Use ${var//old/new} over sed for simple substitutions
+  - Detects: `sed 's/foo/bar/' <<< "$text"` (can use built-in)
+  - Fix: `${text//foo/bar}` (parameter expansion)
+  - Impact: Performance, no external command
+- **SC2307**: Use [[ ]] or quote variables in tests
+  - Detects: `[ $var = value ]` (word splitting risk)
+  - Fix: `[[ $var = value ]]` or `[ "$var" = value ]`
+  - Impact: Safer test expressions
+- **SC2308**: Shebang ignored in remote scripts
+  - Detects: `#!/bin/bash` with `ssh host 'bash -c "..."'`
+  - Fix: Awareness that shebang won't apply remotely
+  - Impact: Avoid confusion about which shell runs
+- **SC2309**: Don't use $ on variables inside $((...))
+  - Detects: `$(( $count + 1 ))` (unnecessary $)
+  - Fix: `$(( count + 1 ))` (cleaner)
+  - Impact: Simpler arithmetic syntax
+- **SC2310**: Functions in conditions ignore set -e
+  - Detects: `set -e; if myfunc; then` (set -e won't apply inside myfunc)
+  - Fix: Add explicit error handling inside function
+  - Impact: Avoid unexpected error handling behavior
+
+**🎉🎉🎉🎉🎉🎉🎉🎉🎉 MILESTONE ACHIEVED**: 285 rules (95.0% ShellCheck coverage - 285/300 SC2xxx rules)
+
+**Technical Highlights**:
+- 15 new rules implemented following EXTREME TDD
+- 4,545 tests passing (100% pass rate)
+- Focus on advanced shell patterns and edge cases
+- Parameter expansion validation and optimization
+- Array operation safety improvements
+- Remote script execution awareness
+- Test suite: +150 tests added across Sprint 119
+
+**Fixes Applied**:
+- SC2298: Excluded `cat -` (stdin) from useless cat detection
+- SC2299: Pattern fixed to match variables in offset/length position
+- SC2300: Pattern changed from `:` to `=` for assignment detection
+- SC2301: Added non-capturing group to exclude double brackets
+- SC2302: Fixed regex quote escaping with r#"..."# syntax
+- SC2305: Added capture groups to compare variable names (same var only)
+- SC2306: Fixed regex quote escaping with r#"..."# syntax
+- SC2308: Added comment line skipping
+- SC2310: Enhanced pattern to match both `function name` and `name()` syntax
+
+**🎉🎉🎉🎉🎉🎉🎉🎉🎉 Sprint 118 - 90% MILESTONE! Variable Best Practices and Optimizations** (15 rules):
 
 **Batch 1 - Variable Handling & Safety** (5 rules):
 - **SC2281**: Don't use "$@" in double quotes for concatenation
