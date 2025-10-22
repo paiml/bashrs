@@ -4,7 +4,7 @@ use once_cell::sync::Lazy;
 use regex::Regex;
 
 static ARRAY_APPEND_PATTERN: Lazy<Regex> = Lazy::new(|| {
-    Regex::new(r#"[a-zA-Z_][a-zA-Z0-9_]*=\(\s*"\$\{[a-zA-Z_][a-zA-Z0-9_]*\[@\]\}""#).unwrap()
+    Regex::new(r#"([a-zA-Z_][a-zA-Z0-9_]*)=\(\s*"\$\{([a-zA-Z_][a-zA-Z0-9_]*)\[@\]\}""#).unwrap()
 });
 
 pub fn check(source: &str) -> LintResult {
@@ -15,14 +15,21 @@ pub fn check(source: &str) -> LintResult {
             continue;
         }
 
-        if ARRAY_APPEND_PATTERN.is_match(line) {
-            let diagnostic = Diagnostic::new(
-                "SC2293",
-                Severity::Info,
-                "Use array+=(elements) instead of array=(...old...new) for appending".to_string(),
-                Span::new(line_num, 1, line_num, line.len() + 1),
-            );
-            result.add(diagnostic);
+        if let Some(caps) = ARRAY_APPEND_PATTERN.captures(line) {
+            // Extract variable names to check if same array is being reassigned
+            let assign_name = &caps[1];
+            let expand_name = &caps[2];
+
+            // Only warn if reassigning the same array to itself
+            if assign_name == expand_name {
+                let diagnostic = Diagnostic::new(
+                    "SC2293",
+                    Severity::Info,
+                    "Use array+=(elements) instead of array=(...old...new) for appending".to_string(),
+                    Span::new(line_num, 1, line_num, line.len() + 1),
+                );
+                result.add(diagnostic);
+            }
         }
     }
     result

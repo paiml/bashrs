@@ -4,7 +4,7 @@ use once_cell::sync::Lazy;
 use regex::Regex;
 
 static QUOTED_AT: Lazy<Regex> = Lazy::new(|| {
-    Regex::new(r#""\$@""#).unwrap()
+    Regex::new(r#""[^"]*\$@[^"]*""#).unwrap()
 });
 
 pub fn check(source: &str) -> LintResult {
