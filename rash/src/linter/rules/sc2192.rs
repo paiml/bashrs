@@ -1,4 +1,5 @@
 // SC2192: Array is empty
+#[allow(unused_imports)]
 use crate::linter::{Diagnostic, LintResult, Severity, Span};
 
 pub fn check(_source: &str) -> LintResult {

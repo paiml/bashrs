@@ -1,4 +1,5 @@
 // SC2205: Array append (covered by SC2179)
+#[allow(unused_imports)]
 use crate::linter::{Diagnostic, LintResult, Severity, Span};
 
 pub fn check(_source: &str) -> LintResult {

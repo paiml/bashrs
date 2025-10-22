@@ -1,4 +1,5 @@
 // SC2177: 'time' only measures the first command in the pipeline.
+#[allow(unused_imports)]
 //
 // Related to SC2176 - clarifies that time only measures first command.
 //
@@ -10,7 +11,6 @@
 //   time { cmd1 | cmd2; }        // Times entire pipeline
 //
 // Impact: Misleading timing measurements
-
 use crate::linter::{Diagnostic, LintResult, Severity, Span};
 
 pub fn check(_source: &str) -> LintResult {

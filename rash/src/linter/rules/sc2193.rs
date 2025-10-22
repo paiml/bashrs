@@ -1,4 +1,5 @@
 // SC2193: Literal space in glob
+#[allow(unused_imports)]
 use crate::linter::{Diagnostic, LintResult, Severity, Span};
 
 pub fn check(_source: &str) -> LintResult {

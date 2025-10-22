@@ -1,4 +1,5 @@
 // SC2175: Quote this to prevent word splitting.
+#[allow(unused_imports)]
 //
 // Unquoted variables undergo word splitting and globbing.
 //
@@ -12,7 +13,6 @@
 //   echo "$var"                   // Quoted
 //
 // Impact: Word splitting, unexpected behavior
-
 use crate::linter::{Diagnostic, LintResult, Severity, Span};
 
 pub fn check(_source: &str) -> LintResult {

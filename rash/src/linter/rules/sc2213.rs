@@ -1,4 +1,5 @@
 // SC2213: getopts is being used incorrectly (placeholder - requires state tracking)
+#[allow(unused_imports)]
 use crate::linter::LintResult;
 
 pub fn check(_source: &str) -> LintResult {

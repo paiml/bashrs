@@ -1,4 +1,5 @@
 // SC2189: Pipe before heredoc terminator
+#[allow(unused_imports)]
 use crate::linter::{Diagnostic, LintResult, Severity, Span};
 
 pub fn check(_source: &str) -> LintResult {

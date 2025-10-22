@@ -1,4 +1,5 @@
 // SC2215: Expression is not properly quoted
+#[allow(unused_imports)]
 use crate::linter::LintResult;
 
 pub fn check(_source: &str) -> LintResult {
