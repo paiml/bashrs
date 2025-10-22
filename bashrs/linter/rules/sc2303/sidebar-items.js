@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"fn":["check"],"static":["ARITHMETIC_BASE_IN_EXPR"]};
