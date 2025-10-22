@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"fn":["add_braces_to_variables","analyze_unquoted_variables","create_unquoted_var_pattern","detect_unquoted_variables","is_already_quoted","is_special_context","quote_assignment_line","quote_command_line","quote_variables"],"struct":["UnquotedVariable"]};

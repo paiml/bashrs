@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"fn":["analyze_aliases","consolidate_aliases","create_alias_pattern","detect_duplicate_aliases"],"struct":["AliasDefinition"]};

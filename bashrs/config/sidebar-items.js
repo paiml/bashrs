@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":["ConfigType","Severity"],"mod":["aliaser","analyzer","deduplicator","purifier","quoter"],"struct":["ConfigAnalysis","ConfigIssue","PathEntry","PerformanceIssue"]};

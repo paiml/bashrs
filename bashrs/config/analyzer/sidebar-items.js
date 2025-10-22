@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"fn":["analyze_config","calculate_complexity","detect_performance_issues"]};
