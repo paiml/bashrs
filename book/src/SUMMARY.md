@@ -29,6 +29,7 @@
 - [Purifying .bashrc and .zshrc](./config/purifying.md)
 - [CONFIG-001: PATH Deduplication](./config/rules/config-001.md)
 - [CONFIG-002: Quote Variables](./config/rules/config-002.md)
+- [CONFIG-003: Consolidate Aliases](./config/rules/config-003.md)
 
 ## Makefile Linting
 
