@@ -992,3 +992,276 @@ Before you can publish to crates.io, ensure:
 
 ---
 
+
+## 🌐 WebAssembly (WASM) Development
+
+**Status**: Phase 0 Complete - Feasibility Demonstrated
+**Target**: NASA-level quality for WOS and interactive.paiml.com deployment
+
+### WASM Philosophy: Mission-Critical Quality
+
+bashrs WASM provides shell script analysis in browsers for production systems:
+- **WOS (Web Operating System)**: Real-time shell script linting
+- **interactive.paiml.com**: Educational bash tutorials
+- **Production websites**: Config file validation
+
+**Zero tolerance for failure** - users depend on these tools.
+
+### Tools (NEVER use Python!)
+
+**Primary: Ruchy (WASM-optimized HTTP server)**
+```bash
+# Ruchy is verified by bashrs and optimized for WASM
+cd rash/examples/wasm
+ruchy serve --port 8000 --watch-wasm
+
+# Why Ruchy?
+# ✅ Correct MIME types for .wasm (application/wasm)
+# ✅ CORS headers for local development
+# ✅ Watch mode for auto-rebuild
+# ✅ Verified by bashrs (not Python!)
+# ✅ Zero configuration needed
+```
+
+**Alternative: Pure Bash**
+```bash
+# If ruchy unavailable, bash works too
+cd rash/examples/wasm
+bash -c 'while true; do printf "HTTP/1.1 200 OK\nContent-Type: text/html\n\n$(cat index.html)" | nc -l 8000; done'
+```
+
+**❌ NEVER use Python**:
+```bash
+# ❌ WRONG - Do not use python3 -m http.server
+# ❌ WRONG - bashrs doesn't depend on Python
+# ✅ RIGHT - Use ruchy or bash
+```
+
+### WASM Testing: SQLite + WOS + interactive.paiml.com Standards
+
+**Inspiration**:
+- SQLite: 608:1 test-to-code ratio, 100% MC/DC coverage
+- WOS Canary Tests: 60 tests, 8-second runtime
+- interactive.paiml.com: Real WASM execution testing
+
+**Test Harnesses** (4 required):
+
+1. **Browser Canary Tests** (40 tests)
+   - B01-B10: Config Analysis Workflows
+   - B11-B20: Streaming I/O Performance
+   - B21-B30: Error Handling & Anomalies
+   - B31-B40: Cross-Browser Compatibility
+
+2. **Unit Tests** (Rust + wasm-bindgen-test)
+   ```rust
+   #[wasm_bindgen_test]
+   fn test_analyze_config_basic() {
+       // Test core logic in WASM
+   }
+   ```
+
+3. **Property-Based Tests** (Fuzzing)
+   ```rust
+   proptest! {
+       #[test]
+       fn prop_analyze_never_panics(config in ".*{0,10000}") {
+           // Should never panic on any input
+       }
+   }
+   ```
+
+4. **Mutation Testing** (>90% kill rate)
+   ```bash
+   cargo mutants --file rash/src/wasm/api.rs
+   ```
+
+### Performance Baselines (MANDATORY)
+
+All operations must meet these targets:
+
+| Operation | Target | Test |
+|-----------|--------|------|
+| WASM load | <5s | B01 |
+| Config analysis (1KB) | <100ms | B02-B05 |
+| Stream 10MB | <1s, >10 MB/s | B11-B12 |
+| Callback latency | <1ms avg | B13 |
+| Memory per analysis | <10MB | B14 |
+
+Tests automatically **FAIL** if performance degrades.
+
+### Cross-Browser Matrix (REQUIRED)
+
+| Browser | Version | Tests | Status |
+|---------|---------|-------|--------|
+| Chromium | Latest | All 40 | Required |
+| Firefox | Latest | All 40 | Required |
+| WebKit/Safari | Latest | All 40 | Required |
+| Mobile Chrome | Latest | B31-B35 | Required |
+| Mobile Safari | Latest | B31-B35 | Required |
+
+### Quality Gates
+
+**Before Commit**:
+```bash
+# Fast canary tests (<2 min)
+make wasm-canary
+
+# Verify WASM builds
+make wasm-build
+
+# Unit tests
+cargo test --lib --features wasm
+```
+
+**Before Release**:
+```bash
+# Full browser matrix (~15 min)
+make wasm-canary-all
+
+# Property-based tests
+cargo test --lib --features wasm --release -- --include-ignored
+
+# Mutation testing (>90% kill rate required)
+make wasm-mutation
+
+# Performance benchmarks
+make wasm-bench
+```
+
+### Deployment Targets
+
+**1. WOS (Web Operating System)**
+- URL: https://wos.paiml.com
+- Integration: bashrs as system linter
+- Requirements: <5s load, works offline, <1MB binary
+
+**2. interactive.paiml.com**
+- URL: https://interactive.paiml.com
+- Integration: Real-time shell tutorials
+- Requirements: <100ms feedback, educational errors
+
+### WASM Project Structure
+
+```
+rash/
+├── src/wasm/
+│   ├── mod.rs        # Module architecture
+│   ├── api.rs        # JavaScript API (analyze, purify, version)
+│   ├── streaming.rs  # Streaming I/O benchmarks
+│   ├── config.rs     # Config re-exports
+│   └── filesystem.rs # Virtual filesystem (Phase 1)
+├── examples/wasm/
+│   ├── index.html       # Browser demo
+│   ├── README.md        # Building instructions
+│   ├── TESTING-SPEC.md  # NASA-level testing spec
+│   ├── PHASE0-RESULTS.md # Feasibility results
+│   └── pkg/             # Compiled WASM (generated)
+└── .cargo/
+    └── config.toml   # WASM build configuration
+```
+
+### Building WASM
+
+```bash
+# Install wasm-pack (first time only)
+cargo install wasm-pack
+
+# Build for web
+cd rash
+wasm-pack build --target web --features wasm
+
+# Output: pkg/bashrs_bg.wasm (960KB)
+
+# Serve with ruchy
+cd examples/wasm
+ruchy serve --port 8000 --watch-wasm
+```
+
+### WASM Testing Commands
+
+```bash
+# Development (fast)
+make wasm-canary              # Chromium only (~2 min)
+make wasm-canary-fast         # Config tests only (~1 min)
+
+# Pre-release (comprehensive)
+make wasm-canary-all          # All browsers (~15 min)
+make wasm-canary-chromium     # Chromium only
+make wasm-canary-firefox      # Firefox only
+make wasm-canary-webkit       # WebKit only
+
+# Debugging
+make wasm-canary-headed       # Visible browser
+make wasm-canary-ui           # Playwright UI mode
+make wasm-canary-debug        # Debugger attached
+
+# Reports
+make wasm-canary-report       # HTML test report
+```
+
+### Anomaly Testing (CRITICAL)
+
+WASM must handle **all** failure modes gracefully:
+
+1. **Memory Anomalies**: OOM during analysis
+2. **Storage Anomalies**: localStorage full/corrupted
+3. **Network Anomalies**: WASM load failure
+4. **Browser Anomalies**: Tab suspension, page reload
+5. **Input Anomalies**: Malformed configs, huge files
+
+**Every anomaly must have a test** - no exceptions.
+
+### Documentation Requirements
+
+Every WASM feature MUST have:
+
+1. ✅ **API Documentation** (rustdoc)
+2. ✅ **Browser Demo** (examples/wasm/*)
+3. ✅ **E2E Tests** (40+ canary tests)
+4. ✅ **Performance Benchmarks**
+5. ✅ **Integration Guide** (WOS + interactive.paiml.com)
+6. ✅ **Troubleshooting Guide**
+
+### WASM Phases
+
+**Phase 0** (COMPLETE): Feasibility Study
+- ✅ WASM builds successfully
+- ✅ Config analysis works (CONFIG-001 to CONFIG-004)
+- ✅ Basic browser demo
+- ⏳ Streaming benchmarks (pending browser testing)
+- ⏳ Go/No-Go decision (pending performance validation)
+
+**Phase 1** (FUTURE): Production Ready
+- [ ] All 40 canary tests pass
+- [ ] Cross-browser compatibility validated
+- [ ] Performance baselines met
+- [ ] Integrated with WOS
+- [ ] Integrated with interactive.paiml.com
+- [ ] Zero defects in production
+
+**Phase 2** (FUTURE): Advanced Features
+- [ ] Offline support (Service Worker)
+- [ ] Incremental analysis
+- [ ] Syntax highlighting integration
+- [ ] LSP server in WASM
+
+### Resources
+
+- **WASM Spec**: `rash/examples/wasm/TESTING-SPEC.md`
+- **Phase 0 Results**: `rash/examples/wasm/PHASE0-RESULTS.md`
+- **WOS Canary Tests**: `/home/noahgift/src/wos/e2e/tests/canary/README.md`
+- **interactive.paiml.com**: `/home/noahgift/src/interactive.paiml.com/tests/wasm/`
+- **SQLite Testing**: https://sqlite.org/testing.html
+
+### Critical Reminders
+
+1. **❌ NEVER use Python** - Use ruchy or bash
+2. **✅ ALWAYS run canary tests** before commit
+3. **✅ ALWAYS test cross-browser** before release
+4. **✅ ALWAYS verify performance** baselines
+5. **✅ ALWAYS handle anomalies** gracefully
+6. **✅ ALWAYS document** new features
+
+**WASM is mission-critical** - users depend on it. NASA-level quality is non-negotiable.
+
+---
