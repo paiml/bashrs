@@ -16,6 +16,9 @@ categories.workspace = true
 name = "bashrs"
 path = "src/bin/bashrs.rs"
 
+[lib]
+crate-type = ["cdylib", "rlib"]
+
 [dependencies]
 syn.workspace = true
 quote.workspace = true
@@ -24,10 +27,10 @@ serde.workspace = true
 serde_json.workspace = true
 anyhow.workspace = true
 thiserror.workspace = true
-clap.workspace = true
-tokio.workspace = true
+clap = { workspace = true, optional = true }
+tokio = { workspace = true, optional = true }
 tracing.workspace = true
-tracing-subscriber.workspace = true
+tracing-subscriber = { workspace = true, optional = true }
 blake3.workspace = true
 once_cell.workspace = true
 phf.workspace = true
@@ -36,11 +39,11 @@ rand = "0.9"  # Added for testing module
 static_assertions = "1.1"
 regex = "1.10"  # For linter pattern matching
 
-# Compile mode dependencies
-zstd = "0.13"
-tar = "0.4"
-flate2 = "1.1"
-base64 = "0.22"
+# Compile mode dependencies (optional - not needed for WASM)
+zstd = { version = "0.13", optional = true }
+tar = { version = "0.4", optional = true }
+flate2 = { version = "1.1", optional = true }
+base64 = { version = "0.22", optional = true }
 
 # Playground dependencies (removed from v1.0 - will be moved to separate rash-playground crate)
 # ratatui = { version = "0.29", default-features = false, features = ["crossterm"], optional = true }
@@ -62,16 +65,24 @@ base64 = "0.22"
 # mutagen = { version = "0.2", optional = true }
 # libfuzzer-sys = { version = "0.4", optional = true }
 
+# WASM support (Phase 0: Feasibility Study)
+wasm-bindgen = { version = "0.2", optional = true }
+wasm-bindgen-futures = { version = "0.4", optional = true }
+js-sys = { version = "0.3", optional = true }
+web-sys = { version = "0.3", features = ["console"], optional = true }
+console_error_panic_hook = { version = "0.1", optional = true }
+getrandom = { version = "0.3", features = ["wasm_js"], optional = true }
+
 [features]
 # Default includes core features for full functionality
-default = ["validation", "pretty-errors", "basic", "compile"]
+default = ["validation", "pretty-errors", "basic", "compile", "clap", "tokio", "tracing-subscriber"]
 # Minimal build for smallest binary size (<3MB)
 minimal = []
 # Full build with all features (~6MB)
-full = ["pattern-matching", "loops", "verification", "optimization", "lsp", "completions", "watch", "compile"]
+full = ["pattern-matching", "loops", "verification", "optimization", "lsp", "completions", "watch", "compile", "clap", "tokio", "tracing-subscriber"]
 # Individual features
 basic = []
-compile = []  # Binary compilation and self-extracting scripts
+compile = ["tokio", "zstd", "tar", "flate2", "base64"]  # Binary compilation and self-extracting scripts
 pattern-matching = []
 loops = []
 verification = []  # ["z3"] when available
@@ -81,6 +92,7 @@ pretty-errors = []
 lsp = []
 completions = []
 watch = []
+wasm = ["wasm-bindgen", "wasm-bindgen-futures", "js-sys", "web-sys", "console_error_panic_hook", "getrandom"]  # Phase 0: WASM feasibility study
 # playground = ["ratatui", "ropey", "tree-sitter", "tree-sitter-rust", "crossbeam", "dashmap", "petgraph", "rayon", "brotli", "simdutf8", "bit-vec", "lru"]  # Removed from v1.0 - move to separate crate
 # mutation-testing = ["mutagen"] when available
 # fuzzing = ["libfuzzer-sys"] when available
@@ -120,4 +132,7 @@ harness = false
 # Note: The actual Rash examples are in the examples/ directory
 # They are written in Rash syntax and must be transpiled, not compiled
 # See examples/README.md for usage instructions
+
+[package.metadata.wasm-pack.profile.release]
+wasm-opt = false
 
