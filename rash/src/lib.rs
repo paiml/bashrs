@@ -54,9 +54,12 @@
 pub mod ast;
 pub mod bash_parser;
 pub mod bash_transpiler;
+#[cfg(not(target_arch = "wasm32"))]
 pub mod cli;
+#[cfg(not(target_arch = "wasm32"))]
 pub mod compiler;
 pub mod config; // NEW: Shell config file management (v7.0)
+#[cfg(not(target_arch = "wasm32"))]
 pub mod container;
 pub mod emitter;
 pub mod formal;
@@ -73,6 +76,10 @@ pub mod verifier;
 
 #[cfg(test)]
 pub mod testing;
+
+// WebAssembly support (Phase 0: Feasibility Study)
+#[cfg(feature = "wasm")]
+pub mod wasm;
 
 pub use models::{Config, Error, Result};
 
