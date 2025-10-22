@@ -258,6 +258,21 @@ pub mod sc2262;
 pub mod sc2263;
 pub mod sc2264;
 pub mod sc2265;
+pub mod sc2266;
+pub mod sc2267;
+pub mod sc2268;
+pub mod sc2269;
+pub mod sc2270;
+pub mod sc2271;
+pub mod sc2272;
+pub mod sc2273;
+pub mod sc2274;
+pub mod sc2275;
+pub mod sc2276;
+pub mod sc2277;
+pub mod sc2278;
+pub mod sc2279;
+pub mod sc2280;
 
 // Determinism rules (bashrs-specific)
 pub mod det001;
@@ -569,6 +584,21 @@ pub fn lint_shell(source: &str) -> LintResult {
     result.merge(sc2263::check(source));
     result.merge(sc2264::check(source));
     result.merge(sc2265::check(source));
+    result.merge(sc2266::check(source));
+    result.merge(sc2267::check(source));
+    result.merge(sc2268::check(source));
+    result.merge(sc2269::check(source));
+    result.merge(sc2270::check(source));
+    result.merge(sc2271::check(source));
+    result.merge(sc2272::check(source));
+    result.merge(sc2273::check(source));
+    result.merge(sc2274::check(source));
+    result.merge(sc2275::check(source));
+    result.merge(sc2276::check(source));
+    result.merge(sc2277::check(source));
+    result.merge(sc2278::check(source));
+    result.merge(sc2279::check(source));
+    result.merge(sc2280::check(source));
 
     // Run determinism rules
     result.merge(det001::check(source));
