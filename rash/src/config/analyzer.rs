@@ -4,7 +4,7 @@
 //! and provide insights.
 
 use super::{ConfigAnalysis, ConfigIssue, ConfigType, PathEntry, PerformanceIssue};
-use crate::config::{deduplicator, quoter};
+use crate::config::{aliaser, deduplicator, quoter};
 use std::path::PathBuf;
 
 /// Analyze a shell configuration file
@@ -23,8 +23,12 @@ pub fn analyze_config(source: &str, file_path: PathBuf) -> ConfigAnalysis {
     let quote_issues = quoter::detect_unquoted_variables(&unquoted_vars);
     issues.extend(quote_issues);
 
+    // Analyze duplicate aliases (CONFIG-003)
+    let aliases = aliaser::analyze_aliases(source);
+    let alias_issues = aliaser::detect_duplicate_aliases(&aliases);
+    issues.extend(alias_issues);
+
     // TODO: Add more analysis rules
-    // - CONFIG-003: Duplicate aliases
     // - CONFIG-004: Non-deterministic constructs
     // - CONFIG-005: Expensive operations
 

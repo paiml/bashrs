@@ -13,11 +13,13 @@ export EDITOR=vim
 export VISUAL=$EDITOR
 export PAGER=less
 
-# Aliases
+# Aliases - with duplicates!
 alias ls='ls --color=auto'
 alias ll='ls -lah'
 alias la='ls -A'
 alias l='ls -CF'
+alias ls='ls -G'  # Duplicate - overrides the first one
+alias ll='ls -alh'  # Duplicate with different value
 
 # Version managers - expensive evals!
 eval "$(rbenv init -)"
