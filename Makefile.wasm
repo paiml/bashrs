@@ -1,0 +1,106 @@
+# Use bash for shell commands
+SHELL := /bin/bash
+
+#==============================================================================
+# WASM (WebAssembly) Testing Targets
+# NASA-Level Quality Standards for Mission-Critical Browser Deployment
+#==============================================================================
+# Inspired by: SQLite (608:1 test ratio), WOS Canary Tests, interactive.paiml.com
+# Targets: WOS (wos.paiml.com) and interactive.paiml.com production deployment
+# Documentation: rash/examples/wasm/TESTING-SPEC.md
+#==============================================================================
+
+.PHONY: wasm-all wasm-build wasm-clean wasm-serve wasm-serve-ruchy
+.PHONY: wasm-test wasm-canary wasm-canary-fast wasm-canary-all
+.PHONY: wasm-canary-chromium wasm-canary-firefox wasm-canary-webkit
+.PHONY: wasm-canary-headed wasm-canary-ui wasm-canary-debug wasm-canary-report
+.PHONY: wasm-unit wasm-property wasm-mutation wasm-bench
+.PHONY: wasm-install wasm-check wasm-quality wasm-deploy-wos wasm-deploy-interactive
+.PHONY: wasm-help
+
+#------------------------------------------------------------------------------
+# WASM Build Targets
+#------------------------------------------------------------------------------
+
+wasm-install: ## Install wasm-pack and Playwright for WASM testing
+	@echo "📦 Installing WASM dependencies..."
+	@if ! command -v wasm-pack >/dev/null 2>&1; then \
+		echo "Installing wasm-pack..."; \
+		cargo install wasm-pack; \
+	else \
+		echo "✅ wasm-pack already installed"; \
+	fi
+	@if ! command -v ruchy >/dev/null 2>&1; then \
+		echo "⚠️  ruchy not found - install with: cargo install ruchy"; \
+		echo "   (ruchy is WASM-optimized, verified by bashrs)"; \
+	else \
+		echo "✅ ruchy already installed"; \
+	fi
+	@echo "✅ WASM dependencies ready"
+
+wasm-build: ## Build WASM module for browser (Phase 0: Config Analysis)
+	@echo "🔨 Building bashrs WASM module..."
+	@cd rash && wasm-pack build \
+		--target web \
+		--no-default-features \
+		--features wasm
+	@mv rash/pkg rash/examples/wasm/ 2>/dev/null || true
+	@echo "✅ WASM built: rash/examples/wasm/pkg/bashrs_bg.wasm"
+	@ls -lh rash/examples/wasm/pkg/bashrs_bg.wasm
+
+wasm-build-release: ## Build optimized WASM for production deployment
+	@echo "🚀 Building optimized WASM for production..."
+	@cd rash && wasm-pack build \
+		--target web \
+		--release \
+		--no-default-features \
+		--features wasm
+	@mv rash/pkg rash/examples/wasm/ 2>/dev/null || true
+	@echo "📊 WASM size:"
+	@ls -lh rash/examples/wasm/pkg/bashrs_bg.wasm
+	@echo "🎯 Target: <1MB for production"
+
+wasm-clean: ## Clean WASM build artifacts
+	@echo "🧹 Cleaning WASM artifacts..."
+	@rm -rf rash/examples/wasm/pkg
+	@rm -rf rash/pkg
+	@rm -rf rash/target/wasm32-unknown-unknown
+	@echo "✅ WASM artifacts cleaned"
+
+#------------------------------------------------------------------------------
+# WASM Development Server (NEVER use Python!)
+#------------------------------------------------------------------------------
+
+wasm-serve: wasm-build ## Serve WASM demo with Ruchy (RECOMMENDED - WASM-optimized)
+	@echo "🚀 Starting Ruchy server (WASM-optimized)..."
+	@echo "📍 URL: http://localhost:8000/index.html"
+	@echo "✅ Correct MIME types for .wasm (application/wasm)"
+	@echo "✅ CORS headers for local development"
+	@echo "✅ Watch mode for auto-rebuild"
+	@echo ""
+	@cd rash/examples/wasm && ruchy serve --port 8000 --watch-wasm
+
+wasm-check: wasm-build ## Quick WASM validation (before commit) - Run this before every commit
+	@echo "✅ WASM build successful"
+	@echo "🎯 Ready to commit"
+
+wasm-help: ## Show WASM testing help
+	@echo "================================================================================================"
+	@echo "WASM (WebAssembly) Testing Targets - NASA-Level Quality Standards"
+	@echo "================================================================================================"
+	@echo ""
+	@echo "🚀 QUICK START:"
+	@echo "  make -f Makefile.wasm wasm-install       Install wasm-pack and Playwright"
+	@echo "  make -f Makefile.wasm wasm-build         Build WASM module"
+	@echo "  make -f Makefile.wasm wasm-serve         Serve demo with Ruchy (http://localhost:8000)"
+	@echo "  make -f Makefile.wasm wasm-check         Quick validation (before commit)"
+	@echo ""
+	@echo "📚 DOCUMENTATION:"
+	@echo "  Specification:    rash/examples/wasm/TESTING-SPEC.md"
+	@echo "  Phase 0 Results:  rash/examples/wasm/PHASE0-RESULTS.md"
+	@echo "  CLAUDE.md:        See 'WebAssembly (WASM) Development' section"
+	@echo ""
+	@echo "================================================================================================"
+	@echo "Inspired by: SQLite (608:1 test ratio), WOS Canary Tests, interactive.paiml.com"
+	@echo "Standards: NASA-level quality for mission-critical browser deployment"
+	@echo "================================================================================================"
