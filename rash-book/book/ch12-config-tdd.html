@@ -24,28 +24,41 @@
         <link rel="stylesheet" href="fonts/fonts.css">
 
         <!-- Highlight.js Stylesheets -->
-        <link rel="stylesheet" href="highlight.css">
-        <link rel="stylesheet" href="tomorrow-night.css">
-        <link rel="stylesheet" href="ayu-highlight.css">
+        <link rel="stylesheet" id="highlight-css" href="highlight.css">
+        <link rel="stylesheet" id="tomorrow-night-css" href="tomorrow-night.css">
+        <link rel="stylesheet" id="ayu-highlight-css" href="ayu-highlight.css">
 
         <!-- Custom theme stylesheets -->
 
 
-        <!-- Provide site root to javascript -->
+        <!-- Provide site root and default themes to javascript -->
         <script>
-            var path_to_root = "";
-            var default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "coal" : "rust";
+            const path_to_root = "";
+            const default_light_theme = "rust";
+            const default_dark_theme = "coal";
+            window.path_to_searchindex_js = "searchindex.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc.js"></script>
     </head>
     <body>
+    <div id="mdbook-help-container">
+        <div id="mdbook-help-popup">
+            <h2 class="mdbook-help-title">Keyboard shortcuts</h2>
+            <div>
+                <p>Press <kbd>←</kbd> or <kbd>→</kbd> to navigate between chapters</p>
+                <p>Press <kbd>S</kbd> or <kbd>/</kbd> to search in the book</p>
+                <p>Press <kbd>?</kbd> to show this help</p>
+                <p>Press <kbd>Esc</kbd> to hide this help</p>
+            </div>
+        </div>
+    </div>
     <div id="body-container">
         <!-- Work around some values being stored in localStorage wrapped in quotes -->
         <script>
             try {
-                var theme = localStorage.getItem('mdbook-theme');
-                var sidebar = localStorage.getItem('mdbook-sidebar');
+                let theme = localStorage.getItem('mdbook-theme');
+                let sidebar = localStorage.getItem('mdbook-sidebar');
 
                 if (theme.startsWith('"') && theme.endsWith('"')) {
                     localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
@@ -59,7 +72,8 @@
 
         <!-- Set the theme before any content is loaded, prevents flash -->
         <script>
-            var theme;
+            const default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? default_dark_theme : default_light_theme;
+            let theme;
             try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
             if (theme === null || theme === undefined) { theme = default_theme; }
             const html = document.documentElement;
@@ -72,17 +86,20 @@
 
         <!-- Hide / unhide sidebar before it is displayed -->
         <script>
-            var sidebar = null;
-            var sidebar_toggle = document.getElementById("sidebar-toggle-anchor");
+            let sidebar = null;
+            const sidebar_toggle = document.getElementById("sidebar-toggle-anchor");
             if (document.body.clientWidth >= 1080) {
                 try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
                 sidebar = sidebar || 'visible';
             } else {
                 sidebar = 'hidden';
+                sidebar_toggle.checked = false;
             }
-            sidebar_toggle.checked = sidebar === 'visible';
-            html.classList.remove('sidebar-visible');
-            html.classList.add("sidebar-" + sidebar);
+            if (sidebar === 'visible') {
+                sidebar_toggle.checked = true;
+            } else {
+                html.classList.remove('sidebar-visible');
+            }
         </script>
 
         <nav id="sidebar" class="sidebar" aria-label="Table of contents">
@@ -109,13 +126,14 @@
                             <i class="fa fa-paint-brush"></i>
                         </button>
                         <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="default_theme">Auto</button></li>
                             <li role="none"><button role="menuitem" class="theme" id="light">Light</button></li>
                             <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
                             <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
                             <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
                             <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
                         </ul>
-                        <button id="search-toggle" class="icon-button" type="button" title="Search. (Shortkey: s)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="S" aria-controls="searchbar">
+                        <button id="search-toggle" class="icon-button" type="button" title="Search (`/`)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="/ s" aria-controls="searchbar">
                             <i class="fa fa-search"></i>
                         </button>
                     </div>
@@ -129,7 +147,7 @@
                         <a href="https://github.com/paiml/bashrs" title="Git repository" aria-label="Git repository">
                             <i id="git-repository-button" class="fa fa-github"></i>
                         </a>
-                        <a href="https://github.com/paiml/bashrs/edit/main/rash-book/src/ch12-config-tdd.md" title="Suggest an edit" aria-label="Suggest an edit">
+                        <a href="https://github.com/paiml/bashrs/edit/main/rash-book/src/ch12-config-tdd.md" title="Suggest an edit" aria-label="Suggest an edit" rel="edit">
                             <i id="git-edit-button" class="fa fa-edit"></i>
                         </a>
 
@@ -138,7 +156,12 @@
 
                 <div id="search-wrapper" class="hidden">
                     <form id="searchbar-outer" class="searchbar-outer">
-                        <input type="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                        <div class="search-wrapper">
+                            <input type="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                            <div class="spinner-wrapper">
+                                <i class="fa fa-spinner fa-spin"></i>
+                            </div>
+                        </div>
                     </form>
                     <div id="searchresults-outer" class="searchresults-outer hidden">
                         <div id="searchresults-header" class="searchresults-header"></div>
@@ -158,7 +181,273 @@
 
                 <div id="content" class="content">
                     <main>
-                        <h1 id="placeholder-ch12-config-tddmd"><a class="header" href="#placeholder-ch12-config-tddmd">Placeholder: ch12-config-tdd.md</a></h1>
+                        <h1 id="chapter-12-shell-configuration-management"><a class="header" href="#chapter-12-shell-configuration-management">Chapter 12: Shell Configuration Management</a></h1>
+<p>Shell configuration files (<code>.bashrc</code>, <code>.zshrc</code>, <code>.bash_profile</code>, etc.) are the foundation of your command-line environment. Over time, these files accumulate complexity: duplicate PATH entries, unquoted variables, conflicting aliases, and non-deterministic constructs that make your environment unpredictable.</p>
+<p>Rash provides <strong>automatic analysis, linting, and purification</strong> for shell config files through four specialized rules: CONFIG-001 through CONFIG-004.</p>
+<h2 id="why-configuration-management-matters"><a class="header" href="#why-configuration-management-matters">Why Configuration Management Matters</a></h2>
+<p><strong>Problem</strong>: Configuration files grow organically over years:</p>
+<ul>
+<li>Copy-pasting snippets from the internet</li>
+<li>Adding new tools without cleaning up old entries</li>
+<li>Accumulating duplicate PATH entries</li>
+<li>Leaving behind non-deterministic experiments</li>
+</ul>
+<p><strong>Result</strong>: Slow shell startup, unpredictable behavior, security vulnerabilities.</p>
+<p><strong>Solution</strong>: Rash automatically detects and fixes common configuration issues.</p>
+<h2 id="supported-file-types"><a class="header" href="#supported-file-types">Supported File Types</a></h2>
+<p>Rash recognizes these shell configuration files:</p>
+<ul>
+<li><code>.bashrc</code> - Bash interactive shell configuration</li>
+<li><code>.bash_profile</code> - Bash login shell configuration</li>
+<li><code>.zshrc</code> - Zsh interactive shell configuration</li>
+<li><code>.zprofile</code> - Zsh login shell configuration</li>
+<li><code>.profile</code> - POSIX shell configuration</li>
+</ul>
+<h2 id="quick-start"><a class="header" href="#quick-start">Quick Start</a></h2>
+<pre><code class="language-bash"># Analyze your .bashrc for issues
+bashrs config analyze ~/.bashrc
+
+# Lint with exit code 1 if issues found
+bashrs config lint ~/.bashrc
+
+# Auto-fix all issues (creates .bashrc.bak backup)
+bashrs config purify ~/.bashrc
+</code></pre>
+<hr />
+<h2 id="config-001-path-deduplication"><a class="header" href="#config-001-path-deduplication">CONFIG-001: PATH Deduplication</a></h2>
+<h3 id="the-problem"><a class="header" href="#the-problem">The Problem</a></h3>
+<p>Over time, configuration files accumulate duplicate PATH entries:</p>
+<pre><code class="language-bash"># .bashrc - accumulated over time
+export PATH="/usr/local/bin:$PATH"
+export PATH="/usr/local/bin:$PATH"  # Duplicate!
+export PATH="/opt/homebrew/bin:$PATH"
+export PATH="/usr/local/bin:$PATH"  # Duplicate again!
+</code></pre>
+<p><strong>Impact</strong>:</p>
+<ul>
+<li><strong>Performance</strong>: Shell searches each PATH entry on every command lookup</li>
+<li><strong>Confusion</strong>: Multiple copies make debugging harder</li>
+<li><strong>Maintenance</strong>: Hard to know which line is actually used</li>
+</ul>
+<h3 id="what-config-001-detects"><a class="header" href="#what-config-001-detects">What CONFIG-001 Detects</a></h3>
+<p>Rash identifies duplicate PATH additions and reports which lines are redundant:</p>
+<pre><code class="language-bash">$ bashrs config analyze .bashrc
+</code></pre>
+<p>Output:</p>
+<pre><code>CONFIG-001 [Warning] Line 2: Duplicate PATH entry: '/usr/local/bin' (already added earlier)
+CONFIG-001 [Warning] Line 4: Duplicate PATH entry: '/usr/local/bin' (already added earlier)
+</code></pre>
+<h3 id="auto-fix"><a class="header" href="#auto-fix">Auto-Fix</a></h3>
+<pre><code class="language-bash">$ bashrs config purify .bashrc
+</code></pre>
+<p>Result - clean, deduplicated PATH:</p>
+<pre><code class="language-bash"># .bashrc - after purification
+export PATH="/usr/local/bin:$PATH"
+# Removed duplicate: export PATH="/usr/local/bin:$PATH"
+export PATH="/opt/homebrew/bin:$PATH"
+# Removed duplicate: export PATH="/usr/local/bin:$PATH"
+</code></pre>
+<h3 id="how-it-works"><a class="header" href="#how-it-works">How It Works</a></h3>
+<p>CONFIG-001 tracks first occurrence of each PATH entry and marks subsequent additions as duplicates. The purifier comments out duplicates while preserving the original file structure.</p>
+<hr />
+<h2 id="config-002-quote-variable-expansions"><a class="header" href="#config-002-quote-variable-expansions">CONFIG-002: Quote Variable Expansions</a></h2>
+<h3 id="the-problem-1"><a class="header" href="#the-problem-1">The Problem</a></h3>
+<p>Unquoted variable expansions can lead to <strong>word splitting</strong>, <strong>glob expansion</strong>, and <strong>injection vulnerabilities</strong>:</p>
+<pre><code class="language-bash"># .bashrc - DANGEROUS unquoted variables
+export PROJECT_DIR=$HOME/my projects      # ❌ Breaks on spaces
+cd $PROJECT_DIR                            # ❌ Expands to 2 arguments
+FILES=$(ls *.txt)                          # ❌ Loses whitespace info
+</code></pre>
+<p><strong>What goes wrong</strong>:</p>
+<pre><code class="language-bash">$ cd $PROJECT_DIR
+cd: too many arguments  # Shell splits at space!
+</code></pre>
+<h3 id="what-config-002-detects"><a class="header" href="#what-config-002-detects">What CONFIG-002 Detects</a></h3>
+<p>Rash identifies all unquoted variable references that should be quoted:</p>
+<pre><code class="language-bash">$ bashrs config analyze .bashrc
+</code></pre>
+<p>Output:</p>
+<pre><code>CONFIG-002 [Warning] Line 1: Unquoted variable: $HOME (should be quoted)
+CONFIG-002 [Warning] Line 2: Unquoted variable: $PROJECT_DIR (should be quoted)
+CONFIG-002 [Warning] Line 3: Unquoted command substitution: $(ls *.txt)
+</code></pre>
+<h3 id="auto-fix-1"><a class="header" href="#auto-fix-1">Auto-Fix</a></h3>
+<pre><code class="language-bash">$ bashrs config purify .bashrc
+</code></pre>
+<p>Result - safely quoted variables:</p>
+<pre><code class="language-bash"># .bashrc - after purification
+export PROJECT_DIR="${HOME}/my projects"   # ✅ Safe from splitting
+cd "${PROJECT_DIR}"                         # ✅ Single argument
+FILES="$(ls *.txt)"                         # ✅ Preserves whitespace
+</code></pre>
+<h3 id="when-quoting-is-skipped"><a class="header" href="#when-quoting-is-skipped">When Quoting Is Skipped</a></h3>
+<p>CONFIG-002 is smart - it <strong>doesn’t quote</strong> in these contexts:</p>
+<ul>
+<li><strong>Arithmetic</strong>: <code>(( x = $var + 1 ))</code> - quoting not needed</li>
+<li><strong>[[ ]]</strong>: Variable expansion is safe in double brackets</li>
+<li><strong>Assignments</strong>: <code>VAR=$OTHER</code> - right-hand side is safe</li>
+</ul>
+<h3 id="why-this-matters"><a class="header" href="#why-this-matters">Why This Matters</a></h3>
+<p><strong>Security</strong>: Unquoted variables are a common injection vector
+<strong>Correctness</strong>: Spaces in paths cause hard-to-debug failures
+<strong>Reliability</strong>: Glob patterns activate unexpectedly without quotes</p>
+<hr />
+<h2 id="config-003-consolidate-duplicate-aliases"><a class="header" href="#config-003-consolidate-duplicate-aliases">CONFIG-003: Consolidate Duplicate Aliases</a></h2>
+<h3 id="the-problem-2"><a class="header" href="#the-problem-2">The Problem</a></h3>
+<p>Aliases get redefined multiple times as configuration files evolve:</p>
+<pre><code class="language-bash"># .bashrc - multiple alias definitions
+alias ls='ls --color=auto'      # From Ubuntu default
+alias ls='ls -G'                # From macOS snippet
+alias ll='ls -la'
+alias ll='ls -alh'              # Updated version
+</code></pre>
+<p><strong>What happens</strong>:</p>
+<ul>
+<li><strong>Last definition wins</strong> - earlier definitions are silently ignored</li>
+<li><strong>Confusion</strong> - hard to know which alias is actually active</li>
+<li><strong>Bloat</strong> - unnecessary lines slow shell startup</li>
+</ul>
+<h3 id="what-config-003-detects"><a class="header" href="#what-config-003-detects">What CONFIG-003 Detects</a></h3>
+<p>Rash finds all duplicate alias definitions:</p>
+<pre><code class="language-bash">$ bashrs config analyze .bashrc
+</code></pre>
+<p>Output:</p>
+<pre><code>CONFIG-003 [Warning] Line 2: Duplicate alias definition: 'ls' (first defined at line 1)
+CONFIG-003 [Warning] Line 4: Duplicate alias definition: 'll' (first defined at line 3)
+</code></pre>
+<h3 id="auto-fix-2"><a class="header" href="#auto-fix-2">Auto-Fix</a></h3>
+<pre><code class="language-bash">$ bashrs config purify .bashrc
+</code></pre>
+<p>Result - only last definition kept:</p>
+<pre><code class="language-bash"># .bashrc - after purification
+# Removed duplicate: alias ls='ls --color=auto'
+alias ls='ls -G'                # ✅ Last definition wins
+# Removed duplicate: alias ll='ls -la'
+alias ll='ls -alh'              # ✅ Latest version kept
+</code></pre>
+<h3 id="shell-behavior"><a class="header" href="#shell-behavior">Shell Behavior</a></h3>
+<p>The purifier matches <strong>actual shell behavior</strong>: when you define an alias multiple times, the last definition is what the shell uses. CONFIG-003 makes this explicit by removing earlier definitions.</p>
+<hr />
+<h2 id="config-004-remove-non-deterministic-constructs"><a class="header" href="#config-004-remove-non-deterministic-constructs">CONFIG-004: Remove Non-Deterministic Constructs</a></h2>
+<h3 id="the-problem-3"><a class="header" href="#the-problem-3">The Problem</a></h3>
+<p>Non-deterministic constructs make your shell environment <strong>unpredictable</strong> and <strong>unreproducible</strong>:</p>
+<pre><code class="language-bash"># .bashrc - NON-DETERMINISTIC constructs
+export SESSION_ID=$RANDOM                # ❌ Changes every time
+export BUILD_TAG="v1.0.$(date +%s)"     # ❌ Timestamp changes
+export LOG_FILE="/tmp/shell.$$.log"     # ❌ Process ID changes
+export PS1="[$(hostname)] $ "            # ❌ Hostname-dependent
+UPTIME=$(uptime)                         # ❌ Always different
+</code></pre>
+<p><strong>Why this is bad</strong>:</p>
+<ul>
+<li><strong>Debugging nightmare</strong>: Can’t reproduce issues across sessions</li>
+<li><strong>Testing impossible</strong>: Config behaves differently every time</li>
+<li><strong>Deployment chaos</strong>: Same config produces different results</li>
+</ul>
+<h3 id="what-config-004-detects"><a class="header" href="#what-config-004-detects">What CONFIG-004 Detects</a></h3>
+<p>Rash identifies five types of non-deterministic constructs:</p>
+<ol>
+<li><strong>$RANDOM</strong> - generates unpredictable values</li>
+<li><strong>$(date …)</strong> - timestamps change constantly</li>
+<li><strong>$$</strong> - process ID different each session</li>
+<li><strong>$(hostname)</strong> - varies across machines</li>
+<li><strong>$(uptime)</strong> - always changing</li>
+</ol>
+<pre><code class="language-bash">$ bashrs config analyze .bashrc
+</code></pre>
+<p>Output:</p>
+<pre><code>CONFIG-004 [Warning] Line 1: $RANDOM generates unpredictable values
+CONFIG-004 [Warning] Line 2: Timestamp generation is non-deterministic
+CONFIG-004 [Warning] Line 3: $$ (process ID) changes between sessions
+CONFIG-004 [Warning] Line 4: $(hostname) may vary across environments
+CONFIG-004 [Warning] Line 5: $(uptime) changes constantly
+</code></pre>
+<h3 id="auto-fix-3"><a class="header" href="#auto-fix-3">Auto-Fix</a></h3>
+<pre><code class="language-bash">$ bashrs config purify .bashrc
+</code></pre>
+<p>Result - non-deterministic constructs commented out:</p>
+<pre><code class="language-bash"># .bashrc - after purification
+# CONFIG-004: Removed $RANDOM (non-deterministic)
+# export SESSION_ID=$RANDOM
+
+# CONFIG-004: Removed timestamp (non-deterministic)
+# export BUILD_TAG="v1.0.$(date +%s)"
+
+# CONFIG-004: Removed process ID (non-deterministic)
+# export LOG_FILE="/tmp/shell.$$.log"
+
+# CONFIG-004: Removed hostname check (environment-dependent)
+# export PS1="[$(hostname)] $ "
+
+# CONFIG-004: Removed uptime (non-deterministic)
+# UPTIME=$(uptime)
+</code></pre>
+<h3 id="replacements"><a class="header" href="#replacements">Replacements</a></h3>
+<p>Instead of non-deterministic constructs, use:</p>
+<ul>
+<li><strong>Fixed seeds</strong>: <code>SESSION_ID="stable-session-001"</code> instead of <code>$RANDOM</code></li>
+<li><strong>Version strings</strong>: <code>BUILD_TAG="v1.0.0"</code> instead of timestamps</li>
+<li><strong>Named logs</strong>: <code>LOG_FILE="/tmp/shell.log"</code> instead of PID-based names</li>
+<li><strong>Environment configs</strong>: Separate config files per environment instead of <code>$(hostname)</code> checks</li>
+</ul>
+<h3 id="philosophy"><a class="header" href="#philosophy">Philosophy</a></h3>
+<p>Configuration files should be <strong>deterministic</strong> and <strong>reproducible</strong>. If you need environment-specific behavior, use separate config files (e.g., <code>.bashrc.production</code>, <code>.bashrc.development</code>) rather than runtime checks.</p>
+<hr />
+<h2 id="complete-workflow-example"><a class="header" href="#complete-workflow-example">Complete Workflow Example</a></h2>
+<h3 id="before-purification"><a class="header" href="#before-purification">Before Purification</a></h3>
+<p>Your messy <code>.bashrc</code>:</p>
+<pre><code class="language-bash"># Accumulated over 5 years
+export PATH="/usr/local/bin:$PATH"
+export PATH="/usr/local/bin:$PATH"  # Duplicate
+export PROJECT_DIR=$HOME/my projects  # Unquoted
+alias ls='ls --color=auto'
+alias ls='ls -G'  # Duplicate
+export SESSION_ID=$RANDOM  # Non-deterministic
+</code></pre>
+<h3 id="step-1-analyze"><a class="header" href="#step-1-analyze">Step 1: Analyze</a></h3>
+<pre><code class="language-bash">$ bashrs config analyze ~/.bashrc
+</code></pre>
+<p>Output:</p>
+<pre><code>CONFIG-001 [Warning] Line 2: Duplicate PATH entry: '/usr/local/bin'
+CONFIG-002 [Warning] Line 3: Unquoted variable: $HOME
+CONFIG-003 [Warning] Line 5: Duplicate alias definition: 'ls' (first defined at line 4)
+CONFIG-004 [Warning] Line 6: $RANDOM generates unpredictable values
+
+Found 4 issues
+</code></pre>
+<h3 id="step-2-purify"><a class="header" href="#step-2-purify">Step 2: Purify</a></h3>
+<pre><code class="language-bash">$ bashrs config purify ~/.bashrc
+Created backup: ~/.bashrc.bak
+Purified: ~/.bashrc
+</code></pre>
+<h3 id="after-purification"><a class="header" href="#after-purification">After Purification</a></h3>
+<p>Your clean <code>.bashrc</code>:</p>
+<pre><code class="language-bash"># Accumulated over 5 years
+export PATH="/usr/local/bin:$PATH"
+# Removed duplicate: export PATH="/usr/local/bin:$PATH"
+export PROJECT_DIR="${HOME}/my projects"  # ✅ Quoted
+# Removed duplicate: alias ls='ls --color=auto'
+alias ls='ls -G'  # ✅ Last definition kept
+# CONFIG-004: Removed $RANDOM (non-deterministic)
+# export SESSION_ID=$RANDOM
+</code></pre>
+<h2 id="best-practices"><a class="header" href="#best-practices">Best Practices</a></h2>
+<ol>
+<li><strong>Run purification regularly</strong>: Add <code>bashrs config lint ~/.bashrc</code> to your CI/CD</li>
+<li><strong>Review changes</strong>: Check the <code>.bak</code> backup before committing purified files</li>
+<li><strong>Idempotent</strong>: Safe to run <code>purify</code> multiple times - it won’t double-fix</li>
+<li><strong>Source control</strong>: Commit your clean config files to version control</li>
+</ol>
+<h2 id="summary"><a class="header" href="#summary">Summary</a></h2>
+<p>Rash’s CONFIG rules provide <strong>automatic cleanup</strong> for shell configuration files:</p>
+<div class="table-wrapper"><table><thead><tr><th>Rule</th><th>What It Fixes</th><th>Impact</th></tr></thead><tbody>
+<tr><td><strong>CONFIG-001</strong></td><td>Duplicate PATH entries</td><td>⚡ Faster command lookup</td></tr>
+<tr><td><strong>CONFIG-002</strong></td><td>Unquoted variables</td><td>🔒 Security + correctness</td></tr>
+<tr><td><strong>CONFIG-003</strong></td><td>Duplicate aliases</td><td>🧹 Cleaner config</td></tr>
+<tr><td><strong>CONFIG-004</strong></td><td>Non-deterministic constructs</td><td>🎯 Reproducible environment</td></tr>
+</tbody></table>
+</div>
+<p><strong>Next chapter</strong>: <a href="ch13-verification-tdd.html">Chapter 13: Verification and Testing →</a></p>
 
                     </main>
 
@@ -200,8 +489,8 @@
         </script>
 
         <script src="ace.js"></script>
-        <script src="editor.js"></script>
         <script src="mode-rust.js"></script>
+        <script src="editor.js"></script>
         <script src="theme-dawn.js"></script>
         <script src="theme-tomorrow_night.js"></script>
 
@@ -214,6 +503,7 @@
         <script src="book.js"></script>
 
         <!-- Custom JS scripts -->
+
 
 
     </div>
