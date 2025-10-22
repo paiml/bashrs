@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"fn":["check"],"static":["IMPLICIT_COMMAND"]};
+window.SIDEBAR_ITEMS = {"fn":["check"]};

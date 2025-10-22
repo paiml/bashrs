@@ -3,33 +3,33 @@
 <a href=#3 id=3 data-nosnippet>3</a><span class="kw">use </span>once_cell::sync::Lazy;
 <a href=#4 id=4 data-nosnippet>4</a><span class="kw">use </span>regex::Regex;
 <a href=#5 id=5 data-nosnippet>5</a>
-<a href=#6 id=6 data-nosnippet>6</a><span class="kw">static </span>REMOTE_SCRIPT: Lazy&lt;Regex&gt; = Lazy::new(|| {
-<a href=#7 id=7 data-nosnippet>7</a>    Regex::new(<span class="string">r#"(?:ssh|curl|wget).*(?:bash|sh)\s+-[cs]"#</span>).unwrap()
-<a href=#8 id=8 data-nosnippet>8</a>});
-<a href=#9 id=9 data-nosnippet>9</a>
-<a href=#10 id=10 data-nosnippet>10</a><span class="kw">pub fn </span>check(source: <span class="kw-2">&amp;</span>str) -&gt; LintResult {
-<a href=#11 id=11 data-nosnippet>11</a>    <span class="kw">let </span><span class="kw-2">mut </span>result = LintResult::new();
-<a href=#12 id=12 data-nosnippet>12</a>    <span class="kw">let </span>lines: Vec&lt;<span class="kw-2">&amp;</span>str&gt; = source.lines().collect();
-<a href=#13 id=13 data-nosnippet>13</a>
-<a href=#14 id=14 data-nosnippet>14</a>    <span class="kw">if </span>lines.is_empty() {
-<a href=#15 id=15 data-nosnippet>15</a>        <span class="kw">return </span>result;
-<a href=#16 id=16 data-nosnippet>16</a>    }
-<a href=#17 id=17 data-nosnippet>17</a>
-<a href=#18 id=18 data-nosnippet>18</a>    <span class="comment">// Check if first line is a shebang
-<a href=#19 id=19 data-nosnippet>19</a>    </span><span class="kw">let </span>has_shebang = lines[<span class="number">0</span>].starts_with(<span class="string">"#!"</span>);
-<a href=#20 id=20 data-nosnippet>20</a>
-<a href=#21 id=21 data-nosnippet>21</a>    <span class="kw">if </span>has_shebang {
-<a href=#22 id=22 data-nosnippet>22</a>        <span class="comment">// Check subsequent lines for remote execution
-<a href=#23 id=23 data-nosnippet>23</a>        </span><span class="kw">for </span>(line_num, line) <span class="kw">in </span>lines.iter().enumerate().skip(<span class="number">1</span>) {
-<a href=#24 id=24 data-nosnippet>24</a>            <span class="kw">let </span>line_num = line_num + <span class="number">1</span>;
-<a href=#25 id=25 data-nosnippet>25</a>            <span class="kw">if </span>line.trim_start().starts_with(<span class="string">'#'</span>) {
-<a href=#26 id=26 data-nosnippet>26</a>                <span class="kw">continue</span>;
-<a href=#27 id=27 data-nosnippet>27</a>            }
-<a href=#28 id=28 data-nosnippet>28</a>            <span class="kw">if </span>REMOTE_SCRIPT.is_match(line) {
-<a href=#29 id=29 data-nosnippet>29</a>                <span class="kw">let </span>diagnostic = Diagnostic::new(
-<a href=#30 id=30 data-nosnippet>30</a>                    <span class="string">"SC2308"</span>,
-<a href=#31 id=31 data-nosnippet>31</a>                    Severity::Info,
-<a href=#32 id=32 data-nosnippet>32</a>                    <span class="string">"Shebang is ignored when script is executed remotely via ssh/curl/wget"</span>.to_string(),
+<a href=#6 id=6 data-nosnippet>6</a><span class="kw">static </span>REMOTE_SCRIPT: Lazy&lt;Regex&gt; =
+<a href=#7 id=7 data-nosnippet>7</a>    Lazy::new(|| Regex::new(<span class="string">r#"(?:ssh|curl|wget).*(?:bash|sh)\s+-[cs]"#</span>).unwrap());
+<a href=#8 id=8 data-nosnippet>8</a>
+<a href=#9 id=9 data-nosnippet>9</a><span class="kw">pub fn </span>check(source: <span class="kw-2">&amp;</span>str) -&gt; LintResult {
+<a href=#10 id=10 data-nosnippet>10</a>    <span class="kw">let </span><span class="kw-2">mut </span>result = LintResult::new();
+<a href=#11 id=11 data-nosnippet>11</a>    <span class="kw">let </span>lines: Vec&lt;<span class="kw-2">&amp;</span>str&gt; = source.lines().collect();
+<a href=#12 id=12 data-nosnippet>12</a>
+<a href=#13 id=13 data-nosnippet>13</a>    <span class="kw">if </span>lines.is_empty() {
+<a href=#14 id=14 data-nosnippet>14</a>        <span class="kw">return </span>result;
+<a href=#15 id=15 data-nosnippet>15</a>    }
+<a href=#16 id=16 data-nosnippet>16</a>
+<a href=#17 id=17 data-nosnippet>17</a>    <span class="comment">// Check if first line is a shebang
+<a href=#18 id=18 data-nosnippet>18</a>    </span><span class="kw">let </span>has_shebang = lines[<span class="number">0</span>].starts_with(<span class="string">"#!"</span>);
+<a href=#19 id=19 data-nosnippet>19</a>
+<a href=#20 id=20 data-nosnippet>20</a>    <span class="kw">if </span>has_shebang {
+<a href=#21 id=21 data-nosnippet>21</a>        <span class="comment">// Check subsequent lines for remote execution
+<a href=#22 id=22 data-nosnippet>22</a>        </span><span class="kw">for </span>(line_num, line) <span class="kw">in </span>lines.iter().enumerate().skip(<span class="number">1</span>) {
+<a href=#23 id=23 data-nosnippet>23</a>            <span class="kw">let </span>line_num = line_num + <span class="number">1</span>;
+<a href=#24 id=24 data-nosnippet>24</a>            <span class="kw">if </span>line.trim_start().starts_with(<span class="string">'#'</span>) {
+<a href=#25 id=25 data-nosnippet>25</a>                <span class="kw">continue</span>;
+<a href=#26 id=26 data-nosnippet>26</a>            }
+<a href=#27 id=27 data-nosnippet>27</a>            <span class="kw">if </span>REMOTE_SCRIPT.is_match(line) {
+<a href=#28 id=28 data-nosnippet>28</a>                <span class="kw">let </span>diagnostic = Diagnostic::new(
+<a href=#29 id=29 data-nosnippet>29</a>                    <span class="string">"SC2308"</span>,
+<a href=#30 id=30 data-nosnippet>30</a>                    Severity::Info,
+<a href=#31 id=31 data-nosnippet>31</a>                    <span class="string">"Shebang is ignored when script is executed remotely via ssh/curl/wget"
+<a href=#32 id=32 data-nosnippet>32</a>                        </span>.to_string(),
 <a href=#33 id=33 data-nosnippet>33</a>                    Span::new(<span class="number">1</span>, <span class="number">1</span>, <span class="number">1</span>, lines[<span class="number">0</span>].len() + <span class="number">1</span>),
 <a href=#34 id=34 data-nosnippet>34</a>                );
 <a href=#35 id=35 data-nosnippet>35</a>                result.add(diagnostic);

@@ -223,9 +223,9 @@
 <a href=#223 id=223 data-nosnippet>223</a>
 <a href=#224 id=224 data-nosnippet>224</a>        <span class="comment">// ASSERT
 <a href=#225 id=225 data-nosnippet>225</a>        </span><span class="macro">assert_eq!</span>(entries.len(), <span class="number">3</span>);
-<a href=#226 id=226 data-nosnippet>226</a>        <span class="macro">assert!</span>(!entries[<span class="number">0</span>].is_duplicate);  <span class="comment">// First occurrence
-<a href=#227 id=227 data-nosnippet>227</a>        </span><span class="macro">assert!</span>(!entries[<span class="number">1</span>].is_duplicate);  <span class="comment">// Different path
-<a href=#228 id=228 data-nosnippet>228</a>        </span><span class="macro">assert!</span>(entries[<span class="number">2</span>].is_duplicate);   <span class="comment">// Duplicate of line 1
+<a href=#226 id=226 data-nosnippet>226</a>        <span class="macro">assert!</span>(!entries[<span class="number">0</span>].is_duplicate); <span class="comment">// First occurrence
+<a href=#227 id=227 data-nosnippet>227</a>        </span><span class="macro">assert!</span>(!entries[<span class="number">1</span>].is_duplicate); <span class="comment">// Different path
+<a href=#228 id=228 data-nosnippet>228</a>        </span><span class="macro">assert!</span>(entries[<span class="number">2</span>].is_duplicate); <span class="comment">// Duplicate of line 1
 <a href=#229 id=229 data-nosnippet>229</a>    </span>}
 <a href=#230 id=230 data-nosnippet>230</a>
 <a href=#231 id=231 data-nosnippet>231</a>    <span class="attr">#[test]
@@ -245,12 +245,12 @@
 <a href=#245 id=245 data-nosnippet>245</a>        </span><span class="kw">let </span>issues = detect_duplicate_paths(<span class="kw-2">&amp;</span>entries);
 <a href=#246 id=246 data-nosnippet>246</a>
 <a href=#247 id=247 data-nosnippet>247</a>        <span class="comment">// ASSERT
-<a href=#248 id=248 data-nosnippet>248</a>        </span><span class="macro">assert_eq!</span>(issues.len(), <span class="number">2</span>);  <span class="comment">// Two duplicates
+<a href=#248 id=248 data-nosnippet>248</a>        </span><span class="macro">assert_eq!</span>(issues.len(), <span class="number">2</span>); <span class="comment">// Two duplicates
 <a href=#249 id=249 data-nosnippet>249</a>        </span><span class="macro">assert_eq!</span>(issues[<span class="number">0</span>].rule_id, <span class="string">"CONFIG-001"</span>);
 <a href=#250 id=250 data-nosnippet>250</a>        <span class="macro">assert_eq!</span>(issues[<span class="number">0</span>].severity, Severity::Warning);
 <a href=#251 id=251 data-nosnippet>251</a>        <span class="macro">assert!</span>(issues[<span class="number">0</span>].message.contains(<span class="string">"/usr/local/bin"</span>));
-<a href=#252 id=252 data-nosnippet>252</a>        <span class="macro">assert_eq!</span>(issues[<span class="number">0</span>].line, <span class="number">4</span>);  <span class="comment">// Third line (first duplicate)
-<a href=#253 id=253 data-nosnippet>253</a>        </span><span class="macro">assert_eq!</span>(issues[<span class="number">1</span>].line, <span class="number">6</span>);  <span class="comment">// Fifth line (second duplicate)
+<a href=#252 id=252 data-nosnippet>252</a>        <span class="macro">assert_eq!</span>(issues[<span class="number">0</span>].line, <span class="number">4</span>); <span class="comment">// Third line (first duplicate)
+<a href=#253 id=253 data-nosnippet>253</a>        </span><span class="macro">assert_eq!</span>(issues[<span class="number">1</span>].line, <span class="number">6</span>); <span class="comment">// Fifth line (second duplicate)
 <a href=#254 id=254 data-nosnippet>254</a>    </span>}
 <a href=#255 id=255 data-nosnippet>255</a>
 <a href=#256 id=256 data-nosnippet>256</a>    <span class="attr">#[test]

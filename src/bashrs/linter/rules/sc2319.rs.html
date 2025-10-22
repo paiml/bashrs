@@ -3,31 +3,31 @@
 <a href=#3 id=3 data-nosnippet>3</a><span class="kw">use </span>once_cell::sync::Lazy;
 <a href=#4 id=4 data-nosnippet>4</a><span class="kw">use </span>regex::Regex;
 <a href=#5 id=5 data-nosnippet>5</a>
-<a href=#6 id=6 data-nosnippet>6</a><span class="kw">static </span>CONDITION_EXITCODE: Lazy&lt;Regex&gt; = Lazy::new(|| {
-<a href=#7 id=7 data-nosnippet>7</a>    Regex::new(<span class="string">r"(?:if|while|until)\s+.*;\s*then"</span>).unwrap()
-<a href=#8 id=8 data-nosnippet>8</a>});
-<a href=#9 id=9 data-nosnippet>9</a>
-<a href=#10 id=10 data-nosnippet>10</a><span class="kw">pub fn </span>check(source: <span class="kw-2">&amp;</span>str) -&gt; LintResult {
-<a href=#11 id=11 data-nosnippet>11</a>    <span class="kw">let </span><span class="kw-2">mut </span>result = LintResult::new();
-<a href=#12 id=12 data-nosnippet>12</a>    <span class="kw">let </span>lines: Vec&lt;<span class="kw-2">&amp;</span>str&gt; = source.lines().collect();
-<a href=#13 id=13 data-nosnippet>13</a>
-<a href=#14 id=14 data-nosnippet>14</a>    <span class="kw">for </span>i <span class="kw">in </span><span class="number">0</span>..lines.len() {
-<a href=#15 id=15 data-nosnippet>15</a>        <span class="kw">let </span>line = lines[i].trim();
-<a href=#16 id=16 data-nosnippet>16</a>
-<a href=#17 id=17 data-nosnippet>17</a>        <span class="kw">if </span>line.starts_with(<span class="string">'#'</span>) {
-<a href=#18 id=18 data-nosnippet>18</a>            <span class="kw">continue</span>;
-<a href=#19 id=19 data-nosnippet>19</a>        }
-<a href=#20 id=20 data-nosnippet>20</a>
-<a href=#21 id=21 data-nosnippet>21</a>        <span class="comment">// Check if this line is a condition
-<a href=#22 id=22 data-nosnippet>22</a>        </span><span class="kw">if </span>CONDITION_EXITCODE.is_match(line) {
-<a href=#23 id=23 data-nosnippet>23</a>            <span class="comment">// Check if next line uses $?
-<a href=#24 id=24 data-nosnippet>24</a>            </span><span class="kw">if </span>i + <span class="number">1 </span>&lt; lines.len() {
-<a href=#25 id=25 data-nosnippet>25</a>                <span class="kw">let </span>next_line = lines[i + <span class="number">1</span>].trim();
-<a href=#26 id=26 data-nosnippet>26</a>                <span class="kw">if </span>next_line.contains(<span class="string">"$?"</span>) &amp;&amp; !next_line.starts_with(<span class="string">'#'</span>) {
-<a href=#27 id=27 data-nosnippet>27</a>                    <span class="kw">let </span>diagnostic = Diagnostic::new(
-<a href=#28 id=28 data-nosnippet>28</a>                        <span class="string">"SC2319"</span>,
-<a href=#29 id=29 data-nosnippet>29</a>                        Severity::Warning,
-<a href=#30 id=30 data-nosnippet>30</a>                        <span class="string">"$? refers to the condition's exit code, not the command inside it"</span>.to_string(),
+<a href=#6 id=6 data-nosnippet>6</a><span class="kw">static </span>CONDITION_EXITCODE: Lazy&lt;Regex&gt; =
+<a href=#7 id=7 data-nosnippet>7</a>    Lazy::new(|| Regex::new(<span class="string">r"(?:if|while|until)\s+.*;\s*then"</span>).unwrap());
+<a href=#8 id=8 data-nosnippet>8</a>
+<a href=#9 id=9 data-nosnippet>9</a><span class="kw">pub fn </span>check(source: <span class="kw-2">&amp;</span>str) -&gt; LintResult {
+<a href=#10 id=10 data-nosnippet>10</a>    <span class="kw">let </span><span class="kw-2">mut </span>result = LintResult::new();
+<a href=#11 id=11 data-nosnippet>11</a>    <span class="kw">let </span>lines: Vec&lt;<span class="kw-2">&amp;</span>str&gt; = source.lines().collect();
+<a href=#12 id=12 data-nosnippet>12</a>
+<a href=#13 id=13 data-nosnippet>13</a>    <span class="kw">for </span>i <span class="kw">in </span><span class="number">0</span>..lines.len() {
+<a href=#14 id=14 data-nosnippet>14</a>        <span class="kw">let </span>line = lines[i].trim();
+<a href=#15 id=15 data-nosnippet>15</a>
+<a href=#16 id=16 data-nosnippet>16</a>        <span class="kw">if </span>line.starts_with(<span class="string">'#'</span>) {
+<a href=#17 id=17 data-nosnippet>17</a>            <span class="kw">continue</span>;
+<a href=#18 id=18 data-nosnippet>18</a>        }
+<a href=#19 id=19 data-nosnippet>19</a>
+<a href=#20 id=20 data-nosnippet>20</a>        <span class="comment">// Check if this line is a condition
+<a href=#21 id=21 data-nosnippet>21</a>        </span><span class="kw">if </span>CONDITION_EXITCODE.is_match(line) {
+<a href=#22 id=22 data-nosnippet>22</a>            <span class="comment">// Check if next line uses $?
+<a href=#23 id=23 data-nosnippet>23</a>            </span><span class="kw">if </span>i + <span class="number">1 </span>&lt; lines.len() {
+<a href=#24 id=24 data-nosnippet>24</a>                <span class="kw">let </span>next_line = lines[i + <span class="number">1</span>].trim();
+<a href=#25 id=25 data-nosnippet>25</a>                <span class="kw">if </span>next_line.contains(<span class="string">"$?"</span>) &amp;&amp; !next_line.starts_with(<span class="string">'#'</span>) {
+<a href=#26 id=26 data-nosnippet>26</a>                    <span class="kw">let </span>diagnostic = Diagnostic::new(
+<a href=#27 id=27 data-nosnippet>27</a>                        <span class="string">"SC2319"</span>,
+<a href=#28 id=28 data-nosnippet>28</a>                        Severity::Warning,
+<a href=#29 id=29 data-nosnippet>29</a>                        <span class="string">"$? refers to the condition's exit code, not the command inside it"
+<a href=#30 id=30 data-nosnippet>30</a>                            </span>.to_string(),
 <a href=#31 id=31 data-nosnippet>31</a>                        Span::new(i + <span class="number">2</span>, <span class="number">1</span>, i + <span class="number">2</span>, next_line.len() + <span class="number">1</span>),
 <a href=#32 id=32 data-nosnippet>32</a>                    );
 <a href=#33 id=33 data-nosnippet>33</a>                    result.add(diagnostic);
