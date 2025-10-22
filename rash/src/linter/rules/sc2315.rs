@@ -3,9 +3,8 @@ use crate::linter::{Diagnostic, LintResult, Severity, Span};
 use once_cell::sync::Lazy;
 use regex::Regex;
 
-static CONDITIONAL_REPLACE: Lazy<Regex> = Lazy::new(|| {
-    Regex::new(r"\[\s+-n\s+\$\{?[a-zA-Z_][a-zA-Z0-9_]*\}?\s+\]\s*&&\s*echo").unwrap()
-});
+static CONDITIONAL_REPLACE: Lazy<Regex> =
+    Lazy::new(|| Regex::new(r"\[\s+-n\s+\$\{?[a-zA-Z_][a-zA-Z0-9_]*\}?\s+\]\s*&&\s*echo").unwrap());
 
 pub fn check(source: &str) -> LintResult {
     let mut result = LintResult::new();

@@ -3,9 +3,7 @@ use crate::linter::{Diagnostic, LintResult, Severity, Span};
 use once_cell::sync::Lazy;
 use regex::Regex;
 
-static EXPR_LENGTH: Lazy<Regex> = Lazy::new(|| {
-    Regex::new(r"expr\s+length\s+\$").unwrap()
-});
+static EXPR_LENGTH: Lazy<Regex> = Lazy::new(|| Regex::new(r"expr\s+length\s+\$").unwrap());
 
 pub fn check(source: &str) -> LintResult {
     let mut result = LintResult::new();

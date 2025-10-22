@@ -3,13 +3,10 @@ use crate::linter::{Diagnostic, LintResult, Severity, Span};
 use once_cell::sync::Lazy;
 use regex::Regex;
 
-static FIND_PIPE_XARGS: Lazy<Regex> = Lazy::new(|| {
-    Regex::new(r"find\s+[^|]+\|\s*xargs\s+").unwrap()
-});
+static FIND_PIPE_XARGS: Lazy<Regex> =
+    Lazy::new(|| Regex::new(r"find\s+[^|]+\|\s*xargs\s+").unwrap());
 
-static XARGS_WITH_0: Lazy<Regex> = Lazy::new(|| {
-    Regex::new(r"xargs\s+-[a-z]*0").unwrap()
-});
+static XARGS_WITH_0: Lazy<Regex> = Lazy::new(|| Regex::new(r"xargs\s+-[a-z]*0").unwrap());
 
 pub fn check(source: &str) -> LintResult {
     let mut result = LintResult::new();

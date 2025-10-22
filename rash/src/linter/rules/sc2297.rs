@@ -3,9 +3,7 @@ use crate::linter::{Diagnostic, LintResult, Severity, Span};
 use once_cell::sync::Lazy;
 use regex::Regex;
 
-static REDIRECT_AFTER_PIPE: Lazy<Regex> = Lazy::new(|| {
-    Regex::new(r"\|\s+[^|]+\s+[<>]").unwrap()
-});
+static REDIRECT_AFTER_PIPE: Lazy<Regex> = Lazy::new(|| Regex::new(r"\|\s+[^|]+\s+[<>]").unwrap());
 
 pub fn check(source: &str) -> LintResult {
     let mut result = LintResult::new();

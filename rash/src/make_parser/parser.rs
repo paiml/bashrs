@@ -342,7 +342,7 @@ fn contains_function_call(text: &str) -> bool {
 /// ```
 pub fn extract_function_calls(text: &str) -> Vec<(String, String)> {
     let mut functions = Vec::new();
-    let mut chars = text.chars().peekable();
+    let chars = text.chars().peekable();
     let mut pos = 0;
 
     while pos < text.len() {

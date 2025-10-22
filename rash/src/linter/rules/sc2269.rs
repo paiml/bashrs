@@ -3,13 +3,9 @@ use crate::linter::{Diagnostic, LintResult, Severity, Span};
 use once_cell::sync::Lazy;
 use regex::Regex;
 
-static READ_WITHOUT_R: Lazy<Regex> = Lazy::new(|| {
-    Regex::new(r"\bread\s+").unwrap()
-});
+static READ_WITHOUT_R: Lazy<Regex> = Lazy::new(|| Regex::new(r"\bread\s+").unwrap());
 
-static READ_WITH_R: Lazy<Regex> = Lazy::new(|| {
-    Regex::new(r"\bread\s+-[a-z]*r").unwrap()
-});
+static READ_WITH_R: Lazy<Regex> = Lazy::new(|| Regex::new(r"\bread\s+-[a-z]*r").unwrap());
 
 pub fn check(source: &str) -> LintResult {
     let mut result = LintResult::new();

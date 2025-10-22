@@ -3,9 +3,8 @@ use crate::linter::{Diagnostic, LintResult, Severity, Span};
 use once_cell::sync::Lazy;
 use regex::Regex;
 
-static VAR_OR_EMPTY: Lazy<Regex> = Lazy::new(|| {
-    Regex::new(r"\$\{[a-zA-Z_][a-zA-Z0-9_]*:-\}").unwrap()
-});
+static VAR_OR_EMPTY: Lazy<Regex> =
+    Lazy::new(|| Regex::new(r"\$\{[a-zA-Z_][a-zA-Z0-9_]*:-\}").unwrap());
 
 pub fn check(source: &str) -> LintResult {
     let mut result = LintResult::new();
@@ -19,7 +18,8 @@ pub fn check(source: &str) -> LintResult {
             let diagnostic = Diagnostic::new(
                 "SC2282",
                 Severity::Info,
-                "Use ${var:?} to fail if variable is unset, rather than defaulting to empty".to_string(),
+                "Use ${var:?} to fail if variable is unset, rather than defaulting to empty"
+                    .to_string(),
                 Span::new(line_num, 1, line_num, line.len() + 1),
             );
             result.add(diagnostic);

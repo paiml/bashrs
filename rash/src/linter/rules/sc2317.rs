@@ -3,9 +3,7 @@ use crate::linter::{Diagnostic, LintResult, Severity, Span};
 use once_cell::sync::Lazy;
 use regex::Regex;
 
-static EXIT_OR_RETURN: Lazy<Regex> = Lazy::new(|| {
-    Regex::new(r"(?:exit|return)\s+\d+").unwrap()
-});
+static EXIT_OR_RETURN: Lazy<Regex> = Lazy::new(|| Regex::new(r"(?:exit|return)\s+\d+").unwrap());
 
 pub fn check(source: &str) -> LintResult {
     let mut result = LintResult::new();
@@ -36,7 +34,10 @@ pub fn check(source: &str) -> LintResult {
             let diagnostic = Diagnostic::new(
                 "SC2317",
                 Severity::Warning,
-                format!("Command appears to be unreachable (code after exit/return on line {})", exit_line + 1),
+                format!(
+                    "Command appears to be unreachable (code after exit/return on line {})",
+                    exit_line + 1
+                ),
                 Span::new(line_num_1indexed, 1, line_num_1indexed, line.len() + 1),
             );
             result.add(diagnostic);

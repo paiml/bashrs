@@ -3,9 +3,7 @@ use crate::linter::{Diagnostic, LintResult, Severity, Span};
 use once_cell::sync::Lazy;
 use regex::Regex;
 
-static CAT_HEREDOC: Lazy<Regex> = Lazy::new(|| {
-    Regex::new(r"cat\s*<<[^<]").unwrap()
-});
+static CAT_HEREDOC: Lazy<Regex> = Lazy::new(|| Regex::new(r"cat\s*<<[^<]").unwrap());
 
 pub fn check(source: &str) -> LintResult {
     let mut result = LintResult::new();

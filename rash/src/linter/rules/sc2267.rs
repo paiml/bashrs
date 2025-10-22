@@ -3,9 +3,8 @@ use crate::linter::{Diagnostic, LintResult, Severity, Span};
 use once_cell::sync::Lazy;
 use regex::Regex;
 
-static SED_SIMPLE_SUBST: Lazy<Regex> = Lazy::new(|| {
-    Regex::new(r#"sed\s+['"]s/[^/]+/[^/]+/['"]\s*<<<?\s*\$"#).unwrap()
-});
+static SED_SIMPLE_SUBST: Lazy<Regex> =
+    Lazy::new(|| Regex::new(r#"sed\s+['"]s/[^/]+/[^/]+/['"]\s*<<<?\s*\$"#).unwrap());
 
 pub fn check(source: &str) -> LintResult {
     let mut result = LintResult::new();

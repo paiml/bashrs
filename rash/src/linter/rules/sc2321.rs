@@ -3,9 +3,7 @@ use crate::linter::{Diagnostic, LintResult, Severity, Span};
 use once_cell::sync::Lazy;
 use regex::Regex;
 
-static AND_OUTSIDE_BRACKET: Lazy<Regex> = Lazy::new(|| {
-    Regex::new(r"\]\]\s*&&\s*\[\[").unwrap()
-});
+static AND_OUTSIDE_BRACKET: Lazy<Regex> = Lazy::new(|| Regex::new(r"\]\]\s*&&\s*\[\[").unwrap());
 
 pub fn check(source: &str) -> LintResult {
     let mut result = LintResult::new();
@@ -19,7 +17,8 @@ pub fn check(source: &str) -> LintResult {
             let diagnostic = Diagnostic::new(
                 "SC2321",
                 Severity::Info,
-                "Use [[ condition && condition ]] instead of [[ condition ]] && [[ condition ]]".to_string(),
+                "Use [[ condition && condition ]] instead of [[ condition ]] && [[ condition ]]"
+                    .to_string(),
                 Span::new(line_num, 1, line_num, line.len() + 1),
             );
             result.add(diagnostic);

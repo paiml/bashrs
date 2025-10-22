@@ -3,9 +3,7 @@ use crate::linter::{Diagnostic, LintResult, Severity, Span};
 use once_cell::sync::Lazy;
 use regex::Regex;
 
-static ARITH_DOUBLE_EQUALS: Lazy<Regex> = Lazy::new(|| {
-    Regex::new(r"\(\(\s*[^)]*==").unwrap()
-});
+static ARITH_DOUBLE_EQUALS: Lazy<Regex> = Lazy::new(|| Regex::new(r"\(\(\s*[^)]*==").unwrap());
 
 pub fn check(source: &str) -> LintResult {
     let mut result = LintResult::new();
@@ -19,7 +17,8 @@ pub fn check(source: &str) -> LintResult {
             let diagnostic = Diagnostic::new(
                 "SC2323",
                 Severity::Info,
-                "In arithmetic contexts, use = for assignment and = for comparison (== also works)".to_string(),
+                "In arithmetic contexts, use = for assignment and = for comparison (== also works)"
+                    .to_string(),
                 Span::new(line_num, 1, line_num, line.len() + 1),
             );
             result.add(diagnostic);

@@ -133,10 +133,7 @@ pub fn detect_unquoted_variables(variables: &[UnquotedVariable]) -> Vec<ConfigIs
             ),
             line: var.line,
             column: var.column,
-            suggestion: Some(format!(
-                "Quote the variable: \"{}\"",
-                var.variable
-            )),
+            suggestion: Some(format!("Quote the variable: \"{}\"", var.variable)),
         })
         .collect()
 }
@@ -152,7 +149,10 @@ pub fn quote_variables(source: &str) -> String {
     // Build a map of line numbers to variables on that line
     let mut lines_to_fix: HashMap<usize, Vec<&UnquotedVariable>> = HashMap::new();
     for var in &variables {
-        lines_to_fix.entry(var.line).or_insert_with(Vec::new).push(var);
+        lines_to_fix
+            .entry(var.line)
+            .or_insert_with(Vec::new)
+            .push(var);
     }
 
     let mut result = Vec::new();
@@ -162,7 +162,11 @@ pub fn quote_variables(source: &str) -> String {
 
         if let Some(_vars_on_line) = lines_to_fix.get(&line_num) {
             // Check if this is an export/assignment line
-            if line.contains('=') && (line.trim().starts_with("export ") || line.trim().starts_with("local ") || !line.trim().starts_with("if ")) {
+            if line.contains('=')
+                && (line.trim().starts_with("export ")
+                    || line.trim().starts_with("local ")
+                    || !line.trim().starts_with("if "))
+            {
                 // For assignment lines, quote the entire RHS value
                 let fixed_line = quote_assignment_line(line);
                 result.push(fixed_line);
@@ -187,7 +191,9 @@ fn quote_assignment_line(line: &str) -> String {
         let rhs = &line[eq_pos + 1..];
 
         // If RHS already starts and ends with quotes, keep it
-        if (rhs.starts_with('"') && rhs.ends_with('"')) || (rhs.starts_with('\'') && rhs.ends_with('\'')) {
+        if (rhs.starts_with('"') && rhs.ends_with('"'))
+            || (rhs.starts_with('\'') && rhs.ends_with('\''))
+        {
             return line.to_string();
         }
 
@@ -284,7 +290,11 @@ mod tests {
         let variables = analyze_unquoted_variables(source);
 
         // ASSERT
-        assert_eq!(variables.len(), 0, "Should not flag already quoted variables");
+        assert_eq!(
+            variables.len(),
+            0,
+            "Should not flag already quoted variables"
+        );
     }
 
     #[test]
@@ -324,7 +334,11 @@ mod tests {
         // ASSERT
         // Note: This test is about the variable assignment, not the command substitution
         // The value side should be quoted: FILES="$(ls *.txt)"
-        assert_eq!(variables.len(), 0, "Command substitution on RHS is OK in assignment");
+        assert_eq!(
+            variables.len(),
+            0,
+            "Command substitution on RHS is OK in assignment"
+        );
     }
 
     #[test]
@@ -444,10 +458,7 @@ cp "${PROJECT_DIR}"/file.txt "${BACKUP_DIR}"/"#;
         let quoted_twice = quote_variables(&quoted_once);
 
         // ASSERT
-        assert_eq!(
-            quoted_once, quoted_twice,
-            "Quoting should be idempotent"
-        );
+        assert_eq!(quoted_once, quoted_twice, "Quoting should be idempotent");
     }
 
     #[test]
@@ -455,7 +466,10 @@ cp "${PROJECT_DIR}"/file.txt "${BACKUP_DIR}"/"#;
         // Test the add_braces_to_variables function directly
         let input = "$HOME/projects";
         let result = add_braces_to_variables(input);
-        assert_eq!(result, "${HOME}/projects", "add_braces_to_variables should convert $HOME to ${{HOME}}");
+        assert_eq!(
+            result, "${HOME}/projects",
+            "add_braces_to_variables should convert $HOME to ${{HOME}}"
+        );
     }
 
     #[test]
