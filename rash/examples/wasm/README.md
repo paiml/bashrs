@@ -30,13 +30,30 @@ wasm-pack build --target web --features wasm --out-dir ../examples/wasm/pkg
 
 ## Running Examples
 
+### Using Ruchy (RECOMMENDED - Optimized for WASM)
+
 ```bash
-# Serve the example HTML
+# Ruchy serve is optimized for WASM with proper MIME types
 cd examples/wasm
-python3 -m http.server 8000
+ruchy serve --port 8000 --watch-wasm
 
 # Open browser to:
 # http://localhost:8000/index.html
+```
+
+**Why Ruchy?**
+- ✅ Correct MIME types for `.wasm` files (`application/wasm`)
+- ✅ CORS headers for local development
+- ✅ Watch mode for auto-rebuild
+- ✅ Verified by bashrs (not Python!)
+- ✅ Zero configuration needed
+
+### Alternative: Using Basic HTTP Server
+
+```bash
+# If ruchy not available, bash one-liner works too
+cd examples/wasm
+bash -c 'while true; do printf "HTTP/1.1 200 OK\nContent-Type: text/html\n\n$(cat index.html)" | nc -l 8000; done'
 ```
 
 ## Example: Config Analysis
