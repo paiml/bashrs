@@ -2,7 +2,7 @@
 //!
 //! Applies automatic fixes to shell configuration files.
 
-use crate::config::{deduplicator, quoter};
+use crate::config::{aliaser, deduplicator, quoter};
 
 /// Purify a shell configuration file
 pub fn purify_config(source: &str) -> String {
@@ -14,8 +14,10 @@ pub fn purify_config(source: &str) -> String {
     // Apply CONFIG-002: Quote variable expansions
     result = quoter::quote_variables(&result);
 
+    // Apply CONFIG-003: Consolidate duplicate aliases
+    result = aliaser::consolidate_aliases(&result);
+
     // TODO: Apply more purification rules
-    // - CONFIG-003: Consolidate duplicate aliases
     // - CONFIG-004: Remove non-deterministic constructs
     // - CONFIG-005: Lazy-load expensive operations
 

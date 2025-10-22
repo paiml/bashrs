@@ -6,10 +6,12 @@
 //! Key capabilities:
 //! - Deduplicate PATH entries
 //! - Quote variable expansions
+//! - Consolidate duplicate aliases
 //! - Remove non-deterministic constructs
 //! - Performance optimization (lazy-loading)
 //! - Cross-shell compatibility checking
 
+pub mod aliaser; // CONFIG-003: Consolidate duplicate aliases
 pub mod analyzer;
 pub mod deduplicator;
 pub mod purifier;
