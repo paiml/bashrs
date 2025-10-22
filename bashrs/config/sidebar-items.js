@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"enum":["ConfigType","Severity"],"mod":["aliaser","analyzer","deduplicator","purifier","quoter"],"struct":["ConfigAnalysis","ConfigIssue","PathEntry","PerformanceIssue"]};
+window.SIDEBAR_ITEMS = {"enum":["ConfigType","Severity"],"mod":["aliaser","analyzer","deduplicator","nondeterminism","purifier","quoter"],"struct":["ConfigAnalysis","ConfigIssue","PathEntry","PerformanceIssue"]};

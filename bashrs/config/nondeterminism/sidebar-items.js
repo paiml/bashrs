@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":["ConstructType"],"fn":["analyze_nondeterminism","detect_nondeterminism","remove_nondeterminism"],"struct":["NonDeterministicConstruct"]};
