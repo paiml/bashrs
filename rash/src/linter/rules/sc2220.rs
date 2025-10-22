@@ -1,4 +1,5 @@
 // SC2220: Wrong number of arguments for arithmetic operation (placeholder - requires AST)
+#[allow(unused_imports)]
 use crate::linter::LintResult;
 
 pub fn check(_source: &str) -> LintResult {

@@ -1,4 +1,5 @@
 // SC2184: Quote arguments to unset (simpler than SC2149)
+#[allow(unused_imports)]
 use crate::linter::{Diagnostic, LintResult, Severity, Span};
 
 pub fn check(_source: &str) -> LintResult {

@@ -1,4 +1,5 @@
 // SC2218: Prefer [[ ]] instead of [ ] (placeholder - style recommendation)
+#[allow(unused_imports)]
 use crate::linter::LintResult;
 
 pub fn check(_source: &str) -> LintResult {

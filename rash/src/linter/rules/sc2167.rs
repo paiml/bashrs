@@ -1,4 +1,5 @@
 // SC2167: This parent trap is not inherited by the child.
+#[allow(unused_imports)]
 //
 // Similar to SC2165 - traps in parent aren't inherited by child processes.
 //
@@ -12,7 +13,6 @@
 //   { $command; }                // Same shell
 //
 // Impact: Cleanup may not execute in child
-
 use crate::linter::{Diagnostic, LintResult, Severity, Span};
 
 pub fn check(_source: &str) -> LintResult {

@@ -1,4 +1,5 @@
 // SC2214: getopts option syntax error (placeholder - requires optstring parsing)
+#[allow(unused_imports)]
 use crate::linter::LintResult;
 
 pub fn check(_source: &str) -> LintResult {

@@ -1,4 +1,5 @@
 // SC2130: -e is only valid with 'if' or 'while', not with [ ]
+#[allow(unused_imports)]
 //
 // The -e test flag checks if file exists. In [ ], use -e or -f.
 // Don't confuse -e (file exists) with -e shell option (exit on error).
@@ -17,7 +18,6 @@
 //   set -e                   // Correct shell option
 //
 // Impact: Clarification of -e usage contexts
-
 use crate::linter::{Diagnostic, LintResult, Severity, Span};
 
 // NOTE: This rule is actually about detecting misuse of -e in wrong contexts.

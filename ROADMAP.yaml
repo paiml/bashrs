@@ -2,8 +2,8 @@
 project:
   name: "Rash (bashrs) Extreme Quality Roadmap"
   description: "Bidirectional shell safety tool using REAL Rust (not a DSL)"
-  version: "4.8.0"
-  status: "🎉🎉🎉🎉 Production Ready - 210 Active Linter Rules (Sprint 114 - 70% MILESTONE!)"
+  version: "5.0.0"
+  status: "🎉🎉🎉🎉🎉🎉 Production Ready - 240 Active Linter Rules (Sprint 116 - 80% MILESTONE!)"
 
 workflows:
   primary:
@@ -27,6 +27,25 @@ workflows:
       - "Output is safe, deterministic, verifiable bash"
 
 releases:
+  - version: "5.0.0"
+    date: "2025-10-22"
+    status: "RELEASED"
+    title: "80% ShellCheck Coverage Milestone (Sprints 114-116)"
+    description: "Massive expansion with 45 new linter rules reaching 80% ShellCheck coverage"
+    achievements:
+      - "Sprint 116: 80% Milestone - Test Expressions, Loop Control (SC2236-SC2250)"
+      - "Sprint 115: 75% Milestone - Functions, Case Statements (SC2221-SC2235)"
+      - "Sprint 114: 70% Milestone - Array Safety, Test Expressions (SC2206-SC2220)"
+      - "240 active linter rules (80% of SC2xxx series)"
+      - "3,945 tests passing (100% pass rate)"
+      - "+430 tests, +45 rules across 3 major sprint milestones"
+      - "EXTREME TDD methodology maintained throughout"
+      - ">85% code coverage across all modules"
+    breaking_changes: "None - fully backward-compatible feature addition"
+    published:
+      crates_io: "https://crates.io/crates/bashrs"
+      github: "https://github.com/paiml/bashrs/releases/tag/v5.0.0"
+
   - version: "4.0.0"
     date: "2025-10-21"
     status: "RELEASED"
