@@ -1,0 +1,33 @@
+[book]
+authors = ["Noah Gift"]
+language = "en"
+multilingual = false
+src = "src"
+title = "The Rash Book - Shell Safety and Purification"
+description = "A comprehensive guide to Rash: shell safety, purification, and linting"
+
+[build]
+build-dir = "book"
+create-missing = true
+use-default-preprocessors = true
+
+[preprocessor.links]
+
+[output.html]
+default-theme = "rust"
+preferred-dark-theme = "navy"
+git-repository-url = "https://github.com/paiml/bashrs"
+git-repository-icon = "fa-github"
+edit-url-template = "https://github.com/paiml/bashrs/edit/main/book/{path}"
+site-url = "/bashrs/"
+
+[output.html.playground]
+editable = true
+copyable = true
+copy-js = true
+runnable = true
+
+[output.html.code.hidelines]
+python = "~"
+bash = "#"
+rust = "# "

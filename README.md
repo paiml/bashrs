@@ -2,6 +2,7 @@
 
 [![Crates.io](https://img.shields.io/crates/v/bashrs.svg)](https://crates.io/crates/bashrs)
 [![Documentation](https://docs.rs/bashrs/badge.svg)](https://docs.rs/bashrs)
+[![Book](https://img.shields.io/badge/book-The%20Rash%20Book-blue)](https://paiml.github.io/bashrs/)
 [![License](https://img.shields.io/crates/l/bashrs.svg)](LICENSE)
 [![CI](https://github.com/paiml/bashrs/workflows/CI/badge.svg)](https://github.com/paiml/bashrs/actions)
 [![Tests](https://img.shields.io/badge/tests-1752%20passing-brightgreen)](https://github.com/paiml/bashrs/actions)
@@ -18,6 +19,61 @@
 - 📦 **Zero Runtime Dependencies**: Generated scripts work on any POSIX shell
 - 🎯 **Deterministic Output**: Same input always produces identical scripts
 - ✅ **ShellCheck Compliant**: All output passes strict linting
+
+## How Rash Exceeds ShellCheck
+
+ShellCheck is an excellent linter that **detects** problems in shell scripts.
+Rash goes **far beyond** by understanding the full AST and **automatically transforming** code to fix issues.
+
+| What ShellCheck Does | What Rash Does |
+|---------------------|----------------|
+| ⚠️ **Warns**: "$RANDOM is non-deterministic" | ✅ **Rewrites** to version-based deterministic IDs |
+| ⚠️ **Warns**: "mkdir may fail if exists" | ✅ **Transforms** to `mkdir -p` (idempotent) |
+| ⚠️ **Warns**: "Unquoted variable expansion" | ✅ **Quotes** all variables automatically |
+| ⚠️ **Warns**: "Timestamp in $(date +%s)" | ✅ **Replaces** with fixed version tags |
+| ⚠️ **Warns**: "rm may fail if doesn't exist" | ✅ **Adds** `-f` flag for safe removal |
+| Static pattern matching | **Full AST semantic understanding** |
+| Detects issues (read-only) | **Fixes issues (read-write transformation)** |
+
+### Example: Non-Deterministic Deployment Script
+
+**Input (Messy Bash)**:
+```bash
+#!/bin/bash
+SESSION_ID=$RANDOM                      # Non-deterministic
+RELEASE="release-$(date +%s)"           # Timestamp-based
+mkdir /app/releases/$RELEASE            # Non-idempotent
+rm /app/current                         # Fails if doesn't exist
+ln -s /app/releases/$RELEASE /app/current
+```
+
+**ShellCheck Output** (manual fixes required):
+```
+⚠️ SC2086: Quote variable to prevent word splitting
+⚠️ $RANDOM is non-deterministic (YOU must fix manually)
+⚠️ mkdir may fail if directory exists (YOU must add -p flag)
+⚠️ rm may fail if doesn't exist (YOU must add -f flag)
+```
+
+**Rash Output** (automatically purified):
+```bash
+#!/bin/sh
+# ✅ Automatically fixed by Rash - no manual work needed
+deploy_app() {
+    _version="$1"
+    session_id="session-${_version}"           # ✅ Deterministic
+    release="release-${_version}"              # ✅ Version-based (not timestamp)
+    mkdir -p "/app/releases/${release}"        # ✅ Idempotent
+    rm -f "/app/current"                       # ✅ Safe removal
+    ln -sf "/app/releases/${release}" "/app/current"  # ✅ Idempotent symlink
+}
+```
+
+**Key Difference**: ShellCheck tells you what's wrong. Rash **understands your code's intent** and rewrites it to be safe, deterministic, and idempotent — automatically.
+
+This is only possible because Rash parses shell scripts into a full Abstract Syntax Tree (AST), understands the semantic meaning of each construct, and can perform intelligent transformations that preserve functionality while eliminating entire classes of bugs.
+
+---
 
 ## How Rash Works: Two Workflows
 
@@ -288,14 +344,19 @@ FILES="$(ls *.txt)"
 - `1` - Warnings detected
 - `2` - Errors detected
 
-**Comparison: bashrs lint vs ShellCheck**:
+**Comparison: bashrs vs ShellCheck**:
 
-| Feature | ShellCheck | bashrs lint |
-|---------|-----------|-------------|
+| Feature | ShellCheck | bashrs |
+|---------|-----------|--------|
+| **Core Capability** | Static pattern detection | **Full AST parsing + transformation** |
+| **Output** | Warnings only | **Automatically fixed code** |
 | Installation | External binary required | Built-in, zero dependencies |
 | Output formats | checkstyle, gcc, json | human, JSON, SARIF |
-| Auto-fix | No | Yes (suggested fixes) |
-| Rust source linting | No | Yes (future: bidirectional) |
+| Auto-fix | ❌ No | ✅ Yes - automatic code transformation |
+| **Determinism** | Warns about $RANDOM | **Replaces with deterministic constructs** |
+| **Idempotency** | Warns about mkdir | **Transforms to mkdir -p** |
+| Semantic understanding | Pattern matching only | **Full AST semantic analysis** |
+| Code transformation | ❌ Read-only | ✅ **Read-write (purification)** |
 | Performance | ~50ms | <2ms (native Rust) |
 
 See the [Safety Comparison Guide](docs/SAFETY_COMPARISON.md) for detailed vulnerability prevention examples.
@@ -329,6 +390,43 @@ BUILD OPTIONS:
     --strict                 Enable strict mode checks
     --emit-proof             Emit verification proof alongside output
 ```
+
+## Documentation
+
+### 📚 The Rash Book
+
+**Comprehensive guide with tested examples**: [https://paiml.github.io/bashrs/](https://paiml.github.io/bashrs/)
+
+The Rash Book is the official, comprehensive documentation for Rash. All code examples in the book are automatically tested, ensuring they stay up-to-date with the code.
+
+**What's in the book:**
+- **Getting Started**: Installation, quick start, your first purification
+- **Core Concepts**: Determinism, idempotency, POSIX compliance
+- **Shell Script Linting**: Security, determinism, and idempotency rules
+- **Configuration Management**: Purifying .bashrc and .zshrc files (CONFIG-001, CONFIG-002)
+- **Makefile Linting**: Security and best practices
+- **Real-World Examples**: Bootstrap installers, deployment scripts, CI/CD
+- **Advanced Topics**: AST transformation, property testing, mutation testing
+- **Reference**: CLI commands, configuration, exit codes, rules reference
+
+**Why the book is special:**
+- ✅ All examples are tested automatically (TDD)
+- ✅ Cannot release without updating the book
+- ✅ Enforced quality through pre-release checks
+- ✅ Toyota Way principles applied to documentation
+
+### API Documentation
+
+Rust API documentation is available on [docs.rs/bashrs](https://docs.rs/bashrs).
+
+### Quick Links
+
+- [Installation Guide](https://paiml.github.io/bashrs/getting-started/installation.html)
+- [Quick Start](https://paiml.github.io/bashrs/getting-started/quick-start.html)
+- [CONFIG-001: PATH Deduplication](https://paiml.github.io/bashrs/config/rules/config-001.html)
+- [CONFIG-002: Quote Variables](https://paiml.github.io/bashrs/config/rules/config-002.html)
+- [Security Rules](https://paiml.github.io/bashrs/linting/security.html)
+- [Contributing Guide](https://paiml.github.io/bashrs/contributing/setup.html)
 
 ## Language Features
 

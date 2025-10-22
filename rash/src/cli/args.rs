@@ -154,6 +154,12 @@ pub enum Commands {
         #[command(subcommand)]
         command: MakeCommands,
     },
+
+    /// Shell configuration file management (NEW in v7.0)
+    Config {
+        #[command(subcommand)]
+        command: ConfigCommands,
+    },
 }
 
 #[derive(Subcommand)]
@@ -214,6 +220,63 @@ pub enum MakeCommands {
         #[arg(long)]
         rules: Option<String>,
     },
+}
+
+#[derive(Subcommand)]
+pub enum ConfigCommands {
+    /// Analyze shell configuration file for issues
+    Analyze {
+        /// Input config file (.bashrc, .zshrc, .profile, etc.)
+        #[arg(value_name = "FILE")]
+        input: PathBuf,
+
+        /// Output format
+        #[arg(long, value_enum, default_value = "human")]
+        format: ConfigOutputFormat,
+    },
+
+    /// Lint shell configuration file
+    Lint {
+        /// Input config file
+        #[arg(value_name = "FILE")]
+        input: PathBuf,
+
+        /// Output format
+        #[arg(long, value_enum, default_value = "human")]
+        format: ConfigOutputFormat,
+    },
+
+    /// Purify shell configuration file (fix issues automatically)
+    Purify {
+        /// Input config file
+        #[arg(value_name = "FILE")]
+        input: PathBuf,
+
+        /// Output file (defaults to stdout, or in-place with --fix)
+        #[arg(short, long)]
+        output: Option<PathBuf>,
+
+        /// Apply fixes in-place (creates timestamped backup)
+        #[arg(long)]
+        fix: bool,
+
+        /// Don't create backup (dangerous!)
+        #[arg(long)]
+        no_backup: bool,
+
+        /// Dry run (show what would be changed)
+        #[arg(long)]
+        dry_run: bool,
+    },
+}
+
+/// Output format for config commands
+#[derive(Clone, Debug, ValueEnum)]
+pub enum ConfigOutputFormat {
+    /// Human-readable format
+    Human,
+    /// JSON format
+    Json,
 }
 
 /// Runtime options for compilation

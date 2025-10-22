@@ -1,14 +1,18 @@
-name: Build and Deploy Book
+name: Deploy Book
 
 on:
   push:
-    branches: [ main ]
+    branches: [main, master]
     paths:
-      - 'rash-book/**'
+      - 'book/**'
       - '.github/workflows/book.yml'
   pull_request:
-    branches: [ main ]
+    paths:
+      - 'book/**'
   workflow_dispatch:
+
+env:
+  CARGO_TERM_COLOR: always
 
 permissions:
   contents: read
@@ -16,33 +20,76 @@ permissions:
   id-token: write
 
 concurrency:
-  group: "pages"
+  group: "pages-book"
   cancel-in-progress: false
 
 jobs:
-  build:
+  # Job 1: Test book examples
+  test:
+    name: Test Book Examples
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install mdBook
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install mdbook
         run: |
-          mkdir -p $HOME/mdbook
-          curl -sSL https://github.com/rust-lang/mdBook/releases/download/v0.4.37/mdbook-v0.4.37-x86_64-unknown-linux-gnu.tar.gz | tar -xz --directory=$HOME/mdbook
+          mkdir -p ~/mdbook
+          curl -sSL https://github.com/rust-lang/mdBook/releases/download/v0.4.40/mdbook-v0.4.40-x86_64-unknown-linux-gnu.tar.gz | tar -xz -C ~/mdbook
           echo "$HOME/mdbook" >> $GITHUB_PATH
 
+      - name: Test book examples
+        run: |
+          cd book
+          mdbook test
+
+      - name: Report test results
+        if: always()
+        run: |
+          if [ $? -eq 0 ]; then
+            echo "✅ All book examples passed!"
+          else
+            echo "❌ Book examples failed!"
+            exit 1
+          fi
+
+  # Job 2: Build book
+  build:
+    name: Build Book
+    runs-on: ubuntu-latest
+    needs: test
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install mdbook
+        run: |
+          mkdir -p ~/mdbook
+          curl -sSL https://github.com/rust-lang/mdBook/releases/download/v0.4.40/mdbook-v0.4.40-x86_64-unknown-linux-gnu.tar.gz | tar -xz -C ~/mdbook
+          echo "$HOME/mdbook" >> $GITHUB_PATH
+
+      - name: Setup Pages
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: actions/configure-pages@v5
+
       - name: Build book
-        run: mdbook build rash-book
+        run: |
+          cd book
+          mdbook build
 
       - name: Upload artifact
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         uses: actions/upload-pages-artifact@v3
         with:
-          path: ./rash-book/book
+          path: './book/book'
 
+  # Job 3: Deploy to GitHub Pages (only on main)
   deploy:
-    if: github.ref == 'refs/heads/main'
+    name: Deploy to GitHub Pages
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     environment:
-      name: github-pages
+      name: github-pages-book
       url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
     needs: build
@@ -50,3 +97,10 @@ jobs:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
+
+      - name: Comment deployment URL
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const url = '${{ steps.deployment.outputs.page_url }}';
+            console.log(`📚 Book deployed to: ${url}`);

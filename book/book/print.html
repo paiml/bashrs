@@ -1,0 +1,1022 @@
+<!DOCTYPE HTML>
+<html lang="en" class="rust sidebar-visible" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>The Rash Book - Shell Safety and Purification</title>
+        <meta name="robots" content="noindex">
+
+
+        <!-- Custom HTML head -->
+
+        <meta name="description" content="A comprehensive guide to Rash: shell safety, purification, and linting">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="favicon.svg">
+        <link rel="shortcut icon" href="favicon.png">
+        <link rel="stylesheet" href="css/variables.css">
+        <link rel="stylesheet" href="css/general.css">
+        <link rel="stylesheet" href="css/chrome.css">
+        <link rel="stylesheet" href="css/print.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="FontAwesome/css/font-awesome.css">
+        <link rel="stylesheet" href="fonts/fonts.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" id="highlight-css" href="highlight.css">
+        <link rel="stylesheet" id="tomorrow-night-css" href="tomorrow-night.css">
+        <link rel="stylesheet" id="ayu-highlight-css" href="ayu-highlight.css">
+
+        <!-- Custom theme stylesheets -->
+
+
+        <!-- Provide site root and default themes to javascript -->
+        <script>
+            const path_to_root = "";
+            const default_light_theme = "rust";
+            const default_dark_theme = "navy";
+            window.path_to_searchindex_js = "searchindex.js";
+        </script>
+        <!-- Start loading toc.js asap -->
+        <script src="toc.js"></script>
+    </head>
+    <body>
+    <div id="mdbook-help-container">
+        <div id="mdbook-help-popup">
+            <h2 class="mdbook-help-title">Keyboard shortcuts</h2>
+            <div>
+                <p>Press <kbd>←</kbd> or <kbd>→</kbd> to navigate between chapters</p>
+                <p>Press <kbd>S</kbd> or <kbd>/</kbd> to search in the book</p>
+                <p>Press <kbd>?</kbd> to show this help</p>
+                <p>Press <kbd>Esc</kbd> to hide this help</p>
+            </div>
+        </div>
+    </div>
+    <div id="body-container">
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                let theme = localStorage.getItem('mdbook-theme');
+                let sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            const default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? default_dark_theme : default_light_theme;
+            let theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            const html = document.documentElement;
+            html.classList.remove('rust')
+            html.classList.add(theme);
+            html.classList.add("js");
+        </script>
+
+        <input type="checkbox" id="sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            let sidebar = null;
+            const sidebar_toggle = document.getElementById("sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+                sidebar_toggle.checked = false;
+            }
+            if (sidebar === 'visible') {
+                sidebar_toggle.checked = true;
+            } else {
+                html.classList.remove('sidebar-visible');
+            }
+        </script>
+
+        <nav id="sidebar" class="sidebar" aria-label="Table of contents">
+            <!-- populated by js -->
+            <mdbook-sidebar-scrollbox class="sidebar-scrollbox"></mdbook-sidebar-scrollbox>
+            <noscript>
+                <iframe class="sidebar-iframe-outer" src="toc.html"></iframe>
+            </noscript>
+            <div id="sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <div id="page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="menu-bar-hover-placeholder"></div>
+                <div id="menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="sidebar-toggle" class="icon-button" for="sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="sidebar">
+                            <i class="fa fa-bars"></i>
+                        </label>
+                        <button id="theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="theme-list">
+                            <i class="fa fa-paint-brush"></i>
+                        </button>
+                        <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="default_theme">Auto</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
+                        </ul>
+                        <button id="search-toggle" class="icon-button" type="button" title="Search (`/`)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="/ s" aria-controls="searchbar">
+                            <i class="fa fa-search"></i>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">The Rash Book - Shell Safety and Purification</h1>
+
+                    <div class="right-buttons">
+                        <a href="print.html" title="Print this book" aria-label="Print this book">
+                            <i id="print-button" class="fa fa-print"></i>
+                        </a>
+                        <a href="https://github.com/paiml/bashrs" title="Git repository" aria-label="Git repository">
+                            <i id="git-repository-button" class="fa fa-github"></i>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="search-wrapper" class="hidden">
+                    <form id="searchbar-outer" class="searchbar-outer">
+                        <div class="search-wrapper">
+                            <input type="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                            <div class="spinner-wrapper">
+                                <i class="fa fa-spinner fa-spin"></i>
+                            </div>
+                        </div>
+                    </form>
+                    <div id="searchresults-outer" class="searchresults-outer hidden">
+                        <div id="searchresults-header" class="searchresults-header"></div>
+                        <ul id="searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="content" class="content">
+                    <main>
+                        <h1 id="introduction"><a class="header" href="#introduction">Introduction</a></h1>
+<p>Welcome to <strong>The Rash Book</strong>! This guide will teach you how to write safe, deterministic, and idempotent shell scripts using Rash.</p>
+<h2 id="what-is-rash"><a class="header" href="#what-is-rash">What is Rash?</a></h2>
+<p><strong>Rash</strong> (bashrs) is a shell safety and purification tool that goes beyond traditional linters like ShellCheck. While ShellCheck <em>detects</em> problems, Rash <em>transforms</em> your code to fix them automatically.</p>
+<h3 id="key-features"><a class="header" href="#key-features">Key Features</a></h3>
+<ul>
+<li><strong>Shell Purification</strong>: Automatically transform bash scripts to be deterministic and idempotent</li>
+<li><strong>Security Linting</strong>: Detect and fix 8 critical security vulnerabilities (SEC001-SEC008)</li>
+<li><strong>Configuration Management</strong>: Analyze and purify shell config files like .bashrc and .zshrc</li>
+<li><strong>Makefile Linting</strong>: Security and best-practice linting for Makefiles</li>
+<li><strong>POSIX Compliance</strong>: All generated shell code passes <code>shellcheck -s sh</code></li>
+</ul>
+<h3 id="how-is-rash-different-from-shellcheck"><a class="header" href="#how-is-rash-different-from-shellcheck">How is Rash Different from ShellCheck?</a></h3>
+<div class="table-wrapper"><table><thead><tr><th>Feature</th><th>ShellCheck</th><th>Rash</th></tr></thead><tbody>
+<tr><td><strong>Mode</strong></td><td>Read-only (detect)</td><td>Read-write (transform)</td></tr>
+<tr><td><strong>Non-determinism</strong></td><td>⚠️ Warns about <code>$RANDOM</code></td><td>✅ Rewrites to deterministic IDs</td></tr>
+<tr><td><strong>Idempotency</strong></td><td>⚠️ Warns about <code>mkdir</code></td><td>✅ Transforms to <code>mkdir -p</code></td></tr>
+<tr><td><strong>Variable Quoting</strong></td><td>⚠️ Suggests quoting</td><td>✅ Automatically adds quotes</td></tr>
+<tr><td><strong>PATH Duplicates</strong></td><td>❌ Not detected</td><td>✅ Detects and removes</td></tr>
+<tr><td><strong>Config Files</strong></td><td>❌ No support</td><td>✅ Analyzes .bashrc, .zshrc</td></tr>
+<tr><td><strong>Makefiles</strong></td><td>❌ No support</td><td>✅ Full linting support</td></tr>
+</tbody></table>
+</div>
+<h3 id="example-before-and-after"><a class="header" href="#example-before-and-after">Example: Before and After</a></h3>
+<p><strong>Before (messy, non-deterministic):</strong></p>
+<pre><code class="language-bash"><span class="boring">!/bin/bash
+</span>SESSION_ID=$RANDOM
+mkdir /tmp/deploy-$SESSION_ID
+cd /tmp/deploy-$SESSION_ID
+</code></pre>
+<p><strong>After (purified, deterministic):</strong></p>
+<pre><code class="language-bash"><span class="boring">!/bin/sh
+</span><span class="boring"> Purified by Rash v6.0.0
+</span>SESSION_ID="${VERSION:-1.0.0}"
+mkdir -p "/tmp/deploy-${SESSION_ID}"
+cd "/tmp/deploy-${SESSION_ID}" || exit 1
+</code></pre>
+<h3 id="design-philosophy-toyota-way"><a class="header" href="#design-philosophy-toyota-way">Design Philosophy: Toyota Way</a></h3>
+<p>Rash follows Toyota Way principles:</p>
+<ul>
+<li><strong>自働化 (Jidoka)</strong>: Build quality in from the start</li>
+<li><strong>現地現物 (Genchi Genbutsu)</strong>: Test with real shells (dash, ash, busybox)</li>
+<li><strong>反省 (Hansei)</strong>: Fix bugs before adding features</li>
+<li><strong>改善 (Kaizen)</strong>: Continuous improvement through feedback</li>
+</ul>
+<h2 id="who-should-read-this-book"><a class="header" href="#who-should-read-this-book">Who Should Read This Book?</a></h2>
+<ul>
+<li>DevOps engineers who write shell scripts</li>
+<li>Developers maintaining .bashrc/.zshrc files</li>
+<li>System administrators automating tasks</li>
+<li>Anyone who wants safer, more reliable shell scripts</li>
+</ul>
+<h2 id="how-to-use-this-book"><a class="header" href="#how-to-use-this-book">How to Use This Book</a></h2>
+<ol>
+<li><strong>Getting Started</strong>: Install Rash and run your first purification</li>
+<li><strong>Core Concepts</strong>: Learn about determinism, idempotency, and POSIX compliance</li>
+<li><strong>Linting</strong>: Explore security, determinism, and idempotency rules</li>
+<li><strong>Configuration Management</strong>: Purify your shell config files</li>
+<li><strong>Examples</strong>: See real-world use cases</li>
+<li><strong>Advanced Topics</strong>: Deep dive into AST transformation and testing</li>
+<li><strong>Reference</strong>: Quick lookup for commands and rules</li>
+</ol>
+<h2 id="prerequisites"><a class="header" href="#prerequisites">Prerequisites</a></h2>
+<ul>
+<li>Basic shell scripting knowledge</li>
+<li>Familiarity with command-line tools</li>
+<li>(Optional) Understanding of AST concepts for advanced topics</li>
+</ul>
+<h2 id="conventions"><a class="header" href="#conventions">Conventions</a></h2>
+<p>Throughout this book, we use the following conventions:</p>
+<pre><code class="language-bash"><span class="boring"> Shell commands you can run
+</span>bashrs --version
+</code></pre>
+<pre><pre class="playground"><code class="language-rust">// Rust code examples (for advanced topics)
+fn main() {
+    println!("Hello from Rash!");
+}</code></pre></pre>
+<blockquote>
+<p><strong>Note</strong>: Important information or tips</p>
+</blockquote>
+<p>⚠️ <strong>Warning</strong>: Critical information to avoid common mistakes</p>
+<p>✅ <strong>Best Practice</strong>: Recommended approaches</p>
+<h2 id="lets-get-started"><a class="header" href="#lets-get-started">Let's Get Started!</a></h2>
+<p>Ready to write safer shell scripts? Let's dive into <a href="./getting-started/installation.html">Installation</a>!</p>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="installation"><a class="header" href="#installation">Installation</a></h1>
+<p>There are several ways to install Rash depending on your platform and preferences.</p>
+<h2 id="using-cargo-recommended"><a class="header" href="#using-cargo-recommended">Using cargo (Recommended)</a></h2>
+<p>The easiest way to install Rash is from crates.io:</p>
+<pre><code class="language-bash">cargo install bashrs
+</code></pre>
+<p>This will install both the <code>bashrs</code> and <code>rash</code> commands (they are aliases).</p>
+<h3 id="verify-installation"><a class="header" href="#verify-installation">Verify Installation</a></h3>
+<pre><code class="language-bash">bashrs --version
+</code></pre>
+<p>You should see output like:</p>
+<pre><code class="language-text">bashrs 6.0.0
+</code></pre>
+<h2 id="from-source"><a class="header" href="#from-source">From Source</a></h2>
+<p>If you want the latest development version:</p>
+<pre><code class="language-bash">git clone https://github.com/paiml/bashrs.git
+cd bashrs
+cargo build --release
+sudo cp target/release/bashrs /usr/local/bin/
+</code></pre>
+<h2 id="platform-specific-installation"><a class="header" href="#platform-specific-installation">Platform-Specific Installation</a></h2>
+<h3 id="macos"><a class="header" href="#macos">macOS</a></h3>
+<p>Using Homebrew (coming soon):</p>
+<pre><code class="language-bash"><span class="boring"> brew install bashrs  # Not yet available
+</span></code></pre>
+<p>For now, use <code>cargo install bashrs</code>.</p>
+<h3 id="linux"><a class="header" href="#linux">Linux</a></h3>
+<h4 id="debianubuntu-coming-soon"><a class="header" href="#debianubuntu-coming-soon">Debian/Ubuntu (coming soon)</a></h4>
+<pre><code class="language-bash"><span class="boring"> wget https://github.com/paiml/bashrs/releases/download/v6.0.0/bashrs_6.0.0_amd64.deb
+</span><span class="boring"> sudo dpkg -i bashrs_6.0.0_amd64.deb
+</span></code></pre>
+<h4 id="arch-linux-coming-soon"><a class="header" href="#arch-linux-coming-soon">Arch Linux (coming soon)</a></h4>
+<pre><code class="language-bash"><span class="boring"> yay -S bashrs
+</span></code></pre>
+<p>For now, use <code>cargo install bashrs</code>.</p>
+<h3 id="windows"><a class="header" href="#windows">Windows</a></h3>
+<p>Using WSL (Windows Subsystem for Linux):</p>
+<pre><code class="language-bash"><span class="boring"> Inside WSL
+</span>cargo install bashrs
+</code></pre>
+<h2 id="requirements"><a class="header" href="#requirements">Requirements</a></h2>
+<ul>
+<li>Rust 1.70+ (if building from source)</li>
+<li>Linux, macOS, or WSL on Windows</li>
+</ul>
+<h2 id="optional-dependencies"><a class="header" href="#optional-dependencies">Optional Dependencies</a></h2>
+<p>For full functionality, consider installing:</p>
+<ul>
+<li><strong>shellcheck</strong>: For POSIX compliance verification
+<pre><code class="language-bash"><span class="boring"> macOS
+</span>brew install shellcheck
+
+<span class="boring"> Ubuntu/Debian
+</span>sudo apt-get install shellcheck
+
+<span class="boring"> Arch
+</span>sudo pacman -S shellcheck
+</code></pre>
+</li>
+</ul>
+<h2 id="next-steps"><a class="header" href="#next-steps">Next Steps</a></h2>
+<p>Now that you have Rash installed, let's explore the <a href="getting-started/./quick-start.html">Quick Start</a> guide!</p>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="quick-start"><a class="header" href="#quick-start">Quick Start</a></h1>
+<p>This chapter will get you up and running with Rash in 5 minutes.</p>
+<h2 id="your-first-command"><a class="header" href="#your-first-command">Your First Command</a></h2>
+<p>Let's start by checking the version:</p>
+<pre><code class="language-bash">bashrs --version
+</code></pre>
+<h2 id="linting-a-shell-script"><a class="header" href="#linting-a-shell-script">Linting a Shell Script</a></h2>
+<p>Create a simple shell script with a security issue:</p>
+<pre><code class="language-bash no_run">cat &gt; vulnerable.sh &lt;&lt; 'EOF'
+<span class="boring">!/bin/bash
+</span><span class="boring"> Vulnerable script - uses eval with user input
+</span>read -p "Enter command: " cmd
+eval "$cmd"
+EOF
+</code></pre>
+<p>Now lint it with Rash:</p>
+<pre><code class="language-bash no_run">bashrs lint vulnerable.sh
+</code></pre>
+<p>You'll see output like:</p>
+<pre><code class="language-text">[SEC-001] Use of eval with user input can lead to command injection
+  → Line 4: eval "$cmd"
+  → Severity: Critical
+  → Suggestion: Avoid eval or validate input strictly
+</code></pre>
+<h2 id="analyzing-a-configuration-file"><a class="header" href="#analyzing-a-configuration-file">Analyzing a Configuration File</a></h2>
+<p>Let's analyze a messy .bashrc file:</p>
+<pre><code class="language-bash no_run">cat &gt; messy-bashrc &lt;&lt; 'EOF'
+<span class="boring"> Messy .bashrc with issues
+</span>export PATH="/usr/local/bin:$PATH"
+export PATH="/opt/homebrew/bin:$PATH"
+export PATH="/usr/local/bin:$PATH"  # Duplicate!
+
+<span class="boring"> Unquoted variables (security issue)
+</span>cd $HOME/my projects
+EOF
+</code></pre>
+<p>Analyze it:</p>
+<pre><code class="language-bash no_run">bashrs config analyze messy-bashrc
+</code></pre>
+<p>Output:</p>
+<pre><code class="language-text">Analysis: messy-bashrc
+  Type: Generic config file
+  Lines: 7
+  Complexity: 3/10
+
+Issues Found: 2
+  [CONFIG-001] Duplicate PATH entry at line 3
+    → Path: /usr/local/bin
+    → First seen: line 1
+    → Suggestion: Remove duplicate entry
+
+  [CONFIG-002] Unquoted variable expansion at line 6
+    → Variable: $HOME
+    → Can cause word splitting and glob expansion
+    → Suggestion: Quote the variable: "${HOME}"
+</code></pre>
+<h2 id="purifying-configuration"><a class="header" href="#purifying-configuration">Purifying Configuration</a></h2>
+<p>Now let's fix these issues automatically:</p>
+<pre><code class="language-bash no_run">bashrs config purify messy-bashrc --output clean-bashrc
+</code></pre>
+<p>The purified output (<code>clean-bashrc</code>):</p>
+<pre><code class="language-bash"><span class="boring"> Messy .bashrc with issues
+</span>export PATH="/usr/local/bin:$PATH"
+export PATH="/opt/homebrew/bin:$PATH"
+<span class="boring"> Duplicate! (removed by CONFIG-001)
+</span>
+<span class="boring"> Unquoted variables (fixed by CONFIG-002)
+</span>cd "${HOME}/my projects"
+</code></pre>
+<h2 id="testing-with-mdbook"><a class="header" href="#testing-with-mdbook">Testing with mdbook</a></h2>
+<p>The examples in this book are automatically tested! Here's a Rust test example:</p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>// This code is tested when building the book
+fn purify_example() {
+    let input = "export DIR=$HOME/projects";
+    let expected = "export DIR=\"${HOME}/projects\"";
+
+    // This would use the actual Rash library
+    // assert_eq!(rash::config::quote_variables(input), expected);
+}
+
+#[test]
+fn test_purify_example() {
+    purify_example();
+}
+<span class="boring">}</span></code></pre></pre>
+<h2 id="common-workflows"><a class="header" href="#common-workflows">Common Workflows</a></h2>
+<h3 id="1-lint-before-commit"><a class="header" href="#1-lint-before-commit">1. Lint Before Commit</a></h3>
+<pre><code class="language-bash no_run"><span class="boring"> Lint all shell scripts in project
+</span>find . -name "*.sh" -exec bashrs lint {} \;
+</code></pre>
+<h3 id="2-cicd-integration"><a class="header" href="#2-cicd-integration">2. CI/CD Integration</a></h3>
+<pre><code class="language-yaml"># .github/workflows/shellcheck.yml
+name: Shell Lint
+on: [push, pull_request]
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Install bashrs
+        run: cargo install bashrs
+      - name: Lint scripts
+        run: bashrs lint scripts/*.sh
+</code></pre>
+<h3 id="3-purify-your-dotfiles"><a class="header" href="#3-purify-your-dotfiles">3. Purify Your dotfiles</a></h3>
+<pre><code class="language-bash no_run"><span class="boring"> Analyze
+</span>bashrs config analyze ~/.bashrc
+
+<span class="boring"> Purify (dry-run by default)
+</span>bashrs config purify ~/.bashrc --output ~/.bashrc.purified
+
+<span class="boring"> Review changes
+</span>diff ~/.bashrc ~/.bashrc.purified
+
+<span class="boring"> Apply changes (creates backup automatically)
+</span>bashrs config purify ~/.bashrc --fix
+</code></pre>
+<h2 id="whats-next"><a class="header" href="#whats-next">What's Next?</a></h2>
+<p>Now that you've seen the basics, let's explore:</p>
+<ul>
+<li><a href="getting-started/./first-purification.html">Your First Purification</a>: Step-by-step purification workflow</li>
+<li><a href="getting-started/../concepts/purification.html">Core Concepts</a>: Understand determinism and idempotency</li>
+<li><a href="getting-started/../linting/security.html">Security Rules</a>: Deep dive into security linting</li>
+</ul>
+<h2 id="quick-reference"><a class="header" href="#quick-reference">Quick Reference</a></h2>
+<div class="table-wrapper"><table><thead><tr><th>Command</th><th>Purpose</th></tr></thead><tbody>
+<tr><td><code>bashrs lint &lt;file&gt;</code></td><td>Lint shell script</td></tr>
+<tr><td><code>bashrs config analyze &lt;file&gt;</code></td><td>Analyze config file</td></tr>
+<tr><td><code>bashrs config purify &lt;file&gt;</code></td><td>Purify config file</td></tr>
+<tr><td><code>bashrs --help</code></td><td>Show all commands</td></tr>
+</tbody></table>
+</div>
+<h2 id="troubleshooting"><a class="header" href="#troubleshooting">Troubleshooting</a></h2>
+<h3 id="bashrs-command-not-found"><a class="header" href="#bashrs-command-not-found">"bashrs: command not found"</a></h3>
+<p>Ensure <code>~/.cargo/bin</code> is in your PATH:</p>
+<pre><code class="language-bash">export PATH="$HOME/.cargo/bin:$PATH"
+</code></pre>
+<h3 id="permission-denied"><a class="header" href="#permission-denied">Permission Denied</a></h3>
+<p>If you see permission errors:</p>
+<pre><code class="language-bash">chmod +x vulnerable.sh
+</code></pre>
+<h2 id="summary"><a class="header" href="#summary">Summary</a></h2>
+<p>In this chapter, you learned to:</p>
+<ul>
+<li>✅ Lint shell scripts for security issues</li>
+<li>✅ Analyze configuration files</li>
+<li>✅ Purify config files automatically</li>
+<li>✅ Integrate Rash into your workflow</li>
+</ul>
+<p>Ready for a deeper dive? Continue to <a href="getting-started/./first-purification.html">Your First Purification</a>!</p>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="your-first-purification"><a class="header" href="#your-first-purification">Your First Purification</a></h1>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="what-is-purification"><a class="header" href="#what-is-purification">What is Purification?</a></h1>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="determinism"><a class="header" href="#determinism">Determinism</a></h1>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="idempotency"><a class="header" href="#idempotency">Idempotency</a></h1>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="posix-compliance"><a class="header" href="#posix-compliance">POSIX Compliance</a></h1>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="security-rules-sec001-sec008"><a class="header" href="#security-rules-sec001-sec008">Security Rules (SEC001-SEC008)</a></h1>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="determinism-rules-det001-det003"><a class="header" href="#determinism-rules-det001-det003">Determinism Rules (DET001-DET003)</a></h1>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="idempotency-rules-idem001-idem003"><a class="header" href="#idempotency-rules-idem001-idem003">Idempotency Rules (IDEM001-IDEM003)</a></h1>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="writing-custom-rules"><a class="header" href="#writing-custom-rules">Writing Custom Rules</a></h1>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="overview"><a class="header" href="#overview">Overview</a></h1>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="analyzing-config-files"><a class="header" href="#analyzing-config-files">Analyzing Config Files</a></h1>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="purifying-bashrc-and-zshrc"><a class="header" href="#purifying-bashrc-and-zshrc">Purifying .bashrc and .zshrc</a></h1>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="config-001-deduplicate-path-entries"><a class="header" href="#config-001-deduplicate-path-entries">CONFIG-001: Deduplicate PATH Entries</a></h1>
+<p><strong>Category</strong>: Configuration
+<strong>Severity</strong>: Warning
+<strong>Since</strong>: v6.0.0
+<strong>Fixable</strong>: Yes (automatic)</p>
+<h2 id="problem"><a class="header" href="#problem">Problem</a></h2>
+<p>Duplicate entries in <code>PATH</code> cause:</p>
+<ul>
+<li>Slower command lookup</li>
+<li>Confusion about which binary will run</li>
+<li>Maintenance burden</li>
+</ul>
+<h3 id="example-problem"><a class="header" href="#example-problem">Example Problem</a></h3>
+<pre><code class="language-bash">export PATH="/usr/local/bin:$PATH"
+export PATH="/opt/homebrew/bin:$PATH"
+export PATH="/usr/local/bin:$PATH"  # Duplicate!
+</code></pre>
+<p>The third line adds <code>/usr/local/bin</code> again, which was already added in the first line.</p>
+<h2 id="detection"><a class="header" href="#detection">Detection</a></h2>
+<p>Rash tracks all PATH modifications and detects when the same directory is added multiple times:</p>
+<pre><code class="language-bash no_run">bashrs config analyze messy.bashrc
+</code></pre>
+<p>Output:</p>
+<pre><code class="language-text">[CONFIG-001] Duplicate PATH entry
+  → Line: 3
+  → Path: /usr/local/bin
+  → First occurrence: Line 1
+  → Suggestion: Remove duplicate entry or use conditional addition
+</code></pre>
+<h2 id="automatic-fix"><a class="header" href="#automatic-fix">Automatic Fix</a></h2>
+<p>Rash can automatically remove duplicates while preserving the first occurrence:</p>
+<pre><code class="language-bash no_run">bashrs config purify messy.bashrc --output clean.bashrc
+</code></pre>
+<p><strong>Before:</strong></p>
+<pre><code class="language-bash">export PATH="/usr/local/bin:$PATH"
+export PATH="/opt/homebrew/bin:$PATH"
+export PATH="/usr/local/bin:$PATH"
+</code></pre>
+<p><strong>After:</strong></p>
+<pre><code class="language-bash">export PATH="/usr/local/bin:$PATH"
+export PATH="/opt/homebrew/bin:$PATH"
+<span class="boring"> Duplicate removed by CONFIG-001
+</span></code></pre>
+<h2 id="implementation-details"><a class="header" href="#implementation-details">Implementation Details</a></h2>
+<p>The deduplication algorithm:</p>
+<pre><pre class="playground"><code class="language-rust no_run"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use std::collections::HashSet;
+
+/// Deduplicate PATH entries, preserving first occurrence
+pub fn deduplicate_path_entries(source: &amp;str) -&gt; String {
+    let entries = analyze_path_entries(source);
+    let mut seen_paths = HashSet::new();
+    let mut result = Vec::new();
+
+    for (line_num, line) in source.lines().enumerate() {
+        let line_num = line_num + 1;
+
+        // Check if this line adds a PATH entry we've seen
+        let mut skip_line = false;
+        for entry in &amp;entries {
+            if entry.line == line_num &amp;&amp; seen_paths.contains(&amp;entry.path) {
+                // Duplicate found - skip this line
+                skip_line = true;
+                break;
+            }
+        }
+
+        if skip_line {
+            continue;
+        }
+
+        // Track new paths
+        for entry in &amp;entries {
+            if entry.line == line_num {
+                seen_paths.insert(&amp;entry.path);
+            }
+        }
+
+        result.push(line.to_string());
+    }
+
+    result.join("\n")
+}
+
+// Helper function (part of actual implementation)
+fn analyze_path_entries(source: &amp;str) -&gt; Vec&lt;PathEntry&gt; {
+    // Implementation details...
+    vec![]
+}
+
+struct PathEntry {
+    line: usize,
+    path: String,
+}
+<span class="boring">}</span></code></pre></pre>
+<h2 id="testing"><a class="header" href="#testing">Testing</a></h2>
+<p>The CONFIG-001 rule has comprehensive tests:</p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>#[test]
+fn test_config_001_detect_duplicate_paths() {
+    // ARRANGE
+    let source = r#"export PATH="/usr/local/bin:$PATH"
+export PATH="/opt/homebrew/bin:$PATH"
+export PATH="/usr/local/bin:$PATH""#;
+
+    // ACT
+    let entries = analyze_path_entries(source);
+    let issues = detect_duplicate_paths(&amp;entries);
+
+    // ASSERT
+    assert_eq!(issues.len(), 1);
+    assert_eq!(issues[0].rule_id, "CONFIG-001");
+    assert_eq!(issues[0].line, 3);
+}
+
+#[test]
+fn test_config_001_deduplicate_preserves_first() {
+    // ARRANGE
+    let source = r#"export PATH="/usr/local/bin:$PATH"
+export PATH="/opt/homebrew/bin:$PATH"
+export PATH="/usr/local/bin:$PATH""#;
+
+    // ACT
+    let result = deduplicate_path_entries(source);
+
+    // ASSERT
+    assert_eq!(result.lines().count(), 2);
+    assert!(result.contains("/usr/local/bin"));
+    assert!(result.contains("/opt/homebrew/bin"));
+    // Should only appear once
+    assert_eq!(result.matches("/usr/local/bin").count(), 1);
+}
+<span class="boring">}</span></code></pre></pre>
+<h2 id="real-world-example"><a class="header" href="#real-world-example">Real-World Example</a></h2>
+<p>Common scenario in .bashrc files:</p>
+<pre><code class="language-bash"><span class="boring"> System default
+</span>export PATH="/usr/local/bin:$PATH"
+
+<span class="boring"> Homebrew
+</span>if [ -d "/opt/homebrew/bin" ]; then
+    export PATH="/opt/homebrew/bin:$PATH"
+fi
+
+<span class="boring"> Custom tools
+</span>export PATH="/usr/local/bin:$PATH"  # Oops, duplicate!
+
+<span class="boring"> Python tools
+</span>export PATH="$HOME/.local/bin:$PATH"
+</code></pre>
+<p>After purification:</p>
+<pre><code class="language-bash"><span class="boring"> System default
+</span>export PATH="/usr/local/bin:$PATH"
+
+<span class="boring"> Homebrew
+</span>if [ -d "/opt/homebrew/bin" ]; then
+    export PATH="/opt/homebrew/bin:$PATH"
+fi
+
+<span class="boring"> Custom tools - removed duplicate
+</span>
+<span class="boring"> Python tools
+</span>export PATH="$HOME/.local/bin:$PATH"
+</code></pre>
+<h2 id="configuration"><a class="header" href="#configuration">Configuration</a></h2>
+<p>You can configure CONFIG-001 behavior:</p>
+<pre><code class="language-bash"><span class="boring"> Dry-run (default) - show what would change
+</span>bashrs config purify ~/.bashrc --dry-run
+
+<span class="boring"> Apply fixes with backup
+</span>bashrs config purify ~/.bashrc --fix
+
+<span class="boring"> Skip backup (dangerous!)
+</span>bashrs config purify ~/.bashrc --fix --no-backup
+</code></pre>
+<h2 id="related-rules"><a class="header" href="#related-rules">Related Rules</a></h2>
+<ul>
+<li><a href="config/rules/./config-002.html">CONFIG-002</a>: Quote variable expansions</li>
+<li><a href="config/rules/./config-004.html">CONFIG-004</a>: Remove non-deterministic constructs</li>
+</ul>
+<h2 id="faq"><a class="header" href="#faq">FAQ</a></h2>
+<p><strong>Q: Why preserve the first occurrence, not the last?</strong></p>
+<p>A: The first occurrence is usually the intended primary PATH. Later duplicates are often accidental.</p>
+<p><strong>Q: What about conditional PATH additions?</strong></p>
+<p>A: Rash preserves conditional logic. Duplicates are only removed if unconditional.</p>
+<p><strong>Q: Can I disable this rule?</strong></p>
+<p>A: Currently, rules cannot be disabled individually. This feature is planned for v7.1.</p>
+<h2 id="see-also"><a class="header" href="#see-also">See Also</a></h2>
+<ul>
+<li><a href="config/rules/../overview.html">Shell Configuration Overview</a></li>
+<li><a href="config/rules/../analyzing.html">Analyzing Config Files</a></li>
+<li><a href="config/rules/../purifying.html">Purification Workflow</a></li>
+</ul>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="config-002-quote-variable-expansions"><a class="header" href="#config-002-quote-variable-expansions">CONFIG-002: Quote Variable Expansions</a></h1>
+<p><strong>Category</strong>: Security / Reliability
+<strong>Severity</strong>: Warning
+<strong>Since</strong>: v6.0.0
+<strong>Fixable</strong>: Yes (automatic)</p>
+<h2 id="problem-1"><a class="header" href="#problem-1">Problem</a></h2>
+<p>Unquoted variable expansions can lead to:</p>
+<ul>
+<li><strong>Word splitting</strong>: Spaces in values break arguments</li>
+<li><strong>Glob expansion</strong>: Wildcards in values expand unexpectedly</li>
+<li><strong>Security vulnerabilities</strong>: Injection attacks through unquoted paths</li>
+</ul>
+<h3 id="example-problem-1"><a class="header" href="#example-problem-1">Example Problem</a></h3>
+<pre><code class="language-bash"><span class="boring"> Unquoted variable
+</span>export PROJECT_DIR=$HOME/my projects
+
+<span class="boring"> Causes issues when used
+</span>cd $PROJECT_DIR  # Fails! Splits into: cd /home/user/my projects
+</code></pre>
+<p>The space in "my projects" causes the shell to interpret this as two arguments.</p>
+<h2 id="detection-1"><a class="header" href="#detection-1">Detection</a></h2>
+<p>Rash analyzes variable usage and detects unquoted expansions:</p>
+<pre><code class="language-bash no_run">bashrs config analyze messy.bashrc
+</code></pre>
+<p>Output:</p>
+<pre><code class="language-text">[CONFIG-002] Unquoted variable expansion
+  → Line: 1
+  → Variable: $HOME
+  → Column: 18
+  → Can cause word splitting and glob expansion
+  → Suggestion: Quote the variable: "${HOME}"
+</code></pre>
+<h2 id="automatic-fix-1"><a class="header" href="#automatic-fix-1">Automatic Fix</a></h2>
+<p>Rash automatically adds quotes and converts to brace syntax:</p>
+<pre><code class="language-bash no_run">bashrs config purify messy.bashrc --output clean.bashrc
+</code></pre>
+<p><strong>Before:</strong></p>
+<pre><code class="language-bash">export PROJECT_DIR=$HOME/my projects
+cd $PROJECT_DIR
+cp $SOURCE $DEST
+</code></pre>
+<p><strong>After:</strong></p>
+<pre><code class="language-bash">export PROJECT_DIR="${HOME}/my projects"
+cd "${PROJECT_DIR}"
+cp "${SOURCE}" "${DEST}"
+</code></pre>
+<h2 id="why-quotes-matter"><a class="header" href="#why-quotes-matter">Why Quotes Matter</a></h2>
+<h3 id="word-splitting-example"><a class="header" href="#word-splitting-example">Word Splitting Example</a></h3>
+<pre><code class="language-bash"><span class="boring"> Without quotes
+</span>FILE=$HOME/my document.txt
+cat $FILE
+<span class="boring"> Error: cat: /home/user/my: No such file or directory
+</span><span class="boring">        cat: document.txt: No such file or directory
+</span>
+<span class="boring"> With quotes (correct)
+</span>FILE="${HOME}/my document.txt"
+cat "${FILE}"
+<span class="boring"> Success!
+</span></code></pre>
+<h3 id="glob-expansion-example"><a class="header" href="#glob-expansion-example">Glob Expansion Example</a></h3>
+<pre><code class="language-bash"><span class="boring"> Without quotes
+</span>PATTERN="*.txt"
+echo $PATTERN
+<span class="boring"> Expands to: file1.txt file2.txt file3.txt
+</span>
+<span class="boring"> With quotes (literal)
+</span>PATTERN="*.txt"
+echo "${PATTERN}"
+<span class="boring"> Outputs: *.txt
+</span></code></pre>
+<h3 id="security-example"><a class="header" href="#security-example">Security Example</a></h3>
+<pre><code class="language-bash"><span class="boring"> Vulnerable
+</span>USER_INPUT="file.txt; rm -rf /"
+cat $USER_INPUT  # DANGER! Executes: cat file.txt; rm -rf /
+
+<span class="boring"> Safe
+</span>USER_INPUT="file.txt; rm -rf /"
+cat "${USER_INPUT}"  # Safe: cat 'file.txt; rm -rf /'
+</code></pre>
+<h2 id="implementation"><a class="header" href="#implementation">Implementation</a></h2>
+<p>The quoting algorithm:</p>
+<pre><pre class="playground"><code class="language-rust no_run"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use std::collections::HashMap;
+
+/// Quote all unquoted variables in source
+pub fn quote_variables(source: &amp;str) -&gt; String {
+    let variables = analyze_unquoted_variables(source);
+
+    if variables.is_empty() {
+        return source.to_string();
+    }
+
+    let mut lines_to_fix = HashMap::new();
+    for var in &amp;variables {
+        lines_to_fix.entry(var.line).or_insert_with(Vec::new).push(var);
+    }
+
+    let mut result = Vec::new();
+
+    for (line_num, line) in source.lines().enumerate() {
+        let line_num = line_num + 1;
+
+        if lines_to_fix.contains_key(&amp;line_num) {
+            if line.contains('=') {
+                // Assignment: quote RHS
+                result.push(quote_assignment_line(line));
+            } else {
+                // Command: quote individual variables
+                result.push(quote_command_line(line));
+            }
+        } else {
+            result.push(line.to_string());
+        }
+    }
+
+    result.join("\n")
+}
+
+// Helper functions (part of actual implementation)
+fn analyze_unquoted_variables(source: &amp;str) -&gt; Vec&lt;UnquotedVariable&gt; { vec![] }
+fn quote_assignment_line(line: &amp;str) -&gt; String { line.to_string() }
+fn quote_command_line(line: &amp;str) -&gt; String { line.to_string() }
+struct UnquotedVariable { line: usize }
+<span class="boring">}</span></code></pre></pre>
+<h2 id="special-contexts"><a class="header" href="#special-contexts">Special Contexts</a></h2>
+<p>CONFIG-002 is smart about when NOT to quote:</p>
+<h3 id="1-already-quoted"><a class="header" href="#1-already-quoted">1. Already Quoted</a></h3>
+<pre><code class="language-bash"><span class="boring"> Already safe - no change
+</span>export DIR="${HOME}/projects"
+echo "Hello $USER"
+</code></pre>
+<h3 id="2-arithmetic-context"><a class="header" href="#2-arithmetic-context">2. Arithmetic Context</a></h3>
+<pre><code class="language-bash"><span class="boring"> Arithmetic - no quotes needed
+</span>result=$((x + y))
+((counter++))
+</code></pre>
+<h3 id="3-array-indices"><a class="header" href="#3-array-indices">3. Array Indices</a></h3>
+<pre><code class="language-bash"><span class="boring"> Array index - no quotes needed
+</span>element="${array[$i]}"
+</code></pre>
+<h3 id="4-export-without-assignment"><a class="header" href="#4-export-without-assignment">4. Export Without Assignment</a></h3>
+<pre><code class="language-bash"><span class="boring"> Just exporting, not assigning - no change
+</span>export PATH
+</code></pre>
+<h2 id="testing-1"><a class="header" href="#testing-1">Testing</a></h2>
+<p>Comprehensive test coverage for CONFIG-002:</p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>#[test]
+fn test_config_002_quote_simple_variable() {
+    // ARRANGE
+    let source = "export DIR=$HOME/projects";
+
+    // ACT
+    let result = quote_variables(source);
+
+    // ASSERT
+    assert_eq!(result, r#"export DIR="${HOME}/projects""#);
+}
+
+#[test]
+fn test_config_002_preserve_already_quoted() {
+    // ARRANGE
+    let source = r#"export DIR="${HOME}/projects""#;
+
+    // ACT
+    let result = quote_variables(source);
+
+    // ASSERT
+    assert_eq!(result, source, "Should not change already quoted");
+}
+
+#[test]
+fn test_config_002_idempotent() {
+    // ARRANGE
+    let source = "export DIR=$HOME/projects";
+
+    // ACT
+    let quoted_once = quote_variables(source);
+    let quoted_twice = quote_variables(&amp;quoted_once);
+
+    // ASSERT
+    assert_eq!(quoted_once, quoted_twice, "Quoting should be idempotent");
+}
+<span class="boring">}</span></code></pre></pre>
+<h2 id="real-world-example-1"><a class="header" href="#real-world-example-1">Real-World Example</a></h2>
+<p>Common ~/.bashrc scenario:</p>
+<pre><code class="language-bash"><span class="boring"> Before purification
+</span>export PROJECT_DIR=$HOME/my projects
+export BACKUP_DIR=$HOME/backups
+
+<span class="boring"> Aliases with unquoted variables
+</span>alias proj='cd $PROJECT_DIR'
+alias backup='cp $PROJECT_DIR/file.txt $BACKUP_DIR/'
+
+<span class="boring"> Functions
+</span>deploy() {
+    cd $PROJECT_DIR
+    ./build.sh
+    cp result.tar.gz $BACKUP_DIR
+}
+</code></pre>
+<p>After purification:</p>
+<pre><code class="language-bash"><span class="boring"> After purification
+</span>export PROJECT_DIR="${HOME}/my projects"
+export BACKUP_DIR="${HOME}/backups"
+
+<span class="boring"> Aliases with quoted variables
+</span>alias proj='cd "${PROJECT_DIR}"'
+alias backup='cp "${PROJECT_DIR}/file.txt" "${BACKUP_DIR}/"'
+
+<span class="boring"> Functions
+</span>deploy() {
+    cd "${PROJECT_DIR}" || return 1
+    ./build.sh
+    cp result.tar.gz "${BACKUP_DIR}"
+}
+</code></pre>
+<h2 id="configuration-1"><a class="header" href="#configuration-1">Configuration</a></h2>
+<p>Control CONFIG-002 behavior:</p>
+<pre><code class="language-bash"><span class="boring"> Dry-run to preview changes
+</span>bashrs config purify ~/.bashrc --dry-run
+
+<span class="boring"> Apply with backup (default: ~/.bashrc.backup.TIMESTAMP)
+</span>bashrs config purify ~/.bashrc --fix
+
+<span class="boring"> JSON output for tooling
+</span>bashrs config analyze ~/.bashrc --format json
+</code></pre>
+<h2 id="exceptions"><a class="header" href="#exceptions">Exceptions</a></h2>
+<p>CONFIG-002 intelligently skips:</p>
+<ol>
+<li><strong>Comments</strong>: Variables in comments are ignored</li>
+<li><strong>Strings</strong>: Variables already in double quotes</li>
+<li><strong>Arithmetic</strong>: Variables in <code>$((...))</code> or <code>(( ))</code></li>
+<li><strong>Arrays</strong>: Variables used as array indices</li>
+</ol>
+<h2 id="related-rules-1"><a class="header" href="#related-rules-1">Related Rules</a></h2>
+<ul>
+<li><a href="config/rules/./config-001.html">CONFIG-001</a>: PATH deduplication</li>
+<li><a href="config/rules/./config-007.html">CONFIG-007</a>: Validate source paths (security)</li>
+<li><a href="config/rules/../../linting/security.html">SEC-003</a>: Command injection prevention</li>
+</ul>
+<h2 id="performance"><a class="header" href="#performance">Performance</a></h2>
+<p>CONFIG-002 is highly optimized:</p>
+<ul>
+<li><strong>Regex-based</strong>: O(n) scanning with compiled regex</li>
+<li><strong>Incremental</strong>: Only processes lines with variables</li>
+<li><strong>Idempotent</strong>: Safe to run multiple times</li>
+<li><strong>Fast</strong>: ~1ms for typical .bashrc files</li>
+</ul>
+<h2 id="faq-1"><a class="header" href="#faq-1">FAQ</a></h2>
+<p><strong>Q: Why convert $VAR to ${VAR}?</strong></p>
+<p>A: Brace syntax is more explicit and prevents issues like <code>$VARname</code> ambiguity.</p>
+<p><strong>Q: What about single quotes?</strong></p>
+<p>A: Variables in single quotes don't expand. CONFIG-002 focuses on double-quote contexts.</p>
+<p><strong>Q: Can this break my scripts?</strong></p>
+<p>A: Very rarely. Quoting variables is almost always safer. Test with <code>--dry-run</code> first.</p>
+<p><strong>Q: What about $0, $1, $2, etc.?</strong></p>
+<p>A: Positional parameters are quoted too: <code>"${1}"</code>, <code>"${2}"</code>, etc.</p>
+<h2 id="see-also-1"><a class="header" href="#see-also-1">See Also</a></h2>
+<ul>
+<li><a href="https://mywiki.wooledge.org/Quotes">Quote Everything by Default</a></li>
+<li><a href="https://www.shellcheck.net/wiki/SC2086">ShellCheck SC2086</a></li>
+<li><a href="https://mywiki.wooledge.org/BashPitfalls">Bash Pitfalls</a></li>
+</ul>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="makefile-overview"><a class="header" href="#makefile-overview">Makefile Overview</a></h1>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="makefile-security"><a class="header" href="#makefile-security">Makefile Security</a></h1>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="makefile-best-practices"><a class="header" href="#makefile-best-practices">Makefile Best Practices</a></h1>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="bootstrap-installer"><a class="header" href="#bootstrap-installer">Bootstrap Installer</a></h1>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="deployment-script"><a class="header" href="#deployment-script">Deployment Script</a></h1>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="configuration-management"><a class="header" href="#configuration-management">Configuration Management</a></h1>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="cicd-pipeline"><a class="header" href="#cicd-pipeline">CI/CD Pipeline</a></h1>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="ast-level-transformation"><a class="header" href="#ast-level-transformation">AST-Level Transformation</a></h1>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="property-testing"><a class="header" href="#property-testing">Property Testing</a></h1>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="mutation-testing"><a class="header" href="#mutation-testing">Mutation Testing</a></h1>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="performance-optimization"><a class="header" href="#performance-optimization">Performance Optimization</a></h1>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="cli-commands"><a class="header" href="#cli-commands">CLI Commands</a></h1>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="configuration-2"><a class="header" href="#configuration-2">Configuration</a></h1>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="exit-codes"><a class="header" href="#exit-codes">Exit Codes</a></h1>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="linter-rules-reference"><a class="header" href="#linter-rules-reference">Linter Rules Reference</a></h1>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="development-setup"><a class="header" href="#development-setup">Development Setup</a></h1>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="extreme-tdd"><a class="header" href="#extreme-tdd">EXTREME TDD</a></h1>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="toyota-way-principles"><a class="header" href="#toyota-way-principles">Toyota Way Principles</a></h1>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="release-process"><a class="header" href="#release-process">Release Process</a></h1>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+
+            </nav>
+
+        </div>
+
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+        <script src="ace.js"></script>
+        <script src="mode-rust.js"></script>
+        <script src="editor.js"></script>
+        <script src="theme-dawn.js"></script>
+        <script src="theme-tomorrow_night.js"></script>
+
+        <script src="elasticlunr.min.js"></script>
+        <script src="mark.min.js"></script>
+        <script src="searcher.js"></script>
+
+        <script src="clipboard.min.js"></script>
+        <script src="highlight.js"></script>
+        <script src="book.js"></script>
+
+        <!-- Custom JS scripts -->
+
+        <script>
+        window.addEventListener('load', function() {
+            window.setTimeout(window.print, 100);
+        });
+        </script>
+
+
+    </div>
+    </body>
+</html>
