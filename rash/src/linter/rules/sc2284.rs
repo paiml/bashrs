@@ -4,7 +4,7 @@ use once_cell::sync::Lazy;
 use regex::Regex;
 
 static CONDITIONAL_ASSIGN: Lazy<Regex> = Lazy::new(|| {
-    Regex::new(r"\[\s+-n\s+\$\{?[a-zA-Z_][a-zA-Z0-9_]*\}?\s+\]\s*&&\s*[a-zA-Z_]").unwrap()
+    Regex::new(r"\[\s+-n\s+\$\{?[a-zA-Z_][a-zA-Z0-9_]*\}?\s+\]\s*&&\s*[a-zA-Z_][a-zA-Z0-9_]*=").unwrap()
 });
 
 pub fn check(source: &str) -> LintResult {

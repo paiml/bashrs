@@ -4,7 +4,7 @@ use once_cell::sync::Lazy;
 use regex::Regex;
 
 static UNSET_PATTERN: Lazy<Regex> = Lazy::new(|| {
-    Regex::new(r#"\[\s+-z\s+"\$\{[a-zA-Z_][a-zA-Z0-9_]*\+x\}""#).unwrap()
+    Regex::new(r#"(?:^|[^\[])\[\s+-z\s+"\$\{[a-zA-Z_][a-zA-Z0-9_]*\+x\}""#).unwrap()
 });
 
 pub fn check(source: &str) -> LintResult {
