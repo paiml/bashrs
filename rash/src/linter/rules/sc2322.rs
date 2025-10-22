@@ -3,9 +3,8 @@ use crate::linter::{Diagnostic, LintResult, Severity, Span};
 use once_cell::sync::Lazy;
 use regex::Regex;
 
-static ARITH_SYNTAX_ERROR: Lazy<Regex> = Lazy::new(|| {
-    Regex::new(r"\$\(\(\s*[+\-*/]\s*\)\)").unwrap()
-});
+static ARITH_SYNTAX_ERROR: Lazy<Regex> =
+    Lazy::new(|| Regex::new(r"\$\(\(\s*[+\-*/]\s*\)\)").unwrap());
 
 pub fn check(source: &str) -> LintResult {
     let mut result = LintResult::new();

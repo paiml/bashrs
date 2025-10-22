@@ -3,9 +3,8 @@ use crate::linter::{Diagnostic, LintResult, Severity, Span};
 use once_cell::sync::Lazy;
 use regex::Regex;
 
-static LITERAL_DOUBLE_QUOTES: Lazy<Regex> = Lazy::new(|| {
-    Regex::new(r#"^[a-zA-Z_][a-zA-Z0-9_]*="[^$`\\]*"$"#).unwrap()
-});
+static LITERAL_DOUBLE_QUOTES: Lazy<Regex> =
+    Lazy::new(|| Regex::new(r#"^[a-zA-Z_][a-zA-Z0-9_]*="[^$`\\]*"$"#).unwrap());
 
 pub fn check(source: &str) -> LintResult {
     let mut result = LintResult::new();

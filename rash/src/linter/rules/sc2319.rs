@@ -3,9 +3,8 @@ use crate::linter::{Diagnostic, LintResult, Severity, Span};
 use once_cell::sync::Lazy;
 use regex::Regex;
 
-static CONDITION_EXITCODE: Lazy<Regex> = Lazy::new(|| {
-    Regex::new(r"(?:if|while|until)\s+.*;\s*then").unwrap()
-});
+static CONDITION_EXITCODE: Lazy<Regex> =
+    Lazy::new(|| Regex::new(r"(?:if|while|until)\s+.*;\s*then").unwrap());
 
 pub fn check(source: &str) -> LintResult {
     let mut result = LintResult::new();
@@ -27,7 +26,8 @@ pub fn check(source: &str) -> LintResult {
                     let diagnostic = Diagnostic::new(
                         "SC2319",
                         Severity::Warning,
-                        "$? refers to the condition's exit code, not the command inside it".to_string(),
+                        "$? refers to the condition's exit code, not the command inside it"
+                            .to_string(),
                         Span::new(i + 2, 1, i + 2, next_line.len() + 1),
                     );
                     result.add(diagnostic);

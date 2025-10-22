@@ -7,13 +7,10 @@ static FUNCTION_DEF: Lazy<Regex> = Lazy::new(|| {
     Regex::new(r"^(?:function\s+([a-zA-Z_][a-zA-Z0-9_]*)|([a-zA-Z_][a-zA-Z0-9_]*)\s*\(\))").unwrap()
 });
 
-static FUNCTION_IN_CONDITION: Lazy<Regex> = Lazy::new(|| {
-    Regex::new(r"(?:if|while|until)\s+([a-zA-Z_][a-zA-Z0-9_]*)").unwrap()
-});
+static FUNCTION_IN_CONDITION: Lazy<Regex> =
+    Lazy::new(|| Regex::new(r"(?:if|while|until)\s+([a-zA-Z_][a-zA-Z0-9_]*)").unwrap());
 
-static SET_E: Lazy<Regex> = Lazy::new(|| {
-    Regex::new(r"set\s+-[a-zA-Z]*e").unwrap()
-});
+static SET_E: Lazy<Regex> = Lazy::new(|| Regex::new(r"set\s+-[a-zA-Z]*e").unwrap());
 
 pub fn check(source: &str) -> LintResult {
     let mut result = LintResult::new();
@@ -31,7 +28,9 @@ pub fn check(source: &str) -> LintResult {
     for line in &lines {
         if let Some(caps) = FUNCTION_DEF.captures(line) {
             // Check which capture group matched (function keyword or ())
-            let func_name = caps.get(1).or_else(|| caps.get(2))
+            let func_name = caps
+                .get(1)
+                .or_else(|| caps.get(2))
                 .map(|m| m.as_str().to_string());
             if let Some(name) = func_name {
                 functions.push(name);

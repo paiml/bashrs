@@ -3,9 +3,8 @@ use crate::linter::{Diagnostic, LintResult, Severity, Span};
 use once_cell::sync::Lazy;
 use regex::Regex;
 
-static ARRAY_INDEX_DOLLAR: Lazy<Regex> = Lazy::new(|| {
-    Regex::new(r"\$\{[a-zA-Z_][a-zA-Z0-9_]*\[\$[a-zA-Z_]").unwrap()
-});
+static ARRAY_INDEX_DOLLAR: Lazy<Regex> =
+    Lazy::new(|| Regex::new(r"\$\{[a-zA-Z_][a-zA-Z0-9_]*\[\$[a-zA-Z_]").unwrap());
 
 pub fn check(source: &str) -> LintResult {
     let mut result = LintResult::new();
@@ -19,7 +18,8 @@ pub fn check(source: &str) -> LintResult {
             let diagnostic = Diagnostic::new(
                 "SC2290",
                 Severity::Info,
-                "Remove $ from index variables in array subscripts: ${array[i]} not ${array[$i]}".to_string(),
+                "Remove $ from index variables in array subscripts: ${array[i]} not ${array[$i]}"
+                    .to_string(),
                 Span::new(line_num, 1, line_num, line.len() + 1),
             );
             result.add(diagnostic);

@@ -958,7 +958,10 @@ fn config_analyze_command(input: &Path, format: ConfigOutputFormat) -> Result<()
     match format {
         ConfigOutputFormat::Human => {
             println!("Analysis: {}", input.display());
-            println!("=========={}=", "=".repeat(input.display().to_string().len()));
+            println!(
+                "=========={}=",
+                "=".repeat(input.display().to_string().len())
+            );
             println!();
             println!("Statistics:");
             println!("  - Lines: {}", analysis.line_count);
@@ -981,7 +984,10 @@ fn config_analyze_command(input: &Path, format: ConfigOutputFormat) -> Result<()
                     analysis.performance_issues.len()
                 );
                 for issue in &analysis.performance_issues {
-                    println!("  - Line {}: {} (~{}ms)", issue.line, issue.command, issue.estimated_cost_ms);
+                    println!(
+                        "  - Line {}: {} (~{}ms)",
+                        issue.line, issue.command, issue.estimated_cost_ms
+                    );
                     println!("    Suggestion: {}", issue.suggestion);
                 }
                 println!();
@@ -1014,10 +1020,17 @@ fn config_analyze_command(input: &Path, format: ConfigOutputFormat) -> Result<()
             println!("  \"line_count\": {},", analysis.line_count);
             println!("  \"complexity_score\": {},", analysis.complexity_score);
             println!("  \"path_entries\": {},", analysis.path_entries.len());
-            println!("  \"performance_issues\": {},", analysis.performance_issues.len());
+            println!(
+                "  \"performance_issues\": {},",
+                analysis.performance_issues.len()
+            );
             println!("  \"issues\": [");
             for (i, issue) in analysis.issues.iter().enumerate() {
-                let comma = if i < analysis.issues.len() - 1 { "," } else { "" };
+                let comma = if i < analysis.issues.len() - 1 {
+                    ","
+                } else {
+                    ""
+                };
                 println!("    {{");
                 println!("      \"rule_id\": \"{}\",", issue.rule_id);
                 println!("      \"line\": {},", issue.line);
@@ -1074,7 +1087,11 @@ fn config_lint_command(input: &Path, format: ConfigOutputFormat) -> Result<()> {
             println!("  \"file\": \"{}\",", input.display());
             println!("  \"issues\": [");
             for (i, issue) in analysis.issues.iter().enumerate() {
-                let comma = if i < analysis.issues.len() - 1 { "," } else { "" };
+                let comma = if i < analysis.issues.len() - 1 {
+                    ","
+                } else {
+                    ""
+                };
                 println!("    {{");
                 println!("      \"rule_id\": \"{}\",", issue.rule_id);
                 println!("      \"line\": {},", issue.line);
@@ -1126,7 +1143,7 @@ fn config_purify_command(
         }
     } else if fix && !dry_run {
         // Apply fixes in-place
-        
+
         // Create backup unless --no-backup
         if !no_backup {
             let timestamp = Local::now().format("%Y-%m-%d_%H-%M-%S");
@@ -1137,24 +1154,37 @@ fn config_purify_command(
 
         // Write purified content
         fs::write(input, &purified).map_err(Error::Io)?;
-        
+
         let fixed_count = analysis.issues.len();
         println!("Applying {} fixes...", fixed_count);
-        println!("  ✓ Deduplicated {} PATH entries", 
-            analysis.path_entries.iter().filter(|e| e.is_duplicate).count());
+        println!(
+            "  ✓ Deduplicated {} PATH entries",
+            analysis
+                .path_entries
+                .iter()
+                .filter(|e| e.is_duplicate)
+                .count()
+        );
         println!("✓ Done! {} has been purified.", input.display());
-        
+
         if !no_backup {
             let timestamp = Local::now().format("%Y-%m-%d_%H-%M-%S");
             let backup_path = input.with_extension(format!("bak.{}", timestamp));
-            println!("\nTo rollback: cp {} {}", backup_path.display(), input.display());
+            println!(
+                "\nTo rollback: cp {} {}",
+                backup_path.display(),
+                input.display()
+            );
         }
     } else {
         // Dry-run mode (default)
         println!("Preview of changes to {}:", input.display());
-        println!("================================{}=", "=".repeat(input.display().to_string().len()));
+        println!(
+            "================================{}=",
+            "=".repeat(input.display().to_string().len())
+        );
         println!();
-        
+
         if analysis.issues.is_empty() {
             println!("✓ No issues found - file is already clean!");
         } else {
@@ -1166,20 +1196,23 @@ fn config_purify_command(
             println!("--- {} (original)", input.display());
             println!("+++ {} (purified)", input.display());
             println!();
-            
+
             // Simple diff output
             let original_lines: Vec<&str> = source.lines().collect();
             let purified_lines: Vec<&str> = purified.lines().collect();
-            
+
             for (i, (orig, pure)) in original_lines.iter().zip(purified_lines.iter()).enumerate() {
                 if orig != pure {
                     println!("-{}: {}", i + 1, orig);
                     println!("+{}: {}", i + 1, pure);
                 }
             }
-            
+
             println!();
-            println!("Apply fixes: bashrs config purify {} --fix", input.display());
+            println!(
+                "Apply fixes: bashrs config purify {} --fix",
+                input.display()
+            );
         }
     }
 

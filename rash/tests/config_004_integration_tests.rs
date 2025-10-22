@@ -106,8 +106,7 @@ export TEMP_DIR="/tmp/work-$$""#;
         .success();
 
     // ASSERT: Should detect all 3
-    output
-        .stdout(predicate::str::contains("CONFIG-004"));
+    output.stdout(predicate::str::contains("CONFIG-004"));
 }
 
 #[test]

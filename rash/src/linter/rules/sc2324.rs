@@ -3,9 +3,8 @@ use crate::linter::{Diagnostic, LintResult, Severity, Span};
 use once_cell::sync::Lazy;
 use regex::Regex;
 
-static ISSET_CONDITIONAL: Lazy<Regex> = Lazy::new(|| {
-    Regex::new(r"\[\[\s+-v\s+[a-zA-Z_][a-zA-Z0-9_]*\s+\]\]\s*&&\s*echo").unwrap()
-});
+static ISSET_CONDITIONAL: Lazy<Regex> =
+    Lazy::new(|| Regex::new(r"\[\[\s+-v\s+[a-zA-Z_][a-zA-Z0-9_]*\s+\]\]\s*&&\s*echo").unwrap());
 
 pub fn check(source: &str) -> LintResult {
     let mut result = LintResult::new();
@@ -19,7 +18,8 @@ pub fn check(source: &str) -> LintResult {
             let diagnostic = Diagnostic::new(
                 "SC2324",
                 Severity::Info,
-                "Consider using ${var:+value} for conditional output based on variable being set".to_string(),
+                "Consider using ${var:+value} for conditional output based on variable being set"
+                    .to_string(),
                 Span::new(line_num, 1, line_num, line.len() + 1),
             );
             result.add(diagnostic);

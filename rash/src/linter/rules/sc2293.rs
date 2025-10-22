@@ -25,7 +25,8 @@ pub fn check(source: &str) -> LintResult {
                 let diagnostic = Diagnostic::new(
                     "SC2293",
                     Severity::Info,
-                    "Use array+=(elements) instead of array=(...old...new) for appending".to_string(),
+                    "Use array+=(elements) instead of array=(...old...new) for appending"
+                        .to_string(),
                     Span::new(line_num, 1, line_num, line.len() + 1),
                 );
                 result.add(diagnostic);

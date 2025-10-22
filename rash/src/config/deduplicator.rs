@@ -223,9 +223,9 @@ export PATH="/usr/local/bin:$PATH"
 
         // ASSERT
         assert_eq!(entries.len(), 3);
-        assert!(!entries[0].is_duplicate);  // First occurrence
-        assert!(!entries[1].is_duplicate);  // Different path
-        assert!(entries[2].is_duplicate);   // Duplicate of line 1
+        assert!(!entries[0].is_duplicate); // First occurrence
+        assert!(!entries[1].is_duplicate); // Different path
+        assert!(entries[2].is_duplicate); // Duplicate of line 1
     }
 
     #[test]
@@ -245,12 +245,12 @@ export PATH="/usr/local/bin:$PATH"
         let issues = detect_duplicate_paths(&entries);
 
         // ASSERT
-        assert_eq!(issues.len(), 2);  // Two duplicates
+        assert_eq!(issues.len(), 2); // Two duplicates
         assert_eq!(issues[0].rule_id, "CONFIG-001");
         assert_eq!(issues[0].severity, Severity::Warning);
         assert!(issues[0].message.contains("/usr/local/bin"));
-        assert_eq!(issues[0].line, 4);  // Third line (first duplicate)
-        assert_eq!(issues[1].line, 6);  // Fifth line (second duplicate)
+        assert_eq!(issues[0].line, 4); // Third line (first duplicate)
+        assert_eq!(issues[1].line, 6); // Fifth line (second duplicate)
     }
 
     #[test]

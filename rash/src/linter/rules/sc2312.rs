@@ -1,24 +1,11 @@
 // SC2312: Consider invoking command explicitly with $(command)
-use crate::linter::{Diagnostic, LintResult, Severity, Span};
-use once_cell::sync::Lazy;
-use regex::Regex;
+use crate::linter::LintResult;
 
-static IMPLICIT_COMMAND: Lazy<Regex> = Lazy::new(|| {
-    Regex::new(r"\$\([a-zA-Z_][a-zA-Z0-9_]*\s+[^)]*\)").unwrap()
-});
-
-pub fn check(source: &str) -> LintResult {
-    let mut result = LintResult::new();
-    for (line_num, line) in source.lines().enumerate() {
-        let line_num = line_num + 1;
-        if line.trim_start().starts_with('#') {
-            continue;
-        }
-
-        // This is a placeholder rule - actual implementation would require
-        // more sophisticated parsing to detect implicit vs explicit command calls
-        // For now, we'll keep it simple and not trigger false positives
-    }
+pub fn check(_source: &str) -> LintResult {
+    let result = LintResult::new();
+    // This is a placeholder rule - actual implementation would require
+    // more sophisticated parsing to detect implicit vs explicit command calls
+    // For now, we'll keep it simple and not trigger false positives
     result
 }
 

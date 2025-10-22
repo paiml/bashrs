@@ -3,9 +3,8 @@ use crate::linter::{Diagnostic, LintResult, Severity, Span};
 use once_cell::sync::Lazy;
 use regex::Regex;
 
-static ARITHMETIC_VAR: Lazy<Regex> = Lazy::new(|| {
-    Regex::new(r"\(\(\s*\$\{?[a-zA-Z_][a-zA-Z0-9_]*\}?\s*[+\-*/]").unwrap()
-});
+static ARITHMETIC_VAR: Lazy<Regex> =
+    Lazy::new(|| Regex::new(r"\(\(\s*\$\{?[a-zA-Z_][a-zA-Z0-9_]*\}?\s*[+\-*/]").unwrap());
 
 pub fn check(source: &str) -> LintResult {
     let mut result = LintResult::new();
@@ -19,7 +18,8 @@ pub fn check(source: &str) -> LintResult {
             let diagnostic = Diagnostic::new(
                 "SC2285",
                 Severity::Info,
-                "Remove $ from variables in arithmetic contexts: use ((var + 1)) not (($var + 1))".to_string(),
+                "Remove $ from variables in arithmetic contexts: use ((var + 1)) not (($var + 1))"
+                    .to_string(),
                 Span::new(line_num, 1, line_num, line.len() + 1),
             );
             result.add(diagnostic);

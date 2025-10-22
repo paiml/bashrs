@@ -179,7 +179,10 @@ fn test_config_purify_dry_run() {
     let content = fs::read_to_string(&bashrc).unwrap();
     assert!(content.contains("export PATH=\"/usr/local/bin:$PATH\""));
     // Should still have duplicates
-    let path_count = content.lines().filter(|l| l.contains("export PATH=")).count();
+    let path_count = content
+        .lines()
+        .filter(|l| l.contains("export PATH="))
+        .count();
     assert_eq!(path_count, 3);
 }
 
@@ -206,7 +209,10 @@ fn test_config_purify_with_fix() {
     let content = fs::read_to_string(&bashrc).unwrap();
 
     // Should have fewer PATH entries
-    let path_count = content.lines().filter(|l| l.contains("export PATH=")).count();
+    let path_count = content
+        .lines()
+        .filter(|l| l.contains("export PATH="))
+        .count();
     assert_eq!(path_count, 2, "Should have only 2 unique PATH entries");
 
     // Backup should exist
@@ -264,7 +270,10 @@ fn test_config_purify_output_to_stdout() {
 
     // Original file should be unchanged
     let content = fs::read_to_string(&bashrc).unwrap();
-    let path_count = content.lines().filter(|l| l.contains("export PATH=")).count();
+    let path_count = content
+        .lines()
+        .filter(|l| l.contains("export PATH="))
+        .count();
     assert_eq!(path_count, 3, "Original file should be unchanged");
 }
 
@@ -289,12 +298,18 @@ fn test_config_purify_output_to_file() {
     assert!(output_file.exists(), "Output file should be created");
 
     let content = fs::read_to_string(&output_file).unwrap();
-    let path_count = content.lines().filter(|l| l.contains("export PATH=")).count();
+    let path_count = content
+        .lines()
+        .filter(|l| l.contains("export PATH="))
+        .count();
     assert_eq!(path_count, 2, "Output should have deduplicated PATH");
 
     // Original should be unchanged
     let original = fs::read_to_string(&bashrc).unwrap();
-    let original_count = original.lines().filter(|l| l.contains("export PATH=")).count();
+    let original_count = original
+        .lines()
+        .filter(|l| l.contains("export PATH="))
+        .count();
     assert_eq!(original_count, 3, "Original should be unchanged");
 }
 

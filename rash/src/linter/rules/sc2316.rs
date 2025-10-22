@@ -3,9 +3,8 @@ use crate::linter::{Diagnostic, LintResult, Severity, Span};
 use once_cell::sync::Lazy;
 use regex::Regex;
 
-static SINGLE_BRACKET_STRING: Lazy<Regex> = Lazy::new(|| {
-    Regex::new(r#"(?:^|[^\[])\[\s+"[^"]*"\s+(?:=|!=)\s+"[^"]*"\s+\]"#).unwrap()
-});
+static SINGLE_BRACKET_STRING: Lazy<Regex> =
+    Lazy::new(|| Regex::new(r#"(?:^|[^\[])\[\s+"[^"]*"\s+(?:=|!=)\s+"[^"]*"\s+\]"#).unwrap());
 
 pub fn check(source: &str) -> LintResult {
     let mut result = LintResult::new();

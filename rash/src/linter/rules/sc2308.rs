@@ -3,9 +3,8 @@ use crate::linter::{Diagnostic, LintResult, Severity, Span};
 use once_cell::sync::Lazy;
 use regex::Regex;
 
-static REMOTE_SCRIPT: Lazy<Regex> = Lazy::new(|| {
-    Regex::new(r#"(?:ssh|curl|wget).*(?:bash|sh)\s+-[cs]"#).unwrap()
-});
+static REMOTE_SCRIPT: Lazy<Regex> =
+    Lazy::new(|| Regex::new(r#"(?:ssh|curl|wget).*(?:bash|sh)\s+-[cs]"#).unwrap());
 
 pub fn check(source: &str) -> LintResult {
     let mut result = LintResult::new();
@@ -29,7 +28,8 @@ pub fn check(source: &str) -> LintResult {
                 let diagnostic = Diagnostic::new(
                     "SC2308",
                     Severity::Info,
-                    "Shebang is ignored when script is executed remotely via ssh/curl/wget".to_string(),
+                    "Shebang is ignored when script is executed remotely via ssh/curl/wget"
+                        .to_string(),
                     Span::new(1, 1, 1, lines[0].len() + 1),
                 );
                 result.add(diagnostic);

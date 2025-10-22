@@ -18,11 +18,11 @@ pub struct NonDeterministicConstruct {
 /// Types of non-deterministic constructs
 #[derive(Debug, Clone, PartialEq)]
 pub enum ConstructType {
-    Random,      // $RANDOM
-    Timestamp,   // $(date +%s), $(date), etc.
-    ProcessId,   // $$
-    Hostname,    // $(hostname)
-    Uptime,      // $(uptime)
+    Random,    // $RANDOM
+    Timestamp, // $(date +%s), $(date), etc.
+    ProcessId, // $$
+    Hostname,  // $(hostname)
+    Uptime,    // $(uptime)
 }
 
 impl ConstructType {
@@ -300,10 +300,7 @@ export EDITOR=vim"#;
         let removed_twice = remove_nondeterminism(&removed_once);
 
         // ASSERT
-        assert_eq!(
-            removed_once, removed_twice,
-            "Removal should be idempotent"
-        );
+        assert_eq!(removed_once, removed_twice, "Removal should be idempotent");
     }
 
     #[test]
@@ -331,6 +328,8 @@ export T3=$(date -u +%s)"#;
 
         // ASSERT
         assert_eq!(constructs.len(), 3);
-        assert!(constructs.iter().all(|c| c.construct_type == ConstructType::Timestamp));
+        assert!(constructs
+            .iter()
+            .all(|c| c.construct_type == ConstructType::Timestamp));
     }
 }

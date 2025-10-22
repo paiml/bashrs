@@ -75,7 +75,9 @@ fn detect_performance_issues(source: &str) -> Vec<PerformanceIssue> {
         line_num += 1;
 
         // Detect expensive eval operations
-        if line.contains("eval") && (line.contains("rbenv") || line.contains("pyenv") || line.contains("nodenv")) {
+        if line.contains("eval")
+            && (line.contains("rbenv") || line.contains("pyenv") || line.contains("nodenv"))
+        {
             let command = line.trim().to_string();
             issues.push(PerformanceIssue {
                 line: line_num,

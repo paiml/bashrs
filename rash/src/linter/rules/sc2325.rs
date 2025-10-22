@@ -3,9 +3,8 @@ use crate::linter::{Diagnostic, LintResult, Severity, Span};
 use once_cell::sync::Lazy;
 use regex::Regex;
 
-static BRACED_IN_ARITH: Lazy<Regex> = Lazy::new(|| {
-    Regex::new(r"(?:\$\(\(|\(\()\s*\$\{[a-zA-Z_][a-zA-Z0-9_]*\}").unwrap()
-});
+static BRACED_IN_ARITH: Lazy<Regex> =
+    Lazy::new(|| Regex::new(r"(?:\$\(\(|\(\()\s*\$\{[a-zA-Z_][a-zA-Z0-9_]*\}").unwrap());
 
 pub fn check(source: &str) -> LintResult {
     let mut result = LintResult::new();

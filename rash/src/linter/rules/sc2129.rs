@@ -38,7 +38,7 @@ pub fn check(source: &str) -> LintResult {
     let lines: Vec<&str> = source.lines().collect();
 
     // Track consecutive redirects to the same file
-    let mut file_redirects: HashMap<String, Vec<usize>> = HashMap::new();
+    let file_redirects: HashMap<String, Vec<usize>> = HashMap::new();
     let mut consecutive_groups: Vec<(String, usize, usize)> = Vec::new(); // (file, start_line, count)
 
     let mut current_file: Option<String> = None;
