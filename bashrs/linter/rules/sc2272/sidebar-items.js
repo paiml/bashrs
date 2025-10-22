@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"fn":["check"],"static":["FIND_PIPE_XARGS","XARGS_WITH_0"]};
