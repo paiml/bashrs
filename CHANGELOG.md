@@ -7,6 +7,58 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [6.1.0] - 2025-10-22
+
+### Added
+
+**🎉 Shell Configuration Management** - New CONFIG-001 to CONFIG-004 rules for analyzing and purifying shell configuration files (.bashrc, .zshrc, etc.):
+
+- **CONFIG-001: PATH Deduplication** - Automatically detect and remove duplicate PATH entries
+  - Detects: Multiple identical paths in PATH exports
+  - Fix: Removes duplicates while preserving order
+  - Impact: Cleaner config files, faster PATH lookups
+
+- **CONFIG-002: Quote Variable Expansions** - Quote unquoted variable references for safety
+  - Detects: Unquoted variables in export statements
+  - Fix: Adds quotes to prevent word splitting
+  - Impact: Prevents injection vulnerabilities
+
+- **CONFIG-003: Consolidate Duplicate Aliases** - Remove duplicate alias definitions
+  - Detects: Same alias defined multiple times
+  - Fix: Keeps only the last definition (matching shell behavior)
+  - Impact: Cleaner config, reduces confusion
+
+- **CONFIG-004: Non-Deterministic Constructs** - Detect and remove non-deterministic patterns
+  - Detects: $RANDOM, $(date +%s), $$, $(hostname), $(uptime)
+  - Fix: Comments out problematic lines with explanation
+  - Impact: Reproducible environments, easier debugging
+
+**📚 The Rash Book** - Comprehensive documentation at https://paiml.github.io/bashrs/
+  - Getting Started guide
+  - Core concepts (Determinism, Idempotency, POSIX Compliance)
+  - Shell Configuration Management section
+  - CONFIG-001, CONFIG-002, CONFIG-003 documentation
+  - Examples and best practices
+
+**🛠️ New CLI Commands**:
+- `bashrs config analyze <file>` - Analyze shell config files
+- `bashrs config lint <file>` - Lint config files (exit 1 on issues)
+- `bashrs config purify <file>` - Auto-fix config issues
+- Support for .bashrc, .zshrc, .bash_profile, .zprofile, .profile
+
+### Changed
+- Purification pipeline now runs CONFIG-004 (non-determinism) BEFORE CONFIG-002 (quoter) for correct detection
+- Improved config purification to be idempotent (safe to run multiple times)
+
+### Quality Metrics
+- **Total Tests**: 4,756 passing (was 4,745)
+  - Added 11 new CONFIG-004 unit tests
+  - Added 9 CONFIG-004 integration tests
+- **Config Module Tests**: 82 passing
+- **Test Coverage**: >85% on all config modules
+- **Integration Tests**: All passing with assert_cmd
+- **Format**: 100% compliant with rustfmt
+
 ### Added
 
 **🎉🎉🎉🎉🎉🎉🎉🎉🎉🎉🎉🎉🎉🎉🎉 Sprint 120 - 100% MILESTONE! COMPLETE SHELLCHECK COVERAGE!** (15 rules):
