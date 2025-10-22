@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"fn":["check"],"static":["REDIRECT_BEFORE_PIPE"]};
