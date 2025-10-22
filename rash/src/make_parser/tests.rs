@@ -9835,7 +9835,7 @@ fn test_GENERATE_002_all_variable_flavors() {
 /// Expected Output:
 /// ```makefile
 /// build: main.c
-/// 	gcc -o build main.c
+///     gcc -o build main.c
 /// ```
 #[test]
 fn test_GENERATE_003_target_with_recipe() {
@@ -10904,8 +10904,8 @@ endef"#;
 ///
 /// Input:
 /// define BUILD_CMD
-/// 	@echo "Building..."
-/// 	gcc -o output main.c
+///     @echo "Building..."
+///     gcc -o output main.c
 /// endef
 #[test]
 fn test_DEFINE_004_with_tabs() {
@@ -10977,8 +10977,8 @@ endef"#;
 ///
 /// Input:
 /// define RUN_TESTS
-/// 	cd tests && ./run_tests.sh
-/// 	if [ $$? -ne 0 ]; then exit 1; fi
+///     cd tests && ./run_tests.sh
+///     if [ $$? -ne 0 ]; then exit 1; fi
 /// endef
 #[test]
 fn test_DEFINE_006_with_commands() {
