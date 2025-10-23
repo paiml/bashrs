@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"fn":["analyze_config","init","is_valid_bash","purify_config","version"],"struct":["ConfigAnalysisResult","ConfigIssue"]};
