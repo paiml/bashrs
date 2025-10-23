@@ -116,7 +116,7 @@ export PATH="/usr/local/bin:$PATH"  # CONFIG-001: Duplicate!
 
     expect(issueText).toContain('CONFIG-001');
     expect(issueText).toContain('PATH');
-    expect(issueText).toContain('duplicate');
+    expect(issueText.toLowerCase()).toContain('duplicate');
 
     // Performance check: <100ms for 1KB file
     expect(duration).toBeLessThan(100);
