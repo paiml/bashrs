@@ -24,28 +24,41 @@
         <link rel="stylesheet" href="fonts/fonts.css">
 
         <!-- Highlight.js Stylesheets -->
-        <link rel="stylesheet" href="highlight.css">
-        <link rel="stylesheet" href="tomorrow-night.css">
-        <link rel="stylesheet" href="ayu-highlight.css">
+        <link rel="stylesheet" id="highlight-css" href="highlight.css">
+        <link rel="stylesheet" id="tomorrow-night-css" href="tomorrow-night.css">
+        <link rel="stylesheet" id="ayu-highlight-css" href="ayu-highlight.css">
 
         <!-- Custom theme stylesheets -->
 
 
-        <!-- Provide site root to javascript -->
+        <!-- Provide site root and default themes to javascript -->
         <script>
-            var path_to_root = "";
-            var default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "coal" : "rust";
+            const path_to_root = "";
+            const default_light_theme = "rust";
+            const default_dark_theme = "coal";
+            window.path_to_searchindex_js = "searchindex.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc.js"></script>
     </head>
     <body>
+    <div id="mdbook-help-container">
+        <div id="mdbook-help-popup">
+            <h2 class="mdbook-help-title">Keyboard shortcuts</h2>
+            <div>
+                <p>Press <kbd>←</kbd> or <kbd>→</kbd> to navigate between chapters</p>
+                <p>Press <kbd>S</kbd> or <kbd>/</kbd> to search in the book</p>
+                <p>Press <kbd>?</kbd> to show this help</p>
+                <p>Press <kbd>Esc</kbd> to hide this help</p>
+            </div>
+        </div>
+    </div>
     <div id="body-container">
         <!-- Work around some values being stored in localStorage wrapped in quotes -->
         <script>
             try {
-                var theme = localStorage.getItem('mdbook-theme');
-                var sidebar = localStorage.getItem('mdbook-sidebar');
+                let theme = localStorage.getItem('mdbook-theme');
+                let sidebar = localStorage.getItem('mdbook-sidebar');
 
                 if (theme.startsWith('"') && theme.endsWith('"')) {
                     localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
@@ -59,7 +72,8 @@
 
         <!-- Set the theme before any content is loaded, prevents flash -->
         <script>
-            var theme;
+            const default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? default_dark_theme : default_light_theme;
+            let theme;
             try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
             if (theme === null || theme === undefined) { theme = default_theme; }
             const html = document.documentElement;
@@ -72,17 +86,20 @@
 
         <!-- Hide / unhide sidebar before it is displayed -->
         <script>
-            var sidebar = null;
-            var sidebar_toggle = document.getElementById("sidebar-toggle-anchor");
+            let sidebar = null;
+            const sidebar_toggle = document.getElementById("sidebar-toggle-anchor");
             if (document.body.clientWidth >= 1080) {
                 try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
                 sidebar = sidebar || 'visible';
             } else {
                 sidebar = 'hidden';
+                sidebar_toggle.checked = false;
             }
-            sidebar_toggle.checked = sidebar === 'visible';
-            html.classList.remove('sidebar-visible');
-            html.classList.add("sidebar-" + sidebar);
+            if (sidebar === 'visible') {
+                sidebar_toggle.checked = true;
+            } else {
+                html.classList.remove('sidebar-visible');
+            }
         </script>
 
         <nav id="sidebar" class="sidebar" aria-label="Table of contents">
@@ -109,13 +126,14 @@
                             <i class="fa fa-paint-brush"></i>
                         </button>
                         <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="default_theme">Auto</button></li>
                             <li role="none"><button role="menuitem" class="theme" id="light">Light</button></li>
                             <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
                             <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
                             <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
                             <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
                         </ul>
-                        <button id="search-toggle" class="icon-button" type="button" title="Search. (Shortkey: s)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="S" aria-controls="searchbar">
+                        <button id="search-toggle" class="icon-button" type="button" title="Search (`/`)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="/ s" aria-controls="searchbar">
                             <i class="fa fa-search"></i>
                         </button>
                     </div>
@@ -129,7 +147,7 @@
                         <a href="https://github.com/paiml/bashrs" title="Git repository" aria-label="Git repository">
                             <i id="git-repository-button" class="fa fa-github"></i>
                         </a>
-                        <a href="https://github.com/paiml/bashrs/edit/main/rash-book/src/ch04-control-flow-tdd.md" title="Suggest an edit" aria-label="Suggest an edit">
+                        <a href="https://github.com/paiml/bashrs/edit/main/rash-book/src/ch04-control-flow-tdd.md" title="Suggest an edit" aria-label="Suggest an edit" rel="edit">
                             <i id="git-edit-button" class="fa fa-edit"></i>
                         </a>
 
@@ -138,7 +156,12 @@
 
                 <div id="search-wrapper" class="hidden">
                     <form id="searchbar-outer" class="searchbar-outer">
-                        <input type="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                        <div class="search-wrapper">
+                            <input type="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                            <div class="spinner-wrapper">
+                                <i class="fa fa-spinner fa-spin"></i>
+                            </div>
+                        </div>
                     </form>
                     <div id="searchresults-outer" class="searchresults-outer hidden">
                         <div id="searchresults-header" class="searchresults-header"></div>
@@ -169,12 +192,12 @@
 </tbody></table>
 </div>
 <p><em>Last updated: 2025-10-04</em>
-<em>Rash version: 0.9.3</em></p>
+<em>bashrs version: 0.9.3</em></p>
 <!-- DOC_STATUS_END -->
 <hr />
 <h2 id="the-problem"><a class="header" href="#the-problem">The Problem</a></h2>
-<p>Shell scripts need conditional logic, but bash’s <code>if [ ... ]</code> syntax is error-prone: missing spaces, wrong operators, unquoted variables. Rash brings Rust’s clean <code>if/else</code> syntax with compile-time validation.</p>
-<p>In this chapter, you’ll learn how Rash transpiles Rust control flow into POSIX-compliant shell conditionals with verified safety.</p>
+<p>Shell scripts need conditional logic, but bash’s <code>if [ ... ]</code> syntax is error-prone: missing spaces, wrong operators, unquoted variables. bashrs brings Rust’s clean <code>if/else</code> syntax with compile-time validation.</p>
+<p>In this chapter, you’ll learn how bashrs transpiles Rust control flow into POSIX-compliant shell conditionals with verified safety.</p>
 <h2 id="test-driven-examples"><a class="header" href="#test-driven-examples">Test-Driven Examples</a></h2>
 <h3 id="example-1-basic-if-statement"><a class="header" href="#example-1-basic-if-statement">Example 1: Basic If Statement</a></h3>
 <p>The simplest conditional - check and act:</p>
@@ -956,7 +979,7 @@ main "$@"
 </ul>
 <h2 id="core-concepts"><a class="header" href="#core-concepts">Core Concepts</a></h2>
 <h3 id="if-statements"><a class="header" href="#if-statements">If Statements</a></h3>
-<p>Rash if statements map directly to shell conditionals:</p>
+<p>bashrs if statements map directly to shell conditionals:</p>
 <pre><code class="language-rust">if condition {
     // then block
 } else {
@@ -979,7 +1002,7 @@ fi
 <tr><td><code>&gt;=</code></td><td><code>-ge</code></td><td>N/A</td><td>Greater or equal</td></tr>
 </tbody></table>
 </div>
-<p><strong>Important</strong>: Rash chooses the correct operator based on operand types (compile-time).</p>
+<p><strong>Important</strong>: bashrs chooses the correct operator based on operand types (compile-time).</p>
 <h3 id="logical-operators"><a class="header" href="#logical-operators">Logical Operators</a></h3>
 <ul>
 <li><code>&amp;&amp;</code> (AND): Both conditions must be true</li>
@@ -1173,7 +1196,7 @@ $ bashrs build control.rs --verify paranoid
 <h2 id="next-steps"><a class="header" href="#next-steps">Next Steps</a></h2>
 <p>Now that you understand control flow, let’s explore <a href="appendix-a-installation.html">Appendix A: Installation</a> to learn about:</p>
 <ul>
-<li>Installing Rash from source</li>
+<li>Installing bashrs from source</li>
 <li>Installing from crates.io</li>
 <li>Binary releases</li>
 <li>Shell completion setup</li>
@@ -1229,8 +1252,8 @@ $ bashrs build control.rs --verify paranoid
         </script>
 
         <script src="ace.js"></script>
-        <script src="editor.js"></script>
         <script src="mode-rust.js"></script>
+        <script src="editor.js"></script>
         <script src="theme-dawn.js"></script>
         <script src="theme-tomorrow_night.js"></script>
 
@@ -1243,6 +1266,7 @@ $ bashrs build control.rs --verify paranoid
         <script src="book.js"></script>
 
         <!-- Custom JS scripts -->
+
 
 
     </div>

@@ -1,0 +1,686 @@
+<!DOCTYPE HTML>
+<html lang="en" class="rust sidebar-visible" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>Chapter 21: Makefile and Shell Linting - The Rash Programming Language</title>
+
+
+        <!-- Custom HTML head -->
+
+        <meta name="description" content="The official book for Rash - Test-Driven Rust-to-Shell Transpilation">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="favicon.svg">
+        <link rel="shortcut icon" href="favicon.png">
+        <link rel="stylesheet" href="css/variables.css">
+        <link rel="stylesheet" href="css/general.css">
+        <link rel="stylesheet" href="css/chrome.css">
+        <link rel="stylesheet" href="css/print.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="FontAwesome/css/font-awesome.css">
+        <link rel="stylesheet" href="fonts/fonts.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" id="highlight-css" href="highlight.css">
+        <link rel="stylesheet" id="tomorrow-night-css" href="tomorrow-night.css">
+        <link rel="stylesheet" id="ayu-highlight-css" href="ayu-highlight.css">
+
+        <!-- Custom theme stylesheets -->
+
+
+        <!-- Provide site root and default themes to javascript -->
+        <script>
+            const path_to_root = "";
+            const default_light_theme = "rust";
+            const default_dark_theme = "coal";
+            window.path_to_searchindex_js = "searchindex.js";
+        </script>
+        <!-- Start loading toc.js asap -->
+        <script src="toc.js"></script>
+    </head>
+    <body>
+    <div id="mdbook-help-container">
+        <div id="mdbook-help-popup">
+            <h2 class="mdbook-help-title">Keyboard shortcuts</h2>
+            <div>
+                <p>Press <kbd>←</kbd> or <kbd>→</kbd> to navigate between chapters</p>
+                <p>Press <kbd>S</kbd> or <kbd>/</kbd> to search in the book</p>
+                <p>Press <kbd>?</kbd> to show this help</p>
+                <p>Press <kbd>Esc</kbd> to hide this help</p>
+            </div>
+        </div>
+    </div>
+    <div id="body-container">
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                let theme = localStorage.getItem('mdbook-theme');
+                let sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            const default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? default_dark_theme : default_light_theme;
+            let theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            const html = document.documentElement;
+            html.classList.remove('rust')
+            html.classList.add(theme);
+            html.classList.add("js");
+        </script>
+
+        <input type="checkbox" id="sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            let sidebar = null;
+            const sidebar_toggle = document.getElementById("sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+                sidebar_toggle.checked = false;
+            }
+            if (sidebar === 'visible') {
+                sidebar_toggle.checked = true;
+            } else {
+                html.classList.remove('sidebar-visible');
+            }
+        </script>
+
+        <nav id="sidebar" class="sidebar" aria-label="Table of contents">
+            <!-- populated by js -->
+            <mdbook-sidebar-scrollbox class="sidebar-scrollbox"></mdbook-sidebar-scrollbox>
+            <noscript>
+                <iframe class="sidebar-iframe-outer" src="toc.html"></iframe>
+            </noscript>
+            <div id="sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <div id="page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="menu-bar-hover-placeholder"></div>
+                <div id="menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="sidebar-toggle" class="icon-button" for="sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="sidebar">
+                            <i class="fa fa-bars"></i>
+                        </label>
+                        <button id="theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="theme-list">
+                            <i class="fa fa-paint-brush"></i>
+                        </button>
+                        <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="default_theme">Auto</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
+                        </ul>
+                        <button id="search-toggle" class="icon-button" type="button" title="Search (`/`)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="/ s" aria-controls="searchbar">
+                            <i class="fa fa-search"></i>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">The Rash Programming Language</h1>
+
+                    <div class="right-buttons">
+                        <a href="print.html" title="Print this book" aria-label="Print this book">
+                            <i id="print-button" class="fa fa-print"></i>
+                        </a>
+                        <a href="https://github.com/paiml/bashrs" title="Git repository" aria-label="Git repository">
+                            <i id="git-repository-button" class="fa fa-github"></i>
+                        </a>
+                        <a href="https://github.com/paiml/bashrs/edit/main/rash-book/src/ch21-makefile-linting-tdd.md" title="Suggest an edit" aria-label="Suggest an edit" rel="edit">
+                            <i id="git-edit-button" class="fa fa-edit"></i>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="search-wrapper" class="hidden">
+                    <form id="searchbar-outer" class="searchbar-outer">
+                        <div class="search-wrapper">
+                            <input type="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                            <div class="spinner-wrapper">
+                                <i class="fa fa-spinner fa-spin"></i>
+                            </div>
+                        </div>
+                    </form>
+                    <div id="searchresults-outer" class="searchresults-outer hidden">
+                        <div id="searchresults-header" class="searchresults-header"></div>
+                        <ul id="searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="content" class="content">
+                    <main>
+                        <h1 id="chapter-21-makefile-and-shell-linting"><a class="header" href="#chapter-21-makefile-and-shell-linting">Chapter 21: Makefile and Shell Linting</a></h1>
+<h2 id="introduction"><a class="header" href="#introduction">Introduction</a></h2>
+<p>Rash provides comprehensive linting capabilities for both Makefiles and shell scripts. This chapter demonstrates the five Makefile linting rules (MAKE001-005) and how they improve build safety, determinism, and idempotency.</p>
+<p><strong>Why Linting Matters:</strong></p>
+<ul>
+<li>Catch bugs before they cause build failures</li>
+<li>Enforce deterministic builds (same input = same output)</li>
+<li>Ensure idempotent operations (safe to re-run)</li>
+<li>Improve maintainability and safety</li>
+</ul>
+<hr />
+<h2 id="make001-non-deterministic-wildcard"><a class="header" href="#make001-non-deterministic-wildcard">MAKE001: Non-deterministic Wildcard</a></h2>
+<p><strong>Problem</strong>: File globbing with <code>$(wildcard)</code> produces system-dependent ordering, causing non-deterministic builds.</p>
+<p><strong>Detection</strong>: Finds <code>$(wildcard ...)</code> without <code>$(sort ...)</code> wrapper.</p>
+<h3 id="example-representing-linting-results"><a class="header" href="#example-representing-linting-results">Example: Representing Linting Results</a></h3>
+<pre><code class="language-rust">#[derive(Debug)]
+struct LintDiagnostic {
+    line_number: usize,
+    message: String,
+    severity: Severity,
+    fix: Option&lt;String&gt;,
+}
+
+#[derive(Debug)]
+enum Severity {
+    Warning,
+    Error,
+}
+
+fn main() {
+    // Simulating detection of non-deterministic wildcard
+    let makefile_line = "SOURCES = $(wildcard src/*.c)";
+
+    let diagnostic = LintDiagnostic {
+        line_number: 5,
+        message: "Non-deterministic wildcard usage".to_string(),
+        severity: Severity::Warning,
+        fix: Some("$(sort $(wildcard src/*.c))".to_string()),
+    };
+
+    println!("Line {}: {:?}", diagnostic.line_number, diagnostic.severity);
+    println!("  {}", diagnostic.message);
+
+    if let Some(fix) = diagnostic.fix {
+        println!("  Suggested fix: {}", fix);
+    }
+}</code></pre>
+<h3 id="example-checking-for-wildcard-pattern"><a class="header" href="#example-checking-for-wildcard-pattern">Example: Checking for Wildcard Pattern</a></h3>
+<pre><code class="language-rust">fn has_unsorted_wildcard(line: &amp;str) -&gt; bool {
+    line.contains("$(wildcard") &amp;&amp; !line.contains("$(sort")
+}
+
+fn main() {
+    let unsafe_line = "SOURCES = $(wildcard src/*.c)";
+    let safe_line = "SOURCES = $(sort $(wildcard src/*.c))";
+
+    println!("Unsafe: {}", has_unsorted_wildcard(unsafe_line));
+    // Output: Unsafe: true
+
+    println!("Safe: {}", has_unsorted_wildcard(safe_line));
+    // Output: Safe: false
+}</code></pre>
+<hr />
+<h2 id="make002-non-idempotent-mkdir"><a class="header" href="#make002-non-idempotent-mkdir">MAKE002: Non-idempotent mkdir</a></h2>
+<p><strong>Problem</strong>: Using <code>mkdir</code> without <code>-p</code> flag fails on second run if directory exists.</p>
+<p><strong>Detection</strong>: Finds <code>mkdir</code> in recipe commands (lines starting with tab).</p>
+<h3 id="example-detecting-mkdir-in-recipes"><a class="header" href="#example-detecting-mkdir-in-recipes">Example: Detecting mkdir in Recipes</a></h3>
+<pre><code class="language-rust">fn is_recipe_line(line: &amp;str) -&gt; bool {
+    line.starts_with('\t')
+}
+
+fn contains_unsafe_mkdir(line: &amp;str) -&gt; bool {
+    line.contains("mkdir") &amp;&amp; !line.contains("mkdir -p")
+}
+
+fn main() {
+    let recipe_line = "\tmkdir build";
+    let safe_recipe = "\tmkdir -p build";
+
+    if is_recipe_line(recipe_line) &amp;&amp; contains_unsafe_mkdir(recipe_line) {
+        println!("Found non-idempotent mkdir");
+        println!("Fix: mkdir -p build");
+    }
+
+    if is_recipe_line(safe_recipe) &amp;&amp; contains_unsafe_mkdir(safe_recipe) {
+        println!("This won't print - line is safe");
+    } else {
+        println!("Safe recipe: uses mkdir -p");
+    }
+}</code></pre>
+<h3 id="example-applying-mkdir-fix"><a class="header" href="#example-applying-mkdir-fix">Example: Applying mkdir Fix</a></h3>
+<pre><code class="language-rust">fn fix_mkdir(line: &amp;str) -&gt; String {
+    if line.contains("mkdir") &amp;&amp; !line.contains("mkdir -p") {
+        line.replace("mkdir ", "mkdir -p ")
+    } else {
+        line.to_string()
+    }
+}
+
+fn main() {
+    let original = "\tmkdir build";
+    let fixed = fix_mkdir(original);
+
+    println!("Original: {}", original.trim());
+    println!("Fixed:    {}", fixed.trim());
+    // Output: Fixed:    mkdir -p build
+}</code></pre>
+<hr />
+<h2 id="make003-unsafe-variable-expansion"><a class="header" href="#make003-unsafe-variable-expansion">MAKE003: Unsafe Variable Expansion</a></h2>
+<p><strong>Problem</strong>: Unquoted variables in dangerous commands (rm, cp, mv) can cause word splitting and security issues.</p>
+<p><strong>Detection</strong>: Finds unquoted <code>$VAR</code> or <code>$(VAR)</code> in rm, cp, mv, chmod, chown commands.</p>
+<h3 id="example-variable-quoting-checker"><a class="header" href="#example-variable-quoting-checker">Example: Variable Quoting Checker</a></h3>
+<pre><code class="language-rust">fn is_dangerous_command(line: &amp;str) -&gt; bool {
+    let dangerous = ["rm ", "cp ", "mv ", "chmod ", "chown "];
+    dangerous.iter().any(|cmd| line.contains(cmd))
+}
+
+fn has_unquoted_variable(line: &amp;str) -&gt; bool {
+    let chars: Vec&lt;char&gt; = line.chars().collect();
+    for i in 0..chars.len() {
+        if chars[i] == '$' &amp;&amp; i + 1 &lt; chars.len() {
+            let before_quote = if i &gt; 0 { chars[i - 1] != '"' } else { true };
+            if before_quote {
+                return true;
+            }
+        }
+    }
+    false
+}
+
+fn main() {
+    let unsafe_line = "\trm -rf $BUILD_DIR/*";
+    let safe_line = "\trm -rf \"$BUILD_DIR\"/*";
+
+    if is_dangerous_command(unsafe_line) &amp;&amp; has_unquoted_variable(unsafe_line) {
+        println!("⚠ Unsafe variable expansion detected");
+        println!("  Line: {}", unsafe_line.trim());
+        println!("  Fix: rm -rf \"$BUILD_DIR\"/*");
+    }
+
+    if is_dangerous_command(safe_line) &amp;&amp; has_unquoted_variable(safe_line) {
+        println!("This won't print - variables are quoted");
+    } else {
+        println!("✓ Safe: variables properly quoted");
+    }
+}</code></pre>
+<hr />
+<h2 id="make004-missing-phony-declaration"><a class="header" href="#make004-missing-phony-declaration">MAKE004: Missing .PHONY Declaration</a></h2>
+<p><strong>Problem</strong>: Targets with common names (clean, test, install) conflict with files of the same name.</p>
+<p><strong>Detection</strong>: Checks if common non-file targets are marked as <code>.PHONY</code>.</p>
+<h3 id="example-tracking-phony-targets"><a class="header" href="#example-tracking-phony-targets">Example: Tracking PHONY Targets</a></h3>
+<pre><code class="language-rust">use std::collections::HashSet;
+
+fn main() {
+    let common_phony_targets = vec![
+        "all", "clean", "test", "install", "uninstall",
+        "build", "run", "help", "lint", "format",
+    ];
+
+    let makefile = r#"
+.PHONY: clean test
+
+build:
+	gcc main.c -o app
+
+clean:
+	rm -f *.o
+
+test:
+	./app --test
+"#;
+
+    let mut declared_phony: HashSet&lt;String&gt; = HashSet::new();
+    let mut found_targets: HashSet&lt;String&gt; = HashSet::new();
+
+    for line in makefile.lines() {
+        if line.starts_with(".PHONY:") {
+            let targets = line.replace(".PHONY:", "").trim().to_string();
+            for target in targets.split_whitespace() {
+                declared_phony.insert(target.to_string());
+            }
+        } else if line.contains(':') &amp;&amp; !line.starts_with('\t') &amp;&amp; !line.starts_with('.') {
+            if let Some(target) = line.split(':').next() {
+                let target = target.trim().to_string();
+                if common_phony_targets.contains(&amp;target.as_str()) {
+                    found_targets.insert(target);
+                }
+            }
+        }
+    }
+
+    for target in &amp;found_targets {
+        if !declared_phony.contains(target) {
+            println!("⚠ Target '{}' should be marked as .PHONY", target);
+        }
+    }
+
+    println!("\nDeclared as .PHONY: {:?}", declared_phony);
+    println!("Missing .PHONY: {:?}",
+             found_targets.difference(&amp;declared_phony).collect::&lt;Vec&lt;_&gt;&gt;());
+}</code></pre>
+<hr />
+<h2 id="make005-recursive-variable-assignment"><a class="header" href="#make005-recursive-variable-assignment">MAKE005: Recursive Variable Assignment</a></h2>
+<p><strong>Problem</strong>: Using <code>=</code> with <code>$(shell ...)</code> causes command to re-execute every time variable is referenced.</p>
+<p><strong>Detection</strong>: Finds <code>=</code> (not <code>:=</code>, <code>+=</code>, <code>?=</code>, <code>!=</code>) followed by <code>$(shell ...)</code>.</p>
+<h3 id="example-assignment-type-detector"><a class="header" href="#example-assignment-type-detector">Example: Assignment Type Detector</a></h3>
+<pre><code class="language-rust">#[derive(Debug, PartialEq)]
+enum AssignmentType {
+    Recursive,      // =
+    Immediate,      // :=
+    Conditional,    // ?=
+    Append,         // +=
+    Shell,          // !=
+}
+
+fn detect_assignment_type(line: &amp;str) -&gt; Option&lt;AssignmentType&gt; {
+    if line.contains(":=") {
+        Some(AssignmentType::Immediate)
+    } else if line.contains("!=") {
+        Some(AssignmentType::Shell)
+    } else if line.contains("+=") {
+        Some(AssignmentType::Append)
+    } else if line.contains("?=") {
+        Some(AssignmentType::Conditional)
+    } else if line.contains('=') {
+        Some(AssignmentType::Recursive)
+    } else {
+        None
+    }
+}
+
+fn main() {
+    let problematic = "VERSION = $(shell git describe)";
+    let correct = "VERSION := $(shell git describe)";
+
+    let prob_type = detect_assignment_type(problematic);
+    let correct_type = detect_assignment_type(correct);
+
+    println!("Problematic line uses: {:?}", prob_type);
+    println!("Correct line uses: {:?}", correct_type);
+
+    if prob_type == Some(AssignmentType::Recursive) &amp;&amp; problematic.contains("$(shell") {
+        println!("\n⚠ Recursive assignment with $(shell) detected!");
+        println!("  This will re-execute the command every time VERSION is used");
+        println!("  Fix: Change = to :=");
+    }
+}</code></pre>
+<h3 id="example-shell-command-impact"><a class="header" href="#example-shell-command-impact">Example: Shell Command Impact</a></h3>
+<pre><code class="language-rust">fn main() {
+    println!("=== Recursive Assignment (=) ===");
+    println!("VERSION = $(shell git describe)");
+    println!("  - Command runs EVERY time VERSION is referenced");
+    println!("  - Non-deterministic if repo state changes");
+    println!("  - Performance impact");
+
+    println!("\n=== Immediate Assignment (:=) ===");
+    println!("VERSION := $(shell git describe)");
+    println!("  - Command runs ONCE when Makefile is parsed");
+    println!("  - Result cached for all uses");
+    println!("  - Deterministic and fast");
+
+    let recursive_cost = 5; // arbitrary cost units
+    let references = 10;
+    let immediate_cost = 5;
+
+    println!("\n=== Performance Comparison ===");
+    println!("Recursive (=):  {} * {} refs = {} units", recursive_cost, references, recursive_cost * references);
+    println!("Immediate (:=): {} * 1 exec   = {} units", immediate_cost, immediate_cost);
+    println!("Savings: {}x faster", (recursive_cost * references) / immediate_cost);
+}</code></pre>
+<hr />
+<h2 id="complete-linting-workflow"><a class="header" href="#complete-linting-workflow">Complete Linting Workflow</a></h2>
+<h3 id="example-full-makefile-analyzer"><a class="header" href="#example-full-makefile-analyzer">Example: Full Makefile Analyzer</a></h3>
+<pre><code class="language-rust">use std::collections::HashMap;
+
+#[derive(Debug)]
+struct LintResults {
+    total_issues: usize,
+    issues_by_rule: HashMap&lt;String, usize&gt;,
+}
+
+impl LintResults {
+    fn new() -&gt; Self {
+        Self {
+            total_issues: 0,
+            issues_by_rule: HashMap::new(),
+        }
+    }
+
+    fn add_issue(&amp;mut self, rule: &amp;str) {
+        self.total_issues += 1;
+        *self.issues_by_rule.entry(rule.to_string()).or_insert(0) += 1;
+    }
+}
+
+fn lint_makefile(content: &amp;str) -&gt; LintResults {
+    let mut results = LintResults::new();
+
+    for (line_num, line) in content.lines().enumerate() {
+        // MAKE001: Non-deterministic wildcard
+        if line.contains("$(wildcard") &amp;&amp; !line.contains("$(sort") {
+            results.add_issue("MAKE001");
+        }
+
+        // MAKE002: Non-idempotent mkdir
+        if line.starts_with('\t') &amp;&amp; line.contains("mkdir") &amp;&amp; !line.contains("mkdir -p") {
+            results.add_issue("MAKE002");
+        }
+
+        // MAKE003: Unsafe variable expansion
+        let dangerous = ["rm ", "cp ", "mv "];
+        if dangerous.iter().any(|cmd| line.contains(cmd)) &amp;&amp; line.contains('$') {
+            if !line.contains('"') {
+                results.add_issue("MAKE003");
+            }
+        }
+
+        // MAKE005: Recursive assignment with shell
+        if line.contains("= $(shell") &amp;&amp; !line.contains(":=") {
+            results.add_issue("MAKE005");
+        }
+    }
+
+    results
+}
+
+fn main() {
+    let makefile = r#"
+VERSION = $(shell git describe)
+SOURCES = $(wildcard src/*.c)
+
+build:
+	mkdir build
+	gcc $(SOURCES) -o app
+
+clean:
+	rm -rf $BUILD_DIR
+"#;
+
+    let results = lint_makefile(makefile);
+
+    println!("📊 Linting Results");
+    println!("Total issues: {}", results.total_issues);
+    println!("\nIssues by rule:");
+    for (rule, count) in &amp;results.issues_by_rule {
+        println!("  {}: {}", rule, count);
+    }
+}</code></pre>
+<hr />
+<h2 id="quality-enforcement-integration"><a class="header" href="#quality-enforcement-integration">Quality Enforcement Integration</a></h2>
+<h3 id="example-cicd-quality-gate-simulator"><a class="header" href="#example-cicd-quality-gate-simulator">Example: CI/CD Quality Gate Simulator</a></h3>
+<pre><code class="language-rust">fn main() {
+    let makefile_has_issues = true;
+    let max_allowed_issues = 0;
+    let actual_issues = 4;
+
+    println!("=== CI/CD Quality Gate ===");
+    println!("Running Makefile linter...");
+
+    if actual_issues &gt; max_allowed_issues {
+        println!("\n❌ Quality gate FAILED");
+        println!("  Found {} issues (max allowed: {})", actual_issues, max_allowed_issues);
+        println!("\n  Please fix the following:");
+        println!("  - 1x MAKE001: Non-deterministic wildcard");
+        println!("  - 1x MAKE002: Non-idempotent mkdir");
+        println!("  - 1x MAKE003: Unsafe variable expansion");
+        println!("  - 1x MAKE005: Recursive assignment with shell");
+        println!("\n  Run: bashrs make lint Makefile --fix");
+
+        // In real CI, this would: std::process::exit(1);
+        println!("\n  [Simulated] Build would fail here");
+    } else {
+        println!("\n✅ Quality gate PASSED");
+        println!("  No issues found");
+    }
+}</code></pre>
+<h3 id="example-pre-commit-hook-logic"><a class="header" href="#example-pre-commit-hook-logic">Example: Pre-commit Hook Logic</a></h3>
+<pre><code class="language-rust">use std::process::Command;
+
+fn simulate_precommit_check() -&gt; Result&lt;(), String&gt; {
+    println!("🔒 Running pre-commit checks...");
+
+    // Simulate running linter
+    let issues_found = 2;
+
+    if issues_found &gt; 0 {
+        return Err(format!("Found {} Makefile issues", issues_found));
+    }
+
+    Ok(())
+}
+
+fn main() {
+    match simulate_precommit_check() {
+        Ok(()) =&gt; {
+            println!("✅ Pre-commit checks passed");
+            println!("Proceeding with commit...");
+        }
+        Err(e) =&gt; {
+            println!("❌ Pre-commit checks failed: {}", e);
+            println!("Fix issues before committing:");
+            println!("  bashrs make lint Makefile --fix");
+            println!("  git add Makefile");
+            println!("  git commit");
+        }
+    }
+}</code></pre>
+<hr />
+<h2 id="summary"><a class="header" href="#summary">Summary</a></h2>
+<p>This chapter demonstrated all five Makefile linting rules through practical Rust examples:</p>
+<ol>
+<li><strong>MAKE001</strong>: Deterministic wildcard (wrap in <code>$(sort ...)</code>)</li>
+<li><strong>MAKE002</strong>: Idempotent mkdir (use <code>mkdir -p</code>)</li>
+<li><strong>MAKE003</strong>: Safe variable expansion (quote variables in dangerous commands)</li>
+<li><strong>MAKE004</strong>: .PHONY declarations (mark non-file targets)</li>
+<li><strong>MAKE005</strong>: Immediate assignment (use <code>:=</code> with <code>$(shell ...)</code>)</li>
+</ol>
+<h3 id="key-takeaways"><a class="header" href="#key-takeaways">Key Takeaways</a></h3>
+<ul>
+<li><strong>Determinism</strong>: Same input → Same output (MAKE001, MAKE005)</li>
+<li><strong>Idempotency</strong>: Safe to re-run (MAKE002)</li>
+<li><strong>Safety</strong>: Prevent injection and word-splitting (MAKE003)</li>
+<li><strong>Correctness</strong>: Proper target declarations (MAKE004)</li>
+</ul>
+<h3 id="integration-patterns"><a class="header" href="#integration-patterns">Integration Patterns</a></h3>
+<p>All examples showed how to:</p>
+<ul>
+<li>Detect issues programmatically</li>
+<li>Apply automatic fixes</li>
+<li>Integrate into CI/CD pipelines</li>
+<li>Enforce quality gates</li>
+<li>Use pre-commit hooks</li>
+</ul>
+<h3 id="next-steps"><a class="header" href="#next-steps">Next Steps</a></h3>
+<ol>
+<li>Run <code>bashrs make lint Makefile</code> on your projects</li>
+<li>Add linting to your CI/CD pipeline</li>
+<li>Install pre-commit hooks for local enforcement</li>
+<li>Contribute new linting rules to the project</li>
+</ol>
+<hr />
+<p><strong>Quality Guarantee</strong>: All examples in this chapter compile and run successfully, demonstrating the linting concepts through working Rust code.</p>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="ch17-testing-tdd.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <i class="fa fa-angle-left"></i>
+                            </a>
+
+                            <a rel="next prefetch" href="ch18-limitations.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <i class="fa fa-angle-right"></i>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="ch17-testing-tdd.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <i class="fa fa-angle-left"></i>
+                    </a>
+
+                    <a rel="next prefetch" href="ch18-limitations.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <i class="fa fa-angle-right"></i>
+                    </a>
+            </nav>
+
+        </div>
+
+
+
+        <script>
+            window.playground_line_numbers = true;
+        </script>
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+        <script src="ace.js"></script>
+        <script src="mode-rust.js"></script>
+        <script src="editor.js"></script>
+        <script src="theme-dawn.js"></script>
+        <script src="theme-tomorrow_night.js"></script>
+
+        <script src="elasticlunr.min.js"></script>
+        <script src="mark.min.js"></script>
+        <script src="searcher.js"></script>
+
+        <script src="clipboard.min.js"></script>
+        <script src="highlight.js"></script>
+        <script src="book.js"></script>
+
+        <!-- Custom JS scripts -->
+
+
+
+    </div>
+    </body>
+</html>

@@ -24,28 +24,41 @@
         <link rel="stylesheet" href="fonts/fonts.css">
 
         <!-- Highlight.js Stylesheets -->
-        <link rel="stylesheet" href="highlight.css">
-        <link rel="stylesheet" href="tomorrow-night.css">
-        <link rel="stylesheet" href="ayu-highlight.css">
+        <link rel="stylesheet" id="highlight-css" href="highlight.css">
+        <link rel="stylesheet" id="tomorrow-night-css" href="tomorrow-night.css">
+        <link rel="stylesheet" id="ayu-highlight-css" href="ayu-highlight.css">
 
         <!-- Custom theme stylesheets -->
 
 
-        <!-- Provide site root to javascript -->
+        <!-- Provide site root and default themes to javascript -->
         <script>
-            var path_to_root = "";
-            var default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "coal" : "rust";
+            const path_to_root = "";
+            const default_light_theme = "rust";
+            const default_dark_theme = "coal";
+            window.path_to_searchindex_js = "searchindex.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc.js"></script>
     </head>
     <body>
+    <div id="mdbook-help-container">
+        <div id="mdbook-help-popup">
+            <h2 class="mdbook-help-title">Keyboard shortcuts</h2>
+            <div>
+                <p>Press <kbd>←</kbd> or <kbd>→</kbd> to navigate between chapters</p>
+                <p>Press <kbd>S</kbd> or <kbd>/</kbd> to search in the book</p>
+                <p>Press <kbd>?</kbd> to show this help</p>
+                <p>Press <kbd>Esc</kbd> to hide this help</p>
+            </div>
+        </div>
+    </div>
     <div id="body-container">
         <!-- Work around some values being stored in localStorage wrapped in quotes -->
         <script>
             try {
-                var theme = localStorage.getItem('mdbook-theme');
-                var sidebar = localStorage.getItem('mdbook-sidebar');
+                let theme = localStorage.getItem('mdbook-theme');
+                let sidebar = localStorage.getItem('mdbook-sidebar');
 
                 if (theme.startsWith('"') && theme.endsWith('"')) {
                     localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
@@ -59,7 +72,8 @@
 
         <!-- Set the theme before any content is loaded, prevents flash -->
         <script>
-            var theme;
+            const default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? default_dark_theme : default_light_theme;
+            let theme;
             try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
             if (theme === null || theme === undefined) { theme = default_theme; }
             const html = document.documentElement;
@@ -72,17 +86,20 @@
 
         <!-- Hide / unhide sidebar before it is displayed -->
         <script>
-            var sidebar = null;
-            var sidebar_toggle = document.getElementById("sidebar-toggle-anchor");
+            let sidebar = null;
+            const sidebar_toggle = document.getElementById("sidebar-toggle-anchor");
             if (document.body.clientWidth >= 1080) {
                 try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
                 sidebar = sidebar || 'visible';
             } else {
                 sidebar = 'hidden';
+                sidebar_toggle.checked = false;
             }
-            sidebar_toggle.checked = sidebar === 'visible';
-            html.classList.remove('sidebar-visible');
-            html.classList.add("sidebar-" + sidebar);
+            if (sidebar === 'visible') {
+                sidebar_toggle.checked = true;
+            } else {
+                html.classList.remove('sidebar-visible');
+            }
         </script>
 
         <nav id="sidebar" class="sidebar" aria-label="Table of contents">
@@ -109,13 +126,14 @@
                             <i class="fa fa-paint-brush"></i>
                         </button>
                         <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="default_theme">Auto</button></li>
                             <li role="none"><button role="menuitem" class="theme" id="light">Light</button></li>
                             <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
                             <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
                             <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
                             <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
                         </ul>
-                        <button id="search-toggle" class="icon-button" type="button" title="Search. (Shortkey: s)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="S" aria-controls="searchbar">
+                        <button id="search-toggle" class="icon-button" type="button" title="Search (`/`)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="/ s" aria-controls="searchbar">
                             <i class="fa fa-search"></i>
                         </button>
                     </div>
@@ -129,7 +147,7 @@
                         <a href="https://github.com/paiml/bashrs" title="Git repository" aria-label="Git repository">
                             <i id="git-repository-button" class="fa fa-github"></i>
                         </a>
-                        <a href="https://github.com/paiml/bashrs/edit/main/rash-book/src/ch03-functions-tdd.md" title="Suggest an edit" aria-label="Suggest an edit">
+                        <a href="https://github.com/paiml/bashrs/edit/main/rash-book/src/ch03-functions-tdd.md" title="Suggest an edit" aria-label="Suggest an edit" rel="edit">
                             <i id="git-edit-button" class="fa fa-edit"></i>
                         </a>
 
@@ -138,7 +156,12 @@
 
                 <div id="search-wrapper" class="hidden">
                     <form id="searchbar-outer" class="searchbar-outer">
-                        <input type="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                        <div class="search-wrapper">
+                            <input type="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                            <div class="spinner-wrapper">
+                                <i class="fa fa-spinner fa-spin"></i>
+                            </div>
+                        </div>
                     </form>
                     <div id="searchresults-outer" class="searchresults-outer hidden">
                         <div id="searchresults-header" class="searchresults-header"></div>
@@ -169,15 +192,15 @@
 </tbody></table>
 </div>
 <p><em>Last updated: 2025-10-04</em>
-<em>Rash version: 0.9.3</em></p>
+<em>bashrs version: 0.9.3</em></p>
 <!-- DOC_STATUS_END -->
 <hr />
 <h2 id="the-problem"><a class="header" href="#the-problem">The Problem</a></h2>
-<p>Shell functions are powerful but brittle. Missing parameter checks, unsafe variable expansion, and unclear interfaces make maintenance difficult. Rash brings Rust’s type-safe function signatures to shell scripting.</p>
-<p>In this chapter, you’ll learn how Rash transpiles Rust functions into POSIX shell functions with verified parameter handling and type safety.</p>
+<p>Shell functions are powerful but brittle. Missing parameter checks, unsafe variable expansion, and unclear interfaces make maintenance difficult. bashrs brings Rust’s type-safe function signatures to shell scripting.</p>
+<p>In this chapter, you’ll learn how bashrs transpiles Rust functions into POSIX shell functions with verified parameter handling and type safety.</p>
 <h2 id="test-driven-examples"><a class="header" href="#test-driven-examples">Test-Driven Examples</a></h2>
 <h3 id="example-1-basic-function-no-parameters"><a class="header" href="#example-1-basic-function-no-parameters">Example 1: Basic Function (No Parameters)</a></h3>
-<p>The simplest Rash function - no parameters, just execution:</p>
+<p>The simplest bashrs function - no parameters, just execution:</p>
 <pre><code class="language-rust">fn main() {
     greet();
 }
@@ -846,7 +869,7 @@ main "$@"
 </ul>
 <h2 id="core-concepts"><a class="header" href="#core-concepts">Core Concepts</a></h2>
 <h3 id="function-definitions"><a class="header" href="#function-definitions">Function Definitions</a></h3>
-<p>In Rash, all functions are defined with <code>fn</code>:</p>
+<p>In bashrs, all functions are defined with <code>fn</code>:</p>
 <pre><code class="language-rust">fn function_name(param1: Type1, param2: Type2) {
     // body
 }</code></pre>
@@ -858,7 +881,7 @@ main "$@"
 }
 </code></pre>
 <h3 id="parameter-types"><a class="header" href="#parameter-types">Parameter Types</a></h3>
-<p>Rash v1.0 supports these parameter types:</p>
+<p>bashrs v1.0 supports these parameter types:</p>
 <div class="table-wrapper"><table><thead><tr><th>Rust Type</th><th>Shell Access</th><th>Example</th></tr></thead><tbody>
 <tr><td><code>&amp;str</code></td><td><code>$1</code>, <code>$2</code>, …</td><td><code>name="$1"</code></td></tr>
 <tr><td><code>i32</code></td><td><code>$1</code>, <code>$2</code>, …</td><td><code>port="$1"</code></td></tr>
@@ -875,7 +898,7 @@ greet(name);
 greet "$name"</code></pre>
 <p>Arguments are always quoted for safety.</p>
 <h3 id="parameter-limits"><a class="header" href="#parameter-limits">Parameter Limits</a></h3>
-<p>POSIX shells support positional parameters <code>$1</code> through <code>$9</code>, with <code>${10}</code> onwards requiring braces. Rash v1.0:</p>
+<p>POSIX shells support positional parameters <code>$1</code> through <code>$9</code>, with <code>${10}</code> onwards requiring braces. bashrs v1.0:</p>
 <ul>
 <li>✅ Supports any number of parameters</li>
 <li>✅ Uses <code>$1</code>, <code>$2</code>, … <code>$9</code></li>
@@ -1116,8 +1139,8 @@ $ bashrs build funcs.rs --verify paranoid
         </script>
 
         <script src="ace.js"></script>
-        <script src="editor.js"></script>
         <script src="mode-rust.js"></script>
+        <script src="editor.js"></script>
         <script src="theme-dawn.js"></script>
         <script src="theme-tomorrow_night.js"></script>
 
@@ -1130,6 +1153,7 @@ $ bashrs build funcs.rs --verify paranoid
         <script src="book.js"></script>
 
         <!-- Custom JS scripts -->
+
 
 
     </div>

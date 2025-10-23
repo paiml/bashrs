@@ -24,28 +24,41 @@
         <link rel="stylesheet" href="fonts/fonts.css">
 
         <!-- Highlight.js Stylesheets -->
-        <link rel="stylesheet" href="highlight.css">
-        <link rel="stylesheet" href="tomorrow-night.css">
-        <link rel="stylesheet" href="ayu-highlight.css">
+        <link rel="stylesheet" id="highlight-css" href="highlight.css">
+        <link rel="stylesheet" id="tomorrow-night-css" href="tomorrow-night.css">
+        <link rel="stylesheet" id="ayu-highlight-css" href="ayu-highlight.css">
 
         <!-- Custom theme stylesheets -->
 
 
-        <!-- Provide site root to javascript -->
+        <!-- Provide site root and default themes to javascript -->
         <script>
-            var path_to_root = "";
-            var default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "coal" : "rust";
+            const path_to_root = "";
+            const default_light_theme = "rust";
+            const default_dark_theme = "coal";
+            window.path_to_searchindex_js = "searchindex.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc.js"></script>
     </head>
     <body>
+    <div id="mdbook-help-container">
+        <div id="mdbook-help-popup">
+            <h2 class="mdbook-help-title">Keyboard shortcuts</h2>
+            <div>
+                <p>Press <kbd>←</kbd> or <kbd>→</kbd> to navigate between chapters</p>
+                <p>Press <kbd>S</kbd> or <kbd>/</kbd> to search in the book</p>
+                <p>Press <kbd>?</kbd> to show this help</p>
+                <p>Press <kbd>Esc</kbd> to hide this help</p>
+            </div>
+        </div>
+    </div>
     <div id="body-container">
         <!-- Work around some values being stored in localStorage wrapped in quotes -->
         <script>
             try {
-                var theme = localStorage.getItem('mdbook-theme');
-                var sidebar = localStorage.getItem('mdbook-sidebar');
+                let theme = localStorage.getItem('mdbook-theme');
+                let sidebar = localStorage.getItem('mdbook-sidebar');
 
                 if (theme.startsWith('"') && theme.endsWith('"')) {
                     localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
@@ -59,7 +72,8 @@
 
         <!-- Set the theme before any content is loaded, prevents flash -->
         <script>
-            var theme;
+            const default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? default_dark_theme : default_light_theme;
+            let theme;
             try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
             if (theme === null || theme === undefined) { theme = default_theme; }
             const html = document.documentElement;
@@ -72,17 +86,20 @@
 
         <!-- Hide / unhide sidebar before it is displayed -->
         <script>
-            var sidebar = null;
-            var sidebar_toggle = document.getElementById("sidebar-toggle-anchor");
+            let sidebar = null;
+            const sidebar_toggle = document.getElementById("sidebar-toggle-anchor");
             if (document.body.clientWidth >= 1080) {
                 try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
                 sidebar = sidebar || 'visible';
             } else {
                 sidebar = 'hidden';
+                sidebar_toggle.checked = false;
             }
-            sidebar_toggle.checked = sidebar === 'visible';
-            html.classList.remove('sidebar-visible');
-            html.classList.add("sidebar-" + sidebar);
+            if (sidebar === 'visible') {
+                sidebar_toggle.checked = true;
+            } else {
+                html.classList.remove('sidebar-visible');
+            }
         </script>
 
         <nav id="sidebar" class="sidebar" aria-label="Table of contents">
@@ -109,13 +126,14 @@
                             <i class="fa fa-paint-brush"></i>
                         </button>
                         <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="default_theme">Auto</button></li>
                             <li role="none"><button role="menuitem" class="theme" id="light">Light</button></li>
                             <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
                             <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
                             <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
                             <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
                         </ul>
-                        <button id="search-toggle" class="icon-button" type="button" title="Search. (Shortkey: s)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="S" aria-controls="searchbar">
+                        <button id="search-toggle" class="icon-button" type="button" title="Search (`/`)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="/ s" aria-controls="searchbar">
                             <i class="fa fa-search"></i>
                         </button>
                     </div>
@@ -129,7 +147,7 @@
                         <a href="https://github.com/paiml/bashrs" title="Git repository" aria-label="Git repository">
                             <i id="git-repository-button" class="fa fa-github"></i>
                         </a>
-                        <a href="https://github.com/paiml/bashrs/edit/main/rash-book/src/ch02-variables-tdd.md" title="Suggest an edit" aria-label="Suggest an edit">
+                        <a href="https://github.com/paiml/bashrs/edit/main/rash-book/src/ch02-variables-tdd.md" title="Suggest an edit" aria-label="Suggest an edit" rel="edit">
                             <i id="git-edit-button" class="fa fa-edit"></i>
                         </a>
 
@@ -138,7 +156,12 @@
 
                 <div id="search-wrapper" class="hidden">
                     <form id="searchbar-outer" class="searchbar-outer">
-                        <input type="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                        <div class="search-wrapper">
+                            <input type="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                            <div class="spinner-wrapper">
+                                <i class="fa fa-spinner fa-spin"></i>
+                            </div>
+                        </div>
                     </form>
                     <div id="searchresults-outer" class="searchresults-outer hidden">
                         <div id="searchresults-header" class="searchresults-header"></div>
@@ -169,17 +192,17 @@
 </tbody></table>
 </div>
 <p><em>Last updated: 2025-10-04</em>
-<em>Rash version: 0.9.3</em></p>
+<em>bashrs version: 0.9.3</em></p>
 <!-- DOC_STATUS_END -->
 <hr />
 <h2 id="the-problem"><a class="header" href="#the-problem">The Problem</a></h2>
-<p>Shell scripts are notorious for variable-related bugs: missing quotes, uninitialized variables, type confusion. Rash brings Rust’s type safety and explicit declarations to shell scripting.</p>
-<p>In this chapter, you’ll learn how Rash transpiles Rust’s <code>let</code> bindings into safe, properly-quoted shell variables that are immune to injection attacks.</p>
+<p>Shell scripts are notorious for variable-related bugs: missing quotes, uninitialized variables, type confusion. bashrs brings Rust’s type safety and explicit declarations to shell scripting.</p>
+<p>In this chapter, you’ll learn how bashrs transpiles Rust’s <code>let</code> bindings into safe, properly-quoted shell variables that are immune to injection attacks.</p>
 <h2 id="test-driven-examples"><a class="header" href="#test-driven-examples">Test-Driven Examples</a></h2>
 <h3 id="example-1-basic-string-variable"><a class="header" href="#example-1-basic-string-variable">Example 1: Basic String Variable</a></h3>
-<p>The foundation of Rash variables - simple string assignment and usage:</p>
+<p>The foundation of bashrs variables - simple string assignment and usage:</p>
 <pre><code class="language-rust">fn main() {
-    let greeting = "Hello, Rash!";
+    let greeting = "Hello, bashrs!";
     println(greeting);
 }
 
@@ -193,7 +216,7 @@ println() {
 }
 
 main() {
-    greeting="Hello, Rash!"
+    greeting="Hello, bashrs!"
     println "$greeting"
 }
 
@@ -207,7 +230,7 @@ main "$@"
 <li>POSIX-compliant variable names</li>
 </ul>
 <h3 id="example-2-integer-variables"><a class="header" href="#example-2-integer-variables">Example 2: Integer Variables</a></h3>
-<p>Rash handles numeric literals safely:</p>
+<p>bashrs handles numeric literals safely:</p>
 <pre><code class="language-rust">fn main() {
     let port = 8080;
     let workers = 4;
@@ -321,7 +344,7 @@ main "$@"
 <li>Parameter names can differ from argument names</li>
 </ul>
 <h3 id="example-5-variables-with-special-characters"><a class="header" href="#example-5-variables-with-special-characters">Example 5: Variables with Special Characters</a></h3>
-<p>Rash automatically escapes special characters in variable values:</p>
+<p>bashrs automatically escapes special characters in variable values:</p>
 <pre><code class="language-rust">fn main() {
     let path = "/usr/local/bin";
     let price = "$100";
@@ -402,7 +425,7 @@ main "$@"
 <li>Works with paths containing spaces (see Example 7)</li>
 </ul>
 <h3 id="example-7-paths-with-spaces"><a class="header" href="#example-7-paths-with-spaces">Example 7: Paths with Spaces</a></h3>
-<p>Rash handles the notorious “path with spaces” problem:</p>
+<p>bashrs handles the notorious “path with spaces” problem:</p>
 <pre><code class="language-rust">fn main() {
     let user_dir = "/home/user/My Documents";
     let app_name = "My App";
@@ -501,7 +524,7 @@ main "$@"
 <li>All values properly quoted</li>
 </ul>
 <h3 id="example-9-variable-naming-conventions"><a class="header" href="#example-9-variable-naming-conventions">Example 9: Variable Naming Conventions</a></h3>
-<p>Rash preserves Rust naming conventions in generated shell:</p>
+<p>bashrs preserves Rust naming conventions in generated shell:</p>
 <pre><code class="language-rust">fn main() {
     let user_name = "alice";
     let home_directory = "/home/alice";
@@ -542,7 +565,7 @@ main "$@"
 <li>No name mangling</li>
 </ul>
 <h3 id="example-10-unicode-in-variable-values"><a class="header" href="#example-10-unicode-in-variable-values">Example 10: Unicode in Variable Values</a></h3>
-<p>Rash supports Unicode in string values:</p>
+<p>bashrs supports Unicode in string values:</p>
 <pre><code class="language-rust">fn main() {
     let greeting_ja = "こんにちは";
     let greeting_ru = "Привет";
@@ -584,14 +607,14 @@ main "$@"
 </ul>
 <h2 id="core-concepts"><a class="header" href="#core-concepts">Core Concepts</a></h2>
 <h3 id="the-let-binding"><a class="header" href="#the-let-binding">The <code>let</code> Binding</a></h3>
-<p>In Rash, all variables are declared with <code>let</code>:</p>
+<p>In bashrs, all variables are declared with <code>let</code>:</p>
 <pre><code class="language-rust">let variable_name = value;</code></pre>
 <p>This transpiles to shell variable assignment:</p>
 <pre><code class="language-sh">variable_name=value    # For literals
 variable_name="value"  # For strings
 </code></pre>
 <h3 id="variable-types"><a class="header" href="#variable-types">Variable Types</a></h3>
-<p>Rash supports these types (compile-time only):</p>
+<p>bashrs supports these types (compile-time only):</p>
 <div class="table-wrapper"><table><thead><tr><th>Rust Type</th><th>Shell Representation</th><th>Example</th></tr></thead><tbody>
 <tr><td><code>&amp;str</code></td><td>Quoted string</td><td><code>name="alice"</code></td></tr>
 <tr><td><code>i32</code></td><td>Unquoted number</td><td><code>port=8080</code></td></tr>
@@ -600,7 +623,7 @@ variable_name="value"  # For strings
 </div>
 <p><strong>Important</strong>: Shell treats everything as strings. Type info exists only during transpilation for safety checks.</p>
 <h3 id="automatic-quoting"><a class="header" href="#automatic-quoting">Automatic Quoting</a></h3>
-<p>Rash follows the “quote everything” principle:</p>
+<p>bashrs follows the “quote everything” principle:</p>
 <ul>
 <li><strong>Variable assignment</strong>: Only quoted if it’s a string literal</li>
 <li><strong>Variable usage</strong>: Always quoted: <code>"$var"</code></li>
@@ -614,7 +637,7 @@ variable_name="value"  # For strings
 <li>✅ ShellCheck clean</li>
 </ul>
 <h3 id="variable-scope"><a class="header" href="#variable-scope">Variable Scope</a></h3>
-<p>Rash v1.0 has simple scoping rules:</p>
+<p>bashrs v1.0 has simple scoping rules:</p>
 <ul>
 <li>Variables in <code>main()</code> are in main function scope</li>
 <li>Variables in other functions are local to that function</li>
@@ -630,7 +653,7 @@ fn foo() {
     let y = "foo scope";  // Can't access x
 }</code></pre>
 <h3 id="immutability"><a class="header" href="#immutability">Immutability</a></h3>
-<p>All Rash variables are <strong>immutable</strong> (v1.0):</p>
+<p>All bashrs variables are <strong>immutable</strong> (v1.0):</p>
 <pre><code class="language-rust">let x = 10;
 x = 20;  // ❌ ERROR: Cannot mutate immutable variable</code></pre>
 <p>This is intentional:</p>
@@ -853,8 +876,8 @@ $ bashrs build vars.rs --verify paranoid
         </script>
 
         <script src="ace.js"></script>
-        <script src="editor.js"></script>
         <script src="mode-rust.js"></script>
+        <script src="editor.js"></script>
         <script src="theme-dawn.js"></script>
         <script src="theme-tomorrow_night.js"></script>
 
@@ -867,6 +890,7 @@ $ bashrs build vars.rs --verify paranoid
         <script src="book.js"></script>
 
         <!-- Custom JS scripts -->
+
 
 
     </div>
