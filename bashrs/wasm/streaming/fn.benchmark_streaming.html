@@ -5,7 +5,7 @@
 <p>Tests different chunk sizes to find optimal configuration.</p>
 <h2 id="example-javascript"><a class="doc-anchor" href="#example-javascript">§</a>Example (JavaScript)</h2><div class="example-wrap"><pre class="language-js"><code>const results = await benchmarkStreaming(
     10 * 1024 * 1024,  // 10MB test
-    (chunk) =&gt; { /* process */ }
+    (chunk) =&gt; { } // process each chunk
 );
 
 console.log(`Best chunk size: ${results.optimal_chunk_size}`);

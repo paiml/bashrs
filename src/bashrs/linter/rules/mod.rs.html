@@ -111,8 +111,8 @@
 <a href=#111 id=111 data-nosnippet>111</a><span class="kw">pub mod </span>sc2116;
 <a href=#112 id=112 data-nosnippet>112</a><span class="kw">pub mod </span>sc2117;
 <a href=#113 id=113 data-nosnippet>113</a><span class="kw">pub mod </span>sc2118;
-<a href=#114 id=114 data-nosnippet>114</a><span class="comment">// pub mod sc2119;  // TODO: Requires AST parsing for proper function analysis
-<a href=#115 id=115 data-nosnippet>115</a>// pub mod sc2120;  // TODO: Requires AST parsing for proper function analysis
+<a href=#114 id=114 data-nosnippet>114</a><span class="comment">// pub mod sc2119;  // TODO: Requires AST parsing for proper function analysis (has false positives)
+<a href=#115 id=115 data-nosnippet>115</a>// pub mod sc2120;  // TODO: Requires AST parsing for proper function analysis (has false positives)
 <a href=#116 id=116 data-nosnippet>116</a></span><span class="kw">pub mod </span>sc2121;
 <a href=#117 id=117 data-nosnippet>117</a><span class="kw">pub mod </span>sc2122;
 <a href=#118 id=118 data-nosnippet>118</a><span class="kw">pub mod </span>sc2123;
@@ -482,8 +482,8 @@
 <a href=#482 id=482 data-nosnippet>482</a>    result.merge(sc2116::check(source));
 <a href=#483 id=483 data-nosnippet>483</a>    result.merge(sc2117::check(source));
 <a href=#484 id=484 data-nosnippet>484</a>    result.merge(sc2118::check(source));
-<a href=#485 id=485 data-nosnippet>485</a>    <span class="comment">// result.merge(sc2119::check(source));  // Deferred: Requires AST parsing
-<a href=#486 id=486 data-nosnippet>486</a>    // result.merge(sc2120::check(source));  // Deferred: Requires AST parsing
+<a href=#485 id=485 data-nosnippet>485</a>    <span class="comment">// result.merge(sc2119::check(source));  // Deferred: False positives without AST
+<a href=#486 id=486 data-nosnippet>486</a>    // result.merge(sc2120::check(source));  // Deferred: False positives without AST
 <a href=#487 id=487 data-nosnippet>487</a>    </span>result.merge(sc2121::check(source));
 <a href=#488 id=488 data-nosnippet>488</a>    result.merge(sc2122::check(source));
 <a href=#489 id=489 data-nosnippet>489</a>    result.merge(sc2123::check(source));
