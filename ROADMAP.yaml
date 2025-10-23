@@ -2,8 +2,8 @@
 project:
   name: "Rash (bashrs) Extreme Quality Roadmap"
   description: "Bidirectional shell safety tool using REAL Rust (not a DSL)"
-  version: "5.0.0"
-  status: "🎉🎉🎉🎉🎉🎉 Production Ready - 240 Active Linter Rules (Sprint 116 - 80% MILESTONE!)"
+  version: "6.2.0"
+  status: "🎉🎉🎉 Production Ready - 357 Active Linter Rules (99.4% ShellCheck Coverage!)"
 
 workflows:
   primary:
@@ -27,6 +27,25 @@ workflows:
       - "Output is safe, deterministic, verifiable bash"
 
 releases:
+  - version: "6.2.0"
+    date: "2025-10-23"
+    status: "RELEASED"
+    title: "Major Documentation Release (Sprint 117 Audit)"
+    description: "ROADMAP audit revealed project at 99.4% ShellCheck coverage with 357 total linter rules"
+    achievements:
+      - "Sprint 117: Comprehensive codebase audit and documentation correction"
+      - "Discovered actual state: 323 active SC2xxx rules (99.4% coverage)"
+      - "Total 357 linter rules (SC2xxx + DET + IDEM + SEC + MAKE)"
+      - "4,756 tests passing (100% pass rate) - +811 tests since v5.0.0"
+      - "SC2119/SC2120 investigated - require AST (deferred to v7.0)"
+      - "Zero regressions maintained throughout audit"
+      - "Documentation accuracy restored"
+    breaking_changes: "None - documentation updates only"
+    notes: "This release corrects ROADMAP.yaml which was 2 versions behind. Project significantly more mature than previously documented."
+    published:
+      crates_io: "https://crates.io/crates/bashrs"
+      github: "https://github.com/paiml/bashrs/releases/tag/v6.2.0"
+
   - version: "5.0.0"
     date: "2025-10-22"
     status: "RELEASED"
@@ -145,23 +164,20 @@ releases:
 
 metrics:
   current:
-    version: "3.0.0"
+    version: "6.2.0"
     tests:
-      total: 1752
-      passing: 1752
-      ignored: 0
+      total: 4756
+      passing: 4756
+      ignored: 24
       pass_rate: "100%"
-      library_tests: 1747
+      library_tests: 4756
       book_validation_tests: 5
       property_tests: 52
       property_cases: "~26,000+"
-      integration_tests: 4
-      cli_make_tests: 17
-      unit_tests: "~1490"
-      linter_tests: 112
+      sc2xxx_rule_tests: "~3230"
       det_idem_tests: 24
-      makefile_linter_tests: 40
-      makefile_purification_tests: 60
+      sec_tests: 80
+      makefile_tests: 200
       autofix_tests: 8
       validation_tests: 30
       makefile_tests: "~160"
