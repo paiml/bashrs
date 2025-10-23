@@ -1,0 +1,1085 @@
+---
+# Unified Specification: WASM + Safe Shell + Rash Shell
+# Version: 1.0.0
+# Date: 2025-10-23
+# Methodology: EXTREME TDD (RED → GREEN → REFACTOR)
+# Quality Standard: NASA-level, SQLite-inspired, Zero Defects
+
+project:
+  name: "Rash: Memory-Safe Shell & WASM Runtime"
+  version: "7.0.0-alpha"
+  status: "🚀 Active Development - WASM Phase 1 + Safe Shell Phase 2"
+
+  vision: |
+    Build a memory-safe, deterministic shell that:
+    1. Runs in browsers via WebAssembly (linter, analyzer)
+    2. Executes bash scripts natively in Rust (no /bin/sh subprocess)
+    3. Provides interactive REPL as drop-in bash replacement
+    4. Maintains 100% memory safety (no unsafe blocks)
+    5. Enforces determinism and idempotency by default
+
+  priorities:
+    - "WASM browser runtime for WOS + interactive.paiml.com"
+    - "Safe shell interpreter (Rust-based bash execution)"
+    - "Interactive REPL with syntax highlighting"
+    - "Full bash compatibility (95% of existing scripts)"
+
+# Current State (v6.2.0)
+current_state:
+  version: "6.2.0"
+  linter_rules: 357
+  shellcheck_coverage: "99.4%"
+  tests_passing: 4756
+  pass_rate: "100%"
+
+  implemented:
+    - "Bash → Purified Bash (linter with auto-fix)"
+    - "Rust → Safe Shell (transpiler to POSIX sh)"
+    - "357 linter rules (SC2xxx + DET + IDEM + SEC + MAKE)"
+    - "WASM Phase 0 complete (960KB, builds successfully)"
+    - "Config analysis in browser (CONFIG-001 to CONFIG-004)"
+
+  gaps:
+    - "WASM browser testing (Playwright canary tests)"
+    - "Safe shell interpreter (execute bash in Rust)"
+    - "Interactive REPL"
+    - "Full bash compatibility (arrays, [[]], process substitution)"
+
+# Quality Standards (Mandatory)
+quality_standards:
+  testing:
+    methodology: "EXTREME TDD (RED → GREEN → REFACTOR)"
+    coverage_target: ">85% code coverage"
+    mutation_testing: "≥90% kill rate"
+    test_pass_rate: "100% (zero failures)"
+    property_testing: "100+ cases per critical feature"
+
+  performance:
+    wasm_load: "<5s in browser"
+    config_analysis: "<100ms for 1KB file"
+    streaming_throughput: ">10 MB/s"
+    callback_latency: "<1ms average"
+    memory_usage: "<10MB per analysis"
+
+  safety:
+    memory_safety: "100% safe Rust (no unsafe blocks)"
+    injection_safety: "All variables quoted automatically"
+    determinism: "Same input → same output (no $RANDOM, timestamps)"
+    idempotency: "Operations safe to re-run (mkdir -p, rm -f)"
+
+  compatibility:
+    posix_compliance: "100% (passes shellcheck -s sh)"
+    bash_compatibility: "95% of existing scripts"
+    browser_support: "Chromium, Firefox, WebKit/Safari"
+    platform_support: "Linux, macOS, Windows (via WSL)"
+
+# ============================================================================
+# PHASE 1: WASM Browser Runtime (v7.0)
+# Timeline: 2-3 weeks
+# Status: Phase 0 Complete → Phase 1 In Progress
+# ============================================================================
+
+phase_1_wasm:
+  title: "WASM Browser Runtime"
+  version: "7.0.0"
+  timeline: "2-3 weeks"
+  status: "Phase 0 Complete (feasibility proven)"
+
+  goal: |
+    Deploy bashrs linter/analyzer in browsers for:
+    - WOS (Web Operating System) shell script execution
+    - interactive.paiml.com educational bash tutorials
+    - Real-time config file validation in browser
+
+  deliverables:
+    - "40 Playwright canary tests (B01-B40)"
+    - "Cross-browser compatibility (Chrome, Firefox, Safari)"
+    - "Streaming I/O >10 MB/s"
+    - "Virtual filesystem for browser"
+    - "Integration with WOS + interactive.paiml.com"
+
+  # Phase 1 Tasks (EXTREME TDD)
+  tasks:
+    - id: "WASM-001"
+      title: "Browser Canary Tests Setup"
+      status: "pending"
+      priority: "HIGH"
+      description: "Set up Playwright test infrastructure for WASM"
+      acceptance_criteria:
+        - "npm install playwright @playwright/test"
+        - "Create e2e/bashrs-wasm-canary.spec.ts"
+        - "Configure playwright.config.ts for 3 browsers"
+        - "Run simple test: Load index.html successfully"
+      tests:
+        - "test_playwright_installed"
+        - "test_can_load_wasm_page"
+        - "test_chromium_works"
+        - "test_firefox_works"
+        - "test_webkit_works"
+
+    - id: "WASM-002"
+      title: "Canary Tests B01-B10 (Config Analysis)"
+      status: "pending"
+      priority: "HIGH"
+      description: "Implement 10 config analysis workflow tests"
+      tests:
+        - "B01: Load WASM module in <5s"
+        - "B02: CONFIG-001 PATH deduplication"
+        - "B03: CONFIG-002 Quote variable expansions"
+        - "B04: CONFIG-003 Duplicate aliases"
+        - "B05: CONFIG-004 Non-deterministic constructs"
+        - "B06: Display issues with line numbers"
+        - "B07: Purify config and show output"
+        - "B08: Handle large files (>10KB)"
+        - "B09: Handle malformed config gracefully"
+        - "B10: Performance <100ms for 1KB"
+
+    - id: "WASM-003"
+      title: "Canary Tests B11-B20 (Streaming I/O)"
+      status: "pending"
+      priority: "HIGH"
+      description: "Validate streaming performance >10 MB/s"
+      tests:
+        - "B11: Stream 1MB via JS callbacks"
+        - "B12: Stream 10MB with >10 MB/s throughput"
+        - "B13: Callback latency <1ms average"
+        - "B14: No memory leaks after 1000 callbacks"
+        - "B15: Handle callback errors gracefully"
+        - "B16: Backpressure handling"
+        - "B17: Chunk size optimization (1KB, 10KB, 100KB)"
+        - "B18: Binary data streaming"
+        - "B19: Multiple concurrent streams"
+        - "B20: Performance <1s for 10MB"
+
+    - id: "WASM-004"
+      title: "Canary Tests B21-B30 (Error Handling)"
+      status: "pending"
+      priority: "MEDIUM"
+      description: "Anomaly testing for production robustness"
+      tests:
+        - "B21: localStorage quota exceeded"
+        - "B22: OOM during analysis"
+        - "B23: Network failure during WASM load"
+        - "B24: Corrupted WASM binary"
+        - "B25: Invalid JavaScript callbacks"
+        - "B26: Tab suspension/resume"
+        - "B27: Page reload during analysis"
+        - "B28: Browser back/forward navigation"
+        - "B29: Concurrent analysis requests"
+        - "B30: Recover from WASM panic"
+
+    - id: "WASM-005"
+      title: "Canary Tests B31-B40 (Cross-Browser)"
+      status: "pending"
+      priority: "HIGH"
+      description: "Full browser compatibility matrix"
+      tests:
+        - "B31: Chromium full functionality"
+        - "B32: Firefox full functionality"
+        - "B33: WebKit/Safari full functionality"
+        - "B34: Mobile Chrome touch interactions"
+        - "B35: Mobile Safari iOS behavior"
+        - "B36: Edge Chromium compatibility"
+        - "B37: Older browsers graceful degradation"
+        - "B38: WebAssembly feature detection"
+        - "B39: Fallback for non-WASM browsers"
+        - "B40: Performance across all browsers"
+
+    - id: "WASM-006"
+      title: "Virtual Filesystem Implementation"
+      status: "pending"
+      priority: "MEDIUM"
+      description: "In-memory filesystem for browser environment"
+      acceptance_criteria:
+        - "Create/read/write/delete virtual files"
+        - "Directory traversal"
+        - "File permissions simulation"
+        - "localStorage persistence"
+      tests:
+        - "test_vfs_create_file"
+        - "test_vfs_read_file"
+        - "test_vfs_write_file"
+        - "test_vfs_delete_file"
+        - "test_vfs_mkdir"
+        - "test_vfs_rmdir"
+        - "test_vfs_persistence"
+
+    - id: "WASM-007"
+      title: "WOS Integration"
+      status: "pending"
+      priority: "HIGH"
+      description: "Deploy to WOS staging environment"
+      acceptance_criteria:
+        - "Package WASM module for WOS"
+        - "Create WOS API wrapper"
+        - "Deploy to staging.wos.paiml.com"
+        - "Test in production WOS environment"
+      tests:
+        - "test_wos_api_wrapper"
+        - "test_wos_integration"
+        - "test_wos_performance"
+
+    - id: "WASM-008"
+      title: "interactive.paiml.com Integration"
+      status: "pending"
+      priority: "HIGH"
+      description: "Deploy to educational platform"
+      acceptance_criteria:
+        - "Create educational UI for bash linting"
+        - "Real-time feedback as user types"
+        - "Example lessons integration"
+        - "Deploy to production"
+      tests:
+        - "test_interactive_ui"
+        - "test_realtime_feedback"
+        - "test_example_lessons"
+
+
+# ============================================================================
+# PHASE 2: Safe Shell Interpreter (v8.0)
+# Timeline: 4-6 weeks
+# Status: Design Phase
+# ============================================================================
+
+phase_2_safe_shell:
+  title: "Safe Shell Interpreter"
+  version: "8.0.0"
+  timeline: "4-6 weeks"
+  status: "Design Phase"
+
+  goal: |
+    Execute bash scripts directly in Rust without spawning /bin/sh subprocess.
+    Provides memory-safe, deterministic execution environment.
+
+  deliverables:
+    - "Rust-based bash interpreter (no /bin/sh)"
+    - "20 builtin commands in safe Rust"
+    - "Pipeline execution (cmd1 | cmd2)"
+    - "Redirection (>, <, >>, 2>&1)"
+    - "Variable scope management"
+    - "Function call stack"
+    - "Execute 90% of simple bash scripts"
+
+  # Phase 2 Tasks (EXTREME TDD)
+  tasks:
+    - id: "SHELL-001"
+      title: "Interpreter Architecture Design"
+      status: "pending"
+      priority: "HIGH"
+      description: "Design safe shell interpreter architecture"
+      acceptance_criteria:
+        - "Define InterpreterState struct"
+        - "Design builtin command interface"
+        - "Variable scope management"
+        - "Function call stack"
+        - "Pipeline execution model"
+      deliverables:
+        - "docs/architecture/interpreter.md"
+        - "rash/src/interpreter/mod.rs skeleton"
+
+    - id: "SHELL-002"
+      title: "Builtin Commands (Set 1: Core)"
+      status: "pending"
+      priority: "HIGH"
+      description: "Implement 5 core builtin commands"
+      builtins:
+        - "echo: Print arguments"
+        - "cd: Change directory"
+        - "pwd: Print working directory"
+        - "exit: Exit shell with code"
+        - "true/false: Return 0/1"
+      tests:
+        - "test_echo_simple"
+        - "test_echo_multiple_args"
+        - "test_cd_absolute"
+        - "test_cd_relative"
+        - "test_pwd_after_cd"
+        - "test_exit_code"
+        - "test_true_returns_0"
+        - "test_false_returns_1"
+
+    - id: "SHELL-003"
+      title: "Builtin Commands (Set 2: Variables)"
+      status: "pending"
+      priority: "HIGH"
+      description: "Implement variable manipulation builtins"
+      builtins:
+        - "export: Export variables"
+        - "unset: Unset variables"
+        - "readonly: Make variable readonly"
+        - "local: Local variable in function"
+        - "declare: Declare variables"
+      tests:
+        - "test_export_variable"
+        - "test_unset_variable"
+        - "test_readonly_prevents_change"
+        - "test_local_scope"
+        - "test_declare_array"
+
+    - id: "SHELL-004"
+      title: "Builtin Commands (Set 3: Control Flow)"
+      status: "pending"
+      priority: "MEDIUM"
+      description: "Implement control flow builtins"
+      builtins:
+        - "return: Return from function"
+        - "break: Break from loop"
+        - "continue: Continue loop"
+        - "source/.: Source script"
+        - "eval: Evaluate string as command"
+      tests:
+        - "test_return_from_function"
+        - "test_break_loop"
+        - "test_continue_loop"
+        - "test_source_script"
+        - "test_eval_command"
+
+    - id: "SHELL-005"
+      title: "Builtin Commands (Set 4: Testing)"
+      status: "pending"
+      priority: "MEDIUM"
+      description: "Implement test/[ builtin"
+      builtins:
+        - "test/[: File and string tests"
+        - "[[ ]]: Extended test (bash)"
+      tests:
+        - "test_file_exists"
+        - "test_file_is_directory"
+        - "test_string_equals"
+        - "test_string_not_empty"
+        - "test_integer_comparison"
+        - "test_extended_test_regex"
+
+    - id: "SHELL-006"
+      title: "Builtin Commands (Set 5: I/O)"
+      status: "pending"
+      priority: "MEDIUM"
+      description: "Implement I/O builtins"
+      builtins:
+        - "read: Read input"
+        - "printf: Formatted output"
+        - "exec: Replace shell process"
+        - "trap: Signal handling"
+      tests:
+        - "test_read_line"
+        - "test_printf_formatted"
+        - "test_trap_exit"
+
+    - id: "SHELL-007"
+      title: "Variable Scope Management"
+      status: "pending"
+      priority: "HIGH"
+      description: "Implement variable scoping (global, local, export)"
+      acceptance_criteria:
+        - "Global variables work"
+        - "Local variables in functions"
+        - "Exported variables to subshells"
+        - "Variable shadowing"
+      tests:
+        - "test_global_variable"
+        - "test_local_variable_scope"
+        - "test_export_to_subprocess"
+        - "test_variable_shadowing"
+        - "test_readonly_enforcement"
+
+    - id: "SHELL-008"
+      title: "Function Call Stack"
+      status: "pending"
+      priority: "HIGH"
+      description: "Implement function definitions and calls"
+      acceptance_criteria:
+        - "Define functions"
+        - "Call functions with arguments"
+        - "Return values"
+        - "Recursive functions"
+        - "Local variables in functions"
+      tests:
+        - "test_function_definition"
+        - "test_function_call_with_args"
+        - "test_function_return_value"
+        - "test_recursive_function"
+        - "test_function_local_variables"
+
+    - id: "SHELL-009"
+      title: "Pipeline Execution"
+      status: "pending"
+      priority: "HIGH"
+      description: "Implement | pipeline operator"
+      acceptance_criteria:
+        - "Pipe stdout of cmd1 to stdin of cmd2"
+        - "Handle errors in pipeline"
+        - "PIPESTATUS array"
+      tests:
+        - "test_simple_pipeline"
+        - "test_pipeline_three_commands"
+        - "test_pipeline_error_handling"
+        - "test_pipestatus_array"
+
+    - id: "SHELL-010"
+      title: "Redirection"
+      status: "pending"
+      priority: "HIGH"
+      description: "Implement I/O redirection (>, <, >>, 2>&1)"
+      acceptance_criteria:
+        - "Redirect stdout to file (>)"
+        - "Redirect stdin from file (<)"
+        - "Append to file (>>)"
+        - "Redirect stderr (2>)"
+        - "Combine stdout and stderr (2>&1)"
+      tests:
+        - "test_redirect_stdout"
+        - "test_redirect_stdin"
+        - "test_append_to_file"
+        - "test_redirect_stderr"
+        - "test_combine_stdout_stderr"
+
+    - id: "SHELL-011"
+      title: "Command Execution Integration"
+      status: "pending"
+      priority: "HIGH"
+      description: "End-to-end script execution"
+      acceptance_criteria:
+        - "Parse bash script to AST"
+        - "Execute AST in interpreter"
+        - "Capture stdout/stderr"
+        - "Return exit code"
+      tests:
+        - "test_execute_simple_script"
+        - "test_execute_script_with_variables"
+        - "test_execute_script_with_functions"
+        - "test_execute_script_with_pipes"
+
+
+# ============================================================================
+# PHASE 3: Interactive REPL (v8.5)
+# Timeline: 3-4 weeks
+# Status: Design Phase
+# ============================================================================
+
+phase_3_repl:
+  title: "Interactive REPL"
+  version: "8.5.0"
+  timeline: "3-4 weeks"
+  status: "Design Phase (after Phase 2)"
+
+  goal: |
+    Build interactive shell with modern UX that users can set as default shell.
+    `chsh -s /usr/bin/rash`
+
+  deliverables:
+    - "Interactive REPL with rustyline"
+    - "Syntax highlighting"
+    - "Tab completion"
+    - "Command history persistence"
+    - "Multi-line editing"
+    - "Customizable prompt"
+    - "Vi/Emacs keybindings"
+
+  tasks:
+    - id: "REPL-001"
+      title: "Rustyline Integration"
+      status: "pending"
+      priority: "HIGH"
+      description: "Integrate rustyline for readline functionality"
+      acceptance_criteria:
+        - "Add rustyline dependency"
+        - "Basic REPL loop"
+        - "Command history"
+        - "Line editing"
+      tests:
+        - "test_repl_starts"
+        - "test_repl_executes_command"
+        - "test_repl_history"
+        - "test_repl_multiline"
+
+    - id: "REPL-002"
+      title: "Syntax Highlighting"
+      status: "pending"
+      priority: "HIGH"
+      description: "Real-time syntax highlighting as user types"
+      acceptance_criteria:
+        - "Keywords highlighted (if, then, while)"
+        - "Strings highlighted"
+        - "Variables highlighted"
+        - "Commands highlighted"
+        - "Comments highlighted"
+      tests:
+        - "test_highlight_keywords"
+        - "test_highlight_strings"
+        - "test_highlight_variables"
+
+    - id: "REPL-003"
+      title: "Tab Completion"
+      status: "pending"
+      priority: "HIGH"
+      description: "Intelligent tab completion"
+      acceptance_criteria:
+        - "Command name completion"
+        - "File path completion"
+        - "Variable name completion"
+        - "Function name completion"
+        - "bash_completion integration"
+      tests:
+        - "test_complete_command"
+        - "test_complete_file_path"
+        - "test_complete_variable"
+        - "test_complete_function"
+
+    - id: "REPL-004"
+      title: "Command History"
+      status: "pending"
+      priority: "MEDIUM"
+      description: "Persistent command history"
+      acceptance_criteria:
+        - "Save history to ~/.rash_history"
+        - "Search history (Ctrl-R)"
+        - "History size limit (1000 commands)"
+        - "Duplicate command handling"
+      tests:
+        - "test_history_persistence"
+        - "test_history_search"
+        - "test_history_size_limit"
+
+    - id: "REPL-005"
+      title: "Prompt Customization"
+      status: "pending"
+      priority: "MEDIUM"
+      description: "Customizable PS1 prompt"
+      acceptance_criteria:
+        - "Support PS1 variable"
+        - "Dynamic prompt evaluation"
+        - "Color support"
+        - "Git branch integration (optional)"
+      tests:
+        - "test_custom_ps1"
+        - "test_prompt_colors"
+        - "test_prompt_git_branch"
+
+    - id: "REPL-006"
+      title: "Keybindings"
+      status: "pending"
+      priority: "LOW"
+      description: "Vi and Emacs keybindings"
+      acceptance_criteria:
+        - "Emacs mode (default)"
+        - "Vi mode (set -o vi)"
+        - "Custom keybinding configuration"
+      tests:
+        - "test_emacs_keybindings"
+        - "test_vi_keybindings"
+
+    - id: "REPL-007"
+      title: "Multi-line Editing"
+      status: "pending"
+      priority: "MEDIUM"
+      description: "Support multi-line commands"
+      acceptance_criteria:
+        - "Detect incomplete commands"
+        - "Secondary prompt (PS2)"
+        - "Edit multi-line with proper indentation"
+      tests:
+        - "test_multiline_if_statement"
+        - "test_multiline_function"
+        - "test_multiline_pipe"
+
+    - id: "REPL-008"
+      title: "Job Control"
+      status: "pending"
+      priority: "LOW"
+      description: "Background jobs (fg, bg, jobs)"
+      acceptance_criteria:
+        - "Run commands in background (&)"
+        - "List jobs (jobs)"
+        - "Foreground job (fg)"
+        - "Background job (bg)"
+      tests:
+        - "test_background_job"
+        - "test_jobs_list"
+        - "test_fg_command"
+        - "test_bg_command"
+
+
+# ============================================================================
+# TESTING STRATEGY (EXTREME TDD)
+# ============================================================================
+
+testing_strategy:
+  methodology: "EXTREME TDD (RED → GREEN → REFACTOR)"
+
+  phases:
+    red:
+      description: "Write failing test first"
+      steps:
+        - "Write test that demonstrates requirement"
+        - "Run test, verify it FAILS"
+        - "Document expected behavior"
+
+    green:
+      description: "Make test pass with minimal code"
+      steps:
+        - "Implement feature to make test pass"
+        - "Run test, verify it PASSES"
+        - "No optimization yet (just make it work)"
+
+    refactor:
+      description: "Clean up code while keeping tests green"
+      steps:
+        - "Improve code quality"
+        - "Reduce complexity (<10 per function)"
+        - "Add documentation"
+        - "All tests still pass"
+
+  test_types:
+    unit_tests:
+      coverage_target: ">85%"
+      framework: "cargo test"
+      naming: "test_<TASK_ID>_<feature>_<scenario>"
+      example: "test_SHELL_002_echo_multiple_args"
+
+    property_tests:
+      framework: "proptest"
+      cases_per_feature: "100+"
+      purpose: "Validate invariants with random inputs"
+      example: "prop_deterministic_output"
+
+    integration_tests:
+      framework: "cargo test --test"
+      purpose: "End-to-end workflow validation"
+      example: "test_execute_bash_script_end_to_end"
+
+    mutation_tests:
+      framework: "cargo-mutants"
+      kill_rate_target: "≥90%"
+      purpose: "Validate test quality"
+
+    browser_tests:
+      framework: "Playwright (@playwright/test)"
+      count: "40 canary tests (B01-B40)"
+      browsers: "Chromium, Firefox, WebKit"
+      purpose: "WASM functionality in real browsers"
+
+  quality_gates:
+    pre_commit:
+      - "All unit tests pass (100%)"
+      - "cargo clippy (zero warnings)"
+      - "cargo fmt --check"
+
+    pre_merge:
+      - "All tests pass (unit + integration)"
+      - "Code coverage >85%"
+      - "Complexity <10"
+      - "Zero clippy warnings"
+      - "Property tests pass"
+
+    pre_release:
+      - "All tests pass (including browser)"
+      - "Mutation testing ≥90% kill rate"
+      - "Performance benchmarks meet targets"
+      - "Documentation complete"
+      - "CHANGELOG updated"
+
+# ============================================================================
+# SUCCESS METRICS
+# ============================================================================
+
+success_metrics:
+  phase_1_wasm:
+    functional:
+      - "40 browser canary tests pass (B01-B40)"
+      - "Works in Chrome, Firefox, Safari"
+      - "Config analysis (CONFIG-001 to CONFIG-004)"
+      - "Deployed to WOS + interactive.paiml.com"
+
+    performance:
+      - "WASM loads in <5s"
+      - "Analyzes 1KB config in <100ms"
+      - "Streams >10 MB/s"
+      - "Callback latency <1ms"
+      - "Memory usage <10MB per analysis"
+
+    quality:
+      - "Zero crashes in production"
+      - "100% memory safe (no unsafe blocks)"
+      - "Zero injection vulnerabilities"
+
+  phase_2_safe_shell:
+    functional:
+      - "20 builtin commands implemented"
+      - "Executes 90% of simple bash scripts"
+      - "Pipeline execution (cmd1 | cmd2)"
+      - "Redirection (>, <, >>)"
+      - "Variable scope management"
+      - "Function calls"
+
+    performance:
+      - "Executes 1000 commands/sec"
+      - "Startup time <100ms"
+      - "Memory usage <50MB baseline"
+
+    quality:
+      - "100% memory safe (no unsafe blocks)"
+      - "Deterministic execution"
+      - "Zero command injection"
+      - ">85% code coverage"
+
+  phase_3_repl:
+    functional:
+      - "Interactive shell works"
+      - "Syntax highlighting real-time"
+      - "Tab completion <10ms"
+      - "Command history persistence"
+      - "Multi-line editing"
+
+    usability:
+      - "Startup in <100ms"
+      - "Responsive (no input lag)"
+      - "Compatible with bash_completion"
+      - "Works as login shell"
+
+    adoption:
+      - "Successfully used by 10+ developers"
+      - "Zero show-stopper bugs"
+      - "Performance equal or better than bash"
+
+# ============================================================================
+# IMPLEMENTATION PRIORITIES
+# ============================================================================
+
+implementation_priorities:
+  immediate_next_steps:
+    - id: "STEP-001"
+      task: "Set up Playwright for WASM testing"
+      command: |
+        cd /home/noahgift/src/bashrs/rash/examples/wasm
+        npm init -y
+        npm install playwright @playwright/test
+        npx playwright install chromium firefox webkit
+      priority: "P0"
+      blocking: "All Phase 1 work"
+
+    - id: "STEP-002"
+      task: "Implement B01: Load WASM test"
+      file: "e2e/bashrs-wasm-canary.spec.ts"
+      priority: "P0"
+      test_type: "EXTREME TDD RED phase"
+
+    - id: "STEP-003"
+      task: "Implement B02-B10: Config analysis tests"
+      priority: "P0"
+      duration: "1-2 days"
+
+    - id: "STEP-004"
+      task: "Implement B11-B20: Streaming tests"
+      priority: "P0"
+      duration: "2-3 days"
+
+  parallel_tracks:
+    track_a_wasm:
+      owner: "WASM Team"
+      focus: "Browser testing and deployment"
+      tasks:
+        - "WASM-001 to WASM-008"
+
+    track_b_interpreter:
+      owner: "Shell Team"
+      focus: "Safe shell interpreter design"
+      tasks:
+        - "SHELL-001: Architecture design"
+        - "SHELL-002: Core builtins"
+      start_after: "WASM-001 complete"
+
+
+# ============================================================================
+# RISKS AND MITIGATION
+# ============================================================================
+
+risks:
+  technical:
+    - risk: "WASM streaming performance insufficient (<10 MB/s)"
+      probability: "MEDIUM"
+      impact: "HIGH"
+      mitigation:
+        - "Phase 0 feasibility study (DONE)"
+        - "Benchmark early (STEP-004)"
+        - "Fall back to smaller chunks if needed"
+
+    - risk: "Browser compatibility issues (Safari, Firefox)"
+      probability: "MEDIUM"
+      impact: "MEDIUM"
+      mitigation:
+        - "Test on all 3 browsers from day 1"
+        - "Use Playwright matrix testing"
+        - "Graceful degradation for older browsers"
+
+    - risk: "Safe shell interpreter too slow vs /bin/bash"
+      probability: "LOW"
+      impact: "HIGH"
+      mitigation:
+        - "Benchmark during Phase 2"
+        - "JIT compilation for hot paths (Phase 4)"
+        - "Profile and optimize early"
+
+    - risk: "Bash compatibility gaps break real scripts"
+      probability: "HIGH"
+      impact: "HIGH"
+      mitigation:
+        - "Test against real-world scripts"
+        - "Incremental rollout"
+        - "Clear compatibility matrix"
+        - "Fallback to /bin/bash if needed"
+
+  organizational:
+    - risk: "Scope creep (trying to do too much)"
+      probability: "MEDIUM"
+      impact: "HIGH"
+      mitigation:
+        - "Strict phased approach"
+        - "Each phase has clear deliverables"
+        - "No Phase N+1 until Phase N complete"
+
+    - risk: "Resource contention (WASM vs Shell)"
+      probability: "LOW"
+      impact: "MEDIUM"
+      mitigation:
+        - "Parallel tracks (WASM and Shell teams)"
+        - "Clear ownership"
+        - "WASM has priority (immediate value)"
+
+# ============================================================================
+# DEPENDENCIES
+# ============================================================================
+
+dependencies:
+  external:
+    wasm:
+      - "wasm-pack: WASM build tool"
+      - "wasm-bindgen: JS bindings"
+      - "web-sys: Web APIs"
+      - "js-sys: JavaScript interop"
+      - "Playwright: Browser testing"
+
+    interpreter:
+      - "No external dependencies (pure Rust)"
+
+    repl:
+      - "rustyline: Readline functionality"
+      - "termion or crossterm: Terminal control"
+      - "syntect: Syntax highlighting"
+
+  internal:
+    wasm_depends_on:
+      - "rash/src/config (CONFIG-001 to CONFIG-004)"
+      - "rash/src/linter (357 rules)"
+      - "rash/src/bash_parser (AST parsing)"
+
+    interpreter_depends_on:
+      - "rash/src/bash_parser (AST)"
+      - "rash/src/ir (intermediate representation)"
+
+    repl_depends_on:
+      - "Phase 2 interpreter (must be complete)"
+
+# ============================================================================
+# TIMELINE
+# ============================================================================
+
+timeline:
+  overview: |
+    Total: 9-13 weeks across 3 phases
+    Phases can overlap: WASM (1-3 weeks) → Shell (4-10 weeks) → REPL (11-13 weeks)
+
+  phase_1_wasm:
+    duration: "2-3 weeks"
+    weeks:
+      week_1:
+        - "WASM-001: Playwright setup (Day 1-2)"
+        - "WASM-002: B01-B10 config tests (Day 3-5)"
+
+      week_2:
+        - "WASM-003: B11-B20 streaming tests (Day 1-3)"
+        - "WASM-004: B21-B30 error tests (Day 4-5)"
+
+      week_3:
+        - "WASM-005: B31-B40 cross-browser (Day 1-2)"
+        - "WASM-006: Virtual filesystem (Day 3-4)"
+        - "WASM-007 & WASM-008: WOS + interactive.paiml.com (Day 5)"
+
+  phase_2_safe_shell:
+    duration: "4-6 weeks"
+    weeks:
+      week_1:
+        - "SHELL-001: Architecture design (Day 1-2)"
+        - "SHELL-002: Core builtins (Day 3-5)"
+
+      week_2:
+        - "SHELL-003: Variable builtins (Day 1-3)"
+        - "SHELL-007: Variable scope (Day 4-5)"
+
+      week_3:
+        - "SHELL-008: Function call stack (Day 1-3)"
+        - "SHELL-004: Control flow builtins (Day 4-5)"
+
+      week_4:
+        - "SHELL-009: Pipeline execution (Day 1-3)"
+        - "SHELL-010: Redirection (Day 4-5)"
+
+      week_5:
+        - "SHELL-005: Testing builtins (Day 1-2)"
+        - "SHELL-006: I/O builtins (Day 3-4)"
+        - "SHELL-011: Integration (Day 5)"
+
+      week_6:
+        - "Bug fixes and performance tuning"
+        - "Documentation"
+        - "Release v8.0"
+
+  phase_3_repl:
+    duration: "3-4 weeks"
+    weeks:
+      week_1:
+        - "REPL-001: Rustyline integration (Day 1-2)"
+        - "REPL-002: Syntax highlighting (Day 3-5)"
+
+      week_2:
+        - "REPL-003: Tab completion (Day 1-3)"
+        - "REPL-004: Command history (Day 4-5)"
+
+      week_3:
+        - "REPL-005: Prompt customization (Day 1-2)"
+        - "REPL-007: Multi-line editing (Day 3-5)"
+
+      week_4:
+        - "REPL-006: Keybindings (Day 1-2)"
+        - "REPL-008: Job control (Day 3-4)"
+        - "Release v8.5 (Day 5)"
+
+  milestones:
+    - milestone: "v7.0 - WASM Browser Runtime"
+      date: "Week 3"
+      deliverable: "bashrs linter in browser"
+
+    - milestone: "v8.0 - Safe Shell Interpreter"
+      date: "Week 9"
+      deliverable: "Execute bash scripts in Rust"
+
+    - milestone: "v8.5 - Interactive REPL"
+      date: "Week 13"
+      deliverable: "Daily-use interactive shell"
+
+
+# ============================================================================
+# NEXT ACTIONS (THIS WEEK)
+# ============================================================================
+
+next_actions:
+  today:
+    - action: "Review this specification document"
+      owner: "Team"
+      duration: "30 min"
+
+    - action: "Approve WASM Phase 1 start"
+      owner: "Decision maker"
+      duration: "10 min"
+      blocker: true
+
+  tomorrow:
+    - action: "STEP-001: Set up Playwright"
+      owner: "Developer"
+      command: |
+        cd /home/noahgift/src/bashrs/rash/examples/wasm
+        npm init -y
+        npm install playwright @playwright/test
+        npx playwright install chromium firefox webkit
+      duration: "30 min"
+      test: "npx playwright --version"
+
+    - action: "STEP-002: Implement B01 test (EXTREME TDD RED)"
+      owner: "Developer"
+      files:
+        - "e2e/bashrs-wasm-canary.spec.ts"
+        - "playwright.config.ts"
+      duration: "2 hours"
+      test: "npx playwright test --headed"
+      expected: "Test fails (RED phase)"
+
+  this_week:
+    - "WASM-001: Complete Playwright setup"
+    - "WASM-002: Implement B01-B10 (10 config tests)"
+    - "First GREEN test: B01 passes"
+    - "Refactor and document"
+
+# ============================================================================
+# REFERENCES
+# ============================================================================
+
+references:
+  documentation:
+    - "CLAUDE.md: Development guidelines"
+    - "ROADMAP.yaml: Project roadmap"
+    - "SAFE-SHELL-VISION.md: Safe shell architecture"
+    - "rash/examples/wasm/TESTING-SPEC.md: WASM testing details"
+    - "rash/examples/wasm/PHASE0-RESULTS.md: Feasibility study"
+
+  inspiration:
+    - "SQLite Testing: 608:1 test-to-code ratio"
+    - "WOS Canary Tests: 60 tests, 8-second runtime"
+    - "interactive.paiml.com: Real WASM execution"
+
+  tools:
+    - "Playwright: https://playwright.dev"
+    - "wasm-pack: https://rustwasm.github.io/wasm-pack"
+    - "rustyline: https://github.com/kkawakam/rustyline"
+
+# ============================================================================
+# APPROVAL
+# ============================================================================
+
+approval:
+  status: "PENDING REVIEW"
+  reviewers:
+    - "Technical Lead"
+    - "Product Owner"
+  
+  decision_points:
+    - "Approve WASM Phase 1 (v7.0)?"
+    - "Parallel development: WASM + Shell interpreter?"
+    - "Resource allocation (team size)?"
+    - "Timeline: 9-13 weeks acceptable?"
+
+  sign_off:
+    approved_by: ""
+    approved_date: ""
+    notes: ""
+
+# ============================================================================
+# METADATA
+# ============================================================================
+
+metadata:
+  spec_version: "1.0.0"
+  created: "2025-10-23"
+  last_updated: "2025-10-23"
+  authors:
+    - "Claude Code (AI Assistant)"
+    - "bashrs Development Team"
+  
+  format: "YAML (ROADMAP.yaml style)"
+  methodology: "EXTREME TDD"
+  
+  related_files:
+    - "ROADMAP.yaml"
+    - "CLAUDE.md"
+    - "docs/SAFE-SHELL-VISION.md"
+    - "rash/examples/wasm/TESTING-SPEC.md"
+    - "rash/examples/wasm/PHASE0-RESULTS.md"
+
+  changelog:
+    - version: "1.0.0"
+      date: "2025-10-23"
+      changes:
+        - "Initial unified specification created"
+        - "Combined WASM + Safe Shell + REPL phases"
+        - "EXTREME TDD methodology throughout"
+        - "40 WASM canary tests specified"
+        - "Safe shell interpreter architecture defined"
+        - "Interactive REPL roadmap complete"
