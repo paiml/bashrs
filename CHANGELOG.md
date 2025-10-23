@@ -7,6 +7,51 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [6.2.0] - 2025-10-22
+
+### Added
+
+**📚 Major Documentation Release** - Three comprehensive book chapters documenting core bashrs features:
+
+- **Chapter 8: ShellCheck-Equivalent Linting** (321 lines)
+  - Complete documentation of 100% ShellCheck coverage achievement
+  - Journey through Sprints 116-120 to historic 100% milestone
+  - Common critical rules with real-world examples (SC2086, SC2046, SC2164, SC2115, SC2006)
+  - Six rule categories: Quoting, Command Execution, File Operations, Arrays, Control Flow, POSIX
+  - CI/CD integration patterns (GitHub Actions, pre-commit hooks, Makefile)
+  - Feature comparison matrix: Rash vs ShellCheck
+
+- **Chapter 10: Security and Injection Prevention** (262 lines)
+  - Real-world security incidents and attack scenarios
+  - Command injection prevention with SC2086 deep dive
+  - Format string injection vulnerabilities (SC2059)
+  - Dangerous operations protection (SC2115, SC2164)
+  - Input validation and path restriction patterns
+  - Defense-in-depth security layers
+  - Best practices for production deployments
+
+- **Chapter 12: Shell Configuration Management** (368 lines)
+  - Complete CONFIG-001 to CONFIG-004 rule documentation
+  - CONFIG-001: PATH deduplication for performance
+  - CONFIG-002: Quote variable expansions for security
+  - CONFIG-003: Consolidate duplicate aliases
+  - CONFIG-004: Remove non-deterministic constructs
+  - End-to-end workflow examples
+  - Best practices for config file management
+
+### Changed
+- Book documentation significantly expanded (951 new lines across 3 chapters)
+- All new chapters follow educational format with practical examples
+- Security content includes attack/defense scenarios
+- CI/CD integration examples for all major platforms
+
+### Quality Metrics
+- **Total Book Content**: 3 major chapters completed
+- **Documentation Coverage**: Core features now well-documented
+- **Examples**: Real-world attack scenarios and fixes
+- **Format**: Production-ready, educational content
+- **Build Status**: All chapters compile successfully with mdbook
+
 ## [6.1.0] - 2025-10-22
 
 ### Added
