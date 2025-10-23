@@ -178,17 +178,17 @@ export TEMP_DIR="/tmp/work-$$"  # CONFIG-004: Process ID!
     </div>
 
     <script type="module">
-        import init, {
+        import initWasmModule, {
             version,
-            analyzeConfig as wasmAnalyzeConfig,
-            purifyConfig as wasmPurifyConfig
+            analyze_config as wasmAnalyzeConfig,
+            purify_config as wasmPurifyConfig
         } from './pkg/bashrs.js';
 
         let wasmReady = false;
 
         async function initWasm() {
             try {
-                await init();
+                await initWasmModule();
                 wasmReady = true;
 
                 document.getElementById('status').className = 'status success';

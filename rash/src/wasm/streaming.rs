@@ -160,7 +160,7 @@ impl StreamStats {
 /// ```js
 /// const results = await benchmarkStreaming(
 ///     10 * 1024 * 1024,  // 10MB test
-///     (chunk) => { /* process */ }
+///     (chunk) => { } // process each chunk
 /// );
 ///
 /// console.log(`Best chunk size: ${results.optimal_chunk_size}`);
