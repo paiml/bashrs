@@ -6932,4 +6932,127 @@ fi
             assert_eq!(output.stdout.trim(), "condition true");
         }
     }
+
+    /// Tests for brace grouping: { commands; }
+    /// Brace groups execute commands in the current shell's scope (changes persist)
+    #[cfg(test)]
+    mod brace_tests {
+        use super::*;
+
+        /// Test 1: Basic brace grouping with variable scope
+        /// Variables set inside { } should persist in parent scope
+        #[test]
+        fn test_brace_001_shared_scope() {
+            let mut executor = BashExecutor::new();
+            let result = executor.execute(r#"
+x=outer
+{ x=inner; echo $x; }
+echo $x
+"#);
+            assert!(result.is_ok());
+            let output = result.unwrap();
+            // Both should show "inner" because brace groups share scope
+            assert_eq!(output.stdout.trim(), "inner\ninner");
+        }
+
+        /// Test 2: Brace grouping with multiple commands
+        #[test]
+        fn test_brace_002_multiple_commands() {
+            let mut executor = BashExecutor::new();
+            let result = executor.execute(r#"
+{ echo "first"; echo "second"; echo "third"; }
+"#);
+            assert!(result.is_ok());
+            let output = result.unwrap();
+            assert_eq!(output.stdout.trim(), "first\nsecond\nthird");
+        }
+
+        /// Test 3: Nested brace groups
+        #[test]
+        fn test_brace_003_nested() {
+            let mut executor = BashExecutor::new();
+            let result = executor.execute(r#"
+x=0
+{ x=1; { x=2; echo $x; }; echo $x; }
+echo $x
+"#);
+            assert!(result.is_ok());
+            let output = result.unwrap();
+            // All should show progressively updated values
+            assert_eq!(output.stdout.trim(), "2\n2\n2");
+        }
+
+        /// Test 4: Brace group with variable assignment
+        #[test]
+        fn test_brace_004_assignment() {
+            let mut executor = BashExecutor::new();
+            let result = executor.execute(r#"
+{ a=10; b=20; c=30; }
+echo $a $b $c
+"#);
+            assert!(result.is_ok());
+            let output = result.unwrap();
+            assert_eq!(output.stdout.trim(), "10 20 30");
+        }
+
+        /// Test 5: Brace group exit code
+        /// Exit code should be from last command
+        #[test]
+        fn test_brace_005_exit_code() {
+            let mut executor = BashExecutor::new();
+            let result = executor.execute(r#"
+{ echo "hello"; exit 42; }
+"#);
+            assert!(result.is_ok());
+            let output = result.unwrap();
+            assert_eq!(output.exit_code, 42);
+        }
+
+        /// Test 6: Empty brace group
+        #[test]
+        fn test_brace_006_empty() {
+            let mut executor = BashExecutor::new();
+            let result = executor.execute(r#"
+{ }
+echo "after"
+"#);
+            assert!(result.is_ok());
+            let output = result.unwrap();
+            assert_eq!(output.stdout.trim(), "after");
+        }
+
+        /// Test 7: Brace group vs subshell comparison
+        /// This test shows the difference between ( ) and { }
+        #[test]
+        fn test_brace_007_vs_subshell() {
+            let mut executor = BashExecutor::new();
+            let result = executor.execute(r#"
+x=original
+(x=subshell)
+echo $x
+{ x=brace; }
+echo $x
+"#);
+            assert!(result.is_ok());
+            let output = result.unwrap();
+            // First echo: x unchanged by subshell
+            // Second echo: x changed by brace group
+            assert_eq!(output.stdout.trim(), "original\nbrace");
+        }
+
+        /// Test 8: Brace group with array modification
+        #[test]
+        fn test_brace_008_array_scope() {
+            let mut executor = BashExecutor::new();
+            let result = executor.execute(r#"
+arr=(a b c)
+{ arr[1]=modified; }
+echo ${arr[1]}
+"#);
+            assert!(result.is_ok());
+            let output = result.unwrap();
+            // Array should be modified in parent scope
+            assert_eq!(output.stdout.trim(), "modified");
+        }
+    }
 }
