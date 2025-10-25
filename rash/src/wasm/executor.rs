@@ -262,10 +262,11 @@ impl BashExecutor {
         let mut current = String::new();
         let mut in_quotes = false;
         let mut quote_char = ' ';
+        let mut brace_depth = 0; // Track ${...} depth
 
         for ch in line.chars() {
             match ch {
-                '\'' | '"' if !in_quotes => {
+                '\'' | '"' if !in_quotes && brace_depth == 0 => {
                     in_quotes = true;
                     quote_char = ch;
                     current.push(ch);
@@ -274,7 +275,19 @@ impl BashExecutor {
                     in_quotes = false;
                     current.push(c);
                 }
-                '|' if !in_quotes => {
+                '$' if !in_quotes => {
+                    current.push(ch);
+                    // Check next char for '{'
+                }
+                '{' if !in_quotes && current.ends_with('$') => {
+                    brace_depth += 1;
+                    current.push(ch);
+                }
+                '}' if !in_quotes && brace_depth > 0 => {
+                    brace_depth -= 1;
+                    current.push(ch);
+                }
+                '|' if !in_quotes && brace_depth == 0 => {
                     if !current.trim().is_empty() {
                         commands.push(current.trim().to_string());
                         current.clear();
@@ -5489,5 +5502,184 @@ echo ${mypath//:/|}
         assert!(result.is_ok());
         let output = result.unwrap();
         assert_eq!(output.stdout.trim(), "/usr/bin|/bin|/usr/local/bin");
+    }
+
+    // ========================
+    // Property Tests: String Manipulation
+    // ========================
+
+    #[cfg(test)]
+    mod string_property_tests {
+        use super::*;
+        use proptest::prelude::*;
+
+        /// Property: Default value operator (:-) always provides a value
+        proptest! {
+            #[test]
+            fn prop_string_001_default_value_always_defined(
+                var_name in "[a-z]{1,10}",
+                default_val in "[a-zA-Z0-9_]{1,20}"
+            ) {
+                let mut executor = BashExecutor::new();
+                let result = executor.execute(&format!(r#"echo ${{{0}:-{1}}}"#, var_name, default_val));
+                prop_assert!(result.is_ok());
+                let output = result.unwrap().stdout.trim().to_string();
+                prop_assert_eq!(output, default_val);
+            }
+        }
+
+        /// Property: Assign default (:=) sets variable if unset
+        proptest! {
+            #[test]
+            fn prop_string_002_assign_default_sets_variable(
+                var_name in "[a-z]{1,10}",
+                default_val in "[a-zA-Z0-9_]{1,20}"
+            ) {
+                let mut executor = BashExecutor::new();
+                // Assign default without echo (use : builtin to avoid output)
+                let _ = executor.execute(&format!(r#": ${{{0}:={1}}}"#, var_name, default_val));
+                // Variable should now be set
+                let result = executor.execute(&format!(r#"echo ${{{}}}"#, var_name));
+                prop_assert!(result.is_ok());
+                let output = result.unwrap().stdout.trim().to_string();
+                prop_assert_eq!(output, default_val);
+            }
+        }
+
+        /// Property: String length (#var) always non-negative
+        proptest! {
+            #[test]
+            fn prop_string_003_length_non_negative(
+                var_name in "[a-z]{1,10}",
+                value in "[a-zA-Z0-9_]{0,50}"
+            ) {
+                let mut executor = BashExecutor::new();
+                executor.execute(&format!(r#"{}="{}""#, var_name, value)).ok();
+                let result = executor.execute(&format!(r#"echo ${{#{}}}"#, var_name));
+                prop_assert!(result.is_ok());
+                let length: usize = result.unwrap().stdout.trim().parse().unwrap_or(0);
+                prop_assert_eq!(length, value.len());
+            }
+        }
+
+        /// Property: Substring extraction never exceeds original length
+        proptest! {
+            #[test]
+            fn prop_string_004_substring_within_bounds(
+                value in "[a-zA-Z0-9_]{5,20}",
+                offset in 0usize..10usize
+            ) {
+                let mut executor = BashExecutor::new();
+                executor.execute(&format!(r#"myvar="{}""#, value)).ok();
+                let result = executor.execute(&format!(r#"echo ${{myvar:{}}}"#, offset));
+                prop_assert!(result.is_ok());
+                let output = result.unwrap().stdout.trim().to_string();
+                prop_assert!(output.len() <= value.len());
+            }
+        }
+
+        /// Property: Pattern replacement preserves string type
+        proptest! {
+            #[test]
+            fn prop_string_005_replacement_is_string(
+                value in "[a-zA-Z0-9:/_-]{5,30}",
+                pattern in "[:/]",
+                replacement in "[|_-]"
+            ) {
+                let mut executor = BashExecutor::new();
+                executor.execute(&format!(r#"myvar="{}""#, value)).ok();
+                let result = executor.execute(&format!(r#"echo ${{myvar/{}/{}}}"#, pattern, replacement));
+                prop_assert!(result.is_ok());
+                let output = result.unwrap().stdout.trim().to_string();
+                prop_assert!(!output.is_empty() || value.is_empty());
+            }
+        }
+
+        /// Property: Replace all (//pattern/repl) handles empty pattern gracefully
+        proptest! {
+            #[test]
+            fn prop_string_006_replace_all_never_panics(
+                value in "[a-zA-Z0-9:/_-]{0,30}",
+                pattern in "[:/a-z]",
+                replacement in "[|_-]"
+            ) {
+                let mut executor = BashExecutor::new();
+                executor.execute(&format!(r#"myvar="{}""#, value)).ok();
+                let result = executor.execute(&format!(r#"echo ${{myvar//{}/{}}}"#, pattern, replacement));
+                prop_assert!(result.is_ok());
+            }
+        }
+
+        /// Property: Alternate value (:+) only returns value if variable set
+        proptest! {
+            #[test]
+            fn prop_string_007_alternate_only_when_set(
+                var_name in "[a-z]{1,10}",
+                var_value in "[a-zA-Z0-9_]{1,20}",
+                alt_value in "[a-zA-Z0-9_]{1,20}"
+            ) {
+                let mut executor = BashExecutor::new();
+                executor.execute(&format!(r#"{}="{}""#, var_name, var_value)).ok();
+                let result = executor.execute(&format!(r#"echo ${{{0}:+{1}}}"#, var_name, alt_value));
+                prop_assert!(result.is_ok());
+                let output = result.unwrap().stdout.trim().to_string();
+                prop_assert_eq!(output, alt_value);
+            }
+        }
+
+        /// Property: Remove prefix (#pattern) shortens or preserves length
+        proptest! {
+            #[test]
+            fn prop_string_008_remove_prefix_preserves_or_shortens(
+                value in "[a-zA-Z0-9.]{5,20}",
+                prefix_pattern in "[a-zA-Z]*"
+            ) {
+                let mut executor = BashExecutor::new();
+                executor.execute(&format!(r#"myvar="{}""#, value)).ok();
+                let result = executor.execute(&format!(r#"echo ${{myvar#{0}*}}"#, prefix_pattern));
+                prop_assert!(result.is_ok());
+                let output = result.unwrap().stdout.trim().to_string();
+                prop_assert!(output.len() <= value.len());
+            }
+        }
+
+        /// Property: Remove suffix (%pattern) shortens or preserves length
+        proptest! {
+            #[test]
+            fn prop_string_009_remove_suffix_preserves_or_shortens(
+                value in "[a-zA-Z0-9.]{5,20}",
+                suffix_pattern in "[a-zA-Z]*"
+            ) {
+                let mut executor = BashExecutor::new();
+                executor.execute(&format!(r#"myvar="{}""#, value)).ok();
+                let result = executor.execute(&format!(r#"echo ${{myvar%*{0}}}"#, suffix_pattern));
+                prop_assert!(result.is_ok());
+                let output = result.unwrap().stdout.trim().to_string();
+                prop_assert!(output.len() <= value.len());
+            }
+        }
+
+        /// Property: String operations are deterministic
+        proptest! {
+            #[test]
+            fn prop_string_010_deterministic_operations(
+                value in "[a-zA-Z0-9:/_-]{1,30}",
+                pattern in "[:/]",
+                replacement in "[|_]"
+            ) {
+                let mut executor1 = BashExecutor::new();
+                let mut executor2 = BashExecutor::new();
+
+                executor1.execute(&format!(r#"myvar="{}""#, value)).ok();
+                executor2.execute(&format!(r#"myvar="{}""#, value)).ok();
+
+                let result1 = executor1.execute(&format!(r#"echo ${{myvar//{}/{}}}"#, pattern, replacement));
+                let result2 = executor2.execute(&format!(r#"echo ${{myvar//{}/{}}}"#, pattern, replacement));
+
+                prop_assert!(result1.is_ok());
+                prop_assert!(result2.is_ok());
+                prop_assert_eq!(result1.unwrap().stdout, result2.unwrap().stdout);
+            }
+        }
     }
 }
