@@ -155,7 +155,7 @@ impl Builtins {
 
     /// Check if a command is a builtin
     pub fn is_builtin(name: &str) -> bool {
-        matches!(name, "echo" | "cd" | "pwd" | "wc" | "tr" | ":")
+        matches!(name, "echo" | "cd" | "pwd" | "wc" | "tr" | ":" | "true" | "false")
     }
 
     /// Execute a builtin command
@@ -172,6 +172,8 @@ impl Builtins {
             "wc" => Self::wc(args, io),
             "tr" => Self::tr(args, io),
             ":" => Ok(0), // No-op command, always succeeds
+            "true" => Ok(0), // Always succeeds with exit code 0
+            "false" => Ok(1), // Always fails with exit code 1
             _ => Err(anyhow!("Unknown builtin: {}", name)),
         }
     }
@@ -329,5 +331,38 @@ mod tests {
 
         // ASSERT
         assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_true_builtin() {
+        // ARRANGE
+        let mut vfs = VirtualFilesystem::new();
+        let mut io = IoStreams::new_capture();
+
+        // ACT
+        let exit_code = Builtins::execute("true", &[], &mut vfs, &mut io).unwrap();
+
+        // ASSERT
+        assert_eq!(exit_code, 0);
+    }
+
+    #[test]
+    fn test_false_builtin() {
+        // ARRANGE
+        let mut vfs = VirtualFilesystem::new();
+        let mut io = IoStreams::new_capture();
+
+        // ACT
+        let exit_code = Builtins::execute("false", &[], &mut vfs, &mut io).unwrap();
+
+        // ASSERT
+        assert_eq!(exit_code, 1);
+    }
+
+    #[test]
+    fn test_is_builtin_true_false() {
+        // ASSERT
+        assert!(Builtins::is_builtin("true"));
+        assert!(Builtins::is_builtin("false"));
     }
 }
