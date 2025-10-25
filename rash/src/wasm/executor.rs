@@ -124,6 +124,21 @@ impl BashExecutor {
                 continue;
             }
 
+            // Check for subshell or brace grouping
+            if line.starts_with('(') {
+                // Execute subshell (isolated scope)
+                let exit_code = self.execute_subshell(line)?;
+                self.exit_code = exit_code;
+                i += 1;
+                continue;
+            } else if line.starts_with('{') {
+                // Execute brace grouping (shared scope)
+                let exit_code = self.execute_brace_group(line)?;
+                self.exit_code = exit_code;
+                i += 1;
+                continue;
+            }
+
             self.exit_code = self.execute_command(line)?;
             i += 1;
         }
@@ -1687,6 +1702,78 @@ impl BashExecutor {
         }
 
         result
+    }
+
+    /// Execute a subshell (isolated scope)
+    /// Subshells create a new execution context where variable changes don't affect the parent
+    fn execute_subshell(&mut self, line: &str) -> Result<i32> {
+        // Extract content between ( and )
+        let content = if let Some(start) = line.find('(') {
+            let end = line.rfind(')').ok_or_else(|| anyhow!("Unmatched parenthesis in subshell"))?;
+            &line[start + 1..end]
+        } else {
+            return Err(anyhow!("Invalid subshell syntax"));
+        };
+
+        // Replace semicolons with newlines to separate commands
+        // (semicolons are command separators in bash)
+        let content_with_newlines = content.replace(';', "\n");
+
+        // Save current state (env variables, arrays, IO streams)
+        let saved_env = self.env.clone();
+        let saved_arrays = self.arrays.clone();
+        let saved_exit_code = self.exit_code;
+        let saved_io = std::mem::replace(&mut self.io, IoStreams::new_capture());
+
+        // Execute the subshell content with fresh IO streams
+        let result = self.execute(&content_with_newlines);
+
+        // Capture the subshell's output
+        let subshell_stdout = self.io.get_stdout();
+        let subshell_stderr = self.io.get_stderr();
+
+        // Restore parent scope (env, arrays, and IO don't leak out)
+        self.env = saved_env;
+        self.arrays = saved_arrays;
+        self.io = saved_io;
+
+        // Write subshell's output to parent's streams
+        if !subshell_stdout.is_empty() {
+            self.io.stdout.write_all(subshell_stdout.as_bytes())
+                .map_err(|e| anyhow!("Failed to write subshell stdout: {}", e))?;
+        }
+        if !subshell_stderr.is_empty() {
+            self.io.stderr.write_all(subshell_stderr.as_bytes())
+                .map_err(|e| anyhow!("Failed to write subshell stderr: {}", e))?;
+        }
+
+        // Preserve the exit code from the subshell
+        let subshell_exit_code = match result {
+            Ok(output) => output.exit_code,
+            Err(_) => {
+                self.exit_code = saved_exit_code;
+                return Err(anyhow!("Subshell execution failed"));
+            }
+        };
+
+        Ok(subshell_exit_code)
+    }
+
+    /// Execute a brace group (shared scope)
+    /// Brace groups execute commands in the current shell's scope
+    fn execute_brace_group(&mut self, line: &str) -> Result<i32> {
+        // Extract content between { and }
+        let content = if let Some(start) = line.find('{') {
+            let end = line.rfind('}').ok_or_else(|| anyhow!("Unmatched brace in command group"))?;
+            &line[start + 1..end]
+        } else {
+            return Err(anyhow!("Invalid brace group syntax"));
+        };
+
+        // Execute in current scope (changes persist)
+        let result = self.execute(content)?;
+
+        Ok(result.exit_code)
     }
 
     /// Check if line is a variable assignment
