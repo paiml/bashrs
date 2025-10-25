@@ -6698,4 +6698,151 @@ MARKER
             assert_eq!(output.stdout.trim(), "No expansion: $var");
         }
     }
+
+    // ========================
+    // Unit Tests: Subshells and Command Grouping
+    // ========================
+
+    #[cfg(test)]
+    mod subshell_tests {
+        use super::*;
+
+        /// Test 1: Basic subshell with variable scope
+        #[test]
+        fn test_subshell_001_basic_scope() {
+            let mut executor = BashExecutor::new();
+            let result = executor.execute(r#"
+x=outer
+(x=inner; echo $x)
+echo $x
+"#);
+            assert!(result.is_ok());
+            let output = result.unwrap();
+            assert_eq!(output.stdout.trim(), "inner\nouter");
+        }
+
+        /// Test 2: Subshell with cd (directory change doesn't affect parent)
+        #[test]
+        fn test_subshell_002_cd_isolation() {
+            let mut executor = BashExecutor::new();
+            let result = executor.execute(r#"
+pwd
+(cd /tmp; pwd)
+pwd
+"#);
+            assert!(result.is_ok());
+            let output = result.unwrap();
+            let lines: Vec<&str> = output.stdout.trim().lines().collect();
+            assert_eq!(lines.len(), 3);
+            assert_eq!(lines[0], lines[2]); // pwd before and after should be same
+            assert_eq!(lines[1], "/tmp");
+        }
+
+        /// Test 3: Command grouping with braces { }
+        #[test]
+        fn test_subshell_003_brace_grouping() {
+            let mut executor = BashExecutor::new();
+            let result = executor.execute(r#"
+x=outer
+{ x=inner; echo $x; }
+echo $x
+"#);
+            assert!(result.is_ok());
+            let output = result.unwrap();
+            assert_eq!(output.stdout.trim(), "inner\ninner"); // Braces share scope
+        }
+
+        /// Test 4: Subshell with exit code
+        #[test]
+        fn test_subshell_004_exit_code() {
+            let mut executor = BashExecutor::new();
+            let result = executor.execute(r#"
+(exit 42)
+echo $?
+"#);
+            assert!(result.is_ok());
+            let output = result.unwrap();
+            assert_eq!(output.stdout.trim(), "42");
+        }
+
+        /// Test 5: Nested subshells
+        #[test]
+        fn test_subshell_005_nested() {
+            let mut executor = BashExecutor::new();
+            let result = executor.execute(r#"
+x=level0
+(x=level1; (x=level2; echo $x); echo $x)
+echo $x
+"#);
+            assert!(result.is_ok());
+            let output = result.unwrap();
+            assert_eq!(output.stdout.trim(), "level2\nlevel1\nlevel0");
+        }
+
+        /// Test 6: Subshell with pipeline
+        #[test]
+        fn test_subshell_006_with_pipeline() {
+            let mut executor = BashExecutor::new();
+            let result = executor.execute(r#"
+(echo "hello"; echo "world") | wc -l
+"#);
+            assert!(result.is_ok());
+            let output = result.unwrap();
+            assert_eq!(output.stdout.trim(), "2");
+        }
+
+        /// Test 7: Subshell with variable assignment
+        #[test]
+        fn test_subshell_007_variable_assignment() {
+            let mut executor = BashExecutor::new();
+            let result = executor.execute(r#"
+result=$(x=10; y=20; echo $((x + y)))
+echo $result
+"#);
+            assert!(result.is_ok());
+            let output = result.unwrap();
+            assert_eq!(output.stdout.trim(), "30");
+        }
+
+        /// Test 8: Brace grouping with output redirection
+        #[test]
+        fn test_subshell_008_brace_redirect() {
+            let mut executor = BashExecutor::new();
+            let result = executor.execute(r#"
+{ echo "line1"; echo "line2"; } > /tmp/test_brace_output.txt
+cat /tmp/test_brace_output.txt
+"#);
+            assert!(result.is_ok());
+            let output = result.unwrap();
+            assert_eq!(output.stdout.trim(), "line1\nline2");
+        }
+
+        /// Test 9: Subshell with array (arrays don't leak out)
+        #[test]
+        fn test_subshell_009_array_scope() {
+            let mut executor = BashExecutor::new();
+            let result = executor.execute(r#"
+arr=(a b c)
+(arr=(x y z); echo ${arr[0]})
+echo ${arr[0]}
+"#);
+            assert!(result.is_ok());
+            let output = result.unwrap();
+            assert_eq!(output.stdout.trim(), "x\na");
+        }
+
+        /// Test 10: Subshell in conditional
+        #[test]
+        fn test_subshell_010_in_conditional() {
+            let mut executor = BashExecutor::new();
+            let result = executor.execute(r#"
+if (x=5; [ $x -eq 5 ]); then
+    echo "condition true"
+fi
+"#);
+            assert!(result.is_ok());
+            let output = result.unwrap();
+            assert_eq!(output.stdout.trim(), "condition true");
+        }
+    }
 }
