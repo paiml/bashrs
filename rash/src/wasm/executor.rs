@@ -94,7 +94,7 @@ impl BashExecutor {
                 continue;
             }
 
-            // Check for control flow constructs (if, for, while)
+            // Check for control flow constructs (if, for, while, case)
             if line.starts_with("if ") {
                 // Parse and execute if statement
                 let (if_end, exit_code) = self.execute_if_statement(&lines, i)?;
@@ -112,6 +112,12 @@ impl BashExecutor {
                 let (loop_end, exit_code) = self.execute_while_loop(&lines, i)?;
                 self.exit_code = exit_code;
                 i = loop_end + 1;
+                continue;
+            } else if line.starts_with("case ") {
+                // Parse and execute case statement
+                let (case_end, exit_code) = self.execute_case_statement(&lines, i)?;
+                self.exit_code = exit_code;
+                i = case_end + 1;
                 continue;
             }
 
@@ -1339,6 +1345,214 @@ impl BashExecutor {
         }
 
         Ok((body_end, exit_code))
+    }
+
+    /// Execute a case statement
+    fn execute_case_statement(&mut self, lines: &[&str], start: usize) -> Result<(usize, i32)> {
+        // Parse: case WORD in
+        //          pattern) commands ;;
+        //          pattern2) commands ;;
+        //        esac
+
+        let first_line = lines[start];
+
+        // Extract the value to match against
+        // "case $var in" or "case value in"
+        let case_value = if first_line.contains(" in") {
+            first_line
+                .strip_prefix("case ")
+                .and_then(|s| s.split(" in").next())
+                .unwrap_or("")
+        } else {
+            first_line.strip_prefix("case ").unwrap_or("")
+        };
+
+        // Expand variables in the case value
+        let expanded_value = self.expand_variables(case_value);
+        // Remove surrounding quotes if present
+        let expanded_value = expanded_value.trim_matches('"').trim_matches('\'').to_string();
+
+        // Find esac
+        let mut esac_line = start;
+        for i in (start + 1)..lines.len() {
+            if lines[i] == "esac" || lines[i].starts_with("esac ") {
+                esac_line = i;
+                break;
+            }
+        }
+
+        // Parse and execute patterns
+        let mut i = start + 1;
+        let mut matched = false;
+        let mut exit_code = 0;
+
+        while i < esac_line {
+            let line = lines[i].trim();
+
+            // Skip "in" keyword line
+            if line == "in" || line.is_empty() {
+                i += 1;
+                continue;
+            }
+
+            // Check if this is a pattern line (ends with ')')
+            if line.contains(')') {
+                let pattern_part = line.split(')').next().unwrap_or("").trim();
+
+                // Split multiple patterns by '|'
+                let patterns: Vec<&str> = pattern_part.split('|').map(|p| p.trim()).collect();
+
+                // Check if any pattern matches
+                let pattern_matches = patterns.iter().any(|pattern| {
+                    self.pattern_matches(pattern, &expanded_value)
+                });
+
+                if pattern_matches && !matched {
+                    matched = true;
+
+                    // Execute commands until ;;
+                    i += 1;
+                    while i < esac_line {
+                        let cmd_line = lines[i].trim();
+
+                        // Check for terminator
+                        if cmd_line == ";;" || cmd_line.starts_with(";;") {
+                            break;
+                        }
+
+                        // Execute command if not empty
+                        if !cmd_line.is_empty() {
+                            exit_code = self.execute_command(cmd_line)?;
+                        }
+
+                        i += 1;
+                    }
+
+                    // Break after first match
+                    break;
+                } else {
+                    // Skip to next pattern (find next ;;)
+                    i += 1;
+                    while i < esac_line {
+                        if lines[i].trim() == ";;" || lines[i].trim().starts_with(";;") {
+                            i += 1;
+                            break;
+                        }
+                        i += 1;
+                    }
+                }
+            } else {
+                i += 1;
+            }
+        }
+
+        Ok((esac_line, exit_code))
+    }
+
+    /// Check if a pattern matches a value (glob-style matching)
+    fn pattern_matches(&self, pattern: &str, value: &str) -> bool {
+        // Remove quotes from pattern if present
+        let pattern = pattern.trim_matches('"').trim_matches('\'');
+
+        // Handle special patterns
+        if pattern == "*" {
+            return true;  // Match everything
+        }
+
+        // Exact match
+        if pattern == value {
+            return true;
+        }
+
+        // Convert glob pattern to regex-like matching
+        let mut pattern_chars = pattern.chars().peekable();
+        let mut value_chars = value.chars().peekable();
+
+        self.glob_match(&mut pattern_chars, &mut value_chars)
+    }
+
+    /// Recursive glob pattern matching
+    fn glob_match(
+        &self,
+        pattern: &mut std::iter::Peekable<std::str::Chars>,
+        value: &mut std::iter::Peekable<std::str::Chars>,
+    ) -> bool {
+        loop {
+            match (pattern.peek(), value.peek()) {
+                (None, None) => return true,  // Both exhausted, match
+                (None, Some(_)) => return false,  // Pattern exhausted, value remains
+                (Some(&'*'), _) => {
+                    pattern.next();
+                    // Try matching * with 0, 1, 2, ... characters
+                    if pattern.peek().is_none() {
+                        return true;  // * at end matches rest
+                    }
+                    // Try matching rest of pattern
+                    loop {
+                        if self.glob_match(&mut pattern.clone(), &mut value.clone()) {
+                            return true;
+                        }
+                        if value.next().is_none() {
+                            return false;
+                        }
+                    }
+                }
+                (Some(&'?'), Some(_)) => {
+                    pattern.next();
+                    value.next();
+                }
+                (Some(&'?'), None) => return false,
+                (Some(&'['), Some(v)) => {
+                    // Character class matching
+                    pattern.next();  // consume '['
+                    let v = *v;
+
+                    // Check for negation
+                    let negate = pattern.peek() == Some(&'!');
+                    if negate {
+                        pattern.next();
+                    }
+
+                    let mut matched = false;
+                    while let Some(&ch) = pattern.peek() {
+                        if ch == ']' {
+                            pattern.next();
+                            break;
+                        }
+
+                        // Check for range (a-z)
+                        let start = ch;
+                        pattern.next();
+
+                        if pattern.peek() == Some(&'-') {
+                            pattern.next();  // consume '-'
+                            if let Some(&end) = pattern.peek() {
+                                pattern.next();
+                                if v >= start && v <= end {
+                                    matched = true;
+                                }
+                            }
+                        } else if v == start {
+                            matched = true;
+                        }
+                    }
+
+                    if negate {
+                        matched = !matched;
+                    }
+
+                    if !matched {
+                        return false;
+                    }
+                    value.next();
+                }
+                (Some(&p), Some(&v)) if p == v => {
+                    pattern.next();
+                    value.next();
+                }
+                _ => return false,
+            }
+        }
     }
 
     /// Check if line is a variable assignment
@@ -5679,6 +5893,441 @@ echo ${mypath//:/|}
                 prop_assert!(result1.is_ok());
                 prop_assert!(result2.is_ok());
                 prop_assert_eq!(result1.unwrap().stdout, result2.unwrap().stdout);
+            }
+        }
+    }
+
+    // ========================
+    // Unit Tests: Case Statements
+    // ========================
+
+    #[cfg(test)]
+    mod case_tests {
+        use super::*;
+
+        /// Test 1: Simple case statement with literal match
+        #[test]
+        fn test_case_001_literal_match() {
+            let mut executor = BashExecutor::new();
+            let result = executor.execute(r#"
+fruit="apple"
+case $fruit in
+    apple)
+        echo "red"
+        ;;
+    banana)
+        echo "yellow"
+        ;;
+esac
+"#);
+            assert!(result.is_ok());
+            let output = result.unwrap();
+            assert_eq!(output.stdout.trim(), "red");
+        }
+
+        /// Test 2: Case statement with pattern matching (*)
+        #[test]
+        fn test_case_002_wildcard_pattern() {
+            let mut executor = BashExecutor::new();
+            let result = executor.execute(r#"
+filename="test.txt"
+case $filename in
+    *.txt)
+        echo "text file"
+        ;;
+    *.jpg)
+        echo "image file"
+        ;;
+esac
+"#);
+            assert!(result.is_ok());
+            let output = result.unwrap();
+            assert_eq!(output.stdout.trim(), "text file");
+        }
+
+        /// Test 3: Case statement with multiple patterns (|)
+        #[test]
+        fn test_case_003_multiple_patterns() {
+            let mut executor = BashExecutor::new();
+            let result = executor.execute(r#"
+color="blue"
+case $color in
+    red|green|blue)
+        echo "primary"
+        ;;
+    yellow|orange|purple)
+        echo "secondary"
+        ;;
+esac
+"#);
+            assert!(result.is_ok());
+            let output = result.unwrap();
+            assert_eq!(output.stdout.trim(), "primary");
+        }
+
+        /// Test 4: Case statement with default pattern (*)
+        #[test]
+        fn test_case_004_default_pattern() {
+            let mut executor = BashExecutor::new();
+            let result = executor.execute(r#"
+value="unknown"
+case $value in
+    known)
+        echo "matched"
+        ;;
+    *)
+        echo "default"
+        ;;
+esac
+"#);
+            assert!(result.is_ok());
+            let output = result.unwrap();
+            assert_eq!(output.stdout.trim(), "default");
+        }
+
+        /// Test 5: Case statement with no match (no default)
+        #[test]
+        fn test_case_005_no_match() {
+            let mut executor = BashExecutor::new();
+            let result = executor.execute(r#"
+value="other"
+case $value in
+    apple)
+        echo "fruit"
+        ;;
+    carrot)
+        echo "vegetable"
+        ;;
+esac
+echo "done"
+"#);
+            assert!(result.is_ok());
+            let output = result.unwrap();
+            assert_eq!(output.stdout.trim(), "done");
+        }
+
+        /// Test 6: Case statement with multiple commands in pattern
+        #[test]
+        fn test_case_006_multiple_commands() {
+            let mut executor = BashExecutor::new();
+            let result = executor.execute(r#"
+action="start"
+case $action in
+    start)
+        echo "starting"
+        echo "initialized"
+        ;;
+    stop)
+        echo "stopping"
+        ;;
+esac
+"#);
+            assert!(result.is_ok());
+            let output = result.unwrap();
+            assert_eq!(output.stdout.trim(), "starting\ninitialized");
+        }
+
+        /// Test 7: Case statement with character class [abc]
+        #[test]
+        fn test_case_007_character_class() {
+            let mut executor = BashExecutor::new();
+            let result = executor.execute(r#"
+grade="b"
+case $grade in
+    [aA])
+        echo "excellent"
+        ;;
+    [bB])
+        echo "good"
+        ;;
+    [cC])
+        echo "average"
+        ;;
+esac
+"#);
+            assert!(result.is_ok());
+            let output = result.unwrap();
+            assert_eq!(output.stdout.trim(), "good");
+        }
+
+        /// Test 8: Case statement with question mark pattern (?)
+        #[test]
+        fn test_case_008_question_mark_pattern() {
+            let mut executor = BashExecutor::new();
+            let result = executor.execute(r#"
+code="a1"
+case $code in
+    ??)
+        echo "two chars"
+        ;;
+    ???)
+        echo "three chars"
+        ;;
+esac
+"#);
+            assert!(result.is_ok());
+            let output = result.unwrap();
+            assert_eq!(output.stdout.trim(), "two chars");
+        }
+
+        /// Test 9: Case statement with range pattern [a-z]
+        #[test]
+        fn test_case_009_range_pattern() {
+            let mut executor = BashExecutor::new();
+            let result = executor.execute(r#"
+char="m"
+case $char in
+    [a-m])
+        echo "first half"
+        ;;
+    [n-z])
+        echo "second half"
+        ;;
+esac
+"#);
+            assert!(result.is_ok());
+            let output = result.unwrap();
+            assert_eq!(output.stdout.trim(), "first half");
+        }
+
+        /// Test 10: Case statement with negation [!abc]
+        #[test]
+        fn test_case_010_negation_pattern() {
+            let mut executor = BashExecutor::new();
+            let result = executor.execute(r#"
+char="z"
+case $char in
+    [!a-m])
+        echo "not first half"
+        ;;
+    *)
+        echo "first half"
+        ;;
+esac
+"#);
+            assert!(result.is_ok());
+            let output = result.unwrap();
+            assert_eq!(output.stdout.trim(), "not first half");
+        }
+
+        /// Test 11: Case with nested variables
+        #[test]
+        fn test_case_011_nested_variables() {
+            let mut executor = BashExecutor::new();
+            let result = executor.execute(r#"
+ext="txt"
+filename="test.$ext"
+case $filename in
+    *.txt)
+        echo "text"
+        ;;
+esac
+"#);
+            assert!(result.is_ok());
+            let output = result.unwrap();
+            assert_eq!(output.stdout.trim(), "text");
+        }
+
+        /// Test 12: Case with command substitution
+        #[test]
+        fn test_case_012_command_substitution() {
+            let mut executor = BashExecutor::new();
+            let result = executor.execute(r#"
+value=$(echo "apple")
+case $value in
+    apple)
+        echo "fruit"
+        ;;
+esac
+"#);
+            assert!(result.is_ok());
+            let output = result.unwrap();
+            assert_eq!(output.stdout.trim(), "fruit");
+        }
+
+        /// Test 13: Case with standard terminator
+        #[test]
+        fn test_case_013_standard_terminator() {
+            let mut executor = BashExecutor::new();
+            let result = executor.execute(r#"
+num="1"
+case $num in
+    1)
+        echo "one"
+        ;;
+    2)
+        echo "two"
+        ;;
+esac
+"#);
+            assert!(result.is_ok());
+            let output = result.unwrap();
+            assert_eq!(output.stdout.trim(), "one");
+        }
+
+        /// Test 14: Empty case body
+        #[test]
+        fn test_case_014_empty_body() {
+            let mut executor = BashExecutor::new();
+            let result = executor.execute(r#"
+value="test"
+case $value in
+    test)
+        ;;
+esac
+echo "done"
+"#);
+            assert!(result.is_ok());
+            let output = result.unwrap();
+            assert_eq!(output.stdout.trim(), "done");
+        }
+
+        /// Test 15: Case with quoted patterns
+        #[test]
+        fn test_case_015_quoted_pattern() {
+            let mut executor = BashExecutor::new();
+            let result = executor.execute(r#"
+msg="hello world"
+case "$msg" in
+    "hello world")
+        echo "matched"
+        ;;
+    *)
+        echo "not matched"
+        ;;
+esac
+"#);
+            assert!(result.is_ok());
+            let output = result.unwrap();
+            assert_eq!(output.stdout.trim(), "matched");
+        }
+
+        // ========================
+        // Property Tests: Case Statements
+        // ========================
+
+        #[cfg(test)]
+        mod case_property_tests {
+            use super::*;
+            use proptest::prelude::*;
+
+            /// Property: Wildcard pattern (*) always matches
+            proptest! {
+                #[test]
+                fn prop_case_001_wildcard_always_matches(
+                    value in "[a-zA-Z0-9_]{1,20}"
+                ) {
+                    let mut executor = BashExecutor::new();
+                    let result = executor.execute(&format!(r#"
+value="{}"
+case $value in
+    *)
+        echo "matched"
+        ;;
+esac
+"#, value));
+                    prop_assert!(result.is_ok());
+                    let output = result.unwrap().stdout.trim().to_string();
+                    prop_assert_eq!(output, "matched");
+                }
+            }
+
+            /// Property: Exact match is deterministic
+            proptest! {
+                #[test]
+                fn prop_case_002_exact_match_deterministic(
+                    value in "[a-zA-Z0-9_]{1,20}"
+                ) {
+                    let mut executor = BashExecutor::new();
+                    let result = executor.execute(&format!(r#"
+value="{0}"
+case $value in
+    {0})
+        echo "matched"
+        ;;
+    *)
+        echo "not matched"
+        ;;
+esac
+"#, value));
+                    prop_assert!(result.is_ok());
+                    let output = result.unwrap().stdout.trim().to_string();
+                    prop_assert_eq!(output, "matched");
+                }
+            }
+
+            /// Property: Multiple patterns work correctly
+            proptest! {
+                #[test]
+                fn prop_case_003_multiple_patterns_or_logic(
+                    value in "a|b|c"
+                ) {
+                    let mut executor = BashExecutor::new();
+                    let result = executor.execute(&format!(r#"
+value="{}"
+case $value in
+    a|b|c)
+        echo "primary"
+        ;;
+    *)
+        echo "other"
+        ;;
+esac
+"#, value));
+                    prop_assert!(result.is_ok());
+                    let output = result.unwrap().stdout.trim().to_string();
+                    prop_assert_eq!(output, "primary");
+                }
+            }
+
+            /// Property: Case statements never panic
+            proptest! {
+                #[test]
+                fn prop_case_004_never_panics(
+                    value in ".*{0,50}"
+                ) {
+                    let mut executor = BashExecutor::new();
+                    let result = executor.execute(&format!(r#"
+value="{}"
+case $value in
+    *)
+        echo "done"
+        ;;
+esac
+"#, value));
+                    prop_assert!(result.is_ok());
+                }
+            }
+
+            /// Property: Case statements are deterministic
+            proptest! {
+                #[test]
+                fn prop_case_005_deterministic_execution(
+                    value in "[a-z]{1,10}",
+                    pattern in "[a-z*?]{1,10}"
+                ) {
+                    let mut executor1 = BashExecutor::new();
+                    let mut executor2 = BashExecutor::new();
+
+                    let script = format!(r#"
+value="{}"
+case $value in
+    {})
+        echo "matched"
+        ;;
+    *)
+        echo "not matched"
+        ;;
+esac
+"#, value, pattern);
+
+                    let result1 = executor1.execute(&script);
+                    let result2 = executor2.execute(&script);
+
+                    prop_assert!(result1.is_ok());
+                    prop_assert!(result2.is_ok());
+                    prop_assert_eq!(result1.unwrap().stdout, result2.unwrap().stdout);
+                }
             }
         }
     }
