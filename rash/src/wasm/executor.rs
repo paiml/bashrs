@@ -7174,4 +7174,181 @@ exit 20
             assert_eq!(output.exit_code, 10);
         }
     }
+
+    /// Tests for if/then/else/elif/fi conditionals
+    /// Bash conditionals allow branching based on command exit codes
+    #[cfg(test)]
+    mod conditional_tests {
+        use super::*;
+
+        /// Test 1: Basic if/then with true condition
+        #[test]
+        fn test_if_001_basic_true() {
+            let mut executor = BashExecutor::new();
+            let result = executor.execute(r#"
+if true; then
+    echo "condition was true"
+fi
+"#);
+            assert!(result.is_ok());
+            let output = result.unwrap();
+            assert_eq!(output.stdout.trim(), "condition was true");
+            assert_eq!(output.exit_code, 0);
+        }
+
+        /// Test 2: Basic if/then with false condition (no output)
+        #[test]
+        fn test_if_002_basic_false() {
+            let mut executor = BashExecutor::new();
+            let result = executor.execute(r#"
+if false; then
+    echo "should not see this"
+fi
+echo "after if"
+"#);
+            assert!(result.is_ok());
+            let output = result.unwrap();
+            assert_eq!(output.stdout.trim(), "after if");
+            assert_eq!(output.exit_code, 0);
+        }
+
+        /// Test 3: if/then/else with true condition
+        #[test]
+        fn test_if_003_else_true() {
+            let mut executor = BashExecutor::new();
+            let result = executor.execute(r#"
+if true; then
+    echo "then branch"
+else
+    echo "else branch"
+fi
+"#);
+            assert!(result.is_ok());
+            let output = result.unwrap();
+            assert_eq!(output.stdout.trim(), "then branch");
+        }
+
+        /// Test 4: if/then/else with false condition
+        #[test]
+        fn test_if_004_else_false() {
+            let mut executor = BashExecutor::new();
+            let result = executor.execute(r#"
+if false; then
+    echo "then branch"
+else
+    echo "else branch"
+fi
+"#);
+            assert!(result.is_ok());
+            let output = result.unwrap();
+            assert_eq!(output.stdout.trim(), "else branch");
+        }
+
+        /// Test 5: if/elif/else with first condition true
+        #[test]
+        fn test_if_005_elif_first() {
+            let mut executor = BashExecutor::new();
+            let result = executor.execute(r#"
+if true; then
+    echo "first"
+elif true; then
+    echo "second"
+else
+    echo "third"
+fi
+"#);
+            assert!(result.is_ok());
+            let output = result.unwrap();
+            assert_eq!(output.stdout.trim(), "first");
+        }
+
+        /// Test 6: if/elif/else with second condition true
+        #[test]
+        fn test_if_006_elif_second() {
+            let mut executor = BashExecutor::new();
+            let result = executor.execute(r#"
+if false; then
+    echo "first"
+elif true; then
+    echo "second"
+else
+    echo "third"
+fi
+"#);
+            assert!(result.is_ok());
+            let output = result.unwrap();
+            assert_eq!(output.stdout.trim(), "second");
+        }
+
+        /// Test 7: if/elif/else with all conditions false
+        #[test]
+        fn test_if_007_elif_else() {
+            let mut executor = BashExecutor::new();
+            let result = executor.execute(r#"
+if false; then
+    echo "first"
+elif false; then
+    echo "second"
+else
+    echo "third"
+fi
+"#);
+            assert!(result.is_ok());
+            let output = result.unwrap();
+            assert_eq!(output.stdout.trim(), "third");
+        }
+
+        /// Test 8: Nested if statements
+        #[test]
+        fn test_if_008_nested() {
+            let mut executor = BashExecutor::new();
+            let result = executor.execute(r#"
+if true; then
+    echo "outer true"
+    if true; then
+        echo "inner true"
+    fi
+fi
+"#);
+            assert!(result.is_ok());
+            let output = result.unwrap();
+            assert_eq!(output.stdout.trim(), "outer true\ninner true");
+        }
+
+        /// Test 9: if with exit code test
+        #[test]
+        fn test_if_009_exit_code() {
+            let mut executor = BashExecutor::new();
+            let result = executor.execute(r#"
+x=5
+if [ "$x" = "5" ]; then
+    echo "x is 5"
+fi
+"#);
+            assert!(result.is_ok());
+            let output = result.unwrap();
+            assert_eq!(output.stdout.trim(), "x is 5");
+        }
+
+        /// Test 10: Multiple elif branches
+        #[test]
+        fn test_if_010_multiple_elif() {
+            let mut executor = BashExecutor::new();
+            let result = executor.execute(r#"
+x=2
+if [ "$x" = "1" ]; then
+    echo "one"
+elif [ "$x" = "2" ]; then
+    echo "two"
+elif [ "$x" = "3" ]; then
+    echo "three"
+else
+    echo "other"
+fi
+"#);
+            assert!(result.is_ok());
+            let output = result.unwrap();
+            assert_eq!(output.stdout.trim(), "two");
+        }
+    }
 }
