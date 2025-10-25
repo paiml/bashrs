@@ -1092,64 +1092,147 @@ impl BashExecutor {
         // Parse: if CONDITION; then COMMANDS fi
         // or:    if CONDITION \n then \n COMMANDS \n fi
         // or:    if CONDITION \n then \n COMMANDS \n else \n COMMANDS \n fi
+        // or:    if CONDITION \n then \n COMMANDS \n elif CONDITION \n then \n COMMANDS \n fi
 
-        let first_line = lines[start];
-
-        // Extract condition from "if [ ... ]" or "if [ ... ]; then"
-        let condition = if first_line.contains("; then") {
-            first_line
-                .strip_prefix("if ")
-                .unwrap()
-                .split("; then")
-                .next()
-                .unwrap()
-        } else {
-            first_line.strip_prefix("if ").unwrap()
-        };
-
-        // Evaluate condition
-        let condition_result = self.evaluate_test_command(condition)?;
-
-        // Find then, else, fi
-        let mut then_idx = None;
-        let mut else_idx = None;
+        // Find fi first (to know where the statement ends)
         let mut fi_idx = None;
-
         for (idx, line) in lines.iter().enumerate().skip(start) {
-            if *line == "then" {
-                then_idx = Some(idx);
-            } else if *line == "else" {
-                else_idx = Some(idx);
-            } else if *line == "fi" {
+            if *line == "fi" {
                 fi_idx = Some(idx);
                 break;
             }
         }
-
-        let then_idx = then_idx.ok_or_else(|| anyhow!("Missing 'then' in if statement"))?;
         let fi_idx = fi_idx.ok_or_else(|| anyhow!("Missing 'fi' in if statement"))?;
 
-        let mut exit_code = 0;
+        // Parse if/elif/else branches
+        #[derive(Debug)]
+        struct Branch {
+            condition_line: usize,
+            condition: String,
+            then_idx: usize,
+            block_end: usize,
+        }
 
-        if condition_result {
-            // Execute then block
-            let then_block_start = then_idx + 1;
-            let then_block_end = else_idx.unwrap_or(fi_idx);
+        let mut branches: Vec<Branch> = Vec::new();
+        let mut else_idx: Option<usize> = None;
 
-            for i in then_block_start..then_block_end {
-                exit_code = self.execute_command(lines[i])?;
+        let mut i = start;
+        while i <= fi_idx {
+            let line = lines[i].trim();
+
+            if line.starts_with("if ") || line.starts_with("elif ") {
+                // Extract condition
+                let condition = if line.contains("; then") {
+                    line.split_once("if ")
+                        .or_else(|| line.split_once("elif "))
+                        .unwrap()
+                        .1
+                        .split("; then")
+                        .next()
+                        .unwrap()
+                        .to_string()
+                } else {
+                    line.split_once("if ")
+                        .or_else(|| line.split_once("elif "))
+                        .unwrap()
+                        .1
+                        .to_string()
+                };
+
+                // Find corresponding 'then'
+                let mut then_idx = None;
+
+                // Check if 'then' is on the same line (e.g., "if true; then")
+                if line.contains("; then") {
+                    then_idx = Some(i); // 'then' is on same line as if
+                } else {
+                    // Look for 'then' on subsequent lines
+                    for (idx, l) in lines.iter().enumerate().skip(i + 1) {
+                        if *l == "then" || l.trim() == "then" {
+                            then_idx = Some(idx);
+                            break;
+                        }
+                        if *l == "fi" {
+                            break;
+                        }
+                    }
+                }
+                let then_idx = then_idx.ok_or_else(|| anyhow!("Missing 'then' after if/elif"))?;
+
+                // Find block end (next elif, else, or fi)
+                let mut block_end = fi_idx;
+                for (idx, l) in lines.iter().enumerate().skip(then_idx + 1) {
+                    let trimmed = l.trim();
+                    if trimmed.starts_with("elif ") || trimmed == "else" || trimmed == "fi" {
+                        block_end = idx;
+                        break;
+                    }
+                }
+
+                branches.push(Branch {
+                    condition_line: i,
+                    condition,
+                    then_idx,
+                    block_end,
+                });
+
+                i = block_end;
+            } else if line == "else" {
+                else_idx = Some(i);
+                i += 1;
+            } else {
+                i += 1;
             }
-        } else if let Some(else_idx) = else_idx {
-            // Execute else block
-            let else_block_start = else_idx + 1;
-            let else_block_end = fi_idx;
+        }
 
-            for i in else_block_start..else_block_end {
-                exit_code = self.execute_command(lines[i])?;
+        // Execute branches
+        let mut exit_code = 0;
+        let mut executed = false;
+
+        for branch in branches {
+            // Evaluate condition
+            let condition_result = self.evaluate_condition(&branch.condition)?;
+
+            if condition_result {
+                // Execute this branch
+                for i in (branch.then_idx + 1)..branch.block_end {
+                    exit_code = self.execute_command(lines[i])?;
+                }
+                executed = true;
+                break;
+            }
+        }
+
+        // If no branch executed and there's an else, execute it
+        if !executed {
+            if let Some(else_idx) = else_idx {
+                for i in (else_idx + 1)..fi_idx {
+                    exit_code = self.execute_command(lines[i])?;
+                }
             }
         }
 
         Ok((fi_idx, exit_code))
+    }
+
+    /// Evaluate a condition (handles both [ ... ] tests and command tests like 'true'/'false')
+    fn evaluate_condition(&mut self, condition: &str) -> Result<bool> {
+        let condition = condition.trim();
+
+        // Handle builtin commands that return exit codes
+        if condition == "true" {
+            return Ok(true);
+        } else if condition == "false" {
+            return Ok(false);
+        }
+
+        // Handle [ ... ] test expressions
+        if condition.starts_with('[') && condition.ends_with(']') {
+            return self.evaluate_test_command(condition);
+        }
+
+        // Default: try to evaluate as test command
+        self.evaluate_test_command(condition)
     }
 
     /// Execute a for loop
