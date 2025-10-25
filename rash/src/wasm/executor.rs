@@ -1770,8 +1770,12 @@ impl BashExecutor {
             return Err(anyhow!("Invalid brace group syntax"));
         };
 
+        // Replace semicolons with newlines to separate commands
+        // (semicolons are command separators in bash)
+        let content_with_newlines = content.replace(';', "\n");
+
         // Execute in current scope (changes persist)
-        let result = self.execute(content)?;
+        let result = self.execute(&content_with_newlines)?;
 
         Ok(result.exit_code)
     }
