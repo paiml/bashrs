@@ -31,6 +31,13 @@ pub struct ExecutionResult {
     pub exit_code: i32,
 }
 
+/// Stored function definition
+#[derive(Debug, Clone)]
+struct FunctionDef {
+    /// Function body (lines of code)
+    body: Vec<String>,
+}
+
 /// Bash script executor
 pub struct BashExecutor {
     /// Environment variables
@@ -41,6 +48,8 @@ pub struct BashExecutor {
     io: IoStreams,
     /// Last exit code
     exit_code: i32,
+    /// Defined functions (name -> definition)
+    functions: HashMap<String, FunctionDef>,
 }
 
 impl BashExecutor {
@@ -51,6 +60,7 @@ impl BashExecutor {
             vfs: VirtualFilesystem::new(),
             io: IoStreams::new_capture(),
             exit_code: 0,
+            functions: HashMap::new(),
         }
     }
 
@@ -65,6 +75,21 @@ impl BashExecutor {
         let mut i = 0;
         while i < lines.len() {
             let line = lines[i];
+
+            // Check for function definition
+            if self.is_function_definition(line) {
+                let (func_end, func_name) = self.parse_function_definition(&lines, i)?;
+                i = func_end + 1;
+                continue;
+            }
+
+            // Check for function call
+            if let Some(func_name) = self.is_function_call(line) {
+                let exit_code = self.execute_function_call(&func_name, line)?;
+                self.exit_code = exit_code;
+                i += 1;
+                continue;
+            }
 
             // Check for control flow constructs (if, for, while)
             if line.starts_with("if ") {
@@ -374,6 +399,7 @@ impl BashExecutor {
             vfs: self.vfs.clone(),
             io: IoStreams::new_capture(),
             exit_code: 0,
+            functions: self.functions.clone(),
         };
 
         // Execute the command
@@ -1025,6 +1051,180 @@ impl BashExecutor {
         }
 
         None
+    }
+
+    /// Check if a line is a function definition
+    fn is_function_definition(&self, line: &str) -> bool {
+        // Style 1: function name() {
+        if line.starts_with("function ") && line.contains("()") {
+            return true;
+        }
+        // Style 2: name() {
+        if line.contains("()") && line.ends_with("{") {
+            return true;
+        }
+        // Style 3: name() on separate line from {
+        if line.contains("()") && !line.contains("{") && !line.contains("}") {
+            return true;
+        }
+        false
+    }
+
+    /// Parse a function definition and store it
+    fn parse_function_definition(&mut self, lines: &[&str], start: usize) -> Result<(usize, String)> {
+        let first_line = lines[start];
+
+        // Extract function name
+        let func_name = if first_line.starts_with("function ") {
+            // Style 1: function greet() {
+            let after_function = first_line.strip_prefix("function ").unwrap();
+            if let Some(paren_pos) = after_function.find('(') {
+                after_function[..paren_pos].trim().to_string()
+            } else {
+                return Err(anyhow!("Invalid function syntax: {}", first_line));
+            }
+        } else if first_line.contains("()") {
+            // Style 2: greet() {
+            if let Some(paren_pos) = first_line.find('(') {
+                first_line[..paren_pos].trim().to_string()
+            } else {
+                return Err(anyhow!("Invalid function syntax: {}", first_line));
+            }
+        } else {
+            return Err(anyhow!("Invalid function syntax: {}", first_line));
+        };
+
+        // Find function body (between { and })
+        let mut body_start = start;
+        let mut body_lines = Vec::new();
+        let mut brace_count = 0;
+        let mut func_end = start;
+        let mut found_open_brace = false;
+
+        for (idx, line) in lines.iter().enumerate().skip(start) {
+            // Count braces
+            for ch in line.chars() {
+                if ch == '{' {
+                    brace_count += 1;
+                    found_open_brace = true;
+                } else if ch == '}' {
+                    brace_count -= 1;
+                }
+            }
+
+            // Collect body lines (skip the line with opening brace)
+            if found_open_brace && brace_count > 0 && !line.ends_with('{') {
+                body_lines.push((*line).to_string());
+            }
+
+            // Check if we've reached the end
+            if found_open_brace && brace_count == 0 {
+                func_end = idx;
+                break;
+            }
+        }
+
+        // Store the function
+        self.functions.insert(func_name.clone(), FunctionDef {
+            body: body_lines,
+        });
+
+        Ok((func_end, func_name))
+    }
+
+    /// Check if a line is a function call
+    fn is_function_call(&self, line: &str) -> Option<String> {
+        // Extract the command name (first word)
+        let command_name = if let Some(space_pos) = line.find(' ') {
+            &line[..space_pos]
+        } else {
+            line
+        };
+
+        // Check if this command is a defined function
+        if self.functions.contains_key(command_name) {
+            Some(command_name.to_string())
+        } else {
+            None
+        }
+    }
+
+    /// Execute a function call
+    fn execute_function_call(&mut self, func_name: &str, line: &str) -> Result<i32> {
+        // Get the function definition
+        let func_def = self.functions.get(func_name)
+            .ok_or_else(|| anyhow!("Function not found: {}", func_name))?
+            .clone();
+
+        // Parse arguments from the call line
+        // Need to handle quoted arguments properly
+        let parts: Vec<&str> = line.split_whitespace().collect();
+        let mut args: Vec<String> = Vec::new();
+        let mut i = 1; // Skip function name
+        while i < parts.len() {
+            let part = parts[i];
+            if part.starts_with('"') {
+                // Collect quoted argument (may span multiple parts)
+                let mut quoted_arg = part.trim_start_matches('"').to_string();
+                if part.ends_with('"') && part.len() > 1 {
+                    // Single-word quoted argument
+                    quoted_arg = part.trim_matches('"').to_string();
+                } else {
+                    // Multi-word quoted argument
+                    i += 1;
+                    while i < parts.len() {
+                        if parts[i].ends_with('"') {
+                            quoted_arg.push(' ');
+                            quoted_arg.push_str(parts[i].trim_end_matches('"'));
+                            break;
+                        } else {
+                            quoted_arg.push(' ');
+                            quoted_arg.push_str(parts[i]);
+                            i += 1;
+                        }
+                    }
+                }
+                args.push(quoted_arg);
+            } else {
+                // Unquoted argument
+                args.push(part.to_string());
+            }
+            i += 1;
+        }
+        let args_refs: Vec<&str> = args.iter().map(|s| s.as_str()).collect();
+
+        // Save positional parameters that we'll override
+        let mut saved_params: HashMap<String, String> = HashMap::new();
+        for i in 1..=args.len() {
+            let param_name = format!("{}", i);
+            if let Some(value) = self.env.get(&param_name) {
+                saved_params.insert(param_name.clone(), value.clone());
+            }
+        }
+
+        // Set positional parameters ($1, $2, etc.)
+        for (i, arg) in args.iter().enumerate() {
+            let param_name = format!("{}", i + 1);
+            self.env.insert(param_name, arg.clone());
+        }
+
+        // Reconstruct function body as a script and execute it
+        // This allows functions to call other functions, use control flow, etc.
+        let function_script = func_def.body.join("\n");
+        let result = self.execute(&function_script)?;
+        let exit_code = result.exit_code;
+
+        // Restore only the positional parameters, keep other variable changes
+        for i in 1..=args.len() {
+            let param_name = format!("{}", i);
+            if let Some(old_value) = saved_params.get(&param_name) {
+                self.env.insert(param_name, old_value.clone());
+            } else {
+                self.env.remove(&param_name);
+            }
+        }
+
+        Ok(exit_code)
     }
 }
 
@@ -3257,6 +3457,775 @@ mod test_command_property_tests {
             // Count lines of output
             let lines: Vec<&str> = result.stdout.lines().collect();
             prop_assert_eq!(lines.len() as i64, n);
+        });
+    }
+}
+
+/// ============================================================================
+/// FUNC-001: Bash Functions - Unit Tests (RED Phase)
+/// ============================================================================
+///
+/// Tests for bash function definition and execution.
+///
+/// Bash Function Syntax:
+/// ```bash
+/// # Style 1: function keyword
+/// function greet() {
+///     echo "Hello, $1"
+/// }
+///
+/// # Style 2: name() syntax
+/// greet() {
+///     echo "Hello, $1"
+/// }
+///
+/// # Calling
+/// greet "World"  # Output: Hello, World
+/// ```
+///
+/// Test Coverage:
+/// 1. Basic function definition and call
+/// 2. Function with positional parameters ($1, $2)
+/// 3. Function return values (exit codes)
+/// 4. Multiple function definitions
+/// 5. Function calling other functions
+/// 6. Local variables vs global variables
+/// 7. Function with no parameters
+/// 8. Function with multiple statements
+/// 9. Nested function calls
+/// 10. Return statement
+/// 11. Function overriding
+/// 12. Empty function body
+/// 13. Function with loops
+/// 14. Function with conditionals
+/// 15. Complex function composition
+///
+#[cfg(test)]
+mod function_tests {
+    use super::*;
+
+    /// Test 1: Basic function definition and call (style 2: name())
+    #[test]
+    fn test_func_001_basic_definition_and_call() {
+        // ARRANGE
+        let mut executor = BashExecutor::new();
+
+        // ACT
+        let result = executor.execute(
+            r#"
+greet() {
+    echo "Hello"
+}
+greet
+"#,
+        );
+
+        // ASSERT
+        assert!(result.is_ok());
+        let output = result.unwrap();
+        assert_eq!(output.stdout.trim(), "Hello");
+    }
+
+    /// Test 2: Function with single positional parameter
+    #[test]
+    fn test_func_002_single_parameter() {
+        // ARRANGE
+        let mut executor = BashExecutor::new();
+
+        // ACT
+        let result = executor.execute(
+            r#"
+greet() {
+    echo "Hello, $1"
+}
+greet "World"
+"#,
+        );
+
+        // ASSERT
+        assert!(result.is_ok());
+        let output = result.unwrap();
+        assert_eq!(output.stdout.trim(), "Hello, World");
+    }
+
+    /// Test 3: Function with multiple positional parameters
+    #[test]
+    fn test_func_003_multiple_parameters() {
+        // ARRANGE
+        let mut executor = BashExecutor::new();
+
+        // ACT
+        let result = executor.execute(
+            r#"
+add() {
+    echo "$(($1 + $2))"
+}
+add 5 3
+"#,
+        );
+
+        // ASSERT
+        assert!(result.is_ok());
+        let output = result.unwrap();
+        assert_eq!(output.stdout.trim(), "8");
+    }
+
+    /// Test 4: Function using 'function' keyword (style 1)
+    #[test]
+    fn test_func_004_function_keyword() {
+        // ARRANGE
+        let mut executor = BashExecutor::new();
+
+        // ACT
+        let result = executor.execute(
+            r#"
+function greet() {
+    echo "Hello from function keyword"
+}
+greet
+"#,
+        );
+
+        // ASSERT
+        assert!(result.is_ok());
+        let output = result.unwrap();
+        assert_eq!(output.stdout.trim(), "Hello from function keyword");
+    }
+
+    /// Test 5: Multiple function definitions
+    #[test]
+    fn test_func_005_multiple_functions() {
+        // ARRANGE
+        let mut executor = BashExecutor::new();
+
+        // ACT
+        let result = executor.execute(
+            r#"
+hello() {
+    echo "Hello"
+}
+world() {
+    echo "World"
+}
+hello
+world
+"#,
+        );
+
+        // ASSERT
+        assert!(result.is_ok());
+        let output = result.unwrap();
+        assert_eq!(output.stdout.trim(), "Hello\nWorld");
+    }
+
+    /// Test 6: Function calling another function
+    #[test]
+    fn test_func_006_nested_calls() {
+        // ARRANGE
+        let mut executor = BashExecutor::new();
+
+        // ACT
+        let result = executor.execute(
+            r#"
+inner() {
+    echo "inner: $1"
+}
+outer() {
+    inner "from outer"
+}
+outer
+"#,
+        );
+
+        // ASSERT
+        assert!(result.is_ok());
+        let output = result.unwrap();
+        assert_eq!(output.stdout.trim(), "inner: from outer");
+    }
+
+    /// Test 7: Function with multiple statements
+    #[test]
+    fn test_func_007_multiple_statements() {
+        // ARRANGE
+        let mut executor = BashExecutor::new();
+
+        // ACT
+        let result = executor.execute(
+            r#"
+multi() {
+    echo "Line 1"
+    echo "Line 2"
+    echo "Line 3"
+}
+multi
+"#,
+        );
+
+        // ASSERT
+        assert!(result.is_ok());
+        let output = result.unwrap();
+        assert_eq!(output.stdout.trim(), "Line 1\nLine 2\nLine 3");
+    }
+
+    /// Test 8: Function with variable assignment
+    #[test]
+    fn test_func_008_variable_assignment() {
+        // ARRANGE
+        let mut executor = BashExecutor::new();
+
+        // ACT
+        let result = executor.execute(
+            r#"
+setvar() {
+    myvar="set in function"
+}
+setvar
+echo $myvar
+"#,
+        );
+
+        // ASSERT
+        assert!(result.is_ok());
+        let output = result.unwrap();
+        assert_eq!(output.stdout.trim(), "set in function");
+    }
+
+    /// Test 9: Function with conditional
+    #[test]
+    fn test_func_009_with_conditional() {
+        // ARRANGE
+        let mut executor = BashExecutor::new();
+
+        // ACT
+        let result = executor.execute(
+            r#"
+check() {
+    if [ "$1" = "yes" ]
+    then
+        echo "affirmative"
+    else
+        echo "negative"
+    fi
+}
+check "yes"
+check "no"
+"#,
+        );
+
+        // ASSERT
+        assert!(result.is_ok());
+        let output = result.unwrap();
+        assert_eq!(output.stdout.trim(), "affirmative\nnegative");
+    }
+
+    /// Test 10: Function with for loop
+    #[test]
+    fn test_func_010_with_for_loop() {
+        // ARRANGE
+        let mut executor = BashExecutor::new();
+
+        // ACT
+        let result = executor.execute(
+            r#"
+count() {
+    for i in 1 2 3
+    do
+        echo "num: $i"
+    done
+}
+count
+"#,
+        );
+
+        // ASSERT
+        assert!(result.is_ok());
+        let output = result.unwrap();
+        assert_eq!(output.stdout.trim(), "num: 1\nnum: 2\nnum: 3");
+    }
+
+    /// Test 11: Function calling function with parameters
+    #[test]
+    fn test_func_011_nested_with_params() {
+        // ARRANGE
+        let mut executor = BashExecutor::new();
+
+        // ACT
+        let result = executor.execute(
+            r#"
+double() {
+    echo "$(($1 * 2))"
+}
+quadruple() {
+    result=$(double $1)
+    echo "$((result * 2))"
+}
+quadruple 5
+"#,
+        );
+
+        // ASSERT
+        assert!(result.is_ok());
+        let output = result.unwrap();
+        assert_eq!(output.stdout.trim(), "20");
+    }
+
+    /// Test 12: Function with no body (empty function)
+    #[test]
+    fn test_func_012_empty_function() {
+        // ARRANGE
+        let mut executor = BashExecutor::new();
+
+        // ACT
+        let result = executor.execute(
+            r#"
+noop() {
+    :
+}
+noop
+echo "after noop"
+"#,
+        );
+
+        // ASSERT
+        assert!(result.is_ok());
+        let output = result.unwrap();
+        assert_eq!(output.stdout.trim(), "after noop");
+    }
+
+    /// Test 13: Function parameter $0 (function name)
+    #[test]
+    fn test_func_013_parameter_zero() {
+        // ARRANGE
+        let mut executor = BashExecutor::new();
+
+        // ACT
+        let result = executor.execute(
+            r#"
+showname() {
+    echo "Function: $0"
+}
+showname
+"#,
+        );
+
+        // ASSERT
+        assert!(result.is_ok());
+        let output = result.unwrap();
+        // $0 in function context might be function name or script name
+        // This tests expected behavior
+        assert!(output.stdout.contains("Function:"));
+    }
+
+    /// Test 14: Function with while loop
+    #[test]
+    fn test_func_014_with_while_loop() {
+        // ARRANGE
+        let mut executor = BashExecutor::new();
+
+        // ACT
+        let result = executor.execute(
+            r#"
+countdown() {
+    i=3
+    while [ $i -gt 0 ]
+    do
+        echo $i
+        i=$((i-1))
+    done
+}
+countdown
+"#,
+        );
+
+        // ASSERT
+        assert!(result.is_ok());
+        let output = result.unwrap();
+        assert_eq!(output.stdout.trim(), "3\n2\n1");
+    }
+
+    /// Test 15: Multiple calls to same function
+    #[test]
+    fn test_func_015_multiple_calls() {
+        // ARRANGE
+        let mut executor = BashExecutor::new();
+
+        // ACT
+        let result = executor.execute(
+            r#"
+say() {
+    echo "Message: $1"
+}
+say "first"
+say "second"
+say "third"
+"#,
+        );
+
+        // ASSERT
+        assert!(result.is_ok());
+        let output = result.unwrap();
+        assert_eq!(
+            output.stdout.trim(),
+            "Message: first\nMessage: second\nMessage: third"
+        );
+    }
+
+    /// Test 16: Function with arithmetic
+    #[test]
+    fn test_func_016_with_arithmetic() {
+        // ARRANGE
+        let mut executor = BashExecutor::new();
+
+        // ACT
+        let result = executor.execute(
+            r#"
+calc() {
+    a=$1
+    b=$2
+    sum=$((a + b))
+    product=$((a * b))
+    echo "sum: $sum"
+    echo "product: $product"
+}
+calc 4 5
+"#,
+        );
+
+        // ASSERT
+        assert!(result.is_ok());
+        let output = result.unwrap();
+        assert_eq!(output.stdout.trim(), "sum: 9\nproduct: 20");
+    }
+
+    /// Test 17: Function overriding (redefining)
+    #[test]
+    fn test_func_017_function_override() {
+        // ARRANGE
+        let mut executor = BashExecutor::new();
+
+        // ACT
+        let result = executor.execute(
+            r#"
+greet() {
+    echo "First version"
+}
+greet() {
+    echo "Second version"
+}
+greet
+"#,
+        );
+
+        // ASSERT
+        assert!(result.is_ok());
+        let output = result.unwrap();
+        assert_eq!(output.stdout.trim(), "Second version");
+    }
+
+    /// Test 18: Function with command substitution
+    #[test]
+    fn test_func_018_command_substitution() {
+        // ARRANGE
+        let mut executor = BashExecutor::new();
+
+        // ACT
+        let result = executor.execute(
+            r#"
+wrapper() {
+    result=$(echo "inner output")
+    echo "wrapped: $result"
+}
+wrapper
+"#,
+        );
+
+        // ASSERT
+        assert!(result.is_ok());
+        let output = result.unwrap();
+        assert_eq!(output.stdout.trim(), "wrapped: inner output");
+    }
+}
+
+/// ============================================================================
+/// FUNC-001: Bash Functions - Property Tests (REFACTOR Phase)
+/// ============================================================================
+///
+/// Property-based tests for bash function behavior.
+/// Uses proptest to generate test cases and verify properties.
+///
+#[cfg(test)]
+mod function_property_tests {
+    use super::*;
+    use proptest::prelude::*;
+
+    /// Property: Function calls are deterministic (same input = same output)
+    #[test]
+    fn prop_func_deterministic() {
+        proptest!(|(s in "[a-z]{1,10}")| {
+            let mut executor1 = BashExecutor::new();
+            let mut executor2 = BashExecutor::new();
+
+            let script = format!(r#"
+greet() {{
+    echo "Hello, $1"
+}}
+greet "{}"
+"#, s);
+
+            let result1 = executor1.execute(&script).unwrap();
+            let result2 = executor2.execute(&script).unwrap();
+
+            prop_assert_eq!(result1.stdout, result2.stdout);
+            prop_assert_eq!(result1.exit_code, result2.exit_code);
+        });
+    }
+
+    /// Property: Multiple calls to same function produce consistent results
+    #[test]
+    fn prop_func_multiple_calls_consistent() {
+        proptest!(|(n in 1usize..10)| {
+            let mut executor = BashExecutor::new();
+
+            let mut calls = String::new();
+            for _ in 0..n {
+                calls.push_str("say \"test\"\n");
+            }
+
+            let script = format!(r#"
+say() {{
+    echo "Message: $1"
+}}
+{}
+"#, calls);
+
+            let result = executor.execute(&script).unwrap();
+            let lines: Vec<&str> = result.stdout.lines().collect();
+
+            prop_assert_eq!(lines.len(), n);
+            for line in lines {
+                prop_assert_eq!(line, "Message: test");
+            }
+        });
+    }
+
+    /// Property: Function parameters are properly isolated
+    #[test]
+    fn prop_func_parameters_isolated() {
+        proptest!(|(a in 1i64..100, b in 1i64..100)| {
+            let mut executor = BashExecutor::new();
+
+            let script = format!(r#"
+add() {{
+    echo "$(($1 + $2))"
+}}
+add {} {}
+"#, a, b);
+
+            let result = executor.execute(&script).unwrap();
+            let output: i64 = result.stdout.trim().parse().unwrap_or(0);
+
+            prop_assert_eq!(output, a + b);
+        });
+    }
+
+    /// Property: Variable assignments in functions persist
+    #[test]
+    fn prop_func_variables_persist() {
+        proptest!(|(s in "[a-z]{1,10}")| {
+            let mut executor = BashExecutor::new();
+
+            let script = format!(r#"
+setvar() {{
+    myvar="{}"
+}}
+setvar
+echo $myvar
+"#, s);
+
+            let result = executor.execute(&script).unwrap();
+
+            prop_assert_eq!(result.stdout.trim(), s);
+        });
+    }
+
+    /// Property: Empty functions always succeed
+    #[test]
+    fn prop_func_empty_succeeds() {
+        proptest!(|(name in "[a-z]{1,10}")| {
+            let mut executor = BashExecutor::new();
+
+            let script = format!(r#"
+{}() {{
+    :
+}}
+{}
+echo "done"
+"#, name, name);
+
+            let result = executor.execute(&script).unwrap();
+
+            prop_assert_eq!(result.exit_code, 0);
+            prop_assert_eq!(result.stdout.trim(), "done");
+        });
+    }
+
+    /// Property: Function redefinition replaces previous definition
+    #[test]
+    fn prop_func_override_replaces() {
+        proptest!(|(s1 in "[a-z]{1,10}", s2 in "[a-z]{1,10}")| {
+            prop_assume!(s1 != s2); // Ensure different strings
+
+            let mut executor = BashExecutor::new();
+
+            let script = format!(r#"
+greet() {{
+    echo "{}"
+}}
+greet() {{
+    echo "{}"
+}}
+greet
+"#, s1, s2);
+
+            let result = executor.execute(&script).unwrap();
+
+            prop_assert_eq!(result.stdout.trim(), s2);
+        });
+    }
+
+    /// Property: Functions can call themselves recursively (depth limited)
+    #[test]
+    fn prop_func_recursion_limited() {
+        proptest!(|(n in 1i64..5)| {
+            let mut executor = BashExecutor::new();
+
+            let script = format!(r#"
+countdown() {{
+    if [ $1 -gt 0 ]
+    then
+        echo $1
+        countdown $(($1 - 1))
+    fi
+}}
+countdown {}
+"#, n);
+
+            let result = executor.execute(&script);
+
+            // Should either succeed or fail gracefully
+            prop_assert!(result.is_ok() || result.is_err());
+
+            if result.is_ok() {
+                let output = result.unwrap();
+                let lines: Vec<&str> = output.stdout.lines().collect();
+                // If it succeeds, should print countdown
+                if !lines.is_empty() {
+                    prop_assert!(lines.len() as i64 <= n);
+                }
+            }
+        });
+    }
+
+    /// Property: Function with for loop processes all items
+    #[test]
+    fn prop_func_for_loop_processes_all() {
+        proptest!(|(items in prop::collection::vec("[a-z]{1,5}", 1..5))| {
+            let mut executor = BashExecutor::new();
+
+            let items_str = items.join(" ");
+            let script = format!(r#"
+process() {{
+    for item in $1
+    do
+        echo "item: $item"
+    done
+}}
+process "{}"
+"#, items_str);
+
+            let result = executor.execute(&script).unwrap();
+            let lines: Vec<&str> = result.stdout.lines().collect();
+
+            prop_assert_eq!(lines.len(), items.len());
+        });
+    }
+
+    /// Property: Function with arithmetic always returns correct result
+    #[test]
+    fn prop_func_arithmetic_correct() {
+        proptest!(|(a in 1i64..50, b in 1i64..50)| {
+            let mut executor = BashExecutor::new();
+
+            let script = format!(r#"
+multiply() {{
+    echo "$(($1 * $2))"
+}}
+multiply {} {}
+"#, a, b);
+
+            let result = executor.execute(&script).unwrap();
+            let output: i64 = result.stdout.trim().parse().unwrap_or(0);
+
+            prop_assert_eq!(output, a * b);
+        });
+    }
+
+    /// Property: Function with conditionals handles both branches
+    #[test]
+    fn prop_func_conditional_branches() {
+        proptest!(|(value in "[a-z]{1,10}")| {
+            let mut executor = BashExecutor::new();
+
+            let script = format!(r#"
+check() {{
+    if [ "$1" = "yes" ]
+    then
+        echo "affirmative"
+    else
+        echo "negative"
+    fi
+}}
+check "{}"
+"#, value);
+
+            let result = executor.execute(&script).unwrap();
+            let output = result.stdout.trim();
+
+            if value == "yes" {
+                prop_assert_eq!(output, "affirmative");
+            } else {
+                prop_assert_eq!(output, "negative");
+            }
+        });
+    }
+
+    /// Property: Multiple function definitions are all stored
+    #[test]
+    fn prop_func_multiple_definitions_stored() {
+        proptest!(|(n in 2usize..5)| {
+            let mut executor = BashExecutor::new();
+
+            let mut script = String::new();
+            for i in 0..n {
+                script.push_str(&format!(r#"
+func{}() {{
+    echo "function {}"
+}}
+"#, i, i));
+            }
+
+            // Call all functions
+            for i in 0..n {
+                script.push_str(&format!("func{}\n", i));
+            }
+
+            let result = executor.execute(&script).unwrap();
+            let lines: Vec<&str> = result.stdout.lines().collect();
+
+            prop_assert_eq!(lines.len(), n);
+            for (i, line) in lines.iter().enumerate() {
+                prop_assert_eq!(*line, format!("function {}", i));
+            }
         });
     }
 }

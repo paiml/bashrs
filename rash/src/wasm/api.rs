@@ -185,6 +185,92 @@ pub fn version() -> String {
     env!("CARGO_PKG_VERSION").to_string()
 }
 
+/// Bash script execution result
+#[derive(Serialize, Deserialize)]
+#[wasm_bindgen]
+pub struct ExecutionResult {
+    stdout: String,
+    stderr: String,
+    exit_code: i32,
+}
+
+#[wasm_bindgen]
+impl ExecutionResult {
+    /// Get stdout output
+    #[wasm_bindgen(getter)]
+    pub fn stdout(&self) -> String {
+        self.stdout.clone()
+    }
+
+    /// Get stderr output
+    #[wasm_bindgen(getter)]
+    pub fn stderr(&self) -> String {
+        self.stderr.clone()
+    }
+
+    /// Get exit code
+    #[wasm_bindgen(getter)]
+    pub fn exit_code(&self) -> i32 {
+        self.exit_code
+    }
+
+    /// Get result as JSON string
+    #[wasm_bindgen]
+    pub fn to_json(&self) -> String {
+        serde_json::to_string(self).unwrap_or_else(|_| "{}".to_string())
+    }
+}
+
+/// Execute a bash script in WASM runtime
+///
+/// Runs the provided bash script in a sandboxed WASM environment with:
+/// - Virtual filesystem (/, /tmp, /home)
+/// - Built-in commands (echo, cd, pwd)
+/// - Variable assignment and expansion
+/// - Stdout/stderr capture
+///
+/// # Arguments
+///
+/// * `source` - Bash script source code
+///
+/// # Returns
+///
+/// An `ExecutionResult` with stdout, stderr, and exit code
+///
+/// # Example (JavaScript)
+///
+/// ```js
+/// import init, { execute_script } from './pkg/bashrs.js';
+///
+/// await init();
+///
+/// const result = execute_script(`
+///   echo "Hello from WASM bash!"
+///   name="Claude"
+///   echo "Hello, $name"
+///   cd /tmp
+///   pwd
+/// `);
+///
+/// console.log('Output:', result.stdout);
+/// console.log('Exit code:', result.exit_code);
+/// ```
+#[wasm_bindgen]
+pub fn execute_script(source: &str) -> Result<ExecutionResult, JsValue> {
+    use crate::wasm::executor::BashExecutor;
+
+    let mut executor = BashExecutor::new();
+
+    executor
+        .execute(source)
+        .map(|result| ExecutionResult {
+            stdout: result.stdout,
+            stderr: result.stderr,
+            exit_code: result.exit_code,
+        })
+        .map_err(|e| JsValue::from_str(&format!("Execution error: {}", e)))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -199,5 +285,48 @@ mod tests {
     fn test_is_valid_bash() {
         assert!(is_valid_bash("echo hello"));
         assert!(!is_valid_bash(""));
+    }
+
+    #[test]
+    fn test_execute_script_echo() {
+        let result = execute_script("echo 'hello world'").unwrap();
+        assert_eq!(result.stdout(), "hello world\n");
+        assert_eq!(result.exit_code(), 0);
+    }
+
+    #[test]
+    fn test_execute_script_variables() {
+        let script = r#"
+name="Claude"
+echo $name
+"#;
+        let result = execute_script(script).unwrap();
+        assert!(result.stdout().contains("Claude"));
+        assert_eq!(result.exit_code(), 0);
+    }
+
+    #[test]
+    fn test_execute_script_cd_pwd() {
+        let script = r#"
+cd /tmp
+pwd
+"#;
+        let result = execute_script(script).unwrap();
+        assert!(result.stdout().contains("/tmp"));
+        assert_eq!(result.exit_code(), 0);
+    }
+
+    #[test]
+    fn test_execute_script_multi_command() {
+        let script = r#"
+echo "Line 1"
+echo "Line 2"
+echo "Line 3"
+"#;
+        let result = execute_script(script).unwrap();
+        assert!(result.stdout().contains("Line 1"));
+        assert!(result.stdout().contains("Line 2"));
+        assert!(result.stdout().contains("Line 3"));
+        assert_eq!(result.exit_code(), 0);
     }
 }

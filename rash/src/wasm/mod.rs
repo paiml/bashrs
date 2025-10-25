@@ -45,6 +45,19 @@ pub mod streaming;
 #[cfg(feature = "wasm")]
 pub mod filesystem;
 
+// Phase 1: Bash Runtime
+#[cfg(feature = "wasm")]
+pub mod io;
+
+#[cfg(feature = "wasm")]
+pub mod vfs;
+
+#[cfg(feature = "wasm")]
+pub mod builtins;
+
+#[cfg(feature = "wasm")]
+pub mod executor;
+
 // Re-export main API when wasm feature is enabled
 #[cfg(feature = "wasm")]
 pub use api::*;
