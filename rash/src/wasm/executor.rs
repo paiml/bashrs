@@ -50,6 +50,8 @@ pub struct BashExecutor {
     exit_code: i32,
     /// Defined functions (name -> definition)
     functions: HashMap<String, FunctionDef>,
+    /// Arrays (name -> elements)
+    arrays: HashMap<String, Vec<String>>,
 }
 
 impl BashExecutor {
@@ -61,6 +63,7 @@ impl BashExecutor {
             io: IoStreams::new_capture(),
             exit_code: 0,
             functions: HashMap::new(),
+            arrays: HashMap::new(),
         }
     }
 
@@ -130,6 +133,23 @@ impl BashExecutor {
 
         // Then, expand command substitutions
         let line_with_subs = self.expand_command_substitutions(&line_with_arith);
+
+        // Check if it's an array declaration: arr=(a b c)
+        if let Some((arr_name, elements)) = self.parse_array_declaration(&line_with_subs) {
+            self.arrays.insert(arr_name, elements);
+            return Ok(0);
+        }
+
+        // Check if it's an array element assignment: arr[index]=value
+        if let Some((arr_name, index, value)) = self.parse_array_assignment(&line_with_subs) {
+            let expanded_value = self.expand_variables(&value);
+            if let Some(arr) = self.arrays.get_mut(&arr_name) {
+                if index < arr.len() {
+                    arr[index] = expanded_value;
+                }
+            }
+            return Ok(0);
+        }
 
         // Check if it's a variable assignment
         if let Some((var, value)) = self.parse_assignment(&line_with_subs) {
@@ -325,7 +345,27 @@ impl BashExecutor {
                     continue;
                 }
 
-                // Variable expansion
+                // Check for ${...} syntax (required for arrays)
+                if chars.peek() == Some(&'{') {
+                    chars.next(); // consume '{'
+
+                    // Extract content between { and }
+                    let mut content = String::new();
+                    while let Some(&c) = chars.peek() {
+                        if c == '}' {
+                            chars.next(); // consume '}'
+                            break;
+                        }
+                        content.push(chars.next().unwrap());
+                    }
+
+                    // Parse the content for array access or length
+                    let expanded = self.expand_parameter(&content);
+                    result.push_str(&expanded);
+                    continue;
+                }
+
+                // Simple variable expansion $var
                 let mut var_name = String::new();
                 while let Some(&next) = chars.peek() {
                     if next.is_alphanumeric() || next == '_' {
@@ -346,6 +386,58 @@ impl BashExecutor {
         }
 
         result
+    }
+
+    /// Expand parameter expressions: arr[0], arr[@], #arr[@], etc.
+    fn expand_parameter(&self, param: &str) -> String {
+        // Check for array length: #arr[@] or #arr[*]
+        if param.starts_with('#') {
+            let rest = &param[1..];
+            if let Some((arr_name, index)) = self.parse_array_access(rest) {
+                if index == "@" || index == "*" {
+                    // Array length
+                    if let Some(arr) = self.arrays.get(&arr_name) {
+                        return arr.len().to_string();
+                    }
+                }
+            }
+            return String::new();
+        }
+
+        // Check for array access: arr[index] or arr[@]
+        if let Some((arr_name, index)) = self.parse_array_access(param) {
+            if index == "@" || index == "*" {
+                // Expand all elements
+                if let Some(arr) = self.arrays.get(&arr_name) {
+                    return arr.join(" ");
+                }
+            } else if let Ok(idx) = index.parse::<usize>() {
+                // Access specific element
+                if let Some(arr) = self.arrays.get(&arr_name) {
+                    if idx < arr.len() {
+                        return arr[idx].clone();
+                    }
+                }
+            }
+            return String::new();
+        }
+
+        // Simple variable reference
+        self.env.get(param).cloned().unwrap_or_default()
+    }
+
+    /// Parse array access syntax: arr[index] -> (arr, index)
+    fn parse_array_access(&self, s: &str) -> Option<(String, String)> {
+        if let Some(bracket_start) = s.find('[') {
+            if let Some(bracket_end) = s.find(']') {
+                if bracket_start < bracket_end {
+                    let name = s[..bracket_start].to_string();
+                    let index = s[bracket_start + 1..bracket_end].to_string();
+                    return Some((name, index));
+                }
+            }
+        }
+        None
     }
 
     /// Expand command substitutions: $(cmd) -> command output
@@ -400,6 +492,7 @@ impl BashExecutor {
             io: IoStreams::new_capture(),
             exit_code: 0,
             functions: self.functions.clone(),
+            arrays: self.arrays.clone(),
         };
 
         // Execute the command
@@ -1225,6 +1318,91 @@ impl BashExecutor {
         }
 
         Ok(exit_code)
+    }
+
+    /// Parse array declaration: arr=(a b c)
+    fn parse_array_declaration(&self, line: &str) -> Option<(String, Vec<String>)> {
+        // Pattern: name=(element1 element2 ...)
+        if let Some(eq_pos) = line.find('=') {
+            let name = &line[..eq_pos];
+            let rest = &line[eq_pos + 1..];
+
+            // Must be valid identifier
+            if !name.chars().all(|c| c.is_alphanumeric() || c == '_') || name.is_empty() {
+                return None;
+            }
+
+            // Must start with ( and end with )
+            if !rest.starts_with('(') || !rest.ends_with(')') {
+                return None;
+            }
+
+            // Extract elements between parentheses
+            let elements_str = &rest[1..rest.len() - 1];
+
+            // Parse elements (handle quoted strings)
+            let elements = self.parse_array_elements(elements_str);
+
+            return Some((name.to_string(), elements));
+        }
+
+        None
+    }
+
+    /// Parse array elements from string, handling quotes
+    fn parse_array_elements(&self, s: &str) -> Vec<String> {
+        let mut elements = Vec::new();
+        let mut current = String::new();
+        let mut in_quotes = false;
+        let mut chars = s.chars().peekable();
+
+        while let Some(c) = chars.next() {
+            match c {
+                '"' => {
+                    in_quotes = !in_quotes;
+                }
+                ' ' if !in_quotes => {
+                    if !current.is_empty() {
+                        elements.push(current.clone());
+                        current.clear();
+                    }
+                }
+                _ => {
+                    current.push(c);
+                }
+            }
+        }
+
+        if !current.is_empty() {
+            elements.push(current);
+        }
+
+        elements
+    }
+
+    /// Parse array element assignment: arr[index]=value
+    fn parse_array_assignment(&self, line: &str) -> Option<(String, usize, String)> {
+        // Pattern: name[index]=value
+        if let Some(bracket_start) = line.find('[') {
+            if let Some(bracket_end) = line.find(']') {
+                if let Some(eq_pos) = line.find('=') {
+                    if bracket_start < bracket_end && bracket_end < eq_pos {
+                        let name = &line[..bracket_start];
+                        let index_str = &line[bracket_start + 1..bracket_end];
+                        let value = &line[eq_pos + 1..];
+
+                        // Parse index
+                        if let Ok(index) = index_str.parse::<usize>() {
+                            // Remove quotes from value
+                            let clean_value = value.trim_matches('"').trim_matches('\'');
+                            return Some((name.to_string(), index, clean_value.to_string()));
+                        }
+                    }
+                }
+            }
+        }
+
+        None
     }
 }
 
@@ -4227,5 +4405,370 @@ func{}() {{
                 prop_assert_eq!(*line, format!("function {}", i));
             }
         });
+    }
+}
+
+/// ============================================================================
+/// ARRAY-001: Bash Arrays - Unit Tests (RED Phase)
+/// ============================================================================
+///
+/// Tests for bash array declaration, access, and manipulation.
+///
+/// Bash Array Syntax:
+/// ```bash
+/// # Declaration
+/// arr=(a b c)
+/// arr=("hello" "world")
+///
+/// # Access
+/// echo ${arr[0]}      # First element
+/// echo ${arr[1]}      # Second element
+/// echo ${arr[@]}      # All elements
+/// echo ${#arr[@]}     # Array length
+///
+/// # Assignment
+/// arr[0]="new value"
+/// ```
+///
+/// Test Coverage:
+/// 1. Basic array declaration
+/// 2. Array element access by index
+/// 3. Array expansion ${arr[@]}
+/// 4. Array length ${#arr[@]}
+/// 5. Array element assignment
+/// 6. Empty array
+/// 7. Single element array
+/// 8. Array with spaces in elements
+/// 9. Array iteration
+/// 10. Array in function
+/// 11. Sparse arrays (non-contiguous indices)
+/// 12. Array append (+=)
+///
+#[cfg(test)]
+mod array_tests {
+    use super::*;
+
+    /// Test 1: Basic array declaration and access
+    #[test]
+    fn test_array_001_basic_declaration() {
+        // ARRANGE
+        let mut executor = BashExecutor::new();
+
+        // ACT
+        let result = executor.execute(
+            r#"
+arr=(a b c)
+echo ${arr[0]}
+echo ${arr[1]}
+echo ${arr[2]}
+"#,
+        );
+
+        // ASSERT
+        assert!(result.is_ok());
+        let output = result.unwrap();
+        assert_eq!(output.stdout.trim(), "a\nb\nc");
+    }
+
+    /// Test 2: Array with string elements
+    #[test]
+    fn test_array_002_string_elements() {
+        // ARRANGE
+        let mut executor = BashExecutor::new();
+
+        // ACT
+        let result = executor.execute(
+            r#"
+arr=("hello" "world" "test")
+echo ${arr[0]}
+echo ${arr[1]}
+echo ${arr[2]}
+"#,
+        );
+
+        // ASSERT
+        assert!(result.is_ok());
+        let output = result.unwrap();
+        assert_eq!(output.stdout.trim(), "hello\nworld\ntest");
+    }
+
+    /// Test 3: Array expansion with [@]
+    #[test]
+    fn test_array_003_expand_all_elements() {
+        // ARRANGE
+        let mut executor = BashExecutor::new();
+
+        // ACT
+        let result = executor.execute(
+            r#"
+arr=(one two three)
+echo ${arr[@]}
+"#,
+        );
+
+        // ASSERT
+        assert!(result.is_ok());
+        let output = result.unwrap();
+        assert_eq!(output.stdout.trim(), "one two three");
+    }
+
+    /// Test 4: Array length
+    #[test]
+    fn test_array_004_array_length() {
+        // ARRANGE
+        let mut executor = BashExecutor::new();
+
+        // ACT
+        let result = executor.execute(
+            r#"
+arr=(a b c d e)
+echo ${#arr[@]}
+"#,
+        );
+
+        // ASSERT
+        assert!(result.is_ok());
+        let output = result.unwrap();
+        assert_eq!(output.stdout.trim(), "5");
+    }
+
+    /// Test 5: Empty array
+    #[test]
+    fn test_array_005_empty_array() {
+        // ARRANGE
+        let mut executor = BashExecutor::new();
+
+        // ACT
+        let result = executor.execute(
+            r#"
+arr=()
+echo ${#arr[@]}
+"#,
+        );
+
+        // ASSERT
+        assert!(result.is_ok());
+        let output = result.unwrap();
+        assert_eq!(output.stdout.trim(), "0");
+    }
+
+    /// Test 6: Single element array
+    #[test]
+    fn test_array_006_single_element() {
+        // ARRANGE
+        let mut executor = BashExecutor::new();
+
+        // ACT
+        let result = executor.execute(
+            r#"
+arr=(single)
+echo ${arr[0]}
+echo ${#arr[@]}
+"#,
+        );
+
+        // ASSERT
+        assert!(result.is_ok());
+        let output = result.unwrap();
+        assert_eq!(output.stdout.trim(), "single\n1");
+    }
+
+    /// Test 7: Array element assignment
+    #[test]
+    fn test_array_007_element_assignment() {
+        // ARRANGE
+        let mut executor = BashExecutor::new();
+
+        // ACT
+        let result = executor.execute(
+            r#"
+arr=(a b c)
+arr[1]="modified"
+echo ${arr[0]}
+echo ${arr[1]}
+echo ${arr[2]}
+"#,
+        );
+
+        // ASSERT
+        assert!(result.is_ok());
+        let output = result.unwrap();
+        assert_eq!(output.stdout.trim(), "a\nmodified\nc");
+    }
+
+    /// Test 8: Array with spaces in elements (quoted)
+    #[test]
+    fn test_array_008_spaces_in_elements() {
+        // ARRANGE
+        let mut executor = BashExecutor::new();
+
+        // ACT
+        let result = executor.execute(
+            r#"
+arr=("hello world" "foo bar")
+echo ${arr[0]}
+echo ${arr[1]}
+"#,
+        );
+
+        // ASSERT
+        assert!(result.is_ok());
+        let output = result.unwrap();
+        assert_eq!(output.stdout.trim(), "hello world\nfoo bar");
+    }
+
+    /// Test 9: Array iteration with for loop
+    #[test]
+    fn test_array_009_iteration() {
+        // ARRANGE
+        let mut executor = BashExecutor::new();
+
+        // ACT
+        let result = executor.execute(
+            r#"
+arr=(x y z)
+for item in ${arr[@]}
+do
+    echo "item: $item"
+done
+"#,
+        );
+
+        // ASSERT
+        assert!(result.is_ok());
+        let output = result.unwrap();
+        assert_eq!(output.stdout.trim(), "item: x\nitem: y\nitem: z");
+    }
+
+    /// Test 10: Array in function parameter
+    #[test]
+    fn test_array_010_in_function() {
+        // ARRANGE
+        let mut executor = BashExecutor::new();
+
+        // ACT
+        let result = executor.execute(
+            r#"
+process() {
+    local arr=(a b c)
+    echo ${arr[@]}
+}
+process
+"#,
+        );
+
+        // ASSERT
+        assert!(result.is_ok());
+        let output = result.unwrap();
+        assert_eq!(output.stdout.trim(), "a b c");
+    }
+
+    /// Test 11: Array element access beyond length
+    #[test]
+    fn test_array_011_out_of_bounds() {
+        // ARRANGE
+        let mut executor = BashExecutor::new();
+
+        // ACT
+        let result = executor.execute(
+            r#"
+arr=(a b)
+echo ${arr[5]}
+"#,
+        );
+
+        // ASSERT
+        assert!(result.is_ok());
+        let output = result.unwrap();
+        // Out of bounds should return empty string
+        assert_eq!(output.stdout.trim(), "");
+    }
+
+    /// Test 12: Numeric array indices
+    #[test]
+    fn test_array_012_numeric_indices() {
+        // ARRANGE
+        let mut executor = BashExecutor::new();
+
+        // ACT
+        let result = executor.execute(
+            r#"
+nums=(10 20 30)
+echo ${nums[0]}
+echo ${nums[1]}
+echo ${nums[2]}
+"#,
+        );
+
+        // ASSERT
+        assert!(result.is_ok());
+        let output = result.unwrap();
+        assert_eq!(output.stdout.trim(), "10\n20\n30");
+    }
+
+    /// Test 13: Array modification and re-access
+    #[test]
+    fn test_array_013_modify_and_access() {
+        // ARRANGE
+        let mut executor = BashExecutor::new();
+
+        // ACT
+        let result = executor.execute(
+            r#"
+arr=(a b c)
+arr[0]="x"
+arr[2]="z"
+echo ${arr[@]}
+"#,
+        );
+
+        // ASSERT
+        assert!(result.is_ok());
+        let output = result.unwrap();
+        assert_eq!(output.stdout.trim(), "x b z");
+    }
+
+    /// Test 14: Array with numbers and strings mixed
+    #[test]
+    fn test_array_014_mixed_types() {
+        // ARRANGE
+        let mut executor = BashExecutor::new();
+
+        // ACT
+        let result = executor.execute(
+            r#"
+arr=(1 "two" 3 "four")
+echo ${arr[0]}
+echo ${arr[1]}
+echo ${arr[2]}
+echo ${arr[3]}
+"#,
+        );
+
+        // ASSERT
+        assert!(result.is_ok());
+        let output = result.unwrap();
+        assert_eq!(output.stdout.trim(), "1\ntwo\n3\nfour");
+    }
+
+    /// Test 15: Array length after modification
+    #[test]
+    fn test_array_015_length_after_modification() {
+        // ARRANGE
+        let mut executor = BashExecutor::new();
+
+        // ACT
+        let result = executor.execute(
+            r#"
+arr=(a b c)
+arr[1]="modified"
+echo ${#arr[@]}
+"#,
+        );
+
+        // ASSERT
+        assert!(result.is_ok());
+        let output = result.unwrap();
+        assert_eq!(output.stdout.trim(), "3");
     }
 }
