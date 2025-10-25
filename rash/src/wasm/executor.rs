@@ -7059,4 +7059,103 @@ echo ${arr[1]}
             assert_eq!(output.stdout.trim(), "modified");
         }
     }
+
+    /// Tests for exit command
+    /// The exit command terminates execution with a specific exit code
+    #[cfg(test)]
+    mod exit_tests {
+        use super::*;
+
+        /// Test 1: Basic exit with code
+        #[test]
+        fn test_exit_001_basic() {
+            let mut executor = BashExecutor::new();
+            let result = executor.execute(r#"
+echo "before"
+exit 42
+echo "after"
+"#);
+            assert!(result.is_ok());
+            let output = result.unwrap();
+            // Should only see "before", not "after"
+            assert_eq!(output.stdout.trim(), "before");
+            // Exit code should be 42
+            assert_eq!(output.exit_code, 42);
+        }
+
+        /// Test 2: Exit with code 0
+        #[test]
+        fn test_exit_002_zero() {
+            let mut executor = BashExecutor::new();
+            let result = executor.execute(r#"
+echo "success"
+exit 0
+"#);
+            assert!(result.is_ok());
+            let output = result.unwrap();
+            assert_eq!(output.stdout.trim(), "success");
+            assert_eq!(output.exit_code, 0);
+        }
+
+        /// Test 3: Exit without argument (defaults to last exit code)
+        #[test]
+        fn test_exit_003_no_arg() {
+            let mut executor = BashExecutor::new();
+            let result = executor.execute(r#"
+false
+exit
+"#);
+            assert!(result.is_ok());
+            let output = result.unwrap();
+            // Should use last command's exit code (1 from false)
+            assert_eq!(output.exit_code, 1);
+        }
+
+        /// Test 4: Exit in subshell (only exits subshell)
+        #[test]
+        fn test_exit_004_in_subshell() {
+            let mut executor = BashExecutor::new();
+            let result = executor.execute(r#"
+echo "before subshell"
+(echo "in subshell"; exit 99)
+echo "after subshell"
+"#);
+            assert!(result.is_ok());
+            let output = result.unwrap();
+            // All three echoes should execute
+            assert_eq!(output.stdout.trim(), "before subshell\nin subshell\nafter subshell");
+            // Overall exit code should be 0 (last command succeeded)
+            assert_eq!(output.exit_code, 0);
+        }
+
+        /// Test 5: Exit in brace group (exits whole script)
+        #[test]
+        fn test_exit_005_in_brace_group() {
+            let mut executor = BashExecutor::new();
+            let result = executor.execute(r#"
+echo "before brace"
+{ echo "in brace"; exit 77; }
+echo "after brace"
+"#);
+            assert!(result.is_ok());
+            let output = result.unwrap();
+            // Should NOT see "after brace"
+            assert_eq!(output.stdout.trim(), "before brace\nin brace");
+            assert_eq!(output.exit_code, 77);
+        }
+
+        /// Test 6: Multiple exits (first one wins)
+        #[test]
+        fn test_exit_006_first_wins() {
+            let mut executor = BashExecutor::new();
+            let result = executor.execute(r#"
+exit 10
+exit 20
+"#);
+            assert!(result.is_ok());
+            let output = result.unwrap();
+            // First exit should win
+            assert_eq!(output.exit_code, 10);
+        }
+    }
 }
