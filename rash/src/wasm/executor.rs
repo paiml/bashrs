@@ -69,6 +69,9 @@ impl BashExecutor {
 
     /// Execute a bash script
     pub fn execute(&mut self, source: &str) -> Result<ExecutionResult> {
+        // Preprocess here documents
+        let source = self.preprocess_heredocs(source);
+
         let lines: Vec<&str> = source
             .lines()
             .map(|l| l.trim())
@@ -1553,6 +1556,137 @@ impl BashExecutor {
                 _ => return false,
             }
         }
+    }
+
+    /// Preprocess here documents (heredocs)
+    /// Converts <<DELIMITER constructs to inline content
+    fn preprocess_heredocs(&mut self, source: &str) -> String {
+        let mut result = String::new();
+        let lines: Vec<&str> = source.lines().collect();
+        let mut i = 0;
+
+        while i < lines.len() {
+            let line = lines[i];
+
+            // Check for heredoc operators: << or <<-
+            if let Some(heredoc_pos) = line.find("<<") {
+                // Check if it's <<- (strip leading tabs)
+                let strip_tabs = line[heredoc_pos..].starts_with("<<-");
+                let after_op = if strip_tabs {
+                    &line[heredoc_pos + 3..]
+                } else {
+                    &line[heredoc_pos + 2..]
+                };
+
+                // Extract delimiter (might be quoted)
+                let delimiter = after_op.trim().split_whitespace().next().unwrap_or("");
+                let quoted = delimiter.starts_with('"') || delimiter.starts_with('\'');
+                let clean_delimiter = delimiter.trim_matches('"').trim_matches('\'');
+
+                if !clean_delimiter.is_empty() {
+                    // Get the command part before <<
+                    let command_part = &line[..heredoc_pos];
+
+                    // Collect heredoc content
+                    let mut content_lines = Vec::new();
+                    let mut j = i + 1;
+
+                    while j < lines.len() {
+                        let content_line = lines[j];
+
+                        // Check if this line is the delimiter
+                        let check_line = if strip_tabs {
+                            content_line.trim_start_matches('\t')
+                        } else {
+                            content_line
+                        };
+
+                        if check_line.trim() == clean_delimiter {
+                            break;
+                        }
+
+                        // Apply tab stripping if <<-
+                        let processed_line = if strip_tabs {
+                            content_line.trim_start_matches('\t')
+                        } else {
+                            content_line
+                        };
+
+                        content_lines.push(processed_line);
+                        j += 1;
+                    }
+
+                    // Build the content string
+                    let content = content_lines.join("\n");
+
+                    // Keep the content as-is if delimiter was quoted (no expansion)
+                    // Otherwise, keep variables for later expansion during execution
+                    let final_content = if quoted {
+                        // Quoted delimiter: no expansion, treat as literal
+                        content
+                    } else {
+                        // Unquoted delimiter: variables will be expanded during echo execution
+                        content
+                    };
+
+                    // Replace heredoc with inline content
+                    // For now, we'll convert to echo for simple cases
+                    // Use multiple echo statements for multi-line content
+                    if command_part.trim().is_empty() || command_part.trim().starts_with("cat") {
+                        // Standalone heredoc or cat <<EOF - convert to echo statements
+                        for line in content_lines.iter() {
+                            if quoted {
+                                result.push_str(&format!("echo '{}'\n", line.replace('\'', "'\\''")));
+                            } else {
+                                result.push_str(&format!("echo \"{}\"\n", line.replace('"', "\\\"")));
+                            }
+                        }
+                    } else if let Some(redirect_pos) = command_part.rfind('>') {
+                        // Redirection: cmd <<EOF > file - write to file
+                        let file_part = command_part[redirect_pos + 1..].trim();
+                        let file_path = file_part.trim_matches('"').trim_matches('\'');
+
+                        // Write each line to the file (first line truncates, rest append)
+                        for (idx, line) in content_lines.iter().enumerate() {
+                            let redirect_op = if idx == 0 { ">" } else { ">>" };
+                            if quoted {
+                                result.push_str(&format!("echo '{}' {} {}\n",
+                                    line.replace('\'', "'\\''"),
+                                    redirect_op,
+                                    file_path));
+                            } else {
+                                result.push_str(&format!("echo \"{}\" {} {}\n",
+                                    line.replace('"', "\\\""),
+                                    redirect_op,
+                                    file_path));
+                            }
+                        }
+                    } else {
+                        // Other commands with heredoc input
+                        if quoted {
+                            result.push_str(&format!("{} <<'HEREDOC_INLINE'\n{}\nHEREDOC_INLINE\n",
+                                command_part.trim(),
+                                final_content));
+                        } else {
+                            result.push_str(&format!("{} <<HEREDOC_INLINE\n{}\nHEREDOC_INLINE\n",
+                                command_part.trim(),
+                                final_content));
+                        }
+                    }
+
+                    // Skip past the heredoc content and delimiter
+                    i = j + 1;
+                    continue;
+                }
+            }
+
+            // Not a heredoc, keep the line as-is
+            result.push_str(line);
+            result.push('\n');
+            i += 1;
+        }
+
+        result
     }
 
     /// Check if line is a variable assignment
@@ -6329,6 +6463,239 @@ esac
                     prop_assert_eq!(result1.unwrap().stdout, result2.unwrap().stdout);
                 }
             }
+        }
+    }
+
+    // ========================
+    // Unit Tests: Here Documents
+    // ========================
+
+    #[cfg(test)]
+    mod heredoc_tests {
+        use super::*;
+
+        /// Test 1: Basic here document with cat
+        #[test]
+        fn test_heredoc_001_basic() {
+            let mut executor = BashExecutor::new();
+            let result = executor.execute(r#"
+cat <<EOF
+line 1
+line 2
+line 3
+EOF
+"#);
+            assert!(result.is_ok());
+            let output = result.unwrap();
+            assert_eq!(output.stdout.trim(), "line 1\nline 2\nline 3");
+        }
+
+        /// Test 2: Here document with variable expansion
+        #[test]
+        fn test_heredoc_002_variable_expansion() {
+            let mut executor = BashExecutor::new();
+            let result = executor.execute(r#"
+name="world"
+cat <<EOF
+Hello $name
+EOF
+"#);
+            assert!(result.is_ok());
+            let output = result.unwrap();
+            assert_eq!(output.stdout.trim(), "Hello world");
+        }
+
+        /// Test 3: Here document with quoted delimiter (no expansion)
+        #[test]
+        fn test_heredoc_003_quoted_delimiter() {
+            let mut executor = BashExecutor::new();
+            let result = executor.execute(r#"
+name="world"
+cat <<"EOF"
+Hello $name
+EOF
+"#);
+            assert!(result.is_ok());
+            let output = result.unwrap();
+            assert_eq!(output.stdout.trim(), "Hello $name");
+        }
+
+        /// Test 4: Here document with indented delimiter (<<-)
+        #[test]
+        fn test_heredoc_004_strip_tabs() {
+            let mut executor = BashExecutor::new();
+            let result = executor.execute("cat <<-EOF\n\tline 1\n\tline 2\nEOF\n");
+            assert!(result.is_ok());
+            let output = result.unwrap();
+            assert_eq!(output.stdout.trim(), "line 1\nline 2");
+        }
+
+        /// Test 5: Here document to write file
+        #[test]
+        fn test_heredoc_005_write_file() {
+            let mut executor = BashExecutor::new();
+            let result = executor.execute(r#"
+cat <<EOF > /tmp/test.txt
+content line 1
+content line 2
+EOF
+cat /tmp/test.txt
+"#);
+            assert!(result.is_ok());
+            let output = result.unwrap();
+            assert_eq!(output.stdout.trim(), "content line 1\ncontent line 2");
+        }
+
+        /// Test 6: Empty here document
+        #[test]
+        fn test_heredoc_006_empty() {
+            let mut executor = BashExecutor::new();
+            let result = executor.execute(r#"
+cat <<EOF
+EOF
+echo "done"
+"#);
+            assert!(result.is_ok());
+            let output = result.unwrap();
+            assert_eq!(output.stdout.trim(), "done");
+        }
+
+        /// Test 7: Here document with special characters
+        #[test]
+        fn test_heredoc_007_special_chars() {
+            let mut executor = BashExecutor::new();
+            let result = executor.execute(r#"
+cat <<'EOF'
+Special: $, !, @, #, %, &, *
+EOF
+"#);
+            assert!(result.is_ok());
+            let output = result.unwrap();
+            assert_eq!(output.stdout.trim(), "Special: $, !, @, #, %, &, *");
+        }
+
+        /// Test 8: Multiple here documents
+        #[test]
+        fn test_heredoc_008_multiple() {
+            let mut executor = BashExecutor::new();
+            let result = executor.execute(r#"
+cat <<EOF1
+first
+EOF1
+cat <<EOF2
+second
+EOF2
+"#);
+            assert!(result.is_ok());
+            let output = result.unwrap();
+            assert_eq!(output.stdout.trim(), "first\nsecond");
+        }
+
+        /// Test 9: Here document with command substitution
+        #[test]
+        fn test_heredoc_009_command_substitution() {
+            let mut executor = BashExecutor::new();
+            let result = executor.execute(r#"
+cat <<EOF
+Today is $(echo "Monday")
+EOF
+"#);
+            assert!(result.is_ok());
+            let output = result.unwrap();
+            assert_eq!(output.stdout.trim(), "Today is Monday");
+        }
+
+        /// Test 10: Here document in loop
+        #[test]
+        fn test_heredoc_010_in_loop() {
+            let mut executor = BashExecutor::new();
+            let result = executor.execute(r#"
+for i in 1 2; do
+    cat <<EOF
+Item $i
+EOF
+done
+"#);
+            assert!(result.is_ok());
+            let output = result.unwrap();
+            assert_eq!(output.stdout.trim(), "Item 1\nItem 2");
+        }
+
+        /// Test 11: Here document with different delimiter names
+        #[test]
+        fn test_heredoc_011_custom_delimiter() {
+            let mut executor = BashExecutor::new();
+            let result = executor.execute(r#"
+cat <<END
+custom delimiter
+END
+"#);
+            assert!(result.is_ok());
+            let output = result.unwrap();
+            assert_eq!(output.stdout.trim(), "custom delimiter");
+        }
+
+        /// Test 12: Here document preserves blank lines
+        #[test]
+        fn test_heredoc_012_blank_lines() {
+            let mut executor = BashExecutor::new();
+            let result = executor.execute(r#"
+cat <<EOF
+line 1
+
+line 3
+EOF
+"#);
+            assert!(result.is_ok());
+            let output = result.unwrap();
+            assert_eq!(output.stdout.trim(), "line 1\n\nline 3");
+        }
+
+        /// Test 13: Here document with echo instead of cat
+        #[test]
+        fn test_heredoc_013_with_echo() {
+            let mut executor = BashExecutor::new();
+            let result = executor.execute(r#"
+text=$(cat <<EOF
+multi
+line
+text
+EOF
+)
+echo "$text"
+"#);
+            assert!(result.is_ok());
+            let output = result.unwrap();
+            assert_eq!(output.stdout.trim(), "multi\nline\ntext");
+        }
+
+        /// Test 14: Here document with arithmetic expansion
+        #[test]
+        fn test_heredoc_014_arithmetic() {
+            let mut executor = BashExecutor::new();
+            let result = executor.execute(r#"
+cat <<EOF
+Result: $((5 + 3))
+EOF
+"#);
+            assert!(result.is_ok());
+            let output = result.unwrap();
+            assert_eq!(output.stdout.trim(), "Result: 8");
+        }
+
+        /// Test 15: Here document with single-quoted delimiter
+        #[test]
+        fn test_heredoc_015_single_quote_delimiter() {
+            let mut executor = BashExecutor::new();
+            let result = executor.execute(r#"
+var="test"
+cat <<'MARKER'
+No expansion: $var
+MARKER
+"#);
+            assert!(result.is_ok());
+            let output = result.unwrap();
+            assert_eq!(output.stdout.trim(), "No expansion: $var");
         }
     }
 }
