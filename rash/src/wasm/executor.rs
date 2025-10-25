@@ -124,6 +124,22 @@ impl BashExecutor {
                 continue;
             }
 
+            // Check for exit command
+            if line.starts_with("exit") {
+                // Parse exit code: "exit" or "exit N"
+                let parts: Vec<&str> = line.split_whitespace().collect();
+                let exit_code = if parts.len() > 1 {
+                    // Parse exit code argument
+                    parts[1].parse::<i32>().unwrap_or(self.exit_code)
+                } else {
+                    // No argument: use current exit code
+                    self.exit_code
+                };
+                self.exit_code = exit_code;
+                // Break out of loop to stop execution
+                break;
+            }
+
             // Check for subshell or brace grouping
             if line.starts_with('(') {
                 // Execute subshell (isolated scope)
