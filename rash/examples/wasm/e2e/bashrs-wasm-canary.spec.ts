@@ -203,10 +203,10 @@ export TIMESTAMP=$(date +%s)  # CONFIG-004: Non-deterministic!
   test('B06: Display issues with correct line numbers', async ({ page }) => {
     await loadBashrsWasm(page);
 
+    // Note: Template literal without leading newline to ensure line 2 is line 2
     const bashrc = `# Line 1: comment
 export PATH=$HOME/bin:$PATH  # Line 2: CONFIG-002 on this line
-# Line 3: comment
-`;
+# Line 3: comment`;
 
     await analyzeConfig(page, bashrc);
 
