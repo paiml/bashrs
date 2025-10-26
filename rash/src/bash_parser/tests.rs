@@ -2377,3 +2377,28 @@ fn test_BUILTIN_001_noop_colon() {
         "Colon should be parsed as a Command statement with name ':'"
     );
 }
+
+// BUILTIN-002: Dot (source) command
+// The dot (.) command sources/executes commands from a file in the current shell.
+// Example: . ./config.sh
+#[test]
+fn test_BUILTIN_002_source_command() {
+    let script = ". ./config.sh";
+
+    let mut parser = BashParser::new(script).unwrap();
+    let ast = parser.parse().unwrap();
+
+    // Should parse successfully
+    assert!(!ast.statements.is_empty(), "Dot command should be parsed");
+
+    // Should be recognized as a Command statement with name "."
+    let has_dot_command = ast
+        .statements
+        .iter()
+        .any(|s| matches!(s, BashStmt::Command { name, args, .. } if name == "." && args.len() == 1));
+
+    assert!(
+        has_dot_command,
+        "Dot should be parsed as a Command statement with name '.' and one argument"
+    );
+}

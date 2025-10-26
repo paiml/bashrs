@@ -1038,12 +1038,13 @@ chapters:
 
           - id: "BUILTIN-002"
             title: "Document . (source)"
-            status: "pending"
+            status: "completed"
             priority: "MEDIUM"
             input: ". ./config.sh"
             rust: "include!(\"config.rs\")"
             purified: ". \"./config.sh\""
-            test_name: "test_source_command"
+            test_name: "test_BUILTIN_002_source_command"
+            notes: "Already supported by bare word parsing (BUILTIN-001 enabled this)"
 
           - id: "BUILTIN-003"
             title: "Document break"
