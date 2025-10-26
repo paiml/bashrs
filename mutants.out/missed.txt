@@ -1,15 +1,3 @@
-rash/src/make_parser/purify.rs:698:45: replace + with * in analyze_parallel_safety
-rash/src/make_parser/purify.rs:311:13: delete match arm "NO_RANDOM" in plan_transformations
-rash/src/make_parser/purify.rs:519:28: replace match guard bytes.get(i + 1) == Some(&b'(') with true in find_matching_paren
-rash/src/make_parser/purify.rs:956:48: delete ! in analyze_error_handling
-rash/src/make_parser/purify.rs:976:20: delete ! in analyze_error_handling
-rash/src/make_parser/purify.rs:784:38: replace && with || in analyze_reproducible_builds
-rash/src/make_parser/purify.rs:701:33: replace != with == in analyze_parallel_safety
-rash/src/make_parser/purify.rs:846:43: replace && with || in analyze_performance_optimization
-rash/src/make_parser/purify.rs:506:15: replace += with *= in find_matching_paren
-rash/src/make_parser/purify.rs:503:45: replace > with >= in find_matching_paren
-rash/src/make_parser/purify.rs:941:13: delete match arm MakeItem::PatternRule{target_pattern, recipe, ..} in analyze_error_handling
-rash/src/make_parser/purify.rs:588:41: replace && with || in analyze_parallel_safety
-rash/src/make_parser/purify.rs:502:13: replace < with <= in find_matching_paren
-rash/src/make_parser/purify.rs:521:19: replace += with *= in find_matching_paren
-rash/src/make_parser/purify.rs:503:40: replace && with || in find_matching_paren
+rash/src/repl/loop.rs:102:5: replace print_help with ()
+rash/src/repl/loop.rs:72:21: delete match arm "help" in run_repl
+rash/src/repl/loop.rs:68:21: delete match arm "quit" | "exit" in run_repl

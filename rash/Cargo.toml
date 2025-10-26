@@ -38,6 +38,7 @@ chrono = { version = "0.4", features = ["serde"] }
 rand = "0.9"  # Added for testing module
 static_assertions = "1.1"
 regex = "1.10"  # For linter pattern matching
+rustyline.workspace = true  # REPL terminal line editing
 
 # Compile mode dependencies (optional - not needed for WASM)
 zstd = { version = "0.13", optional = true }

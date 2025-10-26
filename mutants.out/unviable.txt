@@ -1,8 +1,0 @@
-rash/src/make_parser/purify.rs:282:5: replace plan_transformations -> Vec<Transformation> with vec![Default::default()]
-rash/src/make_parser/purify.rs:236:5: replace purify_makefile -> PurificationResult with Default::default()
-rash/src/make_parser/purify.rs:815:5: replace analyze_performance_optimization -> Vec<Transformation> with vec![Default::default()]
-rash/src/make_parser/purify.rs:328:5: replace apply_transformations -> MakeAst with Default::default()
-rash/src/make_parser/purify.rs:926:5: replace analyze_error_handling -> Vec<Transformation> with vec![Default::default()]
-rash/src/make_parser/purify.rs:552:5: replace analyze_parallel_safety -> Vec<Transformation> with vec![Default::default()]
-rash/src/make_parser/purify.rs:1047:5: replace analyze_portability -> Vec<Transformation> with vec![Default::default()]
-rash/src/make_parser/purify.rs:736:5: replace analyze_reproducible_builds -> Vec<Transformation> with vec![Default::default()]

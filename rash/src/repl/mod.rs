@@ -7,5 +7,7 @@
 // Status: Phase 1 - RED-GREEN-REFACTOR-PROPERTY-MUTATION
 
 pub mod config;
+mod r#loop;
 
 pub use config::ReplConfig;
+pub use r#loop::run_repl;
