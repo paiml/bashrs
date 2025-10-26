@@ -2528,3 +2528,27 @@ fn test_BASH_BUILTIN_002_declare_to_assignment() {
         "Declare should be parsed as a Command statement with name 'declare'"
     );
 }
+
+// BASH-BUILTIN-004: Local command
+// The local command declares variables with local scope in functions.
+// local var=5 creates a function-local variable
+#[test]
+fn test_BASH_BUILTIN_004_local_to_scoped_var() {
+    let script = "local";
+
+    let mut parser = BashParser::new(script).unwrap();
+    let ast = parser.parse().unwrap();
+
+    // Should parse successfully
+    assert!(!ast.statements.is_empty(), "Local command should be parsed");
+
+    // Should be recognized as a Command statement with name "local"
+    let has_local_command = ast.statements.iter().any(|s| {
+        matches!(s, BashStmt::Command { name, .. } if name == "local")
+    });
+
+    assert!(
+        has_local_command,
+        "Local should be parsed as a Command statement with name 'local'"
+    );
+}
