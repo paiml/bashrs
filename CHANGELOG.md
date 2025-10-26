@@ -7,14 +7,48 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [6.5.0] - 2025-10-26
+
 ### Documentation
 
-- **Roadmap Accuracy Verification** (2025-10-26)
-  - Verified GNU Bash testing roadmap completion statistics
-  - Corrected overestimated progress: 35% → 20% actual completion
-  - Updated BASH-INGESTION-ROADMAP.yaml with accurate task counts
-  - 24 completed tasks, 16 partial support, 3 blocked, 79 pending (122 total)
-  - Added accuracy_verified timestamp for audit trail
+**📋 Hybrid Workflow Documentation Complete**
+
+Complete 8-step EXTREME TDD hybrid workflow for GNU Bash validation:
+
+**Workflow Completion**:
+- Added Step 7: PMAT VERIFICATION to hybrid workflow
+- Complete workflow: RED → GREEN → REFACTOR → REPL VERIFICATION → PROPERTY → MUTATION → PMAT VERIFICATION → DOCUMENT
+- Updated BASH-INGESTION-ROADMAP.yaml with full 8-step methodology
+- Updated ROADMAP.yaml with complete workflow string
+- Updated CLAUDE.md with pmat verification documentation
+
+**PMAT Verification Step** (Step 7):
+- Code complexity verification (`pmat analyze complexity --max 10`)
+- Quality score verification (`pmat quality-score --min 9.0`)
+- Specification verification (`pmat verify --spec rash.spec --impl target/debug/bashrs`)
+- Rationale: Ensures code complexity <10, quality score ≥9.0, catches quality issues missed by standard tooling
+
+**Roadmap Accuracy Verification** (2025-10-26):
+- Verified GNU Bash testing roadmap completion statistics
+- Corrected overestimated progress: 35% → 20% actual completion
+- Updated BASH-INGESTION-ROADMAP.yaml with accurate task counts
+- 24 completed tasks, 16 partial support, 3 blocked, 79 pending (122 total)
+- Added accuracy_verified timestamp for audit trail
+
+**Implementation Details**:
+- `docs/BASH-INGESTION-ROADMAP.yaml`: Added Step 7: PMAT VERIFICATION with substeps and examples
+- `ROADMAP.yaml`: Updated methodology and workflow strings
+- `CLAUDE.md`: Added Step 7 section with rationale and checklist updates
+
+**Test Status**:
+- ✅ All 4,697 tests passing (100% pass rate)
+- ✅ Zero regressions
+- ✅ Ready for systematic GNU Bash validation using complete hybrid workflow
+
+**Next Steps**:
+- Begin hybrid GNU Bash validation using 8-step workflow
+- 79 pending tasks available in BASH-INGESTION-ROADMAP.yaml
+- Recommended: Pick simpler pending tasks to build momentum
 
 ## [6.4.0] - 2025-10-26
 
