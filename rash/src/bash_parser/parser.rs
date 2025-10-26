@@ -317,10 +317,12 @@ impl BashParser {
         let mut args = Vec::new();
 
         // Parse arguments until newline or special token
+        // Also stop at comments (BUILTIN-001: colon no-op with comments)
         while !self.is_at_end()
             && !self.check(&Token::Newline)
             && !self.check(&Token::Semicolon)
             && !self.check(&Token::Pipe)
+            && !matches!(self.peek(), Some(Token::Comment(_)))
         {
             args.push(self.parse_expression()?);
         }

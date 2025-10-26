@@ -165,8 +165,9 @@ impl Lexer {
         }
 
         // Bare words (paths, globs, etc) - must come before operators
-        // These are unquoted strings that can contain /  * . - etc
-        if ch == '/' || ch == '.' || ch == '-' || ch == '*' || ch == '~' {
+        // These are unquoted strings that can contain /  * . - : etc
+        // Note: ':' is included for bash builtin no-op command (BUILTIN-001)
+        if ch == '/' || ch == '.' || ch == '-' || ch == '*' || ch == '~' || ch == ':' {
             return Ok(self.read_bare_word());
         }
 

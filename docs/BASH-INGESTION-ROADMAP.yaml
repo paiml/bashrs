@@ -1028,12 +1028,13 @@ chapters:
         tasks:
           - id: "BUILTIN-001"
             title: "Document : (no-op)"
-            status: "pending"
+            status: "completed"
             priority: "LOW"
             input: ": # comment"
             rust: "// comment"
             purified: ": # comment"
-            test_name: "test_noop_colon"
+            test_name: "test_BUILTIN_001_noop_colon"
+            notes: "Lexer recognizes ':' as command, parser stops at comments"
 
           - id: "BUILTIN-002"
             title: "Document . (source)"
