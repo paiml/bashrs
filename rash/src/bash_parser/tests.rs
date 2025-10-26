@@ -2427,3 +2427,28 @@ fn test_BUILTIN_014_set_flags() {
         "Set should be parsed as a Command statement with name 'set' and one argument (-e flag)"
     );
 }
+
+// BUILTIN-015: Shift command
+// The shift command shifts positional parameters to the left.
+// shift discards $1 and moves $2 to $1, $3 to $2, etc.
+// Example: shift; shift 2
+#[test]
+fn test_BUILTIN_015_shift_command() {
+    let script = "shift";
+
+    let mut parser = BashParser::new(script).unwrap();
+    let ast = parser.parse().unwrap();
+
+    // Should parse successfully
+    assert!(!ast.statements.is_empty(), "Shift command should be parsed");
+
+    // Should be recognized as a Command statement with name "shift"
+    let has_shift_command = ast.statements.iter().any(|s| {
+        matches!(s, BashStmt::Command { name, .. } if name == "shift")
+    });
+
+    assert!(
+        has_shift_command,
+        "Shift should be parsed as a Command statement with name 'shift'"
+    );
+}
