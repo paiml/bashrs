@@ -1,0 +1,56 @@
+#!/bin/bash
+# bashrs pre-commit hook: Zero tolerance for lint warnings
+# Enforces code quality standards before commit
+
+set -e
+
+echo "🔍 Running pre-commit quality checks..."
+
+# Run clippy with zero-tolerance mode
+echo "  📋 Checking clippy (zero warnings required)..."
+if ! cargo clippy --lib -- -D warnings 2>&1 | tail -10; then
+    echo ""
+    echo "❌ COMMIT BLOCKED: Clippy warnings detected"
+    echo ""
+    echo "Fix all warnings before committing:"
+    echo "  cargo clippy --lib -- -D warnings"
+    echo ""
+    echo "Or fix automatically where possible:"
+    echo "  cargo clippy --lib --fix --allow-dirty"
+    echo ""
+    exit 1
+fi
+
+echo "  ✅ Clippy: Zero warnings"
+
+# Run clippy performance checks (release mode)
+echo "  ⚡ Checking performance lints (release mode)..."
+if ! cargo clippy --release -- -W clippy::perf 2>&1 | tail -10; then
+    echo ""
+    echo "❌ COMMIT BLOCKED: Performance issues detected"
+    echo ""
+    echo "Fix performance issues before committing:"
+    echo "  cargo clippy --release -- -W clippy::perf"
+    echo ""
+    exit 1
+fi
+
+echo "  ✅ Performance: No issues"
+
+# Run tests to ensure no regressions
+echo "  🧪 Running tests..."
+if ! cargo test --lib --quiet 2>&1 | tail -5; then
+    echo ""
+    echo "❌ COMMIT BLOCKED: Tests failing"
+    echo ""
+    echo "Fix failing tests before committing:"
+    echo "  cargo test --lib"
+    echo ""
+    exit 1
+fi
+
+echo "  ✅ Tests: All passing"
+
+echo ""
+echo "✅ Pre-commit checks passed - proceeding with commit"
+echo ""
