@@ -72,6 +72,19 @@ require_examples = true      # All public functions need examples
 require_safety_docs = true   # Safety-critical code requires docs
 require_panic_docs = true    # Document panic conditions
 
+# Documentation link validation configuration
+[documentation.link_validation]
+enabled = true
+# Skip domains that require authentication or have paywalls
+skip_domains = [
+    "doi.org",           # Academic paper DOIs (paywall/auth required)
+    "dl.acm.org"         # ACM Digital Library (paywall)
+]
+# Skip internal links to future/planned chapters
+skip_patterns = [
+    "**/rash-book/src/ch*.html"  # Future book chapters not yet written
+]
+
 [security]
 # Security scanning for injection prevention
 enabled = true

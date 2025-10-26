@@ -59,7 +59,7 @@ mdbook test
 
 2. **Add to SUMMARY.md**:
    ```markdown
-   - [New Chapter](./new-chapter.md)
+   - [New Chapter](./your-chapter-name.md)
    ```
 
 3. **Write content with tested examples**:
@@ -291,7 +291,7 @@ A: Not recommended, but: `export SKIP_BOOK_CHECK=1`. Only use for hotfixes or pa
 
 **Q: How do I add images?**
 
-A: Place in `src/images/` and reference with `![Alt text](./images/filename.png)`.
+A: Place in `src/images/` and reference with `![Alt text](./images/your-image.png)`.
 
 ## Contributing
 
