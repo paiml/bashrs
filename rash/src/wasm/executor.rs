@@ -227,33 +227,16 @@ impl BashExecutor {
             }
 
             // Check if this is a redirection (has > or >>)
-            let has_redirect = parts.len() >= 4 && (parts[2] == ">" || parts[2] == ">>");
+            // Output heredoc content to stdout
+            // Note: File redirection (> and >>) is not yet implemented for heredocs
+            // TODO: Implement VFS write_file() and read_file() methods for file redirection
+            let text = parts[1..].join(" ");
+            let unescaped = text.replace("\\n", "\n").replace("\\\\", "\\");
 
-            if has_redirect {
-                // Write to file: __HEREDOC_LITERAL__ text > file
-                let text = &parts[1];
-                let redirect_op = &parts[2];
-                let file_path = &parts[3];
-
-                // Unescape the text
-                let unescaped = text.replace("\\n", "\n").replace("\\\\", "\\");
-
-                if redirect_op == ">" {
-                    // Truncate mode
-                    self.vfs.write_file(file_path, &unescaped)?;
-                } else {
-                    // Append mode
-                    let existing = self.vfs.read_file(file_path).unwrap_or_default();
-                    self.vfs.write_file(file_path, &format!("{}{}", existing, unescaped))?;
-                }
-                return Ok(0);
-            } else {
-                // Output to stdout: __HEREDOC_LITERAL__ text
-                let text = parts[1..].join(" ");
-                let unescaped = text.replace("\\n", "\n").replace("\\\\", "\\");
-                self.io.print(&format!("{}\n", unescaped));
-                return Ok(0);
-            }
+            // Write to stdout using Write trait
+            self.io.stdout.write_all(unescaped.as_bytes())?;
+            self.io.stdout.write_all(b"\n")?;
+            return Ok(0);
         }
 
         let args: Vec<String> = parts[1..]
