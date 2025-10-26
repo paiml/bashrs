@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"fn":["check","transpile"],"mod":["ast","bash_parser","bash_transpiler","cli","compiler","config","container","emitter","formal","formatter","ir","linter","make_parser","models","services","stdlib","test_generator","validation","verifier","wasm"]};
+window.SIDEBAR_ITEMS = {"fn":["check","transpile"],"mod":["ast","bash_parser","bash_transpiler","cli","compiler","config","container","emitter","formal","formatter","ir","linter","make_parser","models","repl","services","stdlib","test_generator","validation","verifier","wasm"]};
