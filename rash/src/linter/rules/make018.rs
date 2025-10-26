@@ -82,7 +82,7 @@ pub fn check(source: &str) -> LintResult {
         let diag = Diagnostic::new(
             "MAKE018",
             Severity::Warning,
-            &format!(
+            format!(
                 "Multiple targets write to shared state - parallel-unsafe (conflicts: {})",
                 conflicts.join(", ")
             ),
@@ -188,7 +188,7 @@ fn find_parallel_conflicts(targets: &[TargetState]) -> Vec<String> {
         for path in &target.shared_paths {
             path_to_targets
                 .entry(path.clone())
-                .or_insert_with(Vec::new)
+                .or_default()
                 .push(target.name.clone());
         }
     }
@@ -216,7 +216,7 @@ mod tests {
         let result = check(makefile);
 
         // Both targets write to /usr/bin - parallel unsafe
-        assert!(result.diagnostics.len() >= 1);
+        assert!(!result.diagnostics.is_empty());
         let diag = &result.diagnostics[0];
         assert_eq!(diag.code, "MAKE018");
         assert_eq!(diag.severity, Severity::Warning);
@@ -238,7 +238,7 @@ mod tests {
             "install-bin:\n\tcp app /usr/bin/app\n\ninstall-lib:\n\tcp lib.so /usr/bin/lib.so";
         let result = check(makefile);
 
-        assert!(result.diagnostics.len() > 0);
+        assert!(!result.diagnostics.is_empty());
         assert!(result.diagnostics[0].fix.is_some());
         let fix = result.diagnostics[0].fix.as_ref().unwrap();
         assert!(fix.replacement.contains(".NOTPARALLEL:"));
@@ -250,7 +250,7 @@ mod tests {
         let result = check(makefile);
 
         // setup-etc and setup-etc2 both write to /etc - parallel unsafe
-        assert!(result.diagnostics.len() >= 1);
+        assert!(!result.diagnostics.is_empty());
     }
 
     #[test]
@@ -277,7 +277,7 @@ mod tests {
         let result = check(makefile);
 
         // Both write to same temp file - parallel unsafe
-        assert!(result.diagnostics.len() >= 1);
+        assert!(!result.diagnostics.is_empty());
     }
 
     #[test]

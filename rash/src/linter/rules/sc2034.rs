@@ -73,7 +73,7 @@ pub fn check(source: &str) -> LintResult {
             let diagnostic = Diagnostic::new(
                 "SC2034",
                 Severity::Info,
-                &format!("Variable '{}' is assigned but never used", var_name),
+                format!("Variable '{}' is assigned but never used", var_name),
                 Span::new(*line_num, 1, *line_num, var_name.len() + 1),
             );
 

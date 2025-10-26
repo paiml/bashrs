@@ -151,7 +151,7 @@ pub fn quote_variables(source: &str) -> String {
     for var in &variables {
         lines_to_fix
             .entry(var.line)
-            .or_insert_with(Vec::new)
+            .or_default()
             .push(var);
     }
 

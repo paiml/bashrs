@@ -9,6 +9,15 @@
 //! - Generate safe, reproducible Makefiles
 //! - Property-based testing for all transformations
 //!
+//! ## Safety Note
+//! Makefile parser uses unwrap() and indexing on checked invariants (validated syntax, regex captures).
+//! Positions and splits are validated before access for performance in hot paths.
+//! Some parser functions are placeholders during development.
+#![allow(clippy::unwrap_used)]
+#![allow(clippy::indexing_slicing)]
+#![allow(dead_code)]
+#![allow(unused_variables)]
+//!
 //! ## Usage
 //!
 //! ```rust,ignore

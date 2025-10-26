@@ -16,10 +16,10 @@
 use crate::linter::{Diagnostic, LintResult, Severity, Span};
 
 pub fn check(_source: &str) -> LintResult {
-    let result = LintResult::new();
+    
     // This is a context-sensitive rule requiring deep analysis
     // Simplified implementation - would need full AST
-    result
+    LintResult::new()
 }
 
 #[cfg(test)]

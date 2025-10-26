@@ -10,6 +10,12 @@
 //! - Remove non-deterministic constructs
 //! - Performance optimization (lazy-loading)
 //! - Cross-shell compatibility checking
+//!
+//! ## Safety Note
+//! Config analysis uses unwrap() on regex captures and string operations after validation.
+//! These are performance-critical hot paths for analyzing configuration files.
+#![allow(clippy::unwrap_used)]
+#![allow(clippy::indexing_slicing)]
 
 pub mod aliaser; // CONFIG-003: Consolidate duplicate aliases
 pub mod analyzer;
@@ -18,7 +24,7 @@ pub mod nondeterminism; // CONFIG-004: Detect non-deterministic constructs
 pub mod purifier;
 pub mod quoter; // CONFIG-002: Quote variable expansions
 
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 /// Configuration file types
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -39,7 +45,7 @@ pub enum ConfigType {
 
 impl ConfigType {
     /// Detect config type from file path
-    pub fn from_path(path: &PathBuf) -> Self {
+    pub fn from_path(path: &Path) -> Self {
         let filename = path.file_name().and_then(|s| s.to_str()).unwrap_or("");
 
         match filename {

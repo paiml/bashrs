@@ -16,8 +16,8 @@ pub fn check(source: &str) -> LintResult {
             continue;
         }
 
-        if UNQUOTED_UNALIAS.is_match(line) {
-            if !line.contains("\"$") {
+        if UNQUOTED_UNALIAS.is_match(line)
+            && !line.contains("\"$") {
                 let diagnostic = Diagnostic::new(
                     "SC2235",
                     Severity::Warning,
@@ -27,7 +27,6 @@ pub fn check(source: &str) -> LintResult {
                 );
                 result.add(diagnostic);
             }
-        }
     }
     result
 }

@@ -99,7 +99,7 @@ mod tests {
         let code = "array[0][1][2]=value";
         let result = check(code);
         // Matches [0][1]
-        assert!(result.diagnostics.len() >= 1);
+        assert!(!result.diagnostics.is_empty());
     }
 
     #[test]

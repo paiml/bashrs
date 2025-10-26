@@ -44,7 +44,7 @@ pub fn check(source: &str) -> LintResult {
             if let Some(num_str) = matched.strip_prefix("return").map(|s| s.trim()) {
                 if let Ok(num) = num_str.parse::<i32>() {
                     // Check if out of range 0-255
-                    if num < 0 || num > 255 {
+                    if !(0..=255).contains(&num) {
                         let start_col = mat.start() + 1;
                         let end_col = mat.end() + 1;
 

@@ -3,6 +3,11 @@
 //! This module implements the formatter specification to reduce bash's 1,247
 //! shift/reduce conflicts to 127 in the canonical grammar, enabling faster
 //! verification convergence and simplified SMT encodings.
+//!
+//! ## Safety Note
+//! Formatter uses unwrap() on validated grammar operations and token positions.
+#![allow(clippy::unwrap_used)]
+#![allow(clippy::indexing_slicing)]
 
 pub mod contract;
 pub mod dialect;

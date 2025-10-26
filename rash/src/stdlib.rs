@@ -449,16 +449,19 @@ fn test_env_var_or_escapes_default() {
 }
 
 // Helper functions that need to be implemented in GREEN phase
+#[allow(dead_code)]
 fn is_valid_var_name(name: &str) -> bool {
     // RED: Stub - will implement in GREEN phase
     name.chars().all(|c| c.is_ascii_alphanumeric() || c == '_')
 }
 
+#[allow(dead_code)]
 fn is_safe_default_value(_value: &str) -> bool {
     // RED: Stub - will implement in GREEN phase
     true // Placeholder
 }
 
+#[allow(dead_code)]
 fn contains_injection_attempt(value: &str) -> bool {
     // RED: Stub - will implement in GREEN phase
     value.contains(';') || value.contains('`') || value.contains("$(") || value.contains("${")

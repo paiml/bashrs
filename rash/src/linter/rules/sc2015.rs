@@ -59,9 +59,7 @@ pub fn check(source: &str) -> LintResult {
             let diagnostic = Diagnostic::new(
                 "SC2015",
                 Severity::Info,
-                format!(
-                    "Note that 'A && B || C' is not if-then-else. C may run when A is true. Use 'if A; then B; else C; fi' for proper conditional logic"
-                ),
+                "Note that 'A && B || C' is not if-then-else. C may run when A is true. Use 'if A; then B; else C; fi' for proper conditional logic".to_string(),
                 Span::new(line_num, start_col, line_num, end_col),
             );
 

@@ -13,14 +13,14 @@
 //! ❌ **BAD** (unsafe):
 //! ```makefile
 //! clean:
-//! 	rm -rf $BUILD_DIR
+//!     rm -rf $BUILD_DIR
 //! ```
 //!
 //! ✅ **GOOD** (safe):
 //! ```makefile
 //! clean:
-//! 	rm -rf "$BUILD_DIR"
-//! 	rm -rf "$(BUILD_DIR)"
+//!     rm -rf "$BUILD_DIR"
+//!     rm -rf "$(BUILD_DIR)"
 //! ```
 
 use crate::linter::{Diagnostic, Fix, LintResult, Severity, Span};
@@ -109,6 +109,7 @@ fn check_unquoted_vars(line: &str, line_num: usize, result: &mut LintResult) {
     }
 }
 
+#[allow(clippy::needless_range_loop)]
 fn find_closing_char(chars: &[char], start: usize, closing: char) -> Option<usize> {
     let mut depth = 1;
     for i in start..chars.len() {

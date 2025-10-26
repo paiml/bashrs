@@ -77,7 +77,7 @@ trap "cleanup" EXIT
 ( command )
 "#;
         let result = check(code);
-        assert!(result.diagnostics.len() >= 1);
+        assert!(!result.diagnostics.is_empty());
     }
 
     #[test]
@@ -145,6 +145,6 @@ trap "cleanup" EXIT
     fn test_sc2165_subshell_grouping() {
         let code = "trap 'cleanup' EXIT\n( cd /tmp && ls )";
         let result = check(code);
-        assert!(result.diagnostics.len() >= 1);
+        assert!(!result.diagnostics.is_empty());
     }
 }

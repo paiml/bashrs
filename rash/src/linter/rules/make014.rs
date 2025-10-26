@@ -48,7 +48,7 @@ pub fn check(source: &str) -> LintResult {
                 let diag = Diagnostic::new(
                     "MAKE014",
                     Severity::Warning,
-                    &format!(
+                    format!(
                         "Inefficient shell invocation '{}' - consider using '{}' instead",
                         pattern.trim(),
                         replacement.trim()

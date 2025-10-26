@@ -14,10 +14,10 @@
 //! ❌ **BAD** (missing .PHONY):
 //! ```makefile
 //! clean:
-//! 	rm -f *.o
+//!     rm -f *.o
 //!
 //! test:
-//! 	pytest tests/
+//!     pytest tests/
 //! ```
 //!
 //! ✅ **GOOD** (has .PHONY):
@@ -25,10 +25,10 @@
 //! .PHONY: clean test
 //!
 //! clean:
-//! 	rm -f *.o
+//!     rm -f *.o
 //!
 //! test:
-//! 	pytest tests/
+//!     pytest tests/
 //! ```
 
 use crate::linter::{Diagnostic, Fix, LintResult, Severity, Span};
@@ -104,7 +104,7 @@ pub fn check(source: &str) -> LintResult {
                     let diag = Diagnostic::new(
                         "MAKE004",
                         Severity::Warning,
-                        &format!("Target '{}' should be marked as .PHONY", target),
+                        format!("Target '{}' should be marked as .PHONY", target),
                         span,
                     )
                     .with_fix(Fix::new(&fix));

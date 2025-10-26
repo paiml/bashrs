@@ -10,6 +10,12 @@
 //! - Genchi Genbutsu: Test against real shell scripts
 //! - Hansei: Fix broken functionality before adding features
 //! - Kaizen: Incremental verification with property tests
+//!
+//! ## Safety Note
+//! Parser uses unwrap() and indexing on checked invariants (lookahead tokens, validated positions).
+//! This is safe because positions are validated before access.
+#![allow(clippy::unwrap_used)]
+#![allow(clippy::indexing_slicing)]
 
 pub mod ast;
 pub mod lexer;

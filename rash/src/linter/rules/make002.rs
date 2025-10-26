@@ -13,15 +13,15 @@
 //! ❌ **BAD** (non-idempotent):
 //! ```makefile
 //! build:
-//! 	mkdir build
-//! 	gcc -o app main.c
+//!     mkdir build
+//!     gcc -o app main.c
 //! ```
 //!
 //! ✅ **GOOD** (idempotent):
 //! ```makefile
 //! build:
-//! 	mkdir -p build
-//! 	gcc -o app main.c
+//!     mkdir -p build
+//!     gcc -o app main.c
 //! ```
 
 use crate::linter::{Diagnostic, Fix, LintResult, Severity, Span};

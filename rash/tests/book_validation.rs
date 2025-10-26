@@ -225,14 +225,12 @@ fn test_book_chapter_examples() {
         return;
     }
 
-    let chapters = vec![
-        "ch01-hello-shell-tdd.md",
+    let chapters = ["ch01-hello-shell-tdd.md",
         "ch02-variables-tdd.md",
         "ch03-functions-tdd.md",
         "ch04-control-flow-tdd.md",
         "ch05-error-handling-tdd.md",
-        "ch21-makefile-linting-tdd.md",
-    ];
+        "ch21-makefile-linting-tdd.md"];
 
     let mut total_passed = 0;
     let mut total_failed = 0;

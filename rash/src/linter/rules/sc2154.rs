@@ -84,7 +84,7 @@ pub fn check(source: &str) -> LintResult {
             let diagnostic = Diagnostic::new(
                 "SC2154",
                 Severity::Warning,
-                &format!("Variable '{}' is referenced but not assigned", var_name),
+                format!("Variable '{}' is referenced but not assigned", var_name),
                 Span::new(line_num, col, line_num, col + var_name.len() + 1),
             );
 

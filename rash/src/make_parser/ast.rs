@@ -207,6 +207,8 @@ impl fmt::Display for VarFlavor {
 
 /// Conditional types in Makefiles
 #[derive(Debug, Clone, PartialEq, Eq)]
+/// Makefile conditional directives - names match Make syntax exactly
+#[allow(clippy::enum_variant_names)]
 pub enum MakeCondition {
     /// ifeq ($(VAR),value)
     IfEq(String, String),

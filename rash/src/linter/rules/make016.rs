@@ -48,7 +48,7 @@ pub fn check(source: &str) -> LintResult {
                 let diag = Diagnostic::new(
                     "MAKE016",
                     Severity::Warning,
-                    &format!("Unquoted variable '{}' in prerequisites - may break with spaces in filenames", var),
+                    format!("Unquoted variable '{}' in prerequisites - may break with spaces in filenames", var),
                     span,
                 )
                 .with_fix(Fix::new(&fix_replacement));

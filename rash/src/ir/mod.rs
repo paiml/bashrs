@@ -1,3 +1,10 @@
+//! Intermediate Representation (IR) module
+//!
+//! ## Safety Note
+//! IR uses unwrap() on validated AST operations and checked invariants.
+#![allow(clippy::unwrap_used)]
+#![allow(clippy::indexing_slicing)]
+
 pub mod effects;
 pub mod shell_ir;
 

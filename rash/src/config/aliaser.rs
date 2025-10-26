@@ -79,9 +79,7 @@ pub fn detect_duplicate_aliases(aliases: &[AliasDefinition]) -> Vec<ConfigIssue>
                 ),
                 line: alias.line,
                 column: alias.column,
-                suggestion: Some(format!(
-                    "Remove earlier definition or rename alias. Last definition wins in shell."
-                )),
+                suggestion: Some("Remove earlier definition or rename alias. Last definition wins in shell.".to_string()),
             });
         } else {
             seen.insert(&alias.name, alias.line);

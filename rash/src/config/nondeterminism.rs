@@ -4,7 +4,14 @@
 //! that can cause unpredictable behavior across shell sessions.
 
 use super::{ConfigIssue, Severity};
+use once_cell::sync::Lazy;
 use regex::Regex;
+
+// Static regex for date pattern matching
+#[allow(clippy::expect_used)] // Compile-time regex, panic on invalid pattern is acceptable
+static DATE_PATTERN: Lazy<Regex> = Lazy::new(|| {
+    Regex::new(r"\$\(date[^)]*\)").expect("valid regex pattern")
+});
 
 /// Represents a non-deterministic construct found in config
 #[derive(Debug, Clone, PartialEq)]
@@ -70,8 +77,7 @@ pub fn analyze_nondeterminism(source: &str) -> Vec<NonDeterministicConstruct> {
         }
 
         // Detect $(date ...) patterns
-        let date_pattern = Regex::new(r"\$\(date[^)]*\)").unwrap();
-        for mat in date_pattern.find_iter(line) {
+        for mat in DATE_PATTERN.find_iter(line) {
             constructs.push(NonDeterministicConstruct {
                 line: line_num,
                 column: mat.start(),
@@ -156,7 +162,7 @@ pub fn remove_nondeterminism(source: &str) -> String {
 
         if lines_to_comment.contains(&line_num) {
             // Comment out with explanation
-            result.push(format!("# RASH: Non-deterministic construct removed"));
+            result.push("# RASH: Non-deterministic construct removed".to_string());
             result.push(format!("# {}", line));
         } else {
             result.push(line.to_string());

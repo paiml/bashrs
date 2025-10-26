@@ -56,7 +56,7 @@ pub fn check(source: &str) -> LintResult {
                 let diag = Diagnostic::new(
                     "MAKE009",
                     Severity::Warning,
-                    &format!(
+                    format!(
                         "Hardcoded path '{}' reduces portability - consider using $(PREFIX)",
                         path
                     ),
