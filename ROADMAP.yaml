@@ -1893,8 +1893,8 @@ next_steps:
     option: "Hybrid: GNU Bash Validation + REPL Verification (RECOMMENDED)"
     duration: "Ongoing"
     description: "Execute tasks from BASH-INGESTION-ROADMAP.yaml with hybrid validation approach (20% complete, 24/122 tasks)"
-    methodology: "EXTREME TDD + Interactive REPL Validation + Mutation Testing + Property Testing"
-    workflow: "RED → GREEN → REFACTOR → REPL VERIFICATION → PROPERTY → MUTATION → DOCUMENT"
+    methodology: "EXTREME TDD + Interactive REPL Validation + pmat Quality Analysis + Mutation Testing + Property Testing"
+    workflow: "RED → GREEN → REFACTOR → REPL VERIFICATION → PROPERTY → MUTATION → PMAT VERIFICATION → DOCUMENT"
     current_progress: "20% (24/122 tasks completed)"
     accuracy_note: "Updated 2025-10-26 - Verified actual completion count (was incorrectly listed as 35%, 15/120)"
     hybrid_benefits:

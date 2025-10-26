@@ -88,6 +88,22 @@ extreme_tdd_workflow:
         - "Fix surviving mutants"
 
     - id: 7
+      name: "PMAT VERIFICATION"
+      description: "Verify with paiml-mcp-agent-toolkit quality analysis"
+      substeps:
+        - "Run `pmat analyze complexity --max 10` to verify code complexity"
+        - "Run `pmat quality-score --min 9.0` to verify overall quality"
+        - "Run `pmat verify --spec rash.spec --impl target/debug/bashrs` if applicable"
+        - "Address any quality issues detected"
+      example: |
+        $ pmat analyze complexity --max 10
+        ✅ All functions below complexity 10
+
+        $ pmat quality-score --min 9.0
+        ✅ Quality score: 9.5/10
+      notes: "pmat provides additional quality verification beyond standard tooling"
+
+    - id: 8
       name: "DOCUMENT"
       description: "Update documentation"
       substeps:
@@ -95,6 +111,7 @@ extreme_tdd_workflow:
         - "Mark task as 'completed'"
         - "Add implementation details"
         - "Add REPL verification notes"
+        - "Add pmat verification results"
         - "Update CHANGELOG.md"
 
 cli_testing_protocol:
