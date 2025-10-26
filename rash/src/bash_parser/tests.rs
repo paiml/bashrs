@@ -2503,3 +2503,28 @@ fn test_BASH_BUILTIN_001_alias_to_function() {
         "Alias should be parsed as a Command statement with name 'alias'"
     );
 }
+
+// BASH-BUILTIN-002: Declare/typeset command
+// The declare command declares variables and gives them attributes.
+// declare -i num=5 declares an integer variable
+// typeset is synonym for declare
+#[test]
+fn test_BASH_BUILTIN_002_declare_to_assignment() {
+    let script = "declare";
+
+    let mut parser = BashParser::new(script).unwrap();
+    let ast = parser.parse().unwrap();
+
+    // Should parse successfully
+    assert!(!ast.statements.is_empty(), "Declare command should be parsed");
+
+    // Should be recognized as a Command statement with name "declare"
+    let has_declare_command = ast.statements.iter().any(|s| {
+        matches!(s, BashStmt::Command { name, .. } if name == "declare")
+    });
+
+    assert!(
+        has_declare_command,
+        "Declare should be parsed as a Command statement with name 'declare'"
+    );
+}
