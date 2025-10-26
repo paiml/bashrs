@@ -48,6 +48,8 @@ pub struct BashExecutor {
     io: IoStreams,
     /// Last exit code
     exit_code: i32,
+    /// Flag indicating exit command was called
+    should_exit: bool,
     /// Defined functions (name -> definition)
     functions: HashMap<String, FunctionDef>,
     /// Arrays (name -> elements)
@@ -62,6 +64,7 @@ impl BashExecutor {
             vfs: VirtualFilesystem::new(),
             io: IoStreams::new_capture(),
             exit_code: 0,
+            should_exit: false,
             functions: HashMap::new(),
             arrays: HashMap::new(),
         }
@@ -136,6 +139,7 @@ impl BashExecutor {
                     self.exit_code
                 };
                 self.exit_code = exit_code;
+                self.should_exit = true;
                 // Break out of loop to stop execution
                 break;
             }
@@ -151,6 +155,10 @@ impl BashExecutor {
                 // Execute brace grouping (shared scope)
                 let exit_code = self.execute_brace_group(line)?;
                 self.exit_code = exit_code;
+                // Check if exit was called in brace group
+                if self.should_exit {
+                    break;
+                }
                 i += 1;
                 continue;
             }
@@ -744,6 +752,7 @@ impl BashExecutor {
             vfs: self.vfs.clone(),
             io: IoStreams::new_capture(),
             exit_code: 0,
+            should_exit: false,
             functions: self.functions.clone(),
             arrays: self.arrays.clone(),
         };
@@ -1140,11 +1149,25 @@ impl BashExecutor {
         // or:    if CONDITION \n then \n COMMANDS \n elif CONDITION \n then \n COMMANDS \n fi
 
         // Find fi first (to know where the statement ends)
+        // Must track nesting depth to find the matching fi
         let mut fi_idx = None;
+        let mut depth = 0;
         for (idx, line) in lines.iter().enumerate().skip(start) {
-            if *line == "fi" {
-                fi_idx = Some(idx);
-                break;
+            let trimmed = line.trim();
+            if trimmed.starts_with("if ") {
+                if idx > start {
+                    // This is a nested if
+                    depth += 1;
+                }
+            } else if *line == "fi" || trimmed == "fi" {
+                if depth == 0 {
+                    // This fi belongs to our if
+                    fi_idx = Some(idx);
+                    break;
+                } else {
+                    // This fi belongs to a nested if
+                    depth -= 1;
+                }
             }
         }
         let fi_idx = fi_idx.ok_or_else(|| anyhow!("Missing 'fi' in if statement"))?;
@@ -1375,20 +1398,21 @@ impl BashExecutor {
             self.env.insert(var_name.to_string(), item);
 
             // Execute loop body
-            let body_lines: Vec<&str> = if first_line.contains("; do") && first_line.contains("; done") {
+            if first_line.contains("; do") && first_line.contains("; done") {
                 // Single-line loop: for x in ...; do cmd1; cmd2; done
                 let after_do = first_line.split("; do ").nth(1).unwrap();
                 let before_done = after_do.split("; done").next().unwrap();
-                before_done.split("; ").collect()
-            } else {
-                // Multi-line loop
-                lines[(body_start + 1)..body_end].to_vec()
-            };
-
-            for body_line in body_lines {
-                if !body_line.is_empty() {
-                    exit_code = self.execute_command(body_line)?;
+                let body_lines: Vec<&str> = before_done.split("; ").collect();
+                for body_line in body_lines {
+                    if !body_line.is_empty() {
+                        exit_code = self.execute_command(body_line)?;
+                    }
                 }
+            } else {
+                // Multi-line loop: join body and execute as a block to handle nested structures
+                let body_text = lines[(body_start + 1)..body_end].join("\n");
+                let result = self.execute(&body_text)?;
+                exit_code = result.exit_code;
             }
         }
 
@@ -1490,20 +1514,21 @@ impl BashExecutor {
             match condition_result {
                 Ok(0) => {
                     // Condition true, execute body
-                    let body_lines: Vec<&str> = if first_line.contains("; do") && first_line.contains("; done") {
+                    if first_line.contains("; do") && first_line.contains("; done") {
                         // Single-line loop
                         let after_do = first_line.split("; do ").nth(1).unwrap();
                         let before_done = after_do.split("; done").next().unwrap();
-                        before_done.split("; ").collect()
-                    } else {
-                        // Multi-line loop
-                        lines[(body_start + 1)..body_end].to_vec()
-                    };
-
-                    for body_line in body_lines {
-                        if !body_line.is_empty() {
-                            exit_code = self.execute_command(body_line)?;
+                        let body_lines: Vec<&str> = before_done.split("; ").collect();
+                        for body_line in body_lines {
+                            if !body_line.is_empty() {
+                                exit_code = self.execute_command(body_line)?;
+                            }
                         }
+                    } else {
+                        // Multi-line loop: join body and execute as a block to handle nested structures
+                        let body_text = lines[(body_start + 1)..body_end].join("\n");
+                        let result = self.execute(&body_text)?;
+                        exit_code = result.exit_code;
                     }
                 }
                 Ok(_) => {
@@ -3111,6 +3136,9 @@ mod loop_tests {
         let result = executor.execute(script);
 
         // ASSERT: RED phase
+        if let Err(e) = &result {
+            eprintln!("ERROR: {}", e);
+        }
         assert!(result.is_ok());
         let result = result.unwrap();
         assert_eq!(result.stdout, "1a\n1b\n2a\n2b\n");
@@ -7439,7 +7467,6 @@ fi
 
         /// Test 8: Nested if statements
         #[test]
-        #[ignore] // TODO: Fix nested if support - needs proper nesting depth tracking
         fn test_if_008_nested() {
             let mut executor = BashExecutor::new();
             let result = executor.execute(r#"
@@ -7450,6 +7477,9 @@ if true; then
     fi
 fi
 "#);
+            if let Err(e) = &result {
+                eprintln!("ERROR: {}", e);
+            }
             assert!(result.is_ok());
             let output = result.unwrap();
             assert_eq!(output.stdout.trim(), "outer true\ninner true");
