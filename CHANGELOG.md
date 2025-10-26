@@ -7,6 +7,77 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [6.4.0] - 2025-10-26
+
+### Added
+
+**🎯 Interactive REPL Foundation** (Sprint: REPL-003)
+
+Complete foundation for bashrs interactive REPL with rustyline integration:
+
+**New Features**:
+- **Interactive REPL** (`bashrs repl` command)
+  - rustyline v14.0 integration for terminal line editing
+  - Welcome banner with version display
+  - Command history with rustyline DefaultEditor
+  - quit/exit/help commands
+  - Ctrl-C (Interrupted) and Ctrl-D (EOF) handling
+  - Empty input handling
+
+- **ReplConfig** (REPL-003-001) - Configuration management
+  - Resource limits: max_memory (default: 100MB), timeout (default: 30s), max_depth (default: 100)
+  - Sandboxed mode for untrusted input (10MB, 5s timeout, depth 10)
+  - Builder pattern: `with_debug()`, `with_max_memory()`, `with_timeout()`, `with_max_depth()`
+  - Comprehensive validation
+
+- **CLI Integration** (REPL-003-002)
+  - `bashrs repl` subcommand
+  - `--debug` flag: Enable debug mode
+  - `--sandboxed` flag: Enable sandboxed execution
+  - `--max-memory <MB>` flag: Set memory limit
+  - `--timeout <seconds>` flag: Set command timeout
+  - `--max-depth <n>` flag: Set recursion depth limit
+
+**Architecture**:
+- Debugger-as-REPL pattern (matklad)
+- Symbiotic embedding (RuchyRuchy pattern)
+- Ruchy-inspired resource limits
+
+**Test Quality**:
+- ✅ 20 REPL tests passing (100% pass rate)
+- ✅ ReplConfig: 100% mutation score (9/9 mutants caught)
+- ✅ 3 unit tests (config validation, empty input, EOF)
+- ✅ 3 property tests (>2,500 test cases via proptest)
+- ✅ 1 integration test (CLI help message with assert_cmd)
+- ✅ Zero warnings, compiles cleanly
+
+**Known Limitations** (v6.4 foundation):
+- Command processing is stub only (prints "Command not implemented")
+- No PTY-based interactive testing (deferred to v6.5+)
+- quit/exit/help commands covered by design tests only
+- Full command processing (parse, purify, lint, debug, explain) in v6.5+
+
+**Implementation Details**:
+- `Cargo.toml`: Added `rustyline = "14.0"`
+- `rash/src/repl/config.rs`: ReplConfig struct (287 lines)
+- `rash/src/repl/loop.rs`: REPL loop implementation (159 lines)
+- `rash/src/repl/mod.rs`: Module entry point (13 lines)
+- `rash/src/cli/args.rs`: Repl subcommand definition
+- `rash/src/cli/commands.rs`: handle_repl_command() implementation
+- `rash/tests/test_repl_003_002_cli.rs`: Integration tests (95 lines)
+
+**Usage**:
+```bash
+# Start REPL with defaults
+bashrs repl
+
+# Start in sandboxed mode
+bashrs repl --sandboxed
+
+# Start with debug mode and custom limits
+bashrs repl --debug --max-memory 200 --timeout 60 --max-depth 200
+```
+
 ## [6.3.0] - 2025-10-26
 
 ### Added
