@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"mod":["config"]};
+window.SIDEBAR_ITEMS = {"fn":["run_repl"],"mod":["config","loop"]};
