@@ -77,7 +77,7 @@
 <a href=#77 id=77 data-nosnippet>77</a>( command )
 <a href=#78 id=78 data-nosnippet>78</a>"#</span>;
 <a href=#79 id=79 data-nosnippet>79</a>        <span class="kw">let </span>result = check(code);
-<a href=#80 id=80 data-nosnippet>80</a>        <span class="macro">assert!</span>(result.diagnostics.len() &gt;= <span class="number">1</span>);
+<a href=#80 id=80 data-nosnippet>80</a>        <span class="macro">assert!</span>(!result.diagnostics.is_empty());
 <a href=#81 id=81 data-nosnippet>81</a>    }
 <a href=#82 id=82 data-nosnippet>82</a>
 <a href=#83 id=83 data-nosnippet>83</a>    <span class="attr">#[test]
@@ -145,6 +145,6 @@
 <a href=#145 id=145 data-nosnippet>145</a>    </span><span class="kw">fn </span>test_sc2165_subshell_grouping() {
 <a href=#146 id=146 data-nosnippet>146</a>        <span class="kw">let </span>code = <span class="string">"trap 'cleanup' EXIT\n( cd /tmp &amp;&amp; ls )"</span>;
 <a href=#147 id=147 data-nosnippet>147</a>        <span class="kw">let </span>result = check(code);
-<a href=#148 id=148 data-nosnippet>148</a>        <span class="macro">assert!</span>(result.diagnostics.len() &gt;= <span class="number">1</span>);
+<a href=#148 id=148 data-nosnippet>148</a>        <span class="macro">assert!</span>(!result.diagnostics.is_empty());
 <a href=#149 id=149 data-nosnippet>149</a>    }
 <a href=#150 id=150 data-nosnippet>150</a>}</code></pre></div></section></main></body></html>

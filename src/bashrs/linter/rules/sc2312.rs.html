@@ -2,11 +2,11 @@
 <a href=#2 id=2 data-nosnippet>2</a></span><span class="kw">use </span><span class="kw">crate</span>::linter::LintResult;
 <a href=#3 id=3 data-nosnippet>3</a>
 <a href=#4 id=4 data-nosnippet>4</a><span class="kw">pub fn </span>check(_source: <span class="kw-2">&amp;</span>str) -&gt; LintResult {
-<a href=#5 id=5 data-nosnippet>5</a>    <span class="kw">let </span>result = LintResult::new();
+<a href=#5 id=5 data-nosnippet>5</a>    
 <a href=#6 id=6 data-nosnippet>6</a>    <span class="comment">// This is a placeholder rule - actual implementation would require
 <a href=#7 id=7 data-nosnippet>7</a>    // more sophisticated parsing to detect implicit vs explicit command calls
 <a href=#8 id=8 data-nosnippet>8</a>    // For now, we'll keep it simple and not trigger false positives
-<a href=#9 id=9 data-nosnippet>9</a>    </span>result
+<a href=#9 id=9 data-nosnippet>9</a>    </span>LintResult::new()
 <a href=#10 id=10 data-nosnippet>10</a>}
 <a href=#11 id=11 data-nosnippet>11</a>
 <a href=#12 id=12 data-nosnippet>12</a><span class="attr">#[cfg(test)]

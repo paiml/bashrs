@@ -38,7 +38,7 @@
 <a href=#38 id=38 data-nosnippet>38</a>
 <a href=#39 id=39 data-nosnippet>39</a>            <span class="kw">if let </span><span class="prelude-val">Some</span>(num_str) = matched.strip_prefix(<span class="string">"exit"</span>).map(|s| s.trim()) {
 <a href=#40 id=40 data-nosnippet>40</a>                <span class="kw">if let </span><span class="prelude-val">Ok</span>(num) = num_str.parse::&lt;i32&gt;() {
-<a href=#41 id=41 data-nosnippet>41</a>                    <span class="kw">if </span>num &lt; <span class="number">0 </span>|| num &gt; <span class="number">255 </span>{
+<a href=#41 id=41 data-nosnippet>41</a>                    <span class="kw">if </span>!(<span class="number">0</span>..=<span class="number">255</span>).contains(<span class="kw-2">&amp;</span>num) {
 <a href=#42 id=42 data-nosnippet>42</a>                        <span class="kw">let </span>start_col = mat.start() + <span class="number">1</span>;
 <a href=#43 id=43 data-nosnippet>43</a>                        <span class="kw">let </span>end_col = mat.end() + <span class="number">1</span>;
 <a href=#44 id=44 data-nosnippet>44</a>

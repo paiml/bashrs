@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"fn":["preprocess_for_linting","preprocess_recipe_line"],"static":["RECIPE_LINE","TARGET_DECL"]};

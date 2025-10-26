@@ -424,7 +424,7 @@
 <a href=#424 id=424 data-nosnippet>424</a>    </span><span class="kw">fn </span>test_FUNC_SHELL_001_mut_non_empty_check() {
 <a href=#425 id=425 data-nosnippet>425</a>        <span class="comment">// Ensures we don't crash on empty strings
 <a href=#426 id=426 data-nosnippet>426</a>        </span><span class="kw">let </span>result = detect_shell_date(<span class="string">""</span>);
-<a href=#427 id=427 data-nosnippet>427</a>        <span class="macro">assert_eq!</span>(result, <span class="bool-val">false</span>);
+<a href=#427 id=427 data-nosnippet>427</a>        <span class="macro">assert!</span>(!result);
 <a href=#428 id=428 data-nosnippet>428</a>    }
 <a href=#429 id=429 data-nosnippet>429</a>
 <a href=#430 id=430 data-nosnippet>430</a>    <span class="comment">// Property-based tests
@@ -629,7 +629,7 @@
 <a href=#629 id=629 data-nosnippet>629</a>    </span><span class="kw">fn </span>test_FUNC_WILDCARD_001_mut_non_empty_check() {
 <a href=#630 id=630 data-nosnippet>630</a>        <span class="comment">// Ensures we don't crash on empty strings
 <a href=#631 id=631 data-nosnippet>631</a>        </span><span class="kw">let </span>result = detect_wildcard(<span class="string">""</span>);
-<a href=#632 id=632 data-nosnippet>632</a>        <span class="macro">assert_eq!</span>(result, <span class="bool-val">false</span>);
+<a href=#632 id=632 data-nosnippet>632</a>        <span class="macro">assert!</span>(!result);
 <a href=#633 id=633 data-nosnippet>633</a>    }
 <a href=#634 id=634 data-nosnippet>634</a>
 <a href=#635 id=635 data-nosnippet>635</a>    <span class="comment">// Property-based tests for wildcard detection
@@ -949,7 +949,7 @@
 <a href=#949 id=949 data-nosnippet>949</a>    </span><span class="kw">fn </span>test_FUNC_SHELL_002_mut_non_empty_check() {
 <a href=#950 id=950 data-nosnippet>950</a>        <span class="comment">// Ensures we don't crash on empty strings
 <a href=#951 id=951 data-nosnippet>951</a>        </span><span class="kw">let </span>result = detect_shell_find(<span class="string">""</span>);
-<a href=#952 id=952 data-nosnippet>952</a>        <span class="macro">assert_eq!</span>(result, <span class="bool-val">false</span>);
+<a href=#952 id=952 data-nosnippet>952</a>        <span class="macro">assert!</span>(!result);
 <a href=#953 id=953 data-nosnippet>953</a>    }
 <a href=#954 id=954 data-nosnippet>954</a>
 <a href=#955 id=955 data-nosnippet>955</a>    <span class="comment">// Property-based tests for shell find detection (FUNC-SHELL-002)
@@ -1198,7 +1198,7 @@
 <a href=#1198 id=1198 data-nosnippet>1198</a>    </span><span class="kw">fn </span>test_FUNC_SHELL_003_mut_non_empty_check() {
 <a href=#1199 id=1199 data-nosnippet>1199</a>        <span class="comment">// Ensures we don't crash on empty strings
 <a href=#1200 id=1200 data-nosnippet>1200</a>        </span><span class="kw">let </span>result = detect_random(<span class="string">""</span>);
-<a href=#1201 id=1201 data-nosnippet>1201</a>        <span class="macro">assert_eq!</span>(result, <span class="bool-val">false</span>);
+<a href=#1201 id=1201 data-nosnippet>1201</a>        <span class="macro">assert!</span>(!result);
 <a href=#1202 id=1202 data-nosnippet>1202</a>    }
 <a href=#1203 id=1203 data-nosnippet>1203</a>
 <a href=#1204 id=1204 data-nosnippet>1204</a>    <span class="comment">// Property-based tests for $RANDOM detection (FUNC-SHELL-003)

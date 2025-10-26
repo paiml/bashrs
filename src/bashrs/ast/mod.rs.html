@@ -121,41 +121,35 @@
 <a href=#121 id=121 data-nosnippet>121</a><span class="attr">#[cfg(test)]
 <a href=#122 id=122 data-nosnippet>122</a></span><span class="kw">mod </span>visitor_tests;
 <a href=#123 id=123 data-nosnippet>123</a>
-<a href=#124 id=124 data-nosnippet>124</a><span class="attr">#[cfg(test)]
-<a href=#125 id=125 data-nosnippet>125</a></span><span class="kw">mod </span>restricted_validation_test;
-<a href=#126 id=126 data-nosnippet>126</a>
-<a href=#127 id=127 data-nosnippet>127</a><span class="attr">#[cfg(test)]
-<a href=#128 id=128 data-nosnippet>128</a></span><span class="kw">mod </span>restricted_test;
-<a href=#129 id=129 data-nosnippet>129</a>
-<a href=#130 id=130 data-nosnippet>130</a><span class="kw">pub use </span>restricted::{Expr, Function, RestrictedAst, Stmt, Type};
-<a href=#131 id=131 data-nosnippet>131</a>
-<a href=#132 id=132 data-nosnippet>132</a><span class="kw">use </span><span class="kw">crate</span>::models::{Error, <span class="prelude-ty">Result</span>};
-<a href=#133 id=133 data-nosnippet>133</a>
-<a href=#134 id=134 data-nosnippet>134</a><span class="doccomment">/// Validate that an AST conforms to Rash restrictions
-<a href=#135 id=135 data-nosnippet>135</a>///
-<a href=#136 id=136 data-nosnippet>136</a>/// # Examples
-<a href=#137 id=137 data-nosnippet>137</a>///
-<a href=#138 id=138 data-nosnippet>138</a>/// ```rust
-<a href=#139 id=139 data-nosnippet>139</a>/// use bashrs::ast::{validate, RestrictedAst, Function, Type};
-<a href=#140 id=140 data-nosnippet>140</a>///
-<a href=#141 id=141 data-nosnippet>141</a>/// # fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
-<a href=#142 id=142 data-nosnippet>142</a>/// let ast = RestrictedAst {
-<a href=#143 id=143 data-nosnippet>143</a>///     functions: vec![
-<a href=#144 id=144 data-nosnippet>144</a>///         Function {
-<a href=#145 id=145 data-nosnippet>145</a>///             name: "main".to_string(),
-<a href=#146 id=146 data-nosnippet>146</a>///             params: vec![],
-<a href=#147 id=147 data-nosnippet>147</a>///             body: vec![],
-<a href=#148 id=148 data-nosnippet>148</a>///             return_type: Type::Void,
-<a href=#149 id=149 data-nosnippet>149</a>///         }
-<a href=#150 id=150 data-nosnippet>150</a>///     ],
-<a href=#151 id=151 data-nosnippet>151</a>///     entry_point: "main".to_string(),
-<a href=#152 id=152 data-nosnippet>152</a>/// };
-<a href=#153 id=153 data-nosnippet>153</a>///
-<a href=#154 id=154 data-nosnippet>154</a>/// // Validate the AST
-<a href=#155 id=155 data-nosnippet>155</a>/// validate(&amp;ast)?;
-<a href=#156 id=156 data-nosnippet>156</a>/// # Ok(())
-<a href=#157 id=157 data-nosnippet>157</a>/// # }
-<a href=#158 id=158 data-nosnippet>158</a>/// ```
-<a href=#159 id=159 data-nosnippet>159</a></span><span class="kw">pub fn </span>validate(ast: <span class="kw-2">&amp;</span>RestrictedAst) -&gt; <span class="prelude-ty">Result</span>&lt;()&gt; {
-<a href=#160 id=160 data-nosnippet>160</a>    ast.validate().map_err(Error::Validation)
-<a href=#161 id=161 data-nosnippet>161</a>}</code></pre></div></section></main></body></html>
+<a href=#124 id=124 data-nosnippet>124</a><span class="kw">pub use </span>restricted::{Expr, Function, RestrictedAst, Stmt, Type};
+<a href=#125 id=125 data-nosnippet>125</a>
+<a href=#126 id=126 data-nosnippet>126</a><span class="kw">use </span><span class="kw">crate</span>::models::{Error, <span class="prelude-ty">Result</span>};
+<a href=#127 id=127 data-nosnippet>127</a>
+<a href=#128 id=128 data-nosnippet>128</a><span class="doccomment">/// Validate that an AST conforms to Rash restrictions
+<a href=#129 id=129 data-nosnippet>129</a>///
+<a href=#130 id=130 data-nosnippet>130</a>/// # Examples
+<a href=#131 id=131 data-nosnippet>131</a>///
+<a href=#132 id=132 data-nosnippet>132</a>/// ```rust
+<a href=#133 id=133 data-nosnippet>133</a>/// use bashrs::ast::{validate, RestrictedAst, Function, Type};
+<a href=#134 id=134 data-nosnippet>134</a>///
+<a href=#135 id=135 data-nosnippet>135</a>/// # fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
+<a href=#136 id=136 data-nosnippet>136</a>/// let ast = RestrictedAst {
+<a href=#137 id=137 data-nosnippet>137</a>///     functions: vec![
+<a href=#138 id=138 data-nosnippet>138</a>///         Function {
+<a href=#139 id=139 data-nosnippet>139</a>///             name: "main".to_string(),
+<a href=#140 id=140 data-nosnippet>140</a>///             params: vec![],
+<a href=#141 id=141 data-nosnippet>141</a>///             body: vec![],
+<a href=#142 id=142 data-nosnippet>142</a>///             return_type: Type::Void,
+<a href=#143 id=143 data-nosnippet>143</a>///         }
+<a href=#144 id=144 data-nosnippet>144</a>///     ],
+<a href=#145 id=145 data-nosnippet>145</a>///     entry_point: "main".to_string(),
+<a href=#146 id=146 data-nosnippet>146</a>/// };
+<a href=#147 id=147 data-nosnippet>147</a>///
+<a href=#148 id=148 data-nosnippet>148</a>/// // Validate the AST
+<a href=#149 id=149 data-nosnippet>149</a>/// validate(&amp;ast)?;
+<a href=#150 id=150 data-nosnippet>150</a>/// # Ok(())
+<a href=#151 id=151 data-nosnippet>151</a>/// # }
+<a href=#152 id=152 data-nosnippet>152</a>/// ```
+<a href=#153 id=153 data-nosnippet>153</a></span><span class="kw">pub fn </span>validate(ast: <span class="kw-2">&amp;</span>RestrictedAst) -&gt; <span class="prelude-ty">Result</span>&lt;()&gt; {
+<a href=#154 id=154 data-nosnippet>154</a>    ast.validate().map_err(Error::Validation)
+<a href=#155 id=155 data-nosnippet>155</a>}</code></pre></div></section></main></body></html>

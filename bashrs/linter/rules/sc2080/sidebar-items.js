@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"fn":["check"],"static":["LEADING_ZERO_NUMBER"]};
+window.SIDEBAR_ITEMS = {"fn":["check"],"static":["LEADING_ZERO_NUMBER","NUM_WITH_LEADING_ZERO"]};

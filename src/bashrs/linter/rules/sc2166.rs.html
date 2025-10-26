@@ -138,7 +138,7 @@
 <a href=#138 id=138 data-nosnippet>138</a>        <span class="kw">let </span>code = <span class="string">r#"if [ "$a" = "1" -a "$b" = "2" -a "$c" = "3" ]; then"#</span>;
 <a href=#139 id=139 data-nosnippet>139</a>        <span class="kw">let </span>result = check(code);
 <a href=#140 id=140 data-nosnippet>140</a>        <span class="comment">// Should detect at least one -a
-<a href=#141 id=141 data-nosnippet>141</a>        </span><span class="macro">assert!</span>(result.diagnostics.len() &gt;= <span class="number">1</span>);
+<a href=#141 id=141 data-nosnippet>141</a>        </span><span class="macro">assert!</span>(!result.diagnostics.is_empty());
 <a href=#142 id=142 data-nosnippet>142</a>    }
 <a href=#143 id=143 data-nosnippet>143</a>
 <a href=#144 id=144 data-nosnippet>144</a>    <span class="attr">#[test]

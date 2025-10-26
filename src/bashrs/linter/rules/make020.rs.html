@@ -84,129 +84,142 @@
 <a href=#84 id=84 data-nosnippet>84</a></span>}
 <a href=#85 id=85 data-nosnippet>85</a>
 <a href=#86 id=86 data-nosnippet>86</a><span class="doccomment">/// Check if Makefile should have an include guard
-<a href=#87 id=87 data-nosnippet>87</a>/// (has variable definitions but is not just targets)
+<a href=#87 id=87 data-nosnippet>87</a>/// (has variable definitions AND looks like an includable file, not a standalone Makefile)
 <a href=#88 id=88 data-nosnippet>88</a></span><span class="kw">fn </span>should_have_guard(source: <span class="kw-2">&amp;</span>str) -&gt; bool {
 <a href=#89 id=89 data-nosnippet>89</a>    <span class="kw">let </span><span class="kw-2">mut </span>has_variables = <span class="bool-val">false</span>;
-<a href=#90 id=90 data-nosnippet>90</a>
-<a href=#91 id=91 data-nosnippet>91</a>    <span class="kw">for </span>line <span class="kw">in </span>source.lines() {
-<a href=#92 id=92 data-nosnippet>92</a>        <span class="kw">let </span>trimmed = line.trim();
-<a href=#93 id=93 data-nosnippet>93</a>
-<a href=#94 id=94 data-nosnippet>94</a>        <span class="comment">// Skip comments and empty lines
-<a href=#95 id=95 data-nosnippet>95</a>        </span><span class="kw">if </span>trimmed.is_empty() || trimmed.starts_with(<span class="string">'#'</span>) {
-<a href=#96 id=96 data-nosnippet>96</a>            <span class="kw">continue</span>;
-<a href=#97 id=97 data-nosnippet>97</a>        }
-<a href=#98 id=98 data-nosnippet>98</a>
-<a href=#99 id=99 data-nosnippet>99</a>        <span class="comment">// Skip recipe lines
-<a href=#100 id=100 data-nosnippet>100</a>        </span><span class="kw">if </span>line.starts_with(<span class="string">'\t'</span>) {
-<a href=#101 id=101 data-nosnippet>101</a>            <span class="kw">continue</span>;
-<a href=#102 id=102 data-nosnippet>102</a>        }
-<a href=#103 id=103 data-nosnippet>103</a>
-<a href=#104 id=104 data-nosnippet>104</a>        <span class="comment">// Check for variable definitions (contains = but not :)
-<a href=#105 id=105 data-nosnippet>105</a>        </span><span class="kw">if </span>trimmed.contains(<span class="string">'='</span>) &amp;&amp; !trimmed.starts_with(<span class="string">"export "</span>) {
-<a href=#106 id=106 data-nosnippet>106</a>            has_variables = <span class="bool-val">true</span>;
-<a href=#107 id=107 data-nosnippet>107</a>            <span class="kw">break</span>;
+<a href=#90 id=90 data-nosnippet>90</a>    <span class="kw">let </span><span class="kw-2">mut </span>has_targets = <span class="bool-val">false</span>;
+<a href=#91 id=91 data-nosnippet>91</a>
+<a href=#92 id=92 data-nosnippet>92</a>    <span class="kw">for </span>line <span class="kw">in </span>source.lines() {
+<a href=#93 id=93 data-nosnippet>93</a>        <span class="kw">let </span>trimmed = line.trim();
+<a href=#94 id=94 data-nosnippet>94</a>
+<a href=#95 id=95 data-nosnippet>95</a>        <span class="comment">// Skip comments and empty lines
+<a href=#96 id=96 data-nosnippet>96</a>        </span><span class="kw">if </span>trimmed.is_empty() || trimmed.starts_with(<span class="string">'#'</span>) {
+<a href=#97 id=97 data-nosnippet>97</a>            <span class="kw">continue</span>;
+<a href=#98 id=98 data-nosnippet>98</a>        }
+<a href=#99 id=99 data-nosnippet>99</a>
+<a href=#100 id=100 data-nosnippet>100</a>        <span class="comment">// Skip recipe lines
+<a href=#101 id=101 data-nosnippet>101</a>        </span><span class="kw">if </span>line.starts_with(<span class="string">'\t'</span>) {
+<a href=#102 id=102 data-nosnippet>102</a>            <span class="kw">continue</span>;
+<a href=#103 id=103 data-nosnippet>103</a>        }
+<a href=#104 id=104 data-nosnippet>104</a>
+<a href=#105 id=105 data-nosnippet>105</a>        <span class="comment">// Check for variable definitions (contains = but not :)
+<a href=#106 id=106 data-nosnippet>106</a>        </span><span class="kw">if </span>trimmed.contains(<span class="string">'='</span>) &amp;&amp; !trimmed.starts_with(<span class="string">"export "</span>) {
+<a href=#107 id=107 data-nosnippet>107</a>            has_variables = <span class="bool-val">true</span>;
 <a href=#108 id=108 data-nosnippet>108</a>        }
-<a href=#109 id=109 data-nosnippet>109</a>    }
-<a href=#110 id=110 data-nosnippet>110</a>
-<a href=#111 id=111 data-nosnippet>111</a>    has_variables
-<a href=#112 id=112 data-nosnippet>112</a>}
-<a href=#113 id=113 data-nosnippet>113</a>
-<a href=#114 id=114 data-nosnippet>114</a><span class="doccomment">/// Create fix by adding include guard around entire file
-<a href=#115 id=115 data-nosnippet>115</a></span><span class="kw">fn </span>create_guard_fix(source: <span class="kw-2">&amp;</span>str) -&gt; String {
-<a href=#116 id=116 data-nosnippet>116</a>    <span class="comment">// Generate guard name based on typical convention
-<a href=#117 id=117 data-nosnippet>117</a>    </span><span class="kw">let </span>guard_name = <span class="string">"MAKEFILE_INCLUDED"</span>;
-<a href=#118 id=118 data-nosnippet>118</a>
-<a href=#119 id=119 data-nosnippet>119</a>    <span class="macro">format!</span>(
-<a href=#120 id=120 data-nosnippet>120</a>        <span class="string">"ifndef {}\n{} := 1\n\n{}\n\nendif"</span>,
-<a href=#121 id=121 data-nosnippet>121</a>        guard_name, guard_name, source
-<a href=#122 id=122 data-nosnippet>122</a>    )
-<a href=#123 id=123 data-nosnippet>123</a>}
-<a href=#124 id=124 data-nosnippet>124</a>
-<a href=#125 id=125 data-nosnippet>125</a><span class="attr">#[cfg(test)]
-<a href=#126 id=126 data-nosnippet>126</a></span><span class="kw">mod </span>tests {
-<a href=#127 id=127 data-nosnippet>127</a>    <span class="kw">use super</span>::<span class="kw-2">*</span>;
-<a href=#128 id=128 data-nosnippet>128</a>
-<a href=#129 id=129 data-nosnippet>129</a>    <span class="comment">// RED PHASE: Write failing tests first
-<a href=#130 id=130 data-nosnippet>130</a>
-<a href=#131 id=131 data-nosnippet>131</a>    </span><span class="attr">#[test]
-<a href=#132 id=132 data-nosnippet>132</a>    </span><span class="kw">fn </span>test_MAKE020_detects_missing_guard() {
-<a href=#133 id=133 data-nosnippet>133</a>        <span class="kw">let </span>makefile = <span class="string">"# common.mk\nCC = gcc\nCFLAGS = -Wall"</span>;
-<a href=#134 id=134 data-nosnippet>134</a>        <span class="kw">let </span>result = check(makefile);
-<a href=#135 id=135 data-nosnippet>135</a>
-<a href=#136 id=136 data-nosnippet>136</a>        <span class="macro">assert_eq!</span>(result.diagnostics.len(), <span class="number">1</span>);
-<a href=#137 id=137 data-nosnippet>137</a>        <span class="kw">let </span>diag = <span class="kw-2">&amp;</span>result.diagnostics[<span class="number">0</span>];
-<a href=#138 id=138 data-nosnippet>138</a>        <span class="macro">assert_eq!</span>(diag.code, <span class="string">"MAKE020"</span>);
-<a href=#139 id=139 data-nosnippet>139</a>        <span class="macro">assert_eq!</span>(diag.severity, Severity::Warning);
-<a href=#140 id=140 data-nosnippet>140</a>        <span class="macro">assert!</span>(
-<a href=#141 id=141 data-nosnippet>141</a>            diag.message.to_lowercase().contains(<span class="string">"guard"</span>)
-<a href=#142 id=142 data-nosnippet>142</a>                || diag.message.to_lowercase().contains(<span class="string">"include"</span>)
-<a href=#143 id=143 data-nosnippet>143</a>        );
-<a href=#144 id=144 data-nosnippet>144</a>    }
-<a href=#145 id=145 data-nosnippet>145</a>
-<a href=#146 id=146 data-nosnippet>146</a>    <span class="attr">#[test]
-<a href=#147 id=147 data-nosnippet>147</a>    </span><span class="kw">fn </span>test_MAKE020_detects_makefile_with_variables() {
-<a href=#148 id=148 data-nosnippet>148</a>        <span class="kw">let </span>makefile = <span class="string">"VERSION = 1.0\nPREFIX = /usr/local"</span>;
-<a href=#149 id=149 data-nosnippet>149</a>        <span class="kw">let </span>result = check(makefile);
-<a href=#150 id=150 data-nosnippet>150</a>
-<a href=#151 id=151 data-nosnippet>151</a>        <span class="comment">// Has variables but no guard
-<a href=#152 id=152 data-nosnippet>152</a>        </span><span class="macro">assert_eq!</span>(result.diagnostics.len(), <span class="number">1</span>);
-<a href=#153 id=153 data-nosnippet>153</a>    }
-<a href=#154 id=154 data-nosnippet>154</a>
-<a href=#155 id=155 data-nosnippet>155</a>    <span class="attr">#[test]
-<a href=#156 id=156 data-nosnippet>156</a>    </span><span class="kw">fn </span>test_MAKE020_provides_fix() {
-<a href=#157 id=157 data-nosnippet>157</a>        <span class="kw">let </span>makefile = <span class="string">"# common.mk\nCC = gcc\nCFLAGS = -Wall"</span>;
-<a href=#158 id=158 data-nosnippet>158</a>        <span class="kw">let </span>result = check(makefile);
-<a href=#159 id=159 data-nosnippet>159</a>
-<a href=#160 id=160 data-nosnippet>160</a>        <span class="macro">assert!</span>(result.diagnostics[<span class="number">0</span>].fix.is_some());
-<a href=#161 id=161 data-nosnippet>161</a>        <span class="kw">let </span>fix = result.diagnostics[<span class="number">0</span>].fix.as_ref().unwrap();
-<a href=#162 id=162 data-nosnippet>162</a>        <span class="comment">// Fix should add ifndef/endif guard
-<a href=#163 id=163 data-nosnippet>163</a>        </span><span class="macro">assert!</span>(fix.replacement.contains(<span class="string">"ifndef"</span>));
-<a href=#164 id=164 data-nosnippet>164</a>        <span class="macro">assert!</span>(fix.replacement.contains(<span class="string">"endif"</span>));
-<a href=#165 id=165 data-nosnippet>165</a>    }
-<a href=#166 id=166 data-nosnippet>166</a>
-<a href=#167 id=167 data-nosnippet>167</a>    <span class="attr">#[test]
-<a href=#168 id=168 data-nosnippet>168</a>    </span><span class="kw">fn </span>test_MAKE020_no_warning_with_guard() {
-<a href=#169 id=169 data-nosnippet>169</a>        <span class="kw">let </span>makefile = <span class="string">"ifndef COMMON_MK\nCOMMON_MK := 1\n\nCC = gcc\n\nendif"</span>;
-<a href=#170 id=170 data-nosnippet>170</a>        <span class="kw">let </span>result = check(makefile);
-<a href=#171 id=171 data-nosnippet>171</a>
-<a href=#172 id=172 data-nosnippet>172</a>        <span class="comment">// Has include guard - OK
-<a href=#173 id=173 data-nosnippet>173</a>        </span><span class="macro">assert_eq!</span>(result.diagnostics.len(), <span class="number">0</span>);
-<a href=#174 id=174 data-nosnippet>174</a>    }
-<a href=#175 id=175 data-nosnippet>175</a>
-<a href=#176 id=176 data-nosnippet>176</a>    <span class="attr">#[test]
-<a href=#177 id=177 data-nosnippet>177</a>    </span><span class="kw">fn </span>test_MAKE020_no_warning_for_simple_targets_only() {
-<a href=#178 id=178 data-nosnippet>178</a>        <span class="kw">let </span>makefile = <span class="string">"all:\n\t$(CC) main.c\n\nclean:\n\trm -f *.o"</span>;
-<a href=#179 id=179 data-nosnippet>179</a>        <span class="kw">let </span>result = check(makefile);
-<a href=#180 id=180 data-nosnippet>180</a>
-<a href=#181 id=181 data-nosnippet>181</a>        <span class="comment">// Only targets, no variables to guard - OK
-<a href=#182 id=182 data-nosnippet>182</a>        </span><span class="macro">assert_eq!</span>(result.diagnostics.len(), <span class="number">0</span>);
-<a href=#183 id=183 data-nosnippet>183</a>    }
+<a href=#109 id=109 data-nosnippet>109</a>
+<a href=#110 id=110 data-nosnippet>110</a>        <span class="comment">// Check for targets (lines with : that aren't variable assignments)
+<a href=#111 id=111 data-nosnippet>111</a>        </span><span class="kw">if </span>trimmed.contains(<span class="string">':'</span>) {
+<a href=#112 id=112 data-nosnippet>112</a>            <span class="comment">// Distinguish between "VAR := value" and "target: deps"
+<a href=#113 id=113 data-nosnippet>113</a>            </span><span class="kw">if let </span><span class="prelude-val">Some</span>(before_colon) = trimmed.split(<span class="string">':'</span>).next() {
+<a href=#114 id=114 data-nosnippet>114</a>                <span class="comment">// If there's an = before the :, it's an assignment (VAR := value)
+<a href=#115 id=115 data-nosnippet>115</a>                </span><span class="kw">if </span>!before_colon.contains(<span class="string">'='</span>) {
+<a href=#116 id=116 data-nosnippet>116</a>                    has_targets = <span class="bool-val">true</span>;
+<a href=#117 id=117 data-nosnippet>117</a>                }
+<a href=#118 id=118 data-nosnippet>118</a>            }
+<a href=#119 id=119 data-nosnippet>119</a>        }
+<a href=#120 id=120 data-nosnippet>120</a>    }
+<a href=#121 id=121 data-nosnippet>121</a>
+<a href=#122 id=122 data-nosnippet>122</a>    <span class="comment">// Only warn if has variables AND no targets (indicating include file)
+<a href=#123 id=123 data-nosnippet>123</a>    // Standalone Makefiles with targets don't need guards
+<a href=#124 id=124 data-nosnippet>124</a>    </span>has_variables &amp;&amp; !has_targets
+<a href=#125 id=125 data-nosnippet>125</a>}
+<a href=#126 id=126 data-nosnippet>126</a>
+<a href=#127 id=127 data-nosnippet>127</a><span class="doccomment">/// Create fix by adding include guard around entire file
+<a href=#128 id=128 data-nosnippet>128</a></span><span class="kw">fn </span>create_guard_fix(source: <span class="kw-2">&amp;</span>str) -&gt; String {
+<a href=#129 id=129 data-nosnippet>129</a>    <span class="comment">// Generate guard name based on typical convention
+<a href=#130 id=130 data-nosnippet>130</a>    </span><span class="kw">let </span>guard_name = <span class="string">"MAKEFILE_INCLUDED"</span>;
+<a href=#131 id=131 data-nosnippet>131</a>
+<a href=#132 id=132 data-nosnippet>132</a>    <span class="macro">format!</span>(
+<a href=#133 id=133 data-nosnippet>133</a>        <span class="string">"ifndef {}\n{} := 1\n\n{}\n\nendif"</span>,
+<a href=#134 id=134 data-nosnippet>134</a>        guard_name, guard_name, source
+<a href=#135 id=135 data-nosnippet>135</a>    )
+<a href=#136 id=136 data-nosnippet>136</a>}
+<a href=#137 id=137 data-nosnippet>137</a>
+<a href=#138 id=138 data-nosnippet>138</a><span class="attr">#[cfg(test)]
+<a href=#139 id=139 data-nosnippet>139</a></span><span class="kw">mod </span>tests {
+<a href=#140 id=140 data-nosnippet>140</a>    <span class="kw">use super</span>::<span class="kw-2">*</span>;
+<a href=#141 id=141 data-nosnippet>141</a>
+<a href=#142 id=142 data-nosnippet>142</a>    <span class="comment">// RED PHASE: Write failing tests first
+<a href=#143 id=143 data-nosnippet>143</a>
+<a href=#144 id=144 data-nosnippet>144</a>    </span><span class="attr">#[test]
+<a href=#145 id=145 data-nosnippet>145</a>    </span><span class="kw">fn </span>test_MAKE020_detects_missing_guard() {
+<a href=#146 id=146 data-nosnippet>146</a>        <span class="kw">let </span>makefile = <span class="string">"# common.mk\nCC = gcc\nCFLAGS = -Wall"</span>;
+<a href=#147 id=147 data-nosnippet>147</a>        <span class="kw">let </span>result = check(makefile);
+<a href=#148 id=148 data-nosnippet>148</a>
+<a href=#149 id=149 data-nosnippet>149</a>        <span class="macro">assert_eq!</span>(result.diagnostics.len(), <span class="number">1</span>);
+<a href=#150 id=150 data-nosnippet>150</a>        <span class="kw">let </span>diag = <span class="kw-2">&amp;</span>result.diagnostics[<span class="number">0</span>];
+<a href=#151 id=151 data-nosnippet>151</a>        <span class="macro">assert_eq!</span>(diag.code, <span class="string">"MAKE020"</span>);
+<a href=#152 id=152 data-nosnippet>152</a>        <span class="macro">assert_eq!</span>(diag.severity, Severity::Warning);
+<a href=#153 id=153 data-nosnippet>153</a>        <span class="macro">assert!</span>(
+<a href=#154 id=154 data-nosnippet>154</a>            diag.message.to_lowercase().contains(<span class="string">"guard"</span>)
+<a href=#155 id=155 data-nosnippet>155</a>                || diag.message.to_lowercase().contains(<span class="string">"include"</span>)
+<a href=#156 id=156 data-nosnippet>156</a>        );
+<a href=#157 id=157 data-nosnippet>157</a>    }
+<a href=#158 id=158 data-nosnippet>158</a>
+<a href=#159 id=159 data-nosnippet>159</a>    <span class="attr">#[test]
+<a href=#160 id=160 data-nosnippet>160</a>    </span><span class="kw">fn </span>test_MAKE020_detects_makefile_with_variables() {
+<a href=#161 id=161 data-nosnippet>161</a>        <span class="kw">let </span>makefile = <span class="string">"VERSION = 1.0\nPREFIX = /usr/local"</span>;
+<a href=#162 id=162 data-nosnippet>162</a>        <span class="kw">let </span>result = check(makefile);
+<a href=#163 id=163 data-nosnippet>163</a>
+<a href=#164 id=164 data-nosnippet>164</a>        <span class="comment">// Has variables but no guard
+<a href=#165 id=165 data-nosnippet>165</a>        </span><span class="macro">assert_eq!</span>(result.diagnostics.len(), <span class="number">1</span>);
+<a href=#166 id=166 data-nosnippet>166</a>    }
+<a href=#167 id=167 data-nosnippet>167</a>
+<a href=#168 id=168 data-nosnippet>168</a>    <span class="attr">#[test]
+<a href=#169 id=169 data-nosnippet>169</a>    </span><span class="kw">fn </span>test_MAKE020_provides_fix() {
+<a href=#170 id=170 data-nosnippet>170</a>        <span class="kw">let </span>makefile = <span class="string">"# common.mk\nCC = gcc\nCFLAGS = -Wall"</span>;
+<a href=#171 id=171 data-nosnippet>171</a>        <span class="kw">let </span>result = check(makefile);
+<a href=#172 id=172 data-nosnippet>172</a>
+<a href=#173 id=173 data-nosnippet>173</a>        <span class="macro">assert!</span>(result.diagnostics[<span class="number">0</span>].fix.is_some());
+<a href=#174 id=174 data-nosnippet>174</a>        <span class="kw">let </span>fix = result.diagnostics[<span class="number">0</span>].fix.as_ref().unwrap();
+<a href=#175 id=175 data-nosnippet>175</a>        <span class="comment">// Fix should add ifndef/endif guard
+<a href=#176 id=176 data-nosnippet>176</a>        </span><span class="macro">assert!</span>(fix.replacement.contains(<span class="string">"ifndef"</span>));
+<a href=#177 id=177 data-nosnippet>177</a>        <span class="macro">assert!</span>(fix.replacement.contains(<span class="string">"endif"</span>));
+<a href=#178 id=178 data-nosnippet>178</a>    }
+<a href=#179 id=179 data-nosnippet>179</a>
+<a href=#180 id=180 data-nosnippet>180</a>    <span class="attr">#[test]
+<a href=#181 id=181 data-nosnippet>181</a>    </span><span class="kw">fn </span>test_MAKE020_no_warning_with_guard() {
+<a href=#182 id=182 data-nosnippet>182</a>        <span class="kw">let </span>makefile = <span class="string">"ifndef COMMON_MK\nCOMMON_MK := 1\n\nCC = gcc\n\nendif"</span>;
+<a href=#183 id=183 data-nosnippet>183</a>        <span class="kw">let </span>result = check(makefile);
 <a href=#184 id=184 data-nosnippet>184</a>
-<a href=#185 id=185 data-nosnippet>185</a>    <span class="attr">#[test]
-<a href=#186 id=186 data-nosnippet>186</a>    </span><span class="kw">fn </span>test_MAKE020_detects_complex_makefile() {
-<a href=#187 id=187 data-nosnippet>187</a>        <span class="kw">let </span>makefile =
-<a href=#188 id=188 data-nosnippet>188</a>            <span class="string">"# config.mk\nCC = gcc\nCXX = g++\nAR = ar\n\nCFLAGS = -Wall\nLDFLAGS = -L/usr/lib"</span>;
-<a href=#189 id=189 data-nosnippet>189</a>        <span class="kw">let </span>result = check(makefile);
-<a href=#190 id=190 data-nosnippet>190</a>
-<a href=#191 id=191 data-nosnippet>191</a>        <span class="comment">// Complex config file needs guard
-<a href=#192 id=192 data-nosnippet>192</a>        </span><span class="macro">assert_eq!</span>(result.diagnostics.len(), <span class="number">1</span>);
-<a href=#193 id=193 data-nosnippet>193</a>    }
-<a href=#194 id=194 data-nosnippet>194</a>
-<a href=#195 id=195 data-nosnippet>195</a>    <span class="attr">#[test]
-<a href=#196 id=196 data-nosnippet>196</a>    </span><span class="kw">fn </span>test_MAKE020_no_warning_with_ifndef_anywhere() {
-<a href=#197 id=197 data-nosnippet>197</a>        <span class="kw">let </span>makefile = <span class="string">"CC = gcc\n\nifndef DEBUG\nCFLAGS = -O2\nendif"</span>;
-<a href=#198 id=198 data-nosnippet>198</a>        <span class="kw">let </span>result = check(makefile);
-<a href=#199 id=199 data-nosnippet>199</a>
-<a href=#200 id=200 data-nosnippet>200</a>        <span class="comment">// Has ifndef (even if not a guard) - don't flag to avoid false positives
-<a href=#201 id=201 data-nosnippet>201</a>        </span><span class="macro">assert_eq!</span>(result.diagnostics.len(), <span class="number">0</span>);
-<a href=#202 id=202 data-nosnippet>202</a>    }
+<a href=#185 id=185 data-nosnippet>185</a>        <span class="comment">// Has include guard - OK
+<a href=#186 id=186 data-nosnippet>186</a>        </span><span class="macro">assert_eq!</span>(result.diagnostics.len(), <span class="number">0</span>);
+<a href=#187 id=187 data-nosnippet>187</a>    }
+<a href=#188 id=188 data-nosnippet>188</a>
+<a href=#189 id=189 data-nosnippet>189</a>    <span class="attr">#[test]
+<a href=#190 id=190 data-nosnippet>190</a>    </span><span class="kw">fn </span>test_MAKE020_no_warning_for_simple_targets_only() {
+<a href=#191 id=191 data-nosnippet>191</a>        <span class="kw">let </span>makefile = <span class="string">"all:\n\t$(CC) main.c\n\nclean:\n\trm -f *.o"</span>;
+<a href=#192 id=192 data-nosnippet>192</a>        <span class="kw">let </span>result = check(makefile);
+<a href=#193 id=193 data-nosnippet>193</a>
+<a href=#194 id=194 data-nosnippet>194</a>        <span class="comment">// Only targets, no variables to guard - OK
+<a href=#195 id=195 data-nosnippet>195</a>        </span><span class="macro">assert_eq!</span>(result.diagnostics.len(), <span class="number">0</span>);
+<a href=#196 id=196 data-nosnippet>196</a>    }
+<a href=#197 id=197 data-nosnippet>197</a>
+<a href=#198 id=198 data-nosnippet>198</a>    <span class="attr">#[test]
+<a href=#199 id=199 data-nosnippet>199</a>    </span><span class="kw">fn </span>test_MAKE020_detects_complex_makefile() {
+<a href=#200 id=200 data-nosnippet>200</a>        <span class="kw">let </span>makefile =
+<a href=#201 id=201 data-nosnippet>201</a>            <span class="string">"# config.mk\nCC = gcc\nCXX = g++\nAR = ar\n\nCFLAGS = -Wall\nLDFLAGS = -L/usr/lib"</span>;
+<a href=#202 id=202 data-nosnippet>202</a>        <span class="kw">let </span>result = check(makefile);
 <a href=#203 id=203 data-nosnippet>203</a>
-<a href=#204 id=204 data-nosnippet>204</a>    <span class="attr">#[test]
-<a href=#205 id=205 data-nosnippet>205</a>    </span><span class="kw">fn </span>test_MAKE020_empty_makefile() {
-<a href=#206 id=206 data-nosnippet>206</a>        <span class="kw">let </span>makefile = <span class="string">""</span>;
-<a href=#207 id=207 data-nosnippet>207</a>        <span class="kw">let </span>result = check(makefile);
-<a href=#208 id=208 data-nosnippet>208</a>
-<a href=#209 id=209 data-nosnippet>209</a>        <span class="comment">// Empty Makefile doesn't need guard
-<a href=#210 id=210 data-nosnippet>210</a>        </span><span class="macro">assert_eq!</span>(result.diagnostics.len(), <span class="number">0</span>);
-<a href=#211 id=211 data-nosnippet>211</a>    }
-<a href=#212 id=212 data-nosnippet>212</a>}</code></pre></div></section></main></body></html>
+<a href=#204 id=204 data-nosnippet>204</a>        <span class="comment">// Complex config file needs guard
+<a href=#205 id=205 data-nosnippet>205</a>        </span><span class="macro">assert_eq!</span>(result.diagnostics.len(), <span class="number">1</span>);
+<a href=#206 id=206 data-nosnippet>206</a>    }
+<a href=#207 id=207 data-nosnippet>207</a>
+<a href=#208 id=208 data-nosnippet>208</a>    <span class="attr">#[test]
+<a href=#209 id=209 data-nosnippet>209</a>    </span><span class="kw">fn </span>test_MAKE020_no_warning_with_ifndef_anywhere() {
+<a href=#210 id=210 data-nosnippet>210</a>        <span class="kw">let </span>makefile = <span class="string">"CC = gcc\n\nifndef DEBUG\nCFLAGS = -O2\nendif"</span>;
+<a href=#211 id=211 data-nosnippet>211</a>        <span class="kw">let </span>result = check(makefile);
+<a href=#212 id=212 data-nosnippet>212</a>
+<a href=#213 id=213 data-nosnippet>213</a>        <span class="comment">// Has ifndef (even if not a guard) - don't flag to avoid false positives
+<a href=#214 id=214 data-nosnippet>214</a>        </span><span class="macro">assert_eq!</span>(result.diagnostics.len(), <span class="number">0</span>);
+<a href=#215 id=215 data-nosnippet>215</a>    }
+<a href=#216 id=216 data-nosnippet>216</a>
+<a href=#217 id=217 data-nosnippet>217</a>    <span class="attr">#[test]
+<a href=#218 id=218 data-nosnippet>218</a>    </span><span class="kw">fn </span>test_MAKE020_empty_makefile() {
+<a href=#219 id=219 data-nosnippet>219</a>        <span class="kw">let </span>makefile = <span class="string">""</span>;
+<a href=#220 id=220 data-nosnippet>220</a>        <span class="kw">let </span>result = check(makefile);
+<a href=#221 id=221 data-nosnippet>221</a>
+<a href=#222 id=222 data-nosnippet>222</a>        <span class="comment">// Empty Makefile doesn't need guard
+<a href=#223 id=223 data-nosnippet>223</a>        </span><span class="macro">assert_eq!</span>(result.diagnostics.len(), <span class="number">0</span>);
+<a href=#224 id=224 data-nosnippet>224</a>    }
+<a href=#225 id=225 data-nosnippet>225</a>}</code></pre></div></section></main></body></html>

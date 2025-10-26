@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"mod":["api","config","filesystem","streaming"]};
+window.SIDEBAR_ITEMS = {"mod":["api","builtins","config","executor","filesystem","io","streaming","vfs"]};

@@ -14,13 +14,13 @@
 <a href=#14 id=14 data-nosnippet>14</a>//! ❌ **BAD** (missing dependencies):
 <a href=#15 id=15 data-nosnippet>15</a>//! ```makefile
 <a href=#16 id=16 data-nosnippet>16</a>//! app:
-<a href=#17 id=17 data-nosnippet>17</a>//! 	gcc main.c utils.c -o app
+<a href=#17 id=17 data-nosnippet>17</a>//!     gcc main.c utils.c -o app
 <a href=#18 id=18 data-nosnippet>18</a>//! ```
 <a href=#19 id=19 data-nosnippet>19</a>//!
 <a href=#20 id=20 data-nosnippet>20</a>//! ✅ **GOOD** (dependencies declared):
 <a href=#21 id=21 data-nosnippet>21</a>//! ```makefile
 <a href=#22 id=22 data-nosnippet>22</a>//! app: main.c utils.c
-<a href=#23 id=23 data-nosnippet>23</a>//! 	gcc main.c utils.c -o app
+<a href=#23 id=23 data-nosnippet>23</a>//!     gcc main.c utils.c -o app
 <a href=#24 id=24 data-nosnippet>24</a>//! ```
 <a href=#25 id=25 data-nosnippet>25</a>
 <a href=#26 id=26 data-nosnippet>26</a></span><span class="kw">use </span><span class="kw">crate</span>::linter::{Diagnostic, Fix, LintResult, Severity, Span};
@@ -55,8 +55,8 @@
 <a href=#55 id=55 data-nosnippet>55</a>}
 <a href=#56 id=56 data-nosnippet>56</a>
 <a href=#57 id=57 data-nosnippet>57</a><span class="doccomment">/// Parse a target line and extract target name and dependencies
-<a href=#58 id=58 data-nosnippet>58</a></span><span class="kw">fn </span>parse_target_line&lt;<span class="lifetime">'a</span>&gt;(
-<a href=#59 id=59 data-nosnippet>59</a>    lines: <span class="kw-2">&amp;</span><span class="lifetime">'a </span>[<span class="kw-2">&amp;</span>str],
+<a href=#58 id=58 data-nosnippet>58</a></span><span class="kw">fn </span>parse_target_line(
+<a href=#59 id=59 data-nosnippet>59</a>    lines: <span class="kw-2">&amp;</span>[<span class="kw-2">&amp;</span>str],
 <a href=#60 id=60 data-nosnippet>60</a>    line_idx: usize,
 <a href=#61 id=61 data-nosnippet>61</a>    phony_targets: <span class="kw-2">&amp;</span>HashSet&lt;String&gt;,
 <a href=#62 id=62 data-nosnippet>62</a>) -&gt; <span class="prelude-ty">Option</span>&lt;(TargetInfo, usize)&gt; {
@@ -181,7 +181,7 @@
 <a href=#181 id=181 data-nosnippet>181</a>    Diagnostic::new(
 <a href=#182 id=182 data-nosnippet>182</a>        <span class="string">"MAKE006"</span>,
 <a href=#183 id=183 data-nosnippet>183</a>        Severity::Warning,
-<a href=#184 id=184 data-nosnippet>184</a>        <span class="kw-2">&amp;</span><span class="macro">format!</span>(
+<a href=#184 id=184 data-nosnippet>184</a>        <span class="macro">format!</span>(
 <a href=#185 id=185 data-nosnippet>185</a>            <span class="string">"Target '{}' may be missing dependencies: {}"</span>,
 <a href=#186 id=186 data-nosnippet>186</a>            target,
 <a href=#187 id=187 data-nosnippet>187</a>            missing_deps.join(<span class="string">", "</span>)

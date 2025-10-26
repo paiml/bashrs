@@ -13,15 +13,15 @@
 <a href=#13 id=13 data-nosnippet>13</a>//! ❌ **BAD** (non-idempotent):
 <a href=#14 id=14 data-nosnippet>14</a>//! ```makefile
 <a href=#15 id=15 data-nosnippet>15</a>//! build:
-<a href=#16 id=16 data-nosnippet>16</a>//! 	mkdir build
-<a href=#17 id=17 data-nosnippet>17</a>//! 	gcc -o app main.c
+<a href=#16 id=16 data-nosnippet>16</a>//!     mkdir build
+<a href=#17 id=17 data-nosnippet>17</a>//!     gcc -o app main.c
 <a href=#18 id=18 data-nosnippet>18</a>//! ```
 <a href=#19 id=19 data-nosnippet>19</a>//!
 <a href=#20 id=20 data-nosnippet>20</a>//! ✅ **GOOD** (idempotent):
 <a href=#21 id=21 data-nosnippet>21</a>//! ```makefile
 <a href=#22 id=22 data-nosnippet>22</a>//! build:
-<a href=#23 id=23 data-nosnippet>23</a>//! 	mkdir -p build
-<a href=#24 id=24 data-nosnippet>24</a>//! 	gcc -o app main.c
+<a href=#23 id=23 data-nosnippet>23</a>//!     mkdir -p build
+<a href=#24 id=24 data-nosnippet>24</a>//!     gcc -o app main.c
 <a href=#25 id=25 data-nosnippet>25</a>//! ```
 <a href=#26 id=26 data-nosnippet>26</a>
 <a href=#27 id=27 data-nosnippet>27</a></span><span class="kw">use </span><span class="kw">crate</span>::linter::{Diagnostic, Fix, LintResult, Severity, Span};

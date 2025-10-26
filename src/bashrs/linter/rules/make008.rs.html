@@ -20,7 +20,7 @@
 <a href=#20 id=20 data-nosnippet>20</a>//! ✅ **GOOD** (tab):
 <a href=#21 id=21 data-nosnippet>21</a>//! ```makefile
 <a href=#22 id=22 data-nosnippet>22</a>//! build:
-<a href=#23 id=23 data-nosnippet>23</a>//! 	gcc main.c -o app
+<a href=#23 id=23 data-nosnippet>23</a>//!     gcc main.c -o app
 <a href=#24 id=24 data-nosnippet>24</a>//! ```
 <a href=#25 id=25 data-nosnippet>25</a>
 <a href=#26 id=26 data-nosnippet>26</a></span><span class="kw">use </span><span class="kw">crate</span>::linter::{Diagnostic, Fix, LintResult, Severity, Span};
@@ -61,7 +61,7 @@
 <a href=#61 id=61 data-nosnippet>61</a>                <span class="kw">let </span>diag = Diagnostic::new(
 <a href=#62 id=62 data-nosnippet>62</a>                    <span class="string">"MAKE008"</span>,
 <a href=#63 id=63 data-nosnippet>63</a>                    Severity::Error, <span class="comment">// This is a CRITICAL error
-<a href=#64 id=64 data-nosnippet>64</a>                    </span><span class="kw-2">&amp;</span><span class="macro">format!</span>(
+<a href=#64 id=64 data-nosnippet>64</a>                    </span><span class="macro">format!</span>(
 <a href=#65 id=65 data-nosnippet>65</a>                        <span class="string">"Recipe line starts with spaces instead of tab (fatal Make error){}"</span>,
 <a href=#66 id=66 data-nosnippet>66</a>                        <span class="kw">if </span>!current_target.is_empty() {
 <a href=#67 id=67 data-nosnippet>67</a>                            <span class="macro">format!</span>(<span class="string">" in target '{}'"</span>, current_target)

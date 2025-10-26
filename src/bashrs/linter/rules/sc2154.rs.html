@@ -84,7 +84,7 @@
 <a href=#84 id=84 data-nosnippet>84</a>            <span class="kw">let </span>diagnostic = Diagnostic::new(
 <a href=#85 id=85 data-nosnippet>85</a>                <span class="string">"SC2154"</span>,
 <a href=#86 id=86 data-nosnippet>86</a>                Severity::Warning,
-<a href=#87 id=87 data-nosnippet>87</a>                <span class="kw-2">&amp;</span><span class="macro">format!</span>(<span class="string">"Variable '{}' is referenced but not assigned"</span>, var_name),
+<a href=#87 id=87 data-nosnippet>87</a>                <span class="macro">format!</span>(<span class="string">"Variable '{}' is referenced but not assigned"</span>, var_name),
 <a href=#88 id=88 data-nosnippet>88</a>                Span::new(line_num, col, line_num, col + var_name.len() + <span class="number">1</span>),
 <a href=#89 id=89 data-nosnippet>89</a>            );
 <a href=#90 id=90 data-nosnippet>90</a>

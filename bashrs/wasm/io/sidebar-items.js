@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"struct":["CaptureWriter","IoStreams","SharedWriter"]};

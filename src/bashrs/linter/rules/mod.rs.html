@@ -717,27 +717,40 @@
 <a href=#717 id=717 data-nosnippet>717</a></span><span class="kw">pub fn </span>lint_makefile(source: <span class="kw-2">&amp;</span>str) -&gt; LintResult {
 <a href=#718 id=718 data-nosnippet>718</a>    <span class="kw">let </span><span class="kw-2">mut </span>result = LintResult::new();
 <a href=#719 id=719 data-nosnippet>719</a>
-<a href=#720 id=720 data-nosnippet>720</a>    <span class="comment">// Run Makefile-specific rules
-<a href=#721 id=721 data-nosnippet>721</a>    </span>result.merge(make001::check(source));
-<a href=#722 id=722 data-nosnippet>722</a>    result.merge(make002::check(source));
-<a href=#723 id=723 data-nosnippet>723</a>    result.merge(make003::check(source));
-<a href=#724 id=724 data-nosnippet>724</a>    result.merge(make004::check(source));
-<a href=#725 id=725 data-nosnippet>725</a>    result.merge(make005::check(source));
-<a href=#726 id=726 data-nosnippet>726</a>    result.merge(make006::check(source));
-<a href=#727 id=727 data-nosnippet>727</a>    result.merge(make007::check(source));
-<a href=#728 id=728 data-nosnippet>728</a>    result.merge(make008::check(source)); <span class="comment">// CRITICAL: Tab vs spaces
-<a href=#729 id=729 data-nosnippet>729</a>    </span>result.merge(make009::check(source));
-<a href=#730 id=730 data-nosnippet>730</a>    result.merge(make010::check(source));
-<a href=#731 id=731 data-nosnippet>731</a>    result.merge(make011::check(source));
-<a href=#732 id=732 data-nosnippet>732</a>    result.merge(make012::check(source));
-<a href=#733 id=733 data-nosnippet>733</a>    result.merge(make013::check(source));
-<a href=#734 id=734 data-nosnippet>734</a>    result.merge(make014::check(source));
-<a href=#735 id=735 data-nosnippet>735</a>    result.merge(make015::check(source));
-<a href=#736 id=736 data-nosnippet>736</a>    result.merge(make016::check(source));
-<a href=#737 id=737 data-nosnippet>737</a>    result.merge(make017::check(source));
-<a href=#738 id=738 data-nosnippet>738</a>    result.merge(make018::check(source));
-<a href=#739 id=739 data-nosnippet>739</a>    result.merge(make019::check(source));
-<a href=#740 id=740 data-nosnippet>740</a>    result.merge(make020::check(source));
-<a href=#741 id=741 data-nosnippet>741</a>
-<a href=#742 id=742 data-nosnippet>742</a>    result
-<a href=#743 id=743 data-nosnippet>743</a>}</code></pre></div></section></main></body></html>
+<a href=#720 id=720 data-nosnippet>720</a>    <span class="comment">// Preprocess Makefile to convert $$ → $ in recipes for shell linting
+<a href=#721 id=721 data-nosnippet>721</a>    </span><span class="kw">use </span><span class="kw">crate</span>::linter::make_preprocess::preprocess_for_linting;
+<a href=#722 id=722 data-nosnippet>722</a>    <span class="kw">let </span>preprocessed = preprocess_for_linting(source);
+<a href=#723 id=723 data-nosnippet>723</a>
+<a href=#724 id=724 data-nosnippet>724</a>    <span class="comment">// Run Makefile-specific rules on original source
+<a href=#725 id=725 data-nosnippet>725</a>    </span>result.merge(make001::check(source));
+<a href=#726 id=726 data-nosnippet>726</a>    result.merge(make002::check(source));
+<a href=#727 id=727 data-nosnippet>727</a>    result.merge(make003::check(source));
+<a href=#728 id=728 data-nosnippet>728</a>    result.merge(make004::check(source));
+<a href=#729 id=729 data-nosnippet>729</a>    result.merge(make005::check(source));
+<a href=#730 id=730 data-nosnippet>730</a>    result.merge(make006::check(source));
+<a href=#731 id=731 data-nosnippet>731</a>    result.merge(make007::check(source));
+<a href=#732 id=732 data-nosnippet>732</a>    result.merge(make008::check(source)); <span class="comment">// CRITICAL: Tab vs spaces
+<a href=#733 id=733 data-nosnippet>733</a>    </span>result.merge(make009::check(source));
+<a href=#734 id=734 data-nosnippet>734</a>    result.merge(make010::check(source));
+<a href=#735 id=735 data-nosnippet>735</a>    result.merge(make011::check(source));
+<a href=#736 id=736 data-nosnippet>736</a>    result.merge(make012::check(source));
+<a href=#737 id=737 data-nosnippet>737</a>    result.merge(make013::check(source));
+<a href=#738 id=738 data-nosnippet>738</a>    result.merge(make014::check(source));
+<a href=#739 id=739 data-nosnippet>739</a>    result.merge(make015::check(source));
+<a href=#740 id=740 data-nosnippet>740</a>    result.merge(make016::check(source));
+<a href=#741 id=741 data-nosnippet>741</a>    result.merge(make017::check(source));
+<a href=#742 id=742 data-nosnippet>742</a>    result.merge(make018::check(source));
+<a href=#743 id=743 data-nosnippet>743</a>    result.merge(make019::check(source));
+<a href=#744 id=744 data-nosnippet>744</a>    result.merge(make020::check(source));
+<a href=#745 id=745 data-nosnippet>745</a>
+<a href=#746 id=746 data-nosnippet>746</a>    <span class="comment">// Run shell linting rules on preprocessed source
+<a href=#747 id=747 data-nosnippet>747</a>    // This prevents false positives from Make's $$ escaping
+<a href=#748 id=748 data-nosnippet>748</a>    </span>result.merge(sc2133::check(<span class="kw-2">&amp;</span>preprocessed));
+<a href=#749 id=749 data-nosnippet>749</a>    result.merge(sc2168::check(<span class="kw-2">&amp;</span>preprocessed));
+<a href=#750 id=750 data-nosnippet>750</a>    result.merge(sc2299::check(<span class="kw-2">&amp;</span>preprocessed));
+<a href=#751 id=751 data-nosnippet>751</a>
+<a href=#752 id=752 data-nosnippet>752</a>    <span class="comment">// For DET002, we want to allow timestamps in Makefiles
+<a href=#753 id=753 data-nosnippet>753</a>    // (they're used for build tracking), so we don't run it
+<a href=#754 id=754 data-nosnippet>754</a>
+<a href=#755 id=755 data-nosnippet>755</a>    </span>result
+<a href=#756 id=756 data-nosnippet>756</a>}</code></pre></div></section></main></body></html>

@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"fn":["analyze_config","init","is_valid_bash","purify_config","version"],"struct":["ConfigAnalysisResult","ConfigIssue"]};
+window.SIDEBAR_ITEMS = {"fn":["analyze_config","execute_script","init","is_valid_bash","purify_config","version"],"struct":["ConfigAnalysisResult","ConfigIssue","ExecutionResult"]};

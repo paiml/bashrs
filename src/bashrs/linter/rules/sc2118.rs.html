@@ -29,11 +29,11 @@
 <a href=#29 id=29 data-nosnippet>29</a>    <span class="kw">let </span><span class="kw-2">mut </span>result = LintResult::new();
 <a href=#30 id=30 data-nosnippet>30</a>
 <a href=#31 id=31 data-nosnippet>31</a>    <span class="comment">// Check shebang
-<a href=#32 id=32 data-nosnippet>32</a>    </span><span class="kw">let </span>has_ksh_shebang = source.lines().next().map_or(<span class="bool-val">false</span>, |line| {
+<a href=#32 id=32 data-nosnippet>32</a>    </span><span class="kw">let </span>has_ksh_shebang = source.lines().next().is_some_and(|line| {
 <a href=#33 id=33 data-nosnippet>33</a>        line.starts_with(<span class="string">"#!/bin/ksh"</span>) || line.starts_with(<span class="string">"#!/usr/bin/ksh"</span>)
 <a href=#34 id=34 data-nosnippet>34</a>    });
 <a href=#35 id=35 data-nosnippet>35</a>
-<a href=#36 id=36 data-nosnippet>36</a>    <span class="kw">let </span>has_sh_shebang = source.lines().next().map_or(<span class="bool-val">false</span>, |line| {
+<a href=#36 id=36 data-nosnippet>36</a>    <span class="kw">let </span>has_sh_shebang = source.lines().next().is_some_and(|line| {
 <a href=#37 id=37 data-nosnippet>37</a>        line.starts_with(<span class="string">"#!/bin/sh"</span>) || line.starts_with(<span class="string">"#!/usr/bin/sh"</span>)
 <a href=#38 id=38 data-nosnippet>38</a>    });
 <a href=#39 id=39 data-nosnippet>39</a>

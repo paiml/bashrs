@@ -14,10 +14,10 @@
 <a href=#14 id=14 data-nosnippet>14</a>//! ❌ **BAD** (missing .PHONY):
 <a href=#15 id=15 data-nosnippet>15</a>//! ```makefile
 <a href=#16 id=16 data-nosnippet>16</a>//! clean:
-<a href=#17 id=17 data-nosnippet>17</a>//! 	rm -f *.o
+<a href=#17 id=17 data-nosnippet>17</a>//!     rm -f *.o
 <a href=#18 id=18 data-nosnippet>18</a>//!
 <a href=#19 id=19 data-nosnippet>19</a>//! test:
-<a href=#20 id=20 data-nosnippet>20</a>//! 	pytest tests/
+<a href=#20 id=20 data-nosnippet>20</a>//!     pytest tests/
 <a href=#21 id=21 data-nosnippet>21</a>//! ```
 <a href=#22 id=22 data-nosnippet>22</a>//!
 <a href=#23 id=23 data-nosnippet>23</a>//! ✅ **GOOD** (has .PHONY):
@@ -25,10 +25,10 @@
 <a href=#25 id=25 data-nosnippet>25</a>//! .PHONY: clean test
 <a href=#26 id=26 data-nosnippet>26</a>//!
 <a href=#27 id=27 data-nosnippet>27</a>//! clean:
-<a href=#28 id=28 data-nosnippet>28</a>//! 	rm -f *.o
+<a href=#28 id=28 data-nosnippet>28</a>//!     rm -f *.o
 <a href=#29 id=29 data-nosnippet>29</a>//!
 <a href=#30 id=30 data-nosnippet>30</a>//! test:
-<a href=#31 id=31 data-nosnippet>31</a>//! 	pytest tests/
+<a href=#31 id=31 data-nosnippet>31</a>//!     pytest tests/
 <a href=#32 id=32 data-nosnippet>32</a>//! ```
 <a href=#33 id=33 data-nosnippet>33</a>
 <a href=#34 id=34 data-nosnippet>34</a></span><span class="kw">use </span><span class="kw">crate</span>::linter::{Diagnostic, Fix, LintResult, Severity, Span};
@@ -104,7 +104,7 @@
 <a href=#104 id=104 data-nosnippet>104</a>                    <span class="kw">let </span>diag = Diagnostic::new(
 <a href=#105 id=105 data-nosnippet>105</a>                        <span class="string">"MAKE004"</span>,
 <a href=#106 id=106 data-nosnippet>106</a>                        Severity::Warning,
-<a href=#107 id=107 data-nosnippet>107</a>                        <span class="kw-2">&amp;</span><span class="macro">format!</span>(<span class="string">"Target '{}' should be marked as .PHONY"</span>, target),
+<a href=#107 id=107 data-nosnippet>107</a>                        <span class="macro">format!</span>(<span class="string">"Target '{}' should be marked as .PHONY"</span>, target),
 <a href=#108 id=108 data-nosnippet>108</a>                        span,
 <a href=#109 id=109 data-nosnippet>109</a>                    )
 <a href=#110 id=110 data-nosnippet>110</a>                    .with_fix(Fix::new(<span class="kw-2">&amp;</span>fix));
