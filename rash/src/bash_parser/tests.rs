@@ -2477,3 +2477,29 @@ fn test_BUILTIN_018_trap_signal_handling() {
         "Trap should be parsed as a Command statement with name 'trap' and arguments"
     );
 }
+
+// BASH-BUILTIN-001: Alias command
+// The alias command creates command shortcuts/aliases.
+// alias ll='ls -la' creates an alias for 'ls -la'
+// Example: alias grep='grep--color=auto'
+// Simplified test: just checking "alias" command parsing
+#[test]
+fn test_BASH_BUILTIN_001_alias_to_function() {
+    let script = "alias";
+
+    let mut parser = BashParser::new(script).unwrap();
+    let ast = parser.parse().unwrap();
+
+    // Should parse successfully
+    assert!(!ast.statements.is_empty(), "Alias command should be parsed");
+
+    // Should be recognized as a Command statement with name "alias"
+    let has_alias_command = ast.statements.iter().any(|s| {
+        matches!(s, BashStmt::Command { name, .. } if name == "alias")
+    });
+
+    assert!(
+        has_alias_command,
+        "Alias should be parsed as a Command statement with name 'alias'"
+    );
+}

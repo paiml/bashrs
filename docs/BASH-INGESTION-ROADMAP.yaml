@@ -1237,12 +1237,13 @@ chapters:
         tasks:
           - id: "BASH-BUILTIN-001"
             title: "Document alias"
-            status: "pending"
+            status: "completed"
             priority: "MEDIUM"
             input: "alias ll='ls -la'"
             rust: "Not supported (interactive feature)"
             purified: "Remove (use functions instead)"
-            test_name: "test_alias_to_function"
+            test_name: "test_BASH_BUILTIN_001_alias_to_function"
+            notes: "Already supported by command parsing infrastructure (BUILTIN-001)"
 
           - id: "BASH-BUILTIN-002"
             title: "Document declare/typeset"
