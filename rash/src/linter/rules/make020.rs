@@ -84,9 +84,10 @@ fn has_ifndef(source: &str) -> bool {
 }
 
 /// Check if Makefile should have an include guard
-/// (has variable definitions but is not just targets)
+/// (has variable definitions AND looks like an includable file, not a standalone Makefile)
 fn should_have_guard(source: &str) -> bool {
     let mut has_variables = false;
+    let mut has_targets = false;
 
     for line in source.lines() {
         let trimmed = line.trim();
@@ -104,11 +105,23 @@ fn should_have_guard(source: &str) -> bool {
         // Check for variable definitions (contains = but not :)
         if trimmed.contains('=') && !trimmed.starts_with("export ") {
             has_variables = true;
-            break;
+        }
+
+        // Check for targets (lines with : that aren't variable assignments)
+        if trimmed.contains(':') {
+            // Distinguish between "VAR := value" and "target: deps"
+            if let Some(before_colon) = trimmed.split(':').next() {
+                // If there's an = before the :, it's an assignment (VAR := value)
+                if !before_colon.contains('=') {
+                    has_targets = true;
+                }
+            }
         }
     }
 
-    has_variables
+    // Only warn if has variables AND no targets (indicating include file)
+    // Standalone Makefiles with targets don't need guards
+    has_variables && !has_targets
 }
 
 /// Create fix by adding include guard around entire file
