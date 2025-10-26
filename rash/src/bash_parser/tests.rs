@@ -2402,3 +2402,28 @@ fn test_BUILTIN_002_source_command() {
         "Dot should be parsed as a Command statement with name '.' and one argument"
     );
 }
+
+// BUILTIN-014: Set command with flags
+// The set command controls shell options and positional parameters.
+// set -e causes the shell to exit if a command exits with a non-zero status.
+// Example: set -e, set -u, set -x
+#[test]
+fn test_BUILTIN_014_set_flags() {
+    let script = "set -e";
+
+    let mut parser = BashParser::new(script).unwrap();
+    let ast = parser.parse().unwrap();
+
+    // Should parse successfully
+    assert!(!ast.statements.is_empty(), "Set command should be parsed");
+
+    // Should be recognized as a Command statement with name "set"
+    let has_set_command = ast.statements.iter().any(|s| {
+        matches!(s, BashStmt::Command { name, args, .. } if name == "set" && args.len() == 1)
+    });
+
+    assert!(
+        has_set_command,
+        "Set should be parsed as a Command statement with name 'set' and one argument (-e flag)"
+    );
+}
