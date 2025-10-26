@@ -75,6 +75,7 @@ pub mod formatter;
 pub mod ir;
 pub mod linter;
 pub mod make_parser; // NEW: Makefile parsing and purification
+pub mod repl; // NEW: Interactive REPL with integrated debugger (v7.0 - Phase 0)
 pub mod models;
 pub mod services;
 pub mod stdlib;
