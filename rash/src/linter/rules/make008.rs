@@ -20,7 +20,7 @@
 //! ✅ **GOOD** (tab):
 //! ```makefile
 //! build:
-//! 	gcc main.c -o app
+//!     gcc main.c -o app
 //! ```
 
 use crate::linter::{Diagnostic, Fix, LintResult, Severity, Span};
@@ -61,7 +61,7 @@ pub fn check(source: &str) -> LintResult {
                 let diag = Diagnostic::new(
                     "MAKE008",
                     Severity::Error, // This is a CRITICAL error
-                    &format!(
+                    format!(
                         "Recipe line starts with spaces instead of tab (fatal Make error){}",
                         if !current_target.is_empty() {
                             format!(" in target '{}'", current_target)

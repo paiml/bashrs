@@ -39,8 +39,8 @@ pub fn check(source: &str) -> LintResult {
         }
 
         // Check for break/continue in case (when not in loop)
-        if in_case && !in_loop && !in_function {
-            if trimmed.contains("break") || trimmed.contains("continue") {
+        if in_case && !in_loop && !in_function
+            && (trimmed.contains("break") || trimmed.contains("continue")) {
                 let diagnostic = Diagnostic::new(
                     "SC2242",
                     Severity::Error,
@@ -50,7 +50,6 @@ pub fn check(source: &str) -> LintResult {
                 );
                 result.add(diagnostic);
             }
-        }
     }
     result
 }

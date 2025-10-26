@@ -67,7 +67,7 @@ fn generate_statement(stmt: &BashStmt) -> String {
                 func.push_str(&generate_statement(stmt));
                 func.push('\n');
             }
-            func.push_str("}");
+            func.push('}');
             func
         }
         BashStmt::If {

@@ -138,7 +138,7 @@ mod tests {
         let code = r#"if [ "$a" = "1" -a "$b" = "2" -a "$c" = "3" ]; then"#;
         let result = check(code);
         // Should detect at least one -a
-        assert!(result.diagnostics.len() >= 1);
+        assert!(!result.diagnostics.is_empty());
     }
 
     #[test]

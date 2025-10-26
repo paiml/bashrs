@@ -117,7 +117,7 @@ result=$(command)
         let code = r#"local a=$(cmd1) b=$(cmd2)"#;
         let result = check(code);
         // Should detect at least the first one
-        assert!(result.diagnostics.len() >= 1);
+        assert!(!result.diagnostics.is_empty());
     }
 
     #[test]

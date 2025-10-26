@@ -5,8 +5,6 @@
 //! Following SQLite principles: Test real-world usage patterns
 
 use bashrs::make_parser::{parse_makefile, MakeItem};
-use std::fs;
-use std::path::Path;
 
 // ============================================================================
 // Real-World Makefile Tests

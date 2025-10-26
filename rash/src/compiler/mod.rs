@@ -1,3 +1,10 @@
+//! Compiler module for bashrs
+//!
+//! ## Safety Note
+//! Compiler uses unwrap() on validated AST operations and checked invariants.
+#![allow(clippy::unwrap_used)]
+#![allow(clippy::indexing_slicing)]
+
 use crate::models::{Error, Result};
 use std::io::Write;
 

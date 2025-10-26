@@ -62,7 +62,7 @@ pub fn check(source: &str) -> LintResult {
             let diagnostic = Diagnostic::new(
                 "SC2044",
                 Severity::Warning,
-                &format!(
+                format!(
                     "Use 'while IFS= read -r -d '' {}; do ... done < <(find {} -print0)' for safe iteration",
                     var_name, find_args
                 ),

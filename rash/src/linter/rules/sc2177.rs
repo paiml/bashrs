@@ -14,10 +14,10 @@
 use crate::linter::{Diagnostic, LintResult, Severity, Span};
 
 pub fn check(_source: &str) -> LintResult {
-    let result = LintResult::new();
+    
     // This is covered by SC2176 - same pattern
     // Placeholder for compatibility
-    result
+    LintResult::new()
 }
 
 #[cfg(test)]

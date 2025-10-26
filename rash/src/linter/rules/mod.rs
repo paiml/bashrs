@@ -717,7 +717,11 @@ pub fn lint_shell(source: &str) -> LintResult {
 pub fn lint_makefile(source: &str) -> LintResult {
     let mut result = LintResult::new();
 
-    // Run Makefile-specific rules
+    // Preprocess Makefile to convert $$ → $ in recipes for shell linting
+    use crate::linter::make_preprocess::preprocess_for_linting;
+    let preprocessed = preprocess_for_linting(source);
+
+    // Run Makefile-specific rules on original source
     result.merge(make001::check(source));
     result.merge(make002::check(source));
     result.merge(make003::check(source));
@@ -738,6 +742,15 @@ pub fn lint_makefile(source: &str) -> LintResult {
     result.merge(make018::check(source));
     result.merge(make019::check(source));
     result.merge(make020::check(source));
+
+    // Run shell linting rules on preprocessed source
+    // This prevents false positives from Make's $$ escaping
+    result.merge(sc2133::check(&preprocessed));
+    result.merge(sc2168::check(&preprocessed));
+    result.merge(sc2299::check(&preprocessed));
+
+    // For DET002, we want to allow timestamps in Makefiles
+    // (they're used for build tracking), so we don't run it
 
     result
 }

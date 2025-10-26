@@ -1,20 +1,23 @@
-// SC2133: Unexpected tokens in arithmetic expansion
+// SC2133: Incomplete arithmetic expressions
 //
-// Arithmetic expansions $(( )) should contain valid arithmetic expressions.
-// Unexpected tokens like unbalanced parentheses or quotes cause errors.
+// Arithmetic expansions $(( )) should contain complete expressions.
+// Operators must have both operands.
+//
+// NOTE: In bash arithmetic context, variables can be used with or without $:
+// Both $((foo)) and $(($foo)) are valid and equivalent.
 //
 // Examples:
 // Bad:
-//   echo $((foo))           // Variables should use $ inside $(())
-//   result=$((5 +))          // Incomplete expression
-//   value=$((x y))           // Missing operator
+//   result=$((5 +))          // Incomplete expression - missing second operand
+//   value=$((x * ))          // Incomplete expression - missing second operand
 //
 // Good:
-//   echo $(($foo))           // $ prefix for variables
+//   echo $((foo))            // Variable without $ - VALID in arithmetic
+//   echo $(($foo))           // Variable with $ - also VALID
 //   result=$((5 + 3))        // Complete expression
-//   value=$((x + y))         // Proper operator
+//   value=$((x + y))         // Proper operator (both forms valid)
 //
-// Impact: Syntax error, script will fail
+// Impact: Incomplete expressions cause syntax errors
 
 use crate::linter::{Diagnostic, LintResult, Severity, Span};
 use once_cell::sync::Lazy;
@@ -45,46 +48,9 @@ pub fn check(source: &str) -> LintResult {
             continue;
         }
 
-        // Check for variables without $ in arithmetic expressions
-        for arith_mat in ARITH_EXPR.find_iter(line) {
-            let arith_content = &line[arith_mat.start()..arith_mat.end()];
-
-            // Find all potential variable names in the arithmetic expression
-            for var_cap in VAR_NAME.captures_iter(arith_content) {
-                if let Some(var_match) = var_cap.get(1) {
-                    let var_name = var_match.as_str();
-                    let var_pos = var_match.start();
-
-                    // Check if preceded by $ (i.e., check character before if exists)
-                    if var_pos > 0 {
-                        let prev_char = arith_content.chars().nth(var_pos - 1);
-                        if prev_char == Some('$') {
-                            continue; // Has $, skip
-                        }
-                    }
-
-                    // Skip if it's a pure number
-                    if var_name.chars().all(|c| c.is_ascii_digit()) {
-                        continue;
-                    }
-
-                    let abs_start = arith_mat.start() + var_pos;
-                    let abs_end = abs_start + var_name.len();
-
-                    let diagnostic = Diagnostic::new(
-                        "SC2133",
-                        Severity::Error,
-                        format!(
-                            "Use ${} instead of {} in arithmetic. Variables need $ prefix",
-                            var_name, var_name
-                        ),
-                        Span::new(line_num, abs_start + 1, line_num, abs_end + 1),
-                    );
-
-                    result.add(diagnostic);
-                }
-            }
-        }
+        // NOTE: Variables in arithmetic context can be used with or without $
+        // Both $((foo)) and $(($foo)) are valid bash syntax
+        // We ONLY check for incomplete expressions (operators without operands)
 
         // Check for incomplete arithmetic expressions
         for mat in INCOMPLETE_ARITH.find_iter(line) {
@@ -94,7 +60,7 @@ pub fn check(source: &str) -> LintResult {
             if expr
                 .trim_end_matches(')')
                 .trim()
-                .ends_with(&['+', '-', '*', '/'])
+                .ends_with(['+', '-', '*', '/'])
             {
                 let start_col = mat.start() + 1;
                 let end_col = mat.end() + 1;
@@ -119,15 +85,16 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_sc2133_variable_without_dollar() {
+    fn test_sc2133_variable_without_dollar_ok() {
+        // Variables without $ are VALID in arithmetic context
         let code = "echo $((foo))";
         let result = check(code);
-        assert_eq!(result.diagnostics.len(), 1);
-        assert!(result.diagnostics[0].message.contains("Use $foo"));
+        assert_eq!(result.diagnostics.len(), 0);
     }
 
     #[test]
     fn test_sc2133_variable_with_dollar_ok() {
+        // Variables with $ are also VALID in arithmetic context
         let code = "echo $(($foo))";
         let result = check(code);
         assert_eq!(result.diagnostics.len(), 0);
@@ -164,11 +131,11 @@ mod tests {
     }
 
     #[test]
-    fn test_sc2133_multiple_variables() {
+    fn test_sc2133_multiple_variables_ok() {
+        // Variables in arithmetic don't need $
         let code = "value=$((x + y))";
         let result = check(code);
-        // Both x and y need $
-        assert_eq!(result.diagnostics.len(), 2);
+        assert_eq!(result.diagnostics.len(), 0);
     }
 
     #[test]
@@ -179,11 +146,11 @@ mod tests {
     }
 
     #[test]
-    fn test_sc2133_mixed_ok_and_bad() {
+    fn test_sc2133_mixed_ok() {
+        // Both forms are OK in arithmetic
         let code = "result=$(($a + b))";
         let result = check(code);
-        // $a is OK, b needs $
-        assert_eq!(result.diagnostics.len(), 1);
+        assert_eq!(result.diagnostics.len(), 0);
     }
 
     #[test]
@@ -193,7 +160,8 @@ x=$((foo))
 y=$((5 +))
 "#;
         let result = check(code);
-        // One for 'foo', one for incomplete '5 +'
-        assert_eq!(result.diagnostics.len(), 2);
+        // Only the incomplete expression should be flagged
+        assert_eq!(result.diagnostics.len(), 1);
+        assert!(result.diagnostics[0].message.contains("Incomplete"));
     }
 }

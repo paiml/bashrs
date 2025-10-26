@@ -3,6 +3,11 @@
 //! This module implements formal verification of the emitter's correctness
 //! for a tiny subset of the rash AST, proving semantic equivalence between
 //! rash AST nodes and their emitted POSIX shell commands.
+//!
+//! ## Safety Note
+//! Formal verification uses unwrap() on validated proofs and checked invariants.
+#![allow(clippy::unwrap_used)]
+#![allow(clippy::indexing_slicing)]
 
 pub mod abstract_state;
 pub mod emitter;

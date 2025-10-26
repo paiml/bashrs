@@ -424,7 +424,7 @@ mod tests {
     fn test_FUNC_SHELL_001_mut_non_empty_check() {
         // Ensures we don't crash on empty strings
         let result = detect_shell_date("");
-        assert_eq!(result, false);
+        assert!(!result);
     }
 
     // Property-based tests
@@ -629,7 +629,7 @@ BUILD_TIME := $(shell date +%Y%m%d)"#;
     fn test_FUNC_WILDCARD_001_mut_non_empty_check() {
         // Ensures we don't crash on empty strings
         let result = detect_wildcard("");
-        assert_eq!(result, false);
+        assert!(!result);
     }
 
     // Property-based tests for wildcard detection
@@ -949,7 +949,7 @@ SOURCES := $(wildcard *.c)"#;
     fn test_FUNC_SHELL_002_mut_non_empty_check() {
         // Ensures we don't crash on empty strings
         let result = detect_shell_find("");
-        assert_eq!(result, false);
+        assert!(!result);
     }
 
     // Property-based tests for shell find detection (FUNC-SHELL-002)
@@ -1198,7 +1198,7 @@ test:
     fn test_FUNC_SHELL_003_mut_non_empty_check() {
         // Ensures we don't crash on empty strings
         let result = detect_random("");
-        assert_eq!(result, false);
+        assert!(!result);
     }
 
     // Property-based tests for $RANDOM detection (FUNC-SHELL-003)

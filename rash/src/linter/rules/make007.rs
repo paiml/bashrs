@@ -71,7 +71,7 @@ fn check_recipe_line(line: &str, line_num: usize) -> Option<Diagnostic> {
                 Diagnostic::new(
                     "MAKE007",
                     Severity::Warning,
-                    &format!(
+                    format!(
                         "Command '{}' without @ prefix - will show duplicate output",
                         cmd
                     ),

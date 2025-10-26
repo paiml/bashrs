@@ -67,7 +67,7 @@ fn test_RULE_SYNTAX_001_basic_rule_syntax() {
             );
             assert_eq!(recipe.len(), 1, "Should have one recipe line");
             assert_eq!(recipe[0], "recipe", "Recipe should be 'recipe'");
-            assert_eq!(*phony, false, "Should not be marked as phony initially");
+            assert!(!(*phony), "Should not be marked as phony initially");
         }
         other => panic!("Expected Target item, got {:?}", other),
     }
@@ -1032,8 +1032,8 @@ fn test_PHONY_001_basic_phony_declaration() {
             assert_eq!(recipe.len(), 1, "Should have one recipe line");
             assert_eq!(recipe[0], "rm -f *.o");
             // Parser now detects .PHONY declarations and marks targets
-            assert_eq!(
-                *phony, true,
+            assert!(
+                *phony,
                 "clean should be marked as phony since .PHONY: clean was declared"
             );
         }
@@ -5530,7 +5530,7 @@ fn test_INCLUDE_001_multiple_includes() {
     // ASSERT: Three include items
     assert_eq!(ast.items.len(), 3, "Should have three include items");
 
-    let expected_paths = vec!["config.mk", "rules.mk", "targets.mk"];
+    let expected_paths = ["config.mk", "rules.mk", "targets.mk"];
     for (i, expected_path) in expected_paths.iter().enumerate() {
         match &ast.items[i] {
             MakeItem::Include { path, optional, .. } => {

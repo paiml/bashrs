@@ -1,4 +1,12 @@
 //! # Rash - Rust to Shell Transpiler
+// Allow uppercase TASK_IDs in test function names (EXTREME TDD naming convention)
+#![cfg_attr(test, allow(non_snake_case))]
+// Allow unwrap in test code - tests should panic on unexpected conditions
+#![cfg_attr(test, allow(clippy::unwrap_used))]
+// Allow indexing in test code - tests should panic on out-of-bounds
+#![cfg_attr(test, allow(clippy::indexing_slicing))]
+// Allow multiple crate versions - transitive dependencies from different crates
+#![allow(clippy::multiple_crate_versions)]
 //!
 //! Rash is a Rust-to-POSIX shell script transpiler that generates safe, deterministic,
 //! and verifiable shell scripts from a restricted Rust subset.

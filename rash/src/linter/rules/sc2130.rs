@@ -25,7 +25,7 @@ use crate::linter::{Diagnostic, LintResult, Severity, Span};
 // We'll check for the shell option usage pattern instead.
 
 pub fn check(source: &str) -> LintResult {
-    let result = LintResult::new();
+    
 
     // This rule is tricky - -e is actually VALID in [ ] for file tests
     // The issue is when people confuse shell -e option with test -e flag
@@ -34,7 +34,7 @@ pub fn check(source: &str) -> LintResult {
     // The real issue SC2130 catches is using -e outside of test contexts,
     // but -e is primarily a shell option (set -e), not a standalone flag
 
-    result
+    LintResult::new()
 }
 
 #[cfg(test)]

@@ -42,7 +42,7 @@ pub fn check(source: &str) -> LintResult {
                 let expected = if cmd_text == "false" {
                     "always true"
                 } else {
-                    "always true"
+                    "always false"
                 };
 
                 let diagnostic = Diagnostic::new(

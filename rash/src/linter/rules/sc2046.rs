@@ -153,7 +153,7 @@ result=$(echo $(cat file.txt))
         let result = check(bash_code);
 
         // Should detect nested unquoted substitutions
-        assert!(result.diagnostics.len() >= 1);
+        assert!(!result.diagnostics.is_empty());
     }
 
     #[test]

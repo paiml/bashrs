@@ -14,13 +14,13 @@
 //! ❌ **BAD** (missing dependencies):
 //! ```makefile
 //! app:
-//! 	gcc main.c utils.c -o app
+//!     gcc main.c utils.c -o app
 //! ```
 //!
 //! ✅ **GOOD** (dependencies declared):
 //! ```makefile
 //! app: main.c utils.c
-//! 	gcc main.c utils.c -o app
+//!     gcc main.c utils.c -o app
 //! ```
 
 use crate::linter::{Diagnostic, Fix, LintResult, Severity, Span};
@@ -55,8 +55,8 @@ struct TargetInfo {
 }
 
 /// Parse a target line and extract target name and dependencies
-fn parse_target_line<'a>(
-    lines: &'a [&str],
+fn parse_target_line(
+    lines: &[&str],
     line_idx: usize,
     phony_targets: &HashSet<String>,
 ) -> Option<(TargetInfo, usize)> {
@@ -181,7 +181,7 @@ fn create_missing_deps_diagnostic(
     Diagnostic::new(
         "MAKE006",
         Severity::Warning,
-        &format!(
+        format!(
             "Target '{}' may be missing dependencies: {}",
             target,
             missing_deps.join(", ")

@@ -32,7 +32,7 @@ result=$(echo $FILES)
 
         let result = lint_shell(unsafe_script);
         assert!(
-            result.diagnostics.len() > 0,
+            !result.diagnostics.is_empty(),
             "Unsafe script should have diagnostics"
         );
 

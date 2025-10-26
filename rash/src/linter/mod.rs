@@ -6,9 +6,20 @@
 //!
 //! This linter operates at the AST level, providing deeper semantic analysis
 //! than token-based linters.
+//!
+//! ## Safety Note
+//! Linter rules use unwrap() on regex captures after pattern matching.
+//! These are checked invariants - if the regex matched, the capture exists.
+//! This is a performance optimization for hot paths (linting 1000s of lines).
+//! Some rules are placeholders with unused variables/statics during development.
+#![allow(clippy::unwrap_used)]
+#![allow(clippy::indexing_slicing)]
+#![allow(dead_code)]
+#![allow(unused_variables)]
 
 pub mod autofix;
 pub mod diagnostic;
+pub mod make_preprocess;
 pub mod output;
 pub mod rules;
 

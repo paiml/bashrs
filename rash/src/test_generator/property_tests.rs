@@ -261,12 +261,10 @@ impl PropertyTestGenerator {
 
     /// Extract bounds from conditional statements
     fn extract_bounds(&self, stmt: &BashStmt) -> Option<BoundsInfo> {
-        if let BashStmt::If { condition, .. } = stmt {
+        if let BashStmt::If { condition: BashExpr::Test { .. }, .. } = stmt {
             // Try to extract bounds from conditions like [ $x -gt 0 ] && [ $x -lt 100 ]
-            if let BashExpr::Test { .. } = condition {
-                // Simplified: assume reasonable bounds
-                return Some(BoundsInfo { min: 0, max: 100 });
-            }
+            // Simplified: assume reasonable bounds
+            return Some(BoundsInfo { min: 0, max: 100 });
         }
         None
     }
@@ -291,8 +289,8 @@ impl PropertyTest {
         let mut code = String::new();
 
         // Generate the proptest macro invocation
-        code.push_str(&"proptest! {\n".to_string());
-        code.push_str(&"    #[test]\n".to_string());
+        code.push_str("proptest! {\n");
+        code.push_str("    #[test]\n");
         code.push_str(&format!("    fn {}(\n", self.name));
 
         // Generate parameter list from generators

@@ -45,6 +45,7 @@ pub fn check(source: &str) -> LintResult {
     let mut result = LintResult::new();
     let lines: Vec<&str> = source.lines().collect();
 
+    #[allow(clippy::needless_range_loop)]
     for i in 0..lines.len() {
         let line = lines[i];
         let line_num = i + 1;
@@ -59,6 +60,7 @@ pub fn check(source: &str) -> LintResult {
             let command_name = assign_cap.get(2).unwrap().as_str();
 
             // Look at the next non-empty, non-comment line
+            #[allow(clippy::needless_range_loop)]
             for j in (i + 1)..lines.len() {
                 let next_line = lines[j];
                 let next_trimmed = next_line.trim();

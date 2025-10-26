@@ -16,8 +16,8 @@ pub fn check(source: &str) -> LintResult {
             continue;
         }
 
-        if UNQUOTED_VAR_IN_CASE.is_match(line) {
-            if !line.contains("\"$") {
+        if UNQUOTED_VAR_IN_CASE.is_match(line)
+            && !line.contains("\"$") {
                 let diagnostic = Diagnostic::new(
                     "SC2231",
                     Severity::Warning,
@@ -26,7 +26,6 @@ pub fn check(source: &str) -> LintResult {
                 );
                 result.add(diagnostic);
             }
-        }
     }
     result
 }

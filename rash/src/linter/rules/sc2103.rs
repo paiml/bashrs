@@ -110,7 +110,7 @@ cd ..
 "#;
         let result = check(code);
         // Should detect first pair and second pair
-        assert!(result.diagnostics.len() >= 1);
+        assert!(!result.diagnostics.is_empty());
     }
 
     #[test]

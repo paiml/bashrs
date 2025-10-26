@@ -66,6 +66,7 @@ pub fn check(source: &str) -> LintResult {
 }
 
 /// Find matching closing parenthesis
+#[allow(clippy::needless_range_loop)]
 fn find_matching_paren(line: &str, start: usize) -> Option<usize> {
     let chars: Vec<char> = line.chars().collect();
     let mut depth = 1;

@@ -27,7 +27,7 @@ pub fn check(source: &str) -> LintResult {
     let mut result = LintResult::new();
 
     // Check if script has bash/ksh shebang
-    let has_bash_shebang = source.lines().next().map_or(false, |line| {
+    let has_bash_shebang = source.lines().next().is_some_and(|line| {
         line.starts_with("#!/bin/bash")
             || line.starts_with("#!/usr/bin/bash")
             || line.starts_with("#!/bin/ksh")

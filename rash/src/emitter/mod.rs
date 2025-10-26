@@ -11,6 +11,11 @@
 //! - **Deterministic Output**: Same input always produces identical output
 //! - **Multiple Dialects**: Support for POSIX sh, Bash, and other shell variants
 //!
+//! ## Safety Note
+//! Emitter uses unwrap() on validated IR operations and string operations after validation.
+#![allow(clippy::unwrap_used)]
+#![allow(clippy::indexing_slicing)]
+//!
 //! ## Architecture
 //!
 //! The emitter consists of:

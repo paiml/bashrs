@@ -63,7 +63,7 @@ pub fn check(source: &str) -> LintResult {
                 let diag = Diagnostic::new(
                     "MAKE019",
                     Severity::Warning,
-                    &format!("Unnecessary export of '{}' - variable is Make-internal and doesn't need to be in environment", var_name),
+                    format!("Unnecessary export of '{}' - variable is Make-internal and doesn't need to be in environment", var_name),
                     span,
                 )
                 .with_fix(Fix::new(&fix_replacement));

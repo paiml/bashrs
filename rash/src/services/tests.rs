@@ -749,7 +749,7 @@ fn test_pattern_wildcard_vs_identifier() {
 
     match &main_func.body[0] {
         crate::ast::Stmt::Match { arms, .. } => {
-            assert!(arms.len() > 0, "Should have at least one match arm");
+            assert!(!arms.is_empty(), "Should have at least one match arm");
             // Wildcard pattern should be detected
             match &arms[0].pattern {
                 Pattern::Wildcard => {
@@ -776,7 +776,7 @@ fn test_pattern_wildcard_vs_identifier() {
 
     match &main_func2.body[0] {
         crate::ast::Stmt::Match { arms, .. } => {
-            assert!(arms.len() > 0, "Should have at least one match arm");
+            assert!(!arms.is_empty(), "Should have at least one match arm");
             // Named identifier should NOT be Wildcard
             match &arms[0].pattern {
                 Pattern::Variable(name) => {

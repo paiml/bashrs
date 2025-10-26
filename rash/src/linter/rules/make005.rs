@@ -71,7 +71,7 @@ pub fn check(source: &str) -> LintResult {
                 let diag = Diagnostic::new(
                     "MAKE005",
                     Severity::Warning,
-                    &format!(
+                    format!(
                         "Variable '{}' uses recursive expansion (=) with $(shell ...) - use := for immediate expansion",
                         var_name
                     ),

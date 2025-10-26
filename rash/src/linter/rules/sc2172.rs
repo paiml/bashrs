@@ -112,7 +112,7 @@ mod tests {
         let code = r#"trap handler 1 2 3"#;
         let result = check(code);
         // Should detect first numeric signal (1)
-        assert!(result.diagnostics.len() >= 1);
+        assert!(!result.diagnostics.is_empty());
     }
 
     #[test]

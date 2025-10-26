@@ -58,7 +58,7 @@ pub fn check(source: &str) -> LintResult {
                 let diagnostic = Diagnostic::new(
                     "SC2050",
                     Severity::Warning,
-                    &format!(
+                    format!(
                         "This expression is constant. Did you forget the $ on '{}'?",
                         left
                     ),

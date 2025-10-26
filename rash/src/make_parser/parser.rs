@@ -371,10 +371,10 @@ pub fn extract_function_calls(text: &str) -> Vec<(String, String)> {
 
                 // Split by first space or comma to get function name
                 let (func_name, args) =
-                    if let Some(space_pos) = content.find(|c: char| c == ' ' || c == ',') {
+                    if let Some(space_pos) = content.find([' ', ',']) {
                         let name = &content[..space_pos];
                         let args =
-                            content[space_pos..].trim_start_matches(|c: char| c == ' ' || c == ',');
+                            content[space_pos..].trim_start_matches([' ', ',']);
                         (name.to_string(), args.to_string())
                     } else {
                         // No args (e.g., $(CURDIR))

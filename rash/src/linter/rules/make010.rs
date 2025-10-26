@@ -14,15 +14,15 @@
 //! ❌ **BAD** (no error handling):
 //! ```makefile
 //! install:
-//! 	cp app /usr/bin/app
-//! 	chmod +x /usr/bin/app
+//!     cp app /usr/bin/app
+//!     chmod +x /usr/bin/app
 //! ```
 //!
 //! ✅ **GOOD** (with error handling):
 //! ```makefile
 //! install:
-//! 	cp app /usr/bin/app || exit 1
-//! 	chmod +x /usr/bin/app || exit 1
+//!     cp app /usr/bin/app || exit 1
+//!     chmod +x /usr/bin/app || exit 1
 //! ```
 
 use crate::linter::{Diagnostic, Fix, LintResult, Severity, Span};
@@ -65,7 +65,7 @@ pub fn check(source: &str) -> LintResult {
             let diag = Diagnostic::new(
                 "MAKE010",
                 Severity::Warning,
-                &format!(
+                format!(
                     "Command '{}' missing error handling - consider adding '|| exit 1'",
                     cmd
                 ),
@@ -87,17 +87,11 @@ fn has_error_handling(recipe: &str) -> bool {
 
 /// Find if the recipe contains a critical command
 fn find_critical_command(recipe: &str) -> Option<&'static str> {
-    for cmd in CRITICAL_COMMANDS {
-        // Check if command appears as a word (not part of another word)
-        if recipe.split_whitespace().any(|word| {
+    CRITICAL_COMMANDS.iter().find(|&cmd| recipe.split_whitespace().any(|word| {
             word == *cmd
                 || word.starts_with(&format!("{}@", cmd))
                 || word.starts_with(&format!("{}-", cmd))
-        }) {
-            return Some(cmd);
-        }
-    }
-    None
+        })).map(|v| v as _)
 }
 
 #[cfg(test)]

@@ -3,7 +3,7 @@
 //! Analyzes shell configuration files to detect issues, performance problems,
 //! and provide insights.
 
-use super::{ConfigAnalysis, ConfigIssue, ConfigType, PathEntry, PerformanceIssue};
+use super::{ConfigAnalysis, ConfigType, PerformanceIssue};
 use crate::config::{aliaser, deduplicator, nondeterminism, quoter};
 use std::path::PathBuf;
 
@@ -69,10 +69,9 @@ fn calculate_complexity(source: &str) -> u8 {
 /// Detect performance issues (CONFIG-005)
 fn detect_performance_issues(source: &str) -> Vec<PerformanceIssue> {
     let mut issues = Vec::new();
-    let mut line_num = 0;
 
-    for line in source.lines() {
-        line_num += 1;
+    for (line_num, line) in source.lines().enumerate() {
+        let line_num = line_num + 1;
 
         // Detect expensive eval operations
         if line.contains("eval")

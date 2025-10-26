@@ -2,11 +2,11 @@
 use crate::linter::LintResult;
 
 pub fn check(_source: &str) -> LintResult {
-    let result = LintResult::new();
+    
     // This is a placeholder rule - actual implementation would require
     // more sophisticated parsing to detect implicit vs explicit command calls
     // For now, we'll keep it simple and not trigger false positives
-    result
+    LintResult::new()
 }
 
 #[cfg(test)]
