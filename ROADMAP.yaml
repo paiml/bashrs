@@ -1890,14 +1890,20 @@ documentation:
 
 next_steps:
   immediate:
-    option: "Continue GNU Bash Manual Validation (RECOMMENDED)"
+    option: "Hybrid: GNU Bash Validation + REPL Verification (RECOMMENDED)"
     duration: "Ongoing"
-    description: "Execute tasks from BASH-INGESTION-ROADMAP.yaml (20% complete, 24/122 tasks)"
-    methodology: "EXTREME TDD + Mutation Testing + Property Testing"
-    workflow: "RED (write failing test) → GREEN (implement) → REFACTOR → DOCUMENT"
+    description: "Execute tasks from BASH-INGESTION-ROADMAP.yaml with hybrid validation approach (20% complete, 24/122 tasks)"
+    methodology: "EXTREME TDD + Interactive REPL Validation + Mutation Testing + Property Testing"
+    workflow: "RED → GREEN → REFACTOR → REPL VERIFICATION → PROPERTY → MUTATION → DOCUMENT"
     current_progress: "20% (24/122 tasks completed)"
     accuracy_note: "Updated 2025-10-26 - Verified actual completion count (was incorrectly listed as 35%, 15/120)"
-    rationale: "Sprint 29 delivered critical security fixes. Project mature enough for systematic bash validation."
+    hybrid_benefits:
+      - "Catch integration issues that unit tests miss"
+      - "Validate real-world interactive usage"
+      - "Improve developer confidence in transformations"
+      - "Document REPL-specific edge cases"
+    repl_integration: "Every bash construct validated both programmatically (unit tests) and interactively (REPL session)"
+    rationale: "Sprint 29 delivered critical security fixes. Project mature enough for systematic bash validation. Hybrid approach ensures both correctness (tests) and usability (REPL)."
 
   alternative_1:
     option: "Sprint 26 (Full Mutation Testing Excellence)"

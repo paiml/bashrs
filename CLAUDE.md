@@ -299,7 +299,42 @@ Run test: `cargo test test_<bug_description>`
 - Run full test suite: `cargo test`
 - **ALL 808+ TESTS MUST PASS** ✅
 
-#### Step 4: Property Testing
+#### Step 4: REPL VERIFICATION (Interactive Validation)
+**NEW**: Validate feature interactively in REPL to catch integration issues
+
+```bash
+# Start bashrs REPL
+$ bashrs repl
+
+# Test the bash construct manually
+bashrs> x=5
+bashrs> echo $x
+5
+
+# Test edge cases interactively
+bashrs> echo ${x:-default}
+5
+bashrs> echo ${unset:-fallback}
+fallback
+
+# Test complex scenarios
+bashrs> for i in 1 2 3; do echo $i; done
+1
+2
+3
+```
+
+**Why REPL Verification?**
+- Catches integration issues unit tests miss
+- Validates real-world interactive usage
+- Improves developer confidence in transformations
+- Documents REPL-specific edge cases
+
+**Document findings**: Note any REPL-specific issues discovered for future reference
+
+**VERIFY REPL BEHAVIOR MATCHES SPECIFICATION** ✅
+
+#### Step 5: Property Testing
 ```rust
 #[cfg(test)]
 mod property_tests {
@@ -321,7 +356,7 @@ mod property_tests {
 Run: `cargo test prop_<bug_description>`
 **VERIFY PROPERTY HOLDS** ✅
 
-#### Step 5: Mutation Testing
+#### Step 6: Mutation Testing
 ```bash
 # Run mutation testing on fixed module
 cargo mutants --file src/<module>/<fixed_file>.rs
@@ -331,7 +366,7 @@ cargo mutants --file src/<module>/<fixed_file>.rs
 
 **VERIFY** mutation score ≥90% ✅
 
-#### Step 6: Integration Testing
+#### Step 7: Integration Testing
 ```rust
 #[test]
 fn test_integration_<bug_description>() {
@@ -352,7 +387,7 @@ fn test_integration_<bug_description>() {
 Run: `cargo test test_integration_<bug_description>`
 **VERIFY INTEGRATION WORKS** ✅
 
-#### Step 7: Regression Prevention
+#### Step 8: Regression Prevention
 - Add test to permanent test suite
 - Update BASH-INGESTION-ROADMAP.yaml
 - Mark task as "completed"
@@ -365,6 +400,7 @@ Before resuming validation, verify ALL of these:
 - [ ] ✅ **RED**: Failing test written and verified to fail
 - [ ] ✅ **GREEN**: Implementation fixed, test passes
 - [ ] ✅ **REFACTOR**: Code cleaned up, complexity <10
+- [ ] ✅ **REPL VERIFICATION**: Interactive validation completed, behavior matches specification
 - [ ] ✅ **All tests pass**: 808+ tests, 100% pass rate
 - [ ] ✅ **Property test**: Determinism/idempotency verified
 - [ ] ✅ **Mutation test**: ≥90% kill rate on fixed module
