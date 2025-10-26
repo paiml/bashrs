@@ -1172,12 +1172,13 @@ chapters:
 
           - id: "BUILTIN-015"
             title: "Document shift"
-            status: "pending"
+            status: "completed"
             priority: "MEDIUM"
             input: "shift; echo $1"
             rust: "args.remove(0); println!(\"{}\", args[0])"
             purified: "shift; printf '%s\\n' \"$1\""
-            test_name: "test_shift_command"
+            test_name: "test_BUILTIN_015_shift_command"
+            notes: "Already supported by command parsing infrastructure (BUILTIN-001)"
 
           - id: "BUILTIN-016"
             title: "Document test / ["
