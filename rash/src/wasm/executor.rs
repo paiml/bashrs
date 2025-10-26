@@ -1030,9 +1030,13 @@ impl BashExecutor {
 
         // Handle different test operators
         if parts.len() == 3 {
-            let left = self.expand_variables(parts[0]);
+            // Strip quotes before expansion
+            let left_raw = parts[0].trim_matches('"').trim_matches('\'');
+            let right_raw = parts[2].trim_matches('"').trim_matches('\'');
+
+            let left = self.expand_variables(left_raw);
             let op = parts[1];
-            let right = self.expand_variables(parts[2]);
+            let right = self.expand_variables(right_raw);
 
             match op {
                 // Integer comparisons
@@ -1074,7 +1078,8 @@ impl BashExecutor {
         } else if parts.len() == 2 {
             // Unary operators
             let op = parts[0];
-            let arg = self.expand_variables(parts[1]);
+            let arg_raw = parts[1].trim_matches('"').trim_matches('\'');
+            let arg = self.expand_variables(arg_raw);
 
             match op {
                 "-n" => Ok(!arg.is_empty()),
@@ -1434,7 +1439,7 @@ impl BashExecutor {
             match condition_result {
                 Ok(0) => {
                     // Condition true, execute body
-                    let body_lines: Vec<&str> = if first_line.contains("; do") {
+                    let body_lines: Vec<&str> = if first_line.contains("; do") && first_line.contains("; done") {
                         // Single-line loop
                         let after_do = first_line.split("; do ").nth(1).unwrap();
                         let before_done = after_do.split("; done").next().unwrap();
@@ -7556,6 +7561,112 @@ done
             let result = executor.execute(r#"
 for x in 1 2 3; do
     echo $x
+done
+"#);
+            assert!(result.is_ok());
+            let output = result.unwrap();
+            assert_eq!(output.exit_code, 0);
+        }
+    }
+
+    /// Tests for while loops: while CONDITION; do ... done
+    /// While loops execute while condition is true
+    #[cfg(test)]
+    mod while_loop_tests {
+        use super::*;
+
+        /// Test 1: Basic while loop with counter
+        #[test]
+        fn test_while_001_counter() {
+            let mut executor = BashExecutor::new();
+            let result = executor.execute(r#"
+i=1
+while [ "$i" -le "3" ]; do
+    echo $i
+    i=$((i + 1))
+done
+"#);
+            assert!(result.is_ok());
+            let output = result.unwrap();
+            assert_eq!(output.stdout.trim(), "1\n2\n3");
+        }
+
+        /// Test 2: While loop with false condition (never executes)
+        #[test]
+        fn test_while_002_false_condition() {
+            let mut executor = BashExecutor::new();
+            let result = executor.execute(r#"
+while false; do
+    echo "should not see this"
+done
+echo "after loop"
+"#);
+            assert!(result.is_ok());
+            let output = result.unwrap();
+            assert_eq!(output.stdout.trim(), "after loop");
+        }
+
+        /// Test 3: While loop with variable condition
+        #[test]
+        fn test_while_003_variable_condition() {
+            let mut executor = BashExecutor::new();
+            let result = executor.execute(r#"
+count=3
+while [ "$count" -gt "0" ]; do
+    echo "count: $count"
+    count=$((count - 1))
+done
+"#);
+            assert!(result.is_ok());
+            let output = result.unwrap();
+            assert_eq!(output.stdout.trim(), "count: 3\ncount: 2\ncount: 1");
+        }
+
+        /// Test 4: While loop accumulator
+        #[test]
+        fn test_while_004_accumulator() {
+            let mut executor = BashExecutor::new();
+            let result = executor.execute(r#"
+sum=0
+i=1
+while [ "$i" -le "5" ]; do
+    sum=$((sum + i))
+    i=$((i + 1))
+done
+echo $sum
+"#);
+            assert!(result.is_ok());
+            let output = result.unwrap();
+            assert_eq!(output.stdout.trim(), "15");
+        }
+
+        /// Test 5: While loop with multiple commands
+        #[test]
+        fn test_while_005_multiple_commands() {
+            let mut executor = BashExecutor::new();
+            let result = executor.execute(r#"
+i=1
+while [ "$i" -le "2" ]; do
+    echo "iteration: $i"
+    j=$((i * 2))
+    echo "double: $j"
+    i=$((i + 1))
+done
+"#);
+            assert!(result.is_ok());
+            let output = result.unwrap();
+            assert_eq!(output.stdout.trim(), "iteration: 1\ndouble: 2\niteration: 2\ndouble: 4");
+        }
+
+        /// Test 6: While loop exit code
+        #[test]
+        fn test_while_006_exit_code() {
+            let mut executor = BashExecutor::new();
+            let result = executor.execute(r#"
+i=1
+while [ "$i" -le "3" ]; do
+    echo $i
+    i=$((i + 1))
 done
 "#);
             assert!(result.is_ok());
