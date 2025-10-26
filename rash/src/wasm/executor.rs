@@ -218,6 +218,44 @@ impl BashExecutor {
         }
 
         let cmd = &parts[0];
+
+        // Handle special __HEREDOC_LITERAL__ command (used for quoted heredocs)
+        // This bypasses variable expansion to preserve literal $ signs
+        if cmd == "__HEREDOC_LITERAL__" {
+            if parts.len() < 2 {
+                return Ok(0);
+            }
+
+            // Check if this is a redirection (has > or >>)
+            let has_redirect = parts.len() >= 4 && (parts[2] == ">" || parts[2] == ">>");
+
+            if has_redirect {
+                // Write to file: __HEREDOC_LITERAL__ text > file
+                let text = &parts[1];
+                let redirect_op = &parts[2];
+                let file_path = &parts[3];
+
+                // Unescape the text
+                let unescaped = text.replace("\\n", "\n").replace("\\\\", "\\");
+
+                if redirect_op == ">" {
+                    // Truncate mode
+                    self.vfs.write_file(file_path, &unescaped)?;
+                } else {
+                    // Append mode
+                    let existing = self.vfs.read_file(file_path).unwrap_or_default();
+                    self.vfs.write_file(file_path, &format!("{}{}", existing, unescaped))?;
+                }
+                return Ok(0);
+            } else {
+                // Output to stdout: __HEREDOC_LITERAL__ text
+                let text = parts[1..].join(" ");
+                let unescaped = text.replace("\\n", "\n").replace("\\\\", "\\");
+                self.io.print(&format!("{}\n", unescaped));
+                return Ok(0);
+            }
+        }
+
         let args: Vec<String> = parts[1..]
             .iter()
             .map(|arg| self.expand_variables(arg))
@@ -1831,7 +1869,10 @@ impl BashExecutor {
                         // Standalone heredoc or cat <<EOF - convert to echo statements
                         for line in content_lines.iter() {
                             if quoted {
-                                result.push_str(&format!("echo '{}'\n", line.replace('\'', "'\\''")));
+                                // Quoted delimiter: output literal text without variable expansion
+                                // Use a special command that bypasses expand_variables
+                                result.push_str(&format!("__HEREDOC_LITERAL__ {}\n",
+                                    line.replace('\\', "\\\\").replace('\n', "\\n")));
                             } else {
                                 result.push_str(&format!("echo \"{}\"\n", line.replace('"', "\\\"")));
                             }
@@ -1845,8 +1886,9 @@ impl BashExecutor {
                         for (idx, line) in content_lines.iter().enumerate() {
                             let redirect_op = if idx == 0 { ">" } else { ">>" };
                             if quoted {
-                                result.push_str(&format!("echo '{}' {} {}\n",
-                                    line.replace('\'', "'\\''"),
+                                // Quoted delimiter: output literal text without variable expansion
+                                result.push_str(&format!("__HEREDOC_LITERAL__ {} {} {}\n",
+                                    line.replace('\\', "\\\\").replace('\n', "\\n"),
                                     redirect_op,
                                     file_path));
                             } else {
