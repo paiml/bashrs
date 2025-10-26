@@ -17,7 +17,10 @@ roadmap:
     accuracy_verified: "2025-10-26"
 
 extreme_tdd_workflow:
-  description: "Standard workflow for each task"
+  description: "Hybrid workflow combining GNU Bash validation with REPL verification"
+  methodology: "EXTREME TDD + Interactive REPL Validation"
+  updated: "2025-10-26"
+
   steps:
     - id: 1
       name: "RED"
@@ -50,6 +53,25 @@ extreme_tdd_workflow:
         - "Document edge cases"
 
     - id: 4
+      name: "REPL VERIFICATION"
+      description: "Validate feature interactively in REPL"
+      substeps:
+        - "Run `bashrs repl` and test bash construct manually"
+        - "Verify expected behavior matches specification"
+        - "Test edge cases interactively"
+        - "Document any REPL-specific issues discovered"
+      example: |
+        $ bashrs repl
+        bashrs> x=5
+        bashrs> echo $x
+        5
+        bashrs> echo ${x:-default}
+        5
+        bashrs> echo ${unset:-fallback}
+        fallback
+      notes: "Interactive validation catches integration issues that unit tests miss"
+
+    - id: 5
       name: "PROPERTY TESTING"
       description: "Add property-based tests"
       substeps:
@@ -57,7 +79,7 @@ extreme_tdd_workflow:
         - "Verify determinism property"
         - "Verify idempotency property"
 
-    - id: 5
+    - id: 6
       name: "MUTATION TESTING"
       description: "Verify test quality"
       substeps:
@@ -65,13 +87,14 @@ extreme_tdd_workflow:
         - "Target ≥90% mutation kill rate"
         - "Fix surviving mutants"
 
-    - id: 6
+    - id: 7
       name: "DOCUMENT"
       description: "Update documentation"
       substeps:
         - "Update this roadmap YAML file"
         - "Mark task as 'completed'"
         - "Add implementation details"
+        - "Add REPL verification notes"
         - "Update CHANGELOG.md"
 
 cli_testing_protocol:
