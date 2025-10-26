@@ -2452,3 +2452,28 @@ fn test_BUILTIN_015_shift_command() {
         "Shift should be parsed as a Command statement with name 'shift'"
     );
 }
+
+// BUILTIN-018: Trap command
+// The trap command executes commands when shell receives signals.
+// trap 'cleanup' EXIT runs cleanup function on exit
+// Example: trap 'rm -f /tmp/file' EXIT INT TERM
+#[test]
+fn test_BUILTIN_018_trap_signal_handling() {
+    let script = "trap 'cleanup' EXIT";
+
+    let mut parser = BashParser::new(script).unwrap();
+    let ast = parser.parse().unwrap();
+
+    // Should parse successfully
+    assert!(!ast.statements.is_empty(), "Trap command should be parsed");
+
+    // Should be recognized as a Command statement with name "trap"
+    let has_trap_command = ast.statements.iter().any(|s| {
+        matches!(s, BashStmt::Command { name, args, .. } if name == "trap" && args.len() >= 1)
+    });
+
+    assert!(
+        has_trap_command,
+        "Trap should be parsed as a Command statement with name 'trap' and arguments"
+    );
+}
