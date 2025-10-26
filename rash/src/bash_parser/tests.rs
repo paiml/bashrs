@@ -2352,3 +2352,28 @@ mod property_tests {
         }
     }
 }
+
+// BUILTIN-001: Colon no-op command
+// The colon (:) command is a built-in that does nothing (no-op).
+// It's commonly used for comments or placeholder commands.
+#[test]
+fn test_BUILTIN_001_noop_colon() {
+    let script = ": # this is a comment";
+
+    let mut parser = BashParser::new(script).unwrap();
+    let ast = parser.parse().unwrap();
+
+    // Should parse successfully
+    assert!(!ast.statements.is_empty(), "Colon command should be parsed");
+
+    // Should be recognized as a Command statement
+    let has_command = ast
+        .statements
+        .iter()
+        .any(|s| matches!(s, BashStmt::Command { name, .. } if name == ":"));
+
+    assert!(
+        has_command,
+        "Colon should be parsed as a Command statement with name ':'"
+    );
+}
