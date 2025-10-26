@@ -77,12 +77,14 @@ require_panic_docs = true    # Document panic conditions
 enabled = true
 # Skip domains that require authentication or have paywalls
 skip_domains = [
-    "doi.org",           # Academic paper DOIs (paywall/auth required)
-    "dl.acm.org"         # ACM Digital Library (paywall)
+    "doi.org",               # Academic paper DOIs (paywall/auth required)
+    "dl.acm.org",           # ACM Digital Library (paywall)
+    "zsh.sourceforge.io"    # Zsh docs (503 errors due to sourceforge instability)
 ]
 # Skip internal links to future/planned chapters
 skip_patterns = [
-    "**/rash-book/src/ch*.html"  # Future book chapters not yet written
+    "**/rash-book/src/ch*.html",  # Future book chapters not yet written
+    "**/pkg/**"                    # Generated WASM package (copied from elsewhere)
 ]
 
 [security]
