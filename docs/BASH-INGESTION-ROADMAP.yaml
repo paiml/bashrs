@@ -1266,13 +1266,13 @@ chapters:
 
           - id: "BASH-BUILTIN-004"
             title: "Document local"
-            status: "pending"
+            status: "completed"
             priority: "MEDIUM"
             input: "func() { local var=5; }"
             rust: "fn func() { let var = 5; }"
             purified: "func() { _var=5; }"
-            test_name: "test_local_to_scoped_var"
-            notes: "Use naming convention for scoping"
+            test_name: "test_BASH_BUILTIN_004_local_to_scoped_var"
+            notes: "Parser updated to handle Token::Local keyword (lines 95, 277-292 in parser.rs)"
 
           - id: "BASH-BUILTIN-005"
             title: "Document printf"

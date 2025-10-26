@@ -92,6 +92,7 @@ impl BashParser {
             Some(Token::Function) => self.parse_function(),
             Some(Token::Return) => self.parse_return(),
             Some(Token::Export) => self.parse_export(),
+            Some(Token::Local) => self.parse_local(),
             Some(Token::Identifier(_)) => {
                 // Could be assignment or command
                 if self.peek_ahead(1) == Some(&Token::Assign) {
@@ -271,6 +272,23 @@ impl BashParser {
     fn parse_export(&mut self) -> ParseResult<BashStmt> {
         self.expect(Token::Export)?;
         self.parse_assignment(true)
+    }
+
+    fn parse_local(&mut self) -> ParseResult<BashStmt> {
+        self.expect(Token::Local)?;
+
+        // Check if there's an assignment after local
+        if !self.is_at_end() && !self.check(&Token::Newline) && !self.check(&Token::Semicolon) {
+            // Parse as assignment with local scoping
+            self.parse_assignment(false)
+        } else {
+            // Just "local" by itself - treat as command
+            Ok(BashStmt::Command {
+                name: "local".to_string(),
+                args: vec![],
+                span: Span::dummy(),
+            })
+        }
     }
 
     fn parse_assignment(&mut self, exported: bool) -> ParseResult<BashStmt> {
