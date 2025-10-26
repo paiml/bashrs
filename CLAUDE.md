@@ -366,7 +366,34 @@ cargo mutants --file src/<module>/<fixed_file>.rs
 
 **VERIFY** mutation score ≥90% ✅
 
-#### Step 7: Integration Testing
+#### Step 7: pmat Verification
+**NEW**: Verify code quality with paiml-mcp-agent-toolkit
+
+```bash
+# Verify code complexity
+$ pmat analyze complexity --max 10
+✅ All functions below complexity 10
+
+# Verify overall quality score
+$ pmat quality-score --min 9.0
+✅ Quality score: 9.5/10
+
+# Verify against specification (if applicable)
+$ pmat verify --spec rash.spec --impl target/debug/bashrs
+✅ Implementation matches specification
+```
+
+**Why pmat Verification?**
+- Ensures code complexity stays manageable (<10)
+- Verifies overall code quality metrics
+- Catches quality issues missed by standard tooling
+- Provides objective quality scoring
+
+**Address any issues detected** before proceeding
+
+**VERIFY PMAT QUALITY GATES PASS** ✅
+
+#### Step 8: Integration Testing
 ```rust
 #[test]
 fn test_integration_<bug_description>() {
@@ -387,7 +414,7 @@ fn test_integration_<bug_description>() {
 Run: `cargo test test_integration_<bug_description>`
 **VERIFY INTEGRATION WORKS** ✅
 
-#### Step 8: Regression Prevention
+#### Step 9: Regression Prevention
 - Add test to permanent test suite
 - Update BASH-INGESTION-ROADMAP.yaml
 - Mark task as "completed"
@@ -404,6 +431,7 @@ Before resuming validation, verify ALL of these:
 - [ ] ✅ **All tests pass**: 808+ tests, 100% pass rate
 - [ ] ✅ **Property test**: Determinism/idempotency verified
 - [ ] ✅ **Mutation test**: ≥90% kill rate on fixed module
+- [ ] ✅ **pmat VERIFICATION**: Quality gates pass (complexity <10, quality score ≥9.0)
 - [ ] ✅ **Integration test**: End-to-end workflow verified
 - [ ] ✅ **Shellcheck**: Purified output passes POSIX compliance
 - [ ] ✅ **Documentation**: CHANGELOG, roadmap updated
