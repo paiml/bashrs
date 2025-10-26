@@ -1,0 +1,1106 @@
+---
+project:
+  name: "bashrs REPL + Debugger Implementation Roadmap"
+  description: "Interactive REPL with integrated debugger for purified bash development"
+  version: "0.1.0-alpha"
+  status: "IN_PROGRESS - Phase 0: Foundation"
+  parent_project: "bashrs v6.2.0"
+
+goals:
+  primary: "Unified REPL and debugger with purification-aware debugging"
+  secondary: "Determinism and idempotency verification built-in"
+  quality_target: "NASA-level - EXTREME TDD + Property Testing + Mutation Testing"
+
+architecture:
+  pattern: "Debugger-as-REPL (matklad pattern)"
+  integration: "Symbiotic embedding (RuchyRuchy pattern)"
+  components:
+    - "REPL interface with mode switching"
+    - "Embedded bash parser + purifier"
+    - "Debugging engine with breakpoints"
+    - "Determinism checker"
+    - "Idempotency analyzer"
+    - "Purification explainer"
+
+quality_framework:
+  methodology: "EXTREME TDD"
+  test_requirements:
+    - "Unit tests: >85% coverage"
+    - "Property tests: 100+ cases per component"
+    - "Mutation tests: ≥90% kill rate"
+    - "Integration tests: All tools agree (anti-fraud)"
+
+  tiered_gates:
+    tier1_precommit:
+      target: "<1 second"
+      checks:
+        - "Syntax validation"
+        - "Basic linting"
+        - "Fast unit tests"
+
+    tier2_ci:
+      target: "5-10 minutes"
+      checks:
+        - "Full test suite"
+        - "Integration tests"
+        - "Coverage validation (>85%)"
+        - "Property tests (100+ cases)"
+
+    tier3_nightly:
+      target: "Hours"
+      checks:
+        - "Mutation testing (≥90% kill rate)"
+        - "Fuzz testing"
+        - "Real-world validation (100+ GitHub scripts)"
+        - "Performance benchmarks"
+
+  enforcement:
+    tool: "pmat (paiml-mcp-agent-toolkit)"
+    validation:
+      - "Book examples must compile and pass"
+      - "Documentation accuracy enforced"
+      - "Tool consensus validation (parser + linter + purifier + debugger agree)"
+
+phases:
+  - phase: 0
+    name: "Foundation & Planning"
+    status: "IN_PROGRESS"
+    duration: "2 weeks"
+    sprints:
+      - sprint: "REPL-001"
+        name: "Research Analysis & Architecture"
+        status: "COMPLETED"
+        deliverables:
+          - "REPL-DEBUGGER-RESEARCH-ANALYSIS.md (1,724 lines)"
+          - "CODE-REVIEW-RESPONSE-REPL-DEBUGGER.md (529 lines)"
+          - "REPL-DEBUGGER-ROADMAP.yaml (this file)"
+        achievements:
+          - "Analyzed Ruchy REPL + Debugger architecture"
+          - "Analyzed RuchyRuchy spec (2,169 lines)"
+          - "Academic research (6 peer-reviewed sources)"
+          - "Production tools analysis (bashdb, POSIX)"
+          - "Accepted 6 Toyota Way recommendations"
+        quality:
+          tests: 0
+          coverage: "N/A - research phase"
+
+      - sprint: "REPL-002"
+        name: "EXTREME TDD Infrastructure Setup"
+        status: "PENDING"
+        tasks:
+          - id: "REPL-002-001"
+            title: "Set up property testing framework (proptest)"
+            status: "pending"
+            test_target: "N/A - infrastructure"
+
+          - id: "REPL-002-002"
+            title: "Set up mutation testing (cargo-mutants)"
+            status: "pending"
+            test_target: "≥90% kill rate baseline"
+
+          - id: "REPL-002-003"
+            title: "Create REPL test harness with assert_cmd"
+            status: "pending"
+            test_target: "Working test infrastructure"
+            example: |
+              use assert_cmd::Command;
+
+              fn bashrs_repl() -> Command {
+                  Command::cargo_bin("bashrs").arg("repl")
+              }
+
+              #[test]
+              fn test_REPL_002_003_repl_starts() {
+                  bashrs_repl()
+                      .write_stdin(":quit\n")
+                      .assert()
+                      .success();
+              }
+
+          - id: "REPL-002-004"
+            title: "Create integration test template (anti-fraud)"
+            status: "pending"
+            test_target: "All tools agree on same script"
+            example: |
+              #[test]
+              fn test_REPL_002_004_tool_consensus() {
+                  let script = "deploy.sh";
+                  let ast = bashrs_parse(script);
+                  let lint = bashrs_lint(script);
+                  let purified = bashrs_purify(script);
+                  let debug = bashrs_debug(&purified);
+
+                  // CRITICAL: All tools must agree on line numbers
+                  assert_tool_consensus(ast, lint, purified, debug);
+              }
+
+        deliverables:
+          - "rash/tests/repl_test_harness.rs"
+          - "rash/tests/integration/tool_consensus.rs"
+          - "Cargo.toml updated with proptest, assert_cmd"
+          - ".github/workflows/mutation-testing.yml"
+
+  - phase: 1
+    name: "REPL Core"
+    status: "PENDING"
+    duration: "8 weeks"
+    sprints:
+      - sprint: "REPL-003"
+        name: "Basic REPL Loop (RED-GREEN-REFACTOR)"
+        status: "PENDING"
+        duration: "2 weeks"
+        tasks:
+          - id: "REPL-003-001"
+            title: "REPL struct and configuration (ReplConfig)"
+            status: "pending"
+            test_approach: "RED → GREEN → REFACTOR → PROPERTY → MUTATION"
+            tests:
+              unit:
+                - "test_REPL_003_001_config_defaults"
+                - "test_REPL_003_001_config_custom_limits"
+                - "test_REPL_003_001_config_validation"
+              property:
+                - "prop_config_resource_limits_always_positive"
+                - "prop_config_timeout_reasonable_bounds"
+              mutation:
+                target: "≥90% kill rate on repl/config.rs"
+            example: |
+              // RED: Write failing test first
+              #[test]
+              fn test_REPL_003_001_config_defaults() {
+                  let config = ReplConfig::default();
+                  assert_eq!(config.max_memory, 100_000_000); // 100MB
+                  assert_eq!(config.timeout.as_secs(), 30);
+                  assert_eq!(config.max_depth, 100);
+              }
+
+              // GREEN: Implement to pass
+              pub struct ReplConfig {
+                  pub max_memory: usize,
+                  pub timeout: Duration,
+                  pub max_depth: usize,
+              }
+
+              // REFACTOR: Clean up, extract helpers
+              // PROPERTY: Add generative tests
+              proptest! {
+                  #[test]
+                  fn prop_config_resource_limits_always_positive(
+                      mem in 1usize..1_000_000_000,
+                      depth in 1usize..1000
+                  ) {
+                      let config = ReplConfig {
+                          max_memory: mem,
+                          timeout: Duration::from_secs(30),
+                          max_depth: depth,
+                      };
+                      assert!(config.max_memory > 0);
+                      assert!(config.max_depth > 0);
+                  }
+              }
+
+              // MUTATION: Run cargo mutants
+              // Target: ≥90% kill rate
+
+          - id: "REPL-003-002"
+            title: "Basic REPL loop with rustyline integration"
+            status: "pending"
+            dependencies: ["REPL-003-001"]
+            tests:
+              unit:
+                - "test_REPL_003_002_repl_starts_and_quits"
+                - "test_REPL_003_002_repl_handles_empty_input"
+                - "test_REPL_003_002_repl_handles_eof"
+              integration:
+                - "test_REPL_003_002_repl_cli_interaction"
+              mutation:
+                target: "≥90% kill rate on repl/loop.rs"
+            example: |
+              use assert_cmd::Command;
+
+              #[test]
+              fn test_REPL_003_002_repl_starts_and_quits() {
+                  Command::cargo_bin("bashrs").unwrap()
+                      .arg("repl")
+                      .write_stdin(":quit\n")
+                      .assert()
+                      .success()
+                      .stdout(predicate::str::contains("bashrs"));
+              }
+
+          - id: "REPL-003-003"
+            title: "Command history management"
+            status: "pending"
+            dependencies: ["REPL-003-002"]
+            tests:
+              unit:
+                - "test_REPL_003_003_history_add"
+                - "test_REPL_003_003_history_recall"
+                - "test_REPL_003_003_history_persistence"
+              property:
+                - "prop_history_preserves_order"
+                - "prop_history_bounded_size"
+              mutation:
+                target: "≥90% kill rate on repl/history.rs"
+
+          - id: "REPL-003-004"
+            title: "Mode switching (Normal, Purify, Lint, Debug, Explain)"
+            status: "pending"
+            dependencies: ["REPL-003-002"]
+            tests:
+              unit:
+                - "test_REPL_003_004_mode_normal"
+                - "test_REPL_003_004_mode_purify"
+                - "test_REPL_003_004_mode_lint"
+                - "test_REPL_003_004_mode_debug"
+                - "test_REPL_003_004_mode_explain"
+                - "test_REPL_003_004_mode_invalid"
+              integration:
+                - "test_REPL_003_004_mode_switching_cli"
+              mutation:
+                target: "≥90% kill rate on repl/modes.rs"
+            example: |
+              #[test]
+              fn test_REPL_003_004_mode_switching_cli() {
+                  Command::cargo_bin("bashrs").unwrap()
+                      .arg("repl")
+                      .write_stdin(":mode purify\nmkdir /tmp/test\n:quit\n")
+                      .assert()
+                      .success()
+                      .stdout(predicate::str::contains("Mode: Purify"))
+                      .stdout(predicate::str::contains("mkdir -p"));
+              }
+
+        milestones:
+          - name: "`bashrs repl` command functional"
+            criteria:
+              - "REPL starts successfully"
+              - "Mode switching works"
+              - "History persists across sessions"
+              - "All unit tests pass (>85% coverage)"
+              - "Property tests pass (100+ cases)"
+              - "Mutation score ≥90%"
+
+        quality_metrics:
+          target_tests: 30
+          target_coverage: ">85%"
+          target_mutation_score: "≥90%"
+          target_complexity: "<10 per function"
+
+      - sprint: "REPL-004"
+        name: "Parser Integration"
+        status: "PENDING"
+        duration: "2 weeks"
+        tasks:
+          - id: "REPL-004-001"
+            title: "Embed bash parser into REPL"
+            status: "pending"
+            tests:
+              unit:
+                - "test_REPL_004_001_parse_simple_command"
+                - "test_REPL_004_001_parse_pipeline"
+                - "test_REPL_004_001_parse_control_flow"
+              property:
+                - "prop_parse_never_panics"
+                - "prop_parse_produces_valid_ast"
+              mutation:
+                target: "≥90% kill rate"
+
+          - id: "REPL-004-002"
+            title: "AST display mode"
+            status: "pending"
+            dependencies: ["REPL-004-001"]
+            tests:
+              unit:
+                - "test_REPL_004_002_ast_display_command"
+                - "test_REPL_004_002_ast_display_pipeline"
+                - "test_REPL_004_002_ast_display_if_statement"
+              integration:
+                - "test_REPL_004_002_ast_mode_cli"
+
+          - id: "REPL-004-003"
+            title: "Syntax error reporting"
+            status: "pending"
+            dependencies: ["REPL-004-001"]
+            tests:
+              unit:
+                - "test_REPL_004_003_syntax_error_unclosed_quote"
+                - "test_REPL_004_003_syntax_error_invalid_operator"
+                - "test_REPL_004_003_syntax_error_line_numbers"
+              property:
+                - "prop_syntax_errors_always_have_line_numbers"
+
+        milestones:
+          - name: "Parse bash scripts in REPL"
+            criteria:
+              - "Parser embedded successfully"
+              - "AST display works"
+              - "Syntax errors reported with line numbers"
+              - ">85% coverage"
+              - "Mutation score ≥90%"
+
+      - sprint: "REPL-005"
+        name: "Purification Integration"
+        status: "PENDING"
+        duration: "2 weeks"
+        tasks:
+          - id: "REPL-005-001"
+            title: "Call purifier from REPL"
+            status: "pending"
+            tests:
+              unit:
+                - "test_REPL_005_001_purify_mkdir"
+                - "test_REPL_005_001_purify_random"
+                - "test_REPL_005_001_purify_unquoted_var"
+              integration:
+                - "test_REPL_005_001_purify_mode_cli"
+
+          - id: "REPL-005-002"
+            title: "Show original vs purified side-by-side"
+            status: "pending"
+            dependencies: ["REPL-005-001"]
+            tests:
+              unit:
+                - "test_REPL_005_002_diff_display"
+                - "test_REPL_005_002_diff_highlighting"
+              integration:
+                - "test_REPL_005_002_diff_cli"
+
+          - id: "REPL-005-003"
+            title: "Basic explanation (what changed)"
+            status: "pending"
+            dependencies: ["REPL-005-001"]
+            tests:
+              unit:
+                - "test_REPL_005_003_explain_mkdir_p"
+                - "test_REPL_005_003_explain_rm_f"
+                - "test_REPL_005_003_explain_quote_var"
+
+        milestones:
+          - name: "Interactive purification"
+            criteria:
+              - "Purifier callable from REPL"
+              - "Side-by-side diff display"
+              - "Basic explanations"
+              - ">85% coverage"
+              - "Mutation score ≥90%"
+
+      - sprint: "REPL-006"
+        name: "Linting Integration"
+        status: "PENDING"
+        duration: "2 weeks"
+        tasks:
+          - id: "REPL-006-001"
+            title: "Run linter from REPL"
+            status: "pending"
+            tests:
+              unit:
+                - "test_REPL_006_001_lint_finds_issues"
+                - "test_REPL_006_001_lint_categorizes_severity"
+              integration:
+                - "test_REPL_006_001_lint_mode_cli"
+
+          - id: "REPL-006-002"
+            title: "Display lint results with formatting"
+            status: "pending"
+            dependencies: ["REPL-006-001"]
+            tests:
+              unit:
+                - "test_REPL_006_002_lint_output_format"
+                - "test_REPL_006_002_lint_color_coding"
+
+          - id: "REPL-006-003"
+            title: "Categorize by severity (ERROR, WARNING, INFO)"
+            status: "pending"
+            dependencies: ["REPL-006-001"]
+            tests:
+              unit:
+                - "test_REPL_006_003_severity_error"
+                - "test_REPL_006_003_severity_warning"
+                - "test_REPL_006_003_severity_info"
+
+        milestones:
+          - name: "Interactive linting"
+            criteria:
+              - "Linter callable from REPL"
+              - "Results displayed with formatting"
+              - "Severity categorization"
+              - ">85% coverage"
+              - "Mutation score ≥90%"
+
+        deliverables:
+          - "Working REPL with parse, purify, lint modes"
+          - "rash/src/repl/ module (core, config, modes, history)"
+          - "rash/tests/repl/ test suite (30+ tests)"
+          - "Property tests (10+ generators)"
+          - "Mutation testing baseline (≥90% kill rate)"
+
+  - phase: 2
+    name: "Debugging Foundation"
+    status: "PENDING"
+    duration: "8 weeks"
+    sprints:
+      - sprint: "REPL-007"
+        name: "Breakpoint System"
+        status: "PENDING"
+        duration: "2 weeks"
+        tasks:
+          - id: "REPL-007-001"
+            title: "Line-based breakpoints"
+            status: "pending"
+            test_approach: "RED → GREEN → REFACTOR → PROPERTY → MUTATION"
+            tests:
+              unit:
+                - "test_REPL_007_001_set_breakpoint"
+                - "test_REPL_007_001_hit_breakpoint"
+                - "test_REPL_007_001_remove_breakpoint"
+              property:
+                - "prop_breakpoint_line_numbers_valid"
+              mutation:
+                target: "≥90% kill rate on debugger/breakpoints.rs"
+
+          - id: "REPL-007-002"
+            title: "Conditional breakpoints (break if $var > 10)"
+            status: "pending"
+            dependencies: ["REPL-007-001"]
+            tests:
+              unit:
+                - "test_REPL_007_002_conditional_true"
+                - "test_REPL_007_002_conditional_false"
+                - "test_REPL_007_002_conditional_invalid"
+              property:
+                - "prop_conditional_evaluates_safely"
+
+          - id: "REPL-007-003"
+            title: "Hit-count breakpoints (break after 5 hits)"
+            status: "pending"
+            dependencies: ["REPL-007-001"]
+            tests:
+              unit:
+                - "test_REPL_007_003_hit_count_trigger"
+                - "test_REPL_007_003_hit_count_not_reached"
+              property:
+                - "prop_hit_count_accurate"
+
+        milestones:
+          - name: "Set breakpoints in bash scripts"
+            criteria:
+              - "Line breakpoints working"
+              - "Conditional breakpoints working"
+              - "Hit-count breakpoints working"
+              - ">85% coverage"
+              - "Mutation score ≥90%"
+
+      - sprint: "REPL-008"
+        name: "Execution Control"
+        status: "PENDING"
+        duration: "2 weeks"
+        tasks:
+          - id: "REPL-008-001"
+            title: "Step (next line)"
+            status: "pending"
+            tests:
+              unit:
+                - "test_REPL_008_001_step_single_line"
+                - "test_REPL_008_001_step_into_function"
+              integration:
+                - "test_REPL_008_001_step_cli"
+
+          - id: "REPL-008-002"
+            title: "Next (skip over functions)"
+            status: "pending"
+            dependencies: ["REPL-008-001"]
+            tests:
+              unit:
+                - "test_REPL_008_002_next_skips_function"
+                - "test_REPL_008_002_next_same_level"
+
+          - id: "REPL-008-003"
+            title: "Continue (run until breakpoint)"
+            status: "pending"
+            dependencies: ["REPL-007-001"]
+            tests:
+              unit:
+                - "test_REPL_008_003_continue_to_breakpoint"
+                - "test_REPL_008_003_continue_to_end"
+
+          - id: "REPL-008-004"
+            title: "Finish (exit current function)"
+            status: "pending"
+            dependencies: ["REPL-008-001"]
+            tests:
+              unit:
+                - "test_REPL_008_004_finish_returns"
+                - "test_REPL_008_004_finish_nested"
+
+        milestones:
+          - name: "Step through bash scripts"
+            criteria:
+              - "Step, next, continue, finish all working"
+              - "Integration with breakpoint system"
+              - ">85% coverage"
+              - "Mutation score ≥90%"
+
+      - sprint: "REPL-009"
+        name: "State Inspection"
+        status: "PENDING"
+        duration: "2 weeks"
+        tasks:
+          - id: "REPL-009-001"
+            title: "Variable inspection (print $var)"
+            status: "pending"
+            tests:
+              unit:
+                - "test_REPL_009_001_print_variable"
+                - "test_REPL_009_001_print_array"
+                - "test_REPL_009_001_print_nonexistent"
+
+          - id: "REPL-009-002"
+            title: "Environment display"
+            status: "pending"
+            tests:
+              unit:
+                - "test_REPL_009_002_env_display"
+                - "test_REPL_009_002_env_filter"
+
+          - id: "REPL-009-003"
+            title: "Call stack tracking"
+            status: "pending"
+            tests:
+              unit:
+                - "test_REPL_009_003_backtrace_single"
+                - "test_REPL_009_003_backtrace_nested"
+              property:
+                - "prop_call_stack_depth_correct"
+
+        milestones:
+          - name: "Inspect bash state at breakpoints"
+            criteria:
+              - "Variable inspection working"
+              - "Environment display working"
+              - "Call stack tracking working"
+              - ">85% coverage"
+              - "Mutation score ≥90%"
+
+      - sprint: "REPL-010"
+        name: "Purification-Aware Debugging"
+        status: "PENDING"
+        duration: "2 weeks"
+        tasks:
+          - id: "REPL-010-001"
+            title: "Compare original vs purified at breakpoint"
+            status: "pending"
+            tests:
+              unit:
+                - "test_REPL_010_001_compare_at_breakpoint"
+                - "test_REPL_010_001_compare_diff_highlighting"
+              integration:
+                - "test_REPL_010_001_compare_cli"
+
+          - id: "REPL-010-002"
+            title: "Highlight differences"
+            status: "pending"
+            dependencies: ["REPL-010-001"]
+            tests:
+              unit:
+                - "test_REPL_010_002_highlight_mkdir_p"
+                - "test_REPL_010_002_highlight_quote"
+
+          - id: "REPL-010-003"
+            title: "Explain transformations at current line"
+            status: "pending"
+            dependencies: ["REPL-010-001"]
+            tests:
+              unit:
+                - "test_REPL_010_003_explain_current_line"
+                - "test_REPL_010_003_explain_no_change"
+
+        milestones:
+          - name: "Debug with purification awareness"
+            criteria:
+              - "Original vs purified comparison at breakpoints"
+              - "Diff highlighting"
+              - "Line-specific explanations"
+              - ">85% coverage"
+              - "Mutation score ≥90%"
+
+        deliverables:
+          - "Working debugger integrated with purification"
+          - "rash/src/debugger/ module (breakpoints, execution, inspection)"
+          - "rash/tests/debugger/ test suite (40+ tests)"
+          - "Property tests (15+ generators)"
+          - "Mutation testing on all debugger code"
+
+  - phase: 3
+    name: "Advanced Features"
+    status: "PENDING"
+    duration: "8 weeks"
+    sprints:
+      - sprint: "REPL-011"
+        name: "Determinism Checker"
+        status: "PENDING"
+        duration: "2 weeks"
+        tasks:
+          - id: "REPL-011-001"
+            title: "Scan for $RANDOM, $$, timestamps"
+            status: "pending"
+            test_approach: "RED → GREEN → REFACTOR → PROPERTY → MUTATION"
+            tests:
+              unit:
+                - "test_REPL_011_001_detect_random"
+                - "test_REPL_011_001_detect_pid"
+                - "test_REPL_011_001_detect_timestamp"
+              property:
+                - "prop_pattern_detection_never_false_negative"
+              mutation:
+                target: "≥90% kill rate on analysis/determinism.rs"
+
+          - id: "REPL-011-002"
+            title: "Replay verification (run script twice, compare outputs)"
+            status: "pending"
+            dependencies: ["REPL-011-001"]
+            tests:
+              unit:
+                - "test_REPL_011_002_deterministic_script"
+                - "test_REPL_011_002_nondeterministic_script"
+              property:
+                - "prop_deterministic_scripts_always_identical"
+
+          - id: "REPL-011-003"
+            title: "Diff explanation (what changed between runs)"
+            status: "pending"
+            dependencies: ["REPL-011-002"]
+            tests:
+              unit:
+                - "test_REPL_011_003_diff_explanation"
+                - "test_REPL_011_003_diff_line_numbers"
+
+        milestones:
+          - name: "Verify determinism"
+            criteria:
+              - "Pattern detection working"
+              - "Replay verification working"
+              - "Diff explanation working"
+              - ">85% coverage"
+              - "Mutation score ≥90%"
+
+      - sprint: "REPL-012"
+        name: "Idempotency Analyzer"
+        status: "PENDING"
+        duration: "2 weeks"
+        tasks:
+          - id: "REPL-012-001"
+            title: "Scan for non-idempotent operations"
+            status: "pending"
+            tests:
+              unit:
+                - "test_REPL_012_001_detect_mkdir_without_p"
+                - "test_REPL_012_001_detect_rm_without_f"
+                - "test_REPL_012_001_detect_ln_without_f"
+              property:
+                - "prop_idempotent_operations_detected"
+
+          - id: "REPL-012-002"
+            title: "Suggested fixes for non-idempotent code"
+            status: "pending"
+            dependencies: ["REPL-012-001"]
+            tests:
+              unit:
+                - "test_REPL_012_002_suggest_mkdir_p"
+                - "test_REPL_012_002_suggest_rm_f"
+
+          - id: "REPL-012-003"
+            title: "Verification (run 3+ times, check same result)"
+            status: "pending"
+            dependencies: ["REPL-012-001"]
+            tests:
+              unit:
+                - "test_REPL_012_003_idempotent_passes"
+                - "test_REPL_012_003_nonidempotent_fails"
+              property:
+                - "prop_idempotent_scripts_n_runs_identical"
+
+        milestones:
+          - name: "Verify idempotency"
+            criteria:
+              - "Operation scanning working"
+              - "Suggested fixes provided"
+              - "N-run verification working"
+              - ">85% coverage"
+              - "Mutation score ≥90%"
+
+      - sprint: "REPL-013"
+        name: "Purification Explainer"
+        status: "PENDING"
+        duration: "2 weeks"
+        tasks:
+          - id: "REPL-013-001"
+            title: "Detailed transformation explanations"
+            status: "pending"
+            tests:
+              unit:
+                - "test_REPL_013_001_explain_mkdir_p"
+                - "test_REPL_013_001_explain_quote_var"
+                - "test_REPL_013_001_explain_random_removal"
+
+          - id: "REPL-013-002"
+            title: "Safety rationale (why change improves safety)"
+            status: "pending"
+            dependencies: ["REPL-013-001"]
+            tests:
+              unit:
+                - "test_REPL_013_002_safety_idempotency"
+                - "test_REPL_013_002_safety_determinism"
+                - "test_REPL_013_002_safety_injection"
+
+          - id: "REPL-013-003"
+            title: "Alternative suggestions"
+            status: "pending"
+            dependencies: ["REPL-013-001"]
+            tests:
+              unit:
+                - "test_REPL_013_003_alternatives_mkdir"
+                - "test_REPL_013_003_alternatives_random"
+              property:
+                - "prop_alternatives_always_provided"
+
+        milestones:
+          - name: "Explain all purification decisions"
+            criteria:
+              - "Detailed explanations"
+              - "Safety rationale"
+              - "Alternative suggestions"
+              - ">85% coverage"
+              - "Mutation score ≥90%"
+
+      - sprint: "REPL-014"
+        name: "ShellCheck Integration"
+        status: "PENDING"
+        duration: "2 weeks"
+        tasks:
+          - id: "REPL-014-001"
+            title: "Auto-run shellcheck on purified output"
+            status: "pending"
+            tests:
+              unit:
+                - "test_REPL_014_001_shellcheck_passes"
+                - "test_REPL_014_001_shellcheck_fails"
+              integration:
+                - "test_REPL_014_001_shellcheck_cli"
+
+          - id: "REPL-014-002"
+            title: "Parse shellcheck warnings"
+            status: "pending"
+            dependencies: ["REPL-014-001"]
+            tests:
+              unit:
+                - "test_REPL_014_002_parse_warning"
+                - "test_REPL_014_002_parse_error"
+
+          - id: "REPL-014-003"
+            title: "Display in bashrs format"
+            status: "pending"
+            dependencies: ["REPL-014-002"]
+            tests:
+              unit:
+                - "test_REPL_014_003_format_warning"
+                - "test_REPL_014_003_format_error"
+
+        milestones:
+          - name: "POSIX compliance verification"
+            criteria:
+              - "ShellCheck integration working"
+              - "Warning parsing working"
+              - "bashrs-formatted display"
+              - ">85% coverage"
+              - "Mutation score ≥90%"
+
+        deliverables:
+          - "Full safety verification suite"
+          - "rash/src/analysis/ module (determinism, idempotency, explainer)"
+          - "rash/tests/analysis/ test suite (40+ tests)"
+          - "Property tests (20+ generators)"
+          - "ShellCheck integration"
+
+  - phase: 4
+    name: "Production Polish"
+    status: "PENDING"
+    duration: "8 weeks"
+    sprints:
+      - sprint: "REPL-015"
+        name: "DevEx Improvements"
+        status: "PENDING"
+        duration: "2 weeks"
+        tasks:
+          - id: "REPL-015-001"
+            title: "Tab completion for commands"
+            status: "pending"
+            tests:
+              unit:
+                - "test_REPL_015_001_complete_commands"
+                - "test_REPL_015_001_complete_modes"
+                - "test_REPL_015_001_complete_files"
+
+          - id: "REPL-015-002"
+            title: "Syntax highlighting in REPL"
+            status: "pending"
+            tests:
+              unit:
+                - "test_REPL_015_002_highlight_keywords"
+                - "test_REPL_015_002_highlight_strings"
+
+          - id: "REPL-015-003"
+            title: "Better error messages"
+            status: "pending"
+            tests:
+              unit:
+                - "test_REPL_015_003_error_message_quality"
+                - "test_REPL_015_003_error_suggestions"
+
+          - id: "REPL-015-004"
+            title: "Help system (:help)"
+            status: "pending"
+            tests:
+              unit:
+                - "test_REPL_015_004_help_general"
+                - "test_REPL_015_004_help_specific_command"
+
+        milestones:
+          - name: "Professional UX"
+            criteria:
+              - "Tab completion working"
+              - "Syntax highlighting working"
+              - "Error messages improved"
+              - "Help system complete"
+
+      - sprint: "REPL-016"
+        name: "Performance Optimization"
+        status: "PENDING"
+        duration: "2 weeks"
+        tasks:
+          - id: "REPL-016-001"
+            title: "Fast linting (<1 second for pre-commit)"
+            status: "pending"
+            tests:
+              performance:
+                - "bench_REPL_016_001_lint_1000_lines"
+                - "bench_REPL_016_001_lint_10000_lines"
+            target: "<1s for 10,000 line script"
+
+          - id: "REPL-016-002"
+            title: "Incremental parsing (reparse only changed lines)"
+            status: "pending"
+            tests:
+              performance:
+                - "bench_REPL_016_002_incremental_parse"
+            target: "<100ms for incremental update"
+
+          - id: "REPL-016-003"
+            title: "Caching (AST, lint results)"
+            status: "pending"
+            tests:
+              unit:
+                - "test_REPL_016_003_cache_hit"
+                - "test_REPL_016_003_cache_miss"
+                - "test_REPL_016_003_cache_invalidation"
+
+        milestones:
+          - name: "Pre-commit speed"
+            criteria:
+              - "Fast linting (<1s)"
+              - "Incremental parsing working"
+              - "Caching working"
+              - "Performance benchmarks met"
+
+      - sprint: "REPL-017"
+        name: "Documentation"
+        status: "PENDING"
+        duration: "2 weeks"
+        tasks:
+          - id: "REPL-017-001"
+            title: "User guide (book chapter)"
+            status: "pending"
+            deliverable: "book/src/repl/user-guide.md"
+            validation: "pmat validate-docs"
+
+          - id: "REPL-017-002"
+            title: "Tutorial: Your first REPL session"
+            status: "pending"
+            deliverable: "book/src/repl/tutorial.md"
+            validation: "All examples must compile and pass"
+
+          - id: "REPL-017-003"
+            title: "API documentation (rustdoc)"
+            status: "pending"
+            target: "100% public API documented"
+
+          - id: "REPL-017-004"
+            title: "Examples repository (10+ real-world examples)"
+            status: "pending"
+            deliverable: "rash/examples/repl/"
+            validation: "All examples must run successfully"
+
+        milestones:
+          - name: "Complete docs"
+            criteria:
+              - "User guide complete"
+              - "Tutorial complete"
+              - "API documentation 100%"
+              - "Examples repository complete"
+              - "pmat validation passes"
+
+      - sprint: "REPL-018"
+        name: "Testing & Validation"
+        status: "PENDING"
+        duration: "2 weeks"
+        tasks:
+          - id: "REPL-018-001"
+            title: "3-layer validation suite (unit, integration, real-world)"
+            status: "pending"
+            tests:
+              layer1: "Unit tests (>85% coverage)"
+              layer2: "Integration tests (all tools agree)"
+              layer3: "Real-world (100+ GitHub scripts)"
+
+          - id: "REPL-018-002"
+            title: "Real-world script testing (100+ GitHub bash scripts)"
+            status: "pending"
+            target: "95%+ success rate"
+
+          - id: "REPL-018-003"
+            title: "Dogfooding on bashrs itself"
+            status: "pending"
+            example: "Use bashrs REPL to debug bashrs build scripts"
+
+          - id: "REPL-018-004"
+            title: "Performance benchmarks"
+            status: "pending"
+            targets:
+              purification: "<100ms for 1000-line script"
+              linting: "<1s for 10,000-line script"
+              debugging: "<10ms breakpoint overhead"
+
+        milestones:
+          - name: "Production ready"
+            criteria:
+              - "3-layer validation passes"
+              - "Real-world testing 95%+ success"
+              - "Dogfooding successful"
+              - "Performance benchmarks met"
+              - "Zero critical bugs"
+
+        deliverables:
+          - "Production-ready bashrs REPL + Debugger"
+          - "Complete documentation"
+          - "100+ real-world examples validated"
+          - "Performance benchmarks met"
+          - "Ready for v7.0.0 release"
+
+  - phase: 5
+    name: "Advanced Features (Post-v7.0)"
+    status: "PLANNED"
+    duration: "24 weeks"
+    features:
+      - name: "Smoosh Formal Verification"
+        description: "Integrate Smoosh executable semantics for formal correctness proofs"
+        reference: "CODE-REVIEW-RESPONSE-REPL-DEBUGGER.md - Recommendation 1"
+        duration: "4 weeks"
+
+      - name: "Interactive Program Repair"
+        description: "Mixed-initiative repair system offering 2-3 safe alternatives"
+        reference: "CODE-REVIEW-RESPONSE-REPL-DEBUGGER.md - Recommendation 2"
+        duration: "6 weeks"
+
+      - name: "LSP Implementation"
+        description: "Language Server Protocol for IDE integration"
+        reference: "CODE-REVIEW-RESPONSE-REPL-DEBUGGER.md - Recommendation 3"
+        duration: "8 weeks"
+
+      - name: "PDG Integration"
+        description: "Leverage CodeQL/Infer/WALA for program slicing"
+        reference: "CODE-REVIEW-RESPONSE-REPL-DEBUGGER.md - Recommendation 4"
+        duration: "4 weeks"
+
+      - name: "Formal Idempotency Verification"
+        description: "SMT solver integration for theorem proving"
+        reference: "CODE-REVIEW-RESPONSE-REPL-DEBUGGER.md - Recommendation 5"
+        duration: "6 weeks"
+
+      - name: "Causality-Focused Debugging"
+        description: "why <var> and what-if <var> commands"
+        reference: "CODE-REVIEW-RESPONSE-REPL-DEBUGGER.md - Recommendation 6"
+        duration: "6 weeks"
+
+statistics:
+  current:
+    phase: 0
+    sprints_completed: 1
+    sprints_total: 18
+    progress: "5.6%"
+
+  targets:
+    total_tests: 150
+    target_coverage: ">85%"
+    target_mutation_score: "≥90%"
+    target_complexity: "<10 per function"
+
+  quality_gates:
+    extreme_tdd: "MANDATORY"
+    property_testing: "100+ cases per component"
+    mutation_testing: "≥90% kill rate"
+    integration_testing: "Anti-fraud (all tools agree)"
+
+success_criteria:
+  adoption:
+    target: "100+ GitHub repos using bashrs REPL within 6 months"
+    measurement: "GitHub search for bashrs repl usage"
+
+  defect_density:
+    target: "<1 defect per 1000 lines"
+    measurement: "Bug reports / total LOC"
+
+  accuracy:
+    target: "95%+ purifications improve safety without changing semantics"
+    measurement: "Test suite (1000+ bash scripts)"
+
+  productivity:
+    target: "3-5x faster debugging vs manual inspection"
+    measurement: "User study (20 developers, realistic tasks)"
+
+  quality:
+    target: ">85% coverage, 100% mutation score"
+    measurement: "cargo llvm-cov, cargo mutants"
+
+references:
+  research:
+    - "REPL-DEBUGGER-RESEARCH-ANALYSIS.md (1,724 lines)"
+    - "CODE-REVIEW-RESPONSE-REPL-DEBUGGER.md (529 lines)"
+
+  academic:
+    - "Kallas et al. (2022): PASH-JIT - Shell Script Parallelization"
+    - "Lazarek et al. (2025): Static Analysis for Unix Shell"
+    - "Ko & Myers (2004): WhyLine Debugging"
+    - "Greenberg & Blatt (2019): Smoosh - POSIX Shell Formal Semantics"
+    - "Rein et al. (2024): Live Programming"
+    - "Weiser (1981): Program Slicing"
+
+  industry:
+    - "matklad (2025): Debugger is REPL is Debugger"
+    - "Julia Evans (2021): REPL-based Debugging"
+    - "bashdb Project: Bash Debugger"
+
+  internal:
+    - "Ruchy REPL: /home/noah/src/ruchy/src/runtime/repl/mod.rs"
+    - "Ruchy Debugger: /home/noah/src/ruchy/src/debugger/mod.rs"
+    - "RuchyRuchy Spec: /home/noah/src/ruchyruchy/docs/specifications/ruchyruchy-debugging-tools-spec.md"
+
+notes:
+  - "All tests must follow naming convention: test_<TASK_ID>_<feature>_<scenario>"
+  - "All CLI tests must use assert_cmd crate (MANDATORY)"
+  - "Property tests must use proptest crate (100+ cases per component)"
+  - "Mutation testing with cargo-mutants (≥90% kill rate)"
+  - "Integration tests must validate tool consensus (anti-fraud)"
+  - "Documentation examples must be validated with pmat"
+  - "Book chapters must have 100% runnable, passing examples"
+  - "All functions must have cyclomatic complexity <10"
+  - "Zero tolerance for defects - STOP THE LINE protocol applies"
