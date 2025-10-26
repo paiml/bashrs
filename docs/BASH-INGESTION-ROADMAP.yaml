@@ -1247,12 +1247,13 @@ chapters:
 
           - id: "BASH-BUILTIN-002"
             title: "Document declare/typeset"
-            status: "pending"
+            status: "completed"
             priority: "MEDIUM"
             input: "declare -i num=5"
             rust: "let num: i32 = 5;"
             purified: "num=5"
-            test_name: "test_declare_to_assignment"
+            test_name: "test_BASH_BUILTIN_002_declare_to_assignment"
+            notes: "Already supported by command parsing infrastructure (BUILTIN-001)"
 
           - id: "BASH-BUILTIN-003"
             title: "Document let"
