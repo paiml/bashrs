@@ -160,6 +160,29 @@ pub enum Commands {
         #[command(subcommand)]
         command: ConfigCommands,
     },
+
+    /// Interactive REPL with integrated debugger (NEW in v7.0)
+    Repl {
+        /// Enable debug mode
+        #[arg(long)]
+        debug: bool,
+
+        /// Enable sandboxed execution
+        #[arg(long)]
+        sandboxed: bool,
+
+        /// Maximum memory usage in MB (default: 100)
+        #[arg(long)]
+        max_memory: Option<usize>,
+
+        /// Timeout in seconds (default: 30)
+        #[arg(long)]
+        timeout: Option<u64>,
+
+        /// Maximum recursion depth (default: 100)
+        #[arg(long)]
+        max_depth: Option<usize>,
+    },
 }
 
 #[derive(Subcommand)]

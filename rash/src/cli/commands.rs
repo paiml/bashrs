@@ -120,6 +120,17 @@ pub fn execute_command(cli: Cli) -> Result<()> {
         Commands::Make { command } => handle_make_command(command), // Playground feature removed in v1.0 - will be moved to separate rash-playground crate in v1.1
 
         Commands::Config { command } => handle_config_command(command),
+
+        Commands::Repl {
+            debug,
+            sandboxed,
+            max_memory,
+            timeout,
+            max_depth,
+        } => {
+            info!("Starting interactive REPL");
+            handle_repl_command(debug, sandboxed, max_memory, timeout, max_depth)
+        }
     }
 }
 
@@ -1217,4 +1228,41 @@ fn config_purify_command(
     }
 
     Ok(())
+}
+
+fn handle_repl_command(
+    debug: bool,
+    sandboxed: bool,
+    max_memory: Option<usize>,
+    timeout: Option<u64>,
+    max_depth: Option<usize>,
+) -> Result<()> {
+    use crate::repl::{run_repl, ReplConfig};
+    use std::time::Duration;
+
+    // Build config from CLI args
+    let mut config = if sandboxed {
+        ReplConfig::sandboxed()
+    } else {
+        ReplConfig::default()
+    };
+
+    // Apply debug mode if requested
+    if debug {
+        config = config.with_debug();
+    }
+
+    // Apply CLI overrides
+    if let Some(mem) = max_memory {
+        config = config.with_max_memory(mem);
+    }
+    if let Some(t) = timeout {
+        config = config.with_timeout(Duration::from_secs(t));
+    }
+    if let Some(depth) = max_depth {
+        config = config.with_max_depth(depth);
+    }
+
+    // Run REPL
+    run_repl(config).map_err(|e| Error::Internal(format!("REPL error: {e}")))
 }
