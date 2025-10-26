@@ -1319,7 +1319,7 @@ impl BashExecutor {
             self.env.insert(var_name.to_string(), item);
 
             // Execute loop body
-            let body_lines: Vec<&str> = if first_line.contains("; do") {
+            let body_lines: Vec<&str> = if first_line.contains("; do") && first_line.contains("; done") {
                 // Single-line loop: for x in ...; do cmd1; cmd2; done
                 let after_do = first_line.split("; do ").nth(1).unwrap();
                 let before_done = after_do.split("; done").next().unwrap();
@@ -7432,6 +7432,135 @@ fi
             assert!(result.is_ok());
             let output = result.unwrap();
             assert_eq!(output.stdout.trim(), "two");
+        }
+    }
+
+    /// Tests for for loops: for VAR in LIST; do ... done
+    /// For loops iterate over a list of items
+    #[cfg(test)]
+    mod for_loop_tests {
+        use super::*;
+
+        /// Test 1: Basic for loop with literal items
+        #[test]
+        fn test_for_001_basic() {
+            let mut executor = BashExecutor::new();
+            let result = executor.execute(r#"
+for x in one two three; do
+    echo $x
+done
+"#);
+            assert!(result.is_ok());
+            let output = result.unwrap();
+            assert_eq!(output.stdout.trim(), "one\ntwo\nthree");
+        }
+
+        /// Test 2: For loop with variable expansion in list
+        #[test]
+        fn test_for_002_variable_list() {
+            let mut executor = BashExecutor::new();
+            let result = executor.execute(r#"
+items="apple banana cherry"
+for fruit in $items; do
+    echo $fruit
+done
+"#);
+            assert!(result.is_ok());
+            let output = result.unwrap();
+            assert_eq!(output.stdout.trim(), "apple\nbanana\ncherry");
+        }
+
+        /// Test 3: For loop with numbers
+        #[test]
+        fn test_for_003_numbers() {
+            let mut executor = BashExecutor::new();
+            let result = executor.execute(r#"
+sum=0
+for n in 1 2 3 4 5; do
+    sum=$((sum + n))
+done
+echo $sum
+"#);
+            assert!(result.is_ok());
+            let output = result.unwrap();
+            assert_eq!(output.stdout.trim(), "15");
+        }
+
+        /// Test 4: For loop with single item
+        #[test]
+        fn test_for_004_single_item() {
+            let mut executor = BashExecutor::new();
+            let result = executor.execute(r#"
+for x in hello; do
+    echo $x
+done
+"#);
+            assert!(result.is_ok());
+            let output = result.unwrap();
+            assert_eq!(output.stdout.trim(), "hello");
+        }
+
+        /// Test 5: For loop with empty list (should not execute)
+        #[test]
+        fn test_for_005_empty_list() {
+            let mut executor = BashExecutor::new();
+            let result = executor.execute(r#"
+list=""
+for x in $list; do
+    echo "should not see this"
+done
+echo "after loop"
+"#);
+            assert!(result.is_ok());
+            let output = result.unwrap();
+            assert_eq!(output.stdout.trim(), "after loop");
+        }
+
+        /// Test 6: For loop with loop variable scope
+        #[test]
+        fn test_for_006_variable_scope() {
+            let mut executor = BashExecutor::new();
+            let result = executor.execute(r#"
+x=before
+for x in during; do
+    echo $x
+done
+echo $x
+"#);
+            assert!(result.is_ok());
+            let output = result.unwrap();
+            // Loop variable persists after loop
+            assert_eq!(output.stdout.trim(), "during\nduring");
+        }
+
+        /// Test 7: For loop with multiple commands in body
+        #[test]
+        fn test_for_007_multiple_commands() {
+            let mut executor = BashExecutor::new();
+            let result = executor.execute(r#"
+for x in 1 2; do
+    echo "number: $x"
+    y=$((x * 2))
+    echo "double: $y"
+done
+"#);
+            assert!(result.is_ok());
+            let output = result.unwrap();
+            assert_eq!(output.stdout.trim(), "number: 1\ndouble: 2\nnumber: 2\ndouble: 4");
+        }
+
+        /// Test 8: For loop exit code (last command)
+        #[test]
+        fn test_for_008_exit_code() {
+            let mut executor = BashExecutor::new();
+            let result = executor.execute(r#"
+for x in 1 2 3; do
+    echo $x
+done
+"#);
+            assert!(result.is_ok());
+            let output = result.unwrap();
+            assert_eq!(output.exit_code, 0);
         }
     }
 }
