@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Documentation
+
+- **Roadmap Accuracy Verification** (2025-10-26)
+  - Verified GNU Bash testing roadmap completion statistics
+  - Corrected overestimated progress: 35% → 20% actual completion
+  - Updated BASH-INGESTION-ROADMAP.yaml with accurate task counts
+  - 24 completed tasks, 16 partial support, 3 blocked, 79 pending (122 total)
+  - Added accuracy_verified timestamp for audit trail
+
 ## [6.4.0] - 2025-10-26
 
 ### Added
