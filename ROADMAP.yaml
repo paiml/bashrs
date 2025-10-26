@@ -1892,10 +1892,11 @@ next_steps:
   immediate:
     option: "Continue GNU Bash Manual Validation (RECOMMENDED)"
     duration: "Ongoing"
-    description: "Execute tasks from BASH-INGESTION-ROADMAP.yaml (35% complete, 15/120 tasks)"
+    description: "Execute tasks from BASH-INGESTION-ROADMAP.yaml (20% complete, 24/122 tasks)"
     methodology: "EXTREME TDD + Mutation Testing + Property Testing"
     workflow: "RED (write failing test) → GREEN (implement) → REFACTOR → DOCUMENT"
-    current_progress: "35% (15/120 tasks completed)"
+    current_progress: "20% (24/122 tasks completed)"
+    accuracy_note: "Updated 2025-10-26 - Verified actual completion count (was incorrectly listed as 35%, 15/120)"
     rationale: "Sprint 29 delivered critical security fixes. Project mature enough for systematic bash validation."
 
   alternative_1:
