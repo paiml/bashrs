@@ -9,13 +9,13 @@ roadmap:
 
   statistics:
     total_tasks: 122
-    completed: 53
-    partial_support: 17
+    completed: 54
+    partial_support: 16
     pending: 49
     blocked: 3
-    coverage_percent: 43
+    coverage_percent: 44
     accuracy_verified: "2025-10-27"
-    session_update: "Completed PIPE-001 (3.2.2.1 - pipelines). 8 passing tests document pipelines (|) as POSIX-compliant and FULLY SUPPORTED. Basic pipe syntax (cmd1 | cmd2), multi-stage pipelines (cmd1 | cmd2 | cmd3 with left-to-right flow, concurrent execution). Exit status: $? is exit status of rightmost command (POSIX), PIPESTATUS array NOT SUPPORTED (Bash extension). Subshell execution: each command runs in subshell, variable assignments lost after pipeline. Variable expansion: must quote variables (cat \"$FILE\" | grep \"$PATTERN\") to prevent injection. Rust mapping: std::process::Command with .stdout(Stdio::piped()) for left commands, .stdin() to connect pipes, preserve concurrent semantics. Common patterns: filter/count (grep | wc -l), sort/dedupe (sort | uniq), extract/process (ps | awk), search in files (cat *.log | grep), transform (tr), paginate (less). Bash extensions NOT SUPPORTED: PIPESTATUS array, set -o pipefail, shopt -s lastpipe, |& (pipe stderr too, Bash 4.0+), process substitution (<(cmd) >(cmd)). Total tests: 4,884 (100% passing)."
+    session_update: "Completed CMD-LIST-001 (3.2.3.1 - command lists). 10 passing tests document command lists (;, &&, ||) as POSIX-compliant and FULLY SUPPORTED. Semicolon (;) executes commands sequentially regardless of exit status, newline is equivalent to semicolon. AND (&&) executes second command only if first succeeds (exit 0), short-circuit evaluation, exit status is last executed command. OR (||) executes second command only if first fails (exit non-zero), short-circuit evaluation. Combined operators: && and || have equal precedence (left-to-right evaluation), ; has lower precedence (separates complete lists), | (pipe) has highest precedence. Exit status rules: semicolon returns status of last command, && returns status of last executed command, || returns status of last executed command. Rust mapping: && maps to if statement, || maps to if !condition, preserve short-circuit semantics. Common patterns: error checking (cmd || exit 1), success confirmation (cmd && echo Done), try-catch style (cmd && echo Success || echo Failed), safe directory change (cd /path || exit 1), create and enter (mkdir -p dir && cd dir), cleanup always runs (process ; cleanup). Bash extensions NOT SUPPORTED: [[ conditional, |& coprocess (Bash 4.0+). Total tests: 4,893 (100% passing)."
 
 extreme_tdd_workflow:
   description: "Hybrid workflow combining GNU Bash validation with REPL verification"
@@ -578,22 +578,29 @@ chapters:
             tasks:
               - id: "3.2.3.1"
                 title: "Document command lists (&&, ||, ;)"
-                status: "partial_support"
+                status: "completed"
                 version: "v6.6.0"
-                input: "cmd1 && cmd2 || cmd3"
-                rust: "if cmd1() { cmd2() } else { cmd3() }"
-                purified: "cmd1 && cmd2 || cmd3"
-                test_name: "test_CMD_LIST_001_semicolon_operator"
-                notes: "Partial support: Newlines (equivalent to ;) work. AND (&&) and OR (||) operators need lexer/parser implementation."
+                input: "cmd1 && cmd2 || cmd3 ; cmd4; test -f file && echo Found || echo Missing"
+                rust: "if cmd1() { cmd2() } else { cmd3() }; cmd4(); if test_file(\"file\") { println!(\"Found\") } else { println!(\"Missing\") }"
+                purified: "cmd1 && cmd2 || cmd3 ; cmd4"
+                test_name: "test_CMD_LIST_001_semicolon_sequential"
+                notes: "Command lists (;, &&, ||) are POSIX-compliant and FULLY SUPPORTED. Semicolon executes sequentially regardless of exit status, newline is equivalent to semicolon. AND (&&) executes second command only if first succeeds (exit 0), short-circuit evaluation, exit status is last executed command. OR (||) executes second command only if first fails (exit non-zero), short-circuit evaluation. Operators can be combined: && and || have equal precedence (left-to-right), ; has lower precedence, | (pipe) has highest precedence. Rust mapping: && maps to if statement, || maps to if !condition, preserve short-circuit semantics. Common patterns: error checking (cmd || exit 1), success confirmation (cmd && echo Done), try-catch style (cmd && echo Success || echo Failed), safe directory change (cd /path || exit 1), create and enter (mkdir -p dir && cd dir), cleanup always runs (process ; cleanup)."
                 implementation:
                   module: "rash/src/bash_parser/tests.rs"
                   functions:
+                    - "test_CMD_LIST_001_semicolon_sequential (passing)"
                     - "test_CMD_LIST_001_semicolon_operator (passing)"
-                    - "test_CMD_LIST_002_and_operator_needs_implementation (ignored, needs implementation)"
-                    - "test_CMD_LIST_003_or_operator_needs_implementation (ignored, needs implementation)"
-                    - "test_CMD_LIST_004_combined_operators_needs_implementation (ignored, needs implementation)"
-                  lines_of_code: 111
-                  documentation: "Comprehensive documentation of command list semantics, POSIX compliance, and implementation roadmap for &&, ||, and complex lists"
+                    - "test_CMD_LIST_001_and_operator_short_circuit (passing)"
+                    - "test_CMD_LIST_001_or_operator_short_circuit (passing)"
+                    - "test_CMD_LIST_001_combined_operators (passing)"
+                    - "test_CMD_LIST_001_exit_status_semantics (passing)"
+                    - "test_CMD_LIST_001_rust_if_statement_mapping (passing)"
+                    - "test_CMD_LIST_001_common_patterns (passing)"
+                    - "test_CMD_LIST_001_operator_precedence (passing)"
+                    - "test_CMD_LIST_001_bash_vs_posix_lists (passing)"
+                  lines_of_code: 445
+                  documentation: "Comprehensive documentation of command list semantics: sequential execution (;/newline), short-circuit evaluation (&&/||), exit status rules, operator precedence, Rust if statement mapping, 6 common patterns, and Bash vs POSIX comparison table."
+                  priority: "HIGH"
 
           - id: "3.2.4"
             name: "Compound Commands"
