@@ -2658,3 +2658,30 @@ fn test_EXP_PROC_001_process_substitution() {
         "diff command should be parsed as Command statement"
     );
 }
+
+// EXP-SPLIT-001: IFS-based word splitting (bash-specific)
+// Bash supports changing IFS (Internal Field Separator) to control word splitting.
+// Example: IFS=':'; read -ra PARTS <<< "$PATH" splits PATH by colons
+// POSIX sh has IFS but behavior is less predictable and shell-dependent.
+// For purification, recommend using explicit tr, cut, or awk for deterministic splitting.
+// Simplified test: verify basic IFS assignment works (purification would use tr/cut instead)
+#[test]
+fn test_EXP_SPLIT_001_word_splitting() {
+    let script = "IFS=:";
+
+    let mut parser = BashParser::new(script).unwrap();
+    let ast = parser.parse().unwrap();
+
+    // Should parse successfully
+    assert!(!ast.statements.is_empty(), "IFS assignment should be parsed");
+
+    // Should be recognized as an Assignment statement
+    let has_assignment = ast.statements.iter().any(|s| {
+        matches!(s, BashStmt::Assignment { name, .. } if name == "IFS")
+    });
+
+    assert!(
+        has_assignment,
+        "IFS assignment should be parsed as Assignment statement"
+    );
+}

@@ -922,13 +922,13 @@ chapters:
             tasks:
               - id: "EXP-SPLIT-001"
                 title: "Document IFS-based splitting purification"
-                status: "pending"
+                status: "completed"
                 priority: "MEDIUM"
                 input: "IFS=':'; read -ra PARTS <<< \"$PATH\""
                 rust: "let parts: Vec<_> = path.split(':').collect();"
                 purified: "Use explicit tr or cut (avoid IFS manipulation)"
-                test_name: "test_word_splitting_purification"
-                notes: "Avoid IFS manipulation for determinism"
+                test_name: "test_EXP_SPLIT_001_word_splitting"
+                notes: "Already supported by assignment parsing infrastructure (BUILTIN-001). IFS variable assignment is supported, but for purification recommend using explicit tr, cut, or awk for deterministic word splitting instead of IFS manipulation."
 
           - id: "3.5.8"
             name: "Filename Expansion (Globbing)"
