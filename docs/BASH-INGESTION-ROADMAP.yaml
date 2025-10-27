@@ -9,13 +9,13 @@ roadmap:
 
   statistics:
     total_tasks: 122
-    completed: 31
+    completed: 32
     partial_support: 17
-    pending: 71
+    pending: 70
     blocked: 3
-    coverage_percent: 25
+    coverage_percent: 26
     accuracy_verified: "2025-10-27"
-    session_update: "Completed COND-003, 3.2.1.1 (simple commands), 3.1.2.2 (single quotes), 3.1.2.3 (double quotes), partial 3.2.3.1 (command lists), documented 3.2.2.1 (pipes) (+6 tasks)"
+    session_update: "Completed COND-003, 3.2.1.1 (simple commands), 3.1.2.1 (backslash escaping), 3.1.2.2 (single quotes), 3.1.2.3 (double quotes), partial 3.2.3.1 (command lists), documented 3.2.2.1 (pipes) (+7 tasks)"
 
 extreme_tdd_workflow:
   description: "Hybrid workflow combining GNU Bash validation with REPL verification"
@@ -337,11 +337,21 @@ chapters:
             tasks:
               - id: "3.1.2.1"
                 title: "Document backslash escaping"
-                status: "pending"
+                status: "completed"
+                version: "v6.6.0"
                 input: "echo \"Hello \\\"World\\\"\""
                 rust: "println!(\"Hello \\\"World\\\"\")"
                 purified: "printf '%s\\n' \"Hello \\\"World\\\"\""
-                test_name: "test_escape_character_preservation"
+                test_name: "test_ESCAPE_001_backslash_in_double_quotes"
+                notes: "Fully supported. Backslash escaping is context-dependent: works in double quotes (\\\" \\$ \\\\ \\`), escapes next char outside quotes, literal in single quotes. POSIX core feature."
+                implementation:
+                  module: "rash/src/bash_parser/tests.rs"
+                  functions:
+                    - "test_ESCAPE_001_backslash_in_double_quotes (passing)"
+                    - "test_ESCAPE_002_escaped_dollar_sign (passing)"
+                    - "test_ESCAPE_003_escaped_backslash (passing)"
+                  lines_of_code: 92
+                  documentation: "Comprehensive testing of backslash escape sequences: escaped quotes (\\\"), escaped dollar (\\$), escaped backslash (\\\\). Context-dependent behavior documented."
 
               - id: "3.1.2.2"
                 title: "Document single quote literals"
