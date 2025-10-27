@@ -2845,3 +2845,94 @@ fn test_CMD_LIST_004_combined_operators_needs_implementation() {
     //
     // POSIX: All operators are POSIX-compliant
 }
+
+// 3.2.2.1: Pipe transformation
+// Task: Document pipe (|) transformation (bash → Rust → purified bash)
+// Reference: docs/BASH-INGESTION-ROADMAP.yaml
+// Status: NEEDS IMPLEMENTATION
+//
+// Pipes connect stdout of one command to stdin of another:
+// - cat file.txt | grep "pattern"
+//
+// Transformations (planned):
+// - Bash: cat file.txt | grep "pattern"
+// - Rust: Use std::process::Command with .stdout(Stdio::piped())
+// - Purified: cat "file.txt" | grep "pattern" (ensure variable quoting)
+//
+// POSIX compliance: Pipe (|) is POSIX-compliant
+//
+// Current implementation status: NOT YET IMPLEMENTED
+// - Parser error: "Expected command name" when encountering |
+// - Lexer recognizes | but parser doesn't handle pipeline syntax
+#[test]
+#[ignore = "Pipe operator (|) not yet implemented in parser"]
+fn test_PIPE_001_basic_pipe_needs_implementation() {
+    // DOCUMENTATION: This test documents planned pipe support
+    //
+    // Bash: cat file.txt | grep "pattern"
+    // Rust: Command::new("grep")
+    //         .arg("pattern")
+    //         .stdin(Stdio::from(Command::new("cat").arg("file.txt").stdout(Stdio::piped())))
+    // Purified: cat "file.txt" | grep "pattern"
+    //
+    // Implementation needed:
+    // 1. Lexer: Recognize | token (likely already done)
+    // 2. Parser: Parse pipeline syntax (cmd1 | cmd2 | cmd3)
+    // 3. AST: Add Pipeline variant to BashStmt with Vec<Command>
+    // 4. Semantic: Analyze data flow through pipeline
+    // 5. Codegen: Generate Rust std::process piping
+    // 6. Purification: Preserve pipeline with proper variable quoting
+    //
+    // POSIX: | is POSIX-compliant (IEEE Std 1003.1-2001)
+    // Priority: HIGH - pipes are fundamental to shell scripting
+}
+
+#[test]
+#[ignore = "Multi-stage pipelines not yet implemented"]
+fn test_PIPE_002_multi_stage_pipeline_needs_implementation() {
+    // DOCUMENTATION: This test documents planned multi-stage pipeline support
+    //
+    // Bash: cat file.txt | grep "foo" | wc -l
+    // Meaning: Feed file.txt to grep, then count matching lines
+    //
+    // Rust equivalent:
+    // let cat = Command::new("cat").arg("file.txt").stdout(Stdio::piped()).spawn()?;
+    // let grep = Command::new("grep").arg("foo")
+    //     .stdin(cat.stdout.unwrap())
+    //     .stdout(Stdio::piped()).spawn()?;
+    // let wc = Command::new("wc").arg("-l")
+    //     .stdin(grep.stdout.unwrap())
+    //     .output()?;
+    //
+    // Purified: cat "file.txt" | grep "foo" | wc -l
+    //
+    // Implementation complexity: MEDIUM
+    // - Build left-to-right pipeline chain
+    // - Handle stdout→stdin connections
+    // - Preserve exit codes (pipefail semantics)
+    //
+    // POSIX: Multi-stage pipelines are POSIX-compliant
+}
+
+#[test]
+#[ignore = "Pipes with variables not yet implemented"]
+fn test_PIPE_003_pipe_with_variables_needs_implementation() {
+    // DOCUMENTATION: This test documents planned pipe + variable support
+    //
+    // Bash: echo "$VAR" | grep "test"
+    // Rust: Command pipe with variable expansion
+    // Purified: printf '%s\n' "$VAR" | grep "test"
+    //
+    // Security considerations:
+    // - Variables MUST be quoted: "$VAR" not $VAR
+    // - Prevents injection: VAR="foo; rm -rf /" must not execute rm
+    // - Purification replaces echo with printf for portability
+    //
+    // Implementation needed:
+    // - Pipeline support (prerequisite)
+    // - Variable expansion in pipeline commands
+    // - Quote preservation/enforcement
+    //
+    // POSIX: Variable expansion in pipelines is POSIX-compliant
+    // Security: Quoted variables prevent injection attacks
+}
