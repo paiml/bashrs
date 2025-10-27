@@ -9,13 +9,13 @@ roadmap:
 
   statistics:
     total_tasks: 122
-    completed: 55
-    partial_support: 15
+    completed: 56
+    partial_support: 14
     pending: 49
     blocked: 3
-    coverage_percent: 45
+    coverage_percent: 46
     accuracy_verified: "2025-10-27"
-    session_update: "Completed REDIR-001 (3.6 - input redirection). 8 passing tests document input redirection (<) as POSIX-compliant and FULLY SUPPORTED. Basic < syntax connects stdin to file contents, more efficient than cat file | cmd (no pipe, no subshell). File descriptor 0 redirected. Input redirection vs file argument: cmd < file.txt (stdin) vs cmd file.txt (explicit arg), wc -l < file shows count only, wc -l file shows count + filename. while read pattern with < redirection: loop runs in current shell (variables preserved), pipe runs in subshell (variables lost). Multiple redirections: can combine < with > (sort < in.txt > out.txt), order doesn't matter for < and >, fd 0 (stdin), fd 1 (stdout), fd 2 (stderr). Rust mapping: File::open() + BufReader for line reading, Command with file args for commands, quote filenames to prevent injection. Error handling: file not found (No such file or directory), no read permission (Permission denied), file is directory. Common use cases (6): count lines (wc -l <), sort file (sort < unsorted.txt > sorted.txt), search (grep pattern <), process line-by-line (while read; done <), transform (tr 'a-z' 'A-Z' <), filter and count (grep ERROR < | wc -l). Bash extensions NOT SUPPORTED: <<< here-strings (Bash 2.05b+), <(cmd) process substitution. Total tests: 4,901 (100% passing)."
+    session_update: "Completed REDIR-002 (3.6 - output redirection). 8 passing tests document output redirection (>, >>) as POSIX-compliant and FULLY SUPPORTED. Basic > syntax truncates file and writes stdout (echo hello > file.txt), >> appends to file (echo more >> file.txt). File descriptor redirection: 0< stdin (same as <), 1> stdout (same as >), 2> stderr. Overwrite vs append semantics: > destroys existing content (truncates to zero), >> preserves existing content (appends). stderr redirection: 2> errors.txt (stderr only), cmd > output.txt 2> errors.txt (separate files), cmd > combined.txt 2>&1 (merge stderr to stdout). Combined I/O: sort < in.txt > out.txt (order doesn't matter). Rust mapping: File::create() for > (truncate), OpenOptions::new().append(true) for >> (append), Command::new().output() for capturing. Common use cases (7): save output (ls > listing.txt), append log (echo >> app.log), discard (cmd > /dev/null 2>&1), create empty (: > empty.txt), capture errors (cmd 2> errors.txt), split output (cmd > out.txt 2> err.txt). Bash extensions NOT SUPPORTED: &> file (Bash shortcut for > file 2>&1), >& file (csh-style), >| file (force overwrite, ignore noclobber), >(cmd) process substitution. POSIX output redirection fully supported: >, >>, 2>, 2>&1. Total tests: 4,909 (100% passing)."
 
 extreme_tdd_workflow:
   description: "Hybrid workflow combining GNU Bash validation with REPL verification"
@@ -1187,15 +1187,26 @@ chapters:
 
           - id: "REDIR-002"
             title: "Document > and >> redirection (output)"
-            status: "partial"
+            status: "completed"
             priority: "MEDIUM"
-            input: "echo \"text\" > file.txt; echo \"more\" >> file.txt"
-            rust: "write_file(\"file.txt\", \"text\"); append_file(\"file.txt\", \"more\");"
-            purified: "write_file \"file.txt\" \"text\"; append_file \"file.txt\" \"more\""
-            test_name: "test_output_redirection_baseline"
-            notes: "Function calls work, but > and >> syntax not generated yet. Enhancement, not blocker."
-            red_phase_tests: "rash/tests/integration_tests.rs:925-1035"
-            version: "v1.2.1"
+            input: "echo \"text\" > file.txt; echo \"more\" >> file.txt; cmd 2> errors.txt; cmd > output.txt 2>&1"
+            rust: "File::create(\"file.txt\")?; OpenOptions::new().append(true).open(\"file.txt\")?; Command::new(\"cmd\").output()?"
+            purified: "echo \"text\" > \"file.txt\"; echo \"more\" >> \"file.txt\"; cmd 2> \"errors.txt\"; cmd > \"output.txt\" 2>&1"
+            test_name: "test_REDIR_002_basic_output_redirection"
+            notes: "Output redirection (>, >>) is POSIX-compliant and FULLY SUPPORTED. > truncates file, >> appends. stderr (2>), merge (2>&1) supported. Bash extensions NOT SUPPORTED: &> (Bash shortcut), >& (csh-style), >| (force), >(cmd) process substitution."
+            implementation:
+              module: "rash/src/bash_parser/tests.rs"
+              functions:
+                - "test_REDIR_002_basic_output_redirection (passing)"
+                - "test_REDIR_002_append_redirection (passing)"
+                - "test_REDIR_002_overwrite_vs_append (passing)"
+                - "test_REDIR_002_stderr_redirection (passing)"
+                - "test_REDIR_002_combined_io_redirection (passing)"
+                - "test_REDIR_002_rust_file_mapping (passing)"
+                - "test_REDIR_002_common_use_cases (passing)"
+                - "test_REDIR_002_bash_vs_posix_output_redir (passing)"
+              lines_of_code: 345
+            version: "v6.6.0"
 
           - id: "REDIR-003"
             title: "Document &> redirection (stdout+stderr)"
