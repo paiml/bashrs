@@ -9,13 +9,13 @@ roadmap:
 
   statistics:
     total_tasks: 122
-    completed: 50
+    completed: 51
     partial_support: 17
-    pending: 52
+    pending: 51
     blocked: 3
-    coverage_percent: 41
+    coverage_percent: 42
     accuracy_verified: "2025-10-27"
-    session_update: "Completed DIRSTACK-001 (pushd/popd). 8 passing tests document pushd/popd/dirs as directory stack commands, NOT SUPPORTED (implicit state). pushd command (push directory onto stack and cd to it), popd command (pop directory from stack and cd to new top), dirs command (display directory stack with -c/-l/-p/-v/+N/-N options), purification uses explicit cd with variables (save current dir, cd with error checking, restore), pushd/popd options (swap top two/rotate stack/push without cd), DIRSTACK variable (Bash-specific read-only array containing stack), cd - alternative (POSIX-compliant using OLDPWD, simpler than stack), interactive vs script directory navigation (implicit pushd/popd stack vs explicit cd with saved variables and error handling). Total tests: 4,860 (100% passing)."
+    session_update: "Completed ARRAY-002 (associative arrays). 8 passing tests document associative arrays as Bash 4.0+ feature, NOT SUPPORTED (Bash extension, not POSIX). declare -A creates associative array (uppercase A for associative vs lowercase a for indexed), map[key]=value sets value with string key, ${map[key]} retrieves value, ${!map[@]} gets all keys, ${map[@]} gets all values. Bash 4.0+ only (2009), macOS ships with Bash 3.2 (no associative arrays), not available in sh/dash/ash. Purification strategies: separate variables (config_host, config_port pattern), indexed arrays with key:value parsing (for key in host:localhost port:8080), case statements for lookups. Use cases with POSIX alternatives: config management (separate variables), counters/histograms (indexed arrays), key-value lookups (case statements), caching (temporary files). Total tests: 4,868 (100% passing)."
 
 extreme_tdd_workflow:
   description: "Hybrid workflow combining GNU Bash validation with REPL verification"
@@ -1853,12 +1853,26 @@ chapters:
 
           - id: "ARRAY-002"
             title: "Document associative arrays"
-            status: "pending"
+            status: "completed"
+            version: "v6.6.0"
             priority: "LOW"
-            input: "declare -A map; map[key]=value"
+            input: "declare -A map; map[key]=value; ${map[key]}; ${!map[@]}; ${map[@]}"
             rust: "let mut map = HashMap::new(); map.insert(\"key\", \"value\");"
-            purified: "Not supported (use multiple variables)"
-            test_name: "test_associative_array_not_supported"
+            purified: "config_host=\"localhost\"; config_port=\"8080\" # Separate variables instead"
+            test_name: "test_ARRAY_002_associative_arrays_not_supported"
+            notes: "Associative arrays (hash maps) introduced in Bash 4.0 (2009), NOT SUPPORTED (Bash extension, not POSIX). declare -A creates associative array, map[key]=value sets value for key, ${map[key]} retrieves value, ${!map[@]} gets all keys, ${map[@]} gets all values. Bash 4.0+ only (macOS ships with 3.2), not available in sh/dash/ash. Purification uses separate variables (config_host, config_port pattern), indexed arrays with key:value parsing, or case statements for lookups. Use cases: config management, counters/histograms, key-value lookups, caching - all have POSIX alternatives."
+            implementation:
+              module: "rash/src/bash_parser/tests.rs"
+              functions:
+                - "test_ARRAY_002_associative_arrays_not_supported (passing)"
+                - "test_ARRAY_002_declare_uppercase_a (passing)"
+                - "test_ARRAY_002_associative_array_operations (passing)"
+                - "test_ARRAY_002_purification_uses_separate_variables (passing)"
+                - "test_ARRAY_002_indexed_array_alternative (passing)"
+                - "test_ARRAY_002_bash_version_compatibility (passing)"
+                - "test_ARRAY_002_use_cases_and_alternatives (passing)"
+                - "test_ARRAY_002_bash_vs_posix_arrays (passing)"
+              lines_of_code: 442
 
       - id: "6.2"
         name: "The Directory Stack (pushd/popd)"
