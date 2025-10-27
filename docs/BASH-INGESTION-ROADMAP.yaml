@@ -9,13 +9,13 @@ roadmap:
 
   statistics:
     total_tasks: 122
-    completed: 40
+    completed: 41
     partial_support: 17
-    pending: 62
+    pending: 61
     blocked: 3
-    coverage_percent: 33
+    coverage_percent: 34
     accuracy_verified: "2025-10-27"
-    session_update: "Completed TASK 1.2 (interactive vs script mode). 4 passing tests document bashrs script-mode-only philosophy: deterministic, automation-friendly, no interactive features (read, select, TTY). Total tests: 4,797 (100% passing)."
+    session_update: "Completed TASK 2.1 (POSIX-only constructs). 5 passing tests document bashrs purification policy: OUTPUT POSIX SH ONLY. Bash extensions NEVER generated ([[ ]], let, $'...', &>, arrays). POSIX constructs ALWAYS generated (#!/bin/sh, [ ], $((...)), printf). Quality gates documented. Total tests: 4,802 (100% passing)."
 
 extreme_tdd_workflow:
   description: "Hybrid workflow combining GNU Bash validation with REPL verification"
@@ -341,11 +341,56 @@ chapters:
     tasks:
       - id: "2.1"
         title: "Document POSIX-only constructs"
-        status: "pending"
-        input: "Bash-specific syntax"
+        status: "completed"
+        version: "v6.6.0"
+        input: "Bash-specific syntax ([[ ]], let, $'...', &>, arrays, etc.)"
         rust: "Standard Rust constructs"
-        purified: "POSIX sh syntax only"
-        test_name: "test_posix_compliance_check"
+        purified: "POSIX sh syntax only (#!/bin/sh, [ ], $((...)), printf, case)"
+        test_name: "test_TASK_2_1_posix_only_purification_policy"
+        notes: "bashrs purification policy: OUTPUT POSIX SH ONLY. 5 passing tests document POSIX-only policy, Bash extensions NOT generated, POSIX constructs always used, portability across shells, and quality gates."
+        implementation:
+          module: "rash/src/bash_parser/tests.rs"
+          functions:
+            - "test_TASK_2_1_posix_only_purification_policy (passing)"
+            - "test_TASK_2_1_bash_extensions_not_generated (passing)"
+            - "test_TASK_2_1_posix_constructs_always_generated (passing)"
+            - "test_TASK_2_1_portability_across_shells (passing)"
+            - "test_TASK_2_1_purification_quality_gates (passing)"
+          lines_of_code: 319
+          documentation: "Comprehensive documentation of bashrs POSIX-only purification policy. Bash extensions NEVER generated ([[ ]], let, $'...', &>, (( )), arrays, <(...), {1..10}). POSIX constructs ALWAYS generated (#!/bin/sh, [ ], $((...)), printf, case, quoted variables). Quality gates for all purified scripts."
+          bash_extensions_not_generated:
+            - "[[ ]] → [ ] (POSIX single brackets)"
+            - "$'...' → printf with format strings"
+            - "let → $((...)) (POSIX arithmetic)"
+            - "&> → >file 2>&1 (POSIX redirection)"
+            - "[[ =~ ]] → case or grep"
+            - "(( )) → $((...)) (POSIX arithmetic)"
+            - "declare -a arrays → positional parameters or multiple variables"
+            - "<(...) → temporary files with mktemp"
+            - "{1..10} → seq 1 10 or explicit list"
+          posix_constructs_always_generated:
+            - "#!/bin/sh (not #!/bin/bash)"
+            - "[ ] for conditionals (not [[ ]])"
+            - "$((...)) for arithmetic"
+            - "printf (not echo)"
+            - "case statements (not [[ =~ ]])"
+            - "Quoted variables: \"$VAR\" (not $VAR)"
+            - ">file 2>&1 (not &>)"
+            - "$(...) command substitution (not `...`)"
+            - "[ \"$x\" = \"$y\" ] (not ==)"
+          portability:
+            - "Works on: dash, ash, busybox sh, bash, zsh, ksh, pdksh"
+            - "Tested on: dash (Debian/Ubuntu), ash (Alpine), busybox sh (containers)"
+            - "Standards: IEEE Std 1003.1-2001 compliant"
+          quality_gates:
+            - "shellcheck -s sh (POSIX compliance check)"
+            - "dash -n (syntax validation)"
+            - "busybox sh (minimal shell execution)"
+            - "All variables quoted (\"$VAR\" not $VAR)"
+            - "No Bash-specific patterns"
+            - "Determinism (no $RANDOM, timestamps, $$)"
+            - "Idempotency (mkdir -p, rm -f, ln -sf)"
+          priority: "HIGH"
 
   - id: 3
     name: "Basic Shell Features"
