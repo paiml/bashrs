@@ -9,13 +9,13 @@ roadmap:
 
   statistics:
     total_tasks: 122
-    completed: 39
+    completed: 40
     partial_support: 17
-    pending: 63
+    pending: 62
     blocked: 3
-    coverage_percent: 32
+    coverage_percent: 33
     accuracy_verified: "2025-10-27"
-    session_update: "Completed BASH-BUILTIN-003 (let command). 4 passing tests document let as Bash-specific, recommend POSIX $((...)) alternative. Conversion rules provided for all operators (+=, ++, --)."
+    session_update: "Completed TASK 1.2 (interactive vs script mode). 4 passing tests document bashrs script-mode-only philosophy: deterministic, automation-friendly, no interactive features (read, select, TTY). Total tests: 4,797 (100% passing)."
 
 extreme_tdd_workflow:
   description: "Hybrid workflow combining GNU Bash validation with REPL verification"
@@ -297,11 +297,44 @@ chapters:
 
       - id: "1.2"
         title: "Document interactive vs script mode"
-        status: "pending"
-        input: "Interactive bash session"
+        status: "completed"
+        version: "v6.6.0"
+        input: "Interactive bash session (read, select, TTY detection)"
         rust: "Not applicable (compile-time only)"
-        purified: "Script mode only (deterministic)"
-        test_name: "test_script_mode_only"
+        purified: "Script mode only (deterministic, command-line args)"
+        test_name: "test_TASK_1_2_script_mode_only_philosophy"
+        notes: "bashrs supports SCRIPT MODE ONLY (deterministic, non-interactive). 4 passing tests document philosophy, unsupported features, transformation strategy, and automation requirements."
+        implementation:
+          module: "rash/src/bash_parser/tests.rs"
+          functions:
+            - "test_TASK_1_2_script_mode_only_philosophy (passing)"
+            - "test_TASK_1_2_interactive_mode_not_supported (passing)"
+            - "test_TASK_1_2_deterministic_script_transformation (passing)"
+            - "test_TASK_1_2_automation_friendly_design (passing)"
+          lines_of_code: 214
+          documentation: "Comprehensive documentation of bashrs script-mode-only philosophy. Interactive features NOT SUPPORTED (read, select, TTY). Transformation strategy: read → command-line args, deterministic execution, automation-friendly design."
+          philosophy:
+            - "Script mode only - no interactive features"
+            - "Fully deterministic (same input → same output)"
+            - "Automation-friendly (works in CI/CD, Docker, cron)"
+            - "Testable (no human interaction required)"
+          unsupported_features:
+            - "read command (use command-line args instead)"
+            - "select menus (use config files or case statements)"
+            - "TTY detection (assume non-TTY always)"
+            - "History navigation (use git for versioning)"
+            - "Tab completion (use IDE/editor)"
+          supported_features:
+            - "Functions, variables, control flow"
+            - "File I/O, process execution"
+            - "Command-line argument parsing ($1, $2, $@)"
+            - "Environment variables"
+            - "Exit codes, error handling"
+          transformation_strategy:
+            - "read var → var=\"$1\" (command-line args)"
+            - "select → case statement with $1"
+            - "TTY checks → assume batch mode"
+          priority: "HIGH"
 
   - id: 2
     name: "Definitions"
