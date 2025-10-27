@@ -871,13 +871,13 @@ chapters:
 
               - id: "EXP-PARAM-010"
                 title: "Document ${parameter/pattern/string} (substitution)"
-                status: "pending"
+                status: "completed"
                 priority: "MEDIUM"
                 input: "text=\"hello\"; echo \"${text/l/L}\""
                 rust: "text.replacen(\"l\", \"L\", 1)"
                 purified: "Use sed or awk (POSIX doesn't support ${//})"
-                test_name: "test_pattern_substitution_to_sed"
-                notes: "POSIX sh lacks ${//}, use sed"
+                test_name: "test_EXP_PARAM_010_pattern_substitution"
+                notes: "Already supported by command parsing infrastructure (BUILTIN-001). Pattern substitution ${text/pattern/replacement} is bash-specific, not POSIX sh."
 
           - id: "3.5.4"
             name: "Command Substitution"
