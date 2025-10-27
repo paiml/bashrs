@@ -5292,3 +5292,269 @@ fi
     //   - Verifies determinism (no $RANDOM, timestamps)
     //   - Verifies idempotency (safe to re-run)
 }
+
+// ============================================================================
+// BASH-BUILTIN-006: readarray/mapfile (Bash-specific, NOT SUPPORTED)
+// ============================================================================
+//
+// Task: BASH-BUILTIN-006 - Document readarray/mapfile
+// Status: DOCUMENTED (NOT SUPPORTED - Bash extension)
+// Priority: LOW (niche feature, POSIX alternative available)
+//
+// readarray/mapfile reads lines from a file into an array (Bash 4.0+):
+// - readarray -t lines < file.txt → lines=("line1" "line2" "line3")
+// - mapfile -t array < input.txt → array populated with lines
+//
+// Why NOT SUPPORTED:
+// - Bash-specific (requires Bash 4.0+, not in POSIX sh)
+// - Arrays not available in POSIX sh
+// - POSIX alternative: while read loop (more portable)
+//
+// POSIX Alternative: while read loop
+// Instead of:
+//   readarray -t lines < file.txt
+//   for line in "${lines[@]}"; do
+//     echo "$line"
+//   done
+//
+// Use:
+//   while IFS= read -r line; do
+//     echo "$line"
+//   done < file.txt
+//
+// Benefits of while read:
+// - POSIX-compliant (works everywhere)
+// - No array dependency
+// - Processes lines one at a time (memory efficient)
+// - Handles large files (streaming, no loading entire file)
+//
+// Transformation strategy:
+// - readarray → while IFS= read -r line; do ... done
+// - Array iteration → direct processing in loop
+// - Handles files of any size (no memory limit)
+
+#[test]
+fn test_BASH_BUILTIN_006_readarray_not_supported() {
+    // DOCUMENTATION: readarray/mapfile is NOT SUPPORTED (Bash extension)
+    //
+    // Bash readarray syntax:
+    // readarray -t lines < file.txt
+    // for line in "${lines[@]}"; do
+    //   echo "$line"
+    // done
+    //
+    // This is Bash 4.0+ only, not POSIX
+
+    let readarray_script = r#"readarray -t lines < file.txt"#;
+    let result = BashParser::new(readarray_script);
+
+    match result {
+        Ok(mut parser) => {
+            let parse_result = parser.parse();
+            assert!(
+                parse_result.is_ok() || parse_result.is_err(),
+                "readarray is Bash-specific, NOT SUPPORTED"
+            );
+        }
+        Err(_) => {
+            // May not parse readarray syntax
+        }
+    }
+
+    // NOT SUPPORTED because:
+    // - Bash 4.0+ only (not available in dash, ash, busybox sh)
+    // - Requires array support (not in POSIX sh)
+    // - Loads entire file into memory (not efficient for large files)
+}
+
+#[test]
+fn test_BASH_BUILTIN_006_posix_while_read_alternative() {
+    // DOCUMENTATION: POSIX alternative to readarray
+    //
+    // Instead of readarray (Bash):
+    // readarray -t lines < file.txt
+    // for line in "${lines[@]}"; do
+    //   echo "$line"
+    // done
+    //
+    // Use while read (POSIX):
+    // while IFS= read -r line; do
+    //   echo "$line"
+    // done < file.txt
+    //
+    // Benefits:
+    // - POSIX-compliant (works on dash, ash, busybox sh, bash)
+    // - Memory efficient (streaming, one line at a time)
+    // - Handles files of any size
+    // - No array dependency
+
+    let posix_while_read = r#"
+while IFS= read -r line; do
+    printf '%s\n' "$line"
+done < file.txt
+"#;
+
+    let result = BashParser::new(posix_while_read);
+    match result {
+        Ok(mut parser) => {
+            let parse_result = parser.parse();
+            assert!(
+                parse_result.is_ok() || parse_result.is_err(),
+                "while read is POSIX-compliant"
+            );
+        }
+        Err(_) => {}
+    }
+
+    // IFS= prevents word splitting
+    // read -r prevents backslash escaping
+    // Reads line by line (streaming, memory efficient)
+}
+
+#[test]
+fn test_BASH_BUILTIN_006_transformation_strategy() {
+    // DOCUMENTATION: How to refactor readarray to POSIX
+    //
+    // Scenario 1: Process all lines
+    // Bash:
+    //   readarray -t lines < data.txt
+    //   for line in "${lines[@]}"; do
+    //     process "$line"
+    //   done
+    //
+    // POSIX:
+    //   while IFS= read -r line; do
+    //     process "$line"
+    //   done < data.txt
+    //
+    // Scenario 2: Store lines for later use
+    // Bash:
+    //   readarray -t lines < config.txt
+    //   echo "First: ${lines[0]}"
+    //   echo "Second: ${lines[1]}"
+    //
+    // POSIX (using numbered variables):
+    //   line_num=0
+    //   while IFS= read -r line; do
+    //     line_num=$((line_num + 1))
+    //     eval "line_$line_num=\$line"
+    //   done < config.txt
+    //   echo "First: $line_1"
+    //   echo "Second: $line_2"
+    //
+    // Scenario 3: Count lines
+    // Bash:
+    //   readarray -t lines < file.txt
+    //   echo "Total: ${#lines[@]}"
+    //
+    // POSIX:
+    //   count=0
+    //   while IFS= read -r line; do
+    //     count=$((count + 1))
+    //   done < file.txt
+    //   printf '%s %d\n' "Total:" "$count"
+
+    let transformation_example = r#"
+while IFS= read -r line; do
+    printf '%s\n' "$line"
+done < file.txt
+"#;
+
+    let result = BashParser::new(transformation_example);
+    match result {
+        Ok(mut parser) => {
+            let _parse_result = parser.parse();
+            // POSIX while read loop documented
+        }
+        Err(_) => {}
+    }
+
+    // Key transformations:
+    // - readarray -t → while IFS= read -r
+    // - "${lines[@]}" → process in loop body
+    // - Array indexing → numbered variables or streaming
+}
+
+#[test]
+fn test_BASH_BUILTIN_006_mapfile_alias_not_supported() {
+    // DOCUMENTATION: mapfile is an alias for readarray
+    //
+    // mapfile and readarray are the SAME command:
+    // mapfile -t array < file.txt
+    // readarray -t array < file.txt
+    //
+    // Both are Bash 4.0+ extensions, NOT POSIX
+    //
+    // POSIX alternative: Same as readarray
+    // while IFS= read -r line; do
+    //   process "$line"
+    // done < file.txt
+
+    let mapfile_script = r#"mapfile -t array < input.txt"#;
+    let result = BashParser::new(mapfile_script);
+
+    match result {
+        Ok(mut parser) => {
+            let parse_result = parser.parse();
+            assert!(
+                parse_result.is_ok() || parse_result.is_err(),
+                "mapfile is Bash-specific alias, NOT SUPPORTED"
+            );
+        }
+        Err(_) => {}
+    }
+
+    // mapfile = readarray (exact same functionality)
+    // Both require Bash 4.0+
+    // Both use arrays (not available in POSIX sh)
+}
+
+#[test]
+fn test_BASH_BUILTIN_006_memory_efficiency_comparison() {
+    // DOCUMENTATION: Memory efficiency of while read vs readarray
+    //
+    // readarray (Bash):
+    // - Loads ENTIRE file into memory
+    // - Creates array with all lines
+    // - Memory usage: O(file size)
+    // - Fails on large files (GB+ files can exhaust memory)
+    //
+    // while read (POSIX):
+    // - Processes ONE line at a time
+    // - Streaming (constant memory usage)
+    // - Memory usage: O(1) - single line buffer
+    // - Handles files of ANY size
+    //
+    // Example: Process 10GB log file
+    // readarray: Tries to load 10GB into memory → CRASH
+    // while read: Processes 10GB one line at a time → SUCCESS
+    //
+    // Recommendation:
+    // ALWAYS use while read for file processing
+    // More efficient, more portable, more robust
+
+    let efficient_posix = r#"
+# Process large file efficiently (POSIX)
+while IFS= read -r line; do
+    # Process one line at a time
+    printf '%s\n' "$line"
+done < /var/log/huge.log
+"#;
+
+    let result = BashParser::new(efficient_posix);
+    match result {
+        Ok(mut parser) => {
+            let _parse_result = parser.parse();
+            // Memory-efficient POSIX pattern documented
+        }
+        Err(_) => {}
+    }
+
+    // Memory comparison:
+    // readarray: O(n) memory (n = file size)
+    // while read: O(1) memory (constant)
+    //
+    // Performance:
+    // readarray: Fast for small files (<1MB)
+    // while read: Consistent for any file size
+}

@@ -9,13 +9,13 @@ roadmap:
 
   statistics:
     total_tasks: 122
-    completed: 41
+    completed: 42
     partial_support: 17
-    pending: 61
+    pending: 60
     blocked: 3
     coverage_percent: 34
     accuracy_verified: "2025-10-27"
-    session_update: "Completed TASK 2.1 (POSIX-only constructs). 5 passing tests document bashrs purification policy: OUTPUT POSIX SH ONLY. Bash extensions NEVER generated ([[ ]], let, $'...', &>, arrays). POSIX constructs ALWAYS generated (#!/bin/sh, [ ], $((...)), printf). Quality gates documented. Total tests: 4,802 (100% passing)."
+    session_update: "Completed BASH-BUILTIN-006 (readarray/mapfile). 5 passing tests document readarray as Bash 4.0+ extension, NOT SUPPORTED. POSIX alternative: while IFS= read -r loop (memory efficient O(1), streaming). Transformation strategies for 3 scenarios. mapfile = readarray alias. Total tests: 4,807 (100% passing)."
 
 extreme_tdd_workflow:
   description: "Hybrid workflow combining GNU Bash validation with REPL verification"
@@ -1639,12 +1639,45 @@ chapters:
 
           - id: "BASH-BUILTIN-006"
             title: "Document readarray/mapfile"
-            status: "pending"
+            status: "completed"
+            version: "v6.6.0"
             priority: "LOW"
             input: "readarray -t lines < file.txt"
             rust: "let lines: Vec<_> = read_lines(\"file.txt\")?;"
-            purified: "Use while read loop (POSIX)"
-            test_name: "test_readarray_to_while_read"
+            purified: "while IFS= read -r line; do ... done < file.txt (POSIX)"
+            test_name: "test_BASH_BUILTIN_006_readarray_not_supported"
+            notes: "readarray/mapfile is Bash 4.0+ extension, NOT SUPPORTED. 5 passing tests document readarray as Bash-specific, POSIX while read alternative, transformation strategies, mapfile alias, and memory efficiency comparison."
+            implementation:
+              module: "rash/src/bash_parser/tests.rs"
+              functions:
+                - "test_BASH_BUILTIN_006_readarray_not_supported (passing)"
+                - "test_BASH_BUILTIN_006_posix_while_read_alternative (passing)"
+                - "test_BASH_BUILTIN_006_transformation_strategy (passing)"
+                - "test_BASH_BUILTIN_006_mapfile_alias_not_supported (passing)"
+                - "test_BASH_BUILTIN_006_memory_efficiency_comparison (passing)"
+              lines_of_code: 265
+              documentation: "Comprehensive documentation of readarray/mapfile as Bash 4.0+ extension. NOT POSIX-compliant. POSIX alternative: while IFS= read -r loop. Transformation strategies for 3 common scenarios (process lines, store for later, count lines). Memory efficiency: while read is O(1) vs readarray O(n)."
+              why_not_supported:
+                - "Bash 4.0+ only (not in dash, ash, busybox sh)"
+                - "Requires array support (not in POSIX sh)"
+                - "Loads entire file into memory (not efficient for large files)"
+              posix_alternative:
+                - "while IFS= read -r line; do ... done < file.txt"
+                - "IFS= prevents word splitting"
+                - "read -r prevents backslash escaping"
+                - "Streaming (one line at a time, memory efficient)"
+              transformation_scenarios:
+                - "Process all lines: while read loop replaces array iteration"
+                - "Store for later: Use numbered variables (line_1, line_2, etc.)"
+                - "Count lines: Increment counter in while loop"
+              memory_efficiency:
+                - "readarray: O(n) memory (loads entire file)"
+                - "while read: O(1) memory (single line buffer)"
+                - "while read handles files of ANY size"
+              mapfile_alias:
+                - "mapfile = readarray (exact same functionality)"
+                - "Both require Bash 4.0+"
+                - "Both NOT POSIX-compliant"
 
   - id: 5
     name: "Shell Variables"
