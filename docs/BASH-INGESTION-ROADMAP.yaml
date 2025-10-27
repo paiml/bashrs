@@ -9,13 +9,13 @@ roadmap:
 
   statistics:
     total_tasks: 122
-    completed: 38
+    completed: 39
     partial_support: 17
-    pending: 64
+    pending: 63
     blocked: 3
-    coverage_percent: 31
+    coverage_percent: 32
     accuracy_verified: "2025-10-27"
-    session_update: "Completed BUILTIN-019 (umask command). 4 passing tests document umask as SUPPORTED but with global state implications. Best practices: save/restore pattern, prefer chmod for explicit control."
+    session_update: "Completed BASH-BUILTIN-003 (let command). 4 passing tests document let as Bash-specific, recommend POSIX $((...)) alternative. Conversion rules provided for all operators (+=, ++, --)."
 
 extreme_tdd_workflow:
   description: "Hybrid workflow combining GNU Bash validation with REPL verification"
@@ -1503,12 +1503,39 @@ chapters:
 
           - id: "BASH-BUILTIN-003"
             title: "Document let"
-            status: "pending"
+            status: "completed"
+            version: "v6.6.0"
             priority: "LOW"
             input: "let \"x = 5 + 3\""
             rust: "let x = 5 + 3;"
             purified: "x=$((5 + 3))"
-            test_name: "test_let_to_arithmetic"
+            test_name: "test_BASH_BUILTIN_003_let_basic"
+            notes: "let is Bash-specific. 4 tests document let and recommend POSIX $((...)) alternative for portability."
+            implementation:
+              module: "rash/src/bash_parser/tests.rs"
+              functions:
+                - "test_BASH_BUILTIN_003_let_basic (passing)"
+                - "test_BASH_BUILTIN_003_let_increment (passing)"
+                - "test_BASH_BUILTIN_003_let_posix_alternative (passing)"
+                - "test_BASH_BUILTIN_003_let_refactoring (passing)"
+              lines_of_code: 156
+              documentation: "Comprehensive documentation of let command and POSIX $((...)) alternative. Includes conversion rules for operators (+=, ++, --)."
+              posix_issues:
+                - "let is Bash-specific (not available in sh, dash)"
+                - "$((...)) is POSIX-compliant (works in all shells)"
+                - "let requires quoting, $((...)) does not"
+              conversion_rules:
+                - "let \"x = expr\" → x=$((expr))"
+                - "let \"x += 1\" → x=$((x + 1))"
+                - "let \"x++\" → x=$((x + 1))"
+                - "let \"x--\" → x=$((x - 1))"
+              portability:
+                - "let: Bash, zsh only"
+                - "$((...)):  All POSIX shells (sh, dash, bash, zsh, ksh)"
+              purification_strategy:
+                - "Convert all let to $((...)) for POSIX compliance"
+                - "More explicit and readable"
+                - "Standard shell arithmetic"
 
           - id: "BASH-BUILTIN-004"
             title: "Document local"
