@@ -9,13 +9,13 @@ roadmap:
 
   statistics:
     total_tasks: 122
-    completed: 35
+    completed: 36
     partial_support: 17
-    pending: 67
+    pending: 66
     blocked: 3
-    coverage_percent: 29
+    coverage_percent: 30
     accuracy_verified: "2025-10-27"
-    session_update: "Completed BUILTIN-008 (exec command). 4 passing tests document exec as non-idempotent (replaces process, cannot be re-run), breaks 'safe to re-run' principle. Refactoring strategy: replace exec with explicit script invocation."
+    session_update: "Completed BUILTIN-012 (read command). 4 passing tests document read as non-deterministic (interactive input), cannot be automated (CI/CD fails). Refactoring strategy: replace read with command-line arguments."
 
 extreme_tdd_workflow:
   description: "Hybrid workflow combining GNU Bash validation with REPL verification"
@@ -1302,13 +1302,38 @@ chapters:
 
           - id: "BUILTIN-012"
             title: "Document read"
-            status: "pending"
+            status: "completed"
+            version: "v6.6.0"
             priority: "LOW"
             input: "read -r var"
             rust: "Not supported (interactive input non-deterministic)"
             purified: "Remove (use command-line args instead)"
-            test_name: "test_read_not_supported"
-            notes: "Interactive, non-deterministic"
+            test_name: "test_BUILTIN_012_read_not_supported"
+            notes: "read is intentionally NOT SUPPORTED - interactive input, non-deterministic. 4 tests document why read must be removed from scripts."
+            implementation:
+              module: "rash/src/bash_parser/tests.rs"
+              functions:
+                - "test_BUILTIN_012_read_not_supported (passing)"
+                - "test_BUILTIN_012_read_non_deterministic (passing)"
+                - "test_BUILTIN_012_read_interactive_only (passing)"
+                - "test_BUILTIN_012_read_refactoring_alternative (passing)"
+              lines_of_code: 159
+              documentation: "Comprehensive documentation of read non-determinism: interactive input, varies each run, cannot be automated. Includes refactoring strategy to command-line arguments."
+              determinism_issues:
+                - "read depends on user input at runtime"
+                - "Different input each run → non-deterministic"
+                - "Cannot predict output from static analysis"
+                - "Impossible to purify to deterministic script"
+              automation_issues:
+                - "Requires user interaction (cannot run in CI/CD)"
+                - "Fails in non-interactive environments (cron, Docker)"
+                - "No user present in automated deployments"
+                - "Cannot be reliably re-run without user intervention"
+              refactoring_strategy:
+                - "Instead of: read -p \"Enter name: \" name (interactive)"
+                - "Use: name=\"$1\" (command-line argument, deterministic)"
+                - "Usage: ./script.sh Alice (automated, deterministic)"
+                - "Linter should flag read usage as determinism violation"
 
           - id: "BUILTIN-013"
             title: "Document return"

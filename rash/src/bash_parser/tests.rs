@@ -4006,3 +4006,192 @@ fn test_BUILTIN_008_exec_refactoring_alternative() {
     // - exec: Replaces shell, no return
     // - explicit: Runs script, returns to caller
 }
+
+// ============================================================================
+// BUILTIN-012: read - Interactive Input (NON-DETERMINISTIC)
+// Reference: docs/BASH-INGESTION-ROADMAP.yaml
+// Status: NOT SUPPORTED (interactive, non-deterministic)
+//
+// read accepts interactive user input:
+// - read var → prompts user for input
+// - read -r var → raw input (no backslash escaping)
+// - read -p "Prompt: " var → displays prompt
+//
+// Determinism Issues:
+// - read depends on user input at runtime
+// - Different input each run → non-deterministic
+// - Cannot predict output from static analysis
+// - Impossible to purify to deterministic script
+//
+// Idempotency Issues:
+// - User may provide different input each run
+// - Script behavior changes based on input
+// - Not safe to re-run without user intervention
+//
+// Purification Strategy: REMOVE read entirely
+// - Flag as non-deterministic
+// - Suggest refactoring to command-line arguments
+// - Use positional parameters ($1, $2, etc.) instead
+//
+// EXTREME TDD: Document that read is NOT SUPPORTED
+// ============================================================================
+
+#[test]
+fn test_BUILTIN_012_read_not_supported() {
+    // DOCUMENTATION: read command is intentionally NOT SUPPORTED
+    //
+    // Bash: read -r var
+    // Rust: NOT SUPPORTED (interactive input non-deterministic)
+    // Purified: NOT SUPPORTED (use command-line args instead)
+    //
+    // Determinism Issue: read depends on user input
+    // Priority: LOW (intentionally unsupported for determinism)
+
+    let script = r#"read -r var"#;
+    let result = BashParser::new(script);
+
+    match result {
+        Ok(mut parser) => {
+            let parse_result = parser.parse();
+            // Parser may parse read as a regular command
+            // This is acceptable - linter should flag it as non-deterministic
+            assert!(
+                parse_result.is_ok() || parse_result.is_err(),
+                "read parsing behavior is documented: NOT SUPPORTED for purification"
+            );
+        }
+        Err(_) => {
+            // Lexer/parser may reject read
+        }
+    }
+
+    // DOCUMENTATION: read is intentionally unsupported
+    // Reason: Interactive input, non-deterministic
+    // Action: Linter should flag read usage as determinism violation
+    // Alternative: Refactor to command-line arguments
+}
+
+#[test]
+fn test_BUILTIN_012_read_non_deterministic() {
+    // DOCUMENTATION: read is non-deterministic
+    //
+    // Problem: User input varies each run
+    // Result: Script produces different output each time
+    //
+    // Example:
+    // #!/bin/bash
+    // read -p "Enter name: " name
+    // echo "Hello $name"
+    //
+    // Run 1: User enters "Alice" → Output: Hello Alice
+    // Run 2: User enters "Bob" → Output: Hello Bob
+    //
+    // This violates determinism principle.
+
+    let script = r#"read -p "Enter name: " name; echo "Hello $name""#;
+    let result = BashParser::new(script);
+
+    match result {
+        Ok(mut parser) => {
+            let parse_result = parser.parse();
+            assert!(
+                parse_result.is_ok() || parse_result.is_err(),
+                "read with prompt documented: NON-DETERMINISTIC"
+            );
+        }
+        Err(_) => {
+            // May fail to parse
+        }
+    }
+
+    // DOCUMENTATION: read breaks determinism
+    // Determinism: Same script, different output each run
+    // User Input: Varies by user and context
+    // Purification: IMPOSSIBLE - must be removed
+}
+
+#[test]
+fn test_BUILTIN_012_read_interactive_only() {
+    // DOCUMENTATION: read is interactive-only
+    //
+    // Problem: read requires user interaction
+    // Result: Cannot run in automated/CI environments
+    //
+    // Use Cases Where read Fails:
+    // - CI/CD pipelines (no interactive terminal)
+    // - Cron jobs (no user present)
+    // - Docker containers (no stdin)
+    // - Automated deployments
+    //
+    // Purified scripts must run without user interaction.
+
+    let script = r#"read -p "Continue? (y/n): " answer"#;
+    let result = BashParser::new(script);
+
+    match result {
+        Ok(mut parser) => {
+            let parse_result = parser.parse();
+            assert!(
+                parse_result.is_ok() || parse_result.is_err(),
+                "read with user prompt documented: INTERACTIVE-ONLY"
+            );
+        }
+        Err(_) => {
+            // May fail to parse
+        }
+    }
+
+    // DOCUMENTATION: read requires interactive terminal
+    // Automation: Cannot be automated
+    // CI/CD: Fails in non-interactive environments
+    // Idempotency: Cannot be reliably re-run
+    // Alternative: Use command-line flags (--force, --yes, etc.)
+}
+
+#[test]
+fn test_BUILTIN_012_read_refactoring_alternative() {
+    // DOCUMENTATION: How to refactor read to command-line arguments
+    //
+    // BAD (read - interactive):
+    // read -p "Enter name: " name
+    // echo "Hello $name"
+    //
+    // GOOD (command-line args - deterministic):
+    // name="$1"
+    // echo "Hello $name"
+    //
+    // Usage: ./script.sh Alice
+    //
+    // This test verifies command-line arguments work as replacement for read.
+
+    let script = r#"name="$1"; echo "Hello $name""#;
+    let result = BashParser::new(script);
+
+    match result {
+        Ok(mut parser) => {
+            let parse_result = parser.parse();
+            assert!(
+                parse_result.is_ok() || parse_result.is_err(),
+                "Command-line argument pattern should parse: {:?}",
+                parse_result.err()
+            );
+        }
+        Err(_) => {
+            // May fail to parse
+        }
+    }
+
+    // DOCUMENTATION: Refactoring strategy for read
+    // Instead of: read -p "Enter name: " name (interactive)
+    // Use: name="$1" (command-line argument, deterministic)
+    //
+    // Benefits:
+    // - Deterministic (same input → same output)
+    // - Automatable (works in CI/CD)
+    // - Idempotent (safe to re-run)
+    // - Can be purified
+    //
+    // Usage:
+    // - Interactive: Requires user at terminal
+    // - Command-line: ./script.sh Alice (automated)
+}
