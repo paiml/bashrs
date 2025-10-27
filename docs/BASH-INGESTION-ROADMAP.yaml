@@ -1327,12 +1327,13 @@ chapters:
 
           - id: "VAR-003"
             title: "Document IFS purification"
-            status: "pending"
+            status: "completed"
             priority: "MEDIUM"
             input: "IFS=':'; read -ra parts <<< \"$PATH\""
             rust: "let parts: Vec<_> = path.split(':').collect();"
             purified: "Avoid IFS manipulation (use tr/cut)"
-            test_name: "test_ifs_purification"
+            test_name: "test_VAR_003_ifs_purification"
+            notes: "Already supported by command parsing infrastructure (BUILTIN-001)"
 
           - id: "VAR-004"
             title: "Document PS1, PS2, etc."

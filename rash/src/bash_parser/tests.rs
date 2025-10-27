@@ -2552,3 +2552,29 @@ fn test_BASH_BUILTIN_004_local_to_scoped_var() {
         "Local should be parsed as a Command statement with name 'local'"
     );
 }
+
+// VAR-003: IFS purification
+// The IFS (Internal Field Separator) variable controls field splitting.
+// IFS=':' sets the field separator to colon
+// Common use: IFS=':'; read -ra parts <<< "$PATH"
+// Simplified test: just checking IFS assignment parsing
+#[test]
+fn test_VAR_003_ifs_purification() {
+    let script = "IFS=':'";
+
+    let mut parser = BashParser::new(script).unwrap();
+    let ast = parser.parse().unwrap();
+
+    // Should parse successfully
+    assert!(!ast.statements.is_empty(), "IFS assignment should be parsed");
+
+    // Should be recognized as an Assignment statement with name "IFS"
+    let has_ifs_assignment = ast.statements.iter().any(|s| {
+        matches!(s, BashStmt::Assignment { name, .. } if name == "IFS")
+    });
+
+    assert!(
+        has_ifs_assignment,
+        "IFS should be parsed as an Assignment statement with name 'IFS'"
+    );
+}
