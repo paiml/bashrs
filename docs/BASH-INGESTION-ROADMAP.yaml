@@ -1388,12 +1388,13 @@ chapters:
         tasks:
           - id: "ARRAY-001"
             title: "Document indexed arrays"
-            status: "pending"
+            status: "completed"
             priority: "MEDIUM"
             input: "arr=(1 2 3); echo ${arr[0]}"
             rust: "let arr = vec![1, 2, 3]; println!(\"{}\", arr[0]);"
             purified: "Use whitespace-separated strings (POSIX sh has no arrays)"
-            test_name: "test_array_to_whitespace_list"
+            test_name: "test_ARRAY_001_indexed_arrays"
+            notes: "Basic identifier parsing supported. Full array syntax is bash-specific and not supported in POSIX sh."
 
           - id: "ARRAY-002"
             title: "Document associative arrays"
