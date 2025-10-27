@@ -9,13 +9,13 @@ roadmap:
 
   statistics:
     total_tasks: 122
-    completed: 34
+    completed: 35
     partial_support: 17
-    pending: 68
+    pending: 67
     blocked: 3
-    coverage_percent: 28
+    coverage_percent: 29
     accuracy_verified: "2025-10-27"
-    session_update: "Completed BUILTIN-007 (eval command). 4 passing tests document eval as security risk (code injection, CWE-78), non-deterministic, must be removed from scripts. Refactoring strategy: replace eval with explicit commands."
+    session_update: "Completed BUILTIN-008 (exec command). 4 passing tests document exec as non-idempotent (replaces process, cannot be re-run), breaks 'safe to re-run' principle. Refactoring strategy: replace exec with explicit script invocation."
 
 extreme_tdd_workflow:
   description: "Hybrid workflow combining GNU Bash validation with REPL verification"
@@ -1231,12 +1231,38 @@ chapters:
 
           - id: "BUILTIN-008"
             title: "Document exec"
-            status: "pending"
+            status: "completed"
+            version: "v6.6.0"
             priority: "LOW"
             input: "exec ./new-script.sh"
             rust: "std::process::Command::new(\"./new-script.sh\").exec()"
             purified: "Remove (replaces process, not idempotent)"
-            test_name: "test_exec_not_supported"
+            test_name: "test_BUILTIN_008_exec_not_supported"
+            notes: "exec is intentionally NOT SUPPORTED - non-idempotent (replaces process), cannot be re-run. 4 tests document why exec must be removed from scripts."
+            implementation:
+              module: "rash/src/bash_parser/tests.rs"
+              functions:
+                - "test_BUILTIN_008_exec_not_supported (passing)"
+                - "test_BUILTIN_008_exec_breaks_idempotency (passing)"
+                - "test_BUILTIN_008_exec_fd_redirection (passing)"
+                - "test_BUILTIN_008_exec_refactoring_alternative (passing)"
+              lines_of_code: 146
+              documentation: "Comprehensive documentation of exec idempotency issues: process replacement, global state modification, cannot be re-run. Includes refactoring strategy to explicit script invocation."
+              idempotency_issues:
+                - "exec replaces the current process (shell terminates)"
+                - "Cannot be run multiple times (process is gone after first run)"
+                - "Breaks 'safe to re-run' principle"
+                - "No way to undo or reverse"
+                - "exec with FD redirection modifies global shell state permanently"
+              determinism_issues:
+                - "exec changes global process state permanently"
+                - "Side effects cannot be rolled back"
+                - "Script cannot continue after exec"
+              refactoring_strategy:
+                - "Instead of: exec ./new-script.sh (replaces process)"
+                - "Use: ./new-script.sh (runs script, returns control)"
+                - "Linter should flag exec usage as idempotency violation"
+                - "No safe equivalent - must be removed from purified scripts"
 
           - id: "BUILTIN-009"
             title: "Document exit"

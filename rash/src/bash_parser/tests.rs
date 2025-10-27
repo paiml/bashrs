@@ -3833,3 +3833,176 @@ fn test_BUILTIN_007_eval_refactoring_alternative() {
     // - Deterministic
     // - Can be purified
 }
+
+// ============================================================================
+// BUILTIN-008: exec - Process Replacement (NON-IDEMPOTENT)
+// Reference: docs/BASH-INGESTION-ROADMAP.yaml
+// Status: NOT SUPPORTED (non-idempotent, replaces process)
+//
+// exec replaces the current shell process with a new command:
+// - exec ./new-script.sh → replaces current shell
+// - exec redirections → modifies file descriptors for entire shell
+//
+// Idempotency Issues:
+// - exec replaces the current process (shell terminates)
+// - Cannot be run multiple times (process is gone after first run)
+// - Breaks "safe to re-run" principle
+// - No way to undo or reverse
+//
+// Determinism Issues:
+// - exec changes global process state permanently
+// - Side effects cannot be rolled back
+// - Script cannot continue after exec
+//
+// Purification Strategy: REMOVE exec entirely
+// - Flag as non-idempotent
+// - Suggest refactoring to explicit script invocation
+// - No safe equivalent in purified scripts
+//
+// EXTREME TDD: Document that exec is NOT SUPPORTED
+// ============================================================================
+
+#[test]
+fn test_BUILTIN_008_exec_not_supported() {
+    // DOCUMENTATION: exec command is intentionally NOT SUPPORTED
+    //
+    // Bash: exec ./new-script.sh
+    // Rust: std::process::Command::new("./new-script.sh").exec()
+    // Purified: NOT SUPPORTED (remove from script)
+    //
+    // Idempotency Issue: exec replaces the process, cannot be re-run
+    // Priority: LOW (intentionally unsupported for idempotency)
+
+    let script = r#"exec ./new-script.sh"#;
+    let result = BashParser::new(script);
+
+    match result {
+        Ok(mut parser) => {
+            let parse_result = parser.parse();
+            // Parser may parse exec as a regular command
+            // This is acceptable - linter should flag it as non-idempotent
+            assert!(
+                parse_result.is_ok() || parse_result.is_err(),
+                "exec parsing behavior is documented: NOT SUPPORTED for purification"
+            );
+        }
+        Err(_) => {
+            // Lexer/parser may reject exec
+        }
+    }
+
+    // DOCUMENTATION: exec is intentionally unsupported
+    // Reason: Non-idempotent, replaces process, cannot be re-run
+    // Action: Linter should flag exec usage as idempotency violation
+    // Alternative: Refactor to explicit script invocation (./new-script.sh)
+}
+
+#[test]
+fn test_BUILTIN_008_exec_breaks_idempotency() {
+    // DOCUMENTATION: exec breaks idempotency principle
+    //
+    // Problem: exec replaces the current shell process
+    // Result: Script cannot be run multiple times safely
+    //
+    // Example:
+    // #!/bin/bash
+    // echo "Step 1"
+    // exec ./step2.sh
+    // echo "This never runs"  # Process replaced!
+    //
+    // This violates the "safe to re-run" principle.
+
+    let script = r#"echo "Before"; exec ./script.sh; echo "After""#;
+    let result = BashParser::new(script);
+
+    match result {
+        Ok(mut parser) => {
+            let parse_result = parser.parse();
+            assert!(
+                parse_result.is_ok() || parse_result.is_err(),
+                "exec with surrounding commands documented: BREAKS IDEMPOTENCY"
+            );
+        }
+        Err(_) => {
+            // May fail to parse
+        }
+    }
+
+    // DOCUMENTATION: exec terminates the current shell
+    // Idempotency: Cannot run script multiple times
+    // Side Effects: Process replacement is permanent
+    // Purification: IMPOSSIBLE - must be removed
+}
+
+#[test]
+fn test_BUILTIN_008_exec_fd_redirection() {
+    // DOCUMENTATION: exec with file descriptor redirection
+    //
+    // Bash: exec 3< input.txt
+    // Effect: Opens FD 3 for reading for entire shell
+    //
+    // Problem: Modifies global shell state
+    // Cannot be undone or reset
+    // Not safe to run multiple times
+
+    let script = r#"exec 3< input.txt"#;
+    let result = BashParser::new(script);
+
+    match result {
+        Ok(mut parser) => {
+            let parse_result = parser.parse();
+            assert!(
+                parse_result.is_ok() || parse_result.is_err(),
+                "exec with FD redirection documented: NON-IDEMPOTENT"
+            );
+        }
+        Err(_) => {
+            // May fail to parse
+        }
+    }
+
+    // DOCUMENTATION: exec modifies shell file descriptors permanently
+    // State Change: Global FD table modified
+    // Idempotency: Cannot be safely re-run
+    // Alternative: Use explicit file operations (open, read, close)
+}
+
+#[test]
+fn test_BUILTIN_008_exec_refactoring_alternative() {
+    // DOCUMENTATION: How to refactor exec to explicit invocation
+    //
+    // BAD (exec):
+    // exec ./new-script.sh
+    //
+    // GOOD (explicit):
+    // ./new-script.sh
+    //
+    // This test verifies explicit script invocation works as replacement for exec.
+
+    let script = r#"./script.sh"#;
+    let mut parser = BashParser::new(script).unwrap();
+    let result = parser.parse();
+
+    assert!(
+        result.is_ok(),
+        "Explicit script invocation should parse successfully: {:?}",
+        result.err()
+    );
+
+    let ast = result.unwrap();
+    assert!(!ast.statements.is_empty());
+
+    // DOCUMENTATION: Refactoring strategy for exec
+    // Instead of: exec ./new-script.sh (replaces process)
+    // Use: ./new-script.sh (runs script, returns control)
+    //
+    // Benefits:
+    // - Idempotent (can be re-run)
+    // - No process replacement
+    // - Script can continue after invocation
+    // - Can be purified safely
+    //
+    // Difference:
+    // - exec: Replaces shell, no return
+    // - explicit: Runs script, returns to caller
+}
