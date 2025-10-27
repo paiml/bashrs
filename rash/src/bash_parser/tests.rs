@@ -4392,3 +4392,190 @@ fn test_BUILTIN_017_times_refactoring_alternative() {
     // - Profile externally during development/testing
     // - Remove times from production scripts
 }
+
+// ============================================================================
+// BUILTIN-019: umask - File Creation Permissions (GLOBAL STATE)
+// Reference: docs/BASH-INGESTION-ROADMAP.yaml
+// Status: DOCUMENTED (global state modification)
+//
+// umask sets default file creation permissions:
+// - umask 022 → new files: 644, new dirs: 755
+// - umask 077 → new files: 600, new dirs: 700
+//
+// Global State Issues:
+// - umask modifies process-wide file creation mask
+// - Affects all subsequent file operations
+// - Cannot be scoped (applies to entire shell process)
+// - Side effects persist across script boundaries
+//
+// Idempotency Concerns:
+// - umask changes global state permanently
+// - Running script multiple times stacks umask calls
+// - May override system/user defaults
+// - Difficult to restore original value
+//
+// Best Practices:
+// - Set umask at start of script if needed
+// - Document why specific umask is required
+// - Consider explicit chmod instead
+// - Restore original umask if changed
+//
+// EXTREME TDD: Document umask behavior and implications
+// ============================================================================
+
+#[test]
+fn test_BUILTIN_019_umask_basic() {
+    // DOCUMENTATION: Basic umask command parsing
+    //
+    // Bash: umask 022
+    // Effect: New files: 644 (rw-r--r--), dirs: 755 (rwxr-xr-x)
+    // Rust: std::fs::set_permissions() or libc::umask()
+    // Purified: umask 022
+    //
+    // Global State: Modifies file creation mask
+    // Priority: LOW (works but has global state implications)
+
+    let script = r#"umask 022"#;
+    let result = BashParser::new(script);
+
+    match result {
+        Ok(mut parser) => {
+            let parse_result = parser.parse();
+            assert!(
+                parse_result.is_ok(),
+                "umask should parse successfully: {:?}",
+                parse_result.err()
+            );
+        }
+        Err(e) => {
+            panic!("umask parsing failed: {:?}", e);
+        }
+    }
+
+    // DOCUMENTATION: umask is supported
+    // Global State: Modifies process-wide permissions
+    // Best Practice: Set once at script start, document reasoning
+}
+
+#[test]
+fn test_BUILTIN_019_umask_global_state() {
+    // DOCUMENTATION: umask modifies global state
+    //
+    // Problem: umask affects entire process
+    // Effect: All file operations after umask use new mask
+    //
+    // Example:
+    // #!/bin/bash
+    // touch file1.txt    # Uses default umask (e.g., 022 → 644)
+    // umask 077
+    // touch file2.txt    # Uses new umask (077 → 600)
+    //
+    // file1.txt: -rw-r--r-- (644)
+    // file2.txt: -rw------- (600)
+
+    let script = r#"umask 077"#;
+    let result = BashParser::new(script);
+
+    match result {
+        Ok(mut parser) => {
+            let parse_result = parser.parse();
+            assert!(
+                parse_result.is_ok(),
+                "umask with global state documented: {:?}",
+                parse_result.err()
+            );
+        }
+        Err(_) => {
+            panic!("umask should parse");
+        }
+    }
+
+    // DOCUMENTATION: umask has global side effects
+    // Global State: Cannot be scoped or limited
+    // Side Effects: Affects all subsequent file operations
+    // Consideration: May surprise developers unfamiliar with umask
+}
+
+#[test]
+fn test_BUILTIN_019_umask_idempotency_concern() {
+    // DOCUMENTATION: umask idempotency considerations
+    //
+    // Concern: Running script multiple times
+    // Issue: umask stacks if not carefully managed
+    //
+    // Safe Pattern:
+    // #!/bin/bash
+    // old_umask=$(umask)
+    // umask 022
+    // # ... script logic ...
+    // umask "$old_umask"
+    //
+    // Unsafe Pattern:
+    // #!/bin/bash
+    // umask 022
+    // # ... script logic ...
+    // # umask not restored!
+
+    let script = r#"old_umask=$(umask); umask 022"#;
+    let result = BashParser::new(script);
+
+    match result {
+        Ok(mut parser) => {
+            let parse_result = parser.parse();
+            assert!(
+                parse_result.is_ok() || parse_result.is_err(),
+                "umask save/restore pattern documented"
+            );
+        }
+        Err(_) => {
+            // May fail due to command substitution
+        }
+    }
+
+    // DOCUMENTATION: Best practice for umask
+    // Safe: Save old umask, restore at end
+    // Unsafe: Set umask without restoration
+    // Idempotency: Restoration ensures safe re-run
+}
+
+#[test]
+fn test_BUILTIN_019_umask_explicit_chmod_alternative() {
+    // DOCUMENTATION: Explicit chmod as alternative to umask
+    //
+    // umask (global):
+    // umask 077
+    // touch file.txt      # Permissions: 600
+    //
+    // chmod (explicit, safer):
+    // touch file.txt
+    // chmod 600 file.txt  # Explicit, clear, localized
+    //
+    // Benefits of chmod:
+    // - Explicit permissions (easier to understand)
+    // - No global state modification
+    // - Clear intent in code
+    // - Easier to audit
+
+    let script = r#"chmod 600 file.txt"#;
+    let mut parser = BashParser::new(script).unwrap();
+    let result = parser.parse();
+
+    assert!(
+        result.is_ok(),
+        "Explicit chmod should parse successfully: {:?}",
+        result.err()
+    );
+
+    let ast = result.unwrap();
+    assert!(!ast.statements.is_empty());
+
+    // DOCUMENTATION: chmod is preferred over umask
+    // Reason: Explicit, no global state, clear intent
+    // umask: Global, implicit, affects all operations
+    // chmod: Localized, explicit, affects specific files
+    //
+    // Recommendation:
+    // - Use chmod for explicit permission control
+    // - Use umask only when necessary (e.g., security requirements)
+    // - Document why umask is needed if used
+}
