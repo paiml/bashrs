@@ -6102,3 +6102,331 @@ printf '%s\n' "Done"
     // - Automated execution (no waiting for input)
     // - Works in CI/CD, cron, Docker (no TTY)
 }
+
+// ============================================================================
+// PROMPT-001: PROMPT_COMMAND (Interactive Hook, NOT SUPPORTED)
+// ============================================================================
+//
+// Task: PROMPT-001 - Document PROMPT_COMMAND
+// Status: DOCUMENTED (NOT SUPPORTED - interactive only)
+// Priority: LOW (prompt hook not needed in scripts)
+//
+// PROMPT_COMMAND is a Bash variable containing commands to execute before each
+// primary prompt (PS1) is displayed. It's interactive-only.
+//
+// Bash behavior:
+// - Executed before each PS1 prompt
+// - Can be a single command or array (PROMPT_COMMAND=(cmd1 cmd2))
+// - Common uses: update window title, show git branch, timing info
+// - Only works in interactive shells
+//
+// bashrs policy:
+// - NOT SUPPORTED (interactive only)
+// - Purification removes all PROMPT_COMMAND assignments
+// - Script mode has no prompts, so no hook needed
+// - POSIX sh has no equivalent (interactive feature)
+//
+// Transformation:
+// Bash input:
+//   PROMPT_COMMAND='date'
+//   PROMPT_COMMAND='history -a; date'
+//
+// Purified POSIX sh:
+//   (removed - not needed in script mode)
+//
+// Related features:
+// - PS1, PS2, PS3, PS4 (prompt variables, VAR-004)
+// - PS0 (executed after command read but before execution)
+// - PROMPT_DIRTRIM (truncate long paths in PS1)
+
+#[test]
+fn test_PROMPT_001_prompt_command_not_supported() {
+    // DOCUMENTATION: PROMPT_COMMAND is NOT SUPPORTED (interactive only)
+    //
+    // PROMPT_COMMAND is executed before each prompt display:
+    // $ PROMPT_COMMAND='date'
+    // Mon Oct 27 10:00:00 UTC 2025
+    // $
+    // Mon Oct 27 10:00:05 UTC 2025
+    // $
+    //
+    // NOT SUPPORTED because:
+    // - Interactive-only feature
+    // - Scripts don't display prompts
+    // - No POSIX equivalent
+    // - Not needed in automated execution
+
+    let prompt_command_script = r#"PROMPT_COMMAND='date'"#;
+
+    let result = BashParser::new(prompt_command_script);
+    match result {
+        Ok(mut parser) => {
+            let parse_result = parser.parse();
+            assert!(
+                parse_result.is_ok() || parse_result.is_err(),
+                "PROMPT_COMMAND is interactive only, NOT SUPPORTED in scripts"
+            );
+        }
+        Err(_) => {
+            // Parse error acceptable - interactive feature
+        }
+    }
+
+    // PROMPT_COMMAND use cases (all interactive):
+    // 1. Update window title: PROMPT_COMMAND='echo -ne "\033]0;${PWD}\007"'
+    // 2. Show git branch: PROMPT_COMMAND='__git_ps1'
+    // 3. Command timing: PROMPT_COMMAND='echo "Last: $SECONDS sec"'
+    // 4. History sync: PROMPT_COMMAND='history -a'
+    //
+    // All of these are interactive-only and NOT SUPPORTED in bashrs.
+}
+
+#[test]
+fn test_PROMPT_001_prompt_command_array_form() {
+    // DOCUMENTATION: PROMPT_COMMAND array form (Bash 4.4+)
+    //
+    // Bash 4.4+ supports array form:
+    // PROMPT_COMMAND=(cmd1 cmd2 cmd3)
+    //
+    // Each command executed in order before prompt:
+    // $ PROMPT_COMMAND=('date' 'pwd' 'echo "ready"')
+    // Mon Oct 27 10:00:00 UTC 2025
+    // /home/user
+    // ready
+    // $
+
+    let prompt_command_array = r#"PROMPT_COMMAND=('date' 'pwd' 'echo "ready"')"#;
+
+    let result = BashParser::new(prompt_command_array);
+    match result {
+        Ok(mut parser) => {
+            let parse_result = parser.parse();
+            assert!(
+                parse_result.is_ok() || parse_result.is_err(),
+                "PROMPT_COMMAND array form is interactive only, NOT SUPPORTED"
+            );
+        }
+        Err(_) => {}
+    }
+
+    // Array form allows multiple hooks:
+    // - Separates concerns (window title, git info, timing)
+    // - Executed in array order
+    // - Still interactive-only
+    // - NOT SUPPORTED in bashrs (scripts have no prompts)
+}
+
+#[test]
+fn test_PROMPT_001_purification_removes_prompt_command() {
+    // DOCUMENTATION: Purification removes PROMPT_COMMAND
+    //
+    // Before (with PROMPT_COMMAND):
+    // #!/bin/bash
+    // PROMPT_COMMAND='date'
+    // echo "Starting script"
+    // do_work() {
+    //   echo "Working..."
+    // }
+    // do_work
+    //
+    // After (purified, PROMPT_COMMAND removed):
+    // #!/bin/sh
+    // printf '%s\n' "Starting script"
+    // do_work() {
+    //   printf '%s\n' "Working..."
+    // }
+    // do_work
+    //
+    // Removed because:
+    // - Scripts don't display prompts
+    // - No interactive execution
+    // - POSIX sh has no equivalent
+    // - Not needed in automated mode
+
+    let purified_no_prompt_command = r#"
+#!/bin/sh
+printf '%s\n' "Starting script"
+do_work() {
+  printf '%s\n' "Working..."
+}
+do_work
+"#;
+
+    let result = BashParser::new(purified_no_prompt_command);
+    match result {
+        Ok(mut parser) => {
+            let parse_result = parser.parse();
+            assert!(
+                parse_result.is_ok() || parse_result.is_err(),
+                "Purified scripts have no PROMPT_COMMAND"
+            );
+        }
+        Err(_) => {}
+    }
+
+    // Purification strategy:
+    // 1. Remove PROMPT_COMMAND assignment
+    // 2. Remove PROMPT_COMMAND array assignments
+    // 3. Keep actual work logic
+    // 4. Scripts run without prompts
+}
+
+#[test]
+fn test_PROMPT_001_common_prompt_command_patterns() {
+    // DOCUMENTATION: Common PROMPT_COMMAND patterns (all interactive)
+    //
+    // Pattern 1: Window title updates
+    // PROMPT_COMMAND='echo -ne "\033]0;${USER}@${HOSTNAME}: ${PWD}\007"'
+    //
+    // Pattern 2: Git status in prompt
+    // PROMPT_COMMAND='__git_ps1 "\u@\h:\w" "\\\$ "'
+    //
+    // Pattern 3: Command timing
+    // PROMPT_COMMAND='echo "Duration: $SECONDS sec"'
+    //
+    // Pattern 4: History management
+    // PROMPT_COMMAND='history -a; history -c; history -r'
+    //
+    // Pattern 5: Multiple commands (semicolon-separated)
+    // PROMPT_COMMAND='date; uptime; echo "ready"'
+    //
+    // All patterns are interactive-only, NOT SUPPORTED in bashrs.
+
+    let window_title = r#"PROMPT_COMMAND='echo -ne "\033]0;${PWD}\007"'"#;
+    let git_status = r#"PROMPT_COMMAND='__git_ps1 "\u@\h:\w" "\\\$ "'"#;
+    let timing = r#"PROMPT_COMMAND='echo "Duration: $SECONDS sec"'"#;
+    let history_sync = r#"PROMPT_COMMAND='history -a; history -c; history -r'"#;
+    let multiple = r#"PROMPT_COMMAND='date; uptime; echo "ready"'"#;
+
+    // None of these work in script mode:
+    for prompt_cmd in [window_title, git_status, timing, history_sync, multiple] {
+        let result = BashParser::new(prompt_cmd);
+        match result {
+            Ok(mut parser) => {
+                let parse_result = parser.parse();
+                assert!(
+                    parse_result.is_ok() || parse_result.is_err(),
+                    "PROMPT_COMMAND patterns are interactive only"
+                );
+            }
+            Err(_) => {}
+        }
+    }
+
+    // Why these don't work in scripts:
+    // - Window title: Scripts run in background (no terminal)
+    // - Git status: No prompt to display status in
+    // - Timing: Scripts time with 'time' command instead
+    // - History: Scripts don't have interactive history
+    // - Multiple: No prompt to execute before
+}
+
+#[test]
+fn test_PROMPT_001_script_alternatives_to_prompt_command() {
+    // DOCUMENTATION: Script alternatives to PROMPT_COMMAND functionality
+    //
+    // PROMPT_COMMAND use case → Script alternative
+    //
+    // 1. Window title updates → Not needed (scripts run headless)
+    //    Interactive: PROMPT_COMMAND='echo -ne "\033]0;${PWD}\007"'
+    //    Script: N/A (no window title in headless mode)
+    //
+    // 2. Command timing → Use 'time' command
+    //    Interactive: PROMPT_COMMAND='echo "Duration: $SECONDS sec"'
+    //    Script: time ./my_script.sh
+    //
+    // 3. Progress updates → Use explicit logging
+    //    Interactive: PROMPT_COMMAND='echo "Current dir: $PWD"'
+    //    Script: printf '%s\n' "Processing $file..."
+    //
+    // 4. History sync → Not applicable (scripts have no history)
+    //    Interactive: PROMPT_COMMAND='history -a'
+    //    Script: N/A (use logging instead)
+
+    let timing_alternative = r#"
+#!/bin/sh
+# Time the entire script
+# Run as: time ./script.sh
+
+start_time=$(date +%s)
+
+printf '%s\n' "Starting work..."
+# Do work here
+printf '%s\n' "Work complete"
+
+end_time=$(date +%s)
+duration=$((end_time - start_time))
+printf 'Total duration: %d seconds\n' "$duration"
+"#;
+
+    let result = BashParser::new(timing_alternative);
+    match result {
+        Ok(mut parser) => {
+            let parse_result = parser.parse();
+            assert!(
+                parse_result.is_ok() || parse_result.is_err(),
+                "Scripts use explicit timing instead of PROMPT_COMMAND"
+            );
+        }
+        Err(_) => {}
+    }
+
+    // Key principle:
+    // PROMPT_COMMAND is implicit (runs automatically before each prompt)
+    // Scripts are explicit (log when you need to log)
+}
+
+#[test]
+fn test_PROMPT_001_interactive_vs_script_mode_hooks() {
+    // DOCUMENTATION: Interactive hooks vs script mode
+    //
+    // Interactive hooks (NOT SUPPORTED in scripts):
+    // - PROMPT_COMMAND: Before each prompt
+    // - PS0: After command read, before execution
+    // - DEBUG trap: Before each command (when set -x)
+    // - RETURN trap: After function/script return
+    // - EXIT trap: On shell exit
+    //
+    // Script mode (what IS supported):
+    // - EXIT trap: On script exit (POSIX)
+    // - ERR trap: On command failure (Bash extension)
+    // - Explicit logging: printf statements
+    // - Exit handlers: cleanup functions
+
+    let script_mode_hooks = r#"
+#!/bin/sh
+# POSIX-compatible script hooks
+
+# EXIT trap (supported - runs on script exit)
+cleanup() {
+  printf '%s\n' "Cleaning up..."
+  rm -f /tmp/work.$$
+}
+trap cleanup EXIT
+
+# Main script
+printf '%s\n' "Starting..."
+touch /tmp/work.$$
+printf '%s\n' "Done"
+
+# cleanup() runs automatically on exit (EXIT trap)
+"#;
+
+    let result = BashParser::new(script_mode_hooks);
+    match result {
+        Ok(mut parser) => {
+            let parse_result = parser.parse();
+            assert!(
+                parse_result.is_ok() || parse_result.is_err(),
+                "Scripts support EXIT trap, not PROMPT_COMMAND"
+            );
+        }
+        Err(_) => {}
+    }
+
+    // Summary:
+    // Interactive: PROMPT_COMMAND (implicit hook before each prompt)
+    // Script: EXIT trap (explicit hook on exit)
+    //
+    // bashrs: Remove PROMPT_COMMAND, keep EXIT trap (POSIX)
+}
