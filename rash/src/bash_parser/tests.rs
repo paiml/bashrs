@@ -3047,3 +3047,89 @@ fn test_CMD_003_command_with_flags_and_arguments() {
     // DOCUMENTATION: Flags (-la) and arguments (/tmp) both supported
     // Purification: Quote directory paths
 }
+
+// 3.1.2.3: Double quote preservation
+// Task: Document double quote handling (bash → Rust → purified bash)
+// Reference: docs/BASH-INGESTION-ROADMAP.yaml
+// Status: FULLY SUPPORTED
+//
+// Double quotes allow variable expansion while preserving most special characters:
+// - "Hello $USER" expands $USER
+// - "Hello \"World\"" preserves inner quotes with escaping
+//
+// Transformations:
+// - Bash: echo "Hello World"
+// - Rust: println!("Hello World")
+// - Purified: printf '%s\n' "Hello World"
+//
+// POSIX compliance: Double quotes are core POSIX feature
+#[test]
+fn test_QUOTE_001_double_quote_simple() {
+    // ARRANGE: Script with double-quoted string
+    let script = r#"echo "Hello World""#;
+
+    // ACT: Parse the script
+    let mut parser = BashParser::new(script).unwrap();
+    let result = parser.parse();
+
+    // ASSERT: Should parse successfully
+    assert!(
+        result.is_ok(),
+        "Double-quoted string should parse successfully: {:?}",
+        result.err()
+    );
+
+    let ast = result.unwrap();
+    assert!(!ast.statements.is_empty());
+
+    // DOCUMENTATION: Double quotes are fully supported
+    // Purification: Preserve double quotes, replace echo with printf
+}
+
+#[test]
+fn test_QUOTE_002_double_quote_with_variable() {
+    // ARRANGE: Script with variable in double quotes
+    let script = r#"echo "Hello $USER""#;
+
+    // ACT: Parse the script
+    let mut parser = BashParser::new(script).unwrap();
+    let result = parser.parse();
+
+    // ASSERT: Should parse successfully
+    assert!(
+        result.is_ok(),
+        "Double quotes with variable should parse successfully: {:?}",
+        result.err()
+    );
+
+    let ast = result.unwrap();
+    assert!(!ast.statements.is_empty());
+
+    // DOCUMENTATION: Variable expansion in double quotes fully supported
+    // Purification: Preserve "$USER" expansion in double quotes
+    // POSIX: Variable expansion in double quotes is POSIX-compliant
+}
+
+#[test]
+fn test_QUOTE_003_double_quote_with_escaped_quotes() {
+    // ARRANGE: Script with escaped quotes inside double quotes
+    let script = r#"echo "Hello \"World\"""#;
+
+    // ACT: Parse the script
+    let mut parser = BashParser::new(script).unwrap();
+    let result = parser.parse();
+
+    // ASSERT: Should parse successfully
+    assert!(
+        result.is_ok(),
+        "Escaped quotes in double quotes should parse successfully: {:?}",
+        result.err()
+    );
+
+    let ast = result.unwrap();
+    assert!(!ast.statements.is_empty());
+
+    // DOCUMENTATION: Backslash escaping in double quotes fully supported
+    // Purification: Preserve escaped quotes: \"World\"
+    // POSIX: Backslash escaping in double quotes is POSIX-compliant
+}
