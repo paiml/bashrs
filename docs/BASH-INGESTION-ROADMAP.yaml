@@ -9,13 +9,13 @@ roadmap:
 
   statistics:
     total_tasks: 122
-    completed: 49
+    completed: 50
     partial_support: 17
-    pending: 53
+    pending: 52
     blocked: 3
-    coverage_percent: 40
+    coverage_percent: 41
     accuracy_verified: "2025-10-27"
-    session_update: "Completed HISTORY-001 (history expansion). 8 passing tests document history expansion as interactive, non-deterministic feature, NOT SUPPORTED. !! (repeat last command), !$ (last argument), history expansion syntax (event designators like !n/!-n/!string, word designators like !^/!$/!*/!:n, modifiers like :h/:t/:r/:e/:s), purification removes history expansion (use explicit variables), history command (interactive management with -c/-d/-a/-w options), fc command (fix command, edit/re-execute with $EDITOR), history variables (HISTFILE/HISTSIZE/HISTFILESIZE/HISTCONTROL/HISTIGNORE/HISTTIMEFORMAT), interactive vs script history models (persistent history buffer + HISTFILE vs stateless execution). Total tests: 4,852 (100% passing)."
+    session_update: "Completed DIRSTACK-001 (pushd/popd). 8 passing tests document pushd/popd/dirs as directory stack commands, NOT SUPPORTED (implicit state). pushd command (push directory onto stack and cd to it), popd command (pop directory from stack and cd to new top), dirs command (display directory stack with -c/-l/-p/-v/+N/-N options), purification uses explicit cd with variables (save current dir, cd with error checking, restore), pushd/popd options (swap top two/rotate stack/push without cd), DIRSTACK variable (Bash-specific read-only array containing stack), cd - alternative (POSIX-compliant using OLDPWD, simpler than stack), interactive vs script directory navigation (implicit pushd/popd stack vs explicit cd with saved variables and error handling). Total tests: 4,860 (100% passing)."
 
 extreme_tdd_workflow:
   description: "Hybrid workflow combining GNU Bash validation with REPL verification"
@@ -1865,12 +1865,26 @@ chapters:
         tasks:
           - id: "DIRSTACK-001"
             title: "Document pushd/popd"
-            status: "pending"
+            status: "completed"
+            version: "v6.6.0"
             priority: "LOW"
-            input: "pushd /tmp; popd"
+            input: "pushd /tmp, popd, dirs, dirs -v, pushd +N, DIRSTACK"
             rust: "Not supported (use explicit cd tracking)"
-            purified: "_prev=\"$(pwd)\"; cd \"/tmp\"; cd \"$_prev\""
-            test_name: "test_pushd_popd_to_explicit_cd"
+            purified: "_prev_dir=\"$(pwd)\"; cd /tmp || exit 1; cd \"$_prev_dir\" || exit 1"
+            test_name: "test_DIRSTACK_001_pushd_not_supported"
+            notes: "pushd/popd maintain directory stack for navigation, NOT SUPPORTED (implicit state). 8 passing tests document pushd command (push directory onto stack and cd), popd command (pop directory from stack and cd), dirs command (display directory stack with -c/-l/-p/-v options), purification uses explicit cd (save/restore with variables + error checking), pushd/popd options (swap/rotate stack), DIRSTACK variable (Bash-specific read-only array), cd - alternative (POSIX-compliant using OLDPWD), and interactive vs script directory navigation (implicit stack vs explicit variables)."
+            implementation:
+              module: "rash/src/bash_parser/tests.rs"
+              functions:
+                - "test_DIRSTACK_001_pushd_not_supported (passing)"
+                - "test_DIRSTACK_001_popd_not_supported (passing)"
+                - "test_DIRSTACK_001_dirs_command (passing)"
+                - "test_DIRSTACK_001_purification_uses_explicit_cd (passing)"
+                - "test_DIRSTACK_001_pushd_popd_options (passing)"
+                - "test_DIRSTACK_001_dirstack_variable (passing)"
+                - "test_DIRSTACK_001_cd_minus_alternative (passing)"
+                - "test_DIRSTACK_001_interactive_vs_script_directory_navigation (passing)"
+              lines_of_code: 385
 
       - id: "6.3"
         name: "Controlling the Prompt"
