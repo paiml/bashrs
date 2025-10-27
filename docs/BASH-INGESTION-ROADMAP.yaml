@@ -9,13 +9,13 @@ roadmap:
 
   statistics:
     total_tasks: 122
-    completed: 54
-    partial_support: 16
+    completed: 55
+    partial_support: 15
     pending: 49
     blocked: 3
-    coverage_percent: 44
+    coverage_percent: 45
     accuracy_verified: "2025-10-27"
-    session_update: "Completed CMD-LIST-001 (3.2.3.1 - command lists). 10 passing tests document command lists (;, &&, ||) as POSIX-compliant and FULLY SUPPORTED. Semicolon (;) executes commands sequentially regardless of exit status, newline is equivalent to semicolon. AND (&&) executes second command only if first succeeds (exit 0), short-circuit evaluation, exit status is last executed command. OR (||) executes second command only if first fails (exit non-zero), short-circuit evaluation. Combined operators: && and || have equal precedence (left-to-right evaluation), ; has lower precedence (separates complete lists), | (pipe) has highest precedence. Exit status rules: semicolon returns status of last command, && returns status of last executed command, || returns status of last executed command. Rust mapping: && maps to if statement, || maps to if !condition, preserve short-circuit semantics. Common patterns: error checking (cmd || exit 1), success confirmation (cmd && echo Done), try-catch style (cmd && echo Success || echo Failed), safe directory change (cd /path || exit 1), create and enter (mkdir -p dir && cd dir), cleanup always runs (process ; cleanup). Bash extensions NOT SUPPORTED: [[ conditional, |& coprocess (Bash 4.0+). Total tests: 4,893 (100% passing)."
+    session_update: "Completed REDIR-001 (3.6 - input redirection). 8 passing tests document input redirection (<) as POSIX-compliant and FULLY SUPPORTED. Basic < syntax connects stdin to file contents, more efficient than cat file | cmd (no pipe, no subshell). File descriptor 0 redirected. Input redirection vs file argument: cmd < file.txt (stdin) vs cmd file.txt (explicit arg), wc -l < file shows count only, wc -l file shows count + filename. while read pattern with < redirection: loop runs in current shell (variables preserved), pipe runs in subshell (variables lost). Multiple redirections: can combine < with > (sort < in.txt > out.txt), order doesn't matter for < and >, fd 0 (stdin), fd 1 (stdout), fd 2 (stderr). Rust mapping: File::open() + BufReader for line reading, Command with file args for commands, quote filenames to prevent injection. Error handling: file not found (No such file or directory), no read permission (Permission denied), file is directory. Common use cases (6): count lines (wc -l <), sort file (sort < unsorted.txt > sorted.txt), search (grep pattern <), process line-by-line (while read; done <), transform (tr 'a-z' 'A-Z' <), filter and count (grep ERROR < | wc -l). Bash extensions NOT SUPPORTED: <<< here-strings (Bash 2.05b+), <(cmd) process substitution. Total tests: 4,901 (100% passing)."
 
 extreme_tdd_workflow:
   description: "Hybrid workflow combining GNU Bash validation with REPL verification"
@@ -1163,15 +1163,27 @@ chapters:
         tasks:
           - id: "REDIR-001"
             title: "Document < redirection (input)"
-            status: "partial"
+            status: "completed"
             priority: "MEDIUM"
-            input: "cmd < input.txt"
-            rust: "cmd(\"input.txt\")"
-            purified: "cmd \"input.txt\""
-            test_name: "test_input_redirection_baseline"
-            notes: "File arguments work (cmd file.txt), but < syntax not yet generated. Enhancement, not blocker."
-            red_phase_tests: "rash/tests/integration_tests.rs:790-818"
-            version: "v1.2.1"
+            input: "wc -l < file.txt; grep pattern < input.txt; sort < unsorted.txt > sorted.txt"
+            rust: "File::open(\"file.txt\")?; Command::new(\"grep\").arg(\"pattern\").arg(\"input.txt\").output()?"
+            purified: "wc -l < \"file.txt\"; grep \"pattern\" < \"input.txt\""
+            test_name: "test_REDIR_001_basic_input_redirection"
+            notes: "Input redirection (<) is POSIX-compliant and FULLY SUPPORTED. Connects stdin to file contents, more efficient than cat file | cmd (no pipe/subshell). File descriptor 0 redirected. Common pattern: while read loop with < file. Can combine with output redirection (sort < in.txt > out.txt). Rust mapping: File::open() + BufReader or Command with file args. Error handling: file not found/no read permission/is directory. Common use cases: count lines (wc -l <), sort file, search in file, process line-by-line (while read < file), transform contents (tr < in > out), filter and count (grep < | wc -l). Bash extensions NOT SUPPORTED: <<< here-strings (Bash 2.05b+), <(cmd) process substitution."
+            implementation:
+              module: "rash/src/bash_parser/tests.rs"
+              functions:
+                - "test_REDIR_001_basic_input_redirection (passing)"
+                - "test_REDIR_001_input_vs_file_argument (passing)"
+                - "test_REDIR_001_while_read_pattern (passing)"
+                - "test_REDIR_001_multiple_redirections (passing)"
+                - "test_REDIR_001_rust_file_open_mapping (passing)"
+                - "test_REDIR_001_error_handling (passing)"
+                - "test_REDIR_001_common_use_cases (passing)"
+                - "test_REDIR_001_bash_vs_posix_input_redir (passing)"
+              lines_of_code: 402
+              documentation: "Comprehensive documentation of input redirection: basic < syntax, vs file arguments, while read pattern, multiple redirections, Rust File::open() mapping, error handling, 6 common use cases, and Bash vs POSIX comparison table."
+            version: "v6.6.0"
 
           - id: "REDIR-002"
             title: "Document > and >> redirection (output)"
