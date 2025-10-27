@@ -3454,3 +3454,211 @@ fn test_ANSI_C_004_posix_alternative_printf() {
     // POSIX: printf is POSIX-compliant, handles \n, \t, \r, \\, etc.
     // Security: printf format strings are safe when properly quoted
 }
+
+// ============================================================================
+// 3.1.1.1: Command Execution - echo to printf Transformation
+// Reference: docs/BASH-INGESTION-ROADMAP.yaml
+// Status: TESTING (verify current behavior)
+//
+// Echo is widely used but has portability issues:
+// - Different implementations (BSD vs GNU) handle flags differently
+// - Escape sequence behavior varies across shells
+// - Newline behavior is inconsistent
+//
+// POSIX Recommendation: Use printf for portability
+// - printf is standardized and consistent
+// - Explicit format strings prevent ambiguity
+// - Works identically across all POSIX shells
+//
+// Purification Strategy:
+// - echo "text" → printf '%s\n' "text"
+// - echo -n "text" → printf '%s' "text"
+// - echo "line1\nline2" → printf '%s\n' "line1" "line2"
+//
+// EXTREME TDD: Verify echo commands can be parsed
+// ============================================================================
+
+#[test]
+fn test_ECHO_001_simple_echo_command() {
+    // DOCUMENTATION: Basic echo command parsing
+    //
+    // Bash: echo "hello"
+    // Rust: println!("hello")
+    // Purified: printf '%s\n' "hello"
+    //
+    // POSIX Compliance: echo is POSIX, but printf is preferred for portability
+    // Priority: HIGH (echo is fundamental to shell scripting)
+
+    let script = r#"echo "hello""#;
+    let mut parser = BashParser::new(script).unwrap();
+    let result = parser.parse();
+
+    assert!(
+        result.is_ok(),
+        "Simple echo command should parse successfully: {:?}",
+        result.err()
+    );
+
+    let ast = result.unwrap();
+    assert!(!ast.statements.is_empty());
+
+    let has_echo = ast.statements.iter().any(|s| {
+        matches!(s, BashStmt::Command { name, .. } if name == "echo")
+    });
+    assert!(has_echo, "AST should contain 'echo' command");
+
+    // DOCUMENTATION: Echo commands parse correctly
+    // Purification: Should convert to printf '%s\n' "hello"
+    // POSIX: printf is more portable than echo
+}
+
+#[test]
+fn test_ECHO_002_echo_with_variable() {
+    // DOCUMENTATION: Echo command with variable expansion
+    //
+    // Bash: echo "Hello $USER"
+    // Rust: println!("Hello {}", user)
+    // Purified: printf '%s\n' "Hello $USER"
+    //
+    // Variable expansion happens before echo executes
+    // Purifier should preserve variable expansion in quotes
+
+    let script = r#"echo "Hello $USER""#;
+    let mut parser = BashParser::new(script).unwrap();
+    let result = parser.parse();
+
+    assert!(
+        result.is_ok(),
+        "Echo with variable should parse successfully: {:?}",
+        result.err()
+    );
+
+    let ast = result.unwrap();
+    assert!(!ast.statements.is_empty());
+
+    let has_echo = ast.statements.iter().any(|s| {
+        matches!(s, BashStmt::Command { name, .. } if name == "echo")
+    });
+    assert!(has_echo, "AST should contain 'echo' command");
+
+    // DOCUMENTATION: Variable expansion in echo fully supported
+    // Purification: printf '%s\n' "Hello $USER"
+    // Security: Variables should be quoted to prevent word splitting
+}
+
+#[test]
+fn test_ECHO_003_echo_multiple_arguments() {
+    // DOCUMENTATION: Echo with multiple arguments
+    //
+    // Bash: echo "one" "two" "three"
+    // Output: one two three
+    // Rust: println!("{} {} {}", "one", "two", "three")
+    // Purified: printf '%s %s %s\n' "one" "two" "three"
+    //
+    // Echo separates arguments with spaces
+
+    let script = r#"echo "one" "two" "three""#;
+    let mut parser = BashParser::new(script).unwrap();
+    let result = parser.parse();
+
+    assert!(
+        result.is_ok(),
+        "Echo with multiple arguments should parse successfully: {:?}",
+        result.err()
+    );
+
+    let ast = result.unwrap();
+    assert!(!ast.statements.is_empty());
+
+    let has_echo = ast.statements.iter().any(|s| {
+        matches!(s, BashStmt::Command { name, .. } if name == "echo")
+    });
+    assert!(has_echo, "AST should contain 'echo' command");
+
+    // DOCUMENTATION: Multiple arguments to echo fully supported
+    // Purification: printf with multiple %s format specifiers
+    // POSIX: Space-separated output is consistent
+}
+
+#[test]
+fn test_ECHO_004_posix_printf_alternative() {
+    // DOCUMENTATION: POSIX printf as echo alternative
+    //
+    // Instead of: echo "hello"
+    // Use POSIX: printf '%s\n' "hello"
+    //
+    // This test verifies that printf works as a replacement for echo.
+    // When purifying, we should convert echo → printf.
+
+    let script = r#"printf '%s\n' "hello""#;
+    let mut parser = BashParser::new(script).unwrap();
+    let result = parser.parse();
+
+    assert!(
+        result.is_ok(),
+        "Printf command should parse successfully: {:?}",
+        result.err()
+    );
+
+    let ast = result.unwrap();
+    assert!(!ast.statements.is_empty());
+
+    let has_printf = ast.statements.iter().any(|s| {
+        matches!(s, BashStmt::Command { name, .. } if name == "printf")
+    });
+    assert!(has_printf, "AST should contain 'printf' command");
+
+    // DOCUMENTATION: printf is the POSIX-compliant alternative to echo
+    // Purification Strategy: Convert all echo → printf for consistency
+    // POSIX: printf is standardized, echo has portability issues
+    // Portability: printf behavior is identical across shells
+}
+
+#[test]
+#[ignore = "echo -n flag (no newline) purification needs implementation"]
+fn test_ECHO_005_echo_n_flag_needs_implementation() {
+    // DOCUMENTATION: Echo with -n flag (no trailing newline)
+    //
+    // Bash: echo -n "text"
+    // Output: text (no newline)
+    // Rust: print!("text")
+    // Purified: printf '%s' "text"
+    //
+    // POSIX Compliance: -n flag behavior varies across implementations
+    // BSD echo: -n is literal text, not a flag
+    // GNU echo: -n suppresses newline
+    //
+    // Purification Strategy: Always use printf '%s' for no-newline output
+    //
+    // Implementation needed:
+    // - Detect -n flag in echo arguments
+    // - Convert to printf '%s' (without \n)
+    // - Remove -n from argument list
+    //
+    // Priority: MEDIUM (common, but printf alternative is straightforward)
+}
+
+#[test]
+#[ignore = "echo -e flag (escape sequences) purification needs implementation"]
+fn test_ECHO_006_echo_e_flag_needs_implementation() {
+    // DOCUMENTATION: Echo with -e flag (interpret escape sequences)
+    //
+    // Bash: echo -e "line1\nline2"
+    // Output: line1
+    //         line2
+    // Rust: println!("line1\nline2")
+    // Purified: printf 'line1\nline2\n'
+    //
+    // POSIX Compliance: -e flag is NOT POSIX, GNU extension
+    // Behavior: Enables \n, \t, \r, \\, etc.
+    //
+    // Purification Strategy: Convert to printf with explicit escape sequences
+    //
+    // Implementation needed:
+    // - Detect -e flag in echo arguments
+    // - Convert to printf with literal escape sequences
+    // - Remove -e from argument list
+    //
+    // Priority: MEDIUM (common in scripts, but printf alternative exists)
+    // Security: Escape sequences can obfuscate output, printf is clearer
+}
