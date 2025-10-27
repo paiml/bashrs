@@ -9,13 +9,13 @@ roadmap:
 
   statistics:
     total_tasks: 122
-    completed: 28
+    completed: 29
     partial_support: 17
-    pending: 74
+    pending: 73
     blocked: 3
-    coverage_percent: 23
+    coverage_percent: 24
     accuracy_verified: "2025-10-27"
-    session_update: "Completed COND-003, partial 3.2.3.1 (command lists), documented 3.2.2.1 (pipes need implementation) (+3 tasks documented)"
+    session_update: "Completed COND-003, 3.2.1.1 (simple commands), partial 3.2.3.1 (command lists), documented 3.2.2.1 (pipes) (+4 tasks)"
 
 extreme_tdd_workflow:
   description: "Hybrid workflow combining GNU Bash validation with REPL verification"
@@ -377,12 +377,21 @@ chapters:
             tasks:
               - id: "3.2.1.1"
                 title: "Document command with arguments"
-                status: "pending"
+                status: "completed"
+                version: "v6.6.0"
                 input: "mkdir -p /tmp/data"
-                rust: "fn main() { mkdir_p(\"/tmp/data\"); }"
+                rust: "std::fs::create_dir_all(\"/tmp/data\")"
                 purified: "mkdir -p \"/tmp/data\""
-                test_name: "test_simple_command_transformation"
-                notes: "Quoted, idempotent with -p"
+                test_name: "test_CMD_001_simple_command_with_arguments"
+                notes: "Fully supported. Simple commands are the foundation of shell scripting. Purification adds idempotent flags (-p) and quotes paths."
+                implementation:
+                  module: "rash/src/bash_parser/tests.rs"
+                  functions:
+                    - "test_CMD_001_simple_command_with_arguments (passing)"
+                    - "test_CMD_002_command_with_multiple_arguments (passing)"
+                    - "test_CMD_003_command_with_flags_and_arguments (passing)"
+                  lines_of_code: 111
+                  documentation: "Comprehensive testing of simple commands with arguments, multiple arguments, and flags. POSIX-compliant core feature."
 
           - id: "3.2.2"
             name: "Pipelines"
