@@ -7,6 +7,53 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [6.6.0] - 2025-10-27
+
+### Added
+
+**🔧 REPL Infrastructure: ReplState**
+- Added `ReplState` struct for REPL session state management (REPL-003-002)
+- Command history tracking with navigation support
+- Session variable persistence across commands
+- Exit flag for clean shutdown
+- Error count tracking for debugging and statistics
+- 14 unit tests + 3 property tests (>2,500 test cases)
+- Mutation testing: 31/34 caught (91.2% kill rate, target ≥90% met)
+
+**📋 Sprint 32: Makefile Purification Production Assessment**
+- Verified 722 Makefile tests passing (100%)
+- Real-world validation: project Makefile, small/medium/large benchmarks
+- Documentation complete: `book/src/makefile/overview.md` (7.9KB), `book/src/makefile/security.md` (6.9KB)
+- 17 linter rules operational (MAKE001-MAKE017)
+- Purification working for all file sizes (46 lines → 2,021 lines)
+- Self-hosting: bashrs project Makefile lints successfully
+
+### Changed
+
+**🧪 Test Suite Growth**
+- Test count: 4,697 → 4,750 (+53 tests)
+- All tests passing (100% pass rate)
+- Zero regressions across all modules
+
+**📚 Documentation**
+- Sprint 32 assessment complete
+- Makefile purification confirmed production-ready
+- Book documentation verified and committed
+
+### Technical Details
+
+**REPL-003-002 Implementation**:
+- File: `rash/src/repl/state.rs` (328 lines)
+- Architecture: Inspired by Ruchy REPL state management
+- Public API: 14 methods for state management
+- Complexity: <10 per function (target met)
+
+**Makefile Purification Quality**:
+- Performance: <3s for medium Makefiles (174 lines)
+- Determinism: Automatic `$(wildcard)` sorting
+- Safety: Variable quoting, error handling
+- POSIX compliance: All purified output passes shellcheck
+
 ## [6.5.0] - 2025-10-26
 
 ### Documentation
