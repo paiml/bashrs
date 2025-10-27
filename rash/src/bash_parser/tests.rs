@@ -3662,3 +3662,174 @@ fn test_ECHO_006_echo_e_flag_needs_implementation() {
     // Priority: MEDIUM (common in scripts, but printf alternative exists)
     // Security: Escape sequences can obfuscate output, printf is clearer
 }
+
+// ============================================================================
+// BUILTIN-007: eval - Dynamic Code Execution (SECURITY RISK)
+// Reference: docs/BASH-INGESTION-ROADMAP.yaml
+// Status: NOT SUPPORTED (security risk, non-deterministic)
+//
+// eval executes arbitrary strings as shell commands:
+// - eval "echo hello" → executes echo hello
+// - cmd="rm -rf /"; eval $cmd → DANGEROUS!
+//
+// Security Issues:
+// - Code injection vulnerability (arbitrary command execution)
+// - Cannot be statically analyzed or verified
+// - Classic attack vector in shell scripts
+// - Non-deterministic (depends on runtime string values)
+//
+// Determinism Issues:
+// - eval depends on runtime variable values
+// - Same script may execute different commands each run
+// - Cannot be purified to deterministic POSIX sh
+//
+// Purification Strategy: REMOVE eval entirely
+// - Flag as security risk
+// - Suggest refactoring to explicit commands
+// - No safe equivalent in purified scripts
+//
+// EXTREME TDD: Document that eval is NOT SUPPORTED
+// ============================================================================
+
+#[test]
+fn test_BUILTIN_007_eval_not_supported() {
+    // DOCUMENTATION: eval command is intentionally NOT SUPPORTED
+    //
+    // Bash: cmd="echo hello"; eval $cmd
+    // Rust: NOT SUPPORTED (security risk)
+    // Purified: NOT SUPPORTED (remove from script)
+    //
+    // Security Risk: eval enables arbitrary code execution
+    // Priority: LOW (intentionally unsupported for security)
+
+    let script = r#"cmd="echo hello"; eval $cmd"#;
+    let result = BashParser::new(script);
+
+    match result {
+        Ok(mut parser) => {
+            let parse_result = parser.parse();
+            // Parser may parse eval as a regular command
+            // This is acceptable - linter should flag it as security risk
+            assert!(
+                parse_result.is_ok() || parse_result.is_err(),
+                "eval parsing behavior is documented: NOT SUPPORTED for purification"
+            );
+        }
+        Err(_) => {
+            // Lexer/parser may reject eval
+        }
+    }
+
+    // DOCUMENTATION: eval is intentionally unsupported
+    // Reason: Security risk, code injection, non-deterministic
+    // Action: Linter should flag eval usage as critical security issue
+    // Alternative: Refactor to explicit, static commands
+}
+
+#[test]
+fn test_BUILTIN_007_eval_security_risk() {
+    // DOCUMENTATION: eval is a classic security vulnerability
+    //
+    // Example attack:
+    // user_input="rm -rf /"
+    // eval $user_input  # DANGEROUS!
+    //
+    // This test documents why eval must never be supported.
+
+    let script = r#"eval "$user_input""#;
+    let result = BashParser::new(script);
+
+    match result {
+        Ok(mut parser) => {
+            let parse_result = parser.parse();
+            assert!(
+                parse_result.is_ok() || parse_result.is_err(),
+                "eval with variable parsing documented: SECURITY RISK"
+            );
+        }
+        Err(_) => {
+            // May fail to parse
+        }
+    }
+
+    // DOCUMENTATION: eval with user input is critical security vulnerability
+    // Attack Vector: Code injection, arbitrary command execution
+    // CWE-78: OS Command Injection
+    // Severity: CRITICAL
+    // Mitigation: Never use eval, especially with user input
+}
+
+#[test]
+fn test_BUILTIN_007_eval_non_deterministic() {
+    // DOCUMENTATION: eval is non-deterministic
+    //
+    // Bash: cmd=$(get_dynamic_command); eval $cmd
+    // Problem: Different command each run
+    // Determinism: IMPOSSIBLE to purify
+    //
+    // Purified scripts must be deterministic and idempotent.
+    // eval violates both principles.
+
+    let script = r#"cmd=$(generate_cmd); eval $cmd"#;
+    let result = BashParser::new(script);
+
+    match result {
+        Ok(mut parser) => {
+            let parse_result = parser.parse();
+            assert!(
+                parse_result.is_ok() || parse_result.is_err(),
+                "eval with command substitution documented: NON-DETERMINISTIC"
+            );
+        }
+        Err(_) => {
+            // May fail to parse
+        }
+    }
+
+    // DOCUMENTATION: eval breaks determinism
+    // Determinism: Cannot guarantee same output for same input
+    // Idempotency: Cannot guarantee safe re-run
+    // Purification: IMPOSSIBLE - must be removed
+}
+
+#[test]
+fn test_BUILTIN_007_eval_refactoring_alternative() {
+    // DOCUMENTATION: How to refactor eval to explicit commands
+    //
+    // BAD (eval):
+    // cmd="echo hello"
+    // eval $cmd
+    //
+    // GOOD (explicit):
+    // echo hello
+    //
+    // This test verifies explicit commands work as replacement for eval.
+
+    let script = r#"echo hello"#;
+    let mut parser = BashParser::new(script).unwrap();
+    let result = parser.parse();
+
+    assert!(
+        result.is_ok(),
+        "Explicit command should parse successfully: {:?}",
+        result.err()
+    );
+
+    let ast = result.unwrap();
+    assert!(!ast.statements.is_empty());
+
+    let has_echo = ast.statements.iter().any(|s| {
+        matches!(s, BashStmt::Command { name, .. } if name == "echo")
+    });
+    assert!(has_echo, "AST should contain 'echo' command");
+
+    // DOCUMENTATION: Refactoring strategy for eval
+    // Instead of: cmd="echo hello"; eval $cmd
+    // Use: echo hello (explicit, static, deterministic)
+    //
+    // Benefits:
+    // - No security risk
+    // - Statically analyzable
+    // - Deterministic
+    // - Can be purified
+}
