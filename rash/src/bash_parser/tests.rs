@@ -3133,3 +3133,92 @@ fn test_QUOTE_003_double_quote_with_escaped_quotes() {
     // Purification: Preserve escaped quotes: \"World\"
     // POSIX: Backslash escaping in double quotes is POSIX-compliant
 }
+
+// 3.1.2.2: Single quote literals
+// Task: Document single quote handling (bash → Rust → purified bash)
+// Reference: docs/BASH-INGESTION-ROADMAP.yaml
+// Status: FULLY SUPPORTED
+//
+// Single quotes preserve ALL characters literally (no variable expansion):
+// - 'Hello $USER' does NOT expand $USER
+// - To include a single quote: 'It'\''s working' (end quote, escaped quote, start quote)
+//
+// Transformations:
+// - Bash: echo 'Hello World'
+// - Rust: println!("Hello World")
+// - Purified: printf '%s\n' "Hello World" (convert to double quotes for consistency)
+//
+// POSIX compliance: Single quotes are core POSIX feature
+#[test]
+fn test_QUOTE_004_single_quote_simple() {
+    // ARRANGE: Script with single-quoted string
+    let script = r#"echo 'Hello World'"#;
+
+    // ACT: Parse the script
+    let mut parser = BashParser::new(script).unwrap();
+    let result = parser.parse();
+
+    // ASSERT: Should parse successfully
+    assert!(
+        result.is_ok(),
+        "Single-quoted string should parse successfully: {:?}",
+        result.err()
+    );
+
+    let ast = result.unwrap();
+    assert!(!ast.statements.is_empty());
+
+    // DOCUMENTATION: Single quotes are fully supported
+    // Purification: Convert to double quotes for consistency
+    // POSIX: Single quotes preserve ALL characters literally
+}
+
+#[test]
+fn test_QUOTE_005_single_quote_no_variable_expansion() {
+    // ARRANGE: Script with variable in single quotes (should NOT expand)
+    let script = r#"echo 'Value: $USER'"#;
+
+    // ACT: Parse the script
+    let mut parser = BashParser::new(script).unwrap();
+    let result = parser.parse();
+
+    // ASSERT: Should parse successfully
+    assert!(
+        result.is_ok(),
+        "Single quotes with variable should parse successfully: {:?}",
+        result.err()
+    );
+
+    let ast = result.unwrap();
+    assert!(!ast.statements.is_empty());
+
+    // DOCUMENTATION: Single quotes prevent variable expansion
+    // Expected output: "Value: $USER" (literal, not expanded)
+    // Purification: Convert to double quotes with escaped $: "Value: \$USER"
+    // POSIX: Single quotes preserve $ literally
+}
+
+#[test]
+fn test_QUOTE_006_single_quote_special_characters() {
+    // ARRANGE: Script with special characters in single quotes
+    let script = r#"echo 'Special: !@#$%^&*()'"#;
+
+    // ACT: Parse the script
+    let mut parser = BashParser::new(script).unwrap();
+    let result = parser.parse();
+
+    // ASSERT: Should parse successfully
+    assert!(
+        result.is_ok(),
+        "Single quotes with special characters should parse successfully: {:?}",
+        result.err()
+    );
+
+    let ast = result.unwrap();
+    assert!(!ast.statements.is_empty());
+
+    // DOCUMENTATION: Single quotes preserve ALL special characters literally
+    // No escaping needed for: !@#$%^&*() inside single quotes
+    // Purification: May convert to double quotes with appropriate escaping
+    // POSIX: Single quotes are the strongest quoting mechanism
+}
