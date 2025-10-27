@@ -9,13 +9,13 @@ roadmap:
 
   statistics:
     total_tasks: 122
-    completed: 37
+    completed: 38
     partial_support: 17
-    pending: 65
+    pending: 64
     blocked: 3
-    coverage_percent: 30
+    coverage_percent: 31
     accuracy_verified: "2025-10-27"
-    session_update: "Completed BUILTIN-017 (times command). 4 passing tests document times as non-deterministic (CPU time varies based on system load). External profiling tools recommended: GNU time, hyperfine, perf."
+    session_update: "Completed BUILTIN-019 (umask command). 4 passing tests document umask as SUPPORTED but with global state implications. Best practices: save/restore pattern, prefer chmod for explicit control."
 
 extreme_tdd_workflow:
   description: "Hybrid workflow combining GNU Bash validation with REPL verification"
@@ -1428,12 +1428,43 @@ chapters:
 
           - id: "BUILTIN-019"
             title: "Document umask"
-            status: "pending"
+            status: "completed"
+            version: "v6.6.0"
             priority: "LOW"
             input: "umask 022"
             rust: "std::fs::set_permissions()"
             purified: "umask 022"
-            test_name: "test_umask_command"
+            test_name: "test_BUILTIN_019_umask_basic"
+            notes: "umask is SUPPORTED but modifies global state. 4 tests document global state implications, idempotency concerns, and chmod as alternative."
+            implementation:
+              module: "rash/src/bash_parser/tests.rs"
+              functions:
+                - "test_BUILTIN_019_umask_basic (passing)"
+                - "test_BUILTIN_019_umask_global_state (passing)"
+                - "test_BUILTIN_019_umask_idempotency_concern (passing)"
+                - "test_BUILTIN_019_umask_explicit_chmod_alternative (passing)"
+              lines_of_code: 157
+              documentation: "Comprehensive documentation of umask: global state modification, idempotency concerns, best practices. Recommends chmod as explicit alternative."
+              global_state_issues:
+                - "umask modifies process-wide file creation mask"
+                - "Affects all subsequent file operations"
+                - "Cannot be scoped (applies to entire shell process)"
+                - "Side effects persist across script boundaries"
+              idempotency_concerns:
+                - "umask changes global state permanently"
+                - "Running script multiple times stacks umask calls"
+                - "May override system/user defaults"
+                - "Difficult to restore original value"
+              best_practices:
+                - "Set umask at start of script if needed"
+                - "Document why specific umask is required"
+                - "Save and restore original umask: old=$(umask); umask 022; ...; umask $old"
+                - "Consider explicit chmod instead of umask"
+              chmod_alternative:
+                - "chmod is more explicit and localized"
+                - "No global state modification"
+                - "Clear intent in code"
+                - "Easier to audit and understand"
 
           - id: "BUILTIN-020"
             title: "Document unset"
