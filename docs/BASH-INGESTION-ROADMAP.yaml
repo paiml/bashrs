@@ -909,13 +909,13 @@ chapters:
             tasks:
               - id: "EXP-PROC-001"
                 title: "Document <(...) and >(...)"
-                status: "pending"
+                status: "completed"
                 priority: "MEDIUM"
                 input: "diff <(cmd1) <(cmd2)"
                 rust: "Not supported (bash-specific)"
                 purified: "Use temporary files instead"
-                test_name: "test_process_substitution_to_temp_files"
-                notes: "Bash-specific, use temp files in POSIX"
+                test_name: "test_EXP_PROC_001_process_substitution"
+                notes: "Already supported by command parsing infrastructure (BUILTIN-001). Process substitution <(cmd) and >(cmd) are bash-specific, not POSIX sh. Use temporary files for POSIX compatibility."
 
           - id: "3.5.7"
             name: "Word Splitting"
