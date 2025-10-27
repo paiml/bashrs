@@ -9,13 +9,13 @@ roadmap:
 
   statistics:
     total_tasks: 122
-    completed: 57
-    partial_support: 13
+    completed: 58
+    partial_support: 12
     pending: 49
     blocked: 3
-    coverage_percent: 47
+    coverage_percent: 48
     accuracy_verified: "2025-10-27"
-    session_update: "Completed REDIR-003 (3.6 - combined redirection &>). 8 passing tests document combined redirection (&>, >&, &>>) as Bash extensions, NOT SUPPORTED. POSIX equivalent > file 2>&1 is FULLY SUPPORTED. Bash &> syntax: cmd &> output.txt redirects both stdout and stderr to same file (Bash 4.0+ shortcut). csh-style >& syntax: cmd >& output.txt (same as &>, Bash/csh extension). Append combined &>>: cmd &>> log.txt (Bash extension for >> file 2>&1). POSIX equivalent (SUPPORTED): cmd > output.txt 2>&1 (explicit redirection). Purification strategy: convert &> file → > file 2>&1, >& file → > file 2>&1, &>> file → >> file 2>&1. Order matters in POSIX: > file 2>&1 (CORRECT: stdout to file first, then stderr to stdout which points to file), 2>&1 > file (WRONG: stderr to terminal, stdout to file). Always put > file BEFORE 2>&1. Common use cases (5): capture all output (cmd > output.txt 2>&1), append to log (cmd >> app.log 2>&1), discard all (cmd > /dev/null 2>&1), capture in variable (output=$(cmd 2>&1)), log with timestamp ((date; cmd) > log.txt 2>&1). Why order matters: first redirection happens first, second uses new fd state (> file changes fd 1, then 2>&1 duplicates fd 2 to new fd 1 location). Bash extensions NOT SUPPORTED: &> file, >& file, &>> file. POSIX combined redirection SUPPORTED: > file 2>&1, >> file 2>&1. Total tests: 4,917 (100% passing)."
+    session_update: "Completed REDIR-004 (3.6 - here documents <<). 8 passing tests document here documents (<<) as POSIX-compliant and FULLY SUPPORTED. Basic << syntax: cat << EOF provides multi-line input to stdin, delimiter (EOF) can be any word, content between delimiters fed to command stdin. Variable expansion: by default, variables expanded in heredocs (cat << EOF with $USER expands), quoting delimiter disables expansion (cat << 'EOF' with $USER stays literal, any quoting works: 'EOF', \"EOF\", \\EOF). Tab stripping with <<-: cat <<- EOF strips leading tab characters from input lines (IMPORTANT: only tabs \\t stripped, not spaces), POSIX feature for indented heredocs in scripts. Delimiter rules: must appear alone on line (no leading/trailing spaces), case-sensitive (EOF != eof), delimiter can be quoted to disable expansion, content ends when unquoted delimiter found at start of line. Rust mapping: multi-line string literal (let content = \"Hello\\nWorld\\n\"), raw strings for no escapes (r#\"...\"#), stdin piping for commands (Command::new().stdin(Stdio::piped()).write_all()). Common use cases (5): multi-line input (cat << EOF), generate config files (cat << 'EOF' > /etc/config), SQL queries (mysql << SQL), email content (mail << MAIL), heredocs in functions (print_help with cat << EOF). Bash extensions NOT SUPPORTED: <<< \"string\" here-string (use echo | cmd instead). POSIX heredocs SUPPORTED: <<, <<-, quoted delimiter ('EOF'). Total tests: 4,925 (100% passing)."
 
 extreme_tdd_workflow:
   description: "Hybrid workflow combining GNU Bash validation with REPL verification"
@@ -1233,15 +1233,26 @@ chapters:
 
           - id: "REDIR-004"
             title: "Document << heredoc"
-            status: "partial"
+            status: "completed"
             priority: "HIGH"
-            input: "cat << EOF\\nHello\\nWorld\\nEOF"
-            rust: "print_heredoc()"
-            purified: "print_heredoc"
-            test_name: "test_heredoc_baseline"
-            notes: "Function calls work (print_heredoc), multi-line string literal recognition is enhancement."
-            red_phase_tests: "rash/tests/integration_tests.rs:2073-2154"
-            version: "v1.2.1"
+            input: "cat << EOF\\nHello\\nWorld\\nEOF; cat << 'EOF'\\n$VAR\\nEOF; cat <<- EOF\\n\\tIndented\\nEOF"
+            rust: "let content = \"Hello\\nWorld\\n\"; // Or use stdin piping"
+            purified: "cat << EOF\\nHello\\nWorld\\nEOF"
+            test_name: "test_REDIR_004_basic_heredoc_supported"
+            notes: "Here documents (<<) are POSIX-compliant and FULLY SUPPORTED. Basic << syntax provides multi-line stdin. Quoted delimiter ('EOF') disables expansion. <<- variant strips leading tabs. Delimiter rules: must be alone on line, case-sensitive, content ends at unquoted delimiter."
+            implementation:
+              module: "rash/src/bash_parser/tests.rs"
+              functions:
+                - "test_REDIR_004_basic_heredoc_supported (passing)"
+                - "test_REDIR_004_heredoc_with_variables (passing)"
+                - "test_REDIR_004_quoted_delimiter_no_expansion (passing)"
+                - "test_REDIR_004_heredoc_with_indentation (passing)"
+                - "test_REDIR_004_heredoc_delimiters (passing)"
+                - "test_REDIR_004_heredoc_use_cases (passing)"
+                - "test_REDIR_004_rust_string_literal_mapping (passing)"
+                - "test_REDIR_004_bash_vs_posix_heredocs (passing)"
+              lines_of_code: 387
+            version: "v6.6.0"
 
           - id: "REDIR-005"
             title: "Document <<< herestring"
