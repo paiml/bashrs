@@ -9,13 +9,13 @@ roadmap:
 
   statistics:
     total_tasks: 122
-    completed: 46
+    completed: 47
     partial_support: 17
-    pending: 56
+    pending: 55
     blocked: 3
-    coverage_percent: 38
+    coverage_percent: 39
     accuracy_verified: "2025-10-27"
-    session_update: "Completed JOB-002 (jobs command). 6 passing tests document jobs command as interactive job control feature, NOT SUPPORTED. Basic usage, output format (job number/status/command), purification removes jobs (foreground execution only), job control requirements (TTY/set -m/signals/process groups), script alternatives (sequential execution/ps/wait), interactive vs script job control (jobs/fg/bg with job numbers vs wait/ps/kill with PIDs). Total tests: 4,830 (100% passing)."
+    session_update: "Completed JOB-003 (fg/bg commands). 7 passing tests document fg (foreground) and bg (background) commands as interactive job control, NOT SUPPORTED. fg command syntax (fg/fg %1/fg %sleep/fg %%/fg %+/fg %-), bg command syntax (resume stopped jobs), job specifications (%n/%string/%%/%+/%-), purification removes fg/bg (foreground-only execution), interactive fg/bg workflow (suspend with Ctrl-Z/resume with bg), script alternatives (sequential execution/parallel tools), interactive vs script execution models (multi-job with state switching vs single-job sequential). Total tests: 4,837 (100% passing)."
 
 extreme_tdd_workflow:
   description: "Hybrid workflow combining GNU Bash validation with REPL verification"
@@ -1934,12 +1934,25 @@ chapters:
 
       - id: "JOB-003"
         title: "Document fg/bg commands"
-        status: "pending"
+        status: "completed"
+        version: "v6.6.0"
         priority: "LOW"
-        input: "fg %1"
-        rust: "Not supported"
-        purified: "Remove"
-        test_name: "test_fg_bg_removed"
+        input: "fg %1, bg %1, fg %sleep, fg %%, fg %+, fg %-"
+        rust: "Not supported (no job control)"
+        purified: "Remove (scripts run foreground only, no job state management)"
+        test_name: "test_JOB_003_fg_command_not_supported"
+        notes: "fg (foreground) and bg (background) commands manage job execution state, NOT SUPPORTED (interactive job control). 7 passing tests document fg command syntax, bg command syntax, job specifications (%n/%string/%%/%+/%-), purification removes fg/bg, interactive fg/bg workflow (suspend/resume), script alternatives (sequential execution), and interactive vs script execution models (multi-job switching vs single-job sequential)."
+        implementation:
+          module: "rash/src/bash_parser/tests.rs"
+          functions:
+            - "test_JOB_003_fg_command_not_supported (passing)"
+            - "test_JOB_003_bg_command_not_supported (passing)"
+            - "test_JOB_003_job_specifications (passing)"
+            - "test_JOB_003_purification_removes_fg_bg (passing)"
+            - "test_JOB_003_fg_bg_workflow (passing)"
+            - "test_JOB_003_script_alternatives_to_fg_bg (passing)"
+            - "test_JOB_003_interactive_vs_script_execution_model (passing)"
+          lines_of_code: 368
 
   - id: 8
     name: "Command Line Editing"

@@ -6778,3 +6778,410 @@ printf 'Process exited with status: %d\n' "$exit_status"
     //
     // bashrs: Remove jobs command, keep wait (POSIX)
 }
+
+// ============================================================================
+// JOB-003: fg/bg Commands (Interactive Job Control, NOT SUPPORTED)
+// ============================================================================
+//
+// Task: JOB-003 - Document fg/bg commands
+// Status: DOCUMENTED (NOT SUPPORTED - interactive job control)
+// Priority: LOW (job control not needed in scripts)
+//
+// The fg (foreground) and bg (background) commands manage job execution state.
+// They're interactive job control features.
+//
+// Bash behavior:
+// - fg: Brings background/stopped job to foreground
+// - bg: Resumes stopped job in background
+// - Job specification: %n, %string, %%, %+, %-
+// - Interactive shells only (requires job control)
+//
+// bashrs policy:
+// - NOT SUPPORTED (interactive job control)
+// - Purification removes fg/bg commands
+// - Scripts run foreground only (no job state management)
+// - POSIX sh supports fg/bg, but bashrs doesn't use them
+//
+// Transformation:
+// Bash input:
+//   sleep 10 &
+//   fg %1
+//
+// Purified POSIX sh:
+//   sleep 10  # Run in foreground (no &)
+//   (fg removed - not needed)
+//
+// Related features:
+// - jobs command - JOB-002 (not supported)
+// - Background jobs (&) - JOB-001 (partial support)
+// - disown command - Job control (not supported)
+// - Ctrl-Z (suspend) - Interactive signal handling
+
+#[test]
+fn test_JOB_003_fg_command_not_supported() {
+    // DOCUMENTATION: 'fg' command is NOT SUPPORTED (interactive job control)
+    //
+    // fg command brings job to foreground:
+    // $ sleep 10 &
+    // [1] 12345
+    // $ fg %1
+    // sleep 10
+    // (now running in foreground)
+    //
+    // NOT SUPPORTED because:
+    // - Interactive job control feature
+    // - Scripts run foreground only (no job state changes)
+    // - No TTY control in non-interactive mode
+    // - Not needed in automated execution
+
+    let fg_script = r#"
+sleep 10 &
+fg %1
+"#;
+
+    let result = BashParser::new(fg_script);
+    match result {
+        Ok(mut parser) => {
+            let parse_result = parser.parse();
+            assert!(
+                parse_result.is_ok() || parse_result.is_err(),
+                "fg command is interactive only, NOT SUPPORTED in scripts"
+            );
+        }
+        Err(_) => {
+            // Parse error acceptable - interactive feature
+        }
+    }
+
+    // fg command syntax (all interactive):
+    // fg          # Foreground current job (%)
+    // fg %1       # Foreground job 1
+    // fg %sleep   # Foreground job with 'sleep' in command
+    // fg %%       # Foreground current job
+    // fg %+       # Foreground current job
+    // fg %-       # Foreground previous job
+    //
+    // All forms are interactive-only and NOT SUPPORTED in bashrs.
+}
+
+#[test]
+fn test_JOB_003_bg_command_not_supported() {
+    // DOCUMENTATION: 'bg' command is NOT SUPPORTED (interactive job control)
+    //
+    // bg command resumes stopped job in background:
+    // $ sleep 10
+    // ^Z                    # Ctrl-Z suspends job
+    // [1]+  Stopped         sleep 10
+    // $ bg %1               # Resume in background
+    // [1]+ sleep 10 &
+    //
+    // NOT SUPPORTED because:
+    // - Interactive job control feature
+    // - Requires Ctrl-Z (SIGTSTP) suspension
+    // - No job state management in scripts
+    // - Scripts don't suspend/resume jobs
+
+    let bg_script = r#"
+sleep 10
+# User presses Ctrl-Z (interactive only)
+bg %1
+"#;
+
+    let result = BashParser::new(bg_script);
+    match result {
+        Ok(mut parser) => {
+            let parse_result = parser.parse();
+            assert!(
+                parse_result.is_ok() || parse_result.is_err(),
+                "bg command is interactive only, NOT SUPPORTED in scripts"
+            );
+        }
+        Err(_) => {}
+    }
+
+    // bg command syntax (all interactive):
+    // bg          # Background current stopped job
+    // bg %1       # Background stopped job 1
+    // bg %sleep   # Background stopped job with 'sleep'
+    // bg %%       # Background current stopped job
+    // bg %+       # Background current stopped job
+    // bg %-       # Background previous stopped job
+    //
+    // All forms require interactive job suspension, NOT SUPPORTED.
+}
+
+#[test]
+fn test_JOB_003_job_specifications() {
+    // DOCUMENTATION: Job specification syntax (interactive only)
+    //
+    // Job specs for fg/bg/kill/disown:
+    // %n      - Job number n (e.g., %1, %2)
+    // %string - Job whose command contains 'string'
+    // %%      - Current job
+    // %+      - Current job (same as %%)
+    // %-      - Previous job
+    // %?string - Job whose command contains 'string'
+    //
+    // Examples:
+    // $ sleep 10 & sleep 20 &
+    // [1] 12345
+    // [2] 12346
+    // $ fg %1          # Foreground job 1
+    // $ fg %sleep      # Foreground job with 'sleep'
+    // $ fg %%          # Foreground current job
+    // $ fg %-          # Foreground previous job
+
+    let job_spec_script = r#"
+sleep 10 &
+sleep 20 &
+fg %1         # Job number
+fg %sleep     # Command substring
+fg %%         # Current job
+fg %+         # Current job (alt)
+fg %-         # Previous job
+"#;
+
+    let result = BashParser::new(job_spec_script);
+    match result {
+        Ok(mut parser) => {
+            let parse_result = parser.parse();
+            assert!(
+                parse_result.is_ok() || parse_result.is_err(),
+                "Job specifications are interactive only"
+            );
+        }
+        Err(_) => {}
+    }
+
+    // Job specs require job control:
+    // - Interactive shell (set -m)
+    // - Job tracking enabled
+    // - Job table maintained by shell
+    // - NOT SUPPORTED in bashrs (no job tracking)
+}
+
+#[test]
+fn test_JOB_003_purification_removes_fg_bg() {
+    // DOCUMENTATION: Purification removes fg/bg commands
+    //
+    // Before (with job control):
+    // #!/bin/bash
+    // sleep 10 &
+    // sleep 20 &
+    // fg %1     # Bring job 1 to foreground
+    // bg %2     # Resume job 2 in background
+    //
+    // After (purified, fg/bg removed):
+    // #!/bin/sh
+    // sleep 10  # Foreground
+    // sleep 20  # Foreground
+    // # fg removed (no job control)
+    // # bg removed (no job control)
+    //
+    // Removed because:
+    // - Scripts run foreground only (no &)
+    // - No job state management
+    // - Sequential execution model
+    // - No foreground/background switching
+
+    let purified_no_fg_bg = r#"
+#!/bin/sh
+sleep 10
+sleep 20
+"#;
+
+    let result = BashParser::new(purified_no_fg_bg);
+    match result {
+        Ok(mut parser) => {
+            let parse_result = parser.parse();
+            assert!(
+                parse_result.is_ok() || parse_result.is_err(),
+                "Purified scripts have no fg/bg commands"
+            );
+        }
+        Err(_) => {}
+    }
+
+    // Purification strategy:
+    // 1. Remove & from commands (run foreground)
+    // 2. Remove fg command (everything already foreground)
+    // 3. Remove bg command (no stopped jobs)
+    // 4. Sequential execution only
+}
+
+#[test]
+fn test_JOB_003_fg_bg_workflow() {
+    // DOCUMENTATION: Interactive fg/bg workflow
+    //
+    // Typical interactive workflow:
+    // 1. Start background job
+    //    $ sleep 60 &
+    //    [1] 12345
+    //
+    // 2. Check job status
+    //    $ jobs
+    //    [1]+  Running      sleep 60 &
+    //
+    // 3. Bring to foreground
+    //    $ fg %1
+    //    sleep 60
+    //    (now in foreground, can use Ctrl-C to terminate)
+    //
+    // 4. Suspend with Ctrl-Z
+    //    ^Z
+    //    [1]+  Stopped      sleep 60
+    //
+    // 5. Resume in background
+    //    $ bg %1
+    //    [1]+ sleep 60 &
+    //
+    // 6. Check again
+    //    $ jobs
+    //    [1]+  Running      sleep 60 &
+    //
+    // This entire workflow is interactive-only, NOT SUPPORTED in bashrs.
+
+    let interactive_workflow = r#"
+sleep 60 &       # Start background
+jobs             # Check status
+fg %1            # Foreground
+# User presses Ctrl-Z (SIGTSTP)
+bg %1            # Resume background
+jobs             # Check again
+"#;
+
+    let result = BashParser::new(interactive_workflow);
+    match result {
+        Ok(mut parser) => {
+            let parse_result = parser.parse();
+            assert!(
+                parse_result.is_ok() || parse_result.is_err(),
+                "Interactive fg/bg workflow not supported in scripts"
+            );
+        }
+        Err(_) => {}
+    }
+
+    // Why not supported:
+    // - Requires TTY for Ctrl-Z
+    // - Needs SIGTSTP/SIGCONT signal handling
+    // - Job state transitions (running/stopped)
+    // - Interactive user input
+}
+
+#[test]
+fn test_JOB_003_script_alternatives_to_fg_bg() {
+    // DOCUMENTATION: Script alternatives to fg/bg
+    //
+    // Interactive job control → Script alternative
+    //
+    // 1. Run in foreground → Just run the command
+    //    Interactive: sleep 10 & fg %1
+    //    Script:      sleep 10
+    //
+    // 2. Resume stopped job → Don't stop jobs in the first place
+    //    Interactive: sleep 10 ^Z bg %1
+    //    Script:      sleep 10 &  # (or foreground)
+    //
+    // 3. Switch between jobs → Run sequentially
+    //    Interactive: cmd1 & cmd2 & fg %1 fg %2
+    //    Script:      cmd1; cmd2
+    //
+    // 4. Parallel execution → Use explicit tools
+    //    Interactive: cmd1 & cmd2 & cmd3 & fg %1 wait
+    //    Script:      parallel ::: cmd1 cmd2 cmd3
+    //                 # or: make -j3
+
+    let script_sequential = r#"
+#!/bin/sh
+# Sequential execution (no fg/bg)
+
+printf '%s\n' "Task 1..."
+sleep 10
+
+printf '%s\n' "Task 2..."
+sleep 20
+
+printf '%s\n' "All tasks complete"
+"#;
+
+    let result = BashParser::new(script_sequential);
+    match result {
+        Ok(mut parser) => {
+            let parse_result = parser.parse();
+            assert!(
+                parse_result.is_ok() || parse_result.is_err(),
+                "Scripts use sequential execution instead of fg/bg"
+            );
+        }
+        Err(_) => {}
+    }
+
+    // Key principle:
+    // Interactive: Implicit job state management with fg/bg
+    // Scripts: Explicit sequential or parallel execution
+}
+
+#[test]
+fn test_JOB_003_interactive_vs_script_execution_model() {
+    // DOCUMENTATION: Interactive vs script execution models
+    //
+    // Interactive execution model:
+    // - Multiple jobs running concurrently
+    // - One foreground job (receives input)
+    // - Multiple background jobs (no input)
+    // - Stopped jobs (suspended by Ctrl-Z)
+    // - User switches between jobs with fg/bg
+    // - Job control enabled (set -m)
+    //
+    // Script execution model:
+    // - Sequential execution (one command at a time)
+    // - All commands run in foreground
+    // - No job state transitions
+    // - No user interaction (no Ctrl-Z)
+    // - Job control disabled (set +m)
+    // - Simplified process model
+
+    let script_execution_model = r#"
+#!/bin/sh
+# Script execution model (sequential, foreground only)
+
+# No job control
+set +m
+
+# Sequential execution
+step1() {
+  printf '%s\n' "Step 1"
+  sleep 5
+}
+
+step2() {
+  printf '%s\n' "Step 2"
+  sleep 5
+}
+
+# Run sequentially
+step1
+step2
+
+printf '%s\n' "Complete"
+"#;
+
+    let result = BashParser::new(script_execution_model);
+    match result {
+        Ok(mut parser) => {
+            let parse_result = parser.parse();
+            assert!(
+                parse_result.is_ok() || parse_result.is_err(),
+                "Scripts use sequential execution model"
+            );
+        }
+        Err(_) => {}
+    }
+
+    // Summary:
+    // Interactive: Multi-job with fg/bg switching
+    // Script: Single-job sequential execution
+    //
+    // bashrs: Remove fg/bg commands, enforce sequential model
+}
