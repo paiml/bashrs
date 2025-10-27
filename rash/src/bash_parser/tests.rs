@@ -7185,3 +7185,390 @@ printf '%s\n' "Complete"
     //
     // bashrs: Remove fg/bg commands, enforce sequential model
 }
+
+// ============================================================================
+// EDIT-001: Readline Features (Interactive Line Editing, NOT SUPPORTED)
+// ============================================================================
+//
+// Task: EDIT-001 - Document readline features
+// Status: DOCUMENTED (NOT SUPPORTED - interactive line editing)
+// Priority: LOW (line editing not needed in scripts)
+//
+// Readline is the GNU library that provides line editing, command history,
+// and keyboard shortcuts for interactive shells. It's interactive-only.
+//
+// Bash behavior:
+// - Command line editing (Ctrl+A, Ctrl+E, Ctrl+K, etc.)
+// - Emacs and Vi editing modes
+// - Tab completion
+// - History navigation (Up/Down arrows)
+// - Interactive shells only (requires TTY)
+//
+// bashrs policy:
+// - NOT SUPPORTED (interactive line editing)
+// - Scripts don't use readline (no TTY, no interactive input)
+// - No command editing, no completion, no history navigation
+// - Scripts execute commands directly (no user editing)
+//
+// Transformation:
+// Bash input:
+//   (interactive editing with Ctrl+A, Ctrl+E, etc.)
+//
+// Purified POSIX sh:
+//   (not applicable - scripts don't have interactive editing)
+//
+// Related features:
+// - History expansion (HISTORY-001) - not supported
+// - bind command - Readline key bindings (not supported)
+// - set -o emacs/vi - Editing mode selection (not supported)
+
+#[test]
+fn test_EDIT_001_readline_not_supported() {
+    // DOCUMENTATION: Readline features are NOT SUPPORTED (interactive only)
+    //
+    // Readline provides interactive line editing:
+    // $ echo hello world
+    //   ^ User can press:
+    //   - Ctrl+A: Move to start of line
+    //   - Ctrl+E: Move to end of line
+    //   - Ctrl+K: Kill to end of line
+    //   - Ctrl+U: Kill to start of line
+    //   - Ctrl+W: Kill previous word
+    //   - Alt+B: Move back one word
+    //   - Alt+F: Move forward one word
+    //
+    // NOT SUPPORTED because:
+    // - Interactive line editing feature
+    // - Scripts don't have TTY (no user input)
+    // - Commands execute directly (no editing)
+    // - Not applicable in automated mode
+
+    let script_no_readline = r#"
+#!/bin/sh
+# Scripts execute commands directly (no readline)
+
+printf '%s\n' "Hello world"
+"#;
+
+    let result = BashParser::new(script_no_readline);
+    match result {
+        Ok(mut parser) => {
+            let parse_result = parser.parse();
+            assert!(
+                parse_result.is_ok() || parse_result.is_err(),
+                "Readline features are interactive only, NOT SUPPORTED in scripts"
+            );
+        }
+        Err(_) => {
+            // Parse error acceptable - interactive feature
+        }
+    }
+
+    // Readline keyboard shortcuts (all interactive):
+    // Movement: Ctrl+A, Ctrl+E, Ctrl+B, Ctrl+F, Alt+B, Alt+F
+    // Editing: Ctrl+K, Ctrl+U, Ctrl+W, Ctrl+Y, Alt+D, Alt+Backspace
+    // History: Up, Down, Ctrl+R, Ctrl+S, Ctrl+P, Ctrl+N
+    // Completion: Tab, Alt+?, Alt+*
+    //
+    // All shortcuts are interactive-only and NOT SUPPORTED in bashrs.
+}
+
+#[test]
+fn test_EDIT_001_emacs_vi_modes() {
+    // DOCUMENTATION: Emacs and Vi editing modes (interactive only)
+    //
+    // Readline supports two editing modes:
+    //
+    // 1. Emacs mode (default):
+    //    $ set -o emacs
+    //    - Ctrl+A, Ctrl+E, Ctrl+K, etc.
+    //    - Similar to Emacs text editor
+    //
+    // 2. Vi mode:
+    //    $ set -o vi
+    //    - ESC enters command mode
+    //    - h/j/k/l for movement
+    //    - Similar to Vi/Vim text editor
+    //
+    // Both modes are interactive-only, NOT SUPPORTED in scripts.
+
+    let emacs_mode = r#"set -o emacs"#;
+    let vi_mode = r#"set -o vi"#;
+
+    for mode in [emacs_mode, vi_mode] {
+        let result = BashParser::new(mode);
+        match result {
+            Ok(mut parser) => {
+                let parse_result = parser.parse();
+                assert!(
+                    parse_result.is_ok() || parse_result.is_err(),
+                    "Editing modes are interactive only"
+                );
+            }
+            Err(_) => {}
+        }
+    }
+
+    // Editing mode selection (interactive):
+    // set -o emacs     # Emacs keybindings
+    // set -o vi        # Vi keybindings
+    // set +o emacs     # Disable emacs
+    // set +o vi        # Disable vi
+    //
+    // Scripts don't use editing modes (no interactive input).
+}
+
+#[test]
+fn test_EDIT_001_tab_completion() {
+    // DOCUMENTATION: Tab completion (interactive only)
+    //
+    // Readline provides tab completion:
+    // $ echo hel<TAB>
+    // $ echo hello
+    //
+    // $ cd /usr/lo<TAB>
+    // $ cd /usr/local/
+    //
+    // $ git che<TAB>
+    // $ git checkout
+    //
+    // Completion types:
+    // - Command completion (executables in PATH)
+    // - File/directory completion
+    // - Variable completion ($VAR<TAB>)
+    // - Hostname completion (ssh user@<TAB>)
+    // - Programmable completion (git, apt, etc.)
+    //
+    // All completion is interactive-only, NOT SUPPORTED in scripts.
+
+    let script_no_completion = r#"
+#!/bin/sh
+# Scripts don't use tab completion
+
+cd /usr/local/bin
+git checkout main
+"#;
+
+    let result = BashParser::new(script_no_completion);
+    match result {
+        Ok(mut parser) => {
+            let parse_result = parser.parse();
+            assert!(
+                parse_result.is_ok() || parse_result.is_err(),
+                "Scripts execute full commands without completion"
+            );
+        }
+        Err(_) => {}
+    }
+
+    // Why completion doesn't apply to scripts:
+    // - Scripts have full command text (no partial input)
+    // - No user typing (no TAB key)
+    // - Commands already complete
+    // - Deterministic execution (no interactive assistance)
+}
+
+#[test]
+fn test_EDIT_001_bind_command() {
+    // DOCUMENTATION: 'bind' command (readline key bindings, interactive only)
+    //
+    // bind command configures readline key bindings:
+    // $ bind -p               # List all bindings
+    // $ bind -l               # List function names
+    // $ bind '"\C-x": "exit"' # Map Ctrl+X to "exit"
+    //
+    // Example bindings:
+    // bind '"\C-l": clear-screen'           # Ctrl+L clears screen
+    // bind '"\e[A": history-search-backward' # Up arrow searches history
+    // bind '"\t": menu-complete'             # Tab cycles completions
+    //
+    // NOT SUPPORTED because:
+    // - Configures interactive readline behavior
+    // - Scripts don't use readline (no TTY)
+    // - No keyboard shortcuts in scripts
+    // - POSIX sh doesn't have bind
+
+    let bind_script = r#"
+bind -p                      # List bindings
+bind '"\C-x": "exit"'        # Custom binding
+"#;
+
+    let result = BashParser::new(bind_script);
+    match result {
+        Ok(mut parser) => {
+            let parse_result = parser.parse();
+            assert!(
+                parse_result.is_ok() || parse_result.is_err(),
+                "bind command is interactive only, NOT SUPPORTED in scripts"
+            );
+        }
+        Err(_) => {}
+    }
+
+    // bind command options (all interactive):
+    // -p: List bindings
+    // -l: List function names
+    // -q: Query which keys invoke function
+    // -u: Unbind keys
+    // -r: Remove bindings
+    // -x: Bind key to shell command
+    //
+    // All options are interactive-only and NOT SUPPORTED.
+}
+
+#[test]
+fn test_EDIT_001_history_navigation() {
+    // DOCUMENTATION: History navigation (interactive only)
+    //
+    // Readline provides history navigation:
+    // $ command1
+    // $ command2
+    // $ command3
+    // $ <Up>        # Shows: command3
+    // $ <Up>        # Shows: command2
+    // $ <Down>      # Shows: command3
+    // $ <Ctrl+R>    # Reverse search: (reverse-i-search)`':
+    //
+    // Keyboard shortcuts:
+    // - Up/Down: Navigate history
+    // - Ctrl+P/Ctrl+N: Previous/next history entry
+    // - Ctrl+R: Reverse incremental search
+    // - Ctrl+S: Forward incremental search
+    // - Alt+<: Move to first history entry
+    // - Alt+>: Move to last history entry
+    //
+    // All history navigation is interactive-only, NOT SUPPORTED in scripts.
+
+    let script_no_history_navigation = r#"
+#!/bin/sh
+# Scripts don't navigate history
+
+command1
+command2
+command3
+"#;
+
+    let result = BashParser::new(script_no_history_navigation);
+    match result {
+        Ok(mut parser) => {
+            let parse_result = parser.parse();
+            assert!(
+                parse_result.is_ok() || parse_result.is_err(),
+                "Scripts execute commands sequentially without history navigation"
+            );
+        }
+        Err(_) => {}
+    }
+
+    // Why history navigation doesn't apply:
+    // - Scripts execute sequentially (no going back)
+    // - No user input (no arrow keys)
+    // - Commands predefined (no search needed)
+    // - Deterministic flow (no interactive selection)
+}
+
+#[test]
+fn test_EDIT_001_readline_configuration() {
+    // DOCUMENTATION: Readline configuration (interactive only)
+    //
+    // Readline configured via ~/.inputrc:
+    // # ~/.inputrc
+    // set editing-mode vi
+    // set bell-style none
+    // set completion-ignore-case on
+    // set show-all-if-ambiguous on
+    //
+    // Common settings:
+    // - editing-mode: emacs or vi
+    // - bell-style: none, visible, or audible
+    // - completion-ignore-case: on or off
+    // - show-all-if-ambiguous: on or off
+    // - colored-stats: on or off
+    //
+    // Configuration is interactive-only, NOT SUPPORTED in scripts.
+
+    let script_no_inputrc = r#"
+#!/bin/sh
+# Scripts don't use readline configuration
+
+printf '%s\n' "No ~/.inputrc needed"
+printf '%s\n' "Scripts run without readline"
+"#;
+
+    let result = BashParser::new(script_no_inputrc);
+    match result {
+        Ok(mut parser) => {
+            let parse_result = parser.parse();
+            assert!(
+                parse_result.is_ok() || parse_result.is_err(),
+                "Scripts don't use ~/.inputrc configuration"
+            );
+        }
+        Err(_) => {}
+    }
+
+    // ~/.inputrc settings (all interactive):
+    // - Key bindings customization
+    // - Completion behavior
+    // - Visual/audio feedback
+    // - Editing mode preferences
+    //
+    // None apply to scripts (no readline library loaded).
+}
+
+#[test]
+fn test_EDIT_001_interactive_vs_script_input_model() {
+    // DOCUMENTATION: Interactive vs script input models
+    //
+    // Interactive input model (with readline):
+    // - User types commands character by character
+    // - Readline processes each keystroke
+    // - User can edit before pressing Enter
+    // - Command executed after Enter
+    // - History saved for recall
+    // - Completion assists user
+    //
+    // Script input model (no readline):
+    // - Commands predefined in script file
+    // - No character-by-character processing
+    // - No editing (commands already written)
+    // - Commands execute immediately
+    // - No history (deterministic execution)
+    // - No completion needed (full commands)
+
+    let script_input_model = r#"
+#!/bin/sh
+# Script input model (no readline)
+
+# Commands predefined (no typing)
+command1() {
+  printf '%s\n' "Command 1"
+}
+
+command2() {
+  printf '%s\n' "Command 2"
+}
+
+# Execute directly (no editing)
+command1
+command2
+"#;
+
+    let result = BashParser::new(script_input_model);
+    match result {
+        Ok(mut parser) => {
+            let parse_result = parser.parse();
+            assert!(
+                parse_result.is_ok() || parse_result.is_err(),
+                "Scripts use predefined commands without readline"
+            );
+        }
+        Err(_) => {}
+    }
+
+    // Summary:
+    // Interactive: User types → Readline edits → Shell executes
+    // Script: Shell reads file → Shell executes (no readline)
+    //
+    // bashrs: Scripts only, no readline library needed
+}

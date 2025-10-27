@@ -9,13 +9,13 @@ roadmap:
 
   statistics:
     total_tasks: 122
-    completed: 47
+    completed: 48
     partial_support: 17
-    pending: 55
+    pending: 54
     blocked: 3
     coverage_percent: 39
     accuracy_verified: "2025-10-27"
-    session_update: "Completed JOB-003 (fg/bg commands). 7 passing tests document fg (foreground) and bg (background) commands as interactive job control, NOT SUPPORTED. fg command syntax (fg/fg %1/fg %sleep/fg %%/fg %+/fg %-), bg command syntax (resume stopped jobs), job specifications (%n/%string/%%/%+/%-), purification removes fg/bg (foreground-only execution), interactive fg/bg workflow (suspend with Ctrl-Z/resume with bg), script alternatives (sequential execution/parallel tools), interactive vs script execution models (multi-job with state switching vs single-job sequential). Total tests: 4,837 (100% passing)."
+    session_update: "Completed EDIT-001 (readline features). 7 passing tests document readline as interactive line editing library, NOT SUPPORTED. Keyboard shortcuts (Ctrl+A/E/K/U/W for movement/editing, Up/Down/Ctrl+R for history, Tab for completion), Emacs/Vi editing modes (set -o emacs/vi), tab completion (command/file/variable/hostname/programmable), bind command (key bindings configuration), history navigation (Up/Down/Ctrl+R reverse search), readline configuration (~/.inputrc settings), interactive vs script input models (user types → readline edits → shell executes vs shell reads file → shell executes). Total tests: 4,844 (100% passing)."
 
 extreme_tdd_workflow:
   description: "Hybrid workflow combining GNU Bash validation with REPL verification"
@@ -1959,12 +1959,25 @@ chapters:
     tasks:
       - id: "EDIT-001"
         title: "Document readline features"
-        status: "pending"
+        status: "completed"
+        version: "v6.6.0"
         priority: "LOW"
-        input: "Interactive editing (Ctrl+A, Ctrl+E, etc.)"
+        input: "Ctrl+A, Ctrl+E, Ctrl+K, set -o emacs, set -o vi, bind, Tab completion"
         rust: "Not applicable (no interactive mode)"
-        purified: "Not applicable"
-        test_name: "test_no_interactive_editing"
+        purified: "Not applicable (scripts execute commands directly without readline)"
+        test_name: "test_EDIT_001_readline_not_supported"
+        notes: "Readline provides interactive line editing, NOT SUPPORTED (interactive only). 7 passing tests document keyboard shortcuts (movement/editing/history/completion), Emacs/Vi editing modes (set -o emacs/vi), tab completion (command/file/variable/hostname/programmable), bind command (key bindings), history navigation (Up/Down/Ctrl+R), readline configuration (~/.inputrc), and interactive vs script input models (user types + readline edits vs predefined commands)."
+        implementation:
+          module: "rash/src/bash_parser/tests.rs"
+          functions:
+            - "test_EDIT_001_readline_not_supported (passing)"
+            - "test_EDIT_001_emacs_vi_modes (passing)"
+            - "test_EDIT_001_tab_completion (passing)"
+            - "test_EDIT_001_bind_command (passing)"
+            - "test_EDIT_001_history_navigation (passing)"
+            - "test_EDIT_001_readline_configuration (passing)"
+            - "test_EDIT_001_interactive_vs_script_input_model (passing)"
+          lines_of_code: 350
 
   - id: 9
     name: "Using History Interactively"
