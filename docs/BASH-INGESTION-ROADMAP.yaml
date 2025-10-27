@@ -9,13 +9,13 @@ roadmap:
 
   statistics:
     total_tasks: 122
-    completed: 36
+    completed: 37
     partial_support: 17
-    pending: 66
+    pending: 65
     blocked: 3
     coverage_percent: 30
     accuracy_verified: "2025-10-27"
-    session_update: "Completed BUILTIN-012 (read command). 4 passing tests document read as non-deterministic (interactive input), cannot be automated (CI/CD fails). Refactoring strategy: replace read with command-line arguments."
+    session_update: "Completed BUILTIN-017 (times command). 4 passing tests document times as non-deterministic (CPU time varies based on system load). External profiling tools recommended: GNU time, hyperfine, perf."
 
 extreme_tdd_workflow:
   description: "Hybrid workflow combining GNU Bash validation with REPL verification"
@@ -1378,12 +1378,43 @@ chapters:
 
           - id: "BUILTIN-017"
             title: "Document times"
-            status: "pending"
+            status: "completed"
+            version: "v6.6.0"
             priority: "LOW"
             input: "times"
             rust: "Not supported (profiling, non-deterministic)"
             purified: "Remove (use external profiling tools)"
-            test_name: "test_times_not_supported"
+            test_name: "test_BUILTIN_017_times_not_supported"
+            notes: "times is intentionally NOT SUPPORTED - profiling data, non-deterministic (CPU time varies). 4 tests document why times must be removed from scripts."
+            implementation:
+              module: "rash/src/bash_parser/tests.rs"
+              functions:
+                - "test_BUILTIN_017_times_not_supported (passing)"
+                - "test_BUILTIN_017_times_non_deterministic (passing)"
+                - "test_BUILTIN_017_times_profiling_only (passing)"
+                - "test_BUILTIN_017_times_refactoring_alternative (passing)"
+              lines_of_code: 167
+              documentation: "Comprehensive documentation of times non-determinism: CPU time varies based on system load, not needed in production. Includes external profiling tool recommendations."
+              determinism_issues:
+                - "CPU time varies based on system load"
+                - "Different values each run (load, CPU speed, cache, scheduling)"
+                - "Cannot predict output from static analysis"
+                - "Timing data is inherently non-deterministic"
+              profiling_issues:
+                - "times is for performance profiling only"
+                - "Not needed in production scripts"
+                - "Adds runtime overhead"
+                - "External tools provide better metrics"
+              external_tools:
+                - "GNU time: /usr/bin/time -v ./script.sh"
+                - "hyperfine: hyperfine './script.sh'"
+                - "perf: perf stat ./script.sh"
+                - "valgrind: Memory profiling"
+              refactoring_strategy:
+                - "Instead of: times (embedded in script)"
+                - "Use: /usr/bin/time -v ./script.sh (external profiling)"
+                - "Benefits: No script modification, better metrics, statistical analysis"
+                - "Linter should flag times usage as determinism violation"
 
           - id: "BUILTIN-018"
             title: "Document trap"

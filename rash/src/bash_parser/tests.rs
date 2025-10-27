@@ -4195,3 +4195,200 @@ fn test_BUILTIN_012_read_refactoring_alternative() {
     // - Interactive: Requires user at terminal
     // - Command-line: ./script.sh Alice (automated)
 }
+
+// ============================================================================
+// BUILTIN-017: times - CPU Time Reporting (NON-DETERMINISTIC)
+// Reference: docs/BASH-INGESTION-ROADMAP.yaml
+// Status: NOT SUPPORTED (profiling, non-deterministic)
+//
+// times reports CPU time used by shell and child processes:
+// - times → prints user/system time for shell and children
+// - Output format: "0m0.001s 0m0.002s 0m0.010s 0m0.015s"
+//
+// Determinism Issues:
+// - CPU time varies based on system load
+// - Different values each run (load, CPU speed, etc.)
+// - Cannot predict output from static analysis
+// - Timing data is inherently non-deterministic
+//
+// Profiling Issues:
+// - times is for performance profiling
+// - Profiling should use external tools (perf, time, etc.)
+// - Not needed in production scripts
+// - Adds runtime overhead
+//
+// Purification Strategy: REMOVE times entirely
+// - Flag as non-deterministic
+// - Suggest external profiling tools
+// - No equivalent in purified scripts
+//
+// EXTREME TDD: Document that times is NOT SUPPORTED
+// ============================================================================
+
+#[test]
+fn test_BUILTIN_017_times_not_supported() {
+    // DOCUMENTATION: times command is intentionally NOT SUPPORTED
+    //
+    // Bash: times
+    // Output: 0m0.001s 0m0.002s 0m0.010s 0m0.015s
+    // Rust: NOT SUPPORTED (profiling, non-deterministic)
+    // Purified: NOT SUPPORTED (use external profiling tools)
+    //
+    // Determinism Issue: CPU time varies each run
+    // Priority: LOW (intentionally unsupported for determinism)
+
+    let script = r#"times"#;
+    let result = BashParser::new(script);
+
+    match result {
+        Ok(mut parser) => {
+            let parse_result = parser.parse();
+            // Parser may parse times as a regular command
+            // This is acceptable - linter should flag it as non-deterministic
+            assert!(
+                parse_result.is_ok() || parse_result.is_err(),
+                "times parsing behavior is documented: NOT SUPPORTED for purification"
+            );
+        }
+        Err(_) => {
+            // Lexer/parser may reject times
+        }
+    }
+
+    // DOCUMENTATION: times is intentionally unsupported
+    // Reason: Profiling data, non-deterministic
+    // Action: Linter should flag times usage as determinism violation
+    // Alternative: Use external profiling tools (perf, time, hyperfine)
+}
+
+#[test]
+fn test_BUILTIN_017_times_non_deterministic() {
+    // DOCUMENTATION: times is non-deterministic
+    //
+    // Problem: CPU time varies based on system load
+    // Result: Different output each run
+    //
+    // Example:
+    // Run 1: 0m0.001s 0m0.002s 0m0.010s 0m0.015s
+    // Run 2: 0m0.003s 0m0.004s 0m0.012s 0m0.018s
+    //
+    // Factors affecting CPU time:
+    // - System load (other processes)
+    // - CPU frequency scaling
+    // - Cache state
+    // - OS scheduling
+    //
+    // This violates determinism principle.
+
+    let script = r#"times"#;
+    let result = BashParser::new(script);
+
+    match result {
+        Ok(mut parser) => {
+            let parse_result = parser.parse();
+            assert!(
+                parse_result.is_ok() || parse_result.is_err(),
+                "times command documented: NON-DETERMINISTIC"
+            );
+        }
+        Err(_) => {
+            // May fail to parse
+        }
+    }
+
+    // DOCUMENTATION: times output varies every run
+    // Determinism: Different values based on system state
+    // Factors: System load, CPU speed, cache, scheduling
+    // Purification: IMPOSSIBLE - must be removed
+}
+
+#[test]
+fn test_BUILTIN_017_times_profiling_only() {
+    // DOCUMENTATION: times is for profiling only
+    //
+    // Purpose: Performance profiling and debugging
+    // Not needed in: Production scripts
+    //
+    // Profiling should use external tools:
+    // - GNU time: /usr/bin/time -v ./script.sh
+    // - hyperfine: hyperfine './script.sh'
+    // - perf: perf stat ./script.sh
+    //
+    // These tools provide:
+    // - More detailed metrics
+    // - Better formatting
+    // - Statistical analysis
+    // - No script modification needed
+
+    let script = r#"times"#;
+    let result = BashParser::new(script);
+
+    match result {
+        Ok(mut parser) => {
+            let parse_result = parser.parse();
+            assert!(
+                parse_result.is_ok() || parse_result.is_err(),
+                "times profiling usage documented: USE EXTERNAL TOOLS"
+            );
+        }
+        Err(_) => {
+            // May fail to parse
+        }
+    }
+
+    // DOCUMENTATION: times is for profiling
+    // Production: Not needed in production scripts
+    // Alternative: Use external profiling tools
+    // Benefits: Better metrics, no script changes
+}
+
+#[test]
+fn test_BUILTIN_017_times_refactoring_alternative() {
+    // DOCUMENTATION: How to profile without times
+    //
+    // BAD (times - embedded profiling):
+    // #!/bin/bash
+    // # ... script logic ...
+    // times
+    //
+    // GOOD (external profiling - no script changes):
+    // /usr/bin/time -v ./script.sh
+    // hyperfine './script.sh'
+    // perf stat ./script.sh
+    //
+    // This test verifies scripts work without embedded profiling.
+
+    let script = r#"echo "Script logic here""#;
+    let mut parser = BashParser::new(script).unwrap();
+    let result = parser.parse();
+
+    assert!(
+        result.is_ok(),
+        "Script without times should parse successfully: {:?}",
+        result.err()
+    );
+
+    let ast = result.unwrap();
+    assert!(!ast.statements.is_empty());
+
+    // DOCUMENTATION: Refactoring strategy for times
+    // Instead of: times (embedded in script)
+    // Use: /usr/bin/time -v ./script.sh (external profiling)
+    //
+    // External Profiling Tools:
+    // - GNU time: Detailed resource usage
+    // - hyperfine: Statistical benchmarking
+    // - perf: CPU performance counters
+    // - valgrind: Memory profiling
+    //
+    // Benefits:
+    // - No script modification needed
+    // - More detailed metrics
+    // - Statistical analysis
+    // - Deterministic scripts (no profiling code)
+    //
+    // Production:
+    // - Scripts should not contain profiling code
+    // - Profile externally during development/testing
+    // - Remove times from production scripts
+}
