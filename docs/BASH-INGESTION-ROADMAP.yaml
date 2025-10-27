@@ -15,7 +15,7 @@ roadmap:
     blocked: 3
     coverage_percent: 23
     accuracy_verified: "2025-10-27"
-    session_update: "Completed COND-003 (select menu), partial 3.2.3.1 (command lists: ; works, &&/|| need implementation) (+2 tasks)"
+    session_update: "Completed COND-003, partial 3.2.3.1 (command lists), documented 3.2.2.1 (pipes need implementation) (+3 tasks documented)"
 
 extreme_tdd_workflow:
   description: "Hybrid workflow combining GNU Bash validation with REPL verification"
@@ -390,11 +390,22 @@ chapters:
               - id: "3.2.2.1"
                 title: "Document pipe transformation"
                 status: "pending"
+                version: "v6.6.0"
                 input: "cat file.txt | grep \"pattern\""
-                rust: "grep(cat(\"file.txt\"), \"pattern\")"
+                rust: "Use std::process::Command with .stdout(Stdio::piped())"
                 purified: "cat \"file.txt\" | grep \"pattern\""
-                test_name: "test_pipeline_transformation"
-                notes: "Quoted paths"
+                test_name: "test_PIPE_001_basic_pipe_needs_implementation"
+                notes: "Pipes need implementation: Lexer may recognize | but parser doesn't handle pipeline syntax yet. Priority: HIGH - fundamental to shell scripting"
+                implementation:
+                  module: "rash/src/bash_parser/tests.rs"
+                  functions:
+                    - "test_PIPE_001_basic_pipe_needs_implementation (ignored, documented)"
+                    - "test_PIPE_002_multi_stage_pipeline_needs_implementation (ignored, documented)"
+                    - "test_PIPE_003_pipe_with_variables_needs_implementation (ignored, documented)"
+                  lines_of_code: 91
+                  documentation: "Comprehensive documentation of pipe semantics, POSIX compliance, Rust std::process piping strategy, and security considerations for variable quoting"
+                  priority: "HIGH"
+                  complexity: "MEDIUM"
 
           - id: "3.2.3"
             name: "Lists"
