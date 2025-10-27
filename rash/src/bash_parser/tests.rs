@@ -2936,3 +2936,114 @@ fn test_PIPE_003_pipe_with_variables_needs_implementation() {
     // POSIX: Variable expansion in pipelines is POSIX-compliant
     // Security: Quoted variables prevent injection attacks
 }
+
+// 3.2.1.1: Command with arguments
+// Task: Document simple command transformation (bash → Rust → purified bash)
+// Reference: docs/BASH-INGESTION-ROADMAP.yaml
+// Status: FULLY SUPPORTED
+//
+// Simple commands are the foundation of shell scripting:
+// - command [arguments...]
+//
+// Transformations:
+// - Bash: mkdir -p /tmp/data
+// - Rust: std::fs::create_dir_all("/tmp/data")
+// - Purified: mkdir -p "/tmp/data" (quoted paths, idempotent flags)
+//
+// POSIX compliance: Simple commands are core POSIX feature
+#[test]
+fn test_CMD_001_simple_command_with_arguments() {
+    // ARRANGE: Script with simple command and arguments
+    let script = r#"mkdir -p /tmp/data"#;
+
+    // ACT: Parse the script
+    let mut parser = BashParser::new(script).unwrap();
+    let result = parser.parse();
+
+    // ASSERT: Should parse successfully
+    assert!(
+        result.is_ok(),
+        "Simple command with arguments should parse successfully: {:?}",
+        result.err()
+    );
+
+    let ast = result.unwrap();
+    assert!(
+        !ast.statements.is_empty(),
+        "AST should contain command statement"
+    );
+
+    // Verify it's recognized as a command
+    let has_command = ast.statements.iter().any(|s| {
+        matches!(s, BashStmt::Command { name, .. } if name == "mkdir")
+    });
+
+    assert!(
+        has_command,
+        "AST should contain 'mkdir' command"
+    );
+
+    // DOCUMENTATION: Simple commands are fully supported
+    // Purification: Add idempotent flags (-p for mkdir)
+    // Quoting: Ensure paths are quoted ("/tmp/data")
+}
+
+#[test]
+fn test_CMD_002_command_with_multiple_arguments() {
+    // ARRANGE: Script with command and multiple arguments
+    let script = r#"cp -r /source /destination"#;
+
+    // ACT: Parse the script
+    let mut parser = BashParser::new(script).unwrap();
+    let result = parser.parse();
+
+    // ASSERT: Should parse successfully
+    assert!(
+        result.is_ok(),
+        "Command with multiple arguments should parse successfully: {:?}",
+        result.err()
+    );
+
+    let ast = result.unwrap();
+    assert!(!ast.statements.is_empty());
+
+    // Verify it's recognized as a cp command
+    let has_command = ast.statements.iter().any(|s| {
+        matches!(s, BashStmt::Command { name, .. } if name == "cp")
+    });
+
+    assert!(has_command, "AST should contain 'cp' command");
+
+    // DOCUMENTATION: Commands with multiple arguments fully supported
+    // Purification: Quote all path arguments
+}
+
+#[test]
+fn test_CMD_003_command_with_flags_and_arguments() {
+    // ARRANGE: Script with flags and arguments
+    let script = r#"ls -la /tmp"#;
+
+    // ACT: Parse the script
+    let mut parser = BashParser::new(script).unwrap();
+    let result = parser.parse();
+
+    // ASSERT: Should parse successfully
+    assert!(
+        result.is_ok(),
+        "Command with flags and arguments should parse successfully: {:?}",
+        result.err()
+    );
+
+    let ast = result.unwrap();
+    assert!(!ast.statements.is_empty());
+
+    // Verify it's recognized as ls command
+    let has_command = ast.statements.iter().any(|s| {
+        matches!(s, BashStmt::Command { name, .. } if name == "ls")
+    });
+
+    assert!(has_command, "AST should contain 'ls' command");
+
+    // DOCUMENTATION: Flags (-la) and arguments (/tmp) both supported
+    // Purification: Quote directory paths
+}
