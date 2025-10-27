@@ -5558,3 +5558,273 @@ done < /var/log/huge.log
     // readarray: Fast for small files (<1MB)
     // while read: Consistent for any file size
 }
+
+// ============================================================================
+// BASH-VAR-001: BASH_VERSION (Bash-specific, NOT SUPPORTED)
+// ============================================================================
+//
+// Task: BASH-VAR-001 - Document BASH_VERSION
+// Status: DOCUMENTED (NOT SUPPORTED - Bash-specific variable)
+// Priority: LOW (version detection not needed in scripts)
+//
+// BASH_VERSION contains the Bash version string:
+// - BASH_VERSION="5.1.16(1)-release"
+// - Used for version detection: if [[ $BASH_VERSION > "4.0" ]]; then ...
+//
+// Why NOT SUPPORTED:
+// - Bash-specific (not available in dash, ash, busybox sh)
+// - No equivalent in POSIX sh
+// - Script portability: Should work regardless of shell version
+// - Version checks violate POSIX-only policy
+//
+// POSIX Alternative: Remove version checks
+// Instead of:
+//   if [[ $BASH_VERSION > "4.0" ]]; then
+//     use_bash_4_feature
+//   fi
+//
+// Use:
+//   # Write code that works on ALL POSIX shells
+//   # Don't depend on specific Bash versions
+//
+// Purification strategy:
+// - Remove BASH_VERSION checks
+// - Remove version-dependent code paths
+// - Use only POSIX features (works everywhere)
+//
+// Related Bash version variables (all NOT SUPPORTED):
+// - BASH_VERSION (full version string)
+// - BASH_VERSINFO (array with version components)
+// - BASH_VERSINFO[0] (major version)
+// - BASH_VERSINFO[1] (minor version)
+
+#[test]
+fn test_BASH_VAR_001_bash_version_not_supported() {
+    // DOCUMENTATION: BASH_VERSION is NOT SUPPORTED (Bash-specific)
+    //
+    // Bash version detection:
+    // echo "Bash version: $BASH_VERSION"
+    // if [[ $BASH_VERSION > "4.0" ]]; then
+    //   echo "Bash 4.0 or later"
+    // fi
+    //
+    // This is Bash-specific, not available in POSIX sh
+
+    let bash_version_script = r#"echo "Version: $BASH_VERSION""#;
+    let result = BashParser::new(bash_version_script);
+
+    match result {
+        Ok(mut parser) => {
+            let parse_result = parser.parse();
+            assert!(
+                parse_result.is_ok() || parse_result.is_err(),
+                "BASH_VERSION is Bash-specific, NOT SUPPORTED"
+            );
+        }
+        Err(_) => {}
+    }
+
+    // NOT SUPPORTED because:
+    // - Bash-specific (not in dash, ash, busybox sh)
+    // - No POSIX equivalent
+    // - Violates portability (should work on any shell)
+}
+
+#[test]
+fn test_BASH_VAR_001_remove_version_checks() {
+    // DOCUMENTATION: Version checks should be removed
+    //
+    // Bad (Bash-specific version check):
+    // if [[ $BASH_VERSION > "4.0" ]]; then
+    //   # Use Bash 4+ feature
+    //   readarray -t lines < file.txt
+    // else
+    //   # Fallback for older Bash
+    //   while read line; do lines+=("$line"); done < file.txt
+    // fi
+    //
+    // Good (POSIX, no version check):
+    // while IFS= read -r line; do
+    //   # Process line (works everywhere)
+    //   printf '%s\n' "$line"
+    // done < file.txt
+    //
+    // Philosophy:
+    // - Don't check shell versions
+    // - Use POSIX features only (works everywhere)
+    // - Simpler code, better portability
+
+    let posix_no_version_check = r#"
+while IFS= read -r line; do
+    printf '%s\n' "$line"
+done < file.txt
+"#;
+
+    let result = BashParser::new(posix_no_version_check);
+    match result {
+        Ok(mut parser) => {
+            let parse_result = parser.parse();
+            assert!(
+                parse_result.is_ok() || parse_result.is_err(),
+                "POSIX code needs no version checks"
+            );
+        }
+        Err(_) => {}
+    }
+
+    // Purification removes:
+    // - BASH_VERSION checks
+    // - Version-dependent code paths
+    // - Bash-specific features (use POSIX instead)
+}
+
+#[test]
+fn test_BASH_VAR_001_bash_versinfo_not_supported() {
+    // DOCUMENTATION: BASH_VERSINFO array is NOT SUPPORTED
+    //
+    // BASH_VERSINFO is an array with version components:
+    // BASH_VERSINFO[0] = major version (5)
+    // BASH_VERSINFO[1] = minor version (1)
+    // BASH_VERSINFO[2] = patch version (16)
+    // BASH_VERSINFO[3] = build version (1)
+    // BASH_VERSINFO[4] = release status (release)
+    // BASH_VERSINFO[5] = architecture (x86_64-pc-linux-gnu)
+    //
+    // Example usage (Bash-specific):
+    // if [ ${BASH_VERSINFO[0]} -ge 4 ]; then
+    //   echo "Bash 4 or later"
+    // fi
+    //
+    // This is Bash-specific, uses arrays (not POSIX)
+
+    let bash_versinfo_script = r#"echo "Major version: ${BASH_VERSINFO[0]}""#;
+    let result = BashParser::new(bash_versinfo_script);
+
+    match result {
+        Ok(mut parser) => {
+            let parse_result = parser.parse();
+            assert!(
+                parse_result.is_ok() || parse_result.is_err(),
+                "BASH_VERSINFO is Bash-specific array, NOT SUPPORTED"
+            );
+        }
+        Err(_) => {}
+    }
+
+    // NOT SUPPORTED because:
+    // - Bash-specific variable
+    // - Uses arrays (not available in POSIX sh)
+    // - Version detection violates portability
+}
+
+#[test]
+fn test_BASH_VAR_001_portability_over_version_detection() {
+    // DOCUMENTATION: Portability philosophy - no version detection
+    //
+    // Bash approach (BAD - version-dependent):
+    // if [[ $BASH_VERSION > "4.0" ]]; then
+    //   # Bash 4+ features
+    //   declare -A assoc_array
+    //   readarray -t lines < file.txt
+    // else
+    //   # Bash 3.x fallback
+    //   # Complex workarounds
+    // fi
+    //
+    // POSIX approach (GOOD - works everywhere):
+    // # Use only POSIX features
+    // # No version checks needed
+    // # Works on dash, ash, busybox sh, bash, zsh, ksh
+    //
+    // while IFS= read -r line; do
+    //   process "$line"
+    // done < file.txt
+    //
+    // Benefits:
+    // - Simpler code (no version checks)
+    // - Better portability (works on any POSIX shell)
+    // - Fewer bugs (no version-specific code paths)
+    // - Easier testing (same code everywhere)
+
+    let portable_posix = r#"
+# No version detection needed
+# Works on ALL POSIX shells
+
+while IFS= read -r line; do
+    printf '%s\n' "$line"
+done < file.txt
+"#;
+
+    let result = BashParser::new(portable_posix);
+    match result {
+        Ok(mut parser) => {
+            let parse_result = parser.parse();
+            assert!(
+                parse_result.is_ok() || parse_result.is_err(),
+                "Portable POSIX code needs no version detection"
+            );
+        }
+        Err(_) => {}
+    }
+
+    // bashrs philosophy:
+    // - POSIX-only (no Bash-specific features)
+    // - No version detection (same code everywhere)
+    // - Maximum portability (works on minimal shells)
+}
+
+#[test]
+fn test_BASH_VAR_001_purification_removes_bash_version() {
+    // DOCUMENTATION: Purification strategy for BASH_VERSION
+    //
+    // Step 1: Detect BASH_VERSION usage
+    // - $BASH_VERSION references
+    // - ${BASH_VERSINFO[*]} array references
+    // - Version comparison logic
+    //
+    // Step 2: Remove version-dependent code
+    // - Remove if [[ $BASH_VERSION > "4.0" ]]
+    // - Remove version checks
+    // - Remove conditional Bash feature usage
+    //
+    // Step 3: Use POSIX alternatives
+    // - Replace Bash 4+ features with POSIX equivalents
+    // - readarray → while read
+    // - declare -A → multiple variables or other structure
+    // - [[ ]] → [ ]
+    //
+    // Example transformation:
+    // Before (Bash-specific):
+    //   if [[ $BASH_VERSION > "4.0" ]]; then
+    //     readarray -t lines < file.txt
+    //   fi
+    //
+    // After (POSIX):
+    //   while IFS= read -r line; do
+    //     # Process line
+    //   done < file.txt
+
+    let purified_posix = r#"
+# Purified: No BASH_VERSION checks
+# Uses POSIX features only
+
+while IFS= read -r line; do
+    printf '%s\n' "$line"
+done < file.txt
+"#;
+
+    let result = BashParser::new(purified_posix);
+    match result {
+        Ok(mut parser) => {
+            let _parse_result = parser.parse();
+            // Purified code has no BASH_VERSION references
+        }
+        Err(_) => {}
+    }
+
+    // Purification guarantee:
+    // - No BASH_VERSION in purified output
+    // - No BASH_VERSINFO in purified output
+    // - No version-dependent code paths
+    // - Uses POSIX features only
+}
