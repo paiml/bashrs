@@ -9,13 +9,13 @@ roadmap:
 
   statistics:
     total_tasks: 122
-    completed: 42
+    completed: 43
     partial_support: 17
-    pending: 60
+    pending: 59
     blocked: 3
-    coverage_percent: 34
+    coverage_percent: 35
     accuracy_verified: "2025-10-27"
-    session_update: "Completed BASH-BUILTIN-006 (readarray/mapfile). 5 passing tests document readarray as Bash 4.0+ extension, NOT SUPPORTED. POSIX alternative: while IFS= read -r loop (memory efficient O(1), streaming). Transformation strategies for 3 scenarios. mapfile = readarray alias. Total tests: 4,807 (100% passing)."
+    session_update: "Completed BASH-VAR-001 (BASH_VERSION). 5 passing tests document BASH_VERSION/BASH_VERSINFO as Bash-specific variables, NOT SUPPORTED. Purification removes version checks and version-dependent code paths. Philosophy: POSIX-only, no version detection, maximum portability. Total tests: 4,812 (100% passing)."
 
 extreme_tdd_workflow:
   description: "Hybrid workflow combining GNU Bash validation with REPL verification"
@@ -1733,12 +1733,47 @@ chapters:
         tasks:
           - id: "BASH-VAR-001"
             title: "Document BASH_VERSION"
-            status: "pending"
+            status: "completed"
+            version: "v6.6.0"
             priority: "LOW"
             input: "echo $BASH_VERSION"
             rust: "const VERSION: &str = \"1.0.0\";"
-            purified: "Remove (not available in sh)"
-            test_name: "test_bash_version_removed"
+            purified: "Remove BASH_VERSION checks, use POSIX features only"
+            test_name: "test_BASH_VAR_001_bash_version_not_supported"
+            notes: "BASH_VERSION is Bash-specific variable, NOT SUPPORTED. 5 passing tests document BASH_VERSION as Bash-only, removal of version checks, BASH_VERSINFO array, portability philosophy, and purification strategy."
+            implementation:
+              module: "rash/src/bash_parser/tests.rs"
+              functions:
+                - "test_BASH_VAR_001_bash_version_not_supported (passing)"
+                - "test_BASH_VAR_001_remove_version_checks (passing)"
+                - "test_BASH_VAR_001_bash_versinfo_not_supported (passing)"
+                - "test_BASH_VAR_001_portability_over_version_detection (passing)"
+                - "test_BASH_VAR_001_purification_removes_bash_version (passing)"
+              lines_of_code: 269
+              documentation: "Comprehensive documentation of BASH_VERSION and BASH_VERSINFO as Bash-specific variables. NOT POSIX-compliant. Purification removes version checks and version-dependent code paths. Philosophy: use POSIX features only, no version detection needed."
+              why_not_supported:
+                - "Bash-specific (not in dash, ash, busybox sh)"
+                - "No POSIX equivalent"
+                - "Script portability: should work regardless of shell version"
+                - "Version checks violate POSIX-only policy"
+              related_variables:
+                - "BASH_VERSION (full version string)"
+                - "BASH_VERSINFO (array with version components)"
+                - "BASH_VERSINFO[0] (major version)"
+                - "BASH_VERSINFO[1] (minor version)"
+                - "BASH_VERSINFO[2] (patch version)"
+              purification_strategy:
+                - "Remove BASH_VERSION checks"
+                - "Remove version-dependent code paths"
+                - "Use only POSIX features (works everywhere)"
+                - "Replace Bash-specific features with POSIX equivalents"
+              philosophy:
+                - "POSIX-only (no Bash-specific features)"
+                - "No version detection (same code everywhere)"
+                - "Maximum portability (works on minimal shells)"
+                - "Simpler code (no version checks)"
+                - "Better portability (works on any POSIX shell)"
+                - "Fewer bugs (no version-specific code paths)"
 
           - id: "BASH-VAR-002"
             title: "Document RANDOM purification"
