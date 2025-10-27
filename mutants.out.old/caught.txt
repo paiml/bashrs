@@ -1,9 +1,1 @@
-rash/src/repl/config.rs:111:27: replace == with != in ReplConfig::validate
-rash/src/repl/config.rs:91:9: replace ReplConfig::with_timeout -> Self with Default::default()
-rash/src/repl/config.rs:79:9: replace ReplConfig::with_debug -> Self with Default::default()
-rash/src/repl/config.rs:108:28: replace == with != in ReplConfig::validate
-rash/src/repl/config.rs:85:9: replace ReplConfig::with_max_memory -> Self with Default::default()
-rash/src/repl/config.rs:68:9: replace ReplConfig::sandboxed -> Self with Default::default()
-rash/src/repl/config.rs:108:9: replace ReplConfig::validate -> Result<(), String> with Ok(())
-rash/src/repl/config.rs:114:37: replace == with != in ReplConfig::validate
-rash/src/repl/config.rs:97:9: replace ReplConfig::with_max_depth -> Self with Default::default()
+rash/src/repl/loop.rs:40:5: replace run_repl -> Result<()> with Ok(())

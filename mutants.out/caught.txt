@@ -1,1 +1,31 @@
-rash/src/repl/loop.rs:40:5: replace run_repl -> Result<()> with Ok(())
+rash/src/repl/state.rs:110:9: replace ReplState::record_error with ()
+rash/src/repl/state.rs:120:9: replace ReplState::reset_error_count with ()
+rash/src/repl/state.rs:85:9: replace ReplState::remove_variable -> Option<String> with Some(String::new())
+rash/src/repl/state.rs:110:26: replace += with -= in ReplState::record_error
+rash/src/repl/state.rs:85:9: replace ReplState::remove_variable -> Option<String> with None
+rash/src/repl/state.rs:90:9: replace ReplState::variables -> &HashMap<String, String> with Box::leak(Box::new(HashMap::from_iter([("xyzzy".into(), "xyzzy".into())])))
+rash/src/repl/state.rs:130:9: replace ReplState::variable_count -> usize with 1
+rash/src/repl/state.rs:95:9: replace ReplState::clear_variables with ()
+rash/src/repl/state.rs:115:9: replace ReplState::error_count -> usize with 1
+rash/src/repl/state.rs:100:9: replace ReplState::request_exit with ()
+rash/src/repl/state.rs:130:9: replace ReplState::variable_count -> usize with 0
+rash/src/repl/state.rs:85:9: replace ReplState::remove_variable -> Option<String> with Some("xyzzy".into())
+rash/src/repl/state.rs:75:9: replace ReplState::set_variable with ()
+rash/src/repl/state.rs:105:9: replace ReplState::should_exit -> bool with true
+rash/src/repl/state.rs:125:9: replace ReplState::history_len -> usize with 0
+rash/src/repl/state.rs:90:9: replace ReplState::variables -> &HashMap<String, String> with Box::leak(Box::new(HashMap::new()))
+rash/src/repl/state.rs:80:9: replace ReplState::get_variable -> Option<&String> with None
+rash/src/repl/state.rs:80:9: replace ReplState::get_variable -> Option<&String> with Some(Box::leak(Box::new(String::new())))
+rash/src/repl/state.rs:110:26: replace += with *= in ReplState::record_error
+rash/src/repl/state.rs:90:9: replace ReplState::variables -> &HashMap<String, String> with Box::leak(Box::new(HashMap::from_iter([("xyzzy".into(), String::new())])))
+rash/src/repl/state.rs:65:9: replace ReplState::get_history -> Option<&String> with None
+rash/src/repl/state.rs:90:9: replace ReplState::variables -> &HashMap<String, String> with Box::leak(Box::new(HashMap::from_iter([(String::new(), String::new())])))
+rash/src/repl/state.rs:65:9: replace ReplState::get_history -> Option<&String> with Some(Box::leak(Box::new("xyzzy".into())))
+rash/src/repl/state.rs:125:9: replace ReplState::history_len -> usize with 1
+rash/src/repl/state.rs:90:9: replace ReplState::variables -> &HashMap<String, String> with Box::leak(Box::new(HashMap::from_iter([(String::new(), "xyzzy".into())])))
+rash/src/repl/state.rs:70:9: replace ReplState::clear_history with ()
+rash/src/repl/state.rs:65:9: replace ReplState::get_history -> Option<&String> with Some(Box::leak(Box::new(String::new())))
+rash/src/repl/state.rs:55:9: replace ReplState::add_history with ()
+rash/src/repl/state.rs:105:9: replace ReplState::should_exit -> bool with false
+rash/src/repl/state.rs:115:9: replace ReplState::error_count -> usize with 0
+rash/src/repl/state.rs:80:9: replace ReplState::get_variable -> Option<&String> with Some(Box::leak(Box::new("xyzzy".into())))

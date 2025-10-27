@@ -1,3 +1,3 @@
-rash/src/repl/loop.rs:102:5: replace print_help with ()
-rash/src/repl/loop.rs:72:21: delete match arm "help" in run_repl
-rash/src/repl/loop.rs:68:21: delete match arm "quit" | "exit" in run_repl
+rash/src/repl/state.rs:60:9: replace ReplState::history -> &[String] with Vec::leak(Vec::new())
+rash/src/repl/state.rs:60:9: replace ReplState::history -> &[String] with Vec::leak(vec!["xyzzy".into()])
+rash/src/repl/state.rs:60:9: replace ReplState::history -> &[String] with Vec::leak(vec![String::new()])
