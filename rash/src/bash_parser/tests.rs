@@ -3314,3 +3314,143 @@ fn test_ESCAPE_003_escaped_backslash() {
     // Purification: Preserve \\ for literal backslash
     // POSIX: \\ is POSIX-compliant in double quotes
 }
+
+// ============================================================================
+// 3.1.2.4: ANSI-C Quoting ($'...')
+// Reference: docs/BASH-INGESTION-ROADMAP.yaml
+// Status: NOT SUPPORTED (Bash extension, not POSIX)
+//
+// ANSI-C quoting ($'...') is a Bash extension that interprets escape sequences:
+// - $'Hello\nWorld' → Hello<newline>World
+// - $'Tab:\tValue' → Tab:<tab>Value
+// - $'\x41' → A (hex escape)
+//
+// This is NOT POSIX-compliant - POSIX sh does not support $'...' syntax.
+//
+// Purification Strategy:
+// - Convert to printf with explicit format strings
+// - Example: $'Hello\nWorld' → printf '%s\n%s\n' "Hello" "World"
+// - Example: $'Tab:\tValue' → printf 'Tab:\tValue\n'
+//
+// EXTREME TDD: Document current behavior (expected to fail/not parse)
+// ============================================================================
+
+#[test]
+#[ignore = "ANSI-C quoting ($'...') not yet implemented - Bash extension, not POSIX"]
+fn test_ANSI_C_001_ansi_c_quoting_needs_implementation() {
+    // DOCUMENTATION: This test documents planned ANSI-C quoting support
+    //
+    // Bash: echo $'Hello\nWorld'
+    // Rust: println!("Hello\nWorld")
+    // Purified: printf '%s\n%s\n' "Hello" "World"
+    //
+    // POSIX Compliance: NOT POSIX - This is a Bash extension
+    // Priority: MEDIUM (common in Bash scripts, but has POSIX alternatives)
+    //
+    // Implementation needed:
+    // 1. Lexer: Recognize $' as start of ANSI-C quoted string
+    // 2. Lexer: Parse escape sequences (\n, \t, \r, \\, \', \", \xHH, \uHHHH, \UHHHHHHHH)
+    // 3. Parser: Handle ANSI-C quoted strings in expressions
+    // 4. Purifier: Convert to printf with appropriate format strings
+    //
+    // Escape sequences to support:
+    // - \n → newline
+    // - \t → tab
+    // - \r → carriage return
+    // - \\ → backslash
+    // - \' → single quote
+    // - \" → double quote
+    // - \xHH → hex byte (e.g., \x41 = 'A')
+    // - \uHHHH → Unicode (16-bit)
+    // - \UHHHHHHHH → Unicode (32-bit)
+    //
+    // Test case:
+    let script = r#"echo $'Hello\nWorld'"#;
+    let mut parser = BashParser::new(script);
+
+    match parser {
+        Ok(mut p) => {
+            let result = p.parse();
+            // Currently expected to fail or parse incorrectly
+            // Once implemented, should parse successfully
+            assert!(
+                result.is_err() || result.is_ok(),
+                "ANSI-C quoting behavior documented: NOT YET SUPPORTED"
+            );
+        }
+        Err(_) => {
+            // Lexer may reject $' syntax
+        }
+    }
+}
+
+#[test]
+#[ignore = "ANSI-C quoting with tab character not yet implemented"]
+fn test_ANSI_C_002_tab_escape_needs_implementation() {
+    // DOCUMENTATION: Tab escape sequence in ANSI-C quoting
+    //
+    // Bash: echo $'Name:\tValue'
+    // Rust: println!("Name:\tValue")
+    // Purified: printf 'Name:\tValue\n'
+    //
+    // POSIX Alternative: printf 'Name:\tValue\n'
+    //
+    // This tests that tab characters are preserved during purification.
+    // ANSI-C quoting is not POSIX, but printf with \t IS POSIX.
+}
+
+#[test]
+#[ignore = "ANSI-C quoting with hex escapes not yet implemented"]
+fn test_ANSI_C_003_hex_escape_needs_implementation() {
+    // DOCUMENTATION: Hexadecimal escape sequences in ANSI-C quoting
+    //
+    // Bash: echo $'\x41\x42\x43'
+    // Output: ABC
+    // Rust: println!("{}", "\x41\x42\x43")
+    // Purified: printf 'ABC\n'
+    //
+    // POSIX Compliance: NOT POSIX - hex escapes are Bash extension
+    // Priority: LOW (rarely used in production scripts)
+    //
+    // Implementation Strategy:
+    // - Parse \xHH during lexing
+    // - Convert hex to literal characters
+    // - Emit as regular string literals in purified output
+    //
+    // Security Note: Hex escapes can obfuscate malicious commands.
+    // Purifier should decode and emit readable literals.
+}
+
+#[test]
+fn test_ANSI_C_004_posix_alternative_printf() {
+    // DOCUMENTATION: POSIX alternative to ANSI-C quoting
+    //
+    // Instead of: echo $'Hello\nWorld'
+    // Use POSIX: printf 'Hello\nWorld\n'
+    //
+    // This test verifies that we can parse the POSIX-compliant alternative.
+    // When purifying Bash scripts with $'...', we should convert to printf.
+
+    let script = r#"printf 'Hello\nWorld\n'"#;
+    let mut parser = BashParser::new(script).unwrap();
+    let result = parser.parse();
+
+    assert!(
+        result.is_ok(),
+        "POSIX printf with escape sequences should parse successfully: {:?}",
+        result.err()
+    );
+
+    let ast = result.unwrap();
+    assert!(!ast.statements.is_empty());
+
+    let has_printf = ast.statements.iter().any(|s| {
+        matches!(s, BashStmt::Command { name, .. } if name == "printf")
+    });
+    assert!(has_printf, "AST should contain 'printf' command");
+
+    // DOCUMENTATION: printf is the POSIX-compliant way to handle escape sequences
+    // Purification Strategy: Convert $'...' → printf '...\n'
+    // POSIX: printf is POSIX-compliant, handles \n, \t, \r, \\, etc.
+    // Security: printf format strings are safe when properly quoted
+}

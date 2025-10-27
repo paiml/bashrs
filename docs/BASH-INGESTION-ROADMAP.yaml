@@ -15,7 +15,7 @@ roadmap:
     blocked: 3
     coverage_percent: 26
     accuracy_verified: "2025-10-27"
-    session_update: "Completed COND-003, 3.2.1.1 (simple commands), 3.1.2.1 (backslash escaping), 3.1.2.2 (single quotes), 3.1.2.3 (double quotes), partial 3.2.3.1 (command lists), documented 3.2.2.1 (pipes) (+7 tasks)"
+    session_update: "Documented 3.1.2.4 (ANSI-C quoting $'...') - NOT SUPPORTED (Bash extension, not POSIX). 3 ignored tests document implementation needs, 1 passing test verifies POSIX alternative (printf)."
 
 extreme_tdd_workflow:
   description: "Hybrid workflow combining GNU Bash validation with REPL verification"
@@ -392,11 +392,29 @@ chapters:
               - id: "3.1.2.4"
                 title: "Document $'...' transformation"
                 status: "pending"
+                version: "v6.6.0"
                 input: "echo $'Hello\\nWorld'"
                 rust: "println!(\"Hello\\nWorld\")"
                 purified: "printf '%s\\n%s\\n' \"Hello\" \"World\""
-                test_name: "test_ansi_c_quoting_to_explicit"
-                notes: "ANSI-C quoting to explicit printf"
+                test_name: "test_ANSI_C_001_ansi_c_quoting_needs_implementation"
+                notes: "ANSI-C quoting NOT SUPPORTED - Bash extension, not POSIX. POSIX alternative: printf. Priority: MEDIUM."
+                implementation:
+                  module: "rash/src/bash_parser/tests.rs"
+                  functions:
+                    - "test_ANSI_C_001_ansi_c_quoting_needs_implementation (ignored - NOT YET IMPLEMENTED)"
+                    - "test_ANSI_C_002_tab_escape_needs_implementation (ignored - NOT YET IMPLEMENTED)"
+                    - "test_ANSI_C_003_hex_escape_needs_implementation (ignored - NOT YET IMPLEMENTED)"
+                    - "test_ANSI_C_004_posix_alternative_printf (passing - POSIX alternative verified)"
+                  lines_of_code: 141
+                  documentation: "Comprehensive documentation of ANSI-C quoting ($'...') as Bash extension. NOT POSIX-compliant. 3 ignored tests document implementation needs (newline, tab, hex escapes). 1 passing test verifies POSIX alternative (printf). Purification strategy: convert $'...' to printf with explicit format strings."
+                  posix_compliance: "NOT POSIX - Bash extension only"
+                  priority: "MEDIUM"
+                  implementation_needed:
+                    - "Lexer: Recognize $' as start of ANSI-C quoted string"
+                    - "Lexer: Parse escape sequences (\\n, \\t, \\r, \\\\, \\', \\\", \\xHH, \\uHHHH, \\UHHHHHHHH)"
+                    - "Parser: Handle ANSI-C quoted strings in expressions"
+                    - "Purifier: Convert to printf with appropriate format strings"
+                  security_note: "Hex escapes can obfuscate malicious commands. Purifier should decode and emit readable literals."
 
       - id: "3.2"
         name: "Shell Commands"
