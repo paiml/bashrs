@@ -9,13 +9,13 @@ roadmap:
 
   statistics:
     total_tasks: 122
-    completed: 48
+    completed: 49
     partial_support: 17
-    pending: 54
+    pending: 53
     blocked: 3
-    coverage_percent: 39
+    coverage_percent: 40
     accuracy_verified: "2025-10-27"
-    session_update: "Completed EDIT-001 (readline features). 7 passing tests document readline as interactive line editing library, NOT SUPPORTED. Keyboard shortcuts (Ctrl+A/E/K/U/W for movement/editing, Up/Down/Ctrl+R for history, Tab for completion), Emacs/Vi editing modes (set -o emacs/vi), tab completion (command/file/variable/hostname/programmable), bind command (key bindings configuration), history navigation (Up/Down/Ctrl+R reverse search), readline configuration (~/.inputrc settings), interactive vs script input models (user types → readline edits → shell executes vs shell reads file → shell executes). Total tests: 4,844 (100% passing)."
+    session_update: "Completed HISTORY-001 (history expansion). 8 passing tests document history expansion as interactive, non-deterministic feature, NOT SUPPORTED. !! (repeat last command), !$ (last argument), history expansion syntax (event designators like !n/!-n/!string, word designators like !^/!$/!*/!:n, modifiers like :h/:t/:r/:e/:s), purification removes history expansion (use explicit variables), history command (interactive management with -c/-d/-a/-w options), fc command (fix command, edit/re-execute with $EDITOR), history variables (HISTFILE/HISTSIZE/HISTFILESIZE/HISTCONTROL/HISTIGNORE/HISTTIMEFORMAT), interactive vs script history models (persistent history buffer + HISTFILE vs stateless execution). Total tests: 4,852 (100% passing)."
 
 extreme_tdd_workflow:
   description: "Hybrid workflow combining GNU Bash validation with REPL verification"
@@ -1984,12 +1984,26 @@ chapters:
     tasks:
       - id: "HISTORY-001"
         title: "Document history expansion"
-        status: "pending"
+        status: "completed"
+        version: "v6.6.0"
         priority: "LOW"
-        input: "!! (repeat last command), !$ (last arg)"
+        input: "!!, !$, !^, !*, !:n, !string, !?string, history, fc, HISTFILE"
         rust: "Not applicable (no interactive mode)"
-        purified: "Remove (not deterministic)"
-        test_name: "test_history_expansion_removed"
+        purified: "Remove (non-deterministic, use explicit variables instead)"
+        test_name: "test_HISTORY_001_bang_bang_not_supported"
+        notes: "History expansion allows referencing previous commands with ! (bang) notation, NOT SUPPORTED (interactive, non-deterministic). 8 passing tests document !! (repeat last), !$ (last argument), history expansion syntax (event designators/word designators/modifiers), purification removes history expansion (use explicit variables), history command (interactive management), fc command (fix command editing), history variables (HISTFILE/HISTSIZE/HISTCONTROL/HISTIGNORE), and interactive vs script history models (persistent history buffer vs stateless execution)."
+        implementation:
+          module: "rash/src/bash_parser/tests.rs"
+          functions:
+            - "test_HISTORY_001_bang_bang_not_supported (passing)"
+            - "test_HISTORY_001_bang_dollar_not_supported (passing)"
+            - "test_HISTORY_001_history_expansion_syntax (passing)"
+            - "test_HISTORY_001_purification_removes_history_expansion (passing)"
+            - "test_HISTORY_001_history_command (passing)"
+            - "test_HISTORY_001_fc_command (passing)"
+            - "test_HISTORY_001_history_variables (passing)"
+            - "test_HISTORY_001_interactive_vs_script_history_model (passing)"
+          lines_of_code: 413
 
 completed_features:
   - title: "Shebang transformation (#!/bin/bash → #!/bin/sh)"
