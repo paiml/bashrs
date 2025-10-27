@@ -3222,3 +3222,95 @@ fn test_QUOTE_006_single_quote_special_characters() {
     // Purification: May convert to double quotes with appropriate escaping
     // POSIX: Single quotes are the strongest quoting mechanism
 }
+
+// 3.1.2.1: Backslash escaping
+// Task: Document backslash escape sequences (bash → Rust → purified bash)
+// Reference: docs/BASH-INGESTION-ROADMAP.yaml
+// Status: FULLY SUPPORTED
+//
+// Backslash escapes special characters:
+// - \" → literal quote inside double quotes
+// - \n → newline (in some contexts)
+// - \\ → literal backslash
+// - \$ → literal dollar sign (prevents variable expansion)
+//
+// Context-dependent:
+// - In double quotes: \" \$ \\ \` work
+// - Outside quotes: backslash escapes next character
+// - In single quotes: backslash is literal (no escaping)
+//
+// POSIX compliance: Backslash escaping is core POSIX feature
+#[test]
+fn test_ESCAPE_001_backslash_in_double_quotes() {
+    // ARRANGE: Script with escaped quotes in double quotes
+    let script = r#"echo "He said \"Hello\"""#;
+
+    // ACT: Parse the script
+    let mut parser = BashParser::new(script).unwrap();
+    let result = parser.parse();
+
+    // ASSERT: Should parse successfully
+    assert!(
+        result.is_ok(),
+        "Backslash escaping in double quotes should parse successfully: {:?}",
+        result.err()
+    );
+
+    let ast = result.unwrap();
+    assert!(!ast.statements.is_empty());
+
+    // DOCUMENTATION: \" inside double quotes produces literal "
+    // Expected output: He said "Hello"
+    // Purification: Preserve escaped quotes
+    // POSIX: \" is POSIX-compliant in double quotes
+}
+
+#[test]
+fn test_ESCAPE_002_escaped_dollar_sign() {
+    // ARRANGE: Script with escaped dollar sign
+    let script = r#"echo "Price: \$100""#;
+
+    // ACT: Parse the script
+    let mut parser = BashParser::new(script).unwrap();
+    let result = parser.parse();
+
+    // ASSERT: Should parse successfully
+    assert!(
+        result.is_ok(),
+        "Escaped dollar sign should parse successfully: {:?}",
+        result.err()
+    );
+
+    let ast = result.unwrap();
+    assert!(!ast.statements.is_empty());
+
+    // DOCUMENTATION: \$ prevents variable expansion
+    // Expected output: Price: $100 (literal $, not variable)
+    // Purification: Preserve \$ to prevent expansion
+    // POSIX: \$ is POSIX-compliant in double quotes
+}
+
+#[test]
+fn test_ESCAPE_003_escaped_backslash() {
+    // ARRANGE: Script with escaped backslash
+    let script = r#"echo "Path: C:\\Users""#;
+
+    // ACT: Parse the script
+    let mut parser = BashParser::new(script).unwrap();
+    let result = parser.parse();
+
+    // ASSERT: Should parse successfully
+    assert!(
+        result.is_ok(),
+        "Escaped backslash should parse successfully: {:?}",
+        result.err()
+    );
+
+    let ast = result.unwrap();
+    assert!(!ast.statements.is_empty());
+
+    // DOCUMENTATION: \\ produces literal backslash
+    // Expected output: Path: C:\Users
+    // Purification: Preserve \\ for literal backslash
+    // POSIX: \\ is POSIX-compliant in double quotes
+}
