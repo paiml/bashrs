@@ -9,12 +9,13 @@ roadmap:
 
   statistics:
     total_tasks: 122
-    completed: 24
-    partial_support: 16
-    pending: 79
+    completed: 28
+    partial_support: 17
+    pending: 74
     blocked: 3
-    coverage_percent: 20
-    accuracy_verified: "2025-10-26"
+    coverage_percent: 23
+    accuracy_verified: "2025-10-27"
+    session_update: "Completed COND-003 (select menu), partial 3.2.3.1 (command lists: ; works, &&/|| need implementation) (+2 tasks)"
 
 extreme_tdd_workflow:
   description: "Hybrid workflow combining GNU Bash validation with REPL verification"
@@ -400,12 +401,22 @@ chapters:
             tasks:
               - id: "3.2.3.1"
                 title: "Document command lists (&&, ||, ;)"
-                status: "pending"
+                status: "partial_support"
+                version: "v6.6.0"
                 input: "cmd1 && cmd2 || cmd3"
                 rust: "if cmd1() { cmd2() } else { cmd3() }"
                 purified: "cmd1 && cmd2 || cmd3"
-                test_name: "test_command_list_transformation"
-                notes: "Same syntax, but ensure quoting"
+                test_name: "test_CMD_LIST_001_semicolon_operator"
+                notes: "Partial support: Newlines (equivalent to ;) work. AND (&&) and OR (||) operators need lexer/parser implementation."
+                implementation:
+                  module: "rash/src/bash_parser/tests.rs"
+                  functions:
+                    - "test_CMD_LIST_001_semicolon_operator (passing)"
+                    - "test_CMD_LIST_002_and_operator_needs_implementation (ignored, needs implementation)"
+                    - "test_CMD_LIST_003_or_operator_needs_implementation (ignored, needs implementation)"
+                    - "test_CMD_LIST_004_combined_operators_needs_implementation (ignored, needs implementation)"
+                  lines_of_code: 111
+                  documentation: "Comprehensive documentation of command list semantics, POSIX compliance, and implementation roadmap for &&, ||, and complex lists"
 
           - id: "3.2.4"
             name: "Compound Commands"
@@ -480,12 +491,18 @@ chapters:
 
                   - id: "COND-003"
                     title: "Document select menu transformation"
-                    status: "pending"
+                    status: "completed"
+                    version: "v6.6.0"
                     input: "select opt in \"A\" \"B\"; do echo $opt; break; done"
                     rust: "Not supported (interactive only)"
                     purified: "Not supported (non-deterministic)"
-                    test_name: "test_select_not_supported"
-                    notes: "Interactive feature, not deterministic"
+                    test_name: "test_COND_003_select_not_supported"
+                    notes: "Interactive feature, not deterministic. Documented as intentionally unsupported. Alternative: Use explicit echo menu + read for deterministic behavior."
+                    implementation:
+                      module: "rash/src/bash_parser/tests.rs"
+                      function: "test_COND_003_select_not_supported"
+                      lines_of_code: 47
+                      documentation: "Comprehensive test and documentation explaining why select is not supported (interactive, non-deterministic, not POSIX)"
 
       - id: "3.3"
         name: "Shell Functions"
