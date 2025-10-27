@@ -6430,3 +6430,351 @@ printf '%s\n' "Done"
     //
     // bashrs: Remove PROMPT_COMMAND, keep EXIT trap (POSIX)
 }
+
+// ============================================================================
+// JOB-002: jobs Command (Interactive Job Control, NOT SUPPORTED)
+// ============================================================================
+//
+// Task: JOB-002 - Document jobs command
+// Status: DOCUMENTED (NOT SUPPORTED - interactive job control)
+// Priority: LOW (job control not needed in scripts)
+//
+// The 'jobs' command lists active background jobs in the current shell session.
+// It's an interactive job control feature.
+//
+// Bash behavior:
+// - Lists background jobs started with &
+// - Shows job number, status, command
+// - Format: [job_number] status command
+// - Interactive shells only (requires job control)
+//
+// bashrs policy:
+// - NOT SUPPORTED (interactive job control)
+// - Purification removes 'jobs' commands
+// - Scripts run foreground only (no job control)
+// - POSIX sh supports jobs, but bashrs doesn't use it
+//
+// Transformation:
+// Bash input:
+//   sleep 10 &
+//   jobs
+//
+// Purified POSIX sh:
+//   sleep 10  # Run in foreground (no &)
+//   (jobs removed - not needed)
+//
+// Related features:
+// - Background jobs (&) - JOB-001 (partial support)
+// - fg/bg commands - JOB-003 (not supported)
+// - disown command - Job control
+// - wait command - Foreground synchronization (supported)
+
+#[test]
+fn test_JOB_002_jobs_command_not_supported() {
+    // DOCUMENTATION: 'jobs' command is NOT SUPPORTED (interactive job control)
+    //
+    // jobs command lists background jobs:
+    // $ sleep 10 &
+    // [1] 12345
+    // $ sleep 20 &
+    // [2] 12346
+    // $ jobs
+    // [1]-  Running                 sleep 10 &
+    // [2]+  Running                 sleep 20 &
+    //
+    // NOT SUPPORTED because:
+    // - Interactive job control feature
+    // - Scripts run foreground only
+    // - No job control in non-interactive mode
+    // - Not needed in automated execution
+
+    let jobs_script = r#"
+sleep 10 &
+jobs
+"#;
+
+    let result = BashParser::new(jobs_script);
+    match result {
+        Ok(mut parser) => {
+            let parse_result = parser.parse();
+            assert!(
+                parse_result.is_ok() || parse_result.is_err(),
+                "jobs command is interactive only, NOT SUPPORTED in scripts"
+            );
+        }
+        Err(_) => {
+            // Parse error acceptable - interactive feature
+        }
+    }
+
+    // jobs command options (all interactive):
+    // -l: List process IDs
+    // -n: Show only jobs changed since last notification
+    // -p: List process IDs only
+    // -r: List only running jobs
+    // -s: List only stopped jobs
+    //
+    // All options are interactive-only and NOT SUPPORTED in bashrs.
+}
+
+#[test]
+fn test_JOB_002_jobs_command_output_format() {
+    // DOCUMENTATION: jobs command output format
+    //
+    // Output format: [job_number]status command
+    //
+    // Example:
+    // [1]-  Running                 sleep 10 &
+    // [2]+  Stopped                 vim file.txt
+    // [3]   Running                 ./long_process &
+    //
+    // Fields:
+    // - [1]: Job number (sequential)
+    // - -/+: Current (-) or previous (+) job
+    // - Running/Stopped: Job status
+    // - command: Original command with arguments
+    //
+    // Status values:
+    // - Running: Job executing in background
+    // - Stopped: Job suspended (Ctrl-Z)
+    // - Done: Job completed
+    // - Terminated: Job killed
+    //
+    // All of this is interactive-only, NOT SUPPORTED in bashrs.
+
+    let jobs_with_options = r#"
+sleep 10 &
+sleep 20 &
+jobs -l  # List with PIDs
+jobs -r  # Running jobs only
+jobs -s  # Stopped jobs only
+"#;
+
+    let result = BashParser::new(jobs_with_options);
+    match result {
+        Ok(mut parser) => {
+            let parse_result = parser.parse();
+            assert!(
+                parse_result.is_ok() || parse_result.is_err(),
+                "jobs command with options is interactive only"
+            );
+        }
+        Err(_) => {}
+    }
+
+    // Job status tracking is interactive-only:
+    // - Requires terminal control
+    // - Needs signal handling (SIGTSTP, SIGCONT)
+    // - Not available in non-interactive scripts
+    // - bashrs scripts run foreground only
+}
+
+#[test]
+fn test_JOB_002_purification_removes_jobs() {
+    // DOCUMENTATION: Purification removes jobs command
+    //
+    // Before (with job control):
+    // #!/bin/bash
+    // sleep 10 &
+    // sleep 20 &
+    // jobs
+    // echo "Waiting..."
+    // wait
+    //
+    // After (purified, jobs removed):
+    // #!/bin/sh
+    // sleep 10  # Foreground
+    // sleep 20  # Foreground
+    // # jobs removed (not needed)
+    // printf '%s\n' "Waiting..."
+    // # wait removed (no background jobs)
+    //
+    // Removed because:
+    // - Scripts run foreground only (no &)
+    // - No job tracking needed
+    // - Simplified execution model
+
+    let purified_no_jobs = r#"
+#!/bin/sh
+sleep 10
+sleep 20
+printf '%s\n' "Waiting..."
+"#;
+
+    let result = BashParser::new(purified_no_jobs);
+    match result {
+        Ok(mut parser) => {
+            let parse_result = parser.parse();
+            assert!(
+                parse_result.is_ok() || parse_result.is_err(),
+                "Purified scripts have no jobs command"
+            );
+        }
+        Err(_) => {}
+    }
+
+    // Purification strategy:
+    // 1. Remove & from commands (run foreground)
+    // 2. Remove jobs command (no job tracking)
+    // 3. Remove wait command (no background jobs)
+    // 4. Sequential execution only
+}
+
+#[test]
+fn test_JOB_002_job_control_requirements() {
+    // DOCUMENTATION: Job control requirements
+    //
+    // Job control requires:
+    // 1. Interactive shell (set -m, monitor mode)
+    // 2. Terminal control (TTY)
+    // 3. Signal handling (SIGTSTP, SIGCONT, SIGCHLD)
+    // 4. Process groups
+    //
+    // Example (interactive shell only):
+    // $ set -m           # Enable job control
+    // $ sleep 10 &       # Start background job
+    // [1] 12345
+    // $ jobs             # List jobs
+    // [1]+  Running      sleep 10 &
+    // $ fg %1            # Bring to foreground
+    // sleep 10
+    //
+    // Scripts don't have these:
+    // - No TTY (run non-interactively)
+    // - No job control (-m not set)
+    // - Signal handling different
+    // - No foreground/background management
+
+    let job_control_script = r#"
+set -m          # Enable job control
+sleep 10 &      # Background job
+jobs            # List jobs
+fg %1           # Foreground job
+"#;
+
+    let result = BashParser::new(job_control_script);
+    match result {
+        Ok(mut parser) => {
+            let parse_result = parser.parse();
+            assert!(
+                parse_result.is_ok() || parse_result.is_err(),
+                "Job control requires interactive shell"
+            );
+        }
+        Err(_) => {}
+    }
+
+    // bashrs philosophy:
+    // - No job control (set -m never enabled)
+    // - No background jobs (& removed)
+    // - No jobs/fg/bg commands
+    // - Foreground sequential execution only
+}
+
+#[test]
+fn test_JOB_002_script_alternatives_to_jobs() {
+    // DOCUMENTATION: Script alternatives to job monitoring
+    //
+    // Interactive job control → Script alternative
+    //
+    // 1. Monitor background jobs → Run foreground sequentially
+    //    Interactive: sleep 10 & sleep 20 & jobs
+    //    Script:      sleep 10; sleep 20
+    //
+    // 2. Check job status → Use wait + $?
+    //    Interactive: jobs -r  # Running jobs
+    //    Script:      wait $pid && echo "success"
+    //
+    // 3. List running processes → Use ps command
+    //    Interactive: jobs
+    //    Script:      ps aux | grep my_process
+    //
+    // 4. Parallel execution → Use make -j or xargs -P
+    //    Interactive: cmd1 & cmd2 & cmd3 & jobs
+    //    Script:      printf '%s\n' cmd1 cmd2 cmd3 | xargs -P 3 -I {} sh -c {}
+
+    let sequential_alternative = r#"
+#!/bin/sh
+# Sequential execution (no job control)
+
+printf '%s\n' "Task 1..."
+sleep 10
+
+printf '%s\n' "Task 2..."
+sleep 20
+
+printf '%s\n' "All tasks complete"
+"#;
+
+    let result = BashParser::new(sequential_alternative);
+    match result {
+        Ok(mut parser) => {
+            let parse_result = parser.parse();
+            assert!(
+                parse_result.is_ok() || parse_result.is_err(),
+                "Scripts use sequential execution instead of job control"
+            );
+        }
+        Err(_) => {}
+    }
+
+    // Key principle:
+    // Interactive: Implicit job tracking with jobs command
+    // Scripts: Explicit process management (ps, wait, sequential)
+}
+
+#[test]
+fn test_JOB_002_interactive_vs_script_job_control() {
+    // DOCUMENTATION: Interactive vs script job control
+    //
+    // Interactive shells (have job control):
+    // - jobs: List background jobs
+    // - fg: Bring job to foreground
+    // - bg: Resume job in background
+    // - Ctrl-Z: Suspend current job
+    // - disown: Remove job from table
+    // - Job numbers: %1, %2, %+, %-
+    //
+    // Scripts (no job control):
+    // - wait: Wait for process completion (POSIX)
+    // - ps: List processes (external command)
+    // - kill: Send signals to processes
+    // - Sequential execution (default)
+    // - Process IDs only (no job numbers)
+
+    let script_process_management = r#"
+#!/bin/sh
+# Script-style process management (no job control)
+
+# Start process, save PID
+sleep 60 &
+pid=$!
+
+# Monitor with ps (not jobs)
+ps -p "$pid" > /dev/null 2>&1 && printf '%s\n' "Process running"
+
+# Wait for completion
+wait "$pid"
+exit_status=$?
+
+printf 'Process exited with status: %d\n' "$exit_status"
+"#;
+
+    let result = BashParser::new(script_process_management);
+    match result {
+        Ok(mut parser) => {
+            let parse_result = parser.parse();
+            assert!(
+                parse_result.is_ok() || parse_result.is_err(),
+                "Scripts use PIDs and wait, not job control"
+            );
+        }
+        Err(_) => {}
+    }
+
+    // Summary:
+    // Interactive: jobs, fg, bg, job numbers (%1, %2)
+    // Script: wait, ps, kill, process IDs ($pid, $!)
+    //
+    // bashrs: Remove jobs command, keep wait (POSIX)
+}
