@@ -9,13 +9,13 @@ roadmap:
 
   statistics:
     total_tasks: 122
-    completed: 45
+    completed: 46
     partial_support: 17
-    pending: 57
+    pending: 56
     blocked: 3
-    coverage_percent: 37
+    coverage_percent: 38
     accuracy_verified: "2025-10-27"
-    session_update: "Completed PROMPT-001 (PROMPT_COMMAND). 6 passing tests document PROMPT_COMMAND as interactive-only hook executed before PS1 prompt, NOT SUPPORTED. Basic form (single command), array form (Bash 4.4+), purification removes all assignments, common patterns (window title, git status, timing, history), script alternatives (explicit timing/logging), interactive vs script hooks (PROMPT_COMMAND implicit vs EXIT trap explicit). Total tests: 4,824 (100% passing)."
+    session_update: "Completed JOB-002 (jobs command). 6 passing tests document jobs command as interactive job control feature, NOT SUPPORTED. Basic usage, output format (job number/status/command), purification removes jobs (foreground execution only), job control requirements (TTY/set -m/signals/process groups), script alternatives (sequential execution/ps/wait), interactive vs script job control (jobs/fg/bg with job numbers vs wait/ps/kill with PIDs). Total tests: 4,830 (100% passing)."
 
 extreme_tdd_workflow:
   description: "Hybrid workflow combining GNU Bash validation with REPL verification"
@@ -1913,12 +1913,24 @@ chapters:
 
       - id: "JOB-002"
         title: "Document jobs command"
-        status: "pending"
+        status: "completed"
+        version: "v6.6.0"
         priority: "LOW"
-        input: "jobs"
-        rust: "Not supported"
-        purified: "Remove"
-        test_name: "test_jobs_command_removed"
+        input: "jobs, jobs -l, jobs -r, jobs -s"
+        rust: "Not supported (no job control)"
+        purified: "Remove (scripts run foreground only)"
+        test_name: "test_JOB_002_jobs_command_not_supported"
+        notes: "jobs command lists background jobs, NOT SUPPORTED (interactive job control). 6 passing tests document basic usage, output format (job number, status, command), purification strategy, job control requirements (TTY, set -m, signals), script alternatives (sequential execution, ps, wait), and interactive vs script job control (jobs/fg/bg vs wait/ps/kill)."
+        implementation:
+          module: "rash/src/bash_parser/tests.rs"
+          functions:
+            - "test_JOB_002_jobs_command_not_supported (passing)"
+            - "test_JOB_002_jobs_command_output_format (passing)"
+            - "test_JOB_002_purification_removes_jobs (passing)"
+            - "test_JOB_002_job_control_requirements (passing)"
+            - "test_JOB_002_script_alternatives_to_jobs (passing)"
+            - "test_JOB_002_interactive_vs_script_job_control (passing)"
+          lines_of_code: 309
 
       - id: "JOB-003"
         title: "Document fg/bg commands"
