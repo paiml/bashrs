@@ -9,13 +9,13 @@ roadmap:
 
   statistics:
     total_tasks: 122
-    completed: 56
-    partial_support: 14
+    completed: 57
+    partial_support: 13
     pending: 49
     blocked: 3
-    coverage_percent: 46
+    coverage_percent: 47
     accuracy_verified: "2025-10-27"
-    session_update: "Completed REDIR-002 (3.6 - output redirection). 8 passing tests document output redirection (>, >>) as POSIX-compliant and FULLY SUPPORTED. Basic > syntax truncates file and writes stdout (echo hello > file.txt), >> appends to file (echo more >> file.txt). File descriptor redirection: 0< stdin (same as <), 1> stdout (same as >), 2> stderr. Overwrite vs append semantics: > destroys existing content (truncates to zero), >> preserves existing content (appends). stderr redirection: 2> errors.txt (stderr only), cmd > output.txt 2> errors.txt (separate files), cmd > combined.txt 2>&1 (merge stderr to stdout). Combined I/O: sort < in.txt > out.txt (order doesn't matter). Rust mapping: File::create() for > (truncate), OpenOptions::new().append(true) for >> (append), Command::new().output() for capturing. Common use cases (7): save output (ls > listing.txt), append log (echo >> app.log), discard (cmd > /dev/null 2>&1), create empty (: > empty.txt), capture errors (cmd 2> errors.txt), split output (cmd > out.txt 2> err.txt). Bash extensions NOT SUPPORTED: &> file (Bash shortcut for > file 2>&1), >& file (csh-style), >| file (force overwrite, ignore noclobber), >(cmd) process substitution. POSIX output redirection fully supported: >, >>, 2>, 2>&1. Total tests: 4,909 (100% passing)."
+    session_update: "Completed REDIR-003 (3.6 - combined redirection &>). 8 passing tests document combined redirection (&>, >&, &>>) as Bash extensions, NOT SUPPORTED. POSIX equivalent > file 2>&1 is FULLY SUPPORTED. Bash &> syntax: cmd &> output.txt redirects both stdout and stderr to same file (Bash 4.0+ shortcut). csh-style >& syntax: cmd >& output.txt (same as &>, Bash/csh extension). Append combined &>>: cmd &>> log.txt (Bash extension for >> file 2>&1). POSIX equivalent (SUPPORTED): cmd > output.txt 2>&1 (explicit redirection). Purification strategy: convert &> file → > file 2>&1, >& file → > file 2>&1, &>> file → >> file 2>&1. Order matters in POSIX: > file 2>&1 (CORRECT: stdout to file first, then stderr to stdout which points to file), 2>&1 > file (WRONG: stderr to terminal, stdout to file). Always put > file BEFORE 2>&1. Common use cases (5): capture all output (cmd > output.txt 2>&1), append to log (cmd >> app.log 2>&1), discard all (cmd > /dev/null 2>&1), capture in variable (output=$(cmd 2>&1)), log with timestamp ((date; cmd) > log.txt 2>&1). Why order matters: first redirection happens first, second uses new fd state (> file changes fd 1, then 2>&1 duplicates fd 2 to new fd 1 location). Bash extensions NOT SUPPORTED: &> file, >& file, &>> file. POSIX combined redirection SUPPORTED: > file 2>&1, >> file 2>&1. Total tests: 4,917 (100% passing)."
 
 extreme_tdd_workflow:
   description: "Hybrid workflow combining GNU Bash validation with REPL verification"
@@ -1210,15 +1210,26 @@ chapters:
 
           - id: "REDIR-003"
             title: "Document &> redirection (stdout+stderr)"
-            status: "partial"
+            status: "completed"
             priority: "HIGH"
-            input: "cmd &> output.txt"
-            rust: "redirect_all(\"output.txt\")"
-            purified: "redirect_all output.txt"
-            test_name: "test_combined_redirection_baseline"
-            notes: "Function calls work (redirect_all file), but &> syntax recognition is enhancement."
-            red_phase_tests: "rash/tests/integration_tests.rs:1963-2037"
-            version: "v1.2.1"
+            input: "cmd &> output.txt; cmd >& combined.txt; cmd &>> log.txt"
+            rust: "Command::new(\"cmd\").output()? // Use > file 2>&1 in shell"
+            purified: "cmd > \"output.txt\" 2>&1; cmd > \"combined.txt\" 2>&1; cmd >> \"log.txt\" 2>&1"
+            test_name: "test_REDIR_003_combined_redirection_not_supported"
+            notes: "Combined redirection (&>, >&, &>>) is Bash extension, NOT SUPPORTED. POSIX equivalent is > file 2>&1 (SUPPORTED). Purification strategy: convert &> to > file 2>&1, &>> to >> file 2>&1. Order matters: > file BEFORE 2>&1."
+            implementation:
+              module: "rash/src/bash_parser/tests.rs"
+              functions:
+                - "test_REDIR_003_combined_redirection_not_supported (passing)"
+                - "test_REDIR_003_csh_style_redirection_not_supported (passing)"
+                - "test_REDIR_003_append_combined_not_supported (passing)"
+                - "test_REDIR_003_posix_equivalent (passing)"
+                - "test_REDIR_003_purification_strategy (passing)"
+                - "test_REDIR_003_order_matters (passing)"
+                - "test_REDIR_003_common_use_cases (passing)"
+                - "test_REDIR_003_bash_vs_posix_combined_redir (passing)"
+              lines_of_code: 331
+            version: "v6.6.0"
 
           - id: "REDIR-004"
             title: "Document << heredoc"
