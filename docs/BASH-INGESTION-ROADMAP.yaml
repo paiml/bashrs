@@ -9,13 +9,13 @@ roadmap:
 
   statistics:
     total_tasks: 122
-    completed: 52
+    completed: 53
     partial_support: 17
-    pending: 50
+    pending: 49
     blocked: 3
     coverage_percent: 43
     accuracy_verified: "2025-10-27"
-    session_update: "Completed ANSI-C-001 (3.1.2.4 - ANSI-C quoting). 8 passing tests document ANSI-C quoting ($'...') as Bash 2.0+ extension (1996), NOT SUPPORTED (not POSIX). Basic escape sequences: \\n (newline/0x0A), \\t (tab/0x09), \\r (carriage return/0x0D), \\\\ (backslash), \\' (single quote), \\\" (double quote). Numeric escapes: \\xHH (hex byte, 2 digits), \\OOO (octal byte, 1-3 digits). Unicode escapes (Bash 4.2+/2011): \\uHHHH (4 hex digits), \\UHHHHHHHH (8 hex digits). Purification strategies: printf with format strings (printf 'Hello\\nWorld\\n'), literal multiline strings (MSG=\"Line 1\\nLine 2\"). Common use cases with POSIX alternatives: multi-line messages (printf '%s\\n'), tab-separated values (printf '\\t'), special characters (printf quotes), alert/bell (printf '\\a'), form feed (printf '\\f'). Comparison table: Bash $'...' (compact, Bash only) vs POSIX printf (explicit, all shells). Total tests: 4,876 (100% passing)."
+    session_update: "Completed PIPE-001 (3.2.2.1 - pipelines). 8 passing tests document pipelines (|) as POSIX-compliant and FULLY SUPPORTED. Basic pipe syntax (cmd1 | cmd2), multi-stage pipelines (cmd1 | cmd2 | cmd3 with left-to-right flow, concurrent execution). Exit status: $? is exit status of rightmost command (POSIX), PIPESTATUS array NOT SUPPORTED (Bash extension). Subshell execution: each command runs in subshell, variable assignments lost after pipeline. Variable expansion: must quote variables (cat \"$FILE\" | grep \"$PATTERN\") to prevent injection. Rust mapping: std::process::Command with .stdout(Stdio::piped()) for left commands, .stdin() to connect pipes, preserve concurrent semantics. Common patterns: filter/count (grep | wc -l), sort/dedupe (sort | uniq), extract/process (ps | awk), search in files (cat *.log | grep), transform (tr), paginate (less). Bash extensions NOT SUPPORTED: PIPESTATUS array, set -o pipefail, shopt -s lastpipe, |& (pipe stderr too, Bash 4.0+), process substitution (<(cmd) >(cmd)). Total tests: 4,884 (100% passing)."
 
 extreme_tdd_workflow:
   description: "Hybrid workflow combining GNU Bash validation with REPL verification"
@@ -550,21 +550,26 @@ chapters:
             tasks:
               - id: "3.2.2.1"
                 title: "Document pipe transformation"
-                status: "pending"
+                status: "completed"
                 version: "v6.6.0"
-                input: "cat file.txt | grep \"pattern\""
-                rust: "Use std::process::Command with .stdout(Stdio::piped())"
-                purified: "cat \"file.txt\" | grep \"pattern\""
-                test_name: "test_PIPE_001_basic_pipe_needs_implementation"
-                notes: "Pipes need implementation: Lexer may recognize | but parser doesn't handle pipeline syntax yet. Priority: HIGH - fundamental to shell scripting"
+                input: "cat file.txt | grep \"pattern\" | wc -l; ps aux | grep python | awk '{print $2}'"
+                rust: "Command::new(\"cat\").arg(\"file.txt\").stdout(Stdio::piped()).spawn()?; Command::new(\"grep\").stdin(...).output()?"
+                purified: "cat \"file.txt\" | grep \"pattern\" | wc -l"
+                test_name: "test_PIPE_001_basic_pipe_supported"
+                notes: "Pipelines (|) are POSIX-compliant and FULLY SUPPORTED. Basic pipe (cmd1 | cmd2), multi-stage pipelines (cmd1 | cmd2 | cmd3), exit status ($? is rightmost command), subshell execution (each command in subshell), concurrent execution (commands run in parallel, not sequential). Variable expansion in pipes requires proper quoting (cat \"$FILE\" | grep \"$PATTERN\"). Rust mapping: std::process::Command with .stdout(Stdio::piped()) and .stdin() to connect pipes. Bash extensions NOT SUPPORTED: PIPESTATUS array, set -o pipefail, shopt -s lastpipe, |& (pipe stderr), process substitution. Common patterns: filter/count, sort/dedupe, extract/process, search in files, transform data, paginate output."
                 implementation:
                   module: "rash/src/bash_parser/tests.rs"
                   functions:
-                    - "test_PIPE_001_basic_pipe_needs_implementation (ignored, documented)"
-                    - "test_PIPE_002_multi_stage_pipeline_needs_implementation (ignored, documented)"
-                    - "test_PIPE_003_pipe_with_variables_needs_implementation (ignored, documented)"
-                  lines_of_code: 91
-                  documentation: "Comprehensive documentation of pipe semantics, POSIX compliance, Rust std::process piping strategy, and security considerations for variable quoting"
+                    - "test_PIPE_001_basic_pipe_supported (passing)"
+                    - "test_PIPE_001_multi_stage_pipeline (passing)"
+                    - "test_PIPE_001_pipe_with_variables (passing)"
+                    - "test_PIPE_001_exit_status_semantics (passing)"
+                    - "test_PIPE_001_rust_std_process_mapping (passing)"
+                    - "test_PIPE_001_subshell_execution (passing)"
+                    - "test_PIPE_001_common_patterns (passing)"
+                    - "test_PIPE_001_bash_vs_posix_pipes (passing)"
+                  lines_of_code: 381
+                  documentation: "Comprehensive documentation of pipeline semantics, POSIX compliance, Rust std::process::Command mapping, exit status handling, subshell execution, security considerations (variable quoting), common pipeline patterns, and Bash vs POSIX comparison table."
                   priority: "HIGH"
                   complexity: "MEDIUM"
 
