@@ -9,13 +9,13 @@ roadmap:
 
   statistics:
     total_tasks: 122
-    completed: 43
+    completed: 44
     partial_support: 17
-    pending: 59
+    pending: 58
     blocked: 3
-    coverage_percent: 35
+    coverage_percent: 36
     accuracy_verified: "2025-10-27"
-    session_update: "Completed BASH-VAR-001 (BASH_VERSION). 5 passing tests document BASH_VERSION/BASH_VERSINFO as Bash-specific variables, NOT SUPPORTED. Purification removes version checks and version-dependent code paths. Philosophy: POSIX-only, no version detection, maximum portability. Total tests: 4,812 (100% passing)."
+    session_update: "Completed VAR-004 (PS1, PS2, PS3, PS4). 6 passing tests document prompt variables as interactive-only, NOT SUPPORTED. PS1 (primary), PS2 (continuation), PS3 (select), PS4 (debug trace). Purification removes all prompt variables. Script-mode-only: no prompts, no user interaction, automated execution. Total tests: 4,818 (100% passing)."
 
 extreme_tdd_workflow:
   description: "Hybrid workflow combining GNU Bash validation with REPL verification"
@@ -1720,13 +1720,49 @@ chapters:
             notes: "Already supported by command parsing infrastructure (BUILTIN-001)"
 
           - id: "VAR-004"
-            title: "Document PS1, PS2, etc."
-            status: "pending"
+            title: "Document PS1, PS2, PS3, PS4"
+            status: "completed"
+            version: "v6.6.0"
             priority: "LOW"
-            input: "PS1='$ '"
+            input: "PS1='$ ', PS2='> ', PS3='#? ', PS4='+ '"
             rust: "Not applicable (no interactive mode)"
-            purified: "Remove (not needed in scripts)"
-            test_name: "test_prompt_vars_removed"
+            purified: "Remove all prompt variables (not needed in scripts)"
+            test_name: "test_VAR_004_ps1_prompt_not_supported"
+            notes: "PS1, PS2, PS3, PS4 are interactive prompt variables, NOT SUPPORTED. 6 passing tests document PS1 (primary prompt), PS2 (continuation), PS3 (select), PS4 (debug trace), purification strategy, and script-mode-only philosophy."
+            implementation:
+              module: "rash/src/bash_parser/tests.rs"
+              functions:
+                - "test_VAR_004_ps1_prompt_not_supported (passing)"
+                - "test_VAR_004_ps2_continuation_prompt_not_supported (passing)"
+                - "test_VAR_004_ps3_select_prompt_not_supported (passing)"
+                - "test_VAR_004_ps4_debug_prompt_not_production (passing)"
+                - "test_VAR_004_purification_removes_prompts (passing)"
+                - "test_VAR_004_script_mode_only_philosophy (passing)"
+              lines_of_code: 274
+              documentation: "Comprehensive documentation of PS1, PS2, PS3, PS4 as interactive-only prompt variables. NOT supported in script mode. Purification removes all prompt variables and customization code. Script-mode-only philosophy: no prompts, no interactive input, fully automated execution."
+              prompt_variables:
+                - "PS1: Primary prompt (default: '$ ' or '# ' for root)"
+                - "PS2: Continuation prompt for multi-line (default: '> ')"
+                - "PS3: Prompt for select command (default: '#? ')"
+                - "PS4: Debug trace prompt for set -x (default: '+ ')"
+              why_not_supported:
+                - "Interactive only (not used in scripts)"
+                - "bashrs is script-mode-only (no interactive features)"
+                - "POSIX sh scripts don't use prompts"
+                - "Prompts displayed to users, not part of script logic"
+              related_features:
+                - "PROMPT_COMMAND (executed before each prompt)"
+                - "PROMPT_DIRTRIM (directory name trimming in PS1)"
+                - "PS0 (displayed after command read, before execution)"
+              purification_strategy:
+                - "Remove PS1, PS2, PS3, PS4 assignments"
+                - "Remove prompt customization code"
+                - "Scripts run non-interactively (no prompts displayed)"
+              script_mode_characteristics:
+                - "No prompts (PS1, PS2, PS3, PS4)"
+                - "No user interaction (read, select)"
+                - "Automated execution (no waiting for input)"
+                - "Works in CI/CD, cron, Docker (no TTY)"
 
       - id: "5.2"
         name: "Bash Variables"
