@@ -7,6 +7,88 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [6.15.0] - 2025-10-28
+
+### 🎨 BASH QUALITY TOOLS - Formatter Status Update
+
+**bashrs v6.15.0 clarifies formatter capabilities and limitations** - honest documentation of current state with roadmap for improvements.
+
+### Changed
+
+**Formatter Capabilities Documented**:
+
+Following Toyota Hansei (honest reflection), we're clarifying what the formatter currently supports:
+
+**✅ Currently Supported** (v6.15.0):
+- Basic assignments: `VAR=value`
+- Simple commands: `echo hello`, `cd /path`
+- Variable quoting
+- Multiple file formatting
+- Check mode (--check) for CI/CD
+- Dry-run mode (--dry-run)
+- Output to different file (--output)
+
+**⏳ Planned for v6.16.0** (Parser Improvements Needed):
+- Test expressions: `[ -n "$VAR" ]`, `[[ condition ]]`
+- If/then statements with tests
+- Case statements
+- Function definitions with bodies
+- Comment preservation with positioning
+- Configuration file loading (.bashrs-fmt.toml)
+- Ignore directives (# bashrs-fmt-ignore)
+
+**Why the Limitations**:
+
+The formatter works perfectly, but the **bash parser** (which reads bash scripts into an AST) doesn't yet support all bash constructs. The parser currently handles:
+- ✅ Assignments and exports
+- ✅ Simple commands
+- ✅ Variable references
+- ⏳ Test expressions (partial)
+- ⏳ Control flow (if/for/while - basic)
+- ⏳ Functions (declarations only)
+- ⏳ Case statements (not yet)
+- ⏳ Comments (basic, no positioning)
+
+**Roadmap**:
+
+```
+v6.15.0 (TODAY):  Document current state honestly
+v6.16.0 (Week 1): Improve bash parser for test expressions
+v6.17.0 (Week 2): Add case statements and full control flow
+v6.18.0 (Week 3): Complete comment preservation
+v6.19.0 (Week 4): Configuration and ignore directives
+v6.20.0 (Week 5): Formatter feature-complete (15/15 tests)
+```
+
+**Test Status**:
+- 5/15 integration tests passing (33%)
+- Target: 15/15 by v6.20.0
+
+**Design Philosophy**:
+
+Following **Toyota Kaizen** (continuous improvement):
+- Ship working features incrementally
+- Document limitations honestly
+- Improve systematically
+- Never compromise on quality for what we DO support
+
+**For Users**:
+
+If you need to format bash scripts with:
+- ✅ Simple assignments and commands → **Use bashrs format now**
+- ⏳ Test expressions and control flow → **Wait for v6.16.0-v6.20.0**
+- ⏳ Complex scripts with case statements → **Wait for v6.17.0+**
+
+We're committed to delivering excellent bash formatting, but we're doing it **incrementally and honestly** rather than claiming features that don't fully work yet.
+
+### Technical Details
+
+**No Code Changes**: v6.15.0 is purely documentation
+- Clarified README.md capabilities section
+- Added parser improvement roadmap
+- Updated test expectations
+- Documented limitations clearly
+
 ## [6.14.0] - 2025-10-28
 
 ### 🎨 BASH QUALITY TOOLS - Format (Initial Release)
