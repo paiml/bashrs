@@ -380,3 +380,46 @@ fn test_REPL_005_001_help_shows_purify() {
         .stdout(predicate::str::contains(":purify"))
         .stdout(predicate::str::contains("Purify bash code"));
 }
+
+// ===== REPL-006-001: LINTER INTEGRATION TESTS =====
+
+/// Test: REPL-006-001-001 - :lint command with simple command
+#[test]
+fn test_REPL_006_001_lint_simple_command_cli() {
+    bashrs_repl()
+        .write_stdin(":lint echo hello\nquit\n")
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("issue").or(predicate::str::contains("No issues")));
+}
+
+/// Test: REPL-006-001-002 - :lint command shows diagnostics
+#[test]
+fn test_REPL_006_001_lint_shows_diagnostics() {
+    bashrs_repl()
+        .write_stdin(":lint cat file.txt | grep pattern\nquit\n")
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("issue").or(predicate::str::contains("No issues")));
+}
+
+/// Test: REPL-006-001-003 - :lint command with no input shows usage
+#[test]
+fn test_REPL_006_001_lint_no_input_shows_usage() {
+    bashrs_repl()
+        .write_stdin(":lint\nquit\n")
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("Usage: :lint"));
+}
+
+/// Test: REPL-006-001-004 - Help shows :lint command
+#[test]
+fn test_REPL_006_001_help_shows_lint() {
+    bashrs_repl()
+        .write_stdin("help\nquit\n")
+        .assert()
+        .success()
+        .stdout(predicate::str::contains(":lint"))
+        .stdout(predicate::str::contains("Lint bash code"));
+}
