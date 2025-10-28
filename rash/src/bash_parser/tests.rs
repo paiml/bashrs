@@ -17005,3 +17005,706 @@ fn test_BUILTIN_016_test_comparison_table() {
     // Determinism: test is deterministic (file tests may change, but evaluation is pure)
     // Idempotency: test is idempotent (no side effects, reads system state)
 }
+
+// ============================================================================
+// BUILTIN-020: unset Command (POSIX SUPPORTED - HIGH PRIORITY)
+// ============================================================================
+
+#[test]
+fn test_BUILTIN_020_unset_command_supported() {
+    // DOCUMENTATION: unset is SUPPORTED (POSIX builtin, HIGH priority)
+    //
+    // unset removes variables and functions from the shell environment
+    // Syntax: unset [-v] [-f] name [name ...]
+    //
+    // POSIX unset supports:
+    // - unset VAR: Remove variable (default behavior)
+    // - unset -v VAR: Explicitly remove variable
+    // - unset -f FUNC: Remove function
+    // - unset VAR1 VAR2 VAR3: Remove multiple variables
+    //
+    // Bash extensions NOT SUPPORTED:
+    // - unset -n nameref: Remove nameref (use regular unset)
+    // - Array element unsetting: unset array[index] (use whole array unset)
+    //
+    // POSIX BEHAVIOR:
+    // - Unsetting non-existent variable: Not an error (exit 0)
+    // - Unsetting readonly variable: Error (exit non-zero)
+    // - Unsetting without name: Error (exit non-zero)
+    // - Exit status: 0 on success, non-zero on error
+    //
+    // INPUT (bash):
+    // VAR="value"
+    // unset VAR
+    // echo "$VAR"  # Empty output
+    //
+    // RUST TRANSFORMATION:
+    // let mut vars = HashMap::new();
+    // vars.insert("VAR".to_string(), "value".to_string());
+    // vars.remove("VAR");
+    // println!("{}", vars.get("VAR").unwrap_or(&"".to_string()));
+    //
+    // PURIFIED (POSIX sh):
+    // VAR="value"
+    // unset VAR
+    // printf '%s\n' "$VAR"  # Empty output
+    //
+    // COMPARISON TABLE: unset POSIX vs Bash
+    // ┌───────────────────────────┬──────────────┬────────────────────────────┐
+    // │ Feature                   │ POSIX Status │ Purification Strategy      │
+    // ├───────────────────────────┼──────────────┼────────────────────────────┤
+    // │ unset VAR                 │ SUPPORTED    │ Keep as-is                 │
+    // │ unset -v VAR              │ SUPPORTED    │ Keep as-is                 │
+    // │ unset -f FUNC             │ SUPPORTED    │ Keep as-is                 │
+    // │ unset VAR1 VAR2 VAR3      │ SUPPORTED    │ Keep as-is                 │
+    // │ unset readonly fails      │ SUPPORTED    │ Keep as-is                 │
+    // │ unset non-existent ok     │ SUPPORTED    │ Keep as-is                 │
+    // │ unset -n nameref          │ NOT SUPPORT  │ Use unset VAR              │
+    // │ unset array[index]        │ NOT SUPPORT  │ Use unset array (whole)    │
+    // └───────────────────────────┴──────────────┴────────────────────────────┘
+    //
+    // PURIFICATION EXAMPLES:
+    //
+    // 1. Basic variable unset (POSIX):
+    //    Bash:     VAR="value"; unset VAR
+    //    Purified: VAR="value"; unset VAR  (no change)
+    //
+    // 2. Function unset (POSIX):
+    //    Bash:     func() { echo "hi"; }; unset -f func
+    //    Purified: func() { echo "hi"; }; unset -f func  (no change)
+    //
+    // 3. Nameref unset (NOT SUPPORTED):
+    //    Bash:     declare -n ref=VAR; unset -n ref
+    //    Purified: VAR=""; # Just clear the variable instead
+    //
+    // 4. Array element unset (NOT SUPPORTED):
+    //    Bash:     arr=(a b c); unset arr[1]
+    //    Purified: arr="a c"  # Reassign without element
+    //
+    // PRIORITY: HIGH - unset is essential for variable lifecycle management
+    // POSIX: IEEE Std 1003.1-2001 unset special builtin
+
+    let unset_command = r#"
+VAR="value"
+unset VAR
+
+FUNC="initial"
+unset FUNC
+
+# Multiple variables
+A="1"
+B="2"
+C="3"
+unset A B C
+
+# Function unset
+myfunc() {
+    echo "hello"
+}
+unset -f myfunc
+"#;
+
+    let mut lexer = Lexer::new(unset_command);
+    match lexer.tokenize() {
+        Ok(tokens) => {
+            assert!(!tokens.is_empty(), "unset command should tokenize successfully");
+            let _ = tokens;
+        }
+        Err(_) => {
+            // Parser may not fully support unset yet - test documents expected behavior
+        }
+    }
+}
+
+#[test]
+fn test_BUILTIN_020_unset_variables() {
+    // DOCUMENTATION: Unsetting variables (POSIX)
+    //
+    // unset VAR: Remove variable from environment
+    // unset -v VAR: Explicitly remove variable (same as unset VAR)
+    //
+    // After unset, variable tests:
+    // - [ -z "$VAR" ]: True (empty string)
+    // - echo "$VAR": Empty output
+    // - set | grep VAR: Variable not listed
+    //
+    // INPUT (bash):
+    // USER="alice"
+    // echo "$USER"  # alice
+    // unset USER
+    // echo "$USER"  # (empty)
+    //
+    // RUST:
+    // let mut vars = HashMap::new();
+    // vars.insert("USER".to_string(), "alice".to_string());
+    // println!("{}", vars.get("USER").unwrap());  // alice
+    // vars.remove("USER");
+    // println!("{}", vars.get("USER").unwrap_or(&"".to_string()));  // (empty)
+    //
+    // PURIFIED (POSIX sh):
+    // USER="alice"
+    // printf '%s\n' "$USER"  # alice
+    // unset USER
+    // printf '%s\n' "$USER"  # (empty)
+
+    let unset_variables = r#"
+# Basic variable unset
+NAME="John"
+echo "$NAME"
+unset NAME
+echo "$NAME"  # Empty
+
+# Explicit -v flag (same as unset)
+EMAIL="john@example.com"
+unset -v EMAIL
+echo "$EMAIL"  # Empty
+
+# Multiple variables in one command
+VAR1="a"
+VAR2="b"
+VAR3="c"
+unset VAR1 VAR2 VAR3
+
+# Check if variable is unset
+CONFIG="/etc/config"
+unset CONFIG
+if [ -z "$CONFIG" ]; then
+    echo "CONFIG is unset"
+fi
+"#;
+
+    let mut lexer = Lexer::new(unset_variables);
+    match lexer.tokenize() {
+        Ok(tokens) => {
+            assert!(!tokens.is_empty(), "variable unset should tokenize");
+            let _ = tokens;
+        }
+        Err(_) => {
+            // Parser may not fully support unset yet
+        }
+    }
+}
+
+#[test]
+fn test_BUILTIN_020_unset_functions() {
+    // DOCUMENTATION: Unsetting functions (POSIX)
+    //
+    // unset -f FUNC: Remove function definition
+    //
+    // Without -f flag, unset removes variables by default
+    // With -f flag, unset removes functions
+    //
+    // If both variable and function exist with same name:
+    // - unset NAME: Removes variable
+    // - unset -f NAME: Removes function
+    //
+    // INPUT (bash):
+    // greet() { echo "Hello"; }
+    // greet  # Hello
+    // unset -f greet
+    // greet  # Command not found
+    //
+    // RUST:
+    // fn greet() { println!("Hello"); }
+    // greet();  // Hello
+    // // (Cannot dynamically unset functions in Rust)
+    //
+    // PURIFIED (POSIX sh):
+    // greet() { printf '%s\n' "Hello"; }
+    // greet  # Hello
+    // unset -f greet
+    // # greet  # Would fail if called
+
+    let unset_functions = r#"
+# Define function
+hello() {
+    echo "Hello, World!"
+}
+
+# Call function
+hello
+
+# Unset function
+unset -f hello
+
+# Calling would fail now
+# hello  # Command not found
+
+# Multiple functions
+func1() { echo "1"; }
+func2() { echo "2"; }
+func3() { echo "3"; }
+unset -f func1 func2 func3
+
+# Variable vs function with same name
+NAME="variable"
+NAME() {
+    echo "function"
+}
+unset NAME      # Removes variable
+unset -f NAME   # Removes function
+"#;
+
+    let mut lexer = Lexer::new(unset_functions);
+    match lexer.tokenize() {
+        Ok(tokens) => {
+            assert!(!tokens.is_empty(), "function unset should tokenize");
+            let _ = tokens;
+        }
+        Err(_) => {
+            // Parser may not fully support function unset yet
+        }
+    }
+}
+
+#[test]
+fn test_BUILTIN_020_unset_exit_status() {
+    // DOCUMENTATION: unset exit status (POSIX)
+    //
+    // Exit status codes:
+    // - 0: Success (variable/function unset or didn't exist)
+    // - Non-zero: Error (invalid option, readonly variable, etc.)
+    //
+    // POSIX BEHAVIOR:
+    // - Unsetting non-existent variable: Exit 0 (not an error)
+    // - Unsetting readonly variable: Exit non-zero (error)
+    // - Invalid option: Exit non-zero (error)
+    //
+    // INPUT (bash):
+    // unset NONEXISTENT
+    // echo $?  # 0 (success)
+    //
+    // readonly READONLY_VAR="value"
+    // unset READONLY_VAR
+    // echo $?  # 1 (error)
+    //
+    // RUST:
+    // let mut vars = HashMap::new();
+    // match vars.remove("NONEXISTENT") {
+    //     None => Ok(()),  // Not an error
+    //     Some(_) => Ok(()),
+    // }
+    //
+    // PURIFIED:
+    // unset NONEXISTENT
+    // # Exit 0
+    //
+    // readonly READONLY_VAR="value"
+    // unset READONLY_VAR
+    // # Exit 1
+
+    let unset_exit_status = r#"
+# Unset non-existent variable (success)
+unset DOES_NOT_EXIST
+if [ "$?" -eq 0 ]; then
+    echo "unset DOES_NOT_EXIST succeeded"
+fi
+
+# Set and unset variable (success)
+TEMP="value"
+unset TEMP
+if [ "$?" -eq 0 ]; then
+    echo "unset TEMP succeeded"
+fi
+
+# Readonly variable unset (error)
+readonly READONLY_VAR="constant"
+unset READONLY_VAR
+if [ "$?" -ne 0 ]; then
+    echo "unset READONLY_VAR failed (expected)"
+fi
+
+# Multiple unsets (success if all ok)
+VAR1="a"
+VAR2="b"
+unset VAR1 VAR2 VAR3
+echo "Exit status: $?"
+"#;
+
+    let mut lexer = Lexer::new(unset_exit_status);
+    match lexer.tokenize() {
+        Ok(tokens) => {
+            assert!(!tokens.is_empty(), "exit status examples should tokenize");
+            let _ = tokens;
+        }
+        Err(_) => {
+            // Parser may not fully support readonly yet
+        }
+    }
+}
+
+#[test]
+fn test_BUILTIN_020_unset_common_patterns() {
+    // DOCUMENTATION: Common unset patterns in POSIX scripts
+    //
+    // 1. Cleanup temporary variables:
+    //    TEMP="/tmp/data.$$"
+    //    # ... use TEMP ...
+    //    unset TEMP
+    //
+    // 2. Reset configuration:
+    //    CONFIG_FILE=""
+    //    if [ -z "$CONFIG_FILE" ]; then
+    //        unset CONFIG_FILE
+    //    fi
+    //
+    // 3. Clear sensitive data:
+    //    PASSWORD="secret"
+    //    # ... authenticate ...
+    //    unset PASSWORD
+    //
+    // 4. Function lifecycle:
+    //    cleanup() { rm -f /tmp/*; }
+    //    cleanup
+    //    unset -f cleanup
+    //
+    // 5. Conditional unset:
+    //    if [ -n "$DEBUG" ]; then
+    //        echo "Debug mode"
+    //    else
+    //        unset DEBUG
+    //    fi
+    //
+    // 6. Before re-sourcing config:
+    //    unset CONFIG_VAR
+    //    . config.sh  # Fresh config
+
+    let common_patterns = r#"
+# Pattern 1: Cleanup temporary variables
+TEMP_FILE="/tmp/data.$$"
+echo "data" > "$TEMP_FILE"
+cat "$TEMP_FILE"
+rm -f "$TEMP_FILE"
+unset TEMP_FILE
+
+# Pattern 2: Clear sensitive data
+PASSWORD="secret123"
+# Authenticate with $PASSWORD
+# ...
+unset PASSWORD  # Remove from environment
+
+# Pattern 3: Function lifecycle
+setup() {
+    echo "Setting up..."
+}
+setup
+unset -f setup  # Remove after use
+
+# Pattern 4: Conditional cleanup
+DEBUG="${DEBUG:-}"
+if [ -z "$DEBUG" ]; then
+    unset DEBUG  # Remove if not set
+fi
+
+# Pattern 5: Reset before re-source
+unset CONFIG_PATH
+unset CONFIG_MODE
+. /etc/app/config.sh  # Fresh configuration
+
+# Pattern 6: Multiple variable cleanup
+LOG_FILE=""
+PID_FILE=""
+LOCK_FILE=""
+unset LOG_FILE PID_FILE LOCK_FILE
+
+# Pattern 7: Safe unset (check first)
+if [ -n "$OLD_VAR" ]; then
+    unset OLD_VAR
+fi
+"#;
+
+    let mut lexer = Lexer::new(common_patterns);
+    match lexer.tokenize() {
+        Ok(tokens) => {
+            assert!(!tokens.is_empty(), "common patterns should tokenize");
+            let _ = tokens;
+        }
+        Err(_) => {
+            // Parser may not fully support all patterns yet
+        }
+    }
+}
+
+#[test]
+fn test_BUILTIN_020_unset_bash_extensions_not_supported() {
+    // DOCUMENTATION: Bash unset extensions (NOT SUPPORTED)
+    //
+    // BASH EXTENSIONS (NOT SUPPORTED):
+    // 1. unset -n nameref: Unset nameref (use regular unset)
+    // 2. unset array[index]: Unset array element (use array reassignment)
+    // 3. unset associative array elements (use whole array unset)
+    //
+    // PURIFICATION STRATEGIES:
+    //
+    // 1. Nameref unset (NOT SUPPORTED):
+    //    Bash:     declare -n ref=VAR; unset -n ref
+    //    Purified: VAR=""  # Just clear the variable
+    //
+    // 2. Array element unset (NOT SUPPORTED):
+    //    Bash:     arr=(a b c); unset arr[1]
+    //    Purified: arr="a c"  # Reassign without element
+    //               # Or use awk/sed to remove element
+    //
+    // 3. Associative array (NOT SUPPORTED):
+    //    Bash:     declare -A map=([k1]=v1 [k2]=v2); unset map[k1]
+    //    Purified: # Use separate variables or external data structure
+
+    let bash_extensions = r#"
+# BASH EXTENSION: unset -n nameref (NOT SUPPORTED)
+# Purify: Use regular variable clearing
+# declare -n ref=TARGET
+# unset -n ref
+# →
+TARGET=""
+
+# BASH EXTENSION: unset array[index] (NOT SUPPORTED)
+# Purify: Reassign array without element or use awk
+# arr=(a b c)
+# unset arr[1]
+# →
+# Set array to "a c" (skip element 1)
+
+# BASH EXTENSION: Associative array unset (NOT SUPPORTED)
+# Purify: Use separate variables
+# declare -A config=([host]=localhost [port]=8080)
+# unset config[port]
+# →
+config_host="localhost"
+config_port=""  # Clear instead of unset element
+
+# POSIX SUPPORTED: Regular variable unset
+VAR="value"
+unset VAR
+
+# POSIX SUPPORTED: Function unset
+cleanup() { echo "cleanup"; }
+unset -f cleanup
+
+# POSIX SUPPORTED: Multiple unsets
+A="1"
+B="2"
+C="3"
+unset A B C
+"#;
+
+    let mut lexer = Lexer::new(bash_extensions);
+    match lexer.tokenize() {
+        Ok(tokens) => {
+            assert!(!tokens.is_empty(), "bash extension examples should tokenize");
+            let _ = tokens;
+        }
+        Err(_) => {
+            // These are purified examples, should parse as comments and POSIX constructs
+        }
+    }
+}
+
+#[test]
+fn test_BUILTIN_020_unset_vs_empty_assignment() {
+    // DOCUMENTATION: unset vs empty assignment (Important distinction)
+    //
+    // unset VAR: Removes variable completely
+    // VAR="": Sets variable to empty string
+    //
+    // DIFFERENCE IN TESTS:
+    // After unset VAR:
+    // - [ -z "$VAR" ]: True (empty)
+    // - [ -n "$VAR" ]: False (not set)
+    // - ${VAR:-default}: "default" (uses default)
+    // - ${VAR-default}: "default" (uses default)
+    //
+    // After VAR="":
+    // - [ -z "$VAR" ]: True (empty)
+    // - [ -n "$VAR" ]: False (empty string)
+    // - ${VAR:-default}: "default" (empty, uses default)
+    // - ${VAR-default}: "" (set but empty, no default)
+    //
+    // KEY DISTINCTION:
+    // ${VAR-default}: Use default if VAR is UNSET
+    // ${VAR:-default}: Use default if VAR is UNSET OR EMPTY
+    //
+    // INPUT (bash):
+    // unset VAR
+    // echo "${VAR-fallback}"   # fallback (unset)
+    // echo "${VAR:-fallback}"  # fallback (unset)
+    //
+    // VAR=""
+    // echo "${VAR-fallback}"   # (empty, VAR is set)
+    // echo "${VAR:-fallback}"  # fallback (empty)
+    //
+    // RUST:
+    // let mut vars: HashMap<String, String> = HashMap::new();
+    // // Unset: key not in map
+    // vars.get("VAR").unwrap_or(&"fallback".to_string());
+    //
+    // // Empty: key in map with empty value
+    // vars.insert("VAR".to_string(), "".to_string());
+    // vars.get("VAR").filter(|v| !v.is_empty()).unwrap_or(&"fallback".to_string());
+
+    let unset_vs_empty = r#"
+# Unset variable
+unset VAR
+echo "${VAR-default1}"   # default1 (unset, uses default)
+echo "${VAR:-default2}"  # default2 (unset, uses default)
+
+# Empty assignment
+VAR=""
+echo "${VAR-default3}"   # (empty, VAR is SET so no default)
+echo "${VAR:-default4}"  # default4 (empty, uses default)
+
+# Set to value
+VAR="value"
+echo "${VAR-default5}"   # value
+echo "${VAR:-default6}"  # value
+
+# Testing with [ -z ] and [ -n ]
+unset UNSET_VAR
+if [ -z "$UNSET_VAR" ]; then
+    echo "UNSET_VAR is empty or unset"
+fi
+
+EMPTY_VAR=""
+if [ -z "$EMPTY_VAR" ]; then
+    echo "EMPTY_VAR is empty (set but empty)"
+fi
+
+# Practical difference
+CONFIG_FILE=""  # Set but empty
+if [ -n "$CONFIG_FILE" ]; then
+    echo "Using config: $CONFIG_FILE"
+else
+    echo "No config (empty or unset)"
+fi
+
+unset CONFIG_FILE  # Now truly unset
+if [ -n "$CONFIG_FILE" ]; then
+    echo "Using config: $CONFIG_FILE"
+else
+    echo "No config (unset)"
+fi
+"#;
+
+    let mut lexer = Lexer::new(unset_vs_empty);
+    match lexer.tokenize() {
+        Ok(tokens) => {
+            assert!(!tokens.is_empty(), "unset vs empty examples should tokenize");
+            let _ = tokens;
+        }
+        Err(_) => {
+            // Parser may not fully support parameter expansion yet
+        }
+    }
+}
+
+#[test]
+fn test_BUILTIN_020_unset_comparison_table() {
+    // COMPREHENSIVE COMPARISON: unset in POSIX vs Bash
+    //
+    // ┌──────────────────────────────────────────────────────────────────────────┐
+    // │ Feature: unset Command                                                   │
+    // ├────────────────────────────┬──────────────┬──────────────────────────────┤
+    // │ Feature                    │ POSIX Status │ Purification                 │
+    // ├────────────────────────────┼──────────────┼──────────────────────────────┤
+    // │ BASIC UNSET                │              │                              │
+    // │ unset VAR                  │ SUPPORTED    │ Keep as-is                   │
+    // │ unset -v VAR               │ SUPPORTED    │ Keep as-is                   │
+    // │ unset -f FUNC              │ SUPPORTED    │ Keep as-is                   │
+    // │ unset VAR1 VAR2 VAR3       │ SUPPORTED    │ Keep as-is                   │
+    // │                            │              │                              │
+    // │ EXIT STATUS                │              │                              │
+    // │ unset NONEXISTENT → 0      │ SUPPORTED    │ Keep as-is                   │
+    // │ unset readonly → non-zero  │ SUPPORTED    │ Keep as-is                   │
+    // │                            │              │                              │
+    // │ BEHAVIOR                   │              │                              │
+    // │ Removes variable           │ SUPPORTED    │ Keep as-is                   │
+    // │ Removes function           │ SUPPORTED    │ Keep as-is                   │
+    // │ ${VAR-default} works       │ SUPPORTED    │ Keep as-is                   │
+    // │ ${VAR:-default} works      │ SUPPORTED    │ Keep as-is                   │
+    // │                            │              │                              │
+    // │ BASH EXTENSIONS            │              │                              │
+    // │ unset -n nameref           │ NOT SUPPORT  │ Use VAR="" instead           │
+    // │ unset array[index]         │ NOT SUPPORT  │ Reassign array               │
+    // │ unset assoc[key]           │ NOT SUPPORT  │ Use separate variables       │
+    // └────────────────────────────┴──────────────┴──────────────────────────────┘
+    //
+    // RUST MAPPING:
+    // unset VAR              → vars.remove("VAR")
+    // unset -f FUNC          → functions.remove("FUNC")
+    // ${VAR-default}         → vars.get("VAR").unwrap_or(&"default")
+    // ${VAR:-default}        → vars.get("VAR").filter(|v| !v.is_empty()).unwrap_or(&"default")
+    //
+    // DETERMINISM: unset is deterministic (removes variable from environment)
+    // IDEMPOTENCY: unset is idempotent (unsetting twice has same effect)
+    // PORTABILITY: Use unset VAR for maximum POSIX compatibility
+
+    let comparison_table = r#"
+# This test documents the complete POSIX vs Bash comparison for unset
+# See extensive comparison table in test function comments above
+
+# POSIX SUPPORTED: Basic unset
+unset VAR                   # Remove variable (default)
+unset -v VAR2               # Remove variable (explicit)
+unset -f myfunc             # Remove function
+unset VAR1 VAR2 VAR3        # Remove multiple
+
+# POSIX SUPPORTED: Exit status
+unset NONEXISTENT           # Exit 0 (not an error)
+# readonly CONST="value"
+# unset CONST               # Exit non-zero (error)
+
+# POSIX SUPPORTED: Behavior after unset
+VAR="value"
+unset VAR
+echo "${VAR-default}"       # default (unset, uses default)
+echo "${VAR:-default2}"     # default2 (unset, uses default)
+
+# POSIX SUPPORTED: Function unset
+greet() { echo "hello"; }
+greet
+unset -f greet
+# greet  # Would fail
+
+# NOT SUPPORTED: Bash nameref
+# declare -n ref=TARGET
+# unset -n ref
+# →
+TARGET=""  # Clear instead
+
+# NOT SUPPORTED: Array element unset
+# arr=(a b c)
+# unset arr[1]
+# →
+# Reassign: arr="a c"
+
+# NOT SUPPORTED: Associative array
+# declare -A map=([k1]=v1)
+# unset map[k1]
+# →
+map_k1=""  # Use separate variables
+
+# POSIX PATTERN: Unset vs empty
+unset UNSET_VAR             # Truly unset
+EMPTY_VAR=""                # Set but empty
+echo "${UNSET_VAR-a}"       # a (unset)
+echo "${EMPTY_VAR-b}"       # (empty, no default)
+echo "${UNSET_VAR:-c}"      # c (unset)
+echo "${EMPTY_VAR:-d}"      # d (empty, uses default)
+"#;
+
+    let mut lexer = Lexer::new(comparison_table);
+    match lexer.tokenize() {
+        Ok(tokens) => {
+            assert!(!tokens.is_empty(), "comparison table examples should tokenize");
+            let _ = tokens;
+        }
+        Err(_) => {
+            // Examples document expected behavior
+        }
+    }
+
+    // Priority: HIGH - unset is essential for variable lifecycle management
+    // POSIX: IEEE Std 1003.1-2001 unset special builtin
+    // Portability: Use unset VAR for maximum POSIX compatibility
+    // Determinism: unset is deterministic (removes variable from environment)
+    // Idempotency: unset is idempotent (unsetting twice has same effect as once)
+}

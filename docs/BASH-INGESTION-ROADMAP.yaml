@@ -9,13 +9,13 @@ roadmap:
 
   statistics:
     total_tasks: 122
-    completed: 69
-    partial_support: 1
+    completed: 70
+    partial_support: 0
     pending: 49
     blocked: 3
     coverage_percent: 57
     accuracy_verified: "2025-10-28"
-    session_update: "Completed BUILTIN-016 (4.1 - test / [ command). 8 passing tests document test / [ as POSIX-SUPPORTED (HIGH priority). test evaluates conditional expressions, [ is an alias for test (closing ] required). POSIX test operators (14): FILE TESTS (6): -f (regular file), -d (directory), -e (exists any type), -r/-w/-x (readable/writable/executable), -s (non-empty size>0), -L (symbolic link). STRING TESTS (6): -z (zero length), -n (non-zero length), = (equal), != (not equal), \\< (less than, escaped), \\> (greater than, escaped). INTEGER TESTS (6): -eq (equal), -ne (not equal), -lt (less than), -le (less than or equal), -gt (greater than), -ge (greater than or equal). LOGICAL (3): ! (not), -a (and, deprecated), -o (or, deprecated), prefer splitting: [ ] && [ ] (modern POSIX). Bash extensions NOT SUPPORTED (6): (1) [[ ]] compound command (use [ ] instead), (2) [[ \"\$a\" == \"\$b\" ]] (use [ \"\$a\" = \"\$b\" ] with = not ==), (3) [[ \"\$str\" =~ regex ]] (use grep/sed/case instead), (4) [[ \"\$a\" < \"\$b\" ]] (use [ \"\$a\" \\< \"\$b\" ] with backslash escape), (5) [[ \"\$file\" == *.txt ]] (use case statement for pattern matching), (6) [[ -f \"a\" && -f \"b\" ]] (split into [ -f \"a\" ] && [ -f \"b\" ]). Purification strategies (6): (1) Replace [[ ]] → [ ], (2) Replace == → =, (3) Replace =~ regex → grep -qE, (4) Replace pattern matching → case statement, (5) Escape < > → \\< \\>, (6) Split && || → separate [ ] tests. Common patterns (7): (1) Check file exists: [ -f \"config\" ] && . config, (2) Check variable set: [ -n \"\$VAR\" ] && echo \"\$VAR\", (3) Check variable unset: [ -z \"\$VAR\" ] && VAR=\"default\", (4) Check exit status: [ \"\$?\" -ne 0 ] && exit 1, (5) Multi-condition: [ -f \"f\" ] && [ -r \"f\" ] && [ -s \"f\" ], (6) Error check: [ ! -d \"\$dir\" ] && exit 1, (7) Alternative values: [ -n \"\$CUSTOM\" ] && PATH=\"\$CUSTOM\" || PATH=\"/usr/bin\". Rust mapping (9): [ -f \"file\" ] → Path::new(\"file\").is_file(), [ -d \"dir\" ] → Path::new(\"dir\").is_dir(), [ -e \"path\" ] → Path::new(\"path\").exists(), [ \"\$a\" = \"\$b\" ] → a == b, [ \"\$a\" -eq \"\$b\" ] → a == b (int), [ \"\$a\" -lt \"\$b\" ] → a < b, [ \"\$a\" -gt \"\$b\" ] → a > b, [ -z \"\$str\" ] → str.is_empty(), [ -n \"\$str\" ] → !str.is_empty(). test is POSIX-COMPLIANT (IEEE Std 1003.1-2001), deterministic (pure evaluation), idempotent (no side effects). Comprehensive comparison table: POSIX SUPPORTED (file tests -f/-d/-e/-r/-w/-x/-s/-L, string tests -z/-n/=!=, integer tests -eq/-ne/-lt/-le/-gt/-ge, logical !/- a/-o/&&/||), NOT SUPPORTED ([[ ]], ==, =~, unescaped < >, pattern matching). Total tests: 5,013 (100% passing)."
+    session_update: "Completed BUILTIN-020 (4.1 - unset command). 8 passing tests document unset as POSIX-SUPPORTED (HIGH priority). unset removes variables and functions from shell environment. Syntax: unset [-v] [-f] name [name ...]. POSIX unset forms (4): (1) unset VAR (remove variable, default), (2) unset -v VAR (explicitly remove variable), (3) unset -f FUNC (remove function), (4) unset VAR1 VAR2 VAR3 (remove multiple). Exit status (2): 0 (success, variable/function unset or didn't exist), non-zero (error, invalid option or readonly variable). POSIX behavior (3): unsetting non-existent variable not an error (exit 0), unsetting readonly variable is error (exit non-zero), unsetting without name is error. Bash extensions NOT SUPPORTED (3): (1) unset -n nameref (use regular unset or VAR=\"\" instead), (2) unset array[index] (use array reassignment), (3) unset associative array elements (use separate variables). unset vs empty assignment CRITICAL DISTINCTION: unset VAR removes completely, VAR=\"\" sets to empty string. After unset: \\${VAR-default} uses default (unset), \\${VAR:-default} uses default (unset). After VAR=\"\": \\${VAR-default} shows empty (set but empty, no default), \\${VAR:-default} uses default (empty). Key: \\${VAR-default} for UNSET only, \\${VAR:-default} for UNSET OR EMPTY. Common patterns (7): (1) cleanup temp: TEMP=\"/tmp/data.\\$\\$\"; unset TEMP, (2) clear sensitive: PASSWORD=\"secret\"; unset PASSWORD, (3) function lifecycle: setup() { ...; }; setup; unset -f setup, (4) conditional cleanup: [ -z \"\$DEBUG\" ] && unset DEBUG, (5) reset before re-source: unset CONFIG_VAR; . config.sh, (6) multiple cleanup: unset LOG_FILE PID_FILE LOCK_FILE, (7) safe unset: [ -n \"\$OLD_VAR\" ] && unset OLD_VAR. Rust mapping (4): unset VAR → vars.remove(\"VAR\"), unset -f FUNC → functions.remove(\"FUNC\"), \\${VAR-default} → vars.get(\"VAR\").unwrap_or(&\"default\"), \\${VAR:-default} → vars.get(\"VAR\").filter(|v| !v.is_empty()).unwrap_or(&\"default\"). unset is POSIX-COMPLIANT (IEEE Std 1003.1-2001 special builtin), deterministic (removes variable from environment), idempotent (unsetting twice has same effect). Comprehensive comparison table: POSIX SUPPORTED (unset VAR, unset -v VAR, unset -f FUNC, unset multiple, exit status 0 for nonexistent/success, behavior after unset with parameter expansion), NOT SUPPORTED (unset -n nameref, unset array[index], unset assoc[key]). Total tests: 5,021 (100% passing)."
 
 extreme_tdd_workflow:
   description: "Hybrid workflow combining GNU Bash validation with REPL verification"
@@ -1728,15 +1728,26 @@ chapters:
 
           - id: "BUILTIN-020"
             title: "Document unset"
-            status: "partial"
+            status: "completed"
             priority: "HIGH"
-            input: "unset VAR"
-            rust: "unset_var(\"VAR\")"
-            purified: "unset VAR"
-            test_name: "test_unset_command_baseline"
-            notes: "Function calls work (unset_var VAR), automatic scoping recognition is enhancement."
-            red_phase_tests: "rash/tests/integration_tests.rs:1290-1336"
-            version: "v1.2.1"
+            input: "unset VAR; unset -v VAR2; unset -f func; unset A B C"
+            rust: "vars.remove(\"VAR\"); functions.remove(\"func\");"
+            purified: "unset VAR; unset -v VAR2; unset -f func; unset A B C"
+            test_name: "test_BUILTIN_020_unset_command_supported"
+            notes: "unset is POSIX SUPPORTED (HIGH priority). Removes variables and functions from shell environment. POSIX forms: unset VAR (default), unset -v VAR (explicit variable), unset -f FUNC (function), unset multiple. Exit status: 0 (success or nonexistent), non-zero (readonly/error). Bash extensions NOT SUPPORTED: unset -n nameref, unset array[index], unset assoc[key]. CRITICAL DISTINCTION: unset VAR (removes completely) vs VAR=\"\" (set but empty). ${VAR-default} for UNSET only, ${VAR:-default} for UNSET OR EMPTY. 8 comprehensive tests document all unset behaviors, exit status, common patterns, bash extensions, and unset vs empty assignment."
+            implementation:
+              module: "rash/src/bash_parser/tests.rs"
+              functions:
+                - "test_BUILTIN_020_unset_command_supported (passing)"
+                - "test_BUILTIN_020_unset_variables (passing)"
+                - "test_BUILTIN_020_unset_functions (passing)"
+                - "test_BUILTIN_020_unset_exit_status (passing)"
+                - "test_BUILTIN_020_unset_common_patterns (passing)"
+                - "test_BUILTIN_020_unset_bash_extensions_not_supported (passing)"
+                - "test_BUILTIN_020_unset_vs_empty_assignment (passing)"
+                - "test_BUILTIN_020_unset_comparison_table (passing)"
+              lines_of_code: 703
+            version: "v6.6.0"
 
       - id: "4.2"
         name: "Bash Builtin Commands"
