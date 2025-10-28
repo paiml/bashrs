@@ -12,6 +12,7 @@
 use crate::repl::ReplConfig;
 use anyhow::Result;
 use rustyline::DefaultEditor;
+use std::path::PathBuf;
 
 /// Main REPL loop for bashrs
 ///
@@ -41,6 +42,12 @@ pub fn run_repl(config: ReplConfig) -> Result<()> {
 
     // Initialize rustyline editor
     let mut editor = DefaultEditor::new()?;
+
+    // Load history from file (if exists)
+    let history_path = get_history_path()?;
+    if history_path.exists() {
+        let _ = editor.load_history(&history_path);
+    }
 
     // Print welcome banner
     println!("bashrs REPL v{}", env!("CARGO_PKG_VERSION"));
@@ -94,6 +101,9 @@ pub fn run_repl(config: ReplConfig) -> Result<()> {
         }
     }
 
+    // Save history before exiting
+    let _ = editor.save_history(&history_path);
+
     Ok(())
 }
 
@@ -110,6 +120,31 @@ fn print_help() {
     println!("  lint     - Lint bash script");
     println!("  debug    - Debug bash script");
     println!("  explain  - Explain bash construct");
+}
+
+/// Get history file path
+///
+/// Returns the path to the REPL history file.
+/// Default location: ~/.bashrs_history
+///
+/// # Examples
+///
+/// ```rust,no_run
+/// # use anyhow::Result;
+/// # fn main() -> Result<()> {
+/// let history_path = get_history_path()?;
+/// println!("History at: {:?}", history_path);
+/// # Ok(())
+/// # }
+/// ```
+fn get_history_path() -> Result<PathBuf> {
+    // Use home directory for history file
+    let home = std::env::var("HOME")
+        .or_else(|_| std::env::var("USERPROFILE"))
+        .unwrap_or_else(|_| ".".to_string());
+
+    let history_path = PathBuf::from(home).join(".bashrs_history");
+    Ok(history_path)
 }
 
 #[cfg(test)]
@@ -149,5 +184,36 @@ mod tests {
         // Actual EOF handling tested via assert_cmd CLI tests
         let config = ReplConfig::default();
         assert!(config.validate().is_ok());
+    }
+
+    // ===== REPL-003-003: HISTORY PERSISTENCE TESTS =====
+
+    /// Test: REPL-003-003-001 - Get history path returns valid path
+    #[test]
+    fn test_REPL_003_003_history_path() {
+        let path = get_history_path();
+        assert!(path.is_ok());
+
+        let path = path.unwrap();
+        assert!(path.to_string_lossy().contains(".bashrs_history"));
+    }
+
+    /// Test: REPL-003-003-002 - History path uses HOME directory
+    #[test]
+    fn test_REPL_003_003_history_path_uses_home() {
+        let path = get_history_path().unwrap();
+        let home = std::env::var("HOME")
+            .or_else(|_| std::env::var("USERPROFILE"))
+            .unwrap_or_else(|_| ".".to_string());
+
+        assert!(path.starts_with(home));
+    }
+
+    /// Test: REPL-003-003-003 - History path is deterministic
+    #[test]
+    fn test_REPL_003_003_history_path_deterministic() {
+        let path1 = get_history_path().unwrap();
+        let path2 = get_history_path().unwrap();
+        assert_eq!(path1, path2);
     }
 }
