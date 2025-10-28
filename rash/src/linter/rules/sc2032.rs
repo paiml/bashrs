@@ -31,79 +31,91 @@ static VARIABLE_ASSIGNMENT: Lazy<Regex> = Lazy::new(|| {
     Regex::new(r"^([a-zA-Z_][a-zA-Z0-9_]*)=").unwrap()
 });
 
+/// Check if script has shebang line
+fn has_shebang(lines: &[&str]) -> bool {
+    !lines.is_empty() && lines[0].starts_with("#!")
+}
+
+/// Check if line is a comment
+fn is_comment(line: &str) -> bool {
+    line.trim_start().starts_with('#')
+}
+
+/// Check if line is an export statement
+fn is_export_statement(line: &str) -> bool {
+    line.trim_start().starts_with("export ")
+}
+
+/// Check if line is a local variable declaration
+fn is_local_declaration(line: &str) -> bool {
+    line.trim_start().starts_with("local ")
+}
+
+/// Check if line is a readonly declaration
+fn is_readonly_declaration(line: &str) -> bool {
+    line.trim_start().starts_with("readonly ")
+}
+
+/// Check if variable should be skipped (special shell variables)
+fn is_special_variable(var_name: &str) -> bool {
+    matches!(var_name, "PATH" | "IFS" | "PS1" | "HOME")
+}
+
+/// Calculate span for variable assignment
+fn calculate_span(line: &str, var_name: &str, line_num: usize) -> Span {
+    let pos = line.find(var_name).unwrap_or(0);
+    let start_col = pos + 1;
+    let end_col = start_col + var_name.len() + 1; // +1 for =
+    Span::new(line_num, start_col, line_num, end_col)
+}
+
+/// Build diagnostic for variable assignment in shebang script
+fn build_diagnostic(var_name: &str, span: Span) -> Diagnostic {
+    Diagnostic::new(
+        "SC2032",
+        Severity::Info,
+        format!(
+            "Variable '{}' assigned in script with shebang. To affect caller, source this script (source {}) or remove shebang",
+            var_name, "script.sh"
+        ),
+        span,
+    )
+}
+
 pub fn check(source: &str) -> LintResult {
     let mut result = LintResult::new();
-
-    // Check if script has shebang
     let lines: Vec<&str> = source.lines().collect();
-    if lines.is_empty() {
+
+    if !has_shebang(&lines) {
         return result;
     }
 
-    let has_shebang = lines[0].starts_with("#!");
-
-    if !has_shebang {
-        // No shebang means it's likely meant to be sourced, OK
-        return result;
-    }
-
-    // If script has shebang, check for variable assignments that might be
-    // intended to affect the caller (but won't because it's executed, not sourced)
     for (line_num, line) in lines.iter().enumerate().skip(1) {
         let line_num = line_num + 1;
 
-        if line.trim_start().starts_with('#') {
+        if is_comment(line) {
             continue;
         }
 
-        // Look for top-level variable assignments (not in functions)
-        // This is a heuristic - we can't reliably detect function context
-        // without full AST parsing
-        if VARIABLE_ASSIGNMENT.is_match(line.trim_start()) {
-            // Skip export (those are meant for subprocesses)
-            if line.trim_start().starts_with("export ") {
+        if !VARIABLE_ASSIGNMENT.is_match(line.trim_start()) {
+            continue;
+        }
+
+        if is_export_statement(line) || is_local_declaration(line) || is_readonly_declaration(line)
+        {
+            continue;
+        }
+
+        if let Some(cap) = VARIABLE_ASSIGNMENT.captures(line.trim_start()) {
+            let var_name = cap.get(1).unwrap().as_str();
+
+            if is_special_variable(var_name) {
                 continue;
             }
 
-            // Skip local (function-local)
-            if line.trim_start().starts_with("local ") {
-                continue;
-            }
-
-            // Skip readonly (constant declaration)
-            if line.trim_start().starts_with("readonly ") {
-                continue;
-            }
-
-            // Detect variable assignment
-            if let Some(cap) = VARIABLE_ASSIGNMENT.captures(line.trim_start()) {
-                let var_name = cap.get(1).unwrap().as_str();
-
-                // Skip common special variables and PATH-like vars
-                if var_name == "PATH"
-                    || var_name == "IFS"
-                    || var_name == "PS1"
-                    || var_name == "HOME"
-                {
-                    continue;
-                }
-
-                let pos = line.find(var_name).unwrap_or(0);
-                let start_col = pos + 1;
-                let end_col = start_col + var_name.len() + 1; // +1 for =
-
-                let diagnostic = Diagnostic::new(
-                    "SC2032",
-                    Severity::Info,
-                    format!(
-                        "Variable '{}' assigned in script with shebang. To affect caller, source this script (source {}) or remove shebang",
-                        var_name, "script.sh"
-                    ),
-                    Span::new(line_num, start_col, line_num, end_col),
-                );
-
-                result.add(diagnostic);
-            }
+            let span = calculate_span(line, var_name, line_num);
+            let diagnostic = build_diagnostic(var_name, span);
+            result.add(diagnostic);
         }
     }
 
