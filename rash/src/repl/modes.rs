@@ -37,18 +37,20 @@ pub enum ReplMode {
 }
 
 impl ReplMode {
-    /// Parse mode from string
+    /// Parse mode from string (case-insensitive)
+    ///
+    /// This is a convenience method. You can also use `str::parse()` or `from_str()`.
     ///
     /// # Examples
     ///
     /// ```
     /// use bashrs::repl::modes::ReplMode;
     ///
-    /// assert_eq!(ReplMode::from_str("normal"), Ok(ReplMode::Normal));
-    /// assert_eq!(ReplMode::from_str("purify"), Ok(ReplMode::Purify));
-    /// assert_eq!(ReplMode::from_str("invalid"), Err("Unknown mode: invalid"));
+    /// assert_eq!(ReplMode::parse("normal").unwrap(), ReplMode::Normal);
+    /// assert_eq!(ReplMode::parse("purify").unwrap(), ReplMode::Purify);
+    /// assert!(ReplMode::parse("invalid").is_err());
     /// ```
-    pub fn from_str(s: &str) -> Result<Self, &'static str> {
+    pub fn parse(s: &str) -> Result<Self, &'static str> {
         match s.to_lowercase().as_str() {
             "normal" => Ok(ReplMode::Normal),
             "purify" => Ok(ReplMode::Purify),
@@ -105,6 +107,14 @@ impl std::fmt::Display for ReplMode {
     }
 }
 
+impl std::str::FromStr for ReplMode {
+    type Err = &'static str;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        Self::parse(s)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -123,7 +133,7 @@ mod tests {
     /// Test: REPL-003-004-002 - Purify mode
     #[test]
     fn test_REPL_003_004_mode_purify() {
-        let mode = ReplMode::from_str("purify").unwrap();
+        let mode = ReplMode::parse("purify").unwrap();
         assert_eq!(mode, ReplMode::Purify);
         assert_eq!(mode.as_str(), "purify");
         assert!(mode.description().contains("purified"));
@@ -132,7 +142,7 @@ mod tests {
     /// Test: REPL-003-004-003 - Lint mode
     #[test]
     fn test_REPL_003_004_mode_lint() {
-        let mode = ReplMode::from_str("lint").unwrap();
+        let mode = ReplMode::parse("lint").unwrap();
         assert_eq!(mode, ReplMode::Lint);
         assert_eq!(mode.as_str(), "lint");
         assert!(mode.description().contains("linting"));
@@ -141,7 +151,7 @@ mod tests {
     /// Test: REPL-003-004-004 - Debug mode
     #[test]
     fn test_REPL_003_004_mode_debug() {
-        let mode = ReplMode::from_str("debug").unwrap();
+        let mode = ReplMode::parse("debug").unwrap();
         assert_eq!(mode, ReplMode::Debug);
         assert_eq!(mode.as_str(), "debug");
         assert!(mode.description().contains("Debug"));
@@ -150,7 +160,7 @@ mod tests {
     /// Test: REPL-003-004-005 - Explain mode
     #[test]
     fn test_REPL_003_004_mode_explain() {
-        let mode = ReplMode::from_str("explain").unwrap();
+        let mode = ReplMode::parse("explain").unwrap();
         assert_eq!(mode, ReplMode::Explain);
         assert_eq!(mode.as_str(), "explain");
         assert!(mode.description().contains("Explain"));
@@ -159,7 +169,7 @@ mod tests {
     /// Test: REPL-003-004-006 - Invalid mode returns error
     #[test]
     fn test_REPL_003_004_mode_invalid() {
-        let result = ReplMode::from_str("invalid");
+        let result = ReplMode::parse("invalid");
         assert!(result.is_err());
         assert!(result.unwrap_err().contains("Unknown mode"));
     }
@@ -167,9 +177,9 @@ mod tests {
     /// Test: REPL-003-004-007 - Mode parsing is case-insensitive
     #[test]
     fn test_REPL_003_004_mode_case_insensitive() {
-        assert_eq!(ReplMode::from_str("NORMAL").unwrap(), ReplMode::Normal);
-        assert_eq!(ReplMode::from_str("Purify").unwrap(), ReplMode::Purify);
-        assert_eq!(ReplMode::from_str("LINT").unwrap(), ReplMode::Lint);
+        assert_eq!(ReplMode::parse("NORMAL").unwrap(), ReplMode::Normal);
+        assert_eq!(ReplMode::parse("Purify").unwrap(), ReplMode::Purify);
+        assert_eq!(ReplMode::parse("LINT").unwrap(), ReplMode::Lint);
     }
 
     /// Test: REPL-003-004-008 - Display trait formats correctly
@@ -193,6 +203,6 @@ mod tests {
     fn test_REPL_003_004_mode_equality() {
         assert_eq!(ReplMode::Normal, ReplMode::Normal);
         assert_ne!(ReplMode::Normal, ReplMode::Purify);
-        assert_eq!(ReplMode::from_str("lint").unwrap(), ReplMode::Lint);
+        assert_eq!(ReplMode::parse("lint").unwrap(), ReplMode::Lint);
     }
 }
