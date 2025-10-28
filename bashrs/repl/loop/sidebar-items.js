@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"fn":["print_help","run_repl"]};
+window.SIDEBAR_ITEMS = {"fn":["get_history_path","print_help","run_repl"]};
