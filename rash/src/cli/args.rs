@@ -202,6 +202,21 @@ pub enum Commands {
         #[arg(long)]
         pattern: Option<String>,
     },
+
+    /// Score bash script quality (NEW in v6.10.0 - Bash Quality Tools)
+    Score {
+        /// Input bash script file
+        #[arg(value_name = "FILE")]
+        input: PathBuf,
+
+        /// Output format
+        #[arg(long, value_enum, default_value = "human")]
+        format: ScoreOutputFormat,
+
+        /// Show detailed dimension scores
+        #[arg(long)]
+        detailed: bool,
+    },
 }
 
 #[derive(Subcommand)]
@@ -394,6 +409,17 @@ pub enum TestOutputFormat {
     Json,
     /// JUnit XML format
     Junit,
+}
+
+/// Output format for score results
+#[derive(Clone, Debug, ValueEnum)]
+pub enum ScoreOutputFormat {
+    /// Human-readable format
+    Human,
+    /// JSON format
+    Json,
+    /// Markdown report
+    Markdown,
 }
 
 impl ValueEnum for VerificationLevel {

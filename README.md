@@ -434,7 +434,84 @@ bashrs test script.sh --format junit
 - ✅ **Fast execution** - Native test runner
 - ✅ **CI/CD ready** - Multiple output formats
 
-**Future**: This is the MVP. Future releases will add `bashrs score` (quality scoring), `bashrs coverage` (test coverage), and `bashrs format` (code formatting).
+### Bash Quality Scoring (NEW in v6.11.0) 📊
+
+bashrs now includes a **quality scoring system** that evaluates bash scripts across 5 dimensions with TDG-style grading:
+
+```bash
+# Score a bash script
+$ bashrs score script.sh
+
+Bash Script Quality Score
+=========================
+
+Overall Grade: A+
+Overall Score: 9.9/10.0
+
+✓ Excellent! Near-perfect code quality.
+```
+
+**Scoring Dimensions** (5 dimensions, weighted):
+1. **Complexity** (25%): Function length, nesting depth
+2. **Safety** (30%): Variable quoting, error handling
+3. **Maintainability** (20%): Modularity, comment ratio
+4. **Testing** (15%): Test coverage ratio
+5. **Documentation** (10%): Comment quality, header docs
+
+**Grading Scale**:
+- **A+** (9.5-10.0): Near-perfect | **A** (9.0-9.5): Excellent
+- **B+/B** (8.0-8.9): Good | **C+/C** (7.0-7.9): Average
+- **D** (6.0-6.9): Below average | **F** (<6.0): Poor
+
+**Features**:
+- ✅ **5-dimension analysis** - Comprehensive quality evaluation
+- ✅ **TDG-style grading** - Industry-standard A+ to F scale
+- ✅ **Actionable suggestions** - Specific improvements with examples
+- ✅ **Multiple formats** - Human, JSON, Markdown reports
+- ✅ **Detailed breakdown** - See individual dimension scores
+- ✅ **CI/CD integration** - JSON output for quality gates
+
+**Usage**:
+```bash
+# Basic score
+bashrs score script.sh
+
+# Detailed dimension breakdown
+bashrs score script.sh --detailed
+
+# JSON for CI/CD pipelines
+bashrs score script.sh --format json
+
+# Markdown quality report
+bashrs score script.sh --format markdown
+```
+
+**Poor Script Example** (with suggestions):
+```bash
+$ bashrs score poor_script.sh
+
+Overall Grade: F
+Overall Score: 3.9/10.0
+
+Improvement Suggestions:
+1. Add quotes around variable expansions ("$var")
+2. Add 'set -euo pipefail' for error handling
+3. Add test functions (test_*) to verify behavior
+4. Add header comments describing purpose
+```
+
+**Why quality scoring?**
+- ✅ **Objective metrics** - Quantifiable quality assessment
+- ✅ **Actionable feedback** - Specific improvements, not just warnings
+- ✅ **CI/CD quality gates** - Enforce minimum quality scores
+- ✅ **Team standards** - Consistent quality across projects
+- ✅ **Continuous improvement** - Track quality over time
+
+**Bash Quality Tools Progress**:
+- ✅ `bashrs test` (v6.10.0) - Test discovery and execution
+- ✅ `bashrs score` (v6.11.0) - Quality scoring
+- ⏳ `bashrs coverage` (planned) - Test coverage tracking
+- ⏳ `bashrs format` (planned) - Code formatting
 
 ### Interactive REPL (NEW in v6.7.0) 🎯
 
