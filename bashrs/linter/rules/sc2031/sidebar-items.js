@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"fn":["check"],"static":["ASSIGNMENT","SUBSHELL_START","VAR_USAGE"]};
+window.SIDEBAR_ITEMS = {"fn":["check","create_diagnostic","find_subshell_assignments","has_subshell","is_in_quotes","is_in_single_quotes","is_same_line_assignment"],"static":["ASSIGNMENT","SUBSHELL_START","VAR_USAGE"]};
