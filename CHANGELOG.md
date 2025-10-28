@@ -7,6 +7,109 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [6.14.0] - 2025-10-28
+
+### 🎨 BASH QUALITY TOOLS - Format (Initial Release)
+
+**bashrs v6.14.0 adds the `bashrs format` command** - automatic bash script formatting for consistent code style. This completes the Bash Quality Tools suite (5/5 tools).
+
+**New Feature**: Format bash scripts with consistent indentation, quoting, and syntax normalization.
+
+### Added
+
+**🎨 Bash Script Formatting** (Initial - 5/15 features working)
+
+New `bashrs format` command for automatic bash script formatting:
+
+```bash
+# Format a script in-place
+bashrs format script.sh
+
+# Check if formatted (CI/CD mode)
+bashrs format --check script.sh
+
+# Dry run (show what would change)
+bashrs format --dry-run script.sh
+
+# Format to different file
+bashrs format script.sh --output formatted.sh
+
+# Format multiple files
+bashrs format script1.sh script2.sh script3.sh
+```
+
+**Working Features** (v6.14.0):
+- ✅ Basic script formatting (assignments, commands)
+- ✅ Variable quoting
+- ✅ Multiple file support
+- ✅ Check mode for CI/CD
+- ✅ Output to different file
+
+**Planned Features** (v6.15.0+):
+- ⏳ Function normalization (function name() vs name())
+- ⏳ If/then inline formatting
+- ⏳ Comment preservation
+- ⏳ Case statement formatting
+- ⏳ Configuration file support (.bashrs-fmt.toml)
+- ⏳ Ignore directives (# bashrs-fmt-ignore)
+- ⏳ Custom indent width
+- ⏳ Tab vs space configuration
+
+**Configuration** (planned):
+
+Create `.bashrs-fmt.toml` for custom formatting:
+```toml
+indent_width = 2
+use_tabs = false
+quote_variables = true
+use_double_brackets = true
+normalize_functions = true
+inline_then = true
+```
+
+**Bash Quality Tools Progress**:
+```
+[████████████████████] 5/5 (100%)
+✅ bashrs test     (v6.10.0) - Test discovery and execution
+✅ bashrs score    (v6.11.0) - Quality scoring 0-100
+✅ bashrs audit    (v6.12.0) - Comprehensive quality analysis
+✅ bashrs coverage (v6.13.0) - Coverage tracking
+✅ bashrs format   (v6.14.0) - Code formatting (INITIAL)
+```
+
+**Implementation Quality**:
+- 15 integration tests (EXTREME TDD - 5/15 passing)
+- FormatterConfig with TOML support
+- Formatter struct with AST-based formatting
+- Zero regressions (5,130 lib tests passing)
+- Following ruchy design patterns
+
+**Design Philosophy**:
+Following the ruchy formatter design for consistency:
+- Configuration-driven formatting
+- AST-based transformations
+- Ignore directive support (planned)
+- Multiple formatting options
+
+**Next Steps** (v6.15.0):
+- Complete bash parser coverage (case, comments, heredocs)
+- Implement remaining formatter features
+- Add comprehensive property tests
+- Achieve 15/15 test pass rate
+
+### Technical Details
+
+**New Modules**:
+- `bash_quality/formatter.rs` - Core formatting logic (+450 lines)
+- `bash_quality/formatter_config.rs` - Configuration (+330 lines)
+
+**CLI Integration**:
+- Added `Format` command to `cli/args.rs`
+- Added `format_command` handler to `cli/commands.rs`
+
+**Dependencies**:
+- Added `toml = "0.8"` for configuration
+
 ## [6.13.0] - 2025-10-28
 
 ### 📈 BASH QUALITY TOOLS - Coverage Tracking

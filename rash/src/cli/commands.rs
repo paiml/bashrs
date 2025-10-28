@@ -6,7 +6,7 @@ use crate::cli::{Cli, Commands};
 use crate::models::{Config, Error, Result};
 use crate::{check, transpile};
 use std::fs;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use tracing::{info, warn};
 
 #[cfg(test)]
@@ -171,6 +171,16 @@ pub fn execute_command(cli: Cli) -> Result<()> {
         } => {
             info!("Generating coverage report for {}", input.display());
             coverage_command(&input, &format, min, detailed, output.as_deref())
+        }
+
+        Commands::Format {
+            inputs,
+            check,
+            dry_run,
+            output,
+        } => {
+            info!("Formatting bash script(s)");
+            format_command(&inputs, check, dry_run, output.as_deref())
         }
     }
 }
@@ -2275,4 +2285,74 @@ fn print_lcov_coverage(
     println!("LH:{}", coverage.covered_lines.len());
 
     println!("end_of_record");
+}
+
+// Format command implementation (v6.14.0)
+fn format_command(
+    inputs: &[PathBuf],
+    check: bool,
+    dry_run: bool,
+    output: Option<&Path>,
+) -> Result<()> {
+    use crate::bash_quality::{Formatter, FormatterConfig};
+
+    // Load configuration (look for .bashrs-fmt.toml in current directory)
+    let config = if let Ok(cfg) = FormatterConfig::from_file(".bashrs-fmt.toml") {
+        cfg
+    } else {
+        FormatterConfig::default()
+    };
+
+    let mut formatter = Formatter::with_config(config);
+    let mut all_formatted = true;
+
+    for input_path in inputs {
+        // Read input file
+        let source = fs::read_to_string(input_path)
+            .map_err(|e| Error::Internal(format!("Failed to read {}: {}", input_path.display(), e)))?;
+
+        // Format the source
+        let formatted = formatter.format_source(&source)
+            .map_err(|e| Error::Internal(format!("Failed to format {}: {}", input_path.display(), e)))?;
+
+        if check {
+            // Check mode: verify if formatted
+            if source.trim() == formatted.trim() {
+                println!("✓ {} is properly formatted", input_path.display());
+            } else {
+                println!("✗ {} is not properly formatted", input_path.display());
+                all_formatted = false;
+            }
+        } else if dry_run {
+            // Dry run: show what would be done
+            println!("Would format: {}", input_path.display());
+            if source.trim() != formatted.trim() {
+                println!("  Changes detected");
+            } else {
+                println!("  No changes needed");
+            }
+        } else {
+            // Apply formatting
+            if let Some(out_path) = output {
+                // Write to specified output file
+                fs::write(out_path, &formatted)
+                    .map_err(|e| Error::Internal(format!("Failed to write {}: {}", out_path.display(), e)))?;
+                println!("✓ Formatted {} -> {}", input_path.display(), out_path.display());
+            } else {
+                // Write in-place
+                fs::write(input_path, &formatted)
+                    .map_err(|e| Error::Internal(format!("Failed to write {}: {}", input_path.display(), e)))?;
+                println!("✓ Formatted {}", input_path.display());
+            }
+        }
+    }
+
+    // If check mode and any file not formatted, return error
+    if check && !all_formatted {
+        return Err(Error::Internal(
+            "Files are not properly formatted. Run without --check to fix.".to_string()
+        ));
+    }
+
+    Ok(())
 }

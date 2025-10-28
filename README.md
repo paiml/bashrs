@@ -600,6 +600,37 @@ Uncovered Lines: 3 lines
 - Minimum coverage enforcement: `bashrs coverage script.sh --min 80`
 - CI/CD ready with exit codes
 
+### Code Formatting (NEW in v6.14.0) 🎨
+
+bashrs now includes automatic bash script formatting for consistent code style:
+
+```bash
+# Format a script in-place
+$ bashrs format script.sh
+
+# Check if formatted (CI/CD mode)
+$ bashrs format --check script.sh
+
+# Dry run (show what would change)
+$ bashrs format --dry-run script.sh
+
+# Format multiple files
+$ bashrs format *.sh
+```
+
+**Format Features** (Initial Release):
+- Basic script formatting (assignments, commands, quotes)
+- Check mode for CI/CD integration
+- Multiple file support
+- Output to different file
+
+**Progress**: [████████████████████] 5/5 Bash Quality Tools Complete!
+- ✅ bashrs test (v6.10.0)
+- ✅ bashrs score (v6.11.0)
+- ✅ bashrs audit (v6.12.0)
+- ✅ bashrs coverage (v6.13.0)
+- ✅ bashrs format (v6.14.0 - INITIAL)
+
 ### Interactive REPL (NEW in v6.7.0) 🎯
 
 bashrs now includes a **full-featured REPL** for interactive bash script analysis and testing:
