@@ -1,6 +1,60 @@
 // SC2242: Can only exit from loops or functions, not case
 use crate::linter::{Diagnostic, LintResult, Severity, Span};
 
+/// Check if line is a comment
+fn is_comment_line(line: &str) -> bool {
+    line.trim_start().starts_with('#')
+}
+
+/// Check if line starts a case statement
+fn is_case_start(line: &str) -> bool {
+    line.trim_start().starts_with("case ")
+}
+
+/// Check if line starts a loop
+fn is_loop_start(line: &str) -> bool {
+    let trimmed = line.trim_start();
+    trimmed.starts_with("for ")
+        || trimmed.starts_with("while ")
+        || trimmed.starts_with("until ")
+}
+
+/// Check if line starts a function
+fn is_function_start(line: &str) -> bool {
+    line.trim_start().contains("() {") || line.trim_start().starts_with("function ")
+}
+
+/// Check if line ends a case statement
+fn is_case_end(line: &str) -> bool {
+    line.trim_start() == "esac"
+}
+
+/// Check if line ends a loop
+fn is_loop_end(line: &str) -> bool {
+    line.trim_start() == "done"
+}
+
+/// Check if line ends a function
+fn is_function_end(line: &str) -> bool {
+    line.trim_start() == "}"
+}
+
+/// Check if line contains break or continue
+fn has_break_or_continue(line: &str) -> bool {
+    let trimmed = line.trim_start();
+    trimmed.contains("break") || trimmed.contains("continue")
+}
+
+/// Build diagnostic for invalid break/continue in case
+fn build_diagnostic(line_num: usize, line_len: usize) -> Diagnostic {
+    Diagnostic::new(
+        "SC2242",
+        Severity::Error,
+        "Can only break/continue from loops. Use 'exit' to exit case or function".to_string(),
+        Span::new(line_num, 1, line_num, line_len + 1),
+    )
+}
+
 pub fn check(source: &str) -> LintResult {
     let mut result = LintResult::new();
     let mut in_case = false;
@@ -9,47 +63,36 @@ pub fn check(source: &str) -> LintResult {
 
     for (line_num, line) in source.lines().enumerate() {
         let line_num = line_num + 1;
-        let trimmed = line.trim_start();
 
-        if trimmed.starts_with('#') {
+        if is_comment_line(line) {
             continue;
         }
 
         // Track context
-        if trimmed.starts_with("case ") {
+        if is_case_start(line) {
             in_case = true;
         }
-        if trimmed.starts_with("for ")
-            || trimmed.starts_with("while ")
-            || trimmed.starts_with("until ")
-        {
+        if is_loop_start(line) {
             in_loop = true;
         }
-        if trimmed.contains("() {") || trimmed.starts_with("function ") {
+        if is_function_start(line) {
             in_function = true;
         }
-        if trimmed == "esac" {
+        if is_case_end(line) {
             in_case = false;
         }
-        if trimmed == "done" {
+        if is_loop_end(line) {
             in_loop = false;
         }
-        if trimmed == "}" {
+        if is_function_end(line) {
             in_function = false;
         }
 
-        // Check for break/continue in case (when not in loop)
-        if in_case && !in_loop && !in_function
-            && (trimmed.contains("break") || trimmed.contains("continue")) {
-                let diagnostic = Diagnostic::new(
-                    "SC2242",
-                    Severity::Error,
-                    "Can only break/continue from loops. Use 'exit' to exit case or function"
-                        .to_string(),
-                    Span::new(line_num, 1, line_num, line.len() + 1),
-                );
-                result.add(diagnostic);
-            }
+        // Check for break/continue in case (when not in loop or function)
+        if in_case && !in_loop && !in_function && has_break_or_continue(line) {
+            let diagnostic = build_diagnostic(line_num, line.len());
+            result.add(diagnostic);
+        }
     }
     result
 }
