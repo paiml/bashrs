@@ -7,6 +7,118 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [6.7.0] - 2025-10-28
+
+### Added
+
+**🎯 REPL Interactive Mode System (REPL-003-004)**
+- Complete mode switching system with 5 modes:
+  - `normal` - Execute bash commands directly
+  - `purify` - Show purified version of bash commands
+  - `lint` - Show linting results for bash commands
+  - `debug` - Debug bash commands with step-by-step execution
+  - `explain` - Explain bash constructs and syntax
+- `:mode` command to switch between modes
+- `:mode` without arguments shows current mode and all available modes
+- Case-insensitive mode names (`:mode PURIFY` works)
+- 19 tests (10 unit + 9 CLI integration)
+
+**🔍 REPL Parser Integration (REPL-004-001)**
+- `:parse <code>` command to parse bash code and display AST
+- Shows statement count, parse time, and detailed AST structure
+- Proper error handling with user-friendly error messages
+- Usage hints when command invoked without arguments
+- 13 tests (8 unit + 5 CLI integration)
+
+**🧹 REPL Purifier Integration (REPL-005-001)**
+- `:purify <code>` command to purify bash code
+- Makes bash scripts idempotent and deterministic
+- Shows transformation report with fixes applied
+- Usage examples in help text
+- 8 tests (4 unit + 4 CLI integration)
+
+**🔎 REPL Linter Integration (REPL-006-001)**
+- `:lint <code>` command to lint bash code
+- Displays diagnostics with severity levels (Error, Warning, Info, Note, Perf, Risk)
+- Shows issue counts by severity with icons (✗, ⚠, ℹ, 📝, ⚡)
+- Line number information for each diagnostic
+- Usage examples in help text
+- 8 tests (4 unit + 4 CLI integration)
+
+**📚 REPL Command History (REPL-003-003)**
+- Persistent command history saved to `~/.bashrs_history`
+- History survives across REPL sessions
+- Automatic loading on startup
+- Automatic saving on exit
+- 3 unit tests for history path handling
+
+**📝 Updated Help System**
+- Comprehensive help text showing all REPL commands
+- Updated to include `:parse`, `:purify`, `:lint` commands
+- Mode descriptions with usage examples
+- Clear command syntax and examples
+
+### Changed
+
+**🧪 Test Suite Growth**
+- Test count: 5,140 → 5,193 (+53 tests)
+- All tests passing (100% pass rate)
+- Zero regressions across all modules
+- All REPL integration tests use `assert_cmd` (best practice)
+
+**🏗️ REPL Architecture**
+- Modular design with separate modules:
+  - `repl/modes.rs` - Mode system (209 lines)
+  - `repl/parser.rs` - Parser integration (113 lines)
+  - `repl/purifier.rs` - Purifier integration (124 lines)
+  - `repl/linter.rs` - Linter integration (147 lines)
+  - `repl/state.rs` - Session state management (328 lines)
+  - `repl/loop.rs` - Main REPL loop with command routing (331 lines)
+- Clean separation of concerns following SOLID principles
+- Complexity <10 per function (quality target met)
+
+### Technical Details
+
+**REPL Prompt Enhancement**:
+- Prompt now shows current mode: `bashrs [normal]>`, `bashrs [lint]>`, etc.
+- Dynamic prompt updates when mode changes
+- Clear visual indication of active mode
+
+**Error Handling**:
+- All REPL commands provide usage hints on invalid input
+- Graceful error messages for parse/purify/lint failures
+- User-friendly error formatting with ✗ and ⚠ symbols
+
+**Quality Metrics**:
+- All clippy checks passing (zero warnings)
+- All tests passing (5,193 tests, 100% pass rate)
+- Pre-commit hooks verified
+- Following EXTREME TDD methodology (RED → GREEN → REFACTOR)
+
+**Commits since v6.6.0**: 63 commits
+- 7bb071a3 feat: REPL-006-001 - Linter integration (COMPLETE)
+- 3dfb83b4 feat: REPL-005-001 - Purifier integration (COMPLETE)
+- 974f8ea0 feat: REPL-004-001 - Parser integration (COMPLETE)
+- 6d7a2487 feat: REPL-003-004 - Mode switching implementation (COMPLETE)
+- b379ce5c feat: REPL-003-003 - Command history persistence (COMPLETE)
+
+### Migration Guide
+
+No breaking changes. All new features are additive.
+
+If upgrading from v6.6.0:
+1. Start REPL: `bashrs repl`
+2. Try new commands:
+   - `:mode` - See available modes
+   - `:parse echo hello` - Parse bash code
+   - `:purify mkdir /tmp/test` - Purify bash code
+   - `:lint cat file.txt | grep pattern` - Lint bash code
+3. Command history persists in `~/.bashrs_history`
+
+### Known Issues
+
+None. All features tested and verified.
+
 ## [6.6.0] - 2025-10-27
 
 ### Added
