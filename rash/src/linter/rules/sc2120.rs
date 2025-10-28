@@ -34,19 +34,39 @@ static ARG_REFERENCE: Lazy<Regex> = Lazy::new(|| {
     Regex::new(r"\$[@*#]|\$\{?[0-9]+\}?").unwrap()
 });
 
-pub fn check(source: &str) -> LintResult {
-    let mut result = LintResult::new();
-    let lines: Vec<&str> = source.lines().collect();
+/// Check if text after function name indicates arguments are passed
+fn has_arguments_after_name(call_text: &str, func_name: &str) -> bool {
+    if call_text.len() <= func_name.len() + 1 {
+        return false;
+    }
 
-    // Track which functions use arguments and their definition locations
-    let mut function_defs: HashMap<String, (usize, bool)> = HashMap::new();  // (line_num, uses_args)
-    let mut functions_called_with_args: HashSet<String> = HashSet::new();
+    let after_func = &call_text[func_name.len()..].trim_start();
+    !after_func.is_empty()
+        && !after_func.starts_with(';')
+        && !after_func.starts_with('|')
+        && !after_func.starts_with('&')
+        && !after_func.starts_with('<')
+        && !after_func.starts_with('>')
+}
 
+/// Update function to mark that it uses arguments
+fn mark_function_uses_args(
+    function_defs: &mut HashMap<String, (usize, bool)>,
+    in_function: &Option<String>,
+) {
+    if let Some(ref func) = in_function {
+        if let Some(entry) = function_defs.get_mut(func) {
+            entry.1 = true;
+        }
+    }
+}
+
+/// Find all function definitions and track which use positional parameters
+fn find_function_definitions(lines: &[&str]) -> HashMap<String, (usize, bool)> {
+    let mut function_defs: HashMap<String, (usize, bool)> = HashMap::new();
     let mut in_function: Option<String> = None;
-    let mut func_def_line: usize = 0;
     let mut brace_depth = 0;
 
-    // First pass: Find functions and check if they use positional parameters
     for (idx, line) in lines.iter().enumerate() {
         let trimmed = line.trim();
 
@@ -58,7 +78,7 @@ pub fn check(source: &str) -> LintResult {
         if let Some(cap) = FUNCTION_DEF.captures(trimmed) {
             let func_name = cap.get(1).unwrap().as_str().to_string();
             in_function = Some(func_name.clone());
-            func_def_line = idx + 1;
+            let func_def_line = idx + 1;
             function_defs.insert(func_name, (func_def_line, false));
             brace_depth = 1;
             continue;
@@ -72,49 +92,49 @@ pub fn check(source: &str) -> LintResult {
             if brace_depth == 0 {
                 in_function = None;
             } else if ARG_REFERENCE.is_match(line) {
-                // Function uses positional parameters
-                if let Some(ref func) = in_function {
-                    if let Some(entry) = function_defs.get_mut(func) {
-                        entry.1 = true;
-                    }
-                }
+                mark_function_uses_args(&mut function_defs, &in_function);
             }
         }
     }
 
-    // Second pass: Find function calls and check if they pass arguments
-    for line in &lines {
+    function_defs
+}
+
+/// Find all functions that are called with arguments
+fn find_functions_called_with_args(
+    lines: &[&str],
+    function_defs: &HashMap<String, (usize, bool)>,
+) -> HashSet<String> {
+    let mut functions_called_with_args: HashSet<String> = HashSet::new();
+
+    for line in lines {
         let trimmed = line.trim();
 
-        if trimmed.starts_with('#') {
-            continue;
-        }
-
-        // Skip function definitions
-        if FUNCTION_DEF.is_match(trimmed) {
+        if trimmed.starts_with('#') || FUNCTION_DEF.is_match(trimmed) {
             continue;
         }
 
         if let Some(cap) = FUNCTION_CALL.captures(trimmed) {
             let func_name = cap.get(1).unwrap().as_str();
 
-            // Check if this is a function call with arguments
-            if function_defs.contains_key(func_name) {
-                let call_text = trimmed;
-                // Simple heuristic: if there's text after the function name, it has args
-                if call_text.len() > func_name.len() + 1 {
-                    let after_func = &call_text[func_name.len()..].trim_start();
-                    if !after_func.is_empty() && !after_func.starts_with(';') &&
-                       !after_func.starts_with('|') && !after_func.starts_with('&') &&
-                       !after_func.starts_with('<') && !after_func.starts_with('>') {
-                        functions_called_with_args.insert(func_name.to_string());
-                    }
-                }
+            if function_defs.contains_key(func_name)
+                && has_arguments_after_name(trimmed, func_name)
+            {
+                functions_called_with_args.insert(func_name.to_string());
             }
         }
     }
 
-    // Generate warnings for functions that use args but are never called with them
+    functions_called_with_args
+}
+
+/// Generate diagnostics for functions using args but never called with them
+fn generate_diagnostics(
+    function_defs: HashMap<String, (usize, bool)>,
+    functions_called_with_args: &HashSet<String>,
+) -> LintResult {
+    let mut result = LintResult::new();
+
     for (func_name, (line_num, uses_args)) in function_defs {
         if uses_args && !functions_called_with_args.contains(&func_name) {
             let diagnostic = Diagnostic::new(
@@ -132,6 +152,19 @@ pub fn check(source: &str) -> LintResult {
     }
 
     result
+}
+
+pub fn check(source: &str) -> LintResult {
+    let lines: Vec<&str> = source.lines().collect();
+
+    // First pass: Find functions and check if they use positional parameters
+    let function_defs = find_function_definitions(&lines);
+
+    // Second pass: Find function calls and check if they pass arguments
+    let functions_called_with_args = find_functions_called_with_args(&lines, &function_defs);
+
+    // Generate warnings for functions that use args but are never called with them
+    generate_diagnostics(function_defs, &functions_called_with_args)
 }
 
 #[cfg(test)]

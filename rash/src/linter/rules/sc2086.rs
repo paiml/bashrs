@@ -11,112 +11,128 @@
 use crate::linter::{Diagnostic, Fix, LintResult, Severity, Span};
 use regex::Regex;
 
+/// Check if line should be skipped (comments or assignments)
+fn should_skip_line(line: &str) -> bool {
+    // Skip comments
+    if line.trim_start().starts_with('#') {
+        return true;
+    }
+
+    // Skip variable assignments (VAR=value)
+    if line.contains('=') && !line.contains("if [") && !line.contains("[ ") {
+        if let Some(eq_pos) = line.find('=') {
+            if let Some(first_space) = line.find(' ') {
+                if eq_pos < first_space {
+                    return true; // Assignment, not command
+                }
+            }
+        }
+    }
+
+    false
+}
+
+/// Find the position of $ character before a variable
+fn find_dollar_position(line: &str, var_start: usize) -> usize {
+    line[..var_start].rfind('$').unwrap_or(var_start)
+}
+
+/// Calculate end column for variable span, including closing brace if present
+fn calculate_end_column(line: &str, var_end: usize, is_braced: bool) -> usize {
+    if is_braced {
+        let after_var = &line[var_end..];
+        if let Some(brace_pos) = after_var.find('}') {
+            var_end + brace_pos + 2 // +1 for }, +1 for 1-indexing
+        } else {
+            var_end + 1 // Fallback
+        }
+    } else {
+        var_end + 1 // Simple $VAR case
+    }
+}
+
+/// Check if variable is in arithmetic context (inside $(( )))
+fn is_in_arithmetic_context(line: &str, dollar_pos: usize, var_end: usize) -> bool {
+    let before = &line[..dollar_pos];
+    let after = &line[var_end..];
+    before.contains("$((") && after.contains("))")
+}
+
+/// Check if variable is already quoted
+fn is_already_quoted(line: &str, dollar_pos: usize, var_end: usize) -> bool {
+    let before_context = &line[..dollar_pos];
+    let after_context = &line[var_end..];
+    before_context.ends_with('"') && after_context.starts_with('"')
+}
+
+/// Build diagnostic for unquoted variable
+fn build_diagnostic(
+    line_num: usize,
+    col: usize,
+    end_col: usize,
+    var_name: &str,
+    is_braced: bool,
+) -> Diagnostic {
+    let span = Span::new(line_num, col, line_num, end_col);
+    let var_text = if is_braced {
+        format!("${{{}}}", var_name)
+    } else {
+        format!("${}", var_name)
+    };
+
+    let fix = Fix::new(format!("\"{}\"", var_text));
+
+    Diagnostic::new(
+        "SC2086",
+        Severity::Warning,
+        format!(
+            "Double quote to prevent globbing and word splitting on {}",
+            var_text
+        ),
+        span,
+    )
+    .with_fix(fix)
+}
+
 /// Check for unquoted variable expansions (SC2086)
 pub fn check(source: &str) -> LintResult {
     let mut result = LintResult::new();
 
     // Regex to find unquoted variables in command contexts
-    // Matches: $VAR or ${VAR} not within quotes
     let var_pattern = Regex::new(r#"(?m)(?P<pre>[^"']|^)\$(?:\{(?P<brace>[A-Za-z_][A-Za-z0-9_]*)\}|(?P<simple>[A-Za-z_][A-Za-z0-9_]*))"#).unwrap();
 
     for (line_num, line) in source.lines().enumerate() {
         let line_num = line_num + 1; // 1-indexed
 
-        // Skip comments
-        if line.trim_start().starts_with('#') {
+        if should_skip_line(line) {
             continue;
         }
 
-        // Skip variable assignments (VAR=value)
-        if line.contains('=') && !line.contains("if [") && !line.contains("[ ") {
-            // Simple heuristic: if line has = before any command, it's likely an assignment
-            if let Some(eq_pos) = line.find('=') {
-                if let Some(first_space) = line.find(' ') {
-                    if eq_pos < first_space {
-                        continue; // Assignment, not command
-                    }
-                }
-            }
-        }
-
-        // Check for unquoted variables in arithmetic contexts (false positive prevention)
         let is_arithmetic = line.contains("$((") || line.contains("(( ");
 
         for cap in var_pattern.captures_iter(line) {
-            // Get the actual variable match (not including 'pre' capture group)
-            let var_capture = cap.name("brace").or_else(|| cap.name("simple"));
+            let var_capture = match cap.name("brace").or_else(|| cap.name("simple")) {
+                Some(v) => v,
+                None => continue,
+            };
 
-            if var_capture.is_none() {
+            let var_name = var_capture.as_str();
+            let dollar_pos = find_dollar_position(line, var_capture.start());
+            let col = dollar_pos + 1; // 1-indexed
+
+            let is_braced = cap.name("brace").is_some();
+            let end_col = calculate_end_column(line, var_capture.end(), is_braced);
+
+            // Skip if in arithmetic context or already quoted
+            if is_arithmetic && is_in_arithmetic_context(line, dollar_pos, var_capture.end()) {
                 continue;
             }
 
-            let var_match = var_capture.unwrap();
-            let var_name = var_match.as_str();
-
-            // Column positions for the actual $VAR or ${VAR} (including $)
-            // We need to go back one character from the capture to include the $
-            let dollar_pos = line[..var_match.start()]
-                .rfind('$')
-                .unwrap_or(var_match.start());
-            let col = dollar_pos + 1; // 1-indexed
-
-            // For braced variables ${VAR}, we need to include the closing }
-            let is_braced = cap.name("brace").is_some();
-            let end_col = if is_braced {
-                // Find the closing } after the variable name
-                let after_var = &line[var_match.end()..];
-                if let Some(brace_pos) = after_var.find('}') {
-                    var_match.end() + brace_pos + 2 // +1 for }, +1 for 1-indexing
-                } else {
-                    var_match.end() + 1 // Fallback
-                }
-            } else {
-                var_match.end() + 1 // Simple $VAR case
-            };
-
-            // Skip if in arithmetic context
-            if is_arithmetic {
-                // Check if this variable is inside $(( ))
-                let before = &line[..dollar_pos];
-                let after = &line[var_match.end()..];
-                if before.contains("$((") && after.contains("))") {
-                    continue;
-                }
+            if is_already_quoted(line, dollar_pos, var_capture.end()) {
+                continue;
             }
 
-            // Check if already quoted
-            let before_context = &line[..dollar_pos];
-            let after_context = &line[var_match.end()..];
-
-            // Simple quote detection
-            let has_opening_quote = before_context.ends_with('"');
-            let has_closing_quote = after_context.starts_with('"');
-
-            if has_opening_quote && has_closing_quote {
-                continue; // Already quoted
-            }
-
-            // Create diagnostic
-            let span = Span::new(line_num, col, line_num, end_col);
-            let var_text = if cap.name("brace").is_some() {
-                format!("${{{}}}", var_name)
-            } else {
-                format!("${}", var_name)
-            };
-
-            let fix = Fix::new(format!("\"{}\"", var_text));
-
-            let diag = Diagnostic::new(
-                "SC2086",
-                Severity::Warning,
-                format!(
-                    "Double quote to prevent globbing and word splitting on {}",
-                    var_text
-                ),
-                span,
-            )
-            .with_fix(fix);
-
+            let diag = build_diagnostic(line_num, col, end_col, var_name, is_braced);
             result.add(diag);
         }
     }
