@@ -25,68 +25,93 @@
 
 use crate::linter::{Diagnostic, Fix, LintResult, Severity, Span};
 
+/// Check if line is a target definition (contains ':' and doesn't start with whitespace)
+fn is_target_line(line: &str) -> bool {
+    line.contains(':')
+        && !line.starts_with(char::is_whitespace)
+        && !line.trim_start().starts_with('#')
+}
+
+/// Extract target name from target line
+fn extract_target_name(line: &str) -> Option<String> {
+    line.find(':')
+        .map(|colon_pos| line[..colon_pos].trim().to_string())
+}
+
+/// Check if line is a recipe line that starts with spaces (error)
+fn is_recipe_with_spaces(line: &str) -> bool {
+    line.starts_with(' ') && !line.starts_with('\t')
+}
+
+/// Count leading spaces in line
+fn count_leading_spaces(line: &str) -> usize {
+    line.chars().take_while(|c| *c == ' ').count()
+}
+
+/// Create fix replacement with tab
+fn create_tab_fix(line: &str) -> String {
+    let rest_of_line = line.trim_start();
+    format!("\t{}", rest_of_line)
+}
+
+/// Build diagnostic for recipe line with spaces
+fn build_diagnostic(
+    line_num: usize,
+    leading_spaces: usize,
+    fix_replacement: &str,
+    current_target: &str,
+) -> Diagnostic {
+    let span = Span::new(line_num + 1, 1, line_num + 1, leading_spaces + 1);
+
+    let message = if !current_target.is_empty() {
+        format!(
+            "Recipe line starts with spaces instead of tab (fatal Make error) in target '{}'",
+            current_target
+        )
+    } else {
+        "Recipe line starts with spaces instead of tab (fatal Make error)".to_string()
+    };
+
+    Diagnostic::new("MAKE008", Severity::Error, message, span).with_fix(Fix::new(fix_replacement))
+}
+
+/// Check if line should exit recipe state
+fn should_exit_recipe(line: &str) -> bool {
+    !line.starts_with('\t') && !line.starts_with(' ')
+}
+
+/// Check if line is empty or comment (stay in recipe state)
+fn is_empty_or_comment(line: &str) -> bool {
+    line.trim().is_empty() || line.trim_start().starts_with('#')
+}
+
 /// Check for spaces instead of tabs in recipe lines
 pub fn check(source: &str) -> LintResult {
     let mut result = LintResult::new();
-
     let lines: Vec<&str> = source.lines().collect();
     let mut in_recipe = false;
     let mut current_target = String::new();
 
     for (line_num, line) in lines.iter().enumerate() {
-        // Check if this is a target line (contains ':' and doesn't start with whitespace)
-        if line.contains(':')
-            && !line.starts_with(char::is_whitespace)
-            && !line.trim_start().starts_with('#')
-        {
-            // Extract target name before ':'
-            if let Some(colon_pos) = line.find(':') {
-                current_target = line[..colon_pos].trim().to_string();
+        if is_target_line(line) {
+            if let Some(target) = extract_target_name(line) {
+                current_target = target;
                 in_recipe = true;
             }
-        }
-        // Check if this is a recipe line (should start with tab)
-        else if in_recipe && !line.is_empty() && !line.trim().is_empty() {
-            // Check if line starts with spaces instead of tab
-            if line.starts_with(' ') && !line.starts_with('\t') {
-                // This is an error - recipe line must start with tab
-                let leading_spaces = line.chars().take_while(|c| *c == ' ').count();
-                let rest_of_line = line.trim_start();
-
-                let span = Span::new(line_num + 1, 1, line_num + 1, leading_spaces + 1);
-
-                // Create fix: replace leading spaces with a single tab
-                let fix_replacement = format!("\t{}", rest_of_line);
-
-                let diag = Diagnostic::new(
-                    "MAKE008",
-                    Severity::Error, // This is a CRITICAL error
-                    format!(
-                        "Recipe line starts with spaces instead of tab (fatal Make error){}",
-                        if !current_target.is_empty() {
-                            format!(" in target '{}'", current_target)
-                        } else {
-                            String::new()
-                        }
-                    ),
-                    span,
-                )
-                .with_fix(Fix::new(&fix_replacement));
-
+        } else if in_recipe && !line.is_empty() && !line.trim().is_empty() {
+            if is_recipe_with_spaces(line) {
+                let leading_spaces = count_leading_spaces(line);
+                let fix_replacement = create_tab_fix(line);
+                let diag =
+                    build_diagnostic(line_num, leading_spaces, &fix_replacement, &current_target);
                 result.add(diag);
-            }
-            // If line doesn't start with tab or space, we've left the recipe
-            else if !line.starts_with('\t') && !line.starts_with(' ') {
+            } else if should_exit_recipe(line) {
                 in_recipe = false;
                 current_target.clear();
             }
-        }
-        // Empty line or comment - stay in recipe state
-        else if line.trim().is_empty() || line.trim_start().starts_with('#') {
-            // Don't change in_recipe state
-        }
-        // Non-empty, non-recipe line - we've left the recipe
-        else if !line.starts_with('\t') && !line.starts_with(' ') {
+        } else if is_empty_or_comment(line) {
+            // Stay in recipe state
+        } else if should_exit_recipe(line) {
             in_recipe = false;
             current_target.clear();
         }
