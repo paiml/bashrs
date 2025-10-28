@@ -203,7 +203,7 @@ pub enum Commands {
         pattern: Option<String>,
     },
 
-    /// Score bash script quality (NEW in v6.10.0 - Bash Quality Tools)
+    /// Score bash script quality (NEW in v6.11.0 - Bash Quality Tools)
     Score {
         /// Input bash script file
         #[arg(value_name = "FILE")]
@@ -216,6 +216,29 @@ pub enum Commands {
         /// Show detailed dimension scores
         #[arg(long)]
         detailed: bool,
+    },
+
+    /// Run comprehensive quality audit (NEW in v6.12.0 - Bash Quality Tools)
+    Audit {
+        /// Input bash script file
+        #[arg(value_name = "FILE")]
+        input: PathBuf,
+
+        /// Output format
+        #[arg(long, value_enum, default_value = "human")]
+        format: AuditOutputFormat,
+
+        /// Enable strict mode (fail on warnings)
+        #[arg(long)]
+        strict: bool,
+
+        /// Show detailed check results
+        #[arg(long)]
+        detailed: bool,
+
+        /// Minimum grade required (A+, A, B+, B, C+, C, D, F)
+        #[arg(long)]
+        min_grade: Option<String>,
     },
 }
 
@@ -420,6 +443,17 @@ pub enum ScoreOutputFormat {
     Json,
     /// Markdown report
     Markdown,
+}
+
+/// Output format for audit results
+#[derive(Clone, Debug, ValueEnum)]
+pub enum AuditOutputFormat {
+    /// Human-readable format
+    Human,
+    /// JSON format
+    Json,
+    /// SARIF format (for GitHub Code Scanning)
+    Sarif,
 }
 
 impl ValueEnum for VerificationLevel {
