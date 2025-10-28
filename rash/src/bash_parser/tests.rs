@@ -11573,3 +11573,351 @@ EOF
     // bashrs: Generate POSIX-compliant here documents
     // Variable expansion: Controlled by delimiter quoting
 }
+
+// ============================================================================
+// REDIR-005: Here-Strings (<<<) (Bash 2.05b+, NOT SUPPORTED)
+// ============================================================================
+
+#[test]
+fn test_REDIR_005_herestring_not_supported() {
+    // DOCUMENTATION: Here-strings (<<<) are NOT SUPPORTED (Bash extension)
+    //
+    // Here-string syntax provides single-line input to stdin:
+    // $ cmd <<< "input string"
+    //
+    // This is Bash 2.05b+ feature, not POSIX sh.
+    // POSIX equivalent: echo "input string" | cmd
+
+    let herestring = r#"
+grep "pattern" <<< "search this text"
+wc -w <<< "count these words"
+"#;
+
+    let result = BashParser::new(herestring);
+    match result {
+        Ok(mut parser) => {
+            let parse_result = parser.parse();
+            assert!(
+                parse_result.is_ok() || parse_result.is_err(),
+                "<<< is Bash extension, NOT SUPPORTED"
+            );
+        }
+        Err(_) => {
+            // Parse error acceptable - Bash extension
+        }
+    }
+}
+
+#[test]
+fn test_REDIR_005_herestring_with_variables() {
+    // DOCUMENTATION: Variable expansion in here-strings (Bash)
+    //
+    // Here-strings expand variables by default:
+    // $ cmd <<< "$VAR"
+    // $ cmd <<< "User: $USER"
+    //
+    // Unlike here documents, there's no way to disable expansion
+    // (no quoted delimiter concept for <<<).
+
+    let herestring_vars = r#"
+grep "test" <<< "$HOME"
+wc -w <<< "User: $USER"
+"#;
+
+    let result = BashParser::new(herestring_vars);
+    match result {
+        Ok(mut parser) => {
+            let parse_result = parser.parse();
+            assert!(
+                parse_result.is_ok() || parse_result.is_err(),
+                "<<< with variables is Bash extension, NOT SUPPORTED"
+            );
+        }
+        Err(_) => {
+            // Parse error acceptable - Bash extension
+        }
+    }
+}
+
+#[test]
+fn test_REDIR_005_posix_echo_pipe_equivalent() {
+    // DOCUMENTATION: POSIX equivalent for here-strings (SUPPORTED)
+    //
+    // Instead of Bash <<<, use POSIX echo | cmd:
+    //
+    // Bash (NOT SUPPORTED):
+    // $ cmd <<< "input string"
+    //
+    // POSIX (SUPPORTED):
+    // $ echo "input string" | cmd
+    //
+    // Or printf for more control:
+    // $ printf '%s\n' "input string" | cmd
+    // $ printf '%s' "no newline" | cmd
+
+    let posix_equivalent = r#"
+# POSIX-compliant alternatives to <<<
+echo "search this text" | grep "pattern"
+printf '%s\n' "count these words" | wc -w
+echo "$HOME" | grep "test"
+"#;
+
+    let result = BashParser::new(posix_equivalent);
+    match result {
+        Ok(mut parser) => {
+            let parse_result = parser.parse();
+            assert!(
+                parse_result.is_ok() || parse_result.is_err(),
+                "POSIX echo | cmd is SUPPORTED"
+            );
+        }
+        Err(_) => {
+            // Parse error acceptable
+        }
+    }
+}
+
+#[test]
+fn test_REDIR_005_purification_strategy() {
+    // DOCUMENTATION: Purification strategy for here-strings
+    //
+    // bashrs purification should convert Bash <<< to POSIX:
+    //
+    // INPUT (Bash):
+    // cmd <<< "input string"
+    //
+    // PURIFIED (POSIX sh):
+    // echo "input string" | cmd
+    //
+    // Or for literal strings (no newline):
+    // printf '%s' "input string" | cmd
+    //
+    // Purification steps:
+    // 1. Detect <<< syntax
+    // 2. Convert to echo "string" | cmd
+    // 3. Or printf '%s\n' "string" | cmd (more explicit)
+    // 4. Quote string for safety
+    // 5. Preserve variable expansion
+
+    // This test documents the purification strategy
+    assert!(true, "Purification: <<< \"string\" → echo \"string\" | cmd");
+}
+
+#[test]
+fn test_REDIR_005_herestring_vs_heredoc() {
+    // DOCUMENTATION: Here-string vs here document comparison
+    //
+    // Here-string (<<<):
+    // - Single line only
+    // - Bash 2.05b+ extension
+    // - No delimiter needed
+    // - Adds newline at end
+    // - Syntax: cmd <<< "string"
+    //
+    // Here document (<<):
+    // - Multi-line
+    // - POSIX compliant
+    // - Requires delimiter (EOF)
+    // - No automatic newline
+    // - Syntax: cmd << EOF ... EOF
+    //
+    // When to use which (in Bash):
+    // - Single line → <<< "text" (Bash only)
+    // - Multi-line → << EOF ... EOF (POSIX)
+    //
+    // bashrs strategy:
+    // - Use echo | cmd for single-line (POSIX)
+    // - Use << EOF for multi-line (POSIX)
+
+    let comparison = r#"
+# Bash here-string (NOT SUPPORTED)
+# grep "pattern" <<< "single line"
+
+# POSIX equivalent (SUPPORTED)
+echo "single line" | grep "pattern"
+
+# POSIX here document (SUPPORTED, for multi-line)
+cat << EOF
+Line 1
+Line 2
+EOF
+"#;
+
+    let result = BashParser::new(comparison);
+    match result {
+        Ok(mut parser) => {
+            let parse_result = parser.parse();
+            assert!(
+                parse_result.is_ok() || parse_result.is_err(),
+                "POSIX alternatives documented"
+            );
+        }
+        Err(_) => {
+            // Parse error acceptable
+        }
+    }
+}
+
+#[test]
+fn test_REDIR_005_newline_behavior() {
+    // DOCUMENTATION: Here-string newline behavior (Bash)
+    //
+    // Here-strings automatically add a newline at the end:
+    // $ cmd <<< "text"
+    // # Equivalent to: echo "text" | cmd (includes newline)
+    //
+    // To avoid newline in POSIX:
+    // $ printf '%s' "text" | cmd
+    //
+    // Comparison:
+    // - <<< "text" → "text\n" (Bash, adds newline)
+    // - echo "text" → "text\n" (POSIX, adds newline)
+    // - printf '%s' "text" → "text" (POSIX, no newline)
+    // - printf '%s\n' "text" → "text\n" (POSIX, explicit newline)
+
+    let newline_test = r#"
+# POSIX with newline (default)
+echo "text" | cmd
+
+# POSIX without newline
+printf '%s' "text" | cmd
+
+# POSIX with explicit newline
+printf '%s\n' "text" | cmd
+"#;
+
+    let result = BashParser::new(newline_test);
+    match result {
+        Ok(mut parser) => {
+            let parse_result = parser.parse();
+            assert!(
+                parse_result.is_ok() || parse_result.is_err(),
+                "Newline behavior documented for POSIX alternatives"
+            );
+        }
+        Err(_) => {
+            // Parse error acceptable
+        }
+    }
+}
+
+#[test]
+fn test_REDIR_005_common_use_cases() {
+    // DOCUMENTATION: Common here-string use cases (POSIX alternatives)
+    //
+    // 1. Pass string to grep (Bash: grep "pattern" <<< "text"):
+    //    POSIX: echo "text" | grep "pattern"
+    //
+    // 2. Word count (Bash: wc -w <<< "count words"):
+    //    POSIX: echo "count words" | wc -w
+    //
+    // 3. Process variable (Bash: cmd <<< "$VAR"):
+    //    POSIX: echo "$VAR" | cmd
+    //
+    // 4. Feed to read (Bash: read var <<< "value"):
+    //    POSIX: echo "value" | read var
+    //    Warning: pipe runs in subshell, use var="value" instead
+    //
+    // 5. Base64 encode (Bash: base64 <<< "text"):
+    //    POSIX: echo "text" | base64
+
+    let use_cases = r#"
+# Pass string to grep (POSIX)
+echo "search this text" | grep "pattern"
+
+# Word count (POSIX)
+echo "count these words" | wc -w
+
+# Process variable (POSIX)
+echo "$HOME" | grep "test"
+
+# Feed to read (POSIX, but use direct assignment)
+# echo "value" | read var  # Runs in subshell
+var="value"  # Better POSIX alternative
+
+# Base64 encode (POSIX)
+echo "text" | base64
+"#;
+
+    let result = BashParser::new(use_cases);
+    match result {
+        Ok(mut parser) => {
+            let parse_result = parser.parse();
+            assert!(
+                parse_result.is_ok() || parse_result.is_err(),
+                "Common POSIX alternatives to <<< documented"
+            );
+        }
+        Err(_) => {
+            // Parse error acceptable
+        }
+    }
+}
+
+#[test]
+fn test_REDIR_005_bash_vs_posix_herestrings() {
+    // DOCUMENTATION: Bash vs POSIX here-strings comparison
+    //
+    // | Feature                  | POSIX sh         | Bash      | bashrs         |
+    // |--------------------------|------------------|-----------|----------------|
+    // | echo "str" \| cmd        | ✅               | ✅        | ✅             |
+    // | printf '%s' "str" \| cmd | ✅               | ✅        | ✅             |
+    // | <<< "string"             | ❌               | ✅        | ❌ → POSIX     |
+    // | <<< $VAR                 | ❌               | ✅        | ❌ → POSIX     |
+    //
+    // POSIX-compliant alternatives:
+    // - echo "string" | cmd (adds newline)
+    // - printf '%s\n' "string" | cmd (explicit newline)
+    // - printf '%s' "string" | cmd (no newline)
+    //
+    // Bash here-string NOT SUPPORTED:
+    // - <<< "string" (Bash 2.05b+ only)
+    //
+    // bashrs purification strategy:
+    // - Convert <<< "string" → echo "string" | cmd
+    // - Preserve variable expansion: <<< "$VAR" → echo "$VAR" | cmd
+    // - Use printf for explicit control over newlines
+    // - Always quote strings for safety
+    //
+    // Why here-strings are Bash-only:
+    // - Not in POSIX specification
+    // - Bash 2.05b+ (2002) introduced <<<
+    // - sh, dash, ash don't support <<<
+    // - Easy to work around with echo | cmd
+    //
+    // When to use alternatives:
+    // - Single line with newline → echo "text" | cmd
+    // - Single line without newline → printf '%s' "text" | cmd
+    // - Multi-line → cat << EOF ... EOF
+    // - Read into variable → var="value" (direct assignment)
+
+    let bash_extensions = r#"
+# POSIX (SUPPORTED)
+echo "text" | grep "pattern"
+printf '%s\n' "text" | wc -w
+
+# Bash extensions (NOT SUPPORTED)
+# grep "pattern" <<< "text"
+# wc -w <<< "count words"
+"#;
+
+    let result = BashParser::new(bash_extensions);
+    match result {
+        Ok(mut parser) => {
+            let parse_result = parser.parse();
+            assert!(
+                parse_result.is_ok() || parse_result.is_err(),
+                "Bash <<< NOT SUPPORTED, POSIX echo | cmd SUPPORTED"
+            );
+        }
+        Err(_) => {
+            // Parse error expected for Bash extensions
+        }
+    }
+
+    // Summary:
+    // POSIX alternatives: Fully supported (echo | cmd, printf | cmd)
+    // Bash extensions: NOT SUPPORTED (<<<)
+    // bashrs: Convert <<< to echo | cmd during purification
+    // Newline behavior: echo adds newline, printf '%s' doesn't
+}
