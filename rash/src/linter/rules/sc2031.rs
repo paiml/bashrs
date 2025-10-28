@@ -33,6 +33,82 @@ static ASSIGNMENT: Lazy<Regex> = Lazy::new(|| Regex::new(r"([a-zA-Z_][a-zA-Z0-9_
 static VAR_USAGE: Lazy<Regex> =
     Lazy::new(|| Regex::new(r"\$\{?([a-zA-Z_][a-zA-Z0-9_]*)\}?").unwrap());
 
+/// Check if line contains a subshell (standalone parentheses, not command substitution)
+fn has_subshell(line: &str) -> bool {
+    let chars: Vec<char> = line.chars().collect();
+    for i in 0..chars.len() {
+        if chars[i] == '(' {
+            // Check if previous char is NOT $ (would be command substitution)
+            if i == 0 || chars[i - 1] != '$' {
+                return true;
+            }
+        }
+    }
+    false
+}
+
+/// Check if position in line is inside quotes (double or single)
+fn is_in_quotes(line: &str, pos: usize) -> bool {
+    let before = &line[..pos];
+    let quote_count = before.matches('"').count() + before.matches('\'').count();
+    quote_count % 2 == 1
+}
+
+/// Check if position in line is inside single quotes (where variables don't expand)
+fn is_in_single_quotes(line: &str, pos: usize) -> bool {
+    let before = &line[..pos];
+    let single_quote_count = before.matches('\'').count();
+    single_quote_count % 2 == 1
+}
+
+/// Check if variable usage is on same line as assignment (which is OK)
+fn is_same_line_assignment(line: &str, var_name: &str) -> bool {
+    line.contains('(') && line.contains(')') && line.contains(&format!("{}=", var_name))
+}
+
+/// Find subshell variable assignments on a line
+fn find_subshell_assignments(line: &str) -> HashSet<String> {
+    let mut vars = HashSet::new();
+
+    if !line.contains('(') || !line.contains(')') {
+        return vars;
+    }
+
+    if !has_subshell(line) {
+        return vars;
+    }
+
+    // Find all variable assignments on this line
+    for cap in ASSIGNMENT.captures_iter(line) {
+        let var_name = cap.get(1).unwrap().as_str();
+        let full_match = cap.get(0).unwrap().as_str();
+        let pos = line.find(full_match).unwrap_or(0);
+
+        // Skip if inside quotes
+        if !is_in_quotes(line, pos) {
+            vars.insert(var_name.to_string());
+        }
+    }
+
+    vars
+}
+
+/// Create diagnostic for subshell variable usage
+fn create_diagnostic(line_num: usize, var_name: &str, pos: usize, full_match_len: usize) -> Diagnostic {
+    let start_col = pos + 1;
+    let end_col = start_col + full_match_len;
+
+    Diagnostic::new(
+        "SC2031",
+        Severity::Warning,
+        format!(
+            "Variable '{}' was assigned in a subshell. It will be empty here. Use var=$(cmd) or assign in current shell",
+            var_name
+        ),
+        Span::new(line_num, start_col, line_num, end_col),
+    )
+}
+
 pub fn check(source: &str) -> LintResult {
     let mut result = LintResult::new();
     let mut subshell_vars: HashSet<String> = HashSet::new();
@@ -45,81 +121,30 @@ pub fn check(source: &str) -> LintResult {
         }
 
         // Track variables assigned in subshells
-        // First check if line has a subshell
-        if line.contains('(') && line.contains(')') {
-            // Check if it's a subshell (not command substitution or arithmetic)
-            // Look for standalone ( without $ before it
-            let has_subshell = {
-                let chars: Vec<char> = line.chars().collect();
-                let mut found_subshell = false;
-                for i in 0..chars.len() {
-                    if chars[i] == '(' {
-                        // Check if previous char is NOT $ (would be command subst)
-                        if i == 0 || chars[i - 1] != '$' {
-                            found_subshell = true;
-                            break;
-                        }
-                    }
-                }
-                found_subshell
-            };
-
-            if has_subshell {
-                // Find all variable assignments on this line
-                for cap in ASSIGNMENT.captures_iter(line) {
-                    let var_name = cap.get(1).unwrap().as_str();
-
-                    // Skip if inside quotes
-                    let full_match = cap.get(0).unwrap().as_str();
-                    let pos = line.find(full_match).unwrap_or(0);
-                    let before = &line[..pos];
-                    let quote_count = before.matches('"').count() + before.matches('\'').count();
-                    if quote_count % 2 == 1 {
-                        continue;
-                    }
-
-                    subshell_vars.insert(var_name.to_string());
-                }
-            }
-        }
+        subshell_vars.extend(find_subshell_assignments(line));
 
         // Check for usage of subshell-assigned variables
         for cap in VAR_USAGE.captures_iter(line) {
             let var_name = cap.get(1).unwrap().as_str();
 
-            if subshell_vars.contains(var_name) {
-                // Skip if this line also assigns in subshell (same line usage is OK)
-                if line.contains('(')
-                    && line.contains(')')
-                    && line.contains(&format!("{}=", var_name))
-                {
-                    continue;
-                }
-
-                // Skip if inside single quotes (variables don't expand there)
-                let full_match = cap.get(0).unwrap().as_str();
-                let pos = line.find(full_match).unwrap_or(0);
-                let before = &line[..pos];
-                let single_quote_count = before.matches('\'').count();
-                if single_quote_count % 2 == 1 {
-                    continue; // Inside single quotes, variables don't expand
-                }
-
-                let start_col = pos + 1;
-                let end_col = start_col + full_match.len();
-
-                let diagnostic = Diagnostic::new(
-                    "SC2031",
-                    Severity::Warning,
-                    format!(
-                        "Variable '{}' was assigned in a subshell. It will be empty here. Use var=$(cmd) or assign in current shell",
-                        var_name
-                    ),
-                    Span::new(line_num, start_col, line_num, end_col),
-                );
-
-                result.add(diagnostic);
+            if !subshell_vars.contains(var_name) {
+                continue;
             }
+
+            // Skip if same line assignment or inside single quotes
+            if is_same_line_assignment(line, var_name) {
+                continue;
+            }
+
+            let full_match = cap.get(0).unwrap().as_str();
+            let pos = line.find(full_match).unwrap_or(0);
+
+            if is_in_single_quotes(line, pos) {
+                continue;
+            }
+
+            let diagnostic = create_diagnostic(line_num, var_name, pos, full_match.len());
+            result.add(diagnostic);
         }
     }
 
