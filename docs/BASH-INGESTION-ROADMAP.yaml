@@ -9,12 +9,13 @@ roadmap:
 
   statistics:
     total_tasks: 122
-    completed: 72
+    completed: 73
     partial_support: 0
-    pending: 47
+    pending: 46
     blocked: 3
-    coverage_percent: 59
+    coverage_percent: 60
     accuracy_verified: "2025-10-28"
+    total_tests: 5,045
     session_update: "Completed VAR-001 (5.1 - HOME environment variable). 8 passing tests document HOME as POSIX-SUPPORTED (HIGH priority, fundamental user directory). HOME is user's home directory full path. Set by: System at login from /etc/passwd 6th field. Used by: cd (no args goes to \\$HOME), ~ expansion, many utilities. POSIX HOME forms (4): (1) \\$HOME (environment variable), (2) \\${HOME} (braced form), (3) cd (no args) → \\$HOME, (4) ~ expansion → \\$HOME. CRITICAL: HOME is read-only by convention (never modify). Best practices (8): (1) Always quote: cd \"\\$HOME\" (prevents word splitting), (2) Check existence: [ -d \"\\$HOME\" ], (3) Check set: [ -z \"\\$HOME\" ] && exit 1, (4) Use for user files: \"\\$HOME/.config\", (5) Never modify: HOME=\"/new\" breaks system, (6) Portable tilde: ~ and ~/dir POSIX, ~user/~+/~- bash extensions, (7) Use \\$HOME in scripts (explicit), ~ interactively (readable), (8) Don't hardcode: use \"\\$HOME\" not \"/home/alice\". HOME vs tilde (4): \\$HOME is environment variable, ~ is tilde expansion, cd ~ == cd \"\\$HOME\", ~/dir == \"\\$HOME/dir\", \"~/dir\" WRONG (tilde doesn't expand in quotes). Security (5): Always quote \"\\$HOME\" (prevents injection), validate exists [ -d \"\\$HOME\" ], check ownership (optional paranoid), avoid symlinks in critical paths, use mktemp for temp files. Edge cases (7): HOME not set (rare), HOME non-existent directory, HOME with spaces (must quote), HOME special chars (must quote), HOME empty string, HOME is / (root user), fallback \\${HOME:-/tmp}. System interaction: HOME set at login from /etc/passwd, cd uses HOME, ~ expands to HOME, utilities use HOME (.bashrc, .ssh, .gitconfig, .vimrc, .config, .cache, .local). Common patterns (8): cd \"\\$HOME\" or cd (no args), config=\"\\$HOME/.config/app.conf\", mkdir -p \"\\$HOME/backups\", saved_dir=\\$(pwd); cd \"\\$HOME\"; cd \"\\$saved_dir\", log=\"\\$HOME/.app/logs\", temp=\"\\$HOME/.app/temp.\\$\\$\", PATH=\"\\$HOME/.local/bin:\\$PATH\". Rust mapping (4): \\$HOME → std::env::var(\"HOME\").unwrap(), cd \"\\$HOME\" → std::env::set_current_dir(env::var(\"HOME\")), \"\\${HOME}/dir\" → format!(\"{}/dir\", env::var(\"HOME\")), [ -d \"\\$HOME\" ] → Path::new(&env::var(\"HOME\")).is_dir(). HOME is POSIX-COMPLIANT (IEEE Std 1003.1-2001), deterministic (set at login, stable), secure (always quote), portable (all Unix-like systems). Comprehensive comparison table: POSIX SUPPORTED (\\$HOME, \\${HOME}, cd no args, ~, ~/dir, check [ -d \"\\$HOME\" ]), BEST PRACTICES (always quote, check exists, never modify), NOT PORTABLE (~user, ~+, ~-). Total tests: 5,037 (100% passing)."
 
 extreme_tdd_workflow:
@@ -1914,15 +1915,26 @@ chapters:
 
           - id: "VAR-002"
             title: "Document PATH"
-            status: "partial"
+            status: "completed"
             priority: "HIGH"
-            input: "PATH=\"/usr/local/bin:$PATH\""
-            rust: "use_path()"
-            purified: "use_path"
-            test_name: "test_path_variable_baseline"
-            notes: "Function calls work (use_path), std::env::var(\"PATH\") recognition is enhancement."
-            red_phase_tests: "rash/tests/integration_tests.rs:1601-1686"
-            version: "v1.2.1"
+            input: "PATH=\"/usr/local/bin:$PATH\"; export PATH; command -v ls"
+            rust: "std::env::var(\"PATH\"); std::env::set_var(\"PATH\", ...); std::process::Command::new()"
+            purified: "PATH=\"/usr/local/bin:$PATH\"; export PATH; command -v ls"
+            test_name: "test_VAR_002_path_variable_supported"
+            notes: "PATH is POSIX SUPPORTED (HIGH priority, fundamental command lookup). PATH is colon-separated list of directories to search for commands. Set by: System at login, modified by shells/users/package managers. Used by: Shell command lookup (first match wins, left to right). PATH structure: PATH=\"/usr/local/bin:/usr/bin:/bin\" (colon delimiters). Command lookup order: (1) Builtins, (2) Functions, (3) Aliases, (4) PATH directories. CRITICAL: PATH order matters, /usr/local/bin first (user overrides system). Common patterns (10): Prepend (priority), Append (lower priority), Export, Avoid duplicates, Remove dir, Reset to minimal, Search PATH (command -v), Iterate, Check exists, Temporary PATH (subshell). PATH vs which vs command -v: command -v is POSIX RECOMMENDED (finds builtins+functions+executables, consistent exit status), which is NOT POSIX (avoid), type is bash builtin NOT POSIX (avoid). PURIFICATION: Replace which/type with command -v. Best practices (8): Always quote \"$PATH\", Export after modification, Prepend user directories, Append home directories, NEVER put \".\" in PATH (DANGEROUS Trojan horse attacks), Check PATH is set (fallback), Avoid duplicates, Use absolute paths for security-critical scripts. Security (5 CRITICAL): Never put \".\" or writable directories in PATH (hijacking attack), Use absolute paths in security scripts (/usr/bin/sudo), Reset PATH at start of security scripts, Verify command locations before executing, Protect ~/.profile permissions (chmod 644). EXAMPLE ATTACK: Attacker creates /tmp/sudo, if PATH=\"/tmp:$PATH\" attacker's sudo executes. MITIGATION: Never put writable directories in PATH, use absolute paths. Edge cases (7): PATH not set (fallback), PATH empty (fallback), PATH with spaces (must quote), PATH special chars (colons delimiters), PATH very long (system limits), PATH non-existent directories (shell silently skips), PATH duplicates (inefficient but valid). System interaction: PATH initialization (/etc/profile → ~/.profile → ~/.bashrc), Command lookup (builtins → functions → aliases → PATH search), PATH inheritance (parent exports PATH → child receives, child modifications don't affect parent). Typical PATH values: Root, User, Minimal. Rust mapping (5): std::env::var(\"PATH\"), std::env::set_var(\"PATH\", ...), std::env::split_paths(&path), std::env::join_paths([...]), std::process::Command::new(). PURIFICATION RULES (5): Replace which with command -v, Replace type with command -v, Remove \".\" from PATH, Quote all PATH references, Use absolute paths for security commands. PATH is POSIX-COMPLIANT, deterministic, security enforced (no \".\" in PATH), portable. Comprehensive comparison table: POSIX SUPPORTED (PATH=\"/dir1:/dir2\", PATH=\"/new:$PATH\", export PATH, command -v ls, colon-separated dirs, PATH with spaces quoted), NOT POSIX (which, type, whereis), FORBIDDEN (empty entry :: for current dir - security risk), SECURITY ENFORCED (no \".\" in PATH validated by bashrs)."
+            implementation:
+              module: "rash/src/bash_parser/tests.rs"
+              functions:
+                - "test_VAR_002_path_variable_supported (passing)"
+                - "test_VAR_002_path_common_patterns (passing)"
+                - "test_VAR_002_path_vs_which_vs_command (passing)"
+                - "test_VAR_002_path_best_practices (passing)"
+                - "test_VAR_002_path_edge_cases (passing)"
+                - "test_VAR_002_path_system_interaction (passing)"
+                - "test_VAR_002_path_security_considerations (passing)"
+                - "test_VAR_002_path_comparison_table (passing)"
+              lines_of_code: 696
+            version: "v6.6.0"
 
           - id: "VAR-003"
             title: "Document IFS purification"
