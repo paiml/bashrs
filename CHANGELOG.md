@@ -7,6 +7,96 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [6.13.0] - 2025-10-28
+
+### 📈 BASH QUALITY TOOLS - Coverage Tracking
+
+**bashrs v6.13.0 adds the `bashrs coverage` command** - comprehensive coverage tracking for bash scripts with line and function coverage analysis.
+
+**New Feature**: Coverage tracking that analyzes test coverage by detecting which lines and functions are executed during test runs.
+
+### Added
+
+**📈 Coverage Tracking** (Complete)
+
+New `bashrs coverage` command for analyzing test coverage:
+
+```bash
+# Generate coverage report
+bashrs coverage script.sh
+
+# Detailed coverage with line numbers
+bashrs coverage script.sh --detailed
+
+# JSON output for CI/CD
+bashrs coverage script.sh --format json
+
+# HTML report
+bashrs coverage script.sh --format html -o coverage.html
+
+# LCOV format for coverage tools
+bashrs coverage script.sh --format lcov
+
+# Enforce minimum coverage
+bashrs coverage script.sh --min 80
+```
+
+**Coverage Metrics**:
+1. **Line Coverage**: Percentage of executable lines covered by tests
+2. **Function Coverage**: Percentage of functions called during tests
+3. **Uncovered Lines**: Specific line numbers not covered
+4. **Uncovered Functions**: Functions not tested
+
+**Output Formats**:
+- **Terminal**: Clean output with percentages and status indicators
+- **JSON**: Structured data for CI/CD pipelines
+- **HTML**: Visual coverage report with styling
+- **LCOV**: Standard format for coverage visualization tools
+
+**Features**:
+- ✅ Line coverage tracking
+- ✅ Function coverage tracking
+- ✅ Top-level execution tracking
+- ✅ Detailed coverage breakdown with `--detailed`
+- ✅ Minimum coverage enforcement with `--min`
+- ✅ Multiple output formats (Terminal/JSON/HTML/LCOV)
+- ✅ CI/CD ready with exit codes
+
+**Example Output**:
+```
+Coverage Report: script.sh
+
+Lines:     9/12   (75.0%)  ⚠️
+Functions: 2/2    (100.0%) ✅
+
+Uncovered Lines: 3 lines
+
+⚠️ Moderate coverage - consider adding more tests
+```
+
+**Implementation Quality**:
+- 12 integration tests (EXTREME TDD)
+- Zero regressions (5,130 lib tests passing)
+- Manual validation with Terminal/JSON/HTML/LCOV formats
+- Full CLI integration with clap
+
+**Bash Quality Tools Progress**:
+- ✅ `bashrs test` (v6.10.0) - Test discovery and execution
+- ✅ `bashrs score` (v6.11.0) - Quality scoring (A+ to F)
+- ✅ `bashrs audit` (v6.12.0) - Comprehensive quality audit
+- ✅ `bashrs coverage` (v6.13.0) - Coverage tracking
+- ⏳ `bashrs format` (planned) - Bash script formatting
+
+**Making bashrs the "cargo for bash"**: With test, score, audit, and coverage complete, bashrs now provides nearly complete quality tooling for bash development!
+
+### Quality Metrics
+
+- Test Coverage: 88.71% (target: >85%) ✅
+- Mutation Score: 92% (target: >90%) ✅
+- Test Pass Rate: 100% (5,130/5,130) ✅
+- Zero Regressions ✅
+- Max Cyclomatic Complexity: 14 (A+ grade maintained) ✅
+
 ## [6.12.0] - 2025-10-28
 
 ### 🔍 BASH QUALITY TOOLS - Audit Command

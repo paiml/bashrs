@@ -571,8 +571,34 @@ Improvement Suggestions:
 - ✅ `bashrs test` (v6.10.0) - Test discovery and execution
 - ✅ `bashrs score` (v6.11.0) - Quality scoring
 - ✅ `bashrs audit` (v6.12.0) - Comprehensive quality audit
-- ⏳ `bashrs coverage` (planned) - Test coverage tracking
+- ✅ `bashrs coverage` (v6.13.0) - Test coverage tracking
 - ⏳ `bashrs format` (planned) - Code formatting
+
+### Coverage Tracking (NEW in v6.13.0) 📈
+
+bashrs now includes **coverage tracking** for bash scripts:
+
+```bash
+# Generate coverage report
+$ bashrs coverage script.sh
+
+Coverage Report: script.sh
+
+Lines:     9/12   (75.0%)  ⚠️
+Functions: 2/2    (100.0%) ✅
+
+Uncovered Lines: 3 lines
+
+⚠️ Moderate coverage - consider adding more tests
+```
+
+**Coverage Features**:
+- Line coverage percentage
+- Function coverage percentage
+- Uncovered lines/functions
+- Multiple formats (Terminal/JSON/HTML/LCOV)
+- Minimum coverage enforcement: `bashrs coverage script.sh --min 80`
+- CI/CD ready with exit codes
 
 ### Interactive REPL (NEW in v6.7.0) 🎯
 

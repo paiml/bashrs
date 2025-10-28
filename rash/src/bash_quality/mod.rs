@@ -8,5 +8,6 @@
 //!
 //! This module provides the foundation for making bashrs the "cargo for bash".
 
+pub mod coverage;
 pub mod scoring;
 pub mod testing;

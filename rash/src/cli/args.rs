@@ -240,6 +240,29 @@ pub enum Commands {
         #[arg(long)]
         min_grade: Option<String>,
     },
+
+    /// Generate coverage report (NEW in v6.13.0 - Bash Quality Tools)
+    Coverage {
+        /// Input bash script file
+        #[arg(value_name = "FILE")]
+        input: PathBuf,
+
+        /// Output format
+        #[arg(long, value_enum, default_value = "terminal")]
+        format: CoverageOutputFormat,
+
+        /// Minimum coverage percentage required
+        #[arg(long)]
+        min: Option<u8>,
+
+        /// Show detailed coverage breakdown
+        #[arg(long)]
+        detailed: bool,
+
+        /// Output file for HTML/LCOV format
+        #[arg(short, long)]
+        output: Option<PathBuf>,
+    },
 }
 
 #[derive(Subcommand)]
@@ -454,6 +477,19 @@ pub enum AuditOutputFormat {
     Json,
     /// SARIF format (for GitHub Code Scanning)
     Sarif,
+}
+
+/// Output format for coverage results
+#[derive(Clone, Debug, ValueEnum)]
+pub enum CoverageOutputFormat {
+    /// Terminal output with colors
+    Terminal,
+    /// JSON format
+    Json,
+    /// HTML report
+    Html,
+    /// LCOV format
+    Lcov,
 }
 
 impl ValueEnum for VerificationLevel {
