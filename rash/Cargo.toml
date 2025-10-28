@@ -25,6 +25,7 @@ quote.workspace = true
 proc-macro2.workspace = true
 serde.workspace = true
 serde_json.workspace = true
+toml = "0.8"  # For formatter configuration
 anyhow.workspace = true
 thiserror.workspace = true
 clap = { workspace = true, optional = true }

@@ -263,6 +263,25 @@ pub enum Commands {
         #[arg(short, long)]
         output: Option<PathBuf>,
     },
+
+    /// Format bash scripts (NEW in v6.14.0 - Bash Quality Tools)
+    Format {
+        /// Input bash script file(s)
+        #[arg(value_name = "FILE", required = true)]
+        inputs: Vec<PathBuf>,
+
+        /// Check if files are formatted without applying changes
+        #[arg(long)]
+        check: bool,
+
+        /// Show diff without applying changes
+        #[arg(long)]
+        dry_run: bool,
+
+        /// Output file (for single input file)
+        #[arg(short, long)]
+        output: Option<PathBuf>,
+    },
 }
 
 #[derive(Subcommand)]
