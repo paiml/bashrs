@@ -33,23 +33,45 @@ static ARG_REFERENCE: Lazy<Regex> = Lazy::new(|| {
     Regex::new(r"\$[@*#]|\$\{?[0-9]+\}?").unwrap()
 });
 
-pub fn check(source: &str) -> LintResult {
-    let mut result = LintResult::new();
-    let lines: Vec<&str> = source.lines().collect();
+/// Check if line is a comment
+fn is_comment(line: &str) -> bool {
+    line.trim().starts_with('#')
+}
 
-    // First pass: Find functions and check if they use positional parameters
+/// Update brace depth counter
+fn update_brace_depth(line: &str, depth: usize) -> usize {
+    let depth = depth + line.matches('{').count();
+    depth.saturating_sub(line.matches('}').count())
+}
+
+/// Check if line contains argument references
+fn has_arg_reference(line: &str) -> bool {
+    ARG_REFERENCE.is_match(line)
+}
+
+/// Mark function as using arguments
+fn mark_function_uses_args(
+    functions: &mut HashMap<String, bool>,
+    in_function: &Option<String>,
+) {
+    if let Some(ref func) = in_function {
+        functions.insert(func.clone(), true);
+    }
+}
+
+/// Find all functions and track which use positional parameters
+fn find_functions_using_args(lines: &[&str]) -> HashMap<String, bool> {
     let mut functions_use_args: HashMap<String, bool> = HashMap::new();
     let mut in_function: Option<String> = None;
     let mut brace_depth = 0;
 
-    for line in &lines {
-        let trimmed = line.trim();
-
-        if trimmed.starts_with('#') {
+    for line in lines {
+        if is_comment(line) {
             continue;
         }
 
-        // Track function definitions
+        let trimmed = line.trim();
+
         if let Some(cap) = FUNCTION_DEF.captures(trimmed) {
             let func_name = cap.get(1).unwrap().as_str().to_string();
             in_function = Some(func_name.clone());
@@ -58,55 +80,55 @@ pub fn check(source: &str) -> LintResult {
             continue;
         }
 
-        // Track brace depth
         if in_function.is_some() {
-            brace_depth += line.matches('{').count();
-            brace_depth = brace_depth.saturating_sub(line.matches('}').count());
+            brace_depth = update_brace_depth(line, brace_depth);
 
             if brace_depth == 0 {
                 in_function = None;
-            } else if ARG_REFERENCE.is_match(line) {
-                // Function uses positional parameters
-                if let Some(ref func) = in_function {
-                    functions_use_args.insert(func.clone(), true);
-                }
+            } else if has_arg_reference(line) {
+                mark_function_uses_args(&mut functions_use_args, &in_function);
             }
         }
     }
 
-    // Second pass: Find function calls with arguments to functions that don't use them
+    functions_use_args
+}
+
+/// Build diagnostic for function call with unused arguments
+fn build_diagnostic(func_name: &str, line_num: usize, start_col: usize, end_col: usize) -> Diagnostic {
+    Diagnostic::new(
+        "SC2119",
+        Severity::Info,
+        format!(
+            "Use {} \"$@\" if function's $1 should mean script's $1",
+            func_name
+        ),
+        Span::new(line_num, start_col, line_num, end_col),
+    )
+}
+
+pub fn check(source: &str) -> LintResult {
+    let mut result = LintResult::new();
+    let lines: Vec<&str> = source.lines().collect();
+
+    let functions_use_args = find_functions_using_args(&lines);
+
     for (line_num, line) in lines.iter().enumerate() {
         let line_num = line_num + 1;
         let trimmed = line.trim();
 
-        if trimmed.starts_with('#') {
-            continue;
-        }
-
-        // Skip function definitions
-        if FUNCTION_DEF.is_match(trimmed) {
+        if is_comment(trimmed) || FUNCTION_DEF.is_match(trimmed) {
             continue;
         }
 
         if let Some(cap) = FUNCTION_CALL.captures(trimmed) {
             let func_name = cap.get(1).unwrap().as_str();
 
-            // Check if this function exists and doesn't use arguments
             if let Some(&uses_args) = functions_use_args.get(func_name) {
                 if !uses_args {
                     let start_col = cap.get(0).unwrap().start() + 1;
                     let end_col = cap.get(0).unwrap().end() + 1;
-
-                    let diagnostic = Diagnostic::new(
-                        "SC2119",
-                        Severity::Info,
-                        format!(
-                            "Use {} \"$@\" if function's $1 should mean script's $1",
-                            func_name
-                        ),
-                        Span::new(line_num, start_col, line_num, end_col),
-                    );
-
+                    let diagnostic = build_diagnostic(func_name, line_num, start_col, end_col);
                     result.add(diagnostic);
                 }
             }
