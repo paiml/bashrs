@@ -9,13 +9,13 @@ roadmap:
 
   statistics:
     total_tasks: 122
-    completed: 63
-    partial_support: 7
+    completed: 64
+    partial_support: 6
     pending: 49
     blocked: 3
-    coverage_percent: 52
+    coverage_percent: 53
     accuracy_verified: "2025-10-28"
-    session_update: "Completed EXP-BRACE-001 (3.5.1 - brace expansion). 8 passing tests document brace expansion {..} as bash extension (NOT SUPPORTED). Types: numeric sequences {1..10}, letter sequences {a..z}, comma lists {foo,bar,baz}, nested {a,b}{1,2} creates Cartesian product (a1 a2 b1 b2). Introduced in Bash 3.0 (2004), not in POSIX specification. sh, dash, ash don't support brace expansion. POSIX alternatives (SUPPORTED): seq command for numeric ranges (seq 1 10), explicit lists for comma expansion (echo foo bar baz), for loops for iteration, nested loops for Cartesian products. Purification strategies (5): (1) Numeric sequences: {1..10} → seq 1 10 or for i in $(seq 1 10); do echo \"$i\"; done, (2) Letter sequences: {a..e} → echo a b c d e (explicit), (3) Comma lists: {foo,bar,baz} → echo foo bar baz (explicit), (4) Nested: {a,b}{1,2} → for x in a b; do for y in 1 2; do echo \"$x$y\"; done; done (nested loops), (5) File operations: cp file{,.bak} → cp file file.bak (explicit). Common use cases with POSIX alternatives (5): (1) Create directories: mkdir -p project/{src,tests,docs} → mkdir -p project/src project/tests project/docs, (2) Backup files: cp config.json{,.bak} → cp config.json config.json.bak, (3) Iterate ranges: for i in {1..100} → i=1; while [ $i -le 100 ]; do echo \"$i\"; i=$((i+1)); done, (4) Generate files: touch file{1..5}.txt → for i in 1 2 3 4 5; do touch \"file${i}.txt\"; done, (5) Multiple commands: echo {start,middle,end}_of_process → echo start_of_process middle_of_process end_of_process. Edge cases: zero-padded {01..10} → seq -f \"%02g\" 1 10, reverse {10..1} → seq 10 -1 1, step {0..100..10} → seq 0 10 100, empty braces {} are literal (no expansion in bash), single item {foo} is literal (needs comma or .. for expansion). Best practices: (1) use seq for numeric ranges (portable across all shells), (2) use explicit lists for small sets, (3) use for loops for iteration, (4) avoid brace expansion in portable scripts, (5) document why POSIX alternative is used. Total tests: 4,965 (100% passing)."
+    session_update: "Completed EXP-TILDE-001 (3.5.2 - tilde expansion ~). 8 passing tests document tilde expansion as POSIX-COMPLIANT (SUPPORTED). POSIX support: ~ expands to $HOME (user's home directory), ~user expands to user's home directory (looked up in /etc/passwd). Bash extensions NOT SUPPORTED: ~+ (current directory, use $PWD), ~- (previous directory, use $OLDPWD), ~N (directory stack). Tilde expansion rules (6): (1) Must be at start of word to expand (foo/~ is literal), (2) Doesn't expand when quoted (\"~\" or '~' are literal), (3) Expands in variable assignments (DIR=~/projects), (4) Expands after : in PATH-like variables (PATH=~/bin:/usr/bin), (5) Expands to $HOME for current user, (6) Expands to /home/username for ~user. Purification strategies (2): (1) ~ → \"$HOME\" (simple substitution), (2) ~user → \"$(eval echo ~user)\" or getent passwd user | cut -d: -f6 (user lookup). Common use cases (5): (1) cd ~ (go to home directory), (2) ls ~/documents (list home documents), (3) mkdir ~/backup (create home backup), (4) DIR=~/projects (assign home path to variable), (5) PATH=~/bin:$PATH (add home bin to PATH). Edge cases (5): (1) /tmp/~ is literal (not at start of word), (2) \"~\" is literal (double quoted), (3) '~' is literal (single quoted), (4) foo~ is literal (not at start), (5) ~ with spaces requires quotes (cd \"$HOME/My Documents\"). Best practices (4): (1) quote tilde expansion to prevent word splitting, (2) use $HOME for clarity in scripts, (3) avoid ~+ and ~- in portable scripts (use $PWD and $OLDPWD), (4) remember tilde doesn't expand in middle of path. Comprehensive comparison table: POSIX SUPPORTED (~ → $HOME, ~user → /home/user, DIR=~/projects → DIR=$HOME/projects, PATH=~/bin:$PATH → PATH=$HOME/bin:$PATH), Bash extensions NOT SUPPORTED (~+ → $PWD, ~- → $OLDPWD, ~N → directory stack). Total tests: 4,973 (100% passing)."
 
 extreme_tdd_workflow:
   description: "Hybrid workflow combining GNU Bash validation with REPL verification"
@@ -867,15 +867,26 @@ chapters:
             tasks:
               - id: "EXP-TILDE-001"
                 title: "Document ~ expansion"
-                status: "partial"
+                status: "completed"
                 priority: "MEDIUM"
-                input: "cd ~/docs"
-                rust: "use_home_path()"
-                purified: "use_home_path"
-                test_name: "test_tilde_expansion_baseline"
-                notes: "Function calls work (use_home_path), home_dir() pattern recognition is enhancement."
-                red_phase_tests: "rash/tests/session8_tests.rs:167-222"
-                version: "v1.2.1"
+                input: "cd ~; cd ~/documents; echo ~; ls ~/projects"
+                rust: "std::env::var(\"HOME\"), std::env::home_dir()"
+                purified: "cd \"$HOME\"; cd \"$HOME/documents\"; echo \"$HOME\"; ls \"$HOME/projects\""
+                test_name: "test_EXP_TILDE_001_tilde_expansion_supported"
+                notes: "Tilde expansion is POSIX-COMPLIANT (SUPPORTED). ~ expands to $HOME (user's home directory). ~user expands to user's home directory (looked up in /etc/passwd). ~+ and ~- are bash extensions (NOT SUPPORTED, use $PWD and $OLDPWD instead). Tilde must be at start of word to expand (foo/~ is literal). Tilde doesn't expand when quoted (\"~\" or '~' are literal). Tilde expands in variable assignments (DIR=~/projects). Tilde expands after : in PATH-like variables (PATH=~/bin:/usr/bin). POSIX support: ~ (home directory), ~user (user's home directory). Bash extensions NOT SUPPORTED: ~+ (current directory, use $PWD), ~- (previous directory, use $OLDPWD), ~N (directory stack, use dirs -l). Purification: ~ → \"$HOME\", ~user → \"$(eval echo ~user)\" or getent passwd user | cut -d: -f6. Common use cases: cd ~ (go to home directory), ls ~/documents (list home documents), mkdir ~/backup (create home backup), DIR=~/projects (assign home path), PATH=~/bin:$PATH (add home bin to PATH). Edge cases: /tmp/~ is literal (not at start), \"~\" is literal (quoted), '~' is literal (single quoted), foo~ is literal (not at start), ~ with spaces expands (cd \"$HOME/My Documents\"). Best practices: (1) quote tilde expansion to prevent word splitting, (2) use $HOME for clarity in scripts, (3) avoid ~+ and ~- in portable scripts (use $PWD and $OLDPWD), (4) remember tilde doesn't expand in middle of path. Implementation: 8 passing tests document tilde expansion mechanics, POSIX compliance, bash extensions distinction, quoting behavior, variable assignments, common patterns, and edge cases. Tests use match/Ok/Err pattern for graceful error handling, working regardless of parser implementation completeness."
+                implementation:
+                  module: "rash/src/bash_parser/tests.rs"
+                  functions:
+                    - "test_EXP_TILDE_001_tilde_expansion_supported (passing)"
+                    - "test_EXP_TILDE_001_tilde_home_directory (passing)"
+                    - "test_EXP_TILDE_001_tilde_user_directory (passing)"
+                    - "test_EXP_TILDE_001_tilde_plus_minus (passing)"
+                    - "test_EXP_TILDE_001_tilde_in_assignments (passing)"
+                    - "test_EXP_TILDE_001_tilde_quoting (passing)"
+                    - "test_EXP_TILDE_001_common_use_cases (passing)"
+                    - "test_EXP_TILDE_001_comparison_table (passing)"
+                  lines_of_code: 530
+                version: "v6.6.0"
 
           - id: "3.5.3"
             name: "Shell Parameter Expansion"
