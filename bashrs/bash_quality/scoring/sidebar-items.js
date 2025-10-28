@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"fn":["score_script"],"struct":["QualityScore"]};
+window.SIDEBAR_ITEMS = {"fn":["calculate_complexity_score","calculate_documentation_score","calculate_grade","calculate_maintainability_score","calculate_safety_score","calculate_testing_score","generate_suggestions","score_script"],"struct":["QualityScore"]};
