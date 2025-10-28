@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"mod":["coverage","scoring","testing"]};
+window.SIDEBAR_ITEMS = {"mod":["coverage","formatter","formatter_config","scoring","testing"]};
