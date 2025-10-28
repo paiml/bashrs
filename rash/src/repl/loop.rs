@@ -134,14 +134,16 @@ fn handle_mode_command(line: &str, state: &mut ReplState) {
         println!();
         println!("Usage: :mode <mode_name>");
     } else if parts.len() == 2 {
-        // Switch mode
-        match ReplMode::from_str(parts[1]) {
-            Ok(mode) => {
-                state.set_mode(mode);
-                println!("Switched to {} mode - {}", mode, mode.description());
-            }
-            Err(err) => {
-                println!("Error: {}", err);
+        // Switch mode - use .get() to avoid clippy::indexing_slicing warning
+        if let Some(mode_name) = parts.get(1) {
+            match mode_name.parse::<ReplMode>() {
+                Ok(mode) => {
+                    state.set_mode(mode);
+                    println!("Switched to {} mode - {}", mode, mode.description());
+                }
+                Err(err) => {
+                    println!("Error: {}", err);
+                }
             }
         }
     } else {
