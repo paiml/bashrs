@@ -7,6 +7,99 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [6.12.0] - 2025-10-28
+
+### 🔍 BASH QUALITY TOOLS - Audit Command
+
+**bashrs v6.12.0 adds the `bashrs audit` command** - comprehensive quality audit that runs all quality checks in one command.
+
+**New Feature**: Unified quality audit orchestrating parse, lint, test, and score checks with multiple output formats (Human/JSON/SARIF).
+
+### Added
+
+**🔍 Comprehensive Quality Audit** (Complete)
+
+New `bashrs audit` command for running all quality checks together:
+
+```bash
+# Run comprehensive audit
+bashrs audit script.sh
+
+# Strict mode (fail on warnings)
+bashrs audit script.sh --strict
+
+# Detailed dimension breakdown
+bashrs audit script.sh --detailed
+
+# JSON output for CI/CD integration
+bashrs audit script.sh --format json
+
+# SARIF output for GitHub Code Scanning
+bashrs audit script.sh --format sarif
+
+# Enforce minimum grade
+bashrs audit script.sh --min-grade A
+```
+
+**Audit Checks** (4 comprehensive checks):
+1. **Parse**: Valid bash syntax verification
+2. **Lint**: Security and style issues (357 rules)
+3. **Test**: Test discovery and execution
+4. **Score**: Quality scoring (A+ to F scale)
+
+**Output Formats**:
+- **Human**: Clean terminal output with emojis and color
+- **JSON**: Structured data for CI/CD pipelines
+- **SARIF**: GitHub Code Scanning integration
+
+**Features**:
+- ✅ Orchestrates all quality tools (parse, lint, test, score)
+- ✅ Strict mode with `--strict` flag (fail on warnings)
+- ✅ Minimum grade enforcement with `--min-grade`
+- ✅ Detailed dimension breakdown with `--detailed`
+- ✅ Multiple output formats: Human, JSON, SARIF
+- ✅ Exit code reflects audit pass/fail (CI/CD friendly)
+
+**Example Output**:
+```
+Comprehensive Quality Audit
+===========================
+
+File: script.sh
+
+Check Results:
+--------------
+✅ Parse:    Valid bash syntax
+⚠️  Lint:     3 warnings
+✅ Test:     1/1 tests passed
+✅ Score:    B (8.5/10.0)
+
+Overall: ✅ PASS
+```
+
+**Implementation Quality**:
+- 10 integration tests (EXTREME TDD)
+- Zero regressions (5,130 lib tests passing)
+- Manual validation with multiple test scripts
+- Full CLI integration with clap
+
+**Bash Quality Tools Progress**:
+- ✅ `bashrs test` (v6.10.0) - Test discovery and execution
+- ✅ `bashrs score` (v6.11.0) - Quality scoring (A+ to F)
+- ✅ `bashrs audit` (v6.12.0) - Comprehensive quality audit
+- ⏳ `bashrs coverage` (planned) - Test coverage tracking
+- ⏳ `bashrs format` (planned) - Bash script formatting
+
+**Making bashrs the "cargo for bash"**: With test, score, and audit complete, bashrs now provides comprehensive quality tooling for bash development.
+
+### Quality Metrics
+
+- Test Coverage: 88.71% (target: >85%) ✅
+- Mutation Score: 92% (target: >90%) ✅
+- Test Pass Rate: 100% (5,130/5,130) ✅
+- Zero Regressions ✅
+- Max Cyclomatic Complexity: 14 (A+ grade maintained) ✅
+
 ## [6.11.0] - 2025-10-28
 
 ### 📊 BASH QUALITY TOOLS - Score Command

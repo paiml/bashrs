@@ -434,6 +434,66 @@ bashrs test script.sh --format junit
 - ✅ **Fast execution** - Native test runner
 - ✅ **CI/CD ready** - Multiple output formats
 
+### Comprehensive Quality Audit (NEW in v6.12.0) 🔍
+
+bashrs now includes a **comprehensive audit command** that runs all quality checks in one unified command:
+
+```bash
+# Run comprehensive quality audit
+$ bashrs audit script.sh
+
+Comprehensive Quality Audit
+===========================
+
+File: script.sh
+
+Check Results:
+--------------
+✅ Parse:    Valid bash syntax
+⚠️  Lint:     3 warnings
+✅ Test:     1/1 tests passed
+✅ Score:    B (8.5/10.0)
+
+Overall: ✅ PASS
+```
+
+**Audit Checks** (4 comprehensive checks):
+1. **Parse**: Valid bash syntax verification
+2. **Lint**: Security and style issues (357 rules)
+3. **Test**: Test discovery and execution
+4. **Score**: Quality scoring (A+ to F scale)
+
+**Output Formats**:
+```bash
+# Human-readable output (default)
+bashrs audit script.sh
+
+# JSON for CI/CD pipelines
+bashrs audit script.sh --format json
+
+# SARIF for GitHub Code Scanning
+bashrs audit script.sh --format sarif
+```
+
+**Advanced Options**:
+```bash
+# Strict mode (fail on warnings)
+bashrs audit script.sh --strict
+
+# Enforce minimum grade
+bashrs audit script.sh --min-grade A
+
+# Detailed dimension breakdown
+bashrs audit script.sh --detailed
+```
+
+**Why comprehensive audit?**
+- ✅ **All-in-one** - Parse, lint, test, and score in one command
+- ✅ **CI/CD ready** - Exit code reflects pass/fail status
+- ✅ **Multiple formats** - Human, JSON, SARIF
+- ✅ **Quality gates** - Enforce minimum standards with `--min-grade`
+- ✅ **GitHub integration** - SARIF format for Code Scanning
+
 ### Bash Quality Scoring (NEW in v6.11.0) 📊
 
 bashrs now includes a **quality scoring system** that evaluates bash scripts across 5 dimensions with TDG-style grading:
@@ -510,6 +570,7 @@ Improvement Suggestions:
 **Bash Quality Tools Progress**:
 - ✅ `bashrs test` (v6.10.0) - Test discovery and execution
 - ✅ `bashrs score` (v6.11.0) - Quality scoring
+- ✅ `bashrs audit` (v6.12.0) - Comprehensive quality audit
 - ⏳ `bashrs coverage` (planned) - Test coverage tracking
 - ⏳ `bashrs format` (planned) - Code formatting
 
