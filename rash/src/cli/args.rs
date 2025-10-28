@@ -183,6 +183,25 @@ pub enum Commands {
         #[arg(long)]
         max_depth: Option<usize>,
     },
+
+    /// Run bash script tests (NEW in v6.10.0 - Bash Quality Tools)
+    Test {
+        /// Input bash script file
+        #[arg(value_name = "FILE")]
+        input: PathBuf,
+
+        /// Output format
+        #[arg(long, value_enum, default_value = "human")]
+        format: TestOutputFormat,
+
+        /// Show detailed test results
+        #[arg(long)]
+        detailed: bool,
+
+        /// Run only tests matching pattern
+        #[arg(long)]
+        pattern: Option<String>,
+    },
 }
 
 #[derive(Subcommand)]
@@ -364,6 +383,17 @@ pub enum ReportFormat {
     Json,
     /// Markdown format
     Markdown,
+}
+
+/// Output format for test results
+#[derive(Clone, Debug, ValueEnum)]
+pub enum TestOutputFormat {
+    /// Human-readable format
+    Human,
+    /// JSON format
+    Json,
+    /// JUnit XML format
+    Junit,
 }
 
 impl ValueEnum for VerificationLevel {

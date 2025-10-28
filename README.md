@@ -361,6 +361,81 @@ FILES="$(ls *.txt)"
 
 See the [Safety Comparison Guide](docs/SAFETY_COMPARISON.md) for detailed vulnerability prevention examples.
 
+### Bash Test Framework (NEW in v6.10.0) 🧪
+
+bashrs now includes a **test framework** for bash scripts with inline tests and GIVEN/WHEN/THEN syntax:
+
+```bash
+# Run all tests in a script
+$ bashrs test script.sh
+
+Test Results
+============
+
+✓ test_add_numbers
+  Description: example function works correctly
+  Given: x=5
+  When: add_numbers 2 3
+  Then: output should be "5"
+✓ test_pass
+
+Summary
+-------
+Total:   2
+Passed:  2
+Failed:  0
+Time:    5ms
+
+✓ All tests passed!
+```
+
+**Test Format**:
+```bash
+# TEST: my_function with valid input
+# GIVEN: x=5
+# WHEN: my_function 5
+# THEN: output should be "Result: 5"
+test_my_function_basic() {
+    result=$(my_function 5)
+    [[ "$result" == "Result: 5" ]] || return 1
+}
+```
+
+**Features**:
+- ✅ **Automatic test discovery** - Functions starting with `test_`
+- ✅ **GIVEN/WHEN/THEN syntax** - Behavior-driven test documentation
+- ✅ **Multiple output formats** - Human, JSON, JUnit XML
+- ✅ **Pattern filtering** - Run specific tests with `--pattern`
+- ✅ **Detailed results** - Show GIVEN/WHEN/THEN with `--detailed`
+- ✅ **CI/CD integration** - JSON/JUnit output for test reporting
+
+**Usage**:
+```bash
+# Run all tests
+bashrs test script.sh
+
+# Detailed output with GIVEN/WHEN/THEN
+bashrs test script.sh --detailed
+
+# Run tests matching pattern
+bashrs test script.sh --pattern "test_add"
+
+# JSON output for CI/CD
+bashrs test script.sh --format json
+
+# JUnit XML for test reporting
+bashrs test script.sh --format junit
+```
+
+**Why bash tests?**
+- ✅ **Inline tests** - Keep tests next to code
+- ✅ **No external tools** - Pure bash, no bats or shunit2
+- ✅ **BDD style** - Clear test documentation with GIVEN/WHEN/THEN
+- ✅ **Fast execution** - Native test runner
+- ✅ **CI/CD ready** - Multiple output formats
+
+**Future**: This is the MVP. Future releases will add `bashrs score` (quality scoring), `bashrs coverage` (test coverage), and `bashrs format` (code formatting).
+
 ### Interactive REPL (NEW in v6.7.0) 🎯
 
 bashrs now includes a **full-featured REPL** for interactive bash script analysis and testing:

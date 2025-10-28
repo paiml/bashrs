@@ -1,6 +1,6 @@
 use crate::cli::args::{
     CompileRuntime, ConfigCommands, ConfigOutputFormat, ContainerFormatArg, InspectionFormat,
-    LintFormat, MakeCommands, MakeOutputFormat, ReportFormat,
+    LintFormat, MakeCommands, MakeOutputFormat, ReportFormat, TestOutputFormat,
 };
 use crate::cli::{Cli, Commands};
 use crate::models::{Config, Error, Result};
@@ -130,6 +130,16 @@ pub fn execute_command(cli: Cli) -> Result<()> {
         } => {
             info!("Starting interactive REPL");
             handle_repl_command(debug, sandboxed, max_memory, timeout, max_depth)
+        }
+
+        Commands::Test {
+            input,
+            format,
+            detailed,
+            pattern,
+        } => {
+            info!("Running tests in {}", input.display());
+            test_command(&input, format, detailed, pattern.as_deref())
         }
     }
 }
@@ -1265,4 +1275,219 @@ fn handle_repl_command(
 
     // Run REPL
     run_repl(config).map_err(|e| Error::Internal(format!("REPL error: {e}")))
+}
+
+/// Run tests in a bash script
+fn test_command(
+    input: &Path,
+    format: TestOutputFormat,
+    detailed: bool,
+    pattern: Option<&str>,
+) -> Result<()> {
+    use crate::bash_quality::testing::{discover_tests, run_tests};
+
+    // Read input file
+    let source = fs::read_to_string(input)
+        .map_err(|e| Error::Internal(format!("Failed to read {}: {}", input.display(), e)))?;
+
+    // Discover tests
+    let tests = discover_tests(&source)
+        .map_err(|e| Error::Internal(format!("Failed to discover tests: {}", e)))?;
+
+    if tests.is_empty() {
+        warn!("No tests found in {}", input.display());
+        println!("No tests found in {}", input.display());
+        return Ok(());
+    }
+
+    // Filter tests by pattern if provided
+    let tests_to_run: Vec<_> = if let Some(pat) = pattern {
+        tests
+            .iter()
+            .filter(|t| t.name.contains(pat))
+            .cloned()
+            .collect()
+    } else {
+        tests.clone()
+    };
+
+    if tests_to_run.is_empty() {
+        warn!("No tests matching pattern '{}'", pattern.unwrap_or(""));
+        println!(
+            "No tests matching pattern '{}'",
+            pattern.unwrap_or("")
+        );
+        return Ok(());
+    }
+
+    info!(
+        "Running {} tests from {}",
+        tests_to_run.len(),
+        input.display()
+    );
+
+    // Run tests
+    let report = run_tests(&source, &tests_to_run)
+        .map_err(|e| Error::Internal(format!("Failed to run tests: {}", e)))?;
+
+    // Output results
+    match format {
+        TestOutputFormat::Human => {
+            print_human_test_results(&report, detailed);
+        }
+        TestOutputFormat::Json => {
+            print_json_test_results(&report);
+        }
+        TestOutputFormat::Junit => {
+            print_junit_test_results(&report);
+        }
+    }
+
+    // Exit with error if tests failed
+    if report.failed() > 0 {
+        return Err(Error::Internal(format!(
+            "{} test(s) failed",
+            report.failed()
+        )));
+    }
+
+    Ok(())
+}
+
+/// Print human-readable test results
+fn print_human_test_results(
+    report: &crate::bash_quality::testing::TestReport,
+    detailed: bool,
+) {
+    use crate::bash_quality::testing::TestResult;
+
+    println!();
+    println!("Test Results");
+    println!("============");
+    println!();
+
+    for (test_name, result) in &report.results {
+        match result {
+            TestResult::Pass => {
+                println!("✓ {}", test_name);
+                if detailed {
+                    if let Some(test) = report.tests.iter().find(|t| t.name == *test_name) {
+                        if let Some(desc) = &test.description {
+                            println!("  Description: {}", desc);
+                        }
+                        if let Some(given) = &test.given {
+                            println!("  Given: {}", given);
+                        }
+                        if let Some(when) = &test.when {
+                            println!("  When: {}", when);
+                        }
+                        if let Some(then) = &test.then {
+                            println!("  Then: {}", then);
+                        }
+                    }
+                }
+            }
+            TestResult::Fail(msg) => {
+                println!("✗ {}", test_name);
+                println!("  Error: {}", msg);
+                if detailed {
+                    if let Some(test) = report.tests.iter().find(|t| t.name == *test_name) {
+                        if let Some(desc) = &test.description {
+                            println!("  Description: {}", desc);
+                        }
+                    }
+                }
+            }
+            TestResult::Skip(reason) => {
+                println!("⊘ {} (skipped: {})", test_name, reason);
+            }
+        }
+    }
+
+    println!();
+    println!("Summary");
+    println!("-------");
+    println!("Total:   {}", report.results.len());
+    println!("Passed:  {}", report.passed());
+    println!("Failed:  {}", report.failed());
+    println!("Skipped: {}", report.skipped());
+    println!("Time:    {}ms", report.duration_ms);
+    println!();
+
+    if report.all_passed() {
+        println!("✓ All tests passed!");
+    } else {
+        println!("✗ {} test(s) failed", report.failed());
+    }
+}
+
+/// Print JSON test results
+fn print_json_test_results(report: &crate::bash_quality::testing::TestReport) {
+    use serde_json::json;
+
+    let json_report = json!({
+        "tests": report.tests.iter().map(|t| json!({
+            "name": t.name,
+            "line": t.line,
+            "description": t.description,
+            "given": t.given,
+            "when": t.when,
+            "then": t.then,
+        })).collect::<Vec<_>>(),
+        "results": report.results.iter().map(|(name, result)| json!({
+            "name": name,
+            "result": match result {
+                crate::bash_quality::testing::TestResult::Pass => "pass",
+                crate::bash_quality::testing::TestResult::Fail(_) => "fail",
+                crate::bash_quality::testing::TestResult::Skip(_) => "skip",
+            },
+            "message": match result {
+                crate::bash_quality::testing::TestResult::Fail(msg) => Some(msg),
+                crate::bash_quality::testing::TestResult::Skip(msg) => Some(msg),
+                _ => None,
+            },
+        })).collect::<Vec<_>>(),
+        "summary": {
+            "total": report.results.len(),
+            "passed": report.passed(),
+            "failed": report.failed(),
+            "skipped": report.skipped(),
+            "duration_ms": report.duration_ms,
+            "all_passed": report.all_passed(),
+        }
+    });
+
+    println!("{}", serde_json::to_string_pretty(&json_report).unwrap());
+}
+
+/// Print JUnit XML test results
+fn print_junit_test_results(report: &crate::bash_quality::testing::TestReport) {
+    println!("<?xml version=\"1.0\" encoding=\"UTF-8\"?>");
+    println!(
+        "<testsuite tests=\"{}\" failures=\"{}\" skipped=\"{}\" time=\"{:.3}\">",
+        report.results.len(),
+        report.failed(),
+        report.skipped(),
+        report.duration_ms as f64 / 1000.0
+    );
+
+    for (test_name, result) in &report.results {
+        match result {
+            crate::bash_quality::testing::TestResult::Pass => {
+                println!("  <testcase name=\"{}\" />", test_name);
+            }
+            crate::bash_quality::testing::TestResult::Fail(msg) => {
+                println!("  <testcase name=\"{}\">", test_name);
+                println!("    <failure message=\"{}\" />", msg.replace('"', "&quot;"));
+                println!("  </testcase>");
+            }
+            crate::bash_quality::testing::TestResult::Skip(reason) => {
+                println!("  <testcase name=\"{}\">", test_name);
+                println!("    <skipped message=\"{}\" />", reason.replace('"', "&quot;"));
+                println!("  </testcase>");
+            }
+        }
+    }
+
+    println!("</testsuite>");
 }

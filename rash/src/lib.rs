@@ -61,6 +61,7 @@
 
 pub mod ast;
 pub mod bash_parser;
+pub mod bash_quality; // NEW: Bash quality tools (test, coverage, format, score)
 pub mod bash_transpiler;
 #[cfg(not(target_arch = "wasm32"))]
 pub mod cli;

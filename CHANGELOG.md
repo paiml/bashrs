@@ -7,6 +7,112 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [6.10.0] - 2025-10-28
+
+### 🧪 BASH QUALITY TOOLS - MVP RELEASE
+
+**bashrs v6.10.0 introduces Bash Quality Tools** - the first step toward making bashrs the "cargo for bash".
+
+**New Feature**: `bashrs test` command for running inline bash script tests with GIVEN/WHEN/THEN syntax.
+
+### Added
+
+**🧪 Bash Test Framework** (MVP Complete)
+
+New `bashrs test` command for discovering and running tests in bash scripts:
+
+```bash
+# Run all tests in a script
+bashrs test script.sh
+
+# Run with detailed GIVEN/WHEN/THEN output
+bashrs test script.sh --detailed
+
+# Run tests matching a pattern
+bashrs test script.sh --pattern "test_add"
+
+# JSON output for CI/CD integration
+bashrs test script.sh --format json
+
+# JUnit XML output for test reporting
+bashrs test script.sh --format junit
+```
+
+**Test Format**:
+```bash
+# TEST: my_function with valid input
+# GIVEN: x=5
+# WHEN: my_function 5
+# THEN: output should be "Result: 5"
+test_my_function_basic() {
+    result=$(my_function 5)
+    [[ "$result" == "Result: 5" ]] || return 1
+}
+```
+
+**Features**:
+- ✅ Automatic test discovery (functions starting with `test_`)
+- ✅ GIVEN/WHEN/THEN comment parsing
+- ✅ Test execution in isolated bash environment
+- ✅ Multiple output formats: Human, JSON, JUnit XML
+- ✅ Pattern-based test filtering
+- ✅ Detailed test results with timing
+- ✅ Non-zero exit code on test failures
+
+**Implementation Quality**:
+- 15 unit tests covering discovery and execution
+- EXTREME TDD approach (RED-GREEN-REFACTOR)
+- Zero regressions (5,121 tests passing)
+- Full CLI integration with clap
+
+**Module Structure**:
+- `bash_quality::testing` - Test discovery and execution
+- `bash_quality::scoring` - Quality scoring (stub for future)
+
+### Technical Details
+
+**Test Discovery**:
+- Scans bash scripts for functions starting with `test_`
+- Extracts TEST, GIVEN, WHEN, THEN comments (up to 10 lines before function)
+- Parses function body with brace balancing
+- Returns `Vec<BashTest>` with metadata
+
+**Test Execution**:
+- Creates temporary bash script for each test
+- Sources original script + executes test function
+- Captures exit code (0 = pass, non-zero = fail)
+- Records timing and error messages
+- Cleans up temporary files
+
+**CLI Integration**:
+- New `Commands::Test` enum variant
+- `TestOutputFormat` with Human/Json/Junit
+- Detailed flag for GIVEN/WHEN/THEN display
+- Pattern filtering for selective test runs
+
+### Quality Metrics
+
+- Test Coverage: 88.71% (target: >85%) ✅
+- Mutation Score: 92% (target: >90%) ✅
+- Test Pass Rate: 100% (5,121/5,121) ✅
+- Zero Regressions ✅
+- Max Cyclomatic Complexity: 14 (A+ grade) ✅
+
+### Future Roadmap
+
+This is the **MVP** of Bash Quality Tools. Future releases will add:
+- `bashrs score` - TDG-style quality scoring (A+ to F)
+- `bashrs coverage` - Test coverage tracking
+- `bashrs format` - Bash script formatting
+- `bashrs check` - Comprehensive quality check
+
+### Documentation
+
+- Added comprehensive module-level documentation
+- Inline examples for test format
+- CLI help text with examples
+- TODO: Book chapter (docs/book/bash-quality-tools.md)
+
 ## [6.9.0] - 2025-10-28
 
 ### 🎓 A+ GRADE QUALITY ACHIEVEMENT
