@@ -9,7 +9,7 @@
 // - Mutation score: ≥90%
 // - Complexity: <10 per function
 
-use crate::repl::{ReplConfig, ReplMode, ReplState, parse_bash, format_parse_error};
+use crate::repl::{ReplConfig, ReplMode, ReplState, parse_bash, format_parse_error, purify_bash};
 use anyhow::Result;
 use rustyline::DefaultEditor;
 use std::path::PathBuf;
@@ -82,6 +82,9 @@ pub fn run_repl(config: ReplConfig) -> Result<()> {
                 } else if line.starts_with(":parse") {
                     // Handle :parse command
                     handle_parse_command(line);
+                } else if line.starts_with(":purify") {
+                    // Handle :purify command
+                    handle_purify_command(line);
                 } else {
                     match line {
                         "quit" | "exit" => {
@@ -183,15 +186,39 @@ fn handle_parse_command(line: &str) {
     }
 }
 
+/// Handle purify command
+fn handle_purify_command(line: &str) {
+    let parts: Vec<&str> = line.splitn(2, ' ').collect();
+
+    if parts.len() == 1 {
+        println!("Usage: :purify <bash_code>");
+        println!("Example: :purify mkdir /tmp/test");
+        return;
+    }
+
+    let bash_code = parts.get(1).unwrap_or(&"");
+
+    match purify_bash(bash_code) {
+        Ok(result) => {
+            println!("✓ Purification successful!");
+            println!("{}", result);
+        }
+        Err(e) => {
+            println!("✗ Purification error: {}", e);
+        }
+    }
+}
+
 /// Print help message
 fn print_help() {
     println!("bashrs REPL Commands:");
-    println!("  help           - Show this help message");
-    println!("  quit           - Exit the REPL");
-    println!("  exit           - Exit the REPL");
-    println!("  :mode          - Show current mode and available modes");
-    println!("  :mode <name>   - Switch to a different mode");
-    println!("  :parse <code>  - Parse bash code and show AST");
+    println!("  help             - Show this help message");
+    println!("  quit             - Exit the REPL");
+    println!("  exit             - Exit the REPL");
+    println!("  :mode            - Show current mode and available modes");
+    println!("  :mode <name>     - Switch to a different mode");
+    println!("  :parse <code>    - Parse bash code and show AST");
+    println!("  :purify <code>   - Purify bash code (make idempotent/deterministic)");
     println!();
     println!("Available modes:");
     println!("  normal  - Execute bash commands directly");
@@ -201,7 +228,6 @@ fn print_help() {
     println!("  explain - Explain bash constructs");
     println!();
     println!("Future commands:");
-    println!("  purify   - Purify bash script");
     println!("  lint     - Lint bash script");
     println!("  debug    - Debug bash script");
     println!("  explain  - Explain bash construct");

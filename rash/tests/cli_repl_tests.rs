@@ -337,3 +337,46 @@ fn test_REPL_004_001_help_shows_parse() {
         .stdout(predicate::str::contains(":parse"))
         .stdout(predicate::str::contains("Parse bash code"));
 }
+
+// ===== REPL-005-001: PURIFIER INTEGRATION TESTS =====
+
+/// Test: REPL-005-001-001 - :purify command with simple command
+#[test]
+fn test_REPL_005_001_purify_simple_command_cli() {
+    bashrs_repl()
+        .write_stdin(":purify mkdir /tmp/test\nquit\n")
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("Purification successful"));
+}
+
+/// Test: REPL-005-001-002 - :purify command shows result
+#[test]
+fn test_REPL_005_001_purify_shows_result() {
+    bashrs_repl()
+        .write_stdin(":purify echo hello\nquit\n")
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("Purified"));
+}
+
+/// Test: REPL-005-001-003 - :purify command with no input shows usage
+#[test]
+fn test_REPL_005_001_purify_no_input_shows_usage() {
+    bashrs_repl()
+        .write_stdin(":purify\nquit\n")
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("Usage: :purify"));
+}
+
+/// Test: REPL-005-001-004 - Help shows :purify command
+#[test]
+fn test_REPL_005_001_help_shows_purify() {
+    bashrs_repl()
+        .write_stdin("help\nquit\n")
+        .assert()
+        .success()
+        .stdout(predicate::str::contains(":purify"))
+        .stdout(predicate::str::contains("Purify bash code"));
+}
