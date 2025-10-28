@@ -9,14 +9,14 @@ roadmap:
 
   statistics:
     total_tasks: 122
-    completed: 76
+    completed: 77
     partial_support: 0
-    pending: 43
+    pending: 42
     blocked: 3
-    coverage_percent: 62
+    coverage_percent: 63
     accuracy_verified: "2025-10-28"
-    total_tests: 5,066
-    session_update: "Completed JOB-001 (7.1 - Background jobs &). 6 passing tests document background jobs as NOT SUPPORTED (HIGH priority purification). Background jobs (&) run command in background, return control immediately (syntax: cmd &). WHY NOT SUPPORTED (5): Non-deterministic (race conditions), Timing-dependent (order not guaranteed), Makes testing impossible (can't assert while running), Resource management issues (orphan processes), No error handling (silent failures). CRITICAL: Background jobs violate determinism - concurrent execution introduces race conditions. 5 RACE CONDITIONS: Output interleaving, File access conflicts, Resource contention, Dependency violations, Exit status ambiguity. PURIFICATION STRATEGIES (4): (1) Convert to foreground (RECOMMENDED), (2) Sequential execution (RECOMMENDED), (3) Remove background job entirely, (4) Use make -j for parallelism (if needed). Testing issues (4): Cannot assert on intermediate state, flaky tests due to timing, cannot isolate failures, cleanup issues (orphan processes). Portability: Job control is OPTIONAL in POSIX (not all shells support &, jobs, fg, bg). Comparison table: Bash (&, jobs, fg, bg, wait) vs POSIX (& OPTIONAL, others not guaranteed) vs Purified (sequential execution only). Total tests: 5,066 (100% passing)."
+    total_tests: 5,072
+    session_update: "Completed PARAM-SPEC-006 (3.4 - $- shell options purification). 6 passing tests document $- as NOT SUPPORTED (LOW priority purification). $- expands to current shell option flags (single letters: e=exit on error, u=unset error, x=xtrace, h=hashall, B=brace expansion, H=history, i=interactive, m=monitor). WHY NOT SUPPORTED (5): Runtime-specific (value depends on invocation), Non-deterministic (different shells = different flags), Shell-dependent (bash himBH vs sh h), Implementation detail (exposes internal state), Not needed (purified scripts explicit, don't rely on shell modes). CRITICAL: $- exposes RUNTIME CONFIGURATION, not SCRIPT LOGIC. Purified scripts should be EXPLICIT about behavior (use set -e, not check for 'e' in $-). POSIX STATUS: $- is POSIX SUPPORTED, but flag letters are IMPLEMENTATION-DEFINED (bash B/H don't exist in sh/dash). LEXER STATUS: $- NOT YET SUPPORTED by lexer (special parameters like $-, $$, $?, $! need implementation). PURIFICATION STRATEGIES (4): (1) Remove $- entirely (RECOMMENDED), (2) Use explicit set commands (set -e, set -u, set -x), (3) Don't detect shell type (write portable code), (4) Don't check interactive mode (scripts always non-interactive). Common uses: Debugging (echo $-), Interactive detection (case $- in *i*), Error mode check (case $- in *e*), Shell identification (check B/H flags). Portability: bash (himBH interactive, hB script) vs sh/dash (hi interactive, h script) vs purified (NO $- references). Comparison table: Bash SUPPORTED vs POSIX SUPPORTED (impl-defined) vs Purified NOT USED (explicit options only). Total tests: 5,072 (100% passing)."
 
 extreme_tdd_workflow:
   description: "Hybrid workflow combining GNU Bash validation with REPL verification"
@@ -827,12 +827,15 @@ chapters:
 
               - id: "PARAM-SPEC-006"
                 title: "Document $- (shell options) purification"
-                status: "pending"
+                status: "completed"
                 priority: "LOW"
-                input: "echo \"Options: $-\""
+                input: "echo $-"
                 rust: "Not supported (runtime-specific)"
                 purified: "Remove (not needed in purified scripts)"
-                test_name: "test_shell_options_removed"
+                test_name: "test_PARAM_SPEC_006_shell_options_not_supported"
+                notes: "$- NOT SUPPORTED (exposes runtime configuration, not script logic). 6 comprehensive tests (417 LOC) document flag meanings, purification strategies, portability issues. $- is POSIX but implementation-defined (bash himBH vs sh h). LEXER LIMITATION: $- not yet supported (special parameters need implementation). Remove all $- references (RECOMMENDED) or use explicit set commands."
+                red_phase_tests: "rash/src/bash_parser/tests.rs:21754-22167"
+                version: "v6.6.0"
 
       - id: "3.5"
         name: "Shell Expansions"

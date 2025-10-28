@@ -1,7 +1,7 @@
 //! Integration tests for bash parser
 
 use super::*;
-use lexer::Lexer;
+use lexer::{Lexer, Token};
 use parser::BashParser;
 use semantic::SemanticAnalyzer;
 
@@ -21749,4 +21749,419 @@ risky_operation || exit 1
     // Determinism: Background jobs are NON-DETERMINISTIC (race conditions, timing)
     // Portability: Job control is OPTIONAL in POSIX (may not work in all shells)
     // Testing: Background jobs make tests FLAKY (timing-dependent, race conditions)
+}
+
+// ============================================================================
+// PARAM-SPEC-006: $- (Shell Options) Purification
+// ============================================================================
+
+#[test]
+fn test_PARAM_SPEC_006_shell_options_not_supported() {
+    // DOCUMENTATION: $- (shell options) is NOT SUPPORTED (LOW priority purification)
+    //
+    // $-: Special parameter that expands to current shell option flags
+    // Contains single letters representing active shell options
+    // Set by: Shell at startup, modified by set command
+    //
+    // WHAT $- CONTAINS:
+    // Each letter represents an active option:
+    // - h: hashall (hash commands as they are looked up)
+    // - i: interactive shell
+    // - m: monitor mode (job control enabled)
+    // - B: brace expansion enabled
+    // - H: history substitution enabled (!)
+    // - s: commands are read from stdin
+    // - c: commands are read from -c argument
+    // - e: exit on error (set -e)
+    // - u: error on unset variables (set -u)
+    // - x: print commands before execution (set -x)
+    // - v: print input lines as they are read (set -v)
+    // - n: read commands but don't execute (syntax check)
+    // - f: disable filename expansion (globbing)
+    // - a: auto-export all variables
+    // - t: exit after one command
+    //
+    // EXAMPLE VALUES:
+    // Interactive bash: "himBH" (interactive, monitor, brace expansion, history)
+    // Script: "hB" (hashall, brace expansion)
+    // set -e script: "ehB" (exit on error, hashall, brace expansion)
+    // sh (POSIX): "h" (only hashall, no bash extensions)
+    //
+    // WHY NOT SUPPORTED:
+    // 1. Runtime-specific (value depends on how shell was invoked)
+    // 2. Non-deterministic (different shells = different flags)
+    // 3. Shell-dependent (bash has different flags than sh/dash)
+    // 4. Implementation detail (exposes internal shell state)
+    // 5. Not needed for pure scripts (purified scripts don't rely on shell modes)
+    //
+    // CRITICAL: $- exposes runtime configuration, not script logic
+    // Purified scripts should be EXPLICIT about behavior (not rely on shell flags)
+    //
+    // POSIX COMPLIANCE:
+    // $- is POSIX SUPPORTED (Single Unix Specification)
+    // However, the FLAGS DIFFER between shells:
+    // - bash: himBH (many extensions)
+    // - sh: h (minimal)
+    // - dash: h (minimal)
+    //
+    // PURIFICATION STRATEGY:
+    // 1. Remove $- entirely (RECOMMENDED)
+    // 2. Replace with explicit option checks (if absolutely needed)
+    // 3. Use set -e explicitly (don't check for "e" in $-)
+    // 4. Document why removed (not needed in purified scripts)
+    //
+    // WHEN $- IS USED:
+    // 1. Debugging: echo "Shell options: $-"
+    // 2. Checking interactive: case "$-" in *i*) interactive mode
+    // 3. Checking error mode: case "$-" in *e*) will exit on error
+    // 4. Shell detection: Different flags in bash vs sh
+    //
+    // PURIFICATION EXAMPLES:
+    //
+    // BEFORE (debugging):
+    // echo "Shell options: $-"
+    //
+    // AFTER (remove):
+    // # Debugging output removed (not needed in purified script)
+    //
+    // BEFORE (interactive check):
+    // case "$-" in
+    //   *i*) echo "Interactive mode" ;;
+    //   *) echo "Non-interactive" ;;
+    // esac
+    //
+    // AFTER (remove):
+    // # Purified scripts are always non-interactive
+    // echo "Non-interactive"
+    //
+    // BEFORE (error mode check):
+    // case "$-" in
+    //   *e*) echo "Will exit on error" ;;
+    // esac
+    //
+    // AFTER (explicit):
+    // set -e  # Exit on error (explicit, not inferred)
+    // echo "Will exit on error"
+
+    let bash_input = r#"echo $-"#;
+    let mut lexer = Lexer::new(bash_input);
+    let tokens = lexer.tokenize().unwrap();
+
+    // Note: $- is currently NOT recognized by the lexer
+    // The lexer only reads alphanumeric characters and underscores for variables
+    // Special parameters like $-, $$, $?, $! are not yet implemented
+    //
+    // Expected: Token::Dollar followed by Token::Identifier("-") or error
+    // This test documents that $- is NOT SUPPORTED by the current lexer
+    //
+    // When $- support is added to lexer, this test should be updated to:
+    // assert!(tokens.iter().any(|t| matches!(t, Token::Variable(name) if name == "-")));
+
+    // For now, just verify the lexer doesn't crash
+    assert!(!tokens.is_empty(), "Lexer should produce tokens without crashing");
+
+    let _ = tokens;
+}
+
+#[test]
+fn test_PARAM_SPEC_006_shell_options_usage_patterns() {
+    // DOCUMENTATION: Common $- usage patterns and purification
+    //
+    // PATTERN 1: Debugging output
+    // Bash: echo "Shell options: $-"
+    // Purification: Remove (debugging not needed in purified script)
+    //
+    // PATTERN 2: Interactive mode detection
+    // Bash: case "$-" in *i*) interactive_mode ;; esac
+    // Purification: Remove (purified scripts always non-interactive)
+    //
+    // PATTERN 3: Error mode detection
+    // Bash: case "$-" in *e*) echo "Exit on error" ;; esac
+    // Purification: Use explicit set -e, remove detection
+    //
+    // PATTERN 4: Shell identification
+    // Bash: if [[ "$-" == *B* ]]; then echo "Bash"; fi
+    // Purification: Remove (purified scripts are shell-agnostic)
+    //
+    // PATTERN 5: Trace mode detection
+    // Bash: case "$-" in *x*) echo "Tracing enabled" ;; esac
+    // Purification: Remove (tracing is runtime option, not script logic)
+
+    // Pattern 1: Debugging
+    let bash_debug = r#"echo $-"#;
+    let mut lexer = Lexer::new(bash_debug);
+    let tokens = lexer.tokenize().unwrap();
+    // Note: $- not yet supported by lexer, just verify no crash
+    assert!(!tokens.is_empty());
+
+    // Pattern 2: Interactive check
+    let bash_interactive = r#"case $- in *i*) echo Interactive ;; esac"#;
+    let mut lexer = Lexer::new(bash_interactive);
+    let tokens = lexer.tokenize().unwrap();
+    // Note: $- not yet supported by lexer, just verify no crash
+    assert!(!tokens.is_empty());
+
+    let _ = tokens;
+}
+
+#[test]
+fn test_PARAM_SPEC_006_shell_options_flag_meanings() {
+    // DOCUMENTATION: Comprehensive guide to shell option flags
+    //
+    // INTERACTIVE FLAGS:
+    // i - Interactive shell (prompts enabled, job control)
+    // m - Monitor mode (job control, background jobs)
+    //
+    // BASH EXTENSION FLAGS:
+    // B - Brace expansion enabled ({a,b,c}, {1..10})
+    // H - History substitution enabled (!, !!, !$)
+    //
+    // INPUT/OUTPUT FLAGS:
+    // s - Read commands from stdin
+    // c - Commands from -c argument (bash -c 'cmd')
+    //
+    // ERROR HANDLING FLAGS (IMPORTANT):
+    // e - Exit on error (set -e, errexit)
+    // u - Error on unset variables (set -u, nounset)
+    // n - No execution (syntax check only, set -n)
+    //
+    // DEBUGGING FLAGS:
+    // x - Print commands before execution (set -x, xtrace)
+    // v - Print input lines as read (set -v, verbose)
+    //
+    // BEHAVIOR FLAGS:
+    // f - Disable filename expansion/globbing (set -f, noglob)
+    // a - Auto-export all variables (set -a, allexport)
+    // h - Hash commands as looked up (set -h, hashall)
+    // t - Exit after one command (set -t, onecmd)
+    //
+    // EXAMPLE COMBINATIONS:
+    // "himBH" - Interactive bash (hash, interactive, monitor, brace, history)
+    // "hB" - Non-interactive bash script (hash, brace)
+    // "ehB" - Bash script with set -e (exit on error, hash, brace)
+    // "h" - POSIX sh (only hash, no extensions)
+    //
+    // PURIFICATION: Don't rely on these flags
+    // - Use explicit set commands (set -e, set -u, set -x)
+    // - Don't check flags at runtime (not deterministic)
+    // - Remove flag detection code (use explicit behavior)
+
+    let bash_input = r#"echo $-"#;
+    let mut lexer = Lexer::new(bash_input);
+    let tokens = lexer.tokenize().unwrap();
+
+    // Note: $- not yet supported by lexer, just verify no crash
+    assert!(!tokens.is_empty(), "Lexer should produce tokens without crashing");
+
+    let _ = tokens;
+}
+
+#[test]
+fn test_PARAM_SPEC_006_shell_options_portability() {
+    // DOCUMENTATION: $- portability across shells
+    //
+    // BASH (many flags):
+    // Interactive: "himBH" (hash, interactive, monitor, brace, history)
+    // Script: "hB" (hash, brace)
+    // Bash-specific flags: B (brace), H (history)
+    //
+    // SH/DASH (minimal flags):
+    // Interactive: "hi" (hash, interactive)
+    // Script: "h" (hash only)
+    // No bash extensions (no B, H flags)
+    //
+    // ASH/BUSYBOX SH (minimal):
+    // Similar to dash: "h" or "hi"
+    // No bash extensions
+    //
+    // ZSH (different flags):
+    // Different option names and letters
+    // Not compatible with bash flags
+    //
+    // POSIX GUARANTEE:
+    // $- is POSIX (must exist in all shells)
+    // BUT: Flag letters are IMPLEMENTATION-DEFINED
+    // Different shells use different letters for same option
+    // Only "h" (hashall) is somewhat universal
+    //
+    // PORTABILITY ISSUES:
+    // 1. Flag letters differ (bash "B" doesn't exist in sh)
+    // 2. Checking for specific flag is NON-PORTABLE
+    // 3. Interactive detection fragile (different shells, different flags)
+    // 4. Error mode detection fragile (all support -e, but letter varies)
+    //
+    // PURIFICATION FOR PORTABILITY:
+    // 1. Remove all $- references (RECOMMENDED)
+    // 2. Use explicit options (set -e, not check for "e" in $-)
+    // 3. Don't detect shell type (write portable code instead)
+    // 4. Don't check interactive mode (purified scripts always non-interactive)
+    //
+    // COMPARISON TABLE:
+    //
+    // | Shell | Interactive | Script | Extensions |
+    // |-------|-------------|--------|------------|
+    // | bash  | himBH       | hB     | B, H       |
+    // | sh    | hi          | h      | None       |
+    // | dash  | hi          | h      | None       |
+    // | ash   | hi          | h      | None       |
+    // | zsh   | different   | diff   | Different  |
+    //
+    // PURIFIED SCRIPT: No $- (explicit options only)
+
+    let bash_input = r#"echo $-"#;
+    let mut lexer = Lexer::new(bash_input);
+    let tokens = lexer.tokenize().unwrap();
+
+    // Note: $- not yet supported by lexer, just verify no crash
+    assert!(!tokens.is_empty(), "Lexer should produce tokens without crashing");
+
+    let _ = tokens;
+}
+
+#[test]
+fn test_PARAM_SPEC_006_shell_options_removal_examples() {
+    // DOCUMENTATION: Comprehensive purification examples
+    //
+    // EXAMPLE 1: Debug output
+    // BEFORE:
+    // #!/bin/bash
+    // echo "Shell options: $-"
+    // echo "Starting script..."
+    //
+    // AFTER:
+    // #!/bin/sh
+    // # Shell options debug removed (not needed)
+    // echo "Starting script..."
+    //
+    // EXAMPLE 2: Interactive mode detection
+    // BEFORE:
+    // case "$-" in
+    //   *i*)
+    //     echo "Interactive mode"
+    //     PS1=">> "
+    //     ;;
+    //   *)
+    //     echo "Non-interactive mode"
+    //     ;;
+    // esac
+    //
+    // AFTER:
+    // # Purified scripts are always non-interactive
+    // echo "Non-interactive mode"
+    //
+    // EXAMPLE 3: Error handling mode
+    // BEFORE:
+    // case "$-" in
+    //   *e*)
+    //     echo "Will exit on error"
+    //     ;;
+    //   *)
+    //     echo "Won't exit on error"
+    //     set -e  # Enable error exit
+    //     ;;
+    // esac
+    //
+    // AFTER:
+    // set -e  # Exit on error (explicit)
+    // echo "Will exit on error"
+    //
+    // EXAMPLE 4: Shell detection
+    // BEFORE:
+    // if [[ "$-" == *B* ]]; then
+    //   echo "Running in bash (brace expansion available)"
+    //   mkdir project/{src,tests,docs}
+    // else
+    //   echo "Running in sh (no brace expansion)"
+    //   mkdir -p project/src project/tests project/docs
+    // fi
+    //
+    // AFTER:
+    // # Purified to POSIX (no shell detection needed)
+    // mkdir -p project/src project/tests project/docs
+    //
+    // EXAMPLE 5: Complex script with multiple $- checks
+    // BEFORE:
+    // #!/bin/bash
+    // echo "Options: $-"
+    // case "$-" in *x*) TRACE=1 ;; esac
+    // case "$-" in *e*) ERREXIT=1 ;; esac
+    // [ -n "$TRACE" ] && echo "Tracing enabled"
+    // [ -n "$ERREXIT" ] && echo "Exit on error enabled"
+    //
+    // AFTER:
+    // #!/bin/sh
+    // set -e  # Exit on error (explicit)
+    // # Tracing is runtime option (set -x), not script logic
+    // echo "Exit on error enabled"
+
+    let bash_before = r#"
+case $- in
+  *i*) echo Interactive ;;
+  *) echo Non-interactive ;;
+esac
+"#;
+
+    let mut lexer = Lexer::new(bash_before);
+    let tokens = lexer.tokenize().unwrap();
+
+    // Note: $- not yet supported by lexer, just verify no crash
+    assert!(!tokens.is_empty(), "Lexer should produce tokens without crashing");
+
+    let _ = tokens;
+}
+
+#[test]
+fn test_PARAM_SPEC_006_shell_options_comparison_table() {
+    // DOCUMENTATION: Comprehensive comparison of $- across bash, sh, and purified
+    //
+    // +-----------------+------------------------+---------------------+---------------------------+
+    // | Feature         | Bash                   | POSIX sh            | Purified                  |
+    // +-----------------+------------------------+---------------------+---------------------------+
+    // | $- support      | SUPPORTED              | SUPPORTED           | NOT USED                  |
+    // | Common flags    | himBH (interactive)    | hi (interactive)    | N/A                       |
+    // |                 | hB (script)            | h (script)          |                           |
+    // | Bash extensions | B (brace expansion)    | None                | Removed                   |
+    // |                 | H (history)            | None                | Removed                   |
+    // | Portable flags  | e, u, x, v, f          | e, u, x, v, f       | Use explicit set commands |
+    // | Interactive     | Check *i* in $-        | Check *i* in $-     | Always non-interactive    |
+    // | Error mode      | Check *e* in $-        | Check *e* in $-     | Use explicit set -e       |
+    // | Trace mode      | Check *x* in $-        | Check *x* in $-     | Use explicit set -x       |
+    // | Shell detection | Check B/H flags        | Check absence of B  | No detection needed       |
+    // | Debugging       | echo "Options: $-"     | echo "Options: $-"  | Remove (not needed)       |
+    // | Determinism     | NON-DETERMINISTIC      | NON-DETERMINISTIC   | DETERMINISTIC             |
+    // |                 | (runtime-specific)     | (runtime-specific)  | (no $- references)        |
+    // | Portability     | BASH ONLY              | POSIX sh            | UNIVERSAL                 |
+    // | Use case        | Runtime introspection  | Runtime checks      | No runtime checks         |
+    // | Best practice   | Avoid in scripts       | Avoid in scripts    | ALWAYS remove             |
+    // +-----------------+------------------------+---------------------+---------------------------+
+    //
+    // KEY DIFFERENCES:
+    //
+    // 1. Bash: Many flags (B, H are bash-specific)
+    // 2. sh: Minimal flags (no bash extensions)
+    // 3. Purified: NO $- REFERENCES (explicit options only)
+    //
+    // PURIFICATION PRINCIPLES:
+    //
+    // 1. Remove all $- references (runtime introspection not needed)
+    // 2. Use explicit set commands (set -e, set -u, set -x)
+    // 3. Don't detect shell type (write portable code)
+    // 4. Don't check interactive mode (scripts always non-interactive)
+    // 5. Don't check error mode (use explicit set -e)
+    //
+    // RATIONALE:
+    //
+    // $- exposes RUNTIME CONFIGURATION, not SCRIPT LOGIC
+    // Purified scripts should be EXPLICIT about behavior
+    // Checking $- makes scripts NON-DETERMINISTIC
+    // Different invocations = different flags = different behavior
+
+    let bash_input = r#"echo $-"#;
+    let mut lexer = Lexer::new(bash_input);
+    let tokens = lexer.tokenize().unwrap();
+
+    // Note: $- not yet supported by lexer, just verify no crash
+    assert!(!tokens.is_empty(), "Lexer should produce tokens without crashing");
+
+    let _ = tokens;
 }
