@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"mod":["scoring","testing"]};
+window.SIDEBAR_ITEMS = {"mod":["coverage","scoring","testing"]};

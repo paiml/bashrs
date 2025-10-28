@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"enum":["AuditOutputFormat","Commands","CompileRuntime","ConfigCommands","ConfigOutputFormat","ContainerFormatArg","InspectionFormat","LintFormat","MakeCommands","MakeOutputFormat","ReportFormat","ScoreOutputFormat","TestOutputFormat"],"struct":["Cli"]};
+window.SIDEBAR_ITEMS = {"enum":["AuditOutputFormat","Commands","CompileRuntime","ConfigCommands","ConfigOutputFormat","ContainerFormatArg","CoverageOutputFormat","InspectionFormat","LintFormat","MakeCommands","MakeOutputFormat","ReportFormat","ScoreOutputFormat","TestOutputFormat"],"struct":["Cli"]};
