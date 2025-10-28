@@ -183,3 +183,103 @@ fn test_REPL_003_003_multiple_commands() {
     // Clean up
     let _ = fs::remove_file(&history_path);
 }
+
+// ===== REPL-003-004: MODE SWITCHING TESTS =====
+
+/// Test: REPL-003-004-001 - REPL shows current mode at startup
+#[test]
+fn test_REPL_003_004_shows_current_mode() {
+    bashrs_repl()
+        .write_stdin("quit\n")
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("Current mode: normal"));
+}
+
+/// Test: REPL-003-004-002 - :mode command shows available modes
+#[test]
+fn test_REPL_003_004_mode_command_shows_modes() {
+    bashrs_repl()
+        .write_stdin(":mode\nquit\n")
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("Available modes"))
+        .stdout(predicate::str::contains("normal"))
+        .stdout(predicate::str::contains("purify"))
+        .stdout(predicate::str::contains("lint"))
+        .stdout(predicate::str::contains("debug"))
+        .stdout(predicate::str::contains("explain"));
+}
+
+/// Test: REPL-003-004-003 - :mode switches to purify mode
+#[test]
+fn test_REPL_003_004_mode_switch_to_purify() {
+    bashrs_repl()
+        .write_stdin(":mode purify\nquit\n")
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("Switched to purify mode"));
+}
+
+/// Test: REPL-003-004-004 - :mode switches to lint mode
+#[test]
+fn test_REPL_003_004_mode_switch_to_lint() {
+    bashrs_repl()
+        .write_stdin(":mode lint\nquit\n")
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("Switched to lint mode"));
+}
+
+/// Test: REPL-003-004-005 - :mode switches to debug mode
+#[test]
+fn test_REPL_003_004_mode_switch_to_debug() {
+    bashrs_repl()
+        .write_stdin(":mode debug\nquit\n")
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("Switched to debug mode"));
+}
+
+/// Test: REPL-003-004-006 - :mode switches to explain mode
+#[test]
+fn test_REPL_003_004_mode_switch_to_explain() {
+    bashrs_repl()
+        .write_stdin(":mode explain\nquit\n")
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("Switched to explain mode"));
+}
+
+/// Test: REPL-003-004-007 - :mode with invalid mode shows error
+#[test]
+fn test_REPL_003_004_mode_invalid_shows_error() {
+    bashrs_repl()
+        .write_stdin(":mode invalid\nquit\n")
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("Error"))
+        .stdout(predicate::str::contains("Unknown mode"));
+}
+
+/// Test: REPL-003-004-008 - Mode is case-insensitive
+#[test]
+fn test_REPL_003_004_mode_case_insensitive() {
+    bashrs_repl()
+        .write_stdin(":mode PURIFY\nquit\n")
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("Switched to purify mode"));
+}
+
+/// Test: REPL-003-004-009 - Multiple mode switches work correctly
+#[test]
+fn test_REPL_003_004_multiple_mode_switches() {
+    bashrs_repl()
+        .write_stdin(":mode purify\n:mode lint\n:mode normal\nquit\n")
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("Switched to purify mode"))
+        .stdout(predicate::str::contains("Switched to lint mode"))
+        .stdout(predicate::str::contains("Switched to normal mode"));
+}

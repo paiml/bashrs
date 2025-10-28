@@ -10,6 +10,7 @@
 // - Complexity: <10 per function
 
 use std::collections::HashMap;
+use crate::repl::ReplMode;
 
 /// Mutable state for a REPL session
 ///
@@ -18,6 +19,7 @@ use std::collections::HashMap;
 /// - Session variables for persistence across commands
 /// - Exit flag for clean shutdown
 /// - Error tracking for debugging
+/// - Mode switching for different behaviors (Normal, Purify, Lint, Debug, Explain)
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ReplState {
     /// Command history (for up/down arrow navigation)
@@ -31,6 +33,9 @@ pub struct ReplState {
 
     /// Error count (for debugging and statistics)
     error_count: usize,
+
+    /// Current REPL mode
+    mode: ReplMode,
 }
 
 impl Default for ReplState {
@@ -40,6 +45,7 @@ impl Default for ReplState {
             variables: HashMap::new(),
             exit_requested: false,
             error_count: 0,
+            mode: ReplMode::default(),
         }
     }
 }
@@ -128,6 +134,16 @@ impl ReplState {
     /// Get variable count
     pub fn variable_count(&self) -> usize {
         self.variables.len()
+    }
+
+    /// Get current REPL mode
+    pub fn mode(&self) -> ReplMode {
+        self.mode
+    }
+
+    /// Set REPL mode
+    pub fn set_mode(&mut self, mode: ReplMode) {
+        self.mode = mode;
     }
 }
 
@@ -263,6 +279,48 @@ mod tests {
         assert_eq!(vars.len(), 2, "Should have 2 variables");
         assert_eq!(vars.get("A"), Some(&"1".to_string()));
         assert_eq!(vars.get("B"), Some(&"2".to_string()));
+    }
+
+    // REPL-003-004: Mode switching tests
+
+    #[test]
+    fn test_REPL_003_004_state_default_mode_is_normal() {
+        let state = ReplState::new();
+        assert_eq!(state.mode(), ReplMode::Normal, "Default mode should be Normal");
+    }
+
+    #[test]
+    fn test_REPL_003_004_state_set_mode_purify() {
+        let mut state = ReplState::new();
+        state.set_mode(ReplMode::Purify);
+        assert_eq!(state.mode(), ReplMode::Purify, "Mode should be Purify after setting");
+    }
+
+    #[test]
+    fn test_REPL_003_004_state_set_mode_lint() {
+        let mut state = ReplState::new();
+        state.set_mode(ReplMode::Lint);
+        assert_eq!(state.mode(), ReplMode::Lint, "Mode should be Lint after setting");
+    }
+
+    #[test]
+    fn test_REPL_003_004_state_mode_switching() {
+        let mut state = ReplState::new();
+
+        // Start in Normal mode
+        assert_eq!(state.mode(), ReplMode::Normal);
+
+        // Switch to Debug
+        state.set_mode(ReplMode::Debug);
+        assert_eq!(state.mode(), ReplMode::Debug);
+
+        // Switch to Explain
+        state.set_mode(ReplMode::Explain);
+        assert_eq!(state.mode(), ReplMode::Explain);
+
+        // Switch back to Normal
+        state.set_mode(ReplMode::Normal);
+        assert_eq!(state.mode(), ReplMode::Normal);
     }
 
     // Phase 4: PROPERTY - Property-based tests

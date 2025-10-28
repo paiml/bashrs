@@ -9,7 +9,7 @@
 // - Mutation score: ≥90%
 // - Complexity: <10 per function
 
-use crate::repl::ReplConfig;
+use crate::repl::{ReplConfig, ReplMode, ReplState};
 use anyhow::Result;
 use rustyline::DefaultEditor;
 use std::path::PathBuf;
@@ -43,6 +43,9 @@ pub fn run_repl(config: ReplConfig) -> Result<()> {
     // Initialize rustyline editor
     let mut editor = DefaultEditor::new()?;
 
+    // Initialize REPL state
+    let mut state = ReplState::new();
+
     // Load history from file (if exists)
     let history_path = get_history_path()?;
     if history_path.exists() {
@@ -52,11 +55,13 @@ pub fn run_repl(config: ReplConfig) -> Result<()> {
     // Print welcome banner
     println!("bashrs REPL v{}", env!("CARGO_PKG_VERSION"));
     println!("Type 'quit' or 'exit' to exit, 'help' for commands");
+    println!("Current mode: {} - {}", state.mode(), state.mode().description());
 
     // Main REPL loop
     loop {
-        // Read line with prompt
-        let readline = editor.readline("bashrs> ");
+        // Read line with prompt showing current mode
+        let prompt = format!("bashrs [{}]> ", state.mode());
+        let readline = editor.readline(&prompt);
 
         match readline {
             Ok(line) => {
@@ -71,17 +76,22 @@ pub fn run_repl(config: ReplConfig) -> Result<()> {
                 let _ = editor.add_history_entry(line);
 
                 // Handle special commands
-                match line {
-                    "quit" | "exit" => {
-                        println!("Goodbye!");
-                        break;
-                    }
-                    "help" => {
-                        print_help();
-                    }
-                    _ => {
-                        // TODO: Implement command processing
-                        println!("Command not implemented: {}", line);
+                if line.starts_with(":mode") {
+                    // Handle :mode command
+                    handle_mode_command(line, &mut state);
+                } else {
+                    match line {
+                        "quit" | "exit" => {
+                            println!("Goodbye!");
+                            break;
+                        }
+                        "help" => {
+                            print_help();
+                        }
+                        _ => {
+                            // TODO: Implement command processing
+                            println!("Command not implemented: {}", line);
+                        }
                     }
                 }
             }
@@ -107,12 +117,54 @@ pub fn run_repl(config: ReplConfig) -> Result<()> {
     Ok(())
 }
 
+/// Handle mode switching command
+fn handle_mode_command(line: &str, state: &mut ReplState) {
+    let parts: Vec<&str> = line.split_whitespace().collect();
+
+    if parts.len() == 1 {
+        // Show current mode
+        println!("Current mode: {} - {}", state.mode(), state.mode().description());
+        println!();
+        println!("Available modes:");
+        println!("  normal  - Execute bash commands directly");
+        println!("  purify  - Show purified version of bash commands");
+        println!("  lint    - Show linting results for bash commands");
+        println!("  debug   - Debug bash commands with step-by-step execution");
+        println!("  explain - Explain bash constructs and syntax");
+        println!();
+        println!("Usage: :mode <mode_name>");
+    } else if parts.len() == 2 {
+        // Switch mode
+        match ReplMode::from_str(parts[1]) {
+            Ok(mode) => {
+                state.set_mode(mode);
+                println!("Switched to {} mode - {}", mode, mode.description());
+            }
+            Err(err) => {
+                println!("Error: {}", err);
+            }
+        }
+    } else {
+        println!("Usage: :mode [<mode_name>]");
+        println!("Valid modes: normal, purify, lint, debug, explain");
+    }
+}
+
 /// Print help message
 fn print_help() {
     println!("bashrs REPL Commands:");
-    println!("  help     - Show this help message");
-    println!("  quit     - Exit the REPL");
-    println!("  exit     - Exit the REPL");
+    println!("  help       - Show this help message");
+    println!("  quit       - Exit the REPL");
+    println!("  exit       - Exit the REPL");
+    println!("  :mode      - Show current mode and available modes");
+    println!("  :mode <name> - Switch to a different mode");
+    println!();
+    println!("Available modes:");
+    println!("  normal  - Execute bash commands directly");
+    println!("  purify  - Show purified version of bash commands");
+    println!("  lint    - Show linting results");
+    println!("  debug   - Step-by-step execution");
+    println!("  explain - Explain bash constructs");
     println!();
     println!("Future commands:");
     println!("  parse    - Parse bash script");

@@ -8,8 +8,10 @@
 
 pub mod config;
 pub mod state;
+pub mod modes;
 mod r#loop;
 
 pub use config::ReplConfig;
 pub use state::ReplState;
+pub use modes::ReplMode;
 pub use r#loop::run_repl;
