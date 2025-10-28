@@ -9,13 +9,13 @@ roadmap:
 
   statistics:
     total_tasks: 122
-    completed: 70
+    completed: 71
     partial_support: 0
-    pending: 49
+    pending: 48
     blocked: 3
-    coverage_percent: 57
+    coverage_percent: 58
     accuracy_verified: "2025-10-28"
-    session_update: "Completed BUILTIN-020 (4.1 - unset command). 8 passing tests document unset as POSIX-SUPPORTED (HIGH priority). unset removes variables and functions from shell environment. Syntax: unset [-v] [-f] name [name ...]. POSIX unset forms (4): (1) unset VAR (remove variable, default), (2) unset -v VAR (explicitly remove variable), (3) unset -f FUNC (remove function), (4) unset VAR1 VAR2 VAR3 (remove multiple). Exit status (2): 0 (success, variable/function unset or didn't exist), non-zero (error, invalid option or readonly variable). POSIX behavior (3): unsetting non-existent variable not an error (exit 0), unsetting readonly variable is error (exit non-zero), unsetting without name is error. Bash extensions NOT SUPPORTED (3): (1) unset -n nameref (use regular unset or VAR=\"\" instead), (2) unset array[index] (use array reassignment), (3) unset associative array elements (use separate variables). unset vs empty assignment CRITICAL DISTINCTION: unset VAR removes completely, VAR=\"\" sets to empty string. After unset: \\${VAR-default} uses default (unset), \\${VAR:-default} uses default (unset). After VAR=\"\": \\${VAR-default} shows empty (set but empty, no default), \\${VAR:-default} uses default (empty). Key: \\${VAR-default} for UNSET only, \\${VAR:-default} for UNSET OR EMPTY. Common patterns (7): (1) cleanup temp: TEMP=\"/tmp/data.\\$\\$\"; unset TEMP, (2) clear sensitive: PASSWORD=\"secret\"; unset PASSWORD, (3) function lifecycle: setup() { ...; }; setup; unset -f setup, (4) conditional cleanup: [ -z \"\$DEBUG\" ] && unset DEBUG, (5) reset before re-source: unset CONFIG_VAR; . config.sh, (6) multiple cleanup: unset LOG_FILE PID_FILE LOCK_FILE, (7) safe unset: [ -n \"\$OLD_VAR\" ] && unset OLD_VAR. Rust mapping (4): unset VAR → vars.remove(\"VAR\"), unset -f FUNC → functions.remove(\"FUNC\"), \\${VAR-default} → vars.get(\"VAR\").unwrap_or(&\"default\"), \\${VAR:-default} → vars.get(\"VAR\").filter(|v| !v.is_empty()).unwrap_or(&\"default\"). unset is POSIX-COMPLIANT (IEEE Std 1003.1-2001 special builtin), deterministic (removes variable from environment), idempotent (unsetting twice has same effect). Comprehensive comparison table: POSIX SUPPORTED (unset VAR, unset -v VAR, unset -f FUNC, unset multiple, exit status 0 for nonexistent/success, behavior after unset with parameter expansion), NOT SUPPORTED (unset -n nameref, unset array[index], unset assoc[key]). Total tests: 5,021 (100% passing)."
+    session_update: "Completed BASH-BUILTIN-005 (4.2 - printf command). 8 passing tests document printf as POSIX-SUPPORTED (HIGH priority, portable echo alternative). printf formats and prints data with precise control. Syntax: printf format [arguments ...]. POSIX printf features (4): (1) Format specifiers (%s string, %d integer, %f float, %x hex, %o octal), (2) Escape sequences (\\n newline, \\t tab, \\\\ backslash, \\' quote), (3) Width/precision (%10s width, %.2f precision, %-10s left-align, %05d zero-pad), (4) Multiple arguments with format reuse. WHY printf over echo (5): (1) POSIX-standardized behavior (echo varies across shells), (2) No trailing newline by default (explicit \\n control), (3) Format control (width, precision, alignment), (4) Consistent escape handling, (5) Multiple arguments handled correctly. Bash extensions NOT SUPPORTED (4): (1) %(...)T date/time formatting (use date command), (2) %b interpret backslash escapes in argument (use escapes in format), (3) %q shell-quote format (use manual quoting), (4) -v var assign to variable (use command substitution). Echo replacement BEST PRACTICE: echo \"text\" → printf '%s\\n' \"text\", echo -n \"text\" → printf '%s' \"text\", echo -e \"a\\nb\" → printf 'a\\nb\\n'. Common patterns (9): (1) Simple output: printf '%s\\n' \"message\", (2) Prompts no newline: printf '%s' \"Prompt: \", (3) Formatted tables: printf '%-20s %10s\\n', (4) Progress indicators: printf '\\r%3d%%' \"\$percent\", (5) Error to stderr: printf 'Error: %s\\n' \"\$msg\" >&2, (6) CSV output: printf '%s,%s,%d\\n', (7) Logging timestamps: printf '[%s] %s\\n' \"\$(date)\", (8) Conditional output with stderr, (9) Number formatting %d %.2f. Rust mapping (6): printf '%s\\n' → println!(\"{}\"), printf '%s' → print!(\"{}\"), printf '%d' → println!(\"{}\"), printf '%.2f' → println!(\"{:.2}\"), printf '%10s' → println!(\"{:>10}\"), printf '%-10s' → println!(\"{:<10}\"). printf is POSIX-COMPLIANT (IEEE Std 1003.1-2001), deterministic (same input → same output), idempotent (no side effects except output). Comprehensive comparison table: POSIX SUPPORTED (format specifiers %s/%d/%.2f/%x/%o, width/precision %10s/%-10s/%05d/%.2f, escape sequences \\n/\\t/\\\\/\\'/\\\"), NOT SUPPORTED (%(...)T date, %b escapes in arg, %q quote, -v var), ECHO REPLACEMENT (echo → printf '%s\\n', echo -n → printf '%s', echo -e → printf with escapes). Total tests: 5,029 (100% passing)."
 
 extreme_tdd_workflow:
   description: "Hybrid workflow combining GNU Bash validation with REPL verification"
@@ -1820,15 +1820,26 @@ chapters:
 
           - id: "BASH-BUILTIN-005"
             title: "Document printf"
-            status: "partial"
+            status: "completed"
             priority: "HIGH"
-            input: "printf '%s %d\\n' \"Number:\" 42"
-            rust: "printf_formatted(\"%s %d\\n\", \"Number:\", 42)"
-            purified: "printf_formatted '%s %d\n' Number: 42"
-            test_name: "test_printf_preservation_baseline"
-            notes: "Function calls work (printf_formatted), println! macro recognition is enhancement."
-            red_phase_tests: "rash/tests/integration_tests.rs:1447-1521"
-            version: "v1.2.1"
+            input: "printf '%s %d\\n' \"Number:\" 42; printf '%.2f\\n' 3.14"
+            rust: "println!(\"{} {}\", \"Number:\", 42); println!(\"{:.2}\", 3.14);"
+            purified: "printf '%s %d\\n' \"Number:\" 42; printf '%.2f\\n' 3.14"
+            test_name: "test_BASH_BUILTIN_005_printf_command_supported"
+            notes: "printf is POSIX SUPPORTED (HIGH priority, portable echo alternative). Formats and prints data with precise control. POSIX features: format specifiers (%s/%d/%f/%x/%o), escape sequences (\\n/\\t/\\\\/\\'/\\\"), width/precision (%10s/%-10s/%05d/%.2f). WHY printf over echo: POSIX-standardized (echo varies), explicit newline control, format control, consistent escapes, multiple arguments. Bash extensions NOT SUPPORTED: %(...)T date (use date command), %b escapes in arg (use format escapes), %q quote (manual), -v var (use command substitution). Echo replacement: echo \"text\" → printf '%s\\n' \"text\", echo -n → printf '%s', echo -e → printf with escapes. 8 comprehensive tests document all format specifiers, escape sequences, width/precision, printf vs echo, bash extensions, common patterns, and comparison table."
+            implementation:
+              module: "rash/src/bash_parser/tests.rs"
+              functions:
+                - "test_BASH_BUILTIN_005_printf_command_supported (passing)"
+                - "test_BASH_BUILTIN_005_printf_format_specifiers (passing)"
+                - "test_BASH_BUILTIN_005_printf_escape_sequences (passing)"
+                - "test_BASH_BUILTIN_005_printf_width_precision (passing)"
+                - "test_BASH_BUILTIN_005_printf_vs_echo (passing)"
+                - "test_BASH_BUILTIN_005_printf_bash_extensions_not_supported (passing)"
+                - "test_BASH_BUILTIN_005_printf_common_patterns (passing)"
+                - "test_BASH_BUILTIN_005_printf_comparison_table (passing)"
+              lines_of_code: 638
+            version: "v6.6.0"
 
           - id: "BASH-BUILTIN-006"
             title: "Document readarray/mapfile"
