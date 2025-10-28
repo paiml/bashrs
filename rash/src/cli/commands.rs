@@ -161,6 +161,17 @@ pub fn execute_command(cli: Cli) -> Result<()> {
             info!("Running comprehensive quality audit on {}", input.display());
             audit_command(&input, &format, strict, detailed, min_grade.as_deref())
         }
+
+        Commands::Coverage {
+            input,
+            format,
+            min,
+            detailed,
+            output,
+        } => {
+            info!("Generating coverage report for {}", input.display());
+            coverage_command(&input, &format, min, detailed, output.as_deref())
+        }
     }
 }
 
@@ -2001,4 +2012,267 @@ fn print_sarif_audit_results(results: &AuditResults, input: &Path) {
     });
 
     println!("{}", serde_json::to_string_pretty(&sarif).unwrap());
+}
+
+// ============================================================================
+// Coverage Command (v6.13.0 - Bash Quality Tools)
+// ============================================================================
+
+use crate::cli::args::CoverageOutputFormat;
+
+fn coverage_command(
+    input: &Path,
+    format: &CoverageOutputFormat,
+    min: Option<u8>,
+    detailed: bool,
+    output: Option<&Path>,
+) -> Result<()> {
+    use crate::bash_quality::coverage::generate_coverage;
+
+    // Read input file
+    let source = fs::read_to_string(input)
+        .map_err(|e| Error::Internal(format!("Failed to read {}: {}", input.display(), e)))?;
+
+    // Generate coverage report
+    let coverage = generate_coverage(&source)
+        .map_err(|e| Error::Internal(format!("Failed to generate coverage: {}", e)))?;
+
+    // Check minimum coverage if specified
+    if let Some(min_percent) = min {
+        let line_coverage = coverage.line_coverage_percent();
+        if line_coverage < min_percent as f64 {
+            return Err(Error::Internal(format!(
+                "Coverage {:.1}% is below minimum {}%",
+                line_coverage, min_percent
+            )));
+        }
+    }
+
+    // Output results
+    match format {
+        CoverageOutputFormat::Terminal => {
+            print_terminal_coverage(&coverage, detailed, input);
+        }
+        CoverageOutputFormat::Json => {
+            print_json_coverage(&coverage);
+        }
+        CoverageOutputFormat::Html => {
+            print_html_coverage(&coverage, input, output);
+        }
+        CoverageOutputFormat::Lcov => {
+            print_lcov_coverage(&coverage, input);
+        }
+    }
+
+    Ok(())
+}
+
+/// Print terminal coverage output
+fn print_terminal_coverage(
+    coverage: &crate::bash_quality::coverage::CoverageReport,
+    detailed: bool,
+    input: &Path,
+) {
+    println!();
+    println!("Coverage Report: {}", input.display());
+    println!();
+
+    let line_pct = coverage.line_coverage_percent();
+    let func_pct = coverage.function_coverage_percent();
+
+    // Overall coverage
+    println!("Lines:     {}/{}   ({:.1}%)  {}", 
+        coverage.covered_lines.len(),
+        coverage.total_lines,
+        line_pct,
+        coverage_status(line_pct)
+    );
+
+    println!("Functions: {}/{}   ({:.1}%)  {}",
+        coverage.covered_functions.len(),
+        coverage.all_functions.len(),
+        func_pct,
+        coverage_status(func_pct)
+    );
+    println!();
+
+    // Show uncovered items (always show if they exist)
+    let uncovered_lines = coverage.uncovered_lines();
+    if !uncovered_lines.is_empty() {
+        if detailed {
+            println!("Uncovered Lines: {}",
+                uncovered_lines.iter()
+                    .map(|n| n.to_string())
+                    .collect::<Vec<_>>()
+                    .join(", ")
+            );
+        } else {
+            println!("Uncovered Lines: {} lines", uncovered_lines.len());
+        }
+        println!();
+    }
+
+    let uncovered_funcs = coverage.uncovered_functions();
+    if !uncovered_funcs.is_empty() {
+        if detailed {
+            println!("Uncovered Functions:");
+            for func in uncovered_funcs {
+                println!("  - {}", func);
+            }
+        } else {
+            println!("Uncovered Functions: {}", uncovered_funcs.len());
+        }
+        println!();
+    }
+
+    // Summary
+    if coverage.total_lines == 0 {
+        println!("⚠️  No executable code found");
+    } else if coverage.covered_lines.is_empty() {
+        println!("⚠️  No tests found - 0% coverage");
+    } else if line_pct >= 80.0 {
+        println!("✅ Good coverage!");
+    } else if line_pct >= 50.0 {
+        println!("⚠️  Moderate coverage - consider adding more tests");
+    } else {
+        println!("❌ Low coverage - more tests needed");
+    }
+}
+
+fn coverage_status(percent: f64) -> &'static str {
+    if percent >= 80.0 {
+        "✅"
+    } else if percent >= 50.0 {
+        "⚠️"
+    } else {
+        "❌"
+    }
+}
+
+/// Print JSON coverage output
+fn print_json_coverage(coverage: &crate::bash_quality::coverage::CoverageReport) {
+    use serde_json::json;
+
+    let json_coverage = json!({
+        "coverage": {
+            "lines": {
+                "total": coverage.total_lines,
+                "covered": coverage.covered_lines.len(),
+                "percent": coverage.line_coverage_percent(),
+            },
+            "functions": {
+                "total": coverage.all_functions.len(),
+                "covered": coverage.covered_functions.len(),
+                "percent": coverage.function_coverage_percent(),
+            },
+            "uncovered_lines": coverage.uncovered_lines(),
+            "uncovered_functions": coverage.uncovered_functions(),
+        }
+    });
+
+    println!("{}", serde_json::to_string_pretty(&json_coverage).unwrap());
+}
+
+/// Print HTML coverage output
+fn print_html_coverage(
+    coverage: &crate::bash_quality::coverage::CoverageReport,
+    input: &Path,
+    output: Option<&Path>,
+) {
+    let html = format!(r#"<!DOCTYPE html>
+<html>
+<head>
+    <title>Coverage Report - {}</title>
+    <style>
+        body {{ font-family: Arial, sans-serif; margin: 20px; }}
+        h1 {{ color: #333; }}
+        .summary {{ background: #f5f5f5; padding: 15px; border-radius: 5px; }}
+        .coverage {{ font-size: 24px; font-weight: bold; }}
+        .good {{ color: #28a745; }}
+        .medium {{ color: #ffc107; }}
+        .poor {{ color: #dc3545; }}
+        table {{ border-collapse: collapse; width: 100%; margin-top: 20px; }}
+        th, td {{ border: 1px solid #ddd; padding: 8px; text-align: left; }}
+        th {{ background-color: #f2f2f2; }}
+        .covered {{ background-color: #d4edda; }}
+        .uncovered {{ background-color: #f8d7da; }}
+    </style>
+</head>
+<body>
+    <h1>Coverage Report</h1>
+    <h2>{}</h2>
+    <div class="summary">
+        <p><strong>Line Coverage:</strong> 
+            <span class="coverage {}">{:.1}%</span> 
+            ({}/{})</p>
+        <p><strong>Function Coverage:</strong> 
+            <span class="coverage {}">{:.1}%</span> 
+            ({}/{})</p>
+    </div>
+    <h3>Uncovered Functions</h3>
+    <ul>
+        {}
+    </ul>
+</body>
+</html>"#,
+        input.display(),
+        input.display(),
+        coverage_class(coverage.line_coverage_percent()),
+        coverage.line_coverage_percent(),
+        coverage.covered_lines.len(),
+        coverage.total_lines,
+        coverage_class(coverage.function_coverage_percent()),
+        coverage.function_coverage_percent(),
+        coverage.covered_functions.len(),
+        coverage.all_functions.len(),
+        coverage.uncovered_functions().iter()
+            .map(|f| format!("<li>{}</li>", f))
+            .collect::<Vec<_>>()
+            .join("\n        ")
+    );
+
+    if let Some(output_path) = output {
+        fs::write(output_path, html).expect("Failed to write HTML report");
+        println!("HTML coverage report written to {}", output_path.display());
+    } else {
+        println!("{}", html);
+    }
+}
+
+fn coverage_class(percent: f64) -> &'static str {
+    if percent >= 80.0 {
+        "good"
+    } else if percent >= 50.0 {
+        "medium"
+    } else {
+        "poor"
+    }
+}
+
+/// Print LCOV coverage output
+fn print_lcov_coverage(
+    coverage: &crate::bash_quality::coverage::CoverageReport,
+    input: &Path,
+) {
+    println!("TN:");
+    println!("SF:{}", input.display());
+
+    // Function coverage
+    for func in &coverage.all_functions {
+        let covered = if coverage.covered_functions.contains(func) { 1 } else { 0 };
+        println!("FN:0,{}", func);
+        println!("FNDA:{},{}", covered, func);
+    }
+    println!("FNF:{}", coverage.all_functions.len());
+    println!("FNH:{}", coverage.covered_functions.len());
+
+    // Line coverage
+    for (line_num, &is_covered) in &coverage.line_coverage {
+        let hit = if is_covered { 1 } else { 0 };
+        println!("DA:{},{}", line_num, hit);
+    }
+    println!("LF:{}", coverage.total_lines);
+    println!("LH:{}", coverage.covered_lines.len());
+
+    println!("end_of_record");
 }
