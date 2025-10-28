@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"fn":["format_parse_error","parse_bash"]};

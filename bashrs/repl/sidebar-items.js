@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"fn":["run_repl"],"mod":["config","loop","state"]};
+window.SIDEBAR_ITEMS = {"fn":["run_repl"],"mod":["config","linter","loop","modes","parser","purifier","state"]};

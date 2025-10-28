@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"fn":["format_lint_results","lint_bash"]};

@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"fn":["get_history_path","print_help","run_repl"]};
+window.SIDEBAR_ITEMS = {"fn":["get_history_path","handle_lint_command","handle_mode_command","handle_parse_command","handle_purify_command","print_help","run_repl"]};

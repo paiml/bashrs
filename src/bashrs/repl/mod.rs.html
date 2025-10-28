@@ -8,8 +8,16 @@
 <a href=#8 id=8 data-nosnippet>8</a>
 <a href=#9 id=9 data-nosnippet>9</a></span><span class="kw">pub mod </span>config;
 <a href=#10 id=10 data-nosnippet>10</a><span class="kw">pub mod </span>state;
-<a href=#11 id=11 data-nosnippet>11</a><span class="kw">mod </span>r#loop;
-<a href=#12 id=12 data-nosnippet>12</a>
-<a href=#13 id=13 data-nosnippet>13</a><span class="kw">pub use </span>config::ReplConfig;
-<a href=#14 id=14 data-nosnippet>14</a><span class="kw">pub use </span>state::ReplState;
-<a href=#15 id=15 data-nosnippet>15</a><span class="kw">pub use </span>r#loop::run_repl;</code></pre></div></section></main></body></html>
+<a href=#11 id=11 data-nosnippet>11</a><span class="kw">pub mod </span>modes;
+<a href=#12 id=12 data-nosnippet>12</a><span class="kw">pub mod </span>parser;
+<a href=#13 id=13 data-nosnippet>13</a><span class="kw">pub mod </span>purifier;
+<a href=#14 id=14 data-nosnippet>14</a><span class="kw">pub mod </span>linter;
+<a href=#15 id=15 data-nosnippet>15</a><span class="kw">mod </span>r#loop;
+<a href=#16 id=16 data-nosnippet>16</a>
+<a href=#17 id=17 data-nosnippet>17</a><span class="kw">pub use </span>config::ReplConfig;
+<a href=#18 id=18 data-nosnippet>18</a><span class="kw">pub use </span>state::ReplState;
+<a href=#19 id=19 data-nosnippet>19</a><span class="kw">pub use </span>modes::ReplMode;
+<a href=#20 id=20 data-nosnippet>20</a><span class="kw">pub use </span>parser::{parse_bash, format_parse_error};
+<a href=#21 id=21 data-nosnippet>21</a><span class="kw">pub use </span>purifier::{purify_bash, format_purification_report};
+<a href=#22 id=22 data-nosnippet>22</a><span class="kw">pub use </span>linter::{lint_bash, format_lint_results};
+<a href=#23 id=23 data-nosnippet>23</a><span class="kw">pub use </span>r#loop::run_repl;</code></pre></div></section></main></body></html>
