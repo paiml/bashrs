@@ -357,9 +357,9 @@ quality-gate: quality-baseline analyze-complexity analyze-tdg
 	@echo "🔍 Running comprehensive quality gate checks..."
 	@if command -v pmat >/dev/null 2>&1; then \
 		echo "  📊 Running pmat quality analysis..."; \
-		pmat analyze complexity --max 10 --format json > .quality/complexity-current.json || true; \
-		pmat analyze tdg --format json > .quality/tdg-current.json || true; \
-		pmat analyze satd --format json > .quality/satd-current.json || true; \
+		pmat analyze complexity --max-cyclomatic 10 --format json --output .quality/complexity-current.json || true; \
+		pmat tdg . --format json --output .quality/tdg-current.json || true; \
+		pmat analyze satd --format json --output .quality/satd-current.json || true; \
 		echo "  ✅ PMAT analysis complete"; \
 	elif command -v $(PAIML_TOOLKIT) >/dev/null 2>&1; then \
 		echo "  📊 Running paiml-toolkit quality analysis..."; \
@@ -383,7 +383,7 @@ analyze-complexity: ## Analyze code complexity with pmat
 	@echo "📊 Analyzing code complexity..."
 	@mkdir -p .quality
 	@if command -v pmat >/dev/null 2>&1; then \
-		pmat analyze complexity --max 10 --format human; \
+		pmat analyze complexity --max-cyclomatic 10 --format full --output .quality/complexity-current.json; \
 		echo ""; \
 		echo "💡 Detailed report: .quality/complexity-current.json"; \
 	else \
@@ -395,7 +395,7 @@ analyze-tdg: ## Analyze Technical Debt Grade with pmat
 	@echo "📈 Analyzing Technical Debt Grade..."
 	@mkdir -p .quality
 	@if command -v pmat >/dev/null 2>&1; then \
-		pmat analyze tdg --format human; \
+		pmat tdg . --format table --output .quality/tdg-current.json; \
 		echo ""; \
 		echo "💡 Target: B+ or higher (Toyota Way quality standards)"; \
 	else \
