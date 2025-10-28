@@ -9,13 +9,13 @@ roadmap:
 
   statistics:
     total_tasks: 122
-    completed: 74
+    completed: 75
     partial_support: 0
-    pending: 45
+    pending: 44
     blocked: 3
     coverage_percent: 61
     accuracy_verified: "2025-10-28"
-    total_tests: 5,053
+    total_tests: 5,060
     session_update: "Completed VAR-001 (5.1 - HOME environment variable). 8 passing tests document HOME as POSIX-SUPPORTED (HIGH priority, fundamental user directory). HOME is user's home directory full path. Set by: System at login from /etc/passwd 6th field. Used by: cd (no args goes to \\$HOME), ~ expansion, many utilities. POSIX HOME forms (4): (1) \\$HOME (environment variable), (2) \\${HOME} (braced form), (3) cd (no args) → \\$HOME, (4) ~ expansion → \\$HOME. CRITICAL: HOME is read-only by convention (never modify). Best practices (8): (1) Always quote: cd \"\\$HOME\" (prevents word splitting), (2) Check existence: [ -d \"\\$HOME\" ], (3) Check set: [ -z \"\\$HOME\" ] && exit 1, (4) Use for user files: \"\\$HOME/.config\", (5) Never modify: HOME=\"/new\" breaks system, (6) Portable tilde: ~ and ~/dir POSIX, ~user/~+/~- bash extensions, (7) Use \\$HOME in scripts (explicit), ~ interactively (readable), (8) Don't hardcode: use \"\\$HOME\" not \"/home/alice\". HOME vs tilde (4): \\$HOME is environment variable, ~ is tilde expansion, cd ~ == cd \"\\$HOME\", ~/dir == \"\\$HOME/dir\", \"~/dir\" WRONG (tilde doesn't expand in quotes). Security (5): Always quote \"\\$HOME\" (prevents injection), validate exists [ -d \"\\$HOME\" ], check ownership (optional paranoid), avoid symlinks in critical paths, use mktemp for temp files. Edge cases (7): HOME not set (rare), HOME non-existent directory, HOME with spaces (must quote), HOME special chars (must quote), HOME empty string, HOME is / (root user), fallback \\${HOME:-/tmp}. System interaction: HOME set at login from /etc/passwd, cd uses HOME, ~ expands to HOME, utilities use HOME (.bashrc, .ssh, .gitconfig, .vimrc, .config, .cache, .local). Common patterns (8): cd \"\\$HOME\" or cd (no args), config=\"\\$HOME/.config/app.conf\", mkdir -p \"\\$HOME/backups\", saved_dir=\\$(pwd); cd \"\\$HOME\"; cd \"\\$saved_dir\", log=\"\\$HOME/.app/logs\", temp=\"\\$HOME/.app/temp.\\$\\$\", PATH=\"\\$HOME/.local/bin:\\$PATH\". Rust mapping (4): \\$HOME → std::env::var(\"HOME\").unwrap(), cd \"\\$HOME\" → std::env::set_current_dir(env::var(\"HOME\")), \"\\${HOME}/dir\" → format!(\"{}/dir\", env::var(\"HOME\")), [ -d \"\\$HOME\" ] → Path::new(&env::var(\"HOME\")).is_dir(). HOME is POSIX-COMPLIANT (IEEE Std 1003.1-2001), deterministic (set at login, stable), secure (always quote), portable (all Unix-like systems). Comprehensive comparison table: POSIX SUPPORTED (\\$HOME, \\${HOME}, cd no args, ~, ~/dir, check [ -d \"\\$HOME\" ]), BEST PRACTICES (always quote, check exists, never modify), NOT PORTABLE (~user, ~+, ~-). Total tests: 5,037 (100% passing)."
 
 extreme_tdd_workflow:
@@ -2063,15 +2063,25 @@ chapters:
 
           - id: "BASH-VAR-003"
             title: "Document SECONDS purification"
-            status: "partial"
+            status: "completed"
             priority: "MEDIUM"
-            input: "echo $SECONDS"
-            rust: "use_fixed_time(100)"
-            purified: "use_fixed_time 100"
-            test_name: "test_seconds_purification_baseline"
-            notes: "Verified $SECONDS not generated (fixed durations only). Function calls work (use_fixed_time)."
-            red_phase_tests: "rash/tests/integration_tests.rs:2657-2742"
-            version: "v1.2.1"
+            input: "SECONDS=0; operation; echo \"Took $SECONDS seconds\"; start=$SECONDS; while [ $((SECONDS - start)) -lt 60 ]; do sleep 1; done"
+            rust: "NOT MAPPED (use deterministic values); Remove timing logic or use attempt counters"
+            purified: "operation; echo \"Operation completed\"; attempts=0; max_attempts=60; while [ $attempts -lt $max_attempts ]; do sleep 1; attempts=$((attempts + 1)); done"
+            test_name: "test_BASH_VAR_003_seconds_not_supported"
+            notes: "$SECONDS is NOT SUPPORTED (bash-specific, MEDIUM priority purification). $SECONDS tracks seconds since shell started. WHY NOT SUPPORTED (5 reasons): Non-deterministic (different value each run), Time-dependent (depends on execution speed), Bash-specific (not POSIX), Breaks reproducibility (cannot replay with same timing), Breaks testing (flaky tests). PURIFICATION STRATEGIES (4): (1) Fixed durations (duration=100), (2) Explicit timestamp arithmetic (start=1640000000; end=1640000100; elapsed=$((end-start))), (3) Remove timing logic entirely (echo \"Operation completed\"), (4) External time source (duration=$(cat config/duration.txt)). Common antipatterns (6): Performance measurement → external tool (hyperfine), Timeouts → attempt counters, Log timestamps → fixed format, Rate limiting → fixed intervals, Progress indicators → work-based progress, Execution time reporting → remove timing. Determinism violations (4): Time-dependent output (fast vs slow machine different results), Cannot replay execution (same timing impossible), Tests non-reproducible (flaky performance assertions), Timing race conditions (service start times vary). Portability issues (3): Not POSIX (bash-specific, undefined in dash/ash), Reset behavior differs (bash SECONDS=0 resets, dash just sets variable), Precision varies (bash integer seconds, some shells subsecond). Testing implications (4 critical issues): Non-reproducible tests (SECONDS=0; operation; [ $SECONDS -lt 10 ] flaky!), Cannot assert on output (timing varies), Flaky tests (passes on fast machine, fails on slow), Cannot replay failures (timing-dependent bugs). TESTING BEST PRACTICES: Never use $SECONDS in production code, Use attempt counters instead of timers, Remove timing assertions from tests, Use deterministic test data. Rust mapping: $SECONDS → NOT MAPPED (use deterministic values), Timing needs → remove or use fixed durations, Timeouts → attempt counters (deterministic), Benchmarks → external tools (hyperfine, criterion). PURIFICATION RULES (6): $SECONDS → FORBIDDEN (rewrite script), Timeouts → max_attempts counter, Benchmarks → external tools or remove, Progress indicators → work-based (items processed), Log timestamps → remove or fixed format, Performance assertions → remove from tests. Comprehensive comparison table: Bash ($SECONDS SUPPORTED, timer, NON-DETERMINISTIC, flaky tests, bash/ksh only), POSIX (NOT AVAILABLE), Purified (FORBIDDEN, deterministic alternatives enforced, reproducible tests, POSIX counters). $SECONDS makes tests FLAKY and NON-REPRODUCIBLE (depends on execution speed). bashrs STATUS: $SECONDS is FORBIDDEN (violates determinism - execution time should not affect output)."
+            implementation:
+              module: "rash/src/bash_parser/tests.rs"
+              functions:
+                - "test_BASH_VAR_003_seconds_not_supported (passing)"
+                - "test_BASH_VAR_003_seconds_purification_strategies (passing)"
+                - "test_BASH_VAR_003_seconds_common_antipatterns (passing)"
+                - "test_BASH_VAR_003_seconds_determinism_violations (passing)"
+                - "test_BASH_VAR_003_seconds_portability_issues (passing)"
+                - "test_BASH_VAR_003_seconds_testing_implications (passing)"
+                - "test_BASH_VAR_003_seconds_comparison_table (passing)"
+              lines_of_code: 666
+            version: "v6.6.0"
 
   - id: 6
     name: "Bash Features"
