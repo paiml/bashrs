@@ -25,56 +25,95 @@ static BACKTICK_WITH_UNESCAPED_QUOTES: Lazy<Regex> = Lazy::new(|| {
     Regex::new(r#"`([^`]*[^\\])?(["'])([^`]*)`"#).unwrap()
 });
 
+/// Check if line should be analyzed (has backticks and quotes)
+fn should_check_line(line: &str) -> bool {
+    line.contains('`') && (line.contains('"') || line.contains('\''))
+}
+
+/// Check if character at position is a quote
+fn is_quote(c: char) -> bool {
+    c == '"' || c == '\''
+}
+
+/// Check if quote at position is escaped
+fn is_escaped_quote(chars: &[char], pos: usize) -> bool {
+    pos > 0 && chars[pos - 1] == '\\'
+}
+
+/// Check if character at position is an unescaped quote
+fn is_unescaped_quote(chars: &[char], pos: usize) -> bool {
+    is_quote(chars[pos]) && !is_escaped_quote(chars, pos)
+}
+
+/// Find unescaped quote position inside backtick expression
+fn find_unescaped_quote_in_backticks(chars: &[char], start: usize) -> Option<usize> {
+    let mut i = start + 1; // Skip opening backtick
+
+    while i < chars.len() && chars[i] != '`' {
+        if is_unescaped_quote(chars, i) {
+            return Some(i);
+        }
+        i += 1;
+    }
+
+    None
+}
+
+/// Create diagnostic for unescaped quote in backticks
+fn create_backtick_quote_diagnostic(
+    line_num: usize,
+    backtick_start: usize,
+    quote_pos: usize,
+) -> Diagnostic {
+    let start_col = backtick_start + 1;
+    let end_col = quote_pos + 2; // +2 to include quote
+
+    Diagnostic::new(
+        "SC2036",
+        Severity::Warning,
+        "Quotes in backticks need escaping. Use $( ) instead or escape with \\\"".to_string(),
+        Span::new(line_num, start_col, line_num, end_col),
+    )
+}
+
 pub fn check(source: &str) -> LintResult {
     let mut result = LintResult::new();
 
     for (line_num, line) in source.lines().enumerate() {
         let line_num = line_num + 1;
 
-        if line.trim_start().starts_with('#') {
+        if line.trim_start().starts_with('#') || !should_check_line(line) {
             continue;
         }
 
-        // Look for backticks with unescaped quotes
-        // Simple heuristic: if line contains backticks and quotes, check if quotes are escaped
-        if line.contains('`') && (line.contains('"') || line.contains('\'')) {
-            // Find all backtick pairs
-            let chars: Vec<char> = line.chars().collect();
-            let mut i = 0;
+        let chars: Vec<char> = line.chars().collect();
+        let mut i = 0;
 
-            while i < chars.len() {
-                if chars[i] == '`' {
-                    // Find closing backtick
-                    let start = i;
-                    i += 1;
+        while i < chars.len() {
+            if chars[i] == '`' {
+                let backtick_start = i;
 
+                // Check for unescaped quotes inside backticks
+                if let Some(quote_pos) = find_unescaped_quote_in_backticks(&chars, backtick_start) {
+                    let diagnostic = create_backtick_quote_diagnostic(
+                        line_num,
+                        backtick_start,
+                        quote_pos,
+                    );
+                    result.add(diagnostic);
+
+                    // Skip to end of this backtick expression
+                    i = quote_pos + 1;
                     while i < chars.len() && chars[i] != '`' {
-                        // Check for unescaped quotes
-                        if (chars[i] == '"' || chars[i] == '\'') && (i == 0 || chars[i - 1] != '\\')
-                        {
-                            // Found unescaped quote in backtick
-                            let start_col = start + 1;
-                            let end_col = i + 2; // +2 to include quote
-
-                            let diagnostic = Diagnostic::new(
-                                "SC2036",
-                                Severity::Warning,
-                                "Quotes in backticks need escaping. Use $( ) instead or escape with \\\"".to_string(),
-                                Span::new(line_num, start_col, line_num, end_col),
-                            );
-
-                            result.add(diagnostic);
-                            break; // One diagnostic per backtick expression
-                        }
                         i += 1;
                     }
-
-                    if i < chars.len() && chars[i] == '`' {
-                        i += 1; // Skip closing backtick
-                    }
-                } else {
-                    i += 1;
                 }
+
+                if i < chars.len() && chars[i] == '`' {
+                    i += 1; // Skip closing backtick
+                }
+            } else {
+                i += 1;
             }
         }
     }
