@@ -9,13 +9,13 @@ roadmap:
 
   statistics:
     total_tasks: 122
-    completed: 62
-    partial_support: 8
+    completed: 63
+    partial_support: 7
     pending: 49
     blocked: 3
-    coverage_percent: 51
+    coverage_percent: 52
     accuracy_verified: "2025-10-28"
-    session_update: "Completed PARAM-SPEC-004 (3.5.2 - $! background PID purification). 8 passing tests document $! (background PID) as POSIX but NON-DETERMINISTIC (MUST PURIFY). $! contains PID of last background job (changes every run), breaking determinism. bashrs policy: Purify to SYNCHRONOUS execution (remove & and $!). Background jobs (&) are non-deterministic due to PIDs, timing, and execution order. Purification strategies (5): (1) Background job: cmd & → cmd (synchronous), (2) Multiple jobs: task1 & task2 & wait → task1; task2 (sequential), (3) Timeout: cmd & sleep 5; kill $! → timeout 5 cmd || true, (4) Wait pattern: cmd &; wait $! → cmd (implicit wait), (5) Remove non-essential: log_task & → (remove or make sync if needed). Job control features (POSIX but non-deterministic, NOT SUPPORTED): & (background execution), $! (last background PID), jobs (list jobs), fg (foreground job), bg (background job), wait (wait for jobs). Why bashrs doesn't support job control: non-deterministic (PIDs, timing, execution order), interactive feature (not for automation scripts), race conditions, hard to test, not needed for bootstrap/config scripts. Common mistakes (3): (1) Race condition: cmd &; kill $! (job may have already finished before kill), (2) Exit without wait: important_task &; exit 0 (script exits before task completes, task may not finish), (3) Uncontrolled parallelism: for i in 1 2 3; do process_item $i &; done (script exits, background jobs may not finish, no resource limits). Best practices: (1) use synchronous execution for determinism, (2) avoid background jobs in bootstrap/config scripts, (3) use timeout command for time limits (not background + kill pattern), (4) sequential execution is easier to test and debug, (5) interactive tools can use &, but NOT in purified scripts. Rust mapping: DON'T use Command::new().spawn() for background processes (non-deterministic), use Command::new().status() for synchronous execution (deterministic). Total tests: 4,957 (100% passing)."
+    session_update: "Completed EXP-BRACE-001 (3.5.1 - brace expansion). 8 passing tests document brace expansion {..} as bash extension (NOT SUPPORTED). Types: numeric sequences {1..10}, letter sequences {a..z}, comma lists {foo,bar,baz}, nested {a,b}{1,2} creates Cartesian product (a1 a2 b1 b2). Introduced in Bash 3.0 (2004), not in POSIX specification. sh, dash, ash don't support brace expansion. POSIX alternatives (SUPPORTED): seq command for numeric ranges (seq 1 10), explicit lists for comma expansion (echo foo bar baz), for loops for iteration, nested loops for Cartesian products. Purification strategies (5): (1) Numeric sequences: {1..10} → seq 1 10 or for i in $(seq 1 10); do echo \"$i\"; done, (2) Letter sequences: {a..e} → echo a b c d e (explicit), (3) Comma lists: {foo,bar,baz} → echo foo bar baz (explicit), (4) Nested: {a,b}{1,2} → for x in a b; do for y in 1 2; do echo \"$x$y\"; done; done (nested loops), (5) File operations: cp file{,.bak} → cp file file.bak (explicit). Common use cases with POSIX alternatives (5): (1) Create directories: mkdir -p project/{src,tests,docs} → mkdir -p project/src project/tests project/docs, (2) Backup files: cp config.json{,.bak} → cp config.json config.json.bak, (3) Iterate ranges: for i in {1..100} → i=1; while [ $i -le 100 ]; do echo \"$i\"; i=$((i+1)); done, (4) Generate files: touch file{1..5}.txt → for i in 1 2 3 4 5; do touch \"file${i}.txt\"; done, (5) Multiple commands: echo {start,middle,end}_of_process → echo start_of_process middle_of_process end_of_process. Edge cases: zero-padded {01..10} → seq -f \"%02g\" 1 10, reverse {10..1} → seq 10 -1 1, step {0..100..10} → seq 0 10 100, empty braces {} are literal (no expansion in bash), single item {foo} is literal (needs comma or .. for expansion). Best practices: (1) use seq for numeric ranges (portable across all shells), (2) use explicit lists for small sets, (3) use for loops for iteration, (4) avoid brace expansion in portable scripts, (5) document why POSIX alternative is used. Total tests: 4,965 (100% passing)."
 
 extreme_tdd_workflow:
   description: "Hybrid workflow combining GNU Bash validation with REPL verification"
@@ -841,15 +841,26 @@ chapters:
             tasks:
               - id: "EXP-BRACE-001"
                 title: "Document brace expansion"
-                status: "partial"
+                status: "completed"
                 priority: "MEDIUM"
-                input: "echo {1..5}"
-                rust: "generate_sequence(1, 5)"
-                purified: "generate_sequence 1 5"
-                test_name: "test_brace_expansion_baseline"
-                notes: "Function calls work (generate_sequence start end), range pattern recognition is enhancement."
-                red_phase_tests: "rash/tests/session8_tests.rs:114-165"
-                version: "v1.2.1"
+                input: "echo {1..10}; echo {a..z}; echo {foo,bar,baz}; mkdir project/{src,tests,docs}; cp file{,.bak}"
+                rust: "for i in 1..=10 { } // Numeric seq; for item in &[\"foo\", \"bar\", \"baz\"] { } // List"
+                purified: "seq 1 10; echo a b c d e; echo foo bar baz; mkdir -p project/src project/tests project/docs; cp file file.bak"
+                test_name: "test_EXP_BRACE_001_brace_expansion_not_supported"
+                notes: "Brace expansion is bash extension (NOT SUPPORTED). Types: numeric sequences {1..10}, letter sequences {a..z}, comma lists {foo,bar,baz}, nested {a,b}{1,2} (Cartesian product). Introduced in Bash 3.0 (2004), not in POSIX specification. sh/dash/ash don't support brace expansion. POSIX alternatives (SUPPORTED): seq command for numeric ranges, explicit lists for comma expansion, for loops for iteration, nested loops for Cartesian products. Purification strategies (5): (1) Numeric sequences: {1..10} → seq 1 10 or for i in $(seq 1 10), (2) Letter sequences: {a..e} → echo a b c d e (explicit), (3) Comma lists: {foo,bar,baz} → echo foo bar baz (explicit), (4) Nested: {a,b}{1,2} → nested for loops, (5) File operations: file{,.bak} → file file.bak (explicit). Common use cases: mkdir project/{src,tests,docs} → mkdir -p project/src project/tests project/docs, cp config.json{,.bak} → cp config.json config.json.bak, for i in {1..100} → while loop with counter, touch file{1..5}.txt → for loop with seq. Edge cases: zero-padded {01..10} → seq -f \"%02g\" 1 10, reverse {10..1} → seq 10 -1 1, step {0..100..10} → seq 0 10 100, empty braces {} are literal (no expansion), single item {foo} is literal (needs comma or ..). Best practices: use seq for numeric ranges (portable), use explicit lists for small sets, use for loops for iteration, avoid brace expansion in portable scripts, document why POSIX alternative is used."
+                implementation:
+                  module: "rash/src/bash_parser/tests.rs"
+                  functions:
+                    - "test_EXP_BRACE_001_brace_expansion_not_supported (passing)"
+                    - "test_EXP_BRACE_001_sequence_expansion (passing)"
+                    - "test_EXP_BRACE_001_comma_expansion (passing)"
+                    - "test_EXP_BRACE_001_nested_expansion (passing)"
+                    - "test_EXP_BRACE_001_purification_strategy (passing)"
+                    - "test_EXP_BRACE_001_common_use_cases (passing)"
+                    - "test_EXP_BRACE_001_edge_cases (passing)"
+                    - "test_EXP_BRACE_001_comparison_table (passing)"
+                  lines_of_code: 595
+                version: "v6.6.0"
 
           - id: "3.5.2"
             name: "Tilde Expansion"

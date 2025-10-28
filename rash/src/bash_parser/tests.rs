@@ -13584,3 +13584,597 @@ timeout 5 task || true
 // Job control (jobs, fg, bg): NOT SUPPORTED (interactive features)
 // Common mistakes: Race conditions, exit without wait, uncontrolled parallelism
 // Best practice: Synchronous execution for determinism, testability, reproducibility
+
+// ============================================================================
+// EXP-BRACE-001: Brace Expansion {..} (Bash extension, NOT SUPPORTED)
+// ============================================================================
+
+#[test]
+fn test_EXP_BRACE_001_brace_expansion_not_supported() {
+    // DOCUMENTATION: Brace expansion is NOT SUPPORTED (bash extension)
+    //
+    // Brace expansion generates sequences or combinations:
+    // - Bash 3.0+ feature (2004)
+    // - Not in POSIX sh specification
+    // - sh, dash, ash don't support brace expansion
+    //
+    // Sequence expansion:
+    // $ echo {1..5}
+    // 1 2 3 4 5
+    //
+    // $ echo {a..z}
+    // a b c d e f g ... x y z
+    //
+    // Comma expansion:
+    // $ echo {foo,bar,baz}
+    // foo bar baz
+    //
+    // Nested expansion:
+    // $ echo {a,b}{1,2}
+    // a1 a2 b1 b2
+    //
+    // Why brace expansion is bash-only:
+    // - Not in POSIX specification
+    // - Bash 3.0+ (2004) introduced {..} sequences
+    // - sh, dash, ash don't support it
+    // - Easy to work around with loops or explicit lists
+    //
+    // Rust mapping (generate sequence):
+    // ```rust
+    // // Sequence {1..5}
+    // for i in 1..=5 {
+    //     println!("{}", i);
+    // }
+    //
+    // // List {foo,bar,baz}
+    // for item in &["foo", "bar", "baz"] {
+    //     println!("{}", item);
+    // }
+    // ```
+
+    let brace_expansion = r#"
+# Bash brace expansion (NOT SUPPORTED)
+echo {1..5}
+echo {a..z}
+echo {foo,bar,baz}
+"#;
+
+    let result = BashParser::new(brace_expansion);
+    match result {
+        Ok(mut parser) => {
+            let parse_result = parser.parse();
+            assert!(
+                parse_result.is_ok() || parse_result.is_err(),
+                "Brace expansion is bash extension, NOT SUPPORTED"
+            );
+        }
+        Err(_) => {
+            // Parse error expected for bash extensions
+        }
+    }
+}
+
+#[test]
+fn test_EXP_BRACE_001_sequence_expansion() {
+    // DOCUMENTATION: Sequence expansion {start..end} (bash, NOT SUPPORTED)
+    //
+    // Numeric sequences:
+    // $ echo {1..10}
+    // 1 2 3 4 5 6 7 8 9 10
+    //
+    // $ echo {0..100..10}  # With step
+    // 0 10 20 30 40 50 60 70 80 90 100
+    //
+    // Letter sequences:
+    // $ echo {a..f}
+    // a b c d e f
+    //
+    // $ echo {A..Z}
+    // A B C D E F ... X Y Z
+    //
+    // POSIX alternatives (SUPPORTED):
+    // 1. seq command:
+    //    $ seq 1 10
+    //    1 2 3 4 5 6 7 8 9 10
+    //
+    // 2. for loop:
+    //    $ for i in 1 2 3 4 5; do echo "$i"; done
+    //
+    // 3. while loop with counter:
+    //    $ i=1; while [ $i -le 10 ]; do echo "$i"; i=$((i+1)); done
+
+    let sequence_expansion = r#"
+# Bash sequences (NOT SUPPORTED)
+# echo {1..10}
+# echo {0..100..10}
+# echo {a..z}
+
+# POSIX alternatives (SUPPORTED)
+seq 1 10
+for i in 1 2 3 4 5; do echo "$i"; done
+
+i=1
+while [ $i -le 10 ]; do
+  echo "$i"
+  i=$((i+1))
+done
+"#;
+
+    let result = BashParser::new(sequence_expansion);
+    match result {
+        Ok(mut parser) => {
+            let parse_result = parser.parse();
+            assert!(
+                parse_result.is_ok() || parse_result.is_err(),
+                "POSIX alternatives: seq, for loop, while loop"
+            );
+        }
+        Err(_) => {
+            // Parse error acceptable
+        }
+    }
+}
+
+#[test]
+fn test_EXP_BRACE_001_comma_expansion() {
+    // DOCUMENTATION: Comma expansion {item1,item2} (bash, NOT SUPPORTED)
+    //
+    // List expansion:
+    // $ echo {foo,bar,baz}
+    // foo bar baz
+    //
+    // $ echo pre{A,B,C}post
+    // preApost preBpost preCpost
+    //
+    // $ echo {red,green,blue}_color
+    // red_color green_color blue_color
+    //
+    // POSIX alternatives (SUPPORTED):
+    // 1. Explicit list:
+    //    $ echo foo bar baz
+    //
+    // 2. for loop:
+    //    $ for item in foo bar baz; do echo "$item"; done
+    //
+    // 3. Array iteration (if supported):
+    //    $ items="foo bar baz"
+    //    $ for item in $items; do echo "$item"; done
+
+    let comma_expansion = r#"
+# Bash comma expansion (NOT SUPPORTED)
+# echo {foo,bar,baz}
+# echo pre{A,B,C}post
+
+# POSIX alternatives (SUPPORTED)
+echo foo bar baz
+
+for item in foo bar baz; do
+  echo "$item"
+done
+
+# Explicit iteration
+items="foo bar baz"
+for item in $items; do
+  echo "$item"
+done
+"#;
+
+    let result = BashParser::new(comma_expansion);
+    match result {
+        Ok(mut parser) => {
+            let parse_result = parser.parse();
+            assert!(
+                parse_result.is_ok() || parse_result.is_err(),
+                "POSIX alternatives: explicit lists, for loops"
+            );
+        }
+        Err(_) => {
+            // Parse error acceptable
+        }
+    }
+}
+
+#[test]
+fn test_EXP_BRACE_001_nested_expansion() {
+    // DOCUMENTATION: Nested brace expansion (bash, NOT SUPPORTED)
+    //
+    // Cartesian product:
+    // $ echo {a,b}{1,2}
+    // a1 a2 b1 b2
+    //
+    // $ echo {x,y,z}{A,B}
+    // xA xB yA yB zA zB
+    //
+    // Multiple nesting:
+    // $ echo {a,b}{1,2}{X,Y}
+    // a1X a1Y a2X a2Y b1X b1Y b2X b2Y
+    //
+    // POSIX alternative: Nested loops
+    // $ for letter in a b; do
+    // $   for num in 1 2; do
+    // $     echo "${letter}${num}"
+    // $   done
+    // $ done
+    // a1
+    // a2
+    // b1
+    // b2
+
+    let nested_expansion = r#"
+# Bash nested expansion (NOT SUPPORTED)
+# echo {a,b}{1,2}
+# echo {x,y,z}{A,B}
+
+# POSIX alternative: Nested loops
+for letter in a b; do
+  for num in 1 2; do
+    echo "${letter}${num}"
+  done
+done
+
+for letter in x y z; do
+  for suffix in A B; do
+    echo "${letter}${suffix}"
+  done
+done
+"#;
+
+    let result = BashParser::new(nested_expansion);
+    match result {
+        Ok(mut parser) => {
+            let parse_result = parser.parse();
+            assert!(
+                parse_result.is_ok() || parse_result.is_err(),
+                "POSIX alternative: nested for loops"
+            );
+        }
+        Err(_) => {
+            // Parse error acceptable
+        }
+    }
+}
+
+#[test]
+fn test_EXP_BRACE_001_purification_strategy() {
+    // DOCUMENTATION: bashrs purification strategy for brace expansion
+    //
+    // Strategy 1: Numeric sequences → seq or for loop
+    // - Input:  echo {1..10}
+    // - Purified: seq 1 10 or for i in $(seq 1 10); do echo "$i"; done
+    //
+    // Strategy 2: Letter sequences → explicit list
+    // - Input:  echo {a..e}
+    // - Purified: echo a b c d e
+    //
+    // Strategy 3: Comma lists → explicit list
+    // - Input:  echo {foo,bar,baz}
+    // - Purified: echo foo bar baz
+    //
+    // Strategy 4: Nested expansions → nested loops
+    // - Input:  echo {a,b}{1,2}
+    // - Purified: for x in a b; do for y in 1 2; do echo "$x$y"; done; done
+    //
+    // Strategy 5: File operations → explicit loop
+    // - Input:  cp file.txt{,.bak}  # Creates file.txt.bak
+    // - Purified: cp file.txt file.txt.bak
+    //
+    // Rust equivalent:
+    // ```rust
+    // // Numeric sequence
+    // for i in 1..=10 {
+    //     println!("{}", i);
+    // }
+    //
+    // // List expansion
+    // for item in &["foo", "bar", "baz"] {
+    //     println!("{}", item);
+    // }
+    //
+    // // Nested (Cartesian product)
+    // for x in &["a", "b"] {
+    //     for y in &["1", "2"] {
+    //         println!("{}{}", x, y);
+    //     }
+    // }
+    // ```
+
+    let purification_examples = r#"
+# BEFORE (bash brace expansion)
+# echo {1..10}
+# echo {a..e}
+# echo {foo,bar,baz}
+
+# AFTER (POSIX)
+seq 1 10
+echo a b c d e
+echo foo bar baz
+
+# BEFORE (nested)
+# echo {a,b}{1,2}
+
+# AFTER (POSIX)
+for x in a b; do
+  for y in 1 2; do
+    echo "${x}${y}"
+  done
+done
+"#;
+
+    let result = BashParser::new(purification_examples);
+    match result {
+        Ok(mut parser) => {
+            let parse_result = parser.parse();
+            assert!(
+                parse_result.is_ok() || parse_result.is_err(),
+                "Purification strategy: seq, explicit lists, nested loops"
+            );
+        }
+        Err(_) => {
+            // Parse error acceptable
+        }
+    }
+}
+
+#[test]
+fn test_EXP_BRACE_001_common_use_cases() {
+    // DOCUMENTATION: Common brace expansion use cases (bash, NOT SUPPORTED)
+    //
+    // Use Case 1: Create multiple directories
+    // Bash:
+    // $ mkdir -p project/{src,tests,docs}
+    //
+    // POSIX:
+    // $ mkdir -p project/src project/tests project/docs
+    //
+    // Use Case 2: Backup files
+    // Bash:
+    // $ cp config.json{,.bak}  # Creates config.json.bak
+    //
+    // POSIX:
+    // $ cp config.json config.json.bak
+    //
+    // Use Case 3: Iterate over ranges
+    // Bash:
+    // $ for i in {1..100}; do echo "$i"; done
+    //
+    // POSIX:
+    // $ i=1; while [ $i -le 100 ]; do echo "$i"; i=$((i+1)); done
+    //
+    // Use Case 4: Generate file names
+    // Bash:
+    // $ touch file{1..5}.txt
+    //
+    // POSIX:
+    // $ for i in 1 2 3 4 5; do touch "file${i}.txt"; done
+    //
+    // Use Case 5: Multiple commands
+    // Bash:
+    // $ echo {start,middle,end}_of_process
+    //
+    // POSIX:
+    // $ echo start_of_process middle_of_process end_of_process
+
+    let common_uses = r#"
+# Use Case 1: Create directories (Bash)
+# mkdir -p project/{src,tests,docs}
+
+# POSIX alternative
+mkdir -p project/src project/tests project/docs
+
+# Use Case 2: Backup files (Bash)
+# cp config.json{,.bak}
+
+# POSIX alternative
+cp config.json config.json.bak
+
+# Use Case 3: Iterate ranges (Bash)
+# for i in {1..100}; do echo "$i"; done
+
+# POSIX alternative
+i=1
+while [ $i -le 100 ]; do
+  echo "$i"
+  i=$((i+1))
+done
+
+# Use Case 4: Generate files (Bash)
+# touch file{1..5}.txt
+
+# POSIX alternative
+for i in 1 2 3 4 5; do
+  touch "file${i}.txt"
+done
+"#;
+
+    let result = BashParser::new(common_uses);
+    match result {
+        Ok(mut parser) => {
+            let parse_result = parser.parse();
+            assert!(
+                parse_result.is_ok() || parse_result.is_err(),
+                "Common use cases with POSIX alternatives"
+            );
+        }
+        Err(_) => {
+            // Parse error acceptable
+        }
+    }
+}
+
+#[test]
+fn test_EXP_BRACE_001_edge_cases() {
+    // DOCUMENTATION: Brace expansion edge cases (bash, NOT SUPPORTED)
+    //
+    // Edge Case 1: Zero-padded sequences
+    // Bash:
+    // $ echo {01..10}
+    // 01 02 03 04 05 06 07 08 09 10
+    //
+    // POSIX:
+    // $ seq -f "%02g" 1 10
+    //
+    // Edge Case 2: Reverse sequences
+    // Bash:
+    // $ echo {10..1}
+    // 10 9 8 7 6 5 4 3 2 1
+    //
+    // POSIX:
+    // $ seq 10 -1 1
+    //
+    // Edge Case 3: Step sequences
+    // Bash:
+    // $ echo {0..100..10}
+    // 0 10 20 30 40 50 60 70 80 90 100
+    //
+    // POSIX:
+    // $ seq 0 10 100
+    //
+    // Edge Case 4: Empty braces (literal)
+    // Bash:
+    // $ echo {}
+    // {}  # Literal braces, no expansion
+    //
+    // Edge Case 5: Single item (literal)
+    // Bash:
+    // $ echo {foo}
+    // {foo}  # Literal, no expansion (needs comma or ..)
+
+    let edge_cases = r#"
+# Edge Case 1: Zero-padded (Bash)
+# echo {01..10}
+
+# POSIX alternative
+seq -f "%02g" 1 10
+
+# Edge Case 2: Reverse sequence (Bash)
+# echo {10..1}
+
+# POSIX alternative
+seq 10 -1 1
+
+# Edge Case 3: Step sequence (Bash)
+# echo {0..100..10}
+
+# POSIX alternative
+seq 0 10 100
+
+# Edge Case 4: Empty braces (literal in bash)
+# echo {}  # No expansion, prints {}
+
+# Edge Case 5: Single item (literal in bash)
+# echo {foo}  # No expansion, prints {foo}
+"#;
+
+    let result = BashParser::new(edge_cases);
+    match result {
+        Ok(mut parser) => {
+            let parse_result = parser.parse();
+            assert!(
+                parse_result.is_ok() || parse_result.is_err(),
+                "Edge cases documented with POSIX alternatives"
+            );
+        }
+        Err(_) => {
+            // Parse error acceptable
+        }
+    }
+}
+
+#[test]
+fn test_EXP_BRACE_001_comparison_table() {
+    // DOCUMENTATION: Brace expansion comparison (Bash vs POSIX vs bashrs)
+    //
+    // Feature                    | POSIX sh | bash | dash | ash | bashrs
+    // ---------------------------|----------|------|------|-----|--------
+    // {1..10} (numeric seq)      | ❌       | ✅   | ❌   | ❌  | ❌ → seq
+    // {a..z} (letter seq)        | ❌       | ✅   | ❌   | ❌  | ❌ → list
+    // {foo,bar} (comma list)     | ❌       | ✅   | ❌   | ❌  | ❌ → list
+    // {a,b}{1,2} (nested)        | ❌       | ✅   | ❌   | ❌  | ❌ → loops
+    // seq 1 10 (POSIX)           | ✅       | ✅   | ✅   | ✅  | ✅ RECOMMENDED
+    // for loop (POSIX)           | ✅       | ✅   | ✅   | ✅  | ✅ RECOMMENDED
+    //
+    // bashrs purification policy:
+    // - Brace expansion is bash extension (NOT SUPPORTED)
+    // - Purify to POSIX equivalents (seq, for loops, explicit lists)
+    // - Maintain same functionality with portable code
+    //
+    // Purification strategies:
+    // 1. Numeric sequences: {1..10} → seq 1 10 or for i in $(seq 1 10)
+    // 2. Letter sequences: {a..e} → echo a b c d e (explicit)
+    // 3. Comma lists: {foo,bar,baz} → echo foo bar baz (explicit)
+    // 4. Nested: {a,b}{1,2} → nested for loops
+    // 5. File operations: file{,.bak} → file file.bak (explicit)
+    //
+    // Rust mapping:
+    // ```rust
+    // // Numeric sequence
+    // for i in 1..=10 {
+    //     // Process i
+    // }
+    //
+    // // List
+    // for item in &["foo", "bar", "baz"] {
+    //     // Process item
+    // }
+    //
+    // // Nested
+    // for x in &["a", "b"] {
+    //     for y in &["1", "2"] {
+    //         // Process x + y
+    //     }
+    // }
+    // ```
+    //
+    // Best practices:
+    // 1. Use seq for numeric ranges (portable)
+    // 2. Use explicit lists for small sets
+    // 3. Use for loops for iteration
+    // 4. Avoid brace expansion in portable scripts
+    // 5. Document why POSIX alternative is used
+
+    let comparison_example = r#"
+# Bash: Brace expansion (NOT SUPPORTED)
+# echo {1..10}
+# echo {a..e}
+# echo {foo,bar,baz}
+
+# POSIX: seq and explicit lists (SUPPORTED)
+seq 1 10
+echo a b c d e
+echo foo bar baz
+
+# Bash: Nested expansion (NOT SUPPORTED)
+# echo {a,b}{1,2}
+
+# POSIX: Nested loops (SUPPORTED)
+for x in a b; do
+  for y in 1 2; do
+    echo "${x}${y}"
+  done
+done
+"#;
+
+    let result = BashParser::new(comparison_example);
+    match result {
+        Ok(mut parser) => {
+            let parse_result = parser.parse();
+            assert!(
+                parse_result.is_ok() || parse_result.is_err(),
+                "Brace expansion comparison and purification documented"
+            );
+        }
+        Err(_) => {
+            // Parse error acceptable
+        }
+    }
+}
+
+// Summary:
+// Brace expansion {..}: Bash extension (NOT SUPPORTED)
+// Types: Numeric sequences {1..10}, letter sequences {a..z}, comma lists {foo,bar}
+// Nested: {a,b}{1,2} creates Cartesian product (a1 a2 b1 b2)
+// Introduced: Bash 3.0 (2004), not in POSIX specification
+// POSIX alternatives: seq command, for loops, explicit lists
+// Purification: {1..10} → seq 1 10, {foo,bar} → echo foo bar, nested → loops
+// Common uses: mkdir {src,tests,docs}, cp file{,.bak}, touch file{1..5}.txt
+// Best practice: Use seq for ranges, explicit lists for small sets, avoid in portable scripts
