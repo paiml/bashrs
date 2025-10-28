@@ -9,13 +9,13 @@ roadmap:
 
   statistics:
     total_tasks: 122
-    completed: 59
-    partial_support: 11
+    completed: 60
+    partial_support: 10
     pending: 49
     blocked: 3
-    coverage_percent: 48
-    accuracy_verified: "2025-10-27"
-    session_update: "Completed REDIR-005 (3.6 - here-strings <<<). 8 passing tests document here-strings (<<<) as Bash 2.05b+ extension, NOT SUPPORTED. POSIX equivalent echo | cmd is FULLY SUPPORTED. Here-string syntax: cmd <<< \"input string\" provides single-line input to stdin (Bash 2.05b+ feature, not POSIX sh). Variable expansion: always enabled in here-strings (cmd <<< \"$VAR\" expands variable, no way to disable expansion unlike heredocs with quoted delimiter). POSIX equivalents (SUPPORTED): echo \"string\" | cmd (adds newline), printf '%s\\n' \"string\" | cmd (explicit newline), printf '%s' \"string\" | cmd (no newline). Purification strategy: convert <<< \"string\" → echo \"string\" | cmd, preserve variable expansion (<<< \"$VAR\" → echo \"$VAR\" | cmd), use printf for explicit newline control, always quote strings for safety. Here-string vs here document comparison: here-string (<<<) is single line only, Bash 2.05b+ extension, no delimiter needed, adds newline at end automatically, syntax cmd <<< \"string\"; here document (<<) is multi-line, POSIX compliant, requires delimiter (EOF), no automatic newline, syntax cmd << EOF ... EOF. Newline behavior: <<< \"text\" → \"text\\n\" (Bash, adds newline), echo \"text\" → \"text\\n\" (POSIX, adds newline), printf '%s' \"text\" → \"text\" (POSIX, no newline), printf '%s\\n' \"text\" → \"text\\n\" (POSIX, explicit newline). Common use cases with POSIX alternatives (5): pass string to grep (echo \"text\" | grep pattern), word count (echo \"count words\" | wc -w), process variable (echo \"$VAR\" | cmd), feed to read (var=\"value\" direct assignment better than echo | read in subshell), base64 encode (echo \"text\" | base64). Why here-strings are Bash-only: not in POSIX specification, Bash 2.05b+ (2002) introduced <<<, sh/dash/ash don't support <<<, easy to work around with echo | cmd. Total tests: 4,933 (100% passing)."
+    coverage_percent: 49
+    accuracy_verified: "2025-10-28"
+    session_update: "Completed PARAM-SPEC-002 (3.5.2 - $? exit status). 8 passing tests document $? (exit status of last command) as FULLY SUPPORTED (POSIX). Exit status range: 0-255 (0=success, non-zero=failure). Special exit codes: 126 (command found but not executable), 127 (command not found), 128+N (terminated by signal N). CRITICAL: $? is clobbered by EVERY command, including [ and test builtin. This means if [ $? -eq 0 ] does NOT test the previous command's status, it tests if [ itself succeeded (always 0 if valid syntax). CORRECT patterns: capture immediately (cmd; STATUS=$?; if [ $STATUS -eq 0 ]; then...), use direct conditionals (if cmd; then... is better than cmd; if [ $? -eq 0 ]; then...). Exit status with pipelines: $? contains exit status of LAST command in pipeline only (cmd1 | cmd2 | cmd3; echo $? gets cmd3's status). To check all pipeline commands: use set -o pipefail (POSIX, supported in bash/dash/ash), then $? is non-zero if ANY command failed. PIPESTATUS array is NOT SUPPORTED (bash extension). Exit status with functions: functions return exit status like commands (explicit: return N for 0-255, implicit: exit status of last command). Exit status with subshells: ( cmd1; cmd2 ); echo $? gets cmd2's status. Command substitution loses status: OUTPUT=$(cmd); echo $? gets assignment status (always 0), NOT cmd's status. To capture both output and status: OUTPUT=$(cmd) || { echo \"Failed\"; exit 1; }. Common use cases: error handling (cmd; if [ $? -ne 0 ]; then exit 1; fi), multiple status checks (cmd1; S1=$?; cmd2; S2=$?; if [ $S1 -ne 0 ] || [ $S2 -ne 0 ]; then...), logging (cmd; STATUS=$?; log \"Exit: $STATUS\"; [ $STATUS -eq 0 ] || exit $STATUS). Best practices: (1) capture $? immediately if needed later, (2) use direct conditionals when possible (if cmd; then), (3) remember $? is clobbered by every command, (4) use set -o pipefail for pipeline error detection, (5) return meaningful exit codes from functions (0-125, avoid 126-127, 128+). Rust mapping: Command::new(\"cmd\").status()?.code().unwrap_or(1), status.success() for 0 check. Total tests: 4,941 (100% passing)."
 
 extreme_tdd_workflow:
   description: "Hybrid workflow combining GNU Bash validation with REPL verification"
@@ -745,15 +745,26 @@ chapters:
 
               - id: "PARAM-SPEC-002"
                 title: "Document $? (exit status)"
-                status: "partial"
+                status: "completed"
                 priority: "HIGH"
-                input: "cmd; echo \"Exit: $?\""
-                rust: "get_status()"
-                purified: "get_status"
-                test_name: "test_exit_status_baseline"
-                notes: "Function calls work (get_status), $? capture pattern recognition is enhancement."
-                red_phase_tests: "rash/tests/integration_tests.rs:2486-2564"
-                version: "v1.2.1"
+                input: "cmd; echo \"Exit: $?\"; if [ $? -eq 0 ]; then echo \"Success\"; fi"
+                rust: "let status = Command::new(\"cmd\").status()?; let exit_code = status.code().unwrap_or(1);"
+                purified: "cmd; echo \"Exit: $?\"; STATUS=$?; if [ $STATUS -eq 0 ]; then echo \"Success\"; fi"
+                test_name: "test_PARAM_SPEC_002_exit_status_basic"
+                notes: "$? is FULLY SUPPORTED (POSIX). Contains exit status of last command (0-255). Special codes: 126 (not executable), 127 (not found), 128+N (signal). CRITICAL: $? is clobbered by every command including [ and test. Best practice: capture immediately (STATUS=$?) or use direct conditionals (if cmd; then). PIPESTATUS is NOT SUPPORTED (bash extension), use set -o pipefail instead."
+                implementation:
+                  module: "rash/src/bash_parser/tests.rs"
+                  functions:
+                    - "test_PARAM_SPEC_002_exit_status_basic (passing)"
+                    - "test_PARAM_SPEC_002_exit_status_in_conditionals (passing)"
+                    - "test_PARAM_SPEC_002_exit_status_pipelines (passing)"
+                    - "test_PARAM_SPEC_002_exit_status_clobbering (passing)"
+                    - "test_PARAM_SPEC_002_exit_status_functions (passing)"
+                    - "test_PARAM_SPEC_002_exit_status_subshells (passing)"
+                    - "test_PARAM_SPEC_002_exit_status_common_use_cases (passing)"
+                    - "test_PARAM_SPEC_002_exit_status_comparison_table (passing)"
+                  lines_of_code: 509
+                version: "v6.6.0"
 
               - id: "PARAM-SPEC-003"
                 title: "Document $$ (process ID) purification"
