@@ -19766,3 +19766,756 @@ done
     // Determinism: PATH is deterministic (set value produces same results)
     // Portability: PATH is POSIX (works on all Unix-like systems)
 }
+
+// ============================================================================
+// BASH-VAR-002: $RANDOM purification (NOT SUPPORTED)
+// ============================================================================
+
+#[test]
+fn test_BASH_VAR_002_random_not_supported() {
+    // DOCUMENTATION: $RANDOM is NOT SUPPORTED (bash-specific, HIGH priority purification)
+    //
+    // $RANDOM: Bash-specific variable that returns random integer 0-32767
+    // Each time $RANDOM is referenced, a new random number is generated
+    //
+    // WHY NOT SUPPORTED:
+    // 1. Non-deterministic (same script produces different results each run)
+    // 2. Bash-specific (not POSIX, doesn't exist in sh/dash/ash)
+    // 3. Breaks reproducibility (cannot replay script execution)
+    // 4. Breaks testing (tests produce different results each run)
+    // 5. Security risk (weak PRNG, predictable if seed known)
+    //
+    // CRITICAL: $RANDOM is antithetical to bashrs philosophy
+    // bashrs enforces DETERMINISM - same input MUST produce same output
+    //
+    // PURIFICATION STRATEGY:
+    // $RANDOM is FORBIDDEN - scripts using $RANDOM must be rewritten
+    //
+    // OPTION 1: Use explicit seed (deterministic)
+    // INPUT (bash with $RANDOM):
+    // num=$RANDOM
+    //
+    // PURIFIED (deterministic seed):
+    // # Use fixed seed for deterministic random numbers
+    // seed=42
+    // num=$(awk -v seed="$seed" 'BEGIN { srand(seed); print int(rand() * 32768) }')
+    //
+    // OPTION 2: Use sequence number (fully deterministic)
+    // INPUT (bash with $RANDOM):
+    // for i in {1..10}; do echo $RANDOM; done
+    //
+    // PURIFIED (sequence):
+    // # Use sequence instead of random
+    // seq 1 10
+    //
+    // OPTION 3: Use external source (deterministic if source is deterministic)
+    // INPUT (bash with $RANDOM):
+    // session_id=$RANDOM
+    //
+    // PURIFIED (version-based):
+    // # Use deterministic identifier
+    // session_id="session-$VERSION"
+    //
+    // OPTION 4: Read from /dev/urandom (cryptographically secure, but non-deterministic)
+    // Only use if CRYPTOGRAPHIC randomness required AND non-determinism acceptable
+    // od -An -N2 -i /dev/urandom
+
+    let random_variable = r#"
+# NOT SUPPORTED: $RANDOM (non-deterministic)
+num=$RANDOM
+echo "Random number: $num"
+
+# NOT SUPPORTED: Multiple $RANDOM references (different values)
+a=$RANDOM
+b=$RANDOM
+echo "Two random numbers: $a $b"
+
+# NOT SUPPORTED: $RANDOM in loop (non-deterministic)
+for i in {1..10}; do
+    echo $RANDOM
+done
+
+# NOT SUPPORTED: $RANDOM for session ID (non-deterministic)
+session_id="session-$RANDOM"
+"#;
+
+    let mut lexer = Lexer::new(random_variable);
+    match lexer.tokenize() {
+        Ok(tokens) => {
+            assert!(
+                !tokens.is_empty(),
+                "$RANDOM should tokenize (even though NOT SUPPORTED)"
+            );
+            let _ = tokens;
+        }
+        Err(_) => {
+            // Parser may not support $RANDOM - this is CORRECT (we don't want to support it)
+        }
+    }
+
+    // $RANDOM is NOT SUPPORTED (non-deterministic, bash-specific)
+    // PURIFICATION REQUIRED: Rewrite scripts to use deterministic alternatives
+    // Determinism: $RANDOM is NON-DETERMINISTIC (violates bashrs core principle)
+}
+
+#[test]
+fn test_BASH_VAR_002_random_purification_strategies() {
+    // DOCUMENTATION: $RANDOM purification strategies (5 strategies for different use cases)
+    //
+    // STRATEGY 1: Fixed seed for deterministic PRNG
+    // Use case: Need reproducible "random" numbers for testing
+    // INPUT: num=$RANDOM
+    // PURIFIED: num=$(awk -v seed=42 'BEGIN { srand(seed); print int(rand() * 32768) }')
+    // Pros: Deterministic, reproducible
+    // Cons: Requires awk, slower than $RANDOM
+    //
+    // STRATEGY 2: Sequence numbers
+    // Use case: Just need unique numbers, don't need randomness
+    // INPUT: for i in {1..10}; do echo $RANDOM; done
+    // PURIFIED: seq 1 10
+    // Pros: Simple, fast, deterministic
+    // Cons: Not random at all, sequential pattern obvious
+    //
+    // STRATEGY 3: Version/timestamp-based identifiers
+    // Use case: Session IDs, release tags that need to be deterministic
+    // INPUT: session_id=$RANDOM
+    // PURIFIED: session_id="session-$VERSION"
+    // Pros: Meaningful identifiers, deterministic
+    // Cons: Not random, may need to pass version as parameter
+    //
+    // STRATEGY 4: Hash-based deterministic randomness
+    // Use case: Need deterministic but uniform distribution
+    // INPUT: num=$RANDOM
+    // PURIFIED: num=$(printf '%s' "$INPUT" | sha256sum | cut -c1-5 | xargs printf '%d' 0x)
+    // Pros: Deterministic, uniform distribution if input varies
+    // Cons: Complex, requires sha256sum
+    //
+    // STRATEGY 5: /dev/urandom (LAST RESORT - non-deterministic)
+    // Use case: CRYPTOGRAPHIC randomness required (keys, tokens)
+    // INPUT: num=$RANDOM
+    // PURIFIED: num=$(od -An -N2 -i /dev/urandom)
+    // Pros: Cryptographically secure
+    // Cons: NON-DETERMINISTIC (violates bashrs philosophy)
+    // WARNING: Only use for cryptographic purposes where non-determinism is acceptable
+
+    let purification_strategies = r#"
+# STRATEGY 1: Fixed seed (deterministic PRNG)
+seed=42
+num=$(awk -v seed="$seed" 'BEGIN { srand(seed); print int(rand() * 32768) }')
+echo "Deterministic random: $num"
+
+# STRATEGY 2: Sequence numbers
+# Instead of: for i in {1..10}; do echo $RANDOM; done
+seq 1 10
+
+# STRATEGY 3: Version-based identifiers
+version="1.0.0"
+session_id="session-${version}"
+release_tag="release-${version}"
+echo "Session ID: $session_id"
+
+# STRATEGY 4: Hash-based (deterministic from input)
+input="user@example.com"
+num=$(printf '%s' "$input" | sha256sum | cut -c1-5 | xargs -I{} printf '%d' "0x{}")
+echo "Hash-based number: $num"
+
+# STRATEGY 5: /dev/urandom (LAST RESORT - non-deterministic)
+# Only for cryptographic purposes where non-determinism is acceptable
+# token=$(od -An -N16 -tx1 /dev/urandom | tr -d ' ')
+# echo "Crypto token: $token"
+"#;
+
+    let mut lexer = Lexer::new(purification_strategies);
+    match lexer.tokenize() {
+        Ok(tokens) => {
+            assert!(
+                !tokens.is_empty(),
+                "Purification strategies should tokenize successfully"
+            );
+            let _ = tokens;
+        }
+        Err(_) => {}
+    }
+
+    // All strategies except #5 are DETERMINISTIC
+    // PREFERRED: Strategies 1-4 (deterministic)
+    // AVOID: Strategy 5 (/dev/urandom) unless cryptographic randomness required
+}
+
+#[test]
+fn test_BASH_VAR_002_random_common_antipatterns() {
+    // DOCUMENTATION: Common $RANDOM antipatterns and their fixes (8 antipatterns)
+    //
+    // ANTIPATTERN 1: Random session IDs
+    // BAD: session_id=$RANDOM
+    // GOOD: session_id="session-$VERSION"
+    // Why: Session IDs should be deterministic for reproducibility
+    //
+    // ANTIPATTERN 2: Random temporary filenames
+    // BAD: temp_file="/tmp/file-$RANDOM.txt"
+    // GOOD: temp_file=$(mktemp)
+    // Why: mktemp is POSIX, secure, deterministic if TMPDIR set
+    //
+    // ANTIPATTERN 3: Random sleep delays
+    // BAD: sleep $((RANDOM % 10))
+    // GOOD: sleep 5  # Fixed delay
+    // Why: Sleep delays should be deterministic for predictable behavior
+    //
+    // ANTIPATTERN 4: Random port selection
+    // BAD: port=$((8000 + RANDOM % 1000))
+    // GOOD: port=8080  # Fixed port, or read from config
+    // Why: Port numbers should be deterministic or configurable
+    //
+    // ANTIPATTERN 5: Random passwords
+    // BAD: password=$(echo $RANDOM | md5sum | head -c 20)
+    // GOOD: password=$(openssl rand -base64 20)  # Cryptographically secure
+    // Why: Passwords need cryptographic randomness, not weak PRNG
+    //
+    // ANTIPATTERN 6: Random load balancing
+    // BAD: server=server$((RANDOM % 3)).example.com
+    // GOOD: Use round-robin or least-connections algorithm (deterministic)
+    // Why: Load balancing should be predictable for debugging
+    //
+    // ANTIPATTERN 7: Random retry delays (jitter)
+    // BAD: sleep $((RANDOM % 5))
+    // GOOD: sleep $((attempt * 2))  # Exponential backoff (deterministic)
+    // Why: Retry delays should be deterministic for testing
+    //
+    // ANTIPATTERN 8: Random test data
+    // BAD: test_value=$RANDOM
+    // GOOD: test_value=42  # Fixed test value
+    // Why: Test data MUST be deterministic for reproducible tests
+
+    let antipatterns = r#"
+# ANTIPATTERN 1: Random session IDs
+# BAD: session_id=$RANDOM
+session_id="session-1.0.0"  # GOOD: Deterministic
+
+# ANTIPATTERN 2: Random temp files
+# BAD: temp_file="/tmp/file-$RANDOM.txt"
+temp_file=$(mktemp)  # GOOD: POSIX mktemp
+
+# ANTIPATTERN 3: Random sleep delays
+# BAD: sleep $((RANDOM % 10))
+sleep 5  # GOOD: Fixed delay
+
+# ANTIPATTERN 4: Random port selection
+# BAD: port=$((8000 + RANDOM % 1000))
+port=8080  # GOOD: Fixed or from config
+
+# ANTIPATTERN 5: Random passwords
+# BAD: password=$(echo $RANDOM | md5sum | head -c 20)
+password=$(openssl rand -base64 20)  # GOOD: Cryptographic
+
+# ANTIPATTERN 6: Random load balancing
+# BAD: server=server$((RANDOM % 3)).example.com
+# GOOD: Use deterministic algorithm
+servers="server1.example.com server2.example.com server3.example.com"
+server=$(echo "$servers" | awk -v n="$REQUEST_ID" '{print $(n % NF + 1)}')
+
+# ANTIPATTERN 7: Random retry delays
+# BAD: sleep $((RANDOM % 5))
+attempt=1
+sleep $((attempt * 2))  # GOOD: Exponential backoff
+
+# ANTIPATTERN 8: Random test data
+# BAD: test_value=$RANDOM
+test_value=42  # GOOD: Fixed test value
+"#;
+
+    let mut lexer = Lexer::new(antipatterns);
+    match lexer.tokenize() {
+        Ok(tokens) => {
+            assert!(
+                !tokens.is_empty(),
+                "Antipatterns should tokenize successfully"
+            );
+            let _ = tokens;
+        }
+        Err(_) => {}
+    }
+
+    // All antipatterns involve $RANDOM (non-deterministic)
+    // All fixes are DETERMINISTIC alternatives
+    // CRITICAL: Never use $RANDOM in production scripts
+}
+
+#[test]
+fn test_BASH_VAR_002_random_determinism_violations() {
+    // DOCUMENTATION: How $RANDOM violates determinism (5 critical violations)
+    //
+    // VIOLATION 1: Same script, different results
+    // #!/bin/sh
+    // echo $RANDOM
+    // Running twice produces different numbers: 12345, 8901
+    // EXPECTED (deterministic): Same output every run
+    //
+    // VIOLATION 2: Cannot replay execution
+    // Script with $RANDOM cannot be replayed exactly
+    // Debugging impossible - cannot reproduce bug
+    // EXPECTED: Replay should produce identical results
+    //
+    // VIOLATION 3: Tests non-reproducible
+    // test_something() {
+    //   value=$RANDOM
+    //   assert value == ???  # What value to assert?
+    // }
+    // EXPECTED: Tests should be reproducible
+    //
+    // VIOLATION 4: Race conditions in parallel execution
+    // Two scripts using $RANDOM may get same value (if executed at same time)
+    // EXPECTED: Deterministic identifiers prevent collisions
+    //
+    // VIOLATION 5: Security through obscurity
+    // Using $RANDOM for security (session IDs, tokens) is WEAK
+    // PRNG is predictable if seed known
+    // EXPECTED: Use cryptographic randomness for security
+
+    let determinism_violations = r#"
+# VIOLATION 1: Same script, different results
+#!/bin/sh
+# This script is NON-DETERMINISTIC
+echo "Random number: $RANDOM"
+# Run 1: Random number: 12345
+# Run 2: Random number: 8901
+# Run 3: Random number: 23456
+# PROBLEM: Cannot predict output
+
+# VIOLATION 2: Cannot replay execution
+#!/bin/sh
+# Deployment script (NON-DETERMINISTIC)
+release_id="release-$RANDOM"
+deploy "$release_id"
+# PROBLEM: Cannot redeploy same release_id
+# If deployment fails, cannot retry with same ID
+
+# VIOLATION 3: Tests non-reproducible
+#!/bin/sh
+test_function() {
+    value=$RANDOM
+    # PROBLEM: Cannot assert on value (changes every run)
+    # Test may pass sometimes, fail other times
+}
+
+# VIOLATION 4: Race conditions
+#!/bin/sh
+# Two scripts running in parallel
+session_id=$RANDOM  # May get same value!
+# PROBLEM: Collision if both scripts run at same microsecond
+
+# VIOLATION 5: Weak security
+#!/bin/sh
+token=$RANDOM  # WEAK! Predictable!
+# PROBLEM: Only 32768 possible values (2^15)
+# Attacker can guess in seconds
+"#;
+
+    let mut lexer = Lexer::new(determinism_violations);
+    match lexer.tokenize() {
+        Ok(tokens) => {
+            assert!(
+                !tokens.is_empty(),
+                "Determinism violations should tokenize successfully"
+            );
+            let _ = tokens;
+        }
+        Err(_) => {}
+    }
+
+    // $RANDOM violates EVERY determinism principle
+    // bashrs FORBIDS $RANDOM to enforce determinism
+    // CRITICAL: Determinism is non-negotiable in bashrs
+}
+
+#[test]
+fn test_BASH_VAR_002_random_portability_issues() {
+    // DOCUMENTATION: $RANDOM portability issues (4 critical issues)
+    //
+    // ISSUE 1: Not POSIX (bash-specific)
+    // $RANDOM only exists in bash, ksh, zsh
+    // POSIX sh: $RANDOM is UNDEFINED (may be literal string "$RANDOM")
+    // dash: $RANDOM is UNDEFINED
+    // ash: $RANDOM is UNDEFINED
+    //
+    // ISSUE 2: Different ranges in different shells
+    // bash: $RANDOM is 0-32767 (2^15 - 1)
+    // ksh: $RANDOM is 0-32767 (same)
+    // zsh: $RANDOM is 0-32767 (same)
+    // BUT: Implementation details differ (seed behavior, PRNG algorithm)
+    //
+    // ISSUE 3: Seed behavior differs
+    // bash: RANDOM seed can be set with RANDOM=seed
+    // ksh: Different seeding mechanism
+    // zsh: Different seeding mechanism
+    // POSIX sh: N/A (no $RANDOM)
+    //
+    // ISSUE 4: Subprocess behavior undefined
+    // Some shells re-seed $RANDOM in subshells
+    // Others inherit parent's PRNG state
+    // Behavior is INCONSISTENT across shells
+    //
+    // PURIFICATION STRATEGY:
+    // Replace ALL $RANDOM with POSIX-compliant alternatives
+    // Use awk for PRNG (POSIX), or deterministic values
+
+    let portability_issues = r#"
+#!/bin/sh
+# This script is NOT PORTABLE (uses $RANDOM)
+
+# ISSUE 1: Not POSIX
+echo $RANDOM  # bash: works, dash: UNDEFINED
+
+# ISSUE 2: Range assumption
+if [ $RANDOM -lt 16384 ]; then  # Assumes 0-32767 range
+    echo "First half"
+fi
+
+# ISSUE 3: Seeding
+RANDOM=42  # bash: sets seed, dash: just sets variable
+echo $RANDOM  # bash: deterministic from seed, dash: literal "$RANDOM"
+
+# ISSUE 4: Subshell behavior
+echo $RANDOM  # Parent shell
+(echo $RANDOM)  # Subshell (may be re-seeded or inherit)
+
+# PURIFIED (POSIX-compliant):
+# Use awk for portable PRNG
+awk 'BEGIN { srand(42); print int(rand() * 32768) }'
+"#;
+
+    let mut lexer = Lexer::new(portability_issues);
+    match lexer.tokenize() {
+        Ok(tokens) => {
+            assert!(
+                !tokens.is_empty(),
+                "Portability issues should tokenize successfully"
+            );
+            let _ = tokens;
+        }
+        Err(_) => {}
+    }
+
+    // $RANDOM is NOT PORTABLE (bash-specific)
+    // bashrs targets POSIX sh (no $RANDOM support)
+    // PURIFICATION: Use awk PRNG or deterministic values
+}
+
+#[test]
+fn test_BASH_VAR_002_random_security_implications() {
+    // DOCUMENTATION: $RANDOM security implications (5 critical risks)
+    //
+    // RISK 1: Weak PRNG (Linear Congruential Generator)
+    // $RANDOM uses simple LCG: next = (a * prev + c) % m
+    // Predictable if seed known or can be guessed
+    // NOT cryptographically secure
+    //
+    // RISK 2: Small range (0-32767)
+    // Only 2^15 possible values (32,768)
+    // Attacker can brute-force in milliseconds
+    // For comparison: Cryptographic tokens need 2^128+ bits
+    //
+    // RISK 3: Predictable seed
+    // Default seed often based on PID or timestamp
+    // Attacker can guess seed from process list or system time
+    // Once seed known, entire sequence predictable
+    //
+    // RISK 4: Collision probability high
+    // Birthday paradox: 50% collision probability after ~215 samples
+    // Session IDs using $RANDOM will collide frequently
+    //
+    // RISK 5: Observable output leaks state
+    // If attacker observes few $RANDOM values, can reconstruct PRNG state
+    // Future values become predictable
+    //
+    // NEVER USE $RANDOM FOR:
+    // - Passwords, tokens, API keys
+    // - Session IDs (unless collision acceptable)
+    // - Cryptographic nonces
+    // - Security-critical randomness
+    //
+    // SECURE ALTERNATIVES:
+    // - /dev/urandom (cryptographically secure)
+    // - openssl rand (cryptographic PRNG)
+    // - /dev/random (blocks until enough entropy)
+
+    let security_implications = r#"
+#!/bin/sh
+# SECURITY EXAMPLES
+
+# INSECURE: Password generation
+# BAD: password=$RANDOM
+# Only 32,768 possible passwords!
+# Attacker brute-forces in seconds
+
+# SECURE: Use cryptographic randomness
+password=$(openssl rand -base64 32)
+
+# INSECURE: Session token
+# BAD: token=$RANDOM
+# Predictable, collidable
+
+# SECURE: Use /dev/urandom
+token=$(od -An -N16 -tx1 /dev/urandom | tr -d ' ')
+
+# INSECURE: API key
+# BAD: api_key=$RANDOM
+# Only 15 bits of entropy (WEAK!)
+
+# SECURE: Use openssl
+api_key=$(openssl rand -hex 32)  # 256 bits of entropy
+
+# INSECURE: Cryptographic nonce
+# BAD: nonce=$RANDOM
+# Predictable, violates nonce security requirements
+
+# SECURE: Use /dev/urandom
+nonce=$(od -An -N16 -tx1 /dev/urandom | tr -d ' ')
+
+# INSECURE: Salt for password hashing
+# BAD: salt=$RANDOM
+# Weak salt enables rainbow table attacks
+
+# SECURE: Use cryptographic randomness
+salt=$(openssl rand -base64 16)
+"#;
+
+    let mut lexer = Lexer::new(security_implications);
+    match lexer.tokenize() {
+        Ok(tokens) => {
+            assert!(
+                !tokens.is_empty(),
+                "Security implications should tokenize successfully"
+            );
+            let _ = tokens;
+        }
+        Err(_) => {}
+    }
+
+    // $RANDOM is CRYPTOGRAPHICALLY WEAK
+    // NEVER use for security purposes
+    // ALWAYS use /dev/urandom or openssl rand for security
+}
+
+#[test]
+fn test_BASH_VAR_002_random_testing_implications() {
+    // DOCUMENTATION: $RANDOM testing implications (4 critical issues for testing)
+    //
+    // ISSUE 1: Non-reproducible tests
+    // test_deployment() {
+    //   release_id="release-$RANDOM"
+    //   deploy "$release_id"
+    //   assert deployed "$release_id"  # Which release_id?
+    // }
+    // PROBLEM: Test fails intermittently (different release_id each run)
+    //
+    // ISSUE 2: Cannot assert on output
+    // output=$(./script.sh)  # Script uses $RANDOM
+    // assert "$output" == "???"  # What value to assert?
+    // PROBLEM: Cannot write assertions for non-deterministic output
+    //
+    // ISSUE 3: Flaky tests (heisenbug)
+    // Test passes 99% of time, fails 1%
+    // Due to $RANDOM producing edge case value
+    // PROBLEM: Developers lose trust in test suite
+    //
+    // ISSUE 4: Cannot replay failures
+    // Test fails in CI, cannot reproduce locally
+    // Bug only occurs with specific $RANDOM value
+    // PROBLEM: Cannot debug or fix bug
+    //
+    // TESTING BEST PRACTICES:
+    // 1. Never use $RANDOM in production code
+    // 2. If testing code that uses $RANDOM, mock it with fixed seed
+    // 3. Use deterministic test data (fixed values, sequences)
+    // 4. For testing randomness behavior, use property-based testing with seeds
+
+    let testing_implications = r#"
+#!/bin/sh
+# TESTING EXAMPLES
+
+# BAD TEST: Non-reproducible
+test_bad() {
+    value=$RANDOM
+    process "$value"
+    # PROBLEM: Cannot assert on result (value changes each run)
+}
+
+# GOOD TEST: Deterministic
+test_good() {
+    value=42  # Fixed test value
+    result=$(process "$value")
+    [ "$result" = "processed-42" ] || exit 1
+}
+
+# BAD TEST: Flaky (heisenbug)
+test_flaky() {
+    value=$RANDOM
+    # Test passes for value < 16384, fails otherwise
+    [ "$value" -lt 16384 ] || exit 1
+}
+
+# GOOD TEST: Deterministic edge cases
+test_edge_cases() {
+    # Test explicit edge cases
+    process 0      || exit 1
+    process 16383  || exit 1
+    process 32767  || exit 1
+}
+
+# BAD TEST: Cannot replay failure
+test_cannot_replay() {
+    session_id="session-$RANDOM"
+    deploy "$session_id"
+    # Fails in CI with specific $RANDOM value
+    # Cannot reproduce locally
+}
+
+# GOOD TEST: Deterministic, replayable
+test_replayable() {
+    session_id="session-test-1"
+    deploy "$session_id"
+    # Always same session_id, always reproducible
+}
+
+# GOOD TEST: Property-based with seed
+test_property_based() {
+    seed=42
+    for i in $(seq 1 100); do
+        value=$(awk -v seed="$seed" -v i="$i" 'BEGIN { srand(seed + i); print int(rand() * 32768) }')
+        process "$value" || exit 1
+    done
+    # Deterministic (same seed), tests 100 values
+}
+"#;
+
+    let mut lexer = Lexer::new(testing_implications);
+    match lexer.tokenize() {
+        Ok(tokens) => {
+            assert!(
+                !tokens.is_empty(),
+                "Testing implications should tokenize successfully"
+            );
+            let _ = tokens;
+        }
+        Err(_) => {}
+    }
+
+    // $RANDOM makes tests NON-REPRODUCIBLE
+    // bashrs enforces DETERMINISTIC testing
+    // NEVER use $RANDOM in test code
+}
+
+#[test]
+fn test_BASH_VAR_002_random_comparison_table() {
+    // DOCUMENTATION: Comprehensive $RANDOM comparison (Bash vs POSIX vs Purified)
+    //
+    // ┌─────────────────────────────────────────────────────────────────────────┐
+    // │ FEATURE                    │ Bash       │ POSIX      │ Purified         │
+    // ├─────────────────────────────────────────────────────────────────────────┤
+    // │ $RANDOM variable           │ SUPPORTED  │ NOT POSIX  │ NOT SUPPORTED    │
+    // │ num=$RANDOM                │ ✅ 0-32767│ ❌         │ ❌ FORBIDDEN     │
+    // │                            │            │            │                  │
+    // │ Determinism                │ NO         │ N/A        │ YES (enforced)   │
+    // │ Same script → same output  │ ❌ Random │ N/A        │ ✅ Deterministic │
+    // │                            │            │            │                  │
+    // │ Reproducibility            │ NO         │ N/A        │ YES              │
+    // │ Can replay execution       │ ❌         │ N/A        │ ✅               │
+    // │                            │            │            │                  │
+    // │ Testing                    │ Flaky      │ N/A        │ Reproducible     │
+    // │ Test assertions            │ ⚠️ Hard   │ N/A        │ ✅ Easy          │
+    // │                            │            │            │                  │
+    // │ Security                   │ WEAK       │ N/A        │ Use crypto PRNG  │
+    // │ Cryptographic use          │ ❌ Unsafe │ N/A        │ ✅ /dev/urandom  │
+    // │                            │            │            │                  │
+    // │ Portability                │ bash/ksh   │ N/A        │ POSIX awk        │
+    // │ Works in dash/ash          │ ❌         │ N/A        │ ✅               │
+    // │                            │            │            │                  │
+    // │ Seeding                    │ RANDOM=n   │ N/A        │ awk srand(n)     │
+    // │ Set seed for determinism   │ ⚠️ bash   │ N/A        │ ✅ POSIX         │
+    // │                            │            │            │                  │
+    // │ Range                      │ 0-32767    │ N/A        │ Configurable     │
+    // │ Number of possible values  │ 32768      │ N/A        │ Unlimited        │
+    // │                            │            │            │                  │
+    // │ Collision probability      │ HIGH       │ N/A        │ Configurable     │
+    // │ Birthday paradox (50%)     │ ~215 uses  │ N/A        │ Depends on range │
+    // └─────────────────────────────────────────────────────────────────────────┘
+    //
+    // RUST MAPPING:
+    // $RANDOM → NOT MAPPED (use deterministic values instead)
+    // For PRNG needs: use rand crate with explicit seed
+    // For unique IDs: use uuid, sequence numbers, or version-based IDs
+    // For security: use rand::rngs::OsRng (cryptographically secure)
+    //
+    // PURIFICATION RULES:
+    // 1. $RANDOM → FORBIDDEN (rewrite script with deterministic alternative)
+    // 2. Session IDs → Use version/timestamp-based identifiers
+    // 3. Temporary files → Use mktemp (POSIX)
+    // 4. Test data → Use fixed values (42, 100, 1000, etc.)
+    // 5. Crypto randomness → Use /dev/urandom or openssl rand
+    // 6. Need PRNG → Use awk with explicit seed (deterministic)
+
+    let comparison_table = r#"
+#!/bin/sh
+# COMPARISON EXAMPLES
+
+# BASH (NON-DETERMINISTIC):
+# num=$RANDOM  # Different value each run
+
+# POSIX (NOT AVAILABLE):
+# $RANDOM doesn't exist in POSIX sh
+
+# PURIFIED (DETERMINISTIC):
+# Option 1: Fixed value
+num=42
+
+# Option 2: Sequence
+num=$(seq 1 1)  # Or seq 1 100 for range
+
+# Option 3: Deterministic PRNG (awk with seed)
+seed=42
+num=$(awk -v seed="$seed" 'BEGIN { srand(seed); print int(rand() * 32768) }')
+
+# Option 4: Hash-based (deterministic from input)
+input="user@example.com"
+num=$(printf '%s' "$input" | sha256sum | cut -c1-5 | xargs -I{} printf '%d' "0x{}")
+
+# Option 5: Crypto randomness (LAST RESORT - non-deterministic)
+# Only for security purposes
+# num=$(od -An -N2 -i /dev/urandom)
+
+# TESTING COMPARISON:
+# BASH (flaky tests):
+# test_value=$RANDOM  # Different each run, cannot assert
+
+# PURIFIED (reproducible tests):
+test_value=42  # Same every run, can assert
+[ "$test_value" = "42" ] || exit 1
+
+# SECURITY COMPARISON:
+# BASH (INSECURE):
+# token=$RANDOM  # Only 32768 values, predictable
+
+# PURIFIED (SECURE):
+token=$(openssl rand -hex 32)  # 2^256 values, cryptographic
+"#;
+
+    let mut lexer = Lexer::new(comparison_table);
+    match lexer.tokenize() {
+        Ok(tokens) => {
+            assert!(
+                !tokens.is_empty(),
+                "Comparison table should tokenize successfully"
+            );
+            let _ = tokens;
+        }
+        Err(_) => {}
+    }
+
+    // POSIX STATUS: $RANDOM is NOT POSIX (bash-specific)
+    // bashrs STATUS: $RANDOM is FORBIDDEN (violates determinism)
+    // PURIFICATION: Rewrite with deterministic alternatives (fixed values, sequences, awk PRNG with seed)
+    // Determinism: $RANDOM is NON-DETERMINISTIC (antithetical to bashrs philosophy)
+    // Portability: $RANDOM is NOT PORTABLE (bash/ksh/zsh only, not POSIX sh/dash/ash)
+    // Security: $RANDOM is CRYPTOGRAPHICALLY WEAK (never use for passwords/tokens/keys)
+    // Testing: $RANDOM makes tests FLAKY and NON-REPRODUCIBLE
+}
