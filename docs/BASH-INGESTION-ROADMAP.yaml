@@ -9,13 +9,13 @@ roadmap:
 
   statistics:
     total_tasks: 122
-    completed: 71
+    completed: 72
     partial_support: 0
-    pending: 48
+    pending: 47
     blocked: 3
-    coverage_percent: 58
+    coverage_percent: 59
     accuracy_verified: "2025-10-28"
-    session_update: "Completed BASH-BUILTIN-005 (4.2 - printf command). 8 passing tests document printf as POSIX-SUPPORTED (HIGH priority, portable echo alternative). printf formats and prints data with precise control. Syntax: printf format [arguments ...]. POSIX printf features (4): (1) Format specifiers (%s string, %d integer, %f float, %x hex, %o octal), (2) Escape sequences (\\n newline, \\t tab, \\\\ backslash, \\' quote), (3) Width/precision (%10s width, %.2f precision, %-10s left-align, %05d zero-pad), (4) Multiple arguments with format reuse. WHY printf over echo (5): (1) POSIX-standardized behavior (echo varies across shells), (2) No trailing newline by default (explicit \\n control), (3) Format control (width, precision, alignment), (4) Consistent escape handling, (5) Multiple arguments handled correctly. Bash extensions NOT SUPPORTED (4): (1) %(...)T date/time formatting (use date command), (2) %b interpret backslash escapes in argument (use escapes in format), (3) %q shell-quote format (use manual quoting), (4) -v var assign to variable (use command substitution). Echo replacement BEST PRACTICE: echo \"text\" → printf '%s\\n' \"text\", echo -n \"text\" → printf '%s' \"text\", echo -e \"a\\nb\" → printf 'a\\nb\\n'. Common patterns (9): (1) Simple output: printf '%s\\n' \"message\", (2) Prompts no newline: printf '%s' \"Prompt: \", (3) Formatted tables: printf '%-20s %10s\\n', (4) Progress indicators: printf '\\r%3d%%' \"\$percent\", (5) Error to stderr: printf 'Error: %s\\n' \"\$msg\" >&2, (6) CSV output: printf '%s,%s,%d\\n', (7) Logging timestamps: printf '[%s] %s\\n' \"\$(date)\", (8) Conditional output with stderr, (9) Number formatting %d %.2f. Rust mapping (6): printf '%s\\n' → println!(\"{}\"), printf '%s' → print!(\"{}\"), printf '%d' → println!(\"{}\"), printf '%.2f' → println!(\"{:.2}\"), printf '%10s' → println!(\"{:>10}\"), printf '%-10s' → println!(\"{:<10}\"). printf is POSIX-COMPLIANT (IEEE Std 1003.1-2001), deterministic (same input → same output), idempotent (no side effects except output). Comprehensive comparison table: POSIX SUPPORTED (format specifiers %s/%d/%.2f/%x/%o, width/precision %10s/%-10s/%05d/%.2f, escape sequences \\n/\\t/\\\\/\\'/\\\"), NOT SUPPORTED (%(...)T date, %b escapes in arg, %q quote, -v var), ECHO REPLACEMENT (echo → printf '%s\\n', echo -n → printf '%s', echo -e → printf with escapes). Total tests: 5,029 (100% passing)."
+    session_update: "Completed VAR-001 (5.1 - HOME environment variable). 8 passing tests document HOME as POSIX-SUPPORTED (HIGH priority, fundamental user directory). HOME is user's home directory full path. Set by: System at login from /etc/passwd 6th field. Used by: cd (no args goes to \\$HOME), ~ expansion, many utilities. POSIX HOME forms (4): (1) \\$HOME (environment variable), (2) \\${HOME} (braced form), (3) cd (no args) → \\$HOME, (4) ~ expansion → \\$HOME. CRITICAL: HOME is read-only by convention (never modify). Best practices (8): (1) Always quote: cd \"\\$HOME\" (prevents word splitting), (2) Check existence: [ -d \"\\$HOME\" ], (3) Check set: [ -z \"\\$HOME\" ] && exit 1, (4) Use for user files: \"\\$HOME/.config\", (5) Never modify: HOME=\"/new\" breaks system, (6) Portable tilde: ~ and ~/dir POSIX, ~user/~+/~- bash extensions, (7) Use \\$HOME in scripts (explicit), ~ interactively (readable), (8) Don't hardcode: use \"\\$HOME\" not \"/home/alice\". HOME vs tilde (4): \\$HOME is environment variable, ~ is tilde expansion, cd ~ == cd \"\\$HOME\", ~/dir == \"\\$HOME/dir\", \"~/dir\" WRONG (tilde doesn't expand in quotes). Security (5): Always quote \"\\$HOME\" (prevents injection), validate exists [ -d \"\\$HOME\" ], check ownership (optional paranoid), avoid symlinks in critical paths, use mktemp for temp files. Edge cases (7): HOME not set (rare), HOME non-existent directory, HOME with spaces (must quote), HOME special chars (must quote), HOME empty string, HOME is / (root user), fallback \\${HOME:-/tmp}. System interaction: HOME set at login from /etc/passwd, cd uses HOME, ~ expands to HOME, utilities use HOME (.bashrc, .ssh, .gitconfig, .vimrc, .config, .cache, .local). Common patterns (8): cd \"\\$HOME\" or cd (no args), config=\"\\$HOME/.config/app.conf\", mkdir -p \"\\$HOME/backups\", saved_dir=\\$(pwd); cd \"\\$HOME\"; cd \"\\$saved_dir\", log=\"\\$HOME/.app/logs\", temp=\"\\$HOME/.app/temp.\\$\\$\", PATH=\"\\$HOME/.local/bin:\\$PATH\". Rust mapping (4): \\$HOME → std::env::var(\"HOME\").unwrap(), cd \"\\$HOME\" → std::env::set_current_dir(env::var(\"HOME\")), \"\\${HOME}/dir\" → format!(\"{}/dir\", env::var(\"HOME\")), [ -d \"\\$HOME\" ] → Path::new(&env::var(\"HOME\")).is_dir(). HOME is POSIX-COMPLIANT (IEEE Std 1003.1-2001), deterministic (set at login, stable), secure (always quote), portable (all Unix-like systems). Comprehensive comparison table: POSIX SUPPORTED (\\$HOME, \\${HOME}, cd no args, ~, ~/dir, check [ -d \"\\$HOME\" ]), BEST PRACTICES (always quote, check exists, never modify), NOT PORTABLE (~user, ~+, ~-). Total tests: 5,037 (100% passing)."
 
 extreme_tdd_workflow:
   description: "Hybrid workflow combining GNU Bash validation with REPL verification"
@@ -1891,15 +1891,26 @@ chapters:
         tasks:
           - id: "VAR-001"
             title: "Document HOME"
-            status: "partial"
+            status: "completed"
             priority: "HIGH"
-            input: "cd $HOME"
-            rust: "use_home()"
-            purified: "use_home"
-            test_name: "test_home_variable_baseline"
-            notes: "Function calls work (use_home), std::env::var(\"HOME\") recognition is enhancement."
-            red_phase_tests: "rash/tests/integration_tests.rs:1523-1601"
-            version: "v1.2.1"
+            input: "cd \"$HOME\"; cd ~/documents; cd"
+            rust: "std::env::set_current_dir(std::env::var(\"HOME\").unwrap());"
+            purified: "cd \"$HOME\"; cd \"$HOME/documents\"; cd"
+            test_name: "test_VAR_001_home_variable_supported"
+            notes: "HOME is POSIX SUPPORTED (HIGH priority, fundamental user directory). User's home directory full path, set at login from /etc/passwd. POSIX forms: $HOME, ${HOME}, cd (no args) → $HOME, ~ → $HOME. CRITICAL: HOME read-only by convention (never modify). Best practices: always quote \"$HOME\", check exists [ -d \"$HOME\" ], check set [ -z \"$HOME\" ], use for user files, never modify, portable tilde (~ POSIX, ~user bash extension), use $HOME in scripts, ~ interactively. HOME vs tilde: $HOME is env var, ~ is expansion, cd ~ == cd \"$HOME\", ~/dir == \"$HOME/dir\", \"~/dir\" WRONG (no expansion in quotes). Security: always quote (prevents injection), validate exists, check ownership (paranoid), avoid symlinks, use mktemp. Edge cases: HOME not set, non-existent, spaces, special chars, empty, root /, fallback ${HOME:-/tmp}. System: set from /etc/passwd, cd uses HOME, ~ expands, utilities use (.bashrc, .ssh, .gitconfig). 8 comprehensive tests document HOME usage, common patterns, vs tilde, best practices, edge cases, system interaction, security, and comparison table."
+            implementation:
+              module: "rash/src/bash_parser/tests.rs"
+              functions:
+                - "test_VAR_001_home_variable_supported (passing)"
+                - "test_VAR_001_home_common_patterns (passing)"
+                - "test_VAR_001_home_vs_tilde (passing)"
+                - "test_VAR_001_home_best_practices (passing)"
+                - "test_VAR_001_home_edge_cases (passing)"
+                - "test_VAR_001_home_system_interaction (passing)"
+                - "test_VAR_001_home_security_considerations (passing)"
+                - "test_VAR_001_home_comparison_table (passing)"
+              lines_of_code: 724
+            version: "v6.6.0"
 
           - id: "VAR-002"
             title: "Document PATH"
