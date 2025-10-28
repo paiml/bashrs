@@ -9,14 +9,14 @@ roadmap:
 
   statistics:
     total_tasks: 122
-    completed: 75
+    completed: 76
     partial_support: 0
-    pending: 44
+    pending: 43
     blocked: 3
-    coverage_percent: 61
+    coverage_percent: 62
     accuracy_verified: "2025-10-28"
-    total_tests: 5,060
-    session_update: "Completed VAR-001 (5.1 - HOME environment variable). 8 passing tests document HOME as POSIX-SUPPORTED (HIGH priority, fundamental user directory). HOME is user's home directory full path. Set by: System at login from /etc/passwd 6th field. Used by: cd (no args goes to \\$HOME), ~ expansion, many utilities. POSIX HOME forms (4): (1) \\$HOME (environment variable), (2) \\${HOME} (braced form), (3) cd (no args) → \\$HOME, (4) ~ expansion → \\$HOME. CRITICAL: HOME is read-only by convention (never modify). Best practices (8): (1) Always quote: cd \"\\$HOME\" (prevents word splitting), (2) Check existence: [ -d \"\\$HOME\" ], (3) Check set: [ -z \"\\$HOME\" ] && exit 1, (4) Use for user files: \"\\$HOME/.config\", (5) Never modify: HOME=\"/new\" breaks system, (6) Portable tilde: ~ and ~/dir POSIX, ~user/~+/~- bash extensions, (7) Use \\$HOME in scripts (explicit), ~ interactively (readable), (8) Don't hardcode: use \"\\$HOME\" not \"/home/alice\". HOME vs tilde (4): \\$HOME is environment variable, ~ is tilde expansion, cd ~ == cd \"\\$HOME\", ~/dir == \"\\$HOME/dir\", \"~/dir\" WRONG (tilde doesn't expand in quotes). Security (5): Always quote \"\\$HOME\" (prevents injection), validate exists [ -d \"\\$HOME\" ], check ownership (optional paranoid), avoid symlinks in critical paths, use mktemp for temp files. Edge cases (7): HOME not set (rare), HOME non-existent directory, HOME with spaces (must quote), HOME special chars (must quote), HOME empty string, HOME is / (root user), fallback \\${HOME:-/tmp}. System interaction: HOME set at login from /etc/passwd, cd uses HOME, ~ expands to HOME, utilities use HOME (.bashrc, .ssh, .gitconfig, .vimrc, .config, .cache, .local). Common patterns (8): cd \"\\$HOME\" or cd (no args), config=\"\\$HOME/.config/app.conf\", mkdir -p \"\\$HOME/backups\", saved_dir=\\$(pwd); cd \"\\$HOME\"; cd \"\\$saved_dir\", log=\"\\$HOME/.app/logs\", temp=\"\\$HOME/.app/temp.\\$\\$\", PATH=\"\\$HOME/.local/bin:\\$PATH\". Rust mapping (4): \\$HOME → std::env::var(\"HOME\").unwrap(), cd \"\\$HOME\" → std::env::set_current_dir(env::var(\"HOME\")), \"\\${HOME}/dir\" → format!(\"{}/dir\", env::var(\"HOME\")), [ -d \"\\$HOME\" ] → Path::new(&env::var(\"HOME\")).is_dir(). HOME is POSIX-COMPLIANT (IEEE Std 1003.1-2001), deterministic (set at login, stable), secure (always quote), portable (all Unix-like systems). Comprehensive comparison table: POSIX SUPPORTED (\\$HOME, \\${HOME}, cd no args, ~, ~/dir, check [ -d \"\\$HOME\" ]), BEST PRACTICES (always quote, check exists, never modify), NOT PORTABLE (~user, ~+, ~-). Total tests: 5,037 (100% passing)."
+    total_tests: 5,066
+    session_update: "Completed JOB-001 (7.1 - Background jobs &). 6 passing tests document background jobs as NOT SUPPORTED (HIGH priority purification). Background jobs (&) run command in background, return control immediately (syntax: cmd &). WHY NOT SUPPORTED (5): Non-deterministic (race conditions), Timing-dependent (order not guaranteed), Makes testing impossible (can't assert while running), Resource management issues (orphan processes), No error handling (silent failures). CRITICAL: Background jobs violate determinism - concurrent execution introduces race conditions. 5 RACE CONDITIONS: Output interleaving, File access conflicts, Resource contention, Dependency violations, Exit status ambiguity. PURIFICATION STRATEGIES (4): (1) Convert to foreground (RECOMMENDED), (2) Sequential execution (RECOMMENDED), (3) Remove background job entirely, (4) Use make -j for parallelism (if needed). Testing issues (4): Cannot assert on intermediate state, flaky tests due to timing, cannot isolate failures, cleanup issues (orphan processes). Portability: Job control is OPTIONAL in POSIX (not all shells support &, jobs, fg, bg). Comparison table: Bash (&, jobs, fg, bg, wait) vs POSIX (& OPTIONAL, others not guaranteed) vs Purified (sequential execution only). Total tests: 5,066 (100% passing)."
 
 extreme_tdd_workflow:
   description: "Hybrid workflow combining GNU Bash validation with REPL verification"
@@ -2177,15 +2177,15 @@ chapters:
     tasks:
       - id: "JOB-001"
         title: "Document background jobs (&)"
-        status: "partial"
+        status: "completed"
         priority: "HIGH"
         input: "cmd &"
         rust: "run_foreground()"
         purified: "run_foreground"
-        test_name: "test_background_jobs_purification_baseline"
-        notes: "Verified & not generated (foreground execution only). Function calls work (run_foreground)."
-        red_phase_tests: "rash/tests/integration_tests.rs:2751-2839"
-        version: "v1.2.1"
+        test_name: "test_JOB_001_background_jobs_not_supported"
+        notes: "Background jobs NOT SUPPORTED (violates determinism). 6 comprehensive tests (563 LOC) document race conditions, purification strategies, testing implications. Convert to foreground execution (RECOMMENDED) or sequential execution. Job control is OPTIONAL in POSIX."
+        red_phase_tests: "rash/src/bash_parser/tests.rs:21189-21752"
+        version: "v6.6.0"
 
       - id: "JOB-002"
         title: "Document jobs command"
