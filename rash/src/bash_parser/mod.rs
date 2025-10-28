@@ -23,7 +23,7 @@ pub mod parser;
 pub mod semantic;
 
 pub use ast::{BashAst, BashExpr, BashNode, BashStmt};
-pub use parser::{BashParser, ParseResult};
+pub use parser::{BashParser, ParseError, ParseResult};
 pub use semantic::{EffectTracker, ScopeInfo, SemanticAnalyzer};
 
 #[cfg(test)]

@@ -9,9 +9,11 @@
 pub mod config;
 pub mod state;
 pub mod modes;
+pub mod parser;
 mod r#loop;
 
 pub use config::ReplConfig;
 pub use state::ReplState;
 pub use modes::ReplMode;
+pub use parser::{parse_bash, format_parse_error};
 pub use r#loop::run_repl;
