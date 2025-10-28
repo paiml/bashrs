@@ -5,7 +5,7 @@
 [![Book](https://img.shields.io/badge/book-The%20Rash%20Book-blue)](https://paiml.github.io/bashrs/)
 [![License](https://img.shields.io/crates/l/bashrs.svg)](LICENSE)
 [![CI](https://github.com/paiml/bashrs/workflows/CI/badge.svg)](https://github.com/paiml/bashrs/actions)
-[![Tests](https://img.shields.io/badge/tests-1752%20passing-brightgreen)](https://github.com/paiml/bashrs/actions)
+[![Tests](https://img.shields.io/badge/tests-5193%20passing-brightgreen)](https://github.com/paiml/bashrs/actions)
 [![PropertyTests](https://img.shields.io/badge/property_tests-52%20passing-blue)](https://github.com/paiml/bashrs/blob/main/rash/src/testing/)
 [![Coverage](https://img.shields.io/badge/coverage-88.71%25-green)](https://github.com/paiml/bashrs/actions)
 [![Mutation](https://img.shields.io/badge/mutation-167%20mutants-brightgreen)](https://github.com/paiml/bashrs)
@@ -361,6 +361,154 @@ FILES="$(ls *.txt)"
 
 See the [Safety Comparison Guide](docs/SAFETY_COMPARISON.md) for detailed vulnerability prevention examples.
 
+### Interactive REPL (NEW in v6.7.0) 🎯
+
+bashrs now includes a **full-featured REPL** for interactive bash script analysis and testing:
+
+```bash
+# Start the REPL
+$ bashrs repl
+
+bashrs REPL v6.7.0
+Type 'quit' or 'exit' to exit, 'help' for commands
+Current mode: normal - Execute bash commands directly
+bashrs [normal]>
+```
+
+**REPL Features**:
+- 🎯 **5 Interactive Modes**: normal, purify, lint, debug, explain
+- 🔍 **Parser Integration**: Parse bash code and inspect AST
+- 🧹 **Purifier Integration**: Transform bash to idempotent/deterministic code
+- 🔎 **Linter Integration**: Real-time diagnostics with severity levels
+- 📚 **Command History**: Persistent history in `~/.bashrs_history`
+
+**Available Commands**:
+
+```bash
+# Mode switching
+bashrs [normal]> :mode                 # Show current mode and available modes
+bashrs [normal]> :mode lint            # Switch to lint mode
+bashrs [lint]> :mode purify            # Switch to purify mode
+
+# Parse bash code and show AST
+bashrs [normal]> :parse echo hello
+✓ Parse successful!
+Statements: 1
+Parse time: 0ms
+
+AST:
+  [0] SimpleCommand { ... }
+
+# Purify bash code (make idempotent/deterministic)
+bashrs [normal]> :purify mkdir /tmp/test
+✓ Purification successful!
+Purified 1 statements
+
+# Lint bash code with diagnostics
+bashrs [normal]> :lint cat file.txt | grep pattern
+Found 1 issue(s):
+  ⚠ 1 warning(s)
+
+[1] ⚠ SC2086 - Double quote to prevent globbing and word splitting
+    Line 1
+
+# Show help
+bashrs [normal]> help
+bashrs REPL Commands:
+  help             - Show this help message
+  quit             - Exit the REPL
+  exit             - Exit the REPL
+  :mode            - Show current mode and available modes
+  :mode <name>     - Switch to a different mode
+  :parse <code>    - Parse bash code and show AST
+  :purify <code>   - Purify bash code (make idempotent/deterministic)
+  :lint <code>     - Lint bash code and show diagnostics
+
+# Exit REPL
+bashrs [normal]> quit
+Goodbye!
+```
+
+**REPL Modes**:
+
+| Mode | Description | Use Case |
+|------|-------------|----------|
+| **normal** | Execute bash commands directly | Interactive bash experimentation |
+| **purify** | Show purified version | Learn idempotency/determinism patterns |
+| **lint** | Show linting results | Find and fix safety issues |
+| **debug** | Step-by-step execution | Understand complex bash behavior |
+| **explain** | Explain bash constructs | Learn bash syntax and semantics |
+
+**Why Use the REPL?**:
+- ✅ **Learn interactively**: Experiment with bash transformations in real-time
+- ✅ **Fast feedback**: Instant parsing, linting, and purification
+- ✅ **No external tools**: Built-in parser, linter, and purifier
+- ✅ **History support**: Recall previous commands with arrow keys
+- ✅ **Mode switching**: Seamlessly switch between analysis types
+
+**Example Workflow**:
+
+```bash
+# Start REPL
+$ bashrs repl
+
+# Parse to understand structure
+bashrs [normal]> :parse if [ -f file.txt ]; then cat file.txt; fi
+✓ Parse successful!
+Statements: 1
+AST: If statement with test command
+
+# Switch to lint mode to find issues
+bashrs [normal]> :mode lint
+Switched to lint mode - Show linting results for bash commands
+
+# Lint the code
+bashrs [lint]> :lint if [ -f file.txt ]; then cat file.txt; fi
+✓ No issues found!
+
+# Switch to purify mode
+bashrs [lint]> :mode purify
+Switched to purify mode - Show purified version of bash commands
+
+# See the purified version
+bashrs [purify]> :purify mkdir /tmp/app
+✓ Purification successful!
+Purified: mkdir -p "/tmp/app"  # Idempotent + quoted
+```
+
+**Command History**:
+
+The REPL automatically saves your command history to `~/.bashrs_history`:
+
+```bash
+# History persists across sessions
+$ bashrs repl
+bashrs [normal]> :parse echo hello
+...
+bashrs [normal]> quit
+
+# Later...
+$ bashrs repl
+bashrs [normal]> # Press ↑ to recall ":parse echo hello"
+```
+
+**Integration with CI/CD**:
+
+Use the REPL for quick validation before committing:
+
+```bash
+# Quick lint check in REPL
+$ bashrs repl
+bashrs [normal]> :lint $(cat deploy.sh)
+Found 3 issue(s): ...
+
+# Fix issues, then verify
+bashrs [normal]> :lint $(cat deploy.sh)
+✓ No issues found!
+```
+
+See the [REPL Guide](https://paiml.github.io/bashrs/getting-started/repl.html) in the book for comprehensive examples.
+
 ### CLI Options
 
 ```bash
@@ -374,6 +522,7 @@ COMMANDS:
     verify      Verify shell script matches source
     inspect     Analyze AST and safety properties
     lint        Lint shell scripts for safety issues (NEW in v1.1)
+    repl        Interactive REPL for bash analysis (NEW in v6.7.0)
     compile     Compile to standalone binary (BETA - experimental)
 
 OPTIONS:
@@ -389,6 +538,13 @@ BUILD OPTIONS:
     --optimize               Enable optimization passes
     --strict                 Enable strict mode checks
     --emit-proof             Emit verification proof alongside output
+
+REPL OPTIONS:
+    --debug                  Enable debug mode in REPL
+    --max-memory <MB>        Maximum memory usage (default: 500MB)
+    --timeout <SECONDS>      Command timeout (default: 120s)
+    --max-depth <N>          Maximum recursion depth (default: 1000)
+    --sandboxed              Run in sandboxed mode (restricted operations)
 ```
 
 ## Documentation
@@ -736,11 +892,11 @@ Rash is designed for fast transpilation with exceptional real-world performance:
 - Memory usage <10MB for most scripts
 - Generated scripts add minimal overhead (~20 lines boilerplate)
 
-## Quality Metrics (v3.0.0)
+## Quality Metrics (v6.7.0)
 
 | Metric | Status | Notes |
 |--------|--------|-------|
-| **Tests** | 1,752 passing ✅ | 100% pass rate (Sprints 81-84) |
+| **Tests** | 5,193 passing ✅ | 100% pass rate (all modules) |
 | **Property Tests** | 52 properties ✅ | ~26,000+ test cases, 0 failures |
 | **Core Coverage** | 94.85% ✅ | makefile/purify.rs (critical module) |
 | **Overall Coverage** | 88.71% ✅ | All modules (exceeds 85% target) |
@@ -749,10 +905,11 @@ Rash is designed for fast transpilation with exceptional real-world performance:
 | **ShellCheck** | 100% pass ✅ | All generated scripts POSIX-compliant |
 | **Makefile Linter Rules** | 28 transformations ✅ | Parallel, reproducibility, performance, error, portability |
 | **Makefile Parsing** | 0.034-1.43ms ✅ | 70-320x faster than targets |
+| **REPL Tests** | 48 tests ✅ | 26 unit + 22 CLI integration (v6.7.0) |
 | **Complexity** | Median 1.0 ✅ | All core functions <10 |
 | **Edge Cases** | 100% complete ✅ | All identified issues resolved |
 
-**v3.0.0 Status**: ✅ **PRODUCTION-READY** - Phase 1 Complete: Makefile World-Class
+**v6.7.0 Status**: ✅ **PRODUCTION-READY** - Makefile + REPL Complete
 
 ## Troubleshooting
 

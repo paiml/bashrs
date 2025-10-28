@@ -455,6 +455,214 @@ jobs:
 </ul>
 <p>Ready for a deeper dive? Continue to <a href="getting-started/./first-purification.html">Your First Purification</a>!</p>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="your-first-purification"><a class="header" href="#your-first-purification">Your First Purification</a></h1>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="interactive-repl"><a class="header" href="#interactive-repl">Interactive REPL</a></h1>
+<p>The bashrs REPL (Read-Eval-Print Loop) provides an interactive environment for bash script analysis, transformation, and learning.</p>
+<h2 id="starting-the-repl"><a class="header" href="#starting-the-repl">Starting the REPL</a></h2>
+<pre><code class="language-bash">$ bashrs repl
+
+bashrs REPL v6.7.0
+Type 'quit' or 'exit' to exit, 'help' for commands
+Current mode: normal - Execute bash commands directly
+bashrs [normal]&gt;
+</code></pre>
+<h2 id="features"><a class="header" href="#features">Features</a></h2>
+<ul>
+<li>🎯 <strong>5 Interactive Modes</strong>: Switch between different analysis modes</li>
+<li>🔍 <strong>Parser Integration</strong>: Parse bash code and inspect AST</li>
+<li>🧹 <strong>Purifier Integration</strong>: Transform bash to idempotent/deterministic code</li>
+<li>🔎 <strong>Linter Integration</strong>: Real-time diagnostics with severity levels</li>
+<li>📚 <strong>Command History</strong>: Persistent history in <code>~/.bashrs_history</code></li>
+</ul>
+<h2 id="available-commands"><a class="header" href="#available-commands">Available Commands</a></h2>
+<h3 id="core-commands"><a class="header" href="#core-commands">Core Commands</a></h3>
+<div class="table-wrapper"><table><thead><tr><th>Command</th><th>Description</th></tr></thead><tbody>
+<tr><td><code>help</code></td><td>Show all available commands</td></tr>
+<tr><td><code>quit</code> or <code>exit</code></td><td>Exit the REPL</td></tr>
+<tr><td><code>:mode</code></td><td>Show current mode and available modes</td></tr>
+<tr><td><code>:mode &lt;name&gt;</code></td><td>Switch to a different mode</td></tr>
+<tr><td><code>:parse &lt;code&gt;</code></td><td>Parse bash code and show AST</td></tr>
+<tr><td><code>:purify &lt;code&gt;</code></td><td>Purify bash code (idempotent/deterministic)</td></tr>
+<tr><td><code>:lint &lt;code&gt;</code></td><td>Lint bash code and show diagnostics</td></tr>
+</tbody></table>
+</div>
+<h3 id="mode-switching"><a class="header" href="#mode-switching">Mode Switching</a></h3>
+<p>The REPL supports 5 interactive modes:</p>
+<pre><code class="language-bash">bashrs [normal]&gt; :mode
+Current mode: normal - Execute bash commands directly
+
+Available modes:
+  normal  - Execute bash commands directly
+  purify  - Show purified version of bash commands
+  lint    - Show linting results for bash commands
+  debug   - Debug bash commands with step-by-step execution
+  explain - Explain bash constructs and syntax
+
+Usage: :mode &lt;mode_name&gt;
+</code></pre>
+<p>Switch modes with <code>:mode &lt;name&gt;</code>:</p>
+<pre><code class="language-bash">bashrs [normal]&gt; :mode lint
+Switched to lint mode - Show linting results for bash commands
+bashrs [lint]&gt;
+</code></pre>
+<h2 id="examples"><a class="header" href="#examples">Examples</a></h2>
+<h3 id="example-1-parsing-bash-code"><a class="header" href="#example-1-parsing-bash-code">Example 1: Parsing Bash Code</a></h3>
+<pre><code class="language-bash">bashrs [normal]&gt; :parse echo hello world
+✓ Parse successful!
+Statements: 1
+Parse time: 0ms
+
+AST:
+  [0] SimpleCommand {
+    name: "echo",
+    args: ["hello", "world"]
+  }
+</code></pre>
+<h3 id="example-2-purifying-non-idempotent-code"><a class="header" href="#example-2-purifying-non-idempotent-code">Example 2: Purifying Non-Idempotent Code</a></h3>
+<pre><code class="language-bash">bashrs [normal]&gt; :purify mkdir /tmp/myapp
+✓ Purification successful!
+Purified 1 statements
+
+Original:
+  mkdir /tmp/myapp
+
+Purified:
+  mkdir -p "/tmp/myapp"  # Idempotent + quoted
+</code></pre>
+<h3 id="example-3-linting-for-safety-issues"><a class="header" href="#example-3-linting-for-safety-issues">Example 3: Linting for Safety Issues</a></h3>
+<pre><code class="language-bash">bashrs [normal]&gt; :lint cat file.txt | grep $PATTERN
+Found 1 issue(s):
+  ⚠ 1 warning(s)
+
+[1] ⚠ SC2086 - Double quote to prevent globbing and word splitting
+    Line 1
+    Variable: PATTERN
+
+Fix: cat file.txt | grep "$PATTERN"
+</code></pre>
+<h3 id="example-4-mode-based-workflow"><a class="header" href="#example-4-mode-based-workflow">Example 4: Mode-Based Workflow</a></h3>
+<pre><code class="language-bash"><span class="boring"> Start in normal mode
+</span>bashrs [normal]&gt; :parse if [ -f config.txt ]; then cat config.txt; fi
+✓ Parse successful!
+
+<span class="boring"> Switch to lint mode
+</span>bashrs [normal]&gt; :mode lint
+Switched to lint mode
+
+<span class="boring"> Lint the code
+</span>bashrs [lint]&gt; :lint if [ -f config.txt ]; then cat config.txt; fi
+✓ No issues found!
+
+<span class="boring"> Switch to purify mode
+</span>bashrs [lint]&gt; :mode purify
+Switched to purify mode
+
+<span class="boring"> See the purified version
+</span>bashrs [purify]&gt; :purify mkdir /var/log/app
+✓ Purification successful!
+Purified: mkdir -p "/var/log/app"
+</code></pre>
+<h2 id="command-history"><a class="header" href="#command-history">Command History</a></h2>
+<p>The REPL automatically saves command history to <code>~/.bashrs_history</code>:</p>
+<pre><code class="language-bash"><span class="boring"> Commands are saved across sessions
+</span>$ bashrs repl
+bashrs [normal]&gt; :parse echo test
+...
+bashrs [normal]&gt; quit
+Goodbye!
+
+<span class="boring"> Later...
+</span>$ bashrs repl
+bashrs [normal]&gt; # Press ↑ to recall previous commands
+</code></pre>
+<h3 id="history-navigation"><a class="header" href="#history-navigation">History Navigation</a></h3>
+<ul>
+<li><strong>↑ (Up Arrow)</strong>: Previous command</li>
+<li><strong>↓ (Down Arrow)</strong>: Next command</li>
+<li><strong>Ctrl-R</strong>: Reverse search through history</li>
+<li><strong>Ctrl-C</strong>: Cancel current line</li>
+<li><strong>Ctrl-D</strong>: Exit REPL (EOF)</li>
+</ul>
+<h2 id="repl-configuration"><a class="header" href="#repl-configuration">REPL Configuration</a></h2>
+<p>Configure REPL behavior with command-line flags:</p>
+<pre><code class="language-bash"><span class="boring"> Enable debug mode
+</span>$ bashrs repl --debug
+
+<span class="boring"> Set resource limits
+</span>$ bashrs repl --max-memory 200 --timeout 60
+
+<span class="boring"> Sandboxed mode (restricted operations)
+</span>$ bashrs repl --sandboxed
+</code></pre>
+<h3 id="available-options"><a class="header" href="#available-options">Available Options</a></h3>
+<div class="table-wrapper"><table><thead><tr><th>Option</th><th>Default</th><th>Description</th></tr></thead><tbody>
+<tr><td><code>--debug</code></td><td>false</td><td>Enable debug mode</td></tr>
+<tr><td><code>--max-memory</code></td><td>500MB</td><td>Maximum memory usage</td></tr>
+<tr><td><code>--timeout</code></td><td>120s</td><td>Command timeout</td></tr>
+<tr><td><code>--max-depth</code></td><td>1000</td><td>Maximum recursion depth</td></tr>
+<tr><td><code>--sandboxed</code></td><td>false</td><td>Run in sandboxed mode</td></tr>
+</tbody></table>
+</div>
+<h2 id="use-cases"><a class="header" href="#use-cases">Use Cases</a></h2>
+<h3 id="learning-bash"><a class="header" href="#learning-bash">Learning Bash</a></h3>
+<p>Use the REPL to interactively learn bash transformations:</p>
+<pre><code class="language-bash">bashrs [normal]&gt; :mode explain
+bashrs [explain]&gt; # Future: Get explanations of bash constructs
+
+bashrs [explain]&gt; :mode purify
+bashrs [purify]&gt; :purify rm -rf /tmp/data
+✓ Purified: rm -rf "/tmp/data"  # Safe (quoted path)
+</code></pre>
+<h3 id="quick-validation"><a class="header" href="#quick-validation">Quick Validation</a></h3>
+<p>Validate bash snippets before committing:</p>
+<pre><code class="language-bash">$ bashrs repl
+bashrs [normal]&gt; :lint $(cat deploy.sh)
+Found 3 issue(s):
+  ⚠ 2 warning(s)
+  ℹ 1 info
+
+<span class="boring"> Fix issues...
+</span>
+bashrs [normal]&gt; :lint $(cat deploy.sh)
+✓ No issues found!
+</code></pre>
+<h3 id="experimenting-with-transformations"><a class="header" href="#experimenting-with-transformations">Experimenting with Transformations</a></h3>
+<p>Test purification transformations interactively:</p>
+<pre><code class="language-bash">bashrs [normal]&gt; :purify SESSION_ID=$RANDOM
+✓ Purified: SESSION_ID="$(date +%s)-$$"  # Deterministic
+
+bashrs [normal]&gt; :purify RELEASE="release-$(date +%s)"
+✓ Purified: RELEASE="release-${VERSION}"  # Version-based
+</code></pre>
+<h2 id="troubleshooting-1"><a class="header" href="#troubleshooting-1">Troubleshooting</a></h2>
+<h3 id="repl-wont-start"><a class="header" href="#repl-wont-start">REPL Won't Start</a></h3>
+<p><strong>Error</strong>: <code>Failed to initialize REPL</code></p>
+<p><strong>Solution</strong>: Check that your terminal supports ANSI escape codes:</p>
+<pre><code class="language-bash"><span class="boring"> Test terminal support
+</span>$ echo -e "\e[1mBold\e[0m"
+
+<span class="boring"> If that doesn't work, use a different terminal
+</span></code></pre>
+<h3 id="history-not-persisting"><a class="header" href="#history-not-persisting">History Not Persisting</a></h3>
+<p><strong>Error</strong>: Commands not saved across sessions</p>
+<p><strong>Solution</strong>: Check history file permissions:</p>
+<pre><code class="language-bash">$ ls -la ~/.bashrs_history
+<span class="boring"> Should be readable/writable by your user
+</span>
+<span class="boring"> Fix permissions if needed
+</span>$ chmod 600 ~/.bashrs_history
+</code></pre>
+<h3 id="out-of-memory"><a class="header" href="#out-of-memory">Out of Memory</a></h3>
+<p><strong>Error</strong>: <code>REPL out of memory</code></p>
+<p><strong>Solution</strong>: Increase memory limit:</p>
+<pre><code class="language-bash">$ bashrs repl --max-memory 1000  # 1GB
+</code></pre>
+<h2 id="next-steps-1"><a class="header" href="#next-steps-1">Next Steps</a></h2>
+<ul>
+<li><a href="getting-started/../reference/repl-commands.html">REPL Commands Reference</a> - Complete command reference</li>
+<li><a href="getting-started/../concepts/parser.html">Parser Integration</a> - Understanding bash AST</li>
+<li><a href="getting-started/../concepts/purification.html">Purifier Integration</a> - Transformation rules</li>
+<li><a href="getting-started/../linting/security.html">Linter Integration</a> - Linting rules reference</li>
+</ul>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="what-is-purification"><a class="header" href="#what-is-purification">What is Purification?</a></h1>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="determinism"><a class="header" href="#determinism">Determinism</a></h1>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="idempotency"><a class="header" href="#idempotency">Idempotency</a></h1>
@@ -1269,7 +1477,7 @@ build/defaults.h: generate-defaults
 	./gen-defaults &gt; build/defaults.h  # ✅ No race
 </code></pre>
 <p><strong>Result</strong>: Reproducible builds, reliable parallel execution, consistent behavior across machines.</p>
-<h2 id="features"><a class="header" href="#features">Features</a></h2>
+<h2 id="features-1"><a class="header" href="#features-1">Features</a></h2>
 <p>Rash Makefile purification provides:</p>
 <h3 id="1-wildcard-sorting-make001"><a class="header" href="#1-wildcard-sorting-make001">1. <strong>Wildcard Sorting</strong> (MAKE001)</a></h3>
 <pre><code class="language-bash">$ rash lint Makefile
@@ -1370,7 +1578,7 @@ $ md5sum build/myapp &gt; checksum2.txt
 $ diff checksum1.txt checksum2.txt
 <span class="boring"> ✅ No differences - build is reproducible!
 </span></code></pre>
-<h2 id="use-cases"><a class="header" href="#use-cases">Use Cases</a></h2>
+<h2 id="use-cases-1"><a class="header" href="#use-cases-1">Use Cases</a></h2>
 <h3 id="1-reproducible-builds"><a class="header" href="#1-reproducible-builds">1. Reproducible Builds</a></h3>
 <p>Ensure the same source code always produces the same binary:</p>
 <pre><code class="language-bash"><span class="boring"> Purify Makefile
@@ -1480,7 +1688,7 @@ fn test_MAKE001_wildcard_basic() {
 }
 <span class="boring">}</span></code></pre></pre>
 <p><strong>Test Coverage</strong>: 100% of purification logic tested</p>
-<h2 id="next-steps-1"><a class="header" href="#next-steps-1">Next Steps</a></h2>
+<h2 id="next-steps-2"><a class="header" href="#next-steps-2">Next Steps</a></h2>
 <ul>
 <li><a href="makefile/./security.html">Makefile Security</a> - Detect injection vulnerabilities</li>
 <li><a href="makefile/./best-practices.html">Makefile Best Practices</a> - Recommended patterns</li>
@@ -1749,8 +1957,327 @@ install:
 <div style="break-before: page; page-break-before: always;"></div><h1 id="mutation-testing"><a class="header" href="#mutation-testing">Mutation Testing</a></h1>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="performance-optimization"><a class="header" href="#performance-optimization">Performance Optimization</a></h1>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="cli-commands"><a class="header" href="#cli-commands">CLI Commands</a></h1>
-<div style="break-before: page; page-break-before: always;"></div><h1 id="configuration-3"><a class="header" href="#configuration-3">Configuration</a></h1>
-<div style="break-before: page; page-break-before: always;"></div><h1 id="exit-codes"><a class="header" href="#exit-codes">Exit Codes</a></h1>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="repl-commands-reference"><a class="header" href="#repl-commands-reference">REPL Commands Reference</a></h1>
+<p>Complete reference for all bashrs REPL commands.</p>
+<h2 id="command-overview"><a class="header" href="#command-overview">Command Overview</a></h2>
+<div class="table-wrapper"><table><thead><tr><th>Command</th><th>Category</th><th>Description</th></tr></thead><tbody>
+<tr><td><code>help</code></td><td>Core</td><td>Show help message with all commands</td></tr>
+<tr><td><code>quit</code></td><td>Core</td><td>Exit the REPL</td></tr>
+<tr><td><code>exit</code></td><td>Core</td><td>Exit the REPL (alias for <code>quit</code>)</td></tr>
+<tr><td><code>:mode</code></td><td>Mode</td><td>Show current mode and available modes</td></tr>
+<tr><td><code>:mode &lt;name&gt;</code></td><td>Mode</td><td>Switch to a different mode</td></tr>
+<tr><td><code>:parse &lt;code&gt;</code></td><td>Analysis</td><td>Parse bash code and show AST</td></tr>
+<tr><td><code>:purify &lt;code&gt;</code></td><td>Transform</td><td>Purify bash code (idempotent/deterministic)</td></tr>
+<tr><td><code>:lint &lt;code&gt;</code></td><td>Analysis</td><td>Lint bash code and show diagnostics</td></tr>
+</tbody></table>
+</div>
+<h2 id="core-commands-1"><a class="header" href="#core-commands-1">Core Commands</a></h2>
+<h3 id="help"><a class="header" href="#help"><code>help</code></a></h3>
+<p>Show comprehensive help message listing all available commands.</p>
+<p><strong>Usage</strong>:</p>
+<pre><code class="language-bash">bashrs [normal]&gt; help
+</code></pre>
+<p><strong>Output</strong>:</p>
+<pre><code>bashrs REPL Commands:
+  help             - Show this help message
+  quit             - Exit the REPL
+  exit             - Exit the REPL
+  :mode            - Show current mode and available modes
+  :mode &lt;name&gt;     - Switch to a different mode
+  :parse &lt;code&gt;    - Parse bash code and show AST
+  :purify &lt;code&gt;   - Purify bash code (make idempotent/deterministic)
+  :lint &lt;code&gt;     - Lint bash code and show diagnostics
+
+Available modes:
+  normal  - Execute bash commands directly
+  purify  - Show purified version of bash commands
+  lint    - Show linting results
+  debug   - Step-by-step execution
+  explain - Explain bash constructs
+</code></pre>
+<h3 id="quit--exit"><a class="header" href="#quit--exit"><code>quit</code> / <code>exit</code></a></h3>
+<p>Exit the REPL and save command history.</p>
+<p><strong>Usage</strong>:</p>
+<pre><code class="language-bash">bashrs [normal]&gt; quit
+Goodbye!
+</code></pre>
+<p><strong>Aliases</strong>:</p>
+<ul>
+<li><code>quit</code></li>
+<li><code>exit</code></li>
+</ul>
+<p><strong>Keyboard Shortcuts</strong>:</p>
+<ul>
+<li><code>Ctrl-D</code> (EOF) - Also exits the REPL</li>
+</ul>
+<h2 id="mode-commands"><a class="header" href="#mode-commands">Mode Commands</a></h2>
+<h3 id="mode-no-arguments"><a class="header" href="#mode-no-arguments"><code>:mode</code> (no arguments)</a></h3>
+<p>Show current mode and list all available modes.</p>
+<p><strong>Usage</strong>:</p>
+<pre><code class="language-bash">bashrs [normal]&gt; :mode
+</code></pre>
+<p><strong>Output</strong>:</p>
+<pre><code>Current mode: normal - Execute bash commands directly
+
+Available modes:
+  normal  - Execute bash commands directly
+  purify  - Show purified version of bash commands
+  lint    - Show linting results for bash commands
+  debug   - Debug bash commands with step-by-step execution
+  explain - Explain bash constructs and syntax
+
+Usage: :mode &lt;mode_name&gt;
+</code></pre>
+<h3 id="mode-name"><a class="header" href="#mode-name"><code>:mode &lt;name&gt;</code></a></h3>
+<p>Switch to a different analysis mode.</p>
+<p><strong>Usage</strong>:</p>
+<pre><code class="language-bash">bashrs [normal]&gt; :mode lint
+Switched to lint mode - Show linting results for bash commands
+bashrs [lint]&gt;
+</code></pre>
+<p><strong>Arguments</strong>:</p>
+<ul>
+<li><code>&lt;name&gt;</code> - Mode name (case-insensitive)</li>
+</ul>
+<p><strong>Valid Modes</strong>:</p>
+<ul>
+<li><code>normal</code> - Execute bash commands directly</li>
+<li><code>purify</code> - Show purified version</li>
+<li><code>lint</code> - Show linting results</li>
+<li><code>debug</code> - Step-by-step execution</li>
+<li><code>explain</code> - Explain bash constructs</li>
+</ul>
+<p><strong>Examples</strong>:</p>
+<pre><code class="language-bash"><span class="boring"> Switch to lint mode
+</span>bashrs [normal]&gt; :mode lint
+Switched to lint mode
+
+<span class="boring"> Case-insensitive
+</span>bashrs [lint]&gt; :mode PURIFY
+Switched to purify mode
+
+<span class="boring"> Switch back to normal
+</span>bashrs [purify]&gt; :mode normal
+Switched to normal mode
+</code></pre>
+<p><strong>Error Handling</strong>:</p>
+<pre><code class="language-bash">bashrs [normal]&gt; :mode invalid
+Error: Unknown mode: valid modes are normal, purify, lint, debug, explain
+</code></pre>
+<h2 id="analysis-commands"><a class="header" href="#analysis-commands">Analysis Commands</a></h2>
+<h3 id="parse-code"><a class="header" href="#parse-code"><code>:parse &lt;code&gt;</code></a></h3>
+<p>Parse bash code and display the Abstract Syntax Tree (AST).</p>
+<p><strong>Usage</strong>:</p>
+<pre><code class="language-bash">bashrs [normal]&gt; :parse &lt;bash_code&gt;
+</code></pre>
+<p><strong>Arguments</strong>:</p>
+<ul>
+<li><code>&lt;bash_code&gt;</code> - Bash code to parse</li>
+</ul>
+<p><strong>Examples</strong>:</p>
+<p><strong>Simple command</strong>:</p>
+<pre><code class="language-bash">bashrs [normal]&gt; :parse echo hello
+✓ Parse successful!
+Statements: 1
+Parse time: 0ms
+
+AST:
+  [0] SimpleCommand {
+    name: "echo",
+    args: ["hello"]
+  }
+</code></pre>
+<p><strong>Conditional statement</strong>:</p>
+<pre><code class="language-bash">bashrs [normal]&gt; :parse if [ -f file.txt ]; then cat file.txt; fi
+✓ Parse successful!
+Statements: 1
+Parse time: 1ms
+
+AST:
+  [0] If {
+    condition: Test { ... },
+    then_body: [ SimpleCommand { name: "cat", ... } ],
+    else_body: None
+  }
+</code></pre>
+<p><strong>Pipeline</strong>:</p>
+<pre><code class="language-bash">bashrs [normal]&gt; :parse cat file.txt | grep pattern
+✓ Parse successful!
+Statements: 1
+Parse time: 0ms
+
+AST:
+  [0] Pipeline {
+    commands: [
+      SimpleCommand { name: "cat", args: ["file.txt"] },
+      SimpleCommand { name: "grep", args: ["pattern"] }
+    ]
+  }
+</code></pre>
+<p><strong>Error Handling</strong>:</p>
+<pre><code class="language-bash">bashrs [normal]&gt; :parse
+Usage: :parse &lt;bash_code&gt;
+Example: :parse echo hello
+
+bashrs [normal]&gt; :parse if then fi
+✗ Parse error: Unexpected token 'then'
+</code></pre>
+<h3 id="lint-code"><a class="header" href="#lint-code"><code>:lint &lt;code&gt;</code></a></h3>
+<p>Lint bash code and display diagnostics with severity levels.</p>
+<p><strong>Usage</strong>:</p>
+<pre><code class="language-bash">bashrs [normal]&gt; :lint &lt;bash_code&gt;
+</code></pre>
+<p><strong>Arguments</strong>:</p>
+<ul>
+<li><code>&lt;bash_code&gt;</code> - Bash code to lint</li>
+</ul>
+<p><strong>Examples</strong>:</p>
+<p><strong>No issues</strong>:</p>
+<pre><code class="language-bash">bashrs [normal]&gt; :lint echo "hello"
+✓ No issues found!
+</code></pre>
+<p><strong>With warnings</strong>:</p>
+<pre><code class="language-bash">bashrs [normal]&gt; :lint cat $FILE | grep pattern
+Found 1 issue(s):
+  ⚠ 1 warning(s)
+
+[1] ⚠ SC2086 - Double quote to prevent globbing and word splitting
+    Line 1
+</code></pre>
+<p><strong>Multiple issues</strong>:</p>
+<pre><code class="language-bash">bashrs [normal]&gt; :lint rm $DIR &amp;&amp; echo $(cat $FILE)
+Found 3 issue(s):
+  ✗ 1 error(s)
+  ⚠ 2 warning(s)
+
+[1] ⚠ SC2086 - Double quote to prevent globbing and word splitting
+    Line 1
+    Variable: DIR
+
+[2] ⚠ SC2046 - Quote this to prevent word splitting
+    Line 1
+
+[3] ⚠ SC2086 - Double quote to prevent globbing and word splitting
+    Line 1
+    Variable: FILE
+</code></pre>
+<p><strong>Severity Levels</strong>:</p>
+<ul>
+<li>✗ <strong>Error</strong>: Critical issues that will likely cause failures</li>
+<li>⚠ <strong>Warning</strong>: Potential issues that should be fixed</li>
+<li>ℹ <strong>Info</strong>: Suggestions for improvement</li>
+<li>📝 <strong>Note</strong>: Additional information</li>
+<li>⚡ <strong>Perf</strong>: Performance optimization suggestions</li>
+<li>⚠ <strong>Risk</strong>: Security or reliability risks</li>
+</ul>
+<p><strong>Error Handling</strong>:</p>
+<pre><code class="language-bash">bashrs [normal]&gt; :lint
+Usage: :lint &lt;bash_code&gt;
+Example: :lint cat file.txt | grep pattern
+</code></pre>
+<h2 id="transform-commands"><a class="header" href="#transform-commands">Transform Commands</a></h2>
+<h3 id="purify-code"><a class="header" href="#purify-code"><code>:purify &lt;code&gt;</code></a></h3>
+<p>Transform bash code to be idempotent and deterministic.</p>
+<p><strong>Usage</strong>:</p>
+<pre><code class="language-bash">bashrs [normal]&gt; :purify &lt;bash_code&gt;
+</code></pre>
+<p><strong>Arguments</strong>:</p>
+<ul>
+<li><code>&lt;bash_code&gt;</code> - Bash code to purify</li>
+</ul>
+<p><strong>Examples</strong>:</p>
+<p><strong>Non-idempotent mkdir</strong>:</p>
+<pre><code class="language-bash">bashrs [normal]&gt; :purify mkdir /tmp/app
+✓ Purification successful!
+Purified 1 statements
+
+Transformations:
+- mkdir → mkdir -p (idempotent)
+- Added quotes for safety
+</code></pre>
+<p><strong>Non-deterministic $RANDOM</strong>:</p>
+<pre><code class="language-bash">bashrs [normal]&gt; :purify SESSION_ID=$RANDOM
+✓ Purification successful!
+Purified 1 statements
+
+Transformations:
+- $RANDOM → $(date +%s)-$$ (deterministic)
+</code></pre>
+<p><strong>Unsafe rm</strong>:</p>
+<pre><code class="language-bash">bashrs [normal]&gt; :purify rm /tmp/old
+✓ Purification successful!
+Purified 1 statements
+
+Transformations:
+- rm → rm -f (idempotent)
+- Added quotes for safety
+</code></pre>
+<p><strong>Error Handling</strong>:</p>
+<pre><code class="language-bash">bashrs [normal]&gt; :purify
+Usage: :purify &lt;bash_code&gt;
+Example: :purify mkdir /tmp/test
+
+bashrs [normal]&gt; :purify if then fi
+✗ Purification error: Parse error: Unexpected token 'then'
+</code></pre>
+<h2 id="keyboard-shortcuts"><a class="header" href="#keyboard-shortcuts">Keyboard Shortcuts</a></h2>
+<div class="table-wrapper"><table><thead><tr><th>Shortcut</th><th>Action</th></tr></thead><tbody>
+<tr><td><code>Ctrl-C</code></td><td>Cancel current line</td></tr>
+<tr><td><code>Ctrl-D</code></td><td>Exit REPL (EOF)</td></tr>
+<tr><td><code>Ctrl-L</code></td><td>Clear screen</td></tr>
+<tr><td><code>Ctrl-U</code></td><td>Delete line before cursor</td></tr>
+<tr><td><code>Ctrl-K</code></td><td>Delete line after cursor</td></tr>
+<tr><td><code>Ctrl-W</code></td><td>Delete word before cursor</td></tr>
+<tr><td><code>↑</code></td><td>Previous command (history)</td></tr>
+<tr><td><code>↓</code></td><td>Next command (history)</td></tr>
+<tr><td><code>Ctrl-R</code></td><td>Reverse search history</td></tr>
+<tr><td><code>Tab</code></td><td>Auto-completion (future)</td></tr>
+</tbody></table>
+</div>
+<h2 id="exit-codes"><a class="header" href="#exit-codes">Exit Codes</a></h2>
+<p>The REPL always exits with code <code>0</code> on normal termination (quit/exit).</p>
+<p><strong>Exceptions</strong>:</p>
+<ul>
+<li>Ctrl-C during REPL initialization: Exit code <code>130</code></li>
+<li>Fatal error during startup: Exit code <code>1</code></li>
+</ul>
+<h2 id="configuration-3"><a class="header" href="#configuration-3">Configuration</a></h2>
+<p>REPL behavior can be configured via command-line options:</p>
+<pre><code class="language-bash">$ bashrs repl [OPTIONS]
+</code></pre>
+<h3 id="available-options-1"><a class="header" href="#available-options-1">Available Options</a></h3>
+<div class="table-wrapper"><table><thead><tr><th>Option</th><th>Default</th><th>Description</th></tr></thead><tbody>
+<tr><td><code>--debug</code></td><td>false</td><td>Enable debug mode for verbose output</td></tr>
+<tr><td><code>--max-memory &lt;MB&gt;</code></td><td>500</td><td>Maximum memory usage in MB</td></tr>
+<tr><td><code>--timeout &lt;SECONDS&gt;</code></td><td>120</td><td>Command timeout in seconds</td></tr>
+<tr><td><code>--max-depth &lt;N&gt;</code></td><td>1000</td><td>Maximum recursion depth</td></tr>
+<tr><td><code>--sandboxed</code></td><td>false</td><td>Run in sandboxed mode (restricted operations)</td></tr>
+</tbody></table>
+</div>
+<h3 id="examples-1"><a class="header" href="#examples-1">Examples</a></h3>
+<p><strong>Enable debug mode</strong>:</p>
+<pre><code class="language-bash">$ bashrs repl --debug
+bashrs REPL v6.7.0 (debug mode enabled)
+...
+</code></pre>
+<p><strong>Set resource limits</strong>:</p>
+<pre><code class="language-bash">$ bashrs repl --max-memory 200 --timeout 60 --max-depth 500
+</code></pre>
+<p><strong>Sandboxed mode</strong>:</p>
+<pre><code class="language-bash">$ bashrs repl --sandboxed
+bashrs REPL v6.7.0 (sandboxed mode)
+Note: Some operations are restricted in sandboxed mode
+...
+</code></pre>
+<h2 id="see-also-3"><a class="header" href="#see-also-3">See Also</a></h2>
+<ul>
+<li><a href="reference/../getting-started/repl.html">Interactive REPL Guide</a> - Getting started tutorial</li>
+<li><a href="reference/../concepts/parser.html">Parser Integration</a> - Understanding bash AST</li>
+<li><a href="reference/../concepts/purification.html">Purifier Integration</a> - Transformation rules</li>
+<li><a href="reference/./rules.html">Linter Rules Reference</a> - Complete linting rules</li>
+</ul>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="configuration-4"><a class="header" href="#configuration-4">Configuration</a></h1>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="exit-codes-1"><a class="header" href="#exit-codes-1">Exit Codes</a></h1>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="linter-rules-reference"><a class="header" href="#linter-rules-reference">Linter Rules Reference</a></h1>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="development-setup"><a class="header" href="#development-setup">Development Setup</a></h1>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="extreme-tdd"><a class="header" href="#extreme-tdd">EXTREME TDD</a></h1>
