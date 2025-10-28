@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"fn":["check"],"static":["READ_IN_FOR"]};
+window.SIDEBAR_ITEMS = {"fn":["check","create_read_in_for_diagnostic","is_for_loop_start","is_inside_quotes","is_read_in_single_line_loop","is_single_line_for_loop","is_while_read"],"static":["READ_IN_FOR"]};

@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"fn":["check"],"static":["ARRAY_IN_TEST","SINGLE_BRACKET"]};
+window.SIDEBAR_ITEMS = {"fn":["check","create_array_in_test_diagnostic","has_array_access_or_length_check","looks_like_array","should_check_line"],"static":["ARRAY_IN_TEST","SINGLE_BRACKET"]};

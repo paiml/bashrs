@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"fn":["check"],"static":["BACKTICK_WITH_UNESCAPED_QUOTES"]};
+window.SIDEBAR_ITEMS = {"fn":["check","create_backtick_quote_diagnostic","find_unescaped_quote_in_backticks","is_escaped_quote","is_quote","is_unescaped_quote","should_check_line"],"static":["BACKTICK_WITH_UNESCAPED_QUOTES"]};
