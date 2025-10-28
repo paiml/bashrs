@@ -600,9 +600,9 @@ Uncovered Lines: 3 lines
 - Minimum coverage enforcement: `bashrs coverage script.sh --min 80`
 - CI/CD ready with exit codes
 
-### Code Formatting (NEW in v6.14.0) 🎨
+### Code Formatting (NEW in v6.14.0, Updated v6.15.0) 🎨
 
-bashrs now includes automatic bash script formatting for consistent code style:
+bashrs includes automatic bash script formatting for consistent code style:
 
 ```bash
 # Format a script in-place
@@ -618,18 +618,31 @@ $ bashrs format --dry-run script.sh
 $ bashrs format *.sh
 ```
 
-**Format Features** (Initial Release):
-- Basic script formatting (assignments, commands, quotes)
-- Check mode for CI/CD integration
-- Multiple file support
-- Output to different file
+**✅ Currently Supported** (v6.15.0):
+- Basic assignments: `VAR=value`, `export VAR=value`
+- Simple commands: `echo hello`, `cd /path`, `ls -la`
+- Variable quoting for safety
+- Multiple file formatting
+- Check mode for CI/CD (--check)
+- Dry-run mode (--dry-run)
+- Output to different file (--output)
+
+**⏳ Coming Soon** (Parser improvements needed):
+- Test expressions: `[ -n "$VAR" ]`, `[[ condition ]]` (v6.16.0)
+- If/then statements (v6.16.0)
+- Case statements (v6.17.0)
+- Function bodies (v6.16.0)
+- Comment preservation (v6.18.0)
+- Configuration files (.bashrs-fmt.toml) (v6.19.0)
+
+**Why Limitations?**: The formatter itself works great, but the bash parser (which reads bash into an AST) doesn't yet support all bash constructs. We're improving it systematically over v6.16.0-v6.20.0.
 
 **Progress**: [████████████████████] 5/5 Bash Quality Tools Complete!
-- ✅ bashrs test (v6.10.0)
-- ✅ bashrs score (v6.11.0)
-- ✅ bashrs audit (v6.12.0)
-- ✅ bashrs coverage (v6.13.0)
-- ✅ bashrs format (v6.14.0 - INITIAL)
+- ✅ bashrs test (v6.10.0) - Test discovery and execution
+- ✅ bashrs score (v6.11.0) - Quality scoring
+- ✅ bashrs audit (v6.12.0) - Comprehensive analysis
+- ✅ bashrs coverage (v6.13.0) - Coverage tracking
+- ✅ bashrs format (v6.14.0) - Code formatting (incremental releases)
 
 ### Interactive REPL (NEW in v6.7.0) 🎯
 
