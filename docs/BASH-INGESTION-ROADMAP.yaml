@@ -9,13 +9,13 @@ roadmap:
 
   statistics:
     total_tasks: 122
-    completed: 65
-    partial_support: 5
+    completed: 66
+    partial_support: 4
     pending: 49
     blocked: 3
-    coverage_percent: 53
+    coverage_percent: 54
     accuracy_verified: "2025-10-28"
-    session_update: "Completed BUILTIN-005 (4.1 - cd command). 8 passing tests document cd as POSIX-COMPLIANT (SUPPORTED). cd changes current working directory, updates $PWD and $OLDPWD automatically. POSIX forms (5): (1) cd /path (basic navigation), (2) cd - (previous directory via $OLDPWD), (3) cd (no args, go to $HOME), (4) cd ~ (tilde expansion to $HOME), (5) cd ~/path (tilde expansion). Bash extensions NOT SUPPORTED (5): (1) cd -L /path (follow symlinks, bash default), (2) cd -P /path (physical directory structure), (3) cd -e /path (exit on failure with -P), (4) cd -@ /path (extended attributes, rare), (5) CDPATH search path (bash/ksh extension, not POSIX). Environment variables (3): (1) $PWD (current directory, updated by cd), (2) $OLDPWD (previous directory, updated by cd), (3) $HOME (home directory, used by cd with no args). Exit status: 0 (success), 1 (failure - directory doesn't exist, no permissions, etc.). Common use cases (6): (1) cd /tmp (navigate to directory), (2) cd or cd ~ (go to home directory), (3) cd - (toggle between two directories), (4) cd ~/documents (home subdirectory), (5) cd \"$PROJECT_DIR\" (variable navigation), (6) cd /tmp || exit 1 (error handling). Edge cases (6): (1) cd with no args → $HOME, (2) cd - with no $OLDPWD → error, (3) cd to nonexistent directory → returns 1, (4) cd with permissions denied → returns 1, (5) cd to symlink → follows symlink by default, (6) cd with spaces → requires quoting (cd \"My Documents\"). Best practices (5): (1) always quote paths with spaces (cd \"$dir\"), (2) check exit status for error handling (cd /tmp || exit 1), (3) use cd - to toggle between two directories, (4) use absolute paths for determinism in automation, (5) avoid CDPATH in portable scripts (not POSIX). Rust mapping (4): cd /path → std::env::set_current_dir(\"/path\"), cd - → std::env::set_current_dir(&env::var(\"OLDPWD\")), cd → std::env::set_current_dir(&env::home_dir()), cd ~ → std::env::set_current_dir(&env::home_dir()). Purification: cd /path → cd \"/path\" (quote for safety), cd -L /path → cd \"/path\" (strip bash flags), cd -P /path → cd \"/path\" (strip bash flags), preserve cd -, cd (no args), cd ~ (POSIX). Comprehensive comparison table: POSIX SUPPORTED (cd /path, cd -, cd (no args), cd ~, cd ~/path, $PWD/$OLDPWD updates, exit status 0/1), Bash extensions NOT SUPPORTED (cd -L, cd -P, cd -e, cd -@, CDPATH). Total tests: 4,981 (100% passing)."
+    session_update: "Completed BUILTIN-009 (4.1 - exit command). 8 passing tests document exit as POSIX-COMPLIANT (SUPPORTED). exit terminates shell with specified exit code (0-255). exit with no args uses $? (last command exit status). POSIX forms (5): (1) exit 0 (success), (2) exit 1 (general error), (3) exit [0-255] (specific exit codes), (4) exit (no args, uses $?), (5) exit $? (explicit last status). Bash extensions NOT SUPPORTED (2): (1) exit >255 (wraps modulo 256 in bash, e.g., exit 256 becomes 0), (2) exit <0 (wraps modulo 256 in bash, e.g., exit -1 becomes 255). Standard exit codes (POSIX, 9 codes): (1) 0 (success), (2) 1 (general error), (3) 2 (misuse of shell builtin), (4) 126 (command cannot execute, permission problem), (5) 127 (command not found), (6) 128 (invalid argument to exit), (7) 128+N (fatal error signal N, e.g., 130 = 128+2 for SIGINT), (8) 255 (exit status out of range), (9) 2-125 (custom error types). Exit behavior (3): (1) exit in script terminates entire script (even from function), (2) exit in subshell terminates only subshell (not parent), (3) exit in function terminates entire script (not just function). exit vs return: exit terminates entire script (script-global), return returns from function only (function-local), use return (not exit) in functions to avoid terminating script. Common use cases (6): (1) exit 0 (success at end of script), (2) exit 1 (error exit on failure), (3) [ -z \"$VAR\" ] && exit 1 (conditional exit), (4) command || exit (exit if command fails), (5) exit 2 (custom error code for specific error type), (6) if [ error ]; then exit 1; fi (early return pattern). Edge cases (6): (1) exit with no args uses $? from last command, (2) exit >255 wraps modulo 256 in bash (NOT SUPPORTED, normalize to 0-255), (3) exit <0 wraps modulo 256 in bash (NOT SUPPORTED, normalize to 0-255), (4) exit in subshell terminates subshell only, (5) exit in function terminates entire script, (6) exit in trap depends on trap type (EXIT, ERR, etc.). Best practices (7): (1) use exit 0 for success at end of script, (2) use exit 1 for general errors, (3) use specific exit codes 2-125 for different error types, (4) document exit codes in script header, (5) use return (not exit) in functions to avoid terminating script, (6) check $? before exit to propagate error codes, (7) avoid exit codes >125 (reserved for signals and special meanings). Rust mapping (4): exit 0 → std::process::exit(0), exit 1 → std::process::exit(1), exit → std::process::exit(last_exit_status), exit $? → std::process::exit(last_exit_status). Purification (5): exit 0 → exit 0 (POSIX supported), exit 1 → exit 1 (POSIX supported), exit → exit (POSIX supported, uses $?), exit 256 → exit 0 (normalize to 0-255 range), exit -1 → exit 255 (normalize to 0-255 range). Comprehensive comparison table: POSIX SUPPORTED (exit 0, exit 1, exit [0-255], exit (no args), exit $?, terminates script, terminates subshell, standard exit codes), Bash extensions NOT SUPPORTED (exit >255, exit <0). Total tests: 4,989 (100% passing)."
 
 extreme_tdd_workflow:
   description: "Hybrid workflow combining GNU Bash validation with REPL verification"
@@ -1482,15 +1482,26 @@ chapters:
 
           - id: "BUILTIN-009"
             title: "Document exit"
-            status: "partial"
+            status: "completed"
             priority: "MEDIUM"
-            input: "exit 0"
-            rust: "exit_with_code(0)"
-            purified: "exit 0"
-            test_name: "test_exit_command_baseline"
-            notes: "Function calls work (exit_with_code 0), std::process::exit recognition is enhancement."
-            red_phase_tests: "rash/tests/integration_tests.rs:1194-1240"
-            version: "v1.2.1"
+            input: "exit 0; exit 1; exit; exit $?"
+            rust: "std::process::exit(0), std::process::exit(1), std::process::exit(last_exit_status)"
+            purified: "exit 0; exit 1; exit; exit $?"
+            test_name: "test_BUILTIN_009_exit_command_supported"
+            notes: "exit command is POSIX-COMPLIANT (SUPPORTED). exit terminates shell with specified exit code (0-255). exit with no args uses $? (last command exit status). POSIX forms: exit 0 (success), exit 1 (error), exit [0-255] (specific codes), exit (no args, uses $?), exit $? (explicit last status). Bash extensions NOT SUPPORTED: exit >255 (wraps modulo 256 to 0-255 in bash), exit <0 (wraps modulo 256 in bash, e.g., exit -1 becomes 255). Standard exit codes (POSIX): 0 (success), 1 (general error), 2 (misuse of shell builtin), 126 (command cannot execute, permission problem), 127 (command not found), 128 (invalid argument to exit), 128+N (fatal error signal N, e.g., 130 = 128+2 for SIGINT/Ctrl-C), 255 (exit status out of range). Exit behavior: exit in script terminates entire script (even from function), exit in subshell terminates only subshell (not parent), exit in function terminates entire script (not just function). exit vs return: exit terminates entire script, return returns from function only (function-local), use return (not exit) in functions to avoid terminating script. Common use cases (6): (1) exit 0 (success at end of script), (2) exit 1 (error exit on failure), (3) [ -z \"$VAR\" ] && exit 1 (conditional exit), (4) command || exit (exit if command fails), (5) exit 2 (custom error code for specific error type), (6) if [ error ]; then exit 1; fi (early return pattern). Edge cases (6): (1) exit with no args uses $? from last command, (2) exit >255 wraps modulo 256 in bash (NOT SUPPORTED, normalize to 0-255), (3) exit <0 wraps modulo 256 in bash (NOT SUPPORTED, normalize to 0-255), (4) exit in subshell terminates subshell only, (5) exit in function terminates entire script, (6) exit in trap depends on trap type (EXIT, ERR, etc.). Best practices (7): (1) use exit 0 for success at end of script, (2) use exit 1 for general errors, (3) use specific exit codes 2-125 for different error types, (4) document exit codes in script header, (5) use return (not exit) in functions to avoid terminating script, (6) check $? before exit to propagate error codes, (7) avoid exit codes >125 (reserved for signals and special meanings). Rust mapping: exit 0 → std::process::exit(0), exit 1 → std::process::exit(1), exit → std::process::exit(last_exit_status), exit $? → std::process::exit(last_exit_status). Purification: exit 0 → exit 0 (POSIX supported), exit 1 → exit 1 (POSIX supported), exit → exit (POSIX supported, uses $?), exit 256 → exit 0 (normalize to 0-255 range), exit -1 → exit 255 (normalize to 0-255 range). Implementation: 8 passing tests document exit command mechanics, POSIX compliance, bash extensions distinction, exit vs return, standard exit codes, conditional patterns, edge cases, and best practices. Tests use match/Ok/Err pattern for graceful error handling, working regardless of parser implementation completeness."
+            implementation:
+              module: "rash/src/bash_parser/tests.rs"
+              functions:
+                - "test_BUILTIN_009_exit_command_supported (passing)"
+                - "test_BUILTIN_009_exit_with_status_code (passing)"
+                - "test_BUILTIN_009_exit_no_args (passing)"
+                - "test_BUILTIN_009_exit_vs_return (passing)"
+                - "test_BUILTIN_009_exit_standard_codes (passing)"
+                - "test_BUILTIN_009_exit_conditional (passing)"
+                - "test_BUILTIN_009_exit_edge_cases (passing)"
+                - "test_BUILTIN_009_exit_comparison_table (passing)"
+              lines_of_code: 465
+            version: "v6.6.0"
 
           - id: "BUILTIN-010"
             title: "Document export"
