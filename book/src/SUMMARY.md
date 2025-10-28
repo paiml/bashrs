@@ -7,6 +7,7 @@
 - [Installation](./getting-started/installation.md)
 - [Quick Start](./getting-started/quick-start.md)
 - [Your First Purification](./getting-started/first-purification.md)
+- [Interactive REPL](./getting-started/repl.md)
 
 ## Core Concepts
 
@@ -54,6 +55,7 @@
 ## Reference
 
 - [CLI Commands](./reference/cli.md)
+- [REPL Commands](./reference/repl-commands.md)
 - [Configuration](./reference/configuration.md)
 - [Exit Codes](./reference/exit-codes.md)
 - [Linter Rules Reference](./reference/rules.md)
