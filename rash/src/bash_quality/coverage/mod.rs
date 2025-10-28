@@ -130,7 +130,7 @@ pub fn generate_coverage(source: &str) -> Result<CoverageReport, String> {
 fn analyze_script(source: &str, report: &mut CoverageReport) {
     let mut line_num = 0;
     let mut in_function = false;
-    let mut current_function: Option<String> = None;
+    let mut _current_function: Option<String> = None;
 
     for line in source.lines() {
         line_num += 1;
@@ -163,14 +163,14 @@ fn analyze_script(source: &str, report: &mut CoverageReport) {
             // Don't track test functions as regular functions
             if !func_name.starts_with("test_") {
                 report.all_functions.push(func_name.clone());
-                current_function = Some(func_name);
+                _current_function = Some(func_name);
             }
         }
 
         // Detect function end
         if in_function && trimmed == "}" {
             in_function = false;
-            current_function = None;
+            _current_function = None;
         }
 
         // Count this as an executable line
