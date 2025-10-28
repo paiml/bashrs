@@ -9,13 +9,13 @@ roadmap:
 
   statistics:
     total_tasks: 122
-    completed: 58
-    partial_support: 12
+    completed: 59
+    partial_support: 11
     pending: 49
     blocked: 3
     coverage_percent: 48
     accuracy_verified: "2025-10-27"
-    session_update: "Completed REDIR-004 (3.6 - here documents <<). 8 passing tests document here documents (<<) as POSIX-compliant and FULLY SUPPORTED. Basic << syntax: cat << EOF provides multi-line input to stdin, delimiter (EOF) can be any word, content between delimiters fed to command stdin. Variable expansion: by default, variables expanded in heredocs (cat << EOF with $USER expands), quoting delimiter disables expansion (cat << 'EOF' with $USER stays literal, any quoting works: 'EOF', \"EOF\", \\EOF). Tab stripping with <<-: cat <<- EOF strips leading tab characters from input lines (IMPORTANT: only tabs \\t stripped, not spaces), POSIX feature for indented heredocs in scripts. Delimiter rules: must appear alone on line (no leading/trailing spaces), case-sensitive (EOF != eof), delimiter can be quoted to disable expansion, content ends when unquoted delimiter found at start of line. Rust mapping: multi-line string literal (let content = \"Hello\\nWorld\\n\"), raw strings for no escapes (r#\"...\"#), stdin piping for commands (Command::new().stdin(Stdio::piped()).write_all()). Common use cases (5): multi-line input (cat << EOF), generate config files (cat << 'EOF' > /etc/config), SQL queries (mysql << SQL), email content (mail << MAIL), heredocs in functions (print_help with cat << EOF). Bash extensions NOT SUPPORTED: <<< \"string\" here-string (use echo | cmd instead). POSIX heredocs SUPPORTED: <<, <<-, quoted delimiter ('EOF'). Total tests: 4,925 (100% passing)."
+    session_update: "Completed REDIR-005 (3.6 - here-strings <<<). 8 passing tests document here-strings (<<<) as Bash 2.05b+ extension, NOT SUPPORTED. POSIX equivalent echo | cmd is FULLY SUPPORTED. Here-string syntax: cmd <<< \"input string\" provides single-line input to stdin (Bash 2.05b+ feature, not POSIX sh). Variable expansion: always enabled in here-strings (cmd <<< \"$VAR\" expands variable, no way to disable expansion unlike heredocs with quoted delimiter). POSIX equivalents (SUPPORTED): echo \"string\" | cmd (adds newline), printf '%s\\n' \"string\" | cmd (explicit newline), printf '%s' \"string\" | cmd (no newline). Purification strategy: convert <<< \"string\" → echo \"string\" | cmd, preserve variable expansion (<<< \"$VAR\" → echo \"$VAR\" | cmd), use printf for explicit newline control, always quote strings for safety. Here-string vs here document comparison: here-string (<<<) is single line only, Bash 2.05b+ extension, no delimiter needed, adds newline at end automatically, syntax cmd <<< \"string\"; here document (<<) is multi-line, POSIX compliant, requires delimiter (EOF), no automatic newline, syntax cmd << EOF ... EOF. Newline behavior: <<< \"text\" → \"text\\n\" (Bash, adds newline), echo \"text\" → \"text\\n\" (POSIX, adds newline), printf '%s' \"text\" → \"text\" (POSIX, no newline), printf '%s\\n' \"text\" → \"text\\n\" (POSIX, explicit newline). Common use cases with POSIX alternatives (5): pass string to grep (echo \"text\" | grep pattern), word count (echo \"count words\" | wc -w), process variable (echo \"$VAR\" | cmd), feed to read (var=\"value\" direct assignment better than echo | read in subshell), base64 encode (echo \"text\" | base64). Why here-strings are Bash-only: not in POSIX specification, Bash 2.05b+ (2002) introduced <<<, sh/dash/ash don't support <<<, easy to work around with echo | cmd. Total tests: 4,933 (100% passing)."
 
 extreme_tdd_workflow:
   description: "Hybrid workflow combining GNU Bash validation with REPL verification"
@@ -1256,15 +1256,26 @@ chapters:
 
           - id: "REDIR-005"
             title: "Document <<< herestring"
-            status: "partial"
+            status: "completed"
             priority: "MEDIUM"
-            input: "cmd <<< \"input string\""
-            rust: "pass_string(\"input data\")"
-            purified: "pass_string 'input data'"
-            test_name: "test_herestring_baseline"
-            notes: "Function calls work (pass_string data), printf | pipe pattern recognition is enhancement."
-            red_phase_tests: "rash/tests/integration_tests.rs:2573-2648"
-            version: "v1.2.1"
+            input: "cmd <<< \"input string\"; grep pattern <<< \"$VAR\""
+            rust: "// Use echo | cmd in shell"
+            purified: "echo \"input string\" | cmd; echo \"$VAR\" | grep pattern"
+            test_name: "test_REDIR_005_herestring_not_supported"
+            notes: "Here-strings (<<<) are Bash 2.05b+ extension, NOT SUPPORTED. POSIX equivalent: echo \"string\" | cmd (SUPPORTED). Purification strategy: convert <<< \"string\" → echo \"string\" | cmd. Newline behavior: <<< adds newline, echo adds newline, printf '%s' doesn't."
+            implementation:
+              module: "rash/src/bash_parser/tests.rs"
+              functions:
+                - "test_REDIR_005_herestring_not_supported (passing)"
+                - "test_REDIR_005_herestring_with_variables (passing)"
+                - "test_REDIR_005_posix_echo_pipe_equivalent (passing)"
+                - "test_REDIR_005_purification_strategy (passing)"
+                - "test_REDIR_005_herestring_vs_heredoc (passing)"
+                - "test_REDIR_005_newline_behavior (passing)"
+                - "test_REDIR_005_common_use_cases (passing)"
+                - "test_REDIR_005_bash_vs_posix_herestrings (passing)"
+              lines_of_code: 349
+            version: "v6.6.0"
 
   - id: 4
     name: "Shell Builtin Commands"
