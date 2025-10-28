@@ -9,7 +9,7 @@
 // - Mutation score: ≥90%
 // - Complexity: <10 per function
 
-use crate::repl::{ReplConfig, ReplMode, ReplState, parse_bash, format_parse_error, purify_bash};
+use crate::repl::{ReplConfig, ReplMode, ReplState, parse_bash, format_parse_error, purify_bash, lint_bash, format_lint_results};
 use anyhow::Result;
 use rustyline::DefaultEditor;
 use std::path::PathBuf;
@@ -85,6 +85,9 @@ pub fn run_repl(config: ReplConfig) -> Result<()> {
                 } else if line.starts_with(":purify") {
                     // Handle :purify command
                     handle_purify_command(line);
+                } else if line.starts_with(":lint") {
+                    // Handle :lint command
+                    handle_lint_command(line);
                 } else {
                     match line {
                         "quit" | "exit" => {
@@ -209,6 +212,28 @@ fn handle_purify_command(line: &str) {
     }
 }
 
+/// Handle lint command
+fn handle_lint_command(line: &str) {
+    let parts: Vec<&str> = line.splitn(2, ' ').collect();
+
+    if parts.len() == 1 {
+        println!("Usage: :lint <bash_code>");
+        println!("Example: :lint cat file.txt | grep pattern");
+        return;
+    }
+
+    let bash_code = parts.get(1).unwrap_or(&"");
+
+    match lint_bash(bash_code) {
+        Ok(result) => {
+            println!("{}", format_lint_results(&result));
+        }
+        Err(e) => {
+            println!("✗ Lint error: {}", e);
+        }
+    }
+}
+
 /// Print help message
 fn print_help() {
     println!("bashrs REPL Commands:");
@@ -219,6 +244,7 @@ fn print_help() {
     println!("  :mode <name>     - Switch to a different mode");
     println!("  :parse <code>    - Parse bash code and show AST");
     println!("  :purify <code>   - Purify bash code (make idempotent/deterministic)");
+    println!("  :lint <code>     - Lint bash code and show diagnostics");
     println!();
     println!("Available modes:");
     println!("  normal  - Execute bash commands directly");
@@ -228,7 +254,6 @@ fn print_help() {
     println!("  explain - Explain bash constructs");
     println!();
     println!("Future commands:");
-    println!("  lint     - Lint bash script");
     println!("  debug    - Debug bash script");
     println!("  explain  - Explain bash construct");
 }
