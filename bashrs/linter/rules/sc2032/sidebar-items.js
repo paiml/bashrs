@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"fn":["check"],"static":["VARIABLE_ASSIGNMENT"]};
+window.SIDEBAR_ITEMS = {"fn":["build_diagnostic","calculate_span","check","has_shebang","is_comment","is_export_statement","is_local_declaration","is_readonly_declaration","is_special_variable"],"static":["VARIABLE_ASSIGNMENT"]};

@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"constant":["PHONY_TARGETS"],"fn":["check"]};
+window.SIDEBAR_ITEMS = {"constant":["PHONY_TARGETS"],"fn":["build_phony_diagnostic","check","extract_target_name","is_phony_line","is_target_line","is_variable_assignment","parse_phony_line","parse_phony_targets","should_be_phony","should_skip_line"]};

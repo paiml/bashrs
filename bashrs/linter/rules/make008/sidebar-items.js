@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"fn":["check"]};
+window.SIDEBAR_ITEMS = {"fn":["build_diagnostic","check","count_leading_spaces","create_tab_fix","extract_target_name","is_empty_or_comment","is_recipe_with_spaces","is_target_line","should_exit_recipe"]};

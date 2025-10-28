@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"fn":["check"]};
+window.SIDEBAR_ITEMS = {"fn":["build_diagnostic","check","has_break_or_continue","is_case_end","is_case_start","is_comment_line","is_function_end","is_function_start","is_loop_end","is_loop_start"]};
