@@ -35,6 +35,66 @@ static READ_IN_FOR: Lazy<Regex> = Lazy::new(|| {
     Regex::new(r"\bread\s+").unwrap()
 });
 
+/// Check if line starts a for loop
+fn is_for_loop_start(line: &str) -> bool {
+    line.contains("for ") && line.contains(" in ")
+}
+
+/// Check if line is a single-line for loop (for x in y; do cmd; done)
+fn is_single_line_for_loop(line: &str) -> bool {
+    line.contains("; do ") && line.contains("done")
+}
+
+/// Check if position in line is inside quotes
+fn is_inside_quotes(line: &str, pos: usize) -> bool {
+    let before = &line[..pos];
+    let quote_count = before.matches('"').count() + before.matches('\'').count();
+    quote_count % 2 == 1
+}
+
+/// Check if read command is part of while read (which is correct)
+fn is_while_read(line: &str, read_pos: usize) -> bool {
+    line.contains("while") && line.find("while").unwrap_or(usize::MAX) < read_pos
+}
+
+/// Check if read is between do and done in single-line for loop
+fn is_read_in_single_line_loop(line: &str) -> Option<usize> {
+    if !line.contains("read ") {
+        return None;
+    }
+
+    let read_pos = line.find("read ")?;
+    let do_pos = line.find("; do ").map(|p| p + 5)?;
+    let done_pos = line.find("done")?;
+
+    if read_pos >= do_pos && read_pos < done_pos {
+        Some(read_pos)
+    } else {
+        None
+    }
+}
+
+/// Create diagnostic for read in for loop
+fn create_read_in_for_diagnostic(
+    line_num: usize,
+    read_pos: usize,
+    read_len: usize,
+    for_loop_start_line: usize,
+) -> Diagnostic {
+    let start_col = read_pos + 1;
+    let end_col = start_col + read_len;
+
+    Diagnostic::new(
+        "SC2041",
+        Severity::Warning,
+        format!(
+            "'read' in for loop reads from stdin, not loop data. Use 'while read' instead (for loop started at line {})",
+            for_loop_start_line
+        ),
+        Span::new(line_num, start_col, line_num, end_col),
+    )
+}
+
 pub fn check(source: &str) -> LintResult {
     let mut result = LintResult::new();
     let mut in_for_loop = false;
@@ -48,41 +108,27 @@ pub fn check(source: &str) -> LintResult {
         }
 
         // Track for loop context
-        if line.contains("for ") && line.contains(" in ") {
+        if is_for_loop_start(line) {
             in_for_loop = true;
             for_loop_start_line = line_num;
 
-            // Handle single-line for loops (for x in y; do cmd; done)
-            if line.contains("; do ") && line.contains("done") {
-                // Check for read in this single line
-                if line.contains("read ") {
-                    let read_pos = line.find("read ").unwrap();
-                    let do_pos = line.find("; do ").map(|p| p + 5).unwrap_or(0);
-                    let done_pos = line.find("done").unwrap();
-
-                    // Ensure read is between do and done
-                    if read_pos >= do_pos && read_pos < done_pos {
-                        let start_col = read_pos + 1;
-                        let end_col = start_col + 5; // "read "
-
-                        let diagnostic = Diagnostic::new(
-                            "SC2041",
-                            Severity::Warning,
-                            format!(
-                                "'read' in for loop reads from stdin, not loop data. Use 'while read' instead (for loop started at line {})",
-                                for_loop_start_line
-                            ),
-                            Span::new(line_num, start_col, line_num, end_col),
-                        );
-                        result.add(diagnostic);
-                    }
+            // Handle single-line for loops
+            if is_single_line_for_loop(line) {
+                if let Some(read_pos) = is_read_in_single_line_loop(line) {
+                    let diagnostic = create_read_in_for_diagnostic(
+                        line_num,
+                        read_pos,
+                        5, // "read "
+                        for_loop_start_line,
+                    );
+                    result.add(diagnostic);
                 }
-                in_for_loop = false; // Single-line loop complete
+                in_for_loop = false;
                 continue;
             }
         }
 
-        // Reset context on `done` (end of loop)
+        // Reset context on `done`
         if in_for_loop && line.contains("done") {
             in_for_loop = false;
         }
@@ -90,32 +136,19 @@ pub fn check(source: &str) -> LintResult {
         // Check for `read` inside for loop
         if in_for_loop && line.contains("read ") {
             if let Some(mat) = READ_IN_FOR.find(line) {
-                // Skip if inside quotes
                 let pos = mat.start();
-                let before = &line[..pos];
-                let quote_count = before.matches('"').count() + before.matches('\'').count();
-                if quote_count % 2 == 1 {
+
+                // Skip if inside quotes or part of while read
+                if is_inside_quotes(line, pos) || is_while_read(line, pos) {
                     continue;
                 }
 
-                // Skip if it's part of `while read` (that's correct)
-                if line.contains("while") && line.find("while").unwrap_or(usize::MAX) < pos {
-                    continue;
-                }
-
-                let start_col = pos + 1;
-                let end_col = start_col + mat.as_str().len();
-
-                let diagnostic = Diagnostic::new(
-                    "SC2041",
-                    Severity::Warning,
-                    format!(
-                        "'read' in for loop reads from stdin, not loop data. Use 'while read' instead (for loop started at line {})",
-                        for_loop_start_line
-                    ),
-                    Span::new(line_num, start_col, line_num, end_col),
+                let diagnostic = create_read_in_for_diagnostic(
+                    line_num,
+                    pos,
+                    mat.as_str().len(),
+                    for_loop_start_line,
                 );
-
                 result.add(diagnostic);
             }
         }

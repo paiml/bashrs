@@ -28,23 +28,49 @@ static SINGLE_BRACKET: Lazy<Regex> = Lazy::new(|| {
     Regex::new(r"\[([^\]]+)\]").unwrap()
 });
 
+/// Check if line should be checked (has single brackets, not double)
+fn should_check_line(line: &str) -> bool {
+    line.contains('[') && !line.contains("[[")
+}
+
+/// Check if variable name looks like an array (heuristic)
+fn looks_like_array(var_name: &str) -> bool {
+    var_name.ends_with('s')
+        || var_name.contains("array")
+        || var_name.contains("list")
+        || var_name.contains("items")
+}
+
+/// Check if variable usage has array subscript or is length check
+fn has_array_access_or_length_check(subscript: Option<&str>, bracket_text: &str) -> bool {
+    subscript.is_some() || bracket_text.contains("#")
+}
+
+/// Create diagnostic for array used as scalar in test
+fn create_array_in_test_diagnostic(
+    line_num: usize,
+    start_col: usize,
+    end_col: usize,
+    var_name: &str,
+) -> Diagnostic {
+    Diagnostic::new(
+        "SC2198",
+        Severity::Warning,
+        format!(
+            "Arrays don't work as scalars in [ ]. Use [ -n \"${{{}[0]}}\" ] for first element or [[ ]] with ${{{}[@]}}",
+            var_name, var_name
+        ),
+        Span::new(line_num, start_col, line_num, end_col),
+    )
+}
+
 pub fn check(source: &str) -> LintResult {
     let mut result = LintResult::new();
 
     for (line_num, line) in source.lines().enumerate() {
         let line_num = line_num + 1;
 
-        if line.trim_start().starts_with('#') {
-            continue;
-        }
-
-        // Skip double brackets
-        if line.contains("[[") {
-            continue;
-        }
-
-        // Only check lines with single [ ]
-        if !line.contains('[') || line.contains("[[") {
+        if line.trim_start().starts_with('#') || !should_check_line(line) {
             continue;
         }
 
@@ -59,34 +85,25 @@ pub fn check(source: &str) -> LintResult {
 
             // Look for array-like variable names
             for cap in ARRAY_IN_TEST.captures_iter(bracket_text) {
-                let full_match = cap.get(0).unwrap().as_str();
                 let var_name = cap.get(1).unwrap().as_str();
                 let subscript = cap.get(2).map(|m| m.as_str());
 
-                // Skip if it has array subscripts ([@], [*], [0], etc.) or is ${#array[@]} (length check)
-                if subscript.is_some() || bracket_text.contains("#") {
+                // Skip if has explicit array access or length check
+                if has_array_access_or_length_check(subscript, bracket_text) {
                     continue;
                 }
 
-                // Heuristic: plural names or common array indicators
-                if var_name.ends_with('s')
-                    || var_name.contains("array")
-                    || var_name.contains("list")
-                    || var_name.contains("items")
-                {
+                // Check if variable name looks like an array
+                if looks_like_array(var_name) {
                     let start_col = line.find(bracket_text).unwrap_or(0) + 1;
                     let end_col = start_col + bracket_text.len();
 
-                    let diagnostic = Diagnostic::new(
-                        "SC2198",
-                        Severity::Warning,
-                        format!(
-                            "Arrays don't work as scalars in [ ]. Use [ -n \"${{{}[0]}}\" ] for first element or [[ ]] with ${{{}[@]}}",
-                            var_name, var_name
-                        ),
-                        Span::new(line_num, start_col, line_num, end_col),
+                    let diagnostic = create_array_in_test_diagnostic(
+                        line_num,
+                        start_col,
+                        end_col,
+                        var_name,
                     );
-
                     result.add(diagnostic);
                     break; // Only warn once per [ ] block
                 }
