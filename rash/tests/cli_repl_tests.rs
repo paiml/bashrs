@@ -283,3 +283,57 @@ fn test_REPL_003_004_multiple_mode_switches() {
         .stdout(predicate::str::contains("Switched to lint mode"))
         .stdout(predicate::str::contains("Switched to normal mode"));
 }
+
+// ===== REPL-004-001: PARSER INTEGRATION TESTS =====
+
+/// Test: REPL-004-001-001 - :parse command with simple command
+#[test]
+fn test_REPL_004_001_parse_simple_command_cli() {
+    bashrs_repl()
+        .write_stdin(":parse echo hello\nquit\n")
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("Parse successful"));
+}
+
+/// Test: REPL-004-001-002 - :parse command shows AST
+#[test]
+fn test_REPL_004_001_parse_shows_ast() {
+    bashrs_repl()
+        .write_stdin(":parse ls -la\nquit\n")
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("AST"))
+        .stdout(predicate::str::contains("Statements:"));
+}
+
+/// Test: REPL-004-001-003 - :parse command with no input shows usage
+#[test]
+fn test_REPL_004_001_parse_no_input_shows_usage() {
+    bashrs_repl()
+        .write_stdin(":parse\nquit\n")
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("Usage: :parse"));
+}
+
+/// Test: REPL-004-001-004 - :parse command with invalid syntax shows error
+#[test]
+fn test_REPL_004_001_parse_invalid_syntax() {
+    bashrs_repl()
+        .write_stdin(":parse if then fi\nquit\n")
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("Parse error"));
+}
+
+/// Test: REPL-004-001-005 - Help shows :parse command
+#[test]
+fn test_REPL_004_001_help_shows_parse() {
+    bashrs_repl()
+        .write_stdin("help\nquit\n")
+        .assert()
+        .success()
+        .stdout(predicate::str::contains(":parse"))
+        .stdout(predicate::str::contains("Parse bash code"));
+}

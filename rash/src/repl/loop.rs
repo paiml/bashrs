@@ -9,7 +9,7 @@
 // - Mutation score: ≥90%
 // - Complexity: <10 per function
 
-use crate::repl::{ReplConfig, ReplMode, ReplState};
+use crate::repl::{ReplConfig, ReplMode, ReplState, parse_bash, format_parse_error};
 use anyhow::Result;
 use rustyline::DefaultEditor;
 use std::path::PathBuf;
@@ -79,6 +79,9 @@ pub fn run_repl(config: ReplConfig) -> Result<()> {
                 if line.starts_with(":mode") {
                     // Handle :mode command
                     handle_mode_command(line, &mut state);
+                } else if line.starts_with(":parse") {
+                    // Handle :parse command
+                    handle_parse_command(line);
                 } else {
                     match line {
                         "quit" | "exit" => {
@@ -89,7 +92,7 @@ pub fn run_repl(config: ReplConfig) -> Result<()> {
                             print_help();
                         }
                         _ => {
-                            // TODO: Implement command processing
+                            // TODO: Implement command processing based on mode
                             println!("Command not implemented: {}", line);
                         }
                     }
@@ -152,14 +155,43 @@ fn handle_mode_command(line: &str, state: &mut ReplState) {
     }
 }
 
+/// Handle parse command
+fn handle_parse_command(line: &str) {
+    let parts: Vec<&str> = line.splitn(2, ' ').collect();
+
+    if parts.len() == 1 {
+        println!("Usage: :parse <bash_code>");
+        println!("Example: :parse echo hello");
+        return;
+    }
+
+    let bash_code = parts.get(1).unwrap_or(&"");
+
+    match parse_bash(bash_code) {
+        Ok(ast) => {
+            println!("✓ Parse successful!");
+            println!("Statements: {}", ast.statements.len());
+            println!("Parse time: {}ms", ast.metadata.parse_time_ms);
+            println!("\nAST:");
+            for (i, stmt) in ast.statements.iter().enumerate() {
+                println!("  [{}] {:?}", i, stmt);
+            }
+        }
+        Err(e) => {
+            println!("✗ {}", format_parse_error(&e));
+        }
+    }
+}
+
 /// Print help message
 fn print_help() {
     println!("bashrs REPL Commands:");
-    println!("  help       - Show this help message");
-    println!("  quit       - Exit the REPL");
-    println!("  exit       - Exit the REPL");
-    println!("  :mode      - Show current mode and available modes");
-    println!("  :mode <name> - Switch to a different mode");
+    println!("  help           - Show this help message");
+    println!("  quit           - Exit the REPL");
+    println!("  exit           - Exit the REPL");
+    println!("  :mode          - Show current mode and available modes");
+    println!("  :mode <name>   - Switch to a different mode");
+    println!("  :parse <code>  - Parse bash code and show AST");
     println!();
     println!("Available modes:");
     println!("  normal  - Execute bash commands directly");
@@ -169,7 +201,6 @@ fn print_help() {
     println!("  explain - Explain bash constructs");
     println!();
     println!("Future commands:");
-    println!("  parse    - Parse bash script");
     println!("  purify   - Purify bash script");
     println!("  lint     - Lint bash script");
     println!("  debug    - Debug bash script");
