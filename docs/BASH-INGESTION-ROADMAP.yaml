@@ -9,13 +9,13 @@ roadmap:
 
   statistics:
     total_tasks: 122
-    completed: 68
-    partial_support: 2
+    completed: 69
+    partial_support: 1
     pending: 49
     blocked: 3
-    coverage_percent: 56
+    coverage_percent: 57
     accuracy_verified: "2025-10-28"
-    session_update: "Completed BUILTIN-011 (4.1 - pwd command). 8 passing tests document pwd as POSIX-COMPLIANT (SUPPORTED). pwd prints current working directory. POSIX forms (3): (1) pwd (print current directory), (2) pwd -L (logical path, follows symlinks, default behavior), (3) pwd -P (physical path, resolves symlinks to canonical path). No bash extensions (pwd is fully POSIX-compliant). pwd vs \$PWD: pwd is command that queries system (always accurate), \$PWD is environment variable updated by cd (can be manually modified), usually equivalent but pwd is more reliable for scripts. Common use cases (6): (1) current=\$(pwd) (save current directory), (2) old=\$(pwd); cd /tmp; cd \"\$old\" (save and restore pattern), (3) echo \"Working in \$(pwd)\" (display current location), (4) SCRIPT_DIR=\"\$(cd \"\$(dirname \"\$0\")\" && pwd)\" (get script directory reliably), (5) physical_path=\$(pwd -P) (resolve symlinks to canonical path), (6) logical_path=\$(pwd -L) (preserve symlink path for user-friendly display). Edge cases (5): (1) directory deleted (pwd may fail if current working directory deleted), (2) no permissions (pwd may fail without read permissions on path components), (3) symlinks (pwd -L shows symlink path, pwd -P shows real resolved path), (4) \$PWD mismatch (pwd always accurate, \$PWD can be modified manually), (5) chroot (pwd shows path relative to chroot root, not actual system path). Best practices (5): (1) use pwd for portability (works in all POSIX shells), (2) use \$PWD for efficiency (no subprocess spawn needed), (3) use pwd -P to resolve symlinks for canonical paths, (4) save pwd before changing directories for restoration, (5) quote pwd output in assignments (dir=\"\$(pwd)\"). Rust mapping (3): pwd → std::env::current_dir(), pwd -L → std::env::current_dir() (logical path with symlinks), pwd -P → std::fs::canonicalize(std::env::current_dir()) (physical canonical path). Purification (3): pwd → pwd (POSIX supported), pwd -L → pwd -L (POSIX supported), pwd -P → pwd -P (POSIX supported). pwd is deterministic (always returns current directory at time of invocation). Comprehensive comparison table: POSIX SUPPORTED (pwd, pwd -L, pwd -P, \$PWD variable, exit status 0/1, symlink handling). Total tests: 5,005 (100% passing)."
+    session_update: "Completed BUILTIN-016 (4.1 - test / [ command). 8 passing tests document test / [ as POSIX-SUPPORTED (HIGH priority). test evaluates conditional expressions, [ is an alias for test (closing ] required). POSIX test operators (14): FILE TESTS (6): -f (regular file), -d (directory), -e (exists any type), -r/-w/-x (readable/writable/executable), -s (non-empty size>0), -L (symbolic link). STRING TESTS (6): -z (zero length), -n (non-zero length), = (equal), != (not equal), \\< (less than, escaped), \\> (greater than, escaped). INTEGER TESTS (6): -eq (equal), -ne (not equal), -lt (less than), -le (less than or equal), -gt (greater than), -ge (greater than or equal). LOGICAL (3): ! (not), -a (and, deprecated), -o (or, deprecated), prefer splitting: [ ] && [ ] (modern POSIX). Bash extensions NOT SUPPORTED (6): (1) [[ ]] compound command (use [ ] instead), (2) [[ \"\$a\" == \"\$b\" ]] (use [ \"\$a\" = \"\$b\" ] with = not ==), (3) [[ \"\$str\" =~ regex ]] (use grep/sed/case instead), (4) [[ \"\$a\" < \"\$b\" ]] (use [ \"\$a\" \\< \"\$b\" ] with backslash escape), (5) [[ \"\$file\" == *.txt ]] (use case statement for pattern matching), (6) [[ -f \"a\" && -f \"b\" ]] (split into [ -f \"a\" ] && [ -f \"b\" ]). Purification strategies (6): (1) Replace [[ ]] → [ ], (2) Replace == → =, (3) Replace =~ regex → grep -qE, (4) Replace pattern matching → case statement, (5) Escape < > → \\< \\>, (6) Split && || → separate [ ] tests. Common patterns (7): (1) Check file exists: [ -f \"config\" ] && . config, (2) Check variable set: [ -n \"\$VAR\" ] && echo \"\$VAR\", (3) Check variable unset: [ -z \"\$VAR\" ] && VAR=\"default\", (4) Check exit status: [ \"\$?\" -ne 0 ] && exit 1, (5) Multi-condition: [ -f \"f\" ] && [ -r \"f\" ] && [ -s \"f\" ], (6) Error check: [ ! -d \"\$dir\" ] && exit 1, (7) Alternative values: [ -n \"\$CUSTOM\" ] && PATH=\"\$CUSTOM\" || PATH=\"/usr/bin\". Rust mapping (9): [ -f \"file\" ] → Path::new(\"file\").is_file(), [ -d \"dir\" ] → Path::new(\"dir\").is_dir(), [ -e \"path\" ] → Path::new(\"path\").exists(), [ \"\$a\" = \"\$b\" ] → a == b, [ \"\$a\" -eq \"\$b\" ] → a == b (int), [ \"\$a\" -lt \"\$b\" ] → a < b, [ \"\$a\" -gt \"\$b\" ] → a > b, [ -z \"\$str\" ] → str.is_empty(), [ -n \"\$str\" ] → !str.is_empty(). test is POSIX-COMPLIANT (IEEE Std 1003.1-2001), deterministic (pure evaluation), idempotent (no side effects). Comprehensive comparison table: POSIX SUPPORTED (file tests -f/-d/-e/-r/-w/-x/-s/-L, string tests -z/-n/=!=, integer tests -eq/-ne/-lt/-le/-gt/-ge, logical !/- a/-o/&&/||), NOT SUPPORTED ([[ ]], ==, =~, unescaped < >, pattern matching). Total tests: 5,013 (100% passing)."
 
 extreme_tdd_workflow:
   description: "Hybrid workflow combining GNU Bash validation with REPL verification"
@@ -1615,15 +1615,26 @@ chapters:
 
           - id: "BUILTIN-016"
             title: "Document test / ["
-            status: "partial"
+            status: "completed"
             priority: "HIGH"
             input: "if [ -f \"file.txt\" ]; then echo \"exists\"; fi"
-            rust: "test_file_exists(\"/tmp/test.txt\")"
-            purified: "test_file_exists /tmp/test.txt"
-            test_name: "test_test_command_baseline"
-            notes: "Function calls work (test_file_exists path), std::path::Path recognition is enhancement."
-            red_phase_tests: "rash/tests/integration_tests.rs:1368-1445"
-            version: "v1.2.1"
+            rust: "if std::path::Path::new(\"file.txt\").is_file() { println!(\"exists\"); }"
+            purified: "if [ -f \"file.txt\" ]; then printf '%s\\n' \"exists\"; fi"
+            test_name: "test_BUILTIN_016_test_command_supported"
+            notes: "test / [ is POSIX SUPPORTED (HIGH priority). test evaluates conditional expressions, [ is alias for test. POSIX operators: FILE TESTS (-f/-d/-e/-r/-w/-x/-s/-L), STRING TESTS (-z/-n/=!=/\\</\\>), INTEGER TESTS (-eq/-ne/-lt/-le/-gt/-ge), LOGICAL (!/- a/-o). Bash extensions NOT SUPPORTED: [[ ]], ==, =~, unescaped < >, pattern matching. Use [ ] with = (not ==) for POSIX portability. 8 comprehensive tests document all POSIX test operators and purification strategies for bash extensions."
+            implementation:
+              module: "rash/src/bash_parser/tests.rs"
+              functions:
+                - "test_BUILTIN_016_test_command_supported (passing)"
+                - "test_BUILTIN_016_test_file_tests (passing)"
+                - "test_BUILTIN_016_test_string_tests (passing)"
+                - "test_BUILTIN_016_test_integer_tests (passing)"
+                - "test_BUILTIN_016_test_logical_operators (passing)"
+                - "test_BUILTIN_016_test_bash_extensions_not_supported (passing)"
+                - "test_BUILTIN_016_test_common_patterns (passing)"
+                - "test_BUILTIN_016_test_comparison_table (passing)"
+              lines_of_code: 663
+            version: "v6.6.0"
 
           - id: "BUILTIN-017"
             title: "Document times"
