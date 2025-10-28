@@ -1,6 +1,6 @@
 use crate::cli::args::{
     CompileRuntime, ConfigCommands, ConfigOutputFormat, ContainerFormatArg, InspectionFormat,
-    LintFormat, MakeCommands, MakeOutputFormat, ReportFormat, TestOutputFormat,
+    LintFormat, MakeCommands, MakeOutputFormat, ReportFormat, ScoreOutputFormat, TestOutputFormat,
 };
 use crate::cli::{Cli, Commands};
 use crate::models::{Config, Error, Result};
@@ -140,6 +140,15 @@ pub fn execute_command(cli: Cli) -> Result<()> {
         } => {
             info!("Running tests in {}", input.display());
             test_command(&input, format, detailed, pattern.as_deref())
+        }
+
+        Commands::Score {
+            input,
+            format,
+            detailed,
+        } => {
+            info!("Scoring {}", input.display());
+            score_command(&input, format, detailed)
         }
     }
 }
@@ -1490,4 +1499,159 @@ fn print_junit_test_results(report: &crate::bash_quality::testing::TestReport) {
     }
 
     println!("</testsuite>");
+}
+
+/// Score a bash script for quality
+fn score_command(
+    input: &Path,
+    format: ScoreOutputFormat,
+    detailed: bool,
+) -> Result<()> {
+    use crate::bash_quality::scoring::score_script;
+
+    // Read input file
+    let source = fs::read_to_string(input)
+        .map_err(|e| Error::Internal(format!("Failed to read {}: {}", input.display(), e)))?;
+
+    // Score the script
+    let score = score_script(&source)
+        .map_err(|e| Error::Internal(format!("Failed to score script: {}", e)))?;
+
+    // Output results
+    match format {
+        ScoreOutputFormat::Human => {
+            print_human_score_results(&score, detailed);
+        }
+        ScoreOutputFormat::Json => {
+            print_json_score_results(&score);
+        }
+        ScoreOutputFormat::Markdown => {
+            print_markdown_score_results(&score, input);
+        }
+    }
+
+    Ok(())
+}
+
+/// Print human-readable score results
+fn print_human_score_results(
+    score: &crate::bash_quality::scoring::QualityScore,
+    detailed: bool,
+) {
+    println!();
+    println!("Bash Script Quality Score");
+    println!("=========================");
+    println!();
+    println!("Overall Grade: {}", score.grade);
+    println!("Overall Score: {:.1}/10.0", score.score);
+    println!();
+
+    if detailed {
+        println!("Dimension Scores:");
+        println!("-----------------");
+        println!("Complexity:      {:.1}/10.0", score.complexity);
+        println!("Safety:          {:.1}/10.0", score.safety);
+        println!("Maintainability: {:.1}/10.0", score.maintainability);
+        println!("Testing:         {:.1}/10.0", score.testing);
+        println!("Documentation:   {:.1}/10.0", score.documentation);
+        println!();
+    }
+
+    if !score.suggestions.is_empty() {
+        println!("Improvement Suggestions:");
+        println!("------------------------");
+        for (i, suggestion) in score.suggestions.iter().enumerate() {
+            println!("{}. {}", i + 1, suggestion);
+        }
+        println!();
+    }
+
+    // Grade interpretation
+    match score.grade.as_str() {
+        "A+" => println!("✓ Excellent! Near-perfect code quality."),
+        "A" => println!("✓ Great! Very good code quality."),
+        "B+" | "B" => println!("✓ Good code quality with room for improvement."),
+        "C+" | "C" => println!("⚠ Average code quality. Consider addressing suggestions."),
+        "D" => println!("⚠ Below average. Multiple improvements needed."),
+        "F" => println!("✗ Poor code quality. Significant improvements required."),
+        _ => {}
+    }
+}
+
+/// Print JSON score results
+fn print_json_score_results(score: &crate::bash_quality::scoring::QualityScore) {
+    use serde_json::json;
+
+    let json_score = json!({
+        "grade": score.grade,
+        "score": score.score,
+        "dimensions": {
+            "complexity": score.complexity,
+            "safety": score.safety,
+            "maintainability": score.maintainability,
+            "testing": score.testing,
+            "documentation": score.documentation,
+        },
+        "suggestions": score.suggestions,
+    });
+
+    println!("{}", serde_json::to_string_pretty(&json_score).unwrap());
+}
+
+/// Print Markdown score results
+fn print_markdown_score_results(
+    score: &crate::bash_quality::scoring::QualityScore,
+    input: &Path,
+) {
+    println!("# Bash Script Quality Report");
+    println!();
+    println!("**File**: `{}`", input.display());
+    println!("**Date**: {}", chrono::Local::now().format("%Y-%m-%d %H:%M:%S"));
+    println!();
+    println!("## Overall Score");
+    println!();
+    println!("**Grade**: {} | **Score**: {:.1}/10.0", score.grade, score.score);
+    println!();
+    println!("## Dimension Scores");
+    println!();
+    println!("| Dimension | Score | Status |");
+    println!("| --- | --- | --- |");
+    println!("| Complexity | {:.1}/10.0 | {} |", score.complexity, score_status(score.complexity));
+    println!("| Safety | {:.1}/10.0 | {} |", score.safety, score_status(score.safety));
+    println!("| Maintainability | {:.1}/10.0 | {} |", score.maintainability, score_status(score.maintainability));
+    println!("| Testing | {:.1}/10.0 | {} |", score.testing, score_status(score.testing));
+    println!("| Documentation | {:.1}/10.0 | {} |", score.documentation, score_status(score.documentation));
+    println!();
+
+    if !score.suggestions.is_empty() {
+        println!("## Improvement Suggestions");
+        println!();
+        for suggestion in &score.suggestions {
+            println!("- {}", suggestion);
+        }
+        println!();
+    }
+
+    println!("## Grade Interpretation");
+    println!();
+    match score.grade.as_str() {
+        "A+" => println!("✅ **Excellent!** Near-perfect code quality."),
+        "A" => println!("✅ **Great!** Very good code quality."),
+        "B+" | "B" => println!("✅ **Good** code quality with room for improvement."),
+        "C+" | "C" => println!("⚠️ **Average** code quality. Consider addressing suggestions."),
+        "D" => println!("⚠️ **Below average**. Multiple improvements needed."),
+        "F" => println!("❌ **Poor** code quality. Significant improvements required."),
+        _ => {}
+    }
+}
+
+/// Helper to get status emoji for dimension score
+fn score_status(score: f64) -> &'static str {
+    if score >= 8.0 {
+        "✅"
+    } else if score >= 6.0 {
+        "⚠️"
+    } else {
+        "❌"
+    }
 }

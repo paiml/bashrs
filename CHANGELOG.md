@@ -7,6 +7,77 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [6.11.0] - 2025-10-28
+
+### 📊 BASH QUALITY TOOLS - Score Command
+
+**bashrs v6.11.0 adds the `bashrs score` command** - TDG-style quality scoring for bash scripts.
+
+**New Feature**: Quality scoring system that evaluates bash scripts across 5 dimensions and provides actionable improvement suggestions.
+
+### Added
+
+**📊 Bash Quality Scoring** (Complete)
+
+New `bashrs score` command for evaluating bash script quality:
+
+```bash
+# Score a bash script
+bashrs score script.sh
+
+# Detailed dimension breakdown
+bashrs score script.sh --detailed
+
+# JSON output for CI/CD
+bashrs score script.sh --format json
+
+# Markdown report
+bashrs score script.sh --format markdown
+```
+
+**Scoring Dimensions** (5 dimensions, weighted):
+1. **Complexity** (25%): Function length, nesting depth
+2. **Safety** (30%): Variable quoting, error handling
+3. **Maintainability** (20%): Modularity, comment ratio
+4. **Testing** (15%): Test coverage ratio
+5. **Documentation** (10%): Comment quality, header docs
+
+**Grading Scale** (TDG-style):
+- **A+** (9.5-10.0): Near-perfect code quality
+- **A** (9.0-9.5): Excellent code quality
+- **B+/B** (8.0-8.9): Good code quality
+- **C+/C** (7.0-7.9): Average code quality
+- **D** (6.0-6.9): Below average
+- **F** (<6.0): Poor quality
+
+**Features**:
+- ✅ 5-dimension quality analysis
+- ✅ TDG-style grading (A+ to F)
+- ✅ Actionable improvement suggestions
+- ✅ Multiple output formats: Human, JSON, Markdown
+- ✅ Detailed dimension scores with `--detailed`
+- ✅ CI/CD integration with JSON output
+
+**Implementation Quality**:
+- 10 comprehensive unit tests (EXTREME TDD)
+- Zero regressions (5,130 tests passing)
+- Real-world validation: A+ (9.9) and F (3.9) test cases
+- Full CLI integration with clap
+
+**Bash Quality Tools Progress**:
+- ✅ `bashrs test` (v6.10.0) - Test discovery and execution
+- ✅ `bashrs score` (v6.11.0) - Quality scoring (A+ to F)
+- ⏳ `bashrs coverage` (planned) - Test coverage tracking
+- ⏳ `bashrs format` (planned) - Bash script formatting
+
+### Quality Metrics
+
+- Test Coverage: 88.71% (target: >85%) ✅
+- Mutation Score: 92% (target: >90%) ✅
+- Test Pass Rate: 100% (5,130/5,130) ✅
+- Zero Regressions ✅
+- Max Cyclomatic Complexity: 14 (A+ grade maintained) ✅
+
 ## [6.10.0] - 2025-10-28
 
 ### 🧪 BASH QUALITY TOOLS - MVP RELEASE
