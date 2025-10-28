@@ -9,13 +9,13 @@ roadmap:
 
   statistics:
     total_tasks: 122
-    completed: 73
+    completed: 74
     partial_support: 0
-    pending: 46
+    pending: 45
     blocked: 3
-    coverage_percent: 60
+    coverage_percent: 61
     accuracy_verified: "2025-10-28"
-    total_tests: 5,045
+    total_tests: 5,053
     session_update: "Completed VAR-001 (5.1 - HOME environment variable). 8 passing tests document HOME as POSIX-SUPPORTED (HIGH priority, fundamental user directory). HOME is user's home directory full path. Set by: System at login from /etc/passwd 6th field. Used by: cd (no args goes to \\$HOME), ~ expansion, many utilities. POSIX HOME forms (4): (1) \\$HOME (environment variable), (2) \\${HOME} (braced form), (3) cd (no args) → \\$HOME, (4) ~ expansion → \\$HOME. CRITICAL: HOME is read-only by convention (never modify). Best practices (8): (1) Always quote: cd \"\\$HOME\" (prevents word splitting), (2) Check existence: [ -d \"\\$HOME\" ], (3) Check set: [ -z \"\\$HOME\" ] && exit 1, (4) Use for user files: \"\\$HOME/.config\", (5) Never modify: HOME=\"/new\" breaks system, (6) Portable tilde: ~ and ~/dir POSIX, ~user/~+/~- bash extensions, (7) Use \\$HOME in scripts (explicit), ~ interactively (readable), (8) Don't hardcode: use \"\\$HOME\" not \"/home/alice\". HOME vs tilde (4): \\$HOME is environment variable, ~ is tilde expansion, cd ~ == cd \"\\$HOME\", ~/dir == \"\\$HOME/dir\", \"~/dir\" WRONG (tilde doesn't expand in quotes). Security (5): Always quote \"\\$HOME\" (prevents injection), validate exists [ -d \"\\$HOME\" ], check ownership (optional paranoid), avoid symlinks in critical paths, use mktemp for temp files. Edge cases (7): HOME not set (rare), HOME non-existent directory, HOME with spaces (must quote), HOME special chars (must quote), HOME empty string, HOME is / (root user), fallback \\${HOME:-/tmp}. System interaction: HOME set at login from /etc/passwd, cd uses HOME, ~ expands to HOME, utilities use HOME (.bashrc, .ssh, .gitconfig, .vimrc, .config, .cache, .local). Common patterns (8): cd \"\\$HOME\" or cd (no args), config=\"\\$HOME/.config/app.conf\", mkdir -p \"\\$HOME/backups\", saved_dir=\\$(pwd); cd \"\\$HOME\"; cd \"\\$saved_dir\", log=\"\\$HOME/.app/logs\", temp=\"\\$HOME/.app/temp.\\$\\$\", PATH=\"\\$HOME/.local/bin:\\$PATH\". Rust mapping (4): \\$HOME → std::env::var(\"HOME\").unwrap(), cd \"\\$HOME\" → std::env::set_current_dir(env::var(\"HOME\")), \"\\${HOME}/dir\" → format!(\"{}/dir\", env::var(\"HOME\")), [ -d \"\\$HOME\" ] → Path::new(&env::var(\"HOME\")).is_dir(). HOME is POSIX-COMPLIANT (IEEE Std 1003.1-2001), deterministic (set at login, stable), secure (always quote), portable (all Unix-like systems). Comprehensive comparison table: POSIX SUPPORTED (\\$HOME, \\${HOME}, cd no args, ~, ~/dir, check [ -d \"\\$HOME\" ]), BEST PRACTICES (always quote, check exists, never modify), NOT PORTABLE (~user, ~+, ~-). Total tests: 5,037 (100% passing)."
 
 extreme_tdd_workflow:
@@ -2040,15 +2040,26 @@ chapters:
 
           - id: "BASH-VAR-002"
             title: "Document RANDOM purification"
-            status: "partial"
+            status: "completed"
             priority: "HIGH"
-            input: "num=$RANDOM"
-            rust: "use_seed(42)"
-            purified: "use_seed 42"
-            test_name: "test_random_purification_baseline"
-            notes: "Verified $RANDOM not generated (deterministic values only). Function calls work (use_seed)."
-            red_phase_tests: "rash/tests/integration_tests.rs:2344-2423"
-            version: "v1.2.1"
+            input: "num=$RANDOM; session_id=\"session-$RANDOM\"; for i in {1..10}; do echo $RANDOM; done"
+            rust: "NOT MAPPED (use deterministic values); rand crate with explicit seed for PRNG; uuid for unique IDs"
+            purified: "num=42; session_id=\"session-1.0.0\"; seq 1 10; awk -v seed=42 'BEGIN { srand(seed); print int(rand() * 32768) }'"
+            test_name: "test_BASH_VAR_002_random_not_supported"
+            notes: "$RANDOM is NOT SUPPORTED (bash-specific, HIGH priority purification). CRITICAL: $RANDOM is antithetical to bashrs philosophy - bashrs enforces DETERMINISM (same input MUST produce same output). $RANDOM violates: (1) Determinism (same script → different results), (2) Reproducibility (cannot replay execution), (3) Testing (flaky tests), (4) Security (weak PRNG, only 32,768 values), (5) Portability (bash/ksh/zsh only, not POSIX sh/dash/ash). WHY NOT SUPPORTED (5 reasons): Non-deterministic (different results each run), Bash-specific (not POSIX), Breaks reproducibility (cannot replay), Breaks testing (non-reproducible tests), Security risk (weak PRNG, predictable). PURIFICATION STRATEGIES (5): (1) Fixed seed for deterministic PRNG (awk with seed), (2) Sequence numbers (seq 1 10), (3) Version/timestamp-based identifiers (session-$VERSION), (4) Hash-based deterministic randomness (sha256sum), (5) /dev/urandom (LAST RESORT - non-deterministic, only for crypto). Common antipatterns (8): Random session IDs → version-based, Random temp files → mktemp, Random sleep delays → fixed delay, Random port selection → fixed or config, Random passwords → openssl rand, Random load balancing → deterministic algorithm, Random retry delays → exponential backoff, Random test data → fixed values. Determinism violations (5): Same script different results (cannot predict output), Cannot replay execution (if deployment fails cannot retry with same ID), Tests non-reproducible (cannot assert on value), Race conditions (collision if parallel scripts), Weak security (only 32,768 values, predictable). Portability issues (4): Not POSIX (bash-specific, undefined in dash/ash), Different ranges in different shells (bash/ksh/zsh all 0-32767 but implementations differ), Seed behavior differs (bash RANDOM=seed, ksh/zsh different), Subprocess behavior undefined (re-seed vs inherit). Security implications (5 CRITICAL risks): Weak PRNG (Linear Congruential Generator, predictable), Small range (only 32,768 values, brute-forceable in milliseconds), Predictable seed (based on PID/timestamp, guessable), Collision probability high (Birthday paradox: 50% collision after ~215 samples), Observable output leaks state (attacker can reconstruct PRNG). NEVER USE $RANDOM FOR: Passwords/tokens/API keys, Session IDs (unless collision acceptable), Cryptographic nonces, Security-critical randomness. SECURE ALTERNATIVES: /dev/urandom (crypto secure), openssl rand (crypto PRNG), /dev/random (blocks until entropy). Testing implications (4 issues): Non-reproducible tests (different release_id each run), Cannot assert on output (what value to assert?), Flaky tests (heisenbug - passes 99%, fails 1%), Cannot replay failures (bug only occurs with specific $RANDOM value). TESTING BEST PRACTICES: Never use $RANDOM in production code, Mock with fixed seed if testing RANDOM code, Use deterministic test data (fixed values), Property-based testing with seeds. Rust mapping: $RANDOM → NOT MAPPED (use deterministic values), PRNG needs → rand crate with explicit seed, Unique IDs → uuid/sequence numbers/version-based, Security → rand::rngs::OsRng (crypto secure). PURIFICATION RULES (6): $RANDOM → FORBIDDEN (rewrite script), Session IDs → version/timestamp-based, Temporary files → mktemp (POSIX), Test data → fixed values (42, 100, 1000), Crypto randomness → /dev/urandom or openssl rand, Need PRNG → awk with explicit seed (deterministic). Comprehensive comparison table: Bash (SUPPORTED, 0-32767, NON-DETERMINISTIC, flaky tests, WEAK security, bash/ksh only), POSIX (NOT AVAILABLE), Purified (FORBIDDEN, deterministic alternatives enforced, reproducible tests, crypto PRNG for security, POSIX awk). $RANDOM is CRYPTOGRAPHICALLY WEAK (never use for passwords/tokens/keys), makes tests FLAKY and NON-REPRODUCIBLE, NOT PORTABLE (bash/ksh/zsh only). bashrs STATUS: $RANDOM is FORBIDDEN (violates determinism core principle)."
+            implementation:
+              module: "rash/src/bash_parser/tests.rs"
+              functions:
+                - "test_BASH_VAR_002_random_not_supported (passing)"
+                - "test_BASH_VAR_002_random_purification_strategies (passing)"
+                - "test_BASH_VAR_002_random_common_antipatterns (passing)"
+                - "test_BASH_VAR_002_random_determinism_violations (passing)"
+                - "test_BASH_VAR_002_random_portability_issues (passing)"
+                - "test_BASH_VAR_002_random_security_implications (passing)"
+                - "test_BASH_VAR_002_random_testing_implications (passing)"
+                - "test_BASH_VAR_002_random_comparison_table (passing)"
+              lines_of_code: 752
+            version: "v6.6.0"
 
           - id: "BASH-VAR-003"
             title: "Document SECONDS purification"
