@@ -61,56 +61,81 @@ const PHONY_TARGETS: &[&str] = &[
     "prod",
 ];
 
+/// Check if line is a .PHONY declaration
+fn is_phony_line(line: &str) -> bool {
+    line.trim_start().starts_with(".PHONY:")
+}
+
+/// Parse targets from .PHONY line
+fn parse_phony_line(line: &str) -> Vec<String> {
+    line.split(':')
+        .nth(1)
+        .map(|targets_str| {
+            targets_str
+                .split_whitespace()
+                .map(|s| s.to_string())
+                .collect()
+        })
+        .unwrap_or_default()
+}
+
+/// Parse all .PHONY declarations from source
+fn parse_phony_targets(source: &str) -> HashSet<String> {
+    source
+        .lines()
+        .filter(|line| is_phony_line(line))
+        .flat_map(|line| parse_phony_line(line))
+        .collect()
+}
+
+/// Check if line should be skipped (comments or .PHONY)
+fn should_skip_line(line: &str) -> bool {
+    line.trim_start().starts_with(".PHONY") || line.trim_start().starts_with('#')
+}
+
+/// Check if line defines a target
+fn is_target_line(line: &str) -> bool {
+    line.contains(':') && !line.starts_with('\t') && !line.trim_start().is_empty()
+}
+
+/// Check if line is a variable assignment
+fn is_variable_assignment(line: &str) -> bool {
+    line.contains('=')
+}
+
+/// Extract target name from line
+fn extract_target_name(line: &str) -> Option<&str> {
+    line.split(':').next().map(|s| s.trim())
+}
+
+/// Check if target should be marked as .PHONY
+fn should_be_phony(target: &str) -> bool {
+    PHONY_TARGETS.contains(&target)
+}
+
+/// Build diagnostic for missing .PHONY
+fn build_phony_diagnostic(line_num: usize, target: &str) -> Diagnostic {
+    let span = Span::new(line_num + 1, 1, line_num + 1, target.len() + 1);
+    let fix = format!(".PHONY: {}", target);
+    let message = format!("Target '{}' should be marked as .PHONY", target);
+
+    Diagnostic::new("MAKE004", Severity::Warning, message, span).with_fix(Fix::new(&fix))
+}
+
 /// Check for missing .PHONY declarations
 pub fn check(source: &str) -> LintResult {
     let mut result = LintResult::new();
+    let phony_targets = parse_phony_targets(source);
 
-    // Find all .PHONY declarations
-    let mut phony_targets = HashSet::new();
-    for line in source.lines() {
-        if line.trim_start().starts_with(".PHONY:") {
-            // Extract target names after .PHONY:
-            if let Some(targets_str) = line.split(':').nth(1) {
-                for target in targets_str.split_whitespace() {
-                    phony_targets.insert(target.to_string());
-                }
-            }
-        }
-    }
-
-    // Find all targets and check if common ones are marked .PHONY
     for (line_num, line) in source.lines().enumerate() {
-        // Skip .PHONY lines and comments
-        if line.trim_start().starts_with(".PHONY") || line.trim_start().starts_with('#') {
+        if should_skip_line(line) || !is_target_line(line) || is_variable_assignment(line) {
             continue;
         }
 
-        // Check if line defines a target (has : and doesn't start with tab)
-        if line.contains(':') && !line.starts_with('\t') && !line.trim_start().is_empty() {
-            if let Some(target_part) = line.split(':').next() {
-                let target = target_part.trim();
-
-                // Skip variable assignments (contains =)
-                if line.contains('=') {
-                    continue;
-                }
-
-                // Check if this is a common phony target
-                if PHONY_TARGETS.contains(&target) && !phony_targets.contains(target) {
-                    let span = Span::new(line_num + 1, 1, line_num + 1, target.len() + 1);
-
-                    let fix = format!(".PHONY: {}", target);
-
-                    let diag = Diagnostic::new(
-                        "MAKE004",
-                        Severity::Warning,
-                        format!("Target '{}' should be marked as .PHONY", target),
-                        span,
-                    )
-                    .with_fix(Fix::new(&fix));
-
-                    result.add(diag);
-                }
+        if let Some(target) = extract_target_name(line) {
+            if should_be_phony(target) && !phony_targets.contains(target) {
+                let diag = build_phony_diagnostic(line_num, target);
+                result.add(diag);
             }
         }
     }
