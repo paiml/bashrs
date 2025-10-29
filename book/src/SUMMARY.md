@@ -44,6 +44,7 @@
 - [Deployment Script](./examples/deployment-script.md)
 - [Configuration Management](./examples/config-management.md)
 - [CI/CD Pipeline](./examples/cicd-pipeline.md)
+- [Complete Quality Workflow: Real .zshrc](./example_zshrc_workflow.md)
 
 ## Advanced Topics
 

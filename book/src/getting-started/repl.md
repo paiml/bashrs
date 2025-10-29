@@ -16,6 +16,7 @@ bashrs [normal]>
 ## Features
 
 - 🎯 **5 Interactive Modes**: Switch between different analysis modes
+- ⌨️ **Tab Completion**: Auto-complete commands, modes, and bash constructs
 - 🔍 **Parser Integration**: Parse bash code and inspect AST
 - 🧹 **Purifier Integration**: Transform bash to idempotent/deterministic code
 - 🔎 **Linter Integration**: Real-time diagnostics with severity levels
@@ -414,6 +415,84 @@ bashrs [purify]> mkdir /tmp/test
 Purified 1 statement(s)
 ```
 
+## Tab Completion
+
+**NEW in v6.20.0**: The REPL now includes intelligent tab completion to speed up your workflow and reduce typing errors.
+
+### Command Completion
+
+Press `Tab` to auto-complete REPL commands:
+
+```bash
+bashrs [normal]> :mo<TAB>
+# Completes to: :mode
+
+bashrs [normal]> :p<TAB>
+# Shows: :parse  :purify
+
+bashrs [normal]> :h<TAB>
+# Completes to: :history
+```
+
+### Mode Name Completion
+
+After typing `:mode`, press `Tab` to complete mode names:
+
+```bash
+bashrs [normal]> :mode pur<TAB>
+# Completes to: :mode purify
+
+bashrs [normal]> :mode <TAB>
+# Shows all modes: normal  purify  lint  debug  explain
+```
+
+### Bash Construct Completion
+
+Tab completion also works for common bash constructs:
+
+```bash
+bashrs [explain]> for<TAB>
+# Completes to: for i in
+
+bashrs [explain]> ${var:<TAB>
+# Shows: ${var:-default}  ${var:=default}  ${var:?error}  ${var:+alternate}
+```
+
+### Case-Insensitive Completion
+
+Tab completion is case-insensitive for convenience:
+
+```bash
+bashrs [normal]> :MO<TAB>
+# Completes to: :mode
+
+bashrs [normal]> :mode PUR<TAB>
+# Completes to: :mode purify
+```
+
+### Completion Examples
+
+**Example 1: Quick mode switching**
+```bash
+bashrs [normal]> :m<TAB>pur<TAB><ENTER>
+# Result: :mode purify
+Switched to purify mode
+```
+
+**Example 2: Exploring commands**
+```bash
+bashrs [normal]> :<TAB>
+# Shows all commands:
+# :clear  :history  :lint  :mode  :parse  :purify  :vars
+```
+
+**Example 3: Learning bash constructs**
+```bash
+bashrs [explain]> $<TAB>
+# Shows parameter expansions:
+# ${var:-default}  ${var:=default}  ${var:?error}  ${var:+alternate}  ${#var}
+```
+
 ## Command History
 
 The REPL automatically saves command history to `~/.bashrs_history`:
@@ -436,6 +515,7 @@ bashrs [normal]> # Press ↑ to recall previous commands
 - **↑ (Up Arrow)**: Previous command
 - **↓ (Down Arrow)**: Next command
 - **Ctrl-R**: Reverse search through history
+- **Tab**: Auto-complete commands, modes, and bash constructs
 - **Ctrl-C**: Cancel current line
 - **Ctrl-D**: Exit REPL (EOF)
 
