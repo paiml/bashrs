@@ -210,10 +210,16 @@ Command History (3 commands):
 bashrs [normal]> :vars
 No session variables set
 
-# Future: When variable assignment is implemented
+# After assigning variables
 bashrs [normal]> x=5
+✓ Variable set: x = 5
+
+bashrs [normal]> name="Alice"
+✓ Variable set: name = Alice
+
 bashrs [normal]> :vars
-Session Variables (1 variables):
+Session Variables (2 variables):
+  name = Alice
   x = 5
 ```
 
@@ -414,6 +420,136 @@ bashrs [purify]> mkdir /tmp/test
 ✓ Purified:
 Purified 1 statement(s)
 ```
+
+### Example 8: Variable Assignment and Expansion
+
+**NEW in v6.20.0**: The REPL now supports bash-style variable assignment and automatic expansion in commands.
+
+#### Simple Variable Assignment
+```bash
+bashrs [normal]> x=5
+✓ Variable set: x = 5
+
+bashrs [normal]> echo $x
+Would execute: echo 5
+(Note: Normal mode execution not yet implemented)
+```
+
+#### Variable Assignment with Quotes
+```bash
+# Double quotes
+bashrs [normal]> name="Alice Johnson"
+✓ Variable set: name = Alice Johnson
+
+# Single quotes
+bashrs [normal]> path='/usr/local/bin'
+✓ Variable set: path = /usr/local/bin
+```
+
+#### Variable Expansion Syntax
+```bash
+# Simple expansion
+bashrs [normal]> version=1.0.0
+✓ Variable set: version = 1.0.0
+
+bashrs [normal]> echo $version
+Would execute: echo 1.0.0
+
+# Braced expansion
+bashrs [normal]> echo Release: ${version}
+Would execute: echo Release: 1.0.0
+```
+
+#### Multiple Variables
+```bash
+bashrs [normal]> x=10
+✓ Variable set: x = 10
+
+bashrs [normal]> y=20
+✓ Variable set: y = 20
+
+bashrs [normal]> echo $x + $y = 30
+Would execute: echo 10 + 20 = 30
+
+bashrs [normal]> :vars
+Session Variables (2 variables):
+  x = 10
+  y = 20
+```
+
+#### Variables with Purify Mode
+```bash
+# Switch to purify mode
+bashrs [normal]> :mode purify
+Switched to purify mode
+
+# Assign variable
+bashrs [purify]> dir=/tmp/myapp
+✓ Variable set: dir = /tmp/myapp
+
+# Variable is expanded before purification
+bashrs [purify]> mkdir $dir
+✓ Purified:
+Purified 1 statement(s)
+```
+
+#### Variables with Lint Mode
+```bash
+bashrs [normal]> :mode lint
+Switched to lint mode
+
+bashrs [lint]> filename=config.txt
+✓ Variable set: filename = config.txt
+
+bashrs [lint]> cat $filename | grep pattern
+Found 1 issue(s):
+  ⚠ 1 warning(s)
+```
+
+#### Unknown Variables
+```bash
+# Unknown variables expand to empty string (bash behavior)
+bashrs [normal]> echo $unknown_var
+Would execute: echo
+
+bashrs [normal]> echo Before:$missing:After
+Would execute: echo Before::After
+```
+
+#### Variable Reassignment
+```bash
+bashrs [normal]> status=pending
+✓ Variable set: status = pending
+
+bashrs [normal]> status=complete
+✓ Variable set: status = complete
+
+bashrs [normal]> echo $status
+Would execute: echo complete
+```
+
+#### Viewing Variables
+```bash
+# View all session variables
+bashrs [normal]> user=alice
+✓ Variable set: user = alice
+
+bashrs [normal]> role=admin
+✓ Variable set: role = admin
+
+bashrs [normal]> :vars
+Session Variables (2 variables):
+  role = admin
+  user = alice
+```
+
+**Notes**:
+- Variables persist throughout your REPL session
+- Variables persist across mode switches
+- Variable names must start with a letter or underscore
+- Variable names can contain letters, numbers, and underscores
+- Unknown variables expand to empty string (matching bash behavior)
+- Use `:vars` to view all session variables
 
 ## Tab Completion
 

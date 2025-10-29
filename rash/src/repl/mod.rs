@@ -15,6 +15,7 @@ pub mod modes;
 pub mod parser;
 pub mod purifier;
 pub mod state;
+pub mod variables;
 
 pub use config::ReplConfig;
 pub use explain::{explain_bash, Explanation};

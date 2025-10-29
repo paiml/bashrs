@@ -11,7 +11,8 @@
 
 use crate::repl::{
     completion::ReplCompleter, explain_bash, format_lint_results, format_parse_error, lint_bash,
-    parse_bash, purify_bash, ReplConfig, ReplMode, ReplState,
+    parse_bash, purify_bash, variables::{expand_variables, parse_assignment}, ReplConfig,
+    ReplMode, ReplState,
 };
 use anyhow::Result;
 use rustyline::Editor;
@@ -84,6 +85,13 @@ pub fn run_repl(config: ReplConfig) -> Result<()> {
                 // Add to history
                 let _ = editor.add_history_entry(line);
                 state.add_history(line.to_string());
+
+                // Handle variable assignments (before other commands)
+                if let Some((name, value)) = parse_assignment(line) {
+                    state.set_variable(name.clone(), value.clone());
+                    println!("✓ Variable set: {} = {}", name, value);
+                    continue;
+                }
 
                 // Handle special commands
                 if line.starts_with(":mode") {
@@ -253,15 +261,18 @@ fn handle_lint_command(line: &str) {
 
 /// Handle command processing based on current mode
 fn handle_command_by_mode(line: &str, state: &ReplState) {
+    // Expand variables in the command
+    let expanded_line = expand_variables(line, state.variables());
+
     match state.mode() {
         ReplMode::Normal => {
             // Normal mode - just show that command would be executed
-            println!("Would execute: {}", line);
+            println!("Would execute: {}", expanded_line);
             println!("(Note: Normal mode execution not yet implemented)");
         }
         ReplMode::Purify => {
             // Purify mode - automatically purify the command
-            match purify_bash(line) {
+            match purify_bash(&expanded_line) {
                 Ok(result) => {
                     println!("✓ Purified:");
                     println!("{}", result);
@@ -273,7 +284,7 @@ fn handle_command_by_mode(line: &str, state: &ReplState) {
         }
         ReplMode::Lint => {
             // Lint mode - automatically lint the command
-            match lint_bash(line) {
+            match lint_bash(&expanded_line) {
                 Ok(result) => {
                     println!("{}", format_lint_results(&result));
                 }
@@ -284,11 +295,12 @@ fn handle_command_by_mode(line: &str, state: &ReplState) {
         }
         ReplMode::Debug => {
             // Debug mode - show that debug mode is not yet implemented
-            println!("Debug mode: {}", line);
+            println!("Debug mode: {}", expanded_line);
             println!("(Note: Debug mode not yet implemented)");
         }
         ReplMode::Explain => {
             // Explain mode - explain the bash construct
+            // Note: Use original line for explaining syntax, not expanded
             match explain_bash(line) {
                 Some(explanation) => {
                     println!("{}", explanation.format());
