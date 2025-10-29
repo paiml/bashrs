@@ -17,7 +17,9 @@
 pub mod events;
 pub mod buffer;
 pub mod significance;
+pub mod manager;
 
 pub use events::{TraceEvent, ParseEvent, PurifyEvent, LintEvent, GenerateEvent, Span};
 pub use buffer::CircularTraceBuffer;
 pub use significance::TraceSignificance;
+pub use manager::{TraceManager, TraceStats};
