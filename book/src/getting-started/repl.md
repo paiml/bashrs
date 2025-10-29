@@ -44,6 +44,17 @@ bashrs [normal]>
 | `:vars` | Show session variables |
 | `:clear` | Clear the screen |
 
+### Script Loading Commands
+
+**NEW in v6.22.0**: Load bash scripts from files, extract functions, and manage your interactive development workflow.
+
+| Command | Description |
+|---------|-------------|
+| `:load <file>` | Load a bash script and extract functions |
+| `:source <file>` | Source a bash script (load and add to session) |
+| `:functions` | List all loaded functions |
+| `:reload` | Reload the last loaded script |
+
 ### Mode Switching
 
 The REPL supports 5 interactive modes:
@@ -552,6 +563,114 @@ Session Variables (2 variables):
 - Unknown variables expand to empty string (matching bash behavior)
 - Use `:vars` to view all session variables
 
+### Example 9: Script Loading and Function Extraction
+
+**NEW in v6.22.0**: Load bash scripts from files to inspect their structure, extract functions, and develop scripts interactively.
+
+#### Loading a Simple Script
+```bash
+bashrs [normal]> :load examples/hello.sh
+✓ Loaded: examples/hello.sh (no functions, 3 lines)
+```
+
+#### Loading a Script with Functions
+```bash
+bashrs [normal]> :load examples/utils.sh
+✓ Loaded: examples/utils.sh (3 functions, 25 lines)
+```
+
+#### Viewing Loaded Functions
+```bash
+bashrs [normal]> :functions
+Available functions (3 total):
+  1 log_info
+  2 log_error
+  3 check_dependencies
+```
+
+#### Sourcing a Script (Load and Execute)
+```bash
+# Source adds functions to your session
+bashrs [normal]> :source examples/lib.sh
+✓ Sourced: examples/lib.sh (2 functions)
+
+bashrs [normal]> :functions
+Available functions (2 total):
+  1 greet
+  2 farewell
+```
+
+#### Reloading a Script After Changes
+```bash
+# Edit the script in another window...
+# Then reload it in the REPL
+bashrs [normal]> :reload
+Reloading: examples/utils.sh
+✓ Reloaded: examples/utils.sh (4 functions)
+
+bashrs [normal]> :functions
+Available functions (4 total):
+  1 log_info
+  2 log_error
+  3 log_warning
+  4 check_dependencies
+```
+
+#### Script Loading Workflow
+```bash
+# Step 1: Load a script to inspect it
+bashrs [normal]> :load deploy.sh
+✓ Loaded: deploy.sh (5 functions, 120 lines)
+
+# Step 2: View extracted functions
+bashrs [normal]> :functions
+Available functions (5 total):
+  1 validate_env
+  2 build_app
+  3 run_tests
+  4 deploy_staging
+  5 deploy_production
+
+# Step 3: Switch to lint mode to check quality
+bashrs [normal]> :mode lint
+Switched to lint mode
+
+# Step 4: Reload to check latest changes
+bashrs [lint]> :reload
+Reloading: deploy.sh
+✓ Reloaded: deploy.sh (5 functions, 125 lines)
+```
+
+#### Error Handling
+```bash
+# Nonexistent file
+bashrs [normal]> :load missing.sh
+✗ Error: Cannot read file missing.sh: No such file or directory
+
+# Invalid syntax
+bashrs [normal]> :load broken.sh
+✗ Parse error: Parse error: unexpected token
+
+# No script to reload
+bashrs [normal]> :reload
+No script to reload. Use :load <file> first.
+```
+
+**Use Cases**:
+- **Interactive Development**: Load your script while editing to see structure
+- **Function Exploration**: Quickly see all functions in a complex script
+- **Live Reload**: Edit script externally, use `:reload` to see changes
+- **Quality Workflow**: Load → Inspect → Lint → Purify → Reload cycle
+- **Learning**: Explore example scripts to understand bash patterns
+
+**Notes**:
+- `:load` parses the script and extracts function names
+- `:source` is similar to bash `source`/`.` command
+- Functions are tracked in REPL state across mode switches
+- `:reload` reloads the most recently loaded script
+- Scripts must have valid bash syntax to load successfully
+- Use `:functions` to see all currently loaded functions
+
 ## Tab Completion
 
 **NEW in v6.20.0**: The REPL now includes intelligent tab completion to speed up your workflow and reduce typing errors.
@@ -620,7 +739,7 @@ Switched to purify mode
 ```bash
 bashrs [normal]> :<TAB>
 # Shows all commands:
-# :clear  :history  :lint  :mode  :parse  :purify  :vars
+# :clear  :functions  :history  :lint  :load  :mode  :parse  :purify  :reload  :source  :vars
 ```
 
 **Example 3: Learning bash constructs**

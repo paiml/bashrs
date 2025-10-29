@@ -11,8 +11,11 @@
 
 use crate::repl::{
     completion::ReplCompleter, executor::execute_command, explain_bash, format_lint_results,
-    format_parse_error, lint_bash, parse_bash, purify_bash,
-    variables::{expand_variables, parse_assignment}, ReplConfig, ReplMode, ReplState,
+    format_parse_error, lint_bash,
+    loader::{format_functions, load_script, LoadResult},
+    parse_bash, purify_bash,
+    variables::{expand_variables, parse_assignment},
+    ReplConfig, ReplMode, ReplState,
 };
 use anyhow::Result;
 use rustyline::Editor;
@@ -106,6 +109,18 @@ pub fn run_repl(config: ReplConfig) -> Result<()> {
                 } else if line.starts_with(":lint") {
                     // Handle :lint command
                     handle_lint_command(line);
+                } else if line.starts_with(":load") {
+                    // Handle :load command
+                    handle_load_command(line, &mut state);
+                } else if line.starts_with(":source") {
+                    // Handle :source command
+                    handle_source_command(line, &mut state);
+                } else if line == ":functions" {
+                    // Handle :functions command
+                    handle_functions_command(&state);
+                } else if line == ":reload" {
+                    // Handle :reload command
+                    handle_reload_command(&mut state);
                 } else if line == ":history" {
                     // Handle :history command
                     handle_history_command(&state);
@@ -360,6 +375,112 @@ fn handle_clear_command() {
     print!("\x1B[2J\x1B[H");
 }
 
+/// Handle load command
+fn handle_load_command(line: &str, state: &mut ReplState) {
+    let parts: Vec<&str> = line.splitn(2, ' ').collect();
+
+    if parts.len() == 1 {
+        println!("Usage: :load <file>");
+        println!("Example: :load examples/functions.sh");
+        return;
+    }
+
+    let file_path = parts.get(1).unwrap_or(&"");
+
+    let result = load_script(file_path);
+
+    match &result {
+        LoadResult::Success(script) => {
+            // Update state with loaded script
+            state.set_last_loaded_script(script.path.clone());
+
+            // Add functions to state
+            state.clear_functions();
+            for func in &script.functions {
+                state.add_function(func.clone());
+            }
+
+            // Print success message
+            println!("{}", result.format());
+        }
+        LoadResult::FileError(_) | LoadResult::ParseError(_) => {
+            // Print error message
+            println!("{}", result.format());
+        }
+    }
+}
+
+/// Handle source command
+fn handle_source_command(line: &str, state: &mut ReplState) {
+    let parts: Vec<&str> = line.splitn(2, ' ').collect();
+
+    if parts.len() == 1 {
+        println!("Usage: :source <file>");
+        println!("Example: :source examples/functions.sh");
+        return;
+    }
+
+    let file_path = parts.get(1).unwrap_or(&"");
+
+    let result = load_script(file_path);
+
+    match &result {
+        LoadResult::Success(script) => {
+            // Update state with loaded script
+            state.set_last_loaded_script(script.path.clone());
+
+            // Add functions to state
+            for func in &script.functions {
+                state.add_function(func.clone());
+            }
+
+            // Print sourced message
+            println!("✓ Sourced: {} ({} functions)", script.path.display(), script.functions.len());
+
+            // Note: Actual execution of script would happen here in a real shell
+            // For now, we just load the functions into the session
+        }
+        LoadResult::FileError(_) | LoadResult::ParseError(_) => {
+            // Print error message
+            println!("{}", result.format());
+        }
+    }
+}
+
+/// Handle functions command
+fn handle_functions_command(state: &ReplState) {
+    let functions = state.loaded_functions();
+    println!("{}", format_functions(functions));
+}
+
+/// Handle reload command
+fn handle_reload_command(state: &mut ReplState) {
+    if let Some(last_script) = state.last_loaded_script() {
+        let path = last_script.clone();
+        println!("Reloading: {}", path.display());
+
+        let result = load_script(&path);
+
+        match &result {
+            LoadResult::Success(script) => {
+                // Update functions
+                state.clear_functions();
+                for func in &script.functions {
+                    state.add_function(func.clone());
+                }
+
+                // Print success message
+                println!("✓ Reloaded: {} ({} functions)", script.path.display(), script.functions.len());
+            }
+            LoadResult::FileError(_) | LoadResult::ParseError(_) => {
+                println!("{}", result.format());
+            }
+        }
+    } else {
+        println!("No script to reload. Use :load <file> first.");
+    }
+}
+
 /// Print help message
 fn print_help() {
     println!("bashrs REPL Commands:");
@@ -371,6 +492,10 @@ fn print_help() {
     println!("  :parse <code>    - Parse bash code and show AST");
     println!("  :purify <code>   - Purify bash code (make idempotent/deterministic)");
     println!("  :lint <code>     - Lint bash code and show diagnostics");
+    println!("  :load <file>     - Load a bash script and extract functions");
+    println!("  :source <file>   - Source a bash script (load and add to session)");
+    println!("  :functions       - List all loaded functions");
+    println!("  :reload          - Reload the last loaded script");
     println!("  :history         - Show command history");
     println!("  :vars            - Show session variables");
     println!("  :clear           - Clear the screen");
@@ -381,10 +506,6 @@ fn print_help() {
     println!("  lint    - Show linting results");
     println!("  debug   - Step-by-step execution");
     println!("  explain - Explain bash constructs");
-    println!();
-    println!("Future commands:");
-    println!("  debug    - Debug bash script");
-    println!("  explain  - Explain bash construct");
 }
 
 /// Get history file path

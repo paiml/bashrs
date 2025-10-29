@@ -11,6 +11,7 @@ pub mod config;
 pub mod executor;
 pub mod explain;
 pub mod linter;
+pub mod loader;
 mod r#loop;
 pub mod modes;
 pub mod parser;

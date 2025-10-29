@@ -11,6 +11,7 @@
 
 use crate::repl::ReplMode;
 use std::collections::HashMap;
+use std::path::PathBuf;
 
 /// Mutable state for a REPL session
 ///
@@ -20,6 +21,8 @@ use std::collections::HashMap;
 /// - Exit flag for clean shutdown
 /// - Error tracking for debugging
 /// - Mode switching for different behaviors (Normal, Purify, Lint, Debug, Explain)
+/// - Loaded scripts tracking for :reload command
+/// - Functions extracted from loaded scripts
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct ReplState {
     /// Command history (for up/down arrow navigation)
@@ -36,6 +39,12 @@ pub struct ReplState {
 
     /// Current REPL mode
     mode: ReplMode,
+
+    /// Last loaded script path (for :reload command)
+    last_loaded_script: Option<PathBuf>,
+
+    /// Functions extracted from loaded scripts
+    loaded_functions: Vec<String>,
 }
 
 impl ReplState {
@@ -132,6 +141,38 @@ impl ReplState {
     /// Set REPL mode
     pub fn set_mode(&mut self, mode: ReplMode) {
         self.mode = mode;
+    }
+
+    /// Set last loaded script
+    pub fn set_last_loaded_script(&mut self, path: PathBuf) {
+        self.last_loaded_script = Some(path);
+    }
+
+    /// Get last loaded script
+    pub fn last_loaded_script(&self) -> Option<&PathBuf> {
+        self.last_loaded_script.as_ref()
+    }
+
+    /// Add a function to loaded functions
+    pub fn add_function(&mut self, name: String) {
+        if !self.loaded_functions.contains(&name) {
+            self.loaded_functions.push(name);
+        }
+    }
+
+    /// Get loaded functions
+    pub fn loaded_functions(&self) -> &[String] {
+        &self.loaded_functions
+    }
+
+    /// Clear all loaded functions
+    pub fn clear_functions(&mut self) {
+        self.loaded_functions.clear();
+    }
+
+    /// Get function count
+    pub fn function_count(&self) -> usize {
+        self.loaded_functions.len()
     }
 }
 
