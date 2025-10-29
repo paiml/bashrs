@@ -425,14 +425,15 @@ Purified 1 statement(s)
 
 **NEW in v6.20.0**: The REPL now supports bash-style variable assignment and automatic expansion in commands.
 
+**NEW in v6.21.0**: Normal mode now executes commands directly with full bash compatibility.
+
 #### Simple Variable Assignment
 ```bash
 bashrs [normal]> x=5
 ✓ Variable set: x = 5
 
 bashrs [normal]> echo $x
-Would execute: echo 5
-(Note: Normal mode execution not yet implemented)
+5
 ```
 
 #### Variable Assignment with Quotes

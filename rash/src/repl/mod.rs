@@ -8,6 +8,7 @@
 
 pub mod completion;
 pub mod config;
+pub mod executor;
 pub mod explain;
 pub mod linter;
 mod r#loop;
