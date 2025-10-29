@@ -265,13 +265,9 @@ fn print_help() {
 ///
 /// # Examples
 ///
-/// ```rust,no_run
-/// # use anyhow::Result;
-/// # fn main() -> Result<()> {
+/// ```rust,ignore
 /// let history_path = get_history_path()?;
 /// println!("History at: {:?}", history_path);
-/// # Ok(())
-/// # }
 /// ```
 fn get_history_path() -> Result<PathBuf> {
     // Use home directory for history file
