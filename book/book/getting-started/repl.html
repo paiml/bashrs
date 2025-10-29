@@ -171,6 +171,7 @@ bashrs [normal]&gt;
 <h2 id="features"><a class="header" href="#features">Features</a></h2>
 <ul>
 <li>🎯 <strong>5 Interactive Modes</strong>: Switch between different analysis modes</li>
+<li>⌨️ <strong>Tab Completion</strong>: Auto-complete commands, modes, and bash constructs</li>
 <li>🔍 <strong>Parser Integration</strong>: Parse bash code and inspect AST</li>
 <li>🧹 <strong>Purifier Integration</strong>: Transform bash to idempotent/deterministic code</li>
 <li>🔎 <strong>Linter Integration</strong>: Real-time diagnostics with severity levels</li>
@@ -511,6 +512,59 @@ bashrs [purify]&gt; mkdir /tmp/test
 ✓ Purified:
 Purified 1 statement(s)
 </code></pre>
+<h2 id="tab-completion"><a class="header" href="#tab-completion">Tab Completion</a></h2>
+<p><strong>NEW in v6.20.0</strong>: The REPL now includes intelligent tab completion to speed up your workflow and reduce typing errors.</p>
+<h3 id="command-completion"><a class="header" href="#command-completion">Command Completion</a></h3>
+<p>Press <code>Tab</code> to auto-complete REPL commands:</p>
+<pre><code class="language-bash">bashrs [normal]&gt; :mo&lt;TAB&gt;
+<span class="boring"> Completes to: :mode
+</span>
+bashrs [normal]&gt; :p&lt;TAB&gt;
+<span class="boring"> Shows: :parse  :purify
+</span>
+bashrs [normal]&gt; :h&lt;TAB&gt;
+<span class="boring"> Completes to: :history
+</span></code></pre>
+<h3 id="mode-name-completion"><a class="header" href="#mode-name-completion">Mode Name Completion</a></h3>
+<p>After typing <code>:mode</code>, press <code>Tab</code> to complete mode names:</p>
+<pre><code class="language-bash">bashrs [normal]&gt; :mode pur&lt;TAB&gt;
+<span class="boring"> Completes to: :mode purify
+</span>
+bashrs [normal]&gt; :mode &lt;TAB&gt;
+<span class="boring"> Shows all modes: normal  purify  lint  debug  explain
+</span></code></pre>
+<h3 id="bash-construct-completion"><a class="header" href="#bash-construct-completion">Bash Construct Completion</a></h3>
+<p>Tab completion also works for common bash constructs:</p>
+<pre><code class="language-bash">bashrs [explain]&gt; for&lt;TAB&gt;
+<span class="boring"> Completes to: for i in
+</span>
+bashrs [explain]&gt; ${var:&lt;TAB&gt;
+<span class="boring"> Shows: ${var:-default}  ${var:=default}  ${var:?error}  ${var:+alternate}
+</span></code></pre>
+<h3 id="case-insensitive-completion"><a class="header" href="#case-insensitive-completion">Case-Insensitive Completion</a></h3>
+<p>Tab completion is case-insensitive for convenience:</p>
+<pre><code class="language-bash">bashrs [normal]&gt; :MO&lt;TAB&gt;
+<span class="boring"> Completes to: :mode
+</span>
+bashrs [normal]&gt; :mode PUR&lt;TAB&gt;
+<span class="boring"> Completes to: :mode purify
+</span></code></pre>
+<h3 id="completion-examples"><a class="header" href="#completion-examples">Completion Examples</a></h3>
+<p><strong>Example 1: Quick mode switching</strong></p>
+<pre><code class="language-bash">bashrs [normal]&gt; :m&lt;TAB&gt;pur&lt;TAB&gt;&lt;ENTER&gt;
+<span class="boring"> Result: :mode purify
+</span>Switched to purify mode
+</code></pre>
+<p><strong>Example 2: Exploring commands</strong></p>
+<pre><code class="language-bash">bashrs [normal]&gt; :&lt;TAB&gt;
+<span class="boring"> Shows all commands:
+</span><span class="boring"> :clear  :history  :lint  :mode  :parse  :purify  :vars
+</span></code></pre>
+<p><strong>Example 3: Learning bash constructs</strong></p>
+<pre><code class="language-bash">bashrs [explain]&gt; $&lt;TAB&gt;
+<span class="boring"> Shows parameter expansions:
+</span><span class="boring"> ${var:-default}  ${var:=default}  ${var:?error}  ${var:+alternate}  ${#var}
+</span></code></pre>
 <h2 id="command-history"><a class="header" href="#command-history">Command History</a></h2>
 <p>The REPL automatically saves command history to <code>~/.bashrs_history</code>:</p>
 <pre><code class="language-bash"><span class="boring"> Commands are saved across sessions
@@ -529,6 +583,7 @@ bashrs [normal]&gt; # Press ↑ to recall previous commands
 <li><strong>↑ (Up Arrow)</strong>: Previous command</li>
 <li><strong>↓ (Down Arrow)</strong>: Next command</li>
 <li><strong>Ctrl-R</strong>: Reverse search through history</li>
+<li><strong>Tab</strong>: Auto-complete commands, modes, and bash constructs</li>
 <li><strong>Ctrl-C</strong>: Cancel current line</li>
 <li><strong>Ctrl-D</strong>: Exit REPL (EOF)</li>
 </ul>
