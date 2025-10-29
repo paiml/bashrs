@@ -76,11 +76,12 @@ pub mod formatter;
 pub mod ir;
 pub mod linter;
 pub mod make_parser; // NEW: Makefile parsing and purification
-pub mod repl; // NEW: Interactive REPL with integrated debugger (v7.0 - Phase 0)
 pub mod models;
+pub mod repl; // NEW: Interactive REPL with integrated debugger (v7.0 - Phase 0)
 pub mod services;
 pub mod stdlib;
 pub mod test_generator;
+pub mod tracing; // NEW: Tracing infrastructure for bash purification/linting (v7.0 - Phase 1)
 pub mod validation;
 pub mod verifier;
 
