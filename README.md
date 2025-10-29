@@ -5,7 +5,7 @@
 [![Book](https://img.shields.io/badge/book-The%20Rash%20Book-blue)](https://paiml.github.io/bashrs/)
 [![License](https://img.shields.io/crates/l/bashrs.svg)](LICENSE)
 [![CI](https://github.com/paiml/bashrs/workflows/CI/badge.svg)](https://github.com/paiml/bashrs/actions)
-[![Tests](https://img.shields.io/badge/tests-5105%20passing-brightgreen)](https://github.com/paiml/bashrs/actions)
+[![Tests](https://img.shields.io/badge/tests-5165%20passing-brightgreen)](https://github.com/paiml/bashrs/actions)
 [![PropertyTests](https://img.shields.io/badge/property_tests-52%20passing-blue)](https://github.com/paiml/bashrs/blob/main/rash/src/testing/)
 [![Coverage](https://img.shields.io/badge/coverage-88.71%25-green)](https://github.com/paiml/bashrs/actions)
 [![Mutation](https://img.shields.io/badge/mutation-167%20mutants-brightgreen)](https://github.com/paiml/bashrs)
@@ -644,26 +644,28 @@ $ bashrs format *.sh
 - ✅ bashrs coverage (v6.13.0) - Coverage tracking
 - ✅ bashrs format (v6.14.0) - Code formatting (incremental releases)
 
-### Interactive REPL (NEW in v6.7.0) 🎯
+### Interactive REPL (v6.19.0 - Auto Mode Processing!) 🚀
 
-bashrs now includes a **full-featured REPL** for interactive bash script analysis and testing:
+bashrs includes a **full-featured REPL** with **automatic mode-based processing** for interactive bash script analysis:
 
 ```bash
 # Start the REPL
 $ bashrs repl
 
-bashrs REPL v6.7.0
+bashrs REPL v6.19.0
 Type 'quit' or 'exit' to exit, 'help' for commands
 Current mode: normal - Execute bash commands directly
 bashrs [normal]>
 ```
 
 **REPL Features**:
+- 🚀 **NEW**: Automatic mode-based processing (v6.19.0) - 50% less typing!
 - 🎯 **5 Interactive Modes**: normal, purify, lint, debug, explain
 - 🔍 **Parser Integration**: Parse bash code and inspect AST
 - 🧹 **Purifier Integration**: Transform bash to idempotent/deterministic code
 - 🔎 **Linter Integration**: Real-time diagnostics with severity levels
 - 📚 **Command History**: Persistent history in `~/.bashrs_history`
+- 🛠️ **NEW**: Utility commands (v6.19.0): :history, :vars, :clear
 
 **Available Commands**:
 
@@ -706,6 +708,9 @@ bashrs REPL Commands:
   :parse <code>    - Parse bash code and show AST
   :purify <code>   - Purify bash code (make idempotent/deterministic)
   :lint <code>     - Lint bash code and show diagnostics
+  :history         - Show command history (NEW in v6.19.0)
+  :vars            - Show session variables (NEW in v6.19.0)
+  :clear           - Clear the screen (NEW in v6.19.0)
 
 # Exit REPL
 bashrs [normal]> quit
@@ -717,17 +722,19 @@ Goodbye!
 | Mode | Description | Use Case |
 |------|-------------|----------|
 | **normal** | Execute bash commands directly | Interactive bash experimentation |
-| **purify** | Show purified version | Learn idempotency/determinism patterns |
-| **lint** | Show linting results | Find and fix safety issues |
+| **purify** | **Auto-purify** commands (v6.19.0) | Learn idempotency/determinism patterns |
+| **lint** | **Auto-lint** commands (v6.19.0) | Find and fix safety issues |
 | **debug** | Step-by-step execution | Understand complex bash behavior |
 | **explain** | Explain bash constructs | Learn bash syntax and semantics |
 
 **Why Use the REPL?**:
+- 🚀 **NEW**: Automatic mode processing - No `:purify`/`:lint` prefixes needed! (v6.19.0)
 - ✅ **Learn interactively**: Experiment with bash transformations in real-time
 - ✅ **Fast feedback**: Instant parsing, linting, and purification
 - ✅ **No external tools**: Built-in parser, linter, and purifier
-- ✅ **History support**: Recall previous commands with arrow keys
+- ✅ **History support**: Recall previous commands with arrow keys (`:history`)
 - ✅ **Mode switching**: Seamlessly switch between analysis types
+- ✅ **Session management**: :vars, :history, :clear commands (v6.19.0)
 
 **Example Workflow**:
 
