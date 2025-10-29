@@ -2296,63 +2296,73 @@
 <a href=#2296 id=2296 data-nosnippet>2296</a>) -&gt; <span class="prelude-ty">Result</span>&lt;()&gt; {
 <a href=#2297 id=2297 data-nosnippet>2297</a>    <span class="kw">use </span><span class="kw">crate</span>::bash_quality::{Formatter, FormatterConfig};
 <a href=#2298 id=2298 data-nosnippet>2298</a>
-<a href=#2299 id=2299 data-nosnippet>2299</a>    <span class="comment">// Load configuration (look for .bashrs-fmt.toml in current directory)
-<a href=#2300 id=2300 data-nosnippet>2300</a>    </span><span class="kw">let </span>config = <span class="kw">if let </span><span class="prelude-val">Ok</span>(cfg) = FormatterConfig::from_file(<span class="string">".bashrs-fmt.toml"</span>) {
-<a href=#2301 id=2301 data-nosnippet>2301</a>        cfg
-<a href=#2302 id=2302 data-nosnippet>2302</a>    } <span class="kw">else </span>{
-<a href=#2303 id=2303 data-nosnippet>2303</a>        FormatterConfig::default()
-<a href=#2304 id=2304 data-nosnippet>2304</a>    };
-<a href=#2305 id=2305 data-nosnippet>2305</a>
-<a href=#2306 id=2306 data-nosnippet>2306</a>    <span class="kw">let </span><span class="kw-2">mut </span>formatter = Formatter::with_config(config);
-<a href=#2307 id=2307 data-nosnippet>2307</a>    <span class="kw">let </span><span class="kw-2">mut </span>all_formatted = <span class="bool-val">true</span>;
-<a href=#2308 id=2308 data-nosnippet>2308</a>
-<a href=#2309 id=2309 data-nosnippet>2309</a>    <span class="kw">for </span>input_path <span class="kw">in </span>inputs {
-<a href=#2310 id=2310 data-nosnippet>2310</a>        <span class="comment">// Read input file
-<a href=#2311 id=2311 data-nosnippet>2311</a>        </span><span class="kw">let </span>source = fs::read_to_string(input_path)
-<a href=#2312 id=2312 data-nosnippet>2312</a>            .map_err(|e| Error::Internal(<span class="macro">format!</span>(<span class="string">"Failed to read {}: {}"</span>, input_path.display(), e)))<span class="question-mark">?</span>;
-<a href=#2313 id=2313 data-nosnippet>2313</a>
-<a href=#2314 id=2314 data-nosnippet>2314</a>        <span class="comment">// Format the source
-<a href=#2315 id=2315 data-nosnippet>2315</a>        </span><span class="kw">let </span>formatted = formatter.format_source(<span class="kw-2">&amp;</span>source)
-<a href=#2316 id=2316 data-nosnippet>2316</a>            .map_err(|e| Error::Internal(<span class="macro">format!</span>(<span class="string">"Failed to format {}: {}"</span>, input_path.display(), e)))<span class="question-mark">?</span>;
+<a href=#2299 id=2299 data-nosnippet>2299</a>    <span class="kw">let </span><span class="kw-2">mut </span>all_formatted = <span class="bool-val">true</span>;
+<a href=#2300 id=2300 data-nosnippet>2300</a>
+<a href=#2301 id=2301 data-nosnippet>2301</a>    <span class="kw">for </span>input_path <span class="kw">in </span>inputs {
+<a href=#2302 id=2302 data-nosnippet>2302</a>        <span class="comment">// Load configuration (look for .bashrs-fmt.toml in script's directory, then current directory)
+<a href=#2303 id=2303 data-nosnippet>2303</a>        </span><span class="kw">let </span>config = <span class="kw">if let </span><span class="prelude-val">Some</span>(parent) = input_path.parent() {
+<a href=#2304 id=2304 data-nosnippet>2304</a>            <span class="kw">let </span>script_dir_config = parent.join(<span class="string">".bashrs-fmt.toml"</span>);
+<a href=#2305 id=2305 data-nosnippet>2305</a>            <span class="kw">if </span>script_dir_config.exists() {
+<a href=#2306 id=2306 data-nosnippet>2306</a>                FormatterConfig::from_file(<span class="kw-2">&amp;</span>script_dir_config).unwrap_or_default()
+<a href=#2307 id=2307 data-nosnippet>2307</a>            } <span class="kw">else if let </span><span class="prelude-val">Ok</span>(cfg) = FormatterConfig::from_file(<span class="string">".bashrs-fmt.toml"</span>) {
+<a href=#2308 id=2308 data-nosnippet>2308</a>                cfg
+<a href=#2309 id=2309 data-nosnippet>2309</a>            } <span class="kw">else </span>{
+<a href=#2310 id=2310 data-nosnippet>2310</a>                FormatterConfig::default()
+<a href=#2311 id=2311 data-nosnippet>2311</a>            }
+<a href=#2312 id=2312 data-nosnippet>2312</a>        } <span class="kw">else if let </span><span class="prelude-val">Ok</span>(cfg) = FormatterConfig::from_file(<span class="string">".bashrs-fmt.toml"</span>) {
+<a href=#2313 id=2313 data-nosnippet>2313</a>            cfg
+<a href=#2314 id=2314 data-nosnippet>2314</a>        } <span class="kw">else </span>{
+<a href=#2315 id=2315 data-nosnippet>2315</a>            FormatterConfig::default()
+<a href=#2316 id=2316 data-nosnippet>2316</a>        };
 <a href=#2317 id=2317 data-nosnippet>2317</a>
-<a href=#2318 id=2318 data-nosnippet>2318</a>        <span class="kw">if </span>check {
-<a href=#2319 id=2319 data-nosnippet>2319</a>            <span class="comment">// Check mode: verify if formatted
-<a href=#2320 id=2320 data-nosnippet>2320</a>            </span><span class="kw">if </span>source.trim() == formatted.trim() {
-<a href=#2321 id=2321 data-nosnippet>2321</a>                <span class="macro">println!</span>(<span class="string">"✓ {} is properly formatted"</span>, input_path.display());
-<a href=#2322 id=2322 data-nosnippet>2322</a>            } <span class="kw">else </span>{
-<a href=#2323 id=2323 data-nosnippet>2323</a>                <span class="macro">println!</span>(<span class="string">"✗ {} is not properly formatted"</span>, input_path.display());
-<a href=#2324 id=2324 data-nosnippet>2324</a>                all_formatted = <span class="bool-val">false</span>;
-<a href=#2325 id=2325 data-nosnippet>2325</a>            }
-<a href=#2326 id=2326 data-nosnippet>2326</a>        } <span class="kw">else if </span>dry_run {
-<a href=#2327 id=2327 data-nosnippet>2327</a>            <span class="comment">// Dry run: show what would be done
-<a href=#2328 id=2328 data-nosnippet>2328</a>            </span><span class="macro">println!</span>(<span class="string">"Would format: {}"</span>, input_path.display());
-<a href=#2329 id=2329 data-nosnippet>2329</a>            <span class="kw">if </span>source.trim() != formatted.trim() {
-<a href=#2330 id=2330 data-nosnippet>2330</a>                <span class="macro">println!</span>(<span class="string">"  Changes detected"</span>);
-<a href=#2331 id=2331 data-nosnippet>2331</a>            } <span class="kw">else </span>{
-<a href=#2332 id=2332 data-nosnippet>2332</a>                <span class="macro">println!</span>(<span class="string">"  No changes needed"</span>);
-<a href=#2333 id=2333 data-nosnippet>2333</a>            }
-<a href=#2334 id=2334 data-nosnippet>2334</a>        } <span class="kw">else </span>{
-<a href=#2335 id=2335 data-nosnippet>2335</a>            <span class="comment">// Apply formatting
-<a href=#2336 id=2336 data-nosnippet>2336</a>            </span><span class="kw">if let </span><span class="prelude-val">Some</span>(out_path) = output {
-<a href=#2337 id=2337 data-nosnippet>2337</a>                <span class="comment">// Write to specified output file
-<a href=#2338 id=2338 data-nosnippet>2338</a>                </span>fs::write(out_path, <span class="kw-2">&amp;</span>formatted)
-<a href=#2339 id=2339 data-nosnippet>2339</a>                    .map_err(|e| Error::Internal(<span class="macro">format!</span>(<span class="string">"Failed to write {}: {}"</span>, out_path.display(), e)))<span class="question-mark">?</span>;
-<a href=#2340 id=2340 data-nosnippet>2340</a>                <span class="macro">println!</span>(<span class="string">"✓ Formatted {} -&gt; {}"</span>, input_path.display(), out_path.display());
+<a href=#2318 id=2318 data-nosnippet>2318</a>        <span class="kw">let </span><span class="kw-2">mut </span>formatter = Formatter::with_config(config);
+<a href=#2319 id=2319 data-nosnippet>2319</a>
+<a href=#2320 id=2320 data-nosnippet>2320</a>        <span class="comment">// Read input file
+<a href=#2321 id=2321 data-nosnippet>2321</a>        </span><span class="kw">let </span>source = fs::read_to_string(input_path)
+<a href=#2322 id=2322 data-nosnippet>2322</a>            .map_err(|e| Error::Internal(<span class="macro">format!</span>(<span class="string">"Failed to read {}: {}"</span>, input_path.display(), e)))<span class="question-mark">?</span>;
+<a href=#2323 id=2323 data-nosnippet>2323</a>
+<a href=#2324 id=2324 data-nosnippet>2324</a>        <span class="comment">// Format the source
+<a href=#2325 id=2325 data-nosnippet>2325</a>        </span><span class="kw">let </span>formatted = formatter.format_source(<span class="kw-2">&amp;</span>source)
+<a href=#2326 id=2326 data-nosnippet>2326</a>            .map_err(|e| Error::Internal(<span class="macro">format!</span>(<span class="string">"Failed to format {}: {}"</span>, input_path.display(), e)))<span class="question-mark">?</span>;
+<a href=#2327 id=2327 data-nosnippet>2327</a>
+<a href=#2328 id=2328 data-nosnippet>2328</a>        <span class="kw">if </span>check {
+<a href=#2329 id=2329 data-nosnippet>2329</a>            <span class="comment">// Check mode: verify if formatted
+<a href=#2330 id=2330 data-nosnippet>2330</a>            </span><span class="kw">if </span>source.trim() == formatted.trim() {
+<a href=#2331 id=2331 data-nosnippet>2331</a>                <span class="macro">println!</span>(<span class="string">"✓ {} is properly formatted"</span>, input_path.display());
+<a href=#2332 id=2332 data-nosnippet>2332</a>            } <span class="kw">else </span>{
+<a href=#2333 id=2333 data-nosnippet>2333</a>                <span class="macro">println!</span>(<span class="string">"✗ {} is not properly formatted"</span>, input_path.display());
+<a href=#2334 id=2334 data-nosnippet>2334</a>                all_formatted = <span class="bool-val">false</span>;
+<a href=#2335 id=2335 data-nosnippet>2335</a>            }
+<a href=#2336 id=2336 data-nosnippet>2336</a>        } <span class="kw">else if </span>dry_run {
+<a href=#2337 id=2337 data-nosnippet>2337</a>            <span class="comment">// Dry run: show what would be done
+<a href=#2338 id=2338 data-nosnippet>2338</a>            </span><span class="macro">println!</span>(<span class="string">"Would format: {}"</span>, input_path.display());
+<a href=#2339 id=2339 data-nosnippet>2339</a>            <span class="kw">if </span>source.trim() != formatted.trim() {
+<a href=#2340 id=2340 data-nosnippet>2340</a>                <span class="macro">println!</span>(<span class="string">"  Changes detected"</span>);
 <a href=#2341 id=2341 data-nosnippet>2341</a>            } <span class="kw">else </span>{
-<a href=#2342 id=2342 data-nosnippet>2342</a>                <span class="comment">// Write in-place
-<a href=#2343 id=2343 data-nosnippet>2343</a>                </span>fs::write(input_path, <span class="kw-2">&amp;</span>formatted)
-<a href=#2344 id=2344 data-nosnippet>2344</a>                    .map_err(|e| Error::Internal(<span class="macro">format!</span>(<span class="string">"Failed to write {}: {}"</span>, input_path.display(), e)))<span class="question-mark">?</span>;
-<a href=#2345 id=2345 data-nosnippet>2345</a>                <span class="macro">println!</span>(<span class="string">"✓ Formatted {}"</span>, input_path.display());
-<a href=#2346 id=2346 data-nosnippet>2346</a>            }
-<a href=#2347 id=2347 data-nosnippet>2347</a>        }
-<a href=#2348 id=2348 data-nosnippet>2348</a>    }
-<a href=#2349 id=2349 data-nosnippet>2349</a>
-<a href=#2350 id=2350 data-nosnippet>2350</a>    <span class="comment">// If check mode and any file not formatted, return error
-<a href=#2351 id=2351 data-nosnippet>2351</a>    </span><span class="kw">if </span>check &amp;&amp; !all_formatted {
-<a href=#2352 id=2352 data-nosnippet>2352</a>        <span class="kw">return </span><span class="prelude-val">Err</span>(Error::Internal(
-<a href=#2353 id=2353 data-nosnippet>2353</a>            <span class="string">"Files are not properly formatted. Run without --check to fix."</span>.to_string()
-<a href=#2354 id=2354 data-nosnippet>2354</a>        ));
-<a href=#2355 id=2355 data-nosnippet>2355</a>    }
-<a href=#2356 id=2356 data-nosnippet>2356</a>
-<a href=#2357 id=2357 data-nosnippet>2357</a>    <span class="prelude-val">Ok</span>(())
-<a href=#2358 id=2358 data-nosnippet>2358</a>}</code></pre></div></section></main></body></html>
+<a href=#2342 id=2342 data-nosnippet>2342</a>                <span class="macro">println!</span>(<span class="string">"  No changes needed"</span>);
+<a href=#2343 id=2343 data-nosnippet>2343</a>            }
+<a href=#2344 id=2344 data-nosnippet>2344</a>        } <span class="kw">else </span>{
+<a href=#2345 id=2345 data-nosnippet>2345</a>            <span class="comment">// Apply formatting
+<a href=#2346 id=2346 data-nosnippet>2346</a>            </span><span class="kw">if let </span><span class="prelude-val">Some</span>(out_path) = output {
+<a href=#2347 id=2347 data-nosnippet>2347</a>                <span class="comment">// Write to specified output file
+<a href=#2348 id=2348 data-nosnippet>2348</a>                </span>fs::write(out_path, <span class="kw-2">&amp;</span>formatted)
+<a href=#2349 id=2349 data-nosnippet>2349</a>                    .map_err(|e| Error::Internal(<span class="macro">format!</span>(<span class="string">"Failed to write {}: {}"</span>, out_path.display(), e)))<span class="question-mark">?</span>;
+<a href=#2350 id=2350 data-nosnippet>2350</a>                <span class="macro">println!</span>(<span class="string">"✓ Formatted {} -&gt; {}"</span>, input_path.display(), out_path.display());
+<a href=#2351 id=2351 data-nosnippet>2351</a>            } <span class="kw">else </span>{
+<a href=#2352 id=2352 data-nosnippet>2352</a>                <span class="comment">// Write in-place
+<a href=#2353 id=2353 data-nosnippet>2353</a>                </span>fs::write(input_path, <span class="kw-2">&amp;</span>formatted)
+<a href=#2354 id=2354 data-nosnippet>2354</a>                    .map_err(|e| Error::Internal(<span class="macro">format!</span>(<span class="string">"Failed to write {}: {}"</span>, input_path.display(), e)))<span class="question-mark">?</span>;
+<a href=#2355 id=2355 data-nosnippet>2355</a>                <span class="macro">println!</span>(<span class="string">"✓ Formatted {}"</span>, input_path.display());
+<a href=#2356 id=2356 data-nosnippet>2356</a>            }
+<a href=#2357 id=2357 data-nosnippet>2357</a>        }
+<a href=#2358 id=2358 data-nosnippet>2358</a>    }
+<a href=#2359 id=2359 data-nosnippet>2359</a>
+<a href=#2360 id=2360 data-nosnippet>2360</a>    <span class="comment">// If check mode and any file not formatted, return error
+<a href=#2361 id=2361 data-nosnippet>2361</a>    </span><span class="kw">if </span>check &amp;&amp; !all_formatted {
+<a href=#2362 id=2362 data-nosnippet>2362</a>        <span class="kw">return </span><span class="prelude-val">Err</span>(Error::Internal(
+<a href=#2363 id=2363 data-nosnippet>2363</a>            <span class="string">"Files are not properly formatted. Run without --check to fix."</span>.to_string()
+<a href=#2364 id=2364 data-nosnippet>2364</a>        ));
+<a href=#2365 id=2365 data-nosnippet>2365</a>    }
+<a href=#2366 id=2366 data-nosnippet>2366</a>
+<a href=#2367 id=2367 data-nosnippet>2367</a>    <span class="prelude-val">Ok</span>(())
+<a href=#2368 id=2368 data-nosnippet>2368</a>}</code></pre></div></section></main></body></html>
