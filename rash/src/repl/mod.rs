@@ -7,17 +7,19 @@
 // Status: Phase 1 - RED-GREEN-REFACTOR-PROPERTY-MUTATION
 
 pub mod config;
-pub mod state;
+pub mod explain;
+pub mod linter;
+mod r#loop;
 pub mod modes;
 pub mod parser;
 pub mod purifier;
-pub mod linter;
-mod r#loop;
+pub mod state;
 
 pub use config::ReplConfig;
-pub use state::ReplState;
+pub use explain::{explain_bash, Explanation};
+pub use linter::{format_lint_results, lint_bash};
 pub use modes::ReplMode;
-pub use parser::{parse_bash, format_parse_error};
-pub use purifier::{purify_bash, format_purification_report};
-pub use linter::{lint_bash, format_lint_results};
+pub use parser::{format_parse_error, parse_bash};
+pub use purifier::{format_purification_report, purify_bash};
 pub use r#loop::run_repl;
+pub use state::ReplState;
