@@ -32,6 +32,7 @@ pub struct BashParser {
     tokens: Vec<Token>,
     position: usize,
     current_line: usize,
+    tracer: Option<crate::tracing::TraceManager>,
 }
 
 impl BashParser {
@@ -43,35 +44,85 @@ impl BashParser {
             tokens,
             position: 0,
             current_line: 1,
+            tracer: None,
         })
+    }
+
+    /// Enable tracing for this parser
+    ///
+    /// Allows instrumentation of parsing events for debugging and analysis.
+    /// Zero overhead when not called (tracer remains None).
+    pub fn with_tracer(mut self, tracer: crate::tracing::TraceManager) -> Self {
+        self.tracer = Some(tracer);
+        self
     }
 
     pub fn parse(&mut self) -> ParseResult<BashAst> {
         let start_time = std::time::Instant::now();
-        let mut statements = Vec::new();
 
-        while !self.is_at_end() {
-            self.skip_newlines();
-            if self.is_at_end() {
-                break;
-            }
-
-            let stmt = self.parse_statement()?;
-            statements.push(stmt);
-
-            self.skip_newlines();
+        // Emit ParseStart trace event
+        if let Some(ref tracer) = self.tracer {
+            tracer.emit_parse(crate::tracing::ParseEvent::ParseStart {
+                source: String::from("<input>"),
+                line: 1,
+                col: 1,
+            });
         }
 
-        let parse_time_ms = start_time.elapsed().as_millis() as u64;
+        let mut statements = Vec::new();
+        let parse_result = (|| -> ParseResult<BashAst> {
+            while !self.is_at_end() {
+                self.skip_newlines();
+                if self.is_at_end() {
+                    break;
+                }
 
-        Ok(BashAst {
-            statements,
-            metadata: AstMetadata {
-                source_file: None,
-                line_count: self.current_line,
-                parse_time_ms,
-            },
-        })
+                let stmt = self.parse_statement()?;
+
+                // Emit ParseNode trace event for each statement
+                if let Some(ref tracer) = self.tracer {
+                    tracer.emit_parse(crate::tracing::ParseEvent::ParseNode {
+                        node_type: stmt.node_type().to_string(),
+                        span: stmt.span(),
+                    });
+                }
+
+                statements.push(stmt);
+                self.skip_newlines();
+            }
+
+            let duration = start_time.elapsed();
+            let parse_time_ms = duration.as_millis() as u64;
+
+            // Emit ParseComplete trace event
+            if let Some(ref tracer) = self.tracer {
+                tracer.emit_parse(crate::tracing::ParseEvent::ParseComplete {
+                    node_count: statements.len(),
+                    duration,
+                });
+            }
+
+            Ok(BashAst {
+                statements,
+                metadata: AstMetadata {
+                    source_file: None,
+                    line_count: self.current_line,
+                    parse_time_ms,
+                },
+            })
+        })();
+
+        // Emit ParseError trace event if parsing failed
+        if let Err(ref err) = parse_result {
+            if let Some(ref tracer) = self.tracer {
+                tracer.emit_parse(crate::tracing::ParseEvent::ParseError {
+                    error: err.to_string(),
+                    span: crate::tracing::Span::single_line(self.current_line, 1, 1),
+                });
+            }
+        }
+
+        parse_result
     }
 
     fn parse_statement(&mut self) -> ParseResult<BashStmt> {
@@ -99,7 +150,8 @@ impl BashParser {
                 if self.peek_ahead(1) == Some(&Token::Assign) {
                     self.parse_assignment(false)
                 } else if self.peek_ahead(1) == Some(&Token::LeftParen)
-                    && self.peek_ahead(2) == Some(&Token::RightParen) {
+                    && self.peek_ahead(2) == Some(&Token::RightParen)
+                {
                     // This is a function definition: name() { ... }
                     self.parse_function_shorthand()
                 } else {
@@ -578,7 +630,9 @@ impl BashParser {
                 let right = self.parse_expression()?;
                 Ok(TestExpr::IntGt(left, right))
             }
-            Some(Token::Identifier(op)) if matches!(op.as_str(), "-eq" | "-ne" | "-lt" | "-le" | "-gt" | "-ge") => {
+            Some(Token::Identifier(op))
+                if matches!(op.as_str(), "-eq" | "-ne" | "-lt" | "-le" | "-gt" | "-ge") =>
+            {
                 let operator = op.clone();
                 self.advance();
                 let right = self.parse_expression()?;

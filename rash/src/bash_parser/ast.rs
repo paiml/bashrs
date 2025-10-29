@@ -255,6 +255,48 @@ impl Span {
     }
 }
 
+impl BashStmt {
+    /// Get the node type as a string (for tracing/debugging)
+    pub fn node_type(&self) -> &str {
+        match self {
+            BashStmt::Assignment { .. } => "Assignment",
+            BashStmt::Command { .. } => "Command",
+            BashStmt::Function { .. } => "Function",
+            BashStmt::If { .. } => "If",
+            BashStmt::While { .. } => "While",
+            BashStmt::Until { .. } => "Until",
+            BashStmt::For { .. } => "For",
+            BashStmt::Case { .. } => "Case",
+            BashStmt::Return { .. } => "Return",
+            BashStmt::Comment { .. } => "Comment",
+        }
+    }
+
+    /// Get the source span for this statement
+    pub fn span(&self) -> crate::tracing::Span {
+        let ast_span = match self {
+            BashStmt::Assignment { span, .. }
+            | BashStmt::Command { span, .. }
+            | BashStmt::Function { span, .. }
+            | BashStmt::If { span, .. }
+            | BashStmt::While { span, .. }
+            | BashStmt::Until { span, .. }
+            | BashStmt::For { span, .. }
+            | BashStmt::Case { span, .. }
+            | BashStmt::Return { span, .. }
+            | BashStmt::Comment { span, .. } => *span,
+        };
+
+        // Convert bash_parser::Span to tracing::Span
+        crate::tracing::Span::new(
+            ast_span.start_line,
+            ast_span.start_col,
+            ast_span.end_line,
+            ast_span.end_col,
+        )
+    }
+}
+
 impl fmt::Display for BashStmt {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
