@@ -9,7 +9,7 @@
 // - Complexity: <10 per function
 
 use crate::bash_parser::BashParser;
-use crate::bash_transpiler::{Purifier, PurificationOptions, PurificationReport};
+use crate::bash_transpiler::{PurificationOptions, PurificationReport, Purifier};
 
 /// Purify bash input and return purified AST with report
 ///
@@ -31,9 +31,9 @@ pub fn purify_bash(input: &str) -> anyhow::Result<String> {
     let mut purifier = Purifier::new(options);
     let purified_ast = purifier.purify(&ast)?;
 
-    // For now, return a simple representation
-    // TODO: Implement proper bash code generation from purified AST
-    let output = format!("Purified {} statements", purified_ast.statements.len());
+    // For now, return summary
+    // TODO: Implement full bash code generation from purified AST
+    let output = format!("Purified {} statement(s)\n(Full bash output coming soon)", purified_ast.statements.len());
 
     Ok(output)
 }
@@ -80,7 +80,10 @@ mod tests {
 
         assert!(result.is_ok(), "Should purify mkdir command: {:?}", result);
         let purified = result.unwrap();
-        assert!(purified.contains("Purified"), "Should return purification message");
+        assert!(
+            purified.contains("Purified"),
+            "Should return purification message"
+        );
     }
 
     /// Test: REPL-005-001-002 - Purify $RANDOM (non-deterministic)
@@ -100,7 +103,11 @@ mod tests {
         let input = "echo $USER";
         let result = purify_bash(input);
 
-        assert!(result.is_ok(), "Should handle unquoted variable: {:?}", result);
+        assert!(
+            result.is_ok(),
+            "Should handle unquoted variable: {:?}",
+            result
+        );
         let purified = result.unwrap();
         assert!(purified.contains("Purified"), "Should purify successfully");
     }
