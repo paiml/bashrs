@@ -81,6 +81,7 @@ pub fn run_repl(config: ReplConfig) -> Result<()> {
 
                 // Add to history
                 let _ = editor.add_history_entry(line);
+                state.add_history(line.to_string());
 
                 // Handle special commands
                 if line.starts_with(":mode") {
@@ -95,6 +96,15 @@ pub fn run_repl(config: ReplConfig) -> Result<()> {
                 } else if line.starts_with(":lint") {
                     // Handle :lint command
                     handle_lint_command(line);
+                } else if line == ":history" {
+                    // Handle :history command
+                    handle_history_command(&state);
+                } else if line == ":vars" {
+                    // Handle :vars command
+                    handle_vars_command(&state);
+                } else if line == ":clear" {
+                    // Handle :clear command
+                    handle_clear_command();
                 } else if line == "quit" || line == "exit" {
                     println!("Goodbye!");
                     break;
@@ -283,6 +293,47 @@ fn handle_command_by_mode(line: &str, state: &ReplState) {
     }
 }
 
+/// Handle history command
+fn handle_history_command(state: &ReplState) {
+    let history = state.history();
+
+    if history.is_empty() {
+        println!("No commands in history");
+        return;
+    }
+
+    println!("Command History ({} commands):", history.len());
+    for (i, cmd) in history.iter().enumerate() {
+        println!("  {} {}", i + 1, cmd);
+    }
+}
+
+/// Handle vars command
+fn handle_vars_command(state: &ReplState) {
+    let variables = state.variables();
+
+    if variables.is_empty() {
+        println!("No session variables set");
+        return;
+    }
+
+    println!("Session Variables ({} variables):", variables.len());
+    let mut vars: Vec<_> = variables.iter().collect();
+    vars.sort_by_key(|(k, _)| *k);
+
+    for (name, value) in vars {
+        println!("  {} = {}", name, value);
+    }
+}
+
+/// Handle clear command
+fn handle_clear_command() {
+    // Clear screen using ANSI escape codes
+    // \x1B[2J clears the screen
+    // \x1B[H moves cursor to home position (0,0)
+    print!("\x1B[2J\x1B[H");
+}
+
 /// Print help message
 fn print_help() {
     println!("bashrs REPL Commands:");
@@ -294,6 +345,9 @@ fn print_help() {
     println!("  :parse <code>    - Parse bash code and show AST");
     println!("  :purify <code>   - Purify bash code (make idempotent/deterministic)");
     println!("  :lint <code>     - Lint bash code and show diagnostics");
+    println!("  :history         - Show command history");
+    println!("  :vars            - Show session variables");
+    println!("  :clear           - Clear the screen");
     println!();
     println!("Available modes:");
     println!("  normal  - Execute bash commands directly");
