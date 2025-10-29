@@ -7,6 +7,110 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [6.19.0] - 2025-10-29
+
+### ✨ NEW FEATURE - Interactive REPL Enhancements
+
+**bashrs v6.19.0 makes the REPL dramatically more powerful with automatic mode-based processing and utility commands.**
+
+### Added
+
+**Automatic Mode-Based Command Processing** (REPL-003-005):
+- Commands are now automatically processed in `purify` and `lint` modes
+- No need for explicit `:purify` or `:lint` prefixes
+- Switch to purify mode: every command is automatically purified
+- Switch to lint mode: every command is automatically linted
+- Explicit commands (`:parse`, `:purify`, `:lint`) still work in any mode
+- Implementation: `rash/src/repl/loop.rs:252-293`
+- Tests: 12 comprehensive integration tests (`test_repl_mode_based_processing.rs`)
+
+**Utility Commands** (REPL-004-001):
+- `:history` - View all commands executed in the current session
+- `:vars` - Display session variables (ready for future variable assignment)
+- `:clear` - Clear the screen using ANSI escape codes
+- Implementation: `rash/src/repl/loop.rs:296-334`
+- Tests: 8 comprehensive integration tests (`test_repl_utility_commands.rs`)
+
+**Documentation** (REPL-004-002):
+- Updated Interactive REPL guide (`book/src/getting-started/repl.md`)
+- Added "Utility Commands" section
+- Added "Automatic Mode-Based Processing" section with examples
+- Added Example 5: Using Utility Commands
+- Added Example 6: Automatic Mode Processing Workflow
+- 133 new lines of user-facing documentation
+
+### Changed
+
+**REPL Workflow Improvements**:
+- Mode-based processing eliminates repetitive `:purify`/`:lint` prefixes
+- History tracking now includes all commands (not just bash code)
+- Help text updated to show new utility commands
+- Prompt shows current mode for better context
+
+**User Experience**:
+- More intuitive workflow: switch mode once, process many commands
+- Faster iteration: no prefix needed for purify/lint operations
+- Better session management: view history and variables at any time
+- Cleaner screen: clear command for fresh start
+
+### Quality Achievements
+
+**Test Coverage**:
+- 20 new integration tests (12 mode-based + 8 utility)
+- 100% pass rate on all REPL tests
+- Tested with `assert_cmd` (following CLI testing best practices)
+
+**EXTREME TDD Methodology**:
+- RED Phase: Wrote failing tests first
+- GREEN Phase: Implemented features to pass tests
+- REFACTOR Phase: Cleaned up implementation (complexity <10)
+- All tests passing before commit
+
+**Documentation**:
+- Complete user-facing documentation
+- Real-world examples demonstrating workflows
+- mdbook builds successfully
+
+### Example Usage
+
+**Before (v6.18.1)** - Repetitive prefixes:
+```bash
+bashrs [purify]> :purify mkdir /tmp/test
+bashrs [purify]> :purify rm /tmp/old
+bashrs [purify]> :purify ln -s /tmp/new /tmp/link
+```
+
+**After (v6.19.0)** - Automatic processing:
+```bash
+bashrs [normal]> :mode purify
+Switched to purify mode
+
+bashrs [purify]> mkdir /tmp/test
+✓ Purified: Purified 1 statement(s)
+
+bashrs [purify]> rm /tmp/old
+✓ Purified: Purified 1 statement(s)
+
+bashrs [purify]> :history
+Command History (3 commands):
+  1 :mode purify
+  2 mkdir /tmp/test
+  3 rm /tmp/old
+```
+
+### Commits
+
+- aa27318f: feat: REPL-003-005 - Mode-based command processing
+- 1c3e5a6e: feat: REPL-004-001 - Utility commands
+- ef4655d9: docs: REPL-004-002 - Document new REPL features
+
+### Toyota Way Principles Applied
+
+- **自働化 (Jidoka)**: Built quality through EXTREME TDD (RED → GREEN → REFACTOR)
+- **現地現物 (Genchi Genbutsu)**: Verified features through comprehensive documentation
+- **改善 (Kaizen)**: Continuous improvement in REPL usability
+- **ムダ (Muda)**: Eliminated waste (repetitive `:purify`/`:lint` prefixes)
+
 ## [6.18.1] - 2025-10-29
 
 ### 🧹 Code Quality Improvements

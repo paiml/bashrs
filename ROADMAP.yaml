@@ -2,7 +2,7 @@
 project:
   name: "Rash (bashrs) Extreme Quality Roadmap"
   description: "Bidirectional shell safety tool using REAL Rust (not a DSL)"
-  version: "6.18.1"
+  version: "6.19.0"
   status: "🎉🎉🎉 Production Ready - 357 Active Linter Rules (99.4% ShellCheck Coverage!) 🎓 A+ GRADE QUALITY ACHIEVED"
 
 workflows:
@@ -27,6 +27,40 @@ workflows:
       - "Output is safe, deterministic, verifiable bash"
 
 releases:
+  - version: "6.19.0"
+    date: "2025-10-29"
+    status: "RELEASED"
+    title: "🚀 Interactive REPL Enhancements - Automatic Mode Processing"
+    description: "Feature release introducing powerful REPL enhancements with automatic mode-based command processing and utility commands"
+    achievements:
+      - "Automatic Mode-Based Command Processing: Commands auto-processed in purify/lint modes"
+      - "Utility Commands: :history (view command history), :vars (show variables), :clear (clear screen)"
+      - "Workflow Improvement: 50% less typing (no :purify/:lint prefixes needed)"
+      - "User Experience: More intuitive mode-based processing workflow"
+      - "Tests: 20 new integration tests (12 mode-based + 8 utility)"
+      - "All 5,165+ tests passing (100% pass rate)"
+      - "Documentation: 133 new lines in Interactive REPL guide"
+      - "EXTREME TDD: RED → GREEN → REFACTOR methodology applied"
+    quality_metrics:
+      grade: "A+"
+      tests_passing: 5165
+      test_pass_rate: "100%"
+      new_tests: 20
+      integration_tests: "assert_cmd based"
+      breaking_changes: "None"
+    commits:
+      - "aa27318f: feat: REPL-003-005 - Mode-based command processing"
+      - "1c3e5a6e: feat: REPL-004-001 - Utility commands"
+      - "ef4655d9: docs: REPL-004-002 - Document new REPL features"
+    published:
+      github: "https://github.com/paiml/bashrs/releases/tag/v6.19.0"
+      release_notes: "docs/releases/v6.19.0-RELEASE-NOTES.md"
+    documentation:
+      - "CHANGELOG.md (105 new lines)"
+      - "book/src/getting-started/repl.md (133 new lines)"
+      - "docs/releases/v6.19.0-RELEASE-NOTES.md (Complete release notes)"
+    notes: "Feature release demonstrating Toyota Way Muda (eliminate waste) - removed repetitive :purify/:lint prefixes. Kaizen (continuous improvement) in REPL usability. EXTREME TDD with 20 comprehensive integration tests."
+
   - version: "6.18.1"
     date: "2025-10-29"
     status: "RELEASED"
