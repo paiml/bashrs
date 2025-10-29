@@ -17,6 +17,7 @@ bashrs [normal]>
 
 - 🎯 **5 Interactive Modes**: Switch between different analysis modes
 - ⌨️ **Tab Completion**: Auto-complete commands, modes, file paths, and bash constructs
+- 📝 **Multi-line Input**: Natural support for loops, functions, and conditionals
 - 🔍 **Parser Integration**: Parse bash code and inspect AST
 - 🧹 **Purifier Integration**: Transform bash to idempotent/deterministic code
 - 🔎 **Linter Integration**: Real-time diagnostics with severity levels
@@ -769,6 +770,93 @@ bashrs [explain]> $<TAB>
 # Shows parameter expansions:
 # ${var:-default}  ${var:=default}  ${var:?error}  ${var:+alternate}  ${#var}
 ```
+
+## Multi-line Input
+
+**NEW in v6.22.0**: The REPL now supports multi-line input for complex bash constructs like functions, loops, and conditionals.
+
+When the REPL detects incomplete input, it automatically switches to continuation mode with a `... >` prompt.
+
+### Functions
+
+```bash
+bashrs [normal]> function greet() {
+... >   echo "Hello, $1"
+... >   echo "Welcome to bashrs"
+... > }
+✓ Function 'greet' defined
+
+bashrs [normal]> greet "Alice"
+Hello, Alice
+Welcome to bashrs
+```
+
+### For Loops
+
+```bash
+bashrs [normal]> for i in 1 2 3; do
+... >   echo "Iteration $i"
+... > done
+Iteration 1
+Iteration 2
+Iteration 3
+```
+
+### If Statements
+
+```bash
+bashrs [normal]> if [ -f "/etc/passwd" ]; then
+... >   echo "File exists"
+... > fi
+File exists
+```
+
+### While Loops
+
+```bash
+bashrs [normal]> count=0
+✓ Variable set: count = 0
+
+bashrs [normal]> while [ $count -lt 3 ]; do
+... >   echo "Count: $count"
+... >   count=$((count + 1))
+... > done
+Count: 0
+Count: 1
+Count: 2
+```
+
+### Case Statements
+
+```bash
+bashrs [normal]> case "apple" in
+... >   apple) echo "It's an apple";;
+... >   banana) echo "It's a banana";;
+... >   *) echo "Unknown fruit";;
+... > esac
+It's an apple
+```
+
+### Cancelling Multi-line Input
+
+Press `Ctrl-C` to cancel multi-line input and return to the main prompt:
+
+```bash
+bashrs [normal]> for i in 1 2 3; do
+... >   echo "This is a loop"
+... > ^C (multi-line input cancelled)
+bashrs [normal]>
+```
+
+### Automatic Detection
+
+The REPL intelligently detects when input is incomplete by checking for:
+- Unclosed quotes (single or double)
+- Unclosed braces, parentheses, or brackets
+- Bash keywords expecting continuation (`if`, `for`, `while`, `function`, `case`)
+- Line ending with backslash (`\`)
+
+This allows natural, interactive development of complex bash scripts within the REPL.
 
 ## Command History
 
