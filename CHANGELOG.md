@@ -7,6 +7,95 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [6.17.1] - 2025-10-29
+
+### 🐛 CRITICAL FIX - Empty Function Builtin Shadowing
+
+**bashrs v6.17.1 fixes empty function stubs shadowing shell builtins** - all e2e tests now passing (8/8).
+
+### Fixed
+
+**Transpiler: Empty Builtin Function Shadowing** (Critical):
+- Fixed: Empty function stubs like `fn echo(msg: &str) {}` were generating shell functions that shadowed builtins
+- Root cause: Empty functions generated `echo() { : }` which prevented builtin `echo` from being called
+- Solution: Skip emitting function definitions for known builtins/commands with empty bodies
+- Impact: `echo("Hello")` now correctly prints "Hello" instead of doing nothing
+- Affected commands: echo, cd, pwd, test, cat, grep, sed, awk, ls, cp, mv, rm, etc.
+
+**Tests: Edge Case Test Updated**:
+- Updated `test_edge_case_01_empty_function_bodies` to reflect correct behavior
+- Empty builtin stubs now correctly use shell builtins instead of generating no-ops
+- Previous behavior (generating `:` no-op) was preventing actual command execution
+
+### Changed
+
+**Emitter: Builtin Detection** (`rash/src/emitter/posix.rs`):
+- Added `is_known_command()` method with list of POSIX builtins and common external commands
+- Modified `emit_function()` to skip emitting empty functions for known commands
+- Empty body detection: `Noop` or `Sequence([])` (empty sequence)
+
+**Test Status**:
+- E2E tests: **8/8 passing** ✅ (was 6/8 failing)
+- Library tests: **5,140 passing** ✅
+- Formatter tests: **15/15 passing** ✅
+- Doctests: **43 passing** ✅
+
+### Technical Details
+
+**Root Cause Analysis**:
+```rust
+// BEFORE (v6.17.0): Generated this (BROKEN)
+echo() {
+    msg="$1"
+    :  // No-op - doesn't actually echo anything!
+}
+
+main() {
+    echo "Hello"  // Calls empty function above, not builtin
+}
+
+// AFTER (v6.17.1): Generates this (CORRECT)
+// No echo() function definition
+
+main() {
+    echo Hello  // Calls shell builtin directly
+}
+```
+
+**Code Changes** (`rash/src/emitter/posix.rs:686-746`):
+```rust
+fn emit_function(...) -> Result<()> {
+    // Skip emitting function definitions for known builtins with empty bodies
+    let is_empty_body = matches!(body, ShellIR::Noop)
+        || matches!(body, ShellIR::Sequence(items) if items.is_empty());
+
+    if is_empty_body && self.is_known_command(name) {
+        return Ok(());  // Don't emit, use builtin
+    }
+    // ... rest of function emission ...
+}
+
+fn is_known_command(&self, name: &str) -> bool {
+    const BUILTINS: &[&str] = &[
+        "echo", "cd", "pwd", "test", "export", ...
+    ];
+    const EXTERNAL_COMMANDS: &[&str] = &[
+        "cat", "grep", "sed", "awk", "ls", ...
+    ];
+    BUILTINS.contains(&name) || EXTERNAL_COMMANDS.contains(&name)
+}
+```
+
+**Quality Metrics**:
+- All 5,140 + 15 + 8 tests passing ✅
+- Zero compilation warnings ✅
+- E2E test failures resolved ✅
+- Mutation testing now unblocked ✅
+
+**Impact**: This fix resolves a critical issue where user code expecting to call shell commands was silently failing. Any Rash code using empty function stubs for builtins will now work correctly.
+
+---
+
 ## [6.17.0] - 2025-10-29
 
 ### 🎉 FORMATTER COMPLETE - 15/15 Tests Passing (100%)

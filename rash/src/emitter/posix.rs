@@ -691,6 +691,16 @@ impl PosixEmitter {
         body: &ShellIR,
         indent: usize,
     ) -> Result<()> {
+        // Skip emitting function definitions for known builtins/external commands with empty bodies
+        // This prevents user-defined empty stub functions from shadowing shell builtins
+        let is_empty_body = matches!(body, ShellIR::Noop)
+            || matches!(body, ShellIR::Sequence(items) if items.is_empty());
+
+        if is_empty_body && self.is_known_command(name) {
+            // Don't emit the function definition - calls will use the builtin/external command directly
+            return Ok(());
+        }
+
         let indent_str = "    ".repeat(indent);
         let body_indent_str = "    ".repeat(indent + 1);
 
@@ -716,6 +726,26 @@ impl PosixEmitter {
         writeln!(output)?;
 
         Ok(())
+    }
+
+    /// Check if a name is a known shell builtin or common external command
+    fn is_known_command(&self, name: &str) -> bool {
+        // POSIX shell builtins
+        const BUILTINS: &[&str] = &[
+            "echo", "cd", "pwd", "test", "export", "readonly", "shift",
+            "set", "unset", "read", "printf", "return", "exit", "trap",
+            "true", "false", ":", ".", "source", "eval", "exec", "wait",
+        ];
+
+        // Common external commands
+        const EXTERNAL_COMMANDS: &[&str] = &[
+            "cat", "grep", "sed", "awk", "cut", "sort", "uniq", "wc",
+            "ls", "cp", "mv", "rm", "mkdir", "rmdir", "touch", "chmod",
+            "chown", "find", "xargs", "tar", "gzip", "curl", "wget",
+            "git", "make", "docker", "ssh", "scp", "rsync",
+        ];
+
+        BUILTINS.contains(&name) || EXTERNAL_COMMANDS.contains(&name)
     }
 
     pub fn emit_shell_value(&self, value: &ShellValue) -> Result<String> {

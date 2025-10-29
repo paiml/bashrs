@@ -146,27 +146,19 @@ fn echo(msg: &str) {
     let config = Config::default();
     let result = transpile(source, config).unwrap();
 
-    // FIXED: Empty functions now SHOULD be generated with : no-op
-    // This was BUG-001 from Gemini audit, fixed Oct 14, 2025
+    // UPDATED (v6.17.1): Empty functions for known builtins/commands are NOT emitted
+    // This allows the shell builtin to be used directly, which is the intended behavior
+    // See: Issue fixing e2e test failures - empty stub functions should not shadow builtins
     assert!(
-        result.contains("echo() {"),
-        "Empty function should generate function definition with : no-op"
+        !result.contains("echo() {"),
+        "Empty builtin function should NOT generate function definition (uses builtin directly)"
     );
 
-    // Should contain the : no-op command in the function body
-    let echo_section = result.split("echo() {").nth(1).unwrap_or("");
-    let echo_body = echo_section.split("}").next().unwrap_or("");
-    assert!(
-        echo_body.trim().contains(":"),
-        "Empty function should contain : no-op command"
-    );
-
-    // Should still call the echo function
+    // Should call the builtin echo command directly
     assert!(
         result.contains("echo ")
-            || result.contains("echo \"$msg\"")
             || result.contains("echo test"),
-        "Should call the echo function"
+        "Should call the builtin echo command"
     );
 }
 
