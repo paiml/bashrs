@@ -53,8 +53,10 @@ echo "hello"
 
     // Verify file was formatted
     let formatted = fs::read_to_string(&script).expect("Failed to read formatted file");
-    assert!(formatted.contains("  echo \"test\"")); // Consistent indentation
-    assert!(formatted.contains("  echo \"inconsistent\""));
+    // Formatter removes unnecessary quotes from simple literals
+    assert!(formatted.contains("  echo test")); // Consistent indentation
+    assert!(formatted.contains("  echo inconsistent"));
+    assert!(formatted.contains("  echo hello")); // Function body formatted
 }
 
 // RED TEST 3: Check mode - should detect unformatted code

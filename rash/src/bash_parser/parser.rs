@@ -94,9 +94,13 @@ impl BashParser {
             Some(Token::Export) => self.parse_export(),
             Some(Token::Local) => self.parse_local(),
             Some(Token::Identifier(_)) => {
-                // Could be assignment or command
+                // Could be assignment, function, or command
                 if self.peek_ahead(1) == Some(&Token::Assign) {
                     self.parse_assignment(false)
+                } else if self.peek_ahead(1) == Some(&Token::LeftParen)
+                    && self.peek_ahead(2) == Some(&Token::RightParen) {
+                    // This is a function definition: name() { ... }
+                    self.parse_function_shorthand()
                 } else {
                     self.parse_command()
                 }
@@ -239,6 +243,36 @@ impl BashParser {
             self.advance();
             self.expect(Token::RightParen)?;
         }
+
+        self.skip_newlines();
+        self.expect(Token::LeftBrace)?;
+        self.skip_newlines();
+
+        let body = self.parse_block_until(&[Token::RightBrace])?;
+        self.expect(Token::RightBrace)?;
+
+        Ok(BashStmt::Function {
+            name,
+            body,
+            span: Span::dummy(),
+        })
+    }
+
+    fn parse_function_shorthand(&mut self) -> ParseResult<BashStmt> {
+        // Parse name() { ... } syntax without 'function' keyword
+        let name = if let Some(Token::Identifier(n)) = self.peek() {
+            let fn_name = n.clone();
+            self.advance();
+            fn_name
+        } else {
+            return Err(ParseError::InvalidSyntax(
+                "Expected function name".to_string(),
+            ));
+        };
+
+        // Expect ()
+        self.expect(Token::LeftParen)?;
+        self.expect(Token::RightParen)?;
 
         self.skip_newlines();
         self.expect(Token::LeftBrace)?;
