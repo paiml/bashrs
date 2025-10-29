@@ -6,6 +6,7 @@
 // Sprint: REPL-003 (Basic REPL Loop)
 // Status: Phase 1 - RED-GREEN-REFACTOR-PROPERTY-MUTATION
 
+pub mod completion;
 pub mod config;
 pub mod explain;
 pub mod linter;

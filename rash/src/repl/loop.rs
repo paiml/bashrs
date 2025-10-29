@@ -10,11 +10,11 @@
 // - Complexity: <10 per function
 
 use crate::repl::{
-    explain_bash, format_lint_results, format_parse_error, lint_bash, parse_bash, purify_bash,
-    ReplConfig, ReplMode, ReplState,
+    completion::ReplCompleter, explain_bash, format_lint_results, format_parse_error, lint_bash,
+    parse_bash, purify_bash, ReplConfig, ReplMode, ReplState,
 };
 use anyhow::Result;
-use rustyline::DefaultEditor;
+use rustyline::Editor;
 use std::path::PathBuf;
 
 /// Main REPL loop for bashrs
@@ -43,8 +43,10 @@ pub fn run_repl(config: ReplConfig) -> Result<()> {
     // Validate configuration first
     config.validate().map_err(|e| anyhow::anyhow!(e))?;
 
-    // Initialize rustyline editor
-    let mut editor = DefaultEditor::new()?;
+    // Initialize rustyline editor with tab completion
+    let completer = ReplCompleter::new();
+    let mut editor = Editor::new()?;
+    editor.set_helper(Some(completer));
 
     // Initialize REPL state
     let mut state = ReplState::new();
