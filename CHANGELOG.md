@@ -7,6 +7,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [6.18.1] - 2025-10-29
+
+### 🧹 Code Quality Improvements
+
+**Patch release focusing on eliminating dead code and unused variables found by clippy.**
+
+### Fixed
+
+**Code Cleanup** (scoring/mod.rs):
+- Removed unused variable `weights` (line 99)
+- Removed dead code function `calculate_grade()` (replaced by file type-aware grading)
+- Removed unused import `ScoringWeights`
+- Removed obsolete test `test_calculate_grade_boundaries` (functionality covered by 26 tests in scoring_config.rs)
+
+### Quality Achievements
+- Build: Clean with zero warnings
+- Tests: All 5,165 tests passing (100% pass rate)
+- Clippy: Reduced from 560 to 337 warnings
+- No behavioral changes or breaking changes
+
+### Documentation
+- Added comments explaining migration to file type-aware grading system
+
 ## [6.18.0] - 2025-10-29
 
 ### ✨ NEW FEATURE - File Type-Aware Quality Scoring
