@@ -16,7 +16,7 @@ bashrs [normal]>
 ## Features
 
 - 🎯 **5 Interactive Modes**: Switch between different analysis modes
-- ⌨️ **Tab Completion**: Auto-complete commands, modes, and bash constructs
+- ⌨️ **Tab Completion**: Auto-complete commands, modes, file paths, and bash constructs
 - 🔍 **Parser Integration**: Parse bash code and inspect AST
 - 🧹 **Purifier Integration**: Transform bash to idempotent/deterministic code
 - 🔎 **Linter Integration**: Real-time diagnostics with severity levels
@@ -713,6 +713,27 @@ bashrs [explain]> for<TAB>
 bashrs [explain]> ${var:<TAB>
 # Shows: ${var:-default}  ${var:=default}  ${var:?error}  ${var:+alternate}
 ```
+
+### File Path Completion
+
+**NEW in v6.22.0**: Tab completion for file paths makes loading scripts effortless:
+
+```bash
+bashrs [normal]> :load ex<TAB>
+# Completes to: :load examples/
+
+bashrs [normal]> :load examples/te<TAB>
+# Completes to: :load examples/test.sh
+
+bashrs [normal]> :source script<TAB>
+# Shows all files starting with "script": script1.sh  script2.sh  script_utils.sh
+```
+
+**Features**:
+- Directories are shown with trailing `/` and listed first
+- Hidden files (starting with `.`) are excluded by default
+- File paths are completed relative to current directory
+- Works with both `:load` and `:source` commands
 
 ### Case-Insensitive Completion
 
