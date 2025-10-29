@@ -9,7 +9,10 @@
 // - Mutation score: ≥90%
 // - Complexity: <10 per function
 
-use crate::repl::{ReplConfig, ReplMode, ReplState, parse_bash, format_parse_error, purify_bash, lint_bash, format_lint_results};
+use crate::repl::{
+    format_lint_results, format_parse_error, lint_bash, parse_bash, purify_bash, ReplConfig,
+    ReplMode, ReplState,
+};
 use anyhow::Result;
 use rustyline::DefaultEditor;
 use std::path::PathBuf;
@@ -55,7 +58,11 @@ pub fn run_repl(config: ReplConfig) -> Result<()> {
     // Print welcome banner
     println!("bashrs REPL v{}", env!("CARGO_PKG_VERSION"));
     println!("Type 'quit' or 'exit' to exit, 'help' for commands");
-    println!("Current mode: {} - {}", state.mode(), state.mode().description());
+    println!(
+        "Current mode: {} - {}",
+        state.mode(),
+        state.mode().description()
+    );
 
     // Main REPL loop
     loop {
@@ -88,20 +95,14 @@ pub fn run_repl(config: ReplConfig) -> Result<()> {
                 } else if line.starts_with(":lint") {
                     // Handle :lint command
                     handle_lint_command(line);
+                } else if line == "quit" || line == "exit" {
+                    println!("Goodbye!");
+                    break;
+                } else if line == "help" {
+                    print_help();
                 } else {
-                    match line {
-                        "quit" | "exit" => {
-                            println!("Goodbye!");
-                            break;
-                        }
-                        "help" => {
-                            print_help();
-                        }
-                        _ => {
-                            // TODO: Implement command processing based on mode
-                            println!("Command not implemented: {}", line);
-                        }
-                    }
+                    // Process command based on current mode
+                    handle_command_by_mode(line, &state);
                 }
             }
             Err(rustyline::error::ReadlineError::Interrupted) => {
@@ -132,7 +133,11 @@ fn handle_mode_command(line: &str, state: &mut ReplState) {
 
     if parts.len() == 1 {
         // Show current mode
-        println!("Current mode: {} - {}", state.mode(), state.mode().description());
+        println!(
+            "Current mode: {} - {}",
+            state.mode(),
+            state.mode().description()
+        );
         println!();
         println!("Available modes:");
         println!("  normal  - Execute bash commands directly");
@@ -230,6 +235,50 @@ fn handle_lint_command(line: &str) {
         }
         Err(e) => {
             println!("✗ Lint error: {}", e);
+        }
+    }
+}
+
+/// Handle command processing based on current mode
+fn handle_command_by_mode(line: &str, state: &ReplState) {
+    match state.mode() {
+        ReplMode::Normal => {
+            // Normal mode - just show that command would be executed
+            println!("Would execute: {}", line);
+            println!("(Note: Normal mode execution not yet implemented)");
+        }
+        ReplMode::Purify => {
+            // Purify mode - automatically purify the command
+            match purify_bash(line) {
+                Ok(result) => {
+                    println!("✓ Purified:");
+                    println!("{}", result);
+                }
+                Err(e) => {
+                    println!("✗ Purification error: {}", e);
+                }
+            }
+        }
+        ReplMode::Lint => {
+            // Lint mode - automatically lint the command
+            match lint_bash(line) {
+                Ok(result) => {
+                    println!("{}", format_lint_results(&result));
+                }
+                Err(e) => {
+                    println!("✗ Lint error: {}", e);
+                }
+            }
+        }
+        ReplMode::Debug => {
+            // Debug mode - show that debug mode is not yet implemented
+            println!("Debug mode: {}", line);
+            println!("(Note: Debug mode not yet implemented)");
+        }
+        ReplMode::Explain => {
+            // Explain mode - show that explain mode is not yet implemented
+            println!("Explain mode: {}", line);
+            println!("(Note: Explain mode not yet implemented)");
         }
     }
 }
