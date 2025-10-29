@@ -86,17 +86,12 @@ pub fn score_script_with_file_type(
     file_path: Option<&std::path::Path>,
 ) -> Result<QualityScore, String> {
     use crate::bash_quality::linter::suppressions::FileType;
-    use crate::bash_quality::scoring_config::{
-        calculate_grade as calculate_grade_by_type, ScoringWeights,
-    };
+    use crate::bash_quality::scoring_config::calculate_grade as calculate_grade_by_type;
 
     let mut score = QualityScore::new();
 
     // Detect file type if path provided
     let file_type = file_path.map(FileType::from_path).unwrap_or_default();
-
-    // Get file type-aware weights
-    let weights = ScoringWeights::for_file_type(file_type);
 
     // Calculate each dimension
     score.complexity = calculate_complexity_score(source);
@@ -120,20 +115,6 @@ pub fn score_script_with_file_type(
     score.suggestions = generate_suggestions(source, &score);
 
     Ok(score)
-}
-
-/// Calculate grade from numeric score
-fn calculate_grade(score: f64) -> String {
-    match score {
-        s if s >= 9.5 => "A+".to_string(),
-        s if s >= 9.0 => "A".to_string(),
-        s if s >= 8.5 => "B+".to_string(),
-        s if s >= 8.0 => "B".to_string(),
-        s if s >= 7.5 => "C+".to_string(),
-        s if s >= 7.0 => "C".to_string(),
-        s if s >= 6.0 => "D".to_string(),
-        _ => "F".to_string(),
-    }
 }
 
 /// Calculate complexity score (0.0-10.0)
@@ -669,25 +650,8 @@ cp $SRC $DST
         assert!(score.suggestions.iter().any(|s| s.contains("quote")));
     }
 
-    #[test]
-    fn test_calculate_grade_boundaries() {
-        assert_eq!(calculate_grade(10.0), "A+");
-        assert_eq!(calculate_grade(9.5), "A+");
-        assert_eq!(calculate_grade(9.4), "A");
-        assert_eq!(calculate_grade(9.0), "A");
-        assert_eq!(calculate_grade(8.9), "B+");
-        assert_eq!(calculate_grade(8.5), "B+");
-        assert_eq!(calculate_grade(8.4), "B");
-        assert_eq!(calculate_grade(8.0), "B");
-        assert_eq!(calculate_grade(7.9), "C+");
-        assert_eq!(calculate_grade(7.5), "C+");
-        assert_eq!(calculate_grade(7.4), "C");
-        assert_eq!(calculate_grade(7.0), "C");
-        assert_eq!(calculate_grade(6.9), "D");
-        assert_eq!(calculate_grade(6.0), "D");
-        assert_eq!(calculate_grade(5.9), "F");
-        assert_eq!(calculate_grade(0.0), "F");
-    }
+    // NOTE: Grade calculation tests moved to scoring_config.rs (26 comprehensive tests)
+    // Old test_calculate_grade_boundaries removed - now using file type-aware grading
 
     #[test]
     fn test_score_complexity_long_functions() {
