@@ -400,144 +400,207 @@
 <a href=#400 id=400 data-nosnippet>400</a>    }
 <a href=#401 id=401 data-nosnippet>401</a>
 <a href=#402 id=402 data-nosnippet>402</a>    <span class="kw">fn </span>parse_test_condition(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; ParseResult&lt;TestExpr&gt; {
-<a href=#403 id=403 data-nosnippet>403</a>        <span class="kw">let </span>left = <span class="self">self</span>.parse_expression()<span class="question-mark">?</span>;
-<a href=#404 id=404 data-nosnippet>404</a>
-<a href=#405 id=405 data-nosnippet>405</a>        <span class="kw">match </span><span class="self">self</span>.peek() {
-<a href=#406 id=406 data-nosnippet>406</a>            <span class="prelude-val">Some</span>(Token::Eq) =&gt; {
-<a href=#407 id=407 data-nosnippet>407</a>                <span class="self">self</span>.advance();
-<a href=#408 id=408 data-nosnippet>408</a>                <span class="kw">let </span>right = <span class="self">self</span>.parse_expression()<span class="question-mark">?</span>;
-<a href=#409 id=409 data-nosnippet>409</a>                <span class="prelude-val">Ok</span>(TestExpr::StringEq(left, right))
-<a href=#410 id=410 data-nosnippet>410</a>            }
-<a href=#411 id=411 data-nosnippet>411</a>            <span class="prelude-val">Some</span>(Token::Ne) =&gt; {
-<a href=#412 id=412 data-nosnippet>412</a>                <span class="self">self</span>.advance();
-<a href=#413 id=413 data-nosnippet>413</a>                <span class="kw">let </span>right = <span class="self">self</span>.parse_expression()<span class="question-mark">?</span>;
-<a href=#414 id=414 data-nosnippet>414</a>                <span class="prelude-val">Ok</span>(TestExpr::StringNe(left, right))
-<a href=#415 id=415 data-nosnippet>415</a>            }
-<a href=#416 id=416 data-nosnippet>416</a>            <span class="prelude-val">Some</span>(Token::Lt) =&gt; {
-<a href=#417 id=417 data-nosnippet>417</a>                <span class="self">self</span>.advance();
-<a href=#418 id=418 data-nosnippet>418</a>                <span class="kw">let </span>right = <span class="self">self</span>.parse_expression()<span class="question-mark">?</span>;
-<a href=#419 id=419 data-nosnippet>419</a>                <span class="prelude-val">Ok</span>(TestExpr::IntLt(left, right))
-<a href=#420 id=420 data-nosnippet>420</a>            }
-<a href=#421 id=421 data-nosnippet>421</a>            <span class="prelude-val">Some</span>(Token::Gt) =&gt; {
-<a href=#422 id=422 data-nosnippet>422</a>                <span class="self">self</span>.advance();
-<a href=#423 id=423 data-nosnippet>423</a>                <span class="kw">let </span>right = <span class="self">self</span>.parse_expression()<span class="question-mark">?</span>;
-<a href=#424 id=424 data-nosnippet>424</a>                <span class="prelude-val">Ok</span>(TestExpr::IntGt(left, right))
-<a href=#425 id=425 data-nosnippet>425</a>            }
-<a href=#426 id=426 data-nosnippet>426</a>            <span class="kw">_ </span>=&gt; <span class="prelude-val">Ok</span>(TestExpr::StringNonEmpty(left)),
-<a href=#427 id=427 data-nosnippet>427</a>        }
-<a href=#428 id=428 data-nosnippet>428</a>    }
-<a href=#429 id=429 data-nosnippet>429</a>
-<a href=#430 id=430 data-nosnippet>430</a>    <span class="kw">fn </span>parse_block_until(<span class="kw-2">&amp;mut </span><span class="self">self</span>, terminators: <span class="kw-2">&amp;</span>[Token]) -&gt; ParseResult&lt;Vec&lt;BashStmt&gt;&gt; {
-<a href=#431 id=431 data-nosnippet>431</a>        <span class="kw">let </span><span class="kw-2">mut </span>statements = Vec::new();
-<a href=#432 id=432 data-nosnippet>432</a>
-<a href=#433 id=433 data-nosnippet>433</a>        <span class="kw">while </span>!<span class="self">self</span>.is_at_end() {
-<a href=#434 id=434 data-nosnippet>434</a>            <span class="self">self</span>.skip_newlines();
-<a href=#435 id=435 data-nosnippet>435</a>
-<a href=#436 id=436 data-nosnippet>436</a>            <span class="kw">if </span>terminators.iter().any(|t| <span class="self">self</span>.check(t)) {
-<a href=#437 id=437 data-nosnippet>437</a>                <span class="kw">break</span>;
-<a href=#438 id=438 data-nosnippet>438</a>            }
-<a href=#439 id=439 data-nosnippet>439</a>
-<a href=#440 id=440 data-nosnippet>440</a>            <span class="kw">if </span><span class="self">self</span>.is_at_end() {
-<a href=#441 id=441 data-nosnippet>441</a>                <span class="kw">break</span>;
-<a href=#442 id=442 data-nosnippet>442</a>            }
-<a href=#443 id=443 data-nosnippet>443</a>
-<a href=#444 id=444 data-nosnippet>444</a>            statements.push(<span class="self">self</span>.parse_statement()<span class="question-mark">?</span>);
-<a href=#445 id=445 data-nosnippet>445</a>        }
-<a href=#446 id=446 data-nosnippet>446</a>
-<a href=#447 id=447 data-nosnippet>447</a>        <span class="prelude-val">Ok</span>(statements)
-<a href=#448 id=448 data-nosnippet>448</a>    }
-<a href=#449 id=449 data-nosnippet>449</a>
-<a href=#450 id=450 data-nosnippet>450</a>    <span class="comment">// Helper methods
-<a href=#451 id=451 data-nosnippet>451</a>    </span><span class="kw">fn </span>peek(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Option</span>&lt;<span class="kw-2">&amp;</span>Token&gt; {
-<a href=#452 id=452 data-nosnippet>452</a>        <span class="self">self</span>.tokens.get(<span class="self">self</span>.position)
-<a href=#453 id=453 data-nosnippet>453</a>    }
-<a href=#454 id=454 data-nosnippet>454</a>
-<a href=#455 id=455 data-nosnippet>455</a>    <span class="kw">fn </span>peek_ahead(<span class="kw-2">&amp;</span><span class="self">self</span>, offset: usize) -&gt; <span class="prelude-ty">Option</span>&lt;<span class="kw-2">&amp;</span>Token&gt; {
-<a href=#456 id=456 data-nosnippet>456</a>        <span class="self">self</span>.tokens.get(<span class="self">self</span>.position + offset)
-<a href=#457 id=457 data-nosnippet>457</a>    }
-<a href=#458 id=458 data-nosnippet>458</a>
-<a href=#459 id=459 data-nosnippet>459</a>    <span class="kw">fn </span>advance(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Option</span>&lt;<span class="kw-2">&amp;</span>Token&gt; {
-<a href=#460 id=460 data-nosnippet>460</a>        <span class="kw">if </span>!<span class="self">self</span>.is_at_end() {
-<a href=#461 id=461 data-nosnippet>461</a>            <span class="self">self</span>.position += <span class="number">1</span>;
-<a href=#462 id=462 data-nosnippet>462</a>        }
-<a href=#463 id=463 data-nosnippet>463</a>        <span class="self">self</span>.tokens.get(<span class="self">self</span>.position - <span class="number">1</span>)
-<a href=#464 id=464 data-nosnippet>464</a>    }
-<a href=#465 id=465 data-nosnippet>465</a>
-<a href=#466 id=466 data-nosnippet>466</a>    <span class="kw">fn </span>is_at_end(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; bool {
-<a href=#467 id=467 data-nosnippet>467</a>        <span class="macro">matches!</span>(<span class="self">self</span>.peek(), <span class="prelude-val">Some</span>(Token::Eof) | <span class="prelude-val">None</span>)
-<a href=#468 id=468 data-nosnippet>468</a>    }
-<a href=#469 id=469 data-nosnippet>469</a>
-<a href=#470 id=470 data-nosnippet>470</a>    <span class="kw">fn </span>check(<span class="kw-2">&amp;</span><span class="self">self</span>, token: <span class="kw-2">&amp;</span>Token) -&gt; bool {
-<a href=#471 id=471 data-nosnippet>471</a>        <span class="kw">if let </span><span class="prelude-val">Some</span>(current) = <span class="self">self</span>.peek() {
-<a href=#472 id=472 data-nosnippet>472</a>            std::mem::discriminant(current) == std::mem::discriminant(token)
-<a href=#473 id=473 data-nosnippet>473</a>        } <span class="kw">else </span>{
-<a href=#474 id=474 data-nosnippet>474</a>            <span class="bool-val">false
-<a href=#475 id=475 data-nosnippet>475</a>        </span>}
-<a href=#476 id=476 data-nosnippet>476</a>    }
-<a href=#477 id=477 data-nosnippet>477</a>
-<a href=#478 id=478 data-nosnippet>478</a>    <span class="kw">fn </span>expect(<span class="kw-2">&amp;mut </span><span class="self">self</span>, expected: Token) -&gt; ParseResult&lt;()&gt; {
-<a href=#479 id=479 data-nosnippet>479</a>        <span class="kw">if </span><span class="self">self</span>.check(<span class="kw-2">&amp;</span>expected) {
-<a href=#480 id=480 data-nosnippet>480</a>            <span class="self">self</span>.advance();
-<a href=#481 id=481 data-nosnippet>481</a>            <span class="prelude-val">Ok</span>(())
-<a href=#482 id=482 data-nosnippet>482</a>        } <span class="kw">else </span>{
-<a href=#483 id=483 data-nosnippet>483</a>            <span class="prelude-val">Err</span>(ParseError::UnexpectedToken {
-<a href=#484 id=484 data-nosnippet>484</a>                expected: <span class="macro">format!</span>(<span class="string">"{:?}"</span>, expected),
-<a href=#485 id=485 data-nosnippet>485</a>                found: <span class="macro">format!</span>(<span class="string">"{:?}"</span>, <span class="self">self</span>.peek()),
-<a href=#486 id=486 data-nosnippet>486</a>                line: <span class="self">self</span>.current_line,
-<a href=#487 id=487 data-nosnippet>487</a>            })
-<a href=#488 id=488 data-nosnippet>488</a>        }
-<a href=#489 id=489 data-nosnippet>489</a>    }
-<a href=#490 id=490 data-nosnippet>490</a>
-<a href=#491 id=491 data-nosnippet>491</a>    <span class="kw">fn </span>skip_newlines(<span class="kw-2">&amp;mut </span><span class="self">self</span>) {
-<a href=#492 id=492 data-nosnippet>492</a>        <span class="kw">while </span><span class="self">self</span>.check(<span class="kw-2">&amp;</span>Token::Newline) {
-<a href=#493 id=493 data-nosnippet>493</a>            <span class="self">self</span>.advance();
-<a href=#494 id=494 data-nosnippet>494</a>            <span class="self">self</span>.current_line += <span class="number">1</span>;
-<a href=#495 id=495 data-nosnippet>495</a>        }
-<a href=#496 id=496 data-nosnippet>496</a>    }
-<a href=#497 id=497 data-nosnippet>497</a>}
+<a href=#403 id=403 data-nosnippet>403</a>        <span class="comment">// Check for unary test operators first (operators are tokenized as Identifier)
+<a href=#404 id=404 data-nosnippet>404</a>        </span><span class="kw">if let </span><span class="prelude-val">Some</span>(Token::Identifier(op)) = <span class="self">self</span>.peek() {
+<a href=#405 id=405 data-nosnippet>405</a>            <span class="kw">let </span>operator = op.clone();
+<a href=#406 id=406 data-nosnippet>406</a>
+<a href=#407 id=407 data-nosnippet>407</a>            <span class="kw">match </span>operator.as_str() {
+<a href=#408 id=408 data-nosnippet>408</a>                <span class="string">"-n" </span>=&gt; {
+<a href=#409 id=409 data-nosnippet>409</a>                    <span class="self">self</span>.advance(); <span class="comment">// consume operator
+<a href=#410 id=410 data-nosnippet>410</a>                    </span><span class="kw">let </span>expr = <span class="self">self</span>.parse_expression()<span class="question-mark">?</span>;
+<a href=#411 id=411 data-nosnippet>411</a>                    <span class="kw">return </span><span class="prelude-val">Ok</span>(TestExpr::StringNonEmpty(expr));
+<a href=#412 id=412 data-nosnippet>412</a>                }
+<a href=#413 id=413 data-nosnippet>413</a>                <span class="string">"-z" </span>=&gt; {
+<a href=#414 id=414 data-nosnippet>414</a>                    <span class="self">self</span>.advance();
+<a href=#415 id=415 data-nosnippet>415</a>                    <span class="kw">let </span>expr = <span class="self">self</span>.parse_expression()<span class="question-mark">?</span>;
+<a href=#416 id=416 data-nosnippet>416</a>                    <span class="kw">return </span><span class="prelude-val">Ok</span>(TestExpr::StringEmpty(expr));
+<a href=#417 id=417 data-nosnippet>417</a>                }
+<a href=#418 id=418 data-nosnippet>418</a>                <span class="string">"-f" </span>| <span class="string">"-e" </span>=&gt; {
+<a href=#419 id=419 data-nosnippet>419</a>                    <span class="self">self</span>.advance();
+<a href=#420 id=420 data-nosnippet>420</a>                    <span class="kw">let </span>expr = <span class="self">self</span>.parse_expression()<span class="question-mark">?</span>;
+<a href=#421 id=421 data-nosnippet>421</a>                    <span class="kw">return </span><span class="prelude-val">Ok</span>(TestExpr::FileExists(expr));
+<a href=#422 id=422 data-nosnippet>422</a>                }
+<a href=#423 id=423 data-nosnippet>423</a>                <span class="string">"-d" </span>=&gt; {
+<a href=#424 id=424 data-nosnippet>424</a>                    <span class="self">self</span>.advance();
+<a href=#425 id=425 data-nosnippet>425</a>                    <span class="kw">let </span>expr = <span class="self">self</span>.parse_expression()<span class="question-mark">?</span>;
+<a href=#426 id=426 data-nosnippet>426</a>                    <span class="kw">return </span><span class="prelude-val">Ok</span>(TestExpr::FileDirectory(expr));
+<a href=#427 id=427 data-nosnippet>427</a>                }
+<a href=#428 id=428 data-nosnippet>428</a>                <span class="string">"-r" </span>=&gt; {
+<a href=#429 id=429 data-nosnippet>429</a>                    <span class="self">self</span>.advance();
+<a href=#430 id=430 data-nosnippet>430</a>                    <span class="kw">let </span>expr = <span class="self">self</span>.parse_expression()<span class="question-mark">?</span>;
+<a href=#431 id=431 data-nosnippet>431</a>                    <span class="kw">return </span><span class="prelude-val">Ok</span>(TestExpr::FileReadable(expr));
+<a href=#432 id=432 data-nosnippet>432</a>                }
+<a href=#433 id=433 data-nosnippet>433</a>                <span class="string">"-w" </span>=&gt; {
+<a href=#434 id=434 data-nosnippet>434</a>                    <span class="self">self</span>.advance();
+<a href=#435 id=435 data-nosnippet>435</a>                    <span class="kw">let </span>expr = <span class="self">self</span>.parse_expression()<span class="question-mark">?</span>;
+<a href=#436 id=436 data-nosnippet>436</a>                    <span class="kw">return </span><span class="prelude-val">Ok</span>(TestExpr::FileWritable(expr));
+<a href=#437 id=437 data-nosnippet>437</a>                }
+<a href=#438 id=438 data-nosnippet>438</a>                <span class="string">"-x" </span>=&gt; {
+<a href=#439 id=439 data-nosnippet>439</a>                    <span class="self">self</span>.advance();
+<a href=#440 id=440 data-nosnippet>440</a>                    <span class="kw">let </span>expr = <span class="self">self</span>.parse_expression()<span class="question-mark">?</span>;
+<a href=#441 id=441 data-nosnippet>441</a>                    <span class="kw">return </span><span class="prelude-val">Ok</span>(TestExpr::FileExecutable(expr));
+<a href=#442 id=442 data-nosnippet>442</a>                }
+<a href=#443 id=443 data-nosnippet>443</a>                <span class="kw">_ </span>=&gt; {
+<a href=#444 id=444 data-nosnippet>444</a>                    <span class="comment">// Not a unary operator, continue with binary operator parsing
+<a href=#445 id=445 data-nosnippet>445</a>                </span>}
+<a href=#446 id=446 data-nosnippet>446</a>            }
+<a href=#447 id=447 data-nosnippet>447</a>        }
+<a href=#448 id=448 data-nosnippet>448</a>
+<a href=#449 id=449 data-nosnippet>449</a>        <span class="comment">// Parse left operand for binary operators
+<a href=#450 id=450 data-nosnippet>450</a>        </span><span class="kw">let </span>left = <span class="self">self</span>.parse_expression()<span class="question-mark">?</span>;
+<a href=#451 id=451 data-nosnippet>451</a>
+<a href=#452 id=452 data-nosnippet>452</a>        <span class="comment">// Check for binary operators
+<a href=#453 id=453 data-nosnippet>453</a>        </span><span class="kw">match </span><span class="self">self</span>.peek() {
+<a href=#454 id=454 data-nosnippet>454</a>            <span class="prelude-val">Some</span>(Token::Eq) =&gt; {
+<a href=#455 id=455 data-nosnippet>455</a>                <span class="self">self</span>.advance();
+<a href=#456 id=456 data-nosnippet>456</a>                <span class="kw">let </span>right = <span class="self">self</span>.parse_expression()<span class="question-mark">?</span>;
+<a href=#457 id=457 data-nosnippet>457</a>                <span class="prelude-val">Ok</span>(TestExpr::StringEq(left, right))
+<a href=#458 id=458 data-nosnippet>458</a>            }
+<a href=#459 id=459 data-nosnippet>459</a>            <span class="prelude-val">Some</span>(Token::Ne) =&gt; {
+<a href=#460 id=460 data-nosnippet>460</a>                <span class="self">self</span>.advance();
+<a href=#461 id=461 data-nosnippet>461</a>                <span class="kw">let </span>right = <span class="self">self</span>.parse_expression()<span class="question-mark">?</span>;
+<a href=#462 id=462 data-nosnippet>462</a>                <span class="prelude-val">Ok</span>(TestExpr::StringNe(left, right))
+<a href=#463 id=463 data-nosnippet>463</a>            }
+<a href=#464 id=464 data-nosnippet>464</a>            <span class="prelude-val">Some</span>(Token::Lt) =&gt; {
+<a href=#465 id=465 data-nosnippet>465</a>                <span class="self">self</span>.advance();
+<a href=#466 id=466 data-nosnippet>466</a>                <span class="kw">let </span>right = <span class="self">self</span>.parse_expression()<span class="question-mark">?</span>;
+<a href=#467 id=467 data-nosnippet>467</a>                <span class="prelude-val">Ok</span>(TestExpr::IntLt(left, right))
+<a href=#468 id=468 data-nosnippet>468</a>            }
+<a href=#469 id=469 data-nosnippet>469</a>            <span class="prelude-val">Some</span>(Token::Gt) =&gt; {
+<a href=#470 id=470 data-nosnippet>470</a>                <span class="self">self</span>.advance();
+<a href=#471 id=471 data-nosnippet>471</a>                <span class="kw">let </span>right = <span class="self">self</span>.parse_expression()<span class="question-mark">?</span>;
+<a href=#472 id=472 data-nosnippet>472</a>                <span class="prelude-val">Ok</span>(TestExpr::IntGt(left, right))
+<a href=#473 id=473 data-nosnippet>473</a>            }
+<a href=#474 id=474 data-nosnippet>474</a>            <span class="prelude-val">Some</span>(Token::Identifier(op)) <span class="kw">if </span><span class="macro">matches!</span>(op.as_str(), <span class="string">"-eq" </span>| <span class="string">"-ne" </span>| <span class="string">"-lt" </span>| <span class="string">"-le" </span>| <span class="string">"-gt" </span>| <span class="string">"-ge"</span>) =&gt; {
+<a href=#475 id=475 data-nosnippet>475</a>                <span class="kw">let </span>operator = op.clone();
+<a href=#476 id=476 data-nosnippet>476</a>                <span class="self">self</span>.advance();
+<a href=#477 id=477 data-nosnippet>477</a>                <span class="kw">let </span>right = <span class="self">self</span>.parse_expression()<span class="question-mark">?</span>;
+<a href=#478 id=478 data-nosnippet>478</a>
+<a href=#479 id=479 data-nosnippet>479</a>                <span class="kw">match </span>operator.as_str() {
+<a href=#480 id=480 data-nosnippet>480</a>                    <span class="string">"-eq" </span>=&gt; <span class="prelude-val">Ok</span>(TestExpr::IntEq(left, right)),
+<a href=#481 id=481 data-nosnippet>481</a>                    <span class="string">"-ne" </span>=&gt; <span class="prelude-val">Ok</span>(TestExpr::IntNe(left, right)),
+<a href=#482 id=482 data-nosnippet>482</a>                    <span class="string">"-lt" </span>=&gt; <span class="prelude-val">Ok</span>(TestExpr::IntLt(left, right)),
+<a href=#483 id=483 data-nosnippet>483</a>                    <span class="string">"-le" </span>=&gt; <span class="prelude-val">Ok</span>(TestExpr::IntLe(left, right)),
+<a href=#484 id=484 data-nosnippet>484</a>                    <span class="string">"-gt" </span>=&gt; <span class="prelude-val">Ok</span>(TestExpr::IntGt(left, right)),
+<a href=#485 id=485 data-nosnippet>485</a>                    <span class="string">"-ge" </span>=&gt; <span class="prelude-val">Ok</span>(TestExpr::IntGe(left, right)),
+<a href=#486 id=486 data-nosnippet>486</a>                    <span class="kw">_ </span>=&gt; <span class="macro">unreachable!</span>(),
+<a href=#487 id=487 data-nosnippet>487</a>                }
+<a href=#488 id=488 data-nosnippet>488</a>            }
+<a href=#489 id=489 data-nosnippet>489</a>            <span class="kw">_ </span>=&gt; <span class="prelude-val">Ok</span>(TestExpr::StringNonEmpty(left)),
+<a href=#490 id=490 data-nosnippet>490</a>        }
+<a href=#491 id=491 data-nosnippet>491</a>    }
+<a href=#492 id=492 data-nosnippet>492</a>
+<a href=#493 id=493 data-nosnippet>493</a>    <span class="kw">fn </span>parse_block_until(<span class="kw-2">&amp;mut </span><span class="self">self</span>, terminators: <span class="kw-2">&amp;</span>[Token]) -&gt; ParseResult&lt;Vec&lt;BashStmt&gt;&gt; {
+<a href=#494 id=494 data-nosnippet>494</a>        <span class="kw">let </span><span class="kw-2">mut </span>statements = Vec::new();
+<a href=#495 id=495 data-nosnippet>495</a>
+<a href=#496 id=496 data-nosnippet>496</a>        <span class="kw">while </span>!<span class="self">self</span>.is_at_end() {
+<a href=#497 id=497 data-nosnippet>497</a>            <span class="self">self</span>.skip_newlines();
 <a href=#498 id=498 data-nosnippet>498</a>
-<a href=#499 id=499 data-nosnippet>499</a><span class="attr">#[cfg(test)]
-<a href=#500 id=500 data-nosnippet>500</a></span><span class="kw">mod </span>tests {
-<a href=#501 id=501 data-nosnippet>501</a>    <span class="kw">use super</span>::<span class="kw-2">*</span>;
+<a href=#499 id=499 data-nosnippet>499</a>            <span class="kw">if </span>terminators.iter().any(|t| <span class="self">self</span>.check(t)) {
+<a href=#500 id=500 data-nosnippet>500</a>                <span class="kw">break</span>;
+<a href=#501 id=501 data-nosnippet>501</a>            }
 <a href=#502 id=502 data-nosnippet>502</a>
-<a href=#503 id=503 data-nosnippet>503</a>    <span class="attr">#[test]
-<a href=#504 id=504 data-nosnippet>504</a>    </span><span class="kw">fn </span>test_parse_simple_assignment() {
-<a href=#505 id=505 data-nosnippet>505</a>        <span class="kw">let </span><span class="kw-2">mut </span>parser = BashParser::new(<span class="string">"FOO=bar"</span>).unwrap();
-<a href=#506 id=506 data-nosnippet>506</a>        <span class="kw">let </span>ast = parser.parse().unwrap();
-<a href=#507 id=507 data-nosnippet>507</a>
-<a href=#508 id=508 data-nosnippet>508</a>        <span class="macro">assert_eq!</span>(ast.statements.len(), <span class="number">1</span>);
-<a href=#509 id=509 data-nosnippet>509</a>        <span class="macro">assert!</span>(<span class="macro">matches!</span>(ast.statements[<span class="number">0</span>], BashStmt::Assignment { .. }));
-<a href=#510 id=510 data-nosnippet>510</a>    }
-<a href=#511 id=511 data-nosnippet>511</a>
-<a href=#512 id=512 data-nosnippet>512</a>    <span class="attr">#[test]
-<a href=#513 id=513 data-nosnippet>513</a>    </span><span class="kw">fn </span>test_parse_if_statement() {
-<a href=#514 id=514 data-nosnippet>514</a>        <span class="kw">let </span>input = <span class="string">r#"
-<a href=#515 id=515 data-nosnippet>515</a>if [ $x == 1 ]; then
-<a href=#516 id=516 data-nosnippet>516</a>    echo "one"
-<a href=#517 id=517 data-nosnippet>517</a>fi
-<a href=#518 id=518 data-nosnippet>518</a>"#</span>;
-<a href=#519 id=519 data-nosnippet>519</a>        <span class="kw">let </span><span class="kw-2">mut </span>parser = BashParser::new(input).unwrap();
-<a href=#520 id=520 data-nosnippet>520</a>        <span class="kw">let </span>ast = parser.parse().unwrap();
+<a href=#503 id=503 data-nosnippet>503</a>            <span class="kw">if </span><span class="self">self</span>.is_at_end() {
+<a href=#504 id=504 data-nosnippet>504</a>                <span class="kw">break</span>;
+<a href=#505 id=505 data-nosnippet>505</a>            }
+<a href=#506 id=506 data-nosnippet>506</a>
+<a href=#507 id=507 data-nosnippet>507</a>            statements.push(<span class="self">self</span>.parse_statement()<span class="question-mark">?</span>);
+<a href=#508 id=508 data-nosnippet>508</a>        }
+<a href=#509 id=509 data-nosnippet>509</a>
+<a href=#510 id=510 data-nosnippet>510</a>        <span class="prelude-val">Ok</span>(statements)
+<a href=#511 id=511 data-nosnippet>511</a>    }
+<a href=#512 id=512 data-nosnippet>512</a>
+<a href=#513 id=513 data-nosnippet>513</a>    <span class="comment">// Helper methods
+<a href=#514 id=514 data-nosnippet>514</a>    </span><span class="kw">fn </span>peek(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Option</span>&lt;<span class="kw-2">&amp;</span>Token&gt; {
+<a href=#515 id=515 data-nosnippet>515</a>        <span class="self">self</span>.tokens.get(<span class="self">self</span>.position)
+<a href=#516 id=516 data-nosnippet>516</a>    }
+<a href=#517 id=517 data-nosnippet>517</a>
+<a href=#518 id=518 data-nosnippet>518</a>    <span class="kw">fn </span>peek_ahead(<span class="kw-2">&amp;</span><span class="self">self</span>, offset: usize) -&gt; <span class="prelude-ty">Option</span>&lt;<span class="kw-2">&amp;</span>Token&gt; {
+<a href=#519 id=519 data-nosnippet>519</a>        <span class="self">self</span>.tokens.get(<span class="self">self</span>.position + offset)
+<a href=#520 id=520 data-nosnippet>520</a>    }
 <a href=#521 id=521 data-nosnippet>521</a>
-<a href=#522 id=522 data-nosnippet>522</a>        <span class="macro">assert!</span>(ast
-<a href=#523 id=523 data-nosnippet>523</a>            .statements
-<a href=#524 id=524 data-nosnippet>524</a>            .iter()
-<a href=#525 id=525 data-nosnippet>525</a>            .any(|s| <span class="macro">matches!</span>(s, BashStmt::If { .. })));
-<a href=#526 id=526 data-nosnippet>526</a>    }
-<a href=#527 id=527 data-nosnippet>527</a>
-<a href=#528 id=528 data-nosnippet>528</a>    <span class="attr">#[test]
-<a href=#529 id=529 data-nosnippet>529</a>    </span><span class="kw">fn </span>test_parse_function() {
-<a href=#530 id=530 data-nosnippet>530</a>        <span class="kw">let </span>input = <span class="string">r#"
-<a href=#531 id=531 data-nosnippet>531</a>function greet() {
-<a href=#532 id=532 data-nosnippet>532</a>    echo "Hello"
-<a href=#533 id=533 data-nosnippet>533</a>}
-<a href=#534 id=534 data-nosnippet>534</a>"#</span>;
-<a href=#535 id=535 data-nosnippet>535</a>        <span class="kw">let </span><span class="kw-2">mut </span>parser = BashParser::new(input).unwrap();
-<a href=#536 id=536 data-nosnippet>536</a>        <span class="kw">let </span>ast = parser.parse().unwrap();
-<a href=#537 id=537 data-nosnippet>537</a>
-<a href=#538 id=538 data-nosnippet>538</a>        <span class="macro">assert!</span>(ast
-<a href=#539 id=539 data-nosnippet>539</a>            .statements
-<a href=#540 id=540 data-nosnippet>540</a>            .iter()
-<a href=#541 id=541 data-nosnippet>541</a>            .any(|s| <span class="macro">matches!</span>(s, BashStmt::Function { .. })));
-<a href=#542 id=542 data-nosnippet>542</a>    }
-<a href=#543 id=543 data-nosnippet>543</a>}</code></pre></div></section></main></body></html>
+<a href=#522 id=522 data-nosnippet>522</a>    <span class="kw">fn </span>advance(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Option</span>&lt;<span class="kw-2">&amp;</span>Token&gt; {
+<a href=#523 id=523 data-nosnippet>523</a>        <span class="kw">if </span>!<span class="self">self</span>.is_at_end() {
+<a href=#524 id=524 data-nosnippet>524</a>            <span class="self">self</span>.position += <span class="number">1</span>;
+<a href=#525 id=525 data-nosnippet>525</a>        }
+<a href=#526 id=526 data-nosnippet>526</a>        <span class="self">self</span>.tokens.get(<span class="self">self</span>.position - <span class="number">1</span>)
+<a href=#527 id=527 data-nosnippet>527</a>    }
+<a href=#528 id=528 data-nosnippet>528</a>
+<a href=#529 id=529 data-nosnippet>529</a>    <span class="kw">fn </span>is_at_end(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; bool {
+<a href=#530 id=530 data-nosnippet>530</a>        <span class="macro">matches!</span>(<span class="self">self</span>.peek(), <span class="prelude-val">Some</span>(Token::Eof) | <span class="prelude-val">None</span>)
+<a href=#531 id=531 data-nosnippet>531</a>    }
+<a href=#532 id=532 data-nosnippet>532</a>
+<a href=#533 id=533 data-nosnippet>533</a>    <span class="kw">fn </span>check(<span class="kw-2">&amp;</span><span class="self">self</span>, token: <span class="kw-2">&amp;</span>Token) -&gt; bool {
+<a href=#534 id=534 data-nosnippet>534</a>        <span class="kw">if let </span><span class="prelude-val">Some</span>(current) = <span class="self">self</span>.peek() {
+<a href=#535 id=535 data-nosnippet>535</a>            std::mem::discriminant(current) == std::mem::discriminant(token)
+<a href=#536 id=536 data-nosnippet>536</a>        } <span class="kw">else </span>{
+<a href=#537 id=537 data-nosnippet>537</a>            <span class="bool-val">false
+<a href=#538 id=538 data-nosnippet>538</a>        </span>}
+<a href=#539 id=539 data-nosnippet>539</a>    }
+<a href=#540 id=540 data-nosnippet>540</a>
+<a href=#541 id=541 data-nosnippet>541</a>    <span class="kw">fn </span>expect(<span class="kw-2">&amp;mut </span><span class="self">self</span>, expected: Token) -&gt; ParseResult&lt;()&gt; {
+<a href=#542 id=542 data-nosnippet>542</a>        <span class="kw">if </span><span class="self">self</span>.check(<span class="kw-2">&amp;</span>expected) {
+<a href=#543 id=543 data-nosnippet>543</a>            <span class="self">self</span>.advance();
+<a href=#544 id=544 data-nosnippet>544</a>            <span class="prelude-val">Ok</span>(())
+<a href=#545 id=545 data-nosnippet>545</a>        } <span class="kw">else </span>{
+<a href=#546 id=546 data-nosnippet>546</a>            <span class="prelude-val">Err</span>(ParseError::UnexpectedToken {
+<a href=#547 id=547 data-nosnippet>547</a>                expected: <span class="macro">format!</span>(<span class="string">"{:?}"</span>, expected),
+<a href=#548 id=548 data-nosnippet>548</a>                found: <span class="macro">format!</span>(<span class="string">"{:?}"</span>, <span class="self">self</span>.peek()),
+<a href=#549 id=549 data-nosnippet>549</a>                line: <span class="self">self</span>.current_line,
+<a href=#550 id=550 data-nosnippet>550</a>            })
+<a href=#551 id=551 data-nosnippet>551</a>        }
+<a href=#552 id=552 data-nosnippet>552</a>    }
+<a href=#553 id=553 data-nosnippet>553</a>
+<a href=#554 id=554 data-nosnippet>554</a>    <span class="kw">fn </span>skip_newlines(<span class="kw-2">&amp;mut </span><span class="self">self</span>) {
+<a href=#555 id=555 data-nosnippet>555</a>        <span class="kw">while </span><span class="self">self</span>.check(<span class="kw-2">&amp;</span>Token::Newline) {
+<a href=#556 id=556 data-nosnippet>556</a>            <span class="self">self</span>.advance();
+<a href=#557 id=557 data-nosnippet>557</a>            <span class="self">self</span>.current_line += <span class="number">1</span>;
+<a href=#558 id=558 data-nosnippet>558</a>        }
+<a href=#559 id=559 data-nosnippet>559</a>    }
+<a href=#560 id=560 data-nosnippet>560</a>}
+<a href=#561 id=561 data-nosnippet>561</a>
+<a href=#562 id=562 data-nosnippet>562</a><span class="attr">#[cfg(test)]
+<a href=#563 id=563 data-nosnippet>563</a></span><span class="kw">mod </span>tests {
+<a href=#564 id=564 data-nosnippet>564</a>    <span class="kw">use super</span>::<span class="kw-2">*</span>;
+<a href=#565 id=565 data-nosnippet>565</a>
+<a href=#566 id=566 data-nosnippet>566</a>    <span class="attr">#[test]
+<a href=#567 id=567 data-nosnippet>567</a>    </span><span class="kw">fn </span>test_parse_simple_assignment() {
+<a href=#568 id=568 data-nosnippet>568</a>        <span class="kw">let </span><span class="kw-2">mut </span>parser = BashParser::new(<span class="string">"FOO=bar"</span>).unwrap();
+<a href=#569 id=569 data-nosnippet>569</a>        <span class="kw">let </span>ast = parser.parse().unwrap();
+<a href=#570 id=570 data-nosnippet>570</a>
+<a href=#571 id=571 data-nosnippet>571</a>        <span class="macro">assert_eq!</span>(ast.statements.len(), <span class="number">1</span>);
+<a href=#572 id=572 data-nosnippet>572</a>        <span class="macro">assert!</span>(<span class="macro">matches!</span>(ast.statements[<span class="number">0</span>], BashStmt::Assignment { .. }));
+<a href=#573 id=573 data-nosnippet>573</a>    }
+<a href=#574 id=574 data-nosnippet>574</a>
+<a href=#575 id=575 data-nosnippet>575</a>    <span class="attr">#[test]
+<a href=#576 id=576 data-nosnippet>576</a>    </span><span class="kw">fn </span>test_parse_if_statement() {
+<a href=#577 id=577 data-nosnippet>577</a>        <span class="kw">let </span>input = <span class="string">r#"
+<a href=#578 id=578 data-nosnippet>578</a>if [ $x == 1 ]; then
+<a href=#579 id=579 data-nosnippet>579</a>    echo "one"
+<a href=#580 id=580 data-nosnippet>580</a>fi
+<a href=#581 id=581 data-nosnippet>581</a>"#</span>;
+<a href=#582 id=582 data-nosnippet>582</a>        <span class="kw">let </span><span class="kw-2">mut </span>parser = BashParser::new(input).unwrap();
+<a href=#583 id=583 data-nosnippet>583</a>        <span class="kw">let </span>ast = parser.parse().unwrap();
+<a href=#584 id=584 data-nosnippet>584</a>
+<a href=#585 id=585 data-nosnippet>585</a>        <span class="macro">assert!</span>(ast
+<a href=#586 id=586 data-nosnippet>586</a>            .statements
+<a href=#587 id=587 data-nosnippet>587</a>            .iter()
+<a href=#588 id=588 data-nosnippet>588</a>            .any(|s| <span class="macro">matches!</span>(s, BashStmt::If { .. })));
+<a href=#589 id=589 data-nosnippet>589</a>    }
+<a href=#590 id=590 data-nosnippet>590</a>
+<a href=#591 id=591 data-nosnippet>591</a>    <span class="attr">#[test]
+<a href=#592 id=592 data-nosnippet>592</a>    </span><span class="kw">fn </span>test_parse_function() {
+<a href=#593 id=593 data-nosnippet>593</a>        <span class="kw">let </span>input = <span class="string">r#"
+<a href=#594 id=594 data-nosnippet>594</a>function greet() {
+<a href=#595 id=595 data-nosnippet>595</a>    echo "Hello"
+<a href=#596 id=596 data-nosnippet>596</a>}
+<a href=#597 id=597 data-nosnippet>597</a>"#</span>;
+<a href=#598 id=598 data-nosnippet>598</a>        <span class="kw">let </span><span class="kw-2">mut </span>parser = BashParser::new(input).unwrap();
+<a href=#599 id=599 data-nosnippet>599</a>        <span class="kw">let </span>ast = parser.parse().unwrap();
+<a href=#600 id=600 data-nosnippet>600</a>
+<a href=#601 id=601 data-nosnippet>601</a>        <span class="macro">assert!</span>(ast
+<a href=#602 id=602 data-nosnippet>602</a>            .statements
+<a href=#603 id=603 data-nosnippet>603</a>            .iter()
+<a href=#604 id=604 data-nosnippet>604</a>            .any(|s| <span class="macro">matches!</span>(s, BashStmt::Function { .. })));
+<a href=#605 id=605 data-nosnippet>605</a>    }
+<a href=#606 id=606 data-nosnippet>606</a>}</code></pre></div></section></main></body></html>
