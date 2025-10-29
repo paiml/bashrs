@@ -252,6 +252,16 @@ impl SemanticAnalyzer {
             BashStmt::Comment { .. } => {
                 // Comments don't affect semantics
             }
+
+            BashStmt::Case { word, arms, .. } => {
+                self.analyze_expression(word, scope)?;
+
+                for arm in arms {
+                    for stmt in &arm.body {
+                        self.analyze_statement(stmt, scope)?;
+                    }
+                }
+            }
         }
 
         Ok(())

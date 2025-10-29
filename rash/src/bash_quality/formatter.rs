@@ -186,6 +186,31 @@ impl Formatter {
                     format!("{}return", indent_str)
                 }
             }
+
+            BashStmt::Case { word, arms, .. } => {
+                let mut result = format!("{}case {} in", indent_str, self.format_expr(word));
+                result.push('\n');
+
+                for arm in arms {
+                    // Format pattern(s)
+                    let pattern_str = arm.patterns.join("|");
+                    result.push_str(&format!("{}  {})", indent_str, pattern_str));
+                    result.push('\n');
+
+                    // Format body
+                    for stmt in &arm.body {
+                        result.push_str(&self.format_stmt(stmt, indent + 2));
+                        result.push('\n');
+                    }
+
+                    // Add ;;
+                    result.push_str(&format!("{}    ;;", indent_str));
+                    result.push('\n');
+                }
+
+                result.push_str(&format!("{}esac", indent_str));
+                result
+            }
         }
     }
 

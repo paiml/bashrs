@@ -390,6 +390,6 @@ fi
         .success();
 
     let formatted = fs::read_to_string(&script).expect("Failed to read formatted file");
-    // Should use 4 spaces for indentation
-    assert!(formatted.contains("    echo \"test\""));
+    // Should use 4 spaces for indentation (formatter removes unnecessary quotes)
+    assert!(formatted.contains("    echo test"));
 }

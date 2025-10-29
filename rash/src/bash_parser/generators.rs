@@ -142,6 +142,21 @@ fn generate_statement(stmt: &BashStmt) -> String {
                 String::from("return")
             }
         }
+        BashStmt::Case { word, arms, .. } => {
+            let mut case_stmt = format!("case {} in\n", generate_expr(word));
+            for arm in arms {
+                let pattern_str = arm.patterns.join("|");
+                case_stmt.push_str(&format!("    {})\n", pattern_str));
+                for stmt in &arm.body {
+                    case_stmt.push_str("        ");
+                    case_stmt.push_str(&generate_statement(stmt));
+                    case_stmt.push('\n');
+                }
+                case_stmt.push_str("        ;;\n");
+            }
+            case_stmt.push_str("esac");
+            case_stmt
+        }
     }
 }
 

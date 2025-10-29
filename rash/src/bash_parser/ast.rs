@@ -81,8 +81,22 @@ pub enum BashStmt {
     /// Return statement
     Return { code: Option<BashExpr>, span: Span },
 
+    /// Case statement: case WORD in PATTERN) BODY;; esac
+    Case {
+        word: BashExpr,
+        arms: Vec<CaseArm>,
+        span: Span,
+    },
+
     /// Comment (preserved for documentation)
     Comment { text: String, span: Span },
+}
+
+/// Case statement arm
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct CaseArm {
+    pub patterns: Vec<String>,
+    pub body: Vec<BashStmt>,
 }
 
 /// Expression-level AST node
@@ -251,6 +265,7 @@ impl fmt::Display for BashStmt {
             BashStmt::While { .. } => write!(f, "While"),
             BashStmt::Until { .. } => write!(f, "Until"),
             BashStmt::For { variable, .. } => write!(f, "For({})", variable),
+            BashStmt::Case { .. } => write!(f, "Case"),
             BashStmt::Return { .. } => write!(f, "Return"),
             BashStmt::Comment { .. } => write!(f, "Comment"),
         }

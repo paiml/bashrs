@@ -89,6 +89,7 @@ impl BashParser {
             Some(Token::If) => self.parse_if(),
             Some(Token::While) => self.parse_while(),
             Some(Token::For) => self.parse_for(),
+            Some(Token::Case) => self.parse_case(),
             Some(Token::Function) => self.parse_function(),
             Some(Token::Return) => self.parse_return(),
             Some(Token::Export) => self.parse_export(),
@@ -193,15 +194,7 @@ impl BashParser {
         };
 
         // Expect 'in'
-        if let Some(Token::Identifier(word)) = self.peek() {
-            if word == "in" {
-                self.advance();
-            } else {
-                return Err(ParseError::InvalidSyntax(
-                    "Expected 'in' after for variable".to_string(),
-                ));
-            }
-        }
+        self.expect(Token::In)?;
 
         let items = self.parse_expression()?;
 
@@ -221,6 +214,85 @@ impl BashParser {
             variable,
             items,
             body,
+            span: Span::dummy(),
+        })
+    }
+
+    fn parse_case(&mut self) -> ParseResult<BashStmt> {
+        use crate::bash_parser::ast::CaseArm;
+
+        self.expect(Token::Case)?;
+
+        // Parse the word to match against
+        let word = self.parse_expression()?;
+
+        self.skip_newlines();
+        self.expect(Token::In)?;
+        self.skip_newlines();
+
+        let mut arms = Vec::new();
+
+        // Parse case arms until esac
+        while !self.check(&Token::Esac) {
+            if self.is_at_end() {
+                return Err(ParseError::InvalidSyntax(
+                    "Expected 'esac' to close case statement".to_string(),
+                ));
+            }
+
+            // Parse patterns (can be multiple patterns separated by |)
+            let mut patterns = Vec::new();
+            loop {
+                if let Some(Token::Identifier(pat)) | Some(Token::String(pat)) = self.peek() {
+                    patterns.push(pat.clone());
+                    self.advance();
+                } else {
+                    break;
+                }
+
+                // Check for | (alternative pattern)
+                if self.check(&Token::Pipe) {
+                    self.advance();
+                } else {
+                    break;
+                }
+            }
+
+            // Expect )
+            if self.check(&Token::RightParen) {
+                self.advance();
+            }
+
+            self.skip_newlines();
+
+            // Parse body until ;;
+            let mut body = Vec::new();
+            while !self.check(&Token::Semicolon) && !self.check(&Token::Esac) {
+                if self.is_at_end() {
+                    break;
+                }
+                body.push(self.parse_statement()?);
+                self.skip_newlines();
+            }
+
+            // Expect ;;
+            if self.check(&Token::Semicolon) {
+                self.advance();
+                if self.check(&Token::Semicolon) {
+                    self.advance();
+                }
+            }
+
+            self.skip_newlines();
+
+            arms.push(CaseArm { patterns, body });
+        }
+
+        self.expect(Token::Esac)?;
+
+        Ok(BashStmt::Case {
+            word,
+            arms,
             span: Span::dummy(),
         })
     }
