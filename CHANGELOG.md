@@ -7,6 +7,110 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [6.20.0] - 2025-10-29
+
+### ✨ NEW FEATURES - Interactive REPL Enhancements
+
+**bashrs v6.20.0 brings two powerful features that transform the REPL into a truly interactive development environment.**
+
+### Added
+
+**File Path Tab Completion** (REPL-009-002):
+- Intelligent tab completion for `:load` and `:source` commands
+- Directories shown with trailing `/` and sorted first
+- Hidden files (starting with `.`) excluded by default
+- Works with absolute and relative paths
+- Press `Tab` to complete file paths: `:load ex<TAB>` → `:load examples/`
+- Implementation: `rash/src/repl/completion.rs:128-222`
+- Tests: 7 comprehensive unit tests (all passing)
+- Updated rustyline from 14.0 → 17.0.2 for latest features
+
+**Multi-line Input Support** (REPL-011):
+- Natural multi-line input for functions, loops, and conditionals
+- Automatic detection of incomplete input (quotes, braces, keywords)
+- Continuation prompt `... >` for multi-line mode
+- Supports: `function`, `for`, `while`, `until`, `if`, `case` statements
+- Ctrl-C cancels multi-line input and resets buffer
+- Works seamlessly with all 5 REPL modes
+- Implementation: `rash/src/repl/multiline.rs` (new module), `rash/src/repl/loop.rs:75-198`
+- Tests: 25 comprehensive unit tests (quotes, braces, keywords, etc.)
+
+**Documentation** (REPL-009-002, REPL-011):
+- Added "File Path Completion" section with examples
+- Added "Multi-line Input" section with comprehensive examples
+- Updated features list to highlight new capabilities
+- Added examples for functions, loops, if statements, while loops, case statements
+- Documented Ctrl-C behavior for cancelling multi-line input
+
+### Changed
+
+**REPL Workflow Improvements**:
+- File path completion makes script loading effortless and error-free
+- Multi-line input enables natural development of complex bash scripts
+- No more single-line workarounds for functions and loops
+- Improved error handling with multi-line buffer reset on Ctrl-C
+
+**User Experience - File Path Completion**:
+```bash
+bashrs> :load ex<TAB>
+# Completes to: :load examples/
+
+bashrs> :load examples/te<TAB>
+# Completes to: :load examples/test.sh
+```
+
+**User Experience - Multi-line Input**:
+```bash
+bashrs [normal]> function greet() {
+... >   echo "Hello, $1"
+... >   echo "Welcome to bashrs"
+... > }
+✓ Function 'greet' defined
+
+bashrs [normal]> for i in 1 2 3; do
+... >   echo "Iteration $i"
+... > done
+Iteration 1
+Iteration 2
+Iteration 3
+```
+
+### Quality Achievements
+
+**Test Coverage**:
+- 32 new tests (7 file path + 25 multi-line)
+- 5280 total tests passing (0 failures)
+- 100% pass rate on all REPL tests
+- Comprehensive coverage: quotes, braces, keywords, file systems
+
+**EXTREME TDD Methodology**:
+- RED Phase: Wrote failing tests first for both features
+- GREEN Phase: Implemented features to pass tests
+- REFACTOR Phase: Cleaned up implementation (complexity <10)
+- All tests passing before commit
+
+**Documentation**:
+- Complete user-facing documentation for both features
+- Real-world examples demonstrating workflows
+- mdbook builds successfully
+
+### Technical Details
+
+**Commits**:
+- a6c0812c: feat: REPL-009-002 - File path tab completion
+- f8c22d70: feat: REPL-011 - Multi-line input support
+
+**Dependencies Updated**:
+- rustyline: 14.0 → 17.0.2 (latest features for completion)
+
+**Files Changed**:
+- `rash/src/repl/completion.rs` - Added file path completion logic
+- `rash/src/repl/multiline.rs` - New module for incomplete input detection
+- `rash/src/repl/loop.rs` - Multi-line buffering and continuation prompt
+- `rash/src/repl/mod.rs` - Added multiline module export
+- `book/src/getting-started/repl.md` - Comprehensive documentation updates
+- `Cargo.toml` - Rustyline version update
+
 ## [6.19.0] - 2025-10-29
 
 ### ✨ NEW FEATURE - Interactive REPL Enhancements

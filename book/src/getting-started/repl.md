@@ -47,7 +47,7 @@ bashrs [normal]>
 
 ### Script Loading Commands
 
-**NEW in v6.22.0**: Load bash scripts from files, extract functions, and manage your interactive development workflow.
+**NEW in v6.20.0**: Load bash scripts from files, extract functions, and manage your interactive development workflow.
 
 | Command | Description |
 |---------|-------------|
@@ -566,7 +566,7 @@ Session Variables (2 variables):
 
 ### Example 9: Script Loading and Function Extraction
 
-**NEW in v6.22.0**: Load bash scripts from files to inspect their structure, extract functions, and develop scripts interactively.
+**NEW in v6.20.0**: Load bash scripts from files to inspect their structure, extract functions, and develop scripts interactively.
 
 #### Loading a Simple Script
 ```bash
@@ -717,7 +717,7 @@ bashrs [explain]> ${var:<TAB>
 
 ### File Path Completion
 
-**NEW in v6.22.0**: Tab completion for file paths makes loading scripts effortless:
+**NEW in v6.20.0**: Tab completion for file paths makes loading scripts effortless:
 
 ```bash
 bashrs [normal]> :load ex<TAB>
@@ -773,7 +773,7 @@ bashrs [explain]> $<TAB>
 
 ## Multi-line Input
 
-**NEW in v6.22.0**: The REPL now supports multi-line input for complex bash constructs like functions, loops, and conditionals.
+**NEW in v6.20.0**: The REPL now supports multi-line input for complex bash constructs like functions, loops, and conditionals.
 
 When the REPL detects incomplete input, it automatically switches to continuation mode with a `... >` prompt.
 
