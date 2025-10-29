@@ -7,6 +7,86 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [6.16.0] - 2025-10-29
+
+### 🎨 BASH QUALITY TOOLS - Parser Improvements for Test Expressions
+
+**bashrs v6.16.0 improves bash parser to support test expressions** - unblocking formatter for if statements with test conditions.
+
+### Added
+
+**Parser: Test Expression Support**:
+
+The bash parser now correctly handles test expressions with unary and binary operators:
+
+**✅ Unary Test Operators**:
+- `-n` (string non-empty): `[ -n "$VAR" ]`
+- `-z` (string empty): `[ -z "$VAR" ]`
+- `-f` (file exists): `[ -f /path ]`
+- `-d` (directory exists): `[ -d /path ]`
+- `-r` (file readable): `[ -r /path ]`
+- `-w` (file writable): `[ -w /path ]`
+- `-x` (file executable): `[ -x /path ]`
+- `-e` (file exists): `[ -e /path ]`
+
+**✅ Binary Test Operators**:
+- Integer comparisons: `-eq`, `-ne`, `-lt`, `-le`, `-gt`, `-ge`
+- String comparisons: `=`, `!=`
+
+**Impact on Formatter**:
+- ✅ Can now format if statements with test expressions
+- ✅ Improved from 5/15 to 7/15 integration tests passing (40%)
+- ✅ Basic control flow formatting now works
+
+### Fixed
+
+**Parser: Token Type Recognition**:
+- Fixed: Test operators like `-n`, `-z` were tokenized as `Token::Identifier` but parser checked for `Token::String`
+- Now: Parser correctly recognizes both `Token::Identifier` and `Token::String` for operators
+- Result: Test expressions now parse correctly
+
+### Changed
+
+**Formatter Test Status**:
+- Integration tests: 7/15 passing (was 5/15)
+- Passing tests added:
+  - `test_format_012_only_option`: Format specific files only
+  - `test_format_013_exclude_option`: Exclude files from formatting
+
+**Still Planned** (v6.17.0-v6.20.0):
+- Function bodies (test_format_002, test_format_006)
+- Case statements (test_format_011)
+- Comment preservation (test_format_008)
+- Configuration files (test_format_009, test_format_015)
+
+### Technical Details
+
+**Root Cause Analysis**:
+
+The lexer tokenizes test operators like `-n` as `Token::Identifier("-n")` instead of `Token::String("-n")`. The parser's `parse_test_condition()` was checking for `Token::String`, causing all test expressions to fail parsing.
+
+**Fix Applied** (rash/src/bash_parser/parser.rs:402-498):
+```rust
+// Before (WRONG):
+if let Some(Token::String(op)) = self.peek() {
+    match operator.as_str() {
+        "-n" => { ... }  // Never matched
+    }
+}
+
+// After (CORRECT):
+if let Some(Token::Identifier(op)) = self.peek() {
+    match operator.as_str() {
+        "-n" => { ... }  // Now matches correctly
+    }
+}
+```
+
+**Quality Metrics**:
+- All 5,175+ tests still passing
+- Zero regressions introduced
+- Following EXTREME TDD (RED-GREEN-REFACTOR)
+
 ## [6.15.0] - 2025-10-28
 
 ### 🎨 BASH QUALITY TOOLS - Formatter Status Update

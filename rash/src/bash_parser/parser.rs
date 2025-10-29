@@ -400,8 +400,56 @@ impl BashParser {
     }
 
     fn parse_test_condition(&mut self) -> ParseResult<TestExpr> {
+        // Check for unary test operators first (operators are tokenized as Identifier)
+        if let Some(Token::Identifier(op)) = self.peek() {
+            let operator = op.clone();
+
+            match operator.as_str() {
+                "-n" => {
+                    self.advance(); // consume operator
+                    let expr = self.parse_expression()?;
+                    return Ok(TestExpr::StringNonEmpty(expr));
+                }
+                "-z" => {
+                    self.advance();
+                    let expr = self.parse_expression()?;
+                    return Ok(TestExpr::StringEmpty(expr));
+                }
+                "-f" | "-e" => {
+                    self.advance();
+                    let expr = self.parse_expression()?;
+                    return Ok(TestExpr::FileExists(expr));
+                }
+                "-d" => {
+                    self.advance();
+                    let expr = self.parse_expression()?;
+                    return Ok(TestExpr::FileDirectory(expr));
+                }
+                "-r" => {
+                    self.advance();
+                    let expr = self.parse_expression()?;
+                    return Ok(TestExpr::FileReadable(expr));
+                }
+                "-w" => {
+                    self.advance();
+                    let expr = self.parse_expression()?;
+                    return Ok(TestExpr::FileWritable(expr));
+                }
+                "-x" => {
+                    self.advance();
+                    let expr = self.parse_expression()?;
+                    return Ok(TestExpr::FileExecutable(expr));
+                }
+                _ => {
+                    // Not a unary operator, continue with binary operator parsing
+                }
+            }
+        }
+
+        // Parse left operand for binary operators
         let left = self.parse_expression()?;
 
+        // Check for binary operators
         match self.peek() {
             Some(Token::Eq) => {
                 self.advance();
@@ -422,6 +470,21 @@ impl BashParser {
                 self.advance();
                 let right = self.parse_expression()?;
                 Ok(TestExpr::IntGt(left, right))
+            }
+            Some(Token::Identifier(op)) if matches!(op.as_str(), "-eq" | "-ne" | "-lt" | "-le" | "-gt" | "-ge") => {
+                let operator = op.clone();
+                self.advance();
+                let right = self.parse_expression()?;
+
+                match operator.as_str() {
+                    "-eq" => Ok(TestExpr::IntEq(left, right)),
+                    "-ne" => Ok(TestExpr::IntNe(left, right)),
+                    "-lt" => Ok(TestExpr::IntLt(left, right)),
+                    "-le" => Ok(TestExpr::IntLe(left, right)),
+                    "-gt" => Ok(TestExpr::IntGt(left, right)),
+                    "-ge" => Ok(TestExpr::IntGe(left, right)),
+                    _ => unreachable!(),
+                }
             }
             _ => Ok(TestExpr::StringNonEmpty(left)),
         }
