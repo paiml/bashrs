@@ -32,7 +32,10 @@ fn test_format_001_command_exists() {
 #[test]
 fn test_format_002_basic_formatting() {
     let temp_dir = TempDir::new().expect("Failed to create temp dir");
-    let script = create_test_script(&temp_dir, "unformatted.sh", r#"#!/bin/bash
+    let script = create_test_script(
+        &temp_dir,
+        "unformatted.sh",
+        r#"#!/bin/bash
 # Inconsistent indentation
 if [ -n "$VAR" ]; then
 echo "test"
@@ -42,7 +45,8 @@ fi
 function greet() {
 echo "hello"
 }
-"#);
+"#,
+    );
 
     rash_cmd()
         .arg("format")
@@ -63,11 +67,15 @@ echo "hello"
 #[test]
 fn test_format_003_check_mode_unformatted() {
     let temp_dir = TempDir::new().expect("Failed to create temp dir");
-    let script = create_test_script(&temp_dir, "unformatted.sh", r#"#!/bin/bash
+    let script = create_test_script(
+        &temp_dir,
+        "unformatted.sh",
+        r#"#!/bin/bash
 if [ -n "$VAR" ]; then
 echo "bad indent"
 fi
-"#);
+"#,
+    );
 
     rash_cmd()
         .arg("format")
@@ -82,11 +90,15 @@ fi
 #[test]
 fn test_format_004_check_mode_formatted() {
     let temp_dir = TempDir::new().expect("Failed to create temp dir");
-    let script = create_test_script(&temp_dir, "formatted.sh", r#"#!/bin/bash
+    let script = create_test_script(
+        &temp_dir,
+        "formatted.sh",
+        r#"#!/bin/bash
 if [[ -n "$VAR" ]]; then
   echo "good indent"
 fi
-"#);
+"#,
+    );
 
     rash_cmd()
         .arg("format")
@@ -101,16 +113,16 @@ fi
 #[test]
 fn test_format_005_quote_variables() {
     let temp_dir = TempDir::new().expect("Failed to create temp dir");
-    let script = create_test_script(&temp_dir, "unquoted.sh", r#"#!/bin/bash
+    let script = create_test_script(
+        &temp_dir,
+        "unquoted.sh",
+        r#"#!/bin/bash
 VAR=value
 echo $VAR
-"#);
+"#,
+    );
 
-    rash_cmd()
-        .arg("format")
-        .arg(&script)
-        .assert()
-        .success();
+    rash_cmd().arg("format").arg(&script).assert().success();
 
     let formatted = fs::read_to_string(&script).expect("Failed to read formatted file");
     assert!(formatted.contains("\"$VAR\"") || formatted.contains("${VAR}"));
@@ -120,7 +132,10 @@ echo $VAR
 #[test]
 fn test_format_006_normalize_functions() {
     let temp_dir = TempDir::new().expect("Failed to create temp dir");
-    let script = create_test_script(&temp_dir, "functions.sh", r#"#!/bin/bash
+    let script = create_test_script(
+        &temp_dir,
+        "functions.sh",
+        r#"#!/bin/bash
 function foo {
   echo "no parens"
 }
@@ -128,13 +143,10 @@ function foo {
 bar() {
 echo "inconsistent indent"
 }
-"#);
+"#,
+    );
 
-    rash_cmd()
-        .arg("format")
-        .arg(&script)
-        .assert()
-        .success();
+    rash_cmd().arg("format").arg(&script).assert().success();
 
     let formatted = fs::read_to_string(&script).expect("Failed to read formatted file");
     // Should normalize to: function_name() {
@@ -146,7 +158,10 @@ echo "inconsistent indent"
 #[test]
 fn test_format_007_if_statements() {
     let temp_dir = TempDir::new().expect("Failed to create temp dir");
-    let script = create_test_script(&temp_dir, "if.sh", r#"#!/bin/bash
+    let script = create_test_script(
+        &temp_dir,
+        "if.sh",
+        r#"#!/bin/bash
 if [ "$VAR" = "test" ]
 then
 echo "split then"
@@ -155,13 +170,10 @@ fi
 if [ "$VAR" = "test" ]; then
   echo "inline then"
 fi
-"#);
+"#,
+    );
 
-    rash_cmd()
-        .arg("format")
-        .arg(&script)
-        .assert()
-        .success();
+    rash_cmd().arg("format").arg(&script).assert().success();
 
     let formatted = fs::read_to_string(&script).expect("Failed to read formatted file");
     // Should normalize to inline "then"
@@ -172,7 +184,10 @@ fi
 #[test]
 fn test_format_008_preserve_comments() {
     let temp_dir = TempDir::new().expect("Failed to create temp dir");
-    let script = create_test_script(&temp_dir, "comments.sh", r#"#!/bin/bash
+    let script = create_test_script(
+        &temp_dir,
+        "comments.sh",
+        r#"#!/bin/bash
 # Header comment
 VAR="value" # Inline comment
 
@@ -181,13 +196,10 @@ foo() {
   # Inside function
   echo "test"
 }
-"#);
+"#,
+    );
 
-    rash_cmd()
-        .arg("format")
-        .arg(&script)
-        .assert()
-        .success();
+    rash_cmd().arg("format").arg(&script).assert().success();
 
     let formatted = fs::read_to_string(&script).expect("Failed to read formatted file");
     assert!(formatted.contains("#!/bin/bash"));
@@ -204,22 +216,26 @@ fn test_format_009_tabs_config() {
 
     // Create config file
     let config_path = temp_dir.path().join(".bashrs-fmt.toml");
-    fs::write(&config_path, r#"
+    fs::write(
+        &config_path,
+        r#"
 indent_width = 2
 use_tabs = true
-"#).expect("Failed to write config");
+"#,
+    )
+    .expect("Failed to write config");
 
-    let script = create_test_script(&temp_dir, "script.sh", r#"#!/bin/bash
+    let script = create_test_script(
+        &temp_dir,
+        "script.sh",
+        r#"#!/bin/bash
 if [ -n "$VAR" ]; then
 echo "test"
 fi
-"#);
+"#,
+    );
 
-    rash_cmd()
-        .arg("format")
-        .arg(&script)
-        .assert()
-        .success();
+    rash_cmd().arg("format").arg(&script).assert().success();
 
     let formatted = fs::read_to_string(&script).expect("Failed to read formatted file");
     // Should use tabs for indentation
@@ -230,7 +246,10 @@ fi
 #[test]
 fn test_format_010_ignore_directive() {
     let temp_dir = TempDir::new().expect("Failed to create temp dir");
-    let script = create_test_script(&temp_dir, "ignore.sh", r#"#!/bin/bash
+    let script = create_test_script(
+        &temp_dir,
+        "ignore.sh",
+        r#"#!/bin/bash
 
 # bashrs-fmt-ignore
 if [ -n "$VAR" ]; then
@@ -241,18 +260,16 @@ fi
 if [ -n "$VAR2" ]; then
 echo "should be formatted"
 fi
-"#);
+"#,
+    );
 
-    rash_cmd()
-        .arg("format")
-        .arg(&script)
-        .assert()
-        .success();
+    rash_cmd().arg("format").arg(&script).assert().success();
 
     let formatted = fs::read_to_string(&script).expect("Failed to read formatted file");
     // First if should remain unformatted
     let lines: Vec<&str> = formatted.lines().collect();
-    let ignore_section = lines.iter()
+    let ignore_section = lines
+        .iter()
         .skip_while(|line| !line.contains("bashrs-fmt-ignore"))
         .take(4)
         .cloned()
@@ -268,7 +285,10 @@ fi
 #[test]
 fn test_format_011_case_statements() {
     let temp_dir = TempDir::new().expect("Failed to create temp dir");
-    let script = create_test_script(&temp_dir, "case.sh", r#"#!/bin/bash
+    let script = create_test_script(
+        &temp_dir,
+        "case.sh",
+        r#"#!/bin/bash
 case $VAR in
 start)
 echo "starting"
@@ -280,13 +300,10 @@ echo "stopping"
 echo "unknown"
 ;;
 esac
-"#);
+"#,
+    );
 
-    rash_cmd()
-        .arg("format")
-        .arg(&script)
-        .assert()
-        .success();
+    rash_cmd().arg("format").arg(&script).assert().success();
 
     let formatted = fs::read_to_string(&script).expect("Failed to read formatted file");
     // Should have consistent indentation
@@ -298,12 +315,20 @@ esac
 #[test]
 fn test_format_012_multiple_files() {
     let temp_dir = TempDir::new().expect("Failed to create temp dir");
-    let script1 = create_test_script(&temp_dir, "script1.sh", r#"#!/bin/bash
+    let script1 = create_test_script(
+        &temp_dir,
+        "script1.sh",
+        r#"#!/bin/bash
 echo "test1"
-"#);
-    let script2 = create_test_script(&temp_dir, "script2.sh", r#"#!/bin/bash
+"#,
+    );
+    let script2 = create_test_script(
+        &temp_dir,
+        "script2.sh",
+        r#"#!/bin/bash
 echo "test2"
-"#);
+"#,
+    );
 
     rash_cmd()
         .arg("format")
@@ -319,9 +344,13 @@ echo "test2"
 #[test]
 fn test_format_013_output_option() {
     let temp_dir = TempDir::new().expect("Failed to create temp dir");
-    let input_script = create_test_script(&temp_dir, "input.sh", r#"#!/bin/bash
+    let input_script = create_test_script(
+        &temp_dir,
+        "input.sh",
+        r#"#!/bin/bash
 echo "test"
-"#);
+"#,
+    );
     let output_path = temp_dir.path().join("output.sh");
 
     rash_cmd()
@@ -344,11 +373,15 @@ echo "test"
 #[test]
 fn test_format_014_dry_run() {
     let temp_dir = TempDir::new().expect("Failed to create temp dir");
-    let script = create_test_script(&temp_dir, "script.sh", r#"#!/bin/bash
+    let script = create_test_script(
+        &temp_dir,
+        "script.sh",
+        r#"#!/bin/bash
 if [ -n "$VAR" ]; then
 echo "test"
 fi
-"#);
+"#,
+    );
 
     let original = fs::read_to_string(&script).expect("Failed to read original");
 
@@ -372,22 +405,26 @@ fn test_format_015_indent_width() {
 
     // Create config with 4-space indent
     let config_path = temp_dir.path().join(".bashrs-fmt.toml");
-    fs::write(&config_path, r#"
+    fs::write(
+        &config_path,
+        r#"
 indent_width = 4
 use_tabs = false
-"#).expect("Failed to write config");
+"#,
+    )
+    .expect("Failed to write config");
 
-    let script = create_test_script(&temp_dir, "script.sh", r#"#!/bin/bash
+    let script = create_test_script(
+        &temp_dir,
+        "script.sh",
+        r#"#!/bin/bash
 if [ -n "$VAR" ]; then
 echo "test"
 fi
-"#);
+"#,
+    );
 
-    rash_cmd()
-        .arg("format")
-        .arg(&script)
-        .assert()
-        .success();
+    rash_cmd().arg("format").arg(&script).assert().success();
 
     let formatted = fs::read_to_string(&script).expect("Failed to read formatted file");
     // Should use 4 spaces for indentation (formatter removes unnecessary quotes)
