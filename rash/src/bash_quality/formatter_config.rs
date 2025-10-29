@@ -15,6 +15,7 @@ use std::path::Path;
 /// assert!(!config.use_tabs);
 /// ```
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(default)]
 pub struct FormatterConfig {
     /// Number of spaces per indentation level (default: 2, bash standard)
     pub indent_width: usize,
@@ -123,7 +124,7 @@ impl FormatterConfig {
     /// assert!(config.use_tabs);
     /// ```
     pub fn from_toml(toml_str: &str) -> Result<Self, String> {
-        toml::from_str(toml_str)
+        toml::from_str(toml_str.trim())
             .map_err(|e| format!("Failed to parse config TOML: {}", e))
     }
 

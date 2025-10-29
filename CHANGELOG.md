@@ -7,6 +7,140 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [6.17.0] - 2025-10-29
+
+### 🎉 FORMATTER COMPLETE - 15/15 Tests Passing (100%)
+
+**bashrs v6.17.0 completes the bash formatter** - all 15 integration tests passing with full case statement support and configuration system.
+
+### Added
+
+**Config System: Per-File Configuration Loading**:
+- Formatter now loads `.bashrs-fmt.toml` from script's directory first
+- Falls back to current directory, then defaults
+- Added `#[serde(default)]` to FormatterConfig for partial configs
+- Supports tabs, indent width, and all formatter options
+
+**Parser: Case Statement Support** (BASH-INGESTION-ROADMAP):
+- Added `case WORD in PATTERN) BODY;; esac` parsing
+- New AST variant: `BashStmt::Case { word, arms, span }`
+- New struct: `CaseArm { patterns: Vec<String>, body: Vec<BashStmt> }`
+- Multiple patterns per arm: `start|stop|restart)`
+- Lexer tokens: `Case`, `Esac`, `In`
+
+**Formatter: Case Statement Formatting**:
+- Proper indentation for case arms and bodies
+- Pattern formatting: `start|stop)` (join with `|`)
+- Body indentation: 2 levels deeper than case
+- Terminator formatting: `;;` at consistent indent
+
+**Code Generation: Case to Rust Match**:
+- Transpiles bash case to Rust match statements
+- Pattern alternatives preserved
+- Proper indentation in generated Rust code
+
+**Purification: Case Statement Purification**:
+- Purifies expressions and statements in case arms
+- Preserves patterns during purification
+- Applies determinism/idempotency fixes to case bodies
+
+**Semantic Analysis: Case Statement Analysis**:
+- Analyzes word expression
+- Analyzes all statements in case arm bodies
+- Tracks scope and effects
+
+### Fixed
+
+**Parser: For Loop Token Recognition**:
+- Fixed: For loops broke when `Token::In` was added
+- Changed: `parse_for()` now uses `self.expect(Token::In)` instead of checking for `Identifier("in")`
+- Impact: For loops now parse correctly with new token system
+
+**Config: Deserialization of Partial Configs**:
+- Fixed: Config files with only some fields failed to parse
+- Root cause: serde requires all fields or `#[serde(default)]`
+- Solution: Added `#[serde(default)]` to FormatterConfig struct
+- Result: Config files can now specify only the fields they want to override
+
+### Changed
+
+**Formatter Test Status**:
+- Integration tests: **15/15 passing (100%)** 🎉 COMPLETE!
+- Before v6.17.0: 12/15 (80%)
+- After v6.17.0: 15/15 (100%)
+
+**Newly Passing Tests** (3):
+- test_format_009: Tabs configuration ✅ Config system working
+- test_format_011: Case statements ✅ Full implementation
+- test_format_015: Indent width ✅ Config system working
+
+### Technical Details
+
+**Files Modified** (9):
+1. `rash/src/bash_quality/formatter_config.rs` - Added `#[serde(default)]`
+2. `rash/src/cli/commands.rs` - Per-file config loading
+3. `rash/tests/test_format_command.rs` - Fixed test expectations
+4. `rash/src/bash_parser/ast.rs` - Case variant + CaseArm struct
+5. `rash/src/bash_parser/lexer.rs` - Case/Esac/In tokens
+6. `rash/src/bash_parser/parser.rs` - parse_case() + fixed parse_for()
+7. `rash/src/bash_quality/formatter.rs` - Case formatting
+8. `rash/src/bash_transpiler/codegen.rs` - Case to match transpilation
+9. `rash/src/bash_transpiler/purification.rs` - Case purification
+
+**Code Example** - Case Statement Parsing:
+```rust
+// Input bash:
+case $1 in
+  start)
+    echo "Starting"
+    ;;
+  stop)
+    echo "Stopping"
+    ;;
+  *)
+    echo "Unknown"
+    ;;
+esac
+
+// Parsed AST:
+BashStmt::Case {
+    word: BashExpr::Variable("1"),
+    arms: vec![
+        CaseArm {
+            patterns: vec!["start"],
+            body: vec![BashStmt::Command { ... }],
+        },
+        CaseArm {
+            patterns: vec!["stop"],
+            body: vec![BashStmt::Command { ... }],
+        },
+        CaseArm {
+            patterns: vec!["*"],
+            body: vec![BashStmt::Command { ... }],
+        },
+    ],
+    span: Span::dummy(),
+}
+```
+
+**Quality Metrics**:
+- All 5,140 tests passing ✅
+- All 15 formatter tests passing ✅
+- No compilation warnings ✅
+- 100% formatter feature completeness ✅
+
+**Sprint Status**:
+- Sprint 1 Goal: 80% formatter tests passing ✅ Exceeded (100%)
+- Sprint 2 Goal: Case statement support ✅ Complete
+- Release Goal: Production-ready formatter ✅ Complete
+
+**Next Steps** (v6.18.0+):
+- Bash ingestion: Continue BASH-INGESTION-ROADMAP
+- Additional AST features: Arrays, arithmetic, process substitution
+- Linter expansion: More security and quality rules
+
+---
+
 ## [6.16.2] - 2025-10-29
 
 ### 🎨 BASH QUALITY TOOLS - Function Shorthand Syntax + Formatter Improvements

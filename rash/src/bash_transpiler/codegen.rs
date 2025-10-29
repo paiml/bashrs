@@ -176,6 +176,33 @@ impl BashToRashTranspiler {
                     Ok(String::new())
                 }
             }
+
+            BashStmt::Case { word, arms, .. } => {
+                let word_rash = self.transpile_expression(word)?;
+                let mut result = format!("match {} {{\n", word_rash);
+
+                self.current_indent += 1;
+
+                for arm in arms {
+                    let pattern_str = arm.patterns.join(" | ");
+                    result.push_str(&self.indent(&format!("{} => {{\n", pattern_str)));
+
+                    self.current_indent += 1;
+                    for stmt in &arm.body {
+                        let stmt_rash = self.transpile_statement(stmt)?;
+                        result.push_str(&self.indent(&stmt_rash));
+                        result.push('\n');
+                    }
+                    self.current_indent -= 1;
+
+                    result.push_str(&self.indent("}\n"));
+                }
+
+                self.current_indent -= 1;
+                result.push_str(&self.indent("}"));
+
+                Ok(result)
+            }
         }
     }
 

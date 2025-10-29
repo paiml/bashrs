@@ -2296,17 +2296,27 @@ fn format_command(
 ) -> Result<()> {
     use crate::bash_quality::{Formatter, FormatterConfig};
 
-    // Load configuration (look for .bashrs-fmt.toml in current directory)
-    let config = if let Ok(cfg) = FormatterConfig::from_file(".bashrs-fmt.toml") {
-        cfg
-    } else {
-        FormatterConfig::default()
-    };
-
-    let mut formatter = Formatter::with_config(config);
     let mut all_formatted = true;
 
     for input_path in inputs {
+        // Load configuration (look for .bashrs-fmt.toml in script's directory, then current directory)
+        let config = if let Some(parent) = input_path.parent() {
+            let script_dir_config = parent.join(".bashrs-fmt.toml");
+            if script_dir_config.exists() {
+                FormatterConfig::from_file(&script_dir_config).unwrap_or_default()
+            } else if let Ok(cfg) = FormatterConfig::from_file(".bashrs-fmt.toml") {
+                cfg
+            } else {
+                FormatterConfig::default()
+            }
+        } else if let Ok(cfg) = FormatterConfig::from_file(".bashrs-fmt.toml") {
+            cfg
+        } else {
+            FormatterConfig::default()
+        };
+
+        let mut formatter = Formatter::with_config(config);
+
         // Read input file
         let source = fs::read_to_string(input_path)
             .map_err(|e| Error::Internal(format!("Failed to read {}: {}", input_path.display(), e)))?;

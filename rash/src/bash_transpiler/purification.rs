@@ -261,6 +261,28 @@ impl Purifier {
             }
 
             BashStmt::Comment { .. } => Ok(stmt.clone()),
+
+            BashStmt::Case { word, arms, span } => {
+                let purified_word = self.purify_expression(word)?;
+
+                let mut purified_arms = Vec::new();
+                for arm in arms {
+                    let mut purified_body = Vec::new();
+                    for stmt in &arm.body {
+                        purified_body.push(self.purify_statement(stmt)?);
+                    }
+                    purified_arms.push(crate::bash_parser::ast::CaseArm {
+                        patterns: arm.patterns.clone(),
+                        body: purified_body,
+                    });
+                }
+
+                Ok(BashStmt::Case {
+                    word: purified_word,
+                    arms: purified_arms,
+                    span: *span,
+                })
+            }
         }
     }
 
