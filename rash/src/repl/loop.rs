@@ -10,8 +10,8 @@
 // - Complexity: <10 per function
 
 use crate::repl::{
-    format_lint_results, format_parse_error, lint_bash, parse_bash, purify_bash, ReplConfig,
-    ReplMode, ReplState,
+    explain_bash, format_lint_results, format_parse_error, lint_bash, parse_bash, purify_bash,
+    ReplConfig, ReplMode, ReplState,
 };
 use anyhow::Result;
 use rustyline::DefaultEditor;
@@ -286,9 +286,16 @@ fn handle_command_by_mode(line: &str, state: &ReplState) {
             println!("(Note: Debug mode not yet implemented)");
         }
         ReplMode::Explain => {
-            // Explain mode - show that explain mode is not yet implemented
-            println!("Explain mode: {}", line);
-            println!("(Note: Explain mode not yet implemented)");
+            // Explain mode - explain the bash construct
+            match explain_bash(line) {
+                Some(explanation) => {
+                    println!("{}", explanation.format());
+                }
+                None => {
+                    println!("No explanation available for: {}", line);
+                    println!("Try parameter expansions (${{var:-default}}), control flow (for, if, while), or redirections (>, <, |)");
+                }
+            }
         }
     }
 }
