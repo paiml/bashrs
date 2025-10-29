@@ -10,9 +10,9 @@
 // - Complexity: <10 per function
 
 use crate::repl::{
-    completion::ReplCompleter, explain_bash, format_lint_results, format_parse_error, lint_bash,
-    parse_bash, purify_bash, variables::{expand_variables, parse_assignment}, ReplConfig,
-    ReplMode, ReplState,
+    completion::ReplCompleter, executor::execute_command, explain_bash, format_lint_results,
+    format_parse_error, lint_bash, parse_bash, purify_bash,
+    variables::{expand_variables, parse_assignment}, ReplConfig, ReplMode, ReplState,
 };
 use anyhow::Result;
 use rustyline::Editor;
@@ -266,9 +266,14 @@ fn handle_command_by_mode(line: &str, state: &ReplState) {
 
     match state.mode() {
         ReplMode::Normal => {
-            // Normal mode - just show that command would be executed
-            println!("Would execute: {}", expanded_line);
-            println!("(Note: Normal mode execution not yet implemented)");
+            // Normal mode - execute the command
+            let result = execute_command(&expanded_line);
+            let output = result.format();
+
+            // Print output if any
+            if !output.is_empty() {
+                print!("{}", output);
+            }
         }
         ReplMode::Purify => {
             // Purify mode - automatically purify the command
