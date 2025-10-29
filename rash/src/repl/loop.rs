@@ -13,6 +13,7 @@ use crate::repl::{
     completion::ReplCompleter, executor::execute_command, explain_bash, format_lint_results,
     format_parse_error, lint_bash,
     loader::{format_functions, load_script, LoadResult},
+    multiline::is_incomplete,
     parse_bash, purify_bash,
     variables::{expand_variables, parse_assignment},
     ReplConfig, ReplMode, ReplState,
@@ -70,24 +71,59 @@ pub fn run_repl(config: ReplConfig) -> Result<()> {
         state.mode().description()
     );
 
-    // Main REPL loop
+    // Main REPL loop with multi-line support
+    let mut multiline_buffer = String::new();
+
     loop {
-        // Read line with prompt showing current mode
-        let prompt = format!("bashrs [{}]> ", state.mode());
+        // Determine prompt based on whether we're in multi-line mode
+        let prompt = if multiline_buffer.is_empty() {
+            format!("bashrs [{}]> ", state.mode())
+        } else {
+            "... > ".to_string()
+        };
+
         let readline = editor.readline(&prompt);
 
         match readline {
             Ok(line) => {
-                let line = line.trim();
+                let trimmed_line = line.trim();
 
-                // Handle empty input
-                if line.is_empty() {
+                // Handle empty input in multi-line mode
+                if trimmed_line.is_empty() && !multiline_buffer.is_empty() {
+                    // Empty line while in multi-line: continue accumulating
+                    multiline_buffer.push('\n');
                     continue;
                 }
 
+                // Handle empty input in normal mode
+                if trimmed_line.is_empty() {
+                    continue;
+                }
+
+                // Accumulate multi-line input
+                if !multiline_buffer.is_empty() {
+                    multiline_buffer.push('\n');
+                    multiline_buffer.push_str(&line);
+                } else {
+                    multiline_buffer.push_str(&line);
+                }
+
+                // Check if input is incomplete and needs continuation
+                if is_incomplete(&multiline_buffer) {
+                    // Input is incomplete, continue reading
+                    continue;
+                }
+
+                // Input is complete - process it
+                let complete_input = multiline_buffer.clone();
+                multiline_buffer.clear();
+
                 // Add to history
-                let _ = editor.add_history_entry(line);
-                state.add_history(line.to_string());
+                let _ = editor.add_history_entry(&complete_input);
+                state.add_history(complete_input.clone());
+
+                // Process the complete input
+                let line = complete_input.trim();
 
                 // Handle variable assignments (before other commands)
                 if let Some((name, value)) = parse_assignment(line) {
@@ -141,8 +177,13 @@ pub fn run_repl(config: ReplConfig) -> Result<()> {
                 }
             }
             Err(rustyline::error::ReadlineError::Interrupted) => {
-                // Ctrl-C
-                println!("^C");
+                // Ctrl-C - reset multi-line buffer
+                if !multiline_buffer.is_empty() {
+                    println!("^C (multi-line input cancelled)");
+                    multiline_buffer.clear();
+                } else {
+                    println!("^C");
+                }
                 continue;
             }
             Err(rustyline::error::ReadlineError::Eof) => {

@@ -14,6 +14,7 @@ pub mod linter;
 pub mod loader;
 mod r#loop;
 pub mod modes;
+pub mod multiline;
 pub mod parser;
 pub mod purifier;
 pub mod state;
