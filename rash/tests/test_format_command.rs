@@ -81,8 +81,7 @@ fi
 fn test_format_004_check_mode_formatted() {
     let temp_dir = TempDir::new().expect("Failed to create temp dir");
     let script = create_test_script(&temp_dir, "formatted.sh", r#"#!/bin/bash
-
-if [ -n "$VAR" ]; then
+if [[ -n "$VAR" ]]; then
   echo "good indent"
 fi
 "#);
