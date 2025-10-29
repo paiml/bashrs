@@ -7,7 +7,7 @@ The bashrs REPL (Read-Eval-Print Loop) provides an interactive environment for b
 ```bash
 $ bashrs repl
 
-bashrs REPL v6.7.0
+bashrs REPL v6.19.0
 Type 'quit' or 'exit' to exit, 'help' for commands
 Current mode: normal - Execute bash commands directly
 bashrs [normal]>
@@ -35,6 +35,14 @@ bashrs [normal]>
 | `:purify <code>` | Purify bash code (idempotent/deterministic) |
 | `:lint <code>` | Lint bash code and show diagnostics |
 
+### Utility Commands
+
+| Command | Description |
+|---------|-------------|
+| `:history` | Show command history for this session |
+| `:vars` | Show session variables |
+| `:clear` | Clear the screen |
+
 ### Mode Switching
 
 The REPL supports 5 interactive modes:
@@ -59,6 +67,52 @@ Switch modes with `:mode <name>`:
 bashrs [normal]> :mode lint
 Switched to lint mode - Show linting results for bash commands
 bashrs [lint]>
+```
+
+### Automatic Mode-Based Processing
+
+**NEW in v6.19.0**: When you switch to `purify` or `lint` mode, commands are automatically processed in that mode without needing explicit `:purify` or `:lint` prefixes.
+
+#### Purify Mode
+```bash
+bashrs [normal]> :mode purify
+Switched to purify mode
+
+# Commands are automatically purified
+bashrs [purify]> mkdir /tmp/test
+✓ Purified:
+Purified 1 statement(s)
+(Full bash output coming soon)
+
+bashrs [purify]> rm /old/file
+✓ Purified:
+Purified 1 statement(s)
+```
+
+#### Lint Mode
+```bash
+bashrs [normal]> :mode lint
+Switched to lint mode
+
+# Commands are automatically linted
+bashrs [lint]> cat file.txt | grep pattern
+Found 1 issue(s):
+  ⚠ 1 warning(s)
+
+[1] ⚠ SC2086 - Useless cat
+```
+
+#### Explicit Commands Still Work
+Explicit commands (`:parse`, `:purify`, `:lint`) work in **any mode**:
+
+```bash
+bashrs [purify]> :parse echo hello
+✓ Parse successful!
+Statements: 1
+
+bashrs [lint]> :purify mkdir test
+✓ Purification successful!
+Purified 1 statement(s)
 ```
 
 ## Examples
@@ -129,6 +183,84 @@ Switched to purify mode
 bashrs [purify]> :purify mkdir /var/log/app
 ✓ Purification successful!
 Purified: mkdir -p "/var/log/app"
+```
+
+### Example 5: Using Utility Commands
+
+**NEW in v6.19.0**: The REPL now includes utility commands for managing your session.
+
+#### View Command History
+```bash
+bashrs [normal]> echo hello
+Would execute: echo hello
+
+bashrs [normal]> mkdir test
+Would execute: mkdir test
+
+bashrs [normal]> :history
+Command History (3 commands):
+  1 echo hello
+  2 mkdir test
+  3 :history
+```
+
+#### View Session Variables
+```bash
+bashrs [normal]> :vars
+No session variables set
+
+# Future: When variable assignment is implemented
+bashrs [normal]> x=5
+bashrs [normal]> :vars
+Session Variables (1 variables):
+  x = 5
+```
+
+#### Clear Screen
+```bash
+bashrs [normal]> echo "lots of output..."
+bashrs [normal]> echo "more output..."
+bashrs [normal]> :clear
+# Screen cleared, fresh prompt
+bashrs [normal]>
+```
+
+### Example 6: Automatic Mode Processing Workflow
+
+**NEW in v6.19.0**: The killer feature - automatic command processing in purify/lint modes.
+
+```bash
+# Switch to purify mode
+bashrs [normal]> :mode purify
+Switched to purify mode
+
+# Commands are AUTOMATICALLY purified
+bashrs [purify]> mkdir /tmp/test
+✓ Purified:
+Purified 1 statement(s)
+
+bashrs [purify]> rm /tmp/old
+✓ Purified:
+Purified 1 statement(s)
+
+# Switch to lint mode
+bashrs [purify]> :mode lint
+Switched to lint mode
+
+# Commands are AUTOMATICALLY linted
+bashrs [lint]> cat file | grep pattern
+Found 1 issue(s):
+  ⚠ 1 warning(s)
+
+# View what you've done
+bashrs [lint]> :history
+Command History (6 commands):
+  1 :mode purify
+  2 mkdir /tmp/test
+  3 rm /tmp/old
+  4 :mode lint
+  5 cat file | grep pattern
+  6 :history
 ```
 
 ## Command History
