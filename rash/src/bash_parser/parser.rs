@@ -451,7 +451,8 @@ impl BashParser {
 
         // Check for binary operators
         match self.peek() {
-            Some(Token::Eq) => {
+            Some(Token::Assign) | Some(Token::Eq) => {
+                // Both = (Token::Assign) and == (Token::Eq) are string equality in tests
                 self.advance();
                 let right = self.parse_expression()?;
                 Ok(TestExpr::StringEq(left, right))
