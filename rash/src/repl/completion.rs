@@ -1,6 +1,7 @@
 // REPL Tab Completion Module
 //
 // Task: REPL-006-001 - Tab completion for commands and modes
+// Task: REPL-009-002 - File path completion for :load and :source
 // Test Approach: RED → GREEN → REFACTOR → PROPERTY → MUTATION
 //
 // Quality targets:
@@ -15,12 +16,15 @@ use rustyline::highlight::Highlighter;
 use rustyline::hint::Hinter;
 use rustyline::validate::Validator;
 use rustyline::{Context, Helper};
+use std::fs;
+use std::path::Path;
 
 /// Tab completion helper for bashrs REPL
 ///
 /// Provides intelligent completion for:
-/// - REPL commands (:mode, :parse, :purify, :lint, :history, :vars, :clear)
+/// - REPL commands (:mode, :parse, :purify, :lint, :load, :source, :functions, :reload, :history, :vars, :clear)
 /// - Mode names (normal, purify, lint, debug, explain)
+/// - File paths (for :load and :source commands)
 /// - Common bash constructs in explain mode
 ///
 /// # Examples
@@ -31,6 +35,7 @@ use rustyline::{Context, Helper};
 /// let completer = ReplCompleter::new();
 /// // User types ":mo" + Tab → completes to ":mode"
 /// // User types ":mode p" + Tab → completes to ":mode purify"
+/// // User types ":load ex" + Tab → completes to ":load examples/"
 /// ```
 #[derive(Debug, Clone)]
 pub struct ReplCompleter {
@@ -51,6 +56,10 @@ impl ReplCompleter {
                 "parse".to_string(),
                 "purify".to_string(),
                 "lint".to_string(),
+                "load".to_string(),
+                "source".to_string(),
+                "functions".to_string(),
+                "reload".to_string(),
                 "history".to_string(),
                 "vars".to_string(),
                 "clear".to_string(),
@@ -115,6 +124,103 @@ impl ReplCompleter {
             })
             .collect()
     }
+
+    /// Get file path completions (for :load and :source commands)
+    fn complete_file_path(&self, partial_path: &str) -> Vec<Pair> {
+        // Split path into directory and filename prefix
+        let path = Path::new(partial_path);
+        let (dir_path, file_prefix) = if partial_path.ends_with('/') {
+            // User typed a directory ending with /
+            (path, "")
+        } else {
+            // Extract directory and filename
+            match path.parent() {
+                Some(parent) if !parent.as_os_str().is_empty() => {
+                    let prefix = path.file_name()
+                        .and_then(|n| n.to_str())
+                        .unwrap_or("");
+                    (parent, prefix)
+                }
+                _ => {
+                    // No parent directory, search current directory
+                    let prefix = path.to_str().unwrap_or("");
+                    (Path::new("."), prefix)
+                }
+            }
+        };
+
+        // Read directory contents
+        let entries = match fs::read_dir(dir_path) {
+            Ok(entries) => entries,
+            Err(_) => return Vec::new(), // Directory doesn't exist or no permission
+        };
+
+        // Filter and map to completion pairs
+        let mut completions = Vec::new();
+        for entry in entries.flatten() {
+            let file_name_os = entry.file_name();
+            let file_name = match file_name_os.to_str() {
+                Some(name) => name,
+                None => continue, // Skip invalid UTF-8
+            };
+
+            // Filter by prefix
+            if !file_name.starts_with(file_prefix) {
+                continue;
+            }
+
+            // Skip hidden files (starting with .)
+            if file_name.starts_with('.') && !file_prefix.starts_with('.') {
+                continue;
+            }
+
+            // Build completion path
+            let is_dir = entry.file_type().map(|ft| ft.is_dir()).unwrap_or(false);
+            let display_name = if is_dir {
+                format!("{}/", file_name)
+            } else {
+                file_name.to_string()
+            };
+
+            // Build replacement path
+            let replacement = if dir_path.to_str() == Some(".") {
+                // Current directory - don't include "./"
+                if is_dir {
+                    format!("{}/", file_name)
+                } else {
+                    file_name.to_string()
+                }
+            } else {
+                // Other directory - include full path
+                let full_path = dir_path.join(file_name);
+                if is_dir {
+                    // Append / to directories
+                    full_path.to_str().map(|s| format!("{}/", s)).unwrap_or_default()
+                } else {
+                    full_path.to_str().unwrap_or("").to_string()
+                }
+            };
+
+            completions.push(Pair {
+                display: display_name,
+                replacement,
+            });
+        }
+
+        // Sort: directories first, then files, alphabetically
+        completions.sort_by(|a, b| {
+            let a_is_dir = a.display.ends_with('/');
+            let b_is_dir = b.display.ends_with('/');
+
+            match (a_is_dir, b_is_dir) {
+                (true, false) => std::cmp::Ordering::Less,
+                (false, true) => std::cmp::Ordering::Greater,
+                _ => a.display.cmp(&b.display),
+            }
+        });
+
+        completions
+    }
 }
 
 impl Default for ReplCompleter {
@@ -136,6 +242,21 @@ impl Completer for ReplCompleter {
 
         // Complete REPL commands (lines starting with :)
         if line_before_cursor.starts_with(':') {
+            // Check if we're completing a file path after `:load ` or `:source `
+            if line_before_cursor.starts_with(":load ") {
+                let path_start = 6; // Position after ":load "
+                let partial_path = &line_before_cursor[path_start..];
+                let completions = self.complete_file_path(partial_path);
+                return Ok((path_start, completions));
+            }
+
+            if line_before_cursor.starts_with(":source ") {
+                let path_start = 8; // Position after ":source "
+                let partial_path = &line_before_cursor[path_start..];
+                let completions = self.complete_file_path(partial_path);
+                return Ok((path_start, completions));
+            }
+
             // Check if we're completing a mode name after `:mode `
             if line_before_cursor.starts_with(":mode ") {
                 let mode_start = 6; // Position after ":mode "
@@ -185,9 +306,11 @@ mod tests {
     fn test_REPL_006_001_completer_new() {
         let completer = ReplCompleter::new();
 
-        assert_eq!(completer.commands.len(), 7);
+        assert_eq!(completer.commands.len(), 11);
         assert_eq!(completer.modes.len(), 5);
         assert!(completer.commands.contains(&"mode".to_string()));
+        assert!(completer.commands.contains(&"load".to_string()));
+        assert!(completer.commands.contains(&"source".to_string()));
         assert!(completer.modes.contains(&"normal".to_string()));
     }
 
@@ -335,7 +458,163 @@ mod tests {
     fn test_REPL_006_001_default_trait() {
         let completer = ReplCompleter::default();
 
-        assert_eq!(completer.commands.len(), 7);
+        assert_eq!(completer.commands.len(), 11);
         assert_eq!(completer.modes.len(), 5);
+    }
+
+    // ===== REPL-009-002: File Path Completion Tests =====
+
+    #[test]
+    fn test_REPL_009_002_complete_file_path_current_dir() {
+        use std::io::Write;
+        use tempfile::TempDir;
+
+        let temp_dir = TempDir::new().unwrap();
+        let test_file = temp_dir.path().join("test.sh");
+        let mut file = std::fs::File::create(&test_file).unwrap();
+        writeln!(file, "#!/bin/bash").unwrap();
+
+        // Change to temp directory
+        let original_dir = std::env::current_dir().unwrap();
+        std::env::set_current_dir(temp_dir.path()).unwrap();
+
+        let completer = ReplCompleter::new();
+        let completions = completer.complete_file_path("te");
+
+        // Restore original directory
+        std::env::set_current_dir(original_dir).unwrap();
+
+        assert!(completions.len() > 0);
+        assert!(completions.iter().any(|p| p.replacement == "test.sh"));
+    }
+
+    #[test]
+    fn test_REPL_009_002_complete_file_path_with_directory() {
+        use std::io::Write;
+        use tempfile::TempDir;
+
+        let temp_dir = TempDir::new().unwrap();
+        let sub_dir = temp_dir.path().join("examples");
+        std::fs::create_dir(&sub_dir).unwrap();
+        let test_file = sub_dir.join("script.sh");
+        let mut file = std::fs::File::create(&test_file).unwrap();
+        writeln!(file, "#!/bin/bash").unwrap();
+
+        let completer = ReplCompleter::new();
+        let path_str = format!("{}/scr", sub_dir.display());
+        let completions = completer.complete_file_path(&path_str);
+
+        assert!(completions.len() > 0);
+        assert!(completions.iter().any(|p| p.display.contains("script.sh")));
+    }
+
+    #[test]
+    fn test_REPL_009_002_complete_file_path_directories_first() {
+        use tempfile::TempDir;
+
+        let temp_dir = TempDir::new().unwrap();
+        let dir1 = temp_dir.path().join("dir_a");
+        let dir2 = temp_dir.path().join("dir_b");
+        let file1 = temp_dir.path().join("file_a.sh");
+        std::fs::create_dir(&dir1).unwrap();
+        std::fs::create_dir(&dir2).unwrap();
+        std::fs::File::create(&file1).unwrap();
+
+        let completer = ReplCompleter::new();
+        let path_str = format!("{}/", temp_dir.path().display());
+        let completions = completer.complete_file_path(&path_str);
+
+        // Directories should come before files
+        let dir_positions: Vec<usize> = completions
+            .iter()
+            .enumerate()
+            .filter(|(_, p)| p.display.ends_with('/'))
+            .map(|(i, _)| i)
+            .collect();
+
+        let file_positions: Vec<usize> = completions
+            .iter()
+            .enumerate()
+            .filter(|(_, p)| !p.display.ends_with('/'))
+            .map(|(i, _)| i)
+            .collect();
+
+        if !dir_positions.is_empty() && !file_positions.is_empty() {
+            assert!(dir_positions.iter().max().unwrap() < file_positions.iter().min().unwrap());
+        }
+    }
+
+    #[test]
+    fn test_REPL_009_002_complete_full_line_load_command() {
+        use std::io::Write;
+        use tempfile::TempDir;
+
+        let temp_dir = TempDir::new().unwrap();
+        let test_file = temp_dir.path().join("example.sh");
+        let mut file = std::fs::File::create(&test_file).unwrap();
+        writeln!(file, "#!/bin/bash").unwrap();
+
+        let completer = ReplCompleter::new();
+        let history = MemHistory::new();
+        let ctx = Context::new(&history);
+
+        let path_str = format!("{}/ex", temp_dir.path().display());
+        let line = format!(":load {}", path_str);
+        let (start, completions) = completer.complete(&line, line.len(), &ctx).unwrap();
+
+        assert_eq!(start, 6); // Position after ":load "
+        assert!(completions.len() > 0);
+        assert!(completions.iter().any(|p| p.display.contains("example.sh")));
+    }
+
+    #[test]
+    fn test_REPL_009_002_complete_full_line_source_command() {
+        use std::io::Write;
+        use tempfile::TempDir;
+
+        let temp_dir = TempDir::new().unwrap();
+        let test_file = temp_dir.path().join("script.sh");
+        let mut file = std::fs::File::create(&test_file).unwrap();
+        writeln!(file, "#!/bin/bash").unwrap();
+
+        let completer = ReplCompleter::new();
+        let history = MemHistory::new();
+        let ctx = Context::new(&history);
+
+        let path_str = format!("{}/scr", temp_dir.path().display());
+        let line = format!(":source {}", path_str);
+        let (start, completions) = completer.complete(&line, line.len(), &ctx).unwrap();
+
+        assert_eq!(start, 8); // Position after ":source "
+        assert!(completions.len() > 0);
+        assert!(completions.iter().any(|p| p.display.contains("script.sh")));
+    }
+
+    #[test]
+    fn test_REPL_009_002_complete_file_path_no_hidden_files() {
+        use tempfile::TempDir;
+
+        let temp_dir = TempDir::new().unwrap();
+        let hidden_file = temp_dir.path().join(".hidden.sh");
+        let visible_file = temp_dir.path().join("visible.sh");
+        std::fs::File::create(&hidden_file).unwrap();
+        std::fs::File::create(&visible_file).unwrap();
+
+        let completer = ReplCompleter::new();
+        let path_str = format!("{}/", temp_dir.path().display());
+        let completions = completer.complete_file_path(&path_str);
+
+        // Should not include hidden files unless user explicitly types "."
+        assert!(completions.iter().any(|p| p.display.contains("visible.sh")));
+        assert!(!completions.iter().any(|p| p.display.contains(".hidden.sh")));
+    }
+
+    #[test]
+    fn test_REPL_009_002_complete_file_path_nonexistent_dir() {
+        let completer = ReplCompleter::new();
+        let completions = completer.complete_file_path("/nonexistent/path/file");
+
+        // Should return empty vector for nonexistent directories
+        assert_eq!(completions.len(), 0);
     }
 }
