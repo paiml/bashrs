@@ -263,6 +263,157 @@ Command History (6 commands):
   6 :history
 ```
 
+### Example 7: Using Explain Mode for Learning Bash
+
+**NEW in v6.19.0**: The Explain Mode provides interactive explanations of bash constructs to help you learn shell scripting.
+
+#### Switch to Explain Mode
+```bash
+bashrs [normal]> :mode explain
+Switched to explain mode - Explain bash constructs and syntax
+bashrs [explain]>
+```
+
+#### Explain Parameter Expansions
+```bash
+bashrs [explain]> ${var:-default}
+📖 Parameter Expansion: ${parameter:-word}
+   Use Default Value
+
+If parameter is unset or null, expand to 'word'.
+The original parameter remains unchanged.
+
+Example:
+  $ var=""
+  $ echo "${var:-fallback}"  # Outputs: fallback
+  $ echo "$var"               # Still empty
+
+bashrs [explain]> ${var:=default}
+📖 Parameter Expansion: ${parameter:=word}
+   Assign Default Value
+
+If parameter is unset or null, assign 'word' to it.
+Then expand to the new value.
+
+Example:
+  $ unset var
+  $ echo "${var:=fallback}"  # Outputs: fallback
+  $ echo "$var"               # Now set to fallback
+
+bashrs [explain]> ${#var}
+📖 Parameter Expansion: ${#parameter}
+   String Length
+
+Expands to the length of the parameter's value in characters.
+
+Example:
+  $ var="hello"
+  $ echo "${#var}"  # Outputs: 5
+```
+
+#### Explain Control Flow Constructs
+```bash
+bashrs [explain]> for i in *.txt
+📖 For Loop: for name in words
+   Iterate Over List
+
+Loop variable 'name' takes each value from the word list.
+Executes commands for each iteration.
+
+Example:
+  for file in *.txt; do
+    echo "Processing: $file"
+  done
+
+bashrs [explain]> if [ -f file ]
+📖 If Statement: if condition; then commands; fi
+   Conditional Execution
+
+Execute commands only if condition succeeds (exit status 0).
+Optional elif and else clauses for alternatives.
+
+Example:
+  if [ -f file.txt ]; then
+    echo "File exists"
+  fi
+
+bashrs [explain]> while true
+📖 While Loop: while condition; do commands; done
+   Conditional Loop
+
+Execute commands repeatedly while condition succeeds.
+Checks condition before each iteration.
+
+Example:
+  counter=0
+  while [ $counter -lt 5 ]; do
+    echo $counter
+    counter=$((counter + 1))
+  done
+```
+
+#### Explain I/O Redirection
+```bash
+bashrs [explain]> echo test > file
+📖 Output Redirection: command > file
+   Redirect Standard Output
+
+Redirects stdout to a file, overwriting existing content.
+Use >> to append instead.
+
+Example:
+  echo "text" > file.txt   # Overwrite
+  echo "more" >> file.txt  # Append
+
+bashrs [explain]> cat < file
+📖 Input Redirection: command < file
+   Redirect Standard Input
+
+Redirects stdin to read from a file instead of keyboard.
+
+Example:
+  while read line; do
+    echo "Line: $line"
+  done < file.txt
+
+bashrs [explain]> cat file | grep pattern
+📖 Pipe: command1 | command2
+   Connect Commands
+
+Redirects stdout of command1 to stdin of command2.
+Enables chaining multiple commands together.
+
+Example:
+  cat file.txt | grep pattern | wc -l
+```
+
+#### Unknown Constructs
+```bash
+bashrs [explain]> unknown_command_xyz
+No explanation available for: unknown_command_xyz
+Try parameter expansions (${var:-default}), control flow (for, if, while), or redirections (>, <, |)
+```
+
+#### Combining Explain Mode with Other Commands
+```bash
+# Explain a construct, then lint it
+bashrs [explain]> ${var:-default}
+📖 Parameter Expansion: ${parameter:-word}
+   Use Default Value
+...
+
+bashrs [explain]> :lint echo ${var:-default}
+✓ No issues found!
+
+# Switch to purify mode to see transformations
+bashrs [explain]> :mode purify
+Switched to purify mode
+
+bashrs [purify]> mkdir /tmp/test
+✓ Purified:
+Purified 1 statement(s)
+```
+
 ## Command History
 
 The REPL automatically saves command history to `~/.bashrs_history`:
@@ -317,15 +468,31 @@ $ bashrs repl --sandboxed
 
 ### Learning Bash
 
-Use the REPL to interactively learn bash transformations:
+Use the REPL to interactively learn bash constructs and transformations:
 
 ```bash
+# Learn about parameter expansions
 bashrs [normal]> :mode explain
-bashrs [explain]> # Future: Get explanations of bash constructs
+Switched to explain mode
 
+bashrs [explain]> ${var:-default}
+📖 Parameter Expansion: ${parameter:-word}
+   Use Default Value
+...
+
+# Learn about control flow
+bashrs [explain]> for i in *.txt
+📖 For Loop: for name in words
+   Iterate Over List
+...
+
+# Switch to purify mode to see transformations
 bashrs [explain]> :mode purify
-bashrs [purify]> :purify rm -rf /tmp/data
-✓ Purified: rm -rf "/tmp/data"  # Safe (quoted path)
+Switched to purify mode
+
+bashrs [purify]> rm -rf /tmp/data
+✓ Purified:
+Purified 1 statement(s)
 ```
 
 ### Quick Validation

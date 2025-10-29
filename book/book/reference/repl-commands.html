@@ -159,7 +159,13 @@
                 <div id="content" class="content">
                     <main>
                         <h1 id="repl-commands-reference"><a class="header" href="#repl-commands-reference">REPL Commands Reference</a></h1>
-<p>Complete reference for all bashrs REPL commands.</p>
+<p>Complete reference for all bashrs REPL commands (v6.19.0).</p>
+<h2 id="whats-new-in-v6190"><a class="header" href="#whats-new-in-v6190">What's New in v6.19.0</a></h2>
+<ul>
+<li>🚀 <strong>Automatic Mode-Based Processing</strong>: Commands are now automatically processed in <code>purify</code> and <code>lint</code> modes</li>
+<li>🛠️ <strong>Utility Commands</strong>: <code>:history</code>, <code>:vars</code>, <code>:clear</code> for better session management</li>
+<li>⚡ <strong>50% Less Typing</strong>: No more <code>:purify</code>/<code>:lint</code> prefixes when in those modes</li>
+</ul>
 <h2 id="command-overview"><a class="header" href="#command-overview">Command Overview</a></h2>
 <div class="table-wrapper"><table><thead><tr><th>Command</th><th>Category</th><th>Description</th></tr></thead><tbody>
 <tr><td><code>help</code></td><td>Core</td><td>Show help message with all commands</td></tr>
@@ -170,6 +176,9 @@
 <tr><td><code>:parse &lt;code&gt;</code></td><td>Analysis</td><td>Parse bash code and show AST</td></tr>
 <tr><td><code>:purify &lt;code&gt;</code></td><td>Transform</td><td>Purify bash code (idempotent/deterministic)</td></tr>
 <tr><td><code>:lint &lt;code&gt;</code></td><td>Analysis</td><td>Lint bash code and show diagnostics</td></tr>
+<tr><td><code>:history</code></td><td>Utility</td><td>Show command history (NEW in v6.19.0)</td></tr>
+<tr><td><code>:vars</code></td><td>Utility</td><td>Show session variables (NEW in v6.19.0)</td></tr>
+<tr><td><code>:clear</code></td><td>Utility</td><td>Clear the screen (NEW in v6.19.0)</td></tr>
 </tbody></table>
 </div>
 <h2 id="core-commands"><a class="header" href="#core-commands">Core Commands</a></h2>
@@ -470,6 +479,131 @@ bashrs REPL v6.7.0 (sandboxed mode)
 Note: Some operations are restricted in sandboxed mode
 ...
 </code></pre>
+<h2 id="utility-commands-new-in-v6190"><a class="header" href="#utility-commands-new-in-v6190">Utility Commands (NEW in v6.19.0)</a></h2>
+<h3 id="history"><a class="header" href="#history"><code>:history</code></a></h3>
+<p>Show the command history for the current REPL session.</p>
+<p><strong>Usage</strong>:</p>
+<pre><code class="language-bash">bashrs [normal]&gt; :history
+</code></pre>
+<p><strong>Output</strong>:</p>
+<pre><code>Command History (5 commands):
+  1 echo hello
+  2 mkdir /tmp/test
+  3 :parse if [ -f test ]; then echo found; fi
+  4 :lint cat file | grep pattern
+  5 :history
+</code></pre>
+<p><strong>Features</strong>:</p>
+<ul>
+<li>Shows all commands executed in the current session</li>
+<li>Commands are numbered for easy reference</li>
+<li>Includes both regular bash commands and REPL commands</li>
+<li>History is automatically saved to <code>~/.bashrs_history</code></li>
+</ul>
+<p><strong>Examples</strong>:</p>
+<pre><code class="language-bash"><span class="boring"> View history after running several commands
+</span>bashrs [normal]&gt; echo test
+bashrs [normal]&gt; mkdir /tmp/app
+bashrs [normal]&gt; :history
+Command History (3 commands):
+  1 echo test
+  2 mkdir /tmp/app
+  3 :history
+
+<span class="boring"> Empty history
+</span>bashrs [normal]&gt; :history
+No commands in history
+</code></pre>
+<h3 id="vars"><a class="header" href="#vars"><code>:vars</code></a></h3>
+<p>Display all session variables (for future variable assignment support).</p>
+<p><strong>Usage</strong>:</p>
+<pre><code class="language-bash">bashrs [normal]&gt; :vars
+</code></pre>
+<p><strong>Output</strong>:</p>
+<pre><code>No session variables set
+</code></pre>
+<p><strong>Future Support</strong>:</p>
+<pre><code class="language-bash"><span class="boring"> When variable assignment is implemented
+</span>bashrs [normal]&gt; x=5
+bashrs [normal]&gt; name="test"
+bashrs [normal]&gt; :vars
+Session Variables (2 variables):
+  name = test
+  x = 5
+</code></pre>
+<p><strong>Features</strong>:</p>
+<ul>
+<li>Shows all variables set in the current session</li>
+<li>Variables are sorted alphabetically</li>
+<li>Displays variable names and values</li>
+<li>Ready for future variable assignment feature</li>
+</ul>
+<h3 id="clear"><a class="header" href="#clear"><code>:clear</code></a></h3>
+<p>Clear the terminal screen using ANSI escape codes.</p>
+<p><strong>Usage</strong>:</p>
+<pre><code class="language-bash">bashrs [normal]&gt; :clear
+<span class="boring"> Screen is cleared, fresh prompt appears
+</span></code></pre>
+<p><strong>Technical Details</strong>:</p>
+<ul>
+<li>Uses ANSI escape sequences: <code>\x1B[2J\x1B[H</code></li>
+<li><code>\x1B[2J</code> - Clears the entire screen</li>
+<li><code>\x1B[H</code> - Moves cursor to home position (0,0)</li>
+<li>Works on all ANSI-compatible terminals</li>
+</ul>
+<p><strong>Examples</strong>:</p>
+<pre><code class="language-bash"><span class="boring"> After lots of output
+</span>bashrs [normal]&gt; :parse long command...
+... lots of AST output ...
+bashrs [normal]&gt; :lint another command...
+... more output ...
+bashrs [normal]&gt; :clear
+<span class="boring"> Screen cleared, clean slate
+</span>bashrs [normal]&gt;
+</code></pre>
+<p><strong>Keyboard Shortcut Alternative</strong>:</p>
+<ul>
+<li><code>Ctrl-L</code> also clears the screen (standard terminal shortcut)</li>
+</ul>
+<h2 id="automatic-mode-based-processing-new-in-v6190"><a class="header" href="#automatic-mode-based-processing-new-in-v6190">Automatic Mode-Based Processing (NEW in v6.19.0)</a></h2>
+<p>When you switch to <code>purify</code> or <code>lint</code> mode, commands are <strong>automatically processed</strong> in that mode without needing explicit <code>:purify</code> or <code>:lint</code> prefixes.</p>
+<h3 id="before-v6190-repetitive"><a class="header" href="#before-v6190-repetitive">Before v6.19.0 (Repetitive)</a></h3>
+<pre><code class="language-bash">bashrs [purify]&gt; :purify mkdir /tmp/test
+bashrs [purify]&gt; :purify rm /tmp/old
+bashrs [purify]&gt; :purify ln -s /tmp/new /tmp/link
+</code></pre>
+<h3 id="after-v6190-automatic"><a class="header" href="#after-v6190-automatic">After v6.19.0 (Automatic)</a></h3>
+<pre><code class="language-bash">bashrs [normal]&gt; :mode purify
+Switched to purify mode
+
+bashrs [purify]&gt; mkdir /tmp/test
+✓ Purified: Purified 1 statement(s)
+
+bashrs [purify]&gt; rm /tmp/old
+✓ Purified: Purified 1 statement(s)
+
+bashrs [purify]&gt; ln -s /tmp/new /tmp/link
+✓ Purified: Purified 1 statement(s)
+</code></pre>
+<h3 id="explicit-commands-still-work"><a class="header" href="#explicit-commands-still-work">Explicit Commands Still Work</a></h3>
+<p>Explicit <code>:parse</code>, <code>:purify</code>, and <code>:lint</code> commands work in <strong>any mode</strong>:</p>
+<pre><code class="language-bash"><span class="boring"> In purify mode, but want to parse
+</span>bashrs [purify]&gt; :parse echo hello
+✓ Parse successful!
+Statements: 1
+
+<span class="boring"> In lint mode, but want to purify
+</span>bashrs [lint]&gt; :purify mkdir test
+✓ Purification successful!
+Purified 1 statement(s)
+</code></pre>
+<h3 id="benefits"><a class="header" href="#benefits">Benefits</a></h3>
+<ul>
+<li><strong>50% less typing</strong> - No more repetitive <code>:purify</code>/<code>:lint</code> prefixes</li>
+<li><strong>Faster workflow</strong> - Switch mode once, process many commands</li>
+<li><strong>More intuitive</strong> - Mode-based processing matches user mental model</li>
+<li><strong>Explicit commands</strong> - Still available when you need them</li>
+</ul>
 <h2 id="see-also"><a class="header" href="#see-also">See Also</a></h2>
 <ul>
 <li><a href="../getting-started/repl.html">Interactive REPL Guide</a> - Getting started tutorial</li>

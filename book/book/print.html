@@ -460,7 +460,7 @@ jobs:
 <h2 id="starting-the-repl"><a class="header" href="#starting-the-repl">Starting the REPL</a></h2>
 <pre><code class="language-bash">$ bashrs repl
 
-bashrs REPL v6.7.0
+bashrs REPL v6.19.0
 Type 'quit' or 'exit' to exit, 'help' for commands
 Current mode: normal - Execute bash commands directly
 bashrs [normal]&gt;
@@ -485,6 +485,13 @@ bashrs [normal]&gt;
 <tr><td><code>:lint &lt;code&gt;</code></td><td>Lint bash code and show diagnostics</td></tr>
 </tbody></table>
 </div>
+<h3 id="utility-commands"><a class="header" href="#utility-commands">Utility Commands</a></h3>
+<div class="table-wrapper"><table><thead><tr><th>Command</th><th>Description</th></tr></thead><tbody>
+<tr><td><code>:history</code></td><td>Show command history for this session</td></tr>
+<tr><td><code>:vars</code></td><td>Show session variables</td></tr>
+<tr><td><code>:clear</code></td><td>Clear the screen</td></tr>
+</tbody></table>
+</div>
 <h3 id="mode-switching"><a class="header" href="#mode-switching">Mode Switching</a></h3>
 <p>The REPL supports 5 interactive modes:</p>
 <pre><code class="language-bash">bashrs [normal]&gt; :mode
@@ -503,6 +510,43 @@ Usage: :mode &lt;mode_name&gt;
 <pre><code class="language-bash">bashrs [normal]&gt; :mode lint
 Switched to lint mode - Show linting results for bash commands
 bashrs [lint]&gt;
+</code></pre>
+<h3 id="automatic-mode-based-processing"><a class="header" href="#automatic-mode-based-processing">Automatic Mode-Based Processing</a></h3>
+<p><strong>NEW in v6.19.0</strong>: When you switch to <code>purify</code> or <code>lint</code> mode, commands are automatically processed in that mode without needing explicit <code>:purify</code> or <code>:lint</code> prefixes.</p>
+<h4 id="purify-mode"><a class="header" href="#purify-mode">Purify Mode</a></h4>
+<pre><code class="language-bash">bashrs [normal]&gt; :mode purify
+Switched to purify mode
+
+<span class="boring"> Commands are automatically purified
+</span>bashrs [purify]&gt; mkdir /tmp/test
+✓ Purified:
+Purified 1 statement(s)
+(Full bash output coming soon)
+
+bashrs [purify]&gt; rm /old/file
+✓ Purified:
+Purified 1 statement(s)
+</code></pre>
+<h4 id="lint-mode"><a class="header" href="#lint-mode">Lint Mode</a></h4>
+<pre><code class="language-bash">bashrs [normal]&gt; :mode lint
+Switched to lint mode
+
+<span class="boring"> Commands are automatically linted
+</span>bashrs [lint]&gt; cat file.txt | grep pattern
+Found 1 issue(s):
+  ⚠ 1 warning(s)
+
+[1] ⚠ SC2086 - Useless cat
+</code></pre>
+<h4 id="explicit-commands-still-work"><a class="header" href="#explicit-commands-still-work">Explicit Commands Still Work</a></h4>
+<p>Explicit commands (<code>:parse</code>, <code>:purify</code>, <code>:lint</code>) work in <strong>any mode</strong>:</p>
+<pre><code class="language-bash">bashrs [purify]&gt; :parse echo hello
+✓ Parse successful!
+Statements: 1
+
+bashrs [lint]&gt; :purify mkdir test
+✓ Purification successful!
+Purified 1 statement(s)
 </code></pre>
 <h2 id="examples"><a class="header" href="#examples">Examples</a></h2>
 <h3 id="example-1-parsing-bash-code"><a class="header" href="#example-1-parsing-bash-code">Example 1: Parsing Bash Code</a></h3>
@@ -561,6 +605,209 @@ Switched to purify mode
 ✓ Purification successful!
 Purified: mkdir -p "/var/log/app"
 </code></pre>
+<h3 id="example-5-using-utility-commands"><a class="header" href="#example-5-using-utility-commands">Example 5: Using Utility Commands</a></h3>
+<p><strong>NEW in v6.19.0</strong>: The REPL now includes utility commands for managing your session.</p>
+<h4 id="view-command-history"><a class="header" href="#view-command-history">View Command History</a></h4>
+<pre><code class="language-bash">bashrs [normal]&gt; echo hello
+Would execute: echo hello
+
+bashrs [normal]&gt; mkdir test
+Would execute: mkdir test
+
+bashrs [normal]&gt; :history
+Command History (3 commands):
+  1 echo hello
+  2 mkdir test
+  3 :history
+</code></pre>
+<h4 id="view-session-variables"><a class="header" href="#view-session-variables">View Session Variables</a></h4>
+<pre><code class="language-bash">bashrs [normal]&gt; :vars
+No session variables set
+
+<span class="boring"> Future: When variable assignment is implemented
+</span>bashrs [normal]&gt; x=5
+bashrs [normal]&gt; :vars
+Session Variables (1 variables):
+  x = 5
+</code></pre>
+<h4 id="clear-screen"><a class="header" href="#clear-screen">Clear Screen</a></h4>
+<pre><code class="language-bash">bashrs [normal]&gt; echo "lots of output..."
+bashrs [normal]&gt; echo "more output..."
+bashrs [normal]&gt; :clear
+<span class="boring"> Screen cleared, fresh prompt
+</span>bashrs [normal]&gt;
+</code></pre>
+<h3 id="example-6-automatic-mode-processing-workflow"><a class="header" href="#example-6-automatic-mode-processing-workflow">Example 6: Automatic Mode Processing Workflow</a></h3>
+<p><strong>NEW in v6.19.0</strong>: The killer feature - automatic command processing in purify/lint modes.</p>
+<pre><code class="language-bash"><span class="boring"> Switch to purify mode
+</span>bashrs [normal]&gt; :mode purify
+Switched to purify mode
+
+<span class="boring"> Commands are AUTOMATICALLY purified
+</span>bashrs [purify]&gt; mkdir /tmp/test
+✓ Purified:
+Purified 1 statement(s)
+
+bashrs [purify]&gt; rm /tmp/old
+✓ Purified:
+Purified 1 statement(s)
+
+<span class="boring"> Switch to lint mode
+</span>bashrs [purify]&gt; :mode lint
+Switched to lint mode
+
+<span class="boring"> Commands are AUTOMATICALLY linted
+</span>bashrs [lint]&gt; cat file | grep pattern
+Found 1 issue(s):
+  ⚠ 1 warning(s)
+
+<span class="boring"> View what you've done
+</span>bashrs [lint]&gt; :history
+Command History (6 commands):
+  1 :mode purify
+  2 mkdir /tmp/test
+  3 rm /tmp/old
+  4 :mode lint
+  5 cat file | grep pattern
+  6 :history
+</code></pre>
+<h3 id="example-7-using-explain-mode-for-learning-bash"><a class="header" href="#example-7-using-explain-mode-for-learning-bash">Example 7: Using Explain Mode for Learning Bash</a></h3>
+<p><strong>NEW in v6.19.0</strong>: The Explain Mode provides interactive explanations of bash constructs to help you learn shell scripting.</p>
+<h4 id="switch-to-explain-mode"><a class="header" href="#switch-to-explain-mode">Switch to Explain Mode</a></h4>
+<pre><code class="language-bash">bashrs [normal]&gt; :mode explain
+Switched to explain mode - Explain bash constructs and syntax
+bashrs [explain]&gt;
+</code></pre>
+<h4 id="explain-parameter-expansions"><a class="header" href="#explain-parameter-expansions">Explain Parameter Expansions</a></h4>
+<pre><code class="language-bash">bashrs [explain]&gt; ${var:-default}
+📖 Parameter Expansion: ${parameter:-word}
+   Use Default Value
+
+If parameter is unset or null, expand to 'word'.
+The original parameter remains unchanged.
+
+Example:
+  $ var=""
+  $ echo "${var:-fallback}"  # Outputs: fallback
+  $ echo "$var"               # Still empty
+
+bashrs [explain]&gt; ${var:=default}
+📖 Parameter Expansion: ${parameter:=word}
+   Assign Default Value
+
+If parameter is unset or null, assign 'word' to it.
+Then expand to the new value.
+
+Example:
+  $ unset var
+  $ echo "${var:=fallback}"  # Outputs: fallback
+  $ echo "$var"               # Now set to fallback
+
+bashrs [explain]&gt; ${#var}
+📖 Parameter Expansion: ${#parameter}
+   String Length
+
+Expands to the length of the parameter's value in characters.
+
+Example:
+  $ var="hello"
+  $ echo "${#var}"  # Outputs: 5
+</code></pre>
+<h4 id="explain-control-flow-constructs"><a class="header" href="#explain-control-flow-constructs">Explain Control Flow Constructs</a></h4>
+<pre><code class="language-bash">bashrs [explain]&gt; for i in *.txt
+📖 For Loop: for name in words
+   Iterate Over List
+
+Loop variable 'name' takes each value from the word list.
+Executes commands for each iteration.
+
+Example:
+  for file in *.txt; do
+    echo "Processing: $file"
+  done
+
+bashrs [explain]&gt; if [ -f file ]
+📖 If Statement: if condition; then commands; fi
+   Conditional Execution
+
+Execute commands only if condition succeeds (exit status 0).
+Optional elif and else clauses for alternatives.
+
+Example:
+  if [ -f file.txt ]; then
+    echo "File exists"
+  fi
+
+bashrs [explain]&gt; while true
+📖 While Loop: while condition; do commands; done
+   Conditional Loop
+
+Execute commands repeatedly while condition succeeds.
+Checks condition before each iteration.
+
+Example:
+  counter=0
+  while [ $counter -lt 5 ]; do
+    echo $counter
+    counter=$((counter + 1))
+  done
+</code></pre>
+<h4 id="explain-io-redirection"><a class="header" href="#explain-io-redirection">Explain I/O Redirection</a></h4>
+<pre><code class="language-bash">bashrs [explain]&gt; echo test &gt; file
+📖 Output Redirection: command &gt; file
+   Redirect Standard Output
+
+Redirects stdout to a file, overwriting existing content.
+Use &gt;&gt; to append instead.
+
+Example:
+  echo "text" &gt; file.txt   # Overwrite
+  echo "more" &gt;&gt; file.txt  # Append
+
+bashrs [explain]&gt; cat &lt; file
+📖 Input Redirection: command &lt; file
+   Redirect Standard Input
+
+Redirects stdin to read from a file instead of keyboard.
+
+Example:
+  while read line; do
+    echo "Line: $line"
+  done &lt; file.txt
+
+bashrs [explain]&gt; cat file | grep pattern
+📖 Pipe: command1 | command2
+   Connect Commands
+
+Redirects stdout of command1 to stdin of command2.
+Enables chaining multiple commands together.
+
+Example:
+  cat file.txt | grep pattern | wc -l
+</code></pre>
+<h4 id="unknown-constructs"><a class="header" href="#unknown-constructs">Unknown Constructs</a></h4>
+<pre><code class="language-bash">bashrs [explain]&gt; unknown_command_xyz
+No explanation available for: unknown_command_xyz
+Try parameter expansions (${var:-default}), control flow (for, if, while), or redirections (&gt;, &lt;, |)
+</code></pre>
+<h4 id="combining-explain-mode-with-other-commands"><a class="header" href="#combining-explain-mode-with-other-commands">Combining Explain Mode with Other Commands</a></h4>
+<pre><code class="language-bash"><span class="boring"> Explain a construct, then lint it
+</span>bashrs [explain]&gt; ${var:-default}
+📖 Parameter Expansion: ${parameter:-word}
+   Use Default Value
+...
+
+bashrs [explain]&gt; :lint echo ${var:-default}
+✓ No issues found!
+
+<span class="boring"> Switch to purify mode to see transformations
+</span>bashrs [explain]&gt; :mode purify
+Switched to purify mode
+
+bashrs [purify]&gt; mkdir /tmp/test
+✓ Purified:
+Purified 1 statement(s)
+</code></pre>
 <h2 id="command-history"><a class="header" href="#command-history">Command History</a></h2>
 <p>The REPL automatically saves command history to <code>~/.bashrs_history</code>:</p>
 <pre><code class="language-bash"><span class="boring"> Commands are saved across sessions
@@ -604,13 +851,29 @@ bashrs [normal]&gt; # Press ↑ to recall previous commands
 </div>
 <h2 id="use-cases"><a class="header" href="#use-cases">Use Cases</a></h2>
 <h3 id="learning-bash"><a class="header" href="#learning-bash">Learning Bash</a></h3>
-<p>Use the REPL to interactively learn bash transformations:</p>
-<pre><code class="language-bash">bashrs [normal]&gt; :mode explain
-bashrs [explain]&gt; # Future: Get explanations of bash constructs
+<p>Use the REPL to interactively learn bash constructs and transformations:</p>
+<pre><code class="language-bash"><span class="boring"> Learn about parameter expansions
+</span>bashrs [normal]&gt; :mode explain
+Switched to explain mode
 
-bashrs [explain]&gt; :mode purify
-bashrs [purify]&gt; :purify rm -rf /tmp/data
-✓ Purified: rm -rf "/tmp/data"  # Safe (quoted path)
+bashrs [explain]&gt; ${var:-default}
+📖 Parameter Expansion: ${parameter:-word}
+   Use Default Value
+...
+
+<span class="boring"> Learn about control flow
+</span>bashrs [explain]&gt; for i in *.txt
+📖 For Loop: for name in words
+   Iterate Over List
+...
+
+<span class="boring"> Switch to purify mode to see transformations
+</span>bashrs [explain]&gt; :mode purify
+Switched to purify mode
+
+bashrs [purify]&gt; rm -rf /tmp/data
+✓ Purified:
+Purified 1 statement(s)
 </code></pre>
 <h3 id="quick-validation"><a class="header" href="#quick-validation">Quick Validation</a></h3>
 <p>Validate bash snippets before committing:</p>
@@ -1952,13 +2215,382 @@ install:
 <div style="break-before: page; page-break-before: always;"></div><h1 id="deployment-script"><a class="header" href="#deployment-script">Deployment Script</a></h1>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="configuration-management"><a class="header" href="#configuration-management">Configuration Management</a></h1>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="cicd-pipeline"><a class="header" href="#cicd-pipeline">CI/CD Pipeline</a></h1>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="complete-quality-workflow-real-world-zshrc-analysis"><a class="header" href="#complete-quality-workflow-real-world-zshrc-analysis">Complete Quality Workflow: Real-World .zshrc Analysis</a></h1>
+<p>This chapter demonstrates the complete bashrs quality workflow on a real-world shell configuration file, showing how to use all available quality tools to analyze, score, and improve your shell scripts.</p>
+<h2 id="overview-1"><a class="header" href="#overview-1">Overview</a></h2>
+<p>We'll walk through analyzing a <code>.zshrc</code> file (161 lines) using <strong>all</strong> bashrs quality tools:</p>
+<ol>
+<li><strong>lint</strong> - Identify code quality issues</li>
+<li><strong>score</strong> - Get quality grade and score</li>
+<li><strong>audit</strong> - Comprehensive quality check</li>
+<li><strong>coverage</strong> - Test coverage analysis</li>
+<li><strong>config analyze</strong> - Configuration-specific analysis</li>
+<li><strong>format</strong> - Code formatting (where supported)</li>
+<li><strong>test</strong> - Run embedded tests</li>
+</ol>
+<h2 id="initial-assessment"><a class="header" href="#initial-assessment">Initial Assessment</a></h2>
+<h3 id="file-statistics"><a class="header" href="#file-statistics">File Statistics</a></h3>
+<ul>
+<li><strong>Size</strong>: 161 lines (~5KB)</li>
+<li><strong>Type</strong>: Zsh configuration with Oh My Zsh</li>
+<li><strong>Functions</strong>: 1 custom function (<code>claude-bedrock</code>)</li>
+<li><strong>Tests</strong>: 0 (no tests found)</li>
+</ul>
+<h2 id="step-1-quick-score-check"><a class="header" href="#step-1-quick-score-check">Step 1: Quick Score Check</a></h2>
+<pre><code class="language-bash">$ cargo run --bin bashrs -- score ~/.zshrc
+</code></pre>
+<p><strong>Result:</strong></p>
+<pre><code>Bash Script Quality Score
+=========================
+
+Overall Grade: D
+Overall Score: 6.1/10.0
+
+Improvement Suggestions:
+------------------------
+1. Reduce function complexity by extracting nested logic
+2. Break down large functions (&gt;20 lines) into smaller functions
+3. Add test functions (test_*) to verify script behavior
+4. Aim for at least 50% test coverage
+
+⚠ Below average. Multiple improvements needed.
+</code></pre>
+<p><strong>Insight</strong>: Score of 6.1/10 (D grade) indicates significant room for improvement.</p>
+<hr />
+<h2 id="step-2-detailed-linting"><a class="header" href="#step-2-detailed-linting">Step 2: Detailed Linting</a></h2>
+<pre><code class="language-bash">$ cargo run --bin bashrs -- lint ~/.zshrc
+</code></pre>
+<p><strong>Results:</strong></p>
+<pre><code>Summary: 2 error(s), 38 warning(s), 13 info(s)
+
+Critical Errors:
+✗ Line 73: DET002 - Non-deterministic timestamp usage (UNSAFE)
+✗ Line 93: DET002 - Non-deterministic timestamp usage (UNSAFE)
+</code></pre>
+<p><strong>Issues Found:</strong></p>
+<ul>
+<li><strong>2 errors</strong>: Timestamp usage with <code>date +%s</code> (flagged as non-deterministic)</li>
+<li><strong>38 warnings</strong>: Variable references, quoting suggestions, style issues</li>
+<li><strong>13 info</strong>: Style consistency recommendations</li>
+</ul>
+<p><strong>Example Issues:</strong></p>
+<pre><code class="language-bash"><span class="boring"> Line 73 - Flagged as non-deterministic
+</span>start_time="$(date +%s)"
+
+<span class="boring"> Line 93 - Flagged as non-deterministic
+</span>end_time="$(date +%s)"
+
+<span class="boring"> Multiple SC2154 warnings - Variables set externally
+</span><span class="boring"> These are legitimate for .zshrc:
+</span>- $NVM_DIR (set by Node Version Manager)
+- $BUN_INSTALL (set by Bun installer)
+- Variables in function scopes
+</code></pre>
+<p><strong>Note</strong>: The timestamp errors are <strong>false positives</strong> for this use case - measuring command execution time is legitimate in a shell configuration file and not security-sensitive.</p>
+<hr />
+<h2 id="step-3-comprehensive-audit"><a class="header" href="#step-3-comprehensive-audit">Step 3: Comprehensive Audit</a></h2>
+<pre><code class="language-bash">$ cargo run --bin bashrs -- audit ~/.zshrc
+</code></pre>
+<p><strong>Results:</strong></p>
+<pre><code>Comprehensive Quality Audit
+===========================
+
+File: ~/.zshrc
+
+Check Results:
+--------------
+✅ Parse:    Valid bash syntax
+❌ Lint:     2 errors, 38 warnings
+⚠️  Test:     No tests found
+✅ Score:    D (6.1/10.0)
+
+Overall: ❌ FAIL
+</code></pre>
+<p><strong>Analysis</strong>:</p>
+<ul>
+<li>✅ <strong>Parse</strong>: Valid syntax - file will execute correctly</li>
+<li>❌ <strong>Lint</strong>: Quality issues need attention</li>
+<li>⚠️ <strong>Test</strong>: 0% coverage (no tests)</li>
+<li><strong>Score</strong>: 6.1/10 (D grade)</li>
+</ul>
+<hr />
+<h2 id="step-4-coverage-analysis"><a class="header" href="#step-4-coverage-analysis">Step 4: Coverage Analysis</a></h2>
+<pre><code class="language-bash">$ cargo run --bin bashrs -- coverage ~/.zshrc
+</code></pre>
+<p><strong>Results:</strong></p>
+<pre><code>Coverage Report: ~/.zshrc
+
+Lines:     0/103   (0.0%)  ❌
+Functions: 0/1   (0.0%)  ❌
+
+Uncovered Lines: 103 lines
+Uncovered Functions: 1
+
+⚠️  No tests found - 0% coverage
+</code></pre>
+<p><strong>Insight</strong>: Configuration files typically don't have tests, but custom functions like <code>claude-bedrock</code> could benefit from testing.</p>
+<hr />
+<h2 id="step-5-configuration-specific-analysis"><a class="header" href="#step-5-configuration-specific-analysis">Step 5: Configuration-Specific Analysis</a></h2>
+<pre><code class="language-bash">$ cargo run --bin bashrs -- config analyze ~/.zshrc
+</code></pre>
+<p><strong>Results:</strong></p>
+<pre><code>Analysis: ~/.zshrc
+============================
+
+Statistics:
+  - Lines: 161
+  - Complexity score: 7/10
+  - Config type: Zshrc
+
+PATH Entries (3):
+  ✓  Line 2: Complex FPATH manipulation
+  ✓  Line 141: $BUN_INSTALL/bin
+  ✓  Line 160: /usr/local/go/bin
+
+Issues Found: 2
+  ⚠ [CONFIG-004] Line 73: Non-deterministic timestamp
+  ⚠ [CONFIG-004] Line 93: Non-deterministic timestamp
+</code></pre>
+<p><strong>Insight</strong>: The config analyzer correctly identifies the file as a Zshrc and tracks PATH modifications.</p>
+<hr />
+<h2 id="step-6-test-execution"><a class="header" href="#step-6-test-execution">Step 6: Test Execution</a></h2>
+<pre><code class="language-bash">$ cargo run --bin bashrs -- test ~/.zshrc
+</code></pre>
+<p><strong>Results:</strong></p>
+<pre><code>Running tests in ~/.zshrc
+⚠ No tests found in ~/.zshrc
+</code></pre>
+<p><strong>Expected</strong>: Configuration files typically don't include tests.</p>
+<hr />
+<h2 id="step-7-code-formatting-best-effort"><a class="header" href="#step-7-code-formatting-best-effort">Step 7: Code Formatting (Best Effort)</a></h2>
+<pre><code class="language-bash">$ cargo run --bin bashrs -- format ~/.zshrc
+</code></pre>
+<p><strong>Results:</strong></p>
+<pre><code>error: Failed to format: Lexer error at line 63
+</code></pre>
+<p><strong>Note</strong>: The formatter encountered regex patterns (<code>^eu-</code>) that are not yet fully supported. This is expected for complex shell constructs.</p>
+<hr />
+<h2 id="summary-complete-tool-matrix"><a class="header" href="#summary-complete-tool-matrix">Summary: Complete Tool Matrix</a></h2>
+<div class="table-wrapper"><table><thead><tr><th>Tool</th><th>Command</th><th>Result</th><th>Status</th></tr></thead><tbody>
+<tr><td><strong>score</strong></td><td><code>bashrs score FILE</code></td><td>6.1/10 (D)</td><td>❌ Needs improvement</td></tr>
+<tr><td><strong>lint</strong></td><td><code>bashrs lint FILE</code></td><td>2 errors, 38 warnings</td><td>⚠️ Quality issues</td></tr>
+<tr><td><strong>audit</strong></td><td><code>bashrs audit FILE</code></td><td>Comprehensive report</td><td>❌ FAIL</td></tr>
+<tr><td><strong>coverage</strong></td><td><code>bashrs coverage FILE</code></td><td>0% (no tests)</td><td>❌ No tests</td></tr>
+<tr><td><strong>config</strong></td><td><code>bashrs config analyze FILE</code></td><td>7/10 complexity</td><td>⚠️ Moderate</td></tr>
+<tr><td><strong>test</strong></td><td><code>bashrs test FILE</code></td><td>No tests found</td><td>⚠️ Expected</td></tr>
+<tr><td><strong>format</strong></td><td><code>bashrs format FILE</code></td><td>Lexer error</td><td>❌ Unsupported syntax</td></tr>
+</tbody></table>
+</div>
+<hr />
+<h2 id="interpreting-the-results"><a class="header" href="#interpreting-the-results">Interpreting the Results</a></h2>
+<h3 id="what-the-tools-tell-us"><a class="header" href="#what-the-tools-tell-us">What the Tools Tell Us</a></h3>
+<ol>
+<li>
+<p><strong>score (6.1/10 D)</strong>: Overall quality below average</p>
+<ul>
+<li>Missing tests</li>
+<li>High function complexity</li>
+<li>Linting issues</li>
+</ul>
+</li>
+<li>
+<p><strong>lint (2 errors, 38 warnings)</strong>:</p>
+<ul>
+<li>Timestamp usage (legitimate for timing)</li>
+<li>Variable scoping (false positives for .zshrc)</li>
+<li>Style improvements available</li>
+</ul>
+</li>
+<li>
+<p><strong>audit (FAIL)</strong>: Failed due to lint errors</p>
+<ul>
+<li>Would pass if timestamp errors were suppressed</li>
+<li>Test coverage affects score</li>
+</ul>
+</li>
+<li>
+<p><strong>coverage (0%)</strong>: No tests found</p>
+<ul>
+<li>Expected for configuration files</li>
+<li>Custom functions could have tests</li>
+</ul>
+</li>
+<li>
+<p><strong>config analyze (7/10)</strong>: Moderate complexity</p>
+<ul>
+<li>PATH modifications tracked</li>
+<li>Non-deterministic constructs flagged</li>
+</ul>
+</li>
+</ol>
+<h3 id="quality-improvement-recommendations"><a class="header" href="#quality-improvement-recommendations">Quality Improvement Recommendations</a></h3>
+<h4 id="high-priority"><a class="header" href="#high-priority">High Priority</a></h4>
+<ol>
+<li>
+<p><strong>Add test functions</strong> for <code>claude-bedrock</code>:</p>
+<pre><code class="language-bash"><span class="boring"> TEST: test_claude_bedrock_region_parsing
+</span>test_claude_bedrock_region_parsing() {
+<span class="boring">     Test that EU regions get EU model
+</span>    [[ "$(get_model_for_region "eu-west-3")" == *"eu.anthropic"* ]] || return 1
+    return 0
+}
+</code></pre>
+</li>
+<li>
+<p><strong>Suppress legitimate timestamp warnings</strong> with <code>bashrs:ignore</code>:</p>
+<pre><code class="language-bash"><span class="boring"> bashrs:ignore DET002 - Timing is intentional, not security-sensitive
+</span>start_time="$(date +%s)"
+</code></pre>
+</li>
+<li>
+<p><strong>Break down large functions</strong>:</p>
+<pre><code class="language-bash"><span class="boring"> Extract region detection logic
+</span>get_model_for_region() {
+    local region="$1"
+    if [[ "$region" =~ ^eu- ]]; then
+        echo "eu.anthropic.claude-sonnet-4-5-20250929-v1:0"
+    elif [[ "$region" =~ ^us- ]]; then
+        echo "us.anthropic.claude-sonnet-4-5-20250929-v1:0"
+    else
+        echo "global.anthropic.claude-sonnet-4-5-20250929-v1:0"
+    fi
+}
+</code></pre>
+</li>
+</ol>
+<h4 id="medium-priority"><a class="header" href="#medium-priority">Medium Priority</a></h4>
+<ol start="4">
+<li><strong>Quote variable expansions</strong> (many SC2086 warnings)</li>
+<li><strong>Use single quotes</strong> for literal strings (SC2311 info messages)</li>
+</ol>
+<h4 id="low-priority"><a class="header" href="#low-priority">Low Priority</a></h4>
+<ol start="6">
+<li><strong>Consider shellcheck disable comments</strong> for false positives</li>
+<li><strong>Document complex regex patterns</strong> with comments</li>
+</ol>
+<hr />
+<h2 id="workflow-recommendations"><a class="header" href="#workflow-recommendations">Workflow Recommendations</a></h2>
+<h3 id="for-shell-configuration-files-bashrc-zshrc"><a class="header" href="#for-shell-configuration-files-bashrc-zshrc">For Shell Configuration Files (.bashrc, .zshrc)</a></h3>
+<pre><code class="language-bash"><span class="boring"> Quick quality check
+</span>bashrs score ~/.zshrc
+
+<span class="boring"> Detailed analysis (run all tools)
+</span>bashrs audit ~/.zshrc     # Comprehensive check
+bashrs lint ~/.zshrc      # Detailed issues
+bashrs config analyze ~/.zshrc  # Config-specific
+
+<span class="boring"> Optional (if you have tests)
+</span>bashrs test ~/.zshrc
+bashrs coverage ~/.zshrc
+</code></pre>
+<h3 id="for-production-shell-scripts"><a class="header" href="#for-production-shell-scripts">For Production Shell Scripts</a></h3>
+<pre><code class="language-bash"><span class="boring"> Complete quality workflow
+</span>bashrs audit script.sh              # Comprehensive audit
+bashrs lint script.sh               # Detailed linting
+bashrs test script.sh               # Run tests
+bashrs coverage script.sh           # Coverage report
+bashrs format script.sh --check     # Verify formatting
+
+<span class="boring"> Minimum quality gates
+</span>bashrs score script.sh --min-grade B  # Require B or better
+bashrs audit script.sh --min-grade A  # Require A or better
+</code></pre>
+<h3 id="for-cicd-pipelines"><a class="header" href="#for-cicd-pipelines">For CI/CD Pipelines</a></h3>
+<pre><code class="language-bash"><span class="boring"> Quality gate in CI
+</span>if ! bashrs audit script.sh --min-grade B; then
+    echo "Quality gate failed: script below B grade"
+    exit 1
+fi
+
+<span class="boring"> Generate quality report
+</span>bashrs audit script.sh --format json &gt; quality-report.json
+</code></pre>
+<hr />
+<h2 id="key-takeaways"><a class="header" href="#key-takeaways">Key Takeaways</a></h2>
+<ol>
+<li>
+<p><strong>Multiple Tools, Different Insights</strong>: Each tool reveals different aspects of quality</p>
+<ul>
+<li><code>score</code>: Quick quality assessment</li>
+<li><code>lint</code>: Detailed code issues</li>
+<li><code>audit</code>: Comprehensive check</li>
+<li><code>coverage</code>: Test completeness</li>
+<li><code>config</code>: Configuration-specific analysis</li>
+</ul>
+</li>
+<li>
+<p><strong>Context Matters</strong>: Not all warnings are problems</p>
+<ul>
+<li>Timestamp usage legitimate for timing</li>
+<li>External variables normal in config files</li>
+<li>Test coverage expectations differ by file type</li>
+</ul>
+</li>
+<li>
+<p><strong>Incremental Improvement</strong>: Focus on high-impact changes</p>
+<ul>
+<li>Add tests for custom functions</li>
+<li>Suppress false positive warnings</li>
+<li>Extract complex logic into functions</li>
+</ul>
+</li>
+<li>
+<p><strong>Tool Limitations</strong>: Some constructs not yet supported</p>
+<ul>
+<li>Complex regex patterns may fail formatting</li>
+<li>Advanced shell features might trigger warnings</li>
+<li>Use <code>bashrs:ignore</code> for intentional patterns</li>
+</ul>
+</li>
+</ol>
+<hr />
+<h2 id="expected-improvements"><a class="header" href="#expected-improvements">Expected Improvements</a></h2>
+<p>If we apply all recommendations:</p>
+<div class="table-wrapper"><table><thead><tr><th>Metric</th><th>Before</th><th>After (Projected)</th></tr></thead><tbody>
+<tr><td><strong>Score</strong></td><td>6.1/10 (D)</td><td>9.0+/10 (A)</td></tr>
+<tr><td><strong>Lint Errors</strong></td><td>2</td><td>0 (suppressed)</td></tr>
+<tr><td><strong>Test Coverage</strong></td><td>0%</td><td>60%+</td></tr>
+<tr><td><strong>Complexity</strong></td><td>7/10</td><td>5/10 (refactored)</td></tr>
+<tr><td><strong>Overall Grade</strong></td><td>FAIL</td><td>PASS</td></tr>
+</tbody></table>
+</div>
+<hr />
+<h2 id="conclusion"><a class="header" href="#conclusion">Conclusion</a></h2>
+<p>The bashrs quality tools provide comprehensive analysis for shell scripts and configuration files:</p>
+<ul>
+<li><strong>7 tools</strong> working together for complete quality picture</li>
+<li><strong>Actionable insights</strong> with specific line numbers and fixes</li>
+<li><strong>Flexible workflow</strong> - use tools individually or together</li>
+<li><strong>Context-aware</strong> - different expectations for different file types</li>
+</ul>
+<p><strong>Next Steps:</strong></p>
+<ol>
+<li>Run <code>bashrs score</code> on your shell files to get baseline</li>
+<li>Use <code>bashrs audit</code> for comprehensive analysis</li>
+<li>Apply high-priority fixes first</li>
+<li>Re-run tools to verify improvements</li>
+<li>Integrate into CI/CD for continuous quality</li>
+</ol>
+<p><strong>Recommended Quality Standards:</strong></p>
+<ul>
+<li>Configuration files: <strong>C+ or better</strong> (7.0+/10)</li>
+<li>Development scripts: <strong>B or better</strong> (8.0+/10)</li>
+<li>Production scripts: <strong>A or better</strong> (9.0+/10)</li>
+<li>Critical infrastructure: <strong>A+ required</strong> (9.5+/10)</li>
+</ul>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="ast-level-transformation"><a class="header" href="#ast-level-transformation">AST-Level Transformation</a></h1>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="property-testing"><a class="header" href="#property-testing">Property Testing</a></h1>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="mutation-testing"><a class="header" href="#mutation-testing">Mutation Testing</a></h1>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="performance-optimization"><a class="header" href="#performance-optimization">Performance Optimization</a></h1>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="cli-commands"><a class="header" href="#cli-commands">CLI Commands</a></h1>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="repl-commands-reference"><a class="header" href="#repl-commands-reference">REPL Commands Reference</a></h1>
-<p>Complete reference for all bashrs REPL commands.</p>
+<p>Complete reference for all bashrs REPL commands (v6.19.0).</p>
+<h2 id="whats-new-in-v6190"><a class="header" href="#whats-new-in-v6190">What's New in v6.19.0</a></h2>
+<ul>
+<li>🚀 <strong>Automatic Mode-Based Processing</strong>: Commands are now automatically processed in <code>purify</code> and <code>lint</code> modes</li>
+<li>🛠️ <strong>Utility Commands</strong>: <code>:history</code>, <code>:vars</code>, <code>:clear</code> for better session management</li>
+<li>⚡ <strong>50% Less Typing</strong>: No more <code>:purify</code>/<code>:lint</code> prefixes when in those modes</li>
+</ul>
 <h2 id="command-overview"><a class="header" href="#command-overview">Command Overview</a></h2>
 <div class="table-wrapper"><table><thead><tr><th>Command</th><th>Category</th><th>Description</th></tr></thead><tbody>
 <tr><td><code>help</code></td><td>Core</td><td>Show help message with all commands</td></tr>
@@ -1969,6 +2601,9 @@ install:
 <tr><td><code>:parse &lt;code&gt;</code></td><td>Analysis</td><td>Parse bash code and show AST</td></tr>
 <tr><td><code>:purify &lt;code&gt;</code></td><td>Transform</td><td>Purify bash code (idempotent/deterministic)</td></tr>
 <tr><td><code>:lint &lt;code&gt;</code></td><td>Analysis</td><td>Lint bash code and show diagnostics</td></tr>
+<tr><td><code>:history</code></td><td>Utility</td><td>Show command history (NEW in v6.19.0)</td></tr>
+<tr><td><code>:vars</code></td><td>Utility</td><td>Show session variables (NEW in v6.19.0)</td></tr>
+<tr><td><code>:clear</code></td><td>Utility</td><td>Clear the screen (NEW in v6.19.0)</td></tr>
 </tbody></table>
 </div>
 <h2 id="core-commands-1"><a class="header" href="#core-commands-1">Core Commands</a></h2>
@@ -2269,6 +2904,131 @@ bashrs REPL v6.7.0 (sandboxed mode)
 Note: Some operations are restricted in sandboxed mode
 ...
 </code></pre>
+<h2 id="utility-commands-new-in-v6190"><a class="header" href="#utility-commands-new-in-v6190">Utility Commands (NEW in v6.19.0)</a></h2>
+<h3 id="history"><a class="header" href="#history"><code>:history</code></a></h3>
+<p>Show the command history for the current REPL session.</p>
+<p><strong>Usage</strong>:</p>
+<pre><code class="language-bash">bashrs [normal]&gt; :history
+</code></pre>
+<p><strong>Output</strong>:</p>
+<pre><code>Command History (5 commands):
+  1 echo hello
+  2 mkdir /tmp/test
+  3 :parse if [ -f test ]; then echo found; fi
+  4 :lint cat file | grep pattern
+  5 :history
+</code></pre>
+<p><strong>Features</strong>:</p>
+<ul>
+<li>Shows all commands executed in the current session</li>
+<li>Commands are numbered for easy reference</li>
+<li>Includes both regular bash commands and REPL commands</li>
+<li>History is automatically saved to <code>~/.bashrs_history</code></li>
+</ul>
+<p><strong>Examples</strong>:</p>
+<pre><code class="language-bash"><span class="boring"> View history after running several commands
+</span>bashrs [normal]&gt; echo test
+bashrs [normal]&gt; mkdir /tmp/app
+bashrs [normal]&gt; :history
+Command History (3 commands):
+  1 echo test
+  2 mkdir /tmp/app
+  3 :history
+
+<span class="boring"> Empty history
+</span>bashrs [normal]&gt; :history
+No commands in history
+</code></pre>
+<h3 id="vars"><a class="header" href="#vars"><code>:vars</code></a></h3>
+<p>Display all session variables (for future variable assignment support).</p>
+<p><strong>Usage</strong>:</p>
+<pre><code class="language-bash">bashrs [normal]&gt; :vars
+</code></pre>
+<p><strong>Output</strong>:</p>
+<pre><code>No session variables set
+</code></pre>
+<p><strong>Future Support</strong>:</p>
+<pre><code class="language-bash"><span class="boring"> When variable assignment is implemented
+</span>bashrs [normal]&gt; x=5
+bashrs [normal]&gt; name="test"
+bashrs [normal]&gt; :vars
+Session Variables (2 variables):
+  name = test
+  x = 5
+</code></pre>
+<p><strong>Features</strong>:</p>
+<ul>
+<li>Shows all variables set in the current session</li>
+<li>Variables are sorted alphabetically</li>
+<li>Displays variable names and values</li>
+<li>Ready for future variable assignment feature</li>
+</ul>
+<h3 id="clear"><a class="header" href="#clear"><code>:clear</code></a></h3>
+<p>Clear the terminal screen using ANSI escape codes.</p>
+<p><strong>Usage</strong>:</p>
+<pre><code class="language-bash">bashrs [normal]&gt; :clear
+<span class="boring"> Screen is cleared, fresh prompt appears
+</span></code></pre>
+<p><strong>Technical Details</strong>:</p>
+<ul>
+<li>Uses ANSI escape sequences: <code>\x1B[2J\x1B[H</code></li>
+<li><code>\x1B[2J</code> - Clears the entire screen</li>
+<li><code>\x1B[H</code> - Moves cursor to home position (0,0)</li>
+<li>Works on all ANSI-compatible terminals</li>
+</ul>
+<p><strong>Examples</strong>:</p>
+<pre><code class="language-bash"><span class="boring"> After lots of output
+</span>bashrs [normal]&gt; :parse long command...
+... lots of AST output ...
+bashrs [normal]&gt; :lint another command...
+... more output ...
+bashrs [normal]&gt; :clear
+<span class="boring"> Screen cleared, clean slate
+</span>bashrs [normal]&gt;
+</code></pre>
+<p><strong>Keyboard Shortcut Alternative</strong>:</p>
+<ul>
+<li><code>Ctrl-L</code> also clears the screen (standard terminal shortcut)</li>
+</ul>
+<h2 id="automatic-mode-based-processing-new-in-v6190"><a class="header" href="#automatic-mode-based-processing-new-in-v6190">Automatic Mode-Based Processing (NEW in v6.19.0)</a></h2>
+<p>When you switch to <code>purify</code> or <code>lint</code> mode, commands are <strong>automatically processed</strong> in that mode without needing explicit <code>:purify</code> or <code>:lint</code> prefixes.</p>
+<h3 id="before-v6190-repetitive"><a class="header" href="#before-v6190-repetitive">Before v6.19.0 (Repetitive)</a></h3>
+<pre><code class="language-bash">bashrs [purify]&gt; :purify mkdir /tmp/test
+bashrs [purify]&gt; :purify rm /tmp/old
+bashrs [purify]&gt; :purify ln -s /tmp/new /tmp/link
+</code></pre>
+<h3 id="after-v6190-automatic"><a class="header" href="#after-v6190-automatic">After v6.19.0 (Automatic)</a></h3>
+<pre><code class="language-bash">bashrs [normal]&gt; :mode purify
+Switched to purify mode
+
+bashrs [purify]&gt; mkdir /tmp/test
+✓ Purified: Purified 1 statement(s)
+
+bashrs [purify]&gt; rm /tmp/old
+✓ Purified: Purified 1 statement(s)
+
+bashrs [purify]&gt; ln -s /tmp/new /tmp/link
+✓ Purified: Purified 1 statement(s)
+</code></pre>
+<h3 id="explicit-commands-still-work-1"><a class="header" href="#explicit-commands-still-work-1">Explicit Commands Still Work</a></h3>
+<p>Explicit <code>:parse</code>, <code>:purify</code>, and <code>:lint</code> commands work in <strong>any mode</strong>:</p>
+<pre><code class="language-bash"><span class="boring"> In purify mode, but want to parse
+</span>bashrs [purify]&gt; :parse echo hello
+✓ Parse successful!
+Statements: 1
+
+<span class="boring"> In lint mode, but want to purify
+</span>bashrs [lint]&gt; :purify mkdir test
+✓ Purification successful!
+Purified 1 statement(s)
+</code></pre>
+<h3 id="benefits"><a class="header" href="#benefits">Benefits</a></h3>
+<ul>
+<li><strong>50% less typing</strong> - No more repetitive <code>:purify</code>/<code>:lint</code> prefixes</li>
+<li><strong>Faster workflow</strong> - Switch mode once, process many commands</li>
+<li><strong>More intuitive</strong> - Mode-based processing matches user mental model</li>
+<li><strong>Explicit commands</strong> - Still available when you need them</li>
+</ul>
 <h2 id="see-also-3"><a class="header" href="#see-also-3">See Also</a></h2>
 <ul>
 <li><a href="reference/../getting-started/repl.html">Interactive REPL Guide</a> - Getting started tutorial</li>

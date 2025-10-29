@@ -1,0 +1,580 @@
+<!DOCTYPE HTML>
+<html lang="en" class="rust sidebar-visible" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>Complete Quality Workflow: Real .zshrc - The Rash Book - Shell Safety and Purification</title>
+
+
+        <!-- Custom HTML head -->
+
+        <meta name="description" content="A comprehensive guide to Rash: shell safety, purification, and linting">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="favicon.svg">
+        <link rel="shortcut icon" href="favicon.png">
+        <link rel="stylesheet" href="css/variables.css">
+        <link rel="stylesheet" href="css/general.css">
+        <link rel="stylesheet" href="css/chrome.css">
+        <link rel="stylesheet" href="css/print.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="FontAwesome/css/font-awesome.css">
+        <link rel="stylesheet" href="fonts/fonts.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" href="highlight.css">
+        <link rel="stylesheet" href="tomorrow-night.css">
+        <link rel="stylesheet" href="ayu-highlight.css">
+
+        <!-- Custom theme stylesheets -->
+
+
+        <!-- Provide site root to javascript -->
+        <script>
+            var path_to_root = "";
+            var default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "navy" : "rust";
+        </script>
+        <!-- Start loading toc.js asap -->
+        <script src="toc.js"></script>
+    </head>
+    <body>
+    <div id="body-container">
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                var theme = localStorage.getItem('mdbook-theme');
+                var sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            var theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            const html = document.documentElement;
+            html.classList.remove('rust')
+            html.classList.add(theme);
+            html.classList.add("js");
+        </script>
+
+        <input type="checkbox" id="sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            var sidebar = null;
+            var sidebar_toggle = document.getElementById("sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+            }
+            sidebar_toggle.checked = sidebar === 'visible';
+            html.classList.remove('sidebar-visible');
+            html.classList.add("sidebar-" + sidebar);
+        </script>
+
+        <nav id="sidebar" class="sidebar" aria-label="Table of contents">
+            <!-- populated by js -->
+            <mdbook-sidebar-scrollbox class="sidebar-scrollbox"></mdbook-sidebar-scrollbox>
+            <noscript>
+                <iframe class="sidebar-iframe-outer" src="toc.html"></iframe>
+            </noscript>
+            <div id="sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <div id="page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="menu-bar-hover-placeholder"></div>
+                <div id="menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="sidebar-toggle" class="icon-button" for="sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="sidebar">
+                            <i class="fa fa-bars"></i>
+                        </label>
+                        <button id="theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="theme-list">
+                            <i class="fa fa-paint-brush"></i>
+                        </button>
+                        <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
+                        </ul>
+                        <button id="search-toggle" class="icon-button" type="button" title="Search. (Shortkey: s)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="S" aria-controls="searchbar">
+                            <i class="fa fa-search"></i>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">The Rash Book - Shell Safety and Purification</h1>
+
+                    <div class="right-buttons">
+                        <a href="print.html" title="Print this book" aria-label="Print this book">
+                            <i id="print-button" class="fa fa-print"></i>
+                        </a>
+                        <a href="https://github.com/paiml/bashrs" title="Git repository" aria-label="Git repository">
+                            <i id="git-repository-button" class="fa fa-github"></i>
+                        </a>
+                        <a href="https://github.com/paiml/bashrs/edit/main/book/src/example_zshrc_workflow.md" title="Suggest an edit" aria-label="Suggest an edit">
+                            <i id="git-edit-button" class="fa fa-edit"></i>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="search-wrapper" class="hidden">
+                    <form id="searchbar-outer" class="searchbar-outer">
+                        <input type="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                    </form>
+                    <div id="searchresults-outer" class="searchresults-outer hidden">
+                        <div id="searchresults-header" class="searchresults-header"></div>
+                        <ul id="searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="content" class="content">
+                    <main>
+                        <h1 id="complete-quality-workflow-real-world-zshrc-analysis"><a class="header" href="#complete-quality-workflow-real-world-zshrc-analysis">Complete Quality Workflow: Real-World .zshrc Analysis</a></h1>
+<p>This chapter demonstrates the complete bashrs quality workflow on a real-world shell configuration file, showing how to use all available quality tools to analyze, score, and improve your shell scripts.</p>
+<h2 id="overview"><a class="header" href="#overview">Overview</a></h2>
+<p>We'll walk through analyzing a <code>.zshrc</code> file (161 lines) using <strong>all</strong> bashrs quality tools:</p>
+<ol>
+<li><strong>lint</strong> - Identify code quality issues</li>
+<li><strong>score</strong> - Get quality grade and score</li>
+<li><strong>audit</strong> - Comprehensive quality check</li>
+<li><strong>coverage</strong> - Test coverage analysis</li>
+<li><strong>config analyze</strong> - Configuration-specific analysis</li>
+<li><strong>format</strong> - Code formatting (where supported)</li>
+<li><strong>test</strong> - Run embedded tests</li>
+</ol>
+<h2 id="initial-assessment"><a class="header" href="#initial-assessment">Initial Assessment</a></h2>
+<h3 id="file-statistics"><a class="header" href="#file-statistics">File Statistics</a></h3>
+<ul>
+<li><strong>Size</strong>: 161 lines (~5KB)</li>
+<li><strong>Type</strong>: Zsh configuration with Oh My Zsh</li>
+<li><strong>Functions</strong>: 1 custom function (<code>claude-bedrock</code>)</li>
+<li><strong>Tests</strong>: 0 (no tests found)</li>
+</ul>
+<h2 id="step-1-quick-score-check"><a class="header" href="#step-1-quick-score-check">Step 1: Quick Score Check</a></h2>
+<pre><code class="language-bash">$ cargo run --bin bashrs -- score ~/.zshrc
+</code></pre>
+<p><strong>Result:</strong></p>
+<pre><code>Bash Script Quality Score
+=========================
+
+Overall Grade: D
+Overall Score: 6.1/10.0
+
+Improvement Suggestions:
+------------------------
+1. Reduce function complexity by extracting nested logic
+2. Break down large functions (&gt;20 lines) into smaller functions
+3. Add test functions (test_*) to verify script behavior
+4. Aim for at least 50% test coverage
+
+⚠ Below average. Multiple improvements needed.
+</code></pre>
+<p><strong>Insight</strong>: Score of 6.1/10 (D grade) indicates significant room for improvement.</p>
+<hr />
+<h2 id="step-2-detailed-linting"><a class="header" href="#step-2-detailed-linting">Step 2: Detailed Linting</a></h2>
+<pre><code class="language-bash">$ cargo run --bin bashrs -- lint ~/.zshrc
+</code></pre>
+<p><strong>Results:</strong></p>
+<pre><code>Summary: 2 error(s), 38 warning(s), 13 info(s)
+
+Critical Errors:
+✗ Line 73: DET002 - Non-deterministic timestamp usage (UNSAFE)
+✗ Line 93: DET002 - Non-deterministic timestamp usage (UNSAFE)
+</code></pre>
+<p><strong>Issues Found:</strong></p>
+<ul>
+<li><strong>2 errors</strong>: Timestamp usage with <code>date +%s</code> (flagged as non-deterministic)</li>
+<li><strong>38 warnings</strong>: Variable references, quoting suggestions, style issues</li>
+<li><strong>13 info</strong>: Style consistency recommendations</li>
+</ul>
+<p><strong>Example Issues:</strong></p>
+<pre><code class="language-bash"><span class="boring"> Line 73 - Flagged as non-deterministic
+</span>start_time="$(date +%s)"
+
+<span class="boring"> Line 93 - Flagged as non-deterministic
+</span>end_time="$(date +%s)"
+
+<span class="boring"> Multiple SC2154 warnings - Variables set externally
+</span><span class="boring"> These are legitimate for .zshrc:
+</span>- $NVM_DIR (set by Node Version Manager)
+- $BUN_INSTALL (set by Bun installer)
+- Variables in function scopes
+</code></pre>
+<p><strong>Note</strong>: The timestamp errors are <strong>false positives</strong> for this use case - measuring command execution time is legitimate in a shell configuration file and not security-sensitive.</p>
+<hr />
+<h2 id="step-3-comprehensive-audit"><a class="header" href="#step-3-comprehensive-audit">Step 3: Comprehensive Audit</a></h2>
+<pre><code class="language-bash">$ cargo run --bin bashrs -- audit ~/.zshrc
+</code></pre>
+<p><strong>Results:</strong></p>
+<pre><code>Comprehensive Quality Audit
+===========================
+
+File: ~/.zshrc
+
+Check Results:
+--------------
+✅ Parse:    Valid bash syntax
+❌ Lint:     2 errors, 38 warnings
+⚠️  Test:     No tests found
+✅ Score:    D (6.1/10.0)
+
+Overall: ❌ FAIL
+</code></pre>
+<p><strong>Analysis</strong>:</p>
+<ul>
+<li>✅ <strong>Parse</strong>: Valid syntax - file will execute correctly</li>
+<li>❌ <strong>Lint</strong>: Quality issues need attention</li>
+<li>⚠️ <strong>Test</strong>: 0% coverage (no tests)</li>
+<li><strong>Score</strong>: 6.1/10 (D grade)</li>
+</ul>
+<hr />
+<h2 id="step-4-coverage-analysis"><a class="header" href="#step-4-coverage-analysis">Step 4: Coverage Analysis</a></h2>
+<pre><code class="language-bash">$ cargo run --bin bashrs -- coverage ~/.zshrc
+</code></pre>
+<p><strong>Results:</strong></p>
+<pre><code>Coverage Report: ~/.zshrc
+
+Lines:     0/103   (0.0%)  ❌
+Functions: 0/1   (0.0%)  ❌
+
+Uncovered Lines: 103 lines
+Uncovered Functions: 1
+
+⚠️  No tests found - 0% coverage
+</code></pre>
+<p><strong>Insight</strong>: Configuration files typically don't have tests, but custom functions like <code>claude-bedrock</code> could benefit from testing.</p>
+<hr />
+<h2 id="step-5-configuration-specific-analysis"><a class="header" href="#step-5-configuration-specific-analysis">Step 5: Configuration-Specific Analysis</a></h2>
+<pre><code class="language-bash">$ cargo run --bin bashrs -- config analyze ~/.zshrc
+</code></pre>
+<p><strong>Results:</strong></p>
+<pre><code>Analysis: ~/.zshrc
+============================
+
+Statistics:
+  - Lines: 161
+  - Complexity score: 7/10
+  - Config type: Zshrc
+
+PATH Entries (3):
+  ✓  Line 2: Complex FPATH manipulation
+  ✓  Line 141: $BUN_INSTALL/bin
+  ✓  Line 160: /usr/local/go/bin
+
+Issues Found: 2
+  ⚠ [CONFIG-004] Line 73: Non-deterministic timestamp
+  ⚠ [CONFIG-004] Line 93: Non-deterministic timestamp
+</code></pre>
+<p><strong>Insight</strong>: The config analyzer correctly identifies the file as a Zshrc and tracks PATH modifications.</p>
+<hr />
+<h2 id="step-6-test-execution"><a class="header" href="#step-6-test-execution">Step 6: Test Execution</a></h2>
+<pre><code class="language-bash">$ cargo run --bin bashrs -- test ~/.zshrc
+</code></pre>
+<p><strong>Results:</strong></p>
+<pre><code>Running tests in ~/.zshrc
+⚠ No tests found in ~/.zshrc
+</code></pre>
+<p><strong>Expected</strong>: Configuration files typically don't include tests.</p>
+<hr />
+<h2 id="step-7-code-formatting-best-effort"><a class="header" href="#step-7-code-formatting-best-effort">Step 7: Code Formatting (Best Effort)</a></h2>
+<pre><code class="language-bash">$ cargo run --bin bashrs -- format ~/.zshrc
+</code></pre>
+<p><strong>Results:</strong></p>
+<pre><code>error: Failed to format: Lexer error at line 63
+</code></pre>
+<p><strong>Note</strong>: The formatter encountered regex patterns (<code>^eu-</code>) that are not yet fully supported. This is expected for complex shell constructs.</p>
+<hr />
+<h2 id="summary-complete-tool-matrix"><a class="header" href="#summary-complete-tool-matrix">Summary: Complete Tool Matrix</a></h2>
+<div class="table-wrapper"><table><thead><tr><th>Tool</th><th>Command</th><th>Result</th><th>Status</th></tr></thead><tbody>
+<tr><td><strong>score</strong></td><td><code>bashrs score FILE</code></td><td>6.1/10 (D)</td><td>❌ Needs improvement</td></tr>
+<tr><td><strong>lint</strong></td><td><code>bashrs lint FILE</code></td><td>2 errors, 38 warnings</td><td>⚠️ Quality issues</td></tr>
+<tr><td><strong>audit</strong></td><td><code>bashrs audit FILE</code></td><td>Comprehensive report</td><td>❌ FAIL</td></tr>
+<tr><td><strong>coverage</strong></td><td><code>bashrs coverage FILE</code></td><td>0% (no tests)</td><td>❌ No tests</td></tr>
+<tr><td><strong>config</strong></td><td><code>bashrs config analyze FILE</code></td><td>7/10 complexity</td><td>⚠️ Moderate</td></tr>
+<tr><td><strong>test</strong></td><td><code>bashrs test FILE</code></td><td>No tests found</td><td>⚠️ Expected</td></tr>
+<tr><td><strong>format</strong></td><td><code>bashrs format FILE</code></td><td>Lexer error</td><td>❌ Unsupported syntax</td></tr>
+</tbody></table>
+</div>
+<hr />
+<h2 id="interpreting-the-results"><a class="header" href="#interpreting-the-results">Interpreting the Results</a></h2>
+<h3 id="what-the-tools-tell-us"><a class="header" href="#what-the-tools-tell-us">What the Tools Tell Us</a></h3>
+<ol>
+<li>
+<p><strong>score (6.1/10 D)</strong>: Overall quality below average</p>
+<ul>
+<li>Missing tests</li>
+<li>High function complexity</li>
+<li>Linting issues</li>
+</ul>
+</li>
+<li>
+<p><strong>lint (2 errors, 38 warnings)</strong>:</p>
+<ul>
+<li>Timestamp usage (legitimate for timing)</li>
+<li>Variable scoping (false positives for .zshrc)</li>
+<li>Style improvements available</li>
+</ul>
+</li>
+<li>
+<p><strong>audit (FAIL)</strong>: Failed due to lint errors</p>
+<ul>
+<li>Would pass if timestamp errors were suppressed</li>
+<li>Test coverage affects score</li>
+</ul>
+</li>
+<li>
+<p><strong>coverage (0%)</strong>: No tests found</p>
+<ul>
+<li>Expected for configuration files</li>
+<li>Custom functions could have tests</li>
+</ul>
+</li>
+<li>
+<p><strong>config analyze (7/10)</strong>: Moderate complexity</p>
+<ul>
+<li>PATH modifications tracked</li>
+<li>Non-deterministic constructs flagged</li>
+</ul>
+</li>
+</ol>
+<h3 id="quality-improvement-recommendations"><a class="header" href="#quality-improvement-recommendations">Quality Improvement Recommendations</a></h3>
+<h4 id="high-priority"><a class="header" href="#high-priority">High Priority</a></h4>
+<ol>
+<li>
+<p><strong>Add test functions</strong> for <code>claude-bedrock</code>:</p>
+<pre><code class="language-bash"><span class="boring"> TEST: test_claude_bedrock_region_parsing
+</span>test_claude_bedrock_region_parsing() {
+<span class="boring">     Test that EU regions get EU model
+</span>    [[ "$(get_model_for_region "eu-west-3")" == *"eu.anthropic"* ]] || return 1
+    return 0
+}
+</code></pre>
+</li>
+<li>
+<p><strong>Suppress legitimate timestamp warnings</strong> with <code>bashrs:ignore</code>:</p>
+<pre><code class="language-bash"><span class="boring"> bashrs:ignore DET002 - Timing is intentional, not security-sensitive
+</span>start_time="$(date +%s)"
+</code></pre>
+</li>
+<li>
+<p><strong>Break down large functions</strong>:</p>
+<pre><code class="language-bash"><span class="boring"> Extract region detection logic
+</span>get_model_for_region() {
+    local region="$1"
+    if [[ "$region" =~ ^eu- ]]; then
+        echo "eu.anthropic.claude-sonnet-4-5-20250929-v1:0"
+    elif [[ "$region" =~ ^us- ]]; then
+        echo "us.anthropic.claude-sonnet-4-5-20250929-v1:0"
+    else
+        echo "global.anthropic.claude-sonnet-4-5-20250929-v1:0"
+    fi
+}
+</code></pre>
+</li>
+</ol>
+<h4 id="medium-priority"><a class="header" href="#medium-priority">Medium Priority</a></h4>
+<ol start="4">
+<li><strong>Quote variable expansions</strong> (many SC2086 warnings)</li>
+<li><strong>Use single quotes</strong> for literal strings (SC2311 info messages)</li>
+</ol>
+<h4 id="low-priority"><a class="header" href="#low-priority">Low Priority</a></h4>
+<ol start="6">
+<li><strong>Consider shellcheck disable comments</strong> for false positives</li>
+<li><strong>Document complex regex patterns</strong> with comments</li>
+</ol>
+<hr />
+<h2 id="workflow-recommendations"><a class="header" href="#workflow-recommendations">Workflow Recommendations</a></h2>
+<h3 id="for-shell-configuration-files-bashrc-zshrc"><a class="header" href="#for-shell-configuration-files-bashrc-zshrc">For Shell Configuration Files (.bashrc, .zshrc)</a></h3>
+<pre><code class="language-bash"><span class="boring"> Quick quality check
+</span>bashrs score ~/.zshrc
+
+<span class="boring"> Detailed analysis (run all tools)
+</span>bashrs audit ~/.zshrc     # Comprehensive check
+bashrs lint ~/.zshrc      # Detailed issues
+bashrs config analyze ~/.zshrc  # Config-specific
+
+<span class="boring"> Optional (if you have tests)
+</span>bashrs test ~/.zshrc
+bashrs coverage ~/.zshrc
+</code></pre>
+<h3 id="for-production-shell-scripts"><a class="header" href="#for-production-shell-scripts">For Production Shell Scripts</a></h3>
+<pre><code class="language-bash"><span class="boring"> Complete quality workflow
+</span>bashrs audit script.sh              # Comprehensive audit
+bashrs lint script.sh               # Detailed linting
+bashrs test script.sh               # Run tests
+bashrs coverage script.sh           # Coverage report
+bashrs format script.sh --check     # Verify formatting
+
+<span class="boring"> Minimum quality gates
+</span>bashrs score script.sh --min-grade B  # Require B or better
+bashrs audit script.sh --min-grade A  # Require A or better
+</code></pre>
+<h3 id="for-cicd-pipelines"><a class="header" href="#for-cicd-pipelines">For CI/CD Pipelines</a></h3>
+<pre><code class="language-bash"><span class="boring"> Quality gate in CI
+</span>if ! bashrs audit script.sh --min-grade B; then
+    echo "Quality gate failed: script below B grade"
+    exit 1
+fi
+
+<span class="boring"> Generate quality report
+</span>bashrs audit script.sh --format json &gt; quality-report.json
+</code></pre>
+<hr />
+<h2 id="key-takeaways"><a class="header" href="#key-takeaways">Key Takeaways</a></h2>
+<ol>
+<li>
+<p><strong>Multiple Tools, Different Insights</strong>: Each tool reveals different aspects of quality</p>
+<ul>
+<li><code>score</code>: Quick quality assessment</li>
+<li><code>lint</code>: Detailed code issues</li>
+<li><code>audit</code>: Comprehensive check</li>
+<li><code>coverage</code>: Test completeness</li>
+<li><code>config</code>: Configuration-specific analysis</li>
+</ul>
+</li>
+<li>
+<p><strong>Context Matters</strong>: Not all warnings are problems</p>
+<ul>
+<li>Timestamp usage legitimate for timing</li>
+<li>External variables normal in config files</li>
+<li>Test coverage expectations differ by file type</li>
+</ul>
+</li>
+<li>
+<p><strong>Incremental Improvement</strong>: Focus on high-impact changes</p>
+<ul>
+<li>Add tests for custom functions</li>
+<li>Suppress false positive warnings</li>
+<li>Extract complex logic into functions</li>
+</ul>
+</li>
+<li>
+<p><strong>Tool Limitations</strong>: Some constructs not yet supported</p>
+<ul>
+<li>Complex regex patterns may fail formatting</li>
+<li>Advanced shell features might trigger warnings</li>
+<li>Use <code>bashrs:ignore</code> for intentional patterns</li>
+</ul>
+</li>
+</ol>
+<hr />
+<h2 id="expected-improvements"><a class="header" href="#expected-improvements">Expected Improvements</a></h2>
+<p>If we apply all recommendations:</p>
+<div class="table-wrapper"><table><thead><tr><th>Metric</th><th>Before</th><th>After (Projected)</th></tr></thead><tbody>
+<tr><td><strong>Score</strong></td><td>6.1/10 (D)</td><td>9.0+/10 (A)</td></tr>
+<tr><td><strong>Lint Errors</strong></td><td>2</td><td>0 (suppressed)</td></tr>
+<tr><td><strong>Test Coverage</strong></td><td>0%</td><td>60%+</td></tr>
+<tr><td><strong>Complexity</strong></td><td>7/10</td><td>5/10 (refactored)</td></tr>
+<tr><td><strong>Overall Grade</strong></td><td>FAIL</td><td>PASS</td></tr>
+</tbody></table>
+</div>
+<hr />
+<h2 id="conclusion"><a class="header" href="#conclusion">Conclusion</a></h2>
+<p>The bashrs quality tools provide comprehensive analysis for shell scripts and configuration files:</p>
+<ul>
+<li><strong>7 tools</strong> working together for complete quality picture</li>
+<li><strong>Actionable insights</strong> with specific line numbers and fixes</li>
+<li><strong>Flexible workflow</strong> - use tools individually or together</li>
+<li><strong>Context-aware</strong> - different expectations for different file types</li>
+</ul>
+<p><strong>Next Steps:</strong></p>
+<ol>
+<li>Run <code>bashrs score</code> on your shell files to get baseline</li>
+<li>Use <code>bashrs audit</code> for comprehensive analysis</li>
+<li>Apply high-priority fixes first</li>
+<li>Re-run tools to verify improvements</li>
+<li>Integrate into CI/CD for continuous quality</li>
+</ol>
+<p><strong>Recommended Quality Standards:</strong></p>
+<ul>
+<li>Configuration files: <strong>C+ or better</strong> (7.0+/10)</li>
+<li>Development scripts: <strong>B or better</strong> (8.0+/10)</li>
+<li>Production scripts: <strong>A or better</strong> (9.0+/10)</li>
+<li>Critical infrastructure: <strong>A+ required</strong> (9.5+/10)</li>
+</ul>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="examples/cicd-pipeline.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <i class="fa fa-angle-left"></i>
+                            </a>
+
+                            <a rel="next prefetch" href="advanced/ast-transformation.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <i class="fa fa-angle-right"></i>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="examples/cicd-pipeline.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <i class="fa fa-angle-left"></i>
+                    </a>
+
+                    <a rel="next prefetch" href="advanced/ast-transformation.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <i class="fa fa-angle-right"></i>
+                    </a>
+            </nav>
+
+        </div>
+
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+        <script src="ace.js"></script>
+        <script src="editor.js"></script>
+        <script src="mode-rust.js"></script>
+        <script src="theme-dawn.js"></script>
+        <script src="theme-tomorrow_night.js"></script>
+
+        <script src="elasticlunr.min.js"></script>
+        <script src="mark.min.js"></script>
+        <script src="searcher.js"></script>
+
+        <script src="clipboard.min.js"></script>
+        <script src="highlight.js"></script>
+        <script src="book.js"></script>
+
+        <!-- Custom JS scripts -->
+
+
+    </div>
+    </body>
+</html>

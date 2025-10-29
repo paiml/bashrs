@@ -163,7 +163,7 @@
 <h2 id="starting-the-repl"><a class="header" href="#starting-the-repl">Starting the REPL</a></h2>
 <pre><code class="language-bash">$ bashrs repl
 
-bashrs REPL v6.7.0
+bashrs REPL v6.19.0
 Type 'quit' or 'exit' to exit, 'help' for commands
 Current mode: normal - Execute bash commands directly
 bashrs [normal]&gt;
@@ -188,6 +188,13 @@ bashrs [normal]&gt;
 <tr><td><code>:lint &lt;code&gt;</code></td><td>Lint bash code and show diagnostics</td></tr>
 </tbody></table>
 </div>
+<h3 id="utility-commands"><a class="header" href="#utility-commands">Utility Commands</a></h3>
+<div class="table-wrapper"><table><thead><tr><th>Command</th><th>Description</th></tr></thead><tbody>
+<tr><td><code>:history</code></td><td>Show command history for this session</td></tr>
+<tr><td><code>:vars</code></td><td>Show session variables</td></tr>
+<tr><td><code>:clear</code></td><td>Clear the screen</td></tr>
+</tbody></table>
+</div>
 <h3 id="mode-switching"><a class="header" href="#mode-switching">Mode Switching</a></h3>
 <p>The REPL supports 5 interactive modes:</p>
 <pre><code class="language-bash">bashrs [normal]&gt; :mode
@@ -206,6 +213,43 @@ Usage: :mode &lt;mode_name&gt;
 <pre><code class="language-bash">bashrs [normal]&gt; :mode lint
 Switched to lint mode - Show linting results for bash commands
 bashrs [lint]&gt;
+</code></pre>
+<h3 id="automatic-mode-based-processing"><a class="header" href="#automatic-mode-based-processing">Automatic Mode-Based Processing</a></h3>
+<p><strong>NEW in v6.19.0</strong>: When you switch to <code>purify</code> or <code>lint</code> mode, commands are automatically processed in that mode without needing explicit <code>:purify</code> or <code>:lint</code> prefixes.</p>
+<h4 id="purify-mode"><a class="header" href="#purify-mode">Purify Mode</a></h4>
+<pre><code class="language-bash">bashrs [normal]&gt; :mode purify
+Switched to purify mode
+
+<span class="boring"> Commands are automatically purified
+</span>bashrs [purify]&gt; mkdir /tmp/test
+✓ Purified:
+Purified 1 statement(s)
+(Full bash output coming soon)
+
+bashrs [purify]&gt; rm /old/file
+✓ Purified:
+Purified 1 statement(s)
+</code></pre>
+<h4 id="lint-mode"><a class="header" href="#lint-mode">Lint Mode</a></h4>
+<pre><code class="language-bash">bashrs [normal]&gt; :mode lint
+Switched to lint mode
+
+<span class="boring"> Commands are automatically linted
+</span>bashrs [lint]&gt; cat file.txt | grep pattern
+Found 1 issue(s):
+  ⚠ 1 warning(s)
+
+[1] ⚠ SC2086 - Useless cat
+</code></pre>
+<h4 id="explicit-commands-still-work"><a class="header" href="#explicit-commands-still-work">Explicit Commands Still Work</a></h4>
+<p>Explicit commands (<code>:parse</code>, <code>:purify</code>, <code>:lint</code>) work in <strong>any mode</strong>:</p>
+<pre><code class="language-bash">bashrs [purify]&gt; :parse echo hello
+✓ Parse successful!
+Statements: 1
+
+bashrs [lint]&gt; :purify mkdir test
+✓ Purification successful!
+Purified 1 statement(s)
 </code></pre>
 <h2 id="examples"><a class="header" href="#examples">Examples</a></h2>
 <h3 id="example-1-parsing-bash-code"><a class="header" href="#example-1-parsing-bash-code">Example 1: Parsing Bash Code</a></h3>
@@ -264,6 +308,209 @@ Switched to purify mode
 ✓ Purification successful!
 Purified: mkdir -p "/var/log/app"
 </code></pre>
+<h3 id="example-5-using-utility-commands"><a class="header" href="#example-5-using-utility-commands">Example 5: Using Utility Commands</a></h3>
+<p><strong>NEW in v6.19.0</strong>: The REPL now includes utility commands for managing your session.</p>
+<h4 id="view-command-history"><a class="header" href="#view-command-history">View Command History</a></h4>
+<pre><code class="language-bash">bashrs [normal]&gt; echo hello
+Would execute: echo hello
+
+bashrs [normal]&gt; mkdir test
+Would execute: mkdir test
+
+bashrs [normal]&gt; :history
+Command History (3 commands):
+  1 echo hello
+  2 mkdir test
+  3 :history
+</code></pre>
+<h4 id="view-session-variables"><a class="header" href="#view-session-variables">View Session Variables</a></h4>
+<pre><code class="language-bash">bashrs [normal]&gt; :vars
+No session variables set
+
+<span class="boring"> Future: When variable assignment is implemented
+</span>bashrs [normal]&gt; x=5
+bashrs [normal]&gt; :vars
+Session Variables (1 variables):
+  x = 5
+</code></pre>
+<h4 id="clear-screen"><a class="header" href="#clear-screen">Clear Screen</a></h4>
+<pre><code class="language-bash">bashrs [normal]&gt; echo "lots of output..."
+bashrs [normal]&gt; echo "more output..."
+bashrs [normal]&gt; :clear
+<span class="boring"> Screen cleared, fresh prompt
+</span>bashrs [normal]&gt;
+</code></pre>
+<h3 id="example-6-automatic-mode-processing-workflow"><a class="header" href="#example-6-automatic-mode-processing-workflow">Example 6: Automatic Mode Processing Workflow</a></h3>
+<p><strong>NEW in v6.19.0</strong>: The killer feature - automatic command processing in purify/lint modes.</p>
+<pre><code class="language-bash"><span class="boring"> Switch to purify mode
+</span>bashrs [normal]&gt; :mode purify
+Switched to purify mode
+
+<span class="boring"> Commands are AUTOMATICALLY purified
+</span>bashrs [purify]&gt; mkdir /tmp/test
+✓ Purified:
+Purified 1 statement(s)
+
+bashrs [purify]&gt; rm /tmp/old
+✓ Purified:
+Purified 1 statement(s)
+
+<span class="boring"> Switch to lint mode
+</span>bashrs [purify]&gt; :mode lint
+Switched to lint mode
+
+<span class="boring"> Commands are AUTOMATICALLY linted
+</span>bashrs [lint]&gt; cat file | grep pattern
+Found 1 issue(s):
+  ⚠ 1 warning(s)
+
+<span class="boring"> View what you've done
+</span>bashrs [lint]&gt; :history
+Command History (6 commands):
+  1 :mode purify
+  2 mkdir /tmp/test
+  3 rm /tmp/old
+  4 :mode lint
+  5 cat file | grep pattern
+  6 :history
+</code></pre>
+<h3 id="example-7-using-explain-mode-for-learning-bash"><a class="header" href="#example-7-using-explain-mode-for-learning-bash">Example 7: Using Explain Mode for Learning Bash</a></h3>
+<p><strong>NEW in v6.19.0</strong>: The Explain Mode provides interactive explanations of bash constructs to help you learn shell scripting.</p>
+<h4 id="switch-to-explain-mode"><a class="header" href="#switch-to-explain-mode">Switch to Explain Mode</a></h4>
+<pre><code class="language-bash">bashrs [normal]&gt; :mode explain
+Switched to explain mode - Explain bash constructs and syntax
+bashrs [explain]&gt;
+</code></pre>
+<h4 id="explain-parameter-expansions"><a class="header" href="#explain-parameter-expansions">Explain Parameter Expansions</a></h4>
+<pre><code class="language-bash">bashrs [explain]&gt; ${var:-default}
+📖 Parameter Expansion: ${parameter:-word}
+   Use Default Value
+
+If parameter is unset or null, expand to 'word'.
+The original parameter remains unchanged.
+
+Example:
+  $ var=""
+  $ echo "${var:-fallback}"  # Outputs: fallback
+  $ echo "$var"               # Still empty
+
+bashrs [explain]&gt; ${var:=default}
+📖 Parameter Expansion: ${parameter:=word}
+   Assign Default Value
+
+If parameter is unset or null, assign 'word' to it.
+Then expand to the new value.
+
+Example:
+  $ unset var
+  $ echo "${var:=fallback}"  # Outputs: fallback
+  $ echo "$var"               # Now set to fallback
+
+bashrs [explain]&gt; ${#var}
+📖 Parameter Expansion: ${#parameter}
+   String Length
+
+Expands to the length of the parameter's value in characters.
+
+Example:
+  $ var="hello"
+  $ echo "${#var}"  # Outputs: 5
+</code></pre>
+<h4 id="explain-control-flow-constructs"><a class="header" href="#explain-control-flow-constructs">Explain Control Flow Constructs</a></h4>
+<pre><code class="language-bash">bashrs [explain]&gt; for i in *.txt
+📖 For Loop: for name in words
+   Iterate Over List
+
+Loop variable 'name' takes each value from the word list.
+Executes commands for each iteration.
+
+Example:
+  for file in *.txt; do
+    echo "Processing: $file"
+  done
+
+bashrs [explain]&gt; if [ -f file ]
+📖 If Statement: if condition; then commands; fi
+   Conditional Execution
+
+Execute commands only if condition succeeds (exit status 0).
+Optional elif and else clauses for alternatives.
+
+Example:
+  if [ -f file.txt ]; then
+    echo "File exists"
+  fi
+
+bashrs [explain]&gt; while true
+📖 While Loop: while condition; do commands; done
+   Conditional Loop
+
+Execute commands repeatedly while condition succeeds.
+Checks condition before each iteration.
+
+Example:
+  counter=0
+  while [ $counter -lt 5 ]; do
+    echo $counter
+    counter=$((counter + 1))
+  done
+</code></pre>
+<h4 id="explain-io-redirection"><a class="header" href="#explain-io-redirection">Explain I/O Redirection</a></h4>
+<pre><code class="language-bash">bashrs [explain]&gt; echo test &gt; file
+📖 Output Redirection: command &gt; file
+   Redirect Standard Output
+
+Redirects stdout to a file, overwriting existing content.
+Use &gt;&gt; to append instead.
+
+Example:
+  echo "text" &gt; file.txt   # Overwrite
+  echo "more" &gt;&gt; file.txt  # Append
+
+bashrs [explain]&gt; cat &lt; file
+📖 Input Redirection: command &lt; file
+   Redirect Standard Input
+
+Redirects stdin to read from a file instead of keyboard.
+
+Example:
+  while read line; do
+    echo "Line: $line"
+  done &lt; file.txt
+
+bashrs [explain]&gt; cat file | grep pattern
+📖 Pipe: command1 | command2
+   Connect Commands
+
+Redirects stdout of command1 to stdin of command2.
+Enables chaining multiple commands together.
+
+Example:
+  cat file.txt | grep pattern | wc -l
+</code></pre>
+<h4 id="unknown-constructs"><a class="header" href="#unknown-constructs">Unknown Constructs</a></h4>
+<pre><code class="language-bash">bashrs [explain]&gt; unknown_command_xyz
+No explanation available for: unknown_command_xyz
+Try parameter expansions (${var:-default}), control flow (for, if, while), or redirections (&gt;, &lt;, |)
+</code></pre>
+<h4 id="combining-explain-mode-with-other-commands"><a class="header" href="#combining-explain-mode-with-other-commands">Combining Explain Mode with Other Commands</a></h4>
+<pre><code class="language-bash"><span class="boring"> Explain a construct, then lint it
+</span>bashrs [explain]&gt; ${var:-default}
+📖 Parameter Expansion: ${parameter:-word}
+   Use Default Value
+...
+
+bashrs [explain]&gt; :lint echo ${var:-default}
+✓ No issues found!
+
+<span class="boring"> Switch to purify mode to see transformations
+</span>bashrs [explain]&gt; :mode purify
+Switched to purify mode
+
+bashrs [purify]&gt; mkdir /tmp/test
+✓ Purified:
+Purified 1 statement(s)
+</code></pre>
 <h2 id="command-history"><a class="header" href="#command-history">Command History</a></h2>
 <p>The REPL automatically saves command history to <code>~/.bashrs_history</code>:</p>
 <pre><code class="language-bash"><span class="boring"> Commands are saved across sessions
@@ -307,13 +554,29 @@ bashrs [normal]&gt; # Press ↑ to recall previous commands
 </div>
 <h2 id="use-cases"><a class="header" href="#use-cases">Use Cases</a></h2>
 <h3 id="learning-bash"><a class="header" href="#learning-bash">Learning Bash</a></h3>
-<p>Use the REPL to interactively learn bash transformations:</p>
-<pre><code class="language-bash">bashrs [normal]&gt; :mode explain
-bashrs [explain]&gt; # Future: Get explanations of bash constructs
+<p>Use the REPL to interactively learn bash constructs and transformations:</p>
+<pre><code class="language-bash"><span class="boring"> Learn about parameter expansions
+</span>bashrs [normal]&gt; :mode explain
+Switched to explain mode
 
-bashrs [explain]&gt; :mode purify
-bashrs [purify]&gt; :purify rm -rf /tmp/data
-✓ Purified: rm -rf "/tmp/data"  # Safe (quoted path)
+bashrs [explain]&gt; ${var:-default}
+📖 Parameter Expansion: ${parameter:-word}
+   Use Default Value
+...
+
+<span class="boring"> Learn about control flow
+</span>bashrs [explain]&gt; for i in *.txt
+📖 For Loop: for name in words
+   Iterate Over List
+...
+
+<span class="boring"> Switch to purify mode to see transformations
+</span>bashrs [explain]&gt; :mode purify
+Switched to purify mode
+
+bashrs [purify]&gt; rm -rf /tmp/data
+✓ Purified:
+Purified 1 statement(s)
 </code></pre>
 <h3 id="quick-validation"><a class="header" href="#quick-validation">Quick Validation</a></h3>
 <p>Validate bash snippets before committing:</p>
