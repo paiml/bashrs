@@ -1,6 +1,12 @@
 # REPL Commands Reference
 
-Complete reference for all bashrs REPL commands.
+Complete reference for all bashrs REPL commands (v6.19.0).
+
+## What's New in v6.19.0
+
+- 🚀 **Automatic Mode-Based Processing**: Commands are now automatically processed in `purify` and `lint` modes
+- 🛠️ **Utility Commands**: `:history`, `:vars`, `:clear` for better session management
+- ⚡ **50% Less Typing**: No more `:purify`/`:lint` prefixes when in those modes
 
 ## Command Overview
 
@@ -14,6 +20,9 @@ Complete reference for all bashrs REPL commands.
 | `:parse <code>` | Analysis | Parse bash code and show AST |
 | `:purify <code>` | Transform | Purify bash code (idempotent/deterministic) |
 | `:lint <code>` | Analysis | Lint bash code and show diagnostics |
+| `:history` | Utility | Show command history (NEW in v6.19.0) |
+| `:vars` | Utility | Show session variables (NEW in v6.19.0) |
+| `:clear` | Utility | Clear the screen (NEW in v6.19.0) |
 
 ## Core Commands
 
@@ -385,6 +394,160 @@ bashrs REPL v6.7.0 (sandboxed mode)
 Note: Some operations are restricted in sandboxed mode
 ...
 ```
+
+## Utility Commands (NEW in v6.19.0)
+
+### `:history`
+
+Show the command history for the current REPL session.
+
+**Usage**:
+```bash
+bashrs [normal]> :history
+```
+
+**Output**:
+```
+Command History (5 commands):
+  1 echo hello
+  2 mkdir /tmp/test
+  3 :parse if [ -f test ]; then echo found; fi
+  4 :lint cat file | grep pattern
+  5 :history
+```
+
+**Features**:
+- Shows all commands executed in the current session
+- Commands are numbered for easy reference
+- Includes both regular bash commands and REPL commands
+- History is automatically saved to `~/.bashrs_history`
+
+**Examples**:
+```bash
+# View history after running several commands
+bashrs [normal]> echo test
+bashrs [normal]> mkdir /tmp/app
+bashrs [normal]> :history
+Command History (3 commands):
+  1 echo test
+  2 mkdir /tmp/app
+  3 :history
+
+# Empty history
+bashrs [normal]> :history
+No commands in history
+```
+
+### `:vars`
+
+Display all session variables (for future variable assignment support).
+
+**Usage**:
+```bash
+bashrs [normal]> :vars
+```
+
+**Output**:
+```
+No session variables set
+```
+
+**Future Support**:
+```bash
+# When variable assignment is implemented
+bashrs [normal]> x=5
+bashrs [normal]> name="test"
+bashrs [normal]> :vars
+Session Variables (2 variables):
+  name = test
+  x = 5
+```
+
+**Features**:
+- Shows all variables set in the current session
+- Variables are sorted alphabetically
+- Displays variable names and values
+- Ready for future variable assignment feature
+
+### `:clear`
+
+Clear the terminal screen using ANSI escape codes.
+
+**Usage**:
+```bash
+bashrs [normal]> :clear
+# Screen is cleared, fresh prompt appears
+```
+
+**Technical Details**:
+- Uses ANSI escape sequences: `\x1B[2J\x1B[H`
+- `\x1B[2J` - Clears the entire screen
+- `\x1B[H` - Moves cursor to home position (0,0)
+- Works on all ANSI-compatible terminals
+
+**Examples**:
+```bash
+# After lots of output
+bashrs [normal]> :parse long command...
+... lots of AST output ...
+bashrs [normal]> :lint another command...
+... more output ...
+bashrs [normal]> :clear
+# Screen cleared, clean slate
+bashrs [normal]>
+```
+
+**Keyboard Shortcut Alternative**:
+- `Ctrl-L` also clears the screen (standard terminal shortcut)
+
+## Automatic Mode-Based Processing (NEW in v6.19.0)
+
+When you switch to `purify` or `lint` mode, commands are **automatically processed** in that mode without needing explicit `:purify` or `:lint` prefixes.
+
+### Before v6.19.0 (Repetitive)
+```bash
+bashrs [purify]> :purify mkdir /tmp/test
+bashrs [purify]> :purify rm /tmp/old
+bashrs [purify]> :purify ln -s /tmp/new /tmp/link
+```
+
+### After v6.19.0 (Automatic)
+```bash
+bashrs [normal]> :mode purify
+Switched to purify mode
+
+bashrs [purify]> mkdir /tmp/test
+✓ Purified: Purified 1 statement(s)
+
+bashrs [purify]> rm /tmp/old
+✓ Purified: Purified 1 statement(s)
+
+bashrs [purify]> ln -s /tmp/new /tmp/link
+✓ Purified: Purified 1 statement(s)
+```
+
+### Explicit Commands Still Work
+
+Explicit `:parse`, `:purify`, and `:lint` commands work in **any mode**:
+
+```bash
+# In purify mode, but want to parse
+bashrs [purify]> :parse echo hello
+✓ Parse successful!
+Statements: 1
+
+# In lint mode, but want to purify
+bashrs [lint]> :purify mkdir test
+✓ Purification successful!
+Purified 1 statement(s)
+```
+
+### Benefits
+
+- **50% less typing** - No more repetitive `:purify`/`:lint` prefixes
+- **Faster workflow** - Switch mode once, process many commands
+- **More intuitive** - Mode-based processing matches user mental model
+- **Explicit commands** - Still available when you need them
 
 ## See Also
 
