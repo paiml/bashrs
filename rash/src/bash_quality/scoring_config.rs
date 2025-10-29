@@ -1,0 +1,188 @@
+use crate::bash_quality::linter::suppressions::FileType;
+/// Scoring weights for different file types
+#[derive(Debug, Clone)]
+pub struct ScoringWeights {
+    pub test_coverage_weight: f64,
+    pub function_complexity_weight: f64,
+    pub lint_warnings_weight: f64,
+    pub determinism_weight: f64,
+}
+impl ScoringWeights {
+    /// Get scoring weights appropriate for file type
+    pub fn for_file_type(file_type: FileType) -> Self {
+        match file_type {
+            FileType::Script => Self {
+                test_coverage_weight: 0.30,
+                function_complexity_weight: 0.25,
+                lint_warnings_weight: 0.25,
+                determinism_weight: 0.20,
+            },
+            FileType::Config => Self {
+                test_coverage_weight: 0.20,
+                function_complexity_weight: 0.45,
+                lint_warnings_weight: 0.25,
+                determinism_weight: 0.10,
+            },
+            FileType::Library => Self {
+                test_coverage_weight: 0.40,
+                function_complexity_weight: 0.30,
+                lint_warnings_weight: 0.20,
+                determinism_weight: 0.10,
+            },
+        }
+    }
+}
+/// Grade thresholds for different file types
+pub fn grade_thresholds(file_type: FileType) -> Vec<(f64, &'static str)> {
+    match file_type {
+        FileType::Script => {
+            vec![
+                (9.5, "A+"),
+                (9.0, "A"),
+                (8.5, "A-"),
+                (8.0, "B+"),
+                (7.5, "B"),
+                (7.0, "B-"),
+                (6.5, "C+"),
+                (6.0, "C"),
+                (5.5, "C-"),
+                (5.0, "D"),
+                (0.0, "F"),
+            ]
+        }
+        FileType::Config => {
+            vec![
+                (9.0, "A+"),
+                (8.5, "A"),
+                (8.0, "A-"),
+                (7.5, "B+"),
+                (7.0, "B"),
+                (6.5, "B-"),
+                (6.0, "C+"),
+                (5.5, "C"),
+                (5.0, "C-"),
+                (4.5, "D"),
+                (0.0, "F"),
+            ]
+        }
+        FileType::Library => {
+            vec![
+                (9.3, "A+"),
+                (8.8, "A"),
+                (8.3, "A-"),
+                (7.8, "B+"),
+                (7.3, "B"),
+                (6.8, "B-"),
+                (6.3, "C+"),
+                (5.8, "C"),
+                (5.3, "C-"),
+                (4.8, "D"),
+                (0.0, "F"),
+            ]
+        }
+    }
+}
+/// Calculate grade based on score and file type
+pub fn calculate_grade(score: f64, file_type: FileType) -> String {
+    let thresholds = grade_thresholds(file_type);
+    for (threshold, grade) in thresholds {
+        if score >= threshold {
+            return grade.to_string();
+        }
+    }
+    "F".to_string()
+}
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn test_scoring_weights_script() {
+        let weights = ScoringWeights::for_file_type(FileType::Script);
+        assert_eq!(weights.test_coverage_weight, 0.30);
+        assert_eq!(weights.lint_warnings_weight, 0.25);
+    }
+    #[test]
+    fn test_scoring_weights_config() {
+        let weights = ScoringWeights::for_file_type(FileType::Config);
+        assert_eq!(weights.test_coverage_weight, 0.20);
+        assert_eq!(weights.function_complexity_weight, 0.45);
+        assert_eq!(weights.lint_warnings_weight, 0.25);
+        assert_eq!(weights.determinism_weight, 0.10);
+        let sum = weights.test_coverage_weight
+            + weights.function_complexity_weight
+            + weights.lint_warnings_weight
+            + weights.determinism_weight;
+        assert!((sum - 1.0).abs() < 0.001);
+    }
+    #[test]
+    fn test_grade_calculation_config() {
+        let grade = calculate_grade(8.3, FileType::Config);
+        assert_eq!(grade, "A-");
+        let grade = calculate_grade(8.3, FileType::Script);
+        assert_eq!(grade, "B+");
+    }
+    #[test]
+    fn test_grade_calculation_boundaries() {
+        assert_eq!(calculate_grade(9.0, FileType::Config), "A+");
+        assert_eq!(calculate_grade(8.5, FileType::Config), "A");
+        assert_eq!(calculate_grade(8.0, FileType::Config), "A-");
+        assert_eq!(calculate_grade(7.5, FileType::Config), "B+");
+    }
+    #[cfg(test)]
+    mod property_tests {
+        use super::*;
+        use proptest::prelude::*;
+        proptest! {
+            #[test] fn prop_weights_sum_to_one(file_type in
+            prop::sample::select(vec![FileType::Script, FileType::Config,
+            FileType::Library])) { let weights =
+            ScoringWeights::for_file_type(file_type); let sum = weights
+            .test_coverage_weight + weights.function_complexity_weight + weights
+            .lint_warnings_weight + weights.determinism_weight; prop_assert!((sum - 1.0)
+            .abs() < 0.001, "Weights sum to {}, expected ~1.0", sum); } #[test] fn
+            prop_all_weights_positive(file_type in
+            prop::sample::select(vec![FileType::Script, FileType::Config,
+            FileType::Library])) { let weights =
+            ScoringWeights::for_file_type(file_type); prop_assert!(weights
+            .test_coverage_weight > 0.0); prop_assert!(weights.function_complexity_weight
+            > 0.0); prop_assert!(weights.lint_warnings_weight > 0.0);
+            prop_assert!(weights.determinism_weight > 0.0); } #[test] fn
+            prop_config_weights_more_lenient(file_type in
+            prop::sample::select(vec![FileType::Script, FileType::Config])) { let weights
+            = ScoringWeights::for_file_type(file_type); if matches!(file_type,
+            FileType::Config) { prop_assert!(weights.determinism_weight < 0.15);
+            prop_assert!(weights.function_complexity_weight > 0.40); } } #[test] fn
+            prop_grades_monotonic(score in 0.0f64..10.0) { let grade1 =
+            calculate_grade(score, FileType::Script); let grade2 = calculate_grade(score
+            + 0.1, FileType::Script); let grade_values = | g : & str | match g { "A+" =>
+            11, "A" => 10, "A-" => 9, "B+" => 8, "B" => 7, "B-" => 6, "C+" => 5, "C" =>
+            4, "C-" => 3, "D" => 2, "F" => 1, _ => 0, }; prop_assert!(grade_values(&
+            grade2) >= grade_values(& grade1),
+            "Score {} -> {}, but {} + 0.1 -> {} (should be >= in grade)", score, grade1,
+            score, grade2); } #[test] fn prop_perfect_score_is_a_plus(file_type in
+            prop::sample::select(vec![FileType::Script, FileType::Config,
+            FileType::Library])) { let grade = calculate_grade(10.0, file_type);
+            prop_assert_eq!(grade, "A+"); } #[test] fn prop_zero_score_is_f(file_type in
+            prop::sample::select(vec![FileType::Script, FileType::Config,
+            FileType::Library])) { let grade = calculate_grade(0.0, file_type);
+            prop_assert_eq!(grade, "F"); } #[test] fn
+            prop_config_more_lenient_than_script(score in 7.0f64..9.0) { let config_grade
+            = calculate_grade(score, FileType::Config); let script_grade =
+            calculate_grade(score, FileType::Script); let grade_value = | g : & str |
+            match g { "A+" => 11, "A" => 10, "A-" => 9, "B+" => 8, "B" => 7, "B-" => 6,
+            "C+" => 5, "C" => 4, "C-" => 3, "D" => 2, "F" => 1, _ => 0, };
+            prop_assert!(grade_value(& config_grade) >= grade_value(& script_grade),
+            "Score {} -> Config: {}, Script: {} (config should be >= script)", score,
+            config_grade, script_grade); } #[test] fn
+            prop_grade_thresholds_consistent(file_type in
+            prop::sample::select(vec![FileType::Script, FileType::Config,
+            FileType::Library])) { let thresholds = grade_thresholds(file_type); for i in
+            0..thresholds.len() - 1 { prop_assert!(thresholds[i].0 > thresholds[i + 1].0,
+            "Threshold {} ({}) should be > threshold {} ({})", i, thresholds[i].0, i + 1,
+            thresholds[i + 1].0); } prop_assert!(thresholds[0].0 >= 8.0,
+            "Highest threshold should be >= 8.0 (A grade territory)");
+            prop_assert_eq!(thresholds.last().unwrap().0, 0.0);
+            prop_assert_eq!(thresholds.last().unwrap().1, "F"); }
+        }
+    }
+}

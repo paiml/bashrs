@@ -1354,10 +1354,7 @@ fn test_command(
 
     if tests_to_run.is_empty() {
         warn!("No tests matching pattern '{}'", pattern.unwrap_or(""));
-        println!(
-            "No tests matching pattern '{}'",
-            pattern.unwrap_or("")
-        );
+        println!("No tests matching pattern '{}'", pattern.unwrap_or(""));
         return Ok(());
     }
 
@@ -1396,10 +1393,7 @@ fn test_command(
 }
 
 /// Print human-readable test results
-fn print_human_test_results(
-    report: &crate::bash_quality::testing::TestReport,
-    detailed: bool,
-) {
+fn print_human_test_results(report: &crate::bash_quality::testing::TestReport, detailed: bool) {
     use crate::bash_quality::testing::TestResult;
 
     println!();
@@ -1524,7 +1518,10 @@ fn print_junit_test_results(report: &crate::bash_quality::testing::TestReport) {
             }
             crate::bash_quality::testing::TestResult::Skip(reason) => {
                 println!("  <testcase name=\"{}\">", test_name);
-                println!("    <skipped message=\"{}\" />", reason.replace('"', "&quot;"));
+                println!(
+                    "    <skipped message=\"{}\" />",
+                    reason.replace('"', "&quot;")
+                );
                 println!("  </testcase>");
             }
         }
@@ -1534,19 +1531,15 @@ fn print_junit_test_results(report: &crate::bash_quality::testing::TestReport) {
 }
 
 /// Score a bash script for quality
-fn score_command(
-    input: &Path,
-    format: ScoreOutputFormat,
-    detailed: bool,
-) -> Result<()> {
-    use crate::bash_quality::scoring::score_script;
+fn score_command(input: &Path, format: ScoreOutputFormat, detailed: bool) -> Result<()> {
+    use crate::bash_quality::scoring::score_script_with_file_type;
 
     // Read input file
     let source = fs::read_to_string(input)
         .map_err(|e| Error::Internal(format!("Failed to read {}: {}", input.display(), e)))?;
 
-    // Score the script
-    let score = score_script(&source)
+    // Score the script with file type detection
+    let score = score_script_with_file_type(&source, Some(input))
         .map_err(|e| Error::Internal(format!("Failed to score script: {}", e)))?;
 
     // Output results
@@ -1566,10 +1559,7 @@ fn score_command(
 }
 
 /// Print human-readable score results
-fn print_human_score_results(
-    score: &crate::bash_quality::scoring::QualityScore,
-    detailed: bool,
-) {
+fn print_human_score_results(score: &crate::bash_quality::scoring::QualityScore, detailed: bool) {
     println!();
     println!("Bash Script Quality Score");
     println!("=========================");
@@ -1631,28 +1621,51 @@ fn print_json_score_results(score: &crate::bash_quality::scoring::QualityScore) 
 }
 
 /// Print Markdown score results
-fn print_markdown_score_results(
-    score: &crate::bash_quality::scoring::QualityScore,
-    input: &Path,
-) {
+fn print_markdown_score_results(score: &crate::bash_quality::scoring::QualityScore, input: &Path) {
     println!("# Bash Script Quality Report");
     println!();
     println!("**File**: `{}`", input.display());
-    println!("**Date**: {}", chrono::Local::now().format("%Y-%m-%d %H:%M:%S"));
+    println!(
+        "**Date**: {}",
+        chrono::Local::now().format("%Y-%m-%d %H:%M:%S")
+    );
     println!();
     println!("## Overall Score");
     println!();
-    println!("**Grade**: {} | **Score**: {:.1}/10.0", score.grade, score.score);
+    println!(
+        "**Grade**: {} | **Score**: {:.1}/10.0",
+        score.grade, score.score
+    );
     println!();
     println!("## Dimension Scores");
     println!();
     println!("| Dimension | Score | Status |");
     println!("| --- | --- | --- |");
-    println!("| Complexity | {:.1}/10.0 | {} |", score.complexity, score_status(score.complexity));
-    println!("| Safety | {:.1}/10.0 | {} |", score.safety, score_status(score.safety));
-    println!("| Maintainability | {:.1}/10.0 | {} |", score.maintainability, score_status(score.maintainability));
-    println!("| Testing | {:.1}/10.0 | {} |", score.testing, score_status(score.testing));
-    println!("| Documentation | {:.1}/10.0 | {} |", score.documentation, score_status(score.documentation));
+    println!(
+        "| Complexity | {:.1}/10.0 | {} |",
+        score.complexity,
+        score_status(score.complexity)
+    );
+    println!(
+        "| Safety | {:.1}/10.0 | {} |",
+        score.safety,
+        score_status(score.safety)
+    );
+    println!(
+        "| Maintainability | {:.1}/10.0 | {} |",
+        score.maintainability,
+        score_status(score.maintainability)
+    );
+    println!(
+        "| Testing | {:.1}/10.0 | {} |",
+        score.testing,
+        score_status(score.testing)
+    );
+    println!(
+        "| Documentation | {:.1}/10.0 | {} |",
+        score.documentation,
+        score_status(score.documentation)
+    );
     println!();
 
     if !score.suggestions.is_empty() {
@@ -1706,6 +1719,7 @@ struct AuditResults {
     test_total: usize,
     score: Option<crate::bash_quality::scoring::QualityScore>,
     overall_pass: bool,
+    failure_reason: Option<String>,
 }
 
 fn audit_command(
@@ -1717,8 +1731,8 @@ fn audit_command(
 ) -> Result<()> {
     use crate::bash_quality::scoring::score_script;
     use crate::bash_quality::testing::{discover_tests, run_tests};
-    use crate::linter::rules::lint_shell;
     use crate::linter::diagnostic::Severity;
+    use crate::linter::rules::lint_shell;
 
     // Read input file
     let source = fs::read_to_string(input)
@@ -1734,6 +1748,7 @@ fn audit_command(
         test_total: 0,
         score: None,
         overall_pass: true,
+        failure_reason: None,
     };
 
     // Step 1: Parse check - just try to lint (which does parsing internally)
@@ -1742,19 +1757,28 @@ fn audit_command(
 
     // Step 2: Lint check
     let lint_result = lint_shell(&source);
-    results.lint_errors = lint_result.diagnostics.iter()
+    results.lint_errors = lint_result
+        .diagnostics
+        .iter()
         .filter(|d| matches!(d.severity, Severity::Error))
         .count();
-    results.lint_warnings = lint_result.diagnostics.iter()
+    results.lint_warnings = lint_result
+        .diagnostics
+        .iter()
         .filter(|d| matches!(d.severity, Severity::Warning))
         .count();
 
     if results.lint_errors > 0 {
         results.overall_pass = false;
+        results.failure_reason = Some(format!("{} lint errors found", results.lint_errors));
     }
 
     if strict && results.lint_warnings > 0 {
         results.overall_pass = false;
+        results.failure_reason = Some(format!(
+            "Strict mode: {} warnings found",
+            results.lint_warnings
+        ));
     }
 
     // Step 3: Test check
@@ -1765,15 +1789,23 @@ fn audit_command(
                     use crate::bash_quality::testing::TestResult;
 
                     results.test_total = test_report.results.len();
-                    results.test_passed = test_report.results.iter()
+                    results.test_passed = test_report
+                        .results
+                        .iter()
                         .filter(|(_, result)| matches!(result, TestResult::Pass))
                         .count();
-                    results.test_failed = test_report.results.iter()
+                    results.test_failed = test_report
+                        .results
+                        .iter()
                         .filter(|(_, result)| matches!(result, TestResult::Fail(_)))
                         .count();
 
                     if results.test_failed > 0 {
                         results.overall_pass = false;
+                        results.failure_reason = Some(format!(
+                            "{}/{} tests failed",
+                            results.test_failed, results.test_total
+                        ));
                     }
                 }
                 Err(_) => {
@@ -1793,12 +1825,17 @@ fn audit_command(
                 // Check minimum grade if specified
                 if let Some(min_grade_str) = min_grade {
                     let grade_order = ["F", "D", "C", "C+", "B", "B+", "A", "A+"];
-                    let actual_grade_pos = grade_order.iter().position(|&g| g == score.grade.as_str());
+                    let actual_grade_pos =
+                        grade_order.iter().position(|&g| g == score.grade.as_str());
                     let min_grade_pos = grade_order.iter().position(|&g| g == min_grade_str);
 
                     if let (Some(actual), Some(min)) = (actual_grade_pos, min_grade_pos) {
                         if actual < min {
                             results.overall_pass = false;
+                            results.failure_reason = Some(format!(
+                                "Quality grade {} below minimum required grade {}",
+                                score.grade, min_grade_str
+                            ));
                         }
                     }
                 }
@@ -1826,7 +1863,10 @@ fn audit_command(
 
     // Return error if overall check failed
     if !results.overall_pass {
-        return Err(Error::Internal("Quality audit failed".to_string()));
+        let reason = results
+            .failure_reason
+            .unwrap_or_else(|| "Quality audit failed".to_string());
+        return Err(Error::Internal(reason));
     }
 
     Ok(())
@@ -1857,7 +1897,10 @@ fn print_human_audit_results(results: &AuditResults, detailed: bool, input: &Pat
     if results.lint_errors == 0 && results.lint_warnings == 0 {
         println!("✅ Lint:     No issues found");
     } else if results.lint_errors > 0 {
-        println!("❌ Lint:     {} errors, {} warnings", results.lint_errors, results.lint_warnings);
+        println!(
+            "❌ Lint:     {} errors, {} warnings",
+            results.lint_errors, results.lint_warnings
+        );
     } else {
         println!("⚠️  Lint:     {} warnings", results.lint_warnings);
     }
@@ -1865,10 +1908,15 @@ fn print_human_audit_results(results: &AuditResults, detailed: bool, input: &Pat
     // Test
     if results.test_total > 0 {
         if results.test_failed == 0 {
-            println!("✅ Test:     {}/{} tests passed", results.test_passed, results.test_total);
+            println!(
+                "✅ Test:     {}/{} tests passed",
+                results.test_passed, results.test_total
+            );
         } else {
-            println!("❌ Test:     {}/{} tests passed, {} failed",
-                results.test_passed, results.test_total, results.test_failed);
+            println!(
+                "❌ Test:     {}/{} tests passed, {} failed",
+                results.test_passed, results.test_total, results.test_failed
+            );
         }
     } else {
         println!("⚠️  Test:     No tests found");
@@ -1890,7 +1938,14 @@ fn print_human_audit_results(results: &AuditResults, detailed: bool, input: &Pat
     }
 
     println!();
-    println!("Overall: {}", if results.overall_pass { "✅ PASS" } else { "❌ FAIL" });
+    println!(
+        "Overall: {}",
+        if results.overall_pass {
+            "✅ PASS"
+        } else {
+            "❌ FAIL"
+        }
+    );
     println!();
 
     // Suggestions
@@ -2091,14 +2146,16 @@ fn print_terminal_coverage(
     let func_pct = coverage.function_coverage_percent();
 
     // Overall coverage
-    println!("Lines:     {}/{}   ({:.1}%)  {}", 
+    println!(
+        "Lines:     {}/{}   ({:.1}%)  {}",
         coverage.covered_lines.len(),
         coverage.total_lines,
         line_pct,
         coverage_status(line_pct)
     );
 
-    println!("Functions: {}/{}   ({:.1}%)  {}",
+    println!(
+        "Functions: {}/{}   ({:.1}%)  {}",
         coverage.covered_functions.len(),
         coverage.all_functions.len(),
         func_pct,
@@ -2110,8 +2167,10 @@ fn print_terminal_coverage(
     let uncovered_lines = coverage.uncovered_lines();
     if !uncovered_lines.is_empty() {
         if detailed {
-            println!("Uncovered Lines: {}",
-                uncovered_lines.iter()
+            println!(
+                "Uncovered Lines: {}",
+                uncovered_lines
+                    .iter()
                     .map(|n| n.to_string())
                     .collect::<Vec<_>>()
                     .join(", ")
@@ -2189,7 +2248,8 @@ fn print_html_coverage(
     input: &Path,
     output: Option<&Path>,
 ) {
-    let html = format!(r#"<!DOCTYPE html>
+    let html = format!(
+        r#"<!DOCTYPE html>
 <html>
 <head>
     <title>Coverage Report - {}</title>
@@ -2235,7 +2295,9 @@ fn print_html_coverage(
         coverage.function_coverage_percent(),
         coverage.covered_functions.len(),
         coverage.all_functions.len(),
-        coverage.uncovered_functions().iter()
+        coverage
+            .uncovered_functions()
+            .iter()
             .map(|f| format!("<li>{}</li>", f))
             .collect::<Vec<_>>()
             .join("\n        ")
@@ -2260,16 +2322,17 @@ fn coverage_class(percent: f64) -> &'static str {
 }
 
 /// Print LCOV coverage output
-fn print_lcov_coverage(
-    coverage: &crate::bash_quality::coverage::CoverageReport,
-    input: &Path,
-) {
+fn print_lcov_coverage(coverage: &crate::bash_quality::coverage::CoverageReport, input: &Path) {
     println!("TN:");
     println!("SF:{}", input.display());
 
     // Function coverage
     for func in &coverage.all_functions {
-        let covered = if coverage.covered_functions.contains(func) { 1 } else { 0 };
+        let covered = if coverage.covered_functions.contains(func) {
+            1
+        } else {
+            0
+        };
         println!("FN:0,{}", func);
         println!("FNDA:{},{}", covered, func);
     }
@@ -2318,12 +2381,14 @@ fn format_command(
         let mut formatter = Formatter::with_config(config);
 
         // Read input file
-        let source = fs::read_to_string(input_path)
-            .map_err(|e| Error::Internal(format!("Failed to read {}: {}", input_path.display(), e)))?;
+        let source = fs::read_to_string(input_path).map_err(|e| {
+            Error::Internal(format!("Failed to read {}: {}", input_path.display(), e))
+        })?;
 
         // Format the source
-        let formatted = formatter.format_source(&source)
-            .map_err(|e| Error::Internal(format!("Failed to format {}: {}", input_path.display(), e)))?;
+        let formatted = formatter.format_source(&source).map_err(|e| {
+            Error::Internal(format!("Failed to format {}: {}", input_path.display(), e))
+        })?;
 
         if check {
             // Check mode: verify if formatted
@@ -2345,13 +2410,19 @@ fn format_command(
             // Apply formatting
             if let Some(out_path) = output {
                 // Write to specified output file
-                fs::write(out_path, &formatted)
-                    .map_err(|e| Error::Internal(format!("Failed to write {}: {}", out_path.display(), e)))?;
-                println!("✓ Formatted {} -> {}", input_path.display(), out_path.display());
+                fs::write(out_path, &formatted).map_err(|e| {
+                    Error::Internal(format!("Failed to write {}: {}", out_path.display(), e))
+                })?;
+                println!(
+                    "✓ Formatted {} -> {}",
+                    input_path.display(),
+                    out_path.display()
+                );
             } else {
                 // Write in-place
-                fs::write(input_path, &formatted)
-                    .map_err(|e| Error::Internal(format!("Failed to write {}: {}", input_path.display(), e)))?;
+                fs::write(input_path, &formatted).map_err(|e| {
+                    Error::Internal(format!("Failed to write {}: {}", input_path.display(), e))
+                })?;
                 println!("✓ Formatted {}", input_path.display());
             }
         }
@@ -2360,7 +2431,7 @@ fn format_command(
     // If check mode and any file not formatted, return error
     if check && !all_formatted {
         return Err(Error::Internal(
-            "Files are not properly formatted. Run without --check to fix.".to_string()
+            "Files are not properly formatted. Run without --check to fix.".to_string(),
         ));
     }
 

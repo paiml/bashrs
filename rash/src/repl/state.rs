@@ -9,8 +9,8 @@
 // - Mutation score: ≥90%
 // - Complexity: <10 per function
 
-use std::collections::HashMap;
 use crate::repl::ReplMode;
+use std::collections::HashMap;
 
 /// Mutable state for a REPL session
 ///
@@ -20,7 +20,7 @@ use crate::repl::ReplMode;
 /// - Exit flag for clean shutdown
 /// - Error tracking for debugging
 /// - Mode switching for different behaviors (Normal, Purify, Lint, Debug, Explain)
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct ReplState {
     /// Command history (for up/down arrow navigation)
     history: Vec<String>,
@@ -36,18 +36,6 @@ pub struct ReplState {
 
     /// Current REPL mode
     mode: ReplMode,
-}
-
-impl Default for ReplState {
-    fn default() -> Self {
-        Self {
-            history: Vec::new(),
-            variables: HashMap::new(),
-            exit_requested: false,
-            error_count: 0,
-            mode: ReplMode::default(),
-        }
-    }
 }
 
 impl ReplState {
@@ -157,18 +145,38 @@ mod tests {
     fn test_repl_state_default() {
         let state = ReplState::default();
 
-        assert_eq!(state.history_len(), 0, "Default state should have empty history");
-        assert_eq!(state.variable_count(), 0, "Default state should have no variables");
+        assert_eq!(
+            state.history_len(),
+            0,
+            "Default state should have empty history"
+        );
+        assert_eq!(
+            state.variable_count(),
+            0,
+            "Default state should have no variables"
+        );
         assert!(!state.should_exit(), "Default state should not be exiting");
-        assert_eq!(state.error_count(), 0, "Default state should have zero errors");
+        assert_eq!(
+            state.error_count(),
+            0,
+            "Default state should have zero errors"
+        );
     }
 
     #[test]
     fn test_repl_state_new() {
         let state = ReplState::new();
 
-        assert_eq!(state.history_len(), 0, "New state should have empty history");
-        assert_eq!(state.variable_count(), 0, "New state should have no variables");
+        assert_eq!(
+            state.history_len(),
+            0,
+            "New state should have empty history"
+        );
+        assert_eq!(
+            state.variable_count(),
+            0,
+            "New state should have no variables"
+        );
         assert!(!state.should_exit(), "New state should not be exiting");
         assert_eq!(state.error_count(), 0, "New state should have zero errors");
     }
@@ -179,11 +187,19 @@ mod tests {
 
         state.add_history("echo hello".to_string());
         assert_eq!(state.history_len(), 1, "Should have 1 history entry");
-        assert_eq!(state.get_history(0), Some(&"echo hello".to_string()), "Should retrieve first entry");
+        assert_eq!(
+            state.get_history(0),
+            Some(&"echo hello".to_string()),
+            "Should retrieve first entry"
+        );
 
         state.add_history("ls -la".to_string());
         assert_eq!(state.history_len(), 2, "Should have 2 history entries");
-        assert_eq!(state.get_history(1), Some(&"ls -la".to_string()), "Should retrieve second entry");
+        assert_eq!(
+            state.get_history(1),
+            Some(&"ls -la".to_string()),
+            "Should retrieve second entry"
+        );
     }
 
     #[test]
@@ -195,7 +211,11 @@ mod tests {
         assert_eq!(state.history_len(), 2, "Should have 2 entries before clear");
 
         state.clear_history();
-        assert_eq!(state.history_len(), 0, "History should be empty after clear");
+        assert_eq!(
+            state.history_len(),
+            0,
+            "History should be empty after clear"
+        );
     }
 
     #[test]
@@ -203,7 +223,11 @@ mod tests {
         let mut state = ReplState::new();
 
         state.set_variable("USER".to_string(), "alice".to_string());
-        assert_eq!(state.get_variable("USER"), Some(&"alice".to_string()), "Should retrieve variable");
+        assert_eq!(
+            state.get_variable("USER"),
+            Some(&"alice".to_string()),
+            "Should retrieve variable"
+        );
         assert_eq!(state.variable_count(), 1, "Should have 1 variable");
     }
 
@@ -213,8 +237,16 @@ mod tests {
         state.set_variable("TEMP".to_string(), "value".to_string());
 
         let removed = state.remove_variable("TEMP");
-        assert_eq!(removed, Some("value".to_string()), "Should return removed value");
-        assert_eq!(state.variable_count(), 0, "Should have no variables after removal");
+        assert_eq!(
+            removed,
+            Some("value".to_string()),
+            "Should return removed value"
+        );
+        assert_eq!(
+            state.variable_count(),
+            0,
+            "Should have no variables after removal"
+        );
     }
 
     #[test]
@@ -223,10 +255,18 @@ mod tests {
         state.set_variable("VAR1".to_string(), "val1".to_string());
         state.set_variable("VAR2".to_string(), "val2".to_string());
 
-        assert_eq!(state.variable_count(), 2, "Should have 2 variables before clear");
+        assert_eq!(
+            state.variable_count(),
+            2,
+            "Should have 2 variables before clear"
+        );
 
         state.clear_variables();
-        assert_eq!(state.variable_count(), 0, "Variables should be empty after clear");
+        assert_eq!(
+            state.variable_count(),
+            0,
+            "Variables should be empty after clear"
+        );
     }
 
     #[test]
@@ -246,7 +286,11 @@ mod tests {
         assert_eq!(state.error_count(), 0, "Should start with zero errors");
 
         state.record_error();
-        assert_eq!(state.error_count(), 1, "Should have 1 error after recording");
+        assert_eq!(
+            state.error_count(),
+            1,
+            "Should have 1 error after recording"
+        );
 
         state.record_error();
         state.record_error();
@@ -266,7 +310,11 @@ mod tests {
         assert_eq!(state.get_history(0), Some(&"cmd1".to_string()));
         assert_eq!(state.get_history(1), Some(&"cmd2".to_string()));
         assert_eq!(state.get_history(2), Some(&"cmd3".to_string()));
-        assert_eq!(state.get_history(999), None, "Out of bounds should return None");
+        assert_eq!(
+            state.get_history(999),
+            None,
+            "Out of bounds should return None"
+        );
     }
 
     #[test]
@@ -286,21 +334,33 @@ mod tests {
     #[test]
     fn test_REPL_003_004_state_default_mode_is_normal() {
         let state = ReplState::new();
-        assert_eq!(state.mode(), ReplMode::Normal, "Default mode should be Normal");
+        assert_eq!(
+            state.mode(),
+            ReplMode::Normal,
+            "Default mode should be Normal"
+        );
     }
 
     #[test]
     fn test_REPL_003_004_state_set_mode_purify() {
         let mut state = ReplState::new();
         state.set_mode(ReplMode::Purify);
-        assert_eq!(state.mode(), ReplMode::Purify, "Mode should be Purify after setting");
+        assert_eq!(
+            state.mode(),
+            ReplMode::Purify,
+            "Mode should be Purify after setting"
+        );
     }
 
     #[test]
     fn test_REPL_003_004_state_set_mode_lint() {
         let mut state = ReplState::new();
         state.set_mode(ReplMode::Lint);
-        assert_eq!(state.mode(), ReplMode::Lint, "Mode should be Lint after setting");
+        assert_eq!(
+            state.mode(),
+            ReplMode::Lint,
+            "Mode should be Lint after setting"
+        );
     }
 
     #[test]
