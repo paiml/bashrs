@@ -147,6 +147,65 @@ impl DebugSession {
             }
         }
     }
+
+    // === Variable Inspection Methods (REPL-009-001) ===
+
+    /// Set a variable value
+    ///
+    /// Updates or creates a variable in the session's variable store.
+    ///
+    /// # Arguments
+    /// * `name` - Variable name
+    /// * `value` - Variable value
+    pub fn set_variable(&mut self, name: impl Into<String>, value: impl Into<String>) {
+        self.variables.insert(name.into(), value.into());
+    }
+
+    /// Get a variable value
+    ///
+    /// Retrieves the value of a variable if it exists.
+    ///
+    /// # Arguments
+    /// * `name` - Variable name to look up
+    ///
+    /// # Returns
+    /// - `Some(&str)` if variable exists
+    /// - `None` if variable does not exist
+    pub fn get_variable(&self, name: &str) -> Option<&str> {
+        self.variables.get(name).map(|s| s.as_str())
+    }
+
+    /// List all variables
+    ///
+    /// Returns a vector of (name, value) tuples for all variables.
+    /// Variables are sorted by name for consistency.
+    ///
+    /// # Returns
+    /// Vector of (variable_name, variable_value) tuples
+    pub fn list_variables(&self) -> Vec<(&str, &str)> {
+        let mut vars: Vec<(&str, &str)> = self
+            .variables
+            .iter()
+            .map(|(k, v)| (k.as_str(), v.as_str()))
+            .collect();
+        vars.sort_by_key(|(name, _)| *name);
+        vars
+    }
+
+    /// Get the count of variables
+    ///
+    /// # Returns
+    /// Number of variables currently stored
+    pub fn variable_count(&self) -> usize {
+        self.variables.len()
+    }
+
+    /// Clear all variables
+    ///
+    /// Removes all variables from the session
+    pub fn clear_variables(&mut self) {
+        self.variables.clear();
+    }
 }
 
 /// Result of continue execution
@@ -372,6 +431,136 @@ mod tests {
         assert_eq!(session.continue_execution(), ContinueResult::Finished);
         assert!(session.is_finished());
     }
+
+    // ===== REPL-009-001: VARIABLE INSPECTION TESTS =====
+
+    /// Test: REPL-009-001-001 - Set and get variable
+    #[test]
+    fn test_REPL_009_001_print_variable() {
+        let script = "echo hello";
+        let mut session = DebugSession::new(script);
+
+        // Set a variable
+        session.set_variable("USER", "alice");
+        session.set_variable("HOME", "/home/alice");
+
+        // Get variable values
+        assert_eq!(session.get_variable("USER"), Some("alice"));
+        assert_eq!(session.get_variable("HOME"), Some("/home/alice"));
+
+        // Variable count
+        assert_eq!(session.variable_count(), 2);
+    }
+
+    /// Test: REPL-009-001-002 - Array-like variables (stored as comma-separated)
+    #[test]
+    fn test_REPL_009_001_print_array() {
+        let script = "echo test";
+        let mut session = DebugSession::new(script);
+
+        // Store array as comma-separated string (simplified array handling)
+        session.set_variable("ARRAY", "item1,item2,item3");
+
+        // Retrieve array
+        let array_value = session.get_variable("ARRAY");
+        assert_eq!(array_value, Some("item1,item2,item3"));
+
+        // Could be split by caller if needed
+        let items: Vec<&str> = array_value.unwrap().split(',').collect();
+        assert_eq!(items, vec!["item1", "item2", "item3"]);
+    }
+
+    /// Test: REPL-009-001-003 - Nonexistent variable returns None
+    #[test]
+    fn test_REPL_009_001_print_nonexistent() {
+        let script = "echo test";
+        let session = DebugSession::new(script);
+
+        // Get nonexistent variable
+        assert_eq!(session.get_variable("DOES_NOT_EXIST"), None);
+        assert_eq!(session.get_variable(""), None);
+    }
+
+    /// Test: REPL-009-001-004 - List all variables
+    #[test]
+    fn test_REPL_009_001_list_variables() {
+        let script = "echo test";
+        let mut session = DebugSession::new(script);
+
+        // Initially empty
+        assert_eq!(session.list_variables(), vec![]);
+
+        // Add variables
+        session.set_variable("PATH", "/usr/bin");
+        session.set_variable("USER", "bob");
+        session.set_variable("HOME", "/home/bob");
+
+        // List variables (sorted by name)
+        let vars = session.list_variables();
+        assert_eq!(vars.len(), 3);
+        assert_eq!(vars[0], ("HOME", "/home/bob"));
+        assert_eq!(vars[1], ("PATH", "/usr/bin"));
+        assert_eq!(vars[2], ("USER", "bob"));
+    }
+
+    /// Test: REPL-009-001-005 - Variable update
+    #[test]
+    fn test_REPL_009_001_variable_update() {
+        let script = "echo test";
+        let mut session = DebugSession::new(script);
+
+        // Set initial value
+        session.set_variable("VERSION", "1.0");
+        assert_eq!(session.get_variable("VERSION"), Some("1.0"));
+
+        // Update value
+        session.set_variable("VERSION", "2.0");
+        assert_eq!(session.get_variable("VERSION"), Some("2.0"));
+
+        // Count should still be 1
+        assert_eq!(session.variable_count(), 1);
+    }
+
+    /// Test: REPL-009-001-006 - Clear variables
+    #[test]
+    fn test_REPL_009_001_clear_variables() {
+        let script = "echo test";
+        let mut session = DebugSession::new(script);
+
+        // Add variables
+        session.set_variable("A", "1");
+        session.set_variable("B", "2");
+        session.set_variable("C", "3");
+        assert_eq!(session.variable_count(), 3);
+
+        // Clear all
+        session.clear_variables();
+        assert_eq!(session.variable_count(), 0);
+        assert_eq!(session.list_variables(), vec![]);
+        assert_eq!(session.get_variable("A"), None);
+    }
+
+    /// Test: REPL-009-001-007 - Variables persist across steps
+    #[test]
+    fn test_REPL_009_001_variables_persist_across_steps() {
+        let script = "echo line1\necho line2\necho line3";
+        let mut session = DebugSession::new(script);
+
+        // Set variable before stepping
+        session.set_variable("COUNTER", "0");
+
+        // Step through and verify variable persists
+        session.step();
+        assert_eq!(session.get_variable("COUNTER"), Some("0"));
+
+        session.step();
+        assert_eq!(session.get_variable("COUNTER"), Some("0"));
+
+        // Update variable mid-execution
+        session.set_variable("COUNTER", "2");
+        session.step();
+        assert_eq!(session.get_variable("COUNTER"), Some("2"));
+    }
 }
 
 #[cfg(test)]
@@ -586,6 +775,123 @@ mod property_tests {
             }
 
             prop_assert!(session.is_finished(), "Should eventually finish");
+        }
+    }
+
+    // ===== REPL-009-001: VARIABLE INSPECTION PROPERTY TESTS =====
+
+    /// Property: Set and get variable always matches
+    proptest! {
+        #[test]
+        fn prop_variable_set_get_matches(
+            var_name in "[a-zA-Z_][a-zA-Z0-9_]{0,10}",
+            var_value in ".*{0,50}"
+        ) {
+            let script = "echo test";
+            let mut session = DebugSession::new(script);
+
+            // Set variable
+            session.set_variable(&var_name, &var_value);
+
+            // Get should return exact value
+            prop_assert_eq!(session.get_variable(&var_name), Some(var_value.as_str()));
+        }
+    }
+
+    /// Property: Variable count equals number of set operations
+    proptest! {
+        #[test]
+        fn prop_variable_count_correct(num_vars in 0usize..20) {
+            let script = "echo test";
+            let mut session = DebugSession::new(script);
+
+            // Add N variables
+            for i in 0..num_vars {
+                session.set_variable(format!("VAR{}", i), format!("value{}", i));
+            }
+
+            prop_assert_eq!(session.variable_count(), num_vars);
+        }
+    }
+
+    /// Property: List variables preserves all set variables
+    proptest! {
+        #[test]
+        fn prop_list_variables_complete(num_vars in 1usize..10) {
+            let script = "echo test";
+            let mut session = DebugSession::new(script);
+
+            // Add N variables
+            for i in 0..num_vars {
+                session.set_variable(format!("VAR{}", i), format!("value{}", i));
+            }
+
+            let vars = session.list_variables();
+            prop_assert_eq!(vars.len(), num_vars, "List should contain all variables");
+
+            // All variables should be present
+            for i in 0..num_vars {
+                let name = format!("VAR{}", i);
+                let found = vars.iter().any(|(n, _)| *n == name);
+                prop_assert!(found, "Variable {} should be in list", name);
+            }
+        }
+    }
+
+    /// Property: Clear variables removes all
+    proptest! {
+        #[test]
+        fn prop_clear_removes_all(num_vars in 1usize..20) {
+            let script = "echo test";
+            let mut session = DebugSession::new(script);
+
+            // Add N variables
+            for i in 0..num_vars {
+                session.set_variable(format!("VAR{}", i), format!("value{}", i));
+            }
+
+            prop_assert_eq!(session.variable_count(), num_vars);
+
+            // Clear all
+            session.clear_variables();
+
+            prop_assert_eq!(session.variable_count(), 0, "Count should be 0 after clear");
+            prop_assert_eq!(session.list_variables().len(), 0, "List should be empty after clear");
+        }
+    }
+
+    /// Property: Variables persist across execution
+    proptest! {
+        #[test]
+        fn prop_variables_persist_execution(
+            num_lines in 1usize..10,
+            num_vars in 1usize..5
+        ) {
+            let script = (0..num_lines)
+                .map(|i| format!("echo line{}", i))
+                .collect::<Vec<_>>()
+                .join("\n");
+
+            let mut session = DebugSession::new(&script);
+
+            // Set variables
+            for i in 0..num_vars {
+                session.set_variable(format!("VAR{}", i), format!("value{}", i));
+            }
+
+            // Execute to completion
+            while !session.is_finished() {
+                session.step();
+            }
+
+            // Variables should still exist
+            prop_assert_eq!(session.variable_count(), num_vars, "Variables should persist");
+
+            for i in 0..num_vars {
+                let name = format!("VAR{}", i);
+                let value = format!("value{}", i);
+                prop_assert_eq!(session.get_variable(&name), Some(value.as_str()));
+            }
         }
     }
 }
