@@ -959,7 +959,7 @@ phases:
 
           - id: "REPL-012-003"
             title: "Verification (run 3+ times, check same result)"
-            status: "pending"
+            status: "completed"
             dependencies: ["REPL-012-001"]
             tests:
               unit:
