@@ -58,9 +58,9 @@ fn test_REPL_003_002_repl_shows_help() {
         .write_stdin("help\nquit\n")
         .assert()
         .success()
-        .stdout(predicate::str::contains("bashrs REPL Commands"))
-        .stdout(predicate::str::contains("help"))
-        .stdout(predicate::str::contains("quit"));
+        .stdout(predicate::str::contains("bashrs REPL v"))
+        .stdout(predicate::str::contains("OVERVIEW"))
+        .stdout(predicate::str::contains(":help commands"));
 }
 
 /// Test: REPL-003-002-005 - REPL accepts exit command as alternative to quit
@@ -324,14 +324,14 @@ fn test_REPL_004_001_parse_invalid_syntax() {
         .write_stdin(":parse if then fi\nquit\n")
         .assert()
         .success()
-        .stdout(predicate::str::contains("Parse error"));
+        .stdout(predicate::str::contains("Syntax error"));
 }
 
 /// Test: REPL-004-001-005 - Help shows :parse command
 #[test]
 fn test_REPL_004_001_help_shows_parse() {
     bashrs_repl()
-        .write_stdin("help\nquit\n")
+        .write_stdin(":help commands\nquit\n")
         .assert()
         .success()
         .stdout(predicate::str::contains(":parse"))
@@ -357,7 +357,7 @@ fn test_REPL_005_001_purify_shows_result() {
         .write_stdin(":purify echo hello\nquit\n")
         .assert()
         .success()
-        .stdout(predicate::str::contains("Purified"));
+        .stdout(predicate::str::contains("Purification successful"));
 }
 
 /// Test: REPL-005-001-003 - :purify command with no input shows usage
@@ -374,7 +374,7 @@ fn test_REPL_005_001_purify_no_input_shows_usage() {
 #[test]
 fn test_REPL_005_001_help_shows_purify() {
     bashrs_repl()
-        .write_stdin("help\nquit\n")
+        .write_stdin(":help commands\nquit\n")
         .assert()
         .success()
         .stdout(predicate::str::contains(":purify"))
@@ -417,7 +417,7 @@ fn test_REPL_006_001_lint_no_input_shows_usage() {
 #[test]
 fn test_REPL_006_001_help_shows_lint() {
     bashrs_repl()
-        .write_stdin("help\nquit\n")
+        .write_stdin(":help commands\nquit\n")
         .assert()
         .success()
         .stdout(predicate::str::contains(":lint"))
