@@ -9,7 +9,7 @@
 // - Mutation score: ≥90%
 // - Complexity: <10 per function
 
-use crate::repl::{Breakpoint, BreakpointManager};
+use crate::repl::{purify_bash, Breakpoint, BreakpointManager};
 use std::collections::HashMap;
 
 /// A stack frame in the call stack
@@ -32,6 +32,20 @@ impl StackFrame {
             line,
         }
     }
+}
+
+/// Line comparison result for purification-aware debugging
+///
+/// Compares original bash line with its purified version,
+/// enabling the debugger to show what transformations were applied.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct LineComparison {
+    /// Original bash line
+    pub original: String,
+    /// Purified version of the line
+    pub purified: String,
+    /// Whether the lines differ
+    pub differs: bool,
 }
 
 /// Debug session for step-by-step execution of bash scripts
@@ -58,6 +72,9 @@ pub struct DebugSession {
     /// Call stack for tracking function calls
     call_stack: Vec<StackFrame>,
 
+    /// Purified version of the script lines (if purification succeeded)
+    purified_lines: Option<Vec<String>>,
+
     /// Whether execution is complete
     finished: bool,
 }
@@ -71,12 +88,18 @@ impl DebugSession {
         let mut call_stack = Vec::new();
         call_stack.push(StackFrame::new("<main>", 0));
 
+        // Attempt to purify the script for comparison
+        let purified_lines = purify_bash(script)
+            .ok()
+            .map(|purified| purified.lines().map(|l| l.to_string()).collect());
+
         Self {
             lines,
             current_line: 0,
             breakpoints: BreakpointManager::new(),
             variables: HashMap::new(),
             call_stack,
+            purified_lines,
             finished: false,
         }
     }
@@ -318,6 +341,54 @@ impl DebugSession {
     /// Vector of stack frames, ordered from oldest (bottom) to newest (top)
     pub fn call_stack(&self) -> &[StackFrame] {
         &self.call_stack
+    }
+
+    // ===== REPL-010: Purification-Aware Debugging Methods =====
+
+    /// Compare current line with its purified version
+    ///
+    /// Returns a comparison showing the original line and its purified version,
+    /// or None if purification failed or line is out of bounds.
+    ///
+    /// # Returns
+    /// LineComparison with original, purified, and whether they differ
+    pub fn compare_current_line(&self) -> Option<LineComparison> {
+        // Get original line
+        let original = self.lines.get(self.current_line)?.clone();
+
+        // Get purified version if available
+        let purified_lines = self.purified_lines.as_ref()?;
+        let purified = purified_lines.get(self.current_line)?.clone();
+
+        // Compare
+        let differs = original != purified;
+
+        Some(LineComparison {
+            original,
+            purified,
+            differs,
+        })
+    }
+
+    /// Format diff highlighting for a line comparison
+    ///
+    /// Creates a visual diff showing the differences between original
+    /// and purified versions.
+    ///
+    /// # Arguments
+    /// * `comparison` - The line comparison to format
+    ///
+    /// # Returns
+    /// Formatted string showing the diff with highlighting
+    pub fn format_diff_highlighting(&self, comparison: &LineComparison) -> String {
+        if !comparison.differs {
+            return format!("  {}\n(no changes)", comparison.original);
+        }
+
+        format!(
+            "- {}\n+ {}",
+            comparison.original, comparison.purified
+        )
     }
 }
 
@@ -800,6 +871,46 @@ mod tests {
         let stack4 = session.call_stack();
         assert_eq!(stack4.len(), 1, "Should be back to just <main>");
     }
+
+    // ===== REPL-010-001: Compare Original vs Purified =====
+
+    /// Test: REPL-010-001-001 - Compare at breakpoint shows original and purified
+    #[test]
+    fn test_REPL_010_001_compare_at_breakpoint() {
+        // Script with non-idempotent command
+        let script = "mkdir /tmp/test";
+        let mut session = DebugSession::new(script);
+
+        // Get comparison at line 1
+        let comparison = session.compare_current_line();
+        assert!(comparison.is_some(), "Should have comparison for line 1");
+
+        let cmp = comparison.unwrap();
+        assert_eq!(cmp.original, "mkdir /tmp/test");
+        assert_eq!(cmp.purified, "mkdir -p /tmp/test");  // Purifier adds -p flag
+        assert!(cmp.differs, "Original and purified should differ");
+    }
+
+    /// Test: REPL-010-001-002 - Compare diff highlighting marks changes
+    #[test]
+    fn test_REPL_010_001_compare_diff_highlighting() {
+        // Script with missing quotes
+        let script = "echo $HOME";
+        let mut session = DebugSession::new(script);
+
+        let comparison = session.compare_current_line();
+        assert!(comparison.is_some());
+
+        let cmp = comparison.unwrap();
+        assert_eq!(cmp.original, "echo $HOME");
+        assert_eq!(cmp.purified, "echo \"$HOME\"");
+        assert!(cmp.differs);
+
+        // Get diff highlighting
+        let diff = session.format_diff_highlighting(&cmp);
+        assert!(diff.contains("$HOME"), "Diff should show variable");
+        assert!(diff.contains("\"$HOME\""), "Diff should show quoted version");
+    }
 }
 
 #[cfg(test)]
@@ -1221,6 +1332,70 @@ mod property_tests {
                 session.pop_frame();
             }
             prop_assert_eq!(session.call_stack().len(), 1, "Stack should never go below 1 (main frame)");
+        }
+    }
+
+    // ===== REPL-010-001: Compare Original vs Purified Property Tests =====
+
+    /// Property: Comparison is deterministic (same result every time)
+    proptest! {
+        #[test]
+        fn prop_REPL_010_001_comparison_deterministic(
+            cmd in "mkdir|rm|ln",
+            path in "/tmp/[a-z]{1,10}"
+        ) {
+            let script = format!("{} {}", cmd, path);
+            let session = DebugSession::new(&script);
+
+            // Get comparison twice
+            let first = session.compare_current_line();
+            let second = session.compare_current_line();
+
+            // Should be identical
+            prop_assert_eq!(first, second, "Comparison should be deterministic");
+        }
+    }
+
+    /// Property: Comparison correctly identifies differences
+    proptest! {
+        #[test]
+        fn prop_REPL_010_001_differs_flag_correct(
+            cmd in "mkdir|echo|rm"
+        ) {
+            let script = format!("{} /tmp/test", cmd);
+            let session = DebugSession::new(&script);
+
+            if let Some(comparison) = session.compare_current_line() {
+                // differs flag should match actual string comparison
+                let actual_differs = comparison.original != comparison.purified;
+                prop_assert_eq!(
+                    comparison.differs,
+                    actual_differs,
+                    "differs flag should match actual comparison"
+                );
+            }
+        }
+    }
+
+    /// Property: Format diff highlighting never panics
+    proptest! {
+        #[test]
+        fn prop_REPL_010_001_diff_highlighting_valid(
+            cmd in "[a-z]{1,10}",
+            arg in "[a-z/]{1,20}"
+        ) {
+            let script = format!("{} {}", cmd, arg);
+            let session = DebugSession::new(&script);
+
+            if let Some(comparison) = session.compare_current_line() {
+                // Should not panic
+                let diff = session.format_diff_highlighting(&comparison);
+
+                // Should contain original and purified if differs
+                if comparison.differs {
+                    prop_assert!(diff.contains(&comparison.original) || diff.contains(&comparison.purified));
+                }
+            }
         }
     }
 }
