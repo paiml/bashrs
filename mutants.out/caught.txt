@@ -1,2 +1,26 @@
-rash/src/repl/linter.rs:30:5: replace format_lint_results -> String with String::new()
-rash/src/repl/linter.rs:30:5: replace format_lint_results -> String with "xyzzy".into()
+rash/src/repl/breakpoint.rs:79:9: replace Breakpoint::is_conditional -> bool with true
+rash/src/repl/breakpoint.rs:79:9: replace Breakpoint::is_conditional -> bool with false
+rash/src/repl/breakpoint.rs:92:9: replace Breakpoint::should_break -> bool with true
+rash/src/repl/breakpoint.rs:92:9: replace Breakpoint::should_break -> bool with false
+rash/src/repl/breakpoint.rs:92:12: delete ! in Breakpoint::should_break
+rash/src/repl/breakpoint.rs:104:9: replace Breakpoint::disable with ()
+rash/src/repl/breakpoint.rs:109:9: replace Breakpoint::enable with ()
+rash/src/repl/breakpoint.rs:121:9: replace Breakpoint::should_break_with_hit -> bool with true
+rash/src/repl/breakpoint.rs:121:9: replace Breakpoint::should_break_with_hit -> bool with false
+rash/src/repl/breakpoint.rs:121:12: delete ! in Breakpoint::should_break_with_hit
+rash/src/repl/breakpoint.rs:126:24: replace += with -= in Breakpoint::should_break_with_hit
+rash/src/repl/breakpoint.rs:126:24: replace += with *= in Breakpoint::should_break_with_hit
+rash/src/repl/breakpoint.rs:130:31: replace < with == in Breakpoint::should_break_with_hit
+rash/src/repl/breakpoint.rs:130:31: replace < with > in Breakpoint::should_break_with_hit
+rash/src/repl/breakpoint.rs:130:31: replace < with <= in Breakpoint::should_break_with_hit
+rash/src/repl/breakpoint.rs:144:9: replace Breakpoint::get_hit_count -> usize with 0
+rash/src/repl/breakpoint.rs:144:9: replace Breakpoint::get_hit_count -> usize with 1
+rash/src/repl/breakpoint.rs:149:9: replace Breakpoint::reset_hit_count with ()
+rash/src/repl/breakpoint.rs:171:9: replace BreakpointManager::set_breakpoint -> bool with true
+rash/src/repl/breakpoint.rs:171:9: replace BreakpointManager::set_breakpoint -> bool with false
+rash/src/repl/breakpoint.rs:178:9: replace BreakpointManager::remove_breakpoint -> bool with true
+rash/src/repl/breakpoint.rs:178:9: replace BreakpointManager::remove_breakpoint -> bool with false
+rash/src/repl/breakpoint.rs:183:9: replace BreakpointManager::is_breakpoint_hit -> bool with true
+rash/src/repl/breakpoint.rs:183:9: replace BreakpointManager::is_breakpoint_hit -> bool with false
+rash/src/repl/breakpoint.rs:188:9: replace BreakpointManager::get_breakpoints -> Vec<usize> with vec![]
+rash/src/repl/breakpoint.rs:188:9: replace BreakpointManager::get_breakpoints -> Vec<usize> with vec![0]

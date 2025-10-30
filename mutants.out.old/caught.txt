@@ -1,2 +1,0 @@
-rash/src/repl/diff.rs:26:5: replace display_diff -> anyhow::Result<String> with Ok(String::new())
-rash/src/repl/diff.rs:26:5: replace display_diff -> anyhow::Result<String> with Ok("xyzzy".into())

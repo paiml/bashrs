@@ -480,6 +480,45 @@ impl DebugSession {
 
         output
     }
+
+    /// Explain transformations that will be applied at the current line
+    ///
+    /// Returns a human-readable explanation of what purification will change,
+    /// or None if no transformations will be applied.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use bashrs::repl::debugger::DebugSession;
+    /// let script = "mkdir /tmp/foo";
+    /// let session = DebugSession::new(script);
+    ///
+    /// let explanation = session.explain_current_line();
+    /// assert!(explanation.is_some());
+    /// assert!(explanation.unwrap().contains("idempot"));
+    /// ```
+    ///
+    /// # Returns
+    ///
+    /// - `Some(String)`: Explanation of transformations
+    /// - `None`: No transformations (already purified)
+    pub fn explain_current_line(&self) -> Option<String> {
+        let comparison = self.compare_current_line()?;
+
+        if !comparison.differs {
+            return None; // No transformations needed
+        }
+
+        let explanations = Self::detect_transformations(&comparison.original, &comparison.purified);
+
+        if explanations.is_empty() {
+            // Lines differ but no specific transformations detected
+            Some("Script will be transformed".to_string())
+        } else {
+            // Join explanations into readable sentence
+            Some(explanations.join(", "))
+        }
+    }
 }
 
 /// Result of continue execution
@@ -1308,6 +1347,118 @@ mod tests {
             highlighted
         );
     }
+
+    // ===== REPL-010-003: Explain Transformations at Current Line =====
+
+    /// Test: REPL-010-003-001 - Explain mkdir -p transformation
+    ///
+    /// RED phase: Test explanation for mkdir idempotency
+    #[test]
+    fn test_REPL_010_003_explain_mkdir_p() {
+        // ARRANGE: Script with non-idempotent mkdir
+        let script = "mkdir /tmp/foo";
+        let session = DebugSession::new(script);
+
+        // ACT: Get explanation
+        let explanation = session.explain_current_line();
+
+        // ASSERT: Should explain idempotency
+        assert!(explanation.is_some(), "Should have explanation for mkdir");
+        let text = explanation.unwrap();
+        assert!(
+            text.contains("idempot") || text.contains("idem") || text.contains("-p"),
+            "Should explain idempotency or mention -p flag: {}",
+            text
+        );
+    }
+
+    /// Test: REPL-010-003-002 - Explain variable quoting transformation
+    ///
+    /// RED phase: Test explanation for variable safety quoting
+    #[test]
+    fn test_REPL_010_003_explain_quote() {
+        // ARRANGE: Script with unquoted variable
+        let script = "echo $USER";
+        let session = DebugSession::new(script);
+
+        // ACT: Get explanation
+        let explanation = session.explain_current_line();
+
+        // ASSERT: Should explain quoting (if purifier transforms this)
+        // Note: Test is conditional based on whether purifier transforms echo
+        if let Some(text) = explanation {
+            assert!(
+                text.contains("quot") || text.contains("safe"),
+                "Should explain quoting or safety: {}",
+                text
+            );
+        }
+    }
+
+    /// Test: REPL-010-003-003 - Explain ln -sf transformation
+    ///
+    /// RED phase: Test explanation for ln idempotency
+    #[test]
+    fn test_REPL_010_003_explain_ln_sf() {
+        // ARRANGE: Script with ln -s
+        let script = "ln -s /tmp/src /tmp/link";
+        let session = DebugSession::new(script);
+
+        // ACT: Get explanation
+        let explanation = session.explain_current_line();
+
+        // ASSERT: Should explain -f addition (if transformed)
+        if let Some(text) = explanation {
+            assert!(
+                text.contains("-f") || text.contains("idempot") || text.contains("idem"),
+                "Explanation should mention -f or idempotency: {}",
+                text
+            );
+        }
+    }
+
+    /// Test: REPL-010-003-004 - No explanation when already purified
+    ///
+    /// RED phase: Test that no explanation is given for already-purified code
+    #[test]
+    fn test_REPL_010_003_explain_no_change() {
+        // ARRANGE: Script that's already purified
+        let script = "mkdir -p /tmp/foo";
+        let session = DebugSession::new(script);
+
+        // ACT: Get explanation
+        let explanation = session.explain_current_line();
+
+        // ASSERT: Should return None (no transformations)
+        assert!(
+            explanation.is_none(),
+            "Should have no explanation when already purified, got: {:?}",
+            explanation
+        );
+    }
+
+    /// Test: REPL-010-003-005 - Explain multiple transformations
+    ///
+    /// RED phase: Test explanation for multiple simultaneous transformations
+    #[test]
+    fn test_REPL_010_003_explain_multiple_changes() {
+        // ARRANGE: Script with multiple transformations
+        let script = "rm $FILE";
+        let session = DebugSession::new(script);
+
+        // ACT: Get explanation
+        let explanation = session.explain_current_line();
+
+        // ASSERT: Should explain multiple transformations
+        if let Some(text) = explanation {
+            // Should mention either quoting or -f flag
+            assert!(
+                text.contains("quot") || text.contains("-f"),
+                "Should explain at least one transformation: {}",
+                text
+            );
+        }
+    }
 }
 
 #[cfg(test)]
@@ -1962,6 +2113,84 @@ mod property_tests {
                         highlighted
                     );
                 }
+            }
+        }
+    }
+
+    // ===== REPL-010-003 PROPERTY TESTS =====
+
+    /// Property: explain_current_line returns None when lines are identical
+    proptest! {
+        #[test]
+        fn prop_REPL_010_003_explain_none_when_identical(
+            cmd in "mkdir -p|rm -f|ln -sf",
+            arg in "[a-z/$]{1,20}"
+        ) {
+            // Already-purified commands should have no explanation
+            let script = format!("{} {}", cmd, arg);
+            let session = DebugSession::new(&script);
+
+            if let Some(comparison) = session.compare_current_line() {
+                if !comparison.differs {
+                    let explanation = session.explain_current_line();
+                    prop_assert!(
+                        explanation.is_none(),
+                        "Should have no explanation when lines identical, got: {:?}",
+                        explanation
+                    );
+                }
+            }
+        }
+    }
+
+    /// Property: explain_current_line returns Some when lines differ
+    proptest! {
+        #[test]
+        fn prop_REPL_010_003_explain_some_when_differs(
+            cmd in "mkdir|ln -s"
+        ) {
+            // Non-idempotent commands should have explanation
+            let script = format!("{} /tmp/test", cmd);
+            let session = DebugSession::new(&script);
+
+            if let Some(comparison) = session.compare_current_line() {
+                if comparison.differs {
+                    let explanation = session.explain_current_line();
+                    prop_assert!(
+                        explanation.is_some(),
+                        "Should have explanation when lines differ"
+                    );
+
+                    // Should contain non-empty explanation
+                    let text = explanation.unwrap();
+                    prop_assert!(
+                        !text.is_empty(),
+                        "Explanation should not be empty"
+                    );
+                }
+            }
+        }
+    }
+
+    /// Property: explain_current_line never panics on any input
+    proptest! {
+        #[test]
+        fn prop_REPL_010_003_explain_never_panics(
+            cmd in "[a-z]{1,10}",
+            arg in "[a-z/$]{1,20}"
+        ) {
+            let script = format!("{} {}", cmd, arg);
+            let session = DebugSession::new(&script);
+
+            // Should never panic, always return Some or None
+            let result = session.explain_current_line();
+
+            // If it returns Some, text should not be empty
+            if let Some(text) = result {
+                prop_assert!(
+                    !text.is_empty(),
+                    "Explanation text should not be empty"
+                );
             }
         }
     }

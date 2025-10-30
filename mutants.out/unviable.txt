@@ -1,0 +1,3 @@
+rash/src/repl/breakpoint.rs:42:9: replace Breakpoint::with_condition -> Self with Default::default()
+rash/src/repl/breakpoint.rs:55:9: replace Breakpoint::with_hit_count -> Self with Default::default()
+rash/src/repl/breakpoint.rs:68:9: replace Breakpoint::with_hit_count_and_condition -> Self with Default::default()
