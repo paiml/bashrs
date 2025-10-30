@@ -115,6 +115,47 @@ impl DebugSession {
     pub fn at_breakpoint(&self) -> bool {
         self.breakpoints.is_breakpoint_hit(self.current_line())
     }
+
+    /// Continue execution until a breakpoint is hit or execution finishes
+    ///
+    /// Executes lines repeatedly using step() until:
+    /// - A breakpoint is encountered (returns BreakpointHit with line number)
+    /// - Execution completes (returns Finished)
+    ///
+    /// # Returns
+    /// - `ContinueResult::BreakpointHit(line)` if stopped at breakpoint
+    /// - `ContinueResult::Finished` if execution completed
+    pub fn continue_execution(&mut self) -> ContinueResult {
+        loop {
+            // Check if at breakpoint before executing
+            if self.at_breakpoint() {
+                return ContinueResult::BreakpointHit(self.current_line());
+            }
+
+            // Execute one step
+            match self.step() {
+                Some(_output) => {
+                    // Line executed, check if we hit a breakpoint
+                    if self.at_breakpoint() {
+                        return ContinueResult::BreakpointHit(self.current_line());
+                    }
+                }
+                None => {
+                    // Execution finished
+                    return ContinueResult::Finished;
+                }
+            }
+        }
+    }
+}
+
+/// Result of continue execution
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum ContinueResult {
+    /// Stopped at a breakpoint on the specified line (1-indexed)
+    BreakpointHit(usize),
+    /// Execution completed without hitting breakpoint
+    Finished,
 }
 
 #[cfg(test)]
@@ -212,6 +253,125 @@ mod tests {
         // Try to set breakpoint beyond script length
         assert!(!session.set_breakpoint(999), "Should reject line beyond script");
     }
+
+    // ===== REPL-008-003: CONTINUE EXECUTION TESTS =====
+
+    /// Test: REPL-008-003-001 - Continue to breakpoint
+    #[test]
+    fn test_REPL_008_003_continue_to_breakpoint() {
+        let script = "echo line1\necho line2\necho line3\necho line4";
+        let mut session = DebugSession::new(script);
+
+        // Set breakpoint at line 3
+        session.set_breakpoint(3);
+
+        // Continue execution - should stop at line 3
+        let result = session.continue_execution();
+        assert_eq!(
+            result,
+            ContinueResult::BreakpointHit(3),
+            "Should stop at breakpoint on line 3"
+        );
+        assert_eq!(session.current_line(), 3, "Current line should be 3");
+    }
+
+    /// Test: REPL-008-003-002 - Continue to end (no breakpoints)
+    #[test]
+    fn test_REPL_008_003_continue_to_end() {
+        let script = "echo line1\necho line2\necho line3";
+        let mut session = DebugSession::new(script);
+
+        // No breakpoints - should run to completion
+        let result = session.continue_execution();
+        assert_eq!(
+            result,
+            ContinueResult::Finished,
+            "Should finish execution without breakpoints"
+        );
+        assert!(session.is_finished(), "Session should be finished");
+    }
+
+    /// Test: REPL-008-003-003 - Continue past first breakpoint
+    #[test]
+    fn test_REPL_008_003_continue_multiple_breakpoints() {
+        let script = "echo line1\necho line2\necho line3\necho line4\necho line5";
+        let mut session = DebugSession::new(script);
+
+        // Set breakpoints at lines 2 and 4
+        session.set_breakpoint(2);
+        session.set_breakpoint(4);
+
+        // First continue - stop at line 2
+        let result1 = session.continue_execution();
+        assert_eq!(result1, ContinueResult::BreakpointHit(2));
+        assert_eq!(session.current_line(), 2);
+
+        // Step over the breakpoint
+        session.step();
+
+        // Second continue - stop at line 4
+        let result2 = session.continue_execution();
+        assert_eq!(result2, ContinueResult::BreakpointHit(4));
+        assert_eq!(session.current_line(), 4);
+    }
+
+    /// Test: REPL-008-003-004 - Continue when already at breakpoint
+    #[test]
+    fn test_REPL_008_003_continue_at_breakpoint() {
+        let script = "echo line1\necho line2\necho line3";
+        let mut session = DebugSession::new(script);
+
+        // Set breakpoint at line 1 (starting position)
+        session.set_breakpoint(1);
+
+        // Continue should immediately return (already at breakpoint)
+        let result = session.continue_execution();
+        assert_eq!(
+            result,
+            ContinueResult::BreakpointHit(1),
+            "Should detect we're already at breakpoint"
+        );
+        assert_eq!(session.current_line(), 1);
+    }
+
+    /// Test: REPL-008-003-005 - Continue from middle of script
+    #[test]
+    fn test_REPL_008_003_continue_from_middle() {
+        let script = "echo line1\necho line2\necho line3\necho line4";
+        let mut session = DebugSession::new(script);
+
+        // Step to line 2
+        session.step();
+        assert_eq!(session.current_line(), 2);
+
+        // Set breakpoint at line 4
+        session.set_breakpoint(4);
+
+        // Continue from line 2 to line 4
+        let result = session.continue_execution();
+        assert_eq!(result, ContinueResult::BreakpointHit(4));
+        assert_eq!(session.current_line(), 4);
+    }
+
+    /// Test: REPL-008-003-006 - Continue past last breakpoint to end
+    #[test]
+    fn test_REPL_008_003_continue_past_breakpoint_to_end() {
+        let script = "echo line1\necho line2\necho line3";
+        let mut session = DebugSession::new(script);
+
+        // Set breakpoint at line 2
+        session.set_breakpoint(2);
+
+        // First continue - stop at breakpoint
+        assert_eq!(session.continue_execution(), ContinueResult::BreakpointHit(2));
+
+        // Step past breakpoint
+        session.step();
+
+        // Second continue - run to end
+        assert_eq!(session.continue_execution(), ContinueResult::Finished);
+        assert!(session.is_finished());
+    }
 }
 
 #[cfg(test)]
@@ -304,6 +464,128 @@ mod property_tests {
                 }
                 session.step();
             }
+        }
+    }
+
+    // ===== REPL-008-003: CONTINUE PROPERTY TESTS =====
+
+    /// Property: Continue without breakpoints always finishes
+    proptest! {
+        #[test]
+        fn prop_continue_no_breakpoints_finishes(num_lines in 1usize..20) {
+            let script = (0..num_lines)
+                .map(|i| format!("echo line{}", i))
+                .collect::<Vec<_>>()
+                .join("\n");
+
+            let mut session = DebugSession::new(&script);
+
+            // Continue without breakpoints should always finish
+            let result = session.continue_execution();
+            prop_assert_eq!(result, ContinueResult::Finished, "Should finish without breakpoints");
+            prop_assert!(session.is_finished(), "Session should be finished");
+        }
+    }
+
+    /// Property: Continue always stops at breakpoint
+    proptest! {
+        #[test]
+        fn prop_continue_stops_at_breakpoint(
+            num_lines in 2usize..20,
+            breakpoint_line in 1usize..19
+        ) {
+            let script = (0..num_lines)
+                .map(|i| format!("echo line{}", i))
+                .collect::<Vec<_>>()
+                .join("\n");
+
+            let mut session = DebugSession::new(&script);
+
+            // Only test if breakpoint is within script
+            if breakpoint_line <= num_lines {
+                session.set_breakpoint(breakpoint_line);
+                let result = session.continue_execution();
+
+                match result {
+                    ContinueResult::BreakpointHit(line) => {
+                        prop_assert_eq!(line, breakpoint_line, "Should stop at correct breakpoint");
+                    }
+                    ContinueResult::Finished => {
+                        // This should not happen if breakpoint is valid
+                        prop_assert!(false, "Should not finish if breakpoint exists");
+                    }
+                }
+            }
+        }
+    }
+
+    /// Property: Continue result is deterministic
+    proptest! {
+        #[test]
+        fn prop_continue_deterministic(
+            num_lines in 1usize..20,
+            has_breakpoint in proptest::bool::ANY,
+            breakpoint_line in 1usize..19
+        ) {
+            let script = (0..num_lines)
+                .map(|i| format!("echo line{}", i))
+                .collect::<Vec<_>>()
+                .join("\n");
+
+            // Run twice with same setup
+            let mut session1 = DebugSession::new(&script);
+            let mut session2 = DebugSession::new(&script);
+
+            if has_breakpoint && breakpoint_line <= num_lines {
+                session1.set_breakpoint(breakpoint_line);
+                session2.set_breakpoint(breakpoint_line);
+            }
+
+            let result1 = session1.continue_execution();
+            let result2 = session2.continue_execution();
+
+            prop_assert_eq!(result1, result2, "Same setup should produce same result");
+        }
+    }
+
+    /// Property: Multiple continues eventually finish
+    proptest! {
+        #[test]
+        fn prop_multiple_continues_finish(num_lines in 1usize..10) {
+            let script = (0..num_lines)
+                .map(|i| format!("echo line{}", i))
+                .collect::<Vec<_>>()
+                .join("\n");
+
+            let mut session = DebugSession::new(&script);
+
+            // Set breakpoints at every line
+            for line in 1..=num_lines {
+                session.set_breakpoint(line);
+            }
+
+            // Continue multiple times, eventually should finish
+            let mut iterations = 0;
+            let max_iterations = num_lines + 5;  // Safety limit
+
+            loop {
+                let result = session.continue_execution();
+                match result {
+                    ContinueResult::Finished => break,
+                    ContinueResult::BreakpointHit(_) => {
+                        // Step past breakpoint and continue
+                        session.step();
+                    }
+                }
+
+                iterations += 1;
+                if iterations > max_iterations {
+                    prop_assert!(false, "Too many iterations, should have finished");
+                    break;
+                }
+            }
+
+            prop_assert!(session.is_finished(), "Should eventually finish");
         }
     }
 }

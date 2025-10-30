@@ -28,7 +28,7 @@ pub mod variables;
 pub use ast_display::format_ast;
 pub use breakpoint::{Breakpoint, BreakpointManager};
 pub use config::ReplConfig;
-pub use debugger::DebugSession;
+pub use debugger::{ContinueResult, DebugSession};
 pub use diff::display_diff;
 pub use explain::{explain_bash, Explanation};
 pub use linter::{format_lint_results, lint_bash};
