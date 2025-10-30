@@ -295,12 +295,14 @@ phases:
 
       - sprint: "REPL-004"
         name: "Parser Integration"
-        status: "PENDING"
+        status: "COMPLETED"
+        completion_date: "2025-10-30"
         duration: "2 weeks"
         tasks:
           - id: "REPL-004-001"
             title: "Embed bash parser into REPL"
-            status: "pending"
+            status: "completed"
+            completion_date: "2025-10-29"
             tests:
               unit:
                 - "test_REPL_004_001_parse_simple_command"
@@ -314,7 +316,8 @@ phases:
 
           - id: "REPL-004-002"
             title: "AST display mode"
-            status: "pending"
+            status: "completed"
+            completion_date: "2025-10-29"
             dependencies: ["REPL-004-001"]
             tests:
               unit:
