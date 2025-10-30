@@ -665,12 +665,22 @@ phases:
 
           - id: "REPL-008-004"
             title: "Finish (exit current function)"
-            status: "pending"
+            status: "completed"
+            completion_date: "2025-10-30"
+            commit: "2f3b629b"
+            notes: "Simplified implementation works with manual call stack tracking (push_frame/pop_frame). Future: Automatic function boundary tracking."
             dependencies: ["REPL-008-001"]
             tests:
               unit:
-                - "test_REPL_008_004_finish_returns"
-                - "test_REPL_008_004_finish_nested"
+                - "test_REPL_008_004_finish_returns_from_function ✅"
+                - "test_REPL_008_004_finish_at_top_level ✅"
+                - "test_REPL_008_004_finish_stops_at_breakpoint ✅"
+                - "test_REPL_008_004_finish_nested_functions ✅"
+                - "test_REPL_008_004_finish_when_already_finished ✅"
+              property:
+                - "prop_REPL_008_004_finish_never_increases_depth ✅"
+                - "prop_REPL_008_004_finish_always_valid_result ✅"
+                - "prop_REPL_008_004_finish_deterministic ✅"
 
         milestones:
           - name: "Step through bash scripts"
