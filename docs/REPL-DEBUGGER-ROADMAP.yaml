@@ -761,12 +761,23 @@ phases:
 
           - id: "REPL-010-002"
             title: "Highlight differences"
-            status: "pending"
+            status: "completed"
+            completion_date: "2025-10-30"
+            commits:
+              - "7a865ec9: RED + GREEN phases"
+              - "28a93286: REFACTOR + PROPERTY phases"
             dependencies: ["REPL-010-001"]
             tests:
               unit:
-                - "test_REPL_010_002_highlight_mkdir_p"
-                - "test_REPL_010_002_highlight_quote"
+                - "test_REPL_010_002_highlight_mkdir_p ✅"
+                - "test_REPL_010_002_highlight_quote ✅"
+                - "test_REPL_010_002_highlight_ln_sf ✅"
+                - "test_REPL_010_002_highlight_no_change ✅"
+                - "test_REPL_010_002_highlight_multiple_changes ✅"
+              property:
+                - "prop_REPL_010_002_highlight_always_valid_format ✅"
+                - "prop_REPL_010_002_differs_implies_diff_markers ✅"
+                - "prop_REPL_010_002_transformations_have_explanations ✅"
 
           - id: "REPL-010-003"
             title: "Explain transformations at current line"
