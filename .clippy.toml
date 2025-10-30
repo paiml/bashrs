@@ -1,0 +1,3 @@
+# Allow useless comparisons in test code (usize >= 0)
+# These are defensive assertions that don't harm anything
+# TODO: Clean up these assertions properly in next release

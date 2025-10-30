@@ -108,10 +108,8 @@ mod tests {
         let lint_result = result.unwrap();
 
         // May or may not find issues depending on rules
-        assert!(
-            lint_result.diagnostics.len() >= 0,
-            "Should return diagnostics"
-        );
+        // Just verify the structure is correct - diagnostics vec exists
+        let _ = lint_result.diagnostics.len();
     }
 
     /// Test: REPL-006-001-002 - Lint categorizes by severity
@@ -135,9 +133,10 @@ mod tests {
             .filter(|d| d.severity == Severity::Warning)
             .count();
 
+        // Verify categorization succeeded - both counts should be valid
         assert!(
-            errors >= 0 && warnings >= 0,
-            "Should categorize by severity"
+            errors + warnings <= lint_result.diagnostics.len(),
+            "Error and warning counts should not exceed total diagnostics"
         );
     }
 

@@ -3003,13 +3003,8 @@ all:
         let result = purify_makefile(&ast);
 
         // ASSERT: Should still work (backward compatibility)
-        assert!(
-            result.transformations_applied >= 0,
-            "Purification should handle simple Makefiles"
-        );
-        assert!(
-            result.manual_fixes_needed >= 0,
-            "Should track manual fixes needed"
-        );
+        // Purification succeeded - result exists
+        let _ = result.transformations_applied;
+        let _ = result.manual_fixes_needed;
     }
 }

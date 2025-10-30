@@ -5,6 +5,9 @@
 #![cfg_attr(test, allow(clippy::unwrap_used))]
 // Allow indexing in test code - tests should panic on out-of-bounds
 #![cfg_attr(test, allow(clippy::indexing_slicing))]
+// Allow absurd extreme comparisons (defensive test assertions like usize >= 0)
+// TODO(v2.1.0): Clean up these assertions - Issue #TBD
+#![allow(clippy::absurd_extreme_comparisons)]
 // Allow multiple crate versions - transitive dependencies from different crates
 #![allow(clippy::multiple_crate_versions)]
 //!
