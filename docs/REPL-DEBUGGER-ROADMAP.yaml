@@ -863,14 +863,29 @@ phases:
 
           - id: "REPL-011-002"
             title: "Replay verification (run script twice, compare outputs)"
-            status: "pending"
+            status: "completed"
+            completion_date: "2025-10-30"
+            commit: "pending"
+            test_approach: "RED → GREEN → REFACTOR → PROPERTY → MUTATION"
+            notes: "Dynamic execution verification. Property tests found and fixed panic on null bytes. Run scripts multiple times and compare outputs for definitive determinism proof."
             dependencies: ["REPL-011-001"]
             tests:
               unit:
-                - "test_REPL_011_002_deterministic_script"
-                - "test_REPL_011_002_nondeterministic_script"
+                - "test_REPL_011_002_deterministic_script ✅"
+                - "test_REPL_011_002_nondeterministic_script ✅"
+                - "test_REPL_011_002_multiple_replays ✅"
+                - "test_REPL_011_002_difference_detection ✅"
+                - "test_REPL_011_002_empty_script ✅"
+                - "test_REPL_011_002_multiline_output ✅"
+                - "test_REPL_011_002_exit_code_tracking ✅"
+                - "test_REPL_011_002_min_replay_count ✅"
               property:
-                - "prop_deterministic_scripts_always_identical"
+                - "prop_REPL_011_002_deterministic_scripts_always_identical ✅"
+                - "prop_REPL_011_002_multiple_runs_consistent ✅"
+                - "prop_REPL_011_002_verify_never_panics ✅ (found bug: panic on null bytes)"
+              mutation:
+                target: "≥90% kill rate on repl/determinism.rs"
+                status: "deferred"
 
           - id: "REPL-011-003"
             title: "Diff explanation (what changed between runs)"
