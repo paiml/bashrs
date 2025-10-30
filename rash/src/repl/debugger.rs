@@ -9,7 +9,7 @@
 // - Mutation score: ≥90%
 // - Complexity: <10 per function
 
-use crate::repl::{purify_bash, Breakpoint, BreakpointManager};
+use crate::repl::{purify_bash, BreakpointManager};
 use std::collections::HashMap;
 
 /// A stack frame in the call stack
@@ -167,6 +167,31 @@ impl DebugSession {
     /// Check if current line has a breakpoint
     pub fn at_breakpoint(&self) -> bool {
         self.breakpoints.is_breakpoint_hit(self.current_line())
+    }
+
+    /// Get the current call depth (number of stack frames)
+    ///
+    /// Returns the size of the call stack. Depth 1 = main frame only.
+    pub fn call_depth(&self) -> usize {
+        self.call_stack.len()
+    }
+
+    /// Execute to next line at same call depth (skip over function calls)
+    ///
+    /// Similar to step(), but if a function call is encountered, it executes
+    /// the entire function and stops at the next line at the same depth.
+    ///
+    /// For now, this is simplified to just call step() since we don't have
+    /// full function call tracking yet. Future enhancement will track actual
+    /// function boundaries.
+    ///
+    /// # Returns
+    /// - `Some(output)` if a line was executed
+    /// - `None` if execution is finished
+    pub fn next(&mut self) -> Option<String> {
+        // Simplified implementation: For now, just call step()
+        // Future: Track call depth and skip over function calls
+        self.step()
     }
 
     /// Continue execution until a breakpoint is hit or execution finishes
@@ -503,6 +528,111 @@ mod tests {
         assert!(
             !session.set_breakpoint(999),
             "Should reject line beyond script"
+        );
+    }
+
+    // ===== REPL-008-002: NEXT COMMAND TESTS (SKIP OVER FUNCTIONS) =====
+
+    /// Test: REPL-008-002-001 - Next at same level (simple statements)
+    ///
+    /// RED Phase: This test will FAIL because next() method doesn't exist yet
+    #[test]
+    fn test_REPL_008_002_next_same_level() {
+        // ARRANGE: Script with simple statements (no functions)
+        let script = "echo line1\necho line2\necho line3";
+        let mut session = DebugSession::new(script);
+
+        // ACT: Call next() from line 1
+        assert_eq!(session.current_line(), 1, "Should start at line 1");
+        session.next();
+
+        // ASSERT: Should be at line 2 (next line at same depth)
+        assert_eq!(
+            session.current_line(),
+            2,
+            "Should be at line 2 after next()"
+        );
+        assert!(!session.is_finished(), "Should not be finished");
+    }
+
+    /// Test: REPL-008-002-002 - Next advances to completion
+    ///
+    /// RED Phase: This test will FAIL because next() method doesn't exist yet
+    #[test]
+    fn test_REPL_008_002_next_to_end() {
+        // ARRANGE: Single line script
+        let script = "echo hello";
+        let mut session = DebugSession::new(script);
+
+        // ACT: Call next() - should complete execution
+        session.next();
+
+        // ASSERT: Should be finished
+        assert!(session.is_finished(), "Should be finished after next()");
+    }
+
+    /// Test: REPL-008-002-003 - Next multiple times
+    ///
+    /// RED Phase: This test will FAIL because next() method doesn't exist yet
+    #[test]
+    fn test_REPL_008_002_next_multiple() {
+        // ARRANGE: Three line script
+        let script = "echo line1\necho line2\necho line3";
+        let mut session = DebugSession::new(script);
+
+        // ACT: Next through all lines
+        assert_eq!(session.current_line(), 1);
+        session.next();
+
+        assert_eq!(session.current_line(), 2);
+        session.next();
+
+        assert_eq!(session.current_line(), 3);
+        session.next();
+
+        // ASSERT: Should be finished
+        assert!(session.is_finished(), "Should be finished after 3 next() calls");
+    }
+
+    /// Test: REPL-008-002-004 - Next when already finished
+    ///
+    /// RED Phase: This test will FAIL because next() method doesn't exist yet
+    #[test]
+    fn test_REPL_008_002_next_when_finished() {
+        // ARRANGE: Single line script
+        let script = "echo hello";
+        let mut session = DebugSession::new(script);
+
+        // ACT: Next to completion
+        session.next();
+        assert!(session.is_finished());
+
+        // ACT: Try next() again when finished
+        session.next();
+
+        // ASSERT: Should still be finished
+        assert!(
+            session.is_finished(),
+            "Should remain finished after next() on completed session"
+        );
+    }
+
+    /// Test: REPL-008-002-005 - Next with call depth tracking
+    ///
+    /// RED Phase: This test will FAIL because next() method doesn't exist yet
+    /// Note: Simplified version - just verify call_depth() accessor exists
+    #[test]
+    fn test_REPL_008_002_call_depth_accessor() {
+        // ARRANGE
+        let script = "echo test";
+        let session = DebugSession::new(script);
+
+        // ACT & ASSERT: Verify call_depth() method exists
+        // Initial depth should be 1 (main frame)
+        assert_eq!(
+            session.call_depth(),
+            1,
+            "Initial call depth should be 1 (main frame)"
         );
     }
 
@@ -1022,6 +1152,84 @@ mod property_tests {
                 }
                 session.step();
             }
+        }
+    }
+
+    // ===== REPL-008-002: NEXT PROPERTY TESTS =====
+
+    /// Property: next() never increases call depth
+    ///
+    /// Verifies the core invariant: next() should never go deeper into function calls,
+    /// only stay at same level or return to shallower levels.
+    proptest! {
+        #[test]
+        fn prop_next_never_goes_deeper(num_lines in 1usize..20) {
+            let script = (0..num_lines)
+                .map(|i| format!("echo line{}", i))
+                .collect::<Vec<_>>()
+                .join("\n");
+
+            let mut session = DebugSession::new(&script);
+            let initial_depth = session.call_depth();
+
+            // Call next() multiple times
+            for _ in 0..num_lines {
+                if session.is_finished() {
+                    break;
+                }
+
+                let depth_before = session.call_depth();
+                session.next();
+                let depth_after = session.call_depth();
+
+                // Depth should never increase
+                prop_assert!(
+                    depth_after <= depth_before,
+                    "next() should never increase call depth (was {}, now {})",
+                    depth_before,
+                    depth_after
+                );
+
+                // Depth should never exceed initial depth
+                prop_assert!(
+                    depth_after <= initial_depth,
+                    "Call depth should never exceed initial depth"
+                );
+            }
+        }
+    }
+
+    /// Property: next() eventually finishes execution
+    ///
+    /// Verifies that calling next() repeatedly will always eventually finish,
+    /// preventing infinite loops in the debugger.
+    proptest! {
+        #[test]
+        fn prop_next_eventually_finishes(num_lines in 1usize..100) {
+            let script = (0..num_lines)
+                .map(|i| format!("echo line{}", i))
+                .collect::<Vec<_>>()
+                .join("\n");
+
+            let mut session = DebugSession::new(&script);
+
+            // Call next() up to 2x the number of lines (generous bound)
+            let max_iterations = num_lines * 2;
+            for i in 0..max_iterations {
+                if session.is_finished() {
+                    // Success - finished execution
+                    return Ok(());
+                }
+                session.next();
+            }
+
+            // If we get here, we didn't finish in reasonable time
+            prop_assert!(
+                session.is_finished(),
+                "Session should finish after {} next() calls on {} line script",
+                max_iterations,
+                num_lines
+            );
         }
     }
 
