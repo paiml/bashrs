@@ -370,604 +370,602 @@
 <a href=#370 id=370 data-nosnippet>370</a>                </span><span class="kw">let </span>content = <span class="kw-2">&amp;</span>text[start..end];
 <a href=#371 id=371 data-nosnippet>371</a>
 <a href=#372 id=372 data-nosnippet>372</a>                <span class="comment">// Split by first space or comma to get function name
-<a href=#373 id=373 data-nosnippet>373</a>                </span><span class="kw">let </span>(func_name, args) =
-<a href=#374 id=374 data-nosnippet>374</a>                    <span class="kw">if let </span><span class="prelude-val">Some</span>(space_pos) = content.find([<span class="string">' '</span>, <span class="string">','</span>]) {
-<a href=#375 id=375 data-nosnippet>375</a>                        <span class="kw">let </span>name = <span class="kw-2">&amp;</span>content[..space_pos];
-<a href=#376 id=376 data-nosnippet>376</a>                        <span class="kw">let </span>args =
-<a href=#377 id=377 data-nosnippet>377</a>                            content[space_pos..].trim_start_matches([<span class="string">' '</span>, <span class="string">','</span>]);
-<a href=#378 id=378 data-nosnippet>378</a>                        (name.to_string(), args.to_string())
-<a href=#379 id=379 data-nosnippet>379</a>                    } <span class="kw">else </span>{
-<a href=#380 id=380 data-nosnippet>380</a>                        <span class="comment">// No args (e.g., $(CURDIR))
-<a href=#381 id=381 data-nosnippet>381</a>                        </span>(content.to_string(), String::new())
-<a href=#382 id=382 data-nosnippet>382</a>                    };
-<a href=#383 id=383 data-nosnippet>383</a>
-<a href=#384 id=384 data-nosnippet>384</a>                functions.push((func_name, args));
-<a href=#385 id=385 data-nosnippet>385</a>                pos = end + <span class="number">1</span>; <span class="comment">// Skip past ')'
-<a href=#386 id=386 data-nosnippet>386</a>                </span><span class="kw">continue</span>;
-<a href=#387 id=387 data-nosnippet>387</a>            }
-<a href=#388 id=388 data-nosnippet>388</a>        }
-<a href=#389 id=389 data-nosnippet>389</a>
-<a href=#390 id=390 data-nosnippet>390</a>        pos += <span class="number">1</span>;
-<a href=#391 id=391 data-nosnippet>391</a>    }
-<a href=#392 id=392 data-nosnippet>392</a>
-<a href=#393 id=393 data-nosnippet>393</a>    functions
-<a href=#394 id=394 data-nosnippet>394</a>}
-<a href=#395 id=395 data-nosnippet>395</a>
-<a href=#396 id=396 data-nosnippet>396</a><span class="doccomment">/// Split function arguments by commas, respecting nested parentheses
-<a href=#397 id=397 data-nosnippet>397</a>///
-<a href=#398 id=398 data-nosnippet>398</a>/// Example: "%.c,%.o,$(SOURCES)" -&gt; ["%.c", "%.o", "$(SOURCES)"]
-<a href=#399 id=399 data-nosnippet>399</a></span><span class="kw">fn </span>split_function_args(args: <span class="kw-2">&amp;</span>str) -&gt; Vec&lt;String&gt; {
-<a href=#400 id=400 data-nosnippet>400</a>    <span class="kw">let </span><span class="kw-2">mut </span>result = Vec::new();
-<a href=#401 id=401 data-nosnippet>401</a>    <span class="kw">let </span><span class="kw-2">mut </span>current = String::new();
-<a href=#402 id=402 data-nosnippet>402</a>    <span class="kw">let </span><span class="kw-2">mut </span>depth = <span class="number">0</span>;
-<a href=#403 id=403 data-nosnippet>403</a>
-<a href=#404 id=404 data-nosnippet>404</a>    <span class="kw">for </span>ch <span class="kw">in </span>args.chars() {
-<a href=#405 id=405 data-nosnippet>405</a>        <span class="kw">match </span>ch {
-<a href=#406 id=406 data-nosnippet>406</a>            <span class="string">'(' </span>=&gt; {
-<a href=#407 id=407 data-nosnippet>407</a>                depth += <span class="number">1</span>;
-<a href=#408 id=408 data-nosnippet>408</a>                current.push(ch);
-<a href=#409 id=409 data-nosnippet>409</a>            }
-<a href=#410 id=410 data-nosnippet>410</a>            <span class="string">')' </span>=&gt; {
-<a href=#411 id=411 data-nosnippet>411</a>                depth -= <span class="number">1</span>;
-<a href=#412 id=412 data-nosnippet>412</a>                current.push(ch);
-<a href=#413 id=413 data-nosnippet>413</a>            }
-<a href=#414 id=414 data-nosnippet>414</a>            <span class="string">',' </span><span class="kw">if </span>depth == <span class="number">0 </span>=&gt; {
-<a href=#415 id=415 data-nosnippet>415</a>                <span class="comment">// Top-level comma - split here
-<a href=#416 id=416 data-nosnippet>416</a>                </span><span class="kw">if </span>!current.trim().is_empty() {
-<a href=#417 id=417 data-nosnippet>417</a>                    result.push(current.trim().to_string());
-<a href=#418 id=418 data-nosnippet>418</a>                }
-<a href=#419 id=419 data-nosnippet>419</a>                current.clear();
-<a href=#420 id=420 data-nosnippet>420</a>            }
-<a href=#421 id=421 data-nosnippet>421</a>            <span class="kw">_ </span>=&gt; current.push(ch),
-<a href=#422 id=422 data-nosnippet>422</a>        }
-<a href=#423 id=423 data-nosnippet>423</a>    }
-<a href=#424 id=424 data-nosnippet>424</a>
-<a href=#425 id=425 data-nosnippet>425</a>    <span class="comment">// Add last argument
-<a href=#426 id=426 data-nosnippet>426</a>    </span><span class="kw">if </span>!current.trim().is_empty() {
-<a href=#427 id=427 data-nosnippet>427</a>        result.push(current.trim().to_string());
-<a href=#428 id=428 data-nosnippet>428</a>    }
-<a href=#429 id=429 data-nosnippet>429</a>
-<a href=#430 id=430 data-nosnippet>430</a>    <span class="comment">// If no commas found, return the whole string as single arg
-<a href=#431 id=431 data-nosnippet>431</a>    </span><span class="kw">if </span>result.is_empty() &amp;&amp; !args.trim().is_empty() {
-<a href=#432 id=432 data-nosnippet>432</a>        result.push(args.trim().to_string());
-<a href=#433 id=433 data-nosnippet>433</a>    }
-<a href=#434 id=434 data-nosnippet>434</a>
-<a href=#435 id=435 data-nosnippet>435</a>    result
-<a href=#436 id=436 data-nosnippet>436</a>}
-<a href=#437 id=437 data-nosnippet>437</a>
-<a href=#438 id=438 data-nosnippet>438</a><span class="doccomment">/// Parse an include directive
-<a href=#439 id=439 data-nosnippet>439</a>///
-<a href=#440 id=440 data-nosnippet>440</a>/// Include directive syntax:
-<a href=#441 id=441 data-nosnippet>441</a>/// ```makefile
-<a href=#442 id=442 data-nosnippet>442</a>/// include common.mk
-<a href=#443 id=443 data-nosnippet>443</a>/// -include optional.mk
-<a href=#444 id=444 data-nosnippet>444</a>/// sinclude optional.mk
-<a href=#445 id=445 data-nosnippet>445</a>/// ```
-<a href=#446 id=446 data-nosnippet>446</a>///
-<a href=#447 id=447 data-nosnippet>447</a>/// The `-include` and `sinclude` variants silently ignore missing files.
-<a href=#448 id=448 data-nosnippet>448</a></span><span class="kw">fn </span>parse_include(line: <span class="kw-2">&amp;</span>str, line_num: usize) -&gt; <span class="prelude-ty">Result</span>&lt;MakeItem, MakeParseError&gt; {
-<a href=#449 id=449 data-nosnippet>449</a>    <span class="kw">let </span>trimmed = line.trim();
-<a href=#450 id=450 data-nosnippet>450</a>
-<a href=#451 id=451 data-nosnippet>451</a>    <span class="comment">// Check if this is optional include (-include or sinclude)
-<a href=#452 id=452 data-nosnippet>452</a>    </span><span class="kw">let </span>optional = trimmed.starts_with(<span class="string">"-include "</span>) || trimmed.starts_with(<span class="string">"sinclude "</span>);
-<a href=#453 id=453 data-nosnippet>453</a>
-<a href=#454 id=454 data-nosnippet>454</a>    <span class="comment">// Extract the keyword and path
-<a href=#455 id=455 data-nosnippet>455</a>    </span><span class="kw">let </span>path = <span class="kw">if </span>trimmed.starts_with(<span class="string">"-include "</span>) {
-<a href=#456 id=456 data-nosnippet>456</a>        trimmed
-<a href=#457 id=457 data-nosnippet>457</a>            .strip_prefix(<span class="string">"-include "</span>)
-<a href=#458 id=458 data-nosnippet>458</a>            .unwrap_or(<span class="string">""</span>)
-<a href=#459 id=459 data-nosnippet>459</a>            .trim()
-<a href=#460 id=460 data-nosnippet>460</a>            .to_string()
-<a href=#461 id=461 data-nosnippet>461</a>    } <span class="kw">else if </span>trimmed.starts_with(<span class="string">"sinclude "</span>) {
-<a href=#462 id=462 data-nosnippet>462</a>        trimmed
-<a href=#463 id=463 data-nosnippet>463</a>            .strip_prefix(<span class="string">"sinclude "</span>)
-<a href=#464 id=464 data-nosnippet>464</a>            .unwrap_or(<span class="string">""</span>)
-<a href=#465 id=465 data-nosnippet>465</a>            .trim()
-<a href=#466 id=466 data-nosnippet>466</a>            .to_string()
-<a href=#467 id=467 data-nosnippet>467</a>    } <span class="kw">else if </span>trimmed.starts_with(<span class="string">"include "</span>) {
-<a href=#468 id=468 data-nosnippet>468</a>        trimmed
-<a href=#469 id=469 data-nosnippet>469</a>            .strip_prefix(<span class="string">"include "</span>)
-<a href=#470 id=470 data-nosnippet>470</a>            .unwrap_or(<span class="string">""</span>)
-<a href=#471 id=471 data-nosnippet>471</a>            .trim()
-<a href=#472 id=472 data-nosnippet>472</a>            .to_string()
-<a href=#473 id=473 data-nosnippet>473</a>    } <span class="kw">else </span>{
-<a href=#474 id=474 data-nosnippet>474</a>        <span class="kw">let </span>location = SourceLocation::new(line_num).with_source_line(line.to_string());
-<a href=#475 id=475 data-nosnippet>475</a>        <span class="kw">return </span><span class="prelude-val">Err</span>(MakeParseError::InvalidIncludeSyntax {
-<a href=#476 id=476 data-nosnippet>476</a>            location,
-<a href=#477 id=477 data-nosnippet>477</a>            found: trimmed.to_string(),
-<a href=#478 id=478 data-nosnippet>478</a>        });
-<a href=#479 id=479 data-nosnippet>479</a>    };
-<a href=#480 id=480 data-nosnippet>480</a>
-<a href=#481 id=481 data-nosnippet>481</a>    <span class="comment">// Path can be empty (edge case handled in tests)
-<a href=#482 id=482 data-nosnippet>482</a>    // Semantic validation should check for non-empty paths
-<a href=#483 id=483 data-nosnippet>483</a>
-<a href=#484 id=484 data-nosnippet>484</a>    </span><span class="prelude-val">Ok</span>(MakeItem::Include {
-<a href=#485 id=485 data-nosnippet>485</a>        path,
-<a href=#486 id=486 data-nosnippet>486</a>        optional,
-<a href=#487 id=487 data-nosnippet>487</a>        span: Span::new(<span class="number">0</span>, line.len(), line_num),
-<a href=#488 id=488 data-nosnippet>488</a>    })
-<a href=#489 id=489 data-nosnippet>489</a>}
-<a href=#490 id=490 data-nosnippet>490</a>
-<a href=#491 id=491 data-nosnippet>491</a><span class="doccomment">/// Parse a conditional block starting at the given line index
+<a href=#373 id=373 data-nosnippet>373</a>                </span><span class="kw">let </span>(func_name, args) = <span class="kw">if let </span><span class="prelude-val">Some</span>(space_pos) = content.find([<span class="string">' '</span>, <span class="string">','</span>]) {
+<a href=#374 id=374 data-nosnippet>374</a>                    <span class="kw">let </span>name = <span class="kw-2">&amp;</span>content[..space_pos];
+<a href=#375 id=375 data-nosnippet>375</a>                    <span class="kw">let </span>args = content[space_pos..].trim_start_matches([<span class="string">' '</span>, <span class="string">','</span>]);
+<a href=#376 id=376 data-nosnippet>376</a>                    (name.to_string(), args.to_string())
+<a href=#377 id=377 data-nosnippet>377</a>                } <span class="kw">else </span>{
+<a href=#378 id=378 data-nosnippet>378</a>                    <span class="comment">// No args (e.g., $(CURDIR))
+<a href=#379 id=379 data-nosnippet>379</a>                    </span>(content.to_string(), String::new())
+<a href=#380 id=380 data-nosnippet>380</a>                };
+<a href=#381 id=381 data-nosnippet>381</a>
+<a href=#382 id=382 data-nosnippet>382</a>                functions.push((func_name, args));
+<a href=#383 id=383 data-nosnippet>383</a>                pos = end + <span class="number">1</span>; <span class="comment">// Skip past ')'
+<a href=#384 id=384 data-nosnippet>384</a>                </span><span class="kw">continue</span>;
+<a href=#385 id=385 data-nosnippet>385</a>            }
+<a href=#386 id=386 data-nosnippet>386</a>        }
+<a href=#387 id=387 data-nosnippet>387</a>
+<a href=#388 id=388 data-nosnippet>388</a>        pos += <span class="number">1</span>;
+<a href=#389 id=389 data-nosnippet>389</a>    }
+<a href=#390 id=390 data-nosnippet>390</a>
+<a href=#391 id=391 data-nosnippet>391</a>    functions
+<a href=#392 id=392 data-nosnippet>392</a>}
+<a href=#393 id=393 data-nosnippet>393</a>
+<a href=#394 id=394 data-nosnippet>394</a><span class="doccomment">/// Split function arguments by commas, respecting nested parentheses
+<a href=#395 id=395 data-nosnippet>395</a>///
+<a href=#396 id=396 data-nosnippet>396</a>/// Example: "%.c,%.o,$(SOURCES)" -&gt; ["%.c", "%.o", "$(SOURCES)"]
+<a href=#397 id=397 data-nosnippet>397</a></span><span class="kw">fn </span>split_function_args(args: <span class="kw-2">&amp;</span>str) -&gt; Vec&lt;String&gt; {
+<a href=#398 id=398 data-nosnippet>398</a>    <span class="kw">let </span><span class="kw-2">mut </span>result = Vec::new();
+<a href=#399 id=399 data-nosnippet>399</a>    <span class="kw">let </span><span class="kw-2">mut </span>current = String::new();
+<a href=#400 id=400 data-nosnippet>400</a>    <span class="kw">let </span><span class="kw-2">mut </span>depth = <span class="number">0</span>;
+<a href=#401 id=401 data-nosnippet>401</a>
+<a href=#402 id=402 data-nosnippet>402</a>    <span class="kw">for </span>ch <span class="kw">in </span>args.chars() {
+<a href=#403 id=403 data-nosnippet>403</a>        <span class="kw">match </span>ch {
+<a href=#404 id=404 data-nosnippet>404</a>            <span class="string">'(' </span>=&gt; {
+<a href=#405 id=405 data-nosnippet>405</a>                depth += <span class="number">1</span>;
+<a href=#406 id=406 data-nosnippet>406</a>                current.push(ch);
+<a href=#407 id=407 data-nosnippet>407</a>            }
+<a href=#408 id=408 data-nosnippet>408</a>            <span class="string">')' </span>=&gt; {
+<a href=#409 id=409 data-nosnippet>409</a>                depth -= <span class="number">1</span>;
+<a href=#410 id=410 data-nosnippet>410</a>                current.push(ch);
+<a href=#411 id=411 data-nosnippet>411</a>            }
+<a href=#412 id=412 data-nosnippet>412</a>            <span class="string">',' </span><span class="kw">if </span>depth == <span class="number">0 </span>=&gt; {
+<a href=#413 id=413 data-nosnippet>413</a>                <span class="comment">// Top-level comma - split here
+<a href=#414 id=414 data-nosnippet>414</a>                </span><span class="kw">if </span>!current.trim().is_empty() {
+<a href=#415 id=415 data-nosnippet>415</a>                    result.push(current.trim().to_string());
+<a href=#416 id=416 data-nosnippet>416</a>                }
+<a href=#417 id=417 data-nosnippet>417</a>                current.clear();
+<a href=#418 id=418 data-nosnippet>418</a>            }
+<a href=#419 id=419 data-nosnippet>419</a>            <span class="kw">_ </span>=&gt; current.push(ch),
+<a href=#420 id=420 data-nosnippet>420</a>        }
+<a href=#421 id=421 data-nosnippet>421</a>    }
+<a href=#422 id=422 data-nosnippet>422</a>
+<a href=#423 id=423 data-nosnippet>423</a>    <span class="comment">// Add last argument
+<a href=#424 id=424 data-nosnippet>424</a>    </span><span class="kw">if </span>!current.trim().is_empty() {
+<a href=#425 id=425 data-nosnippet>425</a>        result.push(current.trim().to_string());
+<a href=#426 id=426 data-nosnippet>426</a>    }
+<a href=#427 id=427 data-nosnippet>427</a>
+<a href=#428 id=428 data-nosnippet>428</a>    <span class="comment">// If no commas found, return the whole string as single arg
+<a href=#429 id=429 data-nosnippet>429</a>    </span><span class="kw">if </span>result.is_empty() &amp;&amp; !args.trim().is_empty() {
+<a href=#430 id=430 data-nosnippet>430</a>        result.push(args.trim().to_string());
+<a href=#431 id=431 data-nosnippet>431</a>    }
+<a href=#432 id=432 data-nosnippet>432</a>
+<a href=#433 id=433 data-nosnippet>433</a>    result
+<a href=#434 id=434 data-nosnippet>434</a>}
+<a href=#435 id=435 data-nosnippet>435</a>
+<a href=#436 id=436 data-nosnippet>436</a><span class="doccomment">/// Parse an include directive
+<a href=#437 id=437 data-nosnippet>437</a>///
+<a href=#438 id=438 data-nosnippet>438</a>/// Include directive syntax:
+<a href=#439 id=439 data-nosnippet>439</a>/// ```makefile
+<a href=#440 id=440 data-nosnippet>440</a>/// include common.mk
+<a href=#441 id=441 data-nosnippet>441</a>/// -include optional.mk
+<a href=#442 id=442 data-nosnippet>442</a>/// sinclude optional.mk
+<a href=#443 id=443 data-nosnippet>443</a>/// ```
+<a href=#444 id=444 data-nosnippet>444</a>///
+<a href=#445 id=445 data-nosnippet>445</a>/// The `-include` and `sinclude` variants silently ignore missing files.
+<a href=#446 id=446 data-nosnippet>446</a></span><span class="kw">fn </span>parse_include(line: <span class="kw-2">&amp;</span>str, line_num: usize) -&gt; <span class="prelude-ty">Result</span>&lt;MakeItem, MakeParseError&gt; {
+<a href=#447 id=447 data-nosnippet>447</a>    <span class="kw">let </span>trimmed = line.trim();
+<a href=#448 id=448 data-nosnippet>448</a>
+<a href=#449 id=449 data-nosnippet>449</a>    <span class="comment">// Check if this is optional include (-include or sinclude)
+<a href=#450 id=450 data-nosnippet>450</a>    </span><span class="kw">let </span>optional = trimmed.starts_with(<span class="string">"-include "</span>) || trimmed.starts_with(<span class="string">"sinclude "</span>);
+<a href=#451 id=451 data-nosnippet>451</a>
+<a href=#452 id=452 data-nosnippet>452</a>    <span class="comment">// Extract the keyword and path
+<a href=#453 id=453 data-nosnippet>453</a>    </span><span class="kw">let </span>path = <span class="kw">if </span>trimmed.starts_with(<span class="string">"-include "</span>) {
+<a href=#454 id=454 data-nosnippet>454</a>        trimmed
+<a href=#455 id=455 data-nosnippet>455</a>            .strip_prefix(<span class="string">"-include "</span>)
+<a href=#456 id=456 data-nosnippet>456</a>            .unwrap_or(<span class="string">""</span>)
+<a href=#457 id=457 data-nosnippet>457</a>            .trim()
+<a href=#458 id=458 data-nosnippet>458</a>            .to_string()
+<a href=#459 id=459 data-nosnippet>459</a>    } <span class="kw">else if </span>trimmed.starts_with(<span class="string">"sinclude "</span>) {
+<a href=#460 id=460 data-nosnippet>460</a>        trimmed
+<a href=#461 id=461 data-nosnippet>461</a>            .strip_prefix(<span class="string">"sinclude "</span>)
+<a href=#462 id=462 data-nosnippet>462</a>            .unwrap_or(<span class="string">""</span>)
+<a href=#463 id=463 data-nosnippet>463</a>            .trim()
+<a href=#464 id=464 data-nosnippet>464</a>            .to_string()
+<a href=#465 id=465 data-nosnippet>465</a>    } <span class="kw">else if </span>trimmed.starts_with(<span class="string">"include "</span>) {
+<a href=#466 id=466 data-nosnippet>466</a>        trimmed
+<a href=#467 id=467 data-nosnippet>467</a>            .strip_prefix(<span class="string">"include "</span>)
+<a href=#468 id=468 data-nosnippet>468</a>            .unwrap_or(<span class="string">""</span>)
+<a href=#469 id=469 data-nosnippet>469</a>            .trim()
+<a href=#470 id=470 data-nosnippet>470</a>            .to_string()
+<a href=#471 id=471 data-nosnippet>471</a>    } <span class="kw">else </span>{
+<a href=#472 id=472 data-nosnippet>472</a>        <span class="kw">let </span>location = SourceLocation::new(line_num).with_source_line(line.to_string());
+<a href=#473 id=473 data-nosnippet>473</a>        <span class="kw">return </span><span class="prelude-val">Err</span>(MakeParseError::InvalidIncludeSyntax {
+<a href=#474 id=474 data-nosnippet>474</a>            location,
+<a href=#475 id=475 data-nosnippet>475</a>            found: trimmed.to_string(),
+<a href=#476 id=476 data-nosnippet>476</a>        });
+<a href=#477 id=477 data-nosnippet>477</a>    };
+<a href=#478 id=478 data-nosnippet>478</a>
+<a href=#479 id=479 data-nosnippet>479</a>    <span class="comment">// Path can be empty (edge case handled in tests)
+<a href=#480 id=480 data-nosnippet>480</a>    // Semantic validation should check for non-empty paths
+<a href=#481 id=481 data-nosnippet>481</a>
+<a href=#482 id=482 data-nosnippet>482</a>    </span><span class="prelude-val">Ok</span>(MakeItem::Include {
+<a href=#483 id=483 data-nosnippet>483</a>        path,
+<a href=#484 id=484 data-nosnippet>484</a>        optional,
+<a href=#485 id=485 data-nosnippet>485</a>        span: Span::new(<span class="number">0</span>, line.len(), line_num),
+<a href=#486 id=486 data-nosnippet>486</a>    })
+<a href=#487 id=487 data-nosnippet>487</a>}
+<a href=#488 id=488 data-nosnippet>488</a>
+<a href=#489 id=489 data-nosnippet>489</a><span class="doccomment">/// Parse a conditional block starting at the given line index
+<a href=#490 id=490 data-nosnippet>490</a>///
+<a href=#491 id=491 data-nosnippet>491</a>/// Updates the index to point past the parsed conditional (past 'endif').
 <a href=#492 id=492 data-nosnippet>492</a>///
-<a href=#493 id=493 data-nosnippet>493</a>/// Updates the index to point past the parsed conditional (past 'endif').
-<a href=#494 id=494 data-nosnippet>494</a>///
-<a href=#495 id=495 data-nosnippet>495</a>/// Conditional block syntax:
-<a href=#496 id=496 data-nosnippet>496</a>/// ```makefile
-<a href=#497 id=497 data-nosnippet>497</a>/// ifeq ($(VAR),value)
-<a href=#498 id=498 data-nosnippet>498</a>///     CFLAGS = -g
-<a href=#499 id=499 data-nosnippet>499</a>/// else
-<a href=#500 id=500 data-nosnippet>500</a>///     CFLAGS = -O2
-<a href=#501 id=501 data-nosnippet>501</a>/// endif
-<a href=#502 id=502 data-nosnippet>502</a>/// ```
-<a href=#503 id=503 data-nosnippet>503</a>///
-<a href=#504 id=504 data-nosnippet>504</a>/// Supported directives: ifeq, ifneq, ifdef, ifndef
-<a href=#505 id=505 data-nosnippet>505</a></span><span class="kw">fn </span>parse_conditional(lines: <span class="kw-2">&amp;</span>[<span class="kw-2">&amp;</span>str], index: <span class="kw-2">&amp;mut </span>usize) -&gt; <span class="prelude-ty">Result</span>&lt;MakeItem, MakeParseError&gt; {
-<a href=#506 id=506 data-nosnippet>506</a>    <span class="kw">let </span>start_line = lines[<span class="kw-2">*</span>index];
-<a href=#507 id=507 data-nosnippet>507</a>    <span class="kw">let </span>start_line_num = <span class="kw-2">*</span>index + <span class="number">1</span>;
-<a href=#508 id=508 data-nosnippet>508</a>    <span class="kw">let </span>trimmed = start_line.trim();
-<a href=#509 id=509 data-nosnippet>509</a>
-<a href=#510 id=510 data-nosnippet>510</a>    <span class="comment">// Parse the condition type and expression
-<a href=#511 id=511 data-nosnippet>511</a>    </span><span class="kw">let </span>condition = <span class="kw">if </span>trimmed.starts_with(<span class="string">"ifeq "</span>) {
-<a href=#512 id=512 data-nosnippet>512</a>        <span class="comment">// ifeq (arg1,arg2)
-<a href=#513 id=513 data-nosnippet>513</a>        </span><span class="kw">let </span>rest = trimmed.strip_prefix(<span class="string">"ifeq "</span>).unwrap().trim();
-<a href=#514 id=514 data-nosnippet>514</a>        <span class="kw">if </span>!rest.starts_with(<span class="string">'('</span>) || !rest.ends_with(<span class="string">')'</span>) {
-<a href=#515 id=515 data-nosnippet>515</a>            <span class="kw">let </span>location =
-<a href=#516 id=516 data-nosnippet>516</a>                SourceLocation::new(start_line_num).with_source_line(start_line.to_string());
-<a href=#517 id=517 data-nosnippet>517</a>            <span class="kw">return </span><span class="prelude-val">Err</span>(MakeParseError::InvalidConditionalSyntax {
-<a href=#518 id=518 data-nosnippet>518</a>                location,
-<a href=#519 id=519 data-nosnippet>519</a>                directive: <span class="string">"ifeq"</span>.to_string(),
-<a href=#520 id=520 data-nosnippet>520</a>                found: rest.to_string(),
-<a href=#521 id=521 data-nosnippet>521</a>            });
-<a href=#522 id=522 data-nosnippet>522</a>        }
-<a href=#523 id=523 data-nosnippet>523</a>        <span class="kw">let </span>inner = <span class="kw-2">&amp;</span>rest[<span class="number">1</span>..rest.len() - <span class="number">1</span>];
-<a href=#524 id=524 data-nosnippet>524</a>        <span class="kw">let </span>parts: Vec&lt;<span class="kw-2">&amp;</span>str&gt; = inner.splitn(<span class="number">2</span>, <span class="string">','</span>).collect();
-<a href=#525 id=525 data-nosnippet>525</a>        <span class="kw">if </span>parts.len() != <span class="number">2 </span>{
-<a href=#526 id=526 data-nosnippet>526</a>            <span class="kw">let </span>location =
-<a href=#527 id=527 data-nosnippet>527</a>                SourceLocation::new(start_line_num).with_source_line(start_line.to_string());
-<a href=#528 id=528 data-nosnippet>528</a>            <span class="kw">return </span><span class="prelude-val">Err</span>(MakeParseError::MissingConditionalArguments {
-<a href=#529 id=529 data-nosnippet>529</a>                location,
-<a href=#530 id=530 data-nosnippet>530</a>                directive: <span class="string">"ifeq"</span>.to_string(),
-<a href=#531 id=531 data-nosnippet>531</a>                expected_args: <span class="number">2</span>,
-<a href=#532 id=532 data-nosnippet>532</a>                found_args: parts.len(),
-<a href=#533 id=533 data-nosnippet>533</a>            });
-<a href=#534 id=534 data-nosnippet>534</a>        }
-<a href=#535 id=535 data-nosnippet>535</a>        MakeCondition::IfEq(parts[<span class="number">0</span>].to_string(), parts[<span class="number">1</span>].to_string())
-<a href=#536 id=536 data-nosnippet>536</a>    } <span class="kw">else if </span>trimmed.starts_with(<span class="string">"ifneq "</span>) {
-<a href=#537 id=537 data-nosnippet>537</a>        <span class="comment">// ifneq (arg1,arg2)
-<a href=#538 id=538 data-nosnippet>538</a>        </span><span class="kw">let </span>rest = trimmed.strip_prefix(<span class="string">"ifneq "</span>).unwrap().trim();
-<a href=#539 id=539 data-nosnippet>539</a>        <span class="kw">if </span>!rest.starts_with(<span class="string">'('</span>) || !rest.ends_with(<span class="string">')'</span>) {
-<a href=#540 id=540 data-nosnippet>540</a>            <span class="kw">let </span>location =
-<a href=#541 id=541 data-nosnippet>541</a>                SourceLocation::new(start_line_num).with_source_line(start_line.to_string());
-<a href=#542 id=542 data-nosnippet>542</a>            <span class="kw">return </span><span class="prelude-val">Err</span>(MakeParseError::InvalidConditionalSyntax {
-<a href=#543 id=543 data-nosnippet>543</a>                location,
-<a href=#544 id=544 data-nosnippet>544</a>                directive: <span class="string">"ifneq"</span>.to_string(),
-<a href=#545 id=545 data-nosnippet>545</a>                found: rest.to_string(),
-<a href=#546 id=546 data-nosnippet>546</a>            });
-<a href=#547 id=547 data-nosnippet>547</a>        }
-<a href=#548 id=548 data-nosnippet>548</a>        <span class="kw">let </span>inner = <span class="kw-2">&amp;</span>rest[<span class="number">1</span>..rest.len() - <span class="number">1</span>];
-<a href=#549 id=549 data-nosnippet>549</a>        <span class="kw">let </span>parts: Vec&lt;<span class="kw-2">&amp;</span>str&gt; = inner.splitn(<span class="number">2</span>, <span class="string">','</span>).collect();
-<a href=#550 id=550 data-nosnippet>550</a>        <span class="kw">if </span>parts.len() != <span class="number">2 </span>{
-<a href=#551 id=551 data-nosnippet>551</a>            <span class="kw">let </span>location =
-<a href=#552 id=552 data-nosnippet>552</a>                SourceLocation::new(start_line_num).with_source_line(start_line.to_string());
-<a href=#553 id=553 data-nosnippet>553</a>            <span class="kw">return </span><span class="prelude-val">Err</span>(MakeParseError::MissingConditionalArguments {
-<a href=#554 id=554 data-nosnippet>554</a>                location,
-<a href=#555 id=555 data-nosnippet>555</a>                directive: <span class="string">"ifneq"</span>.to_string(),
-<a href=#556 id=556 data-nosnippet>556</a>                expected_args: <span class="number">2</span>,
-<a href=#557 id=557 data-nosnippet>557</a>                found_args: parts.len(),
-<a href=#558 id=558 data-nosnippet>558</a>            });
-<a href=#559 id=559 data-nosnippet>559</a>        }
-<a href=#560 id=560 data-nosnippet>560</a>        MakeCondition::IfNeq(parts[<span class="number">0</span>].to_string(), parts[<span class="number">1</span>].to_string())
-<a href=#561 id=561 data-nosnippet>561</a>    } <span class="kw">else if </span>trimmed.starts_with(<span class="string">"ifdef "</span>) {
-<a href=#562 id=562 data-nosnippet>562</a>        <span class="comment">// ifdef VAR
-<a href=#563 id=563 data-nosnippet>563</a>        </span><span class="kw">let </span>var_name = trimmed.strip_prefix(<span class="string">"ifdef "</span>).unwrap().trim().to_string();
-<a href=#564 id=564 data-nosnippet>564</a>        <span class="kw">if </span>var_name.is_empty() {
-<a href=#565 id=565 data-nosnippet>565</a>            <span class="kw">let </span>location =
-<a href=#566 id=566 data-nosnippet>566</a>                SourceLocation::new(start_line_num).with_source_line(start_line.to_string());
-<a href=#567 id=567 data-nosnippet>567</a>            <span class="kw">return </span><span class="prelude-val">Err</span>(MakeParseError::MissingVariableName {
-<a href=#568 id=568 data-nosnippet>568</a>                location,
-<a href=#569 id=569 data-nosnippet>569</a>                directive: <span class="string">"ifdef"</span>.to_string(),
-<a href=#570 id=570 data-nosnippet>570</a>            });
-<a href=#571 id=571 data-nosnippet>571</a>        }
-<a href=#572 id=572 data-nosnippet>572</a>        MakeCondition::IfDef(var_name)
-<a href=#573 id=573 data-nosnippet>573</a>    } <span class="kw">else if </span>trimmed.starts_with(<span class="string">"ifndef "</span>) {
-<a href=#574 id=574 data-nosnippet>574</a>        <span class="comment">// ifndef VAR
-<a href=#575 id=575 data-nosnippet>575</a>        </span><span class="kw">let </span>var_name = trimmed.strip_prefix(<span class="string">"ifndef "</span>).unwrap().trim().to_string();
-<a href=#576 id=576 data-nosnippet>576</a>        <span class="kw">if </span>var_name.is_empty() {
-<a href=#577 id=577 data-nosnippet>577</a>            <span class="kw">let </span>location =
-<a href=#578 id=578 data-nosnippet>578</a>                SourceLocation::new(start_line_num).with_source_line(start_line.to_string());
-<a href=#579 id=579 data-nosnippet>579</a>            <span class="kw">return </span><span class="prelude-val">Err</span>(MakeParseError::MissingVariableName {
-<a href=#580 id=580 data-nosnippet>580</a>                location,
-<a href=#581 id=581 data-nosnippet>581</a>                directive: <span class="string">"ifndef"</span>.to_string(),
-<a href=#582 id=582 data-nosnippet>582</a>            });
-<a href=#583 id=583 data-nosnippet>583</a>        }
-<a href=#584 id=584 data-nosnippet>584</a>        MakeCondition::IfNdef(var_name)
-<a href=#585 id=585 data-nosnippet>585</a>    } <span class="kw">else </span>{
-<a href=#586 id=586 data-nosnippet>586</a>        <span class="kw">let </span>location = SourceLocation::new(start_line_num).with_source_line(start_line.to_string());
-<a href=#587 id=587 data-nosnippet>587</a>        <span class="kw">return </span><span class="prelude-val">Err</span>(MakeParseError::UnknownConditional {
-<a href=#588 id=588 data-nosnippet>588</a>            location,
-<a href=#589 id=589 data-nosnippet>589</a>            found: trimmed.to_string(),
-<a href=#590 id=590 data-nosnippet>590</a>        });
-<a href=#591 id=591 data-nosnippet>591</a>    };
-<a href=#592 id=592 data-nosnippet>592</a>
-<a href=#593 id=593 data-nosnippet>593</a>    <span class="comment">// Move past the ifeq/ifdef/ifndef/ifneq line
-<a href=#594 id=594 data-nosnippet>594</a>    </span><span class="kw-2">*</span>index += <span class="number">1</span>;
-<a href=#595 id=595 data-nosnippet>595</a>
-<a href=#596 id=596 data-nosnippet>596</a>    <span class="comment">// Parse items in the 'then' branch until we hit 'else' or 'endif'
-<a href=#597 id=597 data-nosnippet>597</a>    </span><span class="kw">let </span><span class="kw-2">mut </span>then_items = Vec::new();
-<a href=#598 id=598 data-nosnippet>598</a>    <span class="kw">let </span><span class="kw-2">mut </span>else_items = <span class="prelude-val">None</span>;
-<a href=#599 id=599 data-nosnippet>599</a>    <span class="kw">let </span><span class="kw-2">mut </span>depth = <span class="number">1</span>; <span class="comment">// Track nested conditionals
-<a href=#600 id=600 data-nosnippet>600</a>
-<a href=#601 id=601 data-nosnippet>601</a>    </span><span class="kw">while </span><span class="kw-2">*</span>index &lt; lines.len() {
-<a href=#602 id=602 data-nosnippet>602</a>        <span class="kw">let </span>line = lines[<span class="kw-2">*</span>index];
-<a href=#603 id=603 data-nosnippet>603</a>        <span class="kw">let </span>trimmed = line.trim();
-<a href=#604 id=604 data-nosnippet>604</a>
-<a href=#605 id=605 data-nosnippet>605</a>        <span class="comment">// Check for nested conditionals
-<a href=#606 id=606 data-nosnippet>606</a>        </span><span class="kw">if </span>trimmed.starts_with(<span class="string">"ifeq "</span>)
-<a href=#607 id=607 data-nosnippet>607</a>            || trimmed.starts_with(<span class="string">"ifneq "</span>)
-<a href=#608 id=608 data-nosnippet>608</a>            || trimmed.starts_with(<span class="string">"ifdef "</span>)
-<a href=#609 id=609 data-nosnippet>609</a>            || trimmed.starts_with(<span class="string">"ifndef "</span>)
-<a href=#610 id=610 data-nosnippet>610</a>        {
-<a href=#611 id=611 data-nosnippet>611</a>            depth += <span class="number">1</span>;
-<a href=#612 id=612 data-nosnippet>612</a>        }
-<a href=#613 id=613 data-nosnippet>613</a>
-<a href=#614 id=614 data-nosnippet>614</a>        <span class="comment">// Check for endif
-<a href=#615 id=615 data-nosnippet>615</a>        </span><span class="kw">if </span>trimmed == <span class="string">"endif" </span>{
-<a href=#616 id=616 data-nosnippet>616</a>            depth -= <span class="number">1</span>;
-<a href=#617 id=617 data-nosnippet>617</a>            <span class="kw">if </span>depth == <span class="number">0 </span>{
-<a href=#618 id=618 data-nosnippet>618</a>                <span class="comment">// This endif closes our conditional
-<a href=#619 id=619 data-nosnippet>619</a>                </span><span class="kw-2">*</span>index += <span class="number">1</span>;
-<a href=#620 id=620 data-nosnippet>620</a>                <span class="kw">break</span>;
-<a href=#621 id=621 data-nosnippet>621</a>            }
-<a href=#622 id=622 data-nosnippet>622</a>        }
-<a href=#623 id=623 data-nosnippet>623</a>
-<a href=#624 id=624 data-nosnippet>624</a>        <span class="comment">// Check for else at our level
-<a href=#625 id=625 data-nosnippet>625</a>        </span><span class="kw">if </span>trimmed == <span class="string">"else" </span>&amp;&amp; depth == <span class="number">1 </span>{
-<a href=#626 id=626 data-nosnippet>626</a>            <span class="kw-2">*</span>index += <span class="number">1</span>;
-<a href=#627 id=627 data-nosnippet>627</a>            <span class="comment">// Parse items in the 'else' branch
-<a href=#628 id=628 data-nosnippet>628</a>            </span><span class="kw">let </span><span class="kw-2">mut </span>else_vec = Vec::new();
-<a href=#629 id=629 data-nosnippet>629</a>            <span class="kw">while </span><span class="kw-2">*</span>index &lt; lines.len() {
-<a href=#630 id=630 data-nosnippet>630</a>                <span class="kw">let </span>else_line = lines[<span class="kw-2">*</span>index];
-<a href=#631 id=631 data-nosnippet>631</a>                <span class="kw">let </span>else_trimmed = else_line.trim();
-<a href=#632 id=632 data-nosnippet>632</a>
-<a href=#633 id=633 data-nosnippet>633</a>                <span class="comment">// Check for nested conditionals in else branch
-<a href=#634 id=634 data-nosnippet>634</a>                </span><span class="kw">if </span>else_trimmed.starts_with(<span class="string">"ifeq "</span>)
-<a href=#635 id=635 data-nosnippet>635</a>                    || else_trimmed.starts_with(<span class="string">"ifneq "</span>)
-<a href=#636 id=636 data-nosnippet>636</a>                    || else_trimmed.starts_with(<span class="string">"ifdef "</span>)
-<a href=#637 id=637 data-nosnippet>637</a>                    || else_trimmed.starts_with(<span class="string">"ifndef "</span>)
-<a href=#638 id=638 data-nosnippet>638</a>                {
-<a href=#639 id=639 data-nosnippet>639</a>                    depth += <span class="number">1</span>;
-<a href=#640 id=640 data-nosnippet>640</a>                }
-<a href=#641 id=641 data-nosnippet>641</a>
-<a href=#642 id=642 data-nosnippet>642</a>                <span class="kw">if </span>else_trimmed == <span class="string">"endif" </span>{
-<a href=#643 id=643 data-nosnippet>643</a>                    depth -= <span class="number">1</span>;
-<a href=#644 id=644 data-nosnippet>644</a>                    <span class="kw">if </span>depth == <span class="number">0 </span>{
-<a href=#645 id=645 data-nosnippet>645</a>                        <span class="kw-2">*</span>index += <span class="number">1</span>;
-<a href=#646 id=646 data-nosnippet>646</a>                        <span class="kw">break</span>;
-<a href=#647 id=647 data-nosnippet>647</a>                    }
-<a href=#648 id=648 data-nosnippet>648</a>                }
-<a href=#649 id=649 data-nosnippet>649</a>
-<a href=#650 id=650 data-nosnippet>650</a>                <span class="comment">// Parse item in else branch
-<a href=#651 id=651 data-nosnippet>651</a>                </span><span class="kw">match </span>parse_conditional_item(lines, index) {
-<a href=#652 id=652 data-nosnippet>652</a>                    <span class="prelude-val">Ok</span>(<span class="prelude-val">Some</span>(item)) =&gt; {
-<a href=#653 id=653 data-nosnippet>653</a>                        else_vec.push(item);
-<a href=#654 id=654 data-nosnippet>654</a>                        <span class="comment">// Note: index was already incremented by parse_conditional_item
-<a href=#655 id=655 data-nosnippet>655</a>                    </span>}
-<a href=#656 id=656 data-nosnippet>656</a>                    <span class="prelude-val">Ok</span>(<span class="prelude-val">None</span>) =&gt; {
-<a href=#657 id=657 data-nosnippet>657</a>                        <span class="comment">// Empty line or unrecognized - skip it
-<a href=#658 id=658 data-nosnippet>658</a>                        </span><span class="kw-2">*</span>index += <span class="number">1</span>;
-<a href=#659 id=659 data-nosnippet>659</a>                    }
-<a href=#660 id=660 data-nosnippet>660</a>                    <span class="prelude-val">Err</span>(e) =&gt; {
-<a href=#661 id=661 data-nosnippet>661</a>                        <span class="kw">let </span>location = SourceLocation::new(<span class="kw-2">*</span>index + <span class="number">1</span>);
-<a href=#662 id=662 data-nosnippet>662</a>                        <span class="kw">return </span><span class="prelude-val">Err</span>(MakeParseError::InvalidTargetRule { location, found: e });
-<a href=#663 id=663 data-nosnippet>663</a>                    }
-<a href=#664 id=664 data-nosnippet>664</a>                }
-<a href=#665 id=665 data-nosnippet>665</a>            }
-<a href=#666 id=666 data-nosnippet>666</a>            else_items = <span class="prelude-val">Some</span>(else_vec);
-<a href=#667 id=667 data-nosnippet>667</a>            <span class="kw">break</span>;
-<a href=#668 id=668 data-nosnippet>668</a>        }
-<a href=#669 id=669 data-nosnippet>669</a>
-<a href=#670 id=670 data-nosnippet>670</a>        <span class="comment">// Parse item in then branch
-<a href=#671 id=671 data-nosnippet>671</a>        </span><span class="kw">match </span>parse_conditional_item(lines, index) {
-<a href=#672 id=672 data-nosnippet>672</a>            <span class="prelude-val">Ok</span>(<span class="prelude-val">Some</span>(item)) =&gt; {
-<a href=#673 id=673 data-nosnippet>673</a>                then_items.push(item);
-<a href=#674 id=674 data-nosnippet>674</a>                <span class="comment">// Note: index was already incremented by parse_conditional_item
-<a href=#675 id=675 data-nosnippet>675</a>            </span>}
-<a href=#676 id=676 data-nosnippet>676</a>            <span class="prelude-val">Ok</span>(<span class="prelude-val">None</span>) =&gt; {
-<a href=#677 id=677 data-nosnippet>677</a>                <span class="comment">// Empty line or unrecognized - skip it
-<a href=#678 id=678 data-nosnippet>678</a>                </span><span class="kw-2">*</span>index += <span class="number">1</span>;
-<a href=#679 id=679 data-nosnippet>679</a>            }
-<a href=#680 id=680 data-nosnippet>680</a>            <span class="prelude-val">Err</span>(e) =&gt; {
-<a href=#681 id=681 data-nosnippet>681</a>                <span class="kw">let </span>location = SourceLocation::new(<span class="kw-2">*</span>index + <span class="number">1</span>);
-<a href=#682 id=682 data-nosnippet>682</a>                <span class="kw">return </span><span class="prelude-val">Err</span>(MakeParseError::InvalidTargetRule { location, found: e });
-<a href=#683 id=683 data-nosnippet>683</a>            }
-<a href=#684 id=684 data-nosnippet>684</a>        }
-<a href=#685 id=685 data-nosnippet>685</a>    }
-<a href=#686 id=686 data-nosnippet>686</a>
-<a href=#687 id=687 data-nosnippet>687</a>    <span class="prelude-val">Ok</span>(MakeItem::Conditional {
-<a href=#688 id=688 data-nosnippet>688</a>        condition,
-<a href=#689 id=689 data-nosnippet>689</a>        then_items,
-<a href=#690 id=690 data-nosnippet>690</a>        else_items,
-<a href=#691 id=691 data-nosnippet>691</a>        span: Span::new(<span class="number">0</span>, start_line.len(), start_line_num),
-<a href=#692 id=692 data-nosnippet>692</a>    })
-<a href=#693 id=693 data-nosnippet>693</a>}
-<a href=#694 id=694 data-nosnippet>694</a>
-<a href=#695 id=695 data-nosnippet>695</a><span class="doccomment">/// Parse a define...endef block for multi-line variable definitions
-<a href=#696 id=696 data-nosnippet>696</a>///
-<a href=#697 id=697 data-nosnippet>697</a>/// Syntax:
-<a href=#698 id=698 data-nosnippet>698</a>/// ```makefile
-<a href=#699 id=699 data-nosnippet>699</a>/// define VAR_NAME [=|:=]
-<a href=#700 id=700 data-nosnippet>700</a>/// multi-line
-<a href=#701 id=701 data-nosnippet>701</a>/// content
-<a href=#702 id=702 data-nosnippet>702</a>/// endef
-<a href=#703 id=703 data-nosnippet>703</a>/// ```
-<a href=#704 id=704 data-nosnippet>704</a>///
-<a href=#705 id=705 data-nosnippet>705</a>/// The index is moved past the endef line.
-<a href=#706 id=706 data-nosnippet>706</a></span><span class="kw">fn </span>parse_define_block(lines: <span class="kw-2">&amp;</span>[<span class="kw-2">&amp;</span>str], index: <span class="kw-2">&amp;mut </span>usize) -&gt; <span class="prelude-ty">Result</span>&lt;MakeItem, MakeParseError&gt; {
-<a href=#707 id=707 data-nosnippet>707</a>    <span class="kw">let </span>start_line = lines[<span class="kw-2">*</span>index];
-<a href=#708 id=708 data-nosnippet>708</a>    <span class="kw">let </span>start_line_num = <span class="kw-2">*</span>index + <span class="number">1</span>;
-<a href=#709 id=709 data-nosnippet>709</a>    <span class="kw">let </span>trimmed = start_line.trim();
-<a href=#710 id=710 data-nosnippet>710</a>
-<a href=#711 id=711 data-nosnippet>711</a>    <span class="comment">// Parse: define VAR_NAME [=|:=]
-<a href=#712 id=712 data-nosnippet>712</a>    </span><span class="kw">let </span>after_define = trimmed.strip_prefix(<span class="string">"define "</span>).unwrap().trim();
-<a href=#713 id=713 data-nosnippet>713</a>
-<a href=#714 id=714 data-nosnippet>714</a>    <span class="comment">// Check for assignment flavor (=, :=, ?=, +=, !=)
-<a href=#715 id=715 data-nosnippet>715</a>    </span><span class="kw">let </span>(var_name, flavor) = <span class="kw">if let </span><span class="prelude-val">Some</span>(name) = after_define.strip_suffix(<span class="string">" ="</span>) {
-<a href=#716 id=716 data-nosnippet>716</a>        (name.trim().to_string(), VarFlavor::Recursive)
-<a href=#717 id=717 data-nosnippet>717</a>    } <span class="kw">else if let </span><span class="prelude-val">Some</span>(name) = after_define.strip_suffix(<span class="string">" :="</span>) {
-<a href=#718 id=718 data-nosnippet>718</a>        (name.trim().to_string(), VarFlavor::Simple)
-<a href=#719 id=719 data-nosnippet>719</a>    } <span class="kw">else if let </span><span class="prelude-val">Some</span>(name) = after_define.strip_suffix(<span class="string">" ?="</span>) {
-<a href=#720 id=720 data-nosnippet>720</a>        (name.trim().to_string(), VarFlavor::Conditional)
-<a href=#721 id=721 data-nosnippet>721</a>    } <span class="kw">else if let </span><span class="prelude-val">Some</span>(name) = after_define.strip_suffix(<span class="string">" +="</span>) {
-<a href=#722 id=722 data-nosnippet>722</a>        (name.trim().to_string(), VarFlavor::Append)
-<a href=#723 id=723 data-nosnippet>723</a>    } <span class="kw">else if let </span><span class="prelude-val">Some</span>(name) = after_define.strip_suffix(<span class="string">" !="</span>) {
-<a href=#724 id=724 data-nosnippet>724</a>        (name.trim().to_string(), VarFlavor::Shell)
-<a href=#725 id=725 data-nosnippet>725</a>    } <span class="kw">else </span>{
-<a href=#726 id=726 data-nosnippet>726</a>        <span class="comment">// No explicit flavor - defaults to recursive
-<a href=#727 id=727 data-nosnippet>727</a>        </span>(after_define.to_string(), VarFlavor::Recursive)
-<a href=#728 id=728 data-nosnippet>728</a>    };
-<a href=#729 id=729 data-nosnippet>729</a>
-<a href=#730 id=730 data-nosnippet>730</a>    <span class="kw">if </span>var_name.is_empty() {
-<a href=#731 id=731 data-nosnippet>731</a>        <span class="kw">let </span>location = SourceLocation::new(start_line_num).with_source_line(start_line.to_string());
-<a href=#732 id=732 data-nosnippet>732</a>        <span class="kw">return </span><span class="prelude-val">Err</span>(MakeParseError::MissingVariableName {
-<a href=#733 id=733 data-nosnippet>733</a>            location,
-<a href=#734 id=734 data-nosnippet>734</a>            directive: <span class="string">"define"</span>.to_string(),
-<a href=#735 id=735 data-nosnippet>735</a>        });
-<a href=#736 id=736 data-nosnippet>736</a>    }
-<a href=#737 id=737 data-nosnippet>737</a>
-<a href=#738 id=738 data-nosnippet>738</a>    <span class="comment">// Move past the define line
-<a href=#739 id=739 data-nosnippet>739</a>    </span><span class="kw-2">*</span>index += <span class="number">1</span>;
-<a href=#740 id=740 data-nosnippet>740</a>
-<a href=#741 id=741 data-nosnippet>741</a>    <span class="comment">// Collect lines until we find endef
-<a href=#742 id=742 data-nosnippet>742</a>    </span><span class="kw">let </span><span class="kw-2">mut </span>value_lines = Vec::new();
-<a href=#743 id=743 data-nosnippet>743</a>    <span class="kw">while </span><span class="kw-2">*</span>index &lt; lines.len() {
-<a href=#744 id=744 data-nosnippet>744</a>        <span class="kw">let </span>line = lines[<span class="kw-2">*</span>index];
-<a href=#745 id=745 data-nosnippet>745</a>
-<a href=#746 id=746 data-nosnippet>746</a>        <span class="comment">// Check for endef
-<a href=#747 id=747 data-nosnippet>747</a>        </span><span class="kw">if </span>line.trim() == <span class="string">"endef" </span>{
-<a href=#748 id=748 data-nosnippet>748</a>            <span class="comment">// Move past the endef line
-<a href=#749 id=749 data-nosnippet>749</a>            </span><span class="kw-2">*</span>index += <span class="number">1</span>;
-<a href=#750 id=750 data-nosnippet>750</a>
-<a href=#751 id=751 data-nosnippet>751</a>            <span class="comment">// Join the collected lines (preserve newlines and indentation)
-<a href=#752 id=752 data-nosnippet>752</a>            </span><span class="kw">let </span>value = value_lines.join(<span class="string">"\n"</span>);
-<a href=#753 id=753 data-nosnippet>753</a>
-<a href=#754 id=754 data-nosnippet>754</a>            <span class="kw">return </span><span class="prelude-val">Ok</span>(MakeItem::Variable {
-<a href=#755 id=755 data-nosnippet>755</a>                name: var_name,
-<a href=#756 id=756 data-nosnippet>756</a>                value,
-<a href=#757 id=757 data-nosnippet>757</a>                flavor,
-<a href=#758 id=758 data-nosnippet>758</a>                span: Span::new(<span class="number">0</span>, start_line.len(), start_line_num),
-<a href=#759 id=759 data-nosnippet>759</a>            });
-<a href=#760 id=760 data-nosnippet>760</a>        }
-<a href=#761 id=761 data-nosnippet>761</a>
-<a href=#762 id=762 data-nosnippet>762</a>        <span class="comment">// Add this line to the value
-<a href=#763 id=763 data-nosnippet>763</a>        </span>value_lines.push(line.to_string());
-<a href=#764 id=764 data-nosnippet>764</a>        <span class="kw-2">*</span>index += <span class="number">1</span>;
-<a href=#765 id=765 data-nosnippet>765</a>    }
-<a href=#766 id=766 data-nosnippet>766</a>
-<a href=#767 id=767 data-nosnippet>767</a>    <span class="comment">// If we got here, we never found endef
-<a href=#768 id=768 data-nosnippet>768</a>    </span><span class="kw">let </span>location = SourceLocation::new(start_line_num).with_source_line(start_line.to_string());
-<a href=#769 id=769 data-nosnippet>769</a>    <span class="prelude-val">Err</span>(MakeParseError::UnterminatedDefine { location, var_name })
-<a href=#770 id=770 data-nosnippet>770</a>}
-<a href=#771 id=771 data-nosnippet>771</a>
-<a href=#772 id=772 data-nosnippet>772</a><span class="doccomment">/// Parse a single item within a conditional block
+<a href=#493 id=493 data-nosnippet>493</a>/// Conditional block syntax:
+<a href=#494 id=494 data-nosnippet>494</a>/// ```makefile
+<a href=#495 id=495 data-nosnippet>495</a>/// ifeq ($(VAR),value)
+<a href=#496 id=496 data-nosnippet>496</a>///     CFLAGS = -g
+<a href=#497 id=497 data-nosnippet>497</a>/// else
+<a href=#498 id=498 data-nosnippet>498</a>///     CFLAGS = -O2
+<a href=#499 id=499 data-nosnippet>499</a>/// endif
+<a href=#500 id=500 data-nosnippet>500</a>/// ```
+<a href=#501 id=501 data-nosnippet>501</a>///
+<a href=#502 id=502 data-nosnippet>502</a>/// Supported directives: ifeq, ifneq, ifdef, ifndef
+<a href=#503 id=503 data-nosnippet>503</a></span><span class="kw">fn </span>parse_conditional(lines: <span class="kw-2">&amp;</span>[<span class="kw-2">&amp;</span>str], index: <span class="kw-2">&amp;mut </span>usize) -&gt; <span class="prelude-ty">Result</span>&lt;MakeItem, MakeParseError&gt; {
+<a href=#504 id=504 data-nosnippet>504</a>    <span class="kw">let </span>start_line = lines[<span class="kw-2">*</span>index];
+<a href=#505 id=505 data-nosnippet>505</a>    <span class="kw">let </span>start_line_num = <span class="kw-2">*</span>index + <span class="number">1</span>;
+<a href=#506 id=506 data-nosnippet>506</a>    <span class="kw">let </span>trimmed = start_line.trim();
+<a href=#507 id=507 data-nosnippet>507</a>
+<a href=#508 id=508 data-nosnippet>508</a>    <span class="comment">// Parse the condition type and expression
+<a href=#509 id=509 data-nosnippet>509</a>    </span><span class="kw">let </span>condition = <span class="kw">if </span>trimmed.starts_with(<span class="string">"ifeq "</span>) {
+<a href=#510 id=510 data-nosnippet>510</a>        <span class="comment">// ifeq (arg1,arg2)
+<a href=#511 id=511 data-nosnippet>511</a>        </span><span class="kw">let </span>rest = trimmed.strip_prefix(<span class="string">"ifeq "</span>).unwrap().trim();
+<a href=#512 id=512 data-nosnippet>512</a>        <span class="kw">if </span>!rest.starts_with(<span class="string">'('</span>) || !rest.ends_with(<span class="string">')'</span>) {
+<a href=#513 id=513 data-nosnippet>513</a>            <span class="kw">let </span>location =
+<a href=#514 id=514 data-nosnippet>514</a>                SourceLocation::new(start_line_num).with_source_line(start_line.to_string());
+<a href=#515 id=515 data-nosnippet>515</a>            <span class="kw">return </span><span class="prelude-val">Err</span>(MakeParseError::InvalidConditionalSyntax {
+<a href=#516 id=516 data-nosnippet>516</a>                location,
+<a href=#517 id=517 data-nosnippet>517</a>                directive: <span class="string">"ifeq"</span>.to_string(),
+<a href=#518 id=518 data-nosnippet>518</a>                found: rest.to_string(),
+<a href=#519 id=519 data-nosnippet>519</a>            });
+<a href=#520 id=520 data-nosnippet>520</a>        }
+<a href=#521 id=521 data-nosnippet>521</a>        <span class="kw">let </span>inner = <span class="kw-2">&amp;</span>rest[<span class="number">1</span>..rest.len() - <span class="number">1</span>];
+<a href=#522 id=522 data-nosnippet>522</a>        <span class="kw">let </span>parts: Vec&lt;<span class="kw-2">&amp;</span>str&gt; = inner.splitn(<span class="number">2</span>, <span class="string">','</span>).collect();
+<a href=#523 id=523 data-nosnippet>523</a>        <span class="kw">if </span>parts.len() != <span class="number">2 </span>{
+<a href=#524 id=524 data-nosnippet>524</a>            <span class="kw">let </span>location =
+<a href=#525 id=525 data-nosnippet>525</a>                SourceLocation::new(start_line_num).with_source_line(start_line.to_string());
+<a href=#526 id=526 data-nosnippet>526</a>            <span class="kw">return </span><span class="prelude-val">Err</span>(MakeParseError::MissingConditionalArguments {
+<a href=#527 id=527 data-nosnippet>527</a>                location,
+<a href=#528 id=528 data-nosnippet>528</a>                directive: <span class="string">"ifeq"</span>.to_string(),
+<a href=#529 id=529 data-nosnippet>529</a>                expected_args: <span class="number">2</span>,
+<a href=#530 id=530 data-nosnippet>530</a>                found_args: parts.len(),
+<a href=#531 id=531 data-nosnippet>531</a>            });
+<a href=#532 id=532 data-nosnippet>532</a>        }
+<a href=#533 id=533 data-nosnippet>533</a>        MakeCondition::IfEq(parts[<span class="number">0</span>].to_string(), parts[<span class="number">1</span>].to_string())
+<a href=#534 id=534 data-nosnippet>534</a>    } <span class="kw">else if </span>trimmed.starts_with(<span class="string">"ifneq "</span>) {
+<a href=#535 id=535 data-nosnippet>535</a>        <span class="comment">// ifneq (arg1,arg2)
+<a href=#536 id=536 data-nosnippet>536</a>        </span><span class="kw">let </span>rest = trimmed.strip_prefix(<span class="string">"ifneq "</span>).unwrap().trim();
+<a href=#537 id=537 data-nosnippet>537</a>        <span class="kw">if </span>!rest.starts_with(<span class="string">'('</span>) || !rest.ends_with(<span class="string">')'</span>) {
+<a href=#538 id=538 data-nosnippet>538</a>            <span class="kw">let </span>location =
+<a href=#539 id=539 data-nosnippet>539</a>                SourceLocation::new(start_line_num).with_source_line(start_line.to_string());
+<a href=#540 id=540 data-nosnippet>540</a>            <span class="kw">return </span><span class="prelude-val">Err</span>(MakeParseError::InvalidConditionalSyntax {
+<a href=#541 id=541 data-nosnippet>541</a>                location,
+<a href=#542 id=542 data-nosnippet>542</a>                directive: <span class="string">"ifneq"</span>.to_string(),
+<a href=#543 id=543 data-nosnippet>543</a>                found: rest.to_string(),
+<a href=#544 id=544 data-nosnippet>544</a>            });
+<a href=#545 id=545 data-nosnippet>545</a>        }
+<a href=#546 id=546 data-nosnippet>546</a>        <span class="kw">let </span>inner = <span class="kw-2">&amp;</span>rest[<span class="number">1</span>..rest.len() - <span class="number">1</span>];
+<a href=#547 id=547 data-nosnippet>547</a>        <span class="kw">let </span>parts: Vec&lt;<span class="kw-2">&amp;</span>str&gt; = inner.splitn(<span class="number">2</span>, <span class="string">','</span>).collect();
+<a href=#548 id=548 data-nosnippet>548</a>        <span class="kw">if </span>parts.len() != <span class="number">2 </span>{
+<a href=#549 id=549 data-nosnippet>549</a>            <span class="kw">let </span>location =
+<a href=#550 id=550 data-nosnippet>550</a>                SourceLocation::new(start_line_num).with_source_line(start_line.to_string());
+<a href=#551 id=551 data-nosnippet>551</a>            <span class="kw">return </span><span class="prelude-val">Err</span>(MakeParseError::MissingConditionalArguments {
+<a href=#552 id=552 data-nosnippet>552</a>                location,
+<a href=#553 id=553 data-nosnippet>553</a>                directive: <span class="string">"ifneq"</span>.to_string(),
+<a href=#554 id=554 data-nosnippet>554</a>                expected_args: <span class="number">2</span>,
+<a href=#555 id=555 data-nosnippet>555</a>                found_args: parts.len(),
+<a href=#556 id=556 data-nosnippet>556</a>            });
+<a href=#557 id=557 data-nosnippet>557</a>        }
+<a href=#558 id=558 data-nosnippet>558</a>        MakeCondition::IfNeq(parts[<span class="number">0</span>].to_string(), parts[<span class="number">1</span>].to_string())
+<a href=#559 id=559 data-nosnippet>559</a>    } <span class="kw">else if </span>trimmed.starts_with(<span class="string">"ifdef "</span>) {
+<a href=#560 id=560 data-nosnippet>560</a>        <span class="comment">// ifdef VAR
+<a href=#561 id=561 data-nosnippet>561</a>        </span><span class="kw">let </span>var_name = trimmed.strip_prefix(<span class="string">"ifdef "</span>).unwrap().trim().to_string();
+<a href=#562 id=562 data-nosnippet>562</a>        <span class="kw">if </span>var_name.is_empty() {
+<a href=#563 id=563 data-nosnippet>563</a>            <span class="kw">let </span>location =
+<a href=#564 id=564 data-nosnippet>564</a>                SourceLocation::new(start_line_num).with_source_line(start_line.to_string());
+<a href=#565 id=565 data-nosnippet>565</a>            <span class="kw">return </span><span class="prelude-val">Err</span>(MakeParseError::MissingVariableName {
+<a href=#566 id=566 data-nosnippet>566</a>                location,
+<a href=#567 id=567 data-nosnippet>567</a>                directive: <span class="string">"ifdef"</span>.to_string(),
+<a href=#568 id=568 data-nosnippet>568</a>            });
+<a href=#569 id=569 data-nosnippet>569</a>        }
+<a href=#570 id=570 data-nosnippet>570</a>        MakeCondition::IfDef(var_name)
+<a href=#571 id=571 data-nosnippet>571</a>    } <span class="kw">else if </span>trimmed.starts_with(<span class="string">"ifndef "</span>) {
+<a href=#572 id=572 data-nosnippet>572</a>        <span class="comment">// ifndef VAR
+<a href=#573 id=573 data-nosnippet>573</a>        </span><span class="kw">let </span>var_name = trimmed.strip_prefix(<span class="string">"ifndef "</span>).unwrap().trim().to_string();
+<a href=#574 id=574 data-nosnippet>574</a>        <span class="kw">if </span>var_name.is_empty() {
+<a href=#575 id=575 data-nosnippet>575</a>            <span class="kw">let </span>location =
+<a href=#576 id=576 data-nosnippet>576</a>                SourceLocation::new(start_line_num).with_source_line(start_line.to_string());
+<a href=#577 id=577 data-nosnippet>577</a>            <span class="kw">return </span><span class="prelude-val">Err</span>(MakeParseError::MissingVariableName {
+<a href=#578 id=578 data-nosnippet>578</a>                location,
+<a href=#579 id=579 data-nosnippet>579</a>                directive: <span class="string">"ifndef"</span>.to_string(),
+<a href=#580 id=580 data-nosnippet>580</a>            });
+<a href=#581 id=581 data-nosnippet>581</a>        }
+<a href=#582 id=582 data-nosnippet>582</a>        MakeCondition::IfNdef(var_name)
+<a href=#583 id=583 data-nosnippet>583</a>    } <span class="kw">else </span>{
+<a href=#584 id=584 data-nosnippet>584</a>        <span class="kw">let </span>location = SourceLocation::new(start_line_num).with_source_line(start_line.to_string());
+<a href=#585 id=585 data-nosnippet>585</a>        <span class="kw">return </span><span class="prelude-val">Err</span>(MakeParseError::UnknownConditional {
+<a href=#586 id=586 data-nosnippet>586</a>            location,
+<a href=#587 id=587 data-nosnippet>587</a>            found: trimmed.to_string(),
+<a href=#588 id=588 data-nosnippet>588</a>        });
+<a href=#589 id=589 data-nosnippet>589</a>    };
+<a href=#590 id=590 data-nosnippet>590</a>
+<a href=#591 id=591 data-nosnippet>591</a>    <span class="comment">// Move past the ifeq/ifdef/ifndef/ifneq line
+<a href=#592 id=592 data-nosnippet>592</a>    </span><span class="kw-2">*</span>index += <span class="number">1</span>;
+<a href=#593 id=593 data-nosnippet>593</a>
+<a href=#594 id=594 data-nosnippet>594</a>    <span class="comment">// Parse items in the 'then' branch until we hit 'else' or 'endif'
+<a href=#595 id=595 data-nosnippet>595</a>    </span><span class="kw">let </span><span class="kw-2">mut </span>then_items = Vec::new();
+<a href=#596 id=596 data-nosnippet>596</a>    <span class="kw">let </span><span class="kw-2">mut </span>else_items = <span class="prelude-val">None</span>;
+<a href=#597 id=597 data-nosnippet>597</a>    <span class="kw">let </span><span class="kw-2">mut </span>depth = <span class="number">1</span>; <span class="comment">// Track nested conditionals
+<a href=#598 id=598 data-nosnippet>598</a>
+<a href=#599 id=599 data-nosnippet>599</a>    </span><span class="kw">while </span><span class="kw-2">*</span>index &lt; lines.len() {
+<a href=#600 id=600 data-nosnippet>600</a>        <span class="kw">let </span>line = lines[<span class="kw-2">*</span>index];
+<a href=#601 id=601 data-nosnippet>601</a>        <span class="kw">let </span>trimmed = line.trim();
+<a href=#602 id=602 data-nosnippet>602</a>
+<a href=#603 id=603 data-nosnippet>603</a>        <span class="comment">// Check for nested conditionals
+<a href=#604 id=604 data-nosnippet>604</a>        </span><span class="kw">if </span>trimmed.starts_with(<span class="string">"ifeq "</span>)
+<a href=#605 id=605 data-nosnippet>605</a>            || trimmed.starts_with(<span class="string">"ifneq "</span>)
+<a href=#606 id=606 data-nosnippet>606</a>            || trimmed.starts_with(<span class="string">"ifdef "</span>)
+<a href=#607 id=607 data-nosnippet>607</a>            || trimmed.starts_with(<span class="string">"ifndef "</span>)
+<a href=#608 id=608 data-nosnippet>608</a>        {
+<a href=#609 id=609 data-nosnippet>609</a>            depth += <span class="number">1</span>;
+<a href=#610 id=610 data-nosnippet>610</a>        }
+<a href=#611 id=611 data-nosnippet>611</a>
+<a href=#612 id=612 data-nosnippet>612</a>        <span class="comment">// Check for endif
+<a href=#613 id=613 data-nosnippet>613</a>        </span><span class="kw">if </span>trimmed == <span class="string">"endif" </span>{
+<a href=#614 id=614 data-nosnippet>614</a>            depth -= <span class="number">1</span>;
+<a href=#615 id=615 data-nosnippet>615</a>            <span class="kw">if </span>depth == <span class="number">0 </span>{
+<a href=#616 id=616 data-nosnippet>616</a>                <span class="comment">// This endif closes our conditional
+<a href=#617 id=617 data-nosnippet>617</a>                </span><span class="kw-2">*</span>index += <span class="number">1</span>;
+<a href=#618 id=618 data-nosnippet>618</a>                <span class="kw">break</span>;
+<a href=#619 id=619 data-nosnippet>619</a>            }
+<a href=#620 id=620 data-nosnippet>620</a>        }
+<a href=#621 id=621 data-nosnippet>621</a>
+<a href=#622 id=622 data-nosnippet>622</a>        <span class="comment">// Check for else at our level
+<a href=#623 id=623 data-nosnippet>623</a>        </span><span class="kw">if </span>trimmed == <span class="string">"else" </span>&amp;&amp; depth == <span class="number">1 </span>{
+<a href=#624 id=624 data-nosnippet>624</a>            <span class="kw-2">*</span>index += <span class="number">1</span>;
+<a href=#625 id=625 data-nosnippet>625</a>            <span class="comment">// Parse items in the 'else' branch
+<a href=#626 id=626 data-nosnippet>626</a>            </span><span class="kw">let </span><span class="kw-2">mut </span>else_vec = Vec::new();
+<a href=#627 id=627 data-nosnippet>627</a>            <span class="kw">while </span><span class="kw-2">*</span>index &lt; lines.len() {
+<a href=#628 id=628 data-nosnippet>628</a>                <span class="kw">let </span>else_line = lines[<span class="kw-2">*</span>index];
+<a href=#629 id=629 data-nosnippet>629</a>                <span class="kw">let </span>else_trimmed = else_line.trim();
+<a href=#630 id=630 data-nosnippet>630</a>
+<a href=#631 id=631 data-nosnippet>631</a>                <span class="comment">// Check for nested conditionals in else branch
+<a href=#632 id=632 data-nosnippet>632</a>                </span><span class="kw">if </span>else_trimmed.starts_with(<span class="string">"ifeq "</span>)
+<a href=#633 id=633 data-nosnippet>633</a>                    || else_trimmed.starts_with(<span class="string">"ifneq "</span>)
+<a href=#634 id=634 data-nosnippet>634</a>                    || else_trimmed.starts_with(<span class="string">"ifdef "</span>)
+<a href=#635 id=635 data-nosnippet>635</a>                    || else_trimmed.starts_with(<span class="string">"ifndef "</span>)
+<a href=#636 id=636 data-nosnippet>636</a>                {
+<a href=#637 id=637 data-nosnippet>637</a>                    depth += <span class="number">1</span>;
+<a href=#638 id=638 data-nosnippet>638</a>                }
+<a href=#639 id=639 data-nosnippet>639</a>
+<a href=#640 id=640 data-nosnippet>640</a>                <span class="kw">if </span>else_trimmed == <span class="string">"endif" </span>{
+<a href=#641 id=641 data-nosnippet>641</a>                    depth -= <span class="number">1</span>;
+<a href=#642 id=642 data-nosnippet>642</a>                    <span class="kw">if </span>depth == <span class="number">0 </span>{
+<a href=#643 id=643 data-nosnippet>643</a>                        <span class="kw-2">*</span>index += <span class="number">1</span>;
+<a href=#644 id=644 data-nosnippet>644</a>                        <span class="kw">break</span>;
+<a href=#645 id=645 data-nosnippet>645</a>                    }
+<a href=#646 id=646 data-nosnippet>646</a>                }
+<a href=#647 id=647 data-nosnippet>647</a>
+<a href=#648 id=648 data-nosnippet>648</a>                <span class="comment">// Parse item in else branch
+<a href=#649 id=649 data-nosnippet>649</a>                </span><span class="kw">match </span>parse_conditional_item(lines, index) {
+<a href=#650 id=650 data-nosnippet>650</a>                    <span class="prelude-val">Ok</span>(<span class="prelude-val">Some</span>(item)) =&gt; {
+<a href=#651 id=651 data-nosnippet>651</a>                        else_vec.push(item);
+<a href=#652 id=652 data-nosnippet>652</a>                        <span class="comment">// Note: index was already incremented by parse_conditional_item
+<a href=#653 id=653 data-nosnippet>653</a>                    </span>}
+<a href=#654 id=654 data-nosnippet>654</a>                    <span class="prelude-val">Ok</span>(<span class="prelude-val">None</span>) =&gt; {
+<a href=#655 id=655 data-nosnippet>655</a>                        <span class="comment">// Empty line or unrecognized - skip it
+<a href=#656 id=656 data-nosnippet>656</a>                        </span><span class="kw-2">*</span>index += <span class="number">1</span>;
+<a href=#657 id=657 data-nosnippet>657</a>                    }
+<a href=#658 id=658 data-nosnippet>658</a>                    <span class="prelude-val">Err</span>(e) =&gt; {
+<a href=#659 id=659 data-nosnippet>659</a>                        <span class="kw">let </span>location = SourceLocation::new(<span class="kw-2">*</span>index + <span class="number">1</span>);
+<a href=#660 id=660 data-nosnippet>660</a>                        <span class="kw">return </span><span class="prelude-val">Err</span>(MakeParseError::InvalidTargetRule { location, found: e });
+<a href=#661 id=661 data-nosnippet>661</a>                    }
+<a href=#662 id=662 data-nosnippet>662</a>                }
+<a href=#663 id=663 data-nosnippet>663</a>            }
+<a href=#664 id=664 data-nosnippet>664</a>            else_items = <span class="prelude-val">Some</span>(else_vec);
+<a href=#665 id=665 data-nosnippet>665</a>            <span class="kw">break</span>;
+<a href=#666 id=666 data-nosnippet>666</a>        }
+<a href=#667 id=667 data-nosnippet>667</a>
+<a href=#668 id=668 data-nosnippet>668</a>        <span class="comment">// Parse item in then branch
+<a href=#669 id=669 data-nosnippet>669</a>        </span><span class="kw">match </span>parse_conditional_item(lines, index) {
+<a href=#670 id=670 data-nosnippet>670</a>            <span class="prelude-val">Ok</span>(<span class="prelude-val">Some</span>(item)) =&gt; {
+<a href=#671 id=671 data-nosnippet>671</a>                then_items.push(item);
+<a href=#672 id=672 data-nosnippet>672</a>                <span class="comment">// Note: index was already incremented by parse_conditional_item
+<a href=#673 id=673 data-nosnippet>673</a>            </span>}
+<a href=#674 id=674 data-nosnippet>674</a>            <span class="prelude-val">Ok</span>(<span class="prelude-val">None</span>) =&gt; {
+<a href=#675 id=675 data-nosnippet>675</a>                <span class="comment">// Empty line or unrecognized - skip it
+<a href=#676 id=676 data-nosnippet>676</a>                </span><span class="kw-2">*</span>index += <span class="number">1</span>;
+<a href=#677 id=677 data-nosnippet>677</a>            }
+<a href=#678 id=678 data-nosnippet>678</a>            <span class="prelude-val">Err</span>(e) =&gt; {
+<a href=#679 id=679 data-nosnippet>679</a>                <span class="kw">let </span>location = SourceLocation::new(<span class="kw-2">*</span>index + <span class="number">1</span>);
+<a href=#680 id=680 data-nosnippet>680</a>                <span class="kw">return </span><span class="prelude-val">Err</span>(MakeParseError::InvalidTargetRule { location, found: e });
+<a href=#681 id=681 data-nosnippet>681</a>            }
+<a href=#682 id=682 data-nosnippet>682</a>        }
+<a href=#683 id=683 data-nosnippet>683</a>    }
+<a href=#684 id=684 data-nosnippet>684</a>
+<a href=#685 id=685 data-nosnippet>685</a>    <span class="prelude-val">Ok</span>(MakeItem::Conditional {
+<a href=#686 id=686 data-nosnippet>686</a>        condition,
+<a href=#687 id=687 data-nosnippet>687</a>        then_items,
+<a href=#688 id=688 data-nosnippet>688</a>        else_items,
+<a href=#689 id=689 data-nosnippet>689</a>        span: Span::new(<span class="number">0</span>, start_line.len(), start_line_num),
+<a href=#690 id=690 data-nosnippet>690</a>    })
+<a href=#691 id=691 data-nosnippet>691</a>}
+<a href=#692 id=692 data-nosnippet>692</a>
+<a href=#693 id=693 data-nosnippet>693</a><span class="doccomment">/// Parse a define...endef block for multi-line variable definitions
+<a href=#694 id=694 data-nosnippet>694</a>///
+<a href=#695 id=695 data-nosnippet>695</a>/// Syntax:
+<a href=#696 id=696 data-nosnippet>696</a>/// ```makefile
+<a href=#697 id=697 data-nosnippet>697</a>/// define VAR_NAME [=|:=]
+<a href=#698 id=698 data-nosnippet>698</a>/// multi-line
+<a href=#699 id=699 data-nosnippet>699</a>/// content
+<a href=#700 id=700 data-nosnippet>700</a>/// endef
+<a href=#701 id=701 data-nosnippet>701</a>/// ```
+<a href=#702 id=702 data-nosnippet>702</a>///
+<a href=#703 id=703 data-nosnippet>703</a>/// The index is moved past the endef line.
+<a href=#704 id=704 data-nosnippet>704</a></span><span class="kw">fn </span>parse_define_block(lines: <span class="kw-2">&amp;</span>[<span class="kw-2">&amp;</span>str], index: <span class="kw-2">&amp;mut </span>usize) -&gt; <span class="prelude-ty">Result</span>&lt;MakeItem, MakeParseError&gt; {
+<a href=#705 id=705 data-nosnippet>705</a>    <span class="kw">let </span>start_line = lines[<span class="kw-2">*</span>index];
+<a href=#706 id=706 data-nosnippet>706</a>    <span class="kw">let </span>start_line_num = <span class="kw-2">*</span>index + <span class="number">1</span>;
+<a href=#707 id=707 data-nosnippet>707</a>    <span class="kw">let </span>trimmed = start_line.trim();
+<a href=#708 id=708 data-nosnippet>708</a>
+<a href=#709 id=709 data-nosnippet>709</a>    <span class="comment">// Parse: define VAR_NAME [=|:=]
+<a href=#710 id=710 data-nosnippet>710</a>    </span><span class="kw">let </span>after_define = trimmed.strip_prefix(<span class="string">"define "</span>).unwrap().trim();
+<a href=#711 id=711 data-nosnippet>711</a>
+<a href=#712 id=712 data-nosnippet>712</a>    <span class="comment">// Check for assignment flavor (=, :=, ?=, +=, !=)
+<a href=#713 id=713 data-nosnippet>713</a>    </span><span class="kw">let </span>(var_name, flavor) = <span class="kw">if let </span><span class="prelude-val">Some</span>(name) = after_define.strip_suffix(<span class="string">" ="</span>) {
+<a href=#714 id=714 data-nosnippet>714</a>        (name.trim().to_string(), VarFlavor::Recursive)
+<a href=#715 id=715 data-nosnippet>715</a>    } <span class="kw">else if let </span><span class="prelude-val">Some</span>(name) = after_define.strip_suffix(<span class="string">" :="</span>) {
+<a href=#716 id=716 data-nosnippet>716</a>        (name.trim().to_string(), VarFlavor::Simple)
+<a href=#717 id=717 data-nosnippet>717</a>    } <span class="kw">else if let </span><span class="prelude-val">Some</span>(name) = after_define.strip_suffix(<span class="string">" ?="</span>) {
+<a href=#718 id=718 data-nosnippet>718</a>        (name.trim().to_string(), VarFlavor::Conditional)
+<a href=#719 id=719 data-nosnippet>719</a>    } <span class="kw">else if let </span><span class="prelude-val">Some</span>(name) = after_define.strip_suffix(<span class="string">" +="</span>) {
+<a href=#720 id=720 data-nosnippet>720</a>        (name.trim().to_string(), VarFlavor::Append)
+<a href=#721 id=721 data-nosnippet>721</a>    } <span class="kw">else if let </span><span class="prelude-val">Some</span>(name) = after_define.strip_suffix(<span class="string">" !="</span>) {
+<a href=#722 id=722 data-nosnippet>722</a>        (name.trim().to_string(), VarFlavor::Shell)
+<a href=#723 id=723 data-nosnippet>723</a>    } <span class="kw">else </span>{
+<a href=#724 id=724 data-nosnippet>724</a>        <span class="comment">// No explicit flavor - defaults to recursive
+<a href=#725 id=725 data-nosnippet>725</a>        </span>(after_define.to_string(), VarFlavor::Recursive)
+<a href=#726 id=726 data-nosnippet>726</a>    };
+<a href=#727 id=727 data-nosnippet>727</a>
+<a href=#728 id=728 data-nosnippet>728</a>    <span class="kw">if </span>var_name.is_empty() {
+<a href=#729 id=729 data-nosnippet>729</a>        <span class="kw">let </span>location = SourceLocation::new(start_line_num).with_source_line(start_line.to_string());
+<a href=#730 id=730 data-nosnippet>730</a>        <span class="kw">return </span><span class="prelude-val">Err</span>(MakeParseError::MissingVariableName {
+<a href=#731 id=731 data-nosnippet>731</a>            location,
+<a href=#732 id=732 data-nosnippet>732</a>            directive: <span class="string">"define"</span>.to_string(),
+<a href=#733 id=733 data-nosnippet>733</a>        });
+<a href=#734 id=734 data-nosnippet>734</a>    }
+<a href=#735 id=735 data-nosnippet>735</a>
+<a href=#736 id=736 data-nosnippet>736</a>    <span class="comment">// Move past the define line
+<a href=#737 id=737 data-nosnippet>737</a>    </span><span class="kw-2">*</span>index += <span class="number">1</span>;
+<a href=#738 id=738 data-nosnippet>738</a>
+<a href=#739 id=739 data-nosnippet>739</a>    <span class="comment">// Collect lines until we find endef
+<a href=#740 id=740 data-nosnippet>740</a>    </span><span class="kw">let </span><span class="kw-2">mut </span>value_lines = Vec::new();
+<a href=#741 id=741 data-nosnippet>741</a>    <span class="kw">while </span><span class="kw-2">*</span>index &lt; lines.len() {
+<a href=#742 id=742 data-nosnippet>742</a>        <span class="kw">let </span>line = lines[<span class="kw-2">*</span>index];
+<a href=#743 id=743 data-nosnippet>743</a>
+<a href=#744 id=744 data-nosnippet>744</a>        <span class="comment">// Check for endef
+<a href=#745 id=745 data-nosnippet>745</a>        </span><span class="kw">if </span>line.trim() == <span class="string">"endef" </span>{
+<a href=#746 id=746 data-nosnippet>746</a>            <span class="comment">// Move past the endef line
+<a href=#747 id=747 data-nosnippet>747</a>            </span><span class="kw-2">*</span>index += <span class="number">1</span>;
+<a href=#748 id=748 data-nosnippet>748</a>
+<a href=#749 id=749 data-nosnippet>749</a>            <span class="comment">// Join the collected lines (preserve newlines and indentation)
+<a href=#750 id=750 data-nosnippet>750</a>            </span><span class="kw">let </span>value = value_lines.join(<span class="string">"\n"</span>);
+<a href=#751 id=751 data-nosnippet>751</a>
+<a href=#752 id=752 data-nosnippet>752</a>            <span class="kw">return </span><span class="prelude-val">Ok</span>(MakeItem::Variable {
+<a href=#753 id=753 data-nosnippet>753</a>                name: var_name,
+<a href=#754 id=754 data-nosnippet>754</a>                value,
+<a href=#755 id=755 data-nosnippet>755</a>                flavor,
+<a href=#756 id=756 data-nosnippet>756</a>                span: Span::new(<span class="number">0</span>, start_line.len(), start_line_num),
+<a href=#757 id=757 data-nosnippet>757</a>            });
+<a href=#758 id=758 data-nosnippet>758</a>        }
+<a href=#759 id=759 data-nosnippet>759</a>
+<a href=#760 id=760 data-nosnippet>760</a>        <span class="comment">// Add this line to the value
+<a href=#761 id=761 data-nosnippet>761</a>        </span>value_lines.push(line.to_string());
+<a href=#762 id=762 data-nosnippet>762</a>        <span class="kw-2">*</span>index += <span class="number">1</span>;
+<a href=#763 id=763 data-nosnippet>763</a>    }
+<a href=#764 id=764 data-nosnippet>764</a>
+<a href=#765 id=765 data-nosnippet>765</a>    <span class="comment">// If we got here, we never found endef
+<a href=#766 id=766 data-nosnippet>766</a>    </span><span class="kw">let </span>location = SourceLocation::new(start_line_num).with_source_line(start_line.to_string());
+<a href=#767 id=767 data-nosnippet>767</a>    <span class="prelude-val">Err</span>(MakeParseError::UnterminatedDefine { location, var_name })
+<a href=#768 id=768 data-nosnippet>768</a>}
+<a href=#769 id=769 data-nosnippet>769</a>
+<a href=#770 id=770 data-nosnippet>770</a><span class="doccomment">/// Parse a single item within a conditional block
+<a href=#771 id=771 data-nosnippet>771</a>///
+<a href=#772 id=772 data-nosnippet>772</a>/// Returns None for empty lines or lines that should be skipped
 <a href=#773 id=773 data-nosnippet>773</a>///
-<a href=#774 id=774 data-nosnippet>774</a>/// Returns None for empty lines or lines that should be skipped
-<a href=#775 id=775 data-nosnippet>775</a>///
-<a href=#776 id=776 data-nosnippet>776</a>/// IMPORTANT: This function does NOT increment index for simple items like variables or comments,
-<a href=#777 id=777 data-nosnippet>777</a>/// but parse_target_rule DOES increment index (it advances past recipes).
-<a href=#778 id=778 data-nosnippet>778</a>/// The caller must increment index when Ok(None) is returned.
-<a href=#779 id=779 data-nosnippet>779</a></span><span class="kw">fn </span>parse_conditional_item(lines: <span class="kw-2">&amp;</span>[<span class="kw-2">&amp;</span>str], index: <span class="kw-2">&amp;mut </span>usize) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="prelude-ty">Option</span>&lt;MakeItem&gt;, String&gt; {
-<a href=#780 id=780 data-nosnippet>780</a>    <span class="kw">let </span>line = lines[<span class="kw-2">*</span>index];
-<a href=#781 id=781 data-nosnippet>781</a>    <span class="kw">let </span>line_num = <span class="kw-2">*</span>index + <span class="number">1</span>;
-<a href=#782 id=782 data-nosnippet>782</a>
-<a href=#783 id=783 data-nosnippet>783</a>    <span class="comment">// Skip empty lines
-<a href=#784 id=784 data-nosnippet>784</a>    </span><span class="kw">if </span>line.trim().is_empty() {
-<a href=#785 id=785 data-nosnippet>785</a>        <span class="kw">return </span><span class="prelude-val">Ok</span>(<span class="prelude-val">None</span>);
-<a href=#786 id=786 data-nosnippet>786</a>    }
-<a href=#787 id=787 data-nosnippet>787</a>
-<a href=#788 id=788 data-nosnippet>788</a>    <span class="comment">// Don't parse conditional keywords here (handled by parent)
-<a href=#789 id=789 data-nosnippet>789</a>    </span><span class="kw">let </span>trimmed = line.trim();
-<a href=#790 id=790 data-nosnippet>790</a>    <span class="kw">if </span>trimmed == <span class="string">"else"
-<a href=#791 id=791 data-nosnippet>791</a>        </span>|| trimmed == <span class="string">"endif"
-<a href=#792 id=792 data-nosnippet>792</a>        </span>|| trimmed.starts_with(<span class="string">"ifeq "</span>)
-<a href=#793 id=793 data-nosnippet>793</a>        || trimmed.starts_with(<span class="string">"ifneq "</span>)
-<a href=#794 id=794 data-nosnippet>794</a>        || trimmed.starts_with(<span class="string">"ifdef "</span>)
-<a href=#795 id=795 data-nosnippet>795</a>        || trimmed.starts_with(<span class="string">"ifndef "</span>)
-<a href=#796 id=796 data-nosnippet>796</a>    {
-<a href=#797 id=797 data-nosnippet>797</a>        <span class="kw">return </span><span class="prelude-val">Ok</span>(<span class="prelude-val">None</span>);
-<a href=#798 id=798 data-nosnippet>798</a>    }
-<a href=#799 id=799 data-nosnippet>799</a>
-<a href=#800 id=800 data-nosnippet>800</a>    <span class="comment">// Parse variable assignment
-<a href=#801 id=801 data-nosnippet>801</a>    </span><span class="kw">if </span>is_variable_assignment(line) {
-<a href=#802 id=802 data-nosnippet>802</a>        <span class="kw">let </span>var = parse_variable(line, line_num).map_err(|e| e.to_string())<span class="question-mark">?</span>;
-<a href=#803 id=803 data-nosnippet>803</a>        <span class="kw-2">*</span>index += <span class="number">1</span>; <span class="comment">// Move past this variable line
-<a href=#804 id=804 data-nosnippet>804</a>        </span><span class="kw">return </span><span class="prelude-val">Ok</span>(<span class="prelude-val">Some</span>(var));
-<a href=#805 id=805 data-nosnippet>805</a>    }
-<a href=#806 id=806 data-nosnippet>806</a>
-<a href=#807 id=807 data-nosnippet>807</a>    <span class="comment">// Parse target rule (THIS INCREMENTS INDEX - it advances past recipes)
-<a href=#808 id=808 data-nosnippet>808</a>    </span><span class="kw">if </span>line.contains(<span class="string">':'</span>) &amp;&amp; !line.trim_start().starts_with(<span class="string">'\t'</span>) {
-<a href=#809 id=809 data-nosnippet>809</a>        <span class="kw">let </span>target = parse_target_rule(lines, index).map_err(|e| e.to_string())<span class="question-mark">?</span>;
-<a href=#810 id=810 data-nosnippet>810</a>        <span class="comment">// parse_target_rule already incremented index past the target and its recipe
-<a href=#811 id=811 data-nosnippet>811</a>        // So we DON'T increment it again
-<a href=#812 id=812 data-nosnippet>812</a>        </span><span class="kw">return </span><span class="prelude-val">Ok</span>(<span class="prelude-val">Some</span>(target));
-<a href=#813 id=813 data-nosnippet>813</a>    }
-<a href=#814 id=814 data-nosnippet>814</a>
-<a href=#815 id=815 data-nosnippet>815</a>    <span class="comment">// Parse comment
-<a href=#816 id=816 data-nosnippet>816</a>    </span><span class="kw">if </span>line.trim_start().starts_with(<span class="string">'#'</span>) {
-<a href=#817 id=817 data-nosnippet>817</a>        <span class="kw">let </span>text = line
-<a href=#818 id=818 data-nosnippet>818</a>            .trim_start()
-<a href=#819 id=819 data-nosnippet>819</a>            .strip_prefix(<span class="string">'#'</span>)
-<a href=#820 id=820 data-nosnippet>820</a>            .unwrap_or(<span class="string">""</span>)
-<a href=#821 id=821 data-nosnippet>821</a>            .trim()
-<a href=#822 id=822 data-nosnippet>822</a>            .to_string();
-<a href=#823 id=823 data-nosnippet>823</a>        <span class="kw-2">*</span>index += <span class="number">1</span>; <span class="comment">// Move past this comment line
-<a href=#824 id=824 data-nosnippet>824</a>        </span><span class="kw">return </span><span class="prelude-val">Ok</span>(<span class="prelude-val">Some</span>(MakeItem::Comment {
-<a href=#825 id=825 data-nosnippet>825</a>            text,
-<a href=#826 id=826 data-nosnippet>826</a>            span: Span::new(<span class="number">0</span>, line.len(), line_num),
-<a href=#827 id=827 data-nosnippet>827</a>        }));
-<a href=#828 id=828 data-nosnippet>828</a>    }
-<a href=#829 id=829 data-nosnippet>829</a>
-<a href=#830 id=830 data-nosnippet>830</a>    <span class="comment">// Unknown item - skip
-<a href=#831 id=831 data-nosnippet>831</a>    </span><span class="prelude-val">Ok</span>(<span class="prelude-val">None</span>)
-<a href=#832 id=832 data-nosnippet>832</a>}
-<a href=#833 id=833 data-nosnippet>833</a>
-<a href=#834 id=834 data-nosnippet>834</a><span class="doccomment">/// Parse a target rule starting at the given line index
+<a href=#774 id=774 data-nosnippet>774</a>/// IMPORTANT: This function does NOT increment index for simple items like variables or comments,
+<a href=#775 id=775 data-nosnippet>775</a>/// but parse_target_rule DOES increment index (it advances past recipes).
+<a href=#776 id=776 data-nosnippet>776</a>/// The caller must increment index when Ok(None) is returned.
+<a href=#777 id=777 data-nosnippet>777</a></span><span class="kw">fn </span>parse_conditional_item(lines: <span class="kw-2">&amp;</span>[<span class="kw-2">&amp;</span>str], index: <span class="kw-2">&amp;mut </span>usize) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="prelude-ty">Option</span>&lt;MakeItem&gt;, String&gt; {
+<a href=#778 id=778 data-nosnippet>778</a>    <span class="kw">let </span>line = lines[<span class="kw-2">*</span>index];
+<a href=#779 id=779 data-nosnippet>779</a>    <span class="kw">let </span>line_num = <span class="kw-2">*</span>index + <span class="number">1</span>;
+<a href=#780 id=780 data-nosnippet>780</a>
+<a href=#781 id=781 data-nosnippet>781</a>    <span class="comment">// Skip empty lines
+<a href=#782 id=782 data-nosnippet>782</a>    </span><span class="kw">if </span>line.trim().is_empty() {
+<a href=#783 id=783 data-nosnippet>783</a>        <span class="kw">return </span><span class="prelude-val">Ok</span>(<span class="prelude-val">None</span>);
+<a href=#784 id=784 data-nosnippet>784</a>    }
+<a href=#785 id=785 data-nosnippet>785</a>
+<a href=#786 id=786 data-nosnippet>786</a>    <span class="comment">// Don't parse conditional keywords here (handled by parent)
+<a href=#787 id=787 data-nosnippet>787</a>    </span><span class="kw">let </span>trimmed = line.trim();
+<a href=#788 id=788 data-nosnippet>788</a>    <span class="kw">if </span>trimmed == <span class="string">"else"
+<a href=#789 id=789 data-nosnippet>789</a>        </span>|| trimmed == <span class="string">"endif"
+<a href=#790 id=790 data-nosnippet>790</a>        </span>|| trimmed.starts_with(<span class="string">"ifeq "</span>)
+<a href=#791 id=791 data-nosnippet>791</a>        || trimmed.starts_with(<span class="string">"ifneq "</span>)
+<a href=#792 id=792 data-nosnippet>792</a>        || trimmed.starts_with(<span class="string">"ifdef "</span>)
+<a href=#793 id=793 data-nosnippet>793</a>        || trimmed.starts_with(<span class="string">"ifndef "</span>)
+<a href=#794 id=794 data-nosnippet>794</a>    {
+<a href=#795 id=795 data-nosnippet>795</a>        <span class="kw">return </span><span class="prelude-val">Ok</span>(<span class="prelude-val">None</span>);
+<a href=#796 id=796 data-nosnippet>796</a>    }
+<a href=#797 id=797 data-nosnippet>797</a>
+<a href=#798 id=798 data-nosnippet>798</a>    <span class="comment">// Parse variable assignment
+<a href=#799 id=799 data-nosnippet>799</a>    </span><span class="kw">if </span>is_variable_assignment(line) {
+<a href=#800 id=800 data-nosnippet>800</a>        <span class="kw">let </span>var = parse_variable(line, line_num).map_err(|e| e.to_string())<span class="question-mark">?</span>;
+<a href=#801 id=801 data-nosnippet>801</a>        <span class="kw-2">*</span>index += <span class="number">1</span>; <span class="comment">// Move past this variable line
+<a href=#802 id=802 data-nosnippet>802</a>        </span><span class="kw">return </span><span class="prelude-val">Ok</span>(<span class="prelude-val">Some</span>(var));
+<a href=#803 id=803 data-nosnippet>803</a>    }
+<a href=#804 id=804 data-nosnippet>804</a>
+<a href=#805 id=805 data-nosnippet>805</a>    <span class="comment">// Parse target rule (THIS INCREMENTS INDEX - it advances past recipes)
+<a href=#806 id=806 data-nosnippet>806</a>    </span><span class="kw">if </span>line.contains(<span class="string">':'</span>) &amp;&amp; !line.trim_start().starts_with(<span class="string">'\t'</span>) {
+<a href=#807 id=807 data-nosnippet>807</a>        <span class="kw">let </span>target = parse_target_rule(lines, index).map_err(|e| e.to_string())<span class="question-mark">?</span>;
+<a href=#808 id=808 data-nosnippet>808</a>        <span class="comment">// parse_target_rule already incremented index past the target and its recipe
+<a href=#809 id=809 data-nosnippet>809</a>        // So we DON'T increment it again
+<a href=#810 id=810 data-nosnippet>810</a>        </span><span class="kw">return </span><span class="prelude-val">Ok</span>(<span class="prelude-val">Some</span>(target));
+<a href=#811 id=811 data-nosnippet>811</a>    }
+<a href=#812 id=812 data-nosnippet>812</a>
+<a href=#813 id=813 data-nosnippet>813</a>    <span class="comment">// Parse comment
+<a href=#814 id=814 data-nosnippet>814</a>    </span><span class="kw">if </span>line.trim_start().starts_with(<span class="string">'#'</span>) {
+<a href=#815 id=815 data-nosnippet>815</a>        <span class="kw">let </span>text = line
+<a href=#816 id=816 data-nosnippet>816</a>            .trim_start()
+<a href=#817 id=817 data-nosnippet>817</a>            .strip_prefix(<span class="string">'#'</span>)
+<a href=#818 id=818 data-nosnippet>818</a>            .unwrap_or(<span class="string">""</span>)
+<a href=#819 id=819 data-nosnippet>819</a>            .trim()
+<a href=#820 id=820 data-nosnippet>820</a>            .to_string();
+<a href=#821 id=821 data-nosnippet>821</a>        <span class="kw-2">*</span>index += <span class="number">1</span>; <span class="comment">// Move past this comment line
+<a href=#822 id=822 data-nosnippet>822</a>        </span><span class="kw">return </span><span class="prelude-val">Ok</span>(<span class="prelude-val">Some</span>(MakeItem::Comment {
+<a href=#823 id=823 data-nosnippet>823</a>            text,
+<a href=#824 id=824 data-nosnippet>824</a>            span: Span::new(<span class="number">0</span>, line.len(), line_num),
+<a href=#825 id=825 data-nosnippet>825</a>        }));
+<a href=#826 id=826 data-nosnippet>826</a>    }
+<a href=#827 id=827 data-nosnippet>827</a>
+<a href=#828 id=828 data-nosnippet>828</a>    <span class="comment">// Unknown item - skip
+<a href=#829 id=829 data-nosnippet>829</a>    </span><span class="prelude-val">Ok</span>(<span class="prelude-val">None</span>)
+<a href=#830 id=830 data-nosnippet>830</a>}
+<a href=#831 id=831 data-nosnippet>831</a>
+<a href=#832 id=832 data-nosnippet>832</a><span class="doccomment">/// Parse a target rule starting at the given line index
+<a href=#833 id=833 data-nosnippet>833</a>///
+<a href=#834 id=834 data-nosnippet>834</a>/// Updates the index to point past the parsed rule.
 <a href=#835 id=835 data-nosnippet>835</a>///
-<a href=#836 id=836 data-nosnippet>836</a>/// Updates the index to point past the parsed rule.
-<a href=#837 id=837 data-nosnippet>837</a>///
-<a href=#838 id=838 data-nosnippet>838</a>/// Target rule syntax:
-<a href=#839 id=839 data-nosnippet>839</a>/// ```makefile
-<a href=#840 id=840 data-nosnippet>840</a>/// target: prerequisites
-<a href=#841 id=841 data-nosnippet>841</a>///     recipe line 1
-<a href=#842 id=842 data-nosnippet>842</a>///     recipe line 2
-<a href=#843 id=843 data-nosnippet>843</a>/// ```
-<a href=#844 id=844 data-nosnippet>844</a>///
-<a href=#845 id=845 data-nosnippet>845</a>/// Pattern rule syntax:
-<a href=#846 id=846 data-nosnippet>846</a>/// ```makefile
-<a href=#847 id=847 data-nosnippet>847</a>/// %.o: %.c
-<a href=#848 id=848 data-nosnippet>848</a>///     $(CC) -c $&lt; -o $@
-<a href=#849 id=849 data-nosnippet>849</a>/// ```
-<a href=#850 id=850 data-nosnippet>850</a></span><span class="kw">fn </span>parse_target_rule(lines: <span class="kw-2">&amp;</span>[<span class="kw-2">&amp;</span>str], index: <span class="kw-2">&amp;mut </span>usize) -&gt; <span class="prelude-ty">Result</span>&lt;MakeItem, MakeParseError&gt; {
-<a href=#851 id=851 data-nosnippet>851</a>    <span class="kw">let </span>line = lines[<span class="kw-2">*</span>index];
-<a href=#852 id=852 data-nosnippet>852</a>    <span class="kw">let </span>line_num = <span class="kw-2">*</span>index + <span class="number">1</span>;
-<a href=#853 id=853 data-nosnippet>853</a>
-<a href=#854 id=854 data-nosnippet>854</a>    <span class="comment">// Split on ':' to get target and prerequisites
-<a href=#855 id=855 data-nosnippet>855</a>    </span><span class="kw">let </span>parts: Vec&lt;<span class="kw-2">&amp;</span>str&gt; = line.splitn(<span class="number">2</span>, <span class="string">':'</span>).collect();
-<a href=#856 id=856 data-nosnippet>856</a>    <span class="kw">if </span>parts.len() != <span class="number">2 </span>{
-<a href=#857 id=857 data-nosnippet>857</a>        <span class="kw">let </span>location = SourceLocation::new(line_num).with_source_line(line.to_string());
-<a href=#858 id=858 data-nosnippet>858</a>        <span class="kw">return </span><span class="prelude-val">Err</span>(MakeParseError::InvalidTargetRule {
-<a href=#859 id=859 data-nosnippet>859</a>            location,
-<a href=#860 id=860 data-nosnippet>860</a>            found: line.trim().to_string(),
-<a href=#861 id=861 data-nosnippet>861</a>        });
-<a href=#862 id=862 data-nosnippet>862</a>    }
-<a href=#863 id=863 data-nosnippet>863</a>
-<a href=#864 id=864 data-nosnippet>864</a>    <span class="kw">let </span>name = parts[<span class="number">0</span>].trim().to_string();
-<a href=#865 id=865 data-nosnippet>865</a>    <span class="kw">if </span>name.is_empty() {
-<a href=#866 id=866 data-nosnippet>866</a>        <span class="kw">let </span>location = SourceLocation::new(line_num).with_source_line(line.to_string());
-<a href=#867 id=867 data-nosnippet>867</a>        <span class="kw">return </span><span class="prelude-val">Err</span>(MakeParseError::EmptyTargetName { location });
-<a href=#868 id=868 data-nosnippet>868</a>    }
-<a href=#869 id=869 data-nosnippet>869</a>
-<a href=#870 id=870 data-nosnippet>870</a>    <span class="comment">// Parse prerequisites (space-separated)
-<a href=#871 id=871 data-nosnippet>871</a>    </span><span class="kw">let </span>prerequisites: Vec&lt;String&gt; = parts[<span class="number">1</span>].split_whitespace().map(|s| s.to_string()).collect();
-<a href=#872 id=872 data-nosnippet>872</a>
-<a href=#873 id=873 data-nosnippet>873</a>    <span class="comment">// Parse recipe lines (tab-indented lines following the target)
-<a href=#874 id=874 data-nosnippet>874</a>    </span><span class="kw-2">*</span>index += <span class="number">1</span>;
-<a href=#875 id=875 data-nosnippet>875</a>    <span class="kw">let </span><span class="kw-2">mut </span>recipe = Vec::new();
-<a href=#876 id=876 data-nosnippet>876</a>
-<a href=#877 id=877 data-nosnippet>877</a>    <span class="kw">while </span><span class="kw-2">*</span>index &lt; lines.len() {
-<a href=#878 id=878 data-nosnippet>878</a>        <span class="kw">let </span>recipe_line = lines[<span class="kw-2">*</span>index];
-<a href=#879 id=879 data-nosnippet>879</a>
-<a href=#880 id=880 data-nosnippet>880</a>        <span class="comment">// Recipe lines must start with a tab
-<a href=#881 id=881 data-nosnippet>881</a>        </span><span class="kw">if </span>recipe_line.starts_with(<span class="string">'\t'</span>) {
-<a href=#882 id=882 data-nosnippet>882</a>            recipe.push(recipe_line.trim().to_string());
-<a href=#883 id=883 data-nosnippet>883</a>            <span class="kw-2">*</span>index += <span class="number">1</span>;
-<a href=#884 id=884 data-nosnippet>884</a>        } <span class="kw">else if </span>recipe_line.trim().is_empty() {
-<a href=#885 id=885 data-nosnippet>885</a>            <span class="comment">// Empty line - could be end of recipe or just whitespace
-<a href=#886 id=886 data-nosnippet>886</a>            </span><span class="kw-2">*</span>index += <span class="number">1</span>;
-<a href=#887 id=887 data-nosnippet>887</a>            <span class="comment">// Check if next line is also recipe
-<a href=#888 id=888 data-nosnippet>888</a>            </span><span class="kw">if </span><span class="kw-2">*</span>index &lt; lines.len() &amp;&amp; lines[<span class="kw-2">*</span>index].starts_with(<span class="string">'\t'</span>) {
-<a href=#889 id=889 data-nosnippet>889</a>                <span class="kw">continue</span>;
-<a href=#890 id=890 data-nosnippet>890</a>            } <span class="kw">else </span>{
-<a href=#891 id=891 data-nosnippet>891</a>                <span class="kw">break</span>;
-<a href=#892 id=892 data-nosnippet>892</a>            }
-<a href=#893 id=893 data-nosnippet>893</a>        } <span class="kw">else </span>{
-<a href=#894 id=894 data-nosnippet>894</a>            <span class="comment">// Non-tab-indented, non-empty line - end of recipe
-<a href=#895 id=895 data-nosnippet>895</a>            </span><span class="kw">break</span>;
-<a href=#896 id=896 data-nosnippet>896</a>        }
-<a href=#897 id=897 data-nosnippet>897</a>    }
-<a href=#898 id=898 data-nosnippet>898</a>
-<a href=#899 id=899 data-nosnippet>899</a>    <span class="comment">// Check if this is a pattern rule (target contains %)
-<a href=#900 id=900 data-nosnippet>900</a>    </span><span class="kw">if </span>name.contains(<span class="string">'%'</span>) {
-<a href=#901 id=901 data-nosnippet>901</a>        <span class="prelude-val">Ok</span>(MakeItem::PatternRule {
-<a href=#902 id=902 data-nosnippet>902</a>            target_pattern: name,
-<a href=#903 id=903 data-nosnippet>903</a>            prereq_patterns: prerequisites,
-<a href=#904 id=904 data-nosnippet>904</a>            recipe,
-<a href=#905 id=905 data-nosnippet>905</a>            span: Span::new(<span class="number">0</span>, line.len(), line_num),
-<a href=#906 id=906 data-nosnippet>906</a>        })
-<a href=#907 id=907 data-nosnippet>907</a>    } <span class="kw">else </span>{
-<a href=#908 id=908 data-nosnippet>908</a>        <span class="prelude-val">Ok</span>(MakeItem::Target {
-<a href=#909 id=909 data-nosnippet>909</a>            name,
-<a href=#910 id=910 data-nosnippet>910</a>            prerequisites,
-<a href=#911 id=911 data-nosnippet>911</a>            recipe,
-<a href=#912 id=912 data-nosnippet>912</a>            phony: <span class="bool-val">false</span>, <span class="comment">// Will be detected in semantic analysis
-<a href=#913 id=913 data-nosnippet>913</a>            </span>span: Span::new(<span class="number">0</span>, line.len(), line_num),
-<a href=#914 id=914 data-nosnippet>914</a>        })
-<a href=#915 id=915 data-nosnippet>915</a>    }
-<a href=#916 id=916 data-nosnippet>916</a>}
-<a href=#917 id=917 data-nosnippet>917</a>
-<a href=#918 id=918 data-nosnippet>918</a><span class="attr">#[cfg(test)]
-<a href=#919 id=919 data-nosnippet>919</a></span><span class="kw">mod </span>tests {
-<a href=#920 id=920 data-nosnippet>920</a>    <span class="kw">use super</span>::<span class="kw-2">*</span>;
-<a href=#921 id=921 data-nosnippet>921</a>
-<a href=#922 id=922 data-nosnippet>922</a>    <span class="attr">#[test]
-<a href=#923 id=923 data-nosnippet>923</a>    </span><span class="kw">fn </span>test_parse_empty_makefile() {
-<a href=#924 id=924 data-nosnippet>924</a>        <span class="kw">let </span>result = parse_makefile(<span class="string">""</span>);
-<a href=#925 id=925 data-nosnippet>925</a>        <span class="macro">assert!</span>(result.is_ok());
-<a href=#926 id=926 data-nosnippet>926</a>        <span class="kw">let </span>ast = result.unwrap();
-<a href=#927 id=927 data-nosnippet>927</a>        <span class="macro">assert_eq!</span>(ast.items.len(), <span class="number">0</span>);
-<a href=#928 id=928 data-nosnippet>928</a>    }
-<a href=#929 id=929 data-nosnippet>929</a>
-<a href=#930 id=930 data-nosnippet>930</a>    <span class="attr">#[test]
-<a href=#931 id=931 data-nosnippet>931</a>    </span><span class="kw">fn </span>test_parse_target_with_recipe() {
-<a href=#932 id=932 data-nosnippet>932</a>        <span class="kw">let </span>makefile = <span class="string">"build:\n\tcargo build"</span>;
-<a href=#933 id=933 data-nosnippet>933</a>        <span class="kw">let </span>result = parse_makefile(makefile);
-<a href=#934 id=934 data-nosnippet>934</a>        <span class="macro">assert!</span>(result.is_ok());
-<a href=#935 id=935 data-nosnippet>935</a>
-<a href=#936 id=936 data-nosnippet>936</a>        <span class="kw">let </span>ast = result.unwrap();
-<a href=#937 id=937 data-nosnippet>937</a>        <span class="macro">assert_eq!</span>(ast.items.len(), <span class="number">1</span>);
-<a href=#938 id=938 data-nosnippet>938</a>
-<a href=#939 id=939 data-nosnippet>939</a>        <span class="kw">match </span><span class="kw-2">&amp;</span>ast.items[<span class="number">0</span>] {
-<a href=#940 id=940 data-nosnippet>940</a>            MakeItem::Target { name, recipe, .. } =&gt; {
-<a href=#941 id=941 data-nosnippet>941</a>                <span class="macro">assert_eq!</span>(name, <span class="string">"build"</span>);
-<a href=#942 id=942 data-nosnippet>942</a>                <span class="macro">assert_eq!</span>(recipe.len(), <span class="number">1</span>);
-<a href=#943 id=943 data-nosnippet>943</a>                <span class="macro">assert_eq!</span>(recipe[<span class="number">0</span>], <span class="string">"cargo build"</span>);
-<a href=#944 id=944 data-nosnippet>944</a>            }
-<a href=#945 id=945 data-nosnippet>945</a>            <span class="kw">_ </span>=&gt; <span class="macro">panic!</span>(<span class="string">"Expected Target"</span>),
-<a href=#946 id=946 data-nosnippet>946</a>        }
-<a href=#947 id=947 data-nosnippet>947</a>    }
-<a href=#948 id=948 data-nosnippet>948</a>
-<a href=#949 id=949 data-nosnippet>949</a>    <span class="attr">#[test]
-<a href=#950 id=950 data-nosnippet>950</a>    </span><span class="kw">fn </span>test_parse_target_no_prerequisites() {
-<a href=#951 id=951 data-nosnippet>951</a>        <span class="kw">let </span>makefile = <span class="string">"test:\n\tcargo test"</span>;
-<a href=#952 id=952 data-nosnippet>952</a>        <span class="kw">let </span>result = parse_makefile(makefile);
-<a href=#953 id=953 data-nosnippet>953</a>        <span class="macro">assert!</span>(result.is_ok());
-<a href=#954 id=954 data-nosnippet>954</a>
-<a href=#955 id=955 data-nosnippet>955</a>        <span class="kw">let </span>ast = result.unwrap();
-<a href=#956 id=956 data-nosnippet>956</a>        <span class="kw">match </span><span class="kw-2">&amp;</span>ast.items[<span class="number">0</span>] {
-<a href=#957 id=957 data-nosnippet>957</a>            MakeItem::Target { prerequisites, .. } =&gt; {
-<a href=#958 id=958 data-nosnippet>958</a>                <span class="macro">assert_eq!</span>(prerequisites.len(), <span class="number">0</span>);
-<a href=#959 id=959 data-nosnippet>959</a>            }
-<a href=#960 id=960 data-nosnippet>960</a>            <span class="kw">_ </span>=&gt; <span class="macro">panic!</span>(<span class="string">"Expected Target"</span>),
-<a href=#961 id=961 data-nosnippet>961</a>        }
-<a href=#962 id=962 data-nosnippet>962</a>    }
-<a href=#963 id=963 data-nosnippet>963</a>
-<a href=#964 id=964 data-nosnippet>964</a>    <span class="attr">#[test]
-<a href=#965 id=965 data-nosnippet>965</a>    </span><span class="kw">fn </span>test_parse_multiple_targets() {
-<a href=#966 id=966 data-nosnippet>966</a>        <span class="kw">let </span>makefile = <span class="string">"build:\n\tcargo build\n\ntest:\n\tcargo test"</span>;
-<a href=#967 id=967 data-nosnippet>967</a>        <span class="kw">let </span>result = parse_makefile(makefile);
-<a href=#968 id=968 data-nosnippet>968</a>        <span class="macro">assert!</span>(result.is_ok());
-<a href=#969 id=969 data-nosnippet>969</a>
-<a href=#970 id=970 data-nosnippet>970</a>        <span class="kw">let </span>ast = result.unwrap();
-<a href=#971 id=971 data-nosnippet>971</a>        <span class="macro">assert_eq!</span>(ast.items.len(), <span class="number">2</span>);
-<a href=#972 id=972 data-nosnippet>972</a>    }
-<a href=#973 id=973 data-nosnippet>973</a>}</code></pre></div></section></main></body></html>
+<a href=#836 id=836 data-nosnippet>836</a>/// Target rule syntax:
+<a href=#837 id=837 data-nosnippet>837</a>/// ```makefile
+<a href=#838 id=838 data-nosnippet>838</a>/// target: prerequisites
+<a href=#839 id=839 data-nosnippet>839</a>///     recipe line 1
+<a href=#840 id=840 data-nosnippet>840</a>///     recipe line 2
+<a href=#841 id=841 data-nosnippet>841</a>/// ```
+<a href=#842 id=842 data-nosnippet>842</a>///
+<a href=#843 id=843 data-nosnippet>843</a>/// Pattern rule syntax:
+<a href=#844 id=844 data-nosnippet>844</a>/// ```makefile
+<a href=#845 id=845 data-nosnippet>845</a>/// %.o: %.c
+<a href=#846 id=846 data-nosnippet>846</a>///     $(CC) -c $&lt; -o $@
+<a href=#847 id=847 data-nosnippet>847</a>/// ```
+<a href=#848 id=848 data-nosnippet>848</a></span><span class="kw">fn </span>parse_target_rule(lines: <span class="kw-2">&amp;</span>[<span class="kw-2">&amp;</span>str], index: <span class="kw-2">&amp;mut </span>usize) -&gt; <span class="prelude-ty">Result</span>&lt;MakeItem, MakeParseError&gt; {
+<a href=#849 id=849 data-nosnippet>849</a>    <span class="kw">let </span>line = lines[<span class="kw-2">*</span>index];
+<a href=#850 id=850 data-nosnippet>850</a>    <span class="kw">let </span>line_num = <span class="kw-2">*</span>index + <span class="number">1</span>;
+<a href=#851 id=851 data-nosnippet>851</a>
+<a href=#852 id=852 data-nosnippet>852</a>    <span class="comment">// Split on ':' to get target and prerequisites
+<a href=#853 id=853 data-nosnippet>853</a>    </span><span class="kw">let </span>parts: Vec&lt;<span class="kw-2">&amp;</span>str&gt; = line.splitn(<span class="number">2</span>, <span class="string">':'</span>).collect();
+<a href=#854 id=854 data-nosnippet>854</a>    <span class="kw">if </span>parts.len() != <span class="number">2 </span>{
+<a href=#855 id=855 data-nosnippet>855</a>        <span class="kw">let </span>location = SourceLocation::new(line_num).with_source_line(line.to_string());
+<a href=#856 id=856 data-nosnippet>856</a>        <span class="kw">return </span><span class="prelude-val">Err</span>(MakeParseError::InvalidTargetRule {
+<a href=#857 id=857 data-nosnippet>857</a>            location,
+<a href=#858 id=858 data-nosnippet>858</a>            found: line.trim().to_string(),
+<a href=#859 id=859 data-nosnippet>859</a>        });
+<a href=#860 id=860 data-nosnippet>860</a>    }
+<a href=#861 id=861 data-nosnippet>861</a>
+<a href=#862 id=862 data-nosnippet>862</a>    <span class="kw">let </span>name = parts[<span class="number">0</span>].trim().to_string();
+<a href=#863 id=863 data-nosnippet>863</a>    <span class="kw">if </span>name.is_empty() {
+<a href=#864 id=864 data-nosnippet>864</a>        <span class="kw">let </span>location = SourceLocation::new(line_num).with_source_line(line.to_string());
+<a href=#865 id=865 data-nosnippet>865</a>        <span class="kw">return </span><span class="prelude-val">Err</span>(MakeParseError::EmptyTargetName { location });
+<a href=#866 id=866 data-nosnippet>866</a>    }
+<a href=#867 id=867 data-nosnippet>867</a>
+<a href=#868 id=868 data-nosnippet>868</a>    <span class="comment">// Parse prerequisites (space-separated)
+<a href=#869 id=869 data-nosnippet>869</a>    </span><span class="kw">let </span>prerequisites: Vec&lt;String&gt; = parts[<span class="number">1</span>].split_whitespace().map(|s| s.to_string()).collect();
+<a href=#870 id=870 data-nosnippet>870</a>
+<a href=#871 id=871 data-nosnippet>871</a>    <span class="comment">// Parse recipe lines (tab-indented lines following the target)
+<a href=#872 id=872 data-nosnippet>872</a>    </span><span class="kw-2">*</span>index += <span class="number">1</span>;
+<a href=#873 id=873 data-nosnippet>873</a>    <span class="kw">let </span><span class="kw-2">mut </span>recipe = Vec::new();
+<a href=#874 id=874 data-nosnippet>874</a>
+<a href=#875 id=875 data-nosnippet>875</a>    <span class="kw">while </span><span class="kw-2">*</span>index &lt; lines.len() {
+<a href=#876 id=876 data-nosnippet>876</a>        <span class="kw">let </span>recipe_line = lines[<span class="kw-2">*</span>index];
+<a href=#877 id=877 data-nosnippet>877</a>
+<a href=#878 id=878 data-nosnippet>878</a>        <span class="comment">// Recipe lines must start with a tab
+<a href=#879 id=879 data-nosnippet>879</a>        </span><span class="kw">if </span>recipe_line.starts_with(<span class="string">'\t'</span>) {
+<a href=#880 id=880 data-nosnippet>880</a>            recipe.push(recipe_line.trim().to_string());
+<a href=#881 id=881 data-nosnippet>881</a>            <span class="kw-2">*</span>index += <span class="number">1</span>;
+<a href=#882 id=882 data-nosnippet>882</a>        } <span class="kw">else if </span>recipe_line.trim().is_empty() {
+<a href=#883 id=883 data-nosnippet>883</a>            <span class="comment">// Empty line - could be end of recipe or just whitespace
+<a href=#884 id=884 data-nosnippet>884</a>            </span><span class="kw-2">*</span>index += <span class="number">1</span>;
+<a href=#885 id=885 data-nosnippet>885</a>            <span class="comment">// Check if next line is also recipe
+<a href=#886 id=886 data-nosnippet>886</a>            </span><span class="kw">if </span><span class="kw-2">*</span>index &lt; lines.len() &amp;&amp; lines[<span class="kw-2">*</span>index].starts_with(<span class="string">'\t'</span>) {
+<a href=#887 id=887 data-nosnippet>887</a>                <span class="kw">continue</span>;
+<a href=#888 id=888 data-nosnippet>888</a>            } <span class="kw">else </span>{
+<a href=#889 id=889 data-nosnippet>889</a>                <span class="kw">break</span>;
+<a href=#890 id=890 data-nosnippet>890</a>            }
+<a href=#891 id=891 data-nosnippet>891</a>        } <span class="kw">else </span>{
+<a href=#892 id=892 data-nosnippet>892</a>            <span class="comment">// Non-tab-indented, non-empty line - end of recipe
+<a href=#893 id=893 data-nosnippet>893</a>            </span><span class="kw">break</span>;
+<a href=#894 id=894 data-nosnippet>894</a>        }
+<a href=#895 id=895 data-nosnippet>895</a>    }
+<a href=#896 id=896 data-nosnippet>896</a>
+<a href=#897 id=897 data-nosnippet>897</a>    <span class="comment">// Check if this is a pattern rule (target contains %)
+<a href=#898 id=898 data-nosnippet>898</a>    </span><span class="kw">if </span>name.contains(<span class="string">'%'</span>) {
+<a href=#899 id=899 data-nosnippet>899</a>        <span class="prelude-val">Ok</span>(MakeItem::PatternRule {
+<a href=#900 id=900 data-nosnippet>900</a>            target_pattern: name,
+<a href=#901 id=901 data-nosnippet>901</a>            prereq_patterns: prerequisites,
+<a href=#902 id=902 data-nosnippet>902</a>            recipe,
+<a href=#903 id=903 data-nosnippet>903</a>            span: Span::new(<span class="number">0</span>, line.len(), line_num),
+<a href=#904 id=904 data-nosnippet>904</a>        })
+<a href=#905 id=905 data-nosnippet>905</a>    } <span class="kw">else </span>{
+<a href=#906 id=906 data-nosnippet>906</a>        <span class="prelude-val">Ok</span>(MakeItem::Target {
+<a href=#907 id=907 data-nosnippet>907</a>            name,
+<a href=#908 id=908 data-nosnippet>908</a>            prerequisites,
+<a href=#909 id=909 data-nosnippet>909</a>            recipe,
+<a href=#910 id=910 data-nosnippet>910</a>            phony: <span class="bool-val">false</span>, <span class="comment">// Will be detected in semantic analysis
+<a href=#911 id=911 data-nosnippet>911</a>            </span>span: Span::new(<span class="number">0</span>, line.len(), line_num),
+<a href=#912 id=912 data-nosnippet>912</a>        })
+<a href=#913 id=913 data-nosnippet>913</a>    }
+<a href=#914 id=914 data-nosnippet>914</a>}
+<a href=#915 id=915 data-nosnippet>915</a>
+<a href=#916 id=916 data-nosnippet>916</a><span class="attr">#[cfg(test)]
+<a href=#917 id=917 data-nosnippet>917</a></span><span class="kw">mod </span>tests {
+<a href=#918 id=918 data-nosnippet>918</a>    <span class="kw">use super</span>::<span class="kw-2">*</span>;
+<a href=#919 id=919 data-nosnippet>919</a>
+<a href=#920 id=920 data-nosnippet>920</a>    <span class="attr">#[test]
+<a href=#921 id=921 data-nosnippet>921</a>    </span><span class="kw">fn </span>test_parse_empty_makefile() {
+<a href=#922 id=922 data-nosnippet>922</a>        <span class="kw">let </span>result = parse_makefile(<span class="string">""</span>);
+<a href=#923 id=923 data-nosnippet>923</a>        <span class="macro">assert!</span>(result.is_ok());
+<a href=#924 id=924 data-nosnippet>924</a>        <span class="kw">let </span>ast = result.unwrap();
+<a href=#925 id=925 data-nosnippet>925</a>        <span class="macro">assert_eq!</span>(ast.items.len(), <span class="number">0</span>);
+<a href=#926 id=926 data-nosnippet>926</a>    }
+<a href=#927 id=927 data-nosnippet>927</a>
+<a href=#928 id=928 data-nosnippet>928</a>    <span class="attr">#[test]
+<a href=#929 id=929 data-nosnippet>929</a>    </span><span class="kw">fn </span>test_parse_target_with_recipe() {
+<a href=#930 id=930 data-nosnippet>930</a>        <span class="kw">let </span>makefile = <span class="string">"build:\n\tcargo build"</span>;
+<a href=#931 id=931 data-nosnippet>931</a>        <span class="kw">let </span>result = parse_makefile(makefile);
+<a href=#932 id=932 data-nosnippet>932</a>        <span class="macro">assert!</span>(result.is_ok());
+<a href=#933 id=933 data-nosnippet>933</a>
+<a href=#934 id=934 data-nosnippet>934</a>        <span class="kw">let </span>ast = result.unwrap();
+<a href=#935 id=935 data-nosnippet>935</a>        <span class="macro">assert_eq!</span>(ast.items.len(), <span class="number">1</span>);
+<a href=#936 id=936 data-nosnippet>936</a>
+<a href=#937 id=937 data-nosnippet>937</a>        <span class="kw">match </span><span class="kw-2">&amp;</span>ast.items[<span class="number">0</span>] {
+<a href=#938 id=938 data-nosnippet>938</a>            MakeItem::Target { name, recipe, .. } =&gt; {
+<a href=#939 id=939 data-nosnippet>939</a>                <span class="macro">assert_eq!</span>(name, <span class="string">"build"</span>);
+<a href=#940 id=940 data-nosnippet>940</a>                <span class="macro">assert_eq!</span>(recipe.len(), <span class="number">1</span>);
+<a href=#941 id=941 data-nosnippet>941</a>                <span class="macro">assert_eq!</span>(recipe[<span class="number">0</span>], <span class="string">"cargo build"</span>);
+<a href=#942 id=942 data-nosnippet>942</a>            }
+<a href=#943 id=943 data-nosnippet>943</a>            <span class="kw">_ </span>=&gt; <span class="macro">panic!</span>(<span class="string">"Expected Target"</span>),
+<a href=#944 id=944 data-nosnippet>944</a>        }
+<a href=#945 id=945 data-nosnippet>945</a>    }
+<a href=#946 id=946 data-nosnippet>946</a>
+<a href=#947 id=947 data-nosnippet>947</a>    <span class="attr">#[test]
+<a href=#948 id=948 data-nosnippet>948</a>    </span><span class="kw">fn </span>test_parse_target_no_prerequisites() {
+<a href=#949 id=949 data-nosnippet>949</a>        <span class="kw">let </span>makefile = <span class="string">"test:\n\tcargo test"</span>;
+<a href=#950 id=950 data-nosnippet>950</a>        <span class="kw">let </span>result = parse_makefile(makefile);
+<a href=#951 id=951 data-nosnippet>951</a>        <span class="macro">assert!</span>(result.is_ok());
+<a href=#952 id=952 data-nosnippet>952</a>
+<a href=#953 id=953 data-nosnippet>953</a>        <span class="kw">let </span>ast = result.unwrap();
+<a href=#954 id=954 data-nosnippet>954</a>        <span class="kw">match </span><span class="kw-2">&amp;</span>ast.items[<span class="number">0</span>] {
+<a href=#955 id=955 data-nosnippet>955</a>            MakeItem::Target { prerequisites, .. } =&gt; {
+<a href=#956 id=956 data-nosnippet>956</a>                <span class="macro">assert_eq!</span>(prerequisites.len(), <span class="number">0</span>);
+<a href=#957 id=957 data-nosnippet>957</a>            }
+<a href=#958 id=958 data-nosnippet>958</a>            <span class="kw">_ </span>=&gt; <span class="macro">panic!</span>(<span class="string">"Expected Target"</span>),
+<a href=#959 id=959 data-nosnippet>959</a>        }
+<a href=#960 id=960 data-nosnippet>960</a>    }
+<a href=#961 id=961 data-nosnippet>961</a>
+<a href=#962 id=962 data-nosnippet>962</a>    <span class="attr">#[test]
+<a href=#963 id=963 data-nosnippet>963</a>    </span><span class="kw">fn </span>test_parse_multiple_targets() {
+<a href=#964 id=964 data-nosnippet>964</a>        <span class="kw">let </span>makefile = <span class="string">"build:\n\tcargo build\n\ntest:\n\tcargo test"</span>;
+<a href=#965 id=965 data-nosnippet>965</a>        <span class="kw">let </span>result = parse_makefile(makefile);
+<a href=#966 id=966 data-nosnippet>966</a>        <span class="macro">assert!</span>(result.is_ok());
+<a href=#967 id=967 data-nosnippet>967</a>
+<a href=#968 id=968 data-nosnippet>968</a>        <span class="kw">let </span>ast = result.unwrap();
+<a href=#969 id=969 data-nosnippet>969</a>        <span class="macro">assert_eq!</span>(ast.items.len(), <span class="number">2</span>);
+<a href=#970 id=970 data-nosnippet>970</a>    }
+<a href=#971 id=971 data-nosnippet>971</a>}</code></pre></div></section></main></body></html>

@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"fn":["show_commands_help","show_debug_help","show_explain_help","show_general_help","show_help","show_history_help","show_lint_help","show_modes_help","show_parse_help","show_purify_help","show_shortcuts_help","show_variables_help"]};

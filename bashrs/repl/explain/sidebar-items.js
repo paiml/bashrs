@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"fn":["explain_bash","explain_control_flow","explain_parameter_expansion","explain_redirection"],"struct":["Explanation"]};

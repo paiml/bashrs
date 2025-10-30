@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"fn":["calculate_grade","grade_thresholds"],"struct":["ScoringWeights"]};

@@ -3003,13 +3003,8 @@
 <a href=#3003 id=3003 data-nosnippet>3003</a>        </span><span class="kw">let </span>result = purify_makefile(<span class="kw-2">&amp;</span>ast);
 <a href=#3004 id=3004 data-nosnippet>3004</a>
 <a href=#3005 id=3005 data-nosnippet>3005</a>        <span class="comment">// ASSERT: Should still work (backward compatibility)
-<a href=#3006 id=3006 data-nosnippet>3006</a>        </span><span class="macro">assert!</span>(
-<a href=#3007 id=3007 data-nosnippet>3007</a>            result.transformations_applied &gt;= <span class="number">0</span>,
-<a href=#3008 id=3008 data-nosnippet>3008</a>            <span class="string">"Purification should handle simple Makefiles"
-<a href=#3009 id=3009 data-nosnippet>3009</a>        </span>);
-<a href=#3010 id=3010 data-nosnippet>3010</a>        <span class="macro">assert!</span>(
-<a href=#3011 id=3011 data-nosnippet>3011</a>            result.manual_fixes_needed &gt;= <span class="number">0</span>,
-<a href=#3012 id=3012 data-nosnippet>3012</a>            <span class="string">"Should track manual fixes needed"
-<a href=#3013 id=3013 data-nosnippet>3013</a>        </span>);
-<a href=#3014 id=3014 data-nosnippet>3014</a>    }
-<a href=#3015 id=3015 data-nosnippet>3015</a>}</code></pre></div></section></main></body></html>
+<a href=#3006 id=3006 data-nosnippet>3006</a>        // Purification succeeded - result exists
+<a href=#3007 id=3007 data-nosnippet>3007</a>        </span><span class="kw">let _ </span>= result.transformations_applied;
+<a href=#3008 id=3008 data-nosnippet>3008</a>        <span class="kw">let _ </span>= result.manual_fixes_needed;
+<a href=#3009 id=3009 data-nosnippet>3009</a>    }
+<a href=#3010 id=3010 data-nosnippet>3010</a>}</code></pre></div></section></main></body></html>

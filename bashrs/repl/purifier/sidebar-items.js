@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"fn":["format_purification_report","purify_bash"]};
+window.SIDEBAR_ITEMS = {"fn":["explain_purification_changes","format_purification_report","purify_bash"]};

@@ -6,18 +6,34 @@
 <a href=#6 id=6 data-nosnippet>6</a>// Sprint: REPL-003 (Basic REPL Loop)
 <a href=#7 id=7 data-nosnippet>7</a>// Status: Phase 1 - RED-GREEN-REFACTOR-PROPERTY-MUTATION
 <a href=#8 id=8 data-nosnippet>8</a>
-<a href=#9 id=9 data-nosnippet>9</a></span><span class="kw">pub mod </span>config;
-<a href=#10 id=10 data-nosnippet>10</a><span class="kw">pub mod </span>state;
-<a href=#11 id=11 data-nosnippet>11</a><span class="kw">pub mod </span>modes;
-<a href=#12 id=12 data-nosnippet>12</a><span class="kw">pub mod </span>parser;
-<a href=#13 id=13 data-nosnippet>13</a><span class="kw">pub mod </span>purifier;
-<a href=#14 id=14 data-nosnippet>14</a><span class="kw">pub mod </span>linter;
-<a href=#15 id=15 data-nosnippet>15</a><span class="kw">mod </span>r#loop;
-<a href=#16 id=16 data-nosnippet>16</a>
-<a href=#17 id=17 data-nosnippet>17</a><span class="kw">pub use </span>config::ReplConfig;
-<a href=#18 id=18 data-nosnippet>18</a><span class="kw">pub use </span>state::ReplState;
-<a href=#19 id=19 data-nosnippet>19</a><span class="kw">pub use </span>modes::ReplMode;
-<a href=#20 id=20 data-nosnippet>20</a><span class="kw">pub use </span>parser::{parse_bash, format_parse_error};
-<a href=#21 id=21 data-nosnippet>21</a><span class="kw">pub use </span>purifier::{purify_bash, format_purification_report};
-<a href=#22 id=22 data-nosnippet>22</a><span class="kw">pub use </span>linter::{lint_bash, format_lint_results};
-<a href=#23 id=23 data-nosnippet>23</a><span class="kw">pub use </span>r#loop::run_repl;</code></pre></div></section></main></body></html>
+<a href=#9 id=9 data-nosnippet>9</a></span><span class="kw">pub mod </span>ast_display;
+<a href=#10 id=10 data-nosnippet>10</a><span class="kw">pub mod </span>breakpoint;
+<a href=#11 id=11 data-nosnippet>11</a><span class="kw">pub mod </span>completion;
+<a href=#12 id=12 data-nosnippet>12</a><span class="kw">pub mod </span>config;
+<a href=#13 id=13 data-nosnippet>13</a><span class="kw">pub mod </span>debugger;
+<a href=#14 id=14 data-nosnippet>14</a><span class="kw">pub mod </span>diff;
+<a href=#15 id=15 data-nosnippet>15</a><span class="kw">pub mod </span>executor;
+<a href=#16 id=16 data-nosnippet>16</a><span class="kw">pub mod </span>explain;
+<a href=#17 id=17 data-nosnippet>17</a><span class="kw">pub mod </span>help;
+<a href=#18 id=18 data-nosnippet>18</a><span class="kw">pub mod </span>linter;
+<a href=#19 id=19 data-nosnippet>19</a><span class="kw">pub mod </span>loader;
+<a href=#20 id=20 data-nosnippet>20</a><span class="kw">mod </span>r#loop;
+<a href=#21 id=21 data-nosnippet>21</a><span class="kw">pub mod </span>modes;
+<a href=#22 id=22 data-nosnippet>22</a><span class="kw">pub mod </span>multiline;
+<a href=#23 id=23 data-nosnippet>23</a><span class="kw">pub mod </span>parser;
+<a href=#24 id=24 data-nosnippet>24</a><span class="kw">pub mod </span>purifier;
+<a href=#25 id=25 data-nosnippet>25</a><span class="kw">pub mod </span>state;
+<a href=#26 id=26 data-nosnippet>26</a><span class="kw">pub mod </span>variables;
+<a href=#27 id=27 data-nosnippet>27</a>
+<a href=#28 id=28 data-nosnippet>28</a><span class="kw">pub use </span>ast_display::format_ast;
+<a href=#29 id=29 data-nosnippet>29</a><span class="kw">pub use </span>breakpoint::{Breakpoint, BreakpointManager};
+<a href=#30 id=30 data-nosnippet>30</a><span class="kw">pub use </span>config::ReplConfig;
+<a href=#31 id=31 data-nosnippet>31</a><span class="kw">pub use </span>debugger::{ContinueResult, DebugSession, LineComparison, StackFrame};
+<a href=#32 id=32 data-nosnippet>32</a><span class="kw">pub use </span>diff::display_diff;
+<a href=#33 id=33 data-nosnippet>33</a><span class="kw">pub use </span>explain::{explain_bash, Explanation};
+<a href=#34 id=34 data-nosnippet>34</a><span class="kw">pub use </span>linter::{format_lint_results, lint_bash};
+<a href=#35 id=35 data-nosnippet>35</a><span class="kw">pub use </span>modes::ReplMode;
+<a href=#36 id=36 data-nosnippet>36</a><span class="kw">pub use </span>parser::{format_parse_error, parse_bash};
+<a href=#37 id=37 data-nosnippet>37</a><span class="kw">pub use </span>purifier::{explain_purification_changes, format_purification_report, purify_bash};
+<a href=#38 id=38 data-nosnippet>38</a><span class="kw">pub use </span>r#loop::run_repl;
+<a href=#39 id=39 data-nosnippet>39</a><span class="kw">pub use </span>state::ReplState;</code></pre></div></section></main></body></html>

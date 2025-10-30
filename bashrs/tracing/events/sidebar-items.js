@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":["AstNodePatch","GenerateEvent","LintEvent","ParseEvent","PurifyEvent","Severity","TraceEvent"],"struct":["Span","Violation"],"type":["AstNodeId","RuleId","TransformationId"]};
