@@ -153,7 +153,7 @@ impl Breakpoint {
 /// Breakpoint manager - manages collection of breakpoints
 ///
 /// Handles setting, removing, and checking breakpoints during script execution.
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone)]
 pub struct BreakpointManager {
     breakpoints: HashSet<usize>,
 }
