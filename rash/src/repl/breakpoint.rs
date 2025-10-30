@@ -627,6 +627,57 @@ mod tests {
         );
     }
 
+    /// Test: REPL-007-MUTATION-004 - Less than (<) operator boundary conditions
+    ///
+    /// This test catches the mutant at line 277: replace `<` with `<=`
+    ///
+    /// RED phase: Write comprehensive boundary test for < operator
+    #[test]
+    fn test_REPL_007_MUTATION_004_less_than_boundary() {
+        let mut vars = HashMap::new();
+
+        // Test case 1: < with value LESS than threshold (should break)
+        vars.insert("count".to_string(), "3".to_string());
+        let bp_lt = Breakpoint::with_condition(5, "$count < 5".to_string());
+        assert!(
+            bp_lt.should_break(&vars),
+            "Should break when count (3) < 5 (less than threshold)"
+        );
+
+        // Test case 2: < with value EQUAL to threshold (should NOT break)
+        // This is the KEY boundary test that catches the mutant `<` → `<=`
+        vars.insert("count".to_string(), "5".to_string());
+        let bp_eq = Breakpoint::with_condition(5, "$count < 5".to_string());
+        assert!(
+            !bp_eq.should_break(&vars),
+            "Should NOT break when count (5) < 5 (EQUAL to threshold) - catches `<` → `<=` mutant"
+        );
+
+        // Test case 3: < with value GREATER than threshold (should NOT break)
+        vars.insert("count".to_string(), "10".to_string());
+        let bp_gt = Breakpoint::with_condition(5, "$count < 5".to_string());
+        assert!(
+            !bp_gt.should_break(&vars),
+            "Should NOT break when count (10) < 5 (greater than threshold)"
+        );
+
+        // Test case 4: < with multi-digit values (tests value parsing)
+        vars.insert("count".to_string(), "50".to_string());
+        let bp_large = Breakpoint::with_condition(5, "$count < 99".to_string());
+        assert!(
+            bp_large.should_break(&vars),
+            "Should break when count (50) < 99 (multi-digit value parsing)"
+        );
+
+        // Test case 5: < boundary at zero
+        vars.insert("count".to_string(), "0".to_string());
+        let bp_zero = Breakpoint::with_condition(5, "$count < 0".to_string());
+        assert!(
+            !bp_zero.should_break(&vars),
+            "Should NOT break when count (0) < 0 (zero boundary - equal case)"
+        );
+    }
+
     /// Test: REPL-007-002-002 - Conditional breakpoint evaluates to false
     #[test]
     fn test_REPL_007_002_conditional_false() {
