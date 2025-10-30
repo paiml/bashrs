@@ -12,6 +12,28 @@
 use crate::repl::{Breakpoint, BreakpointManager};
 use std::collections::HashMap;
 
+/// A stack frame in the call stack
+///
+/// Represents a function call or execution context with its name
+/// and the line number where it was called from.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct StackFrame {
+    /// Name of the function or context
+    pub name: String,
+    /// Line number where this frame was called (1-indexed)
+    pub line: usize,
+}
+
+impl StackFrame {
+    /// Create a new stack frame
+    pub fn new(name: impl Into<String>, line: usize) -> Self {
+        Self {
+            name: name.into(),
+            line,
+        }
+    }
+}
+
 /// Debug session for step-by-step execution of bash scripts
 ///
 /// Tracks the current execution state including:
@@ -33,6 +55,9 @@ pub struct DebugSession {
     /// Session variables
     variables: HashMap<String, String>,
 
+    /// Call stack for tracking function calls
+    call_stack: Vec<StackFrame>,
+
     /// Whether execution is complete
     finished: bool,
 }
@@ -42,11 +67,16 @@ impl DebugSession {
     pub fn new(script: &str) -> Self {
         let lines: Vec<String> = script.lines().map(|l| l.to_string()).collect();
 
+        // Initialize call stack with main frame
+        let mut call_stack = Vec::new();
+        call_stack.push(StackFrame::new("<main>", 0));
+
         Self {
             lines,
             current_line: 0,
             breakpoints: BreakpointManager::new(),
             variables: HashMap::new(),
+            call_stack,
             finished: false,
         }
     }
@@ -252,6 +282,42 @@ impl DebugSession {
             .collect();
         filtered.sort_by(|(k1, _), (k2, _)| k1.cmp(k2));
         filtered
+    }
+
+    // === Call Stack Methods (REPL-009-003) ===
+
+    /// Push a new frame onto the call stack
+    ///
+    /// Adds a new execution context (function call) to the call stack.
+    ///
+    /// # Arguments
+    /// * `name` - Name of the function or context
+    /// * `line` - Line number where this frame was called (1-indexed)
+    pub fn push_frame(&mut self, name: impl Into<String>, line: usize) {
+        self.call_stack.push(StackFrame::new(name, line));
+    }
+
+    /// Pop the most recent frame from the call stack
+    ///
+    /// Removes the top frame from the call stack (when returning from a function).
+    /// Does nothing if only the main frame remains.
+    pub fn pop_frame(&mut self) {
+        // Keep at least the main frame
+        if self.call_stack.len() > 1 {
+            self.call_stack.pop();
+        }
+    }
+
+    /// Get the current call stack
+    ///
+    /// Returns a reference to the call stack showing all active frames.
+    /// The first frame is always <main>, and subsequent frames represent
+    /// nested function calls.
+    ///
+    /// # Returns
+    /// Vector of stack frames, ordered from oldest (bottom) to newest (top)
+    pub fn call_stack(&self) -> &[StackFrame] {
+        &self.call_stack
     }
 }
 
@@ -668,6 +734,72 @@ mod tests {
         sorted.sort_by_key(|(name, _)| name.clone());
         assert_eq!(path_vars, sorted, "Filtered env vars should be sorted");
     }
+
+    // ===== REPL-009-003: Call Stack Tracking Tests =====
+
+    #[test]
+    fn test_REPL_009_003_backtrace_single() {
+        let script = "echo line1\necho line2\necho line3";
+        let mut session = DebugSession::new(script);
+
+        // Initially, call stack should have main frame
+        let initial_len = session.call_stack().len();
+        assert_eq!(initial_len, 1, "Should have just main frame initially");
+
+        // Push a frame
+        session.push_frame("function1", 1);
+
+        // Get backtrace
+        let stack = session.call_stack();
+        assert_eq!(stack.len(), 2, "Should have main + function1");
+
+        let frame = &stack[1];
+        assert_eq!(frame.name, "function1");
+        assert_eq!(frame.line, 1);
+
+        // Pop frame
+        session.pop_frame();
+
+        // Should be back to initial
+        let final_len = session.call_stack().len();
+        assert_eq!(final_len, initial_len);
+    }
+
+    #[test]
+    fn test_REPL_009_003_backtrace_nested() {
+        let script = "echo test";
+        let mut session = DebugSession::new(script);
+
+        // Push nested frames
+        session.push_frame("main", 1);
+        session.push_frame("func_a", 5);
+        session.push_frame("func_b", 10);
+
+        // Get full stack
+        let stack = session.call_stack();
+        assert_eq!(stack.len(), 4, "Should have <main> + main + func_a + func_b");
+
+        // Verify stack order (most recent last)
+        assert_eq!(stack[1].name, "main");
+        assert_eq!(stack[1].line, 1);
+        assert_eq!(stack[2].name, "func_a");
+        assert_eq!(stack[2].line, 5);
+        assert_eq!(stack[3].name, "func_b");
+        assert_eq!(stack[3].line, 10);
+
+        // Pop frames
+        session.pop_frame(); // func_b
+        let stack2 = session.call_stack();
+        assert_eq!(stack2.len(), 3);
+
+        session.pop_frame(); // func_a
+        let stack3 = session.call_stack();
+        assert_eq!(stack3.len(), 2);
+
+        session.pop_frame(); // main
+        let stack4 = session.call_stack();
+        assert_eq!(stack4.len(), 1, "Should be back to just <main>");
+    }
 }
 
 #[cfg(test)]
@@ -1046,6 +1178,49 @@ mod property_tests {
             // Verify determinism
             let second_filtered = session.filter_env(&prefix);
             prop_assert_eq!(filtered, second_filtered, "filter_env should be deterministic");
+        }
+    }
+
+    // ===== REPL-009-003: Call Stack Tracking Property Tests =====
+
+    /// Property: Call stack depth equals number of pushes minus pops
+    proptest! {
+        #[test]
+        fn prop_call_stack_depth_correct(
+            num_pushes in 0usize..10,
+            num_pops in 0usize..10
+        ) {
+            let script = "echo test";
+            let mut session = DebugSession::new(script);
+
+            // Initially has 1 frame (<main>)
+            prop_assert_eq!(session.call_stack().len(), 1);
+
+            // Push N frames
+            for i in 0..num_pushes {
+                session.push_frame(format!("func{}", i), i);
+            }
+
+            // Stack depth should be 1 + num_pushes
+            let depth_after_push = session.call_stack().len();
+            prop_assert_eq!(depth_after_push, 1 + num_pushes);
+
+            // Pop M times (min(num_pops, num_pushes))
+            let actual_pops = std::cmp::min(num_pops, num_pushes);
+            for _ in 0..actual_pops {
+                session.pop_frame();
+            }
+
+            // Stack depth should be 1 + num_pushes - actual_pops
+            let expected_depth = 1 + num_pushes - actual_pops;
+            let final_depth = session.call_stack().len();
+            prop_assert_eq!(final_depth, expected_depth);
+
+            // Try to pop more than available - should never go below 1
+            for _ in 0..100 {
+                session.pop_frame();
+            }
+            prop_assert_eq!(session.call_stack().len(), 1, "Stack should never go below 1 (main frame)");
         }
     }
 }
