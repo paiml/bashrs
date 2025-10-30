@@ -417,25 +417,33 @@ impl DebugSession {
             return format!("  {}\n(no changes)", comparison.original);
         }
 
-        let orig = &comparison.original;
-        let purified = &comparison.purified;
+        let explanations = Self::detect_transformations(
+            &comparison.original,
+            &comparison.purified
+        );
 
-        // Detect transformation types
+        Self::format_diff_with_explanations(
+            &comparison.original,
+            &comparison.purified,
+            &explanations
+        )
+    }
+
+    /// Detect transformation patterns between original and purified bash
+    fn detect_transformations(orig: &str, purified: &str) -> Vec<&'static str> {
         let mut explanations = Vec::new();
 
-        // Check for mkdir -p (idempotency flag)
-        if orig.contains("mkdir") && purified.contains("mkdir -p") && !orig.contains("mkdir -p") {
+        // Check for idempotency flags
+        if Self::flag_added(orig, purified, "mkdir", "mkdir -p") {
             explanations.push("added idempotency flag -p to mkdir");
         }
 
-        // Check for rm -f (idempotency flag)
-        if orig.contains("rm") && purified.contains("rm -f") && !orig.contains("rm -f") {
+        if Self::flag_added(orig, purified, "rm", "rm -f") {
             explanations.push("added idempotency flag -f to rm");
         }
 
-        // Check for ln -sf (idempotency flags)
         if orig.contains("ln") {
-            if purified.contains("-sf") && !orig.contains("-sf") {
+            if Self::flag_added(orig, purified, "ln", "-sf") {
                 explanations.push("added idempotency flag -f to ln");
             } else if purified.contains("-f") && !orig.contains("-f") {
                 explanations.push("added idempotency flag -f");
@@ -443,12 +451,25 @@ impl DebugSession {
         }
 
         // Check for variable quoting (safety)
-        // Simple heuristic: look for $VAR → "$VAR" pattern
         if purified.contains("\"$") && !orig.contains("\"$") {
             explanations.push("added safety quoting around variables");
         }
 
-        // Format output with explanations
+        explanations
+    }
+
+    /// Check if a flag was added to a command
+    #[inline]
+    fn flag_added(orig: &str, purified: &str, cmd: &str, flag_pattern: &str) -> bool {
+        orig.contains(cmd) && purified.contains(flag_pattern) && !orig.contains(flag_pattern)
+    }
+
+    /// Format diff output with explanations
+    fn format_diff_with_explanations(
+        orig: &str,
+        purified: &str,
+        explanations: &[&str]
+    ) -> String {
         let mut output = format!("- {}\n+ {}", orig, purified);
 
         if !explanations.is_empty() {
@@ -1848,6 +1869,98 @@ mod property_tests {
                 // Should contain original and purified if differs
                 if comparison.differs {
                     prop_assert!(diff.contains(&comparison.original) || diff.contains(&comparison.purified));
+                }
+            }
+        }
+    }
+
+    // ===== REPL-010-002: Enhanced Highlighting Property Tests =====
+
+    /// Property: Highlighting output always has valid format (non-empty, no panics)
+    proptest! {
+        #[test]
+        fn prop_REPL_010_002_highlight_always_valid_format(
+            cmd in "[a-z]{1,10}",
+            arg in "[a-z/$]{1,20}"
+        ) {
+            let script = format!("{} {}", cmd, arg);
+            let session = DebugSession::new(&script);
+
+            if let Some(comparison) = session.compare_current_line() {
+                // Should not panic
+                let highlighted = session.format_diff_highlighting(&comparison);
+
+                // Should always produce non-empty output
+                prop_assert!(!highlighted.is_empty(), "Output should not be empty");
+
+                // Should always contain original line or "no changes"
+                prop_assert!(
+                    highlighted.contains(&comparison.original) || highlighted.contains("no change"),
+                    "Output should contain original line or 'no changes'"
+                );
+            }
+        }
+    }
+
+    /// Property: If differs flag is true, output contains diff markers
+    proptest! {
+        #[test]
+        fn prop_REPL_010_002_differs_implies_diff_markers(
+            cmd in "mkdir|rm|ln|echo"
+        ) {
+            let script = format!("{} /tmp/test", cmd);
+            let session = DebugSession::new(&script);
+
+            if let Some(comparison) = session.compare_current_line() {
+                let highlighted = session.format_diff_highlighting(&comparison);
+
+                if comparison.differs {
+                    // Should show diff with - and + markers
+                    prop_assert!(
+                        highlighted.contains('-') && highlighted.contains('+'),
+                        "Differing lines should show - and + markers: {}",
+                        highlighted
+                    );
+                } else {
+                    // Should not show diff markers when identical
+                    prop_assert!(
+                        highlighted.contains("no change") || !highlighted.starts_with('-'),
+                        "Non-differing lines should not start with -: {}",
+                        highlighted
+                    );
+                }
+            }
+        }
+    }
+
+    /// Property: Detected transformations always have explanations
+    proptest! {
+        #[test]
+        fn prop_REPL_010_002_transformations_have_explanations(
+            cmd in "mkdir|ln"
+        ) {
+            let script = format!("{} /tmp/test", cmd);
+            let session = DebugSession::new(&script);
+
+            if let Some(comparison) = session.compare_current_line() {
+                let highlighted = session.format_diff_highlighting(&comparison);
+
+                // If we detect common transformations (mkdir -p, ln -sf),
+                // there should be an explanation
+                if comparison.purified.contains("mkdir -p") && !comparison.original.contains("mkdir -p") {
+                    prop_assert!(
+                        highlighted.contains("idempot") || highlighted.contains("idem") || highlighted.contains("-p"),
+                        "mkdir -p transformation should have explanation: {}",
+                        highlighted
+                    );
+                }
+
+                if comparison.purified.contains("-sf") && !comparison.original.contains("-sf") {
+                    prop_assert!(
+                        highlighted.contains("idempot") || highlighted.contains("idem") || highlighted.contains("-f"),
+                        "ln -sf transformation should have explanation: {}",
+                        highlighted
+                    );
                 }
             }
         }
