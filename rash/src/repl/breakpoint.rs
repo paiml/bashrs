@@ -9,15 +9,17 @@
 // - Mutation score: ≥90%
 // - Complexity: <10 per function
 
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 
-/// Line-based breakpoint
+/// Line-based breakpoint with optional condition
 ///
 /// Represents a breakpoint at a specific line number in a bash script.
+/// Can have an optional condition that must evaluate to true for the breakpoint to trigger.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Breakpoint {
     pub line: usize,
     pub enabled: bool,
+    pub condition: Option<String>,
 }
 
 impl Breakpoint {
@@ -26,6 +28,41 @@ impl Breakpoint {
         Self {
             line,
             enabled: true,
+            condition: None,
+        }
+    }
+
+    /// Create a new conditional breakpoint
+    pub fn with_condition(line: usize, condition: String) -> Self {
+        Self {
+            line,
+            enabled: true,
+            condition: Some(condition),
+        }
+    }
+
+    /// Check if this breakpoint has a condition
+    pub fn is_conditional(&self) -> bool {
+        self.condition.is_some()
+    }
+
+    /// Evaluate the condition (if any) against provided variables
+    ///
+    /// Returns true if:
+    /// - No condition is set (unconditional breakpoint)
+    /// - Condition evaluates to true
+    ///
+    /// Returns false if:
+    /// - Condition evaluates to false
+    /// - Condition evaluation fails
+    pub fn should_break(&self, variables: &std::collections::HashMap<String, String>) -> bool {
+        if !self.enabled {
+            return false;
+        }
+
+        match &self.condition {
+            None => true, // Unconditional breakpoint always triggers
+            Some(cond) => evaluate_condition(cond, variables),
         }
     }
 
@@ -88,6 +125,98 @@ impl BreakpointManager {
     /// Get the number of active breakpoints
     pub fn count(&self) -> usize {
         self.breakpoints.len()
+    }
+}
+
+/// Simple condition evaluator for breakpoint conditions
+///
+/// Supports basic comparisons like:
+/// - "$var > 10" - Variable greater than value
+/// - "$var < 5" - Variable less than value
+/// - "$var == test" - Variable equals value
+/// - "$var != foo" - Variable not equals value
+///
+/// Returns false if condition cannot be evaluated (invalid syntax, missing variable, etc.)
+fn evaluate_condition(condition: &str, variables: &HashMap<String, String>) -> bool {
+    let condition = condition.trim();
+
+    // Try to parse simple comparison: $var OP value
+    // Check for two-character operators first (==, !=, >=, <=)
+    let (operator, var_part, value_part) = if let Some(pos) = condition.find("==") {
+        let var_part = condition[..pos].trim();
+        let value_part = condition[pos + 2..].trim();
+        ("==", var_part, value_part)
+    } else if let Some(pos) = condition.find("!=") {
+        let var_part = condition[..pos].trim();
+        let value_part = condition[pos + 2..].trim();
+        ("!=", var_part, value_part)
+    } else if let Some(pos) = condition.find(">=") {
+        let var_part = condition[..pos].trim();
+        let value_part = condition[pos + 2..].trim();
+        (">=", var_part, value_part)
+    } else if let Some(pos) = condition.find("<=") {
+        let var_part = condition[..pos].trim();
+        let value_part = condition[pos + 2..].trim();
+        ("<=", var_part, value_part)
+    } else if let Some(pos) = condition.find('>') {
+        let var_part = condition[..pos].trim();
+        let value_part = condition[pos + 1..].trim();
+        (">", var_part, value_part)
+    } else if let Some(pos) = condition.find('<') {
+        let var_part = condition[..pos].trim();
+        let value_part = condition[pos + 1..].trim();
+        ("<", var_part, value_part)
+    } else {
+        return false; // No operator found
+    };
+
+    // Extract variable name (remove $)
+    let var_name = if let Some(name) = var_part.strip_prefix('$') {
+        name
+    } else {
+        return false; // Invalid syntax
+    };
+
+    // Get variable value
+    let var_value = match variables.get(var_name) {
+        Some(v) => v,
+        None => return false, // Variable not found
+    };
+
+    // Perform comparison
+    match operator {
+        "==" => var_value == value_part,
+        "!=" => var_value != value_part,
+        ">" => {
+            // Try numeric comparison
+            if let (Ok(var_num), Ok(val_num)) = (var_value.parse::<i64>(), value_part.parse::<i64>()) {
+                var_num > val_num
+            } else {
+                false
+            }
+        }
+        "<" => {
+            if let (Ok(var_num), Ok(val_num)) = (var_value.parse::<i64>(), value_part.parse::<i64>()) {
+                var_num < val_num
+            } else {
+                false
+            }
+        }
+        ">=" => {
+            if let (Ok(var_num), Ok(val_num)) = (var_value.parse::<i64>(), value_part.parse::<i64>()) {
+                var_num >= val_num
+            } else {
+                false
+            }
+        }
+        "<=" => {
+            if let (Ok(var_num), Ok(val_num)) = (var_value.parse::<i64>(), value_part.parse::<i64>()) {
+                var_num <= val_num
+            } else {
+                false
+            }
+        }
+        _ => false,
     }
 }
 
@@ -237,6 +366,115 @@ mod tests {
         assert!(!manager.is_breakpoint_hit(1));
         assert!(!manager.is_breakpoint_hit(5));
         assert!(!manager.is_breakpoint_hit(10));
+    }
+
+    // ===== CONDITIONAL BREAKPOINTS (REPL-007-002) =====
+
+    /// Test: REPL-007-002-001 - Conditional breakpoint evaluates to true
+    #[test]
+    fn test_REPL_007_002_conditional_true() {
+        let mut vars = HashMap::new();
+        vars.insert("count".to_string(), "15".to_string());
+
+        // Create conditional breakpoint: break if $count > 10
+        let bp = Breakpoint::with_condition(5, "$count > 10".to_string());
+
+        assert!(bp.is_conditional(), "Should be a conditional breakpoint");
+        assert!(
+            bp.should_break(&vars),
+            "Should break when count (15) > 10"
+        );
+    }
+
+    /// Test: REPL-007-002-002 - Conditional breakpoint evaluates to false
+    #[test]
+    fn test_REPL_007_002_conditional_false() {
+        let mut vars = HashMap::new();
+        vars.insert("count".to_string(), "5".to_string());
+
+        // Create conditional breakpoint: break if $count > 10
+        let bp = Breakpoint::with_condition(5, "$count > 10".to_string());
+
+        assert!(!bp.should_break(&vars), "Should not break when count (5) <= 10");
+    }
+
+    /// Test: REPL-007-002-003 - Conditional breakpoint with invalid syntax
+    #[test]
+    fn test_REPL_007_002_conditional_invalid() {
+        let vars = HashMap::new();
+
+        // Invalid condition (missing variable)
+        let bp1 = Breakpoint::with_condition(5, "$missing > 10".to_string());
+        assert!(
+            !bp1.should_break(&vars),
+            "Should not break with missing variable"
+        );
+
+        // Invalid condition (bad syntax)
+        let bp2 = Breakpoint::with_condition(5, "invalid syntax".to_string());
+        assert!(
+            !bp2.should_break(&vars),
+            "Should not break with invalid syntax"
+        );
+    }
+
+    /// Test: REPL-007-002-004 - String equality condition
+    #[test]
+    fn test_REPL_007_002_string_equality() {
+        let mut vars = HashMap::new();
+        vars.insert("status".to_string(), "running".to_string());
+
+        // Test == operator
+        let bp_eq = Breakpoint::with_condition(5, "$status == running".to_string());
+        assert!(bp_eq.should_break(&vars), "Should break when status == running");
+
+        // Test != operator
+        let bp_ne = Breakpoint::with_condition(5, "$status != stopped".to_string());
+        assert!(
+            bp_ne.should_break(&vars),
+            "Should break when status != stopped"
+        );
+
+        // Test != operator (false case)
+        let bp_ne_false = Breakpoint::with_condition(5, "$status != running".to_string());
+        assert!(
+            !bp_ne_false.should_break(&vars),
+            "Should not break when status == running (but checking !=)"
+        );
+    }
+
+    /// Test: REPL-007-002-005 - Less than comparison
+    #[test]
+    fn test_REPL_007_002_less_than() {
+        let mut vars = HashMap::new();
+        vars.insert("count".to_string(), "5".to_string());
+
+        // Test < operator (true)
+        let bp_lt = Breakpoint::with_condition(5, "$count < 10".to_string());
+        assert!(bp_lt.should_break(&vars), "Should break when count (5) < 10");
+
+        // Test < operator (false)
+        let bp_lt_false = Breakpoint::with_condition(5, "$count < 3".to_string());
+        assert!(
+            !bp_lt_false.should_break(&vars),
+            "Should not break when count (5) >= 3"
+        );
+    }
+
+    /// Test: REPL-007-002-006 - Disabled conditional breakpoint
+    #[test]
+    fn test_REPL_007_002_disabled_conditional() {
+        let mut vars = HashMap::new();
+        vars.insert("count".to_string(), "15".to_string());
+
+        // Create and disable conditional breakpoint
+        let mut bp = Breakpoint::with_condition(5, "$count > 10".to_string());
+        bp.disable();
+
+        assert!(
+            !bp.should_break(&vars),
+            "Disabled breakpoint should not trigger even if condition is true"
+        );
     }
 }
 
@@ -406,6 +644,103 @@ mod property_tests {
             // Re-enable and check
             bp.enable();
             prop_assert!(bp.enabled, "Re-enabled breakpoint should be enabled");
+        }
+    }
+
+    /// Property: Conditional breakpoints with > operator
+    proptest! {
+        #[test]
+        fn prop_conditional_greater_than(value in 0i64..1000, threshold in 0i64..1000) {
+            let mut vars = HashMap::new();
+            vars.insert("val".to_string(), value.to_string());
+
+            let bp = Breakpoint::with_condition(1, format!("$val > {}", threshold));
+
+            let should_break = bp.should_break(&vars);
+            prop_assert_eq!(
+                should_break,
+                value > threshold,
+                "Conditional > should match comparison: {} > {} = {}",
+                value,
+                threshold,
+                value > threshold
+            );
+        }
+    }
+
+    /// Property: Conditional breakpoints are deterministic
+    proptest! {
+        #[test]
+        fn prop_conditional_deterministic(value in 0i64..100, threshold in 0i64..100) {
+            let mut vars = HashMap::new();
+            vars.insert("val".to_string(), value.to_string());
+
+            let bp = Breakpoint::with_condition(1, format!("$val > {}", threshold));
+
+            // Check multiple times - should always return same result
+            let result1 = bp.should_break(&vars);
+            let result2 = bp.should_break(&vars);
+            let result3 = bp.should_break(&vars);
+
+            prop_assert_eq!(result1, result2, "should_break should be deterministic");
+            prop_assert_eq!(result2, result3, "should_break should be deterministic");
+        }
+    }
+
+    /// Property: String equality conditions
+    proptest! {
+        #[test]
+        fn prop_conditional_string_equality(value in "[a-z]{1,10}", compare in "[a-z]{1,10}") {
+            let mut vars = HashMap::new();
+            vars.insert("val".to_string(), value.clone());
+
+            // Test == operator
+            let bp_eq = Breakpoint::with_condition(1, format!("$val == {}", compare));
+            prop_assert_eq!(
+                bp_eq.should_break(&vars),
+                value == compare,
+                "== operator should match string equality"
+            );
+
+            // Test != operator
+            let bp_ne = Breakpoint::with_condition(1, format!("$val != {}", compare));
+            prop_assert_eq!(
+                bp_ne.should_break(&vars),
+                value != compare,
+                "!= operator should match string inequality"
+            );
+        }
+    }
+
+    /// Property: Disabled conditional breakpoints never trigger
+    proptest! {
+        #[test]
+        fn prop_disabled_conditional_never_breaks(value in 0i64..100) {
+            let mut vars = HashMap::new();
+            vars.insert("val".to_string(), value.to_string());
+
+            let mut bp = Breakpoint::with_condition(1, "$val > 0".to_string());
+            bp.disable();
+
+            prop_assert!(
+                !bp.should_break(&vars),
+                "Disabled breakpoint should never trigger"
+            );
+        }
+    }
+
+    /// Property: Missing variables cause condition to fail
+    proptest! {
+        #[test]
+        fn prop_missing_variable_fails(threshold in 0i64..100) {
+            let vars = HashMap::new(); // Empty - no variables
+
+            let bp = Breakpoint::with_condition(1, format!("$missing > {}", threshold));
+
+            prop_assert!(
+                !bp.should_break(&vars),
+                "Condition with missing variable should not trigger"
+            );
         }
     }
 }
