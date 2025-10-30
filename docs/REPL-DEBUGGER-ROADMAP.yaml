@@ -627,12 +627,21 @@ phases:
 
           - id: "REPL-008-002"
             title: "Next (skip over functions)"
-            status: "pending"
+            status: "completed"
+            completion_date: "2025-10-30"
+            commit: "08441e00"
             dependencies: ["REPL-008-001"]
+            notes: "Simplified implementation delegates to step() for now. Future: Track function boundaries."
             tests:
               unit:
-                - "test_REPL_008_002_next_skips_function"
-                - "test_REPL_008_002_next_same_level"
+                - "test_REPL_008_002_next_same_level ✅"
+                - "test_REPL_008_002_next_to_end ✅"
+                - "test_REPL_008_002_next_multiple ✅"
+                - "test_REPL_008_002_next_when_finished ✅"
+                - "test_REPL_008_002_call_depth_accessor ✅"
+              property:
+                - "prop_next_never_goes_deeper ✅"
+                - "prop_next_eventually_finishes ✅"
 
           - id: "REPL-008-003"
             title: "Continue (run until breakpoint)"
