@@ -6,10 +6,12 @@
 // Sprint: REPL-003 (Basic REPL Loop)
 // Status: Phase 1 - RED-GREEN-REFACTOR-PROPERTY-MUTATION
 
+pub mod ast_display;
 pub mod completion;
 pub mod config;
 pub mod executor;
 pub mod explain;
+pub mod help;
 pub mod linter;
 pub mod loader;
 mod r#loop;
@@ -20,6 +22,7 @@ pub mod purifier;
 pub mod state;
 pub mod variables;
 
+pub use ast_display::format_ast;
 pub use config::ReplConfig;
 pub use explain::{explain_bash, Explanation};
 pub use linter::{format_lint_results, lint_bash};
