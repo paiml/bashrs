@@ -7,6 +7,7 @@
 // Status: Phase 1 - RED-GREEN-REFACTOR-PROPERTY-MUTATION
 
 pub mod ast_display;
+pub mod breakpoint;
 pub mod completion;
 pub mod config;
 pub mod diff;
@@ -24,6 +25,7 @@ pub mod state;
 pub mod variables;
 
 pub use ast_display::format_ast;
+pub use breakpoint::{Breakpoint, BreakpointManager};
 pub use config::ReplConfig;
 pub use diff::display_diff;
 pub use explain::{explain_bash, Explanation};
