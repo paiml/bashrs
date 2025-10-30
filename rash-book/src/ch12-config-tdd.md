@@ -363,5 +363,3 @@ Rash's CONFIG rules provide **automatic cleanup** for shell configuration files:
 | **CONFIG-002** | Unquoted variables | 🔒 Security + correctness |
 | **CONFIG-003** | Duplicate aliases | 🧹 Cleaner config |
 | **CONFIG-004** | Non-deterministic constructs | 🎯 Reproducible environment |
-
-**Next chapter**: [Chapter 13: Verification and Testing →](ch13-verification-tdd.html)

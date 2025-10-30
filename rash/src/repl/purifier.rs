@@ -130,7 +130,9 @@ mod tests {
         let purified = result.unwrap();
         // Variables should be quoted for safety
         assert!(
-            purified.contains("\"$USER\"") || purified.contains("'$USER'") || purified.contains("\"${USER}\""),
+            purified.contains("\"$USER\"")
+                || purified.contains("'$USER'")
+                || purified.contains("\"${USER}\""),
             "Should quote variable for safety, got: {}",
             purified
         );
@@ -165,7 +167,11 @@ mod tests {
         let original = "mkdir /tmp/test";
         let explanation = explain_purification_changes(original);
 
-        assert!(explanation.is_ok(), "Should explain changes: {:?}", explanation);
+        assert!(
+            explanation.is_ok(),
+            "Should explain changes: {:?}",
+            explanation
+        );
         let text = explanation.unwrap();
 
         // Should mention mkdir and -p flag
@@ -193,7 +199,11 @@ mod tests {
         let original = "rm file.txt";
         let explanation = explain_purification_changes(original);
 
-        assert!(explanation.is_ok(), "Should explain changes: {:?}", explanation);
+        assert!(
+            explanation.is_ok(),
+            "Should explain changes: {:?}",
+            explanation
+        );
         let text = explanation.unwrap();
 
         // Should mention rm and -f flag
@@ -216,7 +226,11 @@ mod tests {
         let original = "echo $USER";
         let explanation = explain_purification_changes(original);
 
-        assert!(explanation.is_ok(), "Should explain changes: {:?}", explanation);
+        assert!(
+            explanation.is_ok(),
+            "Should explain changes: {:?}",
+            explanation
+        );
         let text = explanation.unwrap();
 
         // Should mention quoting or safety
@@ -254,7 +268,8 @@ pub fn explain_purification_changes(original: &str) -> anyhow::Result<String> {
     let mut explanations = Vec::new();
 
     // Check for mkdir -p addition
-    if original.contains("mkdir") && !original.contains("mkdir -p") && purified.contains("mkdir -p") {
+    if original.contains("mkdir") && !original.contains("mkdir -p") && purified.contains("mkdir -p")
+    {
         explanations.push(
             "✓ Added -p flag to mkdir for idempotency\n  \
              Makes directory creation safe to re-run (won't fail if dir exists)"

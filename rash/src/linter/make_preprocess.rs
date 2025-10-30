@@ -16,8 +16,7 @@ use regex::Regex;
 static RECIPE_LINE: Lazy<Regex> = Lazy::new(|| Regex::new(r"^\t").unwrap());
 
 /// Match target declarations (word followed by colon)
-static TARGET_DECL: Lazy<Regex> =
-    Lazy::new(|| Regex::new(r"^[a-zA-Z0-9_.-]+\s*:").unwrap());
+static TARGET_DECL: Lazy<Regex> = Lazy::new(|| Regex::new(r"^[a-zA-Z0-9_.-]+\s*:").unwrap());
 
 /// Preprocess Makefile source for linting
 ///
@@ -46,9 +45,10 @@ pub fn preprocess_for_linting(source: &str) -> String {
 
         // Empty lines or non-tabbed lines end recipes
         if (line.is_empty() || (!line.starts_with('\t') && !line.starts_with(' ')))
-            && !TARGET_DECL.is_match(line) {
-                in_recipe = false;
-            }
+            && !TARGET_DECL.is_match(line)
+        {
+            in_recipe = false;
+        }
 
         // Process recipe lines
         if in_recipe && RECIPE_LINE.is_match(line) {

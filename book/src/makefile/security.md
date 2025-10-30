@@ -296,8 +296,6 @@ $ rash lint --security-only Makefile
 
 ## Resources
 
-- [OWASP Build Security](https://owasp.org/www-community/vulnerabilities/Build_Misconfiguration)
-- [GNU Make Security](https://www.gnu.org/software/make/manual/html_node/Security.html)
 - [Reproducible Builds](https://reproducible-builds.org/)
 - [CWE-78: OS Command Injection](https://cwe.mitre.org/data/definitions/78.html)
 

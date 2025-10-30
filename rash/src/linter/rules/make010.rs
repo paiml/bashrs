@@ -87,11 +87,16 @@ fn has_error_handling(recipe: &str) -> bool {
 
 /// Find if the recipe contains a critical command
 fn find_critical_command(recipe: &str) -> Option<&'static str> {
-    CRITICAL_COMMANDS.iter().find(|&cmd| recipe.split_whitespace().any(|word| {
-            word == *cmd
-                || word.starts_with(&format!("{}@", cmd))
-                || word.starts_with(&format!("{}-", cmd))
-        })).map(|v| v as _)
+    CRITICAL_COMMANDS
+        .iter()
+        .find(|&cmd| {
+            recipe.split_whitespace().any(|word| {
+                word == *cmd
+                    || word.starts_with(&format!("{}@", cmd))
+                    || word.starts_with(&format!("{}-", cmd))
+            })
+        })
+        .map(|v| v as _)
 }
 
 #[cfg(test)]

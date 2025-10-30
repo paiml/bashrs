@@ -149,10 +149,7 @@ pub fn quote_variables(source: &str) -> String {
     // Build a map of line numbers to variables on that line
     let mut lines_to_fix: HashMap<usize, Vec<&UnquotedVariable>> = HashMap::new();
     for var in &variables {
-        lines_to_fix
-            .entry(var.line)
-            .or_default()
-            .push(var);
+        lines_to_fix.entry(var.line).or_default().push(var);
     }
 
     let mut result = Vec::new();

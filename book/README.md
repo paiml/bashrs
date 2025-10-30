@@ -57,10 +57,7 @@ mdbook test
    touch src/new-chapter.md
    ```
 
-2. **Add to SUMMARY.md**:
-   ```markdown
-   - [New Chapter](./your-chapter-name.md)
-   ```
+2. **Add to SUMMARY.md** with markdown link format
 
 3. **Write content with tested examples**:
    ```markdown
@@ -291,7 +288,7 @@ A: Not recommended, but: `export SKIP_BOOK_CHECK=1`. Only use for hotfixes or pa
 
 **Q: How do I add images?**
 
-A: Place in `src/images/` and reference with `![Alt text](./images/your-image.png)`.
+A: Place in `src/images/` and reference using markdown image syntax.
 
 ## Contributing
 

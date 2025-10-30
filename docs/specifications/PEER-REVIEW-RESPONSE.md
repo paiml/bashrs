@@ -515,7 +515,6 @@ Add to References section:
 **Le, X. B. D., Chu, D. H., Lo, D., Le Goues, C., & Visser, W. (2017)**
 *S3: Syntax- and Semantic-Guided Repair Synthesis via Programming by Examples*
 Proceedings of the 2017 11th Joint Meeting on Foundations of Software Engineering, 593-604.
-DOI: [10.1145/3106237.3106309](https://doi.org/10.1145/3106237.3106309)
 
 **Key Finding**: Repair correctness requires semantic understanding, not just syntactic transformation.
 Applies to our Fix Safety Taxonomy.
@@ -525,7 +524,6 @@ Applies to our Fix Safety Taxonomy.
 **Monperrus, M. (2018)**
 *Automatic Software Repair: A Bibliography*
 ACM Computing Surveys (CSUR), 51(1), 1-24.
-DOI: [10.1145/3105906](https://doi.org/10.1145/3105906)
 
 **Key Finding**: Survey of 100+ APR papers. Main challenge: **generating plausible but correct patches**.
 Validates our three-tier safety classification.
@@ -556,7 +554,6 @@ Proceedings of the 24th ACM SIGSOFT International Symposium on Foundations of So
 **Rahman, A., Farhana, E., Parnin, C., & Williams, L. (2020)**
 *Gang of Eight: A Defect Taxonomy for Infrastructure as Code Scripts*
 Proceedings of the ACM/IEEE 42nd International Conference on Software Engineering, 752-764.
-DOI: [10.1145/3377811.3380409](https://doi.org/10.1145/3377811.3380409)
 
 **Key Finding**: 21% of IaC bugs are due to non-idempotent operations.
 
@@ -565,7 +562,6 @@ DOI: [10.1145/3377811.3380409](https://doi.org/10.1145/3377811.3380409)
 **Weiss, A., Guha, A., & Zimmerman, B. (2020)**
 *Mastering the Art of Infrastructure as Code*
 ACM Queue, 18(3), 35-52.
-DOI: [10.1145/3403047](https://doi.org/10.1145/3403047)
 
 **Key Finding**: Static analysis can prevent 34% of production deployment failures in Ansible.
 

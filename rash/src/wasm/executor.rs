@@ -16,9 +16,9 @@
 use crate::wasm::builtins::Builtins;
 use crate::wasm::io::IoStreams;
 use crate::wasm::vfs::VirtualFilesystem;
-use anyhow::{Result, anyhow};
+use anyhow::{anyhow, Result};
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use serde::{Serialize, Deserialize};
 
 /// Execution result
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -497,8 +497,11 @@ impl BashExecutor {
             let rest = &param[colon_pos + 1..];
 
             // Check if this is a parameter expansion operator (:-,  :=, :+, :?)
-            if rest.starts_with('-') || rest.starts_with('=') ||
-               rest.starts_with('+') || rest.starts_with('?') {
+            if rest.starts_with('-')
+                || rest.starts_with('=')
+                || rest.starts_with('+')
+                || rest.starts_with('?')
+            {
                 let op = &rest[..1];
                 let default_val = &rest[1..];
                 let var_value = self.env.get(var_part).cloned();
@@ -506,12 +509,17 @@ impl BashExecutor {
                 return match op {
                     "-" => {
                         // ${var:-default} - use default if unset or null
-                        var_value.filter(|v| !v.is_empty()).unwrap_or_else(|| default_val.to_string())
+                        var_value
+                            .filter(|v| !v.is_empty())
+                            .unwrap_or_else(|| default_val.to_string())
                     }
                     "=" => {
                         // ${var:=default} - assign default if unset or null
-                        if var_value.is_none() || var_value.as_ref().map(|v| v.is_empty()).unwrap_or(false) {
-                            self.env.insert(var_part.to_string(), default_val.to_string());
+                        if var_value.is_none()
+                            || var_value.as_ref().map(|v| v.is_empty()).unwrap_or(false)
+                        {
+                            self.env
+                                .insert(var_part.to_string(), default_val.to_string());
                             default_val.to_string()
                         } else {
                             var_value.unwrap()
@@ -527,7 +535,9 @@ impl BashExecutor {
                     }
                     "?" => {
                         // ${var:?error} - error if unset or null
-                        if var_value.is_none() || var_value.as_ref().map(|v| v.is_empty()).unwrap_or(false) {
+                        if var_value.is_none()
+                            || var_value.as_ref().map(|v| v.is_empty()).unwrap_or(false)
+                        {
                             // In real bash this would exit, but we'll just return the error message
                             default_val.to_string()
                         } else {
@@ -1033,7 +1043,8 @@ impl BashExecutor {
         } else {
             // Parse number
             *pos += 1;
-            token.parse::<i64>()
+            token
+                .parse::<i64>()
                 .map_err(|_| anyhow!("Invalid number: {}", token))
         }
     }
@@ -1046,7 +1057,7 @@ impl BashExecutor {
 
         // Remove [ and ] if present
         let condition = if condition.starts_with('[') && condition.ends_with(']') {
-            condition[1..condition.len()-1].trim()
+            condition[1..condition.len() - 1].trim()
         } else {
             condition
         };
@@ -1299,7 +1310,8 @@ impl BashExecutor {
 
             if condition_result {
                 // Execute this branch (with control flow support for nested structures)
-                exit_code = self.execute_lines_range(lines, branch.then_idx + 1, branch.block_end)?;
+                exit_code =
+                    self.execute_lines_range(lines, branch.then_idx + 1, branch.block_end)?;
                 executed = true;
                 break;
             }
@@ -1519,9 +1531,9 @@ impl BashExecutor {
             } else if condition.starts_with('[') && condition.ends_with(']') {
                 // Test command: [ condition ]
                 match self.evaluate_test_command(condition) {
-                    Ok(true) => Ok(0),   // Condition is true -> exit code 0
-                    Ok(false) => Ok(1),  // Condition is false -> exit code 1
-                    Err(e) => Err(e),    // Error evaluating condition
+                    Ok(true) => Ok(0),  // Condition is true -> exit code 0
+                    Ok(false) => Ok(1), // Condition is false -> exit code 1
+                    Err(e) => Err(e),   // Error evaluating condition
                 }
             } else {
                 // Execute condition as command and check exit code
@@ -1589,7 +1601,10 @@ impl BashExecutor {
         // Expand variables in the case value
         let expanded_value = self.expand_variables(case_value);
         // Remove surrounding quotes if present
-        let expanded_value = expanded_value.trim_matches('"').trim_matches('\'').to_string();
+        let expanded_value = expanded_value
+            .trim_matches('"')
+            .trim_matches('\'')
+            .to_string();
 
         // Find esac
         let mut esac_line = start;
@@ -1622,9 +1637,9 @@ impl BashExecutor {
                 let patterns: Vec<&str> = pattern_part.split('|').map(|p| p.trim()).collect();
 
                 // Check if any pattern matches
-                let pattern_matches = patterns.iter().any(|pattern| {
-                    self.pattern_matches(pattern, &expanded_value)
-                });
+                let pattern_matches = patterns
+                    .iter()
+                    .any(|pattern| self.pattern_matches(pattern, &expanded_value));
 
                 if pattern_matches && !matched {
                     matched = true;
@@ -1675,7 +1690,7 @@ impl BashExecutor {
 
         // Handle special patterns
         if pattern == "*" {
-            return true;  // Match everything
+            return true; // Match everything
         }
 
         // Exact match
@@ -1698,13 +1713,13 @@ impl BashExecutor {
     ) -> bool {
         loop {
             match (pattern.peek(), value.peek()) {
-                (None, None) => return true,  // Both exhausted, match
-                (None, Some(_)) => return false,  // Pattern exhausted, value remains
+                (None, None) => return true,     // Both exhausted, match
+                (None, Some(_)) => return false, // Pattern exhausted, value remains
                 (Some(&'*'), _) => {
                     pattern.next();
                     // Try matching * with 0, 1, 2, ... characters
                     if pattern.peek().is_none() {
-                        return true;  // * at end matches rest
+                        return true; // * at end matches rest
                     }
                     // Try matching rest of pattern
                     loop {
@@ -1723,7 +1738,7 @@ impl BashExecutor {
                 (Some(&'?'), None) => return false,
                 (Some(&'['), Some(v)) => {
                     // Character class matching
-                    pattern.next();  // consume '['
+                    pattern.next(); // consume '['
                     let v = *v;
 
                     // Check for negation
@@ -1744,7 +1759,7 @@ impl BashExecutor {
                         pattern.next();
 
                         if pattern.peek() == Some(&'-') {
-                            pattern.next();  // consume '-'
+                            pattern.next(); // consume '-'
                             if let Some(&end) = pattern.peek() {
                                 pattern.next();
                                 if v >= start && v <= end {
@@ -1854,10 +1869,13 @@ impl BashExecutor {
                             if quoted {
                                 // Quoted delimiter: output literal text without variable expansion
                                 // Use a special command that bypasses expand_variables
-                                result.push_str(&format!("__HEREDOC_LITERAL__ {}\n",
-                                    line.replace('\\', "\\\\").replace('\n', "\\n")));
+                                result.push_str(&format!(
+                                    "__HEREDOC_LITERAL__ {}\n",
+                                    line.replace('\\', "\\\\").replace('\n', "\\n")
+                                ));
                             } else {
-                                result.push_str(&format!("echo \"{}\"\n", line.replace('"', "\\\"")));
+                                result
+                                    .push_str(&format!("echo \"{}\"\n", line.replace('"', "\\\"")));
                             }
                         }
                     } else if let Some(redirect_pos) = command_part.rfind('>') {
@@ -1870,27 +1888,35 @@ impl BashExecutor {
                             let redirect_op = if idx == 0 { ">" } else { ">>" };
                             if quoted {
                                 // Quoted delimiter: output literal text without variable expansion
-                                result.push_str(&format!("__HEREDOC_LITERAL__ {} {} {}\n",
+                                result.push_str(&format!(
+                                    "__HEREDOC_LITERAL__ {} {} {}\n",
                                     line.replace('\\', "\\\\").replace('\n', "\\n"),
                                     redirect_op,
-                                    file_path));
+                                    file_path
+                                ));
                             } else {
-                                result.push_str(&format!("echo \"{}\" {} {}\n",
+                                result.push_str(&format!(
+                                    "echo \"{}\" {} {}\n",
                                     line.replace('"', "\\\""),
                                     redirect_op,
-                                    file_path));
+                                    file_path
+                                ));
                             }
                         }
                     } else {
                         // Other commands with heredoc input
                         if quoted {
-                            result.push_str(&format!("{} <<'HEREDOC_INLINE'\n{}\nHEREDOC_INLINE\n",
+                            result.push_str(&format!(
+                                "{} <<'HEREDOC_INLINE'\n{}\nHEREDOC_INLINE\n",
                                 command_part.trim(),
-                                final_content));
+                                final_content
+                            ));
                         } else {
-                            result.push_str(&format!("{} <<HEREDOC_INLINE\n{}\nHEREDOC_INLINE\n",
+                            result.push_str(&format!(
+                                "{} <<HEREDOC_INLINE\n{}\nHEREDOC_INLINE\n",
                                 command_part.trim(),
-                                final_content));
+                                final_content
+                            ));
                         }
                     }
 
@@ -1914,7 +1940,9 @@ impl BashExecutor {
     fn execute_subshell(&mut self, line: &str) -> Result<i32> {
         // Extract content between ( and )
         let content = if let Some(start) = line.find('(') {
-            let end = line.rfind(')').ok_or_else(|| anyhow!("Unmatched parenthesis in subshell"))?;
+            let end = line
+                .rfind(')')
+                .ok_or_else(|| anyhow!("Unmatched parenthesis in subshell"))?;
             &line[start + 1..end]
         } else {
             return Err(anyhow!("Invalid subshell syntax"));
@@ -1944,11 +1972,15 @@ impl BashExecutor {
 
         // Write subshell's output to parent's streams
         if !subshell_stdout.is_empty() {
-            self.io.stdout.write_all(subshell_stdout.as_bytes())
+            self.io
+                .stdout
+                .write_all(subshell_stdout.as_bytes())
                 .map_err(|e| anyhow!("Failed to write subshell stdout: {}", e))?;
         }
         if !subshell_stderr.is_empty() {
-            self.io.stderr.write_all(subshell_stderr.as_bytes())
+            self.io
+                .stderr
+                .write_all(subshell_stderr.as_bytes())
                 .map_err(|e| anyhow!("Failed to write subshell stderr: {}", e))?;
         }
 
@@ -1969,7 +2001,9 @@ impl BashExecutor {
     fn execute_brace_group(&mut self, line: &str) -> Result<i32> {
         // Extract content between { and }
         let content = if let Some(start) = line.find('{') {
-            let end = line.rfind('}').ok_or_else(|| anyhow!("Unmatched brace in command group"))?;
+            let end = line
+                .rfind('}')
+                .ok_or_else(|| anyhow!("Unmatched brace in command group"))?;
             &line[start + 1..end]
         } else {
             return Err(anyhow!("Invalid brace group syntax"));
@@ -2021,7 +2055,11 @@ impl BashExecutor {
     }
 
     /// Parse a function definition and store it
-    fn parse_function_definition(&mut self, lines: &[&str], start: usize) -> Result<(usize, String)> {
+    fn parse_function_definition(
+        &mut self,
+        lines: &[&str],
+        start: usize,
+    ) -> Result<(usize, String)> {
         let first_line = lines[start];
 
         // Extract function name
@@ -2075,9 +2113,8 @@ impl BashExecutor {
         }
 
         // Store the function
-        self.functions.insert(func_name.clone(), FunctionDef {
-            body: body_lines,
-        });
+        self.functions
+            .insert(func_name.clone(), FunctionDef { body: body_lines });
 
         Ok((func_end, func_name))
     }
@@ -2102,7 +2139,9 @@ impl BashExecutor {
     /// Execute a function call
     fn execute_function_call(&mut self, func_name: &str, line: &str) -> Result<i32> {
         // Get the function definition
-        let func_def = self.functions.get(func_name)
+        let func_def = self
+            .functions
+            .get(func_name)
             .ok_or_else(|| anyhow!("Function not found: {}", func_name))?
             .clone();
 
@@ -2770,10 +2809,12 @@ mod substitution_tests {
         let mut executor = BashExecutor::new();
 
         // ACT
-        let result = executor.execute(r#"
+        let result = executor.execute(
+            r#"
 greeting=$(echo 'Hello, World!')
 echo "$greeting"
-"#);
+"#,
+        );
 
         // ASSERT: RED phase
         assert!(result.is_ok());
@@ -2803,7 +2844,8 @@ echo "$greeting"
         let mut executor = BashExecutor::new();
 
         // ACT: result=$(echo 'hello' | tr 'a-z' 'A-Z'); echo "Result: $result"
-        let result = executor.execute("result=$(echo 'hello' | tr 'a-z' 'A-Z')\necho \"Result: $result\"");
+        let result =
+            executor.execute("result=$(echo 'hello' | tr 'a-z' 'A-Z')\necho \"Result: $result\"");
 
         // ASSERT: RED phase
         assert!(result.is_ok());
@@ -2894,7 +2936,11 @@ mod pipeline_tests {
         // ASSERT: This will FAIL (RED phase) - pipeline not implemented yet
         assert!(result.is_ok(), "Pipeline execution should not panic");
         let result = result.unwrap();
-        assert_eq!(result.stdout.trim(), "12", "wc -c should count 12 characters");
+        assert_eq!(
+            result.stdout.trim(),
+            "12",
+            "wc -c should count 12 characters"
+        );
         assert_eq!(result.exit_code, 0);
     }
 
@@ -2956,10 +3002,12 @@ mod pipeline_tests {
         let mut executor = BashExecutor::new();
 
         // ACT
-        let result = executor.execute(r#"
+        let result = executor.execute(
+            r#"
 msg="hello"
 echo "$msg world" | wc -c
-"#);
+"#,
+        );
 
         // ASSERT: RED phase
         assert!(result.is_ok());
@@ -2978,8 +3026,10 @@ echo "$msg world" | wc -c
 
         // ASSERT: Should return error gracefully
         // RED phase - error handling not yet implemented
-        assert!(result.is_err() || result.unwrap().exit_code != 0,
-                "Pipeline should fail gracefully when command not found");
+        assert!(
+            result.is_err() || result.unwrap().exit_code != 0,
+            "Pipeline should fail gracefully when command not found"
+        );
     }
 
     /// PIPE-001: Empty pipeline input
@@ -3276,7 +3326,8 @@ mod loop_tests {
         let mut executor = BashExecutor::new();
 
         // ACT: infinite loop with break
-        let script = "i=1\nwhile true\ndo\necho $i\nif [ $i -eq 3 ]; then break; fi\ni=$((i+1))\ndone";
+        let script =
+            "i=1\nwhile true\ndo\necho $i\nif [ $i -eq 3 ]; then break; fi\ni=$((i+1))\ndone";
         let result = executor.execute(script);
 
         // ASSERT: RED phase
@@ -3325,7 +3376,8 @@ mod loop_tests {
         let mut executor = BashExecutor::new();
 
         // ACT: while with pipeline in body
-        let script = "i=1\nwhile [ $i -le 2 ]\ndo\necho \"test\" | tr 'a-z' 'A-Z'\ni=$((i+1))\ndone";
+        let script =
+            "i=1\nwhile [ $i -le 2 ]\ndo\necho \"test\" | tr 'a-z' 'A-Z'\ni=$((i+1))\ndone";
         let result = executor.execute(script);
 
         // ASSERT: RED phase
@@ -3455,13 +3507,17 @@ mod loop_tests {
         let mut executor = BashExecutor::new();
 
         // ACT: for with multiple commands in body
-        let script = "for num in 1 2\ndo\necho \"Number: $num\"\necho \"Double: $((num * 2))\"\ndone";
+        let script =
+            "for num in 1 2\ndo\necho \"Number: $num\"\necho \"Double: $((num * 2))\"\ndone";
         let result = executor.execute(script);
 
         // ASSERT: RED phase
         assert!(result.is_ok());
         let result = result.unwrap();
-        assert_eq!(result.stdout, "Number: 1\nDouble: 2\nNumber: 2\nDouble: 4\n");
+        assert_eq!(
+            result.stdout,
+            "Number: 1\nDouble: 2\nNumber: 2\nDouble: 4\n"
+        );
     }
 }
 
@@ -4383,7 +4439,6 @@ mod test_command_property_tests {
             prop_assert_eq!(result1.stdout, result2.stdout);
         });
     }
-
 
     /// Property: -eq self: a -eq a is always true
     #[test]
@@ -5909,10 +5964,12 @@ mod string_tests {
         let mut executor = BashExecutor::new();
 
         // ACT: var=actual; ${var:-default}
-        let result = executor.execute(r#"
+        let result = executor.execute(
+            r#"
 var="actual value"
 echo ${var:-"default value"}
-"#);
+"#,
+        );
 
         // ASSERT
         assert!(result.is_ok());
@@ -5927,10 +5984,12 @@ echo ${var:-"default value"}
         let mut executor = BashExecutor::new();
 
         // ACT: ${unset_var:=default}; echo $unset_var
-        let result = executor.execute(r#"
+        let result = executor.execute(
+            r#"
 echo ${unset_var:="default"}
 echo $unset_var
-"#);
+"#,
+        );
 
         // ASSERT
         assert!(result.is_ok());
@@ -5945,10 +6004,12 @@ echo $unset_var
         let mut executor = BashExecutor::new();
 
         // ACT: var=set; ${var:+alternate}
-        let result = executor.execute(r#"
+        let result = executor.execute(
+            r#"
 var="set"
 echo ${var:+"alternate"}
-"#);
+"#,
+        );
 
         // ASSERT
         assert!(result.is_ok());
@@ -5978,10 +6039,12 @@ echo ${var:+"alternate"}
         let mut executor = BashExecutor::new();
 
         // ACT: var=hello; ${#var}
-        let result = executor.execute(r#"
+        let result = executor.execute(
+            r#"
 var="hello world"
 echo ${#var}
-"#);
+"#,
+        );
 
         // ASSERT
         assert!(result.is_ok());
@@ -5996,10 +6059,12 @@ echo ${#var}
         let mut executor = BashExecutor::new();
 
         // ACT: var=hello; ${var:2}
-        let result = executor.execute(r#"
+        let result = executor.execute(
+            r#"
 var="hello world"
 echo ${var:6}
-"#);
+"#,
+        );
 
         // ASSERT
         assert!(result.is_ok());
@@ -6014,10 +6079,12 @@ echo ${var:6}
         let mut executor = BashExecutor::new();
 
         // ACT: var=hello; ${var:0:5}
-        let result = executor.execute(r#"
+        let result = executor.execute(
+            r#"
 var="hello world"
 echo ${var:0:5}
-"#);
+"#,
+        );
 
         // ASSERT
         assert!(result.is_ok());
@@ -6032,10 +6099,12 @@ echo ${var:0:5}
         let mut executor = BashExecutor::new();
 
         // ACT: var=hello.txt; ${var#*.}
-        let result = executor.execute(r#"
+        let result = executor.execute(
+            r#"
 var="file.backup.txt"
 echo ${var#*.}
-"#);
+"#,
+        );
 
         // ASSERT
         assert!(result.is_ok());
@@ -6050,10 +6119,12 @@ echo ${var#*.}
         let mut executor = BashExecutor::new();
 
         // ACT: var=file.backup.txt; ${var##*.}
-        let result = executor.execute(r#"
+        let result = executor.execute(
+            r#"
 var="file.backup.txt"
 echo ${var##*.}
-"#);
+"#,
+        );
 
         // ASSERT
         assert!(result.is_ok());
@@ -6068,10 +6139,12 @@ echo ${var##*.}
         let mut executor = BashExecutor::new();
 
         // ACT: var=file.backup.txt; ${var%.*}
-        let result = executor.execute(r#"
+        let result = executor.execute(
+            r#"
 var="file.backup.txt"
 echo ${var%.*}
-"#);
+"#,
+        );
 
         // ASSERT
         assert!(result.is_ok());
@@ -6086,10 +6159,12 @@ echo ${var%.*}
         let mut executor = BashExecutor::new();
 
         // ACT: var=file.backup.txt; ${var%%.*}
-        let result = executor.execute(r#"
+        let result = executor.execute(
+            r#"
 var="file.backup.txt"
 echo ${var%%.*}
-"#);
+"#,
+        );
 
         // ASSERT
         assert!(result.is_ok());
@@ -6104,10 +6179,12 @@ echo ${var%%.*}
         let mut executor = BashExecutor::new();
 
         // ACT: var="hello hello"; ${var/hello/hi}
-        let result = executor.execute(r#"
+        let result = executor.execute(
+            r#"
 var="hello hello"
 echo ${var/hello/hi}
-"#);
+"#,
+        );
 
         // ASSERT
         assert!(result.is_ok());
@@ -6122,10 +6199,12 @@ echo ${var/hello/hi}
         let mut executor = BashExecutor::new();
 
         // ACT: var="hello hello"; ${var//hello/hi}
-        let result = executor.execute(r#"
+        let result = executor.execute(
+            r#"
 var="hello hello"
 echo ${var//hello/hi}
-"#);
+"#,
+        );
 
         // ASSERT
         assert!(result.is_ok());
@@ -6140,10 +6219,12 @@ echo ${var//hello/hi}
         let mut executor = BashExecutor::new();
 
         // ACT: Path-like string manipulation
-        let result = executor.execute(r#"
+        let result = executor.execute(
+            r#"
 mypath="/usr/bin:/bin:/usr/local/bin"
 echo ${mypath//:/|}
-"#);
+"#,
+        );
 
         // ASSERT
         assert!(result.is_ok());
@@ -6342,7 +6423,8 @@ echo ${mypath//:/|}
         #[test]
         fn test_case_001_literal_match() {
             let mut executor = BashExecutor::new();
-            let result = executor.execute(r#"
+            let result = executor.execute(
+                r#"
 fruit="apple"
 case $fruit in
     apple)
@@ -6352,7 +6434,8 @@ case $fruit in
         echo "yellow"
         ;;
 esac
-"#);
+"#,
+            );
             assert!(result.is_ok());
             let output = result.unwrap();
             assert_eq!(output.stdout.trim(), "red");
@@ -6362,7 +6445,8 @@ esac
         #[test]
         fn test_case_002_wildcard_pattern() {
             let mut executor = BashExecutor::new();
-            let result = executor.execute(r#"
+            let result = executor.execute(
+                r#"
 filename="test.txt"
 case $filename in
     *.txt)
@@ -6372,7 +6456,8 @@ case $filename in
         echo "image file"
         ;;
 esac
-"#);
+"#,
+            );
             assert!(result.is_ok());
             let output = result.unwrap();
             assert_eq!(output.stdout.trim(), "text file");
@@ -6382,7 +6467,8 @@ esac
         #[test]
         fn test_case_003_multiple_patterns() {
             let mut executor = BashExecutor::new();
-            let result = executor.execute(r#"
+            let result = executor.execute(
+                r#"
 color="blue"
 case $color in
     red|green|blue)
@@ -6392,7 +6478,8 @@ case $color in
         echo "secondary"
         ;;
 esac
-"#);
+"#,
+            );
             assert!(result.is_ok());
             let output = result.unwrap();
             assert_eq!(output.stdout.trim(), "primary");
@@ -6402,7 +6489,8 @@ esac
         #[test]
         fn test_case_004_default_pattern() {
             let mut executor = BashExecutor::new();
-            let result = executor.execute(r#"
+            let result = executor.execute(
+                r#"
 value="unknown"
 case $value in
     known)
@@ -6412,7 +6500,8 @@ case $value in
         echo "default"
         ;;
 esac
-"#);
+"#,
+            );
             assert!(result.is_ok());
             let output = result.unwrap();
             assert_eq!(output.stdout.trim(), "default");
@@ -6422,7 +6511,8 @@ esac
         #[test]
         fn test_case_005_no_match() {
             let mut executor = BashExecutor::new();
-            let result = executor.execute(r#"
+            let result = executor.execute(
+                r#"
 value="other"
 case $value in
     apple)
@@ -6433,7 +6523,8 @@ case $value in
         ;;
 esac
 echo "done"
-"#);
+"#,
+            );
             assert!(result.is_ok());
             let output = result.unwrap();
             assert_eq!(output.stdout.trim(), "done");
@@ -6443,7 +6534,8 @@ echo "done"
         #[test]
         fn test_case_006_multiple_commands() {
             let mut executor = BashExecutor::new();
-            let result = executor.execute(r#"
+            let result = executor.execute(
+                r#"
 action="start"
 case $action in
     start)
@@ -6454,7 +6546,8 @@ case $action in
         echo "stopping"
         ;;
 esac
-"#);
+"#,
+            );
             assert!(result.is_ok());
             let output = result.unwrap();
             assert_eq!(output.stdout.trim(), "starting\ninitialized");
@@ -6464,7 +6557,8 @@ esac
         #[test]
         fn test_case_007_character_class() {
             let mut executor = BashExecutor::new();
-            let result = executor.execute(r#"
+            let result = executor.execute(
+                r#"
 grade="b"
 case $grade in
     [aA])
@@ -6477,7 +6571,8 @@ case $grade in
         echo "average"
         ;;
 esac
-"#);
+"#,
+            );
             assert!(result.is_ok());
             let output = result.unwrap();
             assert_eq!(output.stdout.trim(), "good");
@@ -6487,7 +6582,8 @@ esac
         #[test]
         fn test_case_008_question_mark_pattern() {
             let mut executor = BashExecutor::new();
-            let result = executor.execute(r#"
+            let result = executor.execute(
+                r#"
 code="a1"
 case $code in
     ??)
@@ -6497,7 +6593,8 @@ case $code in
         echo "three chars"
         ;;
 esac
-"#);
+"#,
+            );
             assert!(result.is_ok());
             let output = result.unwrap();
             assert_eq!(output.stdout.trim(), "two chars");
@@ -6507,7 +6604,8 @@ esac
         #[test]
         fn test_case_009_range_pattern() {
             let mut executor = BashExecutor::new();
-            let result = executor.execute(r#"
+            let result = executor.execute(
+                r#"
 char="m"
 case $char in
     [a-m])
@@ -6517,7 +6615,8 @@ case $char in
         echo "second half"
         ;;
 esac
-"#);
+"#,
+            );
             assert!(result.is_ok());
             let output = result.unwrap();
             assert_eq!(output.stdout.trim(), "first half");
@@ -6527,7 +6626,8 @@ esac
         #[test]
         fn test_case_010_negation_pattern() {
             let mut executor = BashExecutor::new();
-            let result = executor.execute(r#"
+            let result = executor.execute(
+                r#"
 char="z"
 case $char in
     [!a-m])
@@ -6537,7 +6637,8 @@ case $char in
         echo "first half"
         ;;
 esac
-"#);
+"#,
+            );
             assert!(result.is_ok());
             let output = result.unwrap();
             assert_eq!(output.stdout.trim(), "not first half");
@@ -6547,7 +6648,8 @@ esac
         #[test]
         fn test_case_011_nested_variables() {
             let mut executor = BashExecutor::new();
-            let result = executor.execute(r#"
+            let result = executor.execute(
+                r#"
 ext="txt"
 filename="test.$ext"
 case $filename in
@@ -6555,7 +6657,8 @@ case $filename in
         echo "text"
         ;;
 esac
-"#);
+"#,
+            );
             assert!(result.is_ok());
             let output = result.unwrap();
             assert_eq!(output.stdout.trim(), "text");
@@ -6565,14 +6668,16 @@ esac
         #[test]
         fn test_case_012_command_substitution() {
             let mut executor = BashExecutor::new();
-            let result = executor.execute(r#"
+            let result = executor.execute(
+                r#"
 value=$(echo "apple")
 case $value in
     apple)
         echo "fruit"
         ;;
 esac
-"#);
+"#,
+            );
             assert!(result.is_ok());
             let output = result.unwrap();
             assert_eq!(output.stdout.trim(), "fruit");
@@ -6582,7 +6687,8 @@ esac
         #[test]
         fn test_case_013_standard_terminator() {
             let mut executor = BashExecutor::new();
-            let result = executor.execute(r#"
+            let result = executor.execute(
+                r#"
 num="1"
 case $num in
     1)
@@ -6592,7 +6698,8 @@ case $num in
         echo "two"
         ;;
 esac
-"#);
+"#,
+            );
             assert!(result.is_ok());
             let output = result.unwrap();
             assert_eq!(output.stdout.trim(), "one");
@@ -6602,14 +6709,16 @@ esac
         #[test]
         fn test_case_014_empty_body() {
             let mut executor = BashExecutor::new();
-            let result = executor.execute(r#"
+            let result = executor.execute(
+                r#"
 value="test"
 case $value in
     test)
         ;;
 esac
 echo "done"
-"#);
+"#,
+            );
             assert!(result.is_ok());
             let output = result.unwrap();
             assert_eq!(output.stdout.trim(), "done");
@@ -6619,7 +6728,8 @@ echo "done"
         #[test]
         fn test_case_015_quoted_pattern() {
             let mut executor = BashExecutor::new();
-            let result = executor.execute(r#"
+            let result = executor.execute(
+                r#"
 msg="hello world"
 case "$msg" in
     "hello world")
@@ -6629,7 +6739,8 @@ case "$msg" in
         echo "not matched"
         ;;
 esac
-"#);
+"#,
+            );
             assert!(result.is_ok());
             let output = result.unwrap();
             assert_eq!(output.stdout.trim(), "matched");
@@ -6777,13 +6888,15 @@ esac
         #[test]
         fn test_heredoc_001_basic() {
             let mut executor = BashExecutor::new();
-            let result = executor.execute(r#"
+            let result = executor.execute(
+                r#"
 cat <<EOF
 line 1
 line 2
 line 3
 EOF
-"#);
+"#,
+            );
             assert!(result.is_ok());
             let output = result.unwrap();
             assert_eq!(output.stdout.trim(), "line 1\nline 2\nline 3");
@@ -6793,12 +6906,14 @@ EOF
         #[test]
         fn test_heredoc_002_variable_expansion() {
             let mut executor = BashExecutor::new();
-            let result = executor.execute(r#"
+            let result = executor.execute(
+                r#"
 name="world"
 cat <<EOF
 Hello $name
 EOF
-"#);
+"#,
+            );
             assert!(result.is_ok());
             let output = result.unwrap();
             assert_eq!(output.stdout.trim(), "Hello world");
@@ -6808,12 +6923,14 @@ EOF
         #[test]
         fn test_heredoc_003_quoted_delimiter() {
             let mut executor = BashExecutor::new();
-            let result = executor.execute(r#"
+            let result = executor.execute(
+                r#"
 name="world"
 cat <<"EOF"
 Hello $name
 EOF
-"#);
+"#,
+            );
             assert!(result.is_ok());
             let output = result.unwrap();
             assert_eq!(output.stdout.trim(), "Hello $name");
@@ -6833,13 +6950,15 @@ EOF
         #[test]
         fn test_heredoc_005_write_file() {
             let mut executor = BashExecutor::new();
-            let result = executor.execute(r#"
+            let result = executor.execute(
+                r#"
 cat <<EOF > /tmp/test.txt
 content line 1
 content line 2
 EOF
 cat /tmp/test.txt
-"#);
+"#,
+            );
             assert!(result.is_ok());
             let output = result.unwrap();
             assert_eq!(output.stdout.trim(), "content line 1\ncontent line 2");
@@ -6849,11 +6968,13 @@ cat /tmp/test.txt
         #[test]
         fn test_heredoc_006_empty() {
             let mut executor = BashExecutor::new();
-            let result = executor.execute(r#"
+            let result = executor.execute(
+                r#"
 cat <<EOF
 EOF
 echo "done"
-"#);
+"#,
+            );
             assert!(result.is_ok());
             let output = result.unwrap();
             assert_eq!(output.stdout.trim(), "done");
@@ -6863,11 +6984,13 @@ echo "done"
         #[test]
         fn test_heredoc_007_special_chars() {
             let mut executor = BashExecutor::new();
-            let result = executor.execute(r#"
+            let result = executor.execute(
+                r#"
 cat <<'EOF'
 Special: $, !, @, #, %, &, *
 EOF
-"#);
+"#,
+            );
             assert!(result.is_ok());
             let output = result.unwrap();
             assert_eq!(output.stdout.trim(), "Special: $, !, @, #, %, &, *");
@@ -6877,14 +7000,16 @@ EOF
         #[test]
         fn test_heredoc_008_multiple() {
             let mut executor = BashExecutor::new();
-            let result = executor.execute(r#"
+            let result = executor.execute(
+                r#"
 cat <<EOF1
 first
 EOF1
 cat <<EOF2
 second
 EOF2
-"#);
+"#,
+            );
             assert!(result.is_ok());
             let output = result.unwrap();
             assert_eq!(output.stdout.trim(), "first\nsecond");
@@ -6894,11 +7019,13 @@ EOF2
         #[test]
         fn test_heredoc_009_command_substitution() {
             let mut executor = BashExecutor::new();
-            let result = executor.execute(r#"
+            let result = executor.execute(
+                r#"
 cat <<EOF
 Today is $(echo "Monday")
 EOF
-"#);
+"#,
+            );
             assert!(result.is_ok());
             let output = result.unwrap();
             assert_eq!(output.stdout.trim(), "Today is Monday");
@@ -6908,13 +7035,15 @@ EOF
         #[test]
         fn test_heredoc_010_in_loop() {
             let mut executor = BashExecutor::new();
-            let result = executor.execute(r#"
+            let result = executor.execute(
+                r#"
 for i in 1 2; do
     cat <<EOF
 Item $i
 EOF
 done
-"#);
+"#,
+            );
             assert!(result.is_ok());
             let output = result.unwrap();
             assert_eq!(output.stdout.trim(), "Item 1\nItem 2");
@@ -6924,11 +7053,13 @@ done
         #[test]
         fn test_heredoc_011_custom_delimiter() {
             let mut executor = BashExecutor::new();
-            let result = executor.execute(r#"
+            let result = executor.execute(
+                r#"
 cat <<END
 custom delimiter
 END
-"#);
+"#,
+            );
             assert!(result.is_ok());
             let output = result.unwrap();
             assert_eq!(output.stdout.trim(), "custom delimiter");
@@ -6938,13 +7069,15 @@ END
         #[test]
         fn test_heredoc_012_blank_lines() {
             let mut executor = BashExecutor::new();
-            let result = executor.execute(r#"
+            let result = executor.execute(
+                r#"
 cat <<EOF
 line 1
 
 line 3
 EOF
-"#);
+"#,
+            );
             assert!(result.is_ok());
             let output = result.unwrap();
             assert_eq!(output.stdout.trim(), "line 1\n\nline 3");
@@ -6954,7 +7087,8 @@ EOF
         #[test]
         fn test_heredoc_013_with_echo() {
             let mut executor = BashExecutor::new();
-            let result = executor.execute(r#"
+            let result = executor.execute(
+                r#"
 text=$(cat <<EOF
 multi
 line
@@ -6962,7 +7096,8 @@ text
 EOF
 )
 echo "$text"
-"#);
+"#,
+            );
             assert!(result.is_ok());
             let output = result.unwrap();
             assert_eq!(output.stdout.trim(), "multi\nline\ntext");
@@ -6972,11 +7107,13 @@ echo "$text"
         #[test]
         fn test_heredoc_014_arithmetic() {
             let mut executor = BashExecutor::new();
-            let result = executor.execute(r#"
+            let result = executor.execute(
+                r#"
 cat <<EOF
 Result: $((5 + 3))
 EOF
-"#);
+"#,
+            );
             assert!(result.is_ok());
             let output = result.unwrap();
             assert_eq!(output.stdout.trim(), "Result: 8");
@@ -6986,12 +7123,14 @@ EOF
         #[test]
         fn test_heredoc_015_single_quote_delimiter() {
             let mut executor = BashExecutor::new();
-            let result = executor.execute(r#"
+            let result = executor.execute(
+                r#"
 var="test"
 cat <<'MARKER'
 No expansion: $var
 MARKER
-"#);
+"#,
+            );
             assert!(result.is_ok());
             let output = result.unwrap();
             assert_eq!(output.stdout.trim(), "No expansion: $var");
@@ -7010,11 +7149,13 @@ MARKER
         #[test]
         fn test_subshell_001_basic_scope() {
             let mut executor = BashExecutor::new();
-            let result = executor.execute(r#"
+            let result = executor.execute(
+                r#"
 x=outer
 (x=inner; echo $x)
 echo $x
-"#);
+"#,
+            );
             assert!(result.is_ok());
             let output = result.unwrap();
             assert_eq!(output.stdout.trim(), "inner\nouter");
@@ -7024,11 +7165,13 @@ echo $x
         #[test]
         fn test_subshell_002_cd_isolation() {
             let mut executor = BashExecutor::new();
-            let result = executor.execute(r#"
+            let result = executor.execute(
+                r#"
 pwd
 (cd /tmp; pwd)
 pwd
-"#);
+"#,
+            );
             assert!(result.is_ok());
             let output = result.unwrap();
             let lines: Vec<&str> = output.stdout.trim().lines().collect();
@@ -7041,11 +7184,13 @@ pwd
         #[test]
         fn test_subshell_003_brace_grouping() {
             let mut executor = BashExecutor::new();
-            let result = executor.execute(r#"
+            let result = executor.execute(
+                r#"
 x=outer
 { x=inner; echo $x; }
 echo $x
-"#);
+"#,
+            );
             assert!(result.is_ok());
             let output = result.unwrap();
             assert_eq!(output.stdout.trim(), "inner\ninner"); // Braces share scope
@@ -7055,10 +7200,12 @@ echo $x
         #[test]
         fn test_subshell_004_exit_code() {
             let mut executor = BashExecutor::new();
-            let result = executor.execute(r#"
+            let result = executor.execute(
+                r#"
 (exit 42)
 echo $?
-"#);
+"#,
+            );
             assert!(result.is_ok());
             let output = result.unwrap();
             assert_eq!(output.stdout.trim(), "42");
@@ -7068,11 +7215,13 @@ echo $?
         #[test]
         fn test_subshell_005_nested() {
             let mut executor = BashExecutor::new();
-            let result = executor.execute(r#"
+            let result = executor.execute(
+                r#"
 x=level0
 (x=level1; (x=level2; echo $x); echo $x)
 echo $x
-"#);
+"#,
+            );
             assert!(result.is_ok());
             let output = result.unwrap();
             assert_eq!(output.stdout.trim(), "level2\nlevel1\nlevel0");
@@ -7082,9 +7231,11 @@ echo $x
         #[test]
         fn test_subshell_006_with_pipeline() {
             let mut executor = BashExecutor::new();
-            let result = executor.execute(r#"
+            let result = executor.execute(
+                r#"
 (echo "hello"; echo "world") | wc -l
-"#);
+"#,
+            );
             assert!(result.is_ok());
             let output = result.unwrap();
             assert_eq!(output.stdout.trim(), "2");
@@ -7094,10 +7245,12 @@ echo $x
         #[test]
         fn test_subshell_007_variable_assignment() {
             let mut executor = BashExecutor::new();
-            let result = executor.execute(r#"
+            let result = executor.execute(
+                r#"
 result=$(x=10; y=20; echo $((x + y)))
 echo $result
-"#);
+"#,
+            );
             assert!(result.is_ok());
             let output = result.unwrap();
             assert_eq!(output.stdout.trim(), "30");
@@ -7107,10 +7260,12 @@ echo $result
         #[test]
         fn test_subshell_008_brace_redirect() {
             let mut executor = BashExecutor::new();
-            let result = executor.execute(r#"
+            let result = executor.execute(
+                r#"
 { echo "line1"; echo "line2"; } > /tmp/test_brace_output.txt
 cat /tmp/test_brace_output.txt
-"#);
+"#,
+            );
             assert!(result.is_ok());
             let output = result.unwrap();
             assert_eq!(output.stdout.trim(), "line1\nline2");
@@ -7120,11 +7275,13 @@ cat /tmp/test_brace_output.txt
         #[test]
         fn test_subshell_009_array_scope() {
             let mut executor = BashExecutor::new();
-            let result = executor.execute(r#"
+            let result = executor.execute(
+                r#"
 arr=(a b c)
 (arr=(x y z); echo ${arr[0]})
 echo ${arr[0]}
-"#);
+"#,
+            );
             assert!(result.is_ok());
             let output = result.unwrap();
             assert_eq!(output.stdout.trim(), "x\na");
@@ -7134,11 +7291,13 @@ echo ${arr[0]}
         #[test]
         fn test_subshell_010_in_conditional() {
             let mut executor = BashExecutor::new();
-            let result = executor.execute(r#"
+            let result = executor.execute(
+                r#"
 if (x=5; [ $x -eq 5 ]); then
     echo "condition true"
 fi
-"#);
+"#,
+            );
             assert!(result.is_ok());
             let output = result.unwrap();
             assert_eq!(output.stdout.trim(), "condition true");
@@ -7156,11 +7315,13 @@ fi
         #[test]
         fn test_brace_001_shared_scope() {
             let mut executor = BashExecutor::new();
-            let result = executor.execute(r#"
+            let result = executor.execute(
+                r#"
 x=outer
 { x=inner; echo $x; }
 echo $x
-"#);
+"#,
+            );
             assert!(result.is_ok());
             let output = result.unwrap();
             // Both should show "inner" because brace groups share scope
@@ -7171,9 +7332,11 @@ echo $x
         #[test]
         fn test_brace_002_multiple_commands() {
             let mut executor = BashExecutor::new();
-            let result = executor.execute(r#"
+            let result = executor.execute(
+                r#"
 { echo "first"; echo "second"; echo "third"; }
-"#);
+"#,
+            );
             assert!(result.is_ok());
             let output = result.unwrap();
             assert_eq!(output.stdout.trim(), "first\nsecond\nthird");
@@ -7183,11 +7346,13 @@ echo $x
         #[test]
         fn test_brace_003_nested() {
             let mut executor = BashExecutor::new();
-            let result = executor.execute(r#"
+            let result = executor.execute(
+                r#"
 x=0
 { x=1; { x=2; echo $x; }; echo $x; }
 echo $x
-"#);
+"#,
+            );
             assert!(result.is_ok());
             let output = result.unwrap();
             // All should show progressively updated values
@@ -7198,10 +7363,12 @@ echo $x
         #[test]
         fn test_brace_004_assignment() {
             let mut executor = BashExecutor::new();
-            let result = executor.execute(r#"
+            let result = executor.execute(
+                r#"
 { a=10; b=20; c=30; }
 echo $a $b $c
-"#);
+"#,
+            );
             assert!(result.is_ok());
             let output = result.unwrap();
             assert_eq!(output.stdout.trim(), "10 20 30");
@@ -7212,9 +7379,11 @@ echo $a $b $c
         #[test]
         fn test_brace_005_exit_code() {
             let mut executor = BashExecutor::new();
-            let result = executor.execute(r#"
+            let result = executor.execute(
+                r#"
 { echo "hello"; exit 42; }
-"#);
+"#,
+            );
             assert!(result.is_ok());
             let output = result.unwrap();
             assert_eq!(output.exit_code, 42);
@@ -7224,10 +7393,12 @@ echo $a $b $c
         #[test]
         fn test_brace_006_empty() {
             let mut executor = BashExecutor::new();
-            let result = executor.execute(r#"
+            let result = executor.execute(
+                r#"
 { }
 echo "after"
-"#);
+"#,
+            );
             assert!(result.is_ok());
             let output = result.unwrap();
             assert_eq!(output.stdout.trim(), "after");
@@ -7238,13 +7409,15 @@ echo "after"
         #[test]
         fn test_brace_007_vs_subshell() {
             let mut executor = BashExecutor::new();
-            let result = executor.execute(r#"
+            let result = executor.execute(
+                r#"
 x=original
 (x=subshell)
 echo $x
 { x=brace; }
 echo $x
-"#);
+"#,
+            );
             assert!(result.is_ok());
             let output = result.unwrap();
             // First echo: x unchanged by subshell
@@ -7256,11 +7429,13 @@ echo $x
         #[test]
         fn test_brace_008_array_scope() {
             let mut executor = BashExecutor::new();
-            let result = executor.execute(r#"
+            let result = executor.execute(
+                r#"
 arr=(a b c)
 { arr[1]=modified; }
 echo ${arr[1]}
-"#);
+"#,
+            );
             assert!(result.is_ok());
             let output = result.unwrap();
             // Array should be modified in parent scope
@@ -7278,11 +7453,13 @@ echo ${arr[1]}
         #[test]
         fn test_exit_001_basic() {
             let mut executor = BashExecutor::new();
-            let result = executor.execute(r#"
+            let result = executor.execute(
+                r#"
 echo "before"
 exit 42
 echo "after"
-"#);
+"#,
+            );
             assert!(result.is_ok());
             let output = result.unwrap();
             // Should only see "before", not "after"
@@ -7295,10 +7472,12 @@ echo "after"
         #[test]
         fn test_exit_002_zero() {
             let mut executor = BashExecutor::new();
-            let result = executor.execute(r#"
+            let result = executor.execute(
+                r#"
 echo "success"
 exit 0
-"#);
+"#,
+            );
             assert!(result.is_ok());
             let output = result.unwrap();
             assert_eq!(output.stdout.trim(), "success");
@@ -7309,10 +7488,12 @@ exit 0
         #[test]
         fn test_exit_003_no_arg() {
             let mut executor = BashExecutor::new();
-            let result = executor.execute(r#"
+            let result = executor.execute(
+                r#"
 false
 exit
-"#);
+"#,
+            );
             assert!(result.is_ok());
             let output = result.unwrap();
             // Should use last command's exit code (1 from false)
@@ -7323,15 +7504,20 @@ exit
         #[test]
         fn test_exit_004_in_subshell() {
             let mut executor = BashExecutor::new();
-            let result = executor.execute(r#"
+            let result = executor.execute(
+                r#"
 echo "before subshell"
 (echo "in subshell"; exit 99)
 echo "after subshell"
-"#);
+"#,
+            );
             assert!(result.is_ok());
             let output = result.unwrap();
             // All three echoes should execute
-            assert_eq!(output.stdout.trim(), "before subshell\nin subshell\nafter subshell");
+            assert_eq!(
+                output.stdout.trim(),
+                "before subshell\nin subshell\nafter subshell"
+            );
             // Overall exit code should be 0 (last command succeeded)
             assert_eq!(output.exit_code, 0);
         }
@@ -7340,11 +7526,13 @@ echo "after subshell"
         #[test]
         fn test_exit_005_in_brace_group() {
             let mut executor = BashExecutor::new();
-            let result = executor.execute(r#"
+            let result = executor.execute(
+                r#"
 echo "before brace"
 { echo "in brace"; exit 77; }
 echo "after brace"
-"#);
+"#,
+            );
             assert!(result.is_ok());
             let output = result.unwrap();
             // Should NOT see "after brace"
@@ -7356,10 +7544,12 @@ echo "after brace"
         #[test]
         fn test_exit_006_first_wins() {
             let mut executor = BashExecutor::new();
-            let result = executor.execute(r#"
+            let result = executor.execute(
+                r#"
 exit 10
 exit 20
-"#);
+"#,
+            );
             assert!(result.is_ok());
             let output = result.unwrap();
             // First exit should win
@@ -7377,11 +7567,13 @@ exit 20
         #[test]
         fn test_if_001_basic_true() {
             let mut executor = BashExecutor::new();
-            let result = executor.execute(r#"
+            let result = executor.execute(
+                r#"
 if true; then
     echo "condition was true"
 fi
-"#);
+"#,
+            );
             assert!(result.is_ok());
             let output = result.unwrap();
             assert_eq!(output.stdout.trim(), "condition was true");
@@ -7392,12 +7584,14 @@ fi
         #[test]
         fn test_if_002_basic_false() {
             let mut executor = BashExecutor::new();
-            let result = executor.execute(r#"
+            let result = executor.execute(
+                r#"
 if false; then
     echo "should not see this"
 fi
 echo "after if"
-"#);
+"#,
+            );
             assert!(result.is_ok());
             let output = result.unwrap();
             assert_eq!(output.stdout.trim(), "after if");
@@ -7408,13 +7602,15 @@ echo "after if"
         #[test]
         fn test_if_003_else_true() {
             let mut executor = BashExecutor::new();
-            let result = executor.execute(r#"
+            let result = executor.execute(
+                r#"
 if true; then
     echo "then branch"
 else
     echo "else branch"
 fi
-"#);
+"#,
+            );
             assert!(result.is_ok());
             let output = result.unwrap();
             assert_eq!(output.stdout.trim(), "then branch");
@@ -7424,13 +7620,15 @@ fi
         #[test]
         fn test_if_004_else_false() {
             let mut executor = BashExecutor::new();
-            let result = executor.execute(r#"
+            let result = executor.execute(
+                r#"
 if false; then
     echo "then branch"
 else
     echo "else branch"
 fi
-"#);
+"#,
+            );
             assert!(result.is_ok());
             let output = result.unwrap();
             assert_eq!(output.stdout.trim(), "else branch");
@@ -7440,7 +7638,8 @@ fi
         #[test]
         fn test_if_005_elif_first() {
             let mut executor = BashExecutor::new();
-            let result = executor.execute(r#"
+            let result = executor.execute(
+                r#"
 if true; then
     echo "first"
 elif true; then
@@ -7448,7 +7647,8 @@ elif true; then
 else
     echo "third"
 fi
-"#);
+"#,
+            );
             assert!(result.is_ok());
             let output = result.unwrap();
             assert_eq!(output.stdout.trim(), "first");
@@ -7458,7 +7658,8 @@ fi
         #[test]
         fn test_if_006_elif_second() {
             let mut executor = BashExecutor::new();
-            let result = executor.execute(r#"
+            let result = executor.execute(
+                r#"
 if false; then
     echo "first"
 elif true; then
@@ -7466,7 +7667,8 @@ elif true; then
 else
     echo "third"
 fi
-"#);
+"#,
+            );
             assert!(result.is_ok());
             let output = result.unwrap();
             assert_eq!(output.stdout.trim(), "second");
@@ -7476,7 +7678,8 @@ fi
         #[test]
         fn test_if_007_elif_else() {
             let mut executor = BashExecutor::new();
-            let result = executor.execute(r#"
+            let result = executor.execute(
+                r#"
 if false; then
     echo "first"
 elif false; then
@@ -7484,7 +7687,8 @@ elif false; then
 else
     echo "third"
 fi
-"#);
+"#,
+            );
             assert!(result.is_ok());
             let output = result.unwrap();
             assert_eq!(output.stdout.trim(), "third");
@@ -7494,14 +7698,16 @@ fi
         #[test]
         fn test_if_008_nested() {
             let mut executor = BashExecutor::new();
-            let result = executor.execute(r#"
+            let result = executor.execute(
+                r#"
 if true; then
     echo "outer true"
     if true; then
         echo "inner true"
     fi
 fi
-"#);
+"#,
+            );
             if let Err(e) = &result {
                 eprintln!("ERROR: {}", e);
             }
@@ -7514,12 +7720,14 @@ fi
         #[test]
         fn test_if_009_exit_code() {
             let mut executor = BashExecutor::new();
-            let result = executor.execute(r#"
+            let result = executor.execute(
+                r#"
 x=5
 if [ "$x" = "5" ]; then
     echo "x is 5"
 fi
-"#);
+"#,
+            );
             assert!(result.is_ok());
             let output = result.unwrap();
             assert_eq!(output.stdout.trim(), "x is 5");
@@ -7529,7 +7737,8 @@ fi
         #[test]
         fn test_if_010_multiple_elif() {
             let mut executor = BashExecutor::new();
-            let result = executor.execute(r#"
+            let result = executor.execute(
+                r#"
 x=2
 if [ "$x" = "1" ]; then
     echo "one"
@@ -7540,7 +7749,8 @@ elif [ "$x" = "3" ]; then
 else
     echo "other"
 fi
-"#);
+"#,
+            );
             assert!(result.is_ok());
             let output = result.unwrap();
             assert_eq!(output.stdout.trim(), "two");
@@ -7557,11 +7767,13 @@ fi
         #[test]
         fn test_for_001_basic() {
             let mut executor = BashExecutor::new();
-            let result = executor.execute(r#"
+            let result = executor.execute(
+                r#"
 for x in one two three; do
     echo $x
 done
-"#);
+"#,
+            );
             assert!(result.is_ok());
             let output = result.unwrap();
             assert_eq!(output.stdout.trim(), "one\ntwo\nthree");
@@ -7571,12 +7783,14 @@ done
         #[test]
         fn test_for_002_variable_list() {
             let mut executor = BashExecutor::new();
-            let result = executor.execute(r#"
+            let result = executor.execute(
+                r#"
 items="apple banana cherry"
 for fruit in $items; do
     echo $fruit
 done
-"#);
+"#,
+            );
             assert!(result.is_ok());
             let output = result.unwrap();
             assert_eq!(output.stdout.trim(), "apple\nbanana\ncherry");
@@ -7586,13 +7800,15 @@ done
         #[test]
         fn test_for_003_numbers() {
             let mut executor = BashExecutor::new();
-            let result = executor.execute(r#"
+            let result = executor.execute(
+                r#"
 sum=0
 for n in 1 2 3 4 5; do
     sum=$((sum + n))
 done
 echo $sum
-"#);
+"#,
+            );
             assert!(result.is_ok());
             let output = result.unwrap();
             assert_eq!(output.stdout.trim(), "15");
@@ -7602,11 +7818,13 @@ echo $sum
         #[test]
         fn test_for_004_single_item() {
             let mut executor = BashExecutor::new();
-            let result = executor.execute(r#"
+            let result = executor.execute(
+                r#"
 for x in hello; do
     echo $x
 done
-"#);
+"#,
+            );
             assert!(result.is_ok());
             let output = result.unwrap();
             assert_eq!(output.stdout.trim(), "hello");
@@ -7616,13 +7834,15 @@ done
         #[test]
         fn test_for_005_empty_list() {
             let mut executor = BashExecutor::new();
-            let result = executor.execute(r#"
+            let result = executor.execute(
+                r#"
 list=""
 for x in $list; do
     echo "should not see this"
 done
 echo "after loop"
-"#);
+"#,
+            );
             assert!(result.is_ok());
             let output = result.unwrap();
             assert_eq!(output.stdout.trim(), "after loop");
@@ -7632,13 +7852,15 @@ echo "after loop"
         #[test]
         fn test_for_006_variable_scope() {
             let mut executor = BashExecutor::new();
-            let result = executor.execute(r#"
+            let result = executor.execute(
+                r#"
 x=before
 for x in during; do
     echo $x
 done
 echo $x
-"#);
+"#,
+            );
             assert!(result.is_ok());
             let output = result.unwrap();
             // Loop variable persists after loop
@@ -7649,27 +7871,34 @@ echo $x
         #[test]
         fn test_for_007_multiple_commands() {
             let mut executor = BashExecutor::new();
-            let result = executor.execute(r#"
+            let result = executor.execute(
+                r#"
 for x in 1 2; do
     echo "number: $x"
     y=$((x * 2))
     echo "double: $y"
 done
-"#);
+"#,
+            );
             assert!(result.is_ok());
             let output = result.unwrap();
-            assert_eq!(output.stdout.trim(), "number: 1\ndouble: 2\nnumber: 2\ndouble: 4");
+            assert_eq!(
+                output.stdout.trim(),
+                "number: 1\ndouble: 2\nnumber: 2\ndouble: 4"
+            );
         }
 
         /// Test 8: For loop exit code (last command)
         #[test]
         fn test_for_008_exit_code() {
             let mut executor = BashExecutor::new();
-            let result = executor.execute(r#"
+            let result = executor.execute(
+                r#"
 for x in 1 2 3; do
     echo $x
 done
-"#);
+"#,
+            );
             assert!(result.is_ok());
             let output = result.unwrap();
             assert_eq!(output.exit_code, 0);
@@ -7686,13 +7915,15 @@ done
         #[test]
         fn test_while_001_counter() {
             let mut executor = BashExecutor::new();
-            let result = executor.execute(r#"
+            let result = executor.execute(
+                r#"
 i=1
 while [ "$i" -le "3" ]; do
     echo $i
     i=$((i + 1))
 done
-"#);
+"#,
+            );
             assert!(result.is_ok());
             let output = result.unwrap();
             assert_eq!(output.stdout.trim(), "1\n2\n3");
@@ -7702,12 +7933,14 @@ done
         #[test]
         fn test_while_002_false_condition() {
             let mut executor = BashExecutor::new();
-            let result = executor.execute(r#"
+            let result = executor.execute(
+                r#"
 while false; do
     echo "should not see this"
 done
 echo "after loop"
-"#);
+"#,
+            );
             assert!(result.is_ok());
             let output = result.unwrap();
             assert_eq!(output.stdout.trim(), "after loop");
@@ -7717,13 +7950,15 @@ echo "after loop"
         #[test]
         fn test_while_003_variable_condition() {
             let mut executor = BashExecutor::new();
-            let result = executor.execute(r#"
+            let result = executor.execute(
+                r#"
 count=3
 while [ "$count" -gt "0" ]; do
     echo "count: $count"
     count=$((count - 1))
 done
-"#);
+"#,
+            );
             assert!(result.is_ok());
             let output = result.unwrap();
             assert_eq!(output.stdout.trim(), "count: 3\ncount: 2\ncount: 1");
@@ -7733,7 +7968,8 @@ done
         #[test]
         fn test_while_004_accumulator() {
             let mut executor = BashExecutor::new();
-            let result = executor.execute(r#"
+            let result = executor.execute(
+                r#"
 sum=0
 i=1
 while [ "$i" -le "5" ]; do
@@ -7741,7 +7977,8 @@ while [ "$i" -le "5" ]; do
     i=$((i + 1))
 done
 echo $sum
-"#);
+"#,
+            );
             assert!(result.is_ok());
             let output = result.unwrap();
             assert_eq!(output.stdout.trim(), "15");
@@ -7751,7 +7988,8 @@ echo $sum
         #[test]
         fn test_while_005_multiple_commands() {
             let mut executor = BashExecutor::new();
-            let result = executor.execute(r#"
+            let result = executor.execute(
+                r#"
 i=1
 while [ "$i" -le "2" ]; do
     echo "iteration: $i"
@@ -7759,23 +7997,29 @@ while [ "$i" -le "2" ]; do
     echo "double: $j"
     i=$((i + 1))
 done
-"#);
+"#,
+            );
             assert!(result.is_ok());
             let output = result.unwrap();
-            assert_eq!(output.stdout.trim(), "iteration: 1\ndouble: 2\niteration: 2\ndouble: 4");
+            assert_eq!(
+                output.stdout.trim(),
+                "iteration: 1\ndouble: 2\niteration: 2\ndouble: 4"
+            );
         }
 
         /// Test 6: While loop exit code
         #[test]
         fn test_while_006_exit_code() {
             let mut executor = BashExecutor::new();
-            let result = executor.execute(r#"
+            let result = executor.execute(
+                r#"
 i=1
 while [ "$i" -le "3" ]; do
     echo $i
     i=$((i + 1))
 done
-"#);
+"#,
+            );
             assert!(result.is_ok());
             let output = result.unwrap();
             assert_eq!(output.exit_code, 0);

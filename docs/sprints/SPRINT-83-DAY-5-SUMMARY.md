@@ -469,7 +469,6 @@ app: main.o
 
 ### External References
 - [GNU Make Manual](https://www.gnu.org/software/make/manual/make.html) - Make reference
-- [GNU Make Performance](https://www.gnu.org/software/make/manual/html_node/Performance.html) - Performance tips
 - [Pattern Rules](https://www.gnu.org/software/make/manual/html_node/Pattern-Rules.html) - Pattern rule documentation
 
 ---

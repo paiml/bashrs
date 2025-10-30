@@ -316,5 +316,3 @@ lint-fix:
 3. **Integrated workflow** - lint + transpile + purify
 4. **Auto-fix support** - automatically apply fixes
 5. **Fast execution** - native Rust, no subprocess
-
-**Next chapter**: [Chapter 9: Determinism and Idempotency →](ch09-determinism-tdd.html)

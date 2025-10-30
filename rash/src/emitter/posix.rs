@@ -732,17 +732,16 @@ impl PosixEmitter {
     fn is_known_command(&self, name: &str) -> bool {
         // POSIX shell builtins
         const BUILTINS: &[&str] = &[
-            "echo", "cd", "pwd", "test", "export", "readonly", "shift",
-            "set", "unset", "read", "printf", "return", "exit", "trap",
-            "true", "false", ":", ".", "source", "eval", "exec", "wait",
+            "echo", "cd", "pwd", "test", "export", "readonly", "shift", "set", "unset", "read",
+            "printf", "return", "exit", "trap", "true", "false", ":", ".", "source", "eval",
+            "exec", "wait",
         ];
 
         // Common external commands
         const EXTERNAL_COMMANDS: &[&str] = &[
-            "cat", "grep", "sed", "awk", "cut", "sort", "uniq", "wc",
-            "ls", "cp", "mv", "rm", "mkdir", "rmdir", "touch", "chmod",
-            "chown", "find", "xargs", "tar", "gzip", "curl", "wget",
-            "git", "make", "docker", "ssh", "scp", "rsync",
+            "cat", "grep", "sed", "awk", "cut", "sort", "uniq", "wc", "ls", "cp", "mv", "rm",
+            "mkdir", "rmdir", "touch", "chmod", "chown", "find", "xargs", "tar", "gzip", "curl",
+            "wget", "git", "make", "docker", "ssh", "scp", "rsync",
         ];
 
         BUILTINS.contains(&name) || EXTERNAL_COMMANDS.contains(&name)

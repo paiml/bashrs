@@ -116,9 +116,7 @@ pub fn is_incomplete(input: &str) -> bool {
         return true;
     }
 
-    if (trimmed.starts_with("function ") || trimmed.contains("() {"))
-        && !trimmed.ends_with('}')
-    {
+    if (trimmed.starts_with("function ") || trimmed.contains("() {")) && !trimmed.ends_with('}') {
         return true;
     }
 

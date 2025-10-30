@@ -370,16 +370,14 @@ pub fn extract_function_calls(text: &str) -> Vec<(String, String)> {
                 let content = &text[start..end];
 
                 // Split by first space or comma to get function name
-                let (func_name, args) =
-                    if let Some(space_pos) = content.find([' ', ',']) {
-                        let name = &content[..space_pos];
-                        let args =
-                            content[space_pos..].trim_start_matches([' ', ',']);
-                        (name.to_string(), args.to_string())
-                    } else {
-                        // No args (e.g., $(CURDIR))
-                        (content.to_string(), String::new())
-                    };
+                let (func_name, args) = if let Some(space_pos) = content.find([' ', ',']) {
+                    let name = &content[..space_pos];
+                    let args = content[space_pos..].trim_start_matches([' ', ',']);
+                    (name.to_string(), args.to_string())
+                } else {
+                    // No args (e.g., $(CURDIR))
+                    (content.to_string(), String::new())
+                };
 
                 functions.push((func_name, args));
                 pos = end + 1; // Skip past ')'

@@ -180,10 +180,7 @@ fn test_repl_008_001_stdout_capture() {
 /// Test: REPL-008-001-015 - Handle empty output
 #[test]
 fn test_repl_008_001_empty_output() {
-    bashrs_repl()
-        .write_stdin("true\nquit\n")
-        .assert()
-        .success();
+    bashrs_repl().write_stdin("true\nquit\n").assert().success();
 }
 
 // ===== WORKFLOW INTEGRATION TESTS =====

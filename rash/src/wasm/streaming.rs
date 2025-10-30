@@ -36,9 +36,9 @@
 //!
 //! If these aren't achievable, WASM implementation is not feasible.
 
+use js_sys::Function;
 use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsCast;
-use js_sys::Function;
 
 /// Callback type for streaming output
 ///
@@ -167,7 +167,10 @@ impl StreamStats {
 /// console.log(`Max throughput: ${results.max_throughput_mbps} MB/s`);
 /// ```
 #[wasm_bindgen]
-pub fn benchmark_streaming(test_size_bytes: usize, callback: &Function) -> Result<BenchmarkResult, JsValue> {
+pub fn benchmark_streaming(
+    test_size_bytes: usize,
+    callback: &Function,
+) -> Result<BenchmarkResult, JsValue> {
     // Generate test data
     let test_data = "x".repeat(test_size_bytes);
 

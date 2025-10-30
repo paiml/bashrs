@@ -121,9 +121,7 @@ impl TraceEvent {
     pub fn significance(&self) -> TraceSignificance {
         match self {
             // CRITICAL: Conflicts and security violations
-            Self::Purify(PurifyEvent::TransformationConflict { .. }) => {
-                TraceSignificance::Critical
-            }
+            Self::Purify(PurifyEvent::TransformationConflict { .. }) => TraceSignificance::Critical,
             Self::Lint(LintEvent::RuleEvaluated {
                 violation: Some(v), ..
             }) if v.is_security => TraceSignificance::Critical,
@@ -193,7 +191,10 @@ impl ParseEvent {
         match self {
             Self::ParseStart { source, .. } => format!("Parse started: {source}"),
             Self::ParseNode { node_type, span } => {
-                format!("Parsed {node_type} at {}:{}", span.line_start, span.col_start)
+                format!(
+                    "Parsed {node_type} at {}:{}",
+                    span.line_start, span.col_start
+                )
             }
             Self::ParseComplete {
                 node_count,
@@ -513,8 +514,7 @@ mod tests {
         });
 
         let json = serde_json::to_string(&event).expect("Serialization failed");
-        let deserialized: TraceEvent =
-            serde_json::from_str(&json).expect("Deserialization failed");
+        let deserialized: TraceEvent = serde_json::from_str(&json).expect("Deserialization failed");
 
         assert_eq!(event, deserialized);
     }

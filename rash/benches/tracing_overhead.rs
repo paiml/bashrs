@@ -10,9 +10,9 @@
 //!
 //! Success Criteria: Overhead < 10% for all workloads
 
-use criterion::{black_box, criterion_group, criterion_main, Criterion, BenchmarkId};
 use bashrs::bash_parser::BashParser;
 use bashrs::tracing::TraceManager;
+use criterion::{black_box, criterion_group, criterion_main, BenchmarkId, Criterion};
 
 /// Small script: 5 statements (~10 lines)
 const SMALL_SCRIPT: &str = r#"
@@ -68,7 +68,9 @@ fn generate_large_script() -> String {
     for i in 0..30 {
         script.push_str(&format!(
             "if [ \"$VAR_{}\" = \"value_{}\" ]; then\n  echo \"Match {}\"\nfi\n",
-            i % 50, i % 50, i
+            i % 50,
+            i % 50,
+            i
         ));
     }
 
@@ -84,8 +86,8 @@ fn generate_large_script() -> String {
 fn bench_parse_small_baseline(c: &mut Criterion) {
     c.bench_function("parse_small_baseline", |b| {
         b.iter(|| {
-            let mut parser = BashParser::new(black_box(SMALL_SCRIPT))
-                .expect("Parser creation failed");
+            let mut parser =
+                BashParser::new(black_box(SMALL_SCRIPT)).expect("Parser creation failed");
             let ast = parser.parse().expect("Parse failed");
             black_box(ast);
         });
@@ -110,8 +112,8 @@ fn bench_parse_small_traced(c: &mut Criterion) {
 fn bench_parse_medium_baseline(c: &mut Criterion) {
     c.bench_function("parse_medium_baseline", |b| {
         b.iter(|| {
-            let mut parser = BashParser::new(black_box(MEDIUM_SCRIPT))
-                .expect("Parser creation failed");
+            let mut parser =
+                BashParser::new(black_box(MEDIUM_SCRIPT)).expect("Parser creation failed");
             let ast = parser.parse().expect("Parse failed");
             black_box(ast);
         });
@@ -138,8 +140,8 @@ fn bench_parse_large_baseline(c: &mut Criterion) {
 
     c.bench_function("parse_large_baseline", |b| {
         b.iter(|| {
-            let mut parser = BashParser::new(black_box(&large_script))
-                .expect("Parser creation failed");
+            let mut parser =
+                BashParser::new(black_box(&large_script)).expect("Parser creation failed");
             let ast = parser.parse().expect("Parse failed");
             black_box(ast);
         });
@@ -167,46 +169,62 @@ fn bench_overhead_comparison(c: &mut Criterion) {
     let mut group = c.benchmark_group("overhead_comparison");
 
     // Small script
-    group.bench_with_input(BenchmarkId::new("baseline", "small"), &SMALL_SCRIPT, |b, script| {
-        b.iter(|| {
-            let mut parser = BashParser::new(black_box(script))
-                .expect("Parser creation failed");
-            let ast = parser.parse().expect("Parse failed");
-            black_box(ast);
-        });
-    });
+    group.bench_with_input(
+        BenchmarkId::new("baseline", "small"),
+        &SMALL_SCRIPT,
+        |b, script| {
+            b.iter(|| {
+                let mut parser =
+                    BashParser::new(black_box(script)).expect("Parser creation failed");
+                let ast = parser.parse().expect("Parse failed");
+                black_box(ast);
+            });
+        },
+    );
 
-    group.bench_with_input(BenchmarkId::new("traced", "small"), &SMALL_SCRIPT, |b, script| {
-        b.iter(|| {
-            let tracer = TraceManager::new();
-            let mut parser = BashParser::new(black_box(script))
-                .expect("Parser creation failed")
-                .with_tracer(tracer);
-            let ast = parser.parse().expect("Parse failed");
-            black_box(ast);
-        });
-    });
+    group.bench_with_input(
+        BenchmarkId::new("traced", "small"),
+        &SMALL_SCRIPT,
+        |b, script| {
+            b.iter(|| {
+                let tracer = TraceManager::new();
+                let mut parser = BashParser::new(black_box(script))
+                    .expect("Parser creation failed")
+                    .with_tracer(tracer);
+                let ast = parser.parse().expect("Parse failed");
+                black_box(ast);
+            });
+        },
+    );
 
     // Medium script
-    group.bench_with_input(BenchmarkId::new("baseline", "medium"), &MEDIUM_SCRIPT, |b, script| {
-        b.iter(|| {
-            let mut parser = BashParser::new(black_box(script))
-                .expect("Parser creation failed");
-            let ast = parser.parse().expect("Parse failed");
-            black_box(ast);
-        });
-    });
+    group.bench_with_input(
+        BenchmarkId::new("baseline", "medium"),
+        &MEDIUM_SCRIPT,
+        |b, script| {
+            b.iter(|| {
+                let mut parser =
+                    BashParser::new(black_box(script)).expect("Parser creation failed");
+                let ast = parser.parse().expect("Parse failed");
+                black_box(ast);
+            });
+        },
+    );
 
-    group.bench_with_input(BenchmarkId::new("traced", "medium"), &MEDIUM_SCRIPT, |b, script| {
-        b.iter(|| {
-            let tracer = TraceManager::new();
-            let mut parser = BashParser::new(black_box(script))
-                .expect("Parser creation failed")
-                .with_tracer(tracer);
-            let ast = parser.parse().expect("Parse failed");
-            black_box(ast);
-        });
-    });
+    group.bench_with_input(
+        BenchmarkId::new("traced", "medium"),
+        &MEDIUM_SCRIPT,
+        |b, script| {
+            b.iter(|| {
+                let tracer = TraceManager::new();
+                let mut parser = BashParser::new(black_box(script))
+                    .expect("Parser creation failed")
+                    .with_tracer(tracer);
+                let ast = parser.parse().expect("Parse failed");
+                black_box(ast);
+            });
+        },
+    );
 
     group.finish();
 }

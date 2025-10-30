@@ -257,5 +257,3 @@ fn get_api_key() -> Result<String, String> {
 3. **Validate all input** - Whitelist, don't blacklist
 4. **Check command failures** - `cd ... || exit`
 5. **Protect dangerous operations** - `${VAR:?}` for required variables
-
-**Next chapter**: [Chapter 11: Bootstrap Installers →](ch11-bootstrap-tdd.html)

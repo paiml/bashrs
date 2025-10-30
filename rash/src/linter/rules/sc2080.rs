@@ -27,9 +27,8 @@ static LEADING_ZERO_NUMBER: Lazy<Regex> = Lazy::new(|| {
 
 // Regex for extracting the number with leading zero
 #[allow(clippy::expect_used)] // Compile-time regex, panic on invalid pattern is acceptable
-static NUM_WITH_LEADING_ZERO: Lazy<Regex> = Lazy::new(|| {
-    Regex::new(r"0[0-9]+").expect("valid regex pattern")
-});
+static NUM_WITH_LEADING_ZERO: Lazy<Regex> =
+    Lazy::new(|| Regex::new(r"0[0-9]+").expect("valid regex pattern"));
 
 pub fn check(source: &str) -> LintResult {
     let mut result = LintResult::new();

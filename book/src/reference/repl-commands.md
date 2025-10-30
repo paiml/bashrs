@@ -552,6 +552,5 @@ Purified 1 statement(s)
 ## See Also
 
 - [Interactive REPL Guide](../getting-started/repl.md) - Getting started tutorial
-- [Parser Integration](../concepts/parser.md) - Understanding bash AST
 - [Purifier Integration](../concepts/purification.md) - Transformation rules
 - [Linter Rules Reference](./rules.md) - Complete linting rules

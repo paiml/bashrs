@@ -64,7 +64,8 @@ fn test_REPL_003_005_lint_mode_auto_lint() {
         .assert()
         .success()
         .stdout(predicate::str::contains("lint"))
-        .stdout(predicate::str::contains("SC").or(predicate::str::contains("Found"))); // Shows lint results
+        .stdout(predicate::str::contains("SC").or(predicate::str::contains("Found")));
+    // Shows lint results
 }
 
 /// Test: REPL-003-005-005 - Lint mode shows clean result for good code

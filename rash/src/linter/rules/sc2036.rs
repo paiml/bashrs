@@ -95,11 +95,8 @@ pub fn check(source: &str) -> LintResult {
 
                 // Check for unescaped quotes inside backticks
                 if let Some(quote_pos) = find_unescaped_quote_in_backticks(&chars, backtick_start) {
-                    let diagnostic = create_backtick_quote_diagnostic(
-                        line_num,
-                        backtick_start,
-                        quote_pos,
-                    );
+                    let diagnostic =
+                        create_backtick_quote_diagnostic(line_num, backtick_start, quote_pos);
                     result.add(diagnostic);
 
                     // Skip to end of this backtick expression

@@ -569,14 +569,13 @@ export default {
 
 Found a bug or want a feature? Check out:
 - [GitHub Issues](https://github.com/paiml/bashrs/issues)
-- [Contributing Guide](../../CONTRIBUTING.md)
 - [WASM Roadmap](./WASM-RUNTIME-ROADMAP.md)
 
 ---
 
 ## License
 
-MIT License - see [LICENSE](../../LICENSE) for details.
+MIT License
 
 ---
 

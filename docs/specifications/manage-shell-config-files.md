@@ -893,7 +893,6 @@ Test on diverse real configs:
 - [Zsh Manual](https://zsh.sourceforge.io/Doc/)
 - [POSIX Shell](https://pubs.opengroup.org/onlinepubs/9699919799/utilities/V3_chap02.html)
 - [ShellCheck Wiki](https://www.shellcheck.net/wiki/)
-- [XDG Base Directory Specification](https://specifications.freedesktop.org/basedir-spec/basedir-spec-latest.html)
 
 ---
 

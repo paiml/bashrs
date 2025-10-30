@@ -16,7 +16,6 @@
 use crate::linter::{Diagnostic, LintResult, Severity, Span};
 
 pub fn check(_source: &str) -> LintResult {
-    
     // This overlaps with SC2068, SC2086 - already implemented
     // Placeholder for compatibility
     LintResult::new()

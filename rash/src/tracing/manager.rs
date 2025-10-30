@@ -87,10 +87,7 @@ impl TraceManager {
     /// Get the number of events currently in the buffer
     #[must_use]
     pub fn event_count(&self) -> usize {
-        self.buffer
-            .lock()
-            .ok()
-            .map_or(0, |b| b.len())
+        self.buffer.lock().ok().map_or(0, |b| b.len())
     }
 
     /// Get elapsed time since trace manager was created

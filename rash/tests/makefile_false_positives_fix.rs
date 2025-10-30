@@ -201,14 +201,33 @@ build-timestamp:
     let result = lint_makefile(makefile);
 
     // Count errors by type
-    let sc2133_count = result.diagnostics.iter().filter(|d| d.code == "SC2133").count();
-    let sc2168_count = result.diagnostics.iter().filter(|d| d.code == "SC2168").count();
-    let sc2299_count = result.diagnostics.iter().filter(|d| d.code == "SC2299").count();
-    let det002_count = result.diagnostics.iter().filter(|d| d.code == "DET002").count();
+    let sc2133_count = result
+        .diagnostics
+        .iter()
+        .filter(|d| d.code == "SC2133")
+        .count();
+    let sc2168_count = result
+        .diagnostics
+        .iter()
+        .filter(|d| d.code == "SC2168")
+        .count();
+    let sc2299_count = result
+        .diagnostics
+        .iter()
+        .filter(|d| d.code == "SC2299")
+        .count();
+    let det002_count = result
+        .diagnostics
+        .iter()
+        .filter(|d| d.code == "DET002")
+        .count();
 
     println!("Error counts:");
     println!("  SC2133: {} (expected: 0)", sc2133_count);
-    println!("  SC2168: {} (expected: 0-1, sh -c edge case)", sc2168_count);
+    println!(
+        "  SC2168: {} (expected: 0-1, sh -c edge case)",
+        sc2168_count
+    );
     println!("  SC2299: {} (expected: 0)", sc2299_count);
     println!("  DET002: {} (expected: 0)", det002_count);
 

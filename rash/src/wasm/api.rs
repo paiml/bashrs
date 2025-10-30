@@ -2,8 +2,8 @@
 //!
 //! This module provides the main entry points for JavaScript/TypeScript consumers.
 
-use wasm_bindgen::prelude::*;
 use serde::{Deserialize, Serialize};
+use wasm_bindgen::prelude::*;
 
 /// Initialize the WASM module
 ///
@@ -101,7 +101,10 @@ impl ConfigAnalysisResult {
 /// console.log(JSON.parse(result.issues_json));
 /// ```
 #[wasm_bindgen]
-pub fn analyze_config(content: &str, filename: Option<String>) -> Result<ConfigAnalysisResult, JsValue> {
+pub fn analyze_config(
+    content: &str,
+    filename: Option<String>,
+) -> Result<ConfigAnalysisResult, JsValue> {
     use crate::config::analyzer;
     use std::path::PathBuf;
 

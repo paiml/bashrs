@@ -14,7 +14,6 @@
 use crate::linter::{Diagnostic, LintResult, Severity, Span};
 
 pub fn check(_source: &str) -> LintResult {
-    
     // This is covered by SC2176 - same pattern
     // Placeholder for compatibility
     LintResult::new()

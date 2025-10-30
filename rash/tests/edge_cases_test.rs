@@ -156,8 +156,7 @@ fn echo(msg: &str) {
 
     // Should call the builtin echo command directly
     assert!(
-        result.contains("echo ")
-            || result.contains("echo test"),
+        result.contains("echo ") || result.contains("echo test"),
         "Should call the builtin echo command"
     );
 }

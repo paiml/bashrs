@@ -56,11 +56,24 @@ fn format_statement(stmt: &BashStmt, indent: usize) -> String {
         BashStmt::Assignment { name, .. } => {
             format!("{}Assignment: {}", indent_str, name)
         }
-        BashStmt::If { then_block, elif_blocks, else_block, .. } => {
+        BashStmt::If {
+            then_block,
+            elif_blocks,
+            else_block,
+            ..
+        } => {
             let mut s = format!("{}If statement", indent_str);
-            s.push_str(&format!("\n{}  then: {} statements", indent_str, then_block.len()));
+            s.push_str(&format!(
+                "\n{}  then: {} statements",
+                indent_str,
+                then_block.len()
+            ));
             if !elif_blocks.is_empty() {
-                s.push_str(&format!("\n{}  elif: {} branches", indent_str, elif_blocks.len()));
+                s.push_str(&format!(
+                    "\n{}  elif: {} branches",
+                    indent_str,
+                    elif_blocks.len()
+                ));
             }
             if else_block.is_some() {
                 s.push_str(&format!("\n{}  else: present", indent_str));
@@ -71,10 +84,20 @@ fn format_statement(stmt: &BashStmt, indent: usize) -> String {
             format!("{}While loop ({} statements)", indent_str, body.len())
         }
         BashStmt::For { variable, body, .. } => {
-            format!("{}For loop: {} ({} statements)", indent_str, variable, body.len())
+            format!(
+                "{}For loop: {} ({} statements)",
+                indent_str,
+                variable,
+                body.len()
+            )
         }
         BashStmt::Function { name, body, .. } => {
-            format!("{}Function: {} ({} statements)", indent_str, name, body.len())
+            format!(
+                "{}Function: {} ({} statements)",
+                indent_str,
+                name,
+                body.len()
+            )
         }
         BashStmt::Case { arms, .. } => {
             format!("{}Case statement ({} arms)", indent_str, arms.len())
@@ -86,7 +109,11 @@ fn format_statement(stmt: &BashStmt, indent: usize) -> String {
             format!("{}Return statement", indent_str)
         }
         BashStmt::Comment { text, .. } => {
-            format!("{}Comment: {}", indent_str, text.lines().next().unwrap_or(""))
+            format!(
+                "{}Comment: {}",
+                indent_str,
+                text.lines().next().unwrap_or("")
+            )
         }
     }
 }
@@ -94,7 +121,7 @@ fn format_statement(stmt: &BashStmt, indent: usize) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::bash_parser::ast::{BashExpr, AstMetadata, Span};
+    use crate::bash_parser::ast::{AstMetadata, BashExpr, Span};
 
     fn dummy_span() -> Span {
         Span::new(1, 1, 1, 10)
@@ -106,13 +133,11 @@ mod tests {
     #[test]
     fn test_REPL_004_002_display_simple_command() {
         let ast = BashAst {
-            statements: vec![
-                BashStmt::Command {
-                    name: "echo".to_string(),
-                    args: vec![BashExpr::Literal("hello".to_string())],
-                    span: dummy_span(),
-                }
-            ],
+            statements: vec![BashStmt::Command {
+                name: "echo".to_string(),
+                args: vec![BashExpr::Literal("hello".to_string())],
+                span: dummy_span(),
+            }],
             metadata: AstMetadata {
                 source_file: None,
                 line_count: 1,
@@ -123,7 +148,10 @@ mod tests {
         let output = format_ast(&ast);
 
         assert!(output.contains("=== AST ==="), "Should have AST header");
-        assert!(output.contains("Statements: 1"), "Should show statement count");
+        assert!(
+            output.contains("Statements: 1"),
+            "Should show statement count"
+        );
         assert!(output.contains("Command: echo"), "Should show command name");
     }
 
@@ -131,14 +159,12 @@ mod tests {
     #[test]
     fn test_REPL_004_002_display_assignment() {
         let ast = BashAst {
-            statements: vec![
-                BashStmt::Assignment {
-                    name: "VAR".to_string(),
-                    value: BashExpr::Literal("value".to_string()),
-                    exported: false,
-                    span: dummy_span(),
-                }
-            ],
+            statements: vec![BashStmt::Assignment {
+                name: "VAR".to_string(),
+                value: BashExpr::Literal("value".to_string()),
+                exported: false,
+                span: dummy_span(),
+            }],
             metadata: AstMetadata {
                 source_file: None,
                 line_count: 1,
@@ -155,21 +181,17 @@ mod tests {
     #[test]
     fn test_REPL_004_002_display_if_statement() {
         let ast = BashAst {
-            statements: vec![
-                BashStmt::If {
-                    condition: BashExpr::Literal("true".to_string()),
-                    then_block: vec![
-                        BashStmt::Command {
-                            name: "echo".to_string(),
-                            args: vec![],
-                            span: dummy_span(),
-                        }
-                    ],
-                    elif_blocks: vec![],
-                    else_block: None,
+            statements: vec![BashStmt::If {
+                condition: BashExpr::Literal("true".to_string()),
+                then_block: vec![BashStmt::Command {
+                    name: "echo".to_string(),
+                    args: vec![],
                     span: dummy_span(),
-                }
-            ],
+                }],
+                elif_blocks: vec![],
+                else_block: None,
+                span: dummy_span(),
+            }],
             metadata: AstMetadata {
                 source_file: None,
                 line_count: 3,
@@ -180,7 +202,10 @@ mod tests {
         let output = format_ast(&ast);
 
         assert!(output.contains("If statement"), "Should show if statement");
-        assert!(output.contains("then: 1 statements"), "Should show then block");
+        assert!(
+            output.contains("then: 1 statements"),
+            "Should show then block"
+        );
     }
 
     /// Test: REPL-004-002-004 - Display empty AST
@@ -197,7 +222,10 @@ mod tests {
 
         let output = format_ast(&ast);
 
-        assert!(output.contains("Statements: 0"), "Should show zero statements");
+        assert!(
+            output.contains("Statements: 0"),
+            "Should show zero statements"
+        );
     }
 
     /// Test: REPL-004-002-005 - Display multiple statements
@@ -241,24 +269,20 @@ mod tests {
     #[test]
     fn test_REPL_004_002_display_for_loop() {
         let ast = BashAst {
-            statements: vec![
-                BashStmt::For {
-                    variable: "i".to_string(),
-                    items: BashExpr::Array(vec![
-                        BashExpr::Literal("1".to_string()),
-                        BashExpr::Literal("2".to_string()),
-                        BashExpr::Literal("3".to_string()),
-                    ]),
-                    body: vec![
-                        BashStmt::Command {
-                            name: "echo".to_string(),
-                            args: vec![BashExpr::Variable("i".to_string())],
-                            span: dummy_span(),
-                        }
-                    ],
+            statements: vec![BashStmt::For {
+                variable: "i".to_string(),
+                items: BashExpr::Array(vec![
+                    BashExpr::Literal("1".to_string()),
+                    BashExpr::Literal("2".to_string()),
+                    BashExpr::Literal("3".to_string()),
+                ]),
+                body: vec![BashStmt::Command {
+                    name: "echo".to_string(),
+                    args: vec![BashExpr::Variable("i".to_string())],
                     span: dummy_span(),
-                }
-            ],
+                }],
+                span: dummy_span(),
+            }],
             metadata: AstMetadata {
                 source_file: None,
                 line_count: 3,
@@ -268,7 +292,10 @@ mod tests {
 
         let output = format_ast(&ast);
 
-        assert!(output.contains("For loop: i"), "Should show for loop variable");
+        assert!(
+            output.contains("For loop: i"),
+            "Should show for loop variable"
+        );
         assert!(output.contains("1 statements"), "Should show body size");
     }
 }
@@ -276,7 +303,7 @@ mod tests {
 #[cfg(test)]
 mod property_tests {
     use super::*;
-    use crate::bash_parser::ast::{BashExpr, AstMetadata, Span};
+    use crate::bash_parser::ast::{AstMetadata, BashExpr, Span};
     use proptest::prelude::*;
 
     fn dummy_span() -> Span {

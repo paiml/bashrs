@@ -16,17 +16,16 @@ pub fn check(source: &str) -> LintResult {
             continue;
         }
 
-        if UNQUOTED_UNALIAS.is_match(line)
-            && !line.contains("\"$") {
-                let diagnostic = Diagnostic::new(
-                    "SC2235",
-                    Severity::Warning,
-                    "Quote arguments to unalias to prevent word splitting and glob expansion"
-                        .to_string(),
-                    Span::new(line_num, 1, line_num, line.len() + 1),
-                );
-                result.add(diagnostic);
-            }
+        if UNQUOTED_UNALIAS.is_match(line) && !line.contains("\"$") {
+            let diagnostic = Diagnostic::new(
+                "SC2235",
+                Severity::Warning,
+                "Quote arguments to unalias to prevent word splitting and glob expansion"
+                    .to_string(),
+                Span::new(line_num, 1, line_num, line.len() + 1),
+            );
+            result.add(diagnostic);
+        }
     }
     result
 }
