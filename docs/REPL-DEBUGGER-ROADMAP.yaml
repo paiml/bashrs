@@ -865,7 +865,7 @@ phases:
             title: "Replay verification (run script twice, compare outputs)"
             status: "completed"
             completion_date: "2025-10-30"
-            commit: "pending"
+            commit: "1b27869d"
             test_approach: "RED → GREEN → REFACTOR → PROPERTY → MUTATION"
             notes: "Dynamic execution verification. Property tests found and fixed panic on null bytes. Run scripts multiple times and compare outputs for definitive determinism proof."
             dependencies: ["REPL-011-001"]
