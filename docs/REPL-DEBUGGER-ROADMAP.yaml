@@ -889,12 +889,20 @@ phases:
 
           - id: "REPL-011-003"
             title: "Diff explanation (what changed between runs)"
-            status: "pending"
+            status: "completed"
             dependencies: ["REPL-011-002"]
             tests:
               unit:
-                - "test_REPL_011_003_diff_explanation"
-                - "test_REPL_011_003_diff_line_numbers"
+                - "test_REPL_011_003_format_single_difference"
+                - "test_REPL_011_003_format_multiple_differences"
+                - "test_REPL_011_003_format_no_differences"
+                - "test_REPL_011_003_format_empty_lines"
+                - "test_REPL_011_003_replay_result_format"
+                - "test_REPL_011_003_deterministic_result_format"
+              property:
+                - "prop_REPL_011_003_format_never_panics"
+                - "prop_REPL_011_003_format_preserves_line_numbers"
+                - "prop_REPL_011_003_empty_always_deterministic"
 
         milestones:
           - name: "Verify determinism"

@@ -31,8 +31,8 @@ pub use breakpoint::{Breakpoint, BreakpointManager};
 pub use config::ReplConfig;
 pub use debugger::{ContinueResult, DebugSession, LineComparison, StackFrame};
 pub use determinism::{
-    DeterminismChecker, DeterminismIssue, NonDeterministicPattern, OutputDifference, ReplayResult,
-    ReplayVerifier, RunOutput,
+    format_replay_diff, DeterminismChecker, DeterminismIssue, NonDeterministicPattern,
+    OutputDifference, ReplayResult, ReplayVerifier, RunOutput,
 };
 pub use diff::display_diff;
 pub use explain::{explain_bash, Explanation};
