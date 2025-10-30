@@ -508,34 +508,63 @@ phases:
     sprints:
       - sprint: "REPL-007"
         name: "Breakpoint System"
-        status: "PENDING"
+        status: "IN_PROGRESS"
         duration: "2 weeks"
         tasks:
           - id: "REPL-007-001"
             title: "Line-based breakpoints"
-            status: "pending"
+            status: "completed"
+            completion_date: "2025-10-30"
+            commit: "21ab465f"
             test_approach: "RED → GREEN → REFACTOR → PROPERTY → MUTATION"
             tests:
               unit:
-                - "test_REPL_007_001_set_breakpoint"
-                - "test_REPL_007_001_hit_breakpoint"
-                - "test_REPL_007_001_remove_breakpoint"
+                - "test_REPL_007_001_set_breakpoint ✅"
+                - "test_REPL_007_001_remove_breakpoint ✅"
+                - "test_REPL_007_001_is_breakpoint_hit ✅"
+                - "test_REPL_007_001_get_breakpoints ✅"
+                - "test_REPL_007_001_clear_all ✅"
+                - "test_REPL_007_001_count ✅"
               property:
-                - "prop_breakpoint_line_numbers_valid"
+                - "prop_breakpoint_line_numbers_valid ✅"
+                - "prop_set_breakpoint_idempotent ✅"
+                - "prop_remove_breakpoint_works ✅"
+                - "prop_count_accurate ✅"
+                - "prop_get_breakpoints_sorted ✅"
+                - "prop_clear_all_works ✅"
+                - "prop_is_breakpoint_hit_deterministic ✅"
+                - "prop_breakpoint_struct ✅"
               mutation:
-                target: "≥90% kill rate on debugger/breakpoints.rs"
+                target: "≥90% kill rate on repl/breakpoint.rs"
+                status: "pending"
 
           - id: "REPL-007-002"
             title: "Conditional breakpoints (break if $var > 10)"
-            status: "pending"
+            status: "completed"
+            completion_date: "2025-10-30"
+            commit: "6636c85c"
             dependencies: ["REPL-007-001"]
             tests:
               unit:
-                - "test_REPL_007_002_conditional_true"
-                - "test_REPL_007_002_conditional_false"
-                - "test_REPL_007_002_conditional_invalid"
+                - "test_REPL_007_002_conditional_true ✅"
+                - "test_REPL_007_002_conditional_false ✅"
+                - "test_REPL_007_002_missing_variable ✅"
+                - "test_REPL_007_002_string_equality ✅"
+                - "test_REPL_007_002_numeric_comparison ✅"
+                - "test_REPL_007_002_disabled_conditional ✅"
               property:
-                - "prop_conditional_evaluates_safely"
+                - "prop_conditional_greater_than ✅"
+                - "prop_conditional_deterministic ✅"
+                - "prop_conditional_string_equality ✅"
+                - "prop_disabled_conditional_never_breaks ✅"
+                - "prop_missing_variable_fails ✅"
+              mutation:
+                target: "≥90% kill rate on repl/breakpoint.rs"
+                status: "pending"
+              bug_found:
+                description: "!= operator not working (EXPECTED RED phase bug)"
+                fix: "Rewrote operator parser to check 2-char operators before 1-char"
+                tdd_phase: "RED → GREEN"
 
           - id: "REPL-007-003"
             title: "Hit-count breakpoints (break after 5 hits)"
