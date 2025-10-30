@@ -1701,3 +1701,309 @@ mod idempotency_report_property_tests {
         }
     }
 }
+
+// ===== REPL-012-003: IDEMPOTENCY VERIFICATION =====
+
+/// Verifies script idempotency by running multiple times and comparing results
+///
+/// Runs a script N times (default: 3) and checks if all runs produce
+/// identical output and exit codes.
+#[derive(Debug, Clone)]
+pub struct IdempotencyVerifier {
+    /// Number of verification runs to perform (default: 3, min: 2)
+    run_count: usize,
+}
+
+impl IdempotencyVerifier {
+    /// Create a new idempotency verifier with default settings (3 runs)
+    pub fn new() -> Self {
+        Self { run_count: 3 }
+    }
+
+    /// Create verifier with custom run count (minimum 2)
+    pub fn with_run_count(count: usize) -> Self {
+        Self {
+            run_count: count.max(2),
+        }
+    }
+
+    /// Verify script idempotency by running multiple times
+    pub fn verify(&self, script: &str) -> IdempotencyResult {
+        let mut runs = Vec::new();
+
+        // Run script multiple times
+        for run_number in 1..=self.run_count {
+            let mut output = ReplayVerifier::execute_script(script);
+            output.run_number = run_number;
+            runs.push(output);
+        }
+
+        // Compare all runs against the first run
+        let mut differences = Vec::new();
+        if let Some(first_run) = runs.first() {
+            // Compare each subsequent run with the first run
+            for run in runs.iter().skip(1) {
+                let run_diffs = ReplayVerifier::find_differences(first_run, run);
+                // Merge differences (avoid duplicates)
+                for diff in run_diffs {
+                    if !differences.iter().any(|d: &OutputDifference| {
+                        d.line == diff.line && d.run1 == diff.run1 && d.run2 == diff.run2
+                    }) {
+                        differences.push(diff);
+                    }
+                }
+            }
+        }
+
+        let is_idempotent = differences.is_empty();
+
+        IdempotencyResult {
+            is_idempotent,
+            run_count: self.run_count,
+            runs,
+            differences,
+        }
+    }
+}
+
+impl Default for IdempotencyVerifier {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+/// Result of idempotency verification
+#[derive(Debug, Clone, PartialEq)]
+pub struct IdempotencyResult {
+    /// Whether all runs produced identical output
+    pub is_idempotent: bool,
+    /// Number of runs performed
+    pub run_count: usize,
+    /// Outputs from each run
+    pub runs: Vec<RunOutput>,
+    /// Lines that differ between runs (if non-idempotent)
+    pub differences: Vec<OutputDifference>,
+}
+
+impl IdempotencyResult {
+    /// Format verification result for display
+    pub fn format_result(&self) -> String {
+        let mut output = String::new();
+
+        // Show idempotency status
+        if self.is_idempotent {
+            output.push_str("✓ Script is idempotent\n");
+            output.push_str(&format!("  Verified across {} runs\n", self.run_count));
+        } else {
+            output.push_str("❌ Script is non-idempotent\n");
+            output.push_str(&format!("  Tested {} runs\n", self.run_count));
+        }
+
+        // Show run count
+        output.push_str(&format!("\nRuns: {}\n", self.runs.len()));
+
+        // Show exit codes
+        output.push_str("Exit codes: ");
+        for run in &self.runs {
+            output.push_str(&format!("{} ", run.exit_code));
+        }
+        output.push('\n');
+
+        // Show differences if any
+        if !self.differences.is_empty() {
+            output.push('\n');
+            output.push_str(&format_replay_diff(&self.differences));
+        }
+
+        output
+    }
+}
+
+#[cfg(test)]
+mod idempotency_verification_tests {
+    use super::*;
+
+    // ===== REPL-012-003: IDEMPOTENCY VERIFICATION TESTS =====
+
+    #[test]
+    fn test_REPL_012_003_verifier_new_default() {
+        // ARRANGE & ACT: Create default verifier
+        let verifier = IdempotencyVerifier::new();
+
+        // ASSERT: Should have 3 runs by default
+        assert_eq!(verifier.run_count, 3);
+    }
+
+    #[test]
+    fn test_REPL_012_003_verifier_custom_count() {
+        // ARRANGE & ACT: Create verifier with custom count
+        let verifier = IdempotencyVerifier::with_run_count(5);
+
+        // ASSERT: Should have 5 runs
+        assert_eq!(verifier.run_count, 5);
+    }
+
+    #[test]
+    fn test_REPL_012_003_verifier_minimum_two_runs() {
+        // ARRANGE & ACT: Try to create verifier with 1 run
+        let verifier = IdempotencyVerifier::with_run_count(1);
+
+        // ASSERT: Should enforce minimum of 2 runs
+        assert!(verifier.run_count >= 2);
+    }
+
+    #[test]
+    fn test_REPL_012_003_idempotent_script_passes() {
+        // ARRANGE: Idempotent script (echo with constant)
+        let verifier = IdempotencyVerifier::new();
+        let script = "echo 'hello world'";
+
+        // ACT: Verify idempotency
+        let result = verifier.verify(script);
+
+        // ASSERT: Should pass as idempotent
+        assert!(result.is_idempotent);
+        assert_eq!(result.run_count, 3);
+        assert!(result.differences.is_empty());
+    }
+
+    #[test]
+    fn test_REPL_012_003_nonidempotent_script_fails() {
+        // ARRANGE: Non-idempotent script (random)
+        let verifier = IdempotencyVerifier::new();
+        let script = "echo $RANDOM";
+
+        // ACT: Verify idempotency
+        let result = verifier.verify(script);
+
+        // ASSERT: Should fail as non-idempotent
+        assert!(!result.is_idempotent);
+        assert_eq!(result.run_count, 3);
+        assert!(!result.differences.is_empty());
+    }
+
+    #[test]
+    fn test_REPL_012_003_result_format_idempotent() {
+        // ARRANGE: Idempotent result
+        let result = IdempotencyResult {
+            is_idempotent: true,
+            run_count: 3,
+            runs: vec![
+                RunOutput {
+                    run_number: 1,
+                    stdout: "hello\n".to_string(),
+                    stderr: String::new(),
+                    exit_code: 0,
+                },
+                RunOutput {
+                    run_number: 2,
+                    stdout: "hello\n".to_string(),
+                    stderr: String::new(),
+                    exit_code: 0,
+                },
+                RunOutput {
+                    run_number: 3,
+                    stdout: "hello\n".to_string(),
+                    stderr: String::new(),
+                    exit_code: 0,
+                },
+            ],
+            differences: vec![],
+        };
+
+        // ACT: Format result
+        let formatted = result.format_result();
+
+        // ASSERT: Should show success
+        assert!(formatted.contains("✓") || formatted.contains("success"));
+        assert!(formatted.contains("idempotent"));
+    }
+
+    #[test]
+    fn test_REPL_012_003_result_format_nonidempotent() {
+        // ARRANGE: Non-idempotent result
+        let result = IdempotencyResult {
+            is_idempotent: false,
+            run_count: 3,
+            runs: vec![
+                RunOutput {
+                    run_number: 1,
+                    stdout: "123\n".to_string(),
+                    stderr: String::new(),
+                    exit_code: 0,
+                },
+                RunOutput {
+                    run_number: 2,
+                    stdout: "456\n".to_string(),
+                    stderr: String::new(),
+                    exit_code: 0,
+                },
+                RunOutput {
+                    run_number: 3,
+                    stdout: "789\n".to_string(),
+                    stderr: String::new(),
+                    exit_code: 0,
+                },
+            ],
+            differences: vec![OutputDifference {
+                line: 1,
+                run1: "123".to_string(),
+                run2: "456".to_string(),
+            }],
+        };
+
+        // ACT: Format result
+        let formatted = result.format_result();
+
+        // ASSERT: Should show failure
+        assert!(formatted.contains("❌") || formatted.contains("fail") || formatted.contains("non-idempotent"));
+    }
+}
+
+#[cfg(test)]
+mod idempotency_verification_property_tests {
+    use super::*;
+    use proptest::prelude::*;
+
+    proptest! {
+        #[test]
+        fn prop_REPL_012_003_verifier_enforces_minimum(
+            count in 0usize..10,
+        ) {
+            let verifier = IdempotencyVerifier::with_run_count(count);
+
+            // Should always have at least 2 runs
+            prop_assert!(verifier.run_count >= 2);
+        }
+
+        #[test]
+        fn prop_REPL_012_003_constant_script_idempotent(
+            constant in "[a-z]{1,20}",
+        ) {
+            let verifier = IdempotencyVerifier::new();
+            let script = format!("echo '{}'", constant);
+
+            let result = verifier.verify(&script);
+
+            // Constant output should always be idempotent
+            prop_assert!(
+                result.is_idempotent,
+                "Constant script should be idempotent: {}",
+                script
+            );
+            prop_assert_eq!(result.differences.len(), 0);
+        }
+
+        #[test]
+        fn prop_REPL_012_003_result_runs_match_count(
+            run_count in 2usize..10,
+        ) {
+            let verifier = IdempotencyVerifier::with_run_count(run_count);
+            let result = verifier.verify("echo 'test'");
+
+            // Result should have exactly run_count runs
+            prop_assert_eq!(result.runs.len(), run_count);
+            prop_assert_eq!(result.run_count, run_count);
+        }
+    }
+}
