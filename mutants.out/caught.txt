@@ -24,3 +24,16 @@ rash/src/repl/breakpoint.rs:183:9: replace BreakpointManager::is_breakpoint_hit 
 rash/src/repl/breakpoint.rs:183:9: replace BreakpointManager::is_breakpoint_hit -> bool with false
 rash/src/repl/breakpoint.rs:188:9: replace BreakpointManager::get_breakpoints -> Vec<usize> with vec![]
 rash/src/repl/breakpoint.rs:188:9: replace BreakpointManager::get_breakpoints -> Vec<usize> with vec![0]
+rash/src/repl/breakpoint.rs:188:9: replace BreakpointManager::get_breakpoints -> Vec<usize> with vec![1]
+rash/src/repl/breakpoint.rs:195:9: replace BreakpointManager::clear_all with ()
+rash/src/repl/breakpoint.rs:200:9: replace BreakpointManager::count -> usize with 0
+rash/src/repl/breakpoint.rs:200:9: replace BreakpointManager::count -> usize with 1
+rash/src/repl/breakpoint.rs:214:5: replace evaluate_condition -> bool with true
+rash/src/repl/breakpoint.rs:214:5: replace evaluate_condition -> bool with false
+rash/src/repl/breakpoint.rs:220:40: replace + with - in evaluate_condition
+rash/src/repl/breakpoint.rs:220:40: replace + with * in evaluate_condition
+rash/src/repl/breakpoint.rs:224:40: replace + with - in evaluate_condition
+rash/src/repl/breakpoint.rs:224:40: replace + with * in evaluate_condition
+rash/src/repl/breakpoint.rs:228:40: replace + with - in evaluate_condition
+rash/src/repl/breakpoint.rs:228:40: replace + with * in evaluate_condition
+rash/src/repl/breakpoint.rs:232:40: replace + with - in evaluate_condition
