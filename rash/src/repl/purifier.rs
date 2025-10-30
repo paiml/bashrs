@@ -156,6 +156,182 @@ mod tests {
         assert!(formatted.contains("Determinism fixes"));
         assert!(formatted.contains("Warnings"));
     }
+
+    // ===== REPL-005-003: Explain what changed =====
+
+    /// Test: REPL-005-003-001 - Explain mkdir -p change
+    #[test]
+    fn test_REPL_005_003_explain_mkdir_p() {
+        let original = "mkdir /tmp/test";
+        let explanation = explain_purification_changes(original);
+
+        assert!(explanation.is_ok(), "Should explain changes: {:?}", explanation);
+        let text = explanation.unwrap();
+
+        // Should mention mkdir and -p flag
+        assert!(
+            text.contains("mkdir") && text.contains("-p"),
+            "Should explain mkdir -p change: {}",
+            text
+        );
+        // Should mention idempotency
+        assert!(
+            text.contains("idempotent") || text.contains("safe to re-run"),
+            "Should explain idempotency: {}",
+            text
+        );
+    }
+
+    /// Test: REPL-005-003-002 - Explain rm -f change
+    ///
+    /// NOTE: This test is currently ignored because rm -f transformation
+    /// is not yet implemented in the purifier. Will be enabled once
+    /// the transformation is added to purification.rs.
+    #[test]
+    #[ignore = "rm -f transformation not yet implemented"]
+    fn test_REPL_005_003_explain_rm_f() {
+        let original = "rm file.txt";
+        let explanation = explain_purification_changes(original);
+
+        assert!(explanation.is_ok(), "Should explain changes: {:?}", explanation);
+        let text = explanation.unwrap();
+
+        // Should mention rm and -f flag
+        assert!(
+            text.contains("rm") && text.contains("-f"),
+            "Should explain rm -f change: {}",
+            text
+        );
+        // Should mention idempotency or force
+        assert!(
+            text.contains("idempotent") || text.contains("force") || text.contains("safe"),
+            "Should explain why -f was added: {}",
+            text
+        );
+    }
+
+    /// Test: REPL-005-003-003 - Explain quoted variable
+    #[test]
+    fn test_REPL_005_003_explain_quote_var() {
+        let original = "echo $USER";
+        let explanation = explain_purification_changes(original);
+
+        assert!(explanation.is_ok(), "Should explain changes: {:?}", explanation);
+        let text = explanation.unwrap();
+
+        // Should mention quoting or safety
+        assert!(
+            text.contains("quot") || text.contains("safe") || text.contains("\""),
+            "Should explain variable quoting: {}",
+            text
+        );
+    }
+}
+
+/// Explain what changed during purification
+///
+/// Takes original bash code and returns a human-readable explanation
+/// of what changes were made and why.
+///
+/// # Examples
+///
+/// ```
+/// use bashrs::repl::purifier::explain_purification_changes;
+///
+/// let explanation = explain_purification_changes("mkdir /tmp/test");
+/// assert!(explanation.is_ok());
+/// ```
+pub fn explain_purification_changes(original: &str) -> anyhow::Result<String> {
+    // Purify the bash code
+    let purified = purify_bash(original)?;
+
+    // If no changes, return early
+    if original.trim() == purified.trim() {
+        return Ok("No changes needed - code is already purified.".to_string());
+    }
+
+    // Analyze the changes and generate explanations
+    let mut explanations = Vec::new();
+
+    // Check for mkdir -p addition
+    if original.contains("mkdir") && !original.contains("mkdir -p") && purified.contains("mkdir -p") {
+        explanations.push(
+            "✓ Added -p flag to mkdir for idempotency\n  \
+             Makes directory creation safe to re-run (won't fail if dir exists)"
+                .to_string(),
+        );
+    }
+
+    // Check for rm -f addition
+    if original.contains("rm ") && !original.contains("rm -f") && purified.contains("rm -f") {
+        explanations.push(
+            "✓ Added -f flag to rm for idempotency\n  \
+             Makes file deletion safe to re-run (won't fail if file doesn't exist)"
+                .to_string(),
+        );
+    }
+
+    // Check for variable quoting
+    let original_has_unquoted = original.contains("$") && !original.contains("\"$");
+    let purified_has_quoted = purified.contains("\"$");
+    if original_has_unquoted && purified_has_quoted {
+        explanations.push(
+            "✓ Added quotes around variables for safety\n  \
+             Prevents word splitting and glob expansion issues"
+                .to_string(),
+        );
+    }
+
+    // Check for ln -sf addition
+    if original.contains("ln -s") && !original.contains("ln -sf") && purified.contains("ln -sf") {
+        explanations.push(
+            "✓ Added -f flag to ln -s for idempotency\n  \
+             Makes symlink creation safe to re-run (forces replacement)"
+                .to_string(),
+        );
+    }
+
+    // Check for $RANDOM removal
+    if original.contains("$RANDOM") && !purified.contains("$RANDOM") {
+        explanations.push(
+            "✓ Removed $RANDOM for determinism\n  \
+             Non-deterministic values make scripts unpredictable"
+                .to_string(),
+        );
+    }
+
+    // Check for timestamp removal
+    if (original.contains("date") || original.contains("$SECONDS"))
+        && (!purified.contains("date") || !purified.contains("$SECONDS"))
+    {
+        explanations.push(
+            "✓ Removed timestamp for determinism\n  \
+             Time-based values make scripts non-reproducible"
+                .to_string(),
+        );
+    }
+
+    // If we found specific explanations, return them
+    if !explanations.is_empty() {
+        let mut output = String::from("Purification changes:\n\n");
+        for (i, explanation) in explanations.iter().enumerate() {
+            if i > 0 {
+                output.push('\n');
+            }
+            output.push_str(explanation);
+        }
+        return Ok(output);
+    }
+
+    // Generic explanation if no specific pattern matched
+    Ok(format!(
+        "Changes made during purification:\n\n\
+         Original:\n  {}\n\n\
+         Purified:\n  {}\n\n\
+         The purified version is more idempotent, deterministic, and safe.",
+        original.trim(),
+        purified.trim()
+    ))
 }
 
 #[cfg(test)]
