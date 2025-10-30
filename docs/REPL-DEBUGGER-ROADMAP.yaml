@@ -678,12 +678,24 @@ phases:
         tasks:
           - id: "REPL-009-001"
             title: "Variable inspection (print $var)"
-            status: "pending"
+            status: "completed"
+            completion_date: "2025-10-30"
+            commit: "d732e2db"
             tests:
               unit:
-                - "test_REPL_009_001_print_variable"
-                - "test_REPL_009_001_print_array"
-                - "test_REPL_009_001_print_nonexistent"
+                - "test_REPL_009_001_print_variable ✅"
+                - "test_REPL_009_001_print_array ✅"
+                - "test_REPL_009_001_print_nonexistent ✅"
+                - "test_REPL_009_001_list_variables ✅"
+                - "test_REPL_009_001_variable_update ✅"
+                - "test_REPL_009_001_clear_variables ✅"
+                - "test_REPL_009_001_variables_persist_across_steps ✅"
+              property:
+                - "prop_variable_set_get_matches ✅"
+                - "prop_variable_count_correct ✅"
+                - "prop_list_variables_complete ✅"
+                - "prop_clear_removes_all ✅"
+                - "prop_variables_persist_execution ✅"
 
           - id: "REPL-009-002"
             title: "Environment display"
