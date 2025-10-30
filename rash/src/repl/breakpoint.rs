@@ -471,6 +471,50 @@ mod tests {
         assert!(bp.should_break(&vars), "Should break when count (15) > 10");
     }
 
+    /// Test: REPL-007-MUTATION-001 - Unconditional breakpoint is not conditional
+    ///
+    /// This test catches the mutant: `replace is_conditional -> bool with true`
+    ///
+    /// RED phase: Write test that verifies unconditional breakpoints return false for is_conditional()
+    #[test]
+    fn test_REPL_007_MUTATION_001_unconditional_is_not_conditional() {
+        // ARRANGE: Create simple (unconditional) breakpoint
+        let bp_simple = Breakpoint::new(10);
+
+        // ASSERT: Simple breakpoint should NOT be conditional
+        assert!(
+            !bp_simple.is_conditional(),
+            "Simple breakpoint (no condition) should return false for is_conditional()"
+        );
+
+        // ARRANGE: Create hit-count breakpoint (also unconditional)
+        let bp_hit_count = Breakpoint::with_hit_count(20, 5);
+
+        // ASSERT: Hit-count breakpoint (without condition) should NOT be conditional
+        assert!(
+            !bp_hit_count.is_conditional(),
+            "Hit-count breakpoint (no condition) should return false for is_conditional()"
+        );
+
+        // ARRANGE: Create conditional breakpoint for contrast
+        let bp_conditional = Breakpoint::with_condition(30, "$x > 5".to_string());
+
+        // ASSERT: Conditional breakpoint SHOULD be conditional
+        assert!(
+            bp_conditional.is_conditional(),
+            "Conditional breakpoint should return true for is_conditional()"
+        );
+
+        // ARRANGE: Create hit-count + condition breakpoint
+        let bp_both = Breakpoint::with_hit_count_and_condition(40, 3, "$y < 10".to_string());
+
+        // ASSERT: Hit-count + condition should be conditional
+        assert!(
+            bp_both.is_conditional(),
+            "Hit-count + condition breakpoint should return true for is_conditional()"
+        );
+    }
+
     /// Test: REPL-007-002-002 - Conditional breakpoint evaluates to false
     #[test]
     fn test_REPL_007_002_conditional_false() {
