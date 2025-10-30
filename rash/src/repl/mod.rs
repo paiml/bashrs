@@ -30,7 +30,10 @@ pub use ast_display::format_ast;
 pub use breakpoint::{Breakpoint, BreakpointManager};
 pub use config::ReplConfig;
 pub use debugger::{ContinueResult, DebugSession, LineComparison, StackFrame};
-pub use determinism::{DeterminismChecker, DeterminismIssue, NonDeterministicPattern};
+pub use determinism::{
+    DeterminismChecker, DeterminismIssue, NonDeterministicPattern, OutputDifference, ReplayResult,
+    ReplayVerifier, RunOutput,
+};
 pub use diff::display_diff;
 pub use explain::{explain_bash, Explanation};
 pub use linter::{format_lint_results, lint_bash};
