@@ -35,13 +35,19 @@ pub fn format_lint_results(result: &LintResult) -> String {
     }
 
     // Count by severity
-    let errors = result.diagnostics.iter()
+    let errors = result
+        .diagnostics
+        .iter()
         .filter(|d| d.severity == Severity::Error)
         .count();
-    let warnings = result.diagnostics.iter()
+    let warnings = result
+        .diagnostics
+        .iter()
         .filter(|d| d.severity == Severity::Warning)
         .count();
-    let info = result.diagnostics.iter()
+    let info = result
+        .diagnostics
+        .iter()
         .filter(|d| d.severity == Severity::Info)
         .count();
 
@@ -69,7 +75,8 @@ pub fn format_lint_results(result: &LintResult) -> String {
             Severity::Risk => "⚠",
         };
 
-        output.push_str(&format!("[{}] {} {} - {}\n",
+        output.push_str(&format!(
+            "[{}] {} {} - {}\n",
             i + 1,
             severity_icon,
             diag.code,
@@ -99,9 +106,12 @@ mod tests {
 
         assert!(result.is_ok(), "Should lint successfully: {:?}", result);
         let lint_result = result.unwrap();
-        
+
         // May or may not find issues depending on rules
-        assert!(lint_result.diagnostics.len() >= 0, "Should return diagnostics");
+        assert!(
+            lint_result.diagnostics.len() >= 0,
+            "Should return diagnostics"
+        );
     }
 
     /// Test: REPL-006-001-002 - Lint categorizes by severity
@@ -114,14 +124,21 @@ mod tests {
         let lint_result = result.unwrap();
 
         // Check that we can categorize by severity
-        let errors = lint_result.diagnostics.iter()
+        let errors = lint_result
+            .diagnostics
+            .iter()
             .filter(|d| d.severity == Severity::Error)
             .count();
-        let warnings = lint_result.diagnostics.iter()
+        let warnings = lint_result
+            .diagnostics
+            .iter()
             .filter(|d| d.severity == Severity::Warning)
             .count();
 
-        assert!(errors >= 0 && warnings >= 0, "Should categorize by severity");
+        assert!(
+            errors >= 0 && warnings >= 0,
+            "Should categorize by severity"
+        );
     }
 
     /// Test: REPL-006-001-003 - Format lint results
@@ -132,8 +149,10 @@ mod tests {
 
         let formatted = format_lint_results(&result);
         assert!(!formatted.is_empty(), "Should format results");
-        assert!(formatted.contains("issue") || formatted.contains("No issues"), 
-                "Should show issue count or success message");
+        assert!(
+            formatted.contains("issue") || formatted.contains("No issues"),
+            "Should show issue count or success message"
+        );
     }
 
     /// Test: REPL-006-001-004 - Lint handles empty input
@@ -143,5 +162,146 @@ mod tests {
         let result = lint_bash(input);
 
         assert!(result.is_ok(), "Should handle empty input");
+    }
+}
+
+#[cfg(test)]
+mod property_tests {
+    use super::*;
+    use proptest::prelude::*;
+
+    // ===== PROPERTY TESTS (PROPERTY PHASE) =====
+
+    /// Property: lint_bash should never panic on any input
+    proptest! {
+        #[test]
+        fn prop_lint_never_panics(input in ".*{0,1000}") {
+            // Test that linter gracefully handles any input without panicking
+            let _ = lint_bash(&input);
+            // If we get here without panic, test passes
+        }
+    }
+
+    /// Property: lint_bash should be deterministic
+    proptest! {
+        #[test]
+        fn prop_lint_deterministic(input in "[a-z ]{1,50}") {
+            // Same input should always produce same output
+            let result1 = lint_bash(&input);
+            let result2 = lint_bash(&input);
+
+            match (result1, result2) {
+                (Ok(out1), Ok(out2)) => {
+                    // Compare diagnostic counts (not exact output due to potential internal IDs)
+                    prop_assert_eq!(
+                        out1.diagnostics.len(),
+                        out2.diagnostics.len(),
+                        "Linting should be deterministic"
+                    );
+                }
+                (Err(_), Err(_)) => {
+                    // Both failed - consistent behavior
+                }
+                _ => {
+                    prop_assert!(false, "Inconsistent results for same input");
+                }
+            }
+        }
+    }
+
+    /// Property: format_lint_results never panics
+    proptest! {
+        #[test]
+        fn prop_format_never_panics(input in "[a-z ]{1,100}") {
+            if let Ok(result) = lint_bash(&input) {
+                let _ = format_lint_results(&result);
+                // If we get here without panic, test passes
+            }
+        }
+    }
+
+    /// Property: format_lint_results always produces non-empty output
+    proptest! {
+        #[test]
+        fn prop_format_not_empty(input in "[a-z ]{1,100}") {
+            if let Ok(result) = lint_bash(&input) {
+                let formatted = format_lint_results(&result);
+                prop_assert!(
+                    !formatted.is_empty(),
+                    "Formatted output should never be empty"
+                );
+            }
+        }
+    }
+
+    /// Property: format_lint_results is deterministic
+    proptest! {
+        #[test]
+        fn prop_format_deterministic(input in "[a-z ]{1,50}") {
+            if let Ok(result) = lint_bash(&input) {
+                let formatted1 = format_lint_results(&result);
+                let formatted2 = format_lint_results(&result);
+                prop_assert_eq!(
+                    formatted1,
+                    formatted2,
+                    "Format should be deterministic"
+                );
+            }
+        }
+    }
+
+    /// Property: Severity counts always sum to total diagnostics
+    proptest! {
+        #[test]
+        fn prop_severity_counts_sum(input in "[a-z ]{1,50}") {
+            if let Ok(result) = lint_bash(&input) {
+                let errors = result.diagnostics.iter()
+                    .filter(|d| d.severity == Severity::Error)
+                    .count();
+                let warnings = result.diagnostics.iter()
+                    .filter(|d| d.severity == Severity::Warning)
+                    .count();
+                let info = result.diagnostics.iter()
+                    .filter(|d| d.severity == Severity::Info)
+                    .count();
+                let notes = result.diagnostics.iter()
+                    .filter(|d| d.severity == Severity::Note)
+                    .count();
+                let perf = result.diagnostics.iter()
+                    .filter(|d| d.severity == Severity::Perf)
+                    .count();
+                let risk = result.diagnostics.iter()
+                    .filter(|d| d.severity == Severity::Risk)
+                    .count();
+
+                let sum = errors + warnings + info + notes + perf + risk;
+                prop_assert_eq!(
+                    sum,
+                    result.diagnostics.len(),
+                    "Severity counts should sum to total diagnostics"
+                );
+            }
+        }
+    }
+
+    /// Property: Formatted output contains diagnostic count
+    proptest! {
+        #[test]
+        fn prop_format_contains_count(input in "[a-z ]{1,50}") {
+            if let Ok(result) = lint_bash(&input) {
+                let formatted = format_lint_results(&result);
+                if result.diagnostics.is_empty() {
+                    prop_assert!(
+                        formatted.contains("No issues"),
+                        "Should indicate no issues when clean"
+                    );
+                } else {
+                    prop_assert!(
+                        formatted.contains("issue"),
+                        "Should mention issues when found"
+                    );
+                }
+            }
+        }
     }
 }
