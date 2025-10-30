@@ -206,6 +206,53 @@ impl DebugSession {
     pub fn clear_variables(&mut self) {
         self.variables.clear();
     }
+
+    // === Environment Display Methods (REPL-009-002) ===
+
+    /// Get an environment variable value
+    ///
+    /// Retrieves the value of an environment variable from the process environment.
+    ///
+    /// # Arguments
+    /// * `name` - Environment variable name to look up
+    ///
+    /// # Returns
+    /// - `Some(String)` if environment variable exists
+    /// - `None` if environment variable does not exist
+    pub fn get_env(&self, name: &str) -> Option<String> {
+        std::env::var(name).ok()
+    }
+
+    /// List all environment variables
+    ///
+    /// Returns a vector of (name, value) tuples for all environment variables.
+    /// Variables are sorted by name for consistency.
+    ///
+    /// # Returns
+    /// Vector of (variable_name, variable_value) tuples, sorted by name
+    pub fn list_env(&self) -> Vec<(String, String)> {
+        let mut env_vars: Vec<(String, String)> = std::env::vars().collect();
+        env_vars.sort_by(|(k1, _), (k2, _)| k1.cmp(k2));
+        env_vars
+    }
+
+    /// Filter environment variables by prefix
+    ///
+    /// Returns environment variables whose names start with the given prefix.
+    /// Results are sorted by name for consistency.
+    ///
+    /// # Arguments
+    /// * `prefix` - Prefix to filter by (case-sensitive)
+    ///
+    /// # Returns
+    /// Vector of (variable_name, variable_value) tuples matching the prefix
+    pub fn filter_env(&self, prefix: &str) -> Vec<(String, String)> {
+        let mut filtered: Vec<(String, String)> = std::env::vars()
+            .filter(|(name, _)| name.starts_with(prefix))
+            .collect();
+        filtered.sort_by(|(k1, _), (k2, _)| k1.cmp(k2));
+        filtered
+    }
 }
 
 /// Result of continue execution
@@ -561,6 +608,66 @@ mod tests {
         session.step();
         assert_eq!(session.get_variable("COUNTER"), Some("2"));
     }
+
+    // ===== REPL-009-002: Environment Display Tests =====
+
+    #[test]
+    fn test_REPL_009_002_env_display() {
+        let script = "echo test";
+        let session = DebugSession::new(script);
+
+        // Get an environment variable that should exist (PATH always exists)
+        let path = session.get_env("PATH");
+        assert!(path.is_some(), "PATH environment variable should exist");
+
+        // Get a variable that doesn't exist
+        let nonexistent = session.get_env("BASHRS_NONEXISTENT_VAR_12345");
+        assert_eq!(nonexistent, None);
+
+        // List all environment variables
+        let env_vars = session.list_env();
+        assert!(!env_vars.is_empty(), "Should have at least one env var");
+
+        // Verify sorted order
+        let mut sorted = env_vars.clone();
+        sorted.sort_by_key(|(name, _)| name.clone());
+        assert_eq!(env_vars, sorted, "Environment variables should be sorted");
+    }
+
+    #[test]
+    fn test_REPL_009_002_env_filter() {
+        let script = "echo test";
+        let session = DebugSession::new(script);
+
+        // Filter by prefix (most systems have PATH-related variables)
+        let path_vars = session.filter_env("PATH");
+        assert!(
+            !path_vars.is_empty(),
+            "Should find at least one PATH-related variable"
+        );
+
+        // All filtered results should start with the prefix
+        for (name, _) in &path_vars {
+            assert!(
+                name.starts_with("PATH"),
+                "Filtered variable {} should start with PATH",
+                name
+            );
+        }
+
+        // Filter with non-matching prefix
+        let empty_filter = session.filter_env("BASHRS_NONEXISTENT_PREFIX");
+        assert_eq!(
+            empty_filter.len(),
+            0,
+            "Filter with non-matching prefix should return empty"
+        );
+
+        // Verify sorted order
+        let mut sorted = path_vars.clone();
+        sorted.sort_by_key(|(name, _)| name.clone());
+        assert_eq!(path_vars, sorted, "Filtered env vars should be sorted");
+    }
 }
 
 #[cfg(test)]
@@ -892,6 +999,53 @@ mod property_tests {
                 let value = format!("value{}", i);
                 prop_assert_eq!(session.get_variable(&name), Some(value.as_str()));
             }
+        }
+    }
+
+    // ===== REPL-009-002: Environment Display Property Tests =====
+
+    /// Property: get_env is deterministic + filter results match prefix
+    proptest! {
+        #[test]
+        fn prop_get_env_deterministic(
+            var_name in "[A-Z_][A-Z0-9_]{0,20}"
+        ) {
+            let script = "echo test";
+            let session = DebugSession::new(script);
+
+            // Get env twice - should be identical
+            let first = session.get_env(&var_name);
+            let second = session.get_env(&var_name);
+            prop_assert_eq!(first, second, "get_env should be deterministic");
+        }
+
+        #[test]
+        fn prop_filter_env_matches_prefix(
+            prefix in "[A-Z_]{1,5}"
+        ) {
+            let script = "echo test";
+            let session = DebugSession::new(script);
+
+            let filtered = session.filter_env(&prefix);
+
+            // All results must start with prefix
+            for (name, _) in &filtered {
+                prop_assert!(
+                    name.starts_with(&prefix),
+                    "Variable {} should start with prefix {}",
+                    name,
+                    prefix
+                );
+            }
+
+            // Verify sorted order
+            let mut sorted = filtered.clone();
+            sorted.sort_by(|(k1, _), (k2, _)| k1.cmp(k2));
+            prop_assert_eq!(filtered.clone(), sorted, "filter_env should return sorted results");
+
+            // Verify determinism
+            let second_filtered = session.filter_env(&prefix);
+            prop_assert_eq!(filtered, second_filtered, "filter_env should be deterministic");
         }
     }
 }
