@@ -838,7 +838,7 @@ phases:
             title: "Scan for $RANDOM, $$, timestamps"
             status: "completed"
             completion_date: "2025-10-30"
-            commit: "TBD"
+            commit: "7ee12045"
             test_approach: "RED → GREEN → REFACTOR → PROPERTY → MUTATION"
             notes: "Pattern-based detection for 5 non-deterministic patterns: $RANDOM, $$, date, $BASHPID, $SRANDOM"
             tests:
