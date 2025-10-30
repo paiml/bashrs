@@ -699,11 +699,16 @@ phases:
 
           - id: "REPL-009-002"
             title: "Environment display"
-            status: "pending"
+            status: "completed"
+            completion_date: "2025-10-30"
+            commit: "85b27dd4"
             tests:
               unit:
-                - "test_REPL_009_002_env_display"
-                - "test_REPL_009_002_env_filter"
+                - "test_REPL_009_002_env_display ✅"
+                - "test_REPL_009_002_env_filter ✅"
+              property:
+                - "prop_get_env_deterministic ✅"
+                - "prop_filter_env_matches_prefix ✅"
 
           - id: "REPL-009-003"
             title: "Call stack tracking"
