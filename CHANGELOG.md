@@ -7,6 +7,117 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [6.21.0] - 2025-10-30
+
+### ✨ NEW FEATURES - REPL Purification & Explanation
+
+**bashrs v6.21.0 adds interactive bash purification with intelligent explanations, completing Sprint REPL-005.**
+
+### Added
+
+**Interactive Bash Purification** (REPL-005-001):
+- Call purifier directly from REPL with `purify_bash()`
+- Transforms bash code to be idempotent and deterministic
+- Returns fully formatted, safe POSIX sh output
+- Integrates with Formatter for clean code generation
+- Implementation: `rash/src/repl/purifier.rs:25-40`
+- Tests: 3 unit tests + 5 property tests (all passing)
+- Mutation testing: 7/7 mutants caught (100% kill rate)
+
+**Side-by-Side Diff Display** (REPL-005-002):
+- Visual comparison of original vs purified bash code
+- Shows transformations with `-` and `+` markers
+- Clear header showing "Original → Purified"
+- Implementation: `rash/src/repl/diff.rs` (new module)
+- Tests: 2 unit tests + 5 property tests (all passing)
+- Mutation testing: 2/2 mutants caught (100% kill rate)
+
+**Intelligent Change Explanations** (REPL-005-003):
+- Human-readable explanations of purification changes
+- Detects and explains: mkdir -p, variable quoting, ln -sf, $RANDOM removal
+- Contextual information about why changes were made
+- Generic fallback for unmatched patterns
+- Implementation: `rash/src/repl/purifier.rs:226-330`
+- Tests: 2/2 passing (1 ignored pending rm -f implementation)
+- Exported from `rash/src/repl/mod.rs` for API use
+
+### Changed
+
+**Bash Purification Improvements**:
+- Enhanced `make_command_idempotent()` to actually add `-p` flag to mkdir
+- Purifier now generates real transformations, not just warnings
+- Formatter integration provides clean, readable output
+
+**User Experience - Purification Workflow**:
+```bash
+# Purify bash code
+bashrs> let purified = purify_bash("mkdir /tmp/test");
+# Returns: "mkdir -p /tmp/test"
+
+# Show diff
+bashrs> let diff = display_diff("mkdir /tmp/test");
+# Output:
+# Original → Purified
+# ─────────────────────
+# - mkdir /tmp/test
+# + mkdir -p /tmp/test
+
+# Get explanation
+bashrs> let explanation = explain_purification_changes("mkdir /tmp/test");
+# Output:
+# Purification changes:
+#
+# ✓ Added -p flag to mkdir for idempotency
+#   Makes directory creation safe to re-run (won't fail if dir exists)
+```
+
+### Quality Achievements
+
+**Test Coverage**:
+- 10 new unit tests (all passing)
+- 5 new property tests for diff module
+- 2/3 explanation tests passing (1 ignored - documented)
+- EXTREME TDD: RED → GREEN → REFACTOR → PROPERTY → MUTATION
+
+**Mutation Testing**:
+- diff.rs: 2/2 mutants caught (100%)
+- purifier.rs (REPL-005-001): 7/7 mutants caught (100%)
+- Combined: 9/9 mutants caught (100% kill rate)
+
+**Code Quality**:
+- All functions complexity <10
+- Zero clippy warnings
+- Pre-commit hooks passed on all commits
+- Comprehensive documentation with examples
+
+### Technical Details
+
+**Commits**:
+- 840fc904: feat: REPL-005-001 - Call purifier from REPL (EXTREME TDD)
+- e247d697: feat: REPL-005-002 - Diff display (EXTREME TDD)
+- 7641cf40: feat: REPL-005-002 - Property tests (EXTREME TDD complete)
+- dc1abbb5: feat: REPL-005-003 - Explain purification changes (EXTREME TDD)
+
+**Files Modified**:
+- `rash/src/repl/purifier.rs`: Core purification + explanations (177 lines added)
+- `rash/src/repl/diff.rs`: NEW - Side-by-side diff display (172 lines)
+- `rash/src/repl/mod.rs`: Export new functions
+- `rash/src/bash_transpiler/purification.rs`: Enhanced mkdir transformation
+
+**Functions Added**:
+- `purify_bash()`: Purify bash code to idempotent/deterministic form
+- `display_diff()`: Show original vs purified side-by-side
+- `explain_purification_changes()`: Generate human-readable explanations
+- `format_purification_report()`: Format purification reports for display
+
+### Sprint REPL-005 Complete
+
+✅ REPL-005-001: Call purifier from REPL
+✅ REPL-005-002: Show original vs purified side-by-side
+✅ REPL-005-003: Basic explanation (what changed)
+
+**Next**: Sprint REPL-006 (Linting Integration)
+
 ## [6.20.0] - 2025-10-29
 
 ### ✨ NEW FEATURES - Interactive REPL Enhancements
