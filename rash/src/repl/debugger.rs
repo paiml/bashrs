@@ -405,12 +405,59 @@ impl DebugSession {
     ///
     /// # Returns
     /// Formatted string showing the diff with highlighting
+    /// Format diff with enhanced highlighting and transformation explanations
+    ///
+    /// Detects common bash purification patterns and explains what changed:
+    /// - mkdir → mkdir -p (idempotency)
+    /// - $var → "$var" (quoting)
+    /// - ln -s → ln -sf (idempotency)
+    /// - rm → rm -f (idempotency)
     pub fn format_diff_highlighting(&self, comparison: &LineComparison) -> String {
         if !comparison.differs {
             return format!("  {}\n(no changes)", comparison.original);
         }
 
-        format!("- {}\n+ {}", comparison.original, comparison.purified)
+        let orig = &comparison.original;
+        let purified = &comparison.purified;
+
+        // Detect transformation types
+        let mut explanations = Vec::new();
+
+        // Check for mkdir -p (idempotency flag)
+        if orig.contains("mkdir") && purified.contains("mkdir -p") && !orig.contains("mkdir -p") {
+            explanations.push("added idempotency flag -p to mkdir");
+        }
+
+        // Check for rm -f (idempotency flag)
+        if orig.contains("rm") && purified.contains("rm -f") && !orig.contains("rm -f") {
+            explanations.push("added idempotency flag -f to rm");
+        }
+
+        // Check for ln -sf (idempotency flags)
+        if orig.contains("ln") {
+            if purified.contains("-sf") && !orig.contains("-sf") {
+                explanations.push("added idempotency flag -f to ln");
+            } else if purified.contains("-f") && !orig.contains("-f") {
+                explanations.push("added idempotency flag -f");
+            }
+        }
+
+        // Check for variable quoting (safety)
+        // Simple heuristic: look for $VAR → "$VAR" pattern
+        if purified.contains("\"$") && !orig.contains("\"$") {
+            explanations.push("added safety quoting around variables");
+        }
+
+        // Format output with explanations
+        let mut output = format!("- {}\n+ {}", orig, purified);
+
+        if !explanations.is_empty() {
+            output.push_str("\n(");
+            output.push_str(&explanations.join(", "));
+            output.push(')');
+        }
+
+        output
     }
 }
 
@@ -1058,6 +1105,186 @@ mod tests {
         assert!(
             diff.contains("\"$HOME\""),
             "Diff should show quoted version"
+        );
+    }
+
+    // ===== REPL-010-002: ENHANCED HIGHLIGHTING TESTS (RED PHASE) =====
+
+    /// Test: REPL-010-002-001 - Highlight mkdir -p idempotency flag
+    ///
+    /// RED phase: Write failing test for enhanced diff highlighting
+    /// that specifically marks the added -p flag
+    #[test]
+    fn test_REPL_010_002_highlight_mkdir_p() {
+        // ARRANGE: Script with non-idempotent mkdir
+        let script = "mkdir /tmp/foo";
+        let mut session = DebugSession::new(script);
+
+        // ACT: Compare lines
+        let comparison = session.compare_current_line();
+        assert!(comparison.is_some(), "Should be able to compare");
+
+        let cmp = comparison.unwrap();
+        assert!(cmp.differs, "Lines should differ");
+
+        // ACT: Get enhanced highlighting
+        let highlighted = session.format_diff_highlighting(&cmp);
+
+        // ASSERT: Should highlight mkdir command
+        assert!(
+            highlighted.contains("mkdir"),
+            "Should show mkdir command"
+        );
+
+        // ASSERT: Should highlight -p flag addition
+        assert!(
+            highlighted.contains("-p"),
+            "Should show -p flag"
+        );
+
+        // ASSERT: Should explain idempotency transformation
+        assert!(
+            highlighted.to_lowercase().contains("idempot")
+                || highlighted.to_lowercase().contains("idem"),
+            "Should explain idempotency: {}",
+            highlighted
+        );
+    }
+
+    /// Test: REPL-010-002-002 - Highlight variable quoting
+    ///
+    /// RED phase: Test should fail until we implement quote detection
+    #[test]
+    fn test_REPL_010_002_highlight_quote() {
+        // ARRANGE: Script with unquoted variable
+        let script = "echo $USER";
+        let mut session = DebugSession::new(script);
+
+        // ACT: Compare lines
+        let comparison = session.compare_current_line();
+        assert!(comparison.is_some(), "Should be able to compare");
+
+        let cmp = comparison.unwrap();
+        assert!(cmp.differs, "Lines should differ");
+
+        // ACT: Get enhanced highlighting
+        let highlighted = session.format_diff_highlighting(&cmp);
+
+        // ASSERT: Should show quotes
+        assert!(
+            highlighted.contains("\""),
+            "Should show quote addition"
+        );
+
+        // ASSERT: Should explain quoting transformation
+        assert!(
+            highlighted.to_lowercase().contains("quot")
+                || highlighted.to_lowercase().contains("safe"),
+            "Should explain quoting: {}",
+            highlighted
+        );
+    }
+
+    /// Test: REPL-010-002-003 - Highlight ln -sf safety flag
+    ///
+    /// RED phase: Test for ln command transformation highlighting
+    #[test]
+    fn test_REPL_010_002_highlight_ln_sf() {
+        // ARRANGE: Script with non-idempotent ln
+        let script = "ln -s /tmp/src /tmp/link";
+        let mut session = DebugSession::new(script);
+
+        // ACT: Compare lines
+        let comparison = session.compare_current_line();
+        assert!(comparison.is_some(), "Should be able to compare");
+
+        let cmp = comparison.unwrap();
+
+        // Only test if lines differ (purifier might add -f flag)
+        if !cmp.differs {
+            // Skip test if purifier doesn't transform this
+            return;
+        }
+
+        // ACT: Get enhanced highlighting
+        let highlighted = session.format_diff_highlighting(&cmp);
+
+        // ASSERT: Should show ln command
+        assert!(
+            highlighted.contains("ln"),
+            "Should show ln command"
+        );
+
+        // ASSERT: Should highlight flag addition
+        assert!(
+            highlighted.contains("-") && highlighted.contains("f"),
+            "Should show flag addition"
+        );
+
+        // ASSERT: Should explain safety/idempotency
+        assert!(
+            highlighted.to_lowercase().contains("safe")
+                || highlighted.to_lowercase().contains("idempot")
+                || highlighted.to_lowercase().contains("idem"),
+            "Should explain transformation: {}",
+            highlighted
+        );
+    }
+
+    /// Test: REPL-010-002-004 - Handle no changes case
+    ///
+    /// RED phase: Test for already-purified script
+    #[test]
+    fn test_REPL_010_002_highlight_no_change() {
+        // ARRANGE: Script that's already purified
+        let script = "mkdir -p /tmp/foo";
+        let mut session = DebugSession::new(script);
+
+        // ACT: Compare lines
+        let comparison = session.compare_current_line();
+        assert!(comparison.is_some(), "Should be able to compare");
+
+        let cmp = comparison.unwrap();
+        // May or may not differ depending on other transformations
+
+        // ACT: Get highlighting
+        let highlighted = session.format_diff_highlighting(&cmp);
+
+        // ASSERT: Should handle no-change case gracefully
+        if !cmp.differs {
+            assert!(
+                highlighted.to_lowercase().contains("no change")
+                    || !highlighted.starts_with('-'),
+                "Should indicate no changes: {}",
+                highlighted
+            );
+        }
+    }
+
+    /// Test: REPL-010-002-005 - Handle multiple transformations
+    ///
+    /// RED phase: Test for line with multiple changes (rm + quoting)
+    #[test]
+    fn test_REPL_010_002_highlight_multiple_changes() {
+        // ARRANGE: Script with multiple issues
+        let script = "rm $FILE";
+        let mut session = DebugSession::new(script);
+
+        // ACT: Compare lines
+        let comparison = session.compare_current_line();
+        assert!(comparison.is_some(), "Should be able to compare");
+
+        let cmp = comparison.unwrap();
+        assert!(cmp.differs, "Lines should differ");
+
+        // ACT: Get highlighting
+        let highlighted = session.format_diff_highlighting(&cmp);
+
+        // ASSERT: Should show at least one transformation
+        assert!(
+            highlighted.contains("-f") || highlighted.contains("\""),
+            "Should show either -f flag or quoting: {}",
+            highlighted
         );
     }
 }
