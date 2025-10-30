@@ -11,15 +11,18 @@
 
 use std::collections::{HashMap, HashSet};
 
-/// Line-based breakpoint with optional condition
+/// Line-based breakpoint with optional condition and hit-count support
 ///
 /// Represents a breakpoint at a specific line number in a bash script.
 /// Can have an optional condition that must evaluate to true for the breakpoint to trigger.
+/// Can also have a hit-count threshold - breakpoint only triggers after N hits.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Breakpoint {
     pub line: usize,
     pub enabled: bool,
     pub condition: Option<String>,
+    pub hit_count: usize,
+    pub hit_threshold: Option<usize>,
 }
 
 impl Breakpoint {
@@ -29,6 +32,8 @@ impl Breakpoint {
             line,
             enabled: true,
             condition: None,
+            hit_count: 0,
+            hit_threshold: None,
         }
     }
 
@@ -38,6 +43,34 @@ impl Breakpoint {
             line,
             enabled: true,
             condition: Some(condition),
+            hit_count: 0,
+            hit_threshold: None,
+        }
+    }
+
+    /// Create a new hit-count breakpoint
+    ///
+    /// The breakpoint will trigger after it has been hit `threshold` times.
+    pub fn with_hit_count(line: usize, threshold: usize) -> Self {
+        Self {
+            line,
+            enabled: true,
+            condition: None,
+            hit_count: 0,
+            hit_threshold: Some(threshold),
+        }
+    }
+
+    /// Create a new hit-count breakpoint with a condition
+    ///
+    /// The breakpoint will trigger after it has been hit `threshold` times AND the condition is true.
+    pub fn with_hit_count_and_condition(line: usize, threshold: usize, condition: String) -> Self {
+        Self {
+            line,
+            enabled: true,
+            condition: Some(condition),
+            hit_count: 0,
+            hit_threshold: Some(threshold),
         }
     }
 
@@ -74,6 +107,46 @@ impl Breakpoint {
     /// Enable this breakpoint
     pub fn enable(&mut self) {
         self.enabled = true;
+    }
+
+    /// Check if this breakpoint should trigger, incrementing hit count
+    ///
+    /// This method increments the hit count and returns true if:
+    /// - Breakpoint is enabled
+    /// - Hit count threshold is reached (if set)
+    /// - Condition evaluates to true (if set)
+    ///
+    /// Returns false if any of these conditions fail.
+    pub fn should_break_with_hit(&mut self, variables: &HashMap<String, String>) -> bool {
+        if !self.enabled {
+            return false;
+        }
+
+        // Increment hit count
+        self.hit_count += 1;
+
+        // Check hit threshold if set
+        if let Some(threshold) = self.hit_threshold {
+            if self.hit_count < threshold {
+                return false;
+            }
+        }
+
+        // Check condition if set
+        match &self.condition {
+            None => true, // No condition, trigger
+            Some(cond) => evaluate_condition(cond, variables),
+        }
+    }
+
+    /// Get the current hit count
+    pub fn get_hit_count(&self) -> usize {
+        self.hit_count
+    }
+
+    /// Reset the hit count to zero
+    pub fn reset_hit_count(&mut self) {
+        self.hit_count = 0;
     }
 }
 
@@ -476,6 +549,114 @@ mod tests {
             "Disabled breakpoint should not trigger even if condition is true"
         );
     }
+
+    // ===== HIT-COUNT BREAKPOINTS (REPL-007-003) =====
+
+    /// Test: REPL-007-003-001 - Hit-count breakpoint triggers after threshold
+    #[test]
+    fn test_REPL_007_003_hit_count_trigger() {
+        let vars = HashMap::new();
+        let mut bp = Breakpoint::with_hit_count(5, 3); // Break after 3 hits
+
+        // First two hits should not trigger
+        assert!(!bp.should_break_with_hit(&vars), "Should not break on hit 1");
+        assert!(!bp.should_break_with_hit(&vars), "Should not break on hit 2");
+
+        // Third hit should trigger
+        assert!(bp.should_break_with_hit(&vars), "Should break on hit 3");
+
+        // Subsequent hits should also trigger
+        assert!(bp.should_break_with_hit(&vars), "Should break on hit 4");
+    }
+
+    /// Test: REPL-007-003-002 - Hit-count breakpoint does not trigger before threshold
+    #[test]
+    fn test_REPL_007_003_hit_count_not_reached() {
+        let vars = HashMap::new();
+        let mut bp = Breakpoint::with_hit_count(5, 5); // Break after 5 hits
+
+        // First 4 hits should not trigger
+        for i in 1..=4 {
+            assert!(
+                !bp.should_break_with_hit(&vars),
+                "Should not break on hit {}",
+                i
+            );
+        }
+
+        // Fifth hit should trigger
+        assert!(bp.should_break_with_hit(&vars), "Should break on hit 5");
+    }
+
+    /// Test: REPL-007-003-003 - Hit-count resets correctly
+    #[test]
+    fn test_REPL_007_003_hit_count_reset() {
+        let vars = HashMap::new();
+        let mut bp = Breakpoint::with_hit_count(5, 2); // Break after 2 hits
+
+        // Hit twice
+        assert!(!bp.should_break_with_hit(&vars), "Should not break on hit 1");
+        assert!(bp.should_break_with_hit(&vars), "Should break on hit 2");
+
+        // Reset hit count
+        bp.reset_hit_count();
+
+        // Should not trigger on first hit after reset
+        assert!(!bp.should_break_with_hit(&vars), "Should not break after reset");
+        assert!(bp.should_break_with_hit(&vars), "Should break on hit 2 after reset");
+    }
+
+    /// Test: REPL-007-003-004 - Hit-count with condition (both must be true)
+    #[test]
+    fn test_REPL_007_003_hit_count_with_condition() {
+        let mut vars = HashMap::new();
+        vars.insert("count".to_string(), "15".to_string());
+
+        let mut bp = Breakpoint::with_hit_count_and_condition(5, 2, "$count > 10".to_string());
+
+        // First hit: condition true, but hit count not reached
+        assert!(
+            !bp.should_break_with_hit(&vars),
+            "Should not break: condition true but hit count = 1"
+        );
+
+        // Second hit: condition true and hit count reached
+        assert!(
+            bp.should_break_with_hit(&vars),
+            "Should break: condition true and hit count = 2"
+        );
+    }
+
+    /// Test: REPL-007-003-005 - Get current hit count
+    #[test]
+    fn test_REPL_007_003_get_hit_count() {
+        let vars = HashMap::new();
+        let mut bp = Breakpoint::with_hit_count(5, 3);
+
+        assert_eq!(bp.get_hit_count(), 0, "Initial hit count should be 0");
+
+        bp.should_break_with_hit(&vars);
+        assert_eq!(bp.get_hit_count(), 1, "Hit count should be 1 after first hit");
+
+        bp.should_break_with_hit(&vars);
+        assert_eq!(bp.get_hit_count(), 2, "Hit count should be 2 after second hit");
+
+        bp.should_break_with_hit(&vars);
+        assert_eq!(bp.get_hit_count(), 3, "Hit count should be 3 after third hit");
+    }
+
+    /// Test: REPL-007-003-006 - Disabled hit-count breakpoint never triggers
+    #[test]
+    fn test_REPL_007_003_disabled_hit_count() {
+        let vars = HashMap::new();
+        let mut bp = Breakpoint::with_hit_count(5, 2);
+        bp.disable();
+
+        // Even after reaching threshold, disabled breakpoint should not trigger
+        assert!(!bp.should_break_with_hit(&vars), "Should not break when disabled");
+        assert!(!bp.should_break_with_hit(&vars), "Should not break when disabled");
+        assert!(!bp.should_break_with_hit(&vars), "Should not break when disabled");
+    }
 }
 
 #[cfg(test)]
@@ -740,6 +921,121 @@ mod property_tests {
             prop_assert!(
                 !bp.should_break(&vars),
                 "Condition with missing variable should not trigger"
+            );
+        }
+    }
+
+    // ===== HIT-COUNT PROPERTY TESTS (REPL-007-003) =====
+
+    /// Property: Hit-count breakpoints trigger at the correct threshold
+    proptest! {
+        #[test]
+        fn prop_hit_count_triggers_at_threshold(threshold in 1usize..20) {
+            let vars = HashMap::new();
+            let mut bp = Breakpoint::with_hit_count(1, threshold);
+
+            // Hit the breakpoint threshold-1 times (should not trigger)
+            for _ in 0..threshold-1 {
+                prop_assert!(
+                    !bp.should_break_with_hit(&vars),
+                    "Should not trigger before threshold"
+                );
+            }
+
+            // Next hit should trigger
+            prop_assert!(
+                bp.should_break_with_hit(&vars),
+                "Should trigger at threshold {}",
+                threshold
+            );
+        }
+    }
+
+    /// Property: Hit count is always accurate
+    proptest! {
+        #[test]
+        fn prop_hit_count_accurate(hits in 1usize..50) {
+            let vars = HashMap::new();
+            let mut bp = Breakpoint::with_hit_count(1, 999); // High threshold
+
+            for i in 1..=hits {
+                bp.should_break_with_hit(&vars);
+                prop_assert_eq!(
+                    bp.get_hit_count(),
+                    i,
+                    "Hit count should be accurate at {} hits",
+                    i
+                );
+            }
+        }
+    }
+
+    /// Property: Reset always sets hit count to zero
+    proptest! {
+        #[test]
+        fn prop_reset_hit_count_works(hits in 1usize..50) {
+            let vars = HashMap::new();
+            let mut bp = Breakpoint::with_hit_count(1, 999);
+
+            // Hit the breakpoint multiple times
+            for _ in 0..hits {
+                bp.should_break_with_hit(&vars);
+            }
+
+            // Reset
+            bp.reset_hit_count();
+
+            prop_assert_eq!(
+                bp.get_hit_count(),
+                0,
+                "Hit count should be 0 after reset"
+            );
+        }
+    }
+
+    /// Property: Disabled hit-count breakpoints never trigger
+    proptest! {
+        #[test]
+        fn prop_disabled_hit_count_never_triggers(threshold in 1usize..20, hits in 1usize..50) {
+            let vars = HashMap::new();
+            let mut bp = Breakpoint::with_hit_count(1, threshold);
+            bp.disable();
+
+            // Hit the breakpoint many times
+            for _ in 0..hits {
+                prop_assert!(
+                    !bp.should_break_with_hit(&vars),
+                    "Disabled breakpoint should never trigger"
+                );
+            }
+        }
+    }
+
+    /// Property: Hit-count with condition requires both to be true
+    proptest! {
+        #[test]
+        fn prop_hit_count_with_condition_both_required(threshold in 2usize..10, value in 0i64..100) {
+            let mut vars = HashMap::new();
+            vars.insert("val".to_string(), value.to_string());
+
+            let mut bp = Breakpoint::with_hit_count_and_condition(1, threshold, "$val > 50".to_string());
+
+            // Hit threshold-1 times
+            for _ in 0..threshold-1 {
+                let result = bp.should_break_with_hit(&vars);
+                prop_assert!(!result, "Should not trigger before threshold");
+            }
+
+            // At threshold, should match condition
+            let result = bp.should_break_with_hit(&vars);
+            let expected = value > 50;
+            prop_assert_eq!(
+                result,
+                expected,
+                "At threshold {}, should match condition: {} > 50 = {}",
+                threshold,
+                value,
+                expected
             );
         }
     }
