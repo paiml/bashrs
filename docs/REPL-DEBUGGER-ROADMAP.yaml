@@ -609,13 +609,21 @@ phases:
         tasks:
           - id: "REPL-008-001"
             title: "Step (next line)"
-            status: "pending"
+            status: "completed"
+            completion_date: "2025-10-30"
+            commit: "1552582e"
             tests:
               unit:
-                - "test_REPL_008_001_step_single_line"
-                - "test_REPL_008_001_step_into_function"
-              integration:
-                - "test_REPL_008_001_step_cli"
+                - "test_REPL_008_001_create_session ✅"
+                - "test_REPL_008_001_step_single_line ✅"
+                - "test_REPL_008_001_step_multiple_lines ✅"
+                - "test_REPL_008_001_current_line_content ✅"
+                - "test_REPL_008_001_breakpoint_integration ✅"
+                - "test_REPL_008_001_invalid_breakpoint ✅"
+              property:
+                - "prop_step_never_skips_lines ✅"
+                - "prop_current_line_always_valid ✅"
+                - "prop_total_lines_constant ✅"
 
           - id: "REPL-008-002"
             title: "Next (skip over functions)"
