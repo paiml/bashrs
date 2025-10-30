@@ -920,14 +920,24 @@ phases:
         tasks:
           - id: "REPL-012-001"
             title: "Scan for non-idempotent operations"
-            status: "pending"
+            status: "completed"
             tests:
               unit:
                 - "test_REPL_012_001_detect_mkdir_without_p"
+                - "test_REPL_012_001_mkdir_with_p_is_idempotent"
                 - "test_REPL_012_001_detect_rm_without_f"
+                - "test_REPL_012_001_rm_with_f_is_idempotent"
                 - "test_REPL_012_001_detect_ln_without_f"
+                - "test_REPL_012_001_ln_with_sf_is_idempotent"
+                - "test_REPL_012_001_multiple_issues"
+                - "test_REPL_012_001_fully_idempotent_script"
+                - "test_REPL_012_001_rescan_clears_previous"
+                - "test_REPL_012_001_line_numbers_correct"
               property:
-                - "prop_idempotent_operations_detected"
+                - "prop_REPL_012_001_mkdir_without_p_always_detected"
+                - "prop_REPL_012_001_mkdir_with_p_never_detected"
+                - "prop_REPL_012_001_scan_never_panics"
+                - "prop_REPL_012_001_rescan_always_clears"
 
           - id: "REPL-012-002"
             title: "Suggested fixes for non-idempotent code"
