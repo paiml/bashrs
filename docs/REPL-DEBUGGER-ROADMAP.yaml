@@ -712,13 +712,15 @@ phases:
 
           - id: "REPL-009-003"
             title: "Call stack tracking"
-            status: "pending"
+            status: "completed"
+            completion_date: "2025-10-30"
+            commit: "21304c70"
             tests:
               unit:
-                - "test_REPL_009_003_backtrace_single"
-                - "test_REPL_009_003_backtrace_nested"
+                - "test_REPL_009_003_backtrace_single ✅"
+                - "test_REPL_009_003_backtrace_nested ✅"
               property:
-                - "prop_call_stack_depth_correct"
+                - "prop_call_stack_depth_correct ✅"
 
         milestones:
           - name: "Inspect bash state at breakpoints"
