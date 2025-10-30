@@ -738,13 +738,17 @@ phases:
         tasks:
           - id: "REPL-010-001"
             title: "Compare original vs purified at breakpoint"
-            status: "pending"
+            status: "completed"
+            completion_date: "2025-10-30"
+            commit: "fd06dee4"
             tests:
               unit:
-                - "test_REPL_010_001_compare_at_breakpoint"
-                - "test_REPL_010_001_compare_diff_highlighting"
-              integration:
-                - "test_REPL_010_001_compare_cli"
+                - "test_REPL_010_001_compare_at_breakpoint ✅"
+                - "test_REPL_010_001_compare_diff_highlighting ✅"
+              property:
+                - "prop_REPL_010_001_comparison_deterministic ✅"
+                - "prop_REPL_010_001_differs_flag_correct ✅"
+                - "prop_REPL_010_001_diff_highlighting_valid ✅"
 
           - id: "REPL-010-002"
             title: "Highlight differences"
