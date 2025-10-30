@@ -119,7 +119,10 @@ mod tests {
     fn test_REPL_007_001_parse_assignment_double_quotes() {
         let result = parse_assignment("name=\"hello world\"");
 
-        assert_eq!(result, Some(("name".to_string(), "hello world".to_string())));
+        assert_eq!(
+            result,
+            Some(("name".to_string(), "hello world".to_string()))
+        );
     }
 
     #[test]

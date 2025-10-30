@@ -9,9 +9,8 @@ use regex::Regex;
 
 // Static regex for date pattern matching
 #[allow(clippy::expect_used)] // Compile-time regex, panic on invalid pattern is acceptable
-static DATE_PATTERN: Lazy<Regex> = Lazy::new(|| {
-    Regex::new(r"\$\(date[^)]*\)").expect("valid regex pattern")
-});
+static DATE_PATTERN: Lazy<Regex> =
+    Lazy::new(|| Regex::new(r"\$\(date[^)]*\)").expect("valid regex pattern"));
 
 /// Represents a non-deterministic construct found in config
 #[derive(Debug, Clone, PartialEq)]

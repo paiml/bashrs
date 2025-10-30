@@ -94,7 +94,12 @@ fn find_subshell_assignments(line: &str) -> HashSet<String> {
 }
 
 /// Create diagnostic for subshell variable usage
-fn create_diagnostic(line_num: usize, var_name: &str, pos: usize, full_match_len: usize) -> Diagnostic {
+fn create_diagnostic(
+    line_num: usize,
+    var_name: &str,
+    pos: usize,
+    full_match_len: usize,
+) -> Diagnostic {
     let start_col = pos + 1;
     let end_col = start_col + full_match_len;
 

@@ -48,7 +48,8 @@ impl Formatter {
 
         self.set_source(source);
         let mut parser = BashParser::new(source)?;
-        let ast = parser.parse()
+        let ast = parser
+            .parse()
             .map_err(|e| anyhow::anyhow!("Parse error: {}", e))?;
 
         self.format(&ast)
@@ -63,9 +64,20 @@ impl Formatter {
                 format!("{}#{}", indent_str, text)
             }
 
-            BashStmt::Assignment { name, value, exported, .. } => {
+            BashStmt::Assignment {
+                name,
+                value,
+                exported,
+                ..
+            } => {
                 let export = if *exported { "export " } else { "" };
-                format!("{}{}{}={}", indent_str, export, name, self.format_expr(value))
+                format!(
+                    "{}{}{}={}",
+                    indent_str,
+                    export,
+                    name,
+                    self.format_expr(value)
+                )
             }
 
             BashStmt::Command { name, args, .. } => {
@@ -78,7 +90,11 @@ impl Formatter {
             }
 
             BashStmt::Function { name, body, .. } => {
-                let brace_space = if self.config.space_before_brace { " " } else { "" };
+                let brace_space = if self.config.space_before_brace {
+                    " "
+                } else {
+                    ""
+                };
                 let mut result = if self.config.normalize_functions {
                     format!("{}{}(){}{{", indent_str, name, brace_space)
                 } else {
@@ -95,7 +111,13 @@ impl Formatter {
                 result
             }
 
-            BashStmt::If { condition, then_block, elif_blocks, else_block, .. } => {
+            BashStmt::If {
+                condition,
+                then_block,
+                elif_blocks,
+                else_block,
+                ..
+            } => {
                 let mut result = format!("{}if ", indent_str);
                 result.push_str(&self.format_expr(condition));
 
@@ -137,7 +159,9 @@ impl Formatter {
                 result
             }
 
-            BashStmt::While { condition, body, .. } => {
+            BashStmt::While {
+                condition, body, ..
+            } => {
                 let mut result = format!("{}while ", indent_str);
                 result.push_str(&self.format_expr(condition));
                 result.push_str("; do\n");
@@ -151,7 +175,9 @@ impl Formatter {
                 result
             }
 
-            BashStmt::Until { condition, body, .. } => {
+            BashStmt::Until {
+                condition, body, ..
+            } => {
                 let mut result = format!("{}until ", indent_str);
                 result.push_str(&self.format_expr(condition));
                 result.push_str("; do\n");
@@ -165,7 +191,12 @@ impl Formatter {
                 result
             }
 
-            BashStmt::For { variable, items, body, .. } => {
+            BashStmt::For {
+                variable,
+                items,
+                body,
+                ..
+            } => {
                 let mut result = format!("{}for {} in ", indent_str, variable);
                 result.push_str(&self.format_expr(items));
                 result.push_str("; do\n");
@@ -243,18 +274,16 @@ impl Formatter {
             }
 
             BashExpr::Array(items) => {
-                let formatted_items: Vec<String> = items.iter()
-                    .map(|item| self.format_expr(item))
-                    .collect();
+                let formatted_items: Vec<String> =
+                    items.iter().map(|item| self.format_expr(item)).collect();
                 format!("({})", formatted_items.join(" "))
             }
 
-            BashExpr::Concat(exprs) => {
-                exprs.iter()
-                    .map(|e| self.format_expr(e))
-                    .collect::<Vec<_>>()
-                    .join("")
-            }
+            BashExpr::Concat(exprs) => exprs
+                .iter()
+                .map(|e| self.format_expr(e))
+                .collect::<Vec<_>>()
+                .join(""),
 
             BashExpr::Test(test) => {
                 if self.config.use_double_brackets {
@@ -278,7 +307,10 @@ impl Formatter {
                 format!("${{{}:?{}}}", variable, self.format_expr(message))
             }
 
-            BashExpr::AlternativeValue { variable, alternative } => {
+            BashExpr::AlternativeValue {
+                variable,
+                alternative,
+            } => {
                 format!("${{{}:+{}}}", variable, self.format_expr(alternative))
             }
 
@@ -419,14 +451,12 @@ mod tests {
     fn test_format_assignment() {
         let formatter = Formatter::new();
         let ast = BashAst {
-            statements: vec![
-                BashStmt::Assignment {
-                    name: "VAR".to_string(),
-                    value: BashExpr::Literal("value".to_string()),
-                    exported: false,
-                    span: Span::dummy(),
-                }
-            ],
+            statements: vec![BashStmt::Assignment {
+                name: "VAR".to_string(),
+                value: BashExpr::Literal("value".to_string()),
+                exported: false,
+                span: Span::dummy(),
+            }],
             metadata: AstMetadata {
                 source_file: None,
                 line_count: 1,
@@ -442,19 +472,15 @@ mod tests {
     fn test_format_function() {
         let formatter = Formatter::new();
         let ast = BashAst {
-            statements: vec![
-                BashStmt::Function {
-                    name: "greet".to_string(),
-                    body: vec![
-                        BashStmt::Command {
-                            name: "echo".to_string(),
-                            args: vec![BashExpr::Literal("hello".to_string())],
-                            span: Span::dummy(),
-                        }
-                    ],
+            statements: vec![BashStmt::Function {
+                name: "greet".to_string(),
+                body: vec![BashStmt::Command {
+                    name: "echo".to_string(),
+                    args: vec![BashExpr::Literal("hello".to_string())],
                     span: Span::dummy(),
-                }
-            ],
+                }],
+                span: Span::dummy(),
+            }],
             metadata: AstMetadata {
                 source_file: None,
                 line_count: 3,
@@ -475,19 +501,15 @@ mod tests {
         let formatter = Formatter::with_config(config);
 
         let ast = BashAst {
-            statements: vec![
-                BashStmt::Function {
-                    name: "test".to_string(),
-                    body: vec![
-                        BashStmt::Command {
-                            name: "echo".to_string(),
-                            args: vec![BashExpr::Literal("test".to_string())],
-                            span: Span::dummy(),
-                        }
-                    ],
+            statements: vec![BashStmt::Function {
+                name: "test".to_string(),
+                body: vec![BashStmt::Command {
+                    name: "echo".to_string(),
+                    args: vec![BashExpr::Literal("test".to_string())],
                     span: Span::dummy(),
-                }
-            ],
+                }],
+                span: Span::dummy(),
+            }],
             metadata: AstMetadata {
                 source_file: None,
                 line_count: 3,

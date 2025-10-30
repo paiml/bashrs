@@ -261,7 +261,11 @@ impl PropertyTestGenerator {
 
     /// Extract bounds from conditional statements
     fn extract_bounds(&self, stmt: &BashStmt) -> Option<BoundsInfo> {
-        if let BashStmt::If { condition: BashExpr::Test { .. }, .. } = stmt {
+        if let BashStmt::If {
+            condition: BashExpr::Test { .. },
+            ..
+        } = stmt
+        {
             // Try to extract bounds from conditions like [ $x -gt 0 ] && [ $x -lt 100 ]
             // Simplified: assume reasonable bounds
             return Some(BoundsInfo { min: 0, max: 100 });

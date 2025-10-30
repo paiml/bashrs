@@ -215,7 +215,6 @@ bashrs config purify ~/.bashrc --fix --no-backup
 ## Related Rules
 
 - [CONFIG-002](./config-002.md): Quote variable expansions
-- [CONFIG-004](./config-004.md): Remove non-deterministic constructs
 
 ## FAQ
 

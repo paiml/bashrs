@@ -1011,6 +1011,5 @@ $ bashrs repl --max-memory 1000  # 1GB
 ## Next Steps
 
 - [REPL Commands Reference](../reference/repl-commands.md) - Complete command reference
-- [Parser Integration](../concepts/parser.md) - Understanding bash AST
 - [Purifier Integration](../concepts/purification.md) - Transformation rules
 - [Linter Integration](../linting/security.md) - Linting rules reference

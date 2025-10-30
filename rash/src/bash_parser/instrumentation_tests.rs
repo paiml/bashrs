@@ -135,7 +135,11 @@ mod tests {
             match event {
                 TraceEvent::Parse(ParseEvent::ParseStart { .. })
                 | TraceEvent::Parse(ParseEvent::ParseComplete { .. }) => {
-                    assert_eq!(sig, TraceSignificance::Trace, "Start/Complete should be Trace");
+                    assert_eq!(
+                        sig,
+                        TraceSignificance::Trace,
+                        "Start/Complete should be Trace"
+                    );
                 }
                 TraceEvent::Parse(ParseEvent::ParseNode { .. }) => {
                     assert_eq!(sig, TraceSignificance::Low, "ParseNode should be Low");
@@ -162,17 +166,13 @@ mod tests {
         let snapshot = tracer.snapshot();
 
         // Filter for HIGH significance (should exclude ParseNode, ParseStart, ParseComplete)
-        let high_events: Vec<_> = snapshot
-            .iter_filtered(TraceSignificance::High)
-            .collect();
+        let high_events: Vec<_> = snapshot.iter_filtered(TraceSignificance::High).collect();
 
         // With no parse errors, should have 0 HIGH events
         assert_eq!(high_events.len(), 0, "No HIGH events without errors");
 
         // Filter for TRACE significance (should include everything)
-        let all_events: Vec<_> = snapshot
-            .iter_filtered(TraceSignificance::Trace)
-            .collect();
+        let all_events: Vec<_> = snapshot.iter_filtered(TraceSignificance::Trace).collect();
 
         assert!(all_events.len() >= 5, "Expected at least 5 total events");
     }

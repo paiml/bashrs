@@ -2393,10 +2393,9 @@ fn test_BUILTIN_002_source_command() {
     assert!(!ast.statements.is_empty(), "Dot command should be parsed");
 
     // Should be recognized as a Command statement with name "."
-    let has_dot_command = ast
-        .statements
-        .iter()
-        .any(|s| matches!(s, BashStmt::Command { name, args, .. } if name == "." && args.len() == 1));
+    let has_dot_command = ast.statements.iter().any(
+        |s| matches!(s, BashStmt::Command { name, args, .. } if name == "." && args.len() == 1),
+    );
 
     assert!(
         has_dot_command,
@@ -2419,9 +2418,9 @@ fn test_BUILTIN_014_set_flags() {
     assert!(!ast.statements.is_empty(), "Set command should be parsed");
 
     // Should be recognized as a Command statement with name "set"
-    let has_set_command = ast.statements.iter().any(|s| {
-        matches!(s, BashStmt::Command { name, args, .. } if name == "set" && args.len() == 1)
-    });
+    let has_set_command = ast.statements.iter().any(
+        |s| matches!(s, BashStmt::Command { name, args, .. } if name == "set" && args.len() == 1),
+    );
 
     assert!(
         has_set_command,
@@ -2444,9 +2443,10 @@ fn test_BUILTIN_015_shift_command() {
     assert!(!ast.statements.is_empty(), "Shift command should be parsed");
 
     // Should be recognized as a Command statement with name "shift"
-    let has_shift_command = ast.statements.iter().any(|s| {
-        matches!(s, BashStmt::Command { name, .. } if name == "shift")
-    });
+    let has_shift_command = ast
+        .statements
+        .iter()
+        .any(|s| matches!(s, BashStmt::Command { name, .. } if name == "shift"));
 
     assert!(
         has_shift_command,
@@ -2469,9 +2469,9 @@ fn test_BUILTIN_018_trap_signal_handling() {
     assert!(!ast.statements.is_empty(), "Trap command should be parsed");
 
     // Should be recognized as a Command statement with name "trap"
-    let has_trap_command = ast.statements.iter().any(|s| {
-        matches!(s, BashStmt::Command { name, args, .. } if name == "trap" && args.len() >= 1)
-    });
+    let has_trap_command = ast.statements.iter().any(
+        |s| matches!(s, BashStmt::Command { name, args, .. } if name == "trap" && args.len() >= 1),
+    );
 
     assert!(
         has_trap_command,
@@ -2495,9 +2495,10 @@ fn test_BASH_BUILTIN_001_alias_to_function() {
     assert!(!ast.statements.is_empty(), "Alias command should be parsed");
 
     // Should be recognized as a Command statement with name "alias"
-    let has_alias_command = ast.statements.iter().any(|s| {
-        matches!(s, BashStmt::Command { name, .. } if name == "alias")
-    });
+    let has_alias_command = ast
+        .statements
+        .iter()
+        .any(|s| matches!(s, BashStmt::Command { name, .. } if name == "alias"));
 
     assert!(
         has_alias_command,
@@ -2517,12 +2518,16 @@ fn test_BASH_BUILTIN_002_declare_to_assignment() {
     let ast = parser.parse().unwrap();
 
     // Should parse successfully
-    assert!(!ast.statements.is_empty(), "Declare command should be parsed");
+    assert!(
+        !ast.statements.is_empty(),
+        "Declare command should be parsed"
+    );
 
     // Should be recognized as a Command statement with name "declare"
-    let has_declare_command = ast.statements.iter().any(|s| {
-        matches!(s, BashStmt::Command { name, .. } if name == "declare")
-    });
+    let has_declare_command = ast
+        .statements
+        .iter()
+        .any(|s| matches!(s, BashStmt::Command { name, .. } if name == "declare"));
 
     assert!(
         has_declare_command,
@@ -2544,9 +2549,10 @@ fn test_BASH_BUILTIN_004_local_to_scoped_var() {
     assert!(!ast.statements.is_empty(), "Local command should be parsed");
 
     // Should be recognized as a Command statement with name "local"
-    let has_local_command = ast.statements.iter().any(|s| {
-        matches!(s, BashStmt::Command { name, .. } if name == "local")
-    });
+    let has_local_command = ast
+        .statements
+        .iter()
+        .any(|s| matches!(s, BashStmt::Command { name, .. } if name == "local"));
 
     assert!(
         has_local_command,
@@ -2567,12 +2573,16 @@ fn test_VAR_003_ifs_purification() {
     let ast = parser.parse().unwrap();
 
     // Should parse successfully
-    assert!(!ast.statements.is_empty(), "IFS assignment should be parsed");
+    assert!(
+        !ast.statements.is_empty(),
+        "IFS assignment should be parsed"
+    );
 
     // Should be recognized as an Assignment statement with name "IFS"
-    let has_ifs_assignment = ast.statements.iter().any(|s| {
-        matches!(s, BashStmt::Assignment { name, .. } if name == "IFS")
-    });
+    let has_ifs_assignment = ast
+        .statements
+        .iter()
+        .any(|s| matches!(s, BashStmt::Assignment { name, .. } if name == "IFS"));
 
     assert!(
         has_ifs_assignment,
@@ -2593,12 +2603,16 @@ fn test_ARRAY_001_indexed_arrays() {
     let ast = parser.parse().unwrap();
 
     // Should parse successfully
-    assert!(!ast.statements.is_empty(), "Array identifier should be parsed");
+    assert!(
+        !ast.statements.is_empty(),
+        "Array identifier should be parsed"
+    );
 
     // Should be recognized as a Command statement (since no assignment operator)
-    let has_command = ast.statements.iter().any(|s| {
-        matches!(s, BashStmt::Command { name, .. } if name == "arr")
-    });
+    let has_command = ast
+        .statements
+        .iter()
+        .any(|s| matches!(s, BashStmt::Command { name, .. } if name == "arr"));
 
     assert!(
         has_command,
@@ -2620,12 +2634,16 @@ fn test_EXP_PARAM_010_pattern_substitution() {
     let ast = parser.parse().unwrap();
 
     // Should parse successfully
-    assert!(!ast.statements.is_empty(), "Variable assignment should be parsed");
+    assert!(
+        !ast.statements.is_empty(),
+        "Variable assignment should be parsed"
+    );
 
     // Should be recognized as an Assignment statement
-    let has_assignment = ast.statements.iter().any(|s| {
-        matches!(s, BashStmt::Assignment { name, .. } if name == "text")
-    });
+    let has_assignment = ast
+        .statements
+        .iter()
+        .any(|s| matches!(s, BashStmt::Assignment { name, .. } if name == "text"));
 
     assert!(
         has_assignment,
@@ -2650,9 +2668,10 @@ fn test_EXP_PROC_001_process_substitution() {
     assert!(!ast.statements.is_empty(), "Command should be parsed");
 
     // Should be recognized as a Command statement
-    let has_command = ast.statements.iter().any(|s| {
-        matches!(s, BashStmt::Command { name, .. } if name == "diff")
-    });
+    let has_command = ast
+        .statements
+        .iter()
+        .any(|s| matches!(s, BashStmt::Command { name, .. } if name == "diff"));
 
     assert!(
         has_command,
@@ -2674,12 +2693,16 @@ fn test_EXP_SPLIT_001_word_splitting() {
     let ast = parser.parse().unwrap();
 
     // Should parse successfully
-    assert!(!ast.statements.is_empty(), "IFS assignment should be parsed");
+    assert!(
+        !ast.statements.is_empty(),
+        "IFS assignment should be parsed"
+    );
 
     // Should be recognized as an Assignment statement
-    let has_assignment = ast.statements.iter().any(|s| {
-        matches!(s, BashStmt::Assignment { name, .. } if name == "IFS")
-    });
+    let has_assignment = ast
+        .statements
+        .iter()
+        .any(|s| matches!(s, BashStmt::Assignment { name, .. } if name == "IFS"));
 
     assert!(
         has_assignment,
@@ -2975,14 +2998,12 @@ fn test_CMD_001_simple_command_with_arguments() {
     );
 
     // Verify it's recognized as a command
-    let has_command = ast.statements.iter().any(|s| {
-        matches!(s, BashStmt::Command { name, .. } if name == "mkdir")
-    });
+    let has_command = ast
+        .statements
+        .iter()
+        .any(|s| matches!(s, BashStmt::Command { name, .. } if name == "mkdir"));
 
-    assert!(
-        has_command,
-        "AST should contain 'mkdir' command"
-    );
+    assert!(has_command, "AST should contain 'mkdir' command");
 
     // DOCUMENTATION: Simple commands are fully supported
     // Purification: Add idempotent flags (-p for mkdir)
@@ -3009,9 +3030,10 @@ fn test_CMD_002_command_with_multiple_arguments() {
     assert!(!ast.statements.is_empty());
 
     // Verify it's recognized as a cp command
-    let has_command = ast.statements.iter().any(|s| {
-        matches!(s, BashStmt::Command { name, .. } if name == "cp")
-    });
+    let has_command = ast
+        .statements
+        .iter()
+        .any(|s| matches!(s, BashStmt::Command { name, .. } if name == "cp"));
 
     assert!(has_command, "AST should contain 'cp' command");
 
@@ -3039,9 +3061,10 @@ fn test_CMD_003_command_with_flags_and_arguments() {
     assert!(!ast.statements.is_empty());
 
     // Verify it's recognized as ls command
-    let has_command = ast.statements.iter().any(|s| {
-        matches!(s, BashStmt::Command { name, .. } if name == "ls")
-    });
+    let has_command = ast
+        .statements
+        .iter()
+        .any(|s| matches!(s, BashStmt::Command { name, .. } if name == "ls"));
 
     assert!(has_command, "AST should contain 'ls' command");
 
@@ -3445,9 +3468,10 @@ fn test_ANSI_C_004_posix_alternative_printf() {
     let ast = result.unwrap();
     assert!(!ast.statements.is_empty());
 
-    let has_printf = ast.statements.iter().any(|s| {
-        matches!(s, BashStmt::Command { name, .. } if name == "printf")
-    });
+    let has_printf = ast
+        .statements
+        .iter()
+        .any(|s| matches!(s, BashStmt::Command { name, .. } if name == "printf"));
     assert!(has_printf, "AST should contain 'printf' command");
 
     // DOCUMENTATION: printf is the POSIX-compliant way to handle escape sequences
@@ -3503,9 +3527,10 @@ fn test_ECHO_001_simple_echo_command() {
     let ast = result.unwrap();
     assert!(!ast.statements.is_empty());
 
-    let has_echo = ast.statements.iter().any(|s| {
-        matches!(s, BashStmt::Command { name, .. } if name == "echo")
-    });
+    let has_echo = ast
+        .statements
+        .iter()
+        .any(|s| matches!(s, BashStmt::Command { name, .. } if name == "echo"));
     assert!(has_echo, "AST should contain 'echo' command");
 
     // DOCUMENTATION: Echo commands parse correctly
@@ -3537,9 +3562,10 @@ fn test_ECHO_002_echo_with_variable() {
     let ast = result.unwrap();
     assert!(!ast.statements.is_empty());
 
-    let has_echo = ast.statements.iter().any(|s| {
-        matches!(s, BashStmt::Command { name, .. } if name == "echo")
-    });
+    let has_echo = ast
+        .statements
+        .iter()
+        .any(|s| matches!(s, BashStmt::Command { name, .. } if name == "echo"));
     assert!(has_echo, "AST should contain 'echo' command");
 
     // DOCUMENTATION: Variable expansion in echo fully supported
@@ -3571,9 +3597,10 @@ fn test_ECHO_003_echo_multiple_arguments() {
     let ast = result.unwrap();
     assert!(!ast.statements.is_empty());
 
-    let has_echo = ast.statements.iter().any(|s| {
-        matches!(s, BashStmt::Command { name, .. } if name == "echo")
-    });
+    let has_echo = ast
+        .statements
+        .iter()
+        .any(|s| matches!(s, BashStmt::Command { name, .. } if name == "echo"));
     assert!(has_echo, "AST should contain 'echo' command");
 
     // DOCUMENTATION: Multiple arguments to echo fully supported
@@ -3604,9 +3631,10 @@ fn test_ECHO_004_posix_printf_alternative() {
     let ast = result.unwrap();
     assert!(!ast.statements.is_empty());
 
-    let has_printf = ast.statements.iter().any(|s| {
-        matches!(s, BashStmt::Command { name, .. } if name == "printf")
-    });
+    let has_printf = ast
+        .statements
+        .iter()
+        .any(|s| matches!(s, BashStmt::Command { name, .. } if name == "printf"));
     assert!(has_printf, "AST should contain 'printf' command");
 
     // DOCUMENTATION: printf is the POSIX-compliant alternative to echo
@@ -3819,9 +3847,10 @@ fn test_BUILTIN_007_eval_refactoring_alternative() {
     let ast = result.unwrap();
     assert!(!ast.statements.is_empty());
 
-    let has_echo = ast.statements.iter().any(|s| {
-        matches!(s, BashStmt::Command { name, .. } if name == "echo")
-    });
+    let has_echo = ast
+        .statements
+        .iter()
+        .any(|s| matches!(s, BashStmt::Command { name, .. } if name == "echo"));
     assert!(has_echo, "AST should contain 'echo' command");
 
     // DOCUMENTATION: Refactoring strategy for eval
@@ -9367,10 +9396,7 @@ ps aux | grep "python" | awk '{print $2}' | xargs kill
 "#;
 
     let result = BashParser::new(multi_stage);
-    assert!(
-        result.is_ok(),
-        "Multi-stage pipeline should parse (POSIX)"
-    );
+    assert!(result.is_ok(), "Multi-stage pipeline should parse (POSIX)");
 
     let mut parser = result.unwrap();
     let parse_result = parser.parse();
@@ -9404,10 +9430,7 @@ echo "$MESSAGE" | wc -l
 "#;
 
     let result = BashParser::new(pipe_with_vars);
-    assert!(
-        result.is_ok(),
-        "Pipe with variables should parse (POSIX)"
-    );
+    assert!(result.is_ok(), "Pipe with variables should parse (POSIX)");
 
     let mut parser = result.unwrap();
     let parse_result = parser.parse();
@@ -9545,10 +9568,7 @@ echo "$result"
 "#;
 
     let result = BashParser::new(subshell_example);
-    assert!(
-        result.is_ok(),
-        "Subshell semantics should parse (POSIX)"
-    );
+    assert!(result.is_ok(), "Subshell semantics should parse (POSIX)");
 
     let mut parser = result.unwrap();
     let parse_result = parser.parse();
@@ -9711,10 +9731,7 @@ echo "Third"
 "#;
 
     let result = BashParser::new(sequential);
-    assert!(
-        result.is_ok(),
-        "Sequential commands should parse (POSIX)"
-    );
+    assert!(result.is_ok(), "Sequential commands should parse (POSIX)");
 
     let mut parser = result.unwrap();
     let parse_result = parser.parse();
@@ -10726,7 +10743,10 @@ fn test_REDIR_002_rust_file_mapping() {
     //     .write_all(&output.stdout)?;
 
     // This test just documents the mapping strategy
-    assert!(true, "Rust std::fs mapping documented for output redirection");
+    assert!(
+        true,
+        "Rust std::fs mapping documented for output redirection"
+    );
 }
 
 #[test]
@@ -14843,7 +14863,10 @@ cd ~/documents
     let mut lexer = Lexer::new(cd_command);
     match lexer.tokenize() {
         Ok(tokens) => {
-            assert!(!tokens.is_empty(), "cd command should tokenize successfully");
+            assert!(
+                !tokens.is_empty(),
+                "cd command should tokenize successfully"
+            );
             // cd is a builtin command, not a keyword
             // It's treated as an identifier/command name
         }
@@ -14883,8 +14906,8 @@ echo $PWD
         Ok(tokens) => {
             assert!(!tokens.is_empty(), "cd basic navigation should tokenize");
             let _ = tokens; // Use tokens to satisfy type inference
-            // cd is followed by a path argument
-            // $PWD is updated automatically after cd
+                            // cd is followed by a path argument
+                            // $PWD is updated automatically after cd
         }
         Err(_) => {
             // Test documents expected behavior
@@ -14914,7 +14937,7 @@ echo $PWD
         Ok(tokens) => {
             assert!(!tokens.is_empty(), "cd - should tokenize");
             let _ = tokens; // Use tokens to satisfy type inference
-            // cd - is POSIX-compliant shortcut for previous directory
+                            // cd - is POSIX-compliant shortcut for previous directory
         }
         Err(_) => {
             // Test documents expected behavior
@@ -14943,7 +14966,7 @@ echo $HOME
         Ok(tokens) => {
             assert!(!tokens.is_empty(), "cd with no args should tokenize");
             let _ = tokens; // Use tokens to satisfy type inference
-            // cd alone (no arguments) is POSIX-compliant
+                            // cd alone (no arguments) is POSIX-compliant
         }
         Err(_) => {
             // Test documents expected behavior
@@ -14973,7 +14996,7 @@ cd ~/projects/myapp
         Ok(tokens) => {
             assert!(!tokens.is_empty(), "cd ~ should tokenize");
             let _ = tokens; // Use tokens to satisfy type inference
-            // Tilde expansion is POSIX (see EXP-TILDE-001)
+                            // Tilde expansion is POSIX (see EXP-TILDE-001)
         }
         Err(_) => {
             // Test documents expected behavior
@@ -15003,8 +15026,8 @@ cd /tmp || exit 1
         Ok(tokens) => {
             assert!(!tokens.is_empty(), "cd error handling should tokenize");
             let _ = tokens; // Use tokens to satisfy type inference
-            // cd returns 0 (success) or 1 (failure)
-            // Best practice: cd /path || exit 1
+                            // cd returns 0 (success) or 1 (failure)
+                            // Best practice: cd /path || exit 1
         }
         Err(_) => {
             // Test documents expected behavior
@@ -15033,7 +15056,7 @@ cd '/tmp/my dir'
         Ok(tokens) => {
             assert!(!tokens.is_empty(), "cd with spaces should tokenize");
             let _ = tokens; // Use tokens to satisfy type inference
-            // Quoting is critical for paths with spaces
+                            // Quoting is critical for paths with spaces
         }
         Err(_) => {
             // Test documents expected behavior
@@ -15233,10 +15256,13 @@ exit $?
     let mut lexer = Lexer::new(exit_command);
     match lexer.tokenize() {
         Ok(tokens) => {
-            assert!(!tokens.is_empty(), "exit command should tokenize successfully");
+            assert!(
+                !tokens.is_empty(),
+                "exit command should tokenize successfully"
+            );
             let _ = tokens; // Use tokens to satisfy type inference
-            // exit is a builtin command, not a keyword
-            // It's treated as an identifier/command name
+                            // exit is a builtin command, not a keyword
+                            // It's treated as an identifier/command name
         }
         Err(_) => {
             // Parser may not fully support exit yet - test documents expected behavior
@@ -15275,7 +15301,7 @@ exit 130
         Ok(tokens) => {
             assert!(!tokens.is_empty(), "exit with status should tokenize");
             let _ = tokens; // Use tokens to satisfy type inference
-            // exit is followed by numeric argument (exit code)
+                            // exit is followed by numeric argument (exit code)
         }
         Err(_) => {
             // Test documents expected behavior
@@ -15310,8 +15336,8 @@ exit
         Ok(tokens) => {
             assert!(!tokens.is_empty(), "exit with no args should tokenize");
             let _ = tokens; // Use tokens to satisfy type inference
-            // exit alone (no arguments) is POSIX-compliant
-            // Uses $? from last command
+                            // exit alone (no arguments) is POSIX-compliant
+                            // Uses $? from last command
         }
         Err(_) => {
             // Test documents expected behavior
@@ -15350,7 +15376,7 @@ echo "Parent continues"
         Ok(tokens) => {
             assert!(!tokens.is_empty(), "exit vs return should tokenize");
             let _ = tokens; // Use tokens to satisfy type inference
-            // exit terminates script, return is function-local
+                            // exit terminates script, return is function-local
         }
         Err(_) => {
             // Test documents expected behavior
@@ -15405,7 +15431,7 @@ exit 255
         Ok(tokens) => {
             assert!(!tokens.is_empty(), "exit codes should tokenize");
             let _ = tokens; // Use tokens to satisfy type inference
-            // Standard exit codes are well-defined
+                            // Standard exit codes are well-defined
         }
         Err(_) => {
             // Test documents expected behavior
@@ -15446,7 +15472,7 @@ fi
         Ok(tokens) => {
             assert!(!tokens.is_empty(), "conditional exit should tokenize");
             let _ = tokens; // Use tokens to satisfy type inference
-            // Conditional exit is common error handling pattern
+                            // Conditional exit is common error handling pattern
         }
         Err(_) => {
             // Test documents expected behavior
@@ -15488,7 +15514,7 @@ function func() {
         Ok(tokens) => {
             assert!(!tokens.is_empty(), "exit edge cases should tokenize");
             let _ = tokens; // Use tokens to satisfy type inference
-            // Edge cases documented for completeness
+                            // Edge cases documented for completeness
         }
         Err(_) => {
             // Test documents expected behavior
@@ -15683,9 +15709,12 @@ export CONFIG_FILE="/etc/app.conf"
     let mut lexer = Lexer::new(export_command);
     match lexer.tokenize() {
         Ok(tokens) => {
-            assert!(!tokens.is_empty(), "export command should tokenize successfully");
+            assert!(
+                !tokens.is_empty(),
+                "export command should tokenize successfully"
+            );
             let _ = tokens; // Use tokens to satisfy type inference
-            // export is a builtin command
+                            // export is a builtin command
         }
         Err(_) => {
             // Parser may not fully support export yet - test documents expected behavior
@@ -15721,7 +15750,7 @@ export USER="alice"
         Ok(tokens) => {
             assert!(!tokens.is_empty(), "export set should tokenize");
             let _ = tokens; // Use tokens to satisfy type inference
-            // export VAR=value is most common form
+                            // export VAR=value is most common form
         }
         Err(_) => {
             // Test documents expected behavior
@@ -15751,7 +15780,7 @@ export USER
         Ok(tokens) => {
             assert!(!tokens.is_empty(), "export existing should tokenize");
             let _ = tokens; // Use tokens to satisfy type inference
-            // export VAR exports variable set earlier
+                            // export VAR exports variable set earlier
         }
         Err(_) => {
             // Test documents expected behavior
@@ -15786,7 +15815,7 @@ export EXPORTED="exported"
         Ok(tokens) => {
             assert!(!tokens.is_empty(), "export vs assign should tokenize");
             let _ = tokens; // Use tokens to satisfy type inference
-            // Key distinction documented
+                            // Key distinction documented
         }
         Err(_) => {
             // Test documents expected behavior
@@ -15814,7 +15843,7 @@ export VAR1="value1" VAR2="value2"
         Ok(tokens) => {
             assert!(!tokens.is_empty(), "multiple exports should tokenize");
             let _ = tokens; // Use tokens to satisfy type inference
-            // Multiple exports in one command is POSIX
+                            // Multiple exports in one command is POSIX
         }
         Err(_) => {
             // Test documents expected behavior
@@ -15842,7 +15871,7 @@ export DESC='Description with spaces'
         Ok(tokens) => {
             assert!(!tokens.is_empty(), "export quoting should tokenize");
             let _ = tokens; // Use tokens to satisfy type inference
-            // Quoting is critical for spaces
+                            // Quoting is critical for spaces
         }
         Err(_) => {
             // Test documents expected behavior
@@ -15869,7 +15898,7 @@ export -p
         Ok(tokens) => {
             assert!(!tokens.is_empty(), "export -p should tokenize");
             let _ = tokens; // Use tokens to satisfy type inference
-            // export -p is POSIX for listing exports
+                            // export -p is POSIX for listing exports
         }
         Err(_) => {
             // Test documents expected behavior
@@ -16040,9 +16069,12 @@ echo "Working in $(pwd)"
     let mut lexer = Lexer::new(pwd_command);
     match lexer.tokenize() {
         Ok(tokens) => {
-            assert!(!tokens.is_empty(), "pwd command should tokenize successfully");
+            assert!(
+                !tokens.is_empty(),
+                "pwd command should tokenize successfully"
+            );
             let _ = tokens; // Use tokens to satisfy type inference
-            // pwd is a builtin command
+                            // pwd is a builtin command
         }
         Err(_) => {
             // Parser may not fully support pwd yet - test documents expected behavior
@@ -16074,7 +16106,7 @@ echo "Currently in: $(pwd)"
         Ok(tokens) => {
             assert!(!tokens.is_empty(), "pwd basic should tokenize");
             let _ = tokens; // Use tokens to satisfy type inference
-            // pwd is simplest form
+                            // pwd is simplest form
         }
         Err(_) => {
             // Test documents expected behavior
@@ -16109,7 +16141,7 @@ pwd -P
         Ok(tokens) => {
             assert!(!tokens.is_empty(), "pwd flags should tokenize");
             let _ = tokens; // Use tokens to satisfy type inference
-            // -L and -P are POSIX flags
+                            // -L and -P are POSIX flags
         }
         Err(_) => {
             // Test documents expected behavior
@@ -16146,7 +16178,7 @@ pwd               # Still shows real directory
         Ok(tokens) => {
             assert!(!tokens.is_empty(), "pwd vs env should tokenize");
             let _ = tokens; // Use tokens to satisfy type inference
-            // pwd is reliable, $PWD can be modified
+                            // pwd is reliable, $PWD can be modified
         }
         Err(_) => {
             // Test documents expected behavior
@@ -16188,7 +16220,7 @@ fi
         Ok(tokens) => {
             assert!(!tokens.is_empty(), "pwd patterns should tokenize");
             let _ = tokens; // Use tokens to satisfy type inference
-            // Common patterns documented
+                            // Common patterns documented
         }
         Err(_) => {
             // Test documents expected behavior
@@ -16230,7 +16262,7 @@ canonical_path=$(pwd -P)
         Ok(tokens) => {
             assert!(!tokens.is_empty(), "pwd symlink should tokenize");
             let _ = tokens; // Use tokens to satisfy type inference
-            // Symlink handling is POSIX
+                            // Symlink handling is POSIX
         }
         Err(_) => {
             // Test documents expected behavior
@@ -16270,7 +16302,7 @@ echo $PWD  # Shows /fake/path
         Ok(tokens) => {
             assert!(!tokens.is_empty(), "pwd edge cases should tokenize");
             let _ = tokens; // Use tokens to satisfy type inference
-            // Edge cases documented
+                            // Edge cases documented
         }
         Err(_) => {
             // Test documents expected behavior
@@ -16450,7 +16482,10 @@ fi
     let mut lexer = Lexer::new(test_command);
     match lexer.tokenize() {
         Ok(tokens) => {
-            assert!(!tokens.is_empty(), "test command should tokenize successfully");
+            assert!(
+                !tokens.is_empty(),
+                "test command should tokenize successfully"
+            );
             let _ = tokens;
         }
         Err(_) => {
@@ -16775,7 +16810,10 @@ if [ "$a" \< "$b" ]; then echo "less"; fi
     let mut lexer = Lexer::new(bash_extensions);
     match lexer.tokenize() {
         Ok(tokens) => {
-            assert!(!tokens.is_empty(), "bash extension examples should tokenize");
+            assert!(
+                !tokens.is_empty(),
+                "bash extension examples should tokenize"
+            );
             let _ = tokens;
         }
         Err(_) => {
@@ -16991,7 +17029,10 @@ fn test_BUILTIN_016_test_comparison_table() {
     let mut lexer = Lexer::new(comparison_table);
     match lexer.tokenize() {
         Ok(tokens) => {
-            assert!(!tokens.is_empty(), "comparison table examples should tokenize");
+            assert!(
+                !tokens.is_empty(),
+                "comparison table examples should tokenize"
+            );
             let _ = tokens;
         }
         Err(_) => {
@@ -17107,7 +17148,10 @@ unset -f myfunc
     let mut lexer = Lexer::new(unset_command);
     match lexer.tokenize() {
         Ok(tokens) => {
-            assert!(!tokens.is_empty(), "unset command should tokenize successfully");
+            assert!(
+                !tokens.is_empty(),
+                "unset command should tokenize successfully"
+            );
             let _ = tokens;
         }
         Err(_) => {
@@ -17490,7 +17534,10 @@ unset A B C
     let mut lexer = Lexer::new(bash_extensions);
     match lexer.tokenize() {
         Ok(tokens) => {
-            assert!(!tokens.is_empty(), "bash extension examples should tokenize");
+            assert!(
+                !tokens.is_empty(),
+                "bash extension examples should tokenize"
+            );
             let _ = tokens;
         }
         Err(_) => {
@@ -17587,7 +17634,10 @@ fi
     let mut lexer = Lexer::new(unset_vs_empty);
     match lexer.tokenize() {
         Ok(tokens) => {
-            assert!(!tokens.is_empty(), "unset vs empty examples should tokenize");
+            assert!(
+                !tokens.is_empty(),
+                "unset vs empty examples should tokenize"
+            );
             let _ = tokens;
         }
         Err(_) => {
@@ -17694,7 +17744,10 @@ echo "${EMPTY_VAR:-d}"      # d (empty, uses default)
     let mut lexer = Lexer::new(comparison_table);
     match lexer.tokenize() {
         Ok(tokens) => {
-            assert!(!tokens.is_empty(), "comparison table examples should tokenize");
+            assert!(
+                !tokens.is_empty(),
+                "comparison table examples should tokenize"
+            );
             let _ = tokens;
         }
         Err(_) => {
@@ -17798,7 +17851,10 @@ printf '%.2f\n' 3.14159
     let mut lexer = Lexer::new(printf_command);
     match lexer.tokenize() {
         Ok(tokens) => {
-            assert!(!tokens.is_empty(), "printf command should tokenize successfully");
+            assert!(
+                !tokens.is_empty(),
+                "printf command should tokenize successfully"
+            );
             let _ = tokens;
         }
         Err(_) => {
@@ -18067,7 +18123,10 @@ printf 'Name: %-20s Age: %3d\n' "Alice" 30
     let mut lexer = Lexer::new(printf_vs_echo);
     match lexer.tokenize() {
         Ok(tokens) => {
-            assert!(!tokens.is_empty(), "printf vs echo examples should tokenize");
+            assert!(
+                !tokens.is_empty(),
+                "printf vs echo examples should tokenize"
+            );
             let _ = tokens;
         }
         Err(_) => {
@@ -18142,7 +18201,10 @@ printf '%.2f\n' 3.14
     let mut lexer = Lexer::new(bash_extensions);
     match lexer.tokenize() {
         Ok(tokens) => {
-            assert!(!tokens.is_empty(), "bash extension examples should tokenize");
+            assert!(
+                !tokens.is_empty(),
+                "bash extension examples should tokenize"
+            );
             let _ = tokens;
         }
         Err(_) => {
@@ -18331,7 +18393,10 @@ printf 'Error: %s\n' "msg" >&2   # Errors to stderr
     let mut lexer = Lexer::new(comparison_table);
     match lexer.tokenize() {
         Ok(tokens) => {
-            assert!(!tokens.is_empty(), "comparison table examples should tokenize");
+            assert!(
+                !tokens.is_empty(),
+                "comparison table examples should tokenize"
+            );
             let _ = tokens;
         }
         Err(_) => {
@@ -18429,7 +18494,10 @@ cd ~/Downloads
     let mut lexer = Lexer::new(home_variable);
     match lexer.tokenize() {
         Ok(tokens) => {
-            assert!(!tokens.is_empty(), "HOME variable should tokenize successfully");
+            assert!(
+                !tokens.is_empty(),
+                "HOME variable should tokenize successfully"
+            );
             let _ = tokens;
         }
         Err(_) => {
@@ -18961,7 +19029,10 @@ fi
     let mut lexer = Lexer::new(security_considerations);
     match lexer.tokenize() {
         Ok(tokens) => {
-            assert!(!tokens.is_empty(), "security considerations should tokenize");
+            assert!(
+                !tokens.is_empty(),
+                "security considerations should tokenize"
+            );
             let _ = tokens;
         }
         Err(_) => {
@@ -19056,7 +19127,10 @@ data_dir="$HOME/.local/share"
     let mut lexer = Lexer::new(comparison_table);
     match lexer.tokenize() {
         Ok(tokens) => {
-            assert!(!tokens.is_empty(), "comparison table examples should tokenize");
+            assert!(
+                !tokens.is_empty(),
+                "comparison table examples should tokenize"
+            );
             let _ = tokens;
         }
         Err(_) => {
@@ -21858,7 +21932,10 @@ fn test_PARAM_SPEC_006_shell_options_not_supported() {
     // assert!(tokens.iter().any(|t| matches!(t, Token::Variable(name) if name == "-")));
 
     // For now, just verify the lexer doesn't crash
-    assert!(!tokens.is_empty(), "Lexer should produce tokens without crashing");
+    assert!(
+        !tokens.is_empty(),
+        "Lexer should produce tokens without crashing"
+    );
 
     let _ = tokens;
 }
@@ -21951,7 +22028,10 @@ fn test_PARAM_SPEC_006_shell_options_flag_meanings() {
     let tokens = lexer.tokenize().unwrap();
 
     // Note: $- not yet supported by lexer, just verify no crash
-    assert!(!tokens.is_empty(), "Lexer should produce tokens without crashing");
+    assert!(
+        !tokens.is_empty(),
+        "Lexer should produce tokens without crashing"
+    );
 
     let _ = tokens;
 }
@@ -22013,7 +22093,10 @@ fn test_PARAM_SPEC_006_shell_options_portability() {
     let tokens = lexer.tokenize().unwrap();
 
     // Note: $- not yet supported by lexer, just verify no crash
-    assert!(!tokens.is_empty(), "Lexer should produce tokens without crashing");
+    assert!(
+        !tokens.is_empty(),
+        "Lexer should produce tokens without crashing"
+    );
 
     let _ = tokens;
 }
@@ -22105,7 +22188,10 @@ esac
     let tokens = lexer.tokenize().unwrap();
 
     // Note: $- not yet supported by lexer, just verify no crash
-    assert!(!tokens.is_empty(), "Lexer should produce tokens without crashing");
+    assert!(
+        !tokens.is_empty(),
+        "Lexer should produce tokens without crashing"
+    );
 
     let _ = tokens;
 }
@@ -22161,7 +22247,10 @@ fn test_PARAM_SPEC_006_shell_options_comparison_table() {
     let tokens = lexer.tokenize().unwrap();
 
     // Note: $- not yet supported by lexer, just verify no crash
-    assert!(!tokens.is_empty(), "Lexer should produce tokens without crashing");
+    assert!(
+        !tokens.is_empty(),
+        "Lexer should produce tokens without crashing"
+    );
 
     let _ = tokens;
 }

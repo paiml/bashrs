@@ -136,9 +136,7 @@ impl ReplCompleter {
             // Extract directory and filename
             match path.parent() {
                 Some(parent) if !parent.as_os_str().is_empty() => {
-                    let prefix = path.file_name()
-                        .and_then(|n| n.to_str())
-                        .unwrap_or("");
+                    let prefix = path.file_name().and_then(|n| n.to_str()).unwrap_or("");
                     (parent, prefix)
                 }
                 _ => {
@@ -195,7 +193,10 @@ impl ReplCompleter {
                 let full_path = dir_path.join(file_name);
                 if is_dir {
                     // Append / to directories
-                    full_path.to_str().map(|s| format!("{}/", s)).unwrap_or_default()
+                    full_path
+                        .to_str()
+                        .map(|s| format!("{}/", s))
+                        .unwrap_or_default()
                 } else {
                     full_path.to_str().unwrap_or("").to_string()
                 }
@@ -331,9 +332,7 @@ mod tests {
         let completions = completer.complete_command("p");
 
         assert_eq!(completions.len(), 2); // "parse" and "purify"
-        let replacements: Vec<_> = completions.iter()
-            .map(|p| p.replacement.as_str())
-            .collect();
+        let replacements: Vec<_> = completions.iter().map(|p| p.replacement.as_str()).collect();
         assert!(replacements.contains(&":parse"));
         assert!(replacements.contains(&":purify"));
     }

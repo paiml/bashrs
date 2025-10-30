@@ -321,7 +321,6 @@ alias grep='grep --color=auto'
 
 - [CONFIG-001](./config-001.md): PATH deduplication
 - [CONFIG-002](./config-002.md): Quote variable expansions
-- [CONFIG-004](./config-004.md): Remove non-deterministic constructs (coming soon)
 
 ## Performance
 

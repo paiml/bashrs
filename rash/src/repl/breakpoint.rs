@@ -262,28 +262,36 @@ fn evaluate_condition(condition: &str, variables: &HashMap<String, String>) -> b
         "!=" => var_value != value_part,
         ">" => {
             // Try numeric comparison
-            if let (Ok(var_num), Ok(val_num)) = (var_value.parse::<i64>(), value_part.parse::<i64>()) {
+            if let (Ok(var_num), Ok(val_num)) =
+                (var_value.parse::<i64>(), value_part.parse::<i64>())
+            {
                 var_num > val_num
             } else {
                 false
             }
         }
         "<" => {
-            if let (Ok(var_num), Ok(val_num)) = (var_value.parse::<i64>(), value_part.parse::<i64>()) {
+            if let (Ok(var_num), Ok(val_num)) =
+                (var_value.parse::<i64>(), value_part.parse::<i64>())
+            {
                 var_num < val_num
             } else {
                 false
             }
         }
         ">=" => {
-            if let (Ok(var_num), Ok(val_num)) = (var_value.parse::<i64>(), value_part.parse::<i64>()) {
+            if let (Ok(var_num), Ok(val_num)) =
+                (var_value.parse::<i64>(), value_part.parse::<i64>())
+            {
                 var_num >= val_num
             } else {
                 false
             }
         }
         "<=" => {
-            if let (Ok(var_num), Ok(val_num)) = (var_value.parse::<i64>(), value_part.parse::<i64>()) {
+            if let (Ok(var_num), Ok(val_num)) =
+                (var_value.parse::<i64>(), value_part.parse::<i64>())
+            {
                 var_num <= val_num
             } else {
                 false
@@ -365,7 +373,10 @@ mod tests {
 
         // Remove the breakpoint
         let removed = manager.remove_breakpoint(15);
-        assert!(removed, "Should return true when removing existing breakpoint");
+        assert!(
+            removed,
+            "Should return true when removing existing breakpoint"
+        );
 
         // Verify breakpoint is removed
         assert!(
@@ -419,7 +430,11 @@ mod tests {
 
         // Get all breakpoints (should be sorted)
         let breakpoints = manager.get_breakpoints();
-        assert_eq!(breakpoints, vec![1, 5, 10, 15], "Breakpoints should be sorted");
+        assert_eq!(
+            breakpoints,
+            vec![1, 5, 10, 15],
+            "Breakpoints should be sorted"
+        );
     }
 
     /// Test: REPL-007-001-006 - Clear all breakpoints
@@ -453,10 +468,7 @@ mod tests {
         let bp = Breakpoint::with_condition(5, "$count > 10".to_string());
 
         assert!(bp.is_conditional(), "Should be a conditional breakpoint");
-        assert!(
-            bp.should_break(&vars),
-            "Should break when count (15) > 10"
-        );
+        assert!(bp.should_break(&vars), "Should break when count (15) > 10");
     }
 
     /// Test: REPL-007-002-002 - Conditional breakpoint evaluates to false
@@ -468,7 +480,10 @@ mod tests {
         // Create conditional breakpoint: break if $count > 10
         let bp = Breakpoint::with_condition(5, "$count > 10".to_string());
 
-        assert!(!bp.should_break(&vars), "Should not break when count (5) <= 10");
+        assert!(
+            !bp.should_break(&vars),
+            "Should not break when count (5) <= 10"
+        );
     }
 
     /// Test: REPL-007-002-003 - Conditional breakpoint with invalid syntax
@@ -499,7 +514,10 @@ mod tests {
 
         // Test == operator
         let bp_eq = Breakpoint::with_condition(5, "$status == running".to_string());
-        assert!(bp_eq.should_break(&vars), "Should break when status == running");
+        assert!(
+            bp_eq.should_break(&vars),
+            "Should break when status == running"
+        );
 
         // Test != operator
         let bp_ne = Breakpoint::with_condition(5, "$status != stopped".to_string());
@@ -524,7 +542,10 @@ mod tests {
 
         // Test < operator (true)
         let bp_lt = Breakpoint::with_condition(5, "$count < 10".to_string());
-        assert!(bp_lt.should_break(&vars), "Should break when count (5) < 10");
+        assert!(
+            bp_lt.should_break(&vars),
+            "Should break when count (5) < 10"
+        );
 
         // Test < operator (false)
         let bp_lt_false = Breakpoint::with_condition(5, "$count < 3".to_string());
@@ -559,8 +580,14 @@ mod tests {
         let mut bp = Breakpoint::with_hit_count(5, 3); // Break after 3 hits
 
         // First two hits should not trigger
-        assert!(!bp.should_break_with_hit(&vars), "Should not break on hit 1");
-        assert!(!bp.should_break_with_hit(&vars), "Should not break on hit 2");
+        assert!(
+            !bp.should_break_with_hit(&vars),
+            "Should not break on hit 1"
+        );
+        assert!(
+            !bp.should_break_with_hit(&vars),
+            "Should not break on hit 2"
+        );
 
         // Third hit should trigger
         assert!(bp.should_break_with_hit(&vars), "Should break on hit 3");
@@ -595,15 +622,24 @@ mod tests {
         let mut bp = Breakpoint::with_hit_count(5, 2); // Break after 2 hits
 
         // Hit twice
-        assert!(!bp.should_break_with_hit(&vars), "Should not break on hit 1");
+        assert!(
+            !bp.should_break_with_hit(&vars),
+            "Should not break on hit 1"
+        );
         assert!(bp.should_break_with_hit(&vars), "Should break on hit 2");
 
         // Reset hit count
         bp.reset_hit_count();
 
         // Should not trigger on first hit after reset
-        assert!(!bp.should_break_with_hit(&vars), "Should not break after reset");
-        assert!(bp.should_break_with_hit(&vars), "Should break on hit 2 after reset");
+        assert!(
+            !bp.should_break_with_hit(&vars),
+            "Should not break after reset"
+        );
+        assert!(
+            bp.should_break_with_hit(&vars),
+            "Should break on hit 2 after reset"
+        );
     }
 
     /// Test: REPL-007-003-004 - Hit-count with condition (both must be true)
@@ -636,13 +672,25 @@ mod tests {
         assert_eq!(bp.get_hit_count(), 0, "Initial hit count should be 0");
 
         bp.should_break_with_hit(&vars);
-        assert_eq!(bp.get_hit_count(), 1, "Hit count should be 1 after first hit");
+        assert_eq!(
+            bp.get_hit_count(),
+            1,
+            "Hit count should be 1 after first hit"
+        );
 
         bp.should_break_with_hit(&vars);
-        assert_eq!(bp.get_hit_count(), 2, "Hit count should be 2 after second hit");
+        assert_eq!(
+            bp.get_hit_count(),
+            2,
+            "Hit count should be 2 after second hit"
+        );
 
         bp.should_break_with_hit(&vars);
-        assert_eq!(bp.get_hit_count(), 3, "Hit count should be 3 after third hit");
+        assert_eq!(
+            bp.get_hit_count(),
+            3,
+            "Hit count should be 3 after third hit"
+        );
     }
 
     /// Test: REPL-007-003-006 - Disabled hit-count breakpoint never triggers
@@ -653,9 +701,18 @@ mod tests {
         bp.disable();
 
         // Even after reaching threshold, disabled breakpoint should not trigger
-        assert!(!bp.should_break_with_hit(&vars), "Should not break when disabled");
-        assert!(!bp.should_break_with_hit(&vars), "Should not break when disabled");
-        assert!(!bp.should_break_with_hit(&vars), "Should not break when disabled");
+        assert!(
+            !bp.should_break_with_hit(&vars),
+            "Should not break when disabled"
+        );
+        assert!(
+            !bp.should_break_with_hit(&vars),
+            "Should not break when disabled"
+        );
+        assert!(
+            !bp.should_break_with_hit(&vars),
+            "Should not break when disabled"
+        );
     }
 }
 

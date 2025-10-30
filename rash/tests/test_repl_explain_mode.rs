@@ -74,11 +74,7 @@ fn test_REPL_005_002_explain_module_exported() {
 fn test_REPL_005_002_explanation_struct_public() {
     use bashrs::repl::Explanation;
 
-    let exp = Explanation::new(
-        "Test",
-        "Description",
-        "Details"
-    ).with_example("$ example");
+    let exp = Explanation::new("Test", "Description", "Details").with_example("$ example");
 
     let formatted = exp.format();
     assert!(formatted.contains("📖 Test"));
@@ -173,8 +169,14 @@ fn test_REPL_005_002_property_recognized_constructs() {
 
         let explanation = result.unwrap();
         assert!(!explanation.title.is_empty(), "Title should not be empty");
-        assert!(!explanation.description.is_empty(), "Description should not be empty");
-        assert!(!explanation.details.is_empty(), "Details should not be empty");
+        assert!(
+            !explanation.description.is_empty(),
+            "Description should not be empty"
+        );
+        assert!(
+            !explanation.details.is_empty(),
+            "Details should not be empty"
+        );
     }
 }
 
@@ -206,11 +208,7 @@ fn test_REPL_005_002_property_unknown_constructs() {
 fn test_REPL_005_002_property_format_consistency() {
     use bashrs::repl::explain_bash;
 
-    let constructs = vec![
-        "${var:-default}",
-        "for i in list",
-        "echo > file",
-    ];
+    let constructs = vec!["${var:-default}", "for i in list", "echo > file"];
 
     for construct in constructs {
         let result = explain_bash(construct);
@@ -220,12 +218,22 @@ fn test_REPL_005_002_property_format_consistency() {
         let formatted = explanation.format();
 
         // All formatted explanations should start with 📖
-        assert!(formatted.starts_with("📖"), "Should start with 📖: {}", construct);
+        assert!(
+            formatted.starts_with("📖"),
+            "Should start with 📖: {}",
+            construct
+        );
 
         // Should contain the title
-        assert!(formatted.contains(&explanation.title), "Should contain title");
+        assert!(
+            formatted.contains(&explanation.title),
+            "Should contain title"
+        );
 
         // Should contain the description
-        assert!(formatted.contains(&explanation.description), "Should contain description");
+        assert!(
+            formatted.contains(&explanation.description),
+            "Should contain description"
+        );
     }
 }

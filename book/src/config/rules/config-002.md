@@ -302,7 +302,6 @@ CONFIG-002 intelligently skips:
 ## Related Rules
 
 - [CONFIG-001](./config-001.md): PATH deduplication
-- [CONFIG-007](./config-007.md): Validate source paths (security)
 - [SEC-003](../../linting/security.md): Command injection prevention
 
 ## Performance

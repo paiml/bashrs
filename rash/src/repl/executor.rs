@@ -162,9 +162,7 @@ mod tests {
 
         assert!(!result.success);
         assert!(!result.stderr.is_empty());
-        assert!(
-            result.stderr.contains("not found") || result.stderr.contains("command not found")
-        );
+        assert!(result.stderr.contains("not found") || result.stderr.contains("command not found"));
     }
 
     #[test]

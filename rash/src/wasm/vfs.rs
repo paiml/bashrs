@@ -12,27 +12,22 @@
 //! assert_eq!(vfs.getcwd().to_str().unwrap(), "/tmp");
 //! ```
 
+use anyhow::{anyhow, Result};
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
-use anyhow::{Result, anyhow};
 
 /// Virtual filesystem node
 #[derive(Debug, Clone)]
 pub enum VfsNode {
     /// Regular file with content
-    File {
-        content: Vec<u8>,
-        permissions: u32,
-    },
+    File { content: Vec<u8>, permissions: u32 },
     /// Directory with children
     Directory {
         children: HashMap<String, VfsNode>,
         permissions: u32,
     },
     /// Symbolic link
-    Symlink {
-        target: PathBuf,
-    },
+    Symlink { target: PathBuf },
 }
 
 /// In-memory virtual filesystem
@@ -108,7 +103,7 @@ impl VirtualFilesystem {
         for component in base.components().chain(path.components()) {
             match component {
                 std::path::Component::RootDir => resolved.push("/"),
-                std::path::Component::CurDir => {}, // Skip "."
+                std::path::Component::CurDir => {} // Skip "."
                 std::path::Component::ParentDir => {
                     resolved.pop(); // Handle ".."
                 }
@@ -193,15 +188,18 @@ impl VirtualFilesystem {
         }
 
         // Get parent directory
-        let parent = resolved.parent()
+        let parent = resolved
+            .parent()
             .ok_or_else(|| anyhow!("Cannot get parent directory"))?;
-        let dir_name = resolved.file_name()
+        let dir_name = resolved
+            .file_name()
             .ok_or_else(|| anyhow!("Cannot get directory name"))?
             .to_str()
             .ok_or_else(|| anyhow!("Invalid UTF-8 in path"))?;
 
         // Get parent node
-        let parent_node = self.get_node_mut(parent)
+        let parent_node = self
+            .get_node_mut(parent)
             .ok_or_else(|| anyhow!("Parent directory does not exist: {}", parent.display()))?;
 
         match parent_node {

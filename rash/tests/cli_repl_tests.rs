@@ -44,7 +44,7 @@ fn test_REPL_003_002_repl_handles_empty_input() {
 fn test_REPL_003_002_repl_handles_eof() {
     // EOF is simulated by closing stdin (no input)
     bashrs_repl()
-        .write_stdin("")  // Empty input simulates EOF
+        .write_stdin("") // Empty input simulates EOF
         .assert()
         .success()
         .stdout(predicate::str::contains("bashrs REPL"))
@@ -131,10 +131,7 @@ fn test_REPL_003_003_history_persistence() {
     let _ = fs::remove_file(&history_path);
 
     // Session 1: Add commands to history
-    bashrs_repl()
-        .write_stdin("help\nexit\n")
-        .assert()
-        .success();
+    bashrs_repl().write_stdin("help\nexit\n").assert().success();
 
     // Verify history file was created
     assert!(history_path.exists(), "History file should be created");
@@ -177,7 +174,10 @@ fn test_REPL_003_003_multiple_commands() {
     if history_path.exists() {
         // Read history file and verify it has content
         let history_content = fs::read_to_string(&history_path).unwrap();
-        assert!(!history_content.is_empty(), "History should contain commands");
+        assert!(
+            !history_content.is_empty(),
+            "History should contain commands"
+        );
     }
 
     // Clean up

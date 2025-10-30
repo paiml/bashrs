@@ -18,8 +18,8 @@
 
 use crate::wasm::io::IoStreams;
 use crate::wasm::vfs::VirtualFilesystem;
-use anyhow::{Result, anyhow};
-use std::io::{Write, BufRead, BufReader};
+use anyhow::{anyhow, Result};
+use std::io::{BufRead, BufReader, Write};
 
 /// Bash built-in commands
 pub struct Builtins;
@@ -43,11 +43,7 @@ impl Builtins {
     ///
     /// Changes current working directory.
     pub fn cd(args: &[String], vfs: &mut VirtualFilesystem) -> Result<i32> {
-        let path = if args.is_empty() {
-            "/home"
-        } else {
-            &args[0]
-        };
+        let path = if args.is_empty() { "/home" } else { &args[0] };
 
         vfs.chdir(path)?;
         Ok(0)
@@ -112,8 +108,8 @@ impl Builtins {
         // Helper function to unescape string (handle \n, \t, etc.)
         let unescape = |s: &str| -> String {
             s.replace("\\n", "\n")
-             .replace("\\t", "\t")
-             .replace("\\r", "\r")
+                .replace("\\t", "\t")
+                .replace("\\r", "\r")
         };
 
         let from_unescaped = unescape(from);
@@ -155,7 +151,10 @@ impl Builtins {
 
     /// Check if a command is a builtin
     pub fn is_builtin(name: &str) -> bool {
-        matches!(name, "echo" | "cd" | "pwd" | "wc" | "tr" | ":" | "true" | "false")
+        matches!(
+            name,
+            "echo" | "cd" | "pwd" | "wc" | "tr" | ":" | "true" | "false"
+        )
     }
 
     /// Execute a builtin command
@@ -171,8 +170,8 @@ impl Builtins {
             "pwd" => Self::pwd(vfs, io),
             "wc" => Self::wc(args, io),
             "tr" => Self::tr(args, io),
-            ":" => Ok(0), // No-op command, always succeeds
-            "true" => Ok(0), // Always succeeds with exit code 0
+            ":" => Ok(0),     // No-op command, always succeeds
+            "true" => Ok(0),  // Always succeeds with exit code 0
             "false" => Ok(1), // Always fails with exit code 1
             _ => Err(anyhow!("Unknown builtin: {}", name)),
         }
@@ -202,11 +201,8 @@ mod tests {
         let mut io = IoStreams::new_capture();
 
         // ACT
-        let exit_code = Builtins::echo(
-            &["hello".to_string(), "world".to_string()],
-            &mut io,
-        )
-        .unwrap();
+        let exit_code =
+            Builtins::echo(&["hello".to_string(), "world".to_string()], &mut io).unwrap();
 
         // ASSERT
         assert_eq!(exit_code, 0);

@@ -385,10 +385,7 @@ impl DebugSession {
             return format!("  {}\n(no changes)", comparison.original);
         }
 
-        format!(
-            "- {}\n+ {}",
-            comparison.original, comparison.purified
-        )
+        format!("- {}\n+ {}", comparison.original, comparison.purified)
     }
 }
 
@@ -427,10 +424,16 @@ mod tests {
         // Step once
         let output = session.step();
         assert!(output.is_some(), "Should execute the line");
-        assert!(output.unwrap().contains("echo hello"), "Should show executed line");
+        assert!(
+            output.unwrap().contains("echo hello"),
+            "Should show executed line"
+        );
 
         // Should be finished after one line
-        assert!(session.is_finished(), "Should be finished after single line");
+        assert!(
+            session.is_finished(),
+            "Should be finished after single line"
+        );
 
         // Stepping again should return None
         assert!(session.step().is_none(), "Should return None when finished");
@@ -477,7 +480,10 @@ mod tests {
         assert!(session.set_breakpoint(2), "Should set breakpoint at line 2");
 
         // Step to line 1 (no breakpoint)
-        assert!(!session.at_breakpoint(), "Line 1 should not have breakpoint");
+        assert!(
+            !session.at_breakpoint(),
+            "Line 1 should not have breakpoint"
+        );
         session.step();
 
         // Now at line 2 (has breakpoint)
@@ -494,7 +500,10 @@ mod tests {
         assert!(!session.set_breakpoint(0), "Should reject line 0");
 
         // Try to set breakpoint beyond script length
-        assert!(!session.set_breakpoint(999), "Should reject line beyond script");
+        assert!(
+            !session.set_breakpoint(999),
+            "Should reject line beyond script"
+        );
     }
 
     // ===== REPL-008-003: CONTINUE EXECUTION TESTS =====
@@ -606,7 +615,10 @@ mod tests {
         session.set_breakpoint(2);
 
         // First continue - stop at breakpoint
-        assert_eq!(session.continue_execution(), ContinueResult::BreakpointHit(2));
+        assert_eq!(
+            session.continue_execution(),
+            ContinueResult::BreakpointHit(2)
+        );
 
         // Step past breakpoint
         session.step();
@@ -848,7 +860,11 @@ mod tests {
 
         // Get full stack
         let stack = session.call_stack();
-        assert_eq!(stack.len(), 4, "Should have <main> + main + func_a + func_b");
+        assert_eq!(
+            stack.len(),
+            4,
+            "Should have <main> + main + func_a + func_b"
+        );
 
         // Verify stack order (most recent last)
         assert_eq!(stack[1].name, "main");
@@ -887,7 +903,7 @@ mod tests {
 
         let cmp = comparison.unwrap();
         assert_eq!(cmp.original, "mkdir /tmp/test");
-        assert_eq!(cmp.purified, "mkdir -p /tmp/test");  // Purifier adds -p flag
+        assert_eq!(cmp.purified, "mkdir -p /tmp/test"); // Purifier adds -p flag
         assert!(cmp.differs, "Original and purified should differ");
     }
 
@@ -909,7 +925,10 @@ mod tests {
         // Get diff highlighting
         let diff = session.format_diff_highlighting(&cmp);
         assert!(diff.contains("$HOME"), "Diff should show variable");
-        assert!(diff.contains("\"$HOME\""), "Diff should show quoted version");
+        assert!(
+            diff.contains("\"$HOME\""),
+            "Diff should show quoted version"
+        );
     }
 }
 

@@ -25,8 +25,6 @@ use crate::linter::{Diagnostic, LintResult, Severity, Span};
 // We'll check for the shell option usage pattern instead.
 
 pub fn check(source: &str) -> LintResult {
-    
-
     // This rule is tricky - -e is actually VALID in [ ] for file tests
     // The issue is when people confuse shell -e option with test -e flag
     // For now, we'll skip implementation as the rule description is unclear

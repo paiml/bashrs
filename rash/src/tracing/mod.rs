@@ -14,12 +14,12 @@
 // - Complexity: <10 per function
 // - Performance: <10% overhead
 
-pub mod events;
 pub mod buffer;
-pub mod significance;
+pub mod events;
 pub mod manager;
+pub mod significance;
 
-pub use events::{TraceEvent, ParseEvent, PurifyEvent, LintEvent, GenerateEvent, Span};
 pub use buffer::CircularTraceBuffer;
-pub use significance::TraceSignificance;
+pub use events::{GenerateEvent, LintEvent, ParseEvent, PurifyEvent, Span, TraceEvent};
 pub use manager::{TraceManager, TraceStats};
+pub use significance::TraceSignificance;

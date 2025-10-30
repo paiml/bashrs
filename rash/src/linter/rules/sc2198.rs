@@ -98,12 +98,8 @@ pub fn check(source: &str) -> LintResult {
                     let start_col = line.find(bracket_text).unwrap_or(0) + 1;
                     let end_col = start_col + bracket_text.len();
 
-                    let diagnostic = create_array_in_test_diagnostic(
-                        line_num,
-                        start_col,
-                        end_col,
-                        var_name,
-                    );
+                    let diagnostic =
+                        create_array_in_test_diagnostic(line_num, start_col, end_col, var_name);
                     result.add(diagnostic);
                     break; // Only warn once per [ ] block
                 }

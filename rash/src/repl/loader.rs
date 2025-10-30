@@ -176,11 +176,7 @@ mod tests {
     #[test]
     fn test_REPL_009_001_load_script_with_function() {
         let mut temp_file = NamedTempFile::new().unwrap();
-        writeln!(
-            temp_file,
-            "#!/bin/bash\ngreet() {{\n  echo \"Hello\"\n}}"
-        )
-        .unwrap();
+        writeln!(temp_file, "#!/bin/bash\ngreet() {{\n  echo \"Hello\"\n}}").unwrap();
         temp_file.flush().unwrap();
 
         let result = load_script(temp_file.path());

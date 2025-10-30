@@ -52,7 +52,8 @@ impl CoverageReport {
 
     /// Get uncovered line numbers
     pub fn uncovered_lines(&self) -> Vec<usize> {
-        let mut uncovered: Vec<usize> = self.line_coverage
+        let mut uncovered: Vec<usize> = self
+            .line_coverage
             .iter()
             .filter(|(_, &covered)| !covered)
             .map(|(line, _)| *line)
@@ -153,8 +154,12 @@ fn analyze_script(source: &str, report: &mut CoverageReport) {
             let func_name = if let Some(idx) = trimmed.find("() {") {
                 trimmed[..idx].trim().to_string()
             } else if trimmed.starts_with("function ") {
-                trimmed.strip_prefix("function ").unwrap()
-                    .split_whitespace().next().unwrap_or("")
+                trimmed
+                    .strip_prefix("function ")
+                    .unwrap()
+                    .split_whitespace()
+                    .next()
+                    .unwrap_or("")
                     .to_string()
             } else {
                 "unknown".to_string()
@@ -198,8 +203,12 @@ fn mark_covered_functions_lines(
             let func_name = if let Some(idx) = trimmed.find("() {") {
                 trimmed[..idx].trim().to_string()
             } else if trimmed.starts_with("function ") {
-                trimmed.strip_prefix("function ").unwrap()
-                    .split_whitespace().next().unwrap_or("")
+                trimmed
+                    .strip_prefix("function ")
+                    .unwrap()
+                    .split_whitespace()
+                    .next()
+                    .unwrap_or("")
                     .to_string()
             } else {
                 "unknown".to_string()

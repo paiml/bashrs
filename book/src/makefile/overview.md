@@ -307,7 +307,6 @@ fn test_MAKE001_wildcard_basic() {
 
 - [Makefile Security](./security.md) - Detect injection vulnerabilities
 - [Makefile Best Practices](./best-practices.md) - Recommended patterns
-- [Example: Purifying a Real Makefile](../examples/makefile-purification.md)
 
 ## Resources
 

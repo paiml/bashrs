@@ -60,7 +60,10 @@ fn test_repl_004_001_vars_shows_variables() {
         .write_stdin(":vars\nquit\n")
         .assert()
         .success()
-        .stdout(predicate::str::contains("Variables").or(predicate::str::contains("No session variables")));
+        .stdout(
+            predicate::str::contains("Variables")
+                .or(predicate::str::contains("No session variables")),
+        );
 }
 
 /// Test: REPL-004-001-005 - :vars shows empty when no variables set

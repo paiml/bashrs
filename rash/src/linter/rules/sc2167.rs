@@ -16,7 +16,6 @@
 use crate::linter::{Diagnostic, LintResult, Severity, Span};
 
 pub fn check(_source: &str) -> LintResult {
-    
     // This is a context-sensitive rule requiring deep analysis
     // Simplified implementation - would need full AST
     LintResult::new()

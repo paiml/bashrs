@@ -10,8 +10,11 @@
 // - Complexity: <10 per function
 
 use crate::repl::{
-    completion::ReplCompleter, executor::execute_command, explain_bash, format_lint_results,
-    format_parse_error, lint_bash,
+    completion::ReplCompleter,
+    executor::execute_command,
+    explain_bash, format_lint_results, format_parse_error,
+    help::show_help,
+    lint_bash,
     loader::{format_functions, load_script, LoadResult},
     multiline::is_incomplete,
     parse_bash, purify_bash,
@@ -19,6 +22,7 @@ use crate::repl::{
     ReplConfig, ReplMode, ReplState,
 };
 use anyhow::Result;
+use rustyline::config::Config;
 use rustyline::Editor;
 use std::path::PathBuf;
 
@@ -48,9 +52,18 @@ pub fn run_repl(config: ReplConfig) -> Result<()> {
     // Validate configuration first
     config.validate().map_err(|e| anyhow::anyhow!(e))?;
 
+    // Configure rustyline editor with history settings
+    // This configuration enables Ctrl-R reverse search automatically!
+    let rustyline_config = Config::builder()
+        .history_ignore_dups(config.history_ignore_dups)?
+        .history_ignore_space(config.history_ignore_space)
+        .max_history_size(config.max_history)?
+        .auto_add_history(true)
+        .build();
+
     // Initialize rustyline editor with tab completion
     let completer = ReplCompleter::new();
-    let mut editor = Editor::new()?;
+    let mut editor = Editor::with_config(rustyline_config)?;
     editor.set_helper(Some(completer));
 
     // Initialize REPL state
@@ -65,6 +78,7 @@ pub fn run_repl(config: ReplConfig) -> Result<()> {
     // Print welcome banner
     println!("bashrs REPL v{}", env!("CARGO_PKG_VERSION"));
     println!("Type 'quit' or 'exit' to exit, 'help' for commands");
+    println!("Tip: Use Up/Down arrows for history, Ctrl-R for reverse search");
     println!(
         "Current mode: {} - {}",
         state.mode(),
@@ -169,8 +183,16 @@ pub fn run_repl(config: ReplConfig) -> Result<()> {
                 } else if line == "quit" || line == "exit" {
                     println!("Goodbye!");
                     break;
-                } else if line == "help" {
-                    print_help();
+                } else if line == "help" || line.starts_with("help ") || line.starts_with(":help") {
+                    // Handle help command with optional topic
+                    let topic = if line.contains(' ') {
+                        // Extract topic after "help " or ":help "
+                        let parts: Vec<&str> = line.split_whitespace().collect();
+                        parts.get(1).copied()
+                    } else {
+                        None
+                    };
+                    print!("{}", show_help(topic));
                 } else {
                     // Process command based on current mode
                     handle_command_by_mode(line, &state);
@@ -476,7 +498,11 @@ fn handle_source_command(line: &str, state: &mut ReplState) {
             }
 
             // Print sourced message
-            println!("✓ Sourced: {} ({} functions)", script.path.display(), script.functions.len());
+            println!(
+                "✓ Sourced: {} ({} functions)",
+                script.path.display(),
+                script.functions.len()
+            );
 
             // Note: Actual execution of script would happen here in a real shell
             // For now, we just load the functions into the session
@@ -511,7 +537,11 @@ fn handle_reload_command(state: &mut ReplState) {
                 }
 
                 // Print success message
-                println!("✓ Reloaded: {} ({} functions)", script.path.display(), script.functions.len());
+                println!(
+                    "✓ Reloaded: {} ({} functions)",
+                    script.path.display(),
+                    script.functions.len()
+                );
             }
             LoadResult::FileError(_) | LoadResult::ParseError(_) => {
                 println!("{}", result.format());
@@ -520,33 +550,6 @@ fn handle_reload_command(state: &mut ReplState) {
     } else {
         println!("No script to reload. Use :load <file> first.");
     }
-}
-
-/// Print help message
-fn print_help() {
-    println!("bashrs REPL Commands:");
-    println!("  help             - Show this help message");
-    println!("  quit             - Exit the REPL");
-    println!("  exit             - Exit the REPL");
-    println!("  :mode            - Show current mode and available modes");
-    println!("  :mode <name>     - Switch to a different mode");
-    println!("  :parse <code>    - Parse bash code and show AST");
-    println!("  :purify <code>   - Purify bash code (make idempotent/deterministic)");
-    println!("  :lint <code>     - Lint bash code and show diagnostics");
-    println!("  :load <file>     - Load a bash script and extract functions");
-    println!("  :source <file>   - Source a bash script (load and add to session)");
-    println!("  :functions       - List all loaded functions");
-    println!("  :reload          - Reload the last loaded script");
-    println!("  :history         - Show command history");
-    println!("  :vars            - Show session variables");
-    println!("  :clear           - Clear the screen");
-    println!();
-    println!("Available modes:");
-    println!("  normal  - Execute bash commands directly");
-    println!("  purify  - Show purified version of bash commands");
-    println!("  lint    - Show linting results");
-    println!("  debug   - Step-by-step execution");
-    println!("  explain - Explain bash constructs");
 }
 
 /// Get history file path

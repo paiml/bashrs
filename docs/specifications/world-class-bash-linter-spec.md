@@ -93,7 +93,6 @@ DOI: [10.1109/MS.2008.130](https://doi.org/10.1109/MS.2008.130)
 **Bessey, A., Block, K., Chelf, B., Chou, A., Fulton, B., Hallem, S., ... & Engler, D. (2010)**
 *A Few Billion Lines of Code Later: Using Static Analysis to Find Bugs in the Real World*
 Communications of the ACM, 53(2), 66-75.
-DOI: [10.1145/1646353.1646374](https://doi.org/10.1145/1646353.1646374)
 
 **Key Finding**: Static analysis at scale (Coverity) found over 11,000 defects across millions of lines of code. **False positive rate <10%** with proper rule calibration.
 
@@ -130,7 +129,6 @@ DOI: [10.1016/bs.adcom.2018.03.015](https://doi.org/10.1016/bs.adcom.2018.03.015
 **Claessen, K., & Hughes, J. (2000)**
 *QuickCheck: A Lightweight Tool for Random Testing of Haskell Programs*
 ACM SIGPLAN Notices, 35(9), 268-279.
-DOI: [10.1145/357766.351266](https://doi.org/10.1145/357766.351266)
 
 **Key Finding**: Property-based testing finds **60% more defects** than example-based testing with 10× less test code.
 
@@ -154,7 +152,6 @@ DOI: [10.21105/joss.01891](https://doi.org/10.21105/joss.01891)
 **Inozemtseva, L., & Holmes, R. (2014)**
 *Coverage is Not Strongly Correlated with Test Suite Effectiveness*
 Proceedings of the 36th International Conference on Software Engineering, 435-445.
-DOI: [10.1145/2568225.2568271](https://doi.org/10.1145/2568225.2568271)
 
 **Key Finding**: **Coverage alone is insufficient**. High coverage (>90%) does not guarantee high defect detection. **Mutation score** is a better predictor.
 
@@ -165,7 +162,6 @@ DOI: [10.1145/2568225.2568271](https://doi.org/10.1145/2568225.2568271)
 **Gopinath, R., Jensen, C., & Groce, A. (2014)**
 *Code Coverage for Suite Evaluation by Developers*
 Proceedings of the 36th International Conference on Software Engineering, 72-82.
-DOI: [10.1145/2568225.2568278](https://doi.org/10.1145/2568225.2568278)
 
 **Key Finding**: **Branch coverage** is 2× more effective than line coverage for finding defects. **Condition coverage** (MC/DC) is 3× more effective.
 
@@ -189,7 +185,6 @@ DOI: [10.1109/32.295895](https://doi.org/10.1109/32.295895)
 **Nagappan, N., Ball, T., & Zeller, A. (2006)**
 *Mining Metrics to Predict Component Failures*
 Proceedings of the 28th International Conference on Software Engineering, 452-461.
-DOI: [10.1145/1134285.1134349](https://doi.org/10.1145/1134285.1134349)
 
 **Key Finding**: **Relative code churn** (lines changed / total lines) predicts 85% of post-release defects. **Code complexity + churn** → 92% prediction accuracy.
 
@@ -202,7 +197,6 @@ DOI: [10.1145/1134285.1134349](https://doi.org/10.1145/1134285.1134349)
 **Fraser, G., & Arcuri, A. (2011)**
 *EvoSuite: Automatic Test Suite Generation for Object-Oriented Software*
 Proceedings of the 19th ACM SIGSOFT Symposium on Foundations of Software Engineering, 416-419.
-DOI: [10.1145/2025113.2025179](https://doi.org/10.1145/2025113.2025179)
 
 **Key Finding**: Automated test generation achieves **80% branch coverage** with minimal human intervention. Search-based algorithms (genetic algorithms) outperform random generation by 40%.
 
@@ -226,7 +220,6 @@ DOI: [10.1109/ICSE.2007.37](https://doi.org/10.1109/ICSE.2007.37)
 **Hower, D. R., & Hill, M. D. (2008)**
 *Rerun: Exploiting Episodes for Lightweight Memory Race Recording*
 ACM SIGARCH Computer Architecture News, 36(3), 265-276.
-DOI: [10.1145/1394608.1382128](https://doi.org/10.1145/1394608.1382128)
 
 **Key Finding**: Non-deterministic behavior causes **40% of production failures** in distributed systems. Replay debugging reduces MTTR by 60%.
 

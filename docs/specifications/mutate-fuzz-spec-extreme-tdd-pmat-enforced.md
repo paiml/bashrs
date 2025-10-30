@@ -1442,7 +1442,7 @@ $ bashrs mutate script.sh
 
 ## Advanced Usage
 
-See [MUTATION_TESTING.md](./MUTATION_TESTING.md) for:
+For advanced mutation testing:
 - Custom operators
 - Performance tuning
 - Integration with CI/CD

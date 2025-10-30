@@ -33,44 +33,58 @@ pub struct ReplConfig {
 
     /// Enable sandboxed execution (default: false)
     pub sandboxed: bool,
+
+    /// Maximum history entries (default: 1000)
+    pub max_history: usize,
+
+    /// Ignore duplicate commands in history (default: true)
+    pub history_ignore_dups: bool,
+
+    /// Ignore commands starting with space (default: true)
+    pub history_ignore_space: bool,
 }
 
 impl Default for ReplConfig {
     fn default() -> Self {
         Self {
-            max_memory: 100_000_000,  // 100MB
+            max_memory: 100_000_000, // 100MB
             timeout: Duration::from_secs(30),
             max_depth: 100,
             debug: false,
             sandboxed: false,
+            max_history: 1000,
+            history_ignore_dups: true,
+            history_ignore_space: true,
         }
     }
 }
 
 impl ReplConfig {
     /// Create a new ReplConfig with custom settings
-    pub fn new(
-        max_memory: usize,
-        timeout: Duration,
-        max_depth: usize,
-    ) -> Self {
+    pub fn new(max_memory: usize, timeout: Duration, max_depth: usize) -> Self {
         Self {
             max_memory,
             timeout,
             max_depth,
             debug: false,
             sandboxed: false,
+            max_history: 1000,
+            history_ignore_dups: true,
+            history_ignore_space: true,
         }
     }
 
     /// Create a sandboxed configuration (for untrusted input)
     pub fn sandboxed() -> Self {
         Self {
-            max_memory: 10_000_000,  // 10MB (more restrictive)
-            timeout: Duration::from_secs(5),  // 5s (shorter timeout)
-            max_depth: 10,  // Shallow recursion
+            max_memory: 10_000_000,          // 10MB (more restrictive)
+            timeout: Duration::from_secs(5), // 5s (shorter timeout)
+            max_depth: 10,                   // Shallow recursion
             debug: false,
             sandboxed: true,
+            max_history: 100, // Limited history in sandboxed mode
+            history_ignore_dups: true,
+            history_ignore_space: true,
         }
     }
 
@@ -140,7 +154,7 @@ mod tests {
     #[test]
     fn test_repl_003_001_config_custom_limits() {
         let config = ReplConfig::new(
-            50_000_000,  // 50MB
+            50_000_000, // 50MB
             Duration::from_secs(10),
             50,
         );
@@ -154,9 +168,9 @@ mod tests {
     fn test_repl_003_001_config_sandboxed() {
         let config = ReplConfig::sandboxed();
         assert!(config.sandboxed);
-        assert_eq!(config.max_memory, 10_000_000);  // 10MB (less than default)
-        assert_eq!(config.timeout.as_secs(), 5);  // 5s (less than default)
-        assert_eq!(config.max_depth, 10);  // Shallow (less than default)
+        assert_eq!(config.max_memory, 10_000_000); // 10MB (less than default)
+        assert_eq!(config.timeout.as_secs(), 5); // 5s (less than default)
+        assert_eq!(config.max_depth, 10); // Shallow (less than default)
     }
 
     /// Test: REPL-003-001-004 - Builder pattern with_debug()

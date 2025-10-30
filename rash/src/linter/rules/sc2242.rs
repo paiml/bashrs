@@ -14,9 +14,7 @@ fn is_case_start(line: &str) -> bool {
 /// Check if line starts a loop
 fn is_loop_start(line: &str) -> bool {
     let trimmed = line.trim_start();
-    trimmed.starts_with("for ")
-        || trimmed.starts_with("while ")
-        || trimmed.starts_with("until ")
+    trimmed.starts_with("for ") || trimmed.starts_with("while ") || trimmed.starts_with("until ")
 }
 
 /// Check if line starts a function

@@ -45,15 +45,19 @@ pub fn parse_bash(input: &str) -> Result<BashAst, ParseError> {
 /// ```
 pub fn format_parse_error(error: &ParseError) -> String {
     match error {
-        ParseError::UnexpectedToken { expected, found, line } => {
+        ParseError::UnexpectedToken {
+            expected,
+            found,
+            line,
+        } => {
             format!(
                 "Syntax error at line {}: expected {}, but found {}",
                 line, expected, found
             )
         }
-        ParseError::UnexpectedEof => {
-            String::from("Syntax error: unexpected end of file (did you forget to close a quote or bracket?)")
-        }
+        ParseError::UnexpectedEof => String::from(
+            "Syntax error: unexpected end of file (did you forget to close a quote or bracket?)",
+        ),
         ParseError::InvalidSyntax(msg) => {
             // Try to add generic line info even if not provided in the variant
             format!("Syntax error: {}", msg)
@@ -195,10 +199,7 @@ world"#;
             "Error should mention line number: {}",
             formatted
         );
-        assert!(
-            !formatted.is_empty(),
-            "Formatted error should not be empty"
-        );
+        assert!(!formatted.is_empty(), "Formatted error should not be empty");
     }
 
     /// Test: REPL-004-003-002 - Invalid operator error shows context
@@ -212,10 +213,7 @@ world"#;
         let formatted = format_parse_error(&error);
 
         // Should contain helpful error message
-        assert!(
-            !formatted.is_empty(),
-            "Formatted error should not be empty"
-        );
+        assert!(!formatted.is_empty(), "Formatted error should not be empty");
     }
 
     /// Test: REPL-004-003-003 - Error messages are helpful and clear

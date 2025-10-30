@@ -72,7 +72,11 @@ mod tests {
         let original = "echo $RANDOM";
         let result = display_diff(original);
 
-        assert!(result.is_ok(), "Should display diff with highlighting: {:?}", result);
+        assert!(
+            result.is_ok(),
+            "Should display diff with highlighting: {:?}",
+            result
+        );
         let diff = result.unwrap();
 
         // Should have markers or indicators for changes

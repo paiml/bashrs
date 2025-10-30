@@ -150,9 +150,9 @@ fn explain_parameter_expansion(input: &str) -> Option<Explanation> {
             Explanation::new(
                 "Parameter Expansion: ${#parameter}",
                 "String Length",
-                "Expands to the length of the parameter's value in characters."
+                "Expands to the length of the parameter's value in characters.",
             )
-            .with_example("  $ var=\"hello\"\n  $ echo \"${#var}\"  # Outputs: 5")
+            .with_example("  $ var=\"hello\"\n  $ echo \"${#var}\"  # Outputs: 5"),
         );
     }
 
@@ -232,9 +232,9 @@ fn explain_redirection(input: &str) -> Option<Explanation> {
             Explanation::new(
                 "Input Redirection: command < file",
                 "Redirect Standard Input",
-                "Redirects stdin to read from a file instead of keyboard."
+                "Redirects stdin to read from a file instead of keyboard.",
             )
-            .with_example("  while read line; do\n    echo \"Line: $line\"\n  done < file.txt")
+            .with_example("  while read line; do\n    echo \"Line: $line\"\n  done < file.txt"),
         );
     }
 
@@ -400,7 +400,10 @@ mod tests {
         let explanation = result.unwrap();
 
         assert!(explanation.title.contains("|") || explanation.title.contains("Pipe"));
-        assert!(explanation.description.contains("Connect") || explanation.description.contains("Chain"));
+        assert!(
+            explanation.description.contains("Connect")
+                || explanation.description.contains("Chain")
+        );
     }
 
     #[test]
@@ -417,7 +420,10 @@ mod tests {
     fn test_REPL_005_002_explain_unknown_returns_none() {
         let result = explain_bash("unknown_construct_xyz_123");
 
-        assert!(result.is_none(), "Should return None for unknown constructs");
+        assert!(
+            result.is_none(),
+            "Should return None for unknown constructs"
+        );
     }
 
     #[test]
@@ -425,7 +431,7 @@ mod tests {
         let explanation = Explanation::new(
             "Test Construct",
             "Brief description",
-            "Detailed explanation here"
+            "Detailed explanation here",
         )
         .with_example("  $ example command");
 

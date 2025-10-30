@@ -185,10 +185,7 @@ fn extract_function_name(line: &str) -> Result<String, String> {
 
     if let Some(pos) = trimmed.find('(') {
         let before_paren = &trimmed[..pos];
-        let name = before_paren
-            .trim()
-            .trim_start_matches("function")
-            .trim();
+        let name = before_paren.trim().trim_start_matches("function").trim();
 
         if name.is_empty() {
             return Err("Empty function name".to_string());
@@ -204,7 +201,12 @@ fn extract_function_name(line: &str) -> Result<String, String> {
 fn extract_test_comments(
     lines: &[&str],
     start_line: usize,
-) -> (Option<String>, Option<String>, Option<String>, Option<String>) {
+) -> (
+    Option<String>,
+    Option<String>,
+    Option<String>,
+    Option<String>,
+) {
     let mut description = None;
     let mut given = None;
     let mut when = None;
@@ -217,13 +219,33 @@ fn extract_test_comments(
         let line = lines[i].trim();
 
         if line.starts_with("# TEST:") || line.starts_with("#TEST:") {
-            description = Some(line.trim_start_matches("# TEST:").trim_start_matches("#TEST:").trim().to_string());
+            description = Some(
+                line.trim_start_matches("# TEST:")
+                    .trim_start_matches("#TEST:")
+                    .trim()
+                    .to_string(),
+            );
         } else if line.starts_with("# GIVEN:") || line.starts_with("#GIVEN:") {
-            given = Some(line.trim_start_matches("# GIVEN:").trim_start_matches("#GIVEN:").trim().to_string());
+            given = Some(
+                line.trim_start_matches("# GIVEN:")
+                    .trim_start_matches("#GIVEN:")
+                    .trim()
+                    .to_string(),
+            );
         } else if line.starts_with("# WHEN:") || line.starts_with("#WHEN:") {
-            when = Some(line.trim_start_matches("# WHEN:").trim_start_matches("#WHEN:").trim().to_string());
+            when = Some(
+                line.trim_start_matches("# WHEN:")
+                    .trim_start_matches("#WHEN:")
+                    .trim()
+                    .to_string(),
+            );
         } else if line.starts_with("# THEN:") || line.starts_with("#THEN:") {
-            then = Some(line.trim_start_matches("# THEN:").trim_start_matches("#THEN:").trim().to_string());
+            then = Some(
+                line.trim_start_matches("# THEN:")
+                    .trim_start_matches("#THEN:")
+                    .trim()
+                    .to_string(),
+            );
         }
     }
 
@@ -350,7 +372,11 @@ exit $?
         } else if !stdout.is_empty() {
             stdout.to_string()
         } else {
-            format!("Test {} failed with exit code {:?}", test_name, output.status.code())
+            format!(
+                "Test {} failed with exit code {:?}",
+                test_name,
+                output.status.code()
+            )
         };
         Ok(TestResult::Fail(error_msg))
     }
@@ -391,7 +417,10 @@ test_example() {
 "#;
         let tests = discover_tests(source).unwrap();
         assert_eq!(tests.len(), 1);
-        assert_eq!(tests[0].description, Some("example function works correctly".to_string()));
+        assert_eq!(
+            tests[0].description,
+            Some("example function works correctly".to_string())
+        );
     }
 
     #[test]
@@ -408,10 +437,16 @@ test_my_function_basic() {
 "#;
         let tests = discover_tests(source).unwrap();
         assert_eq!(tests.len(), 1);
-        assert_eq!(tests[0].description, Some("my_function with input 5".to_string()));
+        assert_eq!(
+            tests[0].description,
+            Some("my_function with input 5".to_string())
+        );
         assert_eq!(tests[0].given, Some("x=5".to_string()));
         assert_eq!(tests[0].when, Some("my_function 5".to_string()));
-        assert_eq!(tests[0].then, Some("output should be \"Result: 5\"".to_string()));
+        assert_eq!(
+            tests[0].then,
+            Some("output should be \"Result: 5\"".to_string())
+        );
     }
 
     #[test]
@@ -471,8 +506,12 @@ test_three() {
         let mut report = TestReport::new();
         report.results.push(("test1".to_string(), TestResult::Pass));
         report.results.push(("test2".to_string(), TestResult::Pass));
-        report.results.push(("test3".to_string(), TestResult::Fail("error".to_string())));
-        report.results.push(("test4".to_string(), TestResult::Skip("skipped".to_string())));
+        report
+            .results
+            .push(("test3".to_string(), TestResult::Fail("error".to_string())));
+        report
+            .results
+            .push(("test4".to_string(), TestResult::Skip("skipped".to_string())));
 
         assert_eq!(report.passed(), 2);
         assert_eq!(report.failed(), 1);

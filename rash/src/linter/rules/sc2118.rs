@@ -29,13 +29,15 @@ pub fn check(source: &str) -> LintResult {
     let mut result = LintResult::new();
 
     // Check shebang
-    let has_ksh_shebang = source.lines().next().is_some_and(|line| {
-        line.starts_with("#!/bin/ksh") || line.starts_with("#!/usr/bin/ksh")
-    });
+    let has_ksh_shebang = source
+        .lines()
+        .next()
+        .is_some_and(|line| line.starts_with("#!/bin/ksh") || line.starts_with("#!/usr/bin/ksh"));
 
-    let has_sh_shebang = source.lines().next().is_some_and(|line| {
-        line.starts_with("#!/bin/sh") || line.starts_with("#!/usr/bin/sh")
-    });
+    let has_sh_shebang = source
+        .lines()
+        .next()
+        .is_some_and(|line| line.starts_with("#!/bin/sh") || line.starts_with("#!/usr/bin/sh"));
 
     for (line_num, line) in source.lines().enumerate() {
         let line_num = line_num + 1;
