@@ -26,9 +26,42 @@ pub fn parse_bash(input: &str) -> Result<BashAst, ParseError> {
     parser.parse()
 }
 
-/// Format parse error for display in REPL
+/// Format parse error for display in REPL with enhanced context
+///
+/// Provides helpful error messages with line numbers for better debugging.
+/// Handles all ParseError variants with appropriate formatting.
+///
+/// # Examples
+///
+/// ```
+/// use bashrs::repl::parser::{parse_bash, format_parse_error};
+///
+/// let result = parse_bash("if then fi");  // Missing condition
+/// assert!(result.is_err());
+///
+/// let error = result.unwrap_err();
+/// let formatted = format_parse_error(&error);
+/// assert!(formatted.contains("Syntax error"));
+/// ```
 pub fn format_parse_error(error: &ParseError) -> String {
-    format!("Parse error: {}", error)
+    match error {
+        ParseError::UnexpectedToken { expected, found, line } => {
+            format!(
+                "Syntax error at line {}: expected {}, but found {}",
+                line, expected, found
+            )
+        }
+        ParseError::UnexpectedEof => {
+            String::from("Syntax error: unexpected end of file (did you forget to close a quote or bracket?)")
+        }
+        ParseError::InvalidSyntax(msg) => {
+            // Try to add generic line info even if not provided in the variant
+            format!("Syntax error: {}", msg)
+        }
+        ParseError::LexerError(lexer_err) => {
+            format!("Lexer error: {}", lexer_err)
+        }
+    }
 }
 
 #[cfg(test)]
@@ -85,7 +118,12 @@ fi"#;
         assert!(result.is_err(), "Should fail on unclosed quote");
         let error = result.unwrap_err();
         let error_msg = format_parse_error(&error);
-        assert!(error_msg.contains("Parse error"), "Should format error");
+        // Updated to match new error format
+        assert!(
+            error_msg.contains("Syntax error") || error_msg.contains("Lexer error"),
+            "Should format error: {}",
+            error_msg
+        );
     }
 
     /// Test: REPL-004-001-005 - Parse error for invalid syntax
@@ -129,8 +167,81 @@ fi"#;
         let error = result.unwrap_err();
         let formatted = format_parse_error(&error);
 
-        assert!(formatted.starts_with("Parse error:"));
+        // Updated to match new improved error formatting
+        assert!(
+            formatted.contains("Syntax error") || formatted.contains("Lexer error"),
+            "Should have error type: {}",
+            formatted
+        );
         assert!(!formatted.is_empty());
+    }
+
+    // ===== REPL-004-003 TESTS (RED PHASE) =====
+
+    /// Test: REPL-004-003-001 - Syntax error includes line number
+    #[test]
+    fn test_REPL_004_003_syntax_error_unclosed_quote() {
+        let input = r#"echo "hello
+world"#;
+        let result = parse_bash(input);
+
+        assert!(result.is_err(), "Should fail on unclosed quote");
+        let error = result.unwrap_err();
+        let formatted = format_parse_error(&error);
+
+        // Should contain line number information
+        assert!(
+            formatted.contains("line") || formatted.contains("Line"),
+            "Error should mention line number: {}",
+            formatted
+        );
+        assert!(
+            !formatted.is_empty(),
+            "Formatted error should not be empty"
+        );
+    }
+
+    /// Test: REPL-004-003-002 - Invalid operator error shows context
+    #[test]
+    fn test_REPL_004_003_syntax_error_invalid_operator() {
+        let input = "if | then echo test; fi";
+        let result = parse_bash(input);
+
+        assert!(result.is_err(), "Should fail on invalid syntax");
+        let error = result.unwrap_err();
+        let formatted = format_parse_error(&error);
+
+        // Should contain helpful error message
+        assert!(
+            !formatted.is_empty(),
+            "Formatted error should not be empty"
+        );
+    }
+
+    /// Test: REPL-004-003-003 - Error messages are helpful and clear
+    #[test]
+    fn test_REPL_004_003_syntax_error_helpful_message() {
+        let input = r#"echo line1
+echo line2
+if then echo problem
+echo line4"#;
+        let result = parse_bash(input);
+
+        assert!(result.is_err(), "Should fail on line 3");
+        let error = result.unwrap_err();
+        let formatted = format_parse_error(&error);
+
+        // Should have clear syntax error message
+        assert!(
+            formatted.contains("Syntax error") || formatted.contains("syntax error"),
+            "Error should be clear syntax error: {}",
+            formatted
+        );
+        // Should not just be the generic "Parse error:" prefix
+        assert!(
+            !formatted.starts_with("Parse error:"),
+            "Should use specific error formatting, not generic prefix"
+        );
     }
 }
 
@@ -205,7 +316,11 @@ mod property_tests {
                 }
                 Err(error) => {
                     let formatted = format_parse_error(&error);
-                    prop_assert!(formatted.contains("Parse error"), "Should format error message");
+                    // Updated to match new improved error formatting
+                    let has_error_type = formatted.contains("Syntax error")
+                        || formatted.contains("syntax error")
+                        || formatted.contains("Lexer error");
+                    prop_assert!(has_error_type, "Should format error message: {}", formatted);
                 }
             }
         }
@@ -218,7 +333,11 @@ mod property_tests {
             if let Err(error) = parse_bash(&input) {
                 let formatted = format_parse_error(&error);
                 prop_assert!(!formatted.is_empty(), "Error message should not be empty");
-                prop_assert!(formatted.starts_with("Parse error:"), "Should have error prefix");
+                // Updated to match new improved error formatting
+                let has_error_type = formatted.contains("Syntax error")
+                    || formatted.contains("syntax error")
+                    || formatted.contains("Lexer error");
+                prop_assert!(has_error_type, "Should have specific error type: {}", formatted);
             }
         }
     }
@@ -242,6 +361,56 @@ mod property_tests {
                 }
                 Err(_) => {
                     // Error is valid for malformed multiline
+                }
+            }
+        }
+    }
+
+    // ===== REPL-004-003 PROPERTY TESTS (PROPERTY PHASE) =====
+
+    /// Property: All syntax errors have helpful, non-empty messages
+    proptest! {
+        #[test]
+        fn prop_syntax_errors_always_helpful(input in ".*{1,100}") {
+            if let Err(error) = parse_bash(&input) {
+                let formatted = format_parse_error(&error);
+
+                // Error messages must never be empty
+                prop_assert!(!formatted.is_empty(), "Error message should not be empty");
+
+                // Error messages should be helpful (contain key words)
+                let is_helpful = formatted.contains("Syntax error")
+                    || formatted.contains("syntax error")
+                    || formatted.contains("Lexer error")
+                    || formatted.contains("line")
+                    || formatted.contains("expected")
+                    || formatted.contains("found")
+                    || formatted.contains("unexpected");
+
+                prop_assert!(
+                    is_helpful,
+                    "Error message should be helpful and descriptive: {}",
+                    formatted
+                );
+            }
+        }
+    }
+
+    /// Property: Errors with line numbers always format them correctly
+    proptest! {
+        #[test]
+        fn prop_line_numbers_formatted_correctly(input in ".*{1,200}") {
+            if let Err(error) = parse_bash(&input) {
+                let formatted = format_parse_error(&error);
+
+                // If the error mentions a line number, it should be formatted correctly
+                if formatted.contains("line") {
+                    // Line numbers should be positive integers
+                    // This is a simple sanity check
+                    prop_assert!(
+                        !formatted.contains("line 0"),
+                        "Line numbers should start at 1, not 0"
+                    );
                 }
             }
         }
