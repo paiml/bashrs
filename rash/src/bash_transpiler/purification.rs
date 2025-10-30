@@ -634,7 +634,20 @@ impl Purifier {
                     .iter()
                     .any(|arg| matches!(arg, BashExpr::Literal(s) if s.contains("-p")))
                 {
-                    Some("Command 'mkdir' should use -p flag for idempotency".to_string())
+                    // Add -p flag for idempotency
+                    let purified_args: Result<Vec<_>, _> =
+                        args.iter().map(|arg| self.purify_expression(arg)).collect();
+                    let mut new_args = vec![BashExpr::Literal("-p".to_string())];
+                    new_args.extend(purified_args?);
+
+                    return Ok((
+                        BashStmt::Command {
+                            name: name.to_string(),
+                            args: new_args,
+                            span: Span::dummy(),
+                        },
+                        Some("Added -p flag to mkdir for idempotency".to_string()),
+                    ));
                 } else {
                     None
                 }
