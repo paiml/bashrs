@@ -836,17 +836,30 @@ phases:
         tasks:
           - id: "REPL-011-001"
             title: "Scan for $RANDOM, $$, timestamps"
-            status: "pending"
+            status: "completed"
+            completion_date: "2025-10-30"
+            commit: "TBD"
             test_approach: "RED → GREEN → REFACTOR → PROPERTY → MUTATION"
+            notes: "Pattern-based detection for 5 non-deterministic patterns: $RANDOM, $$, date, $BASHPID, $SRANDOM"
             tests:
               unit:
-                - "test_REPL_011_001_detect_random"
-                - "test_REPL_011_001_detect_pid"
-                - "test_REPL_011_001_detect_timestamp"
+                - "test_REPL_011_001_detect_random ✅"
+                - "test_REPL_011_001_detect_pid ✅"
+                - "test_REPL_011_001_detect_timestamp ✅"
+                - "test_REPL_011_001_detect_bashpid ✅"
+                - "test_REPL_011_001_detect_srandom ✅"
+                - "test_REPL_011_001_deterministic_script ✅"
+                - "test_REPL_011_001_multiple_patterns ✅"
+                - "test_REPL_011_001_rescan_clears_previous ✅"
+                - "test_REPL_011_001_line_numbers_correct ✅"
               property:
-                - "prop_pattern_detection_never_false_negative"
+                - "prop_REPL_011_001_pattern_detection_never_false_negative ✅"
+                - "prop_REPL_011_001_deterministic_scripts_pass ✅"
+                - "prop_REPL_011_001_scan_never_panics ✅"
+                - "prop_REPL_011_001_rescan_always_clears ✅"
               mutation:
-                target: "≥90% kill rate on analysis/determinism.rs"
+                target: "≥90% kill rate on repl/determinism.rs"
+                status: "deferred"
 
           - id: "REPL-011-002"
             title: "Replay verification (run script twice, compare outputs)"
