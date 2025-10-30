@@ -1376,3 +1376,328 @@ mod idempotency_property_tests {
         }
     }
 }
+
+// ===== REPL-012-002: IDEMPOTENCY REPORT FORMATTING =====
+
+/// Format idempotency scan results for display
+///
+/// Shows a user-friendly report of non-idempotent operations with
+/// line numbers, problematic code, explanations, and fix suggestions.
+///
+/// # Examples
+///
+/// ```
+/// use bashrs::repl::determinism::{IdempotencyIssue, NonIdempotentOperation};
+/// use bashrs::repl::format_idempotency_report;
+///
+/// let issues = vec![
+///     IdempotencyIssue {
+///         line: 5,
+///         operation_type: NonIdempotentOperation::MkdirWithoutP,
+///         code: "mkdir /tmp/foo".to_string(),
+///         explanation: "mkdir without -p fails if directory already exists".to_string(),
+///         suggestion: "Add -p flag: mkdir -p".to_string(),
+///     },
+/// ];
+///
+/// let formatted = format_idempotency_report(&issues);
+/// assert!(formatted.contains("Line 5:"));
+/// assert!(formatted.contains("mkdir /tmp/foo"));
+/// assert!(formatted.contains("Add -p flag"));
+/// ```
+pub fn format_idempotency_report(issues: &[IdempotencyIssue]) -> String {
+    if issues.is_empty() {
+        return String::from("✓ Script is idempotent - safe to re-run");
+    }
+
+    let mut output = String::new();
+    output.push_str("⚠️  Non-idempotent operations detected!\n\n");
+    output.push_str(&format!("Found {} issue(s):\n\n", issues.len()));
+
+    for issue in issues {
+        output.push_str(&format!("Line {}:\n", issue.line));
+        output.push_str(&format!("  Code:        {}\n", issue.code));
+        output.push_str(&format!("  Problem:     {}\n", issue.explanation));
+        output.push_str(&format!("  💡 Fix:      {}\n", issue.suggestion));
+        output.push('\n');
+    }
+
+    output
+}
+
+impl IdempotencyChecker {
+    /// Format scan results for display
+    ///
+    /// Shows idempotency status, issue counts, operation breakdown,
+    /// and detailed issue reports.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use bashrs::repl::IdempotencyChecker;
+    ///
+    /// let mut checker = IdempotencyChecker::new();
+    /// let script = "mkdir /tmp/foo\nrm /tmp/bar";
+    /// checker.scan(script);
+    ///
+    /// let report = checker.format_report();
+    /// assert!(report.contains("non-idempotent") || report.contains("idempotent"));
+    /// ```
+    pub fn format_report(&self) -> String {
+        let mut output = String::new();
+
+        // Show idempotency status
+        if self.is_idempotent() {
+            output.push_str("✓ Script is idempotent\n");
+            output.push_str("  Safe to run multiple times\n");
+        } else {
+            output.push_str("⚠️  Script is non-idempotent\n");
+            output.push_str(&format!("  {} issue(s) found\n", self.detections.len()));
+        }
+
+        // Show issue breakdown by type
+        let mkdir_count = self.count_by_operation(NonIdempotentOperation::MkdirWithoutP);
+        let rm_count = self.count_by_operation(NonIdempotentOperation::RmWithoutF);
+        let ln_count = self.count_by_operation(NonIdempotentOperation::LnWithoutF);
+
+        if mkdir_count > 0 || rm_count > 0 || ln_count > 0 {
+            output.push_str("\nOperation breakdown:\n");
+            if mkdir_count > 0 {
+                output.push_str(&format!("  mkdir (missing -p): {}\n", mkdir_count));
+            }
+            if rm_count > 0 {
+                output.push_str(&format!("  rm (missing -f):    {}\n", rm_count));
+            }
+            if ln_count > 0 {
+                output.push_str(&format!("  ln (missing -f):    {}\n", ln_count));
+            }
+        }
+
+        // Show detailed issues
+        if !self.detections.is_empty() {
+            output.push('\n');
+            output.push_str(&format_idempotency_report(&self.detections));
+        }
+
+        output
+    }
+}
+
+#[cfg(test)]
+mod idempotency_report_tests {
+    use super::*;
+
+    // ===== REPL-012-002: REPORT FORMATTING TESTS =====
+
+    #[test]
+    fn test_REPL_012_002_format_single_mkdir_issue() {
+        // ARRANGE: One mkdir issue
+        let issues = vec![IdempotencyIssue {
+            line: 10,
+            operation_type: NonIdempotentOperation::MkdirWithoutP,
+            code: "mkdir /tmp/test".to_string(),
+            explanation: "mkdir without -p fails if directory already exists".to_string(),
+            suggestion: "Add -p flag: mkdir -p".to_string(),
+        }];
+
+        // ACT: Format report
+        let formatted = format_idempotency_report(&issues);
+
+        // ASSERT: Should show line, code, problem, and fix
+        assert!(formatted.contains("Line 10:"));
+        assert!(formatted.contains("mkdir /tmp/test"));
+        assert!(formatted.contains("mkdir without -p"));
+        assert!(formatted.contains("Add -p flag"));
+        assert!(formatted.contains("⚠️") || formatted.contains("warning"));
+    }
+
+    #[test]
+    fn test_REPL_012_002_format_single_rm_issue() {
+        // ARRANGE: One rm issue
+        let issues = vec![IdempotencyIssue {
+            line: 15,
+            operation_type: NonIdempotentOperation::RmWithoutF,
+            code: "rm /tmp/file.txt".to_string(),
+            explanation: "rm without -f fails if file doesn't exist".to_string(),
+            suggestion: "Add -f flag: rm -f".to_string(),
+        }];
+
+        // ACT: Format report
+        let formatted = format_idempotency_report(&issues);
+
+        // ASSERT: Should show rm-specific details
+        assert!(formatted.contains("Line 15:"));
+        assert!(formatted.contains("rm /tmp/file.txt"));
+        assert!(formatted.contains("rm without -f"));
+        assert!(formatted.contains("Add -f flag"));
+    }
+
+    #[test]
+    fn test_REPL_012_002_format_multiple_issues() {
+        // ARRANGE: Multiple issues
+        let issues = vec![
+            IdempotencyIssue {
+                line: 5,
+                operation_type: NonIdempotentOperation::MkdirWithoutP,
+                code: "mkdir foo".to_string(),
+                explanation: "mkdir without -p fails if directory already exists".to_string(),
+                suggestion: "Add -p flag: mkdir -p".to_string(),
+            },
+            IdempotencyIssue {
+                line: 10,
+                operation_type: NonIdempotentOperation::RmWithoutF,
+                code: "rm bar".to_string(),
+                explanation: "rm without -f fails if file doesn't exist".to_string(),
+                suggestion: "Add -f flag: rm -f".to_string(),
+            },
+        ];
+
+        // ACT: Format report
+        let formatted = format_idempotency_report(&issues);
+
+        // ASSERT: Should show all issues
+        assert!(formatted.contains("Line 5:"));
+        assert!(formatted.contains("Line 10:"));
+        assert!(formatted.contains("Found 2 issue(s)") || formatted.contains("2 issue"));
+    }
+
+    #[test]
+    fn test_REPL_012_002_format_no_issues() {
+        // ARRANGE: Empty issues
+        let issues = vec![];
+
+        // ACT: Format report
+        let formatted = format_idempotency_report(&issues);
+
+        // ASSERT: Should show success message
+        assert!(formatted.contains("✓") || formatted.contains("success"));
+        assert!(formatted.contains("idempotent"));
+        assert!(formatted.contains("safe") || formatted.contains("re-run"));
+    }
+
+    #[test]
+    fn test_REPL_012_002_checker_format_report() {
+        // ARRANGE: Checker with detected issues
+        let mut checker = IdempotencyChecker::new();
+        let script = r#"
+mkdir /tmp/foo
+rm /tmp/bar
+ln -s /tmp/baz /tmp/link
+"#;
+        checker.scan(script);
+
+        // ACT: Format report
+        let formatted = checker.format_report();
+
+        // ASSERT: Should show status and breakdown
+        assert!(formatted.contains("non-idempotent") || formatted.contains("issue"));
+        assert!(formatted.contains("mkdir") || formatted.contains("rm") || formatted.contains("ln"));
+    }
+
+    #[test]
+    fn test_REPL_012_002_checker_format_idempotent() {
+        // ARRANGE: Checker with idempotent script
+        let mut checker = IdempotencyChecker::new();
+        let script = r#"
+mkdir -p /tmp/foo
+rm -f /tmp/bar
+ln -sf /tmp/baz /tmp/link
+"#;
+        checker.scan(script);
+
+        // ACT: Format report
+        let formatted = checker.format_report();
+
+        // ASSERT: Should show success status
+        assert!(formatted.contains("✓") || formatted.contains("success"));
+        assert!(formatted.contains("idempotent"));
+    }
+
+    #[test]
+    fn test_REPL_012_002_format_preserves_line_numbers() {
+        // ARRANGE: Issues with specific line numbers
+        let issues = vec![
+            IdempotencyIssue {
+                line: 42,
+                operation_type: NonIdempotentOperation::MkdirWithoutP,
+                code: "mkdir test".to_string(),
+                explanation: "explanation".to_string(),
+                suggestion: "suggestion".to_string(),
+            },
+        ];
+
+        // ACT: Format report
+        let formatted = format_idempotency_report(&issues);
+
+        // ASSERT: Line number should be preserved
+        assert!(formatted.contains("Line 42:") || formatted.contains("42"));
+    }
+}
+
+#[cfg(test)]
+mod idempotency_report_property_tests {
+    use super::*;
+    use proptest::prelude::*;
+
+    proptest! {
+        #[test]
+        fn prop_REPL_012_002_format_never_panics(
+            num_issues in 0usize..10,
+            line in 1usize..100,
+        ) {
+            // Generate arbitrary issues
+            let issues: Vec<IdempotencyIssue> = (0..num_issues)
+                .map(|i| IdempotencyIssue {
+                    line: line + i,
+                    operation_type: NonIdempotentOperation::MkdirWithoutP,
+                    code: format!("mkdir /tmp/test{}", i),
+                    explanation: "explanation".to_string(),
+                    suggestion: "suggestion".to_string(),
+                })
+                .collect();
+
+            // Format should never panic
+            let _ = format_idempotency_report(&issues);
+        }
+
+        #[test]
+        fn prop_REPL_012_002_empty_always_idempotent(
+            _any in 0..100,
+        ) {
+            let formatted = format_idempotency_report(&[]);
+
+            // Empty issues should always show idempotent
+            prop_assert!(
+                (formatted.contains("✓") || formatted.contains("success")) && formatted.contains("idempotent"),
+                "Empty report should show idempotent: {}",
+                formatted
+            );
+        }
+
+        #[test]
+        fn prop_REPL_012_002_count_matches_issues(
+            num_issues in 1usize..20,
+        ) {
+            let issues: Vec<IdempotencyIssue> = (0..num_issues)
+                .map(|i| IdempotencyIssue {
+                    line: i + 1,
+                    operation_type: NonIdempotentOperation::RmWithoutF,
+                    code: format!("rm file{}", i),
+                    explanation: "explanation".to_string(),
+                    suggestion: "suggestion".to_string(),
+                })
+                .collect();
+
+            let formatted = format_idempotency_report(&issues);
+
+            // Count should match number of issues (flexible matching for different formats)
+            let count_str = format!("{}", num_issues);
+            prop_assert!(
+                formatted.contains(&count_str),
+                "Report should show count {}: {}",
+                num_issues,
+                formatted
+            );
+        }
+    }
+}

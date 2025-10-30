@@ -941,12 +941,21 @@ phases:
 
           - id: "REPL-012-002"
             title: "Suggested fixes for non-idempotent code"
-            status: "pending"
+            status: "completed"
             dependencies: ["REPL-012-001"]
             tests:
               unit:
-                - "test_REPL_012_002_suggest_mkdir_p"
-                - "test_REPL_012_002_suggest_rm_f"
+                - "test_REPL_012_002_format_single_mkdir_issue"
+                - "test_REPL_012_002_format_single_rm_issue"
+                - "test_REPL_012_002_format_multiple_issues"
+                - "test_REPL_012_002_format_no_issues"
+                - "test_REPL_012_002_checker_format_report"
+                - "test_REPL_012_002_checker_format_idempotent"
+                - "test_REPL_012_002_format_preserves_line_numbers"
+              property:
+                - "prop_REPL_012_002_format_never_panics"
+                - "prop_REPL_012_002_empty_always_idempotent"
+                - "prop_REPL_012_002_count_matches_issues"
 
           - id: "REPL-012-003"
             title: "Verification (run 3+ times, check same result)"
