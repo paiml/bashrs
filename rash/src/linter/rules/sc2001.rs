@@ -62,7 +62,7 @@ pub fn check(source: &str) -> LintResult {
             let start_col = full_match.start() + 1;
             let end_col = full_match.end() + 1;
 
-            let fix_text = format!("${{{}//{}/${}}}", var_name, search, replace);
+            let fix_text = format!("${{{}//{}/{}}}", var_name, search, replace);
 
             let diagnostic = Diagnostic::new(
                 "SC2001",
@@ -86,7 +86,7 @@ pub fn check(source: &str) -> LintResult {
                 let start_col = full_match.start() + 1;
                 let end_col = full_match.end() + 1;
 
-                let fix_text = format!("${{{}//{}/${}}}", var_name, search, replace);
+                let fix_text = format!("${{{}//{}/{}}}", var_name, search, replace);
 
                 let diagnostic = Diagnostic::new(
                     "SC2001",
@@ -117,7 +117,6 @@ mod tests {
     }
 
     #[test]
-    #[ignore] // TODO: Fix regex to handle all sed patterns correctly
     fn test_sc2001_autofix() {
         let script = r#"result=$(echo "$var" | sed 's/foo/bar/')"#;
         let result = check(script);
@@ -137,7 +136,6 @@ mod tests {
     }
 
     #[test]
-    #[ignore] // TODO: Fix regex to handle single-letter patterns
     fn test_sc2001_simple_substitution() {
         let script = r#"value=$(echo "$input" | sed 's/a/b/')"#;
         let result = check(script);
@@ -187,7 +185,6 @@ b=$(echo "$y" | sed 's/3/4/')
     }
 
     #[test]
-    #[ignore] // TODO: Fix regex pattern matching
     fn test_sc2001_underscore_in_pattern() {
         let script = r#"result=$(echo "$var" | sed 's/foo_bar/baz/')"#;
         let result = check(script);
