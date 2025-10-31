@@ -133,7 +133,7 @@
 <a href=#133 id=133 data-nosnippet>133</a>            <span class="kw">let </span><span class="kw-2">mut </span>text = String::from(quote);
 <a href=#134 id=134 data-nosnippet>134</a>            <span class="kw">let </span><span class="kw-2">mut </span>escaped = <span class="bool-val">false</span>;
 <a href=#135 id=135 data-nosnippet>135</a>
-<a href=#136 id=136 data-nosnippet>136</a>            <span class="kw">while let </span><span class="prelude-val">Some</span>((<span class="kw">_</span>, c)) = chars.next() {
+<a href=#136 id=136 data-nosnippet>136</a>            <span class="kw">for </span>(<span class="kw">_</span>, c) <span class="kw">in </span>chars.by_ref() {
 <a href=#137 id=137 data-nosnippet>137</a>                text.push(c);
 <a href=#138 id=138 data-nosnippet>138</a>                <span class="kw">if </span>escaped {
 <a href=#139 id=139 data-nosnippet>139</a>                    escaped = <span class="bool-val">false</span>;
@@ -157,7 +157,7 @@
 <a href=#157 id=157 data-nosnippet>157</a>            </span><span class="kw">if let </span><span class="prelude-val">Some</span>((<span class="kw">_</span>, <span class="string">'{'</span>)) = chars.peek() {
 <a href=#158 id=158 data-nosnippet>158</a>                text.push(<span class="string">'{'</span>);
 <a href=#159 id=159 data-nosnippet>159</a>                chars.next();
-<a href=#160 id=160 data-nosnippet>160</a>                <span class="kw">while let </span><span class="prelude-val">Some</span>((<span class="kw">_</span>, c)) = chars.next() {
+<a href=#160 id=160 data-nosnippet>160</a>                <span class="kw">for </span>(<span class="kw">_</span>, c) <span class="kw">in </span>chars.by_ref() {
 <a href=#161 id=161 data-nosnippet>161</a>                    text.push(c);
 <a href=#162 id=162 data-nosnippet>162</a>                    <span class="kw">if </span>c == <span class="string">'}' </span>{
 <a href=#163 id=163 data-nosnippet>163</a>                        <span class="kw">break</span>;
@@ -337,7 +337,7 @@
 <a href=#337 id=337 data-nosnippet>337</a>    <span class="kw">while let </span><span class="prelude-val">Some</span>(ch) = chars.next() {
 <a href=#338 id=338 data-nosnippet>338</a>        <span class="kw">if </span>ch == <span class="string">'\x1b' </span>{
 <a href=#339 id=339 data-nosnippet>339</a>            <span class="comment">// Skip until 'm' (end of ANSI sequence)
-<a href=#340 id=340 data-nosnippet>340</a>            </span><span class="kw">while let </span><span class="prelude-val">Some</span>(c) = chars.next() {
+<a href=#340 id=340 data-nosnippet>340</a>            </span><span class="kw">for </span>c <span class="kw">in </span>chars.by_ref() {
 <a href=#341 id=341 data-nosnippet>341</a>                <span class="kw">if </span>c == <span class="string">'m' </span>{
 <a href=#342 id=342 data-nosnippet>342</a>                    <span class="kw">break</span>;
 <a href=#343 id=343 data-nosnippet>343</a>                }

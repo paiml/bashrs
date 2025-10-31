@@ -1492,7 +1492,7 @@
 <a href=#1492 id=1492 data-nosnippet>1492</a>        }
 <a href=#1493 id=1493 data-nosnippet>1493</a>    });
 <a href=#1494 id=1494 data-nosnippet>1494</a>
-<a href=#1495 id=1495 data-nosnippet>1495</a>    <span class="macro">println!</span>(<span class="string">"{}"</span>, serde_json::to_string_pretty(<span class="kw-2">&amp;</span>json_report).unwrap());
+<a href=#1495 id=1495 data-nosnippet>1495</a>    <span class="macro">println!</span>(<span class="string">"{}"</span>, serde_json::to_string_pretty(<span class="kw-2">&amp;</span>json_report).expect(<span class="string">"JSON serialization should not fail"</span>));
 <a href=#1496 id=1496 data-nosnippet>1496</a>}
 <a href=#1497 id=1497 data-nosnippet>1497</a>
 <a href=#1498 id=1498 data-nosnippet>1498</a><span class="doccomment">/// Print JUnit XML test results
@@ -1617,7 +1617,7 @@
 <a href=#1617 id=1617 data-nosnippet>1617</a>        <span class="string">"suggestions"</span>: score.suggestions,
 <a href=#1618 id=1618 data-nosnippet>1618</a>    });
 <a href=#1619 id=1619 data-nosnippet>1619</a>
-<a href=#1620 id=1620 data-nosnippet>1620</a>    <span class="macro">println!</span>(<span class="string">"{}"</span>, serde_json::to_string_pretty(<span class="kw-2">&amp;</span>json_score).unwrap());
+<a href=#1620 id=1620 data-nosnippet>1620</a>    <span class="macro">println!</span>(<span class="string">"{}"</span>, serde_json::to_string_pretty(<span class="kw-2">&amp;</span>json_score).expect(<span class="string">"JSON serialization should not fail"</span>));
 <a href=#1621 id=1621 data-nosnippet>1621</a>}
 <a href=#1622 id=1622 data-nosnippet>1622</a>
 <a href=#1623 id=1623 data-nosnippet>1623</a><span class="doccomment">/// Print Markdown score results
@@ -1996,7 +1996,7 @@
 <a href=#1996 id=1996 data-nosnippet>1996</a>        }
 <a href=#1997 id=1997 data-nosnippet>1997</a>    });
 <a href=#1998 id=1998 data-nosnippet>1998</a>
-<a href=#1999 id=1999 data-nosnippet>1999</a>    <span class="macro">println!</span>(<span class="string">"{}"</span>, serde_json::to_string_pretty(<span class="kw-2">&amp;</span>json_results).unwrap());
+<a href=#1999 id=1999 data-nosnippet>1999</a>    <span class="macro">println!</span>(<span class="string">"{}"</span>, serde_json::to_string_pretty(<span class="kw-2">&amp;</span>json_results).expect(<span class="string">"JSON serialization should not fail"</span>));
 <a href=#2000 id=2000 data-nosnippet>2000</a>}
 <a href=#2001 id=2001 data-nosnippet>2001</a>
 <a href=#2002 id=2002 data-nosnippet>2002</a><span class="doccomment">/// Print SARIF audit results (GitHub Code Scanning format)
@@ -2076,7 +2076,7 @@
 <a href=#2076 id=2076 data-nosnippet>2076</a>        }]
 <a href=#2077 id=2077 data-nosnippet>2077</a>    });
 <a href=#2078 id=2078 data-nosnippet>2078</a>
-<a href=#2079 id=2079 data-nosnippet>2079</a>    <span class="macro">println!</span>(<span class="string">"{}"</span>, serde_json::to_string_pretty(<span class="kw-2">&amp;</span>sarif).unwrap());
+<a href=#2079 id=2079 data-nosnippet>2079</a>    <span class="macro">println!</span>(<span class="string">"{}"</span>, serde_json::to_string_pretty(<span class="kw-2">&amp;</span>sarif).expect(<span class="string">"JSON serialization should not fail"</span>));
 <a href=#2080 id=2080 data-nosnippet>2080</a>}
 <a href=#2081 id=2081 data-nosnippet>2081</a>
 <a href=#2082 id=2082 data-nosnippet>2082</a><span class="comment">// ============================================================================
@@ -2239,7 +2239,7 @@
 <a href=#2239 id=2239 data-nosnippet>2239</a>        }
 <a href=#2240 id=2240 data-nosnippet>2240</a>    });
 <a href=#2241 id=2241 data-nosnippet>2241</a>
-<a href=#2242 id=2242 data-nosnippet>2242</a>    <span class="macro">println!</span>(<span class="string">"{}"</span>, serde_json::to_string_pretty(<span class="kw-2">&amp;</span>json_coverage).unwrap());
+<a href=#2242 id=2242 data-nosnippet>2242</a>    <span class="macro">println!</span>(<span class="string">"{}"</span>, serde_json::to_string_pretty(<span class="kw-2">&amp;</span>json_coverage).expect(<span class="string">"JSON serialization should not fail"</span>));
 <a href=#2243 id=2243 data-nosnippet>2243</a>}
 <a href=#2244 id=2244 data-nosnippet>2244</a>
 <a href=#2245 id=2245 data-nosnippet>2245</a><span class="doccomment">/// Print HTML coverage output
@@ -2304,136 +2304,135 @@
 <a href=#2304 id=2304 data-nosnippet>2304</a>    );
 <a href=#2305 id=2305 data-nosnippet>2305</a>
 <a href=#2306 id=2306 data-nosnippet>2306</a>    <span class="kw">if let </span><span class="prelude-val">Some</span>(output_path) = output {
-<a href=#2307 id=2307 data-nosnippet>2307</a>        fs::write(output_path, html).expect(<span class="string">"Failed to write HTML report"</span>);
-<a href=#2308 id=2308 data-nosnippet>2308</a>        <span class="macro">println!</span>(<span class="string">"HTML coverage report written to {}"</span>, output_path.display());
-<a href=#2309 id=2309 data-nosnippet>2309</a>    } <span class="kw">else </span>{
-<a href=#2310 id=2310 data-nosnippet>2310</a>        <span class="macro">println!</span>(<span class="string">"{}"</span>, html);
-<a href=#2311 id=2311 data-nosnippet>2311</a>    }
-<a href=#2312 id=2312 data-nosnippet>2312</a>}
-<a href=#2313 id=2313 data-nosnippet>2313</a>
-<a href=#2314 id=2314 data-nosnippet>2314</a><span class="kw">fn </span>coverage_class(percent: f64) -&gt; <span class="kw-2">&amp;</span><span class="lifetime">'static </span>str {
-<a href=#2315 id=2315 data-nosnippet>2315</a>    <span class="kw">if </span>percent &gt;= <span class="number">80.0 </span>{
-<a href=#2316 id=2316 data-nosnippet>2316</a>        <span class="string">"good"
-<a href=#2317 id=2317 data-nosnippet>2317</a>    </span>} <span class="kw">else if </span>percent &gt;= <span class="number">50.0 </span>{
-<a href=#2318 id=2318 data-nosnippet>2318</a>        <span class="string">"medium"
-<a href=#2319 id=2319 data-nosnippet>2319</a>    </span>} <span class="kw">else </span>{
-<a href=#2320 id=2320 data-nosnippet>2320</a>        <span class="string">"poor"
-<a href=#2321 id=2321 data-nosnippet>2321</a>    </span>}
-<a href=#2322 id=2322 data-nosnippet>2322</a>}
-<a href=#2323 id=2323 data-nosnippet>2323</a>
-<a href=#2324 id=2324 data-nosnippet>2324</a><span class="doccomment">/// Print LCOV coverage output
-<a href=#2325 id=2325 data-nosnippet>2325</a></span><span class="kw">fn </span>print_lcov_coverage(coverage: <span class="kw-2">&amp;</span><span class="kw">crate</span>::bash_quality::coverage::CoverageReport, input: <span class="kw-2">&amp;</span>Path) {
-<a href=#2326 id=2326 data-nosnippet>2326</a>    <span class="macro">println!</span>(<span class="string">"TN:"</span>);
-<a href=#2327 id=2327 data-nosnippet>2327</a>    <span class="macro">println!</span>(<span class="string">"SF:{}"</span>, input.display());
-<a href=#2328 id=2328 data-nosnippet>2328</a>
-<a href=#2329 id=2329 data-nosnippet>2329</a>    <span class="comment">// Function coverage
-<a href=#2330 id=2330 data-nosnippet>2330</a>    </span><span class="kw">for </span>func <span class="kw">in </span><span class="kw-2">&amp;</span>coverage.all_functions {
-<a href=#2331 id=2331 data-nosnippet>2331</a>        <span class="kw">let </span>covered = <span class="kw">if </span>coverage.covered_functions.contains(func) {
-<a href=#2332 id=2332 data-nosnippet>2332</a>            <span class="number">1
-<a href=#2333 id=2333 data-nosnippet>2333</a>        </span>} <span class="kw">else </span>{
-<a href=#2334 id=2334 data-nosnippet>2334</a>            <span class="number">0
-<a href=#2335 id=2335 data-nosnippet>2335</a>        </span>};
-<a href=#2336 id=2336 data-nosnippet>2336</a>        <span class="macro">println!</span>(<span class="string">"FN:0,{}"</span>, func);
-<a href=#2337 id=2337 data-nosnippet>2337</a>        <span class="macro">println!</span>(<span class="string">"FNDA:{},{}"</span>, covered, func);
-<a href=#2338 id=2338 data-nosnippet>2338</a>    }
-<a href=#2339 id=2339 data-nosnippet>2339</a>    <span class="macro">println!</span>(<span class="string">"FNF:{}"</span>, coverage.all_functions.len());
-<a href=#2340 id=2340 data-nosnippet>2340</a>    <span class="macro">println!</span>(<span class="string">"FNH:{}"</span>, coverage.covered_functions.len());
-<a href=#2341 id=2341 data-nosnippet>2341</a>
-<a href=#2342 id=2342 data-nosnippet>2342</a>    <span class="comment">// Line coverage
-<a href=#2343 id=2343 data-nosnippet>2343</a>    </span><span class="kw">for </span>(line_num, <span class="kw-2">&amp;</span>is_covered) <span class="kw">in </span><span class="kw-2">&amp;</span>coverage.line_coverage {
-<a href=#2344 id=2344 data-nosnippet>2344</a>        <span class="kw">let </span>hit = <span class="kw">if </span>is_covered { <span class="number">1 </span>} <span class="kw">else </span>{ <span class="number">0 </span>};
-<a href=#2345 id=2345 data-nosnippet>2345</a>        <span class="macro">println!</span>(<span class="string">"DA:{},{}"</span>, line_num, hit);
-<a href=#2346 id=2346 data-nosnippet>2346</a>    }
-<a href=#2347 id=2347 data-nosnippet>2347</a>    <span class="macro">println!</span>(<span class="string">"LF:{}"</span>, coverage.total_lines);
-<a href=#2348 id=2348 data-nosnippet>2348</a>    <span class="macro">println!</span>(<span class="string">"LH:{}"</span>, coverage.covered_lines.len());
-<a href=#2349 id=2349 data-nosnippet>2349</a>
-<a href=#2350 id=2350 data-nosnippet>2350</a>    <span class="macro">println!</span>(<span class="string">"end_of_record"</span>);
-<a href=#2351 id=2351 data-nosnippet>2351</a>}
+<a href=#2307 id=2307 data-nosnippet>2307</a>        <span class="kw">if let </span><span class="prelude-val">Err</span>(e) = fs::write(output_path, html) {
+<a href=#2308 id=2308 data-nosnippet>2308</a>            <span class="macro">eprintln!</span>(<span class="string">"Error writing HTML report: {}"</span>, e);
+<a href=#2309 id=2309 data-nosnippet>2309</a>            std::process::exit(<span class="number">1</span>);
+<a href=#2310 id=2310 data-nosnippet>2310</a>        }
+<a href=#2311 id=2311 data-nosnippet>2311</a>        <span class="macro">println!</span>(<span class="string">"HTML coverage report written to {}"</span>, output_path.display());
+<a href=#2312 id=2312 data-nosnippet>2312</a>    } <span class="kw">else </span>{
+<a href=#2313 id=2313 data-nosnippet>2313</a>        <span class="macro">println!</span>(<span class="string">"{}"</span>, html);
+<a href=#2314 id=2314 data-nosnippet>2314</a>    }
+<a href=#2315 id=2315 data-nosnippet>2315</a>}
+<a href=#2316 id=2316 data-nosnippet>2316</a>
+<a href=#2317 id=2317 data-nosnippet>2317</a><span class="kw">fn </span>coverage_class(percent: f64) -&gt; <span class="kw-2">&amp;</span><span class="lifetime">'static </span>str {
+<a href=#2318 id=2318 data-nosnippet>2318</a>    <span class="kw">if </span>percent &gt;= <span class="number">80.0 </span>{
+<a href=#2319 id=2319 data-nosnippet>2319</a>        <span class="string">"good"
+<a href=#2320 id=2320 data-nosnippet>2320</a>    </span>} <span class="kw">else if </span>percent &gt;= <span class="number">50.0 </span>{
+<a href=#2321 id=2321 data-nosnippet>2321</a>        <span class="string">"medium"
+<a href=#2322 id=2322 data-nosnippet>2322</a>    </span>} <span class="kw">else </span>{
+<a href=#2323 id=2323 data-nosnippet>2323</a>        <span class="string">"poor"
+<a href=#2324 id=2324 data-nosnippet>2324</a>    </span>}
+<a href=#2325 id=2325 data-nosnippet>2325</a>}
+<a href=#2326 id=2326 data-nosnippet>2326</a>
+<a href=#2327 id=2327 data-nosnippet>2327</a><span class="doccomment">/// Print LCOV coverage output
+<a href=#2328 id=2328 data-nosnippet>2328</a></span><span class="kw">fn </span>print_lcov_coverage(coverage: <span class="kw-2">&amp;</span><span class="kw">crate</span>::bash_quality::coverage::CoverageReport, input: <span class="kw-2">&amp;</span>Path) {
+<a href=#2329 id=2329 data-nosnippet>2329</a>    <span class="macro">println!</span>(<span class="string">"TN:"</span>);
+<a href=#2330 id=2330 data-nosnippet>2330</a>    <span class="macro">println!</span>(<span class="string">"SF:{}"</span>, input.display());
+<a href=#2331 id=2331 data-nosnippet>2331</a>
+<a href=#2332 id=2332 data-nosnippet>2332</a>    <span class="comment">// Function coverage
+<a href=#2333 id=2333 data-nosnippet>2333</a>    </span><span class="kw">for </span>func <span class="kw">in </span><span class="kw-2">&amp;</span>coverage.all_functions {
+<a href=#2334 id=2334 data-nosnippet>2334</a>        <span class="kw">let </span>covered = <span class="kw">if </span>coverage.covered_functions.contains(func) {
+<a href=#2335 id=2335 data-nosnippet>2335</a>            <span class="number">1
+<a href=#2336 id=2336 data-nosnippet>2336</a>        </span>} <span class="kw">else </span>{
+<a href=#2337 id=2337 data-nosnippet>2337</a>            <span class="number">0
+<a href=#2338 id=2338 data-nosnippet>2338</a>        </span>};
+<a href=#2339 id=2339 data-nosnippet>2339</a>        <span class="macro">println!</span>(<span class="string">"FN:0,{}"</span>, func);
+<a href=#2340 id=2340 data-nosnippet>2340</a>        <span class="macro">println!</span>(<span class="string">"FNDA:{},{}"</span>, covered, func);
+<a href=#2341 id=2341 data-nosnippet>2341</a>    }
+<a href=#2342 id=2342 data-nosnippet>2342</a>    <span class="macro">println!</span>(<span class="string">"FNF:{}"</span>, coverage.all_functions.len());
+<a href=#2343 id=2343 data-nosnippet>2343</a>    <span class="macro">println!</span>(<span class="string">"FNH:{}"</span>, coverage.covered_functions.len());
+<a href=#2344 id=2344 data-nosnippet>2344</a>
+<a href=#2345 id=2345 data-nosnippet>2345</a>    <span class="comment">// Line coverage
+<a href=#2346 id=2346 data-nosnippet>2346</a>    </span><span class="kw">for </span>(line_num, <span class="kw-2">&amp;</span>is_covered) <span class="kw">in </span><span class="kw-2">&amp;</span>coverage.line_coverage {
+<a href=#2347 id=2347 data-nosnippet>2347</a>        <span class="kw">let </span>hit = <span class="kw">if </span>is_covered { <span class="number">1 </span>} <span class="kw">else </span>{ <span class="number">0 </span>};
+<a href=#2348 id=2348 data-nosnippet>2348</a>        <span class="macro">println!</span>(<span class="string">"DA:{},{}"</span>, line_num, hit);
+<a href=#2349 id=2349 data-nosnippet>2349</a>    }
+<a href=#2350 id=2350 data-nosnippet>2350</a>    <span class="macro">println!</span>(<span class="string">"LF:{}"</span>, coverage.total_lines);
+<a href=#2351 id=2351 data-nosnippet>2351</a>    <span class="macro">println!</span>(<span class="string">"LH:{}"</span>, coverage.covered_lines.len());
 <a href=#2352 id=2352 data-nosnippet>2352</a>
-<a href=#2353 id=2353 data-nosnippet>2353</a><span class="comment">// Format command implementation (v6.14.0)
-<a href=#2354 id=2354 data-nosnippet>2354</a></span><span class="kw">fn </span>format_command(
-<a href=#2355 id=2355 data-nosnippet>2355</a>    inputs: <span class="kw-2">&amp;</span>[PathBuf],
-<a href=#2356 id=2356 data-nosnippet>2356</a>    check: bool,
-<a href=#2357 id=2357 data-nosnippet>2357</a>    dry_run: bool,
-<a href=#2358 id=2358 data-nosnippet>2358</a>    output: <span class="prelude-ty">Option</span>&lt;<span class="kw-2">&amp;</span>Path&gt;,
-<a href=#2359 id=2359 data-nosnippet>2359</a>) -&gt; <span class="prelude-ty">Result</span>&lt;()&gt; {
-<a href=#2360 id=2360 data-nosnippet>2360</a>    <span class="kw">use </span><span class="kw">crate</span>::bash_quality::{Formatter, FormatterConfig};
-<a href=#2361 id=2361 data-nosnippet>2361</a>
-<a href=#2362 id=2362 data-nosnippet>2362</a>    <span class="kw">let </span><span class="kw-2">mut </span>all_formatted = <span class="bool-val">true</span>;
-<a href=#2363 id=2363 data-nosnippet>2363</a>
-<a href=#2364 id=2364 data-nosnippet>2364</a>    <span class="kw">for </span>input_path <span class="kw">in </span>inputs {
-<a href=#2365 id=2365 data-nosnippet>2365</a>        <span class="comment">// Load configuration (look for .bashrs-fmt.toml in script's directory, then current directory)
-<a href=#2366 id=2366 data-nosnippet>2366</a>        </span><span class="kw">let </span>config = <span class="kw">if let </span><span class="prelude-val">Some</span>(parent) = input_path.parent() {
-<a href=#2367 id=2367 data-nosnippet>2367</a>            <span class="kw">let </span>script_dir_config = parent.join(<span class="string">".bashrs-fmt.toml"</span>);
-<a href=#2368 id=2368 data-nosnippet>2368</a>            <span class="kw">if </span>script_dir_config.exists() {
-<a href=#2369 id=2369 data-nosnippet>2369</a>                FormatterConfig::from_file(<span class="kw-2">&amp;</span>script_dir_config).unwrap_or_default()
-<a href=#2370 id=2370 data-nosnippet>2370</a>            } <span class="kw">else if let </span><span class="prelude-val">Ok</span>(cfg) = FormatterConfig::from_file(<span class="string">".bashrs-fmt.toml"</span>) {
-<a href=#2371 id=2371 data-nosnippet>2371</a>                cfg
-<a href=#2372 id=2372 data-nosnippet>2372</a>            } <span class="kw">else </span>{
-<a href=#2373 id=2373 data-nosnippet>2373</a>                FormatterConfig::default()
-<a href=#2374 id=2374 data-nosnippet>2374</a>            }
-<a href=#2375 id=2375 data-nosnippet>2375</a>        } <span class="kw">else if let </span><span class="prelude-val">Ok</span>(cfg) = FormatterConfig::from_file(<span class="string">".bashrs-fmt.toml"</span>) {
-<a href=#2376 id=2376 data-nosnippet>2376</a>            cfg
-<a href=#2377 id=2377 data-nosnippet>2377</a>        } <span class="kw">else </span>{
-<a href=#2378 id=2378 data-nosnippet>2378</a>            FormatterConfig::default()
-<a href=#2379 id=2379 data-nosnippet>2379</a>        };
-<a href=#2380 id=2380 data-nosnippet>2380</a>
-<a href=#2381 id=2381 data-nosnippet>2381</a>        <span class="kw">let </span><span class="kw-2">mut </span>formatter = Formatter::with_config(config);
-<a href=#2382 id=2382 data-nosnippet>2382</a>
-<a href=#2383 id=2383 data-nosnippet>2383</a>        <span class="comment">// Read input file
-<a href=#2384 id=2384 data-nosnippet>2384</a>        </span><span class="kw">let </span>source = fs::read_to_string(input_path).map_err(|e| {
-<a href=#2385 id=2385 data-nosnippet>2385</a>            Error::Internal(<span class="macro">format!</span>(<span class="string">"Failed to read {}: {}"</span>, input_path.display(), e))
-<a href=#2386 id=2386 data-nosnippet>2386</a>        })<span class="question-mark">?</span>;
-<a href=#2387 id=2387 data-nosnippet>2387</a>
-<a href=#2388 id=2388 data-nosnippet>2388</a>        <span class="comment">// Format the source
-<a href=#2389 id=2389 data-nosnippet>2389</a>        </span><span class="kw">let </span>formatted = formatter.format_source(<span class="kw-2">&amp;</span>source).map_err(|e| {
-<a href=#2390 id=2390 data-nosnippet>2390</a>            Error::Internal(<span class="macro">format!</span>(<span class="string">"Failed to format {}: {}"</span>, input_path.display(), e))
-<a href=#2391 id=2391 data-nosnippet>2391</a>        })<span class="question-mark">?</span>;
-<a href=#2392 id=2392 data-nosnippet>2392</a>
-<a href=#2393 id=2393 data-nosnippet>2393</a>        <span class="kw">if </span>check {
-<a href=#2394 id=2394 data-nosnippet>2394</a>            <span class="comment">// Check mode: verify if formatted
-<a href=#2395 id=2395 data-nosnippet>2395</a>            </span><span class="kw">if </span>source.trim() == formatted.trim() {
-<a href=#2396 id=2396 data-nosnippet>2396</a>                <span class="macro">println!</span>(<span class="string">"✓ {} is properly formatted"</span>, input_path.display());
-<a href=#2397 id=2397 data-nosnippet>2397</a>            } <span class="kw">else </span>{
-<a href=#2398 id=2398 data-nosnippet>2398</a>                <span class="macro">println!</span>(<span class="string">"✗ {} is not properly formatted"</span>, input_path.display());
-<a href=#2399 id=2399 data-nosnippet>2399</a>                all_formatted = <span class="bool-val">false</span>;
-<a href=#2400 id=2400 data-nosnippet>2400</a>            }
-<a href=#2401 id=2401 data-nosnippet>2401</a>        } <span class="kw">else if </span>dry_run {
-<a href=#2402 id=2402 data-nosnippet>2402</a>            <span class="comment">// Dry run: show what would be done
-<a href=#2403 id=2403 data-nosnippet>2403</a>            </span><span class="macro">println!</span>(<span class="string">"Would format: {}"</span>, input_path.display());
-<a href=#2404 id=2404 data-nosnippet>2404</a>            <span class="kw">if </span>source.trim() != formatted.trim() {
-<a href=#2405 id=2405 data-nosnippet>2405</a>                <span class="macro">println!</span>(<span class="string">"  Changes detected"</span>);
-<a href=#2406 id=2406 data-nosnippet>2406</a>            } <span class="kw">else </span>{
-<a href=#2407 id=2407 data-nosnippet>2407</a>                <span class="macro">println!</span>(<span class="string">"  No changes needed"</span>);
-<a href=#2408 id=2408 data-nosnippet>2408</a>            }
-<a href=#2409 id=2409 data-nosnippet>2409</a>        } <span class="kw">else </span>{
-<a href=#2410 id=2410 data-nosnippet>2410</a>            <span class="comment">// Apply formatting
-<a href=#2411 id=2411 data-nosnippet>2411</a>            </span><span class="kw">if let </span><span class="prelude-val">Some</span>(out_path) = output {
-<a href=#2412 id=2412 data-nosnippet>2412</a>                <span class="comment">// Write to specified output file
-<a href=#2413 id=2413 data-nosnippet>2413</a>                </span>fs::write(out_path, <span class="kw-2">&amp;</span>formatted).map_err(|e| {
-<a href=#2414 id=2414 data-nosnippet>2414</a>                    Error::Internal(<span class="macro">format!</span>(<span class="string">"Failed to write {}: {}"</span>, out_path.display(), e))
-<a href=#2415 id=2415 data-nosnippet>2415</a>                })<span class="question-mark">?</span>;
-<a href=#2416 id=2416 data-nosnippet>2416</a>                <span class="macro">println!</span>(
-<a href=#2417 id=2417 data-nosnippet>2417</a>                    <span class="string">"✓ Formatted {} -&gt; {}"</span>,
-<a href=#2418 id=2418 data-nosnippet>2418</a>                    input_path.display(),
-<a href=#2419 id=2419 data-nosnippet>2419</a>                    out_path.display()
-<a href=#2420 id=2420 data-nosnippet>2420</a>                );
-<a href=#2421 id=2421 data-nosnippet>2421</a>            } <span class="kw">else </span>{
-<a href=#2422 id=2422 data-nosnippet>2422</a>                <span class="comment">// Write in-place
-<a href=#2423 id=2423 data-nosnippet>2423</a>                </span>fs::write(input_path, <span class="kw-2">&amp;</span>formatted).map_err(|e| {
-<a href=#2424 id=2424 data-nosnippet>2424</a>                    Error::Internal(<span class="macro">format!</span>(<span class="string">"Failed to write {}: {}"</span>, input_path.display(), e))
-<a href=#2425 id=2425 data-nosnippet>2425</a>                })<span class="question-mark">?</span>;
-<a href=#2426 id=2426 data-nosnippet>2426</a>                <span class="macro">println!</span>(<span class="string">"✓ Formatted {}"</span>, input_path.display());
-<a href=#2427 id=2427 data-nosnippet>2427</a>            }
-<a href=#2428 id=2428 data-nosnippet>2428</a>        }
-<a href=#2429 id=2429 data-nosnippet>2429</a>    }
-<a href=#2430 id=2430 data-nosnippet>2430</a>
-<a href=#2431 id=2431 data-nosnippet>2431</a>    <span class="comment">// If check mode and any file not formatted, return error
-<a href=#2432 id=2432 data-nosnippet>2432</a>    </span><span class="kw">if </span>check &amp;&amp; !all_formatted {
-<a href=#2433 id=2433 data-nosnippet>2433</a>        <span class="kw">return </span><span class="prelude-val">Err</span>(Error::Internal(
-<a href=#2434 id=2434 data-nosnippet>2434</a>            <span class="string">"Files are not properly formatted. Run without --check to fix."</span>.to_string(),
-<a href=#2435 id=2435 data-nosnippet>2435</a>        ));
-<a href=#2436 id=2436 data-nosnippet>2436</a>    }
-<a href=#2437 id=2437 data-nosnippet>2437</a>
-<a href=#2438 id=2438 data-nosnippet>2438</a>    <span class="prelude-val">Ok</span>(())
-<a href=#2439 id=2439 data-nosnippet>2439</a>}</code></pre></div></section></main></body></html>
+<a href=#2353 id=2353 data-nosnippet>2353</a>    <span class="macro">println!</span>(<span class="string">"end_of_record"</span>);
+<a href=#2354 id=2354 data-nosnippet>2354</a>}
+<a href=#2355 id=2355 data-nosnippet>2355</a>
+<a href=#2356 id=2356 data-nosnippet>2356</a><span class="comment">// Format command implementation (v6.14.0)
+<a href=#2357 id=2357 data-nosnippet>2357</a></span><span class="kw">fn </span>format_command(
+<a href=#2358 id=2358 data-nosnippet>2358</a>    inputs: <span class="kw-2">&amp;</span>[PathBuf],
+<a href=#2359 id=2359 data-nosnippet>2359</a>    check: bool,
+<a href=#2360 id=2360 data-nosnippet>2360</a>    dry_run: bool,
+<a href=#2361 id=2361 data-nosnippet>2361</a>    output: <span class="prelude-ty">Option</span>&lt;<span class="kw-2">&amp;</span>Path&gt;,
+<a href=#2362 id=2362 data-nosnippet>2362</a>) -&gt; <span class="prelude-ty">Result</span>&lt;()&gt; {
+<a href=#2363 id=2363 data-nosnippet>2363</a>    <span class="kw">use </span><span class="kw">crate</span>::bash_quality::{Formatter, FormatterConfig};
+<a href=#2364 id=2364 data-nosnippet>2364</a>
+<a href=#2365 id=2365 data-nosnippet>2365</a>    <span class="kw">let </span><span class="kw-2">mut </span>all_formatted = <span class="bool-val">true</span>;
+<a href=#2366 id=2366 data-nosnippet>2366</a>
+<a href=#2367 id=2367 data-nosnippet>2367</a>    <span class="kw">for </span>input_path <span class="kw">in </span>inputs {
+<a href=#2368 id=2368 data-nosnippet>2368</a>        <span class="comment">// Load configuration (look for .bashrs-fmt.toml in script's directory, then current directory)
+<a href=#2369 id=2369 data-nosnippet>2369</a>        </span><span class="kw">let </span>config = <span class="kw">if let </span><span class="prelude-val">Some</span>(parent) = input_path.parent() {
+<a href=#2370 id=2370 data-nosnippet>2370</a>            <span class="kw">let </span>script_dir_config = parent.join(<span class="string">".bashrs-fmt.toml"</span>);
+<a href=#2371 id=2371 data-nosnippet>2371</a>            <span class="kw">if </span>script_dir_config.exists() {
+<a href=#2372 id=2372 data-nosnippet>2372</a>                FormatterConfig::from_file(<span class="kw-2">&amp;</span>script_dir_config).unwrap_or_default()
+<a href=#2373 id=2373 data-nosnippet>2373</a>            } <span class="kw">else </span>{
+<a href=#2374 id=2374 data-nosnippet>2374</a>                FormatterConfig::from_file(<span class="string">".bashrs-fmt.toml"</span>).unwrap_or_default()
+<a href=#2375 id=2375 data-nosnippet>2375</a>            }
+<a href=#2376 id=2376 data-nosnippet>2376</a>        } <span class="kw">else </span>{
+<a href=#2377 id=2377 data-nosnippet>2377</a>            FormatterConfig::from_file(<span class="string">".bashrs-fmt.toml"</span>).unwrap_or_default()
+<a href=#2378 id=2378 data-nosnippet>2378</a>        };
+<a href=#2379 id=2379 data-nosnippet>2379</a>
+<a href=#2380 id=2380 data-nosnippet>2380</a>        <span class="kw">let </span><span class="kw-2">mut </span>formatter = Formatter::with_config(config);
+<a href=#2381 id=2381 data-nosnippet>2381</a>
+<a href=#2382 id=2382 data-nosnippet>2382</a>        <span class="comment">// Read input file
+<a href=#2383 id=2383 data-nosnippet>2383</a>        </span><span class="kw">let </span>source = fs::read_to_string(input_path).map_err(|e| {
+<a href=#2384 id=2384 data-nosnippet>2384</a>            Error::Internal(<span class="macro">format!</span>(<span class="string">"Failed to read {}: {}"</span>, input_path.display(), e))
+<a href=#2385 id=2385 data-nosnippet>2385</a>        })<span class="question-mark">?</span>;
+<a href=#2386 id=2386 data-nosnippet>2386</a>
+<a href=#2387 id=2387 data-nosnippet>2387</a>        <span class="comment">// Format the source
+<a href=#2388 id=2388 data-nosnippet>2388</a>        </span><span class="kw">let </span>formatted = formatter.format_source(<span class="kw-2">&amp;</span>source).map_err(|e| {
+<a href=#2389 id=2389 data-nosnippet>2389</a>            Error::Internal(<span class="macro">format!</span>(<span class="string">"Failed to format {}: {}"</span>, input_path.display(), e))
+<a href=#2390 id=2390 data-nosnippet>2390</a>        })<span class="question-mark">?</span>;
+<a href=#2391 id=2391 data-nosnippet>2391</a>
+<a href=#2392 id=2392 data-nosnippet>2392</a>        <span class="kw">if </span>check {
+<a href=#2393 id=2393 data-nosnippet>2393</a>            <span class="comment">// Check mode: verify if formatted
+<a href=#2394 id=2394 data-nosnippet>2394</a>            </span><span class="kw">if </span>source.trim() == formatted.trim() {
+<a href=#2395 id=2395 data-nosnippet>2395</a>                <span class="macro">println!</span>(<span class="string">"✓ {} is properly formatted"</span>, input_path.display());
+<a href=#2396 id=2396 data-nosnippet>2396</a>            } <span class="kw">else </span>{
+<a href=#2397 id=2397 data-nosnippet>2397</a>                <span class="macro">println!</span>(<span class="string">"✗ {} is not properly formatted"</span>, input_path.display());
+<a href=#2398 id=2398 data-nosnippet>2398</a>                all_formatted = <span class="bool-val">false</span>;
+<a href=#2399 id=2399 data-nosnippet>2399</a>            }
+<a href=#2400 id=2400 data-nosnippet>2400</a>        } <span class="kw">else if </span>dry_run {
+<a href=#2401 id=2401 data-nosnippet>2401</a>            <span class="comment">// Dry run: show what would be done
+<a href=#2402 id=2402 data-nosnippet>2402</a>            </span><span class="macro">println!</span>(<span class="string">"Would format: {}"</span>, input_path.display());
+<a href=#2403 id=2403 data-nosnippet>2403</a>            <span class="kw">if </span>source.trim() != formatted.trim() {
+<a href=#2404 id=2404 data-nosnippet>2404</a>                <span class="macro">println!</span>(<span class="string">"  Changes detected"</span>);
+<a href=#2405 id=2405 data-nosnippet>2405</a>            } <span class="kw">else </span>{
+<a href=#2406 id=2406 data-nosnippet>2406</a>                <span class="macro">println!</span>(<span class="string">"  No changes needed"</span>);
+<a href=#2407 id=2407 data-nosnippet>2407</a>            }
+<a href=#2408 id=2408 data-nosnippet>2408</a>        } <span class="kw">else </span>{
+<a href=#2409 id=2409 data-nosnippet>2409</a>            <span class="comment">// Apply formatting
+<a href=#2410 id=2410 data-nosnippet>2410</a>            </span><span class="kw">if let </span><span class="prelude-val">Some</span>(out_path) = output {
+<a href=#2411 id=2411 data-nosnippet>2411</a>                <span class="comment">// Write to specified output file
+<a href=#2412 id=2412 data-nosnippet>2412</a>                </span>fs::write(out_path, <span class="kw-2">&amp;</span>formatted).map_err(|e| {
+<a href=#2413 id=2413 data-nosnippet>2413</a>                    Error::Internal(<span class="macro">format!</span>(<span class="string">"Failed to write {}: {}"</span>, out_path.display(), e))
+<a href=#2414 id=2414 data-nosnippet>2414</a>                })<span class="question-mark">?</span>;
+<a href=#2415 id=2415 data-nosnippet>2415</a>                <span class="macro">println!</span>(
+<a href=#2416 id=2416 data-nosnippet>2416</a>                    <span class="string">"✓ Formatted {} -&gt; {}"</span>,
+<a href=#2417 id=2417 data-nosnippet>2417</a>                    input_path.display(),
+<a href=#2418 id=2418 data-nosnippet>2418</a>                    out_path.display()
+<a href=#2419 id=2419 data-nosnippet>2419</a>                );
+<a href=#2420 id=2420 data-nosnippet>2420</a>            } <span class="kw">else </span>{
+<a href=#2421 id=2421 data-nosnippet>2421</a>                <span class="comment">// Write in-place
+<a href=#2422 id=2422 data-nosnippet>2422</a>                </span>fs::write(input_path, <span class="kw-2">&amp;</span>formatted).map_err(|e| {
+<a href=#2423 id=2423 data-nosnippet>2423</a>                    Error::Internal(<span class="macro">format!</span>(<span class="string">"Failed to write {}: {}"</span>, input_path.display(), e))
+<a href=#2424 id=2424 data-nosnippet>2424</a>                })<span class="question-mark">?</span>;
+<a href=#2425 id=2425 data-nosnippet>2425</a>                <span class="macro">println!</span>(<span class="string">"✓ Formatted {}"</span>, input_path.display());
+<a href=#2426 id=2426 data-nosnippet>2426</a>            }
+<a href=#2427 id=2427 data-nosnippet>2427</a>        }
+<a href=#2428 id=2428 data-nosnippet>2428</a>    }
+<a href=#2429 id=2429 data-nosnippet>2429</a>
+<a href=#2430 id=2430 data-nosnippet>2430</a>    <span class="comment">// If check mode and any file not formatted, return error
+<a href=#2431 id=2431 data-nosnippet>2431</a>    </span><span class="kw">if </span>check &amp;&amp; !all_formatted {
+<a href=#2432 id=2432 data-nosnippet>2432</a>        <span class="kw">return </span><span class="prelude-val">Err</span>(Error::Internal(
+<a href=#2433 id=2433 data-nosnippet>2433</a>            <span class="string">"Files are not properly formatted. Run without --check to fix."</span>.to_string(),
+<a href=#2434 id=2434 data-nosnippet>2434</a>        ));
+<a href=#2435 id=2435 data-nosnippet>2435</a>    }
+<a href=#2436 id=2436 data-nosnippet>2436</a>
+<a href=#2437 id=2437 data-nosnippet>2437</a>    <span class="prelude-val">Ok</span>(())
+<a href=#2438 id=2438 data-nosnippet>2438</a>}</code></pre></div></section></main></body></html>
