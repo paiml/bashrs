@@ -20,8 +20,9 @@ use once_cell::sync::Lazy;
 use regex::Regex;
 
 static DOUBLE_DOLLAR_VAR: Lazy<Regex> = Lazy::new(|| {
-    // Match: $$var (not $$ alone, which is PID)
-    Regex::new(r"\$\$[a-zA-Z_][a-zA-Z0-9_]*").unwrap()
+    // Match: $$var or $${var} (not $$ alone, which is PID)
+    // (\{[a-zA-Z_][a-zA-Z0-9_]*\}|[a-zA-Z_][a-zA-Z0-9_]*) handles both forms
+    Regex::new(r"\$\$(\{[a-zA-Z_][a-zA-Z0-9_]*\}|[a-zA-Z_][a-zA-Z0-9_]*)").unwrap()
 });
 
 pub fn check(source: &str) -> LintResult {
@@ -126,10 +127,10 @@ mod tests {
     }
 
     #[test]
-    #[ignore] // TODO: Handle braced variables after $$
     fn test_sc2082_braced() {
         let code = r#"value=$${var}"#;
         let result = check(code);
+        // Regex now handles both $$var and $${var} syntax
         assert_eq!(result.diagnostics.len(), 1);
     }
 }
