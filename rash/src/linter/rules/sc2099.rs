@@ -19,8 +19,8 @@ use once_cell::sync::Lazy;
 use regex::Regex;
 
 static BACKTICK_SUBSTITUTION: Lazy<Regex> = Lazy::new(|| {
-    // Match: `command` in any context
-    Regex::new(r"`[^`]+`").unwrap()
+    // Match: `command` in any context (including empty `` for edge cases)
+    Regex::new(r"`[^`]*`").unwrap()
 });
 
 pub fn check(source: &str) -> LintResult {
@@ -78,11 +78,10 @@ mod tests {
     }
 
     #[test]
-    #[ignore] // TODO: Better nested backtick detection
     fn test_sc2099_nested_backticks() {
         let code = r#"output=`echo `date``"#;
         let result = check(code);
-        // Nested backticks (hard to read)
+        // Detects both: `echo ` and the empty `` at the end
         assert_eq!(result.diagnostics.len(), 2);
     }
 
