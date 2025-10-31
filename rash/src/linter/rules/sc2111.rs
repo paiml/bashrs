@@ -23,6 +23,33 @@ static FUNCTION_KEYWORD: Lazy<Regex> = Lazy::new(|| {
     Regex::new(r"\bfunction\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*(\(\))?\s*\{").unwrap()
 });
 
+/// Check if a position in the line is inside single or double quotes
+fn is_inside_quotes(line: &str, pos: usize) -> bool {
+    let mut in_single_quote = false;
+    let mut in_double_quote = false;
+    let mut escape_next = false;
+
+    for (i, ch) in line.chars().enumerate() {
+        if i >= pos {
+            break;
+        }
+
+        if escape_next {
+            escape_next = false;
+            continue;
+        }
+
+        match ch {
+            '\\' => escape_next = true,
+            '\'' if !in_double_quote => in_single_quote = !in_single_quote,
+            '"' if !in_single_quote => in_double_quote = !in_double_quote,
+            _ => {}
+        }
+    }
+
+    in_single_quote || in_double_quote
+}
+
 pub fn check(source: &str) -> LintResult {
     let mut result = LintResult::new();
 
@@ -34,6 +61,11 @@ pub fn check(source: &str) -> LintResult {
         }
 
         for mat in FUNCTION_KEYWORD.find_iter(line) {
+            // Skip if inside quotes (string literal, not actual function definition)
+            if is_inside_quotes(line, mat.start()) {
+                continue;
+            }
+
             let start_col = mat.start() + 1;
             let end_col = mat.end() + 1;
 
@@ -119,7 +151,6 @@ function process_file {
     }
 
     #[test]
-    #[ignore] // TODO: Skip function keyword inside strings (complex quote context)
     fn test_sc2111_in_string_ok() {
         let code = r#"echo "function foo { echo test; }""#;
         let result = check(code);
