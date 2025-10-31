@@ -1059,50 +1059,65 @@ phases:
               - "Mutation score ≥90%"
 
       - sprint: "REPL-014"
-        name: "ShellCheck Integration"
+        name: "Purified Output Validation"
         status: "PENDING"
-        duration: "2 weeks"
+        duration: "1 week"
+        note: "Use bashrs's own linter (355+ rules) instead of external shellcheck"
         tasks:
           - id: "REPL-014-001"
-            title: "Auto-run shellcheck on purified output"
-            status: "pending"
+            title: "Auto-run bashrs linter on purified output"
+            status: "completed"
+            note: "Validate purified bash with DET/IDEM/SEC/SC rules using bashrs's 355+ linter"
             tests:
               unit:
-                - "test_REPL_014_001_shellcheck_passes"
-                - "test_REPL_014_001_shellcheck_fails"
+                - "test_REPL_014_001_purify_and_lint_mkdir"
+                - "test_REPL_014_001_purify_and_lint_random"
+                - "test_REPL_014_001_lint_result_structure"
+                - "test_REPL_014_001_violation_helpers"
+                - "test_REPL_014_001_is_clean_flag"
+                - "test_REPL_014_001_format_result"
               integration:
-                - "test_REPL_014_001_shellcheck_cli"
+                - "test_REPL_014_001_purify_and_lint_integration"
+              property:
+                - "prop_purified_always_clean"
+                - "prop_purify_and_lint_never_panics"
 
           - id: "REPL-014-002"
-            title: "Parse shellcheck warnings"
+            title: "Zero-tolerance quality gate for purified output"
             status: "pending"
             dependencies: ["REPL-014-001"]
+            note: "Purified output must pass all DET/IDEM/SEC rules"
             tests:
               unit:
-                - "test_REPL_014_002_parse_warning"
-                - "test_REPL_014_002_parse_error"
+                - "test_REPL_014_002_zero_det_issues"
+                - "test_REPL_014_002_zero_idem_issues"
+                - "test_REPL_014_002_zero_sec_issues"
+              property:
+                - "prop_purified_always_passes_linter"
 
           - id: "REPL-014-003"
-            title: "Display in bashrs format"
+            title: "Display lint violations in REPL context"
             status: "pending"
             dependencies: ["REPL-014-002"]
+            note: "Show violations with line numbers and fix suggestions"
             tests:
               unit:
-                - "test_REPL_014_003_format_warning"
-                - "test_REPL_014_003_format_error"
+                - "test_REPL_014_003_format_violation"
+                - "test_REPL_014_003_show_line_context"
+                - "test_REPL_014_003_suggest_fix"
 
         milestones:
-          - name: "POSIX compliance verification"
+          - name: "Quality verification with bashrs linter"
             criteria:
-              - "ShellCheck integration working"
-              - "Warning parsing working"
-              - "bashrs-formatted display"
+              - "Purified output validated with 355+ bashrs rules"
+              - "Zero DET/IDEM/SEC violations guaranteed"
+              - "Lint results displayed in REPL"
               - ">85% coverage"
               - "Mutation score ≥90%"
 
         deliverables:
-          - "Full safety verification suite"
-          - "rash/src/analysis/ module (determinism, idempotency, explainer)"
+          - "Zero-defect purified output (validated by bashrs linter)"
+          - "Full quality verification suite (DET, IDEM, SEC, SC, MAKE rules)"
           - "rash/tests/analysis/ test suite (40+ tests)"
           - "Property tests (20+ generators)"
           - "ShellCheck integration"
