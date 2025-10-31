@@ -244,7 +244,7 @@ impl Completer for ReplCompleter {
         let line_before_cursor = &line[..pos];
 
         // Complete REPL commands (lines starting with :)
-        if line_before_cursor.starts_with(':') {
+        if let Some(after_colon) = line_before_cursor.strip_prefix(':') {
             // Check if we're completing a file path after `:load ` or `:source `
             if line_before_cursor.starts_with(":load ") {
                 let path_start = 6; // Position after ":load "
@@ -269,8 +269,7 @@ impl Completer for ReplCompleter {
             }
 
             // Complete the command itself
-            let word = &line_before_cursor[1..]; // Skip the ':'
-            let completions = self.complete_command(word);
+            let completions = self.complete_command(after_colon);
             return Ok((0, completions));
         }
 
