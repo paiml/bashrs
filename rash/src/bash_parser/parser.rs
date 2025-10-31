@@ -294,20 +294,15 @@ impl BashParser {
 
             // Parse patterns (can be multiple patterns separated by |)
             let mut patterns = Vec::new();
-            loop {
-                if let Some(Token::Identifier(pat)) | Some(Token::String(pat)) = self.peek() {
-                    patterns.push(pat.clone());
-                    self.advance();
-                } else {
-                    break;
-                }
+            while let Some(Token::Identifier(pat)) | Some(Token::String(pat)) = self.peek() {
+                patterns.push(pat.clone());
+                self.advance();
 
                 // Check for | (alternative pattern)
-                if self.check(&Token::Pipe) {
-                    self.advance();
-                } else {
+                if !self.check(&Token::Pipe) {
                     break;
                 }
+                self.advance();
             }
 
             // Expect )

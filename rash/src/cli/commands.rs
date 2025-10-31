@@ -1492,7 +1492,13 @@ fn print_json_test_results(report: &crate::bash_quality::testing::TestReport) {
         }
     });
 
-    println!("{}", serde_json::to_string_pretty(&json_report).expect("JSON serialization should not fail"));
+    match serde_json::to_string_pretty(&json_report) {
+        Ok(json) => println!("{}", json),
+        Err(e) => {
+            eprintln!("Error serializing JSON: {}", e);
+            std::process::exit(1);
+        }
+    }
 }
 
 /// Print JUnit XML test results
@@ -1617,7 +1623,13 @@ fn print_json_score_results(score: &crate::bash_quality::scoring::QualityScore) 
         "suggestions": score.suggestions,
     });
 
-    println!("{}", serde_json::to_string_pretty(&json_score).expect("JSON serialization should not fail"));
+    match serde_json::to_string_pretty(&json_score) {
+        Ok(json) => println!("{}", json),
+        Err(e) => {
+            eprintln!("Error serializing JSON: {}", e);
+            std::process::exit(1);
+        }
+    }
 }
 
 /// Print Markdown score results
@@ -1996,7 +2008,13 @@ fn print_json_audit_results(results: &AuditResults) {
         }
     });
 
-    println!("{}", serde_json::to_string_pretty(&json_results).expect("JSON serialization should not fail"));
+    match serde_json::to_string_pretty(&json_results) {
+        Ok(json) => println!("{}", json),
+        Err(e) => {
+            eprintln!("Error serializing JSON: {}", e);
+            std::process::exit(1);
+        }
+    }
 }
 
 /// Print SARIF audit results (GitHub Code Scanning format)
@@ -2076,7 +2094,13 @@ fn print_sarif_audit_results(results: &AuditResults, input: &Path) {
         }]
     });
 
-    println!("{}", serde_json::to_string_pretty(&sarif).expect("JSON serialization should not fail"));
+    match serde_json::to_string_pretty(&sarif) {
+        Ok(json) => println!("{}", json),
+        Err(e) => {
+            eprintln!("Error serializing JSON: {}", e);
+            std::process::exit(1);
+        }
+    }
 }
 
 // ============================================================================
@@ -2239,7 +2263,13 @@ fn print_json_coverage(coverage: &crate::bash_quality::coverage::CoverageReport)
         }
     });
 
-    println!("{}", serde_json::to_string_pretty(&json_coverage).expect("JSON serialization should not fail"));
+    match serde_json::to_string_pretty(&json_coverage) {
+        Ok(json) => println!("{}", json),
+        Err(e) => {
+            eprintln!("Error serializing JSON: {}", e);
+            std::process::exit(1);
+        }
+    }
 }
 
 /// Print HTML coverage output
