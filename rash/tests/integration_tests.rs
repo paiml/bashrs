@@ -732,7 +732,6 @@ fn echo(msg: &str) {}
 /// Test positional parameters via std::env::args()
 /// Expected to FAIL until implementation is complete
 #[test]
-#[ignore] // Remove this once implementation starts
 fn test_positional_parameters_basic() {
     let source = r#"
 fn main() {
@@ -770,7 +769,6 @@ fn echo(msg: &str) {}
 /// P0-POSITIONAL-PARAMETERS: RED Phase
 /// Test multiple positional parameters
 #[test]
-#[ignore] // Remove this once implementation starts
 fn test_positional_parameters_multiple() {
     let source = r#"
 fn main() {
@@ -798,7 +796,6 @@ fn echo(msg: &str) {}
 /// P0-POSITIONAL-PARAMETERS: RED Phase
 /// Test positional parameters with execution
 #[test]
-#[ignore] // Remove this once implementation starts
 fn test_positional_parameters_execution() {
     let source = r#"
 fn main() {
