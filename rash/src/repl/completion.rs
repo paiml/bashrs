@@ -12,12 +12,14 @@
 
 use rustyline::completion::{Completer, Pair};
 use rustyline::error::ReadlineError;
-use rustyline::highlight::Highlighter;
+use rustyline::highlight::{Highlighter, CmdKind};
 use rustyline::hint::Hinter;
 use rustyline::validate::Validator;
 use rustyline::{Context, Helper};
+use std::borrow::Cow;
 use std::fs;
 use std::path::Path;
+use crate::repl::highlighting::highlight_bash;
 
 /// Tab completion helper for bashrs REPL
 ///
@@ -290,7 +292,39 @@ impl Hinter for ReplCompleter {
     type Hint = String;
 }
 
-impl Highlighter for ReplCompleter {}
+impl Highlighter for ReplCompleter {
+    /// Apply syntax highlighting to bash input
+    ///
+    /// Highlights keywords, strings, variables, commands, operators, and comments
+    /// using ANSI color codes for terminal display.
+    ///
+    /// # Arguments
+    ///
+    /// * `line` - The input line to highlight
+    /// * `_pos` - Cursor position (unused, required by trait)
+    ///
+    /// # Returns
+    ///
+    /// A `Cow::Owned` string with ANSI color codes applied
+    fn highlight<'l>(&self, line: &'l str, _pos: usize) -> Cow<'l, str> {
+        // Apply syntax highlighting from highlighting module
+        Cow::Owned(highlight_bash(line))
+    }
+
+    /// Enable character-by-character highlighting
+    ///
+    /// Returns true to enable live syntax highlighting as the user types.
+    ///
+    /// # Arguments
+    ///
+    /// * `_line` - The current input line (unused)
+    /// * `_pos` - Cursor position (unused)
+    /// * `_kind` - Command kind (unused, but required by trait)
+    fn highlight_char(&self, _line: &str, _pos: usize, _kind: CmdKind) -> bool {
+        // Enable live highlighting
+        true
+    }
+}
 
 impl Validator for ReplCompleter {}
 
@@ -615,5 +649,99 @@ mod tests {
 
         // Should return empty vector for nonexistent directories
         assert_eq!(completions.len(), 0);
+    }
+
+    // ===== REPL-015-002-INT: Syntax Highlighting Integration Tests =====
+
+    /// Test: REPL-015-002-INT-001 - Highlighter integration basic
+    #[test]
+    fn test_REPL_015_002_INT_001_highlighter_basic() {
+        use crate::repl::highlighting::strip_ansi_codes;
+
+        let completer = ReplCompleter::new();
+
+        let input = "echo hello";
+        let highlighted = completer.highlight(input, 0);
+
+        // Should contain ANSI codes
+        assert!(highlighted.contains("\x1b["));
+
+        // Should preserve original text when stripped
+        let stripped = strip_ansi_codes(&highlighted);
+        assert_eq!(stripped, input);
+    }
+
+    /// Test: REPL-015-002-INT-002 - Highlight with variables
+    #[test]
+    fn test_REPL_015_002_INT_002_highlight_variables() {
+        let completer = ReplCompleter::new();
+
+        let input = "echo $HOME";
+        let highlighted = completer.highlight(input, 0);
+
+        // Should highlight 'echo' as command (cyan)
+        assert!(highlighted.contains("\x1b[36mecho\x1b[0m"));
+
+        // Should highlight '$HOME' as variable (yellow)
+        assert!(highlighted.contains("\x1b[33m$HOME\x1b[0m"));
+    }
+
+    /// Test: REPL-015-002-INT-003 - Highlight with keywords
+    #[test]
+    fn test_REPL_015_002_INT_003_highlight_keywords() {
+        let completer = ReplCompleter::new();
+
+        let input = "if [ -f test ]; then echo found; fi";
+        let highlighted = completer.highlight(input, 0);
+
+        // Should highlight keywords (blue)
+        assert!(highlighted.contains("\x1b[1;34mif\x1b[0m"));
+        assert!(highlighted.contains("\x1b[1;34mthen\x1b[0m"));
+        assert!(highlighted.contains("\x1b[1;34mfi\x1b[0m"));
+    }
+
+    /// Test: REPL-015-002-INT-004 - Highlight multiline input
+    #[test]
+    fn test_REPL_015_002_INT_004_highlight_multiline() {
+        let completer = ReplCompleter::new();
+
+        let input = "for i in 1 2 3\ndo echo $i\ndone";
+        let highlighted = completer.highlight(input, 0);
+
+        // Should highlight keywords across lines
+        assert!(highlighted.contains("\x1b[1;34mfor\x1b[0m"));
+        assert!(highlighted.contains("\x1b[1;34mdo\x1b[0m"));
+        assert!(highlighted.contains("\x1b[1;34mdone\x1b[0m"));
+
+        // Should highlight variable
+        assert!(highlighted.contains("\x1b[33m$i\x1b[0m"));
+    }
+
+    /// Test: REPL-015-002-INT-005 - Empty input
+    #[test]
+    fn test_REPL_015_002_INT_005_empty_input() {
+        let completer = ReplCompleter::new();
+
+        let highlighted = completer.highlight("", 0);
+
+        // Should handle empty input gracefully
+        assert_eq!(highlighted.as_ref(), "");
+    }
+
+    /// Test: REPL-015-002-INT-006 - Special characters
+    #[test]
+    fn test_REPL_015_002_INT_006_special_characters() {
+        let completer = ReplCompleter::new();
+
+        let input = "echo \"test\" | grep 'pattern' && exit 0";
+        let highlighted = completer.highlight(input, 0);
+
+        // Should highlight strings (green)
+        assert!(highlighted.contains("\x1b[32m\"test\"\x1b[0m"));
+        assert!(highlighted.contains("\x1b[32m'pattern'\x1b[0m"));
+
+        // Should highlight operators (magenta)
+        assert!(highlighted.contains("\x1b[35m|\x1b[0m"));
+        assert!(highlighted.contains("\x1b[35m&&\x1b[0m"));
     }
 }
