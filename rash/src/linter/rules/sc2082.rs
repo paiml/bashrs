@@ -36,6 +36,15 @@ pub fn check(source: &str) -> LintResult {
         }
 
         for mat in DOUBLE_DOLLAR_VAR.find_iter(line) {
+            // Skip if preceded by backslash (escaped $$)
+            // eval "value=\$$var" is correct - backslash escapes first $
+            if mat.start() > 0 {
+                let prev_char = line.chars().nth(mat.start() - 1);
+                if prev_char == Some('\\') {
+                    continue;
+                }
+            }
+
             let start_col = mat.start() + 1;
             let end_col = mat.end() + 1;
 
@@ -89,7 +98,6 @@ mod tests {
     }
 
     #[test]
-    #[ignore] // TODO: Don't flag escaped $$ in eval
     fn test_sc2082_eval_ok() {
         let code = r#"eval "value=\$$var""#;
         let result = check(code);
