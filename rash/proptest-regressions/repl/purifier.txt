@@ -6,3 +6,4 @@
 # everyone who runs the test benefits from these saved cases.
 cc af667b640a949e29833a5fafa24acffe8eaa7ee5eb9762ac8e1e65ae5fe3180a # shrinks to title = "mkdir"
 cc addb76b3278e69c3f51aaf2f944ec0dd08a5212ab8e678684f1918bced6d93ab # shrinks to input = "'\0'#"
+cc 9da9b0e1bb8a8802fcc46875789592baec527bd9f9055d127ef8f4065df4e781 # shrinks to input = "rm$a"
