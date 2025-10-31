@@ -181,6 +181,61 @@ pub fn format_purified_lint_result(result: &PurifiedLintResult) -> String {
     output
 }
 
+/// Format purified lint result with source code context (REPL-014-003)
+///
+/// This is an enhanced version of `format_purified_lint_result()` that shows
+/// source code context for each violation.
+///
+/// # Examples
+///
+/// ```no_run
+/// use bashrs::repl::purifier::format_purified_lint_result_with_context;
+///
+/// let input = "echo $RANDOM";
+/// let result = purify_and_lint(input).unwrap();
+/// let formatted = format_purified_lint_result_with_context(&result, input);
+/// ```
+pub fn format_purified_lint_result_with_context(
+    result: &PurifiedLintResult,
+    _original_source: &str,
+) -> String {
+    let mut output = String::new();
+
+    // Show purified code
+    output.push_str("Purified:\n");
+    output.push_str(&result.purified_code);
+    output.push_str("\n\n");
+
+    // Show lint results
+    if result.is_clean {
+        output.push_str("✓ Purified output is CLEAN (no DET/IDEM/SEC violations)\n");
+    } else {
+        output.push_str(&format!(
+            "✗ Purified output has {} critical violation(s)\n",
+            result.critical_violations()
+        ));
+
+        if !result.det_violations().is_empty() {
+            output.push_str(&format!("  DET: {}\n", result.det_violations().len()));
+        }
+        if !result.idem_violations().is_empty() {
+            output.push_str(&format!("  IDEM: {}\n", result.idem_violations().len()));
+        }
+        if !result.sec_violations().is_empty() {
+            output.push_str(&format!("  SEC: {}\n", result.sec_violations().len()));
+        }
+
+        // Show violations with context
+        output.push('\n');
+        output.push_str(&crate::repl::linter::format_violations_with_context(
+            &result.lint_result,
+            &result.purified_code, // Show context from purified code
+        ));
+    }
+
+    output
+}
+
 /// Error returned when purified output fails zero-tolerance quality gate
 #[derive(Debug, Clone)]
 pub struct PurificationError {
@@ -2309,6 +2364,52 @@ mod purify_and_validate_property_tests {
                 // The guarantee is: validated output is clean IF it can be linted
             }
             // If validation fails, that's acceptable - not all inputs can be purified
+        }
+    }
+}
+
+// ===== REPL-014-003: DISPLAY VIOLATIONS IN REPL CONTEXT (RED PHASE) =====
+
+#[cfg(test)]
+mod format_violations_with_context_tests {
+    use super::*;
+
+    /// Integration Test: REPL-014-003 - Full workflow with purify and format
+    #[test]
+    fn test_REPL_014_003_integration_purify_and_format() {
+        let messy_bash = r#"
+mkdir /app/releases
+echo $RANDOM
+rm /tmp/old
+"#;
+
+        // Purify and lint
+        let result = purify_and_lint(messy_bash);
+
+        if let Ok(purified_result) = result {
+            // Format with context
+            let formatted =
+                format_purified_lint_result_with_context(&purified_result, messy_bash);
+
+            // Should show purified code
+            assert!(formatted.contains("Purified:"));
+
+            // If there are violations, should show context
+            if !purified_result.is_clean {
+                // Should show line numbers and context
+                assert!(formatted.contains("|"));
+
+                // Should show violation codes
+                let has_det = !purified_result.det_violations().is_empty();
+                let has_idem = !purified_result.idem_violations().is_empty();
+
+                if has_det {
+                    assert!(formatted.contains("DET"));
+                }
+                if has_idem {
+                    assert!(formatted.contains("IDEM"));
+                }
+            }
         }
     }
 }

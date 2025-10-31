@@ -1099,7 +1099,7 @@ phases:
 
           - id: "REPL-014-003"
             title: "Display lint violations in REPL context"
-            status: "pending"
+            status: "completed"
             dependencies: ["REPL-014-002"]
             note: "Show violations with line numbers and fix suggestions"
             tests:
