@@ -5,8 +5,9 @@ use once_cell::sync::Lazy;
 use regex::Regex;
 
 static GREP_UNQUOTED: Lazy<Regex> = Lazy::new(|| {
-    // Match grep followed by a pattern with glob chars
-    Regex::new(r"\bgrep\s+\S*[\*\?\[]").unwrap()
+    // Match grep followed by optional flags, then a pattern with glob chars
+    // (?:\s+-\S+)* handles flags like -r, -i, --recursive, etc.
+    Regex::new(r"\bgrep(?:\s+-\S+)*\s+\S*[\*\?\[]").unwrap()
 });
 
 pub fn check(source: &str) -> LintResult {
@@ -96,10 +97,10 @@ mod tests {
     }
 
     #[test]
-    #[ignore] // TODO: Fix detection with flags
     fn test_sc2062_with_flags() {
         let code = r#"grep -r *.log ."#;
         let result = check(code);
+        // Regex now handles optional flags before pattern
         assert_eq!(result.diagnostics.len(), 1); // Has glob, should warn
     }
 
