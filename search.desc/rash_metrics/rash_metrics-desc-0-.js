@@ -1,1 +1,0 @@
-searchState.loadedDescShard("rash_metrics", 0, "")

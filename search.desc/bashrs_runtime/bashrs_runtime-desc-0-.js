@@ -1,1 +1,0 @@
-searchState.loadedDescShard("bashrs_runtime", 0, "Embedded Rash runtime library")

@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"fn":["format_lint_results","lint_bash"]};
+window.SIDEBAR_ITEMS = {"fn":["format_lint_results","format_violations_with_context","lint_bash"]};

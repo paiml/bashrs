@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":["ErrorType","Severity"],"fn":["format_command_error","format_error","format_lint_error","format_parse_error","format_source_context","levenshtein_distance","suggest_command"],"struct":["ErrorMessage","SourceContext","Suggestion"]};

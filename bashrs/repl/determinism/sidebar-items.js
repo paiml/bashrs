@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":["NonDeterministicPattern","NonIdempotentOperation"],"fn":["format_idempotency_report","format_replay_diff"],"struct":["DeterminismChecker","DeterminismIssue","IdempotencyChecker","IdempotencyIssue","IdempotencyResult","IdempotencyVerifier","OutputDifference","ReplayResult","ReplayVerifier","RunOutput"]};

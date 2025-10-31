@@ -1,1 +1,0 @@
-searchState.loadedDescShard("quality_dashboard", 0, "")

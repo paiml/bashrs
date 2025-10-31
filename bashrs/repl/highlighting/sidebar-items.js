@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":["TokenType"],"fn":["highlight_bash","highlight_token","is_keyword","strip_ansi_codes","tokenize"],"mod":["colors"],"struct":["Token"]};
