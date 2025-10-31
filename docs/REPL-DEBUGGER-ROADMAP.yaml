@@ -1035,14 +1035,19 @@ phases:
 
           - id: "REPL-013-003"
             title: "Alternative suggestions"
-            status: "pending"
+            status: "completed"
             dependencies: ["REPL-013-001"]
             tests:
               unit:
                 - "test_REPL_013_003_alternatives_mkdir"
                 - "test_REPL_013_003_alternatives_random"
+                - "test_REPL_013_003_alternatives_quoting"
+                - "test_REPL_013_003_alternative_builder"
+                - "test_REPL_013_003_format_alternatives"
+                - "test_REPL_013_003_explanation_with_alternatives"
               property:
                 - "prop_alternatives_always_provided"
+                - "prop_format_never_panics"
 
         milestones:
           - name: "Explain all purification decisions"

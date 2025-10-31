@@ -43,7 +43,7 @@ pub use modes::ReplMode;
 pub use parser::{format_parse_error, parse_bash};
 pub use purifier::{
     explain_purification_changes, explain_purification_changes_detailed, format_transformation_report,
-    purify_bash, SafetyRationale, SafetySeverity, TransformationCategory,
+    purify_bash, Alternative, SafetyRationale, SafetySeverity, TransformationCategory,
     TransformationExplanation,
 };
 pub use r#loop::run_repl;
