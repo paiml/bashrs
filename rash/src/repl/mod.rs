@@ -13,6 +13,7 @@ pub mod config;
 pub mod debugger;
 pub mod determinism;
 pub mod diff;
+pub mod errors;
 pub mod executor;
 pub mod explain;
 pub mod help;
@@ -37,6 +38,10 @@ pub use determinism::{
     ReplayVerifier, RunOutput,
 };
 pub use diff::display_diff;
+pub use errors::{
+    format_command_error, format_error, format_lint_error, format_source_context,
+    suggest_command, ErrorMessage, ErrorType, Severity, SourceContext, Suggestion,
+};
 pub use explain::{explain_bash, Explanation};
 pub use linter::{format_lint_results, format_violations_with_context, lint_bash};
 pub use modes::ReplMode;
