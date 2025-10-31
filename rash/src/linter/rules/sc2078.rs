@@ -129,11 +129,10 @@ mod tests {
     }
 
     #[test]
-    #[ignore] // TODO: Extend regex to handle [[ ]] as well
     fn test_sc2078_double_bracket() {
         let code = r#"[[ count -gt 5 ]]"#;
         let result = check(code);
-        // Should also detect in [[ ]]
+        // Regex pattern handles [[ ]] correctly
         assert_eq!(result.diagnostics.len(), 1);
     }
 
