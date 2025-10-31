@@ -134,27 +134,28 @@ pub fn format_violations_with_context(result: &LintResult, source: &str) -> Stri
             if i < lines.len() {
                 let line_num = i + 1;
                 let prefix = if i == line_idx { ">" } else { " " };
-                output.push_str(&format!(
-                    "{} {:>width$} | {}\n",
-                    prefix,
-                    line_num,
-                    lines[i],
-                    width = line_num_width
-                ));
+                if let Some(line) = lines.get(i) {
+                    output.push_str(&format!(
+                        "{} {:>width$} | {}\n",
+                        prefix,
+                        line_num,
+                        line,
+                        width = line_num_width
+                    ));
 
-                // Show indicator on the problematic line
-                if i == line_idx {
-                    let col = diagnostic.span.start_col.saturating_sub(1);
-                    let indicator_width = if diagnostic.span.end_line == diagnostic.span.start_line
-                    {
-                        diagnostic
-                            .span
-                            .end_col
-                            .saturating_sub(diagnostic.span.start_col)
-                            .max(1)
-                    } else {
-                        lines[i].len().saturating_sub(col).max(1)
-                    };
+                    // Show indicator on the problematic line
+                    if i == line_idx {
+                        let col = diagnostic.span.start_col.saturating_sub(1);
+                        let indicator_width = if diagnostic.span.end_line == diagnostic.span.start_line
+                        {
+                            diagnostic
+                                .span
+                                .end_col
+                                .saturating_sub(diagnostic.span.start_col)
+                                .max(1)
+                        } else {
+                            line.len().saturating_sub(col).max(1)
+                        };
 
                     output.push_str(&format!(
                         "  {:>width$} | {}{} {} [{}]: {}\n",
@@ -166,6 +167,7 @@ pub fn format_violations_with_context(result: &LintResult, source: &str) -> Stri
                         diagnostic.message,
                         width = line_num_width
                     ));
+                    }
                 }
             }
         }
