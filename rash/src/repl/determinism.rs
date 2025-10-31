@@ -456,7 +456,7 @@ impl ReplayVerifier {
 
         // Compare outputs between first two runs
         let differences = if runs.len() >= 2 {
-            if let (Some(run0), Some(run1)) = (runs.get(0), runs.get(1)) {
+            if let (Some(run0), Some(run1)) = (runs.first(), runs.get(1)) {
                 Self::find_differences(run0, run1)
             } else {
                 Vec::new()
