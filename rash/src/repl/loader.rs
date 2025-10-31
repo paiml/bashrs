@@ -13,6 +13,11 @@ use crate::bash_parser::{BashParser, BashStmt};
 use std::fs;
 use std::path::{Path, PathBuf};
 
+#[cfg(test)]
+use crate::bash_parser::{BashExpr};
+#[cfg(test)]
+use crate::bash_parser::ast::Span;
+
 /// Information about a loaded script
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct LoadedScript {
