@@ -154,6 +154,7 @@ fn analyze_script(source: &str, report: &mut CoverageReport) {
             let func_name = if let Some(idx) = trimmed.find("() {") {
                 trimmed[..idx].trim().to_string()
             } else if trimmed.starts_with("function ") {
+                #[allow(clippy::expect_used)] // Safe: checked by starts_with() above
                 trimmed
                     .strip_prefix("function ")
                     .expect("checked by starts_with")
@@ -203,6 +204,7 @@ fn mark_covered_functions_lines(
             let func_name = if let Some(idx) = trimmed.find("() {") {
                 trimmed[..idx].trim().to_string()
             } else if trimmed.starts_with("function ") {
+                #[allow(clippy::expect_used)] // Safe: checked by starts_with() above
                 trimmed
                     .strip_prefix("function ")
                     .expect("checked by starts_with")

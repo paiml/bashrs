@@ -187,7 +187,7 @@ impl DebugSession {
     /// # Returns
     /// - `Some(output)` if a line was executed
     /// - `None` if execution is finished
-    pub fn next(&mut self) -> Option<String> {
+    pub fn step_over(&mut self) -> Option<String> {
         // Simplified implementation: For now, just call step()
         // Future: Track call depth and skip over function calls
         self.step()
