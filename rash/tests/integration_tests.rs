@@ -540,7 +540,6 @@ fn test_memory_safety() {
 /// Test string parameter expansion with default values ${var:-default}
 /// Expected to FAIL until implementation is complete
 #[test]
-#[ignore] // Remove this once implementation starts
 fn test_string_parameter_expansion_default() {
     let source = r#"
 fn main() {
@@ -577,7 +576,6 @@ fn echo(msg: &str) {}
 /// EXP-PARAM-001: RED Phase
 /// Test environment variable with default value pattern
 #[test]
-#[ignore] // Remove this once implementation starts
 fn test_env_var_with_default() {
     let source = r#"
 fn main() {
@@ -607,7 +605,6 @@ fn echo(msg: &str) {}
 /// EXP-PARAM-001: RED Phase
 /// Test multiple variables with defaults
 #[test]
-#[ignore] // Remove this once implementation starts
 fn test_multiple_defaults() {
     let source = r#"
 fn main() {
