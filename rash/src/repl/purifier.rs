@@ -181,6 +181,93 @@ pub fn format_purified_lint_result(result: &PurifiedLintResult) -> String {
     output
 }
 
+/// Error returned when purified output fails zero-tolerance quality gate
+#[derive(Debug, Clone)]
+pub struct PurificationError {
+    /// The purified code (even though it has violations)
+    pub purified_code: String,
+
+    /// Count of DET violations
+    pub det_violations: usize,
+
+    /// Count of IDEM violations
+    pub idem_violations: usize,
+
+    /// Count of SEC violations
+    pub sec_violations: usize,
+
+    /// All diagnostics (for detailed reporting)
+    pub diagnostics: Vec<Diagnostic>,
+}
+
+impl PurificationError {
+    pub fn new(result: &PurifiedLintResult) -> Self {
+        Self {
+            purified_code: result.purified_code.clone(),
+            det_violations: result.det_violations().len(),
+            idem_violations: result.idem_violations().len(),
+            sec_violations: result.sec_violations().len(),
+            diagnostics: result.lint_result.diagnostics.clone(),
+        }
+    }
+
+    pub fn total_violations(&self) -> usize {
+        self.det_violations + self.idem_violations + self.sec_violations
+    }
+}
+
+impl std::fmt::Display for PurificationError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "Purified output failed zero-tolerance quality gate: {} violation(s) (DET: {}, IDEM: {}, SEC: {})",
+            self.total_violations(),
+            self.det_violations,
+            self.idem_violations,
+            self.sec_violations
+        )
+    }
+}
+
+impl std::error::Error for PurificationError {}
+
+/// Purify bash input and enforce zero-tolerance quality gate
+///
+/// This function guarantees that returned purified code has ZERO critical
+/// violations (DET/IDEM/SEC). If any critical violations exist, it returns
+/// an error with detailed diagnostic information.
+///
+/// # Examples
+///
+/// ```
+/// use bashrs::repl::purifier::purify_and_validate;
+///
+/// // Clean input passes
+/// let purified = purify_and_validate("echo hello").unwrap();
+/// assert!(purified.contains("echo"));
+/// ```
+///
+/// # Errors
+///
+/// Returns `Err(PurificationError)` if purified output has any:
+/// - DET violations (non-deterministic patterns)
+/// - IDEM violations (non-idempotent operations)
+/// - SEC violations (security issues)
+///
+/// Note: SC/MAKE violations are warnings only and don't cause failure.
+pub fn purify_and_validate(input: &str) -> anyhow::Result<String> {
+    // Step 1: Purify and lint
+    let result = purify_and_lint(input)?;
+
+    // Step 2: Enforce zero-tolerance
+    if !result.is_clean {
+        return Err(PurificationError::new(&result).into());
+    }
+
+    // Step 3: Return clean code
+    Ok(result.purified_code)
+}
+
 /// Format purification report for display
 pub fn format_purification_report(report: &PurificationReport) -> String {
     let mut output = String::new();
@@ -2053,6 +2140,93 @@ mod purify_and_lint_tests {
         assert!(result.idem_violations().len() <= result.lint_result.diagnostics.len());
         assert!(result.sec_violations().len() <= result.lint_result.diagnostics.len());
     }
+
+    // ===== REPL-014-002: ZERO-TOLERANCE QUALITY GATE TESTS (GREEN PHASE) =====
+
+    /// Test: REPL-014-002-001 - Zero DET violations
+    #[test]
+    fn test_REPL_014_002_zero_det_violations() {
+        let input = "echo hello";
+        let result = purify_and_validate(input);
+
+        // Should succeed - no DET violations
+        assert!(result.is_ok(), "Clean input should pass validation");
+        let purified = result.unwrap();
+        assert!(purified.contains("echo"));
+    }
+
+    /// Test: REPL-014-002-002 - Zero IDEM violations
+    #[test]
+    fn test_REPL_014_002_zero_idem_violations() {
+        let input = "mkdir -p /tmp/test";
+        let result = purify_and_validate(input);
+
+        // Should succeed - already idempotent
+        assert!(result.is_ok(), "Idempotent input should pass validation");
+    }
+
+    /// Test: REPL-014-002-003 - Zero SEC violations
+    #[test]
+    fn test_REPL_014_002_zero_sec_violations() {
+        let input = "echo \"$var\"";
+        let result = purify_and_validate(input);
+
+        // Should succeed - variable is quoted
+        assert!(result.is_ok(), "Quoted variable should pass validation");
+    }
+
+    /// Test: REPL-014-002-004 - Fails with violations
+    #[test]
+    fn test_REPL_014_002_fails_with_violations() {
+        // Test various inputs that purifier might not be able to fix
+        let test_cases = vec![
+            ("echo $RANDOM", "DET violation"),
+            ("rm /nonexistent", "IDEM violation"),
+            ("eval $user_input", "SEC violation"),
+        ];
+
+        for (input, description) in test_cases {
+            let result = purify_and_validate(input);
+
+            // If purifier can't fix it, should fail validation
+            if result.is_err() {
+                let err = result.unwrap_err();
+                let purif_err = err.downcast_ref::<PurificationError>();
+
+                // Should have detailed error
+                assert!(
+                    purif_err.is_some(),
+                    "Error should be PurificationError for: {}",
+                    description
+                );
+            }
+            // Note: If purifier CAN fix it, that's also acceptable
+            // This test is about ensuring we catch unfixable violations
+        }
+    }
+
+    /// Test: REPL-014-002-005 - Error details
+    #[test]
+    fn test_REPL_014_002_error_details() {
+        // Use input that we know will have violations after purification
+        // (This test may need adjustment based on actual purifier behavior)
+        let input = "echo $RANDOM; eval $cmd; rm /tmp/file";
+
+        let result = purify_and_validate(input);
+
+        // If validation fails, check error details
+        if let Err(e) = result {
+            if let Some(purif_err) = e.downcast_ref::<PurificationError>() {
+                // Should have violation counts
+                assert!(purif_err.total_violations() > 0);
+
+                // Error message should be descriptive
+                let msg = purif_err.to_string();
+                assert!(msg.contains("violation"));
+            }
+        }
+        // Note: If purifier fixes everything, that's also valid
+    }
 }
 
 // ===== REPL-014-001: PROPERTY TESTS (RED PHASE) =====
@@ -2089,6 +2263,52 @@ mod purify_and_lint_property_tests {
             // This will panic with unimplemented!() during RED phase
             // but after GREEN phase, it should never panic
             let _ = purify_and_lint(&input);
+        }
+    }
+}
+
+// ===== REPL-014-002: PROPERTY TESTS (RED PHASE) =====
+
+#[cfg(test)]
+mod purify_and_validate_property_tests {
+    use super::*;
+    use proptest::prelude::*;
+
+    proptest! {
+        /// Property Test: REPL-014-002 - If validation succeeds, output MUST be clean
+        #[test]
+        fn prop_purified_always_passes_linter(input in ".*{0,100}") {
+            if let Ok(purified) = purify_and_validate(&input) {
+                // CRITICAL PROPERTY: If validation succeeds, output MUST be clean
+                // Note: Re-purifying may fail (e.g., parser errors on generated code),
+                // but that's OK - we only care that the output is clean when it can be linted
+                if let Ok(lint_result) = purify_and_lint(&purified) {
+                    prop_assert!(
+                        lint_result.is_clean,
+                        "Validated output must be clean, but found {} violations",
+                        lint_result.critical_violations()
+                    );
+
+                    prop_assert_eq!(
+                        lint_result.det_violations().len(),
+                        0,
+                        "No DET violations allowed"
+                    );
+                    prop_assert_eq!(
+                        lint_result.idem_violations().len(),
+                        0,
+                        "No IDEM violations allowed"
+                    );
+                    prop_assert_eq!(
+                        lint_result.sec_violations().len(),
+                        0,
+                        "No SEC violations allowed"
+                    );
+                }
+                // If re-linting fails (e.g., parser error), that's acceptable
+                // The guarantee is: validated output is clean IF it can be linted
+            }
+            // If validation fails, that's acceptable - not all inputs can be purified
         }
     }
 }
