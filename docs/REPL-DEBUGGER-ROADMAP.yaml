@@ -1084,14 +1084,16 @@ phases:
 
           - id: "REPL-014-002"
             title: "Zero-tolerance quality gate for purified output"
-            status: "pending"
+            status: "completed"
             dependencies: ["REPL-014-001"]
             note: "Purified output must pass all DET/IDEM/SEC rules"
             tests:
               unit:
-                - "test_REPL_014_002_zero_det_issues"
-                - "test_REPL_014_002_zero_idem_issues"
-                - "test_REPL_014_002_zero_sec_issues"
+                - "test_REPL_014_002_zero_det_violations"
+                - "test_REPL_014_002_zero_idem_violations"
+                - "test_REPL_014_002_zero_sec_violations"
+                - "test_REPL_014_002_fails_with_violations"
+                - "test_REPL_014_002_error_details"
               property:
                 - "prop_purified_always_passes_linter"
 
