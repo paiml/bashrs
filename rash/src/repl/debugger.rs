@@ -725,7 +725,7 @@ mod tests {
 
         // ACT: Call next() from line 1
         assert_eq!(session.current_line(), 1, "Should start at line 1");
-        session.next();
+        session.step_over();
 
         // ASSERT: Should be at line 2 (next line at same depth)
         assert_eq!(
@@ -746,7 +746,7 @@ mod tests {
         let mut session = DebugSession::new(script);
 
         // ACT: Call next() - should complete execution
-        session.next();
+        session.step_over();
 
         // ASSERT: Should be finished
         assert!(session.is_finished(), "Should be finished after next()");
@@ -763,13 +763,13 @@ mod tests {
 
         // ACT: Next through all lines
         assert_eq!(session.current_line(), 1);
-        session.next();
+        session.step_over();
 
         assert_eq!(session.current_line(), 2);
-        session.next();
+        session.step_over();
 
         assert_eq!(session.current_line(), 3);
-        session.next();
+        session.step_over();
 
         // ASSERT: Should be finished
         assert!(session.is_finished(), "Should be finished after 3 next() calls");
@@ -785,11 +785,11 @@ mod tests {
         let mut session = DebugSession::new(script);
 
         // ACT: Next to completion
-        session.next();
+        session.step_over();
         assert!(session.is_finished());
 
         // ACT: Try next() again when finished
-        session.next();
+        session.step_over();
 
         // ASSERT: Should still be finished
         assert!(
@@ -1770,7 +1770,7 @@ mod property_tests {
                 }
 
                 let depth_before = session.call_depth();
-                session.next();
+                session.step_over();
                 let depth_after = session.call_depth();
 
                 // Depth should never increase
@@ -1811,7 +1811,7 @@ mod property_tests {
                     // Success - finished execution
                     return Ok(());
                 }
-                session.next();
+                session.step_over();
             }
 
             // If we get here, we didn't finish in reasonable time

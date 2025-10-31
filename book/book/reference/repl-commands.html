@@ -188,7 +188,7 @@
 <pre><code class="language-bash">bashrs [normal]&gt; help
 </code></pre>
 <p><strong>Output</strong>:</p>
-<pre><code>bashrs REPL Commands:
+<pre><code class="language-text">bashrs REPL Commands:
   help             - Show this help message
   quit             - Exit the REPL
   exit             - Exit the REPL
@@ -227,7 +227,7 @@ Goodbye!
 <pre><code class="language-bash">bashrs [normal]&gt; :mode
 </code></pre>
 <p><strong>Output</strong>:</p>
-<pre><code>Current mode: normal - Execute bash commands directly
+<pre><code class="language-text">Current mode: normal - Execute bash commands directly
 
 Available modes:
   normal  - Execute bash commands directly
@@ -486,7 +486,7 @@ Note: Some operations are restricted in sandboxed mode
 <pre><code class="language-bash">bashrs [normal]&gt; :history
 </code></pre>
 <p><strong>Output</strong>:</p>
-<pre><code>Command History (5 commands):
+<pre><code class="language-text">Command History (5 commands):
   1 echo hello
   2 mkdir /tmp/test
   3 :parse if [ -f test ]; then echo found; fi
@@ -520,7 +520,7 @@ No commands in history
 <pre><code class="language-bash">bashrs [normal]&gt; :vars
 </code></pre>
 <p><strong>Output</strong>:</p>
-<pre><code>No session variables set
+<pre><code class="language-text">No session variables set
 </code></pre>
 <p><strong>Future Support</strong>:</p>
 <pre><code class="language-bash"><span class="boring"> When variable assignment is implemented
@@ -607,7 +607,6 @@ Purified 1 statement(s)
 <h2 id="see-also"><a class="header" href="#see-also">See Also</a></h2>
 <ul>
 <li><a href="../getting-started/repl.html">Interactive REPL Guide</a> - Getting started tutorial</li>
-<li><a href="../concepts/parser.html">Parser Integration</a> - Understanding bash AST</li>
 <li><a href="../concepts/purification.html">Purifier Integration</a> - Transformation rules</li>
 <li><a href="./rules.html">Linter Rules Reference</a> - Complete linting rules</li>
 </ul>

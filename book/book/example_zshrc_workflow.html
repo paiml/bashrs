@@ -183,7 +183,7 @@
 <pre><code class="language-bash">$ cargo run --bin bashrs -- score ~/.zshrc
 </code></pre>
 <p><strong>Result:</strong></p>
-<pre><code>Bash Script Quality Score
+<pre><code class="language-text">Bash Script Quality Score
 =========================
 
 Overall Grade: D
@@ -204,7 +204,7 @@ Improvement Suggestions:
 <pre><code class="language-bash">$ cargo run --bin bashrs -- lint ~/.zshrc
 </code></pre>
 <p><strong>Results:</strong></p>
-<pre><code>Summary: 2 error(s), 38 warning(s), 13 info(s)
+<pre><code class="language-text">Summary: 2 error(s), 38 warning(s), 13 info(s)
 
 Critical Errors:
 ✗ Line 73: DET002 - Non-deterministic timestamp usage (UNSAFE)
@@ -235,7 +235,7 @@ Critical Errors:
 <pre><code class="language-bash">$ cargo run --bin bashrs -- audit ~/.zshrc
 </code></pre>
 <p><strong>Results:</strong></p>
-<pre><code>Comprehensive Quality Audit
+<pre><code class="language-text">Comprehensive Quality Audit
 ===========================
 
 File: ~/.zshrc
@@ -261,7 +261,7 @@ Overall: ❌ FAIL
 <pre><code class="language-bash">$ cargo run --bin bashrs -- coverage ~/.zshrc
 </code></pre>
 <p><strong>Results:</strong></p>
-<pre><code>Coverage Report: ~/.zshrc
+<pre><code class="language-text">Coverage Report: ~/.zshrc
 
 Lines:     0/103   (0.0%)  ❌
 Functions: 0/1   (0.0%)  ❌
@@ -277,7 +277,7 @@ Uncovered Functions: 1
 <pre><code class="language-bash">$ cargo run --bin bashrs -- config analyze ~/.zshrc
 </code></pre>
 <p><strong>Results:</strong></p>
-<pre><code>Analysis: ~/.zshrc
+<pre><code class="language-text">Analysis: ~/.zshrc
 ============================
 
 Statistics:
@@ -300,7 +300,7 @@ Issues Found: 2
 <pre><code class="language-bash">$ cargo run --bin bashrs -- test ~/.zshrc
 </code></pre>
 <p><strong>Results:</strong></p>
-<pre><code>Running tests in ~/.zshrc
+<pre><code class="language-text">Running tests in ~/.zshrc
 ⚠ No tests found in ~/.zshrc
 </code></pre>
 <p><strong>Expected</strong>: Configuration files typically don't include tests.</p>
@@ -309,7 +309,7 @@ Issues Found: 2
 <pre><code class="language-bash">$ cargo run --bin bashrs -- format ~/.zshrc
 </code></pre>
 <p><strong>Results:</strong></p>
-<pre><code>error: Failed to format: Lexer error at line 63
+<pre><code class="language-text">error: Failed to format: Lexer error at line 63
 </code></pre>
 <p><strong>Note</strong>: The formatter encountered regex patterns (<code>^eu-</code>) that are not yet fully supported. This is expected for complex shell constructs.</p>
 <hr />

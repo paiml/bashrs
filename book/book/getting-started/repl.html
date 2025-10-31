@@ -171,7 +171,8 @@ bashrs [normal]&gt;
 <h2 id="features"><a class="header" href="#features">Features</a></h2>
 <ul>
 <li>🎯 <strong>5 Interactive Modes</strong>: Switch between different analysis modes</li>
-<li>⌨️ <strong>Tab Completion</strong>: Auto-complete commands, modes, and bash constructs</li>
+<li>⌨️ <strong>Tab Completion</strong>: Auto-complete commands, modes, file paths, and bash constructs</li>
+<li>📝 <strong>Multi-line Input</strong>: Natural support for loops, functions, and conditionals</li>
 <li>🔍 <strong>Parser Integration</strong>: Parse bash code and inspect AST</li>
 <li>🧹 <strong>Purifier Integration</strong>: Transform bash to idempotent/deterministic code</li>
 <li>🔎 <strong>Linter Integration</strong>: Real-time diagnostics with severity levels</li>
@@ -194,6 +195,15 @@ bashrs [normal]&gt;
 <tr><td><code>:history</code></td><td>Show command history for this session</td></tr>
 <tr><td><code>:vars</code></td><td>Show session variables</td></tr>
 <tr><td><code>:clear</code></td><td>Clear the screen</td></tr>
+</tbody></table>
+</div>
+<h3 id="script-loading-commands"><a class="header" href="#script-loading-commands">Script Loading Commands</a></h3>
+<p><strong>NEW in v6.20.0</strong>: Load bash scripts from files, extract functions, and manage your interactive development workflow.</p>
+<div class="table-wrapper"><table><thead><tr><th>Command</th><th>Description</th></tr></thead><tbody>
+<tr><td><code>:load &lt;file&gt;</code></td><td>Load a bash script and extract functions</td></tr>
+<tr><td><code>:source &lt;file&gt;</code></td><td>Source a bash script (load and add to session)</td></tr>
+<tr><td><code>:functions</code></td><td>List all loaded functions</td></tr>
+<tr><td><code>:reload</code></td><td>Reload the last loaded script</td></tr>
 </tbody></table>
 </div>
 <h3 id="mode-switching"><a class="header" href="#mode-switching">Mode Switching</a></h3>
@@ -328,10 +338,16 @@ Command History (3 commands):
 <pre><code class="language-bash">bashrs [normal]&gt; :vars
 No session variables set
 
-<span class="boring"> Future: When variable assignment is implemented
+<span class="boring"> After assigning variables
 </span>bashrs [normal]&gt; x=5
+✓ Variable set: x = 5
+
+bashrs [normal]&gt; name="Alice"
+✓ Variable set: name = Alice
+
 bashrs [normal]&gt; :vars
-Session Variables (1 variables):
+Session Variables (2 variables):
+  name = Alice
   x = 5
 </code></pre>
 <h4 id="clear-screen"><a class="header" href="#clear-screen">Clear Screen</a></h4>
@@ -512,6 +528,211 @@ bashrs [purify]&gt; mkdir /tmp/test
 ✓ Purified:
 Purified 1 statement(s)
 </code></pre>
+<h3 id="example-8-variable-assignment-and-expansion"><a class="header" href="#example-8-variable-assignment-and-expansion">Example 8: Variable Assignment and Expansion</a></h3>
+<p><strong>NEW in v6.20.0</strong>: The REPL now supports bash-style variable assignment and automatic expansion in commands.</p>
+<p><strong>NEW in v6.21.0</strong>: Normal mode now executes commands directly with full bash compatibility.</p>
+<h4 id="simple-variable-assignment"><a class="header" href="#simple-variable-assignment">Simple Variable Assignment</a></h4>
+<pre><code class="language-bash">bashrs [normal]&gt; x=5
+✓ Variable set: x = 5
+
+bashrs [normal]&gt; echo $x
+5
+</code></pre>
+<h4 id="variable-assignment-with-quotes"><a class="header" href="#variable-assignment-with-quotes">Variable Assignment with Quotes</a></h4>
+<pre><code class="language-bash"><span class="boring"> Double quotes
+</span>bashrs [normal]&gt; name="Alice Johnson"
+✓ Variable set: name = Alice Johnson
+
+<span class="boring"> Single quotes
+</span>bashrs [normal]&gt; path='/usr/local/bin'
+✓ Variable set: path = /usr/local/bin
+</code></pre>
+<h4 id="variable-expansion-syntax"><a class="header" href="#variable-expansion-syntax">Variable Expansion Syntax</a></h4>
+<pre><code class="language-bash"><span class="boring"> Simple expansion
+</span>bashrs [normal]&gt; version=1.0.0
+✓ Variable set: version = 1.0.0
+
+bashrs [normal]&gt; echo $version
+Would execute: echo 1.0.0
+
+<span class="boring"> Braced expansion
+</span>bashrs [normal]&gt; echo Release: ${version}
+Would execute: echo Release: 1.0.0
+</code></pre>
+<h4 id="multiple-variables"><a class="header" href="#multiple-variables">Multiple Variables</a></h4>
+<pre><code class="language-bash">bashrs [normal]&gt; x=10
+✓ Variable set: x = 10
+
+bashrs [normal]&gt; y=20
+✓ Variable set: y = 20
+
+bashrs [normal]&gt; echo $x + $y = 30
+Would execute: echo 10 + 20 = 30
+
+bashrs [normal]&gt; :vars
+Session Variables (2 variables):
+  x = 10
+  y = 20
+</code></pre>
+<h4 id="variables-with-purify-mode"><a class="header" href="#variables-with-purify-mode">Variables with Purify Mode</a></h4>
+<pre><code class="language-bash"><span class="boring"> Switch to purify mode
+</span>bashrs [normal]&gt; :mode purify
+Switched to purify mode
+
+<span class="boring"> Assign variable
+</span>bashrs [purify]&gt; dir=/tmp/myapp
+✓ Variable set: dir = /tmp/myapp
+
+<span class="boring"> Variable is expanded before purification
+</span>bashrs [purify]&gt; mkdir $dir
+✓ Purified:
+Purified 1 statement(s)
+</code></pre>
+<h4 id="variables-with-lint-mode"><a class="header" href="#variables-with-lint-mode">Variables with Lint Mode</a></h4>
+<pre><code class="language-bash">bashrs [normal]&gt; :mode lint
+Switched to lint mode
+
+bashrs [lint]&gt; filename=config.txt
+✓ Variable set: filename = config.txt
+
+bashrs [lint]&gt; cat $filename | grep pattern
+Found 1 issue(s):
+  ⚠ 1 warning(s)
+</code></pre>
+<h4 id="unknown-variables"><a class="header" href="#unknown-variables">Unknown Variables</a></h4>
+<pre><code class="language-bash"><span class="boring"> Unknown variables expand to empty string (bash behavior)
+</span>bashrs [normal]&gt; echo $unknown_var
+Would execute: echo
+
+bashrs [normal]&gt; echo Before:$missing:After
+Would execute: echo Before::After
+</code></pre>
+<h4 id="variable-reassignment"><a class="header" href="#variable-reassignment">Variable Reassignment</a></h4>
+<pre><code class="language-bash">bashrs [normal]&gt; status=pending
+✓ Variable set: status = pending
+
+bashrs [normal]&gt; status=complete
+✓ Variable set: status = complete
+
+bashrs [normal]&gt; echo $status
+Would execute: echo complete
+</code></pre>
+<h4 id="viewing-variables"><a class="header" href="#viewing-variables">Viewing Variables</a></h4>
+<pre><code class="language-bash"><span class="boring"> View all session variables
+</span>bashrs [normal]&gt; user=alice
+✓ Variable set: user = alice
+
+bashrs [normal]&gt; role=admin
+✓ Variable set: role = admin
+
+bashrs [normal]&gt; :vars
+Session Variables (2 variables):
+  role = admin
+  user = alice
+</code></pre>
+<p><strong>Notes</strong>:</p>
+<ul>
+<li>Variables persist throughout your REPL session</li>
+<li>Variables persist across mode switches</li>
+<li>Variable names must start with a letter or underscore</li>
+<li>Variable names can contain letters, numbers, and underscores</li>
+<li>Unknown variables expand to empty string (matching bash behavior)</li>
+<li>Use <code>:vars</code> to view all session variables</li>
+</ul>
+<h3 id="example-9-script-loading-and-function-extraction"><a class="header" href="#example-9-script-loading-and-function-extraction">Example 9: Script Loading and Function Extraction</a></h3>
+<p><strong>NEW in v6.20.0</strong>: Load bash scripts from files to inspect their structure, extract functions, and develop scripts interactively.</p>
+<h4 id="loading-a-simple-script"><a class="header" href="#loading-a-simple-script">Loading a Simple Script</a></h4>
+<pre><code class="language-bash">bashrs [normal]&gt; :load examples/hello.sh
+✓ Loaded: examples/hello.sh (no functions, 3 lines)
+</code></pre>
+<h4 id="loading-a-script-with-functions"><a class="header" href="#loading-a-script-with-functions">Loading a Script with Functions</a></h4>
+<pre><code class="language-bash">bashrs [normal]&gt; :load examples/utils.sh
+✓ Loaded: examples/utils.sh (3 functions, 25 lines)
+</code></pre>
+<h4 id="viewing-loaded-functions"><a class="header" href="#viewing-loaded-functions">Viewing Loaded Functions</a></h4>
+<pre><code class="language-bash">bashrs [normal]&gt; :functions
+Available functions (3 total):
+  1 log_info
+  2 log_error
+  3 check_dependencies
+</code></pre>
+<h4 id="sourcing-a-script-load-and-execute"><a class="header" href="#sourcing-a-script-load-and-execute">Sourcing a Script (Load and Execute)</a></h4>
+<pre><code class="language-bash"><span class="boring"> Source adds functions to your session
+</span>bashrs [normal]&gt; :source examples/lib.sh
+✓ Sourced: examples/lib.sh (2 functions)
+
+bashrs [normal]&gt; :functions
+Available functions (2 total):
+  1 greet
+  2 farewell
+</code></pre>
+<h4 id="reloading-a-script-after-changes"><a class="header" href="#reloading-a-script-after-changes">Reloading a Script After Changes</a></h4>
+<pre><code class="language-bash"><span class="boring"> Edit the script in another window...
+</span><span class="boring"> Then reload it in the REPL
+</span>bashrs [normal]&gt; :reload
+Reloading: examples/utils.sh
+✓ Reloaded: examples/utils.sh (4 functions)
+
+bashrs [normal]&gt; :functions
+Available functions (4 total):
+  1 log_info
+  2 log_error
+  3 log_warning
+  4 check_dependencies
+</code></pre>
+<h4 id="script-loading-workflow"><a class="header" href="#script-loading-workflow">Script Loading Workflow</a></h4>
+<pre><code class="language-bash"><span class="boring"> Step 1: Load a script to inspect it
+</span>bashrs [normal]&gt; :load deploy.sh
+✓ Loaded: deploy.sh (5 functions, 120 lines)
+
+<span class="boring"> Step 2: View extracted functions
+</span>bashrs [normal]&gt; :functions
+Available functions (5 total):
+  1 validate_env
+  2 build_app
+  3 run_tests
+  4 deploy_staging
+  5 deploy_production
+
+<span class="boring"> Step 3: Switch to lint mode to check quality
+</span>bashrs [normal]&gt; :mode lint
+Switched to lint mode
+
+<span class="boring"> Step 4: Reload to check latest changes
+</span>bashrs [lint]&gt; :reload
+Reloading: deploy.sh
+✓ Reloaded: deploy.sh (5 functions, 125 lines)
+</code></pre>
+<h4 id="error-handling"><a class="header" href="#error-handling">Error Handling</a></h4>
+<pre><code class="language-bash"><span class="boring"> Nonexistent file
+</span>bashrs [normal]&gt; :load missing.sh
+✗ Error: Cannot read file missing.sh: No such file or directory
+
+<span class="boring"> Invalid syntax
+</span>bashrs [normal]&gt; :load broken.sh
+✗ Parse error: Parse error: unexpected token
+
+<span class="boring"> No script to reload
+</span>bashrs [normal]&gt; :reload
+No script to reload. Use :load &lt;file&gt; first.
+</code></pre>
+<p><strong>Use Cases</strong>:</p>
+<ul>
+<li><strong>Interactive Development</strong>: Load your script while editing to see structure</li>
+<li><strong>Function Exploration</strong>: Quickly see all functions in a complex script</li>
+<li><strong>Live Reload</strong>: Edit script externally, use <code>:reload</code> to see changes</li>
+<li><strong>Quality Workflow</strong>: Load → Inspect → Lint → Purify → Reload cycle</li>
+<li><strong>Learning</strong>: Explore example scripts to understand bash patterns</li>
+</ul>
+<p><strong>Notes</strong>:</p>
+<ul>
+<li><code>:load</code> parses the script and extracts function names</li>
+<li><code>:source</code> is similar to bash <code>source</code>/<code>.</code> command</li>
+<li>Functions are tracked in REPL state across mode switches</li>
+<li><code>:reload</code> reloads the most recently loaded script</li>
+<li>Scripts must have valid bash syntax to load successfully</li>
+<li>Use <code>:functions</code> to see all currently loaded functions</li>
+</ul>
 <h2 id="tab-completion"><a class="header" href="#tab-completion">Tab Completion</a></h2>
 <p><strong>NEW in v6.20.0</strong>: The REPL now includes intelligent tab completion to speed up your workflow and reduce typing errors.</p>
 <h3 id="command-completion"><a class="header" href="#command-completion">Command Completion</a></h3>
@@ -541,6 +762,24 @@ bashrs [normal]&gt; :mode &lt;TAB&gt;
 bashrs [explain]&gt; ${var:&lt;TAB&gt;
 <span class="boring"> Shows: ${var:-default}  ${var:=default}  ${var:?error}  ${var:+alternate}
 </span></code></pre>
+<h3 id="file-path-completion"><a class="header" href="#file-path-completion">File Path Completion</a></h3>
+<p><strong>NEW in v6.20.0</strong>: Tab completion for file paths makes loading scripts effortless:</p>
+<pre><code class="language-bash">bashrs [normal]&gt; :load ex&lt;TAB&gt;
+<span class="boring"> Completes to: :load examples/
+</span>
+bashrs [normal]&gt; :load examples/te&lt;TAB&gt;
+<span class="boring"> Completes to: :load examples/test.sh
+</span>
+bashrs [normal]&gt; :source script&lt;TAB&gt;
+<span class="boring"> Shows all files starting with "script": script1.sh  script2.sh  script_utils.sh
+</span></code></pre>
+<p><strong>Features</strong>:</p>
+<ul>
+<li>Directories are shown with trailing <code>/</code> and listed first</li>
+<li>Hidden files (starting with <code>.</code>) are excluded by default</li>
+<li>File paths are completed relative to current directory</li>
+<li>Works with both <code>:load</code> and <code>:source</code> commands</li>
+</ul>
 <h3 id="case-insensitive-completion"><a class="header" href="#case-insensitive-completion">Case-Insensitive Completion</a></h3>
 <p>Tab completion is case-insensitive for convenience:</p>
 <pre><code class="language-bash">bashrs [normal]&gt; :MO&lt;TAB&gt;
@@ -558,13 +797,77 @@ bashrs [normal]&gt; :mode PUR&lt;TAB&gt;
 <p><strong>Example 2: Exploring commands</strong></p>
 <pre><code class="language-bash">bashrs [normal]&gt; :&lt;TAB&gt;
 <span class="boring"> Shows all commands:
-</span><span class="boring"> :clear  :history  :lint  :mode  :parse  :purify  :vars
+</span><span class="boring"> :clear  :functions  :history  :lint  :load  :mode  :parse  :purify  :reload  :source  :vars
 </span></code></pre>
 <p><strong>Example 3: Learning bash constructs</strong></p>
 <pre><code class="language-bash">bashrs [explain]&gt; $&lt;TAB&gt;
 <span class="boring"> Shows parameter expansions:
 </span><span class="boring"> ${var:-default}  ${var:=default}  ${var:?error}  ${var:+alternate}  ${#var}
 </span></code></pre>
+<h2 id="multi-line-input"><a class="header" href="#multi-line-input">Multi-line Input</a></h2>
+<p><strong>NEW in v6.20.0</strong>: The REPL now supports multi-line input for complex bash constructs like functions, loops, and conditionals.</p>
+<p>When the REPL detects incomplete input, it automatically switches to continuation mode with a <code>... &gt;</code> prompt.</p>
+<h3 id="functions"><a class="header" href="#functions">Functions</a></h3>
+<pre><code class="language-bash">bashrs [normal]&gt; function greet() {
+... &gt;   echo "Hello, $1"
+... &gt;   echo "Welcome to bashrs"
+... &gt; }
+✓ Function 'greet' defined
+
+bashrs [normal]&gt; greet "Alice"
+Hello, Alice
+Welcome to bashrs
+</code></pre>
+<h3 id="for-loops"><a class="header" href="#for-loops">For Loops</a></h3>
+<pre><code class="language-bash">bashrs [normal]&gt; for i in 1 2 3; do
+... &gt;   echo "Iteration $i"
+... &gt; done
+Iteration 1
+Iteration 2
+Iteration 3
+</code></pre>
+<h3 id="if-statements"><a class="header" href="#if-statements">If Statements</a></h3>
+<pre><code class="language-bash">bashrs [normal]&gt; if [ -f "/etc/passwd" ]; then
+... &gt;   echo "File exists"
+... &gt; fi
+File exists
+</code></pre>
+<h3 id="while-loops"><a class="header" href="#while-loops">While Loops</a></h3>
+<pre><code class="language-bash">bashrs [normal]&gt; count=0
+✓ Variable set: count = 0
+
+bashrs [normal]&gt; while [ $count -lt 3 ]; do
+... &gt;   echo "Count: $count"
+... &gt;   count=$((count + 1))
+... &gt; done
+Count: 0
+Count: 1
+Count: 2
+</code></pre>
+<h3 id="case-statements"><a class="header" href="#case-statements">Case Statements</a></h3>
+<pre><code class="language-bash">bashrs [normal]&gt; case "apple" in
+... &gt;   apple) echo "It's an apple";;
+... &gt;   banana) echo "It's a banana";;
+... &gt;   *) echo "Unknown fruit";;
+... &gt; esac
+It's an apple
+</code></pre>
+<h3 id="cancelling-multi-line-input"><a class="header" href="#cancelling-multi-line-input">Cancelling Multi-line Input</a></h3>
+<p>Press <code>Ctrl-C</code> to cancel multi-line input and return to the main prompt:</p>
+<pre><code class="language-bash">bashrs [normal]&gt; for i in 1 2 3; do
+... &gt;   echo "This is a loop"
+... &gt; ^C (multi-line input cancelled)
+bashrs [normal]&gt;
+</code></pre>
+<h3 id="automatic-detection"><a class="header" href="#automatic-detection">Automatic Detection</a></h3>
+<p>The REPL intelligently detects when input is incomplete by checking for:</p>
+<ul>
+<li>Unclosed quotes (single or double)</li>
+<li>Unclosed braces, parentheses, or brackets</li>
+<li>Bash keywords expecting continuation (<code>if</code>, <code>for</code>, <code>while</code>, <code>function</code>, <code>case</code>)</li>
+<li>Line ending with backslash (<code>\</code>)</li>
+</ul>
+<p>This allows natural, interactive development of complex bash scripts within the REPL.</p>
 <h2 id="command-history"><a class="header" href="#command-history">Command History</a></h2>
 <p>The REPL automatically saves command history to <code>~/.bashrs_history</code>:</p>
 <pre><code class="language-bash"><span class="boring"> Commands are saved across sessions
@@ -680,7 +983,6 @@ bashrs [normal]&gt; :purify RELEASE="release-$(date +%s)"
 <h2 id="next-steps"><a class="header" href="#next-steps">Next Steps</a></h2>
 <ul>
 <li><a href="../reference/repl-commands.html">REPL Commands Reference</a> - Complete command reference</li>
-<li><a href="../concepts/parser.html">Parser Integration</a> - Understanding bash AST</li>
 <li><a href="../concepts/purification.html">Purifier Integration</a> - Transformation rules</li>
 <li><a href="../linting/security.html">Linter Integration</a> - Linting rules reference</li>
 </ul>
