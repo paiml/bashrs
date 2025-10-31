@@ -1131,7 +1131,7 @@ phases:
     sprints:
       - sprint: "REPL-015"
         name: "DevEx Improvements"
-        status: "PENDING"
+        status: "COMPLETED"
         duration: "2 weeks"
         tasks:
           - id: "REPL-015-001"
@@ -1145,11 +1145,20 @@ phases:
 
           - id: "REPL-015-002"
             title: "Syntax highlighting in REPL"
-            status: "pending"
+            status: "completed"
             tests:
               unit:
-                - "test_REPL_015_002_highlight_keywords"
-                - "test_REPL_015_002_highlight_strings"
+                - "test_REPL_015_002_001_highlight_keywords"
+                - "test_REPL_015_002_002_highlight_strings"
+                - "test_REPL_015_002_003_highlight_variables"
+                - "test_REPL_015_002_004_highlight_commands"
+                - "test_REPL_015_002_005_highlight_comments"
+                - "test_REPL_015_002_006_highlight_operators"
+                - "test_REPL_015_002_007_is_keyword"
+                - "test_REPL_015_002_INT_001_full_statement"
+              property:
+                - "prop_highlighting_never_panics"
+                - "prop_highlighting_preserves_text"
 
           - id: "REPL-015-003"
             title: "Better error messages"
