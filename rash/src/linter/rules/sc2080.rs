@@ -22,7 +22,8 @@ use regex::Regex;
 static LEADING_ZERO_NUMBER: Lazy<Regex> = Lazy::new(|| {
     // Match: 0[0-9]+ in arithmetic contexts (not 0x hex)
     // Look for $(( ... 08 ... )) or [ ... -eq 09 ]
-    Regex::new(r"(\$\(\(|[\[\(]\s*[^)]*(-eq|-ne|-lt|-le|-gt|-ge)\s+)0[0-9]+").unwrap()
+    // Use non-greedy [^)]*? to allow multiple matches on same line
+    Regex::new(r"(\$\(\(|[\[\(]\s*[^)]*?(-eq|-ne|-lt|-le|-gt|-ge)\s+)0[0-9]+").unwrap()
 });
 
 // Regex for extracting the number with leading zero
@@ -155,10 +156,10 @@ mod tests {
     }
 
     #[test]
-    #[ignore] // TODO: Fix regex to match multiple occurrences on same line
     fn test_sc2080_multiple() {
         let code = r#"[ $a -eq 08 ] && [ $b -eq 09 ]"#;
         let result = check(code);
+        // Non-greedy regex now finds both occurrences on same line
         assert_eq!(result.diagnostics.len(), 2);
     }
 
