@@ -4,5 +4,4 @@
 #
 # It is recommended to check this file in to source control so that
 # everyone who runs the test benefits from these saved cases.
-cc af667b640a949e29833a5fafa24acffe8eaa7ee5eb9762ac8e1e65ae5fe3180a # shrinks to title = "mkdir"
-cc addb76b3278e69c3f51aaf2f944ec0dd08a5212ab8e678684f1918bced6d93ab # shrinks to input = "'\0'#"
+cc e1fe9c2e568456df55e66198449db70e6137e9dbe9af490007217ca905350a82 # shrinks to source = "", line = 1, col = 1

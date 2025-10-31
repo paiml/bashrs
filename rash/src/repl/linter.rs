@@ -91,9 +91,104 @@ pub fn format_lint_results(result: &LintResult) -> String {
     output
 }
 
+/// Format lint violations with source code context (REPL-014-003)
+///
+/// Displays each violation with:
+/// - Line numbers (±2 lines of context)
+/// - Source code at that location
+/// - Visual indicator (caret) pointing to the issue
+/// - Diagnostic message with rule code
+/// - Fix suggestion if available
+///
+/// # Examples
+///
+/// ```no_run
+/// use bashrs::repl::linter::{format_violations_with_context, lint_bash};
+///
+/// let source = "echo $RANDOM\nmkdir /app\n";
+/// let result = lint_bash(source).unwrap();
+/// let formatted = format_violations_with_context(&result, source);
+/// ```
+pub fn format_violations_with_context(result: &LintResult, source: &str) -> String {
+    let mut output = String::new();
+
+    if result.diagnostics.is_empty() {
+        return "✓ No violations\n".to_string();
+    }
+
+    let lines: Vec<&str> = source.lines().collect();
+    let max_line_num = lines.len();
+    let line_num_width = max_line_num.to_string().len().max(3);
+
+    for diagnostic in &result.diagnostics {
+        let line_idx = diagnostic.span.start_line.saturating_sub(1);
+
+        // Show context: ±2 lines
+        let start_line = line_idx.saturating_sub(2);
+        let end_line = (line_idx + 3).min(lines.len());
+
+        output.push('\n');
+
+        // Show context lines
+        for i in start_line..end_line {
+            if i < lines.len() {
+                let line_num = i + 1;
+                let prefix = if i == line_idx { ">" } else { " " };
+                output.push_str(&format!(
+                    "{} {:>width$} | {}\n",
+                    prefix,
+                    line_num,
+                    lines[i],
+                    width = line_num_width
+                ));
+
+                // Show indicator on the problematic line
+                if i == line_idx {
+                    let col = diagnostic.span.start_col.saturating_sub(1);
+                    let indicator_width = if diagnostic.span.end_line == diagnostic.span.start_line
+                    {
+                        diagnostic
+                            .span
+                            .end_col
+                            .saturating_sub(diagnostic.span.start_col)
+                            .max(1)
+                    } else {
+                        lines[i].len().saturating_sub(col).max(1)
+                    };
+
+                    output.push_str(&format!(
+                        "  {:>width$} | {}{} {} [{}]: {}\n",
+                        "",
+                        " ".repeat(col),
+                        "^".repeat(indicator_width),
+                        diagnostic.severity,
+                        diagnostic.code,
+                        diagnostic.message,
+                        width = line_num_width
+                    ));
+                }
+            }
+        }
+
+        // Show fix suggestion if available
+        if let Some(fix) = &diagnostic.fix {
+            output.push_str("\n  Suggested fix:\n");
+            output.push_str(&format!(
+                "  {:>width$} | {}\n",
+                line_idx + 1,
+                fix.replacement,
+                width = line_num_width
+            ));
+        }
+    }
+
+    output
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::linter::{Diagnostic, Fix, Span};
 
     // ===== UNIT TESTS (RED PHASE) =====
 
@@ -161,6 +256,159 @@ mod tests {
         let result = lint_bash(input);
 
         assert!(result.is_ok(), "Should handle empty input");
+    }
+
+    // ===== REPL-014-003 TESTS (RED PHASE) =====
+
+    /// Test: REPL-014-003-001 - Format single violation with context
+    #[test]
+    fn test_REPL_014_003_format_single_violation() {
+        let source = "echo hello\necho $RANDOM\necho world\n";
+
+        // Create a diagnostic manually for testing
+        let diagnostic = Diagnostic {
+            code: "DET001".to_string(),
+            severity: Severity::Error,
+            message: "Non-deterministic $RANDOM".to_string(),
+            span: Span::new(2, 6, 2, 13),
+            fix: None,
+        };
+
+        let lint_result = LintResult {
+            diagnostics: vec![diagnostic],
+        };
+
+        let formatted = format_violations_with_context(&lint_result, source);
+
+        // Should show line context (allowing for width padding)
+        assert!(formatted.contains("1 | echo hello"), "Output: {}", formatted);
+        assert!(formatted.contains(">") && formatted.contains("2 | echo $RANDOM"), "Output: {}", formatted);
+        assert!(formatted.contains("3 | echo world"));
+
+        // Should show indicator
+        assert!(formatted.contains("^^^^^^^")); // 7 chars for "$RANDOM"
+        assert!(formatted.contains("error [DET001]")); // Severity displays as lowercase
+        assert!(formatted.contains("Non-deterministic $RANDOM"));
+    }
+
+    /// Test: REPL-014-003-002 - Format with fix suggestion
+    #[test]
+    fn test_REPL_014_003_format_with_fix() {
+        let source = "mkdir /app\n";
+
+        let diagnostic = Diagnostic {
+            code: "IDEM001".to_string(),
+            severity: Severity::Error,
+            message: "mkdir without -p".to_string(),
+            span: Span::new(1, 1, 1, 11),
+            fix: Some(Fix::new("mkdir -p /app")),
+        };
+
+        let lint_result = LintResult {
+            diagnostics: vec![diagnostic],
+        };
+
+        let formatted = format_violations_with_context(&lint_result, source);
+
+        // Should show violation (allowing for width padding)
+        assert!(formatted.contains(">") && formatted.contains("1 | mkdir /app"));
+        assert!(formatted.contains("IDEM001"));
+
+        // Should show fix
+        assert!(formatted.contains("Suggested fix:"));
+        assert!(formatted.contains("mkdir -p /app"));
+    }
+
+    /// Test: REPL-014-003-003 - Format multiple violations
+    #[test]
+    fn test_REPL_014_003_multiple_violations() {
+        let source = "echo $RANDOM\nmkdir /app\nrm /tmp/file\n";
+
+        let diagnostics = vec![
+            Diagnostic {
+                code: "DET001".to_string(),
+                severity: Severity::Error,
+                message: "Non-deterministic $RANDOM".to_string(),
+                span: Span::new(1, 6, 1, 13),
+                fix: None,
+            },
+            Diagnostic {
+                code: "IDEM001".to_string(),
+                severity: Severity::Error,
+                message: "mkdir without -p".to_string(),
+                span: Span::new(2, 1, 2, 11),
+                fix: Some(Fix::new("mkdir -p /app")),
+            },
+        ];
+
+        let lint_result = LintResult { diagnostics };
+
+        let formatted = format_violations_with_context(&lint_result, source);
+
+        // Should show both violations
+        assert!(formatted.contains("DET001"));
+        assert!(formatted.contains("IDEM001"));
+        assert!(formatted.contains("echo $RANDOM"));
+        assert!(formatted.contains("mkdir /app"));
+    }
+
+    /// Test: REPL-014-003-004 - Format no violations
+    #[test]
+    fn test_REPL_014_003_no_violations() {
+        let source = "echo hello\n";
+        let lint_result = LintResult {
+            diagnostics: vec![],
+        };
+
+        let formatted = format_violations_with_context(&lint_result, source);
+
+        assert!(formatted.contains("✓ No violations"));
+    }
+
+    /// Test: REPL-014-003-005 - Format edge of file
+    #[test]
+    fn test_REPL_014_003_edge_of_file() {
+        // Test violation on first line
+        let source1 = "echo $RANDOM\n";
+        let diagnostic1 = Diagnostic {
+            code: "DET001".to_string(),
+            severity: Severity::Error,
+            message: "Non-deterministic $RANDOM".to_string(),
+            span: Span::new(1, 6, 1, 13),
+            fix: None,
+        };
+
+        let formatted1 = format_violations_with_context(
+            &LintResult {
+                diagnostics: vec![diagnostic1],
+            },
+            source1,
+        );
+
+        // Should not crash, should show line 1 (allowing for width padding)
+        assert!(formatted1.contains(">") && formatted1.contains("1 | echo $RANDOM"));
+
+        // Test violation on last line
+        let source2 = "echo hello\necho world\necho $RANDOM\n";
+        let diagnostic2 = Diagnostic {
+            code: "DET001".to_string(),
+            severity: Severity::Error,
+            message: "Non-deterministic $RANDOM".to_string(),
+            span: Span::new(3, 6, 3, 13),
+            fix: None,
+        };
+
+        let formatted2 = format_violations_with_context(
+            &LintResult {
+                diagnostics: vec![diagnostic2],
+            },
+            source2,
+        );
+
+        // Should not crash, should show lines 1-3 (allowing for width padding)
+        assert!(formatted2.contains("1 | echo hello"));
+        assert!(formatted2.contains("2 | echo world"));
+        assert!(formatted2.contains(">") && formatted2.contains("3 | echo $RANDOM"));
     }
 }
 
@@ -301,6 +549,32 @@ mod property_tests {
                     );
                 }
             }
+        }
+    }
+
+    /// Property: REPL-014-003 - format_violations_with_context never panics
+    proptest! {
+        #[test]
+            fn prop_format_violations_never_panics(
+            source in ".*{0,500}",
+            line in 1usize..100,
+            col in 1usize..100,
+        ) {
+            // Create a diagnostic at potentially out-of-bounds position
+            let diagnostic = Diagnostic {
+                code: "TEST001".to_string(),
+                severity: Severity::Error,
+                message: "Test message".to_string(),
+                span: Span::new(line, col, line, col + 5),
+                fix: None,
+            };
+
+            let lint_result = LintResult {
+                diagnostics: vec![diagnostic],
+            };
+
+            // Should not panic on any input
+            let _ = format_violations_with_context(&lint_result, &source);
         }
     }
 }

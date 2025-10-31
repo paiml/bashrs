@@ -38,14 +38,15 @@ pub use determinism::{
 };
 pub use diff::display_diff;
 pub use explain::{explain_bash, Explanation};
-pub use linter::{format_lint_results, lint_bash};
+pub use linter::{format_lint_results, format_violations_with_context, lint_bash};
 pub use modes::ReplMode;
 pub use parser::{format_parse_error, parse_bash};
 pub use purifier::{
     explain_purification_changes, explain_purification_changes_detailed,
-    format_purified_lint_result, format_transformation_report, purify_and_lint,
-    purify_and_validate, purify_bash, Alternative, PurificationError, PurifiedLintResult,
-    SafetyRationale, SafetySeverity, TransformationCategory, TransformationExplanation,
+    format_purified_lint_result, format_purified_lint_result_with_context,
+    format_transformation_report, purify_and_lint, purify_and_validate, purify_bash, Alternative,
+    PurificationError, PurifiedLintResult, SafetyRationale, SafetySeverity,
+    TransformationCategory, TransformationExplanation,
 };
 pub use r#loop::run_repl;
 pub use state::ReplState;
