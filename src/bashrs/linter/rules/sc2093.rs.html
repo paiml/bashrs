@@ -111,15 +111,15 @@
 <a href=#111 id=111 data-nosnippet>111</a>    }
 <a href=#112 id=112 data-nosnippet>112</a>
 <a href=#113 id=113 data-nosnippet>113</a>    <span class="attr">#[test]
-<a href=#114 id=114 data-nosnippet>114</a>    #[ignore] </span><span class="comment">// TODO: Handle exec with redirection syntax
-<a href=#115 id=115 data-nosnippet>115</a>    </span><span class="kw">fn </span>test_sc2093_exec_redirect() {
-<a href=#116 id=116 data-nosnippet>116</a>        <span class="kw">let </span>code = <span class="string">r#"
-<a href=#117 id=117 data-nosnippet>117</a>exec &gt; logfile
-<a href=#118 id=118 data-nosnippet>118</a>echo "logging"
-<a href=#119 id=119 data-nosnippet>119</a>"#</span>;
-<a href=#120 id=120 data-nosnippet>120</a>        <span class="kw">let </span>result = check(code);
-<a href=#121 id=121 data-nosnippet>121</a>        <span class="comment">// exec for redirection with code after
-<a href=#122 id=122 data-nosnippet>122</a>        </span><span class="macro">assert_eq!</span>(result.diagnostics.len(), <span class="number">1</span>);
+<a href=#114 id=114 data-nosnippet>114</a>    </span><span class="kw">fn </span>test_sc2093_exec_redirect() {
+<a href=#115 id=115 data-nosnippet>115</a>        <span class="kw">let </span>code = <span class="string">r#"
+<a href=#116 id=116 data-nosnippet>116</a>exec &gt; logfile
+<a href=#117 id=117 data-nosnippet>117</a>echo "logging"
+<a href=#118 id=118 data-nosnippet>118</a>"#</span>;
+<a href=#119 id=119 data-nosnippet>119</a>        <span class="kw">let </span>result = check(code);
+<a href=#120 id=120 data-nosnippet>120</a>        <span class="comment">// exec with only redirection doesn't replace shell - code after WILL run
+<a href=#121 id=121 data-nosnippet>121</a>        // This is correct usage, should not be flagged
+<a href=#122 id=122 data-nosnippet>122</a>        </span><span class="macro">assert_eq!</span>(result.diagnostics.len(), <span class="number">0</span>);
 <a href=#123 id=123 data-nosnippet>123</a>    }
 <a href=#124 id=124 data-nosnippet>124</a>
 <a href=#125 id=125 data-nosnippet>125</a>    <span class="attr">#[test]
