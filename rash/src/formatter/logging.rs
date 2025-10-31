@@ -323,7 +323,7 @@ impl MerkleTree {
 
         // Generate simple proof (simplified implementation)
         if _current_level.len() > 1 {
-            let sibling_index = if current_index % 2 == 0 {
+            let sibling_index = if current_index.is_multiple_of(2) {
                 current_index + 1
             } else {
                 current_index - 1
@@ -332,7 +332,7 @@ impl MerkleTree {
             // Add sibling to path
             if sibling_index < _current_level.len() {
                 path.push(_current_level[sibling_index]);
-                directions.push(current_index % 2 == 0); // true if we're left child
+                directions.push(current_index.is_multiple_of(2)); // true if we're left child
             } else {
                 // Pad with zero hash
                 path.push(blake3::hash(b""));

@@ -152,7 +152,7 @@ fn write_json<W: Write>(
     };
 
     let json = serde_json::to_string_pretty(&output)
-        .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e))?;
+        .map_err(|e| std::io::Error::other(e))?;
 
     writeln!(writer, "{}", json)?;
     Ok(())
@@ -283,7 +283,7 @@ fn write_sarif<W: Write>(
     };
 
     let json = serde_json::to_string_pretty(&output)
-        .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e))?;
+        .map_err(|e| std::io::Error::other(e))?;
 
     writeln!(writer, "{}", json)?;
     Ok(())
