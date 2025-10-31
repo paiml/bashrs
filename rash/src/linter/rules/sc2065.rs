@@ -35,6 +35,13 @@ pub fn check(source: &str) -> LintResult {
         }
 
         for mat in REDIRECT_IN_STRING.find_iter(line) {
+            let matched_text = mat.as_str();
+
+            // Skip >> and << (append/heredoc redirects are less confusing)
+            if matched_text.contains(">>") || matched_text.contains("<<") {
+                continue;
+            }
+
             let start_col = mat.start() + 1;
             let end_col = mat.end() + 1;
 
@@ -114,11 +121,11 @@ mod tests {
     }
 
     #[test]
-    #[ignore] // TODO: Improve redirect detection
     fn test_sc2065_append_redirect() {
         let code = r#"echo "Appended >> $log""#;
         let result = check(code);
-        assert_eq!(result.diagnostics.len(), 0); // >> not matched by our regex
+        // >> (append redirect) is less confusing than single >, should not warn
+        assert_eq!(result.diagnostics.len(), 0);
     }
 
     #[test]
