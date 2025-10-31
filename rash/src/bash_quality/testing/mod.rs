@@ -317,6 +317,7 @@ pub fn run_tests(source: &str, tests: &[BashTest]) -> Result<TestReport, String>
 fn execute_test(source: &str, test_name: &str) -> Result<TestResult, String> {
     // Create temporary script file with unique name
     let temp_dir = std::env::temp_dir();
+    #[allow(clippy::expect_used)] // Safe: system time is always after UNIX_EPOCH
     let timestamp = std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
         .expect("system time is after UNIX_EPOCH")

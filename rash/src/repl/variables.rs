@@ -82,6 +82,7 @@ pub fn expand_variables(command: &str, variables: &HashMap<String, String>) -> S
     let mut result = command.to_string();
 
     // First, expand braced variables ${var}
+    #[allow(clippy::expect_used)] // Safe: hardcoded regex pattern is valid
     let braced_re = Regex::new(r"\$\{([A-Za-z_][A-Za-z0-9_]*)\}")
         .expect("hardcoded regex is valid");
     result = braced_re
@@ -92,6 +93,7 @@ pub fn expand_variables(command: &str, variables: &HashMap<String, String>) -> S
         .to_string();
 
     // Then, expand simple variables $var
+    #[allow(clippy::expect_used)] // Safe: hardcoded regex pattern is valid
     let simple_re = Regex::new(r"\$([A-Za-z_][A-Za-z0-9_]*)")
         .expect("hardcoded regex is valid");
     result = simple_re
