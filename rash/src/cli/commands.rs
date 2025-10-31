@@ -1492,7 +1492,7 @@ fn print_json_test_results(report: &crate::bash_quality::testing::TestReport) {
         }
     });
 
-    println!("{}", serde_json::to_string_pretty(&json_report).unwrap());
+    println!("{}", serde_json::to_string_pretty(&json_report).expect("JSON serialization should not fail"));
 }
 
 /// Print JUnit XML test results
@@ -1617,7 +1617,7 @@ fn print_json_score_results(score: &crate::bash_quality::scoring::QualityScore) 
         "suggestions": score.suggestions,
     });
 
-    println!("{}", serde_json::to_string_pretty(&json_score).unwrap());
+    println!("{}", serde_json::to_string_pretty(&json_score).expect("JSON serialization should not fail"));
 }
 
 /// Print Markdown score results
@@ -1996,7 +1996,7 @@ fn print_json_audit_results(results: &AuditResults) {
         }
     });
 
-    println!("{}", serde_json::to_string_pretty(&json_results).unwrap());
+    println!("{}", serde_json::to_string_pretty(&json_results).expect("JSON serialization should not fail"));
 }
 
 /// Print SARIF audit results (GitHub Code Scanning format)
@@ -2076,7 +2076,7 @@ fn print_sarif_audit_results(results: &AuditResults, input: &Path) {
         }]
     });
 
-    println!("{}", serde_json::to_string_pretty(&sarif).unwrap());
+    println!("{}", serde_json::to_string_pretty(&sarif).expect("JSON serialization should not fail"));
 }
 
 // ============================================================================
@@ -2239,7 +2239,7 @@ fn print_json_coverage(coverage: &crate::bash_quality::coverage::CoverageReport)
         }
     });
 
-    println!("{}", serde_json::to_string_pretty(&json_coverage).unwrap());
+    println!("{}", serde_json::to_string_pretty(&json_coverage).expect("JSON serialization should not fail"));
 }
 
 /// Print HTML coverage output
@@ -2304,7 +2304,10 @@ fn print_html_coverage(
     );
 
     if let Some(output_path) = output {
-        fs::write(output_path, html).expect("Failed to write HTML report");
+        if let Err(e) = fs::write(output_path, html) {
+            eprintln!("Error writing HTML report: {}", e);
+            std::process::exit(1);
+        }
         println!("HTML coverage report written to {}", output_path.display());
     } else {
         println!("{}", html);
@@ -2367,15 +2370,11 @@ fn format_command(
             let script_dir_config = parent.join(".bashrs-fmt.toml");
             if script_dir_config.exists() {
                 FormatterConfig::from_file(&script_dir_config).unwrap_or_default()
-            } else if let Ok(cfg) = FormatterConfig::from_file(".bashrs-fmt.toml") {
-                cfg
             } else {
-                FormatterConfig::default()
+                FormatterConfig::from_file(".bashrs-fmt.toml").unwrap_or_default()
             }
-        } else if let Ok(cfg) = FormatterConfig::from_file(".bashrs-fmt.toml") {
-            cfg
         } else {
-            FormatterConfig::default()
+            FormatterConfig::from_file(".bashrs-fmt.toml").unwrap_or_default()
         };
 
         let mut formatter = Formatter::with_config(config);
