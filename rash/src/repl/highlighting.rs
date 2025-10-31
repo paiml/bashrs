@@ -53,28 +53,301 @@ impl Token {
 }
 
 /// Check if word is a bash keyword
-pub fn is_keyword(_word: &str) -> bool {
-    unimplemented!("REPL-015-002: Not implemented")
+///
+/// # Examples
+///
+/// ```
+/// use bashrs::repl::highlighting::is_keyword;
+///
+/// assert!(is_keyword("if"));
+/// assert!(is_keyword("then"));
+/// assert!(!is_keyword("echo"));
+/// ```
+pub fn is_keyword(word: &str) -> bool {
+    matches!(
+        word,
+        "if" | "then"
+            | "else"
+            | "elif"
+            | "fi"
+            | "for"
+            | "while"
+            | "do"
+            | "done"
+            | "case"
+            | "esac"
+            | "in"
+            | "function"
+            | "select"
+            | "until"
+    )
 }
 
-/// Tokenize bash input
-pub fn tokenize(_input: &str) -> Vec<Token> {
-    unimplemented!("REPL-015-002: Not implemented")
+/// Tokenize bash input into a sequence of tokens
+///
+/// Parses bash syntax into tokens including keywords, strings, variables,
+/// commands, operators, comments, whitespace, and plain text.
+///
+/// # Arguments
+///
+/// * `input` - The bash code to tokenize
+///
+/// # Returns
+///
+/// A vector of tokens with their types and positions
+///
+/// # Examples
+///
+/// ```
+/// use bashrs::repl::highlighting::tokenize;
+///
+/// let tokens = tokenize("echo $HOME");
+/// assert_eq!(tokens.len(), 3); // "echo", " ", "$HOME"
+/// ```
+pub fn tokenize(input: &str) -> Vec<Token> {
+    let mut tokens = Vec::new();
+    let mut chars = input.chars().enumerate().peekable();
+    let mut is_first_word = true;
+
+    while let Some((i, ch)) = chars.next() {
+        let start = i;
+
+        // Handle comments
+        if ch == '#' {
+            let mut text = String::from('#');
+            while let Some((_, c)) = chars.peek() {
+                if *c == '\n' {
+                    break;
+                }
+                text.push(*c);
+                chars.next();
+            }
+            let len = text.len();
+            tokens.push(Token::new(TokenType::Comment, text, start, start + len));
+            continue;
+        }
+
+        // Handle strings
+        if ch == '"' || ch == '\'' {
+            let quote = ch;
+            let mut text = String::from(quote);
+            let mut escaped = false;
+
+            while let Some((_, c)) = chars.next() {
+                text.push(c);
+                if escaped {
+                    escaped = false;
+                } else if c == '\\' {
+                    escaped = true;
+                } else if c == quote {
+                    break;
+                }
+            }
+
+            let len = text.len();
+            tokens.push(Token::new(TokenType::String, text, start, start + len));
+            continue;
+        }
+
+        // Handle variables
+        if ch == '$' {
+            let mut text = String::from('$');
+
+            // Check for ${var} or $var
+            if let Some((_, '{')) = chars.peek() {
+                text.push('{');
+                chars.next();
+                while let Some((_, c)) = chars.next() {
+                    text.push(c);
+                    if c == '}' {
+                        break;
+                    }
+                }
+            } else {
+                // Simple $var or $? $$ etc
+                while let Some((_, c)) = chars.peek() {
+                    if c.is_alphanumeric() || *c == '_' || *c == '?' || *c == '!' || *c == '@' || *c == '#' {
+                        text.push(*c);
+                        chars.next();
+                    } else {
+                        break;
+                    }
+                }
+            }
+
+            let len = text.len();
+            tokens.push(Token::new(TokenType::Variable, text, start, start + len));
+            continue;
+        }
+
+        // Handle operators
+        if ch == '|' || ch == '&' || ch == ';' || ch == '<' || ch == '>' {
+            let mut text = String::from(ch);
+
+            // Check for && || >> 2>&1 etc
+            if let Some((_, next_ch)) = chars.peek() {
+                if (ch == '|' && *next_ch == '|')
+                    || (ch == '&' && *next_ch == '&')
+                    || (ch == '>' && *next_ch == '>')
+                    || (ch == '<' && *next_ch == '<')
+                {
+                    text.push(*next_ch);
+                    chars.next();
+                } else if ch == '>' && *next_ch == '&' {
+                    text.push(*next_ch);
+                    chars.next();
+                    // Handle 2>&1
+                    while let Some((_, c)) = chars.peek() {
+                        if c.is_numeric() {
+                            text.insert(0, *c);
+                            chars.next();
+                        } else {
+                            break;
+                        }
+                    }
+                }
+            }
+
+            let len = text.len();
+            tokens.push(Token::new(TokenType::Operator, text, start, start + len));
+            is_first_word = true; // Reset after operator
+            continue;
+        }
+
+        // Handle whitespace
+        if ch.is_whitespace() {
+            let mut text = String::from(ch);
+            while let Some((_, c)) = chars.peek() {
+                if c.is_whitespace() {
+                    text.push(*c);
+                    chars.next();
+                } else {
+                    break;
+                }
+            }
+            let len = text.len();
+            tokens.push(Token::new(TokenType::Whitespace, text, start, start + len));
+            continue;
+        }
+
+        // Handle words (commands, keywords, text)
+        if ch.is_alphanumeric() || ch == '_' || ch == '-' || ch == '/' || ch == '.' {
+            let mut text = String::from(ch);
+            while let Some((_, c)) = chars.peek() {
+                if c.is_alphanumeric() || *c == '_' || *c == '-' || *c == '/' || *c == '.' {
+                    text.push(*c);
+                    chars.next();
+                } else {
+                    break;
+                }
+            }
+
+            // Determine token type
+            let token_type = if is_keyword(&text) {
+                TokenType::Keyword
+            } else if is_first_word {
+                is_first_word = false;
+                TokenType::Command
+            } else {
+                TokenType::Text
+            };
+
+            let len = text.len();
+            tokens.push(Token::new(token_type, text, start, start + len));
+            continue;
+        }
+
+        // Everything else is text
+        let text = String::from(ch);
+        tokens.push(Token::new(TokenType::Text, text, start, start + 1));
+    }
+
+    tokens
 }
 
-/// Highlight a single token with ANSI codes
-pub fn highlight_token(_token: &Token) -> String {
-    unimplemented!("REPL-015-002: Not implemented")
+/// Highlight a single token with ANSI color codes
+///
+/// Wraps the token text with appropriate ANSI escape sequences based on
+/// the token type.
+///
+/// # Arguments
+///
+/// * `token` - The token to highlight
+///
+/// # Returns
+///
+/// The token text wrapped in ANSI color codes
+pub fn highlight_token(token: &Token) -> String {
+    use colors::*;
+
+    match token.token_type {
+        TokenType::Keyword => format!("{}{}{}", BOLD_BLUE, token.text, RESET),
+        TokenType::String => format!("{}{}{}", GREEN, token.text, RESET),
+        TokenType::Variable => format!("{}{}{}", YELLOW, token.text, RESET),
+        TokenType::Command => format!("{}{}{}", CYAN, token.text, RESET),
+        TokenType::Comment => format!("{}{}{}", GRAY, token.text, RESET),
+        TokenType::Operator => format!("{}{}{}", MAGENTA, token.text, RESET),
+        TokenType::Whitespace | TokenType::Text => token.text.clone(),
+    }
 }
 
-/// Main highlighting function
-pub fn highlight_bash(_input: &str) -> String {
-    unimplemented!("REPL-015-002: Not implemented")
+/// Apply syntax highlighting to bash input
+///
+/// Tokenizes the input and applies ANSI color codes to each token based on
+/// its type (keywords, strings, variables, commands, etc.).
+///
+/// # Arguments
+///
+/// * `input` - The bash code to highlight
+///
+/// # Returns
+///
+/// The highlighted bash code with ANSI color codes
+///
+/// # Examples
+///
+/// ```
+/// use bashrs::repl::highlighting::highlight_bash;
+///
+/// let highlighted = highlight_bash("echo $HOME");
+/// // Output contains ANSI codes for syntax highlighting
+/// ```
+pub fn highlight_bash(input: &str) -> String {
+    let tokens = tokenize(input);
+    tokens.iter().map(highlight_token).collect()
 }
 
-/// Strip ANSI codes from string (for testing)
-pub fn strip_ansi_codes(_input: &str) -> String {
-    unimplemented!("REPL-015-002: Not implemented")
+/// Strip ANSI escape codes from a string
+///
+/// Removes all ANSI color codes from the input, returning plain text.
+/// Useful for testing that highlighting preserves the original text.
+///
+/// # Arguments
+///
+/// * `input` - The string with ANSI codes
+///
+/// # Returns
+///
+/// The string with all ANSI codes removed
+pub fn strip_ansi_codes(input: &str) -> String {
+    // Simple regex-free approach: skip escape sequences
+    let mut result = String::new();
+    let mut chars = input.chars().peekable();
+
+    while let Some(ch) = chars.next() {
+        if ch == '\x1b' {
+            // Skip until 'm' (end of ANSI sequence)
+            while let Some(c) = chars.next() {
+                if c == 'm' {
+                    break;
+                }
+            }
+        } else {
+            result.push(ch);
+        }
+    }
+
+    result
 }
 
 #[cfg(test)]
@@ -85,7 +358,6 @@ mod tests {
 
     /// Test: REPL-015-002-001 - Highlight keywords
     #[test]
-    #[should_panic(expected = "not implemented")]
     fn test_REPL_015_002_001_highlight_keywords() {
         let input = "if then else fi";
         let highlighted = highlight_bash(input);
@@ -98,7 +370,6 @@ mod tests {
 
     /// Test: REPL-015-002-002 - Highlight strings
     #[test]
-    #[should_panic(expected = "not implemented")]
     fn test_REPL_015_002_002_highlight_strings() {
         let input = r#"echo "hello world" 'single'"#;
         let highlighted = highlight_bash(input);
@@ -109,7 +380,6 @@ mod tests {
 
     /// Test: REPL-015-002-003 - Highlight variables
     #[test]
-    #[should_panic(expected = "not implemented")]
     fn test_REPL_015_002_003_highlight_variables() {
         let input = "echo $HOME ${USER} $?";
         let highlighted = highlight_bash(input);
@@ -121,7 +391,6 @@ mod tests {
 
     /// Test: REPL-015-002-004 - Highlight commands
     #[test]
-    #[should_panic(expected = "not implemented")]
     fn test_REPL_015_002_004_highlight_commands() {
         let input = "mkdir -p /tmp";
         let highlighted = highlight_bash(input);
@@ -132,7 +401,6 @@ mod tests {
 
     /// Test: REPL-015-002-005 - Highlight comments
     #[test]
-    #[should_panic(expected = "not implemented")]
     fn test_REPL_015_002_005_highlight_comments() {
         let input = "echo hello # this is a comment";
         let highlighted = highlight_bash(input);
@@ -142,7 +410,6 @@ mod tests {
 
     /// Test: REPL-015-002-006 - Highlight operators
     #[test]
-    #[should_panic(expected = "not implemented")]
     fn test_REPL_015_002_006_highlight_operators() {
         let input = "cat file | grep pattern && echo done";
         let highlighted = highlight_bash(input);
@@ -153,7 +420,6 @@ mod tests {
 
     /// Test: REPL-015-002-007 - is_keyword function
     #[test]
-    #[should_panic(expected = "not implemented")]
     fn test_REPL_015_002_007_is_keyword() {
         assert!(is_keyword("if"));
         assert!(is_keyword("then"));
@@ -169,7 +435,6 @@ mod tests {
 
     /// Test: REPL-015-002-INT-001 - Full bash statement
     #[test]
-    #[should_panic(expected = "not implemented")]
     fn test_REPL_015_002_INT_001_full_statement() {
         let input = r#"if [ -f "$file" ]; then echo "found"; fi"#;
         let highlighted = highlight_bash(input);
@@ -194,15 +459,15 @@ mod property_tests {
 
     /// Property: Highlighting never panics
     #[test]
-    #[should_panic(expected = "not implemented")]
     fn prop_highlighting_never_panics() {
         // Should never panic on any input
+        let long_input = "x".repeat(1000);
         let test_inputs = vec![
             "",
             "if then",
             "echo $HOME",
             "cat file | grep pattern",
-            "x".repeat(1000).as_str(),
+            long_input.as_str(),
             "# comment only",
             r#"echo "string with spaces""#,
         ];
@@ -214,7 +479,6 @@ mod property_tests {
 
     /// Property: Highlighting preserves text
     #[test]
-    #[should_panic(expected = "not implemented")]
     fn prop_highlighting_preserves_text() {
         let test_inputs = vec![
             "echo hello",

@@ -415,6 +415,7 @@ mod tests {
 #[cfg(test)]
 mod property_tests {
     use super::*;
+    use crate::linter::{Diagnostic, Span};
     use proptest::prelude::*;
 
     // ===== PROPERTY TESTS (PROPERTY PHASE) =====
