@@ -36,7 +36,7 @@ bashrs [normal]> help
 ```
 
 **Output**:
-```
+```text
 bashrs REPL Commands:
   help             - Show this help message
   quit             - Exit the REPL
@@ -84,7 +84,7 @@ bashrs [normal]> :mode
 ```
 
 **Output**:
-```
+```text
 Current mode: normal - Execute bash commands directly
 
 Available modes:
@@ -407,7 +407,7 @@ bashrs [normal]> :history
 ```
 
 **Output**:
-```
+```text
 Command History (5 commands):
   1 echo hello
   2 mkdir /tmp/test
@@ -448,7 +448,7 @@ bashrs [normal]> :vars
 ```
 
 **Output**:
-```
+```text
 No session variables set
 ```
 

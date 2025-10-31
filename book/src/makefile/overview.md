@@ -246,7 +246,7 @@ Rash Makefile purification follows these steps:
 3. **Transform** AST to fix issues
 4. **Generate** purified Makefile
 
-```
+```text
 ┌─────────────┐
 │   Makefile  │
 │  (original) │
