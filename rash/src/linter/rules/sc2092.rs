@@ -35,14 +35,28 @@ pub fn check(source: &str) -> LintResult {
         }
 
         for mat in EXECUTE_BACKTICKS.find_iter(line) {
-            // Skip if it's in an assignment
-            if line[..mat.start()].contains('=') {
-                continue;
-            }
+            let matched_text = &line[mat.start()..mat.end()];
 
-            // Skip if it's in echo or other safe contexts
-            if line[..mat.start()].contains("echo") || line[..mat.start()].contains("printf") {
-                continue;
+            // Check if match starts with command separator (;, |, &)
+            // If so, this is a new command, not part of echo/printf
+            let starts_with_separator = matched_text.starts_with(';')
+                || matched_text.starts_with('|')
+                || matched_text.starts_with('&');
+
+            // If it starts with a separator, it's a new command - should be flagged
+            if !starts_with_separator {
+                // Check the immediate context before the backticks
+                let prefix = &line[..mat.start()];
+
+                // Skip if it's in an assignment
+                if prefix.contains('=') && !prefix.ends_with(';') && !prefix.ends_with('|') {
+                    continue;
+                }
+
+                // Skip if it's in echo or other safe contexts
+                if prefix.contains("echo") || prefix.contains("printf") {
+                    continue;
+                }
             }
 
             let start_col = mat.start() + 1;
@@ -113,10 +127,10 @@ mod tests {
     }
 
     #[test]
-    #[ignore] // TODO: Better context detection for echo/printf
     fn test_sc2092_after_semicolon() {
         let code = "echo start; `find . -name '*.sh'`";
         let result = check(code);
+        // Backticks after semicolon are a new command - should be flagged
         assert_eq!(result.diagnostics.len(), 1);
     }
 
