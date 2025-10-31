@@ -81,7 +81,7 @@ impl TraceManager {
             .lock()
             .ok()
             .map(|b| b.clone())
-            .unwrap_or_else(CircularTraceBuffer::new)
+            .unwrap_or_default()
     }
 
     /// Get the number of events currently in the buffer

@@ -9,7 +9,6 @@
 //! - Mutation score: ≥90%
 //! - Complexity: <10 per function
 
-use crate::bash_parser::ast::{BashExpr, Span};
 use crate::bash_parser::{BashParser, BashStmt};
 use std::fs;
 use std::path::{Path, PathBuf};
