@@ -1060,7 +1060,7 @@ phases:
 
       - sprint: "REPL-014"
         name: "Purified Output Validation"
-        status: "PENDING"
+        status: "COMPLETED"
         duration: "1 week"
         note: "Use bashrs's own linter (355+ rules) instead of external shellcheck"
         tasks:
@@ -1161,7 +1161,7 @@ phases:
 
           - id: "REPL-015-004"
             title: "Help system (:help)"
-            status: "pending"
+            status: "completed"
             tests:
               unit:
                 - "test_REPL_015_004_help_general"
