@@ -29,7 +29,7 @@ $ cargo run --bin bashrs -- score ~/.zshrc
 ```
 
 **Result:**
-```
+```text
 Bash Script Quality Score
 =========================
 
@@ -57,7 +57,7 @@ $ cargo run --bin bashrs -- lint ~/.zshrc
 ```
 
 **Results:**
-```
+```text
 Summary: 2 error(s), 38 warning(s), 13 info(s)
 
 Critical Errors:
@@ -96,7 +96,7 @@ $ cargo run --bin bashrs -- audit ~/.zshrc
 ```
 
 **Results:**
-```
+```text
 Comprehensive Quality Audit
 ===========================
 
@@ -127,7 +127,7 @@ $ cargo run --bin bashrs -- coverage ~/.zshrc
 ```
 
 **Results:**
-```
+```text
 Coverage Report: ~/.zshrc
 
 Lines:     0/103   (0.0%)  ❌
@@ -150,7 +150,7 @@ $ cargo run --bin bashrs -- config analyze ~/.zshrc
 ```
 
 **Results:**
-```
+```text
 Analysis: ~/.zshrc
 ============================
 
@@ -180,7 +180,7 @@ $ cargo run --bin bashrs -- test ~/.zshrc
 ```
 
 **Results:**
-```
+```text
 Running tests in ~/.zshrc
 ⚠ No tests found in ~/.zshrc
 ```
@@ -196,7 +196,7 @@ $ cargo run --bin bashrs -- format ~/.zshrc
 ```
 
 **Results:**
-```
+```text
 error: Failed to format: Lexer error at line 63
 ```
 
