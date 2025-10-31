@@ -133,7 +133,7 @@ pub fn tokenize(input: &str) -> Vec<Token> {
             let mut text = String::from(quote);
             let mut escaped = false;
 
-            while let Some((_, c)) = chars.next() {
+            for (_, c) in chars.by_ref() {
                 text.push(c);
                 if escaped {
                     escaped = false;
@@ -157,7 +157,7 @@ pub fn tokenize(input: &str) -> Vec<Token> {
             if let Some((_, '{')) = chars.peek() {
                 text.push('{');
                 chars.next();
-                while let Some((_, c)) = chars.next() {
+                for (_, c) in chars.by_ref() {
                     text.push(c);
                     if c == '}' {
                         break;
@@ -337,7 +337,7 @@ pub fn strip_ansi_codes(input: &str) -> String {
     while let Some(ch) = chars.next() {
         if ch == '\x1b' {
             // Skip until 'm' (end of ANSI sequence)
-            while let Some(c) = chars.next() {
+            for c in chars.by_ref() {
                 if c == 'm' {
                     break;
                 }

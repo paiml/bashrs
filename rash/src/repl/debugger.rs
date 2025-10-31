@@ -85,8 +85,7 @@ impl DebugSession {
         let lines: Vec<String> = script.lines().map(|l| l.to_string()).collect();
 
         // Initialize call stack with main frame
-        let mut call_stack = Vec::new();
-        call_stack.push(StackFrame::new("<main>", 0));
+        let call_stack = vec![StackFrame::new("<main>", 0)];
 
         // Attempt to purify the script for comparison
         let purified_lines = purify_bash(script)
