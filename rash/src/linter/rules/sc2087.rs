@@ -20,8 +20,9 @@ use once_cell::sync::Lazy;
 use regex::Regex;
 
 static SH_C_WITH_VAR: Lazy<Regex> = Lazy::new(|| {
-    // Match: sh -c "...$var..." or bash -c "...${var}..." (with optional flags)
-    Regex::new(r#"\b(sh|bash)(\s+-[a-z]+)*\s+-c\s+"[^"]*\$(\{[a-zA-Z_][a-zA-Z0-9_]*\}|[a-zA-Z_][a-zA-Z0-9_]*)[^"]*""#).unwrap()
+    // Match: sh -c "...$var..." or bash -c "...${var}..." (with optional flags before/after -c)
+    // (\s+-[a-z]+)* handles flags like -e, -x both before and after -c
+    Regex::new(r#"\b(sh|bash)(\s+-[a-z]+)*\s+-c(\s+-[a-z]+)*\s+"[^"]*\$(\{[a-zA-Z_][a-zA-Z0-9_]*\}|[a-zA-Z_][a-zA-Z0-9_]*)[^"]*""#).unwrap()
 });
 
 pub fn check(source: &str) -> LintResult {
@@ -117,10 +118,10 @@ mod tests {
     }
 
     #[test]
-    #[ignore] // TODO: Handle sh -c with separated flags (-c -e)
     fn test_sc2087_with_flags() {
         let code = r#"bash -c -e "echo $var""#;
         let result = check(code);
+        // Regex now handles flags both before and after -c
         assert_eq!(result.diagnostics.len(), 1);
     }
 
