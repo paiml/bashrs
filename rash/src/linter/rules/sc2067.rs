@@ -139,7 +139,6 @@ done
     }
 
     #[test]
-    #[ignore] // TODO: Arithmetic contexts don't need $ on arrays
     fn test_sc2067_arithmetic_context() {
         let code = r#"result=$((array[i] + 1))"#;
         let result = check(code);
