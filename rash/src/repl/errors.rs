@@ -314,6 +314,10 @@ pub fn suggest_command(input: &str, commands: &[&str]) -> Option<String> {
 }
 
 /// Calculate Levenshtein distance between two strings
+///
+/// This is a standard dynamic programming algorithm with guaranteed safe indexing
+/// because the matrix is pre-allocated to (len1+1) x (len2+1) dimensions.
+#[allow(clippy::indexing_slicing, clippy::needless_range_loop)]
 fn levenshtein_distance(s1: &str, s2: &str) -> usize {
     let len1 = s1.len();
     let len2 = s2.len();
