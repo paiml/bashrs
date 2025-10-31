@@ -41,6 +41,10 @@ pub use explain::{explain_bash, Explanation};
 pub use linter::{format_lint_results, lint_bash};
 pub use modes::ReplMode;
 pub use parser::{format_parse_error, parse_bash};
-pub use purifier::{explain_purification_changes, format_purification_report, purify_bash};
+pub use purifier::{
+    explain_purification_changes, explain_purification_changes_detailed, format_transformation_report,
+    purify_bash, SafetyRationale, SafetySeverity, TransformationCategory,
+    TransformationExplanation,
+};
 pub use r#loop::run_repl;
 pub use state::ReplState;
