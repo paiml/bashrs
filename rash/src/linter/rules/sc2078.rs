@@ -19,8 +19,9 @@ use once_cell::sync::Lazy;
 use regex::Regex;
 
 static CONSTANT_IN_TEST: Lazy<Regex> = Lazy::new(|| {
-    // Match: [ word -op number ] where word has no $ (likely forgot $)
-    Regex::new(r"\[\s+([a-zA-Z_][a-zA-Z0-9_]*)\s+(-eq|-ne|-lt|-le|-gt|-ge)\s+[0-9]+\s+\]").unwrap()
+    // Match: [ word -op number ] or [ ! word -op number ] where word has no $ (likely forgot $)
+    // !?\s* handles optional negation (! with optional space)
+    Regex::new(r"\[\s+!?\s*([a-zA-Z_][a-zA-Z0-9_]*)\s+(-eq|-ne|-lt|-le|-gt|-ge)\s+[0-9]+\s+\]").unwrap()
 });
 
 pub fn check(source: &str) -> LintResult {
@@ -145,10 +146,10 @@ mod tests {
     }
 
     #[test]
-    #[ignore] // TODO: Handle negation in test commands
     fn test_sc2078_negation() {
         let code = r#"[ ! count -gt 5 ]"#;
         let result = check(code);
+        // Regex now handles negation (!) operator
         assert_eq!(result.diagnostics.len(), 1);
     }
 }
