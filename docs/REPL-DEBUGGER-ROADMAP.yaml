@@ -979,27 +979,59 @@ phases:
 
       - sprint: "REPL-013"
         name: "Purification Explainer"
-        status: "PENDING"
+        status: "IN_PROGRESS"
         duration: "2 weeks"
         tasks:
           - id: "REPL-013-001"
             title: "Detailed transformation explanations"
-            status: "pending"
+            status: "completed"
+            completion_date: "2025-10-31"
             tests:
               unit:
-                - "test_REPL_013_001_explain_mkdir_p"
-                - "test_REPL_013_001_explain_quote_var"
-                - "test_REPL_013_001_explain_random_removal"
+                - "test_REPL_013_001_transformation_category_display"
+                - "test_REPL_013_001_transformation_explanation_new"
+                - "test_REPL_013_001_transformation_with_line_number"
+                - "test_REPL_013_001_explain_mkdir_p_detailed"
+                - "test_REPL_013_001_format_empty_report"
+              property:
+                - "prop_REPL_013_001_explanation_new_never_panics"
+                - "prop_REPL_013_001_format_report_never_panics"
+                - "prop_REPL_013_001_explain_detailed_never_panics"
+                - "prop_REPL_013_001_line_numbers_always_positive"
+            implementation:
+              types:
+                - "TransformationCategory enum (Idempotency, Determinism, Safety)"
+                - "TransformationExplanation struct with detailed fields"
+              functions:
+                - "explain_purification_changes_detailed() - Returns Vec<TransformationExplanation>"
+                - "format_transformation_report() - Formats detailed transformation report"
+            quality_metrics:
+              unit_tests: 5
+              property_tests: 4
+              clippy_warnings: 0
+              complexity: "<10 per function"
 
           - id: "REPL-013-002"
             title: "Safety rationale (why change improves safety)"
-            status: "pending"
+            status: "completed"
             dependencies: ["REPL-013-001"]
             tests:
               unit:
                 - "test_REPL_013_002_safety_idempotency"
                 - "test_REPL_013_002_safety_determinism"
                 - "test_REPL_013_002_safety_injection"
+                - "test_REPL_013_002_rationale_builder"
+                - "test_REPL_013_002_explanation_with_rationale"
+                - "test_REPL_013_002_format_rationale"
+              property:
+                - "prop_REPL_013_002_rationale_builder_never_panics"
+                - "prop_REPL_013_002_format_never_panics"
+                - "prop_REPL_013_002_severity_always_valid"
+            quality:
+              unit_tests: 6
+              property_tests: 3
+              clippy_warnings: 0
+              complexity: "<10 per function"
 
           - id: "REPL-013-003"
             title: "Alternative suggestions"
