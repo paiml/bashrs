@@ -51,7 +51,10 @@ pub fn check(source: &str) -> LintResult {
 
             // Skip if it looks like a constant comparison (e.g., [ "true" = "true" ])
             // We're looking for cases where left looks like a variable name
-            if left.chars().all(|c| c.is_lowercase() || c == '_') && left.len() > 1 {
+            // Pattern allows [a-z_][a-z0-9_]*, so allow alphanumeric names
+            if left.len() > 1
+                && left.chars().next().is_some_and(|c| c.is_lowercase() || c == '_')
+                && left.chars().all(|c| c.is_lowercase() || c.is_ascii_digit() || c == '_') {
                 let start_col = full_match.start() + 1;
                 let end_col = full_match.end() + 1;
 
@@ -121,9 +124,9 @@ mod tests {
     }
 
     #[test]
-    #[ignore] // TODO: Fix multiline handling
     fn test_sc2050_multiple_occurrences() {
-        let script = "[ \"var1\" = \"value1\" ]\n[ \"var2\" = \"value2\" ]";
+        let script = r#"[ "var1" = "value1" ]
+[ "var2" = "value2" ]"#;
         let result = check(script);
         assert_eq!(result.diagnostics.len(), 2);
     }
