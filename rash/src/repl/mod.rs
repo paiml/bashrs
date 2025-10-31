@@ -17,6 +17,7 @@ pub mod errors;
 pub mod executor;
 pub mod explain;
 pub mod help;
+pub mod highlighting;
 pub mod linter;
 pub mod loader;
 mod r#loop;
@@ -43,6 +44,7 @@ pub use errors::{
     suggest_command, ErrorMessage, ErrorType, Severity, SourceContext, Suggestion,
 };
 pub use explain::{explain_bash, Explanation};
+pub use highlighting::{highlight_bash, is_keyword, strip_ansi_codes, tokenize, Token, TokenType};
 pub use linter::{format_lint_results, format_violations_with_context, lint_bash};
 pub use modes::ReplMode;
 pub use parser::{format_parse_error, parse_bash};
