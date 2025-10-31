@@ -20,7 +20,7 @@ pub mod colors {
 }
 
 /// Token type for syntax highlighting
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub enum TokenType {
     Keyword,   // if, then, while, for, do, done, case, esac, function
     String,    // "..." or '...'
@@ -104,6 +104,170 @@ pub fn is_keyword(word: &str) -> bool {
 /// let tokens = tokenize("echo $HOME");
 /// assert_eq!(tokens.len(), 3); // "echo", " ", "$HOME"
 /// ```
+/// Tokenize a comment starting with #
+fn tokenize_comment<I>(chars: &mut std::iter::Peekable<I>, start: usize) -> Token
+where
+    I: Iterator<Item = (usize, char)>,
+{
+    let mut text = String::from('#');
+    while let Some((_, c)) = chars.peek() {
+        if *c == '\n' {
+            break;
+        }
+        text.push(*c);
+        chars.next();
+    }
+    let len = text.len();
+    Token::new(TokenType::Comment, text, start, start + len)
+}
+
+/// Tokenize a string (single or double quoted)
+fn tokenize_string<I>(chars: &mut std::iter::Peekable<I>, quote: char, start: usize) -> Token
+where
+    I: Iterator<Item = (usize, char)>,
+{
+    let mut text = String::from(quote);
+    let mut escaped = false;
+
+    for (_, c) in chars.by_ref() {
+        text.push(c);
+        if escaped {
+            escaped = false;
+        } else if c == '\\' {
+            escaped = true;
+        } else if c == quote {
+            break;
+        }
+    }
+
+    let len = text.len();
+    Token::new(TokenType::String, text, start, start + len)
+}
+
+/// Tokenize a variable ($VAR, ${VAR}, $?, etc.)
+fn tokenize_variable<I>(chars: &mut std::iter::Peekable<I>, start: usize) -> Token
+where
+    I: Iterator<Item = (usize, char)>,
+{
+    let mut text = String::from('$');
+
+    // Check for ${var} or $var
+    if let Some((_, '{')) = chars.peek() {
+        text.push('{');
+        chars.next();
+        for (_, c) in chars.by_ref() {
+            text.push(c);
+            if c == '}' {
+                break;
+            }
+        }
+    } else {
+        // Simple $var or $? $$ etc
+        while let Some((_, c)) = chars.peek() {
+            if c.is_alphanumeric() || *c == '_' || *c == '?' || *c == '!' || *c == '@' || *c == '#' {
+                text.push(*c);
+                chars.next();
+            } else {
+                break;
+            }
+        }
+    }
+
+    let len = text.len();
+    Token::new(TokenType::Variable, text, start, start + len)
+}
+
+/// Check if two characters form a double operator (&&, ||, >>, <<)
+fn is_double_operator(ch: char, next_ch: char) -> bool {
+    (ch == '|' && next_ch == '|')
+        || (ch == '&' && next_ch == '&')
+        || (ch == '>' && next_ch == '>')
+        || (ch == '<' && next_ch == '<')
+}
+
+/// Handle redirection with file descriptor (2>&1, etc.)
+fn handle_redirection<I>(chars: &mut std::iter::Peekable<I>, text: &mut String)
+where
+    I: Iterator<Item = (usize, char)>,
+{
+    while let Some((_, c)) = chars.peek() {
+        if c.is_numeric() {
+            text.insert(0, *c);
+            chars.next();
+        } else {
+            break;
+        }
+    }
+}
+
+/// Tokenize an operator (|, &, ;, <, >, &&, ||, >>, etc.)
+fn tokenize_operator<I>(chars: &mut std::iter::Peekable<I>, ch: char, start: usize) -> Token
+where
+    I: Iterator<Item = (usize, char)>,
+{
+    let mut text = String::from(ch);
+
+    if let Some((_, next_ch)) = chars.peek() {
+        if is_double_operator(ch, *next_ch) {
+            text.push(*next_ch);
+            chars.next();
+        } else if ch == '>' && *next_ch == '&' {
+            text.push(*next_ch);
+            chars.next();
+            handle_redirection(chars, &mut text);
+        }
+    }
+
+    let len = text.len();
+    Token::new(TokenType::Operator, text, start, start + len)
+}
+
+/// Tokenize whitespace
+fn tokenize_whitespace<I>(chars: &mut std::iter::Peekable<I>, ch: char, start: usize) -> Token
+where
+    I: Iterator<Item = (usize, char)>,
+{
+    let mut text = String::from(ch);
+    while let Some((_, c)) = chars.peek() {
+        if c.is_whitespace() {
+            text.push(*c);
+            chars.next();
+        } else {
+            break;
+        }
+    }
+    let len = text.len();
+    Token::new(TokenType::Whitespace, text, start, start + len)
+}
+
+/// Tokenize a word (command, keyword, or text)
+fn tokenize_word<I>(chars: &mut std::iter::Peekable<I>, ch: char, start: usize, is_first: bool) -> Token
+where
+    I: Iterator<Item = (usize, char)>,
+{
+    let mut text = String::from(ch);
+    while let Some((_, c)) = chars.peek() {
+        if c.is_alphanumeric() || *c == '_' || *c == '-' || *c == '/' || *c == '.' {
+            text.push(*c);
+            chars.next();
+        } else {
+            break;
+        }
+    }
+
+    // Determine token type
+    let token_type = if is_keyword(&text) {
+        TokenType::Keyword
+    } else if is_first {
+        TokenType::Command
+    } else {
+        TokenType::Text
+    };
+
+    let len = text.len();
+    Token::new(token_type, text, start, start + len)
+}
+
 pub fn tokenize(input: &str) -> Vec<Token> {
     let mut tokens = Vec::new();
     let mut chars = input.chars().enumerate().peekable();
@@ -112,154 +276,28 @@ pub fn tokenize(input: &str) -> Vec<Token> {
     while let Some((i, ch)) = chars.next() {
         let start = i;
 
-        // Handle comments
-        if ch == '#' {
-            let mut text = String::from('#');
-            while let Some((_, c)) = chars.peek() {
-                if *c == '\n' {
-                    break;
-                }
-                text.push(*c);
-                chars.next();
+        let token = match ch {
+            '#' => tokenize_comment(&mut chars, start),
+            '"' | '\'' => tokenize_string(&mut chars, ch, start),
+            '$' => tokenize_variable(&mut chars, start),
+            '|' | '&' | ';' | '<' | '>' => {
+                let tok = tokenize_operator(&mut chars, ch, start);
+                is_first_word = true; // Reset after operator
+                tok
             }
-            let len = text.len();
-            tokens.push(Token::new(TokenType::Comment, text, start, start + len));
-            continue;
-        }
-
-        // Handle strings
-        if ch == '"' || ch == '\'' {
-            let quote = ch;
-            let mut text = String::from(quote);
-            let mut escaped = false;
-
-            for (_, c) in chars.by_ref() {
-                text.push(c);
-                if escaped {
-                    escaped = false;
-                } else if c == '\\' {
-                    escaped = true;
-                } else if c == quote {
-                    break;
+            c if c.is_whitespace() => tokenize_whitespace(&mut chars, ch, start),
+            c if c.is_alphanumeric() || c == '_' || c == '-' || c == '/' || c == '.' => {
+                let tok = tokenize_word(&mut chars, ch, start, is_first_word);
+                if !is_keyword(&tok.text) && is_first_word {
+                    is_first_word = false;
                 }
+                tok
             }
+            // Everything else is text
+            _ => Token::new(TokenType::Text, String::from(ch), start, start + 1),
+        };
 
-            let len = text.len();
-            tokens.push(Token::new(TokenType::String, text, start, start + len));
-            continue;
-        }
-
-        // Handle variables
-        if ch == '$' {
-            let mut text = String::from('$');
-
-            // Check for ${var} or $var
-            if let Some((_, '{')) = chars.peek() {
-                text.push('{');
-                chars.next();
-                for (_, c) in chars.by_ref() {
-                    text.push(c);
-                    if c == '}' {
-                        break;
-                    }
-                }
-            } else {
-                // Simple $var or $? $$ etc
-                while let Some((_, c)) = chars.peek() {
-                    if c.is_alphanumeric() || *c == '_' || *c == '?' || *c == '!' || *c == '@' || *c == '#' {
-                        text.push(*c);
-                        chars.next();
-                    } else {
-                        break;
-                    }
-                }
-            }
-
-            let len = text.len();
-            tokens.push(Token::new(TokenType::Variable, text, start, start + len));
-            continue;
-        }
-
-        // Handle operators
-        if ch == '|' || ch == '&' || ch == ';' || ch == '<' || ch == '>' {
-            let mut text = String::from(ch);
-
-            // Check for && || >> 2>&1 etc
-            if let Some((_, next_ch)) = chars.peek() {
-                if (ch == '|' && *next_ch == '|')
-                    || (ch == '&' && *next_ch == '&')
-                    || (ch == '>' && *next_ch == '>')
-                    || (ch == '<' && *next_ch == '<')
-                {
-                    text.push(*next_ch);
-                    chars.next();
-                } else if ch == '>' && *next_ch == '&' {
-                    text.push(*next_ch);
-                    chars.next();
-                    // Handle 2>&1
-                    while let Some((_, c)) = chars.peek() {
-                        if c.is_numeric() {
-                            text.insert(0, *c);
-                            chars.next();
-                        } else {
-                            break;
-                        }
-                    }
-                }
-            }
-
-            let len = text.len();
-            tokens.push(Token::new(TokenType::Operator, text, start, start + len));
-            is_first_word = true; // Reset after operator
-            continue;
-        }
-
-        // Handle whitespace
-        if ch.is_whitespace() {
-            let mut text = String::from(ch);
-            while let Some((_, c)) = chars.peek() {
-                if c.is_whitespace() {
-                    text.push(*c);
-                    chars.next();
-                } else {
-                    break;
-                }
-            }
-            let len = text.len();
-            tokens.push(Token::new(TokenType::Whitespace, text, start, start + len));
-            continue;
-        }
-
-        // Handle words (commands, keywords, text)
-        if ch.is_alphanumeric() || ch == '_' || ch == '-' || ch == '/' || ch == '.' {
-            let mut text = String::from(ch);
-            while let Some((_, c)) = chars.peek() {
-                if c.is_alphanumeric() || *c == '_' || *c == '-' || *c == '/' || *c == '.' {
-                    text.push(*c);
-                    chars.next();
-                } else {
-                    break;
-                }
-            }
-
-            // Determine token type
-            let token_type = if is_keyword(&text) {
-                TokenType::Keyword
-            } else if is_first_word {
-                is_first_word = false;
-                TokenType::Command
-            } else {
-                TokenType::Text
-            };
-
-            let len = text.len();
-            tokens.push(Token::new(token_type, text, start, start + len));
-            continue;
-        }
-
-        // Everything else is text
-        let text = String::from(ch);
-        tokens.push(Token::new(TokenType::Text, text, start, start + 1));
+        tokens.push(token);
     }
 
     tokens
@@ -492,4 +530,227 @@ mod property_tests {
             assert_eq!(stripped, input);
         }
     }
+
+    /// Property: Tokenization preserves all input characters
+    #[test]
+    fn prop_tokenize_preserves_chars() {
+        let test_inputs = vec![
+            "echo hello",
+            "if then else fi",
+            "# comment",
+            "echo \"string\"",
+            "echo $VAR",
+            "cat file | grep pattern",
+            "cmd1 && cmd2",
+            "cmd1 || cmd2",
+            "echo test > file",
+            "cat < file",
+            "cmd1; cmd2",
+            "function foo { echo bar; }",
+            "${VAR:-default}",
+            "echo 'single quotes'",
+            "ls -la /tmp",
+            "echo test # comment",
+            "#!/bin/bash",
+            "",
+        ];
+
+        for input in test_inputs {
+            let tokens = tokenize(input);
+            let reconstructed: String = tokens.iter().map(|t| t.text.as_str()).collect();
+            assert_eq!(
+                reconstructed, input,
+                "Tokenization must preserve all characters for input: {:?}",
+                input
+            );
+        }
+    }
+
+    /// Property: Token positions are contiguous and cover entire input
+    #[test]
+    fn prop_tokenize_positions_contiguous() {
+        let test_inputs = vec![
+            "echo hello world",
+            "if [ -f file ]; then echo yes; fi",
+            "cat file | grep pattern | wc -l",
+        ];
+
+        for input in test_inputs {
+            let tokens = tokenize(input);
+            let mut expected_start = 0;
+
+            for token in &tokens {
+                assert_eq!(
+                    token.start, expected_start,
+                    "Token positions must be contiguous at {:?} in input {:?}",
+                    token, input
+                );
+                expected_start = token.end;
+            }
+
+            assert_eq!(
+                expected_start,
+                input.len(),
+                "Tokens must cover entire input for {:?}",
+                input
+            );
+        }
+    }
+
+    /// Property: Tokenization is deterministic
+    #[test]
+    fn prop_tokenize_deterministic() {
+        let test_inputs = vec![
+            "echo hello",
+            "if then fi",
+            "# comment",
+            "echo $VAR",
+        ];
+
+        for input in test_inputs {
+            let tokens1 = tokenize(input);
+            let tokens2 = tokenize(input);
+
+            assert_eq!(tokens1.len(), tokens2.len());
+            for (t1, t2) in tokens1.iter().zip(tokens2.iter()) {
+                assert_eq!(t1.token_type, t2.token_type);
+                assert_eq!(t1.text, t2.text);
+                assert_eq!(t1.start, t2.start);
+                assert_eq!(t1.end, t2.end);
+            }
+        }
+    }
+
+    /// Property: Comments always start with # and consume to end of line
+    #[test]
+    fn prop_tokenize_comments() {
+        let test_inputs = vec![
+            ("# comment", vec![TokenType::Comment]),
+            ("echo test # comment", vec![TokenType::Command, TokenType::Whitespace, TokenType::Text, TokenType::Whitespace, TokenType::Comment]),
+            ("# only comment", vec![TokenType::Comment]),
+        ];
+
+        for (input, expected_types) in test_inputs {
+            let tokens = tokenize(input);
+            let types: Vec<TokenType> = tokens.iter().map(|t| t.token_type).collect();
+            assert_eq!(types, expected_types, "Failed for input: {:?}", input);
+
+            // Verify comment token starts with #
+            for token in &tokens {
+                if token.token_type == TokenType::Comment {
+                    assert!(token.text.starts_with('#'));
+                }
+            }
+        }
+    }
+
+    /// Property: String tokens always contain matching quotes
+    #[test]
+    fn prop_tokenize_strings() {
+        let test_inputs = vec![
+            r#"echo "hello""#,
+            r#"echo 'world'"#,
+            r#"echo "escaped \" quote""#,
+            r#"echo 'single'"#,
+        ];
+
+        for input in test_inputs {
+            let tokens = tokenize(input);
+
+            for token in &tokens {
+                if token.token_type == TokenType::String {
+                    // String must start and end with same quote type
+                    let first = token.text.chars().next().unwrap();
+                    let last = token.text.chars().last().unwrap();
+                    assert!(first == '"' || first == '\'');
+                    // Note: may not end with quote if unclosed string
+                    if token.text.len() > 1 && !token.text.ends_with('\\') {
+                        // If closed, should have matching quote
+                        if token.text.len() > 1 && (last == '"' || last == '\'') {
+                            assert_eq!(first, last, "String quotes must match in {:?}", token.text);
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    /// Property: Variable tokens always start with $
+    #[test]
+    fn prop_tokenize_variables() {
+        let test_inputs = vec![
+            "echo $VAR",
+            "echo ${VAR}",
+            "echo $HOME",
+            "echo $$",
+            "echo $?",
+            "echo $!",
+            "echo $@",
+            "echo $#",
+        ];
+
+        for input in test_inputs {
+            let tokens = tokenize(input);
+
+            for token in &tokens {
+                if token.token_type == TokenType::Variable {
+                    assert!(token.text.starts_with('$'), "Variable must start with $ in {:?}", token.text);
+                }
+            }
+        }
+    }
+
+    /// Property: Operators are recognized correctly
+    #[test]
+    fn prop_tokenize_operators() {
+        let test_inputs = vec![
+            ("cmd1 | cmd2", TokenType::Operator),
+            ("cmd1 && cmd2", TokenType::Operator),
+            ("cmd1 || cmd2", TokenType::Operator),
+            ("cmd1 ; cmd2", TokenType::Operator),
+            ("echo > file", TokenType::Operator),
+            ("cat < file", TokenType::Operator),
+            ("echo >> file", TokenType::Operator),
+        ];
+
+        for (input, expected_operator_type) in test_inputs {
+            let tokens = tokenize(input);
+            let has_operator = tokens.iter().any(|t| t.token_type == expected_operator_type);
+            assert!(has_operator, "Expected operator in: {:?}", input);
+        }
+    }
+
+    /// Property: Keywords are recognized correctly
+    #[test]
+    fn prop_tokenize_keywords() {
+        let keywords = vec!["if", "then", "else", "elif", "fi", "for", "while", "do", "done", "case", "esac", "function"];
+
+        for keyword in keywords {
+            let tokens = tokenize(keyword);
+            assert_eq!(tokens.len(), 1);
+            assert_eq!(tokens[0].token_type, TokenType::Keyword);
+            assert_eq!(tokens[0].text, keyword);
+        }
+    }
+
+    /// Property: First word is command (unless keyword)
+    #[test]
+    fn prop_tokenize_first_word_command() {
+        let test_inputs = vec![
+            ("echo hello", TokenType::Command, "echo"),
+            ("ls -la", TokenType::Command, "ls"),
+            ("mkdir /tmp", TokenType::Command, "mkdir"),
+        ];
+
+        for (input, expected_type, expected_text) in test_inputs {
+            let tokens = tokenize(input);
+            let first_word = tokens.iter().find(|t| !matches!(t.token_type, TokenType::Whitespace));
+
+            assert!(first_word.is_some());
+            let first_word = first_word.unwrap();
+            assert_eq!(first_word.token_type, expected_type);
+            assert_eq!(first_word.text, expected_text);
+        }
+    }
 }
+
