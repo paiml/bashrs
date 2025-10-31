@@ -21,7 +21,9 @@ use regex::Regex;
 
 static LOCAL_WITH_ARITHMETIC: Lazy<Regex> = Lazy::new(|| {
     // Match: local var=$((expr)) or declare var=$((expr))
-    Regex::new(r"\b(local|declare)\s+([a-zA-Z_][a-zA-Z0-9_]*)=\$\(\([^)]+\)\)").unwrap()
+    // Also handles flags: local -r var=$((expr))
+    // (?:\s+-[a-zA-Z]+)* matches optional flags like -r, -x, -i
+    Regex::new(r"\b(local|declare)(?:\s+-[a-zA-Z]+)*\s+([a-zA-Z_][a-zA-Z0-9_]*)=\$\(\([^)]+\)\)").unwrap()
 });
 
 pub fn check(source: &str) -> LintResult {
@@ -128,7 +130,6 @@ mod tests {
     }
 
     #[test]
-    #[ignore] // TODO: Handle local/declare with flags
     fn test_sc2085_with_flags() {
         let code = "local -r result=$((i++))";
         let result = check(code);
