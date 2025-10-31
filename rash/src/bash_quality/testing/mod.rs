@@ -319,7 +319,7 @@ fn execute_test(source: &str, test_name: &str) -> Result<TestResult, String> {
     let temp_dir = std::env::temp_dir();
     let timestamp = std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
-        .unwrap()
+        .expect("system time is after UNIX_EPOCH")
         .as_nanos();
     let script_path = temp_dir.join(format!("bashrs_test_{}_{}.sh", test_name, timestamp));
 
