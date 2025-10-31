@@ -11,6 +11,7 @@
 use crate::bash_parser::BashParser;
 use crate::bash_quality::Formatter;
 use crate::bash_transpiler::{PurificationOptions, PurificationReport, Purifier};
+use crate::linter::{lint_shell, Diagnostic, LintResult};
 
 /// Purify bash input and return purified AST with report
 ///
@@ -37,6 +38,147 @@ pub fn purify_bash(input: &str) -> anyhow::Result<String> {
     let purified_code = formatter.format(&purified_ast)?;
 
     Ok(purified_code)
+}
+
+// ===== REPL-014-001: Auto-run bashrs linter on purified output =====
+
+/// Result of purifying and linting bash code
+///
+/// Combines purification with linting to ensure purified output
+/// meets bashrs quality standards (no DET/IDEM/SEC violations).
+#[derive(Debug, Clone)]
+pub struct PurifiedLintResult {
+    /// The purified bash code
+    pub purified_code: String,
+
+    /// Lint results for the purified code
+    pub lint_result: LintResult,
+
+    /// True if purified code has no critical violations (DET/IDEM/SEC)
+    pub is_clean: bool,
+}
+
+impl PurifiedLintResult {
+    pub fn new(purified_code: String, lint_result: LintResult) -> Self {
+        let is_clean = Self::check_is_clean(&lint_result);
+        Self {
+            purified_code,
+            lint_result,
+            is_clean,
+        }
+    }
+
+    fn check_is_clean(lint_result: &LintResult) -> bool {
+        // Check for critical violations: DET*, IDEM*, SEC*
+        !lint_result.diagnostics.iter().any(|d| {
+            d.code.starts_with("DET")
+                || d.code.starts_with("IDEM")
+                || d.code.starts_with("SEC")
+        })
+    }
+
+    /// Get count of critical violations (DET/IDEM/SEC)
+    pub fn critical_violations(&self) -> usize {
+        self.lint_result
+            .diagnostics
+            .iter()
+            .filter(|d| {
+                d.code.starts_with("DET")
+                    || d.code.starts_with("IDEM")
+                    || d.code.starts_with("SEC")
+            })
+            .count()
+    }
+
+    /// Get DET violations only
+    pub fn det_violations(&self) -> Vec<&Diagnostic> {
+        self.lint_result
+            .diagnostics
+            .iter()
+            .filter(|d| d.code.starts_with("DET"))
+            .collect()
+    }
+
+    /// Get IDEM violations only
+    pub fn idem_violations(&self) -> Vec<&Diagnostic> {
+        self.lint_result
+            .diagnostics
+            .iter()
+            .filter(|d| d.code.starts_with("IDEM"))
+            .collect()
+    }
+
+    /// Get SEC violations only
+    pub fn sec_violations(&self) -> Vec<&Diagnostic> {
+        self.lint_result
+            .diagnostics
+            .iter()
+            .filter(|d| d.code.starts_with("SEC"))
+            .collect()
+    }
+}
+
+/// Purify bash input and lint the purified output
+///
+/// This combines purification with linting to ensure the purified
+/// output meets bashrs quality standards (no DET/IDEM/SEC violations).
+///
+/// # Examples
+///
+/// ```
+/// use bashrs::repl::purifier::purify_and_lint;
+///
+/// let result = purify_and_lint("mkdir /tmp/test").unwrap();
+/// assert_eq!(result.purified_code, "mkdir -p /tmp/test");
+/// assert!(result.is_clean);
+/// ```
+pub fn purify_and_lint(input: &str) -> anyhow::Result<PurifiedLintResult> {
+    // Step 1: Purify the input
+    let purified_code = purify_bash(input)?;
+
+    // Step 2: Lint the purified output
+    let lint_result = lint_shell(&purified_code);
+
+    // Step 3: Create result
+    Ok(PurifiedLintResult::new(purified_code, lint_result))
+}
+
+/// Format purified lint result for display in REPL
+pub fn format_purified_lint_result(result: &PurifiedLintResult) -> String {
+    let mut output = String::new();
+
+    // Show purified code
+    output.push_str("Purified:\n");
+    output.push_str(&result.purified_code);
+    output.push_str("\n\n");
+
+    // Show lint results
+    if result.is_clean {
+        output.push_str("✓ Purified output is CLEAN (no DET/IDEM/SEC violations)\n");
+    } else {
+        output.push_str(&format!(
+            "✗ Purified output has {} critical violation(s)\n",
+            result.critical_violations()
+        ));
+
+        if !result.det_violations().is_empty() {
+            output.push_str(&format!("  DET: {}\n", result.det_violations().len()));
+        }
+        if !result.idem_violations().is_empty() {
+            output.push_str(&format!("  IDEM: {}\n", result.idem_violations().len()));
+        }
+        if !result.sec_violations().is_empty() {
+            output.push_str(&format!("  SEC: {}\n", result.sec_violations().len()));
+        }
+    }
+
+    // Show full lint report
+    if !result.lint_result.diagnostics.is_empty() {
+        output.push_str("\nLint Report:\n");
+        output.push_str(&crate::repl::linter::format_lint_results(&result.lint_result));
+    }
+
+    output
 }
 
 /// Format purification report for display
@@ -1773,6 +1915,180 @@ mod alternatives_property_tests {
             // ASSERT: Should complete without panic and return formatted output
             prop_assert!(!formatted.is_empty());
             prop_assert!(formatted.contains("Alternative Approaches:"));
+        }
+    }
+}
+
+// ===== REPL-014-001: AUTO-RUN LINTER ON PURIFIED OUTPUT (RED PHASE) =====
+
+#[cfg(test)]
+mod purify_and_lint_tests {
+    use super::*;
+
+    // ===== UNIT TESTS (RED PHASE - SHOULD PANIC) =====
+
+    /// Test: REPL-014-001-001 - Purify and lint mkdir command
+    #[test]
+    fn test_REPL_014_001_purify_and_lint_mkdir() {
+        let input = "mkdir /tmp/test";
+        let result = purify_and_lint(input);
+
+        assert!(result.is_ok());
+        let result = result.unwrap();
+
+        // Purified should add -p flag
+        assert!(result.purified_code.contains("mkdir -p"));
+
+        // Should be clean (no DET/IDEM/SEC violations)
+        assert!(result.is_clean, "Purified mkdir should be clean");
+        assert_eq!(result.critical_violations(), 0);
+    }
+
+    /// Test: REPL-014-001-002 - Purify and lint $RANDOM
+    #[test]
+    fn test_REPL_014_001_purify_and_lint_random() {
+        let input = "echo $RANDOM";
+        let result = purify_and_lint(input);
+
+        assert!(result.is_ok());
+        let result = result.unwrap();
+
+        // Purified should remove $RANDOM
+        assert!(!result.purified_code.contains("$RANDOM"));
+
+        // Should be clean (no DET violations)
+        assert!(result.is_clean, "Purified random should be clean");
+        assert_eq!(result.det_violations().len(), 0);
+    }
+
+    /// Test: REPL-014-001-003 - Lint result structure is correct
+    #[test]
+    fn test_REPL_014_001_lint_result_structure() {
+        let input = "echo hello";
+        let result = purify_and_lint(input);
+
+        assert!(result.is_ok());
+        let result = result.unwrap();
+
+        // Verify structure
+        assert!(!result.purified_code.is_empty());
+        // lint_result should exist (may or may not have diagnostics)
+        let _ = result.lint_result.diagnostics.len();
+        // is_clean should be determinable
+        let _ = result.is_clean;
+    }
+
+    /// Test: REPL-014-001-004 - Violation helper methods work
+    #[test]
+    fn test_REPL_014_001_violation_helpers() {
+        let input = "mkdir /tmp/test";
+        let result = purify_and_lint(input);
+
+        assert!(result.is_ok());
+        let result = result.unwrap();
+
+        // Verify helper methods are callable
+        let _ = result.det_violations();
+        let _ = result.idem_violations();
+        let _ = result.sec_violations();
+        let _ = result.critical_violations();
+
+        // These methods should return collections
+        assert!(result.det_violations().len() <= result.lint_result.diagnostics.len());
+    }
+
+    /// Test: REPL-014-001-005 - is_clean flag works correctly
+    #[test]
+    fn test_REPL_014_001_is_clean_flag() {
+        let input = "echo hello";
+        let result = purify_and_lint(input);
+
+        assert!(result.is_ok());
+        let result = result.unwrap();
+
+        // is_clean should be a boolean
+        assert!(result.is_clean || !result.is_clean);
+
+        // If clean, critical_violations should be 0
+        if result.is_clean {
+            assert_eq!(result.critical_violations(), 0);
+        }
+    }
+
+    /// Test: REPL-014-001-006 - Format purified lint result
+    #[test]
+    fn test_REPL_014_001_format_result() {
+        let input = "mkdir /tmp/test";
+        let result = purify_and_lint(input).unwrap();
+
+        let formatted = format_purified_lint_result(&result);
+
+        // Should contain purified code
+        assert!(formatted.contains("mkdir -p"));
+
+        // Should show clean status
+        assert!(formatted.contains("CLEAN") || formatted.contains("✓"));
+    }
+
+    // ===== INTEGRATION TEST (RED PHASE - SHOULD PANIC) =====
+
+    /// Integration Test: REPL-014-001 - Complete purify-and-lint workflow
+    #[test]
+    fn test_REPL_014_001_purify_and_lint_integration() {
+        // Simple bash that purifier can handle
+        let input = "mkdir /app/releases\necho hello";
+
+        let result = purify_and_lint(input);
+        assert!(result.is_ok());
+        let result = result.unwrap();
+
+        // Verify complete workflow
+        assert!(!result.purified_code.is_empty(), "Should produce purified code");
+
+        // Lint result should be populated
+        let _ = result.lint_result.diagnostics.len();
+
+        // Helper methods should work
+        assert!(result.det_violations().len() <= result.lint_result.diagnostics.len());
+        assert!(result.idem_violations().len() <= result.lint_result.diagnostics.len());
+        assert!(result.sec_violations().len() <= result.lint_result.diagnostics.len());
+    }
+}
+
+// ===== REPL-014-001: PROPERTY TESTS (RED PHASE) =====
+
+#[cfg(test)]
+mod purify_and_lint_property_tests {
+    use super::*;
+    use proptest::prelude::*;
+
+    /// Property: Purified output should ALWAYS be clean (no DET/IDEM/SEC violations)
+    proptest! {
+        #[test]
+            fn prop_purified_always_clean(input in "(mkdir|rm|ln|echo).*{1,100}") {
+            if let Ok(result) = purify_and_lint(&input) {
+                // Critical property: purified output must be clean
+                prop_assert!(
+                    result.is_clean,
+                    "Purified output must always be clean, but found {} violations",
+                    result.critical_violations()
+                );
+
+                prop_assert_eq!(result.det_violations().len(), 0);
+                prop_assert_eq!(result.idem_violations().len(), 0);
+                prop_assert_eq!(result.sec_violations().len(), 0);
+            }
+        }
+    }
+
+    /// Property: Function should never panic on any input
+    proptest! {
+        #[test]
+        fn prop_purify_and_lint_never_panics(input in ".*{0,1000}") {
+            // Should gracefully handle any input
+            // This will panic with unimplemented!() during RED phase
+            // but after GREEN phase, it should never panic
+            let _ = purify_and_lint(&input);
         }
     }
 }

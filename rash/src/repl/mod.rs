@@ -42,8 +42,9 @@ pub use linter::{format_lint_results, lint_bash};
 pub use modes::ReplMode;
 pub use parser::{format_parse_error, parse_bash};
 pub use purifier::{
-    explain_purification_changes, explain_purification_changes_detailed, format_transformation_report,
-    purify_bash, Alternative, SafetyRationale, SafetySeverity, TransformationCategory,
+    explain_purification_changes, explain_purification_changes_detailed,
+    format_purified_lint_result, format_transformation_report, purify_and_lint, purify_bash,
+    Alternative, PurifiedLintResult, SafetyRationale, SafetySeverity, TransformationCategory,
     TransformationExplanation,
 };
 pub use r#loop::run_repl;
