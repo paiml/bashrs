@@ -754,3 +754,256 @@ mod property_tests {
     }
 }
 
+#[cfg(test)]
+mod proptest_generative {
+    use super::*;
+    use proptest::prelude::*;
+
+    // Strategy for bash commands
+    fn bash_command() -> impl Strategy<Value = String> {
+        prop::sample::select(vec![
+            "echo", "ls", "cat", "grep", "sed", "awk", "mkdir", "rm", "cp", "mv",
+            "find", "chmod", "chown", "pwd", "cd", "pushd", "popd", "test",
+        ])
+        .prop_map(|s| s.to_string())
+    }
+
+    // Strategy for bash keywords
+    fn bash_keyword() -> impl Strategy<Value = String> {
+        prop::sample::select(vec![
+            "if", "then", "else", "elif", "fi", "for", "while", "do", "done",
+            "case", "esac", "function",
+        ])
+        .prop_map(|s| s.to_string())
+    }
+
+    // Strategy for variable names
+    fn var_name() -> impl Strategy<Value = String> {
+        "[A-Z_][A-Z0-9_]{0,10}".prop_map(|s| s.to_string())
+    }
+
+    // Strategy for simple strings (no quotes inside)
+    fn simple_string() -> impl Strategy<Value = String> {
+        "[a-z0-9/.-]{1,20}".prop_map(|s| s.to_string())
+    }
+
+    // Strategy for operators
+    fn operator() -> impl Strategy<Value = String> {
+        prop::sample::select(vec!["|", "&&", "||", ";", ">", "<", ">>", "<<", "2>&1"])
+            .prop_map(|s| s.to_string())
+    }
+
+    proptest! {
+        #![proptest_config(ProptestConfig::with_cases(100))]
+
+        /// Property: Tokenization always preserves input length
+        #[test]
+        fn prop_gen_tokenize_preserves_length(cmd in bash_command()) {
+            let tokens = tokenize(&cmd);
+            let reconstructed: String = tokens.iter().map(|t| t.text.as_str()).collect();
+            prop_assert_eq!(reconstructed.len(), cmd.len());
+        }
+
+        /// Property: Tokenization never panics on any command
+        #[test]
+        fn prop_gen_tokenize_never_panics(cmd in bash_command(), arg in simple_string()) {
+            let input = format!("{} {}", cmd, arg);
+            let _ = tokenize(&input);
+            // If we get here, no panic occurred
+            prop_assert!(true);
+        }
+
+        /// Property: Commands are always recognized as Command type
+        #[test]
+        fn prop_gen_commands_recognized(cmd in bash_command()) {
+            let tokens = tokenize(&cmd);
+            prop_assert!(!tokens.is_empty());
+            prop_assert_eq!(tokens[0].token_type, TokenType::Command);
+            prop_assert_eq!(&tokens[0].text, &cmd);
+        }
+
+        /// Property: Keywords are always recognized as Keyword type
+        #[test]
+        fn prop_gen_keywords_recognized(kw in bash_keyword()) {
+            let tokens = tokenize(&kw);
+            prop_assert!(!tokens.is_empty());
+            prop_assert_eq!(tokens[0].token_type, TokenType::Keyword);
+            prop_assert_eq!(&tokens[0].text, &kw);
+        }
+
+        /// Property: Variables always start with $
+        #[test]
+        fn prop_gen_variables_start_dollar(var in var_name()) {
+            let input = format!("${}", var);
+            let tokens = tokenize(&input);
+            let var_token = tokens.iter().find(|t| t.token_type == TokenType::Variable);
+            prop_assert!(var_token.is_some());
+            prop_assert!(var_token.unwrap().text.starts_with('$'));
+        }
+
+        /// Property: Braced variables are complete
+        #[test]
+        fn prop_gen_braced_variables(var in var_name()) {
+            let input = format!("${{{}}}", var);  // Creates ${VAR}
+            let tokens = tokenize(&input);
+            let var_token = tokens.iter().find(|t| t.token_type == TokenType::Variable);
+            prop_assert!(var_token.is_some());
+            let text = &var_token.unwrap().text;
+            // Check format: must start with $, contain var name, and be braced
+            prop_assert!(text.len() >= 3);  // At least ${X}
+            prop_assert_eq!(text.chars().next(), Some('$'));
+            let has_braces = text.contains(|c| c == '{') && text.contains(|c| c == '}');
+            prop_assert!(has_braces);
+        }
+
+        /// Property: Operators are recognized
+        #[test]
+        fn prop_gen_operators_recognized(op in operator()) {
+            let input = format!("cmd1 {} cmd2", op);
+            let tokens = tokenize(&input);
+            let op_token = tokens.iter().find(|t| t.token_type == TokenType::Operator);
+            prop_assert!(op_token.is_some());
+        }
+
+        /// Property: Double quoted strings contain quotes
+        #[test]
+        fn prop_gen_double_quoted_strings(s in simple_string()) {
+            let input = format!("\"{}\"", s);
+            let tokens = tokenize(&input);
+            let str_token = tokens.iter().find(|t| t.token_type == TokenType::String);
+            prop_assert!(str_token.is_some());
+            let text = &str_token.unwrap().text;
+            prop_assert!(text.starts_with('"'));
+            prop_assert!(text.ends_with('"'));
+        }
+
+        /// Property: Single quoted strings contain quotes
+        #[test]
+        fn prop_gen_single_quoted_strings(s in simple_string()) {
+            let input = format!("'{}'", s);
+            let tokens = tokenize(&input);
+            let str_token = tokens.iter().find(|t| t.token_type == TokenType::String);
+            prop_assert!(str_token.is_some());
+            let text = &str_token.unwrap().text;
+            prop_assert!(text.starts_with('\''));
+            prop_assert!(text.ends_with('\''));
+        }
+
+        /// Property: Comments always start with #
+        #[test]
+        fn prop_gen_comments_start_hash(s in simple_string()) {
+            let input = format!("# {}", s);
+            let tokens = tokenize(&input);
+            prop_assert!(!tokens.is_empty());
+            prop_assert_eq!(tokens[0].token_type, TokenType::Comment);
+            prop_assert!(tokens[0].text.starts_with('#'));
+        }
+
+        /// Property: Simple command with arg preserves text
+        #[test]
+        fn prop_gen_command_with_arg(cmd in bash_command(), arg in simple_string()) {
+            let input = format!("{} {}", cmd, arg);
+            let tokens = tokenize(&input);
+            let reconstructed: String = tokens.iter().map(|t| t.text.as_str()).collect();
+            prop_assert_eq!(reconstructed, input);
+        }
+
+        /// Property: Pipeline preserves structure
+        #[test]
+        fn prop_gen_pipeline(cmd1 in bash_command(), cmd2 in bash_command()) {
+            let input = format!("{} | {}", cmd1, cmd2);
+            let tokens = tokenize(&input);
+            let has_pipe = tokens.iter().any(|t| t.token_type == TokenType::Operator && t.text == "|");
+            prop_assert!(has_pipe);
+        }
+
+        /// Property: Redirection preserves operator
+        #[test]
+        fn prop_gen_redirection(cmd in bash_command(), file in simple_string()) {
+            let input = format!("{} > {}", cmd, file);
+            let tokens = tokenize(&input);
+            let has_redirect = tokens.iter().any(|t| t.token_type == TokenType::Operator && t.text == ">");
+            prop_assert!(has_redirect);
+        }
+
+        /// Property: Command sequence with semicolon
+        #[test]
+        fn prop_gen_semicolon_sequence(cmd1 in bash_command(), cmd2 in bash_command()) {
+            let input = format!("{}; {}", cmd1, cmd2);
+            let tokens = tokenize(&input);
+            let has_semi = tokens.iter().any(|t| t.token_type == TokenType::Operator && t.text == ";");
+            prop_assert!(has_semi);
+        }
+
+        /// Property: AND operator recognized
+        #[test]
+        fn prop_gen_and_operator(cmd1 in bash_command(), cmd2 in bash_command()) {
+            let input = format!("{} && {}", cmd1, cmd2);
+            let tokens = tokenize(&input);
+            let has_and = tokens.iter().any(|t| t.token_type == TokenType::Operator && t.text == "&&");
+            prop_assert!(has_and);
+        }
+
+        /// Property: OR operator recognized
+        #[test]
+        fn prop_gen_or_operator(cmd1 in bash_command(), cmd2 in bash_command()) {
+            let input = format!("{} || {}", cmd1, cmd2);
+            let tokens = tokenize(&input);
+            let has_or = tokens.iter().any(|t| t.token_type == TokenType::Operator && t.text == "||");
+            prop_assert!(has_or);
+        }
+
+        /// Property: Token positions never overlap
+        #[test]
+        fn prop_gen_positions_no_overlap(cmd in bash_command(), arg in simple_string()) {
+            let input = format!("{} {}", cmd, arg);
+            let tokens = tokenize(&input);
+            for i in 0..tokens.len().saturating_sub(1) {
+                prop_assert_eq!(tokens[i].end, tokens[i + 1].start);
+            }
+        }
+
+        /// Property: Token positions cover entire input
+        #[test]
+        fn prop_gen_positions_complete(cmd in bash_command()) {
+            let tokens = tokenize(&cmd);
+            if !tokens.is_empty() {
+                prop_assert_eq!(tokens[0].start, 0);
+                prop_assert_eq!(tokens.last().unwrap().end, cmd.len());
+            }
+        }
+
+        /// Property: Tokenization is idempotent
+        #[test]
+        fn prop_gen_tokenize_idempotent(cmd in bash_command(), arg in simple_string()) {
+            let input = format!("{} {}", cmd, arg);
+            let tokens1 = tokenize(&input);
+            let tokens2 = tokenize(&input);
+            prop_assert_eq!(tokens1.len(), tokens2.len());
+            for (t1, t2) in tokens1.iter().zip(tokens2.iter()) {
+                prop_assert_eq!(t1.token_type, t2.token_type);
+                prop_assert_eq!(&t1.text, &t2.text);
+                prop_assert_eq!(t1.start, t2.start);
+                prop_assert_eq!(t1.end, t2.end);
+            }
+        }
+
+        /// Property: Empty input produces empty tokens
+        #[test]
+        fn prop_gen_empty_input_empty_tokens(_x in 0u8..10u8) {
+            let tokens = tokenize("");
+            prop_assert!(tokens.is_empty());
+        }
+
+        /// Property: Whitespace-only input produces only whitespace tokens
+        #[test]
+        fn prop_gen_whitespace_only(n in 1usize..20usize) {
+            let input = " ".repeat(n);
+            let tokens = tokenize(&input);
+            for token in &tokens {
+                prop_assert_eq!(token.token_type, TokenType::Whitespace);
+            }
+        }
+    }
+}
+
