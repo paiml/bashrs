@@ -1153,7 +1153,7 @@ phases:
 
           - id: "REPL-015-003"
             title: "Better error messages"
-            status: "pending"
+            status: "completed"
             tests:
               unit:
                 - "test_REPL_015_003_error_message_quality"
