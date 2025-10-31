@@ -52,7 +52,7 @@ impl Explanation {
         output.push_str(&format!("{}\n", self.details));
 
         if let Some(ref example) = self.example {
-            output.push_str("\n");
+            output.push('\n');
             output.push_str(&format!("Example:\n{}\n", example));
         }
 

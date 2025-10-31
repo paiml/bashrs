@@ -84,7 +84,7 @@ fn parse_phony_targets(source: &str) -> HashSet<String> {
     source
         .lines()
         .filter(|line| is_phony_line(line))
-        .flat_map(|line| parse_phony_line(line))
+        .flat_map(parse_phony_line)
         .collect()
 }
 

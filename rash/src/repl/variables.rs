@@ -82,7 +82,8 @@ pub fn expand_variables(command: &str, variables: &HashMap<String, String>) -> S
     let mut result = command.to_string();
 
     // First, expand braced variables ${var}
-    let braced_re = Regex::new(r"\$\{([A-Za-z_][A-Za-z0-9_]*)\}").unwrap();
+    let braced_re = Regex::new(r"\$\{([A-Za-z_][A-Za-z0-9_]*)\}")
+        .expect("hardcoded regex is valid");
     result = braced_re
         .replace_all(&result, |caps: &regex::Captures| {
             let var_name = &caps[1];
@@ -91,7 +92,8 @@ pub fn expand_variables(command: &str, variables: &HashMap<String, String>) -> S
         .to_string();
 
     // Then, expand simple variables $var
-    let simple_re = Regex::new(r"\$([A-Za-z_][A-Za-z0-9_]*)").unwrap();
+    let simple_re = Regex::new(r"\$([A-Za-z_][A-Za-z0-9_]*)")
+        .expect("hardcoded regex is valid");
     result = simple_re
         .replace_all(&result, |caps: &regex::Captures| {
             let var_name = &caps[1];

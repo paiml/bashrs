@@ -256,7 +256,7 @@ fn calculate_safety_score(source: &str) -> f64 {
         4.0 - (issues as f64 * 0.5).min(3.0)
     };
 
-    safety_ratio.max(0.0).min(10.0)
+    safety_ratio.clamp(0.0, 10.0)
 }
 
 /// Calculate maintainability score (0.0-10.0)
@@ -295,7 +295,7 @@ fn calculate_maintainability_score(source: &str) -> f64 {
     }
 
     // Good comment ratio (10-30%)
-    if comment_ratio >= 0.10 && comment_ratio <= 0.30 {
+    if (0.10..=0.30).contains(&comment_ratio) {
         score += 3.0;
     } else if comment_ratio > 0.05 {
         score += 1.0;
@@ -307,7 +307,7 @@ fn calculate_maintainability_score(source: &str) -> f64 {
     }
 
     // Good function count (not too many, not too few)
-    if function_count >= 2 && function_count <= 10 {
+    if (2..=10).contains(&function_count) {
         score += 1.0;
     }
 

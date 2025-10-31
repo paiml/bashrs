@@ -78,7 +78,7 @@ pub enum FileType {
     Library,
 }
 impl FileType {
-    ///
+    /// Determine file type from path extension and filename
     pub fn from_path(path: &std::path::Path) -> Self {
         let filename = path.file_name().and_then(|n| n.to_str()).unwrap_or("");
         if filename.ends_with("rc")
@@ -89,7 +89,7 @@ impl FileType {
         {
             return FileType::Config;
         }
-        if path.extension().map_or(false, |e| e == "sh") {
+        if path.extension().is_some_and(|e| e == "sh") {
             return FileType::Script;
         }
         FileType::Library
