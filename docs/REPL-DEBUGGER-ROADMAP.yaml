@@ -979,7 +979,7 @@ phases:
 
       - sprint: "REPL-013"
         name: "Purification Explainer"
-        status: "IN_PROGRESS"
+        status: "COMPLETED"
         duration: "2 weeks"
         tasks:
           - id: "REPL-013-001"
@@ -1136,7 +1136,7 @@ phases:
         tasks:
           - id: "REPL-015-001"
             title: "Tab completion for commands"
-            status: "pending"
+            status: "completed"
             tests:
               unit:
                 - "test_REPL_015_001_complete_commands"
