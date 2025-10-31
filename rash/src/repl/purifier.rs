@@ -477,6 +477,8 @@ pub struct TransformationExplanation {
     pub line_number: Option<usize>,
     /// Detailed safety rationale (REPL-013-002)
     pub safety_rationale: SafetyRationale,
+    /// Alternative approaches (REPL-013-003)
+    pub alternatives: Vec<Alternative>,
 }
 
 impl TransformationExplanation {
@@ -498,6 +500,7 @@ impl TransformationExplanation {
             why_it_matters: why_it_matters.into(),
             line_number: None,
             safety_rationale: SafetyRationale::new(), // REPL-013-002: Default rationale
+            alternatives: Vec::new(), // REPL-013-003: Default empty alternatives
         }
     }
 
@@ -510,6 +513,12 @@ impl TransformationExplanation {
     /// Set safety rationale (REPL-013-002)
     pub fn with_safety_rationale(mut self, rationale: SafetyRationale) -> Self {
         self.safety_rationale = rationale;
+        self
+    }
+
+    /// Set alternatives (REPL-013-003)
+    pub fn with_alternatives(mut self, alternatives: Vec<Alternative>) -> Self {
+        self.alternatives = alternatives;
         self
     }
 }
@@ -590,6 +599,52 @@ impl SafetyRationale {
 impl Default for SafetyRationale {
     fn default() -> Self {
         Self::new()
+    }
+}
+
+// ===== REPL-013-003: ALTERNATIVE SUGGESTIONS =====
+
+/// A single alternative approach to a transformation
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Alternative {
+    /// Brief description of this approach
+    pub approach: String,
+    /// Code example showing this alternative
+    pub example: String,
+    /// When to prefer this approach
+    pub when_to_use: String,
+    /// Pros of this approach
+    pub pros: Vec<String>,
+    /// Cons of this approach
+    pub cons: Vec<String>,
+}
+
+impl Alternative {
+    /// Create new alternative
+    pub fn new(
+        approach: impl Into<String>,
+        example: impl Into<String>,
+        when_to_use: impl Into<String>,
+    ) -> Self {
+        Self {
+            approach: approach.into(),
+            example: example.into(),
+            when_to_use: when_to_use.into(),
+            pros: Vec::new(),
+            cons: Vec::new(),
+        }
+    }
+
+    /// Add a pro (advantage)
+    pub fn add_pro(mut self, pro: impl Into<String>) -> Self {
+        self.pros.push(pro.into());
+        self
+    }
+
+    /// Add a con (disadvantage)
+    pub fn add_con(mut self, con: impl Into<String>) -> Self {
+        self.cons.push(con.into());
+        self
     }
 }
 
@@ -740,6 +795,260 @@ pub fn format_safety_rationale(rationale: &SafetyRationale) -> String {
     if !rationale.impact_without_fix.is_empty() {
         output.push_str("Impact Without Fix:\n");
         output.push_str(&format!("  {}\n", rationale.impact_without_fix));
+    }
+
+    output
+}
+
+// ===== REPL-013-003: ALTERNATIVE SUGGESTION GENERATION FUNCTIONS (RED PHASE STUBS) =====
+
+/// Generate alternatives for idempotency transformations
+pub fn generate_idempotency_alternatives(transformation_title: &str) -> Vec<Alternative> {
+    match transformation_title {
+        title if title.contains("mkdir") && title.contains("-p") => vec![
+            Alternative::new(
+                "Check before creating",
+                "[ -d /path ] || mkdir /path",
+                "When you want explicit control over error handling"
+            )
+            .add_pro("Explicit about what's happening")
+            .add_pro("Can add custom logic between check and creation")
+            .add_con("Not atomic - race condition between check and create")
+            .add_con("More verbose than mkdir -p"),
+
+            Alternative::new(
+                "Use mkdir with error suppression",
+                "mkdir /path 2>/dev/null || true",
+                "When you don't care about the reason for failure"
+            )
+            .add_pro("Simple and concise")
+            .add_pro("Idempotent")
+            .add_con("Hides all errors, not just 'already exists'")
+            .add_con("Can mask real problems like permission issues"),
+        ],
+
+        title if title.contains("rm") && title.contains("-f") => vec![
+            Alternative::new(
+                "Check before removing",
+                "[ -e /path ] && rm /path",
+                "When you want to know if the file existed"
+            )
+            .add_pro("Explicit about file existence")
+            .add_pro("Can add logging or side effects")
+            .add_con("Not atomic - race condition")
+            .add_con("More verbose"),
+
+            Alternative::new(
+                "Use rm with error check",
+                "rm /path 2>/dev/null || true",
+                "When you want to suppress errors but keep other rm behavior"
+            )
+            .add_pro("Simple")
+            .add_pro("Idempotent")
+            .add_con("Hides all errors")
+            .add_con("May mask permission problems"),
+        ],
+
+        title if title.contains("ln") && title.contains("-sf") => vec![
+            Alternative::new(
+                "Remove then create",
+                "rm -f /link && ln -s /target /link",
+                "When you need two separate operations"
+            )
+            .add_pro("Very explicit")
+            .add_pro("Can add logic between removal and creation")
+            .add_con("Not atomic - window where link doesn't exist")
+            .add_con("More verbose"),
+
+            Alternative::new(
+                "Check before creating",
+                "[ -L /link ] || ln -s /target /link",
+                "When you want to preserve existing links"
+            )
+            .add_pro("Won't overwrite existing links")
+            .add_pro("Explicit check")
+            .add_con("Not idempotent if link points elsewhere")
+            .add_con("Race condition between check and create"),
+        ],
+
+        _ => vec![
+            Alternative::new(
+                "Add explicit idempotency check",
+                "[ condition ] || operation",
+                "When you want fine-grained control"
+            )
+            .add_pro("Explicit about preconditions")
+            .add_con("Not atomic")
+        ],
+    }
+}
+
+/// Generate alternatives for determinism transformations
+pub fn generate_determinism_alternatives(transformation_title: &str) -> Vec<Alternative> {
+    match transformation_title {
+        title if title.contains("RANDOM") => vec![
+            Alternative::new(
+                "Use UUID for unique IDs",
+                "id=$(uuidgen)  # or $(cat /proc/sys/kernel/random/uuid)",
+                "When you need globally unique identifiers"
+            )
+            .add_pro("Guaranteed unique across machines")
+            .add_pro("Standard format")
+            .add_pro("Deterministic if you control the seed")
+            .add_con("Requires uuidgen or /proc/sys/kernel")
+            .add_con("Longer than simple numbers"),
+
+            Alternative::new(
+                "Use timestamp-based IDs",
+                "id=$(date +%s%N)  # nanoseconds since epoch",
+                "When you need time-ordered IDs"
+            )
+            .add_pro("Sortable by time")
+            .add_pro("No external dependencies")
+            .add_con("Not unique across machines")
+            .add_con("Still non-deterministic (but reproducible with fixed time)"),
+
+            Alternative::new(
+                "Use hash of inputs",
+                "id=$(echo \"$input\" | sha256sum | cut -d' ' -f1)",
+                "When you want IDs derived from content"
+            )
+            .add_pro("Truly deterministic")
+            .add_pro("Same input = same ID")
+            .add_con("Requires sha256sum")
+            .add_con("Collisions possible (though extremely rare)"),
+
+            Alternative::new(
+                "Use sequential counter",
+                "id=$((++counter))  # with state file",
+                "When you need simple incrementing IDs"
+            )
+            .add_pro("Simple and predictable")
+            .add_pro("Compact")
+            .add_con("Requires state management")
+            .add_con("Not unique across processes without locking"),
+        ],
+
+        title if title.contains("timestamp") || title.contains("date") => vec![
+            Alternative::new(
+                "Use explicit version parameter",
+                "version=$1  # Pass version as argument",
+                "When version is known at invocation time"
+            )
+            .add_pro("Fully deterministic")
+            .add_pro("Version controlled externally")
+            .add_con("Requires coordination with caller"),
+
+            Alternative::new(
+                "Use git commit hash",
+                "version=$(git rev-parse --short HEAD)",
+                "When deploying from git repository"
+            )
+            .add_pro("Deterministic for given commit")
+            .add_pro("Traceable to source code")
+            .add_con("Requires git repository")
+            .add_con("Not available in all environments"),
+
+            Alternative::new(
+                "Use build number from CI",
+                "version=${BUILD_NUMBER:-dev}",
+                "When running in CI/CD pipeline"
+            )
+            .add_pro("Integrates with CI/CD")
+            .add_pro("Incrementing version numbers")
+            .add_con("Requires CI environment")
+            .add_con("May not be available locally"),
+        ],
+
+        _ => vec![
+            Alternative::new(
+                "Make value an input parameter",
+                "value=$1  # Pass as argument",
+                "When value should be controlled by caller"
+            )
+            .add_pro("Fully deterministic")
+            .add_con("Requires caller to provide value")
+        ],
+    }
+}
+
+/// Generate alternatives for safety transformations
+pub fn generate_safety_alternatives(transformation_title: &str) -> Vec<Alternative> {
+    match transformation_title {
+        title if title.contains("quot") || title.contains("variable") => vec![
+            Alternative::new(
+                "Use printf %q for shell-safe quoting",
+                "safe=$(printf %q \"$variable\")",
+                "When you need shell-escaped values"
+            )
+            .add_pro("Automatically escapes special characters")
+            .add_pro("Safe for eval")
+            .add_con("Bash-specific (not POSIX)")
+            .add_con("Output may have backslashes"),
+
+            Alternative::new(
+                "Use arrays instead of strings",
+                "args=(\"$var1\" \"$var2\"); command \"${args[@]}\"",
+                "When handling multiple arguments"
+            )
+            .add_pro("Preserves word boundaries correctly")
+            .add_pro("No quoting issues")
+            .add_con("Bash-specific (not POSIX)")
+            .add_con("More complex syntax"),
+
+            Alternative::new(
+                "Validate input before use",
+                "if [[ $var =~ ^[a-zA-Z0-9_-]+$ ]]; then cmd \"$var\"; fi",
+                "When you can restrict input to safe characters"
+            )
+            .add_pro("Explicit validation")
+            .add_pro("Clear error handling")
+            .add_con("May reject valid inputs")
+            .add_con("Requires input constraints"),
+        ],
+
+        _ => vec![
+            Alternative::new(
+                "Use safer built-in alternatives",
+                "# Use bash built-ins when possible",
+                "When avoiding external commands"
+            )
+            .add_pro("No command injection risk")
+            .add_con("Limited functionality")
+        ],
+    }
+}
+
+/// Format alternatives for display
+pub fn format_alternatives(alternatives: &[Alternative]) -> String {
+    let mut output = String::new();
+
+    if alternatives.is_empty() {
+        return output;
+    }
+
+    output.push_str("Alternative Approaches:\n\n");
+
+    for (i, alt) in alternatives.iter().enumerate() {
+        output.push_str(&format!("{}. {}\n", i + 1, alt.approach));
+        output.push_str(&format!("   Example: {}\n", alt.example));
+        output.push_str(&format!("   When to use: {}\n", alt.when_to_use));
+
+        if !alt.pros.is_empty() {
+            output.push_str("   Pros:\n");
+            for pro in &alt.pros {
+                output.push_str(&format!("     + {}\n", pro));
+            }
+        }
+
+        if !alt.cons.is_empty() {
+            output.push_str("   Cons:\n");
+            for con in &alt.cons {
+                output.push_str(&format!("     - {}\n", con));
+            }
+        }
+
+        output.push('\n');
     }
 
     output
@@ -1261,6 +1570,209 @@ mod transformation_explanation_property_tests {
 
                 prop_assert_eq!(rationale.severity, severity);
             }
+        }
+    }
+}
+
+// ===== REPL-013-003: ALTERNATIVE SUGGESTIONS TESTS (RED PHASE) =====
+
+#[cfg(test)]
+mod alternatives_tests {
+    use super::*;
+
+    // GREEN PHASE TEST 1: Test generate_idempotency_alternatives
+    #[test]
+    fn test_REPL_013_003_alternatives_mkdir() {
+        // ARRANGE: Request alternatives for idempotent mkdir
+        let transformation_title = "mkdir → mkdir -p (idempotent)";
+
+        // ACT: Generate alternatives
+        let alternatives = generate_idempotency_alternatives(transformation_title);
+
+        // ASSERT: Should return 2 alternatives for mkdir
+        assert!(!alternatives.is_empty());
+        assert_eq!(alternatives.len(), 2);
+        assert_eq!(alternatives[0].approach, "Check before creating");
+        assert!(alternatives[0].example.contains("[ -d"));
+        assert_eq!(alternatives[1].approach, "Use mkdir with error suppression");
+    }
+
+    // GREEN PHASE TEST 2: Test generate_determinism_alternatives
+    #[test]
+    fn test_REPL_013_003_alternatives_random() {
+        // ARRANGE: Request alternatives for deterministic random
+        let transformation_title = "$RANDOM → Seeded random (deterministic)";
+
+        // ACT: Generate alternatives
+        let alternatives = generate_determinism_alternatives(transformation_title);
+
+        // ASSERT: Should return 4 alternatives for $RANDOM
+        assert!(!alternatives.is_empty());
+        assert_eq!(alternatives.len(), 4);
+        assert_eq!(alternatives[0].approach, "Use UUID for unique IDs");
+        assert!(alternatives[1].approach.contains("timestamp"));
+        assert!(alternatives[2].approach.contains("hash"));
+        assert!(alternatives[3].approach.contains("counter"));
+    }
+
+    // GREEN PHASE TEST 3: Test generate_safety_alternatives
+    #[test]
+    fn test_REPL_013_003_alternatives_quoting() {
+        // ARRANGE: Request alternatives for variable quoting
+        let transformation_title = "$var → \"$var\" (quoted)";
+
+        // ACT: Generate alternatives
+        let alternatives = generate_safety_alternatives(transformation_title);
+
+        // ASSERT: Should return 3 alternatives for quoting
+        assert!(!alternatives.is_empty());
+        assert_eq!(alternatives.len(), 3);
+        assert!(alternatives[0].approach.contains("printf"));
+        assert!(alternatives[1].approach.contains("arrays"));
+        assert!(alternatives[2].approach.contains("Validate"));
+    }
+
+    // RED PHASE TEST 4: Test Alternative builder pattern (should pass)
+    #[test]
+    fn test_REPL_013_003_alternative_builder() {
+        // ARRANGE: Create alternative with builder pattern
+        let alternative = Alternative::new(
+            "Use conditional mkdir",
+            "[ -d /tmp/app ] || mkdir /tmp/app",
+            "When you need explicit control"
+        )
+        .add_pro("Explicit logic")
+        .add_pro("Works in POSIX sh")
+        .add_con("More verbose");
+
+        // ASSERT: Verify fields set correctly
+        assert_eq!(alternative.approach, "Use conditional mkdir");
+        assert_eq!(alternative.example, "[ -d /tmp/app ] || mkdir /tmp/app");
+        assert_eq!(alternative.when_to_use, "When you need explicit control");
+        assert_eq!(alternative.pros.len(), 2);
+        assert_eq!(alternative.cons.len(), 1);
+        assert_eq!(alternative.pros[0], "Explicit logic");
+        assert_eq!(alternative.pros[1], "Works in POSIX sh");
+        assert_eq!(alternative.cons[0], "More verbose");
+    }
+
+    // GREEN PHASE TEST 5: Test format_alternatives
+    #[test]
+    fn test_REPL_013_003_format_alternatives() {
+        // ARRANGE: Create some alternatives
+        let alternatives = vec![
+            Alternative::new(
+                "Use mkdir -p",
+                "mkdir -p /tmp/app",
+                "When you want simple idempotency"
+            )
+            .add_pro("Simple and concise")
+            .add_con("No explicit error handling"),
+        ];
+
+        // ACT: Format alternatives
+        let formatted = format_alternatives(&alternatives);
+
+        // ASSERT: Should format correctly
+        assert!(!formatted.is_empty());
+        assert!(formatted.contains("Alternative Approaches:"));
+        assert!(formatted.contains("1. Use mkdir -p"));
+        assert!(formatted.contains("Example: mkdir -p /tmp/app"));
+        assert!(formatted.contains("Pros:"));
+        assert!(formatted.contains("+ Simple and concise"));
+        assert!(formatted.contains("Cons:"));
+        assert!(formatted.contains("- No explicit error handling"));
+    }
+
+    // RED PHASE TEST 6: Test TransformationExplanation.with_alternatives (should pass)
+    #[test]
+    fn test_REPL_013_003_explanation_with_alternatives() {
+        // ARRANGE: Create transformation explanation
+        let explanation = TransformationExplanation::new(
+            TransformationCategory::Idempotency,
+            "mkdir → mkdir -p",
+            "mkdir /tmp/app",
+            "mkdir -p /tmp/app",
+            "Added -p flag",
+            "Makes operation idempotent"
+        );
+
+        // Create alternatives
+        let alternatives = vec![
+            Alternative::new(
+                "Use conditional mkdir",
+                "[ -d /tmp/app ] || mkdir /tmp/app",
+                "When you need explicit control"
+            )
+            .add_pro("Explicit logic")
+            .add_con("More verbose"),
+            Alternative::new(
+                "Use mkdir -p",
+                "mkdir -p /tmp/app",
+                "When you want simplicity"
+            )
+            .add_pro("Simple and concise")
+            .add_con("No explicit check"),
+        ];
+
+        // ACT: Set alternatives
+        let explanation_with_alts = explanation.with_alternatives(alternatives.clone());
+
+        // ASSERT: Alternatives should be set
+        assert_eq!(explanation_with_alts.alternatives.len(), 2);
+        assert_eq!(explanation_with_alts.alternatives[0].approach, "Use conditional mkdir");
+        assert_eq!(explanation_with_alts.alternatives[1].approach, "Use mkdir -p");
+    }
+}
+
+// ===== REPL-013-003: PROPERTY TESTS FOR ALTERNATIVES (GREEN PHASE) =====
+
+#[cfg(test)]
+mod alternatives_property_tests {
+    use super::*;
+    use proptest::prelude::*;
+
+    // PROPERTY TEST 1: Alternatives should always be provided for known transformations
+    proptest! {
+        #[test]
+        fn prop_alternatives_always_provided(
+            title in "(mkdir|rm|ln|\\$RANDOM|\\$\\$|date|quote).*"
+        ) {
+            // ACT: Generate alternatives based on title pattern
+            let alternatives = if title.contains("mkdir") {
+                generate_idempotency_alternatives(&title)
+            } else if title.contains("$RANDOM") || title.contains("$$") || title.contains("date") {
+                generate_determinism_alternatives(&title)
+            } else {
+                generate_safety_alternatives(&title)
+            };
+
+            // ASSERT: Should return at least one alternative
+            prop_assert!(!alternatives.is_empty());
+        }
+    }
+
+    // PROPERTY TEST 2: format_alternatives should never panic on valid input
+    proptest! {
+        #[test]
+        fn prop_format_never_panics(
+            approach in "[a-zA-Z ]{1,50}",
+            example in "[a-zA-Z0-9 $/.-]{1,100}",
+            when_to_use in "[a-zA-Z ]{1,100}"
+        ) {
+            // ARRANGE: Create valid alternative
+            let alternatives = vec![
+                Alternative::new(approach, example, when_to_use)
+                    .add_pro("Test pro")
+                    .add_con("Test con")
+            ];
+
+            // ACT: Format should never panic
+            let formatted = format_alternatives(&alternatives);
+
+            // ASSERT: Should complete without panic and return formatted output
+            prop_assert!(!formatted.is_empty());
+            prop_assert!(formatted.contains("Alternative Approaches:"));
         }
     }
 }
