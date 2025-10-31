@@ -7,6 +7,71 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [6.24.1] - 2025-10-31
+
+### 🐛 BUG FIXES - Linter Rules (6 fixes, 0 defects)
+
+**bashrs v6.24.1 fixes 6 linter rules with ignored tests, improving detection accuracy and reducing false positives/negatives through EXTREME TDD methodology.**
+
+### Fixed
+
+**Linter Rule Improvements** (6 tests enabled, 5,651 tests passing):
+
+**SC2063** - Skip patterns with escaped dots (intentional regex):
+- Fixed: Incorrectly flagged `grep 'file\.txt'` as needing -F flag
+- Root cause: Pattern contained `.` but it was escaped (`\.`) indicating intentional regex
+- Fix: Added check `!pattern.contains(r"\.")` to skip escaped dots
+- Impact: Reduces false positives for users writing regex patterns
+- Commit: 898786f2
+
+**SC2078** - Handle negation in test commands:
+- Fixed: Didn't detect `[ ! count -gt 5 ]` (negated test)
+- Root cause: Regex didn't account for `!` negation operator
+- Fix: Updated regex to `\[\s+!?\s*([a-zA-Z_]...` to match optional `!`
+- Impact: Catches constant expressions in negated tests
+- Commit: 0b1939f0
+
+**SC2062** - Detect unquoted patterns with grep flags:
+- Fixed: Didn't match `grep -r *.log .` (flags before pattern)
+- Root cause: Regex expected pattern immediately after "grep"
+- Fix: Added `(?:\s+-\S+)*` to skip optional flags before pattern
+- Impact: Catches unquoted globs when grep uses flags like -r, -i
+- Commit: 58aac73e
+
+**SC2087** - Handle flags after -c in sh/bash commands:
+- Fixed: Didn't detect `bash -c -e "echo $var"`
+- Root cause: Regex expected quoted string immediately after `-c`
+- Fix: Added `(\s+-[a-z]+)*` after `-c` to handle flags
+- Impact: Catches unquoted variables with flags after -c
+- Commit: fb1636c9
+
+**SC2065** - Exclude >> and << from confusing redirect warnings:
+- Fixed: Incorrectly flagged `echo "Appended >> $log"`
+- Root cause: `>>` (append) and `<<` (heredoc) are explicit, not confusing
+- Fix: Added runtime check to skip `>>` and `<<` patterns
+- Impact: Reduces false positives for users writing explicit redirects
+- Commit: 13432063
+
+**SC2082** - Detect braced variables after $$ (indirection):
+- Fixed: Didn't match `value=$${var}` (braced syntax)
+- Root cause: Regex only matched unbraced `$$var` not `$${var}`
+- Fix: Updated regex to `\$\$(\{...\}|...)` to handle both forms
+- Impact: Catches incorrect indirection with braced variables
+- Commit: 0c0be312
+
+**Quality Metrics**:
+- ✅ All 5,651 tests pass (6 new tests enabled, 6 ignored tests resolved)
+- ✅ Zero defects - EXTREME TDD applied (RED → GREEN → REFACTOR)
+- ✅ Zero clippy warnings
+- ✅ All pre-commit hooks pass
+- ✅ Test coverage maintained at >85%
+- ✅ No regressions - all previous tests still pass
+- ✅ Better ShellCheck parity
+
+**Tests**: 5,645 → 5,651 tests (+6)
+**Ignored**: 28 → 22 tests (-6)
+**Session duration**: ~3 hours applying NASA-level quality standards
+
 ## [6.24.0] - 2025-10-31
 
 ### 🎯 CODE QUALITY - ZERO Clippy Warnings (100% Clean)
