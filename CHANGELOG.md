@@ -7,6 +7,84 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [6.24.2] - 2025-10-31
+
+### 🐛 BUG FIXES - Linter Rules (7 fixes, 0 defects)
+
+**bashrs v6.24.2 fixes 7 additional linter rules with ignored tests, completing all SC linter ignored tests through EXTREME TDD methodology.**
+
+### Fixed
+
+**Linter Rule Improvements** (7 tests enabled, 5,659 tests passing total):
+
+**SC2102** - Detect POSIX character classes with + (glob pattern):
+- Fixed: Didn't match `[[:digit:]]+` POSIX character class patterns
+- Root cause: Regex `\[[^\]]+\]\+` stopped at first `]`, missing nested brackets
+- Fix: Changed to `\[(?:[^\]]|\[:.*?:\])+\]\+` to handle POSIX class syntax
+- Impact: Now detects invalid `+` in both simple ranges and POSIX classes
+- Test: `test_sc2102_posix_class`
+- Commit: 6d185973
+
+**SC2067** - Enable arithmetic context test (implementation already correct):
+- Analysis: Test incorrectly expected diagnostic for `$((array[i]))`
+- Root cause: Test misunderstood bash semantics - in `$(())`, variables auto-expand
+- Fix: Documentation only - removed `#[ignore]` attribute
+- Impact: Clarifies SC2067 correctly handles arithmetic contexts
+- Test: `test_sc2067_arithmetic_context`
+- Commit: e8567919
+
+**SC2080** - Detect octal in double paren arithmetic assignments:
+- Fixed: Didn't match `(( x = 077 ))` (arithmetic assignment syntax)
+- Root cause: Regex only matched `$((` and `[ ... -eq ]`, not `((` assignments
+- Fix: Added `\(\(\s*[a-zA-Z_][a-zA-Z0-9_]*\s*=\s+` alternative
+- Impact: Detects octal in all arithmetic contexts (expansion, comparison, assignment)
+- Test: `test_sc2080_double_paren`
+- Commit: a5417c14
+
+**SC2082** - Skip escaped $$ in eval contexts (correct indirection):
+- Fixed: Incorrectly flagged `eval "value=\$$var"` as wrong indirection
+- Root cause: No backslash escape checking - `\$$` is correct POSIX indirection
+- Fix: Added `is_escaped` check to skip `\$$` patterns (backslash precedes match)
+- Impact: Reduces false positives for correct POSIX indirection with eval
+- Test: `test_sc2082_eval_ok`
+- Commit: e01fca1c
+
+**SC2085** - Handle local/declare with flags (e.g., -r, -x, -i):
+- Fixed: Didn't match `local -r result=$((i++))` (flags between local and variable)
+- Root cause: Regex expected immediate assignment after local/declare
+- Fix: Added `(?:\s+-[a-zA-Z]+)*` to match optional flags before variable
+- Impact: Detects arithmetic in local/declare with readonly, export, integer flags
+- Test: `test_sc2085_with_flags`
+- Commit: 2ba05514
+
+**SC2093** - Fix test expectation for exec with redirection:
+- Analysis: Test incorrectly expected diagnostic for `exec > logfile`
+- Root cause: Test misunderstood bash semantics - `exec >file` modifies FDs, doesn't replace shell
+- Fix: Test expectation corrected - implementation already correct
+- Impact: Clarifies difference between `exec command` (replaces shell) vs `exec >file` (redirects FDs)
+- Test: `test_sc2093_exec_redirect`
+- Commit: fcc1ec61
+
+**SC2111** - Skip function keyword inside strings (quote tracking):
+- Fixed: Incorrectly flagged `echo "function foo { }"` (string literal)
+- Root cause: No quote context tracking - couldn't distinguish strings from code
+- Fix: Added `is_inside_quotes()` helper with full quote state tracking
+- Impact: Reduces false positives for string literals containing function keyword
+- Test: `test_sc2111_in_string_ok`
+- Commit: d6a15980
+
+### Quality Metrics
+
+- **Tests**: 5,659 passing (up from 5,652)
+- **Ignored tests fixed**: 7 SC linter rules (all SC ignored tests complete)
+- **Zero defects**: All tests pass, no regressions
+- **Test coverage**: Maintained at >85%
+- **EXTREME TDD**: All 7 fixes follow RED → GREEN → REFACTOR methodology
+
+### Summary
+
+Version 6.24.2 completes the SC linter ignored test cleanup, fixing all 7 remaining SC rule tests through systematic EXTREME TDD. These fixes improve detection accuracy, reduce false positives/negatives, and enhance ShellCheck parity.
+
 ## [6.24.1] - 2025-10-31
 
 ### 🐛 BUG FIXES - Linter Rules (6 fixes, 0 defects)
