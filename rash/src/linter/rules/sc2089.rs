@@ -21,7 +21,8 @@ use regex::Regex;
 
 static ASSIGNMENT_WITH_QUOTES: Lazy<Regex> = Lazy::new(|| {
     // Match: var="something 'quoted' or \"quoted\""
-    Regex::new(r#"^[a-zA-Z_][a-zA-Z0-9_]*=["'].*["'].*["']"#).unwrap()
+    // Also match: export var="..." or local var="..." or readonly var="..."
+    Regex::new(r#"^(?:(?:export|local|readonly)\s+)?[a-zA-Z_][a-zA-Z0-9_]*=["'].*["'].*["']"#).unwrap()
 });
 
 pub fn check(source: &str) -> LintResult {
@@ -120,7 +121,6 @@ mod tests {
     }
 
     #[test]
-    #[ignore] // TODO: Handle export with nested quotes
     fn test_sc2089_export() {
         let code = r#"export FLAGS="-Wall '-Werror'""#;
         let result = check(code);
