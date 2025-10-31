@@ -135,6 +135,10 @@ harness = false
 name = "tracing_overhead"
 harness = false
 
+[[bench]]
+name = "lint_performance"
+harness = false
+
 # Note: The actual Rash examples are in the examples/ directory
 # They are written in Rash syntax and must be transpiled, not compiled
 # See examples/README.md for usage instructions
