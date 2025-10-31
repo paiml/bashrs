@@ -19,8 +19,9 @@ use once_cell::sync::Lazy;
 use regex::Regex;
 
 static RANGE_WITH_PLUS: Lazy<Regex> = Lazy::new(|| {
-    // Match: [range]+ in glob context (not =~)
-    Regex::new(r"\[[^\]]+\]\+").unwrap()
+    // Match: [range]+ or [[:posix:]]+ in glob context (not =~)
+    // Handles both simple ranges [0-9]+ and POSIX classes [[:digit:]]+
+    Regex::new(r"\[(?:[^\]]|\[:.*?:\])+\]\+").unwrap()
 });
 
 pub fn check(source: &str) -> LintResult {
@@ -120,7 +121,6 @@ mod tests {
     }
 
     #[test]
-    #[ignore] // TODO: Handle POSIX classes with +
     fn test_sc2102_posix_class() {
         let code = "[[ $var = [[:digit:]]+ ]]";
         let result = check(code);
