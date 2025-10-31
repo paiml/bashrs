@@ -43,7 +43,8 @@ pub fn check(source: &str) -> LintResult {
             let pattern = cap.get(1).unwrap().as_str();
 
             // Simple heuristic: if it looks like a filename or path with dots
-            if pattern.contains('.') && !pattern.contains('*') {
+            // Skip if dots are escaped (\.) - that's intentional regex
+            if pattern.contains('.') && !pattern.contains('*') && !pattern.contains(r"\.") {
                 let full_match = cap.get(0).unwrap().as_str();
                 let pos = line.find(full_match).unwrap_or(0);
                 let start_col = pos + 1;
@@ -108,11 +109,10 @@ mod tests {
     }
 
     #[test]
-    #[ignore] // TODO: Fix escaped dot detection
     fn test_sc2063_escaped_dot_ok() {
         let code = r#"grep 'file\.txt' *"#;
         let result = check(code);
-        // Escaped dot, intentional regex
+        // Escaped dot (\.) indicates intentional regex - should not flag
         assert_eq!(result.diagnostics.len(), 0);
     }
 
