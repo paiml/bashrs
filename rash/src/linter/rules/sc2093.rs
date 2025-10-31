@@ -111,15 +111,15 @@ echo "done"
     }
 
     #[test]
-    #[ignore] // TODO: Handle exec with redirection syntax
     fn test_sc2093_exec_redirect() {
         let code = r#"
 exec > logfile
 echo "logging"
 "#;
         let result = check(code);
-        // exec for redirection with code after
-        assert_eq!(result.diagnostics.len(), 1);
+        // exec with only redirection doesn't replace shell - code after WILL run
+        // This is correct usage, should not be flagged
+        assert_eq!(result.diagnostics.len(), 0);
     }
 
     #[test]
