@@ -134,12 +134,12 @@ pub fn discover_tests(source: &str) -> Result<Vec<BashTest>, String> {
 
     let mut i = 0;
     while i < lines.len() {
-        let line = lines[i];
-
-        // Look for test function definition
-        if line.contains("test_") && line.contains("()") {
-            if let Some(test) = parse_test_function(&lines, i)? {
-                tests.push(test);
+        if let Some(line) = lines.get(i) {
+            // Look for test function definition
+            if line.contains("test_") && line.contains("()") {
+                if let Some(test) = parse_test_function(&lines, i)? {
+                    tests.push(test);
+                }
             }
         }
 
@@ -151,7 +151,7 @@ pub fn discover_tests(source: &str) -> Result<Vec<BashTest>, String> {
 
 /// Parse a single test function starting at the given line
 fn parse_test_function(lines: &[&str], start_line: usize) -> Result<Option<BashTest>, String> {
-    let line = lines[start_line];
+    let line = lines.get(start_line).ok_or_else(|| "Invalid line index".to_string())?;
 
     // Extract function name
     let name = extract_function_name(line)?;
@@ -215,8 +215,8 @@ fn extract_test_comments(
     // Look backwards up to 10 lines for comments
     let search_start = start_line.saturating_sub(10);
 
-    for i in search_start..start_line {
-        let line = lines[i].trim();
+    for line in lines.iter().take(start_line).skip(search_start) {
+        let line = line.trim();
 
         if line.starts_with("# TEST:") || line.starts_with("#TEST:") {
             description = Some(
@@ -258,8 +258,8 @@ fn extract_function_body(lines: &[&str], start_line: usize) -> Result<String, St
     let mut brace_count = 0;
     let mut started = false;
 
-    for i in start_line..lines.len() {
-        let line = lines[i];
+    for (i, line) in lines.iter().enumerate().skip(start_line) {
+        let line = *line;
 
         // Count braces
         for ch in line.chars() {

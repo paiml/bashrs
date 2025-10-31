@@ -139,7 +139,7 @@ impl DebugSession {
         }
 
         // Get current line
-        let line = self.lines[self.current_line].clone();
+        let line = self.lines.get(self.current_line)?.clone();
 
         // Execute the line (simplified - just echo for now)
         let output = format!("Executed: {}", line);

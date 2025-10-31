@@ -385,8 +385,12 @@ fn calculate_documentation_score(source: &str) -> f64 {
         // Check for function documentation
         if trimmed.contains("() {") || trimmed.starts_with("function ") {
             // Look at previous line for comment
-            if i > 0 && lines[i - 1].trim().starts_with('#') {
-                function_docs += 1;
+            if i > 0 {
+                if let Some(prev_line) = lines.get(i - 1) {
+                    if prev_line.trim().starts_with('#') {
+                        function_docs += 1;
+                    }
+                }
             }
         }
     }
