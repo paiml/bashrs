@@ -725,7 +725,7 @@
 <a href=#725 id=725 data-nosnippet>725</a>
 <a href=#726 id=726 data-nosnippet>726</a>        <span class="comment">// ACT: Call next() from line 1
 <a href=#727 id=727 data-nosnippet>727</a>        </span><span class="macro">assert_eq!</span>(session.current_line(), <span class="number">1</span>, <span class="string">"Should start at line 1"</span>);
-<a href=#728 id=728 data-nosnippet>728</a>        session.next();
+<a href=#728 id=728 data-nosnippet>728</a>        session.step_over();
 <a href=#729 id=729 data-nosnippet>729</a>
 <a href=#730 id=730 data-nosnippet>730</a>        <span class="comment">// ASSERT: Should be at line 2 (next line at same depth)
 <a href=#731 id=731 data-nosnippet>731</a>        </span><span class="macro">assert_eq!</span>(
@@ -746,7 +746,7 @@
 <a href=#746 id=746 data-nosnippet>746</a>        <span class="kw">let </span><span class="kw-2">mut </span>session = DebugSession::new(script);
 <a href=#747 id=747 data-nosnippet>747</a>
 <a href=#748 id=748 data-nosnippet>748</a>        <span class="comment">// ACT: Call next() - should complete execution
-<a href=#749 id=749 data-nosnippet>749</a>        </span>session.next();
+<a href=#749 id=749 data-nosnippet>749</a>        </span>session.step_over();
 <a href=#750 id=750 data-nosnippet>750</a>
 <a href=#751 id=751 data-nosnippet>751</a>        <span class="comment">// ASSERT: Should be finished
 <a href=#752 id=752 data-nosnippet>752</a>        </span><span class="macro">assert!</span>(session.is_finished(), <span class="string">"Should be finished after next()"</span>);
@@ -763,13 +763,13 @@
 <a href=#763 id=763 data-nosnippet>763</a>
 <a href=#764 id=764 data-nosnippet>764</a>        <span class="comment">// ACT: Next through all lines
 <a href=#765 id=765 data-nosnippet>765</a>        </span><span class="macro">assert_eq!</span>(session.current_line(), <span class="number">1</span>);
-<a href=#766 id=766 data-nosnippet>766</a>        session.next();
+<a href=#766 id=766 data-nosnippet>766</a>        session.step_over();
 <a href=#767 id=767 data-nosnippet>767</a>
 <a href=#768 id=768 data-nosnippet>768</a>        <span class="macro">assert_eq!</span>(session.current_line(), <span class="number">2</span>);
-<a href=#769 id=769 data-nosnippet>769</a>        session.next();
+<a href=#769 id=769 data-nosnippet>769</a>        session.step_over();
 <a href=#770 id=770 data-nosnippet>770</a>
 <a href=#771 id=771 data-nosnippet>771</a>        <span class="macro">assert_eq!</span>(session.current_line(), <span class="number">3</span>);
-<a href=#772 id=772 data-nosnippet>772</a>        session.next();
+<a href=#772 id=772 data-nosnippet>772</a>        session.step_over();
 <a href=#773 id=773 data-nosnippet>773</a>
 <a href=#774 id=774 data-nosnippet>774</a>        <span class="comment">// ASSERT: Should be finished
 <a href=#775 id=775 data-nosnippet>775</a>        </span><span class="macro">assert!</span>(session.is_finished(), <span class="string">"Should be finished after 3 next() calls"</span>);
@@ -785,11 +785,11 @@
 <a href=#785 id=785 data-nosnippet>785</a>        <span class="kw">let </span><span class="kw-2">mut </span>session = DebugSession::new(script);
 <a href=#786 id=786 data-nosnippet>786</a>
 <a href=#787 id=787 data-nosnippet>787</a>        <span class="comment">// ACT: Next to completion
-<a href=#788 id=788 data-nosnippet>788</a>        </span>session.next();
+<a href=#788 id=788 data-nosnippet>788</a>        </span>session.step_over();
 <a href=#789 id=789 data-nosnippet>789</a>        <span class="macro">assert!</span>(session.is_finished());
 <a href=#790 id=790 data-nosnippet>790</a>
 <a href=#791 id=791 data-nosnippet>791</a>        <span class="comment">// ACT: Try next() again when finished
-<a href=#792 id=792 data-nosnippet>792</a>        </span>session.next();
+<a href=#792 id=792 data-nosnippet>792</a>        </span>session.step_over();
 <a href=#793 id=793 data-nosnippet>793</a>
 <a href=#794 id=794 data-nosnippet>794</a>        <span class="comment">// ASSERT: Should still be finished
 <a href=#795 id=795 data-nosnippet>795</a>        </span><span class="macro">assert!</span>(
@@ -1770,7 +1770,7 @@
 <a href=#1770 id=1770 data-nosnippet>1770</a>                }
 <a href=#1771 id=1771 data-nosnippet>1771</a>
 <a href=#1772 id=1772 data-nosnippet>1772</a>                <span class="kw">let </span>depth_before = session.call_depth();
-<a href=#1773 id=1773 data-nosnippet>1773</a>                session.next();
+<a href=#1773 id=1773 data-nosnippet>1773</a>                session.step_over();
 <a href=#1774 id=1774 data-nosnippet>1774</a>                <span class="kw">let </span>depth_after = session.call_depth();
 <a href=#1775 id=1775 data-nosnippet>1775</a>
 <a href=#1776 id=1776 data-nosnippet>1776</a>                <span class="comment">// Depth should never increase
@@ -1811,7 +1811,7 @@
 <a href=#1811 id=1811 data-nosnippet>1811</a>                    <span class="comment">// Success - finished execution
 <a href=#1812 id=1812 data-nosnippet>1812</a>                    </span><span class="kw">return </span><span class="prelude-val">Ok</span>(());
 <a href=#1813 id=1813 data-nosnippet>1813</a>                }
-<a href=#1814 id=1814 data-nosnippet>1814</a>                session.next();
+<a href=#1814 id=1814 data-nosnippet>1814</a>                session.step_over();
 <a href=#1815 id=1815 data-nosnippet>1815</a>            }
 <a href=#1816 id=1816 data-nosnippet>1816</a>
 <a href=#1817 id=1817 data-nosnippet>1817</a>            <span class="comment">// If we get here, we didn't finish in reasonable time
