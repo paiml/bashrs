@@ -832,24 +832,21 @@ fn print_purify_report(
     }
 }
 
-fn make_lint_command(
-    input: &Path,
-    format: LintFormat,
-    fix: bool,
-    output: Option<&Path>,
-    rules: Option<&str>,
-) -> Result<()> {
-    use crate::linter::{
-        autofix::{apply_fixes_to_file, FixOptions},
-        output::{write_results, OutputFormat},
-        rules::lint_makefile,
-    };
+/// Convert LintFormat to OutputFormat
+fn convert_lint_format(format: LintFormat) -> crate::linter::output::OutputFormat {
+    use crate::linter::output::OutputFormat;
+    match format {
+        LintFormat::Human => OutputFormat::Human,
+        LintFormat::Json => OutputFormat::Json,
+        LintFormat::Sarif => OutputFormat::Sarif,
+    }
+}
 
-    // Read input file
-    let source = fs::read_to_string(input).map_err(Error::Io)?;
+/// Run linter and optionally filter results by specific rules
+fn run_filtered_lint(source: &str, rules: Option<&str>) -> crate::linter::LintResult {
+    use crate::linter::rules::lint_makefile;
 
-    // Run linter
-    let mut result = lint_makefile(&source);
+    let mut result = lint_makefile(source);
 
     // Filter by specific rules if requested
     if let Some(rule_filter) = rules {
@@ -859,120 +856,164 @@ fn make_lint_command(
             .retain(|d| allowed_rules.iter().any(|rule| d.code.contains(rule)));
     }
 
+    result
+}
+
+/// Apply fixes and write to separate output file (not in-place)
+fn apply_fixes_to_output(
+    source: &str,
+    result: &crate::linter::LintResult,
+    output_path: &Path,
+    format: LintFormat,
+) -> Result<()> {
+    use crate::linter::{
+        autofix::{apply_fixes, FixOptions},
+        output::write_results,
+        rules::lint_makefile,
+    };
+
+    let fix_options = FixOptions {
+        create_backup: false, // Don't create backup for output file
+        dry_run: false,
+        backup_suffix: String::new(),
+        apply_assumptions: false, // TODO: Wire up fix_assumptions flag
+        output_path: None,
+    };
+
+    let fix_result = apply_fixes(source, result, &fix_options)
+        .map_err(|e| Error::Internal(format!("Failed to apply fixes: {e}")))?;
+
+    if let Some(fixed_source) = fix_result.modified_source {
+        fs::write(output_path, &fixed_source).map_err(Error::Io)?;
+        info!("Fixed Makefile written to {}", output_path.display());
+
+        // Re-lint the fixed content
+        let result_after = lint_makefile(&fixed_source);
+        if result_after.diagnostics.is_empty() {
+            info!("✓ All issues fixed!");
+        } else {
+            info!("Remaining issues after auto-fix:");
+            let output_format = convert_lint_format(format);
+            let file_path = output_path.to_str().unwrap_or("unknown");
+            write_results(
+                &mut std::io::stdout(),
+                &result_after,
+                output_format,
+                file_path,
+            )
+            .map_err(|e| Error::Internal(format!("Failed to write lint results: {e}")))?;
+        }
+    }
+
+    Ok(())
+}
+
+/// Apply fixes in-place to the original file with backup
+fn apply_fixes_inplace(
+    input: &Path,
+    result: &crate::linter::LintResult,
+    format: LintFormat,
+) -> Result<()> {
+    use crate::linter::{
+        autofix::{apply_fixes_to_file, FixOptions},
+        output::write_results,
+        rules::lint_makefile,
+    };
+
+    let options = FixOptions {
+        create_backup: true,
+        dry_run: false,
+        backup_suffix: ".bak".to_string(),
+        apply_assumptions: false, // TODO: Wire up fix_assumptions flag
+        output_path: None,
+    };
+
+    match apply_fixes_to_file(input, result, &options) {
+        Ok(fix_result) => {
+            info!(
+                "Applied {} fix(es) to {}",
+                fix_result.fixes_applied,
+                input.display()
+            );
+            if let Some(backup_path) = &fix_result.backup_path {
+                info!("Backup created at {}", backup_path);
+            }
+
+            // Re-lint to show remaining issues
+            let source_after = fs::read_to_string(input).map_err(Error::Io)?;
+            let result_after = lint_makefile(&source_after);
+
+            if result_after.diagnostics.is_empty() {
+                info!("✓ All issues fixed!");
+            } else {
+                info!("Remaining issues after auto-fix:");
+                let output_format = convert_lint_format(format);
+                let file_path = input.to_str().unwrap_or("unknown");
+                write_results(
+                    &mut std::io::stdout(),
+                    &result_after,
+                    output_format,
+                    file_path,
+                )
+                .map_err(|e| Error::Internal(format!("Failed to write lint results: {e}")))?;
+            }
+        }
+        Err(e) => {
+            return Err(Error::Internal(format!("Failed to apply fixes: {e}")));
+        }
+    }
+
+    Ok(())
+}
+
+/// Show lint results without applying fixes
+fn show_lint_results(
+    result: &crate::linter::LintResult,
+    format: LintFormat,
+    input: &Path,
+) -> Result<()> {
+    use crate::linter::output::write_results;
+
+    let output_format = convert_lint_format(format);
+    let file_path = input.to_str().unwrap_or("unknown");
+    write_results(&mut std::io::stdout(), result, output_format, file_path)
+        .map_err(|e| Error::Internal(format!("Failed to write lint results: {e}")))?;
+
+    // Exit with appropriate code
+    if result.has_errors() {
+        std::process::exit(2);
+    } else if result.has_warnings() {
+        std::process::exit(1);
+    }
+
+    Ok(())
+}
+
+fn make_lint_command(
+    input: &Path,
+    format: LintFormat,
+    fix: bool,
+    output: Option<&Path>,
+    rules: Option<&str>,
+) -> Result<()> {
+    // Read input file
+    let source = fs::read_to_string(input).map_err(Error::Io)?;
+
+    // Run linter and filter by rules if requested
+    let result = run_filtered_lint(&source, rules);
+
     // Apply fixes if requested
     if fix && result.diagnostics.iter().any(|d| d.fix.is_some()) {
         if let Some(output_path) = output {
             // Output to separate file: don't modify original
-            // Apply fixes in memory and write to output
-            use crate::linter::autofix::{apply_fixes, FixOptions};
-
-            let fix_options = FixOptions {
-                create_backup: false, // Don't create backup for output file
-                dry_run: false,
-                backup_suffix: String::new(),
-                apply_assumptions: false, // TODO: Wire up fix_assumptions flag
-                output_path: None,
-            };
-
-            let fix_result = apply_fixes(&source, &result, &fix_options)
-                .map_err(|e| Error::Internal(format!("Failed to apply fixes: {e}")))?;
-
-            if let Some(fixed_source) = fix_result.modified_source {
-                fs::write(output_path, &fixed_source).map_err(Error::Io)?;
-                info!("Fixed Makefile written to {}", output_path.display());
-
-                // Re-lint the fixed content
-                let result_after = lint_makefile(&fixed_source);
-                if result_after.diagnostics.is_empty() {
-                    info!("✓ All issues fixed!");
-                    return Ok(());
-                } else {
-                    info!("Remaining issues after auto-fix:");
-                    let output_format = match format {
-                        LintFormat::Human => OutputFormat::Human,
-                        LintFormat::Json => OutputFormat::Json,
-                        LintFormat::Sarif => OutputFormat::Sarif,
-                    };
-                    let file_path = output_path.to_str().unwrap_or("unknown");
-                    write_results(
-                        &mut std::io::stdout(),
-                        &result_after,
-                        output_format,
-                        file_path,
-                    )
-                    .map_err(|e| Error::Internal(format!("Failed to write lint results: {e}")))?;
-                }
-            }
+            apply_fixes_to_output(&source, &result, output_path, format)?;
         } else {
             // In-place fixing: modify original file
-            let options = FixOptions {
-                create_backup: true,
-                dry_run: false,
-                backup_suffix: ".bak".to_string(),
-                apply_assumptions: false, // TODO: Wire up fix_assumptions flag
-                output_path: None,
-            };
-
-            match apply_fixes_to_file(input, &result, &options) {
-                Ok(fix_result) => {
-                    info!(
-                        "Applied {} fix(es) to {}",
-                        fix_result.fixes_applied,
-                        input.display()
-                    );
-                    if let Some(backup_path) = &fix_result.backup_path {
-                        info!("Backup created at {}", backup_path);
-                    }
-
-                    // Re-lint to show remaining issues
-                    let source_after = fs::read_to_string(input).map_err(Error::Io)?;
-                    let result_after = lint_makefile(&source_after);
-
-                    if result_after.diagnostics.is_empty() {
-                        info!("✓ All issues fixed!");
-                        return Ok(());
-                    } else {
-                        info!("Remaining issues after auto-fix:");
-                        let output_format = match format {
-                            LintFormat::Human => OutputFormat::Human,
-                            LintFormat::Json => OutputFormat::Json,
-                            LintFormat::Sarif => OutputFormat::Sarif,
-                        };
-                        let file_path = input.to_str().unwrap_or("unknown");
-                        write_results(
-                            &mut std::io::stdout(),
-                            &result_after,
-                            output_format,
-                            file_path,
-                        )
-                        .map_err(|e| {
-                            Error::Internal(format!("Failed to write lint results: {e}"))
-                        })?;
-                    }
-                }
-                Err(e) => {
-                    return Err(Error::Internal(format!("Failed to apply fixes: {e}")));
-                }
-            }
+            apply_fixes_inplace(input, &result, format)?;
         }
     } else {
         // Just show lint results
-        let output_format = match format {
-            LintFormat::Human => OutputFormat::Human,
-            LintFormat::Json => OutputFormat::Json,
-            LintFormat::Sarif => OutputFormat::Sarif,
-        };
-
-        let file_path = input.to_str().unwrap_or("unknown");
-        write_results(&mut std::io::stdout(), &result, output_format, file_path)
-            .map_err(|e| Error::Internal(format!("Failed to write lint results: {e}")))?;
-
-        // Exit with appropriate code
-        if result.has_errors() {
-            std::process::exit(2);
-        } else if result.has_warnings() {
-            std::process::exit(1);
-        }
+        show_lint_results(&result, format, input)?;
     }
 
     Ok(())
