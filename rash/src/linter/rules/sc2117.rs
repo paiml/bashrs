@@ -29,6 +29,49 @@ static EXIT_OR_RETURN: Lazy<Regex> = Lazy::new(|| {
     Regex::new(r"^\s*(exit|return)\b").unwrap()
 });
 
+/// Check if a line is a comment
+fn is_comment_line(line: &str) -> bool {
+    line.trim_start().starts_with('#')
+}
+
+/// Check if a line contains exit or return
+fn is_exit_or_return_line(line: &str) -> bool {
+    EXIT_OR_RETURN.is_match(line)
+}
+
+/// Check if a line is a closing token (}, fi, done, esac)
+fn is_closing_token(line: &str) -> bool {
+    let trimmed = line.trim();
+    trimmed == "}" || trimmed == "fi" || trimmed == "done" || trimmed == "esac"
+}
+
+/// Extract the keyword (exit or return) from a line
+fn get_keyword(line: &str) -> &str {
+    if line.contains("exit") {
+        "exit"
+    } else {
+        "return"
+    }
+}
+
+/// Create a diagnostic for unreachable code
+fn create_unreachable_diagnostic(
+    keyword: &str,
+    exit_line: usize,
+    unreachable_line: usize,
+    line_content: &str,
+) -> Diagnostic {
+    let start_col = 1;
+    let end_col = line_content.len() + 1;
+
+    Diagnostic::new(
+        "SC2117",
+        Severity::Warning,
+        format!("Unreachable code after '{}' on line {}", keyword, exit_line),
+        Span::new(unreachable_line, start_col, unreachable_line, end_col),
+    )
+}
+
 pub fn check(source: &str) -> LintResult {
     let mut result = LintResult::new();
     let lines: Vec<&str> = source.lines().collect();
@@ -36,47 +79,33 @@ pub fn check(source: &str) -> LintResult {
     for (i, line) in lines.iter().enumerate() {
         let line_num = i + 1;
 
-        if line.trim_start().starts_with('#') {
+        if is_comment_line(line) {
             continue;
         }
 
-        // Check if this line has exit or return
-        if EXIT_OR_RETURN.is_match(line) {
+        if is_exit_or_return_line(line) {
             // Check if there's non-comment code after this line
             let mut has_code_after = false;
+
             for (j, next_line) in lines[i + 1..].iter().enumerate() {
                 let trimmed = next_line.trim();
 
                 // Skip empty lines and comments
-                if trimmed.is_empty() || trimmed.starts_with('#') {
+                if trimmed.is_empty() || is_comment_line(next_line) {
                     continue;
                 }
 
                 // Check if it's a closing brace (end of function/block)
-                if trimmed == "}" || trimmed == "fi" || trimmed == "done" || trimmed == "esac" {
+                if is_closing_token(next_line) {
                     break;
                 }
 
                 // Found code after exit/return
                 has_code_after = true;
                 let unreachable_line = i + 1 + j + 1;
-                let start_col = 1;
-                let end_col = next_line.len() + 1;
-
-                let diagnostic = Diagnostic::new(
-                    "SC2117",
-                    Severity::Warning,
-                    format!(
-                        "Unreachable code after '{}' on line {}",
-                        if line.contains("exit") {
-                            "exit"
-                        } else {
-                            "return"
-                        },
-                        line_num
-                    ),
-                    Span::new(unreachable_line, start_col, unreachable_line, end_col),
-                );
+                let keyword = get_keyword(line);
+                let diagnostic =
+                    create_unreachable_diagnostic(keyword, line_num, unreachable_line, next_line);
 
                 result.add(diagnostic);
                 break; // Only report first unreachable line
@@ -94,6 +123,100 @@ pub fn check(source: &str) -> LintResult {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    // ===== Manual Property Tests =====
+
+    #[test]
+    fn prop_sc2117_comments_never_diagnosed() {
+        // Property: Comment lines should never produce diagnostics
+        let test_cases = vec!["# exit 1\n# echo test", "  # return 0\n  # local x=5"];
+
+        for code in test_cases {
+            let result = check(code);
+            assert_eq!(result.diagnostics.len(), 0);
+        }
+    }
+
+    #[test]
+    fn prop_sc2117_exit_at_end_never_diagnosed() {
+        // Property: exit/return at end of script should not be diagnosed
+        let test_cases = vec![
+            "echo test\nexit 0",
+            "local x=5\nreturn 1",
+            "exit 1\n\n", // with empty lines
+        ];
+
+        for code in test_cases {
+            let result = check(code);
+            assert_eq!(result.diagnostics.len(), 0);
+        }
+    }
+
+    #[test]
+    fn prop_sc2117_code_after_always_diagnosed() {
+        // Property: Code after exit/return should always be diagnosed
+        let test_cases = vec![
+            ("exit 1\necho test", "exit"),
+            ("return 0\nlocal x=5", "return"),
+        ];
+
+        for (code, keyword) in test_cases {
+            let result = check(code);
+            assert_eq!(result.diagnostics.len(), 1);
+            assert!(result.diagnostics[0].message.contains(keyword));
+        }
+    }
+
+    #[test]
+    fn prop_sc2117_closing_tokens_not_unreachable() {
+        // Property: Closing tokens (}, fi, done, esac) should not be diagnosed
+        let closing_tokens = vec!["}", "fi", "done", "esac"];
+
+        for token in closing_tokens {
+            let code = format!("exit 0\n{}", token);
+            let result = check(&code);
+            assert_eq!(result.diagnostics.len(), 0);
+        }
+    }
+
+    #[test]
+    fn prop_sc2117_only_first_unreachable_reported() {
+        // Property: Only first unreachable line should be reported
+        let code = "exit 1\necho line1\necho line2\necho line3";
+        let result = check(code);
+        assert_eq!(result.diagnostics.len(), 1);
+    }
+
+    #[test]
+    fn prop_sc2117_diagnostic_code_always_sc2117() {
+        // Property: All diagnostics must have code "SC2117"
+        let code = "exit 1\necho test";
+        let result = check(code);
+
+        for diagnostic in &result.diagnostics {
+            assert_eq!(&diagnostic.code, "SC2117");
+        }
+    }
+
+    #[test]
+    fn prop_sc2117_diagnostic_severity_always_warning() {
+        // Property: All diagnostics must be Warning severity
+        let code = "return 0\nlocal x=1";
+        let result = check(code);
+
+        for diagnostic in &result.diagnostics {
+            assert_eq!(diagnostic.severity, Severity::Warning);
+        }
+    }
+
+    #[test]
+    fn prop_sc2117_empty_source_no_diagnostics() {
+        // Property: Empty source should produce no diagnostics
+        let result = check("");
+        assert_eq!(result.diagnostics.len(), 0);
+    }
+
+    // ===== Original Unit Tests =====
 
     #[test]
     fn test_sc2117_exit_with_code() {
