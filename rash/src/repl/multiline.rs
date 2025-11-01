@@ -121,36 +121,71 @@ fn has_closing_keyword(input: &str, keyword: &str) -> bool {
 }
 
 /// Check if bash keywords expect continuation
+/// Check if 'if' statement needs continuation
+fn needs_continuation_if(trimmed: &str) -> bool {
+    trimmed.starts_with("if ") && !has_closing_keyword(trimmed, "fi")
+}
+
+/// Check if 'for' loop needs continuation
+fn needs_continuation_for(trimmed: &str) -> bool {
+    trimmed.starts_with("for ") && !has_closing_keyword(trimmed, "done")
+}
+
+/// Check if 'while' loop needs continuation
+fn needs_continuation_while(trimmed: &str) -> bool {
+    trimmed.starts_with("while ") && !has_closing_keyword(trimmed, "done")
+}
+
+/// Check if 'until' loop needs continuation
+fn needs_continuation_until(trimmed: &str) -> bool {
+    trimmed.starts_with("until ") && !has_closing_keyword(trimmed, "done")
+}
+
+/// Check if 'case' statement needs continuation
+fn needs_continuation_case(trimmed: &str) -> bool {
+    trimmed.starts_with("case ") && !has_closing_keyword(trimmed, "esac")
+}
+
+/// Check if function definition needs continuation
+fn needs_continuation_function(trimmed: &str) -> bool {
+    (trimmed.starts_with("function ") || trimmed.contains("() {")) && !trimmed.ends_with('}')
+}
+
+/// Check if line ends with block keyword that expects continuation
+fn needs_continuation_block(trimmed: &str) -> bool {
+    trimmed.ends_with(" then") || trimmed.ends_with(" do")
+}
+
 fn bash_keywords_need_continuation(input: &str) -> bool {
     let trimmed = input.trim();
 
     // Keywords that expect a closing keyword
-    if trimmed.starts_with("if ") && !has_closing_keyword(trimmed, "fi") {
+    if needs_continuation_if(trimmed) {
         return true;
     }
 
-    if trimmed.starts_with("for ") && !has_closing_keyword(trimmed, "done") {
+    if needs_continuation_for(trimmed) {
         return true;
     }
 
-    if trimmed.starts_with("while ") && !has_closing_keyword(trimmed, "done") {
+    if needs_continuation_while(trimmed) {
         return true;
     }
 
-    if trimmed.starts_with("until ") && !has_closing_keyword(trimmed, "done") {
+    if needs_continuation_until(trimmed) {
         return true;
     }
 
-    if trimmed.starts_with("case ") && !has_closing_keyword(trimmed, "esac") {
+    if needs_continuation_case(trimmed) {
         return true;
     }
 
-    if (trimmed.starts_with("function ") || trimmed.contains("() {")) && !trimmed.ends_with('}') {
+    if needs_continuation_function(trimmed) {
         return true;
     }
 
     // Keywords that expect a following block
-    if trimmed.ends_with(" then") || trimmed.ends_with(" do") {
+    if needs_continuation_block(trimmed) {
         return true;
     }
 
