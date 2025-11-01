@@ -190,6 +190,64 @@ fn calculate_complexity_score(source: &str) -> f64 {
     (nesting_score + length_score) / 2.0
 }
 
+/// Check if line is empty or a comment
+fn is_empty_or_comment(line: &str) -> bool {
+    let trimmed = line.trim();
+    trimmed.is_empty() || trimmed.starts_with('#')
+}
+
+/// Check if line has unquoted variable and count issues
+fn count_unquoted_vars(line: &str) -> usize {
+    let trimmed = line.trim();
+
+    // Skip if no variables or already quoted
+    if !trimmed.contains('$') || trimmed.contains("\"$") {
+        return 0;
+    }
+
+    // Simple heuristic: look for $VAR without quotes
+    let parts: Vec<&str> = trimmed.split_whitespace().collect();
+    let mut count = 0;
+    for part in parts {
+        if part.starts_with('$') && !part.starts_with("\"$") && !part.starts_with("$(") {
+            count += 1;
+        }
+    }
+    count
+}
+
+/// Check if line has strict mode settings (set -e, set -u, set -o pipefail)
+fn has_strict_mode_setting(line: &str) -> bool {
+    let trimmed = line.trim();
+    trimmed.contains("set -e") || trimmed.contains("set -u") || trimmed.contains("set -o pipefail")
+}
+
+/// Check if line has quoted variables
+fn has_quoted_variable(line: &str) -> bool {
+    line.trim().contains("\"$")
+}
+
+/// Check if line has error handling
+fn has_error_handling(line: &str) -> bool {
+    let trimmed = line.trim();
+    trimmed.contains("|| return") || trimmed.contains("|| exit")
+}
+
+/// Calculate safety ratio from issues and good practices counts
+fn calculate_safety_ratio(issues: usize, good_practices: usize) -> f64 {
+    let safety_ratio = if issues == 0 {
+        10.0
+    } else if good_practices > issues * 2 {
+        8.0
+    } else if good_practices > issues {
+        6.0
+    } else {
+        4.0 - (issues as f64 * 0.5).min(3.0)
+    };
+
+    safety_ratio.clamp(0.0, 10.0)
+}
+
 /// Calculate safety score (0.0-10.0)
 fn calculate_safety_score(source: &str) -> f64 {
     // Empty script gets 0.0
@@ -202,40 +260,26 @@ fn calculate_safety_score(source: &str) -> f64 {
     let mut has_code = false;
 
     for line in source.lines() {
-        let trimmed = line.trim();
-
         // Skip comments and empty lines
-        if trimmed.is_empty() || trimmed.starts_with('#') {
+        if is_empty_or_comment(line) {
             continue;
         }
 
         has_code = true;
 
-        // Check for unquoted variables (bad)
-        if trimmed.contains("$") && !trimmed.contains("\"$") {
-            // Simple heuristic: look for $VAR without quotes
-            let parts: Vec<&str> = trimmed.split_whitespace().collect();
-            for part in parts {
-                if part.starts_with('$') && !part.starts_with("\"$") && !part.starts_with("$(") {
-                    issues += 1;
-                }
-            }
-        }
+        // Count unquoted variables (bad practice)
+        issues += count_unquoted_vars(line);
 
         // Check for good practices
-        if trimmed.contains("set -e")
-            || trimmed.contains("set -u")
-            || trimmed.contains("set -o pipefail")
-        {
+        if has_strict_mode_setting(line) {
             good_practices += 2;
         }
 
-        if trimmed.contains("\"$") {
+        if has_quoted_variable(line) {
             good_practices += 1;
         }
 
-        // Check for error handling
-        if trimmed.contains("|| return") || trimmed.contains("|| exit") {
+        if has_error_handling(line) {
             good_practices += 1;
         }
     }
@@ -245,18 +289,8 @@ fn calculate_safety_score(source: &str) -> f64 {
         return 0.0;
     }
 
-    // Calculate score
-    let safety_ratio = if issues == 0 {
-        10.0
-    } else if good_practices > issues * 2 {
-        8.0
-    } else if good_practices > issues {
-        6.0
-    } else {
-        4.0 - (issues as f64 * 0.5).min(3.0)
-    };
-
-    safety_ratio.clamp(0.0, 10.0)
+    // Calculate score based on issues vs good practices
+    calculate_safety_ratio(issues, good_practices)
 }
 
 /// Calculate maintainability score (0.0-10.0)
