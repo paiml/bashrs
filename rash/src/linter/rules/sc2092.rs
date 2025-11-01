@@ -24,51 +24,63 @@ static EXECUTE_BACKTICKS: Lazy<Regex> = Lazy::new(|| {
     Regex::new(r"(^|[;&|]+)\s*`[^`]+`").unwrap()
 });
 
+/// Check if a line is a comment
+fn is_comment_line(line: &str) -> bool {
+    line.trim_start().starts_with('#')
+}
+
+/// Check if text starts with command separator (;, |, &)
+fn starts_with_separator(text: &str) -> bool {
+    text.starts_with(';') || text.starts_with('|') || text.starts_with('&')
+}
+
+/// Check if backticks are in an assignment
+fn is_in_assignment(prefix: &str) -> bool {
+    prefix.contains('=') && !prefix.ends_with(';') && !prefix.ends_with('|')
+}
+
+/// Check if backticks are in safe context (echo/printf)
+fn is_in_safe_context(prefix: &str) -> bool {
+    prefix.contains("echo") || prefix.contains("printf")
+}
+
+/// Create diagnostic for executed backticks
+fn create_backtick_diagnostic(line_num: usize, start_col: usize, end_col: usize) -> Diagnostic {
+    Diagnostic::new(
+        "SC2092",
+        Severity::Warning,
+        "Remove backticks to avoid executing output (or use eval if intentional)".to_string(),
+        Span::new(line_num, start_col, line_num, end_col),
+    )
+}
+
 pub fn check(source: &str) -> LintResult {
     let mut result = LintResult::new();
 
     for (line_num, line) in source.lines().enumerate() {
         let line_num = line_num + 1;
 
-        if line.trim_start().starts_with('#') {
+        if is_comment_line(line) {
             continue;
         }
 
         for mat in EXECUTE_BACKTICKS.find_iter(line) {
             let matched_text = &line[mat.start()..mat.end()];
 
-            // Check if match starts with command separator (;, |, &)
-            // If so, this is a new command, not part of echo/printf
-            let starts_with_separator = matched_text.starts_with(';')
-                || matched_text.starts_with('|')
-                || matched_text.starts_with('&');
-
             // If it starts with a separator, it's a new command - should be flagged
-            if !starts_with_separator {
+            if !starts_with_separator(matched_text) {
                 // Check the immediate context before the backticks
                 let prefix = &line[..mat.start()];
 
-                // Skip if it's in an assignment
-                if prefix.contains('=') && !prefix.ends_with(';') && !prefix.ends_with('|') {
-                    continue;
-                }
-
-                // Skip if it's in echo or other safe contexts
-                if prefix.contains("echo") || prefix.contains("printf") {
+                // Skip if in assignment or safe context
+                if is_in_assignment(prefix) || is_in_safe_context(prefix) {
                     continue;
                 }
             }
 
             let start_col = mat.start() + 1;
             let end_col = mat.end() + 1;
-
-            let diagnostic = Diagnostic::new(
-                "SC2092",
-                Severity::Warning,
-                "Remove backticks to avoid executing output (or use eval if intentional)"
-                    .to_string(),
-                Span::new(line_num, start_col, line_num, end_col),
-            );
+            let diagnostic = create_backtick_diagnostic(line_num, start_col, end_col);
 
             result.add(diagnostic);
         }
@@ -80,6 +92,109 @@ pub fn check(source: &str) -> LintResult {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    // ===== Manual Property Tests =====
+
+    #[test]
+    fn prop_sc2092_comments_never_diagnosed() {
+        // Property: Comment lines should never produce diagnostics
+        let test_cases = vec![
+            "# `which cp` file",
+            "  # `find . -name '*.sh'`",
+            "\t# `date`",
+        ];
+
+        for code in test_cases {
+            let result = check(code);
+            assert_eq!(result.diagnostics.len(), 0);
+        }
+    }
+
+    #[test]
+    fn prop_sc2092_assignments_never_diagnosed() {
+        // Property: Backticks in assignments should not be diagnosed
+        let test_cases = vec!["result=`find .`", "output=`which cp`", "timestamp=`date`"];
+
+        for code in test_cases {
+            let result = check(code);
+            assert_eq!(result.diagnostics.len(), 0);
+        }
+    }
+
+    #[test]
+    fn prop_sc2092_echo_printf_never_diagnosed() {
+        // Property: Backticks in echo/printf should not be diagnosed
+        let test_cases = vec!["echo `date`", "printf '%s' `date`", "echo test `which cp`"];
+
+        for code in test_cases {
+            let result = check(code);
+            assert_eq!(result.diagnostics.len(), 0);
+        }
+    }
+
+    #[test]
+    fn prop_sc2092_executed_backticks_always_diagnosed() {
+        // Property: Backticks at command position should be diagnosed
+        let test_cases = vec!["`which cp` file", "`find . -name '*.sh'`", "`date`"];
+
+        for code in test_cases {
+            let result = check(code);
+            assert_eq!(result.diagnostics.len(), 1, "Should diagnose: {}", code);
+        }
+    }
+
+    #[test]
+    fn prop_sc2092_after_separator_always_diagnosed() {
+        // Property: Backticks after command separator should be diagnosed
+        let test_cases = vec!["echo start; `find .`", "cmd | `which cp`", "cmd & `date`"];
+
+        for code in test_cases {
+            let result = check(code);
+            assert_eq!(result.diagnostics.len(), 1, "Should diagnose: {}", code);
+        }
+    }
+
+    #[test]
+    fn prop_sc2092_dollar_paren_never_diagnosed() {
+        // Property: $() command substitution should never be diagnosed
+        let test_cases = vec!["result=$(date)", "$(which cp)", "echo $(date)"];
+
+        for code in test_cases {
+            let result = check(code);
+            assert_eq!(result.diagnostics.len(), 0);
+        }
+    }
+
+    #[test]
+    fn prop_sc2092_diagnostic_code_always_sc2092() {
+        // Property: All diagnostics must have code "SC2092"
+        let code = "`which cp` file1\n`find .`";
+        let result = check(code);
+
+        for diagnostic in &result.diagnostics {
+            assert_eq!(&diagnostic.code, "SC2092");
+        }
+    }
+
+    #[test]
+    fn prop_sc2092_diagnostic_severity_always_warning() {
+        // Property: All diagnostics must be Warning severity
+        let code = "`which cp` file";
+        let result = check(code);
+
+        for diagnostic in &result.diagnostics {
+            assert_eq!(diagnostic.severity, Severity::Warning);
+        }
+    }
+
+    #[test]
+    fn prop_sc2092_empty_source_no_diagnostics() {
+        // Property: Empty source should produce no diagnostics
+        let result = check("");
+        assert_eq!(result.diagnostics.len(), 0);
+    }
+
+    // ===== Original Unit Tests =====
 
     #[test]
     fn test_sc2092_backticks_executed() {
