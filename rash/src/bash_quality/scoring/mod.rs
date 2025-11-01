@@ -118,6 +118,41 @@ pub fn score_script_with_file_type(
 }
 
 /// Calculate complexity score (0.0-10.0)
+/// Check if line starts a control structure (if/for/while/case)
+fn is_control_structure_start(trimmed: &str) -> bool {
+    trimmed.starts_with("if ")
+        || trimmed.starts_with("for ")
+        || trimmed.starts_with("while ")
+        || trimmed.starts_with("case ")
+}
+
+/// Check if line ends a control structure (fi/done/esac)
+fn is_control_structure_end(trimmed: &str) -> bool {
+    trimmed == "fi" || trimmed == "done" || trimmed == "esac"
+}
+
+/// Calculate score based on nesting depth
+fn calculate_nesting_score(max_nesting: i32) -> f64 {
+    match max_nesting {
+        0..=1 => 10.0,
+        2 => 9.0,
+        3 => 7.0,
+        4 => 5.0,
+        _ => 3.0,
+    }
+}
+
+/// Calculate score based on maximum function length
+fn calculate_length_score(max_function_length: usize) -> f64 {
+    match max_function_length {
+        0..=10 => 10.0,
+        11..=20 => 9.0,
+        21..=30 => 7.0,
+        31..=50 => 5.0,
+        _ => 3.0,
+    }
+}
+
 fn calculate_complexity_score(source: &str) -> f64 {
     let lines: Vec<&str> = source.lines().collect();
 
@@ -154,38 +189,21 @@ fn calculate_complexity_score(source: &str) -> f64 {
         }
 
         // Track nesting depth
-        if trimmed.starts_with("if ")
-            || trimmed.starts_with("for ")
-            || trimmed.starts_with("while ")
-            || trimmed.starts_with("case ")
-        {
+        if is_control_structure_start(trimmed) {
             current_nesting += 1;
             if current_nesting > max_nesting {
                 max_nesting = current_nesting;
             }
         }
 
-        if trimmed == "fi" || trimmed == "done" || trimmed == "esac" {
+        if is_control_structure_end(trimmed) {
             current_nesting = current_nesting.saturating_sub(1);
         }
     }
 
     // Score based on complexity metrics
-    let nesting_score = match max_nesting {
-        0..=1 => 10.0,
-        2 => 9.0,
-        3 => 7.0,
-        4 => 5.0,
-        _ => 3.0,
-    };
-
-    let length_score = match max_function_length {
-        0..=10 => 10.0,
-        11..=20 => 9.0,
-        21..=30 => 7.0,
-        31..=50 => 5.0,
-        _ => 3.0,
-    };
+    let nesting_score = calculate_nesting_score(max_nesting);
+    let length_score = calculate_length_score(max_function_length);
 
     (nesting_score + length_score) / 2.0
 }
