@@ -269,6 +269,44 @@ fn mark_covered_functions_lines(
     }
 }
 
+/// Check if line should be skipped (empty or comment)
+fn should_skip_line(trimmed: &str) -> bool {
+    trimmed.is_empty() || trimmed.starts_with('#')
+}
+
+/// Check if line indicates function start
+fn is_function_start_line(trimmed: &str) -> bool {
+    trimmed.contains("() {") || trimmed.starts_with("function ")
+}
+
+/// Check if we should exit function scope
+fn should_exit_function(trimmed: &str, in_function: bool) -> bool {
+    in_function && trimmed == "}"
+}
+
+/// Check if a word is a function call (exact match or with parentheses)
+fn is_function_call(word: &str, func_name: &str) -> bool {
+    word == func_name || word.starts_with(&format!("{}(", func_name))
+}
+
+/// Mark function calls found on this line as covered
+fn mark_function_calls_on_line(trimmed: &str, report: &mut CoverageReport) {
+    // Check if any of our functions are called on this line
+    for func_name in &report.all_functions {
+        // Simple check: if the function name appears as a word on this line
+        if trimmed.contains(func_name) {
+            // More precise check: ensure it's not inside a comment or string
+            let words: Vec<&str> = trimmed.split_whitespace().collect();
+            for word in words {
+                if is_function_call(word, func_name) {
+                    report.covered_functions.insert(func_name.clone());
+                    break;
+                }
+            }
+        }
+    }
+}
+
 /// Mark functions that are called at the top level (outside function definitions) as covered
 fn mark_top_level_called_functions(source: &str, report: &mut CoverageReport) {
     let mut in_function = false;
@@ -277,37 +315,289 @@ fn mark_top_level_called_functions(source: &str, report: &mut CoverageReport) {
         let trimmed = line.trim();
 
         // Skip comments and empty lines
-        if trimmed.is_empty() || trimmed.starts_with('#') {
+        if should_skip_line(trimmed) {
             continue;
         }
 
         // Detect function start
-        if trimmed.contains("() {") || trimmed.starts_with("function ") {
+        if is_function_start_line(trimmed) {
             in_function = true;
         }
 
         // Detect function end
-        if in_function && trimmed == "}" {
+        if should_exit_function(trimmed, in_function) {
             in_function = false;
             continue;
         }
 
         // If we're at top level (not in a function), check for function calls
         if !in_function {
-            // Check if any of our functions are called on this line
-            for func_name in &report.all_functions {
-                // Simple check: if the function name appears as a word on this line
-                if trimmed.contains(func_name) {
-                    // More precise check: ensure it's not inside a comment or string
-                    let words: Vec<&str> = trimmed.split_whitespace().collect();
-                    for word in words {
-                        if word == func_name || word.starts_with(&format!("{}(", func_name)) {
-                            report.covered_functions.insert(func_name.clone());
-                            break;
-                        }
-                    }
-                }
-            }
+            mark_function_calls_on_line(trimmed, report);
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    // ===== RED PHASE: Unit Tests for mark_top_level_called_functions =====
+    // NASA-level quality: Comprehensive coverage, edge cases, isolation
+
+    #[test]
+    fn test_mark_top_level_called_functions_empty_source() {
+        let mut report = CoverageReport::new();
+        report.all_functions.push("greet".to_string());
+
+        mark_top_level_called_functions("", &mut report);
+
+        assert!(
+            report.covered_functions.is_empty(),
+            "Empty source should not mark any functions as covered"
+        );
+    }
+
+    #[test]
+    fn test_mark_top_level_called_functions_no_calls() {
+        let source = r#"
+#!/bin/bash
+# Script with no function calls
+echo "Hello World"
+"#;
+        let mut report = CoverageReport::new();
+        report.all_functions.push("greet".to_string());
+
+        mark_top_level_called_functions(source, &mut report);
+
+        assert!(
+            report.covered_functions.is_empty(),
+            "No function calls should result in empty coverage"
+        );
+    }
+
+    #[test]
+    fn test_mark_top_level_called_functions_simple_call() {
+        let source = r#"
+#!/bin/bash
+greet() {
+    echo "Hello"
+}
+
+greet
+"#;
+        let mut report = CoverageReport::new();
+        report.all_functions.push("greet".to_string());
+
+        mark_top_level_called_functions(source, &mut report);
+
+        assert!(
+            report.covered_functions.contains("greet"),
+            "Top-level function call should be marked as covered"
+        );
+    }
+
+    #[test]
+    fn test_mark_top_level_called_functions_call_with_parens() {
+        let source = r#"
+#!/bin/bash
+deploy() {
+    echo "Deploying"
+}
+
+deploy()
+"#;
+        let mut report = CoverageReport::new();
+        report.all_functions.push("deploy".to_string());
+
+        mark_top_level_called_functions(source, &mut report);
+
+        assert!(
+            report.covered_functions.contains("deploy"),
+            "Function call with parentheses should be marked as covered"
+        );
+    }
+
+    #[test]
+    fn test_mark_top_level_called_functions_inside_function_not_covered() {
+        let source = r#"
+#!/bin/bash
+greet() {
+    echo "Hello"
+}
+
+main() {
+    greet
+}
+"#;
+        let mut report = CoverageReport::new();
+        report.all_functions.push("greet".to_string());
+        report.all_functions.push("main".to_string());
+
+        mark_top_level_called_functions(source, &mut report);
+
+        assert!(
+            !report.covered_functions.contains("greet"),
+            "Function called INSIDE another function should NOT be marked as top-level covered"
+        );
+    }
+
+    #[test]
+    fn test_mark_top_level_called_functions_multiple_calls() {
+        let source = r#"
+#!/bin/bash
+greet() {
+    echo "Hello"
+}
+
+deploy() {
+    echo "Deploy"
+}
+
+greet
+deploy
+"#;
+        let mut report = CoverageReport::new();
+        report.all_functions.push("greet".to_string());
+        report.all_functions.push("deploy".to_string());
+
+        mark_top_level_called_functions(source, &mut report);
+
+        assert_eq!(
+            report.covered_functions.len(),
+            2,
+            "Both top-level function calls should be marked as covered"
+        );
+        assert!(report.covered_functions.contains("greet"));
+        assert!(report.covered_functions.contains("deploy"));
+    }
+
+    #[test]
+    fn test_mark_top_level_called_functions_skip_comments() {
+        let source = r#"
+#!/bin/bash
+greet() {
+    echo "Hello"
+}
+
+# greet - this is a comment, not a call
+"#;
+        let mut report = CoverageReport::new();
+        report.all_functions.push("greet".to_string());
+
+        mark_top_level_called_functions(source, &mut report);
+
+        assert!(
+            report.covered_functions.is_empty(),
+            "Function name in comment should NOT be marked as covered"
+        );
+    }
+
+    #[test]
+    fn test_mark_top_level_called_functions_skip_empty_lines() {
+        let source = r#"
+#!/bin/bash
+greet() {
+    echo "Hello"
+}
+
+
+"#;
+        let mut report = CoverageReport::new();
+        report.all_functions.push("greet".to_string());
+
+        mark_top_level_called_functions(source, &mut report);
+
+        assert!(
+            report.covered_functions.is_empty(),
+            "Empty lines should not affect coverage"
+        );
+    }
+
+    #[test]
+    fn test_mark_top_level_called_functions_function_keyword_style() {
+        let source = r#"
+#!/bin/bash
+function greet {
+    echo "Hello"
+}
+
+greet
+"#;
+        let mut report = CoverageReport::new();
+        report.all_functions.push("greet".to_string());
+
+        mark_top_level_called_functions(source, &mut report);
+
+        assert!(
+            report.covered_functions.contains("greet"),
+            "Function defined with 'function' keyword should work"
+        );
+    }
+
+    #[test]
+    fn test_mark_top_level_called_functions_partial_match_rejected() {
+        let source = r#"
+#!/bin/bash
+greet() {
+    echo "Hello"
+}
+
+# "greet_user" should NOT match "greet"
+greet_user
+"#;
+        let mut report = CoverageReport::new();
+        report.all_functions.push("greet".to_string());
+
+        mark_top_level_called_functions(source, &mut report);
+
+        assert!(
+            report.covered_functions.is_empty(),
+            "Partial function name match should NOT mark function as covered"
+        );
+    }
+
+    #[test]
+    fn test_mark_top_level_called_functions_exact_word_match() {
+        let source = r#"
+#!/bin/bash
+test() {
+    echo "Test"
+}
+
+# Word boundary test: "test" as standalone word
+echo before test after
+"#;
+        let mut report = CoverageReport::new();
+        report.all_functions.push("test".to_string());
+
+        mark_top_level_called_functions(source, &mut report);
+
+        assert!(
+            report.covered_functions.contains("test"),
+            "Exact word match should mark function as covered"
+        );
+    }
+
+    #[test]
+    fn test_mark_top_level_called_functions_nested_braces() {
+        let source = r#"
+#!/bin/bash
+outer() {
+    inner() {
+        echo "Inner"
+    }
+}
+
+deploy
+"#;
+        let mut report = CoverageReport::new();
+        report.all_functions.push("deploy".to_string());
+
+        mark_top_level_called_functions(source, &mut report);
+
+        assert!(
+            report.covered_functions.contains("deploy"),
+            "Top-level call after nested function definitions should be detected"
+        );
     }
 }
