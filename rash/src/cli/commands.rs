@@ -1215,6 +1215,133 @@ fn config_lint_command(input: &Path, format: ConfigOutputFormat) -> Result<()> {
     Ok(())
 }
 
+/// Check if output should go to stdout
+fn should_output_to_stdout(output_path: &Path) -> bool {
+    output_path.to_str() == Some("-")
+}
+
+/// Count duplicate PATH entries in analysis
+fn count_duplicate_path_entries(analysis: &crate::config::ConfigAnalysis) -> usize {
+    analysis
+        .path_entries
+        .iter()
+        .filter(|e| e.is_duplicate)
+        .count()
+}
+
+/// Generate diff lines between original and purified content
+fn generate_diff_lines(original: &str, purified: &str) -> Vec<(usize, String, String)> {
+    let original_lines: Vec<&str> = original.lines().collect();
+    let purified_lines: Vec<&str> = purified.lines().collect();
+
+    original_lines
+        .iter()
+        .zip(purified_lines.iter())
+        .enumerate()
+        .filter_map(|(i, (orig, pure))| {
+            if orig != pure {
+                Some((i + 1, orig.to_string(), pure.to_string()))
+            } else {
+                None
+            }
+        })
+        .collect()
+}
+
+/// Handle output to specific file or stdout
+fn handle_output_to_file(output_path: &Path, purified: &str) -> Result<()> {
+    if should_output_to_stdout(output_path) {
+        // Output to stdout
+        println!("{}", purified);
+    } else {
+        fs::write(output_path, purified).map_err(Error::Io)?;
+        info!("Purified config written to {}", output_path.display());
+    }
+    Ok(())
+}
+
+/// Handle in-place fixing with backup
+fn handle_inplace_fix(
+    input: &Path,
+    purified: &str,
+    analysis: &crate::config::ConfigAnalysis,
+    no_backup: bool,
+) -> Result<()> {
+    use chrono::Local;
+
+    // Create backup unless --no-backup
+    if !no_backup {
+        let timestamp = Local::now().format("%Y-%m-%d_%H-%M-%S");
+        let backup_path = input.with_extension(format!("bak.{}", timestamp));
+        fs::copy(input, &backup_path).map_err(Error::Io)?;
+        info!("Backup: {}", backup_path.display());
+    }
+
+    // Write purified content
+    fs::write(input, purified).map_err(Error::Io)?;
+
+    let fixed_count = analysis.issues.len();
+    println!("Applying {} fixes...", fixed_count);
+    println!(
+        "  ✓ Deduplicated {} PATH entries",
+        count_duplicate_path_entries(analysis)
+    );
+    println!("✓ Done! {} has been purified.", input.display());
+
+    if !no_backup {
+        let timestamp = Local::now().format("%Y-%m-%d_%H-%M-%S");
+        let backup_path = input.with_extension(format!("bak.{}", timestamp));
+        println!(
+            "\nTo rollback: cp {} {}",
+            backup_path.display(),
+            input.display()
+        );
+    }
+
+    Ok(())
+}
+
+/// Handle dry-run mode (preview changes)
+fn handle_dry_run(
+    input: &Path,
+    source: &str,
+    purified: &str,
+    analysis: &crate::config::ConfigAnalysis,
+) {
+    println!("Preview of changes to {}:", input.display());
+    println!(
+        "================================{}=",
+        "=".repeat(input.display().to_string().len())
+    );
+    println!();
+
+    if analysis.issues.is_empty() {
+        println!("✓ No issues found - file is already clean!");
+    } else {
+        println!("Would fix {} issue(s):", analysis.issues.len());
+        for issue in &analysis.issues {
+            println!("  - {}: {}", issue.rule_id, issue.message);
+        }
+        println!();
+        println!("--- {} (original)", input.display());
+        println!("+++ {} (purified)", input.display());
+        println!();
+
+        // Simple diff output
+        let diff_lines = generate_diff_lines(source, purified);
+        for (line_num, orig, pure) in diff_lines {
+            println!("-{}: {}", line_num, orig);
+            println!("+{}: {}", line_num, pure);
+        }
+
+        println!();
+        println!(
+            "Apply fixes: bashrs config purify {} --fix",
+            input.display()
+        );
+    }
+}
+
 fn config_purify_command(
     input: &Path,
     output: Option<&Path>,
@@ -1223,7 +1350,6 @@ fn config_purify_command(
     dry_run: bool,
 ) -> Result<()> {
     use crate::config::{analyzer, purifier};
-    use chrono::Local;
 
     // Read input file
     let source = fs::read_to_string(input).map_err(Error::Io)?;
@@ -1236,90 +1362,131 @@ fn config_purify_command(
 
     // Determine mode
     if let Some(output_path) = output {
-        // Output to specific file
-        if output_path.to_str() == Some("-") {
-            // Output to stdout
-            println!("{}", purified);
-        } else {
-            fs::write(output_path, &purified).map_err(Error::Io)?;
-            info!("Purified config written to {}", output_path.display());
-        }
+        handle_output_to_file(output_path, &purified)?;
     } else if fix && !dry_run {
-        // Apply fixes in-place
-
-        // Create backup unless --no-backup
-        if !no_backup {
-            let timestamp = Local::now().format("%Y-%m-%d_%H-%M-%S");
-            let backup_path = input.with_extension(format!("bak.{}", timestamp));
-            fs::copy(input, &backup_path).map_err(Error::Io)?;
-            info!("Backup: {}", backup_path.display());
-        }
-
-        // Write purified content
-        fs::write(input, &purified).map_err(Error::Io)?;
-
-        let fixed_count = analysis.issues.len();
-        println!("Applying {} fixes...", fixed_count);
-        println!(
-            "  ✓ Deduplicated {} PATH entries",
-            analysis
-                .path_entries
-                .iter()
-                .filter(|e| e.is_duplicate)
-                .count()
-        );
-        println!("✓ Done! {} has been purified.", input.display());
-
-        if !no_backup {
-            let timestamp = Local::now().format("%Y-%m-%d_%H-%M-%S");
-            let backup_path = input.with_extension(format!("bak.{}", timestamp));
-            println!(
-                "\nTo rollback: cp {} {}",
-                backup_path.display(),
-                input.display()
-            );
-        }
+        handle_inplace_fix(input, &purified, &analysis, no_backup)?;
     } else {
-        // Dry-run mode (default)
-        println!("Preview of changes to {}:", input.display());
-        println!(
-            "================================{}=",
-            "=".repeat(input.display().to_string().len())
-        );
-        println!();
-
-        if analysis.issues.is_empty() {
-            println!("✓ No issues found - file is already clean!");
-        } else {
-            println!("Would fix {} issue(s):", analysis.issues.len());
-            for issue in &analysis.issues {
-                println!("  - {}: {}", issue.rule_id, issue.message);
-            }
-            println!();
-            println!("--- {} (original)", input.display());
-            println!("+++ {} (purified)", input.display());
-            println!();
-
-            // Simple diff output
-            let original_lines: Vec<&str> = source.lines().collect();
-            let purified_lines: Vec<&str> = purified.lines().collect();
-
-            for (i, (orig, pure)) in original_lines.iter().zip(purified_lines.iter()).enumerate() {
-                if orig != pure {
-                    println!("-{}: {}", i + 1, orig);
-                    println!("+{}: {}", i + 1, pure);
-                }
-            }
-
-            println!();
-            println!(
-                "Apply fixes: bashrs config purify {} --fix",
-                input.display()
-            );
-        }
+        handle_dry_run(input, &source, &purified, &analysis);
     }
 
     Ok(())
+}
+
+#[cfg(test)]
+mod config_purify_tests {
+    use super::*;
+
+    // ===== NASA-QUALITY UNIT TESTS for config_purify_command helpers =====
+
+    #[test]
+    fn test_should_output_to_stdout_dash() {
+        let stdout_path = Path::new("-");
+        assert!(
+            should_output_to_stdout(stdout_path),
+            "Path '-' should output to stdout"
+        );
+    }
+
+    #[test]
+    fn test_should_output_to_stdout_regular_file() {
+        let file_path = Path::new("/tmp/output.txt");
+        assert!(
+            !should_output_to_stdout(file_path),
+            "Regular file path should NOT output to stdout"
+        );
+    }
+
+    #[test]
+    fn test_should_output_to_stdout_empty_path() {
+        let empty_path = Path::new("");
+        assert!(
+            !should_output_to_stdout(empty_path),
+            "Empty path should NOT output to stdout"
+        );
+    }
+
+    #[test]
+    fn test_generate_diff_lines_no_changes() {
+        let original = "line1\nline2\nline3";
+        let purified = "line1\nline2\nline3";
+
+        let diffs = generate_diff_lines(original, purified);
+
+        assert!(
+            diffs.is_empty(),
+            "Identical content should produce no diff lines"
+        );
+    }
+
+    #[test]
+    fn test_generate_diff_lines_single_change() {
+        let original = "line1\nline2\nline3";
+        let purified = "line1\nMODIFIED\nline3";
+
+        let diffs = generate_diff_lines(original, purified);
+
+        assert_eq!(diffs.len(), 1, "Should have exactly 1 diff");
+        let (line_num, orig, pure) = &diffs[0];
+        assert_eq!(*line_num, 2, "Diff should be on line 2");
+        assert_eq!(orig, "line2", "Original line should be 'line2'");
+        assert_eq!(pure, "MODIFIED", "Purified line should be 'MODIFIED'");
+    }
+
+    #[test]
+    fn test_generate_diff_lines_multiple_changes() {
+        let original = "line1\nline2\nline3\nline4";
+        let purified = "CHANGED1\nline2\nCHANGED3\nline4";
+
+        let diffs = generate_diff_lines(original, purified);
+
+        assert_eq!(diffs.len(), 2, "Should have exactly 2 diffs");
+
+        let (line_num1, orig1, pure1) = &diffs[0];
+        assert_eq!(*line_num1, 1, "First diff on line 1");
+        assert_eq!(orig1, "line1");
+        assert_eq!(pure1, "CHANGED1");
+
+        let (line_num2, orig2, pure2) = &diffs[1];
+        assert_eq!(*line_num2, 3, "Second diff on line 3");
+        assert_eq!(orig2, "line3");
+        assert_eq!(pure2, "CHANGED3");
+    }
+
+    #[test]
+    fn test_generate_diff_lines_empty_strings() {
+        let original = "";
+        let purified = "";
+
+        let diffs = generate_diff_lines(original, purified);
+
+        assert!(diffs.is_empty(), "Empty strings should produce no diffs");
+    }
+
+    #[test]
+    fn test_generate_diff_lines_all_lines_changed() {
+        let original = "A\nB\nC";
+        let purified = "X\nY\nZ";
+
+        let diffs = generate_diff_lines(original, purified);
+
+        assert_eq!(diffs.len(), 3, "All 3 lines should be different");
+        assert_eq!(diffs[0].0, 1);
+        assert_eq!(diffs[1].0, 2);
+        assert_eq!(diffs[2].0, 3);
+    }
+
+    #[test]
+    fn test_generate_diff_lines_preserves_whitespace() {
+        let original = "  line1  \nline2";
+        let purified = "line1\nline2";
+
+        let diffs = generate_diff_lines(original, purified);
+
+        assert_eq!(diffs.len(), 1, "Should detect whitespace change");
+        let (_, orig, pure) = &diffs[0];
+        assert_eq!(orig, "  line1  ", "Should preserve original whitespace");
+        assert_eq!(pure, "line1", "Should preserve purified whitespace");
+    }
 }
 
 fn handle_repl_command(
