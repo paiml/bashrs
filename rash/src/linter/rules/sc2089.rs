@@ -22,7 +22,8 @@ use regex::Regex;
 static ASSIGNMENT_WITH_QUOTES: Lazy<Regex> = Lazy::new(|| {
     // Match: var="something 'quoted' or \"quoted\""
     // Also match: export var="..." or local var="..." or readonly var="..."
-    Regex::new(r#"^(?:(?:export|local|readonly)\s+)?[a-zA-Z_][a-zA-Z0-9_]*=["'].*["'].*["']"#).unwrap()
+    Regex::new(r#"^(?:(?:export|local|readonly)\s+)?[a-zA-Z_][a-zA-Z0-9_]*=["'].*["'].*["']"#)
+        .unwrap()
 });
 
 pub fn check(source: &str) -> LintResult {

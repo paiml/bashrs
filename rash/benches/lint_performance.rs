@@ -9,7 +9,7 @@
 // Run with: cargo bench --bench lint_performance
 
 use bashrs::linter::lint_shell;
-use criterion::{black_box, criterion_group, criterion_main, Criterion, BenchmarkId};
+use criterion::{black_box, criterion_group, criterion_main, BenchmarkId, Criterion};
 
 /// Generate a bash script with the specified number of lines
 fn generate_bash_script(lines: usize) -> String {
@@ -60,13 +60,9 @@ fn bench_lint_scaling(c: &mut Criterion) {
     for size in [100, 500, 1000, 5000, 10000].iter() {
         let script = generate_bash_script(*size);
 
-        group.bench_with_input(
-            BenchmarkId::from_parameter(size),
-            size,
-            |b, _| {
-                b.iter(|| lint_shell(black_box(&script)))
-            },
-        );
+        group.bench_with_input(BenchmarkId::from_parameter(size), size, |b, _| {
+            b.iter(|| lint_shell(black_box(&script)))
+        });
     }
 
     group.finish();

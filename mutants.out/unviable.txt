@@ -1,3 +1,5 @@
-rash/src/repl/breakpoint.rs:42:9: replace Breakpoint::with_condition -> Self with Default::default()
-rash/src/repl/breakpoint.rs:55:9: replace Breakpoint::with_hit_count -> Self with Default::default()
-rash/src/repl/breakpoint.rs:68:9: replace Breakpoint::with_hit_count_and_condition -> Self with Default::default()
+rash/src/repl/highlighting.rs:230:5: replace tokenize_whitespace -> Token with Default::default()
+rash/src/repl/highlighting.rs:129:5: replace tokenize_string -> Token with Default::default()
+rash/src/repl/highlighting.rs:208:5: replace tokenize_operator -> Token with Default::default()
+rash/src/repl/highlighting.rs:112:5: replace tokenize_comment -> Token with Default::default()
+rash/src/repl/highlighting.rs:272:5: replace tokenize -> Vec<Token> with vec![Default::default()]

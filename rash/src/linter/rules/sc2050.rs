@@ -53,8 +53,14 @@ pub fn check(source: &str) -> LintResult {
             // We're looking for cases where left looks like a variable name
             // Pattern allows [a-z_][a-z0-9_]*, so allow alphanumeric names
             if left.len() > 1
-                && left.chars().next().is_some_and(|c| c.is_lowercase() || c == '_')
-                && left.chars().all(|c| c.is_lowercase() || c.is_ascii_digit() || c == '_') {
+                && left
+                    .chars()
+                    .next()
+                    .is_some_and(|c| c.is_lowercase() || c == '_')
+                && left
+                    .chars()
+                    .all(|c| c.is_lowercase() || c.is_ascii_digit() || c == '_')
+            {
                 let start_col = full_match.start() + 1;
                 let end_col = full_match.end() + 1;
 

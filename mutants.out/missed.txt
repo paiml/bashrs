@@ -1,0 +1,19 @@
+rash/src/repl/highlighting.rs:167:88: replace || with && in tokenize_variable
+rash/src/repl/highlighting.rs:250:71: replace || with && in tokenize_word
+rash/src/repl/highlighting.rs:167:75: replace || with && in tokenize_variable
+rash/src/repl/highlighting.rs:289:74: replace || with && in tokenize
+rash/src/repl/highlighting.rs:144:54: replace + with * in tokenize_string
+rash/src/repl/highlighting.rs:121:55: replace + with * in tokenize_comment
+rash/src/repl/highlighting.rs:184:16: replace == with != in is_double_operator
+rash/src/repl/highlighting.rs:289:62: replace || with && in tokenize
+rash/src/repl/highlighting.rs:289:18: replace match guard c.is_alphanumeric() || c == '_' || c == '-' || c == '/' || c == '.' with true in tokenize
+rash/src/repl/highlighting.rs:177:56: replace + with * in tokenize_variable
+rash/src/repl/highlighting.rs:289:67: replace == with != in tokenize
+rash/src/repl/highlighting.rs:185:16: replace == with != in is_double_operator
+rash/src/repl/highlighting.rs:185:9: replace || with && in is_double_operator
+rash/src/repl/highlighting.rs:214:22: replace == with != in tokenize_operator
+rash/src/repl/highlighting.rs:291:43: replace && with || in tokenize
+rash/src/repl/highlighting.rs:289:55: replace == with != in tokenize
+rash/src/repl/highlighting.rs:185:23: replace && with || in is_double_operator
+rash/src/repl/highlighting.rs:183:23: replace && with || in is_double_operator
+rash/src/repl/highlighting.rs:289:43: replace == with != in tokenize

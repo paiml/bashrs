@@ -151,7 +151,9 @@ pub fn discover_tests(source: &str) -> Result<Vec<BashTest>, String> {
 
 /// Parse a single test function starting at the given line
 fn parse_test_function(lines: &[&str], start_line: usize) -> Result<Option<BashTest>, String> {
-    let line = lines.get(start_line).ok_or_else(|| "Invalid line index".to_string())?;
+    let line = lines
+        .get(start_line)
+        .ok_or_else(|| "Invalid line index".to_string())?;
 
     // Extract function name
     let name = extract_function_name(line)?;

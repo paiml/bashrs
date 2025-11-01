@@ -5,3 +5,4 @@
 # It is recommended to check this file in to source control so that
 # everyone who runs the test benefits from these saved cases.
 cc e1fe9c2e568456df55e66198449db70e6137e9dbe9af490007217ca905350a82 # shrinks to source = "", line = 1, col = 1
+cc 1a7be0c3a56b04e7f8d97e487c563ed024df0618f2c92da6ad2774f706f7b281 # shrinks to input = "$ࠀ𐀀𐀀𐀀𐀀𐀀𐀀𐀀𐀀𐀀𐀀𐀀𐀀𐀀ࠀ𐀀¡𐀀𐀀𐀀𐀀𐀀¡𐀀𐀀𐀀¡¡|"
