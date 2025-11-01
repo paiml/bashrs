@@ -972,3 +972,137 @@ fn test_execute_command_init() {
         assert!(temp_dir.path().join("Cargo.toml").exists());
     }
 }
+
+// ===== NASA-QUALITY UNIT TESTS for config_purify_command helpers =====
+// Following the pattern established in bash_quality::coverage::tests
+
+#[test]
+fn test_should_output_to_stdout_dash() {
+    use super::should_output_to_stdout;
+    use std::path::Path;
+
+    let stdout_path = Path::new("-");
+    assert!(
+        should_output_to_stdout(stdout_path),
+        "Path '-' should output to stdout"
+    );
+}
+
+#[test]
+fn test_should_output_to_stdout_regular_file() {
+    use super::should_output_to_stdout;
+    use std::path::Path;
+
+    let file_path = Path::new("/tmp/output.txt");
+    assert!(
+        !should_output_to_stdout(file_path),
+        "Regular file path should NOT output to stdout"
+    );
+}
+
+#[test]
+fn test_should_output_to_stdout_empty_path() {
+    use super::should_output_to_stdout;
+    use std::path::Path;
+
+    let empty_path = Path::new("");
+    assert!(
+        !should_output_to_stdout(empty_path),
+        "Empty path should NOT output to stdout"
+    );
+}
+
+#[test]
+fn test_generate_diff_lines_no_changes() {
+    use super::generate_diff_lines;
+
+    let original = "line1\nline2\nline3";
+    let purified = "line1\nline2\nline3";
+
+    let diffs = generate_diff_lines(original, purified);
+
+    assert!(
+        diffs.is_empty(),
+        "Identical content should produce no diff lines"
+    );
+}
+
+#[test]
+fn test_generate_diff_lines_single_change() {
+    use super::generate_diff_lines;
+
+    let original = "line1\nline2\nline3";
+    let purified = "line1\nMODIFIED\nline3";
+
+    let diffs = generate_diff_lines(original, purified);
+
+    assert_eq!(diffs.len(), 1, "Should have exactly 1 diff");
+    let (line_num, orig, pure) = &diffs[0];
+    assert_eq!(*line_num, 2, "Diff should be on line 2");
+    assert_eq!(orig, "line2", "Original line should be 'line2'");
+    assert_eq!(pure, "MODIFIED", "Purified line should be 'MODIFIED'");
+}
+
+#[test]
+fn test_generate_diff_lines_multiple_changes() {
+    use super::generate_diff_lines;
+
+    let original = "line1\nline2\nline3\nline4";
+    let purified = "CHANGED1\nline2\nCHANGED3\nline4";
+
+    let diffs = generate_diff_lines(original, purified);
+
+    assert_eq!(diffs.len(), 2, "Should have exactly 2 diffs");
+
+    let (line_num1, orig1, pure1) = &diffs[0];
+    assert_eq!(*line_num1, 1, "First diff on line 1");
+    assert_eq!(orig1, "line1");
+    assert_eq!(pure1, "CHANGED1");
+
+    let (line_num2, orig2, pure2) = &diffs[1];
+    assert_eq!(*line_num2, 3, "Second diff on line 3");
+    assert_eq!(orig2, "line3");
+    assert_eq!(pure2, "CHANGED3");
+}
+
+#[test]
+fn test_generate_diff_lines_empty_strings() {
+    use super::generate_diff_lines;
+
+    let original = "";
+    let purified = "";
+
+    let diffs = generate_diff_lines(original, purified);
+
+    assert!(diffs.is_empty(), "Empty strings should produce no diffs");
+}
+
+#[test]
+fn test_generate_diff_lines_all_lines_changed() {
+    use super::generate_diff_lines;
+
+    let original = "A\nB\nC";
+    let purified = "X\nY\nZ";
+
+    let diffs = generate_diff_lines(original, purified);
+
+    assert_eq!(diffs.len(), 3, "All 3 lines should be different");
+    assert_eq!(diffs[0].0, 1);
+    assert_eq!(diffs[1].0, 2);
+    assert_eq!(diffs[2].0, 3);
+}
+
+#[test]
+fn test_generate_diff_lines_preserves_whitespace() {
+    use super::generate_diff_lines;
+
+    let original = "  line1  \nline2";
+    let purified = "line1\nline2";
+
+    let diffs = generate_diff_lines(original, purified);
+
+    assert_eq!(diffs.len(), 1, "Should detect whitespace change");
+    let (_, orig, pure) = &diffs[0];
+    assert_eq!(orig, "  line1  ", "Should preserve original whitespace");
+    assert_eq!(pure, "line1", "Should preserve purified whitespace");
+}
