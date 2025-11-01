@@ -66,8 +66,8 @@ impl DeterminismChecker {
                     line: line_num,
                     pattern_type: NonDeterministicPattern::Random,
                     code: line.to_string(),
-                    explanation:
-                        "Uses $RANDOM which produces different values on each run".to_string(),
+                    explanation: "Uses $RANDOM which produces different values on each run"
+                        .to_string(),
                 });
             }
 
@@ -77,8 +77,7 @@ impl DeterminismChecker {
                     line: line_num,
                     pattern_type: NonDeterministicPattern::ProcessId,
                     code: line.to_string(),
-                    explanation: "Uses $$ (process ID) which changes on each execution"
-                        .to_string(),
+                    explanation: "Uses $$ (process ID) which changes on each execution".to_string(),
                 });
             }
 
@@ -236,7 +235,10 @@ mod tests {
         // ASSERT: Should detect $SRANDOM
         assert_eq!(issues.len(), 1, "Should find 1 issue");
         assert_eq!(issues[0].line, 1);
-        assert_eq!(issues[0].pattern_type, NonDeterministicPattern::SecureRandom);
+        assert_eq!(
+            issues[0].pattern_type,
+            NonDeterministicPattern::SecureRandom
+        );
         assert!(issues[0].explanation.contains("SRANDOM"));
     }
 
@@ -272,10 +274,7 @@ TIMESTAMP=$(date +%s)
 
         // ASSERT: Should detect all 3 patterns
         assert_eq!(issues.len(), 3, "Should find 3 issues");
-        assert_eq!(
-            checker.count_by_pattern(NonDeterministicPattern::Random),
-            1
-        );
+        assert_eq!(checker.count_by_pattern(NonDeterministicPattern::Random), 1);
         assert_eq!(
             checker.count_by_pattern(NonDeterministicPattern::ProcessId),
             1
@@ -655,10 +654,7 @@ echo "Random: $RANDOM"
             "Script with $RANDOM should be non-deterministic"
         );
         assert_eq!(result.runs.len(), 2);
-        assert!(
-            !result.differences.is_empty(),
-            "Should have differences"
-        );
+        assert!(!result.differences.is_empty(), "Should have differences");
 
         // Runs should have different output
         assert_ne!(result.runs[0].stdout, result.runs[1].stdout);
@@ -1167,7 +1163,10 @@ mod idempotency_tests {
 
         // ASSERT: Should detect mkdir without -p
         assert_eq!(issues.len(), 1, "Should detect 1 issue");
-        assert_eq!(issues[0].operation_type, NonIdempotentOperation::MkdirWithoutP);
+        assert_eq!(
+            issues[0].operation_type,
+            NonIdempotentOperation::MkdirWithoutP
+        );
         assert_eq!(issues[0].line, 1);
         assert!(issues[0].explanation.contains("mkdir"));
         assert!(issues[0].suggestion.contains("-p"));
@@ -1261,9 +1260,18 @@ mkdir -p /tmp/dir2
 
         // ASSERT: Should detect 3 issues (line 5 is idempotent)
         assert_eq!(issues.len(), 3);
-        assert_eq!(checker.count_by_operation(NonIdempotentOperation::MkdirWithoutP), 1);
-        assert_eq!(checker.count_by_operation(NonIdempotentOperation::RmWithoutF), 1);
-        assert_eq!(checker.count_by_operation(NonIdempotentOperation::LnWithoutF), 1);
+        assert_eq!(
+            checker.count_by_operation(NonIdempotentOperation::MkdirWithoutP),
+            1
+        );
+        assert_eq!(
+            checker.count_by_operation(NonIdempotentOperation::RmWithoutF),
+            1
+        );
+        assert_eq!(
+            checker.count_by_operation(NonIdempotentOperation::LnWithoutF),
+            1
+        );
     }
 
     #[test]
@@ -1595,7 +1603,9 @@ ln -s /tmp/baz /tmp/link
 
         // ASSERT: Should show status and breakdown
         assert!(formatted.contains("non-idempotent") || formatted.contains("issue"));
-        assert!(formatted.contains("mkdir") || formatted.contains("rm") || formatted.contains("ln"));
+        assert!(
+            formatted.contains("mkdir") || formatted.contains("rm") || formatted.contains("ln")
+        );
     }
 
     #[test]
@@ -1620,15 +1630,13 @@ ln -sf /tmp/baz /tmp/link
     #[test]
     fn test_REPL_012_002_format_preserves_line_numbers() {
         // ARRANGE: Issues with specific line numbers
-        let issues = vec![
-            IdempotencyIssue {
-                line: 42,
-                operation_type: NonIdempotentOperation::MkdirWithoutP,
-                code: "mkdir test".to_string(),
-                explanation: "explanation".to_string(),
-                suggestion: "suggestion".to_string(),
-            },
-        ];
+        let issues = vec![IdempotencyIssue {
+            line: 42,
+            operation_type: NonIdempotentOperation::MkdirWithoutP,
+            code: "mkdir test".to_string(),
+            explanation: "explanation".to_string(),
+            suggestion: "suggestion".to_string(),
+        }];
 
         // ACT: Format report
         let formatted = format_idempotency_report(&issues);
@@ -1960,7 +1968,11 @@ mod idempotency_verification_tests {
         let formatted = result.format_result();
 
         // ASSERT: Should show failure
-        assert!(formatted.contains("❌") || formatted.contains("fail") || formatted.contains("non-idempotent"));
+        assert!(
+            formatted.contains("❌")
+                || formatted.contains("fail")
+                || formatted.contains("non-idempotent")
+        );
     }
 }
 

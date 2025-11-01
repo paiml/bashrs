@@ -14,9 +14,9 @@ use std::fs;
 use std::path::{Path, PathBuf};
 
 #[cfg(test)]
-use crate::bash_parser::{BashExpr};
-#[cfg(test)]
 use crate::bash_parser::ast::Span;
+#[cfg(test)]
+use crate::bash_parser::BashExpr;
 
 /// Information about a loaded script
 #[derive(Debug, Clone, PartialEq, Eq)]

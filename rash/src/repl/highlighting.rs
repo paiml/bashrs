@@ -22,14 +22,14 @@ pub mod colors {
 /// Token type for syntax highlighting
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum TokenType {
-    Keyword,   // if, then, while, for, do, done, case, esac, function
-    String,    // "..." or '...'
-    Variable,  // $var, ${var}, $?
-    Command,   // First word in pipeline
-    Comment,   // # comment
-    Operator,  // |, >, <, &&, ||, ;
+    Keyword,    // if, then, while, for, do, done, case, esac, function
+    String,     // "..." or '...'
+    Variable,   // $var, ${var}, $?
+    Command,    // First word in pipeline
+    Comment,    // # comment
+    Operator,   // |, >, <, &&, ||, ;
     Whitespace, // Spaces, tabs
-    Text,      // Everything else
+    Text,       // Everything else
 }
 
 /// Token with type and position
@@ -164,7 +164,8 @@ where
     } else {
         // Simple $var or $? $$ etc
         while let Some((_, c)) = chars.peek() {
-            if c.is_alphanumeric() || *c == '_' || *c == '?' || *c == '!' || *c == '@' || *c == '#' {
+            if c.is_alphanumeric() || *c == '_' || *c == '?' || *c == '!' || *c == '@' || *c == '#'
+            {
                 text.push(*c);
                 chars.next();
             } else {
@@ -241,7 +242,12 @@ where
 }
 
 /// Tokenize a word (command, keyword, or text)
-fn tokenize_word<I>(chars: &mut std::iter::Peekable<I>, ch: char, start: usize, is_first: bool) -> Token
+fn tokenize_word<I>(
+    chars: &mut std::iter::Peekable<I>,
+    ch: char,
+    start: usize,
+    is_first: bool,
+) -> Token
 where
     I: Iterator<Item = (usize, char)>,
 {
@@ -518,11 +524,7 @@ mod property_tests {
     /// Property: Highlighting preserves text
     #[test]
     fn prop_highlighting_preserves_text() {
-        let test_inputs = vec![
-            "echo hello",
-            "if then else fi",
-            "mkdir /tmp",
-        ];
+        let test_inputs = vec!["echo hello", "if then else fi", "mkdir /tmp"];
 
         for input in test_inputs {
             let highlighted = highlight_bash(input);
@@ -600,12 +602,7 @@ mod property_tests {
     /// Property: Tokenization is deterministic
     #[test]
     fn prop_tokenize_deterministic() {
-        let test_inputs = vec![
-            "echo hello",
-            "if then fi",
-            "# comment",
-            "echo $VAR",
-        ];
+        let test_inputs = vec!["echo hello", "if then fi", "# comment", "echo $VAR"];
 
         for input in test_inputs {
             let tokens1 = tokenize(input);
@@ -626,7 +623,16 @@ mod property_tests {
     fn prop_tokenize_comments() {
         let test_inputs = vec![
             ("# comment", vec![TokenType::Comment]),
-            ("echo test # comment", vec![TokenType::Command, TokenType::Whitespace, TokenType::Text, TokenType::Whitespace, TokenType::Comment]),
+            (
+                "echo test # comment",
+                vec![
+                    TokenType::Command,
+                    TokenType::Whitespace,
+                    TokenType::Text,
+                    TokenType::Whitespace,
+                    TokenType::Comment,
+                ],
+            ),
             ("# only comment", vec![TokenType::Comment]),
         ];
 
@@ -694,7 +700,11 @@ mod property_tests {
 
             for token in &tokens {
                 if token.token_type == TokenType::Variable {
-                    assert!(token.text.starts_with('$'), "Variable must start with $ in {:?}", token.text);
+                    assert!(
+                        token.text.starts_with('$'),
+                        "Variable must start with $ in {:?}",
+                        token.text
+                    );
                 }
             }
         }
@@ -715,7 +725,9 @@ mod property_tests {
 
         for (input, expected_operator_type) in test_inputs {
             let tokens = tokenize(input);
-            let has_operator = tokens.iter().any(|t| t.token_type == expected_operator_type);
+            let has_operator = tokens
+                .iter()
+                .any(|t| t.token_type == expected_operator_type);
             assert!(has_operator, "Expected operator in: {:?}", input);
         }
     }
@@ -723,7 +735,10 @@ mod property_tests {
     /// Property: Keywords are recognized correctly
     #[test]
     fn prop_tokenize_keywords() {
-        let keywords = vec!["if", "then", "else", "elif", "fi", "for", "while", "do", "done", "case", "esac", "function"];
+        let keywords = vec![
+            "if", "then", "else", "elif", "fi", "for", "while", "do", "done", "case", "esac",
+            "function",
+        ];
 
         for keyword in keywords {
             let tokens = tokenize(keyword);
@@ -744,7 +759,9 @@ mod property_tests {
 
         for (input, expected_type, expected_text) in test_inputs {
             let tokens = tokenize(input);
-            let first_word = tokens.iter().find(|t| !matches!(t.token_type, TokenType::Whitespace));
+            let first_word = tokens
+                .iter()
+                .find(|t| !matches!(t.token_type, TokenType::Whitespace));
 
             assert!(first_word.is_some());
             let first_word = first_word.unwrap();
@@ -762,8 +779,8 @@ mod proptest_generative {
     // Strategy for bash commands
     fn bash_command() -> impl Strategy<Value = String> {
         prop::sample::select(vec![
-            "echo", "ls", "cat", "grep", "sed", "awk", "mkdir", "rm", "cp", "mv",
-            "find", "chmod", "chown", "pwd", "cd", "pushd", "popd", "test",
+            "echo", "ls", "cat", "grep", "sed", "awk", "mkdir", "rm", "cp", "mv", "find", "chmod",
+            "chown", "pwd", "cd", "pushd", "popd", "test",
         ])
         .prop_map(|s| s.to_string())
     }
@@ -771,8 +788,8 @@ mod proptest_generative {
     // Strategy for bash keywords
     fn bash_keyword() -> impl Strategy<Value = String> {
         prop::sample::select(vec![
-            "if", "then", "else", "elif", "fi", "for", "while", "do", "done",
-            "case", "esac", "function",
+            "if", "then", "else", "elif", "fi", "for", "while", "do", "done", "case", "esac",
+            "function",
         ])
         .prop_map(|s| s.to_string())
     }
@@ -1006,4 +1023,3 @@ mod proptest_generative {
         }
     }
 }
-

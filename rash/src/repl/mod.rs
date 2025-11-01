@@ -40,8 +40,8 @@ pub use determinism::{
 };
 pub use diff::display_diff;
 pub use errors::{
-    format_command_error, format_error, format_lint_error, format_source_context,
-    suggest_command, ErrorMessage, ErrorType, Severity, SourceContext, Suggestion,
+    format_command_error, format_error, format_lint_error, format_source_context, suggest_command,
+    ErrorMessage, ErrorType, Severity, SourceContext, Suggestion,
 };
 pub use explain::{explain_bash, Explanation};
 pub use highlighting::{highlight_bash, is_keyword, strip_ansi_codes, tokenize, Token, TokenType};
@@ -52,8 +52,8 @@ pub use purifier::{
     explain_purification_changes, explain_purification_changes_detailed,
     format_purified_lint_result, format_purified_lint_result_with_context,
     format_transformation_report, purify_and_lint, purify_and_validate, purify_bash, Alternative,
-    PurificationError, PurifiedLintResult, SafetyRationale, SafetySeverity,
-    TransformationCategory, TransformationExplanation,
+    PurificationError, PurifiedLintResult, SafetyRationale, SafetySeverity, TransformationCategory,
+    TransformationExplanation,
 };
 pub use r#loop::run_repl;
 pub use state::ReplState;
