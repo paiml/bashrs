@@ -94,66 +94,86 @@ pub fn explain_bash(input: &str) -> Option<Explanation> {
     None
 }
 
+/// Check if input matches parameter expansion pattern with operator
+fn matches_param_expansion(input: &str, operator: &str) -> bool {
+    input.contains(operator) && input.starts_with("${") && input.ends_with("}")
+}
+
+/// Explain ${parameter:-word} - Use default value
+fn explain_use_default() -> Explanation {
+    Explanation::new(
+        "Parameter Expansion: ${parameter:-word}",
+        "Use Default Value",
+        "If parameter is unset or null, expand to 'word'.\nThe original parameter remains unchanged.",
+    )
+    .with_example("  $ var=\"\"\n  $ echo \"${var:-fallback}\"  # Outputs: fallback\n  $ echo \"$var\"               # Still empty")
+}
+
+/// Explain ${parameter:=word} - Assign default value
+fn explain_assign_default() -> Explanation {
+    Explanation::new(
+        "Parameter Expansion: ${parameter:=word}",
+        "Assign Default Value",
+        "If parameter is unset or null, assign 'word' to it.\nThen expand to the new value.",
+    )
+    .with_example("  $ unset var\n  $ echo \"${var:=fallback}\"  # Outputs: fallback\n  $ echo \"$var\"               # Now set to fallback")
+}
+
+/// Explain ${parameter:?word} - Display error if null/unset
+fn explain_error_if_unset() -> Explanation {
+    Explanation::new(
+        "Parameter Expansion: ${parameter:?word}",
+        "Display Error if Null/Unset",
+        "If parameter is unset or null, print 'word' to stderr and exit.\nUseful for required parameters.",
+    )
+    .with_example("  $ unset var\n  $ echo \"${var:?Variable not set}\"  # Exits with error")
+}
+
+/// Explain ${parameter:+word} - Use alternate value
+fn explain_use_alternate() -> Explanation {
+    Explanation::new(
+        "Parameter Expansion: ${parameter:+word}",
+        "Use Alternate Value",
+        "If parameter is set and non-null, expand to 'word'.\nOtherwise expand to nothing.",
+    )
+    .with_example("  $ var=\"set\"\n  $ echo \"${var:+present}\"  # Outputs: present\n  $ unset var\n  $ echo \"${var:+present}\"  # Outputs: (nothing)")
+}
+
+/// Explain ${#parameter} - String length
+fn explain_string_length() -> Explanation {
+    Explanation::new(
+        "Parameter Expansion: ${#parameter}",
+        "String Length",
+        "Expands to the length of the parameter's value in characters.",
+    )
+    .with_example("  $ var=\"hello\"\n  $ echo \"${#var}\"  # Outputs: 5")
+}
+
 /// Explain parameter expansion constructs
 fn explain_parameter_expansion(input: &str) -> Option<Explanation> {
     // ${var:-default} - Use default value
-    if input.contains(":-") && input.starts_with("${") && input.ends_with("}") {
-        return Some(
-            Explanation::new(
-                "Parameter Expansion: ${parameter:-word}",
-                "Use Default Value",
-                "If parameter is unset or null, expand to 'word'.\nThe original parameter remains unchanged."
-            )
-            .with_example("  $ var=\"\"\n  $ echo \"${var:-fallback}\"  # Outputs: fallback\n  $ echo \"$var\"               # Still empty")
-        );
+    if matches_param_expansion(input, ":-") {
+        return Some(explain_use_default());
     }
 
     // ${var:=default} - Assign default value
-    if input.contains(":=") && input.starts_with("${") && input.ends_with("}") {
-        return Some(
-            Explanation::new(
-                "Parameter Expansion: ${parameter:=word}",
-                "Assign Default Value",
-                "If parameter is unset or null, assign 'word' to it.\nThen expand to the new value."
-            )
-            .with_example("  $ unset var\n  $ echo \"${var:=fallback}\"  # Outputs: fallback\n  $ echo \"$var\"               # Now set to fallback")
-        );
+    if matches_param_expansion(input, ":=") {
+        return Some(explain_assign_default());
     }
 
     // ${var:?error} - Display error if null/unset
-    if input.contains(":?") && input.starts_with("${") && input.ends_with("}") {
-        return Some(
-            Explanation::new(
-                "Parameter Expansion: ${parameter:?word}",
-                "Display Error if Null/Unset",
-                "If parameter is unset or null, print 'word' to stderr and exit.\nUseful for required parameters."
-            )
-            .with_example("  $ unset var\n  $ echo \"${var:?Variable not set}\"  # Exits with error")
-        );
+    if matches_param_expansion(input, ":?") {
+        return Some(explain_error_if_unset());
     }
 
     // ${var:+alternate} - Use alternate value
-    if input.contains(":+") && input.starts_with("${") && input.ends_with("}") {
-        return Some(
-            Explanation::new(
-                "Parameter Expansion: ${parameter:+word}",
-                "Use Alternate Value",
-                "If parameter is set and non-null, expand to 'word'.\nOtherwise expand to nothing."
-            )
-            .with_example("  $ var=\"set\"\n  $ echo \"${var:+present}\"  # Outputs: present\n  $ unset var\n  $ echo \"${var:+present}\"  # Outputs: (nothing)")
-        );
+    if matches_param_expansion(input, ":+") {
+        return Some(explain_use_alternate());
     }
 
     // ${#var} - String length
     if input.starts_with("${#") && input.ends_with("}") {
-        return Some(
-            Explanation::new(
-                "Parameter Expansion: ${#parameter}",
-                "String Length",
-                "Expands to the length of the parameter's value in characters.",
-            )
-            .with_example("  $ var=\"hello\"\n  $ echo \"${#var}\"  # Outputs: 5"),
-        );
+        return Some(explain_string_length());
     }
 
     None
