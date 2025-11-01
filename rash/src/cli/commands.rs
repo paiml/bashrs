@@ -182,6 +182,33 @@ pub fn execute_command(cli: Cli) -> Result<()> {
             info!("Formatting bash script(s)");
             format_command(&inputs, check, dry_run, output.as_deref())
         }
+
+        Commands::Bench {
+            scripts,
+            warmup,
+            iterations,
+            output,
+            strict,
+            verify_determinism,
+            show_raw,
+            quiet,
+        } => {
+            info!("Benchmarking script(s)");
+            use crate::cli::bench::{bench_command, BenchOptions};
+
+            let options = BenchOptions {
+                scripts,
+                warmup,
+                iterations,
+                output,
+                strict,
+                verify_determinism,
+                show_raw,
+                quiet,
+            };
+
+            bench_command(options)
+        }
     }
 }
 

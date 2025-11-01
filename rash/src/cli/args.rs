@@ -282,6 +282,41 @@ pub enum Commands {
         #[arg(short, long)]
         output: Option<PathBuf>,
     },
+
+    /// Benchmark shell script(s) with scientific rigor (NEW in v6.25.0)
+    Bench {
+        /// Shell script(s) to benchmark
+        #[arg(value_name = "SCRIPT", required = true)]
+        scripts: Vec<PathBuf>,
+
+        /// Number of warmup iterations
+        #[arg(short = 'w', long, default_value = "3")]
+        warmup: usize,
+
+        /// Number of measured iterations
+        #[arg(short = 'i', long, default_value = "10")]
+        iterations: usize,
+
+        /// Output results to JSON file
+        #[arg(short = 'o', long)]
+        output: Option<PathBuf>,
+
+        /// Enable quality gates (lint + determinism checks)
+        #[arg(short = 's', long)]
+        strict: bool,
+
+        /// Verify script produces identical output
+        #[arg(long)]
+        verify_determinism: bool,
+
+        /// Show raw iteration times
+        #[arg(long)]
+        show_raw: bool,
+
+        /// Suppress progress output
+        #[arg(short = 'q', long)]
+        quiet: bool,
+    },
 }
 
 #[derive(Subcommand)]
