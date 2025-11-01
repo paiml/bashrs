@@ -539,30 +539,31 @@ fn extract_variable_name(message: &str) -> String {
 }
 
 /// Analyze Makefile for parallel safety issues (Sprint 83)
-fn analyze_parallel_safety(ast: &MakeAst) -> Vec<Transformation> {
-    let mut transformations = Vec::new();
-
-    // Check if Makefile has .NOTPARALLEL directive
-    let has_notparallel = ast
-        .items
+/// Check if Makefile has .NOTPARALLEL directive
+fn has_notparallel_directive(ast: &MakeAst) -> bool {
+    ast.items
         .iter()
-        .any(|item| matches!(item, MakeItem::Target { name, .. } if name == ".NOTPARALLEL"));
+        .any(|item| matches!(item, MakeItem::Target { name, .. } if name == ".NOTPARALLEL"))
+}
 
-    // Collect all targets for analysis
-    let mut targets: Vec<(&String, &Vec<String>)> = Vec::new();
+/// Collect all targets for analysis
+fn collect_targets(ast: &MakeAst) -> Vec<(&String, &Vec<String>)> {
+    let mut targets = Vec::new();
     for item in &ast.items {
         if let MakeItem::Target { name, recipe, .. } = item {
             targets.push((name, recipe));
         }
     }
+    targets
+}
 
-    // Analysis 1: We'll recommend .NOTPARALLEL later if actual issues are found
-    // Don't recommend it unconditionally just because targets exist
-
-    // Analysis 2: Detect race conditions (multiple targets writing to same file)
+/// Detect output file conflicts (multiple targets writing to same file)
+fn detect_output_file_conflicts(targets: &[(&String, &Vec<String>)]) -> Vec<Transformation> {
+    let mut transformations = Vec::new();
     let mut output_files: std::collections::HashMap<String, Vec<String>> =
         std::collections::HashMap::new();
-    for (target_name, recipes) in &targets {
+
+    for (target_name, recipes) in targets {
         for recipe in *recipes {
             // Detect output redirects: > filename or >> filename
             if let Some(pos) = recipe.find(" > ") {
@@ -598,7 +599,6 @@ fn analyze_parallel_safety(ast: &MakeAst) -> Vec<Transformation> {
                 safe: false,
             });
 
-            // Also report as output conflict
             transformations.push(Transformation::DetectOutputConflict {
                 target_names,
                 output_file: file,
@@ -607,12 +607,20 @@ fn analyze_parallel_safety(ast: &MakeAst) -> Vec<Transformation> {
         }
     }
 
-    // Analysis 3: Detect missing dependencies (file usage without dependency)
+    transformations
+}
+
+/// Detect missing file dependencies (file usage without dependency)
+fn detect_missing_file_dependencies(
+    ast: &MakeAst,
+    targets: &[(&String, &Vec<String>)],
+) -> Vec<Transformation> {
+    let mut transformations = Vec::new();
     let mut file_creators: std::collections::HashMap<String, String> =
         std::collections::HashMap::new();
     let mut file_users: Vec<(String, String)> = Vec::new();
 
-    for (target_name, recipes) in &targets {
+    for (target_name, recipes) in targets {
         for recipe in *recipes {
             // Detect file creation: > filename
             if let Some(pos) = recipe.find(" > ") {
@@ -622,9 +630,8 @@ fn analyze_parallel_safety(ast: &MakeAst) -> Vec<Transformation> {
                     file_creators.insert(filename.to_string(), (*target_name).clone());
                 }
             }
-            // Detect file usage: cat filename, read from file
+            // Detect file usage: cat filename
             if recipe.contains("cat ") {
-                // Extract filename after cat
                 if let Some(pos) = recipe.find("cat ") {
                     let after = &recipe[pos + 4..];
                     let filename = after.split_whitespace().next().unwrap_or("");
@@ -639,7 +646,6 @@ fn analyze_parallel_safety(ast: &MakeAst) -> Vec<Transformation> {
     // Report missing dependencies
     for (user_target, used_file) in file_users {
         if let Some(provider_target) = file_creators.get(&used_file) {
-            // Check if user_target has provider_target in its prerequisites
             let has_dependency = ast.items.iter().any(|item| {
                 if let MakeItem::Target {
                     name,
@@ -664,12 +670,17 @@ fn analyze_parallel_safety(ast: &MakeAst) -> Vec<Transformation> {
         }
     }
 
-    // Analysis 4: Detect recursive make calls
-    for (target_name, recipes) in &targets {
+    transformations
+}
+
+/// Detect recursive make calls
+fn detect_recursive_make_calls(targets: &[(&String, &Vec<String>)]) -> Vec<Transformation> {
+    let mut transformations = Vec::new();
+
+    for (target_name, recipes) in targets {
         let mut subdirs = Vec::new();
         for recipe in *recipes {
             if recipe.contains("$(MAKE)") || recipe.contains("${MAKE}") {
-                // Extract subdirectory from -C flag
                 if let Some(pos) = recipe.find("-C ") {
                     let after = &recipe[pos + 3..];
                     let subdir = after.split_whitespace().next().unwrap_or("");
@@ -689,13 +700,18 @@ fn analyze_parallel_safety(ast: &MakeAst) -> Vec<Transformation> {
         }
     }
 
-    // Analysis 5: Detect shared directory creation races
+    transformations
+}
+
+/// Detect shared directory creation races
+fn detect_directory_creation_races(targets: &[(&String, &Vec<String>)]) -> Vec<Transformation> {
+    let mut transformations = Vec::new();
     let mut dir_creators: std::collections::HashMap<String, Vec<String>> =
         std::collections::HashMap::new();
-    for (target_name, recipes) in &targets {
+
+    for (target_name, recipes) in targets {
         for recipe in *recipes {
             if recipe.contains("mkdir") {
-                // Extract directory name
                 if let Some(pos) = recipe.find("mkdir") {
                     let after = &recipe[pos + 5..];
                     let parts: Vec<&str> = after.split_whitespace().collect();
@@ -723,8 +739,38 @@ fn analyze_parallel_safety(ast: &MakeAst) -> Vec<Transformation> {
         }
     }
 
-    // Final Analysis: Recommend .NOTPARALLEL if issues detected AND not already present
-    if !has_notparallel && !transformations.is_empty() && !targets.is_empty() {
+    transformations
+}
+
+/// Check if .NOTPARALLEL should be recommended
+fn should_recommend_notparallel(
+    has_notparallel: bool,
+    transformations: &[Transformation],
+    targets: &[(&String, &Vec<String>)],
+) -> bool {
+    !has_notparallel && !transformations.is_empty() && !targets.is_empty()
+}
+
+fn analyze_parallel_safety(ast: &MakeAst) -> Vec<Transformation> {
+    let mut transformations = Vec::new();
+
+    let has_notparallel = has_notparallel_directive(ast);
+    let targets = collect_targets(ast);
+
+    // Detect race conditions
+    transformations.extend(detect_output_file_conflicts(&targets));
+
+    // Detect missing dependencies
+    transformations.extend(detect_missing_file_dependencies(ast, &targets));
+
+    // Detect recursive make calls
+    transformations.extend(detect_recursive_make_calls(&targets));
+
+    // Detect shared directory creation races
+    transformations.extend(detect_directory_creation_races(&targets));
+
+    // Recommend .NOTPARALLEL if issues detected
+    if should_recommend_notparallel(has_notparallel, &transformations, &targets) {
         transformations.push(Transformation::RecommendNotParallel {
             reason: "Parallel safety issues detected - consider adding .NOTPARALLEL".to_string(),
             safe: false,
