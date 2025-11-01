@@ -1171,12 +1171,9 @@ fn analyze_error_handling(ast: &MakeAst) -> Vec<Transformation> {
 }
 
 /// Analyze Makefile for portability issues (Sprint 83 - Day 7)
-fn analyze_portability(ast: &MakeAst) -> Vec<Transformation> {
-    let mut transformations = Vec::new();
-
-    // Collect all targets for analysis (both regular targets and pattern rules)
-    let mut targets: Vec<(&String, &Vec<String>)> = Vec::new();
-
+/// Collect all targets for analysis (both regular targets and pattern rules)
+fn collect_targets_for_analysis(ast: &MakeAst) -> Vec<(&String, &Vec<String>)> {
+    let mut targets = Vec::new();
     for item in &ast.items {
         match item {
             MakeItem::Target { name, recipe, .. } => {
@@ -1192,9 +1189,13 @@ fn analyze_portability(ast: &MakeAst) -> Vec<Transformation> {
             _ => {}
         }
     }
+    targets
+}
 
-    // Analysis 1: Detect bashisms (non-POSIX shell constructs)
-    for (target_name, recipes) in &targets {
+/// Detect bashisms (non-POSIX shell constructs)
+fn detect_bashisms(targets: &[(&String, &Vec<String>)]) -> Vec<Transformation> {
+    let mut transformations = Vec::new();
+    for (target_name, recipes) in targets {
         for recipe in *recipes {
             // Detect [[ ]] (bash-specific test)
             if recipe.contains("[[") {
@@ -1217,9 +1218,13 @@ fn analyze_portability(ast: &MakeAst) -> Vec<Transformation> {
             }
         }
     }
+    transformations
+}
 
-    // Analysis 2: Detect platform-specific commands
-    for (target_name, recipes) in &targets {
+/// Detect platform-specific commands
+fn detect_platform_specific(targets: &[(&String, &Vec<String>)]) -> Vec<Transformation> {
+    let mut transformations = Vec::new();
+    for (target_name, recipes) in targets {
         for recipe in *recipes {
             // Detect uname (platform-specific)
             if recipe.contains("uname") {
@@ -1253,9 +1258,13 @@ fn analyze_portability(ast: &MakeAst) -> Vec<Transformation> {
             }
         }
     }
+    transformations
+}
 
-    // Analysis 3: Detect shell-specific features
-    for (target_name, recipes) in &targets {
+/// Detect shell-specific features
+fn detect_shell_specific(targets: &[(&String, &Vec<String>)]) -> Vec<Transformation> {
+    let mut transformations = Vec::new();
+    for (target_name, recipes) in targets {
         for recipe in *recipes {
             // Detect source (bash-specific)
             if recipe.contains("source ") {
@@ -1279,9 +1288,13 @@ fn analyze_portability(ast: &MakeAst) -> Vec<Transformation> {
             }
         }
     }
+    transformations
+}
 
-    // Analysis 4: Detect non-portable command flags (GNU extensions)
-    for (target_name, recipes) in &targets {
+/// Detect non-portable command flags (GNU extensions)
+fn detect_nonportable_flags(targets: &[(&String, &Vec<String>)]) -> Vec<Transformation> {
+    let mut transformations = Vec::new();
+    for (target_name, recipes) in targets {
         for recipe in *recipes {
             // Detect --preserve (GNU cp extension)
             if recipe.contains("--preserve") {
@@ -1306,9 +1319,13 @@ fn analyze_portability(ast: &MakeAst) -> Vec<Transformation> {
             }
         }
     }
+    transformations
+}
 
-    // Analysis 5: Detect non-portable echo usage
-    for (target_name, recipes) in &targets {
+/// Detect non-portable echo usage
+fn detect_nonportable_echo(targets: &[(&String, &Vec<String>)]) -> Vec<Transformation> {
+    let mut transformations = Vec::new();
+    for (target_name, recipes) in targets {
         for recipe in *recipes {
             // Detect echo -e (not POSIX)
             if recipe.contains("echo -e") {
@@ -1329,9 +1346,13 @@ fn analyze_portability(ast: &MakeAst) -> Vec<Transformation> {
             }
         }
     }
+    transformations
+}
 
-    // Analysis 6: Detect sed -i (GNU extension)
-    for (target_name, recipes) in &targets {
+/// Detect sed -i (GNU extension)
+fn detect_sed_inplace(targets: &[(&String, &Vec<String>)]) -> Vec<Transformation> {
+    let mut transformations = Vec::new();
+    for (target_name, recipes) in targets {
         for recipe in *recipes {
             // Detect sed -i (not portable)
             if recipe.contains("sed -i") {
@@ -1345,6 +1366,19 @@ fn analyze_portability(ast: &MakeAst) -> Vec<Transformation> {
             }
         }
     }
+    transformations
+}
+
+fn analyze_portability(ast: &MakeAst) -> Vec<Transformation> {
+    let targets = collect_targets_for_analysis(ast);
+
+    let mut transformations = Vec::new();
+    transformations.extend(detect_bashisms(&targets));
+    transformations.extend(detect_platform_specific(&targets));
+    transformations.extend(detect_shell_specific(&targets));
+    transformations.extend(detect_nonportable_flags(&targets));
+    transformations.extend(detect_nonportable_echo(&targets));
+    transformations.extend(detect_sed_inplace(&targets));
 
     transformations
 }
