@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"fn":["evaluate_condition"],"struct":["Breakpoint","BreakpointManager"]};
+window.SIDEBAR_ITEMS = {"fn":["evaluate_condition","extract_variable_name","parse_condition_operator","perform_comparison","try_numeric_comparison"],"struct":["Breakpoint","BreakpointManager"]};

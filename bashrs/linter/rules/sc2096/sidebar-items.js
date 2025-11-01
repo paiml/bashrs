@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"fn":["check","count_stdout_redirects","create_diagnostic","should_skip_line","split_commands"],"static":["MULTIPLE_APPEND_REDIRECTS","MULTIPLE_STDERR_REDIRECTS","MULTIPLE_STDOUT_REDIRECTS"]};
+window.SIDEBAR_ITEMS = {"fn":["add_command_if_nonempty","check","count_stdout_redirects","create_diagnostic","get_next_position","is_multi_char_operator","is_single_pipe","should_skip_line","split_commands"],"static":["MULTIPLE_APPEND_REDIRECTS","MULTIPLE_STDERR_REDIRECTS","MULTIPLE_STDOUT_REDIRECTS"]};

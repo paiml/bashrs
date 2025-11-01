@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"fn":["analyze_script","generate_coverage","mark_covered_functions_lines","mark_top_level_called_functions"],"struct":["CoverageReport"]};
+window.SIDEBAR_ITEMS = {"fn":["analyze_script","extract_function_name","generate_coverage","is_function_call","is_function_end","is_function_start","is_function_start_line","is_top_level_code","mark_covered_functions_lines","mark_function_calls_on_line","mark_line_covered","mark_top_level_called_functions","should_exit_function","should_skip_line"],"struct":["CoverageReport"]};

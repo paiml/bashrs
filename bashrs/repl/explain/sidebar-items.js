@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"fn":["explain_bash","explain_control_flow","explain_parameter_expansion","explain_redirection"],"struct":["Explanation"]};
+window.SIDEBAR_ITEMS = {"fn":["explain_assign_default","explain_bash","explain_control_flow","explain_error_if_unset","explain_parameter_expansion","explain_redirection","explain_string_length","explain_use_alternate","explain_use_default","matches_param_expansion"],"struct":["Explanation"]};

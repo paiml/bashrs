@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"fn":["check","check_unquoted_vars","find_closing_char"]};
+window.SIDEBAR_ITEMS = {"fn":["check","check_unquoted_vars","create_unquoted_var_diagnostic","find_closing_char","is_quoted_after","is_quoted_before","parse_variable_reference"]};

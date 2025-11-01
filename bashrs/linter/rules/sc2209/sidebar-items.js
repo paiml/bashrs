@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"fn":["check"],"static":["VAR_EQUALS_COMMAND"]};
+window.SIDEBAR_ITEMS = {"fn":["check","create_command_substitution_diagnostic","has_command_substitution","has_quoted_string","has_variable_expansion","is_comment_line","is_output_command"],"static":["VAR_EQUALS_COMMAND"]};
