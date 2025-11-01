@@ -500,6 +500,157 @@ fn parse_include(line: &str, line_num: usize) -> Result<MakeItem, MakeParseError
 /// ```
 ///
 /// Supported directives: ifeq, ifneq, ifdef, ifndef
+/// Parse two-argument condition (ifeq/ifneq)
+fn parse_two_arg_condition(
+    rest: &str,
+    directive: &str,
+    line_num: usize,
+    line: &str,
+    is_eq: bool,
+) -> Result<MakeCondition, MakeParseError> {
+    if !rest.starts_with('(') || !rest.ends_with(')') {
+        let location = SourceLocation::new(line_num).with_source_line(line.to_string());
+        return Err(MakeParseError::InvalidConditionalSyntax {
+            location,
+            directive: directive.to_string(),
+            found: rest.to_string(),
+        });
+    }
+    let inner = &rest[1..rest.len() - 1];
+    let parts: Vec<&str> = inner.splitn(2, ',').collect();
+    if parts.len() != 2 {
+        let location = SourceLocation::new(line_num).with_source_line(line.to_string());
+        return Err(MakeParseError::MissingConditionalArguments {
+            location,
+            directive: directive.to_string(),
+            expected_args: 2,
+            found_args: parts.len(),
+        });
+    }
+    if is_eq {
+        Ok(MakeCondition::IfEq(
+            parts[0].to_string(),
+            parts[1].to_string(),
+        ))
+    } else {
+        Ok(MakeCondition::IfNeq(
+            parts[0].to_string(),
+            parts[1].to_string(),
+        ))
+    }
+}
+
+/// Parse single-variable condition (ifdef/ifndef)
+fn parse_single_var_condition(
+    var_name: String,
+    directive: &str,
+    line_num: usize,
+    line: &str,
+    is_def: bool,
+) -> Result<MakeCondition, MakeParseError> {
+    if var_name.is_empty() {
+        let location = SourceLocation::new(line_num).with_source_line(line.to_string());
+        return Err(MakeParseError::MissingVariableName {
+            location,
+            directive: directive.to_string(),
+        });
+    }
+    if is_def {
+        Ok(MakeCondition::IfDef(var_name))
+    } else {
+        Ok(MakeCondition::IfNdef(var_name))
+    }
+}
+
+/// Check if line starts a conditional directive
+fn is_conditional_start(trimmed: &str) -> bool {
+    trimmed.starts_with("ifeq ")
+        || trimmed.starts_with("ifneq ")
+        || trimmed.starts_with("ifdef ")
+        || trimmed.starts_with("ifndef ")
+}
+
+/// Parse conditional branches (then and optional else)
+fn parse_conditional_branches(
+    lines: &[&str],
+    index: &mut usize,
+) -> Result<(Vec<MakeItem>, Option<Vec<MakeItem>>), MakeParseError> {
+    let mut then_items = Vec::new();
+    let mut else_items = None;
+    let mut depth = 1;
+
+    while *index < lines.len() {
+        let line = lines[*index];
+        let trimmed = line.trim();
+
+        if is_conditional_start(trimmed) {
+            depth += 1;
+        }
+
+        if trimmed == "endif" {
+            depth -= 1;
+            if depth == 0 {
+                *index += 1;
+                break;
+            }
+        }
+
+        if trimmed == "else" && depth == 1 {
+            *index += 1;
+            else_items = Some(parse_else_branch(lines, index, &mut depth)?);
+            break;
+        }
+
+        match parse_conditional_item(lines, index) {
+            Ok(Some(item)) => then_items.push(item),
+            Ok(None) => *index += 1,
+            Err(e) => {
+                let location = SourceLocation::new(*index + 1);
+                return Err(MakeParseError::InvalidTargetRule { location, found: e });
+            }
+        }
+    }
+
+    Ok((then_items, else_items))
+}
+
+/// Parse else branch of conditional
+fn parse_else_branch(
+    lines: &[&str],
+    index: &mut usize,
+    depth: &mut usize,
+) -> Result<Vec<MakeItem>, MakeParseError> {
+    let mut else_vec = Vec::new();
+
+    while *index < lines.len() {
+        let else_line = lines[*index];
+        let else_trimmed = else_line.trim();
+
+        if is_conditional_start(else_trimmed) {
+            *depth += 1;
+        }
+
+        if else_trimmed == "endif" {
+            *depth -= 1;
+            if *depth == 0 {
+                *index += 1;
+                break;
+            }
+        }
+
+        match parse_conditional_item(lines, index) {
+            Ok(Some(item)) => else_vec.push(item),
+            Ok(None) => *index += 1,
+            Err(e) => {
+                let location = SourceLocation::new(*index + 1);
+                return Err(MakeParseError::InvalidTargetRule { location, found: e });
+            }
+        }
+    }
+
+    Ok(else_vec)
+}
+
 fn parse_conditional(lines: &[&str], index: &mut usize) -> Result<MakeItem, MakeParseError> {
     let start_line = lines[*index];
     let start_line_num = *index + 1;
@@ -507,79 +658,17 @@ fn parse_conditional(lines: &[&str], index: &mut usize) -> Result<MakeItem, Make
 
     // Parse the condition type and expression
     let condition = if trimmed.starts_with("ifeq ") {
-        // ifeq (arg1,arg2)
         let rest = trimmed.strip_prefix("ifeq ").unwrap().trim();
-        if !rest.starts_with('(') || !rest.ends_with(')') {
-            let location =
-                SourceLocation::new(start_line_num).with_source_line(start_line.to_string());
-            return Err(MakeParseError::InvalidConditionalSyntax {
-                location,
-                directive: "ifeq".to_string(),
-                found: rest.to_string(),
-            });
-        }
-        let inner = &rest[1..rest.len() - 1];
-        let parts: Vec<&str> = inner.splitn(2, ',').collect();
-        if parts.len() != 2 {
-            let location =
-                SourceLocation::new(start_line_num).with_source_line(start_line.to_string());
-            return Err(MakeParseError::MissingConditionalArguments {
-                location,
-                directive: "ifeq".to_string(),
-                expected_args: 2,
-                found_args: parts.len(),
-            });
-        }
-        MakeCondition::IfEq(parts[0].to_string(), parts[1].to_string())
+        parse_two_arg_condition(rest, "ifeq", start_line_num, start_line, true)?
     } else if trimmed.starts_with("ifneq ") {
-        // ifneq (arg1,arg2)
         let rest = trimmed.strip_prefix("ifneq ").unwrap().trim();
-        if !rest.starts_with('(') || !rest.ends_with(')') {
-            let location =
-                SourceLocation::new(start_line_num).with_source_line(start_line.to_string());
-            return Err(MakeParseError::InvalidConditionalSyntax {
-                location,
-                directive: "ifneq".to_string(),
-                found: rest.to_string(),
-            });
-        }
-        let inner = &rest[1..rest.len() - 1];
-        let parts: Vec<&str> = inner.splitn(2, ',').collect();
-        if parts.len() != 2 {
-            let location =
-                SourceLocation::new(start_line_num).with_source_line(start_line.to_string());
-            return Err(MakeParseError::MissingConditionalArguments {
-                location,
-                directive: "ifneq".to_string(),
-                expected_args: 2,
-                found_args: parts.len(),
-            });
-        }
-        MakeCondition::IfNeq(parts[0].to_string(), parts[1].to_string())
+        parse_two_arg_condition(rest, "ifneq", start_line_num, start_line, false)?
     } else if trimmed.starts_with("ifdef ") {
-        // ifdef VAR
         let var_name = trimmed.strip_prefix("ifdef ").unwrap().trim().to_string();
-        if var_name.is_empty() {
-            let location =
-                SourceLocation::new(start_line_num).with_source_line(start_line.to_string());
-            return Err(MakeParseError::MissingVariableName {
-                location,
-                directive: "ifdef".to_string(),
-            });
-        }
-        MakeCondition::IfDef(var_name)
+        parse_single_var_condition(var_name, "ifdef", start_line_num, start_line, true)?
     } else if trimmed.starts_with("ifndef ") {
-        // ifndef VAR
         let var_name = trimmed.strip_prefix("ifndef ").unwrap().trim().to_string();
-        if var_name.is_empty() {
-            let location =
-                SourceLocation::new(start_line_num).with_source_line(start_line.to_string());
-            return Err(MakeParseError::MissingVariableName {
-                location,
-                directive: "ifndef".to_string(),
-            });
-        }
-        MakeCondition::IfNdef(var_name)
+        parse_single_var_condition(var_name, "ifndef", start_line_num, start_line, false)?
     } else {
         let location = SourceLocation::new(start_line_num).with_source_line(start_line.to_string());
         return Err(MakeParseError::UnknownConditional {
@@ -588,99 +677,9 @@ fn parse_conditional(lines: &[&str], index: &mut usize) -> Result<MakeItem, Make
         });
     };
 
-    // Move past the ifeq/ifdef/ifndef/ifneq line
     *index += 1;
 
-    // Parse items in the 'then' branch until we hit 'else' or 'endif'
-    let mut then_items = Vec::new();
-    let mut else_items = None;
-    let mut depth = 1; // Track nested conditionals
-
-    while *index < lines.len() {
-        let line = lines[*index];
-        let trimmed = line.trim();
-
-        // Check for nested conditionals
-        if trimmed.starts_with("ifeq ")
-            || trimmed.starts_with("ifneq ")
-            || trimmed.starts_with("ifdef ")
-            || trimmed.starts_with("ifndef ")
-        {
-            depth += 1;
-        }
-
-        // Check for endif
-        if trimmed == "endif" {
-            depth -= 1;
-            if depth == 0 {
-                // This endif closes our conditional
-                *index += 1;
-                break;
-            }
-        }
-
-        // Check for else at our level
-        if trimmed == "else" && depth == 1 {
-            *index += 1;
-            // Parse items in the 'else' branch
-            let mut else_vec = Vec::new();
-            while *index < lines.len() {
-                let else_line = lines[*index];
-                let else_trimmed = else_line.trim();
-
-                // Check for nested conditionals in else branch
-                if else_trimmed.starts_with("ifeq ")
-                    || else_trimmed.starts_with("ifneq ")
-                    || else_trimmed.starts_with("ifdef ")
-                    || else_trimmed.starts_with("ifndef ")
-                {
-                    depth += 1;
-                }
-
-                if else_trimmed == "endif" {
-                    depth -= 1;
-                    if depth == 0 {
-                        *index += 1;
-                        break;
-                    }
-                }
-
-                // Parse item in else branch
-                match parse_conditional_item(lines, index) {
-                    Ok(Some(item)) => {
-                        else_vec.push(item);
-                        // Note: index was already incremented by parse_conditional_item
-                    }
-                    Ok(None) => {
-                        // Empty line or unrecognized - skip it
-                        *index += 1;
-                    }
-                    Err(e) => {
-                        let location = SourceLocation::new(*index + 1);
-                        return Err(MakeParseError::InvalidTargetRule { location, found: e });
-                    }
-                }
-            }
-            else_items = Some(else_vec);
-            break;
-        }
-
-        // Parse item in then branch
-        match parse_conditional_item(lines, index) {
-            Ok(Some(item)) => {
-                then_items.push(item);
-                // Note: index was already incremented by parse_conditional_item
-            }
-            Ok(None) => {
-                // Empty line or unrecognized - skip it
-                *index += 1;
-            }
-            Err(e) => {
-                let location = SourceLocation::new(*index + 1);
-                return Err(MakeParseError::InvalidTargetRule { location, found: e });
-            }
-        }
-    }
+    let (then_items, else_items) = parse_conditional_branches(lines, index)?;
 
     Ok(MakeItem::Conditional {
         condition,
