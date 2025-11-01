@@ -48,6 +48,35 @@ fn should_skip_line(line: &str) -> bool {
     line.contains("<<") || line.contains("<<<")
 }
 
+/// Check if characters form a multi-character operator (&& or ||)
+fn is_multi_char_operator(ch: char, next_ch: char) -> bool {
+    (ch == '&' && next_ch == '&') || (ch == '|' && next_ch == '|')
+}
+
+/// Check if character is a single pipe (not part of ||)
+fn is_single_pipe(ch: char, prev_ch: Option<char>) -> bool {
+    ch == '|' && prev_ch != Some('|')
+}
+
+/// Add command to list if non-empty
+fn add_command_if_nonempty<'a>(commands: &mut Vec<&'a str>, cmd: &'a str) {
+    if !cmd.trim().is_empty() {
+        commands.push(cmd);
+    }
+}
+
+/// Get next position after operator from iterator
+fn get_next_position<I>(chars: &mut std::iter::Peekable<I>, line_len: usize) -> usize
+where
+    I: Iterator<Item = (usize, char)>,
+{
+    if let Some(&(next_pos, _)) = chars.peek() {
+        next_pos
+    } else {
+        line_len
+    }
+}
+
 /// Split line into separate commands (by &&, ||, ;, |)
 /// This ensures redirects in different commands are checked independently
 fn split_commands(line: &str) -> Vec<&str> {
@@ -61,41 +90,26 @@ fn split_commands(line: &str) -> Vec<&str> {
     while let Some((byte_pos, ch)) = chars.next() {
         // Check for multi-character operators (&&, ||)
         if let Some(&(_, next_ch)) = chars.peek() {
-            if (ch == '&' && next_ch == '&') || (ch == '|' && next_ch == '|') {
+            if is_multi_char_operator(ch, next_ch) {
                 if byte_pos > current_start {
-                    let cmd = &line[current_start..byte_pos];
-                    if !cmd.trim().is_empty() {
-                        commands.push(cmd);
-                    }
+                    add_command_if_nonempty(&mut commands, &line[current_start..byte_pos]);
                 }
                 // Consume the next character
                 chars.next();
                 // Set start position after the operator
-                if let Some(&(next_pos, _)) = chars.peek() {
-                    current_start = next_pos;
-                } else {
-                    current_start = line.len();
-                }
+                current_start = get_next_position(&mut chars, line.len());
                 prev_ch = Some(next_ch);
                 continue;
             }
         }
 
         // Check for single-character operators (;, |)
-        let is_single_pipe = ch == '|' && prev_ch != Some('|');
-        if ch == ';' || is_single_pipe {
+        if ch == ';' || is_single_pipe(ch, prev_ch) {
             if byte_pos > current_start {
-                let cmd = &line[current_start..byte_pos];
-                if !cmd.trim().is_empty() {
-                    commands.push(cmd);
-                }
+                add_command_if_nonempty(&mut commands, &line[current_start..byte_pos]);
             }
             // Set start position after the operator
-            if let Some(&(next_pos, _)) = chars.peek() {
-                current_start = next_pos;
-            } else {
-                current_start = line.len();
-            }
+            current_start = get_next_position(&mut chars, line.len());
         }
 
         prev_ch = Some(ch);
@@ -103,10 +117,7 @@ fn split_commands(line: &str) -> Vec<&str> {
 
     // Add the last command
     if current_start < line.len() {
-        let cmd = &line[current_start..];
-        if !cmd.trim().is_empty() {
-            commands.push(cmd);
-        }
+        add_command_if_nonempty(&mut commands, &line[current_start..]);
     }
 
     commands
