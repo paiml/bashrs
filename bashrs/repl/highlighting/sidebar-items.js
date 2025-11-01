@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"enum":["TokenType"],"fn":["highlight_bash","highlight_token","is_keyword","strip_ansi_codes","tokenize"],"mod":["colors"],"struct":["Token"]};
+window.SIDEBAR_ITEMS = {"enum":["TokenType"],"fn":["handle_redirection","highlight_bash","highlight_token","is_double_operator","is_keyword","strip_ansi_codes","tokenize","tokenize_comment","tokenize_operator","tokenize_string","tokenize_variable","tokenize_whitespace","tokenize_word"],"mod":["colors"],"struct":["Token"]};

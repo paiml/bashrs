@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"fn":["check"],"static":["FUNCTION_END","FUNCTION_START","LOCAL_KEYWORD"]};
+window.SIDEBAR_ITEMS = {"fn":["check","count_closing_braces","count_opening_braces","create_local_outside_function_diagnostic","has_opening_brace","has_opening_brace_next_line","is_comment_line","is_function_end","is_function_start","update_depth_for_braces","update_depth_for_function_start"],"static":["FUNCTION_END","FUNCTION_START","LOCAL_KEYWORD"]};

@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"fn":["check"],"static":["EXIT_OR_RETURN"]};
+window.SIDEBAR_ITEMS = {"fn":["check","create_unreachable_diagnostic","get_keyword","is_closing_token","is_comment_line","is_exit_or_return_line"],"static":["EXIT_OR_RETURN"]};

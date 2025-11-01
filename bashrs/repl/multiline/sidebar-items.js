@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"fn":["is_incomplete"]};
+window.SIDEBAR_ITEMS = {"fn":["analyze_bracket_state","analyze_quote_state","bash_keywords_need_continuation","has_backslash_continuation","has_closing_keyword","is_incomplete"],"struct":["BracketState","QuoteState"]};

@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"fn":["check"],"static":["ARRAY_IN_CONDITIONAL","DOUBLE_BRACKET"]};
+window.SIDEBAR_ITEMS = {"fn":["check","create_array_diagnostic","has_double_bracket","has_subscript","is_comment_line","matches_array_heuristics"],"static":["ARRAY_IN_CONDITIONAL","DOUBLE_BRACKET"]};

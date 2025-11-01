@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"fn":["check"]};
+window.SIDEBAR_ITEMS = {"fn":["check","contains_shell_command","create_shell_diagnostic","get_char_before_eq","is_special_operator","should_skip_line"]};

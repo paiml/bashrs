@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"fn":["check"]};
+window.SIDEBAR_ITEMS = {"fn":["check","create_curl_pipe_diagnostic","has_curl_or_wget","is_comment_line","is_piped_to_shell"]};

@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"fn":["check"],"static":["EXECUTE_BACKTICKS"]};
+window.SIDEBAR_ITEMS = {"fn":["check","create_backtick_diagnostic","is_comment_line","is_in_assignment","is_in_safe_context","starts_with_separator"],"static":["EXECUTE_BACKTICKS"]};

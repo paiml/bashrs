@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"fn":["check"],"static":["APPEND_REDIRECT"]};
+window.SIDEBAR_ITEMS = {"fn":["add_group_if_needed","check","create_redirect_group_diagnostic","extract_redirect_file","is_comment_or_empty","should_add_group"],"static":["APPEND_REDIRECT"]};

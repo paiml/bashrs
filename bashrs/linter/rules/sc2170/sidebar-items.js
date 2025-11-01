@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"fn":["check"],"static":["NUMERIC_OP_LIKELY_STRING"]};
+window.SIDEBAR_ITEMS = {"fn":["check","create_numeric_operator_diagnostic","format_string_preview","has_double_bracket","is_comment_line","is_pure_number","is_variable_expansion"],"static":["NUMERIC_OP_LIKELY_STRING"]};

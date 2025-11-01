@@ -26,159 +26,309 @@
 <a href=#26 id=26 data-nosnippet>26</a>    </span>Regex::new(<span class="string">r"(&gt;&gt;?)\s*\$([a-zA-Z_][a-zA-Z0-9_]*)"</span>).unwrap()
 <a href=#27 id=27 data-nosnippet>27</a>});
 <a href=#28 id=28 data-nosnippet>28</a>
-<a href=#29 id=29 data-nosnippet>29</a><span class="kw">pub fn </span>check(source: <span class="kw-2">&amp;</span>str) -&gt; LintResult {
-<a href=#30 id=30 data-nosnippet>30</a>    <span class="kw">let </span><span class="kw-2">mut </span>result = LintResult::new();
-<a href=#31 id=31 data-nosnippet>31</a>
-<a href=#32 id=32 data-nosnippet>32</a>    <span class="kw">for </span>(line_num, line) <span class="kw">in </span>source.lines().enumerate() {
-<a href=#33 id=33 data-nosnippet>33</a>        <span class="kw">let </span>line_num = line_num + <span class="number">1</span>;
-<a href=#34 id=34 data-nosnippet>34</a>
-<a href=#35 id=35 data-nosnippet>35</a>        <span class="kw">if </span>line.trim_start().starts_with(<span class="string">'#'</span>) {
-<a href=#36 id=36 data-nosnippet>36</a>            <span class="kw">continue</span>;
-<a href=#37 id=37 data-nosnippet>37</a>        }
-<a href=#38 id=38 data-nosnippet>38</a>
-<a href=#39 id=39 data-nosnippet>39</a>        <span class="comment">// Look for redirects to variables
-<a href=#40 id=40 data-nosnippet>40</a>        </span><span class="kw">for </span>cap <span class="kw">in </span>REDIRECT_TO_VAR.captures_iter(line) {
-<a href=#41 id=41 data-nosnippet>41</a>            <span class="kw">let </span>redirect_op = cap.get(<span class="number">1</span>).unwrap().as_str();
-<a href=#42 id=42 data-nosnippet>42</a>            <span class="kw">let </span>var_name = cap.get(<span class="number">2</span>).unwrap().as_str();
-<a href=#43 id=43 data-nosnippet>43</a>
-<a href=#44 id=44 data-nosnippet>44</a>            <span class="comment">// Skip if inside quotes
-<a href=#45 id=45 data-nosnippet>45</a>            </span><span class="kw">let </span>full_match = cap.get(<span class="number">0</span>).unwrap().as_str();
-<a href=#46 id=46 data-nosnippet>46</a>            <span class="kw">let </span>pos = line.find(full_match).unwrap_or(<span class="number">0</span>);
-<a href=#47 id=47 data-nosnippet>47</a>            <span class="kw">let </span>before = <span class="kw-2">&amp;</span>line[..pos];
-<a href=#48 id=48 data-nosnippet>48</a>            <span class="kw">let </span>quote_count = before.matches(<span class="string">'"'</span>).count() + before.matches(<span class="string">'\''</span>).count();
-<a href=#49 id=49 data-nosnippet>49</a>            <span class="kw">if </span>quote_count % <span class="number">2 </span>== <span class="number">1 </span>{
-<a href=#50 id=50 data-nosnippet>50</a>                <span class="kw">continue</span>;
-<a href=#51 id=51 data-nosnippet>51</a>            }
-<a href=#52 id=52 data-nosnippet>52</a>
-<a href=#53 id=53 data-nosnippet>53</a>            <span class="comment">// Skip stderr/combined redirects (2&gt;, &amp;&gt;)
-<a href=#54 id=54 data-nosnippet>54</a>            </span><span class="kw">if </span>pos &gt; <span class="number">0 </span>{
-<a href=#55 id=55 data-nosnippet>55</a>                <span class="kw">let </span>prev_char = line.chars().nth(pos - <span class="number">1</span>);
-<a href=#56 id=56 data-nosnippet>56</a>                <span class="kw">if </span>prev_char == <span class="prelude-val">Some</span>(<span class="string">'2'</span>) || prev_char == <span class="prelude-val">Some</span>(<span class="string">'&amp;'</span>) {
-<a href=#57 id=57 data-nosnippet>57</a>                    <span class="kw">continue</span>;
-<a href=#58 id=58 data-nosnippet>58</a>                }
-<a href=#59 id=59 data-nosnippet>59</a>            }
-<a href=#60 id=60 data-nosnippet>60</a>
-<a href=#61 id=61 data-nosnippet>61</a>            <span class="comment">// Skip common log file patterns like $LOGFILE
-<a href=#62 id=62 data-nosnippet>62</a>            </span><span class="kw">if </span>var_name == <span class="string">"LOGFILE"
-<a href=#63 id=63 data-nosnippet>63</a>                </span>|| var_name == <span class="string">"LOG"
-<a href=#64 id=64 data-nosnippet>64</a>                </span>|| var_name.ends_with(<span class="string">"_FILE"</span>)
-<a href=#65 id=65 data-nosnippet>65</a>                || var_name.ends_with(<span class="string">"_LOG"</span>)
-<a href=#66 id=66 data-nosnippet>66</a>            {
-<a href=#67 id=67 data-nosnippet>67</a>                <span class="kw">continue</span>;
-<a href=#68 id=68 data-nosnippet>68</a>            }
-<a href=#69 id=69 data-nosnippet>69</a>
-<a href=#70 id=70 data-nosnippet>70</a>            <span class="kw">let </span>start_col = pos + <span class="number">1</span>;
-<a href=#71 id=71 data-nosnippet>71</a>            <span class="kw">let </span>end_col = start_col + full_match.len();
-<a href=#72 id=72 data-nosnippet>72</a>
-<a href=#73 id=73 data-nosnippet>73</a>            <span class="kw">let </span>diagnostic = Diagnostic::new(
-<a href=#74 id=74 data-nosnippet>74</a>                <span class="string">"SC2037"</span>,
-<a href=#75 id=75 data-nosnippet>75</a>                Severity::Warning,
-<a href=#76 id=76 data-nosnippet>76</a>                <span class="macro">format!</span>(
-<a href=#77 id=77 data-nosnippet>77</a>                    <span class="string">"To assign command output, use {}=$(cmd), not cmd {} ${}"</span>,
-<a href=#78 id=78 data-nosnippet>78</a>                    var_name.to_lowercase(),
-<a href=#79 id=79 data-nosnippet>79</a>                    redirect_op,
-<a href=#80 id=80 data-nosnippet>80</a>                    var_name
-<a href=#81 id=81 data-nosnippet>81</a>                ),
-<a href=#82 id=82 data-nosnippet>82</a>                Span::new(line_num, start_col, line_num, end_col),
-<a href=#83 id=83 data-nosnippet>83</a>            );
-<a href=#84 id=84 data-nosnippet>84</a>
-<a href=#85 id=85 data-nosnippet>85</a>            result.add(diagnostic);
-<a href=#86 id=86 data-nosnippet>86</a>        }
-<a href=#87 id=87 data-nosnippet>87</a>    }
-<a href=#88 id=88 data-nosnippet>88</a>
-<a href=#89 id=89 data-nosnippet>89</a>    result
-<a href=#90 id=90 data-nosnippet>90</a>}
-<a href=#91 id=91 data-nosnippet>91</a>
-<a href=#92 id=92 data-nosnippet>92</a><span class="attr">#[cfg(test)]
-<a href=#93 id=93 data-nosnippet>93</a></span><span class="kw">mod </span>tests {
-<a href=#94 id=94 data-nosnippet>94</a>    <span class="kw">use super</span>::<span class="kw-2">*</span>;
-<a href=#95 id=95 data-nosnippet>95</a>
-<a href=#96 id=96 data-nosnippet>96</a>    <span class="attr">#[test]
-<a href=#97 id=97 data-nosnippet>97</a>    </span><span class="kw">fn </span>test_sc2037_redirect_to_var() {
-<a href=#98 id=98 data-nosnippet>98</a>        <span class="kw">let </span>code = <span class="string">r#"echo "result" &gt; $VAR"#</span>;
-<a href=#99 id=99 data-nosnippet>99</a>        <span class="kw">let </span>result = check(code);
-<a href=#100 id=100 data-nosnippet>100</a>        <span class="macro">assert_eq!</span>(result.diagnostics.len(), <span class="number">1</span>);
-<a href=#101 id=101 data-nosnippet>101</a>        <span class="macro">assert_eq!</span>(result.diagnostics[<span class="number">0</span>].code, <span class="string">"SC2037"</span>);
-<a href=#102 id=102 data-nosnippet>102</a>        <span class="macro">assert_eq!</span>(result.diagnostics[<span class="number">0</span>].severity, Severity::Warning);
-<a href=#103 id=103 data-nosnippet>103</a>        <span class="macro">assert!</span>(result.diagnostics[<span class="number">0</span>].message.contains(<span class="string">"$(cmd)"</span>));
-<a href=#104 id=104 data-nosnippet>104</a>    }
-<a href=#105 id=105 data-nosnippet>105</a>
-<a href=#106 id=106 data-nosnippet>106</a>    <span class="attr">#[test]
-<a href=#107 id=107 data-nosnippet>107</a>    </span><span class="kw">fn </span>test_sc2037_append_to_var() {
-<a href=#108 id=108 data-nosnippet>108</a>        <span class="kw">let </span>code = <span class="string">r#"cmd &gt;&gt; $output"#</span>;
-<a href=#109 id=109 data-nosnippet>109</a>        <span class="kw">let </span>result = check(code);
-<a href=#110 id=110 data-nosnippet>110</a>        <span class="macro">assert_eq!</span>(result.diagnostics.len(), <span class="number">1</span>);
-<a href=#111 id=111 data-nosnippet>111</a>    }
-<a href=#112 id=112 data-nosnippet>112</a>
-<a href=#113 id=113 data-nosnippet>113</a>    <span class="attr">#[test]
-<a href=#114 id=114 data-nosnippet>114</a>    </span><span class="kw">fn </span>test_sc2037_date_to_var() {
-<a href=#115 id=115 data-nosnippet>115</a>        <span class="kw">let </span>code = <span class="string">r#"date &gt; $timestamp"#</span>;
-<a href=#116 id=116 data-nosnippet>116</a>        <span class="kw">let </span>result = check(code);
-<a href=#117 id=117 data-nosnippet>117</a>        <span class="macro">assert_eq!</span>(result.diagnostics.len(), <span class="number">1</span>);
-<a href=#118 id=118 data-nosnippet>118</a>    }
-<a href=#119 id=119 data-nosnippet>119</a>
-<a href=#120 id=120 data-nosnippet>120</a>    <span class="attr">#[test]
-<a href=#121 id=121 data-nosnippet>121</a>    </span><span class="kw">fn </span>test_sc2037_command_subst_ok() {
-<a href=#122 id=122 data-nosnippet>122</a>        <span class="kw">let </span>code = <span class="string">r#"VAR=$(echo "result")"#</span>;
-<a href=#123 id=123 data-nosnippet>123</a>        <span class="kw">let </span>result = check(code);
-<a href=#124 id=124 data-nosnippet>124</a>        <span class="comment">// Proper command substitution, OK
-<a href=#125 id=125 data-nosnippet>125</a>        </span><span class="macro">assert_eq!</span>(result.diagnostics.len(), <span class="number">0</span>);
-<a href=#126 id=126 data-nosnippet>126</a>    }
+<a href=#29 id=29 data-nosnippet>29</a><span class="doccomment">/// Check if a line is a comment
+<a href=#30 id=30 data-nosnippet>30</a></span><span class="kw">fn </span>is_comment_line(line: <span class="kw-2">&amp;</span>str) -&gt; bool {
+<a href=#31 id=31 data-nosnippet>31</a>    line.trim_start().starts_with(<span class="string">'#'</span>)
+<a href=#32 id=32 data-nosnippet>32</a>}
+<a href=#33 id=33 data-nosnippet>33</a>
+<a href=#34 id=34 data-nosnippet>34</a><span class="doccomment">/// Check if position is inside quotes
+<a href=#35 id=35 data-nosnippet>35</a></span><span class="kw">fn </span>is_inside_quotes(line: <span class="kw-2">&amp;</span>str, pos: usize) -&gt; bool {
+<a href=#36 id=36 data-nosnippet>36</a>    <span class="kw">let </span>before = <span class="kw-2">&amp;</span>line[..pos];
+<a href=#37 id=37 data-nosnippet>37</a>    <span class="kw">let </span>quote_count = before.matches(<span class="string">'"'</span>).count() + before.matches(<span class="string">'\''</span>).count();
+<a href=#38 id=38 data-nosnippet>38</a>    quote_count % <span class="number">2 </span>== <span class="number">1
+<a href=#39 id=39 data-nosnippet>39</a></span>}
+<a href=#40 id=40 data-nosnippet>40</a>
+<a href=#41 id=41 data-nosnippet>41</a><span class="doccomment">/// Check if redirect is stderr or combined (&amp;&gt;, 2&gt;)
+<a href=#42 id=42 data-nosnippet>42</a></span><span class="kw">fn </span>is_stderr_or_combined_redirect(line: <span class="kw-2">&amp;</span>str, pos: usize) -&gt; bool {
+<a href=#43 id=43 data-nosnippet>43</a>    <span class="kw">if </span>pos &gt; <span class="number">0 </span>{
+<a href=#44 id=44 data-nosnippet>44</a>        <span class="kw">let </span>prev_char = line.chars().nth(pos - <span class="number">1</span>);
+<a href=#45 id=45 data-nosnippet>45</a>        prev_char == <span class="prelude-val">Some</span>(<span class="string">'2'</span>) || prev_char == <span class="prelude-val">Some</span>(<span class="string">'&amp;'</span>)
+<a href=#46 id=46 data-nosnippet>46</a>    } <span class="kw">else </span>{
+<a href=#47 id=47 data-nosnippet>47</a>        <span class="bool-val">false
+<a href=#48 id=48 data-nosnippet>48</a>    </span>}
+<a href=#49 id=49 data-nosnippet>49</a>}
+<a href=#50 id=50 data-nosnippet>50</a>
+<a href=#51 id=51 data-nosnippet>51</a><span class="doccomment">/// Check if variable name is a common log file pattern
+<a href=#52 id=52 data-nosnippet>52</a></span><span class="kw">fn </span>is_log_file_pattern(var_name: <span class="kw-2">&amp;</span>str) -&gt; bool {
+<a href=#53 id=53 data-nosnippet>53</a>    var_name == <span class="string">"LOGFILE"
+<a href=#54 id=54 data-nosnippet>54</a>        </span>|| var_name == <span class="string">"LOG"
+<a href=#55 id=55 data-nosnippet>55</a>        </span>|| var_name.ends_with(<span class="string">"_FILE"</span>)
+<a href=#56 id=56 data-nosnippet>56</a>        || var_name.ends_with(<span class="string">"_LOG"</span>)
+<a href=#57 id=57 data-nosnippet>57</a>}
+<a href=#58 id=58 data-nosnippet>58</a>
+<a href=#59 id=59 data-nosnippet>59</a><span class="doccomment">/// Create diagnostic for redirect to variable
+<a href=#60 id=60 data-nosnippet>60</a></span><span class="kw">fn </span>create_redirect_diagnostic(
+<a href=#61 id=61 data-nosnippet>61</a>    var_name: <span class="kw-2">&amp;</span>str,
+<a href=#62 id=62 data-nosnippet>62</a>    redirect_op: <span class="kw-2">&amp;</span>str,
+<a href=#63 id=63 data-nosnippet>63</a>    line_num: usize,
+<a href=#64 id=64 data-nosnippet>64</a>    start_col: usize,
+<a href=#65 id=65 data-nosnippet>65</a>    end_col: usize,
+<a href=#66 id=66 data-nosnippet>66</a>) -&gt; Diagnostic {
+<a href=#67 id=67 data-nosnippet>67</a>    Diagnostic::new(
+<a href=#68 id=68 data-nosnippet>68</a>        <span class="string">"SC2037"</span>,
+<a href=#69 id=69 data-nosnippet>69</a>        Severity::Warning,
+<a href=#70 id=70 data-nosnippet>70</a>        <span class="macro">format!</span>(
+<a href=#71 id=71 data-nosnippet>71</a>            <span class="string">"To assign command output, use {}=$(cmd), not cmd {} ${}"</span>,
+<a href=#72 id=72 data-nosnippet>72</a>            var_name.to_lowercase(),
+<a href=#73 id=73 data-nosnippet>73</a>            redirect_op,
+<a href=#74 id=74 data-nosnippet>74</a>            var_name
+<a href=#75 id=75 data-nosnippet>75</a>        ),
+<a href=#76 id=76 data-nosnippet>76</a>        Span::new(line_num, start_col, line_num, end_col),
+<a href=#77 id=77 data-nosnippet>77</a>    )
+<a href=#78 id=78 data-nosnippet>78</a>}
+<a href=#79 id=79 data-nosnippet>79</a>
+<a href=#80 id=80 data-nosnippet>80</a><span class="kw">pub fn </span>check(source: <span class="kw-2">&amp;</span>str) -&gt; LintResult {
+<a href=#81 id=81 data-nosnippet>81</a>    <span class="kw">let </span><span class="kw-2">mut </span>result = LintResult::new();
+<a href=#82 id=82 data-nosnippet>82</a>
+<a href=#83 id=83 data-nosnippet>83</a>    <span class="kw">for </span>(line_num, line) <span class="kw">in </span>source.lines().enumerate() {
+<a href=#84 id=84 data-nosnippet>84</a>        <span class="kw">let </span>line_num = line_num + <span class="number">1</span>;
+<a href=#85 id=85 data-nosnippet>85</a>
+<a href=#86 id=86 data-nosnippet>86</a>        <span class="kw">if </span>is_comment_line(line) {
+<a href=#87 id=87 data-nosnippet>87</a>            <span class="kw">continue</span>;
+<a href=#88 id=88 data-nosnippet>88</a>        }
+<a href=#89 id=89 data-nosnippet>89</a>
+<a href=#90 id=90 data-nosnippet>90</a>        <span class="comment">// Look for redirects to variables
+<a href=#91 id=91 data-nosnippet>91</a>        </span><span class="kw">for </span>cap <span class="kw">in </span>REDIRECT_TO_VAR.captures_iter(line) {
+<a href=#92 id=92 data-nosnippet>92</a>            <span class="kw">let </span>redirect_op = cap.get(<span class="number">1</span>).unwrap().as_str();
+<a href=#93 id=93 data-nosnippet>93</a>            <span class="kw">let </span>var_name = cap.get(<span class="number">2</span>).unwrap().as_str();
+<a href=#94 id=94 data-nosnippet>94</a>            <span class="kw">let </span>full_match = cap.get(<span class="number">0</span>).unwrap().as_str();
+<a href=#95 id=95 data-nosnippet>95</a>            <span class="kw">let </span>pos = line.find(full_match).unwrap_or(<span class="number">0</span>);
+<a href=#96 id=96 data-nosnippet>96</a>
+<a href=#97 id=97 data-nosnippet>97</a>            <span class="comment">// Skip if inside quotes
+<a href=#98 id=98 data-nosnippet>98</a>            </span><span class="kw">if </span>is_inside_quotes(line, pos) {
+<a href=#99 id=99 data-nosnippet>99</a>                <span class="kw">continue</span>;
+<a href=#100 id=100 data-nosnippet>100</a>            }
+<a href=#101 id=101 data-nosnippet>101</a>
+<a href=#102 id=102 data-nosnippet>102</a>            <span class="comment">// Skip stderr/combined redirects (2&gt;, &amp;&gt;)
+<a href=#103 id=103 data-nosnippet>103</a>            </span><span class="kw">if </span>is_stderr_or_combined_redirect(line, pos) {
+<a href=#104 id=104 data-nosnippet>104</a>                <span class="kw">continue</span>;
+<a href=#105 id=105 data-nosnippet>105</a>            }
+<a href=#106 id=106 data-nosnippet>106</a>
+<a href=#107 id=107 data-nosnippet>107</a>            <span class="comment">// Skip common log file patterns
+<a href=#108 id=108 data-nosnippet>108</a>            </span><span class="kw">if </span>is_log_file_pattern(var_name) {
+<a href=#109 id=109 data-nosnippet>109</a>                <span class="kw">continue</span>;
+<a href=#110 id=110 data-nosnippet>110</a>            }
+<a href=#111 id=111 data-nosnippet>111</a>
+<a href=#112 id=112 data-nosnippet>112</a>            <span class="kw">let </span>start_col = pos + <span class="number">1</span>;
+<a href=#113 id=113 data-nosnippet>113</a>            <span class="kw">let </span>end_col = start_col + full_match.len();
+<a href=#114 id=114 data-nosnippet>114</a>            <span class="kw">let </span>diagnostic =
+<a href=#115 id=115 data-nosnippet>115</a>                create_redirect_diagnostic(var_name, redirect_op, line_num, start_col, end_col);
+<a href=#116 id=116 data-nosnippet>116</a>
+<a href=#117 id=117 data-nosnippet>117</a>            result.add(diagnostic);
+<a href=#118 id=118 data-nosnippet>118</a>        }
+<a href=#119 id=119 data-nosnippet>119</a>    }
+<a href=#120 id=120 data-nosnippet>120</a>
+<a href=#121 id=121 data-nosnippet>121</a>    result
+<a href=#122 id=122 data-nosnippet>122</a>}
+<a href=#123 id=123 data-nosnippet>123</a>
+<a href=#124 id=124 data-nosnippet>124</a><span class="attr">#[cfg(test)]
+<a href=#125 id=125 data-nosnippet>125</a></span><span class="kw">mod </span>tests {
+<a href=#126 id=126 data-nosnippet>126</a>    <span class="kw">use super</span>::<span class="kw-2">*</span>;
 <a href=#127 id=127 data-nosnippet>127</a>
-<a href=#128 id=128 data-nosnippet>128</a>    <span class="attr">#[test]
-<a href=#129 id=129 data-nosnippet>129</a>    </span><span class="kw">fn </span>test_sc2037_redirect_to_file_ok() {
-<a href=#130 id=130 data-nosnippet>130</a>        <span class="kw">let </span>code = <span class="string">r#"echo "result" &gt; output.txt"#</span>;
-<a href=#131 id=131 data-nosnippet>131</a>        <span class="kw">let </span>result = check(code);
-<a href=#132 id=132 data-nosnippet>132</a>        <span class="comment">// Redirect to literal file, OK
-<a href=#133 id=133 data-nosnippet>133</a>        </span><span class="macro">assert_eq!</span>(result.diagnostics.len(), <span class="number">0</span>);
-<a href=#134 id=134 data-nosnippet>134</a>    }
-<a href=#135 id=135 data-nosnippet>135</a>
-<a href=#136 id=136 data-nosnippet>136</a>    <span class="attr">#[test]
-<a href=#137 id=137 data-nosnippet>137</a>    </span><span class="kw">fn </span>test_sc2037_logfile_var_ok() {
-<a href=#138 id=138 data-nosnippet>138</a>        <span class="kw">let </span>code = <span class="string">r#"echo "log entry" &gt;&gt; $LOGFILE"#</span>;
-<a href=#139 id=139 data-nosnippet>139</a>        <span class="kw">let </span>result = check(code);
-<a href=#140 id=140 data-nosnippet>140</a>        <span class="comment">// LOGFILE is common pattern for actual file, OK
-<a href=#141 id=141 data-nosnippet>141</a>        </span><span class="macro">assert_eq!</span>(result.diagnostics.len(), <span class="number">0</span>);
-<a href=#142 id=142 data-nosnippet>142</a>    }
-<a href=#143 id=143 data-nosnippet>143</a>
-<a href=#144 id=144 data-nosnippet>144</a>    <span class="attr">#[test]
-<a href=#145 id=145 data-nosnippet>145</a>    </span><span class="kw">fn </span>test_sc2037_stderr_redirect_ok() {
-<a href=#146 id=146 data-nosnippet>146</a>        <span class="kw">let </span>code = <span class="string">r#"cmd 2&gt; $ERROR"#</span>;
-<a href=#147 id=147 data-nosnippet>147</a>        <span class="kw">let </span>result = check(code);
-<a href=#148 id=148 data-nosnippet>148</a>        <span class="comment">// Stderr redirect (2&gt;) is different, OK
-<a href=#149 id=149 data-nosnippet>149</a>        </span><span class="macro">assert_eq!</span>(result.diagnostics.len(), <span class="number">0</span>);
-<a href=#150 id=150 data-nosnippet>150</a>    }
-<a href=#151 id=151 data-nosnippet>151</a>
-<a href=#152 id=152 data-nosnippet>152</a>    <span class="attr">#[test]
-<a href=#153 id=153 data-nosnippet>153</a>    </span><span class="kw">fn </span>test_sc2037_in_quotes_ok() {
-<a href=#154 id=154 data-nosnippet>154</a>        <span class="kw">let </span>code = <span class="string">r#"echo "cmd &gt; $VAR""#</span>;
-<a href=#155 id=155 data-nosnippet>155</a>        <span class="kw">let </span>result = check(code);
-<a href=#156 id=156 data-nosnippet>156</a>        <span class="comment">// Inside quotes, not actual redirect
-<a href=#157 id=157 data-nosnippet>157</a>        </span><span class="macro">assert_eq!</span>(result.diagnostics.len(), <span class="number">0</span>);
+<a href=#128 id=128 data-nosnippet>128</a>    <span class="comment">// ===== Manual Property Tests =====
+<a href=#129 id=129 data-nosnippet>129</a>
+<a href=#130 id=130 data-nosnippet>130</a>    </span><span class="attr">#[test]
+<a href=#131 id=131 data-nosnippet>131</a>    </span><span class="kw">fn </span>prop_sc2037_comments_never_diagnosed() {
+<a href=#132 id=132 data-nosnippet>132</a>        <span class="comment">// Property: Comment lines should never produce diagnostics
+<a href=#133 id=133 data-nosnippet>133</a>        </span><span class="kw">let </span>test_cases = <span class="macro">vec!</span>[
+<a href=#134 id=134 data-nosnippet>134</a>            <span class="string">"# echo result &gt; $VAR"</span>,
+<a href=#135 id=135 data-nosnippet>135</a>            <span class="string">"  # cmd &gt;&gt; $output"</span>,
+<a href=#136 id=136 data-nosnippet>136</a>            <span class="string">"\t# date &gt; $timestamp"</span>,
+<a href=#137 id=137 data-nosnippet>137</a>        ];
+<a href=#138 id=138 data-nosnippet>138</a>
+<a href=#139 id=139 data-nosnippet>139</a>        <span class="kw">for </span>code <span class="kw">in </span>test_cases {
+<a href=#140 id=140 data-nosnippet>140</a>            <span class="kw">let </span>result = check(code);
+<a href=#141 id=141 data-nosnippet>141</a>            <span class="macro">assert_eq!</span>(result.diagnostics.len(), <span class="number">0</span>);
+<a href=#142 id=142 data-nosnippet>142</a>        }
+<a href=#143 id=143 data-nosnippet>143</a>    }
+<a href=#144 id=144 data-nosnippet>144</a>
+<a href=#145 id=145 data-nosnippet>145</a>    <span class="attr">#[test]
+<a href=#146 id=146 data-nosnippet>146</a>    </span><span class="kw">fn </span>prop_sc2037_quoted_never_diagnosed() {
+<a href=#147 id=147 data-nosnippet>147</a>        <span class="comment">// Property: Redirects inside quotes should not be diagnosed
+<a href=#148 id=148 data-nosnippet>148</a>        </span><span class="kw">let </span>test_cases = <span class="macro">vec!</span>[
+<a href=#149 id=149 data-nosnippet>149</a>            <span class="string">r#"echo "cmd &gt; $VAR""#</span>,
+<a href=#150 id=150 data-nosnippet>150</a>            <span class="string">r#"echo 'cmd &gt;&gt; $output'"#</span>,
+<a href=#151 id=151 data-nosnippet>151</a>            <span class="string">r#"printf "redirect &gt; $file""#</span>,
+<a href=#152 id=152 data-nosnippet>152</a>        ];
+<a href=#153 id=153 data-nosnippet>153</a>
+<a href=#154 id=154 data-nosnippet>154</a>        <span class="kw">for </span>code <span class="kw">in </span>test_cases {
+<a href=#155 id=155 data-nosnippet>155</a>            <span class="kw">let </span>result = check(code);
+<a href=#156 id=156 data-nosnippet>156</a>            <span class="macro">assert_eq!</span>(result.diagnostics.len(), <span class="number">0</span>);
+<a href=#157 id=157 data-nosnippet>157</a>        }
 <a href=#158 id=158 data-nosnippet>158</a>    }
 <a href=#159 id=159 data-nosnippet>159</a>
 <a href=#160 id=160 data-nosnippet>160</a>    <span class="attr">#[test]
-<a href=#161 id=161 data-nosnippet>161</a>    </span><span class="kw">fn </span>test_sc2037_comment_ok() {
-<a href=#162 id=162 data-nosnippet>162</a>        <span class="kw">let </span>code = <span class="string">r#"# echo "result" &gt; $VAR"#</span>;
-<a href=#163 id=163 data-nosnippet>163</a>        <span class="kw">let </span>result = check(code);
-<a href=#164 id=164 data-nosnippet>164</a>        <span class="macro">assert_eq!</span>(result.diagnostics.len(), <span class="number">0</span>);
-<a href=#165 id=165 data-nosnippet>165</a>    }
-<a href=#166 id=166 data-nosnippet>166</a>
-<a href=#167 id=167 data-nosnippet>167</a>    <span class="attr">#[test]
-<a href=#168 id=168 data-nosnippet>168</a>    </span><span class="kw">fn </span>test_sc2037_multiple_redirects() {
-<a href=#169 id=169 data-nosnippet>169</a>        <span class="kw">let </span>code = <span class="string">r#"
-<a href=#170 id=170 data-nosnippet>170</a>echo "a" &gt; $VAR1
-<a href=#171 id=171 data-nosnippet>171</a>echo "b" &gt; $VAR2
-<a href=#172 id=172 data-nosnippet>172</a>"#</span>;
-<a href=#173 id=173 data-nosnippet>173</a>        <span class="kw">let </span>result = check(code);
-<a href=#174 id=174 data-nosnippet>174</a>        <span class="macro">assert_eq!</span>(result.diagnostics.len(), <span class="number">2</span>);
-<a href=#175 id=175 data-nosnippet>175</a>    }
-<a href=#176 id=176 data-nosnippet>176</a>
-<a href=#177 id=177 data-nosnippet>177</a>    <span class="attr">#[test]
-<a href=#178 id=178 data-nosnippet>178</a>    </span><span class="kw">fn </span>test_sc2037_combined_redirect_ok() {
-<a href=#179 id=179 data-nosnippet>179</a>        <span class="kw">let </span>code = <span class="string">r#"cmd &amp;&gt; $COMBINED_LOG"#</span>;
-<a href=#180 id=180 data-nosnippet>180</a>        <span class="kw">let </span>result = check(code);
-<a href=#181 id=181 data-nosnippet>181</a>        <span class="comment">// Combined redirect with _LOG suffix, OK
-<a href=#182 id=182 data-nosnippet>182</a>        </span><span class="macro">assert_eq!</span>(result.diagnostics.len(), <span class="number">0</span>);
-<a href=#183 id=183 data-nosnippet>183</a>    }
-<a href=#184 id=184 data-nosnippet>184</a>}</code></pre></div></section></main></body></html>
+<a href=#161 id=161 data-nosnippet>161</a>    </span><span class="kw">fn </span>prop_sc2037_redirect_to_var_always_diagnosed() {
+<a href=#162 id=162 data-nosnippet>162</a>        <span class="comment">// Property: Unquoted redirects to variables should always be diagnosed
+<a href=#163 id=163 data-nosnippet>163</a>        </span><span class="kw">let </span>test_cases = <span class="macro">vec!</span>[
+<a href=#164 id=164 data-nosnippet>164</a>            (<span class="string">"echo result &gt; $VAR"</span>, <span class="string">"&gt;"</span>),
+<a href=#165 id=165 data-nosnippet>165</a>            (<span class="string">"cmd &gt;&gt; $output"</span>, <span class="string">"&gt;&gt;"</span>),
+<a href=#166 id=166 data-nosnippet>166</a>            (<span class="string">"date &gt; $timestamp"</span>, <span class="string">"&gt;"</span>),
+<a href=#167 id=167 data-nosnippet>167</a>        ];
+<a href=#168 id=168 data-nosnippet>168</a>
+<a href=#169 id=169 data-nosnippet>169</a>        <span class="kw">for </span>(code, redirect_op) <span class="kw">in </span>test_cases {
+<a href=#170 id=170 data-nosnippet>170</a>            <span class="kw">let </span>result = check(code);
+<a href=#171 id=171 data-nosnippet>171</a>            <span class="macro">assert_eq!</span>(result.diagnostics.len(), <span class="number">1</span>, <span class="string">"Should diagnose: {}"</span>, code);
+<a href=#172 id=172 data-nosnippet>172</a>            <span class="macro">assert!</span>(result.diagnostics[<span class="number">0</span>].message.contains(redirect_op));
+<a href=#173 id=173 data-nosnippet>173</a>        }
+<a href=#174 id=174 data-nosnippet>174</a>    }
+<a href=#175 id=175 data-nosnippet>175</a>
+<a href=#176 id=176 data-nosnippet>176</a>    <span class="attr">#[test]
+<a href=#177 id=177 data-nosnippet>177</a>    </span><span class="kw">fn </span>prop_sc2037_log_patterns_never_diagnosed() {
+<a href=#178 id=178 data-nosnippet>178</a>        <span class="comment">// Property: Common log file patterns should not be diagnosed
+<a href=#179 id=179 data-nosnippet>179</a>        </span><span class="kw">let </span>log_vars = <span class="macro">vec!</span>[<span class="string">"LOGFILE"</span>, <span class="string">"LOG"</span>, <span class="string">"ERROR_FILE"</span>, <span class="string">"OUTPUT_LOG"</span>];
+<a href=#180 id=180 data-nosnippet>180</a>
+<a href=#181 id=181 data-nosnippet>181</a>        <span class="kw">for </span>var <span class="kw">in </span>log_vars {
+<a href=#182 id=182 data-nosnippet>182</a>            <span class="kw">let </span>code = <span class="macro">format!</span>(<span class="string">"echo test &gt;&gt; ${}"</span>, var);
+<a href=#183 id=183 data-nosnippet>183</a>            <span class="kw">let </span>result = check(<span class="kw-2">&amp;</span>code);
+<a href=#184 id=184 data-nosnippet>184</a>            <span class="macro">assert_eq!</span>(
+<a href=#185 id=185 data-nosnippet>185</a>                result.diagnostics.len(),
+<a href=#186 id=186 data-nosnippet>186</a>                <span class="number">0</span>,
+<a href=#187 id=187 data-nosnippet>187</a>                <span class="string">"Log pattern {} should be OK"</span>,
+<a href=#188 id=188 data-nosnippet>188</a>                var
+<a href=#189 id=189 data-nosnippet>189</a>            );
+<a href=#190 id=190 data-nosnippet>190</a>        }
+<a href=#191 id=191 data-nosnippet>191</a>    }
+<a href=#192 id=192 data-nosnippet>192</a>
+<a href=#193 id=193 data-nosnippet>193</a>    <span class="attr">#[test]
+<a href=#194 id=194 data-nosnippet>194</a>    </span><span class="kw">fn </span>prop_sc2037_stderr_redirects_never_diagnosed() {
+<a href=#195 id=195 data-nosnippet>195</a>        <span class="comment">// Property: Stderr/combined redirects should not be diagnosed
+<a href=#196 id=196 data-nosnippet>196</a>        </span><span class="kw">let </span>test_cases = <span class="macro">vec!</span>[<span class="string">"cmd 2&gt; $ERROR"</span>, <span class="string">"cmd &amp;&gt; $COMBINED"</span>];
+<a href=#197 id=197 data-nosnippet>197</a>
+<a href=#198 id=198 data-nosnippet>198</a>        <span class="kw">for </span>code <span class="kw">in </span>test_cases {
+<a href=#199 id=199 data-nosnippet>199</a>            <span class="kw">let </span>result = check(code);
+<a href=#200 id=200 data-nosnippet>200</a>            <span class="macro">assert_eq!</span>(result.diagnostics.len(), <span class="number">0</span>, <span class="string">"Should allow: {}"</span>, code);
+<a href=#201 id=201 data-nosnippet>201</a>        }
+<a href=#202 id=202 data-nosnippet>202</a>    }
+<a href=#203 id=203 data-nosnippet>203</a>
+<a href=#204 id=204 data-nosnippet>204</a>    <span class="attr">#[test]
+<a href=#205 id=205 data-nosnippet>205</a>    </span><span class="kw">fn </span>prop_sc2037_command_subst_never_diagnosed() {
+<a href=#206 id=206 data-nosnippet>206</a>        <span class="comment">// Property: Command substitution should never be diagnosed
+<a href=#207 id=207 data-nosnippet>207</a>        </span><span class="kw">let </span>test_cases = <span class="macro">vec!</span>[<span class="string">"VAR=$(echo result)"</span>, <span class="string">"output=$(cmd)"</span>, <span class="string">"timestamp=$(date)"</span>];
+<a href=#208 id=208 data-nosnippet>208</a>
+<a href=#209 id=209 data-nosnippet>209</a>        <span class="kw">for </span>code <span class="kw">in </span>test_cases {
+<a href=#210 id=210 data-nosnippet>210</a>            <span class="kw">let </span>result = check(code);
+<a href=#211 id=211 data-nosnippet>211</a>            <span class="macro">assert_eq!</span>(result.diagnostics.len(), <span class="number">0</span>);
+<a href=#212 id=212 data-nosnippet>212</a>        }
+<a href=#213 id=213 data-nosnippet>213</a>    }
+<a href=#214 id=214 data-nosnippet>214</a>
+<a href=#215 id=215 data-nosnippet>215</a>    <span class="attr">#[test]
+<a href=#216 id=216 data-nosnippet>216</a>    </span><span class="kw">fn </span>prop_sc2037_diagnostic_code_always_sc2037() {
+<a href=#217 id=217 data-nosnippet>217</a>        <span class="comment">// Property: All diagnostics must have code "SC2037"
+<a href=#218 id=218 data-nosnippet>218</a>        </span><span class="kw">let </span>code = <span class="string">"echo a &gt; $VAR1\necho b &gt; $VAR2"</span>;
+<a href=#219 id=219 data-nosnippet>219</a>        <span class="kw">let </span>result = check(code);
+<a href=#220 id=220 data-nosnippet>220</a>
+<a href=#221 id=221 data-nosnippet>221</a>        <span class="kw">for </span>diagnostic <span class="kw">in </span><span class="kw-2">&amp;</span>result.diagnostics {
+<a href=#222 id=222 data-nosnippet>222</a>            <span class="macro">assert_eq!</span>(<span class="kw-2">&amp;</span>diagnostic.code, <span class="string">"SC2037"</span>);
+<a href=#223 id=223 data-nosnippet>223</a>        }
+<a href=#224 id=224 data-nosnippet>224</a>    }
+<a href=#225 id=225 data-nosnippet>225</a>
+<a href=#226 id=226 data-nosnippet>226</a>    <span class="attr">#[test]
+<a href=#227 id=227 data-nosnippet>227</a>    </span><span class="kw">fn </span>prop_sc2037_diagnostic_severity_always_warning() {
+<a href=#228 id=228 data-nosnippet>228</a>        <span class="comment">// Property: All diagnostics must be Warning severity
+<a href=#229 id=229 data-nosnippet>229</a>        </span><span class="kw">let </span>code = <span class="string">"echo test &gt; $OUTPUT"</span>;
+<a href=#230 id=230 data-nosnippet>230</a>        <span class="kw">let </span>result = check(code);
+<a href=#231 id=231 data-nosnippet>231</a>
+<a href=#232 id=232 data-nosnippet>232</a>        <span class="kw">for </span>diagnostic <span class="kw">in </span><span class="kw-2">&amp;</span>result.diagnostics {
+<a href=#233 id=233 data-nosnippet>233</a>            <span class="macro">assert_eq!</span>(diagnostic.severity, Severity::Warning);
+<a href=#234 id=234 data-nosnippet>234</a>        }
+<a href=#235 id=235 data-nosnippet>235</a>    }
+<a href=#236 id=236 data-nosnippet>236</a>
+<a href=#237 id=237 data-nosnippet>237</a>    <span class="attr">#[test]
+<a href=#238 id=238 data-nosnippet>238</a>    </span><span class="kw">fn </span>prop_sc2037_empty_source_no_diagnostics() {
+<a href=#239 id=239 data-nosnippet>239</a>        <span class="comment">// Property: Empty source should produce no diagnostics
+<a href=#240 id=240 data-nosnippet>240</a>        </span><span class="kw">let </span>result = check(<span class="string">""</span>);
+<a href=#241 id=241 data-nosnippet>241</a>        <span class="macro">assert_eq!</span>(result.diagnostics.len(), <span class="number">0</span>);
+<a href=#242 id=242 data-nosnippet>242</a>    }
+<a href=#243 id=243 data-nosnippet>243</a>
+<a href=#244 id=244 data-nosnippet>244</a>    <span class="comment">// ===== Original Unit Tests =====
+<a href=#245 id=245 data-nosnippet>245</a>
+<a href=#246 id=246 data-nosnippet>246</a>    </span><span class="attr">#[test]
+<a href=#247 id=247 data-nosnippet>247</a>    </span><span class="kw">fn </span>test_sc2037_redirect_to_var() {
+<a href=#248 id=248 data-nosnippet>248</a>        <span class="kw">let </span>code = <span class="string">r#"echo "result" &gt; $VAR"#</span>;
+<a href=#249 id=249 data-nosnippet>249</a>        <span class="kw">let </span>result = check(code);
+<a href=#250 id=250 data-nosnippet>250</a>        <span class="macro">assert_eq!</span>(result.diagnostics.len(), <span class="number">1</span>);
+<a href=#251 id=251 data-nosnippet>251</a>        <span class="macro">assert_eq!</span>(result.diagnostics[<span class="number">0</span>].code, <span class="string">"SC2037"</span>);
+<a href=#252 id=252 data-nosnippet>252</a>        <span class="macro">assert_eq!</span>(result.diagnostics[<span class="number">0</span>].severity, Severity::Warning);
+<a href=#253 id=253 data-nosnippet>253</a>        <span class="macro">assert!</span>(result.diagnostics[<span class="number">0</span>].message.contains(<span class="string">"$(cmd)"</span>));
+<a href=#254 id=254 data-nosnippet>254</a>    }
+<a href=#255 id=255 data-nosnippet>255</a>
+<a href=#256 id=256 data-nosnippet>256</a>    <span class="attr">#[test]
+<a href=#257 id=257 data-nosnippet>257</a>    </span><span class="kw">fn </span>test_sc2037_append_to_var() {
+<a href=#258 id=258 data-nosnippet>258</a>        <span class="kw">let </span>code = <span class="string">r#"cmd &gt;&gt; $output"#</span>;
+<a href=#259 id=259 data-nosnippet>259</a>        <span class="kw">let </span>result = check(code);
+<a href=#260 id=260 data-nosnippet>260</a>        <span class="macro">assert_eq!</span>(result.diagnostics.len(), <span class="number">1</span>);
+<a href=#261 id=261 data-nosnippet>261</a>    }
+<a href=#262 id=262 data-nosnippet>262</a>
+<a href=#263 id=263 data-nosnippet>263</a>    <span class="attr">#[test]
+<a href=#264 id=264 data-nosnippet>264</a>    </span><span class="kw">fn </span>test_sc2037_date_to_var() {
+<a href=#265 id=265 data-nosnippet>265</a>        <span class="kw">let </span>code = <span class="string">r#"date &gt; $timestamp"#</span>;
+<a href=#266 id=266 data-nosnippet>266</a>        <span class="kw">let </span>result = check(code);
+<a href=#267 id=267 data-nosnippet>267</a>        <span class="macro">assert_eq!</span>(result.diagnostics.len(), <span class="number">1</span>);
+<a href=#268 id=268 data-nosnippet>268</a>    }
+<a href=#269 id=269 data-nosnippet>269</a>
+<a href=#270 id=270 data-nosnippet>270</a>    <span class="attr">#[test]
+<a href=#271 id=271 data-nosnippet>271</a>    </span><span class="kw">fn </span>test_sc2037_command_subst_ok() {
+<a href=#272 id=272 data-nosnippet>272</a>        <span class="kw">let </span>code = <span class="string">r#"VAR=$(echo "result")"#</span>;
+<a href=#273 id=273 data-nosnippet>273</a>        <span class="kw">let </span>result = check(code);
+<a href=#274 id=274 data-nosnippet>274</a>        <span class="comment">// Proper command substitution, OK
+<a href=#275 id=275 data-nosnippet>275</a>        </span><span class="macro">assert_eq!</span>(result.diagnostics.len(), <span class="number">0</span>);
+<a href=#276 id=276 data-nosnippet>276</a>    }
+<a href=#277 id=277 data-nosnippet>277</a>
+<a href=#278 id=278 data-nosnippet>278</a>    <span class="attr">#[test]
+<a href=#279 id=279 data-nosnippet>279</a>    </span><span class="kw">fn </span>test_sc2037_redirect_to_file_ok() {
+<a href=#280 id=280 data-nosnippet>280</a>        <span class="kw">let </span>code = <span class="string">r#"echo "result" &gt; output.txt"#</span>;
+<a href=#281 id=281 data-nosnippet>281</a>        <span class="kw">let </span>result = check(code);
+<a href=#282 id=282 data-nosnippet>282</a>        <span class="comment">// Redirect to literal file, OK
+<a href=#283 id=283 data-nosnippet>283</a>        </span><span class="macro">assert_eq!</span>(result.diagnostics.len(), <span class="number">0</span>);
+<a href=#284 id=284 data-nosnippet>284</a>    }
+<a href=#285 id=285 data-nosnippet>285</a>
+<a href=#286 id=286 data-nosnippet>286</a>    <span class="attr">#[test]
+<a href=#287 id=287 data-nosnippet>287</a>    </span><span class="kw">fn </span>test_sc2037_logfile_var_ok() {
+<a href=#288 id=288 data-nosnippet>288</a>        <span class="kw">let </span>code = <span class="string">r#"echo "log entry" &gt;&gt; $LOGFILE"#</span>;
+<a href=#289 id=289 data-nosnippet>289</a>        <span class="kw">let </span>result = check(code);
+<a href=#290 id=290 data-nosnippet>290</a>        <span class="comment">// LOGFILE is common pattern for actual file, OK
+<a href=#291 id=291 data-nosnippet>291</a>        </span><span class="macro">assert_eq!</span>(result.diagnostics.len(), <span class="number">0</span>);
+<a href=#292 id=292 data-nosnippet>292</a>    }
+<a href=#293 id=293 data-nosnippet>293</a>
+<a href=#294 id=294 data-nosnippet>294</a>    <span class="attr">#[test]
+<a href=#295 id=295 data-nosnippet>295</a>    </span><span class="kw">fn </span>test_sc2037_stderr_redirect_ok() {
+<a href=#296 id=296 data-nosnippet>296</a>        <span class="kw">let </span>code = <span class="string">r#"cmd 2&gt; $ERROR"#</span>;
+<a href=#297 id=297 data-nosnippet>297</a>        <span class="kw">let </span>result = check(code);
+<a href=#298 id=298 data-nosnippet>298</a>        <span class="comment">// Stderr redirect (2&gt;) is different, OK
+<a href=#299 id=299 data-nosnippet>299</a>        </span><span class="macro">assert_eq!</span>(result.diagnostics.len(), <span class="number">0</span>);
+<a href=#300 id=300 data-nosnippet>300</a>    }
+<a href=#301 id=301 data-nosnippet>301</a>
+<a href=#302 id=302 data-nosnippet>302</a>    <span class="attr">#[test]
+<a href=#303 id=303 data-nosnippet>303</a>    </span><span class="kw">fn </span>test_sc2037_in_quotes_ok() {
+<a href=#304 id=304 data-nosnippet>304</a>        <span class="kw">let </span>code = <span class="string">r#"echo "cmd &gt; $VAR""#</span>;
+<a href=#305 id=305 data-nosnippet>305</a>        <span class="kw">let </span>result = check(code);
+<a href=#306 id=306 data-nosnippet>306</a>        <span class="comment">// Inside quotes, not actual redirect
+<a href=#307 id=307 data-nosnippet>307</a>        </span><span class="macro">assert_eq!</span>(result.diagnostics.len(), <span class="number">0</span>);
+<a href=#308 id=308 data-nosnippet>308</a>    }
+<a href=#309 id=309 data-nosnippet>309</a>
+<a href=#310 id=310 data-nosnippet>310</a>    <span class="attr">#[test]
+<a href=#311 id=311 data-nosnippet>311</a>    </span><span class="kw">fn </span>test_sc2037_comment_ok() {
+<a href=#312 id=312 data-nosnippet>312</a>        <span class="kw">let </span>code = <span class="string">r#"# echo "result" &gt; $VAR"#</span>;
+<a href=#313 id=313 data-nosnippet>313</a>        <span class="kw">let </span>result = check(code);
+<a href=#314 id=314 data-nosnippet>314</a>        <span class="macro">assert_eq!</span>(result.diagnostics.len(), <span class="number">0</span>);
+<a href=#315 id=315 data-nosnippet>315</a>    }
+<a href=#316 id=316 data-nosnippet>316</a>
+<a href=#317 id=317 data-nosnippet>317</a>    <span class="attr">#[test]
+<a href=#318 id=318 data-nosnippet>318</a>    </span><span class="kw">fn </span>test_sc2037_multiple_redirects() {
+<a href=#319 id=319 data-nosnippet>319</a>        <span class="kw">let </span>code = <span class="string">r#"
+<a href=#320 id=320 data-nosnippet>320</a>echo "a" &gt; $VAR1
+<a href=#321 id=321 data-nosnippet>321</a>echo "b" &gt; $VAR2
+<a href=#322 id=322 data-nosnippet>322</a>"#</span>;
+<a href=#323 id=323 data-nosnippet>323</a>        <span class="kw">let </span>result = check(code);
+<a href=#324 id=324 data-nosnippet>324</a>        <span class="macro">assert_eq!</span>(result.diagnostics.len(), <span class="number">2</span>);
+<a href=#325 id=325 data-nosnippet>325</a>    }
+<a href=#326 id=326 data-nosnippet>326</a>
+<a href=#327 id=327 data-nosnippet>327</a>    <span class="attr">#[test]
+<a href=#328 id=328 data-nosnippet>328</a>    </span><span class="kw">fn </span>test_sc2037_combined_redirect_ok() {
+<a href=#329 id=329 data-nosnippet>329</a>        <span class="kw">let </span>code = <span class="string">r#"cmd &amp;&gt; $COMBINED_LOG"#</span>;
+<a href=#330 id=330 data-nosnippet>330</a>        <span class="kw">let </span>result = check(code);
+<a href=#331 id=331 data-nosnippet>331</a>        <span class="comment">// Combined redirect with _LOG suffix, OK
+<a href=#332 id=332 data-nosnippet>332</a>        </span><span class="macro">assert_eq!</span>(result.diagnostics.len(), <span class="number">0</span>);
+<a href=#333 id=333 data-nosnippet>333</a>    }
+<a href=#334 id=334 data-nosnippet>334</a>}</code></pre></div></section></main></body></html>

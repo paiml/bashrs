@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"fn":["check"]};
+window.SIDEBAR_ITEMS = {"fn":["check","create_array_diagnostic","has_array_expansion","has_index","is_array_declaration","is_comment_line","matches_array_heuristics"]};

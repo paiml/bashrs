@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"fn":["check"],"static":["REDIRECT_TO_VAR"]};
+window.SIDEBAR_ITEMS = {"fn":["check","create_redirect_diagnostic","is_comment_line","is_inside_quotes","is_log_file_pattern","is_stderr_or_combined_redirect"],"static":["REDIRECT_TO_VAR"]};

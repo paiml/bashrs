@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"constant":["DANGEROUS_COMMANDS"],"fn":["check"]};
+window.SIDEBAR_ITEMS = {"constant":["DANGEROUS_COMMANDS"],"fn":["check","create_sec002_diagnostic","find_dangerous_command","find_unquoted_variable","is_comment_line"]};

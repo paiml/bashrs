@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"fn":["check"],"static":["MULTIPLE_APPEND_REDIRECTS","MULTIPLE_STDERR_REDIRECTS","MULTIPLE_STDOUT_REDIRECTS"]};
+window.SIDEBAR_ITEMS = {"fn":["check","count_stdout_redirects","create_diagnostic","should_skip_line","split_commands"],"static":["MULTIPLE_APPEND_REDIRECTS","MULTIPLE_STDERR_REDIRECTS","MULTIPLE_STDOUT_REDIRECTS"]};

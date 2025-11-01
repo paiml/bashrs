@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"constant":["SECRET_PATTERNS"],"fn":["check"]};
+window.SIDEBAR_ITEMS = {"constant":["SECRET_PATTERNS"],"fn":["calculate_span","check","create_hardcoded_secret_diagnostic","extract_after_equals","find_pattern_position","is_comment_line","is_literal_assignment"]};

@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"fn":["check"]};
+window.SIDEBAR_ITEMS = {"fn":["check","create_same_file_diagnostic","extract_output_filename","filename_in_command","has_redirect","is_append_redirect","is_comment_line","is_simple_redirect"]};

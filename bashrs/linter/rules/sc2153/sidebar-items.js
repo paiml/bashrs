@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"fn":["check"],"static":["VAR_ASSIGNMENT","VAR_REFERENCE"]};
+window.SIDEBAR_ITEMS = {"fn":["check","create_misspelling_diagnostic","extract_assigned_variables","is_comment_line","is_env_variable"],"static":["VAR_ASSIGNMENT","VAR_REFERENCE"]};

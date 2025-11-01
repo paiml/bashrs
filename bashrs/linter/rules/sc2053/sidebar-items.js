@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"fn":["check"],"static":["UNQUOTED_RHS_WITH_SPECIAL"]};
+window.SIDEBAR_ITEMS = {"fn":["calculate_absolute_rhs_pos","check","create_unquoted_glob_diagnostic","has_double_bracket","is_already_quoted","is_comment_line","should_check_line"],"static":["UNQUOTED_RHS_WITH_SPECIAL"]};
