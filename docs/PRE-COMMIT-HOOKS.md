@@ -88,31 +88,48 @@ pmat analyze satd --path rash/src
 
 ## Hook Installation
 
-The pre-commit hook is located at `.git/hooks/pre-commit` and is automatically installed when you clone the repository.
+The pre-commit hook is tracked in the repository at `scripts/hooks/pre-commit.sh` and linked into `.git/hooks/`.
 
-To manually install or update:
+**Installation** (run once after cloning):
 ```bash
-cp scripts/pre-commit.sh .git/hooks/pre-commit
-chmod +x .git/hooks/pre-commit
+ln -sf ../../scripts/hooks/pre-commit.sh .git/hooks/pre-commit
 ```
+
+**Verification**:
+```bash
+.git/hooks/pre-commit  # Should run all quality gates
+```
+
+The hook is tracked in git so the team can maintain it collaboratively.
 
 ## Hook Output Example
 
 ```
-🔍 Running pre-commit quality checks...
-  📋 Checking clippy (zero warnings required)...
-  ✅ Clippy: Zero warnings
-  ⚡ Checking performance lints (release mode)...
-  ✅ Performance: No issues
-  🧪 Running tests...
-  ✅ Tests: All passing
-  📊 Checking code complexity (pmat)...
-  ✅ Complexity: Checked
-  📝 Checking technical debt (pmat)...
-  ✅ Technical debt: Checked
+🔍 bashrs Pre-commit Quality Gates
+====================================
 
-✅ Pre-commit checks passed - proceeding with commit
+📊 Quality Gate Checks
+----------------------
+  1. Clippy (zero warnings)... ✅
+  2. Performance lints... ✅
+  3. Test suite... ✅
+  4. Code complexity (max: 10)... ⚠️  (18 functions >10)
+     Goal: Refactor high-complexity functions with EXTREME TDD
+     Run: pmat analyze complexity
+  5. Technical debt (zero tolerance goal)... ⚠️  (1 critical, 3 high)
+     Production code has Critical/High SATD - should fix soon
+     Run: pmat analyze satd --path rash/src
+  6. Code formatting... ✅
+  7. Documentation sync... ✅
+
+Quality Gate Summary
+--------------------
+✅ All quality gates passed!
+
+Commit is ready to proceed.
 ```
+
+**Note**: Warnings (⚠️) display progress toward quality goals but don't block commits.
 
 ## Bypassing Hooks (Emergency Only)
 
@@ -133,12 +150,18 @@ git commit --no-verify -m "emergency fix"
 
 | Metric | Target | Enforcement |
 |--------|--------|-------------|
-| Clippy warnings | 0 | Blocking |
-| Performance issues | 0 | Blocking |
-| Test pass rate | 100% | Blocking |
+| Clippy warnings | 0 | **Blocking** |
+| Performance issues | 0 | **Blocking** |
+| Test pass rate | 100% | **Blocking** |
+| Code formatting | 100% | **Blocking** |
 | Code coverage | >85% | CI only |
-| Cyclomatic complexity | <15 | Warning |
-| SATD Critical/High | 0 | Warning |
+| Cyclomatic complexity | <10 | Warning (goal) |
+| SATD Critical/High | 0 | Warning (track) |
+
+**Enforcement Levels**:
+- **Blocking**: Commit fails if check fails (clippy, tests, performance, formatting)
+- **Warning**: Displayed but doesn't block (complexity, SATD - track progress toward goals)
+- **CI only**: Checked in continuous integration, not pre-commit
 
 ## Toyota Way Principles
 
