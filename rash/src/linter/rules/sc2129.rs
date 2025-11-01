@@ -33,6 +33,49 @@ static APPEND_REDIRECT: Lazy<Regex> = Lazy::new(|| {
     Regex::new(r">>\s*([^\s;|&<>]+)").unwrap()
 });
 
+/// Check if a line is a comment or empty
+fn is_comment_or_empty(line: &str) -> bool {
+    let trimmed = line.trim();
+    trimmed.starts_with('#') || trimmed.is_empty()
+}
+
+/// Extract redirect filename from line
+fn extract_redirect_file(line: &str) -> Option<String> {
+    APPEND_REDIRECT
+        .captures(line.trim())
+        .map(|cap| cap.get(1).unwrap().as_str().to_string())
+}
+
+/// Check if group should be added (count >= 2)
+fn should_add_group(count: usize) -> bool {
+    count >= 2
+}
+
+/// Add group to list if count threshold met
+fn add_group_if_needed(
+    groups: &mut Vec<(String, usize, usize)>,
+    file: Option<String>,
+    start: usize,
+    count: usize,
+) {
+    if should_add_group(count) {
+        groups.push((file.unwrap(), start, count));
+    }
+}
+
+/// Create diagnostic for redirect group
+fn create_redirect_group_diagnostic(file: &str, start_line: usize, count: usize) -> Diagnostic {
+    Diagnostic::new(
+        "SC2129",
+        Severity::Info,
+        format!(
+            "Consider using {{ cmd1; cmd2; }} >> {} instead of {} individual redirects for better performance",
+            file, count
+        ),
+        Span::new(start_line, 1, start_line + count - 1, 1),
+    )
+}
+
 pub fn check(source: &str) -> LintResult {
     let mut result = LintResult::new();
     let lines: Vec<&str> = source.lines().collect();
@@ -47,34 +90,33 @@ pub fn check(source: &str) -> LintResult {
 
     for (idx, line) in lines.iter().enumerate() {
         let line_num = idx + 1;
-        let trimmed = line.trim();
 
-        if trimmed.starts_with('#') || trimmed.is_empty() {
+        if is_comment_or_empty(line) {
             // End current group on blank lines or comments
-            if current_count >= 2 {
-                consecutive_groups.push((
-                    current_file.clone().unwrap(),
-                    current_start,
-                    current_count,
-                ));
-            }
+            add_group_if_needed(
+                &mut consecutive_groups,
+                current_file.clone(),
+                current_start,
+                current_count,
+            );
             current_file = None;
             current_count = 0;
             continue;
         }
 
-        if let Some(cap) = APPEND_REDIRECT.captures(trimmed) {
-            let file = cap.get(1).unwrap().as_str().to_string();
-
+        if let Some(file) = extract_redirect_file(line) {
             if let Some(ref curr_file) = current_file {
                 if curr_file == &file {
                     // Continue current group
                     current_count += 1;
                 } else {
                     // Different file, start new group
-                    if current_count >= 2 {
-                        consecutive_groups.push((curr_file.clone(), current_start, current_count));
-                    }
+                    add_group_if_needed(
+                        &mut consecutive_groups,
+                        Some(curr_file.clone()),
+                        current_start,
+                        current_count,
+                    );
                     current_file = Some(file);
                     current_start = line_num;
                     current_count = 1;
@@ -87,35 +129,28 @@ pub fn check(source: &str) -> LintResult {
             }
         } else {
             // Line doesn't have redirect, end current group
-            if current_count >= 2 {
-                consecutive_groups.push((
-                    current_file.clone().unwrap(),
-                    current_start,
-                    current_count,
-                ));
-            }
+            add_group_if_needed(
+                &mut consecutive_groups,
+                current_file.clone(),
+                current_start,
+                current_count,
+            );
             current_file = None;
             current_count = 0;
         }
     }
 
     // Check last group
-    if current_count >= 2 {
-        consecutive_groups.push((current_file.unwrap(), current_start, current_count));
-    }
+    add_group_if_needed(
+        &mut consecutive_groups,
+        current_file,
+        current_start,
+        current_count,
+    );
 
     // Generate warnings for groups of 2+ consecutive redirects
     for (file, start_line, count) in consecutive_groups {
-        let diagnostic = Diagnostic::new(
-            "SC2129",
-            Severity::Info,
-            format!(
-                "Consider using {{ cmd1; cmd2; }} >> {} instead of {} individual redirects for better performance",
-                file, count
-            ),
-            Span::new(start_line, 1, start_line + count - 1, 1),
-        );
-
+        let diagnostic = create_redirect_group_diagnostic(&file, start_line, count);
         result.add(diagnostic);
     }
 
@@ -125,6 +160,127 @@ pub fn check(source: &str) -> LintResult {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    // ===== Manual Property Tests =====
+
+    #[test]
+    fn prop_sc2129_comments_break_groups() {
+        // Property: Comments should break consecutive groups
+        let test_cases = vec![
+            "echo a >> f\n# comment\necho b >> f",
+            "cat d >> f\n  # note\ncat e >> f",
+        ];
+
+        for code in test_cases {
+            let result = check(code);
+            assert_eq!(result.diagnostics.len(), 0);
+        }
+    }
+
+    #[test]
+    fn prop_sc2129_blank_lines_break_groups() {
+        // Property: Blank lines should break consecutive groups
+        let code = "echo a >> f\necho b >> f\n\necho c >> f\necho d >> f";
+        let result = check(code);
+        assert_eq!(result.diagnostics.len(), 2);
+    }
+
+    #[test]
+    fn prop_sc2129_single_redirect_never_diagnosed() {
+        // Property: Single redirects should not be diagnosed
+        let test_cases = vec![
+            "echo line >> file.txt",
+            "cat data >> output.log",
+            "printf test >> result.txt",
+        ];
+
+        for code in test_cases {
+            let result = check(code);
+            assert_eq!(result.diagnostics.len(), 0);
+        }
+    }
+
+    #[test]
+    fn prop_sc2129_consecutive_same_file_always_diagnosed() {
+        // Property: 2+ consecutive redirects to same file should be diagnosed
+        let test_cases = vec![
+            ("echo a >> f\necho b >> f", "f", 2),
+            ("cat x >> log\ncat y >> log\ncat z >> log", "log", 3),
+            (
+                "echo 1 >> out\necho 2 >> out\necho 3 >> out\necho 4 >> out",
+                "out",
+                4,
+            ),
+        ];
+
+        for (code, filename, count) in test_cases {
+            let result = check(code);
+            assert_eq!(result.diagnostics.len(), 1, "Should diagnose: {}", code);
+            assert!(result.diagnostics[0].message.contains(filename));
+            assert!(result.diagnostics[0].message.contains(&count.to_string()));
+        }
+    }
+
+    #[test]
+    fn prop_sc2129_different_files_never_diagnosed() {
+        // Property: Redirects to different files should not be diagnosed
+        let test_cases = vec![
+            "echo a >> f1\necho b >> f2",
+            "cat x >> log1\ncat y >> log2\ncat z >> log3",
+        ];
+
+        for code in test_cases {
+            let result = check(code);
+            assert_eq!(result.diagnostics.len(), 0);
+        }
+    }
+
+    #[test]
+    fn prop_sc2129_non_consecutive_never_diagnosed() {
+        // Property: Non-consecutive redirects should not be diagnosed
+        let code = "echo a >> f\necho middle\necho b >> f";
+        let result = check(code);
+        assert_eq!(result.diagnostics.len(), 0);
+    }
+
+    #[test]
+    fn prop_sc2129_write_redirect_never_diagnosed() {
+        // Property: Write redirects (>) should not be diagnosed
+        let code = "echo a > f\necho b >> f";
+        let result = check(code);
+        assert_eq!(result.diagnostics.len(), 0);
+    }
+
+    #[test]
+    fn prop_sc2129_diagnostic_code_always_sc2129() {
+        // Property: All diagnostics must have code "SC2129"
+        let code = "echo a >> f\necho b >> f\n\ncat x >> g\ncat y >> g";
+        let result = check(code);
+
+        for diagnostic in &result.diagnostics {
+            assert_eq!(&diagnostic.code, "SC2129");
+        }
+    }
+
+    #[test]
+    fn prop_sc2129_diagnostic_severity_always_info() {
+        // Property: All diagnostics must be Info severity
+        let code = "echo a >> f\necho b >> f";
+        let result = check(code);
+
+        for diagnostic in &result.diagnostics {
+            assert_eq!(diagnostic.severity, Severity::Info);
+        }
+    }
+
+    #[test]
+    fn prop_sc2129_empty_source_no_diagnostics() {
+        // Property: Empty source should produce no diagnostics
+        let result = check("");
+        assert_eq!(result.diagnostics.len(), 0);
+    }
+
+    // ===== Original Unit Tests =====
 
     #[test]
     fn test_sc2129_multiple_redirects() {
