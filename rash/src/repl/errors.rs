@@ -107,7 +107,10 @@ pub fn format_error(error: &ErrorMessage) -> String {
 
     // Format header
     if let Some(code) = &error.code {
-        output.push_str(&format!("{} {} {} [{}]\n\n", icon, type_str, severity_str, code));
+        output.push_str(&format!(
+            "{} {} {} [{}]\n\n",
+            icon, type_str, severity_str, code
+        ));
     } else {
         output.push_str(&format!("{} {} {}\n\n", icon, type_str, severity_str));
     }
@@ -151,10 +154,18 @@ pub fn format_error(error: &ErrorMessage) -> String {
 }
 
 /// Create error message for parse errors
-pub fn format_parse_error(error_msg: &str, line: usize, column: usize, source: &str) -> ErrorMessage {
+pub fn format_parse_error(
+    error_msg: &str,
+    line: usize,
+    column: usize,
+    source: &str,
+) -> ErrorMessage {
     let lines: Vec<&str> = source.lines().collect();
     let source_line = if line > 0 && line <= lines.len() {
-        lines.get(line - 1).map(|s| s.to_string()).unwrap_or_default()
+        lines
+            .get(line - 1)
+            .map(|s| s.to_string())
+            .unwrap_or_default()
     } else {
         String::new()
     };
@@ -198,7 +209,10 @@ pub fn format_lint_error(diagnostic: &Diagnostic, source: &str) -> ErrorMessage 
     let lines: Vec<&str> = source.lines().collect();
     let line_idx = diagnostic.span.start_line.saturating_sub(1);
     let source_line = if line_idx < lines.len() {
-        lines.get(line_idx).map(|s| s.to_string()).unwrap_or_default()
+        lines
+            .get(line_idx)
+            .map(|s| s.to_string())
+            .unwrap_or_default()
     } else {
         String::new()
     };

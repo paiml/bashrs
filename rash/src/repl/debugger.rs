@@ -491,15 +491,12 @@ impl DebugSession {
             return format!("  {}\n(no changes)", comparison.original);
         }
 
-        let explanations = Self::detect_transformations(
-            &comparison.original,
-            &comparison.purified
-        );
+        let explanations = Self::detect_transformations(&comparison.original, &comparison.purified);
 
         Self::format_diff_with_explanations(
             &comparison.original,
             &comparison.purified,
-            &explanations
+            &explanations,
         )
     }
 
@@ -539,11 +536,7 @@ impl DebugSession {
     }
 
     /// Format diff output with explanations
-    fn format_diff_with_explanations(
-        orig: &str,
-        purified: &str,
-        explanations: &[&str]
-    ) -> String {
+    fn format_diff_with_explanations(orig: &str, purified: &str, explanations: &[&str]) -> String {
         let mut output = format!("- {}\n+ {}", orig, purified);
 
         if !explanations.is_empty() {
@@ -772,7 +765,10 @@ mod tests {
         session.step_over();
 
         // ASSERT: Should be finished
-        assert!(session.is_finished(), "Should be finished after 3 next() calls");
+        assert!(
+            session.is_finished(),
+            "Should be finished after 3 next() calls"
+        );
     }
 
     /// Test: REPL-008-002-004 - Next when already finished
@@ -1030,8 +1026,8 @@ mod tests {
         // Note: In simplified version without real function tracking,
         // we'll just verify finish() doesn't crash and returns a valid result
         assert!(
-            matches!(result, ContinueResult::Finished) ||
-            matches!(result, ContinueResult::BreakpointHit(_))
+            matches!(result, ContinueResult::Finished)
+                || matches!(result, ContinueResult::BreakpointHit(_))
         );
     }
 
@@ -1383,16 +1379,10 @@ mod tests {
         let highlighted = session.format_diff_highlighting(&cmp);
 
         // ASSERT: Should highlight mkdir command
-        assert!(
-            highlighted.contains("mkdir"),
-            "Should show mkdir command"
-        );
+        assert!(highlighted.contains("mkdir"), "Should show mkdir command");
 
         // ASSERT: Should highlight -p flag addition
-        assert!(
-            highlighted.contains("-p"),
-            "Should show -p flag"
-        );
+        assert!(highlighted.contains("-p"), "Should show -p flag");
 
         // ASSERT: Should explain idempotency transformation
         assert!(
@@ -1423,10 +1413,7 @@ mod tests {
         let highlighted = session.format_diff_highlighting(&cmp);
 
         // ASSERT: Should show quotes
-        assert!(
-            highlighted.contains("\""),
-            "Should show quote addition"
-        );
+        assert!(highlighted.contains("\""), "Should show quote addition");
 
         // ASSERT: Should explain quoting transformation
         assert!(
@@ -1462,10 +1449,7 @@ mod tests {
         let highlighted = session.format_diff_highlighting(&cmp);
 
         // ASSERT: Should show ln command
-        assert!(
-            highlighted.contains("ln"),
-            "Should show ln command"
-        );
+        assert!(highlighted.contains("ln"), "Should show ln command");
 
         // ASSERT: Should highlight flag addition
         assert!(
@@ -1505,8 +1489,7 @@ mod tests {
         // ASSERT: Should handle no-change case gracefully
         if !cmp.differs {
             assert!(
-                highlighted.to_lowercase().contains("no change")
-                    || !highlighted.starts_with('-'),
+                highlighted.to_lowercase().contains("no change") || !highlighted.starts_with('-'),
                 "Should indicate no changes: {}",
                 highlighted
             );

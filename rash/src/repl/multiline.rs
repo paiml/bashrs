@@ -32,9 +32,9 @@ impl QuoteState {
 /// Bracket/brace/paren depth tracking
 #[derive(Debug, Clone, Copy)]
 struct BracketState {
-    brace_depth: i32,    // {}
-    paren_depth: i32,    // ()
-    bracket_depth: i32,  // []
+    brace_depth: i32,   // {}
+    paren_depth: i32,   // ()
+    bracket_depth: i32, // []
 }
 
 impl BracketState {
@@ -92,8 +92,12 @@ fn analyze_bracket_state(input: &str) -> BracketState {
 
         match ch {
             '\\' => escape_next = true,
-            '\'' if !quote_state.in_double_quote => quote_state.in_single_quote = !quote_state.in_single_quote,
-            '"' if !quote_state.in_single_quote => quote_state.in_double_quote = !quote_state.in_double_quote,
+            '\'' if !quote_state.in_double_quote => {
+                quote_state.in_single_quote = !quote_state.in_single_quote
+            }
+            '"' if !quote_state.in_single_quote => {
+                quote_state.in_double_quote = !quote_state.in_double_quote
+            }
             '{' if !quote_state.is_quoted() => state.brace_depth += 1,
             '}' if !quote_state.is_quoted() => state.brace_depth -= 1,
             '(' if !quote_state.is_quoted() => state.paren_depth += 1,
@@ -373,24 +377,24 @@ mod tests {
     /// Property: Unclosed quotes always incomplete
     #[test]
     fn prop_unclosed_quotes_always_incomplete() {
-        let unclosed_single = vec![
-            "echo 'hello",
-            "msg='test",
-            "echo 'world",
-        ];
+        let unclosed_single = vec!["echo 'hello", "msg='test", "echo 'world"];
 
-        let unclosed_double = vec![
-            "echo \"hello",
-            "msg=\"test",
-            "echo \"world",
-        ];
+        let unclosed_double = vec!["echo \"hello", "msg=\"test", "echo \"world"];
 
         for cmd in unclosed_single {
-            assert!(is_incomplete(cmd), "Unclosed single quote should be incomplete: {}", cmd);
+            assert!(
+                is_incomplete(cmd),
+                "Unclosed single quote should be incomplete: {}",
+                cmd
+            );
         }
 
         for cmd in unclosed_double {
-            assert!(is_incomplete(cmd), "Unclosed double quote should be incomplete: {}", cmd);
+            assert!(
+                is_incomplete(cmd),
+                "Unclosed double quote should be incomplete: {}",
+                cmd
+            );
         }
     }
 
@@ -406,7 +410,11 @@ mod tests {
         ];
 
         for cmd in balanced {
-            assert!(!is_incomplete(cmd), "Balanced quotes should be complete: {}", cmd);
+            assert!(
+                !is_incomplete(cmd),
+                "Balanced quotes should be complete: {}",
+                cmd
+            );
         }
     }
 
@@ -421,62 +429,67 @@ mod tests {
         ];
 
         for cmd in unclosed {
-            assert!(is_incomplete(cmd), "Unclosed brace should be incomplete: {}", cmd);
+            assert!(
+                is_incomplete(cmd),
+                "Unclosed brace should be incomplete: {}",
+                cmd
+            );
         }
     }
 
     /// Property: Balanced braces complete (if no other issues)
     #[test]
     fn prop_balanced_braces_complete() {
-        let balanced = vec![
-            "{ echo hello; }",
-            "function foo { echo hi; }",
-        ];
+        let balanced = vec!["{ echo hello; }", "function foo { echo hi; }"];
 
         for cmd in balanced {
-            assert!(!is_incomplete(cmd), "Balanced braces should be complete: {}", cmd);
+            assert!(
+                !is_incomplete(cmd),
+                "Balanced braces should be complete: {}",
+                cmd
+            );
         }
     }
 
     /// Property: Unclosed parentheses always incomplete
     #[test]
     fn prop_unclosed_parens_incomplete() {
-        let unclosed = vec![
-            "echo (hello",
-            "if ( test",
-            "result=$(echo test",
-        ];
+        let unclosed = vec!["echo (hello", "if ( test", "result=$(echo test"];
 
         for cmd in unclosed {
-            assert!(is_incomplete(cmd), "Unclosed paren should be incomplete: {}", cmd);
+            assert!(
+                is_incomplete(cmd),
+                "Unclosed paren should be incomplete: {}",
+                cmd
+            );
         }
     }
 
     /// Property: Balanced parentheses complete (if no other issues)
     #[test]
     fn prop_balanced_parens_complete() {
-        let balanced = vec![
-            "echo (hello)",
-            "(echo test)",
-            "result=$(echo done)",
-        ];
+        let balanced = vec!["echo (hello)", "(echo test)", "result=$(echo done)"];
 
         for cmd in balanced {
-            assert!(!is_incomplete(cmd), "Balanced parens should be complete: {}", cmd);
+            assert!(
+                !is_incomplete(cmd),
+                "Balanced parens should be complete: {}",
+                cmd
+            );
         }
     }
 
     /// Property: Unclosed brackets always incomplete
     #[test]
     fn prop_unclosed_brackets_incomplete() {
-        let unclosed = vec![
-            "if [ -f file",
-            "test [ condition",
-            "[ -z $var",
-        ];
+        let unclosed = vec!["if [ -f file", "test [ condition", "[ -z $var"];
 
         for cmd in unclosed {
-            assert!(is_incomplete(cmd), "Unclosed bracket should be incomplete: {}", cmd);
+            assert!(
+                is_incomplete(cmd),
+                "Unclosed bracket should be incomplete: {}",
+                cmd
+            );
         }
     }
 
@@ -492,7 +505,11 @@ mod tests {
         ];
 
         for (start, _close) in incomplete_keywords {
-            assert!(is_incomplete(start), "Keyword should need continuation: {}", start);
+            assert!(
+                is_incomplete(start),
+                "Keyword should need continuation: {}",
+                start
+            );
         }
     }
 
@@ -507,7 +524,11 @@ mod tests {
         ];
 
         for cmd in continuations {
-            assert!(is_incomplete(cmd), "Backslash continuation should be incomplete: {}", cmd);
+            assert!(
+                is_incomplete(cmd),
+                "Backslash continuation should be incomplete: {}",
+                cmd
+            );
         }
     }
 
@@ -523,7 +544,11 @@ mod tests {
         ];
 
         for cmd in complete {
-            assert!(!is_incomplete(cmd), "Complete control structure should not be incomplete: {}", cmd);
+            assert!(
+                !is_incomplete(cmd),
+                "Complete control structure should not be incomplete: {}",
+                cmd
+            );
         }
     }
 
@@ -572,8 +597,8 @@ mod proptest_generative {
     // Strategy for bash commands
     fn bash_command() -> impl Strategy<Value = String> {
         prop::sample::select(vec![
-            "echo", "ls", "cat", "grep", "sed", "awk", "mkdir", "rm", "cp", "mv",
-            "find", "chmod", "chown", "pwd", "cd", "test",
+            "echo", "ls", "cat", "grep", "sed", "awk", "mkdir", "rm", "cp", "mv", "find", "chmod",
+            "chown", "pwd", "cd", "test",
         ])
         .prop_map(|s| s.to_string())
     }
@@ -581,8 +606,8 @@ mod proptest_generative {
     // Strategy for bash keywords
     fn bash_keyword() -> impl Strategy<Value = String> {
         prop::sample::select(vec![
-            "if", "then", "else", "elif", "fi", "for", "while", "do", "done",
-            "until", "case", "esac", "function",
+            "if", "then", "else", "elif", "fi", "for", "while", "do", "done", "until", "case",
+            "esac", "function",
         ])
         .prop_map(|s| s.to_string())
     }

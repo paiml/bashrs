@@ -146,27 +146,27 @@ pub fn format_violations_with_context(result: &LintResult, source: &str) -> Stri
                     // Show indicator on the problematic line
                     if i == line_idx {
                         let col = diagnostic.span.start_col.saturating_sub(1);
-                        let indicator_width = if diagnostic.span.end_line == diagnostic.span.start_line
-                        {
-                            diagnostic
-                                .span
-                                .end_col
-                                .saturating_sub(diagnostic.span.start_col)
-                                .max(1)
-                        } else {
-                            line.len().saturating_sub(col).max(1)
-                        };
+                        let indicator_width =
+                            if diagnostic.span.end_line == diagnostic.span.start_line {
+                                diagnostic
+                                    .span
+                                    .end_col
+                                    .saturating_sub(diagnostic.span.start_col)
+                                    .max(1)
+                            } else {
+                                line.len().saturating_sub(col).max(1)
+                            };
 
-                    output.push_str(&format!(
-                        "  {:>width$} | {}{} {} [{}]: {}\n",
-                        "",
-                        " ".repeat(col),
-                        "^".repeat(indicator_width),
-                        diagnostic.severity,
-                        diagnostic.code,
-                        diagnostic.message,
-                        width = line_num_width
-                    ));
+                        output.push_str(&format!(
+                            "  {:>width$} | {}{} {} [{}]: {}\n",
+                            "",
+                            " ".repeat(col),
+                            "^".repeat(indicator_width),
+                            diagnostic.severity,
+                            diagnostic.code,
+                            diagnostic.message,
+                            width = line_num_width
+                        ));
                     }
                 }
             }
@@ -283,8 +283,16 @@ mod tests {
         let formatted = format_violations_with_context(&lint_result, source);
 
         // Should show line context (allowing for width padding)
-        assert!(formatted.contains("1 | echo hello"), "Output: {}", formatted);
-        assert!(formatted.contains(">") && formatted.contains("2 | echo $RANDOM"), "Output: {}", formatted);
+        assert!(
+            formatted.contains("1 | echo hello"),
+            "Output: {}",
+            formatted
+        );
+        assert!(
+            formatted.contains(">") && formatted.contains("2 | echo $RANDOM"),
+            "Output: {}",
+            formatted
+        );
         assert!(formatted.contains("3 | echo world"));
 
         // Should show indicator

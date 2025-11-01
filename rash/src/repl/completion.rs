@@ -10,16 +10,16 @@
 // - Mutation score: ≥90%
 // - Complexity: <10 per function
 
+use crate::repl::highlighting::highlight_bash;
 use rustyline::completion::{Completer, Pair};
 use rustyline::error::ReadlineError;
-use rustyline::highlight::{Highlighter, CmdKind};
+use rustyline::highlight::{CmdKind, Highlighter};
 use rustyline::hint::Hinter;
 use rustyline::validate::Validator;
 use rustyline::{Context, Helper};
 use std::borrow::Cow;
 use std::fs;
 use std::path::Path;
-use crate::repl::highlighting::highlight_bash;
 
 /// Tab completion helper for bashrs REPL
 ///
