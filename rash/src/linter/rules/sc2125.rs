@@ -23,6 +23,40 @@ static GLOB_IN_ASSIGNMENT: Lazy<Regex> = Lazy::new(|| {
     Regex::new(r"^[A-Za-z_][A-Za-z0-9_]*=([^=]*\*[^=\s]*|.*\{[^}]+\}[^=\s]*)").unwrap()
 });
 
+/// Check if a line is a comment
+fn is_comment_line(line: &str) -> bool {
+    line.trim_start().starts_with('#')
+}
+
+/// Check if line is an array assignment
+fn is_array_assignment(line: &str) -> bool {
+    line.contains("=(")
+}
+
+/// Check if line is a quoted assignment
+fn is_quoted_assignment(line: &str) -> bool {
+    line.contains("=\"") || line.contains("='")
+}
+
+/// Check if value contains command substitution
+fn contains_command_substitution(value: &str) -> bool {
+    value.contains("$(") || value.contains("`")
+}
+
+/// Create diagnostic for glob in assignment
+fn create_glob_assignment_diagnostic(
+    line_num: usize,
+    start_col: usize,
+    end_col: usize,
+) -> Diagnostic {
+    Diagnostic::new(
+        "SC2125",
+        Severity::Warning,
+        "Brace expansions and globs are literal in assignments. Assign as array, e.g., arr=(*.txt)",
+        Span::new(line_num, start_col, line_num, end_col),
+    )
+}
+
 pub fn check(source: &str) -> LintResult {
     let mut result = LintResult::new();
 
@@ -30,17 +64,8 @@ pub fn check(source: &str) -> LintResult {
         let line_num = line_num + 1;
 
         let trimmed = line.trim_start();
-        if trimmed.starts_with('#') {
-            continue;
-        }
-
-        // Skip array assignments (those with parentheses)
-        if trimmed.contains("=(") {
-            continue;
-        }
-
-        // Skip quoted assignments
-        if trimmed.contains("=\"") || trimmed.contains("='") {
+        if is_comment_line(trimmed) || is_array_assignment(trimmed) || is_quoted_assignment(trimmed)
+        {
             continue;
         }
 
@@ -48,21 +73,14 @@ pub fn check(source: &str) -> LintResult {
             if let Some(value) = cap.get(1) {
                 let val_text = value.as_str();
 
-                // Skip if it's in a command substitution
-                if val_text.contains("$(") || val_text.contains("`") {
+                if contains_command_substitution(val_text) {
                     continue;
                 }
 
                 let start_col = cap.get(0).unwrap().start() + 1;
                 let end_col = cap.get(0).unwrap().end() + 1;
 
-                let diagnostic = Diagnostic::new(
-                    "SC2125",
-                    Severity::Warning,
-                    "Brace expansions and globs are literal in assignments. Assign as array, e.g., arr=(*.txt)",
-                    Span::new(line_num, start_col, line_num, end_col),
-                );
-
+                let diagnostic = create_glob_assignment_diagnostic(line_num, start_col, end_col);
                 result.add(diagnostic);
             }
         }
@@ -74,6 +92,139 @@ pub fn check(source: &str) -> LintResult {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    // ===== Manual Property Tests =====
+
+    #[test]
+    fn prop_sc2125_comments_never_diagnosed() {
+        // Property: Comment lines should never produce diagnostics
+        let test_cases = vec![
+            "# files=*.txt",
+            "  # docs={a,b,c}.md",
+            "\t# logs=/tmp/*.log",
+        ];
+
+        for code in test_cases {
+            let result = check(code);
+            assert_eq!(result.diagnostics.len(), 0);
+        }
+    }
+
+    #[test]
+    fn prop_sc2125_array_assignments_never_diagnosed() {
+        // Property: Array assignments should never be diagnosed
+        let test_cases = vec!["files=(*.txt)", "docs=({a,b,c}.md)", "logs=(/tmp/*.log)"];
+
+        for code in test_cases {
+            let result = check(code);
+            assert_eq!(result.diagnostics.len(), 0);
+        }
+    }
+
+    #[test]
+    fn prop_sc2125_quoted_assignments_never_diagnosed() {
+        // Property: Quoted assignments should never be diagnosed
+        let test_cases = vec![
+            "pattern=\"*.txt\"",
+            "glob='*.log'",
+            "brace=\"{a,b,c}\"",
+            "path='/tmp/*.log'",
+        ];
+
+        for code in test_cases {
+            let result = check(code);
+            assert_eq!(result.diagnostics.len(), 0);
+        }
+    }
+
+    #[test]
+    fn prop_sc2125_command_substitution_never_diagnosed() {
+        // Property: Command substitution should never be diagnosed
+        let test_cases = vec![
+            "files=$(ls *.txt)",
+            "docs=`find . -name *.md`",
+            "logs=$(echo /tmp/*.log)",
+        ];
+
+        for code in test_cases {
+            let result = check(code);
+            assert_eq!(result.diagnostics.len(), 0);
+        }
+    }
+
+    #[test]
+    fn prop_sc2125_literal_values_never_diagnosed() {
+        // Property: Literal values without globs should never be diagnosed
+        let test_cases = vec!["name=value", "path=/usr/bin", "file=test.txt"];
+
+        for code in test_cases {
+            let result = check(code);
+            assert_eq!(result.diagnostics.len(), 0);
+        }
+    }
+
+    #[test]
+    fn prop_sc2125_unquoted_globs_always_diagnosed() {
+        // Property: Unquoted globs in assignments should always be diagnosed
+        let test_cases = vec![
+            "files=*.txt",
+            "logs=/tmp/*.log",
+            "all=/var/log/*.log",
+            "docs=*.md",
+        ];
+
+        for code in test_cases {
+            let result = check(code);
+            assert_eq!(result.diagnostics.len(), 1, "Should diagnose: {}", code);
+            assert!(result.diagnostics[0].message.contains("array"));
+        }
+    }
+
+    #[test]
+    fn prop_sc2125_brace_expansions_always_diagnosed() {
+        // Property: Brace expansions in assignments should always be diagnosed
+        let test_cases = vec![
+            "docs={a,b,c}.md",
+            "configs=/etc/{a,b,c}/config",
+            "files={1,2,3}.txt",
+        ];
+
+        for code in test_cases {
+            let result = check(code);
+            assert_eq!(result.diagnostics.len(), 1, "Should diagnose: {}", code);
+        }
+    }
+
+    #[test]
+    fn prop_sc2125_diagnostic_code_always_sc2125() {
+        // Property: All diagnostics must have code "SC2125"
+        let code = "files=*.txt\nlogs=*.log";
+        let result = check(code);
+
+        for diagnostic in &result.diagnostics {
+            assert_eq!(&diagnostic.code, "SC2125");
+        }
+    }
+
+    #[test]
+    fn prop_sc2125_diagnostic_severity_always_warning() {
+        // Property: All diagnostics must be Warning severity
+        let code = "files=*.txt";
+        let result = check(code);
+
+        for diagnostic in &result.diagnostics {
+            assert_eq!(diagnostic.severity, Severity::Warning);
+        }
+    }
+
+    #[test]
+    fn prop_sc2125_empty_source_no_diagnostics() {
+        // Property: Empty source should produce no diagnostics
+        let result = check("");
+        assert_eq!(result.diagnostics.len(), 0);
+    }
+
+    // ===== Original Unit Tests =====
 
     #[test]
     fn test_sc2125_glob_assignment() {
