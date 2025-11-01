@@ -992,18 +992,16 @@ fn analyze_performance_optimization(ast: &MakeAst) -> Vec<Transformation> {
 }
 
 /// Analyze Makefile for error handling issues (Sprint 83 - Day 6)
-fn analyze_error_handling(ast: &MakeAst) -> Vec<Transformation> {
-    let mut transformations = Vec::new();
-
-    // Check if Makefile has .DELETE_ON_ERROR directive
-    let has_delete_on_error = ast
-        .items
+/// Check if Makefile has .DELETE_ON_ERROR directive
+fn has_delete_on_error_directive(ast: &MakeAst) -> bool {
+    ast.items
         .iter()
-        .any(|item| matches!(item, MakeItem::Target { name, .. } if name == ".DELETE_ON_ERROR"));
+        .any(|item| matches!(item, MakeItem::Target { name, .. } if name == ".DELETE_ON_ERROR"))
+}
 
-    // Collect all targets for analysis (both regular targets and pattern rules)
-    let mut targets: Vec<(&String, &Vec<String>)> = Vec::new();
-
+/// Collect all targets for analysis (both regular targets and pattern rules)
+fn collect_targets_and_patterns(ast: &MakeAst) -> Vec<(&String, &Vec<String>)> {
+    let mut targets = Vec::new();
     for item in &ast.items {
         match item {
             MakeItem::Target { name, recipe, .. } => {
@@ -1019,34 +1017,43 @@ fn analyze_error_handling(ast: &MakeAst) -> Vec<Transformation> {
             _ => {}
         }
     }
+    targets
+}
 
-    // Analysis 1: Detect commands without error handling
-    for (target_name, recipes) in &targets {
+/// Detect commands without error handling
+fn detect_missing_error_handling_in_commands(
+    targets: &[(&String, &Vec<String>)],
+) -> Vec<Transformation> {
+    let mut transformations = Vec::new();
+    let critical_commands = ["mkdir", "gcc", "cp", "mv"];
+
+    for (target_name, recipes) in targets {
         for recipe in *recipes {
             let trimmed = recipe.trim();
-
-            // Check for critical commands without error handling
-            let critical_commands = ["mkdir", "gcc", "cp", "mv"];
             for cmd in &critical_commands {
-                if trimmed.starts_with(cmd) && !trimmed.starts_with(&format!("{} -", cmd)) {
-                    // Check if it has error handling (|| or &&)
-                    if !recipe.contains("||") && !recipe.contains("&&") {
-                        transformations.push(Transformation::DetectMissingErrorHandling {
-                            target_name: (*target_name).clone(),
-                            command: trimmed.to_string(),
-                            safe: false,
-                        });
-                    }
+                if trimmed.starts_with(cmd)
+                    && !trimmed.starts_with(&format!("{} -", cmd))
+                    && !recipe.contains("||")
+                    && !recipe.contains("&&")
+                {
+                    transformations.push(Transformation::DetectMissingErrorHandling {
+                        target_name: (*target_name).clone(),
+                        command: trimmed.to_string(),
+                        safe: false,
+                    });
                 }
             }
         }
     }
+    transformations
+}
 
-    // Analysis 2: Detect @ prefix that may hide errors
-    for (target_name, recipes) in &targets {
+/// Detect @ prefix that may hide errors
+fn detect_silent_failures(targets: &[(&String, &Vec<String>)]) -> Vec<Transformation> {
+    let mut transformations = Vec::new();
+    for (target_name, recipes) in targets {
         for recipe in *recipes {
             if recipe.trim().starts_with('@') {
-                // Check if it's a critical command (not just echo)
                 let without_at = recipe.trim().trim_start_matches('@').trim();
                 if !without_at.starts_with("echo") {
                     transformations.push(Transformation::DetectSilentFailure {
@@ -1058,11 +1065,14 @@ fn analyze_error_handling(ast: &MakeAst) -> Vec<Transformation> {
             }
         }
     }
+    transformations
+}
 
-    // Analysis 4: Detect multiline recipes without .ONESHELL
-    for (target_name, recipes) in &targets {
+/// Detect multiline recipes without .ONESHELL
+fn detect_missing_oneshell(targets: &[(&String, &Vec<String>)]) -> Vec<Transformation> {
+    let mut transformations = Vec::new();
+    for (target_name, recipes) in targets {
         if recipes.len() >= 2 {
-            // Check if commands are related (like cd followed by other commands)
             let has_cd = recipes.iter().any(|r| r.trim().starts_with("cd "));
             let has_command_separator = recipes.iter().any(|r| r.contains("&&") || r.contains(";"));
 
@@ -1077,9 +1087,13 @@ fn analyze_error_handling(ast: &MakeAst) -> Vec<Transformation> {
             }
         }
     }
+    transformations
+}
 
-    // Analysis 5: Detect bash -c without set -e
-    for (target_name, recipes) in &targets {
+/// Detect bash -c without set -e
+fn detect_missing_set_e(targets: &[(&String, &Vec<String>)]) -> Vec<Transformation> {
+    let mut transformations = Vec::new();
+    for (target_name, recipes) in targets {
         for recipe in *recipes {
             if recipe.contains("bash -c") && !recipe.contains("set -e") {
                 transformations.push(Transformation::DetectMissingSetE {
@@ -1090,26 +1104,62 @@ fn analyze_error_handling(ast: &MakeAst) -> Vec<Transformation> {
             }
         }
     }
+    transformations
+}
 
-    // Analysis 6: Detect for loops without error handling
-    for (target_name, recipes) in &targets {
+/// Detect for loops without error handling
+fn detect_loop_without_error_handling(targets: &[(&String, &Vec<String>)]) -> Vec<Transformation> {
+    let mut transformations = Vec::new();
+    for (target_name, recipes) in targets {
         for recipe in *recipes {
-            if recipe.contains("for ") && recipe.contains("do ") {
-                // Check if loop has error handling
-                if !recipe.contains("|| exit") && !recipe.contains("|| return") {
-                    transformations.push(Transformation::DetectLoopWithoutErrorHandling {
-                        target_name: (*target_name).clone(),
-                        loop_command: recipe.trim().to_string(),
-                        safe: false,
-                    });
-                }
+            if recipe.contains("for ")
+                && recipe.contains("do ")
+                && !recipe.contains("|| exit")
+                && !recipe.contains("|| return")
+            {
+                transformations.push(Transformation::DetectLoopWithoutErrorHandling {
+                    target_name: (*target_name).clone(),
+                    loop_command: recipe.trim().to_string(),
+                    safe: false,
+                });
             }
         }
     }
+    transformations
+}
 
-    // Final Analysis: Recommend .DELETE_ON_ERROR only if we found other error handling issues
-    // This ensures idempotency - we don't recommend .DELETE_ON_ERROR on already-clean Makefiles
-    if !has_delete_on_error && !targets.is_empty() && !transformations.is_empty() {
+/// Check if .DELETE_ON_ERROR should be recommended
+fn should_recommend_delete_on_error_directive(
+    has_delete_on_error: bool,
+    transformations: &[Transformation],
+    targets: &[(&String, &Vec<String>)],
+) -> bool {
+    !has_delete_on_error && !transformations.is_empty() && !targets.is_empty()
+}
+
+fn analyze_error_handling(ast: &MakeAst) -> Vec<Transformation> {
+    let mut transformations = Vec::new();
+
+    let has_delete_on_error = has_delete_on_error_directive(ast);
+    let targets = collect_targets_and_patterns(ast);
+
+    // Detect commands without error handling
+    transformations.extend(detect_missing_error_handling_in_commands(&targets));
+
+    // Detect silent failures
+    transformations.extend(detect_silent_failures(&targets));
+
+    // Detect missing .ONESHELL
+    transformations.extend(detect_missing_oneshell(&targets));
+
+    // Detect missing set -e
+    transformations.extend(detect_missing_set_e(&targets));
+
+    // Detect loops without error handling
+    transformations.extend(detect_loop_without_error_handling(&targets));
+
+    // Recommend .DELETE_ON_ERROR if issues detected
+    if should_recommend_delete_on_error_directive(has_delete_on_error, &transformations, &targets) {
         transformations.push(Transformation::RecommendDeleteOnError {
             reason: "Add .DELETE_ON_ERROR to automatically remove targets if recipe fails"
                 .to_string(),
