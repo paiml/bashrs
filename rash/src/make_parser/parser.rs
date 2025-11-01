@@ -139,63 +139,102 @@ fn parse_comment_line(line: &str, line_num: usize) -> MakeItem {
 }
 
 /// Parse all Makefile items (first pass)
+/// Try to parse and add item to list, handling errors
+fn try_add_item(
+    items: &mut Vec<MakeItem>,
+    result: Result<MakeItem, MakeParseError>,
+) -> Result<(), String> {
+    match result {
+        Ok(item) => {
+            items.push(item);
+            Ok(())
+        }
+        Err(e) => Err(e.to_detailed_string()),
+    }
+}
+
+/// Try to parse include directive
+fn try_parse_include(line: &str, line_num: usize) -> Option<Result<MakeItem, MakeParseError>> {
+    if is_include_directive(line) {
+        Some(parse_include(line, line_num))
+    } else {
+        None
+    }
+}
+
+/// Try to parse variable assignment
+fn try_parse_variable(line: &str, line_num: usize) -> Option<Result<MakeItem, MakeParseError>> {
+    if is_variable_assignment(line) {
+        Some(parse_variable(line, line_num))
+    } else {
+        None
+    }
+}
+
+/// Try to parse comment line
+fn try_parse_comment(line: &str, line_num: usize) -> Option<MakeItem> {
+    if is_comment_line(line) {
+        Some(parse_comment_line(line, line_num))
+    } else {
+        None
+    }
+}
+
+/// Should skip this line (empty)
+fn should_skip_line(line: &str) -> bool {
+    is_empty_line(line)
+}
+
 fn parse_makefile_items(lines: &[&str]) -> Result<Vec<MakeItem>, String> {
     let mut items = Vec::new();
     let mut i = 0;
 
     while i < lines.len() {
         let line = lines[i];
+        let line_num = i + 1;
 
-        if is_empty_line(line) {
+        // Skip empty lines
+        if should_skip_line(line) {
             i += 1;
             continue;
         }
 
-        if is_comment_line(line) {
-            items.push(parse_comment_line(line, i + 1));
+        // Try comment
+        if let Some(comment) = try_parse_comment(line, line_num) {
+            items.push(comment);
             i += 1;
             continue;
         }
 
-        if is_include_directive(line) {
-            match parse_include(line, i + 1) {
-                Ok(include) => items.push(include),
-                Err(e) => return Err(e.to_detailed_string()),
-            }
+        // Try include directive
+        if let Some(result) = try_parse_include(line, line_num) {
+            try_add_item(&mut items, result)?;
             i += 1;
             continue;
         }
 
+        // Try conditional directive
         if is_conditional_directive(line) {
-            match parse_conditional(lines, &mut i) {
-                Ok(conditional) => items.push(conditional),
-                Err(e) => return Err(e.to_detailed_string()),
-            }
+            try_add_item(&mut items, parse_conditional(lines, &mut i))?;
             continue;
         }
 
+        // Try define directive
         if is_define_directive(line) {
-            match parse_define_block(lines, &mut i) {
-                Ok(var) => items.push(var),
-                Err(e) => return Err(e.to_detailed_string()),
-            }
+            try_add_item(&mut items, parse_define_block(lines, &mut i))?;
             continue;
         }
 
-        if is_variable_assignment(line) {
-            match parse_variable(line, i + 1) {
-                Ok(var) => items.push(var),
-                Err(e) => return Err(e.to_detailed_string()),
-            }
+        // Try variable assignment
+        if let Some(result) = try_parse_variable(line, line_num) {
+            try_add_item(&mut items, result)?;
             i += 1;
             continue;
         }
 
+        // Try target rule
         if is_target_rule(line) {
-            match parse_target_rule(lines, &mut i) {
-                Ok(target) => items.push(target),
-                Err(e) => return Err(e.to_detailed_string()),
-            }
+            try_add_item(&mut items, parse_target_rule(lines, &mut i))?;
             continue;
         }
 
@@ -959,6 +998,7 @@ fn parse_target_rule(lines: &[&str], index: &mut usize) -> Result<MakeItem, Make
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::make_parser::error::SourceLocation;
 
     #[test]
     fn test_parse_empty_makefile() {
@@ -1010,5 +1050,156 @@ mod tests {
 
         let ast = result.unwrap();
         assert_eq!(ast.items.len(), 2);
+    }
+
+    // ===== NASA-QUALITY UNIT TESTS for parse_makefile_items helpers =====
+
+    #[test]
+    fn test_should_skip_line_empty() {
+        assert!(should_skip_line(""), "Empty line should be skipped");
+        assert!(
+            should_skip_line("   "),
+            "Whitespace-only line should be skipped"
+        );
+        assert!(should_skip_line("\t"), "Tab-only line should be skipped");
+    }
+
+    #[test]
+    fn test_should_skip_line_non_empty() {
+        assert!(
+            !should_skip_line("build:"),
+            "Target line should NOT be skipped"
+        );
+        assert!(
+            !should_skip_line("# comment"),
+            "Comment should NOT be skipped"
+        );
+        assert!(
+            !should_skip_line("VAR = value"),
+            "Variable should NOT be skipped"
+        );
+    }
+
+    #[test]
+    fn test_try_parse_comment_valid() {
+        let comment = try_parse_comment("# This is a comment", 1);
+        assert!(comment.is_some(), "Should recognize comment line");
+
+        if let Some(MakeItem::Comment { text, .. }) = comment {
+            assert_eq!(
+                text, "This is a comment",
+                "Comment text should have # stripped and be trimmed"
+            );
+        } else {
+            panic!("Expected Comment item");
+        }
+    }
+
+    #[test]
+    fn test_try_parse_comment_not_comment() {
+        let comment = try_parse_comment("build:", 1);
+        assert!(comment.is_none(), "Non-comment should return None");
+    }
+
+    #[test]
+    fn test_try_parse_include_valid() {
+        let result = try_parse_include("include foo.mk", 1);
+        assert!(result.is_some(), "Should recognize include directive");
+
+        if let Some(Ok(MakeItem::Include { path, .. })) = result {
+            assert_eq!(path, "foo.mk");
+        } else {
+            panic!("Expected Include item");
+        }
+    }
+
+    #[test]
+    fn test_try_parse_include_not_include() {
+        let result = try_parse_include("build:", 1);
+        assert!(result.is_none(), "Non-include should return None");
+    }
+
+    #[test]
+    fn test_try_parse_variable_valid() {
+        let result = try_parse_variable("CC = gcc", 1);
+        assert!(result.is_some(), "Should recognize variable assignment");
+
+        if let Some(Ok(MakeItem::Variable { name, value, .. })) = result {
+            assert_eq!(name, "CC");
+            assert_eq!(value, "gcc");
+        } else {
+            panic!("Expected Variable item");
+        }
+    }
+
+    #[test]
+    fn test_try_parse_variable_not_variable() {
+        let result = try_parse_variable("build:", 1);
+        assert!(result.is_none(), "Non-variable should return None");
+    }
+
+    #[test]
+    fn test_try_add_item_success() {
+        let mut items = Vec::new();
+        let item = MakeItem::Comment {
+            text: "# test".to_string(),
+            span: Span::new(0, 6, 1),
+        };
+
+        let result = try_add_item(&mut items, Ok(item));
+
+        assert!(result.is_ok(), "Should successfully add item");
+        assert_eq!(items.len(), 1, "Should have 1 item");
+    }
+
+    #[test]
+    fn test_try_add_item_error() {
+        let mut items = Vec::new();
+        let error = MakeParseError::EmptyVariableName {
+            location: SourceLocation::new(1),
+        };
+
+        let result = try_add_item(&mut items, Err(error));
+
+        assert!(result.is_err(), "Should propagate error");
+        assert_eq!(items.len(), 0, "Should not add any items on error");
+        assert!(
+            result.unwrap_err().contains("Empty variable name"),
+            "Error message should be preserved"
+        );
+    }
+
+    #[test]
+    fn test_try_add_item_multiple_success() {
+        let mut items = Vec::new();
+
+        let item1 = MakeItem::Comment {
+            text: "# comment 1".to_string(),
+            span: Span::new(0, 11, 1),
+        };
+        let item2 = MakeItem::Comment {
+            text: "# comment 2".to_string(),
+            span: Span::new(0, 11, 2),
+        };
+
+        assert!(try_add_item(&mut items, Ok(item1)).is_ok());
+        assert!(try_add_item(&mut items, Ok(item2)).is_ok());
+
+        assert_eq!(items.len(), 2, "Should have 2 items");
+    }
+
+    #[test]
+    fn test_try_parse_comment_trims_whitespace() {
+        let comment = try_parse_comment("#   indented comment  ", 1);
+        assert!(comment.is_some());
+
+        if let Some(MakeItem::Comment { text, .. }) = comment {
+            assert_eq!(
+                text, "indented comment",
+                "Whitespace should be trimmed (both leading and trailing)"
+            );
+        } else {
+            panic!("Expected Comment item");
+        }
     }
 }
