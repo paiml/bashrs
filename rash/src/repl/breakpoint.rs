@@ -210,44 +210,86 @@ impl BreakpointManager {
 /// - "$var != foo" - Variable not equals value
 ///
 /// Returns false if condition cannot be evaluated (invalid syntax, missing variable, etc.)
+/// Parse operator from condition string and split into parts
+fn parse_condition_operator(condition: &str) -> Option<(&'static str, &str, &str)> {
+    // Check for two-character operators first (==, !=, >=, <=)
+    if let Some(pos) = condition.find("==") {
+        let var_part = condition[..pos].trim();
+        let value_part = condition[pos + 2..].trim();
+        return Some(("==", var_part, value_part));
+    }
+    if let Some(pos) = condition.find("!=") {
+        let var_part = condition[..pos].trim();
+        let value_part = condition[pos + 2..].trim();
+        return Some(("!=", var_part, value_part));
+    }
+    if let Some(pos) = condition.find(">=") {
+        let var_part = condition[..pos].trim();
+        let value_part = condition[pos + 2..].trim();
+        return Some((">=", var_part, value_part));
+    }
+    if let Some(pos) = condition.find("<=") {
+        let var_part = condition[..pos].trim();
+        let value_part = condition[pos + 2..].trim();
+        return Some(("<=", var_part, value_part));
+    }
+    // Single-character operators
+    if let Some(pos) = condition.find('>') {
+        let var_part = condition[..pos].trim();
+        let value_part = condition[pos + 1..].trim();
+        return Some((">", var_part, value_part));
+    }
+    if let Some(pos) = condition.find('<') {
+        let var_part = condition[..pos].trim();
+        let value_part = condition[pos + 1..].trim();
+        return Some(("<", var_part, value_part));
+    }
+    None
+}
+
+/// Extract variable name from variable part (remove $)
+fn extract_variable_name(var_part: &str) -> Option<&str> {
+    var_part.strip_prefix('$')
+}
+
+/// Try numeric comparison between two strings
+fn try_numeric_comparison<F>(var_value: &str, value_part: &str, compare: F) -> bool
+where
+    F: Fn(i64, i64) -> bool,
+{
+    if let (Ok(var_num), Ok(val_num)) = (var_value.parse::<i64>(), value_part.parse::<i64>()) {
+        compare(var_num, val_num)
+    } else {
+        false
+    }
+}
+
+/// Perform comparison based on operator
+fn perform_comparison(operator: &str, var_value: &str, value_part: &str) -> bool {
+    match operator {
+        "==" => var_value == value_part,
+        "!=" => var_value != value_part,
+        ">" => try_numeric_comparison(var_value, value_part, |a, b| a > b),
+        "<" => try_numeric_comparison(var_value, value_part, |a, b| a < b),
+        ">=" => try_numeric_comparison(var_value, value_part, |a, b| a >= b),
+        "<=" => try_numeric_comparison(var_value, value_part, |a, b| a <= b),
+        _ => false,
+    }
+}
+
 fn evaluate_condition(condition: &str, variables: &HashMap<String, String>) -> bool {
     let condition = condition.trim();
 
-    // Try to parse simple comparison: $var OP value
-    // Check for two-character operators first (==, !=, >=, <=)
-    let (operator, var_part, value_part) = if let Some(pos) = condition.find("==") {
-        let var_part = condition[..pos].trim();
-        let value_part = condition[pos + 2..].trim();
-        ("==", var_part, value_part)
-    } else if let Some(pos) = condition.find("!=") {
-        let var_part = condition[..pos].trim();
-        let value_part = condition[pos + 2..].trim();
-        ("!=", var_part, value_part)
-    } else if let Some(pos) = condition.find(">=") {
-        let var_part = condition[..pos].trim();
-        let value_part = condition[pos + 2..].trim();
-        (">=", var_part, value_part)
-    } else if let Some(pos) = condition.find("<=") {
-        let var_part = condition[..pos].trim();
-        let value_part = condition[pos + 2..].trim();
-        ("<=", var_part, value_part)
-    } else if let Some(pos) = condition.find('>') {
-        let var_part = condition[..pos].trim();
-        let value_part = condition[pos + 1..].trim();
-        (">", var_part, value_part)
-    } else if let Some(pos) = condition.find('<') {
-        let var_part = condition[..pos].trim();
-        let value_part = condition[pos + 1..].trim();
-        ("<", var_part, value_part)
-    } else {
-        return false; // No operator found
+    // Parse operator and split condition
+    let (operator, var_part, value_part) = match parse_condition_operator(condition) {
+        Some(parts) => parts,
+        None => return false, // No operator found
     };
 
     // Extract variable name (remove $)
-    let var_name = if let Some(name) = var_part.strip_prefix('$') {
-        name
-    } else {
-        return false; // Invalid syntax
+    let var_name = match extract_variable_name(var_part) {
+        Some(name) => name,
+        None => return false, // Invalid syntax
     };
 
     // Get variable value
@@ -257,48 +299,7 @@ fn evaluate_condition(condition: &str, variables: &HashMap<String, String>) -> b
     };
 
     // Perform comparison
-    match operator {
-        "==" => var_value == value_part,
-        "!=" => var_value != value_part,
-        ">" => {
-            // Try numeric comparison
-            if let (Ok(var_num), Ok(val_num)) =
-                (var_value.parse::<i64>(), value_part.parse::<i64>())
-            {
-                var_num > val_num
-            } else {
-                false
-            }
-        }
-        "<" => {
-            if let (Ok(var_num), Ok(val_num)) =
-                (var_value.parse::<i64>(), value_part.parse::<i64>())
-            {
-                var_num < val_num
-            } else {
-                false
-            }
-        }
-        ">=" => {
-            if let (Ok(var_num), Ok(val_num)) =
-                (var_value.parse::<i64>(), value_part.parse::<i64>())
-            {
-                var_num >= val_num
-            } else {
-                false
-            }
-        }
-        "<=" => {
-            if let (Ok(var_num), Ok(val_num)) =
-                (var_value.parse::<i64>(), value_part.parse::<i64>())
-            {
-                var_num <= val_num
-            } else {
-                false
-            }
-        }
-        _ => false,
-    }
+    perform_comparison(operator, var_value, value_part)
 }
 
 #[cfg(test)]
