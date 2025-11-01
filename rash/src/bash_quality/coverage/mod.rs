@@ -185,6 +185,45 @@ fn analyze_script(source: &str, report: &mut CoverageReport) {
     }
 }
 
+/// Check if line starts a function definition
+fn is_function_start(trimmed: &str) -> bool {
+    trimmed.contains("() {") || trimmed.starts_with("function ")
+}
+
+/// Extract function name from function definition line
+fn extract_function_name(trimmed: &str) -> String {
+    if let Some(idx) = trimmed.find("() {") {
+        trimmed[..idx].trim().to_string()
+    } else if trimmed.starts_with("function ") {
+        #[allow(clippy::expect_used)] // Safe: checked by starts_with() above
+        trimmed
+            .strip_prefix("function ")
+            .expect("checked by starts_with")
+            .split_whitespace()
+            .next()
+            .unwrap_or("")
+            .to_string()
+    } else {
+        "unknown".to_string()
+    }
+}
+
+/// Check if line is a function end
+fn is_function_end(trimmed: &str) -> bool {
+    trimmed == "}"
+}
+
+/// Check if line is top-level executable code
+fn is_top_level_code(trimmed: &str) -> bool {
+    !trimmed.is_empty() && !trimmed.starts_with('#')
+}
+
+/// Mark line as covered in report
+fn mark_line_covered(line_num: usize, report: &mut CoverageReport) {
+    report.line_coverage.insert(line_num, true);
+    report.covered_lines.insert(line_num);
+}
+
 /// Mark lines in covered functions as covered
 fn mark_covered_functions_lines(
     source: &str,
@@ -200,40 +239,25 @@ fn mark_covered_functions_lines(
         let trimmed = line.trim();
 
         // Detect function start
-        if trimmed.contains("() {") || trimmed.starts_with("function ") {
-            let func_name = if let Some(idx) = trimmed.find("() {") {
-                trimmed[..idx].trim().to_string()
-            } else if trimmed.starts_with("function ") {
-                #[allow(clippy::expect_used)] // Safe: checked by starts_with() above
-                trimmed
-                    .strip_prefix("function ")
-                    .expect("checked by starts_with")
-                    .split_whitespace()
-                    .next()
-                    .unwrap_or("")
-                    .to_string()
-            } else {
-                "unknown".to_string()
-            };
-
+        if is_function_start(trimmed) {
+            let func_name = extract_function_name(trimmed);
             current_function = Some(func_name.clone());
             in_covered_function = covered_functions.contains(&func_name);
         }
 
         // Detect function end
-        if current_function.is_some() && trimmed == "}" {
+        if current_function.is_some() && is_function_end(trimmed) {
             current_function = None;
             in_covered_function = false;
         }
 
         // Mark line as covered if in a covered function
         if in_covered_function && report.line_coverage.contains_key(&line_num) {
-            report.line_coverage.insert(line_num, true);
-            report.covered_lines.insert(line_num);
+            mark_line_covered(line_num, report);
         }
 
         // Also mark lines outside functions as covered if they're executed in tests
-        if current_function.is_none() && !trimmed.is_empty() && !trimmed.starts_with('#') {
+        if current_function.is_none() && is_top_level_code(trimmed) {
             // Assume top-level code is executed
             if let std::collections::hash_map::Entry::Occupied(mut e) =
                 report.line_coverage.entry(line_num)
