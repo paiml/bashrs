@@ -489,7 +489,7 @@
 <a href=#489 id=489 data-nosnippet>489</a>    <span class="kw">let </span><span class="kw-2">mut </span>sorted = values.to_vec();
 <a href=#490 id=490 data-nosnippet>490</a>    sorted.sort_by(|a, b| a.partial_cmp(b).unwrap());
 <a href=#491 id=491 data-nosnippet>491</a>    <span class="kw">let </span>mid = sorted.len() / <span class="number">2</span>;
-<a href=#492 id=492 data-nosnippet>492</a>    <span class="kw">if </span>sorted.len() % <span class="number">2 </span>== <span class="number">0 </span>{
+<a href=#492 id=492 data-nosnippet>492</a>    <span class="kw">if </span>sorted.len().is_multiple_of(<span class="number">2</span>) {
 <a href=#493 id=493 data-nosnippet>493</a>        (sorted[mid - <span class="number">1</span>] + sorted[mid]) / <span class="number">2.0
 <a href=#494 id=494 data-nosnippet>494</a>    </span>} <span class="kw">else </span>{
 <a href=#495 id=495 data-nosnippet>495</a>        sorted[mid]
