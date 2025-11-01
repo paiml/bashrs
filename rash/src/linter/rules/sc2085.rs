@@ -23,7 +23,8 @@ static LOCAL_WITH_ARITHMETIC: Lazy<Regex> = Lazy::new(|| {
     // Match: local var=$((expr)) or declare var=$((expr))
     // Also handles flags: local -r var=$((expr))
     // (?:\s+-[a-zA-Z]+)* matches optional flags like -r, -x, -i
-    Regex::new(r"\b(local|declare)(?:\s+-[a-zA-Z]+)*\s+([a-zA-Z_][a-zA-Z0-9_]*)=\$\(\([^)]+\)\)").unwrap()
+    Regex::new(r"\b(local|declare)(?:\s+-[a-zA-Z]+)*\s+([a-zA-Z_][a-zA-Z0-9_]*)=\$\(\([^)]+\)\)")
+        .unwrap()
 });
 
 pub fn check(source: &str) -> LintResult {

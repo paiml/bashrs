@@ -235,7 +235,9 @@ fn mark_covered_functions_lines(
         // Also mark lines outside functions as covered if they're executed in tests
         if current_function.is_none() && !trimmed.is_empty() && !trimmed.starts_with('#') {
             // Assume top-level code is executed
-            if let std::collections::hash_map::Entry::Occupied(mut e) = report.line_coverage.entry(line_num) {
+            if let std::collections::hash_map::Entry::Occupied(mut e) =
+                report.line_coverage.entry(line_num)
+            {
                 e.insert(true);
                 report.covered_lines.insert(line_num);
             }

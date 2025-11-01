@@ -1,0 +1,8 @@
+# Seeds for failure cases proptest has generated in the past. It is
+# automatically read and these particular cases re-run before any
+# novel cases are generated.
+#
+# It is recommended to check this file in to source control so that
+# everyone who runs the test benefits from these saved cases.
+cc 29ff9eaf3edf8c22bae8a12808b814c6c2a3a066b2ed56ca7bf43c8df2cf4da5 # shrinks to cmd1 = "a", cmd2 = "a", file1 = "a.txt", file2 = "a.log", separator = "&&"
+cc bd0d7ae8e7e546a5f0a5907815cf231de6379ed4b6b60594fbb7cc06e2ad2e4e # shrinks to cmd1 = "a", cmd2 = "a", file1 = "a.txt", file2 = "a.log", separator = "||"

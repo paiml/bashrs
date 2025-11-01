@@ -88,47 +88,76 @@ fn preprocess_line_continuations(input: &str) -> String {
 /// let ast = parse_makefile(makefile).unwrap();
 /// assert_eq!(ast.items.len(), 1);
 /// ```
-pub fn parse_makefile(input: &str) -> Result<MakeAst, String> {
-    // Preprocess: handle line continuations (backslash at end of line)
-    let preprocessed = preprocess_line_continuations(input);
-    let lines: Vec<&str> = preprocessed.lines().collect();
-    let line_count = lines.len();
+/// Check if line is empty or whitespace-only
+fn is_empty_line(line: &str) -> bool {
+    line.trim().is_empty()
+}
 
+/// Check if line is a comment
+fn is_comment_line(line: &str) -> bool {
+    line.trim_start().starts_with('#')
+}
+
+/// Check if line starts an include directive
+fn is_include_directive(line: &str) -> bool {
+    line.trim_start().starts_with("include ")
+        || line.trim_start().starts_with("-include ")
+        || line.trim_start().starts_with("sinclude ")
+}
+
+/// Check if line starts a conditional block
+fn is_conditional_directive(line: &str) -> bool {
+    line.trim_start().starts_with("ifeq ")
+        || line.trim_start().starts_with("ifdef ")
+        || line.trim_start().starts_with("ifndef ")
+        || line.trim_start().starts_with("ifneq ")
+}
+
+/// Check if line starts a define block
+fn is_define_directive(line: &str) -> bool {
+    line.trim_start().starts_with("define ")
+}
+
+/// Check if line is a target rule
+fn is_target_rule(line: &str) -> bool {
+    line.contains(':') && !line.trim_start().starts_with('\t')
+}
+
+/// Parse a comment line and create MakeItem::Comment
+fn parse_comment_line(line: &str, line_num: usize) -> MakeItem {
+    let text = line
+        .trim_start()
+        .strip_prefix('#')
+        .unwrap_or("")
+        .trim()
+        .to_string();
+
+    MakeItem::Comment {
+        text,
+        span: Span::new(0, line.len(), line_num),
+    }
+}
+
+/// Parse all Makefile items (first pass)
+fn parse_makefile_items(lines: &[&str]) -> Result<Vec<MakeItem>, String> {
     let mut items = Vec::new();
     let mut i = 0;
 
     while i < lines.len() {
         let line = lines[i];
 
-        // Skip empty lines
-        if line.trim().is_empty() {
+        if is_empty_line(line) {
             i += 1;
             continue;
         }
 
-        // Parse comment lines
-        if line.trim_start().starts_with('#') {
-            let text = line
-                .trim_start()
-                .strip_prefix('#')
-                .unwrap_or("")
-                .trim()
-                .to_string();
-
-            items.push(MakeItem::Comment {
-                text,
-                span: Span::new(0, line.len(), i + 1),
-            });
-
+        if is_comment_line(line) {
+            items.push(parse_comment_line(line, i + 1));
             i += 1;
             continue;
         }
 
-        // Parse include directives
-        if line.trim_start().starts_with("include ")
-            || line.trim_start().starts_with("-include ")
-            || line.trim_start().starts_with("sinclude ")
-        {
+        if is_include_directive(line) {
             match parse_include(line, i + 1) {
                 Ok(include) => items.push(include),
                 Err(e) => return Err(e.to_detailed_string()),
@@ -137,29 +166,22 @@ pub fn parse_makefile(input: &str) -> Result<MakeAst, String> {
             continue;
         }
 
-        // Parse conditional blocks (ifeq, ifdef, ifndef, ifneq)
-        if line.trim_start().starts_with("ifeq ")
-            || line.trim_start().starts_with("ifdef ")
-            || line.trim_start().starts_with("ifndef ")
-            || line.trim_start().starts_with("ifneq ")
-        {
-            match parse_conditional(&lines, &mut i) {
+        if is_conditional_directive(line) {
+            match parse_conditional(lines, &mut i) {
                 Ok(conditional) => items.push(conditional),
                 Err(e) => return Err(e.to_detailed_string()),
             }
             continue;
         }
 
-        // Parse define...endef blocks
-        if line.trim_start().starts_with("define ") {
-            match parse_define_block(&lines, &mut i) {
+        if is_define_directive(line) {
+            match parse_define_block(lines, &mut i) {
                 Ok(var) => items.push(var),
                 Err(e) => return Err(e.to_detailed_string()),
             }
             continue;
         }
 
-        // Parse variable assignments (contains '=' but is not a target rule)
         if is_variable_assignment(line) {
             match parse_variable(line, i + 1) {
                 Ok(var) => items.push(var),
@@ -169,23 +191,25 @@ pub fn parse_makefile(input: &str) -> Result<MakeAst, String> {
             continue;
         }
 
-        // Parse target rules (contains ':')
-        if line.contains(':') && !line.trim_start().starts_with('\t') {
-            match parse_target_rule(&lines, &mut i) {
+        if is_target_rule(line) {
+            match parse_target_rule(lines, &mut i) {
                 Ok(target) => items.push(target),
                 Err(e) => return Err(e.to_detailed_string()),
             }
             continue;
         }
 
-        // Unknown line - skip for now
         i += 1;
     }
 
-    // Second pass: Mark targets as .PHONY
-    // Collect all .PHONY declarations
-    let mut phony_targets: std::collections::HashSet<String> = std::collections::HashSet::new();
-    for item in &items {
+    Ok(items)
+}
+
+/// Collect all .PHONY target declarations
+fn collect_phony_targets(items: &[MakeItem]) -> std::collections::HashSet<String> {
+    let mut phony_targets = std::collections::HashSet::new();
+
+    for item in items {
         if let MakeItem::Target {
             name,
             prerequisites,
@@ -200,8 +224,15 @@ pub fn parse_makefile(input: &str) -> Result<MakeAst, String> {
         }
     }
 
-    // Update targets to mark them as phony if declared
-    items = items
+    phony_targets
+}
+
+/// Mark targets as .PHONY if declared (second pass)
+fn mark_phony_targets(
+    items: Vec<MakeItem>,
+    phony_targets: &std::collections::HashSet<String>,
+) -> Vec<MakeItem> {
+    items
         .into_iter()
         .map(|item| {
             if let MakeItem::Target {
@@ -223,7 +254,20 @@ pub fn parse_makefile(input: &str) -> Result<MakeAst, String> {
                 item
             }
         })
-        .collect();
+        .collect()
+}
+
+pub fn parse_makefile(input: &str) -> Result<MakeAst, String> {
+    let preprocessed = preprocess_line_continuations(input);
+    let lines: Vec<&str> = preprocessed.lines().collect();
+    let line_count = lines.len();
+
+    // First pass: Parse all items
+    let mut items = parse_makefile_items(&lines)?;
+
+    // Second pass: Mark .PHONY targets
+    let phony_targets = collect_phony_targets(&items);
+    items = mark_phony_targets(items, &phony_targets);
 
     Ok(MakeAst {
         items,

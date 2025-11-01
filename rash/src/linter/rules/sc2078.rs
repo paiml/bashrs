@@ -21,7 +21,8 @@ use regex::Regex;
 static CONSTANT_IN_TEST: Lazy<Regex> = Lazy::new(|| {
     // Match: [ word -op number ] or [ ! word -op number ] where word has no $ (likely forgot $)
     // !?\s* handles optional negation (! with optional space)
-    Regex::new(r"\[\s+!?\s*([a-zA-Z_][a-zA-Z0-9_]*)\s+(-eq|-ne|-lt|-le|-gt|-ge)\s+[0-9]+\s+\]").unwrap()
+    Regex::new(r"\[\s+!?\s*([a-zA-Z_][a-zA-Z0-9_]*)\s+(-eq|-ne|-lt|-le|-gt|-ge)\s+[0-9]+\s+\]")
+        .unwrap()
 });
 
 pub fn check(source: &str) -> LintResult {
