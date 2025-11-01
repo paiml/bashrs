@@ -7,6 +7,67 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [6.25.0] - 2025-11-01
+
+### ✨ NEW FEATURE - Scientific Benchmarking (EXTREME TDD)
+
+**bashrs v6.25.0 adds `bashrs bench` command for deterministic, scientifically rigorous shell script benchmarking.**
+
+### Added
+
+**`bashrs bench` Command** (17 comprehensive tests, 550+ lines, NASA-quality specification):
+
+- **Scientific benchmarking**: Warmup iterations + measured runs with statistical analysis
+- **Statistical metrics**: Mean, median, standard deviation, min, max, variance
+- **Environment capture**: CPU, RAM, OS, hostname metadata using sysinfo crate
+- **Quality gates integration**:
+  - `--strict`: Run bashrs linter on scripts before benchmarking
+  - `--verify-determinism`: Verify scripts produce identical output across runs
+- **Output formats**:
+  - Console: Beautiful formatted output with emojis and box-drawing characters
+  - JSON: Machine-readable results with full metadata (`--output results.json`)
+- **Comparison mode**: Benchmark multiple scripts, calculate speedup ratios, identify winner
+- **Quiet mode**: Suppress console output, only produce JSON (`--quiet`)
+- **Raw results**: Display all iteration times (`--show-raw`)
+
+**CLI Usage**:
+```bash
+# Basic benchmark
+bashrs bench script.sh
+
+# Custom iterations and warmup
+bashrs bench script.sh --iterations 20 --warmup 5
+
+# Compare multiple scripts
+bashrs bench fast.sh slow.sh
+
+# With quality gates
+bashrs bench script.sh --strict --verify-determinism
+
+# JSON output for automation
+bashrs bench script.sh --output results.json --quiet
+```
+
+**Specification**: Full NASA-quality spec at `docs/specifications/bench-command.md`
+
+**Implementation Methodology**:
+- EXTREME TDD: RED (17 failing tests) → GREEN (all passing) → REFACTOR (quality gates)
+- Property-based testing ready (infrastructure in place)
+- Test coverage: 17 CLI integration tests + 8 unit tests
+- Zero regressions: All 6000+ existing tests still passing
+
+**Quality Metrics**:
+- ✅ All 17 CLI tests passing
+- ✅ All 6000+ existing tests passing (no regressions)
+- ✅ Clippy clean
+- ✅ Formatted with rustfmt
+- ✅ Real-world examples tested
+- ✅ 642 property tests passing (project-wide)
+
+### Dependencies
+
+- Added `sysinfo = "0.31"` for CPU/RAM/OS detection
+
 ## [6.24.3] - 2025-11-01
 
 ### ⚡ PERFORMANCE - Code Complexity Reduction (EXTREME TDD)

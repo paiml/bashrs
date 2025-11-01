@@ -40,6 +40,7 @@ rand = "0.9"  # Added for testing module
 static_assertions = "1.1"
 regex = "1.10"  # For linter pattern matching
 rustyline.workspace = true  # REPL terminal line editing
+sysinfo = "0.31"  # For bench command - CPU/RAM/OS detection
 
 # Compile mode dependencies (optional - not needed for WASM)
 zstd = { version = "0.13", optional = true }
