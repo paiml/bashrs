@@ -610,6 +610,55 @@ fn detect_output_file_conflicts(targets: &[(&String, &Vec<String>)]) -> Vec<Tran
     transformations
 }
 
+// ===== Helper functions for detect_missing_file_dependencies =====
+
+/// Try to extract output filename from redirect pattern: " > filename"
+fn try_extract_output_redirect(recipe: &str) -> Option<String> {
+    if let Some(pos) = recipe.find(" > ") {
+        let after = &recipe[pos + 3..];
+        let filename = after.split_whitespace().next()?;
+        if !filename.is_empty() {
+            return Some(filename.to_string());
+        }
+    }
+    None
+}
+
+/// Try to extract input filename from cat command: "cat filename"
+fn try_extract_cat_input(recipe: &str) -> Option<String> {
+    if recipe.contains("cat ") {
+        if let Some(pos) = recipe.find("cat ") {
+            let after = &recipe[pos + 4..];
+            let filename = after.split_whitespace().next()?;
+            if !filename.is_empty() && !is_automatic_variable(filename) {
+                return Some(filename.to_string());
+            }
+        }
+    }
+    None
+}
+
+/// Check if filename is an automatic Make variable ($<, $@, etc.)
+fn is_automatic_variable(filename: &str) -> bool {
+    matches!(filename, "$<" | "$@" | "$^" | "$?" | "$*" | "$+")
+}
+
+/// Check if target has a specific prerequisite
+fn target_has_prerequisite(ast: &MakeAst, target_name: &str, prerequisite: &str) -> bool {
+    ast.items.iter().any(|item| {
+        if let MakeItem::Target {
+            name,
+            prerequisites,
+            ..
+        } = item
+        {
+            name == target_name && prerequisites.contains(&prerequisite.to_string())
+        } else {
+            false
+        }
+    })
+}
+
 /// Detect missing file dependencies (file usage without dependency)
 fn detect_missing_file_dependencies(
     ast: &MakeAst,
@@ -622,44 +671,21 @@ fn detect_missing_file_dependencies(
 
     for (target_name, recipes) in targets {
         for recipe in *recipes {
-            // Detect file creation: > filename
-            if let Some(pos) = recipe.find(" > ") {
-                let after = &recipe[pos + 3..];
-                let filename = after.split_whitespace().next().unwrap_or("");
-                if !filename.is_empty() {
-                    file_creators.insert(filename.to_string(), (*target_name).clone());
-                }
+            // Detect file creation using helper
+            if let Some(filename) = try_extract_output_redirect(recipe) {
+                file_creators.insert(filename, (*target_name).clone());
             }
-            // Detect file usage: cat filename
-            if recipe.contains("cat ") {
-                if let Some(pos) = recipe.find("cat ") {
-                    let after = &recipe[pos + 4..];
-                    let filename = after.split_whitespace().next().unwrap_or("");
-                    if !filename.is_empty() && filename != "$<" && filename != "$@" {
-                        file_users.push(((*target_name).clone(), filename.to_string()));
-                    }
-                }
+            // Detect file usage using helper
+            if let Some(filename) = try_extract_cat_input(recipe) {
+                file_users.push(((*target_name).clone(), filename));
             }
         }
     }
 
-    // Report missing dependencies
+    // Report missing dependencies using helper
     for (user_target, used_file) in file_users {
         if let Some(provider_target) = file_creators.get(&used_file) {
-            let has_dependency = ast.items.iter().any(|item| {
-                if let MakeItem::Target {
-                    name,
-                    prerequisites,
-                    ..
-                } = item
-                {
-                    name == &user_target && prerequisites.contains(provider_target)
-                } else {
-                    false
-                }
-            });
-
-            if !has_dependency {
+            if !target_has_prerequisite(ast, &user_target, provider_target) {
                 transformations.push(Transformation::DetectMissingDependency {
                     target_name: user_target.clone(),
                     missing_file: used_file,
@@ -3136,5 +3162,162 @@ all:
         // Purification succeeded - result exists
         let _ = result.transformations_applied;
         let _ = result.manual_fixes_needed;
+    }
+
+    // ===== NASA-QUALITY UNIT TESTS for detect_missing_file_dependencies helpers =====
+
+    #[test]
+    fn test_try_extract_output_redirect_valid() {
+        let recipe = "echo hello > output.txt";
+        assert_eq!(
+            try_extract_output_redirect(recipe),
+            Some("output.txt".to_string()),
+            "Should extract output filename from redirect"
+        );
+    }
+
+    #[test]
+    fn test_try_extract_output_redirect_no_redirect() {
+        let recipe = "echo hello";
+        assert_eq!(
+            try_extract_output_redirect(recipe),
+            None,
+            "Should return None when no redirect present"
+        );
+    }
+
+    #[test]
+    fn test_try_extract_output_redirect_multiple_words() {
+        let recipe = "cat input.txt > output.txt extra";
+        assert_eq!(
+            try_extract_output_redirect(recipe),
+            Some("output.txt".to_string()),
+            "Should extract only first word after redirect"
+        );
+    }
+
+    #[test]
+    fn test_try_extract_cat_input_valid() {
+        let recipe = "cat input.txt";
+        assert_eq!(
+            try_extract_cat_input(recipe),
+            Some("input.txt".to_string()),
+            "Should extract input filename from cat command"
+        );
+    }
+
+    #[test]
+    fn test_try_extract_cat_input_no_cat() {
+        let recipe = "echo hello";
+        assert_eq!(
+            try_extract_cat_input(recipe),
+            None,
+            "Should return None when no cat command"
+        );
+    }
+
+    #[test]
+    fn test_try_extract_cat_input_automatic_variable() {
+        let recipe = "cat $<";
+        assert_eq!(
+            try_extract_cat_input(recipe),
+            None,
+            "Should return None for automatic variables"
+        );
+    }
+
+    #[test]
+    fn test_try_extract_cat_input_with_path() {
+        let recipe = "cat src/file.txt | grep pattern";
+        assert_eq!(
+            try_extract_cat_input(recipe),
+            Some("src/file.txt".to_string()),
+            "Should extract filename with path"
+        );
+    }
+
+    #[test]
+    fn test_is_automatic_variable_all_variants() {
+        assert!(is_automatic_variable("$<"), "$< should be automatic");
+        assert!(is_automatic_variable("$@"), "$@ should be automatic");
+        assert!(is_automatic_variable("$^"), "$^ should be automatic");
+        assert!(is_automatic_variable("$?"), "$? should be automatic");
+        assert!(is_automatic_variable("$*"), "$* should be automatic");
+        assert!(is_automatic_variable("$+"), "$+ should be automatic");
+    }
+
+    #[test]
+    fn test_is_automatic_variable_normal_filename() {
+        assert!(
+            !is_automatic_variable("file.txt"),
+            "Normal filename should NOT be automatic"
+        );
+        assert!(
+            !is_automatic_variable("$VAR"),
+            "User variable should NOT be automatic"
+        );
+    }
+
+    #[test]
+    fn test_target_has_prerequisite_true() {
+        use crate::make_parser::ast::{MakeAst, MakeItem, MakeMetadata, Span};
+
+        let ast = MakeAst {
+            items: vec![MakeItem::Target {
+                name: "build".to_string(),
+                prerequisites: vec!["compile".to_string()],
+                recipe: vec![],
+                phony: false,
+                span: Span::new(0, 10, 1),
+            }],
+            metadata: MakeMetadata::new(),
+        };
+
+        assert!(
+            target_has_prerequisite(&ast, "build", "compile"),
+            "Should find existing prerequisite"
+        );
+    }
+
+    #[test]
+    fn test_target_has_prerequisite_false() {
+        use crate::make_parser::ast::{MakeAst, MakeItem, MakeMetadata, Span};
+
+        let ast = MakeAst {
+            items: vec![MakeItem::Target {
+                name: "build".to_string(),
+                prerequisites: vec!["compile".to_string()],
+                recipe: vec![],
+                phony: false,
+                span: Span::new(0, 10, 1),
+            }],
+            metadata: MakeMetadata::new(),
+        };
+
+        assert!(
+            !target_has_prerequisite(&ast, "build", "missing"),
+            "Should return false for missing prerequisite"
+        );
+    }
+
+    #[test]
+    fn test_target_has_prerequisite_nonexistent_target() {
+        use crate::make_parser::ast::{MakeAst, MakeItem, MakeMetadata, Span};
+
+        let ast = MakeAst {
+            items: vec![MakeItem::Target {
+                name: "build".to_string(),
+                prerequisites: vec!["compile".to_string()],
+                recipe: vec![],
+                phony: false,
+                span: Span::new(0, 10, 1),
+            }],
+            metadata: MakeMetadata::new(),
+        };
+
+        assert!(
+            !target_has_prerequisite(&ast, "nonexistent", "compile"),
+            "Should return false for nonexistent target"
+        );
     }
 }
