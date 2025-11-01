@@ -31,23 +31,62 @@ static UNQUOTED_RHS_WITH_SPECIAL: Lazy<Regex> = Lazy::new(|| {
     Regex::new(r#"=\s+([^\s\]"']*[\*\?\[][^\s\]"']*)"#).unwrap()
 });
 
+/// Check if a line is a comment
+fn is_comment_line(line: &str) -> bool {
+    line.trim_start().starts_with('#')
+}
+
+/// Check if line contains double brackets
+fn has_double_bracket(line: &str) -> bool {
+    line.contains("[[")
+}
+
+/// Check if line should be checked (has [ and =)
+fn should_check_line(line: &str) -> bool {
+    line.contains("[") && line.contains("=")
+}
+
+/// Check if RHS is already quoted
+fn is_already_quoted(line: &str, absolute_rhs_pos: usize) -> bool {
+    if absolute_rhs_pos > 0 {
+        let before_rhs = &line[..absolute_rhs_pos];
+        before_rhs.ends_with('"') || before_rhs.ends_with('\'')
+    } else {
+        false
+    }
+}
+
+/// Calculate absolute position of RHS in line
+fn calculate_absolute_rhs_pos(line: &str, full_match: &str, rhs: &str, match_pos: usize) -> usize {
+    let rhs_pos = full_match.rfind(rhs).unwrap();
+    match_pos + rhs_pos
+}
+
+/// Create diagnostic for unquoted glob pattern
+fn create_unquoted_glob_diagnostic(
+    rhs: &str,
+    line_num: usize,
+    start_col: usize,
+    end_col: usize,
+) -> Diagnostic {
+    Diagnostic::new(
+        "SC2053",
+        Severity::Warning,
+        format!(
+            "Quote the RHS '{}' in [ ] to prevent glob matching, or use [[ ]] for patterns",
+            rhs
+        ),
+        Span::new(line_num, start_col, line_num, end_col),
+    )
+}
+
 pub fn check(source: &str) -> LintResult {
     let mut result = LintResult::new();
 
     for (line_num, line) in source.lines().enumerate() {
         let line_num = line_num + 1;
 
-        if line.trim_start().starts_with('#') {
-            continue;
-        }
-
-        // Skip [[ ]] (they handle patterns intentionally)
-        if line.contains("[[") {
-            continue;
-        }
-
-        // Only check [ ] contexts
-        if !line.contains("[") || !line.contains("=") {
+        if is_comment_line(line) || has_double_bracket(line) || !should_check_line(line) {
             continue;
         }
 
@@ -55,32 +94,18 @@ pub fn check(source: &str) -> LintResult {
         for cap in UNQUOTED_RHS_WITH_SPECIAL.captures_iter(line) {
             let rhs = cap.get(1).unwrap().as_str();
             let full_match = cap.get(0).unwrap().as_str();
-            let pos = line.find(full_match).unwrap_or(0);
+            let match_pos = line.find(full_match).unwrap_or(0);
 
-            // Check if RHS is already quoted (shouldn't match our regex, but double-check)
-            let rhs_pos = full_match.rfind(rhs).unwrap();
-            let absolute_rhs_pos = pos + rhs_pos;
+            let absolute_rhs_pos = calculate_absolute_rhs_pos(line, full_match, rhs, match_pos);
 
-            if absolute_rhs_pos > 0 {
-                let before_rhs = &line[..absolute_rhs_pos];
-                if before_rhs.ends_with('"') || before_rhs.ends_with('\'') {
-                    continue; // Already quoted
-                }
+            if is_already_quoted(line, absolute_rhs_pos) {
+                continue;
             }
 
             let start_col = absolute_rhs_pos + 1;
             let end_col = start_col + rhs.len();
 
-            let diagnostic = Diagnostic::new(
-                "SC2053",
-                Severity::Warning,
-                format!(
-                    "Quote the RHS '{}' in [ ] to prevent glob matching, or use [[ ]] for patterns",
-                    rhs
-                ),
-                Span::new(line_num, start_col, line_num, end_col),
-            );
-
+            let diagnostic = create_unquoted_glob_diagnostic(rhs, line_num, start_col, end_col);
             result.add(diagnostic);
         }
     }
@@ -91,6 +116,137 @@ pub fn check(source: &str) -> LintResult {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    // ===== Manual Property Tests =====
+
+    #[test]
+    fn prop_sc2053_comments_never_diagnosed() {
+        // Property: Comment lines should never produce diagnostics
+        let test_cases = vec![
+            "# [ \"$var\" = *.txt ]",
+            "  # [ \"$x\" = foo* ]",
+            "\t# [ \"$c\" = ? ]",
+        ];
+
+        for code in test_cases {
+            let result = check(code);
+            assert_eq!(result.diagnostics.len(), 0);
+        }
+    }
+
+    #[test]
+    fn prop_sc2053_double_brackets_never_diagnosed() {
+        // Property: Double brackets [[ ]] should never be diagnosed (patterns are intentional)
+        let test_cases = vec![
+            "[[ \"$var\" = *.txt ]]",
+            "[[ \"$name\" = foo* ]]",
+            "[[ \"$c\" = ? ]]",
+            "[[ \"$x\" = [abc] ]]",
+        ];
+
+        for code in test_cases {
+            let result = check(code);
+            assert_eq!(result.diagnostics.len(), 0);
+        }
+    }
+
+    #[test]
+    fn prop_sc2053_quoted_rhs_never_diagnosed() {
+        // Property: Quoted RHS should never be diagnosed
+        let test_cases = vec![
+            "[ \"$var\" = \"*.txt\" ]",
+            "[ \"$name\" = 'foo*' ]",
+            "[ \"$c\" = \"?\" ]",
+            "[ \"$x\" = '[abc]' ]",
+        ];
+
+        for code in test_cases {
+            let result = check(code);
+            assert_eq!(result.diagnostics.len(), 0);
+        }
+    }
+
+    #[test]
+    fn prop_sc2053_no_glob_chars_never_diagnosed() {
+        // Property: RHS without glob characters should never be diagnosed
+        let test_cases = vec![
+            "[ \"$x\" = \"literal\" ]",
+            "[ \"$y\" = simple ]",
+            "[ \"$z\" = value123 ]",
+        ];
+
+        for code in test_cases {
+            let result = check(code);
+            assert_eq!(result.diagnostics.len(), 0);
+        }
+    }
+
+    #[test]
+    fn prop_sc2053_unquoted_globs_always_diagnosed() {
+        // Property: Unquoted RHS with glob characters should always be diagnosed
+        let test_cases = vec![
+            "[ \"$var\" = *.txt ]",
+            "[ \"$name\" = foo* ]",
+            "[ \"$c\" = ? ]",
+            "[ \"$x\" = [abc] ]",
+        ];
+
+        for code in test_cases {
+            let result = check(code);
+            assert_eq!(result.diagnostics.len(), 1, "Should diagnose: {}", code);
+            assert!(result.diagnostics[0].message.contains("Quote"));
+        }
+    }
+
+    #[test]
+    fn prop_sc2053_diagnostic_code_always_sc2053() {
+        // Property: All diagnostics must have code "SC2053"
+        let code = "[ \"$a\" = *.txt ] && [ \"$b\" = foo* ]";
+        let result = check(code);
+
+        for diagnostic in &result.diagnostics {
+            assert_eq!(&diagnostic.code, "SC2053");
+        }
+    }
+
+    #[test]
+    fn prop_sc2053_diagnostic_severity_always_warning() {
+        // Property: All diagnostics must be Warning severity
+        let code = "[ \"$var\" = *.txt ]";
+        let result = check(code);
+
+        for diagnostic in &result.diagnostics {
+            assert_eq!(diagnostic.severity, Severity::Warning);
+        }
+    }
+
+    #[test]
+    fn prop_sc2053_message_suggests_alternatives() {
+        // Property: Message should suggest quoting or using [[ ]]
+        let code = "[ \"$var\" = *.txt ]";
+        let result = check(code);
+
+        assert_eq!(result.diagnostics.len(), 1);
+        let msg = &result.diagnostics[0].message;
+        assert!(msg.contains("Quote") || msg.contains("[["));
+    }
+
+    #[test]
+    fn prop_sc2053_multiple_globs_all_diagnosed() {
+        // Property: Multiple unquoted globs should all be diagnosed
+        let code = "[ \"$a\" = *.txt ] && [ \"$b\" = foo* ]";
+        let result = check(code);
+        assert_eq!(result.diagnostics.len(), 2);
+    }
+
+    #[test]
+    fn prop_sc2053_empty_source_no_diagnostics() {
+        // Property: Empty source should produce no diagnostics
+        let result = check("");
+        assert_eq!(result.diagnostics.len(), 0);
+    }
+
+    // ===== Original Unit Tests =====
 
     #[test]
     fn test_sc2053_unquoted_glob_rhs() {
