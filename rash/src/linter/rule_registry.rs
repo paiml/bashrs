@@ -601,6 +601,120 @@ lazy_static::lazy_static! {
             compatibility: ShellCompatibility::NotSh,
         });
 
+        // === BATCH 5 CLASSIFICATIONS (20 rules) ===
+
+        // Batch 5: Command optimization and best practices (Universal)
+        registry.insert("SC2001", RuleMetadata {
+            id: "SC2001",
+            name: "Use ${var//pattern/replacement} instead of sed",
+            compatibility: ShellCompatibility::Universal,
+        });
+        registry.insert("SC2005", RuleMetadata {
+            id: "SC2005",
+            name: "Useless echo instead of bare command",
+            compatibility: ShellCompatibility::Universal,
+        });
+        registry.insert("SC2006", RuleMetadata {
+            id: "SC2006",
+            name: "Use $(...) instead of deprecated backticks",
+            compatibility: ShellCompatibility::Universal,
+        });
+        registry.insert("SC2007", RuleMetadata {
+            id: "SC2007",
+            name: "Use $((..)) instead of deprecated expr",
+            compatibility: ShellCompatibility::Universal,
+        });
+
+        // Batch 5: Logic and quoting safety (Universal)
+        registry.insert("SC2015", RuleMetadata {
+            id: "SC2015",
+            name: "Note && and || precedence (use explicit grouping)",
+            compatibility: ShellCompatibility::Universal,
+        });
+        registry.insert("SC2016", RuleMetadata {
+            id: "SC2016",
+            name: "Expressions don't expand in single quotes",
+            compatibility: ShellCompatibility::Universal,
+        });
+        registry.insert("SC2017", RuleMetadata {
+            id: "SC2017",
+            name: "Increase precision by replacing bc/awk with arithmetic",
+            compatibility: ShellCompatibility::Universal,
+        });
+
+        // Batch 5: tr character classes (Universal)
+        registry.insert("SC2018", RuleMetadata {
+            id: "SC2018",
+            name: "Use [:upper:] instead of [A-Z] for tr",
+            compatibility: ShellCompatibility::Universal,
+        });
+        registry.insert("SC2019", RuleMetadata {
+            id: "SC2019",
+            name: "Use [:lower:] instead of [a-z] for tr",
+            compatibility: ShellCompatibility::Universal,
+        });
+        registry.insert("SC2020", RuleMetadata {
+            id: "SC2020",
+            name: "tr replaces sets of chars, not strings",
+            compatibility: ShellCompatibility::Universal,
+        });
+        registry.insert("SC2021", RuleMetadata {
+            id: "SC2021",
+            name: "Don't use [] around classes in tr",
+            compatibility: ShellCompatibility::Universal,
+        });
+
+        // Batch 5: SSH and command safety (Universal)
+        registry.insert("SC2022", RuleMetadata {
+            id: "SC2022",
+            name: "Note: set -x only affects the current shell",
+            compatibility: ShellCompatibility::Universal,
+        });
+        registry.insert("SC2023", RuleMetadata {
+            id: "SC2023",
+            name: "Brace expansion doesn't happen in [[ ]]",
+            compatibility: ShellCompatibility::Universal,
+        });
+        registry.insert("SC2024", RuleMetadata {
+            id: "SC2024",
+            name: "sudo only affects the command, not the redirection",
+            compatibility: ShellCompatibility::Universal,
+        });
+        registry.insert("SC2025", RuleMetadata {
+            id: "SC2025",
+            name: "Note: set -e only affects the current shell",
+            compatibility: ShellCompatibility::Universal,
+        });
+        registry.insert("SC2026", RuleMetadata {
+            id: "SC2026",
+            name: "Word splitting occurs in the variable",
+            compatibility: ShellCompatibility::Universal,
+        });
+
+        // Batch 5: Quoting and echo safety (Universal)
+        registry.insert("SC2027", RuleMetadata {
+            id: "SC2027",
+            name: "Quote or escape $ in double quotes",
+            compatibility: ShellCompatibility::Universal,
+        });
+        registry.insert("SC2028", RuleMetadata {
+            id: "SC2028",
+            name: "echo may not expand \\n (use printf)",
+            compatibility: ShellCompatibility::Universal,
+        });
+        registry.insert("SC2029", RuleMetadata {
+            id: "SC2029",
+            name: "Variables must be local in remote SSH command",
+            compatibility: ShellCompatibility::Universal,
+        });
+
+        // Batch 5: CRITICAL word splitting (Universal)
+        registry.insert("SC2086", RuleMetadata {
+            id: "SC2086",
+            name: "CRITICAL: Quote to prevent word splitting and globbing",
+            compatibility: ShellCompatibility::Universal,
+        });
+
         // Most other SC2xxx rules are Universal (quoting, syntax, etc.)
         // They represent bugs or issues that apply regardless of shell
         // Examples: SC2086 (quote variables), etc.
@@ -668,13 +782,14 @@ mod tests {
     }
 
     #[test]
-    fn test_registry_has_100_rules() {
+    fn test_registry_has_120_rules() {
         // Batch 1: 8 SEC + 3 DET + 3 IDEM + 6 SC2xxx = 20 rules
         // Batch 2: 6 NotSh + 19 Universal = 25 rules
         // Batch 3: 2 NotSh + 25 Universal = 27 rules (SC2058 not implemented yet)
         // Batch 4: 1 NotSh + 27 Universal = 28 rules (SC2120 has false positives, not enabled)
-        // Total: 100 rules (28.0% of 357 total)
-        assert_eq!(RULE_REGISTRY.len(), 100);
+        // Batch 5: 0 NotSh + 20 Universal = 20 rules
+        // Total: 120 rules (33.6% of 357 total)
+        assert_eq!(RULE_REGISTRY.len(), 120);
     }
 
     #[test]
@@ -1204,6 +1319,150 @@ mod tests {
         // Total: 8+7+6+3+2+1 = 27 Universal rules
         let unique_count = universal_rules.len();
         assert_eq!(unique_count, 27, "Batch 4 should have 27 Universal rules");
+
+        for rule in universal_rules {
+            assert_eq!(
+                get_rule_compatibility(rule),
+                Some(ShellCompatibility::Universal),
+                "{} should be Universal",
+                rule
+            );
+        }
+    }
+
+    // === Batch 5 Classification Tests ===
+
+    #[test]
+    fn test_batch5_command_optimization_universal() {
+        // Command optimization rules (SC2001, SC2005-2007) should be Universal
+        let command_rules = vec!["SC2001", "SC2005", "SC2006", "SC2007"];
+
+        for rule in command_rules {
+            assert_eq!(
+                get_rule_compatibility(rule),
+                Some(ShellCompatibility::Universal),
+                "{} should be Universal",
+                rule
+            );
+
+            // Should apply to ALL shells
+            assert!(
+                should_apply_rule(rule, ShellType::Bash),
+                "{} should apply to bash",
+                rule
+            );
+            assert!(
+                should_apply_rule(rule, ShellType::Sh),
+                "{} should apply to sh",
+                rule
+            );
+        }
+    }
+
+    #[test]
+    fn test_batch5_logic_and_tr_universal() {
+        // Logic, quoting, and tr character class rules should be Universal
+        let logic_and_tr_rules = vec![
+            // Logic (3)
+            "SC2015", "SC2016", "SC2017", // tr character classes (4)
+            "SC2018", "SC2019", "SC2020", "SC2021",
+        ];
+
+        for rule in logic_and_tr_rules {
+            assert_eq!(
+                get_rule_compatibility(rule),
+                Some(ShellCompatibility::Universal),
+                "{} should be Universal",
+                rule
+            );
+
+            // Should apply to ALL shells
+            assert!(
+                should_apply_rule(rule, ShellType::Bash),
+                "{} should apply to bash",
+                rule
+            );
+            assert!(
+                should_apply_rule(rule, ShellType::Sh),
+                "{} should apply to sh",
+                rule
+            );
+        }
+    }
+
+    #[test]
+    fn test_batch5_ssh_and_quoting_universal() {
+        // SSH, sudo, quoting, and echo safety rules should be Universal
+        let ssh_and_quoting_rules = vec![
+            // SSH and command safety (5)
+            "SC2022", "SC2023", "SC2024", "SC2025", "SC2026", // Quoting and echo (3)
+            "SC2027", "SC2028", "SC2029",
+        ];
+
+        for rule in ssh_and_quoting_rules {
+            assert_eq!(
+                get_rule_compatibility(rule),
+                Some(ShellCompatibility::Universal),
+                "{} should be Universal",
+                rule
+            );
+
+            // Should apply to ALL shells
+            assert!(
+                should_apply_rule(rule, ShellType::Bash),
+                "{} should apply to bash",
+                rule
+            );
+            assert!(
+                should_apply_rule(rule, ShellType::Sh),
+                "{} should apply to sh",
+                rule
+            );
+        }
+    }
+
+    #[test]
+    fn test_batch5_critical_word_splitting_universal() {
+        // CRITICAL: SC2086 (quote to prevent word splitting) MUST be Universal
+        let critical_rule = "SC2086";
+
+        assert_eq!(
+            get_rule_compatibility(critical_rule),
+            Some(ShellCompatibility::Universal),
+            "SC2086 (CRITICAL word splitting) should be Universal"
+        );
+
+        // Must apply to ALL shells (CRITICAL safety)
+        for shell in [
+            ShellType::Bash,
+            ShellType::Zsh,
+            ShellType::Sh,
+            ShellType::Ksh,
+        ] {
+            assert!(
+                should_apply_rule(critical_rule, shell),
+                "SC2086 should apply to {:?}",
+                shell
+            );
+        }
+    }
+
+    #[test]
+    fn test_batch5_universal_count() {
+        // Batch 5 should have 20 Universal rules
+        let universal_rules = vec![
+            // Command optimization (4)
+            "SC2001", "SC2005", "SC2006", "SC2007", // Logic and quoting (3)
+            "SC2015", "SC2016", "SC2017", // tr character classes (4)
+            "SC2018", "SC2019", "SC2020", "SC2021", // SSH and command safety (5)
+            "SC2022", "SC2023", "SC2024", "SC2025", "SC2026", // Quoting and echo (3)
+            "SC2027", "SC2028", "SC2029", // CRITICAL word splitting (1)
+            "SC2086",
+        ];
+
+        // Total: 4+3+4+5+3+1 = 20 Universal rules
+        let unique_count = universal_rules.len();
+        assert_eq!(unique_count, 20, "Batch 5 should have 20 Universal rules");
 
         for rule in universal_rules {
             assert_eq!(
