@@ -24,7 +24,7 @@ This is the beginning of **Option 1: Complete Shell-Specific Rule Filtering** fr
 - **`lint_shell_filtered()`**: Conditional rule execution based on shell type
 - **`apply_rule!` macro**: Performance-optimized filtering with zero runtime cost for skipped rules
 
-**Rule Classification** (200/357 rules - 56.0% - **Approaching 60% milestone!**):
+**Rule Classification** (220/357 rules - 61.6% - **🎯 CROSSED 60% MILESTONE! 🎯**):
 
 *Batch 1* (20 rules):
 - ✅ 8 SEC rules → Universal (apply to all shells)
@@ -113,6 +113,15 @@ This is the beginning of **Option 1: Complete Shell-Specific Rule Filtering** fr
 - ✅ 5 NotSh rules (bash/zsh/ksh only):
   - **Array Operations** (3): SC2178 (variable used as array but assigned as string), SC2179 (use array+=(\"item\") to append to array), SC2180 (trying to use array as scalar - missing index)
   - **Associative Arrays** (2): SC2190 (elements in associative arrays need index), SC2191 (trying to use associative array without index)
+
+*Batch 10* (20 rules) - **FOCUS: Command Structure & Arithmetic - 🎯 CROSSED 60% MILESTONE! 🎯**:
+- ✅ 18 Universal rules:
+  - **Command Structure & Ordering** (4): SC2202 (order sensitivity e.g. redirects), SC2203 (variable assignment order matters), SC2204 (exit traps must come before commands), SC2205 (command ordering with pipes)
+  - **Find & Command Structure** (4): SC2208 (command grouping issues), SC2209 (use single quotes for literal strings in find), SC2216 (piping find to shell with ; instead of +), SC2217 (useless cat with find)
+  - **Arithmetic Operations** (6): SC2210 (don't use arithmetic shortcuts like x=++y), SC2211 (arithmetic on variable without $(())), SC2214 (arithmetic comparison outside test), SC2215 (expression precedence issues), SC2220 (invalid arithmetic expression), SC2221 (arithmetic syntax errors)
+  - **Control Flow & Test Operators** (4): SC2212 (use [ p ] || [ q ] instead of [ p -o q ]), SC2213 (getopts requires argument variable), SC2218 (useless return in command substitution), SC2219 (instead of let expr, use (( expr )))
+- ✅ 2 NotSh rules (bash/zsh/ksh only):
+  - **Array Quoting** (2): SC2206 (quote to prevent word splitting/globbing in arrays), SC2207 (prefer mapfile or read -a to split command output)
 
 **Integration Tests** (12 total: 6 batch 1 + 6 batch 2):
 
