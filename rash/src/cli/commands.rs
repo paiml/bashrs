@@ -192,6 +192,7 @@ pub fn execute_command(cli: Cli) -> Result<()> {
             verify_determinism,
             show_raw,
             quiet,
+            measure_memory,
         } => {
             info!("Benchmarking script(s)");
             use crate::cli::bench::{bench_command, BenchOptions};
@@ -205,6 +206,7 @@ pub fn execute_command(cli: Cli) -> Result<()> {
                 verify_determinism,
                 show_raw,
                 quiet,
+                measure_memory,
             };
 
             bench_command(options)

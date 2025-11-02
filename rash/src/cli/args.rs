@@ -316,6 +316,10 @@ pub enum Commands {
         /// Suppress progress output
         #[arg(short = 'q', long)]
         quiet: bool,
+
+        /// Measure memory usage (requires /usr/bin/time)
+        #[arg(short = 'm', long)]
+        measure_memory: bool,
     },
 }
 

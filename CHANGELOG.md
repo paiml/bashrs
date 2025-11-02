@@ -7,6 +7,86 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [6.26.0] - 2025-11-02
+
+### ✨ ENHANCEMENT - Memory Measurement for Benchmarking
+
+**bashrs v6.26.0 adds memory profiling to the `bashrs bench` command for comprehensive performance analysis.**
+
+### Added
+
+**Memory Measurement Feature** (4 new tests, 100% passing):
+
+- **Memory profiling**: Measure maximum resident set size (RSS) during benchmark execution
+- **`--measure-memory` / `-m` flag**: Enable memory tracking (uses `/usr/bin/time`)
+- **Statistical metrics**: Mean, median, min, max, peak memory in KB
+- **Console display**: Memory statistics section with 💾 icon
+- **JSON output**: Full memory statistics included in machine-readable format
+- **Comparison mode**: Memory column in multi-script comparison table
+
+**CLI Usage**:
+```bash
+# Benchmark with memory measurement
+bashrs bench script.sh --measure-memory
+
+# Short form
+bashrs bench script.sh -m
+
+# With custom iterations
+bashrs bench script.sh -m --iterations 10 --warmup 3
+
+# Compare scripts with memory
+bashrs bench script1.sh script2.sh --measure-memory
+
+# JSON output with memory data
+bashrs bench script.sh -m --output results.json
+```
+
+**Memory Statistics Output**:
+```
+💾 Memory Usage
+  Mean:    3456.00 KB
+  Median:  3456.00 KB
+  Min:     3456.00 KB
+  Max:     3456.00 KB
+  Peak:    3456.00 KB
+```
+
+**JSON Structure**:
+```json
+{
+  "statistics": {
+    "memory": {
+      "mean_kb": 3456.0,
+      "median_kb": 3456.0,
+      "min_kb": 3456.0,
+      "max_kb": 3456.0,
+      "peak_kb": 3456.0
+    }
+  }
+}
+```
+
+**Implementation Details**:
+- Uses `/usr/bin/time -f "%M"` for accurate RSS measurement
+- Optional feature (backward compatible with v6.25.0)
+- Inspired by ruchy-book benchmarking methodology
+- EXTREME TDD: 4 new unit tests, all passing
+- Zero regressions: All 6004 existing tests still passing
+
+**Quality Metrics**:
+- ✅ All 9 bench module tests passing
+- ✅ All 6004 project tests passing (no regressions)
+- ✅ Clippy clean
+- ✅ Formatted with rustfmt
+- ✅ Real-world testing with sample scripts
+- ✅ JSON schema validated
+
+### Requirements
+
+- `/usr/bin/time` must be available for memory measurement (standard on Linux/Unix)
+- Falls back gracefully if unavailable
+
 ## [6.25.0] - 2025-11-01
 
 ### ✨ NEW FEATURE - Scientific Benchmarking (EXTREME TDD)

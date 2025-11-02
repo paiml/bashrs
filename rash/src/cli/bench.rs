@@ -29,6 +29,7 @@ pub struct BenchOptions {
     pub verify_determinism: bool,
     pub show_raw: bool,
     pub quiet: bool,
+    pub measure_memory: bool,
 }
 
 impl BenchOptions {
@@ -42,6 +43,7 @@ impl BenchOptions {
             verify_determinism: false,
             show_raw: false,
             quiet: false,
+            measure_memory: false,
         }
     }
 }
@@ -89,6 +91,16 @@ impl Environment {
     }
 }
 
+/// Memory measurement statistics
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct MemoryStatistics {
+    pub mean_kb: f64,
+    pub median_kb: f64,
+    pub min_kb: f64,
+    pub max_kb: f64,
+    pub peak_kb: f64,
+}
+
 /// Statistics for benchmark results
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Statistics {
@@ -98,16 +110,40 @@ pub struct Statistics {
     pub min_ms: f64,
     pub max_ms: f64,
     pub variance_ms: f64,
+    pub memory: Option<MemoryStatistics>,
 }
 
 impl Statistics {
     pub fn calculate(results: &[f64]) -> Self {
+        Self::calculate_with_memory(results, None)
+    }
+
+    pub fn calculate_with_memory(results: &[f64], memory_results: Option<&[f64]>) -> Self {
         let mean = calculate_mean(results);
         let median = calculate_median(results);
         let variance = calculate_variance(results, mean);
         let stddev = variance.sqrt();
         let min = results.iter().copied().fold(f64::INFINITY, f64::min);
         let max = results.iter().copied().fold(f64::NEG_INFINITY, f64::max);
+
+        let memory = memory_results.map(|mem_results| {
+            let mean_kb = calculate_mean(mem_results);
+            let median_kb = calculate_median(mem_results);
+            let min_kb = mem_results.iter().copied().fold(f64::INFINITY, f64::min);
+            let max_kb = mem_results
+                .iter()
+                .copied()
+                .fold(f64::NEG_INFINITY, f64::max);
+            let peak_kb = max_kb;
+
+            MemoryStatistics {
+                mean_kb,
+                median_kb,
+                min_kb,
+                max_kb,
+                peak_kb,
+            }
+        });
 
         Self {
             mean_ms: mean,
@@ -116,6 +152,25 @@ impl Statistics {
             min_ms: min,
             max_ms: max,
             variance_ms: variance,
+            memory,
+        }
+    }
+}
+
+impl MemoryStatistics {
+    pub fn calculate(memory_kb: &[f64]) -> Self {
+        let mean_kb = calculate_mean(memory_kb);
+        let median_kb = calculate_median(memory_kb);
+        let min_kb = memory_kb.iter().copied().fold(f64::INFINITY, f64::min);
+        let max_kb = memory_kb.iter().copied().fold(f64::NEG_INFINITY, f64::max);
+        let peak_kb = max_kb;
+
+        Self {
+            mean_kb,
+            median_kb,
+            min_kb,
+            max_kb,
+            peak_kb,
         }
     }
 }
@@ -241,19 +296,43 @@ fn benchmark_single_script(script: &Path, options: &BenchOptions) -> Result<Benc
 
     // Measured runs
     if !options.quiet {
-        println!("\n⏱️  Measuring ({} iterations)...", options.iterations);
+        let mem_str = if options.measure_memory {
+            " + memory"
+        } else {
+            ""
+        };
+        println!(
+            "\n⏱️  Measuring ({} iterations{})...",
+            options.iterations, mem_str
+        );
     }
     let mut results = Vec::new();
+    let mut memory_results = Vec::new();
     for i in 1..=options.iterations {
-        let time_ms = execute_and_time(script)?;
+        let (time_ms, memory_kb) = if options.measure_memory {
+            execute_and_time_with_memory(script)?
+        } else {
+            (execute_and_time(script)?, 0.0)
+        };
         results.push(time_ms);
+        if options.measure_memory {
+            memory_results.push(memory_kb);
+        }
         if !options.quiet {
-            println!("  ✓ Iteration {}: {:.2}ms", i, time_ms);
+            if options.measure_memory {
+                println!("  ✓ Iteration {}: {:.2}ms, {:.2} KB", i, time_ms, memory_kb);
+            } else {
+                println!("  ✓ Iteration {}: {:.2}ms", i, time_ms);
+            }
         }
     }
 
     // Calculate statistics
-    let statistics = Statistics::calculate(&results);
+    let statistics = if options.measure_memory {
+        Statistics::calculate_with_memory(&results, Some(&memory_results))
+    } else {
+        Statistics::calculate(&results)
+    };
 
     Ok(BenchmarkResult {
         script: script.to_string_lossy().to_string(),
@@ -276,6 +355,35 @@ fn execute_and_time(script: &Path) -> Result<f64> {
 
     let elapsed = start.elapsed();
     Ok(elapsed.as_secs_f64() * 1000.0)
+}
+
+/// Execute script and measure both time and memory usage
+/// Returns (time_ms, memory_kb)
+fn execute_and_time_with_memory(script: &Path) -> Result<(f64, f64)> {
+    let start = Instant::now();
+
+    // Use /usr/bin/time to measure memory
+    // -f "%M" outputs maximum resident set size in KB
+    let output = Command::new("/usr/bin/time")
+        .arg("-f")
+        .arg("%M")
+        .arg("bash")
+        .arg(script)
+        .output()
+        .map_err(Error::Io)?;
+
+    let elapsed = start.elapsed();
+    let time_ms = elapsed.as_secs_f64() * 1000.0;
+
+    // Parse memory usage from stderr (time outputs to stderr)
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    let memory_kb = stderr
+        .lines()
+        .last()
+        .and_then(|line| line.trim().parse::<f64>().ok())
+        .unwrap_or(0.0);
+
+    Ok((time_ms, memory_kb))
 }
 
 /// Run quality gates on script
@@ -387,6 +495,16 @@ fn display_results(
         println!("  StdDev:  {:.2}ms", result.statistics.stddev_ms);
         println!("  Runs:    {}", result.iterations);
 
+        // Display memory statistics if available
+        if let Some(mem) = &result.statistics.memory {
+            println!("\n💾 Memory Usage");
+            println!("  Mean:    {:.2} KB", mem.mean_kb);
+            println!("  Median:  {:.2} KB", mem.median_kb);
+            println!("  Min:     {:.2} KB", mem.min_kb);
+            println!("  Max:     {:.2} KB", mem.max_kb);
+            println!("  Peak:    {:.2} KB", mem.peak_kb);
+        }
+
         if options.show_raw {
             println!("\n  Raw results: {:?}", result.raw_results_ms);
         }
@@ -411,10 +529,21 @@ fn display_comparison_results(results: &[BenchmarkResult]) -> Result<()> {
     println!("\n📊 Comparison Results");
     println!("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
     println!();
-    println!(
-        "{:<30} {:>12} {:>15} {:>10}",
-        "Script", "Mean (ms)", "StdDev (ms)", "Speedup"
-    );
+
+    // Check if any result has memory statistics
+    let has_memory = results.iter().any(|r| r.statistics.memory.is_some());
+
+    if has_memory {
+        println!(
+            "{:<30} {:>12} {:>15} {:>12} {:>10}",
+            "Script", "Mean (ms)", "StdDev (ms)", "Memory (KB)", "Speedup"
+        );
+    } else {
+        println!(
+            "{:<30} {:>12} {:>15} {:>10}",
+            "Script", "Mean (ms)", "StdDev (ms)", "Speedup"
+        );
+    }
     println!("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
 
     // Find slowest (baseline)
@@ -441,14 +570,33 @@ fn display_comparison_results(results: &[BenchmarkResult]) -> Result<()> {
         let speedup = baseline.statistics.mean_ms / result.statistics.mean_ms;
         let winner = if i == 0 { " 🏆" } else { "" };
 
-        println!(
-            "{:<30} {:>12.2} {:>15} {:>10.2}x{}",
-            truncate_path(&result.script, 30),
-            result.statistics.mean_ms,
-            format!("± {:.2}", result.statistics.stddev_ms),
-            speedup,
-            winner
-        );
+        if has_memory {
+            let mem_str = result
+                .statistics
+                .memory
+                .as_ref()
+                .map(|m| format!("{:.2}", m.mean_kb))
+                .unwrap_or_else(|| "N/A".to_string());
+
+            println!(
+                "{:<30} {:>12.2} {:>15} {:>12} {:>10.2}x{}",
+                truncate_path(&result.script, 30),
+                result.statistics.mean_ms,
+                format!("± {:.2}", result.statistics.stddev_ms),
+                mem_str,
+                speedup,
+                winner
+            );
+        } else {
+            println!(
+                "{:<30} {:>12.2} {:>15} {:>10.2}x{}",
+                truncate_path(&result.script, 30),
+                result.statistics.mean_ms,
+                format!("± {:.2}", result.statistics.stddev_ms),
+                speedup,
+                winner
+            );
+        }
     }
 
     println!("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
@@ -555,5 +703,39 @@ mod tests {
         // max_len=20 -> "..." (3) + last 17 chars = "...to/some/script.sh" (20 total)
         assert_eq!(truncate_path(path, 20), "...to/some/script.sh");
         assert_eq!(truncate_path("short.sh", 20), "short.sh");
+    }
+
+    #[test]
+    fn test_memory_statistics_calculate() {
+        let memory_kb = vec![1024.0, 2048.0, 1536.0, 2048.0, 1024.0];
+        let stats = MemoryStatistics::calculate(&memory_kb);
+        assert_eq!(stats.mean_kb, 1536.0);
+        assert_eq!(stats.median_kb, 1536.0);
+        assert_eq!(stats.min_kb, 1024.0);
+        assert_eq!(stats.max_kb, 2048.0);
+        assert_eq!(stats.peak_kb, 2048.0);
+    }
+
+    #[test]
+    fn test_statistics_with_memory() {
+        let time_results = vec![10.0, 20.0, 15.0];
+        let memory_results = vec![1024.0, 2048.0, 1536.0];
+        let stats = Statistics::calculate_with_memory(&time_results, Some(&memory_results));
+
+        assert_eq!(stats.mean_ms, 15.0);
+        assert!(stats.memory.is_some());
+
+        let mem = stats.memory.unwrap();
+        assert_eq!(mem.mean_kb, 1536.0);
+        assert_eq!(mem.median_kb, 1536.0);
+    }
+
+    #[test]
+    fn test_statistics_without_memory() {
+        let time_results = vec![10.0, 20.0, 15.0];
+        let stats = Statistics::calculate(&time_results);
+
+        assert_eq!(stats.mean_ms, 15.0);
+        assert!(stats.memory.is_none());
     }
 }
