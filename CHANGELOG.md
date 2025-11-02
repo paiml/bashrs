@@ -24,7 +24,7 @@ This is the beginning of **Option 1: Complete Shell-Specific Rule Filtering** fr
 - **`lint_shell_filtered()`**: Conditional rule execution based on shell type
 - **`apply_rule!` macro**: Performance-optimized filtering with zero runtime cost for skipped rules
 
-**Rule Classification** (220/357 rules - 61.6% - **🎯 CROSSED 60% MILESTONE! 🎯**):
+**Rule Classification** (240/357 rules - 67.2% - **Approaching 70% Milestone!**):
 
 *Batch 1* (20 rules):
 - ✅ 8 SEC rules → Universal (apply to all shells)
@@ -122,6 +122,13 @@ This is the beginning of **Option 1: Complete Shell-Specific Rule Filtering** fr
   - **Control Flow & Test Operators** (4): SC2212 (use [ p ] || [ q ] instead of [ p -o q ]), SC2213 (getopts requires argument variable), SC2218 (useless return in command substitution), SC2219 (instead of let expr, use (( expr )))
 - ✅ 2 NotSh rules (bash/zsh/ksh only):
   - **Array Quoting** (2): SC2206 (quote to prevent word splitting/globbing in arrays), SC2207 (prefer mapfile or read -a to split command output)
+
+*Batch 11* (20 rules) - **FOCUS: Case Statements & Portability - Approaching 70% Milestone!**:
+- ✅ 20 Universal rules (all Universal, NO NotSh rules in batch 11):
+  - **Case Statement Syntax** (2): SC2222 (lexical error in case statement syntax), SC2223 (default case is unreachable - previous pattern catches all)
+  - **Control Flow & Test Operators** (6): SC2224 (quote the word or use a glob), SC2225 (use : or true instead of /bin/true), SC2226 (this expression is constant), SC2227 (redirection applies to echo, not assignment), SC2228 (declare -x is equivalent to export), SC2229 (this does not read 'foo' - remove $/${})
+  - **Command Existence & Portability** (5): SC2230 (which is non-standard, use command -v instead), SC2231 (quote expansions in for loop glob to prevent word splitting), SC2232 (can't use sudo with builtins like cd), SC2233 (remove superfluous (..) around condition), SC2234 (remove superfluous () around here document)
+  - **Quoting & Expansion Safety** (7): SC2235 (quote arguments to unalias to prevent word splitting), SC2236 (use -n instead of ! -z), SC2237 (use [ ] instead of [[ ]] for sh compatibility), SC2238 (prefer ${} over backticks for readability + nesting), SC2239 (ensure consistent quoting for redirects), SC2240 (the dot command does not support arguments in sh), SC2241 (exit code is always overridden by following command)
 
 **Integration Tests** (12 total: 6 batch 1 + 6 batch 2):
 
