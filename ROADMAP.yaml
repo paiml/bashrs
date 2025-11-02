@@ -2,8 +2,8 @@
 project:
   name: "Rash (bashrs) Extreme Quality Roadmap"
   description: "Bidirectional shell safety tool using REAL Rust (not a DSL)"
-  version: "6.27.1"
-  status: "🎉🎉🎉 Production Ready - 357 Linter Rules + Shell Type Detection + Memory Profiling 🎓 A+ GRADE QUALITY + Property Testing"
+  version: "6.28.0-dev"
+  status: "🚀 v6.28.0-dev - Shell-Specific Rule Filtering Foundation (MVP Complete) 🎓 A+ GRADE + 100% Mutation Kill Rate on New Code"
   nasa_quality_focus: "Mission-critical quality standards with zero-defect policy, EXTREME TDD, and NASA-level testing protocols"
 
 workflows:
@@ -28,6 +28,59 @@ workflows:
       - "Output is safe, deterministic, verifiable bash"
 
 releases:
+  - version: "6.28.0-dev"
+    date: "2025-11-02"
+    status: "IN PROGRESS (Snapshot: v6.28.0-dev-snapshot)"
+    title: "🚀 Shell-Specific Rule Filtering (Foundation + MVP)"
+    description: "Implements shell-specific linting to eliminate false positives on zsh and POSIX sh files - foundation for complete rule filtering (Option 1 from Strategic Roadmap)"
+    achievements:
+      - "Shell Compatibility Infrastructure: ShellCompatibility enum with 6 levels"
+      - "RuleRegistry: Centralized metadata with lazy_static HashMap"
+      - "lint_shell_filtered(): Filtering engine with apply_rule! macro"
+      - "20 rules classified: 8 SEC + 3 DET + 3 IDEM + 6 SC2xxx (6% of 357 total)"
+      - "19 new tests: 11 shell_compatibility + 8 rule_registry"
+      - "6 integration tests demonstrating filtering behavior"
+      - "Mutation testing: 100% kill rate on new code (16/16 mutants caught)"
+      - "Zero regressions: 6038 tests passing"
+    quality_metrics:
+      grade: "A+"
+      tests_passing: 6038
+      tests_new: 19
+      test_pass_rate: "100%"
+      property_tests: 648
+      clippy_warnings: 0
+      mutation_kill_rate_new_code: "100% (16/16)"
+      mutation_kill_rate_shell_type: "66.7% (14/21)"
+      code_complexity: "<10 all functions"
+      extreme_tdd: true
+    implementation_methodology:
+      phase_1: "RED Phase - 6 failing integration tests"
+      phase_2: "GREEN Phase - All tests passing"
+      phase_3: "REFACTOR Phase - Macro-based optimization"
+      phase_4: "PROPERTY Phase - 6 property tests with 100+ cases each"
+      phase_5: "MUTATION Phase - 100% kill rate on new code"
+    current_state:
+      rules_classified: "20/357 (6%)"
+      filtering_engine: "MVP functional"
+      documentation: "CHANGELOG + book + milestone summary"
+      tag: "v6.28.0-dev-snapshot"
+    next_steps:
+      - "Classify remaining 317 SC2xxx rules (aim for 100+ rules, 28%)"
+      - "Expand lint_shell_filtered() to include all classified rules"
+      - "Add zsh-specific rules (ZSH001-ZSH020)"
+      - "Release as v6.28.0 when 20-30% rules classified"
+    commits:
+      - "b8bd901a: feat: Add shell compatibility infrastructure"
+      - "bb592146: feat: Implement shell-specific rule filtering MVP"
+      - "70b6e693: docs: Document v6.28.0-dev filtering"
+      - "bca016b2: docs: Add v6.28.0-dev milestone summary"
+    documentation:
+      - "CHANGELOG.md (v6.28.0-dev entry - 113 lines)"
+      - "book/src/linting/shell-detection.md (updated with filtering)"
+      - "docs/V6.28.0-DEV-MILESTONE.md (324 lines)"
+      - "docs/RULE-SHELL-COMPATIBILITY.md (251 lines)"
+    notes: "Foundation complete, MVP functional. Demonstrates that filtering works and eliminates false positives. Conservative defaults (unclassified = Universal) ensure safety. Ready for incremental expansion."
+
   - version: "6.27.1"
     date: "2025-11-02"
     status: "RELEASED"
