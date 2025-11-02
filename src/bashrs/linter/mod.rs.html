@@ -21,13 +21,17 @@
 <a href=#21 id=21 data-nosnippet>21</a><span class="kw">pub mod </span>diagnostic;
 <a href=#22 id=22 data-nosnippet>22</a><span class="kw">pub mod </span>make_preprocess;
 <a href=#23 id=23 data-nosnippet>23</a><span class="kw">pub mod </span>output;
-<a href=#24 id=24 data-nosnippet>24</a><span class="kw">pub mod </span>rules;
-<a href=#25 id=25 data-nosnippet>25</a><span class="kw">pub mod </span>shell_type;
-<a href=#26 id=26 data-nosnippet>26</a>
-<a href=#27 id=27 data-nosnippet>27</a><span class="kw">pub use </span>autofix::{apply_fixes, apply_fixes_to_file, FixOptions, FixResult};
-<a href=#28 id=28 data-nosnippet>28</a><span class="kw">pub use </span>diagnostic::{Diagnostic, Fix, LintResult, Severity, Span};
-<a href=#29 id=29 data-nosnippet>29</a><span class="kw">pub use </span>rules::{lint_shell, lint_shell_with_path};
-<a href=#30 id=30 data-nosnippet>30</a><span class="kw">pub use </span>shell_type::{detect_shell_type, ShellType};
-<a href=#31 id=31 data-nosnippet>31</a>
-<a href=#32 id=32 data-nosnippet>32</a><span class="attr">#[cfg(test)]
-<a href=#33 id=33 data-nosnippet>33</a></span><span class="kw">mod </span>tests;</code></pre></div></section></main></body></html>
+<a href=#24 id=24 data-nosnippet>24</a><span class="kw">pub mod </span>rule_registry;
+<a href=#25 id=25 data-nosnippet>25</a><span class="kw">pub mod </span>rules;
+<a href=#26 id=26 data-nosnippet>26</a><span class="kw">pub mod </span>shell_compatibility;
+<a href=#27 id=27 data-nosnippet>27</a><span class="kw">pub mod </span>shell_type;
+<a href=#28 id=28 data-nosnippet>28</a>
+<a href=#29 id=29 data-nosnippet>29</a><span class="kw">pub use </span>autofix::{apply_fixes, apply_fixes_to_file, FixOptions, FixResult};
+<a href=#30 id=30 data-nosnippet>30</a><span class="kw">pub use </span>diagnostic::{Diagnostic, Fix, LintResult, Severity, Span};
+<a href=#31 id=31 data-nosnippet>31</a><span class="kw">pub use </span>rule_registry::{get_rule_compatibility, should_apply_rule, RuleMetadata};
+<a href=#32 id=32 data-nosnippet>32</a><span class="kw">pub use </span>rules::{lint_shell, lint_shell_with_path};
+<a href=#33 id=33 data-nosnippet>33</a><span class="kw">pub use </span>shell_compatibility::ShellCompatibility;
+<a href=#34 id=34 data-nosnippet>34</a><span class="kw">pub use </span>shell_type::{detect_shell_type, ShellType};
+<a href=#35 id=35 data-nosnippet>35</a>
+<a href=#36 id=36 data-nosnippet>36</a><span class="attr">#[cfg(test)]
+<a href=#37 id=37 data-nosnippet>37</a></span><span class="kw">mod </span>tests;</code></pre></div></section></main></body></html>

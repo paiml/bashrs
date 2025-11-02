@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"fn":["get_rule_compatibility","should_apply_rule"],"struct":["RULE_REGISTRY","RuleMetadata"]};
