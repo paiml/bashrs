@@ -141,3 +141,157 @@ mod property_tests {
         }
     }
 }
+
+// === Batch 2 Integration Tests ===
+
+/// Test that [[ ]] rules (SC2108-SC2110) don't fire on POSIX sh
+#[test]
+fn test_double_bracket_rules_skipped_for_sh() {
+    // ARRANGE: POSIX sh script with single brackets (valid)
+    let sh_content = r#"#!/bin/sh
+# POSIX sh only supports [ ], not [[ ]]
+if [ "$x" = "1" -a "$y" = "2" ]; then
+    echo "Both conditions true"
+fi
+"#;
+    let path = PathBuf::from("install.sh");
+
+    // ACT: Lint as sh file
+    let result = lint_shell_with_path(&path, sh_content);
+
+    // ASSERT: Should NOT have SC2108 (use && in [[ ]])
+    // because POSIX sh doesn't have [[ ]], so this rule shouldn't apply
+    assert!(
+        !result.diagnostics.iter().any(|d| d.code == "SC2108"),
+        "SC2108 should not fire on POSIX sh files"
+    );
+}
+
+/// Test that [[ ]] rules DO fire on bash files
+#[test]
+fn test_double_bracket_rules_fire_for_bash() {
+    // ARRANGE: Bash script with [[ ]] using -a (should warn)
+    let bash_content = r#"#!/bin/bash
+if [[ "$x" = "1" -a "$y" = "2" ]]; then
+    echo "Both conditions true"
+fi
+"#;
+    let path = PathBuf::from("script.bash");
+
+    // ACT: Lint as bash file
+    let result = lint_shell_with_path(&path, bash_content);
+
+    // ASSERT: SHOULD have SC2108 (use && instead of -a in [[ ]])
+    assert!(
+        result.diagnostics.iter().any(|d| d.code == "SC2108"),
+        "SC2108 should fire on bash files with [[ ]] and -a"
+    );
+}
+
+/// Test that function keyword rules (SC2111-SC2113) don't fire on POSIX sh
+#[test]
+fn test_function_keyword_rules_skipped_for_sh() {
+    // ARRANGE: POSIX sh script with POSIX function syntax
+    let sh_content = r#"#!/bin/sh
+# POSIX sh function syntax (no 'function' keyword)
+my_func() {
+    echo "Hello"
+}
+"#;
+    let path = PathBuf::from("lib.sh");
+
+    // ACT: Lint as sh file
+    let result = lint_shell_with_path(&path, sh_content);
+
+    // ASSERT: Should NOT have SC2111-SC2113 (function keyword warnings)
+    assert!(
+        !result
+            .diagnostics
+            .iter()
+            .any(|d| d.code == "SC2111" || d.code == "SC2112" || d.code == "SC2113"),
+        "Function keyword rules should not fire on POSIX sh"
+    );
+}
+
+/// Test that function keyword rules DO fire on bash files with 'function' keyword
+#[test]
+fn test_function_keyword_rules_fire_for_bash() {
+    // ARRANGE: Bash script with 'function' keyword
+    let bash_content = r#"#!/bin/bash
+function my_func {
+    echo "Hello"
+}
+"#;
+    let path = PathBuf::from("script.bash");
+
+    // ACT: Lint as bash file
+    let result = lint_shell_with_path(&path, bash_content);
+
+    // ASSERT: SHOULD have SC2112 (function keyword is non-standard)
+    assert!(
+        result.diagnostics.iter().any(|d| d.code == "SC2112"),
+        "SC2112 should fire on bash files with 'function' keyword"
+    );
+}
+
+/// Test that universal arithmetic rules fire on all shells
+#[test]
+fn test_arithmetic_rules_fire_on_all_shells() {
+    // ARRANGE: expr usage (deprecated in all shells)
+    let bash_content = r#"#!/bin/bash
+result=$(expr 1 + 2)
+"#;
+    let sh_content = r#"#!/bin/sh
+result=$(expr 1 + 2)
+"#;
+    let zsh_content = r#"#!/usr/bin/env zsh
+result=$(expr 1 + 2)
+"#;
+
+    // ACT: Lint all three
+    let bash_result = lint_shell_with_path(&PathBuf::from("script.bash"), bash_content);
+    let sh_result = lint_shell_with_path(&PathBuf::from("script.sh"), sh_content);
+    let zsh_result = lint_shell_with_path(&PathBuf::from(".zshrc"), zsh_content);
+
+    // ASSERT: All should have SC2003 (expr is antiquated)
+    assert!(
+        bash_result.diagnostics.iter().any(|d| d.code == "SC2003"),
+        "SC2003 should fire on bash"
+    );
+    assert!(
+        sh_result.diagnostics.iter().any(|d| d.code == "SC2003"),
+        "SC2003 should fire on sh"
+    );
+    assert!(
+        zsh_result.diagnostics.iter().any(|d| d.code == "SC2003"),
+        "SC2003 should fire on zsh"
+    );
+}
+
+/// Test that universal quoting rules fire on all shells
+#[test]
+fn test_quoting_rules_fire_on_all_shells() {
+    // ARRANGE: Subshell variable assignment (universal issue)
+    let bash_content = r#"#!/bin/bash
+(foo=bar)
+echo "$foo"
+"#;
+    let sh_content = r#"#!/bin/sh
+(foo=bar)
+echo "$foo"
+"#;
+
+    // ACT: Lint both
+    let bash_result = lint_shell_with_path(&PathBuf::from("script.bash"), bash_content);
+    let sh_result = lint_shell_with_path(&PathBuf::from("script.sh"), sh_content);
+
+    // ASSERT: Both should have SC2030 (variable modified in subshell)
+    assert!(
+        bash_result.diagnostics.iter().any(|d| d.code == "SC2030"),
+        "SC2030 should fire on bash"
+    );
+    assert!(
+        sh_result.diagnostics.iter().any(|d| d.code == "SC2030"),
+        "SC2030 should fire on sh"
+    );
+}

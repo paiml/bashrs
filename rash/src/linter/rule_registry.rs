@@ -153,6 +153,141 @@ lazy_static::lazy_static! {
             compatibility: ShellCompatibility::NotSh,
         });
 
+        // === BATCH 2 CLASSIFICATIONS (25 rules) ===
+
+        // [[ ]] test syntax rules (NotSh - bash/zsh/ksh only)
+        registry.insert("SC2108", RuleMetadata {
+            id: "SC2108",
+            name: "In [[ ]], use && instead of -a",
+            compatibility: ShellCompatibility::NotSh,
+        });
+        registry.insert("SC2109", RuleMetadata {
+            id: "SC2109",
+            name: "In [[ ]], use || instead of -o",
+            compatibility: ShellCompatibility::NotSh,
+        });
+        registry.insert("SC2110", RuleMetadata {
+            id: "SC2110",
+            name: "Don't mix && and || with -a and -o in [[ ]]",
+            compatibility: ShellCompatibility::NotSh,
+        });
+
+        // function keyword rules (NotSh - bash/ksh only, not POSIX)
+        registry.insert("SC2111", RuleMetadata {
+            id: "SC2111",
+            name: "'function' keyword not supported in sh",
+            compatibility: ShellCompatibility::NotSh,
+        });
+        registry.insert("SC2112", RuleMetadata {
+            id: "SC2112",
+            name: "'function' keyword is non-standard",
+            compatibility: ShellCompatibility::NotSh,
+        });
+        registry.insert("SC2113", RuleMetadata {
+            id: "SC2113",
+            name: "'function' keyword with () is redundant",
+            compatibility: ShellCompatibility::NotSh,
+        });
+
+        // Arithmetic expansion rules (Universal - $((...)) is POSIX)
+        registry.insert("SC2003", RuleMetadata {
+            id: "SC2003",
+            name: "expr is antiquated. Use $((...))",
+            compatibility: ShellCompatibility::Universal,
+        });
+        registry.insert("SC2004", RuleMetadata {
+            id: "SC2004",
+            name: "$/${} unnecessary on arithmetic variables",
+            compatibility: ShellCompatibility::Universal,
+        });
+        registry.insert("SC2079", RuleMetadata {
+            id: "SC2079",
+            name: "Decimals not supported in (( ))",
+            compatibility: ShellCompatibility::Universal,
+        });
+        registry.insert("SC2080", RuleMetadata {
+            id: "SC2080",
+            name: "Leading zero interpreted as octal",
+            compatibility: ShellCompatibility::Universal,
+        });
+        registry.insert("SC2084", RuleMetadata {
+            id: "SC2084",
+            name: "Arithmetic expansion as command",
+            compatibility: ShellCompatibility::Universal,
+        });
+        registry.insert("SC2085", RuleMetadata {
+            id: "SC2085",
+            name: "Local variable with arithmetic",
+            compatibility: ShellCompatibility::Universal,
+        });
+        registry.insert("SC2133", RuleMetadata {
+            id: "SC2133",
+            name: "Unexpected tokens in arithmetic expansion",
+            compatibility: ShellCompatibility::Universal,
+        });
+        registry.insert("SC2134", RuleMetadata {
+            id: "SC2134",
+            name: "Use (( )) for numeric tests",
+            compatibility: ShellCompatibility::Universal,
+        });
+        registry.insert("SC2137", RuleMetadata {
+            id: "SC2137",
+            name: "Unnecessary braces in arithmetic",
+            compatibility: ShellCompatibility::Universal,
+        });
+
+        // Quoting and subshell rules (Universal - POSIX concepts)
+        registry.insert("SC2030", RuleMetadata {
+            id: "SC2030",
+            name: "Variable modified in subshell",
+            compatibility: ShellCompatibility::Universal,
+        });
+        registry.insert("SC2031", RuleMetadata {
+            id: "SC2031",
+            name: "Variable was modified in subshell",
+            compatibility: ShellCompatibility::Universal,
+        });
+        registry.insert("SC2032", RuleMetadata {
+            id: "SC2032",
+            name: "Variable in script with shebang",
+            compatibility: ShellCompatibility::Universal,
+        });
+        registry.insert("SC2087", RuleMetadata {
+            id: "SC2087",
+            name: "Quote variables in sh -c",
+            compatibility: ShellCompatibility::Universal,
+        });
+        registry.insert("SC2088", RuleMetadata {
+            id: "SC2088",
+            name: "Tilde expansion in quotes",
+            compatibility: ShellCompatibility::Universal,
+        });
+        registry.insert("SC2089", RuleMetadata {
+            id: "SC2089",
+            name: "Quotes in assignment treated literally",
+            compatibility: ShellCompatibility::Universal,
+        });
+        registry.insert("SC2090", RuleMetadata {
+            id: "SC2090",
+            name: "Quotes in expansion treated literally",
+            compatibility: ShellCompatibility::Universal,
+        });
+        registry.insert("SC2091", RuleMetadata {
+            id: "SC2091",
+            name: "Remove $() to avoid executing output",
+            compatibility: ShellCompatibility::Universal,
+        });
+        registry.insert("SC2092", RuleMetadata {
+            id: "SC2092",
+            name: "Remove backticks to avoid executing output",
+            compatibility: ShellCompatibility::Universal,
+        });
+        registry.insert("SC2093", RuleMetadata {
+            id: "SC2093",
+            name: "Remove exec if script should continue",
+            compatibility: ShellCompatibility::Universal,
+        });
+
         // Most other SC2xxx rules are Universal (quoting, syntax, etc.)
         // They represent bugs or issues that apply regardless of shell
         // Examples: SC2046 (quote substitutions), SC2086 (quote variables)
@@ -220,9 +355,11 @@ mod tests {
     }
 
     #[test]
-    fn test_registry_has_20_rules() {
-        // 8 SEC + 3 DET + 3 IDEM + 6 SC2xxx = 20 rules
-        assert_eq!(RULE_REGISTRY.len(), 20);
+    fn test_registry_has_45_rules() {
+        // Batch 1: 8 SEC + 3 DET + 3 IDEM + 6 SC2xxx = 20 rules
+        // Batch 2: 6 NotSh + 19 Universal = 25 rules
+        // Total: 45 rules (12.6% of 357 total)
+        assert_eq!(RULE_REGISTRY.len(), 45);
     }
 
     #[test]
@@ -251,5 +388,177 @@ mod tests {
         // But should apply to bash and zsh
         assert!(should_apply_rule("SC2198", ShellType::Bash));
         assert!(should_apply_rule("SC2198", ShellType::Zsh));
+    }
+
+    // === Batch 2 Classification Tests ===
+
+    #[test]
+    fn test_double_bracket_rules_not_sh() {
+        // [[ ]] syntax rules (SC2108-SC2110) should be NotSh
+        let double_bracket_rules = vec!["SC2108", "SC2109", "SC2110"];
+
+        for rule in double_bracket_rules {
+            assert_eq!(
+                get_rule_compatibility(rule),
+                Some(ShellCompatibility::NotSh),
+                "{} should be NotSh",
+                rule
+            );
+
+            // Should NOT apply to POSIX sh
+            assert!(
+                !should_apply_rule(rule, ShellType::Sh),
+                "{} should not apply to sh",
+                rule
+            );
+
+            // But SHOULD apply to bash and zsh
+            assert!(
+                should_apply_rule(rule, ShellType::Bash),
+                "{} should apply to bash",
+                rule
+            );
+            assert!(
+                should_apply_rule(rule, ShellType::Zsh),
+                "{} should apply to zsh",
+                rule
+            );
+        }
+    }
+
+    #[test]
+    fn test_function_keyword_rules_not_sh() {
+        // function keyword rules (SC2111-SC2113) should be NotSh
+        let function_rules = vec!["SC2111", "SC2112", "SC2113"];
+
+        for rule in function_rules {
+            assert_eq!(
+                get_rule_compatibility(rule),
+                Some(ShellCompatibility::NotSh),
+                "{} should be NotSh",
+                rule
+            );
+
+            // Should NOT apply to POSIX sh
+            assert!(
+                !should_apply_rule(rule, ShellType::Sh),
+                "{} should not apply to sh",
+                rule
+            );
+
+            // But SHOULD apply to bash and zsh
+            assert!(
+                should_apply_rule(rule, ShellType::Bash),
+                "{} should apply to bash",
+                rule
+            );
+        }
+    }
+
+    #[test]
+    fn test_arithmetic_rules_universal() {
+        // Arithmetic rules (SC2003, SC2004, SC2079, SC2080, SC2084, SC2085, SC2133, SC2134, SC2137)
+        let arithmetic_rules = vec![
+            "SC2003", "SC2004", "SC2079", "SC2080", "SC2084", "SC2085", "SC2133", "SC2134",
+            "SC2137",
+        ];
+
+        for rule in arithmetic_rules {
+            assert_eq!(
+                get_rule_compatibility(rule),
+                Some(ShellCompatibility::Universal),
+                "{} should be Universal",
+                rule
+            );
+
+            // Should apply to ALL shells
+            assert!(
+                should_apply_rule(rule, ShellType::Bash),
+                "{} should apply to bash",
+                rule
+            );
+            assert!(
+                should_apply_rule(rule, ShellType::Zsh),
+                "{} should apply to zsh",
+                rule
+            );
+            assert!(
+                should_apply_rule(rule, ShellType::Sh),
+                "{} should apply to sh",
+                rule
+            );
+            assert!(
+                should_apply_rule(rule, ShellType::Ksh),
+                "{} should apply to ksh",
+                rule
+            );
+        }
+    }
+
+    #[test]
+    fn test_quoting_rules_universal() {
+        // Quoting and subshell rules (SC2030, SC2031, SC2032, SC2087-SC2093)
+        let quoting_rules = vec![
+            "SC2030", "SC2031", "SC2032", "SC2087", "SC2088", "SC2089", "SC2090", "SC2091",
+            "SC2092", "SC2093",
+        ];
+
+        for rule in quoting_rules {
+            assert_eq!(
+                get_rule_compatibility(rule),
+                Some(ShellCompatibility::Universal),
+                "{} should be Universal",
+                rule
+            );
+
+            // Should apply to ALL shells
+            assert!(
+                should_apply_rule(rule, ShellType::Bash),
+                "{} should apply to bash",
+                rule
+            );
+            assert!(
+                should_apply_rule(rule, ShellType::Sh),
+                "{} should apply to sh",
+                rule
+            );
+        }
+    }
+
+    #[test]
+    fn test_batch2_notsh_count() {
+        // Batch 2 should have 6 NotSh rules
+        let notsh_rules = vec![
+            "SC2108", "SC2109", "SC2110", // [[ ]]
+            "SC2111", "SC2112", "SC2113", // function keyword
+        ];
+
+        for rule in notsh_rules {
+            assert_eq!(
+                get_rule_compatibility(rule),
+                Some(ShellCompatibility::NotSh)
+            );
+        }
+    }
+
+    #[test]
+    fn test_batch2_universal_count() {
+        // Batch 2 should have 19 Universal rules
+        let universal_rules = vec![
+            // Arithmetic (9 rules)
+            "SC2003", "SC2004", "SC2079", "SC2080", "SC2084", "SC2085", "SC2133", "SC2134",
+            "SC2137", // Quoting (10 rules)
+            "SC2030", "SC2031", "SC2032", "SC2087", "SC2088", "SC2089", "SC2090", "SC2091",
+            "SC2092", "SC2093",
+        ];
+
+        assert_eq!(universal_rules.len(), 19);
+
+        for rule in universal_rules {
+            assert_eq!(
+                get_rule_compatibility(rule),
+                Some(ShellCompatibility::Universal)
+            );
+        }
     }
 }
