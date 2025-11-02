@@ -24,7 +24,7 @@ This is the beginning of **Option 1: Complete Shell-Specific Rule Filtering** fr
 - **`lint_shell_filtered()`**: Conditional rule execution based on shell type
 - **`apply_rule!` macro**: Performance-optimized filtering with zero runtime cost for skipped rules
 
-**Rule Classification** (180/357 rules - 50.4% - 🎉 **50% MILESTONE!**):
+**Rule Classification** (200/357 rules - 56.0% - **Approaching 60% milestone!**):
 
 *Batch 1* (20 rules):
 - ✅ 8 SEC rules → Universal (apply to all shells)
@@ -103,6 +103,16 @@ This is the beginning of **Option 1: Complete Shell-Specific Rule Filtering** fr
   - **Security/Best Practices** (4): SC2174 (mkdir -p and chmod creates security race), SC2175 (quote to prevent word splitting), SC2176 (time keyword affects full pipeline), SC2177 (time only times first command)
 - ✅ 1 NotSh rule:
   - SC2168 ('local' keyword only valid in functions - bash/ksh/zsh specific, not POSIX sh)
+
+*Batch 9* (20 rules) - **FOCUS: Array Operations & Exit Code Patterns - Approaching 60% Milestone!**:
+- ✅ 15 Universal rules:
+  - **Exit Code/Printf Patterns** (2): SC2181 (check exit code directly with if mycmd, not if [ $? -eq 0 ]), SC2182 (this printf format string has no variables)
+  - **Assignment/Expansion Safety** (4): SC2183 (value looks like variable but won't be expanded), SC2184 (quote arguments to cd to avoid glob expansion), SC2185 (some SSH commands don't pass on exit codes), SC2186 (mktemp argument may be evaluated as template)
+  - **Shell Directives/Redirection** (3): SC2187 (Ash scripts will be checked as Dash - use #!/bin/dash), SC2188 (this redirection doesn't have a command), SC2189 (Zsh directive will be checked as sh - use #!/bin/zsh)
+  - **Command Composition/Regex** (6): SC2192 (piping to sudo: only last command runs as root), SC2193 (RHS of regexes must be unquoted in [[]]), SC2194 (word is constant - forgot $ or ()?), SC2195 (use single quotes to pass literal regex to grep), SC2196 (prefer explicit -n to check output), SC2197 (don't compare globs in []; use [[ ]] or case)
+- ✅ 5 NotSh rules (bash/zsh/ksh only):
+  - **Array Operations** (3): SC2178 (variable used as array but assigned as string), SC2179 (use array+=(\"item\") to append to array), SC2180 (trying to use array as scalar - missing index)
+  - **Associative Arrays** (2): SC2190 (elements in associative arrays need index), SC2191 (trying to use associative array without index)
 
 **Integration Tests** (12 total: 6 batch 1 + 6 batch 2):
 

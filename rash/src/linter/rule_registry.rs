@@ -1049,6 +1049,120 @@ lazy_static::lazy_static! {
             compatibility: ShellCompatibility::Universal,
         });
 
+        // === BATCH 9 CLASSIFICATIONS (20 rules) ===
+
+        // Batch 9: Array operations (NotSh - bash/zsh/ksh only)
+        registry.insert("SC2178", RuleMetadata {
+            id: "SC2178",
+            name: "Variable was used as an array but is now assigned a string",
+            compatibility: ShellCompatibility::NotSh,
+        });
+        registry.insert("SC2179", RuleMetadata {
+            id: "SC2179",
+            name: "Use array+=(\"item\") to append items to an array",
+            compatibility: ShellCompatibility::NotSh,
+        });
+        registry.insert("SC2180", RuleMetadata {
+            id: "SC2180",
+            name: "Trying to use an array as a scalar (missing index)",
+            compatibility: ShellCompatibility::NotSh,
+        });
+
+        // Batch 9: Exit code and printf patterns (Universal)
+        registry.insert("SC2181", RuleMetadata {
+            id: "SC2181",
+            name: "Check exit code directly with if mycmd, not if [ $? -eq 0 ]",
+            compatibility: ShellCompatibility::Universal,
+        });
+        registry.insert("SC2182", RuleMetadata {
+            id: "SC2182",
+            name: "This printf format string has no variables",
+            compatibility: ShellCompatibility::Universal,
+        });
+
+        // Batch 9: Assignment and expansion safety (Universal)
+        registry.insert("SC2183", RuleMetadata {
+            id: "SC2183",
+            name: "This value looks like a variable but won't be expanded",
+            compatibility: ShellCompatibility::Universal,
+        });
+        registry.insert("SC2184", RuleMetadata {
+            id: "SC2184",
+            name: "Quote arguments to cd to avoid glob expansion",
+            compatibility: ShellCompatibility::Universal,
+        });
+        registry.insert("SC2185", RuleMetadata {
+            id: "SC2185",
+            name: "Some SSH commands don't pass on their exit codes",
+            compatibility: ShellCompatibility::Universal,
+        });
+        registry.insert("SC2186", RuleMetadata {
+            id: "SC2186",
+            name: "mktemp argument may be evaluated as template",
+            compatibility: ShellCompatibility::Universal,
+        });
+
+        // Batch 9: Shell directives and redirection (Mixed)
+        registry.insert("SC2187", RuleMetadata {
+            id: "SC2187",
+            name: "Ash scripts will be checked as Dash (use #!/bin/dash)",
+            compatibility: ShellCompatibility::Universal,
+        });
+        registry.insert("SC2188", RuleMetadata {
+            id: "SC2188",
+            name: "This redirection doesn't have a command",
+            compatibility: ShellCompatibility::Universal,
+        });
+        registry.insert("SC2189", RuleMetadata {
+            id: "SC2189",
+            name: "Zsh directive will be checked as sh (use #!/bin/zsh)",
+            compatibility: ShellCompatibility::Universal,
+        });
+
+        // Batch 9: Associative arrays (NotSh - bash 4+ / zsh)
+        registry.insert("SC2190", RuleMetadata {
+            id: "SC2190",
+            name: "Elements in associative arrays need index",
+            compatibility: ShellCompatibility::NotSh,
+        });
+        registry.insert("SC2191", RuleMetadata {
+            id: "SC2191",
+            name: "Trying to use an associative array without index",
+            compatibility: ShellCompatibility::NotSh,
+        });
+
+        // Batch 9: Command composition and regex (Universal)
+        registry.insert("SC2192", RuleMetadata {
+            id: "SC2192",
+            name: "Piping to sudo: only last command will run as root",
+            compatibility: ShellCompatibility::Universal,
+        });
+        registry.insert("SC2193", RuleMetadata {
+            id: "SC2193",
+            name: "RHS of regexes must be unquoted in [[]]",
+            compatibility: ShellCompatibility::Universal,
+        });
+        registry.insert("SC2194", RuleMetadata {
+            id: "SC2194",
+            name: "This word is constant - did you forget $ or ()?",
+            compatibility: ShellCompatibility::Universal,
+        });
+        registry.insert("SC2195", RuleMetadata {
+            id: "SC2195",
+            name: "Use single quotes to pass literal regex to grep",
+            compatibility: ShellCompatibility::Universal,
+        });
+        registry.insert("SC2196", RuleMetadata {
+            id: "SC2196",
+            name: "Prefer explicit -n to check output",
+            compatibility: ShellCompatibility::Universal,
+        });
+        registry.insert("SC2197", RuleMetadata {
+            id: "SC2197",
+            name: "Don't compare globs in []; use [[ ]] or case",
+            compatibility: ShellCompatibility::Universal,
+        });
+
         // Most other SC2xxx rules are Universal (quoting, syntax, etc.)
         // They represent bugs or issues that apply regardless of shell
         // Examples: SC2086 (quote variables), etc.
@@ -1116,7 +1230,7 @@ mod tests {
     }
 
     #[test]
-    fn test_registry_has_180_rules() {
+    fn test_registry_has_200_rules() {
         // Batch 1: 8 SEC + 3 DET + 3 IDEM + 6 SC2xxx = 20 rules
         // Batch 2: 6 NotSh + 19 Universal = 25 rules
         // Batch 3: 2 NotSh + 25 Universal = 27 rules (SC2058 not implemented yet)
@@ -1125,8 +1239,9 @@ mod tests {
         // Batch 6: 1 NotSh + 19 Universal = 20 rules
         // Batch 7: 0 NotSh + 20 Universal = 20 rules
         // Batch 8: 1 NotSh + 19 Universal = 20 rules
-        // Total: 180 rules (50.4% of 357 total) - 🎉 50% MILESTONE!
-        assert_eq!(RULE_REGISTRY.len(), 180);
+        // Batch 9: 5 NotSh + 15 Universal = 20 rules
+        // Total: 200 rules (56.0% of 357 total) - Approaching 60% milestone!
+        assert_eq!(RULE_REGISTRY.len(), 200);
     }
 
     #[test]
@@ -2295,5 +2410,185 @@ mod tests {
 
         // Total: 19 Universal + 1 NotSh = 20 rules
         // This brings total from 160 → 180 (50.4% coverage - 🎉 50% MILESTONE!)
+    }
+
+    // === Batch 9 Classification Tests ===
+
+    #[test]
+    fn test_batch9_array_operations_notsh() {
+        // Array operations (SC2178-SC2180) should be NotSh (bash/zsh/ksh only)
+        let array_rules = vec!["SC2178", "SC2179", "SC2180"];
+
+        for rule in array_rules {
+            assert_eq!(
+                get_rule_compatibility(rule),
+                Some(ShellCompatibility::NotSh),
+                "{} should be NotSh (arrays are bash/zsh/ksh specific)",
+                rule
+            );
+
+            // Should NOT apply to POSIX sh
+            assert!(
+                !should_apply_rule(rule, ShellType::Sh),
+                "{} should not apply to sh",
+                rule
+            );
+
+            // But SHOULD apply to bash/zsh/ksh
+            assert!(
+                should_apply_rule(rule, ShellType::Bash),
+                "{} should apply to bash",
+                rule
+            );
+            assert!(
+                should_apply_rule(rule, ShellType::Zsh),
+                "{} should apply to zsh",
+                rule
+            );
+        }
+    }
+
+    #[test]
+    fn test_batch9_associative_arrays_notsh() {
+        // Associative arrays (SC2190-SC2191) should be NotSh (bash 4+/zsh)
+        let assoc_array_rules = vec!["SC2190", "SC2191"];
+
+        for rule in assoc_array_rules {
+            assert_eq!(
+                get_rule_compatibility(rule),
+                Some(ShellCompatibility::NotSh),
+                "{} should be NotSh (associative arrays are bash 4+/zsh specific)",
+                rule
+            );
+
+            // Should NOT apply to POSIX sh
+            assert!(
+                !should_apply_rule(rule, ShellType::Sh),
+                "{} should not apply to sh",
+                rule
+            );
+
+            // But SHOULD apply to bash/zsh
+            assert!(
+                should_apply_rule(rule, ShellType::Bash),
+                "{} should apply to bash",
+                rule
+            );
+            assert!(
+                should_apply_rule(rule, ShellType::Zsh),
+                "{} should apply to zsh",
+                rule
+            );
+        }
+    }
+
+    #[test]
+    fn test_batch9_exit_code_patterns_universal() {
+        // Exit code and printf patterns (SC2181-SC2182) should be Universal
+        let exit_code_rules = vec!["SC2181", "SC2182"];
+
+        for rule in exit_code_rules {
+            assert_eq!(
+                get_rule_compatibility(rule),
+                Some(ShellCompatibility::Universal),
+                "{} should be Universal",
+                rule
+            );
+
+            // Should apply to ALL shells
+            assert!(
+                should_apply_rule(rule, ShellType::Bash),
+                "{} should apply to bash",
+                rule
+            );
+            assert!(
+                should_apply_rule(rule, ShellType::Sh),
+                "{} should apply to sh",
+                rule
+            );
+            assert!(
+                should_apply_rule(rule, ShellType::Zsh),
+                "{} should apply to zsh",
+                rule
+            );
+        }
+    }
+
+    #[test]
+    fn test_batch9_assignment_expansion_universal() {
+        // Assignment, expansion, and command composition rules should be Universal
+        let universal_rules = vec![
+            "SC2183", "SC2184", "SC2185", "SC2186", "SC2187", "SC2188", "SC2189", "SC2192",
+            "SC2193", "SC2194", "SC2195", "SC2196", "SC2197",
+        ];
+
+        for rule in universal_rules {
+            assert_eq!(
+                get_rule_compatibility(rule),
+                Some(ShellCompatibility::Universal),
+                "{} should be Universal",
+                rule
+            );
+
+            // Should apply to ALL shells
+            assert!(
+                should_apply_rule(rule, ShellType::Bash),
+                "{} should apply to bash",
+                rule
+            );
+            assert!(
+                should_apply_rule(rule, ShellType::Sh),
+                "{} should apply to sh",
+                rule
+            );
+            assert!(
+                should_apply_rule(rule, ShellType::Zsh),
+                "{} should apply to zsh",
+                rule
+            );
+        }
+    }
+
+    #[test]
+    fn test_batch9_universal_count() {
+        // Batch 9 should have 20 rules total (15 Universal + 5 NotSh)
+        let universal_rules = vec![
+            // Exit code/printf (2)
+            "SC2181", "SC2182", // Assignment/expansion safety (4)
+            "SC2183", "SC2184", "SC2185", "SC2186", // Shell directives/redirection (3)
+            "SC2187", "SC2188", "SC2189", // Command composition/regex (6)
+            "SC2192", "SC2193", "SC2194", "SC2195", "SC2196", "SC2197",
+        ];
+
+        // 15 Universal rules
+        let unique_count = universal_rules.len();
+        assert_eq!(unique_count, 15, "Batch 9 should have 15 Universal rules");
+
+        for rule in universal_rules {
+            assert_eq!(
+                get_rule_compatibility(rule),
+                Some(ShellCompatibility::Universal),
+                "{} should be Universal",
+                rule
+            );
+        }
+
+        // 5 NotSh rules (arrays)
+        let notsh_rules = vec![
+            "SC2178", "SC2179", "SC2180", // Array operations
+            "SC2190", "SC2191", // Associative arrays
+        ];
+
+        for rule in notsh_rules {
+            assert_eq!(
+                get_rule_compatibility(rule),
+                Some(ShellCompatibility::NotSh),
+                "{} should be NotSh (array operations)",
+                rule
+            );
+        }
+
+        // Total: 15 Universal + 5 NotSh = 20 rules
+        // This brings total from 180 → 200 (56.0% coverage - Approaching 60%!)
     }
 }
