@@ -108,9 +108,55 @@ lazy_static::lazy_static! {
             compatibility: ShellCompatibility::Universal,
         });
 
-        // TODO: Classify remaining SC2xxx rules (323 rules)
-        // For now, all SC2xxx rules default to Universal (conservative)
-        // This will be updated as classification progresses
+        // Bash-only rules: Arrays, [[]], process substitution, etc.
+        // These should not fire on POSIX sh or pure zsh scripts
+
+        // SC2039: Features undefined in POSIX sh (bash/zsh specific)
+        registry.insert("SC2039", RuleMetadata {
+            id: "SC2039",
+            name: "Bash features undefined in POSIX sh",
+            compatibility: ShellCompatibility::NotSh, // Works in bash/zsh/ksh but not sh
+        });
+
+        // SC2198: Arrays are bash-specific
+        registry.insert("SC2198", RuleMetadata {
+            id: "SC2198",
+            name: "Array syntax (bash-specific)",
+            compatibility: ShellCompatibility::NotSh,
+        });
+
+        // SC2199: Arrays are bash-specific
+        registry.insert("SC2199", RuleMetadata {
+            id: "SC2199",
+            name: "Array expansion (bash-specific)",
+            compatibility: ShellCompatibility::NotSh,
+        });
+
+        // SC2200: Arrays are bash-specific
+        registry.insert("SC2200", RuleMetadata {
+            id: "SC2200",
+            name: "Array iteration (bash-specific)",
+            compatibility: ShellCompatibility::NotSh,
+        });
+
+        // SC2201: Arrays are bash-specific
+        registry.insert("SC2201", RuleMetadata {
+            id: "SC2201",
+            name: "Array assignment (bash-specific)",
+            compatibility: ShellCompatibility::NotSh,
+        });
+
+        // Process substitution rules (bash/zsh, not POSIX sh)
+        registry.insert("SC2002", RuleMetadata {
+            id: "SC2002",
+            name: "Useless cat (can use process substitution in bash/zsh)",
+            compatibility: ShellCompatibility::NotSh,
+        });
+
+        // Most other SC2xxx rules are Universal (quoting, syntax, etc.)
+        // They represent bugs or issues that apply regardless of shell
+        // Examples: SC2046 (quote substitutions), SC2086 (quote variables)
+        // These will be added as "Universal" as we classify them
 
         registry
     };
@@ -174,8 +220,36 @@ mod tests {
     }
 
     #[test]
-    fn test_registry_has_14_rules() {
-        // 8 SEC + 3 DET + 3 IDEM = 14 rules
-        assert_eq!(RULE_REGISTRY.len(), 14);
+    fn test_registry_has_20_rules() {
+        // 8 SEC + 3 DET + 3 IDEM + 6 SC2xxx = 20 rules
+        assert_eq!(RULE_REGISTRY.len(), 20);
+    }
+
+    #[test]
+    fn test_bash_specific_rules_not_sh() {
+        // Array and process substitution rules should be NotSh
+        assert_eq!(
+            get_rule_compatibility("SC2198"),
+            Some(ShellCompatibility::NotSh)
+        );
+        assert_eq!(
+            get_rule_compatibility("SC2199"),
+            Some(ShellCompatibility::NotSh)
+        );
+        assert_eq!(
+            get_rule_compatibility("SC2039"),
+            Some(ShellCompatibility::NotSh)
+        );
+    }
+
+    #[test]
+    fn test_should_skip_bash_rules_for_sh() {
+        // Bash-specific rules should not apply to POSIX sh
+        assert!(!should_apply_rule("SC2198", ShellType::Sh));
+        assert!(!should_apply_rule("SC2199", ShellType::Sh));
+
+        // But should apply to bash and zsh
+        assert!(should_apply_rule("SC2198", ShellType::Bash));
+        assert!(should_apply_rule("SC2198", ShellType::Zsh));
     }
 }
