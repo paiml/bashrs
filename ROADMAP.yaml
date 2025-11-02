@@ -30,7 +30,7 @@ workflows:
 releases:
   - version: "6.28.0-dev"
     date: "2025-11-02"
-    status: "IN PROGRESS (Batches 1-7 complete, 45% MILESTONE)"
+    status: "IN PROGRESS (Batches 1-8 complete, 🎉🎉 50% MILESTONE! 🎉🎉)"
     title: "🚀 Shell-Specific Rule Filtering (Foundation + MVP)"
     description: "Implements shell-specific linting to eliminate false positives on zsh and POSIX sh files - foundation for complete rule filtering (Option 1 from Strategic Roadmap)"
     achievements:
@@ -44,14 +44,15 @@ releases:
       - "Batch 5: 20 rules classified (20 Universal, 1 CRITICAL word splitting SC2086)"
       - "Batch 6: 20 rules classified (19 Universal + 1 NotSh ksh-specific)"
       - "Batch 7: 20 rules classified (20 Universal, 0 NotSh - test operators + find efficiency)"
-      - "Total: 160 rules classified (44.8% of 357 total) - 🎉 45% MILESTONE!"
-      - "52 new tests: 41 rule_registry + 12 integration"
+      - "Batch 8: 20 rules classified (19 Universal + 1 NotSh - trap/signal handling + exit codes)"
+      - "Total: 180 rules classified (50.4% of 357 total) - 🎉🎉 50% MILESTONE! 🎉🎉"
+      - "57 new tests: 46 rule_registry + 12 integration"
       - "Mutation testing: 100% kill rate on batches 1-2 (16/16 mutants caught)"
-      - "Zero regressions: 6071 tests passing"
+      - "Zero regressions: 6076 tests passing"
     quality_metrics:
       grade: "A+"
-      tests_passing: 6071
-      tests_new: 52
+      tests_passing: 6076
+      tests_new: 57
       test_pass_rate: "100%"
       property_tests: 648
       clippy_warnings: 0
@@ -69,14 +70,14 @@ releases:
       phase_4: "PROPERTY Phase - 6 property tests with 100+ cases each"
       phase_5: "MUTATION Phase - 100% kill rate on new code"
     current_state:
-      rules_classified: "160/357 (44.8%)"
-      filtering_engine: "Batch 1-7 functional (includes alias/function context + find/glob efficiency)"
-      documentation: "CHANGELOG + book + milestone + batch 1-7 analysis"
-      tag: "None (batch 7 uncommitted)"
+      rules_classified: "180/357 (50.4%) - 🎉🎉 50% MILESTONE! 🎉🎉"
+      filtering_engine: "Batch 1-8 functional (includes trap/signal handling + exit code safety)"
+      documentation: "CHANGELOG + book + milestone + batch 1-8 analysis"
+      tag: "None (batch 8 uncommitted)"
     next_steps:
-      - "Commit batch 7 (160 rules, 44.8% coverage) - 45% MILESTONE ACHIEVED!"
-      - "Consider v6.28.0-beta release at 45% milestone"
-      - "Classify batch 8+: Aim for 180-200 total (50-56% coverage)"
+      - "Commit batch 8 (180 rules, 50.4% coverage) - 🎉🎉 50% MILESTONE ACHIEVED! 🎉🎉"
+      - "Consider v6.28.0-beta release at 50% milestone"
+      - "Classify batch 9+: Aim for 200-220 total (56-62% coverage)"
       - "Add zsh-specific rules (ZSH001-ZSH020)"
       - "Release as v6.28.0 when 28-34% rules classified"
     commits:

@@ -24,7 +24,7 @@ This is the beginning of **Option 1: Complete Shell-Specific Rule Filtering** fr
 - **`lint_shell_filtered()`**: Conditional rule execution based on shell type
 - **`apply_rule!` macro**: Performance-optimized filtering with zero runtime cost for skipped rules
 
-**Rule Classification** (160/357 rules - 44.8%):
+**Rule Classification** (180/357 rules - 50.4% - 🎉 **50% MILESTONE!**):
 
 *Batch 1* (20 rules):
 - ✅ 8 SEC rules → Universal (apply to all shells)
@@ -93,6 +93,16 @@ This is the beginning of **Option 1: Complete Shell-Specific Rule Filtering** fr
   - **Alias/Function Context** (5): SC2138 (function defined in wrong context/reserved name), SC2139 (alias variable expands at definition time), SC2140 (malformed quote concatenation), SC2141 (command receives stdin but ignores it), SC2142 (aliases can't use positional parameters)
   - **Find/Glob Efficiency** (8): SC2143 (use grep -q for efficiency), SC2144 (-e test on glob that never matches), SC2145 (argument mixin in arrays), SC2146 (find -o action grouping needs parens), SC2147 (literal tilde in PATH doesn't expand), SC2148 (add shebang for portability), SC2149 (remove quotes from unset), SC2150 (use find -exec + for batch processing)
   - **Return/Exit Code Safety** (7): SC2151 (return code 0-255 POSIX), SC2152 (exit code 0-255 POSIX), SC2153 (possible variable misspelling), SC2154 (variable referenced but not assigned), SC2155 (declare and assign separately), SC2156 (injected filenames command injection), SC2157 (argument to -z/-n always false)
+
+*Batch 8* (20 rules) - **FOCUS: Trap/Signal Handling & Exit Code Safety - 🎉🎉 50% MILESTONE! 🎉🎉**:
+- ✅ 19 Universal rules:
+  - **Exit Code/Bracket Safety** (4): SC2158 ([ true ] evaluates as literal '['), SC2159 ([ [ with space creates syntax error), SC2160 (use 'if [ -n "$var" ]; then' instead of 'if var; then'), SC2161 (provide explicit error handling for cd commands)
+  - **read Command Safety** (3): SC2162 (read without -r will mangle backslashes), SC2163 (export command with array syntax non-portable), SC2164 (cd without error check)
+  - **Trap/Signal Handling** (3): SC2165 (subshells don't inherit traps - use functions), SC2166 (prefer [ p ] && [ q ] over [ p -a q ]), SC2167 (trap handler doesn't propagate to subshells)
+  - **Test Operators** (5): SC2169 (in dash/sh -eq undefined for strings), SC2170 (numerical -eq on non-numeric strings), SC2171 (found trailing ] on line - syntax error), SC2172 (trapping signals by number is deprecated), SC2173 (trying to trap untrappable signals SIGKILL/SIGSTOP)
+  - **Security/Best Practices** (4): SC2174 (mkdir -p and chmod creates security race), SC2175 (quote to prevent word splitting), SC2176 (time keyword affects full pipeline), SC2177 (time only times first command)
+- ✅ 1 NotSh rule:
+  - SC2168 ('local' keyword only valid in functions - bash/ksh/zsh specific, not POSIX sh)
 
 **Integration Tests** (12 total: 6 batch 1 + 6 batch 2):
 
