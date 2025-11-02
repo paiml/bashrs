@@ -1,51 +1,14 @@
-rash/src/repl/highlighting.rs:167:36: replace || with && in tokenize_variable
-rash/src/repl/highlighting.rs:280:13: delete match arm '#' in tokenize
-rash/src/repl/highlighting.rs:167:55: replace == with != in tokenize_variable
-rash/src/repl/highlighting.rs:182:16: replace && with || in is_double_operator
-rash/src/repl/highlighting.rs:268:47: replace + with - in tokenize_word
-rash/src/repl/highlighting.rs:297:77: replace + with * in tokenize
-rash/src/repl/highlighting.rs:283:13: delete match arm '|' | '&' | ';' | '<' | '>' in tokenize
-rash/src/repl/highlighting.rs:177:56: replace + with - in tokenize_variable
-rash/src/repl/highlighting.rs:184:23: replace && with || in is_double_operator
-rash/src/repl/highlighting.rs:167:42: replace == with != in tokenize_variable
-rash/src/repl/highlighting.rs:291:20: delete ! in tokenize
-rash/src/repl/highlighting.rs:182:5: replace is_double_operator -> bool with false
-rash/src/repl/highlighting.rs:372:5: replace strip_ansi_codes -> String with "xyzzy".into()
-rash/src/repl/highlighting.rs:182:9: replace == with != in is_double_operator
-rash/src/repl/highlighting.rs:319:5: replace highlight_token -> String with "xyzzy".into()
-rash/src/repl/highlighting.rs:288:18: replace match guard c.is_whitespace() with true in tokenize
-rash/src/repl/highlighting.rs:319:5: replace highlight_token -> String with String::new()
-rash/src/repl/highlighting.rs:250:38: replace == with != in tokenize_word
-rash/src/repl/highlighting.rs:272:5: replace tokenize -> Vec<Token> with vec![]
-rash/src/repl/highlighting.rs:379:22: replace == with != in strip_ansi_codes
-rash/src/repl/highlighting.rs:160:18: replace == with != in tokenize_variable
-rash/src/repl/highlighting.rs:182:5: replace is_double_operator -> bool with true
-rash/src/repl/highlighting.rs:144:54: replace + with - in tokenize_string
-rash/src/repl/highlighting.rs:250:32: replace || with && in tokenize_word
-rash/src/repl/highlighting.rs:250:77: replace == with != in tokenize_word
-rash/src/repl/highlighting.rs:121:55: replace + with - in tokenize_comment
-rash/src/repl/highlighting.rs:182:27: replace == with != in is_double_operator
-rash/src/repl/highlighting.rs:250:64: replace == with != in tokenize_word
-rash/src/repl/highlighting.rs:136:21: replace == with != in tokenize_string
-rash/src/repl/highlighting.rs:167:68: replace == with != in tokenize_variable
-rash/src/repl/highlighting.rs:289:18: replace match guard c.is_alphanumeric() || c == '_' || c == '-' || c == '/' || c == '.' with false in tokenize
-rash/src/repl/highlighting.rs:268:47: replace + with * in tokenize_word
-rash/src/repl/highlighting.rs:67:5: replace is_keyword -> bool with true
-rash/src/repl/highlighting.rs:372:5: replace strip_ansi_codes -> String with String::new()
-rash/src/repl/highlighting.rs:183:16: replace == with != in is_double_operator
-rash/src/repl/highlighting.rs:214:29: replace && with || in tokenize_operator
-rash/src/repl/highlighting.rs:297:77: replace + with - in tokenize
-rash/src/repl/highlighting.rs:167:62: replace || with && in tokenize_variable
-rash/src/repl/highlighting.rs:114:15: replace == with != in tokenize_comment
-rash/src/repl/highlighting.rs:222:56: replace + with * in tokenize_operator
-rash/src/repl/highlighting.rs:288:18: replace match guard c.is_whitespace() with false in tokenize
-rash/src/repl/highlighting.rs:167:49: replace || with && in tokenize_variable
-rash/src/repl/highlighting.rs:138:21: replace == with != in tokenize_string
-rash/src/repl/highlighting.rs:167:94: replace == with != in tokenize_variable
-rash/src/repl/highlighting.rs:67:5: replace is_keyword -> bool with false
-rash/src/repl/highlighting.rs:282:13: delete match arm '$' in tokenize
-rash/src/repl/highlighting.rs:376:15: replace == with != in strip_ansi_codes
-rash/src/repl/highlighting.rs:240:58: replace + with * in tokenize_whitespace
-rash/src/repl/highlighting.rs:167:81: replace == with != in tokenize_variable
-rash/src/repl/highlighting.rs:281:13: delete match arm '"' | '\'' in tokenize
-rash/src/repl/highlighting.rs:289:38: replace || with && in tokenize
+rash/src/linter/shell_type.rs:99:21: delete match arm "zsh" in detect_from_shellcheck_directive
+rash/src/linter/shell_type.rs:79:40: replace || with && in detect_from_shebang
+rash/src/linter/shell_type.rs:102:21: delete match arm "ksh" in detect_from_shellcheck_directive
+rash/src/linter/shell_type.rs:24:9: replace ShellType::to_shellcheck_name -> &'static str with "xyzzy"
+rash/src/linter/shell_type.rs:79:79: replace == with != in detect_from_shebang
+rash/src/linter/shell_type.rs:24:9: replace ShellType::to_shellcheck_name -> &'static str with ""
+rash/src/linter/shell_type.rs:119:13: delete match arm ".zshrc" | ".zshenv" | ".zprofile" | ".zlogin" | ".zlogout" in detect_from_path
+rash/src/linter/shell_type.rs:133:13: delete match arm "zsh" in detect_from_path
+rash/src/linter/shell_type.rs:79:68: replace || with && in detect_from_shebang
+rash/src/linter/shell_type.rs:64:5: replace detect_from_shebang -> Option<ShellType> with None
+rash/src/linter/shell_type.rs:91:5: replace detect_from_shellcheck_directive -> Option<ShellType> with None
+rash/src/linter/shell_type.rs:101:21: delete match arm "sh" in detect_from_shellcheck_directive
+rash/src/linter/shell_type.rs:67:8: delete ! in detect_from_shebang
+rash/src/linter/shell_type.rs:116:5: replace detect_from_path -> Option<ShellType> with None

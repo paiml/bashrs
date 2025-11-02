@@ -1,5 +1,4 @@
-rash/src/repl/highlighting.rs:230:5: replace tokenize_whitespace -> Token with Default::default()
-rash/src/repl/highlighting.rs:129:5: replace tokenize_string -> Token with Default::default()
-rash/src/repl/highlighting.rs:208:5: replace tokenize_operator -> Token with Default::default()
-rash/src/repl/highlighting.rs:112:5: replace tokenize_comment -> Token with Default::default()
-rash/src/repl/highlighting.rs:272:5: replace tokenize -> Vec<Token> with vec![Default::default()]
+rash/src/linter/shell_type.rs:64:5: replace detect_from_shebang -> Option<ShellType> with Some(Default::default())
+rash/src/linter/shell_type.rs:116:5: replace detect_from_path -> Option<ShellType> with Some(Default::default())
+rash/src/linter/shell_type.rs:91:5: replace detect_from_shellcheck_directive -> Option<ShellType> with Some(Default::default())
+rash/src/linter/shell_type.rs:44:5: replace detect_shell_type -> ShellType with Default::default()

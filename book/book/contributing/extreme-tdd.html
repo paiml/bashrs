@@ -159,6 +159,43 @@
                 <div id="content" class="content">
                     <main>
                         <h1 id="extreme-tdd"><a class="header" href="#extreme-tdd">EXTREME TDD</a></h1>
+<h2 id="recent-success-v6243-complexity-reduction"><a class="header" href="#recent-success-v6243-complexity-reduction">Recent Success: v6.24.3 Complexity Reduction</a></h2>
+<p><strong>v6.24.3</strong> (2025-11-01) demonstrates the power of EXTREME TDD with property-based testing:</p>
+<h3 id="results"><a class="header" href="#results">Results</a></h3>
+<ul>
+<li><strong>3 linter rules refactored</strong>: SC2178, SEC008, SC2168</li>
+<li><strong>Complexity reduction</strong>: 13 points total (~42% average reduction)
+<ul>
+<li>SC2178: 10 → 9</li>
+<li>SEC008: 12 → 7 (~42% reduction)</li>
+<li>SC2168: 12 → 5 (~58% reduction)</li>
+</ul>
+</li>
+<li><strong>Helper functions extracted</strong>: 17 total</li>
+<li><strong>Property tests added</strong>: 30 total (100% pass rate)</li>
+<li><strong>Bug found</strong>: 1 real defect caught by property test before refactoring</li>
+</ul>
+<h3 id="critical-success-property-tests-catch-real-bug"><a class="header" href="#critical-success-property-tests-catch-real-bug">Critical Success: Property Tests Catch Real Bug</a></h3>
+<p><strong>SEC008 Bug Discovery</strong>:</p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>// Property test that caught the bug:
+#[test]
+fn prop_sec008_comments_never_diagnosed() {
+    let test_cases = vec![
+        "# curl https://example.com | sh",
+        "  # wget -qO- https://example.com | bash",
+    ];
+
+    for code in test_cases {
+        let result = check(code);
+        assert_eq!(result.diagnostics.len(), 0); // FAILED!
+    }
+}
+<span class="boring">}</span></code></pre></pre>
+<p><strong>Bug</strong>: The implementation didn't skip comment lines, causing false positives for commented-out <code>curl | sh</code> patterns.</p>
+<p><strong>Fix</strong>: Added <code>is_comment_line()</code> helper and early return for comments.</p>
+<p><strong>Impact</strong>: This demonstrates that property-based testing catches bugs traditional unit tests miss. The existing 6 unit tests all passed, but the property test immediately revealed the missing comment handling.</p>
 
                     </main>
 

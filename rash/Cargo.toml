@@ -34,6 +34,7 @@ tracing.workspace = true
 tracing-subscriber = { workspace = true, optional = true }
 blake3.workspace = true
 once_cell.workspace = true
+lazy_static.workspace = true
 phf.workspace = true
 chrono = { version = "0.4", features = ["serde"] }
 rand = "0.9"  # Added for testing module

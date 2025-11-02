@@ -1,19 +1,7 @@
-rash/src/repl/highlighting.rs:167:88: replace || with && in tokenize_variable
-rash/src/repl/highlighting.rs:250:71: replace || with && in tokenize_word
-rash/src/repl/highlighting.rs:167:75: replace || with && in tokenize_variable
-rash/src/repl/highlighting.rs:289:74: replace || with && in tokenize
-rash/src/repl/highlighting.rs:144:54: replace + with * in tokenize_string
-rash/src/repl/highlighting.rs:121:55: replace + with * in tokenize_comment
-rash/src/repl/highlighting.rs:184:16: replace == with != in is_double_operator
-rash/src/repl/highlighting.rs:289:62: replace || with && in tokenize
-rash/src/repl/highlighting.rs:289:18: replace match guard c.is_alphanumeric() || c == '_' || c == '-' || c == '/' || c == '.' with true in tokenize
-rash/src/repl/highlighting.rs:177:56: replace + with * in tokenize_variable
-rash/src/repl/highlighting.rs:289:67: replace == with != in tokenize
-rash/src/repl/highlighting.rs:185:16: replace == with != in is_double_operator
-rash/src/repl/highlighting.rs:185:9: replace || with && in is_double_operator
-rash/src/repl/highlighting.rs:214:22: replace == with != in tokenize_operator
-rash/src/repl/highlighting.rs:291:43: replace && with || in tokenize
-rash/src/repl/highlighting.rs:289:55: replace == with != in tokenize
-rash/src/repl/highlighting.rs:185:23: replace && with || in is_double_operator
-rash/src/repl/highlighting.rs:183:23: replace && with || in is_double_operator
-rash/src/repl/highlighting.rs:289:43: replace == with != in tokenize
+rash/src/linter/shell_type.rs:123:13: delete match arm ".bashrc" | ".bash_profile" | ".bash_login" | ".bash_logout" in detect_from_path
+rash/src/linter/shell_type.rs:93:65: replace && with || in detect_from_shellcheck_directive
+rash/src/linter/shell_type.rs:93:34: replace && with || in detect_from_shellcheck_directive
+rash/src/linter/shell_type.rs:135:13: delete match arm "ksh" in detect_from_path
+rash/src/linter/shell_type.rs:134:13: delete match arm "bash" in detect_from_path
+rash/src/linter/shell_type.rs:100:21: delete match arm "bash" in detect_from_shellcheck_directive
+rash/src/linter/shell_type.rs:103:21: delete match arm "auto" in detect_from_shellcheck_directive
