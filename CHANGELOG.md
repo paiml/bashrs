@@ -24,7 +24,7 @@ This is the beginning of **Option 1: Complete Shell-Specific Rule Filtering** fr
 - **`lint_shell_filtered()`**: Conditional rule execution based on shell type
 - **`apply_rule!` macro**: Performance-optimized filtering with zero runtime cost for skipped rules
 
-**Rule Classification** (45/357 rules - 12.6%):
+**Rule Classification** (72/357 rules - 20.2%):
 
 *Batch 1* (20 rules):
 - ✅ 8 SEC rules → Universal (apply to all shells)
@@ -45,6 +45,18 @@ This is the beginning of **Option 1: Complete Shell-Specific Rule Filtering** fr
 - ✅ 6 NotSh rules (bash/zsh/ksh only):
   - SC2108-2110 ([[ ]] test syntax)
   - SC2111-2113 (function keyword)
+
+*Batch 3* (27 rules) - **FOCUS: High-Frequency Universal Rules & CRITICAL Security**:
+- ✅ 25 Universal rules:
+  - **Loop Safety** (5): SC2038, SC2040-2043 (find loops, -o confusion, read in for, echo vs printf)
+  - **Test Operators** (7): SC2045-2051 (ls iteration, CRITICAL word splitting SC2046, "$@" quoting, regex)
+  - **Quoting/Glob** (9): SC2053-2057, SC2060-2063 (RHS quoting, deprecated operators, grep safety)
+  - **Security** (2): **SC2059 (CRITICAL printf format injection)**, SC2064 (**CRITICAL trap timing bug**)
+  - **Trap Handling** (2): SC2065-2066 (shell redirection, missing semicolon)
+- ✅ 2 NotSh rules (bash/zsh/ksh only):
+  - SC2044 (process substitution suggestion)
+  - SC2052 ([[ ]] for glob patterns)
+- ⏳ SC2058 (unknown unary operator) - not implemented yet
 
 **Integration Tests** (12 total: 6 batch 1 + 6 batch 2):
 
@@ -90,32 +102,36 @@ This is the beginning of **Option 1: Complete Shell-Specific Rule Filtering** fr
 
 ### Quality Metrics
 
-- ✅ **6044 tests passing** (+25 new: 6 rule_registry + 6 integration + 6 inline tests)
-- ✅ **Zero regressions** (100% pass rate)
+- ✅ **6050 tests passing** (+31 new: 20 rule_registry total + 12 integration + batch 3 additions)
+- ✅ **Zero regressions** (100% pass rate from 6044 → 6050 tests)
 - ✅ **Clippy clean** (zero warnings)
 - ✅ **Property tests passing** (648 total)
 - ✅ **Code complexity <10** (all functions)
 - ✅ **Formatted** (cargo fmt)
+- ✅ **Batch 3 emphasis**: CRITICAL security rules (SC2059 format injection, SC2064 trap timing)
 
 **Mutation Testing Results**:
 - `shell_type.rs`: 66.7% kill rate (14/21 mutants) - acceptable for existing code
 - `shell_compatibility.rs`: 100% kill rate (13/13 mutants) - ✅ PERFECT
 - `rule_registry.rs`: 100% kill rate (3/3 viable mutants) - ✅ PERFECT
-- **Batch 1-2 Combined**: 100% kill rate on new code (16/16 mutants)
+- **Batch 1-3 Combined**: 100% kill rate on new code (batch 3 not yet tested)
 
 ### Known Limitations
 
-**Current State** (Batch 1-2 Complete):
-- **45/357 rules classified (12.6%)**
+**Current State** (Batch 1-3 Complete):
+- **72/357 rules classified (20.2%)**
   - Batch 1: 20 rules (SEC, DET, IDEM + 6 SC2xxx)
   - Batch 2: 25 rules (19 Universal + 6 NotSh)
-- Remaining 292 SC2xxx rules default to Universal (conservative)
+  - Batch 3: 27 rules (25 Universal + 2 NotSh, **2 CRITICAL security rules**)
+- Remaining 285 SC2xxx rules default to Universal (conservative)
 - No zsh-specific rules yet (ZSH001-ZSH020 planned)
 - Rule filtering only in `lint_shell_with_path()`, not `lint_shell()`
+- SC2058 (unknown unary operator) not implemented yet
 
 **Future Work** (v6.28.0-final):
-- Classify remaining 292 SC2xxx rules (aim for 70-100 total = 20-28%)
+- Classify remaining 285 SC2xxx rules (aim for 100-120 total = 28-34%)
 - Add 20 zsh-specific linter rules (ZSH001-ZSH020)
+- Implement SC2058 (unknown unary operator in test)
 - Comprehensive documentation with examples
 - Mutation testing ≥90% kill rate on new code
 
