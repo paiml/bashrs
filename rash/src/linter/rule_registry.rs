@@ -1277,6 +1277,116 @@ lazy_static::lazy_static! {
             compatibility: ShellCompatibility::Universal,
         });
 
+        // === BATCH 11 CLASSIFICATIONS (20 rules) ===
+
+        // Batch 11: Case statement syntax (Universal)
+        registry.insert("SC2222", RuleMetadata {
+            id: "SC2222",
+            name: "Lexical error in case statement syntax",
+            compatibility: ShellCompatibility::Universal,
+        });
+        registry.insert("SC2223", RuleMetadata {
+            id: "SC2223",
+            name: "This default case is unreachable (previous pattern catches all)",
+            compatibility: ShellCompatibility::Universal,
+        });
+
+        // Batch 11: Control flow & test operators (Universal)
+        registry.insert("SC2224", RuleMetadata {
+            id: "SC2224",
+            name: "Quote the word or use a glob",
+            compatibility: ShellCompatibility::Universal,
+        });
+        registry.insert("SC2225", RuleMetadata {
+            id: "SC2225",
+            name: "Use : or true instead of /bin/true",
+            compatibility: ShellCompatibility::Universal,
+        });
+        registry.insert("SC2226", RuleMetadata {
+            id: "SC2226",
+            name: "This expression is constant",
+            compatibility: ShellCompatibility::Universal,
+        });
+        registry.insert("SC2227", RuleMetadata {
+            id: "SC2227",
+            name: "Redirection applies to the echo, not the assignment",
+            compatibility: ShellCompatibility::Universal,
+        });
+        registry.insert("SC2228", RuleMetadata {
+            id: "SC2228",
+            name: "Declare -x is equivalent to export",
+            compatibility: ShellCompatibility::Universal,
+        });
+        registry.insert("SC2229", RuleMetadata {
+            id: "SC2229",
+            name: "This does not read 'foo'. Remove $/${} for that",
+            compatibility: ShellCompatibility::Universal,
+        });
+
+        // Batch 11: Command existence & portability (Universal)
+        registry.insert("SC2230", RuleMetadata {
+            id: "SC2230",
+            name: "which is non-standard, use command -v instead",
+            compatibility: ShellCompatibility::Universal,
+        });
+        registry.insert("SC2231", RuleMetadata {
+            id: "SC2231",
+            name: "Quote expansions in this for loop glob to prevent word splitting",
+            compatibility: ShellCompatibility::Universal,
+        });
+        registry.insert("SC2232", RuleMetadata {
+            id: "SC2232",
+            name: "Can't use sudo with builtins like cd",
+            compatibility: ShellCompatibility::Universal,
+        });
+        registry.insert("SC2233", RuleMetadata {
+            id: "SC2233",
+            name: "Remove superfluous (..) around condition",
+            compatibility: ShellCompatibility::Universal,
+        });
+        registry.insert("SC2234", RuleMetadata {
+            id: "SC2234",
+            name: "Remove superfluous () around here document",
+            compatibility: ShellCompatibility::Universal,
+        });
+
+        // Batch 11: Quoting & expansion safety (Universal)
+        registry.insert("SC2235", RuleMetadata {
+            id: "SC2235",
+            name: "Quote arguments to unalias to prevent word splitting",
+            compatibility: ShellCompatibility::Universal,
+        });
+        registry.insert("SC2236", RuleMetadata {
+            id: "SC2236",
+            name: "Use -n instead of ! -z",
+            compatibility: ShellCompatibility::Universal,
+        });
+        registry.insert("SC2237", RuleMetadata {
+            id: "SC2237",
+            name: "Use [ ] instead of [[ ]] (for sh compatibility)",
+            compatibility: ShellCompatibility::Universal,
+        });
+        registry.insert("SC2238", RuleMetadata {
+            id: "SC2238",
+            name: "Prefer ${} over backticks (readability + nesting)",
+            compatibility: ShellCompatibility::Universal,
+        });
+        registry.insert("SC2239", RuleMetadata {
+            id: "SC2239",
+            name: "Ensure consistent quoting for redirects",
+            compatibility: ShellCompatibility::Universal,
+        });
+        registry.insert("SC2240", RuleMetadata {
+            id: "SC2240",
+            name: "The dot command does not support arguments in sh",
+            compatibility: ShellCompatibility::Universal,
+        });
+        registry.insert("SC2241", RuleMetadata {
+            id: "SC2241",
+            name: "Exit code is always overridden by following command",
+            compatibility: ShellCompatibility::Universal,
+        });
+
         // Most other SC2xxx rules are Universal (quoting, syntax, etc.)
         // They represent bugs or issues that apply regardless of shell
         // Examples: SC2086 (quote variables), etc.
@@ -1344,7 +1454,7 @@ mod tests {
     }
 
     #[test]
-    fn test_registry_has_220_rules() {
+    fn test_registry_has_240_rules() {
         // Batch 1: 8 SEC + 3 DET + 3 IDEM + 6 SC2xxx = 20 rules
         // Batch 2: 6 NotSh + 19 Universal = 25 rules
         // Batch 3: 2 NotSh + 25 Universal = 27 rules (SC2058 not implemented yet)
@@ -1355,8 +1465,9 @@ mod tests {
         // Batch 8: 1 NotSh + 19 Universal = 20 rules
         // Batch 9: 5 NotSh + 15 Universal = 20 rules
         // Batch 10: 2 NotSh + 18 Universal = 20 rules
-        // Total: 220 rules (61.6% of 357 total) - 🎯 CROSSED 60% MILESTONE! 🎯
-        assert_eq!(RULE_REGISTRY.len(), 220);
+        // Batch 11: 0 NotSh + 20 Universal = 20 rules
+        // Total: 240 rules (67.2% of 357 total) - Approaching 70% milestone!
+        assert_eq!(RULE_REGISTRY.len(), 240);
     }
 
     #[test]
@@ -2882,5 +2993,168 @@ mod tests {
 
         // Total: 18 Universal + 2 NotSh = 20 rules
         // This brings total from 200 → 220 (61.6% coverage - 🎯 CROSSED 60% MILESTONE! 🎯)
+    }
+
+    // === BATCH 11 TESTS ===
+
+    #[test]
+    fn test_batch11_case_statement_syntax_universal() {
+        // Case statement syntax rules should be Universal (POSIX feature)
+        let case_rules = vec!["SC2222", "SC2223"];
+
+        for rule in case_rules {
+            assert_eq!(
+                get_rule_compatibility(rule),
+                Some(ShellCompatibility::Universal),
+                "{} should be Universal (case is POSIX)",
+                rule
+            );
+
+            // Should apply to ALL shells
+            assert!(
+                should_apply_rule(rule, ShellType::Bash),
+                "{} should apply to bash",
+                rule
+            );
+            assert!(
+                should_apply_rule(rule, ShellType::Sh),
+                "{} should apply to sh",
+                rule
+            );
+            assert!(
+                should_apply_rule(rule, ShellType::Zsh),
+                "{} should apply to zsh",
+                rule
+            );
+        }
+    }
+
+    #[test]
+    fn test_batch11_control_flow_universal() {
+        // Control flow and test operator rules should be Universal
+        let control_flow_rules = vec!["SC2224", "SC2225", "SC2226", "SC2227", "SC2228", "SC2229"];
+
+        for rule in control_flow_rules {
+            assert_eq!(
+                get_rule_compatibility(rule),
+                Some(ShellCompatibility::Universal),
+                "{} should be Universal",
+                rule
+            );
+
+            // Should apply to ALL shells
+            assert!(
+                should_apply_rule(rule, ShellType::Bash),
+                "{} should apply to bash",
+                rule
+            );
+            assert!(
+                should_apply_rule(rule, ShellType::Sh),
+                "{} should apply to sh",
+                rule
+            );
+            assert!(
+                should_apply_rule(rule, ShellType::Zsh),
+                "{} should apply to zsh",
+                rule
+            );
+        }
+    }
+
+    #[test]
+    fn test_batch11_command_portability_universal() {
+        // Command existence and portability rules should be Universal
+        let portability_rules = vec!["SC2230", "SC2231", "SC2232", "SC2233", "SC2234"];
+
+        for rule in portability_rules {
+            assert_eq!(
+                get_rule_compatibility(rule),
+                Some(ShellCompatibility::Universal),
+                "{} should be Universal (POSIX portability)",
+                rule
+            );
+
+            // Should apply to ALL shells
+            assert!(
+                should_apply_rule(rule, ShellType::Bash),
+                "{} should apply to bash",
+                rule
+            );
+            assert!(
+                should_apply_rule(rule, ShellType::Sh),
+                "{} should apply to sh",
+                rule
+            );
+            assert!(
+                should_apply_rule(rule, ShellType::Zsh),
+                "{} should apply to zsh",
+                rule
+            );
+        }
+    }
+
+    #[test]
+    fn test_batch11_quoting_safety_universal() {
+        // Quoting and expansion safety rules should be Universal
+        let quoting_rules = vec![
+            "SC2235", "SC2236", "SC2237", "SC2238", "SC2239", "SC2240", "SC2241",
+        ];
+
+        for rule in quoting_rules {
+            assert_eq!(
+                get_rule_compatibility(rule),
+                Some(ShellCompatibility::Universal),
+                "{} should be Universal (quoting is universal)",
+                rule
+            );
+
+            // Should apply to ALL shells
+            assert!(
+                should_apply_rule(rule, ShellType::Bash),
+                "{} should apply to bash",
+                rule
+            );
+            assert!(
+                should_apply_rule(rule, ShellType::Sh),
+                "{} should apply to sh",
+                rule
+            );
+            assert!(
+                should_apply_rule(rule, ShellType::Zsh),
+                "{} should apply to zsh",
+                rule
+            );
+        }
+    }
+
+    #[test]
+    fn test_batch11_universal_count() {
+        // Batch 11: All 20 rules are Universal (0 NotSh)
+        // This validates our classification strategy
+
+        let batch11_rules = vec![
+            // Case statement (2)
+            "SC2222", "SC2223", // Control flow (6)
+            "SC2224", "SC2225", "SC2226", "SC2227", "SC2228", "SC2229",
+            // Command portability (5)
+            "SC2230", "SC2231", "SC2232", "SC2233", "SC2234", // Quoting safety (7)
+            "SC2235", "SC2236", "SC2237", "SC2238", "SC2239", "SC2240", "SC2241",
+        ];
+
+        // All batch 11 rules should be Universal
+        for rule in &batch11_rules {
+            assert_eq!(
+                get_rule_compatibility(rule),
+                Some(ShellCompatibility::Universal),
+                "Batch 11 rule {} should be Universal",
+                rule
+            );
+        }
+
+        // Verify count: 20 Universal rules
+        assert_eq!(batch11_rules.len(), 20);
+
+        // Total: 20 Universal + 0 NotSh = 20 rules
+        // This brings total from 220 → 240 (67.2% coverage - Approaching 70% milestone!)
     }
 }
