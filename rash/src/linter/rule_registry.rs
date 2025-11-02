@@ -1497,6 +1497,114 @@ lazy_static::lazy_static! {
             compatibility: ShellCompatibility::Universal,
         });
 
+        // === BATCH 13 CLASSIFICATIONS (20 rules) ===
+
+        // Batch 13: Quoting & parameter safety (Universal)
+        registry.insert("SC2262", RuleMetadata {
+            id: "SC2262",
+            name: "This command may need quoting (context sensitive)",
+            compatibility: ShellCompatibility::Universal,
+        });
+        registry.insert("SC2263", RuleMetadata {
+            id: "SC2263",
+            name: "Use cd ... || exit to handle cd failures",
+            compatibility: ShellCompatibility::Universal,
+        });
+        registry.insert("SC2264", RuleMetadata {
+            id: "SC2264",
+            name: "Prefer [ p ] && [ q ] over [ p -a q ]",
+            compatibility: ShellCompatibility::Universal,
+        });
+        registry.insert("SC2265", RuleMetadata {
+            id: "SC2265",
+            name: "Use ${var:?} to ensure this never expands to /* /",
+            compatibility: ShellCompatibility::Universal,
+        });
+        registry.insert("SC2266", RuleMetadata {
+            id: "SC2266",
+            name: "Prefer [ p ] || [ q ] over [ p -o q ]",
+            compatibility: ShellCompatibility::Universal,
+        });
+        registry.insert("SC2267", RuleMetadata {
+            id: "SC2267",
+            name: "Use ${var:?} to ensure variable is set",
+            compatibility: ShellCompatibility::Universal,
+        });
+        registry.insert("SC2268", RuleMetadata {
+            id: "SC2268",
+            name: "Avoid x-prefix in comparisons",
+            compatibility: ShellCompatibility::Universal,
+        });
+        registry.insert("SC2269", RuleMetadata {
+            id: "SC2269",
+            name: "This regex should be put in a variable",
+            compatibility: ShellCompatibility::Universal,
+        });
+
+        // Batch 13: Argument parsing & best practices (Universal)
+        registry.insert("SC2270", RuleMetadata {
+            id: "SC2270",
+            name: "Prefer getopts over manual argument parsing",
+            compatibility: ShellCompatibility::Universal,
+        });
+        registry.insert("SC2271", RuleMetadata {
+            id: "SC2271",
+            name: "Prefer printf over echo for non-trivial formatting",
+            compatibility: ShellCompatibility::Universal,
+        });
+        registry.insert("SC2272", RuleMetadata {
+            id: "SC2272",
+            name: "This is a constant, not a variable",
+            compatibility: ShellCompatibility::Universal,
+        });
+        registry.insert("SC2273", RuleMetadata {
+            id: "SC2273",
+            name: "Use ${var:?} if this should never be empty",
+            compatibility: ShellCompatibility::Universal,
+        });
+        registry.insert("SC2274", RuleMetadata {
+            id: "SC2274",
+            name: "Quote the RHS of = in [ ] to prevent globbing",
+            compatibility: ShellCompatibility::Universal,
+        });
+
+        // Batch 13: Word splitting & expansion safety (Universal)
+        registry.insert("SC2275", RuleMetadata {
+            id: "SC2275",
+            name: "Use ${var} to avoid field splitting",
+            compatibility: ShellCompatibility::Universal,
+        });
+        registry.insert("SC2276", RuleMetadata {
+            id: "SC2276",
+            name: "Prefer explicit -n to check non-empty",
+            compatibility: ShellCompatibility::Universal,
+        });
+        registry.insert("SC2277", RuleMetadata {
+            id: "SC2277",
+            name: "Use || instead of -o for test operators",
+            compatibility: ShellCompatibility::Universal,
+        });
+        registry.insert("SC2278", RuleMetadata {
+            id: "SC2278",
+            name: "Use [[ ]] instead of deprecated syntax",
+            compatibility: ShellCompatibility::Universal,
+        });
+        registry.insert("SC2279", RuleMetadata {
+            id: "SC2279",
+            name: "Use [[ < instead of [ <",
+            compatibility: ShellCompatibility::Universal,
+        });
+        registry.insert("SC2280", RuleMetadata {
+            id: "SC2280",
+            name: "Remove redundant (..) or use 'if .. then'",
+            compatibility: ShellCompatibility::Universal,
+        });
+        registry.insert("SC2281", RuleMetadata {
+            id: "SC2281",
+            name: "Don't use $@ in double quotes, it breaks word splitting",
+            compatibility: ShellCompatibility::Universal,
+        });
+
         // Most other SC2xxx rules are Universal (quoting, syntax, etc.)
         // They represent bugs or issues that apply regardless of shell
         // Examples: SC2086 (quote variables), etc.
@@ -1564,7 +1672,7 @@ mod tests {
     }
 
     #[test]
-    fn test_registry_has_260_rules() {
+    fn test_registry_has_280_rules() {
         // Batch 1: 8 SEC + 3 DET + 3 IDEM + 6 SC2xxx = 20 rules
         // Batch 2: 6 NotSh + 19 Universal = 25 rules
         // Batch 3: 2 NotSh + 25 Universal = 27 rules (SC2058 not implemented yet)
@@ -1577,8 +1685,9 @@ mod tests {
         // Batch 10: 2 NotSh + 18 Universal = 20 rules
         // Batch 11: 0 NotSh + 20 Universal = 20 rules
         // Batch 12: 0 NotSh + 20 Universal = 20 rules
-        // Total: 260 rules (72.8% of 357 total) - 🎯 CROSSED 70% MILESTONE! 🎯
-        assert_eq!(RULE_REGISTRY.len(), 260);
+        // Batch 13: 0 NotSh + 20 Universal = 20 rules
+        // Total: 280 rules (78.4% of 357 total) - Approaching 80% milestone!
+        assert_eq!(RULE_REGISTRY.len(), 280);
     }
 
     #[test]
@@ -3275,7 +3384,10 @@ mod tests {
     fn test_batch12_control_flow_universal() {
         let control_rules = vec!["SC2242", "SC2243", "SC2244", "SC2245", "SC2246"];
         for rule in control_rules {
-            assert_eq!(get_rule_compatibility(rule), Some(ShellCompatibility::Universal));
+            assert_eq!(
+                get_rule_compatibility(rule),
+                Some(ShellCompatibility::Universal)
+            );
             assert!(should_apply_rule(rule, ShellType::Bash));
             assert!(should_apply_rule(rule, ShellType::Sh));
             assert!(should_apply_rule(rule, ShellType::Zsh));
@@ -3286,7 +3398,10 @@ mod tests {
     fn test_batch12_test_operators_universal() {
         let test_rules = vec!["SC2247", "SC2248", "SC2249", "SC2250", "SC2251"];
         for rule in test_rules {
-            assert_eq!(get_rule_compatibility(rule), Some(ShellCompatibility::Universal));
+            assert_eq!(
+                get_rule_compatibility(rule),
+                Some(ShellCompatibility::Universal)
+            );
             assert!(should_apply_rule(rule, ShellType::Bash));
             assert!(should_apply_rule(rule, ShellType::Sh));
             assert!(should_apply_rule(rule, ShellType::Zsh));
@@ -3297,7 +3412,10 @@ mod tests {
     fn test_batch12_loop_patterns_universal() {
         let loop_rules = vec!["SC2252", "SC2253", "SC2254", "SC2255", "SC2256"];
         for rule in loop_rules {
-            assert_eq!(get_rule_compatibility(rule), Some(ShellCompatibility::Universal));
+            assert_eq!(
+                get_rule_compatibility(rule),
+                Some(ShellCompatibility::Universal)
+            );
             assert!(should_apply_rule(rule, ShellType::Bash));
             assert!(should_apply_rule(rule, ShellType::Sh));
             assert!(should_apply_rule(rule, ShellType::Zsh));
@@ -3308,7 +3426,10 @@ mod tests {
     fn test_batch12_quoting_safety_universal() {
         let quoting_rules = vec!["SC2257", "SC2258", "SC2259", "SC2260", "SC2261"];
         for rule in quoting_rules {
-            assert_eq!(get_rule_compatibility(rule), Some(ShellCompatibility::Universal));
+            assert_eq!(
+                get_rule_compatibility(rule),
+                Some(ShellCompatibility::Universal)
+            );
             assert!(should_apply_rule(rule, ShellType::Bash));
             assert!(should_apply_rule(rule, ShellType::Sh));
             assert!(should_apply_rule(rule, ShellType::Zsh));
@@ -3318,10 +3439,9 @@ mod tests {
     #[test]
     fn test_batch12_universal_count() {
         let batch12_rules = vec![
-            "SC2242", "SC2243", "SC2244", "SC2245", "SC2246",
-            "SC2247", "SC2248", "SC2249", "SC2250", "SC2251",
-            "SC2252", "SC2253", "SC2254", "SC2255", "SC2256",
-            "SC2257", "SC2258", "SC2259", "SC2260", "SC2261",
+            "SC2242", "SC2243", "SC2244", "SC2245", "SC2246", "SC2247", "SC2248", "SC2249",
+            "SC2250", "SC2251", "SC2252", "SC2253", "SC2254", "SC2255", "SC2256", "SC2257",
+            "SC2258", "SC2259", "SC2260", "SC2261",
         ];
         for rule in &batch12_rules {
             assert_eq!(
@@ -3334,5 +3454,115 @@ mod tests {
         assert_eq!(batch12_rules.len(), 20);
         // Total: 20 Universal + 0 NotSh = 20 rules
         // This brings total from 240 → 260 (72.8% coverage - 🎯 CROSSED 70% MILESTONE! 🎯)
+    }
+
+    // === BATCH 13 TESTS ===
+
+    #[test]
+    fn test_batch13_quoting_safety_universal() {
+        let quoting_rules = vec![
+            "SC2262", "SC2263", "SC2264", "SC2265", "SC2266", "SC2267", "SC2268", "SC2269",
+        ];
+        for rule in quoting_rules {
+            assert_eq!(
+                get_rule_compatibility(rule),
+                Some(ShellCompatibility::Universal)
+            );
+            assert!(should_apply_rule(rule, ShellType::Bash));
+            assert!(should_apply_rule(rule, ShellType::Sh));
+            assert!(should_apply_rule(rule, ShellType::Zsh));
+        }
+    }
+
+    #[test]
+    fn test_batch13_argument_parsing_universal() {
+        let arg_parsing_rules = vec!["SC2270", "SC2271", "SC2272", "SC2273", "SC2274"];
+        for rule in arg_parsing_rules {
+            assert_eq!(
+                get_rule_compatibility(rule),
+                Some(ShellCompatibility::Universal)
+            );
+            assert!(should_apply_rule(rule, ShellType::Bash));
+            assert!(should_apply_rule(rule, ShellType::Sh));
+            assert!(should_apply_rule(rule, ShellType::Zsh));
+        }
+    }
+
+    #[test]
+    fn test_batch13_word_splitting_universal() {
+        let word_splitting_rules = vec![
+            "SC2275", "SC2276", "SC2277", "SC2278", "SC2279", "SC2280", "SC2281",
+        ];
+        for rule in word_splitting_rules {
+            assert_eq!(
+                get_rule_compatibility(rule),
+                Some(ShellCompatibility::Universal)
+            );
+            assert!(should_apply_rule(rule, ShellType::Bash));
+            assert!(should_apply_rule(rule, ShellType::Sh));
+            assert!(should_apply_rule(rule, ShellType::Zsh));
+        }
+    }
+
+    #[test]
+    fn test_batch13_no_notsh_rules() {
+        // Batch 13 should have NO NotSh rules (all Universal)
+        let batch13_rules = vec![
+            "SC2262", "SC2263", "SC2264", "SC2265", "SC2266", "SC2267", "SC2268", "SC2269",
+            "SC2270", "SC2271", "SC2272", "SC2273", "SC2274", "SC2275", "SC2276", "SC2277",
+            "SC2278", "SC2279", "SC2280", "SC2281",
+        ];
+
+        for rule in batch13_rules {
+            let compat = get_rule_compatibility(rule);
+            assert_eq!(
+                compat,
+                Some(ShellCompatibility::Universal),
+                "{} should be Universal (not NotSh)",
+                rule
+            );
+
+            // Should apply to ALL shells including sh
+            assert!(
+                should_apply_rule(rule, ShellType::Sh),
+                "{} should apply to sh",
+                rule
+            );
+            assert!(
+                should_apply_rule(rule, ShellType::Bash),
+                "{} should apply to bash",
+                rule
+            );
+            assert!(
+                should_apply_rule(rule, ShellType::Zsh),
+                "{} should apply to zsh",
+                rule
+            );
+            assert!(
+                should_apply_rule(rule, ShellType::Ksh),
+                "{} should apply to ksh",
+                rule
+            );
+        }
+    }
+
+    #[test]
+    fn test_batch13_universal_count() {
+        let batch13_rules = vec![
+            "SC2262", "SC2263", "SC2264", "SC2265", "SC2266", "SC2267", "SC2268", "SC2269",
+            "SC2270", "SC2271", "SC2272", "SC2273", "SC2274", "SC2275", "SC2276", "SC2277",
+            "SC2278", "SC2279", "SC2280", "SC2281",
+        ];
+        for rule in &batch13_rules {
+            assert_eq!(
+                get_rule_compatibility(rule),
+                Some(ShellCompatibility::Universal),
+                "Batch 13 rule {} should be Universal",
+                rule
+            );
+        }
+        assert_eq!(batch13_rules.len(), 20);
+        // Total: 20 Universal + 0 NotSh = 20 rules
+        // This brings total from 260 → 280 (78.4% coverage - Approaching 80% milestone!)
     }
 }
