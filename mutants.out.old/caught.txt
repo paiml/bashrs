@@ -1,0 +1,13 @@
+rash/src/linter/shell_compatibility.rs:35:13: delete match arm (ShellCompatibility::BashZsh, ShellType::Auto) in ShellCompatibility::applies_to
+rash/src/linter/shell_compatibility.rs:30:13: delete match arm (ShellCompatibility::ShOnly, ShellType::Sh) in ShellCompatibility::applies_to
+rash/src/linter/shell_compatibility.rs:42:9: replace ShellCompatibility::description -> &'static str with ""
+rash/src/linter/shell_compatibility.rs:28:13: delete match arm (ShellCompatibility::BashOnly, ShellType::Bash) in ShellCompatibility::applies_to
+rash/src/linter/shell_compatibility.rs:27:13: delete match arm (ShellCompatibility::Universal, _) in ShellCompatibility::applies_to
+rash/src/linter/shell_compatibility.rs:26:9: replace ShellCompatibility::applies_to -> bool with true
+rash/src/linter/shell_compatibility.rs:26:9: replace ShellCompatibility::applies_to -> bool with false
+rash/src/linter/shell_compatibility.rs:29:13: delete match arm (ShellCompatibility::ZshOnly, ShellType::Zsh) in ShellCompatibility::applies_to
+rash/src/linter/shell_compatibility.rs:42:9: replace ShellCompatibility::description -> &'static str with "xyzzy"
+rash/src/linter/shell_compatibility.rs:31:13: delete match arm (ShellCompatibility::BashZsh, ShellType::Bash | ShellType::Zsh) in ShellCompatibility::applies_to
+rash/src/linter/shell_compatibility.rs:34:13: delete match arm (ShellCompatibility::BashOnly, ShellType::Auto) in ShellCompatibility::applies_to
+rash/src/linter/shell_compatibility.rs:33:13: delete match arm (ShellCompatibility::NotSh, ShellType::Auto) in ShellCompatibility::applies_to
+rash/src/linter/shell_compatibility.rs:32:13: delete match arm (ShellCompatibility::NotSh, ShellType::Bash | ShellType::Zsh | ShellType::Ksh) in ShellCompatibility::applies_to

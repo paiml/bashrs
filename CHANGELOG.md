@@ -24,7 +24,7 @@ This is the beginning of **Option 1: Complete Shell-Specific Rule Filtering** fr
 - **`lint_shell_filtered()`**: Conditional rule execution based on shell type
 - **`apply_rule!` macro**: Performance-optimized filtering with zero runtime cost for skipped rules
 
-**Rule Classification** (260/357 rules - 72.8% - **🎯 CROSSED 70% MILESTONE! 🎯**):
+**Rule Classification** (280/357 rules - 78.4% - **Approaching 80% Milestone!**):
 
 *Batch 1* (20 rules):
 - ✅ 8 SEC rules → Universal (apply to all shells)
@@ -136,6 +136,12 @@ This is the beginning of **Option 1: Complete Shell-Specific Rule Filtering** fr
   - **Test Operators & Efficiency** (5): SC2247 (prefer [ p ] && [ q ] over [ p -a q ]), SC2248 (prefer explicit -n to check for output), SC2249 (consider adding default case in case statement), SC2250 (prefer $((..)) over let for arithmetic), SC2251 (this loop will only ever run once for constant)
   - **Loop & Case Patterns** (5): SC2252 (you probably wanted && here, not a second [), SC2253 (quote the RHS of = in [[ ]] to prevent glob matching), SC2254 (quote expansions in case patterns to prevent word splitting), SC2255 (this [ .. ] is true whenever str is non-empty), SC2256 (prefer -n/-z over comparison with empty string)
   - **Command Safety & Quoting** (5): SC2257 (prefer explicit -n to check non-empty string), SC2258 (prefer explicit -n to check output), SC2259 (this assumes $RANDOM is always positive), SC2260 (fix $((..)) arithmetic so [[ ]] can interpret it), SC2261 (unquoted operand will be glob expanded)
+
+*Batch 13* (20 rules) - **FOCUS: Quoting Safety & Parameter Expansion - Approaching 80% Milestone!**:
+- ✅ 20 Universal rules (all Universal, NO NotSh rules in batch 13):
+  - **Quoting & Parameter Safety** (8): SC2262 (this command may need quoting - context sensitive), SC2263 (use cd ... || exit to handle cd failures), SC2264 (prefer [ p ] && [ q ] over [ p -a q ]), SC2265 (use ${var:?} to ensure this never expands to /* /), SC2266 (prefer [ p ] || [ q ] over [ p -o q ]), SC2267 (use ${var:?} to ensure variable is set), SC2268 (avoid x-prefix in comparisons), SC2269 (this regex should be put in a variable)
+  - **Argument Parsing Best Practices** (5): SC2270 (prefer getopts over manual argument parsing), SC2271 (prefer printf over echo for non-trivial formatting), SC2272 (this is a constant, not a variable), SC2273 (use ${var:?} if this should never be empty), SC2274 (quote the RHS of = in [ ] to prevent globbing)
+  - **Word Splitting & Expansion** (7): SC2275 (use ${var} to avoid field splitting), SC2276 (prefer explicit -n to check non-empty), SC2277 (use || instead of -o for test operators), SC2278 (use [[ ]] instead of deprecated syntax), SC2279 (use [[ < instead of [ <), SC2280 (remove redundant (..) or use 'if .. then'), SC2281 (don't use $@ in double quotes, it breaks word splitting)
 
 **Integration Tests** (12 total: 6 batch 1 + 6 batch 2):
 

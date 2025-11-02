@@ -1,7 +1,0 @@
-rash/src/linter/shell_type.rs:123:13: delete match arm ".bashrc" | ".bash_profile" | ".bash_login" | ".bash_logout" in detect_from_path
-rash/src/linter/shell_type.rs:93:65: replace && with || in detect_from_shellcheck_directive
-rash/src/linter/shell_type.rs:93:34: replace && with || in detect_from_shellcheck_directive
-rash/src/linter/shell_type.rs:135:13: delete match arm "ksh" in detect_from_path
-rash/src/linter/shell_type.rs:134:13: delete match arm "bash" in detect_from_path
-rash/src/linter/shell_type.rs:100:21: delete match arm "bash" in detect_from_shellcheck_directive
-rash/src/linter/shell_type.rs:103:21: delete match arm "auto" in detect_from_shellcheck_directive
