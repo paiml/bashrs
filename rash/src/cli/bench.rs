@@ -343,8 +343,11 @@ fn verify_output_determinism(script: &Path) -> Result<bool> {
     }
 
     // Compare all outputs
-    let first_hash = hash_output(&outputs[0]);
-    for output in &outputs[1..] {
+    let first_output = outputs.first().ok_or_else(|| {
+        Error::Internal("No outputs to compare for determinism verification".to_string())
+    })?;
+    let first_hash = hash_output(first_output);
+    for output in outputs.iter().skip(1) {
         if hash_output(output) != first_hash {
             return Ok(false);
         }
@@ -369,7 +372,9 @@ fn display_results(
 ) -> Result<()> {
     // Single script results
     if results.len() == 1 {
-        let result = &results[0];
+        let result = results.first().ok_or_else(|| {
+            Error::Internal("results.len() == 1 but first() returned None".to_string())
+        })?;
         println!("\n📈 Results for {}", result.script);
         println!("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
         println!(
@@ -419,9 +424,9 @@ fn display_comparison_results(results: &[BenchmarkResult]) -> Result<()> {
             a.statistics
                 .mean_ms
                 .partial_cmp(&b.statistics.mean_ms)
-                .unwrap()
+                .unwrap_or(std::cmp::Ordering::Equal)
         })
-        .unwrap();
+        .ok_or_else(|| Error::Internal("No results to compare".to_string()))?;
 
     // Sort by speed (fastest first)
     let mut sorted = results.to_vec();
@@ -429,7 +434,7 @@ fn display_comparison_results(results: &[BenchmarkResult]) -> Result<()> {
         a.statistics
             .mean_ms
             .partial_cmp(&b.statistics.mean_ms)
-            .unwrap()
+            .unwrap_or(std::cmp::Ordering::Equal)
     });
 
     for (i, result) in sorted.iter().enumerate() {
@@ -448,7 +453,9 @@ fn display_comparison_results(results: &[BenchmarkResult]) -> Result<()> {
 
     println!("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
 
-    let fastest = &sorted[0];
+    let fastest = sorted
+        .first()
+        .ok_or_else(|| Error::Internal("No sorted results available".to_string()))?;
     let speedup = baseline.statistics.mean_ms / fastest.statistics.mean_ms;
     println!(
         "\n🏆 Winner: {} ({:.2}x faster than baseline)",
@@ -487,12 +494,15 @@ fn calculate_mean(values: &[f64]) -> f64 {
 
 fn calculate_median(values: &[f64]) -> f64 {
     let mut sorted = values.to_vec();
-    sorted.sort_by(|a, b| a.partial_cmp(b).unwrap());
+    sorted.sort_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal));
     let mid = sorted.len() / 2;
     if sorted.len().is_multiple_of(2) {
-        (sorted[mid - 1] + sorted[mid]) / 2.0
+        // Safe: mid > 0 when len is even and > 1
+        let lower = sorted.get(mid - 1).copied().unwrap_or(0.0);
+        let upper = sorted.get(mid).copied().unwrap_or(0.0);
+        (lower + upper) / 2.0
     } else {
-        sorted[mid]
+        sorted.get(mid).copied().unwrap_or(0.0)
     }
 }
 
