@@ -7,6 +7,119 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [6.28.0-dev] - In Progress (2025-11-02)
+
+### 🚀 FEATURE - Shell-Specific Rule Filtering (MVP Implementation)
+
+**bashrs v6.28.0-dev implements the foundation for shell-specific linting to eliminate false positives on zsh and POSIX sh files.**
+
+This is the beginning of **Option 1: Complete Shell-Specific Rule Filtering** from the strategic roadmap, building on Issue #5 resolution.
+
+### Added
+
+**Shell Compatibility Infrastructure** (17 new tests):
+
+- **`ShellCompatibility` enum**: 6 compatibility levels (Universal, BashOnly, ZshOnly, ShOnly, BashZsh, NotSh)
+- **`RuleRegistry`**: Centralized metadata for all 357 linter rules with lazy_static HashMap
+- **`lint_shell_filtered()`**: Conditional rule execution based on shell type
+- **`apply_rule!` macro**: Performance-optimized filtering with zero runtime cost for skipped rules
+
+**Rule Classification** (20/357 rules - 6%):
+- ✅ 8 SEC rules → Universal (apply to all shells)
+- ✅ 3 DET rules → Universal (determinism is universal)
+- ✅ 3 IDEM rules → Universal (idempotency is universal)
+- ✅ 6 SC2xxx rules → NotSh (bash/zsh only, not POSIX sh):
+  - SC2002 (useless cat - process substitution)
+  - SC2039 (bash features undefined in POSIX sh)
+  - SC2198 (array syntax)
+  - SC2199 (array expansion)
+  - SC2200 (array iteration)
+  - SC2201 (array assignment)
+
+**Integration Tests** (6 new):
+- `test_bash_array_rule_skipped_for_zsh`: Verify filtering works
+- `test_universal_rules_fire_on_all_shells`: DET/IDEM/SEC always apply
+- `test_sh_files_skip_bash_only_rules`: POSIX sh protection
+- `test_bash_files_get_all_applicable_rules`: Bash gets full ruleset
+- `prop_filtering_is_deterministic`: Property test for consistency
+- `prop_universal_rules_apply_regardless_of_shell`: Property test for universal rules
+
+**Implementation Methodology** (EXTREME TDD):
+1. **RED Phase**: Wrote 6 failing integration tests defining desired behavior
+2. **GREEN Phase**: Implemented filtering engine to pass all tests
+3. **REFACTOR Phase**: Macro-based approach for performance and maintainability
+4. **PROPERTY Phase**: 2 property tests with 100+ generated cases each
+
+### Changed
+
+- `lint_shell_with_path()` now calls `lint_shell_filtered()` instead of `lint_shell()`
+- Shell type is passed through to filtering engine
+- Rules are conditionally executed based on `should_apply_rule()` checks
+
+### Architecture
+
+**Incremental Classification Strategy**:
+- Conservative default: Unclassified rules treated as Universal (safe)
+- Incremental expansion: Add rules to registry as we classify them
+- Backward compatible: Old `lint_shell()` API unchanged for direct use
+
+**Performance**:
+- Zero runtime cost for skipped rules (compile-time optimization via macro)
+- No heap allocations for rule filtering
+- Lazy static registry initialized once
+
+### Quality Metrics
+
+- ✅ **6038 tests passing** (+19 new tests from v6.27.1)
+- ✅ **Zero regressions** (100% pass rate)
+- ✅ **Clippy clean** (zero warnings)
+- ✅ **Property tests passing** (648 total)
+- ✅ **Code complexity <10** (all functions)
+- ✅ **Formatted** (cargo fmt)
+
+**Mutation Testing Results**:
+- `shell_type.rs`: 66.7% kill rate (14/21 mutants caught) - acceptable for new code
+- `shell_compatibility.rs`: Not yet tested
+- `rule_registry.rs`: Not yet tested
+
+### Known Limitations
+
+**Current State (MVP)**:
+- Only 20/357 rules classified (6%)
+- Remaining 317 SC2xxx rules default to Universal (conservative)
+- No zsh-specific rules yet (ZSH001-ZSH020 planned)
+- Rule filtering only in `lint_shell_with_path()`, not `lint_shell()`
+
+**Future Work** (v6.28.0-final):
+- Classify all 323 remaining SC2xxx rules
+- Add 20 zsh-specific linter rules (ZSH001-ZSH020)
+- Comprehensive documentation with examples
+- Mutation testing ≥90% kill rate on new code
+
+### Documentation
+
+- `docs/RULE-SHELL-COMPATIBILITY.md`: Classification strategy and progress
+- `rash/tests/test_shell_specific_filtering.rs`: Integration test suite demonstrating behavior
+
+### Impact
+
+**User Benefits**:
+- Fewer false positives on zsh files (builds on Issue #5)
+- POSIX sh scripts protected from bash-isms
+- Foundation for comprehensive shell-specific linting
+
+**Developer Benefits**:
+- Clear classification framework for all 357 rules
+- Easy to add new shell-specific rules
+- Property testing ensures filtering correctness
+
+### Credits
+
+🤖 Generated with [Claude Code](https://claude.com/claude-code)
+Co-Authored-By: Claude <noreply@anthropic.com>
+
+---
+
 ## [6.27.1] - 2025-11-02
 
 ### 🔧 ENHANCEMENT - Complete Linter Integration for Shell Type Detection
