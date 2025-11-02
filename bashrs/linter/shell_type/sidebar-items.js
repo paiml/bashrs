@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":["ShellType"],"fn":["detect_from_path","detect_from_shebang","detect_from_shellcheck_directive","detect_shell_type"]};
