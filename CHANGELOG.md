@@ -24,7 +24,7 @@ This is the beginning of **Option 1: Complete Shell-Specific Rule Filtering** fr
 - **`lint_shell_filtered()`**: Conditional rule execution based on shell type
 - **`apply_rule!` macro**: Performance-optimized filtering with zero runtime cost for skipped rules
 
-**Rule Classification** (72/357 rules - 20.2%):
+**Rule Classification** (100/357 rules - 28.0%):
 
 *Batch 1* (20 rules):
 - ✅ 8 SEC rules → Universal (apply to all shells)
@@ -57,6 +57,18 @@ This is the beginning of **Option 1: Complete Shell-Specific Rule Filtering** fr
   - SC2044 (process substitution suggestion)
   - SC2052 ([[ ]] for glob patterns)
 - ⏳ SC2058 (unknown unary operator) - not implemented yet
+
+*Batch 4* (28 rules) - **FOCUS: Variable Safety & CRITICAL Dangerous Commands**:
+- ✅ 27 Universal rules:
+  - **Variable Safety** (8): SC2067-2074 (missing $, quote $@, redirections, -n unquoted, arithmetic, comparisons)
+  - **Quoting Safety** (7): SC2075-2078, SC2081-2083 (escape quotes, regex, $$, shebang spaces)
+  - **Command Safety** (6): SC2094-2098, SC2103 (file truncation, ssh stdin, cd checks, assignments)
+  - **Test Safety** (3): SC2104-2105, SC2107 (== literal, break outside loop, deprecated -o)
+  - **CRITICAL Dangerous rm** (2): **SC2114 (rm -rf without validation)**, **SC2115 (use ${var:?})**
+  - **Echo Safety** (1): SC2116 (useless echo $(cmd))
+- ✅ 1 NotSh rule:
+  - SC2128 (array expansion without index)
+- ⏳ SC2120 (function $1 check) - has false positives, not enabled
 
 **Integration Tests** (12 total: 6 batch 1 + 6 batch 2):
 
@@ -102,13 +114,13 @@ This is the beginning of **Option 1: Complete Shell-Specific Rule Filtering** fr
 
 ### Quality Metrics
 
-- ✅ **6050 tests passing** (+31 new: 20 rule_registry total + 12 integration + batch 3 additions)
-- ✅ **Zero regressions** (100% pass rate from 6044 → 6050 tests)
-- ✅ **Clippy clean** (zero warnings)
+- ✅ **6056 tests passing** (+37 new: 26 rule_registry total + 12 integration + batch additions)
+- ✅ **Zero regressions** (100% pass rate from 6044 → 6056 tests)
+- ✅ **Clippy clean** (zero code warnings)
 - ✅ **Property tests passing** (648 total)
 - ✅ **Code complexity <10** (all functions)
 - ✅ **Formatted** (cargo fmt)
-- ✅ **Batch 3 emphasis**: CRITICAL security rules (SC2059 format injection, SC2064 trap timing)
+- ✅ **Batch 3-4 emphasis**: CRITICAL security (SC2059 format injection, SC2064 trap timing, SC2114/SC2115 dangerous rm)
 
 **Mutation Testing Results**:
 - `shell_type.rs`: 66.7% kill rate (14/21 mutants) - acceptable for existing code

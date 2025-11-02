@@ -513,7 +513,48 @@ fn lint_shell_filtered(
     apply_rule!("SC2065", sc2065::check); // Universal - shell redirection interpretation
     apply_rule!("SC2066", sc2066::check); // Universal - missing semicolon before done
 
-    // TODO: Add remaining SC2xxx rules (~284 rules remaining, was ~292)
+    // Batch 4: Variable and parameter safety (Universal - all shells)
+    apply_rule!("SC2067", sc2067::check); // Universal - missing $ on array lookup
+    apply_rule!("SC2068", sc2068::check); // Universal - quote $@ to prevent word splitting
+    apply_rule!("SC2069", sc2069::check); // Universal - redirect stdout+stderr correctly
+    apply_rule!("SC2070", sc2070::check); // Universal - -n doesn't work unquoted
+    apply_rule!("SC2071", sc2071::check); // Universal - arithmetic operators in [ ]
+    apply_rule!("SC2072", sc2072::check); // Universal - lexicographic vs numeric comparison
+    apply_rule!("SC2073", sc2073::check); // Universal - escape \\d or use [[:digit:]]
+    apply_rule!("SC2074", sc2074::check); // Universal - can't use =~ in [ ]
+
+    // Batch 4: Quote and expansion safety (Universal)
+    apply_rule!("SC2075", sc2075::check); // Universal - escaping quotes in single quotes
+    apply_rule!("SC2076", sc2076::check); // Universal - don't quote RHS of =~ in [[ ]]
+    apply_rule!("SC2077", sc2077::check); // Universal - quote regex to prevent word splitting
+    apply_rule!("SC2078", sc2078::check); // Universal - constant expression (forgot $?)
+    apply_rule!("SC2081", sc2081::check); // Universal - escape [ in globs
+    apply_rule!("SC2082", sc2082::check); // Universal - variable indirection with $$
+    apply_rule!("SC2083", sc2083::check); // Universal - don't add spaces after shebang
+
+    // Batch 4: Command and redirection safety (Universal - CRITICAL)
+    apply_rule!("SC2094", sc2094::check); // Universal - same file for input/output (truncate)
+    apply_rule!("SC2095", sc2095::check); // Universal - ssh in loops may consume stdin
+    apply_rule!("SC2096", sc2096::check); // Universal - use #! shebang
+    apply_rule!("SC2097", sc2097::check); // Universal - assign and use variable separately
+    apply_rule!("SC2098", sc2098::check); // Universal - variable assignment vs redirection
+    apply_rule!("SC2103", sc2103::check); // Universal - cd without error check
+
+    // Batch 4: Test and conditional safety (Universal)
+    apply_rule!("SC2104", sc2104::check); // Universal - == is literal in [[ ]]
+    apply_rule!("SC2105", sc2105::check); // Universal - break outside loop
+    apply_rule!("SC2107", sc2107::check); // Universal - use [ a ] || [ b ] not [ a -o b ]
+
+    // Batch 4: Function and scope safety (Universal - CRITICAL dangerous rm)
+    apply_rule!("SC2114", sc2114::check); // Universal - CRITICAL dangerous rm -rf without validation
+    apply_rule!("SC2115", sc2115::check); // Universal - CRITICAL use ${var:?} before rm -rf
+    apply_rule!("SC2116", sc2116::check); // Universal - useless echo $(cmd)
+
+    // Batch 4: Bash-specific function analysis (NotSh - bash/zsh/ksh only)
+    // apply_rule!("SC2120", sc2120::check); // NotSh - function references $1 but none passed (TODO: has false positives)
+    apply_rule!("SC2128", sc2128::check); // NotSh - array expansion without index
+
+    // TODO: Add remaining SC2xxx rules (~257 rules remaining, was ~284)
     // For now, fall back to lint_shell() for unclassified rules
     // This ensures backward compatibility while we incrementally classify
 

@@ -30,7 +30,7 @@ workflows:
 releases:
   - version: "6.28.0-dev"
     date: "2025-11-02"
-    status: "IN PROGRESS (Snapshot: v6.28.0-dev-snapshot)"
+    status: "IN PROGRESS (Batches 1-4 complete)"
     title: "🚀 Shell-Specific Rule Filtering (Foundation + MVP)"
     description: "Implements shell-specific linting to eliminate false positives on zsh and POSIX sh files - foundation for complete rule filtering (Option 1 from Strategic Roadmap)"
     achievements:
@@ -40,14 +40,15 @@ releases:
       - "Batch 1: 20 rules classified (8 SEC + 3 DET + 3 IDEM + 6 SC2xxx)"
       - "Batch 2: 25 rules classified (19 Universal + 6 NotSh)"
       - "Batch 3: 27 rules classified (25 Universal + 2 NotSh, 2 CRITICAL security)"
-      - "Total: 72 rules classified (20.2% of 357 total)"
-      - "31 new tests: 20 rule_registry + 12 integration (6+6 batch 1-2, batch 3 registry)"
+      - "Batch 4: 28 rules classified (27 Universal + 1 NotSh, 2 CRITICAL dangerous rm)"
+      - "Total: 100 rules classified (28.0% of 357 total)"
+      - "37 new tests: 26 rule_registry + 12 integration"
       - "Mutation testing: 100% kill rate on batches 1-2 (16/16 mutants caught)"
-      - "Zero regressions: 6050 tests passing"
+      - "Zero regressions: 6056 tests passing"
     quality_metrics:
       grade: "A+"
-      tests_passing: 6050
-      tests_new: 31
+      tests_passing: 6056
+      tests_new: 37
       test_pass_rate: "100%"
       property_tests: 648
       clippy_warnings: 0
@@ -57,7 +58,7 @@ releases:
       mutation_kill_rate_rule_registry: "100% (3/3 viable)"
       code_complexity: "<10 all functions"
       extreme_tdd: true
-      batch3_critical_rules: "SC2059 (format injection), SC2064 (trap timing)"
+      batch34_critical_rules: "SC2059/SC2064 (security), SC2114/SC2115 (dangerous rm)"
     implementation_methodology:
       phase_1: "RED Phase - 6 failing integration tests"
       phase_2: "GREEN Phase - All tests passing"
@@ -65,13 +66,14 @@ releases:
       phase_4: "PROPERTY Phase - 6 property tests with 100+ cases each"
       phase_5: "MUTATION Phase - 100% kill rate on new code"
     current_state:
-      rules_classified: "72/357 (20.2%)"
-      filtering_engine: "Batch 1-3 functional (includes CRITICAL security rules)"
-      documentation: "CHANGELOG + book + milestone + batch 1-3 analysis"
-      tag: "v6.28.0-dev-snapshot (batch 1), batches 2-3 uncommitted"
+      rules_classified: "100/357 (28.0%)"
+      filtering_engine: "Batch 1-4 functional (includes CRITICAL security + dangerous rm)"
+      documentation: "CHANGELOG + book + milestone + batch 1-4 analysis"
+      tag: "None (batch 4 uncommitted)"
     next_steps:
-      - "Commit batch 3 (72 rules, 20.2% coverage)"
-      - "Classify batch 4-5: Aim for 100-120 total (28-34% coverage)"
+      - "Commit batch 4 (100 rules, 28.0% coverage)"
+      - "Consider v6.28.0-alpha release at 28% milestone"
+      - "Classify batch 5+: Aim for 120-140 total (34-39% coverage)"
       - "Add zsh-specific rules (ZSH001-ZSH020)"
       - "Release as v6.28.0 when 28-34% rules classified"
     commits:
