@@ -24,7 +24,7 @@ This is the beginning of **Option 1: Complete Shell-Specific Rule Filtering** fr
 - **`lint_shell_filtered()`**: Conditional rule execution based on shell type
 - **`apply_rule!` macro**: Performance-optimized filtering with zero runtime cost for skipped rules
 
-**Rule Classification** (120/357 rules - 33.6%):
+**Rule Classification** (140/357 rules - 39.2%):
 
 *Batch 1* (20 rules):
 - ✅ 8 SEC rules → Universal (apply to all shells)
@@ -79,6 +79,15 @@ This is the beginning of **Option 1: Complete Shell-Specific Rule Filtering** fr
   - **Quoting & Echo Safety** (3): SC2027 (quote/escape $ in double quotes), SC2028 (echo \\n → printf), SC2029 (SSH variable scope)
   - **CRITICAL Word Splitting** (1): **SC2086 (HIGHEST PRIORITY: Quote to prevent word splitting and globbing)**
 
+*Batch 6* (20 rules) - **FOCUS: File Iteration Safety & Unused Variable Detection**:
+- ✅ 19 Universal rules:
+  - **Variable/Function Safety** (3): SC2033 (shell functions can't export), SC2034 (unused variable), SC2035 (glob files starting with -)
+  - **Command Best Practices** (6): SC2099 ($() vs backticks), SC2100 ($(()) vs expr), SC2101 (POSIX class needs []), SC2102 (ranges single chars only), SC2106 (pgrep vs ps|grep), SC2117 (unreachable code)
+  - **Assignment/Operator Safety** (2): SC2121 (no $ on left of =), SC2122 (>= invalid, use -ge)
+  - **Code Quality/Efficiency** (8): SC2126 (grep -c vs grep|wc), SC2127 (constant comparison), SC2129 (>> vs repeated >), SC2130 (-e flag clarification), SC2131 (backslash literal in ''), SC2132 (readonly in for), SC2135/SC2136 (then/do keyword confusion)
+- ✅ 1 NotSh rule:
+  - SC2118 (ksh set -A arrays won't work in sh)
+
 **Integration Tests** (12 total: 6 batch 1 + 6 batch 2):
 
 *Batch 1 Tests*:
@@ -123,8 +132,8 @@ This is the beginning of **Option 1: Complete Shell-Specific Rule Filtering** fr
 
 ### Quality Metrics
 
-- ✅ **6061 tests passing** (+42 new: 31 rule_registry total + 12 integration + batch additions)
-- ✅ **Zero regressions** (100% pass rate from 6044 → 6061 tests)
+- ✅ **6066 tests passing** (+47 new: 36 rule_registry total + 12 integration + batch additions)
+- ✅ **Zero regressions** (100% pass rate from 6044 → 6066 tests)
 - ✅ **Clippy clean** (zero code warnings)
 - ✅ **Property tests passing** (648 total)
 - ✅ **Code complexity <10** (all functions)
