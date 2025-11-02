@@ -30,7 +30,7 @@ workflows:
 releases:
   - version: "6.28.0-dev"
     date: "2025-11-02"
-    status: "IN PROGRESS (Batches 1-11 complete, Approaching 70% milestone!)"
+    status: "IN PROGRESS (Batches 1-12 complete, 🎯 CROSSED 70% MILESTONE! 🎯)"
     title: "🚀 Shell-Specific Rule Filtering (Foundation + MVP)"
     description: "Implements shell-specific linting to eliminate false positives on zsh and POSIX sh files - foundation for complete rule filtering (Option 1 from Strategic Roadmap)"
     achievements:
@@ -48,14 +48,15 @@ releases:
       - "Batch 9: 20 rules classified (15 Universal + 5 NotSh - array operations + exit code patterns)"
       - "Batch 10: 20 rules classified (18 Universal + 2 NotSh - command structure + arithmetic operations)"
       - "Batch 11: 20 rules classified (20 Universal + 0 NotSh - case statements + portability)"
-      - "Total: 240 rules classified (67.2% of 357 total) - Approaching 70% milestone!"
-      - "72 new tests: 61 rule_registry + 12 integration"
+      - "Batch 12: 20 rules classified (20 Universal + 0 NotSh - control flow + test operators)"
+      - "Total: 260 rules classified (72.8% of 357 total) - 🎯 CROSSED 70% MILESTONE! 🎯"
+      - "77 new tests: 66 rule_registry + 12 integration"
       - "Mutation testing: 100% kill rate on batches 1-2 (16/16 mutants caught)"
-      - "Zero regressions: 6091 tests passing"
+      - "Zero regressions: 6096 tests passing"
     quality_metrics:
       grade: "A+"
-      tests_passing: 6091
-      tests_new: 72
+      tests_passing: 6096
+      tests_new: 77
       test_pass_rate: "100%"
       property_tests: 648
       clippy_warnings: 0

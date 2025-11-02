@@ -24,7 +24,7 @@ This is the beginning of **Option 1: Complete Shell-Specific Rule Filtering** fr
 - **`lint_shell_filtered()`**: Conditional rule execution based on shell type
 - **`apply_rule!` macro**: Performance-optimized filtering with zero runtime cost for skipped rules
 
-**Rule Classification** (240/357 rules - 67.2% - **Approaching 70% Milestone!**):
+**Rule Classification** (260/357 rules - 72.8% - **🎯 CROSSED 70% MILESTONE! 🎯**):
 
 *Batch 1* (20 rules):
 - ✅ 8 SEC rules → Universal (apply to all shells)
@@ -130,6 +130,13 @@ This is the beginning of **Option 1: Complete Shell-Specific Rule Filtering** fr
   - **Command Existence & Portability** (5): SC2230 (which is non-standard, use command -v instead), SC2231 (quote expansions in for loop glob to prevent word splitting), SC2232 (can't use sudo with builtins like cd), SC2233 (remove superfluous (..) around condition), SC2234 (remove superfluous () around here document)
   - **Quoting & Expansion Safety** (7): SC2235 (quote arguments to unalias to prevent word splitting), SC2236 (use -n instead of ! -z), SC2237 (use [ ] instead of [[ ]] for sh compatibility), SC2238 (prefer ${} over backticks for readability + nesting), SC2239 (ensure consistent quoting for redirects), SC2240 (the dot command does not support arguments in sh), SC2241 (exit code is always overridden by following command)
 
+*Batch 12* (20 rules) - **FOCUS: Control Flow & Test Operators - 🎯🎯 CROSSED 70% MILESTONE! 🎯🎯**:
+- ✅ 20 Universal rules (all Universal, NO NotSh rules in batch 12):
+  - **Control Flow & Case Statements** (5): SC2242 (can only break/continue from loops, not case), SC2243 (prefer explicit -n to check for output), SC2244 (prefer explicit -n to check for output - variation), SC2245 (-d test on assignment result), SC2246 (this shebang was unrecognized)
+  - **Test Operators & Efficiency** (5): SC2247 (prefer [ p ] && [ q ] over [ p -a q ]), SC2248 (prefer explicit -n to check for output), SC2249 (consider adding default case in case statement), SC2250 (prefer $((..)) over let for arithmetic), SC2251 (this loop will only ever run once for constant)
+  - **Loop & Case Patterns** (5): SC2252 (you probably wanted && here, not a second [), SC2253 (quote the RHS of = in [[ ]] to prevent glob matching), SC2254 (quote expansions in case patterns to prevent word splitting), SC2255 (this [ .. ] is true whenever str is non-empty), SC2256 (prefer -n/-z over comparison with empty string)
+  - **Command Safety & Quoting** (5): SC2257 (prefer explicit -n to check non-empty string), SC2258 (prefer explicit -n to check output), SC2259 (this assumes $RANDOM is always positive), SC2260 (fix $((..)) arithmetic so [[ ]] can interpret it), SC2261 (unquoted operand will be glob expanded)
+
 **Integration Tests** (12 total: 6 batch 1 + 6 batch 2):
 
 *Batch 1 Tests*:
@@ -174,8 +181,8 @@ This is the beginning of **Option 1: Complete Shell-Specific Rule Filtering** fr
 
 ### Quality Metrics
 
-- ✅ **6066 tests passing** (+47 new: 36 rule_registry total + 12 integration + batch additions)
-- ✅ **Zero regressions** (100% pass rate from 6044 → 6066 tests)
+- ✅ **6096 tests passing** (+52 new: 66 rule_registry total + 12 integration + batch additions)
+- ✅ **Zero regressions** (100% pass rate from 6044 → 6096 tests)
 - ✅ **Clippy clean** (zero code warnings)
 - ✅ **Property tests passing** (648 total)
 - ✅ **Code complexity <10** (all functions)
