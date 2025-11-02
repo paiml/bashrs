@@ -435,15 +435,47 @@ fn lint_shell_filtered(
     apply_rule!("SC2027", sc2027::check);
     apply_rule!("SC2029", sc2029::check);
     apply_rule!("SC2030", sc2030::check);
+    apply_rule!("SC2031", sc2031::check); // Universal - subshell scope
+    apply_rule!("SC2032", sc2032::check); // Universal - variable in shebang script
 
     // Add classified rules (SC2039 and SC2198-2201)
     apply_rule!("SC2039", sc2039::check); // NotSh - bash/zsh features
+
+    // Batch 2: Arithmetic and quoting rules (Universal)
+    apply_rule!("SC2079", sc2079::check); // Universal - decimals in arithmetic
+    apply_rule!("SC2080", sc2080::check); // Universal - octal numbers
+    apply_rule!("SC2084", sc2084::check); // Universal - arithmetic as command
+    apply_rule!("SC2085", sc2085::check); // Universal - local with arithmetic
+    apply_rule!("SC2087", sc2087::check); // Universal - quote in sh -c
+    apply_rule!("SC2088", sc2088::check); // Universal - tilde expansion
+    apply_rule!("SC2089", sc2089::check); // Universal - quotes in assignment
+    apply_rule!("SC2090", sc2090::check); // Universal - quotes in expansion
+    apply_rule!("SC2091", sc2091::check); // Universal - remove $() execution
+    apply_rule!("SC2092", sc2092::check); // Universal - remove backticks execution
+    apply_rule!("SC2093", sc2093::check); // Universal - remove exec
+
+    // Batch 2: [[ ]] test syntax rules (NotSh - bash/zsh/ksh only)
+    apply_rule!("SC2108", sc2108::check); // NotSh - [[ ]] use && not -a
+    apply_rule!("SC2109", sc2109::check); // NotSh - [[ ]] use || not -o
+    apply_rule!("SC2110", sc2110::check); // NotSh - don't mix && || with -a -o
+
+    // Batch 2: function keyword rules (NotSh - bash/ksh only)
+    apply_rule!("SC2111", sc2111::check); // NotSh - function keyword in sh
+    apply_rule!("SC2112", sc2112::check); // NotSh - function keyword non-standard
+    apply_rule!("SC2113", sc2113::check); // NotSh - function with () redundant
+
+    // Batch 2: More arithmetic rules (Universal)
+    apply_rule!("SC2133", sc2133::check); // Universal - unexpected tokens in arithmetic
+    apply_rule!("SC2134", sc2134::check); // Universal - use (( )) for numeric tests
+    apply_rule!("SC2137", sc2137::check); // Universal - unnecessary braces in arithmetic
+
+    // Array rules (NotSh)
     apply_rule!("SC2198", sc2198::check); // NotSh - arrays
     apply_rule!("SC2199", sc2199::check); // NotSh - arrays
     apply_rule!("SC2200", sc2200::check); // NotSh - arrays
     apply_rule!("SC2201", sc2201::check); // NotSh - arrays
 
-    // TODO: Add remaining SC2xxx rules (317 rules)
+    // TODO: Add remaining SC2xxx rules (~292 rules remaining)
     // For now, fall back to lint_shell() for unclassified rules
     // This ensures backward compatibility while we incrementally classify
 

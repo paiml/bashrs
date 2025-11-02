@@ -37,20 +37,23 @@ releases:
       - "Shell Compatibility Infrastructure: ShellCompatibility enum with 6 levels"
       - "RuleRegistry: Centralized metadata with lazy_static HashMap"
       - "lint_shell_filtered(): Filtering engine with apply_rule! macro"
-      - "20 rules classified: 8 SEC + 3 DET + 3 IDEM + 6 SC2xxx (6% of 357 total)"
-      - "19 new tests: 11 shell_compatibility + 8 rule_registry"
-      - "6 integration tests demonstrating filtering behavior"
+      - "Batch 1: 20 rules classified (8 SEC + 3 DET + 3 IDEM + 6 SC2xxx)"
+      - "Batch 2: 25 rules classified (19 Universal + 6 NotSh)"
+      - "Total: 45 rules classified (12.6% of 357 total)"
+      - "25 new tests: 14 rule_registry + 12 integration (6 batch 1 + 6 batch 2)"
       - "Mutation testing: 100% kill rate on new code (16/16 mutants caught)"
-      - "Zero regressions: 6038 tests passing"
+      - "Zero regressions: 6044 tests passing"
     quality_metrics:
       grade: "A+"
-      tests_passing: 6038
-      tests_new: 19
+      tests_passing: 6044
+      tests_new: 25
       test_pass_rate: "100%"
       property_tests: 648
       clippy_warnings: 0
       mutation_kill_rate_new_code: "100% (16/16)"
       mutation_kill_rate_shell_type: "66.7% (14/21)"
+      mutation_kill_rate_shell_compatibility: "100% (13/13)"
+      mutation_kill_rate_rule_registry: "100% (3/3 viable)"
       code_complexity: "<10 all functions"
       extreme_tdd: true
     implementation_methodology:
@@ -60,15 +63,15 @@ releases:
       phase_4: "PROPERTY Phase - 6 property tests with 100+ cases each"
       phase_5: "MUTATION Phase - 100% kill rate on new code"
     current_state:
-      rules_classified: "20/357 (6%)"
-      filtering_engine: "MVP functional"
-      documentation: "CHANGELOG + book + milestone summary"
-      tag: "v6.28.0-dev-snapshot"
+      rules_classified: "45/357 (12.6%)"
+      filtering_engine: "Batch 1-2 functional"
+      documentation: "CHANGELOG + book + milestone summary + batch 2 analysis"
+      tag: "v6.28.0-dev-snapshot (batch 1), batch 2 uncommitted"
     next_steps:
-      - "Classify remaining 317 SC2xxx rules (aim for 100+ rules, 28%)"
-      - "Expand lint_shell_filtered() to include all classified rules"
+      - "Commit batch 2 (45 rules, 12.6% coverage)"
+      - "Classify batch 3: 25-30 more rules (aim for 70-100 total, 20-28%)"
       - "Add zsh-specific rules (ZSH001-ZSH020)"
-      - "Release as v6.28.0 when 20-30% rules classified"
+      - "Release as v6.28.0 when 20-28% rules classified"
     commits:
       - "b8bd901a: feat: Add shell compatibility infrastructure"
       - "bb592146: feat: Implement shell-specific rule filtering MVP"
