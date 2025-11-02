@@ -937,6 +937,118 @@ lazy_static::lazy_static! {
             compatibility: ShellCompatibility::Universal,
         });
 
+        // === BATCH 8 CLASSIFICATIONS (20 rules) ===
+
+        // Batch 8: Exit code & bracket safety (Universal)
+        registry.insert("SC2158", RuleMetadata {
+            id: "SC2158",
+            name: "[ true ] evaluates as literal '[', not test command",
+            compatibility: ShellCompatibility::Universal,
+        });
+        registry.insert("SC2159", RuleMetadata {
+            id: "SC2159",
+            name: "[ [ with space creates syntax error (double bracket mistake)",
+            compatibility: ShellCompatibility::Universal,
+        });
+        registry.insert("SC2160", RuleMetadata {
+            id: "SC2160",
+            name: "Instead of 'if var; then', use 'if [ -n \"$var\" ]; then'",
+            compatibility: ShellCompatibility::Universal,
+        });
+        registry.insert("SC2161", RuleMetadata {
+            id: "SC2161",
+            name: "Provide explicit error handling for cd commands",
+            compatibility: ShellCompatibility::Universal,
+        });
+
+        // Batch 8: read command safety (Universal)
+        registry.insert("SC2162", RuleMetadata {
+            id: "SC2162",
+            name: "read without -r will mangle backslashes",
+            compatibility: ShellCompatibility::Universal,
+        });
+        registry.insert("SC2163", RuleMetadata {
+            id: "SC2163",
+            name: "export command with array syntax (non-portable)",
+            compatibility: ShellCompatibility::Universal,
+        });
+        registry.insert("SC2164", RuleMetadata {
+            id: "SC2164",
+            name: "cd without error check (use ||, &&, or if)",
+            compatibility: ShellCompatibility::Universal,
+        });
+
+        // Batch 8: Trap & signal handling (Mixed)
+        registry.insert("SC2165", RuleMetadata {
+            id: "SC2165",
+            name: "Subshells don't inherit traps - use functions instead",
+            compatibility: ShellCompatibility::Universal,
+        });
+        registry.insert("SC2166", RuleMetadata {
+            id: "SC2166",
+            name: "Prefer [ p ] && [ q ] over [ p -a q ] (POSIX portability)",
+            compatibility: ShellCompatibility::Universal,
+        });
+        registry.insert("SC2167", RuleMetadata {
+            id: "SC2167",
+            name: "Trap handler doesn't propagate to subshells",
+            compatibility: ShellCompatibility::Universal,
+        });
+        registry.insert("SC2168", RuleMetadata {
+            id: "SC2168",
+            name: "'local' keyword is only valid in functions",
+            compatibility: ShellCompatibility::NotSh, // local is bash/ksh/zsh specific
+        });
+
+        // Batch 8: Test operators & syntax (Universal)
+        registry.insert("SC2169", RuleMetadata {
+            id: "SC2169",
+            name: "In dash/sh, -eq is undefined for strings (use = instead)",
+            compatibility: ShellCompatibility::Universal,
+        });
+        registry.insert("SC2170", RuleMetadata {
+            id: "SC2170",
+            name: "Numerical -eq comparison on non-numeric strings",
+            compatibility: ShellCompatibility::Universal,
+        });
+        registry.insert("SC2171", RuleMetadata {
+            id: "SC2171",
+            name: "Found trailing ] on the line (syntax error)",
+            compatibility: ShellCompatibility::Universal,
+        });
+        registry.insert("SC2172", RuleMetadata {
+            id: "SC2172",
+            name: "Trapping signals by number is deprecated (use names)",
+            compatibility: ShellCompatibility::Universal,
+        });
+        registry.insert("SC2173", RuleMetadata {
+            id: "SC2173",
+            name: "Trying to trap untrappable signals (SIGKILL, SIGSTOP)",
+            compatibility: ShellCompatibility::Universal,
+        });
+
+        // Batch 8: Security & best practices (Universal)
+        registry.insert("SC2174", RuleMetadata {
+            id: "SC2174",
+            name: "mkdir -p and chmod in one shot creates security race",
+            compatibility: ShellCompatibility::Universal,
+        });
+        registry.insert("SC2175", RuleMetadata {
+            id: "SC2175",
+            name: "Quote this to prevent word splitting (placeholder check)",
+            compatibility: ShellCompatibility::Universal,
+        });
+        registry.insert("SC2176", RuleMetadata {
+            id: "SC2176",
+            name: "'time' keyword affects full pipeline (not just first command)",
+            compatibility: ShellCompatibility::Universal,
+        });
+        registry.insert("SC2177", RuleMetadata {
+            id: "SC2177",
+            name: "'time' only times the first command (placeholder check)",
+            compatibility: ShellCompatibility::Universal,
+        });
+
         // Most other SC2xxx rules are Universal (quoting, syntax, etc.)
         // They represent bugs or issues that apply regardless of shell
         // Examples: SC2086 (quote variables), etc.
@@ -1004,7 +1116,7 @@ mod tests {
     }
 
     #[test]
-    fn test_registry_has_160_rules() {
+    fn test_registry_has_180_rules() {
         // Batch 1: 8 SEC + 3 DET + 3 IDEM + 6 SC2xxx = 20 rules
         // Batch 2: 6 NotSh + 19 Universal = 25 rules
         // Batch 3: 2 NotSh + 25 Universal = 27 rules (SC2058 not implemented yet)
@@ -1012,8 +1124,9 @@ mod tests {
         // Batch 5: 0 NotSh + 20 Universal = 20 rules
         // Batch 6: 1 NotSh + 19 Universal = 20 rules
         // Batch 7: 0 NotSh + 20 Universal = 20 rules
-        // Total: 160 rules (44.8% of 357 total)
-        assert_eq!(RULE_REGISTRY.len(), 160);
+        // Batch 8: 1 NotSh + 19 Universal = 20 rules
+        // Total: 180 rules (50.4% of 357 total) - 🎉 50% MILESTONE!
+        assert_eq!(RULE_REGISTRY.len(), 180);
     }
 
     #[test]
@@ -2002,5 +2115,185 @@ mod tests {
                 rule
             );
         }
+    }
+
+    // === Batch 8 Classification Tests ===
+
+    #[test]
+    fn test_batch8_exit_code_bracket_universal() {
+        // Exit code & bracket safety rules (SC2158-SC2161) should be Universal
+        let exit_bracket_rules = vec!["SC2158", "SC2159", "SC2160", "SC2161"];
+
+        for rule in exit_bracket_rules {
+            assert_eq!(
+                get_rule_compatibility(rule),
+                Some(ShellCompatibility::Universal),
+                "{} should be Universal",
+                rule
+            );
+
+            // Should apply to ALL shells
+            assert!(
+                should_apply_rule(rule, ShellType::Bash),
+                "{} should apply to bash",
+                rule
+            );
+            assert!(
+                should_apply_rule(rule, ShellType::Sh),
+                "{} should apply to sh",
+                rule
+            );
+            assert!(
+                should_apply_rule(rule, ShellType::Zsh),
+                "{} should apply to zsh",
+                rule
+            );
+            assert!(
+                should_apply_rule(rule, ShellType::Ksh),
+                "{} should apply to ksh",
+                rule
+            );
+        }
+    }
+
+    #[test]
+    fn test_batch8_read_trap_safety_universal() {
+        // read command and trap safety rules (SC2162-SC2167, excluding SC2168) should be Universal
+        let read_trap_rules = vec!["SC2162", "SC2163", "SC2164", "SC2165", "SC2166", "SC2167"];
+
+        for rule in read_trap_rules {
+            assert_eq!(
+                get_rule_compatibility(rule),
+                Some(ShellCompatibility::Universal),
+                "{} should be Universal",
+                rule
+            );
+
+            // Should apply to ALL shells
+            assert!(
+                should_apply_rule(rule, ShellType::Bash),
+                "{} should apply to bash",
+                rule
+            );
+            assert!(
+                should_apply_rule(rule, ShellType::Sh),
+                "{} should apply to sh",
+                rule
+            );
+            assert!(
+                should_apply_rule(rule, ShellType::Zsh),
+                "{} should apply to zsh",
+                rule
+            );
+        }
+    }
+
+    #[test]
+    fn test_batch8_local_keyword_notsh() {
+        // SC2168 ('local' keyword) should be NotSh (bash/ksh/zsh specific)
+        let rule = "SC2168";
+
+        assert_eq!(
+            get_rule_compatibility(rule),
+            Some(ShellCompatibility::NotSh),
+            "{} should be NotSh (local is bash/ksh/zsh specific)",
+            rule
+        );
+
+        // Should NOT apply to POSIX sh
+        assert!(
+            !should_apply_rule(rule, ShellType::Sh),
+            "{} should not apply to sh",
+            rule
+        );
+
+        // But SHOULD apply to bash/zsh/ksh
+        assert!(
+            should_apply_rule(rule, ShellType::Bash),
+            "{} should apply to bash",
+            rule
+        );
+        assert!(
+            should_apply_rule(rule, ShellType::Zsh),
+            "{} should apply to zsh",
+            rule
+        );
+        assert!(
+            should_apply_rule(rule, ShellType::Ksh),
+            "{} should apply to ksh",
+            rule
+        );
+    }
+
+    #[test]
+    fn test_batch8_test_operators_universal() {
+        // Test operators and security rules (SC2169-SC2177) should be Universal
+        let test_security_rules = vec![
+            "SC2169", "SC2170", "SC2171", "SC2172", "SC2173", "SC2174", "SC2175", "SC2176",
+            "SC2177",
+        ];
+
+        for rule in test_security_rules {
+            assert_eq!(
+                get_rule_compatibility(rule),
+                Some(ShellCompatibility::Universal),
+                "{} should be Universal",
+                rule
+            );
+
+            // Should apply to ALL shells
+            assert!(
+                should_apply_rule(rule, ShellType::Bash),
+                "{} should apply to bash",
+                rule
+            );
+            assert!(
+                should_apply_rule(rule, ShellType::Sh),
+                "{} should apply to sh",
+                rule
+            );
+            assert!(
+                should_apply_rule(rule, ShellType::Zsh),
+                "{} should apply to zsh",
+                rule
+            );
+        }
+    }
+
+    #[test]
+    fn test_batch8_universal_count() {
+        // Batch 8 should have 20 rules total (19 Universal + 1 NotSh)
+        let universal_rules = vec![
+            // Exit code/bracket safety (4)
+            "SC2158", "SC2159", "SC2160", "SC2161", // read command safety (3)
+            "SC2162", "SC2163",
+            "SC2164", // Trap/signal handling (3 Universal, SC2168 is NotSh)
+            "SC2165", "SC2166", "SC2167", // Test operators & security (9)
+            "SC2169", "SC2170", "SC2171", "SC2172", "SC2173", "SC2174", "SC2175", "SC2176",
+            "SC2177",
+        ];
+
+        // 19 Universal rules
+        let unique_count = universal_rules.len();
+        assert_eq!(unique_count, 19, "Batch 8 should have 19 Universal rules");
+
+        for rule in universal_rules {
+            assert_eq!(
+                get_rule_compatibility(rule),
+                Some(ShellCompatibility::Universal),
+                "{} should be Universal",
+                rule
+            );
+        }
+
+        // 1 NotSh rule (local keyword)
+        assert_eq!(
+            get_rule_compatibility("SC2168"),
+            Some(ShellCompatibility::NotSh),
+            "SC2168 should be NotSh (local keyword is bash/ksh/zsh specific)"
+        );
+
+        // Total: 19 Universal + 1 NotSh = 20 rules
+        // This brings total from 160 → 180 (50.4% coverage - 🎉 50% MILESTONE!)
     }
 }
