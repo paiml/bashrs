@@ -288,9 +288,162 @@ lazy_static::lazy_static! {
             compatibility: ShellCompatibility::Universal,
         });
 
+        // === BATCH 3 CLASSIFICATIONS (30 rules) ===
+
+        // Loop and iteration safety (Universal)
+        registry.insert("SC2038", RuleMetadata {
+            id: "SC2038",
+            name: "Use -print0/-0 or find -exec instead of for loop over find",
+            compatibility: ShellCompatibility::Universal,
+        });
+        registry.insert("SC2040", RuleMetadata {
+            id: "SC2040",
+            name: "Avoid passing -o to other commands (shell option confusion)",
+            compatibility: ShellCompatibility::Universal,
+        });
+        registry.insert("SC2041", RuleMetadata {
+            id: "SC2041",
+            name: "Use while read, not read in for loop",
+            compatibility: ShellCompatibility::Universal,
+        });
+        registry.insert("SC2042", RuleMetadata {
+            id: "SC2042",
+            name: "Use printf instead of echo with backslash escapes",
+            compatibility: ShellCompatibility::Universal,
+        });
+        registry.insert("SC2043", RuleMetadata {
+            id: "SC2043",
+            name: "This loop will only run once (for x in y without wildcards)",
+            compatibility: ShellCompatibility::Universal,
+        });
+
+        // Test operators and conditionals (Universal)
+        registry.insert("SC2044", RuleMetadata {
+            id: "SC2044",
+            name: "For loops over find: use find -exec or process substitution",
+            compatibility: ShellCompatibility::NotSh, // process substitution suggestion
+        });
+        registry.insert("SC2045", RuleMetadata {
+            id: "SC2045",
+            name: "Iterating over ls output is fragile",
+            compatibility: ShellCompatibility::Universal,
+        });
+        registry.insert("SC2046", RuleMetadata {
+            id: "SC2046",
+            name: "Quote to prevent word splitting (CRITICAL)",
+            compatibility: ShellCompatibility::Universal,
+        });
+        registry.insert("SC2047", RuleMetadata {
+            id: "SC2047",
+            name: "Quote variables in [ ] to prevent word splitting",
+            compatibility: ShellCompatibility::Universal,
+        });
+        registry.insert("SC2048", RuleMetadata {
+            id: "SC2048",
+            name: "Use \"$@\" (with quotes) to prevent word splitting",
+            compatibility: ShellCompatibility::Universal,
+        });
+        registry.insert("SC2049", RuleMetadata {
+            id: "SC2049",
+            name: "Use =~ for regex matching (not = in [ ])",
+            compatibility: ShellCompatibility::Universal,
+        });
+        registry.insert("SC2050", RuleMetadata {
+            id: "SC2050",
+            name: "This expression is constant (forgot $ on variable?)",
+            compatibility: ShellCompatibility::Universal,
+        });
+        registry.insert("SC2051", RuleMetadata {
+            id: "SC2051",
+            name: "Bash doesn't expand variables in brace ranges {$a..$b}",
+            compatibility: ShellCompatibility::Universal,
+        });
+
+        // Quoting and glob safety (mostly Universal, one NotSh)
+        registry.insert("SC2052", RuleMetadata {
+            id: "SC2052",
+            name: "Use [[ ]] instead of [ ] for glob patterns",
+            compatibility: ShellCompatibility::NotSh, // [[ ]] is bash/zsh/ksh
+        });
+        registry.insert("SC2053", RuleMetadata {
+            id: "SC2053",
+            name: "Quote RHS of = in [ ] to prevent glob matching",
+            compatibility: ShellCompatibility::Universal,
+        });
+        registry.insert("SC2054", RuleMetadata {
+            id: "SC2054",
+            name: "Comma is just literal in [[ ]]; use array or separate comparison",
+            compatibility: ShellCompatibility::Universal,
+        });
+        registry.insert("SC2055", RuleMetadata {
+            id: "SC2055",
+            name: "Deprecated -a operator in test (use &&)",
+            compatibility: ShellCompatibility::Universal,
+        });
+        registry.insert("SC2056", RuleMetadata {
+            id: "SC2056",
+            name: "Deprecated -o operator in test (use ||)",
+            compatibility: ShellCompatibility::Universal,
+        });
+        registry.insert("SC2057", RuleMetadata {
+            id: "SC2057",
+            name: "Unknown binary operator (===, =!, <>)",
+            compatibility: ShellCompatibility::Universal,
+        });
+        // SC2058: Not implemented yet (unknown unary operator)
+        // registry.insert("SC2058", RuleMetadata {
+        //     id: "SC2058",
+        //     name: "Unknown unary operator in test",
+        //     compatibility: ShellCompatibility::Universal,
+        // });
+
+        // Command safety and redirection (Universal - CRITICAL security rules)
+        registry.insert("SC2059", RuleMetadata {
+            id: "SC2059",
+            name: "Printf format string injection (CRITICAL security)",
+            compatibility: ShellCompatibility::Universal,
+        });
+        registry.insert("SC2060", RuleMetadata {
+            id: "SC2060",
+            name: "Unquoted tr parameters (glob expansion)",
+            compatibility: ShellCompatibility::Universal,
+        });
+        registry.insert("SC2061", RuleMetadata {
+            id: "SC2061",
+            name: "Quote parameters to tr to prevent globbing",
+            compatibility: ShellCompatibility::Universal,
+        });
+        registry.insert("SC2062", RuleMetadata {
+            id: "SC2062",
+            name: "Grep pattern glob expansion prevention",
+            compatibility: ShellCompatibility::Universal,
+        });
+
+        // Trap and signal handling (Universal - including CRITICAL timing bug)
+        registry.insert("SC2063", RuleMetadata {
+            id: "SC2063",
+            name: "Grep regex vs literal string matching",
+            compatibility: ShellCompatibility::Universal,
+        });
+        registry.insert("SC2064", RuleMetadata {
+            id: "SC2064",
+            name: "Trap command quoting (CRITICAL - timing bug)",
+            compatibility: ShellCompatibility::Universal,
+        });
+        registry.insert("SC2065", RuleMetadata {
+            id: "SC2065",
+            name: "Shell redirection interpretation in strings",
+            compatibility: ShellCompatibility::Universal,
+        });
+        registry.insert("SC2066", RuleMetadata {
+            id: "SC2066",
+            name: "Missing semicolon before done in for loop",
+            compatibility: ShellCompatibility::Universal,
+        });
+
         // Most other SC2xxx rules are Universal (quoting, syntax, etc.)
         // They represent bugs or issues that apply regardless of shell
-        // Examples: SC2046 (quote substitutions), SC2086 (quote variables)
+        // Examples: SC2086 (quote variables), etc.
         // These will be added as "Universal" as we classify them
 
         registry
@@ -355,11 +508,12 @@ mod tests {
     }
 
     #[test]
-    fn test_registry_has_45_rules() {
+    fn test_registry_has_72_rules() {
         // Batch 1: 8 SEC + 3 DET + 3 IDEM + 6 SC2xxx = 20 rules
         // Batch 2: 6 NotSh + 19 Universal = 25 rules
-        // Total: 45 rules (12.6% of 357 total)
-        assert_eq!(RULE_REGISTRY.len(), 45);
+        // Batch 3: 2 NotSh + 25 Universal = 27 rules (SC2058 not implemented yet)
+        // Total: 72 rules (20.2% of 357 total)
+        assert_eq!(RULE_REGISTRY.len(), 72);
     }
 
     #[test]
@@ -558,6 +712,170 @@ mod tests {
             assert_eq!(
                 get_rule_compatibility(rule),
                 Some(ShellCompatibility::Universal)
+            );
+        }
+    }
+
+    // === Batch 3 Classification Tests ===
+
+    #[test]
+    fn test_batch3_loop_safety_rules_universal() {
+        // Loop safety rules (SC2038, SC2040-SC2043) should be Universal
+        let loop_rules = vec!["SC2038", "SC2040", "SC2041", "SC2042", "SC2043"];
+
+        for rule in loop_rules {
+            assert_eq!(
+                get_rule_compatibility(rule),
+                Some(ShellCompatibility::Universal),
+                "{} should be Universal",
+                rule
+            );
+
+            // Should apply to ALL shells
+            assert!(
+                should_apply_rule(rule, ShellType::Bash),
+                "{} should apply to bash",
+                rule
+            );
+            assert!(
+                should_apply_rule(rule, ShellType::Sh),
+                "{} should apply to sh",
+                rule
+            );
+        }
+    }
+
+    #[test]
+    fn test_batch3_test_operators_mostly_universal() {
+        // Most test operator rules are Universal
+        let universal_test_rules = vec![
+            "SC2045", "SC2046", "SC2047", "SC2048", "SC2049", "SC2050", "SC2051",
+        ];
+
+        for rule in universal_test_rules {
+            assert_eq!(
+                get_rule_compatibility(rule),
+                Some(ShellCompatibility::Universal),
+                "{} should be Universal",
+                rule
+            );
+        }
+
+        // SC2044 and SC2052 are NotSh (process substitution / [[ ]])
+        assert_eq!(
+            get_rule_compatibility("SC2044"),
+            Some(ShellCompatibility::NotSh),
+            "SC2044 should be NotSh (process substitution)"
+        );
+        assert_eq!(
+            get_rule_compatibility("SC2052"),
+            Some(ShellCompatibility::NotSh),
+            "SC2052 should be NotSh ([[ ]] syntax)"
+        );
+    }
+
+    #[test]
+    fn test_batch3_critical_security_rules_universal() {
+        // CRITICAL security rules must be Universal
+        let critical_rules = vec![
+            ("SC2059", "Printf format string injection"),
+            ("SC2064", "Trap command timing bug"),
+        ];
+
+        for (rule, description) in critical_rules {
+            assert_eq!(
+                get_rule_compatibility(rule),
+                Some(ShellCompatibility::Universal),
+                "{} ({}) should be Universal - applies to all shells",
+                rule,
+                description
+            );
+
+            // Must apply to ALL shells
+            for shell in [
+                ShellType::Bash,
+                ShellType::Zsh,
+                ShellType::Sh,
+                ShellType::Ksh,
+            ] {
+                assert!(
+                    should_apply_rule(rule, shell),
+                    "{} should apply to {:?}",
+                    rule,
+                    shell
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn test_batch3_quoting_rules_universal() {
+        // Quoting and glob safety rules (SC2053-SC2057, SC2060-SC2063, SC2065-SC2066) - SC2058 not implemented
+        let quoting_rules = vec![
+            "SC2053", "SC2054", "SC2055", "SC2056", "SC2057", "SC2060", "SC2061", "SC2062",
+            "SC2063", "SC2065", "SC2066",
+        ];
+
+        for rule in quoting_rules {
+            assert_eq!(
+                get_rule_compatibility(rule),
+                Some(ShellCompatibility::Universal),
+                "{} should be Universal",
+                rule
+            );
+        }
+    }
+
+    #[test]
+    fn test_batch3_notsh_count() {
+        // Batch 3 should have 2 NotSh rules
+        let notsh_rules = vec![
+            "SC2044", // process substitution suggestion
+            "SC2052", // [[ ]] for globs
+        ];
+
+        for rule in notsh_rules {
+            assert_eq!(
+                get_rule_compatibility(rule),
+                Some(ShellCompatibility::NotSh)
+            );
+
+            // Should NOT apply to POSIX sh
+            assert!(!should_apply_rule(rule, ShellType::Sh));
+
+            // But SHOULD apply to bash/zsh
+            assert!(should_apply_rule(rule, ShellType::Bash));
+            assert!(should_apply_rule(rule, ShellType::Zsh));
+        }
+    }
+
+    #[test]
+    fn test_batch3_universal_count() {
+        // Batch 3 should have 25 Universal rules (SC2044 and SC2052 are NotSh, SC2058 not implemented)
+        let universal_rules = vec![
+            // Loop safety (5)
+            "SC2038", "SC2040", "SC2041", "SC2042",
+            "SC2043", // Test operators (7, excluding SC2044 which is NotSh)
+            "SC2045", "SC2046", "SC2047", "SC2048", "SC2049", "SC2050", "SC2051",
+            // Quoting/glob (9, excluding SC2052 NotSh and SC2058 not implemented)
+            "SC2053", "SC2054", "SC2055", "SC2056", "SC2057", "SC2060", "SC2061", "SC2062",
+            "SC2063", // Security and trap (4)
+            "SC2059", // format injection
+            "SC2064", // trap timing
+            "SC2065", // shell redirection
+            "SC2066", // missing semicolon
+        ];
+
+        // Should be 25 unique rules
+        let unique_count = universal_rules.len();
+        assert_eq!(unique_count, 25, "Batch 3 should have 25 Universal rules");
+
+        for rule in universal_rules {
+            assert_eq!(
+                get_rule_compatibility(rule),
+                Some(ShellCompatibility::Universal),
+                "{} should be Universal",
+                rule
             );
         }
     }

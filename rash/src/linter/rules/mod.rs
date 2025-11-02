@@ -475,7 +475,45 @@ fn lint_shell_filtered(
     apply_rule!("SC2200", sc2200::check); // NotSh - arrays
     apply_rule!("SC2201", sc2201::check); // NotSh - arrays
 
-    // TODO: Add remaining SC2xxx rules (~292 rules remaining)
+    // Batch 3: Loop and iteration safety (Universal - all shells)
+    apply_rule!("SC2038", sc2038::check); // Universal - find loop safety
+    apply_rule!("SC2040", sc2040::check); // Universal - avoid -o confusion
+    apply_rule!("SC2041", sc2041::check); // Universal - read in for loop
+    apply_rule!("SC2042", sc2042::check); // Universal - echo vs printf
+    apply_rule!("SC2043", sc2043::check); // Universal - loop runs once
+
+    // Batch 3: Test operators and word splitting (mostly Universal)
+    apply_rule!("SC2044", sc2044::check); // NotSh - process substitution suggestion
+    apply_rule!("SC2045", sc2045::check); // Universal - iterating over ls
+    apply_rule!("SC2046", sc2046::check); // Universal - CRITICAL word splitting
+    apply_rule!("SC2047", sc2047::check); // Universal - quote variables in [ ]
+    apply_rule!("SC2048", sc2048::check); // Universal - quote "$@"
+    apply_rule!("SC2049", sc2049::check); // Universal - =~ for regex
+    apply_rule!("SC2050", sc2050::check); // Universal - constant expression
+    apply_rule!("SC2051", sc2051::check); // Universal - brace range expansion
+
+    // Batch 3: Quoting and glob safety (mostly Universal)
+    apply_rule!("SC2052", sc2052::check); // NotSh - [[ ]] for glob patterns
+    apply_rule!("SC2053", sc2053::check); // Universal - quote RHS in [ ]
+    apply_rule!("SC2054", sc2054::check); // Universal - comma in [[ ]]
+    apply_rule!("SC2055", sc2055::check); // Universal - deprecated -a
+    apply_rule!("SC2056", sc2056::check); // Universal - deprecated -o
+    apply_rule!("SC2057", sc2057::check); // Universal - unknown binary operator
+                                          // apply_rule!("SC2058", sc2058::check); // Universal - unknown unary operator (TODO: implement)
+
+    // Batch 3: Command safety and security (Universal - CRITICAL)
+    apply_rule!("SC2059", sc2059::check); // Universal - CRITICAL printf format injection
+    apply_rule!("SC2060", sc2060::check); // Universal - unquoted tr params
+    apply_rule!("SC2061", sc2061::check); // Universal - quote tr params
+    apply_rule!("SC2062", sc2062::check); // Universal - grep pattern glob expansion
+
+    // Batch 3: Trap and signal handling (Universal - CRITICAL)
+    apply_rule!("SC2063", sc2063::check); // Universal - grep regex vs literal
+    apply_rule!("SC2064", sc2064::check); // Universal - CRITICAL trap timing bug
+    apply_rule!("SC2065", sc2065::check); // Universal - shell redirection interpretation
+    apply_rule!("SC2066", sc2066::check); // Universal - missing semicolon before done
+
+    // TODO: Add remaining SC2xxx rules (~284 rules remaining, was ~292)
     // For now, fall back to lint_shell() for unclassified rules
     // This ensures backward compatibility while we incrementally classify
 
