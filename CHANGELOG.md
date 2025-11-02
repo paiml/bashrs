@@ -7,6 +7,58 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [6.27.1] - 2025-11-02
+
+### 🔧 ENHANCEMENT - Complete Linter Integration for Shell Type Detection
+
+**bashrs v6.27.1 completes Issue #5 by integrating shell type detection into the linting API.**
+
+### Added
+
+**`lint_shell_with_path()` Function** (4 new integration tests):
+
+- **Path-aware linting**: New API that detects shell type from file path
+- **Automatic shell detection**: Uses v6.27.0's detect_shell_type() infrastructure
+- **Future-ready**: Foundation for shell-specific rule filtering
+- **Backward compatible**: Existing `lint_shell()` unchanged
+
+**API Usage**:
+```rust
+use bashrs::linter::{lint_shell_with_path, LintResult};
+use std::path::PathBuf;
+
+// Automatically detects zsh from .zshrc
+let path = PathBuf::from(".zshrc");
+let result = lint_shell_with_path(&path, content);
+```
+
+**Implementation Details**:
+- EXTREME TDD: RED → GREEN → REFACTOR
+- 4 new integration tests (100% passing)
+- Zero regressions: All 6013 tests passing
+- Complexity <10 for all functions
+
+**Quality Metrics**:
+- ✅ All 6017 tests passing (4 new)
+- ✅ Zero regressions
+- ✅ Clippy clean
+- ✅ Formatted with rustfmt
+- ✅ EXTREME TDD methodology
+
+### Changed
+
+- Linter module now exports `lint_shell_with_path()`
+- Foundation for future shell-specific rule filtering
+
+### For Developers
+
+**If you're integrating bashrs linting**:
+- Use `lint_shell_with_path()` for path-aware linting
+- Shell type automatically detected (no manual configuration)
+- Future versions will filter rules based on detected shell type
+
+**Migration**: Optional - `lint_shell()` still works, but `lint_shell_with_path()` is recommended for zsh support
+
 ## [6.27.0] - 2025-11-02
 
 ### ✨ NEW FEATURE - Shell Type Detection for Zsh Compatibility
