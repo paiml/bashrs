@@ -24,7 +24,7 @@ This is the beginning of **Option 1: Complete Shell-Specific Rule Filtering** fr
 - **`lint_shell_filtered()`**: Conditional rule execution based on shell type
 - **`apply_rule!` macro**: Performance-optimized filtering with zero runtime cost for skipped rules
 
-**Rule Classification** (100/357 rules - 28.0%):
+**Rule Classification** (120/357 rules - 33.6%):
 
 *Batch 1* (20 rules):
 - ✅ 8 SEC rules → Universal (apply to all shells)
@@ -70,6 +70,15 @@ This is the beginning of **Option 1: Complete Shell-Specific Rule Filtering** fr
   - SC2128 (array expansion without index)
 - ⏳ SC2120 (function $1 check) - has false positives, not enabled
 
+*Batch 5* (20 rules) - **FOCUS: High-Priority Best Practices & CRITICAL Word Splitting**:
+- ✅ 20 Universal rules:
+  - **Command Optimization** (4): SC2001 (sed → param expansion), SC2005 (useless echo), SC2006 (backticks → $()), SC2007 (expr → $(()))
+  - **Logic & Quoting** (3): SC2015 (&& || precedence), SC2016 (single quotes don't expand), SC2017 (bc/awk vs arithmetic)
+  - **tr Character Classes** (4): SC2018-2021 (use [:upper:]/[:lower:], tr replaces sets not strings, don't use [] around classes)
+  - **SSH & Command Safety** (5): SC2022-2026 (set -x scope, brace expansion in [[]], sudo+redirection, set -e scope, word splitting)
+  - **Quoting & Echo Safety** (3): SC2027 (quote/escape $ in double quotes), SC2028 (echo \\n → printf), SC2029 (SSH variable scope)
+  - **CRITICAL Word Splitting** (1): **SC2086 (HIGHEST PRIORITY: Quote to prevent word splitting and globbing)**
+
 **Integration Tests** (12 total: 6 batch 1 + 6 batch 2):
 
 *Batch 1 Tests*:
@@ -114,8 +123,8 @@ This is the beginning of **Option 1: Complete Shell-Specific Rule Filtering** fr
 
 ### Quality Metrics
 
-- ✅ **6056 tests passing** (+37 new: 26 rule_registry total + 12 integration + batch additions)
-- ✅ **Zero regressions** (100% pass rate from 6044 → 6056 tests)
+- ✅ **6061 tests passing** (+42 new: 31 rule_registry total + 12 integration + batch additions)
+- ✅ **Zero regressions** (100% pass rate from 6044 → 6061 tests)
 - ✅ **Clippy clean** (zero code warnings)
 - ✅ **Property tests passing** (648 total)
 - ✅ **Code complexity <10** (all functions)

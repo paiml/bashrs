@@ -433,6 +433,7 @@ fn lint_shell_filtered(
     apply_rule!("SC2025", sc2025::check);
     apply_rule!("SC2026", sc2026::check);
     apply_rule!("SC2027", sc2027::check);
+    apply_rule!("SC2028", sc2028::check); // Universal - echo may not expand \\n (use printf)
     apply_rule!("SC2029", sc2029::check);
     apply_rule!("SC2030", sc2030::check);
     apply_rule!("SC2031", sc2031::check); // Universal - subshell scope
@@ -554,7 +555,10 @@ fn lint_shell_filtered(
     // apply_rule!("SC2120", sc2120::check); // NotSh - function references $1 but none passed (TODO: has false positives)
     apply_rule!("SC2128", sc2128::check); // NotSh - array expansion without index
 
-    // TODO: Add remaining SC2xxx rules (~257 rules remaining, was ~284)
+    // Batch 5: CRITICAL word splitting (Universal - HIGHEST PRIORITY)
+    apply_rule!("SC2086", sc2086::check); // Universal - CRITICAL: Quote to prevent word splitting and globbing
+
+    // TODO: Add remaining SC2xxx rules (~237 rules remaining, was ~257)
     // For now, fall back to lint_shell() for unclassified rules
     // This ensures backward compatibility while we incrementally classify
 
