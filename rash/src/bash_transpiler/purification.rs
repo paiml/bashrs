@@ -659,7 +659,20 @@ impl Purifier {
                     .iter()
                     .any(|arg| matches!(arg, BashExpr::Literal(s) if s.contains("-f")))
                 {
-                    Some("Command 'rm' should use -f flag for idempotency".to_string())
+                    // Add -f flag for idempotency (like mkdir -p)
+                    let purified_args: Result<Vec<_>, _> =
+                        args.iter().map(|arg| self.purify_expression(arg)).collect();
+                    let mut new_args = vec![BashExpr::Literal("-f".to_string())];
+                    new_args.extend(purified_args?);
+
+                    return Ok((
+                        BashStmt::Command {
+                            name: name.to_string(),
+                            args: new_args,
+                            span: Span::dummy(),
+                        },
+                        Some("Added -f flag to rm for idempotency".to_string()),
+                    ));
                 } else {
                     None
                 }

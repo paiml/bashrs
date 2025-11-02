@@ -472,11 +472,9 @@ mod tests {
 
     /// Test: REPL-005-003-002 - Explain rm -f change
     ///
-    /// NOTE: This test is currently ignored because rm -f transformation
-    /// is not yet implemented in the purifier. Will be enabled once
-    /// the transformation is added to purification.rs.
+    /// Verifies that the purifier transforms `rm file.txt` to `rm -f file.txt`
+    /// for idempotency and explains the transformation to the user.
     #[test]
-    #[ignore = "rm -f transformation not yet implemented"]
     fn test_REPL_005_003_explain_rm_f() {
         let original = "rm file.txt";
         let explanation = explain_purification_changes(original);

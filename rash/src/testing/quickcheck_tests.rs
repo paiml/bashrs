@@ -270,22 +270,6 @@ proptest! {
         }
     }
 
-    /// Property: Nested expressions should have balanced parentheses
-    /// NOTE: Disabled because POSIX case patterns use `)` which breaks naive counting.
-    /// Example: `*)` in case statements is valid syntax but appears unbalanced.
-    /// A proper fix would require parsing shell syntax, not character counting.
-    #[test]
-    #[ignore]
-    fn prop_balanced_parentheses(_expr in generators::simple_expr()) {
-        let source = "fn main() { let x = 1; }".to_string(); // Simplified for now
-
-        if let Ok(shell_code) = transpile(&source, Config::default()) {
-            let open_count = shell_code.chars().filter(|&c| c == '(').count();
-            let close_count = shell_code.chars().filter(|&c| c == ')').count();
-            prop_assert_eq!(open_count, close_count, "Unbalanced parentheses in: {}", shell_code);
-        }
-    }
-
     /// Property: All generated shell scripts should be non-empty
     #[test]
     fn prop_generated_scripts_non_empty(_ast in generators::valid_ast()) {
