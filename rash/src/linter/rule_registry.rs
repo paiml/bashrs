@@ -1163,6 +1163,120 @@ lazy_static::lazy_static! {
             compatibility: ShellCompatibility::Universal,
         });
 
+        // === BATCH 10 CLASSIFICATIONS (20 rules) ===
+
+        // Batch 10: Command structure & ordering (Universal)
+        registry.insert("SC2202", RuleMetadata {
+            id: "SC2202",
+            name: "Order sensitivity (e.g., redirects)",
+            compatibility: ShellCompatibility::Universal,
+        });
+        registry.insert("SC2203", RuleMetadata {
+            id: "SC2203",
+            name: "Variable assignment order matters",
+            compatibility: ShellCompatibility::Universal,
+        });
+        registry.insert("SC2204", RuleMetadata {
+            id: "SC2204",
+            name: "Exit traps must come before commands",
+            compatibility: ShellCompatibility::Universal,
+        });
+        registry.insert("SC2205", RuleMetadata {
+            id: "SC2205",
+            name: "Command ordering with pipes",
+            compatibility: ShellCompatibility::Universal,
+        });
+
+        // Batch 10: Array operations (NotSh - bash/zsh/ksh only)
+        registry.insert("SC2206", RuleMetadata {
+            id: "SC2206",
+            name: "Quote to prevent word splitting/globbing in arrays",
+            compatibility: ShellCompatibility::NotSh,
+        });
+        registry.insert("SC2207", RuleMetadata {
+            id: "SC2207",
+            name: "Prefer mapfile or read -a to split command output",
+            compatibility: ShellCompatibility::NotSh,
+        });
+
+        // Batch 10: Command structure & find usage (Universal)
+        registry.insert("SC2208", RuleMetadata {
+            id: "SC2208",
+            name: "Command grouping issues",
+            compatibility: ShellCompatibility::Universal,
+        });
+        registry.insert("SC2209", RuleMetadata {
+            id: "SC2209",
+            name: "Use single quotes for literal strings in find",
+            compatibility: ShellCompatibility::Universal,
+        });
+
+        // Batch 10: Arithmetic operations (Universal)
+        registry.insert("SC2210", RuleMetadata {
+            id: "SC2210",
+            name: "Don't use arithmetic shortcuts like x=++y",
+            compatibility: ShellCompatibility::Universal,
+        });
+        registry.insert("SC2211", RuleMetadata {
+            id: "SC2211",
+            name: "Arithmetic on variable without $(())",
+            compatibility: ShellCompatibility::Universal,
+        });
+
+        // Batch 10: Control flow & test operators (Universal)
+        registry.insert("SC2212", RuleMetadata {
+            id: "SC2212",
+            name: "Use [ p ] || [ q ] instead of [ p -o q ]",
+            compatibility: ShellCompatibility::Universal,
+        });
+        registry.insert("SC2213", RuleMetadata {
+            id: "SC2213",
+            name: "getopts requires argument variable",
+            compatibility: ShellCompatibility::Universal,
+        });
+        registry.insert("SC2214", RuleMetadata {
+            id: "SC2214",
+            name: "Arithmetic comparison outside test",
+            compatibility: ShellCompatibility::Universal,
+        });
+        registry.insert("SC2215", RuleMetadata {
+            id: "SC2215",
+            name: "Expression precedence issues",
+            compatibility: ShellCompatibility::Universal,
+        });
+        registry.insert("SC2216", RuleMetadata {
+            id: "SC2216",
+            name: "Piping find to shell with ; instead of +",
+            compatibility: ShellCompatibility::Universal,
+        });
+        registry.insert("SC2217", RuleMetadata {
+            id: "SC2217",
+            name: "Useless cat with find",
+            compatibility: ShellCompatibility::Universal,
+        });
+        registry.insert("SC2218", RuleMetadata {
+            id: "SC2218",
+            name: "Useless return in command substitution",
+            compatibility: ShellCompatibility::Universal,
+        });
+        registry.insert("SC2219", RuleMetadata {
+            id: "SC2219",
+            name: "Instead of let expr, use (( expr ))",
+            compatibility: ShellCompatibility::Universal,
+        });
+
+        // Batch 10: Arithmetic syntax (Universal)
+        registry.insert("SC2220", RuleMetadata {
+            id: "SC2220",
+            name: "Invalid arithmetic expression",
+            compatibility: ShellCompatibility::Universal,
+        });
+        registry.insert("SC2221", RuleMetadata {
+            id: "SC2221",
+            name: "Arithmetic syntax errors",
+            compatibility: ShellCompatibility::Universal,
+        });
+
         // Most other SC2xxx rules are Universal (quoting, syntax, etc.)
         // They represent bugs or issues that apply regardless of shell
         // Examples: SC2086 (quote variables), etc.
@@ -1230,7 +1344,7 @@ mod tests {
     }
 
     #[test]
-    fn test_registry_has_200_rules() {
+    fn test_registry_has_220_rules() {
         // Batch 1: 8 SEC + 3 DET + 3 IDEM + 6 SC2xxx = 20 rules
         // Batch 2: 6 NotSh + 19 Universal = 25 rules
         // Batch 3: 2 NotSh + 25 Universal = 27 rules (SC2058 not implemented yet)
@@ -1240,8 +1354,9 @@ mod tests {
         // Batch 7: 0 NotSh + 20 Universal = 20 rules
         // Batch 8: 1 NotSh + 19 Universal = 20 rules
         // Batch 9: 5 NotSh + 15 Universal = 20 rules
-        // Total: 200 rules (56.0% of 357 total) - Approaching 60% milestone!
-        assert_eq!(RULE_REGISTRY.len(), 200);
+        // Batch 10: 2 NotSh + 18 Universal = 20 rules
+        // Total: 220 rules (61.6% of 357 total) - 🎯 CROSSED 60% MILESTONE! 🎯
+        assert_eq!(RULE_REGISTRY.len(), 220);
     }
 
     #[test]
@@ -2590,5 +2705,182 @@ mod tests {
 
         // Total: 15 Universal + 5 NotSh = 20 rules
         // This brings total from 180 → 200 (56.0% coverage - Approaching 60%!)
+    }
+
+    // === Batch 10 Classification Tests ===
+
+    #[test]
+    fn test_batch10_array_quoting_notsh() {
+        // Array quoting rules (SC2206-SC2207) should be NotSh (bash/zsh/ksh only)
+        let array_rules = vec!["SC2206", "SC2207"];
+
+        for rule in array_rules {
+            assert_eq!(
+                get_rule_compatibility(rule),
+                Some(ShellCompatibility::NotSh),
+                "{} should be NotSh (arrays are bash/zsh/ksh specific)",
+                rule
+            );
+
+            // Should NOT apply to POSIX sh
+            assert!(
+                !should_apply_rule(rule, ShellType::Sh),
+                "{} should not apply to sh",
+                rule
+            );
+
+            // But SHOULD apply to bash/zsh/ksh
+            assert!(
+                should_apply_rule(rule, ShellType::Bash),
+                "{} should apply to bash",
+                rule
+            );
+            assert!(
+                should_apply_rule(rule, ShellType::Zsh),
+                "{} should apply to zsh",
+                rule
+            );
+        }
+    }
+
+    #[test]
+    fn test_batch10_command_structure_universal() {
+        // Command structure rules should be Universal
+        let command_rules = vec![
+            "SC2202", "SC2203", "SC2204", "SC2205", "SC2208", "SC2209", "SC2216", "SC2217",
+        ];
+
+        for rule in command_rules {
+            assert_eq!(
+                get_rule_compatibility(rule),
+                Some(ShellCompatibility::Universal),
+                "{} should be Universal",
+                rule
+            );
+
+            // Should apply to ALL shells
+            assert!(
+                should_apply_rule(rule, ShellType::Bash),
+                "{} should apply to bash",
+                rule
+            );
+            assert!(
+                should_apply_rule(rule, ShellType::Sh),
+                "{} should apply to sh",
+                rule
+            );
+            assert!(
+                should_apply_rule(rule, ShellType::Zsh),
+                "{} should apply to zsh",
+                rule
+            );
+        }
+    }
+
+    #[test]
+    fn test_batch10_arithmetic_operations_universal() {
+        // Arithmetic operation rules should be Universal
+        let arithmetic_rules = vec!["SC2210", "SC2211", "SC2214", "SC2215", "SC2220", "SC2221"];
+
+        for rule in arithmetic_rules {
+            assert_eq!(
+                get_rule_compatibility(rule),
+                Some(ShellCompatibility::Universal),
+                "{} should be Universal",
+                rule
+            );
+
+            // Should apply to ALL shells
+            assert!(
+                should_apply_rule(rule, ShellType::Bash),
+                "{} should apply to bash",
+                rule
+            );
+            assert!(
+                should_apply_rule(rule, ShellType::Sh),
+                "{} should apply to sh",
+                rule
+            );
+            assert!(
+                should_apply_rule(rule, ShellType::Zsh),
+                "{} should apply to zsh",
+                rule
+            );
+        }
+    }
+
+    #[test]
+    fn test_batch10_control_flow_universal() {
+        // Control flow and test operator rules should be Universal
+        let control_flow_rules = vec!["SC2212", "SC2213", "SC2218", "SC2219"];
+
+        for rule in control_flow_rules {
+            assert_eq!(
+                get_rule_compatibility(rule),
+                Some(ShellCompatibility::Universal),
+                "{} should be Universal",
+                rule
+            );
+
+            // Should apply to ALL shells
+            assert!(
+                should_apply_rule(rule, ShellType::Bash),
+                "{} should apply to bash",
+                rule
+            );
+            assert!(
+                should_apply_rule(rule, ShellType::Sh),
+                "{} should apply to sh",
+                rule
+            );
+            assert!(
+                should_apply_rule(rule, ShellType::Zsh),
+                "{} should apply to zsh",
+                rule
+            );
+        }
+    }
+
+    #[test]
+    fn test_batch10_universal_count() {
+        // Batch 10 should have 20 rules total (18 Universal + 2 NotSh)
+        let universal_rules = vec![
+            // Command structure (8)
+            "SC2202", "SC2203", "SC2204", "SC2205", "SC2208", "SC2209", "SC2216", "SC2217",
+            // Arithmetic operations (6)
+            "SC2210", "SC2211", "SC2214", "SC2215", "SC2220", "SC2221",
+            // Control flow (4)
+            "SC2212", "SC2213", "SC2218", "SC2219",
+        ];
+
+        // 18 Universal rules
+        let unique_count = universal_rules.len();
+        assert_eq!(unique_count, 18, "Batch 10 should have 18 Universal rules");
+
+        for rule in universal_rules {
+            assert_eq!(
+                get_rule_compatibility(rule),
+                Some(ShellCompatibility::Universal),
+                "{} should be Universal",
+                rule
+            );
+        }
+
+        // 2 NotSh rules (arrays)
+        let notsh_rules = vec![
+            "SC2206", "SC2207", // Array quoting
+        ];
+
+        for rule in notsh_rules {
+            assert_eq!(
+                get_rule_compatibility(rule),
+                Some(ShellCompatibility::NotSh),
+                "{} should be NotSh (array operations)",
+                rule
+            );
+        }
+
+        // Total: 18 Universal + 2 NotSh = 20 rules
+        // This brings total from 200 → 220 (61.6% coverage - 🎯 CROSSED 60% MILESTONE! 🎯)
     }
 }
