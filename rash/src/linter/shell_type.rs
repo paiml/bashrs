@@ -76,7 +76,7 @@ fn detect_from_shebang(content: &str) -> Option<ShellType> {
         Some(ShellType::Zsh)
     } else if shebang.contains("bash") {
         Some(ShellType::Bash)
-    } else if shebang.ends_with("/sh") || shebang.ends_with("sh ") {
+    } else if shebang.ends_with("/sh") || shebang.ends_with(" sh") || shebang == "sh" {
         Some(ShellType::Sh)
     } else if shebang.contains("ksh") {
         Some(ShellType::Ksh)
@@ -306,5 +306,105 @@ mod tests {
         assert_eq!(ShellType::Sh.to_shellcheck_name(), "sh");
         assert_eq!(ShellType::Ksh.to_shellcheck_name(), "ksh");
         assert_eq!(ShellType::Auto.to_shellcheck_name(), "auto");
+    }
+
+    // ===== Property Tests =====
+
+    #[cfg(test)]
+    mod property_tests {
+        use super::*;
+        use proptest::prelude::*;
+
+        proptest! {
+            #[test]
+            fn prop_detect_always_returns_valid_shell_type(
+                content in ".*",
+                filename in "[a-zA-Z0-9_.-]{1,20}"
+            ) {
+                let path = PathBuf::from(&filename);
+                let shell_type = detect_shell_type(&path, &content);
+
+                // Should always return a valid shell type (never panic)
+                prop_assert!(matches!(
+                    shell_type,
+                    ShellType::Bash | ShellType::Zsh | ShellType::Sh | ShellType::Ksh | ShellType::Auto
+                ));
+            }
+
+            #[test]
+            fn prop_shebang_detection_consistent(
+                shell in "(bash|zsh|sh|ksh)"
+            ) {
+                let content = format!("#!/usr/bin/env {}\necho test", shell);
+                let path = PathBuf::from("test.sh");
+                let detected = detect_shell_type(&path, &content);
+
+                // Verify detection matches shebang
+                match shell.as_str() {
+                    "bash" => prop_assert_eq!(detected, ShellType::Bash),
+                    "zsh" => prop_assert_eq!(detected, ShellType::Zsh),
+                    "sh" => prop_assert_eq!(detected, ShellType::Sh),
+                    "ksh" => prop_assert_eq!(detected, ShellType::Ksh),
+                    _ => unreachable!(),
+                }
+            }
+
+            #[test]
+            fn prop_zshrc_always_detected_as_zsh(
+                content in ".*"
+            ) {
+                let path = PathBuf::from(".zshrc");
+                let detected = detect_shell_type(&path, &content);
+
+                // Unless there's a conflicting shebang, .zshrc should be zsh
+                if !content.starts_with("#!/") {
+                    prop_assert_eq!(detected, ShellType::Zsh);
+                }
+            }
+
+            #[test]
+            fn prop_bashrc_always_detected_as_bash(
+                content in ".*"
+            ) {
+                let path = PathBuf::from(".bashrc");
+                let detected = detect_shell_type(&path, &content);
+
+                // Unless there's a conflicting shebang, .bashrc should be bash
+                if !content.starts_with("#!/") {
+                    prop_assert_eq!(detected, ShellType::Bash);
+                }
+            }
+
+            #[test]
+            fn prop_shellcheck_directive_overrides_everything(
+                shell in "(bash|zsh|sh|ksh)",
+                filename in "[a-zA-Z0-9_.-]{1,20}"
+            ) {
+                let content = format!("# shellcheck shell={}\necho test", shell);
+                let path = PathBuf::from(&filename);
+                let detected = detect_shell_type(&path, &content);
+
+                // ShellCheck directive should always win
+                match shell.as_str() {
+                    "bash" => prop_assert_eq!(detected, ShellType::Bash),
+                    "zsh" => prop_assert_eq!(detected, ShellType::Zsh),
+                    "sh" => prop_assert_eq!(detected, ShellType::Sh),
+                    "ksh" => prop_assert_eq!(detected, ShellType::Ksh),
+                    _ => unreachable!(),
+                }
+            }
+
+            #[test]
+            fn prop_unknown_files_default_to_bash(
+                content in "[^#]*", // Content not starting with #
+                filename in "[a-zA-Z0-9_]{1,20}" // No extension
+            ) {
+                let path = PathBuf::from(&filename);
+                let detected = detect_shell_type(&path, &content);
+
+                // Unknown files should default to bash
+                prop_assert_eq!(detected, ShellType::Bash);
+            }
+        }
     }
 }
