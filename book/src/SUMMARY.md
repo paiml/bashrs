@@ -18,6 +18,7 @@
 
 ## Shell Script Linting
 
+- [Shell Type Detection](./linting/shell-detection.md)
 - [Security Rules (SEC001-SEC008)](./linting/security.md)
 - [Determinism Rules (DET001-DET003)](./linting/determinism.md)
 - [Idempotency Rules (IDEM001-IDEM003)](./linting/idempotency.md)
