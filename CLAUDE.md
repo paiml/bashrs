@@ -176,6 +176,31 @@ Take messy, non-deterministic bash scripts and output safe, deterministic, idemp
 
 ## Development Principles
 
+### EXTREME TDD Definition
+
+**EXTREME TDD** is traditional Test-Driven Development enhanced with comprehensive quality gates:
+
+**Formula**: EXTREME TDD = TDD + Property Testing + Mutation Testing + Fuzz Testing + PMAT + Examples
+
+**Components**:
+1. **TDD (RED → GREEN → REFACTOR)**: Write failing test → Implement → Clean up
+2. **Property Testing**: Generative tests with 100+ cases (proptest)
+3. **Mutation Testing**: Verify test quality with ≥90% kill rate (cargo-mutants)
+4. **Fuzz Testing**: Automated input generation to find edge cases (when applicable)
+5. **PMAT Quality Gates**: Code complexity (<10), quality score (≥9.0), TDG verification
+6. **Example Verification**: `cargo run --example` must pass for all relevant examples
+
+**Evidence of Effectiveness**:
+- v6.27.1: Property test caught sh shebang detection bug
+- v6.26.0: 4 unit tests + integration tests + property tests
+- v6.25.0: 17 comprehensive tests + property tests + mutation tests
+
+**Why EXTREME?**
+- Catches bugs traditional TDD misses (property tests found 1 bug today)
+- Proves test effectiveness mathematically (mutation testing)
+- Validates real-world usage (example verification)
+- Ensures code quality objectively (PMAT gates)
+
 ### 自働化 (Jidoka) - Build Quality In
 - **Bash Purification**: Validate purified output passes shellcheck
 - **Test Coverage**: >85% on all modules (currently 1,489 tests passing)
@@ -393,7 +418,36 @@ $ pmat verify --spec rash.spec --impl target/debug/bashrs
 
 **VERIFY PMAT QUALITY GATES PASS** ✅
 
-#### Step 8: Integration Testing
+#### Step 8: Example Verification
+**NEW**: Verify real-world usage with example programs
+
+```bash
+# Find relevant examples
+ls examples/*.rs | grep <feature>
+
+# Run example to verify it works
+cargo run --example quality_tools_demo
+cargo run --example <relevant_example>
+
+# Check example output
+# - No panics
+# - Expected behavior
+# - Good user experience
+```
+
+**Why Example Verification?**
+- Validates real-world usage patterns
+- Catches API usability issues
+- Ensures examples stay synchronized with code
+- Provides confidence for users
+
+**Examples to verify**:
+- `quality_tools_demo` - General quality tools
+- `<feature>_example` - Feature-specific examples
+
+**VERIFY EXAMPLES RUN SUCCESSFULLY** ✅
+
+#### Step 9: Integration Testing
 ```rust
 #[test]
 fn test_integration_<bug_description>() {
@@ -414,13 +468,13 @@ fn test_integration_<bug_description>() {
 Run: `cargo test test_integration_<bug_description>`
 **VERIFY INTEGRATION WORKS** ✅
 
-#### Step 9: Regression Prevention
+#### Step 10: Regression Prevention
 - Add test to permanent test suite
 - Update BASH-INGESTION-ROADMAP.yaml
 - Mark task as "completed"
 - Document in CHANGELOG.md
 
-### Verification Checklist
+### Verification Checklist (EXTREME TDD)
 
 Before resuming validation, verify ALL of these:
 
@@ -428,10 +482,11 @@ Before resuming validation, verify ALL of these:
 - [ ] ✅ **GREEN**: Implementation fixed, test passes
 - [ ] ✅ **REFACTOR**: Code cleaned up, complexity <10
 - [ ] ✅ **REPL VERIFICATION**: Interactive validation completed, behavior matches specification
-- [ ] ✅ **All tests pass**: 808+ tests, 100% pass rate
-- [ ] ✅ **Property test**: Determinism/idempotency verified
+- [ ] ✅ **All tests pass**: 6021+ tests, 100% pass rate
+- [ ] ✅ **Property test**: Property tests pass (100+ generated cases)
 - [ ] ✅ **Mutation test**: ≥90% kill rate on fixed module
 - [ ] ✅ **pmat VERIFICATION**: Quality gates pass (complexity <10, quality score ≥9.0)
+- [ ] ✅ **Example verification**: `cargo run --example` passes for relevant examples
 - [ ] ✅ **Integration test**: End-to-end workflow verified
 - [ ] ✅ **Shellcheck**: Purified output passes POSIX compliance
 - [ ] ✅ **Documentation**: CHANGELOG, roadmap updated
@@ -456,10 +511,11 @@ Action Taken:
 3. Test FAILED ❌ (RED confirmed)
 4. Fixed parser to expand variables in double quotes
 5. Test PASSED ✅ (GREEN confirmed)
-6. Ran all 808 tests: PASSED ✅
-7. Added property test: PASSED ✅
+6. Ran all 6021+ tests: PASSED ✅
+7. Added property test (100+ cases): PASSED ✅
 8. Mutation test: 92% kill rate ✅
-9. Updated CHANGELOG, roadmap
+9. Example verification: quality_tools_demo runs ✅
+10. Updated CHANGELOG, roadmap
 
 Status: ✅ RESOLVED - Resuming validation
 ```
