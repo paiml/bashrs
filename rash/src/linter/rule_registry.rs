@@ -829,6 +829,114 @@ lazy_static::lazy_static! {
             compatibility: ShellCompatibility::Universal,
         });
 
+        // === BATCH 7 CLASSIFICATIONS (20 rules) ===
+
+        // Batch 7: Alias and function context safety (Universal)
+        registry.insert("SC2138", RuleMetadata {
+            id: "SC2138",
+            name: "Function defined in wrong context (if/loop) or reserved name",
+            compatibility: ShellCompatibility::Universal,
+        });
+        registry.insert("SC2139", RuleMetadata {
+            id: "SC2139",
+            name: "Alias variable expands at definition time (not invocation)",
+            compatibility: ShellCompatibility::Universal,
+        });
+        registry.insert("SC2140", RuleMetadata {
+            id: "SC2140",
+            name: "Malformed quote concatenation (unquoted words between quotes)",
+            compatibility: ShellCompatibility::Universal,
+        });
+        registry.insert("SC2141", RuleMetadata {
+            id: "SC2141",
+            name: "Command receives stdin but ignores it (find, ls, echo, sudo)",
+            compatibility: ShellCompatibility::Universal,
+        });
+        registry.insert("SC2142", RuleMetadata {
+            id: "SC2142",
+            name: "Aliases can't use positional parameters (use functions instead)",
+            compatibility: ShellCompatibility::Universal,
+        });
+
+        // Batch 7: Find and glob efficiency (Universal)
+        registry.insert("SC2143", RuleMetadata {
+            id: "SC2143",
+            name: "Use grep -q for efficiency (exits on first match)",
+            compatibility: ShellCompatibility::Universal,
+        });
+        registry.insert("SC2144", RuleMetadata {
+            id: "SC2144",
+            name: "-e test on glob that never matches (glob safety)",
+            compatibility: ShellCompatibility::Universal,
+        });
+        registry.insert("SC2145", RuleMetadata {
+            id: "SC2145",
+            name: "Argument mixin in arrays ($@ or $* unquoted in quotes)",
+            compatibility: ShellCompatibility::Universal,
+        });
+        registry.insert("SC2146", RuleMetadata {
+            id: "SC2146",
+            name: "find -o action grouping needs parentheses",
+            compatibility: ShellCompatibility::Universal,
+        });
+        registry.insert("SC2147", RuleMetadata {
+            id: "SC2147",
+            name: "Literal tilde in PATH doesn't expand (use $HOME)",
+            compatibility: ShellCompatibility::Universal,
+        });
+        registry.insert("SC2148", RuleMetadata {
+            id: "SC2148",
+            name: "Add shebang to indicate interpreter (portability)",
+            compatibility: ShellCompatibility::Universal,
+        });
+        registry.insert("SC2149", RuleMetadata {
+            id: "SC2149",
+            name: "Remove quotes from unset variable names",
+            compatibility: ShellCompatibility::Universal,
+        });
+        registry.insert("SC2150", RuleMetadata {
+            id: "SC2150",
+            name: "Use find -exec + instead of \\; for batch processing (efficiency)",
+            compatibility: ShellCompatibility::Universal,
+        });
+
+        // Batch 7: Return/exit code and control flow safety (Universal)
+        registry.insert("SC2151", RuleMetadata {
+            id: "SC2151",
+            name: "Return code should be 0-255 (POSIX requirement)",
+            compatibility: ShellCompatibility::Universal,
+        });
+        registry.insert("SC2152", RuleMetadata {
+            id: "SC2152",
+            name: "Exit code should be 0-255 (POSIX requirement)",
+            compatibility: ShellCompatibility::Universal,
+        });
+        registry.insert("SC2153", RuleMetadata {
+            id: "SC2153",
+            name: "Possible misspelling: var=$VAR1, but only $VAR2 is defined",
+            compatibility: ShellCompatibility::Universal,
+        });
+        registry.insert("SC2154", RuleMetadata {
+            id: "SC2154",
+            name: "Variable is referenced but not assigned (may be external)",
+            compatibility: ShellCompatibility::Universal,
+        });
+        registry.insert("SC2155", RuleMetadata {
+            id: "SC2155",
+            name: "Declare and assign separately to preserve exit code",
+            compatibility: ShellCompatibility::Universal,
+        });
+        registry.insert("SC2156", RuleMetadata {
+            id: "SC2156",
+            name: "Injected filenames can cause command injection ($() in filenames)",
+            compatibility: ShellCompatibility::Universal,
+        });
+        registry.insert("SC2157", RuleMetadata {
+            id: "SC2157",
+            name: "Argument to [ -z/-n ] is always false due to literal strings",
+            compatibility: ShellCompatibility::Universal,
+        });
+
         // Most other SC2xxx rules are Universal (quoting, syntax, etc.)
         // They represent bugs or issues that apply regardless of shell
         // Examples: SC2086 (quote variables), etc.
@@ -896,15 +1004,16 @@ mod tests {
     }
 
     #[test]
-    fn test_registry_has_140_rules() {
+    fn test_registry_has_160_rules() {
         // Batch 1: 8 SEC + 3 DET + 3 IDEM + 6 SC2xxx = 20 rules
         // Batch 2: 6 NotSh + 19 Universal = 25 rules
         // Batch 3: 2 NotSh + 25 Universal = 27 rules (SC2058 not implemented yet)
         // Batch 4: 1 NotSh + 27 Universal = 28 rules (SC2120 has false positives, not enabled)
         // Batch 5: 0 NotSh + 20 Universal = 20 rules
         // Batch 6: 1 NotSh + 19 Universal = 20 rules
-        // Total: 140 rules (39.2% of 357 total)
-        assert_eq!(RULE_REGISTRY.len(), 140);
+        // Batch 7: 0 NotSh + 20 Universal = 20 rules
+        // Total: 160 rules (44.8% of 357 total)
+        assert_eq!(RULE_REGISTRY.len(), 160);
     }
 
     #[test]
@@ -1738,5 +1847,160 @@ mod tests {
             Some(ShellCompatibility::NotSh),
             "SC2118 should be NotSh"
         );
+    }
+
+    // === Batch 7 Classification Tests ===
+
+    #[test]
+    fn test_batch7_alias_function_context_universal() {
+        // Alias and function context safety rules (SC2138-SC2142) should be Universal
+        let alias_function_rules = vec!["SC2138", "SC2139", "SC2140", "SC2141", "SC2142"];
+
+        for rule in alias_function_rules {
+            assert_eq!(
+                get_rule_compatibility(rule),
+                Some(ShellCompatibility::Universal),
+                "{} should be Universal",
+                rule
+            );
+
+            // Should apply to ALL shells
+            assert!(
+                should_apply_rule(rule, ShellType::Bash),
+                "{} should apply to bash",
+                rule
+            );
+            assert!(
+                should_apply_rule(rule, ShellType::Sh),
+                "{} should apply to sh",
+                rule
+            );
+        }
+    }
+
+    #[test]
+    fn test_batch7_find_glob_efficiency_universal() {
+        // Find and glob efficiency rules (SC2143-SC2150) should be Universal
+        let find_glob_rules = vec![
+            "SC2143", "SC2144", "SC2145", "SC2146", "SC2147", "SC2148", "SC2149", "SC2150",
+        ];
+
+        for rule in find_glob_rules {
+            assert_eq!(
+                get_rule_compatibility(rule),
+                Some(ShellCompatibility::Universal),
+                "{} should be Universal",
+                rule
+            );
+
+            // Should apply to ALL shells
+            assert!(
+                should_apply_rule(rule, ShellType::Bash),
+                "{} should apply to bash",
+                rule
+            );
+            assert!(
+                should_apply_rule(rule, ShellType::Sh),
+                "{} should apply to sh",
+                rule
+            );
+        }
+    }
+
+    #[test]
+    fn test_batch7_exit_code_safety_universal() {
+        // Return/exit code and control flow safety rules (SC2151-SC2157) should be Universal
+        let exit_code_rules = vec![
+            "SC2151", "SC2152", "SC2153", "SC2154", "SC2155", "SC2156", "SC2157",
+        ];
+
+        for rule in exit_code_rules {
+            assert_eq!(
+                get_rule_compatibility(rule),
+                Some(ShellCompatibility::Universal),
+                "{} should be Universal",
+                rule
+            );
+
+            // Should apply to ALL shells
+            assert!(
+                should_apply_rule(rule, ShellType::Bash),
+                "{} should apply to bash",
+                rule
+            );
+            assert!(
+                should_apply_rule(rule, ShellType::Sh),
+                "{} should apply to sh",
+                rule
+            );
+        }
+    }
+
+    #[test]
+    fn test_batch7_universal_count() {
+        // Batch 7 should have 20 rules total (all Universal)
+        let universal_rules = vec![
+            // Alias/function context (5)
+            "SC2138", "SC2139", "SC2140", "SC2141", "SC2142",
+            // Find/glob efficiency (8)
+            "SC2143", "SC2144", "SC2145", "SC2146", "SC2147", "SC2148", "SC2149", "SC2150",
+            // Return/exit codes (7)
+            "SC2151", "SC2152", "SC2153", "SC2154", "SC2155", "SC2156", "SC2157",
+        ];
+
+        // 20 Universal rules
+        let unique_count = universal_rules.len();
+        assert_eq!(unique_count, 20, "Batch 7 should have 20 Universal rules");
+
+        for rule in universal_rules {
+            assert_eq!(
+                get_rule_compatibility(rule),
+                Some(ShellCompatibility::Universal),
+                "{} should be Universal",
+                rule
+            );
+        }
+    }
+
+    #[test]
+    fn test_batch7_no_notsh_rules() {
+        // Batch 7 should have NO NotSh rules (all Universal)
+        let batch7_rules = vec![
+            "SC2138", "SC2139", "SC2140", "SC2141", "SC2142", "SC2143", "SC2144", "SC2145",
+            "SC2146", "SC2147", "SC2148", "SC2149", "SC2150", "SC2151", "SC2152", "SC2153",
+            "SC2154", "SC2155", "SC2156", "SC2157",
+        ];
+
+        for rule in batch7_rules {
+            let compat = get_rule_compatibility(rule);
+            assert_eq!(
+                compat,
+                Some(ShellCompatibility::Universal),
+                "{} should be Universal (not NotSh)",
+                rule
+            );
+
+            // Should apply to ALL shells including sh
+            assert!(
+                should_apply_rule(rule, ShellType::Sh),
+                "{} should apply to sh",
+                rule
+            );
+            assert!(
+                should_apply_rule(rule, ShellType::Bash),
+                "{} should apply to bash",
+                rule
+            );
+            assert!(
+                should_apply_rule(rule, ShellType::Zsh),
+                "{} should apply to zsh",
+                rule
+            );
+            assert!(
+                should_apply_rule(rule, ShellType::Ksh),
+                "{} should apply to ksh",
+                rule
+            );
+        }
     }
 }

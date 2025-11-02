@@ -24,7 +24,7 @@ This is the beginning of **Option 1: Complete Shell-Specific Rule Filtering** fr
 - **`lint_shell_filtered()`**: Conditional rule execution based on shell type
 - **`apply_rule!` macro**: Performance-optimized filtering with zero runtime cost for skipped rules
 
-**Rule Classification** (140/357 rules - 39.2%):
+**Rule Classification** (160/357 rules - 44.8%):
 
 *Batch 1* (20 rules):
 - ✅ 8 SEC rules → Universal (apply to all shells)
@@ -87,6 +87,12 @@ This is the beginning of **Option 1: Complete Shell-Specific Rule Filtering** fr
   - **Code Quality/Efficiency** (8): SC2126 (grep -c vs grep|wc), SC2127 (constant comparison), SC2129 (>> vs repeated >), SC2130 (-e flag clarification), SC2131 (backslash literal in ''), SC2132 (readonly in for), SC2135/SC2136 (then/do keyword confusion)
 - ✅ 1 NotSh rule:
   - SC2118 (ksh set -A arrays won't work in sh)
+
+*Batch 7* (20 rules) - **FOCUS: Test Operator Safety & Find/Glob Efficiency - 🎉 45% MILESTONE!**:
+- ✅ 20 Universal rules (all Universal, NO NotSh rules in batch 7):
+  - **Alias/Function Context** (5): SC2138 (function defined in wrong context/reserved name), SC2139 (alias variable expands at definition time), SC2140 (malformed quote concatenation), SC2141 (command receives stdin but ignores it), SC2142 (aliases can't use positional parameters)
+  - **Find/Glob Efficiency** (8): SC2143 (use grep -q for efficiency), SC2144 (-e test on glob that never matches), SC2145 (argument mixin in arrays), SC2146 (find -o action grouping needs parens), SC2147 (literal tilde in PATH doesn't expand), SC2148 (add shebang for portability), SC2149 (remove quotes from unset), SC2150 (use find -exec + for batch processing)
+  - **Return/Exit Code Safety** (7): SC2151 (return code 0-255 POSIX), SC2152 (exit code 0-255 POSIX), SC2153 (possible variable misspelling), SC2154 (variable referenced but not assigned), SC2155 (declare and assign separately), SC2156 (injected filenames command injection), SC2157 (argument to -z/-n always false)
 
 **Integration Tests** (12 total: 6 batch 1 + 6 batch 2):
 
