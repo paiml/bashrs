@@ -22,10 +22,12 @@ pub mod diagnostic;
 pub mod make_preprocess;
 pub mod output;
 pub mod rules;
+pub mod shell_type;
 
 pub use autofix::{apply_fixes, apply_fixes_to_file, FixOptions, FixResult};
 pub use diagnostic::{Diagnostic, Fix, LintResult, Severity, Span};
 pub use rules::lint_shell;
+pub use shell_type::{detect_shell_type, ShellType};
 
 #[cfg(test)]
 mod tests;
