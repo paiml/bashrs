@@ -26,7 +26,7 @@ pub mod shell_type;
 
 pub use autofix::{apply_fixes, apply_fixes_to_file, FixOptions, FixResult};
 pub use diagnostic::{Diagnostic, Fix, LintResult, Severity, Span};
-pub use rules::lint_shell;
+pub use rules::{lint_shell, lint_shell_with_path};
 pub use shell_type::{detect_shell_type, ShellType};
 
 #[cfg(test)]

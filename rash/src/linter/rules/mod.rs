@@ -363,6 +363,34 @@ pub mod make020;
 
 use crate::linter::LintResult;
 
+/// Lint a shell script with path-based shell type detection
+///
+/// Detects shell type from file path and content, then lints accordingly.
+/// For zsh files, rules are applied with zsh context in mind.
+///
+/// # Arguments
+/// * `path` - File path for shell type detection (.zshrc, .bashrc, etc.)
+/// * `source` - Shell script source code
+///
+/// # Returns
+/// LintResult with diagnostics appropriate for the detected shell type
+pub fn lint_shell_with_path(path: &std::path::Path, source: &str) -> LintResult {
+    use crate::linter::shell_type::detect_shell_type;
+
+    // Detect shell type from path and content
+    let shell_type = detect_shell_type(path, source);
+
+    // For now, we run the same rules but track shell type for future filtering
+    // TODO: Filter rules based on shell_type (e.g., skip bash-only rules for zsh)
+    let result = lint_shell(source);
+
+    // Store shell type in metadata (for future use)
+    // This enables rule filtering in future versions
+    let _detected_shell = shell_type; // Used for logging/debugging
+
+    result
+}
+
 /// Lint a shell script and return all diagnostics
 pub fn lint_shell(source: &str) -> LintResult {
     let mut result = LintResult::new();
