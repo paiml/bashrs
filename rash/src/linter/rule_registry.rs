@@ -1605,6 +1605,66 @@ lazy_static::lazy_static! {
             compatibility: ShellCompatibility::Universal,
         });
 
+        // === BATCH 14 CLASSIFICATIONS (10 rules) ===
+
+        // Batch 14: Parameter expansion & safety (Universal)
+        registry.insert("SC2282", RuleMetadata {
+            id: "SC2282",
+            name: "Use ${var:?} to require variables to be set",
+            compatibility: ShellCompatibility::Universal,
+        });
+        registry.insert("SC2283", RuleMetadata {
+            id: "SC2283",
+            name: "Remove extra spaces after ! in test expressions",
+            compatibility: ShellCompatibility::Universal,
+        });
+        registry.insert("SC2284", RuleMetadata {
+            id: "SC2284",
+            name: "Use ${var:+value} for conditional value assignment",
+            compatibility: ShellCompatibility::Universal,
+        });
+        registry.insert("SC2285", RuleMetadata {
+            id: "SC2285",
+            name: "Remove $ from variables in arithmetic contexts",
+            compatibility: ShellCompatibility::Universal,
+        });
+
+        // Batch 14: Bash-specific features (NotSh - bash/zsh/ksh only)
+        registry.insert("SC2286", RuleMetadata {
+            id: "SC2286",
+            name: "Prefer mapfile/readarray over read loops",
+            compatibility: ShellCompatibility::NotSh, // mapfile/readarray are bash 4+ builtins
+        });
+        registry.insert("SC2287", RuleMetadata {
+            id: "SC2287",
+            name: "Use [[ -v var ]] to check if variable is set",
+            compatibility: ShellCompatibility::NotSh, // [[ -v ]] is bash/zsh/ksh specific
+        });
+
+        // Batch 14: Best practices & style (Universal)
+        registry.insert("SC2288", RuleMetadata {
+            id: "SC2288",
+            name: "Use true/false directly instead of [ 1 = 1 ]",
+            compatibility: ShellCompatibility::Universal,
+        });
+        registry.insert("SC2289", RuleMetadata {
+            id: "SC2289",
+            name: "Use ${#var} instead of expr length for string length",
+            compatibility: ShellCompatibility::Universal,
+        });
+
+        // Batch 14: Bash arrays (NotSh - bash/zsh/ksh only)
+        registry.insert("SC2290", RuleMetadata {
+            id: "SC2290",
+            name: "Remove $ from array index: ${array[i]} not ${array[$i]}",
+            compatibility: ShellCompatibility::NotSh, // Arrays are bash-specific
+        });
+        registry.insert("SC2291", RuleMetadata {
+            id: "SC2291",
+            name: "Use [[ ! -v var ]] to check if variable is unset",
+            compatibility: ShellCompatibility::NotSh, // [[ ! -v ]] is bash/zsh/ksh specific
+        });
+
         // Most other SC2xxx rules are Universal (quoting, syntax, etc.)
         // They represent bugs or issues that apply regardless of shell
         // Examples: SC2086 (quote variables), etc.
@@ -1672,7 +1732,7 @@ mod tests {
     }
 
     #[test]
-    fn test_registry_has_280_rules() {
+    fn test_registry_has_290_rules() {
         // Batch 1: 8 SEC + 3 DET + 3 IDEM + 6 SC2xxx = 20 rules
         // Batch 2: 6 NotSh + 19 Universal = 25 rules
         // Batch 3: 2 NotSh + 25 Universal = 27 rules (SC2058 not implemented yet)
@@ -1686,8 +1746,9 @@ mod tests {
         // Batch 11: 0 NotSh + 20 Universal = 20 rules
         // Batch 12: 0 NotSh + 20 Universal = 20 rules
         // Batch 13: 0 NotSh + 20 Universal = 20 rules
-        // Total: 280 rules (78.4% of 357 total) - Approaching 80% milestone!
-        assert_eq!(RULE_REGISTRY.len(), 280);
+        // Batch 14: 4 NotSh + 6 Universal = 10 rules
+        // Total: 290 rules (81.2% of 357 total) - 🎯 CROSSED 80% MILESTONE! 🎯
+        assert_eq!(RULE_REGISTRY.len(), 290);
     }
 
     #[test]
@@ -3564,5 +3625,158 @@ mod tests {
         assert_eq!(batch13_rules.len(), 20);
         // Total: 20 Universal + 0 NotSh = 20 rules
         // This brings total from 260 → 280 (78.4% coverage - Approaching 80% milestone!)
+    }
+
+    // === BATCH 14 TESTS ===
+
+    #[test]
+    fn test_batch14_parameter_expansion_universal() {
+        // Parameter expansion rules (SC2282-SC2285) should be Universal (POSIX)
+        let param_expansion_rules = vec!["SC2282", "SC2283", "SC2284", "SC2285"];
+
+        for rule in param_expansion_rules {
+            assert_eq!(
+                get_rule_compatibility(rule),
+                Some(ShellCompatibility::Universal),
+                "{} should be Universal (POSIX parameter expansion)",
+                rule
+            );
+
+            // Should apply to ALL shells
+            assert!(
+                should_apply_rule(rule, ShellType::Bash),
+                "{} should apply to bash",
+                rule
+            );
+            assert!(
+                should_apply_rule(rule, ShellType::Sh),
+                "{} should apply to sh",
+                rule
+            );
+            assert!(
+                should_apply_rule(rule, ShellType::Zsh),
+                "{} should apply to zsh",
+                rule
+            );
+        }
+    }
+
+    #[test]
+    fn test_batch14_bash_specific_notsh() {
+        // Bash-specific rules (SC2286, SC2287, SC2290, SC2291) should be NotSh
+        let bash_specific_rules = vec![
+            ("SC2286", "mapfile/readarray bash 4+"),
+            ("SC2287", "[[ -v var ]] bash/zsh/ksh"),
+            ("SC2290", "arrays bash-specific"),
+            ("SC2291", "[[ ! -v var ]] bash/zsh/ksh"),
+        ];
+
+        for (rule, description) in bash_specific_rules {
+            assert_eq!(
+                get_rule_compatibility(rule),
+                Some(ShellCompatibility::NotSh),
+                "{} ({}) should be NotSh",
+                rule,
+                description
+            );
+
+            // Should NOT apply to POSIX sh
+            assert!(
+                !should_apply_rule(rule, ShellType::Sh),
+                "{} should not apply to sh",
+                rule
+            );
+
+            // But SHOULD apply to bash/zsh
+            assert!(
+                should_apply_rule(rule, ShellType::Bash),
+                "{} should apply to bash",
+                rule
+            );
+            assert!(
+                should_apply_rule(rule, ShellType::Zsh),
+                "{} should apply to zsh",
+                rule
+            );
+        }
+    }
+
+    #[test]
+    fn test_batch14_style_rules_universal() {
+        // Style and best practice rules (SC2288, SC2289) should be Universal
+        let style_rules = vec![
+            ("SC2288", "Use true/false instead of [ 1 = 1 ]"),
+            ("SC2289", "Use ${#var} instead of expr length"),
+        ];
+
+        for (rule, description) in style_rules {
+            assert_eq!(
+                get_rule_compatibility(rule),
+                Some(ShellCompatibility::Universal),
+                "{} ({}) should be Universal",
+                rule,
+                description
+            );
+
+            // Should apply to ALL shells
+            for shell in [
+                ShellType::Bash,
+                ShellType::Zsh,
+                ShellType::Sh,
+                ShellType::Ksh,
+            ] {
+                assert!(
+                    should_apply_rule(rule, shell),
+                    "{} should apply to {:?}",
+                    rule,
+                    shell
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn test_batch14_notsh_count() {
+        // Batch 14 should have 4 NotSh rules
+        let notsh_rules = vec![
+            "SC2286", // mapfile/readarray
+            "SC2287", // [[ -v var ]]
+            "SC2290", // array indexing
+            "SC2291", // [[ ! -v var ]]
+        ];
+
+        for rule in notsh_rules {
+            assert_eq!(
+                get_rule_compatibility(rule),
+                Some(ShellCompatibility::NotSh),
+                "{} should be NotSh",
+                rule
+            );
+        }
+    }
+
+    #[test]
+    fn test_batch14_universal_count() {
+        // Batch 14: 6 Universal + 4 NotSh = 10 rules
+        let universal_rules = vec![
+            // Parameter expansion (4)
+            "SC2282", "SC2283", "SC2284", "SC2285", // Style (2)
+            "SC2288", "SC2289",
+        ];
+
+        // 6 Universal rules
+        assert_eq!(universal_rules.len(), 6);
+
+        for rule in universal_rules {
+            assert_eq!(
+                get_rule_compatibility(rule),
+                Some(ShellCompatibility::Universal),
+                "Batch 14 rule {} should be Universal",
+                rule
+            );
+        }
+
+        // Total: 6 Universal + 4 NotSh = 10 rules
+        // This brings total from 280 → 290 (81.2% coverage - 🎯 CROSSED 80% MILESTONE! 🎯)
     }
 }

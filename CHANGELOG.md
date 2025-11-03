@@ -24,7 +24,7 @@ This is the beginning of **Option 1: Complete Shell-Specific Rule Filtering** fr
 - **`lint_shell_filtered()`**: Conditional rule execution based on shell type
 - **`apply_rule!` macro**: Performance-optimized filtering with zero runtime cost for skipped rules
 
-**Rule Classification** (280/357 rules - 78.4% - **Approaching 80% Milestone!**):
+**Rule Classification** (290/357 rules - 81.2% - **🎯 CROSSED 80% MILESTONE! 🎯**):
 
 *Batch 1* (20 rules):
 - ✅ 8 SEC rules → Universal (apply to all shells)
@@ -142,6 +142,13 @@ This is the beginning of **Option 1: Complete Shell-Specific Rule Filtering** fr
   - **Quoting & Parameter Safety** (8): SC2262 (this command may need quoting - context sensitive), SC2263 (use cd ... || exit to handle cd failures), SC2264 (prefer [ p ] && [ q ] over [ p -a q ]), SC2265 (use ${var:?} to ensure this never expands to /* /), SC2266 (prefer [ p ] || [ q ] over [ p -o q ]), SC2267 (use ${var:?} to ensure variable is set), SC2268 (avoid x-prefix in comparisons), SC2269 (this regex should be put in a variable)
   - **Argument Parsing Best Practices** (5): SC2270 (prefer getopts over manual argument parsing), SC2271 (prefer printf over echo for non-trivial formatting), SC2272 (this is a constant, not a variable), SC2273 (use ${var:?} if this should never be empty), SC2274 (quote the RHS of = in [ ] to prevent globbing)
   - **Word Splitting & Expansion** (7): SC2275 (use ${var} to avoid field splitting), SC2276 (prefer explicit -n to check non-empty), SC2277 (use || instead of -o for test operators), SC2278 (use [[ ]] instead of deprecated syntax), SC2279 (use [[ < instead of [ <), SC2280 (remove redundant (..) or use 'if .. then'), SC2281 (don't use $@ in double quotes, it breaks word splitting)
+
+*Batch 14* (10 rules) - **FOCUS: Parameter Expansion & Bash Arrays - 🎯 CROSSED 80% MILESTONE! 🎯**:
+- ✅ 6 Universal rules:
+  - **Parameter Expansion & Safety** (4): SC2282 (use ${var:?} to require variables to be set), SC2283 (remove extra spaces after ! in test expressions), SC2284 (use ${var:+value} for conditional value assignment), SC2285 (remove $ from variables in arithmetic contexts)
+  - **Best Practices & Style** (2): SC2288 (use true/false directly instead of [ 1 = 1 ]), SC2289 (use ${#var} instead of expr length for string length)
+- ✅ 4 NotSh rules (bash/zsh/ksh only):
+  - **Bash-Specific Features** (4): SC2286 (prefer mapfile/readarray over read loops - bash 4+ builtins), SC2287 (use [[ -v var ]] to check if variable is set - bash/zsh/ksh), SC2290 (remove $ from array index: ${array[i]} not ${array[$i]} - bash arrays), SC2291 (use [[ ! -v var ]] to check if variable is unset - bash/zsh/ksh)
 
 **Integration Tests** (12 total: 6 batch 1 + 6 batch 2):
 
