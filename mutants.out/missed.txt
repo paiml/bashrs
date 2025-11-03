@@ -1,0 +1,5 @@
+rash/src/linter/rules/sc2086.rs:25:27: replace < with > in should_skip_line
+rash/src/linter/rules/sc2086.rs:47:21: replace + with - in calculate_end_column
+rash/src/linter/rules/sc2086.rs:45:21: replace + with - in calculate_end_column
+rash/src/linter/rules/sc2086.rs:25:27: replace < with == in should_skip_line
+rash/src/linter/rules/sc2086.rs:47:21: replace + with * in calculate_end_column

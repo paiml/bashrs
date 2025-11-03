@@ -1,3 +1,4 @@
-rash/src/linter/rule_registry.rs:17:5: replace get_rule_compatibility -> Option<ShellCompatibility> with None
-rash/src/linter/rule_registry.rs:22:5: replace should_apply_rule -> bool with true
-rash/src/linter/rule_registry.rs:22:5: replace should_apply_rule -> bool with false
+rash/src/linter/rules/sc2086.rs:50:17: replace + with - in calculate_end_column
+rash/src/linter/rules/sc2086.rs:45:33: replace + with - in calculate_end_column
+rash/src/linter/rules/sc2086.rs:99:5: replace check -> LintResult with Default::default()
+rash/src/linter/rules/sc2086.rs:56:5: replace is_in_arithmetic_context -> bool with true

@@ -159,6 +159,84 @@
                 <div id="content" class="content">
                     <main>
                         <h1 id="cli-commands"><a class="header" href="#cli-commands">CLI Commands</a></h1>
+<p>This is the reference for all bashrs CLI commands.</p>
+<h2 id="bashrs-bench---scientific-benchmarking"><a class="header" href="#bashrs-bench---scientific-benchmarking"><code>bashrs bench</code> - Scientific Benchmarking</a></h2>
+<p>Benchmark shell scripts with scientific rigor, measuring execution time and optionally memory usage.</p>
+<h3 id="usage"><a class="header" href="#usage">Usage</a></h3>
+<pre><code class="language-bash">bashrs bench [OPTIONS] &lt;SCRIPT&gt;...
+</code></pre>
+<h3 id="arguments"><a class="header" href="#arguments">Arguments</a></h3>
+<ul>
+<li><code>&lt;SCRIPT&gt;...</code> - Shell script(s) to benchmark</li>
+</ul>
+<h3 id="options"><a class="header" href="#options">Options</a></h3>
+<ul>
+<li><code>-w, --warmup &lt;N&gt;</code> - Number of warmup iterations (default: 3)</li>
+<li><code>-i, --iterations &lt;N&gt;</code> - Number of measured iterations (default: 10)</li>
+<li><code>-o, --output &lt;FILE&gt;</code> - Output results to JSON file</li>
+<li><code>-s, --strict</code> - Enable quality gates (lint + determinism checks)</li>
+<li><code>--verify-determinism</code> - Verify script produces identical output</li>
+<li><code>--show-raw</code> - Show raw iteration times</li>
+<li><code>-q, --quiet</code> - Suppress progress output</li>
+<li><code>-m, --measure-memory</code> - Measure memory usage (requires <code>/usr/bin/time</code>)</li>
+</ul>
+<h3 id="examples"><a class="header" href="#examples">Examples</a></h3>
+<p>Basic benchmark:</p>
+<pre><code class="language-bash">bashrs bench script.sh
+</code></pre>
+<p>With memory measurement:</p>
+<pre><code class="language-bash">bashrs bench script.sh --measure-memory
+</code></pre>
+<p>Custom iterations and warmup:</p>
+<pre><code class="language-bash">bashrs bench script.sh --iterations 20 --warmup 5
+</code></pre>
+<p>Compare multiple scripts:</p>
+<pre><code class="language-bash">bashrs bench fast.sh slow.sh --measure-memory
+</code></pre>
+<p>JSON output for automation:</p>
+<pre><code class="language-bash">bashrs bench script.sh --output results.json --quiet
+</code></pre>
+<p>With quality gates:</p>
+<pre><code class="language-bash">bashrs bench script.sh --strict --verify-determinism
+</code></pre>
+<h3 id="output"><a class="header" href="#output">Output</a></h3>
+<p>The bench command provides:</p>
+<ul>
+<li><strong>Statistical metrics</strong>: Mean, median, standard deviation, min, max</li>
+<li><strong>Memory statistics</strong> (with <code>-m</code>): Mean, median, min, max, peak RSS in KB</li>
+<li><strong>Environment metadata</strong>: CPU, RAM, OS, hostname</li>
+<li><strong>Console display</strong>: Formatted output with results</li>
+<li><strong>JSON export</strong>: Machine-readable format for automation</li>
+</ul>
+<h3 id="memory-measurement"><a class="header" href="#memory-measurement">Memory Measurement</a></h3>
+<p>When using <code>--measure-memory</code> / <code>-m</code>, bashrs measures the maximum resident set size (RSS) during script execution using <code>/usr/bin/time</code>. This provides accurate memory profiling:</p>
+<pre><code class="language-text">💾 Memory Usage
+  Mean:    3456.00 KB
+  Median:  3456.00 KB
+  Min:     3456.00 KB
+  Max:     3456.00 KB
+  Peak:    3456.00 KB
+</code></pre>
+<p><strong>Requirements</strong>:</p>
+<ul>
+<li><code>/usr/bin/time</code> must be available (standard on Linux/Unix systems)</li>
+<li>Memory measurement adds negligible overhead (~1-2%)</li>
+</ul>
+<h3 id="quality-gates"><a class="header" href="#quality-gates">Quality Gates</a></h3>
+<p>Use <code>--strict</code> to run bashrs linter before benchmarking:</p>
+<ul>
+<li>Ensures scripts follow best practices</li>
+<li>Catches common errors before performance testing</li>
+<li>Fails benchmark if lint errors are found</li>
+</ul>
+<p>Use <code>--verify-determinism</code> to check output consistency:</p>
+<ul>
+<li>Runs script multiple times</li>
+<li>Compares output across runs</li>
+<li>Fails if non-deterministic behavior detected (e.g., $RANDOM, timestamps)</li>
+</ul>
+<h2 id="other-commands"><a class="header" href="#other-commands">Other Commands</a></h2>
+<p>(Additional CLI commands will be documented here)</p>
 
                     </main>
 

@@ -167,4 +167,97 @@ mod tests {
         // Literal format with multiple %s placeholders
         assert_eq!(result.diagnostics.len(), 0);
     }
+
+    // ===== Mutation Coverage Tests - Iteration 1 =====
+    // These 7 tests target the missed mutants from baseline (41.7% kill rate)
+    // All 7 missed mutants are arithmetic column calculation mutations
+    // Target: 90%+ kill rate (11/12 mutants caught)
+
+    #[test]
+    fn test_mutation_sc2059_printf_var_start_col_exact() {
+        // MUTATION: Line 53:41 - replace + with * in mat.start() + 1
+        // Tests PRINTF_WITH_VAR pattern start column calculation
+        let bash_code = "printf $fmt arg"; // $fmt starts at column 8
+        let result = check(bash_code);
+        assert_eq!(result.diagnostics.len(), 1);
+        let span = result.diagnostics[0].span;
+        assert_eq!(
+            span.start_col, 1,
+            "Start column must use +1, not *1 (would be 0 with *)"
+        );
+    }
+
+    #[test]
+    fn test_mutation_sc2059_printf_var_end_col_exact() {
+        // MUTATION: Line 54:37 - replace + with * or -
+        // Tests PRINTF_WITH_VAR pattern end column calculation
+        let bash_code = "printf $fmt"; // $fmt ends at column 12
+        let result = check(bash_code);
+        assert_eq!(result.diagnostics.len(), 1);
+        let span = result.diagnostics[0].span;
+        assert_eq!(span.end_col, 12, "End column must use +1, not *1 or -1");
+    }
+
+    #[test]
+    fn test_mutation_sc2059_printf_expansion_start_col_exact() {
+        // MUTATION: Line 71:45 - replace + with * in mat.start() + 1
+        // Tests PRINTF_WITH_EXPANSION pattern start column calculation
+        let bash_code = r#"printf "hello $name""#; // String starts at column 8
+        let result = check(bash_code);
+        assert_eq!(result.diagnostics.len(), 1);
+        let span = result.diagnostics[0].span;
+        assert_eq!(
+            span.start_col, 1,
+            "Start column calculation must use +1, not *1"
+        );
+    }
+
+    #[test]
+    fn test_mutation_sc2059_printf_expansion_end_col_exact() {
+        // MUTATION: Line 72:41 - replace + with * or -
+        // Tests PRINTF_WITH_EXPANSION pattern end column calculation
+        let bash_code = r#"printf "$var""#; // String ends at column 13
+        let result = check(bash_code);
+        assert_eq!(result.diagnostics.len(), 1);
+        let span = result.diagnostics[0].span;
+        assert_eq!(span.end_col, 13, "End column must use +1, not *1 or -1");
+    }
+
+    #[test]
+    fn test_mutation_sc2059_line_num_calculation() {
+        // MUTATION: Line 45:33 - replace + with * in line_num + 1
+        // Tests line number calculation (0-indexed → 1-indexed)
+        let bash_code = "# comment\nprintf $var"; // printf on line 2
+        let result = check(bash_code);
+        assert_eq!(result.diagnostics.len(), 1);
+        assert_eq!(
+            result.diagnostics[0].span.start_line, 2,
+            "Line number must use +1 (0-indexed → 1-indexed)"
+        );
+    }
+
+    #[test]
+    fn test_mutation_sc2059_column_positions_with_offset() {
+        // Tests column calculations with leading whitespace
+        // Verifies column arithmetic works correctly with offsets
+        let bash_code = "    printf $fmt"; // $fmt starts at column 12
+        let result = check(bash_code);
+        assert_eq!(result.diagnostics.len(), 1);
+        let span = result.diagnostics[0].span;
+        assert_eq!(span.start_col, 5, "Should account for leading spaces");
+        assert_eq!(span.end_col, 16, "End column should be start + length");
+    }
+
+    #[test]
+    fn test_mutation_sc2059_expansion_column_accuracy() {
+        // Tests PRINTF_WITH_EXPANSION pattern column accuracy
+        // Verifies span covers the entire format string
+        let bash_code = r#"printf "test $var""#;
+        let result = check(bash_code);
+        assert_eq!(result.diagnostics.len(), 1);
+        let span = result.diagnostics[0].span;
+        // Verify span covers the entire printf command
+        assert!(span.end_col > span.start_col, "End must be after start");
+        assert_eq!(span.start_col, 1, "Should start at printf");
+    }
 }

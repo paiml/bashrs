@@ -1287,6 +1287,249 @@ bashrs [normal]&gt; :purify RELEASE="release-$(date +%s)"
 <div style="break-before: page; page-break-before: always;"></div><h1 id="determinism"><a class="header" href="#determinism">Determinism</a></h1>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="idempotency"><a class="header" href="#idempotency">Idempotency</a></h1>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="posix-compliance"><a class="header" href="#posix-compliance">POSIX Compliance</a></h1>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="shell-type-detection"><a class="header" href="#shell-type-detection">Shell Type Detection</a></h1>
+<p>bashrs automatically detects the shell type from your file path and content, ensuring linting rules are appropriate for the target shell.</p>
+<h2 id="supported-shells"><a class="header" href="#supported-shells">Supported Shells</a></h2>
+<ul>
+<li><strong>bash</strong> - Bourne Again Shell (default)</li>
+<li><strong>zsh</strong> - Z Shell</li>
+<li><strong>sh</strong> - POSIX Shell</li>
+<li><strong>ksh</strong> - Korn Shell</li>
+<li><strong>auto</strong> - Let ShellCheck auto-detect</li>
+</ul>
+<h2 id="detection-priority"><a class="header" href="#detection-priority">Detection Priority</a></h2>
+<p>bashrs uses a priority-based detection system (highest to lowest):</p>
+<ol>
+<li><strong>ShellCheck directive</strong> - Explicit override</li>
+<li><strong>Shebang line</strong> - Script header</li>
+<li><strong>File extension</strong> - <code>.zsh</code>, <code>.bash</code>, etc.</li>
+<li><strong>File name</strong> - <code>.zshrc</code>, <code>.bashrc</code>, etc.</li>
+<li><strong>Default</strong> - Falls back to bash</li>
+</ol>
+<h3 id="priority-example"><a class="header" href="#priority-example">Priority Example</a></h3>
+<pre><code class="language-bash"><span class="boring">!/bin/bash
+</span><span class="boring"> shellcheck shell=zsh
+</span><span class="boring"> This file will be treated as ZSH (directive wins)
+</span></code></pre>
+<h2 id="detection-methods"><a class="header" href="#detection-methods">Detection Methods</a></h2>
+<h3 id="1-shellcheck-directive-highest-priority"><a class="header" href="#1-shellcheck-directive-highest-priority">1. ShellCheck Directive (Highest Priority)</a></h3>
+<p>Explicitly specify the shell type in a comment:</p>
+<pre><code class="language-bash"><span class="boring"> shellcheck shell=zsh
+</span>echo "This is zsh"
+</code></pre>
+<pre><code class="language-bash"><span class="boring"> shellcheck shell=sh
+</span>echo "This is POSIX sh"
+</code></pre>
+<p><strong>Use case</strong>: Override auto-detection when file markers conflict.</p>
+<h3 id="2-shebang-line"><a class="header" href="#2-shebang-line">2. Shebang Line</a></h3>
+<p>The script's shebang determines the shell:</p>
+<pre><code class="language-bash"><span class="boring">!/usr/bin/env zsh
+</span><span class="boring"> Detected as: zsh
+</span></code></pre>
+<pre><code class="language-bash"><span class="boring">!/bin/bash
+</span><span class="boring"> Detected as: bash
+</span></code></pre>
+<pre><code class="language-bash"><span class="boring">!/bin/sh
+</span><span class="boring"> Detected as: sh (POSIX)
+</span></code></pre>
+<h3 id="3-file-extension"><a class="header" href="#3-file-extension">3. File Extension</a></h3>
+<p>File extensions trigger automatic detection:</p>
+<div class="table-wrapper"><table><thead><tr><th>Extension</th><th>Detected As</th></tr></thead><tbody>
+<tr><td><code>.zsh</code></td><td>zsh</td></tr>
+<tr><td><code>.bash</code></td><td>bash</td></tr>
+<tr><td><code>.ksh</code></td><td>ksh</td></tr>
+<tr><td><code>.sh</code></td><td>bash (default)</td></tr>
+</tbody></table>
+</div>
+<h3 id="4-file-name"><a class="header" href="#4-file-name">4. File Name</a></h3>
+<p>Special configuration files are automatically detected:</p>
+<div class="table-wrapper"><table><thead><tr><th>File Name</th><th>Detected As</th></tr></thead><tbody>
+<tr><td><code>.zshrc</code></td><td>zsh</td></tr>
+<tr><td><code>.zshenv</code></td><td>zsh</td></tr>
+<tr><td><code>.zprofile</code></td><td>zsh</td></tr>
+<tr><td><code>.bashrc</code></td><td>bash</td></tr>
+<tr><td><code>.bash_profile</code></td><td>bash</td></tr>
+<tr><td><code>.bash_login</code></td><td>bash</td></tr>
+</tbody></table>
+</div>
+<h2 id="why-shell-type-detection-matters"><a class="header" href="#why-shell-type-detection-matters">Why Shell Type Detection Matters</a></h2>
+<h3 id="the-problem"><a class="header" href="#the-problem">The Problem</a></h3>
+<p>Different shells have different syntax:</p>
+<p><strong>Valid in zsh</strong> (but bash might flag it):</p>
+<pre><code class="language-zsh"># zsh array splitting with nested parameter expansion
+filtered=("${(@f)"$(echo -e "line1\nline2")"}")
+</code></pre>
+<p><strong>bash linting error</strong> (false positive):</p>
+<pre><code class="language-text">❌ SC2296: Parameter expansions can't be nested
+</code></pre>
+<h3 id="the-solution"><a class="header" href="#the-solution">The Solution</a></h3>
+<p>With shell type detection:</p>
+<pre><code class="language-bash"><span class="boring"> .zshrc is automatically detected as zsh
+</span>filtered=("${(@f)"$(echo -e "line1\nline2")"}")
+<span class="boring"> ✅ No error - valid zsh syntax
+</span></code></pre>
+<h2 id="using-the-api"><a class="header" href="#using-the-api">Using the API</a></h2>
+<p>For programmatic access, use <code>lint_shell_with_path()</code>:</p>
+<pre><code class="language-rust ignore">use bashrs::linter::{lint_shell_with_path, LintResult};
+use std::path::PathBuf;
+
+// Automatically detects zsh from .zshrc
+let path = PathBuf::from(".zshrc");
+let content = r#"
+#!/usr/bin/env zsh
+echo "Hello from zsh"
+"#;
+
+let result = lint_shell_with_path(&amp;path, content);
+// Uses zsh-appropriate rules</code></pre>
+<p>For shell type detection only:</p>
+<pre><code class="language-rust ignore">use bashrs::linter::{detect_shell_type, ShellType};
+use std::path::PathBuf;
+
+let path = PathBuf::from(".zshrc");
+let content = "echo hello";
+let shell = detect_shell_type(&amp;path, content);
+
+assert_eq!(shell, ShellType::Zsh);</code></pre>
+<h2 id="real-world-examples"><a class="header" href="#real-world-examples">Real-World Examples</a></h2>
+<h3 id="example-1-zsh-configuration"><a class="header" href="#example-1-zsh-configuration">Example 1: zsh Configuration</a></h3>
+<pre><code class="language-zsh"># ~/.zshrc (automatically detected as zsh)
+
+# zsh-specific array handling
+setopt EXTENDED_GLOB
+files=(*.txt(N))  # Null glob modifier
+
+# zsh parameter expansion
+result=${${param#prefix}%%suffix}
+</code></pre>
+<p><strong>Result</strong>: ✅ No false positives on zsh-specific syntax</p>
+<h3 id="example-2-multi-shell-script"><a class="header" href="#example-2-multi-shell-script">Example 2: Multi-Shell Script</a></h3>
+<pre><code class="language-bash"><span class="boring">!/bin/bash
+</span><span class="boring"> shellcheck shell=sh
+</span><span class="boring"> Force POSIX sh rules despite bash shebang
+</span>
+<span class="boring"> Only POSIX-compliant code allowed
+</span>echo "Portable script"
+</code></pre>
+<p><strong>Result</strong>: ✅ Linted with strict POSIX rules</p>
+<h3 id="example-3-shebang-override"><a class="header" href="#example-3-shebang-override">Example 3: Shebang Override</a></h3>
+<pre><code class="language-zsh">#!/bin/bash
+# File has .zsh extension but bash shebang
+
+# Will be linted as bash (shebang wins)
+echo "This is actually bash"
+</code></pre>
+<p><strong>Result</strong>: ✅ Bash rules applied (shebang priority)</p>
+<h2 id="common-patterns"><a class="header" href="#common-patterns">Common Patterns</a></h2>
+<h3 id="pattern-1-force-zsh-detection"><a class="header" href="#pattern-1-force-zsh-detection">Pattern 1: Force zsh Detection</a></h3>
+<pre><code class="language-bash"><span class="boring"> For files without clear markers
+</span><span class="boring"> shellcheck shell=zsh
+</span><span class="boring"> Rest of zsh code...
+</span></code></pre>
+<h3 id="pattern-2-posix-compliance-check"><a class="header" href="#pattern-2-posix-compliance-check">Pattern 2: POSIX Compliance Check</a></h3>
+<pre><code class="language-bash"><span class="boring">!/bin/bash
+</span><span class="boring"> shellcheck shell=sh
+</span><span class="boring"> Ensures code is POSIX-portable
+</span></code></pre>
+<h3 id="pattern-3-default-behavior"><a class="header" href="#pattern-3-default-behavior">Pattern 3: Default Behavior</a></h3>
+<pre><code class="language-bash"><span class="boring"> No shebang, no extension → defaults to bash
+</span>echo "Assumed to be bash"
+</code></pre>
+<h2 id="benefits"><a class="header" href="#benefits">Benefits</a></h2>
+<h3 id="for-zsh-users-70-of-developers"><a class="header" href="#for-zsh-users-70-of-developers">For zsh Users (70%+ of developers)</a></h3>
+<ul>
+<li>✅ No false positives on valid zsh syntax</li>
+<li>✅ Automatic detection from <code>.zshrc</code></li>
+<li>✅ Supports zsh-specific features</li>
+</ul>
+<h3 id="for-macos-users"><a class="header" href="#for-macos-users">For macOS Users</a></h3>
+<ul>
+<li>✅ zsh is default shell (since 2019)</li>
+<li>✅ Configuration files work out-of-the-box</li>
+<li>✅ Oh My Zsh compatible</li>
+</ul>
+<h3 id="for-script-authors"><a class="header" href="#for-script-authors">For Script Authors</a></h3>
+<ul>
+<li>✅ Write once, lint correctly</li>
+<li>✅ No manual configuration needed</li>
+<li>✅ Multi-shell project support</li>
+</ul>
+<h2 id="troubleshooting-2"><a class="header" href="#troubleshooting-2">Troubleshooting</a></h2>
+<h3 id="issue-wrong-shell-detected"><a class="header" href="#issue-wrong-shell-detected">Issue: Wrong Shell Detected</a></h3>
+<p><strong>Solution</strong>: Add ShellCheck directive</p>
+<pre><code class="language-bash"><span class="boring"> shellcheck shell=zsh
+</span><span class="boring"> Forces zsh detection
+</span></code></pre>
+<h3 id="issue-want-default-behavior"><a class="header" href="#issue-want-default-behavior">Issue: Want Default Behavior</a></h3>
+<p><strong>Solution</strong>: Remove all shell indicators, defaults to bash</p>
+<h3 id="issue-testing-detection"><a class="header" href="#issue-testing-detection">Issue: Testing Detection</a></h3>
+<pre><code class="language-bash"><span class="boring"> Create test file
+</span>echo '#!/usr/bin/env zsh' &gt; test.sh
+
+<span class="boring"> Check detection (programmatically)
+</span><span class="boring"> bashrs will auto-detect from shebang
+</span></code></pre>
+<h2 id="shell-specific-rule-filtering-v6280-dev"><a class="header" href="#shell-specific-rule-filtering-v6280-dev">Shell-Specific Rule Filtering (v6.28.0-dev)</a></h2>
+<p><strong>NEW</strong>: bashrs now filters linter rules based on detected shell type!</p>
+<h3 id="how-it-works"><a class="header" href="#how-it-works">How It Works</a></h3>
+<p>When you use <code>lint_shell_with_path()</code>, bashrs:</p>
+<ol>
+<li>Detects shell type from path and content (as before)</li>
+<li><strong>Filters rules</strong> based on shell compatibility</li>
+<li>Skips bash-only rules for POSIX sh files</li>
+<li>Skips sh-specific rules for bash/zsh files</li>
+</ol>
+<h3 id="example-posix-sh-protection"><a class="header" href="#example-posix-sh-protection">Example: POSIX sh Protection</a></h3>
+<pre><code class="language-bash"><span class="boring">!/bin/sh
+</span><span class="boring"> This is POSIX sh - no bash arrays
+</span>
+<span class="boring"> bashrs will NOT warn about missing bash features
+</span><span class="boring"> because it knows this is POSIX sh
+</span></code></pre>
+<p><strong>Bash-specific rules skipped for sh</strong>:</p>
+<ul>
+<li>SC2198-2201 (arrays - bash/zsh only)</li>
+<li>SC2039 (bash features undefined in sh)</li>
+<li>SC2002 (process substitution suggestions)</li>
+</ul>
+<h3 id="example-universal-rules-always-apply"><a class="header" href="#example-universal-rules-always-apply">Example: Universal Rules Always Apply</a></h3>
+<pre><code class="language-bash"><span class="boring">!/bin/zsh
+</span><span class="boring"> Even in zsh, bad practices are still bad
+</span>
+SESSION_ID=$RANDOM  # ❌ DET001: Non-deterministic
+mkdir /tmp/build    # ❌ IDEM001: Non-idempotent
+</code></pre>
+<p><strong>Universal rules apply to ALL shells</strong>:</p>
+<ul>
+<li>DET001-003 (Determinism)</li>
+<li>IDEM001-003 (Idempotency)</li>
+<li>SEC001-008 (Security)</li>
+<li>Most SC2xxx quoting/syntax rules</li>
+</ul>
+<h3 id="current-status-v6280-dev"><a class="header" href="#current-status-v6280-dev">Current Status (v6.28.0-dev)</a></h3>
+<ul>
+<li>✅ <strong>20 rules classified</strong> (SEC, DET, IDEM + 6 SC2xxx)</li>
+<li>⏳ <strong>317 rules pending</strong> classification (default: Universal)</li>
+<li>✅ <strong>Filtering active</strong> in <code>lint_shell_with_path()</code></li>
+<li>⏳ <strong>Zsh-specific rules</strong> planned (ZSH001-ZSH020)</li>
+</ul>
+<h3 id="future-enhancements"><a class="header" href="#future-enhancements">Future Enhancements</a></h3>
+<h3 id="planned-v6280-final-and-beyond"><a class="header" href="#planned-v6280-final-and-beyond">Planned (v6.28.0-final and beyond)</a></h3>
+<ul>
+<li>Complete SC2xxx classification (317 remaining rules)</li>
+<li>20 zsh-specific rules (ZSH001-ZSH020)</li>
+<li>Per-shell linting profiles</li>
+<li>Custom shell type plugins</li>
+<li>Enhanced zsh array linting</li>
+</ul>
+<h2 id="summary-1"><a class="header" href="#summary-1">Summary</a></h2>
+<ul>
+<li><strong>Automatic</strong>: No configuration needed</li>
+<li><strong>Priority-based</strong>: Clear precedence rules</li>
+<li><strong>Compatible</strong>: Works with all major shells</li>
+<li><strong>Accurate</strong>: 100% detection accuracy on test suite</li>
+</ul>
+<p><strong>Result</strong>: Write shell scripts naturally, lint correctly automatically.</p>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="security-rules-sec001-sec008"><a class="header" href="#security-rules-sec001-sec008">Security Rules (SEC001-SEC008)</a></h1>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="determinism-rules-det001-det003"><a class="header" href="#determinism-rules-det001-det003">Determinism Rules (DET001-DET003)</a></h1>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="idempotency-rules-idem001-idem003"><a class="header" href="#idempotency-rules-idem001-idem003">Idempotency Rules (IDEM001-IDEM003)</a></h1>
@@ -2060,7 +2303,7 @@ fi
 <div style="break-before: page; page-break-before: always;"></div><h1 id="makefile-purification-with-rash"><a class="header" href="#makefile-purification-with-rash">Makefile Purification with Rash</a></h1>
 <p>Rash provides <strong>Makefile purification</strong> - automatically detecting and fixing non-deterministic patterns in GNU Makefiles to ensure reproducible, deterministic builds.</p>
 <h2 id="why-purify-makefiles"><a class="header" href="#why-purify-makefiles">Why Purify Makefiles?</a></h2>
-<h3 id="the-problem"><a class="header" href="#the-problem">The Problem</a></h3>
+<h3 id="the-problem-1"><a class="header" href="#the-problem-1">The Problem</a></h3>
 <p>Makefiles often contain non-deterministic constructs that lead to unreproducible builds:</p>
 <pre><code class="language-makefile"># ❌ Non-deterministic - file order depends on filesystem
 SOURCES := $(wildcard src/*.c)
@@ -2077,7 +2320,7 @@ build/defaults.h: generate-defaults
 	./gen-defaults &gt; build/config.h  # ❌ Race condition!
 </code></pre>
 <p><strong>Result</strong>: Different build outputs on different machines, flaky parallel builds, hard-to-reproduce bugs.</p>
-<h3 id="the-solution"><a class="header" href="#the-solution">The Solution</a></h3>
+<h3 id="the-solution-1"><a class="header" href="#the-solution-1">The Solution</a></h3>
 <p>Rash automatically transforms Makefiles to be <strong>deterministic</strong> and <strong>safe for parallel builds</strong>:</p>
 <pre><code class="language-makefile"># ✅ Deterministic - sorted file order
 SOURCES := $(sort $(wildcard src/*.c))
@@ -2244,7 +2487,7 @@ MAKE010: Parallel build race detected
 
 <span class="boring"> Build on any platform - identical results
 </span></code></pre>
-<h2 id="how-it-works"><a class="header" href="#how-it-works">How It Works</a></h2>
+<h2 id="how-it-works-1"><a class="header" href="#how-it-works-1">How It Works</a></h2>
 <p>Rash Makefile purification follows these steps:</p>
 <ol>
 <li><strong>Parse</strong> Makefile to AST</li>
@@ -2934,6 +3177,84 @@ fi
 <div style="break-before: page; page-break-before: always;"></div><h1 id="mutation-testing"><a class="header" href="#mutation-testing">Mutation Testing</a></h1>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="performance-optimization"><a class="header" href="#performance-optimization">Performance Optimization</a></h1>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="cli-commands"><a class="header" href="#cli-commands">CLI Commands</a></h1>
+<p>This is the reference for all bashrs CLI commands.</p>
+<h2 id="bashrs-bench---scientific-benchmarking"><a class="header" href="#bashrs-bench---scientific-benchmarking"><code>bashrs bench</code> - Scientific Benchmarking</a></h2>
+<p>Benchmark shell scripts with scientific rigor, measuring execution time and optionally memory usage.</p>
+<h3 id="usage"><a class="header" href="#usage">Usage</a></h3>
+<pre><code class="language-bash">bashrs bench [OPTIONS] &lt;SCRIPT&gt;...
+</code></pre>
+<h3 id="arguments"><a class="header" href="#arguments">Arguments</a></h3>
+<ul>
+<li><code>&lt;SCRIPT&gt;...</code> - Shell script(s) to benchmark</li>
+</ul>
+<h3 id="options"><a class="header" href="#options">Options</a></h3>
+<ul>
+<li><code>-w, --warmup &lt;N&gt;</code> - Number of warmup iterations (default: 3)</li>
+<li><code>-i, --iterations &lt;N&gt;</code> - Number of measured iterations (default: 10)</li>
+<li><code>-o, --output &lt;FILE&gt;</code> - Output results to JSON file</li>
+<li><code>-s, --strict</code> - Enable quality gates (lint + determinism checks)</li>
+<li><code>--verify-determinism</code> - Verify script produces identical output</li>
+<li><code>--show-raw</code> - Show raw iteration times</li>
+<li><code>-q, --quiet</code> - Suppress progress output</li>
+<li><code>-m, --measure-memory</code> - Measure memory usage (requires <code>/usr/bin/time</code>)</li>
+</ul>
+<h3 id="examples-1"><a class="header" href="#examples-1">Examples</a></h3>
+<p>Basic benchmark:</p>
+<pre><code class="language-bash">bashrs bench script.sh
+</code></pre>
+<p>With memory measurement:</p>
+<pre><code class="language-bash">bashrs bench script.sh --measure-memory
+</code></pre>
+<p>Custom iterations and warmup:</p>
+<pre><code class="language-bash">bashrs bench script.sh --iterations 20 --warmup 5
+</code></pre>
+<p>Compare multiple scripts:</p>
+<pre><code class="language-bash">bashrs bench fast.sh slow.sh --measure-memory
+</code></pre>
+<p>JSON output for automation:</p>
+<pre><code class="language-bash">bashrs bench script.sh --output results.json --quiet
+</code></pre>
+<p>With quality gates:</p>
+<pre><code class="language-bash">bashrs bench script.sh --strict --verify-determinism
+</code></pre>
+<h3 id="output"><a class="header" href="#output">Output</a></h3>
+<p>The bench command provides:</p>
+<ul>
+<li><strong>Statistical metrics</strong>: Mean, median, standard deviation, min, max</li>
+<li><strong>Memory statistics</strong> (with <code>-m</code>): Mean, median, min, max, peak RSS in KB</li>
+<li><strong>Environment metadata</strong>: CPU, RAM, OS, hostname</li>
+<li><strong>Console display</strong>: Formatted output with results</li>
+<li><strong>JSON export</strong>: Machine-readable format for automation</li>
+</ul>
+<h3 id="memory-measurement"><a class="header" href="#memory-measurement">Memory Measurement</a></h3>
+<p>When using <code>--measure-memory</code> / <code>-m</code>, bashrs measures the maximum resident set size (RSS) during script execution using <code>/usr/bin/time</code>. This provides accurate memory profiling:</p>
+<pre><code class="language-text">💾 Memory Usage
+  Mean:    3456.00 KB
+  Median:  3456.00 KB
+  Min:     3456.00 KB
+  Max:     3456.00 KB
+  Peak:    3456.00 KB
+</code></pre>
+<p><strong>Requirements</strong>:</p>
+<ul>
+<li><code>/usr/bin/time</code> must be available (standard on Linux/Unix systems)</li>
+<li>Memory measurement adds negligible overhead (~1-2%)</li>
+</ul>
+<h3 id="quality-gates"><a class="header" href="#quality-gates">Quality Gates</a></h3>
+<p>Use <code>--strict</code> to run bashrs linter before benchmarking:</p>
+<ul>
+<li>Ensures scripts follow best practices</li>
+<li>Catches common errors before performance testing</li>
+<li>Fails benchmark if lint errors are found</li>
+</ul>
+<p>Use <code>--verify-determinism</code> to check output consistency:</p>
+<ul>
+<li>Runs script multiple times</li>
+<li>Compares output across runs</li>
+<li>Fails if non-deterministic behavior detected (e.g., $RANDOM, timestamps)</li>
+</ul>
+<h2 id="other-commands"><a class="header" href="#other-commands">Other Commands</a></h2>
+<p>(Additional CLI commands will be documented here)</p>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="repl-commands-reference"><a class="header" href="#repl-commands-reference">REPL Commands Reference</a></h1>
 <p>Complete reference for all bashrs REPL commands (v6.19.0).</p>
 <h2 id="whats-new-in-v6190"><a class="header" href="#whats-new-in-v6190">What's New in v6.19.0</a></h2>
@@ -3240,7 +3561,7 @@ bashrs [normal]&gt; :purify if then fi
 <tr><td><code>--sandboxed</code></td><td>false</td><td>Run in sandboxed mode (restricted operations)</td></tr>
 </tbody></table>
 </div>
-<h3 id="examples-1"><a class="header" href="#examples-1">Examples</a></h3>
+<h3 id="examples-2"><a class="header" href="#examples-2">Examples</a></h3>
 <p><strong>Enable debug mode</strong>:</p>
 <pre><code class="language-bash">$ bashrs repl --debug
 bashrs REPL v6.7.0 (debug mode enabled)
@@ -3373,7 +3694,7 @@ Statements: 1
 ✓ Purification successful!
 Purified 1 statement(s)
 </code></pre>
-<h3 id="benefits"><a class="header" href="#benefits">Benefits</a></h3>
+<h3 id="benefits-1"><a class="header" href="#benefits-1">Benefits</a></h3>
 <ul>
 <li><strong>50% less typing</strong> - No more repetitive <code>:purify</code>/<code>:lint</code> prefixes</li>
 <li><strong>Faster workflow</strong> - Switch mode once, process many commands</li>

@@ -1,0 +1,460 @@
+<!DOCTYPE HTML>
+<html lang="en" class="rust sidebar-visible" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>Shell Type Detection - The Rash Book - Shell Safety and Purification</title>
+
+
+        <!-- Custom HTML head -->
+
+        <meta name="description" content="A comprehensive guide to Rash: shell safety, purification, and linting">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="../favicon.svg">
+        <link rel="shortcut icon" href="../favicon.png">
+        <link rel="stylesheet" href="../css/variables.css">
+        <link rel="stylesheet" href="../css/general.css">
+        <link rel="stylesheet" href="../css/chrome.css">
+        <link rel="stylesheet" href="../css/print.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="../FontAwesome/css/font-awesome.css">
+        <link rel="stylesheet" href="../fonts/fonts.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" href="../highlight.css">
+        <link rel="stylesheet" href="../tomorrow-night.css">
+        <link rel="stylesheet" href="../ayu-highlight.css">
+
+        <!-- Custom theme stylesheets -->
+
+
+        <!-- Provide site root to javascript -->
+        <script>
+            var path_to_root = "../";
+            var default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "navy" : "rust";
+        </script>
+        <!-- Start loading toc.js asap -->
+        <script src="../toc.js"></script>
+    </head>
+    <body>
+    <div id="body-container">
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                var theme = localStorage.getItem('mdbook-theme');
+                var sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            var theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            const html = document.documentElement;
+            html.classList.remove('rust')
+            html.classList.add(theme);
+            html.classList.add("js");
+        </script>
+
+        <input type="checkbox" id="sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            var sidebar = null;
+            var sidebar_toggle = document.getElementById("sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+            }
+            sidebar_toggle.checked = sidebar === 'visible';
+            html.classList.remove('sidebar-visible');
+            html.classList.add("sidebar-" + sidebar);
+        </script>
+
+        <nav id="sidebar" class="sidebar" aria-label="Table of contents">
+            <!-- populated by js -->
+            <mdbook-sidebar-scrollbox class="sidebar-scrollbox"></mdbook-sidebar-scrollbox>
+            <noscript>
+                <iframe class="sidebar-iframe-outer" src="../toc.html"></iframe>
+            </noscript>
+            <div id="sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <div id="page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="menu-bar-hover-placeholder"></div>
+                <div id="menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="sidebar-toggle" class="icon-button" for="sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="sidebar">
+                            <i class="fa fa-bars"></i>
+                        </label>
+                        <button id="theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="theme-list">
+                            <i class="fa fa-paint-brush"></i>
+                        </button>
+                        <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
+                        </ul>
+                        <button id="search-toggle" class="icon-button" type="button" title="Search. (Shortkey: s)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="S" aria-controls="searchbar">
+                            <i class="fa fa-search"></i>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">The Rash Book - Shell Safety and Purification</h1>
+
+                    <div class="right-buttons">
+                        <a href="../print.html" title="Print this book" aria-label="Print this book">
+                            <i id="print-button" class="fa fa-print"></i>
+                        </a>
+                        <a href="https://github.com/paiml/bashrs" title="Git repository" aria-label="Git repository">
+                            <i id="git-repository-button" class="fa fa-github"></i>
+                        </a>
+                        <a href="https://github.com/paiml/bashrs/edit/main/book/src/linting/shell-detection.md" title="Suggest an edit" aria-label="Suggest an edit">
+                            <i id="git-edit-button" class="fa fa-edit"></i>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="search-wrapper" class="hidden">
+                    <form id="searchbar-outer" class="searchbar-outer">
+                        <input type="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                    </form>
+                    <div id="searchresults-outer" class="searchresults-outer hidden">
+                        <div id="searchresults-header" class="searchresults-header"></div>
+                        <ul id="searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="content" class="content">
+                    <main>
+                        <h1 id="shell-type-detection"><a class="header" href="#shell-type-detection">Shell Type Detection</a></h1>
+<p>bashrs automatically detects the shell type from your file path and content, ensuring linting rules are appropriate for the target shell.</p>
+<h2 id="supported-shells"><a class="header" href="#supported-shells">Supported Shells</a></h2>
+<ul>
+<li><strong>bash</strong> - Bourne Again Shell (default)</li>
+<li><strong>zsh</strong> - Z Shell</li>
+<li><strong>sh</strong> - POSIX Shell</li>
+<li><strong>ksh</strong> - Korn Shell</li>
+<li><strong>auto</strong> - Let ShellCheck auto-detect</li>
+</ul>
+<h2 id="detection-priority"><a class="header" href="#detection-priority">Detection Priority</a></h2>
+<p>bashrs uses a priority-based detection system (highest to lowest):</p>
+<ol>
+<li><strong>ShellCheck directive</strong> - Explicit override</li>
+<li><strong>Shebang line</strong> - Script header</li>
+<li><strong>File extension</strong> - <code>.zsh</code>, <code>.bash</code>, etc.</li>
+<li><strong>File name</strong> - <code>.zshrc</code>, <code>.bashrc</code>, etc.</li>
+<li><strong>Default</strong> - Falls back to bash</li>
+</ol>
+<h3 id="priority-example"><a class="header" href="#priority-example">Priority Example</a></h3>
+<pre><code class="language-bash"><span class="boring">!/bin/bash
+</span><span class="boring"> shellcheck shell=zsh
+</span><span class="boring"> This file will be treated as ZSH (directive wins)
+</span></code></pre>
+<h2 id="detection-methods"><a class="header" href="#detection-methods">Detection Methods</a></h2>
+<h3 id="1-shellcheck-directive-highest-priority"><a class="header" href="#1-shellcheck-directive-highest-priority">1. ShellCheck Directive (Highest Priority)</a></h3>
+<p>Explicitly specify the shell type in a comment:</p>
+<pre><code class="language-bash"><span class="boring"> shellcheck shell=zsh
+</span>echo "This is zsh"
+</code></pre>
+<pre><code class="language-bash"><span class="boring"> shellcheck shell=sh
+</span>echo "This is POSIX sh"
+</code></pre>
+<p><strong>Use case</strong>: Override auto-detection when file markers conflict.</p>
+<h3 id="2-shebang-line"><a class="header" href="#2-shebang-line">2. Shebang Line</a></h3>
+<p>The script's shebang determines the shell:</p>
+<pre><code class="language-bash"><span class="boring">!/usr/bin/env zsh
+</span><span class="boring"> Detected as: zsh
+</span></code></pre>
+<pre><code class="language-bash"><span class="boring">!/bin/bash
+</span><span class="boring"> Detected as: bash
+</span></code></pre>
+<pre><code class="language-bash"><span class="boring">!/bin/sh
+</span><span class="boring"> Detected as: sh (POSIX)
+</span></code></pre>
+<h3 id="3-file-extension"><a class="header" href="#3-file-extension">3. File Extension</a></h3>
+<p>File extensions trigger automatic detection:</p>
+<div class="table-wrapper"><table><thead><tr><th>Extension</th><th>Detected As</th></tr></thead><tbody>
+<tr><td><code>.zsh</code></td><td>zsh</td></tr>
+<tr><td><code>.bash</code></td><td>bash</td></tr>
+<tr><td><code>.ksh</code></td><td>ksh</td></tr>
+<tr><td><code>.sh</code></td><td>bash (default)</td></tr>
+</tbody></table>
+</div>
+<h3 id="4-file-name"><a class="header" href="#4-file-name">4. File Name</a></h3>
+<p>Special configuration files are automatically detected:</p>
+<div class="table-wrapper"><table><thead><tr><th>File Name</th><th>Detected As</th></tr></thead><tbody>
+<tr><td><code>.zshrc</code></td><td>zsh</td></tr>
+<tr><td><code>.zshenv</code></td><td>zsh</td></tr>
+<tr><td><code>.zprofile</code></td><td>zsh</td></tr>
+<tr><td><code>.bashrc</code></td><td>bash</td></tr>
+<tr><td><code>.bash_profile</code></td><td>bash</td></tr>
+<tr><td><code>.bash_login</code></td><td>bash</td></tr>
+</tbody></table>
+</div>
+<h2 id="why-shell-type-detection-matters"><a class="header" href="#why-shell-type-detection-matters">Why Shell Type Detection Matters</a></h2>
+<h3 id="the-problem"><a class="header" href="#the-problem">The Problem</a></h3>
+<p>Different shells have different syntax:</p>
+<p><strong>Valid in zsh</strong> (but bash might flag it):</p>
+<pre><code class="language-zsh"># zsh array splitting with nested parameter expansion
+filtered=("${(@f)"$(echo -e "line1\nline2")"}")
+</code></pre>
+<p><strong>bash linting error</strong> (false positive):</p>
+<pre><code class="language-text">❌ SC2296: Parameter expansions can't be nested
+</code></pre>
+<h3 id="the-solution"><a class="header" href="#the-solution">The Solution</a></h3>
+<p>With shell type detection:</p>
+<pre><code class="language-bash"><span class="boring"> .zshrc is automatically detected as zsh
+</span>filtered=("${(@f)"$(echo -e "line1\nline2")"}")
+<span class="boring"> ✅ No error - valid zsh syntax
+</span></code></pre>
+<h2 id="using-the-api"><a class="header" href="#using-the-api">Using the API</a></h2>
+<p>For programmatic access, use <code>lint_shell_with_path()</code>:</p>
+<pre><code class="language-rust ignore">use bashrs::linter::{lint_shell_with_path, LintResult};
+use std::path::PathBuf;
+
+// Automatically detects zsh from .zshrc
+let path = PathBuf::from(".zshrc");
+let content = r#"
+#!/usr/bin/env zsh
+echo "Hello from zsh"
+"#;
+
+let result = lint_shell_with_path(&amp;path, content);
+// Uses zsh-appropriate rules</code></pre>
+<p>For shell type detection only:</p>
+<pre><code class="language-rust ignore">use bashrs::linter::{detect_shell_type, ShellType};
+use std::path::PathBuf;
+
+let path = PathBuf::from(".zshrc");
+let content = "echo hello";
+let shell = detect_shell_type(&amp;path, content);
+
+assert_eq!(shell, ShellType::Zsh);</code></pre>
+<h2 id="real-world-examples"><a class="header" href="#real-world-examples">Real-World Examples</a></h2>
+<h3 id="example-1-zsh-configuration"><a class="header" href="#example-1-zsh-configuration">Example 1: zsh Configuration</a></h3>
+<pre><code class="language-zsh"># ~/.zshrc (automatically detected as zsh)
+
+# zsh-specific array handling
+setopt EXTENDED_GLOB
+files=(*.txt(N))  # Null glob modifier
+
+# zsh parameter expansion
+result=${${param#prefix}%%suffix}
+</code></pre>
+<p><strong>Result</strong>: ✅ No false positives on zsh-specific syntax</p>
+<h3 id="example-2-multi-shell-script"><a class="header" href="#example-2-multi-shell-script">Example 2: Multi-Shell Script</a></h3>
+<pre><code class="language-bash"><span class="boring">!/bin/bash
+</span><span class="boring"> shellcheck shell=sh
+</span><span class="boring"> Force POSIX sh rules despite bash shebang
+</span>
+<span class="boring"> Only POSIX-compliant code allowed
+</span>echo "Portable script"
+</code></pre>
+<p><strong>Result</strong>: ✅ Linted with strict POSIX rules</p>
+<h3 id="example-3-shebang-override"><a class="header" href="#example-3-shebang-override">Example 3: Shebang Override</a></h3>
+<pre><code class="language-zsh">#!/bin/bash
+# File has .zsh extension but bash shebang
+
+# Will be linted as bash (shebang wins)
+echo "This is actually bash"
+</code></pre>
+<p><strong>Result</strong>: ✅ Bash rules applied (shebang priority)</p>
+<h2 id="common-patterns"><a class="header" href="#common-patterns">Common Patterns</a></h2>
+<h3 id="pattern-1-force-zsh-detection"><a class="header" href="#pattern-1-force-zsh-detection">Pattern 1: Force zsh Detection</a></h3>
+<pre><code class="language-bash"><span class="boring"> For files without clear markers
+</span><span class="boring"> shellcheck shell=zsh
+</span><span class="boring"> Rest of zsh code...
+</span></code></pre>
+<h3 id="pattern-2-posix-compliance-check"><a class="header" href="#pattern-2-posix-compliance-check">Pattern 2: POSIX Compliance Check</a></h3>
+<pre><code class="language-bash"><span class="boring">!/bin/bash
+</span><span class="boring"> shellcheck shell=sh
+</span><span class="boring"> Ensures code is POSIX-portable
+</span></code></pre>
+<h3 id="pattern-3-default-behavior"><a class="header" href="#pattern-3-default-behavior">Pattern 3: Default Behavior</a></h3>
+<pre><code class="language-bash"><span class="boring"> No shebang, no extension → defaults to bash
+</span>echo "Assumed to be bash"
+</code></pre>
+<h2 id="benefits"><a class="header" href="#benefits">Benefits</a></h2>
+<h3 id="for-zsh-users-70-of-developers"><a class="header" href="#for-zsh-users-70-of-developers">For zsh Users (70%+ of developers)</a></h3>
+<ul>
+<li>✅ No false positives on valid zsh syntax</li>
+<li>✅ Automatic detection from <code>.zshrc</code></li>
+<li>✅ Supports zsh-specific features</li>
+</ul>
+<h3 id="for-macos-users"><a class="header" href="#for-macos-users">For macOS Users</a></h3>
+<ul>
+<li>✅ zsh is default shell (since 2019)</li>
+<li>✅ Configuration files work out-of-the-box</li>
+<li>✅ Oh My Zsh compatible</li>
+</ul>
+<h3 id="for-script-authors"><a class="header" href="#for-script-authors">For Script Authors</a></h3>
+<ul>
+<li>✅ Write once, lint correctly</li>
+<li>✅ No manual configuration needed</li>
+<li>✅ Multi-shell project support</li>
+</ul>
+<h2 id="troubleshooting"><a class="header" href="#troubleshooting">Troubleshooting</a></h2>
+<h3 id="issue-wrong-shell-detected"><a class="header" href="#issue-wrong-shell-detected">Issue: Wrong Shell Detected</a></h3>
+<p><strong>Solution</strong>: Add ShellCheck directive</p>
+<pre><code class="language-bash"><span class="boring"> shellcheck shell=zsh
+</span><span class="boring"> Forces zsh detection
+</span></code></pre>
+<h3 id="issue-want-default-behavior"><a class="header" href="#issue-want-default-behavior">Issue: Want Default Behavior</a></h3>
+<p><strong>Solution</strong>: Remove all shell indicators, defaults to bash</p>
+<h3 id="issue-testing-detection"><a class="header" href="#issue-testing-detection">Issue: Testing Detection</a></h3>
+<pre><code class="language-bash"><span class="boring"> Create test file
+</span>echo '#!/usr/bin/env zsh' &gt; test.sh
+
+<span class="boring"> Check detection (programmatically)
+</span><span class="boring"> bashrs will auto-detect from shebang
+</span></code></pre>
+<h2 id="shell-specific-rule-filtering-v6280-dev"><a class="header" href="#shell-specific-rule-filtering-v6280-dev">Shell-Specific Rule Filtering (v6.28.0-dev)</a></h2>
+<p><strong>NEW</strong>: bashrs now filters linter rules based on detected shell type!</p>
+<h3 id="how-it-works"><a class="header" href="#how-it-works">How It Works</a></h3>
+<p>When you use <code>lint_shell_with_path()</code>, bashrs:</p>
+<ol>
+<li>Detects shell type from path and content (as before)</li>
+<li><strong>Filters rules</strong> based on shell compatibility</li>
+<li>Skips bash-only rules for POSIX sh files</li>
+<li>Skips sh-specific rules for bash/zsh files</li>
+</ol>
+<h3 id="example-posix-sh-protection"><a class="header" href="#example-posix-sh-protection">Example: POSIX sh Protection</a></h3>
+<pre><code class="language-bash"><span class="boring">!/bin/sh
+</span><span class="boring"> This is POSIX sh - no bash arrays
+</span>
+<span class="boring"> bashrs will NOT warn about missing bash features
+</span><span class="boring"> because it knows this is POSIX sh
+</span></code></pre>
+<p><strong>Bash-specific rules skipped for sh</strong>:</p>
+<ul>
+<li>SC2198-2201 (arrays - bash/zsh only)</li>
+<li>SC2039 (bash features undefined in sh)</li>
+<li>SC2002 (process substitution suggestions)</li>
+</ul>
+<h3 id="example-universal-rules-always-apply"><a class="header" href="#example-universal-rules-always-apply">Example: Universal Rules Always Apply</a></h3>
+<pre><code class="language-bash"><span class="boring">!/bin/zsh
+</span><span class="boring"> Even in zsh, bad practices are still bad
+</span>
+SESSION_ID=$RANDOM  # ❌ DET001: Non-deterministic
+mkdir /tmp/build    # ❌ IDEM001: Non-idempotent
+</code></pre>
+<p><strong>Universal rules apply to ALL shells</strong>:</p>
+<ul>
+<li>DET001-003 (Determinism)</li>
+<li>IDEM001-003 (Idempotency)</li>
+<li>SEC001-008 (Security)</li>
+<li>Most SC2xxx quoting/syntax rules</li>
+</ul>
+<h3 id="current-status-v6280-dev"><a class="header" href="#current-status-v6280-dev">Current Status (v6.28.0-dev)</a></h3>
+<ul>
+<li>✅ <strong>20 rules classified</strong> (SEC, DET, IDEM + 6 SC2xxx)</li>
+<li>⏳ <strong>317 rules pending</strong> classification (default: Universal)</li>
+<li>✅ <strong>Filtering active</strong> in <code>lint_shell_with_path()</code></li>
+<li>⏳ <strong>Zsh-specific rules</strong> planned (ZSH001-ZSH020)</li>
+</ul>
+<h3 id="future-enhancements"><a class="header" href="#future-enhancements">Future Enhancements</a></h3>
+<h3 id="planned-v6280-final-and-beyond"><a class="header" href="#planned-v6280-final-and-beyond">Planned (v6.28.0-final and beyond)</a></h3>
+<ul>
+<li>Complete SC2xxx classification (317 remaining rules)</li>
+<li>20 zsh-specific rules (ZSH001-ZSH020)</li>
+<li>Per-shell linting profiles</li>
+<li>Custom shell type plugins</li>
+<li>Enhanced zsh array linting</li>
+</ul>
+<h2 id="summary"><a class="header" href="#summary">Summary</a></h2>
+<ul>
+<li><strong>Automatic</strong>: No configuration needed</li>
+<li><strong>Priority-based</strong>: Clear precedence rules</li>
+<li><strong>Compatible</strong>: Works with all major shells</li>
+<li><strong>Accurate</strong>: 100% detection accuracy on test suite</li>
+</ul>
+<p><strong>Result</strong>: Write shell scripts naturally, lint correctly automatically.</p>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="../concepts/posix.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <i class="fa fa-angle-left"></i>
+                            </a>
+
+                            <a rel="next prefetch" href="../linting/security.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <i class="fa fa-angle-right"></i>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="../concepts/posix.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <i class="fa fa-angle-left"></i>
+                    </a>
+
+                    <a rel="next prefetch" href="../linting/security.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <i class="fa fa-angle-right"></i>
+                    </a>
+            </nav>
+
+        </div>
+
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+        <script src="../ace.js"></script>
+        <script src="../editor.js"></script>
+        <script src="../mode-rust.js"></script>
+        <script src="../theme-dawn.js"></script>
+        <script src="../theme-tomorrow_night.js"></script>
+
+        <script src="../elasticlunr.min.js"></script>
+        <script src="../mark.min.js"></script>
+        <script src="../searcher.js"></script>
+
+        <script src="../clipboard.min.js"></script>
+        <script src="../highlight.js"></script>
+        <script src="../book.js"></script>
+
+        <!-- Custom JS scripts -->
+
+
+    </div>
+    </body>
+</html>

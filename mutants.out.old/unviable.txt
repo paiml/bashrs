@@ -1,0 +1,1 @@
+rash/src/linter/rules/sc2086.rs:76:5: replace build_diagnostic -> Diagnostic with Default::default()

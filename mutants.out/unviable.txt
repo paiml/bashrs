@@ -1,1 +1,1 @@
-rash/src/linter/rule_registry.rs:17:5: replace get_rule_compatibility -> Option<ShellCompatibility> with Some(Default::default())
+rash/src/linter/rules/sc2086.rs:76:5: replace build_diagnostic -> Diagnostic with Default::default()
