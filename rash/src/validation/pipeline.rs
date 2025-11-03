@@ -106,6 +106,10 @@ impl ValidationPipeline {
                 self.validate_expr(start)?;
                 self.validate_expr(end)
             }
+            Expr::PositionalArgs => {
+                // Positional arguments are valid - will be handled by emitter
+                Ok(())
+            }
         }
     }
 

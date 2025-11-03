@@ -69,6 +69,7 @@ impl Visitor<()> for ExprTypeVisitor {
             Expr::Try { .. } => "Try",
             Expr::Block(_) => "Block",
             Expr::Range { .. } => "Range",
+            Expr::PositionalArgs => "PositionalArgs",
         };
         self.types.push(type_name.to_string());
     }

@@ -783,6 +783,12 @@ impl PosixEmitter {
                 Some(n) => Ok(format!("\"${}\"", n)), // "$1", "$2", etc.
                 None => Ok("\"$@\"".to_string()),     // All args
             },
+            // P0-POSITIONAL-PARAMETERS: Argument with default value
+            ShellValue::ArgWithDefault { position, default } => Ok(format!(
+                "\"${{{}:-{}}}\"",
+                position,
+                escape_shell_string(default)
+            )),
             ShellValue::ArgCount => Ok("\"$#\"".to_string()), // Argument count
             // Sprint 27c: Exit code access - GREEN PHASE
             ShellValue::ExitCode => Ok("\"$?\"".to_string()), // Exit code of last command
@@ -925,6 +931,10 @@ impl PosixEmitter {
                 Some(n) => result.push_str(&format!("${}", n)),
                 None => result.push_str("$@"),
             },
+            // P0-POSITIONAL-PARAMETERS: Argument with default value in concatenation
+            ShellValue::ArgWithDefault { position, default } => {
+                result.push_str(&format!("${{{}:-{}}}", position, default));
+            }
             ShellValue::ArgCount => {
                 result.push_str("$#");
             }
