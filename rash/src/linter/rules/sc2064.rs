@@ -141,4 +141,125 @@ mod tests {
         // Braced variables also expand early
         assert_eq!(result.diagnostics.len(), 0); // Our simplified regex
     }
+
+    // ===== Property-Based Tests - Arithmetic Invariants =====
+    // These property tests catch arithmetic mutations (+ → *, + → -, etc.)
+    // that unit tests miss. Validates mathematical invariants that MUST hold.
+    //
+    // Based on lessons from SC2086/SC2059: Property tests are REQUIRED for
+    // catching arithmetic mutations in column calculations.
+
+    #[cfg(test)]
+    mod property_tests {
+        use super::*;
+        use proptest::prelude::*;
+
+        proptest! {
+            #[test]
+            fn prop_column_positions_always_valid(
+                var_name in "[a-z]{1,10}",
+                leading_spaces in 0usize..20
+            ) {
+                // PROPERTY: Column positions must always be >= 1 (1-indexed)
+                // Catches: + → * mutations (would produce 0), + → - mutations
+                let spaces = " ".repeat(leading_spaces);
+                let bash_code = format!("{}trap \"rm ${}\" EXIT", spaces, var_name);
+                let result = check(&bash_code);
+
+                if result.diagnostics.len() > 0 {
+                    let span = &result.diagnostics[0].span;
+                    // INVARIANT: Columns are 1-indexed, never 0 or negative
+                    prop_assert!(span.start_col >= 1, "Start column must be >= 1, got {}", span.start_col);
+                    prop_assert!(span.end_col >= 1, "End column must be >= 1, got {}", span.end_col);
+                    // INVARIANT: End must be after start
+                    prop_assert!(span.end_col > span.start_col,
+                        "End col ({}) must be > start col ({})", span.end_col, span.start_col);
+                }
+            }
+
+            #[test]
+            fn prop_line_numbers_always_valid(
+                var_name in "[a-z]{1,10}",
+                comment_lines in prop::collection::vec("# comment.*", 0..5)
+            ) {
+                // PROPERTY: Line numbers must always be >= 1 (1-indexed)
+                // Catches: + → * mutations in line_num + 1 calculation
+                let mut bash_code = comment_lines.join("\n");
+                if !bash_code.is_empty() {
+                    bash_code.push('\n');
+                }
+                bash_code.push_str(&format!("trap \"rm ${}\" EXIT", var_name));
+
+                let result = check(&bash_code);
+                if result.diagnostics.len() > 0 {
+                    let span = &result.diagnostics[0].span;
+                    // INVARIANT: Lines are 1-indexed, never 0 or negative
+                    prop_assert!(span.start_line >= 1, "Line number must be >= 1, got {}", span.start_line);
+                    prop_assert!(span.end_line >= 1, "Line number must be >= 1, got {}", span.end_line);
+                }
+            }
+
+            #[test]
+            fn prop_span_length_reasonable(
+                var_name in "[a-z]{1,10}"
+            ) {
+                // PROPERTY: Span length should be reasonable (not negative, not huge)
+                // Catches: + → - mutations that produce negative/wrong lengths
+                let bash_code = format!("trap \"rm ${}\" EXIT", var_name);
+                let result = check(&bash_code);
+
+                if result.diagnostics.len() > 0 {
+                    let span = &result.diagnostics[0].span;
+                    let span_length = span.end_col.saturating_sub(span.start_col);
+                    // INVARIANT: Span length must be positive and reasonable
+                    prop_assert!(span_length > 0, "Span length must be > 0");
+                    prop_assert!(span_length < 1000, "Span length {} seems unreasonable", span_length);
+                }
+            }
+
+            #[test]
+            fn prop_multiple_variables_detected(
+                var1 in "[a-z]{1,10}",
+                var2 in "[a-z]{1,10}"
+            ) {
+                // PROPERTY: Multiple variables in trap should still be detected
+                // Validates the regex correctly matches first variable
+                let bash_code = format!("trap \"rm ${} ${}\" EXIT", var1, var2);
+                let result = check(&bash_code);
+
+                // INVARIANT: Should detect at least one variable
+                prop_assert_eq!(result.diagnostics.len(), 1, "Should detect trap with variables");
+            }
+
+            #[test]
+            fn prop_comments_never_flagged(
+                var_name in "[a-z]{1,10}",
+                leading_spaces in 0usize..20
+            ) {
+                // PROPERTY: Comments should never be flagged
+                // Catches mutations in comment detection logic
+                let spaces = " ".repeat(leading_spaces);
+                let bash_code = format!("{}# trap \"rm ${}\" EXIT", spaces, var_name);
+                let result = check(&bash_code);
+
+                // INVARIANT: Comments should not produce diagnostics
+                prop_assert_eq!(result.diagnostics.len(), 0,
+                    "Comments should not be flagged");
+            }
+
+            #[test]
+            fn prop_single_quotes_never_flagged(
+                var_name in "[a-z]{1,10}"
+            ) {
+                // PROPERTY: Single quotes should never be flagged (correct usage)
+                // Validates regex only matches double quotes
+                let bash_code = format!("trap 'rm ${}' EXIT", var_name);
+                let result = check(&bash_code);
+
+                // INVARIANT: Single quotes should not produce diagnostics
+                prop_assert_eq!(result.diagnostics.len(), 0,
+                    "Single quotes should not be flagged");
+            }
+        }
+    }
 }
