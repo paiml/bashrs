@@ -50,7 +50,7 @@ bashrs --version
 ```
 
 Expected output:
-```
+```text
 bashrs 0.9.3
 ```
 
@@ -215,7 +215,7 @@ sh test.sh
 ```
 
 Expected output:
-```
+```text
 Hello, bashrs!
 ```
 
@@ -229,7 +229,7 @@ cargo test
 ```
 
 Expected: All tests pass
-```
+```text
 test result: ok. 237 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out
 ```
 

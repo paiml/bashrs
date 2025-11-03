@@ -87,7 +87,7 @@ fn main() {
 ```
 
 **Error**:
-```
+```text
 Error: AST validation error: Unsupported statement type
 ```
 
@@ -256,7 +256,7 @@ fn main() {
 ```
 
 **Error**:
-```
+```text
 Error: AST validation error: Unsupported expression type
 ```
 
@@ -287,7 +287,7 @@ fn main() {
 ```
 
 **Error**:
-```
+```text
 Error: AST validation error: Unsupported expression type
 ```
 
