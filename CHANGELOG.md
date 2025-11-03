@@ -24,7 +24,7 @@ This is the beginning of **Option 1: Complete Shell-Specific Rule Filtering** fr
 - **`lint_shell_filtered()`**: Conditional rule execution based on shell type
 - **`apply_rule!` macro**: Performance-optimized filtering with zero runtime cost for skipped rules
 
-**Rule Classification** (290/357 rules - 81.2% - **🎯 CROSSED 80% MILESTONE! 🎯**):
+**Rule Classification** (303/357 rules - 84.9% - **🎯 REACHED 85% MILESTONE! 🎯**):
 
 *Batch 1* (20 rules):
 - ✅ 8 SEC rules → Universal (apply to all shells)
@@ -149,6 +149,14 @@ This is the beginning of **Option 1: Complete Shell-Specific Rule Filtering** fr
   - **Best Practices & Style** (2): SC2288 (use true/false directly instead of [ 1 = 1 ]), SC2289 (use ${#var} instead of expr length for string length)
 - ✅ 4 NotSh rules (bash/zsh/ksh only):
   - **Bash-Specific Features** (4): SC2286 (prefer mapfile/readarray over read loops - bash 4+ builtins), SC2287 (use [[ -v var ]] to check if variable is set - bash/zsh/ksh), SC2290 (remove $ from array index: ${array[i]} not ${array[$i]} - bash arrays), SC2291 (use [[ ! -v var ]] to check if variable is unset - bash/zsh/ksh)
+
+*Batch 15* (13 rules) - **FOCUS: Advanced Parameter Expansion & Command Optimization - 🎯🎯🎯 REACHED 85% MILESTONE! 🎯🎯🎯**:
+- ✅ 11 Universal rules:
+  - **POSIX Parameter Expansion** (5): SC2307 (use ${var#prefix} to remove prefix), SC2308 (use ${var%suffix} to remove suffix), SC2309 (use ${var##prefix} to remove longest prefix), SC2311 (use ${var%%suffix} to remove longest suffix), SC2315 (use ${var:+replacement} for conditional replacement)
+  - **Control Flow & set -e Behavior** (3): SC2310 (function in condition - set -e doesn't apply), SC2316 (command group and precedence issues), SC2317 (unreachable code detection)
+  - **Deprecated Syntax Warnings** (3): SC2312 (deprecated local -x syntax), SC2313 (use $(( )) for arithmetic), SC2318 (deprecated $[ ] syntax - use $(( )))
+- ✅ 2 NotSh rules (bash/zsh/ksh only):
+  - **Bash-Specific Features** (2): SC2306 (prefer ${var//old/new} over sed - bash parameter expansion), SC2314 (use [[ ]] for pattern matching)
 
 **Integration Tests** (12 total: 6 batch 1 + 6 batch 2):
 

@@ -1665,6 +1665,83 @@ lazy_static::lazy_static! {
             compatibility: ShellCompatibility::NotSh, // [[ ! -v ]] is bash/zsh/ksh specific
         });
 
+        // === BATCH 15 CLASSIFICATIONS (13 rules) ===
+
+        // Batch 15: Bash-specific parameter expansion (NotSh)
+        registry.insert("SC2306", RuleMetadata {
+            id: "SC2306",
+            name: "Use ${var//old/new} instead of sed for simple substitutions",
+            compatibility: ShellCompatibility::NotSh, // ${var//} is bash parameter expansion
+        });
+
+        // Batch 15: POSIX parameter expansion (Universal)
+        registry.insert("SC2307", RuleMetadata {
+            id: "SC2307",
+            name: "Use ${var#prefix} to remove prefix",
+            compatibility: ShellCompatibility::Universal, // POSIX parameter expansion
+        });
+        registry.insert("SC2308", RuleMetadata {
+            id: "SC2308",
+            name: "Use ${var%suffix} to remove suffix",
+            compatibility: ShellCompatibility::Universal, // POSIX parameter expansion
+        });
+        registry.insert("SC2309", RuleMetadata {
+            id: "SC2309",
+            name: "Use ${var##prefix} to remove longest prefix",
+            compatibility: ShellCompatibility::Universal, // POSIX parameter expansion
+        });
+        registry.insert("SC2311", RuleMetadata {
+            id: "SC2311",
+            name: "Use ${var%%suffix} to remove longest suffix",
+            compatibility: ShellCompatibility::Universal, // POSIX parameter expansion
+        });
+        registry.insert("SC2315", RuleMetadata {
+            id: "SC2315",
+            name: "Use ${var:+replacement} for conditional replacement",
+            compatibility: ShellCompatibility::Universal, // POSIX ${var:+value}
+        });
+
+        // Batch 15: set -e behavior & control flow (Universal)
+        registry.insert("SC2310", RuleMetadata {
+            id: "SC2310",
+            name: "Function in condition - set -e doesn't apply",
+            compatibility: ShellCompatibility::Universal, // POSIX set -e behavior
+        });
+        registry.insert("SC2316", RuleMetadata {
+            id: "SC2316",
+            name: "Command group and precedence issues",
+            compatibility: ShellCompatibility::Universal, // POSIX control flow
+        });
+        registry.insert("SC2317", RuleMetadata {
+            id: "SC2317",
+            name: "Unreachable code detection",
+            compatibility: ShellCompatibility::Universal, // Universal logic
+        });
+
+        // Batch 15: Deprecated syntax warnings (Universal)
+        registry.insert("SC2312", RuleMetadata {
+            id: "SC2312",
+            name: "Deprecated local -x syntax",
+            compatibility: ShellCompatibility::Universal, // Universal portability warning
+        });
+        registry.insert("SC2313", RuleMetadata {
+            id: "SC2313",
+            name: "Use $(( )) for arithmetic",
+            compatibility: ShellCompatibility::Universal, // POSIX arithmetic
+        });
+        registry.insert("SC2318", RuleMetadata {
+            id: "SC2318",
+            name: "Deprecated $[ ] syntax - use $(( ))",
+            compatibility: ShellCompatibility::Universal, // Universal deprecation warning
+        });
+
+        // Batch 15: Pattern matching (NotSh - if suggests [[]] specifically)
+        registry.insert("SC2314", RuleMetadata {
+            id: "SC2314",
+            name: "Use [[ ]] for pattern matching",
+            compatibility: ShellCompatibility::NotSh, // [[ ]] is bash/zsh/ksh specific
+        });
+
         // Most other SC2xxx rules are Universal (quoting, syntax, etc.)
         // They represent bugs or issues that apply regardless of shell
         // Examples: SC2086 (quote variables), etc.
@@ -1732,7 +1809,7 @@ mod tests {
     }
 
     #[test]
-    fn test_registry_has_290_rules() {
+    fn test_registry_has_303_rules() {
         // Batch 1: 8 SEC + 3 DET + 3 IDEM + 6 SC2xxx = 20 rules
         // Batch 2: 6 NotSh + 19 Universal = 25 rules
         // Batch 3: 2 NotSh + 25 Universal = 27 rules (SC2058 not implemented yet)
@@ -1747,8 +1824,9 @@ mod tests {
         // Batch 12: 0 NotSh + 20 Universal = 20 rules
         // Batch 13: 0 NotSh + 20 Universal = 20 rules
         // Batch 14: 4 NotSh + 6 Universal = 10 rules
-        // Total: 290 rules (81.2% of 357 total) - 🎯 CROSSED 80% MILESTONE! 🎯
-        assert_eq!(RULE_REGISTRY.len(), 290);
+        // Batch 15: 2 NotSh + 11 Universal = 13 rules
+        // Total: 303 rules (84.9% of 357 total) - 🎯 REACHED 85% MILESTONE! 🎯
+        assert_eq!(RULE_REGISTRY.len(), 303);
     }
 
     #[test]
@@ -3778,5 +3856,126 @@ mod tests {
 
         // Total: 6 Universal + 4 NotSh = 10 rules
         // This brings total from 280 → 290 (81.2% coverage - 🎯 CROSSED 80% MILESTONE! 🎯)
+    }
+
+    // === BATCH 15 TESTS (5 tests) ===
+
+    #[test]
+    fn test_batch15_posix_parameter_expansion_universal() {
+        // SC2307-SC2309, SC2311, SC2315 - POSIX parameter expansion
+        let posix_expansion_rules = vec![
+            ("SC2307", "${var#prefix}"),
+            ("SC2308", "${var%suffix}"),
+            ("SC2309", "${var##prefix}"),
+            ("SC2311", "${var%%suffix}"),
+            ("SC2315", "${var:+replacement}"),
+        ];
+
+        for (rule, description) in posix_expansion_rules {
+            assert_eq!(
+                get_rule_compatibility(rule),
+                Some(ShellCompatibility::Universal),
+                "Batch 15 POSIX rule {} ({}) should be Universal",
+                rule,
+                description
+            );
+        }
+    }
+
+    #[test]
+    fn test_batch15_bash_specific_notsh() {
+        // SC2306, SC2314 - Bash-specific features
+        let bash_specific_rules = vec![
+            ("SC2306", "${var//old/new} bash expansion"),
+            ("SC2314", "[[ ]] pattern matching"),
+        ];
+
+        for (rule, description) in bash_specific_rules {
+            assert_eq!(
+                get_rule_compatibility(rule),
+                Some(ShellCompatibility::NotSh),
+                "Batch 15 bash-specific rule {} ({}) should be NotSh",
+                rule,
+                description
+            );
+        }
+    }
+
+    #[test]
+    fn test_batch15_control_flow_universal() {
+        // SC2310, SC2316, SC2317 - Control flow & set -e behavior
+        let control_flow_rules = vec![
+            ("SC2310", "set -e in conditions"),
+            ("SC2316", "command group precedence"),
+            ("SC2317", "unreachable code"),
+        ];
+
+        for (rule, description) in control_flow_rules {
+            assert_eq!(
+                get_rule_compatibility(rule),
+                Some(ShellCompatibility::Universal),
+                "Batch 15 control flow rule {} ({}) should be Universal",
+                rule,
+                description
+            );
+        }
+    }
+
+    #[test]
+    fn test_batch15_deprecated_syntax_universal() {
+        // SC2312, SC2313, SC2318 - Deprecated syntax warnings
+        let deprecated_rules = vec![
+            ("SC2312", "local -x deprecated"),
+            ("SC2313", "use $(( ))"),
+            ("SC2318", "$[ ] deprecated"),
+        ];
+
+        for (rule, description) in deprecated_rules {
+            assert_eq!(
+                get_rule_compatibility(rule),
+                Some(ShellCompatibility::Universal),
+                "Batch 15 deprecated syntax rule {} ({}) should be Universal",
+                rule,
+                description
+            );
+        }
+    }
+
+    #[test]
+    fn test_batch15_split_universal_vs_notsh() {
+        // Batch 15: 11 Universal + 2 NotSh = 13 rules total
+        let universal_rules = vec![
+            "SC2307", "SC2308", "SC2309", "SC2311", "SC2315", // POSIX parameter expansion
+            "SC2310", "SC2316", "SC2317", // Control flow
+            "SC2312", "SC2313", "SC2318", // Deprecated syntax
+        ];
+
+        let notsh_rules = vec![
+            "SC2306", // ${var//} bash expansion
+            "SC2314", // [[ ]] pattern matching
+        ];
+
+        // Verify Universal rules
+        for rule in &universal_rules {
+            assert_eq!(
+                get_rule_compatibility(rule),
+                Some(ShellCompatibility::Universal),
+                "Rule {} should be Universal",
+                rule
+            );
+        }
+
+        // Verify NotSh rules
+        for rule in &notsh_rules {
+            assert_eq!(
+                get_rule_compatibility(rule),
+                Some(ShellCompatibility::NotSh),
+                "Rule {} should be NotSh",
+                rule
+            );
+        }
+
+        // Total: 11 Universal + 2 NotSh = 13 rules
+        // This brings total from 290 → 303 (84.9% coverage - 🎯 REACHED 85% MILESTONE! 🎯)
     }
 }
