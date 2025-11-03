@@ -60,7 +60,8 @@ fn create_shell_diagnostic(
     eq_pos: usize,
 ) -> Diagnostic {
     let span = Span::new(line_num + 1, eq_pos + 1, line_num + 1, eq_pos + 2);
-    let fix_replacement = format!("{}:={}", var_name, after_eq);
+    // ISSUE #1 FIX: Replacement must match ONLY the span (just "="), not the entire line
+    let fix_replacement = ":=".to_string();
 
     Diagnostic::new(
         "MAKE005",
@@ -288,8 +289,8 @@ mod tests {
 
         assert!(result.diagnostics[0].fix.is_some());
         let fix = result.diagnostics[0].fix.as_ref().unwrap();
-        assert!(fix.replacement.contains("VERSION:="));
-        assert!(fix.replacement.contains("$(shell git describe)"));
+        // ISSUE #1 FIX: Replacement now only contains ":=" (replaces just the "=")
+        assert_eq!(fix.replacement, ":=");
     }
 
     #[test]
