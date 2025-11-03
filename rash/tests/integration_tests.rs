@@ -841,6 +841,35 @@ fn echo(msg: &str) {}
     assert!(stdout.contains("World"), "Should use default value");
 }
 
+/// P0-POSITIONAL-PARAMETERS: Mutation Testing
+/// This test catches the mutation: delete match arm Expr::PositionalArgs (line 554)
+/// Ensures that std::env::args().collect() generates args="$@" not args="unknown"
+#[test]
+fn test_positional_parameters_args_assignment() {
+    let source = r#"
+fn main() {
+    let args: Vec<String> = std::env::args().collect();
+    // Just use the args variable in some way
+    println!("Got args");
+}
+"#;
+
+    let config = Config::default();
+    let result = transpile(source, config);
+
+    assert!(result.is_ok(), "Should transpile positional parameters");
+
+    let shell = result.unwrap();
+
+    // CRITICAL: This assertion catches mutation at line 554 (delete Expr::PositionalArgs)
+    // If the match arm is deleted, this would generate args="unknown" instead of args="$@"
+    assert!(
+        shell.contains("args=\"$@\""),
+        "Should generate args=\"$@\" for std::env::args().collect(), got:\n{}",
+        shell
+    );
+}
+
 /// REDIR-001: RED Phase
 /// Test that we can call commands that implicitly use input redirection
 /// This is a baseline test - actual File::open → < redirection will be implemented later
