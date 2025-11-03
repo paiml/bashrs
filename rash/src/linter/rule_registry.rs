@@ -1931,6 +1931,108 @@ lazy_static::lazy_static! {
             compatibility: ShellCompatibility::Universal, // POSIX $? behavior
         });
 
+        // Makefile Rules (20 rules) - Universal (applies to all Make implementations)
+        registry.insert("MAKE001", RuleMetadata {
+            id: "MAKE001",
+            name: "Non-deterministic wildcard usage in Makefiles",
+            compatibility: ShellCompatibility::Universal,
+        });
+        registry.insert("MAKE002", RuleMetadata {
+            id: "MAKE002",
+            name: "Non-idempotent mkdir in Makefile recipes",
+            compatibility: ShellCompatibility::Universal,
+        });
+        registry.insert("MAKE003", RuleMetadata {
+            id: "MAKE003",
+            name: "Unsafe variable expansion in Makefile recipes",
+            compatibility: ShellCompatibility::Universal,
+        });
+        registry.insert("MAKE004", RuleMetadata {
+            id: "MAKE004",
+            name: "Missing .PHONY declaration for non-file targets",
+            compatibility: ShellCompatibility::Universal,
+        });
+        registry.insert("MAKE005", RuleMetadata {
+            id: "MAKE005",
+            name: "Recursive variable assignment in Makefiles",
+            compatibility: ShellCompatibility::Universal,
+        });
+        registry.insert("MAKE006", RuleMetadata {
+            id: "MAKE006",
+            name: "Missing target dependencies",
+            compatibility: ShellCompatibility::Universal,
+        });
+        registry.insert("MAKE007", RuleMetadata {
+            id: "MAKE007",
+            name: "Silent recipe errors (missing @ prefix)",
+            compatibility: ShellCompatibility::Universal,
+        });
+        registry.insert("MAKE008", RuleMetadata {
+            id: "MAKE008",
+            name: "Tab vs spaces in recipes (CRITICAL)",
+            compatibility: ShellCompatibility::Universal,
+        });
+        registry.insert("MAKE009", RuleMetadata {
+            id: "MAKE009",
+            name: "Hardcoded paths (non-portable)",
+            compatibility: ShellCompatibility::Universal,
+        });
+        registry.insert("MAKE010", RuleMetadata {
+            id: "MAKE010",
+            name: "Missing error handling (|| exit 1)",
+            compatibility: ShellCompatibility::Universal,
+        });
+        registry.insert("MAKE011", RuleMetadata {
+            id: "MAKE011",
+            name: "Dangerous pattern rules",
+            compatibility: ShellCompatibility::Universal,
+        });
+        registry.insert("MAKE012", RuleMetadata {
+            id: "MAKE012",
+            name: "Recursive make considered harmful",
+            compatibility: ShellCompatibility::Universal,
+        });
+        registry.insert("MAKE013", RuleMetadata {
+            id: "MAKE013",
+            name: "Missing .SUFFIXES (performance issue)",
+            compatibility: ShellCompatibility::Universal,
+        });
+        registry.insert("MAKE014", RuleMetadata {
+            id: "MAKE014",
+            name: "Inefficient shell invocation",
+            compatibility: ShellCompatibility::Universal,
+        });
+        registry.insert("MAKE015", RuleMetadata {
+            id: "MAKE015",
+            name: "Missing .DELETE_ON_ERROR",
+            compatibility: ShellCompatibility::Universal,
+        });
+        registry.insert("MAKE016", RuleMetadata {
+            id: "MAKE016",
+            name: "Unquoted variable in prerequisites",
+            compatibility: ShellCompatibility::Universal,
+        });
+        registry.insert("MAKE017", RuleMetadata {
+            id: "MAKE017",
+            name: "Missing .ONESHELL",
+            compatibility: ShellCompatibility::Universal,
+        });
+        registry.insert("MAKE018", RuleMetadata {
+            id: "MAKE018",
+            name: "Parallel-unsafe targets (race conditions)",
+            compatibility: ShellCompatibility::Universal,
+        });
+        registry.insert("MAKE019", RuleMetadata {
+            id: "MAKE019",
+            name: "Environment variable pollution",
+            compatibility: ShellCompatibility::Universal,
+        });
+        registry.insert("MAKE020", RuleMetadata {
+            id: "MAKE020",
+            name: "Missing include guard",
+            compatibility: ShellCompatibility::Universal,
+        });
+
         // Most other SC2xxx rules are Universal (quoting, syntax, etc.)
         // They represent bugs or issues that apply regardless of shell
         // Examples: SC2086 (quote variables), etc.
@@ -1998,7 +2100,7 @@ mod tests {
     }
 
     #[test]
-    fn test_registry_has_337_rules() {
+    fn test_registry_has_357_rules() {
         // Batch 1: 8 SEC + 3 DET + 3 IDEM + 6 SC2xxx = 20 rules
         // Batch 2: 6 NotSh + 19 Universal = 25 rules
         // Batch 3: 2 NotSh + 25 Universal = 27 rules (SC2058 not implemented yet)
@@ -2017,8 +2119,9 @@ mod tests {
         // Batch 16: 1 NotSh + 5 Universal = 6 rules
         // Batch 17: 5 NotSh + 16 Universal = 21 rules (ALL REMAINING UNCLASSIFIED)
         // Batch 18: 0 NotSh + 7 Universal = 7 rules (SC2008-SC2014 file/command best practices)
-        // Total: 337 rules (94.4% of 357 total) - 🎯🎯🎯 APPROACHING 95% MILESTONE! 🎯🎯🎯
-        assert_eq!(RULE_REGISTRY.len(), 337);
+        // Batch 19: 0 NotSh + 20 Universal = 20 rules (MAKE001-MAKE020 Makefile linter rules)
+        // Total: 357 rules (100.0% of 357 total) - 🎉🎉🎉 100% MILESTONE ACHIEVED! 🎉🎉🎉
+        assert_eq!(RULE_REGISTRY.len(), 357);
     }
 
     #[test]
