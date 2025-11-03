@@ -601,4 +601,164 @@
 <a href=#601 id=601 data-nosnippet>601</a>        </span>);
 <a href=#602 id=602 data-nosnippet>602</a>        <span class="macro">assert!</span>(result_mixed.diagnostics[<span class="number">0</span>].message.contains(<span class="string">"$UNQUOTED"</span>));
 <a href=#603 id=603 data-nosnippet>603</a>    }
-<a href=#604 id=604 data-nosnippet>604</a>}</code></pre></div></section></main></body></html>
+<a href=#604 id=604 data-nosnippet>604</a>
+<a href=#605 id=605 data-nosnippet>605</a>    <span class="comment">// ===== Mutation Coverage Tests - Iteration 3 (Ultra-Targeted) =====
+<a href=#606 id=606 data-nosnippet>606</a>    // These 14 tests target the remaining missed mutants from Iteration 2
+<a href=#607 id=607 data-nosnippet>607</a>    // Current: 57.1% kill rate (20/35). Target: 90%+ (32/35)
+<a href=#608 id=608 data-nosnippet>608</a>
+<a href=#609 id=609 data-nosnippet>609</a>    // Tests for calculate_end_column() arithmetic mutations (3 missed mutants)
+<a href=#610 id=610 data-nosnippet>610</a>
+<a href=#611 id=611 data-nosnippet>611</a>    </span><span class="attr">#[test]
+<a href=#612 id=612 data-nosnippet>612</a>    </span><span class="kw">fn </span>test_mutation_iter3_calculate_end_col_line45_plus_to_minus() {
+<a href=#613 id=613 data-nosnippet>613</a>        <span class="comment">// MUTATION: Line 45:21 - replace + with - in calculate_end_column
+<a href=#614 id=614 data-nosnippet>614</a>        // Tests: var_end + brace_pos + 2 calculation for braced variables
+<a href=#615 id=615 data-nosnippet>615</a>        </span><span class="kw">let </span>bash_code = <span class="string">"echo ${VAR}"</span>;
+<a href=#616 id=616 data-nosnippet>616</a>        <span class="kw">let </span>result = check(bash_code);
+<a href=#617 id=617 data-nosnippet>617</a>        <span class="macro">assert_eq!</span>(result.diagnostics.len(), <span class="number">1</span>);
+<a href=#618 id=618 data-nosnippet>618</a>        <span class="kw">let </span>span = result.diagnostics[<span class="number">0</span>].span;
+<a href=#619 id=619 data-nosnippet>619</a>        <span class="comment">// Correct calculation: end_col should be 12 (including closing brace)
+<a href=#620 id=620 data-nosnippet>620</a>        // If + becomes -, calculation would be wrong
+<a href=#621 id=621 data-nosnippet>621</a>        </span><span class="macro">assert_eq!</span>(span.end_col, <span class="number">12</span>, <span class="string">"End column calculation must use +, not -"</span>);
+<a href=#622 id=622 data-nosnippet>622</a>    }
+<a href=#623 id=623 data-nosnippet>623</a>
+<a href=#624 id=624 data-nosnippet>624</a>    <span class="attr">#[test]
+<a href=#625 id=625 data-nosnippet>625</a>    </span><span class="kw">fn </span>test_mutation_iter3_calculate_end_col_line47_plus_to_minus() {
+<a href=#626 id=626 data-nosnippet>626</a>        <span class="comment">// MUTATION: Line 47:21 - replace + with - in calculate_end_column (fallback)
+<a href=#627 id=627 data-nosnippet>627</a>        // Tests: var_end + 1 calculation for simple variables (not braced)
+<a href=#628 id=628 data-nosnippet>628</a>        </span><span class="kw">let </span>bash_code = <span class="string">"echo $VAR"</span>; <span class="comment">// Simple variable (not braced)
+<a href=#629 id=629 data-nosnippet>629</a>        </span><span class="kw">let </span>result = check(bash_code);
+<a href=#630 id=630 data-nosnippet>630</a>        <span class="macro">assert_eq!</span>(result.diagnostics.len(), <span class="number">1</span>);
+<a href=#631 id=631 data-nosnippet>631</a>        <span class="kw">let </span>span = result.diagnostics[<span class="number">0</span>].span;
+<a href=#632 id=632 data-nosnippet>632</a>        <span class="comment">// Simple $VAR should have sensible span
+<a href=#633 id=633 data-nosnippet>633</a>        </span><span class="macro">assert_eq!</span>(span.start_col, <span class="number">6</span>); <span class="comment">// After "echo "
+<a href=#634 id=634 data-nosnippet>634</a>        </span><span class="macro">assert_eq!</span>(span.end_col, <span class="number">10</span>); <span class="comment">// After "VAR"
+<a href=#635 id=635 data-nosnippet>635</a>    </span>}
+<a href=#636 id=636 data-nosnippet>636</a>
+<a href=#637 id=637 data-nosnippet>637</a>    <span class="attr">#[test]
+<a href=#638 id=638 data-nosnippet>638</a>    </span><span class="kw">fn </span>test_mutation_iter3_calculate_end_col_line47_plus_to_mult() {
+<a href=#639 id=639 data-nosnippet>639</a>        <span class="comment">// MUTATION: Line 47:21 - replace + with * in calculate_end_column
+<a href=#640 id=640 data-nosnippet>640</a>        // Tests: var_end + 1 must be addition, not multiplication
+<a href=#641 id=641 data-nosnippet>641</a>        </span><span class="kw">let </span>bash_code = <span class="string">"echo ${X}"</span>; <span class="comment">// Short variable name
+<a href=#642 id=642 data-nosnippet>642</a>        </span><span class="kw">let </span>result = check(bash_code);
+<a href=#643 id=643 data-nosnippet>643</a>        <span class="macro">assert_eq!</span>(result.diagnostics.len(), <span class="number">1</span>);
+<a href=#644 id=644 data-nosnippet>644</a>        <span class="kw">let </span>span = result.diagnostics[<span class="number">0</span>].span;
+<a href=#645 id=645 data-nosnippet>645</a>        <span class="comment">// With short var, if + becomes *, result would be very different
+<a href=#646 id=646 data-nosnippet>646</a>        </span><span class="macro">assert!</span>(span.end_col &gt; span.start_col, <span class="string">"End must be after start"</span>);
+<a href=#647 id=647 data-nosnippet>647</a>        <span class="macro">assert!</span>(span.end_col &lt; <span class="number">20</span>, <span class="string">"End column should be reasonable"</span>);
+<a href=#648 id=648 data-nosnippet>648</a>    }
+<a href=#649 id=649 data-nosnippet>649</a>
+<a href=#650 id=650 data-nosnippet>650</a>    <span class="comment">// Tests for should_skip_line() comparison mutations (4 missed mutants)
+<a href=#651 id=651 data-nosnippet>651</a>
+<a href=#652 id=652 data-nosnippet>652</a>    </span><span class="attr">#[test]
+<a href=#653 id=653 data-nosnippet>653</a>    </span><span class="kw">fn </span>test_mutation_iter3_should_skip_line25_less_than_not_equal() {
+<a href=#654 id=654 data-nosnippet>654</a>        <span class="comment">// MUTATION: Line 25:27 - replace &lt; with == in should_skip_line
+<a href=#655 id=655 data-nosnippet>655</a>        // Tests: eq_pos &lt; first_space (assignment detection)
+<a href=#656 id=656 data-nosnippet>656</a>        </span><span class="kw">let </span>bash_code = <span class="string">"X=value\necho $X"</span>;
+<a href=#657 id=657 data-nosnippet>657</a>        <span class="kw">let </span>result = check(bash_code);
+<a href=#658 id=658 data-nosnippet>658</a>        <span class="comment">// Should only detect $X in echo, not in assignment
+<a href=#659 id=659 data-nosnippet>659</a>        </span><span class="macro">assert_eq!</span>(result.diagnostics.len(), <span class="number">1</span>);
+<a href=#660 id=660 data-nosnippet>660</a>        <span class="macro">assert_eq!</span>(result.diagnostics[<span class="number">0</span>].span.start_line, <span class="number">2</span>);
+<a href=#661 id=661 data-nosnippet>661</a>    }
+<a href=#662 id=662 data-nosnippet>662</a>
+<a href=#663 id=663 data-nosnippet>663</a>    <span class="attr">#[test]
+<a href=#664 id=664 data-nosnippet>664</a>    </span><span class="kw">fn </span>test_mutation_iter3_should_skip_line25_less_than_not_greater() {
+<a href=#665 id=665 data-nosnippet>665</a>        <span class="comment">// MUTATION: Line 25:27 - replace &lt; with &gt; in should_skip_line
+<a href=#666 id=666 data-nosnippet>666</a>        // Tests: Assignment must have = before first space
+<a href=#667 id=667 data-nosnippet>667</a>        </span><span class="kw">let </span>bash_code = <span class="string">"VAR =value\necho $VAR"</span>; <span class="comment">// Space before =
+<a href=#668 id=668 data-nosnippet>668</a>        </span><span class="kw">let </span>result = check(bash_code);
+<a href=#669 id=669 data-nosnippet>669</a>        <span class="comment">// Should detect $VAR in both lines (not a valid assignment)
+<a href=#670 id=670 data-nosnippet>670</a>        </span><span class="macro">assert!</span>(result.diagnostics.len() &gt;= <span class="number">1</span>);
+<a href=#671 id=671 data-nosnippet>671</a>    }
+<a href=#672 id=672 data-nosnippet>672</a>
+<a href=#673 id=673 data-nosnippet>673</a>    <span class="attr">#[test]
+<a href=#674 id=674 data-nosnippet>674</a>    </span><span class="kw">fn </span>test_mutation_iter3_should_skip_line25_less_than_not_lte() {
+<a href=#675 id=675 data-nosnippet>675</a>        <span class="comment">// MUTATION: Line 25:27 - replace &lt; with &lt;= in should_skip_line
+<a href=#676 id=676 data-nosnippet>676</a>        // Tests: Strict &lt; (not &lt;=) for assignment detection
+<a href=#677 id=677 data-nosnippet>677</a>        </span><span class="kw">let </span>bash_code = <span class="string">"A=1\necho $A"</span>;
+<a href=#678 id=678 data-nosnippet>678</a>        <span class="kw">let </span>result = check(bash_code);
+<a href=#679 id=679 data-nosnippet>679</a>        <span class="macro">assert_eq!</span>(result.diagnostics.len(), <span class="number">1</span>);
+<a href=#680 id=680 data-nosnippet>680</a>        <span class="macro">assert_eq!</span>(result.diagnostics[<span class="number">0</span>].span.start_line, <span class="number">2</span>);
+<a href=#681 id=681 data-nosnippet>681</a>    }
+<a href=#682 id=682 data-nosnippet>682</a>
+<a href=#683 id=683 data-nosnippet>683</a>    <span class="comment">// Tests for should_skip_line() logical operator mutations (3 missed mutants)
+<a href=#684 id=684 data-nosnippet>684</a>
+<a href=#685 id=685 data-nosnippet>685</a>    </span><span class="attr">#[test]
+<a href=#686 id=686 data-nosnippet>686</a>    </span><span class="kw">fn </span>test_mutation_iter3_should_skip_line22_and_not_or_first() {
+<a href=#687 id=687 data-nosnippet>687</a>        <span class="comment">// MUTATION: Line 22:27 - replace &amp;&amp; with || in should_skip_line
+<a href=#688 id=688 data-nosnippet>688</a>        // Tests: contains('=') AND !contains("if [") logic
+<a href=#689 id=689 data-nosnippet>689</a>        </span><span class="kw">let </span>bash_code = <span class="string">"if [ test ]; then echo ok; fi\necho $VAR"</span>;
+<a href=#690 id=690 data-nosnippet>690</a>        <span class="kw">let </span>result = check(bash_code);
+<a href=#691 id=691 data-nosnippet>691</a>        <span class="comment">// Should detect $VAR in echo line
+<a href=#692 id=692 data-nosnippet>692</a>        </span><span class="macro">assert!</span>(result.diagnostics.len() &gt;= <span class="number">1</span>);
+<a href=#693 id=693 data-nosnippet>693</a>    }
+<a href=#694 id=694 data-nosnippet>694</a>
+<a href=#695 id=695 data-nosnippet>695</a>    <span class="attr">#[test]
+<a href=#696 id=696 data-nosnippet>696</a>    </span><span class="kw">fn </span>test_mutation_iter3_should_skip_line22_and_not_or_second() {
+<a href=#697 id=697 data-nosnippet>697</a>        <span class="comment">// MUTATION: Line 22:53 - replace &amp;&amp; with || in should_skip_line
+<a href=#698 id=698 data-nosnippet>698</a>        // Tests: !contains("if [") AND !contains("[ ") logic
+<a href=#699 id=699 data-nosnippet>699</a>        </span><span class="kw">let </span>bash_code = <span class="string">"test $VAR"</span>;
+<a href=#700 id=700 data-nosnippet>700</a>        <span class="kw">let </span>result = check(bash_code);
+<a href=#701 id=701 data-nosnippet>701</a>        <span class="macro">assert_eq!</span>(result.diagnostics.len(), <span class="number">1</span>);
+<a href=#702 id=702 data-nosnippet>702</a>    }
+<a href=#703 id=703 data-nosnippet>703</a>
+<a href=#704 id=704 data-nosnippet>704</a>    <span class="attr">#[test]
+<a href=#705 id=705 data-nosnippet>705</a>    </span><span class="kw">fn </span>test_mutation_iter3_should_skip_line22_negation_present() {
+<a href=#706 id=706 data-nosnippet>706</a>        <span class="comment">// MUTATION: Line 22:30 AND Line 22:56 - delete ! in should_skip_line
+<a href=#707 id=707 data-nosnippet>707</a>        // Tests: Must have negation for if [ detection
+<a href=#708 id=708 data-nosnippet>708</a>        </span><span class="kw">let </span>bash_code = <span class="string">"if [ $X -eq 1 ]; then echo ok; fi"</span>;
+<a href=#709 id=709 data-nosnippet>709</a>        <span class="kw">let </span>result = check(bash_code);
+<a href=#710 id=710 data-nosnippet>710</a>        <span class="macro">assert_eq!</span>(result.diagnostics.len(), <span class="number">1</span>);
+<a href=#711 id=711 data-nosnippet>711</a>    }
+<a href=#712 id=712 data-nosnippet>712</a>
+<a href=#713 id=713 data-nosnippet>713</a>    <span class="comment">// Tests for is_already_quoted() mutations (2 missed mutants)
+<a href=#714 id=714 data-nosnippet>714</a>
+<a href=#715 id=715 data-nosnippet>715</a>    </span><span class="attr">#[test]
+<a href=#716 id=716 data-nosnippet>716</a>    </span><span class="kw">fn </span>test_mutation_iter3_is_already_quoted_line63_not_always_false() {
+<a href=#717 id=717 data-nosnippet>717</a>        <span class="comment">// MUTATION: Line 63:5 - replace is_already_quoted -&gt; bool with false
+<a href=#718 id=718 data-nosnippet>718</a>        // Tests: Function must return true for quoted vars
+<a href=#719 id=719 data-nosnippet>719</a>        </span><span class="kw">let </span>bash_code = <span class="string">r#"echo "$VAR""#</span>;
+<a href=#720 id=720 data-nosnippet>720</a>        <span class="kw">let </span>result = check(bash_code);
+<a href=#721 id=721 data-nosnippet>721</a>        <span class="macro">assert_eq!</span>(
+<a href=#722 id=722 data-nosnippet>722</a>            result.diagnostics.len(),
+<a href=#723 id=723 data-nosnippet>723</a>            <span class="number">0</span>,
+<a href=#724 id=724 data-nosnippet>724</a>            <span class="string">"Quoted var should not be flagged"
+<a href=#725 id=725 data-nosnippet>725</a>        </span>);
+<a href=#726 id=726 data-nosnippet>726</a>    }
+<a href=#727 id=727 data-nosnippet>727</a>
+<a href=#728 id=728 data-nosnippet>728</a>    <span class="attr">#[test]
+<a href=#729 id=729 data-nosnippet>729</a>    </span><span class="kw">fn </span>test_mutation_iter3_is_already_quoted_line65_and_not_or() {
+<a href=#730 id=730 data-nosnippet>730</a>        <span class="comment">// MUTATION: Line 65:35 - replace &amp;&amp; with || in is_already_quoted
+<a href=#731 id=731 data-nosnippet>731</a>        // Tests: BOTH before AND after quotes required
+<a href=#732 id=732 data-nosnippet>732</a>        </span><span class="kw">let </span>bash_code_partial = <span class="string">r#"echo " $VAR"#</span>; <span class="comment">// Quote before but not after
+<a href=#733 id=733 data-nosnippet>733</a>        </span><span class="kw">let </span>result_partial = check(bash_code_partial);
+<a href=#734 id=734 data-nosnippet>734</a>        <span class="comment">// Should detect (not fully quoted)
+<a href=#735 id=735 data-nosnippet>735</a>        </span><span class="macro">assert!</span>(result_partial.diagnostics.len() &gt;= <span class="number">1</span>);
+<a href=#736 id=736 data-nosnippet>736</a>    }
+<a href=#737 id=737 data-nosnippet>737</a>
+<a href=#738 id=738 data-nosnippet>738</a>    <span class="comment">// Test for is_in_arithmetic_context() mutation (1 missed mutant)
+<a href=#739 id=739 data-nosnippet>739</a>
+<a href=#740 id=740 data-nosnippet>740</a>    </span><span class="attr">#[test]
+<a href=#741 id=741 data-nosnippet>741</a>    </span><span class="kw">fn </span>test_mutation_iter3_is_in_arithmetic_line56_not_always_false() {
+<a href=#742 id=742 data-nosnippet>742</a>        <span class="comment">// MUTATION: Line 56:5 - replace is_in_arithmetic_context -&gt; bool with false
+<a href=#743 id=743 data-nosnippet>743</a>        // Tests: Function must return true for vars in $(( ))
+<a href=#744 id=744 data-nosnippet>744</a>        </span><span class="kw">let </span>bash_code = <span class="string">"result=$(( $x + $y ))"</span>;
+<a href=#745 id=745 data-nosnippet>745</a>        <span class="kw">let </span>result = check(bash_code);
+<a href=#746 id=746 data-nosnippet>746</a>        <span class="macro">assert_eq!</span>(
+<a href=#747 id=747 data-nosnippet>747</a>            result.diagnostics.len(),
+<a href=#748 id=748 data-nosnippet>748</a>            <span class="number">0</span>,
+<a href=#749 id=749 data-nosnippet>749</a>            <span class="string">"Vars in $(( )) should not be flagged"
+<a href=#750 id=750 data-nosnippet>750</a>        </span>);
+<a href=#751 id=751 data-nosnippet>751</a>    }
+<a href=#752 id=752 data-nosnippet>752</a>
+<a href=#753 id=753 data-nosnippet>753</a>    <span class="comment">// Test for check() function logic mutation (1 missed mutant)
+<a href=#754 id=754 data-nosnippet>754</a>
+<a href=#755 id=755 data-nosnippet>755</a>    </span><span class="attr">#[test]
+<a href=#756 id=756 data-nosnippet>756</a>    </span><span class="kw">fn </span>test_mutation_iter3_check_line111_or_not_and() {
+<a href=#757 id=757 data-nosnippet>757</a>        <span class="comment">// MUTATION: Line 111:50 - replace || with &amp;&amp; in check function
+<a href=#758 id=758 data-nosnippet>758</a>        // Tests: is_arithmetic = contains("$((") OR contains("(( ")
+<a href=#759 id=759 data-nosnippet>759</a>        </span><span class="kw">let </span>bash_code = <span class="string">"(( i++ ))"</span>;
+<a href=#760 id=760 data-nosnippet>760</a>        <span class="kw">let </span>result = check(bash_code);
+<a href=#761 id=761 data-nosnippet>761</a>        <span class="comment">// Should NOT flag (arithmetic context with "(( " prefix)
+<a href=#762 id=762 data-nosnippet>762</a>        </span><span class="macro">assert_eq!</span>(result.diagnostics.len(), <span class="number">0</span>);
+<a href=#763 id=763 data-nosnippet>763</a>    }
+<a href=#764 id=764 data-nosnippet>764</a>}</code></pre></div></section></main></body></html>
