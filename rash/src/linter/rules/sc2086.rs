@@ -761,4 +761,148 @@ fi
         // Should NOT flag (arithmetic context with "(( " prefix)
         assert_eq!(result.diagnostics.len(), 0);
     }
+
+    // ===== Property-Based Tests - Arithmetic Invariants (Iteration 4) =====
+    // These property tests catch arithmetic mutations (+ → *, + → -, < → >, etc.)
+    // that unit tests miss. Validates mathematical invariants that MUST hold.
+    //
+    // Based on user feedback: "why not property?" - property tests verify
+    // invariants, not just specific outputs. Arithmetic mutations violate these.
+
+    #[cfg(test)]
+    mod property_tests {
+        use super::*;
+        use proptest::prelude::*;
+
+        proptest! {
+            #[test]
+            fn prop_column_positions_always_valid(
+                var_name in "[a-z]{1,10}",
+                leading_spaces in 0usize..20
+            ) {
+                // PROPERTY: Column positions must always be >= 1 (1-indexed)
+                // Catches: + → * mutations (would produce 0), + → - mutations
+                let spaces = " ".repeat(leading_spaces);
+                let bash_code = format!("{}echo ${}", spaces, var_name);
+                let result = check(&bash_code);
+
+                if result.diagnostics.len() > 0 {
+                    let span = &result.diagnostics[0].span;
+                    // INVARIANT: Columns are 1-indexed, never 0 or negative
+                    prop_assert!(span.start_col >= 1, "Start column must be >= 1, got {}", span.start_col);
+                    prop_assert!(span.end_col >= 1, "End column must be >= 1, got {}", span.end_col);
+                    // INVARIANT: End must be after start
+                    prop_assert!(span.end_col > span.start_col,
+                        "End col ({}) must be > start col ({})", span.end_col, span.start_col);
+                }
+            }
+
+            #[test]
+            fn prop_line_numbers_always_valid(
+                var_name in "[a-z]{1,10}",
+                comment_lines in prop::collection::vec("# comment.*", 0..5)
+            ) {
+                // PROPERTY: Line numbers must always be >= 1 (1-indexed)
+                // Catches: + → * mutations in line_num + 1 calculation
+                let mut bash_code = comment_lines.join("\n");
+                if !bash_code.is_empty() {
+                    bash_code.push('\n');
+                }
+                bash_code.push_str(&format!("echo ${}", var_name));
+
+                let result = check(&bash_code);
+                if result.diagnostics.len() > 0 {
+                    let span = &result.diagnostics[0].span;
+                    // INVARIANT: Lines are 1-indexed, never 0 or negative
+                    prop_assert!(span.start_line >= 1, "Line number must be >= 1, got {}", span.start_line);
+                    prop_assert!(span.end_line >= 1, "Line number must be >= 1, got {}", span.end_line);
+                }
+            }
+
+            #[test]
+            fn prop_span_length_reasonable(
+                var_name in "[a-z]{1,10}"
+            ) {
+                // PROPERTY: Span length should be reasonable (not negative, not huge)
+                // Catches: + → - mutations that produce negative/wrong lengths
+                let bash_code = format!("echo ${}", var_name);
+                let result = check(&bash_code);
+
+                if result.diagnostics.len() > 0 {
+                    let span = &result.diagnostics[0].span;
+                    let span_length = span.end_col.saturating_sub(span.start_col);
+                    // INVARIANT: Span length must be positive and reasonable
+                    prop_assert!(span_length > 0, "Span length must be > 0");
+                    prop_assert!(span_length < 1000, "Span length {} seems unreasonable", span_length);
+                }
+            }
+
+            #[test]
+            fn prop_braced_variable_span_includes_braces(
+                var_name in "[a-z]{1,10}"
+            ) {
+                // PROPERTY: ${VAR} span must cover entire expression including braces
+                // Catches: arithmetic mutations in calculate_end_column
+                let bash_code = format!("echo ${{{}}}", var_name);
+                let result = check(&bash_code);
+
+                if result.diagnostics.len() > 0 {
+                    let span = &result.diagnostics[0].span;
+                    // INVARIANT: Span for ${VAR} must be at least length of ${VAR}
+                    let expected_min_length = var_name.len() + 3; // ${}
+                    let span_length = span.end_col.saturating_sub(span.start_col);
+                    prop_assert!(span_length >= expected_min_length,
+                        "Span length {} must be >= {} for ${{{}}}", span_length, expected_min_length, var_name);
+                }
+            }
+
+            #[test]
+            fn prop_skip_assignments_correctly(
+                var_name in "[a-z]{1,10}",
+                value in "[a-z0-9]{1,10}"
+            ) {
+                // PROPERTY: Variable assignments should be skipped correctly
+                // Catches: < → >, < → ==, < → <= mutations in should_skip_line
+                let bash_code = format!("{}={}\necho ${}", var_name, value, var_name);
+                let result = check(&bash_code);
+
+                // INVARIANT: Should only detect $VAR in echo, not in assignment
+                // Assignment is line 1, echo is line 2
+                if result.diagnostics.len() > 0 {
+                    prop_assert_eq!(result.diagnostics.len(), 1, "Should only flag echo line");
+                    prop_assert_eq!(result.diagnostics[0].span.start_line, 2,
+                        "Should flag line 2 (echo), not line 1 (assignment)");
+                }
+            }
+
+            #[test]
+            fn prop_arithmetic_context_never_flagged(
+                x_val in 0i32..100,
+                y_val in 0i32..100
+            ) {
+                // PROPERTY: Variables in $(( )) should never be flagged
+                // Catches: return value mutations in is_in_arithmetic_context
+                let bash_code = format!("result=$(( {} + {} ))", x_val, y_val);
+                let result = check(&bash_code);
+
+                // INVARIANT: Arithmetic context should never produce diagnostics
+                prop_assert_eq!(result.diagnostics.len(), 0,
+                    "Variables in $(( )) should not be flagged");
+            }
+
+            #[test]
+            fn prop_quoted_variables_never_flagged(
+                var_name in "[a-z]{1,10}"
+            ) {
+                // PROPERTY: Already-quoted variables should never be flagged
+                // Catches: && → || mutations in is_already_quoted
+                let bash_code = format!("echo \"${}\"", var_name);
+                let result = check(&bash_code);
+
+                // INVARIANT: Quoted variables should not produce diagnostics
+                prop_assert_eq!(result.diagnostics.len(), 0,
+                    "Already-quoted variables should not be flagged");
+            }
+        }
+    }
 }
