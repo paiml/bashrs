@@ -179,6 +179,7 @@ echo "constant"
     // Run generated tests - should pass
     let output = Command::new("sh")
         .arg(&test_file)
+        .current_dir(&output_dir)
         .output()
         .expect("Failed to run generated tests");
 

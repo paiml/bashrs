@@ -121,9 +121,11 @@ pub fn execute_command(cli: Cli) -> Result<()> {
             input,
             output,
             report,
+            with_tests,
+            property_tests,
         } => {
             info!("Purifying {}", input.display());
-            purify_command(&input, output.as_deref(), report)
+            purify_command(&input, output.as_deref(), report, with_tests, property_tests)
         }
 
         Commands::Make { command } => handle_make_command(command), // Playground feature removed in v1.0 - will be moved to separate rash-playground crate in v1.1
@@ -726,10 +728,17 @@ fn lint_command(
     Ok(())
 }
 
-fn purify_command(input: &Path, output: Option<&Path>, report: bool) -> Result<()> {
+fn purify_command(
+    input: &Path,
+    output: Option<&Path>,
+    report: bool,
+    with_tests: bool,
+    property_tests: bool,
+) -> Result<()> {
     use crate::bash_parser::codegen::generate_purified_bash;
     use crate::bash_parser::parser::BashParser;
     use crate::bash_transpiler::purification::{PurificationOptions, Purifier};
+    use crate::bash_transpiler::test_generator::{TestGenerator, TestGeneratorOptions};
     use std::time::Instant;
 
     // Start timing
@@ -809,6 +818,52 @@ fn purify_command(input: &Path, output: Option<&Path>, report: bool) -> Result<(
 
         let throughput = (source.len() as f64) / total_time.as_secs_f64() / 1024.0 / 1024.0;
         println!("\nThroughput: {:.2} MB/s", throughput);
+    }
+
+    // Generate test suite if requested
+    if with_tests {
+        if let Some(output_path) = output {
+            // Generate test file path: <script>_test.sh
+            let test_file_name = format!(
+                "{}_test.sh",
+                output_path
+                    .file_stem()
+                    .and_then(|s| s.to_str())
+                    .ok_or_else(|| Error::Internal("Invalid output file name".to_string()))?
+            );
+            let test_path = output_path
+                .parent()
+                .unwrap_or_else(|| Path::new("."))
+                .join(&test_file_name);
+
+            // Configure test generator
+            let test_options = TestGeneratorOptions {
+                property_tests,
+                property_test_count: 100,
+            };
+            let generator = TestGenerator::new(test_options);
+
+            // Generate tests
+            let tests = generator.generate_tests(output_path, &purified_bash);
+
+            // Write test file
+            fs::write(&test_path, tests).map_err(Error::Io)?;
+            info!("Test suite written to {}", test_path.display());
+
+            if report {
+                println!("\nTest Suite:");
+                println!("  Location: {}", test_path.display());
+                if property_tests {
+                    println!("  Property tests: Enabled (100 cases)");
+                } else {
+                    println!("  Property tests: Disabled");
+                }
+            }
+        } else {
+            return Err(Error::Validation(
+                "--with-tests requires -o flag to specify output file".to_string(),
+            ));
+        }
     }
 
     Ok(())

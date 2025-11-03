@@ -11,9 +11,11 @@
 pub mod codegen;
 pub mod patterns;
 pub mod purification;
+pub mod test_generator;
 
 pub use codegen::{BashToRashTranspiler, TranspileOptions};
 pub use purification::{PurificationOptions, PurificationReport, Purifier};
+pub use test_generator::{TestGenerator, TestGeneratorOptions};
 
 use thiserror::Error;
 
