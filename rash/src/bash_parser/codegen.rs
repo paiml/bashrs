@@ -56,6 +56,11 @@ fn generate_statement(stmt: &BashStmt) -> String {
             assign
         }
         BashStmt::Comment { text, .. } => {
+            // Skip shebang comments to maintain idempotency
+            // Shebangs look like "!/bin/bash" or "!/bin/sh" when parsed as comments
+            if text.starts_with("!/bin/") || text.starts_with(" !/bin/") {
+                return String::new();
+            }
             format!("# {}", text)
         }
         BashStmt::Function { name, body, .. } => {

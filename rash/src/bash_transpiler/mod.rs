@@ -33,3 +33,6 @@ pub type TranspileResult<T> = Result<T, TranspileError>;
 
 #[cfg(test)]
 mod tests;
+
+#[cfg(test)]
+mod purification_property_tests;
