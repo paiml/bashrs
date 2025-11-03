@@ -380,6 +380,14 @@ pub enum MakeCommands {
         /// Report format
         #[arg(long, value_enum, default_value = "human")]
         format: ReportFormat,
+
+        /// Generate test suite for purified Makefile
+        #[arg(long)]
+        with_tests: bool,
+
+        /// Generate property-based tests (100+ cases)
+        #[arg(long)]
+        property_tests: bool,
     },
 
     /// Lint Makefile for quality issues

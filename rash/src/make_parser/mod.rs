@@ -40,6 +40,7 @@ pub mod lexer;
 pub mod parser;
 pub mod purify;
 pub mod semantic;
+pub mod test_generator;
 
 #[cfg(test)]
 pub mod tests;
@@ -49,3 +50,4 @@ pub use error::{MakeParseError, SourceLocation};
 pub use generators::generate_purified_makefile;
 pub use parser::{extract_function_calls, parse_makefile};
 pub use purify::{purify_makefile, PurificationResult};
+pub use test_generator::{MakefileTestGenerator, MakefileTestGeneratorOptions};

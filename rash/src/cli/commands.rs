@@ -887,9 +887,19 @@ fn handle_make_command(command: MakeCommands) -> Result<()> {
             fix,
             report,
             format,
+            with_tests,
+            property_tests,
         } => {
             info!("Purifying {}", input.display());
-            make_purify_command(&input, output.as_deref(), fix, report, format)
+            make_purify_command(
+                &input,
+                output.as_deref(),
+                fix,
+                report,
+                format,
+                with_tests,
+                property_tests,
+            )
         }
         MakeCommands::Lint {
             input,
@@ -933,10 +943,20 @@ fn make_purify_command(
     fix: bool,
     report: bool,
     format: ReportFormat,
+    with_tests: bool,
+    property_tests: bool,
 ) -> Result<()> {
     use crate::make_parser::{
         generators::generate_purified_makefile, parser::parse_makefile, purify::purify_makefile,
+        MakefileTestGenerator, MakefileTestGeneratorOptions,
     };
+
+    // Validate: --with-tests requires -o flag
+    if with_tests && output.is_none() {
+        return Err(Error::Validation(
+            "--with-tests requires -o flag to specify output file".to_string(),
+        ));
+    }
 
     let source = fs::read_to_string(input).map_err(Error::Io)?;
     let ast = parse_makefile(&source)
@@ -948,24 +968,36 @@ fn make_purify_command(
         print_purify_report(&purify_result, format);
     }
 
-    if fix {
-        let purified = generate_purified_makefile(&purify_result.ast);
+    let purified = generate_purified_makefile(&purify_result.ast);
 
-        if let Some(output_path) = output {
-            // Write to specified output file
-            fs::write(output_path, purified).map_err(Error::Io)?;
-            info!("Purified Makefile written to {}", output_path.display());
-        } else {
-            // In-place: create backup and overwrite
-            let backup_path = input.with_extension("mk.bak");
-            fs::copy(input, &backup_path).map_err(Error::Io)?;
-            fs::write(input, purified).map_err(Error::Io)?;
-            info!("Purified Makefile written to {}", input.display());
-            info!("Backup created at {}", backup_path.display());
+    if let Some(output_path) = output {
+        // Write to specified output file (-o flag provided)
+        fs::write(output_path, &purified).map_err(Error::Io)?;
+        info!("Purified Makefile written to {}", output_path.display());
+
+        // Generate test suite if requested
+        if with_tests {
+            let test_options = MakefileTestGeneratorOptions {
+                property_tests,
+                property_test_count: 100,
+            };
+            let test_generator = MakefileTestGenerator::new(test_options);
+            let test_suite = test_generator.generate_tests(output_path, &purified);
+
+            // Derive test file name: <Makefile>.test.sh
+            let test_file = output_path.with_extension("test.sh");
+            fs::write(&test_file, test_suite).map_err(Error::Io)?;
+            info!("Test suite written to {}", test_file.display());
         }
+    } else if fix {
+        // In-place editing: create backup and overwrite
+        let backup_path = input.with_extension("mk.bak");
+        fs::copy(input, &backup_path).map_err(Error::Io)?;
+        fs::write(input, &purified).map_err(Error::Io)?;
+        info!("Purified Makefile written to {}", input.display());
+        info!("Backup created at {}", backup_path.display());
     } else {
         // Dry-run: print purified output to stdout
-        let purified = generate_purified_makefile(&purify_result.ast);
         println!("{}", purified);
     }
 
