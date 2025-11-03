@@ -282,4 +282,179 @@ echo "$VAR3"
         assert!(span.start_col <= 4); // "ls " is 3 chars
         assert!(span.end_col >= span.start_col);
     }
+
+    // ===== Mutation Coverage Tests =====
+    // These tests specifically target mutations identified by cargo-mutants
+
+    #[test]
+    fn test_mutation_arithmetic_false_positive() {
+        // MUTATION: If is_in_arithmetic_context always returns true,
+        // this test should fail (we'd skip detection incorrectly)
+        let bash_code = "echo $VAR"; // Not in arithmetic
+        let result = check(bash_code);
+        assert_eq!(
+            result.diagnostics.len(),
+            1,
+            "Should detect unquoted var outside arithmetic"
+        );
+        assert_eq!(result.diagnostics[0].code, "SC2086");
+    }
+
+    #[test]
+    fn test_mutation_arithmetic_false_negative() {
+        // MUTATION: If is_in_arithmetic_context always returns false,
+        // this test should fail (we'd incorrectly flag safe arithmetic)
+        let bash_code = "result=$(( $x + $y ))";
+        let result = check(bash_code);
+        assert_eq!(
+            result.diagnostics.len(),
+            0,
+            "Should NOT flag variables in arithmetic"
+        );
+    }
+
+    #[test]
+    fn test_mutation_arithmetic_both_conditions() {
+        // MUTATION: If && becomes || in is_in_arithmetic_context (line 58),
+        // this should fail. Verifies BOTH $(( and )) are required
+        let bash_code1 = "echo $(( $VAR"; // Missing closing ))
+        let result1 = check(bash_code1);
+        assert!(
+            result1.diagnostics.len() > 0,
+            "Should flag incomplete arithmetic (missing closing)"
+        );
+
+        let bash_code2 = "echo $VAR ))"; // Missing opening $((
+        let result2 = check(bash_code2);
+        assert!(
+            result2.diagnostics.len() > 0,
+            "Should flag incomplete arithmetic (missing opening)"
+        );
+    }
+
+    #[test]
+    fn test_mutation_column_calculation_braced() {
+        // MUTATION: If + becomes * or - in calculate_end_column (lines 45, 50),
+        // column positions will be wrong
+        let bash_code = "echo ${VAR}";
+        let result = check(bash_code);
+
+        assert_eq!(result.diagnostics.len(), 1);
+        let span = result.diagnostics[0].span;
+
+        // Verify exact column positions
+        assert_eq!(span.start_col, 6, "Start should be at $ (column 6)");
+        assert_eq!(
+            span.end_col, 12,
+            "End should include closing }} (column 12)"
+        );
+    }
+
+    #[test]
+    fn test_mutation_column_calculation_simple() {
+        // MUTATION: Verifies column calculation for simple $VAR (no braces)
+        let bash_code = "echo $VAR";
+        let result = check(bash_code);
+
+        assert_eq!(result.diagnostics.len(), 1);
+        let span = result.diagnostics[0].span;
+
+        assert_eq!(span.start_col, 6, "Start should be at $ (column 6)");
+        assert_eq!(span.end_col, 10, "End should be after VAR (column 10)");
+    }
+
+    #[test]
+    fn test_mutation_line_numbers() {
+        // MUTATION: If + becomes - in check function (line 121),
+        // line numbers will be incorrect
+        let bash_code = r#"
+#!/bin/bash
+echo "first"
+echo $VAR
+echo "last"
+"#;
+
+        let result = check(bash_code);
+        assert_eq!(
+            result.diagnostics.len(),
+            1,
+            "Should detect one unquoted variable"
+        );
+        assert_eq!(
+            result.diagnostics[0].span.start_line, 4,
+            "Should report line 4"
+        );
+        assert_eq!(
+            result.diagnostics[0].span.end_line, 4,
+            "End line should also be 4"
+        );
+    }
+
+    #[test]
+    fn test_mutation_arithmetic_check_logic() {
+        // MUTATION: If && becomes || in check function (line 127),
+        // verify arithmetic detection still works correctly
+        let bash_code = "result=$(( $x + $y ))";
+        let result = check(bash_code);
+        assert_eq!(
+            result.diagnostics.len(),
+            0,
+            "Arithmetic context check must work"
+        );
+
+        // Also verify non-arithmetic is still caught
+        let bash_code2 = "echo $x";
+        let result2 = check(bash_code2);
+        assert_eq!(
+            result2.diagnostics.len(),
+            1,
+            "Non-arithmetic should be flagged"
+        );
+    }
+
+    #[test]
+    fn test_mutation_column_offset() {
+        // MUTATION: Additional test for column calculation edge cases
+        let bash_code = "ls ${FILE}";
+        let result = check(bash_code);
+
+        assert_eq!(result.diagnostics.len(), 1);
+        let span = result.diagnostics[0].span;
+
+        // Verify the span covers the entire variable expression
+        // "${FILE}" is 7 characters, span.end_col - span.start_col should be 7
+        assert_eq!(
+            span.end_col - span.start_col,
+            7,
+            "Span length should cover ${{FILE}}"
+        );
+        assert!(span.start_col >= 4, "Should start after 'ls '");
+    }
+
+    #[test]
+    fn test_mutation_multiline_line_calculation() {
+        // MUTATION: Ensures line number calculation handles multiple lines correctly
+        let bash_code = r#"echo "line 1"
+echo "line 2"
+echo $VAR1
+echo "line 4"
+echo $VAR2"#;
+
+        let result = check(bash_code);
+        assert_eq!(
+            result.diagnostics.len(),
+            2,
+            "Should detect two unquoted variables"
+        );
+
+        // Verify line numbers are correct
+        assert_eq!(
+            result.diagnostics[0].span.start_line, 3,
+            "First variable on line 3"
+        );
+        assert_eq!(
+            result.diagnostics[1].span.start_line, 5,
+            "Second variable on line 5"
+        );
+    }
 }
