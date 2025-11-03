@@ -260,4 +260,93 @@ mod tests {
         assert!(span.end_col > span.start_col, "End must be after start");
         assert_eq!(span.start_col, 1, "Should start at printf");
     }
+
+    // ===== Property-Based Tests - Arithmetic Invariants =====
+    // These property tests catch arithmetic mutations (+ → *, + → -) that unit tests miss
+
+    #[cfg(test)]
+    mod property_tests {
+        use super::*;
+        use proptest::prelude::*;
+
+        proptest! {
+            #[test]
+            fn prop_column_positions_always_valid(
+                var_name in "[a-z]{1,10}",
+                leading_spaces in 0usize..20
+            ) {
+                // PROPERTY: Column positions must always be >= 1 (1-indexed)
+                let spaces = " ".repeat(leading_spaces);
+                let bash_code = format!("{}printf ${}", spaces, var_name);
+                let result = check(&bash_code);
+
+                if result.diagnostics.len() > 0 {
+                    let span = &result.diagnostics[0].span;
+                    // INVARIANT: Columns are 1-indexed, never 0 or negative
+                    prop_assert!(span.start_col >= 1, "Start column must be >= 1, got {}", span.start_col);
+                    prop_assert!(span.end_col >= 1, "End column must be >= 1, got {}", span.end_col);
+                    // INVARIANT: End must be after start
+                    prop_assert!(span.end_col > span.start_col,
+                        "End col ({}) must be > start col ({})", span.end_col, span.start_col);
+                }
+            }
+
+            #[test]
+            fn prop_line_numbers_always_valid(
+                var_name in "[a-z]{1,10}",
+                comment_lines in prop::collection::vec("# comment.*", 0..5)
+            ) {
+                // PROPERTY: Line numbers must always be >= 1 (1-indexed)
+                let mut bash_code = comment_lines.join("\n");
+                if !bash_code.is_empty() {
+                    bash_code.push('\n');
+                }
+                bash_code.push_str(&format!("printf ${}", var_name));
+
+                let result = check(&bash_code);
+                if result.diagnostics.len() > 0 {
+                    let span = &result.diagnostics[0].span;
+                    // INVARIANT: Lines are 1-indexed, never 0 or negative
+                    prop_assert!(span.start_line >= 1, "Line number must be >= 1, got {}", span.start_line);
+                    prop_assert!(span.end_line >= 1, "Line number must be >= 1, got {}", span.end_line);
+                }
+            }
+
+            #[test]
+            fn prop_span_length_reasonable(
+                var_name in "[a-z]{1,10}"
+            ) {
+                // PROPERTY: Span length should be reasonable (not negative, not huge)
+                let bash_code = format!("printf ${}", var_name);
+                let result = check(&bash_code);
+
+                if result.diagnostics.len() > 0 {
+                    let span = &result.diagnostics[0].span;
+                    let span_length = span.end_col.saturating_sub(span.start_col);
+                    // INVARIANT: Span length must be positive and reasonable
+                    prop_assert!(span_length > 0, "Span length must be > 0");
+                    prop_assert!(span_length < 1000, "Span length {} seems unreasonable", span_length);
+                }
+            }
+
+            #[test]
+            fn prop_expansion_pattern_columns_valid(
+                var_name in "[a-z]{1,10}",
+                prefix in "[a-z ]{0,10}"
+            ) {
+                // PROPERTY: PRINTF_WITH_EXPANSION pattern must have valid column positions
+                let bash_code = format!("printf \"{}${}\"", prefix, var_name);
+                let result = check(&bash_code);
+
+                if result.diagnostics.len() > 0 {
+                    let span = &result.diagnostics[0].span;
+                    // INVARIANT: Columns are 1-indexed and ordered correctly
+                    prop_assert!(span.start_col >= 1);
+                    prop_assert!(span.end_col > span.start_col);
+                    // INVARIANT: Span should cover at least "printf \"$x\""
+                    prop_assert!(span.end_col - span.start_col >= 10);
+                }
+            }
+        }
+    }
 }
