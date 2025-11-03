@@ -128,3 +128,146 @@ cargo mutants --file src/module.rs
 ```
 
 This demonstrates the Toyota Way principle of **Jidoka** (自働化) - building quality into the development process through rigorous automated testing that goes beyond traditional metrics.
+
+## Recent Success: v6.30.1 Parser Bug Fix via Property Tests
+
+**v6.30.1** (2025-11-03) demonstrates STOP THE LINE procedure when property tests detected a critical parser defect:
+
+### Results
+- **Property tests failing**: 5/17 tests (bash_transpiler::purification_property_tests)
+- **Bug severity**: CRITICAL - Parser rejected valid bash syntax
+- **Work halted**: Applied Toyota Way STOP THE LINE immediately
+- **Tests fixed**: 5 tests now passing (17/17 = 100%)
+- **Total test suite**: 6260 tests (100% pass rate, was 6255 with 5 failures)
+- **Zero regressions**: No existing functionality broken
+
+### Critical Success: Property Tests Catch Parser Bug
+
+**Parser Keyword Assignment Bug Discovery**:
+```bash
+# Property test that caught the bug:
+cargo test --lib bash_transpiler::purification_property_tests
+
+# 5 failing tests:
+FAILED: prop_no_bashisms_in_output
+FAILED: prop_purification_is_deterministic
+FAILED: prop_purification_is_idempotent
+FAILED: prop_purified_has_posix_shebang
+FAILED: prop_variable_assignments_preserved
+
+# Error: InvalidSyntax("Expected command name")
+# Minimal failing case: fi=1
+```
+
+**Bug**: Parser incorrectly rejected bash keywords (if, then, elif, else, fi, for, while, do, done, case, esac, in, function, return) when used as variable names in assignments.
+
+**Root Cause**:
+- `parse_statement()` only checked `Token::Identifier` for assignment pattern
+- Keyword tokens immediately routed to control structure parsers
+- Keywords in assignment context fell through to `parse_command()`, which failed
+
+**Valid Bash Syntax Rejected**:
+```bash
+# These are VALID in bash but parser rejected them:
+fi=1
+for=2
+while=3
+done=4
+
+# Keywords only special in specific syntactic positions
+# In assignment context, they're just variable names
+```
+
+**Fix Applied** (EXTREME TDD):
+```rust
+// parse_statement(): Add keyword assignment guards
+match self.peek() {
+    // Check for assignment pattern BEFORE treating as control structure
+    Some(Token::Fi) if self.peek_ahead(1) == Some(&Token::Assign) => {
+        self.parse_assignment(false)
+    }
+    Some(Token::For) if self.peek_ahead(1) == Some(&Token::Assign) => {
+        self.parse_assignment(false)
+    }
+    // ... (all 14 keywords)
+
+    // Now handle keywords as control structures (only if not assignments)
+    Some(Token::If) => self.parse_if(),
+    Some(Token::For) => self.parse_for(),
+    // ...
+}
+
+// parse_assignment(): Accept keyword tokens
+let name = match self.peek() {
+    Some(Token::Identifier(n)) => { /* existing logic */ }
+
+    // Allow bash keywords as variable names
+    Some(Token::Fi) => {
+        self.advance();
+        "fi".to_string()
+    }
+    Some(Token::For) => {
+        self.advance();
+        "for".to_string()
+    }
+    // ... (all 14 keywords)
+}
+```
+
+**After v6.30.1**: All 6260 tests passing (100%)
+
+### Toyota Way: STOP THE LINE Procedure
+
+This release demonstrates zero-defect policy:
+
+1. **Defects detected**: 5 property tests failing
+2. **STOP THE LINE**: Immediately halted v6.30.0 mutation testing work
+3. **Root cause analysis**: Identified parser `parse_statement()` logic gap
+4. **EXTREME TDD fix**: RED → GREEN → REFACTOR → QUALITY
+5. **Verification**: All 6260 tests passing (100%)
+6. **Resume work**: Only after zero defects achieved
+
+**Critical Decision**: When property tests failed during v6.30.0 mutation testing verification, we applied Toyota Way **Hansei** (反省 - reflection) and **Jidoka** (自働化 - build quality in). We did NOT proceed with v6.30.0 release until the parser defect was fixed.
+
+### Parser Bug Fix Workflow (EXTREME TDD)
+
+**Phase 1: RED** - Property tests failing
+```bash
+cargo test --lib bash_transpiler::purification_property_tests
+# Result: 5/17 tests failing
+# Minimal failing input: fi=1
+```
+
+**Phase 2: GREEN** - Fix parser logic
+```rust
+// Modified parse_statement() to check keyword + assign pattern
+// Modified parse_assignment() to accept keyword tokens
+```
+
+**Phase 3: REFACTOR** - Verify all tests pass
+```bash
+cargo test --lib
+# Result: 6260/6260 tests passing (100%)
+```
+
+**Phase 4: QUALITY** - Pre-commit hooks
+```bash
+git commit
+# All quality gates passed ✅
+# Clippy clean, complexity <10, formatted
+```
+
+### Impact
+
+Property-based testing proves its value **again**:
+
+1. **Generative testing**: Property tests use random inputs, catching edge cases like `fi=1`
+2. **Early detection**: Bug found DURING mutation testing work, before release
+3. **Zero-defect policy**: Work halted until defect fixed (Toyota Way)
+4. **Real-world validity**: Parser now aligns with actual bash specification
+
+**Key Insight**: Traditional unit tests might never test `fi=1` as a variable name. Property tests generate thousands of test cases, including edge cases developers never think of.
+
+**Bash Specification Compliance**: In bash, keywords are only special in specific syntactic positions. The parser now correctly handles:
+- `fi=1; echo $fi` → Valid (assignment context)
+- `if true; then echo "yes"; fi` → Valid (control structure context)

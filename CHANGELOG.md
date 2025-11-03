@@ -7,6 +7,111 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [6.30.1] - 2025-11-03
+
+### 🐛 CRITICAL BUG FIX - Parser Keyword Assignment Support
+
+**bashrs v6.30.1 fixes critical parser defect where bash keywords could not be used as variable names in assignments.**
+
+This patch release resolves a parser bug that incorrectly rejected valid bash syntax like `fi=1`, `for=2`, `while=3`, etc.
+
+### Bug Fixed
+
+**Parser Rejects Bash Keywords as Variable Names** (Commit: 57556454)
+
+**Problem**:
+- Parser incorrectly rejected bash keywords (if, then, elif, else, fi, for, while, do, done, case, esac, in, function, return) when used as variable names
+- 5 property tests failing with error: `InvalidSyntax("Expected command name")`
+- Minimal failing case: `fi=1` or `for=2`
+
+**Root Cause**:
+- `parse_statement()` only checked `Token::Identifier` for assignment pattern
+- Keyword tokens immediately routed to control structure parsers
+- Keywords in assignment context fell through to `parse_command()`, which failed
+
+**Fix Applied** (EXTREME TDD):
+1. Modified `parse_statement()` (lines 142-183) to add guard clauses
+   - Check if keyword followed by `Token::Assign` before treating as control structure
+   - If assignment pattern detected, call `parse_assignment(false)`
+2. Modified `parse_assignment()` (lines 493-564) to accept all keyword tokens
+   - Added match arms for all bash keywords
+   - Convert keyword token to string for variable name
+
+**Impact**:
+- Now correctly handles valid bash syntax where keywords used as variables
+- Aligns with bash specification (keywords only special in specific syntactic positions)
+- Examples now working: `fi=1; for=2; while=3; done=4`
+
+### Tests Fixed
+
+**Property Tests** (5 tests now passing):
+- `prop_no_bashisms_in_output`
+- `prop_purification_is_deterministic`
+- `prop_purification_is_idempotent`
+- `prop_purified_has_posix_shebang`
+- `prop_variable_assignments_preserved`
+
+**Total Test Suite**: 6260 tests (17/17 property tests passing, was 12/17)
+
+### Quality Metrics
+
+- ✅ **6260 tests passing** - 100% pass rate (was 6255 with 5 failures)
+- ✅ **Zero test failures** - All property tests now passing
+- ✅ **Zero regressions** - No existing functionality broken
+- ✅ **Clippy clean** - Zero warnings
+- ✅ **Code complexity <10** - All functions within limit
+- ✅ **All quality gates passed** - Pre-commit hooks successful
+
+### Toyota Way (Jidoka) - STOP THE LINE
+
+This release demonstrates Toyota Way zero-defect policy:
+
+1. **Defects detected**: 5 property tests failing
+2. **STOP THE LINE**: Immediately halted all work to fix defect
+3. **Root cause analysis**: Identified parser logic gap
+4. **EXTREME TDD fix**: RED → GREEN → REFACTOR
+5. **Verification**: All 6260 tests passing (100%)
+6. **Resume work**: Only after zero defects achieved
+
+### Methodology: EXTREME TDD
+
+**Phase 1: RED** - Property tests failing
+```bash
+cargo test --lib bash_transpiler::purification_property_tests
+# Result: 5/17 tests failing
+```
+
+**Phase 2: GREEN** - Fix parser logic
+```rust
+// parse_statement(): Add keyword assignment guards
+Some(Token::Fi) if self.peek_ahead(1) == Some(&Token::Assign) => {
+    self.parse_assignment(false)
+}
+// ... (all keywords)
+
+// parse_assignment(): Accept keyword tokens
+Some(Token::Fi) => {
+    self.advance();
+    "fi".to_string()
+}
+```
+
+**Phase 3: REFACTOR** - Verify all tests pass
+```bash
+cargo test --lib
+# Result: 6260/6260 tests passing (100%)
+```
+
+**Phase 4: QUALITY** - Pre-commit hooks
+```bash
+git commit
+# All quality gates passed ✅
+```
+
+### Files Changed
+
+- `rash/src/bash_parser/parser.rs`: Parser keyword assignment fix (commit 57556454)
+
 ## [6.30.0] - 2025-11-03
 
 ### 🎯 QUALITY MILESTONE - 90%+ Mutation Coverage on Core Infrastructure
