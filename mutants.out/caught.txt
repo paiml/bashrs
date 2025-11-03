@@ -1,3 +1,36 @@
 rash/src/ir/mod.rs:180:21: delete match arm crate::ast::Expr::Range{start, end, inclusive,} in IrConverter::convert_stmt
 rash/src/ir/mod.rs:343:43: replace == with != in IrConverter::convert_expr_to_value
 rash/src/ir/mod.rs:653:39: replace && with || in is_string_value
+rash/src/ir/mod.rs:34:8: delete ! in optimize
+rash/src/ir/mod.rs:193:69: replace - with + in IrConverter::convert_stmt
+rash/src/ir/mod.rs:567:13: delete match arm "curl" | "wget" in IrConverter::analyze_command_effects
+rash/src/ir/mod.rs:612:9: delete match arm ShellIR::Let{name, value:ShellValue::Concat(parts), effects,} in constant_fold
+rash/src/ir/mod.rs:420:13: delete match arm Expr::Unary{op, operand} in IrConverter::convert_expr_to_value
+rash/src/ir/mod.rs:193:69: replace - with / in IrConverter::convert_stmt
+rash/src/ir/mod.rs:69:60: replace - with / in IrConverter::convert
+rash/src/ir/mod.rs:345:29: delete match arm Some(Expr::Literal(Literal::Str(s))) in IrConverter::convert_expr_to_value
+rash/src/ir/mod.rs:69:37: replace == with != in IrConverter::convert
+rash/src/ir/mod.rs:377:33: replace == with != in IrConverter::convert_expr_to_value
+rash/src/ir/mod.rs:63:30: replace != with == in IrConverter::convert
+rash/src/ir/mod.rs:310:13: delete match arm Expr::Literal(literal) in IrConverter::convert_expr_to_value
+rash/src/ir/mod.rs:332:24: delete ! in IrConverter::convert_expr_to_value
+rash/src/ir/mod.rs:319:25: replace == with != in IrConverter::convert_expr_to_value
+rash/src/ir/mod.rs:110:33: replace match guard should_echo with false in IrConverter::convert_stmt_in_function
+rash/src/ir/mod.rs:170:21: delete match arm crate::ast::restricted::Pattern::Variable(name) in IrConverter::convert_stmt
+rash/src/ir/mod.rs:319:34: replace || with && in IrConverter::convert_expr_to_value
+rash/src/ir/mod.rs:398:25: replace == with != in IrConverter::convert_expr_to_value
+rash/src/ir/mod.rs:435:13: delete match arm Expr::Binary{op, left, right} in IrConverter::convert_expr_to_value
+rash/src/ir/mod.rs:110:33: replace match guard should_echo with true in IrConverter::convert_stmt_in_function
+rash/src/ir/mod.rs:316:13: delete match arm Expr::Variable(name) in IrConverter::convert_expr_to_value
+rash/src/ir/mod.rs:570:13: delete match arm "echo" | "printf" in IrConverter::analyze_command_effects
+rash/src/ir/mod.rs:456:68: replace || with && in IrConverter::convert_expr_to_value
+rash/src/ir/mod.rs:364:25: replace == with != in IrConverter::convert_expr_to_value
+rash/src/ir/mod.rs:275:13: delete match arm Expr::FunctionCall{name, args} in IrConverter::convert_expr
+rash/src/ir/mod.rs:319:42: replace == with != in IrConverter::convert_expr_to_value
+rash/src/ir/mod.rs:444:68: replace || with && in IrConverter::convert_expr_to_value
+rash/src/ir/mod.rs:69:60: replace - with + in IrConverter::convert
+rash/src/ir/mod.rs:71:25: delete ! in IrConverter::convert
+rash/src/ir/mod.rs:74:75: replace && with || in IrConverter::convert
+rash/src/ir/mod.rs:90:30: replace == with != in IrConverter::convert
+rash/src/ir/mod.rs:334:60: replace || with && in IrConverter::convert_expr_to_value
+rash/src/ir/mod.rs:317:13: delete match arm Expr::FunctionCall{name, args} in IrConverter::convert_expr_to_value

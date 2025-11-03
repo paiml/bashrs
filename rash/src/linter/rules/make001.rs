@@ -32,21 +32,29 @@ pub fn check(source: &str) -> LintResult {
         // Look for $(wildcard ...) without $(sort ...) wrapper
         if line.contains("$(wildcard") && !line.contains("$(sort") {
             if let Some(col) = line.find("$(wildcard") {
-                let span = Span::new(
-                    line_num + 1,
-                    col + 1,
-                    line_num + 1,
-                    col + 11, // length of "$(wildcard"
-                );
-
+                // ISSUE #1 FIX: Span must cover the ENTIRE expression, not just the start
                 // Extract the wildcard expression for the fix
-                let fix_replacement = if let Some(end) = find_matching_paren(line, col + 2) {
-                    // Found matching paren - wrap entire expression
+                let (span, fix_replacement) = if let Some(end) = find_matching_paren(line, col + 2)
+                {
+                    // Found matching paren - span covers entire $(wildcard ...) expression
                     let wildcard_expr = &line[col..=end];
-                    format!("$(sort {})", wildcard_expr)
+                    let span = Span::new(
+                        line_num + 1,
+                        col + 1,
+                        line_num + 1,
+                        col + wildcard_expr.len() + 1,
+                    );
+                    let replacement = format!("$(sort {})", wildcard_expr);
+                    (span, replacement)
                 } else {
-                    // Fallback: suggest wrapping
-                    "$(sort $(wildcard ...))".to_string()
+                    // Fallback: span covers just "$(wildcard" if we can't find the closing paren
+                    let span = Span::new(
+                        line_num + 1,
+                        col + 1,
+                        line_num + 1,
+                        col + 11, // length of "$(wildcard"
+                    );
+                    (span, "$(sort $(wildcard ...))".to_string())
                 };
 
                 let diag = Diagnostic::new(
