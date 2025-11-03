@@ -260,4 +260,93 @@
 <a href=#260 id=260 data-nosnippet>260</a>        </span><span class="macro">assert!</span>(span.end_col &gt; span.start_col, <span class="string">"End must be after start"</span>);
 <a href=#261 id=261 data-nosnippet>261</a>        <span class="macro">assert_eq!</span>(span.start_col, <span class="number">1</span>, <span class="string">"Should start at printf"</span>);
 <a href=#262 id=262 data-nosnippet>262</a>    }
-<a href=#263 id=263 data-nosnippet>263</a>}</code></pre></div></section></main></body></html>
+<a href=#263 id=263 data-nosnippet>263</a>
+<a href=#264 id=264 data-nosnippet>264</a>    <span class="comment">// ===== Property-Based Tests - Arithmetic Invariants =====
+<a href=#265 id=265 data-nosnippet>265</a>    // These property tests catch arithmetic mutations (+ → *, + → -) that unit tests miss
+<a href=#266 id=266 data-nosnippet>266</a>
+<a href=#267 id=267 data-nosnippet>267</a>    </span><span class="attr">#[cfg(test)]
+<a href=#268 id=268 data-nosnippet>268</a>    </span><span class="kw">mod </span>property_tests {
+<a href=#269 id=269 data-nosnippet>269</a>        <span class="kw">use super</span>::<span class="kw-2">*</span>;
+<a href=#270 id=270 data-nosnippet>270</a>        <span class="kw">use </span>proptest::prelude::<span class="kw-2">*</span>;
+<a href=#271 id=271 data-nosnippet>271</a>
+<a href=#272 id=272 data-nosnippet>272</a>        <span class="macro">proptest!</span> {
+<a href=#273 id=273 data-nosnippet>273</a>            <span class="attr">#[test]
+<a href=#274 id=274 data-nosnippet>274</a>            </span><span class="kw">fn </span>prop_column_positions_always_valid(
+<a href=#275 id=275 data-nosnippet>275</a>                var_name <span class="kw">in </span><span class="string">"[a-z]{1,10}"</span>,
+<a href=#276 id=276 data-nosnippet>276</a>                leading_spaces <span class="kw">in </span><span class="number">0usize</span>..<span class="number">20
+<a href=#277 id=277 data-nosnippet>277</a>            </span>) {
+<a href=#278 id=278 data-nosnippet>278</a>                <span class="comment">// PROPERTY: Column positions must always be &gt;= 1 (1-indexed)
+<a href=#279 id=279 data-nosnippet>279</a>                </span><span class="kw">let </span>spaces = <span class="string">" "</span>.repeat(leading_spaces);
+<a href=#280 id=280 data-nosnippet>280</a>                <span class="kw">let </span>bash_code = <span class="macro">format!</span>(<span class="string">"{}printf ${}"</span>, spaces, var_name);
+<a href=#281 id=281 data-nosnippet>281</a>                <span class="kw">let </span>result = check(<span class="kw-2">&amp;</span>bash_code);
+<a href=#282 id=282 data-nosnippet>282</a>
+<a href=#283 id=283 data-nosnippet>283</a>                <span class="kw">if </span>result.diagnostics.len() &gt; <span class="number">0 </span>{
+<a href=#284 id=284 data-nosnippet>284</a>                    <span class="kw">let </span>span = <span class="kw-2">&amp;</span>result.diagnostics[<span class="number">0</span>].span;
+<a href=#285 id=285 data-nosnippet>285</a>                    <span class="comment">// INVARIANT: Columns are 1-indexed, never 0 or negative
+<a href=#286 id=286 data-nosnippet>286</a>                    </span><span class="macro">prop_assert!</span>(span.start_col &gt;= <span class="number">1</span>, <span class="string">"Start column must be &gt;= 1, got {}"</span>, span.start_col);
+<a href=#287 id=287 data-nosnippet>287</a>                    <span class="macro">prop_assert!</span>(span.end_col &gt;= <span class="number">1</span>, <span class="string">"End column must be &gt;= 1, got {}"</span>, span.end_col);
+<a href=#288 id=288 data-nosnippet>288</a>                    <span class="comment">// INVARIANT: End must be after start
+<a href=#289 id=289 data-nosnippet>289</a>                    </span><span class="macro">prop_assert!</span>(span.end_col &gt; span.start_col,
+<a href=#290 id=290 data-nosnippet>290</a>                        <span class="string">"End col ({}) must be &gt; start col ({})"</span>, span.end_col, span.start_col);
+<a href=#291 id=291 data-nosnippet>291</a>                }
+<a href=#292 id=292 data-nosnippet>292</a>            }
+<a href=#293 id=293 data-nosnippet>293</a>
+<a href=#294 id=294 data-nosnippet>294</a>            <span class="attr">#[test]
+<a href=#295 id=295 data-nosnippet>295</a>            </span><span class="kw">fn </span>prop_line_numbers_always_valid(
+<a href=#296 id=296 data-nosnippet>296</a>                var_name <span class="kw">in </span><span class="string">"[a-z]{1,10}"</span>,
+<a href=#297 id=297 data-nosnippet>297</a>                comment_lines <span class="kw">in </span>prop::collection::vec(<span class="string">"# comment.*"</span>, <span class="number">0</span>..<span class="number">5</span>)
+<a href=#298 id=298 data-nosnippet>298</a>            ) {
+<a href=#299 id=299 data-nosnippet>299</a>                <span class="comment">// PROPERTY: Line numbers must always be &gt;= 1 (1-indexed)
+<a href=#300 id=300 data-nosnippet>300</a>                </span><span class="kw">let </span><span class="kw-2">mut </span>bash_code = comment_lines.join(<span class="string">"\n"</span>);
+<a href=#301 id=301 data-nosnippet>301</a>                <span class="kw">if </span>!bash_code.is_empty() {
+<a href=#302 id=302 data-nosnippet>302</a>                    bash_code.push(<span class="string">'\n'</span>);
+<a href=#303 id=303 data-nosnippet>303</a>                }
+<a href=#304 id=304 data-nosnippet>304</a>                bash_code.push_str(<span class="kw-2">&amp;</span><span class="macro">format!</span>(<span class="string">"printf ${}"</span>, var_name));
+<a href=#305 id=305 data-nosnippet>305</a>
+<a href=#306 id=306 data-nosnippet>306</a>                <span class="kw">let </span>result = check(<span class="kw-2">&amp;</span>bash_code);
+<a href=#307 id=307 data-nosnippet>307</a>                <span class="kw">if </span>result.diagnostics.len() &gt; <span class="number">0 </span>{
+<a href=#308 id=308 data-nosnippet>308</a>                    <span class="kw">let </span>span = <span class="kw-2">&amp;</span>result.diagnostics[<span class="number">0</span>].span;
+<a href=#309 id=309 data-nosnippet>309</a>                    <span class="comment">// INVARIANT: Lines are 1-indexed, never 0 or negative
+<a href=#310 id=310 data-nosnippet>310</a>                    </span><span class="macro">prop_assert!</span>(span.start_line &gt;= <span class="number">1</span>, <span class="string">"Line number must be &gt;= 1, got {}"</span>, span.start_line);
+<a href=#311 id=311 data-nosnippet>311</a>                    <span class="macro">prop_assert!</span>(span.end_line &gt;= <span class="number">1</span>, <span class="string">"Line number must be &gt;= 1, got {}"</span>, span.end_line);
+<a href=#312 id=312 data-nosnippet>312</a>                }
+<a href=#313 id=313 data-nosnippet>313</a>            }
+<a href=#314 id=314 data-nosnippet>314</a>
+<a href=#315 id=315 data-nosnippet>315</a>            <span class="attr">#[test]
+<a href=#316 id=316 data-nosnippet>316</a>            </span><span class="kw">fn </span>prop_span_length_reasonable(
+<a href=#317 id=317 data-nosnippet>317</a>                var_name <span class="kw">in </span><span class="string">"[a-z]{1,10}"
+<a href=#318 id=318 data-nosnippet>318</a>            </span>) {
+<a href=#319 id=319 data-nosnippet>319</a>                <span class="comment">// PROPERTY: Span length should be reasonable (not negative, not huge)
+<a href=#320 id=320 data-nosnippet>320</a>                </span><span class="kw">let </span>bash_code = <span class="macro">format!</span>(<span class="string">"printf ${}"</span>, var_name);
+<a href=#321 id=321 data-nosnippet>321</a>                <span class="kw">let </span>result = check(<span class="kw-2">&amp;</span>bash_code);
+<a href=#322 id=322 data-nosnippet>322</a>
+<a href=#323 id=323 data-nosnippet>323</a>                <span class="kw">if </span>result.diagnostics.len() &gt; <span class="number">0 </span>{
+<a href=#324 id=324 data-nosnippet>324</a>                    <span class="kw">let </span>span = <span class="kw-2">&amp;</span>result.diagnostics[<span class="number">0</span>].span;
+<a href=#325 id=325 data-nosnippet>325</a>                    <span class="kw">let </span>span_length = span.end_col.saturating_sub(span.start_col);
+<a href=#326 id=326 data-nosnippet>326</a>                    <span class="comment">// INVARIANT: Span length must be positive and reasonable
+<a href=#327 id=327 data-nosnippet>327</a>                    </span><span class="macro">prop_assert!</span>(span_length &gt; <span class="number">0</span>, <span class="string">"Span length must be &gt; 0"</span>);
+<a href=#328 id=328 data-nosnippet>328</a>                    <span class="macro">prop_assert!</span>(span_length &lt; <span class="number">1000</span>, <span class="string">"Span length {} seems unreasonable"</span>, span_length);
+<a href=#329 id=329 data-nosnippet>329</a>                }
+<a href=#330 id=330 data-nosnippet>330</a>            }
+<a href=#331 id=331 data-nosnippet>331</a>
+<a href=#332 id=332 data-nosnippet>332</a>            <span class="attr">#[test]
+<a href=#333 id=333 data-nosnippet>333</a>            </span><span class="kw">fn </span>prop_expansion_pattern_columns_valid(
+<a href=#334 id=334 data-nosnippet>334</a>                var_name <span class="kw">in </span><span class="string">"[a-z]{1,10}"</span>,
+<a href=#335 id=335 data-nosnippet>335</a>                prefix <span class="kw">in </span><span class="string">"[a-z ]{0,10}"
+<a href=#336 id=336 data-nosnippet>336</a>            </span>) {
+<a href=#337 id=337 data-nosnippet>337</a>                <span class="comment">// PROPERTY: PRINTF_WITH_EXPANSION pattern must have valid column positions
+<a href=#338 id=338 data-nosnippet>338</a>                </span><span class="kw">let </span>bash_code = <span class="macro">format!</span>(<span class="string">"printf \"{}${}\""</span>, prefix, var_name);
+<a href=#339 id=339 data-nosnippet>339</a>                <span class="kw">let </span>result = check(<span class="kw-2">&amp;</span>bash_code);
+<a href=#340 id=340 data-nosnippet>340</a>
+<a href=#341 id=341 data-nosnippet>341</a>                <span class="kw">if </span>result.diagnostics.len() &gt; <span class="number">0 </span>{
+<a href=#342 id=342 data-nosnippet>342</a>                    <span class="kw">let </span>span = <span class="kw-2">&amp;</span>result.diagnostics[<span class="number">0</span>].span;
+<a href=#343 id=343 data-nosnippet>343</a>                    <span class="comment">// INVARIANT: Columns are 1-indexed and ordered correctly
+<a href=#344 id=344 data-nosnippet>344</a>                    </span><span class="macro">prop_assert!</span>(span.start_col &gt;= <span class="number">1</span>);
+<a href=#345 id=345 data-nosnippet>345</a>                    <span class="macro">prop_assert!</span>(span.end_col &gt; span.start_col);
+<a href=#346 id=346 data-nosnippet>346</a>                    <span class="comment">// INVARIANT: Span should cover at least "printf \"$x\""
+<a href=#347 id=347 data-nosnippet>347</a>                    </span><span class="macro">prop_assert!</span>(span.end_col - span.start_col &gt;= <span class="number">10</span>);
+<a href=#348 id=348 data-nosnippet>348</a>                }
+<a href=#349 id=349 data-nosnippet>349</a>            }
+<a href=#350 id=350 data-nosnippet>350</a>        }
+<a href=#351 id=351 data-nosnippet>351</a>    }
+<a href=#352 id=352 data-nosnippet>352</a>}</code></pre></div></section></main></body></html>
