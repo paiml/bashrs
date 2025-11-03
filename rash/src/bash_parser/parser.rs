@@ -137,6 +137,51 @@ impl BashParser {
         }
 
         match self.peek() {
+            // Bash allows keywords as variable names (e.g., fi=1, for=2, while=3)
+            // Check for assignment pattern first before treating as control structure
+            Some(Token::If) if self.peek_ahead(1) == Some(&Token::Assign) => {
+                self.parse_assignment(false)
+            }
+            Some(Token::Then) if self.peek_ahead(1) == Some(&Token::Assign) => {
+                self.parse_assignment(false)
+            }
+            Some(Token::Elif) if self.peek_ahead(1) == Some(&Token::Assign) => {
+                self.parse_assignment(false)
+            }
+            Some(Token::Else) if self.peek_ahead(1) == Some(&Token::Assign) => {
+                self.parse_assignment(false)
+            }
+            Some(Token::Fi) if self.peek_ahead(1) == Some(&Token::Assign) => {
+                self.parse_assignment(false)
+            }
+            Some(Token::While) if self.peek_ahead(1) == Some(&Token::Assign) => {
+                self.parse_assignment(false)
+            }
+            Some(Token::For) if self.peek_ahead(1) == Some(&Token::Assign) => {
+                self.parse_assignment(false)
+            }
+            Some(Token::Do) if self.peek_ahead(1) == Some(&Token::Assign) => {
+                self.parse_assignment(false)
+            }
+            Some(Token::Done) if self.peek_ahead(1) == Some(&Token::Assign) => {
+                self.parse_assignment(false)
+            }
+            Some(Token::Case) if self.peek_ahead(1) == Some(&Token::Assign) => {
+                self.parse_assignment(false)
+            }
+            Some(Token::Esac) if self.peek_ahead(1) == Some(&Token::Assign) => {
+                self.parse_assignment(false)
+            }
+            Some(Token::In) if self.peek_ahead(1) == Some(&Token::Assign) => {
+                self.parse_assignment(false)
+            }
+            Some(Token::Function) if self.peek_ahead(1) == Some(&Token::Assign) => {
+                self.parse_assignment(false)
+            }
+            Some(Token::Return) if self.peek_ahead(1) == Some(&Token::Assign) => {
+                self.parse_assignment(false)
+            }
+            // Now handle keywords as control structures (only if not assignments)
             Some(Token::If) => self.parse_if(),
             Some(Token::While) => self.parse_while(),
             Some(Token::For) => self.parse_for(),
@@ -445,14 +490,75 @@ impl BashParser {
     }
 
     fn parse_assignment(&mut self, exported: bool) -> ParseResult<BashStmt> {
-        let name = if let Some(Token::Identifier(n)) = self.peek() {
-            let var_name = n.clone();
-            self.advance();
-            var_name
-        } else {
-            return Err(ParseError::InvalidSyntax(
-                "Expected variable name in assignment".to_string(),
-            ));
+        // In bash, keywords can be used as variable names (e.g., fi=1, done=2)
+        let name = match self.peek() {
+            Some(Token::Identifier(n)) => {
+                let var_name = n.clone();
+                self.advance();
+                var_name
+            }
+            // Allow bash keywords as variable names
+            Some(Token::If) => {
+                self.advance();
+                "if".to_string()
+            }
+            Some(Token::Then) => {
+                self.advance();
+                "then".to_string()
+            }
+            Some(Token::Elif) => {
+                self.advance();
+                "elif".to_string()
+            }
+            Some(Token::Else) => {
+                self.advance();
+                "else".to_string()
+            }
+            Some(Token::Fi) => {
+                self.advance();
+                "fi".to_string()
+            }
+            Some(Token::For) => {
+                self.advance();
+                "for".to_string()
+            }
+            Some(Token::While) => {
+                self.advance();
+                "while".to_string()
+            }
+            Some(Token::Do) => {
+                self.advance();
+                "do".to_string()
+            }
+            Some(Token::Done) => {
+                self.advance();
+                "done".to_string()
+            }
+            Some(Token::Case) => {
+                self.advance();
+                "case".to_string()
+            }
+            Some(Token::Esac) => {
+                self.advance();
+                "esac".to_string()
+            }
+            Some(Token::In) => {
+                self.advance();
+                "in".to_string()
+            }
+            Some(Token::Function) => {
+                self.advance();
+                "function".to_string()
+            }
+            Some(Token::Return) => {
+                self.advance();
+                "return".to_string()
+            }
+            _ => {
+                return Err(ParseError::InvalidSyntax(
+                    "Expected variable name in assignment".to_string(),
+                ))
+            }
         };
 
         self.expect(Token::Assign)?;
