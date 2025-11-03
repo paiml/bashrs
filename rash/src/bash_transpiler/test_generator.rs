@@ -396,3 +396,148 @@ mod tests {
         assert!(tests.contains("Failed tests"), "Should report failures");
     }
 }
+
+#[cfg(test)]
+mod property_tests {
+    use super::*;
+    use proptest::prelude::*;
+    use std::path::PathBuf;
+
+    proptest! {
+        /// Property: Generated tests always have POSIX shebang
+        #[test]
+        fn prop_generated_tests_have_posix_shebang(
+            script_name in "[a-z][a-z0-9_]{0,20}\\.sh"
+        ) {
+            let options = TestGeneratorOptions::default();
+            let generator = TestGenerator::new(options);
+            let script_path = PathBuf::from(&script_name);
+
+            let tests = generator.generate_tests(&script_path, "#!/bin/sh\necho test");
+
+            prop_assert!(tests.starts_with("#!/bin/sh"));
+        }
+
+        /// Property: Generated tests always include script name in header
+        #[test]
+        fn prop_generated_tests_include_script_name(
+            script_name in "[a-z][a-z0-9_]{0,20}\\.sh"
+        ) {
+            let options = TestGeneratorOptions::default();
+            let generator = TestGenerator::new(options);
+            let script_path = PathBuf::from(&script_name);
+
+            let tests = generator.generate_tests(&script_path, "#!/bin/sh\necho test");
+
+            prop_assert!(tests.contains(&script_name));
+        }
+
+        /// Property: Generated tests always include all 3 core test functions
+        #[test]
+        fn prop_generated_tests_include_all_core_functions(
+            script_name in "[a-z][a-z0-9_]{0,20}\\.sh"
+        ) {
+            let options = TestGeneratorOptions::default();
+            let generator = TestGenerator::new(options);
+            let script_path = PathBuf::from(&script_name);
+
+            let tests = generator.generate_tests(&script_path, "#!/bin/sh\necho test");
+
+            prop_assert!(tests.contains("test_determinism"));
+            prop_assert!(tests.contains("test_idempotency"));
+            prop_assert!(tests.contains("test_posix_compliance"));
+        }
+
+        /// Property: Generated tests always include test runner
+        #[test]
+        fn prop_generated_tests_include_runner(
+            script_name in "[a-z][a-z0-9_]{0,20}\\.sh"
+        ) {
+            let options = TestGeneratorOptions::default();
+            let generator = TestGenerator::new(options);
+            let script_path = PathBuf::from(&script_name);
+
+            let tests = generator.generate_tests(&script_path, "#!/bin/sh\necho test");
+
+            prop_assert!(tests.contains("Test Runner"));
+            prop_assert!(tests.contains("All tests passed"));
+            prop_assert!(tests.contains("Failed tests"));
+        }
+
+        /// Property: Property tests are only included when enabled
+        #[test]
+        fn prop_property_tests_conditional(
+            script_name in "[a-z][a-z0-9_]{0,20}\\.sh",
+            enable_property in prop::bool::ANY
+        ) {
+            let options = TestGeneratorOptions {
+                property_tests: enable_property,
+                property_test_count: 100,
+            };
+            let generator = TestGenerator::new(options);
+            let script_path = PathBuf::from(&script_name);
+
+            let tests = generator.generate_tests(&script_path, "#!/bin/sh\necho test");
+
+            if enable_property {
+                prop_assert!(tests.contains("test_property_determinism"));
+            } else {
+                prop_assert!(!tests.contains("test_property_determinism"));
+            }
+        }
+
+        /// Property: Property test count is respected
+        #[test]
+        fn prop_property_test_count_respected(
+            script_name in "[a-z][a-z0-9_]{0,20}\\.sh",
+            test_count in 10usize..200usize
+        ) {
+            let options = TestGeneratorOptions {
+                property_tests: true,
+                property_test_count: test_count,
+            };
+            let generator = TestGenerator::new(options);
+            let script_path = PathBuf::from(&script_name);
+
+            let tests = generator.generate_tests(&script_path, "#!/bin/sh\necho test");
+
+            // Check that the test count appears in the generated tests
+            let expected = format!("{} cases", test_count);
+            prop_assert!(tests.contains(&expected));
+        }
+
+        /// Property: Generated tests always use POSIX-compliant syntax
+        #[test]
+        fn prop_generated_tests_use_posix_syntax(
+            script_name in "[a-z][a-z0-9_]{0,20}\\.sh"
+        ) {
+            let options = TestGeneratorOptions::default();
+            let generator = TestGenerator::new(options);
+            let script_path = PathBuf::from(&script_name);
+
+            let tests = generator.generate_tests(&script_path, "#!/bin/sh\necho test");
+
+            // Check for POSIX-compliant constructs
+            prop_assert!(tests.contains("if ["));  // POSIX test syntax
+            prop_assert!(tests.contains("return 0")); // Standard return codes
+            prop_assert!(tests.contains("exit 0")); // Standard exit codes
+            prop_assert!(!tests.contains("[[")); // No bash double-bracket tests
+            // Note: tests contains "==" in comment lines ("=========...") so we don't check for that
+        }
+
+        /// Property: Script name in test path matches input
+        #[test]
+        fn prop_script_name_consistency(
+            script_name in "[a-z][a-z0-9_]{0,20}\\.sh"
+        ) {
+            let options = TestGeneratorOptions::default();
+            let generator = TestGenerator::new(options);
+            let script_path = PathBuf::from(&script_name);
+
+            let tests = generator.generate_tests(&script_path, "#!/bin/sh\necho test");
+
+            // Script name should appear in the generated tests
+            prop_assert!(tests.contains(&script_name.replace(".sh", "")));
+        }
+    }
+}
