@@ -142,6 +142,62 @@ mod tests {
         assert_eq!(result.diagnostics.len(), 0); // Our simplified regex
     }
 
+    // ===== Mutation Coverage Tests - Exact Column Positions =====
+    // These tests catch arithmetic mutations (+ → *, + → -) in column calculations
+    // that property tests miss. Based on SC2059 Iteration 1 success.
+    //
+    // Root Cause: Property tests check invariants (>= 1, end > start) but NOT exact values.
+    // Mutations like mat.start() * 1 still satisfy >= 1, so they escape detection.
+    // SOLUTION: Assert EXACT column/line numbers to catch arithmetic mutations.
+
+    #[test]
+    fn test_mutation_sc2064_trap_start_col_exact() {
+        // MUTATION: Line 47:41 - replace + with * in mat.start() + 1
+        let bash_code = r#"trap "rm $tmpfile" EXIT"#; // trap starts at column 1
+        let result = check(bash_code);
+        assert_eq!(
+            result.diagnostics.len(),
+            1,
+            "Should detect trap with variable"
+        );
+        let span = result.diagnostics[0].span;
+        assert_eq!(span.start_col, 1, "Start column must use +1, not *1");
+    }
+
+    #[test]
+    fn test_mutation_sc2064_trap_end_col_exact() {
+        // MUTATION: Line 48:37 - replace + with * or - in mat.end() + 1
+        let bash_code = r#"trap "rm $tmpfile" EXIT"#; // Pattern ends at column 18
+        let result = check(bash_code);
+        assert_eq!(result.diagnostics.len(), 1);
+        let span = result.diagnostics[0].span;
+        assert_eq!(span.end_col, 18, "End column must use +1, not *1 or -1");
+    }
+
+    #[test]
+    fn test_mutation_sc2064_line_num_calculation() {
+        // MUTATION: Line 39:33 - replace + with * in line_num + 1
+        let bash_code = "# comment\ntrap \"rm $var\" EXIT"; // trap on line 2
+        let result = check(bash_code);
+        assert_eq!(result.diagnostics.len(), 1);
+        let span = result.diagnostics[0].span;
+        assert_eq!(span.start_line, 2, "Line number must use +1, not *1");
+        assert_eq!(span.end_line, 2, "Single line diagnostic");
+    }
+
+    #[test]
+    fn test_mutation_sc2064_column_positions_with_offset() {
+        // Tests column calculations with leading whitespace
+        let bash_code = r#"    trap "rm $file" EXIT"#; // trap starts at column 5
+        let result = check(bash_code);
+        assert_eq!(result.diagnostics.len(), 1);
+        let span = result.diagnostics[0].span;
+        assert_eq!(span.start_col, 5, "Must account for leading whitespace");
+        assert!(span.end_col > span.start_col, "End must be after start");
+        // Exact end position: "    trap "rm $file"" = 4 spaces + 14 chars = column 18
+        assert_eq!(span.end_col, 19, "End column must be exact");
+    }
+
     // ===== Property-Based Tests - Arithmetic Invariants =====
     // These property tests catch arithmetic mutations (+ → *, + → -, etc.)
     // that unit tests miss. Validates mathematical invariants that MUST hold.
