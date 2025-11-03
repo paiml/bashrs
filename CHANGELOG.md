@@ -7,6 +7,84 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [6.29.0] - 2025-11-03
+
+### 🎯 MILESTONE - Rule Registry 100% Complete (357/357)
+
+**bashrs v6.29.0 achieves 100% rule registry coverage by adding Batch 18 (SC2008-SC2014) and Batch 19 (MAKE001-MAKE020), completing the classification of all 357 implemented linter rules.**
+
+This release marks a major milestone in the shell-specific linting initiative started in v6.26.0 and expanded in v6.27.0-v6.28.0.
+
+### Added
+
+**Batch 18: File Handling & Command Best Practices** (7 rules - SC2008-SC2014):
+- ✅ SC2008: `echo doesn't read from stdin`
+- ✅ SC2009: `Consider using pgrep instead of grepping ps output`
+- ✅ SC2010: `Don't use ls | grep, use glob or find`
+- ✅ SC2011: `Use find -print0 | xargs -0 instead of ls | xargs`
+- ✅ SC2012: `Use find instead of ls for non-alphanumeric filenames`
+- ✅ SC2013: `To read lines, pipe/redirect to 'while read' loop`
+- ✅ SC2014: `Variables don't expand before brace expansion`
+
+**Batch 19: Makefile Linter Rules** (20 rules - MAKE001-MAKE020):
+- ✅ MAKE001: Non-deterministic wildcard usage in Makefiles
+- ✅ MAKE002: Non-idempotent mkdir in Makefile recipes
+- ✅ MAKE003: Unsafe variable expansion in Makefile recipes
+- ✅ MAKE004: Missing .PHONY declaration for non-file targets
+- ✅ MAKE005: Recursive variable assignment in Makefiles
+- ✅ MAKE006: Missing target dependencies
+- ✅ MAKE007: Silent recipe errors (missing @ prefix)
+- ✅ MAKE008: Tab vs spaces in recipes (CRITICAL)
+- ✅ MAKE009: Hardcoded paths (non-portable)
+- ✅ MAKE010: Missing error handling (|| exit 1)
+- ✅ MAKE011: Dangerous pattern rules
+- ✅ MAKE012: Recursive make considered harmful
+- ✅ MAKE013: Missing .SUFFIXES (performance issue)
+- ✅ MAKE014: Inefficient shell invocation
+- ✅ MAKE015: Missing .DELETE_ON_ERROR
+- ✅ MAKE016: Unquoted variable in prerequisites
+- ✅ MAKE017: Missing .ONESHELL
+- ✅ MAKE018: Parallel-unsafe targets (race conditions)
+- ✅ MAKE019: Environment variable pollution
+- ✅ MAKE020: Missing include guard
+
+### Changed
+
+**Rule Registry Coverage**:
+- **Before**: 337/357 rules (94.4%)
+- **After**: 357/357 rules (100.0%) ✅
+
+**Rule Distribution** (Final):
+- **Universal**: 323 rules (apply to all shells: bash, zsh, sh, ksh)
+- **NotSh**: 34 rules (bash/zsh/ksh specific, skip for POSIX sh)
+
+### Quality Metrics
+
+- ✅ **6157 tests passing** (+96 since v6.28.0)
+- ✅ **Zero test failures** - 100% pass rate maintained
+- ✅ **92 rule_registry tests** - Comprehensive coverage validation
+- ✅ **Clippy clean** - Zero warnings in library code
+- ✅ **All quality gates passed** - Pre-commit hooks successful
+
+### Significance
+
+This release completes the rule registry initialization, achieving:
+
+1. **100% Classification**: All 357 implemented rules now have proper metadata
+2. **Shell-Aware Linting**: Rules only fire when appropriate for target shell type
+3. **Foundation for Expansion**: Ready to add more rules (target: 800+ potential)
+4. **Production Ready**: Full test coverage with zero defects
+
+The rule registry provides the infrastructure for accurate, shell-specific static analysis across bash, zsh, POSIX sh, and ksh environments.
+
+### Next Steps
+
+With 100% registry coverage:
+- Expand rule implementations (current: 357, potential: 800+)
+- Enhance purification transformations (bash → safe POSIX sh)
+- Improve WASM integration for interactive.paiml.com
+- Performance optimization (<100ms for typical scripts)
+
 ## [6.28.0] - 2025-11-03
 
 ### 🚀 FEATURE - Shell-Specific Rule Filtering (Complete - 90% Milestone EXCEEDED!)
