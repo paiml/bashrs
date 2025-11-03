@@ -124,6 +124,43 @@ else
     echo -e "${YELLOW}⚠️  (missing files)${NC}"
 fi
 
+# Gate 8: Book Tests (BLOCKING - Zero Tolerance)
+echo -n "  8. Book examples (mdbook test)... "
+if command -v mdbook &> /dev/null; then
+    # Test main book
+    BOOK_RESULT=0
+    if [ -d "book" ]; then
+        mdbook test book >/dev/null 2>&1 || BOOK_RESULT=1
+    fi
+
+    # Test rash-book
+    RASH_BOOK_RESULT=0
+    if [ -d "rash-book" ]; then
+        mdbook test rash-book >/dev/null 2>&1 || RASH_BOOK_RESULT=1
+    fi
+
+    if [ $BOOK_RESULT -eq 0 ] && [ $RASH_BOOK_RESULT -eq 0 ]; then
+        echo -e "${GREEN}✅${NC}"
+    else
+        echo -e "${RED}❌${NC}"
+        if [ $BOOK_RESULT -ne 0 ]; then
+            echo "     book/ has test failures"
+            echo "     Run: mdbook test book"
+        fi
+        if [ $RASH_BOOK_RESULT -ne 0 ]; then
+            echo "     rash-book/ has test failures"
+            echo "     Run: mdbook test rash-book"
+        fi
+        echo "     Fix: Add language specifiers to code blocks"
+        echo "          - Use \`\`\`text for output"
+        echo "          - Use \`\`\`rust,ignore for pseudo-code"
+        echo "          - Use \`\`\`bash for shell commands"
+        FAILURES=$((FAILURES + 1))
+    fi
+else
+    echo -e "${YELLOW}⚠️  (mdbook not installed)${NC}"
+fi
+
 echo ""
 echo "Quality Gate Summary"
 echo "--------------------"
