@@ -1,0 +1,15 @@
+rash/src/bash_parser/codegen.rs:34:5: replace generate_statement -> String with "xyzzy".into()
+rash/src/bash_parser/codegen.rs:34:5: replace generate_statement -> String with String::new()
+rash/src/bash_parser/codegen.rs:251:9: delete match arm BashExpr::Test(test) in generate_condition
+rash/src/bash_parser/codegen.rs:258:5: replace generate_expr -> String with "xyzzy".into()
+rash/src/bash_parser/codegen.rs:379:5: replace generate_test_expr -> String with "xyzzy".into()
+rash/src/bash_parser/codegen.rs:61:43: replace || with && in generate_statement
+rash/src/bash_parser/codegen.rs:169:9: delete match arm BashExpr::Test(test) in negate_condition
+rash/src/bash_parser/codegen.rs:379:5: replace generate_test_expr -> String with String::new()
+rash/src/bash_parser/codegen.rs:250:5: replace generate_condition -> String with "xyzzy".into()
+rash/src/bash_parser/codegen.rs:261:32: replace || with && in generate_expr
+rash/src/bash_parser/codegen.rs:258:5: replace generate_expr -> String with String::new()
+rash/src/bash_parser/codegen.rs:18:5: replace generate_purified_bash -> String with "xyzzy".into()
+rash/src/bash_parser/codegen.rs:182:5: replace generate_test_condition -> String with String::new()
+rash/src/bash_parser/codegen.rs:168:5: replace negate_condition -> String with "xyzzy".into()
+rash/src/bash_parser/codegen.rs:18:5: replace generate_purified_bash -> String with String::new()

@@ -125,7 +125,13 @@ pub fn execute_command(cli: Cli) -> Result<()> {
             property_tests,
         } => {
             info!("Purifying {}", input.display());
-            purify_command(&input, output.as_deref(), report, with_tests, property_tests)
+            purify_command(
+                &input,
+                output.as_deref(),
+                report,
+                with_tests,
+                property_tests,
+            )
         }
 
         Commands::Make { command } => handle_make_command(command), // Playground feature removed in v1.0 - will be moved to separate rash-playground crate in v1.1
