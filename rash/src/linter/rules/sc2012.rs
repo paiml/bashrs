@@ -37,7 +37,8 @@ pub fn check(source: &str) -> LintResult {
             result.diagnostics.push(Diagnostic {
                 code: "SC2012".to_string(),
                 severity: Severity::Warning,
-                message: "Use find instead of ls to better handle non-alphanumeric filenames.".to_string(),
+                message: "Use find instead of ls to better handle non-alphanumeric filenames."
+                    .to_string(),
                 span: Span {
                     start_line: line_num + 1,
                     end_line: line_num + 1,
@@ -45,7 +46,8 @@ pub fn check(source: &str) -> LintResult {
                     end_col: mat.end() + 1,
                 },
                 fix: Some(Fix {
-                    replacement: "find . -maxdepth 1 -print0 | while IFS= read -r -d '' file".to_string(),
+                    replacement: "find . -maxdepth 1 -print0 | while IFS= read -r -d '' file"
+                        .to_string(),
                     safety_level: FixSafetyLevel::SafeWithAssumptions,
                     assumptions: vec!["find -print0 is available".to_string()],
                     suggested_alternatives: vec![

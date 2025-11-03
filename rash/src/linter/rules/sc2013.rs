@@ -35,7 +35,8 @@ pub fn check(source: &str) -> LintResult {
             result.diagnostics.push(Diagnostic {
                 code: "SC2013".to_string(),
                 severity: Severity::Warning,
-                message: "To read lines rather than words, pipe/redirect to a 'while read' loop.".to_string(),
+                message: "To read lines rather than words, pipe/redirect to a 'while read' loop."
+                    .to_string(),
                 span: Span {
                     start_line: line_num + 1,
                     end_line: line_num + 1,
@@ -47,7 +48,7 @@ pub fn check(source: &str) -> LintResult {
                     safety_level: FixSafetyLevel::Safe,
                     assumptions: vec![],
                     suggested_alternatives: vec![
-                        "cat file | while IFS= read -r line; do ... done".to_string(),
+                        "cat file | while IFS= read -r line; do ... done".to_string()
                     ],
                 }),
             });
