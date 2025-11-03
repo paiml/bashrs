@@ -730,33 +730,49 @@ fn purify_command(input: &Path, output: Option<&Path>, report: bool) -> Result<(
     use crate::bash_parser::codegen::generate_purified_bash;
     use crate::bash_parser::parser::BashParser;
     use crate::bash_transpiler::purification::{PurificationOptions, Purifier};
+    use std::time::Instant;
+
+    // Start timing
+    let start = Instant::now();
 
     // Read input bash script
+    let read_start = Instant::now();
     let source = fs::read_to_string(input).map_err(Error::Io)?;
+    let read_time = read_start.elapsed();
 
     // Parse bash to AST
+    let parse_start = Instant::now();
     let mut parser = BashParser::new(&source)
         .map_err(|e| Error::Internal(format!("Failed to parse bash: {e}")))?;
     let ast = parser
         .parse()
         .map_err(|e| Error::Internal(format!("Failed to parse bash: {e}")))?;
+    let parse_time = parse_start.elapsed();
 
     // Purify the AST
+    let purify_start = Instant::now();
     let mut purifier = Purifier::new(PurificationOptions::default());
     let purified_ast = purifier
         .purify(&ast)
         .map_err(|e| Error::Internal(format!("Failed to purify bash: {e}")))?;
+    let purify_time = purify_start.elapsed();
 
     // Generate purified bash script
+    let codegen_start = Instant::now();
     let purified_bash = generate_purified_bash(&purified_ast);
+    let codegen_time = codegen_start.elapsed();
 
     // Write output
+    let write_start = Instant::now();
     if let Some(output_path) = output {
         fs::write(output_path, &purified_bash).map_err(Error::Io)?;
         info!("Purified script written to {}", output_path.display());
     } else {
         println!("{}", purified_bash);
     }
+    let write_time = write_start.elapsed();
+
+    let total_time = start.elapsed();
 
     // Show transformation report if requested
     if report {
@@ -765,11 +781,34 @@ fn purify_command(input: &Path, output: Option<&Path>, report: bool) -> Result<(
         if let Some(output_path) = output {
             println!("Output: {}", output_path.display());
         }
+        println!(
+            "\nInput size: {} lines, {} bytes",
+            source.lines().count(),
+            source.len()
+        );
+        println!(
+            "Output size: {} lines, {} bytes",
+            purified_bash.lines().count(),
+            purified_bash.len()
+        );
+
         println!("\nTransformations Applied:");
         println!("- Shebang: #!/bin/bash → #!/bin/sh");
         println!("- Determinism: Removed $RANDOM, timestamps");
         println!("- Idempotency: mkdir → mkdir -p, rm → rm -f");
         println!("- Safety: All variables quoted");
+
+        println!("\nPerformance:");
+        println!("  Read:     {:>8.2?}", read_time);
+        println!("  Parse:    {:>8.2?}", parse_time);
+        println!("  Purify:   {:>8.2?}", purify_time);
+        println!("  Codegen:  {:>8.2?}", codegen_time);
+        println!("  Write:    {:>8.2?}", write_time);
+        println!("  ─────────────────");
+        println!("  Total:    {:>8.2?}", total_time);
+
+        let throughput = (source.len() as f64) / total_time.as_secs_f64() / 1024.0 / 1024.0;
+        println!("\nThroughput: {:.2} MB/s", throughput);
     }
 
     Ok(())
