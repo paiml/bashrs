@@ -275,6 +275,111 @@ proptest! {
             );
         }
     }
+
+    /// Property: If statements with test conditions work correctly
+    /// MUTATION TARGET: Tests generate_condition and generate_test_condition functions
+    #[test]
+    fn prop_if_with_test_conditions(
+        var1 in "[a-z]",
+        var2 in "[a-z]"
+    ) {
+        // Create bash with if/test (multi-line format)
+        let bash_code = format!("#!/bin/bash\nif [ \"${}\" = \"${}\" ]\nthen\necho equal\nfi", var1, var2);
+
+        if let Ok(mut parser) = BashParser::new(&bash_code) {
+            if let Ok(ast) = parser.parse() {
+                let mut purifier = Purifier::new(PurificationOptions::default());
+                if let Ok(purified_ast) = purifier.purify(&ast) {
+                    let output = generate_purified_bash(&purified_ast);
+
+                    // INVARIANT: Should contain if statement
+                    prop_assert!(
+                        output.contains("if"),
+                        "Should contain if statement, got: {}",
+                        output
+                    );
+
+                    // INVARIANT: Should contain test brackets
+                    prop_assert!(
+                        output.contains("[") && output.contains("]"),
+                        "Should contain test brackets, got: {}",
+                        output
+                    );
+
+                    // INVARIANT: Should contain string equality operator
+                    prop_assert!(
+                        output.contains(" = "),
+                        "Should contain = operator, got: {}",
+                        output
+                    );
+
+                    // INVARIANT: Variables should be quoted (either single or double quotes)
+                    let has_var1 = output.contains(&format!("\"${}\"", var1)) || output.contains(&format!("'${}'", var1));
+                    let has_var2 = output.contains(&format!("\"${}\"", var2)) || output.contains(&format!("'${}'", var2));
+                    prop_assert!(
+                        has_var1 && has_var2,
+                        "Variables should be quoted, got: {}",
+                        output
+                    );
+
+                    // INVARIANT: Should contain then/fi
+                    prop_assert!(
+                        output.contains("then") && output.contains("fi"),
+                        "Should contain then and fi, got: {}",
+                        output
+                    );
+                }
+            }
+        }
+    }
+
+    /// Property: While loops with conditions work correctly
+    /// MUTATION TARGET: Tests generate_condition function
+    #[test]
+    fn prop_while_with_conditions(
+        var in "[a-z]",
+        limit in 1..10i64
+    ) {
+        // Create bash with while loop (multi-line format)
+        let bash_code = format!("#!/bin/bash\nwhile [ \"${}\" -lt {} ]\ndo\necho ${}\ndone", var, limit, var);
+
+        if let Ok(mut parser) = BashParser::new(&bash_code) {
+            if let Ok(ast) = parser.parse() {
+                let mut purifier = Purifier::new(PurificationOptions::default());
+                if let Ok(purified_ast) = purifier.purify(&ast) {
+                    let output = generate_purified_bash(&purified_ast);
+
+                    // INVARIANT: Should contain while loop
+                    prop_assert!(
+                        output.contains("while"),
+                        "Should contain while loop, got: {}",
+                        output
+                    );
+
+                    // INVARIANT: Should contain test condition
+                    prop_assert!(
+                        output.contains("[") && output.contains("]"),
+                        "Should contain test brackets, got: {}",
+                        output
+                    );
+
+                    // INVARIANT: Should contain -lt operator
+                    prop_assert!(
+                        output.contains(" -lt "),
+                        "Should contain -lt operator, got: {}",
+                        output
+                    );
+
+                    // INVARIANT: Should contain do/done
+                    prop_assert!(
+                        output.contains("do") && output.contains("done"),
+                        "Should contain do and done, got: {}",
+                        output
+                    );
+                }
+            }
+        }
+    }
 }
 
 // Unit tests for property test infrastructure
