@@ -21,13 +21,12 @@
 | rule_registry.rs | 3 | 3 (viable) | 100% | ✅ Verified | Baseline |
 | shell_type.rs | 27+7 | 21 est. | 90%+ | ⏳ Verifying | 96aeab62 |
 | **CRITICAL Security Rules** |
-| SC2086 (word splitting) | 12+9 | 35 | ~31%* | 🔄 Phase 4 | 329b5c11 |
+| SC2086 (word splitting) | 12+9 | 35 | 25.7% | 🔄 Iter 2 | 329b5c11 |
 | SC2059 (format injection) | 10 | TBD | TBD | 🔄 Phase 1 | Pending |
 | SC2064 (trap timing) | 9 | TBD | Pending | 📋 Queued | - |
 | **SEC Rules (Error Severity)** |
 | SEC001-SEC008 | Varies | TBD | Pending | 📋 Queued | - |
 
-\* Preliminary result, 24/35 mutants analyzed. Additional iteration needed.
 
 ## 🚀 Phases
 
@@ -208,10 +207,11 @@ git push
 - ✅ Commits: 96aeab62, cad74015 pushed
 
 **SC2086 - CRITICAL** (2025-11-03):
-- ✅ Gap analysis: docs/SC2086-MUTATION-GAPS.md
-- ✅ Phase 1-3: 9 mutation coverage tests added
-- ✅ Commit: 329b5c11 pushed
-- ⏳ Phase 4: Awaiting completion (~31% preliminary)
+- ✅ Iteration 1 Complete: 9 mutation coverage tests added (commit 329b5c11)
+- ✅ Gap analysis updated: docs/SC2086-MUTATION-GAPS.md
+- ✅ Phase 4 Results: 25.7% kill rate (9/35 caught, 24/35 missed)
+- 📋 Iteration 2 Needed: 15+ additional tests for helper functions
+- 🎯 Target: 90%+ kill rate (need to catch 32/35 mutants)
 
 ### In Progress
 
