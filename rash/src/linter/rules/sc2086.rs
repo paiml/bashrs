@@ -457,4 +457,148 @@ echo $VAR2"#;
             "Second variable on line 5"
         );
     }
+
+    // ===== Mutation Coverage Tests - Iteration 2 (Helper Functions) =====
+    // These tests target the 24 missed mutants from Iteration 1
+
+    // Tests for should_skip_line() helper (6 missed mutants)
+
+    #[test]
+    fn test_mutation_should_skip_comment_lines() {
+        // MUTATION: Line 22:30 - delete ! in !line.contains("if [")
+        // Should skip comments, not flag variables in comments
+        let bash_code = "# This is a comment with $VAR\necho $ACTUAL";
+        let result = check(bash_code);
+        assert_eq!(
+            result.diagnostics.len(),
+            1,
+            "Should only detect $ACTUAL, not $VAR in comment"
+        );
+        assert!(result.diagnostics[0].message.contains("$ACTUAL"));
+    }
+
+    #[test]
+    fn test_mutation_should_detect_vars_in_test_conditions() {
+        // MUTATION: Line 22:27 - && replaced with || in line.contains('=') && !line.contains("if [")
+        // MUTATION: Line 22:53 - && replaced with || in !line.contains("if [") && !line.contains("[ ")
+        // Should detect unquoted vars in test conditions, not skip them as assignments
+        let bash_code = "if [ $VAR = value ]; then echo ok; fi";
+        let result = check(bash_code);
+        assert_eq!(
+            result.diagnostics.len(),
+            1,
+            "Should detect $VAR in test condition"
+        );
+        assert!(result.diagnostics[0].message.contains("$VAR"));
+    }
+
+    #[test]
+    fn test_mutation_should_skip_simple_assignments() {
+        // MUTATION: Line 25:27 - < replaced with <=, >, or ==
+        // Should skip variable assignments (eq_pos < first_space)
+        let bash_code = "VAR=value\necho $VAR";
+        let result = check(bash_code);
+        assert_eq!(
+            result.diagnostics.len(),
+            1,
+            "Should only detect $VAR in echo, not assignment"
+        );
+        assert_eq!(
+            result.diagnostics[0].span.start_line, 2,
+            "Should be on line 2 (echo)"
+        );
+    }
+
+    #[test]
+    fn test_mutation_assignment_position_boundary() {
+        // MUTATION: Line 25:27 - < replaced with <= (boundary condition)
+        // Verifies eq_pos < first_space (not <=)
+        let bash_code = "X= value\necho $X"; // Space after =, eq_pos < first_space still true
+        let result = check(bash_code);
+        // Should skip the assignment line and only flag echo
+        assert_eq!(result.diagnostics.len(), 1, "Should detect $X in echo only");
+    }
+
+    #[test]
+    fn test_mutation_should_skip_negation_in_contains() {
+        // MUTATION: Line 22:56 - delete ! in !line.contains("[ ")
+        // Tests that negation logic is correct (skip assignments, not test conditions)
+        let bash_code = r#"
+VAR=123
+if [ $TEST = ok ]; then
+    echo done
+fi
+"#;
+        let result = check(bash_code);
+        // Should detect $TEST in the if condition
+        assert_eq!(
+            result.diagnostics.len(),
+            1,
+            "Should detect $TEST in condition"
+        );
+        assert!(result.diagnostics[0].message.contains("$TEST"));
+    }
+
+    // Tests for find_dollar_position() helper (1 missed mutant)
+
+    #[test]
+    fn test_mutation_dollar_position_not_zero() {
+        // MUTATION: Line 37:5 - replace find_dollar_position -> usize with 0
+        // Verifies $ position is calculated correctly, not hardcoded to 0
+        let bash_code = "ls ${FILE}";
+        let result = check(bash_code);
+        assert_eq!(result.diagnostics.len(), 1);
+        let span = result.diagnostics[0].span;
+        // $ is at position 4 (after "ls "), not 0
+        assert_eq!(span.start_col, 4, "Should find $ at position 4, not 0");
+    }
+
+    // Tests for is_already_quoted() helper (2 missed mutants)
+
+    #[test]
+    fn test_mutation_is_already_quoted_false_positive() {
+        // MUTATION: Line 63:5 - replace is_already_quoted -> bool with false
+        // If always returns false, would incorrectly flag quoted variables
+        let bash_code = r#"echo "$VAR""#;
+        let result = check(bash_code);
+        assert_eq!(
+            result.diagnostics.len(),
+            0,
+            "Should NOT flag already-quoted $VAR"
+        );
+    }
+
+    #[test]
+    fn test_mutation_is_already_quoted_logic() {
+        // MUTATION: Line 65:35 - replace && with || in is_already_quoted
+        // Verifies BOTH before_context.ends_with('"') AND after_context.starts_with('"') required
+
+        // Test case 1: Properly quoted (both conditions true) - should NOT flag
+        let bash_code_quoted = r#"echo "$VAR""#;
+        let result_quoted = check(bash_code_quoted);
+        assert_eq!(
+            result_quoted.diagnostics.len(),
+            0,
+            "Should NOT flag properly quoted $VAR"
+        );
+
+        // Test case 2: Unquoted (both conditions false) - should flag
+        let bash_code_unquoted = "echo $VAR";
+        let result_unquoted = check(bash_code_unquoted);
+        assert_eq!(
+            result_unquoted.diagnostics.len(),
+            1,
+            "Should flag unquoted $VAR"
+        );
+
+        // Test case 3: Multiple variables, mixed quoting
+        let bash_code_mixed = r#"echo "$QUOTED" $UNQUOTED"#;
+        let result_mixed = check(bash_code_mixed);
+        assert_eq!(
+            result_mixed.diagnostics.len(),
+            1,
+            "Should only flag $UNQUOTED, not $QUOTED"
+        );
+        assert!(result_mixed.diagnostics[0].message.contains("$UNQUOTED"));
+    }
 }
