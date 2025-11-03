@@ -149,6 +149,21 @@ pub enum Commands {
         output: Option<PathBuf>,
     },
 
+    /// Purify bash scripts (determinism + idempotency + safety)
+    Purify {
+        /// Input bash script file
+        #[arg(value_name = "FILE")]
+        input: PathBuf,
+
+        /// Output file (defaults to stdout)
+        #[arg(short, long)]
+        output: Option<PathBuf>,
+
+        /// Show detailed transformation report
+        #[arg(long)]
+        report: bool,
+    },
+
     /// Makefile parsing, purification, and transformation
     Make {
         #[command(subcommand)]

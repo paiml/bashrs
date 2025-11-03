@@ -1,7 +1,0 @@
-rash/src/linter/rules/sc2086.rs:50:17: replace + with - in calculate_end_column
-rash/src/linter/rules/sc2086.rs:45:33: replace + with - in calculate_end_column
-rash/src/linter/rules/sc2086.rs:99:5: replace check -> LintResult with Default::default()
-rash/src/linter/rules/sc2086.rs:56:5: replace is_in_arithmetic_context -> bool with true
-rash/src/linter/rules/sc2086.rs:63:5: replace is_already_quoted -> bool with true
-rash/src/linter/rules/sc2086.rs:105:33: replace + with - in check
-rash/src/linter/rules/sc2086.rs:37:5: replace find_dollar_position -> usize with 1
