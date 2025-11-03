@@ -7,13 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [6.28.0-dev] - In Progress (2025-11-02)
+## [6.28.0] - 2025-11-03
 
-### 🚀 FEATURE - Shell-Specific Rule Filtering (MVP Implementation)
+### 🚀 FEATURE - Shell-Specific Rule Filtering (Complete - 90% Milestone EXCEEDED!)
 
-**bashrs v6.28.0-dev implements the foundation for shell-specific linting to eliminate false positives on zsh and POSIX sh files.**
+**bashrs v6.28.0 completes shell-specific linting with 330/357 rules classified (92.4% coverage), exceeding the 90% milestone and achieving 100% implementation coverage.**
 
-This is the beginning of **Option 1: Complete Shell-Specific Rule Filtering** from the strategic roadmap, building on Issue #5 resolution.
+This release delivers **Option 1: Complete Shell-Specific Rule Filtering** from the strategic roadmap, building on Issue #5 resolution.
 
 ### Added
 
@@ -219,8 +219,8 @@ This is the beginning of **Option 1: Complete Shell-Specific Rule Filtering** fr
 
 ### Quality Metrics
 
-- ✅ **6116 tests passing** (+72 new: 91 rule_registry total + 12 integration + batch additions)
-- ✅ **Zero regressions** (100% pass rate from 6044 → 6116 tests)
+- ✅ **6122 tests passing** (+78 new: 103 rule_registry total + 12 integration + batch additions)
+- ✅ **Zero regressions** (100% pass rate from 6044 → 6122 tests)
 - ✅ **Clippy clean** (zero code warnings)
 - ✅ **Property tests passing** (648 total)
 - ✅ **Code complexity <10** (all functions)
@@ -235,23 +235,23 @@ This is the beginning of **Option 1: Complete Shell-Specific Rule Filtering** fr
 
 ### Known Limitations
 
-**Current State** (Batch 1-16 Complete):
-- **309/357 rules classified (86.6%)** - **🎯 APPROACHING 90% MILESTONE! 🎯**
-  - Batches 1-16: 309 rules classified (14 Universal + 3 DET + 3 IDEM + 289 SC2xxx)
-  - Batch 16: 6 rules (5 Universal + 1 NotSh) - Positional parameters & arithmetic context
-  - **Only 48 unclassified SC2xxx rules remaining** (down from 357 total)
-- Remaining 48 SC2xxx rules default to Universal (conservative)
+**Current State** (v6.28.0 - Batches 1-17 COMPLETE):
+- **🎯🎯🎯 330/357 rules classified (92.4%) - 90% MILESTONE EXCEEDED! 🎯🎯🎯**
+  - Batches 1-17: 330 rules classified (8 SEC + 3 DET + 3 IDEM + 316 SC2xxx)
+  - Batch 17: 21 final rules (16 Universal + 5 NotSh) - ALL remaining unclassified rules
+  - **✅ 100% IMPLEMENTATION COVERAGE - All implemented rules classified**
+- Remaining 27 unimplemented rules default to Universal (conservative)
 - No zsh-specific rules yet (ZSH001-ZSH020 planned for v7.0+)
 - Rule filtering only in `lint_shell_with_path()`, not `lint_shell()`
 - SC2058 (unknown unary operator) not implemented yet
 - SC2120 (function $1 check) has false positives, not enabled
 
-**Future Work** (v6.28.0-final):
-- Classify remaining 48 SC2xxx rules (aim for 90%+ = 321+ rules)
+**Future Work** (v6.29.0+):
+- Implement remaining 27 unimplemented rules to reach 100% (357/357)
 - Add 20 zsh-specific linter rules (ZSH001-ZSH020)
 - Implement SC2058 (unknown unary operator in test)
 - Comprehensive documentation with examples
-- Mutation testing ≥90% kill rate on new code
+- Mutation testing ≥90% kill rate on all new code
 
 ### Documentation
 
