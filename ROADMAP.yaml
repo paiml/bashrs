@@ -28,10 +28,10 @@ workflows:
       - "Output is safe, deterministic, verifiable bash"
 
 releases:
-  - version: "6.28.0-dev"
-    date: "2025-11-02"
-    status: "COMPLETE (Batches 1-17 complete, 🎯🎯🎯 90% MILESTONE EXCEEDED! 🎯🎯🎯)"
-    title: "🚀 Shell-Specific Rule Filtering (Foundation + MVP)"
+  - version: "6.28.0"
+    date: "2025-11-03"
+    status: "RELEASED (Batches 1-17 complete, 🎯🎯🎯 90% MILESTONE EXCEEDED! 🎯🎯🎯)"
+    title: "🚀 Shell-Specific Rule Filtering Complete - 90% Milestone EXCEEDED!"
     description: "Implements shell-specific linting to eliminate false positives on zsh and POSIX sh files - foundation for complete rule filtering (Option 1 from Strategic Roadmap)"
     achievements:
       - "Shell Compatibility Infrastructure: ShellCompatibility enum with 6 levels"
@@ -99,12 +99,18 @@ releases:
       - "... (batches 1-16 commits)"
       - "1fa0fd91: feat: Batch 16 rule classification (309 → 330, 86.6%)"
       - "5e7f0c88: feat: Batch 17 rule classification - 21 final rules (309 → 330, 92.4%) - 90% MILESTONE EXCEEDED!"
+      - "60bd8904: docs: Update ROADMAP.yaml for batch 17 completion"
+      - "9ada8a33: release: v6.28.0 - Shell-Specific Rule Filtering COMPLETE"
+      - "4f3430cb: chore: Remove corrupted temporary files"
+    published:
+      crates_io: "https://crates.io/crates/bashrs/6.28.0"
+      github: "https://github.com/paiml/bashrs/releases/tag/v6.28.0"
     documentation:
-      - "CHANGELOG.md (v6.28.0-dev entry - 113 lines)"
+      - "CHANGELOG.md (v6.28.0 entry - production release)"
       - "book/src/linting/shell-detection.md (updated with filtering)"
       - "docs/V6.28.0-DEV-MILESTONE.md (324 lines)"
       - "docs/RULE-SHELL-COMPATIBILITY.md (251 lines)"
-    notes: "Foundation complete, MVP functional. Demonstrates that filtering works and eliminates false positives. Conservative defaults (unclassified = Universal) ensure safety. Ready for incremental expansion."
+    notes: "v6.28.0 RELEASED to production. Shell-specific filtering complete with 330/357 rules (92.4%) - 90% milestone exceeded. 100% implementation coverage achieved. Conservative defaults (unclassified = Universal) ensure safety. Ready for next phase."
 
   - version: "6.27.1"
     date: "2025-11-02"
