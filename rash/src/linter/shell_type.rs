@@ -308,6 +308,83 @@ mod tests {
         assert_eq!(ShellType::Auto.to_shellcheck_name(), "auto");
     }
 
+    // ===== Mutation Test Coverage (RED phase - add failing tests) =====
+
+    #[test]
+    fn test_detect_bash_from_bash_login() {
+        // MUTATION: Deleting .bash_login from match arm should cause this to fail
+        let content = "echo hello";
+        let path = PathBuf::from(".bash_login");
+        assert_eq!(detect_shell_type(&path, content), ShellType::Bash);
+    }
+
+    #[test]
+    fn test_detect_bash_from_bash_logout() {
+        // MUTATION: Deleting .bash_logout from match arm should cause this to fail
+        let content = "echo hello";
+        let path = PathBuf::from(".bash_logout");
+        assert_eq!(detect_shell_type(&path, content), ShellType::Bash);
+    }
+
+    #[test]
+    fn test_detect_bash_from_bash_extension() {
+        // MUTATION: Deleting "bash" from path extension detection should fail
+        let content = "echo hello";
+        let path = PathBuf::from("script.bash");
+        assert_eq!(detect_shell_type(&path, content), ShellType::Bash);
+    }
+
+    #[test]
+    fn test_detect_ksh_from_ksh_extension() {
+        // MUTATION: Deleting "ksh" from path extension detection should fail
+        let content = "echo hello";
+        let path = PathBuf::from("script.ksh");
+        assert_eq!(detect_shell_type(&path, content), ShellType::Ksh);
+    }
+
+    #[test]
+    fn test_detect_auto_from_shellcheck_directive() {
+        // MUTATION: Deleting "auto" from shellcheck directive should fail
+        let content = "# shellcheck shell=auto\necho hello";
+        let path = PathBuf::from("test.sh");
+        assert_eq!(detect_shell_type(&path, content), ShellType::Auto);
+    }
+
+    #[test]
+    fn test_shellcheck_directive_requires_all_conditions() {
+        // MUTATION: Changing && to || in line 93 should cause this to fail
+        // This verifies that ALL conditions must be met (starts with #, contains shellcheck, contains shell=)
+
+        // Missing "shellcheck" keyword - should NOT match
+        let content_no_shellcheck = "# shell=zsh\necho hello";
+        let path = PathBuf::from("test.sh");
+        assert_eq!(
+            detect_shell_type(&path, content_no_shellcheck),
+            ShellType::Bash
+        ); // Defaults to Bash
+
+        // Missing "shell=" keyword - should NOT match
+        let content_no_shell_equals = "# shellcheck disable=SC2086\necho hello";
+        assert_eq!(
+            detect_shell_type(&path, content_no_shell_equals),
+            ShellType::Bash
+        ); // Defaults to Bash
+
+        // Not a comment (missing #) - should NOT match
+        let content_no_hash = "shellcheck shell=zsh\necho hello";
+        assert_eq!(detect_shell_type(&path, content_no_hash), ShellType::Bash); // Defaults to Bash
+    }
+
+    #[test]
+    fn test_shellcheck_directive_bash_detection() {
+        // MUTATION: Deleting "bash" match arm in shellcheck directive should fail
+        // Verify bash is explicitly detected (not just defaulted to)
+        let content = "# shellcheck shell=bash\necho hello";
+        let path = PathBuf::from("test.zsh"); // Conflicting extension
+                                              // ShellCheck directive should override extension
+        assert_eq!(detect_shell_type(&path, content), ShellType::Bash);
+    }
+
     // ===== Property Tests =====
 
     #[cfg(test)]
