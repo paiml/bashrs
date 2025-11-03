@@ -430,7 +430,7 @@ main() {
 Behavior with very large integers (>2^31) is undefined.
 
 **Example**:
-```rust
+```rust,ignore
 fn main() {
     let x = 9999999999;  // Larger than i32::MAX
 }

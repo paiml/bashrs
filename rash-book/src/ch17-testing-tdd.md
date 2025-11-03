@@ -38,7 +38,7 @@ backup_files "$SOURCE" "$DEST"
 
 ### Rash + TDD Approach (✅ Fully Tested)
 
-```rust
+```rust,ignore
 // backup.rash
 // Example: backup_files("/data", "/backup") => success
 
@@ -80,7 +80,7 @@ $ bashrs generate-tests backup.sh
 
 **Generated Test Suite** (`backup_tests.rs`):
 
-```rust
+```rust,ignore
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -118,7 +118,7 @@ mod tests {
 
 ### Property-Based Tests
 
-```rust
+```rust,ignore
 #[cfg(test)]
 mod property_tests {
     use super::*;
@@ -171,7 +171,7 @@ mod property_tests {
 $ cargo test
 ```
 
-```
+```text
 running 7 tests
 test tests::test_backup_files_success ... FAILED
 test tests::test_backup_files_empty_source ... FAILED
@@ -192,7 +192,7 @@ failures: 7
 
 ### Write Rash Code
 
-```rust
+```rust,ignore
 // backup.rash
 use std::fs;
 use std::path::Path;
@@ -317,7 +317,7 @@ fi
 $ cargo test
 ```
 
-```
+```text
 running 7 tests
 test tests::test_backup_files_success ... ok
 test tests::test_backup_files_empty_source ... ok
@@ -342,7 +342,7 @@ test result: ok. 7 passed; 0 failed
 $ cargo clippy -- -D warnings
 ```
 
-```
+```text
 Checking bashrs v1.0.0
 Finished dev [unoptimized + debuginfo] target(s) in 0.42s
 ```
@@ -355,7 +355,7 @@ Finished dev [unoptimized + debuginfo] target(s) in 0.42s
 $ shellcheck -s sh backup.sh
 ```
 
-```
+```text
 ✓ No issues detected!
 ```
 
@@ -367,7 +367,7 @@ $ shellcheck -s sh backup.sh
 $ cargo llvm-cov --html
 ```
 
-```
+```text
 Coverage Summary:
   Functions: 100.0% (2/2)
   Lines:     95.5% (42/44)
@@ -384,7 +384,7 @@ Coverage Summary:
 $ bashrs verify backup.rash backup.sh
 ```
 
-```
+```text
 ✓ Transpilation deterministic (3/3 runs identical)
 ✓ Script idempotent (2/2 runs produce same state)
 ✓ No random sources detected
@@ -401,7 +401,7 @@ VERIFICATION PASSED
 $ cargo mutants --file backup.rs
 ```
 
-```
+```text
 Mutation Testing Results:
   Total mutants:    23
   Caught:          21
@@ -447,7 +447,7 @@ create_user "$1" "$2"
 
 ### Rash Version (Fully Tested)
 
-```rust
+```rust,ignore
 // create_user.rash
 // Example: create_user("alice", "password123") => Ok(())
 // Example: create_user("", "pw") => Err("Username cannot be empty")
@@ -559,7 +559,7 @@ fun main() {
 
 ### Auto-Generated Tests
 
-```rust
+```rust,ignore
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -635,7 +635,7 @@ mod property_tests {
 $ cargo test
 ```
 
-```
+```text
 running 8 tests
 test tests::test_validate_username_valid ... ok
 test tests::test_validate_username_empty ... ok
@@ -661,7 +661,7 @@ test result: ok. 8 passed; 0 failed; 0 ignored
 $ cargo test --workspace
 ```
 
-```
+```text
 Test Suite Summary:
   Total tests:      756
   Passing:         756
@@ -681,7 +681,7 @@ Pass rate: 100% ✅
 $ make coverage
 ```
 
-```
+```text
 Coverage Report (Core Modules):
   bash_parser:    89.4%  ✅
   transpiler:     92.1%  ✅
@@ -698,7 +698,7 @@ Overall: 85.36% ✅ (target: >85%)
 $ cargo mutants --workspace
 ```
 
-```
+```text
 Mutation Testing Summary:
   Total mutants:   1,247
   Caught:         1,034
@@ -715,7 +715,7 @@ Status: GOOD (baseline established)
 $ make test-shellcheck
 ```
 
-```
+```text
 ShellCheck Validation:
   Scripts checked:  24
   Issues found:      0
@@ -750,7 +750,7 @@ $ bashrs generate-tests script.sh
 
 ✅ **DO**: Test properties, not just examples
 
-```rust
+```rust,ignore
 proptest! {
     // Property: Function should be deterministic
     #[test]
@@ -805,7 +805,7 @@ $ cargo mutants --file mymodule.rs
 
 ### Step 1: Write Tests (RED 🔴)
 
-```rust
+```rust,ignore
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -844,7 +844,7 @@ failures: 3
 
 ### Step 2: Implement (GREEN 🟢)
 
-```rust
+```rust,ignore
 // installer.rash
 
 fun detect_distro() -> &'static str {
@@ -976,7 +976,7 @@ ALL QUALITY GATES PASSED ✅
 
 ### Test Suite Summary (v1.0.0)
 
-```
+```text
 Total Tests:       756 ✅
   Unit:           752
   Integration:      4
