@@ -1,0 +1,2 @@
+rash/src/ir/mod.rs:368:25: delete match arm Expr::Literal(Literal::I32(n)) in IrConverter::convert_expr_to_value
+rash/src/ir/mod.rs:334:65: replace == with != in IrConverter::convert_expr_to_value

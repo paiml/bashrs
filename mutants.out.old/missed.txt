@@ -1,5 +1,2 @@
-rash/src/bash_parser/codegen.rs:168:5: replace negate_condition -> String with String::new()
-rash/src/bash_parser/codegen.rs:182:5: replace generate_test_condition -> String with "xyzzy".into()
-rash/src/bash_parser/codegen.rs:250:5: replace generate_condition -> String with String::new()
-rash/src/bash_parser/codegen.rs:336:5: replace generate_arith_expr -> String with "xyzzy".into()
-rash/src/bash_parser/codegen.rs:336:5: replace generate_arith_expr -> String with String::new()
+rash/src/linter/shell_type.rs:123:13: delete match arm ".bashrc" | ".bash_profile" | ".bash_login" | ".bash_logout" in detect_from_path
+rash/src/linter/shell_type.rs:134:13: delete match arm "bash" in detect_from_path

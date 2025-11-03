@@ -1,0 +1,3 @@
+rash/src/ir/mod.rs:180:21: delete match arm crate::ast::Expr::Range{start, end, inclusive,} in IrConverter::convert_stmt
+rash/src/ir/mod.rs:343:43: replace == with != in IrConverter::convert_expr_to_value
+rash/src/ir/mod.rs:653:39: replace && with || in is_string_value

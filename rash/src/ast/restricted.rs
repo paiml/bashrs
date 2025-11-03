@@ -404,6 +404,9 @@ pub enum Expr {
         end: Box<Expr>,
         inclusive: bool,
     },
+    /// Special marker for positional arguments from std::env::args()
+    /// This represents the entire args array, not individual parameters
+    PositionalArgs,
 }
 
 impl Expr {

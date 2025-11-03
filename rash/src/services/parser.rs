@@ -425,6 +425,16 @@ fn convert_method_call_expr(method_call: &syn::ExprMethodCall) -> Result<Expr> {
     let receiver = Box::new(convert_expr(&method_call.receiver)?);
     let method = method_call.method.to_string();
 
+    // Special case: std::env::args().collect() → PositionalArgs
+    if method == "collect" && method_call.args.is_empty() {
+        if let Expr::FunctionCall { name, args } = &*receiver {
+            if name == "std::env::args" && args.is_empty() {
+                return Ok(Expr::PositionalArgs);
+            }
+        }
+    }
+
+    // General case: regular method call
     let mut args = Vec::new();
     for arg in &method_call.args {
         args.push(convert_expr(arg)?);

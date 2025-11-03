@@ -199,6 +199,10 @@ pub enum ShellValue {
         position: Option<usize>, // None = all args ($@)
     },
 
+    /// Command-line argument with default value: ${1:-default}
+    /// P0-POSITIONAL-PARAMETERS: Support for args.get(N).unwrap_or(default)
+    ArgWithDefault { position: usize, default: String },
+
     /// Argument count: $#
     /// Sprint 27b: Command-Line Arguments Support
     ArgCount,
@@ -251,6 +255,7 @@ impl ShellValue {
             | ShellValue::CommandSubst(_)
             | ShellValue::EnvVar { .. }
             | ShellValue::Arg { .. }
+            | ShellValue::ArgWithDefault { .. }
             | ShellValue::ArgCount
             | ShellValue::ExitCode => false,
             ShellValue::Concat(parts) => parts.iter().all(|p| p.is_constant()),

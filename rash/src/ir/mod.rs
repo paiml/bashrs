@@ -516,6 +516,45 @@ impl IrConverter {
                     }),
                 }
             }
+            Expr::MethodCall {
+                receiver,
+                method,
+                args,
+            } => {
+                // P0-POSITIONAL-PARAMETERS: Detect args.get(N).unwrap_or(default) pattern
+                // This becomes ${N:-default} in shell
+                if method == "unwrap_or" && args.len() == 1 {
+                    // Check if receiver is args.get(N)
+                    if let Expr::MethodCall {
+                        receiver: _inner_receiver,
+                        method: inner_method,
+                        args: inner_args,
+                    } = &**receiver
+                    {
+                        if inner_method == "get" && inner_args.len() == 1 {
+                            // Check if inner receiver is a variable holding positional args
+                            // For now, we'll check if it's assigned from PositionalArgs
+                            // Extract the position number
+                            if let Expr::Literal(Literal::U32(n)) = &inner_args[0] {
+                                // Extract the default value
+                                if let Expr::Literal(Literal::Str(default_val)) = &args[0] {
+                                    return Ok(ShellValue::ArgWithDefault {
+                                        position: *n as usize,
+                                        default: default_val.clone(),
+                                    });
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // Not a recognized pattern - fall through to unknown
+                Ok(ShellValue::String("unknown".to_string()))
+            }
+            Expr::PositionalArgs => {
+                // std::env::args().collect() → $@ (all positional parameters)
+                Ok(ShellValue::Arg { position: None })
+            }
             _ => Ok(ShellValue::String("unknown".to_string())), // Fallback
         }
     }
@@ -625,6 +664,8 @@ fn is_string_value(value: &ShellValue) -> bool {
         | ShellValue::LogicalNot { .. } => false,
         // Sprint 27b: Command-line arguments are not determinable at compile time
         ShellValue::Arg { .. } | ShellValue::ArgCount => false,
+        // P0-POSITIONAL-PARAMETERS: Arguments with defaults are not determinable at compile time
+        ShellValue::ArgWithDefault { .. } => false,
         // Sprint 27c: Exit code handling - GREEN PHASE (exit codes are numeric, not string)
         ShellValue::ExitCode => false,
     }

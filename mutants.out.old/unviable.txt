@@ -1,0 +1,4 @@
+rash/src/linter/shell_type.rs:44:5: replace detect_shell_type -> ShellType with Default::default()
+rash/src/linter/shell_type.rs:64:5: replace detect_from_shebang -> Option<ShellType> with Some(Default::default())
+rash/src/linter/shell_type.rs:91:5: replace detect_from_shellcheck_directive -> Option<ShellType> with Some(Default::default())
+rash/src/linter/shell_type.rs:116:5: replace detect_from_path -> Option<ShellType> with Some(Default::default())

@@ -179,7 +179,7 @@ done=4
 ```
 
 **Fix Applied** (EXTREME TDD):
-```rust
+```rust,ignore
 // parse_statement(): Add keyword assignment guards
 match self.peek() {
     // Check for assignment pattern BEFORE treating as control structure
