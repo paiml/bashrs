@@ -1742,6 +1742,42 @@ lazy_static::lazy_static! {
             compatibility: ShellCompatibility::NotSh, // [[ ]] is bash/zsh/ksh specific
         });
 
+        // === BATCH 16 CLASSIFICATIONS (6 rules) ===
+
+        // Batch 16: Positional parameters & arithmetic (Universal)
+        registry.insert("SC2320", RuleMetadata {
+            id: "SC2320",
+            name: "This $N expands to the parameter, not a separate word",
+            compatibility: ShellCompatibility::Universal, // POSIX positional parameters
+        });
+        registry.insert("SC2322", RuleMetadata {
+            id: "SC2322",
+            name: "Arithmetic operations don't accept this argument count",
+            compatibility: ShellCompatibility::Universal, // POSIX arithmetic
+        });
+        registry.insert("SC2323", RuleMetadata {
+            id: "SC2323",
+            name: "Arithmetic equality uses = not ==",
+            compatibility: ShellCompatibility::Universal, // POSIX arithmetic style
+        });
+        registry.insert("SC2324", RuleMetadata {
+            id: "SC2324",
+            name: "Use ${var:+value} for conditional value based on isset",
+            compatibility: ShellCompatibility::Universal, // POSIX parameter expansion
+        });
+        registry.insert("SC2325", RuleMetadata {
+            id: "SC2325",
+            name: "Use $var instead of ${var} in arithmetic contexts",
+            compatibility: ShellCompatibility::Universal, // POSIX arithmetic style
+        });
+
+        // Batch 16: [[ ]] specific (NotSh)
+        registry.insert("SC2321", RuleMetadata {
+            id: "SC2321",
+            name: "This && is not a logical AND but part of [[ ]]",
+            compatibility: ShellCompatibility::NotSh, // [[ ]] is bash/zsh/ksh specific
+        });
+
         // Most other SC2xxx rules are Universal (quoting, syntax, etc.)
         // They represent bugs or issues that apply regardless of shell
         // Examples: SC2086 (quote variables), etc.
@@ -1809,7 +1845,7 @@ mod tests {
     }
 
     #[test]
-    fn test_registry_has_303_rules() {
+    fn test_registry_has_309_rules() {
         // Batch 1: 8 SEC + 3 DET + 3 IDEM + 6 SC2xxx = 20 rules
         // Batch 2: 6 NotSh + 19 Universal = 25 rules
         // Batch 3: 2 NotSh + 25 Universal = 27 rules (SC2058 not implemented yet)
@@ -1825,8 +1861,9 @@ mod tests {
         // Batch 13: 0 NotSh + 20 Universal = 20 rules
         // Batch 14: 4 NotSh + 6 Universal = 10 rules
         // Batch 15: 2 NotSh + 11 Universal = 13 rules
-        // Total: 303 rules (84.9% of 357 total) - 🎯 REACHED 85% MILESTONE! 🎯
-        assert_eq!(RULE_REGISTRY.len(), 303);
+        // Batch 16: 1 NotSh + 5 Universal = 6 rules
+        // Total: 309 rules (86.6% of 357 total) - Approaching 90% milestone!
+        assert_eq!(RULE_REGISTRY.len(), 309);
     }
 
     #[test]
@@ -3977,5 +4014,112 @@ mod tests {
 
         // Total: 11 Universal + 2 NotSh = 13 rules
         // This brings total from 290 → 303 (84.9% coverage - 🎯 REACHED 85% MILESTONE! 🎯)
+    }
+
+    // === BATCH 16 TESTS (5 tests) ===
+
+    #[test]
+    fn test_batch16_posix_universal() {
+        // SC2320, SC2322, SC2323, SC2324, SC2325 - POSIX positional parameters & arithmetic
+        let posix_rules = vec![
+            ("SC2320", "positional parameter $N quoting"),
+            ("SC2322", "arithmetic argument count"),
+            ("SC2323", "arithmetic = vs =="),
+            ("SC2324", "${var:+value} conditional"),
+            ("SC2325", "$var vs ${var} in arithmetic"),
+        ];
+
+        for (rule, description) in posix_rules {
+            assert_eq!(
+                get_rule_compatibility(rule),
+                Some(ShellCompatibility::Universal),
+                "Batch 16 POSIX rule {} ({}) should be Universal",
+                rule,
+                description
+            );
+        }
+    }
+
+    #[test]
+    fn test_batch16_bracket_specific_notsh() {
+        // SC2321 - [[ ]] specific rule
+        assert_eq!(
+            get_rule_compatibility("SC2321"),
+            Some(ShellCompatibility::NotSh),
+            "Batch 16 rule SC2321 ([[ ]] logical AND) should be NotSh"
+        );
+    }
+
+    #[test]
+    fn test_batch16_split_universal_vs_notsh() {
+        // Batch 16: 5 Universal + 1 NotSh = 6 rules total
+        let universal_rules = vec![
+            "SC2320", // Positional parameter quoting
+            "SC2322", // Arithmetic argument count
+            "SC2323", // Arithmetic = vs ==
+            "SC2324", // ${var:+value}
+            "SC2325", // $var vs ${var}
+        ];
+
+        let notsh_rules = vec![
+            "SC2321", // [[ ]] logical AND
+        ];
+
+        // Verify Universal rules
+        for rule in &universal_rules {
+            assert_eq!(
+                get_rule_compatibility(rule),
+                Some(ShellCompatibility::Universal),
+                "Rule {} should be Universal",
+                rule
+            );
+        }
+
+        // Verify NotSh rules
+        for rule in &notsh_rules {
+            assert_eq!(
+                get_rule_compatibility(rule),
+                Some(ShellCompatibility::NotSh),
+                "Rule {} should be NotSh",
+                rule
+            );
+        }
+
+        // Total: 5 Universal + 1 NotSh = 6 rules
+        // This brings total from 303 → 309 (86.6% coverage - Approaching 90% milestone!)
+    }
+
+    #[test]
+    fn test_batch16_arithmetic_context() {
+        // SC2322, SC2323, SC2325 - Arithmetic context rules
+        let arithmetic_rules = vec!["SC2322", "SC2323", "SC2325"];
+
+        for rule in arithmetic_rules {
+            assert_eq!(
+                get_rule_compatibility(rule),
+                Some(ShellCompatibility::Universal),
+                "Batch 16 arithmetic rule {} should be Universal",
+                rule
+            );
+        }
+    }
+
+    #[test]
+    fn test_batch16_parameter_expansion() {
+        // SC2320, SC2324 - Parameter expansion & positional parameters
+        let param_rules = vec![
+            ("SC2320", "positional parameter"),
+            ("SC2324", "${var:+value}"),
+        ];
+
+        for (rule, description) in param_rules {
+            assert_eq!(
+                get_rule_compatibility(rule),
+                Some(ShellCompatibility::Universal),
+                "Batch 16 parameter rule {} ({}) should be Universal",
+                rule,
+                description
+            );
+        }
     }
 }

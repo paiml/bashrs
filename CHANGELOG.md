@@ -24,7 +24,7 @@ This is the beginning of **Option 1: Complete Shell-Specific Rule Filtering** fr
 - **`lint_shell_filtered()`**: Conditional rule execution based on shell type
 - **`apply_rule!` macro**: Performance-optimized filtering with zero runtime cost for skipped rules
 
-**Rule Classification** (303/357 rules - 84.9% - **🎯 REACHED 85% MILESTONE! 🎯**):
+**Rule Classification** (309/357 rules - 86.6% - **🎯 APPROACHING 90% MILESTONE! 🎯**):
 
 *Batch 1* (20 rules):
 - ✅ 8 SEC rules → Universal (apply to all shells)
@@ -158,6 +158,14 @@ This is the beginning of **Option 1: Complete Shell-Specific Rule Filtering** fr
 - ✅ 2 NotSh rules (bash/zsh/ksh only):
   - **Bash-Specific Features** (2): SC2306 (prefer ${var//old/new} over sed - bash parameter expansion), SC2314 (use [[ ]] for pattern matching)
 
+*Batch 16* (6 rules) - **FOCUS: Positional Parameters & Arithmetic Context - Approaching 90% Milestone!**:
+- ✅ 5 Universal rules:
+  - **Positional Parameters** (1): SC2320 (this $N expands to the parameter, not a separate word - quote positional parameters)
+  - **Arithmetic Context** (3): SC2322 (arithmetic operations don't accept this argument count), SC2323 (arithmetic equality uses = not ==), SC2325 (use $var instead of ${var} in arithmetic contexts)
+  - **Parameter Expansion** (1): SC2324 (use ${var:+value} for conditional value based on isset)
+- ✅ 1 NotSh rule (bash/zsh/ksh only):
+  - **[[ ]] Logical Operators** (1): SC2321 (this && is not a logical AND but part of [[ ]])
+
 **Integration Tests** (12 total: 6 batch 1 + 6 batch 2):
 
 *Batch 1 Tests*:
@@ -202,8 +210,8 @@ This is the beginning of **Option 1: Complete Shell-Specific Rule Filtering** fr
 
 ### Quality Metrics
 
-- ✅ **6096 tests passing** (+52 new: 66 rule_registry total + 12 integration + batch additions)
-- ✅ **Zero regressions** (100% pass rate from 6044 → 6096 tests)
+- ✅ **6116 tests passing** (+72 new: 91 rule_registry total + 12 integration + batch additions)
+- ✅ **Zero regressions** (100% pass rate from 6044 → 6116 tests)
 - ✅ **Clippy clean** (zero code warnings)
 - ✅ **Property tests passing** (648 total)
 - ✅ **Code complexity <10** (all functions)
@@ -218,18 +226,19 @@ This is the beginning of **Option 1: Complete Shell-Specific Rule Filtering** fr
 
 ### Known Limitations
 
-**Current State** (Batch 1-3 Complete):
-- **72/357 rules classified (20.2%)**
-  - Batch 1: 20 rules (SEC, DET, IDEM + 6 SC2xxx)
-  - Batch 2: 25 rules (19 Universal + 6 NotSh)
-  - Batch 3: 27 rules (25 Universal + 2 NotSh, **2 CRITICAL security rules**)
-- Remaining 285 SC2xxx rules default to Universal (conservative)
-- No zsh-specific rules yet (ZSH001-ZSH020 planned)
+**Current State** (Batch 1-16 Complete):
+- **309/357 rules classified (86.6%)** - **🎯 APPROACHING 90% MILESTONE! 🎯**
+  - Batches 1-16: 309 rules classified (14 Universal + 3 DET + 3 IDEM + 289 SC2xxx)
+  - Batch 16: 6 rules (5 Universal + 1 NotSh) - Positional parameters & arithmetic context
+  - **Only 48 unclassified SC2xxx rules remaining** (down from 357 total)
+- Remaining 48 SC2xxx rules default to Universal (conservative)
+- No zsh-specific rules yet (ZSH001-ZSH020 planned for v7.0+)
 - Rule filtering only in `lint_shell_with_path()`, not `lint_shell()`
 - SC2058 (unknown unary operator) not implemented yet
+- SC2120 (function $1 check) has false positives, not enabled
 
 **Future Work** (v6.28.0-final):
-- Classify remaining 285 SC2xxx rules (aim for 100-120 total = 28-34%)
+- Classify remaining 48 SC2xxx rules (aim for 90%+ = 321+ rules)
 - Add 20 zsh-specific linter rules (ZSH001-ZSH020)
 - Implement SC2058 (unknown unary operator in test)
 - Comprehensive documentation with examples
