@@ -1778,6 +1778,122 @@ lazy_static::lazy_static! {
             compatibility: ShellCompatibility::NotSh, // [[ ]] is bash/zsh/ksh specific
         });
 
+        // === BATCH 17 CLASSIFICATIONS (21 rules - ALL REMAINING UNCLASSIFIED) ===
+        // This batch completes 100% of implemented rules - 🎯🎯🎯 90% MILESTONE! 🎯🎯🎯
+
+        // Batch 17: Backtick & Command Substitution (Universal)
+        registry.insert("SC2036", RuleMetadata {
+            id: "SC2036",
+            name: "Quotes in backticks need escaping. Use $( ) instead",
+            compatibility: ShellCompatibility::Universal, // POSIX backticks
+        });
+        registry.insert("SC2037", RuleMetadata {
+            id: "SC2037",
+            name: "To assign command output, use var=$(cmd), not cmd > $var",
+            compatibility: ShellCompatibility::Universal, // POSIX redirection vs command substitution
+        });
+
+        // Batch 17: Function & Parameter Usage (Universal + NotSh)
+        registry.insert("SC2119", RuleMetadata {
+            id: "SC2119",
+            name: "Use foo \"$@\" if function's $1 should mean script's $1",
+            compatibility: ShellCompatibility::Universal, // POSIX positional parameters
+        });
+        registry.insert("SC2123", RuleMetadata {
+            id: "SC2123",
+            name: "PATH is the shell search path. Assign to path instead",
+            compatibility: ShellCompatibility::Universal, // POSIX PATH variable
+        });
+        registry.insert("SC2124", RuleMetadata {
+            id: "SC2124",
+            name: "Use \"${var[@]}\" to prevent word splitting",
+            compatibility: ShellCompatibility::NotSh, // Arrays are bash/zsh/ksh specific
+        });
+        registry.insert("SC2125", RuleMetadata {
+            id: "SC2125",
+            name: "Brace expansion doesn't happen in [[ ]]",
+            compatibility: ShellCompatibility::Universal, // Brace expansion behavior is consistent
+        });
+
+        // Batch 17: Parameter Expansion & Command Optimization (Mixed)
+        registry.insert("SC2292", RuleMetadata {
+            id: "SC2292",
+            name: "Prefer ${var:0:1} over expr substr for single character",
+            compatibility: ShellCompatibility::NotSh, // ${var:pos:len} is bash substring expansion
+        });
+        registry.insert("SC2293", RuleMetadata {
+            id: "SC2293",
+            name: "Use += to append to arrays",
+            compatibility: ShellCompatibility::NotSh, // Array += is bash/zsh/ksh specific
+        });
+        registry.insert("SC2294", RuleMetadata {
+            id: "SC2294",
+            name: "Use arithmetic expansion ((...)) for simple assignments",
+            compatibility: ShellCompatibility::Universal, // POSIX $(( )) arithmetic
+        });
+        registry.insert("SC2295", RuleMetadata {
+            id: "SC2295",
+            name: "Expansions inside ${} need to be quoted separately",
+            compatibility: ShellCompatibility::Universal, // POSIX parameter expansion quoting
+        });
+        registry.insert("SC2296", RuleMetadata {
+            id: "SC2296",
+            name: "Parameter expansions can't be nested",
+            compatibility: ShellCompatibility::Universal, // POSIX limitation
+        });
+        registry.insert("SC2297", RuleMetadata {
+            id: "SC2297",
+            name: "Redirect before pipe",
+            compatibility: ShellCompatibility::Universal, // POSIX shell pipeline ordering
+        });
+        registry.insert("SC2298", RuleMetadata {
+            id: "SC2298",
+            name: "Useless use of cat before pipe",
+            compatibility: ShellCompatibility::Universal, // Universal anti-pattern
+        });
+        registry.insert("SC2299", RuleMetadata {
+            id: "SC2299",
+            name: "Parameter expansion only allows literals here",
+            compatibility: ShellCompatibility::Universal, // POSIX parameter expansion restrictions
+        });
+        registry.insert("SC2300", RuleMetadata {
+            id: "SC2300",
+            name: "Use ${var:?} for required environment variables",
+            compatibility: ShellCompatibility::Universal, // POSIX ${var:?} parameter expansion
+        });
+        registry.insert("SC2301", RuleMetadata {
+            id: "SC2301",
+            name: "Use [[ -v array[0] ]] to check if array element exists",
+            compatibility: ShellCompatibility::NotSh, // Arrays and [[ -v ]] are bash/zsh/ksh specific
+        });
+        registry.insert("SC2302", RuleMetadata {
+            id: "SC2302",
+            name: "Prefer ${var// /} over tr for simple substitution",
+            compatibility: ShellCompatibility::NotSh, // ${var//pattern/replacement} is bash specific
+        });
+        registry.insert("SC2303", RuleMetadata {
+            id: "SC2303",
+            name: "Arithmetic base only allowed in assignments",
+            compatibility: ShellCompatibility::Universal, // POSIX arithmetic base restrictions
+        });
+        registry.insert("SC2304", RuleMetadata {
+            id: "SC2304",
+            name: "Command appears to be undefined",
+            compatibility: ShellCompatibility::Universal, // Universal command validation
+        });
+        registry.insert("SC2305", RuleMetadata {
+            id: "SC2305",
+            name: "Use ${var:=value} to assign default value",
+            compatibility: ShellCompatibility::Universal, // POSIX ${var:=value} parameter expansion
+        });
+
+        // Batch 17: Exit Code Usage (Universal)
+        registry.insert("SC2319", RuleMetadata {
+            id: "SC2319",
+            name: "This $? refers to a condition, not the previous command",
+            compatibility: ShellCompatibility::Universal, // POSIX $? behavior
+        });
+
         // Most other SC2xxx rules are Universal (quoting, syntax, etc.)
         // They represent bugs or issues that apply regardless of shell
         // Examples: SC2086 (quote variables), etc.
@@ -1845,7 +1961,7 @@ mod tests {
     }
 
     #[test]
-    fn test_registry_has_309_rules() {
+    fn test_registry_has_330_rules() {
         // Batch 1: 8 SEC + 3 DET + 3 IDEM + 6 SC2xxx = 20 rules
         // Batch 2: 6 NotSh + 19 Universal = 25 rules
         // Batch 3: 2 NotSh + 25 Universal = 27 rules (SC2058 not implemented yet)
@@ -1862,8 +1978,9 @@ mod tests {
         // Batch 14: 4 NotSh + 6 Universal = 10 rules
         // Batch 15: 2 NotSh + 11 Universal = 13 rules
         // Batch 16: 1 NotSh + 5 Universal = 6 rules
-        // Total: 309 rules (86.6% of 357 total) - Approaching 90% milestone!
-        assert_eq!(RULE_REGISTRY.len(), 309);
+        // Batch 17: 5 NotSh + 16 Universal = 21 rules (ALL REMAINING UNCLASSIFIED)
+        // Total: 330 rules (92.4% of 357 total) - 🎯🎯🎯 90% MILESTONE EXCEEDED! 🎯🎯🎯
+        assert_eq!(RULE_REGISTRY.len(), 330);
     }
 
     #[test]
@@ -4121,5 +4238,269 @@ mod tests {
                 description
             );
         }
+    }
+
+    // === BATCH 17 TESTS (6 tests) ===
+
+    #[test]
+    fn test_batch17_backtick_command_substitution_universal() {
+        // Batch 17: Backtick & command substitution (Universal - POSIX)
+        let backtick_rules = vec![
+            ("SC2036", "Quotes in backticks need escaping"),
+            ("SC2037", "To assign command output, use var=$(cmd)"),
+        ];
+
+        for (rule, description) in backtick_rules {
+            assert_eq!(
+                get_rule_compatibility(rule),
+                Some(ShellCompatibility::Universal),
+                "Batch 17 backtick rule {} ({}) should be Universal (POSIX)",
+                rule,
+                description
+            );
+
+            // Should apply to ALL shells
+            for shell in [
+                ShellType::Bash,
+                ShellType::Zsh,
+                ShellType::Sh,
+                ShellType::Ksh,
+            ] {
+                assert!(
+                    should_apply_rule(rule, shell),
+                    "{} should apply to {:?}",
+                    rule,
+                    shell
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn test_batch17_function_parameter_usage_universal() {
+        // Batch 17: Function & parameter usage (Universal - POSIX positional params, PATH, brace expansion)
+        let function_universal_rules = vec![
+            (
+                "SC2119",
+                "Use foo \"$@\" if function's $1 should mean script's $1",
+            ),
+            (
+                "SC2123",
+                "PATH is the shell search path. Assign to path instead",
+            ),
+            ("SC2125", "Brace expansion doesn't happen in [[ ]]"),
+        ];
+
+        for (rule, description) in function_universal_rules {
+            assert_eq!(
+                get_rule_compatibility(rule),
+                Some(ShellCompatibility::Universal),
+                "Batch 17 function rule {} ({}) should be Universal (POSIX)",
+                rule,
+                description
+            );
+
+            // Should apply to ALL shells
+            for shell in [
+                ShellType::Bash,
+                ShellType::Zsh,
+                ShellType::Sh,
+                ShellType::Ksh,
+            ] {
+                assert!(
+                    should_apply_rule(rule, shell),
+                    "{} should apply to {:?}",
+                    rule,
+                    shell
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn test_batch17_array_usage_notsh() {
+        // Batch 17: Array usage (NotSh - bash/zsh/ksh specific)
+        let array_rule = "SC2124";
+
+        assert_eq!(
+            get_rule_compatibility(array_rule),
+            Some(ShellCompatibility::NotSh),
+            "Batch 17 array rule {} should be NotSh (arrays are bash/zsh/ksh specific)",
+            array_rule
+        );
+
+        // Should NOT apply to POSIX sh
+        assert!(
+            !should_apply_rule(array_rule, ShellType::Sh),
+            "{} should not apply to sh",
+            array_rule
+        );
+
+        // But SHOULD apply to bash/zsh/ksh
+        assert!(
+            should_apply_rule(array_rule, ShellType::Bash),
+            "{} should apply to bash",
+            array_rule
+        );
+        assert!(
+            should_apply_rule(array_rule, ShellType::Zsh),
+            "{} should apply to zsh",
+            array_rule
+        );
+    }
+
+    #[test]
+    fn test_batch17_parameter_expansion_universal() {
+        // Batch 17: Parameter expansion & command optimization (Universal - POSIX)
+        let param_expansion_rules = vec![
+            (
+                "SC2294",
+                "Use arithmetic expansion ((...)) for simple assignments",
+            ),
+            (
+                "SC2295",
+                "Expansions inside ${} need to be quoted separately",
+            ),
+            ("SC2296", "Parameter expansions can't be nested"),
+            ("SC2297", "Redirect before pipe"),
+            ("SC2298", "Useless use of cat before pipe"),
+            ("SC2299", "Parameter expansion only allows literals here"),
+            ("SC2300", "Use ${var:?} for required environment variables"),
+            ("SC2303", "Arithmetic base only allowed in assignments"),
+            ("SC2304", "Command appears to be undefined"),
+            ("SC2305", "Use ${var:=value} to assign default value"),
+            (
+                "SC2319",
+                "This $? refers to a condition, not the previous command",
+            ),
+        ];
+
+        for (rule, description) in param_expansion_rules {
+            assert_eq!(
+                get_rule_compatibility(rule),
+                Some(ShellCompatibility::Universal),
+                "Batch 17 parameter expansion rule {} ({}) should be Universal (POSIX)",
+                rule,
+                description
+            );
+
+            // Should apply to ALL shells
+            assert!(
+                should_apply_rule(rule, ShellType::Bash),
+                "{} should apply to bash",
+                rule
+            );
+            assert!(
+                should_apply_rule(rule, ShellType::Sh),
+                "{} should apply to sh",
+                rule
+            );
+            assert!(
+                should_apply_rule(rule, ShellType::Zsh),
+                "{} should apply to zsh",
+                rule
+            );
+        }
+    }
+
+    #[test]
+    fn test_batch17_bash_specific_notsh() {
+        // Batch 17: Bash-specific parameter expansion and array operations (NotSh)
+        let bash_specific_rules = vec![
+            (
+                "SC2292",
+                "Prefer ${var:0:1} over expr substr - bash substring expansion",
+            ),
+            ("SC2293", "Use += to append to arrays - bash array operator"),
+            (
+                "SC2301",
+                "Use [[ -v array[0] ]] to check if array element exists - arrays + [[ -v ]]",
+            ),
+            (
+                "SC2302",
+                "Prefer ${var// /} over tr - bash ${var//} expansion",
+            ),
+        ];
+
+        for (rule, description) in bash_specific_rules {
+            assert_eq!(
+                get_rule_compatibility(rule),
+                Some(ShellCompatibility::NotSh),
+                "Batch 17 bash-specific rule {} ({}) should be NotSh",
+                rule,
+                description
+            );
+
+            // Should NOT apply to POSIX sh
+            assert!(
+                !should_apply_rule(rule, ShellType::Sh),
+                "{} should not apply to sh",
+                rule
+            );
+
+            // But SHOULD apply to bash/zsh
+            assert!(
+                should_apply_rule(rule, ShellType::Bash),
+                "{} should apply to bash",
+                rule
+            );
+            assert!(
+                should_apply_rule(rule, ShellType::Zsh),
+                "{} should apply to zsh",
+                rule
+            );
+        }
+    }
+
+    #[test]
+    fn test_batch17_split_universal_vs_notsh() {
+        // Batch 17: 15 Universal + 6 NotSh = 21 rules total (ALL REMAINING UNCLASSIFIED)
+        let universal_rules = vec![
+            // Backtick & command substitution (2)
+            "SC2036", "SC2037", // Function & parameter usage (3)
+            "SC2119", "SC2123", "SC2125",
+            // Parameter expansion & command optimization (11)
+            "SC2294", "SC2295", "SC2296", "SC2297", "SC2298", "SC2299", "SC2300", "SC2303",
+            "SC2304", "SC2305", "SC2319",
+        ];
+
+        let notsh_rules = vec![
+            "SC2124", // Array quoting
+            "SC2292", // ${var:0:1} bash substring
+            "SC2293", // Array += operator
+            "SC2301", // [[ -v array[0] ]]
+            "SC2302", // ${var//} bash expansion
+        ];
+
+        // Verify Universal rules
+        for rule in &universal_rules {
+            assert_eq!(
+                get_rule_compatibility(rule),
+                Some(ShellCompatibility::Universal),
+                "Batch 17 rule {} should be Universal",
+                rule
+            );
+        }
+
+        // Verify NotSh rules
+        for rule in &notsh_rules {
+            assert_eq!(
+                get_rule_compatibility(rule),
+                Some(ShellCompatibility::NotSh),
+                "Batch 17 rule {} should be NotSh",
+                rule
+            );
+        }
+
+        // Verify counts
+        assert_eq!(
+            universal_rules.len(),
+            16,
+            "Batch 17 should have 16 Universal rules"
+        );
+        assert_eq!(notsh_rules.len(), 5, "Batch 17 should have 5 NotSh rules");
+
+        // Total: 16 Universal + 5 NotSh = 21 rules
+        // This brings total from 309 → 330 (92.4% coverage - 🎯🎯🎯 90% MILESTONE EXCEEDED! 🎯🎯🎯)
     }
 }
