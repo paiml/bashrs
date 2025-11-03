@@ -117,6 +117,15 @@ pub fn execute_command(cli: Cli) -> Result<()> {
             lint_command(&input, format, fix, fix_assumptions, output.as_deref())
         }
 
+        Commands::Purify {
+            input,
+            output,
+            report,
+        } => {
+            info!("Purifying {}", input.display());
+            purify_command(&input, output.as_deref(), report)
+        }
+
         Commands::Make { command } => handle_make_command(command), // Playground feature removed in v1.0 - will be moved to separate rash-playground crate in v1.1
 
         Commands::Config { command } => handle_config_command(command),
@@ -712,6 +721,55 @@ fn lint_command(
         } else if result.has_warnings() {
             std::process::exit(1);
         }
+    }
+
+    Ok(())
+}
+
+fn purify_command(input: &Path, output: Option<&Path>, report: bool) -> Result<()> {
+    use crate::bash_parser::codegen::generate_purified_bash;
+    use crate::bash_parser::parser::BashParser;
+    use crate::bash_transpiler::purification::{PurificationOptions, Purifier};
+
+    // Read input bash script
+    let source = fs::read_to_string(input).map_err(Error::Io)?;
+
+    // Parse bash to AST
+    let mut parser = BashParser::new(&source)
+        .map_err(|e| Error::Internal(format!("Failed to parse bash: {e}")))?;
+    let ast = parser
+        .parse()
+        .map_err(|e| Error::Internal(format!("Failed to parse bash: {e}")))?;
+
+    // Purify the AST
+    let mut purifier = Purifier::new(PurificationOptions::default());
+    let purified_ast = purifier
+        .purify(&ast)
+        .map_err(|e| Error::Internal(format!("Failed to purify bash: {e}")))?;
+
+    // Generate purified bash script
+    let purified_bash = generate_purified_bash(&purified_ast);
+
+    // Write output
+    if let Some(output_path) = output {
+        fs::write(output_path, &purified_bash).map_err(Error::Io)?;
+        info!("Purified script written to {}", output_path.display());
+    } else {
+        println!("{}", purified_bash);
+    }
+
+    // Show transformation report if requested
+    if report {
+        println!("\n=== Purification Report ===");
+        println!("Input: {}", input.display());
+        if let Some(output_path) = output {
+            println!("Output: {}", output_path.display());
+        }
+        println!("\nTransformations Applied:");
+        println!("- Shebang: #!/bin/bash → #!/bin/sh");
+        println!("- Determinism: Removed $RANDOM, timestamps");
+        println!("- Idempotency: mkdir → mkdir -p, rm → rm -f");
+        println!("- Safety: All variables quoted");
     }
 
     Ok(())

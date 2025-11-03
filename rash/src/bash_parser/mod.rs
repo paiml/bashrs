@@ -18,6 +18,7 @@
 #![allow(clippy::indexing_slicing)]
 
 pub mod ast;
+pub mod codegen; // Bash code generation (needed for purify command)
 pub mod lexer;
 pub mod parser;
 pub mod semantic;
@@ -35,6 +36,5 @@ mod property_tests;
 #[cfg(test)]
 mod instrumentation_tests;
 
-// Property-based test generators - only compiled during tests
 #[cfg(test)]
-pub mod generators;
+pub mod generators; // Property-based test generators
