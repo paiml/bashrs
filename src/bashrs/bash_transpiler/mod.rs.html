@@ -11,25 +11,30 @@
 <a href=#11 id=11 data-nosnippet>11</a></span><span class="kw">pub mod </span>codegen;
 <a href=#12 id=12 data-nosnippet>12</a><span class="kw">pub mod </span>patterns;
 <a href=#13 id=13 data-nosnippet>13</a><span class="kw">pub mod </span>purification;
-<a href=#14 id=14 data-nosnippet>14</a>
-<a href=#15 id=15 data-nosnippet>15</a><span class="kw">pub use </span>codegen::{BashToRashTranspiler, TranspileOptions};
-<a href=#16 id=16 data-nosnippet>16</a><span class="kw">pub use </span>purification::{PurificationOptions, PurificationReport, Purifier};
-<a href=#17 id=17 data-nosnippet>17</a>
-<a href=#18 id=18 data-nosnippet>18</a><span class="kw">use </span>thiserror::Error;
+<a href=#14 id=14 data-nosnippet>14</a><span class="kw">pub mod </span>test_generator;
+<a href=#15 id=15 data-nosnippet>15</a>
+<a href=#16 id=16 data-nosnippet>16</a><span class="kw">pub use </span>codegen::{BashToRashTranspiler, TranspileOptions};
+<a href=#17 id=17 data-nosnippet>17</a><span class="kw">pub use </span>purification::{PurificationOptions, PurificationReport, Purifier};
+<a href=#18 id=18 data-nosnippet>18</a><span class="kw">pub use </span>test_generator::{TestGenerator, TestGeneratorOptions};
 <a href=#19 id=19 data-nosnippet>19</a>
-<a href=#20 id=20 data-nosnippet>20</a><span class="attr">#[derive(Error, Debug)]
-<a href=#21 id=21 data-nosnippet>21</a></span><span class="kw">pub enum </span>TranspileError {
-<a href=#22 id=22 data-nosnippet>22</a>    <span class="attr">#[error(<span class="string">"Unsupported bash construct: {0}"</span>)]
-<a href=#23 id=23 data-nosnippet>23</a>    </span>UnsupportedConstruct(String),
-<a href=#24 id=24 data-nosnippet>24</a>
-<a href=#25 id=25 data-nosnippet>25</a>    <span class="attr">#[error(<span class="string">"Code generation failed: {0}"</span>)]
-<a href=#26 id=26 data-nosnippet>26</a>    </span>CodeGenFailed(String),
-<a href=#27 id=27 data-nosnippet>27</a>
-<a href=#28 id=28 data-nosnippet>28</a>    <span class="attr">#[error(<span class="string">"Invalid bash syntax cannot be transpiled: {0}"</span>)]
-<a href=#29 id=29 data-nosnippet>29</a>    </span>InvalidSyntax(String),
-<a href=#30 id=30 data-nosnippet>30</a>}
-<a href=#31 id=31 data-nosnippet>31</a>
-<a href=#32 id=32 data-nosnippet>32</a><span class="kw">pub type </span>TranspileResult&lt;T&gt; = <span class="prelude-ty">Result</span>&lt;T, TranspileError&gt;;
+<a href=#20 id=20 data-nosnippet>20</a><span class="kw">use </span>thiserror::Error;
+<a href=#21 id=21 data-nosnippet>21</a>
+<a href=#22 id=22 data-nosnippet>22</a><span class="attr">#[derive(Error, Debug)]
+<a href=#23 id=23 data-nosnippet>23</a></span><span class="kw">pub enum </span>TranspileError {
+<a href=#24 id=24 data-nosnippet>24</a>    <span class="attr">#[error(<span class="string">"Unsupported bash construct: {0}"</span>)]
+<a href=#25 id=25 data-nosnippet>25</a>    </span>UnsupportedConstruct(String),
+<a href=#26 id=26 data-nosnippet>26</a>
+<a href=#27 id=27 data-nosnippet>27</a>    <span class="attr">#[error(<span class="string">"Code generation failed: {0}"</span>)]
+<a href=#28 id=28 data-nosnippet>28</a>    </span>CodeGenFailed(String),
+<a href=#29 id=29 data-nosnippet>29</a>
+<a href=#30 id=30 data-nosnippet>30</a>    <span class="attr">#[error(<span class="string">"Invalid bash syntax cannot be transpiled: {0}"</span>)]
+<a href=#31 id=31 data-nosnippet>31</a>    </span>InvalidSyntax(String),
+<a href=#32 id=32 data-nosnippet>32</a>}
 <a href=#33 id=33 data-nosnippet>33</a>
-<a href=#34 id=34 data-nosnippet>34</a><span class="attr">#[cfg(test)]
-<a href=#35 id=35 data-nosnippet>35</a></span><span class="kw">mod </span>tests;</code></pre></div></section></main></body></html>
+<a href=#34 id=34 data-nosnippet>34</a><span class="kw">pub type </span>TranspileResult&lt;T&gt; = <span class="prelude-ty">Result</span>&lt;T, TranspileError&gt;;
+<a href=#35 id=35 data-nosnippet>35</a>
+<a href=#36 id=36 data-nosnippet>36</a><span class="attr">#[cfg(test)]
+<a href=#37 id=37 data-nosnippet>37</a></span><span class="kw">mod </span>tests;
+<a href=#38 id=38 data-nosnippet>38</a>
+<a href=#39 id=39 data-nosnippet>39</a><span class="attr">#[cfg(test)]
+<a href=#40 id=40 data-nosnippet>40</a></span><span class="kw">mod </span>purification_property_tests;</code></pre></div></section></main></body></html>

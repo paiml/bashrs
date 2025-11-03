@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"mod":["ast","lexer","parser","semantic"]};
+window.SIDEBAR_ITEMS = {"mod":["ast","codegen","lexer","parser","semantic"]};

@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"mod":["ast","error","generators","lexer","parser","purify","semantic"]};
+window.SIDEBAR_ITEMS = {"mod":["ast","error","generators","lexer","parser","purify","semantic","test_generator"]};

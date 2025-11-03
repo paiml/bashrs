@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"enum":["TranspileError"],"mod":["codegen","patterns","purification"],"type":["TranspileResult"]};
+window.SIDEBAR_ITEMS = {"enum":["TranspileError"],"mod":["codegen","patterns","purification","test_generator"],"type":["TranspileResult"]};
