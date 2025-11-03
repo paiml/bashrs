@@ -625,6 +625,43 @@ lazy_static::lazy_static! {
             compatibility: ShellCompatibility::Universal,
         });
 
+        // Batch 18: File handling and command best practices (Universal)
+        registry.insert("SC2008", RuleMetadata {
+            id: "SC2008",
+            name: "echo doesn't read from stdin",
+            compatibility: ShellCompatibility::Universal,
+        });
+        registry.insert("SC2009", RuleMetadata {
+            id: "SC2009",
+            name: "Consider using pgrep instead of grepping ps output",
+            compatibility: ShellCompatibility::Universal,
+        });
+        registry.insert("SC2010", RuleMetadata {
+            id: "SC2010",
+            name: "Don't use ls | grep, use glob or find",
+            compatibility: ShellCompatibility::Universal,
+        });
+        registry.insert("SC2011", RuleMetadata {
+            id: "SC2011",
+            name: "Use find -print0 | xargs -0 instead of ls | xargs",
+            compatibility: ShellCompatibility::Universal,
+        });
+        registry.insert("SC2012", RuleMetadata {
+            id: "SC2012",
+            name: "Use find instead of ls for non-alphanumeric filenames",
+            compatibility: ShellCompatibility::Universal,
+        });
+        registry.insert("SC2013", RuleMetadata {
+            id: "SC2013",
+            name: "To read lines, pipe/redirect to 'while read' loop",
+            compatibility: ShellCompatibility::Universal,
+        });
+        registry.insert("SC2014", RuleMetadata {
+            id: "SC2014",
+            name: "Variables don't expand before brace expansion",
+            compatibility: ShellCompatibility::Universal,
+        });
+
         // Batch 5: Logic and quoting safety (Universal)
         registry.insert("SC2015", RuleMetadata {
             id: "SC2015",
@@ -1961,7 +1998,7 @@ mod tests {
     }
 
     #[test]
-    fn test_registry_has_330_rules() {
+    fn test_registry_has_337_rules() {
         // Batch 1: 8 SEC + 3 DET + 3 IDEM + 6 SC2xxx = 20 rules
         // Batch 2: 6 NotSh + 19 Universal = 25 rules
         // Batch 3: 2 NotSh + 25 Universal = 27 rules (SC2058 not implemented yet)
@@ -1979,8 +2016,9 @@ mod tests {
         // Batch 15: 2 NotSh + 11 Universal = 13 rules
         // Batch 16: 1 NotSh + 5 Universal = 6 rules
         // Batch 17: 5 NotSh + 16 Universal = 21 rules (ALL REMAINING UNCLASSIFIED)
-        // Total: 330 rules (92.4% of 357 total) - 🎯🎯🎯 90% MILESTONE EXCEEDED! 🎯🎯🎯
-        assert_eq!(RULE_REGISTRY.len(), 330);
+        // Batch 18: 0 NotSh + 7 Universal = 7 rules (SC2008-SC2014 file/command best practices)
+        // Total: 337 rules (94.4% of 357 total) - 🎯🎯🎯 APPROACHING 95% MILESTONE! 🎯🎯🎯
+        assert_eq!(RULE_REGISTRY.len(), 337);
     }
 
     #[test]
