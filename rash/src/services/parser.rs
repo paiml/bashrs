@@ -196,10 +196,26 @@ fn convert_stmt(stmt: &SynStmt) -> Result<Stmt> {
 }
 
 fn convert_let_stmt(local: &syn::Local) -> Result<Stmt> {
-    let Pat::Ident(pat_ident) = &local.pat else {
-        return Err(Error::Validation(
-            "Complex patterns not supported".to_string(),
-        ));
+    // Extract identifier from pattern (handle both Pat::Ident and Pat::Type)
+    // This allows: `let x = 5` and `let x: i32 = 5`
+    let pat_ident = match &local.pat {
+        Pat::Ident(ident) => ident,
+        Pat::Type(pat_type) => {
+            // For type-annotated patterns like `let args: Vec<String> = ...`
+            match &*pat_type.pat {
+                Pat::Ident(ident) => ident,
+                _ => {
+                    return Err(Error::Validation(
+                        "Complex patterns not supported in type annotations".to_string(),
+                    ));
+                }
+            }
+        }
+        _ => {
+            return Err(Error::Validation(
+                "Complex patterns not supported".to_string(),
+            ));
+        }
     };
 
     let name = pat_ident.ident.to_string();
