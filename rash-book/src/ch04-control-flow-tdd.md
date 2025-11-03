@@ -974,7 +974,7 @@ Use Rust parentheses `()` to control precedence (transpiled correctly).
 
 ## How Transpilation Works
 
-```
+```text
 Rust: if x > 10 { println("big"); }
       ↓
 AST: If { cond: BinaryOp(Gt, Var(x), Lit(10)), then: [Call(println, ...)] }

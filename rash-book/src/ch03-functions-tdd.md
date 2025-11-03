@@ -837,7 +837,7 @@ The `:` is a POSIX built-in that always succeeds.
 
 ## How Transpilation Works
 
-```
+```text
 Rust: fn greet(name: &str) { println(name); }
       ↓
 AST: FnDef { name: "greet", params: [(name, &str)], body: [Call(println, [name])] }

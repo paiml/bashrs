@@ -172,7 +172,7 @@ main "$@"
 ```
 
 **Output:**
-```
+```text
 Hello, "World"!
 Path: /usr/local/bin
 Price: $100
@@ -213,7 +213,7 @@ main "$@"
 ```
 
 **Output:**
-```
+```text
 Hello, 世界!
 emoji: 🦀
 ```

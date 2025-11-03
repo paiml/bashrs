@@ -866,7 +866,7 @@ work_dir="/tmp/work-space"
 
 Rash tracks comprehensive purification metrics:
 
-```
+```text
 Purification Report for: deploy_app.rash
 ========================================
 

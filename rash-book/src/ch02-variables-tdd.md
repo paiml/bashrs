@@ -570,7 +570,7 @@ This is intentional:
 
 ## How Transpilation Works
 
-```
+```text
 Rust: let name = "value";
       ↓
 AST: LetStmt { pat: Ident("name"), init: Lit("value") }
