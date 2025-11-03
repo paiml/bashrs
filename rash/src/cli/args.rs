@@ -162,6 +162,14 @@ pub enum Commands {
         /// Show detailed transformation report
         #[arg(long)]
         report: bool,
+
+        /// Generate test suite for purified script
+        #[arg(long)]
+        with_tests: bool,
+
+        /// Generate property-based tests (100+ cases)
+        #[arg(long)]
+        property_tests: bool,
     },
 
     /// Makefile parsing, purification, and transformation
