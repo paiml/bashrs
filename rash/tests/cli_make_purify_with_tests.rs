@@ -1,15 +1,15 @@
-// CLI Integration Tests for bashrs purify --with-tests Command
+// CLI Integration Tests for bashrs make purify --with-tests Command
 // EXTREME TDD: RED phase - These tests will FAIL until feature is implemented
 //
-// Test Naming Convention: test_WITH_TESTS_<ID>_<feature>_<scenario>
+// Test Naming Convention: test_MAKE_WITH_TESTS_<ID>_<feature>_<scenario>
 //
 // Task IDs:
-// - WITH_TESTS_001: Basic test generation
-// - WITH_TESTS_002: Determinism test generation
-// - WITH_TESTS_003: Idempotency test generation
-// - WITH_TESTS_004: POSIX compliance test generation
-// - WITH_TESTS_005: Property-based test generation
-// - WITH_TESTS_006: Test execution verification
+// - MAKE_WITH_TESTS_001: Basic test generation
+// - MAKE_WITH_TESTS_002: Determinism test generation
+// - MAKE_WITH_TESTS_003: Idempotency test generation
+// - MAKE_WITH_TESTS_004: POSIX compliance test generation
+// - MAKE_WITH_TESTS_005: Property-based test generation
+// - MAKE_WITH_TESTS_006: Test execution verification
 
 use assert_cmd::Command;
 use predicates::prelude::*;
@@ -26,8 +26,8 @@ fn bashrs_cmd() -> Command {
     Command::cargo_bin("bashrs").expect("Failed to find bashrs binary")
 }
 
-/// Create a temporary bash script with given content
-fn create_temp_bash_script(content: &str) -> NamedTempFile {
+/// Create a temporary Makefile with given content
+fn create_temp_makefile(content: &str) -> NamedTempFile {
     let mut file = NamedTempFile::new().expect("Failed to create temp file");
     file.write_all(content.as_bytes())
         .expect("Failed to write to temp file");
@@ -35,24 +35,25 @@ fn create_temp_bash_script(content: &str) -> NamedTempFile {
 }
 
 // ============================================================================
-// Test: WITH_TESTS_001 - Basic Test Generation
+// Test: MAKE_WITH_TESTS_001 - Basic Test Generation
 // ============================================================================
 
 #[test]
-fn test_WITH_TESTS_001_generates_test_file() {
-    let bash_script = r#"#!/bin/bash
-# Simple script
-x=42
-echo $x
+fn test_MAKE_WITH_TESTS_001_generates_test_file() {
+    let makefile = r#"# Simple Makefile
+.PHONY: all
+all:
+	echo "Building"
 "#;
 
-    let input_file = create_temp_bash_script(bash_script);
+    let input_file = create_temp_makefile(makefile);
     let output_dir = TempDir::new().expect("Failed to create temp dir");
-    let output_file = output_dir.path().join("script.sh");
-    let test_file = output_dir.path().join("script_test.sh");
+    let output_file = output_dir.path().join("Makefile");
+    let test_file = output_dir.path().join("Makefile.test.sh");
 
     // RED: This will fail until --with-tests is implemented
     bashrs_cmd()
+        .arg("make")
         .arg("purify")
         .arg(input_file.path())
         .arg("--with-tests")
@@ -77,13 +78,14 @@ echo $x
 }
 
 #[test]
-fn test_WITH_TESTS_001_test_file_naming_convention() {
-    let bash_script = "#!/bin/bash\nx=1";
-    let input_file = create_temp_bash_script(bash_script);
+fn test_MAKE_WITH_TESTS_001_test_file_naming_convention() {
+    let makefile = "all:\n\techo test";
+    let input_file = create_temp_makefile(makefile);
     let output_dir = TempDir::new().expect("Failed to create temp dir");
-    let output_file = output_dir.path().join("my_script.sh");
+    let output_file = output_dir.path().join("MyMakefile");
 
     bashrs_cmd()
+        .arg("make")
         .arg("purify")
         .arg(input_file.path())
         .arg("--with-tests")
@@ -92,30 +94,32 @@ fn test_WITH_TESTS_001_test_file_naming_convention() {
         .assert()
         .success();
 
-    // Test file should be named <script>_test.sh
-    let test_file = output_dir.path().join("my_script_test.sh");
+    // Test file should be named <makefile>.test.sh
+    let test_file = output_dir.path().join("MyMakefile.test.sh");
     assert!(
         test_file.exists(),
-        "Test file should follow <script>_test.sh naming"
+        "Test file should follow <makefile>.test.sh naming"
     );
 }
 
 // ============================================================================
-// Test: WITH_TESTS_002 - Determinism Test Generation
+// Test: MAKE_WITH_TESTS_002 - Determinism Test Generation
 // ============================================================================
 
 #[test]
-fn test_WITH_TESTS_002_generates_determinism_test() {
-    let bash_script = r#"#!/bin/bash
-echo "Hello, World!"
+fn test_MAKE_WITH_TESTS_002_generates_determinism_test() {
+    let makefile = r#".PHONY: build
+build:
+	echo "Deterministic build"
 "#;
 
-    let input_file = create_temp_bash_script(bash_script);
+    let input_file = create_temp_makefile(makefile);
     let output_dir = TempDir::new().expect("Failed to create temp dir");
-    let output_file = output_dir.path().join("script.sh");
-    let test_file = output_dir.path().join("script_test.sh");
+    let output_file = output_dir.path().join("Makefile");
+    let test_file = output_dir.path().join("Makefile.test.sh");
 
     bashrs_cmd()
+        .arg("make")
         .arg("purify")
         .arg(input_file.path())
         .arg("--with-tests")
@@ -132,25 +136,27 @@ echo "Hello, World!"
         "Test file should contain determinism test"
     );
 
-    // Verify test runs script twice to compare outputs
+    // Verify test runs make twice to compare outputs
     assert!(
-        test_content.contains("output1") && test_content.contains("output2"),
-        "Determinism test should run script twice and compare outputs"
+        test_content.contains("make") && test_content.matches("make").count() >= 2,
+        "Determinism test should run make multiple times"
     );
 }
 
 #[test]
-fn test_WITH_TESTS_002_determinism_test_passes() {
-    let bash_script = r#"#!/bin/bash
-echo "constant"
+fn test_MAKE_WITH_TESTS_002_determinism_test_passes() {
+    let makefile = r#".PHONY: build
+build:
+	@echo "constant output"
 "#;
 
-    let input_file = create_temp_bash_script(bash_script);
+    let input_file = create_temp_makefile(makefile);
     let output_dir = TempDir::new().expect("Failed to create temp dir");
-    let output_file = output_dir.path().join("script.sh");
-    let test_file = output_dir.path().join("script_test.sh");
+    let output_file = output_dir.path().join("Makefile");
+    let test_file = output_dir.path().join("Makefile.test.sh");
 
     bashrs_cmd()
+        .arg("make")
         .arg("purify")
         .arg(input_file.path())
         .arg("--with-tests")
@@ -163,17 +169,13 @@ echo "constant"
     #[cfg(unix)]
     {
         use std::os::unix::fs::PermissionsExt;
-        let mut perms = fs::metadata(&output_file).unwrap().permissions();
-        perms.set_mode(0o755);
-        fs::set_permissions(&output_file, perms).unwrap();
-
         let mut test_perms = fs::metadata(&test_file).unwrap().permissions();
         test_perms.set_mode(0o755);
         fs::set_permissions(&test_file, test_perms).unwrap();
     }
 
     // Run generated tests - should pass
-    let output = Command::new("sh")
+    let output = std::process::Command::new("sh")
         .arg(&test_file)
         .current_dir(&output_dir)
         .output()
@@ -181,26 +183,28 @@ echo "constant"
 
     assert!(
         output.status.success(),
-        "Generated determinism test should pass for deterministic script"
+        "Generated determinism test should pass for deterministic Makefile"
     );
 }
 
 // ============================================================================
-// Test: WITH_TESTS_003 - Idempotency Test Generation
+// Test: MAKE_WITH_TESTS_003 - Idempotency Test Generation
 // ============================================================================
 
 #[test]
-fn test_WITH_TESTS_003_generates_idempotency_test() {
-    let bash_script = r#"#!/bin/bash
-mkdir -p /tmp/test_dir
+fn test_MAKE_WITH_TESTS_003_generates_idempotency_test() {
+    let makefile = r#".PHONY: install
+install:
+	mkdir -p /tmp/test_dir
 "#;
 
-    let input_file = create_temp_bash_script(bash_script);
+    let input_file = create_temp_makefile(makefile);
     let output_dir = TempDir::new().expect("Failed to create temp dir");
-    let output_file = output_dir.path().join("script.sh");
-    let test_file = output_dir.path().join("script_test.sh");
+    let output_file = output_dir.path().join("Makefile");
+    let test_file = output_dir.path().join("Makefile.test.sh");
 
     bashrs_cmd()
+        .arg("make")
         .arg("purify")
         .arg(input_file.path())
         .arg("--with-tests")
@@ -217,62 +221,31 @@ mkdir -p /tmp/test_dir
         "Test file should contain idempotency test"
     );
 
-    // Verify test runs script multiple times
+    // Verify test runs make multiple times
     assert!(
-        test_content.matches("./").count() >= 2,
-        "Idempotency test should run script multiple times"
-    );
-}
-
-#[test]
-fn test_WITH_TESTS_003_idempotency_test_detects_issues() {
-    // Script with non-idempotent operation (mkdir without -p)
-    let bash_script = r#"#!/bin/bash
-mkdir /tmp/test_dir_$RANDOM
-"#;
-
-    let input_file = create_temp_bash_script(bash_script);
-    let output_dir = TempDir::new().expect("Failed to create temp dir");
-    let output_file = output_dir.path().join("script.sh");
-
-    // Purify should fix this (add -p, remove $RANDOM)
-    bashrs_cmd()
-        .arg("purify")
-        .arg(input_file.path())
-        .arg("--with-tests")
-        .arg("-o")
-        .arg(&output_file)
-        .assert()
-        .success();
-
-    // Purified version should be idempotent
-    let purified = fs::read_to_string(&output_file).expect("Failed to read purified");
-    assert!(
-        purified.contains("mkdir -p"),
-        "Purified script should use mkdir -p"
-    );
-    assert!(
-        !purified.contains("$RANDOM"),
-        "Purified script should not contain $RANDOM"
+        test_content.matches("make").count() >= 2,
+        "Idempotency test should run make multiple times"
     );
 }
 
 // ============================================================================
-// Test: WITH_TESTS_004 - POSIX Compliance Test Generation
+// Test: MAKE_WITH_TESTS_004 - POSIX Compliance Test Generation
 // ============================================================================
 
 #[test]
-fn test_WITH_TESTS_004_generates_posix_compliance_test() {
-    let bash_script = r#"#!/bin/bash
-echo "test"
+fn test_MAKE_WITH_TESTS_004_generates_posix_compliance_test() {
+    let makefile = r#".PHONY: test
+test:
+	echo "test"
 "#;
 
-    let input_file = create_temp_bash_script(bash_script);
+    let input_file = create_temp_makefile(makefile);
     let output_dir = TempDir::new().expect("Failed to create temp dir");
-    let output_file = output_dir.path().join("script.sh");
-    let test_file = output_dir.path().join("script_test.sh");
+    let output_file = output_dir.path().join("Makefile");
+    let test_file = output_dir.path().join("Makefile.test.sh");
 
     bashrs_cmd()
+        .arg("make")
         .arg("purify")
         .arg(input_file.path())
         .arg("--with-tests")
@@ -285,27 +258,29 @@ echo "test"
 
     // Verify test contains POSIX compliance check
     assert!(
-        test_content.contains("shellcheck") || test_content.contains("POSIX"),
+        test_content.contains("make") && test_content.contains("POSIX"),
         "Test file should contain POSIX compliance test"
     );
 }
 
 // ============================================================================
-// Test: WITH_TESTS_005 - Property-Based Test Generation
+// Test: MAKE_WITH_TESTS_005 - Property-Based Test Generation
 // ============================================================================
 
 #[test]
-fn test_WITH_TESTS_005_property_tests_flag() {
-    let bash_script = r#"#!/bin/bash
-echo "$1"
+fn test_MAKE_WITH_TESTS_005_property_tests_flag() {
+    let makefile = r#".PHONY: build
+build:
+	@echo "Build"
 "#;
 
-    let input_file = create_temp_bash_script(bash_script);
+    let input_file = create_temp_makefile(makefile);
     let output_dir = TempDir::new().expect("Failed to create temp dir");
-    let output_file = output_dir.path().join("script.sh");
-    let test_file = output_dir.path().join("script_test.sh");
+    let output_file = output_dir.path().join("Makefile");
+    let test_file = output_dir.path().join("Makefile.test.sh");
 
     bashrs_cmd()
+        .arg("make")
         .arg("purify")
         .arg(input_file.path())
         .arg("--with-tests")
@@ -325,30 +300,31 @@ echo "$1"
         "Property tests should iterate over multiple test cases"
     );
 
-    // Verify test runs many cases (look for numbers like 100)
+    // Verify test runs many cases
     assert!(
         test_content.contains("100") || test_content.contains("50"),
-        "Property tests should run many cases (e.g., 100)"
+        "Property tests should run many cases"
     );
 }
 
 // ============================================================================
-// Test: WITH_TESTS_006 - Test Execution Verification
+// Test: MAKE_WITH_TESTS_006 - Test Execution Verification
 // ============================================================================
 
 #[test]
-fn test_WITH_TESTS_006_generated_tests_are_executable() {
-    let bash_script = r#"#!/bin/bash
-x=42
-echo $x
+fn test_MAKE_WITH_TESTS_006_generated_tests_are_executable() {
+    let makefile = r#".PHONY: all
+all:
+	@echo "Hello"
 "#;
 
-    let input_file = create_temp_bash_script(bash_script);
+    let input_file = create_temp_makefile(makefile);
     let output_dir = TempDir::new().expect("Failed to create temp dir");
-    let output_file = output_dir.path().join("script.sh");
-    let test_file = output_dir.path().join("script_test.sh");
+    let output_file = output_dir.path().join("Makefile");
+    let test_file = output_dir.path().join("Makefile.test.sh");
 
     bashrs_cmd()
+        .arg("make")
         .arg("purify")
         .arg(input_file.path())
         .arg("--with-tests")
@@ -364,15 +340,10 @@ echo $x
         let mut perms = fs::metadata(&test_file).unwrap().permissions();
         perms.set_mode(0o755);
         fs::set_permissions(&test_file, perms).unwrap();
-
-        // Make purified script executable
-        let mut script_perms = fs::metadata(&output_file).unwrap().permissions();
-        script_perms.set_mode(0o755);
-        fs::set_permissions(&output_file, script_perms).unwrap();
     }
 
     // Verify test file is valid sh
-    let output = Command::new("sh")
+    let output = std::process::Command::new("sh")
         .arg("-n") // Syntax check only
         .arg(&test_file)
         .output()
@@ -385,18 +356,19 @@ echo $x
 }
 
 #[test]
-fn test_WITH_TESTS_006_all_tests_pass_for_valid_script() {
-    let bash_script = r#"#!/bin/bash
-# Deterministic, idempotent script
-echo "Hello, World!"
+fn test_MAKE_WITH_TESTS_006_all_tests_pass_for_valid_makefile() {
+    let makefile = r#".PHONY: build
+build:
+	@echo "Deterministic build"
 "#;
 
-    let input_file = create_temp_bash_script(bash_script);
+    let input_file = create_temp_makefile(makefile);
     let output_dir = TempDir::new().expect("Failed to create temp dir");
-    let output_file = output_dir.path().join("script.sh");
-    let test_file = output_dir.path().join("script_test.sh");
+    let output_file = output_dir.path().join("Makefile");
+    let test_file = output_dir.path().join("Makefile.test.sh");
 
     bashrs_cmd()
+        .arg("make")
         .arg("purify")
         .arg(input_file.path())
         .arg("--with-tests")
@@ -412,14 +384,10 @@ echo "Hello, World!"
         let mut test_perms = fs::metadata(&test_file).unwrap().permissions();
         test_perms.set_mode(0o755);
         fs::set_permissions(&test_file, test_perms).unwrap();
-
-        let mut script_perms = fs::metadata(&output_file).unwrap().permissions();
-        script_perms.set_mode(0o755);
-        fs::set_permissions(&output_file, script_perms).unwrap();
     }
 
     // Run generated tests
-    let output = Command::new("sh")
+    let output = std::process::Command::new("sh")
         .arg(&test_file)
         .current_dir(&output_dir)
         .output()
@@ -430,7 +398,7 @@ echo "Hello, World!"
 
     assert!(
         output.status.success(),
-        "Generated tests should pass for valid purified script.\nStdout: {}\nStderr: {}",
+        "Generated tests should pass for valid purified Makefile.\nStdout: {}\nStderr: {}",
         stdout,
         stderr
     );
@@ -441,12 +409,13 @@ echo "Hello, World!"
 // ============================================================================
 
 #[test]
-fn test_WITH_TESTS_error_missing_output() {
-    let bash_script = "#!/bin/bash\necho test";
-    let input_file = create_temp_bash_script(bash_script);
+fn test_MAKE_WITH_TESTS_error_missing_output() {
+    let makefile = "all:\n\techo test";
+    let input_file = create_temp_makefile(makefile);
 
     // Should fail: --with-tests requires -o flag
     bashrs_cmd()
+        .arg("make")
         .arg("purify")
         .arg(input_file.path())
         .arg("--with-tests")
@@ -460,8 +429,9 @@ fn test_WITH_TESTS_error_missing_output() {
 // ============================================================================
 
 #[test]
-fn test_WITH_TESTS_help_flag() {
+fn test_MAKE_WITH_TESTS_help_flag() {
     bashrs_cmd()
+        .arg("make")
         .arg("purify")
         .arg("--help")
         .assert()
