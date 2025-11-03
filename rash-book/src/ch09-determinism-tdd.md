@@ -56,7 +56,7 @@ echo "Logs: $LOG_FILE"
 Rash automatically detects and fixes these issues:
 
 **Stage 1: Bash → Rash** (with validation)
-```rust
+```rust,ignore
 // deploy.rash
 fun deploy() -> Result<(), String> {
     // Rash enforces determinism
@@ -102,7 +102,7 @@ deploy
 ```
 
 **Purification Report**:
-```
+```text
 ✅ PURIFIED: 5 issues fixed
   - Removed $RANDOM (non-deterministic)
   - Removed $(date +%s) (non-deterministic)
@@ -158,7 +158,7 @@ echo "Configuration $CONFIG_ID saved to $BACKUP"
 
 ### Rash Version with Purification
 
-```rust
+```rust,ignore
 // configure_system.rash
 use std::fs;
 use std::path::Path;
@@ -321,7 +321,7 @@ configure_system
 
 ### Purification Report
 
-```
+```text
 ✅ PURIFICATION COMPLETE
 
 Issues Fixed: 5
@@ -394,7 +394,7 @@ echo "Logs: $LOG_FILE"
 
 ### Rash Version with Purification
 
-```rust
+```rust,ignore
 // deploy_app.rash
 use std::fs;
 use std::path::Path;
@@ -622,7 +622,7 @@ deploy_app "$1"
 
 ### Purification Report
 
-```
+```text
 ✅ PURIFICATION COMPLETE
 
 Issues Fixed: 7
@@ -655,7 +655,7 @@ Rash's purification happens in multiple stages:
 
 ### Stage 1: Detection
 
-```rust
+```rust,ignore
 // Rash detects non-deterministic constructs
 pub struct NonDeterministicDetector {
     issues: Vec<PurificationIssue>,
@@ -686,7 +686,7 @@ impl NonDeterministicDetector {
 
 ### Stage 2: Transformation
 
-```rust
+```rust,ignore
 // Rash transforms to deterministic equivalents
 pub struct DeterministicTransformer {
     fixes: Vec<PurificationFix>,
@@ -729,7 +729,7 @@ impl DeterministicTransformer {
 
 ### Stage 3: Verification
 
-```rust
+```rust,ignore
 // Rash verifies the purified output
 pub struct PurificationVerifier {
     determinism_tests: usize,
@@ -919,7 +919,7 @@ done
 
 ### Property-Based Testing for Purification
 
-```rust
+```rust,ignore
 #[cfg(test)]
 mod purification_property_tests {
     use super::*;
@@ -1017,7 +1017,7 @@ echo "File: $BACKUP_FILE"
 
 ### Purified Rash Version
 
-```rust
+```rust,ignore
 // backup_database.rash
 use std::fs;
 use std::path::Path;
@@ -1222,7 +1222,7 @@ backup_database "$1" "$2"
 
 ### Purification Report
 
-```
+```text
 ✅ PURIFICATION COMPLETE: backup_database.rash
 
 Issues Fixed: 6

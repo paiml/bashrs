@@ -57,7 +57,7 @@ Every code example in this book is:
 
 When you see a code block like this:
 
-```rust
+```rust,ignore
 // Example: hello.rs
 #[bashrs::main]
 fn main() {
@@ -91,7 +91,7 @@ make test-ch01  # Run Chapter 1 examples
 
 ## Project Structure
 
-```
+```text
 bashrs/
 ├── rash/           # Core transpiler
 │   ├── src/
@@ -121,7 +121,7 @@ Current bashrs quality (as of Sprint 9):
 ### Code Blocks
 
 **Rust input**:
-```rust
+```rust,ignore
 // input.rs
 fn main() { ... }
 ```

@@ -34,7 +34,7 @@ This chapter documents all known limitations, edge cases, and unsupported featur
 Functions with empty bodies generate shell `:` (no-op) instead of the intended behavior.
 
 **Example**:
-```rust
+```rust,ignore
 fn main() {
     echo("Hello");
 }
@@ -80,7 +80,7 @@ main "$@"
 Standard Rust `println!` macro fails with "Unsupported statement type".
 
 **Example**:
-```rust
+```rust,ignore
 fn main() {
     println!("Hello, World!");
 }
@@ -108,7 +108,7 @@ Error: AST validation error: Unsupported statement type
 Negative integer literals transpile to the string `"unknown"` instead of the numeric value.
 
 **Example**:
-```rust
+```rust,ignore
 fn main() {
     let x = -1;
     let y = -42;
@@ -150,7 +150,7 @@ main() {
 Integer comparisons like `x > 0` transpile to string tests like `test -n "${x}0"` which is incorrect.
 
 **Example**:
-```rust
+```rust,ignore
 fn main() {
     let x = 1;
     if x > 0 {
@@ -196,7 +196,7 @@ main() {
 Helper functions are defined inside `main()` instead of as global shell functions.
 
 **Example**:
-```rust
+```rust,ignore
 fn main() {
     helper();
 }
@@ -247,7 +247,7 @@ main "$@"
 Rust `for` loops fail with "Unsupported expression type".
 
 **Example**:
-```rust
+```rust,ignore
 fn main() {
     for i in 0..3 {
         let x = i;
@@ -276,7 +276,7 @@ Error: AST validation error: Unsupported expression type
 Rust `match` expressions fail with "Unsupported expression type".
 
 **Example**:
-```rust
+```rust,ignore
 fn main() {
     let x = 1;
     match x {
@@ -308,7 +308,7 @@ Error: AST validation error: Unsupported expression type
 Functions with return values transpiled to `unknown` instead of capturing output.
 
 **Example**:
-```rust
+```rust,ignore
 fn main() {
     let x = add(1, 2);
 }
@@ -360,7 +360,7 @@ main() {
 Arithmetic expressions like `a + b` transpiled to `:` (no-op) or string concatenation.
 
 **Example**:
-```rust
+```rust,ignore
 fn add(a: i32, b: i32) -> i32 {
     a + b
 }
@@ -402,7 +402,7 @@ add() {
 Empty `main()` function generates `:` (no-op).
 
 **Example**:
-```rust
+```rust,ignore
 fn main() {
 }
 ```

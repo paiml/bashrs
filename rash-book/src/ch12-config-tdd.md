@@ -68,7 +68,7 @@ $ bashrs config analyze .bashrc
 ```
 
 Output:
-```
+```text
 CONFIG-001 [Warning] Line 2: Duplicate PATH entry: '/usr/local/bin' (already added earlier)
 CONFIG-001 [Warning] Line 4: Duplicate PATH entry: '/usr/local/bin' (already added earlier)
 ```
@@ -122,7 +122,7 @@ $ bashrs config analyze .bashrc
 ```
 
 Output:
-```
+```text
 CONFIG-002 [Warning] Line 1: Unquoted variable: $HOME (should be quoted)
 CONFIG-002 [Warning] Line 2: Unquoted variable: $PROJECT_DIR (should be quoted)
 CONFIG-002 [Warning] Line 3: Unquoted command substitution: $(ls *.txt)
@@ -185,7 +185,7 @@ $ bashrs config analyze .bashrc
 ```
 
 Output:
-```
+```text
 CONFIG-003 [Warning] Line 2: Duplicate alias definition: 'ls' (first defined at line 1)
 CONFIG-003 [Warning] Line 4: Duplicate alias definition: 'll' (first defined at line 3)
 ```
@@ -246,7 +246,7 @@ $ bashrs config analyze .bashrc
 ```
 
 Output:
-```
+```text
 CONFIG-004 [Warning] Line 1: $RANDOM generates unpredictable values
 CONFIG-004 [Warning] Line 2: Timestamp generation is non-deterministic
 CONFIG-004 [Warning] Line 3: $$ (process ID) changes between sessions
@@ -315,7 +315,7 @@ $ bashrs config analyze ~/.bashrc
 ```
 
 Output:
-```
+```text
 CONFIG-001 [Warning] Line 2: Duplicate PATH entry: '/usr/local/bin'
 CONFIG-002 [Warning] Line 3: Unquoted variable: $HOME
 CONFIG-003 [Warning] Line 5: Duplicate alias definition: 'ls' (first defined at line 4)

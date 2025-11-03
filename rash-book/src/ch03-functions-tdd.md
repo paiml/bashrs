@@ -28,7 +28,7 @@ In this chapter, you'll learn how bashrs transpiles Rust functions into POSIX sh
 
 The simplest bashrs function - no parameters, just execution:
 
-```rust
+```rust,ignore
 fn main() {
     greet();
 }
@@ -70,7 +70,7 @@ main "$@"
 
 Single parameter functions demonstrate type-safe passing:
 
-```rust
+```rust,ignore
 fn main() {
     let name = "Alice";
     greet(name);
@@ -115,7 +115,7 @@ main "$@"
 
 Functions can accept multiple parameters of the same type:
 
-```rust
+```rust,ignore
 fn main() {
     show_info("myapp", "1.0.0", "/usr/local");
 }
@@ -164,7 +164,7 @@ main "$@"
 
 Combining strings, integers, and booleans:
 
-```rust
+```rust,ignore
 fn main() {
     configure("myapp", 8080, true);
 }
@@ -223,7 +223,7 @@ main "$@"
 
 Function composition - the foundation of structured scripts:
 
-```rust
+```rust,ignore
 fn main() {
     install_app("myapp", "1.0.0");
 }
@@ -282,7 +282,7 @@ main "$@"
 
 Organizing code with helper functions:
 
-```rust
+```rust,ignore
 fn main() {
     setup_environment();
     install_dependencies();
@@ -337,7 +337,7 @@ main "$@"
 
 Deep function call chains for complex logic:
 
-```rust
+```rust,ignore
 fn main() {
     deploy();
 }
@@ -395,7 +395,7 @@ main "$@"
 
 Real-world installer with multiple stages:
 
-```rust
+```rust,ignore
 fn main() {
     let app = "myapp";
     let version = "1.0.0";
@@ -476,7 +476,7 @@ main "$@"
 
 Handling functions with many configuration parameters:
 
-```rust
+```rust,ignore
 fn main() {
     deploy_service(
         "myapp",
@@ -535,7 +535,7 @@ main "$@"
 
 Clear, descriptive parameter names:
 
-```rust
+```rust,ignore
 fn main() {
     create_database("mydb", "localhost", 5432, "admin", "secure_pass");
 }
@@ -604,7 +604,7 @@ main "$@"
 
 Simulating variadic functions with fixed parameter count:
 
-```rust
+```rust,ignore
 fn main() {
     install_packages("pkg1", "pkg2", "pkg3", "pkg4", "pkg5");
 }
@@ -659,7 +659,7 @@ main "$@"
 
 Common deployment workflow with separate prepare/execute stages:
 
-```rust
+```rust,ignore
 fn main() {
     let app = "webapp";
     let env = "production";
@@ -770,7 +770,7 @@ main "$@"
 
 In bashrs, all functions are defined with `fn`:
 
-```rust
+```rust,ignore
 fn function_name(param1: Type1, param2: Type2) {
     // body
 }
@@ -801,7 +801,7 @@ bashrs v1.0 supports these parameter types:
 
 Function calls are transpiled with automatic quoting:
 
-```rust
+```rust,ignore
 // Rust
 greet(name);
 
@@ -824,7 +824,7 @@ POSIX shells support positional parameters `$1` through `$9`, with `${10}` onwar
 
 Functions with no body emit POSIX no-op:
 
-```rust
+```rust,ignore
 fn placeholder() {}
 
 // Generates:
@@ -872,7 +872,7 @@ greet() {
 
 ### Installer Pipeline
 
-```rust
+```rust,ignore
 fn main() {
     let pkg = "myapp";
     check(pkg);
@@ -889,7 +889,7 @@ fn configure(p: &str) {}
 
 ### Configuration Wrapper
 
-```rust
+```rust,ignore
 fn main() {
     setup_app("myapp", "/opt", 8080, true);
 }
@@ -903,7 +903,7 @@ fn setup_app(name: &str, prefix: &str, port: i32, ssl: bool) {
 
 ### Error-Handling Stages
 
-```rust
+```rust,ignore
 fn main() {
     if !validate() {
         return;  // Chapter 4: Control Flow
@@ -952,7 +952,7 @@ All function features work on:
 
 Create a test file with multiple functions:
 
-```rust
+```rust,ignore
 // test_funcs.rs
 fn main() {
     deploy("myapp", "1.0.0");

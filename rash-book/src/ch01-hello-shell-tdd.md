@@ -28,7 +28,7 @@ Unlike traditional shell scripting where you write raw shell code, bashrs lets y
 
 This example is tested in `tests/ch01-hello-shell/test_01_basic.rs`:
 
-```rust
+```rust,ignore
 // examples/hello.rs
 #[bashrs::main]
 fn main() {
@@ -72,7 +72,7 @@ Hello, Shell!
 
 This example is tested in `tests/ch01-hello-shell/test_02_multiple_prints.rs`:
 
-```rust
+```rust,ignore
 #[bashrs::main]
 fn main() {
     println!("Installing dependencies...");
@@ -100,7 +100,7 @@ main "$@"
 ```
 
 **Output:**
-```
+```text
 Installing dependencies...
 Configuring system...
 Done!
@@ -110,7 +110,7 @@ Done!
 
 This example is tested in `tests/ch01-hello-shell/test_03_with_variable.rs`:
 
-```rust
+```rust,ignore
 #[bashrs::main]
 fn main() {
     let greeting = "Hello from bashrs!";
@@ -144,7 +144,7 @@ main "$@"
 
 This example is tested in `tests/ch01-hello-shell/test_04_special_chars.rs`:
 
-```rust
+```rust,ignore
 #[bashrs::main]
 fn main() {
     println!("Hello, \"World\"!");
@@ -187,7 +187,7 @@ Price: $100
 
 This example is tested in `tests/ch01-hello-shell/test_05_unicode.rs`:
 
-```rust
+```rust,ignore
 #[bashrs::main]
 fn main() {
     println!("Hello, 世界!");
@@ -250,7 +250,7 @@ bashrs generates helper functions for common operations:
 
 ## How Transpilation Works
 
-```
+```text
 Rust Source Code
       ↓
    Parser (syn)
@@ -286,7 +286,7 @@ $ bashrs build hello.rs -o hello.sh --verify paranoid
 ## Common Patterns
 
 ### Bootstrap Installer Header
-```rust
+```rust,ignore
 #[bashrs::main]
 fn main() {
     println!("=== System Bootstrap Installer ===");
@@ -297,7 +297,7 @@ fn main() {
 ```
 
 ### Progress Messages
-```rust
+```rust,ignore
 #[bashrs::main]
 fn main() {
     println!("[1/3] Downloading packages...");

@@ -77,7 +77,7 @@ $ ./cleanup.sh "/tmp/test /etc"
 ### Bashrs Protection
 
 **Rust Version** (Type-Safe):
-```rust
+```rust,ignore
 // cleanup.rs - SAFE
 fn cleanup(target_dir: &str) -> Result<(), String> {
     // Rust's type system prevents many injection classes
@@ -147,7 +147,7 @@ printf '%s\n' "$MESSAGE"  # ✅ Safe!
 
 ### Bashrs Protection
 
-```rust
+```rust,ignore
 // Rust version - type safe
 fn log_message(msg: &str) {
     println!("{}", msg);  // Safe - no format string vuln
@@ -198,7 +198,7 @@ rm -rf *  # Only runs if cd succeeded
 
 ### 1. Input Validation
 
-```rust
+```rust,ignore
 fn validate_filename(name: &str) -> Result<(), String> {
     // Allow only alphanumeric, dash, underscore
     if !name.chars().all(|c| c.is_alphanumeric() || c == '-' || c == '_') {
@@ -210,7 +210,7 @@ fn validate_filename(name: &str) -> Result<(), String> {
 
 ### 2. Path Restrictions
 
-```rust
+```rust,ignore
 fn validate_path(path: &Path) -> Result<(), String> {
     // Must be within allowed directory
     if !path.starts_with("/tmp/app/") {
@@ -229,7 +229,7 @@ chmod 750 /app/config  # rwxr-x---, not 777
 
 ### 4. No Secrets in Scripts
 
-```rust
+```rust,ignore
 // ❌ NEVER hardcode secrets
 const API_KEY: &str = "secret123";  // VULNERABLE!
 

@@ -20,7 +20,7 @@ Rash provides comprehensive linting capabilities for both Makefiles and shell sc
 
 ### Example: Representing Linting Results
 
-```rust
+```rust,ignore
 #[derive(Debug)]
 struct LintDiagnostic {
     line_number: usize,
@@ -57,7 +57,7 @@ fn main() {
 
 ### Example: Checking for Wildcard Pattern
 
-```rust
+```rust,ignore
 fn has_unsorted_wildcard(line: &str) -> bool {
     line.contains("$(wildcard") && !line.contains("$(sort")
 }
@@ -84,7 +84,7 @@ fn main() {
 
 ### Example: Detecting mkdir in Recipes
 
-```rust
+```rust,ignore
 fn is_recipe_line(line: &str) -> bool {
     line.starts_with('\t')
 }
@@ -112,7 +112,7 @@ fn main() {
 
 ### Example: Applying mkdir Fix
 
-```rust
+```rust,ignore
 fn fix_mkdir(line: &str) -> String {
     if line.contains("mkdir") && !line.contains("mkdir -p") {
         line.replace("mkdir ", "mkdir -p ")
@@ -141,7 +141,7 @@ fn main() {
 
 ### Example: Variable Quoting Checker
 
-```rust
+```rust,ignore
 fn is_dangerous_command(line: &str) -> bool {
     let dangerous = ["rm ", "cp ", "mv ", "chmod ", "chown "];
     dangerous.iter().any(|cmd| line.contains(cmd))
@@ -188,7 +188,7 @@ fn main() {
 
 ### Example: Tracking PHONY Targets
 
-```rust
+```rust,ignore
 use std::collections::HashSet;
 
 fn main() {
@@ -251,7 +251,7 @@ test:
 
 ### Example: Assignment Type Detector
 
-```rust
+```rust,ignore
 #[derive(Debug, PartialEq)]
 enum AssignmentType {
     Recursive,      // =
@@ -297,7 +297,7 @@ fn main() {
 
 ### Example: Shell Command Impact
 
-```rust
+```rust,ignore
 fn main() {
     println!("=== Recursive Assignment (=) ===");
     println!("VERSION = $(shell git describe)");
@@ -328,7 +328,7 @@ fn main() {
 
 ### Example: Full Makefile Analyzer
 
-```rust
+```rust,ignore
 use std::collections::HashMap;
 
 #[derive(Debug)]
@@ -412,7 +412,7 @@ clean:
 
 ### Example: CI/CD Quality Gate Simulator
 
-```rust
+```rust,ignore
 fn main() {
     let makefile_has_issues = true;
     let max_allowed_issues = 0;
@@ -442,7 +442,7 @@ fn main() {
 
 ### Example: Pre-commit Hook Logic
 
-```rust
+```rust,ignore
 use std::process::Command;
 
 fn simulate_precommit_check() -> Result<(), String> {

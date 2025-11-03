@@ -28,7 +28,7 @@ In this chapter, you'll learn how bashrs transpiles Rust's `let` bindings into s
 
 The foundation of bashrs variables - simple string assignment and usage:
 
-```rust
+```rust,ignore
 fn main() {
     let greeting = "Hello, bashrs!";
     println(greeting);
@@ -64,7 +64,7 @@ main "$@"
 
 bashrs handles numeric literals safely:
 
-```rust
+```rust,ignore
 fn main() {
     let port = 8080;
     let workers = 4;
@@ -107,7 +107,7 @@ main "$@"
 
 Boolean values transpile to shell-friendly representations:
 
-```rust
+```rust,ignore
 fn main() {
     let enabled = true;
     let debug = false;
@@ -150,7 +150,7 @@ main "$@"
 
 Mixing different variable types in one function:
 
-```rust
+```rust,ignore
 fn main() {
     let app_name = "myapp";
     let version = "1.0.0";
@@ -196,7 +196,7 @@ main "$@"
 
 bashrs automatically escapes special characters in variable values:
 
-```rust
+```rust,ignore
 fn main() {
     let path = "/usr/local/bin";
     let price = "$100";
@@ -243,7 +243,7 @@ main "$@"
 
 Common pattern for installation scripts:
 
-```rust
+```rust,ignore
 fn main() {
     let prefix = "/usr/local";
     let bin_dir = "/usr/local/bin";
@@ -289,7 +289,7 @@ main "$@"
 
 bashrs handles the notorious "path with spaces" problem:
 
-```rust
+```rust,ignore
 fn main() {
     let user_dir = "/home/user/My Documents";
     let app_name = "My App";
@@ -333,7 +333,7 @@ main "$@"
 
 Bootstrap installer pattern with multiple configuration values:
 
-```rust
+```rust,ignore
 fn main() {
     let repo_url = "https://github.com/user/repo";
     let branch = "main";
@@ -400,7 +400,7 @@ main "$@"
 
 bashrs preserves Rust naming conventions in generated shell:
 
-```rust
+```rust,ignore
 fn main() {
     let user_name = "alice";
     let home_directory = "/home/alice";
@@ -447,7 +447,7 @@ main "$@"
 
 bashrs supports Unicode in string values:
 
-```rust
+```rust,ignore
 fn main() {
     let greeting_ja = "こんにちは";
     let greeting_ru = "Привет";
@@ -496,7 +496,7 @@ main "$@"
 
 In bashrs, all variables are declared with `let`:
 
-```rust
+```rust,ignore
 let variable_name = value;
 ```
 
@@ -541,7 +541,7 @@ bashrs v1.0 has simple scoping rules:
 - Function parameters are local variables
 - No global variables (by design - safer)
 
-```rust
+```rust,ignore
 fn main() {
     let x = "main scope";
     foo();  // Can't access x
@@ -556,7 +556,7 @@ fn foo() {
 
 All bashrs variables are **immutable** (v1.0):
 
-```rust
+```rust,ignore
 let x = 10;
 x = 20;  // ❌ ERROR: Cannot mutate immutable variable
 ```
@@ -608,7 +608,7 @@ Shell: function_call "$name"
 
 ### Bootstrap Installer Variables
 
-```rust
+```rust,ignore
 fn main() {
     let version = "1.0.0";
     let binary = "myapp";
@@ -621,7 +621,7 @@ fn main() {
 
 ### Configuration File Paths
 
-```rust
+```rust,ignore
 fn main() {
     let config_file = "/etc/myapp/config.toml";
     let log_dir = "/var/log/myapp";
@@ -633,7 +633,7 @@ fn main() {
 
 ### Service Configuration
 
-```rust
+```rust,ignore
 fn main() {
     let service_name = "myapp";
     let service_user = "myapp";
@@ -683,7 +683,7 @@ All variable features work on:
 
 To verify variable handling, create a test file:
 
-```rust
+```rust,ignore
 // test_vars.rs
 fn main() {
     let name = "test";

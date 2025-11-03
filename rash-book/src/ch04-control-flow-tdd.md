@@ -28,7 +28,7 @@ In this chapter, you'll learn how bashrs transpiles Rust control flow into POSIX
 
 The simplest conditional - check and act:
 
-```rust
+```rust,ignore
 fn main() {
     let x = 10;
     if x > 5 {
@@ -68,7 +68,7 @@ main "$@"
 
 Basic branching with two paths:
 
-```rust
+```rust,ignore
 fn main() {
     let enabled = true;
     if enabled {
@@ -112,7 +112,7 @@ main "$@"
 
 Multiple conditions with fallback:
 
-```rust
+```rust,ignore
 fn main() {
     let x = 42;
     if x < 0 {
@@ -164,7 +164,7 @@ main "$@"
 
 All numeric comparison operators:
 
-```rust
+```rust,ignore
 fn main() {
     let x = 10;
     let y = 20;
@@ -250,7 +250,7 @@ main "$@"
 
 Comparing string values:
 
-```rust
+```rust,ignore
 fn main() {
     let env = "production";
 
@@ -300,7 +300,7 @@ main "$@"
 
 Multiple conditions must all be true:
 
-```rust
+```rust,ignore
 fn main() {
     let x = 10;
     let y = 20;
@@ -343,7 +343,7 @@ main "$@"
 
 At least one condition must be true:
 
-```rust
+```rust,ignore
 fn main() {
     let mode = "debug";
 
@@ -384,7 +384,7 @@ main "$@"
 
 Negating conditions:
 
-```rust
+```rust,ignore
 fn main() {
     let enabled = false;
 
@@ -425,7 +425,7 @@ main "$@"
 
 Conditions within conditions:
 
-```rust
+```rust,ignore
 fn main() {
     let x = 15;
     let y = 20;
@@ -481,7 +481,7 @@ main "$@"
 
 Using if to control which functions execute:
 
-```rust
+```rust,ignore
 fn main() {
     let mode = "install";
 
@@ -550,7 +550,7 @@ main "$@"
 
 Exit function early on condition:
 
-```rust
+```rust,ignore
 fn main() {
     validate_and_execute();
 }
@@ -621,7 +621,7 @@ main "$@"
 
 Multiple guard clauses for validation:
 
-```rust
+```rust,ignore
 fn main() {
     deploy("myapp", "production");
 }
@@ -694,7 +694,7 @@ main "$@"
 
 Combining AND, OR, and NOT:
 
-```rust
+```rust,ignore
 fn main() {
     let x = 10;
     let y = 20;
@@ -740,7 +740,7 @@ main "$@"
 
 Using boolean variables directly:
 
-```rust
+```rust,ignore
 fn main() {
     let ssl_enabled = true;
     let debug_mode = false;
@@ -800,7 +800,7 @@ main "$@"
 
 Real-world bootstrap installer pattern:
 
-```rust
+```rust,ignore
 fn main() {
     let mode = "install";
     let force = false;
@@ -898,7 +898,7 @@ main "$@"
 
 bashrs if statements map directly to shell conditionals:
 
-```rust
+```rust,ignore
 if condition {
     // then block
 } else {
@@ -934,7 +934,7 @@ fi
 - `||` (OR): At least one condition must be true
 - `!` (NOT): Negates condition
 
-```rust
+```rust,ignore
 if x > 0 && y < 100 { }   // AND
 if a == 1 || b == 2 { }   // OR
 if !enabled { }            // NOT
@@ -944,7 +944,7 @@ if !enabled { }            // NOT
 
 Boolean variables are compared explicitly:
 
-```rust
+```rust,ignore
 let flag = true;
 if flag { }        // → [ "$flag" = true ]
 if !flag { }       // → [ "$flag" != true ]
@@ -954,7 +954,7 @@ if !flag { }       // → [ "$flag" != true ]
 
 Early exit from functions:
 
-```rust
+```rust,ignore
 fn validate() {
     if error {
         return;  // Exit function early
@@ -1008,7 +1008,7 @@ fi
 
 ### Mode Dispatcher
 
-```rust
+```rust,ignore
 fn main() {
     let mode = "install";
     if mode == "install" {
@@ -1021,7 +1021,7 @@ fn main() {
 
 ### Feature Flags
 
-```rust
+```rust,ignore
 fn main() {
     let ssl = true;
     let debug = false;
@@ -1037,7 +1037,7 @@ fn main() {
 
 ### Validation Chain
 
-```rust
+```rust,ignore
 fn deploy() {
     if !check_network() {
         return;
@@ -1089,7 +1089,7 @@ All control flow features work on:
 
 Create a test file with conditionals:
 
-```rust
+```rust,ignore
 // test_control.rs
 fn main() {
     let x = 10;

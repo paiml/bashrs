@@ -76,7 +76,7 @@ bashrs lint script.sh
 ```
 
 Output:
-```
+```text
 script.sh:5:10: SC2086 [error] Double quote to prevent globbing and word splitting
 script.sh:8:15: SC2046 [warning] Quote this to prevent word splitting
 script.sh:12:5: SC2164 [error] Use 'cd ... || exit' in case cd fails
@@ -121,7 +121,7 @@ rm "$files"  # ✅ Safe - treated as single argument
 ```
 
 **Rash detects**:
-```
+```text
 SC2086 [error] Line 3: Double quote to prevent globbing and word splitting
   Suggestion: Use "$files" instead of $files
 ```
@@ -158,7 +158,7 @@ rm -rf *  # Safe - only runs if cd succeeded
 ```
 
 **Rash detects**:
-```
+```text
 SC2164 [error] Line 1: Use 'cd ... || exit' in case cd fails
   Suggestion: cd /critical/path || exit 1
 ```

@@ -94,7 +94,7 @@
 ## Coverage by Module
 
 ### Core Transpiler (85-100%)
-```
+```text
 emitter/escape.rs        98.89%  ✅
 ir/mod.rs               93.93%  ✅
 services/parser.rs      89.30%  ✅
@@ -103,7 +103,7 @@ formal/proofs.rs       100.00%  ✅
 ```
 
 ### Testing Infrastructure (80-95%)
-```
+```text
 testing/quickcheck_tests.rs     95.70%  ✅
 testing/idempotence_tests.rs    92.31%  ✅
 testing/shellcheck_validation   95.31%  ✅
@@ -111,7 +111,7 @@ testing/adversarial_tests.rs    86.35%  ✅
 ```
 
 ### Lower Priority (10-70%)
-```
+```text
 playground/*            10-54%  🟡 Experimental
 cli/commands.rs         55.78%  🟡 Manual testing
 container/distroless.rs 25.00%  🟡 Deployment
