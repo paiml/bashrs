@@ -291,4 +291,83 @@
 <a href=#291 id=291 data-nosnippet>291</a>        <span class="kw">let </span>diag = <span class="kw-2">&amp;</span>result.diagnostics[<span class="number">0</span>];
 <a href=#292 id=292 data-nosnippet>292</a>        <span class="macro">assert!</span>(diag.fix.is_none(), <span class="string">"SEC008 should not provide auto-fix"</span>);
 <a href=#293 id=293 data-nosnippet>293</a>    }
-<a href=#294 id=294 data-nosnippet>294</a>}</code></pre></div></section></main></body></html>
+<a href=#294 id=294 data-nosnippet>294</a>
+<a href=#295 id=295 data-nosnippet>295</a>    <span class="comment">// ===== Mutation Coverage Tests - Following SEC001 pattern (100% kill rate) =====
+<a href=#296 id=296 data-nosnippet>296</a>
+<a href=#297 id=297 data-nosnippet>297</a>    </span><span class="attr">#[test]
+<a href=#298 id=298 data-nosnippet>298</a>    </span><span class="kw">fn </span>test_mutation_sec008_create_curl_pipe_diagnostic_start_col_exact() {
+<a href=#299 id=299 data-nosnippet>299</a>        <span class="comment">// MUTATION: Line 54:9 - replace + with * in line_num + 1
+<a href=#300 id=300 data-nosnippet>300</a>        // MUTATION: Line 55:9 - replace + with * in pipe_col + 1
+<a href=#301 id=301 data-nosnippet>301</a>        </span><span class="kw">let </span>bash_code = <span class="string">"curl https://install.example.com/script.sh | sh"</span>;
+<a href=#302 id=302 data-nosnippet>302</a>        <span class="kw">let </span>result = check(bash_code);
+<a href=#303 id=303 data-nosnippet>303</a>        <span class="macro">assert_eq!</span>(result.diagnostics.len(), <span class="number">1</span>);
+<a href=#304 id=304 data-nosnippet>304</a>        <span class="kw">let </span>span = result.diagnostics[<span class="number">0</span>].span;
+<a href=#305 id=305 data-nosnippet>305</a>        <span class="comment">// Pipe is at column 44 (0-indexed), span should be pipe_col + 1
+<a href=#306 id=306 data-nosnippet>306</a>        </span><span class="macro">assert_eq!</span>(
+<a href=#307 id=307 data-nosnippet>307</a>            span.start_col, <span class="number">44</span>,
+<a href=#308 id=308 data-nosnippet>308</a>            <span class="string">"Start column must use pipe_col + 1, not pipe_col * 1"
+<a href=#309 id=309 data-nosnippet>309</a>        </span>);
+<a href=#310 id=310 data-nosnippet>310</a>    }
+<a href=#311 id=311 data-nosnippet>311</a>
+<a href=#312 id=312 data-nosnippet>312</a>    <span class="attr">#[test]
+<a href=#313 id=313 data-nosnippet>313</a>    </span><span class="kw">fn </span>test_mutation_sec008_line_num_calculation() {
+<a href=#314 id=314 data-nosnippet>314</a>        <span class="comment">// MUTATION: Line 54:9 - replace + with * in line_num + 1
+<a href=#315 id=315 data-nosnippet>315</a>        // Tests line number calculation for multiline input
+<a href=#316 id=316 data-nosnippet>316</a>        </span><span class="kw">let </span>bash_code = <span class="string">"# comment\ncurl https://example.com | sh"</span>;
+<a href=#317 id=317 data-nosnippet>317</a>        <span class="kw">let </span>result = check(bash_code);
+<a href=#318 id=318 data-nosnippet>318</a>        <span class="macro">assert_eq!</span>(result.diagnostics.len(), <span class="number">1</span>);
+<a href=#319 id=319 data-nosnippet>319</a>        <span class="comment">// With +1: line 2
+<a href=#320 id=320 data-nosnippet>320</a>        // With *1: line 0
+<a href=#321 id=321 data-nosnippet>321</a>        </span><span class="macro">assert_eq!</span>(
+<a href=#322 id=322 data-nosnippet>322</a>            result.diagnostics[<span class="number">0</span>].span.start_line, <span class="number">2</span>,
+<a href=#323 id=323 data-nosnippet>323</a>            <span class="string">"Line number must use +1, not *1"
+<a href=#324 id=324 data-nosnippet>324</a>        </span>);
+<a href=#325 id=325 data-nosnippet>325</a>    }
+<a href=#326 id=326 data-nosnippet>326</a>
+<a href=#327 id=327 data-nosnippet>327</a>    <span class="attr">#[test]
+<a href=#328 id=328 data-nosnippet>328</a>    </span><span class="kw">fn </span>test_mutation_sec008_end_col_with_min_arithmetic() {
+<a href=#329 id=329 data-nosnippet>329</a>        <span class="comment">// MUTATION: Line 57:9 - arithmetic mutations in line_len.min(pipe_col + 10)
+<a href=#330 id=330 data-nosnippet>330</a>        // Tests end column calculation with min() function
+<a href=#331 id=331 data-nosnippet>331</a>        </span><span class="kw">let </span>bash_code = <span class="string">"curl https://a.com | sh"</span>;
+<a href=#332 id=332 data-nosnippet>332</a>        <span class="kw">let </span>result = check(bash_code);
+<a href=#333 id=333 data-nosnippet>333</a>        <span class="macro">assert_eq!</span>(result.diagnostics.len(), <span class="number">1</span>);
+<a href=#334 id=334 data-nosnippet>334</a>        <span class="kw">let </span>span = result.diagnostics[<span class="number">0</span>].span;
+<a href=#335 id=335 data-nosnippet>335</a>        <span class="comment">// Verify end column is calculated correctly with min(line_len, pipe_col + 10)
+<a href=#336 id=336 data-nosnippet>336</a>        </span><span class="macro">assert!</span>(
+<a href=#337 id=337 data-nosnippet>337</a>            span.end_col &gt; span.start_col,
+<a href=#338 id=338 data-nosnippet>338</a>            <span class="string">"End column must be greater than start column"
+<a href=#339 id=339 data-nosnippet>339</a>        </span>);
+<a href=#340 id=340 data-nosnippet>340</a>        <span class="macro">assert!</span>(
+<a href=#341 id=341 data-nosnippet>341</a>            span.end_col &lt;= bash_code.len(),
+<a href=#342 id=342 data-nosnippet>342</a>            <span class="string">"End column must not exceed line length"
+<a href=#343 id=343 data-nosnippet>343</a>        </span>);
+<a href=#344 id=344 data-nosnippet>344</a>    }
+<a href=#345 id=345 data-nosnippet>345</a>
+<a href=#346 id=346 data-nosnippet>346</a>    <span class="attr">#[test]
+<a href=#347 id=347 data-nosnippet>347</a>    </span><span class="kw">fn </span>test_mutation_sec008_column_with_leading_whitespace() {
+<a href=#348 id=348 data-nosnippet>348</a>        <span class="comment">// Tests column calculations with offset
+<a href=#349 id=349 data-nosnippet>349</a>        </span><span class="kw">let </span>bash_code = <span class="string">"    wget -qO- https://example.com | bash"</span>;
+<a href=#350 id=350 data-nosnippet>350</a>        <span class="kw">let </span>result = check(bash_code);
+<a href=#351 id=351 data-nosnippet>351</a>        <span class="macro">assert_eq!</span>(result.diagnostics.len(), <span class="number">1</span>);
+<a href=#352 id=352 data-nosnippet>352</a>        <span class="kw">let </span>span = result.diagnostics[<span class="number">0</span>].span;
+<a href=#353 id=353 data-nosnippet>353</a>        <span class="comment">// Pipe starts after leading whitespace
+<a href=#354 id=354 data-nosnippet>354</a>        </span><span class="macro">assert!</span>(
+<a href=#355 id=355 data-nosnippet>355</a>            span.start_col &gt; <span class="number">30</span>,
+<a href=#356 id=356 data-nosnippet>356</a>            <span class="string">"Must account for leading whitespace and command"
+<a href=#357 id=357 data-nosnippet>357</a>        </span>);
+<a href=#358 id=358 data-nosnippet>358</a>    }
+<a href=#359 id=359 data-nosnippet>359</a>
+<a href=#360 id=360 data-nosnippet>360</a>    <span class="attr">#[test]
+<a href=#361 id=361 data-nosnippet>361</a>    </span><span class="kw">fn </span>test_mutation_sec008_short_line_min_bounds() {
+<a href=#362 id=362 data-nosnippet>362</a>        <span class="comment">// Tests that min() function correctly bounds end column
+<a href=#363 id=363 data-nosnippet>363</a>        </span><span class="kw">let </span>bash_code = <span class="string">"curl x.co|sh"</span>; <span class="comment">// Very short line to test min() boundary
+<a href=#364 id=364 data-nosnippet>364</a>        </span><span class="kw">let </span>result = check(bash_code);
+<a href=#365 id=365 data-nosnippet>365</a>        <span class="macro">assert_eq!</span>(result.diagnostics.len(), <span class="number">1</span>);
+<a href=#366 id=366 data-nosnippet>366</a>        <span class="kw">let </span>span = result.diagnostics[<span class="number">0</span>].span;
+<a href=#367 id=367 data-nosnippet>367</a>        <span class="comment">// end_col should be min(line_len=12, pipe_col+10=19) = 12
+<a href=#368 id=368 data-nosnippet>368</a>        </span><span class="macro">assert_eq!</span>(
+<a href=#369 id=369 data-nosnippet>369</a>            span.end_col, <span class="number">12</span>,
+<a href=#370 id=370 data-nosnippet>370</a>            <span class="string">"End column should be bounded by line length via min()"
+<a href=#371 id=371 data-nosnippet>371</a>        </span>);
+<a href=#372 id=372 data-nosnippet>372</a>    }
+<a href=#373 id=373 data-nosnippet>373</a>}</code></pre></div></section></main></body></html>
