@@ -41,7 +41,7 @@ cd /tmp/deploy-$SESSION_ID
 
 ```bash
 #!/bin/sh
-# Purified by Rash v6.0.0
+# Purified by Rash v6.31.0
 SESSION_ID="${VERSION:-1.0.0}"
 mkdir -p "/tmp/deploy-${SESSION_ID}"
 cd "/tmp/deploy-${SESSION_ID}" || exit 1

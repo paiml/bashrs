@@ -1,7 +1,3 @@
-rash/src/ir/mod.rs:368:25: delete match arm Expr::Literal(Literal::I32(n)) in IrConverter::convert_expr_to_value
-rash/src/ir/mod.rs:334:65: replace == with != in IrConverter::convert_expr_to_value
-rash/src/ir/mod.rs:534:50: replace && with || in IrConverter::convert_expr_to_value
-rash/src/ir/mod.rs:554:13: delete match arm Expr::PositionalArgs in IrConverter::convert_expr_to_value
-rash/src/ir/mod.rs:526:27: replace == with != in IrConverter::convert_expr_to_value
-rash/src/ir/mod.rs:519:13: delete match arm Expr::MethodCall{receiver, method, args,} in IrConverter::convert_expr_to_value
-rash/src/ir/mod.rs:526:56: replace == with != in IrConverter::convert_expr_to_value
+rash/src/linter/rules/sec008.rs:38:5: replace has_curl_or_wget -> bool with true
+rash/src/linter/rules/sec008.rs:57:31: replace + with * in create_curl_pipe_diagnostic
+rash/src/linter/rules/sec008.rs:56:18: replace + with * in create_curl_pipe_diagnostic

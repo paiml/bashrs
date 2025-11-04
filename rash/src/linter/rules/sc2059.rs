@@ -228,7 +228,10 @@ mod tests {
         // mat.end() = 17 (exclusive end, one past 'r')
         // With +1: end_col = 18
         // With *1: end_col = 17
-        assert_eq!(span.end_col, 18, "End column must use +1 (would be 17 with *1)");
+        assert_eq!(
+            span.end_col, 18,
+            "End column must use +1 (would be 17 with *1)"
+        );
     }
 
     #[test]

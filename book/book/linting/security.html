@@ -159,6 +159,398 @@
                 <div id="content" class="content">
                     <main>
                         <h1 id="security-rules-sec001-sec008"><a class="header" href="#security-rules-sec001-sec008">Security Rules (SEC001-SEC008)</a></h1>
+<p>Rash includes 8 critical security rules designed to detect common shell script vulnerabilities. These rules follow <strong>NASA-level quality standards</strong> with an average 81.2% mutation test kill rate.</p>
+<h2 id="overview"><a class="header" href="#overview">Overview</a></h2>
+<p>Security linting in Rash focuses on <strong>critical vulnerabilities</strong> that can lead to:</p>
+<ul>
+<li>Command injection attacks</li>
+<li>Credential leaks</li>
+<li>Privilege escalation</li>
+<li>Remote code execution</li>
+</ul>
+<p>All SEC rules are <strong>Error severity</strong> by default and should be addressed immediately.</p>
+<h2 id="quality-metrics"><a class="header" href="#quality-metrics">Quality Metrics</a></h2>
+<p>Our SEC rules undergo rigorous testing:</p>
+<div class="table-wrapper"><table><thead><tr><th>Rule</th><th>Purpose</th><th>Mutation Kill Rate</th><th>Tests</th></tr></thead><tbody>
+<tr><td>SEC001</td><td>eval injection</td><td>100% ✅</td><td>18</td></tr>
+<tr><td>SEC002</td><td>Unquoted variables</td><td>75.0% (baseline)</td><td>24</td></tr>
+<tr><td>SEC003</td><td>find -exec</td><td>81.8%</td><td>9</td></tr>
+<tr><td>SEC004</td><td>TLS verification</td><td>76.9% (baseline)</td><td>13</td></tr>
+<tr><td>SEC005</td><td>Hardcoded secrets</td><td>73.1% (baseline)</td><td>27</td></tr>
+<tr><td>SEC006</td><td>Unsafe temp files</td><td>85.7% (baseline)</td><td>9</td></tr>
+<tr><td>SEC007</td><td>Root operations</td><td>88.9% (baseline)</td><td>9</td></tr>
+<tr><td>SEC008</td><td>curl | sh</td><td>87.0% (baseline)</td><td>25</td></tr>
+</tbody></table>
+</div>
+<p><strong>Average Baseline</strong>: 81.2% (exceeding 80% NASA-level target)</p>
+<h2 id="sec001-command-injection-via-eval"><a class="header" href="#sec001-command-injection-via-eval">SEC001: Command Injection via eval</a></h2>
+<p><strong>Severity</strong>: Error (Critical)</p>
+<h3 id="what-it-detects"><a class="header" href="#what-it-detects">What it Detects</a></h3>
+<p>Use of <code>eval</code> with potentially user-controlled input.</p>
+<h3 id="why-this-matters"><a class="header" href="#why-this-matters">Why This Matters</a></h3>
+<p><code>eval</code> is the #1 command injection vector in shell scripts. Attackers can execute arbitrary commands by injecting shell metacharacters.</p>
+<h3 id="examples"><a class="header" href="#examples">Examples</a></h3>
+<p>❌ <strong>CRITICAL VULNERABILITY</strong>:</p>
+<pre><code class="language-bash"><span class="boring">!/bin/bash
+</span>read -p "Enter command: " cmd
+eval "$cmd"  # SEC001: Command injection via eval
+</code></pre>
+<pre><code class="language-bash"><span class="boring">!/bin/bash
+</span>USER_INPUT="$1"
+eval "rm -rf $USER_INPUT"  # SEC001: Dangerous!
+</code></pre>
+<p>✅ <strong>SAFE ALTERNATIVE</strong>:</p>
+<pre><code class="language-bash"><span class="boring">!/bin/bash
+</span><span class="boring"> Use array and proper quoting instead of eval
+</span>USER_INPUT="$1"
+
+<span class="boring"> Validate input first
+</span>if [[ ! "$USER_INPUT" =~ ^[a-zA-Z0-9_/-]+$ ]]; then
+    echo "Invalid input"
+    exit 1
+fi
+
+<span class="boring"> Use explicit command construction
+</span>rm -rf "$USER_INPUT"
+</code></pre>
+<h3 id="auto-fix"><a class="header" href="#auto-fix">Auto-fix</a></h3>
+<p>Not auto-fixable - requires manual security review.</p>
+<h2 id="sec002-unquoted-variables-in-commands"><a class="header" href="#sec002-unquoted-variables-in-commands">SEC002: Unquoted Variables in Commands</a></h2>
+<p><strong>Severity</strong>: Error (Critical)</p>
+<h3 id="what-it-detects-1"><a class="header" href="#what-it-detects-1">What it Detects</a></h3>
+<p>Variables used in commands without proper quoting.</p>
+<h3 id="why-this-matters-1"><a class="header" href="#why-this-matters-1">Why This Matters</a></h3>
+<p>Unquoted variables can lead to:</p>
+<ul>
+<li>Word splitting attacks</li>
+<li>Glob expansion vulnerabilities</li>
+<li>Command injection via spaces/metacharacters</li>
+</ul>
+<h3 id="examples-1"><a class="header" href="#examples-1">Examples</a></h3>
+<p>❌ <strong>VULNERABILITY</strong>:</p>
+<pre><code class="language-bash"><span class="boring">!/bin/bash
+</span>rm -rf $HOME/my-folder  # SEC002: Word splitting risk
+cd $HOME/my projects    # SEC002: Will fail on space
+</code></pre>
+<p>✅ <strong>SAFE</strong>:</p>
+<pre><code class="language-bash"><span class="boring">!/bin/bash
+</span>rm -rf "${HOME}/my-folder"  # Quoted - safe
+cd "${HOME}/my projects"    # Quoted - handles spaces
+</code></pre>
+<h3 id="auto-fix-1"><a class="header" href="#auto-fix-1">Auto-fix</a></h3>
+<p>Automatically quotes unquoted variables.</p>
+<h2 id="sec003-unquoted-find--exec"><a class="header" href="#sec003-unquoted-find--exec">SEC003: Unquoted find -exec</a></h2>
+<p><strong>Severity</strong>: Error (Critical)</p>
+<h3 id="what-it-detects-2"><a class="header" href="#what-it-detects-2">What it Detects</a></h3>
+<p><code>find -exec</code> with unquoted <code>{}</code> placeholder.</p>
+<h3 id="why-this-matters-2"><a class="header" href="#why-this-matters-2">Why This Matters</a></h3>
+<p>Unquoted <code>{}</code> in find -exec can lead to word splitting and injection attacks on filenames with spaces or special characters.</p>
+<h3 id="examples-2"><a class="header" href="#examples-2">Examples</a></h3>
+<p>❌ <strong>VULNERABILITY</strong>:</p>
+<pre><code class="language-bash"><span class="boring">!/bin/bash
+</span>find . -name "*.sh" -exec chmod +x {} \;  # SEC003: Unquoted {}
+</code></pre>
+<p>✅ <strong>SAFE</strong>:</p>
+<pre><code class="language-bash"><span class="boring">!/bin/bash
+</span>find . -name "*.sh" -exec chmod +x "{}" \;  # Quoted - safe
+</code></pre>
+<h3 id="auto-fix-2"><a class="header" href="#auto-fix-2">Auto-fix</a></h3>
+<p>Automatically quotes the <code>{}</code> placeholder.</p>
+<h2 id="sec004-tls-verification-disabled"><a class="header" href="#sec004-tls-verification-disabled">SEC004: TLS Verification Disabled</a></h2>
+<p><strong>Severity</strong>: Error (Critical)</p>
+<h3 id="what-it-detects-3"><a class="header" href="#what-it-detects-3">What it Detects</a></h3>
+<p>Commands that disable TLS/SSL certificate verification:</p>
+<ul>
+<li><code>wget --no-check-certificate</code></li>
+<li><code>curl -k</code> or <code>curl --insecure</code></li>
+</ul>
+<h3 id="why-this-matters-3"><a class="header" href="#why-this-matters-3">Why This Matters</a></h3>
+<p>Disabling TLS verification enables man-in-the-middle attacks where attackers can:</p>
+<ul>
+<li>Intercept sensitive data</li>
+<li>Inject malicious payloads</li>
+<li>Steal credentials</li>
+</ul>
+<h3 id="examples-3"><a class="header" href="#examples-3">Examples</a></h3>
+<p>❌ <strong>VULNERABILITY</strong>:</p>
+<pre><code class="language-bash"><span class="boring">!/bin/bash
+</span>wget --no-check-certificate https://example.com/install.sh  # SEC004
+curl -k https://api.example.com/data                         # SEC004
+curl --insecure https://api.example.com/data                 # SEC004
+</code></pre>
+<p>✅ <strong>SAFE</strong>:</p>
+<pre><code class="language-bash"><span class="boring">!/bin/bash
+</span>wget https://example.com/install.sh      # Verifies certificate
+curl https://api.example.com/data         # Verifies certificate
+
+<span class="boring"> If you MUST skip verification (not recommended):
+</span><span class="boring"> Document WHY and use environment variable
+</span>if [ "$DISABLE_TLS_VERIFICATION" = "true" ]; then
+    curl -k https://api.example.com/data
+fi
+</code></pre>
+<h3 id="auto-fix-3"><a class="header" href="#auto-fix-3">Auto-fix</a></h3>
+<p>Not auto-fixable - requires manual security review.</p>
+<h2 id="sec005-hardcoded-secrets"><a class="header" href="#sec005-hardcoded-secrets">SEC005: Hardcoded Secrets</a></h2>
+<p><strong>Severity</strong>: Error (Critical)</p>
+<h3 id="what-it-detects-4"><a class="header" href="#what-it-detects-4">What it Detects</a></h3>
+<p>Hardcoded secrets in shell scripts:</p>
+<ul>
+<li>API keys</li>
+<li>Passwords</li>
+<li>Tokens</li>
+<li>AWS credentials</li>
+</ul>
+<h3 id="why-this-matters-4"><a class="header" href="#why-this-matters-4">Why This Matters</a></h3>
+<p>Hardcoded secrets lead to:</p>
+<ul>
+<li>Credential leaks in version control</li>
+<li>Unauthorized access</li>
+<li>Compliance violations (SOC2, PCI-DSS)</li>
+</ul>
+<h3 id="examples-4"><a class="header" href="#examples-4">Examples</a></h3>
+<p>❌ <strong>CRITICAL VULNERABILITY</strong>:</p>
+<pre><code class="language-bash"><span class="boring">!/bin/bash
+</span>API_KEY="sk-1234567890abcdef"           # SEC005: Hardcoded secret
+PASSWORD="SuperSecret123"                 # SEC005: Hardcoded password
+export AWS_SECRET_KEY="AKIA..."          # SEC005: Hardcoded AWS key
+</code></pre>
+<p>✅ <strong>SAFE ALTERNATIVE</strong>:</p>
+<pre><code class="language-bash"><span class="boring">!/bin/bash
+</span><span class="boring"> Load from environment
+</span>API_KEY="${API_KEY:-}"
+if [ -z "$API_KEY" ]; then
+    echo "ERROR: API_KEY not set"
+    exit 1
+fi
+
+<span class="boring"> Or load from secure secret manager
+</span>PASSWORD=$(aws secretsmanager get-secret-value --secret-id my-password --query SecretString --output text)
+
+<span class="boring"> Or load from encrypted file
+</span>PASSWORD=$(gpg --decrypt ~/.secrets/password.gpg)
+</code></pre>
+<h3 id="auto-fix-4"><a class="header" href="#auto-fix-4">Auto-fix</a></h3>
+<p>Not auto-fixable - requires migration to secure secret management.</p>
+<h2 id="sec006-unsafe-temporary-files"><a class="header" href="#sec006-unsafe-temporary-files">SEC006: Unsafe Temporary Files</a></h2>
+<p><strong>Severity</strong>: Error (Critical)</p>
+<h3 id="what-it-detects-5"><a class="header" href="#what-it-detects-5">What it Detects</a></h3>
+<p>Predictable temporary file creation:</p>
+<ul>
+<li><code>/tmp/fixed_name.txt</code></li>
+<li><code>$TMPDIR/myapp.tmp</code></li>
+</ul>
+<h3 id="why-this-matters-5"><a class="header" href="#why-this-matters-5">Why This Matters</a></h3>
+<p>Predictable temp files enable:</p>
+<ul>
+<li>Race condition attacks (TOCTOU)</li>
+<li>Symlink attacks</li>
+<li>Information disclosure</li>
+</ul>
+<h3 id="examples-5"><a class="header" href="#examples-5">Examples</a></h3>
+<p>❌ <strong>VULNERABILITY</strong>:</p>
+<pre><code class="language-bash"><span class="boring">!/bin/bash
+</span>TMP_FILE="/tmp/myapp.txt"      # SEC006: Predictable name
+echo "data" &gt; $TMP_FILE         # Race condition risk
+</code></pre>
+<p>✅ <strong>SAFE</strong>:</p>
+<pre><code class="language-bash"><span class="boring">!/bin/bash
+</span><span class="boring"> Use mktemp for secure temp file creation
+</span>TMP_FILE=$(mktemp)              # Random name, mode 0600
+trap "rm -f $TMP_FILE" EXIT     # Clean up on exit
+
+echo "data" &gt; "$TMP_FILE"
+
+<span class="boring"> Or use mktemp with template
+</span>TMP_FILE=$(mktemp /tmp/myapp.XXXXXX)
+</code></pre>
+<h3 id="auto-fix-5"><a class="header" href="#auto-fix-5">Auto-fix</a></h3>
+<p>Not auto-fixable - requires refactoring to use <code>mktemp</code>.</p>
+<h2 id="sec007-root-operations-without-validation"><a class="header" href="#sec007-root-operations-without-validation">SEC007: Root Operations Without Validation</a></h2>
+<p><strong>Severity</strong>: Error (Critical)</p>
+<h3 id="what-it-detects-6"><a class="header" href="#what-it-detects-6">What it Detects</a></h3>
+<p>Operations run as root (<code>sudo</code>, <code>su</code>) without input validation:</p>
+<ul>
+<li><code>sudo rm -rf $VAR</code></li>
+<li><code>su -c "$CMD"</code></li>
+</ul>
+<h3 id="why-this-matters-6"><a class="header" href="#why-this-matters-6">Why This Matters</a></h3>
+<p>Root operations without validation can lead to:</p>
+<ul>
+<li>Complete system compromise</li>
+<li>Data destruction</li>
+<li>Privilege escalation</li>
+</ul>
+<h3 id="examples-6"><a class="header" href="#examples-6">Examples</a></h3>
+<p>❌ <strong>CRITICAL VULNERABILITY</strong>:</p>
+<pre><code class="language-bash"><span class="boring">!/bin/bash
+</span>USER_PATH="$1"
+sudo rm -rf $USER_PATH  # SEC007: No validation!
+</code></pre>
+<p>✅ <strong>SAFE</strong>:</p>
+<pre><code class="language-bash"><span class="boring">!/bin/bash
+</span>USER_PATH="$1"
+
+<span class="boring"> Validate input strictly
+</span>if [[ ! "$USER_PATH" =~ ^/home/[a-z]+/[a-zA-Z0-9_/-]+$ ]]; then
+    echo "Invalid path"
+    exit 1
+fi
+
+<span class="boring"> Verify path exists and is expected
+</span>if [ ! -d "$USER_PATH" ]; then
+    echo "Path does not exist"
+    exit 1
+fi
+
+<span class="boring"> Use absolute path to avoid PATH attacks
+</span>/usr/bin/sudo /bin/rm -rf "$USER_PATH"
+</code></pre>
+<h3 id="auto-fix-6"><a class="header" href="#auto-fix-6">Auto-fix</a></h3>
+<p>Not auto-fixable - requires manual security review.</p>
+<h2 id="sec008-curl--sh-pattern"><a class="header" href="#sec008-curl--sh-pattern">SEC008: curl | sh Pattern</a></h2>
+<p><strong>Severity</strong>: Error (Critical)</p>
+<h3 id="what-it-detects-7"><a class="header" href="#what-it-detects-7">What it Detects</a></h3>
+<p>Piping remote content directly to shell execution:</p>
+<ul>
+<li><code>curl https://example.com/install.sh | sh</code></li>
+<li><code>wget -qO- https://example.com/install.sh | bash</code></li>
+</ul>
+<h3 id="why-this-matters-7"><a class="header" href="#why-this-matters-7">Why This Matters</a></h3>
+<p>This pattern enables:</p>
+<ul>
+<li>Remote code execution without review</li>
+<li>Man-in-the-middle injection</li>
+<li>Supply chain attacks</li>
+</ul>
+<h3 id="examples-7"><a class="header" href="#examples-7">Examples</a></h3>
+<p>❌ <strong>CRITICAL VULNERABILITY</strong>:</p>
+<pre><code class="language-bash"><span class="boring">!/bin/bash
+</span>curl https://example.com/install.sh | sh         # SEC008: Dangerous!
+wget -qO- https://get.example.com | bash         # SEC008: No verification
+curl -fsSL https://install.example.com | sudo sh # SEC008: Even worse!
+</code></pre>
+<p>✅ <strong>SAFE ALTERNATIVE</strong>:</p>
+<pre><code class="language-bash"><span class="boring">!/bin/bash
+</span><span class="boring"> Download, verify, then execute
+</span>INSTALL_SCRIPT="/tmp/install-$(date +%s).sh"
+curl -fsSL https://example.com/install.sh &gt; "$INSTALL_SCRIPT"
+
+<span class="boring"> Verify checksum
+</span>EXPECTED_SHA256="abc123..."
+ACTUAL_SHA256=$(sha256sum "$INSTALL_SCRIPT" | awk '{print $1}')
+
+if [ "$EXPECTED_SHA256" != "$ACTUAL_SHA256" ]; then
+    echo "Checksum mismatch!"
+    rm "$INSTALL_SCRIPT"
+    exit 1
+fi
+
+<span class="boring"> Review the script manually
+</span>less "$INSTALL_SCRIPT"
+
+<span class="boring"> Execute after review
+</span>bash "$INSTALL_SCRIPT"
+rm "$INSTALL_SCRIPT"
+</code></pre>
+<h3 id="auto-fix-7"><a class="header" href="#auto-fix-7">Auto-fix</a></h3>
+<p>Not auto-fixable - requires manual security review.</p>
+<h2 id="running-security-linting"><a class="header" href="#running-security-linting">Running Security Linting</a></h2>
+<h3 id="lint-a-single-file"><a class="header" href="#lint-a-single-file">Lint a Single File</a></h3>
+<pre><code class="language-bash">bashrs lint script.sh
+</code></pre>
+<h3 id="lint-all-scripts-in-project"><a class="header" href="#lint-all-scripts-in-project">Lint All Scripts in Project</a></h3>
+<pre><code class="language-bash">find . -name "*.sh" -exec bashrs lint {} \;
+</code></pre>
+<h3 id="lint-with-json-output-cicd"><a class="header" href="#lint-with-json-output-cicd">Lint with JSON Output (CI/CD)</a></h3>
+<pre><code class="language-bash">bashrs lint --format json script.sh
+</code></pre>
+<h3 id="filter-only-security-rules"><a class="header" href="#filter-only-security-rules">Filter Only Security Rules</a></h3>
+<pre><code class="language-bash">bashrs lint --rules SEC script.sh
+</code></pre>
+<h2 id="common-patterns"><a class="header" href="#common-patterns">Common Patterns</a></h2>
+<h3 id="pattern-1-user-input-validation"><a class="header" href="#pattern-1-user-input-validation">Pattern 1: User Input Validation</a></h3>
+<p>Always validate user input before use:</p>
+<pre><code class="language-bash"><span class="boring">!/bin/bash
+</span>USER_INPUT="$1"
+
+<span class="boring"> Allowlist validation (preferred)
+</span>if [[ ! "$USER_INPUT" =~ ^[a-zA-Z0-9_-]+$ ]]; then
+    echo "Invalid input: only alphanumeric, underscore, hyphen allowed"
+    exit 1
+fi
+
+<span class="boring"> Now safe to use
+</span>echo "Processing: $USER_INPUT"
+</code></pre>
+<h3 id="pattern-2-secret-management"><a class="header" href="#pattern-2-secret-management">Pattern 2: Secret Management</a></h3>
+<p>Use environment variables or secret managers:</p>
+<pre><code class="language-bash"><span class="boring">!/bin/bash
+</span><span class="boring"> Load from environment
+</span>API_KEY="${API_KEY:-}"
+if [ -z "$API_KEY" ]; then
+    echo "ERROR: API_KEY environment variable not set"
+    echo "Set it with: export API_KEY=your-key"
+    exit 1
+fi
+
+<span class="boring"> Use the secret
+</span>curl -H "Authorization: Bearer $API_KEY" https://api.example.com
+</code></pre>
+<h3 id="pattern-3-safe-temporary-files"><a class="header" href="#pattern-3-safe-temporary-files">Pattern 3: Safe Temporary Files</a></h3>
+<p>Always use <code>mktemp</code>:</p>
+<pre><code class="language-bash"><span class="boring">!/bin/bash
+</span><span class="boring"> Create temp file securely
+</span>TMPFILE=$(mktemp) || exit 1
+trap "rm -f $TMPFILE" EXIT
+
+<span class="boring"> Use temp file
+</span>echo "data" &gt; "$TMPFILE"
+process_file "$TMPFILE"
+
+<span class="boring"> Cleanup happens automatically via trap
+</span></code></pre>
+<h2 id="integration-with-cicd"><a class="header" href="#integration-with-cicd">Integration with CI/CD</a></h2>
+<h3 id="github-actions-example"><a class="header" href="#github-actions-example">GitHub Actions Example</a></h3>
+<pre><code class="language-yaml">name: Security Lint
+on: [push, pull_request]
+jobs:
+  security-lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Install bashrs
+        run: cargo install bashrs
+      - name: Run security linting
+        run: |
+          find . -name "*.sh" -exec bashrs lint {} \; || exit 1
+</code></pre>
+<h3 id="pre-commit-hook"><a class="header" href="#pre-commit-hook">Pre-commit Hook</a></h3>
+<pre><code class="language-bash"><span class="boring">!/bin/bash
+</span><span class="boring"> .git/hooks/pre-commit
+</span>
+<span class="boring"> Lint all staged shell scripts
+</span>git diff --cached --name-only --diff-filter=ACM | grep '\.sh$' | while read file; do
+    bashrs lint "$file" || exit 1
+done
+</code></pre>
+<h2 id="testing-security-rules"><a class="header" href="#testing-security-rules">Testing Security Rules</a></h2>
+<p>All SEC rules are tested to NASA-level standards:</p>
+<pre><code class="language-bash"><span class="boring"> Run SEC rule tests
+</span>cargo test --lib sec00
+
+<span class="boring"> Run mutation tests (requires cargo-mutants)
+</span>cargo mutants --file rash/src/linter/rules/sec001.rs --timeout 300 -- --lib
+</code></pre>
+<p>Expected results: 80-100% mutation kill rate.</p>
+<h2 id="further-reading"><a class="header" href="#further-reading">Further Reading</a></h2>
+<ul>
+<li><a href="https://owasp.org/www-community/attacks/Command_Injection">OWASP Shell Injection</a></li>
+<li><a href="https://cwe.mitre.org/data/definitions/78.html">CWE-78: OS Command Injection</a></li>
+<li><a href="https://www.nist.gov/publications/secure-coding-guidelines">NIST Secure Coding Guidelines</a></li>
+</ul>
+<hr />
+<p><strong>Quality Guarantee</strong>: All SEC rules undergo mutation testing with 81.2% average baseline kill rate, ensuring high-quality vulnerability detection.</p>
 
                     </main>
 

@@ -109,4 +109,69 @@ mod tests {
 
         assert_eq!(result.diagnostics.len(), 0);
     }
+
+    // ===== Mutation Coverage Tests - Following SEC001 pattern (100% kill rate) =====
+
+    #[test]
+    fn test_mutation_sec003_find_exec_start_col_exact() {
+        // MUTATION: Line 40:25 - replace + with * in line_num + 1
+        // MUTATION: Line 41:25 - replace + with * in col + 2
+        // Tests start column calculation
+        let bash_code = r#"find . -name "*.sh" -exec chmod +x {} \;"#;
+        let result = check(bash_code);
+        assert_eq!(result.diagnostics.len(), 1);
+        let span = result.diagnostics[0].span;
+        // {} is at position 40-41 (after "chmod +x ")
+        // col + 2 should give us the start of {}
+        assert_eq!(
+            span.start_col, 36,
+            "Start column must use col + 2, not col * 2"
+        );
+    }
+
+    #[test]
+    fn test_mutation_sec003_find_exec_end_col_exact() {
+        // MUTATION: Line 43:25 - replace + with * in col + 4
+        // Tests end column calculation
+        let bash_code = r#"find . -name "*.sh" -exec chmod +x {} \;"#;
+        let result = check(bash_code);
+        assert_eq!(result.diagnostics.len(), 1);
+        let span = result.diagnostics[0].span;
+        // {} ends at col + 4
+        assert_eq!(span.end_col, 38, "End column must be col + 4, not col * 4");
+    }
+
+    #[test]
+    fn test_mutation_sec003_line_num_calculation() {
+        // MUTATION: Line 40:25 - replace + with * in line_num + 1
+        // Tests line number calculation for multiline input
+        let bash_code = "# comment\nfind . -exec rm {} \\;";
+        let result = check(bash_code);
+        assert_eq!(result.diagnostics.len(), 1);
+        // With +1: line 2
+        // With *1: line 0
+        assert_eq!(
+            result.diagnostics[0].span.start_line, 2,
+            "Line number must use +1, not *1"
+        );
+    }
+
+    #[test]
+    fn test_mutation_sec003_column_with_offset() {
+        // Tests column calculations with leading whitespace
+        let bash_code = "    find . -exec cat {} \\;"; // {} at different position due to indent
+        let result = check(bash_code);
+        assert_eq!(result.diagnostics.len(), 1);
+        let span = result.diagnostics[0].span;
+        // Verify arithmetic is correct with offset
+        assert!(
+            span.start_col > 20,
+            "Must account for command and whitespace"
+        );
+        assert_eq!(
+            span.end_col - span.start_col,
+            2,
+            "Span should cover {{}} (2 chars)"
+        );
+    }
 }

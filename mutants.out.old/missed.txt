@@ -1,2 +1,1 @@
-rash/src/linter/shell_type.rs:123:13: delete match arm ".bashrc" | ".bash_profile" | ".bash_login" | ".bash_logout" in detect_from_path
-rash/src/linter/shell_type.rs:134:13: delete match arm "bash" in detect_from_path
+rash/src/linter/rules/sec007.rs:49:42: replace + with * in check

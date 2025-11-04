@@ -1,12 +1,1 @@
-rash/src/ir/mod.rs:264:9: replace IrConverter::convert_stmts -> Result<ShellIR> with Ok(Default::default())
-rash/src/ir/mod.rs:189:28: delete ! in IrConverter::convert_stmt
-rash/src/ir/mod.rs:34:5: replace optimize -> Result<ShellIR> with Ok(Default::default())
-rash/src/ir/mod.rs:28:5: replace from_ast -> Result<ShellIR> with Ok(Default::default())
-rash/src/ir/mod.rs:678:5: replace transform_ir -> ShellIR with Default::default()
-rash/src/ir/mod.rs:611:5: replace constant_fold -> ShellIR with Default::default()
-rash/src/ir/mod.rs:59:9: replace IrConverter::convert -> Result<ShellIR> with Ok(Default::default())
-rash/src/ir/mod.rs:307:9: replace IrConverter::convert_expr_to_value -> Result<ShellValue> with Ok(Default::default())
-rash/src/ir/mod.rs:272:9: replace IrConverter::convert_expr -> Result<ShellIR> with Ok(Default::default())
-rash/src/ir/mod.rs:107:9: replace IrConverter::convert_stmt_in_function -> Result<ShellIR> with Ok(Default::default())
-rash/src/ir/mod.rs:322:25: delete match arm Expr::Literal(Literal::Str(s)) in IrConverter::convert_expr_to_value
-rash/src/ir/mod.rs:621:25: delete match arm ShellValue::String(s) in constant_fold
+rash/src/linter/rules/sec008.rs:53:5: replace create_curl_pipe_diagnostic -> Diagnostic with Default::default()

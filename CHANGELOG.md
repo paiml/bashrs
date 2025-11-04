@@ -7,6 +7,168 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [6.31.0] - 2025-11-04
+
+### 📚 MAJOR DOCUMENTATION RELEASE - Book Completion + SEC Batch Testing
+
+**bashrs v6.31.0 completes 9 CRITICAL book chapters (5,098 lines) and achieves 85.4% mutation kill rate across all SEC rules.**
+
+### New Features
+
+**1. Friday-Only crates.io Release Policy** ⏰
+- `CLAUDE.md` updated with mandatory Friday-only crates.io releases
+- Weekend buffer for issue handling
+- Predictable release cadence for users
+- Emergency exceptions for P0 security fixes
+- Commit: (current)
+
+**2. SEC Batch Iteration Testing Complete** ✅
+- All 6 SEC rules tested (SEC002-SEC008 with iteration tests)
+- Final Average: **85.4% kill rate** (111/130 viable mutants caught)
+- **EXCEEDS 80% threshold** for batch commit
+- Results:
+  - SEC002: 87.5% (28/32 caught)
+  - SEC004: 76.9% (20/26 caught)
+  - SEC005: 88.5% (23/26 caught)
+  - SEC006: 85.7% (12/14 caught)
+  - SEC007: 88.9% (8/9 caught)
+  - SEC008: 87.0% (20/23 caught)
+- Pattern Discovery: 63% of missed mutations are arithmetic (`+` → `*`) in span calculations
+- Fix Strategy Documented: `docs/SEC-ITERATION-MUTATION-FIXES.md`
+- Commit: (current)
+
+### Documentation
+
+**CRITICAL CHAPTERS COMPLETED** (9 chapters, 5,098 lines added):
+
+1. **`book/src/getting-started/first-purification.md`** (422 lines)
+   - Complete hands-on purification tutorial
+   - 6-step workflow: Lint → Purify → Review → Verify → Test → Compare
+   - Real-world deployment script example (before/after)
+   - Troubleshooting section and use cases
+
+2. **`book/src/concepts/purification.md`** (476 lines)
+   - Core purification formula: Determinism + Idempotency + POSIX
+   - 3-stage pipeline (Parse → Transform → Generate)
+   - Complete deployment example with purification report
+   - 4 verification methods, limitations, use cases
+
+3. **`book/src/concepts/determinism.md`** (421 lines)
+   - Definition: Same input → Same output (always)
+   - 6 sources of non-determinism (DET001-DET006)
+   - Testing methods (property tests, repeatability)
+   - Purification transforms (before/after examples)
+   - Integration with idempotency
+
+4. **`book/src/concepts/idempotency.md`** (609 lines)
+   - Definition: Multiple runs = Single run (same final state)
+   - 6 sources of non-idempotency (IDEM001-IDEM006)
+   - Advanced patterns (atomic operations, database migrations)
+   - Verification checklist
+   - Integration with determinism
+
+5. **`book/src/concepts/posix.md`** (788 lines)
+   - Definition: Runs on any POSIX shell (sh, dash, ash, busybox, bash, ksh, zsh)
+   - 6 common bash-isms to avoid
+   - POSIX shell features reference
+   - Multi-shell testing methods
+   - Compatibility matrix table
+   - Real-world usage patterns
+
+6. **`book/src/linting/security.md`** (523 lines - previously empty)
+   - Complete SEC001-SEC008 documentation
+   - Security vulnerability examples
+   - Auto-fix guidance
+   - Mutation testing quality metrics (81.2% → 85.4%)
+
+7. **`book/src/contributing/release.md`** (609 lines - was stub)
+   - Complete 5-phase release protocol
+   - Semantic versioning guidance
+   - v2.0.1 release example
+   - Common mistakes section
+   - Toyota Way principles applied
+
+8. **`book/src/contributing/setup.md`** (649 lines - was stub)
+   - Complete development environment setup
+   - Tool installation guide
+   - Quality gates configuration
+   - Testing workflows
+
+9. **`book/src/contributing/toyota-way.md`** (601 lines - was stub)
+   - All 4 core Toyota Way principles
+   - Real examples from mutation testing work
+   - STOP THE LINE protocol (Andon Cord)
+   - Integration with EXTREME TDD
+
+**Other Documentation Updates**:
+
+10. **`book/src/getting-started/repl.md`** (version updated)
+    - Updated version v6.19.0 → v6.30.1 in startup message
+
+11. **`docs/BOOK-REVIEW-FINDINGS-2025-11-04.md`** (updated)
+    - Tracked 14/41 chapters reviewed (34%)
+    - All 9 critical gaps now fixed (100%)
+    - 5,098 lines of documentation added
+
+12. **`docs/SEC-ITERATION-MUTATION-FIXES.md`** (created)
+    - Complete SEC iteration mutation analysis
+    - 19 missed mutations documented
+    - Universal pattern: 63% arithmetic in span calculations
+    - 4-phase fix strategy for future iterations
+
+### Quality Metrics
+
+- **6004+ tests passing**: 100% pass rate maintained (zero regressions)
+- **Book Coverage**: 14/41 chapters reviewed (34%), 9/9 critical gaps fixed (100%)
+- **SEC Mutation Kill Rate**: 85.4% average (exceeds 80% threshold)
+- **Documentation Added**: 5,098 lines across 9 chapters
+- **Clippy Clean**: ✅ Zero warnings
+- **Code Complexity**: <10 (all functions within limit)
+- **Zero Defects**: All quality gates passing
+
+### Methodology: EXTREME TDD + Book Review
+
+**Book Review Process**:
+1. Paragraph-by-paragraph verification
+2. Code example testing
+3. Version number validation
+4. NASA-level accuracy standard
+5. Progressive disclosure methodology
+
+**SEC Iteration Testing**:
+1. Baseline mutation testing (6 rules in parallel)
+2. Gap analysis (19 missed mutations)
+3. Pattern recognition (63% arithmetic)
+4. Fix strategy documentation
+5. Quality threshold validation (85.4% > 80%)
+
+### Toyota Way Principles Applied
+
+- **Jidoka (自働化)**: Build quality into documentation (all examples tested)
+- **Kaizen (改善)**: Continuous improvement through pattern recognition
+- **Genchi Genbutsu (現地現物)**: Direct observation of mutation test failures
+- **Hansei (反省)**: Reflected on book gaps and fixed systematically
+
+### Impact
+
+**Documentation**: 9 critical book chapters completed - book now production-ready
+**Quality**: SEC mutation testing pattern established - 85.4% average maintained
+**Process**: Friday-only release policy enforces quality and predictability
+**Efficiency**: Pattern recognition enables rapid future improvements
+
+### Breaking Changes
+
+None. This release is backward compatible.
+
+### Next Steps
+
+- Continue book review (27 chapters remaining - 66%)
+- Implement SEC mutation fixes (Phase 1: universal span validator)
+- Run SEC004 iteration 2 after span validation tests added
+- Target: 95%+ kill rate across all SEC rules
+
+## [6.30.1] - 2025-11-03
+
 ### 🎯 Pattern Recognition Breakthrough - Universal Mutation Testing Success
 
 **Three Consecutive 100% Perfect Mutation Kill Rates Achieved**

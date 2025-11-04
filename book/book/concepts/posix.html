@@ -159,6 +159,647 @@
                 <div id="content" class="content">
                     <main>
                         <h1 id="posix-compliance"><a class="header" href="#posix-compliance">POSIX Compliance</a></h1>
+<p><strong>POSIX Compliance</strong> means writing shell scripts that follow the Portable Operating System Interface (POSIX) standard, ensuring they work on any POSIX-compliant shell. These scripts are portable, predictable, and work everywhere from minimal Alpine containers to enterprise Unix systems.</p>
+<h2 id="definition"><a class="header" href="#definition">Definition</a></h2>
+<p>A shell script is <strong>POSIX compliant</strong> if and only if:</p>
+<p><strong>Runs on any POSIX shell (sh, dash, ash, busybox sh, bash, ksh, zsh)</strong></p>
+<p><strong>Formula</strong>: <code>shellcheck -s sh script.sh</code> (passes without errors)</p>
+<h2 id="why-posix-compliance-matters"><a class="header" href="#why-posix-compliance-matters">Why POSIX Compliance Matters</a></h2>
+<h3 id="the-problem-bash-specific-scripts"><a class="header" href="#the-problem-bash-specific-scripts">The Problem: Bash-Specific Scripts</a></h3>
+<p>Bash-specific scripts use non-standard features that break portability:</p>
+<pre><code class="language-bash"><span class="boring">!/bin/bash
+</span><span class="boring"> Bash-specific (NOT portable)
+</span>
+<span class="boring"> Bash arrays (not POSIX)
+</span>declare -a servers=("web1" "web2" "web3")
+for server in "${servers[@]}"; do
+    echo "$server"
+done
+
+<span class="boring"> [[ ]] test (not POSIX)
+</span>if [[ "$VAR" == "value" ]]; then
+    echo "match"
+fi
+
+<span class="boring"> String manipulation (not POSIX)
+</span>filename="report.txt"
+echo "${filename%.txt}"  # report
+
+<span class="boring"> Process substitution (not POSIX)
+</span>diff &lt;(ls dir1) &lt;(ls dir2)
+</code></pre>
+<p><strong>Problems</strong>:</p>
+<ul>
+<li><strong>Fails on Alpine Linux</strong> (uses busybox sh, not bash)</li>
+<li><strong>Fails on minimal containers</strong> (no bash installed)</li>
+<li><strong>Fails on BSD/Unix</strong> (sh is not bash)</li>
+<li><strong>Fails on embedded systems</strong> (dash or ash, not bash)</li>
+</ul>
+<p><strong>Error Example</strong>:</p>
+<pre><code>/bin/sh: line 3: declare: not found
+/bin/sh: line 7: syntax error: unexpected "("
+</code></pre>
+<h3 id="the-solution-posix-compliant-scripts"><a class="header" href="#the-solution-posix-compliant-scripts">The Solution: POSIX-Compliant Scripts</a></h3>
+<p>POSIX scripts work everywhere:</p>
+<pre><code class="language-bash"><span class="boring">!/bin/sh
+</span><span class="boring"> POSIX-compliant (portable)
+</span>
+<span class="boring"> Space-separated lists (POSIX)
+</span>servers="web1 web2 web3"
+for server in $servers; do
+    echo "$server"
+done
+
+<span class="boring"> [ ] test (POSIX)
+</span>if [ "$VAR" = "value" ]; then
+    echo "match"
+fi
+
+<span class="boring"> Parameter expansion (POSIX subset)
+</span>filename="report.txt"
+basename "$filename" .txt  # report
+
+<span class="boring"> Named pipes (POSIX)
+</span>mkfifo /tmp/pipe1 /tmp/pipe2
+ls dir1 &gt; /tmp/pipe1 &amp;
+ls dir2 &gt; /tmp/pipe2 &amp;
+diff /tmp/pipe1 /tmp/pipe2
+</code></pre>
+<p><strong>Benefits</strong>:</p>
+<ul>
+<li>✅ <strong>Portable</strong>: Runs on Alpine, Debian, Ubuntu, BSD, macOS, embedded</li>
+<li>✅ <strong>Minimal</strong>: Works without bash installed</li>
+<li>✅ <strong>Standard</strong>: Follows POSIX specification</li>
+<li>✅ <strong>Verified</strong>: Passes <code>shellcheck -s sh</code></li>
+</ul>
+<h2 id="common-bash-isms-to-avoid"><a class="header" href="#common-bash-isms-to-avoid">Common Bash-isms to Avoid</a></h2>
+<p>Rash detects and eliminates these non-POSIX patterns:</p>
+<h3 id="1-bash-arrays"><a class="header" href="#1-bash-arrays">1. Bash Arrays</a></h3>
+<p><strong>Problem</strong>: Arrays are bash-specific</p>
+<pre><code class="language-bash"><span class="boring"> ❌ BAD: Bash arrays (not POSIX)
+</span>declare -a files=("a.txt" "b.txt" "c.txt")
+for file in "${files[@]}"; do
+    echo "$file"
+done
+</code></pre>
+<p><strong>Solution</strong>: Use space-separated lists</p>
+<pre><code class="language-bash"><span class="boring"> ✅ GOOD: Space-separated (POSIX)
+</span>files="a.txt b.txt c.txt"
+for file in $files; do
+    echo "$file"
+done
+
+<span class="boring"> Or line-separated with read
+</span>printf '%s\n' "a.txt" "b.txt" "c.txt" | while read -r file; do
+    echo "$file"
+done
+</code></pre>
+<h3 id="2---double-brackets"><a class="header" href="#2---double-brackets">2. [[ ]] Double Brackets</a></h3>
+<p><strong>Problem</strong>: [[ ]] is bash-specific</p>
+<pre><code class="language-bash"><span class="boring"> ❌ BAD: Double brackets (not POSIX)
+</span>if [[ "$VAR" == "value" ]]; then
+    echo "match"
+fi
+
+if [[ -f "$FILE" &amp;&amp; -r "$FILE" ]]; then
+    echo "file is readable"
+fi
+</code></pre>
+<p><strong>Solution</strong>: Use [ ] single brackets</p>
+<pre><code class="language-bash"><span class="boring"> ✅ GOOD: Single brackets (POSIX)
+</span>if [ "$VAR" = "value" ]; then
+    echo "match"
+fi
+
+if [ -f "$FILE" ] &amp;&amp; [ -r "$FILE" ]; then
+    echo "file is readable"
+fi
+</code></pre>
+<h3 id="3-string-manipulation"><a class="header" href="#3-string-manipulation">3. String Manipulation</a></h3>
+<p><strong>Problem</strong>: ${var%.ext} and ${var#prefix} are bash-specific (beyond POSIX)</p>
+<pre><code class="language-bash"><span class="boring"> ❌ BAD: Bash string ops (not POSIX)
+</span>filename="report.txt"
+echo "${filename%.txt}"  # report
+echo "${filename#/tmp/}" # removes /tmp/ prefix
+</code></pre>
+<p><strong>Solution</strong>: Use POSIX commands</p>
+<pre><code class="language-bash"><span class="boring"> ✅ GOOD: basename and dirname (POSIX)
+</span>filename="report.txt"
+basename "$filename" .txt  # report
+
+path="/tmp/file.txt"
+dirname "$path"   # /tmp
+basename "$path"  # file.txt
+</code></pre>
+<h3 id="4-process-substitution"><a class="header" href="#4-process-substitution">4. Process Substitution</a></h3>
+<p><strong>Problem</strong>: &lt;(...) is bash-specific</p>
+<pre><code class="language-bash"><span class="boring"> ❌ BAD: Process substitution (not POSIX)
+</span>diff &lt;(ls dir1) &lt;(ls dir2)
+</code></pre>
+<p><strong>Solution</strong>: Use temporary files or named pipes</p>
+<pre><code class="language-bash"><span class="boring"> ✅ GOOD: Temporary files (POSIX)
+</span>ls dir1 &gt; /tmp/ls1
+ls dir2 &gt; /tmp/ls2
+diff /tmp/ls1 /tmp/ls2
+rm -f /tmp/ls1 /tmp/ls2
+
+<span class="boring"> Or named pipes (POSIX)
+</span>mkfifo /tmp/pipe1 /tmp/pipe2
+ls dir1 &gt; /tmp/pipe1 &amp;
+ls dir2 &gt; /tmp/pipe2 &amp;
+diff /tmp/pipe1 /tmp/pipe2
+rm -f /tmp/pipe1 /tmp/pipe2
+</code></pre>
+<h3 id="5--equality-operator"><a class="header" href="#5--equality-operator">5. == Equality Operator</a></h3>
+<p><strong>Problem</strong>: == is bash-specific</p>
+<pre><code class="language-bash"><span class="boring"> ❌ BAD: == operator (not POSIX)
+</span>if [ "$VAR" == "value" ]; then
+    echo "match"
+fi
+</code></pre>
+<p><strong>Solution</strong>: Use = operator</p>
+<pre><code class="language-bash"><span class="boring"> ✅ GOOD: = operator (POSIX)
+</span>if [ "$VAR" = "value" ]; then
+    echo "match"
+fi
+</code></pre>
+<h3 id="6-local-variables"><a class="header" href="#6-local-variables">6. Local Variables</a></h3>
+<p><strong>Problem</strong>: <code>local</code> keyword is not POSIX (though widely supported)</p>
+<pre><code class="language-bash"><span class="boring"> ❌ BAD: local keyword (not POSIX)
+</span>my_function() {
+    local temp="value"
+    echo "$temp"
+}
+</code></pre>
+<p><strong>Solution</strong>: Use naming conventions or accept it as widely-supported</p>
+<pre><code class="language-bash"><span class="boring"> ✅ GOOD: Naming convention (POSIX)
+</span>my_function() {
+    _my_function_temp="value"
+    echo "$_my_function_temp"
+}
+
+<span class="boring"> Or accept `local` as de-facto standard
+</span><span class="boring"> (Supported by dash, bash, ksh, zsh - just not in POSIX spec)
+</span>my_function() {
+    local temp="value"  # Widely supported
+    echo "$temp"
+}
+</code></pre>
+<h2 id="posix-shell-features"><a class="header" href="#posix-shell-features">POSIX Shell Features</a></h2>
+<p>What you CAN use safely in POSIX sh:</p>
+<h3 id="core-commands"><a class="header" href="#core-commands">Core Commands</a></h3>
+<pre><code class="language-bash"><span class="boring"> File operations (POSIX)
+</span>cat file.txt
+cp source dest
+mv old new
+rm file
+mkdir -p dir
+ln -s target link
+
+<span class="boring"> Text processing (POSIX)
+</span>grep "pattern" file
+sed 's/old/new/g' file
+awk '{print $1}' file
+cut -d: -f1 file
+sort file
+uniq file
+</code></pre>
+<h3 id="variables-and-quoting"><a class="header" href="#variables-and-quoting">Variables and Quoting</a></h3>
+<pre><code class="language-bash"><span class="boring"> Variable assignment (POSIX)
+</span>VAR="value"
+VAR="${OTHER:-default}"
+
+<span class="boring"> Always quote variables (POSIX best practice)
+</span>echo "$VAR"
+cp "$SOURCE" "$DEST"
+
+<span class="boring"> Parameter expansion (POSIX subset)
+</span>${VAR}          # Variable expansion
+${VAR:-default} # Default if unset
+${VAR:=default} # Assign default if unset
+${VAR:?error}   # Error if unset
+${VAR:+value}   # Value if set
+</code></pre>
+<h3 id="control-flow"><a class="header" href="#control-flow">Control Flow</a></h3>
+<pre><code class="language-bash"><span class="boring"> if statements (POSIX)
+</span>if [ "$VAR" = "value" ]; then
+    echo "match"
+elif [ "$VAR" = "other" ]; then
+    echo "other"
+else
+    echo "default"
+fi
+
+<span class="boring"> case statements (POSIX)
+</span>case "$VAR" in
+    pattern1)
+        echo "first"
+        ;;
+    pattern2|pattern3)
+        echo "second or third"
+        ;;
+    *)
+        echo "default"
+        ;;
+esac
+
+<span class="boring"> Loops (POSIX)
+</span>for i in 1 2 3; do
+    echo "$i"
+done
+
+while read -r line; do
+    echo "$line"
+done &lt; file.txt
+</code></pre>
+<h3 id="functions"><a class="header" href="#functions">Functions</a></h3>
+<pre><code class="language-bash"><span class="boring"> POSIX function syntax
+</span>my_function() {
+    arg1="$1"
+    arg2="$2"
+
+    echo "Processing $arg1 and $arg2"
+
+    return 0
+}
+
+<span class="boring"> Call function
+</span>my_function "value1" "value2"
+</code></pre>
+<h2 id="testing-posix-compliance"><a class="header" href="#testing-posix-compliance">Testing POSIX Compliance</a></h2>
+<h3 id="verification-with-shellcheck"><a class="header" href="#verification-with-shellcheck">Verification with shellcheck</a></h3>
+<p>Every POSIX script must pass shellcheck:</p>
+<pre><code class="language-bash"><span class="boring"> Verify POSIX compliance
+</span>shellcheck -s sh script.sh
+
+<span class="boring"> No errors = POSIX compliant ✅
+</span></code></pre>
+<p><strong>Example Output (Non-Compliant)</strong>:</p>
+<pre><code>script.sh:3:1: error: declare is not POSIX sh [SC3044]
+script.sh:7:4: error: [[ ]] is not POSIX sh [SC3010]
+script.sh:11:6: error: ${var%.ext} is not POSIX sh [SC3060]
+</code></pre>
+<p><strong>Example Output (Compliant)</strong>:</p>
+<pre><code># No issues found ✅
+</code></pre>
+<h3 id="multi-shell-testing"><a class="header" href="#multi-shell-testing">Multi-Shell Testing</a></h3>
+<p>Test on all major POSIX shells:</p>
+<pre><code class="language-bash"><span class="boring">!/bin/sh
+</span><span class="boring"> Test script on multiple shells
+</span>
+for shell in sh dash ash bash ksh zsh; do
+    echo "Testing with: $shell"
+    if command -v "$shell" &gt; /dev/null; then
+        $shell script.sh &amp;&amp; echo "✅ $shell: PASS" || echo "❌ $shell: FAIL"
+    else
+        echo "⏭️  $shell: Not installed"
+    fi
+done
+</code></pre>
+<p><strong>Expected Output</strong>:</p>
+<pre><code>Testing with: sh
+✅ sh: PASS
+Testing with: dash
+✅ dash: PASS
+Testing with: ash
+✅ ash: PASS
+Testing with: bash
+✅ bash: PASS
+Testing with: ksh
+✅ ksh: PASS
+Testing with: zsh
+✅ zsh: PASS
+</code></pre>
+<h3 id="container-testing"><a class="header" href="#container-testing">Container Testing</a></h3>
+<p>Test in minimal Alpine container (busybox sh):</p>
+<pre><code class="language-bash"><span class="boring"> Test in Alpine (busybox sh)
+</span>docker run --rm -v "$(pwd):/scripts" alpine:latest sh /scripts/script.sh
+
+<span class="boring"> Expected: Script runs successfully ✅
+</span></code></pre>
+<h3 id="property-test-cross-shell-consistency"><a class="header" href="#property-test-cross-shell-consistency">Property Test: Cross-Shell Consistency</a></h3>
+<pre><code class="language-bash"><span class="boring">!/bin/sh
+</span><span class="boring"> Test: Same output on all shells
+</span>
+<span class="boring"> Run on sh
+</span>sh script.sh v1.0.0 &gt; output_sh.txt
+
+<span class="boring"> Run on dash
+</span>dash script.sh v1.0.0 &gt; output_dash.txt
+
+<span class="boring"> Run on bash
+</span>bash script.sh v1.0.0 &gt; output_bash.txt
+
+<span class="boring"> Verify identical output
+</span>if diff output_sh.txt output_dash.txt &amp;&amp; \
+   diff output_dash.txt output_bash.txt; then
+    echo "PASS: All shells produce identical output (POSIX compliant ✅)"
+else
+    echo "FAIL: Output differs between shells (not POSIX compliant)"
+    exit 1
+fi
+</code></pre>
+<h2 id="purification-transforms"><a class="header" href="#purification-transforms">Purification Transforms</a></h2>
+<p>Rash purification automatically converts bash-isms to POSIX:</p>
+<h3 id="before-bash-specific"><a class="header" href="#before-bash-specific">Before: Bash-Specific</a></h3>
+<pre><code class="language-bash"><span class="boring">!/bin/bash
+</span><span class="boring"> Bash-specific script
+</span>
+<span class="boring"> Bash arrays
+</span>declare -a servers=("web1" "web2" "web3")
+
+<span class="boring"> Double brackets
+</span>if [[ -f "$CONFIG" &amp;&amp; -r "$CONFIG" ]]; then
+    echo "Config exists"
+fi
+
+<span class="boring"> String manipulation
+</span>filename="${CONFIG%.conf}"
+
+<span class="boring"> Process substitution
+</span>diff &lt;(ps aux) &lt;(ps aux)
+</code></pre>
+<h3 id="after-posix-compliant"><a class="header" href="#after-posix-compliant">After: POSIX-Compliant</a></h3>
+<pre><code class="language-bash"><span class="boring">!/bin/sh
+</span><span class="boring"> Purified by Rash v6.30.1 (POSIX compliant)
+</span>
+<span class="boring"> Space-separated list
+</span>servers="web1 web2 web3"
+
+<span class="boring"> Single brackets
+</span>if [ -f "$CONFIG" ] &amp;&amp; [ -r "$CONFIG" ]; then
+    echo "Config exists"
+fi
+
+<span class="boring"> basename command
+</span>filename=$(basename "$CONFIG" .conf)
+
+<span class="boring"> Temporary files
+</span>ps aux &gt; /tmp/ps1
+ps aux &gt; /tmp/ps2
+diff /tmp/ps1 /tmp/ps2
+rm -f /tmp/ps1 /tmp/ps2
+</code></pre>
+<p><strong>Transformations</strong>:</p>
+<ul>
+<li>✅ <code>declare -a</code> → space-separated list</li>
+<li>✅ <code>[[ ]]</code> → <code>[ ]</code></li>
+<li>✅ <code>${var%.ext}</code> → <code>basename</code></li>
+<li>✅ <code>&lt;(...)</code> → temporary files</li>
+<li>✅ <code>#!/bin/bash</code> → <code>#!/bin/sh</code></li>
+</ul>
+<h2 id="best-practices"><a class="header" href="#best-practices">Best Practices</a></h2>
+<h3 id="1-always-use-binsh-shebang"><a class="header" href="#1-always-use-binsh-shebang">1. Always Use #!/bin/sh Shebang</a></h3>
+<pre><code class="language-bash"><span class="boring"> ❌ BAD: Bash shebang (non-portable)
+</span><span class="boring">!/bin/bash
+</span>
+<span class="boring"> ✅ GOOD: POSIX sh shebang (portable)
+</span><span class="boring">!/bin/sh
+</span></code></pre>
+<h3 id="2-use---not--"><a class="header" href="#2-use---not--">2. Use [ ] Not [[ ]]</a></h3>
+<pre><code class="language-bash"><span class="boring"> ❌ BAD: Double brackets
+</span>if [[ "$VAR" == "value" ]]; then
+    echo "match"
+fi
+
+<span class="boring"> ✅ GOOD: Single brackets
+</span>if [ "$VAR" = "value" ]; then
+    echo "match"
+fi
+</code></pre>
+<h3 id="3-use--not-"><a class="header" href="#3-use--not-">3. Use = Not ==</a></h3>
+<pre><code class="language-bash"><span class="boring"> ❌ BAD: == operator
+</span>if [ "$VAR" == "value" ]; then
+
+<span class="boring"> ✅ GOOD: = operator
+</span>if [ "$VAR" = "value" ]; then
+</code></pre>
+<h3 id="4-avoid-bash-arrays"><a class="header" href="#4-avoid-bash-arrays">4. Avoid Bash Arrays</a></h3>
+<pre><code class="language-bash"><span class="boring"> ❌ BAD: Bash arrays
+</span>files=("a.txt" "b.txt")
+
+<span class="boring"> ✅ GOOD: Space-separated lists
+</span>files="a.txt b.txt"
+</code></pre>
+<h3 id="5-use-posix-commands-only"><a class="header" href="#5-use-posix-commands-only">5. Use POSIX Commands Only</a></h3>
+<pre><code class="language-bash"><span class="boring"> ❌ BAD: Bash builtins
+</span>echo "${var%.txt}"
+
+<span class="boring"> ✅ GOOD: POSIX commands
+</span>basename "$var" .txt
+</code></pre>
+<h3 id="6-always-quote-variables"><a class="header" href="#6-always-quote-variables">6. Always Quote Variables</a></h3>
+<pre><code class="language-bash"><span class="boring"> ❌ BAD: Unquoted variables
+</span>cp $SOURCE $DEST
+
+<span class="boring"> ✅ GOOD: Quoted variables
+</span>cp "$SOURCE" "$DEST"
+</code></pre>
+<h3 id="7-verify-with-shellcheck"><a class="header" href="#7-verify-with-shellcheck">7. Verify with shellcheck</a></h3>
+<pre><code class="language-bash"><span class="boring"> Always run before release
+</span>shellcheck -s sh script.sh
+
+<span class="boring"> Must pass with zero errors ✅
+</span></code></pre>
+<h2 id="common-patterns"><a class="header" href="#common-patterns">Common Patterns</a></h2>
+<h3 id="pattern-1-iterating-lists"><a class="header" href="#pattern-1-iterating-lists">Pattern 1: Iterating Lists</a></h3>
+<pre><code class="language-bash"><span class="boring"> Bash (non-portable)
+</span>declare -a items=("a" "b" "c")
+for item in "${items[@]}"; do
+    echo "$item"
+done
+
+<span class="boring"> POSIX (portable)
+</span>items="a b c"
+for item in $items; do
+    echo "$item"
+done
+
+<span class="boring"> Or with newlines
+</span>printf '%s\n' "a" "b" "c" | while read -r item; do
+    echo "$item"
+done
+</code></pre>
+<h3 id="pattern-2-checking-file-existence"><a class="header" href="#pattern-2-checking-file-existence">Pattern 2: Checking File Existence</a></h3>
+<pre><code class="language-bash"><span class="boring"> Bash (works but non-standard)
+</span>if [[ -f "$FILE" ]]; then
+    echo "exists"
+fi
+
+<span class="boring"> POSIX (portable)
+</span>if [ -f "$FILE" ]; then
+    echo "exists"
+fi
+</code></pre>
+<h3 id="pattern-3-default-values"><a class="header" href="#pattern-3-default-values">Pattern 3: Default Values</a></h3>
+<pre><code class="language-bash"><span class="boring"> Both work, but POSIX uses different syntax
+</span>
+<span class="boring"> Bash
+</span>VAR="${1:-default}"
+
+<span class="boring"> POSIX (same syntax!)
+</span>VAR="${1:-default}"
+
+<span class="boring"> POSIX shell supports this parameter expansion ✅
+</span></code></pre>
+<h3 id="pattern-4-string-comparison"><a class="header" href="#pattern-4-string-comparison">Pattern 4: String Comparison</a></h3>
+<pre><code class="language-bash"><span class="boring"> Bash (non-standard ==)
+</span>if [ "$VAR" == "value" ]; then
+    echo "match"
+fi
+
+<span class="boring"> POSIX (standard =)
+</span>if [ "$VAR" = "value" ]; then
+    echo "match"
+fi
+</code></pre>
+<h2 id="integration-with-purification"><a class="header" href="#integration-with-purification">Integration with Purification</a></h2>
+<p>POSIX compliance is the third pillar of purification:</p>
+<pre><code class="language-bash"><span class="boring">!/bin/sh
+</span><span class="boring"> Deterministic + Idempotent + POSIX = Purified
+</span>
+deploy() {
+    version="${1}"  # Deterministic: parameter, not $RANDOM
+
+<span class="boring">     Idempotent: mkdir -p, rm -f
+</span>    mkdir -p "/app/releases/${version}"
+    rm -f "/app/current"
+    ln -s "/app/releases/${version}" "/app/current"
+
+<span class="boring">     POSIX: Works on sh, dash, ash, busybox, bash
+</span>    echo "Deployed ${version}"
+}
+
+deploy "${1}"
+</code></pre>
+<p><strong>Properties</strong>:</p>
+<ul>
+<li>✅ Deterministic: Same input → same output</li>
+<li>✅ Idempotent: Safe to re-run</li>
+<li>✅ POSIX: Works on all shells</li>
+</ul>
+<p><strong>Verification</strong>:</p>
+<pre><code class="language-bash"><span class="boring"> Test determinism
+</span>sh script.sh v1.0.0 &gt; out1.txt
+sh script.sh v1.0.0 &gt; out2.txt
+diff out1.txt out2.txt  # Identical ✅
+
+<span class="boring"> Test idempotency
+</span>sh script.sh v1.0.0
+sh script.sh v1.0.0  # No errors ✅
+
+<span class="boring"> Test POSIX compliance
+</span>shellcheck -s sh script.sh  # No errors ✅
+dash script.sh v1.0.0        # Works ✅
+ash script.sh v1.0.0         # Works ✅
+</code></pre>
+<h2 id="compatibility-matrix"><a class="header" href="#compatibility-matrix">Compatibility Matrix</a></h2>
+<div class="table-wrapper"><table><thead><tr><th>Feature</th><th>Bash</th><th>POSIX sh</th><th>Dash</th><th>Ash</th><th>Busybox</th><th>Status</th></tr></thead><tbody>
+<tr><td><code>[ ]</code> test</td><td>✅</td><td>✅</td><td>✅</td><td>✅</td><td>✅</td><td>Use this</td></tr>
+<tr><td><code>[[ ]]</code> test</td><td>✅</td><td>❌</td><td>❌</td><td>❌</td><td>❌</td><td>Avoid</td></tr>
+<tr><td>Arrays</td><td>✅</td><td>❌</td><td>❌</td><td>❌</td><td>❌</td><td>Avoid</td></tr>
+<tr><td><code>=</code> comparison</td><td>✅</td><td>✅</td><td>✅</td><td>✅</td><td>✅</td><td>Use this</td></tr>
+<tr><td><code>==</code> comparison</td><td>✅</td><td>⚠️</td><td>⚠️</td><td>⚠️</td><td>⚠️</td><td>Avoid</td></tr>
+<tr><td><code>local</code> keyword</td><td>✅</td><td>⚠️</td><td>✅</td><td>✅</td><td>✅</td><td>Widely supported</td></tr>
+<tr><td><code>${var%.ext}</code></td><td>✅</td><td>⚠️</td><td>✅</td><td>✅</td><td>✅</td><td>Limited POSIX</td></tr>
+<tr><td><code>${var:-default}</code></td><td>✅</td><td>✅</td><td>✅</td><td>✅</td><td>✅</td><td>Use this</td></tr>
+<tr><td>Process substitution</td><td>✅</td><td>❌</td><td>❌</td><td>❌</td><td>❌</td><td>Avoid</td></tr>
+<tr><td>Functions</td><td>✅</td><td>✅</td><td>✅</td><td>✅</td><td>✅</td><td>Use this</td></tr>
+</tbody></table>
+</div>
+<p>Legend:</p>
+<ul>
+<li>✅ Fully supported</li>
+<li>⚠️ Not in POSIX spec, but widely supported</li>
+<li>❌ Not supported</li>
+</ul>
+<h2 id="verification-checklist"><a class="header" href="#verification-checklist">Verification Checklist</a></h2>
+<p>Before marking a script as POSIX compliant:</p>
+<ul>
+<li><input disabled="" type="checkbox"/>
+✅ <strong>Shebang</strong>: Uses <code>#!/bin/sh</code> (not <code>#!/bin/bash</code>)</li>
+<li><input disabled="" type="checkbox"/>
+✅ <strong>Shellcheck</strong>: Passes <code>shellcheck -s sh</code> with zero errors</li>
+<li><input disabled="" type="checkbox"/>
+✅ <strong>No arrays</strong>: Uses space-separated lists instead</li>
+<li><input disabled="" type="checkbox"/>
+✅ <strong>Single brackets</strong>: Uses <code>[ ]</code> not <code>[[ ]]</code></li>
+<li><input disabled="" type="checkbox"/>
+✅ <strong>= operator</strong>: Uses <code>=</code> not <code>==</code></li>
+<li><input disabled="" type="checkbox"/>
+✅ <strong>POSIX commands</strong>: No bash builtins</li>
+<li><input disabled="" type="checkbox"/>
+✅ <strong>Multi-shell</strong>: Tested on sh, dash, ash, bash</li>
+<li><input disabled="" type="checkbox"/>
+✅ <strong>Container</strong>: Runs in Alpine (busybox sh)</li>
+</ul>
+<h2 id="real-world-usage"><a class="header" href="#real-world-usage">Real-World Usage</a></h2>
+<h3 id="minimal-docker-images"><a class="header" href="#minimal-docker-images">Minimal Docker Images</a></h3>
+<pre><code class="language-dockerfile"># Alpine base (5 MB) - uses busybox sh
+FROM alpine:latest
+
+COPY deploy_purified.sh /deploy.sh
+
+# Works because script is POSIX-compliant
+RUN sh /deploy.sh
+</code></pre>
+<h3 id="bootstrap-scripts"><a class="header" href="#bootstrap-scripts">Bootstrap Scripts</a></h3>
+<pre><code class="language-bash"><span class="boring">!/bin/sh
+</span><span class="boring"> Bootstrap installer (POSIX-compliant)
+</span><span class="boring"> Works on any Unix system
+</span>
+set -e
+
+<span class="boring"> Detect OS
+</span>if [ -f /etc/alpine-release ]; then
+    OS="alpine"
+elif [ -f /etc/debian_version ]; then
+    OS="debian"
+else
+    OS="unknown"
+fi
+
+<span class="boring"> Install based on OS
+</span>case "$OS" in
+    alpine)
+        apk add --no-cache myapp
+        ;;
+    debian)
+        apt-get update
+        apt-get install -y myapp
+        ;;
+    *)
+        echo "Unsupported OS"
+        exit 1
+        ;;
+esac
+
+echo "Installation complete"
+</code></pre>
+<h3 id="cicd-pipelines"><a class="header" href="#cicd-pipelines">CI/CD Pipelines</a></h3>
+<pre><code class="language-bash"><span class="boring">!/bin/sh
+</span><span class="boring"> CI deploy script (POSIX-compliant)
+</span><span class="boring"> Runs on GitLab, GitHub Actions, Jenkins
+</span>
+version="${1}"
+
+<span class="boring"> Idempotent deployment
+</span>mkdir -p "/app/releases/${version}"
+rm -f /app/current
+ln -s "/app/releases/${version}" /app/current
+
+<span class="boring"> POSIX-compliant logging
+</span>echo "Deployed ${version} at $(date)"
+</code></pre>
+<h2 id="further-reading"><a class="header" href="#further-reading">Further Reading</a></h2>
+<ul>
+<li><a href="./purification.html">Purification Overview</a> - Complete purification process</li>
+<li><a href="./determinism.html">Determinism Concept</a> - Predictable script behavior</li>
+<li><a href="./idempotency.html">Idempotency Concept</a> - Safe re-run operations</li>
+<li><a href="https://pubs.opengroup.org/onlinepubs/9699919799/">POSIX Standard</a> - Official specification</li>
+</ul>
+<hr />
+<p><strong>Key Takeaway</strong>: POSIX compliance ensures portability. Use <code>#!/bin/sh</code>, avoid bash-isms, test with <code>shellcheck -s sh</code>, and verify on multiple shells (sh, dash, ash, busybox).</p>
 
                     </main>
 

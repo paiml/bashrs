@@ -159,6 +159,821 @@
                 <div id="content" class="content">
                     <main>
                         <h1 id="makefile-best-practices"><a class="header" href="#makefile-best-practices">Makefile Best Practices</a></h1>
+<p>Makefiles are critical build infrastructure, but they're often overlooked in code quality efforts. Shell commands embedded in Makefile recipes can harbor the same security, determinism, and idempotency issues as standalone shell scripts. This chapter covers best practices for writing safe, maintainable Makefiles and how bashrs helps enforce quality standards.</p>
+<h2 id="why-makefiles-need-linting"><a class="header" href="#why-makefiles-need-linting">Why Makefiles Need Linting</a></h2>
+<h3 id="the-hidden-shell-problem"><a class="header" href="#the-hidden-shell-problem">The Hidden Shell Problem</a></h3>
+<p>Every Makefile recipe is shell code. Consider this common pattern:</p>
+<pre><code class="language-makefile">deploy:
+	mkdir $(DEPLOY_DIR)
+	rm $(OLD_FILES)
+	ln -s $(RELEASE_DIR) $(CURRENT_LINK)
+</code></pre>
+<p>This looks innocent, but contains three critical flaws:</p>
+<ol>
+<li><strong>Non-idempotent operations</strong>: Re-running fails if directory exists</li>
+<li><strong>Unquoted variables</strong>: Shell injection risk if variables contain spaces</li>
+<li><strong>Non-deterministic behavior</strong>: Fails unpredictably in different states</li>
+</ol>
+<h3 id="real-world-impact"><a class="header" href="#real-world-impact">Real-World Impact</a></h3>
+<p><strong>Security</strong>: Unquoted variables in recipes can lead to command injection:</p>
+<pre><code class="language-makefile">clean:
+	rm -rf $(BUILD_DIR)  # If BUILD_DIR="/ etc", disaster!
+</code></pre>
+<p><strong>Reliability</strong>: Non-idempotent operations break CI/CD pipelines:</p>
+<pre><code class="language-makefile">setup:
+	mkdir build  # Fails on second run
+</code></pre>
+<p><strong>Determinism</strong>: Timestamp-based commands produce unreproducible builds:</p>
+<pre><code class="language-makefile">release:
+	echo "Built at $(shell date +%s)" &gt; version.txt
+</code></pre>
+<h3 id="bashrs-makefile-support"><a class="header" href="#bashrs-makefile-support">bashrs Makefile Support</a></h3>
+<p>bashrs v6.31.0 provides comprehensive Makefile analysis:</p>
+<ul>
+<li><strong>Parsing</strong>: Full Makefile AST including targets, variables, and recipes</li>
+<li><strong>Linting</strong>: Apply all security and determinism rules to shell recipes</li>
+<li><strong>Purification</strong>: Transform recipes into safe, idempotent shell code</li>
+<li><strong>Validation</strong>: Detect missing .PHONY declarations and anti-patterns</li>
+</ul>
+<h2 id="common-makefile-anti-patterns"><a class="header" href="#common-makefile-anti-patterns">Common Makefile Anti-Patterns</a></h2>
+<h3 id="1-unquoted-shell-variables-in-recipes"><a class="header" href="#1-unquoted-shell-variables-in-recipes">1. Unquoted Shell Variables in Recipes</a></h3>
+<p><strong>Problem</strong>: Variables without quotes can cause word splitting and injection attacks.</p>
+<p><strong>Anti-pattern</strong>:</p>
+<pre><code class="language-makefile">INSTALL_DIR = /opt/myapp
+SRC_FILES = $(wildcard src/*.c)
+
+install:
+	cp $(SRC_FILES) $(INSTALL_DIR)
+	chmod 755 $(INSTALL_DIR)/*
+</code></pre>
+<p><strong>Issue</strong>: If <code>INSTALL_DIR</code> contains spaces or special characters, the command breaks or executes unintended operations.</p>
+<p><strong>Best Practice</strong>:</p>
+<pre><code class="language-makefile">INSTALL_DIR = /opt/myapp
+SRC_FILES = $(wildcard src/*.c)
+
+install:
+	cp "$(SRC_FILES)" "$(INSTALL_DIR)"
+	chmod 755 "$(INSTALL_DIR)"/*
+</code></pre>
+<p><strong>bashrs Detection</strong>:</p>
+<pre><code class="language-bash">$ bashrs make lint Makefile
+
+Warning: Unquoted variable expansion in recipe
+  --&gt; Makefile:5:6
+   |
+ 5 |     cp $(SRC_FILES) $(INSTALL_DIR)
+   |        ^^^^^^^^^^^^ SC2086: Quote to prevent splitting
+</code></pre>
+<h3 id="2-non-idempotent-operations"><a class="header" href="#2-non-idempotent-operations">2. Non-Idempotent Operations</a></h3>
+<p><strong>Problem</strong>: Operations that fail when run multiple times break build reproducibility.</p>
+<p><strong>Anti-pattern</strong>:</p>
+<pre><code class="language-makefile">setup:
+	mkdir build
+	mkdir dist
+	ln -s build/output dist/latest
+</code></pre>
+<p><strong>Issue</strong>: Second invocation fails because directories already exist.</p>
+<p><strong>Best Practice</strong>:</p>
+<pre><code class="language-makefile">setup:
+	mkdir -p build
+	mkdir -p dist
+	rm -f dist/latest
+	ln -s build/output dist/latest
+</code></pre>
+<p><strong>bashrs Detection</strong>:</p>
+<pre><code class="language-bash">$ bashrs make lint Makefile
+
+Warning: Non-idempotent operation
+  --&gt; Makefile:2:2
+   |
+ 2 |     mkdir build
+   |     ^^^^^^^^^^^ Use 'mkdir -p' for idempotent directory creation
+</code></pre>
+<h3 id="3-non-deterministic-commands"><a class="header" href="#3-non-deterministic-commands">3. Non-Deterministic Commands</a></h3>
+<p><strong>Problem</strong>: Commands that produce different output on each run break reproducible builds.</p>
+<p><strong>Anti-pattern</strong>:</p>
+<pre><code class="language-makefile">VERSION = $(shell date +%Y%m%d%H%M%S)
+
+release:
+	echo "Release ID: $(RANDOM)" &gt; release.txt
+	echo "Built: $(shell date)" &gt;&gt; release.txt
+	tar czf myapp-$(VERSION).tar.gz dist/
+</code></pre>
+<p><strong>Issue</strong>: Every build creates a different artifact, making debugging and rollbacks impossible.</p>
+<p><strong>Best Practice</strong>:</p>
+<pre><code class="language-makefile"># Use explicit version from git or environment
+VERSION ?= $(shell git describe --tags --always)
+BUILD_ID ?= $(shell git rev-parse --short HEAD)
+
+release:
+	echo "Release ID: $(BUILD_ID)" &gt; release.txt
+	echo "Version: $(VERSION)" &gt;&gt; release.txt
+	tar czf myapp-$(VERSION).tar.gz dist/
+</code></pre>
+<p><strong>bashrs Detection</strong>:</p>
+<pre><code class="language-bash">$ bashrs make lint Makefile
+
+Error: Non-deterministic command
+  --&gt; Makefile:4:2
+   |
+ 4 |     echo "Release ID: $(RANDOM)" &gt; release.txt
+   |                       ^^^^^^^^^ DET003: Avoid $RANDOM
+</code></pre>
+<h3 id="4-missing-phony-declarations"><a class="header" href="#4-missing-phony-declarations">4. Missing .PHONY Declarations</a></h3>
+<p><strong>Problem</strong>: Targets without .PHONY can be confused with actual files, causing unexpected behavior.</p>
+<p><strong>Anti-pattern</strong>:</p>
+<pre><code class="language-makefile">clean:
+	rm -rf build/
+
+test:
+	cargo test
+
+deploy:
+	./deploy.sh
+</code></pre>
+<p><strong>Issue</strong>: If a file named "clean", "test", or "deploy" exists, Make won't run the recipe.</p>
+<p><strong>Best Practice</strong>:</p>
+<pre><code class="language-makefile">.PHONY: clean test deploy
+
+clean:
+	rm -rf build/
+
+test:
+	cargo test
+
+deploy:
+	./deploy.sh
+</code></pre>
+<p><strong>bashrs Detection</strong>:</p>
+<pre><code class="language-bash">$ bashrs make lint Makefile
+
+Warning: Missing .PHONY declaration
+  --&gt; Makefile:1:1
+   |
+ 1 | clean:
+   | ^^^^^ Target 'clean' should be marked .PHONY
+</code></pre>
+<h3 id="5-hardcoded-paths"><a class="header" href="#5-hardcoded-paths">5. Hardcoded Paths</a></h3>
+<p><strong>Problem</strong>: Hardcoded paths reduce portability and flexibility.</p>
+<p><strong>Anti-pattern</strong>:</p>
+<pre><code class="language-makefile">install:
+	cp binary /usr/local/bin/myapp
+	cp config.toml /etc/myapp/config.toml
+	chmod 755 /usr/local/bin/myapp
+</code></pre>
+<p><strong>Issue</strong>: Assumes specific system layout, breaks on different systems.</p>
+<p><strong>Best Practice</strong>:</p>
+<pre><code class="language-makefile">PREFIX ?= /usr/local
+SYSCONFDIR ?= /etc
+BINDIR = $(PREFIX)/bin
+CONFDIR = $(SYSCONFDIR)/myapp
+
+install:
+	install -D -m 755 binary "$(BINDIR)/myapp"
+	install -D -m 644 config.toml "$(CONFDIR)/config.toml"
+</code></pre>
+<h3 id="6-unsafe-command-chaining"><a class="header" href="#6-unsafe-command-chaining">6. Unsafe Command Chaining</a></h3>
+<p><strong>Problem</strong>: Using <code>&amp;&amp;</code> without proper error handling can hide failures.</p>
+<p><strong>Anti-pattern</strong>:</p>
+<pre><code class="language-makefile">deploy:
+	cd /var/www &amp;&amp; rm -rf * &amp;&amp; cp -r dist/* .
+</code></pre>
+<p><strong>Issue</strong>: If <code>cd</code> fails, subsequent commands execute in the wrong directory (potentially catastrophic with <code>rm -rf *</code>).</p>
+<p><strong>Best Practice</strong>:</p>
+<pre><code class="language-makefile">DEPLOY_DIR = /var/www/myapp
+
+deploy:
+	test -d "$(DEPLOY_DIR)" || exit 1
+	rm -rf "$(DEPLOY_DIR)"/*
+	cp -r dist/* "$(DEPLOY_DIR)"/
+</code></pre>
+<h2 id="best-practices-with-bashrs"><a class="header" href="#best-practices-with-bashrs">Best Practices with bashrs</a></h2>
+<h3 id="1-quote-all-variables-in-shell-recipes"><a class="header" href="#1-quote-all-variables-in-shell-recipes">1. Quote All Variables in Shell Recipes</a></h3>
+<p><strong>Rule</strong>: Always quote Make variables when used in shell commands.</p>
+<p><strong>Before</strong>:</p>
+<pre><code class="language-makefile">SRC_DIR = src
+BUILD_DIR = build
+
+compile:
+	gcc $(SRC_DIR)/*.c -o $(BUILD_DIR)/program
+</code></pre>
+<p><strong>After</strong>:</p>
+<pre><code class="language-makefile">SRC_DIR = src
+BUILD_DIR = build
+
+compile:
+	gcc "$(SRC_DIR)"/*.c -o "$(BUILD_DIR)/program"
+</code></pre>
+<p><strong>bashrs Verification</strong>:</p>
+<pre><code class="language-bash">$ bashrs make purify Makefile
+✓ All variables properly quoted
+✓ No shell injection vulnerabilities
+</code></pre>
+<h3 id="2-use-idempotent-operations"><a class="header" href="#2-use-idempotent-operations">2. Use Idempotent Operations</a></h3>
+<p><strong>Rule</strong>: All recipes should be safe to run multiple times.</p>
+<p><strong>Before</strong>:</p>
+<pre><code class="language-makefile">setup:
+	mkdir build
+	mkdir dist
+	ln -s ../build dist/build
+</code></pre>
+<p><strong>After</strong>:</p>
+<pre><code class="language-makefile">.PHONY: setup
+
+setup:
+	mkdir -p build
+	mkdir -p dist
+	ln -sf ../build dist/build
+</code></pre>
+<p><strong>Key Idempotent Patterns</strong>:</p>
+<ul>
+<li><code>mkdir -p</code> instead of <code>mkdir</code></li>
+<li><code>rm -f</code> instead of <code>rm</code></li>
+<li><code>ln -sf</code> instead of <code>ln -s</code></li>
+<li><code>install -D</code> for creating parent directories</li>
+</ul>
+<h3 id="3-avoid-non-deterministic-commands"><a class="header" href="#3-avoid-non-deterministic-commands">3. Avoid Non-Deterministic Commands</a></h3>
+<p><strong>Rule</strong>: Builds should be reproducible - same input = same output.</p>
+<p><strong>Prohibited Patterns</strong>:</p>
+<pre><code class="language-makefile"># DON'T: Non-deterministic ID generation
+release:
+	echo $(RANDOM) &gt; release-id.txt
+
+# DON'T: Timestamp-based versioning
+VERSION = $(shell date +%s)
+
+# DON'T: Process ID usage
+lockfile:
+	echo $$ &gt; app.pid
+</code></pre>
+<p><strong>Approved Patterns</strong>:</p>
+<pre><code class="language-makefile"># DO: Use git for versioning
+VERSION = $(shell git describe --tags --always)
+
+# DO: Use explicit version numbers
+RELEASE_VERSION = 1.0.0
+
+# DO: Use deterministic hashing
+BUILD_HASH = $(shell git rev-parse --short HEAD)
+</code></pre>
+<h3 id="4-declare-phony-targets"><a class="header" href="#4-declare-phony-targets">4. Declare .PHONY Targets</a></h3>
+<p><strong>Rule</strong>: All non-file targets must be marked .PHONY.</p>
+<p><strong>Complete Example</strong>:</p>
+<pre><code class="language-makefile">.PHONY: all clean build test install deploy help
+
+all: build test
+
+clean:
+	rm -rf build/ dist/
+
+build:
+	cargo build --release
+
+test:
+	cargo test
+
+install: build
+	install -D -m 755 target/release/myapp "$(BINDIR)/myapp"
+
+deploy: build test
+	./scripts/deploy.sh
+
+help:
+	@echo "Available targets:"
+	@echo "  all     - Build and test"
+	@echo "  clean   - Remove build artifacts"
+	@echo "  test    - Run test suite"
+	@echo "  install - Install to system"
+	@echo "  deploy  - Deploy to production"
+</code></pre>
+<h3 id="5-use-bashrs-make-lint-in-development"><a class="header" href="#5-use-bashrs-make-lint-in-development">5. Use bashrs make lint in Development</a></h3>
+<p><strong>Integrate into Workflow</strong>:</p>
+<pre><code class="language-makefile">.PHONY: lint lint-make lint-scripts
+
+lint: lint-make lint-scripts
+
+lint-make:
+	bashrs make lint Makefile
+
+lint-scripts:
+	bashrs lint scripts/*.sh
+</code></pre>
+<p><strong>Pre-commit Hook</strong> (<code>.git/hooks/pre-commit</code>):</p>
+<pre><code class="language-bash"><span class="boring">!/bin/sh
+</span>set -e
+
+echo "Linting Makefile..."
+bashrs make lint Makefile
+
+echo "Linting shell scripts..."
+find . -name "*.sh" -exec bashrs lint {} \;
+</code></pre>
+<h3 id="6-handle-errors-properly"><a class="header" href="#6-handle-errors-properly">6. Handle Errors Properly</a></h3>
+<p><strong>Rule</strong>: Use <code>.ONESHELL</code> and proper error handling for multi-line recipes.</p>
+<p><strong>Before</strong>:</p>
+<pre><code class="language-makefile">deploy:
+	cd /var/www
+	rm -rf old/
+	cp -r dist/ .
+</code></pre>
+<p><strong>After</strong>:</p>
+<pre><code class="language-makefile">.ONESHELL:
+.SHELLFLAGS = -euo pipefail -c
+
+DEPLOY_DIR = /var/www/myapp
+
+deploy:
+	cd "$(DEPLOY_DIR)" || exit 1
+	rm -rf old/
+	cp -r dist/ .
+</code></pre>
+<p><strong>Key Flags</strong>:</p>
+<ul>
+<li><code>-e</code>: Exit on error</li>
+<li><code>-u</code>: Error on undefined variables</li>
+<li><code>-o pipefail</code>: Catch errors in pipelines</li>
+</ul>
+<h2 id="examples-problematic-vs-clean-makefiles"><a class="header" href="#examples-problematic-vs-clean-makefiles">Examples: Problematic vs Clean Makefiles</a></h2>
+<h3 id="example-1-build-system"><a class="header" href="#example-1-build-system">Example 1: Build System</a></h3>
+<p><strong>Problematic</strong>:</p>
+<pre><code class="language-makefile"># Bad Makefile - DO NOT USE
+
+SRC_DIR=src
+BUILD_DIR=build
+VERSION=$(shell date +%Y%m%d)
+
+build:
+	mkdir $(BUILD_DIR)
+	gcc $(SRC_DIR)/*.c -o $(BUILD_DIR)/program
+	echo "Built at: $(shell date)" &gt; $(BUILD_DIR)/build-info.txt
+
+clean:
+	rm -r $(BUILD_DIR)
+
+install:
+	cp $(BUILD_DIR)/program /usr/local/bin
+</code></pre>
+<p><strong>Issues Found by bashrs</strong>:</p>
+<pre><code class="language-bash">$ bashrs make lint Makefile
+
+Error: Non-deterministic command (DET001)
+  --&gt; Makefile:3:9
+   |
+ 3 | VERSION=$(shell date +%Y%m%d)
+   |         ^^^^^^^^^^^^^^^^^^^^^^
+
+Error: Non-idempotent operation (IDEM001)
+  --&gt; Makefile:6:2
+   |
+ 6 |     mkdir $(BUILD_DIR)
+   |     ^^^^^^^^^^^^^^^^^^ Use 'mkdir -p'
+
+Warning: Unquoted variable (SC2086)
+  --&gt; Makefile:7:6
+   |
+ 7 |     gcc $(SRC_DIR)/*.c -o $(BUILD_DIR)/program
+   |         ^^^^^^^^^
+
+Error: Non-deterministic command (DET002)
+  --&gt; Makefile:8:18
+   |
+ 8 |     echo "Built at: $(shell date)" &gt; $(BUILD_DIR)/build-info.txt
+   |                     ^^^^^^^^^^^^^
+
+Error: Missing .PHONY declarations
+  --&gt; Makefile:1:1
+   | Targets should be .PHONY: build, clean, install
+
+5 errors, 1 warning
+</code></pre>
+<p><strong>Clean Version</strong>:</p>
+<pre><code class="language-makefile"># Clean Makefile - Best Practices Applied
+
+.PHONY: all build clean install
+
+# Use git for deterministic versioning
+VERSION := $(shell git describe --tags --always --dirty)
+BUILD_HASH := $(shell git rev-parse --short HEAD)
+
+# Configurable directories
+SRC_DIR := src
+BUILD_DIR := build
+INSTALL_PREFIX ?= /usr/local
+BINDIR := $(INSTALL_PREFIX)/bin
+
+all: build
+
+build:
+	mkdir -p "$(BUILD_DIR)"
+	gcc "$(SRC_DIR)"/*.c -o "$(BUILD_DIR)/program"
+	echo "Version: $(VERSION)" &gt; "$(BUILD_DIR)/build-info.txt"
+	echo "Commit: $(BUILD_HASH)" &gt;&gt; "$(BUILD_DIR)/build-info.txt"
+
+clean:
+	rm -rf "$(BUILD_DIR)"
+
+install: build
+	install -D -m 755 "$(BUILD_DIR)/program" "$(BINDIR)/program"
+</code></pre>
+<p><strong>Verification</strong>:</p>
+<pre><code class="language-bash">$ bashrs make lint Makefile
+✓ No issues found
+✓ All variables quoted
+✓ All operations idempotent
+✓ All targets use .PHONY
+✓ Deterministic build
+</code></pre>
+<h3 id="example-2-deployment-pipeline"><a class="header" href="#example-2-deployment-pipeline">Example 2: Deployment Pipeline</a></h3>
+<p><strong>Problematic</strong>:</p>
+<pre><code class="language-makefile"># Bad deployment Makefile
+
+SERVER=prod-01
+DEPLOY_PATH=/var/www/app
+SESSION_ID=$(RANDOM)
+
+deploy:
+	ssh $(SERVER) "mkdir $(DEPLOY_PATH)/releases/$(SESSION_ID)"
+	scp -r dist/* $(SERVER):$(DEPLOY_PATH)/releases/$(SESSION_ID)/
+	ssh $(SERVER) "rm $(DEPLOY_PATH)/current"
+	ssh $(SERVER) "ln -s $(DEPLOY_PATH)/releases/$(SESSION_ID) $(DEPLOY_PATH)/current"
+	ssh $(SERVER) "systemctl restart myapp"
+
+rollback:
+	ssh $(SERVER) "rm $(DEPLOY_PATH)/current"
+	ssh $(SERVER) "ln -s $(DEPLOY_PATH)/releases/previous $(DEPLOY_PATH)/current"
+	ssh $(SERVER) "systemctl restart myapp"
+</code></pre>
+<p><strong>Issues</strong>:</p>
+<ul>
+<li>Non-deterministic <code>$(RANDOM)</code> for session IDs</li>
+<li>Unquoted variables everywhere</li>
+<li>Non-idempotent operations (<code>mkdir</code>, <code>rm</code>, <code>ln</code>)</li>
+<li>No error handling</li>
+<li>Missing .PHONY declarations</li>
+</ul>
+<p><strong>Clean Version</strong>:</p>
+<pre><code class="language-makefile"># Clean deployment Makefile
+
+.PHONY: deploy rollback status
+
+# Configuration
+SERVER := prod-01
+DEPLOY_PATH := /var/www/app
+RELEASE_DIR := $(DEPLOY_PATH)/releases
+
+# Use git commit hash for deterministic release IDs
+RELEASE_ID := $(shell git rev-parse --short HEAD)
+RELEASE_PATH := $(RELEASE_DIR)/$(RELEASE_ID)
+
+# Error handling
+.ONESHELL:
+.SHELLFLAGS := -euo pipefail -c
+
+deploy:
+	@echo "Deploying release $(RELEASE_ID) to $(SERVER)..."
+	ssh "$(SERVER)" 'mkdir -p "$(RELEASE_PATH)"'
+	rsync -avz --delete dist/ "$(SERVER):$(RELEASE_PATH)/"
+	ssh "$(SERVER)" 'ln -sfn "$(RELEASE_PATH)" "$(DEPLOY_PATH)/current"'
+	ssh "$(SERVER)" 'systemctl reload myapp'
+	@echo "Deployment complete: $(RELEASE_ID)"
+
+rollback:
+	@echo "Rolling back on $(SERVER)..."
+	$(eval PREVIOUS := $(shell ssh "$(SERVER)" 'readlink "$(DEPLOY_PATH)/previous"'))
+	@test -n "$(PREVIOUS)" || (echo "No previous release found" &amp;&amp; exit 1)
+	ssh "$(SERVER)" 'ln -sfn "$(PREVIOUS)" "$(DEPLOY_PATH)/current"'
+	ssh "$(SERVER)" 'systemctl reload myapp'
+	@echo "Rolled back to: $(PREVIOUS)"
+
+status:
+	@echo "Current deployment status:"
+	@ssh "$(SERVER)" 'readlink "$(DEPLOY_PATH)/current"'
+</code></pre>
+<p><strong>Key Improvements</strong>:</p>
+<ul>
+<li>Deterministic release IDs from git</li>
+<li>All variables properly quoted</li>
+<li>Idempotent operations (<code>mkdir -p</code>, <code>ln -sfn</code>)</li>
+<li>Error handling with <code>.ONESHELL</code> and <code>-euo pipefail</code></li>
+<li>.PHONY declarations</li>
+<li>Informative output</li>
+</ul>
+<h2 id="integration-with-cicd"><a class="header" href="#integration-with-cicd">Integration with CI/CD</a></h2>
+<h3 id="github-actions-example"><a class="header" href="#github-actions-example">GitHub Actions Example</a></h3>
+<pre><code class="language-yaml">name: CI
+
+on: [push, pull_request]
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install bashrs
+        run: cargo install bashrs --version 6.31.0
+
+      - name: Lint Makefile
+        run: bashrs make lint Makefile
+
+      - name: Lint shell scripts
+        run: |
+          find . -name "*.sh" -print0 | \
+            xargs -0 -I {} bashrs lint {}
+
+      - name: Verify idempotency
+        run: |
+          make clean
+          make build
+          make build  # Should succeed on second run
+
+  build:
+    needs: lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build
+        run: make build
+</code></pre>
+<h3 id="gitlab-ci-example"><a class="header" href="#gitlab-ci-example">GitLab CI Example</a></h3>
+<pre><code class="language-yaml">stages:
+  - lint
+  - build
+  - test
+
+lint:makefile:
+  stage: lint
+  image: rust:latest
+  before_script:
+    - cargo install bashrs --version 6.31.0
+  script:
+    - bashrs make lint Makefile
+    - make lint-scripts
+
+lint:idempotency:
+  stage: lint
+  script:
+    - make clean
+    - make setup
+    - make setup  # Verify idempotency
+
+build:
+  stage: build
+  needs: ["lint:makefile", "lint:idempotency"]
+  script:
+    - make build
+</code></pre>
+<h3 id="pre-commit-configuration"><a class="header" href="#pre-commit-configuration">Pre-commit Configuration</a></h3>
+<p><code>.pre-commit-config.yaml</code>:</p>
+<pre><code class="language-yaml">repos:
+  - repo: local
+    hooks:
+      - id: bashrs-makefile
+        name: bashrs Makefile linting
+        entry: bashrs make lint
+        language: system
+        files: '^Makefile$|\.mk$'
+
+      - id: bashrs-scripts
+        name: bashrs shell script linting
+        entry: bashrs lint
+        language: system
+        files: '\.sh$'
+</code></pre>
+<h2 id="testing-makefiles"><a class="header" href="#testing-makefiles">Testing Makefiles</a></h2>
+<h3 id="1-dry-run-testing"><a class="header" href="#1-dry-run-testing">1. Dry-Run Testing</a></h3>
+<p>Verify targets without executing:</p>
+<pre><code class="language-bash"><span class="boring"> Check what would be executed
+</span>make -n build
+
+<span class="boring"> Verify variable expansion
+</span>make -n deploy | grep "Release ID"
+</code></pre>
+<p><strong>In Makefile</strong>:</p>
+<pre><code class="language-makefile">.PHONY: test-dry-run
+
+test-dry-run:
+	@echo "Testing dry-run for all targets..."
+	@make -n build &gt; /dev/null &amp;&amp; echo "✓ build dry-run OK"
+	@make -n test &gt; /dev/null &amp;&amp; echo "✓ test dry-run OK"
+	@make -n deploy &gt; /dev/null &amp;&amp; echo "✓ deploy dry-run OK"
+</code></pre>
+<h3 id="2-idempotency-testing"><a class="header" href="#2-idempotency-testing">2. Idempotency Testing</a></h3>
+<p>Ensure targets can run multiple times safely:</p>
+<pre><code class="language-makefile">.PHONY: test-idempotency
+
+test-idempotency:
+	@echo "Testing idempotency..."
+	@make clean
+	@make setup &amp;&amp; echo "✓ First setup OK"
+	@make setup &amp;&amp; echo "✓ Second setup OK (idempotent)"
+	@make build &amp;&amp; echo "✓ First build OK"
+	@make build &amp;&amp; echo "✓ Second build OK (idempotent)"
+</code></pre>
+<p><strong>Automated Test Script</strong> (<code>test-makefile.sh</code>):</p>
+<pre><code class="language-bash"><span class="boring">!/bin/bash
+</span>set -euo pipefail
+
+echo "Testing Makefile idempotency..."
+
+<span class="boring"> Test each target twice
+</span>for target in setup build test; do
+    echo "Testing target: $target"
+
+    make clean
+    make "$target" || exit 1
+    echo "  ✓ First run succeeded"
+
+    make "$target" || exit 1
+    echo "  ✓ Second run succeeded (idempotent)"
+done
+
+echo "All idempotency tests passed!"
+</code></pre>
+<h3 id="3-determinism-testing"><a class="header" href="#3-determinism-testing">3. Determinism Testing</a></h3>
+<p>Verify reproducible builds:</p>
+<pre><code class="language-bash"><span class="boring">!/bin/bash
+</span>set -euo pipefail
+
+echo "Testing build determinism..."
+
+<span class="boring"> Build twice and compare
+</span>make clean
+make build
+HASH1=$(find build -type f -exec sha256sum {} \; | sort | sha256sum)
+
+make clean
+make build
+HASH2=$(find build -type f -exec sha256sum {} \; | sort | sha256sum)
+
+if [ "$HASH1" = "$HASH2" ]; then
+    echo "✓ Build is deterministic"
+else
+    echo "✗ Build is non-deterministic"
+    exit 1
+fi
+</code></pre>
+<h3 id="4-shellcheck-integration"><a class="header" href="#4-shellcheck-integration">4. shellcheck Integration</a></h3>
+<p>Verify generated shell commands:</p>
+<pre><code class="language-makefile">.PHONY: test-shellcheck
+
+test-shellcheck:
+	@echo "Extracting and checking shell recipes..."
+	@bashrs make purify Makefile --output /tmp/purified.sh
+	@shellcheck /tmp/purified.sh &amp;&amp; echo "✓ All recipes pass shellcheck"
+</code></pre>
+<h2 id="troubleshooting"><a class="header" href="#troubleshooting">Troubleshooting</a></h2>
+<h3 id="issue-target-not-marked-phony"><a class="header" href="#issue-target-not-marked-phony">Issue: "Target not marked .PHONY"</a></h3>
+<p><strong>Symptom</strong>:</p>
+<pre><code class="language-bash">$ bashrs make lint Makefile
+Warning: Target 'clean' should be marked .PHONY
+</code></pre>
+<p><strong>Solution</strong>:</p>
+<pre><code class="language-makefile">.PHONY: clean build test
+
+clean:
+	rm -rf build/
+</code></pre>
+<p><strong>Why</strong>: Without .PHONY, if a file named "clean" exists, Make won't run the recipe.</p>
+<h3 id="issue-unquoted-variable-expansion"><a class="header" href="#issue-unquoted-variable-expansion">Issue: "Unquoted variable expansion"</a></h3>
+<p><strong>Symptom</strong>:</p>
+<pre><code class="language-bash">$ bashrs make lint Makefile
+Warning: Unquoted variable expansion (SC2086)
+  --&gt; Makefile:5:6
+</code></pre>
+<p><strong>Solution</strong>:</p>
+<pre><code class="language-makefile"># Before
+install:
+	cp $(FILES) $(DEST)
+
+# After
+install:
+	cp "$(FILES)" "$(DEST)"
+</code></pre>
+<p><strong>Why</strong>: Prevents word splitting and glob expansion vulnerabilities.</p>
+<h3 id="issue-non-idempotent-operation"><a class="header" href="#issue-non-idempotent-operation">Issue: "Non-idempotent operation"</a></h3>
+<p><strong>Symptom</strong>:</p>
+<pre><code class="language-bash">$ bashrs make lint Makefile
+Error: Non-idempotent operation (IDEM001)
+  --&gt; Makefile:3:2
+   |
+ 3 |     mkdir build
+</code></pre>
+<p><strong>Solution</strong>:</p>
+<pre><code class="language-makefile"># Before
+setup:
+	mkdir build
+
+# After
+setup:
+	mkdir -p build
+</code></pre>
+<p><strong>Why</strong>: <code>mkdir -p</code> succeeds even if directory exists.</p>
+<h3 id="issue-non-deterministic-command"><a class="header" href="#issue-non-deterministic-command">Issue: "Non-deterministic command"</a></h3>
+<p><strong>Symptom</strong>:</p>
+<pre><code class="language-bash">$ bashrs make lint Makefile
+Error: Non-deterministic command (DET003)
+  --&gt; Makefile:6:2
+   |
+ 6 |     echo "Build: $(RANDOM)" &gt; version.txt
+</code></pre>
+<p><strong>Solution</strong>:</p>
+<pre><code class="language-makefile"># Before
+VERSION = $(shell date +%s)
+
+release:
+	echo "Build: $(RANDOM)" &gt; version.txt
+
+# After
+VERSION = $(shell git describe --tags --always)
+BUILD_HASH = $(shell git rev-parse --short HEAD)
+
+release:
+	echo "Version: $(VERSION)" &gt; version.txt
+	echo "Commit: $(BUILD_HASH)" &gt;&gt; version.txt
+</code></pre>
+<p><strong>Why</strong>: Use git for deterministic, traceable versioning.</p>
+<h3 id="issue-make-variable-vs-shell-variable-confusion"><a class="header" href="#issue-make-variable-vs-shell-variable-confusion">Issue: Make variable vs. Shell variable confusion</a></h3>
+<p><strong>Symptom</strong>:</p>
+<pre><code class="language-makefile">deploy:
+	for file in *.txt; do
+		echo "Processing $$file"  # Why $$?
+	done
+</code></pre>
+<p><strong>Explanation</strong>:</p>
+<ul>
+<li><strong>Make variable</strong>: <code>$(VAR)</code> or <code>${VAR}</code> - expanded by Make</li>
+<li><strong>Shell variable</strong>: <code>$$VAR</code> - <code>$$</code> escapes to single <code>$</code> in shell</li>
+</ul>
+<p><strong>Correct Usage</strong>:</p>
+<pre><code class="language-makefile"># Make variable (expanded by Make before shell sees it)
+FILES = $(wildcard *.txt)
+
+deploy:
+	echo "Files: $(FILES)"  # Make expansion
+
+	# Shell variable (expanded by shell)
+	for file in *.txt; do
+		echo "Processing $$file"  # Shell expansion ($$→$)
+	done
+</code></pre>
+<h3 id="issue-recipe-failing-silently"><a class="header" href="#issue-recipe-failing-silently">Issue: Recipe failing silently</a></h3>
+<p><strong>Symptom</strong>: Multi-line recipe stops executing after error, but Make reports success.</p>
+<p><strong>Solution</strong>: Use <code>.ONESHELL</code> and proper error flags:</p>
+<pre><code class="language-makefile">.ONESHELL:
+.SHELLFLAGS = -euo pipefail -c
+
+deploy:
+	cd /var/www
+	rm -rf old/
+	cp -r dist/ .
+	# If any command fails, recipe stops with error
+</code></pre>
+<p><strong>Flags</strong>:</p>
+<ul>
+<li><code>-e</code>: Exit immediately on error</li>
+<li><code>-u</code>: Error on undefined variables</li>
+<li><code>-o pipefail</code>: Pipeline fails if any command fails</li>
+</ul>
+<h2 id="summary-checklist"><a class="header" href="#summary-checklist">Summary Checklist</a></h2>
+<p>Before committing Makefiles, verify:</p>
+<ul>
+<li><input disabled="" type="checkbox"/>
+All non-file targets marked <code>.PHONY</code></li>
+<li><input disabled="" type="checkbox"/>
+All shell variables quoted in recipes</li>
+<li><input disabled="" type="checkbox"/>
+All operations idempotent (use <code>-p</code>, <code>-f</code>, <code>-n</code> flags)</li>
+<li><input disabled="" type="checkbox"/>
+No non-deterministic commands (<code>$RANDOM</code>, <code>date</code>, <code>$$</code>)</li>
+<li><input disabled="" type="checkbox"/>
+Paths configurable with variables (not hardcoded)</li>
+<li><input disabled="" type="checkbox"/>
+Error handling with <code>.ONESHELL</code> and proper flags</li>
+<li><input disabled="" type="checkbox"/>
+Runs <code>bashrs make lint Makefile</code> without errors</li>
+<li><input disabled="" type="checkbox"/>
+Tested for idempotency (runs twice successfully)</li>
+<li><input disabled="" type="checkbox"/>
+Integrated into CI/CD linting pipeline</li>
+</ul>
+<h2 id="additional-resources"><a class="header" href="#additional-resources">Additional Resources</a></h2>
+<ul>
+<li><strong>bashrs Makefile Documentation</strong>: See <code>bashrs make --help</code></li>
+<li><strong>GNU Make Manual</strong>: https://www.gnu.org/software/make/manual/</li>
+<li><strong>ShellCheck Wiki</strong>: https://www.shellcheck.net/wiki/</li>
+<li><strong>Reproducible Builds</strong>: https://reproducible-builds.org/</li>
+<li><strong>POSIX Make</strong>: https://pubs.opengroup.org/onlinepubs/9699919799/utilities/make.html</li>
+</ul>
+<h2 id="conclusion"><a class="header" href="#conclusion">Conclusion</a></h2>
+<p>Makefiles are executable infrastructure code and deserve the same quality standards as application code. By applying these best practices and leveraging bashrs for automated validation, you can create Makefiles that are:</p>
+<ul>
+<li><strong>Safe</strong>: No injection vulnerabilities</li>
+<li><strong>Reliable</strong>: Idempotent operations that always work</li>
+<li><strong>Reproducible</strong>: Deterministic builds for debugging and compliance</li>
+<li><strong>Maintainable</strong>: Clear, documented, and testable</li>
+</ul>
+<p>Run <code>bashrs make lint</code> on every Makefile change, integrate it into your CI/CD pipeline, and enforce these standards through pre-commit hooks. Your future self (and your teammates) will thank you.</p>
 
                     </main>
 

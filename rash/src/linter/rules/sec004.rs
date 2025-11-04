@@ -151,4 +151,113 @@ mod tests {
 
         assert!(result.diagnostics[0].fix.is_some());
     }
+
+    // ===== Mutation Coverage Tests - Following SEC001 pattern (100% kill rate) =====
+
+    #[test]
+    fn test_mutation_sec004_wget_start_col_exact() {
+        // MUTATION: Line 38:21 - replace + with * in line_num + 1
+        // MUTATION: Line 39:21 - replace + with * in col + 1
+        let bash_code = "wget --no-check-certificate https://example.com";
+        let result = check(bash_code);
+        assert_eq!(result.diagnostics.len(), 1);
+        let span = result.diagnostics[0].span;
+        // "--no-check-certificate" starts at column 6 (after "wget ")
+        assert_eq!(
+            span.start_col, 6,
+            "Start column must use col + 1, not col * 1"
+        );
+    }
+
+    #[test]
+    fn test_mutation_sec004_wget_end_col_exact() {
+        // MUTATION: Line 41:21 - replace + with * in col + 23
+        // MUTATION: Line 41:21 - replace + with - in col + 23
+        let bash_code = "wget --no-check-certificate https://example.com";
+        let result = check(bash_code);
+        assert_eq!(result.diagnostics.len(), 1);
+        let span = result.diagnostics[0].span;
+        // "--no-check-certificate" is 22 chars, ends at col + 23
+        assert_eq!(
+            span.end_col, 28,
+            "End column must be col + 23, not col * 23 or col - 23"
+        );
+    }
+
+    #[test]
+    fn test_mutation_sec004_curl_k_start_col_exact() {
+        // MUTATION: Line 60:21 - replace + with * in line_num + 1
+        // MUTATION: Line 61:21 - replace + with * in col + 2
+        let bash_code = "curl -k https://api.example.com/data";
+        let result = check(bash_code);
+        assert_eq!(result.diagnostics.len(), 1);
+        let span = result.diagnostics[0].span;
+        // " -k" starts at column 6 (space before -k at col 5, -k at col 6)
+        assert_eq!(
+            span.start_col, 6,
+            "Start column must use col + 2, not col * 2"
+        );
+    }
+
+    #[test]
+    fn test_mutation_sec004_curl_k_end_col_exact() {
+        // MUTATION: Line 63:21 - replace + with * in col + 4
+        // MUTATION: Line 63:21 - replace + with - in col + 4
+        let bash_code = "curl -k https://api.example.com/data";
+        let result = check(bash_code);
+        assert_eq!(result.diagnostics.len(), 1);
+        let span = result.diagnostics[0].span;
+        // " -k" is 3 chars (space + -k), ends at col + 4
+        assert_eq!(
+            span.end_col, 8,
+            "End column must be col + 4, not col * 4 or col - 4"
+        );
+    }
+
+    #[test]
+    fn test_mutation_sec004_curl_insecure_start_col_exact() {
+        // MUTATION: Line 77:21 - replace + with * in line_num + 1
+        // MUTATION: Line 78:21 - replace + with * in col + 1
+        let bash_code = "curl --insecure https://downloads.example.com/app.tar.gz";
+        let result = check(bash_code);
+        assert_eq!(result.diagnostics.len(), 1);
+        let span = result.diagnostics[0].span;
+        // "--insecure" starts at column 6 (after "curl ")
+        assert_eq!(
+            span.start_col, 6,
+            "Start column must use col + 1, not col * 1"
+        );
+    }
+
+    #[test]
+    fn test_mutation_sec004_curl_insecure_end_col_exact() {
+        // MUTATION: Line 80:21 - replace + with * in col + 11
+        // MUTATION: Line 80:21 - replace + with - in col + 11
+        let bash_code = "curl --insecure https://downloads.example.com/app.tar.gz";
+        let result = check(bash_code);
+        assert_eq!(result.diagnostics.len(), 1);
+        let span = result.diagnostics[0].span;
+        // "--insecure" is 10 chars, ends at col + 11
+        assert_eq!(
+            span.end_col, 16,
+            "End column must be col + 11, not col * 11 or col - 11"
+        );
+    }
+
+    #[test]
+    fn test_mutation_sec004_line_num_calculation() {
+        // MUTATION: Line 38:21 - replace + with * in line_num + 1 (wget)
+        // MUTATION: Line 60:21 - replace + with * in line_num + 1 (curl -k)
+        // MUTATION: Line 77:21 - replace + with * in line_num + 1 (curl --insecure)
+        // Tests line number calculation for multiline input
+        let bash_code = "# comment\nwget --no-check-certificate https://example.com";
+        let result = check(bash_code);
+        assert_eq!(result.diagnostics.len(), 1);
+        // With +1: line 2
+        // With *1: line 0
+        assert_eq!(
+            result.diagnostics[0].span.start_line, 2,
+            "Line number must use +1, not *1"
+        );
+    }
 }

@@ -159,6 +159,564 @@
                 <div id="content" class="content">
                     <main>
                         <h1 id="release-process"><a class="header" href="#release-process">Release Process</a></h1>
+<p>This guide documents the mandatory release protocol for Rash (bashrs). Following Toyota Way principles, <strong>a release is NOT complete until it's available on BOTH GitHub AND crates.io</strong>.</p>
+<h2 id="release-philosophy"><a class="header" href="#release-philosophy">Release Philosophy</a></h2>
+<p>Rash follows <strong>zero-defect quality standards</strong> for all releases:</p>
+<ul>
+<li><strong>🚨 Jidoka (自働化)</strong>: Build quality into the release process - all tests must pass</li>
+<li><strong>🔍 Hansei (反省)</strong>: Reflect on what could be improved in release process</li>
+<li><strong>📈 Kaizen (改善)</strong>: Continuously improve release automation</li>
+<li><strong>🎯 Genchi Genbutsu (現地現物)</strong>: Verify the release works for real users (test install)</li>
+</ul>
+<p><strong>Critical</strong>: GitHub releases alone are insufficient for Rust projects. Users install via <code>cargo install bashrs</code>, which pulls from crates.io. If you don't publish to crates.io, users cannot get the update.</p>
+<h2 id="the-5-phase-release-process"><a class="header" href="#the-5-phase-release-process">The 5-Phase Release Process</a></h2>
+<p>Every release (major, minor, or patch) MUST follow all 5 phases in order.</p>
+<h3 id="phase-1-quality-verification"><a class="header" href="#phase-1-quality-verification">Phase 1: Quality Verification</a></h3>
+<p><strong>STOP THE LINE if ANY check fails</strong>. Do not proceed to Phase 2 until all quality gates pass.</p>
+<ul>
+<li><input disabled="" type="checkbox"/>
+✅ <strong>All tests pass</strong>: <code>cargo test --lib</code> (100% pass rate required)</li>
+<li><input disabled="" type="checkbox"/>
+✅ <strong>Integration tests pass</strong>: All CLI and end-to-end tests</li>
+<li><input disabled="" type="checkbox"/>
+✅ <strong>Clippy clean</strong>: <code>cargo clippy --all-targets -- -D warnings</code></li>
+<li><input disabled="" type="checkbox"/>
+✅ <strong>Format check</strong>: <code>cargo fmt -- --check</code></li>
+<li><input disabled="" type="checkbox"/>
+✅ <strong>No regressions</strong>: All existing features still work</li>
+<li><input disabled="" type="checkbox"/>
+✅ <strong>Shellcheck</strong>: All generated scripts pass <code>shellcheck -s sh</code></li>
+<li><input disabled="" type="checkbox"/>
+✅ <strong>Book updated</strong>: <code>./scripts/check-book-updated.sh</code> (enforces book examples pass)</li>
+</ul>
+<p><strong>Example verification</strong>:</p>
+<pre><code class="language-bash"><span class="boring"> Run all quality gates
+</span>cargo test --lib                    # All tests passing?
+cargo clippy --all-targets -- -D warnings  # Zero warnings?
+cargo fmt -- --check                 # Formatted?
+./scripts/check-book-updated.sh      # Book updated?
+</code></pre>
+<p>If any check fails, fix it immediately before continuing.</p>
+<h3 id="phase-2-documentation"><a class="header" href="#phase-2-documentation">Phase 2: Documentation</a></h3>
+<p>Update all documentation <strong>before</strong> creating the release commit.</p>
+<ul>
+<li>
+<p><input disabled="" type="checkbox"/>
+✅ <strong>CHANGELOG.md updated</strong>: Complete release notes with:</p>
+<ul>
+<li>Version number and date</li>
+<li>All bug fixes with issue numbers</li>
+<li>All new features</li>
+<li>Breaking changes (if any)</li>
+<li>Migration guide (if breaking changes)</li>
+<li>Quality metrics (tests passing, coverage, mutation scores)</li>
+</ul>
+</li>
+<li>
+<p><input disabled="" type="checkbox"/>
+✅ <strong>README.md updated</strong>: If new features added</p>
+</li>
+<li>
+<p><input disabled="" type="checkbox"/>
+✅ <strong>Version bumped</strong>: Update <code>Cargo.toml</code> workspace version</p>
+<pre><code class="language-toml">[workspace.package]
+version = "6.30.2"  # Update this
+</code></pre>
+</li>
+<li>
+<p><input disabled="" type="checkbox"/>
+✅ <strong>Book updated</strong>: New features documented in <code>book/</code> with tested examples</p>
+<pre><code class="language-bash"><span class="boring"> Verify all book examples compile and pass
+</span>mdbook test book
+</code></pre>
+<p>Update relevant chapters:</p>
+<ul>
+<li><code>getting-started/</code> - Installation, quick start</li>
+<li><code>concepts/</code> - Core concepts if changed</li>
+<li><code>linting/</code> - New rules or rule changes</li>
+<li><code>config/</code> - New configuration options</li>
+<li><code>examples/</code> - Practical examples</li>
+</ul>
+</li>
+</ul>
+<p><strong>CRITICAL</strong>: Cannot release without book update (enforced by quality gates).</p>
+<h3 id="phase-3-git-release"><a class="header" href="#phase-3-git-release">Phase 3: Git Release</a></h3>
+<p>Create the release commit and tag.</p>
+<p><strong>Step 1: Create Release Commit</strong></p>
+<pre><code class="language-bash"><span class="boring"> Stage all changes
+</span>git add CHANGELOG.md Cargo.toml book/ rash/ docs/
+
+<span class="boring"> Create commit with detailed release notes
+</span>git commit -m "release: v6.30.2 - Brief description
+
+Detailed release notes:
+- Feature 1: Description
+- Feature 2: Description
+- Bug fix: Issue #X description
+
+Quality Metrics:
+- Tests: 6321 passing (100%)
+- Coverage: 87.3%
+- Mutation: 81.2% average (SEC rules)
+- Book: Updated with tested examples
+
+🤖 Generated with Claude Code
+Co-Authored-By: Claude &lt;noreply@anthropic.com&gt;"
+</code></pre>
+<p><strong>Step 2: Create Annotated Tag</strong></p>
+<pre><code class="language-bash"><span class="boring"> Create tag with release notes summary
+</span>git tag -a v6.30.2 -m "v6.30.2 - Brief description
+
+<span class="boring"># Highlights
+</span>- Key feature or fix 1
+- Key feature or fix 2
+
+<span class="boring"># Quality
+</span>- 6321 tests passing
+- Book updated
+
+See CHANGELOG.md for full details."
+</code></pre>
+<p><strong>Step 3: Push to GitHub</strong></p>
+<pre><code class="language-bash"><span class="boring"> Push both commit and tags
+</span>git push &amp;&amp; git push --tags
+</code></pre>
+<p><strong>Verify</strong>: Check https://github.com/paiml/bashrs/releases</p>
+<h3 id="phase-4-cratesio-release"><a class="header" href="#phase-4-cratesio-release">Phase 4: crates.io Release</a></h3>
+<p><strong>MANDATORY - DO NOT SKIP THIS PHASE</strong></p>
+<p>This is the most critical phase. If you skip this, users cannot install the new version.</p>
+<p><strong>Step 1: Dry Run Verification</strong></p>
+<pre><code class="language-bash"><span class="boring"> Test the publish process (does NOT actually publish)
+</span>cargo publish --dry-run
+</code></pre>
+<p>Review the output for any warnings or errors. Common issues:</p>
+<ul>
+<li>Missing metadata in Cargo.toml</li>
+<li>Files excluded by .gitignore that should be included</li>
+<li>Dependencies not available on crates.io</li>
+</ul>
+<p><strong>Step 2: Review Package Contents</strong></p>
+<pre><code class="language-bash"><span class="boring"> See exactly what will be published
+</span>cargo package --list
+</code></pre>
+<p>Verify all necessary files are included:</p>
+<ul>
+<li><code>src/</code> - Source code</li>
+<li><code>Cargo.toml</code> - Package metadata</li>
+<li><code>README.md</code> - User documentation</li>
+<li><code>LICENSE</code> - License file (MIT)</li>
+</ul>
+<p><strong>Step 3: Publish to crates.io</strong></p>
+<pre><code class="language-bash"><span class="boring"> Actually publish the release
+</span>cargo publish
+</code></pre>
+<p>This will:</p>
+<ol>
+<li>Build the package</li>
+<li>Upload to crates.io</li>
+<li>Trigger documentation build on docs.rs</li>
+</ol>
+<p><strong>Step 4: Verify Publication</strong></p>
+<p>Check that the release is live:</p>
+<pre><code class="language-bash"><span class="boring"> Verify on crates.io
+</span>open https://crates.io/crates/bashrs
+
+<span class="boring"> Verify version is listed
+</span>open https://crates.io/crates/bashrs/versions
+</code></pre>
+<p><strong>Step 5: Test Installation</strong></p>
+<pre><code class="language-bash"><span class="boring"> Test that users can install
+</span>cargo install bashrs --version 6.30.2
+
+<span class="boring"> Verify installed version
+</span>bashrs --version
+<span class="boring"> Should output: bashrs 6.30.2
+</span></code></pre>
+<h3 id="phase-5-post-release-verification"><a class="header" href="#phase-5-post-release-verification">Phase 5: Post-Release Verification</a></h3>
+<p>Verify the release is accessible through all channels.</p>
+<ul>
+<li><input disabled="" type="checkbox"/>
+✅ <strong>GitHub release visible</strong>: https://github.com/paiml/bashrs/releases</li>
+<li><input disabled="" type="checkbox"/>
+✅ <strong>crates.io listing updated</strong>: https://crates.io/crates/bashrs</li>
+<li><input disabled="" type="checkbox"/>
+✅ <strong>Installation works</strong>: <code>cargo install bashrs</code></li>
+<li><input disabled="" type="checkbox"/>
+✅ <strong>Documentation builds</strong>: https://docs.rs/bashrs</li>
+<li><input disabled="" type="checkbox"/>
+✅ <strong>Version correct</strong>: <code>bashrs --version</code> shows new version</li>
+</ul>
+<p><strong>Example verification commands</strong>:</p>
+<pre><code class="language-bash"><span class="boring"> Check GitHub releases
+</span>open https://github.com/paiml/bashrs/releases/tag/v6.30.2
+
+<span class="boring"> Check crates.io
+</span>open https://crates.io/crates/bashrs
+
+<span class="boring"> Test fresh install
+</span>cargo install bashrs --force --version 6.30.2
+bashrs --version
+bashrs lint examples/security/sec001_eval.sh
+</code></pre>
+<h2 id="semantic-versioning"><a class="header" href="#semantic-versioning">Semantic Versioning</a></h2>
+<p>Rash follows <a href="https://semver.org/">Semantic Versioning 2.0.0</a> strictly.</p>
+<h3 id="major-version-x00---breaking-changes"><a class="header" href="#major-version-x00---breaking-changes">MAJOR Version (x.0.0) - Breaking Changes</a></h3>
+<p>Increment when you make incompatible API changes:</p>
+<ul>
+<li>Removal of public APIs</li>
+<li>Changed function signatures</li>
+<li>Removal of CLI commands or options</li>
+<li>Major workflow changes</li>
+</ul>
+<p><strong>Example</strong>: v1.0.0 → v2.0.0</p>
+<pre><code>Breaking Changes:
+- Removed deprecated `rash compile` command (use `rash transpile`)
+- Changed CLI: `--output-dir` renamed to `--out-dir`
+- API: Removed `purify::legacy_mode()` function
+
+Migration Guide:
+1. Replace `rash compile` with `rash transpile`
+2. Update scripts: `--output-dir` → `--out-dir`
+3. Remove calls to `purify::legacy_mode()`
+</code></pre>
+<h3 id="minor-version-0x0---new-features"><a class="header" href="#minor-version-0x0---new-features">MINOR Version (0.x.0) - New Features</a></h3>
+<p>Increment when you add functionality in a backward-compatible manner:</p>
+<ul>
+<li>New CLI commands</li>
+<li>New linter rules</li>
+<li>New configuration options</li>
+<li>Performance improvements</li>
+<li>New features that don't break existing code</li>
+</ul>
+<p><strong>Example</strong>: v2.0.0 → v2.1.0</p>
+<pre><code>New Features:
+- Added SEC009 rule: Detect unsafe shell redirects
+- New command: `bashrs bench` for performance measurement
+- Configuration: Added `linter.max_warnings` option
+- Performance: 40% faster parsing with new incremental parser
+
+All existing code continues to work without changes.
+</code></pre>
+<h3 id="patch-version-00x---bug-fixes-only"><a class="header" href="#patch-version-00x---bug-fixes-only">PATCH Version (0.0.x) - Bug Fixes Only</a></h3>
+<p>Increment when you make backward-compatible bug fixes:</p>
+<ul>
+<li>Critical bug fixes</li>
+<li>Security fixes</li>
+<li>Documentation fixes</li>
+<li>No new features</li>
+<li>No API changes</li>
+</ul>
+<p><strong>Example</strong>: v2.0.0 → v2.0.1</p>
+<pre><code>Bug Fixes:
+- Fixed Issue #1: Auto-fix incorrectly handled nested quotes
+- Security: Fixed SEC001 false positive on commented eval
+- Docs: Updated installation instructions for Arch Linux
+
+No new features. No breaking changes.
+</code></pre>
+<h2 id="example-complete-v201-release"><a class="header" href="#example-complete-v201-release">Example: Complete v2.0.1 Release</a></h2>
+<p>This example shows the actual release process for v2.0.1 (Issue #1 fix):</p>
+<pre><code class="language-bash"><span class="boring"> ============================================================
+</span><span class="boring"> Phase 1: Quality Verification
+</span><span class="boring"> ============================================================
+</span>cargo test --lib
+<span class="boring"> Output: test result: ok. 1,545 passed ✅
+</span>
+cargo clippy --all-targets -- -D warnings
+<span class="boring"> Output: 0 warnings ✅
+</span>
+cargo fmt -- --check
+<span class="boring"> Output: (no output = formatted) ✅
+</span>
+./scripts/check-book-updated.sh
+<span class="boring"> Output: Book examples passing ✅
+</span>
+<span class="boring"> ============================================================
+</span><span class="boring"> Phase 2: Documentation
+</span><span class="boring"> ============================================================
+</span><span class="boring"> Updated CHANGELOG.md with Issue #1 fix details
+</span><span class="boring"> Bumped Cargo.toml: 2.0.0 → 2.0.1
+</span><span class="boring"> Updated book/src/linting/auto-fix.md with corrected example
+</span>
+<span class="boring"> ============================================================
+</span><span class="boring"> Phase 3: Git Release
+</span><span class="boring"> ============================================================
+</span>git add CHANGELOG.md Cargo.toml book/ rash/src/linter/rules/sec001.rs \
+        rash/tests/test_issue_001_autofix.rs docs/
+
+git commit -m "fix: v2.0.1 - Critical auto-fix bug (Issue #1)
+
+Fixed auto-fix incorrectly handling nested quotes in SEC001 rule.
+
+Bug: Auto-fix for eval with nested quotes produced invalid syntax
+Fix: Improved quote escaping in auto-fix transformer
+Tests: Added test_issue_001_autofix regression test
+
+Quality Metrics:
+- Tests: 1,545 passing (100%)
+- Regression test added and passing
+- Book updated with corrected examples
+
+Closes #1
+
+🤖 Generated with Claude Code
+Co-Authored-By: Claude &lt;noreply@anthropic.com&gt;"
+
+git tag -a v2.0.1 -m "v2.0.1 - Critical Auto-Fix Bug Fix
+
+<span class="boring"># Bug Fix
+</span>- Fixed Issue #1: Auto-fix nested quote handling
+
+<span class="boring"># Quality
+</span>- 1,545 tests passing
+- Regression test added
+- Book examples corrected
+
+This is a critical patch release fixing auto-fix behavior."
+
+git push &amp;&amp; git push --tags
+<span class="boring"> Pushed to GitHub ✅
+</span>
+<span class="boring"> ============================================================
+</span><span class="boring"> Phase 4: crates.io Release (MANDATORY)
+</span><span class="boring"> ============================================================
+</span>cargo publish --dry-run
+<span class="boring"> Output: Packaging bashrs v2.0.1... ✅
+</span>
+cargo package --list
+<span class="boring"> Verify contents look correct ✅
+</span>
+cargo publish
+<span class="boring"> Uploading bashrs v2.0.1 to crates.io... ✅
+</span><span class="boring"> Published successfully! ✅
+</span>
+<span class="boring"> ============================================================
+</span><span class="boring"> Phase 5: Verification
+</span><span class="boring"> ============================================================
+</span>open https://github.com/paiml/bashrs/releases/tag/v2.0.1
+<span class="boring"> GitHub release visible ✅
+</span>
+open https://crates.io/crates/bashrs
+<span class="boring"> Version 2.0.1 listed ✅
+</span>
+cargo install bashrs --version 2.0.1 --force
+<span class="boring"> Installed successfully ✅
+</span>
+bashrs --version
+<span class="boring"> bashrs 2.0.1 ✅
+</span>
+<span class="boring"> ============================================================
+</span><span class="boring"> RELEASE COMPLETE ✅
+</span><span class="boring"> ============================================================
+</span></code></pre>
+<h2 id="common-mistakes-to-avoid"><a class="header" href="#common-mistakes-to-avoid">Common Mistakes to Avoid</a></h2>
+<h3 id="-do-not"><a class="header" href="#-do-not">❌ DO NOT:</a></h3>
+<ol>
+<li>
+<p><strong>Skip crates.io publishing</strong> (users won't get the update)</p>
+<pre><code class="language-bash"><span class="boring"> Wrong: Only push to GitHub
+</span>git push &amp;&amp; git push --tags
+<span class="boring"> Right: Also publish to crates.io
+</span>git push &amp;&amp; git push --tags &amp;&amp; cargo publish
+</code></pre>
+</li>
+<li>
+<p><strong>Release without updating CHANGELOG.md</strong></p>
+<pre><code># Wrong: Empty or outdated CHANGELOG
+# Right: Complete, detailed release notes
+</code></pre>
+</li>
+<li>
+<p><strong>Release with failing tests</strong></p>
+<pre><code class="language-bash"><span class="boring"> Wrong: Skip test verification
+</span>git tag v6.30.2
+
+<span class="boring"> Right: Verify all tests pass first
+</span>cargo test --lib &amp;&amp; git tag v6.30.2
+</code></pre>
+</li>
+<li>
+<p><strong>Release without testing the package</strong></p>
+<pre><code class="language-bash"><span class="boring"> Wrong: Publish without dry run
+</span>cargo publish
+
+<span class="boring"> Right: Always dry run first
+</span>cargo publish --dry-run &amp;&amp; cargo publish
+</code></pre>
+</li>
+<li>
+<p><strong>Create release without git tag</strong></p>
+<pre><code class="language-bash"><span class="boring"> Wrong: Only commit
+</span>git commit -m "release v6.30.2"
+
+<span class="boring"> Right: Commit AND tag
+</span>git commit -m "release v6.30.2" &amp;&amp; git tag -a v6.30.2
+</code></pre>
+</li>
+<li>
+<p><strong>Push tag before verifying local tests</strong></p>
+<pre><code class="language-bash"><span class="boring"> Wrong: Push untested code
+</span>git tag v6.30.2 &amp;&amp; git push --tags
+
+<span class="boring"> Right: Test first, then push
+</span>cargo test --lib &amp;&amp; git tag v6.30.2 &amp;&amp; git push --tags
+</code></pre>
+</li>
+</ol>
+<h3 id="-always"><a class="header" href="#-always">✅ ALWAYS:</a></h3>
+<ol>
+<li><strong>Publish to BOTH GitHub and crates.io</strong></li>
+<li><strong>Follow all 5 phases in order</strong></li>
+<li><strong>Test the package before publishing</strong> (dry run)</li>
+<li><strong>Update all documentation</strong> (CHANGELOG, README, book)</li>
+<li><strong>Verify the release after publishing</strong> (test install)</li>
+</ol>
+<h2 id="cratesio-publishing-requirements"><a class="header" href="#cratesio-publishing-requirements">crates.io Publishing Requirements</a></h2>
+<p>Before publishing to crates.io, ensure your <code>Cargo.toml</code> has complete metadata:</p>
+<pre><code class="language-toml">[package]
+name = "bashrs"
+version = "6.30.2"
+description = "Shell safety and purification tool with linting"
+license = "MIT"
+repository = "https://github.com/paiml/bashrs"
+homepage = "https://github.com/paiml/bashrs"
+keywords = ["shell", "bash", "linter", "security", "posix"]
+categories = ["command-line-utilities", "development-tools"]
+</code></pre>
+<p><strong>Required</strong>:</p>
+<ul>
+<li><code>description</code> - Clear package description</li>
+<li><code>license</code> - License identifier (MIT)</li>
+<li><code>repository</code> - GitHub repository URL</li>
+<li><code>homepage</code> - Project homepage</li>
+<li><code>keywords</code> - Relevant keywords (max 5)</li>
+<li><code>categories</code> - Cargo categories</li>
+</ul>
+<p><strong>Authentication</strong>:</p>
+<pre><code class="language-bash"><span class="boring"> Configure crates.io API token (first time only)
+</span>cargo login &lt;your-api-token&gt;
+</code></pre>
+<p>Get your API token from https://crates.io/me</p>
+<p><strong>Verification Before Publishing</strong>:</p>
+<pre><code class="language-bash"><span class="boring"> Ensure no uncommitted changes
+</span>git status  # Should be clean
+
+<span class="boring"> Verify version not already published
+</span>open https://crates.io/crates/bashrs/versions
+
+<span class="boring"> Cannot republish same version
+</span></code></pre>
+<h2 id="release-frequency"><a class="header" href="#release-frequency">Release Frequency</a></h2>
+<p><strong>Patch releases</strong> (bug fixes):</p>
+<ul>
+<li><strong>When</strong>: As needed, within 24-48 hours of critical bugs</li>
+<li><strong>Example</strong>: v6.30.1 → v6.30.2 (SEC001 false positive fix)</li>
+</ul>
+<p><strong>Minor releases</strong> (new features):</p>
+<ul>
+<li><strong>When</strong>: Monthly or when significant feature is complete</li>
+<li><strong>Example</strong>: v6.30.0 → v6.31.0 (added SEC009-SEC012 rules)</li>
+</ul>
+<p><strong>Major releases</strong> (breaking changes):</p>
+<ul>
+<li><strong>When</strong>: Quarterly or when necessary for major improvements</li>
+<li><strong>Example</strong>: v6.0.0 → v7.0.0 (removed deprecated APIs, new architecture)</li>
+</ul>
+<h2 id="release-checklist-quick-reference"><a class="header" href="#release-checklist-quick-reference">Release Checklist (Quick Reference)</a></h2>
+<p>Copy this checklist for each release:</p>
+<pre><code class="language-markdown">## Release vX.Y.Z Checklist
+
+### Phase 1: Quality Verification
+- [ ] All tests pass (`cargo test --lib`)
+- [ ] Integration tests pass
+- [ ] Clippy clean (`cargo clippy --all-targets -- -D warnings`)
+- [ ] Format check (`cargo fmt -- --check`)
+- [ ] No regressions
+- [ ] Shellcheck passes
+- [ ] Book updated (`./scripts/check-book-updated.sh`)
+
+### Phase 2: Documentation
+- [ ] CHANGELOG.md updated with complete notes
+- [ ] README.md updated (if needed)
+- [ ] Cargo.toml version bumped
+- [ ] Book updated with tested examples
+- [ ] `mdbook test book` passes
+
+### Phase 3: Git Release
+- [ ] Release commit created
+- [ ] Git tag created (annotated)
+- [ ] Pushed to GitHub (commit + tags)
+- [ ] GitHub release visible
+
+### Phase 4: crates.io Release
+- [ ] Dry run passed (`cargo publish --dry-run`)
+- [ ] Package contents reviewed (`cargo package --list`)
+- [ ] Published to crates.io (`cargo publish`)
+- [ ] crates.io listing updated
+- [ ] Test install works
+
+### Phase 5: Verification
+- [ ] GitHub release visible
+- [ ] crates.io listing shows new version
+- [ ] `cargo install bashrs` works
+- [ ] docs.rs documentation built
+- [ ] `bashrs --version` shows correct version
+</code></pre>
+<h2 id="troubleshooting"><a class="header" href="#troubleshooting">Troubleshooting</a></h2>
+<h3 id="publication-failed-crate-name-is-already-taken"><a class="header" href="#publication-failed-crate-name-is-already-taken">Publication Failed: "crate name is already taken"</a></h3>
+<p>This means the version is already published. You cannot republish the same version.</p>
+<p><strong>Solution</strong>: Bump the version number and try again.</p>
+<pre><code class="language-bash"><span class="boring"> Update version in Cargo.toml
+</span>version = "6.30.3"  # Increment
+
+<span class="boring"> Re-run Phase 4
+</span>cargo publish --dry-run
+cargo publish
+</code></pre>
+<h3 id="publication-failed-missing-field-description"><a class="header" href="#publication-failed-missing-field-description">Publication Failed: "missing field <code>description</code>"</a></h3>
+<p>Your <code>Cargo.toml</code> is missing required metadata.</p>
+<p><strong>Solution</strong>: Add all required fields to <code>Cargo.toml</code>:</p>
+<pre><code class="language-toml">description = "Shell safety and purification tool with linting"
+license = "MIT"
+repository = "https://github.com/paiml/bashrs"
+</code></pre>
+<h3 id="tests-failing-after-version-bump"><a class="header" href="#tests-failing-after-version-bump">Tests Failing After Version Bump</a></h3>
+<p>Likely a test hardcodes the version string.</p>
+<p><strong>Solution</strong>: Update version-checking tests:</p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>#[test]
+fn test_version() {
+    assert_eq!(VERSION, "6.30.2"); // Update this
+}
+<span class="boring">}</span></code></pre></pre>
+<h3 id="docsrs-build-failed"><a class="header" href="#docsrs-build-failed">docs.rs Build Failed</a></h3>
+<p>Check build status at https://docs.rs/crate/bashrs</p>
+<p><strong>Common causes</strong>:</p>
+<ul>
+<li>Missing dependencies in Cargo.toml</li>
+<li>Doc tests failing</li>
+<li>Feature flags not configured</li>
+</ul>
+<p><strong>Solution</strong>: Fix the issue and publish a patch release.</p>
+<h2 id="summary"><a class="header" href="#summary">Summary</a></h2>
+<p>A complete release requires:</p>
+<ol>
+<li>✅ <strong>All quality gates pass</strong> (tests, clippy, format, shellcheck)</li>
+<li>✅ <strong>Documentation updated</strong> (CHANGELOG, README, book, version)</li>
+<li>✅ <strong>Git release created</strong> (commit, tag, push)</li>
+<li>✅ <strong>crates.io published</strong> (dry run, review, publish)</li>
+<li>✅ <strong>Verification complete</strong> (GitHub, crates.io, install, docs)</li>
+</ol>
+<p><strong>Remember</strong>: A release is NOT complete until it's available on crates.io. GitHub releases alone are insufficient for Rust projects.</p>
+<hr />
+<p><strong>Toyota Way Applied</strong>:</p>
+<ul>
+<li><strong>Jidoka</strong>: Build quality in - all tests must pass before release</li>
+<li><strong>Hansei</strong>: Reflect on release process after each release</li>
+<li><strong>Kaizen</strong>: Continuously improve release automation</li>
+<li><strong>Genchi Genbutsu</strong>: Verify release works for real users</li>
+</ul>
 
                     </main>
 

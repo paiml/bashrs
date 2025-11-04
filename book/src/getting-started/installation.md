@@ -21,7 +21,7 @@ bashrs --version
 You should see output like:
 
 ```text
-bashrs 6.0.0
+bashrs 6.30.1
 ```
 
 ## From Source
@@ -52,8 +52,8 @@ For now, use `cargo install bashrs`.
 #### Debian/Ubuntu (coming soon)
 
 ```bash
-# wget https://github.com/paiml/bashrs/releases/download/v6.0.0/bashrs_6.0.0_amd64.deb
-# sudo dpkg -i bashrs_6.0.0_amd64.deb
+# wget https://github.com/paiml/bashrs/releases/download/v6.30.1/bashrs_6.30.1_amd64.deb
+# sudo dpkg -i bashrs_6.30.1_amd64.deb
 ```
 
 #### Arch Linux (coming soon)

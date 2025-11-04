@@ -159,6 +159,702 @@
                 <div id="content" class="content">
                     <main>
                         <h1 id="linter-rules-reference"><a class="header" href="#linter-rules-reference">Linter Rules Reference</a></h1>
+<p>This chapter provides a complete reference for all linter rules in bashrs v6.31.0, including security rules, determinism rules, idempotency rules, config rules, Makefile rules, and ShellCheck integration.</p>
+<h2 id="table-of-contents"><a class="header" href="#table-of-contents">Table of Contents</a></h2>
+<ul>
+<li><a href="#rule-categories">Rule Categories</a></li>
+<li><a href="#security-rules-sec001-sec008">Security Rules (SEC001-SEC008)</a></li>
+<li><a href="#determinism-rules-det001-det003">Determinism Rules (DET001-DET003)</a></li>
+<li><a href="#idempotency-rules-idem001-idem003">Idempotency Rules (IDEM001-IDEM003)</a></li>
+<li><a href="#config-rules-config-001-to-config-003">Config Rules (CONFIG-001 to CONFIG-003)</a></li>
+<li><a href="#makefile-rules-make001-make020">Makefile Rules (MAKE001-MAKE020)</a></li>
+<li><a href="#shellcheck-integration">ShellCheck Integration</a></li>
+<li><a href="#rule-severity-levels">Rule Severity Levels</a></li>
+<li><a href="#auto-fix-capabilities">Auto-Fix Capabilities</a></li>
+<li><a href="#disabling-rules">Disabling Rules</a></li>
+<li><a href="#custom-rule-development">Custom Rule Development</a></li>
+</ul>
+<h2 id="rule-categories"><a class="header" href="#rule-categories">Rule Categories</a></h2>
+<p>bashrs organizes linter rules into several categories:</p>
+<div class="table-wrapper"><table><thead><tr><th>Category</th><th>Rule Prefix</th><th>Count</th><th>Purpose</th></tr></thead><tbody>
+<tr><td>Security</td><td>SEC</td><td>8</td><td>Detect security vulnerabilities</td></tr>
+<tr><td>Determinism</td><td>DET</td><td>3</td><td>Ensure predictable output</td></tr>
+<tr><td>Idempotency</td><td>IDEM</td><td>3</td><td>Ensure safe re-execution</td></tr>
+<tr><td>Config</td><td>CONFIG</td><td>3</td><td>Shell configuration analysis</td></tr>
+<tr><td>Makefile</td><td>MAKE</td><td>20</td><td>Makefile-specific issues</td></tr>
+<tr><td>ShellCheck</td><td>SC</td><td>324+</td><td>Shell script best practices</td></tr>
+</tbody></table>
+</div>
+<h2 id="security-rules-sec001-sec008"><a class="header" href="#security-rules-sec001-sec008">Security Rules (SEC001-SEC008)</a></h2>
+<p>Security rules detect critical vulnerabilities that could lead to command injection, information disclosure, or other security issues.</p>
+<h3 id="sec001-command-injection-via-eval"><a class="header" href="#sec001-command-injection-via-eval">SEC001: Command Injection via eval</a></h3>
+<p><strong>Severity:</strong> Error
+<strong>Auto-fix:</strong> No (manual review required)</p>
+<p>Detects <code>eval</code> usage with potentially user-controlled input, the #1 command injection vector.</p>
+<p><strong>Bad:</strong></p>
+<pre><code class="language-bash">eval "rm -rf $USER_INPUT"  # DANGEROUS
+eval "$CMD"                # DANGEROUS
+</code></pre>
+<p><strong>Good:</strong></p>
+<pre><code class="language-bash"><span class="boring"> Use arrays and proper quoting
+</span>cmd_array=("rm" "-rf" "$USER_INPUT")
+"${cmd_array[@]}"
+
+<span class="boring"> Or explicit validation
+</span>if [[ "$CMD" =~ ^[a-zA-Z0-9_-]+$ ]]; then
+    $CMD
+fi
+</code></pre>
+<p><strong>Why it matters:</strong> Attackers can inject arbitrary commands through shell metacharacters (<code>;</code>, <code>|</code>, <code>&amp;</code>, etc.).</p>
+<p><strong>Detection pattern:</strong> Searches for <code>eval</code> as a standalone command</p>
+<h3 id="sec002-unquoted-variable-in-command"><a class="header" href="#sec002-unquoted-variable-in-command">SEC002: Unquoted Variable in Command</a></h3>
+<p><strong>Severity:</strong> Error
+<strong>Auto-fix:</strong> Yes (safe)</p>
+<p>Detects unquoted variables in dangerous commands that could lead to command injection.</p>
+<p><strong>Dangerous commands checked:</strong></p>
+<ul>
+<li><code>curl</code>, <code>wget</code> (network)</li>
+<li><code>ssh</code>, <code>scp</code>, <code>rsync</code> (remote)</li>
+<li><code>git</code> (version control)</li>
+<li><code>docker</code>, <code>kubectl</code> (containers)</li>
+</ul>
+<p><strong>Bad:</strong></p>
+<pre><code class="language-bash">curl $URL           # Word splitting risk
+wget $FILE_PATH     # Injection risk
+ssh $HOST           # Command injection
+git clone $REPO     # Path traversal
+</code></pre>
+<p><strong>Good:</strong></p>
+<pre><code class="language-bash">curl "${URL}"
+wget "${FILE_PATH}"
+ssh "${HOST}"
+git clone "${REPO}"
+</code></pre>
+<p><strong>Auto-fix:</strong> Wraps variable in double quotes: <code>"${VAR}"</code></p>
+<h3 id="sec003-unquoted--in-find--exec"><a class="header" href="#sec003-unquoted--in-find--exec">SEC003: Unquoted {} in find -exec</a></h3>
+<p><strong>Severity:</strong> Error
+<strong>Auto-fix:</strong> Yes (safe)</p>
+<p>Detects unquoted <code>{}</code> placeholder in <code>find -exec</code> commands.</p>
+<p><strong>Bad:</strong></p>
+<pre><code class="language-bash">find . -name "*.sh" -exec chmod +x {} \;
+find /tmp -type f -exec rm {} \;
+</code></pre>
+<p><strong>Good:</strong></p>
+<pre><code class="language-bash">find . -name "*.sh" -exec chmod +x "{}" \;
+find /tmp -type f -exec rm "{}" \;
+</code></pre>
+<p><strong>Why it matters:</strong> Filenames with spaces or special characters will break without quotes.</p>
+<p><strong>Auto-fix:</strong> Changes <code>{}</code> to <code>"{}"</code></p>
+<h3 id="sec004-hardcoded-credentials"><a class="header" href="#sec004-hardcoded-credentials">SEC004: Hardcoded Credentials</a></h3>
+<p><strong>Severity:</strong> Error
+<strong>Auto-fix:</strong> No (manual review required)</p>
+<p>Detects potential hardcoded passwords, API keys, or tokens in scripts.</p>
+<p><strong>Bad:</strong></p>
+<pre><code class="language-bash">PASSWORD="MySecretPass123"
+API_KEY="sk-1234567890abcdef"
+TOKEN="ghp_xxxxxxxxxxxx"
+</code></pre>
+<p><strong>Good:</strong></p>
+<pre><code class="language-bash"><span class="boring"> Read from environment
+</span>PASSWORD="${DB_PASSWORD:?}"
+
+<span class="boring"> Read from secure file
+</span>PASSWORD=$(cat /run/secrets/db_password)
+
+<span class="boring"> Use credential manager
+</span>PASSWORD=$(vault kv get -field=password secret/db)
+</code></pre>
+<p><strong>Detection patterns:</strong></p>
+<ul>
+<li>Variables named <code>PASSWORD</code>, <code>SECRET</code>, <code>TOKEN</code>, <code>API_KEY</code></li>
+<li>Obvious credential assignment patterns</li>
+</ul>
+<h3 id="sec005-command-substitution-in-variables"><a class="header" href="#sec005-command-substitution-in-variables">SEC005: Command Substitution in Variables</a></h3>
+<p><strong>Severity:</strong> Warning
+<strong>Auto-fix:</strong> No (context-dependent)</p>
+<p>Detects potentially dangerous command substitution that could execute unintended commands.</p>
+<p><strong>Bad:</strong></p>
+<pre><code class="language-bash">FILE=$USER_INPUT
+cat $(echo $FILE)  # Command injection if FILE contains $(...)
+</code></pre>
+<p><strong>Good:</strong></p>
+<pre><code class="language-bash"><span class="boring"> Quote and validate
+</span>FILE="$USER_INPUT"
+if [[ -f "$FILE" ]]; then
+    cat "$FILE"
+fi
+</code></pre>
+<h3 id="sec006-predictable-temporary-files"><a class="header" href="#sec006-predictable-temporary-files">SEC006: Predictable Temporary Files</a></h3>
+<p><strong>Severity:</strong> Warning
+<strong>Auto-fix:</strong> Yes (suggests safer alternatives)</p>
+<p>Detects use of predictable temporary file names (race condition vulnerability).</p>
+<p><strong>Bad:</strong></p>
+<pre><code class="language-bash">TMP=/tmp/myapp.tmp        # Predictable
+TMP=/tmp/app-$$           # Process ID predictable
+TMP=/tmp/file-$RANDOM     # Not secure randomness
+</code></pre>
+<p><strong>Good:</strong></p>
+<pre><code class="language-bash">TMP=$(mktemp)                    # Secure
+TMP=$(mktemp -d)                # Secure directory
+TMP=$(mktemp /tmp/myapp.XXXXXX) # Template-based
+</code></pre>
+<p><strong>Auto-fix:</strong> Suggests using <code>mktemp</code> or <code>mktemp -d</code></p>
+<h3 id="sec007-world-writable-file-creation"><a class="header" href="#sec007-world-writable-file-creation">SEC007: World-Writable File Creation</a></h3>
+<p><strong>Severity:</strong> Error
+<strong>Auto-fix:</strong> No (must set appropriate permissions)</p>
+<p>Detects creation of world-writable files or directories (permission 777, 666).</p>
+<p><strong>Bad:</strong></p>
+<pre><code class="language-bash">chmod 777 /var/log/app.log  # Everyone can write
+mkdir -m 777 /tmp/shared    # Insecure directory
+</code></pre>
+<p><strong>Good:</strong></p>
+<pre><code class="language-bash">chmod 644 /var/log/app.log  # Owner write, others read
+chmod 755 /var/app          # Owner write, others execute
+mkdir -m 700 /tmp/private   # Owner only
+</code></pre>
+<h3 id="sec008-piping-curlwget-to-shell"><a class="header" href="#sec008-piping-curlwget-to-shell">SEC008: Piping curl/wget to Shell</a></h3>
+<p><strong>Severity:</strong> Error
+<strong>Auto-fix:</strong> No (manual review required)</p>
+<p>Detects EXTREMELY DANGEROUS pattern of piping curl/wget directly to shell execution.</p>
+<p><strong>Bad:</strong></p>
+<pre><code class="language-bash">curl https://install.sh | sh          # NEVER DO THIS
+wget -qO- https://get.sh | bash       # EXTREMELY DANGEROUS
+curl -sSL https://install.sh | sudo sh  # CRITICAL RISK
+</code></pre>
+<p><strong>Good:</strong></p>
+<pre><code class="language-bash"><span class="boring"> Download first, inspect, then execute
+</span>curl -o install.sh https://install.sh
+<span class="boring"> INSPECT install.sh for malicious code
+</span>cat install.sh  # Review the script
+chmod +x install.sh
+./install.sh
+</code></pre>
+<p><strong>Why it matters:</strong></p>
+<ul>
+<li>MITM attacks can inject malicious code</li>
+<li>No opportunity to review what's being executed</li>
+<li>Server compromise = instant system compromise</li>
+<li>Sudo escalation compounds the risk</li>
+</ul>
+<h2 id="determinism-rules-det001-det003"><a class="header" href="#determinism-rules-det001-det003">Determinism Rules (DET001-DET003)</a></h2>
+<p>Determinism rules ensure scripts produce predictable, reproducible output.</p>
+<h3 id="det001-non-deterministic-random-usage"><a class="header" href="#det001-non-deterministic-random-usage">DET001: Non-deterministic $RANDOM Usage</a></h3>
+<p><strong>Severity:</strong> Error
+<strong>Auto-fix:</strong> Suggests alternatives (unsafe)</p>
+<p>Detects <code>$RANDOM</code> which produces different output on each run.</p>
+<p><strong>Bad:</strong></p>
+<pre><code class="language-bash">SESSION_ID=$RANDOM
+FILE=output-$RANDOM.log
+</code></pre>
+<p><strong>Good:</strong></p>
+<pre><code class="language-bash"><span class="boring"> Use version/build identifier
+</span>SESSION_ID="session-${VERSION}"
+
+<span class="boring"> Use timestamp as argument
+</span>SESSION_ID="$1"
+
+<span class="boring"> Use hash of input
+</span>SESSION_ID=$(echo "$INPUT" | sha256sum | cut -c1-8)
+</code></pre>
+<p><strong>Auto-fix suggestions:</strong></p>
+<ol>
+<li>Use version/build ID</li>
+<li>Pass value as argument</li>
+<li>Use deterministic hash function</li>
+</ol>
+<h3 id="det002-non-deterministic-timestamp-usage"><a class="header" href="#det002-non-deterministic-timestamp-usage">DET002: Non-deterministic Timestamp Usage</a></h3>
+<p><strong>Severity:</strong> Error
+<strong>Auto-fix:</strong> Suggests alternatives (unsafe)</p>
+<p>Detects timestamp generation that varies between runs.</p>
+<p><strong>Bad:</strong></p>
+<pre><code class="language-bash">RELEASE="release-$(date +%s)"
+BACKUP="backup-$(date +%Y%m%d-%H%M%S)"
+</code></pre>
+<p><strong>Good:</strong></p>
+<pre><code class="language-bash"><span class="boring"> Use explicit version
+</span>RELEASE="release-${VERSION}"
+
+<span class="boring"> Pass timestamp as argument
+</span>RELEASE="release-$1"
+
+<span class="boring"> Use git commit hash
+</span>RELEASE="release-$(git rev-parse --short HEAD)"
+</code></pre>
+<p><strong>Detected patterns:</strong></p>
+<ul>
+<li><code>$(date +%s)</code> (Unix timestamp)</li>
+<li><code>$(date +%Y%m%d)</code> (date formatting)</li>
+<li><code>$EPOCHSECONDS</code> (bash 5.0+)</li>
+</ul>
+<h3 id="det003-non-deterministic-process-id"><a class="header" href="#det003-non-deterministic-process-id">DET003: Non-deterministic Process ID</a></h3>
+<p><strong>Severity:</strong> Error
+<strong>Auto-fix:</strong> Suggests alternatives (unsafe)</p>
+<p>Detects use of <code>$$</code> (process ID) which changes on every execution.</p>
+<p><strong>Bad:</strong></p>
+<pre><code class="language-bash">LOCKFILE=/tmp/app-$$.lock
+TMPDIR=/tmp/work-$$
+</code></pre>
+<p><strong>Good:</strong></p>
+<pre><code class="language-bash"><span class="boring"> Use mktemp for temporary files
+</span>LOCKFILE=$(mktemp /tmp/app.lock.XXXXXX)
+
+<span class="boring"> Use application-specific identifier
+</span>LOCKFILE=/var/run/app-${APP_NAME}.lock
+</code></pre>
+<h2 id="idempotency-rules-idem001-idem003"><a class="header" href="#idempotency-rules-idem001-idem003">Idempotency Rules (IDEM001-IDEM003)</a></h2>
+<p>Idempotency rules ensure scripts can be safely re-run without side effects.</p>
+<h3 id="idem001-non-idempotent-mkdir"><a class="header" href="#idem001-non-idempotent-mkdir">IDEM001: Non-idempotent mkdir</a></h3>
+<p><strong>Severity:</strong> Warning
+<strong>Auto-fix:</strong> Yes (safe with assumptions)</p>
+<p>Detects <code>mkdir</code> without <code>-p</code> flag (fails if directory exists).</p>
+<p><strong>Bad:</strong></p>
+<pre><code class="language-bash">mkdir /app/releases      # Fails on second run
+mkdir /var/log/myapp     # Non-idempotent
+</code></pre>
+<p><strong>Good:</strong></p>
+<pre><code class="language-bash">mkdir -p /app/releases   # Succeeds if exists
+mkdir -p /var/log/myapp  # Idempotent
+</code></pre>
+<p><strong>Auto-fix:</strong> Adds <code>-p</code> flag: <code>mkdir -p</code></p>
+<p><strong>Assumption:</strong> Directory creation failure is not critical</p>
+<h3 id="idem002-non-idempotent-ln"><a class="header" href="#idem002-non-idempotent-ln">IDEM002: Non-idempotent ln</a></h3>
+<p><strong>Severity:</strong> Warning
+<strong>Auto-fix:</strong> Yes (safe with assumptions)</p>
+<p>Detects <code>ln -s</code> without force flag (fails if symlink exists).</p>
+<p><strong>Bad:</strong></p>
+<pre><code class="language-bash">ln -s /app/releases/v1.0 /app/current  # Fails if exists
+</code></pre>
+<p><strong>Good:</strong></p>
+<pre><code class="language-bash">ln -sf /app/releases/v1.0 /app/current  # Overwrites if exists
+<span class="boring"> Or more explicit:
+</span>rm -f /app/current
+ln -s /app/releases/v1.0 /app/current
+</code></pre>
+<p><strong>Auto-fix:</strong> Adds <code>-f</code> flag: <code>ln -sf</code></p>
+<h3 id="idem003-non-idempotent-rm"><a class="header" href="#idem003-non-idempotent-rm">IDEM003: Non-idempotent rm</a></h3>
+<p><strong>Severity:</strong> Warning
+<strong>Auto-fix:</strong> Yes (safe)</p>
+<p>Detects <code>rm</code> without <code>-f</code> flag (may fail if file doesn't exist).</p>
+<p><strong>Bad:</strong></p>
+<pre><code class="language-bash">rm /tmp/lockfile          # Fails if not exists
+rm /var/run/app.pid       # Non-idempotent
+</code></pre>
+<p><strong>Good:</strong></p>
+<pre><code class="language-bash">rm -f /tmp/lockfile       # Succeeds if not exists
+rm -f /var/run/app.pid    # Idempotent
+</code></pre>
+<p><strong>Auto-fix:</strong> Adds <code>-f</code> flag: <code>rm -f</code></p>
+<h2 id="config-rules-config-001-to-config-003"><a class="header" href="#config-rules-config-001-to-config-003">Config Rules (CONFIG-001 to CONFIG-003)</a></h2>
+<p>Config rules analyze shell configuration files (.bashrc, .zshrc, etc.).</p>
+<h3 id="config-001-path-deduplication"><a class="header" href="#config-001-path-deduplication">CONFIG-001: PATH Deduplication</a></h3>
+<p><strong>Severity:</strong> Warning
+<strong>Auto-fix:</strong> Yes (safe)</p>
+<p>Detects duplicate entries in PATH variable.</p>
+<p><strong>Bad:</strong></p>
+<pre><code class="language-bash">export PATH="/usr/local/bin:$PATH"
+export PATH="/usr/local/bin:$PATH"  # Duplicate
+export PATH="$HOME/.local/bin:$PATH"
+export PATH="$HOME/.local/bin:$PATH"  # Duplicate
+</code></pre>
+<p><strong>Good:</strong></p>
+<pre><code class="language-bash"><span class="boring"> Use function to deduplicate
+</span>dedupe_path() {
+    echo "$PATH" | tr ':' '\n' | awk '!seen[$0]++' | tr '\n' ':'
+}
+export PATH=$(dedupe_path)
+
+<span class="boring"> Or add only if not present
+</span>case ":$PATH:" in
+    *:/usr/local/bin:*) ;;
+    *) export PATH="/usr/local/bin:$PATH" ;;
+esac
+</code></pre>
+<p><strong>Auto-fix:</strong> Removes duplicate PATH entries</p>
+<h3 id="config-002-quote-variables"><a class="header" href="#config-002-quote-variables">CONFIG-002: Quote Variables</a></h3>
+<p><strong>Severity:</strong> Warning
+<strong>Auto-fix:</strong> Yes (safe)</p>
+<p>Detects unquoted variables in config files.</p>
+<p><strong>Bad:</strong></p>
+<pre><code class="language-bash">export EDITOR=$HOME/bin/editor     # Word splitting
+alias ll=ls -la $HOME              # Unquoted
+</code></pre>
+<p><strong>Good:</strong></p>
+<pre><code class="language-bash">export EDITOR="$HOME/bin/editor"
+alias ll="ls -la $HOME"
+</code></pre>
+<p><strong>Auto-fix:</strong> Adds double quotes around variables</p>
+<h3 id="config-003-consolidate-aliases"><a class="header" href="#config-003-consolidate-aliases">CONFIG-003: Consolidate Aliases</a></h3>
+<p><strong>Severity:</strong> Style
+<strong>Auto-fix:</strong> Yes (safe)</p>
+<p>Detects duplicate alias definitions.</p>
+<p><strong>Bad:</strong></p>
+<pre><code class="language-bash">alias ll="ls -l"
+alias ll="ls -la"   # Overwrites previous
+alias gs="git status"
+alias gs="git status --short"  # Duplicate
+</code></pre>
+<p><strong>Good:</strong></p>
+<pre><code class="language-bash"><span class="boring"> Keep only the final definition
+</span>alias ll="ls -la"
+alias gs="git status --short"
+</code></pre>
+<p><strong>Auto-fix:</strong> Removes duplicate aliases, keeps last definition</p>
+<h2 id="makefile-rules-make001-make020"><a class="header" href="#makefile-rules-make001-make020">Makefile Rules (MAKE001-MAKE020)</a></h2>
+<p>Makefile-specific rules for build system issues.</p>
+<h3 id="make001-non-deterministic-wildcard"><a class="header" href="#make001-non-deterministic-wildcard">MAKE001: Non-deterministic Wildcard</a></h3>
+<p><strong>Severity:</strong> Warning
+<strong>Auto-fix:</strong> Yes (safe)</p>
+<p>Detects <code>$(wildcard ...)</code> without <code>$(sort ...)</code> (filesystem ordering varies).</p>
+<p><strong>Bad:</strong></p>
+<pre><code class="language-makefile">SOURCES = $(wildcard *.c)        # Non-deterministic order
+HEADERS = $(wildcard include/*.h)
+</code></pre>
+<p><strong>Good:</strong></p>
+<pre><code class="language-makefile">SOURCES = $(sort $(wildcard *.c))        # Deterministic
+HEADERS = $(sort $(wildcard include/*.h))
+</code></pre>
+<p><strong>Auto-fix:</strong> Wraps with <code>$(sort ...)</code></p>
+<h3 id="make002-unsafe-shell-variable"><a class="header" href="#make002-unsafe-shell-variable">MAKE002: Unsafe Shell Variable</a></h3>
+<p><strong>Severity:</strong> Warning
+<strong>Auto-fix:</strong> Yes (safe)</p>
+<p>Detects unquoted shell variables in Makefile recipes.</p>
+<p><strong>Bad:</strong></p>
+<pre><code class="language-makefile">build:
+\trm -rf $(OUTPUT)  # Make variable - OK
+\trm -rf $OUTPUT    # Shell variable - unquoted
+</code></pre>
+<p><strong>Good:</strong></p>
+<pre><code class="language-makefile">build:
+\trm -rf "$$OUTPUT"  # Quoted shell variable
+</code></pre>
+<h3 id="make008-tab-vs-spaces"><a class="header" href="#make008-tab-vs-spaces">MAKE008: Tab vs Spaces</a></h3>
+<p><strong>Severity:</strong> Error
+<strong>Auto-fix:</strong> Yes (CRITICAL)</p>
+<p>Detects spaces instead of tabs in recipe lines (causes Make errors).</p>
+<p><strong>Bad:</strong></p>
+<pre><code class="language-makefile">build:
+    echo "Building"  # Spaces instead of tab
+</code></pre>
+<p><strong>Good:</strong></p>
+<pre><code class="language-makefile">build:
+\techo "Building"  # Tab character
+</code></pre>
+<p><strong>Why it matters:</strong> Make REQUIRES tabs, not spaces. This is a syntax error.</p>
+<p><strong>Auto-fix:</strong> Converts leading spaces to tabs in recipe lines</p>
+<h3 id="additional-makefile-rules"><a class="header" href="#additional-makefile-rules">Additional Makefile Rules</a></h3>
+<p>bashrs implements 20 Makefile rules (MAKE001-MAKE020) covering:</p>
+<ul>
+<li>Determinism issues (wildcards, timestamps)</li>
+<li>Shell safety (quoting, escaping)</li>
+<li>Build correctness (tabs, dependencies)</li>
+<li>POSIX compliance</li>
+<li>Best practices (.PHONY targets, etc.)</li>
+</ul>
+<p>See <a href="../makefile/best-practices.html">Makefile Best Practices</a> for details.</p>
+<h2 id="shellcheck-integration"><a class="header" href="#shellcheck-integration">ShellCheck Integration</a></h2>
+<p>bashrs integrates 324+ ShellCheck rules for comprehensive shell script analysis.</p>
+<h3 id="critical-shellcheck-rules"><a class="header" href="#critical-shellcheck-rules">Critical ShellCheck Rules</a></h3>
+<h4 id="sc2086-quote-to-prevent-word-splitting"><a class="header" href="#sc2086-quote-to-prevent-word-splitting">SC2086: Quote to Prevent Word Splitting</a></h4>
+<p><strong>Severity:</strong> Error
+<strong>Auto-fix:</strong> Yes (safe)</p>
+<p>The MOST IMPORTANT rule - prevents word splitting and globbing.</p>
+<p><strong>Bad:</strong></p>
+<pre><code class="language-bash">rm $FILE            # If FILE="a b", removes "a" and "b"
+cp $SRC $DST        # Word splitting risk
+echo $PATH          # Glob expansion risk
+</code></pre>
+<p><strong>Good:</strong></p>
+<pre><code class="language-bash">rm "$FILE"          # Treats as single argument
+cp "$SRC" "$DST"    # Safe
+echo "$PATH"        # Quoted
+</code></pre>
+<p><strong>Impact:</strong> This single rule prevents the majority of shell scripting bugs.</p>
+<h4 id="sc2046-quote-to-prevent-word-splitting-in-"><a class="header" href="#sc2046-quote-to-prevent-word-splitting-in-">SC2046: Quote to Prevent Word Splitting in $()</a></h4>
+<p><strong>Severity:</strong> Error
+<strong>Auto-fix:</strong> Yes (safe)</p>
+<p>Similar to SC2086 but for command substitution.</p>
+<p><strong>Bad:</strong></p>
+<pre><code class="language-bash">rm $(find . -name "*.tmp")  # Breaks with spaces
+</code></pre>
+<p><strong>Good:</strong></p>
+<pre><code class="language-bash">find . -name "*.tmp" -delete  # Native find solution
+<span class="boring"> Or:
+</span>while IFS= read -r file; do
+    rm "$file"
+done &lt; &lt;(find . -name "*.tmp")
+</code></pre>
+<h4 id="sc2059-printf-format-injection"><a class="header" href="#sc2059-printf-format-injection">SC2059: Printf Format Injection</a></h4>
+<p><strong>Severity:</strong> Error
+<strong>Auto-fix:</strong> Yes (CRITICAL security)</p>
+<p>Prevents format string injection in printf.</p>
+<p><strong>Bad:</strong></p>
+<pre><code class="language-bash">printf "$USER_INPUT"    # Format injection
+printf "Error: $MSG\n"  # MSG could contain %s
+</code></pre>
+<p><strong>Good:</strong></p>
+<pre><code class="language-bash">printf '%s\n' "$USER_INPUT"  # Safe
+printf 'Error: %s\n' "$MSG"  # Explicit format
+</code></pre>
+<h4 id="sc2064-trap-quote-timing"><a class="header" href="#sc2064-trap-quote-timing">SC2064: Trap Quote Timing</a></h4>
+<p><strong>Severity:</strong> Error
+<strong>Auto-fix:</strong> Yes (CRITICAL bug)</p>
+<p>Ensures trap commands quote correctly to expand at trap time, not definition time.</p>
+<p><strong>Bad:</strong></p>
+<pre><code class="language-bash">trap "rm $TMPFILE" EXIT  # Expands NOW, not at exit
+</code></pre>
+<p><strong>Good:</strong></p>
+<pre><code class="language-bash">trap 'rm "$TMPFILE"' EXIT  # Expands at exit time
+</code></pre>
+<h3 id="shellcheck-rule-categories"><a class="header" href="#shellcheck-rule-categories">ShellCheck Rule Categories</a></h3>
+<p>bashrs implements ShellCheck rules across categories:</p>
+<div class="table-wrapper"><table><thead><tr><th>Category</th><th>Example Rules</th><th>Count</th></tr></thead><tbody>
+<tr><td>Quoting</td><td>SC2086, SC2046, SC2068</td><td>30+</td></tr>
+<tr><td>Variables</td><td>SC2034, SC2154, SC2155</td><td>25+</td></tr>
+<tr><td>Arrays</td><td>SC2198, SC2199, SC2200</td><td>15+</td></tr>
+<tr><td>Conditionals</td><td>SC2166, SC2181, SC2244</td><td>20+</td></tr>
+<tr><td>Loops</td><td>SC2044, SC2045, SC2162</td><td>15+</td></tr>
+<tr><td>Functions</td><td>SC2119, SC2120, SC2128</td><td>10+</td></tr>
+<tr><td>Redirects</td><td>SC2094, SC2095, SC2069</td><td>10+</td></tr>
+<tr><td>Security</td><td>SC2115, SC2164, SC2230</td><td>15+</td></tr>
+<tr><td>POSIX</td><td>SC2039, SC2169, SC2295</td><td>20+</td></tr>
+<tr><td>Deprecations</td><td>SC2006, SC2016, SC2027</td><td>10+</td></tr>
+</tbody></table>
+</div>
+<p><strong>Total:</strong> 324+ rules implemented (and growing)</p>
+<h3 id="shell-type-detection"><a class="header" href="#shell-type-detection">Shell Type Detection</a></h3>
+<p>bashrs automatically detects shell type and applies appropriate rules:</p>
+<p><strong>POSIX sh:</strong></p>
+<ul>
+<li>Skips bash-only rules (arrays, <code>[[</code>, etc.)</li>
+<li>Enforces strict POSIX compliance</li>
+<li>Warns about bashisms</li>
+</ul>
+<p><strong>Bash:</strong></p>
+<ul>
+<li>Enables bash-specific rules</li>
+<li>Checks array usage</li>
+<li>Validates bash 3.2+ features</li>
+</ul>
+<p><strong>Zsh:</strong></p>
+<ul>
+<li>Zsh-specific rules</li>
+<li>Array syntax differences</li>
+<li>Extended features</li>
+</ul>
+<p><strong>Detection methods:</strong></p>
+<ol>
+<li>Shebang (<code>#!/bin/bash</code>, <code>#!/bin/sh</code>)</li>
+<li>File extension (<code>.bash</code>, <code>.sh</code>)</li>
+<li>Filename pattern (<code>.bashrc</code>, <code>.zshrc</code>)</li>
+<li>Content analysis (bash-specific syntax)</li>
+</ol>
+<h2 id="rule-severity-levels"><a class="header" href="#rule-severity-levels">Rule Severity Levels</a></h2>
+<p>bashrs uses three severity levels:</p>
+<h3 id="error"><a class="header" href="#error">Error</a></h3>
+<p><strong>Impact:</strong> Blocks CI/CD, prevents deployment</p>
+<p><strong>Rules:</strong></p>
+<ul>
+<li>All security rules (SEC001-SEC008)</li>
+<li>All determinism rules (DET001-DET003)</li>
+<li>Critical ShellCheck rules (SC2086, SC2046, SC2059, SC2064)</li>
+</ul>
+<p><strong>Example:</strong></p>
+<pre><code class="language-bash">$ bashrs lint insecure.sh
+error[SEC001]: Command injection risk via eval
+  --&gt; insecure.sh:5:1
+</code></pre>
+<p><strong>Exit code:</strong> 3 (validation error)</p>
+<h3 id="warning"><a class="header" href="#warning">Warning</a></h3>
+<p><strong>Impact:</strong> Should be fixed, but not blocking</p>
+<p><strong>Rules:</strong></p>
+<ul>
+<li>Idempotency rules (IDEM001-IDEM003)</li>
+<li>Config rules (CONFIG-001 to CONFIG-003)</li>
+<li>Non-critical ShellCheck rules</li>
+</ul>
+<p><strong>Example:</strong></p>
+<pre><code class="language-bash">$ bashrs lint script.sh
+warning[IDEM001]: Non-idempotent mkdir - add -p flag
+  --&gt; script.sh:10:1
+</code></pre>
+<p><strong>Exit code:</strong> 0 (warnings don't fail by default)</p>
+<h3 id="style"><a class="header" href="#style">Style</a></h3>
+<p><strong>Impact:</strong> Cosmetic, best practices</p>
+<p><strong>Rules:</strong></p>
+<ul>
+<li>Code formatting</li>
+<li>Alias consolidation (CONFIG-003)</li>
+<li>Stylistic preferences</li>
+</ul>
+<p><strong>Example:</strong></p>
+<pre><code class="language-bash">$ bashrs lint config.sh
+style[CONFIG-003]: Consolidate duplicate aliases
+  --&gt; .bashrc:45:1
+</code></pre>
+<h2 id="auto-fix-capabilities"><a class="header" href="#auto-fix-capabilities">Auto-Fix Capabilities</a></h2>
+<p>bashrs provides three types of auto-fixes:</p>
+<h3 id="safe-auto-fix"><a class="header" href="#safe-auto-fix">Safe Auto-Fix</a></h3>
+<p><strong>Guaranteed safe</strong> - no semantic changes</p>
+<p><strong>Examples:</strong></p>
+<ul>
+<li>Adding quotes: <code>$VAR</code> → <code>"$VAR"</code></li>
+<li>Adding flags: <code>mkdir</code> → <code>mkdir -p</code></li>
+<li>Format strings: <code>printf "$msg"</code> → <code>printf '%s' "$msg"</code></li>
+</ul>
+<p><strong>Enable:</strong></p>
+<pre><code class="language-bash">bashrs lint --fix script.sh
+</code></pre>
+<p><strong>Config:</strong></p>
+<pre><code class="language-toml">[linter]
+auto_fix = true
+safe_auto_fix_only = true
+</code></pre>
+<h3 id="safe-with-assumptions"><a class="header" href="#safe-with-assumptions">Safe With Assumptions</a></h3>
+<p><strong>Safe if assumptions hold</strong> - documented assumptions</p>
+<p><strong>Examples:</strong></p>
+<ul>
+<li><code>mkdir -p</code> (assumes dir creation failure not critical)</li>
+<li><code>ln -sf</code> (assumes overwriting symlink is safe)</li>
+</ul>
+<p><strong>Assumptions documented</strong> in fix output</p>
+<h3 id="unsafe-manual-review-required"><a class="header" href="#unsafe-manual-review-required">Unsafe (Manual Review Required)</a></h3>
+<p><strong>Requires human judgment</strong> - provides suggestions only</p>
+<p><strong>Examples:</strong></p>
+<ul>
+<li><code>eval</code> removal (context-dependent)</li>
+<li><code>$RANDOM</code> replacement (depends on use case)</li>
+<li>Credential handling (requires architecture change)</li>
+</ul>
+<p><strong>Output:</strong></p>
+<pre><code class="language-bash">error[DET001]: Non-deterministic $RANDOM usage
+  Suggestions:
+    1. Use version ID: SESSION_ID="session-${VERSION}"
+    2. Pass as argument: SESSION_ID="$1"
+    3. Use hash: SESSION_ID=$(echo "$INPUT" | sha256sum)
+</code></pre>
+<h2 id="disabling-rules"><a class="header" href="#disabling-rules">Disabling Rules</a></h2>
+<h3 id="inline-comments"><a class="header" href="#inline-comments">Inline Comments</a></h3>
+<p>Disable specific rules on specific lines:</p>
+<pre><code class="language-bash"><span class="boring"> shellcheck disable=SC2086
+</span>rm $FILES  # Intentional word splitting
+
+<span class="boring"> bashrs-disable-next-line DET002
+</span>RELEASE="release-$(date +%s)"  # Timestamp needed here
+</code></pre>
+<h3 id="configuration-file"><a class="header" href="#configuration-file">Configuration File</a></h3>
+<p>Disable rules project-wide:</p>
+<pre><code class="language-toml"># bashrs.toml
+[linter]
+disabled_rules = [
+    "SC2034",   # Allow unused variables
+    "SC2154",   # Variables from sourced files
+    "DET002",   # Timestamps allowed in this project
+]
+</code></pre>
+<h3 id="environment-variable"><a class="header" href="#environment-variable">Environment Variable</a></h3>
+<p>Disable rules at runtime:</p>
+<pre><code class="language-bash">export BASHRS_DISABLE_RULES="SC2119,SC2120,DET002"
+bashrs lint script.sh
+</code></pre>
+<h3 id="cli-argument"><a class="header" href="#cli-argument">CLI Argument</a></h3>
+<p>Disable rules per invocation:</p>
+<pre><code class="language-bash">bashrs lint --disable SC2034,SC2154 script.sh
+</code></pre>
+<h2 id="custom-rule-development"><a class="header" href="#custom-rule-development">Custom Rule Development</a></h2>
+<p>bashrs supports custom rules through plugins (future feature).</p>
+<h3 id="rule-interface"><a class="header" href="#rule-interface">Rule Interface</a></h3>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub trait LintRule {
+    fn check(&amp;self, source: &amp;str) -&gt; LintResult;
+    fn code(&amp;self) -&gt; &amp;str;
+    fn severity(&amp;self) -&gt; Severity;
+    fn auto_fix(&amp;self) -&gt; Option&lt;Fix&gt;;
+}
+<span class="boring">}</span></code></pre></pre>
+<h3 id="example-custom-rule"><a class="header" href="#example-custom-rule">Example Custom Rule</a></h3>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub struct CustomRule001;
+
+impl LintRule for CustomRule001 {
+    fn check(&amp;self, source: &amp;str) -&gt; LintResult {
+        let mut result = LintResult::new();
+
+        for (line_num, line) in source.lines().enumerate() {
+            if line.contains("forbidden_pattern") {
+                let diag = Diagnostic::new(
+                    "CUSTOM001",
+                    Severity::Error,
+                    "Forbidden pattern detected",
+                    Span::new(line_num + 1, 1, line_num + 1, line.len()),
+                );
+                result.add(diag);
+            }
+        }
+
+        result
+    }
+
+    fn code(&amp;self) -&gt; &amp;str { "CUSTOM001" }
+    fn severity(&amp;self) -&gt; Severity { Severity::Error }
+    fn auto_fix(&amp;self) -&gt; Option&lt;Fix&gt; { None }
+}
+<span class="boring">}</span></code></pre></pre>
+<p><strong>Plugin location:</strong></p>
+<pre><code>~/.config/bashrs/plugins/custom_rules.so
+</code></pre>
+<p><strong>Load in config:</strong></p>
+<pre><code class="language-toml">[linter]
+plugins = ["custom_rules"]
+</code></pre>
+<h2 id="summary"><a class="header" href="#summary">Summary</a></h2>
+<p>bashrs provides comprehensive linting across 350+ rules:</p>
+<p><strong>Security (8 rules):</strong></p>
+<ul>
+<li>Command injection prevention</li>
+<li>Credential security</li>
+<li>File permission safety</li>
+</ul>
+<p><strong>Determinism (3 rules):</strong></p>
+<ul>
+<li>Reproducible output</li>
+<li>Predictable behavior</li>
+</ul>
+<p><strong>Idempotency (3 rules):</strong></p>
+<ul>
+<li>Safe re-execution</li>
+<li>No side effects</li>
+</ul>
+<p><strong>Config (3 rules):</strong></p>
+<ul>
+<li>Shell configuration best practices</li>
+</ul>
+<p><strong>Makefile (20 rules):</strong></p>
+<ul>
+<li>Build system correctness</li>
+</ul>
+<p><strong>ShellCheck (324+ rules):</strong></p>
+<ul>
+<li>Comprehensive shell script analysis</li>
+</ul>
+<p><strong>Key Features:</strong></p>
+<ol>
+<li>Auto-fix for 200+ rules</li>
+<li>Shell type detection</li>
+<li>Severity levels (Error, Warning, Style)</li>
+<li>Flexible rule disabling</li>
+<li>CI/CD integration</li>
+<li>Custom rule support (coming soon)</li>
+</ol>
+<p>For more information, see:</p>
+<ul>
+<li><a href="../linting/security.html">Security Rules Deep Dive</a></li>
+<li><a href="../linting/determinism.html">Determinism Rules</a></li>
+<li><a href="../linting/idempotency.html">Idempotency Rules</a></li>
+<li><a href="./configuration.html">Configuration Reference</a></li>
+<li><a href="./exit-codes.html">Exit Codes Reference</a></li>
+</ul>
 
                     </main>
 

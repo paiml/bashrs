@@ -325,4 +325,79 @@ mod tests {
         let diag = &result.diagnostics[0];
         assert!(diag.fix.is_none(), "SEC005 should not provide auto-fix");
     }
+
+    // ===== Mutation Coverage Tests - Following SEC001 pattern (100% kill rate) =====
+
+    #[test]
+    fn test_mutation_sec005_calculate_span_start_col_exact() {
+        // MUTATION: Line 70:9 - replace + with * in line_num + 1
+        // MUTATION: Line 71:9 - replace + with * in col + 1
+        let bash_code = r#"API_KEY="sk-1234567890abcdef""#;
+        let result = check(bash_code);
+        assert_eq!(result.diagnostics.len(), 1);
+        let span = result.diagnostics[0].span;
+        // API_KEY starts at column 1 (0-indexed), span should be col + 1
+        assert_eq!(
+            span.start_col, 1,
+            "Start column must use col + 1, not col * 1"
+        );
+    }
+
+    #[test]
+    fn test_mutation_sec005_calculate_span_line_num_exact() {
+        // MUTATION: Line 70:9 - replace + with * in line_num + 1
+        // Tests line number calculation for multiline input
+        let bash_code = "# comment\nAPI_KEY=\"sk-1234567890abcdef\"";
+        let result = check(bash_code);
+        assert_eq!(result.diagnostics.len(), 1);
+        // With +1: line 2
+        // With *1: line 0
+        assert_eq!(
+            result.diagnostics[0].span.start_line, 2,
+            "Line number must use +1, not *1"
+        );
+    }
+
+    #[test]
+    fn test_mutation_sec005_calculate_span_end_col_complex() {
+        // MUTATION: Line 73:9 - arithmetic mutations in line_len.min(col + pattern_len + 10)
+        // Tests end column calculation with min() function
+        let bash_code = r#"API_KEY="sk-123""#;
+        let result = check(bash_code);
+        assert_eq!(result.diagnostics.len(), 1);
+        let span = result.diagnostics[0].span;
+        // Verify end column is calculated correctly
+        // API_KEY is at column 0, pattern_len is 8 ("API_KEY="), +10 padding
+        // Should be min(line_len, col + pattern_len + 10)
+        assert!(
+            span.end_col > span.start_col,
+            "End column must be greater than start column"
+        );
+        assert!(
+            span.end_col <= bash_code.len(),
+            "End column must not exceed line length"
+        );
+    }
+
+    #[test]
+    fn test_mutation_sec005_column_with_leading_whitespace() {
+        // Tests column calculations with offset
+        let bash_code = r#"    SECRET="hardcoded""#;
+        let result = check(bash_code);
+        assert_eq!(result.diagnostics.len(), 1);
+        let span = result.diagnostics[0].span;
+        // SECRET starts at column 5 (4 spaces + 1)
+        assert_eq!(span.start_col, 5, "Must account for leading whitespace");
+    }
+
+    #[test]
+    fn test_mutation_sec005_multiple_patterns_first_detected() {
+        // Tests that column tracking works correctly when multiple patterns exist
+        let bash_code = r#"PASSWORD="pass123""#;
+        let result = check(bash_code);
+        assert_eq!(result.diagnostics.len(), 1);
+        let span = result.diagnostics[0].span;
+        // PASSWORD starts at column 1
+        assert_eq!(span.start_col, 1, "Should detect first pattern correctly");
+    }
 }

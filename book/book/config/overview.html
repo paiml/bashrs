@@ -158,7 +158,332 @@
 
                 <div id="content" class="content">
                     <main>
-                        <h1 id="overview"><a class="header" href="#overview">Overview</a></h1>
+                        <h1 id="configuration-file-management"><a class="header" href="#configuration-file-management">Configuration File Management</a></h1>
+<p><strong>Rash</strong> provides specialized support for analyzing and purifying shell configuration files like <code>.bashrc</code>, <code>.zshrc</code>, <code>.bash_profile</code>, and <code>.profile</code>. These files are critical infrastructure - they set up your shell environment for every new session.</p>
+<h2 id="why-config-file-management-matters"><a class="header" href="#why-config-file-management-matters">Why Config File Management Matters</a></h2>
+<p>Shell configuration files are:</p>
+<ul>
+<li><strong>Long-lived</strong>: Used for years, accumulating cruft</li>
+<li><strong>Critical</strong>: Errors break your shell sessions</li>
+<li><strong>Complex</strong>: Mix environment setup, PATH management, aliases, functions</li>
+<li><strong>Duplicated</strong>: Across multiple machines with inconsistencies</li>
+</ul>
+<p>Common problems in config files:</p>
+<ul>
+<li>PATH duplicates slowing down command lookup</li>
+<li>Non-deterministic environment variables</li>
+<li>Conflicting settings across machines</li>
+<li>Security vulnerabilities (unsafe eval, command injection)</li>
+<li>Broken symlinks and missing directories</li>
+</ul>
+<h2 id="what-rash-detects"><a class="header" href="#what-rash-detects">What Rash Detects</a></h2>
+<p>Rash analyzes config files for:</p>
+<h3 id="1-path-issues-config-001-config-002"><a class="header" href="#1-path-issues-config-001-config-002">1. PATH Issues (CONFIG-001, CONFIG-002)</a></h3>
+<ul>
+<li><strong>Duplicate PATH entries</strong>: Same directory added multiple times</li>
+<li><strong>Non-existent directories</strong>: PATH entries that don't exist</li>
+<li><strong>Order problems</strong>: Important paths shadowed by others</li>
+</ul>
+<h3 id="2-environment-variable-issues-config-003-config-004"><a class="header" href="#2-environment-variable-issues-config-003-config-004">2. Environment Variable Issues (CONFIG-003, CONFIG-004)</a></h3>
+<ul>
+<li><strong>Non-deterministic values</strong>: Using <code>$RANDOM</code>, timestamps, etc.</li>
+<li><strong>Conflicting definitions</strong>: Same variable set multiple times</li>
+<li><strong>Missing quotes</strong>: Variables with spaces unquoted</li>
+</ul>
+<h3 id="3-security-issues-sec001-sec008"><a class="header" href="#3-security-issues-sec001-sec008">3. Security Issues (SEC001-SEC008)</a></h3>
+<ul>
+<li><strong>Command injection</strong>: <code>eval</code> with user input</li>
+<li><strong>Insecure SSL</strong>: <code>curl -k</code>, <code>wget --no-check-certificate</code></li>
+<li><strong>Printf injection</strong>: Unquoted format strings</li>
+<li><strong>Unsafe symlinks</strong>: <code>ln -s</code> without cleanup</li>
+</ul>
+<h3 id="4-idempotency-issues-idem001-idem006"><a class="header" href="#4-idempotency-issues-idem001-idem006">4. Idempotency Issues (IDEM001-IDEM006)</a></h3>
+<ul>
+<li><strong>Non-idempotent operations</strong>: Commands that fail on re-source</li>
+<li><strong>Append-only operations</strong>: Growing arrays/PATH on each source</li>
+<li><strong>Missing guards</strong>: No checks for existing values</li>
+</ul>
+<h2 id="supported-config-files"><a class="header" href="#supported-config-files">Supported Config Files</a></h2>
+<div class="table-wrapper"><table><thead><tr><th>File</th><th>Shell</th><th>When Loaded</th><th>Purpose</th></tr></thead><tbody>
+<tr><td><code>.bashrc</code></td><td>bash</td><td>Interactive non-login</td><td>Aliases, functions, prompt</td></tr>
+<tr><td><code>.bash_profile</code></td><td>bash</td><td>Login shell</td><td>Environment, PATH, startup</td></tr>
+<tr><td><code>.profile</code></td><td>sh, bash</td><td>Login shell (POSIX)</td><td>Universal environment setup</td></tr>
+<tr><td><code>.zshrc</code></td><td>zsh</td><td>Interactive</td><td>Zsh-specific configuration</td></tr>
+<tr><td><code>.zshenv</code></td><td>zsh</td><td>All sessions</td><td>Zsh environment variables</td></tr>
+</tbody></table>
+</div>
+<h2 id="quick-start-analyzing-your-config"><a class="header" href="#quick-start-analyzing-your-config">Quick Start: Analyzing Your Config</a></h2>
+<h3 id="step-1-lint-your-bashrc"><a class="header" href="#step-1-lint-your-bashrc">Step 1: Lint Your .bashrc</a></h3>
+<pre><code class="language-bash">bashrs lint ~/.bashrc
+</code></pre>
+<p><strong>Example Output</strong>:</p>
+<pre><code>/home/user/.bashrc:15:1: CONFIG-001 [Warning] Duplicate PATH entry
+  export PATH="/usr/local/bin:$PATH"
+  Note: /usr/local/bin already in PATH
+
+/home/user/.bashrc:42:1: CONFIG-002 [Warning] Non-existent PATH entry
+  export PATH="/opt/custom/bin:$PATH"
+  Note: /opt/custom/bin does not exist
+
+/home/user/.bashrc:58:1: SEC001 [Error] Command injection via eval
+  eval $(some_command)
+  Fix: Use source or direct execution instead
+
+3 issues found (1 error, 2 warnings)
+</code></pre>
+<h3 id="step-2-review-issues"><a class="header" href="#step-2-review-issues">Step 2: Review Issues</a></h3>
+<p>Each issue shows:</p>
+<ul>
+<li><strong>Location</strong>: Line number and column</li>
+<li><strong>Rule ID</strong>: CONFIG-001, SEC001, etc.</li>
+<li><strong>Severity</strong>: Error or Warning</li>
+<li><strong>Description</strong>: What the problem is</li>
+<li><strong>Fix suggestion</strong>: How to resolve it</li>
+</ul>
+<h3 id="step-3-apply-fixes"><a class="header" href="#step-3-apply-fixes">Step 3: Apply Fixes</a></h3>
+<p>For manual fixes:</p>
+<pre><code class="language-bash"><span class="boring"> Edit your config file
+</span>vim ~/.bashrc
+
+<span class="boring"> Test the changes
+</span>source ~/.bashrc
+
+<span class="boring"> Verify issues are resolved
+</span>bashrs lint ~/.bashrc
+</code></pre>
+<p>For automatic fixes (when available):</p>
+<pre><code class="language-bash">bashrs purify ~/.bashrc -o ~/.bashrc.purified
+diff ~/.bashrc ~/.bashrc.purified
+</code></pre>
+<h2 id="common-patterns-and-solutions"><a class="header" href="#common-patterns-and-solutions">Common Patterns and Solutions</a></h2>
+<h3 id="pattern-1-duplicate-path-entries"><a class="header" href="#pattern-1-duplicate-path-entries">Pattern 1: Duplicate PATH Entries</a></h3>
+<p><strong>Problem</strong>:</p>
+<pre><code class="language-bash"><span class="boring"> .bashrc sourced multiple times adds duplicates
+</span>export PATH="/usr/local/bin:$PATH"
+export PATH="/usr/local/bin:$PATH"  # Added again
+</code></pre>
+<p><strong>Solution</strong>:</p>
+<pre><code class="language-bash"><span class="boring"> Guard against duplicates
+</span>if [[ ":$PATH:" != *":/usr/local/bin:"* ]]; then
+    export PATH="/usr/local/bin:$PATH"
+fi
+</code></pre>
+<h3 id="pattern-2-non-existent-directories"><a class="header" href="#pattern-2-non-existent-directories">Pattern 2: Non-Existent Directories</a></h3>
+<p><strong>Problem</strong>:</p>
+<pre><code class="language-bash"><span class="boring"> Adds directory that doesn't exist
+</span>export PATH="/opt/custom/bin:$PATH"
+</code></pre>
+<p><strong>Solution</strong>:</p>
+<pre><code class="language-bash"><span class="boring"> Check existence before adding
+</span>if [ -d "/opt/custom/bin" ]; then
+    export PATH="/opt/custom/bin:$PATH"
+fi
+</code></pre>
+<h3 id="pattern-3-non-idempotent-sourcing"><a class="header" href="#pattern-3-non-idempotent-sourcing">Pattern 3: Non-Idempotent Sourcing</a></h3>
+<p><strong>Problem</strong>:</p>
+<pre><code class="language-bash"><span class="boring"> Appends every time .bashrc is sourced
+</span>PATH="$PATH:/new/dir"
+</code></pre>
+<p><strong>Solution</strong>:</p>
+<pre><code class="language-bash"><span class="boring"> Idempotent: only add if not present
+</span>case ":$PATH:" in
+    *":/new/dir:"*) ;;
+    *) PATH="$PATH:/new/dir" ;;
+esac
+export PATH
+</code></pre>
+<h3 id="pattern-4-secure-environment-setup"><a class="header" href="#pattern-4-secure-environment-setup">Pattern 4: Secure Environment Setup</a></h3>
+<p><strong>Problem</strong>:</p>
+<pre><code class="language-bash"><span class="boring"> Dangerous: executes untrusted code
+</span>eval $(ssh-agent)
+</code></pre>
+<p><strong>Solution</strong>:</p>
+<pre><code class="language-bash"><span class="boring"> Safer: capture specific variables
+</span>if command -v ssh-agent &gt;/dev/null; then
+    SSH_AUTH_SOCK=$(ssh-agent | grep SSH_AUTH_SOCK | cut -d';' -f1 | cut -d'=' -f2)
+    export SSH_AUTH_SOCK
+fi
+</code></pre>
+<h2 id="advanced-multi-machine-config-management"><a class="header" href="#advanced-multi-machine-config-management">Advanced: Multi-Machine Config Management</a></h2>
+<h3 id="strategy-1-host-specific-sections"><a class="header" href="#strategy-1-host-specific-sections">Strategy 1: Host-Specific Sections</a></h3>
+<pre><code class="language-bash"><span class="boring"> .bashrc - universal settings
+</span>export EDITOR=vim
+
+<span class="boring"> Host-specific configuration
+</span>case "$(hostname)" in
+    dev-laptop)
+        export PATH="/home/user/local/bin:$PATH"
+        ;;
+    prod-server)
+        export PATH="/opt/production/bin:$PATH"
+        ;;
+esac
+</code></pre>
+<h3 id="strategy-2-modular-configuration"><a class="header" href="#strategy-2-modular-configuration">Strategy 2: Modular Configuration</a></h3>
+<pre><code class="language-bash"><span class="boring"> .bashrc - main file
+</span>for config in ~/.bashrc.d/*.sh; do
+    if [ -r "$config" ]; then
+        source "$config"
+    fi
+done
+</code></pre>
+<h3 id="strategy-3-version-control"><a class="header" href="#strategy-3-version-control">Strategy 3: Version Control</a></h3>
+<pre><code class="language-bash"><span class="boring"> Keep configs in git
+</span>cd ~
+git init
+git add .bashrc .bash_profile .profile
+git commit -m "Initial config"
+
+<span class="boring"> Lint before committing
+</span>bashrs lint .bashrc &amp;&amp; git commit -m "Update config"
+</code></pre>
+<h2 id="integration-with-shell-workflow"><a class="header" href="#integration-with-shell-workflow">Integration with Shell Workflow</a></h2>
+<h3 id="pre-commit-hook"><a class="header" href="#pre-commit-hook">Pre-Commit Hook</a></h3>
+<pre><code class="language-bash"><span class="boring">!/bin/sh
+</span><span class="boring"> .git/hooks/pre-commit
+</span>
+<span class="boring"> Lint shell configs before committing
+</span>for file in .bashrc .bash_profile .profile .zshrc; do
+    if git diff --cached --name-only | grep -q "^$file$"; then
+        echo "Linting $file..."
+        if ! bashrs lint "$file"; then
+            echo "ERROR: $file has linting issues"
+            exit 1
+        fi
+    fi
+done
+</code></pre>
+<h3 id="cicd-validation"><a class="header" href="#cicd-validation">CI/CD Validation</a></h3>
+<pre><code class="language-yaml"># .github/workflows/config-lint.yml
+name: Config Lint
+on: [push, pull_request]
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Install Rash
+        run: cargo install bashrs
+      - name: Lint Configs
+        run: |
+          bashrs lint .bashrc
+          bashrs lint .bash_profile
+</code></pre>
+<h2 id="comparison-with-other-tools"><a class="header" href="#comparison-with-other-tools">Comparison with Other Tools</a></h2>
+<div class="table-wrapper"><table><thead><tr><th>Feature</th><th>Rash</th><th>ShellCheck</th><th>Bash-it</th><th>Oh-My-Zsh</th></tr></thead><tbody>
+<tr><td><strong>PATH Analysis</strong></td><td>✅ Duplicates, missing dirs</td><td>❌ No</td><td>❌ No</td><td>❌ No</td></tr>
+<tr><td><strong>Security Linting</strong></td><td>✅ 8 SEC rules</td><td>⚠️ Basic</td><td>❌ No</td><td>❌ No</td></tr>
+<tr><td><strong>Idempotency</strong></td><td>✅ Full support</td><td>❌ No</td><td>❌ No</td><td>❌ No</td></tr>
+<tr><td><strong>Multi-shell</strong></td><td>✅ bash, zsh, sh</td><td>✅ Yes</td><td>❌ Bash only</td><td>❌ Zsh only</td></tr>
+<tr><td><strong>Auto-fix</strong></td><td>✅ Purification</td><td>❌ No</td><td>❌ No</td><td>❌ No</td></tr>
+</tbody></table>
+</div>
+<h2 id="best-practices"><a class="header" href="#best-practices">Best Practices</a></h2>
+<h3 id="1-regular-linting"><a class="header" href="#1-regular-linting">1. Regular Linting</a></h3>
+<pre><code class="language-bash"><span class="boring"> Add to weekly cron
+</span>0 9 * * 1 bashrs lint ~/.bashrc | mail -s "Config Lint Report" you@example.com
+</code></pre>
+<h3 id="2-test-changes-safely"><a class="header" href="#2-test-changes-safely">2. Test Changes Safely</a></h3>
+<pre><code class="language-bash"><span class="boring"> Test in new shell before sourcing
+</span>bash --noprofile --norc
+source ~/.bashrc.new
+<span class="boring"> Verify everything works
+</span>exit
+
+<span class="boring"> Only then replace original
+</span>mv ~/.bashrc.new ~/.bashrc
+</code></pre>
+<h3 id="3-backup-before-changes"><a class="header" href="#3-backup-before-changes">3. Backup Before Changes</a></h3>
+<pre><code class="language-bash"><span class="boring"> Always backup
+</span>cp ~/.bashrc ~/.bashrc.backup.$(date +%Y%m%d)
+
+<span class="boring"> Apply changes
+</span>bashrs purify ~/.bashrc -o ~/.bashrc.new
+
+<span class="boring"> Test and swap
+</span>bash -c "source ~/.bashrc.new" &amp;&amp; mv ~/.bashrc.new ~/.bashrc
+</code></pre>
+<h3 id="4-version-control"><a class="header" href="#4-version-control">4. Version Control</a></h3>
+<pre><code class="language-bash"><span class="boring"> Keep history
+</span>cd ~
+git init
+git add .bashrc .bash_profile .zshrc
+git commit -m "Baseline config"
+
+<span class="boring"> Track changes
+</span>git diff .bashrc  # See what changed
+git log .bashrc   # See history
+</code></pre>
+<h3 id="5-document-non-standard-paths"><a class="header" href="#5-document-non-standard-paths">5. Document Non-Standard Paths</a></h3>
+<pre><code class="language-bash"><span class="boring"> .bashrc - document why paths are added
+</span><span class="boring"> pyenv: Python version management
+</span>export PATH="$HOME/.pyenv/bin:$PATH"
+
+<span class="boring"> Homebrew: macOS package manager
+</span>export PATH="/opt/homebrew/bin:$PATH"
+
+<span class="boring"> Local binaries: custom scripts
+</span>export PATH="$HOME/bin:$PATH"
+</code></pre>
+<h2 id="troubleshooting"><a class="header" href="#troubleshooting">Troubleshooting</a></h2>
+<h3 id="issue-command-not-found-after-linting"><a class="header" href="#issue-command-not-found-after-linting">Issue: "Command not found" after linting</a></h3>
+<p><strong>Cause</strong>: PATH was incorrectly modified</p>
+<p><strong>Solution</strong>:</p>
+<pre><code class="language-bash"><span class="boring"> Restore backup
+</span>cp ~/.bashrc.backup.YYYYMMDD ~/.bashrc
+source ~/.bashrc
+
+<span class="boring"> Re-apply changes carefully
+</span>bashrs lint ~/.bashrc --fix-one-by-one
+</code></pre>
+<h3 id="issue-slow-shell-startup"><a class="header" href="#issue-slow-shell-startup">Issue: Slow shell startup</a></h3>
+<p><strong>Cause</strong>: Too many PATH entries, slow commands in config</p>
+<p><strong>Solution</strong>:</p>
+<pre><code class="language-bash"><span class="boring"> Profile your config
+</span>bash -x -i -c exit 2&gt;&amp;1 | less
+
+<span class="boring"> Remove duplicate PATH entries
+</span>bashrs lint ~/.bashrc | grep CONFIG-001
+
+<span class="boring"> Move slow commands to background or login-only
+</span></code></pre>
+<h3 id="issue-config-works-on-one-machine-breaks-on-another"><a class="header" href="#issue-config-works-on-one-machine-breaks-on-another">Issue: Config works on one machine, breaks on another</a></h3>
+<p><strong>Cause</strong>: Host-specific paths or commands</p>
+<p><strong>Solution</strong>:</p>
+<pre><code class="language-bash"><span class="boring"> Add guards for host-specific sections
+</span>if [ "$(hostname)" = "dev-laptop" ]; then
+    export PATH="/home/user/custom:$PATH"
+fi
+
+<span class="boring"> Check command existence before using
+</span>if command -v pyenv &gt;/dev/null; then
+    eval "$(pyenv init -)"
+fi
+</code></pre>
+<h2 id="examples"><a class="header" href="#examples">Examples</a></h2>
+<p>See detailed examples:</p>
+<ul>
+<li><a href="./examples/bashrc.html">.bashrc Purification</a></li>
+<li><a href="./examples/zshrc.html">.zshrc Analysis</a></li>
+<li><a href="./examples/multi-machine.html">Multi-Machine Setup</a></li>
+</ul>
+<h2 id="rules-reference"><a class="header" href="#rules-reference">Rules Reference</a></h2>
+<p>See complete rule documentation:</p>
+<ul>
+<li><a href="./rules/config-001.html">CONFIG-001: Duplicate PATH Entry</a></li>
+<li><a href="./rules/config-002.html">CONFIG-002: Non-Existent PATH Entry</a></li>
+<li><a href="./rules/config-003.html">CONFIG-003: Non-Deterministic Environment Variable</a></li>
+<li><a href="./rules/config-004.html">CONFIG-004: Conflicting Environment Variable</a></li>
+</ul>
+<h2 id="next-steps"><a class="header" href="#next-steps">Next Steps</a></h2>
+<ul>
+<li><strong>Analyze</strong>: Run <code>bashrs lint</code> on your config files</li>
+<li><strong>Learn</strong>: Read about <a href="./rules/config-001.html">CONFIG rules</a></li>
+<li><strong>Practice</strong>: Try <a href="./purifying.html">purifying</a> a backup of your config</li>
+<li><strong>Integrate</strong>: Set up <a href="./analyzing.html#cicd-integration">CI/CD validation</a></li>
+</ul>
+<hr />
+<p><strong>Remember</strong>: Your shell config files are critical infrastructure. Treat them with the same care as production code - version control, testing, and linting are essential for reliability.</p>
 
                     </main>
 

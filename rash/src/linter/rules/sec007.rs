@@ -120,4 +120,63 @@ mod tests {
         let diag = &result.diagnostics[0];
         assert!(diag.fix.is_none(), "SEC007 should not provide auto-fix");
     }
+
+    // ===== Mutation Coverage Tests - Following SEC001 pattern (100% kill rate) =====
+
+    #[test]
+    fn test_mutation_sec007_sudo_start_col_exact() {
+        // MUTATION: Line 47:33 - replace + with * in line_num + 1
+        // MUTATION: Line 48:33 - replace + with * in col + 1
+        let bash_code = "sudo rm -rf $DIR";
+        let result = check(bash_code);
+        assert_eq!(result.diagnostics.len(), 1);
+        let span = result.diagnostics[0].span;
+        // "sudo" starts at column 1 (0-indexed)
+        assert_eq!(
+            span.start_col, 1,
+            "Start column must use col + 1, not col * 1"
+        );
+    }
+
+    #[test]
+    fn test_mutation_sec007_sudo_end_col_exact() {
+        // MUTATION: Line 50:33 - replace + with * in col + 5
+        // MUTATION: Line 50:33 - replace + with - in col + 5
+        let bash_code = "sudo rm -rf $DIR";
+        let result = check(bash_code);
+        assert_eq!(result.diagnostics.len(), 1);
+        let span = result.diagnostics[0].span;
+        // "sudo" is 4 chars, ends at col + 5
+        assert_eq!(
+            span.end_col, 5,
+            "End column must be col + 5, not col * 5 or col - 5"
+        );
+    }
+
+    #[test]
+    fn test_mutation_sec007_line_num_calculation() {
+        // MUTATION: Line 47:33 - replace + with * in line_num + 1
+        // Tests line number calculation for multiline input
+        let bash_code = "# comment\nsudo chmod 777 $FILE";
+        let result = check(bash_code);
+        assert_eq!(result.diagnostics.len(), 1);
+        // With +1: line 2
+        // With *1: line 0
+        assert_eq!(
+            result.diagnostics[0].span.start_line, 2,
+            "Line number must use +1, not *1"
+        );
+    }
+
+    #[test]
+    fn test_mutation_sec007_column_with_leading_whitespace() {
+        // Tests column calculations with offset
+        let bash_code = "    sudo chown -R $USER";
+        let result = check(bash_code);
+        assert_eq!(result.diagnostics.len(), 1);
+        let span = result.diagnostics[0].span;
+        // "sudo" starts after leading whitespace (4 spaces + 1)
+        assert_eq!(span.start_col, 5, "Must account for leading whitespace");
+        assert_eq!(span.end_col, 9, "End must be start + 4 (sudo length)");
+    }
 }

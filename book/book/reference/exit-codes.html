@@ -159,6 +159,719 @@
                 <div id="content" class="content">
                     <main>
                         <h1 id="exit-codes"><a class="header" href="#exit-codes">Exit Codes</a></h1>
+<p>This chapter provides a complete reference for bashrs v6.31.0 exit codes, their meanings, and how to handle them in scripts and CI/CD pipelines.</p>
+<h2 id="table-of-contents"><a class="header" href="#table-of-contents">Table of Contents</a></h2>
+<ul>
+<li><a href="#exit-code-reference">Exit Code Reference</a></li>
+<li><a href="#success-codes">Success Codes</a></li>
+<li><a href="#error-codes">Error Codes</a></li>
+<li><a href="#using-exit-codes-in-scripts">Using Exit Codes in Scripts</a></li>
+<li><a href="#cicd-integration">CI/CD Integration</a></li>
+<li><a href="#exit-code-ranges">Exit Code Ranges</a></li>
+<li><a href="#best-practices">Best Practices</a></li>
+</ul>
+<h2 id="exit-code-reference"><a class="header" href="#exit-code-reference">Exit Code Reference</a></h2>
+<p>bashrs follows standard Unix conventions for exit codes:</p>
+<div class="table-wrapper"><table><thead><tr><th>Exit Code</th><th>Category</th><th>Meaning</th><th>Common Causes</th></tr></thead><tbody>
+<tr><td>0</td><td>Success</td><td>Operation completed successfully</td><td>All checks passed, no errors</td></tr>
+<tr><td>1</td><td>General Error</td><td>Generic failure</td><td>Command execution failed, invalid arguments</td></tr>
+<tr><td>2</td><td>Parse Error</td><td>Failed to parse input</td><td>Syntax errors in shell scripts</td></tr>
+<tr><td>3</td><td>Validation Error</td><td>Validation checks failed</td><td>Linter rules violated, ShellCheck errors</td></tr>
+<tr><td>4</td><td>Configuration Error</td><td>Invalid configuration</td><td>Bad bashrs.toml, invalid options</td></tr>
+<tr><td>5</td><td>I/O Error</td><td>File system or I/O failure</td><td>Cannot read/write files, permission denied</td></tr>
+<tr><td>6</td><td>Not Implemented</td><td>Feature not yet implemented</td><td>Unsupported operation</td></tr>
+<tr><td>7</td><td>Dependency Error</td><td>Missing dependencies</td><td>External tools not found</td></tr>
+<tr><td>64</td><td>Command Line Error</td><td>Invalid command line usage</td><td>Missing required arguments, bad flags</td></tr>
+<tr><td>65</td><td>Input Data Error</td><td>Invalid input data</td><td>Malformed input files</td></tr>
+<tr><td>66</td><td>Cannot Open Input</td><td>Cannot open input file</td><td>File not found, no read permission</td></tr>
+<tr><td>67</td><td>User Does Not Exist</td><td>Invalid user reference</td><td>User lookup failed (rare)</td></tr>
+<tr><td>68</td><td>Host Does Not Exist</td><td>Invalid host reference</td><td>Host lookup failed (rare)</td></tr>
+<tr><td>69</td><td>Service Unavailable</td><td>Service temporarily unavailable</td><td>Network issues, rate limiting</td></tr>
+<tr><td>70</td><td>Internal Software Error</td><td>Internal error in bashrs</td><td>Bug in bashrs (please report)</td></tr>
+<tr><td>71</td><td>System Error</td><td>Operating system error</td><td>OS-level failure</td></tr>
+<tr><td>72</td><td>Critical OS File Missing</td><td>Required OS file missing</td><td>Missing system files</td></tr>
+<tr><td>73</td><td>Cannot Create Output</td><td>Cannot create output file</td><td>No write permission, disk full</td></tr>
+<tr><td>74</td><td>I/O Error</td><td>Input/output error</td><td>Read/write failed</td></tr>
+<tr><td>75</td><td>Temporary Failure</td><td>Temporary failure</td><td>Retry may succeed</td></tr>
+<tr><td>76</td><td>Protocol Error</td><td>Protocol error</td><td>Network protocol issue</td></tr>
+<tr><td>77</td><td>Permission Denied</td><td>Insufficient permissions</td><td>No access to required resources</td></tr>
+<tr><td>78</td><td>Configuration Error</td><td>Configuration error</td><td>Invalid configuration file</td></tr>
+</tbody></table>
+</div>
+<h2 id="success-codes"><a class="header" href="#success-codes">Success Codes</a></h2>
+<h3 id="exit-code-0-success"><a class="header" href="#exit-code-0-success">Exit Code 0: Success</a></h3>
+<p><strong>Meaning:</strong> Operation completed successfully with no errors or warnings.</p>
+<p><strong>When returned:</strong></p>
+<ul>
+<li>All linter checks passed</li>
+<li>Purification completed successfully</li>
+<li>Parsing succeeded</li>
+<li>Validation passed</li>
+</ul>
+<p><strong>Examples:</strong></p>
+<pre><code class="language-bash">$ bashrs lint clean-script.sh
+$ echo $?
+0
+</code></pre>
+<pre><code class="language-bash">$ bashrs purify script.sh -o purified.sh
+Purified script written to purified.sh
+$ echo $?
+0
+</code></pre>
+<p><strong>CI/CD Usage:</strong></p>
+<pre><code class="language-bash"><span class="boring">!/bin/bash
+</span>if bashrs lint scripts/*.sh; then
+    echo "All scripts passed linting"
+<span class="boring">     Continue deployment
+</span>else
+    echo "Linting failed"
+    exit 1
+fi
+</code></pre>
+<h2 id="error-codes"><a class="header" href="#error-codes">Error Codes</a></h2>
+<h3 id="exit-code-1-general-error"><a class="header" href="#exit-code-1-general-error">Exit Code 1: General Error</a></h3>
+<p><strong>Meaning:</strong> Generic failure not covered by more specific error codes.</p>
+<p><strong>Common Causes:</strong></p>
+<ul>
+<li>Command execution failed</li>
+<li>Unknown error occurred</li>
+<li>General validation failure</li>
+</ul>
+<p><strong>Examples:</strong></p>
+<pre><code class="language-bash">$ bashrs nonexistent-command
+error: 'nonexistent-command' is not a bashrs command
+$ echo $?
+1
+</code></pre>
+<pre><code class="language-bash">$ bashrs purify /nonexistent/script.sh
+error: Failed to read file: No such file or directory
+$ echo $?
+1
+</code></pre>
+<p><strong>Handling:</strong></p>
+<pre><code class="language-bash"><span class="boring">!/bin/bash
+</span>if ! bashrs purify script.sh; then
+    echo "Purification failed with exit code $?"
+    exit 1
+fi
+</code></pre>
+<h3 id="exit-code-2-parse-error"><a class="header" href="#exit-code-2-parse-error">Exit Code 2: Parse Error</a></h3>
+<p><strong>Meaning:</strong> Failed to parse input file (syntax errors).</p>
+<p><strong>Common Causes:</strong></p>
+<ul>
+<li>Bash syntax errors</li>
+<li>Unclosed quotes</li>
+<li>Mismatched braces</li>
+<li>Invalid command structure</li>
+</ul>
+<p><strong>Examples:</strong></p>
+<pre><code class="language-bash">$ cat bad-script.sh
+<span class="boring">!/bin/bash
+</span>if [ "$x" = "foo"  # Missing closing bracket
+    echo "bar"
+fi
+
+$ bashrs lint bad-script.sh
+error: Parse error at line 2: Unexpected end of file
+$ echo $?
+2
+</code></pre>
+<p><strong>Handling:</strong></p>
+<pre><code class="language-bash"><span class="boring">!/bin/bash
+</span>bashrs lint script.sh
+exit_code=$?
+
+case $exit_code in
+    0) echo "Success" ;;
+    2) echo "Parse error - fix syntax first" ;;
+    *) echo "Other error: $exit_code" ;;
+esac
+</code></pre>
+<h3 id="exit-code-3-validation-error"><a class="header" href="#exit-code-3-validation-error">Exit Code 3: Validation Error</a></h3>
+<p><strong>Meaning:</strong> Linter rules or validation checks failed.</p>
+<p><strong>Common Causes:</strong></p>
+<ul>
+<li>Security violations (SEC001-SEC008)</li>
+<li>Determinism issues (DET001-DET003)</li>
+<li>Idempotency problems (IDEM001-IDEM003)</li>
+<li>ShellCheck rule violations</li>
+</ul>
+<p><strong>Examples:</strong></p>
+<pre><code class="language-bash">$ cat insecure.sh
+<span class="boring">!/bin/bash
+</span>eval "$USER_INPUT"  # SEC001 violation
+
+$ bashrs lint insecure.sh
+error[SEC001]: Command injection risk via eval
+  --&gt; insecure.sh:2:1
+$ echo $?
+3
+</code></pre>
+<p><strong>Handling:</strong></p>
+<pre><code class="language-bash"><span class="boring">!/bin/bash
+</span>bashrs lint scripts/*.sh
+exit_code=$?
+
+if [ $exit_code -eq 3 ]; then
+    echo "Validation failed - review linter output"
+    bashrs lint scripts/*.sh --format json &gt; lint-report.json
+    exit 1
+fi
+</code></pre>
+<h3 id="exit-code-4-configuration-error"><a class="header" href="#exit-code-4-configuration-error">Exit Code 4: Configuration Error</a></h3>
+<p><strong>Meaning:</strong> Invalid bashrs configuration.</p>
+<p><strong>Common Causes:</strong></p>
+<ul>
+<li>Malformed bashrs.toml</li>
+<li>Invalid configuration values</li>
+<li>Conflicting options</li>
+</ul>
+<p><strong>Examples:</strong></p>
+<pre><code class="language-bash">$ cat bashrs.toml
+[bashrs]
+target = "invalid-shell"  # Invalid value
+
+$ bashrs purify script.sh
+error: Invalid configuration: Unknown target 'invalid-shell'
+$ echo $?
+4
+</code></pre>
+<p><strong>Handling:</strong></p>
+<pre><code class="language-bash"><span class="boring">!/bin/bash
+</span>if ! bashrs config validate bashrs.toml; then
+    echo "Configuration error - fix bashrs.toml"
+    exit 4
+fi
+</code></pre>
+<h3 id="exit-code-5-io-error"><a class="header" href="#exit-code-5-io-error">Exit Code 5: I/O Error</a></h3>
+<p><strong>Meaning:</strong> File system or I/O operation failed.</p>
+<p><strong>Common Causes:</strong></p>
+<ul>
+<li>Permission denied</li>
+<li>Disk full</li>
+<li>File system error</li>
+<li>Cannot read/write files</li>
+</ul>
+<p><strong>Examples:</strong></p>
+<pre><code class="language-bash">$ bashrs purify readonly.sh -o /readonly/output.sh
+error: Cannot write to /readonly/output.sh: Permission denied
+$ echo $?
+5
+</code></pre>
+<p><strong>Handling:</strong></p>
+<pre><code class="language-bash"><span class="boring">!/bin/bash
+</span>bashrs purify script.sh -o output.sh
+exit_code=$?
+
+if [ $exit_code -eq 5 ]; then
+    echo "I/O error - check permissions and disk space"
+    df -h .
+    ls -l script.sh
+    exit 5
+fi
+</code></pre>
+<h3 id="exit-code-64-command-line-error"><a class="header" href="#exit-code-64-command-line-error">Exit Code 64: Command Line Error</a></h3>
+<p><strong>Meaning:</strong> Invalid command line usage.</p>
+<p><strong>Common Causes:</strong></p>
+<ul>
+<li>Missing required arguments</li>
+<li>Invalid flags</li>
+<li>Conflicting options</li>
+</ul>
+<p><strong>Examples:</strong></p>
+<pre><code class="language-bash">$ bashrs lint
+error: Missing required argument: &lt;FILE&gt;
+$ echo $?
+64
+</code></pre>
+<pre><code class="language-bash">$ bashrs purify --invalid-flag script.sh
+error: Unknown flag: --invalid-flag
+$ echo $?
+64
+</code></pre>
+<p><strong>Handling:</strong></p>
+<pre><code class="language-bash"><span class="boring">!/bin/bash
+</span>bashrs purify script.sh -o output.sh || {
+    exit_code=$?
+    if [ $exit_code -eq 64 ]; then
+        echo "Usage error - check command syntax"
+        bashrs purify --help
+    fi
+    exit $exit_code
+}
+</code></pre>
+<h3 id="exit-code-70-internal-software-error"><a class="header" href="#exit-code-70-internal-software-error">Exit Code 70: Internal Software Error</a></h3>
+<p><strong>Meaning:</strong> Internal error in bashrs (bug).</p>
+<p><strong>Common Causes:</strong></p>
+<ul>
+<li>Unexpected condition in bashrs code</li>
+<li>Panic or assertion failure</li>
+<li>Unhandled edge case</li>
+</ul>
+<p><strong>Examples:</strong></p>
+<pre><code class="language-bash">$ bashrs lint complex-script.sh
+thread 'main' panicked at 'internal error'
+$ echo $?
+70
+</code></pre>
+<p><strong>Handling:</strong></p>
+<pre><code class="language-bash"><span class="boring">!/bin/bash
+</span>bashrs lint script.sh
+exit_code=$?
+
+if [ $exit_code -eq 70 ]; then
+    echo "Internal error in bashrs - please report bug"
+    echo "bashrs version: $(bashrs --version)"
+    echo "Script: script.sh"
+<span class="boring">     Create bug report with context
+</span>    exit 70
+fi
+</code></pre>
+<h3 id="exit-code-77-permission-denied"><a class="header" href="#exit-code-77-permission-denied">Exit Code 77: Permission Denied</a></h3>
+<p><strong>Meaning:</strong> Insufficient permissions to perform operation.</p>
+<p><strong>Common Causes:</strong></p>
+<ul>
+<li>No read permission on input file</li>
+<li>No write permission for output</li>
+<li>No execute permission for dependency</li>
+</ul>
+<p><strong>Examples:</strong></p>
+<pre><code class="language-bash">$ chmod 000 secret.sh
+$ bashrs lint secret.sh
+error: Permission denied: secret.sh
+$ echo $?
+77
+</code></pre>
+<p><strong>Handling:</strong></p>
+<pre><code class="language-bash"><span class="boring">!/bin/bash
+</span>bashrs purify script.sh -o output.sh
+exit_code=$?
+
+case $exit_code in
+    77)
+        echo "Permission denied - check file permissions"
+        ls -l script.sh
+        exit 77
+        ;;
+esac
+</code></pre>
+<h2 id="using-exit-codes-in-scripts"><a class="header" href="#using-exit-codes-in-scripts">Using Exit Codes in Scripts</a></h2>
+<h3 id="basic-error-handling"><a class="header" href="#basic-error-handling">Basic Error Handling</a></h3>
+<pre><code class="language-bash"><span class="boring">!/bin/bash
+</span>
+<span class="boring"> Check if script passes linting
+</span>if bashrs lint deploy.sh; then
+    echo "Linting passed"
+else
+    echo "Linting failed with exit code $?"
+    exit 1
+fi
+</code></pre>
+<h3 id="detailed-error-handling"><a class="header" href="#detailed-error-handling">Detailed Error Handling</a></h3>
+<pre><code class="language-bash"><span class="boring">!/bin/bash
+</span>
+bashrs purify script.sh -o purified.sh
+exit_code=$?
+
+case $exit_code in
+    0)
+        echo "Success: Script purified"
+        ;;
+    1)
+        echo "General error occurred"
+        exit 1
+        ;;
+    2)
+        echo "Parse error: Fix syntax errors in script.sh"
+        exit 2
+        ;;
+    3)
+        echo "Validation error: Review linter warnings"
+        bashrs lint script.sh
+        exit 3
+        ;;
+    4)
+        echo "Configuration error: Check bashrs.toml"
+        bashrs config validate bashrs.toml
+        exit 4
+        ;;
+    5)
+        echo "I/O error: Check file permissions and disk space"
+        exit 5
+        ;;
+    *)
+        echo "Unexpected error: $exit_code"
+        exit $exit_code
+        ;;
+esac
+</code></pre>
+<h3 id="retry-logic-for-temporary-failures"><a class="header" href="#retry-logic-for-temporary-failures">Retry Logic for Temporary Failures</a></h3>
+<pre><code class="language-bash"><span class="boring">!/bin/bash
+</span>
+max_retries=3
+retry_count=0
+
+while [ $retry_count -lt $max_retries ]; do
+    bashrs lint script.sh
+    exit_code=$?
+
+    if [ $exit_code -eq 0 ]; then
+        echo "Success"
+        exit 0
+    elif [ $exit_code -eq 75 ]; then
+<span class="boring">         Temporary failure - retry
+</span>        echo "Temporary failure, retrying..."
+        retry_count=$((retry_count + 1))
+        sleep 2
+    else
+<span class="boring">         Permanent failure
+</span>        echo "Permanent failure: $exit_code"
+        exit $exit_code
+    fi
+done
+
+echo "Max retries exceeded"
+exit 75
+</code></pre>
+<h2 id="cicd-integration"><a class="header" href="#cicd-integration">CI/CD Integration</a></h2>
+<h3 id="github-actions"><a class="header" href="#github-actions">GitHub Actions</a></h3>
+<pre><code class="language-yaml">name: Shell Script Quality Check
+
+on: [push, pull_request]
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Install bashrs
+        run: cargo install bashrs
+
+      - name: Lint shell scripts
+        run: |
+          bashrs lint scripts/*.sh
+          exit_code=$?
+          if [ $exit_code -eq 3 ]; then
+            echo "::error::Linting failed - validation errors detected"
+            exit 1
+          elif [ $exit_code -ne 0 ]; then
+            echo "::error::bashrs failed with exit code $exit_code"
+            exit $exit_code
+          fi
+
+      - name: Purify scripts
+        run: |
+          for script in scripts/*.sh; do
+            bashrs purify "$script" -o "purified/$(basename $script)"
+            if [ $? -ne 0 ]; then
+              echo "::error::Failed to purify $script"
+              exit 1
+            fi
+          done
+
+      - name: Upload purified scripts
+        uses: actions/upload-artifact@v3
+        with:
+          name: purified-scripts
+          path: purified/
+</code></pre>
+<h3 id="gitlab-ci"><a class="header" href="#gitlab-ci">GitLab CI</a></h3>
+<pre><code class="language-yaml">shell-quality:
+  stage: test
+  script:
+    - cargo install bashrs
+    - bashrs lint scripts/*.sh
+    - |
+      exit_code=$?
+      if [ $exit_code -eq 3 ]; then
+        echo "Validation errors detected"
+        exit 1
+      elif [ $exit_code -ne 0 ]; then
+        echo "bashrs failed with exit code $exit_code"
+        exit $exit_code
+      fi
+  artifacts:
+    reports:
+      codequality: lint-report.json
+</code></pre>
+<h3 id="jenkins-pipeline"><a class="header" href="#jenkins-pipeline">Jenkins Pipeline</a></h3>
+<pre><code class="language-groovy">pipeline {
+    agent any
+
+    stages {
+        stage('Install bashrs') {
+            steps {
+                sh 'cargo install bashrs'
+            }
+        }
+
+        stage('Lint Scripts') {
+            steps {
+                script {
+                    def exitCode = sh(
+                        script: 'bashrs lint scripts/*.sh --format json &gt; lint-report.json',
+                        returnStatus: true
+                    )
+
+                    if (exitCode == 3) {
+                        error("Validation errors detected")
+                    } else if (exitCode != 0) {
+                        error("bashrs failed with exit code ${exitCode}")
+                    }
+                }
+            }
+        }
+
+        stage('Purify Scripts') {
+            steps {
+                sh '''
+                    for script in scripts/*.sh; do
+                        bashrs purify "$script" -o "purified/$(basename $script)" || exit $?
+                    done
+                '''
+            }
+        }
+    }
+
+    post {
+        always {
+            archiveArtifacts artifacts: 'lint-report.json', allowEmptyArchive: true
+            archiveArtifacts artifacts: 'purified/*', allowEmptyArchive: true
+        }
+    }
+}
+</code></pre>
+<h3 id="circleci"><a class="header" href="#circleci">CircleCI</a></h3>
+<pre><code class="language-yaml">version: 2.1
+
+jobs:
+  quality-check:
+    docker:
+      - image: rust:latest
+    steps:
+      - checkout
+
+      - run:
+          name: Install bashrs
+          command: cargo install bashrs
+
+      - run:
+          name: Lint scripts
+          command: |
+            bashrs lint scripts/*.sh --format json &gt; lint-report.json
+            exit_code=$?
+
+            case $exit_code in
+              0) echo "All checks passed" ;;
+              3) echo "Validation errors" &amp;&amp; exit 1 ;;
+              *) echo "Error: $exit_code" &amp;&amp; exit $exit_code ;;
+            esac
+
+      - store_artifacts:
+          path: lint-report.json
+
+workflows:
+  version: 2
+  quality:
+    jobs:
+      - quality-check
+</code></pre>
+<h2 id="exit-code-ranges"><a class="header" href="#exit-code-ranges">Exit Code Ranges</a></h2>
+<p>bashrs exit codes follow standard Unix conventions:</p>
+<h3 id="standard-ranges"><a class="header" href="#standard-ranges">Standard Ranges</a></h3>
+<div class="table-wrapper"><table><thead><tr><th>Range</th><th>Category</th><th>Usage</th></tr></thead><tbody>
+<tr><td>0</td><td>Success</td><td>Operation succeeded</td></tr>
+<tr><td>1-2</td><td>Standard Errors</td><td>Generic and parse errors</td></tr>
+<tr><td>3-63</td><td>bashrs Specific</td><td>Custom error codes</td></tr>
+<tr><td>64-78</td><td>BSD sysexits.h</td><td>Standard Unix error codes</td></tr>
+<tr><td>126-127</td><td>Shell Reserved</td><td>Command not executable, not found</td></tr>
+<tr><td>128-255</td><td>Signal-based</td><td>Process terminated by signal</td></tr>
+</tbody></table>
+</div>
+<h3 id="bashrs-specific-range-3-63"><a class="header" href="#bashrs-specific-range-3-63">bashrs-Specific Range (3-63)</a></h3>
+<div class="table-wrapper"><table><thead><tr><th>Code</th><th>Meaning</th></tr></thead><tbody>
+<tr><td>3</td><td>Validation error (linter rules)</td></tr>
+<tr><td>4</td><td>Configuration error</td></tr>
+<tr><td>5</td><td>I/O error</td></tr>
+<tr><td>6</td><td>Not implemented</td></tr>
+<tr><td>7</td><td>Dependency error</td></tr>
+<tr><td>8-63</td><td>Reserved for future use</td></tr>
+</tbody></table>
+</div>
+<h3 id="bsd-sysexitsh-range-64-78"><a class="header" href="#bsd-sysexitsh-range-64-78">BSD sysexits.h Range (64-78)</a></h3>
+<p>bashrs uses standard BSD error codes for compatibility:</p>
+<div class="table-wrapper"><table><thead><tr><th>Code</th><th>Constant</th><th>Meaning</th></tr></thead><tbody>
+<tr><td>64</td><td>EX_USAGE</td><td>Command line usage error</td></tr>
+<tr><td>65</td><td>EX_DATAERR</td><td>Data format error</td></tr>
+<tr><td>66</td><td>EX_NOINPUT</td><td>Cannot open input</td></tr>
+<tr><td>67</td><td>EX_NOUSER</td><td>Addressee unknown</td></tr>
+<tr><td>68</td><td>EX_NOHOST</td><td>Host name unknown</td></tr>
+<tr><td>69</td><td>EX_UNAVAILABLE</td><td>Service unavailable</td></tr>
+<tr><td>70</td><td>EX_SOFTWARE</td><td>Internal software error</td></tr>
+<tr><td>71</td><td>EX_OSERR</td><td>System error</td></tr>
+<tr><td>72</td><td>EX_OSFILE</td><td>Critical OS file missing</td></tr>
+<tr><td>73</td><td>EX_CANTCREAT</td><td>Cannot create output</td></tr>
+<tr><td>74</td><td>EX_IOERR</td><td>Input/output error</td></tr>
+<tr><td>75</td><td>EX_TEMPFAIL</td><td>Temporary failure</td></tr>
+<tr><td>76</td><td>EX_PROTOCOL</td><td>Protocol error</td></tr>
+<tr><td>77</td><td>EX_NOPERM</td><td>Permission denied</td></tr>
+<tr><td>78</td><td>EX_CONFIG</td><td>Configuration error</td></tr>
+</tbody></table>
+</div>
+<h2 id="best-practices"><a class="header" href="#best-practices">Best Practices</a></h2>
+<h3 id="1-always-check-exit-codes"><a class="header" href="#1-always-check-exit-codes">1. Always Check Exit Codes</a></h3>
+<pre><code class="language-bash"><span class="boring">!/bin/bash
+</span>
+<span class="boring"> BAD: Ignoring exit code
+</span>bashrs lint script.sh
+
+<span class="boring"> GOOD: Checking exit code
+</span>if ! bashrs lint script.sh; then
+    echo "Linting failed"
+    exit 1
+fi
+</code></pre>
+<h3 id="2-use-specific-error-handling"><a class="header" href="#2-use-specific-error-handling">2. Use Specific Error Handling</a></h3>
+<pre><code class="language-bash"><span class="boring">!/bin/bash
+</span>
+bashrs purify script.sh -o output.sh
+exit_code=$?
+
+<span class="boring"> GOOD: Specific handling
+</span>case $exit_code in
+    0) echo "Success" ;;
+    2) echo "Parse error" &amp;&amp; exit 2 ;;
+    3) echo "Validation error" &amp;&amp; exit 3 ;;
+    *) echo "Other error: $exit_code" &amp;&amp; exit $exit_code ;;
+esac
+
+<span class="boring"> BAD: Generic handling
+</span>if [ $exit_code -ne 0 ]; then
+    echo "Something failed"
+    exit 1
+fi
+</code></pre>
+<h3 id="3-preserve-exit-codes-in-pipelines"><a class="header" href="#3-preserve-exit-codes-in-pipelines">3. Preserve Exit Codes in Pipelines</a></h3>
+<pre><code class="language-bash"><span class="boring">!/bin/bash
+</span>
+<span class="boring"> GOOD: Preserve exit code
+</span>bashrs lint script.sh | tee lint.log
+exit ${PIPESTATUS[0]}
+
+<span class="boring"> BAD: Loses exit code
+</span>bashrs lint script.sh | tee lint.log
+<span class="boring"> $? is exit code of 'tee', not 'bashrs lint'
+</span></code></pre>
+<h3 id="4-document-expected-exit-codes"><a class="header" href="#4-document-expected-exit-codes">4. Document Expected Exit Codes</a></h3>
+<pre><code class="language-bash"><span class="boring">!/bin/bash
+</span><span class="boring"> This script lints shell scripts and returns:
+</span><span class="boring">   0 - All checks passed
+</span><span class="boring">   3 - Validation errors (non-blocking)
+</span><span class="boring">   Other - Fatal errors (blocking)
+</span>
+bashrs lint scripts/*.sh
+exit_code=$?
+
+case $exit_code in
+    0) echo "All checks passed" ;;
+    3) echo "Validation warnings (non-blocking)" &amp;&amp; exit 0 ;;
+    *) echo "Fatal error: $exit_code" &amp;&amp; exit $exit_code ;;
+esac
+</code></pre>
+<h3 id="5-use-set--e-carefully-with-exit-codes"><a class="header" href="#5-use-set--e-carefully-with-exit-codes">5. Use <code>set -e</code> Carefully with Exit Codes</a></h3>
+<pre><code class="language-bash"><span class="boring">!/bin/bash
+</span>set -e  # Exit on error
+
+<span class="boring"> This will exit immediately on non-zero
+</span>bashrs lint script.sh
+
+<span class="boring"> Use explicit checks when you need custom handling
+</span>set +e
+bashrs purify script.sh -o output.sh
+exit_code=$?
+set -e
+
+if [ $exit_code -ne 0 ]; then
+    echo "Purification failed: $exit_code"
+    exit $exit_code
+fi
+</code></pre>
+<h3 id="6-test-exit-codes-in-cicd"><a class="header" href="#6-test-exit-codes-in-cicd">6. Test Exit Codes in CI/CD</a></h3>
+<pre><code class="language-bash"><span class="boring">!/bin/bash
+</span>
+<span class="boring"> Test that linting actually catches errors
+</span>echo 'eval "$bad"' &gt; test.sh
+if bashrs lint test.sh; then
+    echo "ERROR: Linting should have failed"
+    exit 1
+fi
+
+<span class="boring"> Test that clean scripts pass
+</span>echo '#!/bin/sh' &gt; clean.sh
+echo 'echo "hello"' &gt;&gt; clean.sh
+if ! bashrs lint clean.sh; then
+    echo "ERROR: Clean script should pass"
+    exit 1
+fi
+
+echo "Exit code tests passed"
+</code></pre>
+<h3 id="7-log-exit-codes-for-debugging"><a class="header" href="#7-log-exit-codes-for-debugging">7. Log Exit Codes for Debugging</a></h3>
+<pre><code class="language-bash"><span class="boring">!/bin/bash
+</span>
+log_exit_code() {
+    local exit_code=$1
+    local command=$2
+    echo "[$(date)] $command exited with code $exit_code" &gt;&gt; bashrs.log
+}
+
+bashrs lint script.sh
+exit_code=$?
+log_exit_code $exit_code "bashrs lint script.sh"
+
+if [ $exit_code -ne 0 ]; then
+    echo "Check bashrs.log for details"
+    exit $exit_code
+fi
+</code></pre>
+<h3 id="8-use-trap-for-cleanup-on-exit"><a class="header" href="#8-use-trap-for-cleanup-on-exit">8. Use Trap for Cleanup on Exit</a></h3>
+<pre><code class="language-bash"><span class="boring">!/bin/bash
+</span>
+cleanup() {
+    local exit_code=$?
+    echo "Cleaning up (exit code: $exit_code)"
+    rm -f /tmp/bashrs-$$-*
+    exit $exit_code
+}
+
+trap cleanup EXIT
+
+bashrs purify script.sh -o /tmp/bashrs-$$-output.sh
+<span class="boring"> cleanup will run automatically with correct exit code
+</span></code></pre>
+<h2 id="summary"><a class="header" href="#summary">Summary</a></h2>
+<p>bashrs exit codes follow Unix conventions:</p>
+<ul>
+<li><strong>0</strong>: Success</li>
+<li><strong>1-2</strong>: Standard errors (general, parse)</li>
+<li><strong>3-7</strong>: bashrs-specific errors (validation, config, I/O, etc.)</li>
+<li><strong>64-78</strong>: BSD sysexits.h standard codes</li>
+</ul>
+<p><strong>Key Points:</strong></p>
+<ol>
+<li>Always check exit codes in scripts and CI/CD</li>
+<li>Use specific error handling for different exit codes</li>
+<li>Preserve exit codes through pipelines</li>
+<li>Document expected exit codes in your scripts</li>
+<li>Test that your error handling works correctly</li>
+</ol>
+<p>For more information, see:</p>
+<ul>
+<li><a href="./configuration.html">Configuration Reference</a></li>
+<li><a href="./rules.html">Linter Rules Reference</a></li>
+<li><a href="./cli.html">CLI Commands Reference</a></li>
+</ul>
 
                     </main>
 

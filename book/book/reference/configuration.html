@@ -159,6 +159,648 @@
                 <div id="content" class="content">
                     <main>
                         <h1 id="configuration"><a class="header" href="#configuration">Configuration</a></h1>
+<p>This chapter provides a complete reference for configuring bashrs v6.31.0 using configuration files, environment variables, and CLI options.</p>
+<h2 id="table-of-contents"><a class="header" href="#table-of-contents">Table of Contents</a></h2>
+<ul>
+<li><a href="#configuration-file-format">Configuration File Format</a></li>
+<li><a href="#configuration-options">Configuration Options</a></li>
+<li><a href="#configuration-locations">Configuration Locations</a></li>
+<li><a href="#environment-variables">Environment Variables</a></li>
+<li><a href="#configuration-precedence">Configuration Precedence</a></li>
+<li><a href="#per-project-configuration">Per-Project Configuration</a></li>
+<li><a href="#global-configuration">Global Configuration</a></li>
+<li><a href="#examples">Examples</a></li>
+<li><a href="#best-practices">Best Practices</a></li>
+</ul>
+<h2 id="configuration-file-format"><a class="header" href="#configuration-file-format">Configuration File Format</a></h2>
+<p>bashrs uses TOML format for configuration files. The default configuration file name is <code>bashrs.toml</code>.</p>
+<h3 id="basic-structure"><a class="header" href="#basic-structure">Basic Structure</a></h3>
+<pre><code class="language-toml">[bashrs]
+target = "posix"
+verify = "strict"
+optimize = true
+emit_proof = false
+strict_mode = false
+validation_level = "minimal"
+</code></pre>
+<h3 id="complete-schema"><a class="header" href="#complete-schema">Complete Schema</a></h3>
+<pre><code class="language-toml">[bashrs]
+# Target shell dialect for generated scripts
+# Options: "posix", "bash", "dash", "ash"
+# Default: "posix"
+target = "posix"
+
+# Verification level for transpilation and purification
+# Options: "none", "basic", "strict", "paranoid"
+# Default: "strict"
+verify = "strict"
+
+# Enable IR optimization passes
+# Default: true
+optimize = true
+
+# Emit formal verification proofs
+# Default: false
+emit_proof = false
+
+# Enable strict POSIX mode (no extensions)
+# Default: false
+strict_mode = false
+
+# ShellCheck validation level
+# Options: "none", "minimal", "strict", "paranoid"
+# Default: "minimal"
+validation_level = "minimal"
+
+[linter]
+# Enable/disable specific rule categories
+security = true
+determinism = true
+idempotency = true
+shellcheck = true
+makefile = true
+config = true
+
+# Disable specific rules
+disabled_rules = ["SC2119", "SC2120"]
+
+# Enable auto-fix for safe rules
+auto_fix = true
+
+# Only apply auto-fixes marked as safe
+safe_auto_fix_only = true
+
+[formatter]
+# Enable code formatting
+enabled = true
+
+# Indent size (spaces)
+indent = 4
+
+# Maximum line length
+max_line_length = 100
+
+# Use tabs instead of spaces
+use_tabs = false
+
+[output]
+# Output format for diagnostics
+# Options: "human", "json", "sarif", "checkstyle"
+format = "human"
+
+# Show rule documentation URLs in diagnostics
+show_docs = true
+
+# Colorize output
+color = "auto"  # Options: "auto", "always", "never"
+</code></pre>
+<h2 id="configuration-options"><a class="header" href="#configuration-options">Configuration Options</a></h2>
+<h3 id="target-shell-dialect-target"><a class="header" href="#target-shell-dialect-target">Target Shell Dialect (<code>target</code>)</a></h3>
+<p>Determines which shell-specific features are available and how output is optimized.</p>
+<ul>
+<li><strong><code>posix</code></strong> (default): Maximum compatibility, POSIX-only features</li>
+<li><strong><code>bash</code></strong>: Bash 3.2+ features (arrays, <code>[[</code>, etc.)</li>
+<li><strong><code>dash</code></strong>: Debian Almquist Shell optimizations</li>
+<li><strong><code>ash</code></strong>: BusyBox Almquist Shell optimizations</li>
+</ul>
+<p><strong>Example:</strong></p>
+<pre><code class="language-toml">[bashrs]
+target = "bash"  # Enable bash-specific optimizations
+</code></pre>
+<p><strong>CLI Override:</strong></p>
+<pre><code class="language-bash">bashrs purify --target bash script.sh
+</code></pre>
+<h3 id="verification-level-verify"><a class="header" href="#verification-level-verify">Verification Level (<code>verify</code>)</a></h3>
+<p>Controls the strictness of safety checks during transpilation and purification.</p>
+<ul>
+<li><strong><code>none</code></strong>: No verification (not recommended)</li>
+<li><strong><code>basic</code></strong>: Essential safety checks only (fast)</li>
+<li><strong><code>strict</code></strong>: Recommended for production (balanced)</li>
+<li><strong><code>paranoid</code></strong>: Maximum verification (slowest, most thorough)</li>
+</ul>
+<p><strong>Example:</strong></p>
+<pre><code class="language-toml">[bashrs]
+verify = "paranoid"  # Maximum safety checks
+</code></pre>
+<p><strong>CLI Override:</strong></p>
+<pre><code class="language-bash">bashrs purify --verify paranoid script.sh
+</code></pre>
+<p><strong>Verification Levels Comparison:</strong></p>
+<div class="table-wrapper"><table><thead><tr><th>Level</th><th>Speed</th><th>Checks</th><th>Use Case</th></tr></thead><tbody>
+<tr><td>none</td><td>Fastest</td><td>None</td><td>Development only</td></tr>
+<tr><td>basic</td><td>Fast</td><td>Essential</td><td>Quick iterations</td></tr>
+<tr><td>strict</td><td>Medium</td><td>Recommended</td><td>Production default</td></tr>
+<tr><td>paranoid</td><td>Slow</td><td>Maximum</td><td>Critical systems</td></tr>
+</tbody></table>
+</div>
+<h3 id="optimization-optimize"><a class="header" href="#optimization-optimize">Optimization (<code>optimize</code>)</a></h3>
+<p>Enables or disables IR (Intermediate Representation) optimization passes.</p>
+<ul>
+<li><strong><code>true</code></strong> (default): Enable optimizations</li>
+<li><strong><code>false</code></strong>: Disable optimizations (preserve exact structure)</li>
+</ul>
+<p><strong>Example:</strong></p>
+<pre><code class="language-toml">[bashrs]
+optimize = false  # Preserve exact script structure
+</code></pre>
+<p><strong>Optimization Passes:</strong></p>
+<ul>
+<li>Dead code elimination</li>
+<li>Constant folding</li>
+<li>Loop unrolling (when safe)</li>
+<li>Variable inlining</li>
+</ul>
+<h3 id="emit-proof-emit_proof"><a class="header" href="#emit-proof-emit_proof">Emit Proof (<code>emit_proof</code>)</a></h3>
+<p>Controls whether formal verification proofs are emitted.</p>
+<ul>
+<li><strong><code>false</code></strong> (default): No proofs</li>
+<li><strong><code>true</code></strong>: Emit verification proofs</li>
+</ul>
+<p><strong>Example:</strong></p>
+<pre><code class="language-toml">[bashrs]
+emit_proof = true  # Emit formal proofs for critical scripts
+</code></pre>
+<p><strong>Proof Output:</strong></p>
+<pre><code>$ bashrs purify --emit-proof deploy.sh
+Verification Proof:
+  Determinism: PROVEN
+  Idempotency: PROVEN
+  POSIX Compliance: VERIFIED
+</code></pre>
+<h3 id="strict-mode-strict_mode"><a class="header" href="#strict-mode-strict_mode">Strict Mode (<code>strict_mode</code>)</a></h3>
+<p>Enforces strict POSIX compliance with no shell extensions.</p>
+<ul>
+<li><strong><code>false</code></strong> (default): Allow common extensions</li>
+<li><strong><code>true</code></strong>: Pure POSIX only</li>
+</ul>
+<p><strong>Example:</strong></p>
+<pre><code class="language-toml">[bashrs]
+strict_mode = true  # Pure POSIX, no extensions
+</code></pre>
+<p><strong>Impact:</strong></p>
+<ul>
+<li>Rejects bash arrays</li>
+<li>Rejects <code>[[</code> test syntax</li>
+<li>Rejects <code>function</code> keyword</li>
+<li>Enforces <code>#!/bin/sh</code> shebang</li>
+</ul>
+<h3 id="validation-level-validation_level"><a class="header" href="#validation-level-validation_level">Validation Level (<code>validation_level</code>)</a></h3>
+<p>Controls ShellCheck validation strictness.</p>
+<ul>
+<li><strong><code>none</code></strong>: Skip validation</li>
+<li><strong><code>minimal</code></strong> (default): Basic validation</li>
+<li><strong><code>strict</code></strong>: Comprehensive validation</li>
+<li><strong><code>paranoid</code></strong>: Maximum validation</li>
+</ul>
+<p><strong>Example:</strong></p>
+<pre><code class="language-toml">[bashrs]
+validation_level = "strict"  # Comprehensive ShellCheck validation
+</code></pre>
+<h2 id="configuration-locations"><a class="header" href="#configuration-locations">Configuration Locations</a></h2>
+<p>bashrs searches for configuration files in the following order:</p>
+<h3 id="1-per-project-configuration"><a class="header" href="#1-per-project-configuration">1. Per-Project Configuration</a></h3>
+<p><strong>Location:</strong> <code>./bashrs.toml</code> (current directory)</p>
+<p><strong>Use Case:</strong> Project-specific settings</p>
+<p><strong>Example:</strong></p>
+<pre><code class="language-bash">$ cd /path/to/project
+$ cat bashrs.toml
+[bashrs]
+target = "bash"
+verify = "strict"
+</code></pre>
+<h3 id="2-parent-directory-configuration"><a class="header" href="#2-parent-directory-configuration">2. Parent Directory Configuration</a></h3>
+<p><strong>Location:</strong> <code>..bashrs.toml</code> (parent directories, up to root)</p>
+<p><strong>Use Case:</strong> Repository-wide settings</p>
+<p><strong>Example:</strong></p>
+<pre><code class="language-bash"><span class="boring"> In /home/user/project/src/
+</span>$ bashrs purify script.sh
+<span class="boring"> Searches: ./bashrs.toml, ../bashrs.toml, ../../bashrs.toml, etc.
+</span></code></pre>
+<h3 id="3-global-user-configuration"><a class="header" href="#3-global-user-configuration">3. Global User Configuration</a></h3>
+<p><strong>Location:</strong> <code>~/.config/bashrs/config.toml</code></p>
+<p><strong>Use Case:</strong> User-wide preferences</p>
+<p><strong>Example:</strong></p>
+<pre><code class="language-bash">$ cat ~/.config/bashrs/config.toml
+[bashrs]
+verify = "paranoid"
+validation_level = "strict"
+
+[output]
+color = "always"
+</code></pre>
+<h3 id="4-system-wide-configuration"><a class="header" href="#4-system-wide-configuration">4. System-Wide Configuration</a></h3>
+<p><strong>Location:</strong> <code>/etc/bashrs/config.toml</code></p>
+<p><strong>Use Case:</strong> System administrator defaults</p>
+<p><strong>Example:</strong></p>
+<pre><code class="language-bash">$ sudo cat /etc/bashrs/config.toml
+[bashrs]
+target = "posix"
+strict_mode = true
+</code></pre>
+<h2 id="environment-variables"><a class="header" href="#environment-variables">Environment Variables</a></h2>
+<p>Environment variables provide runtime configuration overrides.</p>
+<h3 id="core-environment-variables"><a class="header" href="#core-environment-variables">Core Environment Variables</a></h3>
+<h4 id="bashrs_config"><a class="header" href="#bashrs_config"><code>BASHRS_CONFIG</code></a></h4>
+<p>Override the configuration file location.</p>
+<pre><code class="language-bash">export BASHRS_CONFIG=/path/to/custom.toml
+bashrs purify script.sh
+</code></pre>
+<h4 id="bashrs_verification_level"><a class="header" href="#bashrs_verification_level"><code>BASHRS_VERIFICATION_LEVEL</code></a></h4>
+<p>Override verification level at runtime.</p>
+<pre><code class="language-bash">export BASHRS_VERIFICATION_LEVEL=paranoid
+bashrs purify deploy.sh
+</code></pre>
+<p><strong>Values:</strong> <code>none</code>, <code>basic</code>, <code>strict</code>, <code>paranoid</code></p>
+<h4 id="bashrs_target"><a class="header" href="#bashrs_target"><code>BASHRS_TARGET</code></a></h4>
+<p>Override target shell dialect.</p>
+<pre><code class="language-bash">export BASHRS_TARGET=bash
+bashrs purify script.sh
+</code></pre>
+<p><strong>Values:</strong> <code>posix</code>, <code>bash</code>, <code>dash</code>, <code>ash</code></p>
+<h4 id="bashrs_no_color"><a class="header" href="#bashrs_no_color"><code>BASHRS_NO_COLOR</code></a></h4>
+<p>Disable colored output.</p>
+<pre><code class="language-bash">export BASHRS_NO_COLOR=1
+bashrs lint script.sh
+</code></pre>
+<h4 id="bashrs_debug"><a class="header" href="#bashrs_debug"><code>BASHRS_DEBUG</code></a></h4>
+<p>Enable debug output and error traces.</p>
+<pre><code class="language-bash">export BASHRS_DEBUG=1
+bashrs purify script.sh
+</code></pre>
+<h3 id="validation-environment-variables"><a class="header" href="#validation-environment-variables">Validation Environment Variables</a></h3>
+<h4 id="bashrs_validation_level"><a class="header" href="#bashrs_validation_level"><code>BASHRS_VALIDATION_LEVEL</code></a></h4>
+<p>Override ShellCheck validation level.</p>
+<pre><code class="language-bash">export BASHRS_VALIDATION_LEVEL=strict
+bashrs lint script.sh
+</code></pre>
+<h4 id="bashrs_disable_rules"><a class="header" href="#bashrs_disable_rules"><code>BASHRS_DISABLE_RULES</code></a></h4>
+<p>Disable specific linter rules.</p>
+<pre><code class="language-bash">export BASHRS_DISABLE_RULES="SC2119,SC2120,DET002"
+bashrs lint script.sh
+</code></pre>
+<h4 id="bashrs_auto_fix"><a class="header" href="#bashrs_auto_fix"><code>BASHRS_AUTO_FIX</code></a></h4>
+<p>Enable automatic fixes.</p>
+<pre><code class="language-bash">export BASHRS_AUTO_FIX=1
+bashrs lint --fix script.sh
+</code></pre>
+<h2 id="configuration-precedence"><a class="header" href="#configuration-precedence">Configuration Precedence</a></h2>
+<p>Configuration sources are applied in this order (later sources override earlier ones):</p>
+<ol>
+<li><strong>System configuration</strong> (<code>/etc/bashrs/config.toml</code>)</li>
+<li><strong>Global user configuration</strong> (<code>~/.config/bashrs/config.toml</code>)</li>
+<li><strong>Parent directory configuration</strong> (<code>../bashrs.toml</code>, up to root)</li>
+<li><strong>Per-project configuration</strong> (<code>./bashrs.toml</code>)</li>
+<li><strong>Environment variables</strong> (<code>BASHRS_*</code>)</li>
+<li><strong>CLI arguments</strong> (<code>--target</code>, <code>--verify</code>, etc.)</li>
+</ol>
+<h3 id="example-precedence"><a class="header" href="#example-precedence">Example Precedence</a></h3>
+<pre><code class="language-bash"><span class="boring"> /etc/bashrs/config.toml
+</span>[bashrs]
+target = "posix"
+verify = "basic"
+
+<span class="boring"> ~/.config/bashrs/config.toml
+</span>[bashrs]
+verify = "strict"  # Overrides system 'basic'
+
+<span class="boring"> ./bashrs.toml
+</span>[bashrs]
+target = "bash"  # Overrides system 'posix'
+
+<span class="boring"> Environment
+</span>export BASHRS_VERIFICATION_LEVEL=paranoid  # Overrides user 'strict'
+
+<span class="boring"> CLI
+</span>bashrs purify --target dash script.sh  # Overrides project 'bash'
+
+<span class="boring"> Final configuration:
+</span><span class="boring"> target = "dash" (from CLI)
+</span><span class="boring"> verify = "paranoid" (from environment)
+</span></code></pre>
+<h2 id="per-project-configuration"><a class="header" href="#per-project-configuration">Per-Project Configuration</a></h2>
+<p>Per-project configuration allows team-wide consistency.</p>
+<h3 id="example-web-application-project"><a class="header" href="#example-web-application-project">Example: Web Application Project</a></h3>
+<pre><code class="language-toml"># bashrs.toml
+[bashrs]
+target = "bash"
+verify = "strict"
+optimize = true
+
+[linter]
+security = true
+determinism = true
+idempotency = true
+
+# Disable noisy rules for this project
+disabled_rules = ["SC2034"]  # Allow unused variables
+
+[output]
+format = "json"  # For CI/CD integration
+</code></pre>
+<h3 id="example-embedded-system-project"><a class="header" href="#example-embedded-system-project">Example: Embedded System Project</a></h3>
+<pre><code class="language-toml"># bashrs.toml
+[bashrs]
+target = "ash"  # BusyBox Almquist Shell
+verify = "paranoid"
+strict_mode = true  # Pure POSIX only
+
+[linter]
+security = true
+determinism = true
+idempotency = true
+
+[output]
+format = "checkstyle"  # For Jenkins integration
+</code></pre>
+<h3 id="example-devops-scripts"><a class="header" href="#example-devops-scripts">Example: DevOps Scripts</a></h3>
+<pre><code class="language-toml"># bashrs.toml
+[bashrs]
+target = "posix"
+verify = "strict"
+optimize = true
+
+[linter]
+security = true
+determinism = true
+idempotency = true
+auto_fix = true
+safe_auto_fix_only = true
+
+[formatter]
+enabled = true
+indent = 2
+max_line_length = 120
+</code></pre>
+<h2 id="global-configuration"><a class="header" href="#global-configuration">Global Configuration</a></h2>
+<p>Global configuration provides user-wide defaults.</p>
+<h3 id="example-developer-preferences"><a class="header" href="#example-developer-preferences">Example: Developer Preferences</a></h3>
+<pre><code class="language-toml"># ~/.config/bashrs/config.toml
+[bashrs]
+verify = "strict"
+validation_level = "strict"
+
+[output]
+color = "always"
+show_docs = true
+
+[linter]
+auto_fix = true
+safe_auto_fix_only = true
+</code></pre>
+<h3 id="example-cicd-environment"><a class="header" href="#example-cicd-environment">Example: CI/CD Environment</a></h3>
+<pre><code class="language-toml"># ~/.config/bashrs/config.toml
+[bashrs]
+verify = "paranoid"
+validation_level = "paranoid"
+
+[output]
+format = "json"
+color = "never"
+
+[linter]
+security = true
+determinism = true
+idempotency = true
+auto_fix = false  # Never auto-fix in CI
+</code></pre>
+<h2 id="examples"><a class="header" href="#examples">Examples</a></h2>
+<h3 id="example-1-maximum-safety-configuration"><a class="header" href="#example-1-maximum-safety-configuration">Example 1: Maximum Safety Configuration</a></h3>
+<p>For critical production scripts:</p>
+<pre><code class="language-toml"># bashrs.toml
+[bashrs]
+target = "posix"
+verify = "paranoid"
+strict_mode = true
+validation_level = "paranoid"
+emit_proof = true
+
+[linter]
+security = true
+determinism = true
+idempotency = true
+auto_fix = false  # Manual review required
+
+[output]
+format = "human"
+show_docs = true
+</code></pre>
+<p>Usage:</p>
+<pre><code class="language-bash">$ bashrs purify deploy.sh
+Verification Proof:
+  Determinism: PROVEN
+  Idempotency: PROVEN
+  POSIX Compliance: VERIFIED
+  Security: VALIDATED
+</code></pre>
+<h3 id="example-2-fast-development-configuration"><a class="header" href="#example-2-fast-development-configuration">Example 2: Fast Development Configuration</a></h3>
+<p>For rapid iteration:</p>
+<pre><code class="language-toml"># bashrs.toml
+[bashrs]
+target = "bash"
+verify = "basic"
+optimize = false
+validation_level = "minimal"
+
+[linter]
+security = true
+auto_fix = true
+
+[output]
+format = "human"
+color = "always"
+</code></pre>
+<h3 id="example-3-team-wide-consistency"><a class="header" href="#example-3-team-wide-consistency">Example 3: Team-Wide Consistency</a></h3>
+<p>For repository-wide standards:</p>
+<pre><code class="language-toml"># bashrs.toml (at repository root)
+[bashrs]
+target = "bash"
+verify = "strict"
+optimize = true
+
+[linter]
+security = true
+determinism = true
+idempotency = true
+disabled_rules = ["SC2034", "SC2154"]
+
+[formatter]
+enabled = true
+indent = 4
+max_line_length = 100
+use_tabs = false
+
+[output]
+format = "human"
+show_docs = true
+</code></pre>
+<h3 id="example-4-cicd-integration"><a class="header" href="#example-4-cicd-integration">Example 4: CI/CD Integration</a></h3>
+<p>For automated quality gates:</p>
+<pre><code class="language-toml"># bashrs.toml
+[bashrs]
+target = "posix"
+verify = "strict"
+validation_level = "strict"
+
+[linter]
+security = true
+determinism = true
+idempotency = true
+
+[output]
+format = "json"  # Machine-readable for CI
+color = "never"
+</code></pre>
+<p>CI Script:</p>
+<pre><code class="language-bash"><span class="boring">!/bin/bash
+</span>bashrs lint --config bashrs.toml scripts/*.sh &gt; lint-results.json
+if [ $? -ne 0 ]; then
+    echo "Linting failed"
+    exit 1
+fi
+</code></pre>
+<h2 id="best-practices"><a class="header" href="#best-practices">Best Practices</a></h2>
+<h3 id="1-use-per-project-configuration"><a class="header" href="#1-use-per-project-configuration">1. Use Per-Project Configuration</a></h3>
+<p>Always include <code>bashrs.toml</code> in your repository:</p>
+<pre><code class="language-toml">[bashrs]
+target = "bash"  # Or "posix" for maximum portability
+verify = "strict"
+
+[linter]
+security = true
+determinism = true
+idempotency = true
+</code></pre>
+<p><strong>Benefits:</strong></p>
+<ul>
+<li>Team-wide consistency</li>
+<li>Reproducible builds</li>
+<li>Clear project standards</li>
+</ul>
+<h3 id="2-set-appropriate-verification-levels"><a class="header" href="#2-set-appropriate-verification-levels">2. Set Appropriate Verification Levels</a></h3>
+<p><strong>Development:</strong></p>
+<pre><code class="language-toml">[bashrs]
+verify = "basic"  # Fast iteration
+</code></pre>
+<p><strong>Production:</strong></p>
+<pre><code class="language-toml">[bashrs]
+verify = "strict"  # Balanced safety
+</code></pre>
+<p><strong>Critical Systems:</strong></p>
+<pre><code class="language-toml">[bashrs]
+verify = "paranoid"  # Maximum safety
+</code></pre>
+<h3 id="3-enable-security-rules"><a class="header" href="#3-enable-security-rules">3. Enable Security Rules</a></h3>
+<p>Always enable security, determinism, and idempotency:</p>
+<pre><code class="language-toml">[linter]
+security = true
+determinism = true
+idempotency = true
+</code></pre>
+<h3 id="4-use-auto-fix-safely"><a class="header" href="#4-use-auto-fix-safely">4. Use Auto-Fix Safely</a></h3>
+<p>Enable auto-fix with safety checks:</p>
+<pre><code class="language-toml">[linter]
+auto_fix = true
+safe_auto_fix_only = true  # Only apply safe fixes
+</code></pre>
+<h3 id="5-configure-output-for-cicd"><a class="header" href="#5-configure-output-for-cicd">5. Configure Output for CI/CD</a></h3>
+<p>Use machine-readable formats in automation:</p>
+<pre><code class="language-toml">[output]
+format = "json"  # For programmatic parsing
+color = "never"  # Disable colors in CI logs
+</code></pre>
+<h3 id="6-version-control-configuration"><a class="header" href="#6-version-control-configuration">6. Version Control Configuration</a></h3>
+<p><strong>Always commit:</strong></p>
+<ul>
+<li><code>bashrs.toml</code> (project config)</li>
+</ul>
+<p><strong>Never commit:</strong></p>
+<ul>
+<li><code>~/.config/bashrs/config.toml</code> (user preferences)</li>
+</ul>
+<h3 id="7-document-project-specific-rules"><a class="header" href="#7-document-project-specific-rules">7. Document Project-Specific Rules</a></h3>
+<p>If disabling rules, document why:</p>
+<pre><code class="language-toml">[linter]
+# Disable SC2034 because we use variables in sourced files
+disabled_rules = ["SC2034"]
+</code></pre>
+<h3 id="8-use-environment-variables-for-runtime-overrides"><a class="header" href="#8-use-environment-variables-for-runtime-overrides">8. Use Environment Variables for Runtime Overrides</a></h3>
+<p>Avoid modifying config files for temporary changes:</p>
+<pre><code class="language-bash"><span class="boring"> Good: Temporary override
+</span>BASHRS_VERIFICATION_LEVEL=paranoid bashrs purify critical.sh
+
+<span class="boring"> Bad: Editing config file for one-time use
+</span></code></pre>
+<h3 id="9-separate-development-and-production-configs"><a class="header" href="#9-separate-development-and-production-configs">9. Separate Development and Production Configs</a></h3>
+<p><strong>Development</strong> (<code>bashrs.dev.toml</code>):</p>
+<pre><code class="language-toml">[bashrs]
+verify = "basic"
+validation_level = "minimal"
+</code></pre>
+<p><strong>Production</strong> (<code>bashrs.prod.toml</code>):</p>
+<pre><code class="language-toml">[bashrs]
+verify = "paranoid"
+validation_level = "paranoid"
+</code></pre>
+<p>Usage:</p>
+<pre><code class="language-bash"><span class="boring"> Development
+</span>bashrs purify --config bashrs.dev.toml script.sh
+
+<span class="boring"> Production
+</span>bashrs purify --config bashrs.prod.toml script.sh
+</code></pre>
+<h3 id="10-test-configuration-changes"><a class="header" href="#10-test-configuration-changes">10. Test Configuration Changes</a></h3>
+<p>After modifying configuration, verify it works:</p>
+<pre><code class="language-bash"><span class="boring"> Validate configuration
+</span>bashrs config validate bashrs.toml
+
+<span class="boring"> Test on sample script
+</span>bashrs purify --config bashrs.toml test-script.sh
+</code></pre>
+<h2 id="troubleshooting-configuration"><a class="header" href="#troubleshooting-configuration">Troubleshooting Configuration</a></h2>
+<h3 id="configuration-not-loading"><a class="header" href="#configuration-not-loading">Configuration Not Loading</a></h3>
+<p><strong>Problem:</strong> Changes to <code>bashrs.toml</code> have no effect.</p>
+<p><strong>Solutions:</strong></p>
+<ol>
+<li>Check file location (must be in current directory)</li>
+<li>Verify TOML syntax with a validator</li>
+<li>Use <code>BASHRS_DEBUG=1</code> to see configuration loading</li>
+</ol>
+<pre><code class="language-bash">BASHRS_DEBUG=1 bashrs purify script.sh
+<span class="boring"> Debug output will show which config files are loaded
+</span></code></pre>
+<h3 id="conflicting-settings"><a class="header" href="#conflicting-settings">Conflicting Settings</a></h3>
+<p><strong>Problem:</strong> Unexpected configuration behavior.</p>
+<p><strong>Solution:</strong> Check configuration precedence (CLI &gt; ENV &gt; Project &gt; User &gt; System)</p>
+<pre><code class="language-bash"><span class="boring"> See effective configuration
+</span>bashrs config show
+</code></pre>
+<h3 id="invalid-configuration-values"><a class="header" href="#invalid-configuration-values">Invalid Configuration Values</a></h3>
+<p><strong>Problem:</strong> Error messages about invalid config values.</p>
+<p><strong>Solution:</strong> Verify against schema (see <a href="#complete-schema">Complete Schema</a>)</p>
+<pre><code class="language-bash"><span class="boring"> Validate configuration file
+</span>bashrs config validate bashrs.toml
+</code></pre>
+<h2 id="summary"><a class="header" href="#summary">Summary</a></h2>
+<p>bashrs provides flexible configuration through:</p>
+<ul>
+<li><strong>Configuration files</strong> (<code>bashrs.toml</code>) for persistent settings</li>
+<li><strong>Environment variables</strong> (<code>BASHRS_*</code>) for runtime overrides</li>
+<li><strong>CLI arguments</strong> for command-specific options</li>
+</ul>
+<p><strong>Key Points:</strong></p>
+<ol>
+<li>Use per-project <code>bashrs.toml</code> for team consistency</li>
+<li>Set appropriate verification levels for your use case</li>
+<li>Always enable security, determinism, and idempotency checks</li>
+<li>Use machine-readable formats in CI/CD</li>
+<li>Document project-specific rule exceptions</li>
+</ol>
+<p>For more information, see:</p>
+<ul>
+<li><a href="./exit-codes.html">Exit Codes Reference</a></li>
+<li><a href="./rules.html">Linter Rules Reference</a></li>
+<li><a href="./cli.html">CLI Commands Reference</a></li>
+</ul>
 
                     </main>
 

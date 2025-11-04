@@ -291,4 +291,83 @@ mod tests {
         let diag = &result.diagnostics[0];
         assert!(diag.fix.is_none(), "SEC008 should not provide auto-fix");
     }
+
+    // ===== Mutation Coverage Tests - Following SEC001 pattern (100% kill rate) =====
+
+    #[test]
+    fn test_mutation_sec008_create_curl_pipe_diagnostic_start_col_exact() {
+        // MUTATION: Line 54:9 - replace + with * in line_num + 1
+        // MUTATION: Line 55:9 - replace + with * in pipe_col + 1
+        let bash_code = "curl https://install.example.com/script.sh | sh";
+        let result = check(bash_code);
+        assert_eq!(result.diagnostics.len(), 1);
+        let span = result.diagnostics[0].span;
+        // Pipe is at column 44 (0-indexed), span should be pipe_col + 1
+        assert_eq!(
+            span.start_col, 44,
+            "Start column must use pipe_col + 1, not pipe_col * 1"
+        );
+    }
+
+    #[test]
+    fn test_mutation_sec008_line_num_calculation() {
+        // MUTATION: Line 54:9 - replace + with * in line_num + 1
+        // Tests line number calculation for multiline input
+        let bash_code = "# comment\ncurl https://example.com | sh";
+        let result = check(bash_code);
+        assert_eq!(result.diagnostics.len(), 1);
+        // With +1: line 2
+        // With *1: line 0
+        assert_eq!(
+            result.diagnostics[0].span.start_line, 2,
+            "Line number must use +1, not *1"
+        );
+    }
+
+    #[test]
+    fn test_mutation_sec008_end_col_with_min_arithmetic() {
+        // MUTATION: Line 57:9 - arithmetic mutations in line_len.min(pipe_col + 10)
+        // Tests end column calculation with min() function
+        let bash_code = "curl https://a.com | sh";
+        let result = check(bash_code);
+        assert_eq!(result.diagnostics.len(), 1);
+        let span = result.diagnostics[0].span;
+        // Verify end column is calculated correctly with min(line_len, pipe_col + 10)
+        assert!(
+            span.end_col > span.start_col,
+            "End column must be greater than start column"
+        );
+        assert!(
+            span.end_col <= bash_code.len(),
+            "End column must not exceed line length"
+        );
+    }
+
+    #[test]
+    fn test_mutation_sec008_column_with_leading_whitespace() {
+        // Tests column calculations with offset
+        let bash_code = "    wget -qO- https://example.com | bash";
+        let result = check(bash_code);
+        assert_eq!(result.diagnostics.len(), 1);
+        let span = result.diagnostics[0].span;
+        // Pipe starts after leading whitespace
+        assert!(
+            span.start_col > 30,
+            "Must account for leading whitespace and command"
+        );
+    }
+
+    #[test]
+    fn test_mutation_sec008_short_line_min_bounds() {
+        // Tests that min() function correctly bounds end column
+        let bash_code = "curl x.co|sh"; // Very short line to test min() boundary
+        let result = check(bash_code);
+        assert_eq!(result.diagnostics.len(), 1);
+        let span = result.diagnostics[0].span;
+        // end_col should be min(line_len=12, pipe_col+10=19) = 12
+        assert_eq!(
+            span.end_col, 12,
+            "End column should be bounded by line length via min()"
+        );
+    }
 }
