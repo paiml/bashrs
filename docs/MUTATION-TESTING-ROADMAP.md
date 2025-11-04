@@ -21,9 +21,10 @@
 | rule_registry.rs | 3 | 3 (viable) | 100% | ✅ Verified | Baseline |
 | shell_type.rs | 27+7 | 21 est. | 90%+ | ⏳ Verifying | 96aeab62 |
 | **CRITICAL Security Rules** |
-| SC2086 (word splitting) | 12+9 | 35 | 25.7% | 🔄 Iter 2 | 329b5c11 |
-| SC2059 (format injection) | 10 | TBD | TBD | 🔄 Phase 1 | Pending |
-| SC2064 (trap timing) | 9 | TBD | Pending | 📋 Queued | - |
+| SC2064 (trap timing) | 20 | 7 | 100% | ✅ PERFECT | d828a9fe |
+| SC2059 (format injection) | 21 | 12 | 100% | ✅ PERFECT | Pending |
+| SC2086 (word splitting) | 68+ | 35 | 58.8% | ⚠️ Iter 5 | 329b5c11 |
+| SEC001 (eval injection) | 12 | 16 | 62.5%→? | 🔄 Iter 1 | Testing |
 | **SEC Rules (Error Severity)** |
 | SEC001-SEC008 | Varies | TBD | Pending | 📋 Queued | - |
 
@@ -55,12 +56,12 @@
 **Rationale**: Security vulnerabilities must have comprehensive test coverage
 
 **Priority 1 (ShellCheck CRITICAL)**:
-1. ✅ SC2086 - Word splitting/globbing (HIGHEST PRIORITY) - Phase 1-3 complete, Phase 4 pending
-2. 🔄 SC2059 - Printf format injection - Phase 1 in progress
-3. 📋 SC2064 - Trap command timing (security-critical)
+1. ✅ SC2064 - Trap command timing - **100% KILL RATE ACHIEVED!**
+2. ✅ SC2059 - Printf format injection - **100% KILL RATE ACHIEVED!**
+3. ⚠️ SC2086 - Word splitting/globbing - 58.8% (needs refactoring approach)
 
 **Priority 2 (SEC Rules - Error Severity)**:
-4. 📋 SEC001 - Command injection via eval/exec
+4. 🔄 SEC001 - Command injection via eval - Iteration 1 testing (expect 90%+)
 5. 📋 SEC002 - Unsafe file operations
 6. 📋 SEC003 - Path traversal vulnerabilities
 7. 📋 SEC004 - Unsafe variable expansion
@@ -206,26 +207,40 @@ git push
 - ✅ Documentation: CHANGELOG, ROADMAP, book updated
 - ✅ Commits: 96aeab62, cad74015 pushed
 
+**SC2064 - CRITICAL** (2025-11-04):
+- ✅ Iteration 1 Complete: 4 exact column position tests
+- ✅ Gap analysis: docs/SC2064-MUTATION-GAPS.md
+- ✅ Final Result: **100% KILL RATE (7/7 caught)** ✨
+- ✅ Committed: d828a9fe
+- 🎯 **PERFECT SCORE ACHIEVED!**
+
 **SC2086 - CRITICAL** (2025-11-03):
-- ✅ Iteration 1 Complete: 9 mutation coverage tests added (commit 329b5c11)
-- ✅ Gap analysis updated: docs/SC2086-MUTATION-GAPS.md
-- ✅ Phase 4 Results: 25.7% kill rate (9/35 caught, 24/35 missed)
-- 📋 Iteration 2 Needed: 15+ additional tests for helper functions
-- 🎯 Target: 90%+ kill rate (need to catch 32/35 mutants)
+- ✅ Iterations 1-5: 68+ total tests added
+- ✅ Gap analysis: docs/SC2086-MUTATION-GAPS.md
+- ⚠️ Current Results: 58.8% kill rate (20/34 caught, 14/34 missed)
+- 📋 Challenge: Integration tests don't reach helper functions
+- 🎯 Needs: Fundamental refactoring or direct helper unit tests
 
 ### In Progress
 
-**SC2059 - CRITICAL** (2025-11-03):
-- 🔄 Phase 1: Baseline mutation test running (bash ID 746991)
-- 📋 Phase 2-4: Pending baseline completion
+**SC2059 - CRITICAL** (2025-11-04):
+- ✅ Iteration 3 Complete: Fixed test input pattern bug
+- ✅ Gap analysis: docs/SC2059-MUTATION-GAPS.md
+- ✅ Final Result: **100% KILL RATE (12/12 caught)** ✨
+- 🎯 **PERFECT SCORE ACHIEVED!**
+- 📋 Needs commit and CHANGELOG update
+
+**SEC001 - CRITICAL** (2025-11-04):
+- ✅ Baseline complete: 62.5% kill rate (10/16 caught, 6/16 missed)
+- ✅ Gap analysis: docs/SEC001-MUTATION-GAPS.md
+- ✅ Iteration 1: Added 6 exact position tests (Phase 2 GREEN)
+- 🔄 Mutation testing: 16 mutants (bash ID 8bb1cc)
+- 🎯 Expected: **90%+ kill rate** (possibly 100% like SC2064/SC2059)
+- 📋 Phase: Testing → Commit → Document
 
 ### Queued
 
-**SC2064 - CRITICAL**:
-- 📋 Phase 1: Baseline mutation test
-- 📋 Estimated: ~15-20 mutations
-
-**SEC001-SEC008**:
+**SEC002-SEC008**:
 - 📋 Priority assessment needed
 - 📋 Baseline tests for Error severity rules
 
@@ -271,22 +286,33 @@ grep "MISSED\|CAUGHT" mutation_<rule>.log | wc -l
 
 ## 🎓 Lessons Learned
 
-**From shell_type.rs**:
-- 7 targeted tests eliminated 7 specific mutations
-- Improved from 66.7% → 90%+ kill rate
-- Demonstrated reproducible EXTREME TDD workflow
+**From SC2064** (100% kill rate):
+- ✅ **Exact position tests work perfectly** for simple rules
+- ✅ 4 targeted tests → 7/7 mutations caught (42.9% → 100%)
+- ✅ Pattern: `assert_eq!(span.start_col, 1)` catches arithmetic mutations
+- ✅ Simple check() function structure enables comprehensive testing
 
-**From SC2086**:
-- Initial 9 tests caught some but not all mutations (~31% preliminary)
-- Helper functions need dedicated tests (should_skip_line, is_already_quoted, find_dollar_position)
-- Column calculation logic requires exact position verification
-- Arithmetic context detection needs both positive and negative tests
+**From SC2059** (91.7% → 100% ACHIEVED):
+- ⚠️ **Test input must match target code path** - CRITICAL LESSON
+- ❌ Wrong input: `printf "$var"` matched PRINTF_WITH_VAR (line 54)
+- ✅ Correct input: `printf "text $var"` matches PRINTF_WITH_EXPANSION (line 72)
+- 🔍 **Genchi Genbutsu principle**: Direct observation revealed mismatch
+- ✅ Fixed test → caught previously escaping mutation
+- 🎯 **Result**: Iteration 3 achieved **100% kill rate (12/12)**
+- 📚 **Pattern**: Read source code to understand which regex matches which input
+
+**From SC2086** (58.8% after 5 iterations):
+- ⚠️ **Integration tests have limits** for helper functions
+- ❌ 68+ tests through check() don't reach helper function edge cases
+- 📋 Need: Direct helper unit tests OR refactoring
+- 🎯 Challenge: Complex logic with multiple helper functions
 
 **From methodology**:
 - One test per mutation gap is most effective
 - MUTATION comments make intent clear
 - Empirical validation (cargo-mutants) beats guessing
 - Toyota Way (Jidoka) - stop to fix quality immediately
+- **Test input matching is critical** - wrong input = wrong code path
 
 ## 🔄 Continuous Improvement (Kaizen)
 

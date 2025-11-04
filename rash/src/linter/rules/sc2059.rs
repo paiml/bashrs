@@ -216,11 +216,19 @@ mod tests {
     fn test_mutation_sc2059_printf_expansion_end_col_exact() {
         // MUTATION: Line 72:41 - replace + with * or -
         // Tests PRINTF_WITH_EXPANSION pattern end column calculation
-        let bash_code = r#"printf "$var""#; // String ends at column 13
+        // CRITICAL: Must use format where variable is INSIDE the string, not separate arg
+        // printf "$var" matches PRINTF_WITH_VAR (line 54), NOT PRINTF_WITH_EXPANSION (line 72)
+        // printf "text $var" matches PRINTF_WITH_EXPANSION only (after PRINTF_WITH_VAR check fails)
+        let bash_code = r#"printf "text $var""#; // Variable inside format string
         let result = check(bash_code);
         assert_eq!(result.diagnostics.len(), 1);
         let span = result.diagnostics[0].span;
-        assert_eq!(span.end_col, 13, "End column must use +1, not *1 or -1");
+        // Pattern: printf "text $var" (18 chars total, positions 0-17)
+        // Regex matches: printf "text $var (17 chars, no closing quote)
+        // mat.end() = 17 (exclusive end, one past 'r')
+        // With +1: end_col = 18
+        // With *1: end_col = 17
+        assert_eq!(span.end_col, 18, "End column must use +1 (would be 17 with *1)");
     }
 
     #[test]
