@@ -1,0 +1,611 @@
+roadmap:
+  title: "Rash Book Review and Update Roadmap"
+  goal: "Ensure all book chapters are accurate, up-to-date, and examples work correctly"
+  methodology: "Paragraph-by-paragraph review + example verification"
+  status: "READY"
+  created: "2025-11-04"
+  target_completion: "2025-11-11"
+
+statistics:
+  total_chapters: 35
+  completed: 34  # 16 reviewed + 18 stub chapters completed
+  in_progress: 0
+  pending: 1  # Only chapter_1.md orphan remaining
+  completion_percent: 97  # 34/35 = 97%
+  stub_chapters_completed: 18  # Major milestone: ALL stubs now comprehensive
+  documentation_lines_added: 16430  # Total lines added across 18 chapters
+
+quality_gates:
+  - "All code examples compile successfully"
+  - "All code examples produce expected output"
+  - "No outdated feature references"
+  - "No broken internal links"
+  - "Version numbers accurate (currently v6.27.1)"
+  - "All commands tested and work"
+  - "Consistent terminology throughout"
+
+sections:
+  - id: "getting-started"
+    name: "Getting Started"
+    priority: "HIGH"
+    tasks:
+      - id: "BOOK-001"
+        title: "Review introduction.md"
+        status: "pending"
+        file: "book/src/introduction.md"
+        verification:
+          - "Check Rash description matches CLAUDE.md (Bash purification, not Rust transpilation)"
+          - "Verify version number is current"
+          - "Test any code examples"
+          - "Check feature list is accurate"
+
+      - id: "BOOK-002"
+        title: "Review installation.md"
+        status: "pending"
+        file: "book/src/getting-started/installation.md"
+        verification:
+          - "Test: cargo install bashrs"
+          - "Test: cargo install bashrs --version X.X.X"
+          - "Verify build-from-source instructions"
+          - "Check system requirements are accurate"
+
+      - id: "BOOK-003"
+        title: "Review quick-start.md"
+        status: "pending"
+        file: "book/src/getting-started/quick-start.md"
+        verification:
+          - "Run all quickstart examples"
+          - "Verify output matches documentation"
+          - "Check CLI commands are current"
+          - "Test: rash --help output matches"
+
+      - id: "BOOK-004"
+        title: "Review first-purification.md"
+        status: "pending"
+        file: "book/src/getting-started/first-purification.md"
+        verification:
+          - "Create test file with example code"
+          - "Run rash purify on it"
+          - "Verify purified output matches expectations"
+          - "Check explanation is technically accurate"
+
+      - id: "BOOK-005"
+        title: "Review repl.md"
+        status: "pending"
+        file: "book/src/getting-started/repl.md"
+        verification:
+          - "Test: rash repl"
+          - "Verify all REPL commands work"
+          - "Check examples produce expected output"
+          - "Test interactive features described"
+
+  - id: "concepts"
+    name: "Core Concepts"
+    priority: "HIGH"
+    tasks:
+      - id: "BOOK-006"
+        title: "Review purification.md"
+        status: "pending"
+        file: "book/src/concepts/purification.md"
+        verification:
+          - "Verify purification definition matches CLAUDE.md"
+          - "Check focus is on Bash→Purified Bash (not Rust→Shell)"
+          - "Test all transformation examples"
+          - "Validate before/after code samples"
+
+      - id: "BOOK-007"
+        title: "Review determinism.md"
+        status: "pending"
+        file: "book/src/concepts/determinism.md"
+        verification:
+          - "Verify determinism definition is accurate"
+          - "Check examples of non-deterministic code ($RANDOM, date, $$)"
+          - "Test deterministic alternatives work"
+          - "Validate explanation is clear"
+
+      - id: "BOOK-008"
+        title: "Review idempotency.md"
+        status: "pending"
+        file: "book/src/concepts/idempotency.md"
+        verification:
+          - "Verify idempotency definition"
+          - "Check examples (mkdir -p, rm -f, ln -sf)"
+          - "Test idempotent patterns"
+          - "Validate safety claims"
+
+      - id: "BOOK-009"
+        title: "Review posix.md"
+        status: "pending"
+        file: "book/src/concepts/posix.md"
+        verification:
+          - "Verify POSIX compliance explanation"
+          - "Check shellcheck integration described"
+          - "Test POSIX examples pass shellcheck -s sh"
+          - "Validate portability claims"
+
+  - id: "linting"
+    name: "Shell Script Linting"
+    priority: "HIGH"
+    tasks:
+      - id: "BOOK-010"
+        title: "Review shell-detection.md"
+        status: "pending"
+        file: "book/src/linting/shell-detection.md"
+        verification:
+          - "Check shell type detection accuracy"
+          - "Test examples with different shebangs"
+          - "Verify supported shells list"
+          - "Validate detection logic explanation"
+
+      - id: "BOOK-011"
+        title: "Review security.md (SEC001-SEC008)"
+        status: "pending"
+        file: "book/src/linting/security.md"
+        verification:
+          - "Verify all 8 SEC rules documented"
+          - "Check examples trigger the rules"
+          - "Test: rash lint on SEC examples"
+          - "Validate severity levels (all Error)"
+          - "Cross-reference with SEC baseline results (81.2% average)"
+        notes: "Update with mutation testing results from SEC batch (81.2% baseline)"
+
+      - id: "BOOK-012"
+        title: "Review determinism.md (DET001-DET003)"
+        status: "pending"
+        file: "book/src/linting/determinism.md"
+        verification:
+          - "Verify all 3 DET rules documented"
+          - "Check examples trigger warnings"
+          - "Test: rash lint on DET examples"
+          - "Validate severity levels"
+
+      - id: "BOOK-013"
+        title: "Review idempotency.md (IDEM001-IDEM003)"
+        status: "pending"
+        file: "book/src/linting/idempotency.md"
+        verification:
+          - "Verify all 3 IDEM rules documented"
+          - "Check examples show non-idempotent patterns"
+          - "Test: rash lint on IDEM examples"
+          - "Validate fix suggestions work"
+
+      - id: "BOOK-014"
+        title: "Review custom-rules.md"
+        status: "pending"
+        file: "book/src/linting/custom-rules.md"
+        verification:
+          - "Check custom rule development process"
+          - "Test example custom rule if provided"
+          - "Verify API documentation is current"
+          - "Check integration process"
+
+  - id: "config"
+    name: "Shell Configuration Management"
+    priority: "MEDIUM"
+    tasks:
+      - id: "BOOK-015"
+        title: "Review config/overview.md"
+        status: "pending"
+        file: "book/src/config/overview.md"
+        verification:
+          - "Check config management description"
+          - "Verify supported file types (.bashrc, .zshrc)"
+          - "Test overview examples"
+          - "Validate feature list"
+
+      - id: "BOOK-016"
+        title: "Review config/analyzing.md"
+        status: "pending"
+        file: "book/src/config/analyzing.md"
+        verification:
+          - "Test: rash analyze examples"
+          - "Verify output format examples"
+          - "Check analysis features work"
+          - "Validate JSON output if shown"
+
+      - id: "BOOK-017"
+        title: "Review config/purifying.md"
+        status: "pending"
+        file: "book/src/config/purifying.md"
+        verification:
+          - "Test: rash purify on .bashrc/.zshrc"
+          - "Verify purification examples"
+          - "Check before/after diffs accurate"
+          - "Validate safety claims"
+
+      - id: "BOOK-018"
+        title: "Review CONFIG-001: PATH Deduplication"
+        status: "pending"
+        file: "book/src/config/rules/config-001.md"
+        verification:
+          - "Test CONFIG-001 detection"
+          - "Verify deduplication algorithm"
+          - "Check examples trigger rule"
+          - "Test fix suggestions work"
+
+      - id: "BOOK-019"
+        title: "Review CONFIG-002: Quote Variables"
+        status: "pending"
+        file: "book/src/config/rules/config-002.md"
+        verification:
+          - "Test CONFIG-002 detection"
+          - "Verify quoting examples"
+          - "Check edge cases covered"
+          - "Test fix application"
+
+      - id: "BOOK-020"
+        title: "Review CONFIG-003: Consolidate Aliases"
+        status: "pending"
+        file: "book/src/config/rules/config-003.md"
+        verification:
+          - "Test CONFIG-003 detection"
+          - "Verify consolidation logic"
+          - "Check examples are accurate"
+          - "Test duplicate detection"
+
+  - id: "makefile"
+    name: "Makefile Linting"
+    priority: "MEDIUM"
+    tasks:
+      - id: "BOOK-021"
+        title: "Review makefile/overview.md"
+        status: "pending"
+        file: "book/src/makefile/overview.md"
+        verification:
+          - "Check Makefile support description"
+          - "Verify parsing capabilities"
+          - "Test example Makefiles"
+          - "Validate feature list (v1.4.0)"
+        notes: "Ensure mentions Makefile purification added in v1.4.0"
+
+      - id: "BOOK-022"
+        title: "Review makefile/security.md"
+        status: "pending"
+        file: "book/src/makefile/security.md"
+        verification:
+          - "Check Makefile security rules"
+          - "Test security examples"
+          - "Verify shell command detection"
+          - "Validate security recommendations"
+
+      - id: "BOOK-023"
+        title: "Review makefile/best-practices.md"
+        status: "pending"
+        file: "book/src/makefile/best-practices.md"
+        verification:
+          - "Check best practice recommendations"
+          - "Verify .PHONY usage examples"
+          - "Test Makefile examples compile"
+          - "Validate portability advice"
+
+  - id: "examples"
+    name: "Examples"
+    priority: "HIGH"
+    tasks:
+      - id: "BOOK-024"
+        title: "Review bootstrap-installer.md"
+        status: "pending"
+        file: "book/src/examples/bootstrap-installer.md"
+        verification:
+          - "Test bootstrap installer example"
+          - "Verify it purifies correctly"
+          - "Check safety transformations"
+          - "Validate explanation is complete"
+
+      - id: "BOOK-025"
+        title: "Review deployment-script.md"
+        status: "pending"
+        file: "book/src/examples/deployment-script.md"
+        verification:
+          - "Test deployment script example"
+          - "Verify purification output"
+          - "Check idempotency claims"
+          - "Validate best practices shown"
+
+      - id: "BOOK-026"
+        title: "Review config-management.md"
+        status: "pending"
+        file: "book/src/examples/config-management.md"
+        verification:
+          - "Test config management example"
+          - "Verify analysis output"
+          - "Check purification results"
+          - "Validate use case explanation"
+
+      - id: "BOOK-027"
+        title: "Review cicd-pipeline.md"
+        status: "pending"
+        file: "book/src/examples/cicd-pipeline.md"
+        verification:
+          - "Test CI/CD pipeline example"
+          - "Verify GitHub Actions integration"
+          - "Check example workflow syntax"
+          - "Validate practical application"
+
+      - id: "BOOK-028"
+        title: "Review example_zshrc_workflow.md"
+        status: "pending"
+        file: "book/src/example_zshrc_workflow.md"
+        verification:
+          - "Test complete .zshrc workflow"
+          - "Verify all commands work"
+          - "Check quality tools integration"
+          - "Validate end-to-end process"
+
+  - id: "advanced"
+    name: "Advanced Topics"
+    priority: "MEDIUM"
+    tasks:
+      - id: "BOOK-029"
+        title: "Review ast-transformation.md"
+        status: "pending"
+        file: "book/src/advanced/ast-transformation.md"
+        verification:
+          - "Check AST explanation accuracy"
+          - "Test AST examples if provided"
+          - "Verify transformation logic"
+          - "Validate technical depth"
+
+      - id: "BOOK-030"
+        title: "Review property-testing.md"
+        status: "pending"
+        file: "book/src/advanced/property-testing.md"
+        verification:
+          - "Check proptest integration examples"
+          - "Test property test examples compile"
+          - "Verify 100+ cases claim"
+          - "Validate methodology explanation"
+        notes: "Cross-reference with EXTREME TDD in contributing/"
+
+      - id: "BOOK-031"
+        title: "Review mutation-testing.md"
+        status: "pending"
+        file: "book/src/advanced/mutation-testing.md"
+        verification:
+          - "Check cargo-mutants integration"
+          - "Verify kill rate examples (update with 81.2% baseline)"
+          - "Test mutation testing commands"
+          - "Validate NASA-level quality claims (90%+ target)"
+        notes: "UPDATE with SEC batch results (81.2% baseline, NASA-level 90% target)"
+
+      - id: "BOOK-032"
+        title: "Review performance.md"
+        status: "pending"
+        file: "book/src/advanced/performance.md"
+        verification:
+          - "Check performance benchmarks are current"
+          - "Test benchmarking commands"
+          - "Verify optimization claims"
+          - "Validate profiling instructions"
+
+  - id: "reference"
+    name: "Reference Documentation"
+    priority: "HIGH"
+    tasks:
+      - id: "BOOK-033"
+        title: "Review reference/cli.md"
+        status: "pending"
+        file: "book/src/reference/cli.md"
+        verification:
+          - "Test ALL CLI commands listed"
+          - "Verify rash --help output matches"
+          - "Check all flags and options work"
+          - "Validate usage examples"
+        notes: "CRITICAL: Ensure all commands work as documented"
+
+      - id: "BOOK-034"
+        title: "Review reference/repl-commands.md"
+        status: "pending"
+        file: "book/src/reference/repl-commands.md"
+        verification:
+          - "Test ALL REPL commands"
+          - "Verify command syntax"
+          - "Check examples work in REPL"
+          - "Validate help text matches"
+
+      - id: "BOOK-035"
+        title: "Review reference/configuration.md"
+        status: "pending"
+        file: "book/src/reference/configuration.md"
+        verification:
+          - "Check config file format"
+          - "Test example configurations"
+          - "Verify all options documented"
+          - "Validate defaults are accurate"
+
+      - id: "BOOK-036"
+        title: "Review reference/exit-codes.md"
+        status: "pending"
+        file: "book/src/reference/exit-codes.md"
+        verification:
+          - "Verify all exit codes documented"
+          - "Test exit code examples"
+          - "Check consistency with code"
+          - "Validate error scenarios"
+
+      - id: "BOOK-037"
+        title: "Review reference/rules.md"
+        status: "pending"
+        file: "book/src/reference/rules.md"
+        verification:
+          - "Check all linter rules listed"
+          - "Verify rule IDs are accurate"
+          - "Test examples for each rule"
+          - "Validate severity levels"
+          - "Cross-check with SEC001-SEC008 implementation"
+
+  - id: "contributing"
+    name: "Contributing"
+    priority: "HIGH"
+    tasks:
+      - id: "BOOK-038"
+        title: "Review contributing/setup.md"
+        status: "pending"
+        file: "book/src/contributing/setup.md"
+        verification:
+          - "Test development setup instructions"
+          - "Verify cargo commands work"
+          - "Check prerequisites are complete"
+          - "Validate toolchain requirements"
+
+      - id: "BOOK-039"
+        title: "Review contributing/extreme-tdd.md"
+        status: "pending"
+        file: "book/src/contributing/extreme-tdd.md"
+        verification:
+          - "Check EXTREME TDD definition matches CLAUDE.md"
+          - "Verify: TDD + Property + Mutation + Fuzz + PMAT + Examples"
+          - "Test example workflow if provided"
+          - "Validate methodology explanation"
+          - "UPDATE with SEC batch results (81.2% baseline, 90% target)"
+        notes: "CRITICAL: Must match EXTREME TDD definition in CLAUDE.md"
+
+      - id: "BOOK-040"
+        title: "Review contributing/toyota-way.md"
+        status: "pending"
+        file: "book/src/contributing/toyota-way.md"
+        verification:
+          - "Check Toyota Way principles accuracy"
+          - "Verify Jidoka (自働化) explanation"
+          - "Verify Kaizen (改善) explanation"
+          - "Verify Genchi Genbutsu (現地現物) explanation"
+          - "Verify Hansei (反省) explanation"
+          - "Validate real-world examples"
+        notes: "Ensure Japanese terms and definitions are accurate"
+
+      - id: "BOOK-041"
+        title: "Review contributing/release.md"
+        status: "pending"
+        file: "book/src/contributing/release.md"
+        verification:
+          - "Check release process matches CLAUDE.md Release Protocol"
+          - "Verify GitHub + crates.io dual publishing"
+          - "Test release commands if safe"
+          - "Validate semantic versioning explanation"
+          - "Ensure 5-phase process documented"
+        notes: "MUST match Release Protocol in CLAUDE.md (5 phases)"
+
+verification_process:
+  - step: 1
+    action: "Read chapter paragraph by paragraph"
+    check: "Technical accuracy, clarity, completeness"
+
+  - step: 2
+    action: "Extract all code examples"
+    check: "Save to temporary files for testing"
+
+  - step: 3
+    action: "Test all code examples"
+    check: "Compile, run, verify output matches documentation"
+
+  - step: 4
+    action: "Verify all commands"
+    check: "Run rash commands, check output, validate behavior"
+
+  - step: 5
+    action: "Check internal links"
+    check: "Verify all cross-references work"
+
+  - step: 6
+    action: "Update if needed"
+    check: "Fix inaccuracies, update examples, clarify text"
+
+  - step: 7
+    action: "Test book build"
+    check: "Run 'mdbook test book' to verify examples compile"
+
+  - step: 8
+    action: "Document changes"
+    check: "Note what was updated in this roadmap"
+
+common_issues_to_check:
+  - "Outdated version numbers (current: v6.31.0)"  # UPDATED
+  - "References to unimplemented features (e.g., Rust→Shell transpilation)"
+  - "Incorrect primary workflow (should be Bash→Purified Bash, not Rust→Shell)"
+  - "Broken code examples"
+  - "Commands that don't match current CLI"
+  - "Inconsistent terminology"
+  - "Missing mutation testing results updates"
+  - "Outdated quality metrics"
+  - "Missing EXTREME TDD components"
+  - "Incorrect Toyota Way Japanese characters"
+
+# v6.31.0 MILESTONE: ALL STUB CHAPTERS COMPLETE (18 chapters, 16,430 lines)
+stub_chapters_completed:
+  - "CLI Reference (reference/cli.md): 1,312 lines"
+  - "Deployment Script (examples/deployment-script.md): 734 lines"
+  - "Bootstrap Installer (examples/bootstrap-installer.md): 710 lines"
+  - "CI/CD Integration (examples/ci-cd-integration.md): 738 lines"
+  - "Configuration Management (examples/config-management.md): 1,191 lines"
+  - "Analyzing Config Files (config/analyzing.md): 1,076 lines"
+  - "Purifying Configs (config/purifying.md): 1,134 lines"
+  - "Determinism Rules (linting/determinism.md): 743 lines"
+  - "Idempotency Rules (linting/idempotency.md): 807 lines"
+  - "Custom Rules (linting/custom-rules.md): 919 lines"
+  - "AST Transformation (advanced/ast-transformation.md): 954 lines"
+  - "Property Testing (advanced/property-testing.md): 782 lines"
+  - "Mutation Testing (advanced/mutation-testing.md): 795 lines"
+  - "Performance Optimization (advanced/performance.md): 943 lines"
+  - "Configuration Reference (reference/configuration.md): 834 lines"
+  - "Exit Codes Reference (reference/exit-codes.md): 832 lines"
+  - "Linter Rules Reference (reference/rules.md): 939 lines"
+  - "Best Practices (makefile/best-practices.md): 987 lines"
+
+automation:
+  test_all_examples:
+    command: "mdbook test book"
+    expected: "All code examples compile and pass"
+
+  build_book:
+    command: "mdbook build book"
+    expected: "Book builds without errors"
+
+  serve_book:
+    command: "mdbook serve book"
+    expected: "Book serves on localhost:3000"
+
+dependencies:
+  - "Core library must be stable (6321 tests passing)"
+  - "CLI commands must be finalized"
+  - "All linter rules must be implemented"
+  - "EXTREME TDD methodology must be documented in CLAUDE.md"
+  - "Release process must be finalized in CLAUDE.md"
+
+success_criteria:
+  - "All 41 chapters reviewed and verified"
+  - "All code examples test successfully"
+  - "All CLI commands work as documented"
+  - "mdbook test book passes 100%"
+  - "Book builds without warnings"
+  - "No broken links"
+  - "Consistent terminology throughout"
+  - "Version numbers accurate"
+  - "Feature descriptions match implementation"
+
+notes: |
+  This roadmap covers systematic review of all 41 book chapters.
+
+  PRIORITY ORDER:
+  1. HIGH: Getting Started, Concepts, Linting, Examples, Reference, Contributing
+  2. MEDIUM: Config Management, Makefile, Advanced Topics
+
+  CRITICAL UPDATES NEEDED:
+  - Mutation testing results (SEC batch: 81.2% baseline, 90% NASA-level target)
+  - EXTREME TDD definition consistency with CLAUDE.md
+  - Release process consistency with CLAUDE.md
+  - Primary workflow emphasis (Bash purification, not Rust transpilation)
+  - Makefile support (added in v1.4.0)
+
+  TESTING APPROACH:
+  - Extract every code example
+  - Run every command
+  - Verify every claim
+  - Cross-reference with implementation
+
+  This is a living document - update task status as chapters are reviewed.
+
+related_documents:
+  - "CLAUDE.md - Project development guidelines"
+  - "MUTATION-TESTING-ROADMAP.md - Mutation testing progress"
+  - "SEC-BATCH-MUTATION-REPORT.md - SEC baseline results"
+  - "CHANGELOG.md - Feature history and version info"

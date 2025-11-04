@@ -923,6 +923,37 @@ All outputs must meet:
 
 **CRITICAL**: Every release MUST be published to both GitHub AND crates.io. Following Toyota Way principles, releasing is NOT complete until both distribution channels are updated.
 
+### 📅 Release Schedule (Friday-Only Policy)
+
+**MANDATORY**: crates.io releases MUST happen on **Fridays ONLY**.
+
+**Why Friday releases?**
+1. **Weekend buffer**: Issues can be addressed over the weekend if needed
+2. **User flexibility**: Users have time to upgrade without weekday pressure
+3. **Team availability**: Full team available early in week to handle feedback
+4. **Predictable cadence**: Users know when to expect updates
+5. **Quality assurance**: Allows full week of testing before release
+
+**Release Preparation Schedule**:
+- **Monday-Thursday**: Development, testing, documentation updates
+- **Thursday EOD**: All quality gates must pass, documentation complete
+- **Friday morning**: Final verification, create tags, publish to crates.io
+- **Friday afternoon**: Post-release verification, monitor for issues
+
+**Exceptions** (Require explicit approval):
+- **CRITICAL security fixes**: May be released any day with documented justification
+- **Zero-day vulnerabilities**: Immediate release with STOP THE LINE protocol
+- **User-blocking bugs**: P0 issues affecting production deployments
+
+**If today is NOT Friday**:
+```bash
+# Prepare but DO NOT publish to crates.io
+git tag -a v<version> -m "Release notes..."
+git push && git push --tags  # ✅ OK: Push to GitHub
+cargo publish --dry-run      # ✅ OK: Verify package
+# ❌ DO NOT RUN: cargo publish (wait until Friday!)
+```
+
 ### Release Checklist
 
 **MANDATORY steps for ALL releases** (major, minor, patch):
@@ -974,6 +1005,10 @@ All outputs must meet:
   ```
 
 #### Phase 4: crates.io Release (MANDATORY - DO NOT SKIP)
+
+**⚠️ FRIDAY-ONLY**: crates.io releases MUST happen on **Fridays ONLY** (see Release Schedule above).
+
+- [ ] ✅ **Verify it's Friday**: Check current day of week before proceeding
 - [ ] ✅ **Dry run verification**: Test the publish process
   ```bash
   cargo publish --dry-run
@@ -982,9 +1017,11 @@ All outputs must meet:
   ```bash
   cargo package --list
   ```
-- [ ] ✅ **Publish to crates.io**: Actually publish the release
+- [ ] ✅ **Publish to crates.io**: Actually publish the release (**Friday morning only**)
   ```bash
+  # ⚠️ ONLY RUN ON FRIDAY ⚠️
   cargo publish
+  cargo publish -p bashrs-runtime  # If multi-crate workspace
   ```
 - [ ] ✅ **Verify publication**: Check https://crates.io/crates/bashrs
 - [ ] ✅ **Test installation**: Verify users can install
@@ -1097,9 +1134,24 @@ Before you can publish to crates.io, ensure:
 
 ### Release Frequency
 
-**Patch releases** (bug fixes): As needed, within 24-48 hours of critical bugs
-**Minor releases** (new features): Monthly or when feature is complete
-**Major releases** (breaking changes): Quarterly or when necessary
+**⚠️ ALL crates.io RELEASES MUST HAPPEN ON FRIDAY ONLY ⚠️**
+
+**Patch releases** (bug fixes):
+- Prepared: As needed, within 24-48 hours of critical bugs
+- Published to crates.io: Next Friday (unless P0 security issue)
+
+**Minor releases** (new features):
+- Prepared: When feature complete and all quality gates pass
+- Published to crates.io: Friday only
+
+**Major releases** (breaking changes):
+- Prepared: Quarterly or when necessary
+- Published to crates.io: Friday only
+
+**Emergency exceptions**:
+- P0 security vulnerabilities: May publish any day with STOP THE LINE protocol
+- User-blocking production bugs: May publish any day with documented justification
+- All other releases: **Friday only, no exceptions**
 
 ### Toyota Way Applied to Releases
 

@@ -1789,7 +1789,7 @@ mod property_tests {
 
             // Call next() up to 2x the number of lines (generous bound)
             let max_iterations = num_lines * 2;
-            for i in 0..max_iterations {
+            for _i in 0..max_iterations {
                 if session.is_finished() {
                     // Success - finished execution
                     return Ok(());

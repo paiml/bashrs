@@ -324,4 +324,125 @@ mod tests {
 
         assert_eq!(result.diagnostics.len(), 0);
     }
+
+    // ===== Mutation Coverage Tests - Following SEC001 pattern (100% kill rate) =====
+
+    #[test]
+    fn test_mutation_sec002_unquoted_var_start_col_exact() {
+        // MUTATION: Line 84:35 - replace + with * in line_num + 1
+        // MUTATION: Line 84:63 - Tests start column calculation
+        let bash_code = "curl $URL"; // $ at column 6
+        let result = check(bash_code);
+        assert_eq!(result.diagnostics.len(), 1);
+        let span = result.diagnostics[0].span;
+        // With correct arithmetic: start_col = 6
+        // With mutation (+ → *): would produce incorrect column
+        assert_eq!(
+            span.start_col, 6,
+            "Start column must use correct calculation"
+        );
+    }
+
+    #[test]
+    fn test_mutation_sec002_unquoted_var_end_col_exact() {
+        // MUTATION: Line 84:63 - replace + with * in col + 1
+        // MUTATION: Line 84:63 - replace + with - in col + 1
+        // Tests end column calculation
+        let bash_code = "curl $URL"; // $ at column 6, ends at column 7
+        let result = check(bash_code);
+        assert_eq!(result.diagnostics.len(), 1);
+        let span = result.diagnostics[0].span;
+        // With +1: end_col = 7
+        // With *1: end_col = 6
+        // With -1: end_col = 5
+        assert_eq!(
+            span.end_col, 7,
+            "End column must be col + 1, not col * 1 or col - 1"
+        );
+    }
+
+    #[test]
+    fn test_mutation_sec002_line_num_calculation() {
+        // MUTATION: Line 84:35 - replace + with * in line_num + 1
+        // Tests line number calculation for multiline input
+        let bash_code = "# comment\ncurl $URL"; // curl on line 2
+        let result = check(bash_code);
+        assert_eq!(result.diagnostics.len(), 1);
+        // With +1: line 2
+        // With *1: line 0
+        assert_eq!(
+            result.diagnostics[0].span.start_line, 2,
+            "Line number must use +1, not *1"
+        );
+    }
+
+    #[test]
+    fn test_mutation_sec002_column_with_offset() {
+        // Tests column calculations with leading whitespace
+        // Also catches Line 59:13 col += 1 mutation
+        let bash_code = "    curl $URL"; // $ at column 10 (4 spaces + "curl " = 9, $ at 10)
+        let result = check(bash_code);
+        assert_eq!(result.diagnostics.len(), 1);
+        let span = result.diagnostics[0].span;
+        assert_eq!(span.start_col, 10, "Must account for leading whitespace");
+        assert_eq!(span.end_col, 11, "End must be start + 1");
+    }
+
+    #[test]
+    fn test_mutation_sec002_column_tracking_accuracy() {
+        // MUTATION: Line 59:13 - replace += with *= in col += 1
+        // Test that column tracking is accurate for variables at various positions
+        let bash_code = "curl       $URL"; // $ at column 12 (extra spaces)
+        let result = check(bash_code);
+        assert_eq!(result.diagnostics.len(), 1);
+        // With col += 1: correctly tracks to column 12
+        // With col *= 1: would produce incorrect tracking
+        assert_eq!(
+            result.diagnostics[0].span.start_col, 12,
+            "Column tracking must increment correctly"
+        );
+    }
+
+    #[test]
+    fn test_mutation_sec002_quote_detection_single_quotes() {
+        // MUTATION: Line 62:20 - replace !in_single_quotes with true
+        // Ensure single-quoted variables are not diagnosed
+        let bash_code = "curl '$URL'"; // Should be safe (single quotes)
+        let result = check(bash_code);
+        // With correct logic: 0 diagnostics (single quotes protect variable)
+        // With mutation (!in_single_quotes → true): might incorrectly diagnose
+        assert_eq!(
+            result.diagnostics.len(),
+            0,
+            "Single-quoted variables should be safe"
+        );
+    }
+
+    #[test]
+    fn test_mutation_sec002_quote_detection_double_quotes() {
+        // MUTATION: Line 62:20 - Additional test for quote tracking logic
+        // Tests quote tracking logic comprehensively
+        let bash_code = r#"curl "${URL}""#; // Should be safe (double quotes)
+        let result = check(bash_code);
+        assert_eq!(
+            result.diagnostics.len(),
+            0,
+            "Double-quoted variables should be safe"
+        );
+    }
+
+    #[test]
+    fn test_mutation_sec002_variable_detection_underscore() {
+        // MUTATION: Line 69:56 - replace == with != in *c == '_'
+        // Tests that underscore is correctly detected as part of variable names
+        let bash_code = "curl $MY_VAR"; // Variable with underscore
+        let result = check(bash_code);
+        // With ==: detects $MY_VAR (correct)
+        // With !=: might fail to detect underscore as valid variable char
+        assert_eq!(
+            result.diagnostics.len(),
+            1,
+            "Should detect variable with underscore"
+        );
+    }
 }
