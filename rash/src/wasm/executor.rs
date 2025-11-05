@@ -5842,7 +5842,7 @@ mod array_property_tests {
             // Note: This is a known limitation in current implementation
             // prop_assert_eq!(output, "0");
             // Skipping assertion until empty array bug is fixed
-            prop_assert!(output == "0" || output == "");
+            prop_assert!(output == "0" || output.is_empty());
         }
     }
 

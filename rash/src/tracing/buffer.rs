@@ -521,7 +521,7 @@ mod tests {
 
                 let rate = buffer.retention_rate();
                 // Property: Retention rate in [0.0, 1.0]
-                prop_assert!(rate >= 0.0 && rate <= 1.0);
+                prop_assert!((0.0..=1.0).contains(&rate));
             }
         }
 
