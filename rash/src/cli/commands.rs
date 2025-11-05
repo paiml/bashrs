@@ -163,9 +163,10 @@ pub fn execute_command(cli: Cli) -> Result<()> {
             input,
             format,
             detailed,
+            dockerfile,
         } => {
             info!("Scoring {}", input.display());
-            score_command(&input, format, detailed)
+            score_command(&input, format, detailed, dockerfile)
         }
 
         Commands::Audit {
@@ -1964,27 +1965,48 @@ fn print_junit_test_results(report: &crate::bash_quality::testing::TestReport) {
 }
 
 /// Score a bash script for quality
-fn score_command(input: &Path, format: ScoreOutputFormat, detailed: bool) -> Result<()> {
-    use crate::bash_quality::scoring::score_script_with_file_type;
-
+fn score_command(input: &Path, format: ScoreOutputFormat, detailed: bool, dockerfile: bool) -> Result<()> {
     // Read input file
     let source = fs::read_to_string(input)
         .map_err(|e| Error::Internal(format!("Failed to read {}: {}", input.display(), e)))?;
 
-    // Score the script with file type detection
-    let score = score_script_with_file_type(&source, Some(input))
-        .map_err(|e| Error::Internal(format!("Failed to score script: {}", e)))?;
+    if dockerfile {
+        // Use Dockerfile-specific scoring
+        use crate::bash_quality::dockerfile_scoring::score_dockerfile;
 
-    // Output results
-    match format {
-        ScoreOutputFormat::Human => {
-            print_human_score_results(&score, detailed);
+        let score = score_dockerfile(&source)
+            .map_err(|e| Error::Internal(format!("Failed to score Dockerfile: {}", e)))?;
+
+        // Output results
+        match format {
+            ScoreOutputFormat::Human => {
+                print_human_dockerfile_score_results(&score, detailed);
+            }
+            ScoreOutputFormat::Json => {
+                print_json_dockerfile_score_results(&score);
+            }
+            ScoreOutputFormat::Markdown => {
+                print_markdown_dockerfile_score_results(&score, input);
+            }
         }
-        ScoreOutputFormat::Json => {
-            print_json_score_results(&score);
-        }
-        ScoreOutputFormat::Markdown => {
-            print_markdown_score_results(&score, input);
+    } else {
+        // Use bash script scoring
+        use crate::bash_quality::scoring::score_script_with_file_type;
+
+        let score = score_script_with_file_type(&source, Some(input))
+            .map_err(|e| Error::Internal(format!("Failed to score script: {}", e)))?;
+
+        // Output results
+        match format {
+            ScoreOutputFormat::Human => {
+                print_human_score_results(&score, detailed);
+            }
+            ScoreOutputFormat::Json => {
+                print_json_score_results(&score);
+            }
+            ScoreOutputFormat::Markdown => {
+                print_markdown_score_results(&score, input);
+            }
         }
     }
 
@@ -2892,4 +2914,164 @@ fn format_command(
     }
 
     Ok(())
+}
+
+// ============================================================================
+// Dockerfile Scoring Output Functions (Issue #10)
+// ============================================================================
+
+/// Print human-readable Dockerfile score results
+fn print_human_dockerfile_score_results(
+    score: &crate::bash_quality::dockerfile_scoring::DockerfileQualityScore,
+    detailed: bool,
+) {
+    println!();
+    println!("Dockerfile Quality Score");
+    println!("========================");
+    println!();
+    println!("Overall Grade: {}", score.grade);
+    println!("Overall Score: {:.1}/10.0", score.score);
+    println!();
+
+    if detailed {
+        println!("Dimension Scores:");
+        println!("-----------------");
+        println!("Safety:              {:.1}/10.0  (30% weight)", score.safety);
+        println!("Complexity:          {:.1}/10.0  (25% weight)", score.complexity);
+        println!("Layer Optimization:  {:.1}/10.0  (20% weight)", score.layer_optimization);
+        println!("Determinism:         {:.1}/10.0  (15% weight)", score.determinism);
+        println!("Security:            {:.1}/10.0  (10% weight)", score.security);
+        println!();
+    }
+
+    if !score.suggestions.is_empty() {
+        println!("Improvement Suggestions:");
+        println!("------------------------");
+        for (i, suggestion) in score.suggestions.iter().enumerate() {
+            println!("{}. {}", i + 1, suggestion);
+        }
+        println!();
+    }
+
+    println!("Grade Interpretation:");
+    println!("---------------------");
+    match score.grade.as_str() {
+        "A+" => println!("✅ Excellent! Production-ready Dockerfile."),
+        "A" => println!("✅ Very good! Minor improvements possible."),
+        "B+" | "B" => println!("✅ Good Dockerfile with room for optimization."),
+        "C+" | "C" => println!("⚠️  Average. Consider addressing suggestions."),
+        "D" => println!("⚠️  Below average. Multiple improvements needed."),
+        "F" => println!("❌ Poor quality. Significant improvements required."),
+        _ => println!("Unknown grade."),
+    }
+    println!();
+}
+
+/// Print JSON Dockerfile score results
+fn print_json_dockerfile_score_results(
+    score: &crate::bash_quality::dockerfile_scoring::DockerfileQualityScore,
+) {
+    use serde_json::json;
+
+    let json_score = json!({
+        "grade": score.grade,
+        "score": score.score,
+        "dimensions": {
+            "safety": score.safety,
+            "complexity": score.complexity,
+            "layer_optimization": score.layer_optimization,
+            "determinism": score.determinism,
+            "security": score.security,
+        },
+        "weights": {
+            "safety": 0.30,
+            "complexity": 0.25,
+            "layer_optimization": 0.20,
+            "determinism": 0.15,
+            "security": 0.10,
+        },
+        "suggestions": score.suggestions,
+    });
+
+    match serde_json::to_string_pretty(&json_score) {
+        Ok(json) => println!("{}", json),
+        Err(e) => {
+            eprintln!("Error serializing JSON: {}", e);
+            std::process::exit(1);
+        }
+    }
+}
+
+/// Print Markdown Dockerfile score results
+fn print_markdown_dockerfile_score_results(
+    score: &crate::bash_quality::dockerfile_scoring::DockerfileQualityScore,
+    input: &Path,
+) {
+    println!("# Dockerfile Quality Report");
+    println!();
+    println!("**File**: `{}`", input.display());
+    println!(
+        "**Date**: {}",
+        chrono::Local::now().format("%Y-%m-%d %H:%M:%S")
+    );
+    println!();
+    println!("## Overall Score");
+    println!();
+    println!(
+        "**Grade**: {} | **Score**: {:.1}/10.0",
+        score.grade, score.score
+    );
+    println!();
+    println!("## Dimension Scores");
+    println!();
+    println!("| Dimension | Score | Weight | Status |");
+    println!("| --- | --- | --- | --- |");
+    println!(
+        "| Safety | {:.1}/10.0 | 30% | {} |",
+        score.safety,
+        score_status(score.safety)
+    );
+    println!(
+        "| Complexity | {:.1}/10.0 | 25% | {} |",
+        score.complexity,
+        score_status(score.complexity)
+    );
+    println!(
+        "| Layer Optimization | {:.1}/10.0 | 20% | {} |",
+        score.layer_optimization,
+        score_status(score.layer_optimization)
+    );
+    println!(
+        "| Determinism | {:.1}/10.0 | 15% | {} |",
+        score.determinism,
+        score_status(score.determinism)
+    );
+    println!(
+        "| Security | {:.1}/10.0 | 10% | {} |",
+        score.security,
+        score_status(score.security)
+    );
+    println!();
+
+    if !score.suggestions.is_empty() {
+        println!("## Improvement Suggestions");
+        println!();
+        for suggestion in &score.suggestions {
+            println!("- {}", suggestion);
+        }
+        println!();
+    }
+
+    println!("## Grade Interpretation");
+    println!();
+    match score.grade.as_str() {
+        "A+" => println!("✅ **Excellent!** Production-ready Dockerfile."),
+        "A" => println!("✅ **Great!** Very good Docker best practices."),
+        "B+" | "B" => println!("✅ **Good** Dockerfile with room for optimization."),
+        "C+" | "C" => println!("⚠️ **Average**. Consider addressing suggestions."),
+        "D" => println!("⚠️ **Below average**. Multiple improvements needed."),
+        "F" => println!("❌ **Poor** quality. Significant improvements required."),
+        _ => println!("Unknown grade."),
+    }
+    println!();
 }
