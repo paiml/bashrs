@@ -273,8 +273,8 @@
 <a href=#273 id=273 data-nosnippet>273</a>        <span class="kw">use super</span>::<span class="kw-2">*</span>;
 <a href=#274 id=274 data-nosnippet>274</a>        <span class="kw">use </span>proptest::prelude::<span class="kw-2">*</span>;
 <a href=#275 id=275 data-nosnippet>275</a>
-<a href=#276 id=276 data-nosnippet>276</a>        <span class="doccomment">/// Generate valid bash variable names
-<a href=#277 id=277 data-nosnippet>277</a>        /// Pattern: [A-Za-z_][A-Za-z0-9_]*
+<a href=#276 id=276 data-nosnippet>276</a>        <span class="comment">// Generate valid bash variable names
+<a href=#277 id=277 data-nosnippet>277</a>        // Pattern: [A-Za-z_][A-Za-z0-9_]*
 <a href=#278 id=278 data-nosnippet>278</a>        </span><span class="kw">fn </span>valid_var_name() -&gt; <span class="kw">impl </span>Strategy&lt;Value = String&gt; {
 <a href=#279 id=279 data-nosnippet>279</a>            <span class="string">"[A-Za-z_][A-Za-z0-9_]{0,19}"
 <a href=#280 id=280 data-nosnippet>280</a>        </span>}

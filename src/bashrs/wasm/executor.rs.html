@@ -3532,8 +3532,8 @@
 <a href=#3532 id=3532 data-nosnippet>3532</a>    <span class="attr">#[cfg(test)]
 <a href=#3533 id=3533 data-nosnippet>3533</a>    </span><span class="kw">use </span>proptest::prelude::<span class="kw-2">*</span>;
 <a href=#3534 id=3534 data-nosnippet>3534</a>
-<a href=#3535 id=3535 data-nosnippet>3535</a>    <span class="doccomment">/// Property: For loops are deterministic
-<a href=#3536 id=3536 data-nosnippet>3536</a>    /// Same items should produce same output every time
+<a href=#3535 id=3535 data-nosnippet>3535</a>    <span class="comment">// Property: For loops are deterministic
+<a href=#3536 id=3536 data-nosnippet>3536</a>    // Same items should produce same output every time
 <a href=#3537 id=3537 data-nosnippet>3537</a>    </span><span class="attr">#[test]
 <a href=#3538 id=3538 data-nosnippet>3538</a>    </span><span class="kw">fn </span>prop_for_loop_deterministic() {
 <a href=#3539 id=3539 data-nosnippet>3539</a>        <span class="macro">proptest!</span>(|(items <span class="kw">in </span>prop::collection::vec(<span class="string">"[a-z]{1,5}"</span>, <span class="number">1</span>..<span class="number">10</span>))| {
@@ -3552,8 +3552,8 @@
 <a href=#3552 id=3552 data-nosnippet>3552</a>        });
 <a href=#3553 id=3553 data-nosnippet>3553</a>    }
 <a href=#3554 id=3554 data-nosnippet>3554</a>
-<a href=#3555 id=3555 data-nosnippet>3555</a>    <span class="doccomment">/// Property: For loops preserve item order
-<a href=#3556 id=3556 data-nosnippet>3556</a>    /// Items should be processed in the order specified
+<a href=#3555 id=3555 data-nosnippet>3555</a>    <span class="comment">// Property: For loops preserve item order
+<a href=#3556 id=3556 data-nosnippet>3556</a>    // Items should be processed in the order specified
 <a href=#3557 id=3557 data-nosnippet>3557</a>    </span><span class="attr">#[test]
 <a href=#3558 id=3558 data-nosnippet>3558</a>    </span><span class="kw">fn </span>prop_for_loop_preserves_order() {
 <a href=#3559 id=3559 data-nosnippet>3559</a>        <span class="macro">proptest!</span>(|(items <span class="kw">in </span>prop::collection::vec(<span class="string">"[a-z]{1,5}"</span>, <span class="number">1</span>..<span class="number">10</span>))| {
@@ -3573,7 +3573,7 @@
 <a href=#3573 id=3573 data-nosnippet>3573</a>        });
 <a href=#3574 id=3574 data-nosnippet>3574</a>    }
 <a href=#3575 id=3575 data-nosnippet>3575</a>
-<a href=#3576 id=3576 data-nosnippet>3576</a>    <span class="doccomment">/// Property: For loop with empty list produces no output
+<a href=#3576 id=3576 data-nosnippet>3576</a>    <span class="comment">// Property: For loop with empty list produces no output
 <a href=#3577 id=3577 data-nosnippet>3577</a>    </span><span class="attr">#[test]
 <a href=#3578 id=3578 data-nosnippet>3578</a>    </span><span class="kw">fn </span>prop_for_loop_empty_list_no_output() {
 <a href=#3579 id=3579 data-nosnippet>3579</a>        <span class="macro">proptest!</span>(|(var_name <span class="kw">in </span><span class="string">"[a-z]{1,10}"</span>)| {
@@ -3587,8 +3587,8 @@
 <a href=#3587 id=3587 data-nosnippet>3587</a>        });
 <a href=#3588 id=3588 data-nosnippet>3588</a>    }
 <a href=#3589 id=3589 data-nosnippet>3589</a>
-<a href=#3590 id=3590 data-nosnippet>3590</a>    <span class="doccomment">/// Property: For loop variable persists after loop
-<a href=#3591 id=3591 data-nosnippet>3591</a>    /// Loop variable should contain last item after loop exits
+<a href=#3590 id=3590 data-nosnippet>3590</a>    <span class="comment">// Property: For loop variable persists after loop
+<a href=#3591 id=3591 data-nosnippet>3591</a>    // Loop variable should contain last item after loop exits
 <a href=#3592 id=3592 data-nosnippet>3592</a>    </span><span class="attr">#[test]
 <a href=#3593 id=3593 data-nosnippet>3593</a>    </span><span class="kw">fn </span>prop_for_loop_variable_persistence() {
 <a href=#3594 id=3594 data-nosnippet>3594</a>        <span class="macro">proptest!</span>(|(items <span class="kw">in </span>prop::collection::vec(<span class="string">"[a-z]{1,5}"</span>, <span class="number">1</span>..<span class="number">10</span>))| {
@@ -3610,7 +3610,7 @@
 <a href=#3610 id=3610 data-nosnippet>3610</a>        });
 <a href=#3611 id=3611 data-nosnippet>3611</a>    }
 <a href=#3612 id=3612 data-nosnippet>3612</a>
-<a href=#3613 id=3613 data-nosnippet>3613</a>    <span class="doccomment">/// Property: For loop with single item executes exactly once
+<a href=#3613 id=3613 data-nosnippet>3613</a>    <span class="comment">// Property: For loop with single item executes exactly once
 <a href=#3614 id=3614 data-nosnippet>3614</a>    </span><span class="attr">#[test]
 <a href=#3615 id=3615 data-nosnippet>3615</a>    </span><span class="kw">fn </span>prop_for_loop_single_item_once() {
 <a href=#3616 id=3616 data-nosnippet>3616</a>        <span class="macro">proptest!</span>(|(item <span class="kw">in </span><span class="string">"[a-z]{1,10}"</span>)| {
@@ -3626,8 +3626,8 @@
 <a href=#3626 id=3626 data-nosnippet>3626</a>        });
 <a href=#3627 id=3627 data-nosnippet>3627</a>    }
 <a href=#3628 id=3628 data-nosnippet>3628</a>
-<a href=#3629 id=3629 data-nosnippet>3629</a>    <span class="doccomment">/// Property: For loop accumulation is correct
-<a href=#3630 id=3630 data-nosnippet>3630</a>    /// Accumulating items should preserve all items in order
+<a href=#3629 id=3629 data-nosnippet>3629</a>    <span class="comment">// Property: For loop accumulation is correct
+<a href=#3630 id=3630 data-nosnippet>3630</a>    // Accumulating items should preserve all items in order
 <a href=#3631 id=3631 data-nosnippet>3631</a>    </span><span class="attr">#[test]
 <a href=#3632 id=3632 data-nosnippet>3632</a>    </span><span class="kw">fn </span>prop_for_loop_accumulation_correct() {
 <a href=#3633 id=3633 data-nosnippet>3633</a>        <span class="macro">proptest!</span>(|(items <span class="kw">in </span>prop::collection::vec(<span class="string">"[a-z]{1,3}"</span>, <span class="number">1</span>..<span class="number">10</span>))| {
@@ -3647,7 +3647,7 @@
 <a href=#3647 id=3647 data-nosnippet>3647</a>        });
 <a href=#3648 id=3648 data-nosnippet>3648</a>    }
 <a href=#3649 id=3649 data-nosnippet>3649</a>
-<a href=#3650 id=3650 data-nosnippet>3650</a>    <span class="doccomment">/// Property: While loop with false condition never executes
+<a href=#3650 id=3650 data-nosnippet>3650</a>    <span class="comment">// Property: While loop with false condition never executes
 <a href=#3651 id=3651 data-nosnippet>3651</a>    </span><span class="attr">#[test]
 <a href=#3652 id=3652 data-nosnippet>3652</a>    </span><span class="kw">fn </span>prop_while_false_never_executes() {
 <a href=#3653 id=3653 data-nosnippet>3653</a>        <span class="macro">proptest!</span>(|(body_cmd <span class="kw">in </span><span class="string">"[a-z]{1,10}"</span>)| {
@@ -3661,8 +3661,8 @@
 <a href=#3661 id=3661 data-nosnippet>3661</a>        });
 <a href=#3662 id=3662 data-nosnippet>3662</a>    }
 <a href=#3663 id=3663 data-nosnippet>3663</a>
-<a href=#3664 id=3664 data-nosnippet>3664</a>    <span class="doccomment">/// Property: For loop handles quoted items correctly
-<a href=#3665 id=3665 data-nosnippet>3665</a>    /// Items with spaces should be treated as single items when quoted
+<a href=#3664 id=3664 data-nosnippet>3664</a>    <span class="comment">// Property: For loop handles quoted items correctly
+<a href=#3665 id=3665 data-nosnippet>3665</a>    // Items with spaces should be treated as single items when quoted
 <a href=#3666 id=3666 data-nosnippet>3666</a>    </span><span class="attr">#[test]
 <a href=#3667 id=3667 data-nosnippet>3667</a>    </span><span class="kw">fn </span>prop_for_loop_quoted_items() {
 <a href=#3668 id=3668 data-nosnippet>3668</a>        <span class="macro">proptest!</span>(|(items <span class="kw">in </span>prop::collection::vec(<span class="string">"[a-z]{1,5}( [a-z]{1,5})?"</span>, <span class="number">1</span>..<span class="number">5</span>))| {
@@ -3692,7 +3692,7 @@
 <a href=#3692 id=3692 data-nosnippet>3692</a>        });
 <a href=#3693 id=3693 data-nosnippet>3693</a>    }
 <a href=#3694 id=3694 data-nosnippet>3694</a>
-<a href=#3695 id=3695 data-nosnippet>3695</a>    <span class="doccomment">/// Property: For loop with variable expansion works correctly
+<a href=#3695 id=3695 data-nosnippet>3695</a>    <span class="comment">// Property: For loop with variable expansion works correctly
 <a href=#3696 id=3696 data-nosnippet>3696</a>    </span><span class="attr">#[test]
 <a href=#3697 id=3697 data-nosnippet>3697</a>    </span><span class="kw">fn </span>prop_for_loop_variable_expansion() {
 <a href=#3698 id=3698 data-nosnippet>3698</a>        <span class="macro">proptest!</span>(|(items <span class="kw">in </span>prop::collection::vec(<span class="string">"[a-z]{1,5}"</span>, <span class="number">1</span>..<span class="number">10</span>))| {
@@ -3715,7 +3715,7 @@
 <a href=#3715 id=3715 data-nosnippet>3715</a>        });
 <a href=#3716 id=3716 data-nosnippet>3716</a>    }
 <a href=#3717 id=3717 data-nosnippet>3717</a>
-<a href=#3718 id=3718 data-nosnippet>3718</a>    <span class="doccomment">/// Property: For loop never panics on any valid input
+<a href=#3718 id=3718 data-nosnippet>3718</a>    <span class="comment">// Property: For loop never panics on any valid input
 <a href=#3719 id=3719 data-nosnippet>3719</a>    </span><span class="attr">#[test]
 <a href=#3720 id=3720 data-nosnippet>3720</a>    </span><span class="kw">fn </span>prop_for_loop_robust() {
 <a href=#3721 id=3721 data-nosnippet>3721</a>        <span class="macro">proptest!</span>(|(
@@ -3987,7 +3987,7 @@
 <a href=#3987 id=3987 data-nosnippet>3987</a>    <span class="attr">#[cfg(test)]
 <a href=#3988 id=3988 data-nosnippet>3988</a>    </span><span class="kw">use </span>proptest::prelude::<span class="kw-2">*</span>;
 <a href=#3989 id=3989 data-nosnippet>3989</a>
-<a href=#3990 id=3990 data-nosnippet>3990</a>    <span class="doccomment">/// Property: Arithmetic is deterministic
+<a href=#3990 id=3990 data-nosnippet>3990</a>    <span class="comment">// Property: Arithmetic is deterministic
 <a href=#3991 id=3991 data-nosnippet>3991</a>    </span><span class="attr">#[test]
 <a href=#3992 id=3992 data-nosnippet>3992</a>    </span><span class="kw">fn </span>prop_arithmetic_deterministic() {
 <a href=#3993 id=3993 data-nosnippet>3993</a>        <span class="macro">proptest!</span>(|(a <span class="kw">in </span>-<span class="number">1000i64</span>..<span class="number">1000</span>, b <span class="kw">in </span>-<span class="number">1000i64</span>..<span class="number">1000</span>)| {
@@ -4003,7 +4003,7 @@
 <a href=#4003 id=4003 data-nosnippet>4003</a>        });
 <a href=#4004 id=4004 data-nosnippet>4004</a>    }
 <a href=#4005 id=4005 data-nosnippet>4005</a>
-<a href=#4006 id=4006 data-nosnippet>4006</a>    <span class="doccomment">/// Property: Addition is commutative: a + b = b + a
+<a href=#4006 id=4006 data-nosnippet>4006</a>    <span class="comment">// Property: Addition is commutative: a + b = b + a
 <a href=#4007 id=4007 data-nosnippet>4007</a>    </span><span class="attr">#[test]
 <a href=#4008 id=4008 data-nosnippet>4008</a>    </span><span class="kw">fn </span>prop_arithmetic_addition_commutative() {
 <a href=#4009 id=4009 data-nosnippet>4009</a>        <span class="macro">proptest!</span>(|(a <span class="kw">in </span>-<span class="number">100i64</span>..<span class="number">100</span>, b <span class="kw">in </span>-<span class="number">100i64</span>..<span class="number">100</span>)| {
@@ -4017,7 +4017,7 @@
 <a href=#4017 id=4017 data-nosnippet>4017</a>        });
 <a href=#4018 id=4018 data-nosnippet>4018</a>    }
 <a href=#4019 id=4019 data-nosnippet>4019</a>
-<a href=#4020 id=4020 data-nosnippet>4020</a>    <span class="doccomment">/// Property: Multiplication is commutative: a * b = b * a
+<a href=#4020 id=4020 data-nosnippet>4020</a>    <span class="comment">// Property: Multiplication is commutative: a * b = b * a
 <a href=#4021 id=4021 data-nosnippet>4021</a>    </span><span class="attr">#[test]
 <a href=#4022 id=4022 data-nosnippet>4022</a>    </span><span class="kw">fn </span>prop_arithmetic_multiplication_commutative() {
 <a href=#4023 id=4023 data-nosnippet>4023</a>        <span class="macro">proptest!</span>(|(a <span class="kw">in </span>-<span class="number">50i64</span>..<span class="number">50</span>, b <span class="kw">in </span>-<span class="number">50i64</span>..<span class="number">50</span>)| {
@@ -4031,7 +4031,7 @@
 <a href=#4031 id=4031 data-nosnippet>4031</a>        });
 <a href=#4032 id=4032 data-nosnippet>4032</a>    }
 <a href=#4033 id=4033 data-nosnippet>4033</a>
-<a href=#4034 id=4034 data-nosnippet>4034</a>    <span class="doccomment">/// Property: Addition with zero is identity: a + 0 = a
+<a href=#4034 id=4034 data-nosnippet>4034</a>    <span class="comment">// Property: Addition with zero is identity: a + 0 = a
 <a href=#4035 id=4035 data-nosnippet>4035</a>    </span><span class="attr">#[test]
 <a href=#4036 id=4036 data-nosnippet>4036</a>    </span><span class="kw">fn </span>prop_arithmetic_addition_identity() {
 <a href=#4037 id=4037 data-nosnippet>4037</a>        <span class="macro">proptest!</span>(|(a <span class="kw">in </span>-<span class="number">1000i64</span>..<span class="number">1000</span>)| {
@@ -4045,7 +4045,7 @@
 <a href=#4045 id=4045 data-nosnippet>4045</a>        });
 <a href=#4046 id=4046 data-nosnippet>4046</a>    }
 <a href=#4047 id=4047 data-nosnippet>4047</a>
-<a href=#4048 id=4048 data-nosnippet>4048</a>    <span class="doccomment">/// Property: Multiplication with one is identity: a * 1 = a
+<a href=#4048 id=4048 data-nosnippet>4048</a>    <span class="comment">// Property: Multiplication with one is identity: a * 1 = a
 <a href=#4049 id=4049 data-nosnippet>4049</a>    </span><span class="attr">#[test]
 <a href=#4050 id=4050 data-nosnippet>4050</a>    </span><span class="kw">fn </span>prop_arithmetic_multiplication_identity() {
 <a href=#4051 id=4051 data-nosnippet>4051</a>        <span class="macro">proptest!</span>(|(a <span class="kw">in </span>-<span class="number">1000i64</span>..<span class="number">1000</span>)| {
@@ -4059,7 +4059,7 @@
 <a href=#4059 id=4059 data-nosnippet>4059</a>        });
 <a href=#4060 id=4060 data-nosnippet>4060</a>    }
 <a href=#4061 id=4061 data-nosnippet>4061</a>
-<a href=#4062 id=4062 data-nosnippet>4062</a>    <span class="doccomment">/// Property: Multiplication with zero: a * 0 = 0
+<a href=#4062 id=4062 data-nosnippet>4062</a>    <span class="comment">// Property: Multiplication with zero: a * 0 = 0
 <a href=#4063 id=4063 data-nosnippet>4063</a>    </span><span class="attr">#[test]
 <a href=#4064 id=4064 data-nosnippet>4064</a>    </span><span class="kw">fn </span>prop_arithmetic_multiplication_zero() {
 <a href=#4065 id=4065 data-nosnippet>4065</a>        <span class="macro">proptest!</span>(|(a <span class="kw">in </span>-<span class="number">1000i64</span>..<span class="number">1000</span>)| {
@@ -4071,7 +4071,7 @@
 <a href=#4071 id=4071 data-nosnippet>4071</a>        });
 <a href=#4072 id=4072 data-nosnippet>4072</a>    }
 <a href=#4073 id=4073 data-nosnippet>4073</a>
-<a href=#4074 id=4074 data-nosnippet>4074</a>    <span class="doccomment">/// Property: Subtraction self: a - a = 0
+<a href=#4074 id=4074 data-nosnippet>4074</a>    <span class="comment">// Property: Subtraction self: a - a = 0
 <a href=#4075 id=4075 data-nosnippet>4075</a>    </span><span class="attr">#[test]
 <a href=#4076 id=4076 data-nosnippet>4076</a>    </span><span class="kw">fn </span>prop_arithmetic_subtraction_self() {
 <a href=#4077 id=4077 data-nosnippet>4077</a>        <span class="macro">proptest!</span>(|(a <span class="kw">in </span>-<span class="number">1000i64</span>..<span class="number">1000</span>)| {
@@ -4083,7 +4083,7 @@
 <a href=#4083 id=4083 data-nosnippet>4083</a>        });
 <a href=#4084 id=4084 data-nosnippet>4084</a>    }
 <a href=#4085 id=4085 data-nosnippet>4085</a>
-<a href=#4086 id=4086 data-nosnippet>4086</a>    <span class="doccomment">/// Property: Division by self: a / a = 1 (for a != 0)
+<a href=#4086 id=4086 data-nosnippet>4086</a>    <span class="comment">// Property: Division by self: a / a = 1 (for a != 0)
 <a href=#4087 id=4087 data-nosnippet>4087</a>    </span><span class="attr">#[test]
 <a href=#4088 id=4088 data-nosnippet>4088</a>    </span><span class="kw">fn </span>prop_arithmetic_division_self() {
 <a href=#4089 id=4089 data-nosnippet>4089</a>        <span class="macro">proptest!</span>(|(a <span class="kw">in </span>(-<span class="number">1000i64</span>..=-<span class="number">1</span>).prop_union(<span class="number">1i64</span>..=<span class="number">1000</span>))| {
@@ -4095,7 +4095,7 @@
 <a href=#4095 id=4095 data-nosnippet>4095</a>        });
 <a href=#4096 id=4096 data-nosnippet>4096</a>    }
 <a href=#4097 id=4097 data-nosnippet>4097</a>
-<a href=#4098 id=4098 data-nosnippet>4098</a>    <span class="doccomment">/// Property: Modulo range: a % b is in [0, |b|-1] for positive b
+<a href=#4098 id=4098 data-nosnippet>4098</a>    <span class="comment">// Property: Modulo range: a % b is in [0, |b|-1] for positive b
 <a href=#4099 id=4099 data-nosnippet>4099</a>    </span><span class="attr">#[test]
 <a href=#4100 id=4100 data-nosnippet>4100</a>    </span><span class="kw">fn </span>prop_arithmetic_modulo_range() {
 <a href=#4101 id=4101 data-nosnippet>4101</a>        <span class="macro">proptest!</span>(|(a <span class="kw">in </span><span class="number">0i64</span>..<span class="number">1000</span>, b <span class="kw">in </span><span class="number">1i64</span>..<span class="number">100</span>)| {
@@ -4109,7 +4109,7 @@
 <a href=#4109 id=4109 data-nosnippet>4109</a>        });
 <a href=#4110 id=4110 data-nosnippet>4110</a>    }
 <a href=#4111 id=4111 data-nosnippet>4111</a>
-<a href=#4112 id=4112 data-nosnippet>4112</a>    <span class="doccomment">/// Property: Variables in arithmetic expand correctly
+<a href=#4112 id=4112 data-nosnippet>4112</a>    <span class="comment">// Property: Variables in arithmetic expand correctly
 <a href=#4113 id=4113 data-nosnippet>4113</a>    </span><span class="attr">#[test]
 <a href=#4114 id=4114 data-nosnippet>4114</a>    </span><span class="kw">fn </span>prop_arithmetic_variables_expand() {
 <a href=#4115 id=4115 data-nosnippet>4115</a>        <span class="macro">proptest!</span>(|(x <span class="kw">in </span>-<span class="number">100i64</span>..<span class="number">100</span>, y <span class="kw">in </span>-<span class="number">100i64</span>..<span class="number">100</span>)| {
@@ -4123,7 +4123,7 @@
 <a href=#4123 id=4123 data-nosnippet>4123</a>        });
 <a href=#4124 id=4124 data-nosnippet>4124</a>    }
 <a href=#4125 id=4125 data-nosnippet>4125</a>
-<a href=#4126 id=4126 data-nosnippet>4126</a>    <span class="doccomment">/// Property: Order of operations - multiplication before addition
+<a href=#4126 id=4126 data-nosnippet>4126</a>    <span class="comment">// Property: Order of operations - multiplication before addition
 <a href=#4127 id=4127 data-nosnippet>4127</a>    </span><span class="attr">#[test]
 <a href=#4128 id=4128 data-nosnippet>4128</a>    </span><span class="kw">fn </span>prop_arithmetic_order_of_operations() {
 <a href=#4129 id=4129 data-nosnippet>4129</a>        <span class="macro">proptest!</span>(|(a <span class="kw">in </span>-<span class="number">50i64</span>..<span class="number">50</span>, b <span class="kw">in </span>-<span class="number">50i64</span>..<span class="number">50</span>, c <span class="kw">in </span>-<span class="number">50i64</span>..<span class="number">50</span>)| {
@@ -4137,7 +4137,7 @@
 <a href=#4137 id=4137 data-nosnippet>4137</a>        });
 <a href=#4138 id=4138 data-nosnippet>4138</a>    }
 <a href=#4139 id=4139 data-nosnippet>4139</a>
-<a href=#4140 id=4140 data-nosnippet>4140</a>    <span class="doccomment">/// Property: Negative numbers work correctly
+<a href=#4140 id=4140 data-nosnippet>4140</a>    <span class="comment">// Property: Negative numbers work correctly
 <a href=#4141 id=4141 data-nosnippet>4141</a>    </span><span class="attr">#[test]
 <a href=#4142 id=4142 data-nosnippet>4142</a>    </span><span class="kw">fn </span>prop_arithmetic_negative_numbers() {
 <a href=#4143 id=4143 data-nosnippet>4143</a>        <span class="macro">proptest!</span>(|(a <span class="kw">in </span>-<span class="number">100i64</span>..<span class="number">100</span>)| {
@@ -4150,7 +4150,7 @@
 <a href=#4150 id=4150 data-nosnippet>4150</a>        });
 <a href=#4151 id=4151 data-nosnippet>4151</a>    }
 <a href=#4152 id=4152 data-nosnippet>4152</a>
-<a href=#4153 id=4153 data-nosnippet>4153</a>    <span class="doccomment">/// Property: Division by zero always errors
+<a href=#4153 id=4153 data-nosnippet>4153</a>    <span class="comment">// Property: Division by zero always errors
 <a href=#4154 id=4154 data-nosnippet>4154</a>    </span><span class="attr">#[test]
 <a href=#4155 id=4155 data-nosnippet>4155</a>    </span><span class="kw">fn </span>prop_arithmetic_division_by_zero_errors() {
 <a href=#4156 id=4156 data-nosnippet>4156</a>        <span class="macro">proptest!</span>(|(a <span class="kw">in </span>-<span class="number">1000i64</span>..<span class="number">1000</span>)| {
@@ -4162,7 +4162,7 @@
 <a href=#4162 id=4162 data-nosnippet>4162</a>        });
 <a href=#4163 id=4163 data-nosnippet>4163</a>    }
 <a href=#4164 id=4164 data-nosnippet>4164</a>
-<a href=#4165 id=4165 data-nosnippet>4165</a>    <span class="doccomment">/// Property: Modulo by zero always errors
+<a href=#4165 id=4165 data-nosnippet>4165</a>    <span class="comment">// Property: Modulo by zero always errors
 <a href=#4166 id=4166 data-nosnippet>4166</a>    </span><span class="attr">#[test]
 <a href=#4167 id=4167 data-nosnippet>4167</a>    </span><span class="kw">fn </span>prop_arithmetic_modulo_by_zero_errors() {
 <a href=#4168 id=4168 data-nosnippet>4168</a>        <span class="macro">proptest!</span>(|(a <span class="kw">in </span>-<span class="number">1000i64</span>..<span class="number">1000</span>)| {
@@ -4411,7 +4411,7 @@
 <a href=#4411 id=4411 data-nosnippet>4411</a>    <span class="attr">#[cfg(test)]
 <a href=#4412 id=4412 data-nosnippet>4412</a>    </span><span class="kw">use </span>proptest::prelude::<span class="kw-2">*</span>;
 <a href=#4413 id=4413 data-nosnippet>4413</a>
-<a href=#4414 id=4414 data-nosnippet>4414</a>    <span class="doccomment">/// Property: Test command is deterministic
+<a href=#4414 id=4414 data-nosnippet>4414</a>    <span class="comment">// Property: Test command is deterministic
 <a href=#4415 id=4415 data-nosnippet>4415</a>    </span><span class="attr">#[test]
 <a href=#4416 id=4416 data-nosnippet>4416</a>    </span><span class="kw">fn </span>prop_test_deterministic() {
 <a href=#4417 id=4417 data-nosnippet>4417</a>        <span class="macro">proptest!</span>(|(a <span class="kw">in </span>-<span class="number">100i64</span>..<span class="number">100</span>, b <span class="kw">in </span>-<span class="number">100i64</span>..<span class="number">100</span>)| {
@@ -4426,7 +4426,7 @@
 <a href=#4426 id=4426 data-nosnippet>4426</a>        });
 <a href=#4427 id=4427 data-nosnippet>4427</a>    }
 <a href=#4428 id=4428 data-nosnippet>4428</a>
-<a href=#4429 id=4429 data-nosnippet>4429</a>    <span class="doccomment">/// Property: -eq is symmetric: a -eq b iff b -eq a
+<a href=#4429 id=4429 data-nosnippet>4429</a>    <span class="comment">// Property: -eq is symmetric: a -eq b iff b -eq a
 <a href=#4430 id=4430 data-nosnippet>4430</a>    </span><span class="attr">#[test]
 <a href=#4431 id=4431 data-nosnippet>4431</a>    </span><span class="kw">fn </span>prop_test_eq_symmetric() {
 <a href=#4432 id=4432 data-nosnippet>4432</a>        <span class="macro">proptest!</span>(|(a <span class="kw">in </span>-<span class="number">100i64</span>..<span class="number">100</span>, b <span class="kw">in </span>-<span class="number">100i64</span>..<span class="number">100</span>)| {
@@ -4440,7 +4440,7 @@
 <a href=#4440 id=4440 data-nosnippet>4440</a>        });
 <a href=#4441 id=4441 data-nosnippet>4441</a>    }
 <a href=#4442 id=4442 data-nosnippet>4442</a>
-<a href=#4443 id=4443 data-nosnippet>4443</a>    <span class="doccomment">/// Property: -eq self: a -eq a is always true
+<a href=#4443 id=4443 data-nosnippet>4443</a>    <span class="comment">// Property: -eq self: a -eq a is always true
 <a href=#4444 id=4444 data-nosnippet>4444</a>    </span><span class="attr">#[test]
 <a href=#4445 id=4445 data-nosnippet>4445</a>    </span><span class="kw">fn </span>prop_test_eq_self() {
 <a href=#4446 id=4446 data-nosnippet>4446</a>        <span class="macro">proptest!</span>(|(a <span class="kw">in </span>-<span class="number">1000i64</span>..<span class="number">1000</span>)| {
@@ -4452,7 +4452,7 @@
 <a href=#4452 id=4452 data-nosnippet>4452</a>        });
 <a href=#4453 id=4453 data-nosnippet>4453</a>    }
 <a href=#4454 id=4454 data-nosnippet>4454</a>
-<a href=#4455 id=4455 data-nosnippet>4455</a>    <span class="doccomment">/// Property: -ne self: a -ne a is always false
+<a href=#4455 id=4455 data-nosnippet>4455</a>    <span class="comment">// Property: -ne self: a -ne a is always false
 <a href=#4456 id=4456 data-nosnippet>4456</a>    </span><span class="attr">#[test]
 <a href=#4457 id=4457 data-nosnippet>4457</a>    </span><span class="kw">fn </span>prop_test_ne_self() {
 <a href=#4458 id=4458 data-nosnippet>4458</a>        <span class="macro">proptest!</span>(|(a <span class="kw">in </span>-<span class="number">1000i64</span>..<span class="number">1000</span>)| {
@@ -4464,7 +4464,7 @@
 <a href=#4464 id=4464 data-nosnippet>4464</a>        });
 <a href=#4465 id=4465 data-nosnippet>4465</a>    }
 <a href=#4466 id=4466 data-nosnippet>4466</a>
-<a href=#4467 id=4467 data-nosnippet>4467</a>    <span class="doccomment">/// Property: -gt self: a -gt a is always false
+<a href=#4467 id=4467 data-nosnippet>4467</a>    <span class="comment">// Property: -gt self: a -gt a is always false
 <a href=#4468 id=4468 data-nosnippet>4468</a>    </span><span class="attr">#[test]
 <a href=#4469 id=4469 data-nosnippet>4469</a>    </span><span class="kw">fn </span>prop_test_gt_self() {
 <a href=#4470 id=4470 data-nosnippet>4470</a>        <span class="macro">proptest!</span>(|(a <span class="kw">in </span>-<span class="number">1000i64</span>..<span class="number">1000</span>)| {
@@ -4476,7 +4476,7 @@
 <a href=#4476 id=4476 data-nosnippet>4476</a>        });
 <a href=#4477 id=4477 data-nosnippet>4477</a>    }
 <a href=#4478 id=4478 data-nosnippet>4478</a>
-<a href=#4479 id=4479 data-nosnippet>4479</a>    <span class="doccomment">/// Property: -ge self: a -ge a is always true
+<a href=#4479 id=4479 data-nosnippet>4479</a>    <span class="comment">// Property: -ge self: a -ge a is always true
 <a href=#4480 id=4480 data-nosnippet>4480</a>    </span><span class="attr">#[test]
 <a href=#4481 id=4481 data-nosnippet>4481</a>    </span><span class="kw">fn </span>prop_test_ge_self() {
 <a href=#4482 id=4482 data-nosnippet>4482</a>        <span class="macro">proptest!</span>(|(a <span class="kw">in </span>-<span class="number">1000i64</span>..<span class="number">1000</span>)| {
@@ -4488,7 +4488,7 @@
 <a href=#4488 id=4488 data-nosnippet>4488</a>        });
 <a href=#4489 id=4489 data-nosnippet>4489</a>    }
 <a href=#4490 id=4490 data-nosnippet>4490</a>
-<a href=#4491 id=4491 data-nosnippet>4491</a>    <span class="doccomment">/// Property: -le self: a -le a is always true
+<a href=#4491 id=4491 data-nosnippet>4491</a>    <span class="comment">// Property: -le self: a -le a is always true
 <a href=#4492 id=4492 data-nosnippet>4492</a>    </span><span class="attr">#[test]
 <a href=#4493 id=4493 data-nosnippet>4493</a>    </span><span class="kw">fn </span>prop_test_le_self() {
 <a href=#4494 id=4494 data-nosnippet>4494</a>        <span class="macro">proptest!</span>(|(a <span class="kw">in </span>-<span class="number">1000i64</span>..<span class="number">1000</span>)| {
@@ -4500,7 +4500,7 @@
 <a href=#4500 id=4500 data-nosnippet>4500</a>        });
 <a href=#4501 id=4501 data-nosnippet>4501</a>    }
 <a href=#4502 id=4502 data-nosnippet>4502</a>
-<a href=#4503 id=4503 data-nosnippet>4503</a>    <span class="doccomment">/// Property: Transitivity: if a &lt; b and b &lt; c then a &lt; c
+<a href=#4503 id=4503 data-nosnippet>4503</a>    <span class="comment">// Property: Transitivity: if a &lt; b and b &lt; c then a &lt; c
 <a href=#4504 id=4504 data-nosnippet>4504</a>    </span><span class="attr">#[test]
 <a href=#4505 id=4505 data-nosnippet>4505</a>    </span><span class="kw">fn </span>prop_test_lt_transitive() {
 <a href=#4506 id=4506 data-nosnippet>4506</a>        <span class="macro">proptest!</span>(|(a <span class="kw">in </span>-<span class="number">50i64</span>..<span class="number">0</span>, b <span class="kw">in </span><span class="number">0i64</span>..<span class="number">50</span>, c <span class="kw">in </span><span class="number">50i64</span>..<span class="number">100</span>)| {
@@ -4514,7 +4514,7 @@
 <a href=#4514 id=4514 data-nosnippet>4514</a>        });
 <a href=#4515 id=4515 data-nosnippet>4515</a>    }
 <a href=#4516 id=4516 data-nosnippet>4516</a>
-<a href=#4517 id=4517 data-nosnippet>4517</a>    <span class="doccomment">/// Property: String equality is reflexive
+<a href=#4517 id=4517 data-nosnippet>4517</a>    <span class="comment">// Property: String equality is reflexive
 <a href=#4518 id=4518 data-nosnippet>4518</a>    </span><span class="attr">#[test]
 <a href=#4519 id=4519 data-nosnippet>4519</a>    </span><span class="kw">fn </span>prop_test_string_eq_reflexive() {
 <a href=#4520 id=4520 data-nosnippet>4520</a>        <span class="macro">proptest!</span>(|(s <span class="kw">in </span><span class="string">"[a-z]{1,10}"</span>)| {
@@ -4526,7 +4526,7 @@
 <a href=#4526 id=4526 data-nosnippet>4526</a>        });
 <a href=#4527 id=4527 data-nosnippet>4527</a>    }
 <a href=#4528 id=4528 data-nosnippet>4528</a>
-<a href=#4529 id=4529 data-nosnippet>4529</a>    <span class="doccomment">/// Property: -n with non-empty string is always true
+<a href=#4529 id=4529 data-nosnippet>4529</a>    <span class="comment">// Property: -n with non-empty string is always true
 <a href=#4530 id=4530 data-nosnippet>4530</a>    </span><span class="attr">#[test]
 <a href=#4531 id=4531 data-nosnippet>4531</a>    </span><span class="kw">fn </span>prop_test_n_nonempty() {
 <a href=#4532 id=4532 data-nosnippet>4532</a>        <span class="macro">proptest!</span>(|(s <span class="kw">in </span><span class="string">"[a-z]{1,10}"</span>)| {
@@ -4538,7 +4538,7 @@
 <a href=#4538 id=4538 data-nosnippet>4538</a>        });
 <a href=#4539 id=4539 data-nosnippet>4539</a>    }
 <a href=#4540 id=4540 data-nosnippet>4540</a>
-<a href=#4541 id=4541 data-nosnippet>4541</a>    <span class="doccomment">/// Property: Test in while loop condition works correctly
+<a href=#4541 id=4541 data-nosnippet>4541</a>    <span class="comment">// Property: Test in while loop condition works correctly
 <a href=#4542 id=4542 data-nosnippet>4542</a>    </span><span class="attr">#[test]
 <a href=#4543 id=4543 data-nosnippet>4543</a>    </span><span class="kw">fn </span>prop_test_in_while_counts_correctly() {
 <a href=#4544 id=4544 data-nosnippet>4544</a>        <span class="macro">proptest!</span>(|(n <span class="kw">in </span><span class="number">1i64</span>..<span class="number">10</span>)| {
@@ -5044,14 +5044,14 @@
 <a href=#5044 id=5044 data-nosnippet>5044</a>/// ============================================================================
 <a href=#5045 id=5045 data-nosnippet>5045</a>///
 <a href=#5046 id=5046 data-nosnippet>5046</a>/// Property-based tests for bash function behavior.
-<a href=#5047 id=5047 data-nosnippet>5047</a>/// Uses proptest to generate test cases and verify properties.
-<a href=#5048 id=5048 data-nosnippet>5048</a>///
+<a href=#5047 id=5047 data-nosnippet>5047</a></span><span class="comment">// Uses proptest to generate test cases and verify properties.
+<a href=#5048 id=5048 data-nosnippet>5048</a>//
 <a href=#5049 id=5049 data-nosnippet>5049</a></span><span class="attr">#[cfg(test)]
 <a href=#5050 id=5050 data-nosnippet>5050</a></span><span class="kw">mod </span>function_property_tests {
 <a href=#5051 id=5051 data-nosnippet>5051</a>    <span class="kw">use super</span>::<span class="kw-2">*</span>;
 <a href=#5052 id=5052 data-nosnippet>5052</a>    <span class="kw">use </span>proptest::prelude::<span class="kw-2">*</span>;
 <a href=#5053 id=5053 data-nosnippet>5053</a>
-<a href=#5054 id=5054 data-nosnippet>5054</a>    <span class="doccomment">/// Property: Function calls are deterministic (same input = same output)
+<a href=#5054 id=5054 data-nosnippet>5054</a>    <span class="comment">// Property: Function calls are deterministic (same input = same output)
 <a href=#5055 id=5055 data-nosnippet>5055</a>    </span><span class="attr">#[test]
 <a href=#5056 id=5056 data-nosnippet>5056</a>    </span><span class="kw">fn </span>prop_func_deterministic() {
 <a href=#5057 id=5057 data-nosnippet>5057</a>        <span class="macro">proptest!</span>(|(s <span class="kw">in </span><span class="string">"[a-z]{1,10}"</span>)| {
@@ -5073,7 +5073,7 @@
 <a href=#5073 id=5073 data-nosnippet>5073</a>        });
 <a href=#5074 id=5074 data-nosnippet>5074</a>    }
 <a href=#5075 id=5075 data-nosnippet>5075</a>
-<a href=#5076 id=5076 data-nosnippet>5076</a>    <span class="doccomment">/// Property: Multiple calls to same function produce consistent results
+<a href=#5076 id=5076 data-nosnippet>5076</a>    <span class="comment">// Property: Multiple calls to same function produce consistent results
 <a href=#5077 id=5077 data-nosnippet>5077</a>    </span><span class="attr">#[test]
 <a href=#5078 id=5078 data-nosnippet>5078</a>    </span><span class="kw">fn </span>prop_func_multiple_calls_consistent() {
 <a href=#5079 id=5079 data-nosnippet>5079</a>        <span class="macro">proptest!</span>(|(n <span class="kw">in </span><span class="number">1usize</span>..<span class="number">10</span>)| {
@@ -5101,7 +5101,7 @@
 <a href=#5101 id=5101 data-nosnippet>5101</a>        });
 <a href=#5102 id=5102 data-nosnippet>5102</a>    }
 <a href=#5103 id=5103 data-nosnippet>5103</a>
-<a href=#5104 id=5104 data-nosnippet>5104</a>    <span class="doccomment">/// Property: Function parameters are properly isolated
+<a href=#5104 id=5104 data-nosnippet>5104</a>    <span class="comment">// Property: Function parameters are properly isolated
 <a href=#5105 id=5105 data-nosnippet>5105</a>    </span><span class="attr">#[test]
 <a href=#5106 id=5106 data-nosnippet>5106</a>    </span><span class="kw">fn </span>prop_func_parameters_isolated() {
 <a href=#5107 id=5107 data-nosnippet>5107</a>        <span class="macro">proptest!</span>(|(a <span class="kw">in </span><span class="number">1i64</span>..<span class="number">100</span>, b <span class="kw">in </span><span class="number">1i64</span>..<span class="number">100</span>)| {
@@ -5121,7 +5121,7 @@
 <a href=#5121 id=5121 data-nosnippet>5121</a>        });
 <a href=#5122 id=5122 data-nosnippet>5122</a>    }
 <a href=#5123 id=5123 data-nosnippet>5123</a>
-<a href=#5124 id=5124 data-nosnippet>5124</a>    <span class="doccomment">/// Property: Variable assignments in functions persist
+<a href=#5124 id=5124 data-nosnippet>5124</a>    <span class="comment">// Property: Variable assignments in functions persist
 <a href=#5125 id=5125 data-nosnippet>5125</a>    </span><span class="attr">#[test]
 <a href=#5126 id=5126 data-nosnippet>5126</a>    </span><span class="kw">fn </span>prop_func_variables_persist() {
 <a href=#5127 id=5127 data-nosnippet>5127</a>        <span class="macro">proptest!</span>(|(s <span class="kw">in </span><span class="string">"[a-z]{1,10}"</span>)| {
@@ -5141,7 +5141,7 @@
 <a href=#5141 id=5141 data-nosnippet>5141</a>        });
 <a href=#5142 id=5142 data-nosnippet>5142</a>    }
 <a href=#5143 id=5143 data-nosnippet>5143</a>
-<a href=#5144 id=5144 data-nosnippet>5144</a>    <span class="doccomment">/// Property: Empty functions always succeed
+<a href=#5144 id=5144 data-nosnippet>5144</a>    <span class="comment">// Property: Empty functions always succeed
 <a href=#5145 id=5145 data-nosnippet>5145</a>    </span><span class="attr">#[test]
 <a href=#5146 id=5146 data-nosnippet>5146</a>    </span><span class="kw">fn </span>prop_func_empty_succeeds() {
 <a href=#5147 id=5147 data-nosnippet>5147</a>        <span class="macro">proptest!</span>(|(name <span class="kw">in </span><span class="string">"[a-z]{1,10}"</span>)| {
@@ -5162,7 +5162,7 @@
 <a href=#5162 id=5162 data-nosnippet>5162</a>        });
 <a href=#5163 id=5163 data-nosnippet>5163</a>    }
 <a href=#5164 id=5164 data-nosnippet>5164</a>
-<a href=#5165 id=5165 data-nosnippet>5165</a>    <span class="doccomment">/// Property: Function redefinition replaces previous definition
+<a href=#5165 id=5165 data-nosnippet>5165</a>    <span class="comment">// Property: Function redefinition replaces previous definition
 <a href=#5166 id=5166 data-nosnippet>5166</a>    </span><span class="attr">#[test]
 <a href=#5167 id=5167 data-nosnippet>5167</a>    </span><span class="kw">fn </span>prop_func_override_replaces() {
 <a href=#5168 id=5168 data-nosnippet>5168</a>        <span class="macro">proptest!</span>(|(s1 <span class="kw">in </span><span class="string">"[a-z]{1,10}"</span>, s2 <span class="kw">in </span><span class="string">"[a-z]{1,10}"</span>)| {
@@ -5186,7 +5186,7 @@
 <a href=#5186 id=5186 data-nosnippet>5186</a>        });
 <a href=#5187 id=5187 data-nosnippet>5187</a>    }
 <a href=#5188 id=5188 data-nosnippet>5188</a>
-<a href=#5189 id=5189 data-nosnippet>5189</a>    <span class="doccomment">/// Property: Functions can call themselves recursively (depth limited)
+<a href=#5189 id=5189 data-nosnippet>5189</a>    <span class="comment">// Property: Functions can call themselves recursively (depth limited)
 <a href=#5190 id=5190 data-nosnippet>5190</a>    </span><span class="attr">#[test]
 <a href=#5191 id=5191 data-nosnippet>5191</a>    </span><span class="kw">fn </span>prop_func_recursion_limited() {
 <a href=#5192 id=5192 data-nosnippet>5192</a>        <span class="macro">proptest!</span>(|(n <span class="kw">in </span><span class="number">1i64</span>..<span class="number">5</span>)| {
@@ -5219,7 +5219,7 @@
 <a href=#5219 id=5219 data-nosnippet>5219</a>        });
 <a href=#5220 id=5220 data-nosnippet>5220</a>    }
 <a href=#5221 id=5221 data-nosnippet>5221</a>
-<a href=#5222 id=5222 data-nosnippet>5222</a>    <span class="doccomment">/// Property: Function with for loop processes all items
+<a href=#5222 id=5222 data-nosnippet>5222</a>    <span class="comment">// Property: Function with for loop processes all items
 <a href=#5223 id=5223 data-nosnippet>5223</a>    </span><span class="attr">#[test]
 <a href=#5224 id=5224 data-nosnippet>5224</a>    </span><span class="kw">fn </span>prop_func_for_loop_processes_all() {
 <a href=#5225 id=5225 data-nosnippet>5225</a>        <span class="macro">proptest!</span>(|(items <span class="kw">in </span>prop::collection::vec(<span class="string">"[a-z]{1,5}"</span>, <span class="number">1</span>..<span class="number">5</span>))| {
@@ -5243,7 +5243,7 @@
 <a href=#5243 id=5243 data-nosnippet>5243</a>        });
 <a href=#5244 id=5244 data-nosnippet>5244</a>    }
 <a href=#5245 id=5245 data-nosnippet>5245</a>
-<a href=#5246 id=5246 data-nosnippet>5246</a>    <span class="doccomment">/// Property: Function with arithmetic always returns correct result
+<a href=#5246 id=5246 data-nosnippet>5246</a>    <span class="comment">// Property: Function with arithmetic always returns correct result
 <a href=#5247 id=5247 data-nosnippet>5247</a>    </span><span class="attr">#[test]
 <a href=#5248 id=5248 data-nosnippet>5248</a>    </span><span class="kw">fn </span>prop_func_arithmetic_correct() {
 <a href=#5249 id=5249 data-nosnippet>5249</a>        <span class="macro">proptest!</span>(|(a <span class="kw">in </span><span class="number">1i64</span>..<span class="number">50</span>, b <span class="kw">in </span><span class="number">1i64</span>..<span class="number">50</span>)| {
@@ -5263,7 +5263,7 @@
 <a href=#5263 id=5263 data-nosnippet>5263</a>        });
 <a href=#5264 id=5264 data-nosnippet>5264</a>    }
 <a href=#5265 id=5265 data-nosnippet>5265</a>
-<a href=#5266 id=5266 data-nosnippet>5266</a>    <span class="doccomment">/// Property: Function with conditionals handles both branches
+<a href=#5266 id=5266 data-nosnippet>5266</a>    <span class="comment">// Property: Function with conditionals handles both branches
 <a href=#5267 id=5267 data-nosnippet>5267</a>    </span><span class="attr">#[test]
 <a href=#5268 id=5268 data-nosnippet>5268</a>    </span><span class="kw">fn </span>prop_func_conditional_branches() {
 <a href=#5269 id=5269 data-nosnippet>5269</a>        <span class="macro">proptest!</span>(|(value <span class="kw">in </span><span class="string">"[a-z]{1,10}"</span>)| {
@@ -5292,7 +5292,7 @@
 <a href=#5292 id=5292 data-nosnippet>5292</a>        });
 <a href=#5293 id=5293 data-nosnippet>5293</a>    }
 <a href=#5294 id=5294 data-nosnippet>5294</a>
-<a href=#5295 id=5295 data-nosnippet>5295</a>    <span class="doccomment">/// Property: Multiple function definitions are all stored
+<a href=#5295 id=5295 data-nosnippet>5295</a>    <span class="comment">// Property: Multiple function definitions are all stored
 <a href=#5296 id=5296 data-nosnippet>5296</a>    </span><span class="attr">#[test]
 <a href=#5297 id=5297 data-nosnippet>5297</a>    </span><span class="kw">fn </span>prop_func_multiple_definitions_stored() {
 <a href=#5298 id=5298 data-nosnippet>5298</a>        <span class="macro">proptest!</span>(|(n <span class="kw">in </span><span class="number">2usize</span>..<span class="number">5</span>)| {
@@ -5688,9 +5688,9 @@
 <a href=#5688 id=5688 data-nosnippet>5688</a>    }
 <a href=#5689 id=5689 data-nosnippet>5689</a>}
 <a href=#5690 id=5690 data-nosnippet>5690</a>
-<a href=#5691 id=5691 data-nosnippet>5691</a><span class="doccomment">/// Property-based tests for arrays (ARRAY-001-PROP)
-<a href=#5692 id=5692 data-nosnippet>5692</a>///
-<a href=#5693 id=5693 data-nosnippet>5693</a>/// Tests array invariants and properties using proptest.
+<a href=#5691 id=5691 data-nosnippet>5691</a><span class="comment">// Property-based tests for arrays (ARRAY-001-PROP)
+<a href=#5692 id=5692 data-nosnippet>5692</a>//
+<a href=#5693 id=5693 data-nosnippet>5693</a>// Tests array invariants and properties using proptest.
 <a href=#5694 id=5694 data-nosnippet>5694</a></span><span class="attr">#[cfg(test)]
 <a href=#5695 id=5695 data-nosnippet>5695</a></span><span class="kw">mod </span>array_property_tests {
 <a href=#5696 id=5696 data-nosnippet>5696</a>    <span class="kw">use super</span>::<span class="kw-2">*</span>;
