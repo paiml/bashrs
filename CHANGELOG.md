@@ -113,6 +113,90 @@ $ bashrs lint nonexistent.sh
 
 **Resolves**: Phase 1 of https://github.com/paiml/bashrs/issues/12
 
+**Issue #12 Phase 2: Comparative Benchmarking Features** 📊
+
+- **Welch's t-test**: Statistical comparison of benchmarks with unequal variances
+  - Robust alternative to Student's t-test (doesn't assume equal variance)
+  - Welch-Satterthwaite equation for degrees of freedom calculation
+  - Handles edge cases: zero-variance samples, deterministic benchmarks
+
+- **Statistical significance testing**: P-value based hypothesis testing
+  - Configurable alpha level (default: 0.05)
+  - Two-tailed t-distribution for p-value calculation
+  - Prevents false positives in performance regression detection
+
+- **Multi-binary comparison**: Compare benchmarks across different binaries
+  - `ComparisonResult` struct with speedup, t-statistic, p-value
+  - Automatic statistical significance determination
+  - JSON schema support for CI/CD integration
+
+- **Regression detection with thresholds**: Configurable performance regression gates
+  - `RegressionResult` struct with regression status, speedup, change percentage
+  - Configurable threshold (default: 0.05 = 5% regression)
+  - Combines statistical significance + practical significance
+  - Prevents noise from triggering false CI/CD failures
+
+**Example Usage**:
+```rust
+// Compare baseline vs. current performance
+let comparison = compare_benchmarks(&baseline_samples, &current_samples);
+println!("Speedup: {:.2}x", comparison.speedup);
+println!("Statistically significant: {}", comparison.is_significant);
+
+// Detect regressions with 5% threshold
+let regression = detect_regression_with_threshold(
+    &baseline, &current,
+    0.05,  // alpha (5% significance)
+    0.05   // threshold (5% slowdown)
+);
+
+if regression.is_regression {
+    eprintln!("⚠️ Performance regression detected: {:.1}% slower",
+              regression.change_percent);
+}
+```
+
+**Example JSON Output**:
+```json
+{
+  "comparison": {
+    "speedup": 0.95,
+    "t_statistic": -2.45,
+    "p_value": 0.023,
+    "is_significant": true
+  },
+  "regression": {
+    "is_regression": true,
+    "speedup": 0.95,
+    "is_statistically_significant": true,
+    "change_percent": -5.2
+  }
+}
+```
+
+**Test Coverage**:
+- ✅ 13 new tests covering all Phase 2 features
+- ✅ Welch's t-test: Basic calculation, degrees of freedom (2 tests)
+- ✅ Statistical significance: Alpha levels, significance detection (2 tests)
+- ✅ Comparison results: From statistics, speedup calculation (2 tests)
+- ✅ Regression detection: Basic, with threshold, no regression scenarios (3 tests)
+- ✅ Edge cases: Zero-variance samples, identical benchmarks (2 tests)
+- ✅ JSON schema: ComparisonResult and RegressionResult serialization (2 tests)
+
+**EXTREME TDD Process**:
+1. ✅ RED Phase: 13 tests written, all failed initially
+2. ✅ GREEN Phase: Implementation complete, all 13 tests pass
+3. ✅ Bug fix: Zero-variance sample handling in regression detection
+4. ✅ Full suite: 6343+ tests pass (no regressions)
+
+**Changes**:
+- Modified `rash/src/cli/bench.rs`: Added Welch's t-test, ComparisonResult, RegressionResult
+- Implemented statistical significance testing with configurable alpha
+- Added regression detection with practical significance thresholds
+- Added 13 comprehensive tests for all new features
+
+**Resolves**: Phase 2 of https://github.com/paiml/bashrs/issues/12
+
 **Issue #10: Dockerfile-specific quality scoring mode** 🐳
 
 - **NEW `--dockerfile` flag** for `bashrs score` command
