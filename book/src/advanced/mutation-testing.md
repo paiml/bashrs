@@ -487,7 +487,7 @@ cargo mutants --file rash/src/linter/rules/sec001.rs \
 ```
 
 **Surviving mutants**:
-```
+```text
 src/linter/rules/sec001.rs:34: replace contains -> is_empty
 src/linter/rules/sec001.rs:42: replace line_num + 1 -> line_num
 src/linter/rules/sec001.rs:50: replace Error -> Warning
@@ -563,7 +563,7 @@ Mutation results:
 
 ### Understanding cargo-mutants Output
 
-```
+```text
 cargo-mutants auto_tested 71 mutants in 35m 5s:
   16 caught
    3 missed
@@ -594,7 +594,7 @@ $ cargo mutants --file rash/src/linter/rules/sec002.rs \
 ```
 
 **Sample output**:
-```
+```text
 src/linter/rules/sec002.rs:15:17: replace contains("$") -> is_empty()
 src/linter/rules/sec002.rs:23:12: replace !is_quoted -> is_quoted
 src/linter/rules/sec002.rs:34:20: replace line_num + 1 -> line_num + 0

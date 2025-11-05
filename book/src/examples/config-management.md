@@ -273,7 +273,7 @@ fi
 
 ### Purification Report
 
-```
+```text
 Configuration Purification Report
 ==================================
 

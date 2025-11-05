@@ -200,7 +200,7 @@ pub struct AstMetadata {
 
 bashrs purification is a three-stage pipeline:
 
-```
+```text
 ┌─────────────┐      ┌──────────────┐      ┌─────────────┐
 │ Parse Bash  │ ───▶ │  Transform   │ ───▶ │  Generate   │
 │  to AST     │      │     AST      │      │ Purified Sh │
