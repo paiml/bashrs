@@ -931,7 +931,7 @@ mod property_tests {
 
     // ===== PROPERTY TESTS (PROPERTY PHASE) =====
 
-    /// Property: Line numbers are always valid (non-zero, reasonable range)
+    // Property: Line numbers are always valid (non-zero, reasonable range)
     proptest! {
         #[test]
         fn prop_breakpoint_line_numbers_valid(line in 1usize..10000) {
@@ -949,7 +949,7 @@ mod property_tests {
         }
     }
 
-    /// Property: set_breakpoint is idempotent (setting twice is same as setting once)
+    // Property: set_breakpoint is idempotent (setting twice is same as setting once)
     proptest! {
         #[test]
         fn prop_set_breakpoint_idempotent(line in 1usize..10000) {
@@ -965,7 +965,7 @@ mod property_tests {
         }
     }
 
-    /// Property: remove_breakpoint removes the breakpoint
+    // Property: remove_breakpoint removes the breakpoint
     proptest! {
         #[test]
         fn prop_remove_breakpoint_works(line in 1usize..10000) {
@@ -985,7 +985,7 @@ mod property_tests {
         }
     }
 
-    /// Property: count is always accurate
+    // Property: count is always accurate
     proptest! {
         #[test]
         fn prop_count_accurate(lines in prop::collection::vec(1usize..1000, 1..20)) {
@@ -1006,7 +1006,7 @@ mod property_tests {
         }
     }
 
-    /// Property: get_breakpoints returns sorted list
+    // Property: get_breakpoints returns sorted list
     proptest! {
         #[test]
         fn prop_get_breakpoints_sorted(lines in prop::collection::vec(1usize..1000, 1..20)) {
@@ -1031,7 +1031,7 @@ mod property_tests {
         }
     }
 
-    /// Property: clear_all removes all breakpoints
+    // Property: clear_all removes all breakpoints
     proptest! {
         #[test]
         fn prop_clear_all_works(lines in prop::collection::vec(1usize..1000, 1..20)) {
@@ -1056,7 +1056,7 @@ mod property_tests {
         }
     }
 
-    /// Property: is_breakpoint_hit is deterministic
+    // Property: is_breakpoint_hit is deterministic
     proptest! {
         #[test]
         fn prop_is_breakpoint_hit_deterministic(line in 1usize..10000) {
@@ -1073,7 +1073,7 @@ mod property_tests {
         }
     }
 
-    /// Property: Breakpoint struct properties
+    // Property: Breakpoint struct properties
     proptest! {
         #[test]
         fn prop_breakpoint_struct(line in 1usize..10000) {
@@ -1093,7 +1093,7 @@ mod property_tests {
         }
     }
 
-    /// Property: Conditional breakpoints with > operator
+    // Property: Conditional breakpoints with > operator
     proptest! {
         #[test]
         fn prop_conditional_greater_than(value in 0i64..1000, threshold in 0i64..1000) {
@@ -1114,7 +1114,7 @@ mod property_tests {
         }
     }
 
-    /// Property: Conditional breakpoints are deterministic
+    // Property: Conditional breakpoints are deterministic
     proptest! {
         #[test]
         fn prop_conditional_deterministic(value in 0i64..100, threshold in 0i64..100) {
@@ -1133,7 +1133,7 @@ mod property_tests {
         }
     }
 
-    /// Property: String equality conditions
+    // Property: String equality conditions
     proptest! {
         #[test]
         fn prop_conditional_string_equality(value in "[a-z]{1,10}", compare in "[a-z]{1,10}") {
@@ -1158,7 +1158,7 @@ mod property_tests {
         }
     }
 
-    /// Property: Disabled conditional breakpoints never trigger
+    // Property: Disabled conditional breakpoints never trigger
     proptest! {
         #[test]
         fn prop_disabled_conditional_never_breaks(value in 0i64..100) {
@@ -1175,7 +1175,7 @@ mod property_tests {
         }
     }
 
-    /// Property: Missing variables cause condition to fail
+    // Property: Missing variables cause condition to fail
     proptest! {
         #[test]
         fn prop_missing_variable_fails(threshold in 0i64..100) {
@@ -1192,7 +1192,7 @@ mod property_tests {
 
     // ===== HIT-COUNT PROPERTY TESTS (REPL-007-003) =====
 
-    /// Property: Hit-count breakpoints trigger at the correct threshold
+    // Property: Hit-count breakpoints trigger at the correct threshold
     proptest! {
         #[test]
         fn prop_hit_count_triggers_at_threshold(threshold in 1usize..20) {
@@ -1216,7 +1216,7 @@ mod property_tests {
         }
     }
 
-    /// Property: Hit count is always accurate
+    // Property: Hit count is always accurate
     proptest! {
         #[test]
         fn prop_hit_count_accurate(hits in 1usize..50) {
@@ -1235,7 +1235,7 @@ mod property_tests {
         }
     }
 
-    /// Property: Reset always sets hit count to zero
+    // Property: Reset always sets hit count to zero
     proptest! {
         #[test]
         fn prop_reset_hit_count_works(hits in 1usize..50) {
@@ -1258,7 +1258,7 @@ mod property_tests {
         }
     }
 
-    /// Property: Disabled hit-count breakpoints never trigger
+    // Property: Disabled hit-count breakpoints never trigger
     proptest! {
         #[test]
         fn prop_disabled_hit_count_never_triggers(threshold in 1usize..20, hits in 1usize..50) {
@@ -1276,7 +1276,7 @@ mod property_tests {
         }
     }
 
-    /// Property: Hit-count with condition requires both to be true
+    // Property: Hit-count with condition requires both to be true
     proptest! {
         #[test]
         fn prop_hit_count_with_condition_both_required(threshold in 2usize..10, value in 0i64..100) {

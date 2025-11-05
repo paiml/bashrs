@@ -162,16 +162,16 @@ mod property_tests {
     use super::*;
     use proptest::prelude::*;
 
-    /// PROPERTY TESTING PHASE: Test that basic rules always parse successfully
-    ///
-    /// This property test generates 100+ random target names, prerequisite names,
-    /// and recipe commands to ensure the parser handles a wide variety of inputs.
-    ///
-    /// Properties verified:
-    /// 1. Parser succeeds for valid target syntax
-    /// 2. Target name is preserved
-    /// 3. Prerequisites are parsed correctly
-    /// 4. Recipe lines are captured
+    // PROPERTY TESTING PHASE: Test that basic rules always parse successfully
+    //
+    // This property test generates 100+ random target names, prerequisite names,
+    // and recipe commands to ensure the parser handles a wide variety of inputs.
+    //
+    // Properties verified:
+    // 1. Parser succeeds for valid target syntax
+    // 2. Target name is preserved
+    // 3. Prerequisites are parsed correctly
+    // 4. Recipe lines are captured
     proptest! {
         #[test]
         fn test_RULE_SYNTAX_001_prop_basic_rules_always_parse(
