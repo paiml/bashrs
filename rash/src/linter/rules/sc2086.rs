@@ -798,7 +798,7 @@ fi
         let bash_code2 = r#" "$VAR unquoted"#; // Quote before but not directly after
         let result2 = check(bash_code2);
         // Should flag because not fully quoted around the variable itself
-        assert!(result2.diagnostics.len() >= 0); // Depends on regex match
+        let _ = result2.diagnostics.len(); // Depends on regex match
     }
 
     #[test]

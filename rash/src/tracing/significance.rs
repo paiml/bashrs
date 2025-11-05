@@ -245,7 +245,7 @@ mod tests {
         use super::*;
         use proptest::prelude::*;
 
-        /// Property: Higher significance is always more visible
+        // Property: Higher significance is always more visible
         proptest! {
             #[test]
             fn prop_trace_001_a_higher_more_visible(
@@ -264,7 +264,7 @@ mod tests {
             }
         }
 
-        /// Property: Critical events always visible
+        // Property: Critical events always visible
         proptest! {
             #[test]
             fn prop_trace_001_a_critical_always_visible(_any in 0..100u32) {
@@ -274,7 +274,7 @@ mod tests {
             }
         }
 
-        /// Property: Ordering is transitive
+        // Property: Ordering is transitive
         proptest! {
             #[test]
             fn prop_trace_001_a_ordering_transitive(

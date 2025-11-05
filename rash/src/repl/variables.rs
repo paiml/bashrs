@@ -273,13 +273,13 @@ mod tests {
         use super::*;
         use proptest::prelude::*;
 
-        /// Generate valid bash variable names
-        /// Pattern: [A-Za-z_][A-Za-z0-9_]*
+        // Generate valid bash variable names
+        // Pattern: [A-Za-z_][A-Za-z0-9_]*
         fn valid_var_name() -> impl Strategy<Value = String> {
             "[A-Za-z_][A-Za-z0-9_]{0,19}"
         }
 
-        /// Property: Valid variable names always parse successfully
+        // Property: Valid variable names always parse successfully
         proptest! {
             #[test]
             fn prop_REPL_007_001_valid_names_parse(
@@ -296,7 +296,7 @@ mod tests {
             }
         }
 
-        /// Property: Expansion is deterministic - same input always produces same output
+        // Property: Expansion is deterministic - same input always produces same output
         proptest! {
             #[test]
             fn prop_REPL_007_001_expansion_deterministic(
@@ -314,7 +314,7 @@ mod tests {
             }
         }
 
-        /// Property: Unknown variables always expand to empty string
+        // Property: Unknown variables always expand to empty string
         proptest! {
             #[test]
             fn prop_REPL_007_001_unknown_vars_empty(
@@ -330,7 +330,7 @@ mod tests {
             }
         }
 
-        /// Property: Assignment + expansion roundtrip preserves values
+        // Property: Assignment + expansion roundtrip preserves values
         proptest! {
             #[test]
             fn prop_REPL_007_001_roundtrip(
@@ -361,7 +361,7 @@ mod tests {
             }
         }
 
-        /// Property: Multiple variables expand independently
+        // Property: Multiple variables expand independently
         proptest! {
             #[test]
             fn prop_REPL_007_001_multiple_vars_independent(
@@ -386,7 +386,7 @@ mod tests {
             }
         }
 
-        /// Property: Quoted values have quotes removed
+        // Property: Quoted values have quotes removed
         proptest! {
             #[test]
             fn prop_REPL_007_001_quotes_removed(
@@ -409,7 +409,7 @@ mod tests {
             }
         }
 
-        /// Property: Empty values are valid
+        // Property: Empty values are valid
         proptest! {
             #[test]
             fn prop_REPL_007_001_empty_values_valid(

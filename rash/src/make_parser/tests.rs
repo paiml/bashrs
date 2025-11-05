@@ -162,16 +162,16 @@ mod property_tests {
     use super::*;
     use proptest::prelude::*;
 
-    /// PROPERTY TESTING PHASE: Test that basic rules always parse successfully
-    ///
-    /// This property test generates 100+ random target names, prerequisite names,
-    /// and recipe commands to ensure the parser handles a wide variety of inputs.
-    ///
-    /// Properties verified:
-    /// 1. Parser succeeds for valid target syntax
-    /// 2. Target name is preserved
-    /// 3. Prerequisites are parsed correctly
-    /// 4. Recipe lines are captured
+    // PROPERTY TESTING PHASE: Test that basic rules always parse successfully
+    //
+    // This property test generates 100+ random target names, prerequisite names,
+    // and recipe commands to ensure the parser handles a wide variety of inputs.
+    //
+    // Properties verified:
+    // 1. Parser succeeds for valid target syntax
+    // 2. Target name is preserved
+    // 3. Prerequisites are parsed correctly
+    // 4. Recipe lines are captured
     proptest! {
         #[test]
         fn test_RULE_SYNTAX_001_prop_basic_rules_always_parse(
@@ -644,9 +644,9 @@ fn test_VAR_BASIC_001_multiple_variables() {
     }
 }
 
-/// PROPERTY TESTING PHASE: Tests for VAR-BASIC-001
-///
-/// These property tests verify variable assignment works across a wide range of inputs.
+// PROPERTY TESTING PHASE: Tests for VAR-BASIC-001
+//
+// These property tests verify variable assignment works across a wide range of inputs.
 #[cfg(test)]
 mod var_basic_property_tests {
     use super::*;
@@ -1110,9 +1110,9 @@ fn test_PHONY_001_phony_declaration_position() {
     }
 }
 
-/// PROPERTY TESTING PHASE: Tests for PHONY-001
-///
-/// These property tests verify .PHONY declarations work across various inputs.
+// PROPERTY TESTING PHASE: Tests for PHONY-001
+//
+// These property tests verify .PHONY declarations work across various inputs.
 #[cfg(test)]
 mod phony_property_tests {
     use super::*;
@@ -1363,9 +1363,9 @@ fn test_VAR_BASIC_002_variable_reference_in_prerequisites() {
     }
 }
 
-/// PROPERTY TESTING PHASE: Tests for VAR-BASIC-002
-///
-/// These property tests verify variable references work across various inputs.
+// PROPERTY TESTING PHASE: Tests for VAR-BASIC-002
+//
+// These property tests verify variable references work across various inputs.
 #[cfg(test)]
 mod var_reference_property_tests {
     use super::*;
@@ -1688,9 +1688,9 @@ fn test_SYNTAX_001_comment_with_spaces() {
     }
 }
 
-/// PROPERTY TESTING PHASE: Tests for SYNTAX-001
-///
-/// These property tests verify comment parsing works across various inputs.
+// PROPERTY TESTING PHASE: Tests for SYNTAX-001
+//
+// These property tests verify comment parsing works across various inputs.
 #[cfg(test)]
 mod syntax_001_property_tests {
     use super::*;
@@ -5568,7 +5568,7 @@ fn test_INCLUDE_001_include_with_variables() {
     }
 }
 
-/// RED PHASE: Property test - Include directives always parse
+// RED PHASE: Property test - Include directives always parse
 #[cfg(test)]
 mod include_property_tests {
     use super::*;

@@ -1,7 +1,7 @@
 //! Integration tests for bash parser
 
 use super::*;
-use lexer::{Lexer, Token};
+use lexer::Lexer;
 use parser::BashParser;
 use semantic::SemanticAnalyzer;
 
@@ -872,8 +872,8 @@ mod property_tests {
     use crate::bash_parser::ast::*;
     use proptest::prelude::*;
 
-    /// Property: All Until loops must be transformed to While loops
-    /// This verifies the core transformation rule
+    // Property: All Until loops must be transformed to While loops
+    // This verifies the core transformation rule
     proptest! {
         #[test]
         fn prop_until_always_becomes_while(
@@ -926,8 +926,8 @@ mod property_tests {
         }
     }
 
-    /// Property: Until transformation must be deterministic
-    /// Same input must always produce same output
+    // Property: Until transformation must be deterministic
+    // Same input must always produce same output
     proptest! {
         #[test]
         fn prop_until_transformation_is_deterministic(
@@ -971,7 +971,7 @@ mod property_tests {
         }
     }
 
-    /// Property: Until loops with different test expressions all transform correctly
+    // Property: Until loops with different test expressions all transform correctly
     proptest! {
         #[test]
         fn prop_until_handles_all_test_types(
@@ -1025,7 +1025,7 @@ mod property_tests {
         }
     }
 
-    /// Property: Default value expansion preserves variable name
+    // Property: Default value expansion preserves variable name
     proptest! {
         #[test]
         fn prop_default_value_preserves_variable_name(
@@ -1075,7 +1075,7 @@ mod property_tests {
         }
     }
 
-    /// Property: Default value expansion is deterministic
+    // Property: Default value expansion is deterministic
     proptest! {
         #[test]
         fn prop_default_value_is_deterministic(
@@ -1112,7 +1112,7 @@ mod property_tests {
         }
     }
 
-    /// Property: Nested default values are handled correctly
+    // Property: Nested default values are handled correctly
     proptest! {
         #[test]
         fn prop_nested_default_values(
@@ -1177,7 +1177,7 @@ mod property_tests {
         }
     }
 
-    /// Property: Assign default expansion preserves variable name
+    // Property: Assign default expansion preserves variable name
     proptest! {
         #[test]
         fn prop_assign_default_preserves_variable_name(
@@ -1234,7 +1234,7 @@ mod property_tests {
         }
     }
 
-    /// Property: Assign default expansion is deterministic
+    // Property: Assign default expansion is deterministic
     proptest! {
         #[test]
         fn prop_assign_default_is_deterministic(
@@ -1271,7 +1271,7 @@ mod property_tests {
         }
     }
 
-    /// Property: Nested assign defaults are handled correctly
+    // Property: Nested assign defaults are handled correctly
     proptest! {
         #[test]
         fn prop_nested_assign_defaults(
@@ -1336,7 +1336,7 @@ mod property_tests {
         }
     }
 
-    /// Property: Glob patterns are preserved
+    // Property: Glob patterns are preserved
     proptest! {
         #[test]
         fn prop_glob_patterns_preserved(
@@ -1382,7 +1382,7 @@ mod property_tests {
         }
     }
 
-    /// Property: Glob transformation is deterministic
+    // Property: Glob transformation is deterministic
     proptest! {
         #[test]
         fn prop_glob_transformation_is_deterministic(
@@ -1419,7 +1419,7 @@ mod property_tests {
         }
     }
 
-    /// Property: Glob patterns with different wildcards
+    // Property: Glob patterns with different wildcards
     proptest! {
         #[test]
         fn prop_glob_wildcards_preserved(
@@ -1453,7 +1453,7 @@ mod property_tests {
         }
     }
 
-    /// Property: Error-if-unset expansion preserves variable and message
+    // Property: Error-if-unset expansion preserves variable and message
     proptest! {
         #[test]
         fn prop_error_if_unset_preserves_components(
@@ -1503,7 +1503,7 @@ mod property_tests {
         }
     }
 
-    /// Property: Error-if-unset expansion is deterministic
+    // Property: Error-if-unset expansion is deterministic
     proptest! {
         #[test]
         fn prop_error_if_unset_is_deterministic(
@@ -1540,7 +1540,7 @@ mod property_tests {
         }
     }
 
-    /// Property: Error-if-unset uses :? not :- or :=
+    // Property: Error-if-unset uses :? not :- or :=
     proptest! {
         #[test]
         fn prop_error_if_unset_uses_correct_operator(
@@ -1581,7 +1581,7 @@ mod property_tests {
         }
     }
 
-    /// Property: Alternative value expansion preserves variable and alternative
+    // Property: Alternative value expansion preserves variable and alternative
     proptest! {
         #[test]
         fn prop_alternative_value_preserves_components(
@@ -1631,7 +1631,7 @@ mod property_tests {
         }
     }
 
-    /// Property: Alternative value expansion is deterministic
+    // Property: Alternative value expansion is deterministic
     proptest! {
         #[test]
         fn prop_alternative_value_is_deterministic(
@@ -1668,7 +1668,7 @@ mod property_tests {
         }
     }
 
-    /// Property: Alternative value uses :+ not :-, :=, or :?
+    // Property: Alternative value uses :+ not :-, :=, or :?
     proptest! {
         #[test]
         fn prop_alternative_value_uses_correct_operator(
@@ -1709,7 +1709,7 @@ mod property_tests {
         }
     }
 
-    /// Property: String length expansion preserves variable name
+    // Property: String length expansion preserves variable name
     proptest! {
         #[test]
         fn prop_string_length_preserves_variable(
@@ -1756,7 +1756,7 @@ mod property_tests {
         }
     }
 
-    /// Property: String length expansion is deterministic
+    // Property: String length expansion is deterministic
     proptest! {
         #[test]
         fn prop_string_length_is_deterministic(
@@ -1791,7 +1791,7 @@ mod property_tests {
         }
     }
 
-    /// Property: String length uses # not other parameter operators
+    // Property: String length uses # not other parameter operators
     proptest! {
         #[test]
         fn prop_string_length_uses_correct_operator(
@@ -1831,7 +1831,7 @@ mod property_tests {
         }
     }
 
-    /// Property: Remove suffix expansion preserves variable and pattern
+    // Property: Remove suffix expansion preserves variable and pattern
     proptest! {
         #[test]
         fn prop_remove_suffix_preserves_components(
@@ -1881,7 +1881,7 @@ mod property_tests {
         }
     }
 
-    /// Property: Remove suffix expansion is deterministic
+    // Property: Remove suffix expansion is deterministic
     proptest! {
         #[test]
         fn prop_remove_suffix_is_deterministic(
@@ -1918,7 +1918,7 @@ mod property_tests {
         }
     }
 
-    /// Property: Remove suffix uses % not #, :-, :=, :?, or :+
+    // Property: Remove suffix uses % not #, :-, :=, :?, or :+
     proptest! {
         #[test]
         fn prop_remove_suffix_uses_correct_operator(
@@ -1962,7 +1962,7 @@ mod property_tests {
         }
     }
 
-    /// Property: Remove prefix expansion preserves variable and pattern
+    // Property: Remove prefix expansion preserves variable and pattern
     proptest! {
         #[test]
         fn prop_remove_prefix_preserves_components(
@@ -2012,7 +2012,7 @@ mod property_tests {
         }
     }
 
-    /// Property: Remove prefix expansion is deterministic
+    // Property: Remove prefix expansion is deterministic
     proptest! {
         #[test]
         fn prop_remove_prefix_is_deterministic(
@@ -2049,7 +2049,7 @@ mod property_tests {
         }
     }
 
-    /// Property: Remove prefix uses # not %, :-, :=, :?, or :+
+    // Property: Remove prefix uses # not %, :-, :=, :?, or :+
     proptest! {
         #[test]
         fn prop_remove_prefix_uses_correct_operator(
@@ -2093,7 +2093,7 @@ mod property_tests {
         }
     }
 
-    /// Property: Remove longest prefix expansion preserves variable and pattern
+    // Property: Remove longest prefix expansion preserves variable and pattern
     proptest! {
         #[test]
         fn prop_remove_longest_prefix_preserves_components(
@@ -2143,7 +2143,7 @@ mod property_tests {
         }
     }
 
-    /// Property: Remove longest prefix expansion is deterministic
+    // Property: Remove longest prefix expansion is deterministic
     proptest! {
         #[test]
         fn prop_remove_longest_prefix_is_deterministic(
@@ -2180,7 +2180,7 @@ mod property_tests {
         }
     }
 
-    /// Property: Remove longest prefix uses ## not #, %, :-, :=, :?, or :+
+    // Property: Remove longest prefix uses ## not #, %, :-, :=, :?, or :+
     proptest! {
         #[test]
         fn prop_remove_longest_prefix_uses_correct_operator(
@@ -2223,7 +2223,7 @@ mod property_tests {
         }
     }
 
-    /// Property: Remove longest suffix expansion preserves variable and pattern
+    // Property: Remove longest suffix expansion preserves variable and pattern
     proptest! {
         #[test]
         fn prop_remove_longest_suffix_preserves_components(
@@ -2273,7 +2273,7 @@ mod property_tests {
         }
     }
 
-    /// Property: Remove longest suffix expansion is deterministic
+    // Property: Remove longest suffix expansion is deterministic
     proptest! {
         #[test]
         fn prop_remove_longest_suffix_is_deterministic(
@@ -2310,7 +2310,7 @@ mod property_tests {
         }
     }
 
-    /// Property: Remove longest suffix uses %% not %, ##, :-, :=, :?, or :+
+    // Property: Remove longest suffix uses %% not %, ##, :-, :=, :?, or :+
     proptest! {
         #[test]
         fn prop_remove_longest_suffix_uses_correct_operator(

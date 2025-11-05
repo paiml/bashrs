@@ -636,7 +636,7 @@ mod property_tests {
 
     // ===== PROPERTY TESTS (PROPERTY PHASE) =====
 
-    /// Property: purify_bash should never panic on any input
+    // Property: purify_bash should never panic on any input
     proptest! {
         #[test]
         fn prop_purify_never_panics(input in ".*{0,1000}") {
@@ -646,7 +646,7 @@ mod property_tests {
         }
     }
 
-    /// Property: Purified output should always be valid bash (parseable)
+    // Property: Purified output should always be valid bash (parseable)
     proptest! {
         #[test]
         fn prop_purify_produces_valid_bash(input in "[a-z ]{1,100}") {
@@ -663,7 +663,7 @@ mod property_tests {
         }
     }
 
-    /// Property: mkdir commands always get -p flag added
+    // Property: mkdir commands always get -p flag added
     proptest! {
         #[test]
         fn prop_mkdir_always_idempotent(path in "[a-z0-9/]{1,50}") {
@@ -679,7 +679,7 @@ mod property_tests {
         }
     }
 
-    /// Property: Purification should be deterministic
+    // Property: Purification should be deterministic
     proptest! {
         #[test]
         fn prop_purify_deterministic(input in "[a-z ]{1,50}") {
@@ -701,7 +701,7 @@ mod property_tests {
         }
     }
 
-    /// Property: Format purification report never empty for non-empty report
+    // Property: Format purification report never empty for non-empty report
     proptest! {
         #[test]
         fn prop_format_report_not_empty(
@@ -2140,9 +2140,6 @@ mod purify_and_lint_tests {
         assert!(result.is_ok());
         let result = result.unwrap();
 
-        // is_clean should be a boolean
-        assert!(result.is_clean || !result.is_clean);
-
         // If clean, critical_violations should be 0
         if result.is_clean {
             assert_eq!(result.critical_violations(), 0);
@@ -2304,7 +2301,7 @@ mod purify_and_lint_property_tests {
     // but still triggers IDEM002 (non-idempotent rm without -f).
     // This is expected and correct behavior.
 
-    /// Property: Function should never panic on any input
+    // Property: Function should never panic on any input
     proptest! {
         #[test]
         fn prop_purify_and_lint_never_panics(input in ".*{0,1000}") {
