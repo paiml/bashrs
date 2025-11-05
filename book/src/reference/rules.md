@@ -847,7 +847,7 @@ bashrs supports custom rules through plugins (future feature).
 
 ### Rule Interface
 
-```rust
+```rust,ignore
 pub trait LintRule {
     fn check(&self, source: &str) -> LintResult;
     fn code(&self) -> &str;
@@ -858,7 +858,7 @@ pub trait LintRule {
 
 ### Example Custom Rule
 
-```rust
+```rust,ignore
 pub struct CustomRule001;
 
 impl LintRule for CustomRule001 {
@@ -887,7 +887,7 @@ impl LintRule for CustomRule001 {
 ```
 
 **Plugin location:**
-```
+```text
 ~/.config/bashrs/plugins/custom_rules.so
 ```
 

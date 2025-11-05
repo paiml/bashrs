@@ -1320,7 +1320,7 @@ mod tests {
     fn test_REPL_010_001_compare_at_breakpoint() {
         // Script with non-idempotent command
         let script = "mkdir /tmp/test";
-        let mut session = DebugSession::new(script);
+        let session = DebugSession::new(script);
 
         // Get comparison at line 1
         let comparison = session.compare_current_line();
@@ -1337,7 +1337,7 @@ mod tests {
     fn test_REPL_010_001_compare_diff_highlighting() {
         // Script with missing quotes
         let script = "echo $HOME";
-        let mut session = DebugSession::new(script);
+        let session = DebugSession::new(script);
 
         let comparison = session.compare_current_line();
         assert!(comparison.is_some());
@@ -1366,7 +1366,7 @@ mod tests {
     fn test_REPL_010_002_highlight_mkdir_p() {
         // ARRANGE: Script with non-idempotent mkdir
         let script = "mkdir /tmp/foo";
-        let mut session = DebugSession::new(script);
+        let session = DebugSession::new(script);
 
         // ACT: Compare lines
         let comparison = session.compare_current_line();
@@ -1400,7 +1400,7 @@ mod tests {
     fn test_REPL_010_002_highlight_quote() {
         // ARRANGE: Script with unquoted variable
         let script = "echo $USER";
-        let mut session = DebugSession::new(script);
+        let session = DebugSession::new(script);
 
         // ACT: Compare lines
         let comparison = session.compare_current_line();
@@ -1431,7 +1431,7 @@ mod tests {
     fn test_REPL_010_002_highlight_ln_sf() {
         // ARRANGE: Script with non-idempotent ln
         let script = "ln -s /tmp/src /tmp/link";
-        let mut session = DebugSession::new(script);
+        let session = DebugSession::new(script);
 
         // ACT: Compare lines
         let comparison = session.compare_current_line();
@@ -1474,7 +1474,7 @@ mod tests {
     fn test_REPL_010_002_highlight_no_change() {
         // ARRANGE: Script that's already purified
         let script = "mkdir -p /tmp/foo";
-        let mut session = DebugSession::new(script);
+        let session = DebugSession::new(script);
 
         // ACT: Compare lines
         let comparison = session.compare_current_line();
@@ -1503,7 +1503,7 @@ mod tests {
     fn test_REPL_010_002_highlight_multiple_changes() {
         // ARRANGE: Script with multiple issues
         let script = "rm $FILE";
-        let mut session = DebugSession::new(script);
+        let session = DebugSession::new(script);
 
         // ACT: Compare lines
         let comparison = session.compare_current_line();
@@ -1643,7 +1643,7 @@ mod property_tests {
 
     // ===== PROPERTY TESTS (PROPERTY PHASE) =====
 
-    /// Property: Stepping never skips lines
+    // Property: Stepping never skips lines
     proptest! {
         #[test]
         fn prop_step_never_skips_lines(num_lines in 1usize..20) {
@@ -1676,7 +1676,7 @@ mod property_tests {
         }
     }
 
-    /// Property: Current line is always valid
+    // Property: Current line is always valid
     proptest! {
         #[test]
         fn prop_current_line_always_valid(num_lines in 1usize..20, steps in 0usize..25) {
@@ -1701,7 +1701,7 @@ mod property_tests {
         }
     }
 
-    /// Property: Total lines never changes
+    // Property: Total lines never changes
     proptest! {
         #[test]
         fn prop_total_lines_constant(num_lines in 1usize..20, steps in 0usize..25) {
@@ -1731,10 +1731,10 @@ mod property_tests {
 
     // ===== REPL-008-002: NEXT PROPERTY TESTS =====
 
-    /// Property: next() never increases call depth
-    ///
-    /// Verifies the core invariant: next() should never go deeper into function calls,
-    /// only stay at same level or return to shallower levels.
+    // Property: next() never increases call depth
+    //
+    // Verifies the core invariant: next() should never go deeper into function calls,
+    // only stay at same level or return to shallower levels.
     proptest! {
         #[test]
         fn prop_next_never_goes_deeper(num_lines in 1usize..20) {
@@ -1773,10 +1773,10 @@ mod property_tests {
         }
     }
 
-    /// Property: next() eventually finishes execution
-    ///
-    /// Verifies that calling next() repeatedly will always eventually finish,
-    /// preventing infinite loops in the debugger.
+    // Property: next() eventually finishes execution
+    //
+    // Verifies that calling next() repeatedly will always eventually finish,
+    // preventing infinite loops in the debugger.
     proptest! {
         #[test]
         fn prop_next_eventually_finishes(num_lines in 1usize..100) {
@@ -1809,7 +1809,7 @@ mod property_tests {
 
     // ===== REPL-008-003: CONTINUE PROPERTY TESTS =====
 
-    /// Property: Continue without breakpoints always finishes
+    // Property: Continue without breakpoints always finishes
     proptest! {
         #[test]
         fn prop_continue_no_breakpoints_finishes(num_lines in 1usize..20) {
@@ -1827,7 +1827,7 @@ mod property_tests {
         }
     }
 
-    /// Property: Continue always stops at breakpoint
+    // Property: Continue always stops at breakpoint
     proptest! {
         #[test]
         fn prop_continue_stops_at_breakpoint(
@@ -1859,7 +1859,7 @@ mod property_tests {
         }
     }
 
-    /// Property: Continue result is deterministic
+    // Property: Continue result is deterministic
     proptest! {
         #[test]
         fn prop_continue_deterministic(
@@ -1888,7 +1888,7 @@ mod property_tests {
         }
     }
 
-    /// Property: Multiple continues eventually finish
+    // Property: Multiple continues eventually finish
     proptest! {
         #[test]
         fn prop_multiple_continues_finish(num_lines in 1usize..10) {
@@ -1931,7 +1931,7 @@ mod property_tests {
 
     // ===== REPL-009-001: VARIABLE INSPECTION PROPERTY TESTS =====
 
-    /// Property: Set and get variable always matches
+    // Property: Set and get variable always matches
     proptest! {
         #[test]
         fn prop_variable_set_get_matches(
@@ -1949,7 +1949,7 @@ mod property_tests {
         }
     }
 
-    /// Property: Variable count equals number of set operations
+    // Property: Variable count equals number of set operations
     proptest! {
         #[test]
         fn prop_variable_count_correct(num_vars in 0usize..20) {
@@ -1965,7 +1965,7 @@ mod property_tests {
         }
     }
 
-    /// Property: List variables preserves all set variables
+    // Property: List variables preserves all set variables
     proptest! {
         #[test]
         fn prop_list_variables_complete(num_vars in 1usize..10) {
@@ -1989,7 +1989,7 @@ mod property_tests {
         }
     }
 
-    /// Property: Clear variables removes all
+    // Property: Clear variables removes all
     proptest! {
         #[test]
         fn prop_clear_removes_all(num_vars in 1usize..20) {
@@ -2011,7 +2011,7 @@ mod property_tests {
         }
     }
 
-    /// Property: Variables persist across execution
+    // Property: Variables persist across execution
     proptest! {
         #[test]
         fn prop_variables_persist_execution(
@@ -2048,7 +2048,7 @@ mod property_tests {
 
     // ===== REPL-009-002: Environment Display Property Tests =====
 
-    /// Property: get_env is deterministic + filter results match prefix
+    // Property: get_env is deterministic + filter results match prefix
     proptest! {
         #[test]
         fn prop_get_env_deterministic(
@@ -2095,7 +2095,7 @@ mod property_tests {
 
     // ===== REPL-009-003: Call Stack Tracking Property Tests =====
 
-    /// Property: Call stack depth equals number of pushes minus pops
+    // Property: Call stack depth equals number of pushes minus pops
     proptest! {
         #[test]
         fn prop_call_stack_depth_correct(
@@ -2138,7 +2138,7 @@ mod property_tests {
 
     // ===== REPL-010-001: Compare Original vs Purified Property Tests =====
 
-    /// Property: Comparison is deterministic (same result every time)
+    // Property: Comparison is deterministic (same result every time)
     proptest! {
         #[test]
         fn prop_REPL_010_001_comparison_deterministic(
@@ -2157,7 +2157,7 @@ mod property_tests {
         }
     }
 
-    /// Property: Comparison correctly identifies differences
+    // Property: Comparison correctly identifies differences
     proptest! {
         #[test]
         fn prop_REPL_010_001_differs_flag_correct(
@@ -2178,7 +2178,7 @@ mod property_tests {
         }
     }
 
-    /// Property: Format diff highlighting never panics
+    // Property: Format diff highlighting never panics
     proptest! {
         #[test]
         fn prop_REPL_010_001_diff_highlighting_valid(
@@ -2202,7 +2202,7 @@ mod property_tests {
 
     // ===== REPL-010-002: Enhanced Highlighting Property Tests =====
 
-    /// Property: Highlighting output always has valid format (non-empty, no panics)
+    // Property: Highlighting output always has valid format (non-empty, no panics)
     proptest! {
         #[test]
         fn prop_REPL_010_002_highlight_always_valid_format(
@@ -2228,7 +2228,7 @@ mod property_tests {
         }
     }
 
-    /// Property: If differs flag is true, output contains diff markers
+    // Property: If differs flag is true, output contains diff markers
     proptest! {
         #[test]
         fn prop_REPL_010_002_differs_implies_diff_markers(
@@ -2259,7 +2259,7 @@ mod property_tests {
         }
     }
 
-    /// Property: Detected transformations always have explanations
+    // Property: Detected transformations always have explanations
     proptest! {
         #[test]
         fn prop_REPL_010_002_transformations_have_explanations(
@@ -2294,7 +2294,7 @@ mod property_tests {
 
     // ===== REPL-010-003 PROPERTY TESTS =====
 
-    /// Property: explain_current_line returns None when lines are identical
+    // Property: explain_current_line returns None when lines are identical
     proptest! {
         #[test]
         fn prop_REPL_010_003_explain_none_when_identical(
@@ -2318,7 +2318,7 @@ mod property_tests {
         }
     }
 
-    /// Property: explain_current_line returns Some when lines differ
+    // Property: explain_current_line returns Some when lines differ
     proptest! {
         #[test]
         fn prop_REPL_010_003_explain_some_when_differs(
@@ -2347,7 +2347,7 @@ mod property_tests {
         }
     }
 
-    /// Property: explain_current_line never panics on any input
+    // Property: explain_current_line never panics on any input
     proptest! {
         #[test]
         fn prop_REPL_010_003_explain_never_panics(
@@ -2372,7 +2372,7 @@ mod property_tests {
 
     // ===== REPL-008-004 PROPERTY TESTS =====
 
-    /// Property: finish() never increases call depth
+    // Property: finish() never increases call depth
     proptest! {
         #[test]
         fn prop_REPL_008_004_finish_never_increases_depth(num_lines in 1usize..10) {
@@ -2400,7 +2400,7 @@ mod property_tests {
         }
     }
 
-    /// Property: finish() always returns valid result
+    // Property: finish() always returns valid result
     proptest! {
         #[test]
         fn prop_REPL_008_004_finish_always_valid_result(num_lines in 1usize..10) {
@@ -2422,7 +2422,7 @@ mod property_tests {
         }
     }
 
-    /// Property: finish() is deterministic
+    // Property: finish() is deterministic
     proptest! {
         #[test]
         fn prop_REPL_008_004_finish_deterministic(num_lines in 1usize..10) {

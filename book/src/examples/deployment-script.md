@@ -40,13 +40,13 @@ ln -s /app/releases/$RELEASE_TAG /app/current  # ❌ Fails on second run
 echo "Session $SESSION_ID: Deployed $RELEASE_TAG at $(date)" >> $LOG_FILE
 
 echo "Deployment complete: $RELEASE_TAG"
-```
+```text
 
 ### Issues Detected by Rash
 
 Running `bashrs lint deploy-messy.sh`:
 
-```
+```text
 deploy-messy.sh:6:13: DET001 [Error] Non-deterministic: $RANDOM
   SESSION_ID=$RANDOM
   Fix: Use configuration parameter or version-based ID
@@ -142,11 +142,11 @@ _version="${1:-1.0.0}"
 _build_dir="${2:-/app/build}"
 
 deploy_app "${_version}" "${_build_dir}"
-```
+```text
 
 ### Purification Report
 
-```
+```text
 Purification Report
 ===================
 
@@ -227,7 +227,7 @@ bashrs score deploy-purified.sh --detailed
 ```
 
 Result:
-```
+```text
 Quality Score: A+ (98/100)
 
 Safety:         100/100 ✅ No security issues

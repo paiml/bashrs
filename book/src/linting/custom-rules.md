@@ -17,7 +17,7 @@ bashrs's linting architecture supports:
 
 Every lint rule is a Rust module implementing a `check()` function:
 
-```rust
+```rust,ignore
 //! RULEID: Short description
 //!
 //! **Rule**: What pattern this detects
@@ -49,7 +49,7 @@ mod tests {
 
 **Diagnostic**: Represents a lint violation
 
-```rust
+```rust,ignore
 pub struct Diagnostic {
     pub code: String,        // "DET001", "SEC002", etc.
     pub severity: Severity,  // Error, Warning, Info, etc.
@@ -61,7 +61,7 @@ pub struct Diagnostic {
 
 **Span**: Source code location (1-indexed)
 
-```rust
+```rust,ignore
 pub struct Span {
     pub start_line: usize,  // 1-indexed line number
     pub start_col: usize,   // 1-indexed column
@@ -72,7 +72,7 @@ pub struct Span {
 
 **Fix**: Auto-fix suggestion
 
-```rust
+```rust,ignore
 pub struct Fix {
     pub replacement: String,             // Replacement text
     pub safety_level: FixSafetyLevel,    // Safe, SafeWithAssumptions, Unsafe
@@ -95,7 +95,7 @@ pub struct Fix {
 
 Start with a test that defines the desired behavior:
 
-```rust
+```rust,ignore
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -124,7 +124,7 @@ cargo test test_CUSTOM001_detects_pattern
 
 Implement the minimal code to make the test pass:
 
-```rust
+```rust,ignore
 pub fn check(source: &str) -> LintResult {
     let mut result = LintResult::new();
 
@@ -163,7 +163,7 @@ cargo test test_CUSTOM001_detects_pattern
 
 Extract helpers, improve readability, ensure complexity <10:
 
-```rust
+```rust,ignore
 pub fn check(source: &str) -> LintResult {
     let mut result = LintResult::new();
 
@@ -197,7 +197,7 @@ fn detect_pattern(line: &str, line_num: usize) -> Option<Diagnostic> {
 
 Add generative tests to verify properties:
 
-```rust
+```rust,ignore
 #[cfg(test)]
 mod property_tests {
     use super::*;
@@ -240,7 +240,7 @@ cargo mutants --file rash/src/linter/rules/custom001.rs --timeout 300
 
 If mutations survive, add tests to kill them:
 
-```rust
+```rust,ignore
 #[test]
 fn test_mutation_exact_column() {
     // Kills mutation: col + 1 → col * 1
@@ -264,7 +264,7 @@ fn test_mutation_line_number() {
 
 Test end-to-end with realistic scripts:
 
-```rust
+```rust,ignore
 #[test]
 fn test_integration_full_script() {
     let script = r#"
@@ -322,7 +322,7 @@ Let's implement SEC009: Detect unquoted command substitution in eval.
 
 ### Step 1: RED Phase
 
-```rust
+```rust,ignore
 // rash/src/linter/rules/sec009.rs
 //! SEC009: Unquoted command substitution in eval
 //!
@@ -369,7 +369,7 @@ cargo test test_SEC009_detects_unquoted_command_sub
 
 ### Step 2: GREEN Phase
 
-```rust
+```rust,ignore
 pub fn check(source: &str) -> LintResult {
     let mut result = LintResult::new();
 
@@ -421,7 +421,7 @@ cargo test test_SEC009
 
 ### Step 3: REFACTOR Phase
 
-```rust
+```rust,ignore
 pub fn check(source: &str) -> LintResult {
     let mut result = LintResult::new();
 
@@ -466,7 +466,7 @@ fn is_command_sub_quoted(line: &str) -> bool {
 
 ### Step 4: Property Testing
 
-```rust
+```rust,ignore
 #[cfg(test)]
 mod property_tests {
     use super::*;
@@ -511,7 +511,7 @@ cargo mutants --file rash/src/linter/rules/sec009.rs --timeout 300
 
 Add tests to kill survivors:
 
-```rust
+```rust,ignore
 #[test]
 fn test_mutation_column_calculation() {
     let script = "  eval $(cmd)";  // 2-space indent
@@ -531,7 +531,7 @@ fn test_mutation_line_number() {
 
 Add to `rash/src/linter/rules/mod.rs`:
 
-```rust
+```rust,ignore
 pub mod sec009;
 
 // In lint_shell() function:
@@ -566,7 +566,7 @@ eval "$(get_command)"
 
 For deterministic fixes (quoting variables):
 
-```rust
+```rust,ignore
 let fix = Fix::new("\"${VAR}\"");  // Safe replacement
 
 let diag = Diagnostic::new(
@@ -581,7 +581,7 @@ let diag = Diagnostic::new(
 
 For fixes that work in most cases:
 
-```rust
+```rust,ignore
 let fix = Fix::new_with_assumptions(
     "mkdir -p",
     vec!["Directory creation failure is not critical".to_string()],
@@ -599,7 +599,7 @@ let diag = Diagnostic::new(
 
 For fixes requiring human judgment:
 
-```rust
+```rust,ignore
 let fix = Fix::new_unsafe(vec![
     "Option 1: Use version: ID=\"${VERSION}\"".to_string(),
     "Option 2: Use git commit: ID=\"$(git rev-parse HEAD)\"".to_string(),
@@ -620,7 +620,7 @@ let diag = Diagnostic::new(
 
 Register rule compatibility in `rule_registry.rs`:
 
-```rust
+```rust,ignore
 pub fn get_rule_compatibility(rule_id: &str) -> ShellCompatibility {
     match rule_id {
         // Bash-only features
@@ -662,7 +662,7 @@ Most rules use regex or string matching:
 - Good for 90% of use cases
 
 **Example**:
-```rust
+```rust,ignore
 pub fn check(source: &str) -> LintResult {
     let mut result = LintResult::new();
 
@@ -691,7 +691,7 @@ For semantic analysis:
 - Requires parser
 
 **Example**:
-```rust
+```rust,ignore
 use crate::parser::bash_parser;
 
 pub fn check(source: &str) -> LintResult {
@@ -756,7 +756,7 @@ Every rule needs:
 Format: `test_<RULE_ID>_<feature>_<scenario>`
 
 Examples:
-```rust
+```rust,ignore
 #[test]
 fn test_SEC009_detects_unquoted_eval() { }
 
@@ -771,7 +771,7 @@ fn test_SEC009_handles_multiline() { }
 
 ### Pattern 1: Simple String Matching
 
-```rust
+```rust,ignore
 pub fn check(source: &str) -> LintResult {
     let mut result = LintResult::new();
 
@@ -788,7 +788,7 @@ pub fn check(source: &str) -> LintResult {
 
 ### Pattern 2: Regex Matching
 
-```rust
+```rust,ignore
 use regex::Regex;
 
 lazy_static::lazy_static! {
@@ -816,7 +816,7 @@ pub fn check(source: &str) -> LintResult {
 
 ### Pattern 3: Context-Aware Detection
 
-```rust
+```rust,ignore
 pub fn check(source: &str) -> LintResult {
     let mut result = LintResult::new();
 
@@ -835,7 +835,7 @@ pub fn check(source: &str) -> LintResult {
 
 ### Pattern 4: Multi-line Pattern
 
-```rust
+```rust,ignore
 pub fn check(source: &str) -> LintResult {
     let mut result = LintResult::new();
     let lines: Vec<&str> = source.lines().collect();

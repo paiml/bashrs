@@ -95,7 +95,7 @@ mod property_tests {
 
     // ===== PROPERTY TESTS (PROPERTY PHASE) =====
 
-    /// Property: display_diff should never panic on any input
+    // Property: display_diff should never panic on any input
     proptest! {
         #[test]
         fn prop_diff_never_panics(input in ".*{0,1000}") {
@@ -105,7 +105,7 @@ mod property_tests {
         }
     }
 
-    /// Property: display_diff should be deterministic
+    // Property: display_diff should be deterministic
     proptest! {
         #[test]
         fn prop_diff_deterministic(input in "[a-z ]{1,50}") {
@@ -127,7 +127,7 @@ mod property_tests {
         }
     }
 
-    /// Property: diff output always contains markers
+    // Property: diff output always contains markers
     proptest! {
         #[test]
         fn prop_diff_has_markers(input in "[a-z ]{1,30}") {
@@ -142,7 +142,7 @@ mod property_tests {
         }
     }
 
-    /// Property: diff output preserves original input
+    // Property: diff output preserves original input
     proptest! {
         #[test]
         fn prop_diff_preserves_original(input in "[a-z ]{1,30}") {
@@ -158,7 +158,7 @@ mod property_tests {
         }
     }
 
-    /// Property: diff output always has header
+    // Property: diff output always has header
     proptest! {
         #[test]
         fn prop_diff_has_header(input in "[a-z ]{1,30}") {

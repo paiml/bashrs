@@ -19,7 +19,7 @@
 use crate::wasm::io::IoStreams;
 use crate::wasm::vfs::VirtualFilesystem;
 use anyhow::{anyhow, Result};
-use std::io::{BufRead, BufReader, Write};
+use std::io::Write;
 
 /// Bash built-in commands
 pub struct Builtins;
@@ -226,7 +226,7 @@ mod tests {
     fn test_cd_success() {
         // ARRANGE
         let mut vfs = VirtualFilesystem::new();
-        let mut io = IoStreams::new_capture();
+        let io = IoStreams::new_capture();
 
         // ACT
         let exit_code = Builtins::cd(&["/tmp".to_string()], &mut vfs).unwrap();

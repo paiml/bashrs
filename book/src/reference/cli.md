@@ -874,7 +874,7 @@ bashrs repl --sandboxed --max-memory 50 --timeout 10
 - Syntax highlighting
 
 **Example Session**:
-```
+```text
 bashrs REPL v6.31.0
 >>> x=5
 >>> echo $x

@@ -6,7 +6,7 @@ Property-based testing is a powerful technique that tests code against mathemati
 
 Traditional unit tests use specific examples:
 
-```rust
+```rust,ignore
 #[test]
 fn test_addition() {
     assert_eq!(add(2, 3), 5);
@@ -17,7 +17,7 @@ fn test_addition() {
 
 Property-based tests specify **properties** that should hold for **all** inputs:
 
-```rust
+```rust,ignore
 proptest! {
     #[test]
     fn prop_addition_is_commutative(a: i32, b: i32) {
@@ -50,7 +50,7 @@ bashrs property tests validate three critical properties:
 
 **Property**: Purification is deterministic - same input always produces same output.
 
-```rust
+```rust,ignore
 proptest! {
     #[test]
     fn prop_purification_is_deterministic(script in bash_script_strategy()) {
@@ -69,7 +69,7 @@ proptest! {
 
 **Property**: Purification is idempotent - purifying already-purified code changes nothing.
 
-```rust
+```rust,ignore
 proptest! {
     #[test]
     fn prop_purification_is_idempotent(script in bash_script_strategy()) {
@@ -88,7 +88,7 @@ proptest! {
 
 **Property**: Purification preserves behavior - purified scripts behave identically to originals.
 
-```rust
+```rust,ignore
 proptest! {
     #[test]
     fn prop_purification_preserves_semantics(script in bash_script_strategy()) {
@@ -110,7 +110,7 @@ proptest! {
 
 Strategies generate random valid inputs. bashrs uses domain-specific strategies for shell constructs:
 
-```rust
+```rust,ignore
 use proptest::prelude::*;
 
 /// Generate valid bash identifiers: [a-zA-Z_][a-zA-Z0-9_]{0,15}
@@ -144,7 +144,7 @@ fn bash_integer() -> impl Strategy<Value = i64> {
 
 Build AST nodes from primitive strategies:
 
-```rust
+```rust,ignore
 use bashrs::bash_parser::ast::*;
 
 /// Generate variable assignments
@@ -198,7 +198,7 @@ fn bash_script() -> impl Strategy<Value = BashAst> {
 
 Test properties using generated inputs:
 
-```rust
+```rust,ignore
 proptest! {
     #![proptest_config(ProptestConfig {
         cases: 1000,  // Generate 1000 test cases
@@ -249,7 +249,7 @@ proptest! {
 
 **Property**: All variable references in purified output should be quoted.
 
-```rust
+```rust,ignore
 proptest! {
     #[test]
     fn prop_variables_are_quoted(
@@ -287,7 +287,7 @@ RESULT=$(command "$UNQUOTED")
 
 **Property**: Adding `-p` to `mkdir` is idempotent - doing it twice doesn't add it again.
 
-```rust
+```rust,ignore
 proptest! {
     #[test]
     fn prop_mkdir_p_idempotent(dir in "[/a-z]{1,20}") {
@@ -310,7 +310,7 @@ proptest! {
 
 **Property**: All purified scripts pass shellcheck in POSIX mode.
 
-```rust
+```rust,ignore
 proptest! {
     #[test]
     fn prop_purified_is_posix_compliant(script in bash_script()) {
@@ -343,7 +343,7 @@ proptest! {
 
 **Property**: Valid parameter expansions are preserved (not broken).
 
-```rust
+```rust,ignore
 proptest! {
     #[test]
     fn prop_parameter_expansion_preserved(
@@ -379,7 +379,7 @@ When a property test fails, `proptest` **shrinks** the input to find the minimal
 
 ### Example: Shrinking in Action
 
-```rust
+```rust,ignore
 proptest! {
     #[test]
     fn prop_commands_dont_panic(cmd in bash_command()) {
@@ -390,7 +390,7 @@ proptest! {
 ```
 
 **Initial failure** (random):
-```
+```text
 thread 'prop_commands_dont_panic' panicked at 'assertion failed'
   cmd = BashStmt::Command {
       name: "",
@@ -400,7 +400,7 @@ thread 'prop_commands_dont_panic' panicked at 'assertion failed'
 ```
 
 **After shrinking**:
-```
+```text
 Minimal failing case:
   cmd = BashStmt::Command {
       name: "",        // Empty name causes panic
@@ -413,7 +413,7 @@ Shrinking makes debugging trivial - you immediately see the root cause.
 
 ### Configuring Shrinking
 
-```rust
+```rust,ignore
 proptest! {
     #![proptest_config(ProptestConfig {
         cases: 1000,              // Try 1000 random inputs
@@ -433,7 +433,7 @@ proptest! {
 
 Property tests are a key component of bashrs's EXTREME TDD methodology:
 
-```
+```rust,ignore
 EXTREME TDD = TDD + Property Testing + Mutation Testing + PMAT + Examples
 ```
 
@@ -446,7 +446,7 @@ EXTREME TDD = TDD + Property Testing + Mutation Testing + PMAT + Examples
 
 Example workflow:
 
-```rust
+```rust,ignore
 // Step 1: RED - Failing unit test
 #[test]
 fn test_mkdir_adds_dash_p() {
@@ -521,7 +521,7 @@ Property tests catch bugs mutation tests miss:
 
 Don't try to test everything at once:
 
-```rust
+```rust,ignore
 // ✅ GOOD: Simple, focused property
 proptest! {
     #[test]
@@ -547,7 +547,7 @@ proptest! {
 
 Generate **valid** inputs, not random garbage:
 
-```rust
+```rust,ignore
 // ❌ BAD: Random strings aren't valid bash
 proptest! {
     #[test]
@@ -580,7 +580,7 @@ proptest! {
 
 Focus on **what** should be true, not **how** it's implemented:
 
-```rust
+```rust,ignore
 // ❌ BAD: Tests implementation details
 proptest! {
     #[test]
@@ -608,7 +608,7 @@ proptest! {
 
 Filter out invalid cases instead of failing:
 
-```rust
+```rust,ignore
 proptest! {
     #[test]
     fn prop_division_works(a: i32, b: i32) {
@@ -622,7 +622,7 @@ proptest! {
 
 For bashrs:
 
-```rust
+```rust,ignore
 proptest! {
     #[test]
     fn prop_safe_eval_works(cmd in bash_command_string()) {
@@ -639,7 +639,7 @@ proptest! {
 
 More cases = better coverage, but slower tests:
 
-```rust
+```rust,ignore
 proptest! {
     #![proptest_config(ProptestConfig {
         cases: 100,  // Quick smoke test (CI)
@@ -670,7 +670,7 @@ proptest! {
 
 Some properties have known limitations:
 
-```rust
+```rust,ignore
 proptest! {
     #[test]
     fn prop_parse_all_bash(input in ".*") {
@@ -700,7 +700,7 @@ Save failing cases for permanent regression tests:
 cc 0123456789abcdef  # Hex seed for failing case
 ```
 
-```rust
+```rust,ignore
 proptest! {
     #[test]
     fn prop_no_regressions(input in bash_script()) {
@@ -714,7 +714,7 @@ proptest! {
 
 Test sequences of operations:
 
-```rust
+```rust,ignore
 #[derive(Debug, Clone)]
 enum Operation {
     AddVariable(String, String),

@@ -56,7 +56,7 @@ mkdir "/releases/$RELEASE"
 ```
 
 **Output varies**:
-```
+```text
 Run 1: Session: 12847
 Run 2: Session: 29103  # Different!
 Run 3: Session: 5721   # Still different!
@@ -80,7 +80,7 @@ mkdir -p "/releases/$RELEASE"
 ```
 
 **Output is predictable**:
-```
+```text
 Run 1 with VERSION=1.0.0: Session: session-1.0.0
 Run 2 with VERSION=1.0.0: Session: session-1.0.0  # Same!
 Run 3 with VERSION=1.0.0: Session: session-1.0.0  # Consistent!
@@ -191,7 +191,7 @@ tar czf "$ARTIFACT" ./dist/
 ```
 
 **Output varies by time**:
-```
+```text
 Run at 2025-01-15 14:30:00: release-1736951400
 Run at 2025-01-15 14:30:01: release-1736951401  # Different!
 Run at 2025-01-15 14:30:02: release-1736951402  # Still changing!
@@ -214,7 +214,7 @@ tar czf "$ARTIFACT" ./dist/
 ```
 
 **Output is predictable**:
-```
+```text
 With VERSION=1.0.0: release-1.0.0, myapp-1.0.0.tar.gz
 With VERSION=1.0.0: release-1.0.0, myapp-1.0.0.tar.gz  # Same!
 ```
@@ -254,7 +254,7 @@ echo "Reproducible release: $RELEASE"
 ```
 
 **Reproducibility achieved**:
-```
+```text
 Build from commit abc123: release-1.0.0-2025-01-10
 Build from commit abc123: release-1.0.0-2025-01-10  # Identical!
 Build from commit abc123: release-1.0.0-2025-01-10  # Still identical!
@@ -597,7 +597,7 @@ jobs:
 
 Use proptest to verify deterministic properties:
 
-```rust
+```rust,ignore
 use proptest::prelude::*;
 
 proptest! {

@@ -312,7 +312,7 @@ mod property_tests {
 
     // ===== PROPERTY TESTS (PROPERTY PHASE) =====
 
-    /// Property: format_ast never panics on valid AST
+    // Property: format_ast never panics on valid AST
     proptest! {
         #[test]
         fn prop_format_ast_never_panics(stmt_count in 0usize..100) {
@@ -339,7 +339,7 @@ mod property_tests {
         }
     }
 
-    /// Property: Output always contains header and statement count
+    // Property: Output always contains header and statement count
     proptest! {
         #[test]
         fn prop_output_has_header_and_count(stmt_count in 0usize..50) {
@@ -371,7 +371,7 @@ mod property_tests {
         }
     }
 
-    /// Property: Every statement produces non-empty formatted output
+    // Property: Every statement produces non-empty formatted output
     proptest! {
         #[test]
         fn prop_statements_produce_output(
@@ -418,7 +418,7 @@ mod property_tests {
         }
     }
 
-    /// Property: format_statement is deterministic
+    // Property: format_statement is deterministic
     proptest! {
         #[test]
         fn prop_format_statement_deterministic(
@@ -440,7 +440,7 @@ mod property_tests {
         }
     }
 
-    /// Property: Indentation depth affects output correctly
+    // Property: Indentation depth affects output correctly
     proptest! {
         #[test]
         fn prop_indentation_works(indent in 0usize..20) {
@@ -465,7 +465,7 @@ mod property_tests {
         }
     }
 
-    /// Property: Empty AST produces minimal valid output
+    // Property: Empty AST produces minimal valid output
     proptest! {
         #[test]
         fn prop_empty_ast_valid(line_count in 0usize..10) {

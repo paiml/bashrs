@@ -29,7 +29,7 @@ bashrs represents bash scripts using a type-safe Rust AST with three main layers
 
 Statements are top-level constructs:
 
-```rust
+```rust,ignore
 pub enum BashStmt {
     /// Variable assignment: VAR=value
     Assignment {
@@ -86,7 +86,7 @@ pub enum BashStmt {
 
 Expressions represent values and computations:
 
-```rust
+```rust,ignore
 pub enum BashExpr {
     /// String literal: "hello"
     Literal(String),
@@ -129,7 +129,7 @@ pub enum BashExpr {
 
 Low-level constructs for conditionals and math:
 
-```rust
+```rust,ignore
 pub enum TestExpr {
     // String comparisons
     StringEq(BashExpr, BashExpr),    // [ "$a" = "$b" ]
@@ -172,7 +172,7 @@ pub enum ArithExpr {
 
 Every AST node includes a `Span` for precise error reporting:
 
-```rust
+```rust,ignore
 pub struct Span {
     pub start_line: usize,
     pub start_col: usize,
@@ -183,7 +183,7 @@ pub struct Span {
 
 Complete scripts are wrapped in `BashAst`:
 
-```rust
+```rust,ignore
 pub struct BashAst {
     pub statements: Vec<BashStmt>,
     pub metadata: AstMetadata,
@@ -200,7 +200,7 @@ pub struct AstMetadata {
 
 bashrs purification is a three-stage pipeline:
 
-```
+```text
 ┌─────────────┐      ┌──────────────┐      ┌─────────────┐
 │ Parse Bash  │ ───▶ │  Transform   │ ───▶ │  Generate   │
 │  to AST     │      │     AST      │      │ Purified Sh │
@@ -219,7 +219,7 @@ rm /app/current
 
 Parses to:
 
-```rust
+```rust,ignore
 BashAst {
     statements: vec![
         BashStmt::Assignment {
@@ -251,7 +251,7 @@ Three categories of transformations:
 
 Replace non-deterministic constructs:
 
-```rust
+```rust,ignore
 // Before: SESSION_ID=$RANDOM
 BashStmt::Assignment {
     name: "SESSION_ID",
@@ -277,7 +277,7 @@ BashStmt::Assignment {
 
 Make commands safe to re-run:
 
-```rust
+```rust,ignore
 // Before: mkdir /app/releases
 BashStmt::Command {
     name: "mkdir",
@@ -304,7 +304,7 @@ BashStmt::Command {
 
 Convert bash-isms to POSIX:
 
-```rust
+```rust,ignore
 // Before: until CONDITION; do BODY; done
 BashStmt::Until {
     condition: test_expr,
@@ -351,7 +351,7 @@ mkdir "$TEMP_DIR"
 ```
 
 **AST before transformation**:
-```rust
+```rust,ignore
 vec![
     BashStmt::Assignment {
         name: "TEMP_DIR",
@@ -368,7 +368,7 @@ vec![
 ```
 
 **Transformation logic**:
-```rust
+```rust,ignore
 fn remove_random(expr: BashExpr) -> BashExpr {
     match expr {
         BashExpr::Variable(ref name) if name == "RANDOM" => {
@@ -386,7 +386,7 @@ fn remove_random(expr: BashExpr) -> BashExpr {
 ```
 
 **AST after transformation**:
-```rust
+```rust,ignore
 vec![
     BashStmt::Assignment {
         name: "TEMP_DIR",
@@ -422,7 +422,7 @@ ln -s /app/releases/v1.0.0 /app/current
 ```
 
 **AST before transformation**:
-```rust
+```rust,ignore
 vec![
     BashStmt::Command {
         name: "rm",
@@ -440,7 +440,7 @@ vec![
 ```
 
 **Transformation logic**:
-```rust
+```rust,ignore
 fn make_idempotent(stmt: BashStmt) -> BashStmt {
     match stmt {
         BashStmt::Command { name, mut args, span } => {
@@ -473,7 +473,7 @@ fn make_idempotent(stmt: BashStmt) -> BashStmt {
 ```
 
 **AST after transformation**:
-```rust
+```rust,ignore
 vec![
     BashStmt::Command {
         name: "rm",
@@ -512,7 +512,7 @@ done
 ```
 
 **AST before transformation**:
-```rust
+```rust,ignore
 BashStmt::Until {
     condition: BashExpr::Test(Box::new(
         TestExpr::FileExists(BashExpr::Literal("/tmp/ready"))
@@ -532,7 +532,7 @@ BashStmt::Until {
 ```
 
 **Transformation logic**:
-```rust
+```rust,ignore
 fn posixify(stmt: BashStmt) -> BashStmt {
     match stmt {
         BashStmt::Until { condition, body, span } => {
@@ -554,7 +554,7 @@ fn posixify(stmt: BashStmt) -> BashStmt {
 ```
 
 **AST after transformation**:
-```rust
+```rust,ignore
 BashStmt::While {
     condition: BashExpr::Test(Box::new(
         TestExpr::Not(Box::new(
@@ -590,7 +590,7 @@ You can extend bashrs with custom transformations using the visitor pattern:
 
 ### Step 1: Define Your Transformation
 
-```rust
+```rust,ignore
 use bashrs::bash_parser::ast::{BashStmt, BashExpr, BashAst};
 
 /// Custom transformation: Convert all echo commands to printf
@@ -645,7 +645,7 @@ fn transform_stmt(stmt: BashStmt) -> BashStmt {
 
 ### Step 2: Test Your Transformation
 
-```rust
+```rust,ignore
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -705,7 +705,7 @@ greet() {
 
 ### Step 3: Integrate with bashrs Pipeline
 
-```rust
+```rust,ignore
 use bashrs::bash_parser::Parser;
 use bashrs::bash_transpiler::codegen::BashCodegen;
 
@@ -735,7 +735,7 @@ bashrs uses EXTREME TDD methodology for transformation testing:
 
 Test individual transformation rules:
 
-```rust
+```rust,ignore
 #[test]
 fn test_random_variable_removal() {
     let expr = BashExpr::Variable("RANDOM".to_string());
@@ -754,7 +754,7 @@ fn test_random_variable_removal() {
 
 Test complete transformation pipeline:
 
-```rust
+```rust,ignore
 #[test]
 fn test_full_purification_pipeline() {
     let input = r#"
@@ -795,7 +795,7 @@ ln -s /tmp/session-$SESSION_ID /tmp/current
 
 Test transformation invariants:
 
-```rust
+```rust,ignore
 use proptest::prelude::*;
 
 proptest! {
@@ -826,7 +826,7 @@ proptest! {
 
 **Always** verify that transformations preserve the original script's behavior:
 
-```rust
+```rust,ignore
 // ❌ BAD: Changes behavior
 fn bad_transform(cmd: &str) -> &str {
     match cmd {
@@ -854,7 +854,7 @@ fn good_transform(cmd: &str, args: Vec<String>) -> (String, Vec<String>) {
 
 Consider all possible AST node variations:
 
-```rust
+```rust,ignore
 fn transform_expr(expr: BashExpr) -> BashExpr {
     match expr {
         // Handle all variants
@@ -880,7 +880,7 @@ fn transform_expr(expr: BashExpr) -> BashExpr {
 
 ### 3. Use Span Information for Error Reporting
 
-```rust
+```rust,ignore
 fn validate_transformation(
     stmt: &BashStmt,
     span: Span,
@@ -903,7 +903,7 @@ fn validate_transformation(
 
 Apply multiple transformations in order:
 
-```rust
+```rust,ignore
 fn purify_ast(ast: BashAst) -> Result<BashAst, PurifyError> {
     ast
         .transform(remove_nondeterminism)?   // Step 1: Determinism
@@ -917,7 +917,7 @@ fn purify_ast(ast: BashAst) -> Result<BashAst, PurifyError> {
 
 Validate against actual bash scripts from production:
 
-```rust
+```rust,ignore
 #[test]
 fn test_real_world_deployment_script() {
     let input = std::fs::read_to_string("tests/fixtures/deploy.sh")
