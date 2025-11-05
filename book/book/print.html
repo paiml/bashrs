@@ -25,28 +25,41 @@
         <link rel="stylesheet" href="fonts/fonts.css">
 
         <!-- Highlight.js Stylesheets -->
-        <link rel="stylesheet" href="highlight.css">
-        <link rel="stylesheet" href="tomorrow-night.css">
-        <link rel="stylesheet" href="ayu-highlight.css">
+        <link rel="stylesheet" id="highlight-css" href="highlight.css">
+        <link rel="stylesheet" id="tomorrow-night-css" href="tomorrow-night.css">
+        <link rel="stylesheet" id="ayu-highlight-css" href="ayu-highlight.css">
 
         <!-- Custom theme stylesheets -->
 
 
-        <!-- Provide site root to javascript -->
+        <!-- Provide site root and default themes to javascript -->
         <script>
-            var path_to_root = "";
-            var default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "navy" : "rust";
+            const path_to_root = "";
+            const default_light_theme = "rust";
+            const default_dark_theme = "navy";
+            window.path_to_searchindex_js = "searchindex.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc.js"></script>
     </head>
     <body>
+    <div id="mdbook-help-container">
+        <div id="mdbook-help-popup">
+            <h2 class="mdbook-help-title">Keyboard shortcuts</h2>
+            <div>
+                <p>Press <kbd>←</kbd> or <kbd>→</kbd> to navigate between chapters</p>
+                <p>Press <kbd>S</kbd> or <kbd>/</kbd> to search in the book</p>
+                <p>Press <kbd>?</kbd> to show this help</p>
+                <p>Press <kbd>Esc</kbd> to hide this help</p>
+            </div>
+        </div>
+    </div>
     <div id="body-container">
         <!-- Work around some values being stored in localStorage wrapped in quotes -->
         <script>
             try {
-                var theme = localStorage.getItem('mdbook-theme');
-                var sidebar = localStorage.getItem('mdbook-sidebar');
+                let theme = localStorage.getItem('mdbook-theme');
+                let sidebar = localStorage.getItem('mdbook-sidebar');
 
                 if (theme.startsWith('"') && theme.endsWith('"')) {
                     localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
@@ -60,7 +73,8 @@
 
         <!-- Set the theme before any content is loaded, prevents flash -->
         <script>
-            var theme;
+            const default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? default_dark_theme : default_light_theme;
+            let theme;
             try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
             if (theme === null || theme === undefined) { theme = default_theme; }
             const html = document.documentElement;
@@ -73,17 +87,20 @@
 
         <!-- Hide / unhide sidebar before it is displayed -->
         <script>
-            var sidebar = null;
-            var sidebar_toggle = document.getElementById("sidebar-toggle-anchor");
+            let sidebar = null;
+            const sidebar_toggle = document.getElementById("sidebar-toggle-anchor");
             if (document.body.clientWidth >= 1080) {
                 try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
                 sidebar = sidebar || 'visible';
             } else {
                 sidebar = 'hidden';
+                sidebar_toggle.checked = false;
             }
-            sidebar_toggle.checked = sidebar === 'visible';
-            html.classList.remove('sidebar-visible');
-            html.classList.add("sidebar-" + sidebar);
+            if (sidebar === 'visible') {
+                sidebar_toggle.checked = true;
+            } else {
+                html.classList.remove('sidebar-visible');
+            }
         </script>
 
         <nav id="sidebar" class="sidebar" aria-label="Table of contents">
@@ -110,13 +127,14 @@
                             <i class="fa fa-paint-brush"></i>
                         </button>
                         <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="default_theme">Auto</button></li>
                             <li role="none"><button role="menuitem" class="theme" id="light">Light</button></li>
                             <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
                             <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
                             <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
                             <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
                         </ul>
-                        <button id="search-toggle" class="icon-button" type="button" title="Search. (Shortkey: s)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="S" aria-controls="searchbar">
+                        <button id="search-toggle" class="icon-button" type="button" title="Search (`/`)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="/ s" aria-controls="searchbar">
                             <i class="fa fa-search"></i>
                         </button>
                     </div>
@@ -136,7 +154,12 @@
 
                 <div id="search-wrapper" class="hidden">
                     <form id="searchbar-outer" class="searchbar-outer">
-                        <input type="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                        <div class="search-wrapper">
+                            <input type="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                            <div class="spinner-wrapper">
+                                <i class="fa fa-spinner fa-spin"></i>
+                            </div>
+                        </div>
                     </form>
                     <div id="searchresults-outer" class="searchresults-outer hidden">
                         <div id="searchresults-header" class="searchresults-header"></div>
@@ -532,7 +555,7 @@ echo "Deployment complete!"
 <pre><code class="language-bash">bashrs lint deploy.sh
 </code></pre>
 <p>Output:</p>
-<pre><code>deploy.sh:5:13: DET001 [Error] Non-deterministic: $RANDOM
+<pre><code class="language-text">deploy.sh:5:13: DET001 [Error] Non-deterministic: $RANDOM
 deploy.sh:8:20: DET002 [Error] Non-deterministic: $(date +%s)
 deploy.sh:9:11: DET003 [Error] Non-deterministic: $$
 
@@ -548,7 +571,7 @@ deploy.sh:25:1: IDEM003 [Error] ln -s without cleanup (not idempotent)
 <pre><code class="language-bash">bashrs purify deploy.sh -o deploy_purified.sh
 </code></pre>
 <p>Output:</p>
-<pre><code>Purifying deploy.sh...
+<pre><code class="language-text">Purifying deploy.sh...
 ✓ Removed 3 non-deterministic patterns
 ✓ Fixed 3 idempotency issues
 ✓ Converted to POSIX shell
@@ -642,7 +665,7 @@ deploy_app "${1}" "${2}"
 <pre><code class="language-bash">shellcheck -s sh deploy_purified.sh
 </code></pre>
 <p>Output:</p>
-<pre><code>(no output = all checks passed ✓)
+<pre><code class="language-text">(no output = all checks passed ✓)
 </code></pre>
 <p>Perfect! The purified script passes all shellcheck validation.</p>
 <h2 id="step-5-test-the-purified-script"><a class="header" href="#step-5-test-the-purified-script">Step 5: Test the Purified Script</a></h2>
@@ -651,7 +674,7 @@ deploy_app "${1}" "${2}"
 </span>./deploy_purified.sh v1.0.0 session-abc123
 </code></pre>
 <p>Output:</p>
-<pre><code>Starting deployment...
+<pre><code class="language-text">Starting deployment...
 Session: session-abc123
 Release: release-v1.0.0
 Deployment complete!
@@ -660,7 +683,7 @@ Deployment complete!
 </span>./deploy_purified.sh v1.0.0 session-abc123
 </code></pre>
 <p>Output:</p>
-<pre><code>Starting deployment...
+<pre><code class="language-text">Starting deployment...
 Session: session-abc123
 Release: release-v1.0.0
 Deployment complete!
@@ -673,7 +696,7 @@ Deployment complete!
 </span>./deploy.sh
 </code></pre>
 <p>Output:</p>
-<pre><code>Starting deployment...
+<pre><code class="language-text">Starting deployment...
 Session: 12345
 Release: release-1699564800
 Build ID: 98765
@@ -683,7 +706,7 @@ Deployment complete!
 </span>./deploy.sh
 </code></pre>
 <p>Output:</p>
-<pre><code>Starting deployment...
+<pre><code class="language-text">Starting deployment...
 Session: 67890  ← Different!
 Release: release-1699564801  ← Different!
 Build ID: 98766  ← Different!
@@ -696,7 +719,7 @@ rm: cannot remove '/tmp/demo-app/current': No such file or directory
 </span>./deploy_purified.sh v1.0.0 session-abc123
 </code></pre>
 <p>Output:</p>
-<pre><code>Starting deployment...
+<pre><code class="language-text">Starting deployment...
 Session: session-abc123
 Release: release-v1.0.0
 Deployment complete!
@@ -705,7 +728,7 @@ Deployment complete!
 </span>./deploy_purified.sh v1.0.0 session-abc123
 </code></pre>
 <p>Output:</p>
-<pre><code>Starting deployment...
+<pre><code class="language-text">Starting deployment...
 Session: session-abc123  ← Same
 Release: release-v1.0.0  ← Same
 Deployment complete!
@@ -717,7 +740,7 @@ Deployment complete!
 <li>Takes version as input (controllable)</li>
 </ul>
 <h2 id="understanding-the-purification-formula"><a class="header" href="#understanding-the-purification-formula">Understanding the Purification Formula</a></h2>
-<pre><code>Purification = Determinism + Idempotency + POSIX Compliance
+<pre><code class="language-text">Purification = Determinism + Idempotency + POSIX Compliance
 </code></pre>
 <p><strong>Determinism</strong>: Same input → Same output (always)</p>
 <ul>
@@ -18656,7 +18679,7 @@ optimize = false  # Preserve exact script structure
 emit_proof = true  # Emit formal proofs for critical scripts
 </code></pre>
 <p><strong>Proof Output:</strong></p>
-<pre><code>$ bashrs purify --emit-proof deploy.sh
+<pre><code class="language-text">$ bashrs purify --emit-proof deploy.sh
 Verification Proof:
   Determinism: PROVEN
   Idempotency: PROVEN
@@ -20455,19 +20478,14 @@ bashrs lint script.sh
 <h2 id="custom-rule-development"><a class="header" href="#custom-rule-development">Custom Rule Development</a></h2>
 <p>bashrs supports custom rules through plugins (future feature).</p>
 <h3 id="rule-interface"><a class="header" href="#rule-interface">Rule Interface</a></h3>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>pub trait LintRule {
+<pre><code class="language-rust ignore">pub trait LintRule {
     fn check(&amp;self, source: &amp;str) -&gt; LintResult;
     fn code(&amp;self) -&gt; &amp;str;
     fn severity(&amp;self) -&gt; Severity;
     fn auto_fix(&amp;self) -&gt; Option&lt;Fix&gt;;
-}
-<span class="boring">}</span></code></pre></pre>
+}</code></pre>
 <h3 id="example-custom-rule"><a class="header" href="#example-custom-rule">Example Custom Rule</a></h3>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>pub struct CustomRule001;
+<pre><code class="language-rust ignore">pub struct CustomRule001;
 
 impl LintRule for CustomRule001 {
     fn check(&amp;self, source: &amp;str) -&gt; LintResult {
@@ -20491,10 +20509,9 @@ impl LintRule for CustomRule001 {
     fn code(&amp;self) -&gt; &amp;str { "CUSTOM001" }
     fn severity(&amp;self) -&gt; Severity { Severity::Error }
     fn auto_fix(&amp;self) -&gt; Option&lt;Fix&gt; { None }
-}
-<span class="boring">}</span></code></pre></pre>
+}</code></pre>
 <p><strong>Plugin location:</strong></p>
-<pre><code>~/.config/bashrs/plugins/custom_rules.so
+<pre><code class="language-text">~/.config/bashrs/plugins/custom_rules.so
 </code></pre>
 <p><strong>Load in config:</strong></p>
 <pre><code class="language-toml">[linter]
@@ -20623,7 +20640,7 @@ cd bashrs
 </span></code></pre>
 <h2 id="project-structure"><a class="header" href="#project-structure">Project Structure</a></h2>
 <p>Rash uses a Cargo workspace with multiple crates:</p>
-<pre><code>bashrs/
+<pre><code class="language-text">bashrs/
 ├── rash/              # Core library (parser, linter, transpiler)
 ├── rash-runtime/      # Runtime library for generated scripts
 ├── rash-mcp/          # Model Context Protocol server
@@ -21458,7 +21475,7 @@ shellcheck -s sh purified.sh  # Automatic POSIX validation
 </span><span class="boring"> Quality built in - not tested in afterward
 </span></code></pre>
 <p><strong>If mutation testing had failed</strong> (&lt;90% kill rate):</p>
-<pre><code>🚨 STOP THE LINE - Quality Gate Failed 🚨
+<pre><code class="language-text">🚨 STOP THE LINE - Quality Gate Failed 🚨
 
 Mutation kill rate: 75% (below 90% threshold)
 Action: Add targeted tests to catch missed mutants
@@ -21505,9 +21522,7 @@ sh safe_install.sh  # Verify it works in minimal environment
 </li>
 <li>
 <p><strong>Property-Based Testing with Real Inputs</strong></p>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>// Generate thousands of real-world test cases
+<pre><code class="language-rust ignore">// Generate thousands of real-world test cases
 proptest! {
     #[test]
     fn prop_purification_preserves_behavior(
@@ -21520,8 +21535,7 @@ proptest! {
         // VERIFY: Same behavior on real inputs
         prop_assert_eq!(original_result, purified_result);
     }
-}
-<span class="boring">}</span></code></pre></pre>
+}</code></pre>
 </li>
 </ol>
 <h4 id="real-example-v6301-parser-bug-discovery"><a class="header" href="#real-example-v6301-parser-bug-discovery">Real Example: v6.30.1 Parser Bug Discovery</a></h4>
@@ -21758,7 +21772,7 @@ cargo fmt
 <li>❌ <strong>POSIX violation</strong> - Generated shell fails <code>shellcheck -s sh</code></li>
 </ol>
 <h3 id="stop-the-line-procedure"><a class="header" href="#stop-the-line-procedure">STOP THE LINE Procedure</a></h3>
-<pre><code>🚨 STOP THE LINE - P0 BUG DETECTED 🚨
+<pre><code class="language-text">🚨 STOP THE LINE - P0 BUG DETECTED 🚨
 
 1. HALT all current work
 2. Document the bug clearly
@@ -22146,7 +22160,7 @@ bashrs lint examples/security/sec001_eval.sh
 <li>Major workflow changes</li>
 </ul>
 <p><strong>Example</strong>: v1.0.0 → v2.0.0</p>
-<pre><code>Breaking Changes:
+<pre><code class="language-text">Breaking Changes:
 - Removed deprecated `rash compile` command (use `rash transpile`)
 - Changed CLI: `--output-dir` renamed to `--out-dir`
 - API: Removed `purify::legacy_mode()` function
@@ -22166,7 +22180,7 @@ Migration Guide:
 <li>New features that don't break existing code</li>
 </ul>
 <p><strong>Example</strong>: v2.0.0 → v2.1.0</p>
-<pre><code>New Features:
+<pre><code class="language-text">New Features:
 - Added SEC009 rule: Detect unsafe shell redirects
 - New command: `bashrs bench` for performance measurement
 - Configuration: Added `linter.max_warnings` option
@@ -22184,7 +22198,7 @@ All existing code continues to work without changes.
 <li>No API changes</li>
 </ul>
 <p><strong>Example</strong>: v2.0.0 → v2.0.1</p>
-<pre><code>Bug Fixes:
+<pre><code class="language-text">Bug Fixes:
 - Fixed Issue #1: Auto-fix incorrectly handled nested quotes
 - Security: Fixed SEC001 false positive on commented eval
 - Docs: Updated installation instructions for Arch Linux
@@ -22299,7 +22313,7 @@ bashrs --version
 </li>
 <li>
 <p><strong>Release without updating CHANGELOG.md</strong></p>
-<pre><code># Wrong: Empty or outdated CHANGELOG
+<pre><code class="language-text"># Wrong: Empty or outdated CHANGELOG
 # Right: Complete, detailed release notes
 </code></pre>
 </li>
@@ -22520,8 +22534,8 @@ fn test_version() {
         </script>
 
         <script src="ace.js"></script>
-        <script src="editor.js"></script>
         <script src="mode-rust.js"></script>
+        <script src="editor.js"></script>
         <script src="theme-dawn.js"></script>
         <script src="theme-tomorrow_night.js"></script>
 
@@ -22540,6 +22554,7 @@ fn test_version() {
             window.setTimeout(window.print, 100);
         });
         </script>
+
 
     </div>
     </body>

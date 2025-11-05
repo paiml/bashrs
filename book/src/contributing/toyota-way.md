@@ -64,7 +64,7 @@ cargo mutants --file rash/src/linter/rules/sec001.rs --timeout 300 -- --lib
 ```
 
 **If mutation testing had failed** (<90% kill rate):
-```
+```text
 🚨 STOP THE LINE - Quality Gate Failed 🚨
 
 Mutation kill rate: 75% (below 90% threshold)
@@ -116,7 +116,7 @@ This is Jidoka - **build quality in from the start**.
    ```
 
 4. **Property-Based Testing with Real Inputs**
-   ```rust
+   ```rust,ignore
    // Generate thousands of real-world test cases
    proptest! {
        #[test]
@@ -395,7 +395,7 @@ The **Andon Cord** is a Toyota manufacturing concept - any worker can pull a cor
 
 ### STOP THE LINE Procedure
 
-```
+```text
 🚨 STOP THE LINE - P0 BUG DETECTED 🚨
 
 1. HALT all current work

@@ -98,7 +98,7 @@ git status
 
 Rash uses a Cargo workspace with multiple crates:
 
-```
+```text
 bashrs/
 ├── rash/              # Core library (parser, linter, transpiler)
 ├── rash-runtime/      # Runtime library for generated scripts
