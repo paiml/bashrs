@@ -1,7 +1,7 @@
 //! Integration tests for bash parser
 
 use super::*;
-use lexer::{Lexer, Token};
+use lexer::Lexer;
 use parser::BashParser;
 use semantic::SemanticAnalyzer;
 

@@ -19,7 +19,7 @@ fn generate_bash_script(lines: usize) -> String {
     for i in 1..=lines {
         match i % 10 {
             0 => script.push_str(&format!("echo \"Line {}: Hello world\"\n", i)),
-            1 => script.push_str(&format!("if [ -f /tmp/test ]; then echo \"found\"; fi\n")),
+            1 => script.push_str("if [ -f /tmp/test ]; then echo \"found\"; fi\n"),
             2 => script.push_str("for x in 1 2 3; do echo $x; done\n"),
             3 => script.push_str(&format!("mkdir -p /tmp/dir{}\n", i)),
             4 => script.push_str(&format!("rm -f /tmp/file{}\n", i)),

@@ -386,7 +386,7 @@ fn generate_makefile_with_issues(num_issues: usize) -> String {
         let operation = match i % 3 {
             0 => format!("mkdir /tmp/build-$(shell date +%s)-{}", i),
             1 => format!("echo $$ > /tmp/pid-{}.txt", i),
-            _ => format!("tar -czf release-$(shell date +%s).tar.gz src/"),
+            _ => "tar -czf release-$(shell date +%s).tar.gz src/".to_string(),
         };
 
         makefile.push_str(&format!("target{}:\n\t{}\n\n", i, operation));
