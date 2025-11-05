@@ -480,7 +480,7 @@
 <a href=#480 id=480 data-nosnippet>480</a>        <span class="kw">use super</span>::<span class="kw-2">*</span>;
 <a href=#481 id=481 data-nosnippet>481</a>        <span class="kw">use </span>proptest::prelude::<span class="kw-2">*</span>;
 <a href=#482 id=482 data-nosnippet>482</a>
-<a href=#483 id=483 data-nosnippet>483</a>        <span class="doccomment">/// Property: Buffer never exceeds capacity
+<a href=#483 id=483 data-nosnippet>483</a>        <span class="comment">// Property: Buffer never exceeds capacity
 <a href=#484 id=484 data-nosnippet>484</a>        </span><span class="macro">proptest!</span> {
 <a href=#485 id=485 data-nosnippet>485</a>            <span class="attr">#[test]
 <a href=#486 id=486 data-nosnippet>486</a>            </span><span class="kw">fn </span>prop_trace_002_never_exceeds_capacity(
@@ -502,7 +502,7 @@
 <a href=#502 id=502 data-nosnippet>502</a>            }
 <a href=#503 id=503 data-nosnippet>503</a>        }
 <a href=#504 id=504 data-nosnippet>504</a>
-<a href=#505 id=505 data-nosnippet>505</a>        <span class="doccomment">/// Property: Retention rate is always between 0.0 and 1.0
+<a href=#505 id=505 data-nosnippet>505</a>        <span class="comment">// Property: Retention rate is always between 0.0 and 1.0
 <a href=#506 id=506 data-nosnippet>506</a>        </span><span class="macro">proptest!</span> {
 <a href=#507 id=507 data-nosnippet>507</a>            <span class="attr">#[test]
 <a href=#508 id=508 data-nosnippet>508</a>            </span><span class="kw">fn </span>prop_trace_002_retention_rate_bounds(
@@ -521,11 +521,11 @@
 <a href=#521 id=521 data-nosnippet>521</a>
 <a href=#522 id=522 data-nosnippet>522</a>                <span class="kw">let </span>rate = buffer.retention_rate();
 <a href=#523 id=523 data-nosnippet>523</a>                <span class="comment">// Property: Retention rate in [0.0, 1.0]
-<a href=#524 id=524 data-nosnippet>524</a>                </span><span class="macro">prop_assert!</span>(rate &gt;= <span class="number">0.0 </span>&amp;&amp; rate &lt;= <span class="number">1.0</span>);
+<a href=#524 id=524 data-nosnippet>524</a>                </span><span class="macro">prop_assert!</span>((<span class="number">0.0</span>..=<span class="number">1.0</span>).contains(<span class="kw-2">&amp;</span>rate));
 <a href=#525 id=525 data-nosnippet>525</a>            }
 <a href=#526 id=526 data-nosnippet>526</a>        }
 <a href=#527 id=527 data-nosnippet>527</a>
-<a href=#528 id=528 data-nosnippet>528</a>        <span class="doccomment">/// Property: Total events always &gt;= current size
+<a href=#528 id=528 data-nosnippet>528</a>        <span class="comment">// Property: Total events always &gt;= current size
 <a href=#529 id=529 data-nosnippet>529</a>        </span><span class="macro">proptest!</span> {
 <a href=#530 id=530 data-nosnippet>530</a>            <span class="attr">#[test]
 <a href=#531 id=531 data-nosnippet>531</a>            </span><span class="kw">fn </span>prop_trace_002_total_vs_current(

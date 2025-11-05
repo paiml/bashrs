@@ -931,7 +931,7 @@
 <a href=#931 id=931 data-nosnippet>931</a>
 <a href=#932 id=932 data-nosnippet>932</a>    <span class="comment">// ===== PROPERTY TESTS (PROPERTY PHASE) =====
 <a href=#933 id=933 data-nosnippet>933</a>
-<a href=#934 id=934 data-nosnippet>934</a>    </span><span class="doccomment">/// Property: Line numbers are always valid (non-zero, reasonable range)
+<a href=#934 id=934 data-nosnippet>934</a>    // Property: Line numbers are always valid (non-zero, reasonable range)
 <a href=#935 id=935 data-nosnippet>935</a>    </span><span class="macro">proptest!</span> {
 <a href=#936 id=936 data-nosnippet>936</a>        <span class="attr">#[test]
 <a href=#937 id=937 data-nosnippet>937</a>        </span><span class="kw">fn </span>prop_breakpoint_line_numbers_valid(line <span class="kw">in </span><span class="number">1usize</span>..<span class="number">10000</span>) {
@@ -949,7 +949,7 @@
 <a href=#949 id=949 data-nosnippet>949</a>        }
 <a href=#950 id=950 data-nosnippet>950</a>    }
 <a href=#951 id=951 data-nosnippet>951</a>
-<a href=#952 id=952 data-nosnippet>952</a>    <span class="doccomment">/// Property: set_breakpoint is idempotent (setting twice is same as setting once)
+<a href=#952 id=952 data-nosnippet>952</a>    <span class="comment">// Property: set_breakpoint is idempotent (setting twice is same as setting once)
 <a href=#953 id=953 data-nosnippet>953</a>    </span><span class="macro">proptest!</span> {
 <a href=#954 id=954 data-nosnippet>954</a>        <span class="attr">#[test]
 <a href=#955 id=955 data-nosnippet>955</a>        </span><span class="kw">fn </span>prop_set_breakpoint_idempotent(line <span class="kw">in </span><span class="number">1usize</span>..<span class="number">10000</span>) {
@@ -965,7 +965,7 @@
 <a href=#965 id=965 data-nosnippet>965</a>        }
 <a href=#966 id=966 data-nosnippet>966</a>    }
 <a href=#967 id=967 data-nosnippet>967</a>
-<a href=#968 id=968 data-nosnippet>968</a>    <span class="doccomment">/// Property: remove_breakpoint removes the breakpoint
+<a href=#968 id=968 data-nosnippet>968</a>    <span class="comment">// Property: remove_breakpoint removes the breakpoint
 <a href=#969 id=969 data-nosnippet>969</a>    </span><span class="macro">proptest!</span> {
 <a href=#970 id=970 data-nosnippet>970</a>        <span class="attr">#[test]
 <a href=#971 id=971 data-nosnippet>971</a>        </span><span class="kw">fn </span>prop_remove_breakpoint_works(line <span class="kw">in </span><span class="number">1usize</span>..<span class="number">10000</span>) {
@@ -985,7 +985,7 @@
 <a href=#985 id=985 data-nosnippet>985</a>        }
 <a href=#986 id=986 data-nosnippet>986</a>    }
 <a href=#987 id=987 data-nosnippet>987</a>
-<a href=#988 id=988 data-nosnippet>988</a>    <span class="doccomment">/// Property: count is always accurate
+<a href=#988 id=988 data-nosnippet>988</a>    <span class="comment">// Property: count is always accurate
 <a href=#989 id=989 data-nosnippet>989</a>    </span><span class="macro">proptest!</span> {
 <a href=#990 id=990 data-nosnippet>990</a>        <span class="attr">#[test]
 <a href=#991 id=991 data-nosnippet>991</a>        </span><span class="kw">fn </span>prop_count_accurate(lines <span class="kw">in </span>prop::collection::vec(<span class="number">1usize</span>..<span class="number">1000</span>, <span class="number">1</span>..<span class="number">20</span>)) {
@@ -1006,7 +1006,7 @@
 <a href=#1006 id=1006 data-nosnippet>1006</a>        }
 <a href=#1007 id=1007 data-nosnippet>1007</a>    }
 <a href=#1008 id=1008 data-nosnippet>1008</a>
-<a href=#1009 id=1009 data-nosnippet>1009</a>    <span class="doccomment">/// Property: get_breakpoints returns sorted list
+<a href=#1009 id=1009 data-nosnippet>1009</a>    <span class="comment">// Property: get_breakpoints returns sorted list
 <a href=#1010 id=1010 data-nosnippet>1010</a>    </span><span class="macro">proptest!</span> {
 <a href=#1011 id=1011 data-nosnippet>1011</a>        <span class="attr">#[test]
 <a href=#1012 id=1012 data-nosnippet>1012</a>        </span><span class="kw">fn </span>prop_get_breakpoints_sorted(lines <span class="kw">in </span>prop::collection::vec(<span class="number">1usize</span>..<span class="number">1000</span>, <span class="number">1</span>..<span class="number">20</span>)) {
@@ -1031,7 +1031,7 @@
 <a href=#1031 id=1031 data-nosnippet>1031</a>        }
 <a href=#1032 id=1032 data-nosnippet>1032</a>    }
 <a href=#1033 id=1033 data-nosnippet>1033</a>
-<a href=#1034 id=1034 data-nosnippet>1034</a>    <span class="doccomment">/// Property: clear_all removes all breakpoints
+<a href=#1034 id=1034 data-nosnippet>1034</a>    <span class="comment">// Property: clear_all removes all breakpoints
 <a href=#1035 id=1035 data-nosnippet>1035</a>    </span><span class="macro">proptest!</span> {
 <a href=#1036 id=1036 data-nosnippet>1036</a>        <span class="attr">#[test]
 <a href=#1037 id=1037 data-nosnippet>1037</a>        </span><span class="kw">fn </span>prop_clear_all_works(lines <span class="kw">in </span>prop::collection::vec(<span class="number">1usize</span>..<span class="number">1000</span>, <span class="number">1</span>..<span class="number">20</span>)) {
@@ -1056,7 +1056,7 @@
 <a href=#1056 id=1056 data-nosnippet>1056</a>        }
 <a href=#1057 id=1057 data-nosnippet>1057</a>    }
 <a href=#1058 id=1058 data-nosnippet>1058</a>
-<a href=#1059 id=1059 data-nosnippet>1059</a>    <span class="doccomment">/// Property: is_breakpoint_hit is deterministic
+<a href=#1059 id=1059 data-nosnippet>1059</a>    <span class="comment">// Property: is_breakpoint_hit is deterministic
 <a href=#1060 id=1060 data-nosnippet>1060</a>    </span><span class="macro">proptest!</span> {
 <a href=#1061 id=1061 data-nosnippet>1061</a>        <span class="attr">#[test]
 <a href=#1062 id=1062 data-nosnippet>1062</a>        </span><span class="kw">fn </span>prop_is_breakpoint_hit_deterministic(line <span class="kw">in </span><span class="number">1usize</span>..<span class="number">10000</span>) {
@@ -1073,7 +1073,7 @@
 <a href=#1073 id=1073 data-nosnippet>1073</a>        }
 <a href=#1074 id=1074 data-nosnippet>1074</a>    }
 <a href=#1075 id=1075 data-nosnippet>1075</a>
-<a href=#1076 id=1076 data-nosnippet>1076</a>    <span class="doccomment">/// Property: Breakpoint struct properties
+<a href=#1076 id=1076 data-nosnippet>1076</a>    <span class="comment">// Property: Breakpoint struct properties
 <a href=#1077 id=1077 data-nosnippet>1077</a>    </span><span class="macro">proptest!</span> {
 <a href=#1078 id=1078 data-nosnippet>1078</a>        <span class="attr">#[test]
 <a href=#1079 id=1079 data-nosnippet>1079</a>        </span><span class="kw">fn </span>prop_breakpoint_struct(line <span class="kw">in </span><span class="number">1usize</span>..<span class="number">10000</span>) {
@@ -1093,7 +1093,7 @@
 <a href=#1093 id=1093 data-nosnippet>1093</a>        }
 <a href=#1094 id=1094 data-nosnippet>1094</a>    }
 <a href=#1095 id=1095 data-nosnippet>1095</a>
-<a href=#1096 id=1096 data-nosnippet>1096</a>    <span class="doccomment">/// Property: Conditional breakpoints with &gt; operator
+<a href=#1096 id=1096 data-nosnippet>1096</a>    <span class="comment">// Property: Conditional breakpoints with &gt; operator
 <a href=#1097 id=1097 data-nosnippet>1097</a>    </span><span class="macro">proptest!</span> {
 <a href=#1098 id=1098 data-nosnippet>1098</a>        <span class="attr">#[test]
 <a href=#1099 id=1099 data-nosnippet>1099</a>        </span><span class="kw">fn </span>prop_conditional_greater_than(value <span class="kw">in </span><span class="number">0i64</span>..<span class="number">1000</span>, threshold <span class="kw">in </span><span class="number">0i64</span>..<span class="number">1000</span>) {
@@ -1114,7 +1114,7 @@
 <a href=#1114 id=1114 data-nosnippet>1114</a>        }
 <a href=#1115 id=1115 data-nosnippet>1115</a>    }
 <a href=#1116 id=1116 data-nosnippet>1116</a>
-<a href=#1117 id=1117 data-nosnippet>1117</a>    <span class="doccomment">/// Property: Conditional breakpoints are deterministic
+<a href=#1117 id=1117 data-nosnippet>1117</a>    <span class="comment">// Property: Conditional breakpoints are deterministic
 <a href=#1118 id=1118 data-nosnippet>1118</a>    </span><span class="macro">proptest!</span> {
 <a href=#1119 id=1119 data-nosnippet>1119</a>        <span class="attr">#[test]
 <a href=#1120 id=1120 data-nosnippet>1120</a>        </span><span class="kw">fn </span>prop_conditional_deterministic(value <span class="kw">in </span><span class="number">0i64</span>..<span class="number">100</span>, threshold <span class="kw">in </span><span class="number">0i64</span>..<span class="number">100</span>) {
@@ -1133,7 +1133,7 @@
 <a href=#1133 id=1133 data-nosnippet>1133</a>        }
 <a href=#1134 id=1134 data-nosnippet>1134</a>    }
 <a href=#1135 id=1135 data-nosnippet>1135</a>
-<a href=#1136 id=1136 data-nosnippet>1136</a>    <span class="doccomment">/// Property: String equality conditions
+<a href=#1136 id=1136 data-nosnippet>1136</a>    <span class="comment">// Property: String equality conditions
 <a href=#1137 id=1137 data-nosnippet>1137</a>    </span><span class="macro">proptest!</span> {
 <a href=#1138 id=1138 data-nosnippet>1138</a>        <span class="attr">#[test]
 <a href=#1139 id=1139 data-nosnippet>1139</a>        </span><span class="kw">fn </span>prop_conditional_string_equality(value <span class="kw">in </span><span class="string">"[a-z]{1,10}"</span>, compare <span class="kw">in </span><span class="string">"[a-z]{1,10}"</span>) {
@@ -1158,7 +1158,7 @@
 <a href=#1158 id=1158 data-nosnippet>1158</a>        }
 <a href=#1159 id=1159 data-nosnippet>1159</a>    }
 <a href=#1160 id=1160 data-nosnippet>1160</a>
-<a href=#1161 id=1161 data-nosnippet>1161</a>    <span class="doccomment">/// Property: Disabled conditional breakpoints never trigger
+<a href=#1161 id=1161 data-nosnippet>1161</a>    <span class="comment">// Property: Disabled conditional breakpoints never trigger
 <a href=#1162 id=1162 data-nosnippet>1162</a>    </span><span class="macro">proptest!</span> {
 <a href=#1163 id=1163 data-nosnippet>1163</a>        <span class="attr">#[test]
 <a href=#1164 id=1164 data-nosnippet>1164</a>        </span><span class="kw">fn </span>prop_disabled_conditional_never_breaks(value <span class="kw">in </span><span class="number">0i64</span>..<span class="number">100</span>) {
@@ -1175,7 +1175,7 @@
 <a href=#1175 id=1175 data-nosnippet>1175</a>        }
 <a href=#1176 id=1176 data-nosnippet>1176</a>    }
 <a href=#1177 id=1177 data-nosnippet>1177</a>
-<a href=#1178 id=1178 data-nosnippet>1178</a>    <span class="doccomment">/// Property: Missing variables cause condition to fail
+<a href=#1178 id=1178 data-nosnippet>1178</a>    <span class="comment">// Property: Missing variables cause condition to fail
 <a href=#1179 id=1179 data-nosnippet>1179</a>    </span><span class="macro">proptest!</span> {
 <a href=#1180 id=1180 data-nosnippet>1180</a>        <span class="attr">#[test]
 <a href=#1181 id=1181 data-nosnippet>1181</a>        </span><span class="kw">fn </span>prop_missing_variable_fails(threshold <span class="kw">in </span><span class="number">0i64</span>..<span class="number">100</span>) {
@@ -1192,7 +1192,7 @@
 <a href=#1192 id=1192 data-nosnippet>1192</a>
 <a href=#1193 id=1193 data-nosnippet>1193</a>    <span class="comment">// ===== HIT-COUNT PROPERTY TESTS (REPL-007-003) =====
 <a href=#1194 id=1194 data-nosnippet>1194</a>
-<a href=#1195 id=1195 data-nosnippet>1195</a>    </span><span class="doccomment">/// Property: Hit-count breakpoints trigger at the correct threshold
+<a href=#1195 id=1195 data-nosnippet>1195</a>    // Property: Hit-count breakpoints trigger at the correct threshold
 <a href=#1196 id=1196 data-nosnippet>1196</a>    </span><span class="macro">proptest!</span> {
 <a href=#1197 id=1197 data-nosnippet>1197</a>        <span class="attr">#[test]
 <a href=#1198 id=1198 data-nosnippet>1198</a>        </span><span class="kw">fn </span>prop_hit_count_triggers_at_threshold(threshold <span class="kw">in </span><span class="number">1usize</span>..<span class="number">20</span>) {
@@ -1216,7 +1216,7 @@
 <a href=#1216 id=1216 data-nosnippet>1216</a>        }
 <a href=#1217 id=1217 data-nosnippet>1217</a>    }
 <a href=#1218 id=1218 data-nosnippet>1218</a>
-<a href=#1219 id=1219 data-nosnippet>1219</a>    <span class="doccomment">/// Property: Hit count is always accurate
+<a href=#1219 id=1219 data-nosnippet>1219</a>    <span class="comment">// Property: Hit count is always accurate
 <a href=#1220 id=1220 data-nosnippet>1220</a>    </span><span class="macro">proptest!</span> {
 <a href=#1221 id=1221 data-nosnippet>1221</a>        <span class="attr">#[test]
 <a href=#1222 id=1222 data-nosnippet>1222</a>        </span><span class="kw">fn </span>prop_hit_count_accurate(hits <span class="kw">in </span><span class="number">1usize</span>..<span class="number">50</span>) {
@@ -1235,7 +1235,7 @@
 <a href=#1235 id=1235 data-nosnippet>1235</a>        }
 <a href=#1236 id=1236 data-nosnippet>1236</a>    }
 <a href=#1237 id=1237 data-nosnippet>1237</a>
-<a href=#1238 id=1238 data-nosnippet>1238</a>    <span class="doccomment">/// Property: Reset always sets hit count to zero
+<a href=#1238 id=1238 data-nosnippet>1238</a>    <span class="comment">// Property: Reset always sets hit count to zero
 <a href=#1239 id=1239 data-nosnippet>1239</a>    </span><span class="macro">proptest!</span> {
 <a href=#1240 id=1240 data-nosnippet>1240</a>        <span class="attr">#[test]
 <a href=#1241 id=1241 data-nosnippet>1241</a>        </span><span class="kw">fn </span>prop_reset_hit_count_works(hits <span class="kw">in </span><span class="number">1usize</span>..<span class="number">50</span>) {
@@ -1258,7 +1258,7 @@
 <a href=#1258 id=1258 data-nosnippet>1258</a>        }
 <a href=#1259 id=1259 data-nosnippet>1259</a>    }
 <a href=#1260 id=1260 data-nosnippet>1260</a>
-<a href=#1261 id=1261 data-nosnippet>1261</a>    <span class="doccomment">/// Property: Disabled hit-count breakpoints never trigger
+<a href=#1261 id=1261 data-nosnippet>1261</a>    <span class="comment">// Property: Disabled hit-count breakpoints never trigger
 <a href=#1262 id=1262 data-nosnippet>1262</a>    </span><span class="macro">proptest!</span> {
 <a href=#1263 id=1263 data-nosnippet>1263</a>        <span class="attr">#[test]
 <a href=#1264 id=1264 data-nosnippet>1264</a>        </span><span class="kw">fn </span>prop_disabled_hit_count_never_triggers(threshold <span class="kw">in </span><span class="number">1usize</span>..<span class="number">20</span>, hits <span class="kw">in </span><span class="number">1usize</span>..<span class="number">50</span>) {
@@ -1276,7 +1276,7 @@
 <a href=#1276 id=1276 data-nosnippet>1276</a>        }
 <a href=#1277 id=1277 data-nosnippet>1277</a>    }
 <a href=#1278 id=1278 data-nosnippet>1278</a>
-<a href=#1279 id=1279 data-nosnippet>1279</a>    <span class="doccomment">/// Property: Hit-count with condition requires both to be true
+<a href=#1279 id=1279 data-nosnippet>1279</a>    <span class="comment">// Property: Hit-count with condition requires both to be true
 <a href=#1280 id=1280 data-nosnippet>1280</a>    </span><span class="macro">proptest!</span> {
 <a href=#1281 id=1281 data-nosnippet>1281</a>        <span class="attr">#[test]
 <a href=#1282 id=1282 data-nosnippet>1282</a>        </span><span class="kw">fn </span>prop_hit_count_with_condition_both_required(threshold <span class="kw">in </span><span class="number">2usize</span>..<span class="number">10</span>, value <span class="kw">in </span><span class="number">0i64</span>..<span class="number">100</span>) {

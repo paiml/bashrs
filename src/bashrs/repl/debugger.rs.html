@@ -1320,7 +1320,7 @@
 <a href=#1320 id=1320 data-nosnippet>1320</a>    </span><span class="kw">fn </span>test_REPL_010_001_compare_at_breakpoint() {
 <a href=#1321 id=1321 data-nosnippet>1321</a>        <span class="comment">// Script with non-idempotent command
 <a href=#1322 id=1322 data-nosnippet>1322</a>        </span><span class="kw">let </span>script = <span class="string">"mkdir /tmp/test"</span>;
-<a href=#1323 id=1323 data-nosnippet>1323</a>        <span class="kw">let </span><span class="kw-2">mut </span>session = DebugSession::new(script);
+<a href=#1323 id=1323 data-nosnippet>1323</a>        <span class="kw">let </span>session = DebugSession::new(script);
 <a href=#1324 id=1324 data-nosnippet>1324</a>
 <a href=#1325 id=1325 data-nosnippet>1325</a>        <span class="comment">// Get comparison at line 1
 <a href=#1326 id=1326 data-nosnippet>1326</a>        </span><span class="kw">let </span>comparison = session.compare_current_line();
@@ -1337,7 +1337,7 @@
 <a href=#1337 id=1337 data-nosnippet>1337</a>    </span><span class="kw">fn </span>test_REPL_010_001_compare_diff_highlighting() {
 <a href=#1338 id=1338 data-nosnippet>1338</a>        <span class="comment">// Script with missing quotes
 <a href=#1339 id=1339 data-nosnippet>1339</a>        </span><span class="kw">let </span>script = <span class="string">"echo $HOME"</span>;
-<a href=#1340 id=1340 data-nosnippet>1340</a>        <span class="kw">let </span><span class="kw-2">mut </span>session = DebugSession::new(script);
+<a href=#1340 id=1340 data-nosnippet>1340</a>        <span class="kw">let </span>session = DebugSession::new(script);
 <a href=#1341 id=1341 data-nosnippet>1341</a>
 <a href=#1342 id=1342 data-nosnippet>1342</a>        <span class="kw">let </span>comparison = session.compare_current_line();
 <a href=#1343 id=1343 data-nosnippet>1343</a>        <span class="macro">assert!</span>(comparison.is_some());
@@ -1366,7 +1366,7 @@
 <a href=#1366 id=1366 data-nosnippet>1366</a>    </span><span class="kw">fn </span>test_REPL_010_002_highlight_mkdir_p() {
 <a href=#1367 id=1367 data-nosnippet>1367</a>        <span class="comment">// ARRANGE: Script with non-idempotent mkdir
 <a href=#1368 id=1368 data-nosnippet>1368</a>        </span><span class="kw">let </span>script = <span class="string">"mkdir /tmp/foo"</span>;
-<a href=#1369 id=1369 data-nosnippet>1369</a>        <span class="kw">let </span><span class="kw-2">mut </span>session = DebugSession::new(script);
+<a href=#1369 id=1369 data-nosnippet>1369</a>        <span class="kw">let </span>session = DebugSession::new(script);
 <a href=#1370 id=1370 data-nosnippet>1370</a>
 <a href=#1371 id=1371 data-nosnippet>1371</a>        <span class="comment">// ACT: Compare lines
 <a href=#1372 id=1372 data-nosnippet>1372</a>        </span><span class="kw">let </span>comparison = session.compare_current_line();
@@ -1400,7 +1400,7 @@
 <a href=#1400 id=1400 data-nosnippet>1400</a>    </span><span class="kw">fn </span>test_REPL_010_002_highlight_quote() {
 <a href=#1401 id=1401 data-nosnippet>1401</a>        <span class="comment">// ARRANGE: Script with unquoted variable
 <a href=#1402 id=1402 data-nosnippet>1402</a>        </span><span class="kw">let </span>script = <span class="string">"echo $USER"</span>;
-<a href=#1403 id=1403 data-nosnippet>1403</a>        <span class="kw">let </span><span class="kw-2">mut </span>session = DebugSession::new(script);
+<a href=#1403 id=1403 data-nosnippet>1403</a>        <span class="kw">let </span>session = DebugSession::new(script);
 <a href=#1404 id=1404 data-nosnippet>1404</a>
 <a href=#1405 id=1405 data-nosnippet>1405</a>        <span class="comment">// ACT: Compare lines
 <a href=#1406 id=1406 data-nosnippet>1406</a>        </span><span class="kw">let </span>comparison = session.compare_current_line();
@@ -1431,7 +1431,7 @@
 <a href=#1431 id=1431 data-nosnippet>1431</a>    </span><span class="kw">fn </span>test_REPL_010_002_highlight_ln_sf() {
 <a href=#1432 id=1432 data-nosnippet>1432</a>        <span class="comment">// ARRANGE: Script with non-idempotent ln
 <a href=#1433 id=1433 data-nosnippet>1433</a>        </span><span class="kw">let </span>script = <span class="string">"ln -s /tmp/src /tmp/link"</span>;
-<a href=#1434 id=1434 data-nosnippet>1434</a>        <span class="kw">let </span><span class="kw-2">mut </span>session = DebugSession::new(script);
+<a href=#1434 id=1434 data-nosnippet>1434</a>        <span class="kw">let </span>session = DebugSession::new(script);
 <a href=#1435 id=1435 data-nosnippet>1435</a>
 <a href=#1436 id=1436 data-nosnippet>1436</a>        <span class="comment">// ACT: Compare lines
 <a href=#1437 id=1437 data-nosnippet>1437</a>        </span><span class="kw">let </span>comparison = session.compare_current_line();
@@ -1474,7 +1474,7 @@
 <a href=#1474 id=1474 data-nosnippet>1474</a>    </span><span class="kw">fn </span>test_REPL_010_002_highlight_no_change() {
 <a href=#1475 id=1475 data-nosnippet>1475</a>        <span class="comment">// ARRANGE: Script that's already purified
 <a href=#1476 id=1476 data-nosnippet>1476</a>        </span><span class="kw">let </span>script = <span class="string">"mkdir -p /tmp/foo"</span>;
-<a href=#1477 id=1477 data-nosnippet>1477</a>        <span class="kw">let </span><span class="kw-2">mut </span>session = DebugSession::new(script);
+<a href=#1477 id=1477 data-nosnippet>1477</a>        <span class="kw">let </span>session = DebugSession::new(script);
 <a href=#1478 id=1478 data-nosnippet>1478</a>
 <a href=#1479 id=1479 data-nosnippet>1479</a>        <span class="comment">// ACT: Compare lines
 <a href=#1480 id=1480 data-nosnippet>1480</a>        </span><span class="kw">let </span>comparison = session.compare_current_line();
@@ -1503,7 +1503,7 @@
 <a href=#1503 id=1503 data-nosnippet>1503</a>    </span><span class="kw">fn </span>test_REPL_010_002_highlight_multiple_changes() {
 <a href=#1504 id=1504 data-nosnippet>1504</a>        <span class="comment">// ARRANGE: Script with multiple issues
 <a href=#1505 id=1505 data-nosnippet>1505</a>        </span><span class="kw">let </span>script = <span class="string">"rm $FILE"</span>;
-<a href=#1506 id=1506 data-nosnippet>1506</a>        <span class="kw">let </span><span class="kw-2">mut </span>session = DebugSession::new(script);
+<a href=#1506 id=1506 data-nosnippet>1506</a>        <span class="kw">let </span>session = DebugSession::new(script);
 <a href=#1507 id=1507 data-nosnippet>1507</a>
 <a href=#1508 id=1508 data-nosnippet>1508</a>        <span class="comment">// ACT: Compare lines
 <a href=#1509 id=1509 data-nosnippet>1509</a>        </span><span class="kw">let </span>comparison = session.compare_current_line();
@@ -1643,7 +1643,7 @@
 <a href=#1643 id=1643 data-nosnippet>1643</a>
 <a href=#1644 id=1644 data-nosnippet>1644</a>    <span class="comment">// ===== PROPERTY TESTS (PROPERTY PHASE) =====
 <a href=#1645 id=1645 data-nosnippet>1645</a>
-<a href=#1646 id=1646 data-nosnippet>1646</a>    </span><span class="doccomment">/// Property: Stepping never skips lines
+<a href=#1646 id=1646 data-nosnippet>1646</a>    // Property: Stepping never skips lines
 <a href=#1647 id=1647 data-nosnippet>1647</a>    </span><span class="macro">proptest!</span> {
 <a href=#1648 id=1648 data-nosnippet>1648</a>        <span class="attr">#[test]
 <a href=#1649 id=1649 data-nosnippet>1649</a>        </span><span class="kw">fn </span>prop_step_never_skips_lines(num_lines <span class="kw">in </span><span class="number">1usize</span>..<span class="number">20</span>) {
@@ -1676,7 +1676,7 @@
 <a href=#1676 id=1676 data-nosnippet>1676</a>        }
 <a href=#1677 id=1677 data-nosnippet>1677</a>    }
 <a href=#1678 id=1678 data-nosnippet>1678</a>
-<a href=#1679 id=1679 data-nosnippet>1679</a>    <span class="doccomment">/// Property: Current line is always valid
+<a href=#1679 id=1679 data-nosnippet>1679</a>    <span class="comment">// Property: Current line is always valid
 <a href=#1680 id=1680 data-nosnippet>1680</a>    </span><span class="macro">proptest!</span> {
 <a href=#1681 id=1681 data-nosnippet>1681</a>        <span class="attr">#[test]
 <a href=#1682 id=1682 data-nosnippet>1682</a>        </span><span class="kw">fn </span>prop_current_line_always_valid(num_lines <span class="kw">in </span><span class="number">1usize</span>..<span class="number">20</span>, steps <span class="kw">in </span><span class="number">0usize</span>..<span class="number">25</span>) {
@@ -1701,7 +1701,7 @@
 <a href=#1701 id=1701 data-nosnippet>1701</a>        }
 <a href=#1702 id=1702 data-nosnippet>1702</a>    }
 <a href=#1703 id=1703 data-nosnippet>1703</a>
-<a href=#1704 id=1704 data-nosnippet>1704</a>    <span class="doccomment">/// Property: Total lines never changes
+<a href=#1704 id=1704 data-nosnippet>1704</a>    <span class="comment">// Property: Total lines never changes
 <a href=#1705 id=1705 data-nosnippet>1705</a>    </span><span class="macro">proptest!</span> {
 <a href=#1706 id=1706 data-nosnippet>1706</a>        <span class="attr">#[test]
 <a href=#1707 id=1707 data-nosnippet>1707</a>        </span><span class="kw">fn </span>prop_total_lines_constant(num_lines <span class="kw">in </span><span class="number">1usize</span>..<span class="number">20</span>, steps <span class="kw">in </span><span class="number">0usize</span>..<span class="number">25</span>) {
@@ -1731,10 +1731,10 @@
 <a href=#1731 id=1731 data-nosnippet>1731</a>
 <a href=#1732 id=1732 data-nosnippet>1732</a>    <span class="comment">// ===== REPL-008-002: NEXT PROPERTY TESTS =====
 <a href=#1733 id=1733 data-nosnippet>1733</a>
-<a href=#1734 id=1734 data-nosnippet>1734</a>    </span><span class="doccomment">/// Property: next() never increases call depth
-<a href=#1735 id=1735 data-nosnippet>1735</a>    ///
-<a href=#1736 id=1736 data-nosnippet>1736</a>    /// Verifies the core invariant: next() should never go deeper into function calls,
-<a href=#1737 id=1737 data-nosnippet>1737</a>    /// only stay at same level or return to shallower levels.
+<a href=#1734 id=1734 data-nosnippet>1734</a>    // Property: next() never increases call depth
+<a href=#1735 id=1735 data-nosnippet>1735</a>    //
+<a href=#1736 id=1736 data-nosnippet>1736</a>    // Verifies the core invariant: next() should never go deeper into function calls,
+<a href=#1737 id=1737 data-nosnippet>1737</a>    // only stay at same level or return to shallower levels.
 <a href=#1738 id=1738 data-nosnippet>1738</a>    </span><span class="macro">proptest!</span> {
 <a href=#1739 id=1739 data-nosnippet>1739</a>        <span class="attr">#[test]
 <a href=#1740 id=1740 data-nosnippet>1740</a>        </span><span class="kw">fn </span>prop_next_never_goes_deeper(num_lines <span class="kw">in </span><span class="number">1usize</span>..<span class="number">20</span>) {
@@ -1773,10 +1773,10 @@
 <a href=#1773 id=1773 data-nosnippet>1773</a>        }
 <a href=#1774 id=1774 data-nosnippet>1774</a>    }
 <a href=#1775 id=1775 data-nosnippet>1775</a>
-<a href=#1776 id=1776 data-nosnippet>1776</a>    <span class="doccomment">/// Property: next() eventually finishes execution
-<a href=#1777 id=1777 data-nosnippet>1777</a>    ///
-<a href=#1778 id=1778 data-nosnippet>1778</a>    /// Verifies that calling next() repeatedly will always eventually finish,
-<a href=#1779 id=1779 data-nosnippet>1779</a>    /// preventing infinite loops in the debugger.
+<a href=#1776 id=1776 data-nosnippet>1776</a>    <span class="comment">// Property: next() eventually finishes execution
+<a href=#1777 id=1777 data-nosnippet>1777</a>    //
+<a href=#1778 id=1778 data-nosnippet>1778</a>    // Verifies that calling next() repeatedly will always eventually finish,
+<a href=#1779 id=1779 data-nosnippet>1779</a>    // preventing infinite loops in the debugger.
 <a href=#1780 id=1780 data-nosnippet>1780</a>    </span><span class="macro">proptest!</span> {
 <a href=#1781 id=1781 data-nosnippet>1781</a>        <span class="attr">#[test]
 <a href=#1782 id=1782 data-nosnippet>1782</a>        </span><span class="kw">fn </span>prop_next_eventually_finishes(num_lines <span class="kw">in </span><span class="number">1usize</span>..<span class="number">100</span>) {
@@ -1809,7 +1809,7 @@
 <a href=#1809 id=1809 data-nosnippet>1809</a>
 <a href=#1810 id=1810 data-nosnippet>1810</a>    <span class="comment">// ===== REPL-008-003: CONTINUE PROPERTY TESTS =====
 <a href=#1811 id=1811 data-nosnippet>1811</a>
-<a href=#1812 id=1812 data-nosnippet>1812</a>    </span><span class="doccomment">/// Property: Continue without breakpoints always finishes
+<a href=#1812 id=1812 data-nosnippet>1812</a>    // Property: Continue without breakpoints always finishes
 <a href=#1813 id=1813 data-nosnippet>1813</a>    </span><span class="macro">proptest!</span> {
 <a href=#1814 id=1814 data-nosnippet>1814</a>        <span class="attr">#[test]
 <a href=#1815 id=1815 data-nosnippet>1815</a>        </span><span class="kw">fn </span>prop_continue_no_breakpoints_finishes(num_lines <span class="kw">in </span><span class="number">1usize</span>..<span class="number">20</span>) {
@@ -1827,7 +1827,7 @@
 <a href=#1827 id=1827 data-nosnippet>1827</a>        }
 <a href=#1828 id=1828 data-nosnippet>1828</a>    }
 <a href=#1829 id=1829 data-nosnippet>1829</a>
-<a href=#1830 id=1830 data-nosnippet>1830</a>    <span class="doccomment">/// Property: Continue always stops at breakpoint
+<a href=#1830 id=1830 data-nosnippet>1830</a>    <span class="comment">// Property: Continue always stops at breakpoint
 <a href=#1831 id=1831 data-nosnippet>1831</a>    </span><span class="macro">proptest!</span> {
 <a href=#1832 id=1832 data-nosnippet>1832</a>        <span class="attr">#[test]
 <a href=#1833 id=1833 data-nosnippet>1833</a>        </span><span class="kw">fn </span>prop_continue_stops_at_breakpoint(
@@ -1859,7 +1859,7 @@
 <a href=#1859 id=1859 data-nosnippet>1859</a>        }
 <a href=#1860 id=1860 data-nosnippet>1860</a>    }
 <a href=#1861 id=1861 data-nosnippet>1861</a>
-<a href=#1862 id=1862 data-nosnippet>1862</a>    <span class="doccomment">/// Property: Continue result is deterministic
+<a href=#1862 id=1862 data-nosnippet>1862</a>    <span class="comment">// Property: Continue result is deterministic
 <a href=#1863 id=1863 data-nosnippet>1863</a>    </span><span class="macro">proptest!</span> {
 <a href=#1864 id=1864 data-nosnippet>1864</a>        <span class="attr">#[test]
 <a href=#1865 id=1865 data-nosnippet>1865</a>        </span><span class="kw">fn </span>prop_continue_deterministic(
@@ -1888,7 +1888,7 @@
 <a href=#1888 id=1888 data-nosnippet>1888</a>        }
 <a href=#1889 id=1889 data-nosnippet>1889</a>    }
 <a href=#1890 id=1890 data-nosnippet>1890</a>
-<a href=#1891 id=1891 data-nosnippet>1891</a>    <span class="doccomment">/// Property: Multiple continues eventually finish
+<a href=#1891 id=1891 data-nosnippet>1891</a>    <span class="comment">// Property: Multiple continues eventually finish
 <a href=#1892 id=1892 data-nosnippet>1892</a>    </span><span class="macro">proptest!</span> {
 <a href=#1893 id=1893 data-nosnippet>1893</a>        <span class="attr">#[test]
 <a href=#1894 id=1894 data-nosnippet>1894</a>        </span><span class="kw">fn </span>prop_multiple_continues_finish(num_lines <span class="kw">in </span><span class="number">1usize</span>..<span class="number">10</span>) {
@@ -1931,7 +1931,7 @@
 <a href=#1931 id=1931 data-nosnippet>1931</a>
 <a href=#1932 id=1932 data-nosnippet>1932</a>    <span class="comment">// ===== REPL-009-001: VARIABLE INSPECTION PROPERTY TESTS =====
 <a href=#1933 id=1933 data-nosnippet>1933</a>
-<a href=#1934 id=1934 data-nosnippet>1934</a>    </span><span class="doccomment">/// Property: Set and get variable always matches
+<a href=#1934 id=1934 data-nosnippet>1934</a>    // Property: Set and get variable always matches
 <a href=#1935 id=1935 data-nosnippet>1935</a>    </span><span class="macro">proptest!</span> {
 <a href=#1936 id=1936 data-nosnippet>1936</a>        <span class="attr">#[test]
 <a href=#1937 id=1937 data-nosnippet>1937</a>        </span><span class="kw">fn </span>prop_variable_set_get_matches(
@@ -1949,7 +1949,7 @@
 <a href=#1949 id=1949 data-nosnippet>1949</a>        }
 <a href=#1950 id=1950 data-nosnippet>1950</a>    }
 <a href=#1951 id=1951 data-nosnippet>1951</a>
-<a href=#1952 id=1952 data-nosnippet>1952</a>    <span class="doccomment">/// Property: Variable count equals number of set operations
+<a href=#1952 id=1952 data-nosnippet>1952</a>    <span class="comment">// Property: Variable count equals number of set operations
 <a href=#1953 id=1953 data-nosnippet>1953</a>    </span><span class="macro">proptest!</span> {
 <a href=#1954 id=1954 data-nosnippet>1954</a>        <span class="attr">#[test]
 <a href=#1955 id=1955 data-nosnippet>1955</a>        </span><span class="kw">fn </span>prop_variable_count_correct(num_vars <span class="kw">in </span><span class="number">0usize</span>..<span class="number">20</span>) {
@@ -1965,7 +1965,7 @@
 <a href=#1965 id=1965 data-nosnippet>1965</a>        }
 <a href=#1966 id=1966 data-nosnippet>1966</a>    }
 <a href=#1967 id=1967 data-nosnippet>1967</a>
-<a href=#1968 id=1968 data-nosnippet>1968</a>    <span class="doccomment">/// Property: List variables preserves all set variables
+<a href=#1968 id=1968 data-nosnippet>1968</a>    <span class="comment">// Property: List variables preserves all set variables
 <a href=#1969 id=1969 data-nosnippet>1969</a>    </span><span class="macro">proptest!</span> {
 <a href=#1970 id=1970 data-nosnippet>1970</a>        <span class="attr">#[test]
 <a href=#1971 id=1971 data-nosnippet>1971</a>        </span><span class="kw">fn </span>prop_list_variables_complete(num_vars <span class="kw">in </span><span class="number">1usize</span>..<span class="number">10</span>) {
@@ -1989,7 +1989,7 @@
 <a href=#1989 id=1989 data-nosnippet>1989</a>        }
 <a href=#1990 id=1990 data-nosnippet>1990</a>    }
 <a href=#1991 id=1991 data-nosnippet>1991</a>
-<a href=#1992 id=1992 data-nosnippet>1992</a>    <span class="doccomment">/// Property: Clear variables removes all
+<a href=#1992 id=1992 data-nosnippet>1992</a>    <span class="comment">// Property: Clear variables removes all
 <a href=#1993 id=1993 data-nosnippet>1993</a>    </span><span class="macro">proptest!</span> {
 <a href=#1994 id=1994 data-nosnippet>1994</a>        <span class="attr">#[test]
 <a href=#1995 id=1995 data-nosnippet>1995</a>        </span><span class="kw">fn </span>prop_clear_removes_all(num_vars <span class="kw">in </span><span class="number">1usize</span>..<span class="number">20</span>) {
@@ -2011,7 +2011,7 @@
 <a href=#2011 id=2011 data-nosnippet>2011</a>        }
 <a href=#2012 id=2012 data-nosnippet>2012</a>    }
 <a href=#2013 id=2013 data-nosnippet>2013</a>
-<a href=#2014 id=2014 data-nosnippet>2014</a>    <span class="doccomment">/// Property: Variables persist across execution
+<a href=#2014 id=2014 data-nosnippet>2014</a>    <span class="comment">// Property: Variables persist across execution
 <a href=#2015 id=2015 data-nosnippet>2015</a>    </span><span class="macro">proptest!</span> {
 <a href=#2016 id=2016 data-nosnippet>2016</a>        <span class="attr">#[test]
 <a href=#2017 id=2017 data-nosnippet>2017</a>        </span><span class="kw">fn </span>prop_variables_persist_execution(
@@ -2048,7 +2048,7 @@
 <a href=#2048 id=2048 data-nosnippet>2048</a>
 <a href=#2049 id=2049 data-nosnippet>2049</a>    <span class="comment">// ===== REPL-009-002: Environment Display Property Tests =====
 <a href=#2050 id=2050 data-nosnippet>2050</a>
-<a href=#2051 id=2051 data-nosnippet>2051</a>    </span><span class="doccomment">/// Property: get_env is deterministic + filter results match prefix
+<a href=#2051 id=2051 data-nosnippet>2051</a>    // Property: get_env is deterministic + filter results match prefix
 <a href=#2052 id=2052 data-nosnippet>2052</a>    </span><span class="macro">proptest!</span> {
 <a href=#2053 id=2053 data-nosnippet>2053</a>        <span class="attr">#[test]
 <a href=#2054 id=2054 data-nosnippet>2054</a>        </span><span class="kw">fn </span>prop_get_env_deterministic(
@@ -2095,7 +2095,7 @@
 <a href=#2095 id=2095 data-nosnippet>2095</a>
 <a href=#2096 id=2096 data-nosnippet>2096</a>    <span class="comment">// ===== REPL-009-003: Call Stack Tracking Property Tests =====
 <a href=#2097 id=2097 data-nosnippet>2097</a>
-<a href=#2098 id=2098 data-nosnippet>2098</a>    </span><span class="doccomment">/// Property: Call stack depth equals number of pushes minus pops
+<a href=#2098 id=2098 data-nosnippet>2098</a>    // Property: Call stack depth equals number of pushes minus pops
 <a href=#2099 id=2099 data-nosnippet>2099</a>    </span><span class="macro">proptest!</span> {
 <a href=#2100 id=2100 data-nosnippet>2100</a>        <span class="attr">#[test]
 <a href=#2101 id=2101 data-nosnippet>2101</a>        </span><span class="kw">fn </span>prop_call_stack_depth_correct(
@@ -2138,7 +2138,7 @@
 <a href=#2138 id=2138 data-nosnippet>2138</a>
 <a href=#2139 id=2139 data-nosnippet>2139</a>    <span class="comment">// ===== REPL-010-001: Compare Original vs Purified Property Tests =====
 <a href=#2140 id=2140 data-nosnippet>2140</a>
-<a href=#2141 id=2141 data-nosnippet>2141</a>    </span><span class="doccomment">/// Property: Comparison is deterministic (same result every time)
+<a href=#2141 id=2141 data-nosnippet>2141</a>    // Property: Comparison is deterministic (same result every time)
 <a href=#2142 id=2142 data-nosnippet>2142</a>    </span><span class="macro">proptest!</span> {
 <a href=#2143 id=2143 data-nosnippet>2143</a>        <span class="attr">#[test]
 <a href=#2144 id=2144 data-nosnippet>2144</a>        </span><span class="kw">fn </span>prop_REPL_010_001_comparison_deterministic(
@@ -2157,7 +2157,7 @@
 <a href=#2157 id=2157 data-nosnippet>2157</a>        }
 <a href=#2158 id=2158 data-nosnippet>2158</a>    }
 <a href=#2159 id=2159 data-nosnippet>2159</a>
-<a href=#2160 id=2160 data-nosnippet>2160</a>    <span class="doccomment">/// Property: Comparison correctly identifies differences
+<a href=#2160 id=2160 data-nosnippet>2160</a>    <span class="comment">// Property: Comparison correctly identifies differences
 <a href=#2161 id=2161 data-nosnippet>2161</a>    </span><span class="macro">proptest!</span> {
 <a href=#2162 id=2162 data-nosnippet>2162</a>        <span class="attr">#[test]
 <a href=#2163 id=2163 data-nosnippet>2163</a>        </span><span class="kw">fn </span>prop_REPL_010_001_differs_flag_correct(
@@ -2178,7 +2178,7 @@
 <a href=#2178 id=2178 data-nosnippet>2178</a>        }
 <a href=#2179 id=2179 data-nosnippet>2179</a>    }
 <a href=#2180 id=2180 data-nosnippet>2180</a>
-<a href=#2181 id=2181 data-nosnippet>2181</a>    <span class="doccomment">/// Property: Format diff highlighting never panics
+<a href=#2181 id=2181 data-nosnippet>2181</a>    <span class="comment">// Property: Format diff highlighting never panics
 <a href=#2182 id=2182 data-nosnippet>2182</a>    </span><span class="macro">proptest!</span> {
 <a href=#2183 id=2183 data-nosnippet>2183</a>        <span class="attr">#[test]
 <a href=#2184 id=2184 data-nosnippet>2184</a>        </span><span class="kw">fn </span>prop_REPL_010_001_diff_highlighting_valid(
@@ -2202,7 +2202,7 @@
 <a href=#2202 id=2202 data-nosnippet>2202</a>
 <a href=#2203 id=2203 data-nosnippet>2203</a>    <span class="comment">// ===== REPL-010-002: Enhanced Highlighting Property Tests =====
 <a href=#2204 id=2204 data-nosnippet>2204</a>
-<a href=#2205 id=2205 data-nosnippet>2205</a>    </span><span class="doccomment">/// Property: Highlighting output always has valid format (non-empty, no panics)
+<a href=#2205 id=2205 data-nosnippet>2205</a>    // Property: Highlighting output always has valid format (non-empty, no panics)
 <a href=#2206 id=2206 data-nosnippet>2206</a>    </span><span class="macro">proptest!</span> {
 <a href=#2207 id=2207 data-nosnippet>2207</a>        <span class="attr">#[test]
 <a href=#2208 id=2208 data-nosnippet>2208</a>        </span><span class="kw">fn </span>prop_REPL_010_002_highlight_always_valid_format(
@@ -2228,7 +2228,7 @@
 <a href=#2228 id=2228 data-nosnippet>2228</a>        }
 <a href=#2229 id=2229 data-nosnippet>2229</a>    }
 <a href=#2230 id=2230 data-nosnippet>2230</a>
-<a href=#2231 id=2231 data-nosnippet>2231</a>    <span class="doccomment">/// Property: If differs flag is true, output contains diff markers
+<a href=#2231 id=2231 data-nosnippet>2231</a>    <span class="comment">// Property: If differs flag is true, output contains diff markers
 <a href=#2232 id=2232 data-nosnippet>2232</a>    </span><span class="macro">proptest!</span> {
 <a href=#2233 id=2233 data-nosnippet>2233</a>        <span class="attr">#[test]
 <a href=#2234 id=2234 data-nosnippet>2234</a>        </span><span class="kw">fn </span>prop_REPL_010_002_differs_implies_diff_markers(
@@ -2259,7 +2259,7 @@
 <a href=#2259 id=2259 data-nosnippet>2259</a>        }
 <a href=#2260 id=2260 data-nosnippet>2260</a>    }
 <a href=#2261 id=2261 data-nosnippet>2261</a>
-<a href=#2262 id=2262 data-nosnippet>2262</a>    <span class="doccomment">/// Property: Detected transformations always have explanations
+<a href=#2262 id=2262 data-nosnippet>2262</a>    <span class="comment">// Property: Detected transformations always have explanations
 <a href=#2263 id=2263 data-nosnippet>2263</a>    </span><span class="macro">proptest!</span> {
 <a href=#2264 id=2264 data-nosnippet>2264</a>        <span class="attr">#[test]
 <a href=#2265 id=2265 data-nosnippet>2265</a>        </span><span class="kw">fn </span>prop_REPL_010_002_transformations_have_explanations(
@@ -2294,7 +2294,7 @@
 <a href=#2294 id=2294 data-nosnippet>2294</a>
 <a href=#2295 id=2295 data-nosnippet>2295</a>    <span class="comment">// ===== REPL-010-003 PROPERTY TESTS =====
 <a href=#2296 id=2296 data-nosnippet>2296</a>
-<a href=#2297 id=2297 data-nosnippet>2297</a>    </span><span class="doccomment">/// Property: explain_current_line returns None when lines are identical
+<a href=#2297 id=2297 data-nosnippet>2297</a>    // Property: explain_current_line returns None when lines are identical
 <a href=#2298 id=2298 data-nosnippet>2298</a>    </span><span class="macro">proptest!</span> {
 <a href=#2299 id=2299 data-nosnippet>2299</a>        <span class="attr">#[test]
 <a href=#2300 id=2300 data-nosnippet>2300</a>        </span><span class="kw">fn </span>prop_REPL_010_003_explain_none_when_identical(
@@ -2318,7 +2318,7 @@
 <a href=#2318 id=2318 data-nosnippet>2318</a>        }
 <a href=#2319 id=2319 data-nosnippet>2319</a>    }
 <a href=#2320 id=2320 data-nosnippet>2320</a>
-<a href=#2321 id=2321 data-nosnippet>2321</a>    <span class="doccomment">/// Property: explain_current_line returns Some when lines differ
+<a href=#2321 id=2321 data-nosnippet>2321</a>    <span class="comment">// Property: explain_current_line returns Some when lines differ
 <a href=#2322 id=2322 data-nosnippet>2322</a>    </span><span class="macro">proptest!</span> {
 <a href=#2323 id=2323 data-nosnippet>2323</a>        <span class="attr">#[test]
 <a href=#2324 id=2324 data-nosnippet>2324</a>        </span><span class="kw">fn </span>prop_REPL_010_003_explain_some_when_differs(
@@ -2347,7 +2347,7 @@
 <a href=#2347 id=2347 data-nosnippet>2347</a>        }
 <a href=#2348 id=2348 data-nosnippet>2348</a>    }
 <a href=#2349 id=2349 data-nosnippet>2349</a>
-<a href=#2350 id=2350 data-nosnippet>2350</a>    <span class="doccomment">/// Property: explain_current_line never panics on any input
+<a href=#2350 id=2350 data-nosnippet>2350</a>    <span class="comment">// Property: explain_current_line never panics on any input
 <a href=#2351 id=2351 data-nosnippet>2351</a>    </span><span class="macro">proptest!</span> {
 <a href=#2352 id=2352 data-nosnippet>2352</a>        <span class="attr">#[test]
 <a href=#2353 id=2353 data-nosnippet>2353</a>        </span><span class="kw">fn </span>prop_REPL_010_003_explain_never_panics(
@@ -2372,7 +2372,7 @@
 <a href=#2372 id=2372 data-nosnippet>2372</a>
 <a href=#2373 id=2373 data-nosnippet>2373</a>    <span class="comment">// ===== REPL-008-004 PROPERTY TESTS =====
 <a href=#2374 id=2374 data-nosnippet>2374</a>
-<a href=#2375 id=2375 data-nosnippet>2375</a>    </span><span class="doccomment">/// Property: finish() never increases call depth
+<a href=#2375 id=2375 data-nosnippet>2375</a>    // Property: finish() never increases call depth
 <a href=#2376 id=2376 data-nosnippet>2376</a>    </span><span class="macro">proptest!</span> {
 <a href=#2377 id=2377 data-nosnippet>2377</a>        <span class="attr">#[test]
 <a href=#2378 id=2378 data-nosnippet>2378</a>        </span><span class="kw">fn </span>prop_REPL_008_004_finish_never_increases_depth(num_lines <span class="kw">in </span><span class="number">1usize</span>..<span class="number">10</span>) {
@@ -2400,7 +2400,7 @@
 <a href=#2400 id=2400 data-nosnippet>2400</a>        }
 <a href=#2401 id=2401 data-nosnippet>2401</a>    }
 <a href=#2402 id=2402 data-nosnippet>2402</a>
-<a href=#2403 id=2403 data-nosnippet>2403</a>    <span class="doccomment">/// Property: finish() always returns valid result
+<a href=#2403 id=2403 data-nosnippet>2403</a>    <span class="comment">// Property: finish() always returns valid result
 <a href=#2404 id=2404 data-nosnippet>2404</a>    </span><span class="macro">proptest!</span> {
 <a href=#2405 id=2405 data-nosnippet>2405</a>        <span class="attr">#[test]
 <a href=#2406 id=2406 data-nosnippet>2406</a>        </span><span class="kw">fn </span>prop_REPL_008_004_finish_always_valid_result(num_lines <span class="kw">in </span><span class="number">1usize</span>..<span class="number">10</span>) {
@@ -2422,7 +2422,7 @@
 <a href=#2422 id=2422 data-nosnippet>2422</a>        }
 <a href=#2423 id=2423 data-nosnippet>2423</a>    }
 <a href=#2424 id=2424 data-nosnippet>2424</a>
-<a href=#2425 id=2425 data-nosnippet>2425</a>    <span class="doccomment">/// Property: finish() is deterministic
+<a href=#2425 id=2425 data-nosnippet>2425</a>    <span class="comment">// Property: finish() is deterministic
 <a href=#2426 id=2426 data-nosnippet>2426</a>    </span><span class="macro">proptest!</span> {
 <a href=#2427 id=2427 data-nosnippet>2427</a>        <span class="attr">#[test]
 <a href=#2428 id=2428 data-nosnippet>2428</a>        </span><span class="kw">fn </span>prop_REPL_008_004_finish_deterministic(num_lines <span class="kw">in </span><span class="number">1usize</span>..<span class="number">10</span>) {

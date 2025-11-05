@@ -250,7 +250,7 @@
 <a href=#250 id=250 data-nosnippet>250</a>
 <a href=#251 id=251 data-nosnippet>251</a>    <span class="comment">// ===== PROPERTY TESTS (PROPERTY PHASE) =====
 <a href=#252 id=252 data-nosnippet>252</a>
-<a href=#253 id=253 data-nosnippet>253</a>    </span><span class="doccomment">/// Property: Parser should never panic on any input
+<a href=#253 id=253 data-nosnippet>253</a>    // Property: Parser should never panic on any input
 <a href=#254 id=254 data-nosnippet>254</a>    </span><span class="macro">proptest!</span> {
 <a href=#255 id=255 data-nosnippet>255</a>        <span class="attr">#[test]
 <a href=#256 id=256 data-nosnippet>256</a>        </span><span class="kw">fn </span>prop_parse_never_panics(input <span class="kw">in </span><span class="string">".*{0,1000}"</span>) {
@@ -260,7 +260,7 @@
 <a href=#260 id=260 data-nosnippet>260</a>        </span>}
 <a href=#261 id=261 data-nosnippet>261</a>    }
 <a href=#262 id=262 data-nosnippet>262</a>
-<a href=#263 id=263 data-nosnippet>263</a>    <span class="doccomment">/// Property: Parser should produce valid AST or error
+<a href=#263 id=263 data-nosnippet>263</a>    <span class="comment">// Property: Parser should produce valid AST or error
 <a href=#264 id=264 data-nosnippet>264</a>    </span><span class="macro">proptest!</span> {
 <a href=#265 id=265 data-nosnippet>265</a>        <span class="attr">#[test]
 <a href=#266 id=266 data-nosnippet>266</a>        </span><span class="kw">fn </span>prop_parse_produces_valid_result(input <span class="kw">in </span><span class="string">"[a-z ]{1,100}"</span>) {
@@ -279,7 +279,7 @@
 <a href=#279 id=279 data-nosnippet>279</a>        }
 <a href=#280 id=280 data-nosnippet>280</a>    }
 <a href=#281 id=281 data-nosnippet>281</a>
-<a href=#282 id=282 data-nosnippet>282</a>    <span class="doccomment">/// Property: Empty/whitespace input should always succeed
+<a href=#282 id=282 data-nosnippet>282</a>    <span class="comment">// Property: Empty/whitespace input should always succeed
 <a href=#283 id=283 data-nosnippet>283</a>    </span><span class="macro">proptest!</span> {
 <a href=#284 id=284 data-nosnippet>284</a>        <span class="attr">#[test]
 <a href=#285 id=285 data-nosnippet>285</a>        </span><span class="kw">fn </span>prop_parse_empty_whitespace_succeeds(
@@ -292,7 +292,7 @@
 <a href=#292 id=292 data-nosnippet>292</a>        }
 <a href=#293 id=293 data-nosnippet>293</a>    }
 <a href=#294 id=294 data-nosnippet>294</a>
-<a href=#295 id=295 data-nosnippet>295</a>    <span class="doccomment">/// Property: Valid commands should parse successfully
+<a href=#295 id=295 data-nosnippet>295</a>    <span class="comment">// Property: Valid commands should parse successfully
 <a href=#296 id=296 data-nosnippet>296</a>    </span><span class="macro">proptest!</span> {
 <a href=#297 id=297 data-nosnippet>297</a>        <span class="attr">#[test]
 <a href=#298 id=298 data-nosnippet>298</a>        </span><span class="kw">fn </span>prop_parse_valid_commands(
@@ -324,7 +324,7 @@
 <a href=#324 id=324 data-nosnippet>324</a>        }
 <a href=#325 id=325 data-nosnippet>325</a>    }
 <a href=#326 id=326 data-nosnippet>326</a>
-<a href=#327 id=327 data-nosnippet>327</a>    <span class="doccomment">/// Property: Parse error formatting should never be empty
+<a href=#327 id=327 data-nosnippet>327</a>    <span class="comment">// Property: Parse error formatting should never be empty
 <a href=#328 id=328 data-nosnippet>328</a>    </span><span class="macro">proptest!</span> {
 <a href=#329 id=329 data-nosnippet>329</a>        <span class="attr">#[test]
 <a href=#330 id=330 data-nosnippet>330</a>        </span><span class="kw">fn </span>prop_error_formatting_never_empty(input <span class="kw">in </span><span class="string">".*{1,100}"</span>) {
@@ -340,7 +340,7 @@
 <a href=#340 id=340 data-nosnippet>340</a>        }
 <a href=#341 id=341 data-nosnippet>341</a>    }
 <a href=#342 id=342 data-nosnippet>342</a>
-<a href=#343 id=343 data-nosnippet>343</a>    <span class="doccomment">/// Property: Multiline commands should parse or error gracefully
+<a href=#343 id=343 data-nosnippet>343</a>    <span class="comment">// Property: Multiline commands should parse or error gracefully
 <a href=#344 id=344 data-nosnippet>344</a>    </span><span class="macro">proptest!</span> {
 <a href=#345 id=345 data-nosnippet>345</a>        <span class="attr">#[test]
 <a href=#346 id=346 data-nosnippet>346</a>        </span><span class="kw">fn </span>prop_parse_multiline_graceful(
@@ -366,7 +366,7 @@
 <a href=#366 id=366 data-nosnippet>366</a>
 <a href=#367 id=367 data-nosnippet>367</a>    <span class="comment">// ===== REPL-004-003 PROPERTY TESTS (PROPERTY PHASE) =====
 <a href=#368 id=368 data-nosnippet>368</a>
-<a href=#369 id=369 data-nosnippet>369</a>    </span><span class="doccomment">/// Property: All syntax errors have helpful, non-empty messages
+<a href=#369 id=369 data-nosnippet>369</a>    // Property: All syntax errors have helpful, non-empty messages
 <a href=#370 id=370 data-nosnippet>370</a>    </span><span class="macro">proptest!</span> {
 <a href=#371 id=371 data-nosnippet>371</a>        <span class="attr">#[test]
 <a href=#372 id=372 data-nosnippet>372</a>        </span><span class="kw">fn </span>prop_syntax_errors_always_helpful(input <span class="kw">in </span><span class="string">".*{1,100}"</span>) {
@@ -394,7 +394,7 @@
 <a href=#394 id=394 data-nosnippet>394</a>        }
 <a href=#395 id=395 data-nosnippet>395</a>    }
 <a href=#396 id=396 data-nosnippet>396</a>
-<a href=#397 id=397 data-nosnippet>397</a>    <span class="doccomment">/// Property: Errors with line numbers always format them correctly
+<a href=#397 id=397 data-nosnippet>397</a>    <span class="comment">// Property: Errors with line numbers always format them correctly
 <a href=#398 id=398 data-nosnippet>398</a>    </span><span class="macro">proptest!</span> {
 <a href=#399 id=399 data-nosnippet>399</a>        <span class="attr">#[test]
 <a href=#400 id=400 data-nosnippet>400</a>        </span><span class="kw">fn </span>prop_line_numbers_formatted_correctly(input <span class="kw">in </span><span class="string">".*{1,200}"</span>) {

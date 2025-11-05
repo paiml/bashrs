@@ -2083,7 +2083,7 @@
 <a href=#2083 id=2083 data-nosnippet>2083</a>        };
 <a href=#2084 id=2084 data-nosnippet>2084</a>
 <a href=#2085 id=2085 data-nosnippet>2085</a>        <span class="comment">// Find function body (between { and })
-<a href=#2086 id=2086 data-nosnippet>2086</a>        </span><span class="kw">let </span><span class="kw-2">mut </span>body_start = start;
+<a href=#2086 id=2086 data-nosnippet>2086</a>        </span><span class="kw">let </span>body_start = start;
 <a href=#2087 id=2087 data-nosnippet>2087</a>        <span class="kw">let </span><span class="kw-2">mut </span>body_lines = Vec::new();
 <a href=#2088 id=2088 data-nosnippet>2088</a>        <span class="kw">let </span><span class="kw-2">mut </span>brace_count = <span class="number">0</span>;
 <a href=#2089 id=2089 data-nosnippet>2089</a>        <span class="kw">let </span><span class="kw-2">mut </span>func_end = start;
@@ -5696,8 +5696,8 @@
 <a href=#5696 id=5696 data-nosnippet>5696</a>    <span class="kw">use super</span>::<span class="kw-2">*</span>;
 <a href=#5697 id=5697 data-nosnippet>5697</a>    <span class="kw">use </span>proptest::prelude::<span class="kw-2">*</span>;
 <a href=#5698 id=5698 data-nosnippet>5698</a>
-<a href=#5699 id=5699 data-nosnippet>5699</a>    <span class="doccomment">/// Property: Array element access is deterministic
-<a href=#5700 id=5700 data-nosnippet>5700</a>    /// Same array + same index = same result
+<a href=#5699 id=5699 data-nosnippet>5699</a>    <span class="comment">// Property: Array element access is deterministic
+<a href=#5700 id=5700 data-nosnippet>5700</a>    // Same array + same index = same result
 <a href=#5701 id=5701 data-nosnippet>5701</a>    </span><span class="macro">proptest!</span> {
 <a href=#5702 id=5702 data-nosnippet>5702</a>        <span class="attr">#[test]
 <a href=#5703 id=5703 data-nosnippet>5703</a>        </span><span class="kw">fn </span>prop_array_deterministic(
@@ -5720,7 +5720,7 @@
 <a href=#5720 id=5720 data-nosnippet>5720</a>        }
 <a href=#5721 id=5721 data-nosnippet>5721</a>    }
 <a href=#5722 id=5722 data-nosnippet>5722</a>
-<a href=#5723 id=5723 data-nosnippet>5723</a>    <span class="doccomment">/// Property: Array length is always non-negative
+<a href=#5723 id=5723 data-nosnippet>5723</a>    <span class="comment">// Property: Array length is always non-negative
 <a href=#5724 id=5724 data-nosnippet>5724</a>    </span><span class="macro">proptest!</span> {
 <a href=#5725 id=5725 data-nosnippet>5725</a>        <span class="attr">#[test]
 <a href=#5726 id=5726 data-nosnippet>5726</a>        </span><span class="kw">fn </span>prop_array_length_non_negative(
@@ -5741,7 +5741,7 @@
 <a href=#5741 id=5741 data-nosnippet>5741</a>        }
 <a href=#5742 id=5742 data-nosnippet>5742</a>    }
 <a href=#5743 id=5743 data-nosnippet>5743</a>
-<a href=#5744 id=5744 data-nosnippet>5744</a>    <span class="doccomment">/// Property: Array expansion includes all elements
+<a href=#5744 id=5744 data-nosnippet>5744</a>    <span class="comment">// Property: Array expansion includes all elements
 <a href=#5745 id=5745 data-nosnippet>5745</a>    </span><span class="macro">proptest!</span> {
 <a href=#5746 id=5746 data-nosnippet>5746</a>        <span class="attr">#[test]
 <a href=#5747 id=5747 data-nosnippet>5747</a>        </span><span class="kw">fn </span>prop_array_expansion_all_elements(
@@ -5761,7 +5761,7 @@
 <a href=#5761 id=5761 data-nosnippet>5761</a>        }
 <a href=#5762 id=5762 data-nosnippet>5762</a>    }
 <a href=#5763 id=5763 data-nosnippet>5763</a>
-<a href=#5764 id=5764 data-nosnippet>5764</a>    <span class="doccomment">/// Property: Array element assignment preserves other elements
+<a href=#5764 id=5764 data-nosnippet>5764</a>    <span class="comment">// Property: Array element assignment preserves other elements
 <a href=#5765 id=5765 data-nosnippet>5765</a>    </span><span class="macro">proptest!</span> {
 <a href=#5766 id=5766 data-nosnippet>5766</a>        <span class="attr">#[test]
 <a href=#5767 id=5767 data-nosnippet>5767</a>        </span><span class="kw">fn </span>prop_array_assignment_preserves_others(
@@ -5785,7 +5785,7 @@
 <a href=#5785 id=5785 data-nosnippet>5785</a>        }
 <a href=#5786 id=5786 data-nosnippet>5786</a>    }
 <a href=#5787 id=5787 data-nosnippet>5787</a>
-<a href=#5788 id=5788 data-nosnippet>5788</a>    <span class="doccomment">/// Property: Multiple array assignments are idempotent
+<a href=#5788 id=5788 data-nosnippet>5788</a>    <span class="comment">// Property: Multiple array assignments are idempotent
 <a href=#5789 id=5789 data-nosnippet>5789</a>    </span><span class="macro">proptest!</span> {
 <a href=#5790 id=5790 data-nosnippet>5790</a>        <span class="attr">#[test]
 <a href=#5791 id=5791 data-nosnippet>5791</a>        </span><span class="kw">fn </span>prop_array_assignment_idempotent(
@@ -5806,7 +5806,7 @@
 <a href=#5806 id=5806 data-nosnippet>5806</a>        }
 <a href=#5807 id=5807 data-nosnippet>5807</a>    }
 <a href=#5808 id=5808 data-nosnippet>5808</a>
-<a href=#5809 id=5809 data-nosnippet>5809</a>    <span class="doccomment">/// Property: Array iteration processes all elements
+<a href=#5809 id=5809 data-nosnippet>5809</a>    <span class="comment">// Property: Array iteration processes all elements
 <a href=#5810 id=5810 data-nosnippet>5810</a>    </span><span class="macro">proptest!</span> {
 <a href=#5811 id=5811 data-nosnippet>5811</a>        <span class="attr">#[test]
 <a href=#5812 id=5812 data-nosnippet>5812</a>        </span><span class="kw">fn </span>prop_array_iteration_all_elements(
@@ -5828,7 +5828,7 @@
 <a href=#5828 id=5828 data-nosnippet>5828</a>        }
 <a href=#5829 id=5829 data-nosnippet>5829</a>    }
 <a href=#5830 id=5830 data-nosnippet>5830</a>
-<a href=#5831 id=5831 data-nosnippet>5831</a>    <span class="doccomment">/// Property: Empty array has length 0
+<a href=#5831 id=5831 data-nosnippet>5831</a>    <span class="comment">// Property: Empty array has length 0
 <a href=#5832 id=5832 data-nosnippet>5832</a>    </span><span class="macro">proptest!</span> {
 <a href=#5833 id=5833 data-nosnippet>5833</a>        <span class="attr">#[test]
 <a href=#5834 id=5834 data-nosnippet>5834</a>        </span><span class="kw">fn </span>prop_empty_array_length_zero(_seed <span class="kw">in </span><span class="number">0</span>..<span class="number">100u32</span>) {
@@ -5842,11 +5842,11 @@
 <a href=#5842 id=5842 data-nosnippet>5842</a>            // Note: This is a known limitation in current implementation
 <a href=#5843 id=5843 data-nosnippet>5843</a>            // prop_assert_eq!(output, "0");
 <a href=#5844 id=5844 data-nosnippet>5844</a>            // Skipping assertion until empty array bug is fixed
-<a href=#5845 id=5845 data-nosnippet>5845</a>            </span><span class="macro">prop_assert!</span>(output == <span class="string">"0" </span>|| output == <span class="string">""</span>);
+<a href=#5845 id=5845 data-nosnippet>5845</a>            </span><span class="macro">prop_assert!</span>(output == <span class="string">"0" </span>|| output.is_empty());
 <a href=#5846 id=5846 data-nosnippet>5846</a>        }
 <a href=#5847 id=5847 data-nosnippet>5847</a>    }
 <a href=#5848 id=5848 data-nosnippet>5848</a>
-<a href=#5849 id=5849 data-nosnippet>5849</a>    <span class="doccomment">/// Property: Array with N elements has length N
+<a href=#5849 id=5849 data-nosnippet>5849</a>    <span class="comment">// Property: Array with N elements has length N
 <a href=#5850 id=5850 data-nosnippet>5850</a>    </span><span class="macro">proptest!</span> {
 <a href=#5851 id=5851 data-nosnippet>5851</a>        <span class="attr">#[test]
 <a href=#5852 id=5852 data-nosnippet>5852</a>        </span><span class="kw">fn </span>prop_array_length_matches_elements(
@@ -5866,7 +5866,7 @@
 <a href=#5866 id=5866 data-nosnippet>5866</a>        }
 <a href=#5867 id=5867 data-nosnippet>5867</a>    }
 <a href=#5868 id=5868 data-nosnippet>5868</a>
-<a href=#5869 id=5869 data-nosnippet>5869</a>    <span class="doccomment">/// Property: Out-of-bounds access returns empty
+<a href=#5869 id=5869 data-nosnippet>5869</a>    <span class="comment">// Property: Out-of-bounds access returns empty
 <a href=#5870 id=5870 data-nosnippet>5870</a>    </span><span class="macro">proptest!</span> {
 <a href=#5871 id=5871 data-nosnippet>5871</a>        <span class="attr">#[test]
 <a href=#5872 id=5872 data-nosnippet>5872</a>        </span><span class="kw">fn </span>prop_out_of_bounds_empty(
@@ -5886,7 +5886,7 @@
 <a href=#5886 id=5886 data-nosnippet>5886</a>        }
 <a href=#5887 id=5887 data-nosnippet>5887</a>    }
 <a href=#5888 id=5888 data-nosnippet>5888</a>
-<a href=#5889 id=5889 data-nosnippet>5889</a>    <span class="doccomment">/// Property: Array element modification preserves length
+<a href=#5889 id=5889 data-nosnippet>5889</a>    <span class="comment">// Property: Array element modification preserves length
 <a href=#5890 id=5890 data-nosnippet>5890</a>    </span><span class="macro">proptest!</span> {
 <a href=#5891 id=5891 data-nosnippet>5891</a>        <span class="attr">#[test]
 <a href=#5892 id=5892 data-nosnippet>5892</a>        </span><span class="kw">fn </span>prop_modification_preserves_length(
@@ -6241,7 +6241,7 @@
 <a href=#6241 id=6241 data-nosnippet>6241</a>        <span class="kw">use super</span>::<span class="kw-2">*</span>;
 <a href=#6242 id=6242 data-nosnippet>6242</a>        <span class="kw">use </span>proptest::prelude::<span class="kw-2">*</span>;
 <a href=#6243 id=6243 data-nosnippet>6243</a>
-<a href=#6244 id=6244 data-nosnippet>6244</a>        <span class="doccomment">/// Property: Default value operator (:-) always provides a value
+<a href=#6244 id=6244 data-nosnippet>6244</a>        <span class="comment">// Property: Default value operator (:-) always provides a value
 <a href=#6245 id=6245 data-nosnippet>6245</a>        </span><span class="macro">proptest!</span> {
 <a href=#6246 id=6246 data-nosnippet>6246</a>            <span class="attr">#[test]
 <a href=#6247 id=6247 data-nosnippet>6247</a>            </span><span class="kw">fn </span>prop_string_001_default_value_always_defined(
@@ -6256,7 +6256,7 @@
 <a href=#6256 id=6256 data-nosnippet>6256</a>            }
 <a href=#6257 id=6257 data-nosnippet>6257</a>        }
 <a href=#6258 id=6258 data-nosnippet>6258</a>
-<a href=#6259 id=6259 data-nosnippet>6259</a>        <span class="doccomment">/// Property: Assign default (:=) sets variable if unset
+<a href=#6259 id=6259 data-nosnippet>6259</a>        <span class="comment">// Property: Assign default (:=) sets variable if unset
 <a href=#6260 id=6260 data-nosnippet>6260</a>        </span><span class="macro">proptest!</span> {
 <a href=#6261 id=6261 data-nosnippet>6261</a>            <span class="attr">#[test]
 <a href=#6262 id=6262 data-nosnippet>6262</a>            </span><span class="kw">fn </span>prop_string_002_assign_default_sets_variable(
@@ -6274,7 +6274,7 @@
 <a href=#6274 id=6274 data-nosnippet>6274</a>            }
 <a href=#6275 id=6275 data-nosnippet>6275</a>        }
 <a href=#6276 id=6276 data-nosnippet>6276</a>
-<a href=#6277 id=6277 data-nosnippet>6277</a>        <span class="doccomment">/// Property: String length (#var) always non-negative
+<a href=#6277 id=6277 data-nosnippet>6277</a>        <span class="comment">// Property: String length (#var) always non-negative
 <a href=#6278 id=6278 data-nosnippet>6278</a>        </span><span class="macro">proptest!</span> {
 <a href=#6279 id=6279 data-nosnippet>6279</a>            <span class="attr">#[test]
 <a href=#6280 id=6280 data-nosnippet>6280</a>            </span><span class="kw">fn </span>prop_string_003_length_non_negative(
@@ -6290,7 +6290,7 @@
 <a href=#6290 id=6290 data-nosnippet>6290</a>            }
 <a href=#6291 id=6291 data-nosnippet>6291</a>        }
 <a href=#6292 id=6292 data-nosnippet>6292</a>
-<a href=#6293 id=6293 data-nosnippet>6293</a>        <span class="doccomment">/// Property: Substring extraction never exceeds original length
+<a href=#6293 id=6293 data-nosnippet>6293</a>        <span class="comment">// Property: Substring extraction never exceeds original length
 <a href=#6294 id=6294 data-nosnippet>6294</a>        </span><span class="macro">proptest!</span> {
 <a href=#6295 id=6295 data-nosnippet>6295</a>            <span class="attr">#[test]
 <a href=#6296 id=6296 data-nosnippet>6296</a>            </span><span class="kw">fn </span>prop_string_004_substring_within_bounds(
@@ -6306,7 +6306,7 @@
 <a href=#6306 id=6306 data-nosnippet>6306</a>            }
 <a href=#6307 id=6307 data-nosnippet>6307</a>        }
 <a href=#6308 id=6308 data-nosnippet>6308</a>
-<a href=#6309 id=6309 data-nosnippet>6309</a>        <span class="doccomment">/// Property: Pattern replacement preserves string type
+<a href=#6309 id=6309 data-nosnippet>6309</a>        <span class="comment">// Property: Pattern replacement preserves string type
 <a href=#6310 id=6310 data-nosnippet>6310</a>        </span><span class="macro">proptest!</span> {
 <a href=#6311 id=6311 data-nosnippet>6311</a>            <span class="attr">#[test]
 <a href=#6312 id=6312 data-nosnippet>6312</a>            </span><span class="kw">fn </span>prop_string_005_replacement_is_string(
@@ -6323,7 +6323,7 @@
 <a href=#6323 id=6323 data-nosnippet>6323</a>            }
 <a href=#6324 id=6324 data-nosnippet>6324</a>        }
 <a href=#6325 id=6325 data-nosnippet>6325</a>
-<a href=#6326 id=6326 data-nosnippet>6326</a>        <span class="doccomment">/// Property: Replace all (//pattern/repl) handles empty pattern gracefully
+<a href=#6326 id=6326 data-nosnippet>6326</a>        <span class="comment">// Property: Replace all (//pattern/repl) handles empty pattern gracefully
 <a href=#6327 id=6327 data-nosnippet>6327</a>        </span><span class="macro">proptest!</span> {
 <a href=#6328 id=6328 data-nosnippet>6328</a>            <span class="attr">#[test]
 <a href=#6329 id=6329 data-nosnippet>6329</a>            </span><span class="kw">fn </span>prop_string_006_replace_all_never_panics(
@@ -6338,7 +6338,7 @@
 <a href=#6338 id=6338 data-nosnippet>6338</a>            }
 <a href=#6339 id=6339 data-nosnippet>6339</a>        }
 <a href=#6340 id=6340 data-nosnippet>6340</a>
-<a href=#6341 id=6341 data-nosnippet>6341</a>        <span class="doccomment">/// Property: Alternate value (:+) only returns value if variable set
+<a href=#6341 id=6341 data-nosnippet>6341</a>        <span class="comment">// Property: Alternate value (:+) only returns value if variable set
 <a href=#6342 id=6342 data-nosnippet>6342</a>        </span><span class="macro">proptest!</span> {
 <a href=#6343 id=6343 data-nosnippet>6343</a>            <span class="attr">#[test]
 <a href=#6344 id=6344 data-nosnippet>6344</a>            </span><span class="kw">fn </span>prop_string_007_alternate_only_when_set(
@@ -6355,7 +6355,7 @@
 <a href=#6355 id=6355 data-nosnippet>6355</a>            }
 <a href=#6356 id=6356 data-nosnippet>6356</a>        }
 <a href=#6357 id=6357 data-nosnippet>6357</a>
-<a href=#6358 id=6358 data-nosnippet>6358</a>        <span class="doccomment">/// Property: Remove prefix (#pattern) shortens or preserves length
+<a href=#6358 id=6358 data-nosnippet>6358</a>        <span class="comment">// Property: Remove prefix (#pattern) shortens or preserves length
 <a href=#6359 id=6359 data-nosnippet>6359</a>        </span><span class="macro">proptest!</span> {
 <a href=#6360 id=6360 data-nosnippet>6360</a>            <span class="attr">#[test]
 <a href=#6361 id=6361 data-nosnippet>6361</a>            </span><span class="kw">fn </span>prop_string_008_remove_prefix_preserves_or_shortens(
@@ -6371,7 +6371,7 @@
 <a href=#6371 id=6371 data-nosnippet>6371</a>            }
 <a href=#6372 id=6372 data-nosnippet>6372</a>        }
 <a href=#6373 id=6373 data-nosnippet>6373</a>
-<a href=#6374 id=6374 data-nosnippet>6374</a>        <span class="doccomment">/// Property: Remove suffix (%pattern) shortens or preserves length
+<a href=#6374 id=6374 data-nosnippet>6374</a>        <span class="comment">// Property: Remove suffix (%pattern) shortens or preserves length
 <a href=#6375 id=6375 data-nosnippet>6375</a>        </span><span class="macro">proptest!</span> {
 <a href=#6376 id=6376 data-nosnippet>6376</a>            <span class="attr">#[test]
 <a href=#6377 id=6377 data-nosnippet>6377</a>            </span><span class="kw">fn </span>prop_string_009_remove_suffix_preserves_or_shortens(
@@ -6387,7 +6387,7 @@
 <a href=#6387 id=6387 data-nosnippet>6387</a>            }
 <a href=#6388 id=6388 data-nosnippet>6388</a>        }
 <a href=#6389 id=6389 data-nosnippet>6389</a>
-<a href=#6390 id=6390 data-nosnippet>6390</a>        <span class="doccomment">/// Property: String operations are deterministic
+<a href=#6390 id=6390 data-nosnippet>6390</a>        <span class="comment">// Property: String operations are deterministic
 <a href=#6391 id=6391 data-nosnippet>6391</a>        </span><span class="macro">proptest!</span> {
 <a href=#6392 id=6392 data-nosnippet>6392</a>            <span class="attr">#[test]
 <a href=#6393 id=6393 data-nosnippet>6393</a>            </span><span class="kw">fn </span>prop_string_010_deterministic_operations(
@@ -6755,7 +6755,7 @@
 <a href=#6755 id=6755 data-nosnippet>6755</a>            <span class="kw">use super</span>::<span class="kw-2">*</span>;
 <a href=#6756 id=6756 data-nosnippet>6756</a>            <span class="kw">use </span>proptest::prelude::<span class="kw-2">*</span>;
 <a href=#6757 id=6757 data-nosnippet>6757</a>
-<a href=#6758 id=6758 data-nosnippet>6758</a>            <span class="doccomment">/// Property: Wildcard pattern (*) always matches
+<a href=#6758 id=6758 data-nosnippet>6758</a>            <span class="comment">// Property: Wildcard pattern (*) always matches
 <a href=#6759 id=6759 data-nosnippet>6759</a>            </span><span class="macro">proptest!</span> {
 <a href=#6760 id=6760 data-nosnippet>6760</a>                <span class="attr">#[test]
 <a href=#6761 id=6761 data-nosnippet>6761</a>                </span><span class="kw">fn </span>prop_case_001_wildcard_always_matches(
@@ -6776,7 +6776,7 @@
 <a href=#6776 id=6776 data-nosnippet>6776</a>                }
 <a href=#6777 id=6777 data-nosnippet>6777</a>            }
 <a href=#6778 id=6778 data-nosnippet>6778</a>
-<a href=#6779 id=6779 data-nosnippet>6779</a>            <span class="doccomment">/// Property: Exact match is deterministic
+<a href=#6779 id=6779 data-nosnippet>6779</a>            <span class="comment">// Property: Exact match is deterministic
 <a href=#6780 id=6780 data-nosnippet>6780</a>            </span><span class="macro">proptest!</span> {
 <a href=#6781 id=6781 data-nosnippet>6781</a>                <span class="attr">#[test]
 <a href=#6782 id=6782 data-nosnippet>6782</a>                </span><span class="kw">fn </span>prop_case_002_exact_match_deterministic(
@@ -6800,7 +6800,7 @@
 <a href=#6800 id=6800 data-nosnippet>6800</a>                }
 <a href=#6801 id=6801 data-nosnippet>6801</a>            }
 <a href=#6802 id=6802 data-nosnippet>6802</a>
-<a href=#6803 id=6803 data-nosnippet>6803</a>            <span class="doccomment">/// Property: Multiple patterns work correctly
+<a href=#6803 id=6803 data-nosnippet>6803</a>            <span class="comment">// Property: Multiple patterns work correctly
 <a href=#6804 id=6804 data-nosnippet>6804</a>            </span><span class="macro">proptest!</span> {
 <a href=#6805 id=6805 data-nosnippet>6805</a>                <span class="attr">#[test]
 <a href=#6806 id=6806 data-nosnippet>6806</a>                </span><span class="kw">fn </span>prop_case_003_multiple_patterns_or_logic(
@@ -6824,7 +6824,7 @@
 <a href=#6824 id=6824 data-nosnippet>6824</a>                }
 <a href=#6825 id=6825 data-nosnippet>6825</a>            }
 <a href=#6826 id=6826 data-nosnippet>6826</a>
-<a href=#6827 id=6827 data-nosnippet>6827</a>            <span class="doccomment">/// Property: Case statements never panic
+<a href=#6827 id=6827 data-nosnippet>6827</a>            <span class="comment">// Property: Case statements never panic
 <a href=#6828 id=6828 data-nosnippet>6828</a>            </span><span class="macro">proptest!</span> {
 <a href=#6829 id=6829 data-nosnippet>6829</a>                <span class="attr">#[test]
 <a href=#6830 id=6830 data-nosnippet>6830</a>                </span><span class="kw">fn </span>prop_case_004_never_panics(
@@ -6843,7 +6843,7 @@
 <a href=#6843 id=6843 data-nosnippet>6843</a>                }
 <a href=#6844 id=6844 data-nosnippet>6844</a>            }
 <a href=#6845 id=6845 data-nosnippet>6845</a>
-<a href=#6846 id=6846 data-nosnippet>6846</a>            <span class="doccomment">/// Property: Case statements are deterministic
+<a href=#6846 id=6846 data-nosnippet>6846</a>            <span class="comment">// Property: Case statements are deterministic
 <a href=#6847 id=6847 data-nosnippet>6847</a>            </span><span class="macro">proptest!</span> {
 <a href=#6848 id=6848 data-nosnippet>6848</a>                <span class="attr">#[test]
 <a href=#6849 id=6849 data-nosnippet>6849</a>                </span><span class="kw">fn </span>prop_case_005_deterministic_execution(

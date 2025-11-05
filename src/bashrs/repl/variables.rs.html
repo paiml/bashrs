@@ -279,7 +279,7 @@
 <a href=#279 id=279 data-nosnippet>279</a>            <span class="string">"[A-Za-z_][A-Za-z0-9_]{0,19}"
 <a href=#280 id=280 data-nosnippet>280</a>        </span>}
 <a href=#281 id=281 data-nosnippet>281</a>
-<a href=#282 id=282 data-nosnippet>282</a>        <span class="doccomment">/// Property: Valid variable names always parse successfully
+<a href=#282 id=282 data-nosnippet>282</a>        <span class="comment">// Property: Valid variable names always parse successfully
 <a href=#283 id=283 data-nosnippet>283</a>        </span><span class="macro">proptest!</span> {
 <a href=#284 id=284 data-nosnippet>284</a>            <span class="attr">#[test]
 <a href=#285 id=285 data-nosnippet>285</a>            </span><span class="kw">fn </span>prop_REPL_007_001_valid_names_parse(
@@ -296,7 +296,7 @@
 <a href=#296 id=296 data-nosnippet>296</a>            }
 <a href=#297 id=297 data-nosnippet>297</a>        }
 <a href=#298 id=298 data-nosnippet>298</a>
-<a href=#299 id=299 data-nosnippet>299</a>        <span class="doccomment">/// Property: Expansion is deterministic - same input always produces same output
+<a href=#299 id=299 data-nosnippet>299</a>        <span class="comment">// Property: Expansion is deterministic - same input always produces same output
 <a href=#300 id=300 data-nosnippet>300</a>        </span><span class="macro">proptest!</span> {
 <a href=#301 id=301 data-nosnippet>301</a>            <span class="attr">#[test]
 <a href=#302 id=302 data-nosnippet>302</a>            </span><span class="kw">fn </span>prop_REPL_007_001_expansion_deterministic(
@@ -314,7 +314,7 @@
 <a href=#314 id=314 data-nosnippet>314</a>            }
 <a href=#315 id=315 data-nosnippet>315</a>        }
 <a href=#316 id=316 data-nosnippet>316</a>
-<a href=#317 id=317 data-nosnippet>317</a>        <span class="doccomment">/// Property: Unknown variables always expand to empty string
+<a href=#317 id=317 data-nosnippet>317</a>        <span class="comment">// Property: Unknown variables always expand to empty string
 <a href=#318 id=318 data-nosnippet>318</a>        </span><span class="macro">proptest!</span> {
 <a href=#319 id=319 data-nosnippet>319</a>            <span class="attr">#[test]
 <a href=#320 id=320 data-nosnippet>320</a>            </span><span class="kw">fn </span>prop_REPL_007_001_unknown_vars_empty(
@@ -330,7 +330,7 @@
 <a href=#330 id=330 data-nosnippet>330</a>            }
 <a href=#331 id=331 data-nosnippet>331</a>        }
 <a href=#332 id=332 data-nosnippet>332</a>
-<a href=#333 id=333 data-nosnippet>333</a>        <span class="doccomment">/// Property: Assignment + expansion roundtrip preserves values
+<a href=#333 id=333 data-nosnippet>333</a>        <span class="comment">// Property: Assignment + expansion roundtrip preserves values
 <a href=#334 id=334 data-nosnippet>334</a>        </span><span class="macro">proptest!</span> {
 <a href=#335 id=335 data-nosnippet>335</a>            <span class="attr">#[test]
 <a href=#336 id=336 data-nosnippet>336</a>            </span><span class="kw">fn </span>prop_REPL_007_001_roundtrip(
@@ -361,7 +361,7 @@
 <a href=#361 id=361 data-nosnippet>361</a>            }
 <a href=#362 id=362 data-nosnippet>362</a>        }
 <a href=#363 id=363 data-nosnippet>363</a>
-<a href=#364 id=364 data-nosnippet>364</a>        <span class="doccomment">/// Property: Multiple variables expand independently
+<a href=#364 id=364 data-nosnippet>364</a>        <span class="comment">// Property: Multiple variables expand independently
 <a href=#365 id=365 data-nosnippet>365</a>        </span><span class="macro">proptest!</span> {
 <a href=#366 id=366 data-nosnippet>366</a>            <span class="attr">#[test]
 <a href=#367 id=367 data-nosnippet>367</a>            </span><span class="kw">fn </span>prop_REPL_007_001_multiple_vars_independent(
@@ -386,7 +386,7 @@
 <a href=#386 id=386 data-nosnippet>386</a>            }
 <a href=#387 id=387 data-nosnippet>387</a>        }
 <a href=#388 id=388 data-nosnippet>388</a>
-<a href=#389 id=389 data-nosnippet>389</a>        <span class="doccomment">/// Property: Quoted values have quotes removed
+<a href=#389 id=389 data-nosnippet>389</a>        <span class="comment">// Property: Quoted values have quotes removed
 <a href=#390 id=390 data-nosnippet>390</a>        </span><span class="macro">proptest!</span> {
 <a href=#391 id=391 data-nosnippet>391</a>            <span class="attr">#[test]
 <a href=#392 id=392 data-nosnippet>392</a>            </span><span class="kw">fn </span>prop_REPL_007_001_quotes_removed(
@@ -409,7 +409,7 @@
 <a href=#409 id=409 data-nosnippet>409</a>            }
 <a href=#410 id=410 data-nosnippet>410</a>        }
 <a href=#411 id=411 data-nosnippet>411</a>
-<a href=#412 id=412 data-nosnippet>412</a>        <span class="doccomment">/// Property: Empty values are valid
+<a href=#412 id=412 data-nosnippet>412</a>        <span class="comment">// Property: Empty values are valid
 <a href=#413 id=413 data-nosnippet>413</a>        </span><span class="macro">proptest!</span> {
 <a href=#414 id=414 data-nosnippet>414</a>            <span class="attr">#[test]
 <a href=#415 id=415 data-nosnippet>415</a>            </span><span class="kw">fn </span>prop_REPL_007_001_empty_values_valid(
