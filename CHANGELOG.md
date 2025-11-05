@@ -7,6 +7,56 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+**Issue #6: `bashrs lint` exit code bug (CRITICAL for CI/CD)** 🐛
+
+- **Fixed exit code behavior** to align with industry standards (shellcheck, eslint, gcc):
+  - **Exit 0**: No errors found (warnings/info are non-blocking) ✅
+  - **Exit 1**: Errors found (actual lint failures) ⚠️
+  - **Exit 2**: Tool failures (file not found, invalid arguments) 🚫
+
+**Previous Behavior** (Broken):
+```bash
+$ bashrs lint script.sh  # Script has only warnings
+# Exit 1 despite 0 error(s) ❌ (blocks CI/CD)
+```
+
+**New Behavior** (Fixed):
+```bash
+$ bashrs lint script.sh  # Script has only warnings
+# Exit 0 - warnings are non-blocking ✅ (CI/CD passes)
+
+$ bashrs lint script.sh  # Script has errors
+# Exit 1 - errors block pipeline ⚠️
+
+$ bashrs lint nonexistent.sh
+# Exit 2 - tool failure 🚫
+```
+
+**Impact**:
+- ✅ **Unblocks CI/CD adoption**: Warnings no longer block pre-commit hooks and pipelines
+- ✅ **Industry-standard compliance**: Matches shellcheck, eslint, gcc exit code behavior
+- ✅ **12 comprehensive tests**: All exit code scenarios validated with EXTREME TDD
+
+**Changes**:
+- Modified `rash/src/cli/commands.rs`: Fixed lint_command exit logic (errors exit 1, warnings exit 0)
+- Modified `rash/src/bin/bashrs.rs`: I/O errors and tool failures now exit 2 (not 1)
+- Added `rash/tests/cli_lint_exit_codes_tests.rs`: 12 new tests covering all exit scenarios
+
+**Test Coverage**:
+- ✅ Exit 0: No issues, warnings-only, info-only (3 tests)
+- ✅ Exit 1: Errors found, multiple errors, errors+warnings (4 tests)
+- ✅ Exit 2: File not found, invalid arguments (2 tests)
+- ✅ CI/CD integration scenarios (2 tests)
+- ✅ Property tests: No-errors invariant, file-not-found invariant (2 tests)
+
+**EXTREME TDD Process**:
+1. ✅ RED Phase: Wrote 12 failing tests (4 initially failed as expected)
+2. ✅ GREEN Phase: Fixed implementation (all 12 tests now pass)
+3. ✅ Full test suite: 3805+ lint-related tests pass (no regressions)
+4. ✅ Documentation updated
+
 ### Added
 
 **Issue #10: Dockerfile-specific quality scoring mode** 🐳

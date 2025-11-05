@@ -16,6 +16,86 @@ This chapter provides a complete reference for bashrs v6.31.0 exit codes, their 
 
 bashrs follows standard Unix conventions for exit codes:
 
+### Lint Command Exit Codes (Issue #6 - Updated)
+
+**IMPORTANT**: The `bashrs lint` command uses a simplified exit code scheme aligned with industry standards (shellcheck, eslint, gcc):
+
+| Exit Code | Meaning | When Returned | CI/CD Behavior |
+|-----------|---------|---------------|----------------|
+| **0** | **No errors** | No errors found (warnings/info are OK) | ✅ **PASS** - Pipeline continues |
+| **1** | **Errors found** | Actual lint failures (ERROR severity) | ❌ **FAIL** - Pipeline blocked |
+| **2** | **Tool failure** | File not found, invalid arguments, I/O errors | 🚫 **FAIL** - Tool malfunction |
+
+**Why This Matters**:
+- **Warnings don't block CI/CD**: Only actual errors (ERROR severity) cause exit 1
+- **Tool failures are distinct**: Exit 2 indicates tool problems (not lint issues)
+- **Industry standard**: Matches shellcheck, eslint, gcc behavior
+
+**Examples**:
+
+```bash
+# Clean script - exits 0
+$ bashrs lint clean.sh
+✓ No errors found
+$ echo $?
+0
+
+# Script with warnings only - exits 0 (warnings are non-blocking)
+$ bashrs lint script-with-warnings.sh
+warning[SC2086]: Quote to prevent globbing
+  --> script.sh:3:5
+1 warning(s), 0 error(s)
+$ echo $?
+0  # ✅ CI/CD passes
+
+# Script with errors - exits 1
+$ bashrs lint script-with-errors.sh
+error[SC2188]: Redirection without command
+  --> script.sh:5:1
+0 warning(s), 1 error(s)
+$ echo $?
+1  # ❌ CI/CD fails
+
+# File not found - exits 2
+$ bashrs lint nonexistent.sh
+error: No such file or directory
+$ echo $?
+2  # 🚫 Tool failure
+```
+
+**CI/CD Integration** (Recommended Pattern):
+
+```bash
+#!/bin/bash
+# lint-check.sh - CI/CD linting script
+
+bashrs lint scripts/*.sh
+exit_code=$?
+
+case $exit_code in
+    0)
+        echo "✅ All checks passed (warnings are OK)"
+        exit 0
+        ;;
+    1)
+        echo "❌ Lint errors found - fix before merging"
+        exit 1
+        ;;
+    2)
+        echo "🚫 Tool failure - check bashrs installation or file paths"
+        exit 2
+        ;;
+    *)
+        echo "Unexpected exit code: $exit_code"
+        exit $exit_code
+        ;;
+esac
+```
+
+### General Exit Codes (All Commands)
+
+For other bashrs commands (purify, parse, check, etc.), the following exit codes apply:
+
 | Exit Code | Category | Meaning | Common Causes |
 |-----------|----------|---------|---------------|
 | 0 | Success | Operation completed successfully | All checks passed, no errors |
