@@ -696,7 +696,7 @@ fn test_all_binary_operators_converted() {
     let main_func = &ast.functions[0];
 
     // Verify all operators are present
-    let expected_ops = vec![
+    let expected_ops = [
         BinaryOp::Add,
         BinaryOp::Sub,
         BinaryOp::Mul,
