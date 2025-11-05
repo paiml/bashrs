@@ -3532,8 +3532,8 @@ mod loop_property_tests {
     #[cfg(test)]
     use proptest::prelude::*;
 
-    /// Property: For loops are deterministic
-    /// Same items should produce same output every time
+    // Property: For loops are deterministic
+    // Same items should produce same output every time
     #[test]
     fn prop_for_loop_deterministic() {
         proptest!(|(items in prop::collection::vec("[a-z]{1,5}", 1..10))| {
@@ -3552,8 +3552,8 @@ mod loop_property_tests {
         });
     }
 
-    /// Property: For loops preserve item order
-    /// Items should be processed in the order specified
+    // Property: For loops preserve item order
+    // Items should be processed in the order specified
     #[test]
     fn prop_for_loop_preserves_order() {
         proptest!(|(items in prop::collection::vec("[a-z]{1,5}", 1..10))| {
@@ -3573,7 +3573,7 @@ mod loop_property_tests {
         });
     }
 
-    /// Property: For loop with empty list produces no output
+    // Property: For loop with empty list produces no output
     #[test]
     fn prop_for_loop_empty_list_no_output() {
         proptest!(|(var_name in "[a-z]{1,10}")| {
@@ -3587,8 +3587,8 @@ mod loop_property_tests {
         });
     }
 
-    /// Property: For loop variable persists after loop
-    /// Loop variable should contain last item after loop exits
+    // Property: For loop variable persists after loop
+    // Loop variable should contain last item after loop exits
     #[test]
     fn prop_for_loop_variable_persistence() {
         proptest!(|(items in prop::collection::vec("[a-z]{1,5}", 1..10))| {
@@ -3610,7 +3610,7 @@ mod loop_property_tests {
         });
     }
 
-    /// Property: For loop with single item executes exactly once
+    // Property: For loop with single item executes exactly once
     #[test]
     fn prop_for_loop_single_item_once() {
         proptest!(|(item in "[a-z]{1,10}")| {
@@ -3626,8 +3626,8 @@ mod loop_property_tests {
         });
     }
 
-    /// Property: For loop accumulation is correct
-    /// Accumulating items should preserve all items in order
+    // Property: For loop accumulation is correct
+    // Accumulating items should preserve all items in order
     #[test]
     fn prop_for_loop_accumulation_correct() {
         proptest!(|(items in prop::collection::vec("[a-z]{1,3}", 1..10))| {
@@ -3647,7 +3647,7 @@ mod loop_property_tests {
         });
     }
 
-    /// Property: While loop with false condition never executes
+    // Property: While loop with false condition never executes
     #[test]
     fn prop_while_false_never_executes() {
         proptest!(|(body_cmd in "[a-z]{1,10}")| {
@@ -3661,8 +3661,8 @@ mod loop_property_tests {
         });
     }
 
-    /// Property: For loop handles quoted items correctly
-    /// Items with spaces should be treated as single items when quoted
+    // Property: For loop handles quoted items correctly
+    // Items with spaces should be treated as single items when quoted
     #[test]
     fn prop_for_loop_quoted_items() {
         proptest!(|(items in prop::collection::vec("[a-z]{1,5}( [a-z]{1,5})?", 1..5))| {
@@ -3692,7 +3692,7 @@ mod loop_property_tests {
         });
     }
 
-    /// Property: For loop with variable expansion works correctly
+    // Property: For loop with variable expansion works correctly
     #[test]
     fn prop_for_loop_variable_expansion() {
         proptest!(|(items in prop::collection::vec("[a-z]{1,5}", 1..10))| {
@@ -3715,7 +3715,7 @@ mod loop_property_tests {
         });
     }
 
-    /// Property: For loop never panics on any valid input
+    // Property: For loop never panics on any valid input
     #[test]
     fn prop_for_loop_robust() {
         proptest!(|(
@@ -3987,7 +3987,7 @@ mod arithmetic_property_tests {
     #[cfg(test)]
     use proptest::prelude::*;
 
-    /// Property: Arithmetic is deterministic
+    // Property: Arithmetic is deterministic
     #[test]
     fn prop_arithmetic_deterministic() {
         proptest!(|(a in -1000i64..1000, b in -1000i64..1000)| {
@@ -4003,7 +4003,7 @@ mod arithmetic_property_tests {
         });
     }
 
-    /// Property: Addition is commutative: a + b = b + a
+    // Property: Addition is commutative: a + b = b + a
     #[test]
     fn prop_arithmetic_addition_commutative() {
         proptest!(|(a in -100i64..100, b in -100i64..100)| {
@@ -4017,7 +4017,7 @@ mod arithmetic_property_tests {
         });
     }
 
-    /// Property: Multiplication is commutative: a * b = b * a
+    // Property: Multiplication is commutative: a * b = b * a
     #[test]
     fn prop_arithmetic_multiplication_commutative() {
         proptest!(|(a in -50i64..50, b in -50i64..50)| {
@@ -4031,7 +4031,7 @@ mod arithmetic_property_tests {
         });
     }
 
-    /// Property: Addition with zero is identity: a + 0 = a
+    // Property: Addition with zero is identity: a + 0 = a
     #[test]
     fn prop_arithmetic_addition_identity() {
         proptest!(|(a in -1000i64..1000)| {
@@ -4045,7 +4045,7 @@ mod arithmetic_property_tests {
         });
     }
 
-    /// Property: Multiplication with one is identity: a * 1 = a
+    // Property: Multiplication with one is identity: a * 1 = a
     #[test]
     fn prop_arithmetic_multiplication_identity() {
         proptest!(|(a in -1000i64..1000)| {
@@ -4059,7 +4059,7 @@ mod arithmetic_property_tests {
         });
     }
 
-    /// Property: Multiplication with zero: a * 0 = 0
+    // Property: Multiplication with zero: a * 0 = 0
     #[test]
     fn prop_arithmetic_multiplication_zero() {
         proptest!(|(a in -1000i64..1000)| {
@@ -4071,7 +4071,7 @@ mod arithmetic_property_tests {
         });
     }
 
-    /// Property: Subtraction self: a - a = 0
+    // Property: Subtraction self: a - a = 0
     #[test]
     fn prop_arithmetic_subtraction_self() {
         proptest!(|(a in -1000i64..1000)| {
@@ -4083,7 +4083,7 @@ mod arithmetic_property_tests {
         });
     }
 
-    /// Property: Division by self: a / a = 1 (for a != 0)
+    // Property: Division by self: a / a = 1 (for a != 0)
     #[test]
     fn prop_arithmetic_division_self() {
         proptest!(|(a in (-1000i64..=-1).prop_union(1i64..=1000))| {
@@ -4095,7 +4095,7 @@ mod arithmetic_property_tests {
         });
     }
 
-    /// Property: Modulo range: a % b is in [0, |b|-1] for positive b
+    // Property: Modulo range: a % b is in [0, |b|-1] for positive b
     #[test]
     fn prop_arithmetic_modulo_range() {
         proptest!(|(a in 0i64..1000, b in 1i64..100)| {
@@ -4109,7 +4109,7 @@ mod arithmetic_property_tests {
         });
     }
 
-    /// Property: Variables in arithmetic expand correctly
+    // Property: Variables in arithmetic expand correctly
     #[test]
     fn prop_arithmetic_variables_expand() {
         proptest!(|(x in -100i64..100, y in -100i64..100)| {
@@ -4123,7 +4123,7 @@ mod arithmetic_property_tests {
         });
     }
 
-    /// Property: Order of operations - multiplication before addition
+    // Property: Order of operations - multiplication before addition
     #[test]
     fn prop_arithmetic_order_of_operations() {
         proptest!(|(a in -50i64..50, b in -50i64..50, c in -50i64..50)| {
@@ -4137,7 +4137,7 @@ mod arithmetic_property_tests {
         });
     }
 
-    /// Property: Negative numbers work correctly
+    // Property: Negative numbers work correctly
     #[test]
     fn prop_arithmetic_negative_numbers() {
         proptest!(|(a in -100i64..100)| {
@@ -4150,7 +4150,7 @@ mod arithmetic_property_tests {
         });
     }
 
-    /// Property: Division by zero always errors
+    // Property: Division by zero always errors
     #[test]
     fn prop_arithmetic_division_by_zero_errors() {
         proptest!(|(a in -1000i64..1000)| {
@@ -4162,7 +4162,7 @@ mod arithmetic_property_tests {
         });
     }
 
-    /// Property: Modulo by zero always errors
+    // Property: Modulo by zero always errors
     #[test]
     fn prop_arithmetic_modulo_by_zero_errors() {
         proptest!(|(a in -1000i64..1000)| {
@@ -4411,7 +4411,7 @@ mod test_command_property_tests {
     #[cfg(test)]
     use proptest::prelude::*;
 
-    /// Property: Test command is deterministic
+    // Property: Test command is deterministic
     #[test]
     fn prop_test_deterministic() {
         proptest!(|(a in -100i64..100, b in -100i64..100)| {
@@ -4426,7 +4426,7 @@ mod test_command_property_tests {
         });
     }
 
-    /// Property: -eq is symmetric: a -eq b iff b -eq a
+    // Property: -eq is symmetric: a -eq b iff b -eq a
     #[test]
     fn prop_test_eq_symmetric() {
         proptest!(|(a in -100i64..100, b in -100i64..100)| {
@@ -4440,7 +4440,7 @@ mod test_command_property_tests {
         });
     }
 
-    /// Property: -eq self: a -eq a is always true
+    // Property: -eq self: a -eq a is always true
     #[test]
     fn prop_test_eq_self() {
         proptest!(|(a in -1000i64..1000)| {
@@ -4452,7 +4452,7 @@ mod test_command_property_tests {
         });
     }
 
-    /// Property: -ne self: a -ne a is always false
+    // Property: -ne self: a -ne a is always false
     #[test]
     fn prop_test_ne_self() {
         proptest!(|(a in -1000i64..1000)| {
@@ -4464,7 +4464,7 @@ mod test_command_property_tests {
         });
     }
 
-    /// Property: -gt self: a -gt a is always false
+    // Property: -gt self: a -gt a is always false
     #[test]
     fn prop_test_gt_self() {
         proptest!(|(a in -1000i64..1000)| {
@@ -4476,7 +4476,7 @@ mod test_command_property_tests {
         });
     }
 
-    /// Property: -ge self: a -ge a is always true
+    // Property: -ge self: a -ge a is always true
     #[test]
     fn prop_test_ge_self() {
         proptest!(|(a in -1000i64..1000)| {
@@ -4488,7 +4488,7 @@ mod test_command_property_tests {
         });
     }
 
-    /// Property: -le self: a -le a is always true
+    // Property: -le self: a -le a is always true
     #[test]
     fn prop_test_le_self() {
         proptest!(|(a in -1000i64..1000)| {
@@ -4500,7 +4500,7 @@ mod test_command_property_tests {
         });
     }
 
-    /// Property: Transitivity: if a < b and b < c then a < c
+    // Property: Transitivity: if a < b and b < c then a < c
     #[test]
     fn prop_test_lt_transitive() {
         proptest!(|(a in -50i64..0, b in 0i64..50, c in 50i64..100)| {
@@ -4514,7 +4514,7 @@ mod test_command_property_tests {
         });
     }
 
-    /// Property: String equality is reflexive
+    // Property: String equality is reflexive
     #[test]
     fn prop_test_string_eq_reflexive() {
         proptest!(|(s in "[a-z]{1,10}")| {
@@ -4526,7 +4526,7 @@ mod test_command_property_tests {
         });
     }
 
-    /// Property: -n with non-empty string is always true
+    // Property: -n with non-empty string is always true
     #[test]
     fn prop_test_n_nonempty() {
         proptest!(|(s in "[a-z]{1,10}")| {
@@ -4538,7 +4538,7 @@ mod test_command_property_tests {
         });
     }
 
-    /// Property: Test in while loop condition works correctly
+    // Property: Test in while loop condition works correctly
     #[test]
     fn prop_test_in_while_counts_correctly() {
         proptest!(|(n in 1i64..10)| {
@@ -5044,14 +5044,14 @@ wrapper
 /// ============================================================================
 ///
 /// Property-based tests for bash function behavior.
-/// Uses proptest to generate test cases and verify properties.
-///
+// Uses proptest to generate test cases and verify properties.
+//
 #[cfg(test)]
 mod function_property_tests {
     use super::*;
     use proptest::prelude::*;
 
-    /// Property: Function calls are deterministic (same input = same output)
+    // Property: Function calls are deterministic (same input = same output)
     #[test]
     fn prop_func_deterministic() {
         proptest!(|(s in "[a-z]{1,10}")| {
@@ -5073,7 +5073,7 @@ greet "{}"
         });
     }
 
-    /// Property: Multiple calls to same function produce consistent results
+    // Property: Multiple calls to same function produce consistent results
     #[test]
     fn prop_func_multiple_calls_consistent() {
         proptest!(|(n in 1usize..10)| {
@@ -5101,7 +5101,7 @@ say() {{
         });
     }
 
-    /// Property: Function parameters are properly isolated
+    // Property: Function parameters are properly isolated
     #[test]
     fn prop_func_parameters_isolated() {
         proptest!(|(a in 1i64..100, b in 1i64..100)| {
@@ -5121,7 +5121,7 @@ add {} {}
         });
     }
 
-    /// Property: Variable assignments in functions persist
+    // Property: Variable assignments in functions persist
     #[test]
     fn prop_func_variables_persist() {
         proptest!(|(s in "[a-z]{1,10}")| {
@@ -5141,7 +5141,7 @@ echo $myvar
         });
     }
 
-    /// Property: Empty functions always succeed
+    // Property: Empty functions always succeed
     #[test]
     fn prop_func_empty_succeeds() {
         proptest!(|(name in "[a-z]{1,10}")| {
@@ -5162,7 +5162,7 @@ echo "done"
         });
     }
 
-    /// Property: Function redefinition replaces previous definition
+    // Property: Function redefinition replaces previous definition
     #[test]
     fn prop_func_override_replaces() {
         proptest!(|(s1 in "[a-z]{1,10}", s2 in "[a-z]{1,10}")| {
@@ -5186,7 +5186,7 @@ greet
         });
     }
 
-    /// Property: Functions can call themselves recursively (depth limited)
+    // Property: Functions can call themselves recursively (depth limited)
     #[test]
     fn prop_func_recursion_limited() {
         proptest!(|(n in 1i64..5)| {
@@ -5219,7 +5219,7 @@ countdown {}
         });
     }
 
-    /// Property: Function with for loop processes all items
+    // Property: Function with for loop processes all items
     #[test]
     fn prop_func_for_loop_processes_all() {
         proptest!(|(items in prop::collection::vec("[a-z]{1,5}", 1..5))| {
@@ -5243,7 +5243,7 @@ process "{}"
         });
     }
 
-    /// Property: Function with arithmetic always returns correct result
+    // Property: Function with arithmetic always returns correct result
     #[test]
     fn prop_func_arithmetic_correct() {
         proptest!(|(a in 1i64..50, b in 1i64..50)| {
@@ -5263,7 +5263,7 @@ multiply {} {}
         });
     }
 
-    /// Property: Function with conditionals handles both branches
+    // Property: Function with conditionals handles both branches
     #[test]
     fn prop_func_conditional_branches() {
         proptest!(|(value in "[a-z]{1,10}")| {
@@ -5292,7 +5292,7 @@ check "{}"
         });
     }
 
-    /// Property: Multiple function definitions are all stored
+    // Property: Multiple function definitions are all stored
     #[test]
     fn prop_func_multiple_definitions_stored() {
         proptest!(|(n in 2usize..5)| {
@@ -5688,9 +5688,9 @@ echo ${#arr[@]}
     }
 }
 
-/// Property-based tests for arrays (ARRAY-001-PROP)
-///
-/// Tests array invariants and properties using proptest.
+// Property-based tests for arrays (ARRAY-001-PROP)
+//
+// Tests array invariants and properties using proptest.
 #[cfg(test)]
 mod array_property_tests {
     use super::*;
