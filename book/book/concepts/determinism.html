@@ -362,7 +362,7 @@ echo "PASS: All 100 runs produced identical output (deterministic ✅)"
 <pre><code class="language-bash">bashrs lint deploy.sh
 </code></pre>
 <p>Output:</p>
-<pre><code>deploy.sh:3:12: DET001 [Error] Non-deterministic: $RANDOM detected
+<pre><code class="language-text">deploy.sh:3:12: DET001 [Error] Non-deterministic: $RANDOM detected
 deploy.sh:4:14: DET002 [Error] Non-deterministic: timestamp $(date +%s)
 deploy.sh:5:12: DET003 [Error] Non-deterministic: process ID $$ detected
 deploy.sh:6:10: DET004 [Error] Non-deterministic: hostname command detected

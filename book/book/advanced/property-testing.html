@@ -185,25 +185,19 @@
 <p>Property-based testing is a powerful technique that tests code against mathematical properties rather than specific examples. bashrs uses the <code>proptest</code> crate to generate hundreds of test cases automatically, catching edge cases that manual tests miss.</p>
 <h2 id="what-is-property-based-testing"><a class="header" href="#what-is-property-based-testing">What is Property-Based Testing?</a></h2>
 <p>Traditional unit tests use specific examples:</p>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>#[test]
+<pre><code class="language-rust ignore">#[test]
 fn test_addition() {
     assert_eq!(add(2, 3), 5);
     assert_eq!(add(0, 0), 0);
     assert_eq!(add(-1, 1), 0);
-}
-<span class="boring">}</span></code></pre></pre>
+}</code></pre>
 <p>Property-based tests specify <strong>properties</strong> that should hold for <strong>all</strong> inputs:</p>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>proptest! {
+<pre><code class="language-rust ignore">proptest! {
     #[test]
     fn prop_addition_is_commutative(a: i32, b: i32) {
         assert_eq!(add(a, b), add(b, a));  // Property: a + b == b + a
     }
-}
-<span class="boring">}</span></code></pre></pre>
+}</code></pre>
 <p>The framework generates 100-1000+ test cases automatically, including edge cases like:</p>
 <ul>
 <li>Maximum/minimum values</li>
@@ -224,9 +218,7 @@ fn test_addition() {
 <p>bashrs property tests validate three critical properties:</p>
 <h3 id="property-1-determinism"><a class="header" href="#property-1-determinism">Property 1: Determinism</a></h3>
 <p><strong>Property</strong>: Purification is deterministic - same input always produces same output.</p>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>proptest! {
+<pre><code class="language-rust ignore">proptest! {
     #[test]
     fn prop_purification_is_deterministic(script in bash_script_strategy()) {
         let purified1 = purify(&amp;script).unwrap();
@@ -235,14 +227,11 @@ fn test_addition() {
         // Property: Multiple runs produce identical output
         assert_eq!(purified1, purified2);
     }
-}
-<span class="boring">}</span></code></pre></pre>
+}</code></pre>
 <p><strong>Why this matters</strong>: Build systems and CI/CD pipelines depend on reproducible outputs. Non-determinism breaks caching and verification.</p>
 <h3 id="property-2-idempotency"><a class="header" href="#property-2-idempotency">Property 2: Idempotency</a></h3>
 <p><strong>Property</strong>: Purification is idempotent - purifying already-purified code changes nothing.</p>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>proptest! {
+<pre><code class="language-rust ignore">proptest! {
     #[test]
     fn prop_purification_is_idempotent(script in bash_script_strategy()) {
         let purified1 = purify(&amp;script).unwrap();
@@ -251,14 +240,11 @@ fn test_addition() {
         // Property: Purify(Purify(x)) == Purify(x)
         assert_eq!(purified1, purified2);
     }
-}
-<span class="boring">}</span></code></pre></pre>
+}</code></pre>
 <p><strong>Why this matters</strong>: Users should be able to run bashrs multiple times without changing the output. This is essential for version control and diffing.</p>
 <h3 id="property-3-semantic-preservation"><a class="header" href="#property-3-semantic-preservation">Property 3: Semantic Preservation</a></h3>
 <p><strong>Property</strong>: Purification preserves behavior - purified scripts behave identically to originals.</p>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>proptest! {
+<pre><code class="language-rust ignore">proptest! {
     #[test]
     fn prop_purification_preserves_semantics(script in bash_script_strategy()) {
         let original_output = execute_bash(&amp;script);
@@ -268,15 +254,12 @@ fn test_addition() {
         // Property: Same behavior (modulo determinism)
         assert_eq!(original_output, purified_output);
     }
-}
-<span class="boring">}</span></code></pre></pre>
+}</code></pre>
 <p><strong>Why this matters</strong>: Purification must not break existing scripts. Users need confidence that bashrs won't introduce bugs.</p>
 <h2 id="writing-property-tests-for-shell-transformations"><a class="header" href="#writing-property-tests-for-shell-transformations">Writing Property Tests for Shell Transformations</a></h2>
 <h3 id="step-1-define-input-strategies"><a class="header" href="#step-1-define-input-strategies">Step 1: Define Input Strategies</a></h3>
 <p>Strategies generate random valid inputs. bashrs uses domain-specific strategies for shell constructs:</p>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use proptest::prelude::*;
+<pre><code class="language-rust ignore">use proptest::prelude::*;
 
 /// Generate valid bash identifiers: [a-zA-Z_][a-zA-Z0-9_]{0,15}
 fn bash_identifier() -&gt; impl Strategy&lt;Value = String&gt; {
@@ -302,13 +285,10 @@ fn bash_variable_name() -&gt; impl Strategy&lt;Value = String&gt; {
 /// Generate integers in reasonable range
 fn bash_integer() -&gt; impl Strategy&lt;Value = i64&gt; {
     -1000i64..1000i64
-}
-<span class="boring">}</span></code></pre></pre>
+}</code></pre>
 <h3 id="step-2-compose-strategies-for-complex-structures"><a class="header" href="#step-2-compose-strategies-for-complex-structures">Step 2: Compose Strategies for Complex Structures</a></h3>
 <p>Build AST nodes from primitive strategies:</p>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use bashrs::bash_parser::ast::*;
+<pre><code class="language-rust ignore">use bashrs::bash_parser::ast::*;
 
 /// Generate variable assignments
 fn bash_assignment() -&gt; impl Strategy&lt;Value = BashStmt&gt; {
@@ -354,13 +334,10 @@ fn bash_script() -&gt; impl Strategy&lt;Value = BashAst&gt; {
             },
         }
     })
-}
-<span class="boring">}</span></code></pre></pre>
+}</code></pre>
 <h3 id="step-3-write-property-tests"><a class="header" href="#step-3-write-property-tests">Step 3: Write Property Tests</a></h3>
 <p>Test properties using generated inputs:</p>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>proptest! {
+<pre><code class="language-rust ignore">proptest! {
     #![proptest_config(ProptestConfig {
         cases: 1000,  // Generate 1000 test cases
         max_shrink_iters: 1000,
@@ -401,14 +378,11 @@ fn bash_script() -&gt; impl Strategy&lt;Value = BashAst&gt; {
             _ =&gt; prop_assert!(false, "Expected commands"),
         }
     }
-}
-<span class="boring">}</span></code></pre></pre>
+}</code></pre>
 <h2 id="examples-from-bashrs"><a class="header" href="#examples-from-bashrs">Examples from bashrs</a></h2>
 <h3 id="example-1-variable-quoting-property"><a class="header" href="#example-1-variable-quoting-property">Example 1: Variable Quoting Property</a></h3>
 <p><strong>Property</strong>: All variable references in purified output should be quoted.</p>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>proptest! {
+<pre><code class="language-rust ignore">proptest! {
     #[test]
     fn prop_variables_are_quoted(
         var_name in bash_identifier(),
@@ -428,8 +402,7 @@ echo ${}
             "Expected quoted variable ${{{}}}, got:\n{}",
             var_name, purified);
     }
-}
-<span class="boring">}</span></code></pre></pre>
+}</code></pre>
 <p><strong>Real-world bug caught</strong>: This test discovered that variables in command substitutions weren't being quoted:</p>
 <pre><code class="language-bash"><span class="boring"> Original (vulnerable)
 </span>RESULT=$(command $UNQUOTED)
@@ -439,9 +412,7 @@ echo ${}
 </code></pre>
 <h3 id="example-2-idempotency-of-mkdir--p"><a class="header" href="#example-2-idempotency-of-mkdir--p">Example 2: Idempotency of mkdir -p</a></h3>
 <p><strong>Property</strong>: Adding <code>-p</code> to <code>mkdir</code> is idempotent - doing it twice doesn't add it again.</p>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>proptest! {
+<pre><code class="language-rust ignore">proptest! {
     #[test]
     fn prop_mkdir_p_idempotent(dir in "[/a-z]{1,20}") {
         let script = format!("mkdir {}", dir);
@@ -456,13 +427,10 @@ echo ${}
         let p_count = purified1.matches("-p").count();
         prop_assert_eq!(p_count, 1, "Expected exactly one -p, got {}", p_count);
     }
-}
-<span class="boring">}</span></code></pre></pre>
+}</code></pre>
 <h3 id="example-3-posix-compatibility"><a class="header" href="#example-3-posix-compatibility">Example 3: POSIX Compatibility</a></h3>
 <p><strong>Property</strong>: All purified scripts pass shellcheck in POSIX mode.</p>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>proptest! {
+<pre><code class="language-rust ignore">proptest! {
     #[test]
     fn prop_purified_is_posix_compliant(script in bash_script()) {
         let purified = purify(script).unwrap();
@@ -487,13 +455,10 @@ echo ${}
             "Shellcheck failed:\n{}",
             String::from_utf8_lossy(&amp;output.stderr));
     }
-}
-<span class="boring">}</span></code></pre></pre>
+}</code></pre>
 <h3 id="example-4-parameter-expansion-preservation"><a class="header" href="#example-4-parameter-expansion-preservation">Example 4: Parameter Expansion Preservation</a></h3>
 <p><strong>Property</strong>: Valid parameter expansions are preserved (not broken).</p>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>proptest! {
+<pre><code class="language-rust ignore">proptest! {
     #[test]
     fn prop_parameter_expansion_preserved(
         var in bash_identifier(),
@@ -511,8 +476,7 @@ echo ${}
             purified
         );
     }
-}
-<span class="boring">}</span></code></pre></pre>
+}</code></pre>
 <p><strong>Real bug caught</strong>: Initial implementation would incorrectly transform:</p>
 <pre><code class="language-bash"><span class="boring"> Before: ${VAR:-default}
 </span><span class="boring"> After:  $VARdefault  # BROKEN!
@@ -521,16 +485,13 @@ echo ${}
 <h2 id="shrinking-and-edge-case-discovery"><a class="header" href="#shrinking-and-edge-case-discovery">Shrinking and Edge Case Discovery</a></h2>
 <p>When a property test fails, <code>proptest</code> <strong>shrinks</strong> the input to find the minimal failing case.</p>
 <h3 id="example-shrinking-in-action"><a class="header" href="#example-shrinking-in-action">Example: Shrinking in Action</a></h3>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>proptest! {
+<pre><code class="language-rust ignore">proptest! {
     #[test]
     fn prop_commands_dont_panic(cmd in bash_command()) {
         // Bug: panics on empty command name
         process_command(&amp;cmd);
     }
-}
-<span class="boring">}</span></code></pre></pre>
+}</code></pre>
 <p><strong>Initial failure</strong> (random):</p>
 <pre><code>thread 'prop_commands_dont_panic' panicked at 'assertion failed'
   cmd = BashStmt::Command {
@@ -549,9 +510,7 @@ echo ${}
 </code></pre>
 <p>Shrinking makes debugging trivial - you immediately see the root cause.</p>
 <h3 id="configuring-shrinking"><a class="header" href="#configuring-shrinking">Configuring Shrinking</a></h3>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>proptest! {
+<pre><code class="language-rust ignore">proptest! {
     #![proptest_config(ProptestConfig {
         cases: 1000,              // Try 1000 random inputs
         max_shrink_iters: 10000,  // Spend up to 10k iterations shrinking
@@ -563,8 +522,7 @@ echo ${}
     fn prop_complex_test(input in complex_strategy()) {
         // Test code
     }
-}
-<span class="boring">}</span></code></pre></pre>
+}</code></pre>
 <h2 id="integration-with-extreme-tdd"><a class="header" href="#integration-with-extreme-tdd">Integration with EXTREME TDD</a></h2>
 <p>Property tests are a key component of bashrs's EXTREME TDD methodology:</p>
 <pre><code>EXTREME TDD = TDD + Property Testing + Mutation Testing + PMAT + Examples
@@ -577,9 +535,7 @@ echo ${}
 <li><strong>PROPERTY</strong>: Add property test to prevent regressions</li>
 </ol>
 <p>Example workflow:</p>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>// Step 1: RED - Failing unit test
+<pre><code class="language-rust ignore">// Step 1: RED - Failing unit test
 #[test]
 fn test_mkdir_adds_dash_p() {
     let input = "mkdir /tmp/foo";
@@ -632,8 +588,7 @@ proptest! {
         // Property: Idempotent
         prop_assert_eq!(purified1, purified2);
     }
-}
-<span class="boring">}</span></code></pre></pre>
+}</code></pre>
 <h3 id="property-tests-complement-mutation-testing"><a class="header" href="#property-tests-complement-mutation-testing">Property Tests Complement Mutation Testing</a></h3>
 <p>Property tests catch bugs mutation tests miss:</p>
 <p><strong>Mutation test</strong>: Changes <code>if !has_flag</code> to <code>if has_flag</code></p>
@@ -649,9 +604,7 @@ proptest! {
 <h2 id="best-practices"><a class="header" href="#best-practices">Best Practices</a></h2>
 <h3 id="1-start-with-simple-properties"><a class="header" href="#1-start-with-simple-properties">1. Start with Simple Properties</a></h3>
 <p>Don't try to test everything at once:</p>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>// ✅ GOOD: Simple, focused property
+<pre><code class="language-rust ignore">// ✅ GOOD: Simple, focused property
 proptest! {
     #[test]
     fn prop_parse_never_panics(input in ".*{0,1000}") {
@@ -669,13 +622,10 @@ proptest! {
         let output = generate(purified).unwrap();
         assert!(shellcheck_passes(&amp;output));    // Too many assumptions
     }
-}
-<span class="boring">}</span></code></pre></pre>
+}</code></pre>
 <h3 id="2-use-domain-specific-strategies"><a class="header" href="#2-use-domain-specific-strategies">2. Use Domain-Specific Strategies</a></h3>
 <p>Generate <strong>valid</strong> inputs, not random garbage:</p>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>// ❌ BAD: Random strings aren't valid bash
+<pre><code class="language-rust ignore">// ❌ BAD: Random strings aren't valid bash
 proptest! {
     #[test]
     fn prop_parse_succeeds(input in ".*") {
@@ -700,13 +650,10 @@ proptest! {
     fn prop_valid_bash_parses(script in valid_bash_script()) {
         parse_bash(&amp;script).unwrap();  // Should always succeed
     }
-}
-<span class="boring">}</span></code></pre></pre>
+}</code></pre>
 <h3 id="3-test-properties-not-implementation"><a class="header" href="#3-test-properties-not-implementation">3. Test Properties, Not Implementation</a></h3>
 <p>Focus on <strong>what</strong> should be true, not <strong>how</strong> it's implemented:</p>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>// ❌ BAD: Tests implementation details
+<pre><code class="language-rust ignore">// ❌ BAD: Tests implementation details
 proptest! {
     #[test]
     fn prop_uses_regex_to_find_variables(input in ".*") {
@@ -726,13 +673,10 @@ proptest! {
         prop_assert!(unquoted_vars.is_empty(),
             "Found unquoted variables: {:?}", unquoted_vars);
     }
-}
-<span class="boring">}</span></code></pre></pre>
+}</code></pre>
 <h3 id="4-use-preconditions-with-prop_assume"><a class="header" href="#4-use-preconditions-with-prop_assume">4. Use Preconditions with <code>prop_assume</code></a></h3>
 <p>Filter out invalid cases instead of failing:</p>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>proptest! {
+<pre><code class="language-rust ignore">proptest! {
     #[test]
     fn prop_division_works(a: i32, b: i32) {
         prop_assume!(b != 0);  // Skip division by zero
@@ -740,12 +684,9 @@ proptest! {
         let result = divide(a, b);
         prop_assert_eq!(result * b, a);
     }
-}
-<span class="boring">}</span></code></pre></pre>
+}</code></pre>
 <p>For bashrs:</p>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>proptest! {
+<pre><code class="language-rust ignore">proptest! {
     #[test]
     fn prop_safe_eval_works(cmd in bash_command_string()) {
         // Only test safe commands (no eval)
@@ -754,13 +695,10 @@ proptest! {
         let result = execute_safely(&amp;cmd);
         prop_assert!(result.is_ok());
     }
-}
-<span class="boring">}</span></code></pre></pre>
+}</code></pre>
 <h3 id="5-balance-test-cases-vs-runtime"><a class="header" href="#5-balance-test-cases-vs-runtime">5. Balance Test Cases vs Runtime</a></h3>
 <p>More cases = better coverage, but slower tests:</p>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>proptest! {
+<pre><code class="language-rust ignore">proptest! {
     #![proptest_config(ProptestConfig {
         cases: 100,  // Quick smoke test (CI)
         .. ProptestConfig::default()
@@ -783,13 +721,10 @@ proptest! {
     fn prop_exhaustive_test(input in bash_script()) {
         // Runs 10k times, may take minutes
     }
-}
-<span class="boring">}</span></code></pre></pre>
+}</code></pre>
 <h3 id="6-document-expected-failures"><a class="header" href="#6-document-expected-failures">6. Document Expected Failures</a></h3>
 <p>Some properties have known limitations:</p>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>proptest! {
+<pre><code class="language-rust ignore">proptest! {
     #[test]
     fn prop_parse_all_bash(input in ".*") {
         match parse_bash(&amp;input) {
@@ -804,29 +739,23 @@ proptest! {
             }
         }
     }
-}
-<span class="boring">}</span></code></pre></pre>
+}</code></pre>
 <h2 id="advanced-techniques"><a class="header" href="#advanced-techniques">Advanced Techniques</a></h2>
 <h3 id="regression-testing-with-proptest-regressions"><a class="header" href="#regression-testing-with-proptest-regressions">Regression Testing with <code>proptest-regressions</code></a></h3>
 <p>Save failing cases for permanent regression tests:</p>
 <pre><code class="language-toml"># proptest-regressions/prop_test_name.txt
 cc 0123456789abcdef  # Hex seed for failing case
 </code></pre>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>proptest! {
+<pre><code class="language-rust ignore">proptest! {
     #[test]
     fn prop_no_regressions(input in bash_script()) {
         // Failed cases automatically become permanent tests
         purify(input).unwrap();
     }
-}
-<span class="boring">}</span></code></pre></pre>
+}</code></pre>
 <h3 id="stateful-property-testing"><a class="header" href="#stateful-property-testing">Stateful Property Testing</a></h3>
 <p>Test sequences of operations:</p>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>#[derive(Debug, Clone)]
+<pre><code class="language-rust ignore">#[derive(Debug, Clone)]
 enum Operation {
     AddVariable(String, String),
     UseVariable(String),
@@ -863,8 +792,7 @@ proptest! {
         // Property: State should always be consistent
         prop_assert!(state.is_consistent());
     }
-}
-<span class="boring">}</span></code></pre></pre>
+}</code></pre>
 <h2 id="summary"><a class="header" href="#summary">Summary</a></h2>
 <p>Property-based testing is essential for bashrs quality:</p>
 <p><strong>Benefits</strong>:</p>

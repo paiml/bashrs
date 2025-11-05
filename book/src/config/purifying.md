@@ -453,7 +453,7 @@ bash -n ~/.bashrc.purified
 ```
 
 Expected output:
-```
+```text
 # No output = success
 ```
 
@@ -1048,7 +1048,7 @@ bashrs config purify ~/.bashrc \
 ```
 
 Output:
-```
+```text
 bashrs config purify v6.31.0
 
 Transformations Applied:

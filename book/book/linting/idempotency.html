@@ -232,7 +232,7 @@ mkdir /app/releases/v1.0.0
 ln -s /app/releases/v1.0.0 /app/current
 </code></pre>
 <p><strong>Behavior</strong>:</p>
-<pre><code>First run:  ✅ SUCCESS - directories created
+<pre><code class="language-text">First run:  ✅ SUCCESS - directories created
 Second run: ❌ FAILURE - mkdir fails with "File exists"
 </code></pre>
 <p>✅ <strong>IDEMPOTENT (GOOD)</strong>:</p>
@@ -244,7 +244,7 @@ mkdir -p /app/releases/v1.0.0
 rm -f /app/current &amp;&amp; ln -s /app/releases/v1.0.0 /app/current
 </code></pre>
 <p><strong>Behavior</strong>:</p>
-<pre><code>First run:  ✅ SUCCESS - directories created
+<pre><code class="language-text">First run:  ✅ SUCCESS - directories created
 Second run: ✅ SUCCESS - no-op (directories exist)
 Third run:  ✅ SUCCESS - still safe!
 </code></pre>
@@ -339,7 +339,7 @@ rm /tmp/cache.dat
 rm /app/old-version
 </code></pre>
 <p><strong>Behavior</strong>:</p>
-<pre><code>First run:  ✅ SUCCESS - files deleted
+<pre><code class="language-text">First run:  ✅ SUCCESS - files deleted
 Second run: ❌ FAILURE - rm fails with "No such file"
 </code></pre>
 <p>✅ <strong>IDEMPOTENT (GOOD)</strong>:</p>
@@ -351,7 +351,7 @@ rm -f /tmp/cache.dat
 rm -f /app/old-version
 </code></pre>
 <p><strong>Behavior</strong>:</p>
-<pre><code>First run:  ✅ SUCCESS - files deleted
+<pre><code class="language-text">First run:  ✅ SUCCESS - files deleted
 Second run: ✅ SUCCESS - no-op (files don't exist)
 Third run:  ✅ SUCCESS - still safe!
 </code></pre>

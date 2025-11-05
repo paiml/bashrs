@@ -46,7 +46,7 @@ echo "Deployment complete: $RELEASE_TAG"
 
 Running `bashrs lint deploy-messy.sh`:
 
-```
+```text
 deploy-messy.sh:6:13: DET001 [Error] Non-deterministic: $RANDOM
   SESSION_ID=$RANDOM
   Fix: Use configuration parameter or version-based ID
@@ -146,7 +146,7 @@ deploy_app "${_version}" "${_build_dir}"
 
 ### Purification Report
 
-```
+```text
 Purification Report
 ===================
 

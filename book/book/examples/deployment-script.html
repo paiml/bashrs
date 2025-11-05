@@ -222,7 +222,7 @@ echo "Deployment complete: $RELEASE_TAG"
 </code></pre>
 <h3 id="issues-detected-by-rash"><a class="header" href="#issues-detected-by-rash">Issues Detected by Rash</a></h3>
 <p>Running <code>bashrs lint deploy-messy.sh</code>:</p>
-<pre><code>deploy-messy.sh:6:13: DET001 [Error] Non-deterministic: $RANDOM
+<pre><code class="language-text">deploy-messy.sh:6:13: DET001 [Error] Non-deterministic: $RANDOM
   SESSION_ID=$RANDOM
   Fix: Use configuration parameter or version-based ID
 
@@ -311,7 +311,7 @@ _build_dir="${2:-/app/build}"
 deploy_app "${_version}" "${_build_dir}"
 </code></pre>
 <h3 id="purification-report"><a class="header" href="#purification-report">Purification Report</a></h3>
-<pre><code>Purification Report
+<pre><code class="language-text">Purification Report
 ===================
 
 Issues Fixed: 7

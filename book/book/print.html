@@ -1679,7 +1679,7 @@ bashrs [normal]&gt; :purify RELEASE="release-$(date +%s)"
 </ul>
 <h2 id="the-purification-pipeline"><a class="header" href="#the-purification-pipeline">The Purification Pipeline</a></h2>
 <p>Rash follows a systematic 3-stage pipeline:</p>
-<pre><code>┌─────────────┐      ┌──────────────┐      ┌─────────────────┐
+<pre><code class="language-text">┌─────────────┐      ┌──────────────┐      ┌─────────────────┐
 │ Messy Bash  │  →   │  Transform   │  →   │  Purified POSIX │
 │ Script      │      │  (Parse AST) │      │  Shell          │
 └─────────────┘      └──────────────┘      └─────────────────┘
@@ -1804,7 +1804,7 @@ deploy_app() {
 </ol>
 <h2 id="purification-report"><a class="header" href="#purification-report">Purification Report</a></h2>
 <p>After purification, Rash generates a report:</p>
-<pre><code>Purification Report
+<pre><code class="language-text">Purification Report
 ===================
 
 Input:  deploy.sh (18 lines, 412 bytes)
@@ -1930,7 +1930,7 @@ RUN sh /init.sh
 <pre><code class="language-bash">bashrs lint deploy.sh
 </code></pre>
 <p>Output:</p>
-<pre><code>deploy.sh:5:12: DET001 [Error] Non-deterministic: $RANDOM detected
+<pre><code class="language-text">deploy.sh:5:12: DET001 [Error] Non-deterministic: $RANDOM detected
 deploy.sh:6:10: DET002 [Error] Non-deterministic: timestamp $(date +%s)
 deploy.sh:10:1: IDEM001 [Error] Non-idempotent: mkdir without -p flag
 deploy.sh:14:1: IDEM002 [Error] Non-idempotent: rm without -f flag
@@ -1939,7 +1939,7 @@ deploy.sh:14:1: IDEM002 [Error] Non-idempotent: rm without -f flag
 <pre><code class="language-bash">bashrs lint deploy_purified.sh
 </code></pre>
 <p>Output:</p>
-<pre><code>No issues found. ✅
+<pre><code class="language-text">No issues found. ✅
 </code></pre>
 <h2 id="command-line-usage"><a class="header" href="#command-line-usage">Command-Line Usage</a></h2>
 <h3 id="basic-purification"><a class="header" href="#basic-purification">Basic Purification</a></h3>
@@ -2198,7 +2198,7 @@ echo "PASS: All 100 runs produced identical output (deterministic ✅)"
 <pre><code class="language-bash">bashrs lint deploy.sh
 </code></pre>
 <p>Output:</p>
-<pre><code>deploy.sh:3:12: DET001 [Error] Non-deterministic: $RANDOM detected
+<pre><code class="language-text">deploy.sh:3:12: DET001 [Error] Non-deterministic: $RANDOM detected
 deploy.sh:4:14: DET002 [Error] Non-deterministic: timestamp $(date +%s)
 deploy.sh:5:12: DET003 [Error] Non-deterministic: process ID $$ detected
 deploy.sh:6:10: DET004 [Error] Non-deterministic: hostname command detected
@@ -2550,7 +2550,7 @@ echo "PASS: All 100 runs succeeded (idempotent ✅)"
 <pre><code class="language-bash">bashrs lint deploy.sh
 </code></pre>
 <p>Output:</p>
-<pre><code>deploy.sh:3:1: IDEM001 [Error] Non-idempotent: mkdir without -p flag
+<pre><code class="language-text">deploy.sh:3:1: IDEM001 [Error] Non-idempotent: mkdir without -p flag
 deploy.sh:4:1: IDEM002 [Error] Non-idempotent: rm without -f flag
 deploy.sh:5:1: IDEM003 [Error] Non-idempotent: ln -s without cleanup
 deploy.sh:6:1: IDEM004 [Error] Non-idempotent: append without duplicate check
@@ -2852,7 +2852,7 @@ echo "${filename%.txt}"  # report
 <li><strong>Fails on embedded systems</strong> (dash or ash, not bash)</li>
 </ul>
 <p><strong>Error Example</strong>:</p>
-<pre><code>/bin/sh: line 3: declare: not found
+<pre><code class="language-text">/bin/sh: line 3: declare: not found
 /bin/sh: line 7: syntax error: unexpected "("
 </code></pre>
 <h3 id="the-solution-posix-compliant-scripts"><a class="header" href="#the-solution-posix-compliant-scripts">The Solution: POSIX-Compliant Scripts</a></h3>
@@ -3091,12 +3091,12 @@ done &lt; file.txt
 <span class="boring"> No errors = POSIX compliant ✅
 </span></code></pre>
 <p><strong>Example Output (Non-Compliant)</strong>:</p>
-<pre><code>script.sh:3:1: error: declare is not POSIX sh [SC3044]
+<pre><code class="language-text">script.sh:3:1: error: declare is not POSIX sh [SC3044]
 script.sh:7:4: error: [[ ]] is not POSIX sh [SC3010]
 script.sh:11:6: error: ${var%.ext} is not POSIX sh [SC3060]
 </code></pre>
 <p><strong>Example Output (Compliant)</strong>:</p>
-<pre><code># No issues found ✅
+<pre><code class="language-text"># No issues found ✅
 </code></pre>
 <h3 id="multi-shell-testing"><a class="header" href="#multi-shell-testing">Multi-Shell Testing</a></h3>
 <p>Test on all major POSIX shells:</p>
@@ -3113,7 +3113,7 @@ for shell in sh dash ash bash ksh zsh; do
 done
 </code></pre>
 <p><strong>Expected Output</strong>:</p>
-<pre><code>Testing with: sh
+<pre><code class="language-text">Testing with: sh
 ✅ sh: PASS
 Testing with: dash
 ✅ dash: PASS
@@ -4135,7 +4135,7 @@ echo "Session: $SESSION_ID"
 mkdir "/releases/$RELEASE"
 </code></pre>
 <p><strong>Output varies</strong>:</p>
-<pre><code>Run 1: Session: 12847
+<pre><code class="language-text">Run 1: Session: 12847
 Run 2: Session: 29103  # Different!
 Run 3: Session: 5721   # Still different!
 </code></pre>
@@ -4746,7 +4746,7 @@ mkdir /app/releases/v1.0.0
 ln -s /app/releases/v1.0.0 /app/current
 </code></pre>
 <p><strong>Behavior</strong>:</p>
-<pre><code>First run:  ✅ SUCCESS - directories created
+<pre><code class="language-text">First run:  ✅ SUCCESS - directories created
 Second run: ❌ FAILURE - mkdir fails with "File exists"
 </code></pre>
 <p>✅ <strong>IDEMPOTENT (GOOD)</strong>:</p>
@@ -4758,7 +4758,7 @@ mkdir -p /app/releases/v1.0.0
 rm -f /app/current &amp;&amp; ln -s /app/releases/v1.0.0 /app/current
 </code></pre>
 <p><strong>Behavior</strong>:</p>
-<pre><code>First run:  ✅ SUCCESS - directories created
+<pre><code class="language-text">First run:  ✅ SUCCESS - directories created
 Second run: ✅ SUCCESS - no-op (directories exist)
 Third run:  ✅ SUCCESS - still safe!
 </code></pre>
@@ -4853,7 +4853,7 @@ rm /tmp/cache.dat
 rm /app/old-version
 </code></pre>
 <p><strong>Behavior</strong>:</p>
-<pre><code>First run:  ✅ SUCCESS - files deleted
+<pre><code class="language-text">First run:  ✅ SUCCESS - files deleted
 Second run: ❌ FAILURE - rm fails with "No such file"
 </code></pre>
 <p>✅ <strong>IDEMPOTENT (GOOD)</strong>:</p>
@@ -4865,7 +4865,7 @@ rm -f /tmp/cache.dat
 rm -f /app/old-version
 </code></pre>
 <p><strong>Behavior</strong>:</p>
-<pre><code>First run:  ✅ SUCCESS - files deleted
+<pre><code class="language-text">First run:  ✅ SUCCESS - files deleted
 Second run: ✅ SUCCESS - no-op (files don't exist)
 Third run:  ✅ SUCCESS - still safe!
 </code></pre>
@@ -7710,7 +7710,7 @@ fi
 bash -n ~/.bashrc.purified
 </code></pre>
 <p>Expected output:</p>
-<pre><code># No output = success
+<pre><code class="language-text"># No output = success
 </code></pre>
 <h3 id="step-2-source-multiple-times"><a class="header" href="#step-2-source-multiple-times">Step 2: Source Multiple Times</a></h3>
 <p>Test idempotency by sourcing multiple times:</p>
@@ -8141,7 +8141,7 @@ fi
     --shellcheck
 </code></pre>
 <p>Output:</p>
-<pre><code>bashrs config purify v6.31.0
+<pre><code class="language-text">bashrs config purify v6.31.0
 
 Transformations Applied:
   - Deduplicated 18 PATH entries → 9 unique
@@ -10655,7 +10655,7 @@ error() {
 <pre><code class="language-bash">bashrs lint install.sh
 </code></pre>
 <p>Result:</p>
-<pre><code>✅ No issues found
+<pre><code class="language-text">✅ No issues found
 
 POSIX Compliance: ✅ Pass
 Determinism: ✅ Pass
@@ -10681,7 +10681,7 @@ Testing with bash...  ✅ Works
 ./install.sh  # Should succeed without errors
 </code></pre>
 <p>Result:</p>
-<pre><code>Run 1: ✅ Installation successful
+<pre><code class="language-text">Run 1: ✅ Installation successful
 Run 2: ✅ Installation successful (idempotent)
 </code></pre>
 <h3 id="test-4-multi-platform-testing"><a class="header" href="#test-4-multi-platform-testing">Test 4: Multi-Platform Testing</a></h3>
@@ -10947,7 +10947,7 @@ echo "Deployment complete: $RELEASE_TAG"
 </code></pre>
 <h3 id="issues-detected-by-rash"><a class="header" href="#issues-detected-by-rash">Issues Detected by Rash</a></h3>
 <p>Running <code>bashrs lint deploy-messy.sh</code>:</p>
-<pre><code>deploy-messy.sh:6:13: DET001 [Error] Non-deterministic: $RANDOM
+<pre><code class="language-text">deploy-messy.sh:6:13: DET001 [Error] Non-deterministic: $RANDOM
   SESSION_ID=$RANDOM
   Fix: Use configuration parameter or version-based ID
 
@@ -11036,7 +11036,7 @@ _build_dir="${2:-/app/build}"
 deploy_app "${_version}" "${_build_dir}"
 </code></pre>
 <h3 id="purification-report-2"><a class="header" href="#purification-report-2">Purification Report</a></h3>
-<pre><code>Purification Report
+<pre><code class="language-text">Purification Report
 ===================
 
 Issues Fixed: 7
@@ -11780,7 +11780,7 @@ if [ -n "${ZSH_VERSION:-}" ]; then
 fi
 </code></pre>
 <h3 id="purification-report-3"><a class="header" href="#purification-report-3">Purification Report</a></h3>
-<pre><code>Configuration Purification Report
+<pre><code class="language-text">Configuration Purification Report
 ==================================
 
 Issues Fixed: 17
@@ -13955,9 +13955,7 @@ fi
 <p>bashrs represents bash scripts using a type-safe Rust AST with three main layers:</p>
 <h3 id="layer-1-statements-bashstmt"><a class="header" href="#layer-1-statements-bashstmt">Layer 1: Statements (<code>BashStmt</code>)</a></h3>
 <p>Statements are top-level constructs:</p>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>pub enum BashStmt {
+<pre><code class="language-rust ignore">pub enum BashStmt {
     /// Variable assignment: VAR=value
     Assignment {
         name: String,
@@ -14006,13 +14004,10 @@ fi
 
     /// Comment (preserved for documentation)
     Comment { text: String, span: Span },
-}
-<span class="boring">}</span></code></pre></pre>
+}</code></pre>
 <h3 id="layer-2-expressions-bashexpr"><a class="header" href="#layer-2-expressions-bashexpr">Layer 2: Expressions (<code>BashExpr</code>)</a></h3>
 <p>Expressions represent values and computations:</p>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>pub enum BashExpr {
+<pre><code class="language-rust ignore">pub enum BashExpr {
     /// String literal: "hello"
     Literal(String),
 
@@ -14047,13 +14042,10 @@ fi
     RemovePrefix { variable: String, pattern: Box&lt;BashExpr&gt; },      // ${VAR#pattern}
     RemoveLongestSuffix { variable: String, pattern: Box&lt;BashExpr&gt; }, // ${VAR%%pattern}
     RemoveLongestPrefix { variable: String, pattern: Box&lt;BashExpr&gt; }, // ${VAR##pattern}
-}
-<span class="boring">}</span></code></pre></pre>
+}</code></pre>
 <h3 id="layer-3-test-and-arithmetic-expressions"><a class="header" href="#layer-3-test-and-arithmetic-expressions">Layer 3: Test and Arithmetic Expressions</a></h3>
 <p>Low-level constructs for conditionals and math:</p>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>pub enum TestExpr {
+<pre><code class="language-rust ignore">pub enum TestExpr {
     // String comparisons
     StringEq(BashExpr, BashExpr),    // [ "$a" = "$b" ]
     StringNe(BashExpr, BashExpr),    // [ "$a" != "$b" ]
@@ -14088,23 +14080,17 @@ pub enum ArithExpr {
     Mul(Box&lt;ArithExpr&gt;, Box&lt;ArithExpr&gt;),
     Div(Box&lt;ArithExpr&gt;, Box&lt;ArithExpr&gt;),
     Mod(Box&lt;ArithExpr&gt;, Box&lt;ArithExpr&gt;),
-}
-<span class="boring">}</span></code></pre></pre>
+}</code></pre>
 <h3 id="metadata-and-source-tracking"><a class="header" href="#metadata-and-source-tracking">Metadata and Source Tracking</a></h3>
 <p>Every AST node includes a <code>Span</code> for precise error reporting:</p>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>pub struct Span {
+<pre><code class="language-rust ignore">pub struct Span {
     pub start_line: usize,
     pub start_col: usize,
     pub end_line: usize,
     pub end_col: usize,
-}
-<span class="boring">}</span></code></pre></pre>
+}</code></pre>
 <p>Complete scripts are wrapped in <code>BashAst</code>:</p>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>pub struct BashAst {
+<pre><code class="language-rust ignore">pub struct BashAst {
     pub statements: Vec&lt;BashStmt&gt;,
     pub metadata: AstMetadata,
 }
@@ -14113,11 +14099,10 @@ pub struct AstMetadata {
     pub source_file: Option&lt;String&gt;,
     pub line_count: usize,
     pub parse_time_ms: u64,
-}
-<span class="boring">}</span></code></pre></pre>
+}</code></pre>
 <h2 id="how-purification-works-via-ast-transformations"><a class="header" href="#how-purification-works-via-ast-transformations">How Purification Works via AST Transformations</a></h2>
 <p>bashrs purification is a three-stage pipeline:</p>
-<pre><code>┌─────────────┐      ┌──────────────┐      ┌─────────────┐
+<pre><code class="language-text">┌─────────────┐      ┌──────────────┐      ┌─────────────┐
 │ Parse Bash  │ ───▶ │  Transform   │ ───▶ │  Generate   │
 │  to AST     │      │     AST      │      │ Purified Sh │
 └─────────────┘      └──────────────┘      └─────────────┘
@@ -14130,9 +14115,7 @@ mkdir /app/releases
 rm /app/current
 </code></pre>
 <p>Parses to:</p>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>BashAst {
+<pre><code class="language-rust ignore">BashAst {
     statements: vec![
         BashStmt::Assignment {
             name: "SESSION_ID",
@@ -14152,15 +14135,12 @@ rm /app/current
         },
     ],
     metadata: AstMetadata { ... },
-}
-<span class="boring">}</span></code></pre></pre>
+}</code></pre>
 <h3 id="stage-2-transform-ast"><a class="header" href="#stage-2-transform-ast">Stage 2: Transform AST</a></h3>
 <p>Three categories of transformations:</p>
 <h4 id="21-determinism-transformations"><a class="header" href="#21-determinism-transformations">2.1: Determinism Transformations</a></h4>
 <p>Replace non-deterministic constructs:</p>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>// Before: SESSION_ID=$RANDOM
+<pre><code class="language-rust ignore">// Before: SESSION_ID=$RANDOM
 BashStmt::Assignment {
     name: "SESSION_ID",
     value: BashExpr::Variable("RANDOM"),
@@ -14172,8 +14152,7 @@ BashStmt::Assignment {
     name: "SESSION_ID",
     value: BashExpr::Literal("fixed-session-id"),
     ...
-}
-<span class="boring">}</span></code></pre></pre>
+}</code></pre>
 <p><strong>Patterns transformed</strong>:</p>
 <ul>
 <li><code>$RANDOM</code> → fixed value or parameter</li>
@@ -14183,9 +14162,7 @@ BashStmt::Assignment {
 </ul>
 <h4 id="22-idempotency-transformations"><a class="header" href="#22-idempotency-transformations">2.2: Idempotency Transformations</a></h4>
 <p>Make commands safe to re-run:</p>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>// Before: mkdir /app/releases
+<pre><code class="language-rust ignore">// Before: mkdir /app/releases
 BashStmt::Command {
     name: "mkdir",
     args: vec![BashExpr::Literal("/app/releases")],
@@ -14198,8 +14175,7 @@ BashStmt::Command {
         BashExpr::Literal("-p"),
         BashExpr::Literal("/app/releases"),
     ],
-}
-<span class="boring">}</span></code></pre></pre>
+}</code></pre>
 <p><strong>Patterns transformed</strong>:</p>
 <ul>
 <li><code>mkdir DIR</code> → <code>mkdir -p DIR</code></li>
@@ -14209,9 +14185,7 @@ BashStmt::Command {
 </ul>
 <h4 id="23-posix-compliance-transformations"><a class="header" href="#23-posix-compliance-transformations">2.3: POSIX Compliance Transformations</a></h4>
 <p>Convert bash-isms to POSIX:</p>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>// Before: until CONDITION; do BODY; done
+<pre><code class="language-rust ignore">// Before: until CONDITION; do BODY; done
 BashStmt::Until {
     condition: test_expr,
     body: statements,
@@ -14223,8 +14197,7 @@ BashStmt::While {
         TestExpr::Not(Box::new(test_expr))
     )),
     body: statements,
-}
-<span class="boring">}</span></code></pre></pre>
+}</code></pre>
 <p><strong>Patterns transformed</strong>:</p>
 <ul>
 <li><code>until</code> → <code>while !</code></li>
@@ -14249,9 +14222,7 @@ rm -f /app/current
 mkdir "$TEMP_DIR"
 </code></pre>
 <p><strong>AST before transformation</strong>:</p>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>vec![
+<pre><code class="language-rust ignore">vec![
     BashStmt::Assignment {
         name: "TEMP_DIR",
         value: BashExpr::Concat(vec![
@@ -14263,12 +14234,9 @@ mkdir "$TEMP_DIR"
         name: "mkdir",
         args: vec![BashExpr::Variable("TEMP_DIR")],
     },
-]
-<span class="boring">}</span></code></pre></pre>
+]</code></pre>
 <p><strong>Transformation logic</strong>:</p>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>fn remove_random(expr: BashExpr) -&gt; BashExpr {
+<pre><code class="language-rust ignore">fn remove_random(expr: BashExpr) -&gt; BashExpr {
     match expr {
         BashExpr::Variable(ref name) if name == "RANDOM" =&gt; {
             // Replace with deterministic value
@@ -14281,12 +14249,9 @@ mkdir "$TEMP_DIR"
         }
         _ =&gt; expr,
     }
-}
-<span class="boring">}</span></code></pre></pre>
+}</code></pre>
 <p><strong>AST after transformation</strong>:</p>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>vec![
+<pre><code class="language-rust ignore">vec![
     BashStmt::Assignment {
         name: "TEMP_DIR",
         value: BashExpr::Concat(vec![
@@ -14301,8 +14266,7 @@ mkdir "$TEMP_DIR"
             BashExpr::Variable("TEMP_DIR"),
         ],
     },
-]
-<span class="boring">}</span></code></pre></pre>
+]</code></pre>
 <p><strong>Output purified shell</strong>:</p>
 <pre><code class="language-bash"><span class="boring">!/bin/sh
 </span>TEMP_DIR="/tmp/build-$(date +%Y%m%d-%H%M%S)"
@@ -14315,9 +14279,7 @@ mkdir -p "$TEMP_DIR"
 ln -s /app/releases/v1.0.0 /app/current
 </code></pre>
 <p><strong>AST before transformation</strong>:</p>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>vec![
+<pre><code class="language-rust ignore">vec![
     BashStmt::Command {
         name: "rm",
         args: vec![BashExpr::Literal("/app/current")],
@@ -14330,12 +14292,9 @@ ln -s /app/releases/v1.0.0 /app/current
             BashExpr::Literal("/app/current"),
         ],
     },
-]
-<span class="boring">}</span></code></pre></pre>
+]</code></pre>
 <p><strong>Transformation logic</strong>:</p>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>fn make_idempotent(stmt: BashStmt) -&gt; BashStmt {
+<pre><code class="language-rust ignore">fn make_idempotent(stmt: BashStmt) -&gt; BashStmt {
     match stmt {
         BashStmt::Command { name, mut args, span } =&gt; {
             match name.as_str() {
@@ -14363,12 +14322,9 @@ ln -s /app/releases/v1.0.0 /app/current
         }
         _ =&gt; stmt,
     }
-}
-<span class="boring">}</span></code></pre></pre>
+}</code></pre>
 <p><strong>AST after transformation</strong>:</p>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>vec![
+<pre><code class="language-rust ignore">vec![
     BashStmt::Command {
         name: "rm",
         args: vec![
@@ -14384,8 +14340,7 @@ ln -s /app/releases/v1.0.0 /app/current
             BashExpr::Literal("/app/current"),
         ],
     },
-]
-<span class="boring">}</span></code></pre></pre>
+]</code></pre>
 <p><strong>Output purified shell</strong>:</p>
 <pre><code class="language-bash"><span class="boring">!/bin/sh
 </span>rm -f /app/current
@@ -14400,9 +14355,7 @@ ln -s /app/releases/v1.0.0 /app/current
 done
 </code></pre>
 <p><strong>AST before transformation</strong>:</p>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>BashStmt::Until {
+<pre><code class="language-rust ignore">BashStmt::Until {
     condition: BashExpr::Test(Box::new(
         TestExpr::FileExists(BashExpr::Literal("/tmp/ready"))
     )),
@@ -14417,12 +14370,9 @@ done
         },
     ],
     span: Span { ... },
-}
-<span class="boring">}</span></code></pre></pre>
+}</code></pre>
 <p><strong>Transformation logic</strong>:</p>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>fn posixify(stmt: BashStmt) -&gt; BashStmt {
+<pre><code class="language-rust ignore">fn posixify(stmt: BashStmt) -&gt; BashStmt {
     match stmt {
         BashStmt::Until { condition, body, span } =&gt; {
             // until COND is equivalent to while ! COND
@@ -14439,12 +14389,9 @@ done
         }
         _ =&gt; stmt,
     }
-}
-<span class="boring">}</span></code></pre></pre>
+}</code></pre>
 <p><strong>AST after transformation</strong>:</p>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>BashStmt::While {
+<pre><code class="language-rust ignore">BashStmt::While {
     condition: BashExpr::Test(Box::new(
         TestExpr::Not(Box::new(
             TestExpr::FileExists(BashExpr::Literal("/tmp/ready"))
@@ -14461,8 +14408,7 @@ done
         },
     ],
     span: Span { ... },
-}
-<span class="boring">}</span></code></pre></pre>
+}</code></pre>
 <p><strong>Output purified shell</strong>:</p>
 <pre><code class="language-bash"><span class="boring">!/bin/sh
 </span>while ! [ -f /tmp/ready ]; do
@@ -14473,9 +14419,7 @@ done
 <h2 id="writing-custom-ast-transformations"><a class="header" href="#writing-custom-ast-transformations">Writing Custom AST Transformations</a></h2>
 <p>You can extend bashrs with custom transformations using the visitor pattern:</p>
 <h3 id="step-1-define-your-transformation"><a class="header" href="#step-1-define-your-transformation">Step 1: Define Your Transformation</a></h3>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use bashrs::bash_parser::ast::{BashStmt, BashExpr, BashAst};
+<pre><code class="language-rust ignore">use bashrs::bash_parser::ast::{BashStmt, BashExpr, BashAst};
 
 /// Custom transformation: Convert all echo commands to printf
 fn echo_to_printf(ast: BashAst) -&gt; BashAst {
@@ -14524,12 +14468,9 @@ fn transform_stmt(stmt: BashStmt) -&gt; BashStmt {
         // ... handle other statement types
         _ =&gt; stmt,
     }
-}
-<span class="boring">}</span></code></pre></pre>
+}</code></pre>
 <h3 id="step-2-test-your-transformation"><a class="header" href="#step-2-test-your-transformation">Step 2: Test Your Transformation</a></h3>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>#[cfg(test)]
+<pre><code class="language-rust ignore">#[cfg(test)]
 mod tests {
     use super::*;
     use bashrs::bash_parser::Parser;
@@ -14583,10 +14524,9 @@ greet() {
             _ =&gt; panic!("Expected Function"),
         }
     }
-}
-<span class="boring">}</span></code></pre></pre>
+}</code></pre>
 <h3 id="step-3-integrate-with-bashrs-pipeline"><a class="header" href="#step-3-integrate-with-bashrs-pipeline">Step 3: Integrate with bashrs Pipeline</a></h3>
-<pre><pre class="playground"><code class="language-rust">use bashrs::bash_parser::Parser;
+<pre><code class="language-rust ignore">use bashrs::bash_parser::Parser;
 use bashrs::bash_transpiler::codegen::BashCodegen;
 
 fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
@@ -14604,14 +14544,12 @@ fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
 
     println!("{}", output);
     Ok(())
-}</code></pre></pre>
+}</code></pre>
 <h2 id="testing-transformations"><a class="header" href="#testing-transformations">Testing Transformations</a></h2>
 <p>bashrs uses EXTREME TDD methodology for transformation testing:</p>
 <h3 id="unit-tests"><a class="header" href="#unit-tests">Unit Tests</a></h3>
 <p>Test individual transformation rules:</p>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>#[test]
+<pre><code class="language-rust ignore">#[test]
 fn test_random_variable_removal() {
     let expr = BashExpr::Variable("RANDOM".to_string());
     let transformed = remove_random(expr);
@@ -14622,13 +14560,10 @@ fn test_random_variable_removal() {
         }
         _ =&gt; panic!("Expected Literal after transformation"),
     }
-}
-<span class="boring">}</span></code></pre></pre>
+}</code></pre>
 <h3 id="integration-tests"><a class="header" href="#integration-tests">Integration Tests</a></h3>
 <p>Test complete transformation pipeline:</p>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>#[test]
+<pre><code class="language-rust ignore">#[test]
 fn test_full_purification_pipeline() {
     let input = r#"
 #!/bin/bash
@@ -14661,13 +14596,10 @@ ln -s /tmp/session-$SESSION_ID /tmp/current
     let result = shellcheck.wait_with_output().unwrap();
     assert!(result.status.success(), "Shellcheck failed: {}",
         String::from_utf8_lossy(&amp;result.stderr));
-}
-<span class="boring">}</span></code></pre></pre>
+}</code></pre>
 <h3 id="property-tests"><a class="header" href="#property-tests">Property Tests</a></h3>
 <p>Test transformation invariants:</p>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use proptest::prelude::*;
+<pre><code class="language-rust ignore">use proptest::prelude::*;
 
 proptest! {
     #[test]
@@ -14688,14 +14620,11 @@ proptest! {
         // Purification must not change behavior
         assert_eq!(original_semantics, purified_semantics);
     }
-}
-<span class="boring">}</span></code></pre></pre>
+}</code></pre>
 <h2 id="best-practices-10"><a class="header" href="#best-practices-10">Best Practices</a></h2>
 <h3 id="1-preserve-semantics"><a class="header" href="#1-preserve-semantics">1. Preserve Semantics</a></h3>
 <p><strong>Always</strong> verify that transformations preserve the original script's behavior:</p>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>// ❌ BAD: Changes behavior
+<pre><code class="language-rust ignore">// ❌ BAD: Changes behavior
 fn bad_transform(cmd: &amp;str) -&gt; &amp;str {
     match cmd {
         "rm" =&gt; "echo",  // Changes behavior!
@@ -14715,13 +14644,10 @@ fn good_transform(cmd: &amp;str, args: Vec&lt;String&gt;) -&gt; (String, Vec&lt;
         }
         _ =&gt; (cmd.to_string(), args),
     }
-}
-<span class="boring">}</span></code></pre></pre>
+}</code></pre>
 <h3 id="2-handle-edge-cases"><a class="header" href="#2-handle-edge-cases">2. Handle Edge Cases</a></h3>
 <p>Consider all possible AST node variations:</p>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>fn transform_expr(expr: BashExpr) -&gt; BashExpr {
+<pre><code class="language-rust ignore">fn transform_expr(expr: BashExpr) -&gt; BashExpr {
     match expr {
         // Handle all variants
         BashExpr::Literal(s) =&gt; BashExpr::Literal(s),
@@ -14741,12 +14667,9 @@ fn good_transform(cmd: &amp;str, args: Vec&lt;String&gt;) -&gt; (String, Vec&lt;
         // ... handle ALL variants, not just common ones
         _ =&gt; expr,
     }
-}
-<span class="boring">}</span></code></pre></pre>
+}</code></pre>
 <h3 id="3-use-span-information-for-error-reporting"><a class="header" href="#3-use-span-information-for-error-reporting">3. Use Span Information for Error Reporting</a></h3>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>fn validate_transformation(
+<pre><code class="language-rust ignore">fn validate_transformation(
     stmt: &amp;BashStmt,
     span: Span,
 ) -&gt; Result&lt;(), TransformError&gt; {
@@ -14761,25 +14684,19 @@ fn good_transform(cmd: &amp;str, args: Vec&lt;String&gt;) -&gt; (String, Vec&lt;
         }
         _ =&gt; Ok(()),
     }
-}
-<span class="boring">}</span></code></pre></pre>
+}</code></pre>
 <h3 id="4-compose-transformations"><a class="header" href="#4-compose-transformations">4. Compose Transformations</a></h3>
 <p>Apply multiple transformations in order:</p>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>fn purify_ast(ast: BashAst) -&gt; Result&lt;BashAst, PurifyError&gt; {
+<pre><code class="language-rust ignore">fn purify_ast(ast: BashAst) -&gt; Result&lt;BashAst, PurifyError&gt; {
     ast
         .transform(remove_nondeterminism)?   // Step 1: Determinism
         .transform(make_idempotent)?         // Step 2: Idempotency
         .transform(posixify)?                // Step 3: POSIX compliance
         .transform(quote_variables)?         // Step 4: Safety
-}
-<span class="boring">}</span></code></pre></pre>
+}</code></pre>
 <h3 id="5-test-with-real-scripts"><a class="header" href="#5-test-with-real-scripts">5. Test with Real Scripts</a></h3>
 <p>Validate against actual bash scripts from production:</p>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>#[test]
+<pre><code class="language-rust ignore">#[test]
 fn test_real_world_deployment_script() {
     let input = std::fs::read_to_string("tests/fixtures/deploy.sh")
         .expect("Failed to read test fixture");
@@ -14794,8 +14711,7 @@ fn test_real_world_deployment_script() {
         execute_in_docker("bash", &amp;input),
         execute_in_docker("sh", &amp;purified),
     );
-}
-<span class="boring">}</span></code></pre></pre>
+}</code></pre>
 <h2 id="summary-8"><a class="header" href="#summary-8">Summary</a></h2>
 <p>AST-based transformations are the foundation of bashrs purification:</p>
 <ol>
@@ -14816,25 +14732,19 @@ fn test_real_world_deployment_script() {
 <p>Property-based testing is a powerful technique that tests code against mathematical properties rather than specific examples. bashrs uses the <code>proptest</code> crate to generate hundreds of test cases automatically, catching edge cases that manual tests miss.</p>
 <h2 id="what-is-property-based-testing"><a class="header" href="#what-is-property-based-testing">What is Property-Based Testing?</a></h2>
 <p>Traditional unit tests use specific examples:</p>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>#[test]
+<pre><code class="language-rust ignore">#[test]
 fn test_addition() {
     assert_eq!(add(2, 3), 5);
     assert_eq!(add(0, 0), 0);
     assert_eq!(add(-1, 1), 0);
-}
-<span class="boring">}</span></code></pre></pre>
+}</code></pre>
 <p>Property-based tests specify <strong>properties</strong> that should hold for <strong>all</strong> inputs:</p>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>proptest! {
+<pre><code class="language-rust ignore">proptest! {
     #[test]
     fn prop_addition_is_commutative(a: i32, b: i32) {
         assert_eq!(add(a, b), add(b, a));  // Property: a + b == b + a
     }
-}
-<span class="boring">}</span></code></pre></pre>
+}</code></pre>
 <p>The framework generates 100-1000+ test cases automatically, including edge cases like:</p>
 <ul>
 <li>Maximum/minimum values</li>
@@ -14855,9 +14765,7 @@ fn test_addition() {
 <p>bashrs property tests validate three critical properties:</p>
 <h3 id="property-1-determinism"><a class="header" href="#property-1-determinism">Property 1: Determinism</a></h3>
 <p><strong>Property</strong>: Purification is deterministic - same input always produces same output.</p>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>proptest! {
+<pre><code class="language-rust ignore">proptest! {
     #[test]
     fn prop_purification_is_deterministic(script in bash_script_strategy()) {
         let purified1 = purify(&amp;script).unwrap();
@@ -14866,14 +14774,11 @@ fn test_addition() {
         // Property: Multiple runs produce identical output
         assert_eq!(purified1, purified2);
     }
-}
-<span class="boring">}</span></code></pre></pre>
+}</code></pre>
 <p><strong>Why this matters</strong>: Build systems and CI/CD pipelines depend on reproducible outputs. Non-determinism breaks caching and verification.</p>
 <h3 id="property-2-idempotency"><a class="header" href="#property-2-idempotency">Property 2: Idempotency</a></h3>
 <p><strong>Property</strong>: Purification is idempotent - purifying already-purified code changes nothing.</p>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>proptest! {
+<pre><code class="language-rust ignore">proptest! {
     #[test]
     fn prop_purification_is_idempotent(script in bash_script_strategy()) {
         let purified1 = purify(&amp;script).unwrap();
@@ -14882,14 +14787,11 @@ fn test_addition() {
         // Property: Purify(Purify(x)) == Purify(x)
         assert_eq!(purified1, purified2);
     }
-}
-<span class="boring">}</span></code></pre></pre>
+}</code></pre>
 <p><strong>Why this matters</strong>: Users should be able to run bashrs multiple times without changing the output. This is essential for version control and diffing.</p>
 <h3 id="property-3-semantic-preservation"><a class="header" href="#property-3-semantic-preservation">Property 3: Semantic Preservation</a></h3>
 <p><strong>Property</strong>: Purification preserves behavior - purified scripts behave identically to originals.</p>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>proptest! {
+<pre><code class="language-rust ignore">proptest! {
     #[test]
     fn prop_purification_preserves_semantics(script in bash_script_strategy()) {
         let original_output = execute_bash(&amp;script);
@@ -14899,15 +14801,12 @@ fn test_addition() {
         // Property: Same behavior (modulo determinism)
         assert_eq!(original_output, purified_output);
     }
-}
-<span class="boring">}</span></code></pre></pre>
+}</code></pre>
 <p><strong>Why this matters</strong>: Purification must not break existing scripts. Users need confidence that bashrs won't introduce bugs.</p>
 <h2 id="writing-property-tests-for-shell-transformations"><a class="header" href="#writing-property-tests-for-shell-transformations">Writing Property Tests for Shell Transformations</a></h2>
 <h3 id="step-1-define-input-strategies"><a class="header" href="#step-1-define-input-strategies">Step 1: Define Input Strategies</a></h3>
 <p>Strategies generate random valid inputs. bashrs uses domain-specific strategies for shell constructs:</p>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use proptest::prelude::*;
+<pre><code class="language-rust ignore">use proptest::prelude::*;
 
 /// Generate valid bash identifiers: [a-zA-Z_][a-zA-Z0-9_]{0,15}
 fn bash_identifier() -&gt; impl Strategy&lt;Value = String&gt; {
@@ -14933,13 +14832,10 @@ fn bash_variable_name() -&gt; impl Strategy&lt;Value = String&gt; {
 /// Generate integers in reasonable range
 fn bash_integer() -&gt; impl Strategy&lt;Value = i64&gt; {
     -1000i64..1000i64
-}
-<span class="boring">}</span></code></pre></pre>
+}</code></pre>
 <h3 id="step-2-compose-strategies-for-complex-structures"><a class="header" href="#step-2-compose-strategies-for-complex-structures">Step 2: Compose Strategies for Complex Structures</a></h3>
 <p>Build AST nodes from primitive strategies:</p>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use bashrs::bash_parser::ast::*;
+<pre><code class="language-rust ignore">use bashrs::bash_parser::ast::*;
 
 /// Generate variable assignments
 fn bash_assignment() -&gt; impl Strategy&lt;Value = BashStmt&gt; {
@@ -14985,13 +14881,10 @@ fn bash_script() -&gt; impl Strategy&lt;Value = BashAst&gt; {
             },
         }
     })
-}
-<span class="boring">}</span></code></pre></pre>
+}</code></pre>
 <h3 id="step-3-write-property-tests"><a class="header" href="#step-3-write-property-tests">Step 3: Write Property Tests</a></h3>
 <p>Test properties using generated inputs:</p>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>proptest! {
+<pre><code class="language-rust ignore">proptest! {
     #![proptest_config(ProptestConfig {
         cases: 1000,  // Generate 1000 test cases
         max_shrink_iters: 1000,
@@ -15032,14 +14925,11 @@ fn bash_script() -&gt; impl Strategy&lt;Value = BashAst&gt; {
             _ =&gt; prop_assert!(false, "Expected commands"),
         }
     }
-}
-<span class="boring">}</span></code></pre></pre>
+}</code></pre>
 <h2 id="examples-from-bashrs"><a class="header" href="#examples-from-bashrs">Examples from bashrs</a></h2>
 <h3 id="example-1-variable-quoting-property"><a class="header" href="#example-1-variable-quoting-property">Example 1: Variable Quoting Property</a></h3>
 <p><strong>Property</strong>: All variable references in purified output should be quoted.</p>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>proptest! {
+<pre><code class="language-rust ignore">proptest! {
     #[test]
     fn prop_variables_are_quoted(
         var_name in bash_identifier(),
@@ -15059,8 +14949,7 @@ echo ${}
             "Expected quoted variable ${{{}}}, got:\n{}",
             var_name, purified);
     }
-}
-<span class="boring">}</span></code></pre></pre>
+}</code></pre>
 <p><strong>Real-world bug caught</strong>: This test discovered that variables in command substitutions weren't being quoted:</p>
 <pre><code class="language-bash"><span class="boring"> Original (vulnerable)
 </span>RESULT=$(command $UNQUOTED)
@@ -15070,9 +14959,7 @@ echo ${}
 </code></pre>
 <h3 id="example-2-idempotency-of-mkdir--p"><a class="header" href="#example-2-idempotency-of-mkdir--p">Example 2: Idempotency of mkdir -p</a></h3>
 <p><strong>Property</strong>: Adding <code>-p</code> to <code>mkdir</code> is idempotent - doing it twice doesn't add it again.</p>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>proptest! {
+<pre><code class="language-rust ignore">proptest! {
     #[test]
     fn prop_mkdir_p_idempotent(dir in "[/a-z]{1,20}") {
         let script = format!("mkdir {}", dir);
@@ -15087,13 +14974,10 @@ echo ${}
         let p_count = purified1.matches("-p").count();
         prop_assert_eq!(p_count, 1, "Expected exactly one -p, got {}", p_count);
     }
-}
-<span class="boring">}</span></code></pre></pre>
+}</code></pre>
 <h3 id="example-3-posix-compatibility"><a class="header" href="#example-3-posix-compatibility">Example 3: POSIX Compatibility</a></h3>
 <p><strong>Property</strong>: All purified scripts pass shellcheck in POSIX mode.</p>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>proptest! {
+<pre><code class="language-rust ignore">proptest! {
     #[test]
     fn prop_purified_is_posix_compliant(script in bash_script()) {
         let purified = purify(script).unwrap();
@@ -15118,13 +15002,10 @@ echo ${}
             "Shellcheck failed:\n{}",
             String::from_utf8_lossy(&amp;output.stderr));
     }
-}
-<span class="boring">}</span></code></pre></pre>
+}</code></pre>
 <h3 id="example-4-parameter-expansion-preservation"><a class="header" href="#example-4-parameter-expansion-preservation">Example 4: Parameter Expansion Preservation</a></h3>
 <p><strong>Property</strong>: Valid parameter expansions are preserved (not broken).</p>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>proptest! {
+<pre><code class="language-rust ignore">proptest! {
     #[test]
     fn prop_parameter_expansion_preserved(
         var in bash_identifier(),
@@ -15142,8 +15023,7 @@ echo ${}
             purified
         );
     }
-}
-<span class="boring">}</span></code></pre></pre>
+}</code></pre>
 <p><strong>Real bug caught</strong>: Initial implementation would incorrectly transform:</p>
 <pre><code class="language-bash"><span class="boring"> Before: ${VAR:-default}
 </span><span class="boring"> After:  $VARdefault  # BROKEN!
@@ -15152,16 +15032,13 @@ echo ${}
 <h2 id="shrinking-and-edge-case-discovery"><a class="header" href="#shrinking-and-edge-case-discovery">Shrinking and Edge Case Discovery</a></h2>
 <p>When a property test fails, <code>proptest</code> <strong>shrinks</strong> the input to find the minimal failing case.</p>
 <h3 id="example-shrinking-in-action"><a class="header" href="#example-shrinking-in-action">Example: Shrinking in Action</a></h3>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>proptest! {
+<pre><code class="language-rust ignore">proptest! {
     #[test]
     fn prop_commands_dont_panic(cmd in bash_command()) {
         // Bug: panics on empty command name
         process_command(&amp;cmd);
     }
-}
-<span class="boring">}</span></code></pre></pre>
+}</code></pre>
 <p><strong>Initial failure</strong> (random):</p>
 <pre><code>thread 'prop_commands_dont_panic' panicked at 'assertion failed'
   cmd = BashStmt::Command {
@@ -15180,9 +15057,7 @@ echo ${}
 </code></pre>
 <p>Shrinking makes debugging trivial - you immediately see the root cause.</p>
 <h3 id="configuring-shrinking"><a class="header" href="#configuring-shrinking">Configuring Shrinking</a></h3>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>proptest! {
+<pre><code class="language-rust ignore">proptest! {
     #![proptest_config(ProptestConfig {
         cases: 1000,              // Try 1000 random inputs
         max_shrink_iters: 10000,  // Spend up to 10k iterations shrinking
@@ -15194,8 +15069,7 @@ echo ${}
     fn prop_complex_test(input in complex_strategy()) {
         // Test code
     }
-}
-<span class="boring">}</span></code></pre></pre>
+}</code></pre>
 <h2 id="integration-with-extreme-tdd"><a class="header" href="#integration-with-extreme-tdd">Integration with EXTREME TDD</a></h2>
 <p>Property tests are a key component of bashrs's EXTREME TDD methodology:</p>
 <pre><code>EXTREME TDD = TDD + Property Testing + Mutation Testing + PMAT + Examples
@@ -15208,9 +15082,7 @@ echo ${}
 <li><strong>PROPERTY</strong>: Add property test to prevent regressions</li>
 </ol>
 <p>Example workflow:</p>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>// Step 1: RED - Failing unit test
+<pre><code class="language-rust ignore">// Step 1: RED - Failing unit test
 #[test]
 fn test_mkdir_adds_dash_p() {
     let input = "mkdir /tmp/foo";
@@ -15263,8 +15135,7 @@ proptest! {
         // Property: Idempotent
         prop_assert_eq!(purified1, purified2);
     }
-}
-<span class="boring">}</span></code></pre></pre>
+}</code></pre>
 <h3 id="property-tests-complement-mutation-testing"><a class="header" href="#property-tests-complement-mutation-testing">Property Tests Complement Mutation Testing</a></h3>
 <p>Property tests catch bugs mutation tests miss:</p>
 <p><strong>Mutation test</strong>: Changes <code>if !has_flag</code> to <code>if has_flag</code></p>
@@ -15280,9 +15151,7 @@ proptest! {
 <h2 id="best-practices-11"><a class="header" href="#best-practices-11">Best Practices</a></h2>
 <h3 id="1-start-with-simple-properties"><a class="header" href="#1-start-with-simple-properties">1. Start with Simple Properties</a></h3>
 <p>Don't try to test everything at once:</p>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>// ✅ GOOD: Simple, focused property
+<pre><code class="language-rust ignore">// ✅ GOOD: Simple, focused property
 proptest! {
     #[test]
     fn prop_parse_never_panics(input in ".*{0,1000}") {
@@ -15300,13 +15169,10 @@ proptest! {
         let output = generate(purified).unwrap();
         assert!(shellcheck_passes(&amp;output));    // Too many assumptions
     }
-}
-<span class="boring">}</span></code></pre></pre>
+}</code></pre>
 <h3 id="2-use-domain-specific-strategies"><a class="header" href="#2-use-domain-specific-strategies">2. Use Domain-Specific Strategies</a></h3>
 <p>Generate <strong>valid</strong> inputs, not random garbage:</p>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>// ❌ BAD: Random strings aren't valid bash
+<pre><code class="language-rust ignore">// ❌ BAD: Random strings aren't valid bash
 proptest! {
     #[test]
     fn prop_parse_succeeds(input in ".*") {
@@ -15331,13 +15197,10 @@ proptest! {
     fn prop_valid_bash_parses(script in valid_bash_script()) {
         parse_bash(&amp;script).unwrap();  // Should always succeed
     }
-}
-<span class="boring">}</span></code></pre></pre>
+}</code></pre>
 <h3 id="3-test-properties-not-implementation"><a class="header" href="#3-test-properties-not-implementation">3. Test Properties, Not Implementation</a></h3>
 <p>Focus on <strong>what</strong> should be true, not <strong>how</strong> it's implemented:</p>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>// ❌ BAD: Tests implementation details
+<pre><code class="language-rust ignore">// ❌ BAD: Tests implementation details
 proptest! {
     #[test]
     fn prop_uses_regex_to_find_variables(input in ".*") {
@@ -15357,13 +15220,10 @@ proptest! {
         prop_assert!(unquoted_vars.is_empty(),
             "Found unquoted variables: {:?}", unquoted_vars);
     }
-}
-<span class="boring">}</span></code></pre></pre>
+}</code></pre>
 <h3 id="4-use-preconditions-with-prop_assume"><a class="header" href="#4-use-preconditions-with-prop_assume">4. Use Preconditions with <code>prop_assume</code></a></h3>
 <p>Filter out invalid cases instead of failing:</p>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>proptest! {
+<pre><code class="language-rust ignore">proptest! {
     #[test]
     fn prop_division_works(a: i32, b: i32) {
         prop_assume!(b != 0);  // Skip division by zero
@@ -15371,12 +15231,9 @@ proptest! {
         let result = divide(a, b);
         prop_assert_eq!(result * b, a);
     }
-}
-<span class="boring">}</span></code></pre></pre>
+}</code></pre>
 <p>For bashrs:</p>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>proptest! {
+<pre><code class="language-rust ignore">proptest! {
     #[test]
     fn prop_safe_eval_works(cmd in bash_command_string()) {
         // Only test safe commands (no eval)
@@ -15385,13 +15242,10 @@ proptest! {
         let result = execute_safely(&amp;cmd);
         prop_assert!(result.is_ok());
     }
-}
-<span class="boring">}</span></code></pre></pre>
+}</code></pre>
 <h3 id="5-balance-test-cases-vs-runtime"><a class="header" href="#5-balance-test-cases-vs-runtime">5. Balance Test Cases vs Runtime</a></h3>
 <p>More cases = better coverage, but slower tests:</p>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>proptest! {
+<pre><code class="language-rust ignore">proptest! {
     #![proptest_config(ProptestConfig {
         cases: 100,  // Quick smoke test (CI)
         .. ProptestConfig::default()
@@ -15414,13 +15268,10 @@ proptest! {
     fn prop_exhaustive_test(input in bash_script()) {
         // Runs 10k times, may take minutes
     }
-}
-<span class="boring">}</span></code></pre></pre>
+}</code></pre>
 <h3 id="6-document-expected-failures"><a class="header" href="#6-document-expected-failures">6. Document Expected Failures</a></h3>
 <p>Some properties have known limitations:</p>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>proptest! {
+<pre><code class="language-rust ignore">proptest! {
     #[test]
     fn prop_parse_all_bash(input in ".*") {
         match parse_bash(&amp;input) {
@@ -15435,29 +15286,23 @@ proptest! {
             }
         }
     }
-}
-<span class="boring">}</span></code></pre></pre>
+}</code></pre>
 <h2 id="advanced-techniques"><a class="header" href="#advanced-techniques">Advanced Techniques</a></h2>
 <h3 id="regression-testing-with-proptest-regressions"><a class="header" href="#regression-testing-with-proptest-regressions">Regression Testing with <code>proptest-regressions</code></a></h3>
 <p>Save failing cases for permanent regression tests:</p>
 <pre><code class="language-toml"># proptest-regressions/prop_test_name.txt
 cc 0123456789abcdef  # Hex seed for failing case
 </code></pre>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>proptest! {
+<pre><code class="language-rust ignore">proptest! {
     #[test]
     fn prop_no_regressions(input in bash_script()) {
         // Failed cases automatically become permanent tests
         purify(input).unwrap();
     }
-}
-<span class="boring">}</span></code></pre></pre>
+}</code></pre>
 <h3 id="stateful-property-testing"><a class="header" href="#stateful-property-testing">Stateful Property Testing</a></h3>
 <p>Test sequences of operations:</p>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>#[derive(Debug, Clone)]
+<pre><code class="language-rust ignore">#[derive(Debug, Clone)]
 enum Operation {
     AddVariable(String, String),
     UseVariable(String),
@@ -15494,8 +15339,7 @@ proptest! {
         // Property: State should always be consistent
         prop_assert!(state.is_consistent());
     }
-}
-<span class="boring">}</span></code></pre></pre>
+}</code></pre>
 <h2 id="summary-9"><a class="header" href="#summary-9">Summary</a></h2>
 <p>Property-based testing is essential for bashrs quality:</p>
 <p><strong>Benefits</strong>:</p>
@@ -15526,9 +15370,7 @@ proptest! {
 <p>Mutation testing is the gold standard for measuring test quality. While code coverage tells you which lines are executed, mutation testing tells you whether your tests actually catch bugs. bashrs uses <code>cargo-mutants</code> to achieve 80-90%+ kill rates on security-critical code.</p>
 <h2 id="what-is-mutation-testing"><a class="header" href="#what-is-mutation-testing">What is Mutation Testing?</a></h2>
 <p>Mutation testing works by introducing small bugs (mutations) into your code and checking if your tests catch them:</p>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>// Original code
+<pre><code class="language-rust ignore">// Original code
 fn is_safe_command(cmd: &amp;str) -&gt; bool {
     !cmd.contains("eval")
 }
@@ -15541,8 +15383,7 @@ fn is_safe_command(cmd: &amp;str) -&gt; bool {
 // Mutant 2: Change constant
 fn is_safe_command(cmd: &amp;str) -&gt; bool {
     !cmd.contains("")  // Bug: empty string always matches
-}
-<span class="boring">}</span></code></pre></pre>
+}</code></pre>
 <p><strong>If your tests pass</strong> with the mutant, the mutant <strong>survived</strong> (bad - your tests missed a bug).</p>
 <p><strong>If your tests fail</strong> with the mutant, the mutant was <strong>killed</strong> (good - your tests caught the bug).</p>
 <h3 id="mutation-score-kill-rate"><a class="header" href="#mutation-score-kill-rate">Mutation Score (Kill Rate)</a></h3>
@@ -15559,9 +15400,7 @@ fn is_safe_command(cmd: &amp;str) -&gt; bool {
 <p><strong>Current stats</strong>: 16 mutants, 16 killed, <strong>100% kill rate</strong></p>
 <p>Let's trace how this was achieved:</p>
 <h4 id="initial-implementation-naive"><a class="header" href="#initial-implementation-naive">Initial Implementation (Naive)</a></h4>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>pub fn check(source: &amp;str) -&gt; LintResult {
+<pre><code class="language-rust ignore">pub fn check(source: &amp;str) -&gt; LintResult {
     let mut result = LintResult::new();
 
     for (line_num, line) in source.lines().enumerate() {
@@ -15578,8 +15417,7 @@ fn is_safe_command(cmd: &amp;str) -&gt; bool {
     }
 
     result
-}
-<span class="boring">}</span></code></pre></pre>
+}</code></pre>
 <h4 id="baseline-mutation-test"><a class="header" href="#baseline-mutation-test">Baseline Mutation Test</a></h4>
 <pre><code class="language-bash">$ cargo mutants --file rash/src/linter/rules/sec001.rs -- --lib
 </code></pre>
@@ -15592,9 +15430,7 @@ fn is_safe_command(cmd: &amp;str) -&gt; bool {
 </ol>
 <h4 id="iteration-1-kill-surviving-mutants"><a class="header" href="#iteration-1-kill-surviving-mutants">Iteration 1: Kill Surviving Mutants</a></h4>
 <p>Add targeted tests:</p>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>#[test]
+<pre><code class="language-rust ignore">#[test]
 fn test_sec001_word_boundary_before() {
     // Kill mutant: "eval" → "" (empty string always matches)
     let safe = "# evaluation is not eval";
@@ -15619,12 +15455,9 @@ fn test_sec001_requires_eval_presence() {
     let result = check(safe);
     assert_eq!(result.diagnostics.len(), 0,
         "Should not flag commands without eval");
-}
-<span class="boring">}</span></code></pre></pre>
+}</code></pre>
 <h4 id="iteration-2-add-edge-cases"><a class="header" href="#iteration-2-add-edge-cases">Iteration 2: Add Edge Cases</a></h4>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>#[test]
+<pre><code class="language-rust ignore">#[test]
 fn test_sec001_eval_at_line_start() {
     // Edge case: eval at beginning of line
     let script = "eval \"$cmd\"";
@@ -15646,12 +15479,9 @@ fn test_sec001_eval_with_quotes() {
     let script = r#"eval "$cmd""#;
     let result = check(script);
     assert_eq!(result.diagnostics.len(), 1);
-}
-<span class="boring">}</span></code></pre></pre>
+}</code></pre>
 <h4 id="final-implementation-robust"><a class="header" href="#final-implementation-robust">Final Implementation (Robust)</a></h4>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>pub fn check(source: &amp;str) -&gt; LintResult {
+<pre><code class="language-rust ignore">pub fn check(source: &amp;str) -&gt; LintResult {
     let mut result = LintResult::new();
 
     for (line_num, line) in source.lines().enumerate() {
@@ -15699,8 +15529,7 @@ fn test_sec001_eval_with_quotes() {
     }
 
     result
-}
-<span class="boring">}</span></code></pre></pre>
+}</code></pre>
 <h4 id="final-mutation-test"><a class="header" href="#final-mutation-test">Final Mutation Test</a></h4>
 <pre><code class="language-bash">$ cargo mutants --file rash/src/linter/rules/sec001.rs -- --lib
 </code></pre>
@@ -15709,17 +15538,12 @@ fn test_sec001_eval_with_quotes() {
 <h3 id="sec002-unquoted-variables-75--875-improvement"><a class="header" href="#sec002-unquoted-variables-75--875-improvement">SEC002: Unquoted Variables (75% → 87.5% improvement)</a></h3>
 <p><strong>Baseline</strong>: 24/32 mutants killed (75%)</p>
 <p><strong>Surviving mutants identified</strong>:</p>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>// Mutant 1: Changed `contains("$")` to `contains("")`
+<pre><code class="language-rust ignore">// Mutant 1: Changed `contains("$")` to `contains("")`
 // Mutant 2: Changed `!is_quoted()` to `is_quoted()`
 // Mutant 3: Removed `if !var.is_empty()` guard
-// ... 8 total survivors
-<span class="boring">}</span></code></pre></pre>
+// ... 8 total survivors</code></pre>
 <p><strong>Iteration 1</strong>: Add 8 targeted tests:</p>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>#[test]
+<pre><code class="language-rust ignore">#[test]
 fn test_sec002_empty_variable_not_flagged() {
     // Kill mutant: removed is_empty() guard
     let script = "echo ''";  // Empty string, not a variable
@@ -15743,22 +15567,16 @@ fn test_sec002_quoted_variable_not_flagged() {
     assert_eq!(result.diagnostics.len(), 0);
 }
 
-// ... 5 more tests targeting remaining mutants
-<span class="boring">}</span></code></pre></pre>
+// ... 5 more tests targeting remaining mutants</code></pre>
 <p><strong>Result</strong>: 28/32 killed (87.5%) - 12.5 percentage point improvement</p>
 <h3 id="sec006-unsafe-temporary-files-857-baseline"><a class="header" href="#sec006-unsafe-temporary-files-857-baseline">SEC006: Unsafe Temporary Files (85.7% baseline)</a></h3>
 <p><strong>Baseline</strong>: 12/14 mutants killed</p>
 <p><strong>Key insight</strong>: High baseline score indicates good initial test coverage.</p>
 <p><strong>Surviving mutants</strong>:</p>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>// Mutant 1: Changed `mktemp` to `mktmp` (typo)
-// Mutant 2: Changed severity Error → Warning
-<span class="boring">}</span></code></pre></pre>
+<pre><code class="language-rust ignore">// Mutant 1: Changed `mktemp` to `mktmp` (typo)
+// Mutant 2: Changed severity Error → Warning</code></pre>
 <p><strong>Iteration 1</strong>: Add tests for edge cases:</p>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>#[test]
+<pre><code class="language-rust ignore">#[test]
 fn test_sec006_exact_command_name() {
     // Kill mutant: mktemp → mktmp
     let typo = "mktmp";  // Common typo
@@ -15779,8 +15597,7 @@ fn test_sec006_severity_is_error() {
     let result = check(script);
     assert_eq!(result.diagnostics[0].severity, Severity::Error,
         "Unsafe temp files must be Error severity");
-}
-<span class="boring">}</span></code></pre></pre>
+}</code></pre>
 <p><strong>Result</strong>: 14/14 killed (100%)</p>
 <h3 id="sc2064-trap-command-timing-100-from-start"><a class="header" href="#sc2064-trap-command-timing-100-from-start">SC2064: Trap Command Timing (100% from start)</a></h3>
 <p><strong>What made this rule perfect?</strong></p>
@@ -15789,9 +15606,7 @@ fn test_sec006_severity_is_error() {
 <li><strong>Mutation-driven test design</strong> - wrote tests anticipating mutations</li>
 <li><strong>Edge case enumeration</strong> - tested all quote/expansion combinations</li>
 </ol>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>#[test]
+<pre><code class="language-rust ignore">#[test]
 fn test_sc2064_double_quotes_immediate_expansion() {
     let script = r#"trap "echo $VAR" EXIT"#;  // Expands immediately
     let result = check(script);
@@ -15820,15 +15635,12 @@ fn test_sc2064_mixed_expansion() {
     assert_eq!(result.diagnostics.len(), 1);
 }
 
-// ... 16 more tests covering all combinations
-<span class="boring">}</span></code></pre></pre>
+// ... 16 more tests covering all combinations</code></pre>
 <p><strong>Result</strong>: 7 mutants, 7 killed, 100% kill rate</p>
 <h2 id="writing-effective-tests-for-high-mutation-scores"><a class="header" href="#writing-effective-tests-for-high-mutation-scores">Writing Effective Tests for High Mutation Scores</a></h2>
 <h3 id="pattern-1-boundary-testing"><a class="header" href="#pattern-1-boundary-testing">Pattern 1: Boundary Testing</a></h3>
 <p>Test both sides of every condition:</p>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>// Original code
+<pre><code class="language-rust ignore">// Original code
 if cmd.len() &gt; 0 {
     process(cmd);
 }
@@ -15836,12 +15648,9 @@ if cmd.len() &gt; 0 {
 // Mutation: &gt; → &gt;=
 if cmd.len() &gt;= 0 {  // Always true!
     process(cmd);
-}
-<span class="boring">}</span></code></pre></pre>
+}</code></pre>
 <p><strong>Kill this mutant</strong>:</p>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>#[test]
+<pre><code class="language-rust ignore">#[test]
 fn test_empty_command_not_processed() {
     let cmd = "";
     let result = process_if_nonempty(cmd);
@@ -15853,13 +15662,10 @@ fn test_nonempty_command_processed() {
     let cmd = "ls";
     let result = process_if_nonempty(cmd);
     assert!(result.is_some(), "Non-empty command should be processed");
-}
-<span class="boring">}</span></code></pre></pre>
+}</code></pre>
 <h3 id="pattern-2-assertion-strengthening"><a class="header" href="#pattern-2-assertion-strengthening">Pattern 2: Assertion Strengthening</a></h3>
 <p>Weak assertions let mutants survive:</p>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>// ❌ WEAK: Only checks presence
+<pre><code class="language-rust ignore">// ❌ WEAK: Only checks presence
 #[test]
 fn test_diagnostic_exists() {
     let result = check("eval cmd");
@@ -15875,13 +15681,10 @@ fn test_diagnostic_complete() {
     assert_eq!(result.diagnostics[0].severity, Severity::Error);
     assert_eq!(result.diagnostics[0].line, 1);
     assert!(result.diagnostics[0].message.contains("eval"));
-}
-<span class="boring">}</span></code></pre></pre>
+}</code></pre>
 <h3 id="pattern-3-negation-testing"><a class="header" href="#pattern-3-negation-testing">Pattern 3: Negation Testing</a></h3>
 <p>Test both positive and negative cases:</p>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>#[test]
+<pre><code class="language-rust ignore">#[test]
 fn test_detects_vulnerability() {
     let vulnerable = "eval \"$USER_INPUT\"";
     let result = check(vulnerable);
@@ -15895,13 +15698,10 @@ fn test_ignores_safe_code() {
     let result = check(safe);
     assert_eq!(result.diagnostics.len(), 0,
         "Should not flag safe code");
-}
-<span class="boring">}</span></code></pre></pre>
+}</code></pre>
 <h3 id="pattern-4-value-testing"><a class="header" href="#pattern-4-value-testing">Pattern 4: Value Testing</a></h3>
 <p>Test specific values, not just presence:</p>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>// ❌ WEAK
+<pre><code class="language-rust ignore">// ❌ WEAK
 #[test]
 fn test_line_number_set() {
     let result = check("\n\neval cmd");
@@ -15914,13 +15714,10 @@ fn test_line_number_exact() {
     let result = check("\n\neval cmd");
     assert_eq!(result.diagnostics[0].line, 3,  // Exact value
         "Should report line 3");
-}
-<span class="boring">}</span></code></pre></pre>
+}</code></pre>
 <h3 id="pattern-5-composition-testing"><a class="header" href="#pattern-5-composition-testing">Pattern 5: Composition Testing</a></h3>
 <p>Test how components work together:</p>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>#[test]
+<pre><code class="language-rust ignore">#[test]
 fn test_multiple_violations() {
     let script = r#"
 eval "$cmd1"
@@ -15934,8 +15731,7 @@ eval "$cmd2"
 
     assert_eq!(result.diagnostics[0].line, 2);
     assert_eq!(result.diagnostics[1].line, 4);
-}
-<span class="boring">}</span></code></pre></pre>
+}</code></pre>
 <h2 id="iterative-mutation-testing-workflow"><a class="header" href="#iterative-mutation-testing-workflow">Iterative Mutation Testing Workflow</a></h2>
 <p>bashrs follows a systematic process:</p>
 <h3 id="step-1-baseline-mutation-test"><a class="header" href="#step-1-baseline-mutation-test">Step 1: Baseline Mutation Test</a></h3>
@@ -15954,15 +15750,13 @@ Kill rate: 81.25%
     --list-mutants -- --lib
 </code></pre>
 <p><strong>Surviving mutants</strong>:</p>
-<pre><code>src/linter/rules/sec001.rs:34: replace contains -&gt; is_empty
+<pre><code class="language-text">src/linter/rules/sec001.rs:34: replace contains -&gt; is_empty
 src/linter/rules/sec001.rs:42: replace line_num + 1 -&gt; line_num
 src/linter/rules/sec001.rs:50: replace Error -&gt; Warning
 </code></pre>
 <h3 id="step-3-write-tests-to-kill-survivors"><a class="header" href="#step-3-write-tests-to-kill-survivors">Step 3: Write Tests to Kill Survivors</a></h3>
 <p>For each surviving mutant, write a test that would fail if that mutation existed:</p>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>// Kill: contains → is_empty
+<pre><code class="language-rust ignore">// Kill: contains → is_empty
 #[test]
 fn test_sec001_requires_eval_keyword() {
     let without_eval = "echo safe";
@@ -15986,8 +15780,7 @@ fn test_sec001_is_error_severity() {
     let script = "eval cmd";
     let diag = &amp;check(script).diagnostics[0];
     assert_eq!(diag.severity, Severity::Error);
-}
-<span class="boring">}</span></code></pre></pre>
+}</code></pre>
 <h3 id="step-4-verify-kill-rate-improvement"><a class="header" href="#step-4-verify-kill-rate-improvement">Step 4: Verify Kill Rate Improvement</a></h3>
 <pre><code class="language-bash">cargo mutants --file rash/src/linter/rules/sec001.rs -- --lib
 </code></pre>
@@ -16016,7 +15809,7 @@ Mutation results:
 </code></pre>
 <h2 id="analyzing-mutation-testing-results"><a class="header" href="#analyzing-mutation-testing-results">Analyzing Mutation Testing Results</a></h2>
 <h3 id="understanding-cargo-mutants-output"><a class="header" href="#understanding-cargo-mutants-output">Understanding cargo-mutants Output</a></h3>
-<pre><code>cargo-mutants auto_tested 71 mutants in 35m 5s:
+<pre><code class="language-text">cargo-mutants auto_tested 71 mutants in 35m 5s:
   16 caught
    3 missed
    2 unviable
@@ -16039,7 +15832,7 @@ Mutation results:
     --list-mutants -- --lib &gt; mutations.txt
 </code></pre>
 <p><strong>Sample output</strong>:</p>
-<pre><code>src/linter/rules/sec002.rs:15:17: replace contains("$") -&gt; is_empty()
+<pre><code class="language-text">src/linter/rules/sec002.rs:15:17: replace contains("$") -&gt; is_empty()
 src/linter/rules/sec002.rs:23:12: replace !is_quoted -&gt; is_quoted
 src/linter/rules/sec002.rs:34:20: replace line_num + 1 -&gt; line_num + 0
 src/linter/rules/sec002.rs:45:28: replace Error -&gt; Warning
@@ -16124,9 +15917,7 @@ src/linter/rules/sec002.rs:45:28: replace Error -&gt; Warning
 <p><strong>Pattern</strong>: Rules with comprehensive property tests achieve 100% scores.</p>
 <h2 id="common-pitfalls"><a class="header" href="#common-pitfalls">Common Pitfalls</a></h2>
 <h3 id="pitfall-1-testing-implementation-instead-of-behavior"><a class="header" href="#pitfall-1-testing-implementation-instead-of-behavior">Pitfall 1: Testing Implementation Instead of Behavior</a></h3>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>// ❌ BAD: Tests internal implementation
+<pre><code class="language-rust ignore">// ❌ BAD: Tests internal implementation
 #[test]
 fn test_uses_regex() {
     let checker = Checker::new();
@@ -16138,24 +15929,18 @@ fn test_uses_regex() {
 fn test_detects_pattern() {
     let result = check("eval cmd");
     assert!(result.diagnostics.len() &gt; 0);  // Behavior
-}
-<span class="boring">}</span></code></pre></pre>
+}</code></pre>
 <h3 id="pitfall-2-weak-assertions"><a class="header" href="#pitfall-2-weak-assertions">Pitfall 2: Weak Assertions</a></h3>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>// ❌ WEAK: Mutants can survive
+<pre><code class="language-rust ignore">// ❌ WEAK: Mutants can survive
 assert!(result.is_ok());
 assert!(!diagnostics.is_empty());
 
 // ✅ STRONG: Kills more mutants
 assert_eq!(result.unwrap().len(), 1);
 assert_eq!(diagnostics[0].rule_code, "SEC001");
-assert_eq!(diagnostics[0].severity, Severity::Error);
-<span class="boring">}</span></code></pre></pre>
+assert_eq!(diagnostics[0].severity, Severity::Error);</code></pre>
 <h3 id="pitfall-3-not-testing-edge-cases"><a class="header" href="#pitfall-3-not-testing-edge-cases">Pitfall 3: Not Testing Edge Cases</a></h3>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>// ❌ INCOMPLETE: Only tests happy path
+<pre><code class="language-rust ignore">// ❌ INCOMPLETE: Only tests happy path
 #[test]
 fn test_basic_case() {
     let result = check("eval cmd");
@@ -16179,8 +15964,7 @@ fn test_all_cases() {
 
     // Not eval (contains but not standalone)
     assert_eq!(check("evaluation").diagnostics.len(), 0);
-}
-<span class="boring">}</span></code></pre></pre>
+}</code></pre>
 <h2 id="summary-10"><a class="header" href="#summary-10">Summary</a></h2>
 <p>Mutation testing is essential for bashrs's NASA-level quality:</p>
 <p><strong>Key Benefits</strong>:</p>
@@ -16265,7 +16049,7 @@ done' &gt; large_script.sh
 <li>Look for wide bars = hot functions</li>
 </ul>
 <p><strong>Example findings</strong> from bashrs profiling:</p>
-<pre><code>┌─────────────────────────────────────────┐
+<pre><code class="language-text">┌─────────────────────────────────────────┐
 │ parse_bash (60% of time)                │ ← Hot path!
 │  ├─ tokenize (25%)                     │
 │  ├─ build_ast (20%)                    │
@@ -16905,7 +16689,7 @@ criterion_group!(benches, benchmark_purify_by_size);
 criterion_main!(benches);
 <span class="boring">}</span></code></pre></pre>
 <p><strong>Results</strong>:</p>
-<pre><code>purify_by_size/1KB     time: [18.234 ms 18.456 ms 18.678 ms]
+<pre><code class="language-text">purify_by_size/1KB     time: [18.234 ms 18.456 ms 18.678 ms]
 purify_by_size/10KB    time: [45.123 ms 45.567 ms 46.012 ms]
 purify_by_size/100KB   time: [178.23 ms 180.45 ms 182.67 ms]
 purify_by_size/1000KB  time: [1.8345 s 1.8567 s 1.8789 s]
@@ -16952,7 +16736,7 @@ fn test_memory_scaling() {
 }
 <span class="boring">}</span></code></pre></pre>
 <p><strong>Results</strong>:</p>
-<pre><code>1KB script uses 0.08MB memory    (80× overhead, acceptable for small files)
+<pre><code class="language-text">1KB script uses 0.08MB memory    (80× overhead, acceptable for small files)
 10KB script uses 0.65MB memory   (65× overhead, good)
 100KB script uses 5.2MB memory   (52× overhead, excellent)
 1000KB script uses 48MB memory   (48× overhead, excellent scaling)
@@ -17733,7 +17517,7 @@ bashrs inspect ast.json --format html -o report.html
 <li>Syntax highlighting</li>
 </ul>
 <p><strong>Example Session</strong>:</p>
-<pre><code>bashrs REPL v6.31.0
+<pre><code class="language-text">bashrs REPL v6.31.0
 &gt;&gt;&gt; x=5
 &gt;&gt;&gt; echo $x
 5
