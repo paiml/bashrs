@@ -4,7 +4,6 @@
 // This verifies the user-facing REPL behavior for bash construct explanations.
 
 use assert_cmd::Command;
-use predicates::prelude::*;
 
 fn bashrs_repl() -> Command {
     Command::cargo_bin("bashrs").expect("Failed to find bashrs binary")
