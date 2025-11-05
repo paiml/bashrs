@@ -126,7 +126,7 @@ mod tests {
         let script = r#"if (( $(echo "scale=2; $x > 3.14" | bc -l) )); then echo "yes"; fi"#;
         let result = check(script);
         // This will still be flagged since the outer (( )) contains decimal
-        assert!(result.diagnostics.len() >= 0); // May or may not flag depending on implementation
+        let _ = result.diagnostics.len(); // May or may not flag depending on implementation
     }
 
     #[test]

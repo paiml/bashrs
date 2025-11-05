@@ -250,7 +250,7 @@ mod property_tests {
 
     // ===== PROPERTY TESTS (PROPERTY PHASE) =====
 
-    /// Property: Parser should never panic on any input
+    // Property: Parser should never panic on any input
     proptest! {
         #[test]
         fn prop_parse_never_panics(input in ".*{0,1000}") {
@@ -260,7 +260,7 @@ mod property_tests {
         }
     }
 
-    /// Property: Parser should produce valid AST or error
+    // Property: Parser should produce valid AST or error
     proptest! {
         #[test]
         fn prop_parse_produces_valid_result(input in "[a-z ]{1,100}") {
@@ -279,7 +279,7 @@ mod property_tests {
         }
     }
 
-    /// Property: Empty/whitespace input should always succeed
+    // Property: Empty/whitespace input should always succeed
     proptest! {
         #[test]
         fn prop_parse_empty_whitespace_succeeds(
@@ -292,7 +292,7 @@ mod property_tests {
         }
     }
 
-    /// Property: Valid commands should parse successfully
+    // Property: Valid commands should parse successfully
     proptest! {
         #[test]
         fn prop_parse_valid_commands(
@@ -324,7 +324,7 @@ mod property_tests {
         }
     }
 
-    /// Property: Parse error formatting should never be empty
+    // Property: Parse error formatting should never be empty
     proptest! {
         #[test]
         fn prop_error_formatting_never_empty(input in ".*{1,100}") {
@@ -340,7 +340,7 @@ mod property_tests {
         }
     }
 
-    /// Property: Multiline commands should parse or error gracefully
+    // Property: Multiline commands should parse or error gracefully
     proptest! {
         #[test]
         fn prop_parse_multiline_graceful(
@@ -366,7 +366,7 @@ mod property_tests {
 
     // ===== REPL-004-003 PROPERTY TESTS (PROPERTY PHASE) =====
 
-    /// Property: All syntax errors have helpful, non-empty messages
+    // Property: All syntax errors have helpful, non-empty messages
     proptest! {
         #[test]
         fn prop_syntax_errors_always_helpful(input in ".*{1,100}") {
@@ -394,7 +394,7 @@ mod property_tests {
         }
     }
 
-    /// Property: Errors with line numbers always format them correctly
+    // Property: Errors with line numbers always format them correctly
     proptest! {
         #[test]
         fn prop_line_numbers_formatted_correctly(input in ".*{1,200}") {

@@ -288,7 +288,7 @@ pub struct PropertyTest {
 }
 
 impl PropertyTest {
-    /// Generate Rust code for this property test
+    // Generate Rust code for this property test
     pub fn to_rust_code(&self) -> String {
         let mut code = String::new();
 

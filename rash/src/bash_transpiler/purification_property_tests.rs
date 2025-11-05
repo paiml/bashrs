@@ -7,7 +7,6 @@
 //! - Correctness: Output is valid POSIX sh
 
 use super::purification::{PurificationOptions, Purifier};
-use crate::bash_parser::ast::*;
 use crate::bash_parser::codegen::generate_purified_bash;
 use crate::bash_parser::parser::BashParser;
 use proptest::prelude::*;

@@ -36,8 +36,8 @@ echo $x
     let result = lint_shell_with_path(&path, bashrc_content);
 
     // Bash linting should still work (we have DET001 for $RANDOM)
-    // This test just verifies the function works, not specific rules
-    assert!(result.diagnostics.len() >= 0); // Should execute without panic
+    // This test just verifies the function works without panic, not specific rules
+    let _ = result.diagnostics.len(); // Verify result is accessible
 }
 
 #[test]
@@ -52,7 +52,7 @@ echo "hello"
     let result = lint_shell_with_path(&path, content);
 
     // Should execute without error (bash rules applied)
-    assert!(result.diagnostics.len() >= 0);
+    let _ = result.diagnostics.len(); // Verify result is accessible
 }
 
 #[test]
@@ -68,7 +68,7 @@ echo "hello"
     let result = lint_shell_with_path(&path, content);
 
     // Should execute without error (zsh rules applied due to directive)
-    assert!(result.diagnostics.len() >= 0);
+    let _ = result.diagnostics.len(); // Verify result is accessible
 }
 
 // Helper function

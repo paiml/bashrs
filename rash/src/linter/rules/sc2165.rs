@@ -102,7 +102,7 @@ trap "cleanup" EXIT
         let code = r#"( trap "cleanup" EXIT; command )"#;
         let result = check(code);
         // Still detects subshell, but message suggests this fix
-        assert!(result.diagnostics.len() >= 0);
+        let _ = result.diagnostics.len(); // Verify result is accessible
     }
 
     #[test]
