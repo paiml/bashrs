@@ -3390,7 +3390,7 @@ fn test_ANSI_C_001_ansi_c_quoting_needs_implementation() {
     //
     // Test case:
     let script = r#"echo $'Hello\nWorld'"#;
-    let mut parser = BashParser::new(script);
+    let parser = BashParser::new(script);
 
     match parser {
         Ok(mut p) => {
@@ -9535,7 +9535,6 @@ fn test_PIPE_001_rust_std_process_mapping() {
 
     // This test documents the Rust std::process::Command mapping strategy
     // The actual implementation would use Command::new(), .stdout(Stdio::piped()), etc.
-    assert!(true, "Rust std::process::Command mapping documented");
 }
 
 #[test]
@@ -9953,7 +9952,6 @@ fn test_CMD_LIST_001_rust_if_statement_mapping() {
     // - Preserve short-circuit evaluation semantics
 
     // This test documents the Rust mapping strategy
-    assert!(true, "Rust if statement mapping documented");
 }
 
 #[test]
@@ -10361,7 +10359,6 @@ fn test_REDIR_001_rust_file_open_mapping() {
     // - Quote filenames to prevent injection
 
     // This test documents the Rust mapping strategy
-    assert!(true, "Rust File::open() mapping documented");
 }
 
 #[test]
@@ -11042,7 +11039,6 @@ fn test_REDIR_003_purification_strategy() {
     // 4. Preserve argument order
 
     // This test documents the purification strategy
-    assert!(true, "Purification: &> → > file 2>&1, &>> → >> file 2>&1");
 }
 
 #[test]
@@ -11515,7 +11511,6 @@ fn test_REDIR_004_rust_string_literal_mapping() {
     //     .write_all(b"Hello\nWorld\n")?;
 
     // This test documents the mapping strategy
-    assert!(true, "Rust string literal mapping documented for heredocs");
 }
 
 #[test]
@@ -11721,7 +11716,6 @@ fn test_REDIR_005_purification_strategy() {
     // 5. Preserve variable expansion
 
     // This test documents the purification strategy
-    assert!(true, "Purification: <<< \"string\" → echo \"string\" | cmd");
 }
 
 #[test]
