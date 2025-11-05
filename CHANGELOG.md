@@ -7,7 +7,195 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+**Issue #6: `bashrs lint` exit code bug (CRITICAL for CI/CD)** 🐛
+
+- **Fixed exit code behavior** to align with industry standards (shellcheck, eslint, gcc):
+  - **Exit 0**: No errors found (warnings/info are non-blocking) ✅
+  - **Exit 1**: Errors found (actual lint failures) ⚠️
+  - **Exit 2**: Tool failures (file not found, invalid arguments) 🚫
+
+**Previous Behavior** (Broken):
+```bash
+$ bashrs lint script.sh  # Script has only warnings
+# Exit 1 despite 0 error(s) ❌ (blocks CI/CD)
+```
+
+**New Behavior** (Fixed):
+```bash
+$ bashrs lint script.sh  # Script has only warnings
+# Exit 0 - warnings are non-blocking ✅ (CI/CD passes)
+
+$ bashrs lint script.sh  # Script has errors
+# Exit 1 - errors block pipeline ⚠️
+
+$ bashrs lint nonexistent.sh
+# Exit 2 - tool failure 🚫
+```
+
+**Impact**:
+- ✅ **Unblocks CI/CD adoption**: Warnings no longer block pre-commit hooks and pipelines
+- ✅ **Industry-standard compliance**: Matches shellcheck, eslint, gcc exit code behavior
+- ✅ **12 comprehensive tests**: All exit code scenarios validated with EXTREME TDD
+
+**Changes**:
+- Modified `rash/src/cli/commands.rs`: Fixed lint_command exit logic (errors exit 1, warnings exit 0)
+- Modified `rash/src/bin/bashrs.rs`: I/O errors and tool failures now exit 2 (not 1)
+- Added `rash/tests/cli_lint_exit_codes_tests.rs`: 12 new tests covering all exit scenarios
+
+**Test Coverage**:
+- ✅ Exit 0: No issues, warnings-only, info-only (3 tests)
+- ✅ Exit 1: Errors found, multiple errors, errors+warnings (4 tests)
+- ✅ Exit 2: File not found, invalid arguments (2 tests)
+- ✅ CI/CD integration scenarios (2 tests)
+- ✅ Property tests: No-errors invariant, file-not-found invariant (2 tests)
+
+**EXTREME TDD Process**:
+1. ✅ RED Phase: Wrote 12 failing tests (4 initially failed as expected)
+2. ✅ GREEN Phase: Fixed implementation (all 12 tests now pass)
+3. ✅ Full test suite: 3805+ lint-related tests pass (no regressions)
+4. ✅ Documentation updated
+
 ### Added
+
+**Issue #12 Phase 1: Scientific Benchmarking Enhancements** 📊
+
+- **MAD-based outlier detection**: Robust outlier identification using Median Absolute Deviation
+  - `mad_ms`: Median Absolute Deviation metric (robust to outliers)
+  - `outlier_indices`: Automatic detection of outlier measurements
+  - Uses standard 3.0 MAD threshold (equivalent to ~3 standard deviations)
+
+- **Multiple aggregation metrics**: Beyond arithmetic mean
+  - `geometric_mean_ms`: Better for ratios and speedup calculations
+  - `harmonic_mean_ms`: Better for rates and throughput metrics
+
+- **JSON Schema support**: Machine-readable schema for CI/CD integration
+  - All benchmark output structs derive `JsonSchema`
+  - Enables validation and type checking in pipelines
+  - Supports automated documentation generation
+
+**Example Output**:
+```json
+{
+  "version": "1.0.0",
+  "benchmarks": [{
+    "statistics": {
+      "mean_ms": 10.5,
+      "median_ms": 10.2,
+      "mad_ms": 0.3,
+      "geometric_mean_ms": 10.4,
+      "harmonic_mean_ms": 10.3,
+      "outlier_indices": [8, 15]
+    }
+  }]
+}
+```
+
+**Test Coverage**:
+- ✅ 13 new tests covering all Phase 1 features
+- ✅ MAD calculation: Normal and outlier datasets (2 tests)
+- ✅ Outlier detection: None, single, multiple scenarios (3 tests)
+- ✅ Statistics integration: MAD and outliers in results (2 tests)
+- ✅ Geometric mean: Calculation and integration (2 tests)
+- ✅ Harmonic mean: Calculation and integration (2 tests)
+- ✅ JSON schema: Serialization and schema generation (2 tests)
+
+**EXTREME TDD Process**:
+1. ✅ RED Phase: 13 tests written, all failed initially
+2. ✅ GREEN Phase: Implementation complete, all 13 tests pass
+3. ✅ Full suite: 6330+ tests pass (no regressions)
+
+**Changes**:
+- Modified `rash/src/cli/bench.rs`: Added MAD, geometric/harmonic means, outlier detection
+- Modified `rash/Cargo.toml`: Added schemars dependency for JSON schema
+- Added 13 comprehensive tests for all new features
+
+**Resolves**: Phase 1 of https://github.com/paiml/bashrs/issues/12
+
+**Issue #12 Phase 2: Comparative Benchmarking Features** 📊
+
+- **Welch's t-test**: Statistical comparison of benchmarks with unequal variances
+  - Robust alternative to Student's t-test (doesn't assume equal variance)
+  - Welch-Satterthwaite equation for degrees of freedom calculation
+  - Handles edge cases: zero-variance samples, deterministic benchmarks
+
+- **Statistical significance testing**: P-value based hypothesis testing
+  - Configurable alpha level (default: 0.05)
+  - Two-tailed t-distribution for p-value calculation
+  - Prevents false positives in performance regression detection
+
+- **Multi-binary comparison**: Compare benchmarks across different binaries
+  - `ComparisonResult` struct with speedup, t-statistic, p-value
+  - Automatic statistical significance determination
+  - JSON schema support for CI/CD integration
+
+- **Regression detection with thresholds**: Configurable performance regression gates
+  - `RegressionResult` struct with regression status, speedup, change percentage
+  - Configurable threshold (default: 0.05 = 5% regression)
+  - Combines statistical significance + practical significance
+  - Prevents noise from triggering false CI/CD failures
+
+**Example Usage**:
+```rust
+// Compare baseline vs. current performance
+let comparison = compare_benchmarks(&baseline_samples, &current_samples);
+println!("Speedup: {:.2}x", comparison.speedup);
+println!("Statistically significant: {}", comparison.is_significant);
+
+// Detect regressions with 5% threshold
+let regression = detect_regression_with_threshold(
+    &baseline, &current,
+    0.05,  // alpha (5% significance)
+    0.05   // threshold (5% slowdown)
+);
+
+if regression.is_regression {
+    eprintln!("⚠️ Performance regression detected: {:.1}% slower",
+              regression.change_percent);
+}
+```
+
+**Example JSON Output**:
+```json
+{
+  "comparison": {
+    "speedup": 0.95,
+    "t_statistic": -2.45,
+    "p_value": 0.023,
+    "is_significant": true
+  },
+  "regression": {
+    "is_regression": true,
+    "speedup": 0.95,
+    "is_statistically_significant": true,
+    "change_percent": -5.2
+  }
+}
+```
+
+**Test Coverage**:
+- ✅ 13 new tests covering all Phase 2 features
+- ✅ Welch's t-test: Basic calculation, degrees of freedom (2 tests)
+- ✅ Statistical significance: Alpha levels, significance detection (2 tests)
+- ✅ Comparison results: From statistics, speedup calculation (2 tests)
+- ✅ Regression detection: Basic, with threshold, no regression scenarios (3 tests)
+- ✅ Edge cases: Zero-variance samples, identical benchmarks (2 tests)
+- ✅ JSON schema: ComparisonResult and RegressionResult serialization (2 tests)
+
+**EXTREME TDD Process**:
+1. ✅ RED Phase: 13 tests written, all failed initially
+2. ✅ GREEN Phase: Implementation complete, all 13 tests pass
+3. ✅ Bug fix: Zero-variance sample handling in regression detection
+4. ✅ Full suite: 6343+ tests pass (no regressions)
+
+**Changes**:
+- Modified `rash/src/cli/bench.rs`: Added Welch's t-test, ComparisonResult, RegressionResult
+- Implemented statistical significance testing with configurable alpha
+- Added regression detection with practical significance thresholds
+- Added 13 comprehensive tests for all new features
+
+**Resolves**: Phase 2 of https://github.com/paiml/bashrs/issues/12
 
 **Issue #10: Dockerfile-specific quality scoring mode** 🐳
 
