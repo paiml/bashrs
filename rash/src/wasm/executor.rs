@@ -2083,7 +2083,7 @@ impl BashExecutor {
         };
 
         // Find function body (between { and })
-        let mut body_start = start;
+        let body_start = start;
         let mut body_lines = Vec::new();
         let mut brace_count = 0;
         let mut func_end = start;
