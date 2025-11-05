@@ -239,6 +239,10 @@ pub enum Commands {
         /// Show detailed dimension scores
         #[arg(long)]
         detailed: bool,
+
+        /// Use Dockerfile-specific quality scoring
+        #[arg(long)]
+        dockerfile: bool,
     },
 
     /// Run comprehensive quality audit (NEW in v6.12.0 - Bash Quality Tools)

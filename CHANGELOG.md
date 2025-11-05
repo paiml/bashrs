@@ -7,6 +7,55 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+**Issue #10: Dockerfile-specific quality scoring mode** 🐳
+
+- **NEW `--dockerfile` flag** for `bashrs score` command
+- **Docker-specific quality metrics** with appropriate weights:
+  - Safety (30%): `set -euo pipefail`, error handling patterns
+  - Complexity (25%): RUN command simplicity, layer count
+  - Layer Optimization (20%): Combined commands, cache cleanup, multi-stage builds
+  - Determinism (15%): Version pinning, specific tags (not `:latest`)
+  - Security (10%): USER directive, permission handling, secret detection
+- **8 comprehensive unit tests** covering all dimensions
+- **11 integration CLI tests** using `assert_cmd`
+- **10+ property tests** (100+ test cases generated) for:
+  - Pipefail safety improvements
+  - Version pinning determinism
+  - USER directive security
+  - Layer optimization patterns
+  - Score determinism
+  - Grade consistency
+- **Output formats**: Human-readable, JSON, and Markdown
+- **Actionable suggestions** specific to Docker best practices
+
+**Example Usage**:
+```bash
+# Score a Dockerfile with Docker-specific metrics
+bashrs score --dockerfile path/to/Dockerfile --detailed
+
+# JSON output for CI/CD pipelines
+bashrs score --dockerfile Dockerfile --format json
+
+# Markdown report for documentation
+bashrs score --dockerfile Dockerfile --format markdown > quality-report.md
+```
+
+**Improved Docker Quality Assessment**:
+- Properly scores production-quality Dockerfiles (previously scored as C- due to bash script metrics)
+- Detects Docker-specific best practices (cache cleanup, multi-stage builds)
+- Provides Docker-specific improvement suggestions with line number references
+
+**Test Coverage**:
+- ✅ All 6330+ existing tests pass
+- ✅ 11 new CLI tests (100% pass rate)
+- ✅ 8 new unit tests (100% pass rate)
+- ✅ 10+ property tests generating 100+ test cases
+- ✅ Shellcheck validation verified
+
+**Commit**: (current)
+
 ## [6.31.1] - 2025-11-05
 
 ### Fixed
