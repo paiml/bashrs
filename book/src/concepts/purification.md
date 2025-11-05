@@ -32,7 +32,7 @@ Real-world bash scripts accumulate problems over time:
 
 Rash follows a systematic 3-stage pipeline:
 
-```
+```text
 ┌─────────────┐      ┌──────────────┐      ┌─────────────────┐
 │ Messy Bash  │  →   │  Transform   │  →   │  Purified POSIX │
 │ Script      │      │  (Parse AST) │      │  Shell          │
@@ -173,7 +173,7 @@ deploy_app "${1}" "${2}"
 
 After purification, Rash generates a report:
 
-```
+```text
 Purification Report
 ===================
 
@@ -346,7 +346,7 @@ bashrs lint deploy.sh
 ```
 
 Output:
-```
+```text
 deploy.sh:5:12: DET001 [Error] Non-deterministic: $RANDOM detected
 deploy.sh:6:10: DET002 [Error] Non-deterministic: timestamp $(date +%s)
 deploy.sh:10:1: IDEM001 [Error] Non-idempotent: mkdir without -p flag
@@ -360,7 +360,7 @@ bashrs lint deploy_purified.sh
 ```
 
 Output:
-```
+```text
 No issues found. ✅
 ```
 
