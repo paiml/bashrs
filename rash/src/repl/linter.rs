@@ -430,7 +430,7 @@ mod property_tests {
 
     // ===== PROPERTY TESTS (PROPERTY PHASE) =====
 
-    /// Property: lint_bash should never panic on any input
+    // Property: lint_bash should never panic on any input
     proptest! {
         #[test]
         fn prop_lint_never_panics(input in ".*{0,1000}") {
@@ -440,7 +440,7 @@ mod property_tests {
         }
     }
 
-    /// Property: lint_bash should be deterministic
+    // Property: lint_bash should be deterministic
     proptest! {
         #[test]
         fn prop_lint_deterministic(input in "[a-z ]{1,50}") {
@@ -467,7 +467,7 @@ mod property_tests {
         }
     }
 
-    /// Property: format_lint_results never panics
+    // Property: format_lint_results never panics
     proptest! {
         #[test]
         fn prop_format_never_panics(input in "[a-z ]{1,100}") {
@@ -478,7 +478,7 @@ mod property_tests {
         }
     }
 
-    /// Property: format_lint_results always produces non-empty output
+    // Property: format_lint_results always produces non-empty output
     proptest! {
         #[test]
         fn prop_format_not_empty(input in "[a-z ]{1,100}") {
@@ -492,7 +492,7 @@ mod property_tests {
         }
     }
 
-    /// Property: format_lint_results is deterministic
+    // Property: format_lint_results is deterministic
     proptest! {
         #[test]
         fn prop_format_deterministic(input in "[a-z ]{1,50}") {
@@ -508,7 +508,7 @@ mod property_tests {
         }
     }
 
-    /// Property: Severity counts always sum to total diagnostics
+    // Property: Severity counts always sum to total diagnostics
     proptest! {
         #[test]
         fn prop_severity_counts_sum(input in "[a-z ]{1,50}") {
@@ -542,7 +542,7 @@ mod property_tests {
         }
     }
 
-    /// Property: Formatted output contains diagnostic count
+    // Property: Formatted output contains diagnostic count
     proptest! {
         #[test]
         fn prop_format_contains_count(input in "[a-z ]{1,50}") {
@@ -563,7 +563,7 @@ mod property_tests {
         }
     }
 
-    /// Property: REPL-014-003 - format_violations_with_context never panics
+    // Property: REPL-014-003 - format_violations_with_context never panics
     proptest! {
         #[test]
             fn prop_format_violations_never_panics(

@@ -5696,8 +5696,8 @@ mod array_property_tests {
     use super::*;
     use proptest::prelude::*;
 
-    /// Property: Array element access is deterministic
-    /// Same array + same index = same result
+    // Property: Array element access is deterministic
+    // Same array + same index = same result
     proptest! {
         #[test]
         fn prop_array_deterministic(
@@ -5720,7 +5720,7 @@ mod array_property_tests {
         }
     }
 
-    /// Property: Array length is always non-negative
+    // Property: Array length is always non-negative
     proptest! {
         #[test]
         fn prop_array_length_non_negative(
@@ -5741,7 +5741,7 @@ mod array_property_tests {
         }
     }
 
-    /// Property: Array expansion includes all elements
+    // Property: Array expansion includes all elements
     proptest! {
         #[test]
         fn prop_array_expansion_all_elements(
@@ -5761,7 +5761,7 @@ mod array_property_tests {
         }
     }
 
-    /// Property: Array element assignment preserves other elements
+    // Property: Array element assignment preserves other elements
     proptest! {
         #[test]
         fn prop_array_assignment_preserves_others(
@@ -5785,7 +5785,7 @@ mod array_property_tests {
         }
     }
 
-    /// Property: Multiple array assignments are idempotent
+    // Property: Multiple array assignments are idempotent
     proptest! {
         #[test]
         fn prop_array_assignment_idempotent(
@@ -5806,7 +5806,7 @@ mod array_property_tests {
         }
     }
 
-    /// Property: Array iteration processes all elements
+    // Property: Array iteration processes all elements
     proptest! {
         #[test]
         fn prop_array_iteration_all_elements(
@@ -5828,7 +5828,7 @@ mod array_property_tests {
         }
     }
 
-    /// Property: Empty array has length 0
+    // Property: Empty array has length 0
     proptest! {
         #[test]
         fn prop_empty_array_length_zero(_seed in 0..100u32) {
@@ -5846,7 +5846,7 @@ mod array_property_tests {
         }
     }
 
-    /// Property: Array with N elements has length N
+    // Property: Array with N elements has length N
     proptest! {
         #[test]
         fn prop_array_length_matches_elements(
@@ -5866,7 +5866,7 @@ mod array_property_tests {
         }
     }
 
-    /// Property: Out-of-bounds access returns empty
+    // Property: Out-of-bounds access returns empty
     proptest! {
         #[test]
         fn prop_out_of_bounds_empty(
@@ -5886,7 +5886,7 @@ mod array_property_tests {
         }
     }
 
-    /// Property: Array element modification preserves length
+    // Property: Array element modification preserves length
     proptest! {
         #[test]
         fn prop_modification_preserves_length(
@@ -6241,7 +6241,7 @@ echo ${mypath//:/|}
         use super::*;
         use proptest::prelude::*;
 
-        /// Property: Default value operator (:-) always provides a value
+        // Property: Default value operator (:-) always provides a value
         proptest! {
             #[test]
             fn prop_string_001_default_value_always_defined(
@@ -6256,7 +6256,7 @@ echo ${mypath//:/|}
             }
         }
 
-        /// Property: Assign default (:=) sets variable if unset
+        // Property: Assign default (:=) sets variable if unset
         proptest! {
             #[test]
             fn prop_string_002_assign_default_sets_variable(
@@ -6274,7 +6274,7 @@ echo ${mypath//:/|}
             }
         }
 
-        /// Property: String length (#var) always non-negative
+        // Property: String length (#var) always non-negative
         proptest! {
             #[test]
             fn prop_string_003_length_non_negative(
@@ -6290,7 +6290,7 @@ echo ${mypath//:/|}
             }
         }
 
-        /// Property: Substring extraction never exceeds original length
+        // Property: Substring extraction never exceeds original length
         proptest! {
             #[test]
             fn prop_string_004_substring_within_bounds(
@@ -6306,7 +6306,7 @@ echo ${mypath//:/|}
             }
         }
 
-        /// Property: Pattern replacement preserves string type
+        // Property: Pattern replacement preserves string type
         proptest! {
             #[test]
             fn prop_string_005_replacement_is_string(
@@ -6323,7 +6323,7 @@ echo ${mypath//:/|}
             }
         }
 
-        /// Property: Replace all (//pattern/repl) handles empty pattern gracefully
+        // Property: Replace all (//pattern/repl) handles empty pattern gracefully
         proptest! {
             #[test]
             fn prop_string_006_replace_all_never_panics(
@@ -6338,7 +6338,7 @@ echo ${mypath//:/|}
             }
         }
 
-        /// Property: Alternate value (:+) only returns value if variable set
+        // Property: Alternate value (:+) only returns value if variable set
         proptest! {
             #[test]
             fn prop_string_007_alternate_only_when_set(
@@ -6355,7 +6355,7 @@ echo ${mypath//:/|}
             }
         }
 
-        /// Property: Remove prefix (#pattern) shortens or preserves length
+        // Property: Remove prefix (#pattern) shortens or preserves length
         proptest! {
             #[test]
             fn prop_string_008_remove_prefix_preserves_or_shortens(
@@ -6371,7 +6371,7 @@ echo ${mypath//:/|}
             }
         }
 
-        /// Property: Remove suffix (%pattern) shortens or preserves length
+        // Property: Remove suffix (%pattern) shortens or preserves length
         proptest! {
             #[test]
             fn prop_string_009_remove_suffix_preserves_or_shortens(
@@ -6387,7 +6387,7 @@ echo ${mypath//:/|}
             }
         }
 
-        /// Property: String operations are deterministic
+        // Property: String operations are deterministic
         proptest! {
             #[test]
             fn prop_string_010_deterministic_operations(
@@ -6755,7 +6755,7 @@ esac
             use super::*;
             use proptest::prelude::*;
 
-            /// Property: Wildcard pattern (*) always matches
+            // Property: Wildcard pattern (*) always matches
             proptest! {
                 #[test]
                 fn prop_case_001_wildcard_always_matches(
@@ -6776,7 +6776,7 @@ esac
                 }
             }
 
-            /// Property: Exact match is deterministic
+            // Property: Exact match is deterministic
             proptest! {
                 #[test]
                 fn prop_case_002_exact_match_deterministic(
@@ -6800,7 +6800,7 @@ esac
                 }
             }
 
-            /// Property: Multiple patterns work correctly
+            // Property: Multiple patterns work correctly
             proptest! {
                 #[test]
                 fn prop_case_003_multiple_patterns_or_logic(
@@ -6824,7 +6824,7 @@ esac
                 }
             }
 
-            /// Property: Case statements never panic
+            // Property: Case statements never panic
             proptest! {
                 #[test]
                 fn prop_case_004_never_panics(
@@ -6843,7 +6843,7 @@ esac
                 }
             }
 
-            /// Property: Case statements are deterministic
+            // Property: Case statements are deterministic
             proptest! {
                 #[test]
                 fn prop_case_005_deterministic_execution(

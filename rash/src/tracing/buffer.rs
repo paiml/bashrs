@@ -480,7 +480,7 @@ mod tests {
         use super::*;
         use proptest::prelude::*;
 
-        /// Property: Buffer never exceeds capacity
+        // Property: Buffer never exceeds capacity
         proptest! {
             #[test]
             fn prop_trace_002_never_exceeds_capacity(
@@ -502,7 +502,7 @@ mod tests {
             }
         }
 
-        /// Property: Retention rate is always between 0.0 and 1.0
+        // Property: Retention rate is always between 0.0 and 1.0
         proptest! {
             #[test]
             fn prop_trace_002_retention_rate_bounds(
@@ -525,7 +525,7 @@ mod tests {
             }
         }
 
-        /// Property: Total events always >= current size
+        // Property: Total events always >= current size
         proptest! {
             #[test]
             fn prop_trace_002_total_vs_current(

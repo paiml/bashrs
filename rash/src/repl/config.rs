@@ -237,7 +237,7 @@ mod tests {
 
     // ===== PROPERTY TESTS =====
 
-    /// Property test: Resource limits are always positive
+    // Property test: Resource limits are always positive
     proptest! {
         #[test]
         fn prop_repl_003_001_resource_limits_always_positive(
@@ -261,7 +261,7 @@ mod tests {
         }
     }
 
-    /// Property test: Builder pattern preserves values
+    // Property test: Builder pattern preserves values
     proptest! {
         #[test]
         fn prop_repl_003_001_builder_preserves_values(
@@ -281,7 +281,7 @@ mod tests {
         }
     }
 
-    /// Property test: Sandboxed config is always more restrictive than default
+    // Property test: Sandboxed config is always more restrictive than default
     proptest! {
         #[test]
         fn prop_repl_003_001_sandboxed_more_restrictive(
