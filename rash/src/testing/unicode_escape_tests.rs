@@ -388,7 +388,6 @@ fn is_valid_shell_identifier(name: &str) -> bool {
 
 #[cfg(test)] // Only run this expensive test when explicitly testing
 #[test]
-#[ignore] // Ignore by default, run with: cargo test --ignored
 fn test_unicode_fuzzing_random_strings() {
     use rand::Rng;
 
