@@ -390,7 +390,7 @@ proptest! {
 ```
 
 **Initial failure** (random):
-```
+```text
 thread 'prop_commands_dont_panic' panicked at 'assertion failed'
   cmd = BashStmt::Command {
       name: "",
@@ -400,7 +400,7 @@ thread 'prop_commands_dont_panic' panicked at 'assertion failed'
 ```
 
 **After shrinking**:
-```
+```text
 Minimal failing case:
   cmd = BashStmt::Command {
       name: "",        // Empty name causes panic
@@ -433,7 +433,7 @@ proptest! {
 
 Property tests are a key component of bashrs's EXTREME TDD methodology:
 
-```
+```rust,ignore
 EXTREME TDD = TDD + Property Testing + Mutation Testing + PMAT + Examples
 ```
 

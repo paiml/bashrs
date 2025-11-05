@@ -61,7 +61,7 @@ bashrs lint ~/.bashrc
 ```
 
 **Example Output**:
-```
+```text
 /home/user/.bashrc:15:1: CONFIG-001 [Warning] Duplicate PATH entry
   export PATH="/usr/local/bin:$PATH"
   Note: /usr/local/bin already in PATH

@@ -387,7 +387,7 @@ done
 ```
 
 Result:
-```
+```text
 Testing with sh...    ✅ Works
 Testing with dash...  ✅ Works
 Testing with ash...   ✅ Works

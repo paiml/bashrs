@@ -73,7 +73,7 @@ source ~/.bash_functions
 
 Running `bashrs config analyze ~/.bashrc`:
 
-```
+```text
 ~/.bashrc:4:14: CONFIG-001 [Error] Non-idempotent PATH append
   export PATH="$HOME/.local/bin:$PATH"
   Fix: Use PATH deduplication function
@@ -269,7 +269,7 @@ if [ -n "${ZSH_VERSION:-}" ]; then
     setopt APPEND_HISTORY
     setopt SHARE_HISTORY
 fi
-```
+```text
 
 ### Purification Report
 

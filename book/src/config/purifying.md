@@ -263,7 +263,7 @@ touch "${HOME}/.config/myapp/config.ini"
 
 ### Purification Report
 
-```
+```text
 bashrs config purify v6.31.0
 
 Input:  /home/user/.bashrc (42 lines)
@@ -450,7 +450,7 @@ shellcheck -s sh ~/.bashrc.purified
 # Check syntax with shell parser
 sh -n ~/.bashrc.purified
 bash -n ~/.bashrc.purified
-```
+```text
 
 Expected output:
 ```text
