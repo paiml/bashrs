@@ -24,28 +24,41 @@
         <link rel="stylesheet" href="../fonts/fonts.css">
 
         <!-- Highlight.js Stylesheets -->
-        <link rel="stylesheet" href="../highlight.css">
-        <link rel="stylesheet" href="../tomorrow-night.css">
-        <link rel="stylesheet" href="../ayu-highlight.css">
+        <link rel="stylesheet" id="highlight-css" href="../highlight.css">
+        <link rel="stylesheet" id="tomorrow-night-css" href="../tomorrow-night.css">
+        <link rel="stylesheet" id="ayu-highlight-css" href="../ayu-highlight.css">
 
         <!-- Custom theme stylesheets -->
 
 
-        <!-- Provide site root to javascript -->
+        <!-- Provide site root and default themes to javascript -->
         <script>
-            var path_to_root = "../";
-            var default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "navy" : "rust";
+            const path_to_root = "../";
+            const default_light_theme = "rust";
+            const default_dark_theme = "navy";
+            window.path_to_searchindex_js = "../searchindex.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc.js"></script>
     </head>
     <body>
+    <div id="mdbook-help-container">
+        <div id="mdbook-help-popup">
+            <h2 class="mdbook-help-title">Keyboard shortcuts</h2>
+            <div>
+                <p>Press <kbd>←</kbd> or <kbd>→</kbd> to navigate between chapters</p>
+                <p>Press <kbd>S</kbd> or <kbd>/</kbd> to search in the book</p>
+                <p>Press <kbd>?</kbd> to show this help</p>
+                <p>Press <kbd>Esc</kbd> to hide this help</p>
+            </div>
+        </div>
+    </div>
     <div id="body-container">
         <!-- Work around some values being stored in localStorage wrapped in quotes -->
         <script>
             try {
-                var theme = localStorage.getItem('mdbook-theme');
-                var sidebar = localStorage.getItem('mdbook-sidebar');
+                let theme = localStorage.getItem('mdbook-theme');
+                let sidebar = localStorage.getItem('mdbook-sidebar');
 
                 if (theme.startsWith('"') && theme.endsWith('"')) {
                     localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
@@ -59,7 +72,8 @@
 
         <!-- Set the theme before any content is loaded, prevents flash -->
         <script>
-            var theme;
+            const default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? default_dark_theme : default_light_theme;
+            let theme;
             try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
             if (theme === null || theme === undefined) { theme = default_theme; }
             const html = document.documentElement;
@@ -72,17 +86,20 @@
 
         <!-- Hide / unhide sidebar before it is displayed -->
         <script>
-            var sidebar = null;
-            var sidebar_toggle = document.getElementById("sidebar-toggle-anchor");
+            let sidebar = null;
+            const sidebar_toggle = document.getElementById("sidebar-toggle-anchor");
             if (document.body.clientWidth >= 1080) {
                 try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
                 sidebar = sidebar || 'visible';
             } else {
                 sidebar = 'hidden';
+                sidebar_toggle.checked = false;
             }
-            sidebar_toggle.checked = sidebar === 'visible';
-            html.classList.remove('sidebar-visible');
-            html.classList.add("sidebar-" + sidebar);
+            if (sidebar === 'visible') {
+                sidebar_toggle.checked = true;
+            } else {
+                html.classList.remove('sidebar-visible');
+            }
         </script>
 
         <nav id="sidebar" class="sidebar" aria-label="Table of contents">
@@ -109,13 +126,14 @@
                             <i class="fa fa-paint-brush"></i>
                         </button>
                         <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="default_theme">Auto</button></li>
                             <li role="none"><button role="menuitem" class="theme" id="light">Light</button></li>
                             <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
                             <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
                             <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
                             <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
                         </ul>
-                        <button id="search-toggle" class="icon-button" type="button" title="Search. (Shortkey: s)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="S" aria-controls="searchbar">
+                        <button id="search-toggle" class="icon-button" type="button" title="Search (`/`)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="/ s" aria-controls="searchbar">
                             <i class="fa fa-search"></i>
                         </button>
                     </div>
@@ -129,7 +147,7 @@
                         <a href="https://github.com/paiml/bashrs" title="Git repository" aria-label="Git repository">
                             <i id="git-repository-button" class="fa fa-github"></i>
                         </a>
-                        <a href="https://github.com/paiml/bashrs/edit/main/book/src/getting-started/first-purification.md" title="Suggest an edit" aria-label="Suggest an edit">
+                        <a href="https://github.com/paiml/bashrs/edit/main/book/src/getting-started/first-purification.md" title="Suggest an edit" aria-label="Suggest an edit" rel="edit">
                             <i id="git-edit-button" class="fa fa-edit"></i>
                         </a>
 
@@ -138,7 +156,12 @@
 
                 <div id="search-wrapper" class="hidden">
                     <form id="searchbar-outer" class="searchbar-outer">
-                        <input type="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                        <div class="search-wrapper">
+                            <input type="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                            <div class="spinner-wrapper">
+                                <i class="fa fa-spinner fa-spin"></i>
+                            </div>
+                        </div>
                     </form>
                     <div id="searchresults-outer" class="searchresults-outer hidden">
                         <div id="searchresults-header" class="searchresults-header"></div>
@@ -236,7 +259,7 @@ echo "Deployment complete!"
 <pre><code class="language-bash">bashrs lint deploy.sh
 </code></pre>
 <p>Output:</p>
-<pre><code>deploy.sh:5:13: DET001 [Error] Non-deterministic: $RANDOM
+<pre><code class="language-text">deploy.sh:5:13: DET001 [Error] Non-deterministic: $RANDOM
 deploy.sh:8:20: DET002 [Error] Non-deterministic: $(date +%s)
 deploy.sh:9:11: DET003 [Error] Non-deterministic: $$
 
@@ -252,7 +275,7 @@ deploy.sh:25:1: IDEM003 [Error] ln -s without cleanup (not idempotent)
 <pre><code class="language-bash">bashrs purify deploy.sh -o deploy_purified.sh
 </code></pre>
 <p>Output:</p>
-<pre><code>Purifying deploy.sh...
+<pre><code class="language-text">Purifying deploy.sh...
 ✓ Removed 3 non-deterministic patterns
 ✓ Fixed 3 idempotency issues
 ✓ Converted to POSIX shell
@@ -346,7 +369,7 @@ deploy_app "${1}" "${2}"
 <pre><code class="language-bash">shellcheck -s sh deploy_purified.sh
 </code></pre>
 <p>Output:</p>
-<pre><code>(no output = all checks passed ✓)
+<pre><code class="language-text">(no output = all checks passed ✓)
 </code></pre>
 <p>Perfect! The purified script passes all shellcheck validation.</p>
 <h2 id="step-5-test-the-purified-script"><a class="header" href="#step-5-test-the-purified-script">Step 5: Test the Purified Script</a></h2>
@@ -355,7 +378,7 @@ deploy_app "${1}" "${2}"
 </span>./deploy_purified.sh v1.0.0 session-abc123
 </code></pre>
 <p>Output:</p>
-<pre><code>Starting deployment...
+<pre><code class="language-text">Starting deployment...
 Session: session-abc123
 Release: release-v1.0.0
 Deployment complete!
@@ -364,7 +387,7 @@ Deployment complete!
 </span>./deploy_purified.sh v1.0.0 session-abc123
 </code></pre>
 <p>Output:</p>
-<pre><code>Starting deployment...
+<pre><code class="language-text">Starting deployment...
 Session: session-abc123
 Release: release-v1.0.0
 Deployment complete!
@@ -377,7 +400,7 @@ Deployment complete!
 </span>./deploy.sh
 </code></pre>
 <p>Output:</p>
-<pre><code>Starting deployment...
+<pre><code class="language-text">Starting deployment...
 Session: 12345
 Release: release-1699564800
 Build ID: 98765
@@ -387,7 +410,7 @@ Deployment complete!
 </span>./deploy.sh
 </code></pre>
 <p>Output:</p>
-<pre><code>Starting deployment...
+<pre><code class="language-text">Starting deployment...
 Session: 67890  ← Different!
 Release: release-1699564801  ← Different!
 Build ID: 98766  ← Different!
@@ -400,7 +423,7 @@ rm: cannot remove '/tmp/demo-app/current': No such file or directory
 </span>./deploy_purified.sh v1.0.0 session-abc123
 </code></pre>
 <p>Output:</p>
-<pre><code>Starting deployment...
+<pre><code class="language-text">Starting deployment...
 Session: session-abc123
 Release: release-v1.0.0
 Deployment complete!
@@ -409,7 +432,7 @@ Deployment complete!
 </span>./deploy_purified.sh v1.0.0 session-abc123
 </code></pre>
 <p>Output:</p>
-<pre><code>Starting deployment...
+<pre><code class="language-text">Starting deployment...
 Session: session-abc123  ← Same
 Release: release-v1.0.0  ← Same
 Deployment complete!
@@ -421,7 +444,7 @@ Deployment complete!
 <li>Takes version as input (controllable)</li>
 </ul>
 <h2 id="understanding-the-purification-formula"><a class="header" href="#understanding-the-purification-formula">Understanding the Purification Formula</a></h2>
-<pre><code>Purification = Determinism + Idempotency + POSIX Compliance
+<pre><code class="language-text">Purification = Determinism + Idempotency + POSIX Compliance
 </code></pre>
 <p><strong>Determinism</strong>: Same input → Same output (always)</p>
 <ul>
@@ -542,8 +565,8 @@ Deployment complete!
         </script>
 
         <script src="../ace.js"></script>
-        <script src="../editor.js"></script>
         <script src="../mode-rust.js"></script>
+        <script src="../editor.js"></script>
         <script src="../theme-dawn.js"></script>
         <script src="../theme-tomorrow_night.js"></script>
 
@@ -556,6 +579,7 @@ Deployment complete!
         <script src="../book.js"></script>
 
         <!-- Custom JS scripts -->
+
 
 
     </div>

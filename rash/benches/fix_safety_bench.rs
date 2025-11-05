@@ -8,8 +8,8 @@
 //! Using criterion for statistical benchmarking
 
 use bashrs::linter::autofix::{apply_fixes, FixOptions};
-use bashrs::linter::rules::{det001, idem001, idem002, lint_shell, sc2086};
-use criterion::{black_box, criterion_group, criterion_main, BenchmarkId, Criterion, Throughput};
+use bashrs::linter::rules::{det001, idem001, lint_shell, sc2086};
+use criterion::{black_box, criterion_group, criterion_main, Criterion, Throughput};
 
 // ============================================================================
 // Benchmark 1: Linting Performance

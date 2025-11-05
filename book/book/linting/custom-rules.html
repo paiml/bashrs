@@ -24,28 +24,41 @@
         <link rel="stylesheet" href="../fonts/fonts.css">
 
         <!-- Highlight.js Stylesheets -->
-        <link rel="stylesheet" href="../highlight.css">
-        <link rel="stylesheet" href="../tomorrow-night.css">
-        <link rel="stylesheet" href="../ayu-highlight.css">
+        <link rel="stylesheet" id="highlight-css" href="../highlight.css">
+        <link rel="stylesheet" id="tomorrow-night-css" href="../tomorrow-night.css">
+        <link rel="stylesheet" id="ayu-highlight-css" href="../ayu-highlight.css">
 
         <!-- Custom theme stylesheets -->
 
 
-        <!-- Provide site root to javascript -->
+        <!-- Provide site root and default themes to javascript -->
         <script>
-            var path_to_root = "../";
-            var default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "navy" : "rust";
+            const path_to_root = "../";
+            const default_light_theme = "rust";
+            const default_dark_theme = "navy";
+            window.path_to_searchindex_js = "../searchindex.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc.js"></script>
     </head>
     <body>
+    <div id="mdbook-help-container">
+        <div id="mdbook-help-popup">
+            <h2 class="mdbook-help-title">Keyboard shortcuts</h2>
+            <div>
+                <p>Press <kbd>←</kbd> or <kbd>→</kbd> to navigate between chapters</p>
+                <p>Press <kbd>S</kbd> or <kbd>/</kbd> to search in the book</p>
+                <p>Press <kbd>?</kbd> to show this help</p>
+                <p>Press <kbd>Esc</kbd> to hide this help</p>
+            </div>
+        </div>
+    </div>
     <div id="body-container">
         <!-- Work around some values being stored in localStorage wrapped in quotes -->
         <script>
             try {
-                var theme = localStorage.getItem('mdbook-theme');
-                var sidebar = localStorage.getItem('mdbook-sidebar');
+                let theme = localStorage.getItem('mdbook-theme');
+                let sidebar = localStorage.getItem('mdbook-sidebar');
 
                 if (theme.startsWith('"') && theme.endsWith('"')) {
                     localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
@@ -59,7 +72,8 @@
 
         <!-- Set the theme before any content is loaded, prevents flash -->
         <script>
-            var theme;
+            const default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? default_dark_theme : default_light_theme;
+            let theme;
             try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
             if (theme === null || theme === undefined) { theme = default_theme; }
             const html = document.documentElement;
@@ -72,17 +86,20 @@
 
         <!-- Hide / unhide sidebar before it is displayed -->
         <script>
-            var sidebar = null;
-            var sidebar_toggle = document.getElementById("sidebar-toggle-anchor");
+            let sidebar = null;
+            const sidebar_toggle = document.getElementById("sidebar-toggle-anchor");
             if (document.body.clientWidth >= 1080) {
                 try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
                 sidebar = sidebar || 'visible';
             } else {
                 sidebar = 'hidden';
+                sidebar_toggle.checked = false;
             }
-            sidebar_toggle.checked = sidebar === 'visible';
-            html.classList.remove('sidebar-visible');
-            html.classList.add("sidebar-" + sidebar);
+            if (sidebar === 'visible') {
+                sidebar_toggle.checked = true;
+            } else {
+                html.classList.remove('sidebar-visible');
+            }
         </script>
 
         <nav id="sidebar" class="sidebar" aria-label="Table of contents">
@@ -109,13 +126,14 @@
                             <i class="fa fa-paint-brush"></i>
                         </button>
                         <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="default_theme">Auto</button></li>
                             <li role="none"><button role="menuitem" class="theme" id="light">Light</button></li>
                             <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
                             <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
                             <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
                             <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
                         </ul>
-                        <button id="search-toggle" class="icon-button" type="button" title="Search. (Shortkey: s)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="S" aria-controls="searchbar">
+                        <button id="search-toggle" class="icon-button" type="button" title="Search (`/`)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="/ s" aria-controls="searchbar">
                             <i class="fa fa-search"></i>
                         </button>
                     </div>
@@ -129,7 +147,7 @@
                         <a href="https://github.com/paiml/bashrs" title="Git repository" aria-label="Git repository">
                             <i id="git-repository-button" class="fa fa-github"></i>
                         </a>
-                        <a href="https://github.com/paiml/bashrs/edit/main/book/src/linting/custom-rules.md" title="Suggest an edit" aria-label="Suggest an edit">
+                        <a href="https://github.com/paiml/bashrs/edit/main/book/src/linting/custom-rules.md" title="Suggest an edit" aria-label="Suggest an edit" rel="edit">
                             <i id="git-edit-button" class="fa fa-edit"></i>
                         </a>
 
@@ -138,7 +156,12 @@
 
                 <div id="search-wrapper" class="hidden">
                     <form id="searchbar-outer" class="searchbar-outer">
-                        <input type="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                        <div class="search-wrapper">
+                            <input type="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                            <div class="spinner-wrapper">
+                                <i class="fa fa-spinner fa-spin"></i>
+                            </div>
+                        </div>
                     </form>
                     <div id="searchresults-outer" class="searchresults-outer hidden">
                         <div id="searchresults-header" class="searchresults-header"></div>
@@ -172,9 +195,7 @@
 <h2 id="rule-architecture"><a class="header" href="#rule-architecture">Rule Architecture</a></h2>
 <h3 id="rule-structure"><a class="header" href="#rule-structure">Rule Structure</a></h3>
 <p>Every lint rule is a Rust module implementing a <code>check()</code> function:</p>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>//! RULEID: Short description
+<pre><code class="language-rust ignore">//! RULEID: Short description
 //!
 //! **Rule**: What pattern this detects
 //!
@@ -198,40 +219,30 @@ mod tests {
     use super::*;
 
     // Tests here
-}
-<span class="boring">}</span></code></pre></pre>
+}</code></pre>
 <h3 id="core-types"><a class="header" href="#core-types">Core Types</a></h3>
 <p><strong>Diagnostic</strong>: Represents a lint violation</p>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>pub struct Diagnostic {
+<pre><code class="language-rust ignore">pub struct Diagnostic {
     pub code: String,        // "DET001", "SEC002", etc.
     pub severity: Severity,  // Error, Warning, Info, etc.
     pub message: String,     // Human-readable message
     pub span: Span,          // Source location
     pub fix: Option&lt;Fix&gt;,    // Suggested fix (optional)
-}
-<span class="boring">}</span></code></pre></pre>
+}</code></pre>
 <p><strong>Span</strong>: Source code location (1-indexed)</p>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>pub struct Span {
+<pre><code class="language-rust ignore">pub struct Span {
     pub start_line: usize,  // 1-indexed line number
     pub start_col: usize,   // 1-indexed column
     pub end_line: usize,
     pub end_col: usize,
-}
-<span class="boring">}</span></code></pre></pre>
+}</code></pre>
 <p><strong>Fix</strong>: Auto-fix suggestion</p>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>pub struct Fix {
+<pre><code class="language-rust ignore">pub struct Fix {
     pub replacement: String,             // Replacement text
     pub safety_level: FixSafetyLevel,    // Safe, SafeWithAssumptions, Unsafe
     pub assumptions: Vec&lt;String&gt;,        // For SafeWithAssumptions
     pub suggested_alternatives: Vec&lt;String&gt;,  // For Unsafe
-}
-<span class="boring">}</span></code></pre></pre>
+}</code></pre>
 <p><strong>Severity Levels</strong>:</p>
 <ul>
 <li><code>Info</code>: Style suggestions</li>
@@ -244,9 +255,7 @@ mod tests {
 <h2 id="extreme-tdd-workflow-for-rules"><a class="header" href="#extreme-tdd-workflow-for-rules">EXTREME TDD Workflow for Rules</a></h2>
 <h3 id="phase-1-red---write-failing-test"><a class="header" href="#phase-1-red---write-failing-test">Phase 1: RED - Write Failing Test</a></h3>
 <p>Start with a test that defines the desired behavior:</p>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>#[cfg(test)]
+<pre><code class="language-rust ignore">#[cfg(test)]
 mod tests {
     use super::*;
 
@@ -262,16 +271,13 @@ mod tests {
         assert_eq!(diag.severity, Severity::Error);
         assert!(diag.message.contains("dangerous"));
     }
-}
-<span class="boring">}</span></code></pre></pre>
+}</code></pre>
 <p>Run the test - it should FAIL:</p>
 <pre><code class="language-bash">cargo test test_CUSTOM001_detects_pattern
 </code></pre>
 <h3 id="phase-2-green---implement-rule"><a class="header" href="#phase-2-green---implement-rule">Phase 2: GREEN - Implement Rule</a></h3>
 <p>Implement the minimal code to make the test pass:</p>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>pub fn check(source: &amp;str) -&gt; LintResult {
+<pre><code class="language-rust ignore">pub fn check(source: &amp;str) -&gt; LintResult {
     let mut result = LintResult::new();
 
     for (line_num, line) in source.lines().enumerate() {
@@ -297,16 +303,13 @@ mod tests {
     }
 
     result
-}
-<span class="boring">}</span></code></pre></pre>
+}</code></pre>
 <p>Run test again - should PASS:</p>
 <pre><code class="language-bash">cargo test test_CUSTOM001_detects_pattern
 </code></pre>
 <h3 id="phase-3-refactor---clean-up"><a class="header" href="#phase-3-refactor---clean-up">Phase 3: REFACTOR - Clean Up</a></h3>
 <p>Extract helpers, improve readability, ensure complexity &lt;10:</p>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>pub fn check(source: &amp;str) -&gt; LintResult {
+<pre><code class="language-rust ignore">pub fn check(source: &amp;str) -&gt; LintResult {
     let mut result = LintResult::new();
 
     for (line_num, line) in source.lines().enumerate() {
@@ -332,13 +335,10 @@ fn detect_pattern(line: &amp;str, line_num: usize) -&gt; Option&lt;Diagnostic&gt
         "Dangerous pattern detected",
         span,
     ))
-}
-<span class="boring">}</span></code></pre></pre>
+}</code></pre>
 <h3 id="phase-4-property-testing"><a class="header" href="#phase-4-property-testing">Phase 4: Property Testing</a></h3>
 <p>Add generative tests to verify properties:</p>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>#[cfg(test)]
+<pre><code class="language-rust ignore">#[cfg(test)]
 mod property_tests {
     use super::*;
     use proptest::prelude::*;
@@ -365,17 +365,14 @@ mod property_tests {
             prop_assert!(result.diagnostics.len() &gt;= 1);
         }
     }
-}
-<span class="boring">}</span></code></pre></pre>
+}</code></pre>
 <h3 id="phase-5-mutation-testing"><a class="header" href="#phase-5-mutation-testing">Phase 5: Mutation Testing</a></h3>
 <p>Verify test quality with cargo-mutants:</p>
 <pre><code class="language-bash">cargo mutants --file rash/src/linter/rules/custom001.rs --timeout 300
 </code></pre>
 <p><strong>Target</strong>: ≥90% kill rate</p>
 <p>If mutations survive, add tests to kill them:</p>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>#[test]
+<pre><code class="language-rust ignore">#[test]
 fn test_mutation_exact_column() {
     // Kills mutation: col + 1 → col * 1
     let script = "  dangerous_pattern";  // 2 spaces before
@@ -391,13 +388,10 @@ fn test_mutation_line_number() {
     let result = check(script);
     let span = result.diagnostics[0].span;
     assert_eq!(span.start_line, 2);  // Must be 2, not 1
-}
-<span class="boring">}</span></code></pre></pre>
+}</code></pre>
 <h3 id="phase-6-integration-testing"><a class="header" href="#phase-6-integration-testing">Phase 6: Integration Testing</a></h3>
 <p>Test end-to-end with realistic scripts:</p>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>#[test]
+<pre><code class="language-rust ignore">#[test]
 fn test_integration_full_script() {
     let script = r#"
 #!/bin/bash
@@ -416,8 +410,7 @@ deploy
 
     // Verify correct line number
     assert_eq!(result.diagnostics[0].span.start_line, 6);
-}
-<span class="boring">}</span></code></pre></pre>
+}</code></pre>
 <h3 id="phase-7-pmat-verification"><a class="header" href="#phase-7-pmat-verification">Phase 7: pmat Verification</a></h3>
 <p>Verify code quality:</p>
 <pre><code class="language-bash"><span class="boring"> Complexity check
@@ -440,9 +433,7 @@ dangerous_pattern  # Will be caught by linter
 <h2 id="example-implementing-a-security-rule"><a class="header" href="#example-implementing-a-security-rule">Example: Implementing a Security Rule</a></h2>
 <p>Let's implement SEC009: Detect unquoted command substitution in eval.</p>
 <h3 id="step-1-red-phase"><a class="header" href="#step-1-red-phase">Step 1: RED Phase</a></h3>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>// rash/src/linter/rules/sec009.rs
+<pre><code class="language-rust ignore">// rash/src/linter/rules/sec009.rs
 //! SEC009: Unquoted command substitution in eval
 //!
 //! **Rule**: Detect eval with unquoted $(...)
@@ -477,16 +468,13 @@ mod tests {
 
         assert_eq!(result.diagnostics.len(), 0);
     }
-}
-<span class="boring">}</span></code></pre></pre>
+}</code></pre>
 <p>Run test:</p>
 <pre><code class="language-bash">cargo test test_SEC009_detects_unquoted_command_sub
 <span class="boring"> FAILS - as expected (RED)
 </span></code></pre>
 <h3 id="step-2-green-phase"><a class="header" href="#step-2-green-phase">Step 2: GREEN Phase</a></h3>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>pub fn check(source: &amp;str) -&gt; LintResult {
+<pre><code class="language-rust ignore">pub fn check(source: &amp;str) -&gt; LintResult {
     let mut result = LintResult::new();
 
     for (line_num, line) in source.lines().enumerate() {
@@ -526,16 +514,13 @@ fn is_quoted(line: &amp;str, pattern: &amp;str) -&gt; bool {
     } else {
         false
     }
-}
-<span class="boring">}</span></code></pre></pre>
+}</code></pre>
 <p>Run tests:</p>
 <pre><code class="language-bash">cargo test test_SEC009
 <span class="boring"> PASSES - GREEN achieved!
 </span></code></pre>
 <h3 id="step-3-refactor-phase"><a class="header" href="#step-3-refactor-phase">Step 3: REFACTOR Phase</a></h3>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>pub fn check(source: &amp;str) -&gt; LintResult {
+<pre><code class="language-rust ignore">pub fn check(source: &amp;str) -&gt; LintResult {
     let mut result = LintResult::new();
 
     for (line_num, line) in source.lines().enumerate() {
@@ -574,12 +559,9 @@ fn detect_unquoted_eval(line: &amp;str, line_num: usize) -&gt; Option&lt;Diagnos
 fn is_command_sub_quoted(line: &amp;str) -&gt; bool {
     // Check for eval "$(...)" pattern
     line.contains(r#"eval "$"#) || line.contains(r#"eval '$"#)
-}
-<span class="boring">}</span></code></pre></pre>
+}</code></pre>
 <h3 id="step-4-property-testing"><a class="header" href="#step-4-property-testing">Step 4: Property Testing</a></h3>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>#[cfg(test)]
+<pre><code class="language-rust ignore">#[cfg(test)]
 mod property_tests {
     use super::*;
     use proptest::prelude::*;
@@ -612,15 +594,12 @@ mod property_tests {
             prop_assert!(result.diagnostics.len() &gt;= 1);
         }
     }
-}
-<span class="boring">}</span></code></pre></pre>
+}</code></pre>
 <h3 id="step-5-mutation-testing"><a class="header" href="#step-5-mutation-testing">Step 5: Mutation Testing</a></h3>
 <pre><code class="language-bash">cargo mutants --file rash/src/linter/rules/sec009.rs --timeout 300
 </code></pre>
 <p>Add tests to kill survivors:</p>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>#[test]
+<pre><code class="language-rust ignore">#[test]
 fn test_mutation_column_calculation() {
     let script = "  eval $(cmd)";  // 2-space indent
     let result = check(script);
@@ -632,17 +611,13 @@ fn test_mutation_line_number() {
     let script = "safe\neval $(cmd)";
     let result = check(script);
     assert_eq!(result.diagnostics[0].span.start_line, 2);
-}
-<span class="boring">}</span></code></pre></pre>
+}</code></pre>
 <h3 id="step-6-register-rule"><a class="header" href="#step-6-register-rule">Step 6: Register Rule</a></h3>
 <p>Add to <code>rash/src/linter/rules/mod.rs</code>:</p>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>pub mod sec009;
+<pre><code class="language-rust ignore">pub mod sec009;
 
 // In lint_shell() function:
-result.merge(sec009::check(source));
-<span class="boring">}</span></code></pre></pre>
+result.merge(sec009::check(source));</code></pre>
 <h3 id="step-7-documentation"><a class="header" href="#step-7-documentation">Step 7: Documentation</a></h3>
 <p>Add rule to security documentation:</p>
 <pre><code class="language-markdown">## SEC009: Unquoted Command Substitution in eval
@@ -665,7 +640,7 @@ eval $(get_command)
 
 For deterministic fixes (quoting variables):
 
-```rust
+```rust,ignore
 let fix = Fix::new("\"${VAR}\"");  // Safe replacement
 
 let diag = Diagnostic::new(
@@ -677,9 +652,7 @@ let diag = Diagnostic::new(
 </code></pre>
 <h3 id="safe-with-assumptions-fix-example"><a class="header" href="#safe-with-assumptions-fix-example">Safe-with-Assumptions Fix Example</a></h3>
 <p>For fixes that work in most cases:</p>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>let fix = Fix::new_with_assumptions(
+<pre><code class="language-rust ignore">let fix = Fix::new_with_assumptions(
     "mkdir -p",
     vec!["Directory creation failure is not critical".to_string()],
 );
@@ -689,13 +662,10 @@ let diag = Diagnostic::new(
     Severity::Warning,
     "Non-idempotent mkdir - add -p flag",
     span,
-).with_fix(fix);
-<span class="boring">}</span></code></pre></pre>
+).with_fix(fix);</code></pre>
 <h3 id="unsafe-fix-example"><a class="header" href="#unsafe-fix-example">Unsafe Fix Example</a></h3>
 <p>For fixes requiring human judgment:</p>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>let fix = Fix::new_unsafe(vec![
+<pre><code class="language-rust ignore">let fix = Fix::new_unsafe(vec![
     "Option 1: Use version: ID=\"${VERSION}\"".to_string(),
     "Option 2: Use git commit: ID=\"$(git rev-parse HEAD)\"".to_string(),
     "Option 3: Pass as argument: ID=\"$1\"".to_string(),
@@ -706,14 +676,11 @@ let diag = Diagnostic::new(
     Severity::Error,
     "Non-deterministic $RANDOM - requires manual fix",
     span,
-).with_fix(fix);
-<span class="boring">}</span></code></pre></pre>
+).with_fix(fix);</code></pre>
 <h2 id="shell-compatibility"><a class="header" href="#shell-compatibility">Shell Compatibility</a></h2>
 <h3 id="marking-rules-as-shell-specific"><a class="header" href="#marking-rules-as-shell-specific">Marking Rules as Shell-Specific</a></h3>
 <p>Register rule compatibility in <code>rule_registry.rs</code>:</p>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>pub fn get_rule_compatibility(rule_id: &amp;str) -&gt; ShellCompatibility {
+<pre><code class="language-rust ignore">pub fn get_rule_compatibility(rule_id: &amp;str) -&gt; ShellCompatibility {
     match rule_id {
         // Bash-only features
         "SC2198" =&gt; ShellCompatibility::NotSh,  // Arrays
@@ -728,8 +695,7 @@ let diag = Diagnostic::new(
         // Default: assume universal
         _ =&gt; ShellCompatibility::Universal,
     }
-}
-<span class="boring">}</span></code></pre></pre>
+}</code></pre>
 <h3 id="shell-types"><a class="header" href="#shell-types">Shell Types</a></h3>
 <ul>
 <li><code>ShellType::Sh</code>: POSIX sh</li>
@@ -751,9 +717,7 @@ let diag = Diagnostic::new(
 <li>Good for 90% of use cases</li>
 </ul>
 <p><strong>Example</strong>:</p>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>pub fn check(source: &amp;str) -&gt; LintResult {
+<pre><code class="language-rust ignore">pub fn check(source: &amp;str) -&gt; LintResult {
     let mut result = LintResult::new();
 
     for (line_num, line) in source.lines().enumerate() {
@@ -763,8 +727,7 @@ let diag = Diagnostic::new(
     }
 
     result
-}
-<span class="boring">}</span></code></pre></pre>
+}</code></pre>
 <h3 id="ast-based-rules-advanced"><a class="header" href="#ast-based-rules-advanced">AST-Based Rules (Advanced)</a></h3>
 <p>For semantic analysis:</p>
 <p><strong>Pros</strong>:</p>
@@ -780,9 +743,7 @@ let diag = Diagnostic::new(
 <li>Requires parser</li>
 </ul>
 <p><strong>Example</strong>:</p>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use crate::parser::bash_parser;
+<pre><code class="language-rust ignore">use crate::parser::bash_parser;
 
 pub fn check(source: &amp;str) -&gt; LintResult {
     let mut result = LintResult::new();
@@ -798,8 +759,7 @@ pub fn check(source: &amp;str) -&gt; LintResult {
     }
 
     result
-}
-<span class="boring">}</span></code></pre></pre>
+}</code></pre>
 <h2 id="testing-best-practices"><a class="header" href="#testing-best-practices">Testing Best Practices</a></h2>
 <h3 id="comprehensive-test-coverage"><a class="header" href="#comprehensive-test-coverage">Comprehensive Test Coverage</a></h3>
 <p>Every rule needs:</p>
@@ -852,22 +812,17 @@ fn test_integration_real_script() { }
 <h3 id="test-naming-convention"><a class="header" href="#test-naming-convention">Test Naming Convention</a></h3>
 <p>Format: <code>test_&lt;RULE_ID&gt;_&lt;feature&gt;_&lt;scenario&gt;</code></p>
 <p>Examples:</p>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>#[test]
+<pre><code class="language-rust ignore">#[test]
 fn test_SEC009_detects_unquoted_eval() { }
 
 #[test]
 fn test_SEC009_no_warning_for_quoted() { }
 
 #[test]
-fn test_SEC009_handles_multiline() { }
-<span class="boring">}</span></code></pre></pre>
+fn test_SEC009_handles_multiline() { }</code></pre>
 <h2 id="common-patterns"><a class="header" href="#common-patterns">Common Patterns</a></h2>
 <h3 id="pattern-1-simple-string-matching"><a class="header" href="#pattern-1-simple-string-matching">Pattern 1: Simple String Matching</a></h3>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>pub fn check(source: &amp;str) -&gt; LintResult {
+<pre><code class="language-rust ignore">pub fn check(source: &amp;str) -&gt; LintResult {
     let mut result = LintResult::new();
 
     for (line_num, line) in source.lines().enumerate() {
@@ -878,12 +833,9 @@ fn test_SEC009_handles_multiline() { }
     }
 
     result
-}
-<span class="boring">}</span></code></pre></pre>
+}</code></pre>
 <h3 id="pattern-2-regex-matching"><a class="header" href="#pattern-2-regex-matching">Pattern 2: Regex Matching</a></h3>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use regex::Regex;
+<pre><code class="language-rust ignore">use regex::Regex;
 
 lazy_static::lazy_static! {
     static ref PATTERN: Regex = Regex::new(r"\$RANDOM").unwrap();
@@ -905,12 +857,9 @@ pub fn check(source: &amp;str) -&gt; LintResult {
     }
 
     result
-}
-<span class="boring">}</span></code></pre></pre>
+}</code></pre>
 <h3 id="pattern-3-context-aware-detection"><a class="header" href="#pattern-3-context-aware-detection">Pattern 3: Context-Aware Detection</a></h3>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>pub fn check(source: &amp;str) -&gt; LintResult {
+<pre><code class="language-rust ignore">pub fn check(source: &amp;str) -&gt; LintResult {
     let mut result = LintResult::new();
 
     for (line_num, line) in source.lines().enumerate() {
@@ -923,12 +872,9 @@ pub fn check(source: &amp;str) -&gt; LintResult {
     }
 
     result
-}
-<span class="boring">}</span></code></pre></pre>
+}</code></pre>
 <h3 id="pattern-4-multi-line-pattern"><a class="header" href="#pattern-4-multi-line-pattern">Pattern 4: Multi-line Pattern</a></h3>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>pub fn check(source: &amp;str) -&gt; LintResult {
+<pre><code class="language-rust ignore">pub fn check(source: &amp;str) -&gt; LintResult {
     let mut result = LintResult::new();
     let lines: Vec&lt;&amp;str&gt; = source.lines().collect();
 
@@ -943,8 +889,7 @@ pub fn check(source: &amp;str) -&gt; LintResult {
     }
 
     result
-}
-<span class="boring">}</span></code></pre></pre>
+}</code></pre>
 <h2 id="cicd-integration"><a class="header" href="#cicd-integration">CI/CD Integration</a></h2>
 <h3 id="test-rules-in-ci"><a class="header" href="#test-rules-in-ci">Test Rules in CI</a></h3>
 <pre><code class="language-yaml"># .github/workflows/lint-rules.yml
@@ -1042,8 +987,8 @@ eprintln!("Pattern match: {:?}", line.find("pattern"));
         </script>
 
         <script src="../ace.js"></script>
-        <script src="../editor.js"></script>
         <script src="../mode-rust.js"></script>
+        <script src="../editor.js"></script>
         <script src="../theme-dawn.js"></script>
         <script src="../theme-tomorrow_night.js"></script>
 
@@ -1056,6 +1001,7 @@ eprintln!("Pattern match: {:?}", line.find("pattern"));
         <script src="../book.js"></script>
 
         <!-- Custom JS scripts -->
+
 
 
     </div>

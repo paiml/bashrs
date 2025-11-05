@@ -33,11 +33,11 @@ echo $x
 "#;
 
     let path = PathBuf::from(".bashrc");
-    let result = lint_shell_with_path(&path, bashrc_content);
+    let _result = lint_shell_with_path(&path, bashrc_content);
 
     // Bash linting should still work (we have DET001 for $RANDOM)
-    // This test just verifies the function works without panic, not specific rules
-    let _ = result.diagnostics.len(); // Verify result is accessible
+    // This test just verifies the function works without panic
+    // Test passes if no panic occurs
 }
 
 #[test]
@@ -49,10 +49,10 @@ echo "hello"
 "#;
 
     let path = PathBuf::from("script.zsh");
-    let result = lint_shell_with_path(&path, content);
+    let _result = lint_shell_with_path(&path, content);
 
-    // Should execute without error (bash rules applied)
-    let _ = result.diagnostics.len(); // Verify result is accessible
+    // Should execute without panic (bash rules applied)
+    // Test passes if no panic occurs
 }
 
 #[test]
@@ -65,10 +65,10 @@ echo "hello"
 "#;
 
     let path = PathBuf::from("test.sh");
-    let result = lint_shell_with_path(&path, content);
+    let _result = lint_shell_with_path(&path, content);
 
-    // Should execute without error (zsh rules applied due to directive)
-    let _ = result.diagnostics.len(); // Verify result is accessible
+    // Should execute without panic (zsh rules applied due to directive)
+    // Test passes if no panic occurs
 }
 
 // Helper function
