@@ -56,7 +56,7 @@ mkdir "/releases/$RELEASE"
 ```
 
 **Output varies**:
-```
+```text
 Run 1: Session: 12847
 Run 2: Session: 29103  # Different!
 Run 3: Session: 5721   # Still different!
