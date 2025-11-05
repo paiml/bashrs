@@ -46,7 +46,7 @@ diff <(ls dir1) <(ls dir2)
 - **Fails on embedded systems** (dash or ash, not bash)
 
 **Error Example**:
-```
+```text
 /bin/sh: line 3: declare: not found
 /bin/sh: line 7: syntax error: unexpected "("
 ```
@@ -353,14 +353,14 @@ shellcheck -s sh script.sh
 ```
 
 **Example Output (Non-Compliant)**:
-```
+```text
 script.sh:3:1: error: declare is not POSIX sh [SC3044]
 script.sh:7:4: error: [[ ]] is not POSIX sh [SC3010]
 script.sh:11:6: error: ${var%.ext} is not POSIX sh [SC3060]
 ```
 
 **Example Output (Compliant)**:
-```
+```text
 # No issues found ✅
 ```
 
@@ -383,7 +383,7 @@ done
 ```
 
 **Expected Output**:
-```
+```text
 Testing with: sh
 ✅ sh: PASS
 Testing with: dash

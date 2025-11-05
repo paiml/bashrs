@@ -249,7 +249,7 @@ bashrs lint deploy.sh
 ```
 
 Output:
-```
+```text
 deploy.sh:3:12: DET001 [Error] Non-deterministic: $RANDOM detected
 deploy.sh:4:14: DET002 [Error] Non-deterministic: timestamp $(date +%s)
 deploy.sh:5:12: DET003 [Error] Non-deterministic: process ID $$ detected

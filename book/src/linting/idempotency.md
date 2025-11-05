@@ -28,7 +28,7 @@ Non-idempotent scripts cause:
 ## Core Principle
 
 An operation is idempotent if:
-```
+```text
 f(x) = f(f(x)) = f(f(f(x))) = ...
 ```
 
@@ -71,7 +71,7 @@ ln -s /app/releases/v1.0.0 /app/current
 ```
 
 **Behavior**:
-```
+```text
 First run:  ✅ SUCCESS - directories created
 Second run: ❌ FAILURE - mkdir fails with "File exists"
 ```
@@ -87,7 +87,7 @@ rm -f /app/current && ln -s /app/releases/v1.0.0 /app/current
 ```
 
 **Behavior**:
-```
+```text
 First run:  ✅ SUCCESS - directories created
 Second run: ✅ SUCCESS - no-op (directories exist)
 Third run:  ✅ SUCCESS - still safe!
@@ -211,7 +211,7 @@ rm /app/old-version
 ```
 
 **Behavior**:
-```
+```text
 First run:  ✅ SUCCESS - files deleted
 Second run: ❌ FAILURE - rm fails with "No such file"
 ```
@@ -227,7 +227,7 @@ rm -f /app/old-version
 ```
 
 **Behavior**:
-```
+```text
 First run:  ✅ SUCCESS - files deleted
 Second run: ✅ SUCCESS - no-op (files don't exist)
 Third run:  ✅ SUCCESS - still safe!
@@ -354,7 +354,7 @@ ln -s "$RELEASE_DIR" /app/current
 ```
 
 **Behavior**:
-```
+```text
 First deploy (v1.0.0):  ✅ SUCCESS - symlink created
 Second deploy (v1.0.0): ❌ FAILURE - ln fails with "File exists"
 Update deploy (v1.0.1): ❌ FAILURE - ln fails, current still points to v1.0.0!
@@ -376,7 +376,7 @@ ln -s "$RELEASE_DIR" /app/current
 ```
 
 **Behavior**:
-```
+```text
 First deploy (v1.0.0):  ✅ SUCCESS - symlink created to v1.0.0
 Second deploy (v1.0.0): ✅ SUCCESS - symlink recreated (no-op)
 Update deploy (v1.0.1): ✅ SUCCESS - symlink updated to v1.0.1!
@@ -637,7 +637,7 @@ jobs:
 
 Verify scripts are idempotent:
 
-```rust
+```rust,ignore
 use proptest::prelude::*;
 
 proptest! {

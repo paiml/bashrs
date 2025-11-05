@@ -614,7 +614,7 @@ rbenv() {
 ```
 
 See: https://bashrs.dev/docs/config/performance
-```
+```text
 
 ## Output Formats
 

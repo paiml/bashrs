@@ -1608,11 +1608,10 @@ build:
         // ACT: Purify with parallel safety transformations
         let result = purify_makefile(&ast);
 
-        // ASSERT: Should run analysis (transformations_applied >= 0)
+        // Test passes if purify_makefile runs without panic
         // Note: This Makefile has no issues, so no .NOTPARALLEL recommended
         // This is correct idempotent behavior
-        // Parallel safety analysis should run (verified by reaching this point)
-        let _ = result.transformations_applied;
+        let _ = result.transformations_applied; // Verify result exists
     }
 
     /// Test PARALLEL_SAFETY_002: Detect race condition in shared file write
@@ -1659,9 +1658,9 @@ output_dir:
         let result = purify_makefile(&ast);
 
         // ASSERT: Should preserve order-only prerequisite (already correct)
-        // OR suggest adding if missing
-        // Should handle order-only prerequisites (verified by reaching this point)
-        let _ = result.transformations_applied;
+        // Test passes if purify_makefile runs without panic
+        // Should handle order-only prerequisites correctly
+        let _ = result.transformations_applied; // Verify result exists
     }
 
     /// Test PARALLEL_SAFETY_004: Detect missing dependency causing race
@@ -1741,9 +1740,9 @@ all: clean test
         // ACT: Purify
         let result = purify_makefile(&ast);
 
-        // ASSERT: Should handle .PHONY targets correctly
-        // Should handle .PHONY targets (verified by reaching this point)
-        let _ = result.transformations_applied;
+        // Test passes if purify_makefile runs without panic
+        // Should handle .PHONY targets correctly
+        let _ = result.transformations_applied; // Verify result exists
     }
 
     /// Test PARALLEL_SAFETY_007: Multiple targets same output file
@@ -1813,9 +1812,9 @@ all: main.o util.o
         // ACT: Purify
         let result = purify_makefile(&ast);
 
-        // ASSERT: Should recognize parallel-safe pattern rule
-        // Should handle pattern rules correctly (verified by reaching this point)
-        let _ = result.transformations_applied;
+        // Test passes if purify_makefile runs without panic
+        // Should recognize parallel-safe pattern rules
+        let _ = result.transformations_applied; // Verify result exists
     }
 
     /// Test PARALLEL_SAFETY_010: Shared directory creation race
@@ -2017,9 +2016,9 @@ build:
         let result = purify_makefile(&ast);
 
         // ASSERT: Should not flag SOURCE_DATE_EPOCH as issue
-        // (May still have other transformations, but not for this)
-        // Should handle SOURCE_DATE_EPOCH correctly (verified by reaching this point)
-        let _ = result.transformations_applied;
+        // Test passes if purify_makefile runs without panic
+        // May still have other transformations, but not for SOURCE_DATE_EPOCH
+        let _ = result.transformations_applied; // Verify result exists
     }
 
     /// Test REPRODUCIBLE_008: Detect git commit hash timestamp
@@ -2231,9 +2230,9 @@ app: main.c
         // ACT: Purify
         let result = purify_makefile(&ast);
 
-        // ASSERT: Should not add duplicate .SUFFIXES
-        // Should handle existing .SUFFIXES correctly (verified by reaching this point)
-        let _ = result.transformations_applied;
+        // Test passes if purify_makefile runs without panic
+        // Should not add duplicate .SUFFIXES
+        let _ = result.transformations_applied; // Verify result exists
     }
 
     /// Test PERFORMANCE_006: Detect sequential recipe lines
@@ -2304,9 +2303,9 @@ build:
         // ACT: Purify
         let result = purify_makefile(&ast);
 
-        // ASSERT: Should not flag variables already using :=
-        // Should handle := variables correctly (verified by reaching this point)
-        let _ = result.transformations_applied;
+        // Test passes if purify_makefile runs without panic
+        // Should not flag variables already using :=
+        let _ = result.transformations_applied; // Verify result exists
     }
 
     /// Test PERFORMANCE_009: Detect pattern rule efficiency
@@ -2469,9 +2468,9 @@ build:
         // ACT: Purify
         let result = purify_makefile(&ast);
 
-        // ASSERT: Should not recommend adding .DELETE_ON_ERROR again
-        // Should preserve existing .DELETE_ON_ERROR without duplication (verified by reaching this point)
-        let _ = result.transformations_applied;
+        // Test passes if purify_makefile runs without panic
+        // Should preserve existing .DELETE_ON_ERROR without duplication
+        let _ = result.transformations_applied; // Verify result exists
     }
 
     /// Test ERROR_HANDLING_005: Detect unchecked command substitution
@@ -2489,9 +2488,9 @@ build:
         // ACT: Purify
         let result = purify_makefile(&ast);
 
-        // ASSERT: Should warn about unchecked shell commands
-        // Should detect potentially unchecked shell command substitution (verified by reaching this point)
-        let _ = result.transformations_applied;
+        // Test passes if purify_makefile runs without panic
+        // Should detect potentially unchecked shell command substitution
+        let _ = result.transformations_applied; // Verify result exists
     }
 
     /// Test ERROR_HANDLING_006: Detect missing .ONESHELL with multiline recipes
@@ -2533,9 +2532,9 @@ clean:
         // ACT: Purify
         let result = purify_makefile(&ast);
 
-        // ASSERT: Should detect rm without -f (already has it, so check passes)
-        // Should verify destructive commands have appropriate flags (verified by reaching this point)
-        let _ = result.transformations_applied;
+        // Test passes if purify_makefile runs without panic
+        // Should verify destructive commands have appropriate flags
+        let _ = result.transformations_applied; // Verify result exists
     }
 
     /// Test ERROR_HANDLING_008: Detect set -e equivalent missing
@@ -2653,9 +2652,9 @@ build: $(wildcard *.c)
         // ACT: Purify
         let result = purify_makefile(&ast);
 
-        // ASSERT: Should detect GNU Make extensions (wildcard function is already detected in performance)
-        // Should detect GNU Make-specific constructs (verified by reaching this point)
-        let _ = result.transformations_applied;
+        // Test passes if purify_makefile runs without panic
+        // Should detect GNU Make-specific constructs
+        let _ = result.transformations_applied; // Verify result exists
     }
 
     /// Test PORTABILITY_003: Detect platform-specific commands
@@ -2722,9 +2721,9 @@ build:
         // ACT: Purify
         let result = purify_makefile(&ast);
 
-        // ASSERT: Should detect hardcoded absolute paths
-        // Should detect hardcoded paths that may not be portable (verified by reaching this point)
-        let _ = result.transformations_applied;
+        // Test passes if purify_makefile runs without panic
+        // Should detect hardcoded paths that may not be portable
+        let _ = result.transformations_applied; // Verify result exists
     }
 
     /// Test PORTABILITY_006: Preserve portable constructs
@@ -2742,9 +2741,9 @@ build:
         // ACT: Purify
         let result = purify_makefile(&ast);
 
-        // ASSERT: Should NOT flag POSIX-compliant constructs
-        // Should not flag POSIX-compliant constructs ([ instead of [[, expr, .) (verified by reaching this point)
-        let _ = result.transformations_applied;
+        // Test passes if purify_makefile runs without panic
+        // Should not flag POSIX-compliant constructs ([ instead of [[, expr, .)
+        let _ = result.transformations_applied; // Verify result exists
     }
 
     /// Test PORTABILITY_007: Detect non-portable flags
@@ -2895,9 +2894,9 @@ test:
         // ACT: Purify
         let result = purify_makefile(&ast);
 
-        // ASSERT: Parallel safety analysis should run (may or may not find issues in this simple case)
-        // Parallel safety analysis should execute without errors (verified by reaching this point)
-        let _ = result.transformations_applied;
+        // Test passes if purify_makefile runs without panic
+        // Parallel safety analysis should execute without errors
+        let _ = result.transformations_applied; // Verify result exists
     }
 
     /// Property Test 003: Reproducibility - verify non-deterministic detection
@@ -3029,9 +3028,9 @@ compile:
         let result = purify_makefile(&ast);
 
         // ASSERT: Should have minimal recommendations (good practices already applied)
-        // Note: May still have some recommendations, but should be low
-        // Clean Makefile should not trigger excessive recommendations (verified by reaching this point)
-        let _ = result.transformations_applied;
+        // Test passes if purify_makefile runs without panic
+        // Clean Makefile should not trigger excessive recommendations
+        let _ = result.transformations_applied; // Verify result exists
     }
 
     /// Integration Test 003: Verify composition of transformations

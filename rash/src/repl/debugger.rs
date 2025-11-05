@@ -1320,7 +1320,7 @@ mod tests {
     fn test_REPL_010_001_compare_at_breakpoint() {
         // Script with non-idempotent command
         let script = "mkdir /tmp/test";
-        let mut session = DebugSession::new(script);
+        let session = DebugSession::new(script);
 
         // Get comparison at line 1
         let comparison = session.compare_current_line();
@@ -1337,7 +1337,7 @@ mod tests {
     fn test_REPL_010_001_compare_diff_highlighting() {
         // Script with missing quotes
         let script = "echo $HOME";
-        let mut session = DebugSession::new(script);
+        let session = DebugSession::new(script);
 
         let comparison = session.compare_current_line();
         assert!(comparison.is_some());
@@ -1366,7 +1366,7 @@ mod tests {
     fn test_REPL_010_002_highlight_mkdir_p() {
         // ARRANGE: Script with non-idempotent mkdir
         let script = "mkdir /tmp/foo";
-        let mut session = DebugSession::new(script);
+        let session = DebugSession::new(script);
 
         // ACT: Compare lines
         let comparison = session.compare_current_line();
@@ -1400,7 +1400,7 @@ mod tests {
     fn test_REPL_010_002_highlight_quote() {
         // ARRANGE: Script with unquoted variable
         let script = "echo $USER";
-        let mut session = DebugSession::new(script);
+        let session = DebugSession::new(script);
 
         // ACT: Compare lines
         let comparison = session.compare_current_line();
@@ -1431,7 +1431,7 @@ mod tests {
     fn test_REPL_010_002_highlight_ln_sf() {
         // ARRANGE: Script with non-idempotent ln
         let script = "ln -s /tmp/src /tmp/link";
-        let mut session = DebugSession::new(script);
+        let session = DebugSession::new(script);
 
         // ACT: Compare lines
         let comparison = session.compare_current_line();
@@ -1474,7 +1474,7 @@ mod tests {
     fn test_REPL_010_002_highlight_no_change() {
         // ARRANGE: Script that's already purified
         let script = "mkdir -p /tmp/foo";
-        let mut session = DebugSession::new(script);
+        let session = DebugSession::new(script);
 
         // ACT: Compare lines
         let comparison = session.compare_current_line();
@@ -1503,7 +1503,7 @@ mod tests {
     fn test_REPL_010_002_highlight_multiple_changes() {
         // ARRANGE: Script with multiple issues
         let script = "rm $FILE";
-        let mut session = DebugSession::new(script);
+        let session = DebugSession::new(script);
 
         // ACT: Compare lines
         let comparison = session.compare_current_line();

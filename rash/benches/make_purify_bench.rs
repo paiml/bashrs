@@ -4,9 +4,9 @@
 // Target: <100ms for typical Makefile purification
 // Memory: <10MB for purification process
 
-use bashrs::make_parser::{
-    parser::parse_makefile, purify::purify_makefile, semantic::analyze_makefile,
-};
+use bashrs::make_parser::parser::parse_makefile;
+use bashrs::make_parser::purify::purify_makefile;
+use bashrs::make_parser::semantic::analyze_makefile;
 use criterion::{criterion_group, criterion_main, BenchmarkId, Criterion, Throughput};
 use std::time::Duration;
 
@@ -265,7 +265,7 @@ fn benchmark_purify_end_to_end(c: &mut Criterion) {
                 // Step 3: Purify
                 let purified = purify_makefile(&ast);
 
-                (issues.len(), purified.transformations_applied)
+                (issues.len(), purified.report.len())
             })
         },
     );
@@ -352,7 +352,7 @@ fn benchmark_memory_usage(c: &mut Criterion) {
         b.iter(|| {
             let ast = parse_makefile(COMPLEX_MAKEFILE_TO_PURIFY).unwrap();
             let purified = purify_makefile(&ast);
-            purified.transformations_applied
+            purified.report.len()
         })
     });
 
@@ -386,7 +386,7 @@ fn generate_makefile_with_issues(num_issues: usize) -> String {
         let operation = match i % 3 {
             0 => format!("mkdir /tmp/build-$(shell date +%s)-{}", i),
             1 => format!("echo $$ > /tmp/pid-{}.txt", i),
-            _ => format!("tar -czf release-$(shell date +%s).tar.gz src/"),
+            _ => "tar -czf release-$(shell date +%s).tar.gz src/".to_string(),
         };
 
         makefile.push_str(&format!("target{}:\n\t{}\n\n", i, operation));
