@@ -71,7 +71,7 @@ ln -s /app/releases/v1.0.0 /app/current
 ```
 
 **Behavior**:
-```
+```text
 First run:  ✅ SUCCESS - directories created
 Second run: ❌ FAILURE - mkdir fails with "File exists"
 ```
@@ -87,7 +87,7 @@ rm -f /app/current && ln -s /app/releases/v1.0.0 /app/current
 ```
 
 **Behavior**:
-```
+```text
 First run:  ✅ SUCCESS - directories created
 Second run: ✅ SUCCESS - no-op (directories exist)
 Third run:  ✅ SUCCESS - still safe!
@@ -211,7 +211,7 @@ rm /app/old-version
 ```
 
 **Behavior**:
-```
+```text
 First run:  ✅ SUCCESS - files deleted
 Second run: ❌ FAILURE - rm fails with "No such file"
 ```
@@ -227,7 +227,7 @@ rm -f /app/old-version
 ```
 
 **Behavior**:
-```
+```text
 First run:  ✅ SUCCESS - files deleted
 Second run: ✅ SUCCESS - no-op (files don't exist)
 Third run:  ✅ SUCCESS - still safe!

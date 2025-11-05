@@ -367,7 +367,7 @@ bashrs lint install.sh
 ```
 
 Result:
-```
+```text
 ✅ No issues found
 
 POSIX Compliance: ✅ Pass
@@ -403,7 +403,7 @@ Testing with bash...  ✅ Works
 ```
 
 Result:
-```
+```text
 Run 1: ✅ Installation successful
 Run 2: ✅ Installation successful (idempotent)
 ```
