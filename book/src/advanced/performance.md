@@ -61,7 +61,7 @@ firefox flamegraph.svg
 
 **Example findings** from bashrs profiling:
 
-```
+```text
 ┌─────────────────────────────────────────┐
 │ parse_bash (60% of time)                │ ← Hot path!
 │  ├─ tokenize (25%)                     │
@@ -752,7 +752,7 @@ criterion_main!(benches);
 ```
 
 **Results**:
-```
+```text
 purify_by_size/1KB     time: [18.234 ms 18.456 ms 18.678 ms]
 purify_by_size/10KB    time: [45.123 ms 45.567 ms 46.012 ms]
 purify_by_size/100KB   time: [178.23 ms 180.45 ms 182.67 ms]
@@ -802,7 +802,7 @@ fn test_memory_scaling() {
 ```
 
 **Results**:
-```
+```text
 1KB script uses 0.08MB memory    (80× overhead, acceptable for small files)
 10KB script uses 0.65MB memory   (65× overhead, good)
 100KB script uses 5.2MB memory   (52× overhead, excellent)
