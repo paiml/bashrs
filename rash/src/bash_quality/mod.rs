@@ -10,6 +10,7 @@
 //! This module provides the foundation for making bashrs the "cargo for bash".
 
 pub mod coverage;
+pub mod dockerfile_scoring;
 pub mod formatter;
 pub mod formatter_config;
 pub mod linter;
