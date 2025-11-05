@@ -273,8 +273,8 @@ mod tests {
         use super::*;
         use proptest::prelude::*;
 
-        /// Generate valid bash variable names
-        /// Pattern: [A-Za-z_][A-Za-z0-9_]*
+        // Generate valid bash variable names
+        // Pattern: [A-Za-z_][A-Za-z0-9_]*
         fn valid_var_name() -> impl Strategy<Value = String> {
             "[A-Za-z_][A-Za-z0-9_]{0,19}"
         }
