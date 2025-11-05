@@ -1,9 +1,10 @@
 // bench.rs - Scientific benchmarking for shell scripts
-// EXTREME TDD implementation - GREEN phase
+// EXTREME TDD implementation - GREEN phase (Issue #12 enhancements)
 
 use crate::linter::lint_shell;
 use crate::{Error, Result};
 use chrono::Utc;
+use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use std::collections::hash_map::DefaultHasher;
 use std::fs;
@@ -49,7 +50,7 @@ impl BenchOptions {
 }
 
 /// Environment metadata
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 pub struct Environment {
     pub cpu: String,
     pub ram: String,
@@ -92,7 +93,7 @@ impl Environment {
 }
 
 /// Memory measurement statistics
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 pub struct MemoryStatistics {
     pub mean_kb: f64,
     pub median_kb: f64,
@@ -101,8 +102,8 @@ pub struct MemoryStatistics {
     pub peak_kb: f64,
 }
 
-/// Statistics for benchmark results
-#[derive(Debug, Clone, Serialize, Deserialize)]
+/// Statistics for benchmark results (Issue #12: Enhanced with MAD, geometric/harmonic means)
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 pub struct Statistics {
     pub mean_ms: f64,
     pub median_ms: f64,
@@ -110,6 +111,14 @@ pub struct Statistics {
     pub min_ms: f64,
     pub max_ms: f64,
     pub variance_ms: f64,
+    /// Median Absolute Deviation (robust to outliers)
+    pub mad_ms: f64,
+    /// Geometric mean (better for ratios/speedups)
+    pub geometric_mean_ms: f64,
+    /// Harmonic mean (better for rates/throughput)
+    pub harmonic_mean_ms: f64,
+    /// Indices of detected outliers
+    pub outlier_indices: Vec<usize>,
     pub memory: Option<MemoryStatistics>,
 }
 
@@ -125,6 +134,14 @@ impl Statistics {
         let stddev = variance.sqrt();
         let min = results.iter().copied().fold(f64::INFINITY, f64::min);
         let max = results.iter().copied().fold(f64::NEG_INFINITY, f64::max);
+
+        // Issue #12: Calculate MAD and detect outliers
+        let mad = calculate_mad(results);
+        let outlier_indices = detect_outliers(results, 3.0); // 3.0 MAD threshold (standard)
+
+        // Issue #12: Calculate geometric and harmonic means
+        let geometric_mean = calculate_geometric_mean(results);
+        let harmonic_mean = calculate_harmonic_mean(results);
 
         let memory = memory_results.map(|mem_results| {
             let mean_kb = calculate_mean(mem_results);
@@ -152,6 +169,10 @@ impl Statistics {
             min_ms: min,
             max_ms: max,
             variance_ms: variance,
+            mad_ms: mad,
+            geometric_mean_ms: geometric_mean,
+            harmonic_mean_ms: harmonic_mean,
+            outlier_indices,
             memory,
         }
     }
@@ -176,7 +197,7 @@ impl MemoryStatistics {
 }
 
 /// Quality check results
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 pub struct Quality {
     pub lint_passed: bool,
     pub determinism_score: f64,
@@ -184,7 +205,7 @@ pub struct Quality {
 }
 
 /// Single benchmark result
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 pub struct BenchmarkResult {
     pub script: String,
     pub iterations: usize,
@@ -194,8 +215,8 @@ pub struct BenchmarkResult {
     pub quality: Quality,
 }
 
-/// Complete benchmark output
-#[derive(Debug, Clone, Serialize, Deserialize)]
+/// Complete benchmark output (with JSON schema support - Issue #12)
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 pub struct BenchmarkOutput {
     pub version: String,
     pub timestamp: String,
@@ -658,6 +679,66 @@ fn calculate_variance(values: &[f64], mean: f64) -> f64 {
     values.iter().map(|v| (v - mean).powi(2)).sum::<f64>() / values.len() as f64
 }
 
+// ===== Issue #12 Phase 1: New Statistical Functions =====
+
+/// Calculate Median Absolute Deviation (MAD) - robust to outliers
+/// MAD = median(|xi - median(x)|)
+fn calculate_mad(values: &[f64]) -> f64 {
+    let median = calculate_median(values);
+    let absolute_deviations: Vec<f64> = values.iter().map(|v| (v - median).abs()).collect();
+    calculate_median(&absolute_deviations)
+}
+
+/// Detect outliers using MAD-based method
+/// Returns indices of values that are outliers (beyond threshold * MAD from median)
+/// Standard threshold is 3.0 (equivalent to ~3 standard deviations)
+fn detect_outliers(values: &[f64], threshold: f64) -> Vec<usize> {
+    let median = calculate_median(values);
+    let mad = calculate_mad(values);
+
+    // Avoid division by zero if MAD is 0 (all values identical)
+    if mad == 0.0 {
+        return Vec::new();
+    }
+
+    values
+        .iter()
+        .enumerate()
+        .filter_map(|(i, &v)| {
+            let modified_z_score = 0.6745 * (v - median).abs() / mad;
+            if modified_z_score > threshold {
+                Some(i)
+            } else {
+                None
+            }
+        })
+        .collect()
+}
+
+/// Calculate geometric mean (better for ratios and multiplicative relationships)
+/// Geometric mean = (x1 * x2 * ... * xn)^(1/n)
+fn calculate_geometric_mean(values: &[f64]) -> f64 {
+    if values.is_empty() {
+        return 0.0;
+    }
+
+    // Convert to log space to avoid overflow with large products
+    let log_sum: f64 = values.iter().map(|v| v.ln()).sum();
+    let log_mean = log_sum / values.len() as f64;
+    log_mean.exp()
+}
+
+/// Calculate harmonic mean (better for rates and reciprocals)
+/// Harmonic mean = n / (1/x1 + 1/x2 + ... + 1/xn)
+fn calculate_harmonic_mean(values: &[f64]) -> f64 {
+    if values.is_empty() {
+        return 0.0;
+    }
+
+    let reciprocal_sum: f64 = values.iter().map(|v| 1.0 / v).sum();
+    values.len() as f64 / reciprocal_sum
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -737,5 +818,214 @@ mod tests {
 
         assert_eq!(stats.mean_ms, 15.0);
         assert!(stats.memory.is_none());
+    }
+
+    // ============================================================================
+    // Issue #12 Phase 1: MAD-based Outlier Detection Tests (RED Phase)
+    // ============================================================================
+
+    #[test]
+    fn test_issue_012_mad_calculation() {
+        // ARRANGE: Dataset with known MAD
+        let values = vec![1.0, 2.0, 3.0, 4.0, 5.0];
+
+        // ACT
+        let mad = calculate_mad(&values);
+
+        // ASSERT: MAD = median(|xi - median(x)|)
+        // median = 3.0, deviations = [2, 1, 0, 1, 2], MAD = 1.0
+        assert_eq!(mad, 1.0);
+    }
+
+    #[test]
+    fn test_issue_012_mad_with_outlier() {
+        // ARRANGE: Dataset with outlier
+        let values = vec![1.0, 2.0, 3.0, 4.0, 100.0]; // 100.0 is outlier
+
+        // ACT
+        let mad = calculate_mad(&values);
+
+        // ASSERT: MAD should be robust to outlier
+        // median = 3.0, deviations = [2, 1, 0, 1, 97], MAD = 1.0
+        assert_eq!(mad, 1.0);
+    }
+
+    #[test]
+    fn test_issue_012_detect_outliers_none() {
+        // ARRANGE: Normal distribution, no outliers
+        let values = vec![10.0, 11.0, 12.0, 13.0, 14.0];
+
+        // ACT: Detect outliers with 3.0 threshold (standard)
+        let outliers = detect_outliers(&values, 3.0);
+
+        // ASSERT: No outliers
+        assert!(outliers.is_empty());
+    }
+
+    #[test]
+    fn test_issue_012_detect_outliers_single() {
+        // ARRANGE: Dataset with one clear outlier
+        let values = vec![10.0, 11.0, 12.0, 13.0, 100.0];
+
+        // ACT
+        let outliers = detect_outliers(&values, 3.0);
+
+        // ASSERT: Index 4 (100.0) is outlier
+        assert_eq!(outliers.len(), 1);
+        assert_eq!(outliers[0], 4);
+    }
+
+    #[test]
+    fn test_issue_012_detect_outliers_multiple() {
+        // ARRANGE: Dataset with multiple outliers
+        let values = vec![10.0, 11.0, 12.0, 100.0, 200.0];
+
+        // ACT
+        let outliers = detect_outliers(&values, 3.0);
+
+        // ASSERT: Indices 3 and 4 are outliers
+        assert_eq!(outliers.len(), 2);
+        assert!(outliers.contains(&3));
+        assert!(outliers.contains(&4));
+    }
+
+    #[test]
+    fn test_issue_012_statistics_includes_mad() {
+        // ARRANGE
+        let values = vec![10.0, 11.0, 12.0, 13.0, 14.0];
+
+        // ACT
+        let stats = Statistics::calculate(&values);
+
+        // ASSERT: Statistics should include MAD
+        assert!(stats.mad_ms > 0.0);
+    }
+
+    #[test]
+    fn test_issue_012_statistics_includes_outliers() {
+        // ARRANGE: Dataset with outlier
+        let values = vec![10.0, 11.0, 12.0, 13.0, 100.0];
+
+        // ACT
+        let stats = Statistics::calculate(&values);
+
+        // ASSERT: Outliers should be detected
+        assert_eq!(stats.outlier_indices.len(), 1);
+        assert_eq!(stats.outlier_indices[0], 4);
+    }
+
+    // ============================================================================
+    // Issue #12 Phase 1: Geometric & Harmonic Mean Tests (RED Phase)
+    // ============================================================================
+
+    #[test]
+    fn test_issue_012_geometric_mean() {
+        // ARRANGE
+        let values = vec![1.0, 2.0, 4.0, 8.0];
+
+        // ACT
+        let geo_mean = calculate_geometric_mean(&values);
+
+        // ASSERT: (1 * 2 * 4 * 8)^(1/4) = 2.828...
+        assert!((geo_mean - 2.828).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_issue_012_harmonic_mean() {
+        // ARRANGE
+        let values = vec![1.0, 2.0, 4.0];
+
+        // ACT
+        let harm_mean = calculate_harmonic_mean(&values);
+
+        // ASSERT: 3 / (1/1 + 1/2 + 1/4) = 3 / 1.75 = 1.714...
+        assert!((harm_mean - 1.714).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_issue_012_statistics_includes_geometric_mean() {
+        // ARRANGE
+        let values = vec![1.0, 2.0, 4.0, 8.0];
+
+        // ACT
+        let stats = Statistics::calculate(&values);
+
+        // ASSERT: Statistics should include geometric mean
+        assert!(stats.geometric_mean_ms > 0.0);
+        assert!((stats.geometric_mean_ms - 2.828).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_issue_012_statistics_includes_harmonic_mean() {
+        // ARRANGE
+        let values = vec![1.0, 2.0, 4.0];
+
+        // ACT
+        let stats = Statistics::calculate(&values);
+
+        // ASSERT: Statistics should include harmonic mean
+        assert!(stats.harmonic_mean_ms > 0.0);
+        assert!((stats.harmonic_mean_ms - 1.714).abs() < 0.01);
+    }
+
+    // ============================================================================
+    // Issue #12 Phase 1: JSON Schema Tests (RED Phase)
+    // ============================================================================
+
+    #[test]
+    fn test_issue_012_json_schema_serializable() {
+        // ARRANGE
+        let stats = Statistics {
+            mean_ms: 10.0,
+            median_ms: 9.5,
+            stddev_ms: 1.5,
+            min_ms: 8.0,
+            max_ms: 12.0,
+            variance_ms: 2.25,
+            mad_ms: 1.0,
+            geometric_mean_ms: 9.8,
+            harmonic_mean_ms: 9.6,
+            outlier_indices: vec![4],
+            memory: None,
+        };
+
+        // ACT: Serialize to JSON
+        let json = serde_json::to_string(&stats);
+
+        // ASSERT: Should serialize successfully
+        assert!(json.is_ok());
+        let json_str = json.unwrap();
+        assert!(json_str.contains("mean_ms"));
+        assert!(json_str.contains("mad_ms"));
+        assert!(json_str.contains("geometric_mean_ms"));
+        assert!(json_str.contains("harmonic_mean_ms"));
+        assert!(json_str.contains("outlier_indices"));
+    }
+
+    #[test]
+    fn test_issue_012_benchmark_output_has_schema() {
+        // ARRANGE
+        let output = BenchmarkOutput {
+            version: "1.0.0".to_string(),
+            timestamp: "2025-11-05T00:00:00Z".to_string(),
+            environment: Environment {
+                cpu: "Test CPU".to_string(),
+                ram: "16GB".to_string(),
+                os: "Linux".to_string(),
+                hostname: "test".to_string(),
+                bashrs_version: "6.31.0".to_string(),
+            },
+            benchmarks: vec![],
+        };
+
+        // ACT: Generate JSON schema
+        let schema = schemars::schema_for!(BenchmarkOutput);
+        let schema_json = serde_json::to_string_pretty(&schema);
+
+        // ASSERT: Schema should be generated
+        assert!(schema_json.is_ok());
+        let schema_str = schema_json.unwrap();
+        assert!(schema_str.contains("BenchmarkOutput"));
+        assert!(schema_str.contains("properties"));
     }
 }

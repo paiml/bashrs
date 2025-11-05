@@ -59,6 +59,60 @@ $ bashrs lint nonexistent.sh
 
 ### Added
 
+**Issue #12 Phase 1: Scientific Benchmarking Enhancements** 📊
+
+- **MAD-based outlier detection**: Robust outlier identification using Median Absolute Deviation
+  - `mad_ms`: Median Absolute Deviation metric (robust to outliers)
+  - `outlier_indices`: Automatic detection of outlier measurements
+  - Uses standard 3.0 MAD threshold (equivalent to ~3 standard deviations)
+
+- **Multiple aggregation metrics**: Beyond arithmetic mean
+  - `geometric_mean_ms`: Better for ratios and speedup calculations
+  - `harmonic_mean_ms`: Better for rates and throughput metrics
+
+- **JSON Schema support**: Machine-readable schema for CI/CD integration
+  - All benchmark output structs derive `JsonSchema`
+  - Enables validation and type checking in pipelines
+  - Supports automated documentation generation
+
+**Example Output**:
+```json
+{
+  "version": "1.0.0",
+  "benchmarks": [{
+    "statistics": {
+      "mean_ms": 10.5,
+      "median_ms": 10.2,
+      "mad_ms": 0.3,
+      "geometric_mean_ms": 10.4,
+      "harmonic_mean_ms": 10.3,
+      "outlier_indices": [8, 15]
+    }
+  }]
+}
+```
+
+**Test Coverage**:
+- ✅ 13 new tests covering all Phase 1 features
+- ✅ MAD calculation: Normal and outlier datasets (2 tests)
+- ✅ Outlier detection: None, single, multiple scenarios (3 tests)
+- ✅ Statistics integration: MAD and outliers in results (2 tests)
+- ✅ Geometric mean: Calculation and integration (2 tests)
+- ✅ Harmonic mean: Calculation and integration (2 tests)
+- ✅ JSON schema: Serialization and schema generation (2 tests)
+
+**EXTREME TDD Process**:
+1. ✅ RED Phase: 13 tests written, all failed initially
+2. ✅ GREEN Phase: Implementation complete, all 13 tests pass
+3. ✅ Full suite: 6330+ tests pass (no regressions)
+
+**Changes**:
+- Modified `rash/src/cli/bench.rs`: Added MAD, geometric/harmonic means, outlier detection
+- Modified `rash/Cargo.toml`: Added schemars dependency for JSON schema
+- Added 13 comprehensive tests for all new features
+
+**Resolves**: Phase 1 of https://github.com/paiml/bashrs/issues/12
+
 **Issue #10: Dockerfile-specific quality scoring mode** 🐳
 
 - **NEW `--dockerfile` flag** for `bashrs score` command
