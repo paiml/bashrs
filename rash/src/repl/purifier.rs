@@ -2140,9 +2140,7 @@ mod purify_and_lint_tests {
         assert!(result.is_ok());
         let result = result.unwrap();
 
-        // is_clean should be a boolean
-        assert!(result.is_clean || !result.is_clean);
-
+        // is_clean is a boolean (guaranteed by type system)
         // If clean, critical_violations should be 0
         if result.is_clean {
             assert_eq!(result.critical_violations(), 0);
