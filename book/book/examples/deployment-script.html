@@ -219,10 +219,14 @@ mkdir /app/releases/$RELEASE_TAG         # ❌ Fails if already exists
 </span>echo "Session $SESSION_ID: Deployed $RELEASE_TAG at $(date)" &gt;&gt; $LOG_FILE
 
 echo "Deployment complete: $RELEASE_TAG"
-</code></pre>
-<h3 id="issues-detected-by-rash"><a class="header" href="#issues-detected-by-rash">Issues Detected by Rash</a></h3>
-<p>Running <code>bashrs lint deploy-messy.sh</code>:</p>
-<pre><code class="language-text">deploy-messy.sh:6:13: DET001 [Error] Non-deterministic: $RANDOM
+```text
+
+<span class="boring">## Issues Detected by Rash
+</span>
+Running `bashrs lint deploy-messy.sh`:
+
+```text
+deploy-messy.sh:6:13: DET001 [Error] Non-deterministic: $RANDOM
   SESSION_ID=$RANDOM
   Fix: Use configuration parameter or version-based ID
 
@@ -309,9 +313,12 @@ deploy_app() {
 _build_dir="${2:-/app/build}"
 
 deploy_app "${_version}" "${_build_dir}"
-</code></pre>
-<h3 id="purification-report"><a class="header" href="#purification-report">Purification Report</a></h3>
-<pre><code class="language-text">Purification Report
+```text
+
+<span class="boring">## Purification Report
+</span>
+```text
+Purification Report
 ===================
 
 Issues Fixed: 7
@@ -376,7 +383,7 @@ Testing with bash...  ✅ Works
 <pre><code class="language-bash">bashrs score deploy-purified.sh --detailed
 </code></pre>
 <p>Result:</p>
-<pre><code>Quality Score: A+ (98/100)
+<pre><code class="language-text">Quality Score: A+ (98/100)
 
 Safety:         100/100 ✅ No security issues
 Determinism:    100/100 ✅ No non-deterministic patterns

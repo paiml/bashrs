@@ -247,7 +247,7 @@ source ~/.bash_functions
 </code></pre>
 <h3 id="issues-detected-by-bashrs"><a class="header" href="#issues-detected-by-bashrs">Issues Detected by bashrs</a></h3>
 <p>Running <code>bashrs config analyze ~/.bashrc</code>:</p>
-<pre><code>~/.bashrc:4:14: CONFIG-001 [Error] Non-idempotent PATH append
+<pre><code class="language-text">~/.bashrc:4:14: CONFIG-001 [Error] Non-idempotent PATH append
   export PATH="$HOME/.local/bin:$PATH"
   Fix: Use PATH deduplication function
 
@@ -431,9 +431,12 @@ if [ -n "${ZSH_VERSION:-}" ]; then
 </span>    setopt APPEND_HISTORY
     setopt SHARE_HISTORY
 fi
-</code></pre>
-<h3 id="purification-report"><a class="header" href="#purification-report">Purification Report</a></h3>
-<pre><code class="language-text">Configuration Purification Report
+```text
+
+<span class="boring">## Purification Report
+</span>
+```text
+Configuration Purification Report
 ==================================
 
 Issues Fixed: 17

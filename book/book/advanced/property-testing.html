@@ -493,7 +493,7 @@ echo ${}
     }
 }</code></pre>
 <p><strong>Initial failure</strong> (random):</p>
-<pre><code>thread 'prop_commands_dont_panic' panicked at 'assertion failed'
+<pre><code class="language-text">thread 'prop_commands_dont_panic' panicked at 'assertion failed'
   cmd = BashStmt::Command {
       name: "",
       args: ["foo", "bar", "baz", "qux"],
@@ -501,7 +501,7 @@ echo ${}
   }
 </code></pre>
 <p><strong>After shrinking</strong>:</p>
-<pre><code>Minimal failing case:
+<pre><code class="language-text">Minimal failing case:
   cmd = BashStmt::Command {
       name: "",        // Empty name causes panic
       args: [],        // Irrelevant args removed
@@ -525,8 +525,7 @@ echo ${}
 }</code></pre>
 <h2 id="integration-with-extreme-tdd"><a class="header" href="#integration-with-extreme-tdd">Integration with EXTREME TDD</a></h2>
 <p>Property tests are a key component of bashrs's EXTREME TDD methodology:</p>
-<pre><code>EXTREME TDD = TDD + Property Testing + Mutation Testing + PMAT + Examples
-</code></pre>
+<pre><code class="language-rust ignore">EXTREME TDD = TDD + Property Testing + Mutation Testing + PMAT + Examples</code></pre>
 <h3 id="red--green--refactor--property"><a class="header" href="#red--green--refactor--property">RED → GREEN → REFACTOR → PROPERTY</a></h3>
 <ol>
 <li><strong>RED</strong>: Write failing unit test</li>

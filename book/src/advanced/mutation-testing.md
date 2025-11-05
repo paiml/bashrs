@@ -29,7 +29,7 @@ fn is_safe_command(cmd: &str) -> bool {
 
 ### Mutation Score (Kill Rate)
 
-```
+```text
 Mutation Score = (Killed Mutants / Total Viable Mutants) × 100%
 ```
 
@@ -470,7 +470,7 @@ cargo mutants --file rash/src/linter/rules/sec001.rs -- --lib
 ```
 
 **Output**:
-```
+```text
 sec001.rs: 16 mutants tested in 2m 31s
   caught: 13
   missed: 3
@@ -484,7 +484,7 @@ Kill rate: 81.25%
 ```bash
 cargo mutants --file rash/src/linter/rules/sec001.rs \
     --list-mutants -- --lib
-```
+```text
 
 **Surviving mutants**:
 ```text
@@ -532,7 +532,7 @@ cargo mutants --file rash/src/linter/rules/sec001.rs -- --lib
 ```
 
 **Output**:
-```
+```text
 sec001.rs: 16 mutants tested in 2m 45s
   caught: 16
   missed: 0
@@ -557,7 +557,7 @@ Mutation results:
 - Kill rate: 100%
 - Test suite: 18 tests (10 original + 8 mutation-driven)
 "
-```
+```text
 
 ## Analyzing Mutation Testing Results
 
@@ -591,7 +591,7 @@ cargo-mutants auto_tested 71 mutants in 35m 5s:
 ```bash
 $ cargo mutants --file rash/src/linter/rules/sec002.rs \
     --list-mutants -- --lib > mutations.txt
-```
+```text
 
 **Sample output**:
 ```text
@@ -656,7 +656,7 @@ git diff --name-only main | grep '\.rs$' | \
 
 ### 6. Integrate with EXTREME TDD
 
-```
+```rust,ignore
 RED → GREEN → REFACTOR → MUTATION
 
 1. RED: Write failing test
@@ -786,7 +786,7 @@ Mutation testing is essential for bashrs's NASA-level quality:
 - **70%+**: Standard linter rules
 
 **Integration with EXTREME TDD**:
-```
+```text
 EXTREME TDD = TDD + Property Testing + Mutation Testing + PMAT + Examples
 ```
 

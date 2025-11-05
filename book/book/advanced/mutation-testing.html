@@ -202,7 +202,7 @@ fn is_safe_command(cmd: &amp;str) -&gt; bool {
 <p><strong>If your tests pass</strong> with the mutant, the mutant <strong>survived</strong> (bad - your tests missed a bug).</p>
 <p><strong>If your tests fail</strong> with the mutant, the mutant was <strong>killed</strong> (good - your tests caught the bug).</p>
 <h3 id="mutation-score-kill-rate"><a class="header" href="#mutation-score-kill-rate">Mutation Score (Kill Rate)</a></h3>
-<pre><code>Mutation Score = (Killed Mutants / Total Viable Mutants) × 100%
+<pre><code class="language-text">Mutation Score = (Killed Mutants / Total Viable Mutants) × 100%
 </code></pre>
 <p>bashrs targets:</p>
 <ul>
@@ -553,7 +553,7 @@ eval "$cmd2"
 <pre><code class="language-bash">cargo mutants --file rash/src/linter/rules/sec001.rs -- --lib
 </code></pre>
 <p><strong>Output</strong>:</p>
-<pre><code>sec001.rs: 16 mutants tested in 2m 31s
+<pre><code class="language-text">sec001.rs: 16 mutants tested in 2m 31s
   caught: 13
   missed: 3
   unviable: 0
@@ -563,9 +563,11 @@ Kill rate: 81.25%
 <h3 id="step-2-analyze-surviving-mutants"><a class="header" href="#step-2-analyze-surviving-mutants">Step 2: Analyze Surviving Mutants</a></h3>
 <pre><code class="language-bash">cargo mutants --file rash/src/linter/rules/sec001.rs \
     --list-mutants -- --lib
-</code></pre>
-<p><strong>Surviving mutants</strong>:</p>
-<pre><code class="language-text">src/linter/rules/sec001.rs:34: replace contains -&gt; is_empty
+```text
+
+**Surviving mutants**:
+```text
+src/linter/rules/sec001.rs:34: replace contains -&gt; is_empty
 src/linter/rules/sec001.rs:42: replace line_num + 1 -&gt; line_num
 src/linter/rules/sec001.rs:50: replace Error -&gt; Warning
 </code></pre>
@@ -600,7 +602,7 @@ fn test_sec001_is_error_severity() {
 <pre><code class="language-bash">cargo mutants --file rash/src/linter/rules/sec001.rs -- --lib
 </code></pre>
 <p><strong>Output</strong>:</p>
-<pre><code>sec001.rs: 16 mutants tested in 2m 45s
+<pre><code class="language-text">sec001.rs: 16 mutants tested in 2m 45s
   caught: 16
   missed: 0
   unviable: 0
@@ -621,10 +623,14 @@ Mutation results:
 - Kill rate: 100%
 - Test suite: 18 tests (10 original + 8 mutation-driven)
 "
-</code></pre>
-<h2 id="analyzing-mutation-testing-results"><a class="header" href="#analyzing-mutation-testing-results">Analyzing Mutation Testing Results</a></h2>
-<h3 id="understanding-cargo-mutants-output"><a class="header" href="#understanding-cargo-mutants-output">Understanding cargo-mutants Output</a></h3>
-<pre><code class="language-text">cargo-mutants auto_tested 71 mutants in 35m 5s:
+```text
+
+<span class="boring"># Analyzing Mutation Testing Results
+</span>
+<span class="boring">## Understanding cargo-mutants Output
+</span>
+```text
+cargo-mutants auto_tested 71 mutants in 35m 5s:
   16 caught
    3 missed
    2 unviable
@@ -645,9 +651,11 @@ Mutation results:
 <h3 id="reading-mutation-reports"><a class="header" href="#reading-mutation-reports">Reading Mutation Reports</a></h3>
 <pre><code class="language-bash">$ cargo mutants --file rash/src/linter/rules/sec002.rs \
     --list-mutants -- --lib &gt; mutations.txt
-</code></pre>
-<p><strong>Sample output</strong>:</p>
-<pre><code class="language-text">src/linter/rules/sec002.rs:15:17: replace contains("$") -&gt; is_empty()
+```text
+
+**Sample output**:
+```text
+src/linter/rules/sec002.rs:15:17: replace contains("$") -&gt; is_empty()
 src/linter/rules/sec002.rs:23:12: replace !is_quoted -&gt; is_quoted
 src/linter/rules/sec002.rs:34:20: replace line_num + 1 -&gt; line_num + 0
 src/linter/rules/sec002.rs:45:28: replace Error -&gt; Warning
@@ -694,13 +702,12 @@ src/linter/rules/sec002.rs:45:28: replace Error -&gt; Warning
     xargs -I {} cargo mutants --file {} -- --lib
 </code></pre>
 <h3 id="6-integrate-with-extreme-tdd"><a class="header" href="#6-integrate-with-extreme-tdd">6. Integrate with EXTREME TDD</a></h3>
-<pre><code>RED → GREEN → REFACTOR → MUTATION
+<pre><code class="language-rust ignore">RED → GREEN → REFACTOR → MUTATION
 
 1. RED: Write failing test
 2. GREEN: Implement feature
 3. REFACTOR: Clean up code
-4. MUTATION: Verify tests catch bugs (90%+ kill rate)
-</code></pre>
+4. MUTATION: Verify tests catch bugs (90%+ kill rate)</code></pre>
 <h2 id="real-world-bashrs-mutation-results"><a class="header" href="#real-world-bashrs-mutation-results">Real-World bashrs Mutation Results</a></h2>
 <h3 id="sec-rules-error-severity---final-results"><a class="header" href="#sec-rules-error-severity---final-results">SEC Rules (Error Severity) - Final Results</a></h3>
 <div class="table-wrapper"><table><thead><tr><th>Rule</th><th>Tests</th><th>Mutants</th><th>Caught</th><th>Kill Rate</th><th>Status</th></tr></thead><tbody>
@@ -804,7 +811,7 @@ fn test_all_cases() {
 <li><strong>70%+</strong>: Standard linter rules</li>
 </ul>
 <p><strong>Integration with EXTREME TDD</strong>:</p>
-<pre><code>EXTREME TDD = TDD + Property Testing + Mutation Testing + PMAT + Examples
+<pre><code class="language-text">EXTREME TDD = TDD + Property Testing + Mutation Testing + PMAT + Examples
 </code></pre>
 <p>Mutation testing provides empirical validation that tests actually catch bugs, ensuring bashrs maintains world-class quality.</p>
 <p>For more on comprehensive testing, see <a href="./property-testing.html">Property Testing</a> and <a href="./performance.html">Performance Optimization</a>.</p>

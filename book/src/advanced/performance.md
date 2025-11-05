@@ -121,7 +121,7 @@ less memory_report.txt
 
 Microbenchmarks track performance over time:
 
-```rust
+```rust,ignore
 // benches/parse_benchmark.rs
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
 use bashrs::bash_parser::Parser;
@@ -200,7 +200,7 @@ cargo bench --bench parse_benchmark -- --baseline before
 
 **Solution**: Cache parsed ASTs keyed by script hash.
 
-```rust
+```rust,ignore
 use std::collections::HashMap;
 use std::hash::{Hash, Hasher};
 use std::collections::hash_map::DefaultHasher;
@@ -268,7 +268,7 @@ With cache (miss): 46ms (1ms overhead from hashing)
 
 **Solution**: Parse incrementally, only build nodes when needed.
 
-```rust
+```rust,ignore
 pub struct LazyAst {
     source: String,
     statements: Option<Vec<BashStmt>>,  // Parsed on demand
@@ -322,7 +322,7 @@ has_eval:     2ms (22× faster)
 
 **Solution**: Intern strings, store references instead.
 
-```rust
+```rust,ignore
 use string_interner::{StringInterner, Symbol};
 
 pub struct InternedParser {
@@ -386,7 +386,7 @@ With:    ~100KB (10× reduction)
 
 **Solution**: Run rules in parallel using rayon.
 
-```rust
+```rust,ignore
 use rayon::prelude::*;
 
 pub fn lint_parallel(source: &str, rules: &[LintRule]) -> LintResult {
@@ -418,7 +418,7 @@ Parallel:   max(50ms) = 50ms (8× faster on 8 cores)
 
 **Solution**: Use const generics and monomorphization.
 
-```rust
+```rust,ignore
 // ❌ Slow: Dynamic dispatch
 pub trait LintRule {
     fn check(&self, source: &str) -> LintResult;
@@ -460,7 +460,7 @@ Const generics:     42ms (16% faster, plus better inlining)
 ### Optimization 1: Tokenizer Speedup (2.5× faster)
 
 **Before** (naive character-by-character):
-```rust
+```rust,ignore
 fn tokenize(source: &str) -> Vec<Token> {
     let mut tokens = Vec::new();
     let mut i = 0;
@@ -489,7 +489,7 @@ fn tokenize(source: &str) -> Vec<Token> {
 **Performance**: 45ms for 10KB script
 
 **After** (byte-level with memchr):
-```rust
+```rust,ignore
 use memchr::memchr;
 
 fn tokenize(source: &str) -> Vec<Token> {
@@ -528,7 +528,7 @@ fn tokenize(source: &str) -> Vec<Token> {
 ### Optimization 2: AST Cloning Reduction (10× faster)
 
 **Before** (cloning everywhere):
-```rust
+```rust,ignore
 pub fn purify(ast: BashAst) -> BashAst {
     let mut purified = ast.clone();  // Expensive!
 
@@ -541,7 +541,7 @@ pub fn purify(ast: BashAst) -> BashAst {
 ```
 
 **After** (move semantics):
-```rust
+```rust,ignore
 pub fn purify(ast: BashAst) -> BashAst {
     BashAst {
         statements: ast.statements.into_iter()
@@ -575,7 +575,7 @@ After:  20ms (10× faster)
 ### Optimization 3: Diagnostic Allocation (3× faster)
 
 **Before** (allocating per-line):
-```rust
+```rust,ignore
 pub fn lint(source: &str) -> LintResult {
     let mut result = LintResult::new();
 
@@ -591,7 +591,7 @@ pub fn lint(source: &str) -> LintResult {
 ```
 
 **After** (pre-allocated buffers):
-```rust
+```rust,ignore
 pub fn lint(source: &str) -> LintResult {
     let line_count = source.lines().count();
     let mut diagnostics = Vec::with_capacity(line_count * ALL_RULES.len() / 10);
@@ -663,7 +663,7 @@ jobs:
 ```
 
 **Set performance budgets**:
-```rust
+```rust,ignore
 // tests/performance_budget.rs
 use bashrs::bash_parser::Parser;
 use std::time::Instant;
@@ -707,7 +707,7 @@ fn test_purify_performance_budget() {
 
 Real-world performance on actual scripts:
 
-```rust
+```rust,ignore
 // benches/purify_benchmark.rs
 use criterion::{black_box, criterion_group, criterion_main, Criterion, BenchmarkId};
 use bashrs::{bash_parser::Parser, purify};
@@ -768,7 +768,7 @@ purify_by_size/1000KB  time: [1.8345 s 1.8567 s 1.8789 s]
 
 Track memory usage across script sizes:
 
-```rust
+```rust,ignore
 // benches/memory_benchmark.rs
 use bashrs::bash_parser::Parser;
 
@@ -826,7 +826,7 @@ cargo flamegraph --bin bashrs -- purify large_script.sh
 
 Define acceptable performance upfront:
 
-```rust
+```rust,ignore
 // Performance requirements
 const PARSE_BUDGET_MS_PER_KB: u64 = 1;
 const PURIFY_BUDGET_MS_PER_KB: u64 = 2;
@@ -850,7 +850,7 @@ git checkout feature && cargo bench -- --baseline main
 
 Make typical workflows fast:
 
-```rust
+```rust,ignore
 // Optimize for: small scripts, frequent operations
 // Don't optimize: edge cases, rare operations
 
@@ -867,7 +867,7 @@ slow_but_thorough_parse(source)
 
 Caching trades memory for speed:
 
-```rust
+```rust,ignore
 // ✅ Good: Bounded cache
 struct LRUCache {
     cache: HashMap<u64, BashAst>,
@@ -884,7 +884,7 @@ struct UnboundedCache {
 
 Help users understand costs:
 
-```rust
+```rust,ignore
 /// Parse a bash script to AST
 ///
 /// # Performance

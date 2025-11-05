@@ -389,7 +389,7 @@ fi
 touch "${HOME}/.config/myapp/config.ini"
 </code></pre>
 <h3 id="purification-report"><a class="header" href="#purification-report">Purification Report</a></h3>
-<pre><code>bashrs config purify v6.31.0
+<pre><code class="language-text">bashrs config purify v6.31.0
 
 Input:  /home/user/.bashrc (42 lines)
 Output: /home/user/.bashrc.purified (45 lines)
@@ -532,10 +532,12 @@ fi
 <span class="boring"> Check syntax with shell parser
 </span>sh -n ~/.bashrc.purified
 bash -n ~/.bashrc.purified
-</code></pre>
-<p>Expected output:</p>
-<pre><code class="language-text"># No output = success
-</code></pre>
+```text
+
+Expected output:
+```text
+<span class="boring"> No output = success
+</span></code></pre>
 <h3 id="step-2-source-multiple-times"><a class="header" href="#step-2-source-multiple-times">Step 2: Source Multiple Times</a></h3>
 <p>Test idempotency by sourcing multiple times:</p>
 <pre><code class="language-bash"><span class="boring"> Start fresh shell
