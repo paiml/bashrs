@@ -6,7 +6,7 @@ Mutation testing is the gold standard for measuring test quality. While code cov
 
 Mutation testing works by introducing small bugs (mutations) into your code and checking if your tests catch them:
 
-```rust
+```rust,ignore
 // Original code
 fn is_safe_command(cmd: &str) -> bool {
     !cmd.contains("eval")
@@ -29,7 +29,7 @@ fn is_safe_command(cmd: &str) -> bool {
 
 ### Mutation Score (Kill Rate)
 
-```
+```text
 Mutation Score = (Killed Mutants / Total Viable Mutants) × 100%
 ```
 
@@ -48,7 +48,7 @@ Let's trace how this was achieved:
 
 #### Initial Implementation (Naive)
 
-```rust
+```rust,ignore
 pub fn check(source: &str) -> LintResult {
     let mut result = LintResult::new();
 
@@ -86,7 +86,7 @@ $ cargo mutants --file rash/src/linter/rules/sec001.rs -- --lib
 
 Add targeted tests:
 
-```rust
+```rust,ignore
 #[test]
 fn test_sec001_word_boundary_before() {
     // Kill mutant: "eval" → "" (empty string always matches)
@@ -117,7 +117,7 @@ fn test_sec001_requires_eval_presence() {
 
 #### Iteration 2: Add Edge Cases
 
-```rust
+```rust,ignore
 #[test]
 fn test_sec001_eval_at_line_start() {
     // Edge case: eval at beginning of line
@@ -145,7 +145,7 @@ fn test_sec001_eval_with_quotes() {
 
 #### Final Implementation (Robust)
 
-```rust
+```rust,ignore
 pub fn check(source: &str) -> LintResult {
     let mut result = LintResult::new();
 
@@ -212,7 +212,7 @@ $ cargo mutants --file rash/src/linter/rules/sec001.rs -- --lib
 **Baseline**: 24/32 mutants killed (75%)
 
 **Surviving mutants identified**:
-```rust
+```rust,ignore
 // Mutant 1: Changed `contains("$")` to `contains("")`
 // Mutant 2: Changed `!is_quoted()` to `is_quoted()`
 // Mutant 3: Removed `if !var.is_empty()` guard
@@ -221,7 +221,7 @@ $ cargo mutants --file rash/src/linter/rules/sec001.rs -- --lib
 
 **Iteration 1**: Add 8 targeted tests:
 
-```rust
+```rust,ignore
 #[test]
 fn test_sec002_empty_variable_not_flagged() {
     // Kill mutant: removed is_empty() guard
@@ -258,14 +258,14 @@ fn test_sec002_quoted_variable_not_flagged() {
 **Key insight**: High baseline score indicates good initial test coverage.
 
 **Surviving mutants**:
-```rust
+```rust,ignore
 // Mutant 1: Changed `mktemp` to `mktmp` (typo)
 // Mutant 2: Changed severity Error → Warning
 ```
 
 **Iteration 1**: Add tests for edge cases:
 
-```rust
+```rust,ignore
 #[test]
 fn test_sec006_exact_command_name() {
     // Kill mutant: mktemp → mktmp
@@ -300,7 +300,7 @@ fn test_sec006_severity_is_error() {
 2. **Mutation-driven test design** - wrote tests anticipating mutations
 3. **Edge case enumeration** - tested all quote/expansion combinations
 
-```rust
+```rust,ignore
 #[test]
 fn test_sc2064_double_quotes_immediate_expansion() {
     let script = r#"trap "echo $VAR" EXIT"#;  // Expands immediately
@@ -341,7 +341,7 @@ fn test_sc2064_mixed_expansion() {
 
 Test both sides of every condition:
 
-```rust
+```rust,ignore
 // Original code
 if cmd.len() > 0 {
     process(cmd);
@@ -354,7 +354,7 @@ if cmd.len() >= 0 {  // Always true!
 ```
 
 **Kill this mutant**:
-```rust
+```rust,ignore
 #[test]
 fn test_empty_command_not_processed() {
     let cmd = "";
@@ -374,7 +374,7 @@ fn test_nonempty_command_processed() {
 
 Weak assertions let mutants survive:
 
-```rust
+```rust,ignore
 // ❌ WEAK: Only checks presence
 #[test]
 fn test_diagnostic_exists() {
@@ -398,7 +398,7 @@ fn test_diagnostic_complete() {
 
 Test both positive and negative cases:
 
-```rust
+```rust,ignore
 #[test]
 fn test_detects_vulnerability() {
     let vulnerable = "eval \"$USER_INPUT\"";
@@ -420,7 +420,7 @@ fn test_ignores_safe_code() {
 
 Test specific values, not just presence:
 
-```rust
+```rust,ignore
 // ❌ WEAK
 #[test]
 fn test_line_number_set() {
@@ -441,7 +441,7 @@ fn test_line_number_exact() {
 
 Test how components work together:
 
-```rust
+```rust,ignore
 #[test]
 fn test_multiple_violations() {
     let script = r#"
@@ -470,7 +470,7 @@ cargo mutants --file rash/src/linter/rules/sec001.rs -- --lib
 ```
 
 **Output**:
-```
+```text
 sec001.rs: 16 mutants tested in 2m 31s
   caught: 13
   missed: 3
@@ -484,10 +484,10 @@ Kill rate: 81.25%
 ```bash
 cargo mutants --file rash/src/linter/rules/sec001.rs \
     --list-mutants -- --lib
-```
+```text
 
 **Surviving mutants**:
-```
+```text
 src/linter/rules/sec001.rs:34: replace contains -> is_empty
 src/linter/rules/sec001.rs:42: replace line_num + 1 -> line_num
 src/linter/rules/sec001.rs:50: replace Error -> Warning
@@ -497,7 +497,7 @@ src/linter/rules/sec001.rs:50: replace Error -> Warning
 
 For each surviving mutant, write a test that would fail if that mutation existed:
 
-```rust
+```rust,ignore
 // Kill: contains → is_empty
 #[test]
 fn test_sec001_requires_eval_keyword() {
@@ -532,7 +532,7 @@ cargo mutants --file rash/src/linter/rules/sec001.rs -- --lib
 ```
 
 **Output**:
-```
+```text
 sec001.rs: 16 mutants tested in 2m 45s
   caught: 16
   missed: 0
@@ -557,13 +557,13 @@ Mutation results:
 - Kill rate: 100%
 - Test suite: 18 tests (10 original + 8 mutation-driven)
 "
-```
+```text
 
 ## Analyzing Mutation Testing Results
 
 ### Understanding cargo-mutants Output
 
-```
+```text
 cargo-mutants auto_tested 71 mutants in 35m 5s:
   16 caught
    3 missed
@@ -591,10 +591,10 @@ cargo-mutants auto_tested 71 mutants in 35m 5s:
 ```bash
 $ cargo mutants --file rash/src/linter/rules/sec002.rs \
     --list-mutants -- --lib > mutations.txt
-```
+```text
 
 **Sample output**:
-```
+```text
 src/linter/rules/sec002.rs:15:17: replace contains("$") -> is_empty()
 src/linter/rules/sec002.rs:23:12: replace !is_quoted -> is_quoted
 src/linter/rules/sec002.rs:34:20: replace line_num + 1 -> line_num + 0
@@ -656,7 +656,7 @@ git diff --name-only main | grep '\.rs$' | \
 
 ### 6. Integrate with EXTREME TDD
 
-```
+```rust,ignore
 RED → GREEN → REFACTOR → MUTATION
 
 1. RED: Write failing test
@@ -704,7 +704,7 @@ RED → GREEN → REFACTOR → MUTATION
 
 ### Pitfall 1: Testing Implementation Instead of Behavior
 
-```rust
+```rust,ignore
 // ❌ BAD: Tests internal implementation
 #[test]
 fn test_uses_regex() {
@@ -722,7 +722,7 @@ fn test_detects_pattern() {
 
 ### Pitfall 2: Weak Assertions
 
-```rust
+```rust,ignore
 // ❌ WEAK: Mutants can survive
 assert!(result.is_ok());
 assert!(!diagnostics.is_empty());
@@ -735,7 +735,7 @@ assert_eq!(diagnostics[0].severity, Severity::Error);
 
 ### Pitfall 3: Not Testing Edge Cases
 
-```rust
+```rust,ignore
 // ❌ INCOMPLETE: Only tests happy path
 #[test]
 fn test_basic_case() {
@@ -786,7 +786,7 @@ Mutation testing is essential for bashrs's NASA-level quality:
 - **70%+**: Standard linter rules
 
 **Integration with EXTREME TDD**:
-```
+```text
 EXTREME TDD = TDD + Property Testing + Mutation Testing + PMAT + Examples
 ```
 

@@ -24,28 +24,41 @@
         <link rel="stylesheet" href="../fonts/fonts.css">
 
         <!-- Highlight.js Stylesheets -->
-        <link rel="stylesheet" href="../highlight.css">
-        <link rel="stylesheet" href="../tomorrow-night.css">
-        <link rel="stylesheet" href="../ayu-highlight.css">
+        <link rel="stylesheet" id="highlight-css" href="../highlight.css">
+        <link rel="stylesheet" id="tomorrow-night-css" href="../tomorrow-night.css">
+        <link rel="stylesheet" id="ayu-highlight-css" href="../ayu-highlight.css">
 
         <!-- Custom theme stylesheets -->
 
 
-        <!-- Provide site root to javascript -->
+        <!-- Provide site root and default themes to javascript -->
         <script>
-            var path_to_root = "../";
-            var default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "navy" : "rust";
+            const path_to_root = "../";
+            const default_light_theme = "rust";
+            const default_dark_theme = "navy";
+            window.path_to_searchindex_js = "../searchindex.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc.js"></script>
     </head>
     <body>
+    <div id="mdbook-help-container">
+        <div id="mdbook-help-popup">
+            <h2 class="mdbook-help-title">Keyboard shortcuts</h2>
+            <div>
+                <p>Press <kbd>←</kbd> or <kbd>→</kbd> to navigate between chapters</p>
+                <p>Press <kbd>S</kbd> or <kbd>/</kbd> to search in the book</p>
+                <p>Press <kbd>?</kbd> to show this help</p>
+                <p>Press <kbd>Esc</kbd> to hide this help</p>
+            </div>
+        </div>
+    </div>
     <div id="body-container">
         <!-- Work around some values being stored in localStorage wrapped in quotes -->
         <script>
             try {
-                var theme = localStorage.getItem('mdbook-theme');
-                var sidebar = localStorage.getItem('mdbook-sidebar');
+                let theme = localStorage.getItem('mdbook-theme');
+                let sidebar = localStorage.getItem('mdbook-sidebar');
 
                 if (theme.startsWith('"') && theme.endsWith('"')) {
                     localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
@@ -59,7 +72,8 @@
 
         <!-- Set the theme before any content is loaded, prevents flash -->
         <script>
-            var theme;
+            const default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? default_dark_theme : default_light_theme;
+            let theme;
             try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
             if (theme === null || theme === undefined) { theme = default_theme; }
             const html = document.documentElement;
@@ -72,17 +86,20 @@
 
         <!-- Hide / unhide sidebar before it is displayed -->
         <script>
-            var sidebar = null;
-            var sidebar_toggle = document.getElementById("sidebar-toggle-anchor");
+            let sidebar = null;
+            const sidebar_toggle = document.getElementById("sidebar-toggle-anchor");
             if (document.body.clientWidth >= 1080) {
                 try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
                 sidebar = sidebar || 'visible';
             } else {
                 sidebar = 'hidden';
+                sidebar_toggle.checked = false;
             }
-            sidebar_toggle.checked = sidebar === 'visible';
-            html.classList.remove('sidebar-visible');
-            html.classList.add("sidebar-" + sidebar);
+            if (sidebar === 'visible') {
+                sidebar_toggle.checked = true;
+            } else {
+                html.classList.remove('sidebar-visible');
+            }
         </script>
 
         <nav id="sidebar" class="sidebar" aria-label="Table of contents">
@@ -109,13 +126,14 @@
                             <i class="fa fa-paint-brush"></i>
                         </button>
                         <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="default_theme">Auto</button></li>
                             <li role="none"><button role="menuitem" class="theme" id="light">Light</button></li>
                             <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
                             <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
                             <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
                             <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
                         </ul>
-                        <button id="search-toggle" class="icon-button" type="button" title="Search. (Shortkey: s)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="S" aria-controls="searchbar">
+                        <button id="search-toggle" class="icon-button" type="button" title="Search (`/`)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="/ s" aria-controls="searchbar">
                             <i class="fa fa-search"></i>
                         </button>
                     </div>
@@ -129,7 +147,7 @@
                         <a href="https://github.com/paiml/bashrs" title="Git repository" aria-label="Git repository">
                             <i id="git-repository-button" class="fa fa-github"></i>
                         </a>
-                        <a href="https://github.com/paiml/bashrs/edit/main/book/src/advanced/ast-transformation.md" title="Suggest an edit" aria-label="Suggest an edit">
+                        <a href="https://github.com/paiml/bashrs/edit/main/book/src/advanced/ast-transformation.md" title="Suggest an edit" aria-label="Suggest an edit" rel="edit">
                             <i id="git-edit-button" class="fa fa-edit"></i>
                         </a>
 
@@ -138,7 +156,12 @@
 
                 <div id="search-wrapper" class="hidden">
                     <form id="searchbar-outer" class="searchbar-outer">
-                        <input type="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                        <div class="search-wrapper">
+                            <input type="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                            <div class="spinner-wrapper">
+                                <i class="fa fa-spinner fa-spin"></i>
+                            </div>
+                        </div>
                     </form>
                     <div id="searchresults-outer" class="searchresults-outer hidden">
                         <div id="searchresults-header" class="searchresults-header"></div>
@@ -178,9 +201,7 @@
 <p>bashrs represents bash scripts using a type-safe Rust AST with three main layers:</p>
 <h3 id="layer-1-statements-bashstmt"><a class="header" href="#layer-1-statements-bashstmt">Layer 1: Statements (<code>BashStmt</code>)</a></h3>
 <p>Statements are top-level constructs:</p>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>pub enum BashStmt {
+<pre><code class="language-rust ignore">pub enum BashStmt {
     /// Variable assignment: VAR=value
     Assignment {
         name: String,
@@ -229,13 +250,10 @@
 
     /// Comment (preserved for documentation)
     Comment { text: String, span: Span },
-}
-<span class="boring">}</span></code></pre></pre>
+}</code></pre>
 <h3 id="layer-2-expressions-bashexpr"><a class="header" href="#layer-2-expressions-bashexpr">Layer 2: Expressions (<code>BashExpr</code>)</a></h3>
 <p>Expressions represent values and computations:</p>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>pub enum BashExpr {
+<pre><code class="language-rust ignore">pub enum BashExpr {
     /// String literal: "hello"
     Literal(String),
 
@@ -270,13 +288,10 @@
     RemovePrefix { variable: String, pattern: Box&lt;BashExpr&gt; },      // ${VAR#pattern}
     RemoveLongestSuffix { variable: String, pattern: Box&lt;BashExpr&gt; }, // ${VAR%%pattern}
     RemoveLongestPrefix { variable: String, pattern: Box&lt;BashExpr&gt; }, // ${VAR##pattern}
-}
-<span class="boring">}</span></code></pre></pre>
+}</code></pre>
 <h3 id="layer-3-test-and-arithmetic-expressions"><a class="header" href="#layer-3-test-and-arithmetic-expressions">Layer 3: Test and Arithmetic Expressions</a></h3>
 <p>Low-level constructs for conditionals and math:</p>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>pub enum TestExpr {
+<pre><code class="language-rust ignore">pub enum TestExpr {
     // String comparisons
     StringEq(BashExpr, BashExpr),    // [ "$a" = "$b" ]
     StringNe(BashExpr, BashExpr),    // [ "$a" != "$b" ]
@@ -311,23 +326,17 @@ pub enum ArithExpr {
     Mul(Box&lt;ArithExpr&gt;, Box&lt;ArithExpr&gt;),
     Div(Box&lt;ArithExpr&gt;, Box&lt;ArithExpr&gt;),
     Mod(Box&lt;ArithExpr&gt;, Box&lt;ArithExpr&gt;),
-}
-<span class="boring">}</span></code></pre></pre>
+}</code></pre>
 <h3 id="metadata-and-source-tracking"><a class="header" href="#metadata-and-source-tracking">Metadata and Source Tracking</a></h3>
 <p>Every AST node includes a <code>Span</code> for precise error reporting:</p>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>pub struct Span {
+<pre><code class="language-rust ignore">pub struct Span {
     pub start_line: usize,
     pub start_col: usize,
     pub end_line: usize,
     pub end_col: usize,
-}
-<span class="boring">}</span></code></pre></pre>
+}</code></pre>
 <p>Complete scripts are wrapped in <code>BashAst</code>:</p>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>pub struct BashAst {
+<pre><code class="language-rust ignore">pub struct BashAst {
     pub statements: Vec&lt;BashStmt&gt;,
     pub metadata: AstMetadata,
 }
@@ -336,11 +345,10 @@ pub struct AstMetadata {
     pub source_file: Option&lt;String&gt;,
     pub line_count: usize,
     pub parse_time_ms: u64,
-}
-<span class="boring">}</span></code></pre></pre>
+}</code></pre>
 <h2 id="how-purification-works-via-ast-transformations"><a class="header" href="#how-purification-works-via-ast-transformations">How Purification Works via AST Transformations</a></h2>
 <p>bashrs purification is a three-stage pipeline:</p>
-<pre><code>┌─────────────┐      ┌──────────────┐      ┌─────────────┐
+<pre><code class="language-text">┌─────────────┐      ┌──────────────┐      ┌─────────────┐
 │ Parse Bash  │ ───▶ │  Transform   │ ───▶ │  Generate   │
 │  to AST     │      │     AST      │      │ Purified Sh │
 └─────────────┘      └──────────────┘      └─────────────┘
@@ -353,9 +361,7 @@ mkdir /app/releases
 rm /app/current
 </code></pre>
 <p>Parses to:</p>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>BashAst {
+<pre><code class="language-rust ignore">BashAst {
     statements: vec![
         BashStmt::Assignment {
             name: "SESSION_ID",
@@ -375,15 +381,12 @@ rm /app/current
         },
     ],
     metadata: AstMetadata { ... },
-}
-<span class="boring">}</span></code></pre></pre>
+}</code></pre>
 <h3 id="stage-2-transform-ast"><a class="header" href="#stage-2-transform-ast">Stage 2: Transform AST</a></h3>
 <p>Three categories of transformations:</p>
 <h4 id="21-determinism-transformations"><a class="header" href="#21-determinism-transformations">2.1: Determinism Transformations</a></h4>
 <p>Replace non-deterministic constructs:</p>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>// Before: SESSION_ID=$RANDOM
+<pre><code class="language-rust ignore">// Before: SESSION_ID=$RANDOM
 BashStmt::Assignment {
     name: "SESSION_ID",
     value: BashExpr::Variable("RANDOM"),
@@ -395,8 +398,7 @@ BashStmt::Assignment {
     name: "SESSION_ID",
     value: BashExpr::Literal("fixed-session-id"),
     ...
-}
-<span class="boring">}</span></code></pre></pre>
+}</code></pre>
 <p><strong>Patterns transformed</strong>:</p>
 <ul>
 <li><code>$RANDOM</code> → fixed value or parameter</li>
@@ -406,9 +408,7 @@ BashStmt::Assignment {
 </ul>
 <h4 id="22-idempotency-transformations"><a class="header" href="#22-idempotency-transformations">2.2: Idempotency Transformations</a></h4>
 <p>Make commands safe to re-run:</p>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>// Before: mkdir /app/releases
+<pre><code class="language-rust ignore">// Before: mkdir /app/releases
 BashStmt::Command {
     name: "mkdir",
     args: vec![BashExpr::Literal("/app/releases")],
@@ -421,8 +421,7 @@ BashStmt::Command {
         BashExpr::Literal("-p"),
         BashExpr::Literal("/app/releases"),
     ],
-}
-<span class="boring">}</span></code></pre></pre>
+}</code></pre>
 <p><strong>Patterns transformed</strong>:</p>
 <ul>
 <li><code>mkdir DIR</code> → <code>mkdir -p DIR</code></li>
@@ -432,9 +431,7 @@ BashStmt::Command {
 </ul>
 <h4 id="23-posix-compliance-transformations"><a class="header" href="#23-posix-compliance-transformations">2.3: POSIX Compliance Transformations</a></h4>
 <p>Convert bash-isms to POSIX:</p>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>// Before: until CONDITION; do BODY; done
+<pre><code class="language-rust ignore">// Before: until CONDITION; do BODY; done
 BashStmt::Until {
     condition: test_expr,
     body: statements,
@@ -446,8 +443,7 @@ BashStmt::While {
         TestExpr::Not(Box::new(test_expr))
     )),
     body: statements,
-}
-<span class="boring">}</span></code></pre></pre>
+}</code></pre>
 <p><strong>Patterns transformed</strong>:</p>
 <ul>
 <li><code>until</code> → <code>while !</code></li>
@@ -472,9 +468,7 @@ rm -f /app/current
 mkdir "$TEMP_DIR"
 </code></pre>
 <p><strong>AST before transformation</strong>:</p>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>vec![
+<pre><code class="language-rust ignore">vec![
     BashStmt::Assignment {
         name: "TEMP_DIR",
         value: BashExpr::Concat(vec![
@@ -486,12 +480,9 @@ mkdir "$TEMP_DIR"
         name: "mkdir",
         args: vec![BashExpr::Variable("TEMP_DIR")],
     },
-]
-<span class="boring">}</span></code></pre></pre>
+]</code></pre>
 <p><strong>Transformation logic</strong>:</p>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>fn remove_random(expr: BashExpr) -&gt; BashExpr {
+<pre><code class="language-rust ignore">fn remove_random(expr: BashExpr) -&gt; BashExpr {
     match expr {
         BashExpr::Variable(ref name) if name == "RANDOM" =&gt; {
             // Replace with deterministic value
@@ -504,12 +495,9 @@ mkdir "$TEMP_DIR"
         }
         _ =&gt; expr,
     }
-}
-<span class="boring">}</span></code></pre></pre>
+}</code></pre>
 <p><strong>AST after transformation</strong>:</p>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>vec![
+<pre><code class="language-rust ignore">vec![
     BashStmt::Assignment {
         name: "TEMP_DIR",
         value: BashExpr::Concat(vec![
@@ -524,8 +512,7 @@ mkdir "$TEMP_DIR"
             BashExpr::Variable("TEMP_DIR"),
         ],
     },
-]
-<span class="boring">}</span></code></pre></pre>
+]</code></pre>
 <p><strong>Output purified shell</strong>:</p>
 <pre><code class="language-bash"><span class="boring">!/bin/sh
 </span>TEMP_DIR="/tmp/build-$(date +%Y%m%d-%H%M%S)"
@@ -538,9 +525,7 @@ mkdir -p "$TEMP_DIR"
 ln -s /app/releases/v1.0.0 /app/current
 </code></pre>
 <p><strong>AST before transformation</strong>:</p>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>vec![
+<pre><code class="language-rust ignore">vec![
     BashStmt::Command {
         name: "rm",
         args: vec![BashExpr::Literal("/app/current")],
@@ -553,12 +538,9 @@ ln -s /app/releases/v1.0.0 /app/current
             BashExpr::Literal("/app/current"),
         ],
     },
-]
-<span class="boring">}</span></code></pre></pre>
+]</code></pre>
 <p><strong>Transformation logic</strong>:</p>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>fn make_idempotent(stmt: BashStmt) -&gt; BashStmt {
+<pre><code class="language-rust ignore">fn make_idempotent(stmt: BashStmt) -&gt; BashStmt {
     match stmt {
         BashStmt::Command { name, mut args, span } =&gt; {
             match name.as_str() {
@@ -586,12 +568,9 @@ ln -s /app/releases/v1.0.0 /app/current
         }
         _ =&gt; stmt,
     }
-}
-<span class="boring">}</span></code></pre></pre>
+}</code></pre>
 <p><strong>AST after transformation</strong>:</p>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>vec![
+<pre><code class="language-rust ignore">vec![
     BashStmt::Command {
         name: "rm",
         args: vec![
@@ -607,8 +586,7 @@ ln -s /app/releases/v1.0.0 /app/current
             BashExpr::Literal("/app/current"),
         ],
     },
-]
-<span class="boring">}</span></code></pre></pre>
+]</code></pre>
 <p><strong>Output purified shell</strong>:</p>
 <pre><code class="language-bash"><span class="boring">!/bin/sh
 </span>rm -f /app/current
@@ -623,9 +601,7 @@ ln -s /app/releases/v1.0.0 /app/current
 done
 </code></pre>
 <p><strong>AST before transformation</strong>:</p>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>BashStmt::Until {
+<pre><code class="language-rust ignore">BashStmt::Until {
     condition: BashExpr::Test(Box::new(
         TestExpr::FileExists(BashExpr::Literal("/tmp/ready"))
     )),
@@ -640,12 +616,9 @@ done
         },
     ],
     span: Span { ... },
-}
-<span class="boring">}</span></code></pre></pre>
+}</code></pre>
 <p><strong>Transformation logic</strong>:</p>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>fn posixify(stmt: BashStmt) -&gt; BashStmt {
+<pre><code class="language-rust ignore">fn posixify(stmt: BashStmt) -&gt; BashStmt {
     match stmt {
         BashStmt::Until { condition, body, span } =&gt; {
             // until COND is equivalent to while ! COND
@@ -662,12 +635,9 @@ done
         }
         _ =&gt; stmt,
     }
-}
-<span class="boring">}</span></code></pre></pre>
+}</code></pre>
 <p><strong>AST after transformation</strong>:</p>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>BashStmt::While {
+<pre><code class="language-rust ignore">BashStmt::While {
     condition: BashExpr::Test(Box::new(
         TestExpr::Not(Box::new(
             TestExpr::FileExists(BashExpr::Literal("/tmp/ready"))
@@ -684,8 +654,7 @@ done
         },
     ],
     span: Span { ... },
-}
-<span class="boring">}</span></code></pre></pre>
+}</code></pre>
 <p><strong>Output purified shell</strong>:</p>
 <pre><code class="language-bash"><span class="boring">!/bin/sh
 </span>while ! [ -f /tmp/ready ]; do
@@ -696,9 +665,7 @@ done
 <h2 id="writing-custom-ast-transformations"><a class="header" href="#writing-custom-ast-transformations">Writing Custom AST Transformations</a></h2>
 <p>You can extend bashrs with custom transformations using the visitor pattern:</p>
 <h3 id="step-1-define-your-transformation"><a class="header" href="#step-1-define-your-transformation">Step 1: Define Your Transformation</a></h3>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use bashrs::bash_parser::ast::{BashStmt, BashExpr, BashAst};
+<pre><code class="language-rust ignore">use bashrs::bash_parser::ast::{BashStmt, BashExpr, BashAst};
 
 /// Custom transformation: Convert all echo commands to printf
 fn echo_to_printf(ast: BashAst) -&gt; BashAst {
@@ -747,12 +714,9 @@ fn transform_stmt(stmt: BashStmt) -&gt; BashStmt {
         // ... handle other statement types
         _ =&gt; stmt,
     }
-}
-<span class="boring">}</span></code></pre></pre>
+}</code></pre>
 <h3 id="step-2-test-your-transformation"><a class="header" href="#step-2-test-your-transformation">Step 2: Test Your Transformation</a></h3>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>#[cfg(test)]
+<pre><code class="language-rust ignore">#[cfg(test)]
 mod tests {
     use super::*;
     use bashrs::bash_parser::Parser;
@@ -806,10 +770,9 @@ greet() {
             _ =&gt; panic!("Expected Function"),
         }
     }
-}
-<span class="boring">}</span></code></pre></pre>
+}</code></pre>
 <h3 id="step-3-integrate-with-bashrs-pipeline"><a class="header" href="#step-3-integrate-with-bashrs-pipeline">Step 3: Integrate with bashrs Pipeline</a></h3>
-<pre><pre class="playground"><code class="language-rust">use bashrs::bash_parser::Parser;
+<pre><code class="language-rust ignore">use bashrs::bash_parser::Parser;
 use bashrs::bash_transpiler::codegen::BashCodegen;
 
 fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
@@ -827,14 +790,12 @@ fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
 
     println!("{}", output);
     Ok(())
-}</code></pre></pre>
+}</code></pre>
 <h2 id="testing-transformations"><a class="header" href="#testing-transformations">Testing Transformations</a></h2>
 <p>bashrs uses EXTREME TDD methodology for transformation testing:</p>
 <h3 id="unit-tests"><a class="header" href="#unit-tests">Unit Tests</a></h3>
 <p>Test individual transformation rules:</p>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>#[test]
+<pre><code class="language-rust ignore">#[test]
 fn test_random_variable_removal() {
     let expr = BashExpr::Variable("RANDOM".to_string());
     let transformed = remove_random(expr);
@@ -845,13 +806,10 @@ fn test_random_variable_removal() {
         }
         _ =&gt; panic!("Expected Literal after transformation"),
     }
-}
-<span class="boring">}</span></code></pre></pre>
+}</code></pre>
 <h3 id="integration-tests"><a class="header" href="#integration-tests">Integration Tests</a></h3>
 <p>Test complete transformation pipeline:</p>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>#[test]
+<pre><code class="language-rust ignore">#[test]
 fn test_full_purification_pipeline() {
     let input = r#"
 #!/bin/bash
@@ -884,13 +842,10 @@ ln -s /tmp/session-$SESSION_ID /tmp/current
     let result = shellcheck.wait_with_output().unwrap();
     assert!(result.status.success(), "Shellcheck failed: {}",
         String::from_utf8_lossy(&amp;result.stderr));
-}
-<span class="boring">}</span></code></pre></pre>
+}</code></pre>
 <h3 id="property-tests"><a class="header" href="#property-tests">Property Tests</a></h3>
 <p>Test transformation invariants:</p>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use proptest::prelude::*;
+<pre><code class="language-rust ignore">use proptest::prelude::*;
 
 proptest! {
     #[test]
@@ -911,14 +866,11 @@ proptest! {
         // Purification must not change behavior
         assert_eq!(original_semantics, purified_semantics);
     }
-}
-<span class="boring">}</span></code></pre></pre>
+}</code></pre>
 <h2 id="best-practices"><a class="header" href="#best-practices">Best Practices</a></h2>
 <h3 id="1-preserve-semantics"><a class="header" href="#1-preserve-semantics">1. Preserve Semantics</a></h3>
 <p><strong>Always</strong> verify that transformations preserve the original script's behavior:</p>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>// ❌ BAD: Changes behavior
+<pre><code class="language-rust ignore">// ❌ BAD: Changes behavior
 fn bad_transform(cmd: &amp;str) -&gt; &amp;str {
     match cmd {
         "rm" =&gt; "echo",  // Changes behavior!
@@ -938,13 +890,10 @@ fn good_transform(cmd: &amp;str, args: Vec&lt;String&gt;) -&gt; (String, Vec&lt;
         }
         _ =&gt; (cmd.to_string(), args),
     }
-}
-<span class="boring">}</span></code></pre></pre>
+}</code></pre>
 <h3 id="2-handle-edge-cases"><a class="header" href="#2-handle-edge-cases">2. Handle Edge Cases</a></h3>
 <p>Consider all possible AST node variations:</p>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>fn transform_expr(expr: BashExpr) -&gt; BashExpr {
+<pre><code class="language-rust ignore">fn transform_expr(expr: BashExpr) -&gt; BashExpr {
     match expr {
         // Handle all variants
         BashExpr::Literal(s) =&gt; BashExpr::Literal(s),
@@ -964,12 +913,9 @@ fn good_transform(cmd: &amp;str, args: Vec&lt;String&gt;) -&gt; (String, Vec&lt;
         // ... handle ALL variants, not just common ones
         _ =&gt; expr,
     }
-}
-<span class="boring">}</span></code></pre></pre>
+}</code></pre>
 <h3 id="3-use-span-information-for-error-reporting"><a class="header" href="#3-use-span-information-for-error-reporting">3. Use Span Information for Error Reporting</a></h3>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>fn validate_transformation(
+<pre><code class="language-rust ignore">fn validate_transformation(
     stmt: &amp;BashStmt,
     span: Span,
 ) -&gt; Result&lt;(), TransformError&gt; {
@@ -984,25 +930,19 @@ fn good_transform(cmd: &amp;str, args: Vec&lt;String&gt;) -&gt; (String, Vec&lt;
         }
         _ =&gt; Ok(()),
     }
-}
-<span class="boring">}</span></code></pre></pre>
+}</code></pre>
 <h3 id="4-compose-transformations"><a class="header" href="#4-compose-transformations">4. Compose Transformations</a></h3>
 <p>Apply multiple transformations in order:</p>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>fn purify_ast(ast: BashAst) -&gt; Result&lt;BashAst, PurifyError&gt; {
+<pre><code class="language-rust ignore">fn purify_ast(ast: BashAst) -&gt; Result&lt;BashAst, PurifyError&gt; {
     ast
         .transform(remove_nondeterminism)?   // Step 1: Determinism
         .transform(make_idempotent)?         // Step 2: Idempotency
         .transform(posixify)?                // Step 3: POSIX compliance
         .transform(quote_variables)?         // Step 4: Safety
-}
-<span class="boring">}</span></code></pre></pre>
+}</code></pre>
 <h3 id="5-test-with-real-scripts"><a class="header" href="#5-test-with-real-scripts">5. Test with Real Scripts</a></h3>
 <p>Validate against actual bash scripts from production:</p>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>#[test]
+<pre><code class="language-rust ignore">#[test]
 fn test_real_world_deployment_script() {
     let input = std::fs::read_to_string("tests/fixtures/deploy.sh")
         .expect("Failed to read test fixture");
@@ -1017,8 +957,7 @@ fn test_real_world_deployment_script() {
         execute_in_docker("bash", &amp;input),
         execute_in_docker("sh", &amp;purified),
     );
-}
-<span class="boring">}</span></code></pre></pre>
+}</code></pre>
 <h2 id="summary"><a class="header" href="#summary">Summary</a></h2>
 <p>AST-based transformations are the foundation of bashrs purification:</p>
 <ol>
@@ -1073,8 +1012,8 @@ fn test_real_world_deployment_script() {
         </script>
 
         <script src="../ace.js"></script>
-        <script src="../editor.js"></script>
         <script src="../mode-rust.js"></script>
+        <script src="../editor.js"></script>
         <script src="../theme-dawn.js"></script>
         <script src="../theme-tomorrow_night.js"></script>
 
@@ -1087,6 +1026,7 @@ fn test_real_world_deployment_script() {
         <script src="../book.js"></script>
 
         <!-- Custom JS scripts -->
+
 
 
     </div>

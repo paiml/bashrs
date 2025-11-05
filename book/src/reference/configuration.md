@@ -188,7 +188,7 @@ emit_proof = true  # Emit formal proofs for critical scripts
 ```
 
 **Proof Output:**
-```
+```text
 $ bashrs purify --emit-proof deploy.sh
 Verification Proof:
   Determinism: PROVEN

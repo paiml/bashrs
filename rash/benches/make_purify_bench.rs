@@ -4,7 +4,9 @@
 // Target: <100ms for typical Makefile purification
 // Memory: <10MB for purification process
 
-use bashrs::make_parser::{parser::parse_makefile, purify::purify_makefile, semantic::analyze};
+use bashrs::make_parser::parser::parse_makefile;
+use bashrs::make_parser::purify::purify_makefile;
+use bashrs::make_parser::semantic::analyze_makefile;
 use criterion::{criterion_group, criterion_main, BenchmarkId, Criterion, Throughput};
 use std::time::Duration;
 
@@ -174,7 +176,7 @@ fn benchmark_purify_simple(c: &mut Criterion) {
         |b, makefile| {
             b.iter(|| {
                 let ast = parse_makefile(makefile).unwrap();
-                let _issues = analyze(&ast);
+                let _issues = analyze_makefile(&ast);
                 purify_makefile(&ast)
             })
         },
@@ -187,7 +189,7 @@ fn benchmark_purify_simple(c: &mut Criterion) {
         |b, makefile| {
             b.iter(|| {
                 let ast = parse_makefile(makefile).unwrap();
-                let _issues = analyze(&ast);
+                let _issues = analyze_makefile(&ast);
                 purify_makefile(&ast)
             })
         },
@@ -200,7 +202,7 @@ fn benchmark_purify_simple(c: &mut Criterion) {
         |b, makefile| {
             b.iter(|| {
                 let ast = parse_makefile(makefile).unwrap();
-                let _issues = analyze(&ast);
+                let _issues = analyze_makefile(&ast);
                 purify_makefile(&ast)
             })
         },
@@ -221,7 +223,7 @@ fn benchmark_purify_complex(c: &mut Criterion) {
         |b, makefile| {
             b.iter(|| {
                 let ast = parse_makefile(makefile).unwrap();
-                let _issues = analyze(&ast);
+                let _issues = analyze_makefile(&ast);
                 purify_makefile(&ast)
             })
         },
@@ -234,7 +236,7 @@ fn benchmark_purify_complex(c: &mut Criterion) {
         |b, makefile| {
             b.iter(|| {
                 let ast = parse_makefile(makefile).unwrap();
-                let _issues = analyze(&ast);
+                let _issues = analyze_makefile(&ast);
                 purify_makefile(&ast)
             })
         },
@@ -258,12 +260,12 @@ fn benchmark_purify_end_to_end(c: &mut Criterion) {
                 let ast = parse_makefile(makefile).unwrap();
 
                 // Step 2: Analyze
-                let issues = analyze(&ast);
+                let issues = analyze_makefile(&ast);
 
                 // Step 3: Purify
                 let purified = purify_makefile(&ast);
 
-                (issues.len(), purified.len())
+                (issues.len(), purified.report.len())
             })
         },
     );
@@ -284,19 +286,19 @@ fn benchmark_analysis_only(c: &mut Criterion) {
     group.bench_with_input(
         BenchmarkId::new("analyze", "timestamp"),
         &timestamp_ast,
-        |b, ast| b.iter(|| analyze(ast)),
+        |b, ast| b.iter(|| analyze_makefile(ast)),
     );
 
     group.bench_with_input(
         BenchmarkId::new("analyze", "complex"),
         &complex_ast,
-        |b, ast| b.iter(|| analyze(ast)),
+        |b, ast| b.iter(|| analyze_makefile(ast)),
     );
 
     group.bench_with_input(
         BenchmarkId::new("analyze", "production"),
         &production_ast,
-        |b, ast| b.iter(|| analyze(ast)),
+        |b, ast| b.iter(|| analyze_makefile(ast)),
     );
 
     group.finish();
@@ -317,7 +319,7 @@ fn benchmark_purify_scalability(c: &mut Criterion) {
             |b, mf| {
                 b.iter(|| {
                     let ast = parse_makefile(mf).unwrap();
-                    let _issues = analyze(&ast);
+                    let _issues = analyze_makefile(&ast);
                     purify_makefile(&ast)
                 })
             },
@@ -341,7 +343,7 @@ fn benchmark_memory_usage(c: &mut Criterion) {
     group.bench_function("memory_issues", |b| {
         b.iter(|| {
             let ast = parse_makefile(COMPLEX_MAKEFILE_TO_PURIFY).unwrap();
-            let issues = analyze(&ast);
+            let issues = analyze_makefile(&ast);
             std::mem::size_of_val(&issues)
         })
     });
@@ -350,7 +352,7 @@ fn benchmark_memory_usage(c: &mut Criterion) {
         b.iter(|| {
             let ast = parse_makefile(COMPLEX_MAKEFILE_TO_PURIFY).unwrap();
             let purified = purify_makefile(&ast);
-            purified.len()
+            purified.report.len()
         })
     });
 
@@ -384,7 +386,7 @@ fn generate_makefile_with_issues(num_issues: usize) -> String {
         let operation = match i % 3 {
             0 => format!("mkdir /tmp/build-$(shell date +%s)-{}", i),
             1 => format!("echo $$ > /tmp/pid-{}.txt", i),
-            _ => format!("tar -czf release-$(shell date +%s).tar.gz src/"),
+            _ => "tar -czf release-$(shell date +%s).tar.gz src/".to_string(),
         };
 
         makefile.push_str(&format!("target{}:\n\t{}\n\n", i, operation));

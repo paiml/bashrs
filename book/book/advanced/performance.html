@@ -24,28 +24,41 @@
         <link rel="stylesheet" href="../fonts/fonts.css">
 
         <!-- Highlight.js Stylesheets -->
-        <link rel="stylesheet" href="../highlight.css">
-        <link rel="stylesheet" href="../tomorrow-night.css">
-        <link rel="stylesheet" href="../ayu-highlight.css">
+        <link rel="stylesheet" id="highlight-css" href="../highlight.css">
+        <link rel="stylesheet" id="tomorrow-night-css" href="../tomorrow-night.css">
+        <link rel="stylesheet" id="ayu-highlight-css" href="../ayu-highlight.css">
 
         <!-- Custom theme stylesheets -->
 
 
-        <!-- Provide site root to javascript -->
+        <!-- Provide site root and default themes to javascript -->
         <script>
-            var path_to_root = "../";
-            var default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "navy" : "rust";
+            const path_to_root = "../";
+            const default_light_theme = "rust";
+            const default_dark_theme = "navy";
+            window.path_to_searchindex_js = "../searchindex.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc.js"></script>
     </head>
     <body>
+    <div id="mdbook-help-container">
+        <div id="mdbook-help-popup">
+            <h2 class="mdbook-help-title">Keyboard shortcuts</h2>
+            <div>
+                <p>Press <kbd>←</kbd> or <kbd>→</kbd> to navigate between chapters</p>
+                <p>Press <kbd>S</kbd> or <kbd>/</kbd> to search in the book</p>
+                <p>Press <kbd>?</kbd> to show this help</p>
+                <p>Press <kbd>Esc</kbd> to hide this help</p>
+            </div>
+        </div>
+    </div>
     <div id="body-container">
         <!-- Work around some values being stored in localStorage wrapped in quotes -->
         <script>
             try {
-                var theme = localStorage.getItem('mdbook-theme');
-                var sidebar = localStorage.getItem('mdbook-sidebar');
+                let theme = localStorage.getItem('mdbook-theme');
+                let sidebar = localStorage.getItem('mdbook-sidebar');
 
                 if (theme.startsWith('"') && theme.endsWith('"')) {
                     localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
@@ -59,7 +72,8 @@
 
         <!-- Set the theme before any content is loaded, prevents flash -->
         <script>
-            var theme;
+            const default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? default_dark_theme : default_light_theme;
+            let theme;
             try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
             if (theme === null || theme === undefined) { theme = default_theme; }
             const html = document.documentElement;
@@ -72,17 +86,20 @@
 
         <!-- Hide / unhide sidebar before it is displayed -->
         <script>
-            var sidebar = null;
-            var sidebar_toggle = document.getElementById("sidebar-toggle-anchor");
+            let sidebar = null;
+            const sidebar_toggle = document.getElementById("sidebar-toggle-anchor");
             if (document.body.clientWidth >= 1080) {
                 try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
                 sidebar = sidebar || 'visible';
             } else {
                 sidebar = 'hidden';
+                sidebar_toggle.checked = false;
             }
-            sidebar_toggle.checked = sidebar === 'visible';
-            html.classList.remove('sidebar-visible');
-            html.classList.add("sidebar-" + sidebar);
+            if (sidebar === 'visible') {
+                sidebar_toggle.checked = true;
+            } else {
+                html.classList.remove('sidebar-visible');
+            }
         </script>
 
         <nav id="sidebar" class="sidebar" aria-label="Table of contents">
@@ -109,13 +126,14 @@
                             <i class="fa fa-paint-brush"></i>
                         </button>
                         <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="default_theme">Auto</button></li>
                             <li role="none"><button role="menuitem" class="theme" id="light">Light</button></li>
                             <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
                             <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
                             <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
                             <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
                         </ul>
-                        <button id="search-toggle" class="icon-button" type="button" title="Search. (Shortkey: s)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="S" aria-controls="searchbar">
+                        <button id="search-toggle" class="icon-button" type="button" title="Search (`/`)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="/ s" aria-controls="searchbar">
                             <i class="fa fa-search"></i>
                         </button>
                     </div>
@@ -129,7 +147,7 @@
                         <a href="https://github.com/paiml/bashrs" title="Git repository" aria-label="Git repository">
                             <i id="git-repository-button" class="fa fa-github"></i>
                         </a>
-                        <a href="https://github.com/paiml/bashrs/edit/main/book/src/advanced/performance.md" title="Suggest an edit" aria-label="Suggest an edit">
+                        <a href="https://github.com/paiml/bashrs/edit/main/book/src/advanced/performance.md" title="Suggest an edit" aria-label="Suggest an edit" rel="edit">
                             <i id="git-edit-button" class="fa fa-edit"></i>
                         </a>
 
@@ -138,7 +156,12 @@
 
                 <div id="search-wrapper" class="hidden">
                     <form id="searchbar-outer" class="searchbar-outer">
-                        <input type="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                        <div class="search-wrapper">
+                            <input type="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                            <div class="spinner-wrapper">
+                                <i class="fa fa-spinner fa-spin"></i>
+                            </div>
+                        </div>
                     </form>
                     <div id="searchresults-outer" class="searchresults-outer hidden">
                         <div id="searchresults-header" class="searchresults-header"></div>
@@ -214,7 +237,7 @@ done' &gt; large_script.sh
 <li>Look for wide bars = hot functions</li>
 </ul>
 <p><strong>Example findings</strong> from bashrs profiling:</p>
-<pre><code>┌─────────────────────────────────────────┐
+<pre><code class="language-text">┌─────────────────────────────────────────┐
 │ parse_bash (60% of time)                │ ← Hot path!
 │  ├─ tokenize (25%)                     │
 │  ├─ build_ast (20%)                    │
@@ -264,9 +287,7 @@ less memory_report.txt
 </ul>
 <h3 id="benchmarking-with-criterionrs"><a class="header" href="#benchmarking-with-criterionrs">Benchmarking with criterion.rs</a></h3>
 <p>Microbenchmarks track performance over time:</p>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>// benches/parse_benchmark.rs
+<pre><code class="language-rust ignore">// benches/parse_benchmark.rs
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
 use bashrs::bash_parser::Parser;
 
@@ -311,8 +332,7 @@ fn benchmark_parse_large(c: &amp;mut Criterion) {
 }
 
 criterion_group!(benches, benchmark_parse_small, benchmark_parse_medium, benchmark_parse_large);
-criterion_main!(benches);
-<span class="boring">}</span></code></pre></pre>
+criterion_main!(benches);</code></pre>
 <p><strong>Run benchmarks</strong>:</p>
 <pre><code class="language-bash">cargo bench
 
@@ -335,9 +355,7 @@ criterion_main!(benches);
 <h3 id="1-parser-caching"><a class="header" href="#1-parser-caching">1. Parser Caching</a></h3>
 <p><strong>Problem</strong>: Reparsing same scripts is wasteful.</p>
 <p><strong>Solution</strong>: Cache parsed ASTs keyed by script hash.</p>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use std::collections::HashMap;
+<pre><code class="language-rust ignore">use std::collections::HashMap;
 use std::hash::{Hash, Hasher};
 use std::collections::hash_map::DefaultHasher;
 
@@ -383,8 +401,7 @@ impl CachingParser {
     pub fn stats(&amp;self) -&gt; (usize, usize) {
         (self.cache_hits, self.cache_misses)
     }
-}
-<span class="boring">}</span></code></pre></pre>
+}</code></pre>
 <p><strong>Performance impact</strong>:</p>
 <pre><code>Without cache: 45ms per parse
 With cache (hit): 0.1ms (450× faster!)
@@ -399,9 +416,7 @@ With cache (miss): 46ms (1ms overhead from hashing)
 <h3 id="2-lazy-ast-traversal"><a class="header" href="#2-lazy-ast-traversal">2. Lazy AST Traversal</a></h3>
 <p><strong>Problem</strong>: Building full AST upfront is expensive.</p>
 <p><strong>Solution</strong>: Parse incrementally, only build nodes when needed.</p>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>pub struct LazyAst {
+<pre><code class="language-rust ignore">pub struct LazyAst {
     source: String,
     statements: Option&lt;Vec&lt;BashStmt&gt;&gt;,  // Parsed on demand
 }
@@ -433,8 +448,7 @@ impl LazyAst {
         // Fast path: simple string search
         self.source.contains("eval")
     }
-}
-<span class="boring">}</span></code></pre></pre>
+}</code></pre>
 <p><strong>Performance impact</strong>:</p>
 <pre><code>Full parse:  45ms
 line_count:   1ms (45× faster)
@@ -449,9 +463,7 @@ has_eval:     2ms (22× faster)
 <h3 id="3-string-interning"><a class="header" href="#3-string-interning">3. String Interning</a></h3>
 <p><strong>Problem</strong>: Repeated strings (variable names, commands) waste memory.</p>
 <p><strong>Solution</strong>: Intern strings, store references instead.</p>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use string_interner::{StringInterner, Symbol};
+<pre><code class="language-rust ignore">use string_interner::{StringInterner, Symbol};
 
 pub struct InternedParser {
     interner: StringInterner,
@@ -490,8 +502,7 @@ impl InternedParser {
     pub fn resolve(&amp;self, symbol: Symbol) -&gt; &amp;str {
         self.interner.resolve(symbol).unwrap()
     }
-}
-<span class="boring">}</span></code></pre></pre>
+}</code></pre>
 <p><strong>Memory impact</strong>:</p>
 <pre><code>Without interning:  echo appears 1000× = 4KB (4 bytes × 1000)
 With interning:     echo stored once = 4 bytes + 1000 refs (8KB total)
@@ -509,9 +520,7 @@ With:    ~100KB (10× reduction)
 <h3 id="4-parallel-linting"><a class="header" href="#4-parallel-linting">4. Parallel Linting</a></h3>
 <p><strong>Problem</strong>: Linting many rules on large files is slow.</p>
 <p><strong>Solution</strong>: Run rules in parallel using rayon.</p>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use rayon::prelude::*;
+<pre><code class="language-rust ignore">use rayon::prelude::*;
 
 pub fn lint_parallel(source: &amp;str, rules: &amp;[LintRule]) -&gt; LintResult {
     // Run all rules in parallel
@@ -522,8 +531,7 @@ pub fn lint_parallel(source: &amp;str, rules: &amp;[LintRule]) -&gt; LintResult 
         .collect();
 
     LintResult { diagnostics }
-}
-<span class="boring">}</span></code></pre></pre>
+}</code></pre>
 <p><strong>Performance impact</strong>:</p>
 <pre><code>Sequential: 8 rules × 50ms each = 400ms
 Parallel:   max(50ms) = 50ms (8× faster on 8 cores)
@@ -537,9 +545,7 @@ Parallel:   max(50ms) = 50ms (8× faster on 8 cores)
 <h3 id="5-compile-time-optimization"><a class="header" href="#5-compile-time-optimization">5. Compile-Time Optimization</a></h3>
 <p><strong>Problem</strong>: Dynamic dispatch is slower than static.</p>
 <p><strong>Solution</strong>: Use const generics and monomorphization.</p>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>// ❌ Slow: Dynamic dispatch
+<pre><code class="language-rust ignore">// ❌ Slow: Dynamic dispatch
 pub trait LintRule {
     fn check(&amp;self, source: &amp;str) -&gt; LintResult;
 }
@@ -565,8 +571,7 @@ pub fn lint_const&lt;const N: usize&gt;(
     rules.into_iter()
         .flat_map(|rule| rule.check(source).diagnostics)
         .collect()
-}
-<span class="boring">}</span></code></pre></pre>
+}</code></pre>
 <p><strong>Performance impact</strong>:</p>
 <pre><code>Dynamic dispatch:   50ms
 Static dispatch:    45ms (10% faster)
@@ -575,9 +580,7 @@ Const generics:     42ms (16% faster, plus better inlining)
 <h2 id="real-world-bashrs-optimizations"><a class="header" href="#real-world-bashrs-optimizations">Real-World bashrs Optimizations</a></h2>
 <h3 id="optimization-1-tokenizer-speedup-25-faster"><a class="header" href="#optimization-1-tokenizer-speedup-25-faster">Optimization 1: Tokenizer Speedup (2.5× faster)</a></h3>
 <p><strong>Before</strong> (naive character-by-character):</p>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>fn tokenize(source: &amp;str) -&gt; Vec&lt;Token&gt; {
+<pre><code class="language-rust ignore">fn tokenize(source: &amp;str) -&gt; Vec&lt;Token&gt; {
     let mut tokens = Vec::new();
     let mut i = 0;
     let chars: Vec&lt;char&gt; = source.chars().collect();
@@ -599,13 +602,10 @@ Const generics:     42ms (16% faster, plus better inlining)
     }
 
     tokens
-}
-<span class="boring">}</span></code></pre></pre>
+}</code></pre>
 <p><strong>Performance</strong>: 45ms for 10KB script</p>
 <p><strong>After</strong> (byte-level with memchr):</p>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use memchr::memchr;
+<pre><code class="language-rust ignore">use memchr::memchr;
 
 fn tokenize(source: &amp;str) -&gt; Vec&lt;Token&gt; {
     let mut tokens = Vec::new();
@@ -630,8 +630,7 @@ fn tokenize(source: &amp;str) -&gt; Vec&lt;Token&gt; {
     }
 
     tokens
-}
-<span class="boring">}</span></code></pre></pre>
+}</code></pre>
 <p><strong>Performance</strong>: 18ms for 10KB script (2.5× faster)</p>
 <p><strong>Key improvements</strong>:</p>
 <ul>
@@ -641,9 +640,7 @@ fn tokenize(source: &amp;str) -&gt; Vec&lt;Token&gt; {
 </ul>
 <h3 id="optimization-2-ast-cloning-reduction-10-faster"><a class="header" href="#optimization-2-ast-cloning-reduction-10-faster">Optimization 2: AST Cloning Reduction (10× faster)</a></h3>
 <p><strong>Before</strong> (cloning everywhere):</p>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>pub fn purify(ast: BashAst) -&gt; BashAst {
+<pre><code class="language-rust ignore">pub fn purify(ast: BashAst) -&gt; BashAst {
     let mut purified = ast.clone();  // Expensive!
 
     purified.statements = purified.statements.into_iter()
@@ -651,12 +648,9 @@ fn tokenize(source: &amp;str) -&gt; Vec&lt;Token&gt; {
         .collect();
 
     purified
-}
-<span class="boring">}</span></code></pre></pre>
+}</code></pre>
 <p><strong>After</strong> (move semantics):</p>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>pub fn purify(ast: BashAst) -&gt; BashAst {
+<pre><code class="language-rust ignore">pub fn purify(ast: BashAst) -&gt; BashAst {
     BashAst {
         statements: ast.statements.into_iter()
             .map(transform_stmt)  // No clone, moves ownership
@@ -677,17 +671,14 @@ fn transform_stmt(stmt: BashStmt) -&gt; BashStmt {
         }
         // ... other cases
     }
-}
-<span class="boring">}</span></code></pre></pre>
+}</code></pre>
 <p><strong>Performance</strong>:</p>
 <pre><code>Before: 200ms (half the time spent cloning)
 After:  20ms (10× faster)
 </code></pre>
 <h3 id="optimization-3-diagnostic-allocation-3-faster"><a class="header" href="#optimization-3-diagnostic-allocation-3-faster">Optimization 3: Diagnostic Allocation (3× faster)</a></h3>
 <p><strong>Before</strong> (allocating per-line):</p>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>pub fn lint(source: &amp;str) -&gt; LintResult {
+<pre><code class="language-rust ignore">pub fn lint(source: &amp;str) -&gt; LintResult {
     let mut result = LintResult::new();
 
     for line in source.lines() {
@@ -698,12 +689,9 @@ After:  20ms (10× faster)
     }
 
     result
-}
-<span class="boring">}</span></code></pre></pre>
+}</code></pre>
 <p><strong>After</strong> (pre-allocated buffers):</p>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>pub fn lint(source: &amp;str) -&gt; LintResult {
+<pre><code class="language-rust ignore">pub fn lint(source: &amp;str) -&gt; LintResult {
     let line_count = source.lines().count();
     let mut diagnostics = Vec::with_capacity(line_count * ALL_RULES.len() / 10);
 
@@ -719,8 +707,7 @@ After:  20ms (10× faster)
 // Rule trait updated
 pub trait LintRule {
     fn check_into(&amp;self, source: &amp;str, out: &amp;mut Vec&lt;Diagnostic&gt;);
-}
-<span class="boring">}</span></code></pre></pre>
+}</code></pre>
 <p><strong>Performance</strong>:</p>
 <pre><code>Before: 60ms (lots of small allocations)
 After:  20ms (3× faster, single allocation)
@@ -767,9 +754,7 @@ jobs:
           path: target/criterion/
 </code></pre>
 <p><strong>Set performance budgets</strong>:</p>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>// tests/performance_budget.rs
+<pre><code class="language-rust ignore">// tests/performance_budget.rs
 use bashrs::bash_parser::Parser;
 use std::time::Instant;
 
@@ -805,13 +790,10 @@ fn test_purify_performance_budget() {
         "Purify took {}ms, budget is 200ms",
         duration.as_millis()
     );
-}
-<span class="boring">}</span></code></pre></pre>
+}</code></pre>
 <h2 id="benchmarking-purification-performance"><a class="header" href="#benchmarking-purification-performance">Benchmarking Purification Performance</a></h2>
 <p>Real-world performance on actual scripts:</p>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>// benches/purify_benchmark.rs
+<pre><code class="language-rust ignore">// benches/purify_benchmark.rs
 use criterion::{black_box, criterion_group, criterion_main, Criterion, BenchmarkId};
 use bashrs::{bash_parser::Parser, purify};
 
@@ -851,10 +833,9 @@ fn generate_script(size_kb: usize) -&gt; String {
 }
 
 criterion_group!(benches, benchmark_purify_by_size);
-criterion_main!(benches);
-<span class="boring">}</span></code></pre></pre>
+criterion_main!(benches);</code></pre>
 <p><strong>Results</strong>:</p>
-<pre><code>purify_by_size/1KB     time: [18.234 ms 18.456 ms 18.678 ms]
+<pre><code class="language-text">purify_by_size/1KB     time: [18.234 ms 18.456 ms 18.678 ms]
 purify_by_size/10KB    time: [45.123 ms 45.567 ms 46.012 ms]
 purify_by_size/100KB   time: [178.23 ms 180.45 ms 182.67 ms]
 purify_by_size/1000KB  time: [1.8345 s 1.8567 s 1.8789 s]
@@ -867,9 +848,7 @@ purify_by_size/1000KB  time: [1.8345 s 1.8567 s 1.8789 s]
 </ul>
 <h2 id="memory-profiling"><a class="header" href="#memory-profiling">Memory Profiling</a></h2>
 <p>Track memory usage across script sizes:</p>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>// benches/memory_benchmark.rs
+<pre><code class="language-rust ignore">// benches/memory_benchmark.rs
 use bashrs::bash_parser::Parser;
 
 fn measure_memory(script: &amp;str) -&gt; usize {
@@ -898,10 +877,9 @@ fn test_memory_scaling() {
             memory_mb, budget_mb
         );
     }
-}
-<span class="boring">}</span></code></pre></pre>
+}</code></pre>
 <p><strong>Results</strong>:</p>
-<pre><code>1KB script uses 0.08MB memory    (80× overhead, acceptable for small files)
+<pre><code class="language-text">1KB script uses 0.08MB memory    (80× overhead, acceptable for small files)
 10KB script uses 0.65MB memory   (65× overhead, good)
 100KB script uses 5.2MB memory   (52× overhead, excellent)
 1000KB script uses 48MB memory   (48× overhead, excellent scaling)
@@ -916,13 +894,10 @@ fn test_memory_scaling() {
 </span></code></pre>
 <h3 id="2-set-performance-budgets"><a class="header" href="#2-set-performance-budgets">2. Set Performance Budgets</a></h3>
 <p>Define acceptable performance upfront:</p>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>// Performance requirements
+<pre><code class="language-rust ignore">// Performance requirements
 const PARSE_BUDGET_MS_PER_KB: u64 = 1;
 const PURIFY_BUDGET_MS_PER_KB: u64 = 2;
-const MEMORY_BUDGET_MB_PER_KB: f64 = 0.01;
-<span class="boring">}</span></code></pre></pre>
+const MEMORY_BUDGET_MB_PER_KB: f64 = 0.01;</code></pre>
 <h3 id="3-benchmark-regularly"><a class="header" href="#3-benchmark-regularly">3. Benchmark Regularly</a></h3>
 <p>Track performance over time:</p>
 <pre><code class="language-bash"><span class="boring"> Run benchmarks on every PR
@@ -934,9 +909,7 @@ git checkout feature &amp;&amp; cargo bench -- --baseline main
 </code></pre>
 <h3 id="4-optimize-the-common-case"><a class="header" href="#4-optimize-the-common-case">4. Optimize the Common Case</a></h3>
 <p>Make typical workflows fast:</p>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>// Optimize for: small scripts, frequent operations
+<pre><code class="language-rust ignore">// Optimize for: small scripts, frequent operations
 // Don't optimize: edge cases, rare operations
 
 // ✅ Fast path for small scripts
@@ -945,13 +918,10 @@ if source.len() &lt; 1024 {
 }
 
 // Regular path for larger scripts
-slow_but_thorough_parse(source)
-<span class="boring">}</span></code></pre></pre>
+slow_but_thorough_parse(source)</code></pre>
 <h3 id="5-trade-memory-for-speed-carefully"><a class="header" href="#5-trade-memory-for-speed-carefully">5. Trade Memory for Speed (Carefully)</a></h3>
 <p>Caching trades memory for speed:</p>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>// ✅ Good: Bounded cache
+<pre><code class="language-rust ignore">// ✅ Good: Bounded cache
 struct LRUCache {
     cache: HashMap&lt;u64, BashAst&gt;,
     max_size: usize,
@@ -960,13 +930,10 @@ struct LRUCache {
 // ❌ Bad: Unbounded cache (memory leak!)
 struct UnboundedCache {
     cache: HashMap&lt;u64, BashAst&gt;,  // Grows forever
-}
-<span class="boring">}</span></code></pre></pre>
+}</code></pre>
 <h3 id="6-document-performance-characteristics"><a class="header" href="#6-document-performance-characteristics">6. Document Performance Characteristics</a></h3>
 <p>Help users understand costs:</p>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>/// Parse a bash script to AST
+<pre><code class="language-rust ignore">/// Parse a bash script to AST
 ///
 /// # Performance
 ///
@@ -983,8 +950,7 @@ struct UnboundedCache {
 /// ```
 pub fn parse(source: &amp;str) -&gt; Result&lt;BashAst, ParseError&gt; {
     // ...
-}
-<span class="boring">}</span></code></pre></pre>
+}</code></pre>
 <h2 id="summary"><a class="header" href="#summary">Summary</a></h2>
 <p>bashrs performance optimization follows these principles:</p>
 <p><strong>Performance Goals</strong>:</p>
@@ -1061,8 +1027,8 @@ pub fn parse(source: &amp;str) -&gt; Result&lt;BashAst, ParseError&gt; {
         </script>
 
         <script src="../ace.js"></script>
-        <script src="../editor.js"></script>
         <script src="../mode-rust.js"></script>
+        <script src="../editor.js"></script>
         <script src="../theme-dawn.js"></script>
         <script src="../theme-tomorrow_night.js"></script>
 
@@ -1075,6 +1041,7 @@ pub fn parse(source: &amp;str) -&gt; Result&lt;BashAst, ParseError&gt; {
         <script src="../book.js"></script>
 
         <!-- Custom JS scripts -->
+
 
 
     </div>

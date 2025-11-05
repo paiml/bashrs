@@ -101,8 +101,9 @@ trap "cleanup" EXIT
     fn test_sc2165_trap_in_subshell_ok() {
         let code = r#"( trap "cleanup" EXIT; command )"#;
         let result = check(code);
+        // Test passes if check runs without panic
         // Still detects subshell, but message suggests this fix
-        assert!(result.diagnostics.len() >= 0);
+        let _ = result.diagnostics.len(); // Verify result exists
     }
 
     #[test]

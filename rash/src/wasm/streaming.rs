@@ -38,7 +38,6 @@
 
 use js_sys::Function;
 use wasm_bindgen::prelude::*;
-use wasm_bindgen::JsCast;
 
 /// Callback type for streaming output
 ///

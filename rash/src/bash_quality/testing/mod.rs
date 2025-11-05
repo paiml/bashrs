@@ -621,7 +621,7 @@ test_quick() {
         let tests = discover_tests(source).unwrap();
         let report = run_tests(source, &tests).unwrap();
 
-        // Duration should be recorded
-        assert!(report.duration_ms >= 0);
+        // Test passes if duration is recorded (duration_ms is u64, always >= 0)
+        let _ = report.duration_ms;
     }
 }
