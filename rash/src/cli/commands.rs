@@ -724,12 +724,13 @@ fn lint_command(
         write_results(&mut std::io::stdout(), &result, output_format, file_path)
             .map_err(|e| Error::Internal(format!("Failed to write lint results: {e}")))?;
 
-        // Exit with appropriate code
+        // Exit with appropriate code (Issue #6)
+        // Exit 0: No errors (warnings/info OK)
+        // Exit 1: Errors found
         if result.has_errors() {
-            std::process::exit(2);
-        } else if result.has_warnings() {
             std::process::exit(1);
         }
+        // Warnings/info are non-blocking, exit 0
     }
 
     Ok(())
