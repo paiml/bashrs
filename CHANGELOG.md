@@ -7,6 +7,38 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [6.31.1] - 2025-11-05
+
+### Fixed
+
+**Resolved all clippy lint errors** across 23 files (5 categories):
+
+1. **Benchmark errors** (`rash/benches/make_purify_bench.rs`)
+   - Fixed function call `semantic::analyze` → `analyze_makefile` (function was renamed)
+   - Fixed property access on `PurificationResult` (`.len()` → `.transformations_applied`, `.report.len()`)
+
+2. **Logic errors** (`rash/src/repl/purifier.rs`)
+   - Removed tautological assertion `assert!(result.is_clean || !result.is_clean)` (always true)
+
+3. **Absurd comparisons** (15+ occurrences across multiple files)
+   - Fixed `diagnostics.len() >= 0` comparisons (usize is always >= 0)
+   - Fixed `transformations_applied >= 0` comparisons in `make_parser/purify.rs`
+   - Fixed `duration_ms >= 0` comparison in `bash_quality/testing/mod.rs`
+   - Files: `test_issue_005_lint_integration.rs`, `make_parser/purify.rs`, `bash_quality/testing/mod.rs`, `linter/rules/sc2072.rs`, `linter/rules/sc2086.rs`, `linter/rules/sc2165.rs`
+
+4. **Unused imports** (2 files)
+   - Removed unused `Token` import from `bash_parser/tests.rs`
+   - Removed unused AST import from `bash_transpiler/purification_property_tests.rs`
+
+5. **Unused doc comments** (14 files, 100+ occurrences)
+   - Converted `///` to `//` for comments before `proptest!` macros
+   - Doc comments on macro invocations are unsupported by clippy
+   - Fixed in: `repl/*`, `tracing/*`, `wasm/*`, `make_parser/*`, `test_generator/*`
+
+**Impact**: Net reduction of 32 lines (-332 removed, +300 added)
+
+**Status**: ✅ Code compiles successfully, all tests passing, `make lint` passes
+
 ## [6.31.0] - 2025-11-04
 
 ### 📚 MAJOR DOCUMENTATION RELEASE - Book Completion + SEC Batch Testing
