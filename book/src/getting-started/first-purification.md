@@ -79,7 +79,7 @@ bashrs lint deploy.sh
 ```
 
 Output:
-```
+```text
 deploy.sh:5:13: DET001 [Error] Non-deterministic: $RANDOM
 deploy.sh:8:20: DET002 [Error] Non-deterministic: $(date +%s)
 deploy.sh:9:11: DET003 [Error] Non-deterministic: $$
@@ -102,7 +102,7 @@ bashrs purify deploy.sh -o deploy_purified.sh
 ```
 
 Output:
-```
+```text
 Purifying deploy.sh...
 ✓ Removed 3 non-deterministic patterns
 ✓ Fixed 3 idempotency issues
@@ -205,7 +205,7 @@ shellcheck -s sh deploy_purified.sh
 ```
 
 Output:
-```
+```text
 (no output = all checks passed ✓)
 ```
 
@@ -221,7 +221,7 @@ Let's test that the purified script works correctly:
 ```
 
 Output:
-```
+```text
 Starting deployment...
 Session: session-abc123
 Release: release-v1.0.0
@@ -234,7 +234,7 @@ Deployment complete!
 ```
 
 Output:
-```
+```text
 Starting deployment...
 Session: session-abc123
 Release: release-v1.0.0
@@ -254,7 +254,7 @@ Let's verify the behavioral difference:
 ./deploy.sh
 ```
 Output:
-```
+```text
 Starting deployment...
 Session: 12345
 Release: release-1699564800
@@ -267,7 +267,7 @@ Deployment complete!
 ./deploy.sh
 ```
 Output:
-```
+```text
 Starting deployment...
 Session: 67890  ← Different!
 Release: release-1699564801  ← Different!
@@ -285,7 +285,7 @@ rm: cannot remove '/tmp/demo-app/current': No such file or directory
 ./deploy_purified.sh v1.0.0 session-abc123
 ```
 Output:
-```
+```text
 Starting deployment...
 Session: session-abc123
 Release: release-v1.0.0
@@ -297,7 +297,7 @@ Deployment complete!
 ./deploy_purified.sh v1.0.0 session-abc123
 ```
 Output:
-```
+```text
 Starting deployment...
 Session: session-abc123  ← Same
 Release: release-v1.0.0  ← Same
@@ -311,7 +311,7 @@ Deployment complete!
 
 ## Understanding the Purification Formula
 
-```
+```text
 Purification = Determinism + Idempotency + POSIX Compliance
 ```
 

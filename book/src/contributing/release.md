@@ -224,7 +224,7 @@ Increment when you make incompatible API changes:
 - Major workflow changes
 
 **Example**: v1.0.0 → v2.0.0
-```
+```text
 Breaking Changes:
 - Removed deprecated `rash compile` command (use `rash transpile`)
 - Changed CLI: `--output-dir` renamed to `--out-dir`
@@ -246,7 +246,7 @@ Increment when you add functionality in a backward-compatible manner:
 - New features that don't break existing code
 
 **Example**: v2.0.0 → v2.1.0
-```
+```text
 New Features:
 - Added SEC009 rule: Detect unsafe shell redirects
 - New command: `bashrs bench` for performance measurement
@@ -266,7 +266,7 @@ Increment when you make backward-compatible bug fixes:
 - No API changes
 
 **Example**: v2.0.0 → v2.0.1
-```
+```text
 Bug Fixes:
 - Fixed Issue #1: Auto-fix incorrectly handled nested quotes
 - Security: Fixed SEC001 false positive on commented eval
@@ -387,7 +387,7 @@ bashrs --version
    ```
 
 2. **Release without updating CHANGELOG.md**
-   ```
+   ```text
    # Wrong: Empty or outdated CHANGELOG
    # Right: Complete, detailed release notes
    ```
