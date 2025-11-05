@@ -290,7 +290,7 @@ bashrs lint deploy.sh
 ```
 
 Output:
-```
+```text
 deploy.sh:3:1: IDEM001 [Error] Non-idempotent: mkdir without -p flag
 deploy.sh:4:1: IDEM002 [Error] Non-idempotent: rm without -f flag
 deploy.sh:5:1: IDEM003 [Error] Non-idempotent: ln -s without cleanup
