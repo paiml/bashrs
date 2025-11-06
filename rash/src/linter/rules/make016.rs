@@ -31,6 +31,11 @@ pub fn check(source: &str) -> LintResult {
     let mut result = LintResult::new();
 
     for (line_num, line) in source.lines().enumerate() {
+        // Skip comment lines
+        if line.trim_start().starts_with('#') {
+            continue;
+        }
+
         // Skip non-target lines (must contain ':')
         if !is_target_line(line) {
             continue;
@@ -228,6 +233,33 @@ mod tests {
         let makefile = "";
         let result = check(makefile);
 
+        assert_eq!(result.diagnostics.len(), 0);
+    }
+
+    #[test]
+    fn test_MAKE016_no_warning_for_variables_in_comments() {
+        // Comments should be completely ignored, even if they contain $(VAR) patterns
+        let makefile = r#"# MAKE016 (2 warnings): Unquoted $(MAKE) variable in comments - not applicable
+# Cannot quote variables in comments
+app: $(FILES)
+	$(CC) $^ -o app"#;
+        let result = check(makefile);
+
+        // Should only warn about $(FILES) in actual target line, not in comments
+        assert_eq!(
+            result.diagnostics.len(),
+            1,
+            "Should ignore variables in comments"
+        );
+        assert!(result.diagnostics[0].message.contains("$(FILES)"));
+    }
+
+    #[test]
+    fn test_MAKE016_ignores_comment_only_lines() {
+        let makefile = "# target: $(DEPS)\n# This is documentation\napp: actual_file\n\tgcc app.c";
+        let result = check(makefile);
+
+        // No warnings - comments are ignored
         assert_eq!(result.diagnostics.len(), 0);
     }
 }
