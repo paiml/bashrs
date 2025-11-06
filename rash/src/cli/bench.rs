@@ -1404,8 +1404,8 @@ mod tests {
     #[test]
     fn test_issue_012_phase2_comparison_in_benchmark_result() {
         // ARRANGE
-        let stats1 = Statistics::calculate(&vec![10.0, 11.0, 12.0]);
-        let stats2 = Statistics::calculate(&vec![20.0, 21.0, 22.0]);
+        let stats1 = Statistics::calculate(&[10.0, 11.0, 12.0]);
+        let stats2 = Statistics::calculate(&[20.0, 21.0, 22.0]);
 
         // ACT: Create comparison
         let comparison = ComparisonResult::from_statistics(&stats1, &stats2);

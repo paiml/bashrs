@@ -558,7 +558,6 @@ eval $(get_command)
 ```bash
 eval "$(get_command)"
 ```
-```
 
 ## Adding Auto-fix Support
 
@@ -736,7 +735,7 @@ Every rule needs:
    ```
 
 4. **Property tests**:
-   ```rust
+   ```rust,ignore
    proptest! { fn prop_no_false_positives() { } }
    ```
 
@@ -885,7 +884,7 @@ jobs:
 2. Verify span calculation (1-indexed!)
 3. Test with minimal example
 4. Add debug prints:
-   ```rust
+   ```rust,ignore
    eprintln!("Line {}: {}", line_num, line);
    eprintln!("Pattern match: {:?}", line.find("pattern"));
    ```

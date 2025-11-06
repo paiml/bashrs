@@ -654,14 +654,32 @@ fn lint_command(
     use crate::linter::{
         autofix::{apply_fixes_to_file, FixOptions},
         output::{write_results, OutputFormat},
-        rules::lint_shell,
+        rules::{lint_makefile, lint_shell},
     };
 
     // Read input file
     let source = fs::read_to_string(input).map_err(Error::Io)?;
 
+    // Detect if this is a Makefile and use appropriate linter
+    // Check both filename and file extension
+    let is_makefile = input
+        .file_name()
+        .and_then(|n| n.to_str())
+        .map(|n| {
+            n == "Makefile"
+                || n == "makefile"
+                || n == "GNUmakefile"
+                || n.ends_with(".mk")
+                || n.ends_with(".make")
+        })
+        .unwrap_or(false);
+
     // Run linter
-    let result = lint_shell(&source);
+    let result = if is_makefile {
+        lint_makefile(&source)
+    } else {
+        lint_shell(&source)
+    };
 
     // Apply fixes if requested
     if fix && result.diagnostics.iter().any(|d| d.fix.is_some()) {
@@ -686,7 +704,11 @@ fn lint_command(
 
                 // Re-lint to show remaining issues
                 let source_after = fs::read_to_string(input).map_err(Error::Io)?;
-                let result_after = lint_shell(&source_after);
+                let result_after = if is_makefile {
+                    lint_makefile(&source_after)
+                } else {
+                    lint_shell(&source_after)
+                };
 
                 if result_after.diagnostics.is_empty() {
                     info!("✓ All issues fixed!");
@@ -1966,7 +1988,12 @@ fn print_junit_test_results(report: &crate::bash_quality::testing::TestReport) {
 }
 
 /// Score a bash script for quality
-fn score_command(input: &Path, format: ScoreOutputFormat, detailed: bool, dockerfile: bool) -> Result<()> {
+fn score_command(
+    input: &Path,
+    format: ScoreOutputFormat,
+    detailed: bool,
+    dockerfile: bool,
+) -> Result<()> {
     // Read input file
     let source = fs::read_to_string(input)
         .map_err(|e| Error::Internal(format!("Failed to read {}: {}", input.display(), e)))?;
@@ -2937,11 +2964,26 @@ fn print_human_dockerfile_score_results(
     if detailed {
         println!("Dimension Scores:");
         println!("-----------------");
-        println!("Safety:              {:.1}/10.0  (30% weight)", score.safety);
-        println!("Complexity:          {:.1}/10.0  (25% weight)", score.complexity);
-        println!("Layer Optimization:  {:.1}/10.0  (20% weight)", score.layer_optimization);
-        println!("Determinism:         {:.1}/10.0  (15% weight)", score.determinism);
-        println!("Security:            {:.1}/10.0  (10% weight)", score.security);
+        println!(
+            "Safety:              {:.1}/10.0  (30% weight)",
+            score.safety
+        );
+        println!(
+            "Complexity:          {:.1}/10.0  (25% weight)",
+            score.complexity
+        );
+        println!(
+            "Layer Optimization:  {:.1}/10.0  (20% weight)",
+            score.layer_optimization
+        );
+        println!(
+            "Determinism:         {:.1}/10.0  (15% weight)",
+            score.determinism
+        );
+        println!(
+            "Security:            {:.1}/10.0  (10% weight)",
+            score.security
+        );
         println!();
     }
 
