@@ -98,7 +98,7 @@ less memory_report.txt
 ```
 
 **Interpreting results**:
-```
+```text
     MB
 10  ^                                    :#
     |                                   ::#
@@ -251,7 +251,7 @@ impl CachingParser {
 ```
 
 **Performance impact**:
-```
+```text
 Without cache: 45ms per parse
 With cache (hit): 0.1ms (450× faster!)
 With cache (miss): 46ms (1ms overhead from hashing)
@@ -305,7 +305,7 @@ impl LazyAst {
 ```
 
 **Performance impact**:
-```
+```text
 Full parse:  45ms
 line_count:   1ms (45× faster)
 has_eval:     2ms (22× faster)
@@ -366,7 +366,7 @@ impl InternedParser {
 ```
 
 **Memory impact**:
-```
+```text
 Without interning:  echo appears 1000× = 4KB (4 bytes × 1000)
 With interning:     echo stored once = 4 bytes + 1000 refs (8KB total)
 
@@ -402,7 +402,7 @@ pub fn lint_parallel(source: &str, rules: &[LintRule]) -> LintResult {
 ```
 
 **Performance impact**:
-```
+```text
 Sequential: 8 rules × 50ms each = 400ms
 Parallel:   max(50ms) = 50ms (8× faster on 8 cores)
 ```
@@ -449,7 +449,7 @@ pub fn lint_const<const N: usize>(
 ```
 
 **Performance impact**:
-```
+```text
 Dynamic dispatch:   50ms
 Static dispatch:    45ms (10% faster)
 Const generics:     42ms (16% faster, plus better inlining)
@@ -567,7 +567,7 @@ fn transform_stmt(stmt: BashStmt) -> BashStmt {
 ```
 
 **Performance**:
-```
+```text
 Before: 200ms (half the time spent cloning)
 After:  20ms (10× faster)
 ```
@@ -612,7 +612,7 @@ pub trait LintRule {
 ```
 
 **Performance**:
-```
+```text
 Before: 60ms (lots of small allocations)
 After:  20ms (3× faster, single allocation)
 ```

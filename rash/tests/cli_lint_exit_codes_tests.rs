@@ -34,11 +34,7 @@ echo "Hello, World"
     file.write_all(bash_code.as_bytes()).unwrap();
 
     // ACT & ASSERT: Should exit 0 (success)
-    bashrs_cmd()
-        .arg("lint")
-        .arg(file.path())
-        .assert()
-        .success(); // success() checks exit code 0
+    bashrs_cmd().arg("lint").arg(file.path()).assert().success(); // success() checks exit code 0
 }
 
 /// Test: Exit 0 when only warnings (no errors)
@@ -55,11 +51,7 @@ echo $var
     file.write_all(bash_code.as_bytes()).unwrap();
 
     // ACT & ASSERT: Should exit 0 (warnings are non-blocking)
-    bashrs_cmd()
-        .arg("lint")
-        .arg(file.path())
-        .assert()
-        .success(); // Exit 0 for warnings only
+    bashrs_cmd().arg("lint").arg(file.path()).assert().success(); // Exit 0 for warnings only
 }
 
 /// Test: Exit 0 when only info messages (no errors)
@@ -75,11 +67,7 @@ echo "test"
     file.write_all(bash_code.as_bytes()).unwrap();
 
     // ACT & ASSERT: Should exit 0 (info is non-blocking)
-    bashrs_cmd()
-        .arg("lint")
-        .arg(file.path())
-        .assert()
-        .success(); // Exit 0 for info only
+    bashrs_cmd().arg("lint").arg(file.path()).assert().success(); // Exit 0 for info only
 }
 
 /// Test: Exit 1 when errors found
@@ -202,11 +190,7 @@ deploy_to_production
     file.write_all(bash_code.as_bytes()).unwrap();
 
     // ACT & ASSERT: CI/CD should pass with only warnings
-    let output = bashrs_cmd()
-        .arg("lint")
-        .arg(file.path())
-        .output()
-        .unwrap();
+    let output = bashrs_cmd().arg("lint").arg(file.path()).output().unwrap();
 
     // Should exit 0 (warnings don't block CI/CD)
     assert_eq!(
@@ -231,11 +215,7 @@ VERSION="1.0.0"
     file.write_all(bash_code.as_bytes()).unwrap();
 
     // ACT & ASSERT: CI/CD should fail with errors
-    let output = bashrs_cmd()
-        .arg("lint")
-        .arg(file.path())
-        .output()
-        .unwrap();
+    let output = bashrs_cmd().arg("lint").arg(file.path()).output().unwrap();
 
     // Should exit 1 (errors block CI/CD)
     assert_eq!(
@@ -254,7 +234,7 @@ VERSION="1.0.0"
 #[test]
 fn test_issue_006_property_no_errors_means_exit_0() {
     // Test multiple clean scripts
-    let clean_scripts = vec![
+    let clean_scripts = [
         "#!/bin/bash\necho 'hello'\n",
         "#!/bin/bash\ntrue\n",
         "#!/bin/bash\n# Just a comment\n",
@@ -265,11 +245,7 @@ fn test_issue_006_property_no_errors_means_exit_0() {
         let mut file = NamedTempFile::new().unwrap();
         file.write_all(script.as_bytes()).unwrap();
 
-        let output = bashrs_cmd()
-            .arg("lint")
-            .arg(file.path())
-            .output()
-            .unwrap();
+        let output = bashrs_cmd().arg("lint").arg(file.path()).output().unwrap();
 
         assert_eq!(
             output.status.code(),
@@ -291,11 +267,7 @@ fn test_issue_006_property_file_not_found_exit_2() {
     ];
 
     for path in nonexistent_paths {
-        let output = bashrs_cmd()
-            .arg("lint")
-            .arg(path)
-            .output()
-            .unwrap();
+        let output = bashrs_cmd().arg("lint").arg(path).output().unwrap();
 
         assert_eq!(
             output.status.code(),
