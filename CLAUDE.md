@@ -55,122 +55,10 @@ This workflow is **deferred to v3.0+** to focus on completing the working Bash p
 
 ## Workflow 1: Bash → Purified Bash (PRIMARY - WORKING)
 
-### Input: Messy Bash
-```bash
-#!/bin/bash
-# deploy.sh - PROBLEMATIC
-
-# Non-deterministic
-SESSION_ID=$RANDOM
-RELEASE="release-$(date +%s)"
-
-# Non-idempotent
-mkdir /app/releases/$RELEASE
-rm /app/current
-ln -s /app/releases/$RELEASE /app/current
-```
-
-### Step 1: Parse to Rust
-```rust
-// deploy.rs - Generated from deploy.sh
-use std::fs;
-
-fn deploy_app(version: &str) -> Result<(), String> {
-    // Purified: deterministic (not $RANDOM)
-    let session_id = format!("session-{}", version);
-
-    // Purified: deterministic (not timestamp)
-    let release = format!("release-{}", version);
-
-    // Purified: idempotent (mkdir -p)
-    let release_dir = format!("/app/releases/{}", release);
-    fs::create_dir_all(&release_dir)
-        .map_err(|e| e.to_string())?;
-
-    // Purified: idempotent (remove if exists)
-    let _ = fs::remove_file("/app/current");
-
-    // Purified: idempotent (symlink)
-    std::os::unix::fs::symlink(&release_dir, "/app/current")
-        .map_err(|e| e.to_string())?;
-
-    Ok(())
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_deploy_deterministic() {
-        // Same version = same behavior
-        assert!(deploy_app("1.0.0").is_ok());
-        assert!(deploy_app("1.0.0").is_ok());
-    }
-}
-```
-
-### Step 2: Purified Bash Output
-```bash
-#!/bin/sh
-# Purified by Rash v1.0.0
-
-deploy_app() {
-    _version="$1"
-
-    # Deterministic (was $RANDOM)
-    session_id="session-${_version}"
-
-    # Deterministic (was timestamp)
-    release="release-${_version}"
-
-    # Idempotent (was mkdir)
-    release_dir="/app/releases/${release}"
-    mkdir -p "${release_dir}" || return 1
-
-    # Idempotent (was rm)
-    rm -f "/app/current"
-
-    # Idempotent (was ln -s)
-    ln -s "${release_dir}" "/app/current" || return 1
-}
-
-deploy_app "$1"
-```
-
-**Purification Report**:
-```
-Issues Fixed: 5
-- $RANDOM → version-based ID
-- $(date +%s) → fixed release tag
-- mkdir → mkdir -p (idempotent)
-- rm → rm -f (idempotent)
-- ln -s → remove + ln -s (idempotent)
-
-Quality: ✅ Deterministic, ✅ Idempotent, ✅ POSIX
-```
+Transforms non-deterministic bash ($RANDOM, timestamps) into safe, idempotent POSIX sh with -p/-f flags.
 
 ---
 
-## Key Point: Bash Purification (Current Focus)
-
-**What Rash DOES (v1.4.0)**:
-- ✅ Parses bash scripts to AST
-- ✅ Detects non-deterministic patterns ($RANDOM, timestamps, $$)
-- ✅ Detects non-idempotent operations (mkdir, rm, ln)
-- ✅ Generates purified POSIX sh output
-- ✅ Enforces variable quoting for safety
-- ✅ Passes shellcheck validation
-- ✅ Lints bash scripts (14 rules: 6 DET/IDEM + 8 SEC)
-
-**What Rash WILL DO (v3.0+ - Future)**:
-- ⏸️ Parse REAL Rust code
-- ⏸️ Map Rust std library to shell
-- ⏸️ Transpile Rust → Safe Shell
-- ⏸️ Full linter (800+ rules)
-
-**Current Value Proposition**:
-Take messy, non-deterministic bash scripts and output safe, deterministic, idempotent POSIX shell scripts.
 
 ---
 
@@ -190,38 +78,11 @@ Take messy, non-deterministic bash scripts and output safe, deterministic, idemp
 5. **PMAT Quality Gates**: Code complexity (<10), quality score (≥9.0), TDG verification
 6. **Example Verification**: `cargo run --example` must pass for all relevant examples
 
-**Evidence of Effectiveness**:
-- v6.27.1: Property test caught sh shebang detection bug
-- v6.26.0: 4 unit tests + integration tests + property tests
-- v6.25.0: 17 comprehensive tests + property tests + mutation tests
 
-**Why EXTREME?**
-- Catches bugs traditional TDD misses (property tests found 1 bug today)
-- Proves test effectiveness mathematically (mutation testing)
-- Validates real-world usage (example verification)
-- Ensures code quality objectively (PMAT gates)
-
-### 自働化 (Jidoka) - Build Quality In
-- **Bash Purification**: Validate purified output passes shellcheck
-- **Test Coverage**: >85% on all modules (currently 1,489 tests passing)
-- **Never ship incomplete code**: All purifier outputs must be fully safe
-
-### 現地現物 (Genchi Genbutsu) - Direct Observation
-- **Test against real shells**: dash, ash, busybox sh, bash
-- **Profile actual scenarios**: Bootstrap installers on Alpine containers
-- **Verify purification**: Ensure purified bash behaves identically to original
-
-### 反省 (Hansei) - Fix Before Adding
-- **Current priorities** (v2.0 focus):
-    1. Bash purification production readiness (70% → 100%)
-    2. Real-world examples and documentation
-    3. Performance optimization (<100ms for typical scripts)
-    4. Security linter expansion (SEC009-SEC045 - deferred to v2.x)
-
-### 改善 (Kaizen) - Continuous Improvement
-- **Quality baselines**: All generated shell must pass quality gates
-- **Performance**: <100ms transpilation, <10MB memory
-- **Test coverage**: >85% on all modules
+### Quality Targets
+- Test coverage >85%, complexity <10
+- Purified scripts pass shellcheck
+- Performance: <100ms transpilation, <10MB memory
 
 ---
 
@@ -496,29 +357,6 @@ Before resuming validation, verify ALL of these:
 
 **ONLY AFTER** all checklist items are ✅, you may resume GNU Bash manual validation.
 
-### Example: Real STOP THE LINE Event
-
-```
-🚨 STOP THE LINE 🚨
-
-Task: PARAM-POS-001 (Positional parameters $1, $2)
-Bug: Parser treats "$1" in double quotes as Literal("$1")
-     instead of Variable("1")
-
-Action Taken:
-1. HALTED validation work
-2. Created test: test_positional_parameters_in_quotes
-3. Test FAILED ❌ (RED confirmed)
-4. Fixed parser to expand variables in double quotes
-5. Test PASSED ✅ (GREEN confirmed)
-6. Ran all 6021+ tests: PASSED ✅
-7. Added property test (100+ cases): PASSED ✅
-8. Mutation test: 92% kill rate ✅
-9. Example verification: quality_tools_demo runs ✅
-10. Updated CHANGELOG, roadmap
-
-Status: ✅ RESOLVED - Resuming validation
-```
 
 ---
 
@@ -558,58 +396,7 @@ pmat quality-score --min 9.0
 ## Documentation Standards
 
 ### Roadmap Format
-**CRITICAL**: All project roadmaps MUST be in YAML format (.yaml extension).
-
-**Required Format**:
-- ✅ **ONLY YAML**: All roadmaps must use `.yaml` extension
-- ❌ **NO MARKDOWN**: Do NOT create `.md` roadmap files
-- ✅ **Structured Data**: Use YAML for machine-readable task tracking
-- ✅ **Consistency**: All roadmaps follow same schema
-
-**Roadmap Locations**:
-- Project roadmap: `ROADMAP.yaml`
-- Feature roadmaps: `docs/<feature>-ROADMAP.yaml`
-- Sprint roadmaps: Embedded in `ROADMAP.yaml` under `sprints` key
-
-**Required YAML Schema**:
-```yaml
-roadmap:
-  title: "Roadmap Name"
-  goal: "Clear objective"
-  methodology: "EXTREME TDD"
-  status: "IN_PROGRESS|COMPLETE|READY"
-
-  statistics:
-    total_tasks: <number>
-    completed: <number>
-    in_progress: <number>
-    coverage_percent: <number>
-
-chapters:  # or sections/tasks depending on structure
-  - id: <unique-id>
-    name: "Chapter/Section Name"
-    tasks:
-      - id: "<TASK-ID>"
-        title: "Task description"
-        status: "pending|in_progress|completed"
-        priority: "HIGH|MEDIUM|LOW"
-        input: "Example input"
-        rust: "Rust transformation"
-        purified: "Purified bash output"
-        test_name: "test_function_name"
-        notes: "Additional context"
-```
-
-**Why YAML for Roadmaps**:
-1. Machine-readable for automation
-2. Easy to query with tools (yq, jq)
-3. Structured schema enforcement
-4. Integration with CI/CD pipelines
-5. Better version control diffs
-
-**Existing Roadmaps**:
-- `ROADMAP.yaml` - Main project roadmap
-- `docs/BASH-INGESTION-ROADMAP.yaml` - Bash transformation roadmap
+**CRITICAL**: All roadmaps MUST be YAML (.yaml), not markdown. See `ROADMAP.yaml` and `docs/BASH-INGESTION-ROADMAP.yaml`.
 
 ---
 
@@ -668,34 +455,10 @@ fn test_rash_transpile_rust_to_shell() {
 }
 ```
 
-**Never Use**: `std::process::Command` for CLI testing. This bypasses cargo's test infrastructure and is considered a quality defect.
+**Never Use**: `std::process::Command` for CLI testing.
 
-### Test Naming Convention (Mandatory)
-
-**Format**: `test_<TASK_ID>_<feature>_<scenario>`
-
-**Examples**:
-```rust
-// GOOD: Traceability to BASH-INGESTION-ROADMAP.yaml
-#[test]
-fn test_PARAM_POS_001_positional_params_basic() { }
-
-#[test]
-fn test_PARAM_POS_001_positional_params_in_quotes() { }
-
-#[test]
-fn test_EXP_PARAM_009_remove_longest_suffix_basic() { }
-
-#[test]
-fn test_EXP_PARAM_009_remove_longest_suffix_property() { }
-
-// BAD: No task ID traceability
-#[test]
-fn test_params() { }  // ❌ Not traceable
-
-#[test]
-fn test_expansion() { }  // ❌ Not traceable
-```
+### Test Naming Convention
+**Format**: `test_<TASK_ID>_<feature>_<scenario>` (e.g. `test_PARAM_POS_001_positional_params_basic`)
 
 ### Rash CLI Tool Validation Protocol
 
@@ -717,81 +480,6 @@ For every new Rash CLI feature, test with ALL relevant tools:
 9. Mutation tests (cargo-mutants) - ≥90% kill rate
 10. Integration tests - End-to-end workflows
 
-### Complete CLI Test Example (EXTREME TDD)
-
-```rust
-use assert_cmd::Command;
-use predicates::prelude::*;
-use std::fs;
-
-fn rash_cmd() -> Command {
-    Command::cargo_bin("rash").expect("Failed to find rash binary")
-}
-
-// RED: Write failing test first
-#[test]
-fn test_PHONY_001_parse_phony_declarations() {
-    // ARRANGE: Create test Makefile with .PHONY
-    let makefile = "tests/fixtures/makefiles/phony_test.mk";
-    fs::write(makefile, ".PHONY: clean\nclean:\n\trm -f *.o").unwrap();
-
-    // ACT & ASSERT: Parse should succeed
-    rash_cmd()
-        .arg("parse")
-        .arg(makefile)
-        .assert()
-        .success()
-        .stdout(predicate::str::contains("Target"))
-        .stdout(predicate::str::contains("phony: true"));
-
-    // Cleanup
-    let _ = fs::remove_file(makefile);
-}
-
-// GREEN: Implement feature to make test pass
-// (Implement MakeItem::Target with phony field)
-
-// REFACTOR: Clean up implementation
-// (Extract helper functions, ensure complexity <10)
-
-// PROPERTY TESTING: Add generative tests
-#[cfg(test)]
-mod property_tests {
-    use super::*;
-    use proptest::prelude::*;
-
-    proptest! {
-        #[test]
-        fn test_PHONY_001_prop_phony_preserved(
-            target in "[a-z]{1,10}"
-        ) {
-            let makefile_content = format!(".PHONY: {}\n{}:\n\techo test", target, target);
-            let temp = format!("/tmp/test_{}.mk", target);
-            fs::write(&temp, &makefile_content).unwrap();
-
-            // Verify parse succeeds
-            rash_cmd()
-                .arg("parse")
-                .arg(&temp)
-                .assert()
-                .success();
-
-            // Verify purify preserves .PHONY
-            rash_cmd()
-                .arg("purify")
-                .arg(&temp)
-                .assert()
-                .success()
-                .stdout(predicate::str::contains(format!(".PHONY: {}", target)));
-
-            let _ = fs::remove_file(&temp);
-        }
-    }
-}
-
-// DOCUMENTATION: Update MAKE-INGESTION-ROADMAP.yaml
-// Mark PHONY-001 as completed
-```
 
 ### CLI Testing Quality Gates
 
@@ -808,88 +496,6 @@ Before marking any CLI feature as "completed":
 - [ ] ✅ **Integration tests**: End-to-end CLI workflows verified
 - [ ] ✅ **Documentation**: CLI usage documented in README/docs
 
-### CLI Error Handling Pattern
-
-```rust
-#[test]
-fn test_PARSE_001_invalid_file_error() {
-    rash_cmd()
-        .arg("parse")
-        .arg("nonexistent.sh")
-        .assert()
-        .failure()
-        .stderr(predicate::str::contains("Error"))
-        .stderr(predicate::str::contains("nonexistent.sh"));
-}
-
-#[test]
-fn test_PARSE_001_malformed_input_error() {
-    let malformed = "tests/fixtures/malformed.sh";
-    fs::write(malformed, "if then fi").unwrap();
-
-    rash_cmd()
-        .arg("parse")
-        .arg(malformed)
-        .assert()
-        .failure()
-        .stderr(predicate::str::contains("Parse error"));
-
-    let _ = fs::remove_file(malformed);
-}
-```
-
-### CLI Integration Test Pattern
-
-```rust
-#[test]
-fn test_integration_bash_to_purified_workflow() {
-    // ARRANGE: Create messy bash
-    let messy_bash = "tests/fixtures/integration/messy_deploy.sh";
-    fs::write(messy_bash, r#"
-#!/bin/bash
-SESSION_ID=$RANDOM
-RELEASE="release-$(date +%s)"
-mkdir /tmp/releases/$RELEASE
-"#).unwrap();
-
-    // ACT: Full workflow - parse → purify → shellcheck
-
-    // Step 1: Parse should succeed
-    rash_cmd()
-        .arg("parse")
-        .arg(messy_bash)
-        .assert()
-        .success();
-
-    // Step 2: Purify should produce deterministic output
-    let purified = "tests/fixtures/integration/purified_deploy.sh";
-    rash_cmd()
-        .arg("purify")
-        .arg(messy_bash)
-        .arg("--output")
-        .arg(purified)
-        .assert()
-        .success();
-
-    // Step 3: Verify purified content
-    let purified_content = fs::read_to_string(purified).unwrap();
-    assert!(!purified_content.contains("$RANDOM"));
-    assert!(!purified_content.contains("date +%s"));
-    assert!(purified_content.contains("mkdir -p"));
-
-    // Step 4: Shellcheck validation
-    Command::new("shellcheck")
-        .arg("-s")
-        .arg("sh")
-        .arg(purified)
-        .assert()
-        .success();
-
-    // Cleanup
-    let _ = fs::remove_file(messy_bash);
-    let _ = fs::remove_file(purified);
-}
-```
 
 ---
 
@@ -1035,132 +641,10 @@ cargo publish --dry-run      # ✅ OK: Verify package
 - [ ] ✅ **Installation works**: Test `cargo install bashrs`
 - [ ] ✅ **Documentation builds**: Check docs.rs/bashrs
 
-### Release Types and Versioning
-
-Following [Semantic Versioning](https://semver.org/):
-
-**MAJOR version** (x.0.0) - Breaking changes:
-- Incompatible API changes
-- Removal of deprecated features
-- Major workflow changes
-- Example: v1.0.0 → v2.0.0
-
-**MINOR version** (0.x.0) - New features (backward compatible):
-- New CLI commands
-- New linter rules
-- New features without breaking existing code
-- Example: v2.0.0 → v2.1.0
-
-**PATCH version** (0.0.x) - Bug fixes only:
-- Critical bug fixes (like Issue #1 auto-fix bug)
-- Security fixes
-- Documentation fixes
-- No new features
-- Example: v2.0.0 → v2.0.1
-
-### Example: Complete Release Process (v2.0.1)
-
-Following the v2.0.1 release (Issue #1 fix) as reference:
-
-```bash
-# Phase 1: Quality Verification
-cargo test --lib                    # All 1,545 tests pass ✅
-cargo clippy --all-targets         # No warnings ✅
-cargo fmt -- --check                # Formatted ✅
-
-# Phase 2: Documentation
-# - Updated CHANGELOG.md with Issue #1 fix details ✅
-# - Bumped Cargo.toml version 2.0.0 → 2.0.1 ✅
-
-# Phase 3: Git Release
-git add CHANGELOG.md Cargo.toml rash/src/linter/rules/*.rs rash/tests/test_issue_001_autofix.rs docs/
-git commit -m "fix: v2.0.1 - Critical auto-fix bug (Issue #1)..."
-git tag -a v2.0.1 -m "v2.0.1 - Critical Auto-Fix Bug Fix..."
-git push && git push --tags         # Pushed to GitHub ✅
-
-# Phase 4: crates.io Release (MANDATORY)
-cargo publish --dry-run             # Verify package ✅
-cargo package --list                # Review contents ✅
-cargo publish                       # Publish to crates.io ✅
-
-# Phase 5: Verification
-# - Check GitHub: https://github.com/paiml/bashrs/releases/tag/v2.0.1 ✅
-# - Check crates.io: https://crates.io/crates/bashrs ✅
-# - Test install: cargo install bashrs --version 2.0.1 ✅
-```
-
-### Common Release Mistakes to Avoid
-
-❌ **DO NOT**:
-1. Skip crates.io publishing (users won't get the update)
-2. Release without updating CHANGELOG.md
-3. Release with failing tests
-4. Release without testing the package
-5. Create release without git tag
-6. Push tag before verifying local tests
-
-✅ **ALWAYS**:
-1. Publish to BOTH GitHub and crates.io
-2. Follow all 5 phases in order
-3. Test the package before publishing
-4. Update all documentation
-5. Verify the release after publishing
-
-### crates.io Publishing Requirements
-
-Before you can publish to crates.io, ensure:
-
-1. **Cargo.toml metadata complete**:
-   - `description` field filled
-   - `license` specified (MIT)
-   - `repository` URL correct
-   - `homepage` URL set
-   - `keywords` relevant (max 5)
-   - `categories` appropriate
-
-2. **crates.io API token configured**:
-   ```bash
-   cargo login <your-token>
-   ```
-
-3. **No local uncommitted changes**:
-   ```bash
-   git status  # Should be clean
-   ```
-
-4. **Version not already published**:
-   - Check https://crates.io/crates/bashrs/versions
-   - Cannot republish same version
-
-### Release Frequency
-
-**⚠️ ALL crates.io RELEASES MUST HAPPEN ON FRIDAY ONLY ⚠️**
-
-**Patch releases** (bug fixes):
-- Prepared: As needed, within 24-48 hours of critical bugs
-- Published to crates.io: Next Friday (unless P0 security issue)
-
-**Minor releases** (new features):
-- Prepared: When feature complete and all quality gates pass
-- Published to crates.io: Friday only
-
-**Major releases** (breaking changes):
-- Prepared: Quarterly or when necessary
-- Published to crates.io: Friday only
-
-**Emergency exceptions**:
-- P0 security vulnerabilities: May publish any day with STOP THE LINE protocol
-- User-blocking production bugs: May publish any day with documented justification
-- All other releases: **Friday only, no exceptions**
-
-### Toyota Way Applied to Releases
-
-- **🚨 Jidoka (自働化)**: Build quality into the release process - all tests must pass
-- **🔍 Hansei (反省)**: Reflect on what could be improved in release process
-- **📈 Kaizen (改善)**: Continuously improve release automation
-- **🎯 Genchi Genbutsu (現地現物)**: Verify the release works for real users (test install)
-
-**Remember**: A release is NOT complete until it's available on crates.io. GitHub releases alone are insufficient for Rust projects.
+### Release Types (SemVer)
+- **MAJOR**: Breaking changes
+- **MINOR**: New features (backward compatible)
+- **PATCH**: Bug fixes only
 
 ---
 
@@ -1209,43 +693,13 @@ bash -c 'while true; do printf "HTTP/1.1 200 OK\nContent-Type: text/html\n\n$(ca
 # ✅ RIGHT - Use ruchy or bash
 ```
 
-### WASM Testing: SQLite + WOS + interactive.paiml.com Standards
-
-**Inspiration**:
-- SQLite: 608:1 test-to-code ratio, 100% MC/DC coverage
-- WOS Canary Tests: 60 tests, 8-second runtime
-- interactive.paiml.com: Real WASM execution testing
+### WASM Testing Standards
 
 **Test Harnesses** (4 required):
-
-1. **Browser Canary Tests** (40 tests)
-   - B01-B10: Config Analysis Workflows
-   - B11-B20: Streaming I/O Performance
-   - B21-B30: Error Handling & Anomalies
-   - B31-B40: Cross-Browser Compatibility
-
-2. **Unit Tests** (Rust + wasm-bindgen-test)
-   ```rust
-   #[wasm_bindgen_test]
-   fn test_analyze_config_basic() {
-       // Test core logic in WASM
-   }
-   ```
-
-3. **Property-Based Tests** (Fuzzing)
-   ```rust
-   proptest! {
-       #[test]
-       fn prop_analyze_never_panics(config in ".*{0,10000}") {
-           // Should never panic on any input
-       }
-   }
-   ```
-
-4. **Mutation Testing** (>90% kill rate)
-   ```bash
-   cargo mutants --file rash/src/wasm/api.rs
-   ```
+1. Browser Canary Tests (40 tests): B01-B40 covering analysis, I/O, errors, cross-browser
+2. Unit Tests: `#[wasm_bindgen_test]`
+3. Property-Based Tests: Fuzzing with proptest
+4. Mutation Testing: >90% kill rate
 
 ### Performance Baselines (MANDATORY)
 
@@ -1312,25 +766,6 @@ make wasm-bench
 - Integration: Real-time shell tutorials
 - Requirements: <100ms feedback, educational errors
 
-### WASM Project Structure
-
-```
-rash/
-├── src/wasm/
-│   ├── mod.rs        # Module architecture
-│   ├── api.rs        # JavaScript API (analyze, purify, version)
-│   ├── streaming.rs  # Streaming I/O benchmarks
-│   ├── config.rs     # Config re-exports
-│   └── filesystem.rs # Virtual filesystem (Phase 1)
-├── examples/wasm/
-│   ├── index.html       # Browser demo
-│   ├── README.md        # Building instructions
-│   ├── TESTING-SPEC.md  # NASA-level testing spec
-│   ├── PHASE0-RESULTS.md # Feasibility results
-│   └── pkg/             # Compiled WASM (generated)
-└── .cargo/
-    └── config.toml   # WASM build configuration
-```
 
 ### Building WASM
 
@@ -1372,27 +807,7 @@ make wasm-canary-report       # HTML test report
 ```
 
 ### Anomaly Testing (CRITICAL)
-
-WASM must handle **all** failure modes gracefully:
-
-1. **Memory Anomalies**: OOM during analysis
-2. **Storage Anomalies**: localStorage full/corrupted
-3. **Network Anomalies**: WASM load failure
-4. **Browser Anomalies**: Tab suspension, page reload
-5. **Input Anomalies**: Malformed configs, huge files
-
-**Every anomaly must have a test** - no exceptions.
-
-### Documentation Requirements
-
-Every WASM feature MUST have:
-
-1. ✅ **API Documentation** (rustdoc)
-2. ✅ **Browser Demo** (examples/wasm/*)
-3. ✅ **E2E Tests** (40+ canary tests)
-4. ✅ **Performance Benchmarks**
-5. ✅ **Integration Guide** (WOS + interactive.paiml.com)
-6. ✅ **Troubleshooting Guide**
+Test all failure modes: OOM, storage full, network failure, tab suspension, malformed input. Every anomaly must have a test.
 
 ### WASM Phases
 
@@ -1417,23 +832,11 @@ Every WASM feature MUST have:
 - [ ] Syntax highlighting integration
 - [ ] LSP server in WASM
 
-### Resources
-
-- **WASM Spec**: `rash/examples/wasm/TESTING-SPEC.md`
-- **Phase 0 Results**: `rash/examples/wasm/PHASE0-RESULTS.md`
-- **WOS Canary Tests**: `/home/noahgift/src/wos/e2e/tests/canary/README.md`
-- **interactive.paiml.com**: `/home/noahgift/src/interactive.paiml.com/tests/wasm/`
-- **SQLite Testing**: https://sqlite.org/testing.html
-
-### Critical Reminders
-
-1. **❌ NEVER use Python** - Use ruchy or bash
-2. **✅ ALWAYS run canary tests** before commit
-3. **✅ ALWAYS test cross-browser** before release
-4. **✅ ALWAYS verify performance** baselines
-5. **✅ ALWAYS handle anomalies** gracefully
-6. **✅ ALWAYS document** new features
-
-**WASM is mission-critical** - users depend on it. NASA-level quality is non-negotiable.
+### Critical WASM Reminders
+- ❌ NEVER use Python (use ruchy or bash)
+- ✅ Run canary tests before commit
+- ✅ Test cross-browser before release
+- ✅ Verify performance baselines
+- ✅ Handle all anomalies gracefully
 
 ---

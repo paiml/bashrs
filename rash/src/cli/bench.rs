@@ -830,7 +830,8 @@ fn approximate_p_value(t_statistic: f64, df: f64) -> f64 {
         let d = 0.3989423 * (-z * z / 2.0).exp();
         let prob = d
             * p
-            * (0.319381530 + p * (-0.356563782 + p * (1.781477937 + p * (-1.821255978 + p * 1.330274429))));
+            * (0.319381530
+                + p * (-0.356563782 + p * (1.781477937 + p * (-1.821255978 + p * 1.330274429))));
         return 2.0 * prob; // Two-tailed
     }
 
@@ -857,6 +858,7 @@ fn approximate_p_value(t_statistic: f64, df: f64) -> f64 {
 }
 
 /// Check if two samples are statistically significantly different
+#[allow(dead_code)] // Issue #12 Phase 2 - will be used in --compare implementation
 fn is_statistically_significant(sample1: &[f64], sample2: &[f64], alpha: f64) -> bool {
     let t_stat = welch_t_test(sample1, sample2);
     let df = welch_degrees_of_freedom(sample1, sample2);
@@ -883,12 +885,14 @@ fn compare_benchmarks(baseline: &[f64], current: &[f64]) -> ComparisonResult {
 }
 
 /// Detect performance regression with default 5% threshold
+#[allow(dead_code)] // Issue #12 Phase 2 - will be used in --compare implementation
 fn detect_regression(baseline: &[f64], current: &[f64], alpha: f64) -> RegressionResult {
     detect_regression_with_threshold(baseline, current, alpha, 0.05)
 }
 
 /// Detect performance regression with custom threshold
 /// threshold: Minimum performance degradation to consider (e.g., 0.05 = 5%)
+#[allow(dead_code)] // Issue #12 Phase 2 - will be used in --compare implementation
 fn detect_regression_with_threshold(
     baseline: &[f64],
     current: &[f64],
@@ -1269,10 +1273,9 @@ mod tests {
         // ACT
         let is_significant = is_statistically_significant(&sample1, &sample2, 0.05);
 
-        // ASSERT: Should NOT detect significant difference (high variance)
-        // Note: This might be significant depending on exact calculation,
-        // but demonstrates the test structure
-        assert!(!is_significant || is_significant); // Placeholder for proper test
+        // ASSERT: Result is boolean (no specific assertion on significance)
+        // The actual significance depends on the statistical calculation
+        let _ = is_significant; // Test validates function doesn't panic
     }
 
     // ============================================================================
@@ -1292,7 +1295,7 @@ mod tests {
         assert!(comparison.speedup > 0.0);
         assert!(comparison.t_statistic.abs() > 0.0);
         assert!(comparison.p_value >= 0.0 && comparison.p_value <= 1.0);
-        assert!(comparison.is_significant || !comparison.is_significant);
+        // is_significant is boolean - no need to assert tautology
     }
 
     #[test]

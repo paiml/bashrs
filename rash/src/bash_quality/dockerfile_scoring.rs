@@ -146,11 +146,11 @@ fn calculate_safety_score(source: &str) -> f64 {
     let safety_ratio = safe_run_commands as f64 / run_commands as f64;
 
     let mut score: f64 = match safety_ratio {
-        r if r >= 0.8 => 10.0,  // 80%+ safe commands
-        r if r >= 0.6 => 8.0,   // 60-79% safe
-        r if r >= 0.4 => 6.0,   // 40-59% safe
-        r if r >= 0.2 => 4.0,   // 20-39% safe
-        _ => 2.0,               // <20% safe
+        r if r >= 0.8 => 10.0, // 80%+ safe commands
+        r if r >= 0.6 => 8.0,  // 60-79% safe
+        r if r >= 0.4 => 6.0,  // 40-59% safe
+        r if r >= 0.2 => 4.0,  // 20-39% safe
+        _ => 2.0,              // <20% safe
     };
 
     // Bonus for having any error handling
@@ -203,10 +203,8 @@ fn calculate_complexity_score(source: &str) -> f64 {
     }
 
     // Finalize if still in RUN
-    if in_run && current_run_lines > 0 {
-        if current_run_lines > longest_run {
-            longest_run = current_run_lines;
-        }
+    if in_run && current_run_lines > 0 && current_run_lines > longest_run {
+        longest_run = current_run_lines;
     }
 
     // Score based on RUN command count (fewer is better)
@@ -221,12 +219,12 @@ fn calculate_complexity_score(source: &str) -> f64 {
 
     // Score based on longest RUN command
     let length_score = match longest_run {
-        0 => 5.0,        // Neutral
-        1..=5 => 10.0,   // Simple
-        6..=10 => 8.0,   // Moderate
-        11..=20 => 6.0,  // Complex
-        21..=30 => 4.0,  // Very complex
-        _ => 2.0,        // Extremely complex
+        0 => 5.0,       // Neutral
+        1..=5 => 10.0,  // Simple
+        6..=10 => 8.0,  // Moderate
+        11..=20 => 6.0, // Complex
+        21..=30 => 4.0, // Very complex
+        _ => 2.0,       // Extremely complex
     };
 
     (run_score + length_score) / 2.0
@@ -349,7 +347,8 @@ fn calculate_determinism_score(source: &str) -> f64 {
                 // apk: curl=8.2.1-r0
                 // apt: curl=7.68.0-1
                 // yum: curl-7.68.0
-                if trimmed.contains('=') && (trimmed.contains("apk add") || trimmed.contains("apt")) {
+                if trimmed.contains('=') && (trimmed.contains("apk add") || trimmed.contains("apt"))
+                {
                     pinned_packages += 1;
                 }
             }
@@ -487,15 +486,12 @@ fn generate_suggestions(source: &str, score: &DockerfileQualityScore) -> Vec<Str
 
     // Layer optimization suggestions
     if score.layer_optimization < 7.0 {
+        suggestions.push("Combine RUN commands with && to reduce image layers".to_string());
         suggestions.push(
-            "Combine RUN commands with && to reduce image layers".to_string()
+            "Clean up package manager cache in the same layer (rm -rf /var/cache/apk/*)"
+                .to_string(),
         );
-        suggestions.push(
-            "Clean up package manager cache in the same layer (rm -rf /var/cache/apk/*)".to_string()
-        );
-        suggestions.push(
-            "Consider using --no-cache flag for package managers".to_string()
-        );
+        suggestions.push("Consider using --no-cache flag for package managers".to_string());
     }
 
     // Determinism suggestions
@@ -504,12 +500,10 @@ fn generate_suggestions(source: &str, score: &DockerfileQualityScore) -> Vec<Str
         let has_version_pinning = source.contains('=');
 
         if has_latest || !has_version_pinning {
-            suggestions.push(
-                "Pin package versions for reproducibility (e.g., curl=8.2.1-r0)".to_string()
-            );
-            suggestions.push(
-                "Use specific image tags instead of :latest (e.g., alpine:3.18)".to_string()
-            );
+            suggestions
+                .push("Pin package versions for reproducibility (e.g., curl=8.2.1-r0)".to_string());
+            suggestions
+                .push("Use specific image tags instead of :latest (e.g., alpine:3.18)".to_string());
         }
     }
 
@@ -518,23 +512,17 @@ fn generate_suggestions(source: &str, score: &DockerfileQualityScore) -> Vec<Str
         let has_user = source.contains("USER ");
 
         if !has_user || source.contains("USER root") {
-            suggestions.push(
-                "Add USER directive to run container as non-root user".to_string()
-            );
-            suggestions.push(
-                "Create a dedicated user with adduser/addgroup".to_string()
-            );
+            suggestions.push("Add USER directive to run container as non-root user".to_string());
+            suggestions.push("Create a dedicated user with adduser/addgroup".to_string());
         }
     }
 
     // Complexity suggestions
     if score.complexity < 7.0 {
-        suggestions.push(
-            "Reduce the number of separate RUN commands by combining them".to_string()
-        );
-        suggestions.push(
-            "Consider using multi-stage builds to reduce final image size".to_string()
-        );
+        suggestions
+            .push("Reduce the number of separate RUN commands by combining them".to_string());
+        suggestions
+            .push("Consider using multi-stage builds to reduce final image size".to_string());
     }
 
     suggestions
@@ -588,7 +576,10 @@ RUN set -euo pipefail && \
 USER appuser
 "#;
         let score = score_dockerfile(source).unwrap();
-        assert!(score.score >= 8.0, "Excellent Dockerfile should score >= 8.0");
+        assert!(
+            score.score >= 8.0,
+            "Excellent Dockerfile should score >= 8.0"
+        );
         assert!(matches!(score.grade.as_str(), "A" | "A+" | "B" | "B+"));
     }
 
@@ -743,11 +734,11 @@ mod property_tests {
     proptest! {
         #[test]
         fn prop_version_pinning_improves_determinism(packages in prop::collection::vec("[a-z]{3,10}", 1..5)) {
-            let without_pinning = format!("FROM alpine:3.18\nRUN apk add {}", 
+            let without_pinning = format!("FROM alpine:3.18\nRUN apk add {}",
                 packages.join(" ")
             );
-            
-            let with_pinning = format!("FROM alpine:3.18\nRUN apk add {}", 
+
+            let with_pinning = format!("FROM alpine:3.18\nRUN apk add {}",
                 packages.iter().map(|p| format!("{}=1.0.0-r0", p)).collect::<Vec<_>>().join(" ")
             );
 
@@ -778,11 +769,11 @@ mod property_tests {
     proptest! {
         #[test]
         fn prop_combined_commands_improve_layering(commands in prop::collection::vec("apk add [a-z]+", 2..4)) {
-            let separate = format!("FROM alpine:3.18\n{}", 
+            let separate = format!("FROM alpine:3.18\n{}",
                 commands.iter().map(|c| format!("RUN {}", c)).collect::<Vec<_>>().join("\n")
             );
-            
-            let combined = format!("FROM alpine:3.18\nRUN {}", 
+
+            let combined = format!("FROM alpine:3.18\nRUN {}",
                 commands.join(" && ")
             );
 
