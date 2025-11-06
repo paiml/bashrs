@@ -218,8 +218,7 @@ RUN apk add curl
 
     // Without pipefail should suggest adding it
     assert!(
-        stdout_without.contains("set -euo pipefail")
-            || stdout_without.contains("error handling")
+        stdout_without.contains("set -euo pipefail") || stdout_without.contains("error handling")
     );
 
     let _ = fs::remove_file(temp_with);
@@ -265,9 +264,7 @@ RUN apk add curl
     let stdout_unpinned = String::from_utf8_lossy(&output_unpinned.stdout);
 
     // Unpinned should suggest version pinning
-    assert!(
-        stdout_unpinned.contains("version") || stdout_unpinned.contains("pin")
-    );
+    assert!(stdout_unpinned.contains("version") || stdout_unpinned.contains("pin"));
 
     let _ = fs::remove_file(temp_pinned);
     let _ = fs::remove_file(temp_unpinned);
@@ -314,9 +311,7 @@ RUN apk add curl
     let stdout_without = String::from_utf8_lossy(&output_without.stdout);
 
     // Without cleanup should suggest it
-    assert!(
-        stdout_without.contains("cache") || stdout_without.contains("cleanup")
-    );
+    assert!(stdout_without.contains("cache") || stdout_without.contains("cleanup"));
 
     let _ = fs::remove_file(temp_with);
     let _ = fs::remove_file(temp_without);
@@ -388,11 +383,11 @@ fn test_issue_010_dockerfile_multi_stage_detected() {
         .arg("--detailed")
         .assert()
         .success()
-        .stdout(predicate::str::contains("multi-stage").or(
-            predicate::str::contains("Multi-stage")
-        ).or(
-            predicate::str::contains("optimization")
-        ));
+        .stdout(
+            predicate::str::contains("multi-stage")
+                .or(predicate::str::contains("Multi-stage"))
+                .or(predicate::str::contains("optimization")),
+        );
 
     let _ = fs::remove_file(temp_file);
 }
@@ -429,9 +424,7 @@ CMD ["./app"]
     let stdout_without = String::from_utf8_lossy(&output_without.stdout);
 
     // Should suggest adding USER directive
-    assert!(
-        stdout_without.contains("USER") || stdout_without.contains("non-root")
-    );
+    assert!(stdout_without.contains("USER") || stdout_without.contains("non-root"));
 
     let _ = fs::remove_file(temp_with);
     let _ = fs::remove_file(temp_without);

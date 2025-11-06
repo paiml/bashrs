@@ -268,12 +268,36 @@ backup:
     let result = lint_makefile(makefile);
 
     // Count false positives by rule
-    let sc2168_count = result.diagnostics.iter().filter(|d| d.code == "SC2168").count();
-    let sc2082_count = result.diagnostics.iter().filter(|d| d.code == "SC2082").count();
-    let sc2086_count = result.diagnostics.iter().filter(|d| d.code == "SC2086").count();
-    let sc2154_count = result.diagnostics.iter().filter(|d| d.code == "SC2154").count();
-    let sc2102_count = result.diagnostics.iter().filter(|d| d.code == "SC2102").count();
-    let sc2095_count = result.diagnostics.iter().filter(|d| d.code == "SC2095").count();
+    let sc2168_count = result
+        .diagnostics
+        .iter()
+        .filter(|d| d.code == "SC2168")
+        .count();
+    let sc2082_count = result
+        .diagnostics
+        .iter()
+        .filter(|d| d.code == "SC2082")
+        .count();
+    let sc2086_count = result
+        .diagnostics
+        .iter()
+        .filter(|d| d.code == "SC2086")
+        .count();
+    let sc2154_count = result
+        .diagnostics
+        .iter()
+        .filter(|d| d.code == "SC2154")
+        .count();
+    let sc2102_count = result
+        .diagnostics
+        .iter()
+        .filter(|d| d.code == "SC2102")
+        .count();
+    let sc2095_count = result
+        .diagnostics
+        .iter()
+        .filter(|d| d.code == "SC2095")
+        .count();
 
     println!("\n=== Issue #16 False Positives Count ===");
     println!("SC2168 ('local' in strings): {}", sc2168_count);
