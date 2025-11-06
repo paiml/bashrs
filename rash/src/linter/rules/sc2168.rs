@@ -29,6 +29,45 @@ fn is_comment_line(line: &str) -> bool {
     line.trim_start().starts_with('#')
 }
 
+/// Check if a position in a line is inside single or double quotes
+///
+/// This function tracks quote state to determine if a position is inside a quoted string.
+/// It handles both single quotes ('...') and double quotes ("...").
+///
+/// # Examples
+/// ```
+/// assert!(is_inside_quotes("echo 'local'", 7));  // Inside 'local'
+/// assert!(is_inside_quotes("echo \"local\"", 7));  // Inside "local"
+/// assert!(!is_inside_quotes("echo local", 5));    // Not inside quotes
+/// ```
+fn is_inside_quotes(line: &str, pos: usize) -> bool {
+    let mut in_single_quote = false;
+    let mut in_double_quote = false;
+    let mut prev_char = '\0';
+
+    for (i, ch) in line.chars().enumerate() {
+        if i >= pos {
+            break;
+        }
+
+        // Handle escape sequences
+        if prev_char == '\\' {
+            prev_char = ch;
+            continue;
+        }
+
+        match ch {
+            '\'' if !in_double_quote => in_single_quote = !in_single_quote,
+            '"' if !in_single_quote => in_double_quote = !in_double_quote,
+            _ => {}
+        }
+
+        prev_char = ch;
+    }
+
+    in_single_quote || in_double_quote
+}
+
 /// Check if line starts a function
 fn is_function_start(line: &str) -> bool {
     FUNCTION_START.is_match(line)
@@ -125,6 +164,11 @@ pub fn check(source: &str) -> LintResult {
 
         // Check for local keyword outside functions
         if let Some(mat) = LOCAL_KEYWORD.find(line) {
+            // Skip if 'local' is inside quotes (false positive)
+            if is_inside_quotes(line, mat.start()) {
+                continue;
+            }
+
             if function_depth == 0 {
                 let start_col = mat.start() + 1;
                 let end_col = mat.end() + 1;
@@ -275,6 +319,107 @@ mod tests {
         assert_eq!(result.diagnostics.len(), 0);
     }
 
+    // ===== Helper Function Tests =====
+
+    #[test]
+    fn test_is_inside_quotes_single_quotes() {
+        let line = "echo 'local'";
+        assert!(is_inside_quotes(line, 6)); // 'l' of local
+        assert!(is_inside_quotes(line, 7)); // 'o' of local
+        assert!(is_inside_quotes(line, 10)); // 'l' of local
+        assert!(!is_inside_quotes(line, 0)); // 'e' of echo
+        assert!(!is_inside_quotes(line, 5)); // opening quote
+    }
+
+    #[test]
+    fn test_is_inside_quotes_double_quotes() {
+        let line = "echo \"local\"";
+        assert!(is_inside_quotes(line, 6)); // 'l' of local
+        assert!(is_inside_quotes(line, 7)); // 'o' of local
+        assert!(is_inside_quotes(line, 10)); // 'l' of local
+        assert!(!is_inside_quotes(line, 0)); // 'e' of echo
+        assert!(!is_inside_quotes(line, 5)); // opening quote
+    }
+
+    #[test]
+    fn test_is_inside_quotes_no_quotes() {
+        let line = "echo local";
+        assert!(!is_inside_quotes(line, 0)); // 'e' of echo
+        assert!(!is_inside_quotes(line, 5)); // 'l' of local
+        assert!(!is_inside_quotes(line, 9)); // 'l' of local
+    }
+
+    #[test]
+    fn test_is_inside_quotes_mixed_quotes() {
+        let line = "echo 'text' \"local\" 'more'";
+        assert!(is_inside_quotes(line, 6)); // Inside 'text'
+        assert!(is_inside_quotes(line, 13)); // Inside "local"
+        assert!(is_inside_quotes(line, 21)); // Inside 'more'
+        assert!(!is_inside_quotes(line, 11)); // Between quotes
+    }
+
+    #[test]
+    fn test_is_inside_quotes_escaped_quotes() {
+        let line = "echo 'it\\'s' local";
+        assert!(is_inside_quotes(line, 8)); // Inside 'it\'s'
+        assert!(!is_inside_quotes(line, 13)); // 'local' outside quotes
+    }
+
+    // ===== Issue #16 Tests =====
+
+    #[test]
+    fn test_sc2168_issue_016_local_in_printf_single_quotes() {
+        let code = r#"@printf 'Starting local server on port 8080...\n'"#;
+        let result = check(code);
+        assert_eq!(
+            result.diagnostics.len(),
+            0,
+            "Should not trigger on 'local' in single-quoted string"
+        );
+    }
+
+    #[test]
+    fn test_sc2168_issue_016_local_in_echo_double_quotes() {
+        let code = r#"@echo "Connecting to local database""#;
+        let result = check(code);
+        assert_eq!(
+            result.diagnostics.len(),
+            0,
+            "Should not trigger on 'local' in double-quoted string"
+        );
+    }
+
+    #[test]
+    fn test_sc2168_issue_016_local_in_various_string_contexts() {
+        let code = r#"
+@echo "local variable"
+@printf 'local server\n'
+@echo 'localhost'
+@echo "locale settings"
+"#;
+        let result = check(code);
+        assert_eq!(
+            result.diagnostics.len(),
+            0,
+            "Should not trigger on 'local' as part of words in strings"
+        );
+    }
+
+    #[test]
+    fn test_sc2168_actual_local_keyword_still_caught() {
+        // Verify we still catch real errors
+        let code = r#"
+local var="bad"
+echo "local in string is ok"
+"#;
+        let result = check(code);
+        assert_eq!(
+            result.diagnostics.len(),
+            1,
+            "Should still catch actual 'local' keyword at top level"
+        );
+    }
+
     // ===== Original Unit Tests =====
 
     #[test]
@@ -385,5 +530,118 @@ function test() {
 "#;
         let result = check(code);
         assert_eq!(result.diagnostics.len(), 0);
+    }
+
+    // ===== Property Tests for Quote Tracking (Issue #16) =====
+
+    #[test]
+    fn prop_sc2168_local_in_any_single_quoted_string_never_diagnosed() {
+        // Property: 'local' in single quotes should never trigger, regardless of surrounding text
+        let test_cases = vec![
+            "echo 'local'",
+            "printf 'Starting local server'",
+            "'local variable'",
+            "echo 'before' 'local' 'after'",
+            "test 'local test case'",
+            "@printf 'Starting local server on port 8080...\n'",
+        ];
+
+        for code in test_cases {
+            let result = check(code);
+            assert_eq!(
+                result.diagnostics.len(),
+                0,
+                "Should not diagnose 'local' in single quotes: {}",
+                code
+            );
+        }
+    }
+
+    #[test]
+    fn prop_sc2168_local_in_any_double_quoted_string_never_diagnosed() {
+        // Property: 'local' in double quotes should never trigger, regardless of surrounding text
+        let test_cases = vec![
+            "echo \"local\"",
+            "printf \"Starting local server\"",
+            "\"local variable\"",
+            "echo \"before\" \"local\" \"after\"",
+            "test \"local test case\"",
+            "@echo \"Connecting to local database\"",
+        ];
+
+        for code in test_cases {
+            let result = check(code);
+            assert_eq!(
+                result.diagnostics.len(),
+                0,
+                "Should not diagnose 'local' in double quotes: {}",
+                code
+            );
+        }
+    }
+
+    #[test]
+    fn prop_sc2168_local_substring_in_quotes_never_diagnosed() {
+        // Property: 'local' as part of another word in quotes should never trigger
+        let test_cases = vec![
+            "echo 'localhost'",
+            "echo 'locale'",
+            "echo 'localtime'",
+            "echo \"localhost\"",
+            "echo \"locale\"",
+            "echo \"localtime\"",
+            "@echo 'localhost settings'",
+            "@echo \"locale configuration\"",
+        ];
+
+        for code in test_cases {
+            let result = check(code);
+            assert_eq!(
+                result.diagnostics.len(),
+                0,
+                "Should not diagnose 'local' substring in quotes: {}",
+                code
+            );
+        }
+    }
+
+    #[test]
+    fn prop_sc2168_mixed_quotes_only_quoted_local_ignored() {
+        // Property: Only 'local' in quotes should be ignored, unquoted 'local' should be caught
+        let test_cases = vec![
+            ("echo 'local'", 0),                  // In quotes - OK
+            ("local var=\"value\"", 1),            // Not in quotes - ERROR
+            ("echo 'local' && local x=5", 1),    // Mixed: quoted OK, unquoted ERROR
+            ("echo \"local\" \"test\"", 0),       // All quoted - OK
+        ];
+
+        for (code, expected_count) in test_cases {
+            let result = check(code);
+            assert_eq!(
+                result.diagnostics.len(),
+                expected_count,
+                "Wrong diagnostic count for: {}",
+                code
+            );
+        }
+    }
+
+    #[test]
+    fn prop_sc2168_quote_escaping_handled_correctly() {
+        // Property: Escaped quotes should be handled correctly
+        let test_cases = vec![
+            ("echo 'it\\'s local'", 0),          // 'local' still in quotes
+            ("echo \"she said \\\"local\\\"\"", 0), // 'local' still in quotes
+        ];
+
+        for (code, expected_count) in test_cases {
+            let result = check(code);
+            assert_eq!(
+                result.diagnostics.len(),
+                expected_count,
+                "Wrong diagnostic count for: {}",
+                code
+            );
+        }
     }
 }
