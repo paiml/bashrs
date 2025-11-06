@@ -32,7 +32,7 @@ fn main() {
             bashrs::models::Error::Io(_) => 2, // File not found, permission denied, etc.
             bashrs::models::Error::Parse(_) => 2, // Invalid input
             bashrs::models::Error::Internal(_) => 2, // Tool failure
-            _ => 1, // Lint failures, validation errors, etc.
+            _ => 1,                            // Lint failures, validation errors, etc.
         };
 
         process::exit(exit_code);

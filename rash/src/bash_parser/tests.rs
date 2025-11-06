@@ -2833,8 +2833,10 @@ fn test_CMD_LIST_002_and_operator_needs_implementation() {
         Ok(mut parser) => {
             let result = parser.parse();
             // This will change once && is implemented
-            assert!(result.is_ok() || result.is_err(),
-                "Documentation test: AND operator (&&) not yet fully implemented");
+            assert!(
+                result.is_ok() || result.is_err(),
+                "Documentation test: AND operator (&&) not yet fully implemented"
+            );
         }
         Err(_) => {
             // Parser may not handle && syntax - this is expected
@@ -2866,8 +2868,10 @@ fn test_CMD_LIST_003_or_operator_needs_implementation() {
     match BashParser::new(bash_input) {
         Ok(mut parser) => {
             let result = parser.parse();
-            assert!(result.is_ok() || result.is_err(),
-                "Documentation test: OR operator (||) not yet fully implemented");
+            assert!(
+                result.is_ok() || result.is_err(),
+                "Documentation test: OR operator (||) not yet fully implemented"
+            );
         }
         Err(_) => {
             // Parser may not handle || syntax - this is expected
@@ -2901,8 +2905,10 @@ fn test_CMD_LIST_004_combined_operators_needs_implementation() {
     match BashParser::new(bash_input) {
         Ok(mut parser) => {
             let result = parser.parse();
-            assert!(result.is_ok() || result.is_err(),
-                "Documentation test: Combined command lists not yet fully implemented");
+            assert!(
+                result.is_ok() || result.is_err(),
+                "Documentation test: Combined command lists not yet fully implemented"
+            );
         }
         Err(_) => {
             // Parser may not handle complex command lists - this is expected
@@ -2955,8 +2961,10 @@ fn test_PIPE_001_basic_pipe_needs_implementation() {
     match BashParser::new(bash_input) {
         Ok(mut parser) => {
             let result = parser.parse();
-            assert!(result.is_ok() || result.is_err(),
-                "Documentation test: Pipe operator (|) not yet fully implemented");
+            assert!(
+                result.is_ok() || result.is_err(),
+                "Documentation test: Pipe operator (|) not yet fully implemented"
+            );
         }
         Err(_) => {
             // Parser may not handle pipe syntax - this is expected
@@ -2995,8 +3003,10 @@ fn test_PIPE_002_multi_stage_pipeline_needs_implementation() {
     match BashParser::new(bash_input) {
         Ok(mut parser) => {
             let result = parser.parse();
-            assert!(result.is_ok() || result.is_err(),
-                "Documentation test: Multi-stage pipelines not yet fully implemented");
+            assert!(
+                result.is_ok() || result.is_err(),
+                "Documentation test: Multi-stage pipelines not yet fully implemented"
+            );
         }
         Err(_) => {
             // Parser may not handle multi-stage pipelines - this is expected
@@ -3031,8 +3041,10 @@ fn test_PIPE_003_pipe_with_variables_needs_implementation() {
     match BashParser::new(bash_input) {
         Ok(mut parser) => {
             let result = parser.parse();
-            assert!(result.is_ok() || result.is_err(),
-                "Documentation test: Pipes with variables not yet fully implemented");
+            assert!(
+                result.is_ok() || result.is_err(),
+                "Documentation test: Pipes with variables not yet fully implemented"
+            );
         }
         Err(_) => {
             // Parser may not handle pipes with variables - this is expected
@@ -3506,8 +3518,10 @@ fn test_ANSI_C_002_tab_escape_needs_implementation() {
     match parser {
         Ok(mut p) => {
             let result = p.parse();
-            assert!(result.is_err() || result.is_ok(),
-                "Documentation test: ANSI-C tab escapes not yet fully implemented");
+            assert!(
+                result.is_err() || result.is_ok(),
+                "Documentation test: ANSI-C tab escapes not yet fully implemented"
+            );
         }
         Err(_) => {
             // Lexer may reject $' syntax - this is expected
@@ -3539,8 +3553,10 @@ fn test_ANSI_C_003_hex_escape_needs_implementation() {
     match parser {
         Ok(mut p) => {
             let result = p.parse();
-            assert!(result.is_err() || result.is_ok(),
-                "Documentation test: ANSI-C hex escapes not yet fully implemented");
+            assert!(
+                result.is_err() || result.is_ok(),
+                "Documentation test: ANSI-C hex escapes not yet fully implemented"
+            );
         }
         Err(_) => {
             // Lexer may reject $' syntax - this is expected
@@ -3777,8 +3793,10 @@ fn test_ECHO_005_echo_n_flag_needs_implementation() {
     match BashParser::new(bash_input) {
         Ok(mut parser) => {
             let result = parser.parse();
-            assert!(result.is_ok() || result.is_err(),
-                "Documentation test: echo -n flag purification not yet fully implemented");
+            assert!(
+                result.is_ok() || result.is_err(),
+                "Documentation test: echo -n flag purification not yet fully implemented"
+            );
         }
         Err(_) => {
             // Parser may not handle echo -n - this is expected
@@ -3815,8 +3833,10 @@ fn test_ECHO_006_echo_e_flag_needs_implementation() {
     match BashParser::new(bash_input) {
         Ok(mut parser) => {
             let result = parser.parse();
-            assert!(result.is_ok() || result.is_err(),
-                "Documentation test: echo -e flag purification not yet fully implemented");
+            assert!(
+                result.is_ok() || result.is_err(),
+                "Documentation test: echo -e flag purification not yet fully implemented"
+            );
         }
         Err(_) => {
             // Parser may not handle echo -e - this is expected

@@ -36,10 +36,16 @@ const SILENT_COMMANDS: &[&str] = &["echo", "printf"];
 /// Check for echo/printf commands without @ prefix
 pub fn check(source: &str) -> LintResult {
     let mut result = LintResult::new();
+    let lines: Vec<&str> = source.lines().collect();
 
-    for (line_num, line) in source.lines().enumerate() {
+    for (line_num, line) in lines.iter().enumerate() {
         // Only check recipe lines (start with tab)
         if !line.starts_with('\t') {
+            continue;
+        }
+
+        // Skip if this is a shell continuation line (previous line ended with \)
+        if line_num > 0 && is_continuation_line(&lines, line_num) {
             continue;
         }
 
@@ -50,6 +56,22 @@ pub fn check(source: &str) -> LintResult {
     }
 
     result
+}
+
+/// Check if this line is a shell script continuation
+fn is_continuation_line(lines: &[&str], line_num: usize) -> bool {
+    if line_num == 0 {
+        return false;
+    }
+
+    let prev_line = lines[line_num - 1].trim_end();
+
+    // Previous line ends with backslash = continuation
+    if prev_line.ends_with('\\') {
+        return true;
+    }
+
+    false
 }
 
 /// Check a recipe line for echo/printf without @ prefix
@@ -175,5 +197,48 @@ mod tests {
         let result = check(makefile);
 
         assert_eq!(result.diagnostics.len(), 0);
+    }
+
+    #[test]
+    fn test_MAKE007_no_warning_for_continuation_lines() {
+        // Shell conditionals with backslash continuations
+        let makefile = "check:\n\t@if test -f file; then \\\n\t\techo Found; \\\n\telse \\\n\t\techo Not found; \\\n\tfi";
+        let result = check(makefile);
+
+        // Should not warn about echo in continuation lines
+        assert_eq!(
+            result.diagnostics.len(),
+            0,
+            "Continuation lines should not trigger MAKE007"
+        );
+    }
+
+    #[test]
+    fn test_MAKE007_no_warning_for_multiline_shell() {
+        // Common pattern: if/then/else with backslash continuations
+        let makefile = r#"validate:
+	@if command -v tool >/dev/null 2>&1; then \
+		echo Tool found; \
+	else \
+		echo Tool not found; \
+	fi"#;
+        let result = check(makefile);
+
+        assert_eq!(
+            result.diagnostics.len(),
+            0,
+            "Should not warn about echo in shell conditionals"
+        );
+    }
+
+    #[test]
+    fn test_MAKE007_warns_for_top_level_echo() {
+        // Top-level echo without @ should still warn
+        let makefile = "build:\n\techo Starting\n\t@if true; then \\\n\t\techo Inside; \\\n\tfi";
+        let result = check(makefile);
+
+        // Should only warn about the first echo, not the one in continuation
+        assert_eq!(result.diagnostics.len(), 1);
+        assert!(result.diagnostics[0].message.contains("echo"));
     }
 }

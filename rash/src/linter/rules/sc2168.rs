@@ -609,10 +609,10 @@ function test() {
     fn prop_sc2168_mixed_quotes_only_quoted_local_ignored() {
         // Property: Only 'local' in quotes should be ignored, unquoted 'local' should be caught
         let test_cases = vec![
-            ("echo 'local'", 0),                  // In quotes - OK
-            ("local var=\"value\"", 1),            // Not in quotes - ERROR
-            ("echo 'local' && local x=5", 1),    // Mixed: quoted OK, unquoted ERROR
-            ("echo \"local\" \"test\"", 0),       // All quoted - OK
+            ("echo 'local'", 0),              // In quotes - OK
+            ("local var=\"value\"", 1),       // Not in quotes - ERROR
+            ("echo 'local' && local x=5", 1), // Mixed: quoted OK, unquoted ERROR
+            ("echo \"local\" \"test\"", 0),   // All quoted - OK
         ];
 
         for (code, expected_count) in test_cases {
@@ -630,7 +630,7 @@ function test() {
     fn prop_sc2168_quote_escaping_handled_correctly() {
         // Property: Escaped quotes should be handled correctly
         let test_cases = vec![
-            ("echo 'it\\'s local'", 0),          // 'local' still in quotes
+            ("echo 'it\\'s local'", 0),             // 'local' still in quotes
             ("echo \"she said \\\"local\\\"\"", 0), // 'local' still in quotes
         ];
 

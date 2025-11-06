@@ -278,10 +278,12 @@ fn benchmark_makefile_parsing_by_size(c: &mut Criterion) {
     let mut group = c.benchmark_group("makefile_parsing_by_size");
     group.measurement_time(Duration::from_secs(10));
 
-    let sizes = [("10_lines", generate_makefile(10)),
+    let sizes = [
+        ("10_lines", generate_makefile(10)),
         ("50_lines", generate_makefile(50)),
         ("100_lines", generate_makefile(100)),
-        ("200_lines", generate_makefile(200))];
+        ("200_lines", generate_makefile(200)),
+    ];
 
     for (name, makefile) in sizes.iter() {
         group.throughput(Throughput::Bytes(makefile.len() as u64));
