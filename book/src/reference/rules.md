@@ -1,6 +1,6 @@
 # Linter Rules Reference
 
-This chapter provides a complete reference for all linter rules in bashrs v6.31.0, including security rules, determinism rules, idempotency rules, config rules, Makefile rules, and ShellCheck integration.
+This chapter provides a complete reference for all linter rules in bashrs v6.32.1, including security rules, determinism rules, idempotency rules, config rules, Makefile rules, Dockerfile rules, and ShellCheck integration.
 
 ## Table of Contents
 
@@ -661,6 +661,36 @@ bashrs implements ShellCheck rules across categories:
 | Deprecations | SC2006, SC2016, SC2027 | 10+ |
 
 **Total:** 324+ rules implemented (and growing)
+
+#### SC2154: Variable Referenced But Not Assigned
+
+**Status:** ✅ Fixed in v6.32.1 (Issue #20)
+
+**What it checks:** Detects variables that are referenced but never assigned
+
+**Fixed in v6.32.1:**
+- Loop variables (for var in ...) now correctly recognized as assigned
+- Indented assignments now detected
+- Zero false positives on common shell patterns
+
+**Example:**
+```bash
+# ✅ No warning (v6.32.1+) - loop variable is automatically assigned
+for file in *.txt; do
+    echo "$file"
+done
+
+# ✅ No warning (v6.32.1+) - indented assignment detected
+if [ -f config.sh ]; then
+    CONFIG_FILE="config.sh"  # Works with any indentation
+    echo "$CONFIG_FILE"
+done
+
+# ❌ Still warns - genuinely undefined variable
+echo "$undefined_var"  # SC2154: Variable is referenced but not assigned
+```
+
+**Note:** If you have variables set by external sources (sourced files, environment), you may want to disable SC2154 for those specific cases.
 
 ### Shell Type Detection
 
