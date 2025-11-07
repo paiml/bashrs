@@ -875,7 +875,7 @@ bashrs repl --sandboxed --max-memory 50 --timeout 10
 
 **Example Session**:
 ```text
-bashrs REPL v6.31.0
+bashrs REPL v6.32.1
 >>> x=5
 >>> echo $x
 5

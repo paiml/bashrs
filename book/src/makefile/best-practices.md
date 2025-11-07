@@ -43,7 +43,7 @@ release:
 
 ### bashrs Makefile Support
 
-bashrs v6.31.0 provides comprehensive Makefile analysis:
+bashrs v6.32.1 provides comprehensive Makefile analysis:
 
 - **Parsing**: Full Makefile AST including targets, variables, and recipes
 - **Linting**: Apply all security and determinism rules to shell recipes
@@ -628,7 +628,7 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Install bashrs
-        run: cargo install bashrs --version 6.31.0
+        run: cargo install bashrs --version 6.32.1
 
       - name: Lint Makefile
         run: bashrs make lint Makefile
@@ -665,7 +665,7 @@ lint:makefile:
   stage: lint
   image: rust:latest
   before_script:
-    - cargo install bashrs --version 6.31.0
+    - cargo install bashrs --version 6.32.1
   script:
     - bashrs make lint Makefile
     - make lint-scripts

@@ -92,7 +92,7 @@ bashrs purify deploy-messy.sh -o deploy-purified.sh --report
 
 ```bash
 #!/bin/sh
-# deploy-purified.sh - Purified by bashrs v6.31.0
+# deploy-purified.sh - Purified by bashrs v6.32.1
 # This is safe, deterministic, idempotent POSIX shell
 
 deploy_app() {
@@ -248,7 +248,7 @@ For production deployments, add error handling, logging, and health checks:
 ```bash
 #!/bin/sh
 # deploy-production.sh - Production-ready deployment script
-# Purified by bashrs v6.31.0
+# Purified by bashrs v6.32.1
 
 set -eu
 

@@ -7,7 +7,7 @@ The bashrs REPL (Read-Eval-Print Loop) provides an interactive environment for b
 ```bash
 $ bashrs repl
 
-bashrs REPL v6.31.0
+bashrs REPL v6.32.1
 Type 'quit' or 'exit' to exit, 'help' for commands
 Current mode: normal - Execute bash commands directly
 bashrs [normal]>

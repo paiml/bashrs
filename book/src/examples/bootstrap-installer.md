@@ -51,7 +51,7 @@ chmod +x ${INSTALL_DIR}/tool
 ```bash
 #!/bin/sh
 # install.sh - Universal bootstrap installer
-# Purified by bashrs v6.31.0
+# Purified by bashrs v6.32.1
 
 set -eu
 

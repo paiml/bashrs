@@ -94,7 +94,7 @@ jobs:
       - name: Install bashrs
         run: |
           # Install from crates.io
-          cargo install bashrs --version 6.31.0
+          cargo install bashrs --version 6.32.1
 
           # Verify installation
           bashrs --version
@@ -133,7 +133,7 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Install bashrs
-        run: cargo install bashrs --version 6.31.0
+        run: cargo install bashrs --version 6.32.1
 
       - name: Purify deployment script
         run: |
@@ -186,7 +186,7 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Install bashrs
-        run: cargo install bashrs --version 6.31.0
+        run: cargo install bashrs --version 6.32.1
 
       - name: Analyze shell configs
         run: |
@@ -227,7 +227,7 @@ jobs:
 
       - name: Install bashrs and tools
         run: |
-          cargo install bashrs --version 6.31.0
+          cargo install bashrs --version 6.32.1
           cargo install cargo-llvm-cov cargo-mutants
 
       - name: Run quality checks
@@ -294,7 +294,7 @@ jobs:
           esac
 
       - name: Install bashrs
-        run: cargo install bashrs --version 6.31.0
+        run: cargo install bashrs --version 6.32.1
 
       - name: Purify script to POSIX
         run: |
@@ -335,7 +335,7 @@ on:
   workflow_dispatch:
 
 env:
-  BASHRS_VERSION: "6.31.0"
+  BASHRS_VERSION: "6.32.1"
   RUST_BACKTRACE: 1
 
 jobs:
@@ -644,7 +644,7 @@ bashrs also integrates seamlessly with GitLab CI:
 ```yaml
 # .gitlab-ci.yml
 variables:
-  BASHRS_VERSION: "6.31.0"
+  BASHRS_VERSION: "6.32.1"
 
 stages:
   - install
@@ -863,7 +863,7 @@ echo "✅ All checks passed"
 FROM rust:latest AS builder
 
 # Install bashrs
-RUN cargo install bashrs --version 6.31.0
+RUN cargo install bashrs --version 6.32.1
 
 # Copy scripts
 COPY scripts/ /app/scripts/
@@ -1054,7 +1054,7 @@ bashrs score fixed-script.sh
 - name: Verify bashrs checksum
   run: |
     # Download from crates.io with verification
-    cargo install bashrs --version 6.31.0 --locked
+    cargo install bashrs --version 6.32.1 --locked
 ```
 
 ### 3. **Sandboxed Script Execution**

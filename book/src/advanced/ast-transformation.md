@@ -332,7 +332,7 @@ The transformed AST is converted back to shell code:
 
 ```bash
 #!/bin/sh
-# Purified by bashrs v6.31.0
+# Purified by bashrs v6.32.1
 
 SESSION_ID="fixed-session-id"
 mkdir -p /app/releases
