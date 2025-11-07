@@ -1,8 +1,0 @@
-rash/src/linter/rules/sec007.rs:48:37: replace + with - in check
-rash/src/linter/rules/sec007.rs:50:37: replace + with - in check
-rash/src/linter/rules/sec007.rs:49:42: replace + with - in check
-rash/src/linter/rules/sec007.rs:48:37: replace + with * in check
-rash/src/linter/rules/sec007.rs:47:42: replace + with - in check
-rash/src/linter/rules/sec007.rs:47:42: replace + with * in check
-rash/src/linter/rules/sec007.rs:50:37: replace + with * in check
-rash/src/linter/rules/sec007.rs:36:5: replace check -> LintResult with Default::default()

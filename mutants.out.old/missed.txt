@@ -1,1 +1,0 @@
-rash/src/linter/rules/sec007.rs:49:42: replace + with * in check

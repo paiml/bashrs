@@ -1,3 +1,0 @@
-rash/src/linter/rules/sec008.rs:38:5: replace has_curl_or_wget -> bool with true
-rash/src/linter/rules/sec008.rs:57:31: replace + with * in create_curl_pipe_diagnostic
-rash/src/linter/rules/sec008.rs:56:18: replace + with * in create_curl_pipe_diagnostic

@@ -245,10 +245,20 @@ fn test_CLI_MAKE_LINT_006_format_json() {
 
     let stdout = String::from_utf8_lossy(&output.stdout);
 
-    // ASSERT: Output should be valid JSON
+    // ASSERT: Output should contain valid JSON (may have log lines before it)
+    // Find the JSON part (starts with { or [)
+    let json_start = stdout
+        .lines()
+        .position(|line| line.trim().starts_with('{') || line.trim().starts_with('['))
+        .expect("Should find JSON output");
+
+    let json_lines: Vec<&str> = stdout.lines().skip(json_start).collect();
+    let json_output = json_lines.join("\n");
+
     assert!(
-        stdout.trim().starts_with('{') || stdout.trim().starts_with('['),
-        "JSON output should start with {{ or ["
+        json_output.trim().starts_with('{') || json_output.trim().starts_with('['),
+        "JSON output should start with {{ or [, got: {}",
+        json_output
     );
 
     // JSON should contain diagnostic fields
