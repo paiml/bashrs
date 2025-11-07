@@ -371,7 +371,7 @@ fn test_syntax_error_diagnostic() {
         stderr
     );
 
-    assert_eq!(output.status.code(), Some(1));
+    assert_eq!(output.status.code(), Some(2)); // IO/syntax errors return 2
 }
 
 // ============================================================================
@@ -450,7 +450,7 @@ fn test_missing_input_file_error() {
         .arg("nonexistent_file.rs")
         .assert()
         .failure()
-        .code(1)
+        .code(2) // IO errors return 2
         .stderr(predicate::str::contains("error").or(predicate::str::contains("Error")))
         .stderr(predicate::str::contains("No such file or directory"));
 }

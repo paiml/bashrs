@@ -9,6 +9,49 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+**Issue #18: MAKE010 false positives on echo statements containing command keywords** 🐛
+
+- **Fixed MAKE010 linting** to correctly distinguish between actual commands and keywords in echo/printf strings:
+  - **Previous Behavior**: `echo "install here"` incorrectly triggered MAKE010 warning ❌
+  - **New Behavior**: Only actual commands like `cargo install` without error handling are flagged ✅
+
+**Root Cause**:
+- MAKE010 rule used `split_whitespace()` to find command keywords without checking context
+- Any occurrence of "install", "rm", "cp" in echo/printf strings triggered false positives
+- Variable assignments like `MSG="install here"` also incorrectly flagged
+
+**Fix**:
+- Added context detection to `find_critical_command()` function
+- Skips command detection when line starts with `echo`, `printf`, or `cat`
+- Added `is_variable_assignment()` helper to detect quoted variable assignments
+- Skips heredoc context (lines containing `<<`)
+
+**Impact**:
+- ✅ **Eliminates false positives**: Command keywords in strings/assignments no longer flagged
+- ✅ **Maintains accuracy**: Real commands without error handling still caught
+- ✅ **Real-world tested**: Verified on ruchy-docker project (30 warnings → 26 real issues)
+
+**Changes**:
+- Modified `rash/src/linter/rules/make010.rs`: Added context-aware command detection
+- Added `rash/tests/test_issue_018_make010_echo_false_positives.rs`: 8 new integration tests
+- Added 6 property tests for echo/printf/variable assignment patterns
+
+**Test Coverage**:
+- ✅ Echo with command keywords: `echo "Run: make install"` (no warning)
+- ✅ Printf with command keywords: `printf 'Use: rm -rf'` (no warning)
+- ✅ Variable assignments: `MSG="install here"` (no warning)
+- ✅ Heredocs: `cat << EOF` with commands (no warning)
+- ✅ Actual commands still caught: `cargo install foo` (warning as expected)
+- ✅ Mixed scenarios: echo + real command correctly distinguished
+
+**Tested with EXTREME TDD**:
+- ✅ RED phase: 5 failing tests confirmed false positives
+- ✅ GREEN phase: All 8 Issue #18 tests + 17 existing MAKE010 tests pass (25 total)
+- ✅ REFACTOR phase: Code complexity <10, zero clippy warnings
+- ✅ Property tests: 6 property tests covering 600+ generated scenarios
+- ✅ Full test suite: 6407 tests passing, zero regressions
+- ✅ Real-world validation: ruchy-docker Makefile correctly linted
+
 **Issue #16: SC2168 false positive on 'local' in quoted strings** 🐛
 
 - **Fixed Makefile linting** to correctly handle the word "local" in quoted strings:
