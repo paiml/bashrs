@@ -7,6 +7,55 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [6.33.0] - 2025-11-07
+
+### Fixed
+
+**Issue #1: Auto-fix creates invalid syntax for variables in quoted strings** 🐛
+
+- **Problem**: `bashrs lint --fix` created invalid bash syntax by incorrectly quoting variables already inside quoted strings
+  ```bash
+  # Input:
+  echo -e "${BLUE}text${NC}"
+
+  # ❌ Was (after --fix):
+  echo -e "${BLUE}text"${NC}""  # Extra quotes, malformed
+
+  # ✅ Now (after --fix):
+  echo -e "${BLUE}text${NC}"     # Unchanged, already safe
+  ```
+
+- **Root Cause**: SC2086 rule didn't detect variables inside quoted strings
+  - `is_already_quoted()` only checked for immediately adjacent quotes: `"$VAR"`
+  - Failed to detect variables in patterns like: `"${VAR1}text${VAR2}"`
+  - Auto-fix would add quotes, creating: `"${VAR}""`
+
+- **Solution** (EXTREME TDD):
+  - Enhanced `is_already_quoted()` to count unescaped quotes before variable
+  - If odd number of quotes → variable is inside a quoted string
+  - Verifies closing quote exists after the variable
+  - Properly handles braced variables: `${VAR}` vs simple: `$VAR`
+
+- **Impact**:
+  - ✅ Variables inside quoted strings no longer flagged by SC2086
+  - ✅ Auto-fix no longer creates invalid syntax
+  - ✅ Real-world color code patterns work correctly
+  - ✅ Zero regressions (6448 tests passing, +3 new tests)
+
+- **Test Coverage**:
+  - 2 new unit tests in sc2086.rs
+  - 1 new property test (100+ generated test cases)
+  - 4 integration tests in test_issue_001_autofix.rs
+  - All 65 existing SC2086 tests still pass
+  - Verified with real-world bash scripts
+
+- **Quality Verification**:
+  - ✅ RED Phase: Failing tests written and confirmed
+  - ✅ GREEN Phase: Implementation fixed, all tests pass
+  - ✅ REFACTOR Phase: Code complexity <10, well-documented
+  - ✅ Property tests: Generative tests for quote-counting logic
+  - ✅ Integration tests: End-to-end auto-fix verification
+
 ## [6.32.1] - 2025-11-07
 
 ### Fixed
