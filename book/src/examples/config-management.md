@@ -172,7 +172,7 @@ bashrs config purify ~/.bashrc --report
 
 ```bash
 #!/bin/sh
-# ~/.bashrc - Purified by bashrs v6.31.0
+# ~/.bashrc - Purified by bashrs v6.32.1
 # This is safe, deterministic, idempotent POSIX shell configuration
 
 # ✅ Purified: Idempotent PATH management
@@ -533,7 +533,7 @@ Split configuration into modular files:
 ```bash
 # ~/.bashrc - Main configuration
 #!/bin/sh
-# Purified by bashrs v6.31.0
+# Purified by bashrs v6.32.1
 
 # Source base configuration
 if [ -f "${HOME}/.config/shell/base.sh" ]; then
@@ -725,7 +725,7 @@ jobs:
 
       - name: Install bashrs
         run: |
-          cargo install bashrs --version 6.31.0
+          cargo install bashrs --version 6.32.1
           bashrs --version
 
       - name: Analyze configurations

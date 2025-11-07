@@ -1,6 +1,6 @@
 # Exit Codes
 
-This chapter provides a complete reference for bashrs v6.31.0 exit codes, their meanings, and how to handle them in scripts and CI/CD pipelines.
+This chapter provides a complete reference for bashrs v6.32.1 exit codes, their meanings, and how to handle them in scripts and CI/CD pipelines.
 
 ## Table of Contents
 

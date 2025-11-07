@@ -208,7 +208,7 @@ The purified version is clean, safe, and idempotent:
 
 ```bash
 #!/bin/sh
-# .bashrc - Purified by bashrs v6.31.0
+# .bashrc - Purified by bashrs v6.32.1
 # Original backed up to ~/.bashrc.bak
 
 # Idempotent PATH management helper
@@ -264,7 +264,7 @@ touch "${HOME}/.config/myapp/config.ini"
 ### Purification Report
 
 ```text
-bashrs config purify v6.31.0
+bashrs config purify v6.32.1
 
 Input:  /home/user/.bashrc (42 lines)
 Output: /home/user/.bashrc.purified (45 lines)
@@ -788,7 +788,7 @@ git commit -m "Initial commit before purification"
 
 # After purification
 git add .bashrc.purified
-git commit -m "Purified .bashrc with bashrs v6.31.0"
+git commit -m "Purified .bashrc with bashrs v6.32.1"
 ```
 
 ### 4. Separate Concerns
@@ -1049,7 +1049,7 @@ bashrs config purify ~/.bashrc \
 
 Output:
 ```text
-bashrs config purify v6.31.0
+bashrs config purify v6.32.1
 
 Transformations Applied:
   - Deduplicated 18 PATH entries → 9 unique
@@ -1094,7 +1094,7 @@ ln -s ~/.bashrc.purified ~/.bashrc
 
 # Day 7: Commit to version control
 git add ~/.bashrc.purified
-git commit -m "Purified .bashrc with bashrs v6.31.0"
+git commit -m "Purified .bashrc with bashrs v6.32.1"
 git push
 
 # Day 30: Remove old backup

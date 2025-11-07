@@ -487,7 +487,7 @@ open https://crates.io/crates/bashrs/versions
 
 **Minor releases** (new features):
 - **When**: Monthly or when significant feature is complete
-- **Example**: v6.30.0 → v6.31.0 (added SEC009-SEC012 rules)
+- **Example**: v6.30.0 → v6.32.1 (added SEC009-SEC012 rules)
 
 **Major releases** (breaking changes):
 - **When**: Quarterly or when necessary for major improvements
