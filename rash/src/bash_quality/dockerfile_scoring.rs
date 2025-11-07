@@ -73,11 +73,52 @@ impl Default for DockerfileQualityScore {
     }
 }
 
+/// Lint penalty breakdown
+struct LintPenalty {
+    determinism: f64,
+    security: f64,
+    layer: f64,
+}
+
+/// Calculate scoring penalties based on Dockerfile lint results (Issue #19)
+///
+/// Penalties are intentionally small to avoid overwhelming existing scoring.
+/// The main value is in the detailed suggestions shown to users.
+fn calculate_lint_penalty(lint_results: &crate::linter::LintResult) -> LintPenalty {
+    let mut penalty = LintPenalty {
+        determinism: 0.0,
+        security: 0.0,
+        layer: 0.0,
+    };
+
+    for diag in &lint_results.diagnostics {
+        match diag.code.as_str() {
+            "DOCKER001" => penalty.security += 0.5, // Missing USER (security issue, but scratch is OK)
+            "DOCKER002" => penalty.determinism += 0.2, // Unpinned base image (common, minor penalty)
+            "DOCKER003" => penalty.layer += 0.2,       // Missing apt cleanup
+            "DOCKER004" => penalty.security += 0.5,    // Invalid COPY --from
+            "DOCKER005" => penalty.layer += 0.1, // Missing --no-install-recommends (info level)
+            "DOCKER006" => penalty.security += 0.05, // Use COPY not ADD (very minor)
+            _ => {}
+        }
+    }
+
+    penalty
+}
+
 /// Score a Dockerfile for quality
 ///
 /// Returns Dockerfile-specific quality score with grade, numeric score, and suggestions.
+/// Now integrates Issue #19 Dockerfile linting rules for accurate scoring.
 pub fn score_dockerfile(source: &str) -> Result<DockerfileQualityScore, String> {
     let mut score = DockerfileQualityScore::new();
+
+    // Run Dockerfile linting (Issue #19) to get accurate diagnostics
+    use crate::linter::rules::lint_dockerfile;
+    let lint_results = lint_dockerfile(source);
+
+    // Apply lint penalties to scores
+    let lint_penalty = calculate_lint_penalty(&lint_results);
 
     // Calculate each dimension
     score.safety = calculate_safety_score(source);
@@ -85,6 +126,11 @@ pub fn score_dockerfile(source: &str) -> Result<DockerfileQualityScore, String> 
     score.layer_optimization = calculate_layer_optimization_score(source);
     score.determinism = calculate_determinism_score(source);
     score.security = calculate_security_score(source);
+
+    // Apply lint penalties to relevant dimensions
+    score.determinism = (score.determinism - lint_penalty.determinism).max(0.0);
+    score.security = (score.security - lint_penalty.security).max(0.0);
+    score.layer_optimization = (score.layer_optimization - lint_penalty.layer).max(0.0);
 
     // Calculate overall score (weighted average per Issue #10 spec)
     score.score = (score.safety * 0.30)
@@ -98,6 +144,13 @@ pub fn score_dockerfile(source: &str) -> Result<DockerfileQualityScore, String> 
 
     // Generate suggestions
     score.suggestions = generate_suggestions(source, &score);
+
+    // Add lint-based suggestions (Issue #19)
+    for diag in &lint_results.diagnostics {
+        score
+            .suggestions
+            .push(format!("Line {}: {}", diag.span.start_line, diag.message));
+    }
 
     Ok(score)
 }
