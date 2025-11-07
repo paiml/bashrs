@@ -56,6 +56,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - ✅ Example verification: quality_tools_demo runs successfully
   - ⚠️ Mutation testing: Blocked by pre-existing test failures (unrelated to Issue #20)
 
+**REPL History Tests Fixed** 🔧
+
+- **Problem**: 8 REPL history tests failing when run in parallel
+  - Error: "Failed to read history file: No such file or directory"
+  - Tests: test_repl_015_new_002 through test_repl_015_new_010
+
+- **Root Cause**: Tests setting same HOME environment variable globally
+  - Parallel test execution caused race conditions
+  - Each test needed unique history file path
+
+- **Solution**:
+  - Added `history_path` field to ReplConfig (Optional<PathBuf>)
+  - Added `with_history_path()` builder method
+  - Updated `get_history_path()` to check BASHRS_HISTORY_PATH env var first
+  - Tests now use BASHRS_HISTORY_PATH with unique temp file per test
+
+- **Impact**:
+  - ✅ All 10 REPL history tests now passing (was 2/10)
+  - ✅ Tests can run in parallel without conflicts
+  - ✅ Each test gets isolated history file in temp directory
+  - ✅ Backward compatible (existing behavior unchanged)
+  - ✅ Zero regressions
+
+- **Files Changed**:
+  - rash/src/repl/config.rs: Add history_path field and builder
+  - rash/src/repl/loop.rs: Support BASHRS_HISTORY_PATH env var
+
 ## [6.32.0] - 2025-11-07
 
 ### Added

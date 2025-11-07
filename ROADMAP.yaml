@@ -30,13 +30,15 @@ workflows:
 releases:
   - version: "6.32.1"
     date: "2025-11-07"
-    status: "READY FOR FRIDAY (crates.io publish on Nov 8)"
-    title: "🐛 Bugfix - SC2154 False Positives for Loop Variables"
-    description: "Fixed SC2154 incorrectly flagging loop variables as undefined, with comprehensive EXTREME TDD methodology"
+    status: "PUBLISHED to crates.io"
+    title: "🐛 Bugfix - SC2154 False Positives + REPL History Test Fixes"
+    description: "Fixed SC2154 incorrectly flagging loop variables as undefined, plus fixed 8 failing REPL history tests with comprehensive EXTREME TDD methodology"
     achievements:
       - "Issue #20 Fixed: Loop variables (for var in ...) now correctly recognized"
       - "Indented Assignments: Variables with leading whitespace now detected"
       - "User Error Documented: Invalid pipe syntax in for loops explained"
+      - "REPL History Tests Fixed: All 10 tests now passing (was 2/10)"
+      - "Parallelization-Safe: Tests use unique history files via BASHRS_HISTORY_PATH"
       - "Zero regressions: 6445 tests passing (8 new tests added)"
     quality_metrics:
       grade: "A+"
@@ -46,6 +48,7 @@ releases:
       property_tests_added: 4
       property_test_cases: "400+"
       integration_tests: 6
+      repl_tests_fixed: 8
       clippy_warnings: 0
       code_complexity: "<10 all functions"
       mutation_testing: "Blocked by pre-existing test failures (unrelated)"
@@ -54,14 +57,19 @@ releases:
       - "b6ed5b09a: fix: Issue #20 - SC2154 false positives for loop variables"
       - "df90dcd69: docs: Update CHANGELOG.md for Issue #20 (v6.32.1)"
       - "36d0c0064: chore: Bump version to 6.32.1"
+      - "09d2743b9: fix: REPL history tests - Support BASHRS_HISTORY_PATH environment variable"
     published:
       github_tag: "v6.32.1 (pushed)"
       github_issue_20: "Closed"
-      crates_io: "Pending Friday, Nov 8"
+      crates_io: "Published Nov 7, 2025"
+      docs_rs: "Building automatically"
     documentation:
       - "CHANGELOG.md (v6.32.1 comprehensive release notes)"
       - "GitHub Issue #20 (closed with detailed summary)"
       - "Git tag v6.32.1 (comprehensive release notes)"
+      - "VERIFICATION-6.32.1.md (comprehensive verification report)"
+      - "RELEASE-6.32.1-COMPLETE.md (release completion report)"
+      - "PROJECT-STATE-2025-11-07.md (project state summary)"
 
   - version: "6.32.0"
     date: "2025-11-07"
