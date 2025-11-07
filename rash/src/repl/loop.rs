@@ -70,7 +70,10 @@ pub fn run_repl(config: ReplConfig) -> Result<()> {
     let mut state = ReplState::new();
 
     // Load history from file (if exists)
-    let history_path = get_history_path()?;
+    // Use custom history path from config, or default to ~/.bashrs_history
+    let history_path = config.history_path.clone().unwrap_or_else(|| {
+        get_history_path().unwrap_or_else(|_| PathBuf::from(".bashrs_history"))
+    });
     if history_path.exists() {
         let _ = editor.load_history(&history_path);
     }
@@ -557,6 +560,12 @@ fn handle_reload_command(state: &mut ReplState) {
 /// Returns the path to the REPL history file.
 /// Default location: ~/.bashrs_history
 ///
+/// Priority:
+/// 1. BASHRS_HISTORY_PATH environment variable (for testing)
+/// 2. $HOME/.bashrs_history (Unix)
+/// 3. %USERPROFILE%/.bashrs_history (Windows)
+/// 4. ./.bashrs_history (fallback)
+///
 /// # Examples
 ///
 /// ```rust,ignore
@@ -564,6 +573,11 @@ fn handle_reload_command(state: &mut ReplState) {
 /// println!("History at: {:?}", history_path);
 /// ```
 fn get_history_path() -> Result<PathBuf> {
+    // Check for BASHRS_HISTORY_PATH environment variable first (for testing)
+    if let Ok(custom_path) = std::env::var("BASHRS_HISTORY_PATH") {
+        return Ok(PathBuf::from(custom_path));
+    }
+
     // Use home directory for history file
     let home = std::env::var("HOME")
         .or_else(|_| std::env::var("USERPROFILE"))

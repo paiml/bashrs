@@ -9,6 +9,7 @@
 // - Mutation score: ≥90%
 // - Complexity: <10 per function
 
+use std::path::PathBuf;
 use std::time::Duration;
 
 /// Configuration for the bashrs REPL
@@ -42,6 +43,9 @@ pub struct ReplConfig {
 
     /// Ignore commands starting with space (default: true)
     pub history_ignore_space: bool,
+
+    /// Custom history file path (default: None, uses ~/.bashrs_history)
+    pub history_path: Option<PathBuf>,
 }
 
 impl Default for ReplConfig {
@@ -55,6 +59,7 @@ impl Default for ReplConfig {
             max_history: 1000,
             history_ignore_dups: true,
             history_ignore_space: true,
+            history_path: None,
         }
     }
 }
@@ -71,6 +76,7 @@ impl ReplConfig {
             max_history: 1000,
             history_ignore_dups: true,
             history_ignore_space: true,
+            history_path: None,
         }
     }
 
@@ -85,6 +91,7 @@ impl ReplConfig {
             max_history: 100, // Limited history in sandboxed mode
             history_ignore_dups: true,
             history_ignore_space: true,
+            history_path: None,
         }
     }
 
@@ -109,6 +116,12 @@ impl ReplConfig {
     /// Set maximum recursion depth
     pub fn with_max_depth(mut self, max_depth: usize) -> Self {
         self.max_depth = max_depth;
+        self
+    }
+
+    /// Set custom history file path
+    pub fn with_history_path(mut self, history_path: PathBuf) -> Self {
+        self.history_path = Some(history_path);
         self
     }
 
