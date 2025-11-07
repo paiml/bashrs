@@ -7,6 +7,45 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+**Issue #19: Dockerfile-specific linting support** ✨
+
+- **New Feature**: Dockerfile linting with 6 hadolint-inspired rules
+- **Function**: `lint_dockerfile(source: &str)` for programmatic use
+- **Replaces**: Basic bash scoring of RUN commands with comprehensive Dockerfile analysis
+
+**Rules Implemented**:
+1. **DOCKER001** (DL3002): Missing USER directive - container runs as root (security risk)
+2. **DOCKER002** (DL3006, DL3007): Unpinned base images or :latest tag (reproducibility)
+3. **DOCKER003** (DL3009): Missing apt-get cleanup - add `rm -rf /var/lib/apt/lists/*`
+4. **DOCKER004** (DL3022): Invalid COPY --from reference in multi-stage builds
+5. **DOCKER005** (DL3015): Missing --no-install-recommends (image size optimization)
+6. **DOCKER006** (DL3020): Use COPY instead of ADD for regular files
+
+**Key Features**:
+- ✅ **Multi-stage build validation**: Tracks stage names, validates COPY --from
+- ✅ **Smart context detection**: scratch images don't need USER directive
+- ✅ **Multi-line RUN support**: Handles backslash continuations correctly
+- ✅ **Hadolint compatibility**: Rules mapped to equivalent hadolint codes
+
+**Impact**:
+- Detects security issues (root user, unpinned images)
+- Identifies image size optimizations (apt cleanup, --no-install-recommends)
+- Validates multi-stage build correctness
+- Improves Dockerfile best practices
+
+**Test Coverage**:
+- 10 integration tests for all 6 rules
+- Verified on real ruchy-docker Dockerfiles (Python, Rust, Go, C, Deno)
+- Multi-stage build edge cases tested
+
+**Tested with EXTREME TDD**:
+- ✅ RED phase: 10 failing tests confirmed missing functionality
+- ✅ GREEN phase: All tests passing with minimal implementation
+- ✅ REFACTOR phase: Added hadolint-inspired rules (DL3015, DL3020)
+- ✅ Real-world validation: Tested on 8 production Dockerfiles
+
 ### Fixed
 
 **Issue #18: MAKE010 false positives on echo statements containing command keywords** 🐛
