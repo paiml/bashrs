@@ -1,8 +1,9 @@
 // Exit code tests for bashrs lint command (Issue #6)
 //
-// Expected behavior (aligned with shellcheck, eslint, gcc):
-// - Exit 0: No errors found (warnings/info are OK)
-// - Exit 1: Errors found (actual lint failures)
+// Expected behavior (aligned with make lint):
+// - Exit 0: No issues found
+// - Exit 1: Warnings found (no errors)
+// - Exit 2: Errors found
 // - Exit 2: Tool failure (invalid arguments, file not found)
 //
 // EXTREME TDD: Test-driven development for Issue #6
@@ -37,7 +38,7 @@ echo "Hello, World"
     bashrs_cmd().arg("lint").arg(file.path()).assert().success(); // success() checks exit code 0
 }
 
-/// Test: Exit 0 when only warnings (no errors)
+/// Test: Exit 1 when only warnings (no errors)
 #[test]
 fn test_issue_006_exit_0_warnings_only() {
     // ARRANGE: Script with warning (SC2086 - unquoted variable)
@@ -50,8 +51,8 @@ echo $var
     let mut file = NamedTempFile::new().unwrap();
     file.write_all(bash_code.as_bytes()).unwrap();
 
-    // ACT & ASSERT: Should exit 0 (warnings are non-blocking)
-    bashrs_cmd().arg("lint").arg(file.path()).assert().success(); // Exit 0 for warnings only
+    // ACT & ASSERT: Should exit 1 (warnings found)
+    bashrs_cmd().arg("lint").arg(file.path()).assert().code(1); // Exit 1 for warnings
 }
 
 /// Test: Exit 0 when only info messages (no errors)
@@ -82,16 +83,16 @@ fn test_issue_006_exit_1_errors_found() {
     let mut file = NamedTempFile::new().unwrap();
     file.write_all(bash_code.as_bytes()).unwrap();
 
-    // ACT & ASSERT: Should exit 1 (errors found)
+    // ACT & ASSERT: Should exit 2 (errors found)
     bashrs_cmd()
         .arg("lint")
         .arg(file.path())
         .assert()
         .failure() // Exit non-zero
-        .code(1); // Specifically exit code 1
+        .code(2); // Exit code 2 for errors
 }
 
-/// Test: Exit 1 when multiple errors found
+/// Test: Exit 2 when multiple errors found
 #[test]
 fn test_issue_006_exit_1_multiple_errors() {
     // ARRANGE: Script with multiple errors (SC2188)
@@ -105,16 +106,16 @@ echo $y  # WARNING (unquoted variable)
     let mut file = NamedTempFile::new().unwrap();
     file.write_all(bash_code.as_bytes()).unwrap();
 
-    // ACT & ASSERT: Should exit 1 (errors found, even with warnings)
+    // ACT & ASSERT: Should exit 2 (errors found, even with warnings)
     bashrs_cmd()
         .arg("lint")
         .arg(file.path())
         .assert()
         .failure()
-        .code(1);
+        .code(2); // Exit code 2 for errors
 }
 
-/// Test: Exit 1 when errors AND warnings (errors take precedence)
+/// Test: Exit 2 when errors AND warnings (errors take precedence)
 #[test]
 fn test_issue_006_exit_1_errors_and_warnings() {
     // ARRANGE: Script with both errors and warnings
@@ -128,13 +129,13 @@ echo $var  # WARNING (unquoted variable)
     let mut file = NamedTempFile::new().unwrap();
     file.write_all(bash_code.as_bytes()).unwrap();
 
-    // ACT & ASSERT: Should exit 1 (errors present)
+    // ACT & ASSERT: Should exit 2 (errors present)
     bashrs_cmd()
         .arg("lint")
         .arg(file.path())
         .assert()
         .failure()
-        .code(1);
+        .code(2); // Exit code 2 for errors
 }
 
 /// Test: Exit 2 for tool failure (file not found)
@@ -174,8 +175,8 @@ fn test_issue_006_exit_2_invalid_format() {
 // CI/CD Integration Tests
 // ============================================================================
 
-/// Test: CI/CD pipeline with warnings should pass (exit 0)
-/// This is the critical use case from Issue #6
+/// Test: CI/CD pipeline with warnings should exit 1
+/// Updated behavior: warnings exit with code 1 (non-zero for CI/CD failure)
 #[test]
 fn test_issue_006_ci_cd_warnings_pass() {
     // ARRANGE: Typical CI/CD script with minor warnings
@@ -189,19 +190,19 @@ deploy_to_production
     let mut file = NamedTempFile::new().unwrap();
     file.write_all(bash_code.as_bytes()).unwrap();
 
-    // ACT & ASSERT: CI/CD should pass with only warnings
+    // ACT & ASSERT: Should exit 1 for warnings
     let output = bashrs_cmd().arg("lint").arg(file.path()).output().unwrap();
 
-    // Should exit 0 (warnings don't block CI/CD)
+    // Should exit 1 (warnings found)
     assert_eq!(
         output.status.code(),
-        Some(0),
-        "CI/CD should pass with warnings. Exit code should be 0, got: {:?}",
+        Some(1),
+        "Should exit 1 with warnings. Exit code should be 1, got: {:?}",
         output.status.code()
     );
 }
 
-/// Test: CI/CD pipeline with errors should fail (exit 1)
+/// Test: CI/CD pipeline with errors should fail (exit 2)
 #[test]
 fn test_issue_006_ci_cd_errors_fail() {
     // ARRANGE: CI/CD script with actual errors
@@ -217,11 +218,11 @@ VERSION="1.0.0"
     // ACT & ASSERT: CI/CD should fail with errors
     let output = bashrs_cmd().arg("lint").arg(file.path()).output().unwrap();
 
-    // Should exit 1 (errors block CI/CD)
+    // Should exit 2 (errors found)
     assert_eq!(
         output.status.code(),
-        Some(1),
-        "CI/CD should fail with errors. Exit code should be 1, got: {:?}",
+        Some(2),
+        "CI/CD should fail with errors. Exit code should be 2, got: {:?}",
         output.status.code()
     );
 }
