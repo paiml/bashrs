@@ -71,9 +71,10 @@ pub fn run_repl(config: ReplConfig) -> Result<()> {
 
     // Load history from file (if exists)
     // Use custom history path from config, or default to ~/.bashrs_history
-    let history_path = config.history_path.clone().unwrap_or_else(|| {
-        get_history_path().unwrap_or_else(|_| PathBuf::from(".bashrs_history"))
-    });
+    let history_path = config
+        .history_path
+        .clone()
+        .unwrap_or_else(|| get_history_path().unwrap_or_else(|_| PathBuf::from(".bashrs_history")));
     if history_path.exists() {
         let _ = editor.load_history(&history_path);
     }
