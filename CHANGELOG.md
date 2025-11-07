@@ -7,6 +7,55 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [6.32.1] - 2025-11-07
+
+### Fixed
+
+**Issue #20: SC2154 false positives for loop variables** 🐛
+
+- **Problem**: bashrs lint incorrectly reported SC2154 warnings for loop variables
+  ```bash
+  for file in *.txt; do
+      echo "$file"  # ❌ Was: SC2154 false positive
+  done              # ✅ Now: No warning
+  ```
+
+- **Root Cause**: Two bugs discovered:
+  1. Loop variables (for var in ...) not recognized as assigned
+  2. Indented assignments not detected (regex didn't allow leading whitespace)
+
+- **Discovery**: Original report included INVALID bash syntax (`for x in glob | sort; do`)
+  - This is user error - bash itself rejects pipe syntax in for loops
+  - Valid syntax requires command substitution: `for x in $(find ... | sort); do`
+  - Documented this in test files to help future users
+
+- **Solution** (EXTREME TDD):
+  - Added loop variable detection regex: `\bfor\s+([A-Za-z_][A-Za-z0-9_]*)\s+in\b`
+  - Fixed indented assignment regex: `^\s*([A-Za-z_][A-Za-z0-9_]*)=`
+  - Loop variables now correctly recognized as assigned
+  - Indented assignments (common in loops/conditionals) now detected
+
+- **Impact**:
+  - ✅ Loop variables no longer flagged as undefined
+  - ✅ Indented assignments now recognized
+  - ✅ Undefined variables still correctly detected
+  - ✅ Zero regressions (6445/6445 tests passing)
+
+- **Test Coverage**:
+  - 4 new unit tests in sc2154.rs
+  - 4 new property tests (400+ generated test cases)
+  - 6 integration tests with valid bash syntax
+  - Property tests discovered substring matching bug (fixed)
+  - Verified on real project (ruchy-docker)
+
+- **Quality Verification**:
+  - ✅ Unit tests: 8 total (4 new + 4 existing)
+  - ✅ Property tests: 4 tests × 100+ cases = 400+ scenarios tested
+  - ✅ Integration tests: 6 CLI-level tests
+  - ✅ All 6445 library tests passing
+  - ✅ Example verification: quality_tools_demo runs successfully
+  - ⚠️ Mutation testing: Blocked by pre-existing test failures (unrelated to Issue #20)
+
 ## [6.32.0] - 2025-11-07
 
 ### Added
