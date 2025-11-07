@@ -368,6 +368,14 @@ pub mod make018;
 pub mod make019;
 pub mod make020;
 
+// Dockerfile rules
+pub mod docker001;
+pub mod docker002;
+pub mod docker003;
+pub mod docker004;
+pub mod docker005;
+pub mod docker006;
+
 use crate::linter::LintResult;
 
 /// Lint a shell script with path-based shell type detection
@@ -938,6 +946,21 @@ pub fn lint_shell(source: &str) -> LintResult {
     result.merge(sec006::check(source));
     result.merge(sec007::check(source));
     result.merge(sec008::check(source));
+
+    result
+}
+
+/// Lint a Dockerfile and return all diagnostics
+pub fn lint_dockerfile(source: &str) -> LintResult {
+    let mut result = LintResult::new();
+
+    // Run Dockerfile-specific rules (inspired by hadolint)
+    result.merge(docker001::check(source)); // Missing USER directive (DL3002)
+    result.merge(docker002::check(source)); // Unpinned base images (DL3006, DL3007)
+    result.merge(docker003::check(source)); // Missing apt cleanup (DL3009)
+    result.merge(docker004::check(source)); // Invalid COPY --from (DL3022)
+    result.merge(docker005::check(source)); // Missing --no-install-recommends (DL3015)
+    result.merge(docker006::check(source)); // Use COPY not ADD (DL3020)
 
     result
 }
