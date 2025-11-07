@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [6.32.0] - 2025-11-07
+
 ### Added
 
 **Issue #19: Dockerfile-specific linting support** ✨
