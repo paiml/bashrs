@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"constant":["SILENT_COMMANDS"],"fn":["check","check_recipe_line","is_command"]};
+window.SIDEBAR_ITEMS = {"constant":["SILENT_COMMANDS"],"fn":["check","check_recipe_line","is_command","is_continuation_line"]};

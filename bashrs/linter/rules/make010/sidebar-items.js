@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"constant":["CRITICAL_COMMANDS"],"fn":["check","find_critical_command","has_error_handling"]};
+window.SIDEBAR_ITEMS = {"constant":["CRITICAL_COMMANDS"],"fn":["check","find_critical_command","has_error_handling","is_variable_assignment"]};

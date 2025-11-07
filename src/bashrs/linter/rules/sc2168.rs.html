@@ -609,10 +609,10 @@
 <a href=#609 id=609 data-nosnippet>609</a>    </span><span class="kw">fn </span>prop_sc2168_mixed_quotes_only_quoted_local_ignored() {
 <a href=#610 id=610 data-nosnippet>610</a>        <span class="comment">// Property: Only 'local' in quotes should be ignored, unquoted 'local' should be caught
 <a href=#611 id=611 data-nosnippet>611</a>        </span><span class="kw">let </span>test_cases = <span class="macro">vec!</span>[
-<a href=#612 id=612 data-nosnippet>612</a>            (<span class="string">"echo 'local'"</span>, <span class="number">0</span>),                  <span class="comment">// In quotes - OK
-<a href=#613 id=613 data-nosnippet>613</a>            </span>(<span class="string">"local var=\"value\""</span>, <span class="number">1</span>),            <span class="comment">// Not in quotes - ERROR
-<a href=#614 id=614 data-nosnippet>614</a>            </span>(<span class="string">"echo 'local' &amp;&amp; local x=5"</span>, <span class="number">1</span>),    <span class="comment">// Mixed: quoted OK, unquoted ERROR
-<a href=#615 id=615 data-nosnippet>615</a>            </span>(<span class="string">"echo \"local\" \"test\""</span>, <span class="number">0</span>),       <span class="comment">// All quoted - OK
+<a href=#612 id=612 data-nosnippet>612</a>            (<span class="string">"echo 'local'"</span>, <span class="number">0</span>),              <span class="comment">// In quotes - OK
+<a href=#613 id=613 data-nosnippet>613</a>            </span>(<span class="string">"local var=\"value\""</span>, <span class="number">1</span>),       <span class="comment">// Not in quotes - ERROR
+<a href=#614 id=614 data-nosnippet>614</a>            </span>(<span class="string">"echo 'local' &amp;&amp; local x=5"</span>, <span class="number">1</span>), <span class="comment">// Mixed: quoted OK, unquoted ERROR
+<a href=#615 id=615 data-nosnippet>615</a>            </span>(<span class="string">"echo \"local\" \"test\""</span>, <span class="number">0</span>),   <span class="comment">// All quoted - OK
 <a href=#616 id=616 data-nosnippet>616</a>        </span>];
 <a href=#617 id=617 data-nosnippet>617</a>
 <a href=#618 id=618 data-nosnippet>618</a>        <span class="kw">for </span>(code, expected_count) <span class="kw">in </span>test_cases {
@@ -630,7 +630,7 @@
 <a href=#630 id=630 data-nosnippet>630</a>    </span><span class="kw">fn </span>prop_sc2168_quote_escaping_handled_correctly() {
 <a href=#631 id=631 data-nosnippet>631</a>        <span class="comment">// Property: Escaped quotes should be handled correctly
 <a href=#632 id=632 data-nosnippet>632</a>        </span><span class="kw">let </span>test_cases = <span class="macro">vec!</span>[
-<a href=#633 id=633 data-nosnippet>633</a>            (<span class="string">"echo 'it\\'s local'"</span>, <span class="number">0</span>),          <span class="comment">// 'local' still in quotes
+<a href=#633 id=633 data-nosnippet>633</a>            (<span class="string">"echo 'it\\'s local'"</span>, <span class="number">0</span>),             <span class="comment">// 'local' still in quotes
 <a href=#634 id=634 data-nosnippet>634</a>            </span>(<span class="string">"echo \"she said \\\"local\\\"\""</span>, <span class="number">0</span>), <span class="comment">// 'local' still in quotes
 <a href=#635 id=635 data-nosnippet>635</a>        </span>];
 <a href=#636 id=636 data-nosnippet>636</a>
