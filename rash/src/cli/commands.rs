@@ -747,12 +747,14 @@ fn lint_command(
             .map_err(|e| Error::Internal(format!("Failed to write lint results: {e}")))?;
 
         // Exit with appropriate code (Issue #6)
-        // Exit 0: No errors (warnings/info OK)
-        // Exit 1: Errors found
+        // Exit 0: No issues
+        // Exit 1: Warnings found
+        // Exit 2: Errors found
         if result.has_errors() {
+            std::process::exit(2);
+        } else if result.has_warnings() {
             std::process::exit(1);
         }
-        // Warnings/info are non-blocking, exit 0
     }
 
     Ok(())

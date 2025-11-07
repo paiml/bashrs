@@ -161,4 +161,46 @@ mod tests {
         // Should NOT warn (final stage is scratch)
         assert_eq!(result.diagnostics.len(), 0);
     }
+
+    // Property-based tests
+    #[cfg(test)]
+    mod property_tests {
+        use super::*;
+        use proptest::prelude::*;
+
+        proptest! {
+            #[test]
+            fn prop_never_panics(dockerfile in ".*") {
+                let _ = check(&dockerfile);
+            }
+
+            #[test]
+            fn prop_scratch_never_warns(
+                commands in prop::collection::vec("(RUN|COPY|CMD|ENTRYPOINT) .*", 0..10)
+            ) {
+                let dockerfile = format!("FROM scratch\n{}", commands.join("\n"));
+                let result = check(&dockerfile);
+                prop_assert_eq!(result.diagnostics.len(), 0);
+            }
+
+            #[test]
+            fn prop_with_user_never_warns(
+                base_image in "[a-z]+:[0-9.]+",
+                username in "[a-z][a-z0-9_]*"
+            ) {
+                let dockerfile = format!("FROM {}\nUSER {}\nCMD [\"app\"]", base_image, username);
+                let result = check(&dockerfile);
+                prop_assert_eq!(result.diagnostics.len(), 0);
+            }
+
+            #[test]
+            fn prop_without_user_warns(
+                base_image in "[a-z]+:[0-9.]+"
+            ) {
+                let dockerfile = format!("FROM {}\nCMD [\"app\"]", base_image);
+                let result = check(&dockerfile);
+                prop_assert_eq!(result.diagnostics.len(), 1);
+            }
+        }
+    }
 }
