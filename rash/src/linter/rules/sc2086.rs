@@ -62,7 +62,61 @@ fn is_in_arithmetic_context(line: &str, dollar_pos: usize, var_end: usize) -> bo
 fn is_already_quoted(line: &str, dollar_pos: usize, var_end: usize) -> bool {
     let before_context = &line[..dollar_pos];
     let after_context = &line[var_end..];
-    before_context.ends_with('"') && after_context.starts_with('"')
+
+    // Simple case: "$VAR" (immediately surrounded by quotes)
+    if before_context.ends_with('"') && after_context.starts_with('"') {
+        return true;
+    }
+
+    // Braced case: "${VAR}" (immediately surrounded by quotes)
+    if after_context.starts_with('}') {
+        if let Some(brace_pos) = after_context.find('}') {
+            let after_brace = &after_context[brace_pos + 1..];
+            if before_context.ends_with('"') && after_brace.starts_with('"') {
+                return true;
+            }
+        }
+    }
+
+    // Check if variable is inside a quoted string (e.g., "${VAR1}text${VAR2}")
+    // Count unescaped quotes before the variable
+    let mut quote_count = 0;
+    let mut escaped = false;
+    for ch in before_context.chars() {
+        if escaped {
+            escaped = false;
+            continue;
+        }
+        if ch == '\\' {
+            escaped = true;
+            continue;
+        }
+        if ch == '"' {
+            quote_count += 1;
+        }
+    }
+
+    // If odd number of quotes, we're inside a quoted string
+    // Check if there's a closing quote after the variable
+    if quote_count % 2 == 1 {
+        // For braced variables, check after the closing brace
+        if after_context.starts_with('}') {
+            if let Some(brace_pos) = after_context.find('}') {
+                let after_brace = &after_context[brace_pos + 1..];
+                // Look for closing quote (could be immediately or after more content)
+                if after_brace.contains('"') {
+                    return true;
+                }
+            }
+        } else {
+            // For simple variables, check after the variable name
+            if after_context.contains('"') {
+                return true;
+            }
+        }
+    }
+
+    false
 }
 
 /// Build diagnostic for unquoted variable
@@ -242,6 +296,44 @@ echo $ACTUAL
             result.diagnostics.len(),
             0,
             "Should not trigger on already-quoted variables"
+        );
+    }
+
+    #[test]
+    fn test_sc2086_skip_braced_in_quoted_string() {
+        // Issue #1: Variables inside quoted strings should not be flagged
+        let bash_code = r#"echo "${VAR1}text${VAR2}""#;
+        let result = check(bash_code);
+
+        // Should NOT trigger - variables are inside quoted string
+        assert_eq!(
+            result.diagnostics.len(),
+            0,
+            "Should not trigger on variables inside quoted strings. Found: {:?}",
+            result
+                .diagnostics
+                .iter()
+                .map(|d| &d.message)
+                .collect::<Vec<_>>()
+        );
+    }
+
+    #[test]
+    fn test_sc2086_skip_color_codes_in_quotes() {
+        // Issue #1: Real-world case with color codes
+        let bash_code = r#"echo -e "${BLUE}text${NC}""#;
+        let result = check(bash_code);
+
+        // Should NOT trigger - variables are inside quoted string
+        assert_eq!(
+            result.diagnostics.len(),
+            0,
+            "Should not trigger on color codes in quoted strings. Found: {:?}",
+            result
+                .diagnostics
+                .iter()
+                .map(|d| &d.message)
+                .collect::<Vec<_>>()
         );
     }
 
@@ -1094,6 +1186,23 @@ fi
                 // INVARIANT: Quoted variables should not produce diagnostics
                 prop_assert_eq!(result.diagnostics.len(), 0,
                     "Already-quoted variables should not be flagged");
+            }
+
+            #[test]
+            fn prop_braced_variables_in_quotes_never_flagged(
+                var1 in "[a-z]{1,10}",
+                var2 in "[a-z]{1,10}",
+                text in "[a-z ]{0,20}"
+            ) {
+                // PROPERTY: Variables inside quoted strings should never be flagged
+                // Issue #1: Fixes auto-fix creating invalid syntax
+                // Catches: quote-counting logic errors in is_already_quoted
+                let bash_code = format!("echo \"${{{}}}{}${{{}}}\"", var1, text, var2);
+                let result = check(&bash_code);
+
+                // INVARIANT: Variables inside quoted strings should not produce diagnostics
+                prop_assert_eq!(result.diagnostics.len(), 0,
+                    "Variables inside quoted strings should not be flagged. Code: '{}'", bash_code);
             }
         }
     }

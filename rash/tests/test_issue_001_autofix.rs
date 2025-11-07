@@ -88,6 +88,18 @@ echo -e "${BLUE}text${NC}"
         fixed
     );
 
+    // NEW: Check for extra empty quotes (the actual bug!)
+    assert!(
+        !fixed.contains(r#""${NC}"""#),
+        "Should not have extra empty quotes after variable. Content:\n{}",
+        fixed
+    );
+    assert!(
+        !fixed.contains(r#""""#),
+        "Should not have double empty quotes. Content:\n{}",
+        fixed
+    );
+
     // Verify syntax
     let output = std::process::Command::new("bash")
         .arg("-n")
