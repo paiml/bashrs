@@ -55,13 +55,14 @@ else
     FAILURES=$((FAILURES + 1))
 fi
 
-# Gate 3: Test Suite (BLOCKING)
-echo -n "  3. Test suite... "
-if cargo test --lib >/dev/null 2>&1; then
+# Gate 3: Test Suite (BLOCKING - Fast mode with reduced property tests)
+echo -n "  3. Test suite (fast: 50 prop cases)... "
+if PROPTEST_CASES=50 cargo test --lib >/dev/null 2>&1; then
     echo -e "${GREEN}✅${NC}"
 else
     echo -e "${RED}❌${NC}"
-    echo "     Run: cargo test --lib"
+    echo "     Run: make test-fast"
+    echo "     Or:  PROPTEST_CASES=50 cargo test --lib"
     FAILURES=$((FAILURES + 1))
 fi
 

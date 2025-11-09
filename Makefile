@@ -1,8 +1,14 @@
 # Use bash for shell commands to support advanced features
 SHELL := /bin/bash
 
+# PERFORMANCE TARGETS (Toyota Way: Zero Defects, Fast Feedback)
+# - make test-fast: < 5 minutes (50 property test cases)
+# - make coverage:  < 10 minutes (100 property test cases)
+# - make test:      comprehensive (500 property test cases)
+# Override with: PROPTEST_CASES=n make <target>
+
 .PHONY: all validate quick-validate release clean help
-.PHONY: format format-check lint lint-check check test test-fast test-comprehensive test-shells test-determinism test-doc test-property test-all
+.PHONY: format format-check lint lint-check check test test-fast test-quick test-comprehensive test-shells test-determinism test-doc test-property test-property-comprehensive test-all
 .PHONY: quality-gate quality-baseline quality-report analyze-complexity
 .PHONY: fuzz fuzz-all fuzz-coverage fuzz-trophies fuzz-differential
 .PHONY: verify verify-smt verify-model verify-specs verify-properties
@@ -268,25 +274,26 @@ check:
 	@cargo check --all-targets --all-features
 
 # Test execution with multiple strategies
+# TARGET: < 5 minutes (enforced with minimal property test cases)
 test-fast:
-	@echo "⚡ Running fast tests..."
+	@echo "⚡ Running fast tests (target: <5 min)..."
 	@if command -v cargo-nextest >/dev/null 2>&1; then \
-		RUST_TEST_THREADS=$$(nproc) cargo nextest run \
+		PROPTEST_CASES=50 RUST_TEST_THREADS=$$(nproc) cargo nextest run \
 			--workspace \
 			--status-level skip \
 			--failure-output immediate; \
 	else \
-		cargo test --workspace; \
+		PROPTEST_CASES=50 cargo test --workspace; \
 	fi
 
 test-quick: test-fast ## Alias for test-fast (ruchy pattern)
 	@echo "✅ Quick tests completed!"
 
-test: test-fast test-doc test-property test-example
+test: test-fast test-doc test-property-comprehensive test-example
 	@echo "✅ Core test suite completed!"
 	@echo "  - Fast unit tests ✓"
 	@echo "  - Documentation tests ✓"
-	@echo "  - Property-based tests ✓"
+	@echo "  - Property-based tests (comprehensive) ✓"
 	@echo "  - Example transpilation tests ✓"
 	@echo ""
 	@echo "💡 Run 'make test-all' for comprehensive testing including shell compatibility"
@@ -315,15 +322,25 @@ test-doc:
 	@cargo test --doc --all-features
 	@echo "✅ Documentation tests completed!"
 
-# Property-based testing
+# Property-based testing (fast version for quick validation)
 test-property:
-	@echo "🎲 Running property-based tests..."
+	@echo "🎲 Running property-based tests (50 cases per property)..."
 	@THREADS=$${PROPTEST_THREADS:-$$(nproc 2>/dev/null || sysctl -n hw.ncpu 2>/dev/null || echo 4)}; \
 	echo "  Running all property test modules with $$THREADS threads..."; \
-	echo "  (Override with PROPTEST_THREADS=n make test-property)"; \
-	timeout 180 cargo test --workspace --lib -- property_tests --test-threads=$$THREADS || echo "⚠️  Some property tests timed out after 3 minutes"; \
-	timeout 60 cargo test --workspace --lib -- prop_ --test-threads=$$THREADS || echo "⚠️  Some prop tests timed out"
-	@echo "✅ Property tests completed!"
+	echo "  (Override with PROPTEST_THREADS=n or PROPTEST_CASES=n)"; \
+	timeout 120 env PROPTEST_CASES=50 cargo test --workspace --lib -- property_tests --test-threads=$$THREADS || echo "⚠️  Some property tests timed out after 2 minutes"; \
+	timeout 60 env PROPTEST_CASES=50 cargo test --workspace --lib -- prop_ --test-threads=$$THREADS || echo "⚠️  Some prop tests timed out"
+	@echo "✅ Property tests completed (fast mode)!"
+
+# Property-based testing (comprehensive version with more cases)
+test-property-comprehensive:
+	@echo "🎲 Running property-based tests (500 cases per property)..."
+	@THREADS=$${PROPTEST_THREADS:-$$(nproc 2>/dev/null || sysctl -n hw.ncpu 2>/dev/null || echo 4)}; \
+	echo "  Running all property test modules with $$THREADS threads..."; \
+	echo "  (Override with PROPTEST_THREADS=n or PROPTEST_CASES=n)"; \
+	timeout 300 env PROPTEST_CASES=500 cargo test --workspace --lib -- property_tests --test-threads=$$THREADS || echo "⚠️  Some property tests timed out after 5 minutes"; \
+	timeout 180 env PROPTEST_CASES=500 cargo test --workspace --lib -- prop_ --test-threads=$$THREADS || echo "⚠️  Some prop tests timed out"
+	@echo "✅ Property tests completed (comprehensive mode)!"
 
 # Example transpilation tests
 test-example:
@@ -343,11 +360,11 @@ test-example:
 	@echo "✅ Example tests completed!"
 
 # Run ALL test styles comprehensively
-test-all: test test-doc test-property test-example test-shells test-determinism
+test-all: test test-shells test-determinism
 	@echo "✅ All test styles completed!"
-	@echo "  - Unit tests with coverage ✓"
+	@echo "  - Unit tests ✓"
 	@echo "  - Documentation tests ✓"
-	@echo "  - Property-based tests ✓"
+	@echo "  - Property-based tests (comprehensive) ✓"
 	@echo "  - Example transpilation tests ✓"
 	@echo "  - Cross-shell compatibility ✓"
 	@echo "  - Determinism verification ✓"
@@ -830,10 +847,13 @@ help:
 	@echo "  make validate     - Full validation pipeline"
 	@echo "  make quick-validate - Quick validation for development"
 	@echo ""
-	@echo "Testing:"
-	@echo "  make test-fast    - Run fast unit tests only"
+	@echo "Testing (Performance Targets Enforced):"
+	@echo "  make test-fast    - Run fast unit tests only (TARGET: <5 min, 50 prop cases)"
+	@echo "  make test         - Run core test suite (comprehensive, 500 prop cases)"
+	@echo "  make test-all     - Run ALL tests including shell compatibility"
 	@echo "  make test-doc     - Run documentation tests"
-	@echo "  make test-property - Run property-based tests (~13,300 cases)"
+	@echo "  make test-property - Run property-based tests (fast: 50 cases)"
+	@echo "  make test-property-comprehensive - Run property tests (comprehensive: 500 cases)"
 	@echo "  make test-example - Transpile and validate all examples"
 	@echo "  make test-shells  - Test cross-shell compatibility"
 	@echo "  make test-determinism - Verify deterministic transpilation"
@@ -848,10 +868,10 @@ help:
 	@echo "  make quality-report - Generate quality report"
 	@echo "  make audit        - Security audit"
 	@echo ""
-	@echo "Coverage:"
-	@echo "  make coverage     - Generate HTML coverage report"
+	@echo "Coverage (Performance Targets Enforced):"
+	@echo "  make coverage     - Generate HTML coverage report (TARGET: <10 min, 100 prop cases)"
 	@echo "  make coverage-open - Open HTML coverage in browser"
-	@echo "  make coverage-ci  - Generate LCOV report for CI/CD"
+	@echo "  make coverage-ci  - Generate LCOV report for CI/CD (fast mode)"
 	@echo "  make coverage-clean - Clean coverage artifacts"
 	@echo "  make clean-coverage - Alias for coverage-clean (fresh start)"
 	@echo ""
@@ -878,8 +898,9 @@ help:
 	@echo "  make help         - Show this help"
 # Code Coverage (Toyota Way: "make coverage" just works)
 # Following: docs/specifications/COVERAGE.md (Two-Phase Pattern)
+# TARGET: < 10 minutes (enforced with reduced property test cases)
 coverage: ## Generate HTML coverage report and open in browser
-	@echo "📊 Running comprehensive test coverage analysis..."
+	@echo "📊 Running comprehensive test coverage analysis (target: <10 min)..."
 	@echo "🔍 Checking for cargo-llvm-cov and cargo-nextest..."
 	@which cargo-llvm-cov > /dev/null 2>&1 || (echo "📦 Installing cargo-llvm-cov..." && cargo install cargo-llvm-cov --locked)
 	@which cargo-nextest > /dev/null 2>&1 || (echo "📦 Installing cargo-nextest..." && cargo install cargo-nextest --locked)
@@ -889,7 +910,7 @@ coverage: ## Generate HTML coverage report and open in browser
 	@echo "⚙️  Temporarily disabling global cargo config (mold breaks coverage)..."
 	@test -f ~/.cargo/config.toml && mv ~/.cargo/config.toml ~/.cargo/config.toml.cov-backup || true
 	@echo "🧪 Phase 1: Running tests with instrumentation (no report)..."
-	@cargo llvm-cov --no-report nextest --no-tests=warn --all-features --workspace
+	@env PROPTEST_CASES=100 cargo llvm-cov --no-report nextest --no-tests=warn --all-features --workspace
 	@echo "📊 Phase 2: Generating coverage reports..."
 	@cargo llvm-cov report --html --output-dir target/coverage/html
 	@cargo llvm-cov report --lcov --output-path target/coverage/lcov.info
@@ -904,6 +925,7 @@ coverage: ## Generate HTML coverage report and open in browser
 	@echo "- HTML report: target/coverage/html/index.html"
 	@echo "- LCOV file: target/coverage/lcov.info"
 	@echo "- Open HTML: make coverage-open"
+	@echo "- Property test cases: 100 (reduced for speed)"
 	@echo ""
 
 coverage-summary: ## Show coverage summary
@@ -918,11 +940,11 @@ coverage-open: ## Open HTML coverage report in browser
 		echo "❌ Run 'make coverage' first to generate the HTML report"; \
 	fi
 
-coverage-ci: ## Generate LCOV report for CI/CD
+coverage-ci: ## Generate LCOV report for CI/CD (fast mode)
 	@echo "=== Code Coverage for CI/CD ==="
 	@echo "Phase 1: Running tests with instrumentation..."
 	@cargo llvm-cov clean --workspace
-	@cargo llvm-cov --no-report nextest --no-tests=warn --all-features --workspace
+	@env PROPTEST_CASES=100 cargo llvm-cov --no-report nextest --no-tests=warn --all-features --workspace
 	@echo "Phase 2: Generating LCOV report..."
 	@cargo llvm-cov report --lcov --output-path lcov.info
 	@echo "✓ Coverage report generated: lcov.info"

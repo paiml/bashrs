@@ -104,6 +104,7 @@ fn run_command(args: &[&str]) -> Result<String> {
     }
 }
 
+#[allow(dead_code)] // Demo function for future interactive examples
 fn demo_parse(file_path: &str) -> Result<()> {
     print_section("PARSE - Syntax Validation");
 

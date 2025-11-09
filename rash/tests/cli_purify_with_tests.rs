@@ -11,6 +11,8 @@
 // - WITH_TESTS_005: Property-based test generation
 // - WITH_TESTS_006: Test execution verification
 
+#![allow(non_snake_case)] // Test naming convention: test_<TASK_ID>_<feature>_<scenario>
+
 use assert_cmd::Command;
 use predicates::prelude::*;
 use std::fs;

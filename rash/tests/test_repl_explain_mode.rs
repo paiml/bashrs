@@ -3,8 +3,11 @@
 // Tests the explain mode functionality end-to-end using assert_cmd.
 // This verifies the user-facing REPL behavior for bash construct explanations.
 
+#![allow(non_snake_case)] // Test naming convention: test_<TASK_ID>_<feature>_<scenario>
+
 use assert_cmd::Command;
 
+#[allow(dead_code)] // Reserved for future REPL integration tests
 fn bashrs_repl() -> Command {
     Command::cargo_bin("bashrs").expect("Failed to find bashrs binary")
 }

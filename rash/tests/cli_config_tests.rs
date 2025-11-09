@@ -191,7 +191,7 @@ fn test_config_purify_with_fix() {
     // ARRANGE
     let temp_dir = TempDir::new().unwrap();
     let bashrc = create_messy_bashrc(&temp_dir);
-    let backup_pattern = format!("{}.bak.*", bashrc.display());
+    let _backup_pattern = format!("{}.bak.*", bashrc.display());
 
     // ACT: Run with --fix
     bashrs_cmd()

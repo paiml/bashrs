@@ -1785,6 +1785,7 @@ mod transformation_explanation_property_tests {
     #[cfg(test)]
     mod safety_rationale_property_tests {
         use super::*;
+        #[allow(unused_imports)] // Used by proptest! macro
         use proptest::prelude::*;
 
         proptest! {

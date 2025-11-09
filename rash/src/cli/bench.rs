@@ -1197,7 +1197,7 @@ mod tests {
     #[test]
     fn test_issue_012_benchmark_output_has_schema() {
         // ARRANGE
-        let output = BenchmarkOutput {
+        let _output = BenchmarkOutput {
             version: "1.0.0".to_string(),
             timestamp: "2025-11-05T00:00:00Z".to_string(),
             environment: Environment {
