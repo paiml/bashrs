@@ -37,19 +37,20 @@ fi
 
 echo "  ✅ Performance: No issues"
 
-# Run tests to ensure no regressions
-echo "  🧪 Running tests..."
-if ! cargo test --lib --quiet 2>&1 | tail -5; then
+# Run tests to ensure no regressions (fast mode: 50 property test cases)
+echo "  🧪 Running tests (fast: 50 prop cases)..."
+if ! PROPTEST_CASES=50 cargo test --lib --quiet 2>&1 | tail -5; then
     echo ""
     echo "❌ COMMIT BLOCKED: Tests failing"
     echo ""
     echo "Fix failing tests before committing:"
-    echo "  cargo test --lib"
+    echo "  make test-fast"
+    echo "  Or: PROPTEST_CASES=50 cargo test --lib"
     echo ""
     exit 1
 fi
 
-echo "  ✅ Tests: All passing"
+echo "  ✅ Tests: All passing (50 prop cases)"
 
 echo ""
 echo "✅ Pre-commit checks passed - proceeding with commit"

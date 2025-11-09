@@ -1,6 +1,8 @@
 // Issue #1: Bash Auto-fix Creates Invalid Syntax
 // Following EXTREME TDD methodology - RED phase
 
+#![allow(non_snake_case)] // Test naming convention: test_<TASK_ID>_<feature>_<scenario>
+
 use assert_cmd::Command;
 use std::fs;
 use tempfile::TempDir;

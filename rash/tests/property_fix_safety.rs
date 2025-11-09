@@ -359,7 +359,7 @@ fn prop_linting_performance() {
     )| {
         // Generate script with multiple variables
         let mut script = String::from("#!/bin/bash\n");
-        for (i, name) in var_names.iter().enumerate().take(var_count) {
+        for (_i, name) in var_names.iter().enumerate().take(var_count) {
             script.push_str(&format!("echo ${}\n", name));
         }
 

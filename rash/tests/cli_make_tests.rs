@@ -5,6 +5,8 @@
 //!
 //! Test naming convention: test_<TASK_ID>_<feature>_<scenario>
 
+#![allow(non_snake_case)] // Test naming convention: test_<TASK_ID>_<feature>_<scenario>
+
 use assert_cmd::Command;
 use predicates::prelude::*;
 use std::fs;

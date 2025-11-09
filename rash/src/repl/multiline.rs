@@ -639,6 +639,7 @@ mod proptest_generative {
     }
 
     // Strategy for bash keywords
+    #[allow(dead_code)] // Reserved for future property tests
     fn bash_keyword() -> impl Strategy<Value = String> {
         prop::sample::select(vec![
             "if", "then", "else", "elif", "fi", "for", "while", "do", "done", "until", "case",
