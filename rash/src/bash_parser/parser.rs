@@ -859,6 +859,24 @@ impl BashParser {
                 let arith_expr = self.parse_arithmetic_expr(&expr_str)?;
                 Ok(BashExpr::Arithmetic(Box::new(arith_expr)))
             }
+            Some(Token::CommandSubstitution(cmd)) => {
+                let cmd_str = cmd.clone();
+                self.advance();
+                // For now, parse the command string as a simple command
+                // This creates a placeholder AST node that accepts $(command) syntax
+                // Full command parsing can be enhanced later
+                let placeholder_stmt = BashStmt::Command {
+                    name: cmd_str.clone(),
+                    args: vec![],
+                    span: Span {
+                        start_line: 0,
+                        start_col: 0,
+                        end_line: 0,
+                        end_col: 0,
+                    },
+                };
+                Ok(BashExpr::CommandSubst(Box::new(placeholder_stmt)))
+            }
             _ => Err(ParseError::InvalidSyntax("Expected expression".to_string())),
         }
     }
