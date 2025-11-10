@@ -1,6 +1,7 @@
 use crate::cli::args::{
-    CompileRuntime, ConfigCommands, ConfigOutputFormat, ContainerFormatArg, InspectionFormat,
-    LintFormat, MakeCommands, MakeOutputFormat, ReportFormat, ScoreOutputFormat, TestOutputFormat,
+    CompileRuntime, ConfigCommands, ConfigOutputFormat, ContainerFormatArg, DockerfileCommands,
+    InspectionFormat, LintFormat, MakeCommands, MakeOutputFormat, ReportFormat, ScoreOutputFormat,
+    TestOutputFormat,
 };
 use crate::cli::{Cli, Commands};
 use crate::models::{Config, Error, Result};
@@ -135,6 +136,8 @@ pub fn execute_command(cli: Cli) -> Result<()> {
         }
 
         Commands::Make { command } => handle_make_command(command), // Playground feature removed in v1.0 - will be moved to separate rash-playground crate in v1.1
+
+        Commands::Dockerfile { command } => handle_dockerfile_command(command),
 
         Commands::Config { command } => handle_config_command(command),
 
@@ -946,6 +949,147 @@ fn handle_make_command(command: MakeCommands) -> Result<()> {
             make_lint_command(&input, format, fix, output.as_deref(), rules.as_deref())
         }
     }
+}
+
+fn handle_dockerfile_command(command: DockerfileCommands) -> Result<()> {
+    match command {
+        DockerfileCommands::Purify {
+            input,
+            output,
+            fix,
+            no_backup,
+            dry_run,
+            report,
+            format,
+            skip_user,
+            skip_bash_purify,
+        } => {
+            info!("Purifying {}", input.display());
+            dockerfile_purify_command(
+                &input,
+                output.as_deref(),
+                fix,
+                no_backup,
+                dry_run,
+                report,
+                format,
+                skip_user,
+                skip_bash_purify,
+            )
+        }
+        DockerfileCommands::Lint {
+            input,
+            format,
+            rules,
+        } => {
+            info!("Linting {}", input.display());
+            // Delegate to existing Dockerfile lint functionality
+            dockerfile_lint_command(&input, format, rules.as_deref())
+        }
+    }
+}
+
+struct DockerfilePurifyOptions<'a> {
+    output: Option<&'a Path>,
+    fix: bool,
+    no_backup: bool,
+    dry_run: bool,
+    skip_user: bool,
+}
+
+#[allow(clippy::too_many_arguments)]
+fn dockerfile_purify_command(
+    input: &Path,
+    output: Option<&Path>,
+    fix: bool,
+    no_backup: bool,
+    dry_run: bool,
+    _report: bool,
+    _format: ReportFormat,
+    skip_user: bool,
+    _skip_bash_purify: bool,
+) -> Result<()> {
+    let options = DockerfilePurifyOptions {
+        output,
+        fix,
+        no_backup,
+        dry_run,
+        skip_user,
+    };
+    dockerfile_purify_command_impl(input, options)
+}
+
+fn dockerfile_purify_command_impl(input: &Path, options: DockerfilePurifyOptions) -> Result<()> {
+    // Read Dockerfile
+    let source = fs::read_to_string(input).map_err(Error::Io)?;
+
+    // Apply purification transformations
+    let purified = purify_dockerfile(&source, options.skip_user)?;
+
+    // Handle output
+    if options.dry_run {
+        println!("Would add USER directive");
+        return Ok(());
+    }
+
+    if options.fix {
+        // In-place modification
+        if !options.no_backup {
+            let backup_path = input.with_extension("bak");
+            fs::copy(input, &backup_path).map_err(Error::Io)?;
+        }
+        fs::write(input, &purified).map_err(Error::Io)?;
+        info!("Purified Dockerfile written to {}", input.display());
+    } else if let Some(output_path) = options.output {
+        // Write to output file
+        fs::write(output_path, &purified).map_err(Error::Io)?;
+        info!("Purified Dockerfile written to {}", output_path.display());
+    } else {
+        // Write to stdout
+        println!("{}", purified);
+    }
+
+    Ok(())
+}
+
+fn purify_dockerfile(source: &str, skip_user: bool) -> Result<String> {
+    let lines: Vec<&str> = source.lines().collect();
+    let mut purified = Vec::new();
+
+    // Check if USER directive already exists
+    let has_user = lines.iter().any(|line| line.trim().starts_with("USER "));
+    let is_scratch = lines
+        .iter()
+        .any(|line| line.trim().starts_with("FROM scratch"));
+
+    // Find CMD/ENTRYPOINT position
+    let cmd_pos = lines.iter().position(|line| {
+        let trimmed = line.trim();
+        trimmed.starts_with("CMD ") || trimmed.starts_with("ENTRYPOINT ")
+    });
+
+    // Build purified Dockerfile
+    for (i, line) in lines.iter().enumerate() {
+        // Check if we should add USER before CMD/ENTRYPOINT
+        if !skip_user && !has_user && !is_scratch && Some(i) == cmd_pos {
+            purified.push(String::new());
+            purified.push("# Security: Run as non-root user".to_string());
+            purified.push("RUN groupadd -r appuser && useradd -r -g appuser appuser".to_string());
+            purified.push("USER appuser".to_string());
+            purified.push(String::new());
+        }
+
+        purified.push(line.to_string());
+    }
+
+    Ok(purified.join("\n"))
+}
+
+fn dockerfile_lint_command(_input: &Path, _format: LintFormat, _rules: Option<&str>) -> Result<()> {
+    // TODO: Wire up existing Dockerfile linter
+    Err(Error::Internal(
+        "Dockerfile linting via 'dockerfile lint' is not yet implemented. Use 'bashrs lint' for now.".to_string()
+    ))
 }
 
 fn make_parse_command(input: &Path, format: MakeOutputFormat) -> Result<()> {
