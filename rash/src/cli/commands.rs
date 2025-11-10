@@ -971,6 +971,7 @@ fn make_parse_command(input: &Path, format: MakeOutputFormat) -> Result<()> {
     Ok(())
 }
 
+#[allow(clippy::too_many_arguments)]
 fn make_purify_command(
     input: &Path,
     output: Option<&Path>,
