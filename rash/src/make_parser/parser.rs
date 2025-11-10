@@ -72,7 +72,8 @@ fn preprocess_line_continuations_with_metadata(input: &str) -> PreprocessingResu
             // Get the next line and capture its original indentation
             i += 1;
             let next_line_full = lines[i];
-            let original_indent = next_line_full.chars()
+            let original_indent = next_line_full
+                .chars()
                 .take_while(|c| c.is_whitespace())
                 .collect::<String>();
             let next_line = next_line_full.trim_start();
@@ -1038,11 +1039,11 @@ fn parse_target_rule(
     // Check if any recipe lines have line continuation metadata
     // For simplicity, if the first recipe line has metadata, use it
     let recipe_metadata = if !recipe.is_empty() {
-        metadata_map.get(&recipe_start_line).map(|breaks| {
-            RecipeMetadata {
+        metadata_map
+            .get(&recipe_start_line)
+            .map(|breaks| RecipeMetadata {
                 line_breaks: breaks.clone(),
-            }
-        })
+            })
     } else {
         None
     };

@@ -178,6 +178,12 @@ pub enum Commands {
         command: MakeCommands,
     },
 
+    /// Dockerfile purification and linting (NEW in v6.36.0)
+    Dockerfile {
+        #[command(subcommand)]
+        command: DockerfileCommands,
+    },
+
     /// Shell configuration file management (NEW in v7.0)
     Config {
         #[command(subcommand)]
@@ -429,6 +435,63 @@ pub enum MakeCommands {
         output: Option<PathBuf>,
 
         /// Filter by specific rules (comma-separated: MAKE001,MAKE003)
+        #[arg(long)]
+        rules: Option<String>,
+    },
+}
+
+#[derive(Subcommand)]
+pub enum DockerfileCommands {
+    /// Purify Dockerfile (auto-fix security and best practices issues)
+    Purify {
+        /// Input Dockerfile
+        #[arg(value_name = "FILE")]
+        input: PathBuf,
+
+        /// Output file (defaults to stdout or in-place with --fix)
+        #[arg(short, long)]
+        output: Option<PathBuf>,
+
+        /// Apply fixes in-place (creates .bak backup)
+        #[arg(long)]
+        fix: bool,
+
+        /// Don't create backup with --fix (dangerous!)
+        #[arg(long)]
+        no_backup: bool,
+
+        /// Show changes without applying (dry-run mode)
+        #[arg(long)]
+        dry_run: bool,
+
+        /// Show detailed transformation report
+        #[arg(long)]
+        report: bool,
+
+        /// Report format
+        #[arg(long, value_enum, default_value = "human")]
+        format: ReportFormat,
+
+        /// Don't add USER directive (for special cases)
+        #[arg(long)]
+        skip_user: bool,
+
+        /// Don't purify bash in RUN commands
+        #[arg(long)]
+        skip_bash_purify: bool,
+    },
+
+    /// Lint Dockerfile for issues (existing functionality)
+    Lint {
+        /// Input Dockerfile
+        #[arg(value_name = "FILE")]
+        input: PathBuf,
+
+        /// Output format
+        #[arg(long, value_enum, default_value = "human")]
+        format: LintFormat,
+
+        /// Filter by specific rules (comma-separated: DOCKER001,DOCKER003)
         #[arg(long)]
         rules: Option<String>,
     },
