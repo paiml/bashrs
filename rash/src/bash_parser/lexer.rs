@@ -56,7 +56,8 @@ pub enum Token {
     DoubleRightBracket, // ]]
 
     // Special
-    Variable(String), // $VAR
+    Variable(String),            // $VAR
+    ArithmeticExpansion(String), // $((expr))
     Comment(String),
     Newline,
     Eof,
@@ -71,6 +72,7 @@ impl fmt::Display for Token {
             Token::String(s) => write!(f, "String({})", s),
             Token::Number(n) => write!(f, "Number({})", n),
             Token::Variable(v) => write!(f, "${}", v),
+            Token::ArithmeticExpansion(e) => write!(f, "$(({})", e),
             Token::Comment(c) => write!(f, "#{}", c),
             Token::Eof => write!(f, "EOF"),
             _ => write!(f, "{:?}", self),
@@ -234,6 +236,13 @@ impl Lexer {
     fn read_variable(&mut self) -> Result<Token, LexerError> {
         self.advance(); // skip '$'
 
+        // Check for arithmetic expansion $((...))
+        if !self.is_at_end() && self.current_char() == '(' {
+            if let Some('(') = self.peek_char(1) {
+                return self.read_arithmetic_expansion();
+            }
+        }
+
         let mut var_name = String::new();
 
         // Handle ${VAR} syntax
@@ -258,6 +267,39 @@ impl Lexer {
         }
 
         Ok(Token::Variable(var_name))
+    }
+
+    fn read_arithmetic_expansion(&mut self) -> Result<Token, LexerError> {
+        // Skip '(('
+        self.advance(); // skip first '('
+        self.advance(); // skip second '('
+
+        let mut expr = String::new();
+        let mut paren_depth = 0;
+
+        while !self.is_at_end() {
+            let ch = self.current_char();
+
+            // Handle nested parentheses
+            if ch == '(' {
+                paren_depth += 1;
+                expr.push(self.advance());
+            } else if ch == ')' {
+                // Check if this closes the arithmetic expansion
+                if paren_depth == 0 && self.peek_char(1) == Some(')') {
+                    self.advance(); // skip first ')'
+                    self.advance(); // skip second ')'
+                    break;
+                } else {
+                    paren_depth -= 1;
+                    expr.push(self.advance());
+                }
+            } else {
+                expr.push(self.advance());
+            }
+        }
+
+        Ok(Token::ArithmeticExpansion(expr))
     }
 
     fn read_string(&mut self, quote: char) -> Result<Token, LexerError> {
@@ -557,5 +599,46 @@ mod tests {
         let mut lexer2 = Lexer::new(input2);
         let tokens2 = lexer2.tokenize().unwrap();
         assert_eq!(tokens2[1], Token::Identifier("+x".to_string()));
+    }
+
+    #[test]
+    fn test_lexer_arithmetic_expansion_basic() {
+        let input = "y=$((x + 1))";
+        let mut lexer = Lexer::new(input);
+        let tokens = lexer.tokenize().unwrap();
+
+        // Expected: [Identifier("y"), Assign, ArithmeticExpansion("x + 1"), Eof]
+        assert_eq!(tokens.len(), 4);
+        assert_eq!(tokens[0], Token::Identifier("y".to_string()));
+        assert_eq!(tokens[1], Token::Assign);
+        assert_eq!(tokens[2], Token::ArithmeticExpansion("x + 1".to_string()));
+        assert_eq!(tokens[3], Token::Eof);
+    }
+
+    #[test]
+    fn test_lexer_arithmetic_expansion_complex() {
+        let input = "sum=$((a + b))";
+        let mut lexer = Lexer::new(input);
+        let tokens = lexer.tokenize().unwrap();
+
+        assert_eq!(tokens[2], Token::ArithmeticExpansion("a + b".to_string()));
+
+        let input2 = "diff=$((a - b))";
+        let mut lexer2 = Lexer::new(input2);
+        let tokens2 = lexer2.tokenize().unwrap();
+
+        assert_eq!(tokens2[2], Token::ArithmeticExpansion("a - b".to_string()));
+    }
+
+    #[test]
+    fn test_lexer_arithmetic_expansion_nested_parens() {
+        let input = "result=$(((a + b) * c))";
+        let mut lexer = Lexer::new(input);
+        let tokens = lexer.tokenize().unwrap();
+
+        assert_eq!(
+            tokens[2],
+            Token::ArithmeticExpansion("(a + b) * c".to_string())
+        );
     }
 }
