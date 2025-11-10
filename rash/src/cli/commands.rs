@@ -1091,6 +1091,11 @@ fn purify_dockerfile(source: &str, skip_user: bool) -> Result<String> {
             processed_line = add_no_install_recommends(&processed_line);
         }
 
+        // DOCKER003: Add apt/apk cleanup
+        if line.trim().starts_with("RUN ") {
+            processed_line = add_package_manager_cleanup(&processed_line);
+        }
+
         purified.push(processed_line);
     }
 
@@ -1166,6 +1171,30 @@ fn add_no_install_recommends(line: &str) -> String {
     } else {
         line.to_string()
     }
+}
+
+/// Add cleanup commands for package managers (DOCKER003)
+///
+/// Reduces image size by cleaning up package manager caches.
+/// - apt/apt-get: adds `&& rm -rf /var/lib/apt/lists/*`
+/// - apk: adds `&& rm -rf /var/cache/apk/*`
+fn add_package_manager_cleanup(line: &str) -> String {
+    // Check if cleanup already present
+    if line.contains("/var/lib/apt/lists") || line.contains("/var/cache/apk") {
+        return line.to_string();
+    }
+
+    // Detect apt/apt-get commands
+    if line.contains("apt-get install") || line.contains("apt install") {
+        return format!("{} && rm -rf /var/lib/apt/lists/*", line.trim_end());
+    }
+
+    // Detect apk commands
+    if line.contains("apk add") {
+        return format!("{} && rm -rf /var/cache/apk/*", line.trim_end());
+    }
+
+    line.to_string()
 }
 
 fn dockerfile_lint_command(_input: &Path, _format: LintFormat, _rules: Option<&str>) -> Result<()> {
