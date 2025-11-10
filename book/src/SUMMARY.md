@@ -38,6 +38,7 @@
 - [Makefile Overview](./makefile/overview.md)
 - [Makefile Security](./makefile/security.md)
 - [Makefile Best Practices](./makefile/best-practices.md)
+- [Makefile Testing](./makefile/testing.md)
 
 ## Examples
 
