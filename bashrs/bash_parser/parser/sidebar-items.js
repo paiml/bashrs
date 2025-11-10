@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"enum":["ParseError"],"struct":["BashParser"],"type":["ParseResult"]};
+window.SIDEBAR_ITEMS = {"enum":["ArithToken","ParseError"],"struct":["BashParser"],"type":["ParseResult"]};

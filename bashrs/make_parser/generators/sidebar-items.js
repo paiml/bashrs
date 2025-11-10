@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"fn":["generate_comment","generate_conditional","generate_include","generate_item","generate_pattern_rule","generate_purified_makefile","generate_target","generate_variable"]};
+window.SIDEBAR_ITEMS = {"fn":["apply_line_length_limit","generate_comment","generate_conditional","generate_include","generate_item","generate_pattern_rule","generate_purified_makefile","generate_purified_makefile_with_options","generate_target","generate_variable","reconstruct_recipe_line_with_breaks","should_preserve_blank_line"],"struct":["MakefileGeneratorOptions"]};

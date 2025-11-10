@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"enum":["MakeCondition","MakeItem","VarFlavor"],"struct":["MakeAst","MakeMetadata","Span"]};
+window.SIDEBAR_ITEMS = {"enum":["MakeCondition","MakeItem","VarFlavor"],"struct":["MakeAst","MakeMetadata","RecipeMetadata","Span"]};
