@@ -7,6 +7,62 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+**Makefile Purification: Test Suite Generation (`--with-tests` flag)** ✨
+
+- **Feature**: Automatically generate comprehensive test suites for purified Makefiles
+  ```bash
+  bashrs make purify Makefile --with-tests -o output/Makefile
+  # Creates:
+  #   output/Makefile           (purified Makefile)
+  #   output/Makefile.test.sh   (POSIX test suite)
+  ```
+
+- **Test Coverage**: Generated test suites validate:
+  - **Determinism**: Same `make` invocation produces identical output
+  - **Idempotency**: Running `make` multiple times is safe
+  - **POSIX Compliance**: Makefile works across POSIX-compliant make implementations
+  - **Property-Based Tests** (optional): Configurable number of test cases
+
+- **Implementation** (EXTREME TDD):
+  - 27 comprehensive tests (11 integration + 16 unit/property)
+  - Cyclomatic complexity <10 (down from 21)
+  - 7 property tests with 50+ generated cases each
+  - Zero regressions (6608 tests passing)
+
+- **Quality Metrics**:
+  - ✅ 100% test pass rate
+  - ✅ POSIX compliant shell scripts (verified with shellcheck)
+  - ✅ Deterministic test generation
+  - ✅ Valid shell syntax in all generated tests
+  - ✅ Performance: <100ms test suite generation
+
+- **Example Generated Test**:
+  ```sh
+  #!/bin/sh
+  # Test Suite for Makefile
+
+  test_determinism() {
+      # Run make twice and compare outputs
+      make -f Makefile > /tmp/output1.txt 2>&1
+      make -f Makefile > /tmp/output2.txt 2>&1
+      diff /tmp/output1.txt /tmp/output2.txt
+  }
+
+  test_idempotency() {
+      # Verify running make twice doesn't fail
+      make -f Makefile && make -f Makefile
+  }
+  ```
+
+### Fixed
+
+- **Bug Fix**: Test file naming for Makefile purification
+  - Previously created "test.sh" instead of "Makefile.test.sh"
+  - Now correctly appends ".test.sh" to the full makefile name
+  - Follows naming convention: `<makefile>.test.sh`
+
 ## [6.33.0] - 2025-11-07
 
 ### Fixed
