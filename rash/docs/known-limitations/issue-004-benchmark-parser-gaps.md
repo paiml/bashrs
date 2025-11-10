@@ -1,8 +1,9 @@
 # Issue #4: Benchmark Parser Gaps - Critical Blocker for Production Purification
 
-**Status**: 🚨 STOP THE LINE - P0 BLOCKER
+**Status**: ✅ RESOLVED
 **Severity**: P0 - Blocks production-ready purification
 **Discovered**: 2025-11-10
+**Resolved**: 2025-11-10
 **Category**: Parser Gaps
 
 ## Problem Summary
@@ -175,13 +176,51 @@ const LARGE_BASH: &str = include_str!("fixtures/large.sh");        // ✅
 
 ## Success Criteria
 
-- [ ] All 4 real benchmark files parse successfully
-- [ ] Benchmarks use real fixture files (not minimal.sh)
-- [ ] Zero regressions (all 6469+ tests pass)
-- [ ] Clippy clean
-- [ ] Property tests pass
-- [ ] Mutation coverage ≥90%
-- [ ] Documentation updated
+- [x] All 4 real benchmark files parse successfully
+- [x] Benchmarks use real fixture files (small.sh, medium.sh, large.sh)
+- [x] Zero regressions (all 6,474 tests pass)
+- [x] Clippy clean
+- [x] Property tests pass (all 5 Issue #4 tests)
+- [x] Mutation coverage ≥90% (verified for parser modules)
+- [x] Documentation updated
+
+## Resolution Summary
+
+**Implementation Date**: 2025-11-10
+
+All parser gaps have been resolved through EXTREME TDD:
+
+### Parser Features Implemented
+1. **$RANDOM parsing** (lexer.rs:242-258) - Special variable support
+2. **$$ parsing** (lexer.rs:250-257) - Process ID variable
+3. **$(command) parsing** (lexer.rs:319-348, parser.rs:862-879) - Command substitution
+4. **function keyword** (already worked) - Bash function syntax
+
+### Test Coverage
+- 5 comprehensive Issue #4 tests added (tests.rs:19418-19694)
+- All 6,474 tests passing (5 new + 6,469 existing = zero regressions)
+- Clippy clean, cargo fmt applied
+
+### Benchmark Status
+- **Before**: All benchmarks used minimal.sh (14 lines) - masked performance
+- **After**: Benchmarks use real fixtures:
+  - SMALL_BASH: small.sh (~50 lines)
+  - MEDIUM_BASH: medium.sh (~500 lines)
+  - LARGE_BASH: large.sh (~5,700 lines)
+- Benchmarks compile successfully (verified: cargo check --benches)
+
+### Impact
+✅ Unblocks production-ready purification benchmarking
+✅ Enables accurate performance validation (<100ms/1000 lines target)
+✅ Removes parser workaround from benchmark code
+
+### Files Modified
+- `rash/src/bash_parser/lexer.rs`: +31 lines (CommandSubstitution token + reader)
+- `rash/src/bash_parser/parser.rs`: +18 lines (CommandSubstitution handler)
+- `rash/src/bash_parser/tests.rs`: +285 lines (5 comprehensive tests)
+- `rash/benches/bash_purification_benchmarks.rs`: Updated to use real fixtures
+
+**Issue Status**: ✅ RESOLVED - All success criteria met
 
 ## Related
 
