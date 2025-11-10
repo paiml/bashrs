@@ -1080,11 +1080,16 @@ fn purify_dockerfile(source: &str, skip_user: bool) -> Result<String> {
         }
 
         // DOCKER006: Convert ADD to COPY for local files
-        let processed_line = if line.trim().starts_with("ADD ") {
+        let mut processed_line = if line.trim().starts_with("ADD ") {
             convert_add_to_copy_if_local(line)
         } else {
             line.to_string()
         };
+
+        // DOCKER005: Add --no-install-recommends to apt-get install
+        if line.trim().starts_with("RUN ") && processed_line.contains("apt-get install") {
+            processed_line = add_no_install_recommends(&processed_line);
+        }
 
         purified.push(processed_line);
     }
@@ -1126,6 +1131,41 @@ fn convert_add_to_copy_if_local(line: &str) -> String {
 
     // It's a local file - convert ADD to COPY
     line.replacen("ADD ", "COPY ", 1)
+}
+
+/// Add --no-install-recommends flag to apt-get install commands (DOCKER005)
+///
+/// This reduces image size by not installing recommended packages.
+/// Only adds the flag if it's not already present.
+fn add_no_install_recommends(line: &str) -> String {
+    // Check if already has --no-install-recommends
+    if line.contains("--no-install-recommends") {
+        return line.to_string();
+    }
+
+    // Find "apt-get install" and insert after "-y" flag
+    if let Some(install_pos) = line.find("apt-get install") {
+        let after_install = &line[install_pos + "apt-get install".len()..];
+
+        // Check if there's a -y flag
+        if after_install.trim_start().starts_with("-y") {
+            // Insert --no-install-recommends after -y
+            line.replacen(
+                "apt-get install -y",
+                "apt-get install -y --no-install-recommends",
+                1,
+            )
+        } else {
+            // No -y flag, insert --no-install-recommends after "install"
+            line.replacen(
+                "apt-get install",
+                "apt-get install --no-install-recommends",
+                1,
+            )
+        }
+    } else {
+        line.to_string()
+    }
 }
 
 fn dockerfile_lint_command(_input: &Path, _format: LintFormat, _rules: Option<&str>) -> Result<()> {
