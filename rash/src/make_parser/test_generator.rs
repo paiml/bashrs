@@ -239,116 +239,57 @@ test_property_determinism() {{
     ///
     /// Runs all tests and reports results
     fn generate_test_runner(&self) -> String {
+        let mut script = String::from("# Test Runner\nrun_all_tests() {\n");
+        script.push_str("    printf \"\\n=== Running Test Suite ===\\n\\n\"\n\n");
+        script.push_str("    failed=0\n    passed=0\n\n");
+
+        // Add core tests
+        script.push_str(&self.generate_test_invocation("determinism"));
+        script.push_str(&self.generate_test_invocation("idempotency"));
+        script.push_str(&self.generate_test_invocation("posix_compliance"));
+
+        // Add property tests if enabled
         if self.options.property_tests {
-            r#"# Test Runner
-run_all_tests() {
-    printf "\n=== Running Test Suite ===\n\n"
-
-    failed=0
-    passed=0
-
-    # Run determinism test
-    if test_determinism; then
-        passed=$((passed + 1))
-    else
-        failed=$((failed + 1))
-    fi
-
-    printf "\n"
-
-    # Run idempotency test
-    if test_idempotency; then
-        passed=$((passed + 1))
-    else
-        failed=$((failed + 1))
-    fi
-
-    printf "\n"
-
-    # Run POSIX compliance test
-    if test_posix_compliance; then
-        passed=$((passed + 1))
-    else
-        failed=$((failed + 1))
-    fi
-
-    printf "\n"
-
-    # Run property-based tests
-    if test_property_determinism; then
-        passed=$((passed + 1))
-    else
-        failed=$((failed + 1))
-    fi
-
-    printf "\n=== Test Summary ===\n"
-    printf "Passed: %d\n" "$passed"
-    printf "Failed: %d\n" "$failed"
-
-    if [ "$failed" -eq 0 ]; then
-        printf "\n✓ All tests passed!\n"
-        return 0
-    else
-        printf "\n✗ Some tests failed\n"
-        return 1
-    fi
-}
-
-# Run tests
-run_all_tests
-"#
-            .to_string()
-        } else {
-            r#"# Test Runner
-run_all_tests() {
-    printf "\n=== Running Test Suite ===\n\n"
-
-    failed=0
-    passed=0
-
-    # Run determinism test
-    if test_determinism; then
-        passed=$((passed + 1))
-    else
-        failed=$((failed + 1))
-    fi
-
-    printf "\n"
-
-    # Run idempotency test
-    if test_idempotency; then
-        passed=$((passed + 1))
-    else
-        failed=$((failed + 1))
-    fi
-
-    printf "\n"
-
-    # Run POSIX compliance test
-    if test_posix_compliance; then
-        passed=$((passed + 1))
-    else
-        failed=$((failed + 1))
-    fi
-
-    printf "\n=== Test Summary ===\n"
-    printf "Passed: %d\n" "$passed"
-    printf "Failed: %d\n" "$failed"
-
-    if [ "$failed" -eq 0 ]; then
-        printf "\n✓ All tests passed!\n"
-        return 0
-    else
-        printf "\n✗ Some tests failed\n"
-        return 1
-    fi
-}
-
-# Run tests
-run_all_tests
-"#
-            .to_string()
+            script.push_str(&self.generate_test_invocation("property_determinism"));
         }
+
+        // Add summary
+        script.push_str(&self.generate_test_summary());
+        script.push_str("}\n\n# Run tests\nrun_all_tests\n");
+
+        script
+    }
+
+    fn generate_test_invocation(&self, test_name: &str) -> String {
+        format!(
+            r#"    # Run {0} test
+    if test_{0}; then
+        passed=$((passed + 1))
+    else
+        failed=$((failed + 1))
+    fi
+
+    printf "\n"
+
+"#,
+            test_name
+        )
+    }
+
+    fn generate_test_summary(&self) -> String {
+        r#"    printf "\n=== Test Summary ===\n"
+    printf "Passed: %d\n" "$passed"
+    printf "Failed: %d\n" "$failed"
+
+    if [ "$failed" -eq 0 ]; then
+        printf "\n✓ All tests passed!\n"
+        return 0
+    else
+        printf "\n✗ Some tests failed\n"
+        return 1
+    fi
+"#
+        .to_string()
     }
 }
 
@@ -504,5 +445,155 @@ mod tests {
         assert!(runner.contains("test_idempotency"));
         assert!(runner.contains("test_posix_compliance"));
         assert!(runner.contains("test_property_determinism"));
+    }
+
+    // ============================================================================
+    // Property-Based Tests (EXTREME TDD)
+    // ============================================================================
+
+    use proptest::prelude::*;
+
+    proptest! {
+        /// Property: Generated test suite always starts with POSIX shebang
+        #[test]
+        fn prop_test_suite_has_posix_shebang(
+            property_tests in proptest::bool::ANY,
+            property_test_count in 1usize..200,
+        ) {
+            let options = MakefileTestGeneratorOptions {
+                property_tests,
+                property_test_count,
+            };
+            let generator = MakefileTestGenerator::new(options);
+            let makefile_path = PathBuf::from("Makefile");
+            let purified = ".PHONY: all\nall:\n\techo test";
+
+            let test_suite = generator.generate_tests(&makefile_path, purified);
+
+            prop_assert!(test_suite.starts_with("#!/bin/sh"));
+        }
+
+        /// Property: Test suite always contains all three core tests
+        #[test]
+        fn prop_test_suite_contains_core_tests(
+            property_tests in proptest::bool::ANY,
+            property_test_count in 1usize..200,
+        ) {
+            let options = MakefileTestGeneratorOptions {
+                property_tests,
+                property_test_count,
+            };
+            let generator = MakefileTestGenerator::new(options);
+            let makefile_path = PathBuf::from("test.mk");
+            let purified = ".PHONY: build\nbuild:\n\techo build";
+
+            let test_suite = generator.generate_tests(&makefile_path, purified);
+
+            prop_assert!(test_suite.contains("test_determinism"));
+            prop_assert!(test_suite.contains("test_idempotency"));
+            prop_assert!(test_suite.contains("test_posix_compliance"));
+        }
+
+        /// Property: Property tests included if and only if enabled
+        #[test]
+        fn prop_property_tests_conditional(
+            property_tests in proptest::bool::ANY,
+            property_test_count in 1usize..200,
+        ) {
+            let options = MakefileTestGeneratorOptions {
+                property_tests,
+                property_test_count,
+            };
+            let generator = MakefileTestGenerator::new(options);
+            let makefile_path = PathBuf::from("Makefile");
+            let purified = ".PHONY: clean\nclean:\n\trm -f *.o";
+
+            let test_suite = generator.generate_tests(&makefile_path, purified);
+
+            if property_tests {
+                prop_assert!(test_suite.contains("test_property_determinism"));
+            } else {
+                prop_assert!(!test_suite.contains("test_property_determinism"));
+            }
+        }
+
+        /// Property: Test suite never panics (generation is always safe)
+        #[test]
+        fn prop_test_generation_never_panics(
+            property_tests in proptest::bool::ANY,
+            property_test_count in 1usize..500,
+            makefile_name in "[a-zA-Z0-9_-]{1,50}\\.(mk|makefile|Makefile)",
+        ) {
+            let options = MakefileTestGeneratorOptions {
+                property_tests,
+                property_test_count,
+            };
+            let generator = MakefileTestGenerator::new(options);
+            let makefile_path = PathBuf::from(makefile_name);
+            let purified = ".PHONY: test\ntest:\n\techo ok";
+
+            // Should never panic
+            let _ = generator.generate_tests(&makefile_path, purified);
+        }
+
+        /// Property: Generated test count matches configuration
+        #[test]
+        fn prop_property_test_count_correct(
+            property_test_count in 10usize..200,
+        ) {
+            let options = MakefileTestGeneratorOptions {
+                property_tests: true,
+                property_test_count,
+            };
+            let generator = MakefileTestGenerator::new(options);
+            let makefile_path = PathBuf::from("Makefile");
+            let purified = ".PHONY: all\nall:\n\t@echo done";
+
+            let test_suite = generator.generate_tests(&makefile_path, purified);
+
+            // Should contain the count in the test output
+            let expected_text = format!("{} test cases", property_test_count);
+            prop_assert!(test_suite.contains(&expected_text), "Missing test count: {}", expected_text);
+        }
+
+        /// Property: Test suite is valid shell (contains function definitions)
+        #[test]
+        fn prop_test_suite_is_valid_shell(
+            property_tests in proptest::bool::ANY,
+            property_test_count in 1usize..200,
+        ) {
+            let options = MakefileTestGeneratorOptions {
+                property_tests,
+                property_test_count,
+            };
+            let generator = MakefileTestGenerator::new(options);
+            let makefile_path = PathBuf::from("build.mk");
+            let purified = "all:\n\techo build";
+
+            let test_suite = generator.generate_tests(&makefile_path, purified);
+
+            // Should contain shell function syntax
+            let function_syntax = "() {";
+            prop_assert!(test_suite.contains(function_syntax), "Missing function syntax");
+            prop_assert!(test_suite.contains("run_all_tests"), "Missing run_all_tests function");
+        }
+
+        /// Property: Determinism test always runs make twice
+        #[test]
+        fn prop_determinism_test_runs_make_twice(
+            property_tests in proptest::bool::ANY,
+        ) {
+            let options = MakefileTestGeneratorOptions {
+                property_tests,
+                property_test_count: 100,
+            };
+            let generator = MakefileTestGenerator::new(options);
+            let makefile_path = PathBuf::from("Makefile");
+
+            let determinism_test = generator.generate_determinism_test(&makefile_path);
+
+            // Should run make at least twice for comparison
+            prop_assert!(determinism_test.matches("make -f").count() >= 2);
+        }
     }
 }
