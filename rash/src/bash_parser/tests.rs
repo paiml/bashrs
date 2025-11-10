@@ -22546,3 +22546,288 @@ mod=$((a % b))
         result.err()
     );
 }
+
+// ============================================================================
+// ISSUE #4: Benchmark Parser Gaps - STOP THE LINE (P0 BLOCKER)
+// ============================================================================
+// Issue: docs/known-limitations/issue-004-benchmark-parser-gaps.md
+//
+// All benchmark fixture files (small.sh, medium.sh, large.sh) fail to parse
+// due to missing parser support for common bash constructs:
+// 1. $RANDOM - Special bash variable (0-32767 random integer)
+// 2. $$ - Process ID variable
+// 3. $(command) - Command substitution
+// 4. function keyword - Function definition syntax
+//
+// These tests verify parser ACCEPTS these constructs (LEXER/PARSER ONLY).
+// Purification transformation is separate (handled by purifier).
+//
+// Architecture: bash → PARSE (accept) → AST → PURIFY (transform) → POSIX sh
+// Cannot purify what cannot be parsed!
+// ============================================================================
+
+#[test]
+fn test_ISSUE_004_001_parse_random_special_variable() {
+    // RED PHASE: Write failing test for $RANDOM parsing
+    //
+    // CRITICAL: Parser MUST accept $RANDOM to enable purification
+    // Purifier will later reject/transform it, but parser must accept first
+    //
+    // INPUT: bash with $RANDOM
+    // EXPECTED: Parser accepts, returns AST with Variable("RANDOM")
+    // PURIFIER (later): Rejects or transforms to deterministic alternative
+
+    let bash = r#"
+#!/bin/bash
+ID=$RANDOM
+echo "Random ID: $ID"
+"#;
+
+    // ARRANGE: Lexer should tokenize $RANDOM
+    let lexer_result = BashParser::new(bash);
+    assert!(
+        lexer_result.is_ok(),
+        "Lexer should tokenize $RANDOM: {:?}",
+        lexer_result.err()
+    );
+
+    // ACT: Parser should accept $RANDOM
+    let mut parser = lexer_result.unwrap();
+    let parse_result = parser.parse();
+
+    // ASSERT: Parser must accept $RANDOM (for purification to work)
+    assert!(
+        parse_result.is_ok(),
+        "Parser MUST accept $RANDOM to enable purification: {:?}",
+        parse_result.err()
+    );
+
+    // VERIFY: AST contains assignment with Variable("RANDOM")
+    let ast = parse_result.unwrap();
+    assert!(
+        !ast.statements.is_empty(),
+        "$RANDOM should produce non-empty AST"
+    );
+}
+
+#[test]
+fn test_ISSUE_004_002_parse_process_id_variable() {
+    // RED PHASE: Write failing test for $$ parsing
+    //
+    // CRITICAL: Parser MUST accept $$ to enable purification
+    // $$ is process ID (non-deterministic, needs purification)
+    //
+    // INPUT: bash with $$
+    // EXPECTED: Parser accepts, returns AST with special PID variable
+    // PURIFIER (later): Transforms to deterministic alternative
+
+    let bash = r#"
+#!/bin/bash
+PID=$$
+TEMP_DIR="/tmp/build-$PID"
+echo "Process ID: $PID"
+"#;
+
+    // ARRANGE: Lexer should tokenize $$
+    let lexer_result = BashParser::new(bash);
+    assert!(
+        lexer_result.is_ok(),
+        "Lexer should tokenize $$: {:?}",
+        lexer_result.err()
+    );
+
+    // ACT: Parser should accept $$
+    let mut parser = lexer_result.unwrap();
+    let parse_result = parser.parse();
+
+    // ASSERT: Parser must accept $$ (for purification to work)
+    assert!(
+        parse_result.is_ok(),
+        "Parser MUST accept $$ to enable purification: {:?}",
+        parse_result.err()
+    );
+
+    // VERIFY: AST contains assignment with PID variable
+    let ast = parse_result.unwrap();
+    assert!(
+        !ast.statements.is_empty(),
+        "$$ should produce non-empty AST"
+    );
+}
+
+#[test]
+fn test_ISSUE_004_003_parse_command_substitution() {
+    // RED PHASE: Write failing test for $(command) parsing
+    //
+    // CRITICAL: Parser MUST accept $(command) for shell script parsing
+    // Command substitution is CORE bash feature (different from arithmetic $((expr)))
+    //
+    // INPUT: bash with $(command)
+    // EXPECTED: Parser accepts, returns AST with CommandSubstitution node
+    // PURIFIER (later): May preserve or transform based on determinism
+
+    let bash = r#"
+#!/bin/bash
+FILES=$(ls /tmp)
+echo $FILES
+
+USER=$(whoami)
+echo "User: $USER"
+"#;
+
+    // ARRANGE: Lexer should tokenize $(command)
+    let lexer_result = BashParser::new(bash);
+    assert!(
+        lexer_result.is_ok(),
+        "Lexer should tokenize $(command): {:?}",
+        lexer_result.err()
+    );
+
+    // ACT: Parser should accept $(command)
+    let mut parser = lexer_result.unwrap();
+    let parse_result = parser.parse();
+
+    // ASSERT: Parser must accept $(command) for real bash parsing
+    assert!(
+        parse_result.is_ok(),
+        "Parser MUST accept $(command) for real bash scripts: {:?}",
+        parse_result.err()
+    );
+
+    // VERIFY: AST contains command substitution
+    let ast = parse_result.unwrap();
+    assert!(
+        !ast.statements.is_empty(),
+        "$(command) should produce non-empty AST"
+    );
+}
+
+#[test]
+fn test_ISSUE_004_004_parse_function_keyword() {
+    // RED PHASE: Write failing test for 'function' keyword parsing
+    //
+    // CRITICAL: Parser MUST support 'function' keyword (common bash idiom)
+    // Alternative to POSIX 'name() {}' syntax: 'function name() {}'
+    //
+    // INPUT: bash with function keyword
+    // EXPECTED: Parser accepts both 'function name()' and 'function name' syntax
+    // PURIFIER (later): May convert to POSIX 'name()' syntax
+
+    let bash = r#"
+#!/bin/bash
+
+# Function with parentheses
+function gen_id() {
+    echo $RANDOM
+}
+
+# Function without parentheses (also valid bash)
+function gen_temp {
+    echo "/tmp/file-$$"
+}
+
+# Call functions
+id=$(gen_id)
+temp=$(gen_temp)
+echo "ID: $id, Temp: $temp"
+"#;
+
+    // ARRANGE: Lexer should tokenize 'function' keyword
+    let lexer_result = BashParser::new(bash);
+    assert!(
+        lexer_result.is_ok(),
+        "Lexer should tokenize 'function' keyword: {:?}",
+        lexer_result.err()
+    );
+
+    // ACT: Parser should accept function keyword
+    let mut parser = lexer_result.unwrap();
+    let parse_result = parser.parse();
+
+    // ASSERT: Parser must accept 'function' keyword
+    assert!(
+        parse_result.is_ok(),
+        "Parser MUST accept 'function' keyword: {:?}",
+        parse_result.err()
+    );
+
+    // VERIFY: AST contains function definitions
+    let ast = parse_result.unwrap();
+    assert!(
+        !ast.statements.is_empty(),
+        "'function' keyword should produce non-empty AST"
+    );
+}
+
+#[test]
+fn test_ISSUE_004_005_parse_complete_small_simple_fixture() {
+    // RED PHASE: Integration test for complete small_simple.sh
+    //
+    // CRITICAL: This is the ACTUAL benchmark fixture that fails
+    // Combines ALL missing features: $RANDOM, $$, $(cmd), function
+    //
+    // This test verifies ALL features working together
+
+    let bash = r#"
+#!/bin/bash
+# Simplified version of small_simple.sh combining all features
+
+# Feature 1: $RANDOM
+ID=$RANDOM
+echo "Random ID: $ID"
+
+# Feature 2: $$
+PID=$$
+TEMP_DIR="/tmp/build-$PID"
+
+# Feature 3: $(command)
+FILES=$(ls /tmp)
+echo $FILES
+
+# Feature 4: function keyword
+function gen_id() {
+    echo $RANDOM
+}
+
+function gen_temp() {
+    echo "/tmp/file-$$"
+}
+
+# Combined usage
+session_id="session-$(gen_id)"
+temp_file=$(gen_temp)
+echo "Session: $session_id"
+echo "Temp: $temp_file"
+"#;
+
+    // ARRANGE: Lexer should handle combined features
+    let lexer_result = BashParser::new(bash);
+    assert!(
+        lexer_result.is_ok(),
+        "Lexer should tokenize combined features: {:?}",
+        lexer_result.err()
+    );
+
+    // ACT: Parser should accept all features together
+    let mut parser = lexer_result.unwrap();
+    let parse_result = parser.parse();
+
+    // ASSERT: Parser must accept complete script
+    assert!(
+        parse_result.is_ok(),
+        "Parser MUST accept complete bash script with all features: {:?}",
+        parse_result.err()
+    );
+
+    // VERIFY: AST is non-empty
+    let ast = parse_result.unwrap();
+    assert!(
+        !ast.statements.is_empty(),
+        "Complete script should produce non-empty AST"
+    );
+    assert!(
+        ast.statements.len() >= 8,
+        "Complete script should have multiple statements, got {}",
+        ast.statements.len()
+    );
+}
