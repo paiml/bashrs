@@ -17,11 +17,10 @@ use criterion::{criterion_group, criterion_main, BenchmarkId, Criterion};
 use std::hint::black_box;
 
 // Benchmark fixtures
-// Note: Using minimal fixture due to parser limitations
-// TODO: Enhance parser to support more bash syntax (date +FORMAT, command substitution, etc.)
-const SMALL_BASH: &str = include_str!("fixtures/minimal.sh");
-const MEDIUM_BASH: &str = include_str!("fixtures/minimal.sh");
-const LARGE_BASH: &str = include_str!("fixtures/minimal.sh");
+// Issue #4 RESOLVED: Parser now supports $RANDOM, $$, $(cmd), function keyword
+const SMALL_BASH: &str = include_str!("fixtures/small.sh");
+const MEDIUM_BASH: &str = include_str!("fixtures/medium.sh");
+const LARGE_BASH: &str = include_str!("fixtures/large.sh");
 
 /// Benchmark parsing only (bash → AST)
 fn benchmark_parse(c: &mut Criterion) {
