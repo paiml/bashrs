@@ -11,6 +11,17 @@
 
 use super::ast::*;
 use super::error::{MakeParseError, SourceLocation};
+use std::collections::HashMap;
+
+/// Result of preprocessing with metadata about line continuations
+struct PreprocessingResult {
+    /// The preprocessed text with continuations resolved
+    text: String,
+    /// Metadata for recipe lines with continuations
+    /// Maps from preprocessed line number to continuation metadata
+    /// breaks: Vec<(position_in_line, original_indentation)>
+    recipe_metadata_map: HashMap<usize, Vec<(usize, String)>>,
+}
 
 /// Preprocess Makefile input to handle line continuations
 ///
@@ -33,16 +44,23 @@ use super::error::{MakeParseError, SourceLocation};
 /// let output = preprocess_line_continuations(input);
 /// assert_eq!(output, "VAR = a b");
 /// ```
-fn preprocess_line_continuations(input: &str) -> String {
+/// Preprocess with metadata tracking for line continuations
+fn preprocess_line_continuations_with_metadata(input: &str) -> PreprocessingResult {
     let mut result = String::new();
+    let mut recipe_metadata_map = HashMap::new();
     let lines: Vec<&str> = input.lines().collect();
     let mut i = 0;
+    let mut preprocessed_line_num = 0;
 
     while i < lines.len() {
         let mut line = lines[i].to_string();
+        let mut breaks: Vec<(usize, String)> = Vec::new();
 
         // Check if this line ends with backslash (continuation)
         while line.trim_end().ends_with('\\') && i + 1 < lines.len() {
+            // Record the position where we're about to insert the continuation
+            let break_position = line.trim_end().strip_suffix('\\').unwrap().trim_end().len();
+
             // Remove the trailing backslash and any trailing whitespace
             line = line
                 .trim_end()
@@ -51,21 +69,42 @@ fn preprocess_line_continuations(input: &str) -> String {
                 .trim_end()
                 .to_string();
 
-            // Get the next line and trim leading whitespace
+            // Get the next line and capture its original indentation
             i += 1;
-            let next_line = lines[i].trim_start();
+            let next_line_full = lines[i];
+            let original_indent = next_line_full.chars()
+                .take_while(|c| c.is_whitespace())
+                .collect::<String>();
+            let next_line = next_line_full.trim_start();
+
+            // Record the break position and original indentation
+            breaks.push((break_position, original_indent));
 
             // Concatenate with a single space
             line.push(' ');
             line.push_str(next_line);
         }
 
+        // If this line had continuations, store the metadata mapped to preprocessed line number
+        if !breaks.is_empty() {
+            recipe_metadata_map.insert(preprocessed_line_num, breaks);
+        }
+
         result.push_str(&line);
         result.push('\n');
         i += 1;
+        preprocessed_line_num += 1;
     }
 
-    result
+    PreprocessingResult {
+        text: result,
+        recipe_metadata_map,
+    }
+}
+
+fn preprocess_line_continuations(input: &str) -> String {
+    // Simple version for backward compatibility
+    preprocess_line_continuations_with_metadata(input).text
 }
 
 /// Parse a Makefile string into an AST
@@ -185,7 +224,10 @@ fn should_skip_line(line: &str) -> bool {
     is_empty_line(line)
 }
 
-fn parse_makefile_items(lines: &[&str]) -> Result<Vec<MakeItem>, String> {
+fn parse_makefile_items(
+    lines: &[&str],
+    metadata_map: &HashMap<usize, Vec<(usize, String)>>,
+) -> Result<Vec<MakeItem>, String> {
     let mut items = Vec::new();
     let mut i = 0;
 
@@ -215,7 +257,7 @@ fn parse_makefile_items(lines: &[&str]) -> Result<Vec<MakeItem>, String> {
 
         // Try conditional directive
         if is_conditional_directive(line) {
-            try_add_item(&mut items, parse_conditional(lines, &mut i))?;
+            try_add_item(&mut items, parse_conditional(lines, &mut i, metadata_map))?;
             continue;
         }
 
@@ -234,7 +276,7 @@ fn parse_makefile_items(lines: &[&str]) -> Result<Vec<MakeItem>, String> {
 
         // Try target rule
         if is_target_rule(line) {
-            try_add_item(&mut items, parse_target_rule(lines, &mut i))?;
+            try_add_item(&mut items, parse_target_rule(lines, &mut i, metadata_map))?;
             continue;
         }
 
@@ -299,12 +341,12 @@ fn mark_phony_targets(
 }
 
 pub fn parse_makefile(input: &str) -> Result<MakeAst, String> {
-    let preprocessed = preprocess_line_continuations(input);
-    let lines: Vec<&str> = preprocessed.lines().collect();
+    let preprocessing = preprocess_line_continuations_with_metadata(input);
+    let lines: Vec<&str> = preprocessing.text.lines().collect();
     let line_count = lines.len();
 
     // First pass: Parse all items
-    let mut items = parse_makefile_items(&lines)?;
+    let mut items = parse_makefile_items(&lines, &preprocessing.recipe_metadata_map)?;
 
     // Second pass: Mark .PHONY targets
     let phony_targets = collect_phony_targets(&items);
@@ -659,6 +701,7 @@ fn is_conditional_start(trimmed: &str) -> bool {
 fn parse_conditional_branches(
     lines: &[&str],
     index: &mut usize,
+    metadata_map: &HashMap<usize, Vec<(usize, String)>>,
 ) -> Result<(Vec<MakeItem>, Option<Vec<MakeItem>>), MakeParseError> {
     let mut then_items = Vec::new();
     let mut else_items = None;
@@ -682,11 +725,11 @@ fn parse_conditional_branches(
 
         if trimmed == "else" && depth == 1 {
             *index += 1;
-            else_items = Some(parse_else_branch(lines, index, &mut depth)?);
+            else_items = Some(parse_else_branch(lines, index, &mut depth, metadata_map)?);
             break;
         }
 
-        match parse_conditional_item(lines, index) {
+        match parse_conditional_item(lines, index, metadata_map) {
             Ok(Some(item)) => then_items.push(item),
             Ok(None) => *index += 1,
             Err(e) => {
@@ -704,6 +747,7 @@ fn parse_else_branch(
     lines: &[&str],
     index: &mut usize,
     depth: &mut usize,
+    metadata_map: &HashMap<usize, Vec<(usize, String)>>,
 ) -> Result<Vec<MakeItem>, MakeParseError> {
     let mut else_vec = Vec::new();
 
@@ -723,7 +767,7 @@ fn parse_else_branch(
             }
         }
 
-        match parse_conditional_item(lines, index) {
+        match parse_conditional_item(lines, index, metadata_map) {
             Ok(Some(item)) => else_vec.push(item),
             Ok(None) => *index += 1,
             Err(e) => {
@@ -736,7 +780,11 @@ fn parse_else_branch(
     Ok(else_vec)
 }
 
-fn parse_conditional(lines: &[&str], index: &mut usize) -> Result<MakeItem, MakeParseError> {
+fn parse_conditional(
+    lines: &[&str],
+    index: &mut usize,
+    metadata_map: &HashMap<usize, Vec<(usize, String)>>,
+) -> Result<MakeItem, MakeParseError> {
     let start_line = lines[*index];
     let start_line_num = *index + 1;
     let trimmed = start_line.trim();
@@ -764,7 +812,7 @@ fn parse_conditional(lines: &[&str], index: &mut usize) -> Result<MakeItem, Make
 
     *index += 1;
 
-    let (then_items, else_items) = parse_conditional_branches(lines, index)?;
+    let (then_items, else_items) = parse_conditional_branches(lines, index, metadata_map)?;
 
     Ok(MakeItem::Conditional {
         condition,
@@ -858,7 +906,11 @@ fn parse_define_block(lines: &[&str], index: &mut usize) -> Result<MakeItem, Mak
 /// IMPORTANT: This function does NOT increment index for simple items like variables or comments,
 /// but parse_target_rule DOES increment index (it advances past recipes).
 /// The caller must increment index when Ok(None) is returned.
-fn parse_conditional_item(lines: &[&str], index: &mut usize) -> Result<Option<MakeItem>, String> {
+fn parse_conditional_item(
+    lines: &[&str],
+    index: &mut usize,
+    metadata_map: &HashMap<usize, Vec<(usize, String)>>,
+) -> Result<Option<MakeItem>, String> {
     let line = lines[*index];
     let line_num = *index + 1;
 
@@ -888,7 +940,7 @@ fn parse_conditional_item(lines: &[&str], index: &mut usize) -> Result<Option<Ma
 
     // Parse target rule (THIS INCREMENTS INDEX - it advances past recipes)
     if line.contains(':') && !line.trim_start().starts_with('\t') {
-        let target = parse_target_rule(lines, index).map_err(|e| e.to_string())?;
+        let target = parse_target_rule(lines, index, metadata_map).map_err(|e| e.to_string())?;
         // parse_target_rule already incremented index past the target and its recipe
         // So we DON'T increment it again
         return Ok(Some(target));
@@ -929,7 +981,11 @@ fn parse_conditional_item(lines: &[&str], index: &mut usize) -> Result<Option<Ma
 /// %.o: %.c
 ///     $(CC) -c $< -o $@
 /// ```
-fn parse_target_rule(lines: &[&str], index: &mut usize) -> Result<MakeItem, MakeParseError> {
+fn parse_target_rule(
+    lines: &[&str],
+    index: &mut usize,
+    metadata_map: &HashMap<usize, Vec<(usize, String)>>,
+) -> Result<MakeItem, MakeParseError> {
     let line = lines[*index];
     let line_num = *index + 1;
 
@@ -955,6 +1011,7 @@ fn parse_target_rule(lines: &[&str], index: &mut usize) -> Result<MakeItem, Make
     // Parse recipe lines (tab-indented lines following the target)
     *index += 1;
     let mut recipe = Vec::new();
+    let recipe_start_line = *index; // Track where recipes start for metadata lookup
 
     while *index < lines.len() {
         let recipe_line = lines[*index];
@@ -978,13 +1035,25 @@ fn parse_target_rule(lines: &[&str], index: &mut usize) -> Result<MakeItem, Make
         }
     }
 
+    // Check if any recipe lines have line continuation metadata
+    // For simplicity, if the first recipe line has metadata, use it
+    let recipe_metadata = if !recipe.is_empty() {
+        metadata_map.get(&recipe_start_line).map(|breaks| {
+            RecipeMetadata {
+                line_breaks: breaks.clone(),
+            }
+        })
+    } else {
+        None
+    };
+
     // Check if this is a pattern rule (target contains %)
     if name.contains('%') {
         Ok(MakeItem::PatternRule {
             target_pattern: name,
             prereq_patterns: prerequisites,
             recipe,
-            recipe_metadata: None, // Will be populated by preprocess_line_continuations
+            recipe_metadata,
             span: Span::new(0, line.len(), line_num),
         })
     } else {
@@ -992,8 +1061,8 @@ fn parse_target_rule(lines: &[&str], index: &mut usize) -> Result<MakeItem, Make
             name,
             prerequisites,
             recipe,
-            phony: false,          // Will be detected in semantic analysis
-            recipe_metadata: None, // Will be populated by preprocess_line_continuations
+            phony: false, // Will be detected in semantic analysis
+            recipe_metadata,
             span: Span::new(0, line.len(), line_num),
         })
     }
