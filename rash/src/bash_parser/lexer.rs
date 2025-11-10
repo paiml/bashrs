@@ -173,9 +173,10 @@ impl Lexer {
         }
 
         // Bare words (paths, globs, etc) - must come before operators
-        // These are unquoted strings that can contain /  * . - : + % etc
+        // These are unquoted strings that can contain /  * . - : + % \ etc
         // Note: ':' is included for bash builtin no-op command (BUILTIN-001)
         // Note: '+' and '%' are included for flags like date +%FORMAT (PARSER-ENH-001)
+        // Note: '\\' is included for escaped chars like \\; in find -exec
         if ch == '/'
             || ch == '.'
             || ch == '-'
@@ -184,6 +185,7 @@ impl Lexer {
             || ch == ':'
             || ch == '+'
             || ch == '%'
+            || ch == '\\'
         {
             return Ok(self.read_bare_word());
         }
@@ -508,6 +510,16 @@ impl Lexer {
 
         while !self.is_at_end() {
             let ch = self.current_char();
+
+            // Handle escape sequences (e.g., \; in find -exec ... \;)
+            if ch == '\\' {
+                word.push(self.advance()); // include backslash
+                if !self.is_at_end() {
+                    word.push(self.advance()); // include escaped char
+                }
+                continue;
+            }
+
             // Bare words can contain alphanumeric, path separators, globs, dots, dashes, plus signs, percent signs
             // Note: '+' and '%' added for date +%FORMAT support (PARSER-ENH-001)
             if ch.is_alphanumeric()
