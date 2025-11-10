@@ -1618,7 +1618,6 @@ impl BashExecutor {
 
         // Parse and execute patterns
         let mut i = start + 1;
-        #[allow(unused_assignments)] // matched is set but immediately breaks
         let mut matched = false;
         let mut exit_code = 0;
 
@@ -1644,8 +1643,6 @@ impl BashExecutor {
                     .any(|pattern| self.pattern_matches(pattern, &expanded_value));
 
                 if pattern_matches && !matched {
-                    matched = true;
-
                     // Execute commands until ;;
                     i += 1;
                     while i < esac_line {
