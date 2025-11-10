@@ -112,7 +112,7 @@ pub fn generate_purified_makefile_with_options(
     let mut prev_was_comment = false;
 
     for (idx, item) in ast.items.iter().enumerate() {
-        let item_output = generate_item(item);
+        let item_output = generate_item(item, options);
 
         // Handle blank line preservation
         let should_add_blank_line =
@@ -221,7 +221,7 @@ fn apply_line_length_limit(text: &str, max_length: usize) -> String {
 }
 
 /// Generate text for a single MakeItem
-fn generate_item(item: &MakeItem) -> String {
+fn generate_item(item: &MakeItem, options: &MakefileGeneratorOptions) -> String {
     match item {
         MakeItem::Variable {
             name,
@@ -235,22 +235,37 @@ fn generate_item(item: &MakeItem) -> String {
             prerequisites,
             recipe,
             phony,
+            recipe_metadata,
             ..
-        } => generate_target(name, prerequisites, recipe, *phony),
+        } => generate_target(
+            name,
+            prerequisites,
+            recipe,
+            *phony,
+            recipe_metadata.as_ref(),
+            options,
+        ),
 
         MakeItem::PatternRule {
             target_pattern,
             prereq_patterns,
             recipe,
+            recipe_metadata,
             ..
-        } => generate_pattern_rule(target_pattern, prereq_patterns, recipe),
+        } => generate_pattern_rule(
+            target_pattern,
+            prereq_patterns,
+            recipe,
+            recipe_metadata.as_ref(),
+            options,
+        ),
 
         MakeItem::Conditional {
             condition,
             then_items,
             else_items,
             ..
-        } => generate_conditional(condition, then_items, else_items.as_deref()),
+        } => generate_conditional(condition, then_items, else_items.as_deref(), options),
 
         MakeItem::Include { path, optional, .. } => generate_include(path, *optional),
 
@@ -286,16 +301,26 @@ fn generate_variable(name: &str, value: &str, flavor: &VarFlavor) -> String {
 /// * `prerequisites` - List of prerequisites
 /// * `recipe` - List of recipe lines (will be tab-indented)
 /// * `phony` - Whether this target should be marked as .PHONY
+/// * `recipe_metadata` - Optional metadata about line continuations
+/// * `options` - Generator options (for preserve_formatting, skip_consolidation)
 ///
 /// # Examples
 ///
 /// ```ignore
 /// # use bashrs::make_parser::generators::generate_target;
-/// let output = generate_target("build", &vec!["main.c".to_string()], &vec!["gcc -o build main.c".to_string()], false);
+/// let options = MakefileGeneratorOptions::default();
+/// let output = generate_target("build", &vec!["main.c".to_string()], &vec!["gcc -o build main.c".to_string()], false, None, &options);
 /// assert!(output.contains("build: main.c"));
 /// assert!(output.contains("\tgcc -o build main.c"));
 /// ```
-fn generate_target(name: &str, prerequisites: &[String], recipe: &[String], phony: bool) -> String {
+fn generate_target(
+    name: &str,
+    prerequisites: &[String],
+    recipe: &[String],
+    phony: bool,
+    recipe_metadata: Option<&RecipeMetadata>,
+    options: &MakefileGeneratorOptions,
+) -> String {
     let mut output = String::new();
 
     // Add .PHONY declaration if needed
@@ -314,15 +339,78 @@ fn generate_target(name: &str, prerequisites: &[String], recipe: &[String], phon
 
     output.push('\n');
 
-    // Generate recipe lines (MUST use tabs)
-    for line in recipe {
-        output.push('\t');
-        output.push_str(line);
-        output.push('\n');
+    // Generate recipe lines
+    // If preserve_formatting or skip_consolidation is set AND we have metadata,
+    // reconstruct the original line breaks with backslash continuations
+    if let Some(metadata) = recipe_metadata {
+        if (options.preserve_formatting || options.skip_consolidation) && !recipe.is_empty() {
+            // Reconstruct with line breaks
+            for line in recipe {
+                output.push_str(&reconstruct_recipe_line_with_breaks(line, metadata));
+            }
+        } else {
+            // Default: Generate recipe lines as single lines (MUST use tabs)
+            for line in recipe {
+                output.push('\t');
+                output.push_str(line);
+                output.push('\n');
+            }
+        }
+    } else {
+        // No metadata: Generate recipe lines as single lines (MUST use tabs)
+        for line in recipe {
+            output.push('\t');
+            output.push_str(line);
+            output.push('\n');
+        }
     }
 
     // Remove trailing newline (will be added by generate_item)
     output.pop();
+
+    output
+}
+
+/// Reconstruct a recipe line with backslash continuations based on metadata
+///
+/// Takes a consolidated single-line recipe and metadata about where line breaks
+/// occurred, and reconstructs the original multi-line format with backslashes.
+fn reconstruct_recipe_line_with_breaks(line: &str, metadata: &RecipeMetadata) -> String {
+    if metadata.line_breaks.is_empty() {
+        // No breaks, return as single line with tab
+        return format!("\t{}\n", line);
+    }
+
+    let mut output = String::new();
+    output.push('\t'); // Start with tab
+
+    let line_bytes = line.as_bytes();
+    let mut last_pos = 0;
+
+    for (break_pos, original_indent) in &metadata.line_breaks {
+        // Add text up to break position
+        if *break_pos <= line.len() {
+            // Add text up to break, trimming any trailing space
+            let text_segment = &line[last_pos..*break_pos];
+            let trimmed_segment = text_segment.trim_end();
+            output.push_str(trimmed_segment);
+            output.push_str(" \\");
+            output.push('\n');
+            output.push_str(original_indent);
+
+            // Move past the break position and skip the consolidation space
+            last_pos = *break_pos;
+            if last_pos < line_bytes.len() && line_bytes[last_pos] == b' ' {
+                last_pos += 1; // Skip the space we added during consolidation
+            }
+        }
+    }
+
+    // Add remaining text
+    if last_pos < line.len() {
+        output.push_str(&line[last_pos..]);
+    }
+    output.push('\n');
 
     output
 }
@@ -332,8 +420,17 @@ fn generate_pattern_rule(
     target_pattern: &str,
     prereq_patterns: &[String],
     recipe: &[String],
+    recipe_metadata: Option<&RecipeMetadata>,
+    options: &MakefileGeneratorOptions,
 ) -> String {
-    generate_target(target_pattern, prereq_patterns, recipe, false)
+    generate_target(
+        target_pattern,
+        prereq_patterns,
+        recipe,
+        false,
+        recipe_metadata,
+        options,
+    )
 }
 
 /// Generate a conditional block
@@ -341,6 +438,7 @@ fn generate_conditional(
     condition: &MakeCondition,
     then_items: &[MakeItem],
     else_items: Option<&[MakeItem]>,
+    options: &MakefileGeneratorOptions,
 ) -> String {
     let mut output = String::new();
 
@@ -362,7 +460,7 @@ fn generate_conditional(
 
     // Generate then branch
     for item in then_items {
-        output.push_str(&generate_item(item));
+        output.push_str(&generate_item(item, options));
         output.push('\n');
     }
 
@@ -370,7 +468,7 @@ fn generate_conditional(
     if let Some(else_items) = else_items {
         output.push_str("else\n");
         for item in else_items {
-            output.push_str(&generate_item(item));
+            output.push_str(&generate_item(item, options));
             output.push('\n');
         }
     }

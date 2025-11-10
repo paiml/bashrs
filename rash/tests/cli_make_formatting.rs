@@ -105,18 +105,10 @@ build:
 }
 
 #[test]
-#[ignore] // TODO(Issue #2): Requires parser-level changes to preserve backslash continuations
 fn test_make_formatting_003_preserve_formatting_keeps_multiline_format() {
-    // KNOWN LIMITATION: The parser preprocesses backslash continuations
-    // before building the AST (see preprocess_line_continuations in parser.rs).
-    // By the time we reach the generator, the original line structure is lost.
-    //
-    // To fix: Need to either:
-    // 1. Track original line breaks in AST metadata
-    // 2. Conditionally skip preprocessing based on options
-    // 3. Implement intelligent line breaking in generator
-    //
-    // This is a significant parser refactor beyond initial scope.
+    // ✅ FIXED (Issue #2): Parser now tracks line continuation metadata
+    // in the AST and generator reconstructs original backslash continuations
+    // when --preserve-formatting is used.
 
     let temp_dir = TempDir::new().unwrap();
     let input_file = temp_dir.path().join("Makefile");
@@ -291,13 +283,9 @@ fn test_make_formatting_008_skip_consolidation_flag_exists() {
 }
 
 #[test]
-#[ignore] // TODO(Issue #2): Same parser limitation as test_003
 fn test_make_formatting_009_skip_consolidation_preserves_multiline() {
-    // KNOWN LIMITATION: Same as test_003 - parser consolidates backslash
-    // continuations before AST construction. See parser.rs preprocess_line_continuations.
-    //
-    // The --skip-consolidation flag is accepted but has no effect on backslash
-    // continuations since they're already consolidated at parse time.
+    // ✅ FIXED (Issue #2): Parser now tracks line continuation metadata
+    // and generator reconstructs backslash continuations with --skip-consolidation.
 
     let temp_dir = TempDir::new().unwrap();
     let input_file = temp_dir.path().join("Makefile");
