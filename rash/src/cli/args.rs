@@ -392,6 +392,22 @@ pub enum MakeCommands {
         /// Generate property-based tests (100+ cases)
         #[arg(long)]
         property_tests: bool,
+
+        /// Preserve formatting (keep blank lines, multi-line format)
+        #[arg(long)]
+        preserve_formatting: bool,
+
+        /// Maximum line length (default: unlimited)
+        #[arg(long)]
+        max_line_length: Option<usize>,
+
+        /// Skip blank line removal transformation
+        #[arg(long)]
+        skip_blank_line_removal: bool,
+
+        /// Skip multi-line consolidation transformation
+        #[arg(long)]
+        skip_consolidation: bool,
     },
 
     /// Lint Makefile for quality issues

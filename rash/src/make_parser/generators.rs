@@ -23,6 +23,40 @@
 
 use super::ast::*;
 
+/// Options for controlling Makefile generation
+///
+/// These options allow users to customize the output format while maintaining
+/// correctness and determinism.
+///
+/// ## Added in v6.34.0 (Dogfooding Follow-up)
+///
+/// See: docs/dogfooding/makefile-purification.md
+#[derive(Debug, Clone)]
+pub struct MakefileGeneratorOptions {
+    /// Preserve formatting (keep blank lines, multi-line format)
+    pub preserve_formatting: bool,
+
+    /// Maximum line length (None = unlimited)
+    pub max_line_length: Option<usize>,
+
+    /// Skip blank line removal transformation
+    pub skip_blank_line_removal: bool,
+
+    /// Skip multi-line consolidation transformation
+    pub skip_consolidation: bool,
+}
+
+impl Default for MakefileGeneratorOptions {
+    fn default() -> Self {
+        Self {
+            preserve_formatting: false,
+            max_line_length: None,
+            skip_blank_line_removal: false,
+            skip_consolidation: false,
+        }
+    }
+}
+
 /// Generate a purified Makefile from an AST
 ///
 /// This function emits a complete Makefile from a parsed and purified AST.
@@ -48,15 +82,157 @@ use super::ast::*;
 /// assert_eq!(output.trim(), "CC := gcc");
 /// ```
 pub fn generate_purified_makefile(ast: &MakeAst) -> String {
-    let mut output = String::new();
+    generate_purified_makefile_with_options(ast, &MakefileGeneratorOptions::default())
+}
 
-    for item in &ast.items {
+/// Generate a purified Makefile from an AST with custom formatting options
+///
+/// This function provides fine-grained control over the output format while
+/// maintaining correctness and determinism.
+///
+/// ## Options
+///
+/// - `preserve_formatting`: Keep blank lines and multi-line format (combines skip flags)
+/// - `max_line_length`: Break lines longer than this (None = unlimited)
+/// - `skip_blank_line_removal`: Keep blank lines between sections
+/// - `skip_consolidation`: Keep multi-line format (no single-line if/then/else)
+///
+/// ## Added in v6.34.0 (Dogfooding Follow-up)
+///
+/// See: docs/dogfooding/makefile-purification.md
+///
+/// # Examples
+///
+/// ```ignore
+/// use bashrs::make_parser::{MakeAst, MakefileGeneratorOptions, generate_purified_makefile_with_options};
+///
+/// let ast = parse_makefile("...")?;
+/// let options = MakefileGeneratorOptions {
+///     preserve_formatting: true,
+///     max_line_length: Some(120),
+///     ..Default::default()
+/// };
+///
+/// let output = generate_purified_makefile_with_options(&ast, &options);
+/// ```
+pub fn generate_purified_makefile_with_options(
+    ast: &MakeAst,
+    options: &MakefileGeneratorOptions,
+) -> String {
+    let mut output = String::new();
+    let mut prev_was_comment = false;
+
+    for (idx, item) in ast.items.iter().enumerate() {
         let item_output = generate_item(item);
-        output.push_str(&item_output);
+
+        // Handle blank line preservation
+        let should_add_blank_line = should_preserve_blank_line(
+            item,
+            idx > 0,
+            prev_was_comment,
+            options,
+        );
+
+        if should_add_blank_line && idx > 0 {
+            output.push('\n'); // Add blank line before item
+        }
+
+        // Apply line length limits
+        let formatted_output = if let Some(max_len) = options.max_line_length {
+            apply_line_length_limit(&item_output, max_len)
+        } else {
+            item_output
+        };
+
+        output.push_str(&formatted_output);
         output.push('\n');
+
+        prev_was_comment = matches!(item, MakeItem::Comment { .. });
     }
 
     output
+}
+
+/// Determine if a blank line should be preserved before this item
+fn should_preserve_blank_line(
+    item: &MakeItem,
+    has_prev: bool,
+    prev_was_comment: bool,
+    options: &MakefileGeneratorOptions,
+) -> bool {
+    if !has_prev {
+        return false;
+    }
+
+    // If preserve_formatting is on, preserve blank lines before major sections
+    if options.preserve_formatting || options.skip_blank_line_removal {
+        match item {
+            MakeItem::Comment { .. } if !prev_was_comment => true,
+            MakeItem::Target { .. } => true,
+            _ => false,
+        }
+    } else {
+        false
+    }
+}
+
+/// Apply line length limit to output
+///
+/// Breaks long lines at reasonable boundaries (spaces, semicolons).
+fn apply_line_length_limit(text: &str, max_length: usize) -> String {
+    let mut result = String::new();
+
+    for line in text.lines() {
+        if line.len() <= max_length {
+            result.push_str(line);
+            result.push('\n');
+        } else {
+            // Break long line at spaces or semicolons
+            let mut current_line = String::new();
+
+            // Preserve leading tabs for recipe lines
+            let leading_tabs = line.chars().take_while(|c| *c == '\t').count();
+            let indent = "\t".repeat(leading_tabs);
+            current_line.push_str(&indent);
+            let mut current_len = indent.len();
+
+            let content = &line[leading_tabs..];
+
+            for word in content.split_whitespace() {
+                let word_len = word.len() + 1; // +1 for space
+
+                if current_len + word_len > max_length && current_len > indent.len() {
+                    // Line would be too long, break here
+                    result.push_str(&current_line);
+                    if !current_line.ends_with('\\') {
+                        result.push_str(" \\");
+                    }
+                    result.push('\n');
+
+                    // Start new line with indent
+                    current_line.clear();
+                    current_line.push_str(&indent);
+                    current_line.push(' '); // Continuation indent
+                    current_len = indent.len() + 1;
+                }
+
+                if !current_line.ends_with(&indent) && !current_line.ends_with(' ') {
+                    current_line.push(' ');
+                    current_len += 1;
+                }
+
+                current_line.push_str(word);
+                current_len += word.len();
+            }
+
+            if !current_line.trim().is_empty() {
+                result.push_str(&current_line);
+                result.push('\n');
+            }
+        }
+    }
+
+    result.trim_end_matches('\n').to_string()
 }
 
 /// Generate text for a single MakeItem
