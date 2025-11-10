@@ -1,8 +1,5 @@
 // CLI Integration Tests for bashrs make purify --with-tests Command
-// EXTREME TDD: RED phase - These tests will FAIL until feature is implemented
-//
-// NOTE: All tests are marked #[ignore] to prevent blocking the main test suite.
-// Run with: cargo test --ignored test_MAKE_WITH_TESTS
+// EXTREME TDD: GREEN phase - Feature implemented and tests passing
 //
 // Test Naming Convention: test_MAKE_WITH_TESTS_<ID>_<feature>_<scenario>
 //
@@ -44,7 +41,7 @@ fn create_temp_makefile(content: &str) -> NamedTempFile {
 // ============================================================================
 
 #[test]
-#[ignore] // RED phase: Feature not implemented yet
+
 fn test_MAKE_WITH_TESTS_001_generates_test_file() {
     let makefile = r#"# Simple Makefile
 .PHONY: all
@@ -84,7 +81,7 @@ all:
 }
 
 #[test]
-#[ignore] // RED phase: Feature not implemented yet
+
 fn test_MAKE_WITH_TESTS_001_test_file_naming_convention() {
     let makefile = "all:\n\techo test";
     let input_file = create_temp_makefile(makefile);
@@ -114,7 +111,7 @@ fn test_MAKE_WITH_TESTS_001_test_file_naming_convention() {
 // ============================================================================
 
 #[test]
-#[ignore] // RED phase: Feature not implemented yet
+
 fn test_MAKE_WITH_TESTS_002_generates_determinism_test() {
     let makefile = r#".PHONY: build
 build:
@@ -152,7 +149,7 @@ build:
 }
 
 #[test]
-#[ignore] // RED phase: Feature not implemented yet
+
 fn test_MAKE_WITH_TESTS_002_determinism_test_passes() {
     let makefile = r#".PHONY: build
 build:
@@ -201,7 +198,7 @@ build:
 // ============================================================================
 
 #[test]
-#[ignore] // RED phase: Feature not implemented yet
+
 fn test_MAKE_WITH_TESTS_003_generates_idempotency_test() {
     let makefile = r#".PHONY: install
 install:
@@ -243,7 +240,7 @@ install:
 // ============================================================================
 
 #[test]
-#[ignore] // RED phase: Feature not implemented yet
+
 fn test_MAKE_WITH_TESTS_004_generates_posix_compliance_test() {
     let makefile = r#".PHONY: test
 test:
@@ -279,7 +276,7 @@ test:
 // ============================================================================
 
 #[test]
-#[ignore] // RED phase: Feature not implemented yet
+
 fn test_MAKE_WITH_TESTS_005_property_tests_flag() {
     let makefile = r#".PHONY: build
 build:
@@ -324,7 +321,7 @@ build:
 // ============================================================================
 
 #[test]
-#[ignore] // RED phase: Feature not implemented yet
+
 fn test_MAKE_WITH_TESTS_006_generated_tests_are_executable() {
     let makefile = r#".PHONY: all
 all:
@@ -369,7 +366,7 @@ all:
 }
 
 #[test]
-#[ignore] // RED phase: Feature not implemented yet
+
 fn test_MAKE_WITH_TESTS_006_all_tests_pass_for_valid_makefile() {
     let makefile = r#".PHONY: build
 build:
@@ -423,7 +420,7 @@ build:
 // ============================================================================
 
 #[test]
-#[ignore] // RED phase: Feature not implemented yet
+
 fn test_MAKE_WITH_TESTS_error_missing_output() {
     let makefile = "all:\n\techo test";
     let input_file = create_temp_makefile(makefile);
@@ -444,7 +441,7 @@ fn test_MAKE_WITH_TESTS_error_missing_output() {
 // ============================================================================
 
 #[test]
-#[ignore] // RED phase: Feature not implemented yet
+
 fn test_MAKE_WITH_TESTS_help_flag() {
     bashrs_cmd()
         .arg("make")

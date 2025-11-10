@@ -1011,7 +1011,14 @@ fn make_purify_command(
             let test_suite = test_generator.generate_tests(output_path, &purified);
 
             // Derive test file name: <Makefile>.test.sh
-            let test_file = output_path.with_extension("test.sh");
+            // Append ".test.sh" to the full filename (not replace extension)
+            let file_name = output_path
+                .file_name()
+                .ok_or_else(|| Error::Internal("Invalid output path".to_string()))?
+                .to_str()
+                .ok_or_else(|| Error::Internal("Invalid UTF-8 in filename".to_string()))?;
+            let test_file = output_path.with_file_name(format!("{}.test.sh", file_name));
+
             fs::write(&test_file, test_suite).map_err(Error::Io)?;
             info!("Test suite written to {}", test_file.display());
         }
