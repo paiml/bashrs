@@ -1079,12 +1079,17 @@ fn purify_dockerfile(source: &str, skip_user: bool) -> Result<String> {
             purified.push(String::new());
         }
 
-        // DOCKER006: Convert ADD to COPY for local files
-        let mut processed_line = if line.trim().starts_with("ADD ") {
-            convert_add_to_copy_if_local(line)
+        // DOCKER002: Pin unpinned base images
+        let mut processed_line = if line.trim().starts_with("FROM ") {
+            pin_base_image_version(line)
         } else {
             line.to_string()
         };
+
+        // DOCKER006: Convert ADD to COPY for local files
+        if line.trim().starts_with("ADD ") {
+            processed_line = convert_add_to_copy_if_local(&processed_line);
+        }
 
         // DOCKER005: Add --no-install-recommends to apt-get install
         if line.trim().starts_with("RUN ") && processed_line.contains("apt-get install") {
@@ -1195,6 +1200,66 @@ fn add_package_manager_cleanup(line: &str) -> String {
     }
 
     line.to_string()
+}
+
+/// Pin unpinned base images to stable versions (DOCKER002)
+///
+/// Prevents breaking changes from using :latest or untagged images.
+/// Pins common images to stable/LTS versions:
+/// - ubuntu → ubuntu:22.04 (LTS)
+/// - debian → debian:12-slim
+/// - alpine → alpine:3.19
+/// - etc.
+fn pin_base_image_version(line: &str) -> String {
+    let trimmed = line.trim();
+
+    // Parse FROM line: "FROM <image>[:<tag>] [AS <name>]"
+    let parts: Vec<&str> = trimmed.split_whitespace().collect();
+    let image_part = match parts.get(1) {
+        Some(img) => *img,
+        None => return line.to_string(), // Malformed FROM line
+    };
+
+    // Split image into name and tag
+    let (image_name, tag) = if let Some(colon_pos) = image_part.find(':') {
+        let name = &image_part[..colon_pos];
+        let tag = &image_part[colon_pos + 1..];
+        (name, Some(tag))
+    } else {
+        (image_part, None)
+    };
+
+    // Determine if pinning is needed
+    let needs_pinning = tag.is_none() || tag == Some("latest");
+
+    if !needs_pinning {
+        return line.to_string(); // Already has specific version
+    }
+
+    // Map common images to stable versions
+    let pinned_tag = match image_name {
+        "ubuntu" => "22.04", // LTS
+        "debian" => "12-slim",
+        "alpine" => "3.19",
+        "node" => "20-alpine",
+        "python" => "3.11-slim",
+        "rust" => "1.75-alpine",
+        "nginx" => "1.25-alpine",
+        "postgres" => "16-alpine",
+        "redis" => "7-alpine",
+        _ => return line.to_string(), // Unknown image, keep as-is
+    };
+
+    // Reconstruct FROM line with pinned version
+    let pinned_image = format!("{}:{}", image_name, pinned_tag);
+
+    // Preserve "AS <name>" if present
+    if parts.len() > 2 {
+        let rest = parts.get(2..).map(|s| s.join(" ")).unwrap_or_default();
+        format!("FROM {} {}", pinned_image, rest)
+    } else {
+        format!("FROM {}", pinned_image)
+    }
 }
 
 fn dockerfile_lint_command(_input: &Path, _format: LintFormat, _rules: Option<&str>) -> Result<()> {
