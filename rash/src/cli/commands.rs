@@ -1079,10 +1079,53 @@ fn purify_dockerfile(source: &str, skip_user: bool) -> Result<String> {
             purified.push(String::new());
         }
 
-        purified.push(line.to_string());
+        // DOCKER006: Convert ADD to COPY for local files
+        let processed_line = if line.trim().starts_with("ADD ") {
+            convert_add_to_copy_if_local(line)
+        } else {
+            line.to_string()
+        };
+
+        purified.push(processed_line);
     }
 
     Ok(purified.join("\n"))
+}
+
+/// Convert ADD to COPY for local files (DOCKER006)
+///
+/// Keep ADD for:
+/// - URLs (http://, https://)
+/// - Tarballs (.tar, .tar.gz, .tgz, .tar.bz2, .tar.xz) which ADD auto-extracts
+fn convert_add_to_copy_if_local(line: &str) -> String {
+    let trimmed = line.trim();
+
+    // Extract the source path (first argument after ADD)
+    let parts: Vec<&str> = trimmed.split_whitespace().collect();
+    let source = match parts.get(1) {
+        Some(s) => *s,
+        None => return line.to_string(), // Malformed ADD directive, keep as-is
+    };
+
+    // Check if source is a URL
+    if source.starts_with("http://") || source.starts_with("https://") {
+        return line.to_string(); // Keep ADD for URLs
+    }
+
+    // Check if source is a tarball (which ADD auto-extracts)
+    let is_tarball = source.ends_with(".tar")
+        || source.ends_with(".tar.gz")
+        || source.ends_with(".tgz")
+        || source.ends_with(".tar.bz2")
+        || source.ends_with(".tar.xz")
+        || source.ends_with(".tar.Z");
+
+    if is_tarball {
+        return line.to_string(); // Keep ADD for tarballs (auto-extraction feature)
+    }
+
+    // It's a local file - convert ADD to COPY
+    line.replacen("ADD ", "COPY ", 1)
 }
 
 fn dockerfile_lint_command(_input: &Path, _format: LintFormat, _rules: Option<&str>) -> Result<()> {
