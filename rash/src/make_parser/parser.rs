@@ -279,6 +279,7 @@ fn mark_phony_targets(
                 prerequisites,
                 recipe,
                 phony: _,
+                recipe_metadata,
                 span,
             } = item
             {
@@ -287,6 +288,7 @@ fn mark_phony_targets(
                     name,
                     prerequisites,
                     recipe,
+                    recipe_metadata,
                     span,
                 }
             } else {
@@ -982,6 +984,7 @@ fn parse_target_rule(lines: &[&str], index: &mut usize) -> Result<MakeItem, Make
             target_pattern: name,
             prereq_patterns: prerequisites,
             recipe,
+            recipe_metadata: None, // Will be populated by preprocess_line_continuations
             span: Span::new(0, line.len(), line_num),
         })
     } else {
@@ -989,7 +992,8 @@ fn parse_target_rule(lines: &[&str], index: &mut usize) -> Result<MakeItem, Make
             name,
             prerequisites,
             recipe,
-            phony: false, // Will be detected in semantic analysis
+            phony: false,          // Will be detected in semantic analysis
+            recipe_metadata: None, // Will be populated by preprocess_line_continuations
             span: Span::new(0, line.len(), line_num),
         })
     }

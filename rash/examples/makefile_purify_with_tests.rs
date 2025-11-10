@@ -179,7 +179,10 @@ clean:
     println!("To run the generated tests:");
     println!();
     println!("  cd {}", temp_path.display());
-    println!("  chmod +x {}", test_file.file_name().unwrap().to_str().unwrap());
+    println!(
+        "  chmod +x {}",
+        test_file.file_name().unwrap().to_str().unwrap()
+    );
     println!("  ./{}", test_file.file_name().unwrap().to_str().unwrap());
     println!();
     println!("Or with sh:");

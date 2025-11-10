@@ -25,41 +25,28 @@
         <link rel="stylesheet" href="fonts/fonts.css">
 
         <!-- Highlight.js Stylesheets -->
-        <link rel="stylesheet" id="highlight-css" href="highlight.css">
-        <link rel="stylesheet" id="tomorrow-night-css" href="tomorrow-night.css">
-        <link rel="stylesheet" id="ayu-highlight-css" href="ayu-highlight.css">
+        <link rel="stylesheet" href="highlight.css">
+        <link rel="stylesheet" href="tomorrow-night.css">
+        <link rel="stylesheet" href="ayu-highlight.css">
 
         <!-- Custom theme stylesheets -->
 
 
-        <!-- Provide site root and default themes to javascript -->
+        <!-- Provide site root to javascript -->
         <script>
-            const path_to_root = "";
-            const default_light_theme = "rust";
-            const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex.js";
+            var path_to_root = "";
+            var default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "navy" : "rust";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc.js"></script>
     </head>
     <body>
-    <div id="mdbook-help-container">
-        <div id="mdbook-help-popup">
-            <h2 class="mdbook-help-title">Keyboard shortcuts</h2>
-            <div>
-                <p>Press <kbd>←</kbd> or <kbd>→</kbd> to navigate between chapters</p>
-                <p>Press <kbd>S</kbd> or <kbd>/</kbd> to search in the book</p>
-                <p>Press <kbd>?</kbd> to show this help</p>
-                <p>Press <kbd>Esc</kbd> to hide this help</p>
-            </div>
-        </div>
-    </div>
     <div id="body-container">
         <!-- Work around some values being stored in localStorage wrapped in quotes -->
         <script>
             try {
-                let theme = localStorage.getItem('mdbook-theme');
-                let sidebar = localStorage.getItem('mdbook-sidebar');
+                var theme = localStorage.getItem('mdbook-theme');
+                var sidebar = localStorage.getItem('mdbook-sidebar');
 
                 if (theme.startsWith('"') && theme.endsWith('"')) {
                     localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
@@ -73,8 +60,7 @@
 
         <!-- Set the theme before any content is loaded, prevents flash -->
         <script>
-            const default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? default_dark_theme : default_light_theme;
-            let theme;
+            var theme;
             try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
             if (theme === null || theme === undefined) { theme = default_theme; }
             const html = document.documentElement;
@@ -87,20 +73,17 @@
 
         <!-- Hide / unhide sidebar before it is displayed -->
         <script>
-            let sidebar = null;
-            const sidebar_toggle = document.getElementById("sidebar-toggle-anchor");
+            var sidebar = null;
+            var sidebar_toggle = document.getElementById("sidebar-toggle-anchor");
             if (document.body.clientWidth >= 1080) {
                 try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
                 sidebar = sidebar || 'visible';
             } else {
                 sidebar = 'hidden';
-                sidebar_toggle.checked = false;
             }
-            if (sidebar === 'visible') {
-                sidebar_toggle.checked = true;
-            } else {
-                html.classList.remove('sidebar-visible');
-            }
+            sidebar_toggle.checked = sidebar === 'visible';
+            html.classList.remove('sidebar-visible');
+            html.classList.add("sidebar-" + sidebar);
         </script>
 
         <nav id="sidebar" class="sidebar" aria-label="Table of contents">
@@ -127,14 +110,13 @@
                             <i class="fa fa-paint-brush"></i>
                         </button>
                         <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
-                            <li role="none"><button role="menuitem" class="theme" id="default_theme">Auto</button></li>
                             <li role="none"><button role="menuitem" class="theme" id="light">Light</button></li>
                             <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
                             <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
                             <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
                             <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
                         </ul>
-                        <button id="search-toggle" class="icon-button" type="button" title="Search (`/`)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="/ s" aria-controls="searchbar">
+                        <button id="search-toggle" class="icon-button" type="button" title="Search. (Shortkey: s)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="S" aria-controls="searchbar">
                             <i class="fa fa-search"></i>
                         </button>
                     </div>
@@ -154,12 +136,7 @@
 
                 <div id="search-wrapper" class="hidden">
                     <form id="searchbar-outer" class="searchbar-outer">
-                        <div class="search-wrapper">
-                            <input type="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
-                            <div class="spinner-wrapper">
-                                <i class="fa fa-spinner fa-spin"></i>
-                            </div>
-                        </div>
+                        <input type="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
                     </form>
                     <div id="searchresults-outer" class="searchresults-outer hidden">
                         <div id="searchresults-header" class="searchresults-header"></div>
@@ -211,7 +188,7 @@ cd /tmp/deploy-$SESSION_ID
 </code></pre>
 <p><strong>After (purified, deterministic):</strong></p>
 <pre><code class="language-bash"><span class="boring">!/bin/sh
-</span><span class="boring"> Purified by Rash v6.31.0
+</span><span class="boring"> Purified by Rash v6.32.1
 </span>SESSION_ID="${VERSION:-1.0.0}"
 mkdir -p "/tmp/deploy-${SESSION_ID}"
 cd "/tmp/deploy-${SESSION_ID}" || exit 1
@@ -828,7 +805,7 @@ Deployment complete!
 <h2 id="starting-the-repl"><a class="header" href="#starting-the-repl">Starting the REPL</a></h2>
 <pre><code class="language-bash">$ bashrs repl
 
-bashrs REPL v6.31.0
+bashrs REPL v6.32.1
 Type 'quit' or 'exit' to exit, 'help' for commands
 Current mode: normal - Execute bash commands directly
 bashrs [normal]&gt;
@@ -5761,23 +5738,17 @@ eval $(get_command)
 <p>✅ <strong>SAFE</strong>:</p>
 <pre><code class="language-bash">eval "$(get_command)"
 </code></pre>
-<pre><code>
-## Adding Auto-fix Support
-
-### Safe Fix Example
-
-For deterministic fixes (quoting variables):
-
-```rust,ignore
-let fix = Fix::new("\"${VAR}\"");  // Safe replacement
+<h2 id="adding-auto-fix-support"><a class="header" href="#adding-auto-fix-support">Adding Auto-fix Support</a></h2>
+<h3 id="safe-fix-example"><a class="header" href="#safe-fix-example">Safe Fix Example</a></h3>
+<p>For deterministic fixes (quoting variables):</p>
+<pre><code class="language-rust ignore">let fix = Fix::new("\"${VAR}\"");  // Safe replacement
 
 let diag = Diagnostic::new(
     "SC2086",
     Severity::Error,
     "Quote variable to prevent word splitting",
     span,
-).with_fix(fix);
-</code></pre>
+).with_fix(fix);</code></pre>
 <h3 id="safe-with-assumptions-fix-example"><a class="header" href="#safe-with-assumptions-fix-example">Safe-with-Assumptions Fix Example</a></h3>
 <p>For fixes that work in most cases:</p>
 <pre><code class="language-rust ignore">let fix = Fix::new_with_assumptions(
@@ -5918,10 +5889,7 @@ fn test_edge_case_empty_line() { }
 </li>
 <li>
 <p><strong>Property tests</strong>:</p>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>proptest! { fn prop_no_false_positives() { } }
-<span class="boring">}</span></code></pre></pre>
+<pre><code class="language-rust ignore">proptest! { fn prop_no_false_positives() { } }</code></pre>
 </li>
 <li>
 <p><strong>Mutation tests</strong>:</p>
@@ -6044,11 +6012,8 @@ jobs:
 <li>Verify span calculation (1-indexed!)</li>
 <li>Test with minimal example</li>
 <li>Add debug prints:
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>eprintln!("Line {}: {}", line_num, line);
-eprintln!("Pattern match: {:?}", line.find("pattern"));
-<span class="boring">}</span></code></pre></pre>
+<pre><code class="language-rust ignore">eprintln!("Line {}: {}", line_num, line);
+eprintln!("Pattern match: {:?}", line.find("pattern"));</code></pre>
 </li>
 </ol>
 <h3 id="false-positives"><a class="header" href="#false-positives">False Positives</a></h3>
@@ -7428,7 +7393,7 @@ touch ~/.config/myapp/config.ini
 <h3 id="after-purified-bashrc"><a class="header" href="#after-purified-bashrc">After: Purified .bashrc</a></h3>
 <p>The purified version is clean, safe, and idempotent:</p>
 <pre><code class="language-bash"><span class="boring">!/bin/sh
-</span><span class="boring"> .bashrc - Purified by bashrs v6.31.0
+</span><span class="boring"> .bashrc - Purified by bashrs v6.32.1
 </span><span class="boring"> Original backed up to ~/.bashrc.bak
 </span>
 <span class="boring"> Idempotent PATH management helper
@@ -7481,7 +7446,7 @@ fi
 touch "${HOME}/.config/myapp/config.ini"
 </code></pre>
 <h3 id="purification-report-1"><a class="header" href="#purification-report-1">Purification Report</a></h3>
-<pre><code class="language-text">bashrs config purify v6.31.0
+<pre><code class="language-text">bashrs config purify v6.32.1
 
 Input:  /home/user/.bashrc (42 lines)
 Output: /home/user/.bashrc.purified (45 lines)
@@ -7874,7 +7839,7 @@ git commit -m "Initial commit before purification"
 
 <span class="boring"> After purification
 </span>git add .bashrc.purified
-git commit -m "Purified .bashrc with bashrs v6.31.0"
+git commit -m "Purified .bashrc with bashrs v6.32.1"
 </code></pre>
 <h3 id="4-separate-concerns"><a class="header" href="#4-separate-concerns">4. Separate Concerns</a></h3>
 <p>Organize configuration into modular files:</p>
@@ -8059,7 +8024,7 @@ fi
     --shellcheck
 </code></pre>
 <p>Output:</p>
-<pre><code class="language-text">bashrs config purify v6.31.0
+<pre><code class="language-text">bashrs config purify v6.32.1
 
 Transformations Applied:
   - Deduplicated 18 PATH entries → 9 unique
@@ -8098,7 +8063,7 @@ ln -s ~/.bashrc.purified ~/.bashrc
 
 <span class="boring"> Day 7: Commit to version control
 </span>git add ~/.bashrc.purified
-git commit -m "Purified .bashrc with bashrs v6.31.0"
+git commit -m "Purified .bashrc with bashrs v6.32.1"
 git push
 
 <span class="boring"> Day 30: Remove old backup
@@ -9428,7 +9393,7 @@ install:
 	echo "Built at $(shell date +%s)" &gt; version.txt
 </code></pre>
 <h3 id="bashrs-makefile-support"><a class="header" href="#bashrs-makefile-support">bashrs Makefile Support</a></h3>
-<p>bashrs v6.31.0 provides comprehensive Makefile analysis:</p>
+<p>bashrs v6.32.1 provides comprehensive Makefile analysis:</p>
 <ul>
 <li><strong>Parsing</strong>: Full Makefile AST including targets, variables, and recipes</li>
 <li><strong>Linting</strong>: Apply all security and determinism rules to shell recipes</li>
@@ -9911,7 +9876,7 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Install bashrs
-        run: cargo install bashrs --version 6.31.0
+        run: cargo install bashrs --version 6.32.1
 
       - name: Lint Makefile
         run: bashrs make lint Makefile
@@ -9945,7 +9910,7 @@ lint:makefile:
   stage: lint
   image: rust:latest
   before_script:
-    - cargo install bashrs --version 6.31.0
+    - cargo install bashrs --version 6.32.1
   script:
     - bashrs make lint Makefile
     - make lint-scripts
@@ -10214,6 +10179,313 @@ Integrated into CI/CD linting pipeline</li>
 <li><strong>Maintainable</strong>: Clear, documented, and testable</li>
 </ul>
 <p>Run <code>bashrs make lint</code> on every Makefile change, integrate it into your CI/CD pipeline, and enforce these standards through pre-commit hooks. Your future self (and your teammates) will thank you.</p>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="makefile-testing"><a class="header" href="#makefile-testing">Makefile Testing</a></h1>
+<p>Bashrs provides comprehensive test generation for purified Makefiles, ensuring your build scripts are deterministic, idempotent, and POSIX-compliant.</p>
+<h2 id="overview-5"><a class="header" href="#overview-5">Overview</a></h2>
+<p>When purifying Makefiles with the <code>--with-tests</code> flag, bashrs automatically generates a complete test suite that validates:</p>
+<ul>
+<li><strong>Determinism</strong>: Same input produces same output every time</li>
+<li><strong>Idempotency</strong>: Safe to run multiple times without errors</li>
+<li><strong>POSIX Compliance</strong>: Works with POSIX make implementations</li>
+</ul>
+<h2 id="basic-usage"><a class="header" href="#basic-usage">Basic Usage</a></h2>
+<h3 id="generate-tests-with-purification"><a class="header" href="#generate-tests-with-purification">Generate Tests with Purification</a></h3>
+<pre><code class="language-bash"><span class="boring"> Purify Makefile and generate test suite
+</span>bashrs make purify Makefile --with-tests -o Makefile.purified
+
+<span class="boring"> This creates two files:
+</span><span class="boring"> - Makefile.purified         # Purified Makefile
+</span><span class="boring"> - Makefile.purified.test.sh # Test suite
+</span></code></pre>
+<h3 id="run-the-generated-tests"><a class="header" href="#run-the-generated-tests">Run the Generated Tests</a></h3>
+<pre><code class="language-bash"><span class="boring"> Make test executable and run
+</span>chmod +x Makefile.purified.test.sh
+./Makefile.purified.test.sh
+
+<span class="boring"> Or run with sh directly
+</span>sh Makefile.purified.test.sh
+</code></pre>
+<h2 id="test-suite-components"><a class="header" href="#test-suite-components">Test Suite Components</a></h2>
+<p>The generated test suite includes three core tests:</p>
+<h3 id="1-determinism-test"><a class="header" href="#1-determinism-test">1. Determinism Test</a></h3>
+<p>Verifies that running make multiple times with the same input produces identical output:</p>
+<pre><code class="language-bash">test_determinism() {
+<span class="boring">     Run make twice
+</span>    make -f "Makefile.purified" &gt; /tmp/output1.txt 2&gt;&amp;1
+    make -f "Makefile.purified" &gt; /tmp/output2.txt 2&gt;&amp;1
+
+<span class="boring">     Compare outputs (sorted to handle parallel execution)
+</span>    if diff &lt;(sort /tmp/output1.txt) &lt;(sort /tmp/output2.txt); then
+        echo "✓ Determinism test passed"
+    else
+        echo "✗ Determinism test failed"
+        return 1
+    fi
+}
+</code></pre>
+<p><strong>What it catches:</strong></p>
+<ul>
+<li>Timestamps in build outputs</li>
+<li>Random number generation (<code>$RANDOM</code>)</li>
+<li>Process IDs (<code>$$</code>)</li>
+<li>Unpredictable command ordering</li>
+</ul>
+<h3 id="2-idempotency-test"><a class="header" href="#2-idempotency-test">2. Idempotency Test</a></h3>
+<p>Ensures the Makefile can be run multiple times safely:</p>
+<pre><code class="language-bash">test_idempotency() {
+<span class="boring">     Run make three times
+</span>    make -f "Makefile.purified" || true
+    make -f "Makefile.purified" || exit_code1=$?
+    make -f "Makefile.purified" || exit_code2=$?
+
+<span class="boring">     Second and third runs should succeed
+</span>    if [ "${exit_code1:-0}" -eq 0 ] &amp;&amp; [ "${exit_code2:-0}" -eq 0 ]; then
+        echo "✓ Idempotency test passed"
+    else
+        echo "✗ Idempotency test failed"
+        return 1
+    fi
+}
+</code></pre>
+<p><strong>What it catches:</strong></p>
+<ul>
+<li>Missing <code>-p</code> flag on <code>mkdir</code> (fails on second run)</li>
+<li>Missing <code>-f</code> flag on <code>cp</code> (fails if file exists)</li>
+<li>Non-idempotent operations that break on re-run</li>
+</ul>
+<h3 id="3-posix-compliance-test"><a class="header" href="#3-posix-compliance-test">3. POSIX Compliance Test</a></h3>
+<p>Verifies the Makefile works with POSIX make implementations:</p>
+<pre><code class="language-bash">test_posix_compliance() {
+<span class="boring">     Test with different make implementations
+</span>    for make_cmd in make pmake bmake; do
+        if command -v "$make_cmd" &gt; /dev/null 2&gt;&amp;1; then
+            echo "Testing with $make_cmd..."
+            if "$make_cmd" -f "Makefile.purified" &gt; /dev/null 2&gt;&amp;1; then
+                echo "✓ Works with $make_cmd"
+            else
+                echo "✗ Failed with $make_cmd"
+                return 1
+            fi
+        fi
+    done
+}
+</code></pre>
+<p><strong>What it catches:</strong></p>
+<ul>
+<li>GNU make-specific extensions</li>
+<li>Non-portable shell constructs</li>
+<li>Platform-specific commands</li>
+</ul>
+<h2 id="example-workflow"><a class="header" href="#example-workflow">Example Workflow</a></h2>
+<h3 id="starting-with-a-non-deterministic-makefile"><a class="header" href="#starting-with-a-non-deterministic-makefile">Starting with a Non-Deterministic Makefile</a></h3>
+<pre><code class="language-makefile"># Original Makefile with issues
+.PHONY: build
+
+build:
+    mkdir build
+    echo "Build time: $(shell date)" &gt; build/timestamp.txt
+    echo "Build ID: $$RANDOM" &gt;&gt; build/timestamp.txt
+    gcc -o build/myapp src/main.c
+</code></pre>
+<p><strong>Problems:</strong></p>
+<ul>
+<li><code>mkdir build</code> - Not idempotent (fails on second run)</li>
+<li><code>$(shell date)</code> - Non-deterministic timestamp</li>
+<li><code>$$RANDOM</code> - Non-deterministic random number</li>
+</ul>
+<h3 id="purify-with-test-generation"><a class="header" href="#purify-with-test-generation">Purify with Test Generation</a></h3>
+<pre><code class="language-bash">bashrs make purify Makefile --with-tests -o Makefile.purified
+</code></pre>
+<h3 id="purified-output"><a class="header" href="#purified-output">Purified Output</a></h3>
+<pre><code class="language-makefile"># Purified Makefile
+.PHONY: build
+
+build:
+    mkdir -p build
+    echo "Build info" &gt; build/timestamp.txt
+    gcc -o build/myapp src/main.c
+</code></pre>
+<p><strong>Improvements:</strong></p>
+<ul>
+<li>✅ <code>mkdir -p</code> - Idempotent (safe to re-run)</li>
+<li>✅ Removed <code>$(shell date)</code> - Deterministic</li>
+<li>✅ Removed <code>$$RANDOM</code> - Deterministic</li>
+</ul>
+<h3 id="run-tests"><a class="header" href="#run-tests">Run Tests</a></h3>
+<pre><code class="language-bash">sh Makefile.purified.test.sh
+</code></pre>
+<p><strong>Output:</strong></p>
+<pre><code class="language-text">Testing determinism for Makefile.purified...
+✓ Determinism test passed
+
+Testing idempotency for Makefile.purified...
+✓ Idempotency test passed
+
+Testing POSIX compliance for Makefile.purified...
+Testing with make...
+✓ Works with make
+
+============================================
+Test Results Summary
+============================================
+Total Tests: 3
+Passed: 3
+Failed: 0
+
+Status: ✓ All tests passed!
+</code></pre>
+<h2 id="advanced-testing-features"><a class="header" href="#advanced-testing-features">Advanced Testing Features</a></h2>
+<h3 id="property-based-testing-future"><a class="header" href="#property-based-testing-future">Property-Based Testing (Future)</a></h3>
+<pre><code class="language-bash"><span class="boring"> Generate property-based tests (planned)
+</span>bashrs make purify Makefile --with-tests --property-tests -o Makefile.purified
+</code></pre>
+<p>This will generate tests with:</p>
+<ul>
+<li>Randomized input variations</li>
+<li>Edge case exploration</li>
+<li>Fuzz testing for robustness</li>
+</ul>
+<h3 id="custom-test-assertions"><a class="header" href="#custom-test-assertions">Custom Test Assertions</a></h3>
+<p>You can extend the generated test suite with custom assertions:</p>
+<pre><code class="language-bash"><span class="boring"> Add custom test after generation
+</span>cat &gt;&gt; Makefile.purified.test.sh &lt;&lt;'EOF'
+
+<span class="boring"> Custom test: Check build artifacts
+</span>test_artifacts() {
+    make -f "Makefile.purified" build
+
+    if [ -f build/myapp ]; then
+        echo "✓ Build artifact exists"
+    else
+        echo "✗ Build artifact missing"
+        return 1
+    fi
+}
+EOF
+</code></pre>
+<h2 id="integration-with-cicd-2"><a class="header" href="#integration-with-cicd-2">Integration with CI/CD</a></h2>
+<h3 id="github-actions-example-2"><a class="header" href="#github-actions-example-2">GitHub Actions Example</a></h3>
+<pre><code class="language-yaml">name: Makefile Tests
+
+on: [push, pull_request]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install bashrs
+        run: cargo install bashrs
+
+      - name: Purify Makefile with tests
+        run: bashrs make purify Makefile --with-tests -o Makefile.purified
+
+      - name: Run test suite
+        run: sh Makefile.purified.test.sh
+
+      - name: Verify purified Makefile works
+        run: make -f Makefile.purified all
+</code></pre>
+<h3 id="gitlab-ci-example-1"><a class="header" href="#gitlab-ci-example-1">GitLab CI Example</a></h3>
+<pre><code class="language-yaml">makefile-tests:
+  stage: test
+  script:
+    - cargo install bashrs
+    - bashrs make purify Makefile --with-tests -o Makefile.purified
+    - sh Makefile.purified.test.sh
+    - make -f Makefile.purified all
+</code></pre>
+<h2 id="troubleshooting-9"><a class="header" href="#troubleshooting-9">Troubleshooting</a></h2>
+<h3 id="test-failures"><a class="header" href="#test-failures">Test Failures</a></h3>
+<h4 id="determinism-test-fails"><a class="header" href="#determinism-test-fails">Determinism Test Fails</a></h4>
+<p><strong>Symptom:</strong> Outputs differ between runs</p>
+<p><strong>Common Causes:</strong></p>
+<ul>
+<li>Timestamps in output</li>
+<li>Random numbers</li>
+<li>Process IDs</li>
+<li>System-dependent paths</li>
+</ul>
+<p><strong>Solution:</strong></p>
+<pre><code class="language-bash"><span class="boring"> Check what's different
+</span>bashrs make purify Makefile --with-tests -o Makefile.purified
+sh Makefile.purified.test.sh
+
+<span class="boring"> Review the diff output to identify non-deterministic sources
+</span></code></pre>
+<h4 id="idempotency-test-fails"><a class="header" href="#idempotency-test-fails">Idempotency Test Fails</a></h4>
+<p><strong>Symptom:</strong> Second or third run fails</p>
+<p><strong>Common Causes:</strong></p>
+<ul>
+<li><code>mkdir</code> without <code>-p</code></li>
+<li><code>cp</code> without <code>-f</code></li>
+<li>Operations that fail on existing files</li>
+</ul>
+<p><strong>Solution:</strong></p>
+<pre><code class="language-bash"><span class="boring"> Bashrs should auto-fix these, but verify:
+</span>grep -E 'mkdir[^-]' Makefile.purified  # Should have -p flag
+grep -E 'cp[^-]' Makefile.purified     # Should have -f flag
+</code></pre>
+<h4 id="posix-compliance-test-fails"><a class="header" href="#posix-compliance-test-fails">POSIX Compliance Test Fails</a></h4>
+<p><strong>Symptom:</strong> Works with GNU make but fails with other implementations</p>
+<p><strong>Common Causes:</strong></p>
+<ul>
+<li>GNU-specific extensions (<code>:=</code>, <code>+=</code>, etc.)</li>
+<li>Bash-specific syntax in recipes</li>
+<li>Non-portable commands</li>
+</ul>
+<p><strong>Solution:</strong></p>
+<pre><code class="language-bash"><span class="boring"> Use POSIX-only features
+</span><span class="boring"> bashrs should warn about non-portable constructs
+</span>bashrs make lint Makefile
+</code></pre>
+<h2 id="best-practices-7"><a class="header" href="#best-practices-7">Best Practices</a></h2>
+<h3 id="1-always-generate-tests"><a class="header" href="#1-always-generate-tests">1. Always Generate Tests</a></h3>
+<pre><code class="language-bash"><span class="boring"> Good: Generate tests with every purification
+</span>bashrs make purify Makefile --with-tests -o Makefile.purified
+
+<span class="boring"> Bad: Purify without tests
+</span>bashrs make purify Makefile -o Makefile.purified  # No tests!
+</code></pre>
+<h3 id="2-run-tests-before-deployment"><a class="header" href="#2-run-tests-before-deployment">2. Run Tests Before Deployment</a></h3>
+<pre><code class="language-bash"><span class="boring"> Ensure tests pass before using purified Makefile
+</span>bashrs make purify Makefile --with-tests -o Makefile.purified
+sh Makefile.purified.test.sh || exit 1
+cp Makefile.purified Makefile
+</code></pre>
+<h3 id="3-version-control-test-suites"><a class="header" href="#3-version-control-test-suites">3. Version Control Test Suites</a></h3>
+<pre><code class="language-bash"><span class="boring"> Keep test suites in version control
+</span>git add Makefile.purified Makefile.purified.test.sh
+git commit -m "Add purified Makefile with test suite"
+</code></pre>
+<h3 id="4-test-on-multiple-platforms"><a class="header" href="#4-test-on-multiple-platforms">4. Test on Multiple Platforms</a></h3>
+<pre><code class="language-bash"><span class="boring"> Run tests on different OSes and make implementations
+</span><span class="boring"> - Linux (GNU make)
+</span><span class="boring"> - macOS (BSD make)
+</span><span class="boring"> - FreeBSD (BSD make)
+</span></code></pre>
+<h2 id="example-complete-workflow"><a class="header" href="#example-complete-workflow">Example: Complete Workflow</a></h2>
+<p>Try the complete workflow with the provided example:</p>
+<pre><code class="language-bash"><span class="boring"> Run the comprehensive example
+</span>cargo run --example makefile_purify_with_tests
+
+<span class="boring"> This demonstrates:
+</span><span class="boring"> - Creating a problematic Makefile
+</span><span class="boring"> - Running purification with test generation
+</span><span class="boring"> - Showing purified output
+</span><span class="boring"> - Displaying generated tests
+</span><span class="boring"> - Validating syntax
+</span><span class="boring"> - Explaining improvements
+</span></code></pre>
+<p>The example provides a 10-step walkthrough of the entire process, showing exactly what bashrs does and how the tests work.</p>
+<h2 id="see-also-4"><a class="header" href="#see-also-4">See Also</a></h2>
+<ul>
+<li><a href="makefile/./overview.html">Makefile Overview</a> - Basic Makefile purification</li>
+<li><a href="makefile/./security.html">Makefile Security</a> - Security-focused purification</li>
+<li><a href="makefile/./best-practices.html">Makefile Best Practices</a> - Writing better Makefiles</li>
+<li><a href="makefile/../advanced/property-testing.html">Property Testing</a> - Advanced testing techniques</li>
+</ul>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="bootstrap-installer-example"><a class="header" href="#bootstrap-installer-example">Bootstrap Installer Example</a></h1>
 <p>This chapter demonstrates creating a universal bootstrap installer that works across different operating systems, architectures, and shell environments using bashrs purification.</p>
 <h2 id="the-problem-universal-installation"><a class="header" href="#the-problem-universal-installation">The Problem: Universal Installation</a></h2>
@@ -10259,7 +10531,7 @@ mkdir ${TEMP_DIR}
 <h3 id="complete-example-universal-installer"><a class="header" href="#complete-example-universal-installer">Complete Example: Universal Installer</a></h3>
 <pre><code class="language-bash"><span class="boring">!/bin/sh
 </span><span class="boring"> install.sh - Universal bootstrap installer
-</span><span class="boring"> Purified by bashrs v6.31.0
+</span><span class="boring"> Purified by bashrs v6.32.1
 </span>
 set -eu
 
@@ -10683,7 +10955,7 @@ fi
 }
 </code></pre>
 <hr />
-<h2 id="best-practices-7"><a class="header" href="#best-practices-7">Best Practices</a></h2>
+<h2 id="best-practices-8"><a class="header" href="#best-practices-8">Best Practices</a></h2>
 <h3 id="1-always-verify-checksums"><a class="header" href="#1-always-verify-checksums">1. Always Verify Checksums</a></h3>
 <p>❌ <strong>Bad</strong>: Download without verification</p>
 <pre><code class="language-bash">curl -L https://example.com/tool -o tool
@@ -10760,7 +11032,7 @@ end
 sudo apt-get install mytool
 </code></pre>
 <hr />
-<h2 id="troubleshooting-9"><a class="header" href="#troubleshooting-9">Troubleshooting</a></h2>
+<h2 id="troubleshooting-10"><a class="header" href="#troubleshooting-10">Troubleshooting</a></h2>
 <h3 id="issue-command-not-found-after-installation"><a class="header" href="#issue-command-not-found-after-installation">Issue: "Command not found" after installation</a></h3>
 <p><strong>Symptom</strong>: Binary installed but not in PATH</p>
 <p><strong>Solution</strong>:</p>
@@ -10904,9 +11176,9 @@ deploy-messy.sh:23:1: IDEM003 [Error] Non-idempotent: ln -s without cleanup
 <h3 id="step-1-purify-the-script"><a class="header" href="#step-1-purify-the-script">Step 1: Purify the Script</a></h3>
 <pre><code class="language-bash">bashrs purify deploy-messy.sh -o deploy-purified.sh --report
 </code></pre>
-<h3 id="purified-output"><a class="header" href="#purified-output">Purified Output</a></h3>
+<h3 id="purified-output-1"><a class="header" href="#purified-output-1">Purified Output</a></h3>
 <pre><code class="language-bash"><span class="boring">!/bin/sh
-</span><span class="boring"> deploy-purified.sh - Purified by bashrs v6.31.0
+</span><span class="boring"> deploy-purified.sh - Purified by bashrs v6.32.1
 </span><span class="boring"> This is safe, deterministic, idempotent POSIX shell
 </span>
 deploy_app() {
@@ -11041,7 +11313,7 @@ Overall: EXCELLENT - Production ready
 <p>For production deployments, add error handling, logging, and health checks:</p>
 <pre><code class="language-bash"><span class="boring">!/bin/sh
 </span><span class="boring"> deploy-production.sh - Production-ready deployment script
-</span><span class="boring"> Purified by bashrs v6.31.0
+</span><span class="boring"> Purified by bashrs v6.32.1
 </span>
 set -eu
 
@@ -11329,7 +11601,7 @@ deploy_rolling() {
 }
 </code></pre>
 <hr />
-<h2 id="integration-with-cicd-2"><a class="header" href="#integration-with-cicd-2">Integration with CI/CD</a></h2>
+<h2 id="integration-with-cicd-3"><a class="header" href="#integration-with-cicd-3">Integration with CI/CD</a></h2>
 <h3 id="github-actions-1"><a class="header" href="#github-actions-1">GitHub Actions</a></h3>
 <pre><code class="language-yaml">name: Deploy
 
@@ -11372,7 +11644,7 @@ jobs:
     - tags
 </code></pre>
 <hr />
-<h2 id="best-practices-8"><a class="header" href="#best-practices-8">Best Practices</a></h2>
+<h2 id="best-practices-9"><a class="header" href="#best-practices-9">Best Practices</a></h2>
 <h3 id="1-always-use-version-parameters"><a class="header" href="#1-always-use-version-parameters">1. Always Use Version Parameters</a></h3>
 <p>❌ <strong>Bad</strong>: <code>RELEASE_TAG="release-$(date +%s)"</code>
 ✅ <strong>Good</strong>: <code>RELEASE_TAG="release-${VERSION}"</code></p>
@@ -11402,7 +11674,7 @@ jobs:
 ✅ <strong>Good</strong>: Automated rollback on health check failure</p>
 <p><strong>Why</strong>: Fast recovery, minimal downtime</p>
 <hr />
-<h2 id="troubleshooting-10"><a class="header" href="#troubleshooting-10">Troubleshooting</a></h2>
+<h2 id="troubleshooting-11"><a class="header" href="#troubleshooting-11">Troubleshooting</a></h2>
 <h3 id="issue-deployment-not-idempotent"><a class="header" href="#issue-deployment-not-idempotent">Issue: Deployment Not Idempotent</a></h3>
 <p><strong>Symptom</strong>: Second run fails with "File exists" or similar</p>
 <p><strong>Solution</strong>:</p>
@@ -11604,9 +11876,9 @@ source ~/.bash_functions
 <span class="boring"> Show purification report
 </span>bashrs config purify ~/.bashrc --report
 </code></pre>
-<h3 id="purified-output-1"><a class="header" href="#purified-output-1">Purified Output</a></h3>
+<h3 id="purified-output-2"><a class="header" href="#purified-output-2">Purified Output</a></h3>
 <pre><code class="language-bash"><span class="boring">!/bin/sh
-</span><span class="boring"> ~/.bashrc - Purified by bashrs v6.31.0
+</span><span class="boring"> ~/.bashrc - Purified by bashrs v6.32.1
 </span><span class="boring"> This is safe, deterministic, idempotent POSIX shell configuration
 </span>
 <span class="boring"> ✅ Purified: Idempotent PATH management
@@ -11918,7 +12190,7 @@ alias grep="grep --color=auto"
 <p>Split configuration into modular files:</p>
 <pre><code class="language-bash"><span class="boring"> ~/.bashrc - Main configuration
 </span><span class="boring">!/bin/sh
-</span><span class="boring"> Purified by bashrs v6.31.0
+</span><span class="boring"> Purified by bashrs v6.32.1
 </span>
 <span class="boring"> Source base configuration
 </span>if [ -f "${HOME}/.config/shell/base.sh" ]; then
@@ -12098,7 +12370,7 @@ jobs:
 
       - name: Install bashrs
         run: |
-          cargo install bashrs --version 6.31.0
+          cargo install bashrs --version 6.32.1
           bashrs --version
 
       - name: Analyze configurations
@@ -12298,7 +12570,7 @@ else
 fi
 </code></pre>
 <hr />
-<h2 id="best-practices-9"><a class="header" href="#best-practices-9">Best Practices</a></h2>
+<h2 id="best-practices-10"><a class="header" href="#best-practices-10">Best Practices</a></h2>
 <h3 id="1-version-control-your-configs"><a class="header" href="#1-version-control-your-configs">1. Version Control Your Configs</a></h3>
 <p>❌ <strong>Bad</strong>: No version control</p>
 <pre><code class="language-bash"><span class="boring"> Configs scattered across machines
@@ -12504,7 +12776,7 @@ Well documented</li>
 </blockquote>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="cicd-integration-3"><a class="header" href="#cicd-integration-3">CI/CD Integration</a></h1>
 <p><strong>Learn how to integrate bashrs into your continuous integration and deployment pipelines for automated shell script quality assurance.</strong></p>
-<h2 id="overview-5"><a class="header" href="#overview-5">Overview</a></h2>
+<h2 id="overview-6"><a class="header" href="#overview-6">Overview</a></h2>
 <p>This chapter demonstrates how to integrate bashrs into CI/CD pipelines to automatically:</p>
 <ul>
 <li><strong>Lint shell scripts</strong> for safety issues (SEC001-SEC008, DET001-DET006, IDEM001-IDEM006)</li>
@@ -12589,7 +12861,7 @@ jobs:
       - name: Install bashrs
         run: |
           # Install from crates.io
-          cargo install bashrs --version 6.31.0
+          cargo install bashrs --version 6.32.1
 
           # Verify installation
           bashrs --version
@@ -12625,7 +12897,7 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Install bashrs
-        run: cargo install bashrs --version 6.31.0
+        run: cargo install bashrs --version 6.32.1
 
       - name: Purify deployment script
         run: |
@@ -12675,7 +12947,7 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Install bashrs
-        run: cargo install bashrs --version 6.31.0
+        run: cargo install bashrs --version 6.32.1
 
       - name: Analyze shell configs
         run: |
@@ -12713,7 +12985,7 @@ jobs:
 
       - name: Install bashrs and tools
         run: |
-          cargo install bashrs --version 6.31.0
+          cargo install bashrs --version 6.32.1
           cargo install cargo-llvm-cov cargo-mutants
 
       - name: Run quality checks
@@ -12777,7 +13049,7 @@ jobs:
           esac
 
       - name: Install bashrs
-        run: cargo install bashrs --version 6.31.0
+        run: cargo install bashrs --version 6.32.1
 
       - name: Purify script to POSIX
         run: |
@@ -12813,7 +13085,7 @@ on:
   workflow_dispatch:
 
 env:
-  BASHRS_VERSION: "6.31.0"
+  BASHRS_VERSION: "6.32.1"
   RUST_BACKTRACE: 1
 
 jobs:
@@ -13117,7 +13389,7 @@ jobs:
 <p>bashrs also integrates seamlessly with GitLab CI:</p>
 <pre><code class="language-yaml"># .gitlab-ci.yml
 variables:
-  BASHRS_VERSION: "6.31.0"
+  BASHRS_VERSION: "6.32.1"
 
 stages:
   - install
@@ -13298,7 +13570,7 @@ echo "✅ All checks passed"
 FROM rust:latest AS builder
 
 # Install bashrs
-RUN cargo install bashrs --version 6.31.0
+RUN cargo install bashrs --version 6.32.1
 
 # Copy scripts
 COPY scripts/ /app/scripts/
@@ -13376,7 +13648,7 @@ resource "null_resource" "validate_shell_scripts" {
     echo "&lt;/table&gt;&lt;/body&gt;&lt;/html&gt;" &gt;&gt; reports/dashboard.html
 </code></pre>
 <hr />
-<h2 id="troubleshooting-11"><a class="header" href="#troubleshooting-11">Troubleshooting</a></h2>
+<h2 id="troubleshooting-12"><a class="header" href="#troubleshooting-12">Troubleshooting</a></h2>
 <h3 id="issue-1-bashrs-not-found-in-ci"><a class="header" href="#issue-1-bashrs-not-found-in-ci">Issue 1: bashrs Not Found in CI</a></h3>
 <p><strong>Symptom</strong>: <code>bashrs: command not found</code></p>
 <p><strong>Solution</strong>:</p>
@@ -13448,7 +13720,7 @@ resource "null_resource" "validate_shell_scripts" {
 <pre><code class="language-yaml">- name: Verify bashrs checksum
   run: |
     # Download from crates.io with verification
-    cargo install bashrs --version 6.31.0 --locked
+    cargo install bashrs --version 6.32.1 --locked
 </code></pre>
 <h3 id="3-sandboxed-script-execution"><a class="header" href="#3-sandboxed-script-execution">3. <strong>Sandboxed Script Execution</strong></a></h3>
 <pre><code class="language-yaml">- name: Test in container
@@ -13502,7 +13774,7 @@ Monitor quality metrics over time</li>
 </blockquote>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="complete-quality-workflow-real-world-zshrc-analysis"><a class="header" href="#complete-quality-workflow-real-world-zshrc-analysis">Complete Quality Workflow: Real-World .zshrc Analysis</a></h1>
 <p>This chapter demonstrates the complete bashrs quality workflow on a real-world shell configuration file, showing how to use all available quality tools to analyze, score, and improve your shell scripts.</p>
-<h2 id="overview-6"><a class="header" href="#overview-6">Overview</a></h2>
+<h2 id="overview-7"><a class="header" href="#overview-7">Overview</a></h2>
 <p>We'll walk through analyzing a <code>.zshrc</code> file (161 lines) using <strong>all</strong> bashrs quality tools:</p>
 <ol>
 <li><strong>lint</strong> - Identify code quality issues</li>
@@ -14136,7 +14408,7 @@ BashStmt::While {
 <h3 id="stage-3-generate-purified-shell"><a class="header" href="#stage-3-generate-purified-shell">Stage 3: Generate Purified Shell</a></h3>
 <p>The transformed AST is converted back to shell code:</p>
 <pre><code class="language-bash"><span class="boring">!/bin/sh
-</span><span class="boring"> Purified by bashrs v6.31.0
+</span><span class="boring"> Purified by bashrs v6.32.1
 </span>
 SESSION_ID="fixed-session-id"
 mkdir -p /app/releases
@@ -14549,7 +14821,7 @@ proptest! {
         assert_eq!(original_semantics, purified_semantics);
     }
 }</code></pre>
-<h2 id="best-practices-10"><a class="header" href="#best-practices-10">Best Practices</a></h2>
+<h2 id="best-practices-11"><a class="header" href="#best-practices-11">Best Practices</a></h2>
 <h3 id="1-preserve-semantics"><a class="header" href="#1-preserve-semantics">1. Preserve Semantics</a></h3>
 <p><strong>Always</strong> verify that transformations preserve the original script's behavior:</p>
 <pre><code class="language-rust ignore">// ❌ BAD: Changes behavior
@@ -15075,7 +15347,7 @@ proptest! {
 <li>Mutation tests: Only test what you wrote</li>
 <li>Property tests: Test what you <strong>didn't think of</strong></li>
 </ul>
-<h2 id="best-practices-11"><a class="header" href="#best-practices-11">Best Practices</a></h2>
+<h2 id="best-practices-12"><a class="header" href="#best-practices-12">Best Practices</a></h2>
 <h3 id="1-start-with-simple-properties"><a class="header" href="#1-start-with-simple-properties">1. Start with Simple Properties</a></h3>
 <p>Don't try to test everything at once:</p>
 <pre><code class="language-rust ignore">// ✅ GOOD: Simple, focused property
@@ -15778,7 +16050,7 @@ src/linter/rules/sec002.rs:45:28: replace Error -&gt; Warning
 <li>Type of mutation</li>
 <li>Original → Mutated code</li>
 </ul>
-<h2 id="best-practices-12"><a class="header" href="#best-practices-12">Best Practices</a></h2>
+<h2 id="best-practices-13"><a class="header" href="#best-practices-13">Best Practices</a></h2>
 <h3 id="1-run-mutations-early-and-often"><a class="header" href="#1-run-mutations-early-and-often">1. Run Mutations Early and Often</a></h3>
 <pre><code class="language-bash"><span class="boring"> During development
 </span>cargo mutants --file rash/src/linter/rules/sec001.rs -- --lib
@@ -16013,7 +16285,7 @@ brew install valgrind      # macOS
 less memory_report.txt
 </code></pre>
 <p><strong>Interpreting results</strong>:</p>
-<pre><code>    MB
+<pre><code class="language-text">    MB
 10  ^                                    :#
     |                                   ::#
     |                                  :::#
@@ -16149,7 +16421,7 @@ impl CachingParser {
     }
 }</code></pre>
 <p><strong>Performance impact</strong>:</p>
-<pre><code>Without cache: 45ms per parse
+<pre><code class="language-text">Without cache: 45ms per parse
 With cache (hit): 0.1ms (450× faster!)
 With cache (miss): 46ms (1ms overhead from hashing)
 </code></pre>
@@ -16196,7 +16468,7 @@ impl LazyAst {
     }
 }</code></pre>
 <p><strong>Performance impact</strong>:</p>
-<pre><code>Full parse:  45ms
+<pre><code class="language-text">Full parse:  45ms
 line_count:   1ms (45× faster)
 has_eval:     2ms (22× faster)
 </code></pre>
@@ -16250,7 +16522,7 @@ impl InternedParser {
     }
 }</code></pre>
 <p><strong>Memory impact</strong>:</p>
-<pre><code>Without interning:  echo appears 1000× = 4KB (4 bytes × 1000)
+<pre><code class="language-text">Without interning:  echo appears 1000× = 4KB (4 bytes × 1000)
 With interning:     echo stored once = 4 bytes + 1000 refs (8KB total)
 
 For 10,000 variables with repetition:
@@ -16279,7 +16551,7 @@ pub fn lint_parallel(source: &amp;str, rules: &amp;[LintRule]) -&gt; LintResult 
     LintResult { diagnostics }
 }</code></pre>
 <p><strong>Performance impact</strong>:</p>
-<pre><code>Sequential: 8 rules × 50ms each = 400ms
+<pre><code class="language-text">Sequential: 8 rules × 50ms each = 400ms
 Parallel:   max(50ms) = 50ms (8× faster on 8 cores)
 </code></pre>
 <p><strong>Trade-offs</strong>:</p>
@@ -16319,7 +16591,7 @@ pub fn lint_const&lt;const N: usize&gt;(
         .collect()
 }</code></pre>
 <p><strong>Performance impact</strong>:</p>
-<pre><code>Dynamic dispatch:   50ms
+<pre><code class="language-text">Dynamic dispatch:   50ms
 Static dispatch:    45ms (10% faster)
 Const generics:     42ms (16% faster, plus better inlining)
 </code></pre>
@@ -16419,7 +16691,7 @@ fn transform_stmt(stmt: BashStmt) -&gt; BashStmt {
     }
 }</code></pre>
 <p><strong>Performance</strong>:</p>
-<pre><code>Before: 200ms (half the time spent cloning)
+<pre><code class="language-text">Before: 200ms (half the time spent cloning)
 After:  20ms (10× faster)
 </code></pre>
 <h3 id="optimization-3-diagnostic-allocation-3-faster"><a class="header" href="#optimization-3-diagnostic-allocation-3-faster">Optimization 3: Diagnostic Allocation (3× faster)</a></h3>
@@ -16455,7 +16727,7 @@ pub trait LintRule {
     fn check_into(&amp;self, source: &amp;str, out: &amp;mut Vec&lt;Diagnostic&gt;);
 }</code></pre>
 <p><strong>Performance</strong>:</p>
-<pre><code>Before: 60ms (lots of small allocations)
+<pre><code class="language-text">Before: 60ms (lots of small allocations)
 After:  20ms (3× faster, single allocation)
 </code></pre>
 <h2 id="performance-testing-in-cicd"><a class="header" href="#performance-testing-in-cicd">Performance Testing in CI/CD</a></h2>
@@ -16630,7 +16902,7 @@ fn test_memory_scaling() {
 100KB script uses 5.2MB memory   (52× overhead, excellent)
 1000KB script uses 48MB memory   (48× overhead, excellent scaling)
 </code></pre>
-<h2 id="best-practices-13"><a class="header" href="#best-practices-13">Best Practices</a></h2>
+<h2 id="best-practices-14"><a class="header" href="#best-practices-14">Best Practices</a></h2>
 <h3 id="1-profile-before-optimizing"><a class="header" href="#1-profile-before-optimizing">1. Profile Before Optimizing</a></h3>
 <p>Don't guess where the bottleneck is:</p>
 <pre><code class="language-bash"><span class="boring"> Always measure first
@@ -17394,7 +17666,7 @@ bashrs inspect ast.json --format html -o report.html
 <li>Syntax highlighting</li>
 </ul>
 <p><strong>Example Session</strong>:</p>
-<pre><code class="language-text">bashrs REPL v6.31.0
+<pre><code class="language-text">bashrs REPL v6.32.1
 &gt;&gt;&gt; x=5
 &gt;&gt;&gt; echo $x
 5
@@ -17717,7 +17989,7 @@ Available commands:
 <pre><code class="language-bash">RASH_STRICT=1 bashrs audit script.sh
 </code></pre>
 <hr />
-<h2 id="see-also-4"><a class="header" href="#see-also-4">See Also</a></h2>
+<h2 id="see-also-5"><a class="header" href="#see-also-5">See Also</a></h2>
 <ul>
 <li><a href="reference/../getting-started/installation.html">Getting Started Guide</a></li>
 <li><a href="reference/../concepts/purification.html">Purification Concepts</a></li>
@@ -18171,14 +18443,14 @@ Purified 1 statement(s)
 <li><strong>More intuitive</strong> - Mode-based processing matches user mental model</li>
 <li><strong>Explicit commands</strong> - Still available when you need them</li>
 </ul>
-<h2 id="see-also-5"><a class="header" href="#see-also-5">See Also</a></h2>
+<h2 id="see-also-6"><a class="header" href="#see-also-6">See Also</a></h2>
 <ul>
 <li><a href="reference/../getting-started/repl.html">Interactive REPL Guide</a> - Getting started tutorial</li>
 <li><a href="reference/../concepts/purification.html">Purifier Integration</a> - Transformation rules</li>
 <li><a href="reference/./rules.html">Linter Rules Reference</a> - Complete linting rules</li>
 </ul>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="configuration-4"><a class="header" href="#configuration-4">Configuration</a></h1>
-<p>This chapter provides a complete reference for configuring bashrs v6.31.0 using configuration files, environment variables, and CLI options.</p>
+<p>This chapter provides a complete reference for configuring bashrs v6.32.1 using configuration files, environment variables, and CLI options.</p>
 <h2 id="table-of-contents"><a class="header" href="#table-of-contents">Table of Contents</a></h2>
 <ul>
 <li><a href="reference/configuration.html#configuration-file-format">Configuration File Format</a></li>
@@ -18677,7 +18949,7 @@ if [ $? -ne 0 ]; then
     exit 1
 fi
 </code></pre>
-<h2 id="best-practices-14"><a class="header" href="#best-practices-14">Best Practices</a></h2>
+<h2 id="best-practices-15"><a class="header" href="#best-practices-15">Best Practices</a></h2>
 <h3 id="1-use-per-project-configuration"><a class="header" href="#1-use-per-project-configuration">1. Use Per-Project Configuration</a></h3>
 <p>Always include <code>bashrs.toml</code> in your repository:</p>
 <pre><code class="language-toml">[bashrs]
@@ -18821,7 +19093,7 @@ validation_level = "paranoid"
 <li><a href="reference/./cli.html">CLI Commands Reference</a></li>
 </ul>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="exit-codes-2"><a class="header" href="#exit-codes-2">Exit Codes</a></h1>
-<p>This chapter provides a complete reference for bashrs v6.31.0 exit codes, their meanings, and how to handle them in scripts and CI/CD pipelines.</p>
+<p>This chapter provides a complete reference for bashrs v6.32.1 exit codes, their meanings, and how to handle them in scripts and CI/CD pipelines.</p>
 <h2 id="table-of-contents-1"><a class="header" href="#table-of-contents-1">Table of Contents</a></h2>
 <ul>
 <li><a href="reference/exit-codes.html#exit-code-reference">Exit Code Reference</a></li>
@@ -18834,6 +19106,77 @@ validation_level = "paranoid"
 </ul>
 <h2 id="exit-code-reference"><a class="header" href="#exit-code-reference">Exit Code Reference</a></h2>
 <p>bashrs follows standard Unix conventions for exit codes:</p>
+<h3 id="lint-command-exit-codes-issue-6---updated"><a class="header" href="#lint-command-exit-codes-issue-6---updated">Lint Command Exit Codes (Issue #6 - Updated)</a></h3>
+<p><strong>IMPORTANT</strong>: The <code>bashrs lint</code> command uses a simplified exit code scheme aligned with industry standards (shellcheck, eslint, gcc):</p>
+<div class="table-wrapper"><table><thead><tr><th>Exit Code</th><th>Meaning</th><th>When Returned</th><th>CI/CD Behavior</th></tr></thead><tbody>
+<tr><td><strong>0</strong></td><td><strong>No errors</strong></td><td>No errors found (warnings/info are OK)</td><td>✅ <strong>PASS</strong> - Pipeline continues</td></tr>
+<tr><td><strong>1</strong></td><td><strong>Errors found</strong></td><td>Actual lint failures (ERROR severity)</td><td>❌ <strong>FAIL</strong> - Pipeline blocked</td></tr>
+<tr><td><strong>2</strong></td><td><strong>Tool failure</strong></td><td>File not found, invalid arguments, I/O errors</td><td>🚫 <strong>FAIL</strong> - Tool malfunction</td></tr>
+</tbody></table>
+</div>
+<p><strong>Why This Matters</strong>:</p>
+<ul>
+<li><strong>Warnings don't block CI/CD</strong>: Only actual errors (ERROR severity) cause exit 1</li>
+<li><strong>Tool failures are distinct</strong>: Exit 2 indicates tool problems (not lint issues)</li>
+<li><strong>Industry standard</strong>: Matches shellcheck, eslint, gcc behavior</li>
+</ul>
+<p><strong>Examples</strong>:</p>
+<pre><code class="language-bash"><span class="boring"> Clean script - exits 0
+</span>$ bashrs lint clean.sh
+✓ No errors found
+$ echo $?
+0
+
+<span class="boring"> Script with warnings only - exits 0 (warnings are non-blocking)
+</span>$ bashrs lint script-with-warnings.sh
+warning[SC2086]: Quote to prevent globbing
+  --&gt; script.sh:3:5
+1 warning(s), 0 error(s)
+$ echo $?
+0  # ✅ CI/CD passes
+
+<span class="boring"> Script with errors - exits 1
+</span>$ bashrs lint script-with-errors.sh
+error[SC2188]: Redirection without command
+  --&gt; script.sh:5:1
+0 warning(s), 1 error(s)
+$ echo $?
+1  # ❌ CI/CD fails
+
+<span class="boring"> File not found - exits 2
+</span>$ bashrs lint nonexistent.sh
+error: No such file or directory
+$ echo $?
+2  # 🚫 Tool failure
+</code></pre>
+<p><strong>CI/CD Integration</strong> (Recommended Pattern):</p>
+<pre><code class="language-bash"><span class="boring">!/bin/bash
+</span><span class="boring"> lint-check.sh - CI/CD linting script
+</span>
+bashrs lint scripts/*.sh
+exit_code=$?
+
+case $exit_code in
+    0)
+        echo "✅ All checks passed (warnings are OK)"
+        exit 0
+        ;;
+    1)
+        echo "❌ Lint errors found - fix before merging"
+        exit 1
+        ;;
+    2)
+        echo "🚫 Tool failure - check bashrs installation or file paths"
+        exit 2
+        ;;
+    *)
+        echo "Unexpected exit code: $exit_code"
+        exit $exit_code
+        ;;
+esac
+</code></pre>
+<h3 id="general-exit-codes-all-commands"><a class="header" href="#general-exit-codes-all-commands">General Exit Codes (All Commands)</a></h3>
+<p>For other bashrs commands (purify, parse, check, etc.), the following exit codes apply:</p>
 <div class="table-wrapper"><table><thead><tr><th>Exit Code</th><th>Category</th><th>Meaning</th><th>Common Causes</th></tr></thead><tbody>
 <tr><td>0</td><td>Success</td><td>Operation completed successfully</td><td>All checks passed, no errors</td></tr>
 <tr><td>1</td><td>General Error</td><td>Generic failure</td><td>Command execution failed, invalid arguments</td></tr>
@@ -19381,7 +19724,7 @@ workflows:
 <tr><td>78</td><td>EX_CONFIG</td><td>Configuration error</td></tr>
 </tbody></table>
 </div>
-<h2 id="best-practices-15"><a class="header" href="#best-practices-15">Best Practices</a></h2>
+<h2 id="best-practices-16"><a class="header" href="#best-practices-16">Best Practices</a></h2>
 <h3 id="1-always-check-exit-codes"><a class="header" href="#1-always-check-exit-codes">1. Always Check Exit Codes</a></h3>
 <pre><code class="language-bash"><span class="boring">!/bin/bash
 </span>
@@ -19535,7 +19878,7 @@ bashrs purify script.sh -o /tmp/bashrs-$$-output.sh
 <li><a href="reference/./cli.html">CLI Commands Reference</a></li>
 </ul>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="linter-rules-reference"><a class="header" href="#linter-rules-reference">Linter Rules Reference</a></h1>
-<p>This chapter provides a complete reference for all linter rules in bashrs v6.31.0, including security rules, determinism rules, idempotency rules, config rules, Makefile rules, and ShellCheck integration.</p>
+<p>This chapter provides a complete reference for all linter rules in bashrs v6.32.1, including security rules, determinism rules, idempotency rules, config rules, Makefile rules, Dockerfile rules, and ShellCheck integration.</p>
 <h2 id="table-of-contents-2"><a class="header" href="#table-of-contents-2">Table of Contents</a></h2>
 <ul>
 <li><a href="reference/rules.html#rule-categories">Rule Categories</a></li>
@@ -19997,6 +20340,31 @@ printf 'Error: %s\n' "$MSG"  # Explicit format
 </tbody></table>
 </div>
 <p><strong>Total:</strong> 324+ rules implemented (and growing)</p>
+<h4 id="sc2154-variable-referenced-but-not-assigned"><a class="header" href="#sc2154-variable-referenced-but-not-assigned">SC2154: Variable Referenced But Not Assigned</a></h4>
+<p><strong>Status:</strong> ✅ Fixed in v6.32.1 (Issue #20)</p>
+<p><strong>What it checks:</strong> Detects variables that are referenced but never assigned</p>
+<p><strong>Fixed in v6.32.1:</strong></p>
+<ul>
+<li>Loop variables (for var in ...) now correctly recognized as assigned</li>
+<li>Indented assignments now detected</li>
+<li>Zero false positives on common shell patterns</li>
+</ul>
+<p><strong>Example:</strong></p>
+<pre><code class="language-bash"><span class="boring"> ✅ No warning (v6.32.1+) - loop variable is automatically assigned
+</span>for file in *.txt; do
+    echo "$file"
+done
+
+<span class="boring"> ✅ No warning (v6.32.1+) - indented assignment detected
+</span>if [ -f config.sh ]; then
+    CONFIG_FILE="config.sh"  # Works with any indentation
+    echo "$CONFIG_FILE"
+done
+
+<span class="boring"> ❌ Still warns - genuinely undefined variable
+</span>echo "$undefined_var"  # SC2154: Variable is referenced but not assigned
+</code></pre>
+<p><strong>Note:</strong> If you have variables set by external sources (sourced files, environment), you may want to disable SC2154 for those specific cases.</p>
 <h3 id="shell-type-detection-1"><a class="header" href="#shell-type-detection-1">Shell Type Detection</a></h3>
 <p>bashrs automatically detects shell type and applies appropriate rules:</p>
 <p><strong>POSIX sh:</strong></p>
@@ -20346,7 +20714,7 @@ cd bashrs
 <span class="boring"> Or build in release mode (optimized)
 </span>cargo build --release
 </code></pre>
-<h3 id="run-tests"><a class="header" href="#run-tests">Run Tests</a></h3>
+<h3 id="run-tests-1"><a class="header" href="#run-tests-1">Run Tests</a></h3>
 <pre><code class="language-bash"><span class="boring"> Run all library tests (6321+ tests)
 </span>cargo test --lib
 
@@ -20545,7 +20913,7 @@ export RUST_LOG=bashrs=trace  # Only bashrs crate
 <span class="boring"> Run with profiler
 </span>cargo flamegraph --bin bashrs -- lint examples/security/sec001_eval.sh
 </code></pre>
-<h2 id="troubleshooting-12"><a class="header" href="#troubleshooting-12">Troubleshooting</a></h2>
+<h2 id="troubleshooting-13"><a class="header" href="#troubleshooting-13">Troubleshooting</a></h2>
 <h3 id="cargo-command-not-found"><a class="header" href="#cargo-command-not-found">"cargo: command not found"</a></h3>
 <p>Rust toolchain not installed or not in PATH.</p>
 <p><strong>Solution</strong>:</p>
@@ -22067,7 +22435,7 @@ categories = ["command-line-utilities", "development-tools"]
 <p><strong>Minor releases</strong> (new features):</p>
 <ul>
 <li><strong>When</strong>: Monthly or when significant feature is complete</li>
-<li><strong>Example</strong>: v6.30.0 → v6.31.0 (added SEC009-SEC012 rules)</li>
+<li><strong>Example</strong>: v6.30.0 → v6.32.1 (added SEC009-SEC012 rules)</li>
 </ul>
 <p><strong>Major releases</strong> (breaking changes):</p>
 <ul>
@@ -22114,7 +22482,7 @@ categories = ["command-line-utilities", "development-tools"]
 - [ ] docs.rs documentation built
 - [ ] `bashrs --version` shows correct version
 </code></pre>
-<h2 id="troubleshooting-13"><a class="header" href="#troubleshooting-13">Troubleshooting</a></h2>
+<h2 id="troubleshooting-14"><a class="header" href="#troubleshooting-14">Troubleshooting</a></h2>
 <h3 id="publication-failed-crate-name-is-already-taken"><a class="header" href="#publication-failed-crate-name-is-already-taken">Publication Failed: "crate name is already taken"</a></h3>
 <p>This means the version is already published. You cannot republish the same version.</p>
 <p><strong>Solution</strong>: Bump the version number and try again.</p>
@@ -22195,8 +22563,8 @@ fn test_version() {
         </script>
 
         <script src="ace.js"></script>
-        <script src="mode-rust.js"></script>
         <script src="editor.js"></script>
+        <script src="mode-rust.js"></script>
         <script src="theme-dawn.js"></script>
         <script src="theme-tomorrow_night.js"></script>
 
@@ -22215,7 +22583,6 @@ fn test_version() {
             window.setTimeout(window.print, 100);
         });
         </script>
-
 
     </div>
     </body>

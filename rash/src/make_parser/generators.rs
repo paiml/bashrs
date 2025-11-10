@@ -31,7 +31,7 @@ use super::ast::*;
 /// ## Added in v6.34.0 (Dogfooding Follow-up)
 ///
 /// See: docs/dogfooding/makefile-purification.md
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct MakefileGeneratorOptions {
     /// Preserve formatting (keep blank lines, multi-line format)
     pub preserve_formatting: bool,
@@ -44,17 +44,6 @@ pub struct MakefileGeneratorOptions {
 
     /// Skip multi-line consolidation transformation
     pub skip_consolidation: bool,
-}
-
-impl Default for MakefileGeneratorOptions {
-    fn default() -> Self {
-        Self {
-            preserve_formatting: false,
-            max_line_length: None,
-            skip_blank_line_removal: false,
-            skip_consolidation: false,
-        }
-    }
 }
 
 /// Generate a purified Makefile from an AST
@@ -126,12 +115,8 @@ pub fn generate_purified_makefile_with_options(
         let item_output = generate_item(item);
 
         // Handle blank line preservation
-        let should_add_blank_line = should_preserve_blank_line(
-            item,
-            idx > 0,
-            prev_was_comment,
-            options,
-        );
+        let should_add_blank_line =
+            should_preserve_blank_line(item, idx > 0, prev_was_comment, options);
 
         if should_add_blank_line && idx > 0 {
             output.push('\n'); // Add blank line before item

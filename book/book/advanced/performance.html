@@ -24,41 +24,28 @@
         <link rel="stylesheet" href="../fonts/fonts.css">
 
         <!-- Highlight.js Stylesheets -->
-        <link rel="stylesheet" id="highlight-css" href="../highlight.css">
-        <link rel="stylesheet" id="tomorrow-night-css" href="../tomorrow-night.css">
-        <link rel="stylesheet" id="ayu-highlight-css" href="../ayu-highlight.css">
+        <link rel="stylesheet" href="../highlight.css">
+        <link rel="stylesheet" href="../tomorrow-night.css">
+        <link rel="stylesheet" href="../ayu-highlight.css">
 
         <!-- Custom theme stylesheets -->
 
 
-        <!-- Provide site root and default themes to javascript -->
+        <!-- Provide site root to javascript -->
         <script>
-            const path_to_root = "../";
-            const default_light_theme = "rust";
-            const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex.js";
+            var path_to_root = "../";
+            var default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "navy" : "rust";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc.js"></script>
     </head>
     <body>
-    <div id="mdbook-help-container">
-        <div id="mdbook-help-popup">
-            <h2 class="mdbook-help-title">Keyboard shortcuts</h2>
-            <div>
-                <p>Press <kbd>←</kbd> or <kbd>→</kbd> to navigate between chapters</p>
-                <p>Press <kbd>S</kbd> or <kbd>/</kbd> to search in the book</p>
-                <p>Press <kbd>?</kbd> to show this help</p>
-                <p>Press <kbd>Esc</kbd> to hide this help</p>
-            </div>
-        </div>
-    </div>
     <div id="body-container">
         <!-- Work around some values being stored in localStorage wrapped in quotes -->
         <script>
             try {
-                let theme = localStorage.getItem('mdbook-theme');
-                let sidebar = localStorage.getItem('mdbook-sidebar');
+                var theme = localStorage.getItem('mdbook-theme');
+                var sidebar = localStorage.getItem('mdbook-sidebar');
 
                 if (theme.startsWith('"') && theme.endsWith('"')) {
                     localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
@@ -72,8 +59,7 @@
 
         <!-- Set the theme before any content is loaded, prevents flash -->
         <script>
-            const default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? default_dark_theme : default_light_theme;
-            let theme;
+            var theme;
             try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
             if (theme === null || theme === undefined) { theme = default_theme; }
             const html = document.documentElement;
@@ -86,20 +72,17 @@
 
         <!-- Hide / unhide sidebar before it is displayed -->
         <script>
-            let sidebar = null;
-            const sidebar_toggle = document.getElementById("sidebar-toggle-anchor");
+            var sidebar = null;
+            var sidebar_toggle = document.getElementById("sidebar-toggle-anchor");
             if (document.body.clientWidth >= 1080) {
                 try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
                 sidebar = sidebar || 'visible';
             } else {
                 sidebar = 'hidden';
-                sidebar_toggle.checked = false;
             }
-            if (sidebar === 'visible') {
-                sidebar_toggle.checked = true;
-            } else {
-                html.classList.remove('sidebar-visible');
-            }
+            sidebar_toggle.checked = sidebar === 'visible';
+            html.classList.remove('sidebar-visible');
+            html.classList.add("sidebar-" + sidebar);
         </script>
 
         <nav id="sidebar" class="sidebar" aria-label="Table of contents">
@@ -126,14 +109,13 @@
                             <i class="fa fa-paint-brush"></i>
                         </button>
                         <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
-                            <li role="none"><button role="menuitem" class="theme" id="default_theme">Auto</button></li>
                             <li role="none"><button role="menuitem" class="theme" id="light">Light</button></li>
                             <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
                             <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
                             <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
                             <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
                         </ul>
-                        <button id="search-toggle" class="icon-button" type="button" title="Search (`/`)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="/ s" aria-controls="searchbar">
+                        <button id="search-toggle" class="icon-button" type="button" title="Search. (Shortkey: s)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="S" aria-controls="searchbar">
                             <i class="fa fa-search"></i>
                         </button>
                     </div>
@@ -147,7 +129,7 @@
                         <a href="https://github.com/paiml/bashrs" title="Git repository" aria-label="Git repository">
                             <i id="git-repository-button" class="fa fa-github"></i>
                         </a>
-                        <a href="https://github.com/paiml/bashrs/edit/main/book/src/advanced/performance.md" title="Suggest an edit" aria-label="Suggest an edit" rel="edit">
+                        <a href="https://github.com/paiml/bashrs/edit/main/book/src/advanced/performance.md" title="Suggest an edit" aria-label="Suggest an edit">
                             <i id="git-edit-button" class="fa fa-edit"></i>
                         </a>
 
@@ -156,12 +138,7 @@
 
                 <div id="search-wrapper" class="hidden">
                     <form id="searchbar-outer" class="searchbar-outer">
-                        <div class="search-wrapper">
-                            <input type="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
-                            <div class="spinner-wrapper">
-                                <i class="fa fa-spinner fa-spin"></i>
-                            </div>
-                        </div>
+                        <input type="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
                     </form>
                     <div id="searchresults-outer" class="searchresults-outer hidden">
                         <div id="searchresults-header" class="searchresults-header"></div>
@@ -267,7 +244,7 @@ brew install valgrind      # macOS
 less memory_report.txt
 </code></pre>
 <p><strong>Interpreting results</strong>:</p>
-<pre><code>    MB
+<pre><code class="language-text">    MB
 10  ^                                    :#
     |                                   ::#
     |                                  :::#
@@ -403,7 +380,7 @@ impl CachingParser {
     }
 }</code></pre>
 <p><strong>Performance impact</strong>:</p>
-<pre><code>Without cache: 45ms per parse
+<pre><code class="language-text">Without cache: 45ms per parse
 With cache (hit): 0.1ms (450× faster!)
 With cache (miss): 46ms (1ms overhead from hashing)
 </code></pre>
@@ -450,7 +427,7 @@ impl LazyAst {
     }
 }</code></pre>
 <p><strong>Performance impact</strong>:</p>
-<pre><code>Full parse:  45ms
+<pre><code class="language-text">Full parse:  45ms
 line_count:   1ms (45× faster)
 has_eval:     2ms (22× faster)
 </code></pre>
@@ -504,7 +481,7 @@ impl InternedParser {
     }
 }</code></pre>
 <p><strong>Memory impact</strong>:</p>
-<pre><code>Without interning:  echo appears 1000× = 4KB (4 bytes × 1000)
+<pre><code class="language-text">Without interning:  echo appears 1000× = 4KB (4 bytes × 1000)
 With interning:     echo stored once = 4 bytes + 1000 refs (8KB total)
 
 For 10,000 variables with repetition:
@@ -533,7 +510,7 @@ pub fn lint_parallel(source: &amp;str, rules: &amp;[LintRule]) -&gt; LintResult 
     LintResult { diagnostics }
 }</code></pre>
 <p><strong>Performance impact</strong>:</p>
-<pre><code>Sequential: 8 rules × 50ms each = 400ms
+<pre><code class="language-text">Sequential: 8 rules × 50ms each = 400ms
 Parallel:   max(50ms) = 50ms (8× faster on 8 cores)
 </code></pre>
 <p><strong>Trade-offs</strong>:</p>
@@ -573,7 +550,7 @@ pub fn lint_const&lt;const N: usize&gt;(
         .collect()
 }</code></pre>
 <p><strong>Performance impact</strong>:</p>
-<pre><code>Dynamic dispatch:   50ms
+<pre><code class="language-text">Dynamic dispatch:   50ms
 Static dispatch:    45ms (10% faster)
 Const generics:     42ms (16% faster, plus better inlining)
 </code></pre>
@@ -673,7 +650,7 @@ fn transform_stmt(stmt: BashStmt) -&gt; BashStmt {
     }
 }</code></pre>
 <p><strong>Performance</strong>:</p>
-<pre><code>Before: 200ms (half the time spent cloning)
+<pre><code class="language-text">Before: 200ms (half the time spent cloning)
 After:  20ms (10× faster)
 </code></pre>
 <h3 id="optimization-3-diagnostic-allocation-3-faster"><a class="header" href="#optimization-3-diagnostic-allocation-3-faster">Optimization 3: Diagnostic Allocation (3× faster)</a></h3>
@@ -709,7 +686,7 @@ pub trait LintRule {
     fn check_into(&amp;self, source: &amp;str, out: &amp;mut Vec&lt;Diagnostic&gt;);
 }</code></pre>
 <p><strong>Performance</strong>:</p>
-<pre><code>Before: 60ms (lots of small allocations)
+<pre><code class="language-text">Before: 60ms (lots of small allocations)
 After:  20ms (3× faster, single allocation)
 </code></pre>
 <h2 id="performance-testing-in-cicd"><a class="header" href="#performance-testing-in-cicd">Performance Testing in CI/CD</a></h2>
@@ -1027,8 +1004,8 @@ pub fn parse(source: &amp;str) -&gt; Result&lt;BashAst, ParseError&gt; {
         </script>
 
         <script src="../ace.js"></script>
-        <script src="../mode-rust.js"></script>
         <script src="../editor.js"></script>
+        <script src="../mode-rust.js"></script>
         <script src="../theme-dawn.js"></script>
         <script src="../theme-tomorrow_night.js"></script>
 
@@ -1041,7 +1018,6 @@ pub fn parse(source: &amp;str) -&gt; Result&lt;BashAst, ParseError&gt; {
         <script src="../book.js"></script>
 
         <!-- Custom JS scripts -->
-
 
 
     </div>

@@ -52,6 +52,36 @@ impl Default for MakeMetadata {
     }
 }
 
+/// Metadata about recipe formatting (line continuations, etc.)
+#[derive(Debug, Clone, PartialEq)]
+pub struct RecipeMetadata {
+    /// Original line breaks in the recipe (indices where continuations occurred)
+    /// Each entry contains:
+    /// - character position in the concatenated recipe line
+    /// - original indentation of the continued line
+    pub line_breaks: Vec<(usize, String)>,
+}
+
+impl RecipeMetadata {
+    /// Create empty recipe metadata
+    pub fn new() -> Self {
+        Self {
+            line_breaks: Vec::new(),
+        }
+    }
+
+    /// Create metadata with line breaks
+    pub fn with_breaks(line_breaks: Vec<(usize, String)>) -> Self {
+        Self { line_breaks }
+    }
+}
+
+impl Default for RecipeMetadata {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 /// Makefile constructs (targets, variables, conditionals, etc.)
 #[derive(Debug, Clone, PartialEq)]
 pub enum MakeItem {
@@ -71,6 +101,8 @@ pub enum MakeItem {
         recipe: Vec<String>,
         /// Whether this target is marked as .PHONY
         phony: bool,
+        /// Recipe formatting metadata (line continuations, etc.)
+        recipe_metadata: Option<RecipeMetadata>,
         /// Source location
         span: Span,
     },
@@ -107,6 +139,8 @@ pub enum MakeItem {
         prereq_patterns: Vec<String>,
         /// Recipe lines
         recipe: Vec<String>,
+        /// Recipe formatting metadata (line continuations, etc.)
+        recipe_metadata: Option<RecipeMetadata>,
         /// Source location
         span: Span,
     },
