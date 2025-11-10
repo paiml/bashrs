@@ -22400,3 +22400,152 @@ fn test_PARAM_SPEC_006_shell_options_comparison_table() {
 
     let _ = tokens;
 }
+
+// EXTREME TDD - RED Phase: Test for loop with multiple values
+// This test is EXPECTED TO FAIL until parser enhancement is implemented
+// Bug: Parser cannot handle `for i in 1 2 3; do` (expects single value)
+// Error: UnexpectedToken { expected: "Do", found: "Some(Number(2))", line: X }
+#[test]
+fn test_for_loop_with_multiple_values() {
+    let script = r#"
+for i in 1 2 3; do
+    echo "$i"
+done
+"#;
+
+    let mut parser = BashParser::new(script).unwrap();
+    let result = parser.parse();
+
+    assert!(
+        result.is_ok(),
+        "For loop with multiple values should parse successfully: {:?}",
+        result.err()
+    );
+
+    let ast = result.unwrap();
+    let has_for = ast
+        .statements
+        .iter()
+        .any(|s| matches!(s, BashStmt::For { .. }));
+
+    assert!(has_for, "AST should contain a for loop");
+}
+
+// EXTREME TDD - Test for while loop with semicolon before do
+// Bug was: Parser could not handle `while [ condition ]; do` (expected do immediately after condition)
+// Fixed: Parser now optionally consumes semicolon before 'do' keyword (PARSER-ENH-003)
+#[test]
+fn test_while_loop_with_semicolon_before_do() {
+    let script = r#"
+x=5
+while [ "$x" = "5" ]; do
+    echo "looping"
+done
+"#;
+
+    let mut parser = BashParser::new(script).unwrap();
+    let result = parser.parse();
+
+    assert!(
+        result.is_ok(),
+        "While loop with semicolon before do should parse successfully: {:?}",
+        result.err()
+    );
+
+    let ast = result.unwrap();
+    let has_while = ast
+        .statements
+        .iter()
+        .any(|s| matches!(s, BashStmt::While { .. }));
+
+    assert!(has_while, "AST should contain a while loop");
+}
+
+// EXTREME TDD - RED Phase: Test for arithmetic expansion $((expr))
+// This is P0 blocker documented in multiple locations
+// Bug: Parser cannot handle arithmetic expansion like y=$((y - 1))
+// Expected error: InvalidSyntax or UnexpectedToken when parsing $((...))
+// TODO: Implement GREEN phase - lexer + parser for arithmetic expansion
+#[test]
+#[ignore = "RED phase complete - awaiting GREEN phase implementation"]
+fn test_arithmetic_expansion_basic() {
+    let script = r#"
+x=5
+y=$((x + 1))
+echo "$y"
+"#;
+
+    let mut parser = BashParser::new(script).unwrap();
+    let result = parser.parse();
+
+    assert!(
+        result.is_ok(),
+        "Arithmetic expansion should parse successfully: {:?}",
+        result.err()
+    );
+
+    let ast = result.unwrap();
+
+    // Verify we have an assignment with arithmetic expansion
+    let has_arithmetic_assignment = ast.statements.iter().any(|s| {
+        matches!(s, BashStmt::Assignment { value, .. }
+            if matches!(value, BashExpr::Arithmetic(_)))
+    });
+
+    assert!(
+        has_arithmetic_assignment,
+        "AST should contain arithmetic expansion in assignment"
+    );
+}
+
+#[test]
+#[ignore = "RED phase complete - awaiting GREEN phase implementation"]
+fn test_arithmetic_expansion_in_loop() {
+    let script = r#"
+count=3
+while [ "$count" -gt "0" ]; do
+    echo "Iteration $count"
+    count=$((count - 1))
+done
+"#;
+
+    let mut parser = BashParser::new(script).unwrap();
+    let result = parser.parse();
+
+    assert!(
+        result.is_ok(),
+        "While loop with arithmetic decrement should parse: {:?}",
+        result.err()
+    );
+
+    let ast = result.unwrap();
+    let has_while = ast
+        .statements
+        .iter()
+        .any(|s| matches!(s, BashStmt::While { .. }));
+
+    assert!(has_while, "AST should contain a while loop");
+}
+
+#[test]
+#[ignore = "RED phase complete - awaiting GREEN phase implementation"]
+fn test_arithmetic_expansion_complex_expressions() {
+    let script = r#"
+a=10
+b=20
+sum=$((a + b))
+diff=$((a - b))
+prod=$((a * b))
+quot=$((a / b))
+mod=$((a % b))
+"#;
+
+    let mut parser = BashParser::new(script).unwrap();
+    let result = parser.parse();
+
+    assert!(
+        result.is_ok(),
+        "Complex arithmetic expressions should parse: {:?}",
+        result.err()
+    );
+}
