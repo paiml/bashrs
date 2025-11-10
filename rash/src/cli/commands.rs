@@ -915,6 +915,10 @@ fn handle_make_command(command: MakeCommands) -> Result<()> {
             format,
             with_tests,
             property_tests,
+            preserve_formatting,
+            max_line_length,
+            skip_blank_line_removal,
+            skip_consolidation,
         } => {
             info!("Purifying {}", input.display());
             make_purify_command(
@@ -925,6 +929,10 @@ fn handle_make_command(command: MakeCommands) -> Result<()> {
                 format,
                 with_tests,
                 property_tests,
+                preserve_formatting,
+                max_line_length,
+                skip_blank_line_removal,
+                skip_consolidation,
             )
         }
         MakeCommands::Lint {
@@ -971,9 +979,15 @@ fn make_purify_command(
     format: ReportFormat,
     with_tests: bool,
     property_tests: bool,
+    preserve_formatting: bool,
+    max_line_length: Option<usize>,
+    skip_blank_line_removal: bool,
+    skip_consolidation: bool,
 ) -> Result<()> {
     use crate::make_parser::{
-        generators::generate_purified_makefile, parser::parse_makefile, purify::purify_makefile,
+        generators::{generate_purified_makefile_with_options, MakefileGeneratorOptions},
+        parser::parse_makefile,
+        purify::purify_makefile,
         MakefileTestGenerator, MakefileTestGeneratorOptions,
     };
 
@@ -994,7 +1008,15 @@ fn make_purify_command(
         print_purify_report(&purify_result, format);
     }
 
-    let purified = generate_purified_makefile(&purify_result.ast);
+    // Build generator options from CLI flags
+    let generator_options = MakefileGeneratorOptions {
+        preserve_formatting,
+        max_line_length,
+        skip_blank_line_removal,
+        skip_consolidation,
+    };
+
+    let purified = generate_purified_makefile_with_options(&purify_result.ast, &generator_options);
 
     if let Some(output_path) = output {
         // Write to specified output file (-o flag provided)
