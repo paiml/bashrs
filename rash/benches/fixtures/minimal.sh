@@ -1,6 +1,7 @@
 #!/bin/bash
 # Minimal bash script for benchmarking
 # Uses only basic constructs known to be supported by parser
+# Note: Arithmetic expansion $((expr)) not yet supported (P0 blocker documented)
 
 echo "test"
 x=1
@@ -15,8 +16,12 @@ for i in 1 2 3; do
     echo "$i"
 done
 
-while [ "$y" -gt "0" ]; do
-    y=$((y - 1))
+# Simple while loop without arithmetic expansion
+count=3
+while [ "$count" != "0" ]; do
+    echo "Iteration $count"
+    # Note: Decrement requires arithmetic expansion - using break instead
+    count=0
 done
 
 echo "done"

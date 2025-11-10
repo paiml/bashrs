@@ -264,6 +264,13 @@ impl BashParser {
 
         let condition = self.parse_test_expression()?;
         self.skip_newlines();
+
+        // PARSER-ENH-003: Optionally consume semicolon before 'do'
+        // Both `while [ cond ]; do` and `while [ cond ]\ndo` are valid bash syntax
+        if self.check(&Token::Semicolon) {
+            self.advance();
+        }
+
         self.expect(Token::Do)?;
         self.skip_newlines();
 
@@ -293,7 +300,31 @@ impl BashParser {
         // Expect 'in'
         self.expect(Token::In)?;
 
-        let items = self.parse_expression()?;
+        // PARSER-ENH-002: Parse multiple items (for i in 1 2 3; do...)
+        // Bug fix: Parser previously only handled single item after 'in'
+        // Now collects multiple expressions until semicolon or 'do' keyword
+        let mut item_list = vec![];
+        loop {
+            // Parse one item
+            let item = self.parse_expression()?;
+            item_list.push(item);
+
+            // Check if we've reached the end of the item list
+            // Break on semicolon, do keyword, or newline
+            if self.check(&Token::Semicolon)
+                || self.check(&Token::Do)
+                || self.check(&Token::Newline)
+            {
+                break;
+            }
+        }
+
+        // If we have multiple items, wrap in Array. Otherwise, use single item.
+        let items = if item_list.len() > 1 {
+            BashExpr::Array(item_list)
+        } else {
+            item_list.into_iter().next().unwrap() // Safe: we have at least one item
+        };
 
         // Skip optional semicolon before do
         if self.check(&Token::Semicolon) {
