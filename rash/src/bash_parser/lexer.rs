@@ -168,9 +168,18 @@ impl Lexer {
         }
 
         // Bare words (paths, globs, etc) - must come before operators
-        // These are unquoted strings that can contain /  * . - : etc
+        // These are unquoted strings that can contain /  * . - : + % etc
         // Note: ':' is included for bash builtin no-op command (BUILTIN-001)
-        if ch == '/' || ch == '.' || ch == '-' || ch == '*' || ch == '~' || ch == ':' {
+        // Note: '+' and '%' are included for flags like date +%FORMAT (PARSER-ENH-001)
+        if ch == '/'
+            || ch == '.'
+            || ch == '-'
+            || ch == '*'
+            || ch == '~'
+            || ch == ':'
+            || ch == '+'
+            || ch == '%'
+        {
             return Ok(self.read_bare_word());
         }
 
@@ -338,7 +347,8 @@ impl Lexer {
 
         while !self.is_at_end() {
             let ch = self.current_char();
-            // Bare words can contain alphanumeric, path separators, globs, dots, dashes
+            // Bare words can contain alphanumeric, path separators, globs, dots, dashes, plus signs, percent signs
+            // Note: '+' and '%' added for date +%FORMAT support (PARSER-ENH-001)
             if ch.is_alphanumeric()
                 || ch == '/'
                 || ch == '.'
@@ -348,6 +358,8 @@ impl Lexer {
                 || ch == '?'
                 || ch == '~'
                 || ch == ':'
+                || ch == '+'
+                || ch == '%'
             {
                 word.push(self.advance());
             } else {
@@ -502,5 +514,48 @@ mod tests {
         let tokens = lexer.tokenize().unwrap();
 
         assert!(matches!(tokens[0], Token::Comment(_)));
+    }
+
+    // EXTREME TDD - RED Phase: Test for date +FORMAT support
+    // This test is EXPECTED TO FAIL until lexer enhancement is implemented
+    #[test]
+    fn test_lexer_plus_in_command_args() {
+        let input = "date +%s";
+        let mut lexer = Lexer::new(input);
+        let tokens = lexer.tokenize().unwrap();
+
+        // Expected tokens: [Identifier("date"), Identifier("+%s"), Eof]
+        assert_eq!(tokens.len(), 3);
+        assert_eq!(tokens[0], Token::Identifier("date".to_string()));
+        assert_eq!(tokens[1], Token::Identifier("+%s".to_string()));
+        assert_eq!(tokens[2], Token::Eof);
+    }
+
+    #[test]
+    fn test_lexer_date_format_quoted() {
+        let input = r#"date '+%Y-%m-%d %H:%M:%S'"#;
+        let mut lexer = Lexer::new(input);
+        let tokens = lexer.tokenize().unwrap();
+
+        // Expected tokens: [Identifier("date"), String("+%Y-%m-%d %H:%M:%S"), Eof]
+        assert_eq!(tokens.len(), 3);
+        assert_eq!(tokens[0], Token::Identifier("date".to_string()));
+        assert_eq!(tokens[1], Token::String("+%Y-%m-%d %H:%M:%S".to_string()));
+        assert_eq!(tokens[2], Token::Eof);
+    }
+
+    #[test]
+    fn test_lexer_plus_in_various_contexts() {
+        // Test +%Y%m%d%H%M%S format
+        let input = "date +%Y%m%d%H%M%S";
+        let mut lexer = Lexer::new(input);
+        let tokens = lexer.tokenize().unwrap();
+        assert_eq!(tokens[1], Token::Identifier("+%Y%m%d%H%M%S".to_string()));
+
+        // Test bare +x flag
+        let input2 = "some_cmd +x";
+        let mut lexer2 = Lexer::new(input2);
+        let tokens2 = lexer2.tokenize().unwrap();
+        assert_eq!(tokens2[1], Token::Identifier("+x".to_string()));
     }
 }
