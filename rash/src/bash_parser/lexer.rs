@@ -257,6 +257,14 @@ impl Lexer {
             return Ok(Token::Variable("$".to_string()));
         }
 
+        // Check for $@ (all positional parameters special variable)
+        if !self.is_at_end() && self.current_char() == '@' {
+            self.advance(); // skip '@'
+                            // Return special variable name for all positional parameters
+                            // Using "@" as the variable name to represent $@
+            return Ok(Token::Variable("@".to_string()));
+        }
+
         let mut var_name = String::new();
 
         // Handle ${VAR} syntax
