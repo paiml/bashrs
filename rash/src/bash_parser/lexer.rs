@@ -56,9 +56,10 @@ pub enum Token {
     DoubleRightBracket, // ]]
 
     // Special
-    Variable(String),            // $VAR
-    ArithmeticExpansion(String), // $((expr))
-    CommandSubstitution(String), // $(command)
+    Variable(String),                               // $VAR
+    ArithmeticExpansion(String),                    // $((expr))
+    CommandSubstitution(String),                    // $(command)
+    Heredoc { delimiter: String, content: String }, // <<DELIMITER
     Comment(String),
     Newline,
     Eof,
@@ -355,6 +356,71 @@ impl Lexer {
         Ok(Token::CommandSubstitution(command))
     }
 
+    fn read_heredoc(&mut self) -> Result<Token, LexerError> {
+        // Read the delimiter (alphanumeric + underscore, or quoted for special delimiters)
+        // Skip any leading whitespace
+        while !self.is_at_end() && (self.current_char() == ' ' || self.current_char() == '\t') {
+            self.advance();
+        }
+
+        // Read delimiter
+        let mut delimiter = String::new();
+        while !self.is_at_end() {
+            let ch = self.current_char();
+            if ch.is_alphanumeric() || ch == '_' {
+                delimiter.push(self.advance());
+            } else {
+                break;
+            }
+        }
+
+        if delimiter.is_empty() {
+            return Err(LexerError::UnexpectedChar(
+                self.current_char(),
+                self.line,
+                self.column,
+            ));
+        }
+
+        // Skip to end of line (heredoc content starts on next line)
+        while !self.is_at_end() && self.current_char() != '\n' {
+            self.advance();
+        }
+        if !self.is_at_end() {
+            self.advance(); // skip newline
+        }
+
+        // Read heredoc content until we find a line matching the delimiter
+        let mut content = String::new();
+        let mut current_line = String::new();
+
+        while !self.is_at_end() {
+            let ch = self.current_char();
+
+            if ch == '\n' {
+                // Check if current_line matches delimiter
+                if current_line.trim() == delimiter {
+                    // Found delimiter - skip the newline and stop
+                    self.advance();
+                    break;
+                }
+
+                // Not delimiter - add line to content (with newline)
+                if !content.is_empty() {
+                    content.push('\n');
+                }
+                content.push_str(&current_line);
+                current_line.clear();
+
+                self.advance(); // skip newline
+            } else {
+                current_line.push(self.advance());
+            }
+        }
+
+        Ok(Token::Heredoc { delimiter, content })
+    }
+
     fn read_string(&mut self, quote: char) -> Result<Token, LexerError> {
         let start_line = self.line;
         let start_col = self.column;
@@ -479,6 +545,12 @@ impl Lexer {
                 self.advance();
                 self.advance();
                 Token::Ne
+            }
+            ('<', Some('<')) => {
+                // Heredoc: <<DELIMITER
+                self.advance(); // skip first '<'
+                self.advance(); // skip second '<'
+                return self.read_heredoc();
             }
             ('<', Some('=')) => {
                 self.advance();
