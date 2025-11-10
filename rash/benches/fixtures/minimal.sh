@@ -1,7 +1,7 @@
 #!/bin/bash
 # Minimal bash script for benchmarking
 # Uses only basic constructs known to be supported by parser
-# Note: Arithmetic expansion $((expr)) not yet supported (P0 blocker documented)
+# Note: Arithmetic expansion $((expr)) NOW SUPPORTED as of v6.33.0
 
 echo "test"
 x=1
