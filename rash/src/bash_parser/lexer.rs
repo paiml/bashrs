@@ -241,6 +241,16 @@ impl Lexer {
             if let Some('(') = self.peek_char(1) {
                 return self.read_arithmetic_expansion();
             }
+            // Note: $(command) command substitution handled separately
+            // For now, fall through to general variable parsing
+        }
+
+        // Check for $$ (process ID special variable)
+        if !self.is_at_end() && self.current_char() == '$' {
+            self.advance(); // skip second '$'
+            // Return special variable name for process ID
+            // Using "$" as the variable name to represent $$
+            return Ok(Token::Variable("$".to_string()));
         }
 
         let mut var_name = String::new();
