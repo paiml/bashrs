@@ -22831,3 +22831,36 @@ echo "Temp: $temp_file"
         ast.statements.len()
     );
 }
+
+// RED Phase: Test for $@ special variable (all positional parameters)
+// Issue: medium.sh fails at line 119 with "local message=$@"
+#[test]
+fn test_ISSUE_004_006_parse_dollar_at() {
+    // ACT: Parse bash with $@ special variable
+    let bash = "message=$@";
+    let parser_result = BashParser::new(bash);
+
+    // ASSERT: Lexer should succeed
+    assert!(
+        parser_result.is_ok(),
+        "Lexer should accept $@ special variable, got: {:?}",
+        parser_result.err()
+    );
+
+    let mut parser = parser_result.unwrap();
+    let parse_result = parser.parse();
+
+    // ASSERT: Parser should succeed
+    assert!(
+        parse_result.is_ok(),
+        "Parser should handle $@ special variable, got: {:?}",
+        parse_result.err()
+    );
+
+    // VERIFY: AST contains variable assignment
+    let ast = parse_result.unwrap();
+    assert!(
+        !ast.statements.is_empty(),
+        "Should have at least one statement"
+    );
+}
