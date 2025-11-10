@@ -22465,9 +22465,8 @@ done
 // This is P0 blocker documented in multiple locations
 // Bug: Parser cannot handle arithmetic expansion like y=$((y - 1))
 // Expected error: InvalidSyntax or UnexpectedToken when parsing $((...))
-// TODO: Implement GREEN phase - lexer + parser for arithmetic expansion
+// GREEN phase complete - lexer + parser implemented with proper operator precedence
 #[test]
-#[ignore = "RED phase complete - awaiting GREEN phase implementation"]
 fn test_arithmetic_expansion_basic() {
     let script = r#"
 x=5
@@ -22499,7 +22498,6 @@ echo "$y"
 }
 
 #[test]
-#[ignore = "RED phase complete - awaiting GREEN phase implementation"]
 fn test_arithmetic_expansion_in_loop() {
     let script = r#"
 count=3
@@ -22528,7 +22526,6 @@ done
 }
 
 #[test]
-#[ignore = "RED phase complete - awaiting GREEN phase implementation"]
 fn test_arithmetic_expansion_complex_expressions() {
     let script = r#"
 a=10

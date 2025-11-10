@@ -28,6 +28,20 @@ pub enum ParseError {
 
 pub type ParseResult<T> = Result<T, ParseError>;
 
+/// Internal tokens for arithmetic expression parsing
+#[derive(Debug, Clone, PartialEq)]
+enum ArithToken {
+    Number(i64),
+    Variable(String),
+    Plus,
+    Minus,
+    Multiply,
+    Divide,
+    Modulo,
+    LeftParen,
+    RightParen,
+}
+
 pub struct BashParser {
     tokens: Vec<Token>,
     position: usize,
@@ -642,6 +656,181 @@ impl BashParser {
         })
     }
 
+    /// Parse arithmetic expression with operator precedence
+    /// Grammar:
+    ///   expr     := term (('+' | '-') term)*
+    ///   term     := factor (('*' | '/' | '%') factor)*
+    ///   factor   := number | variable | '(' expr ')'
+    fn parse_arithmetic_expr(&mut self, input: &str) -> ParseResult<ArithExpr> {
+        // Create a mini-lexer for arithmetic expressions
+        let tokens = self.tokenize_arithmetic(input)?;
+        let mut pos = 0;
+
+        fn parse_expr(tokens: &[ArithToken], pos: &mut usize) -> ParseResult<ArithExpr> {
+            let mut left = parse_term(tokens, pos)?;
+
+            while *pos < tokens.len() {
+                match &tokens[*pos] {
+                    ArithToken::Plus => {
+                        *pos += 1;
+                        let right = parse_term(tokens, pos)?;
+                        left = ArithExpr::Add(Box::new(left), Box::new(right));
+                    }
+                    ArithToken::Minus => {
+                        *pos += 1;
+                        let right = parse_term(tokens, pos)?;
+                        left = ArithExpr::Sub(Box::new(left), Box::new(right));
+                    }
+                    _ => break,
+                }
+            }
+
+            Ok(left)
+        }
+
+        fn parse_term(tokens: &[ArithToken], pos: &mut usize) -> ParseResult<ArithExpr> {
+            let mut left = parse_factor(tokens, pos)?;
+
+            while *pos < tokens.len() {
+                match &tokens[*pos] {
+                    ArithToken::Multiply => {
+                        *pos += 1;
+                        let right = parse_factor(tokens, pos)?;
+                        left = ArithExpr::Mul(Box::new(left), Box::new(right));
+                    }
+                    ArithToken::Divide => {
+                        *pos += 1;
+                        let right = parse_factor(tokens, pos)?;
+                        left = ArithExpr::Div(Box::new(left), Box::new(right));
+                    }
+                    ArithToken::Modulo => {
+                        *pos += 1;
+                        let right = parse_factor(tokens, pos)?;
+                        left = ArithExpr::Mod(Box::new(left), Box::new(right));
+                    }
+                    _ => break,
+                }
+            }
+
+            Ok(left)
+        }
+
+        fn parse_factor(tokens: &[ArithToken], pos: &mut usize) -> ParseResult<ArithExpr> {
+            if *pos >= tokens.len() {
+                return Err(ParseError::InvalidSyntax(
+                    "Unexpected end of arithmetic expression".to_string(),
+                ));
+            }
+
+            match &tokens[*pos] {
+                ArithToken::Number(n) => {
+                    let num = *n;
+                    *pos += 1;
+                    Ok(ArithExpr::Number(num))
+                }
+                ArithToken::Variable(v) => {
+                    let var = v.clone();
+                    *pos += 1;
+                    Ok(ArithExpr::Variable(var))
+                }
+                ArithToken::LeftParen => {
+                    *pos += 1;
+                    let expr = parse_expr(tokens, pos)?;
+                    if *pos >= tokens.len() || !matches!(tokens[*pos], ArithToken::RightParen) {
+                        return Err(ParseError::InvalidSyntax(
+                            "Expected closing parenthesis".to_string(),
+                        ));
+                    }
+                    *pos += 1;
+                    Ok(expr)
+                }
+                _ => Err(ParseError::InvalidSyntax(format!(
+                    "Unexpected token in arithmetic: {:?}",
+                    tokens[*pos]
+                ))),
+            }
+        }
+
+        parse_expr(&tokens, &mut pos)
+    }
+
+    /// Tokenize arithmetic expression string
+    fn tokenize_arithmetic(&self, input: &str) -> ParseResult<Vec<ArithToken>> {
+        let mut tokens = Vec::new();
+        let mut chars = input.chars().peekable();
+
+        while let Some(&ch) = chars.peek() {
+            match ch {
+                ' ' | '\t' => {
+                    chars.next();
+                }
+                '+' => {
+                    chars.next();
+                    tokens.push(ArithToken::Plus);
+                }
+                '-' => {
+                    chars.next();
+                    tokens.push(ArithToken::Minus);
+                }
+                '*' => {
+                    chars.next();
+                    tokens.push(ArithToken::Multiply);
+                }
+                '/' => {
+                    chars.next();
+                    tokens.push(ArithToken::Divide);
+                }
+                '%' => {
+                    chars.next();
+                    tokens.push(ArithToken::Modulo);
+                }
+                '(' => {
+                    chars.next();
+                    tokens.push(ArithToken::LeftParen);
+                }
+                ')' => {
+                    chars.next();
+                    tokens.push(ArithToken::RightParen);
+                }
+                '0'..='9' => {
+                    let mut num_str = String::new();
+                    while let Some(&ch) = chars.peek() {
+                        if ch.is_ascii_digit() {
+                            num_str.push(ch);
+                            chars.next();
+                        } else {
+                            break;
+                        }
+                    }
+                    let num = num_str.parse::<i64>().map_err(|_| {
+                        ParseError::InvalidSyntax(format!("Invalid number: {}", num_str))
+                    })?;
+                    tokens.push(ArithToken::Number(num));
+                }
+                'a'..='z' | 'A'..='Z' | '_' => {
+                    let mut ident = String::new();
+                    while let Some(&ch) = chars.peek() {
+                        if ch.is_alphanumeric() || ch == '_' {
+                            ident.push(ch);
+                            chars.next();
+                        } else {
+                            break;
+                        }
+                    }
+                    tokens.push(ArithToken::Variable(ident));
+                }
+                _ => {
+                    return Err(ParseError::InvalidSyntax(format!(
+                        "Invalid character in arithmetic: {}",
+                        ch
+                    )));
+                }
+            }
+        }
+
+        Ok(tokens)
+    }
+
     fn parse_expression(&mut self) -> ParseResult<BashExpr> {
         match self.peek() {
             Some(Token::String(s)) => {
@@ -663,6 +852,12 @@ impl BashParser {
                 let ident = s.clone();
                 self.advance();
                 Ok(BashExpr::Literal(ident))
+            }
+            Some(Token::ArithmeticExpansion(expr)) => {
+                let expr_str = expr.clone();
+                self.advance();
+                let arith_expr = self.parse_arithmetic_expr(&expr_str)?;
+                Ok(BashExpr::Arithmetic(Box::new(arith_expr)))
             }
             _ => Err(ParseError::InvalidSyntax("Expected expression".to_string())),
         }
@@ -895,5 +1090,91 @@ function greet() {
             .statements
             .iter()
             .any(|s| matches!(s, BashStmt::Function { .. })));
+    }
+
+    // RED PHASE: Arithmetic expansion tests
+    #[test]
+    fn test_parse_arithmetic_basic() {
+        let input = "y=$((x + 1))";
+        let mut parser = BashParser::new(input).unwrap();
+        let ast = parser.parse().unwrap();
+
+        assert_eq!(ast.statements.len(), 1);
+        match &ast.statements[0] {
+            BashStmt::Assignment { name, value, .. } => {
+                assert_eq!(name, "y");
+                match value {
+                    BashExpr::Arithmetic(arith) => match arith.as_ref() {
+                        ArithExpr::Add(left, right) => {
+                            assert!(matches!(left.as_ref(), ArithExpr::Variable(v) if v == "x"));
+                            assert!(matches!(right.as_ref(), ArithExpr::Number(1)));
+                        }
+                        _ => panic!("Expected Add expression"),
+                    },
+                    _ => panic!("Expected Arithmetic expression, got {:?}", value),
+                }
+            }
+            _ => panic!("Expected Assignment statement"),
+        }
+    }
+
+    #[test]
+    fn test_parse_arithmetic_complex() {
+        let input = "result=$(((a + b) * c))";
+        let mut parser = BashParser::new(input).unwrap();
+        let ast = parser.parse().unwrap();
+
+        assert_eq!(ast.statements.len(), 1);
+        match &ast.statements[0] {
+            BashStmt::Assignment { name, value, .. } => {
+                assert_eq!(name, "result");
+                match value {
+                    BashExpr::Arithmetic(arith) => {
+                        // Should be: Mul(Add(a, b), c)
+                        match arith.as_ref() {
+                            ArithExpr::Mul(left, right) => {
+                                assert!(matches!(left.as_ref(), ArithExpr::Add(_, _)));
+                                assert!(
+                                    matches!(right.as_ref(), ArithExpr::Variable(v) if v == "c")
+                                );
+                            }
+                            _ => panic!("Expected Mul expression at top level"),
+                        }
+                    }
+                    _ => panic!("Expected Arithmetic expression"),
+                }
+            }
+            _ => panic!("Expected Assignment statement"),
+        }
+    }
+
+    #[test]
+    fn test_parse_arithmetic_precedence() {
+        let input = "z=$((a + b * c))";
+        let mut parser = BashParser::new(input).unwrap();
+        let ast = parser.parse().unwrap();
+
+        assert_eq!(ast.statements.len(), 1);
+        match &ast.statements[0] {
+            BashStmt::Assignment { name, value, .. } => {
+                assert_eq!(name, "z");
+                match value {
+                    BashExpr::Arithmetic(arith) => {
+                        // Should be: Add(a, Mul(b, c)) - multiplication has higher precedence
+                        match arith.as_ref() {
+                            ArithExpr::Add(left, right) => {
+                                assert!(
+                                    matches!(left.as_ref(), ArithExpr::Variable(v) if v == "a")
+                                );
+                                assert!(matches!(right.as_ref(), ArithExpr::Mul(_, _)));
+                            }
+                            _ => panic!("Expected Add expression at top level"),
+                        }
+                    }
+                    _ => panic!("Expected Arithmetic expression"),
+                }
+            }
+            _ => panic!("Expected Assignment statement"),
+        }
     }
 }
