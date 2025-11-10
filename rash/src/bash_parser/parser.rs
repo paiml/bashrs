@@ -877,6 +877,15 @@ impl BashParser {
                 };
                 Ok(BashExpr::CommandSubst(Box::new(placeholder_stmt)))
             }
+            Some(Token::Heredoc {
+                delimiter: _,
+                content,
+            }) => {
+                // Parse heredoc - treat content as a literal for now
+                let content_str = content.clone();
+                self.advance();
+                Ok(BashExpr::Literal(content_str))
+            }
             _ => Err(ParseError::InvalidSyntax("Expected expression".to_string())),
         }
     }

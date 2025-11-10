@@ -22864,3 +22864,41 @@ fn test_ISSUE_004_006_parse_dollar_at() {
         "Should have at least one statement"
     );
 }
+
+// RED Phase: Test for heredoc (here-document) support
+// Issue: medium.sh line 139 uses `sqlite3 $db_file <<SQL`
+#[test]
+fn test_HEREDOC_001_basic_heredoc() {
+    // ARRANGE: Bash with basic heredoc
+    let bash = r#"cat <<EOF
+line1
+line2
+EOF"#;
+
+    // ACT: Parse
+    let parser_result = BashParser::new(bash);
+
+    // ASSERT: Lexer should succeed
+    assert!(
+        parser_result.is_ok(),
+        "Lexer should accept heredoc syntax, got: {:?}",
+        parser_result.err()
+    );
+
+    let mut parser = parser_result.unwrap();
+    let parse_result = parser.parse();
+
+    // ASSERT: Parser should succeed
+    assert!(
+        parse_result.is_ok(),
+        "Parser should handle heredoc, got: {:?}",
+        parse_result.err()
+    );
+
+    // VERIFY: AST contains command with heredoc
+    let ast = parse_result.unwrap();
+    assert!(
+        !ast.statements.is_empty(),
+        "Should have at least one statement"
+    );
+}
