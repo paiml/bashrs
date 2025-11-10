@@ -58,6 +58,7 @@ pub enum Token {
     // Special
     Variable(String),            // $VAR
     ArithmeticExpansion(String), // $((expr))
+    CommandSubstitution(String), // $(command)
     Comment(String),
     Newline,
     Eof,
@@ -73,6 +74,7 @@ impl fmt::Display for Token {
             Token::Number(n) => write!(f, "Number({})", n),
             Token::Variable(v) => write!(f, "${}", v),
             Token::ArithmeticExpansion(e) => write!(f, "$(({})", e),
+            Token::CommandSubstitution(c) => write!(f, "$({})", c),
             Token::Comment(c) => write!(f, "#{}", c),
             Token::Eof => write!(f, "EOF"),
             _ => write!(f, "{:?}", self),
@@ -236,13 +238,15 @@ impl Lexer {
     fn read_variable(&mut self) -> Result<Token, LexerError> {
         self.advance(); // skip '$'
 
-        // Check for arithmetic expansion $((...))
+        // Check for arithmetic expansion $((...)) vs command substitution $(cmd)
         if !self.is_at_end() && self.current_char() == '(' {
             if let Some('(') = self.peek_char(1) {
+                // Double paren: $((...)) = arithmetic expansion
                 return self.read_arithmetic_expansion();
+            } else {
+                // Single paren: $(cmd) = command substitution
+                return self.read_command_substitution();
             }
-            // Note: $(command) command substitution handled separately
-            // For now, fall through to general variable parsing
         }
 
         // Check for $$ (process ID special variable)
@@ -310,6 +314,37 @@ impl Lexer {
         }
 
         Ok(Token::ArithmeticExpansion(expr))
+    }
+
+    fn read_command_substitution(&mut self) -> Result<Token, LexerError> {
+        // Skip '('
+        self.advance(); // skip '('
+
+        let mut command = String::new();
+        let mut paren_depth = 0;
+
+        while !self.is_at_end() {
+            let ch = self.current_char();
+
+            // Handle nested command substitutions: $(outer $(inner))
+            if ch == '(' {
+                paren_depth += 1;
+                command.push(self.advance());
+            } else if ch == ')' {
+                // Check if this closes the command substitution
+                if paren_depth == 0 {
+                    self.advance(); // skip closing ')'
+                    break;
+                } else {
+                    paren_depth -= 1;
+                    command.push(self.advance());
+                }
+            } else {
+                command.push(self.advance());
+            }
+        }
+
+        Ok(Token::CommandSubstitution(command))
     }
 
     fn read_string(&mut self, quote: char) -> Result<Token, LexerError> {
