@@ -252,8 +252,8 @@ impl Lexer {
         // Check for $$ (process ID special variable)
         if !self.is_at_end() && self.current_char() == '$' {
             self.advance(); // skip second '$'
-            // Return special variable name for process ID
-            // Using "$" as the variable name to represent $$
+                            // Return special variable name for process ID
+                            // Using "$" as the variable name to represent $$
             return Ok(Token::Variable("$".to_string()));
         }
 
