@@ -283,6 +283,19 @@ impl Purifier {
                     span: *span,
                 })
             }
+
+            BashStmt::Pipeline { commands, span } => {
+                // Purify each command in the pipeline
+                let mut purified_commands = Vec::new();
+                for cmd in commands {
+                    purified_commands.push(self.purify_statement(cmd)?);
+                }
+
+                Ok(BashStmt::Pipeline {
+                    commands: purified_commands,
+                    span: *span,
+                })
+            }
         }
     }
 
@@ -644,6 +657,7 @@ impl Purifier {
                         BashStmt::Command {
                             name: name.to_string(),
                             args: new_args,
+                            redirects: vec![],
                             span: Span::dummy(),
                         },
                         Some("Added -p flag to mkdir for idempotency".to_string()),
@@ -669,6 +683,7 @@ impl Purifier {
                         BashStmt::Command {
                             name: name.to_string(),
                             args: new_args,
+                            redirects: vec![],
                             span: Span::dummy(),
                         },
                         Some("Added -f flag to rm for idempotency".to_string()),
@@ -705,6 +720,7 @@ impl Purifier {
             BashStmt::Command {
                 name: name.to_string(),
                 args: purified_args?,
+                redirects: vec![],
                 span: Span::dummy(),
             },
             fix_msg,
@@ -753,6 +769,7 @@ mod tests {
             statements: vec![BashStmt::Command {
                 name: "mkdir".to_string(),
                 args: vec![BashExpr::Literal("/tmp/test".to_string())],
+                redirects: vec![],
                 span: Span::dummy(),
             }],
             metadata: AstMetadata {
@@ -781,6 +798,7 @@ mod tests {
                 BashStmt::Command {
                     name: "echo".to_string(),
                     args: vec![BashExpr::Variable("FOO".to_string())],
+                    redirects: vec![],
                     span: Span::dummy(),
                 },
             ],

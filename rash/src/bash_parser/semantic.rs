@@ -262,6 +262,13 @@ impl SemanticAnalyzer {
                     }
                 }
             }
+
+            BashStmt::Pipeline { commands, .. } => {
+                // Analyze each command in the pipeline
+                for cmd in commands {
+                    self.analyze_statement(cmd, scope)?;
+                }
+            }
         }
 
         Ok(())
@@ -553,6 +560,7 @@ mod tests {
             statements: vec![BashStmt::Command {
                 name: "curl".to_string(),
                 args: vec![BashExpr::Literal("http://example.com".to_string())],
+                redirects: vec![],
                 span: Span::dummy(),
             }],
             metadata: AstMetadata {

@@ -91,6 +91,10 @@ pub enum BashStmt {
 
     /// Comment (preserved for documentation)
     Comment { text: String, span: Span },
+
+    /// Pipeline: cmd1 | cmd2 | cmd3
+    /// Chains multiple commands with stdout→stdin data flow
+    Pipeline { commands: Vec<BashStmt>, span: Span },
 }
 
 /// Case statement arm
@@ -304,6 +308,7 @@ impl BashStmt {
             BashStmt::Case { .. } => "Case",
             BashStmt::Return { .. } => "Return",
             BashStmt::Comment { .. } => "Comment",
+            BashStmt::Pipeline { .. } => "Pipeline",
         }
     }
 
@@ -319,7 +324,8 @@ impl BashStmt {
             | BashStmt::For { span, .. }
             | BashStmt::Case { span, .. }
             | BashStmt::Return { span, .. }
-            | BashStmt::Comment { span, .. } => *span,
+            | BashStmt::Comment { span, .. }
+            | BashStmt::Pipeline { span, .. } => *span,
         };
 
         // Convert bash_parser::Span to tracing::Span
@@ -345,6 +351,7 @@ impl fmt::Display for BashStmt {
             BashStmt::Case { .. } => write!(f, "Case"),
             BashStmt::Return { .. } => write!(f, "Return"),
             BashStmt::Comment { .. } => write!(f, "Comment"),
+            BashStmt::Pipeline { commands, .. } => write!(f, "Pipeline({} cmds)", commands.len()),
         }
     }
 }

@@ -242,6 +242,15 @@ impl Formatter {
                 result.push_str(&format!("{}esac", indent_str));
                 result
             }
+
+            BashStmt::Pipeline { commands, .. } => {
+                // Format pipeline with proper spacing: cmd1 | cmd2 | cmd3
+                let formatted_cmds: Vec<String> = commands
+                    .iter()
+                    .map(|cmd| self.format_stmt(cmd, 0).trim().to_string())
+                    .collect();
+                format!("{}{}", indent_str, formatted_cmds.join(" | "))
+            }
         }
     }
 
@@ -477,6 +486,7 @@ mod tests {
                 body: vec![BashStmt::Command {
                     name: "echo".to_string(),
                     args: vec![BashExpr::Literal("hello".to_string())],
+                    redirects: vec![],
                     span: Span::dummy(),
                 }],
                 span: Span::dummy(),
@@ -506,6 +516,7 @@ mod tests {
                 body: vec![BashStmt::Command {
                     name: "echo".to_string(),
                     args: vec![BashExpr::Literal("test".to_string())],
+                    redirects: vec![],
                     span: Span::dummy(),
                 }],
                 span: Span::dummy(),

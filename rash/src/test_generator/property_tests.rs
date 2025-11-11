@@ -487,6 +487,7 @@ mod tests {
                 body: vec![BashStmt::Command {
                     name: "sort".to_string(),
                     args: vec![],
+                    redirects: vec![],
                     span: Span::dummy(),
                 }],
                 span: Span::dummy(),
@@ -543,6 +544,7 @@ mod tests {
         let body = vec![BashStmt::Command {
             name: "random".to_string(),
             args: vec![],
+            redirects: vec![],
             span: Span::dummy(),
         }];
 
@@ -552,6 +554,7 @@ mod tests {
         let body = vec![BashStmt::Command {
             name: "date".to_string(),
             args: vec![],
+            redirects: vec![],
             span: Span::dummy(),
         }];
 
@@ -576,6 +579,7 @@ mod tests {
         let body = vec![BashStmt::Command {
             name: "sort".to_string(),
             args: vec![],
+            redirects: vec![],
             span: Span::dummy(),
         }];
 
