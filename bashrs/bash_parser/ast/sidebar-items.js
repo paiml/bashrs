@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"enum":["ArithExpr","BashExpr","BashStmt","TestExpr"],"struct":["AstMetadata","BashAst","BashNode","CaseArm","Span"]};
+window.SIDEBAR_ITEMS = {"enum":["ArithExpr","BashExpr","BashStmt","Redirect","TestExpr"],"struct":["AstMetadata","BashAst","BashNode","CaseArm","Span"]};
