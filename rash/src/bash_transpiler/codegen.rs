@@ -203,6 +203,21 @@ impl BashToRashTranspiler {
 
                 Ok(result)
             }
+
+            BashStmt::Pipeline { commands, .. } => {
+                // TODO: Full pipeline transpilation not implemented yet
+                // For now, transpile each command separately
+                let mut result = String::new();
+                for cmd in commands {
+                    result.push_str(&self.transpile_statement(cmd)?);
+                    result.push_str(" | ");
+                }
+                // Remove trailing " | "
+                if result.ends_with(" | ") {
+                    result.truncate(result.len() - 3);
+                }
+                Ok(result)
+            }
         }
     }
 

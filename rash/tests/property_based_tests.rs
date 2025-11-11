@@ -65,6 +65,7 @@ fn bash_script() -> impl Strategy<Value = BashAst> {
                     BashStmt::Command {
                         name,
                         args: args.into_iter().map(BashExpr::Literal).collect(),
+                        redirects: vec![],
                         span: Span::dummy(),
                     }
                 }),
@@ -343,6 +344,7 @@ mod determinism_tests {
                 BashStmt::Command {
                     name: "echo".to_string(),
                     args: vec![BashExpr::Variable("FOO".to_string())],
+                    redirects: vec![],
                     span: Span::dummy(),
                 },
             ],

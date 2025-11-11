@@ -157,6 +157,18 @@ fn generate_statement(stmt: &BashStmt) -> String {
             case_stmt.push_str("esac");
             case_stmt
         }
+
+        BashStmt::Pipeline { commands, .. } => {
+            // Generate pipeline: cmd1 | cmd2 | cmd3
+            let mut pipeline = String::new();
+            for (i, cmd) in commands.iter().enumerate() {
+                if i > 0 {
+                    pipeline.push_str(" | ");
+                }
+                pipeline.push_str(&generate_statement(cmd));
+            }
+            pipeline
+        }
     }
 }
 
@@ -546,6 +558,7 @@ pub fn bash_stmt(depth: u32) -> BoxedStrategy<BashStmt> {
                     BashStmt::Command {
                         name,
                         args: args.into_iter().map(BashExpr::Literal).collect(),
+                        redirects: vec![],
                         span: Span::dummy(),
                     }
                 }),
@@ -579,6 +592,7 @@ pub fn bash_stmt(depth: u32) -> BoxedStrategy<BashStmt> {
                     BashStmt::Command {
                         name,
                         args: args.into_iter().map(BashExpr::Literal).collect(),
+                        redirects: vec![],
                         span: Span::dummy(),
                     }
                 }),

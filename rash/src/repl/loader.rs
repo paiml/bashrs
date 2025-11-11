@@ -278,6 +278,7 @@ mod tests {
         let statements = vec![BashStmt::Command {
             name: "echo".to_string(),
             args: vec![BashExpr::Literal("hello".to_string())],
+            redirects: vec![],
             span: Span::new(1, 1, 1, 11),
         }];
 

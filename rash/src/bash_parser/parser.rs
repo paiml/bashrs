@@ -150,7 +150,8 @@ impl BashParser {
             });
         }
 
-        match self.peek() {
+        // Parse first statement (could be part of pipeline)
+        let first_stmt = match self.peek() {
             // Bash allows keywords as variable names (e.g., fi=1, for=2, while=3)
             // Check for assignment pattern first before treating as control structure
             Some(Token::If) if self.peek_ahead(1) == Some(&Token::Assign) => {
@@ -218,7 +219,33 @@ impl BashParser {
                 }
             }
             _ => self.parse_command(),
+        }?;
+
+        // Check for pipeline: cmd1 | cmd2 | cmd3
+        if self.check(&Token::Pipe) {
+            let mut commands = vec![first_stmt];
+
+            // Collect all piped commands
+            while self.check(&Token::Pipe) {
+                self.advance(); // consume '|'
+
+                // Skip newlines after pipe
+                self.skip_newlines();
+
+                // Parse next command in pipeline
+                let next_cmd = self.parse_command()?;
+                commands.push(next_cmd);
+            }
+
+            // Return pipeline with all collected commands
+            return Ok(BashStmt::Pipeline {
+                commands,
+                span: Span::dummy(),
+            });
         }
+
+        // Not a pipeline, return the single statement
+        Ok(first_stmt)
     }
 
     fn parse_if(&mut self) -> ParseResult<BashStmt> {

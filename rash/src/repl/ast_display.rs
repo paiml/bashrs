@@ -115,6 +115,9 @@ fn format_statement(stmt: &BashStmt, indent: usize) -> String {
                 text.lines().next().unwrap_or("")
             )
         }
+        BashStmt::Pipeline { commands, .. } => {
+            format!("{}Pipeline ({} commands)", indent_str, commands.len())
+        }
     }
 }
 
@@ -136,6 +139,7 @@ mod tests {
             statements: vec![BashStmt::Command {
                 name: "echo".to_string(),
                 args: vec![BashExpr::Literal("hello".to_string())],
+                redirects: vec![],
                 span: dummy_span(),
             }],
             metadata: AstMetadata {
@@ -186,6 +190,7 @@ mod tests {
                 then_block: vec![BashStmt::Command {
                     name: "echo".to_string(),
                     args: vec![],
+                    redirects: vec![],
                     span: dummy_span(),
                 }],
                 elif_blocks: vec![],
@@ -236,6 +241,7 @@ mod tests {
                 BashStmt::Command {
                     name: "echo".to_string(),
                     args: vec![],
+                    redirects: vec![],
                     span: dummy_span(),
                 },
                 BashStmt::Assignment {
@@ -247,6 +253,7 @@ mod tests {
                 BashStmt::Command {
                     name: "ls".to_string(),
                     args: vec![BashExpr::Literal("-la".to_string())],
+                    redirects: vec![],
                     span: dummy_span(),
                 },
             ],
@@ -279,6 +286,7 @@ mod tests {
                 body: vec![BashStmt::Command {
                     name: "echo".to_string(),
                     args: vec![BashExpr::Variable("i".to_string())],
+                    redirects: vec![],
                     span: dummy_span(),
                 }],
                 span: dummy_span(),
@@ -321,6 +329,7 @@ mod property_tests {
                 .map(|i| BashStmt::Command {
                     name: format!("cmd{}", i),
                     args: vec![],
+                    redirects: vec![],
                     span: dummy_span(),
                 })
                 .collect();
@@ -347,6 +356,7 @@ mod property_tests {
                 .map(|i| BashStmt::Command {
                     name: format!("echo{}", i),
                     args: vec![],
+                    redirects: vec![],
                     span: dummy_span(),
                 })
                 .collect();
@@ -384,6 +394,7 @@ mod property_tests {
                 BashStmt::Command {
                     name: cmd_name.clone(),
                     args: vec![],
+                    redirects: vec![],
                     span: dummy_span(),
                 },
                 BashStmt::Assignment {
@@ -428,6 +439,7 @@ mod property_tests {
             let stmt = BashStmt::Command {
                 name: cmd,
                 args: vec![],
+                redirects: vec![],
                 span: dummy_span(),
             };
 
@@ -447,6 +459,7 @@ mod property_tests {
             let stmt = BashStmt::Command {
                 name: "test".to_string(),
                 args: vec![],
+                redirects: vec![],
                 span: dummy_span(),
             };
 

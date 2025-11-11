@@ -119,6 +119,7 @@ proptest! {
             statements: vec![BashStmt::Command {
                 name: name.clone(),
                 args: vec![BashExpr::Literal(arg.clone())],
+                redirects: vec![],
                 span: Span::dummy(),
             }],
             metadata: AstMetadata {
