@@ -148,70 +148,12 @@ build:
     );
 }
 
-#[test]
-
-fn test_MAKE_WITH_TESTS_002_determinism_test_passes() {
-    let makefile = r#".PHONY: build
-build:
-	@echo "constant output"
-"#;
-
-    let input_file = create_temp_makefile(makefile);
-    let output_dir = TempDir::new().expect("Failed to create temp dir");
-    let output_file = output_dir.path().join("Makefile");
-    let test_file = output_dir.path().join("Makefile.test.sh");
-
-    bashrs_cmd()
-        .arg("make")
-        .arg("purify")
-        .arg(input_file.path())
-        .arg("--with-tests")
-        .arg("-o")
-        .arg(&output_file)
-        .assert()
-        .success();
-
-    // Make generated files executable
-    #[cfg(unix)]
-    {
-        use std::os::unix::fs::PermissionsExt;
-        let mut test_perms = fs::metadata(&test_file).unwrap().permissions();
-        test_perms.set_mode(0o755);
-        fs::set_permissions(&test_file, test_perms).unwrap();
-    }
-
-    // Run generated tests with retry logic for robustness against system load
-    // (Permanent fix for flaky test under high parallel execution)
-    let mut last_output = None;
-    let mut success = false;
-
-    for attempt in 1..=3 {
-        let output = std::process::Command::new("sh")
-            .arg(&test_file)
-            .current_dir(&output_dir)
-            .output()
-            .expect("Failed to run generated tests");
-
-        if output.status.success() {
-            success = true;
-            break;
-        }
-
-        last_output = Some(output);
-
-        // Brief pause before retry to allow system load to stabilize
-        if attempt < 3 {
-            std::thread::sleep(std::time::Duration::from_millis(100));
-        }
-    }
-
-    assert!(
-        success,
-        "Generated determinism test should pass for deterministic Makefile (tried 3 times).\nStdout: {}\nStderr: {}",
-        last_output.as_ref().map(|o| String::from_utf8_lossy(&o.stdout).to_string()).unwrap_or_default(),
-        last_output.as_ref().map(|o| String::from_utf8_lossy(&o.stderr).to_string()).unwrap_or_default()
-    );
-}
+// DELETED: test_MAKE_WITH_TESTS_002_determinism_test_passes
+// Reason: Integration test (executes generated scripts with make), not unit test
+// - Flaky under extreme parallelism (7187 tests) despite retry logic
+// - Core functionality (test generation) already covered by test_MAKE_WITH_TESTS_002_generates_determinism_test
+// - Five Whys: ROOT CAUSE = Tests depend on external system state (make timing, load)
+// - User requirement: "flakey tests are not allowed. use five-whys and fix or delete"
 
 // ============================================================================
 // Test: MAKE_WITH_TESTS_003 - Idempotency Test Generation
@@ -385,70 +327,12 @@ all:
     );
 }
 
-#[test]
-
-fn test_MAKE_WITH_TESTS_006_all_tests_pass_for_valid_makefile() {
-    let makefile = r#".PHONY: build
-build:
-	@echo "Deterministic build"
-"#;
-
-    let input_file = create_temp_makefile(makefile);
-    let output_dir = TempDir::new().expect("Failed to create temp dir");
-    let output_file = output_dir.path().join("Makefile");
-    let test_file = output_dir.path().join("Makefile.test.sh");
-
-    bashrs_cmd()
-        .arg("make")
-        .arg("purify")
-        .arg(input_file.path())
-        .arg("--with-tests")
-        .arg("-o")
-        .arg(&output_file)
-        .assert()
-        .success();
-
-    // Make files executable
-    #[cfg(unix)]
-    {
-        use std::os::unix::fs::PermissionsExt;
-        let mut test_perms = fs::metadata(&test_file).unwrap().permissions();
-        test_perms.set_mode(0o755);
-        fs::set_permissions(&test_file, test_perms).unwrap();
-    }
-
-    // Run generated tests with retry logic for robustness against system load
-    // (Permanent fix for flaky test under high parallel execution)
-    let mut last_output = None;
-    let mut success = false;
-
-    for attempt in 1..=3 {
-        let output = std::process::Command::new("sh")
-            .arg(&test_file)
-            .current_dir(&output_dir)
-            .output()
-            .expect("Failed to run generated tests");
-
-        if output.status.success() {
-            success = true;
-            break;
-        }
-
-        last_output = Some(output);
-
-        // Brief pause before retry to allow system load to stabilize
-        if attempt < 3 {
-            std::thread::sleep(std::time::Duration::from_millis(100));
-        }
-    }
-
-    assert!(
-        success,
-        "Generated tests should pass for valid purified Makefile (tried 3 times).\nStdout: {}\nStderr: {}",
-        last_output.as_ref().map(|o| String::from_utf8_lossy(&o.stdout).to_string()).unwrap_or_default(),
-        last_output.as_ref().map(|o| String::from_utf8_lossy(&o.stderr).to_string()).unwrap_or_default()
-    );
-}
+// DELETED: test_MAKE_WITH_TESTS_006_all_tests_pass_for_valid_makefile
+// Reason: Integration test (executes generated scripts with make), not unit test
+// - Flaky under extreme parallelism (7187 tests) despite retry logic
+// - Core functionality (test generation) already covered by test_MAKE_WITH_TESTS_006_generated_tests_are_executable
+// - Five Whys: ROOT CAUSE = Tests depend on external system state (make timing, load)
+// - User requirement: "flakey tests are not allowed. use five-whys and fix or delete"
 
 // ============================================================================
 // Test: Error Handling
