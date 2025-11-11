@@ -32,24 +32,54 @@ use std::collections::HashSet;
 pub fn check(source: &str) -> LintResult {
     let mut result = LintResult::new();
 
-    // Issue #20: Allow leading whitespace for indented assignments
-    let assign_pattern = Regex::new(r"^\s*([A-Za-z_][A-Za-z0-9_]*)=").unwrap();
-    let use_pattern = Regex::new(r"\$\{?([A-Za-z_][A-Za-z0-9_]*)\}?").unwrap();
-    // Issue #20: Detect loop variables (for var in ...)
-    let for_loop_pattern = Regex::new(r"\bfor\s+([A-Za-z_][A-Za-z0-9_]*)\s+in\b").unwrap();
+    let patterns = create_patterns();
+    let builtins = get_builtins();
+    let (assigned, used_vars) = collect_variable_info(source, &patterns);
+    let diagnostics = validate_undefined_variables(&assigned, &used_vars, &builtins);
 
-    let mut assigned: HashSet<String> = HashSet::new();
-    let mut used_vars: Vec<(String, usize, usize)> = Vec::new();
+    for diag in diagnostics {
+        result.add(diag);
+    }
 
-    // Common built-in/environment variables to skip
-    let builtins: HashSet<&str> = [
+    result
+}
+
+/// Patterns for variable detection
+struct Patterns {
+    assign: Regex,
+    use_: Regex,
+    for_loop: Regex,
+}
+
+/// Create regex patterns for variable detection
+fn create_patterns() -> Patterns {
+    Patterns {
+        // Issue #20: Allow leading whitespace for indented assignments
+        assign: Regex::new(r"^\s*([A-Za-z_][A-Za-z0-9_]*)=").unwrap(),
+        use_: Regex::new(r"\$\{?([A-Za-z_][A-Za-z0-9_]*)\}?").unwrap(),
+        // Issue #20: Detect loop variables (for var in ...)
+        for_loop: Regex::new(r"\bfor\s+([A-Za-z_][A-Za-z0-9_]*)\s+in\b").unwrap(),
+    }
+}
+
+/// Get set of built-in/environment variables to skip
+fn get_builtins() -> HashSet<&'static str> {
+    [
         "HOME", "PATH", "PWD", "USER", "SHELL", "TERM", "LANG", "LC_ALL",
     ]
     .iter()
-    .cloned()
-    .collect();
+    .copied()
+    .collect()
+}
 
-    // Collect assignments and uses
+/// Collect variable assignments and uses from source
+fn collect_variable_info(
+    source: &str,
+    patterns: &Patterns,
+) -> (HashSet<String>, Vec<(String, usize, usize)>) {
+    let mut assigned: HashSet<String> = HashSet::new();
+    let mut used_vars: Vec<(String, usize, usize)> = Vec::new();
+
     for (line_num, line) in source.lines().enumerate() {
         let line_num = line_num + 1;
 
@@ -58,50 +88,76 @@ pub fn check(source: &str) -> LintResult {
         }
 
         // Find assignments
-        for cap in assign_pattern.captures_iter(line) {
+        for cap in patterns.assign.captures_iter(line) {
             let var_name = cap.get(1).unwrap().as_str().to_string();
             assigned.insert(var_name);
         }
 
         // Issue #20: Find loop variables (for var in ...)
-        for cap in for_loop_pattern.captures_iter(line) {
+        for cap in patterns.for_loop.captures_iter(line) {
             let var_name = cap.get(1).unwrap().as_str().to_string();
             assigned.insert(var_name);
         }
 
         // Find uses
-        for cap in use_pattern.captures_iter(line) {
+        for cap in patterns.use_.captures_iter(line) {
             let var_name = cap.get(1).unwrap().as_str();
             let col = cap.get(0).unwrap().start() + 1;
             used_vars.push((var_name.to_string(), line_num, col));
         }
     }
 
-    // Check for undefined variables
-    for (var_name, line_num, col) in used_vars {
-        if !assigned.contains(&var_name) && !builtins.contains(var_name.as_str()) {
-            // Skip numeric variables (positional parameters)
-            if var_name.chars().all(|c| c.is_ascii_digit()) {
-                continue;
-            }
+    (assigned, used_vars)
+}
 
-            // Skip special variables
-            if ["@", "*", "#", "?", "$", "!", "0", "-"].contains(&var_name.as_str()) {
-                continue;
-            }
-
-            let diagnostic = Diagnostic::new(
-                "SC2154",
-                Severity::Warning,
-                format!("Variable '{}' is referenced but not assigned", var_name),
-                Span::new(line_num, col, line_num, col + var_name.len() + 1),
-            );
-
-            result.add(diagnostic);
-        }
+/// Check if variable is special or builtin (should be skipped)
+fn is_special_or_builtin(var_name: &str, builtins: &HashSet<&str>) -> bool {
+    // Skip if in builtins
+    if builtins.contains(var_name) {
+        return true;
     }
 
-    result
+    // Skip numeric variables (positional parameters)
+    if var_name.chars().all(|c| c.is_ascii_digit()) {
+        return true;
+    }
+
+    // Skip special variables
+    if ["@", "*", "#", "?", "$", "!", "0", "-"].contains(&var_name) {
+        return true;
+    }
+
+    false
+}
+
+/// Validate undefined variables and return diagnostics
+fn validate_undefined_variables(
+    assigned: &HashSet<String>,
+    used_vars: &[(String, usize, usize)],
+    builtins: &HashSet<&str>,
+) -> Vec<Diagnostic> {
+    let mut diagnostics = Vec::new();
+
+    for (var_name, line_num, col) in used_vars {
+        if assigned.contains(var_name) {
+            continue;
+        }
+
+        if is_special_or_builtin(var_name, builtins) {
+            continue;
+        }
+
+        let diagnostic = Diagnostic::new(
+            "SC2154",
+            Severity::Warning,
+            format!("Variable '{}' is referenced but not assigned", var_name),
+            Span::new(*line_num, *col, *line_num, col + var_name.len() + 1),
+        );
+
+        diagnostics.push(diagnostic);
+    }
+
+    diagnostics
 }
 
 #[cfg(test)]
