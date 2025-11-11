@@ -649,7 +649,12 @@ impl BashParser {
             && !matches!(self.peek(), Some(Token::Comment(_)))
         {
             // Check for redirection operators FIRST (before parse_expression)
-            if matches!(self.peek(), Some(Token::GtGt)) {
+            if matches!(self.peek(), Some(Token::Lt)) {
+                // Input redirection: < file
+                self.advance(); // consume '<'
+                let target = self.parse_redirect_target()?;
+                redirects.push(Redirect::Input { target });
+            } else if matches!(self.peek(), Some(Token::GtGt)) {
                 // Append redirection: >> file
                 self.advance(); // consume '>>'
                 let target = self.parse_redirect_target()?;
