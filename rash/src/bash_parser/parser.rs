@@ -648,9 +648,31 @@ impl BashParser {
             && !self.check(&Token::Pipe)
             && !matches!(self.peek(), Some(Token::Comment(_)))
         {
-            // Check for error redirection: 2> file
-            // Lexer tokenizes "2>" as Number(2) followed by Gt
+            // Check for file descriptor duplication FIRST: 2>&1
+            // Lexer tokenizes "2>&1" as Number(2) + Gt + Ampersand + Number(1)
+            // Must check this BEFORE error redirection since it's a longer pattern
             if matches!(self.peek(), Some(Token::Number(_)))
+                && matches!(self.peek_ahead(1), Some(Token::Gt))
+                && matches!(self.peek_ahead(2), Some(Token::Ampersand))
+                && matches!(self.peek_ahead(3), Some(Token::Number(_)))
+            {
+                // File descriptor duplication: 2>&1
+                let from_fd = if let Some(Token::Number(n)) = self.peek() {
+                    *n as i32
+                } else {
+                    unreachable!()
+                };
+                self.advance(); // consume from_fd number
+                self.advance(); // consume '>'
+                self.advance(); // consume '&'
+                let to_fd = if let Some(Token::Number(n)) = self.peek() {
+                    *n as i32
+                } else {
+                    unreachable!()
+                };
+                self.advance(); // consume to_fd number
+                redirects.push(Redirect::Duplicate { from_fd, to_fd });
+            } else if matches!(self.peek(), Some(Token::Number(_)))
                 && matches!(self.peek_ahead(1), Some(Token::Gt))
             {
                 // Error redirection: 2> file
