@@ -529,6 +529,7 @@ impl BashParser {
             Ok(BashStmt::Command {
                 name: "local".to_string(),
                 args: vec![],
+                redirects: vec![],
                 span: Span::dummy(),
             })
         }
@@ -637,8 +638,9 @@ impl BashParser {
         };
 
         let mut args = Vec::new();
+        let mut redirects = Vec::new();
 
-        // Parse arguments until newline or special token
+        // Parse arguments and redirections until newline or special token
         // Also stop at comments (BUILTIN-001: colon no-op with comments)
         while !self.is_at_end()
             && !self.check(&Token::Newline)
@@ -646,14 +648,78 @@ impl BashParser {
             && !self.check(&Token::Pipe)
             && !matches!(self.peek(), Some(Token::Comment(_)))
         {
-            args.push(self.parse_expression()?);
+            // Check for redirection operators FIRST (before parse_expression)
+            if matches!(self.peek(), Some(Token::GtGt)) {
+                // Append redirection: >> file
+                self.advance(); // consume '>>'
+                let target = self.parse_redirect_target()?;
+                redirects.push(Redirect::Append { target });
+            } else if matches!(self.peek(), Some(Token::Gt)) {
+                // Output redirection: > file
+                self.advance(); // consume '>'
+                let target = self.parse_redirect_target()?;
+                redirects.push(Redirect::Output { target });
+            } else {
+                // Regular argument
+                args.push(self.parse_expression()?);
+            }
         }
 
         Ok(BashStmt::Command {
             name,
             args,
+            redirects,
             span: Span::dummy(),
         })
+    }
+
+    /// Parse redirect target (filename)
+    ///
+    /// Handles filenames like "output.txt" which are tokenized as multiple tokens:
+    /// - "output" (Identifier)
+    /// - ".txt" (Identifier from bareword)
+    ///
+    /// Concatenates consecutive identifier tokens until hitting a delimiter
+    fn parse_redirect_target(&mut self) -> ParseResult<BashExpr> {
+        let mut filename = String::new();
+
+        // Consume consecutive identifier/bareword tokens
+        while !self.is_at_end()
+            && !self.check(&Token::Newline)
+            && !self.check(&Token::Semicolon)
+            && !self.check(&Token::Pipe)
+            && !self.check(&Token::Gt)
+            && !matches!(self.peek(), Some(Token::Comment(_)))
+        {
+            match self.peek() {
+                Some(Token::Identifier(s)) => {
+                    filename.push_str(s);
+                    self.advance();
+                }
+                Some(Token::String(s)) => {
+                    filename.push_str(s);
+                    self.advance();
+                    break; // Quoted strings are complete filenames
+                }
+                Some(Token::Variable(name)) => {
+                    // Variables in redirect targets need special handling
+                    // For now, return what we have
+                    if filename.is_empty() {
+                        return Ok(BashExpr::Variable(name.clone()));
+                    }
+                    break;
+                }
+                _ => break,
+            }
+        }
+
+        if filename.is_empty() {
+            return Err(ParseError::InvalidSyntax(
+                "Expected filename after redirect operator".to_string(),
+            ));
+        }
+
+        Ok(BashExpr::Literal(filename))
     }
 
     /// Parse arithmetic expression with operator precedence
@@ -868,6 +934,7 @@ impl BashParser {
                 let placeholder_stmt = BashStmt::Command {
                     name: cmd_str.clone(),
                     args: vec![],
+                    redirects: vec![],
                     span: Span {
                         start_line: 0,
                         start_col: 0,

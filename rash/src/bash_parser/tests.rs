@@ -1,6 +1,7 @@
 //! Integration tests for bash parser
 
 use super::*;
+use ast::Redirect;
 use lexer::Lexer;
 use parser::BashParser;
 use semantic::SemanticAnalyzer;
@@ -100,6 +101,105 @@ fn test_semantic_analysis_detects_exports() {
     assert!(report.effects.env_modifications.contains("PATH"));
 }
 
+/// Test: Issue #4 - Phase 2 - Basic output redirection
+/// Expected behavior: Parse "echo hello > output.txt" and populate redirects field
+#[test]
+fn test_parse_output_redirection() {
+    let script = "echo hello > output.txt";
+
+    let mut parser = BashParser::new(script).unwrap();
+    let ast = parser.parse().unwrap();
+
+    // Should have one command statement
+    assert_eq!(ast.statements.len(), 1);
+
+    // Get the command
+    if let BashStmt::Command {
+        name,
+        args,
+        redirects,
+        ..
+    } = &ast.statements[0]
+    {
+        // Verify command name
+        assert_eq!(name, "echo");
+
+        // Verify arguments
+        assert_eq!(args.len(), 1, "Expected 1 arg, got {}", args.len());
+        if let BashExpr::Literal(arg) = &args[0] {
+            assert_eq!(arg, "hello");
+        } else {
+            panic!("Expected literal argument 'hello'");
+        }
+
+        // RED PHASE: This should fail - redirects should have one Output redirection
+        assert_eq!(redirects.len(), 1, "Expected one redirection");
+
+        if let Redirect::Output { target } = &redirects[0] {
+            if let BashExpr::Literal(filename) = target {
+                assert_eq!(filename, "output.txt");
+            } else {
+                panic!("Expected literal filename 'output.txt'");
+            }
+        } else {
+            panic!("Expected Output redirection variant");
+        }
+    } else {
+        panic!("Expected Command statement");
+    }
+}
+
+/// Test: Issue #4 - Phase 3 RED - Append redirection
+/// Expected behavior: Parse "echo hello >> output.txt" and populate redirects with Append variant
+#[test]
+fn test_parse_append_redirection() {
+    let script = "echo hello >> output.txt";
+
+    let mut parser = BashParser::new(script).unwrap();
+    let ast = parser.parse().unwrap();
+
+    // Should have one command statement
+    assert_eq!(ast.statements.len(), 1);
+
+    // Get the command
+    if let BashStmt::Command {
+        name,
+        args,
+        redirects,
+        ..
+    } = &ast.statements[0]
+    {
+        // Verify command name
+        assert_eq!(name, "echo");
+
+        // Verify arguments
+        assert_eq!(args.len(), 1, "Expected 1 arg, got {}", args.len());
+        if let BashExpr::Literal(arg) = &args[0] {
+            assert_eq!(arg, "hello");
+        } else {
+            panic!("Expected literal argument 'hello'");
+        }
+
+        // RED PHASE: This should fail - redirects should have one Append redirection
+        assert_eq!(redirects.len(), 1, "Expected one redirection");
+
+        if let Redirect::Append { target } = &redirects[0] {
+            if let BashExpr::Literal(filename) = target {
+                assert_eq!(filename, "output.txt");
+            } else {
+                panic!("Expected literal filename 'output.txt'");
+            }
+        } else {
+            panic!(
+                "Expected Append redirection variant, got {:?}",
+                redirects[0]
+            );
+        }
+    } else {
+        panic!("Expected Command statement");
+    }
+}
+
 #[test]
 fn test_semantic_analysis_detects_file_operations() {
     let script = "cat /etc/passwd";
@@ -160,6 +260,7 @@ fn test_until_to_while_transformation() {
         BashStmt::Command {
             name: "echo".to_string(),
             args: vec![BashExpr::Variable("i".to_string())],
+            redirects: vec![],
             span: Span::dummy(),
         },
         BashStmt::Assignment {
@@ -237,6 +338,7 @@ fn test_glob_pattern_transformation() {
             body: vec![BashStmt::Command {
                 name: "echo".to_string(),
                 args: vec![BashExpr::Variable("f".to_string())],
+                redirects: vec![],
                 span: Span::dummy(),
             }],
             span: Span::dummy(),
@@ -311,6 +413,7 @@ fn test_assign_default_value_expansion() {
         statements: vec![BashStmt::Command {
             name: "echo".to_string(),
             args: vec![assign_default_expr],
+            redirects: vec![],
             span: Span::dummy(),
         }],
         metadata: AstMetadata {
@@ -373,6 +476,7 @@ fn test_default_value_expansion() {
         statements: vec![BashStmt::Command {
             name: "echo".to_string(),
             args: vec![default_value_expr],
+            redirects: vec![],
             span: Span::dummy(),
         }],
         metadata: AstMetadata {
@@ -434,6 +538,7 @@ fn test_error_if_unset_expansion() {
         statements: vec![BashStmt::Command {
             name: "echo".to_string(),
             args: vec![error_if_unset_expr],
+            redirects: vec![],
             span: Span::dummy(),
         }],
         metadata: AstMetadata {
@@ -499,6 +604,7 @@ fn test_alternative_value_expansion() {
         statements: vec![BashStmt::Command {
             name: "echo".to_string(),
             args: vec![alternative_value_expr],
+            redirects: vec![],
             span: Span::dummy(),
         }],
         metadata: AstMetadata {
@@ -564,6 +670,7 @@ fn test_string_length_expansion() {
         statements: vec![BashStmt::Command {
             name: "echo".to_string(),
             args: vec![string_length_expr],
+            redirects: vec![],
             span: Span::dummy(),
         }],
         metadata: AstMetadata {
@@ -622,6 +729,7 @@ fn test_remove_suffix_expansion() {
         statements: vec![BashStmt::Command {
             name: "echo".to_string(),
             args: vec![remove_suffix_expr],
+            redirects: vec![],
             span: Span::dummy(),
         }],
         metadata: AstMetadata {
@@ -687,6 +795,7 @@ fn test_remove_prefix_expansion() {
         statements: vec![BashStmt::Command {
             name: "echo".to_string(),
             args: vec![remove_prefix_expr],
+            redirects: vec![],
             span: Span::dummy(),
         }],
         metadata: AstMetadata {
@@ -753,6 +862,7 @@ fn test_remove_longest_prefix_expansion() {
         statements: vec![BashStmt::Command {
             name: "echo".to_string(),
             args: vec![remove_longest_prefix_expr],
+            redirects: vec![],
             span: Span::dummy(),
         }],
         metadata: AstMetadata {
@@ -819,6 +929,7 @@ fn test_remove_longest_suffix_expansion() {
         statements: vec![BashStmt::Command {
             name: "echo".to_string(),
             args: vec![remove_longest_suffix_expr],
+            redirects: vec![],
             span: Span::dummy(),
         }],
         metadata: AstMetadata {
@@ -890,6 +1001,7 @@ mod property_tests {
                     body: vec![BashStmt::Command {
                         name: "echo".to_string(),
                         args: vec![BashExpr::Variable(var_name)],
+                        redirects: vec![],
                         span: Span::dummy(),
                     }],
                     span: Span::dummy(),
@@ -1039,6 +1151,7 @@ mod property_tests {
                         variable: var_name.clone(),
                         default: Box::new(BashExpr::Literal(default_val.clone())),
                     }],
+                    redirects: vec![],
                     span: Span::dummy(),
                 }],
                 metadata: AstMetadata {
@@ -1133,6 +1246,7 @@ mod property_tests {
                 statements: vec![BashStmt::Command {
                     name: "echo".to_string(),
                     args: vec![nested_default],
+                    redirects: vec![],
                     span: Span::dummy(),
                 }],
                 metadata: AstMetadata {
@@ -1191,6 +1305,7 @@ mod property_tests {
                         variable: var_name.clone(),
                         default: Box::new(BashExpr::Literal(default_val.clone())),
                     }],
+                    redirects: vec![],
                     span: Span::dummy(),
                 }],
                 metadata: AstMetadata {
@@ -1292,6 +1407,7 @@ mod property_tests {
                 statements: vec![BashStmt::Command {
                     name: "echo".to_string(),
                     args: vec![nested_assign],
+                    redirects: vec![],
                     span: Span::dummy(),
                 }],
                 metadata: AstMetadata {
@@ -1352,6 +1468,7 @@ mod property_tests {
                     body: vec![BashStmt::Command {
                         name: "echo".to_string(),
                         args: vec![BashExpr::Variable(var_name.clone())],
+                        redirects: vec![],
                         span: Span::dummy(),
                     }],
                     span: Span::dummy(),
@@ -1395,6 +1512,7 @@ mod property_tests {
                     body: vec![BashStmt::Command {
                         name: "echo".to_string(),
                         args: vec![BashExpr::Variable("f".to_string())],
+                        redirects: vec![],
                         span: Span::dummy(),
                     }],
                     span: Span::dummy(),
@@ -1432,6 +1550,7 @@ mod property_tests {
                 statements: vec![BashStmt::Command {
                     name: "ls".to_string(),
                     args: vec![BashExpr::Glob(pattern.clone())],
+                    redirects: vec![],
                     span: Span::dummy(),
                 }],
                 metadata: AstMetadata {
@@ -1467,6 +1586,7 @@ mod property_tests {
                         variable: var_name.clone(),
                         message: Box::new(BashExpr::Literal(error_msg.clone())),
                     }],
+                    redirects: vec![],
                     span: Span::dummy(),
                 }],
                 metadata: AstMetadata {
@@ -1554,6 +1674,7 @@ mod property_tests {
                         variable: var_name.clone(),
                         message: Box::new(BashExpr::Literal(error_msg.clone())),
                     }],
+                    redirects: vec![],
                     span: Span::dummy(),
                 }],
                 metadata: AstMetadata {
@@ -1595,6 +1716,7 @@ mod property_tests {
                         variable: var_name.clone(),
                         alternative: Box::new(BashExpr::Literal(alt_value.clone())),
                     }],
+                    redirects: vec![],
                     span: Span::dummy(),
                 }],
                 metadata: AstMetadata {
@@ -1682,6 +1804,7 @@ mod property_tests {
                         variable: var_name.clone(),
                         alternative: Box::new(BashExpr::Literal(alt_value.clone())),
                     }],
+                    redirects: vec![],
                     span: Span::dummy(),
                 }],
                 metadata: AstMetadata {
@@ -1721,6 +1844,7 @@ mod property_tests {
                     args: vec![BashExpr::StringLength {
                         variable: var_name.clone(),
                     }],
+                    redirects: vec![],
                     span: Span::dummy(),
                 }],
                 metadata: AstMetadata {
@@ -1803,6 +1927,7 @@ mod property_tests {
                     args: vec![BashExpr::StringLength {
                         variable: var_name.clone(),
                     }],
+                    redirects: vec![],
                     span: Span::dummy(),
                 }],
                 metadata: AstMetadata {
@@ -1845,6 +1970,7 @@ mod property_tests {
                         variable: var_name.clone(),
                         pattern: Box::new(BashExpr::Literal(pattern.clone())),
                     }],
+                    redirects: vec![],
                     span: Span::dummy(),
                 }],
                 metadata: AstMetadata {
@@ -1932,6 +2058,7 @@ mod property_tests {
                         variable: var_name.clone(),
                         pattern: Box::new(BashExpr::Literal(pattern.clone())),
                     }],
+                    redirects: vec![],
                     span: Span::dummy(),
                 }],
                 metadata: AstMetadata {
@@ -1976,6 +2103,7 @@ mod property_tests {
                         variable: var_name.clone(),
                         pattern: Box::new(BashExpr::Literal(pattern.clone())),
                     }],
+                    redirects: vec![],
                     span: Span::dummy(),
                 }],
                 metadata: AstMetadata {
@@ -2063,6 +2191,7 @@ mod property_tests {
                         variable: var_name.clone(),
                         pattern: Box::new(BashExpr::Literal(pattern.clone())),
                     }],
+                    redirects: vec![],
                     span: Span::dummy(),
                 }],
                 metadata: AstMetadata {
@@ -2107,6 +2236,7 @@ mod property_tests {
                         variable: var_name.clone(),
                         pattern: Box::new(BashExpr::Literal(pattern.clone())),
                     }],
+                    redirects: vec![],
                     span: Span::dummy(),
                 }],
                 metadata: AstMetadata {
@@ -2194,6 +2324,7 @@ mod property_tests {
                         variable: var_name.clone(),
                         pattern: Box::new(BashExpr::Literal(pattern.clone())),
                     }],
+                    redirects: vec![],
                     span: Span::dummy(),
                 }],
                 metadata: AstMetadata {
@@ -2237,6 +2368,7 @@ mod property_tests {
                         variable: var_name.clone(),
                         pattern: Box::new(BashExpr::Literal(pattern.clone())),
                     }],
+                    redirects: vec![],
                     span: Span::dummy(),
                 }],
                 metadata: AstMetadata {
@@ -2324,6 +2456,7 @@ mod property_tests {
                         variable: var_name.clone(),
                         pattern: Box::new(BashExpr::Literal(pattern.clone())),
                     }],
+                    redirects: vec![],
                     span: Span::dummy(),
                 }],
                 metadata: AstMetadata {

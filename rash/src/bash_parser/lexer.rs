@@ -38,6 +38,7 @@ pub enum Token {
     Lt,                 // <
     Le,                 // <=
     Gt,                 // >
+    GtGt,               // >> (append redirection)
     Ge,                 // >=
     And,                // &&
     Or,                 // ||
@@ -568,6 +569,12 @@ impl Lexer {
                 self.advance();
                 self.advance();
                 Token::Le
+            }
+            ('>', Some('>')) => {
+                // Append redirection: >>
+                self.advance();
+                self.advance();
+                Token::GtGt
             }
             ('>', Some('=')) => {
                 self.advance();
