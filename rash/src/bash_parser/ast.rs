@@ -36,6 +36,7 @@ pub enum BashStmt {
     Command {
         name: String,
         args: Vec<BashExpr>,
+        redirects: Vec<Redirect>,
         span: Span,
     },
 
@@ -185,6 +186,40 @@ pub enum BashExpr {
         variable: String,
         pattern: Box<BashExpr>,
     },
+}
+
+/// Redirection operator
+/// Represents I/O redirection for commands (>, >>, <, etc.)
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub enum Redirect {
+    /// Output redirection: > file
+    /// Redirects stdout to file (creates or truncates)
+    Output { target: BashExpr },
+
+    /// Append redirection: >> file
+    /// Redirects stdout to file (creates or appends)
+    Append { target: BashExpr },
+
+    /// Input redirection: < file
+    /// Redirects file contents to stdin
+    Input { target: BashExpr },
+
+    /// Error redirection: 2> file
+    /// Redirects stderr to file
+    Error { target: BashExpr },
+
+    /// Append error redirection: 2>> file
+    /// Appends stderr to file (creates or appends)
+    AppendError { target: BashExpr },
+
+    /// Combined redirection: &> file (bash-specific)
+    /// Redirects both stdout and stderr to file
+    /// Note: Purified to POSIX as: >file 2>&1
+    Combined { target: BashExpr },
+
+    /// File descriptor duplication: 2>&1
+    /// Duplicates from_fd to to_fd
+    Duplicate { from_fd: i32, to_fd: i32 },
 }
 
 /// Arithmetic expression

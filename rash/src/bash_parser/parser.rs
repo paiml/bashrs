@@ -658,6 +658,14 @@ impl BashParser {
                 self.advance(); // consume '>'
                 let target = self.parse_redirect_target()?;
                 redirects.push(Redirect::Error { target });
+            } else if matches!(self.peek(), Some(Token::Number(_)))
+                && matches!(self.peek_ahead(1), Some(Token::GtGt))
+            {
+                // Append error redirection: 2>> file
+                self.advance(); // consume number (file descriptor)
+                self.advance(); // consume '>>'
+                let target = self.parse_redirect_target()?;
+                redirects.push(Redirect::AppendError { target });
             } else if matches!(self.peek(), Some(Token::Lt)) {
                 // Input redirection: < file
                 self.advance(); // consume '<'
