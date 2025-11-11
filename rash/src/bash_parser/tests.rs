@@ -342,6 +342,57 @@ fn test_parse_append_error_redirection() {
     }
 }
 
+/// Test: Issue #4 - Phase 7 RED - Combined redirection (&>)
+/// Expected behavior: Parse "echo hello &> output.log" and populate redirects with Combined variant
+#[test]
+fn test_parse_combined_redirection() {
+    let script = "echo hello &> output.log";
+
+    let mut parser = BashParser::new(script).unwrap();
+    let ast = parser.parse().unwrap();
+
+    // Should have one command statement
+    assert_eq!(ast.statements.len(), 1);
+
+    // Get the command
+    if let BashStmt::Command {
+        name,
+        args,
+        redirects,
+        ..
+    } = &ast.statements[0]
+    {
+        // Verify command name
+        assert_eq!(name, "echo");
+
+        // Verify one argument: "hello"
+        assert_eq!(args.len(), 1, "Expected 1 arg, got {}", args.len());
+        if let BashExpr::Literal(arg) = &args[0] {
+            assert_eq!(arg, "hello");
+        } else {
+            panic!("Expected literal argument 'hello'");
+        }
+
+        // RED PHASE: This should fail - redirects should have one Combined redirection
+        assert_eq!(redirects.len(), 1, "Expected one redirection");
+
+        if let Redirect::Combined { target } = &redirects[0] {
+            if let BashExpr::Literal(filename) = target {
+                assert_eq!(filename, "output.log");
+            } else {
+                panic!("Expected literal filename 'output.log'");
+            }
+        } else {
+            panic!(
+                "Expected Combined redirection variant, got {:?}",
+                redirects[0]
+            );
+        }
+    } else {
+        panic!("Expected Command statement");
+    }
+}
+
 #[test]
 fn test_semantic_analysis_detects_file_operations() {
     let script = "cat /etc/passwd";

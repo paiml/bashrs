@@ -676,6 +676,14 @@ impl BashParser {
                 self.advance(); // consume '>>'
                 let target = self.parse_redirect_target()?;
                 redirects.push(Redirect::Append { target });
+            } else if matches!(self.peek(), Some(Token::Ampersand))
+                && matches!(self.peek_ahead(1), Some(Token::Gt))
+            {
+                // Combined redirection: &> file (redirects both stdout and stderr)
+                self.advance(); // consume '&'
+                self.advance(); // consume '>'
+                let target = self.parse_redirect_target()?;
+                redirects.push(Redirect::Combined { target });
             } else if matches!(self.peek(), Some(Token::Gt)) {
                 // Output redirection: > file
                 self.advance(); // consume '>'
