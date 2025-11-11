@@ -37,4 +37,7 @@ mod property_tests;
 mod instrumentation_tests;
 
 #[cfg(test)]
+mod codegen_tests; // Comprehensive codegen coverage tests (26.5% → >90%)
+
+#[cfg(test)]
 pub mod generators; // Property-based test generators
