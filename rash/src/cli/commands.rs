@@ -1115,6 +1115,11 @@ fn purify_dockerfile(source: &str, skip_user: bool) -> Result<String> {
 fn convert_add_to_copy_if_local(line: &str) -> String {
     let trimmed = line.trim();
 
+    // Skip comment lines (don't transform comments)
+    if trimmed.starts_with('#') {
+        return line.to_string();
+    }
+
     // Extract the source path (first argument after ADD)
     let parts: Vec<&str> = trimmed.split_whitespace().collect();
     let source = match parts.get(1) {
@@ -1149,6 +1154,13 @@ fn convert_add_to_copy_if_local(line: &str) -> String {
 /// Only adds the flag if it's not already present.
 /// Handles multiple apt-get install commands in one RUN line.
 fn add_no_install_recommends(line: &str) -> String {
+    let trimmed = line.trim();
+
+    // Skip comment lines (don't transform comments)
+    if trimmed.starts_with('#') {
+        return line.to_string();
+    }
+
     // Check if already has --no-install-recommends
     if line.contains("--no-install-recommends") {
         return line.to_string();
@@ -1172,6 +1184,12 @@ fn add_no_install_recommends(line: &str) -> String {
         );
     }
 
+    // Handle edge case: "apt-get install" at end of line (no trailing space)
+    if !result.contains("--no-install-recommends") && result.trim_end().ends_with("apt-get install")
+    {
+        result = result.trim_end().to_string() + " --no-install-recommends ";
+    }
+
     result
 }
 
@@ -1181,6 +1199,13 @@ fn add_no_install_recommends(line: &str) -> String {
 /// - apt/apt-get: adds `&& rm -rf /var/lib/apt/lists/*`
 /// - apk: adds `&& rm -rf /var/cache/apk/*`
 fn add_package_manager_cleanup(line: &str) -> String {
+    let trimmed = line.trim();
+
+    // Skip comment lines (don't transform comments)
+    if trimmed.starts_with('#') {
+        return line.to_string();
+    }
+
     // Check if cleanup already present
     if line.contains("/var/lib/apt/lists") || line.contains("/var/cache/apk") {
         return line.to_string();
