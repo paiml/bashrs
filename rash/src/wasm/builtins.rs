@@ -226,7 +226,7 @@ mod tests {
     fn test_cd_success() {
         // ARRANGE
         let mut vfs = VirtualFilesystem::new();
-        let io = IoStreams::new_capture();
+        let _io = IoStreams::new_capture();
 
         // ACT
         let exit_code = Builtins::cd(&["/tmp".to_string()], &mut vfs).unwrap();

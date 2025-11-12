@@ -1618,7 +1618,7 @@ impl BashExecutor {
 
         // Parse and execute patterns
         let mut i = start + 1;
-        let mut matched = false;
+        let matched = false;
         let mut exit_code = 0;
 
         while i < esac_line {
