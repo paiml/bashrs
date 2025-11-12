@@ -515,7 +515,7 @@ Expected results: 80-100% mutation kill rate.
 
 - [OWASP Shell Injection](https://owasp.org/www-community/attacks/Command_Injection)
 - [CWE-78: OS Command Injection](https://cwe.mitre.org/data/definitions/78.html)
-- [NIST Secure Coding Guidelines](https://www.nist.gov/publications/secure-coding-guidelines)
+- [NIST SP 800-218: Secure Software Development Framework](https://csrc.nist.gov/publications/detail/sp/800-218/final)
 
 ---
 

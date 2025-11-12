@@ -908,8 +908,8 @@ jobs:
 
 ## Further Reading
 
-- [bashrs Rule Registry](/linting/security.md)
-- [EXTREME TDD Guide](/CLAUDE.md#extreme-tdd-definition)
+- [bashrs Rule Registry](./security.md)
+- [EXTREME TDD Guide](https://github.com/paiml/bashrs/blob/main/CLAUDE.md#extreme-tdd-definition)
 - [Mutation Testing](https://pitest.org/)
 - [Property Testing with Proptest](https://proptest-rs.github.io/proptest/)
 

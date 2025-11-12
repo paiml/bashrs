@@ -5,20 +5,26 @@
 [![Book](https://img.shields.io/badge/book-The%20Rash%20Book-blue)](https://paiml.github.io/bashrs/)
 [![License](https://img.shields.io/crates/l/bashrs.svg)](LICENSE)
 [![CI](https://github.com/paiml/bashrs/workflows/CI/badge.svg)](https://github.com/paiml/bashrs/actions)
-[![Tests](https://img.shields.io/badge/tests-6569%20passing-brightgreen)](https://github.com/paiml/bashrs/actions)
+[![Tests](https://img.shields.io/badge/tests-6583%20passing-brightgreen)](https://github.com/paiml/bashrs/actions)
 [![Coverage](https://img.shields.io/badge/coverage-88.71%25-green)](https://github.com/paiml/bashrs/actions)
 
 **Rash** (v6.34.0) is a bidirectional shell safety tool that purifies legacy bash scripts and lets you write shell scripts in REAL Rust with automatic safety guarantees.
 
-## 🚀 What's New in v6.34.0
+## 🚀 What's New in v6.34.0+
 
-**Major Feature Completions** - Released 2025-11-12
+**Latest Updates** - 2025-11-12
+
+- **Issue #21 FIXED**: SC2171 false positive with JSON brackets in heredocs (now correctly handles heredoc contexts)
+- **Issue #22 FIXED**: SC2247 false positive with math operations in awk/bc (context-aware math detection)
+- **Test Suite**: 6,583 tests, 100% pass rate, zero regressions
+- **Quality**: All fixes implemented using EXTREME TDD (unit tests, property tests, mutation tests, integration tests)
+
+**v6.34.0 Feature Completions** - Released 2025-11-12
 
 - **Issue #2 RESOLVED**: Makefile multi-line format preservation with `--preserve-formatting` and `--skip-consolidation` flags
 - **Issue #4 RESOLVED**: Complete bash parser - all 9 phases including redirection operators, heredocs, pipelines, special variables
 - **Dockerfile Purification**: 6 comprehensive transformations (DOCKER001-006) for production-ready Docker images
 - **Dogfooding Complete**: Fixed all P0 errors in bashrs's own infrastructure (0 errors found by self-analysis)
-- **Test Suite Growth**: 6,569 tests (+811% from v6.22.0), 100% pass rate, zero regressions
 
 See [CHANGELOG.md](CHANGELOG.md) for complete release notes.
 
@@ -147,15 +153,15 @@ bashrs audit script.sh
 - ✅ Comprehensive coverage of all features
 - ✅ Real-world examples and tutorials
 
-## Quality Metrics (v6.22.0)
+## Quality Metrics (v6.34.0+)
 
 | Metric | Status |
 |--------|--------|
 | **Quality Grade** | **A+ (Near Perfect)** ✅ |
-| **Tests** | **5,465 passing** (0 failures) ✅ |
+| **Tests** | **6,583 passing** (0 failures) ✅ |
 | **Coverage** | **88.71%** (exceeds 85% target) ✅ |
 | **Mutation Testing** | **92% kill rate** ✅ |
-| **Property Tests** | **52 properties** (~26k+ cases) ✅ |
+| **Property Tests** | **52+ properties** (~26k+ cases) ✅ |
 | **ShellCheck** | **100% compliant** ✅ |
 | **Shell Compatibility** | **sh, dash, bash, ash, zsh, mksh** ✅ |
 
