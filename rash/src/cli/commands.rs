@@ -1147,35 +1147,32 @@ fn convert_add_to_copy_if_local(line: &str) -> String {
 ///
 /// This reduces image size by not installing recommended packages.
 /// Only adds the flag if it's not already present.
+/// Handles multiple apt-get install commands in one RUN line.
 fn add_no_install_recommends(line: &str) -> String {
     // Check if already has --no-install-recommends
     if line.contains("--no-install-recommends") {
         return line.to_string();
     }
 
-    // Find "apt-get install" and insert after "-y" flag
-    if let Some(install_pos) = line.find("apt-get install") {
-        let after_install = &line[install_pos + "apt-get install".len()..];
+    // Process all occurrences of "apt-get install"
+    let mut result = line.to_string();
 
-        // Check if there's a -y flag
-        if after_install.trim_start().starts_with("-y") {
-            // Insert --no-install-recommends after -y
-            line.replacen(
-                "apt-get install -y",
-                "apt-get install -y --no-install-recommends",
-                1,
-            )
-        } else {
-            // No -y flag, insert --no-install-recommends after "install"
-            line.replacen(
-                "apt-get install",
-                "apt-get install --no-install-recommends",
-                1,
-            )
-        }
-    } else {
-        line.to_string()
+    // Replace all "apt-get install -y " (with -y flag)
+    result = result.replace(
+        "apt-get install -y ",
+        "apt-get install -y --no-install-recommends ",
+    );
+
+    // Replace remaining "apt-get install " (without -y flag or with flag already handled)
+    // We need to be careful not to replace if we already added the flag
+    if !result.contains("--no-install-recommends") {
+        result = result.replace(
+            "apt-get install ",
+            "apt-get install --no-install-recommends ",
+        );
     }
+
+    result
 }
 
 /// Add cleanup commands for package managers (DOCKER003)
@@ -1220,13 +1217,28 @@ fn pin_base_image_version(line: &str) -> String {
         None => return line.to_string(), // Malformed FROM line
     };
 
+    // Parse registry prefix (e.g., docker.io/, quay.io/, gcr.io/)
+    let (registry_prefix, image_with_tag) = if let Some(slash_pos) = image_part.find('/') {
+        // Check if this looks like a registry (has domain-like structure before /)
+        let prefix_part = &image_part[..slash_pos];
+        if prefix_part.contains('.') || prefix_part == "localhost" {
+            // It's a registry prefix
+            (Some(prefix_part), &image_part[slash_pos + 1..])
+        } else {
+            // It's an organization/namespace (e.g., library/ubuntu), not a registry
+            (None, image_part)
+        }
+    } else {
+        (None, image_part)
+    };
+
     // Split image into name and tag
-    let (image_name, tag) = if let Some(colon_pos) = image_part.find(':') {
-        let name = &image_part[..colon_pos];
-        let tag = &image_part[colon_pos + 1..];
+    let (image_name, tag) = if let Some(colon_pos) = image_with_tag.find(':') {
+        let name = &image_with_tag[..colon_pos];
+        let tag = &image_with_tag[colon_pos + 1..];
         (name, Some(tag))
     } else {
-        (image_part, None)
+        (image_with_tag, None)
     };
 
     // Determine if pinning is needed
@@ -1250,8 +1262,12 @@ fn pin_base_image_version(line: &str) -> String {
         _ => return line.to_string(), // Unknown image, keep as-is
     };
 
-    // Reconstruct FROM line with pinned version
-    let pinned_image = format!("{}:{}", image_name, pinned_tag);
+    // Reconstruct FROM line with pinned version, preserving registry prefix
+    let pinned_image = if let Some(prefix) = registry_prefix {
+        format!("{}/{}:{}", prefix, image_name, pinned_tag)
+    } else {
+        format!("{}:{}", image_name, pinned_tag)
+    };
 
     // Preserve "AS <name>" if present
     if parts.len() > 2 {
