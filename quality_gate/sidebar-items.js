@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"fn":["main"],"struct":["ComplexityReport","DeadCodeFile","DeadCodeReport","FileComplexity"]};
+window.SIDEBAR_ITEMS = {"fn":["check_complexity_violations","check_dead_code_violations","main","parse_threshold_arg","report_results"],"struct":["ComplexityReport","DeadCodeFile","DeadCodeReport","FileComplexity"]};

@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"fn":["check"]};
+window.SIDEBAR_ITEMS = {"fn":["check","collect_variable_info","create_patterns","get_builtins","is_special_or_builtin","validate_undefined_variables"],"struct":["Patterns"]};

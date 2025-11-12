@@ -226,7 +226,7 @@
 <a href=#226 id=226 data-nosnippet>226</a>    </span><span class="kw">fn </span>test_cd_success() {
 <a href=#227 id=227 data-nosnippet>227</a>        <span class="comment">// ARRANGE
 <a href=#228 id=228 data-nosnippet>228</a>        </span><span class="kw">let </span><span class="kw-2">mut </span>vfs = VirtualFilesystem::new();
-<a href=#229 id=229 data-nosnippet>229</a>        <span class="kw">let </span>io = IoStreams::new_capture();
+<a href=#229 id=229 data-nosnippet>229</a>        <span class="kw">let </span>_io = IoStreams::new_capture();
 <a href=#230 id=230 data-nosnippet>230</a>
 <a href=#231 id=231 data-nosnippet>231</a>        <span class="comment">// ACT
 <a href=#232 id=232 data-nosnippet>232</a>        </span><span class="kw">let </span>exit_code = Builtins::cd(<span class="kw-2">&amp;</span>[<span class="string">"/tmp"</span>.to_string()], <span class="kw-2">&amp;mut </span>vfs).unwrap();

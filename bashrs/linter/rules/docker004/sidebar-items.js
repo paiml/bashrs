@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"fn":["check"]};
+window.SIDEBAR_ITEMS = {"fn":["check","check_copy_from_line","collect_stage_names","parse_copy_from_reference","parse_stage_name","validate_copy_from_references"]};
