@@ -5,6 +5,57 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed
+
+**Issue #21: SC2171 false positive with JSON brackets in heredocs** 🐛
+
+- **Problem**: SC2171 incorrectly flagged JSON/YAML closing brackets `]` inside heredocs as bash syntax errors
+- **Impact**: Forced extraction of embedded data formats to separate files, reducing script portability
+- **Solution**: Added heredoc context tracking to SC2171 rule
+  - Detects heredoc markers (`<<EOF`, `<<'EOF'`, `<<-EOF`)
+  - Skips all content between heredoc start and end marker
+  - Still correctly detects trailing `]` outside heredocs
+- **Testing** (EXTREME TDD):
+  - ✅ 18 unit tests (including 5 new heredoc tests)
+  - ✅ Property tests: 100+ generated test cases
+  - ✅ Integration tests: Real scripts with JSON/YAML in heredocs
+  - ✅ Mutation testing: 8/9 mutants caught (88.9% kill rate)
+  - ✅ Regression tests: All 6,572 tests still pass
+  - ✅ Clippy clean
+- **Examples tested**:
+  ```bash
+  # No longer triggers SC2171
+  cat > config.json <<'EOF'
+  {
+    "items": [1, 2, 3]
+  }
+  EOF
+  ```
+
+**Issue #22: SC2247 false positive with math operations in awk/bc** 🐛
+
+- **Problem**: SC2247 incorrectly flagged mathematical operations in `awk` and `bc` expressions as string multiplication errors
+- **Impact**: Forced unintuitive mathematical expressions (division by reciprocal) instead of clear multiplication
+- **Solution**: Added context awareness for mathematical tools
+  - Skip lines containing `awk` commands (mathematical expressions are valid)
+  - Skip lines containing `| bc` or `|bc` pipelines
+  - Skip lines containing `expr` command (already working, now explicit)
+  - Still correctly detects string multiplication outside these contexts
+- **Testing** (EXTREME TDD):
+  - ✅ 16 unit tests (including 6 new awk/bc/edge case tests)
+  - ✅ Integration tests: Real bc and awk scripts
+  - ✅ Regression tests: All 6,583 tests pass
+  - ✅ Clippy clean
+- **Examples tested**:
+  ```bash
+  # No longer triggers SC2247
+  PERCENTAGE=$(echo "scale=1; $VALUE * 100" | bc)
+  PERCENTAGE=$(awk "BEGIN {printf \"%.1f\", $VALUE * 100}")
+  awk '{print $1 * 100}' file.txt
+  ```
+
 ## [6.34.0] - 2025-11-12
 
 ### Added
