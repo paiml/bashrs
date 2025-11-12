@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"fn":["check"],"static":["TRAILING_BRACKET"]};
+window.SIDEBAR_ITEMS = {"fn":["check"],"static":["HEREDOC_START","TRAILING_BRACKET"]};
