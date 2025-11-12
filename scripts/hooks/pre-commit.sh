@@ -162,6 +162,21 @@ else
     echo -e "${YELLOW}⚠️  (mdbook not installed)${NC}"
 fi
 
+# Gate 9: Canonical Matrix Test (BLOCKING - Capability Smoke Test)
+echo -n "  9. Matrix test (bash/make/dockerfile)... "
+if cargo test --test canonical_matrix_test >/dev/null 2>&1; then
+    echo -e "${GREEN}✅${NC}"
+else
+    echo -e "${RED}❌${NC}"
+    echo "     Canonical matrix test failed"
+    echo "     Run: cargo test --test canonical_matrix_test"
+    echo "     Fix: Verify all purification/linting capabilities work"
+    echo "          - Bash: purification + linting"
+    echo "          - Makefile: purification + test generation"
+    echo "          - Dockerfile: purification (6 transformations)"
+    FAILURES=$((FAILURES + 1))
+fi
+
 echo ""
 echo "Quality Gate Summary"
 echo "--------------------"
