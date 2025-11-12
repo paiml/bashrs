@@ -574,6 +574,222 @@ fn test_codegen_020_default_value() {
     );
 }
 
+#[test]
+fn test_codegen_021_assign_default() {
+    let ast = BashAst {
+        statements: vec![BashStmt::Command {
+            name: "echo".to_string(),
+            args: vec![BashExpr::AssignDefault {
+                variable: "VAR".to_string(),
+                default: Box::new(BashExpr::Literal("value".to_string())),
+            }],
+            redirects: vec![],
+            span: Span::new(1, 1, 1, 25),
+        }],
+        metadata: AstMetadata {
+            source_file: None,
+            line_count: 1,
+            parse_time_ms: 0,
+        },
+    };
+
+    let output = generate_purified_bash(&ast);
+
+    assert!(
+        output.contains("${VAR:=value}"),
+        "Should generate assign default syntax"
+    );
+}
+
+#[test]
+fn test_codegen_022_error_if_unset() {
+    let ast = BashAst {
+        statements: vec![BashStmt::Command {
+            name: "echo".to_string(),
+            args: vec![BashExpr::ErrorIfUnset {
+                variable: "REQUIRED".to_string(),
+                message: Box::new(BashExpr::Literal("missing required var".to_string())),
+            }],
+            redirects: vec![],
+            span: Span::new(1, 1, 1, 40),
+        }],
+        metadata: AstMetadata {
+            source_file: None,
+            line_count: 1,
+            parse_time_ms: 0,
+        },
+    };
+
+    let output = generate_purified_bash(&ast);
+
+    assert!(
+        output.contains("${REQUIRED:?'missing required var'}"),
+        "Should generate error if unset syntax. Got:\n{}",
+        output
+    );
+}
+
+#[test]
+fn test_codegen_023_alternative_value() {
+    let ast = BashAst {
+        statements: vec![BashStmt::Command {
+            name: "echo".to_string(),
+            args: vec![BashExpr::AlternativeValue {
+                variable: "VAR".to_string(),
+                alternative: Box::new(BashExpr::Literal("alt".to_string())),
+            }],
+            redirects: vec![],
+            span: Span::new(1, 1, 1, 25),
+        }],
+        metadata: AstMetadata {
+            source_file: None,
+            line_count: 1,
+            parse_time_ms: 0,
+        },
+    };
+
+    let output = generate_purified_bash(&ast);
+
+    assert!(
+        output.contains("${VAR:+alt}"),
+        "Should generate alternative value syntax"
+    );
+}
+
+#[test]
+fn test_codegen_024_string_length() {
+    let ast = BashAst {
+        statements: vec![BashStmt::Command {
+            name: "echo".to_string(),
+            args: vec![BashExpr::StringLength {
+                variable: "PATH".to_string(),
+            }],
+            redirects: vec![],
+            span: Span::new(1, 1, 1, 20),
+        }],
+        metadata: AstMetadata {
+            source_file: None,
+            line_count: 1,
+            parse_time_ms: 0,
+        },
+    };
+
+    let output = generate_purified_bash(&ast);
+
+    assert!(
+        output.contains("${#PATH}"),
+        "Should generate string length syntax"
+    );
+}
+
+#[test]
+fn test_codegen_025_remove_suffix() {
+    let ast = BashAst {
+        statements: vec![BashStmt::Command {
+            name: "echo".to_string(),
+            args: vec![BashExpr::RemoveSuffix {
+                variable: "filename".to_string(),
+                pattern: Box::new(BashExpr::Literal(".txt".to_string())),
+            }],
+            redirects: vec![],
+            span: Span::new(1, 1, 1, 30),
+        }],
+        metadata: AstMetadata {
+            source_file: None,
+            line_count: 1,
+            parse_time_ms: 0,
+        },
+    };
+
+    let output = generate_purified_bash(&ast);
+
+    assert!(
+        output.contains("${filename%.txt}"),
+        "Should generate remove suffix syntax"
+    );
+}
+
+#[test]
+fn test_codegen_026_remove_prefix() {
+    let ast = BashAst {
+        statements: vec![BashStmt::Command {
+            name: "echo".to_string(),
+            args: vec![BashExpr::RemovePrefix {
+                variable: "path".to_string(),
+                pattern: Box::new(BashExpr::Literal("/tmp/".to_string())),
+            }],
+            redirects: vec![],
+            span: Span::new(1, 1, 1, 30),
+        }],
+        metadata: AstMetadata {
+            source_file: None,
+            line_count: 1,
+            parse_time_ms: 0,
+        },
+    };
+
+    let output = generate_purified_bash(&ast);
+
+    assert!(
+        output.contains("${path#/tmp/}"),
+        "Should generate remove prefix syntax"
+    );
+}
+
+#[test]
+fn test_codegen_027_remove_longest_prefix() {
+    let ast = BashAst {
+        statements: vec![BashStmt::Command {
+            name: "echo".to_string(),
+            args: vec![BashExpr::RemoveLongestPrefix {
+                variable: "url".to_string(),
+                pattern: Box::new(BashExpr::Literal("*/".to_string())),
+            }],
+            redirects: vec![],
+            span: Span::new(1, 1, 1, 30),
+        }],
+        metadata: AstMetadata {
+            source_file: None,
+            line_count: 1,
+            parse_time_ms: 0,
+        },
+    };
+
+    let output = generate_purified_bash(&ast);
+
+    assert!(
+        output.contains("${url##*/}"),
+        "Should generate remove longest prefix syntax"
+    );
+}
+
+#[test]
+fn test_codegen_028_remove_longest_suffix() {
+    let ast = BashAst {
+        statements: vec![BashStmt::Command {
+            name: "echo".to_string(),
+            args: vec![BashExpr::RemoveLongestSuffix {
+                variable: "path".to_string(),
+                pattern: Box::new(BashExpr::Literal("/*".to_string())),
+            }],
+            redirects: vec![],
+            span: Span::new(1, 1, 1, 30),
+        }],
+        metadata: AstMetadata {
+            source_file: None,
+            line_count: 1,
+            parse_time_ms: 0,
+        },
+    };
+
+    let output = generate_purified_bash(&ast);
+
+    assert!(
+        output.contains("${path%%/*}"),
+        "Should generate remove longest suffix syntax"
+    );
+}
+
 // Property test placeholder - will expand in GREEN phase
 #[cfg(test)]
 mod property_tests {
