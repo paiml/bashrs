@@ -21,6 +21,9 @@ COPY rash/src ./rash/src
 COPY rash-runtime/src ./rash-runtime/src
 COPY rash-mcp/src ./rash-mcp/src
 
+# Copy benchmarks (referenced in Cargo.toml)
+COPY rash/benches ./rash/benches
+
 # Build release binary with static linking
 RUN cargo build --release --bin bashrs --target x86_64-unknown-linux-musl
 
