@@ -178,7 +178,11 @@ items:
     values: [1, 2, 3]
 EOF"#;
         let result = check(code);
-        assert_eq!(result.diagnostics.len(), 0, "YAML brackets inside heredocs should not trigger SC2171");
+        assert_eq!(
+            result.diagnostics.len(),
+            0,
+            "YAML brackets inside heredocs should not trigger SC2171"
+        );
     }
 
     #[test]
@@ -189,7 +193,11 @@ line 1
 line 3
 END"#;
         let result = check(code);
-        assert_eq!(result.diagnostics.len(), 0, "Brackets inside heredocs should be ignored");
+        assert_eq!(
+            result.diagnostics.len(),
+            0,
+            "Brackets inside heredocs should be ignored"
+        );
     }
 
     #[test]
@@ -211,7 +219,11 @@ EOF
 ]
 echo "after heredoc""#;
         let result = check(code);
-        assert_eq!(result.diagnostics.len(), 1, "Should detect ] outside heredoc");
+        assert_eq!(
+            result.diagnostics.len(),
+            1,
+            "Should detect ] outside heredoc"
+        );
     }
 
     // Property-based tests

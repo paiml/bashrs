@@ -443,9 +443,8 @@ pmat analyze lint-hotspot --top-files 5
 
 ## Related Documentation
 
-- [ROADMAP.md](../../ROADMAP.md) - Sprint planning and achievements
+- [ROADMAP.yaml](../../ROADMAP.yaml) - Sprint planning and achievements
 - [CLAUDE.md](../../CLAUDE.md) - Development guidelines and Toyota Way
-- [roadmap.yaml](../../roadmap.yaml) - Structured roadmap with tickets
 - [pmat-quality.toml](../../pmat-quality.toml) - Quality gate configuration
 - [.pmat-gates.toml](../../.pmat-gates.toml) - Gate enforcement settings
 

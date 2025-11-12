@@ -89,7 +89,7 @@ Error: Unsupported feature: match expressions (not yet implemented)
 ```
 
 **Solution:**
-- Check [ROADMAP.md](../ROADMAP.md) for feature status
+- Check [ROADMAP.yaml](../ROADMAP.yaml) for feature status
 - Use workarounds with supported features
 - File a feature request on GitHub
 
