@@ -9,6 +9,43 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+**Issue #24: SC2154 false positive for function parameters** 🐛
+
+- **Problem**: SC2154 incorrectly flagged function parameters as "referenced but not assigned" when using `local var="$1"` pattern
+- **Impact**: Produced 20+ false positive warnings on well-written shell scripts following best practices
+- **Solution**: Enhanced variable assignment detection to recognize declaration keywords
+  - Recognizes `local var="value"` assignments
+  - Recognizes `readonly VAR="value"` assignments
+  - Recognizes `export VAR="value"` assignments
+  - Recognizes `declare var="value"` assignments
+  - Recognizes `typeset var="value"` assignments
+  - Still correctly detects undefined variables
+- **Testing** (EXTREME TDD):
+  - ✅ 7 unit tests (all function parameter scenarios)
+  - ✅ Property tests: 300+ generated test cases (local/readonly/export)
+  - ✅ Integration tests: Real production scripts
+  - ✅ Regression tests: All 6,593 tests pass (zero regressions)
+  - ✅ Clippy clean
+  - ✅ Code formatted
+- **Examples fixed**:
+  ```bash
+  # No longer triggers SC2154
+  validate_args() {
+      local project_dir="$1"
+      local environment="$2"
+
+      if [[ -z "${project_dir}" ]]; then
+          echo "Error required" >&2
+      fi
+  }
+
+  # Also fixed: readonly, export, declare, typeset
+  readonly VERSION="1.0.0"
+  export PATH="/usr/local/bin:$PATH"
+  declare config="$1"
+  typeset temp="$2"
+  ```
+
 **Issue #21: SC2171 false positive with JSON brackets in heredocs** 🐛
 
 - **Problem**: SC2171 incorrectly flagged JSON/YAML closing brackets `]` inside heredocs as bash syntax errors
