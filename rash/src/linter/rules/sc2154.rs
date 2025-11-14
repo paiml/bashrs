@@ -55,7 +55,13 @@ struct Patterns {
 fn create_patterns() -> Patterns {
     Patterns {
         // Issue #20: Allow leading whitespace for indented assignments
-        assign: Regex::new(r"^\s*([A-Za-z_][A-Za-z0-9_]*)=").unwrap(),
+        // Issue #24: Support local, readonly, export, declare, typeset keywords
+        // Support flags like: declare -i, declare -r, local -r, etc.
+        // Match both simple assignments (var=) and keyword assignments (local var=)
+        assign: Regex::new(
+            r"^\s*(?:(?:local|readonly|export|declare|typeset)(?:\s+-[a-zA-Z]+)?\s+)?([A-Za-z_][A-Za-z0-9_]*)=",
+        )
+        .unwrap(),
         use_: Regex::new(r"\$\{?([A-Za-z_][A-Za-z0-9_]*)\}?").unwrap(),
         // Issue #20: Detect loop variables (for var in ...)
         for_loop: Regex::new(r"\bfor\s+([A-Za-z_][A-Za-z0-9_]*)\s+in\b").unwrap(),
@@ -331,6 +337,159 @@ done
         assert!(result.diagnostics[0].message.contains("undefined_var"));
     }
 
+    // Issue #24: Function parameter tests
+    #[test]
+    fn test_issue_024_sc2154_local_param_from_dollar1() {
+        let script = r#"
+validate_args() {
+    local project_dir="$1"
+    local environment="$2"
+
+    if [[ -z "${project_dir}" ]]; then
+        echo "Error: Project directory required" >&2
+        exit 1
+    fi
+}
+"#;
+        let result = check(script);
+        assert_eq!(
+            result.diagnostics.len(),
+            0,
+            "Local variables assigned from positional parameters should not be flagged"
+        );
+    }
+
+    #[test]
+    fn test_issue_024_sc2154_local_param_with_default() {
+        let script = r#"
+main() {
+    local project_dir="${1:-}"
+    local environment="${2:-default}"
+
+    echo "${project_dir}"
+    echo "${environment}"
+}
+"#;
+        let result = check(script);
+        assert_eq!(
+            result.diagnostics.len(),
+            0,
+            "Local variables with default values should not be flagged"
+        );
+    }
+
+    #[test]
+    fn test_issue_024_sc2154_local_in_function_used_later() {
+        let script = r#"
+validate() {
+    local value="$1"
+    if [[ -z "${value}" ]]; then
+        return 1
+    fi
+    echo "Valid: ${value}"
+}
+"#;
+        let result = check(script);
+        assert_eq!(
+            result.diagnostics.len(),
+            0,
+            "Local variables used later in function should not be flagged"
+        );
+    }
+
+    #[test]
+    fn test_issue_024_sc2154_multiple_local_declarations() {
+        let script = r#"
+process() {
+    local input="$1"
+    local output="$2"
+    local temp="/tmp/temp"
+
+    echo "${input}" > "${temp}"
+    cat "${temp}" > "${output}"
+}
+"#;
+        let result = check(script);
+        assert_eq!(
+            result.diagnostics.len(),
+            0,
+            "Multiple local variable declarations should all be recognized"
+        );
+    }
+
+    #[test]
+    fn test_issue_024_sc2154_local_readonly_export() {
+        let script = r#"
+setup() {
+    local config="$1"
+    readonly VERSION="1.0.0"
+    export PATH="/usr/local/bin:$PATH"
+
+    echo "${config} ${VERSION}"
+}
+"#;
+        let result = check(script);
+        assert_eq!(
+            result.diagnostics.len(),
+            0,
+            "local, readonly, and export declarations should all be recognized"
+        );
+    }
+
+    #[test]
+    fn test_issue_024_sc2154_declare_typeset() {
+        let script = r#"
+func() {
+    declare var1="$1"
+    typeset var2="$2"
+
+    echo "${var1} ${var2}"
+}
+"#;
+        let result = check(script);
+        assert_eq!(
+            result.diagnostics.len(),
+            0,
+            "declare and typeset should be recognized as assignments"
+        );
+    }
+
+    #[test]
+    fn test_issue_024_sc2154_undefined_still_caught() {
+        let script = r#"
+func() {
+    local defined="$1"
+    echo "${defined} ${undefined}"
+}
+"#;
+        let result = check(script);
+        assert_eq!(
+            result.diagnostics.len(),
+            1,
+            "Undefined variables should still be caught"
+        );
+        assert!(result.diagnostics[0].message.contains("undefined"));
+    }
+
+    #[test]
+    fn test_issue_024_sc2154_declare_with_flags() {
+        let script = r#"
+func() {
+    declare -i count="$1"
+    declare -r readonly_var="$2"
+    local -r local_readonly="$3"
+
+    echo "${count} ${readonly_var} ${local_readonly}"
+}
+"#;
+        let result = check(script);
+        assert_eq!(
+            result.diagnostics.len(),
+            0,
+            "declare/local with flags (-i, -r) should be recognized"
+        );
+    }
+
     // Property tests for Issue #20
     #[cfg(test)]
     mod property_tests {
@@ -406,6 +565,50 @@ done
 
                 // Indented assignments should be recognized (Issue #20 fix)
                 prop_assert_eq!(result.diagnostics.len(), 0, "Indented assignment should be recognized");
+            }
+
+            // Issue #24: Property tests for local/declare/typeset
+            #[test]
+            fn prop_issue_024_local_assignments_never_flagged(
+                var_name in "[a-z][a-z0-9_]{0,10}",
+            ) {
+                let script = format!("func() {{\n    local {}=\"$1\"\n    echo \"${{{}}}\"\n}}", var_name, var_name);
+                let result = check(&script);
+
+                // Local variables should never be flagged
+                for diagnostic in &result.diagnostics {
+                    if diagnostic.code == "SC2154" {
+                        prop_assert!(
+                            !diagnostic.message.contains(&var_name),
+                            "Local variable '{}' should not be flagged",
+                            var_name
+                        );
+                    }
+                }
+            }
+
+            #[test]
+            fn prop_issue_024_readonly_assignments_never_flagged(
+                var_name in "[A-Z][A-Z0-9_]{0,10}",
+                value in "[a-zA-Z0-9]+",
+            ) {
+                let script = format!("readonly {}=\"{}\"\necho \"${{{}}}\"", var_name, value, var_name);
+                let result = check(&script);
+
+                // readonly variables should never be flagged
+                prop_assert_eq!(result.diagnostics.len(), 0, "readonly variable should not be flagged");
+            }
+
+            #[test]
+            fn prop_issue_024_export_assignments_never_flagged(
+                var_name in "[A-Z][A-Z0-9_]{0,10}",
+                value in "[a-zA-Z0-9]+",
+            ) {
+                let script = format!("export {}=\"{}\"\necho \"${{{}}}\"", var_name, value, var_name);
+                let result = check(&script);
+
+                // export variables should never be flagged
+                prop_assert_eq!(result.diagnostics.len(), 0, "export variable should not be flagged");
             }
         }
     }
