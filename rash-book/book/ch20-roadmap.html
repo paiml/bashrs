@@ -24,41 +24,28 @@
         <link rel="stylesheet" href="fonts/fonts.css">
 
         <!-- Highlight.js Stylesheets -->
-        <link rel="stylesheet" id="highlight-css" href="highlight.css">
-        <link rel="stylesheet" id="tomorrow-night-css" href="tomorrow-night.css">
-        <link rel="stylesheet" id="ayu-highlight-css" href="ayu-highlight.css">
+        <link rel="stylesheet" href="highlight.css">
+        <link rel="stylesheet" href="tomorrow-night.css">
+        <link rel="stylesheet" href="ayu-highlight.css">
 
         <!-- Custom theme stylesheets -->
 
 
-        <!-- Provide site root and default themes to javascript -->
+        <!-- Provide site root to javascript -->
         <script>
-            const path_to_root = "";
-            const default_light_theme = "rust";
-            const default_dark_theme = "coal";
-            window.path_to_searchindex_js = "searchindex.js";
+            var path_to_root = "";
+            var default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "coal" : "rust";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc.js"></script>
     </head>
     <body>
-    <div id="mdbook-help-container">
-        <div id="mdbook-help-popup">
-            <h2 class="mdbook-help-title">Keyboard shortcuts</h2>
-            <div>
-                <p>Press <kbd>←</kbd> or <kbd>→</kbd> to navigate between chapters</p>
-                <p>Press <kbd>S</kbd> or <kbd>/</kbd> to search in the book</p>
-                <p>Press <kbd>?</kbd> to show this help</p>
-                <p>Press <kbd>Esc</kbd> to hide this help</p>
-            </div>
-        </div>
-    </div>
     <div id="body-container">
         <!-- Work around some values being stored in localStorage wrapped in quotes -->
         <script>
             try {
-                let theme = localStorage.getItem('mdbook-theme');
-                let sidebar = localStorage.getItem('mdbook-sidebar');
+                var theme = localStorage.getItem('mdbook-theme');
+                var sidebar = localStorage.getItem('mdbook-sidebar');
 
                 if (theme.startsWith('"') && theme.endsWith('"')) {
                     localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
@@ -72,8 +59,7 @@
 
         <!-- Set the theme before any content is loaded, prevents flash -->
         <script>
-            const default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? default_dark_theme : default_light_theme;
-            let theme;
+            var theme;
             try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
             if (theme === null || theme === undefined) { theme = default_theme; }
             const html = document.documentElement;
@@ -86,20 +72,17 @@
 
         <!-- Hide / unhide sidebar before it is displayed -->
         <script>
-            let sidebar = null;
-            const sidebar_toggle = document.getElementById("sidebar-toggle-anchor");
+            var sidebar = null;
+            var sidebar_toggle = document.getElementById("sidebar-toggle-anchor");
             if (document.body.clientWidth >= 1080) {
                 try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
                 sidebar = sidebar || 'visible';
             } else {
                 sidebar = 'hidden';
-                sidebar_toggle.checked = false;
             }
-            if (sidebar === 'visible') {
-                sidebar_toggle.checked = true;
-            } else {
-                html.classList.remove('sidebar-visible');
-            }
+            sidebar_toggle.checked = sidebar === 'visible';
+            html.classList.remove('sidebar-visible');
+            html.classList.add("sidebar-" + sidebar);
         </script>
 
         <nav id="sidebar" class="sidebar" aria-label="Table of contents">
@@ -126,14 +109,13 @@
                             <i class="fa fa-paint-brush"></i>
                         </button>
                         <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
-                            <li role="none"><button role="menuitem" class="theme" id="default_theme">Auto</button></li>
                             <li role="none"><button role="menuitem" class="theme" id="light">Light</button></li>
                             <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
                             <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
                             <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
                             <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
                         </ul>
-                        <button id="search-toggle" class="icon-button" type="button" title="Search (`/`)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="/ s" aria-controls="searchbar">
+                        <button id="search-toggle" class="icon-button" type="button" title="Search. (Shortkey: s)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="S" aria-controls="searchbar">
                             <i class="fa fa-search"></i>
                         </button>
                     </div>
@@ -147,7 +129,7 @@
                         <a href="https://github.com/paiml/bashrs" title="Git repository" aria-label="Git repository">
                             <i id="git-repository-button" class="fa fa-github"></i>
                         </a>
-                        <a href="https://github.com/paiml/bashrs/edit/main/rash-book/src/ch20-roadmap.md" title="Suggest an edit" aria-label="Suggest an edit" rel="edit">
+                        <a href="https://github.com/paiml/bashrs/edit/main/rash-book/src/ch20-roadmap.md" title="Suggest an edit" aria-label="Suggest an edit">
                             <i id="git-edit-button" class="fa fa-edit"></i>
                         </a>
 
@@ -156,12 +138,7 @@
 
                 <div id="search-wrapper" class="hidden">
                     <form id="searchbar-outer" class="searchbar-outer">
-                        <div class="search-wrapper">
-                            <input type="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
-                            <div class="spinner-wrapper">
-                                <i class="fa fa-spinner fa-spin"></i>
-                            </div>
-                        </div>
+                        <input type="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
                     </form>
                     <div id="searchresults-outer" class="searchresults-outer hidden">
                         <div id="searchresults-header" class="searchresults-header"></div>
@@ -181,7 +158,455 @@
 
                 <div id="content" class="content">
                     <main>
-                        <h1 id="placeholder-ch20-roadmapmd"><a class="header" href="#placeholder-ch20-roadmapmd">Placeholder: ch20-roadmap.md</a></h1>
+                        <h1 id="chapter-20-roadmap-and-future-directions"><a class="header" href="#chapter-20-roadmap-and-future-directions">Chapter 20: Roadmap and Future Directions</a></h1>
+<!-- DOC_STATUS_START -->
+<p><strong>Chapter Status</strong>: ✅ 100% Complete (Current + Future)</p>
+<div class="table-wrapper"><table><thead><tr><th>Status</th><th>Count</th><th>Features</th></tr></thead><tbody>
+<tr><td>✅ Released</td><td>14+</td><td>Production-ready features</td></tr>
+<tr><td>🚧 In Progress</td><td>3</td><td>Active development</td></tr>
+<tr><td>📋 Planned</td><td>8+</td><td>Roadmap features</td></tr>
+</tbody></table>
+</div>
+<p><em>Last updated: 2025-11-14</em>
+<em>bashrs version: 6.34.1</em></p>
+<!-- DOC_STATUS_END -->
+<hr />
+<h2 id="current-status-v6341"><a class="header" href="#current-status-v6341">Current Status (v6.34.1)</a></h2>
+<p>bashrs is <strong>production-ready</strong> for bash purification and linting. The current release focuses on making existing shell scripts safer and more maintainable.</p>
+<h3 id="-released-features-v10---v6341"><a class="header" href="#-released-features-v10---v6341">✅ Released Features (v1.0 - v6.34.1)</a></h3>
+<h4 id="core-functionality"><a class="header" href="#core-functionality">Core Functionality</a></h4>
+<ul>
+<li>✅ <strong>Bash Purification</strong>: Transform non-deterministic bash to safe POSIX sh</li>
+<li>✅ <strong>Makefile Purification</strong>: Parse and purify Makefiles (v1.4.0)</li>
+<li>✅ <strong>Security Linting</strong>: 20+ shellcheck rules (SC2086, SC2046, SC2154, etc.)</li>
+<li>✅ <strong>POSIX Compliance</strong>: Generate pure POSIX sh (dash, ash, bash compatible)</li>
+<li>✅ <strong>Determinism Enforcement</strong>: Remove $RANDOM, timestamps, process IDs</li>
+<li>✅ <strong>Idempotency</strong>: Add -p, -f flags automatically (mkdir -p, rm -f, ln -sf)</li>
+</ul>
+<h4 id="cli-tools"><a class="header" href="#cli-tools">CLI Tools</a></h4>
+<ul>
+<li>✅ <strong>rash parse</strong>: Parse bash/Makefile to AST</li>
+<li>✅ <strong>rash purify</strong>: Purify bash/Makefile</li>
+<li>✅ <strong>rash lint</strong>: Lint bash/Makefile with shellcheck rules</li>
+<li>✅ <strong>rash check</strong>: Type-check and validate</li>
+<li>✅ <strong>rash bench</strong>: Performance benchmarking with memory profiling (v6.26.0)</li>
+</ul>
+<h4 id="validation--quality"><a class="header" href="#validation--quality">Validation &amp; Quality</a></h4>
+<ul>
+<li>✅ <strong>4 Validation Levels</strong>: None, Minimal, Strict, Paranoid</li>
+<li>✅ <strong>Strict Mode</strong>: Treat warnings as errors (–strict flag)</li>
+<li>✅ <strong>shellcheck Integration</strong>: POSIX compliance verification</li>
+<li>✅ <strong>Test Coverage</strong>: 6,000+ tests, 85%+ coverage</li>
+<li>✅ <strong>Property Testing</strong>: 100+ generated test cases per feature</li>
+<li>✅ <strong>Mutation Testing</strong>: 90%+ kill rate</li>
+</ul>
+<h4 id="documentation--tooling"><a class="header" href="#documentation--tooling">Documentation &amp; Tooling</a></h4>
+<ul>
+<li>✅ <strong>mdBook Documentation</strong>: Comprehensive book with 24+ chapters</li>
+<li>✅ <strong>CI/CD Integration</strong>: GitHub Actions, GitLab CI, Jenkins, CircleCI</li>
+<li>✅ <strong>Pre-commit Hooks</strong>: Local validation before commit</li>
+<li>✅ <strong>Docker Support</strong>: Container-ready (Alpine Linux tested)</li>
+</ul>
+<h3 id="-in-progress-v6350---v700"><a class="header" href="#-in-progress-v6350---v700">🚧 In Progress (v6.35.0 - v7.0.0)</a></h3>
+<h4 id="active-development"><a class="header" href="#active-development">Active Development</a></h4>
+<ol>
+<li>
+<p><strong>False Positive Fixes</strong> (v6.35.0)</p>
+<ul>
+<li>Issue #24: SC2154 function parameter detection ✅ COMPLETE</li>
+<li>Ongoing: Additional shellcheck rule improvements</li>
+<li>Target: Zero false positives for common patterns</li>
+</ul>
+</li>
+<li>
+<p><strong>Book Completion</strong> (ongoing)</p>
+<ul>
+<li>Status: 24/47 chapters (51% complete)</li>
+<li>Target: 100% complete by v7.0.0</li>
+<li>Focus: Examples, best practices, appendices</li>
+</ul>
+</li>
+<li>
+<p><strong>Performance Optimization</strong> (v6.36.0)</p>
+<ul>
+<li>Target: &lt;50ms transpilation for typical scripts</li>
+<li>Memory profiling integration (v6.26.0 complete)</li>
+<li>Incremental parsing for large files</li>
+</ul>
+</li>
+</ol>
+<h2 id="future-roadmap"><a class="header" href="#future-roadmap">Future Roadmap</a></h2>
+<h3 id="phase-1-stabilization-v700---q1-2026"><a class="header" href="#phase-1-stabilization-v700---q1-2026">Phase 1: Stabilization (v7.0.0 - Q1 2026)</a></h3>
+<p><strong>Goal</strong>: Rock-solid bash purification with comprehensive linting</p>
+<h4 id="features"><a class="header" href="#features">Features</a></h4>
+<ul>
+<li>
+<p>📋 <strong>800+ Linter Rules</strong>: Complete shellcheck rule coverage</p>
+<ul>
+<li>Current: 20 rules (2.5% complete)</li>
+<li>Target: All shellcheck SC* rules</li>
+<li>Timeline: Incremental releases (5-10 rules per release)</li>
+</ul>
+</li>
+<li>
+<p>📋 <strong>Advanced Bash Parsing</strong>: Complex bash constructs</p>
+<ul>
+<li>Process substitution: <code>&lt;(cmd)</code>, <code>&gt;(cmd)</code></li>
+<li>Coproc: <code>coproc name { commands; }</code></li>
+<li>Extended globbing: <code>shopt -s extglob</code></li>
+<li>Parameter expansion: <code>${var//pattern/replace}</code></li>
+</ul>
+</li>
+<li>
+<p>📋 <strong>Config File Schema Validation</strong>: YAML/TOML/JSON validation</p>
+<ul>
+<li>Type checking for config values</li>
+<li>Schema inference from usage</li>
+<li>Migration guides for breaking changes</li>
+</ul>
+</li>
+<li>
+<p>📋 <strong>Dockerfile Linting</strong>: Security and best practices</p>
+<ul>
+<li>FROM pinning validation</li>
+<li>Multi-stage build optimization</li>
+<li>Secret detection</li>
+<li>Layer caching recommendations</li>
+</ul>
+</li>
+</ul>
+<h4 id="quality--testing"><a class="header" href="#quality--testing">Quality &amp; Testing</a></h4>
+<ul>
+<li>
+<p>📋 <strong>Formal Verification</strong>: Prove correctness of transformations</p>
+<ul>
+<li>Coq/Lean proofs for core algorithms</li>
+<li>Behavioral equivalence guarantees</li>
+<li>POSIX compliance proofs</li>
+</ul>
+</li>
+<li>
+<p>📋 <strong>Fuzzing Infrastructure</strong>: Automated edge case discovery</p>
+<ul>
+<li>AFL++ integration</li>
+<li>24/7 fuzzing campaigns</li>
+<li>Crash triage automation</li>
+</ul>
+</li>
+</ul>
+<h3 id="phase-2-expansion-v800---q3-2026"><a class="header" href="#phase-2-expansion-v800---q3-2026">Phase 2: Expansion (v8.0.0 - Q3 2026)</a></h3>
+<p><strong>Goal</strong>: Extend beyond bash to full shell ecosystem</p>
+<h4 id="multi-language-support"><a class="header" href="#multi-language-support">Multi-Language Support</a></h4>
+<ul>
+<li>
+<p>📋 <strong>Fish Shell</strong>: Modern shell syntax support</p>
+<ul>
+<li>Fish → POSIX sh transpilation</li>
+<li>Fish-specific linting rules</li>
+<li>Configuration management</li>
+</ul>
+</li>
+<li>
+<p>📋 <strong>PowerShell</strong>: Windows shell support</p>
+<ul>
+<li>PowerShell → bash transpilation (WSL/Git Bash)</li>
+<li>Cross-platform script migration</li>
+<li>Windows-specific patterns</li>
+</ul>
+</li>
+<li>
+<p>📋 <strong>Python Shell Scripts</strong>: Hybrid approach</p>
+<ul>
+<li>Python with shell command integration</li>
+<li>Type-safe shell command wrappers</li>
+<li>Best of both worlds</li>
+</ul>
+</li>
+</ul>
+<h4 id="tooling-integration"><a class="header" href="#tooling-integration">Tooling Integration</a></h4>
+<ul>
+<li>
+<p>📋 <strong>LSP Server</strong>: IDE integration</p>
+<ul>
+<li>Real-time linting in VS Code, Neovim, Emacs</li>
+<li>Autocomplete for shell builtins</li>
+<li>Inline documentation</li>
+<li>Refactoring support</li>
+</ul>
+</li>
+<li>
+<p>📋 <strong>GitHub App</strong>: Automated PR reviews</p>
+<ul>
+<li>Comment on shell script issues</li>
+<li>Suggest fixes inline</li>
+<li>Block merges with critical issues</li>
+<li>Integration with existing CI/CD</li>
+</ul>
+</li>
+</ul>
+<h3 id="phase-3-rust--shell-v900---q1-2027"><a class="header" href="#phase-3-rust--shell-v900---q1-2027">Phase 3: Rust → Shell (v9.0.0 - Q1 2027)</a></h3>
+<p><strong>Goal</strong>: Write Rust, generate safe shell scripts</p>
+<p><strong>Status</strong>: Currently deferred to focus on bash purification</p>
+<p>This was the original vision for bashrs, but market research showed that cleaning up existing bash scripts is more urgent than writing new scripts in Rust.</p>
+<h4 id="planned-features"><a class="header" href="#planned-features">Planned Features</a></h4>
+<ul>
+<li>
+<p>📋 <strong>Rust stdlib → Shell</strong>: Map Rust std to shell equivalents</p>
+<ul>
+<li><code>std::fs</code>: File operations → POSIX commands</li>
+<li><code>std::process</code>: Process management → fork/exec</li>
+<li><code>std::env</code>: Environment variables → $VAR</li>
+</ul>
+</li>
+<li>
+<p>📋 <strong>Type-Safe Shell Generation</strong>: Compile-time guarantees</p>
+<ul>
+<li>No injection vulnerabilities</li>
+<li>Validated command arguments</li>
+<li>Type-checked file paths</li>
+</ul>
+</li>
+<li>
+<p>📋 <strong>Rust Tooling Integration</strong>: Seamless Rust workflow</p>
+<ul>
+<li><code>cargo bashrs build</code>: Transpile in build.rs</li>
+<li><code>cargo bashrs test</code>: Test generated scripts</li>
+<li><code>cargo bashrs run</code>: Execute generated scripts</li>
+</ul>
+</li>
+</ul>
+<p><strong>Why Deferred?</strong></p>
+<ul>
+<li>Bash purification has immediate ROI (billions of existing scripts)</li>
+<li>Rust → Shell requires 12-16 weeks of focused development</li>
+<li>Community feedback prioritizes linting/purification</li>
+<li>Will revisit after v8.0.0 stabilization</li>
+</ul>
+<h3 id="phase-4-advanced-features-v1000"><a class="header" href="#phase-4-advanced-features-v1000">Phase 4: Advanced Features (v10.0.0+)</a></h3>
+<p><strong>Goal</strong>: Industry-leading shell tooling</p>
+<h4 id="advanced-analysis"><a class="header" href="#advanced-analysis">Advanced Analysis</a></h4>
+<ul>
+<li>📋 <strong>Dataflow Analysis</strong>: Track variable usage across functions</li>
+<li>📋 <strong>Taint Analysis</strong>: Security vulnerability detection</li>
+<li>📋 <strong>Concurrency Analysis</strong>: Race condition detection</li>
+<li>📋 <strong>Memory Safety</strong>: Resource leak detection</li>
+</ul>
+<h4 id="aiml-integration"><a class="header" href="#aiml-integration">AI/ML Integration</a></h4>
+<ul>
+<li>
+<p>📋 <strong>Pattern Learning</strong>: Learn from codebases</p>
+<ul>
+<li>Suggest idiomatic patterns</li>
+<li>Auto-generate documentation</li>
+<li>Predict likely bugs</li>
+</ul>
+</li>
+<li>
+<p>📋 <strong>Auto-Fix Suggestions</strong>: Machine learning-powered fixes</p>
+<ul>
+<li>Context-aware repairs</li>
+<li>Multi-step refactorings</li>
+<li>Breaking change migrations</li>
+</ul>
+</li>
+</ul>
+<h4 id="enterprise-features"><a class="header" href="#enterprise-features">Enterprise Features</a></h4>
+<ul>
+<li>
+<p>📋 <strong>Policy Enforcement</strong>: Custom organizational rules</p>
+<ul>
+<li>Company-specific linting rules</li>
+<li>Compliance checking (SOC2, PCI-DSS)</li>
+<li>Audit trail generation</li>
+</ul>
+</li>
+<li>
+<p>📋 <strong>Multi-Repo Analysis</strong>: Cross-repository insights</p>
+<ul>
+<li>Shared library usage tracking</li>
+<li>Breaking change impact analysis</li>
+<li>Dependency vulnerability scanning</li>
+</ul>
+</li>
+</ul>
+<h2 id="version-history"><a class="header" href="#version-history">Version History</a></h2>
+<h3 id="major-releases"><a class="header" href="#major-releases">Major Releases</a></h3>
+<div class="table-wrapper"><table><thead><tr><th>Version</th><th>Date</th><th>Highlights</th></tr></thead><tbody>
+<tr><td>v6.34.1</td><td>2025-11-14</td><td>False positive fixes (#21, #22)</td></tr>
+<tr><td>v6.34.0</td><td>2025-11-13</td><td>Issue #1 auto-fix bug fix</td></tr>
+<tr><td>v6.26.0</td><td>2025-10-15</td><td>Memory profiling in bench</td></tr>
+<tr><td>v6.25.0</td><td>2025-10-01</td><td>Benchmark command added</td></tr>
+<tr><td>v6.0.0</td><td>2025-09-01</td><td>Validation levels (None, Minimal, Strict, Paranoid)</td></tr>
+<tr><td>v5.0.0</td><td>2025-08-01</td><td>POSIX compliance enforcement</td></tr>
+<tr><td>v4.0.0</td><td>2025-07-01</td><td>Idempotency transformations</td></tr>
+<tr><td>v3.0.0</td><td>2025-06-01</td><td>Determinism enforcement</td></tr>
+<tr><td>v2.0.0</td><td>2025-05-01</td><td>Security linting (shellcheck rules)</td></tr>
+<tr><td>v1.4.0</td><td>2025-04-15</td><td>Makefile purification</td></tr>
+<tr><td>v1.0.0</td><td>2025-04-01</td><td>Initial release: Bash purification</td></tr>
+</tbody></table>
+</div>
+<h3 id="release-cadence"><a class="header" href="#release-cadence">Release Cadence</a></h3>
+<ul>
+<li><strong>Major releases</strong>: Every 3-4 months (breaking changes)</li>
+<li><strong>Minor releases</strong>: Every 2-4 weeks (new features)</li>
+<li><strong>Patch releases</strong>: As needed (bug fixes)</li>
+</ul>
+<h2 id="contributing-to-the-roadmap"><a class="header" href="#contributing-to-the-roadmap">Contributing to the Roadmap</a></h2>
+<p>We welcome community input! Here’s how to influence the roadmap:</p>
+<h3 id="high-impact-contributions"><a class="header" href="#high-impact-contributions">High-Impact Contributions</a></h3>
+<ol>
+<li><strong>False Positive Reports</strong>: File GitHub issues for shellcheck false positives</li>
+<li><strong>Real-World Examples</strong>: Share scripts that bashrs should handle</li>
+<li><strong>Feature Requests</strong>: Propose features with use cases</li>
+<li><strong>Performance Benchmarks</strong>: Share slow transpilation cases</li>
+</ol>
+<h3 id="how-to-contribute"><a class="header" href="#how-to-contribute">How to Contribute</a></h3>
+<pre><code class="language-bash"># 1. File an issue
+https://github.com/paiml/bashrs/issues/new
+
+# 2. Discuss in Discussions
+https://github.com/paiml/bashrs/discussions
+
+# 3. Submit a PR
+git clone https://github.com/paiml/bashrs.git
+cd bashrs
+# Make changes following EXTREME TDD
+cargo test --all
+git commit -m "feat: Your feature"
+# See CONTRIBUTING.md for full guidelines
+</code></pre>
+<h3 id="roadmap-prioritization"><a class="header" href="#roadmap-prioritization">Roadmap Prioritization</a></h3>
+<p>Features are prioritized by:</p>
+<ol>
+<li><strong>User impact</strong>: How many users benefit?</li>
+<li><strong>Safety</strong>: Does it prevent bugs/vulnerabilities?</li>
+<li><strong>Complexity</strong>: Development effort required</li>
+<li><strong>Dependencies</strong>: Blocked by other features?</li>
+</ol>
+<h2 id="timeline"><a class="header" href="#timeline">Timeline</a></h2>
+<pre><code class="language-text">2025 Q4: v7.0.0 - Stabilization
+├── Complete book (47 chapters)
+├── 800+ linter rules
+├── Formal verification proofs
+└── Performance: &lt;50ms transpilation
+
+2026 Q2: v8.0.0 - Expansion
+├── Fish shell support
+├── PowerShell support
+├── LSP server (IDE integration)
+└── GitHub App (PR reviews)
+
+2026 Q4: v9.0.0 - Rust → Shell
+├── Rust stdlib mapping
+├── Type-safe shell generation
+├── Cargo integration
+└── Production examples
+
+2027+: v10.0.0 - Advanced Features
+├── Dataflow analysis
+├── AI/ML integration
+├── Enterprise features
+└── Multi-repo analysis
+</code></pre>
+<h2 id="design-principles"><a class="header" href="#design-principles">Design Principles</a></h2>
+<p>bashrs development follows these principles:</p>
+<h3 id="1-safety-first"><a class="header" href="#1-safety-first">1. Safety First</a></h3>
+<ul>
+<li>Every transformation must be provably correct</li>
+<li>POSIX compliance is non-negotiable</li>
+<li>Zero tolerance for regressions</li>
+</ul>
+<h3 id="2-toyota-way"><a class="header" href="#2-toyota-way">2. Toyota Way</a></h3>
+<ul>
+<li>Stop the line on bugs (Andon Cord)</li>
+<li>EXTREME TDD for all features</li>
+<li>
+<blockquote>
+<p>85% test coverage, &gt;90% mutation score</p>
+</blockquote>
+</li>
+<li>Continuous improvement (Kaizen)</li>
+</ul>
+<h3 id="3-user-centric"><a class="header" href="#3-user-centric">3. User-Centric</a></h3>
+<ul>
+<li>Real-world scripts drive features</li>
+<li>Clear error messages with fix suggestions</li>
+<li>Documentation equals implementation</li>
+</ul>
+<h3 id="4-performance-matters"><a class="header" href="#4-performance-matters">4. Performance Matters</a></h3>
+<ul>
+<li>&lt;100ms transpilation for typical scripts</li>
+<li>&lt;10MB memory usage</li>
+<li>Incremental parsing for large files</li>
+</ul>
+<h3 id="5-community-driven"><a class="header" href="#5-community-driven">5. Community-Driven</a></h3>
+<ul>
+<li>Open source, open development</li>
+<li>Responsive to feedback</li>
+<li>Transparent roadmap</li>
+</ul>
+<h2 id="long-term-vision-2030"><a class="header" href="#long-term-vision-2030">Long-Term Vision (2030)</a></h2>
+<p>bashrs aims to be <strong>the standard tool</strong> for shell script quality:</p>
+<h3 id="industry-adoption"><a class="header" href="#industry-adoption">Industry Adoption</a></h3>
+<ul>
+<li><strong>Default in CI/CD</strong>: Every pipeline uses bashrs</li>
+<li><strong>IDE Integration</strong>: Real-time linting in all major editors</li>
+<li><strong>Education</strong>: Taught in DevOps courses worldwide</li>
+<li><strong>Compliance</strong>: Required for SOC2, PCI-DSS compliance</li>
+</ul>
+<h3 id="technical-excellence"><a class="header" href="#technical-excellence">Technical Excellence</a></h3>
+<ul>
+<li><strong>Formal Verification</strong>: Mathematically proven correctness</li>
+<li><strong>Zero False Positives</strong>: Perfect precision on common patterns</li>
+<li><strong>Sub-millisecond</strong>: Incremental linting for large codebases</li>
+<li><strong>Multi-Language</strong>: Bash, Fish, PowerShell, Python support</li>
+</ul>
+<h3 id="ecosystem"><a class="header" href="#ecosystem">Ecosystem</a></h3>
+<ul>
+<li><strong>1000+ Rules</strong>: Comprehensive linting coverage</li>
+<li><strong>100+ Integrations</strong>: GitHub, GitLab, Jenkins, etc.</li>
+<li><strong>10,000+ Stars</strong>: Thriving community</li>
+<li><strong>Production Critical</strong>: Used by Fortune 500 companies</li>
+</ul>
+<h2 id="frequently-asked-questions"><a class="header" href="#frequently-asked-questions">Frequently Asked Questions</a></h2>
+<h3 id="when-will-rust--shell-be-ready"><a class="header" href="#when-will-rust--shell-be-ready">When will Rust → Shell be ready?</a></h3>
+<p><strong>Target</strong>: v9.0.0 (Q1 2027). We’re focusing on bash purification first (higher ROI).</p>
+<h3 id="will-bashrs-always-be-free"><a class="header" href="#will-bashrs-always-be-free">Will bashrs always be free?</a></h3>
+<p><strong>Yes</strong>. bashrs core is MIT licensed and will remain open source forever. Enterprise features (policy enforcement, multi-repo) may have paid tiers.</p>
+<h3 id="can-i-use-bashrs-in-production-today"><a class="header" href="#can-i-use-bashrs-in-production-today">Can I use bashrs in production today?</a></h3>
+<p><strong>Absolutely</strong>. Bash purification is production-ready (v6.34.1). 6,000+ tests, 85%+ coverage, used in real production systems.</p>
+<h3 id="how-can-i-speed-up-the-roadmap"><a class="header" href="#how-can-i-speed-up-the-roadmap">How can I speed up the roadmap?</a></h3>
+<p><strong>Contribute!</strong> File issues, submit PRs, sponsor development. See CONTRIBUTING.md.</p>
+<h3 id="will-you-support-my-favorite-shell"><a class="header" href="#will-you-support-my-favorite-shell">Will you support my favorite shell?</a></h3>
+<p><strong>Maybe!</strong> File a feature request with use cases. Fish and PowerShell are high priority.</p>
+<h2 id="get-involved"><a class="header" href="#get-involved">Get Involved</a></h2>
+<h3 id="stay-updated"><a class="header" href="#stay-updated">Stay Updated</a></h3>
+<ul>
+<li>📧 <strong>Mailing list</strong>: bashrs-announce@googlegroups.com</li>
+<li>🐦 <strong>Twitter</strong>: @bashrs_lang</li>
+<li>💬 <strong>Discord</strong>: discord.gg/bashrs</li>
+<li>📰 <strong>Blog</strong>: blog.bashrs.com</li>
+</ul>
+<h3 id="contribute"><a class="header" href="#contribute">Contribute</a></h3>
+<ul>
+<li>🐛 <strong>Report bugs</strong>: github.com/paiml/bashrs/issues</li>
+<li>💡 <strong>Feature requests</strong>: github.com/paiml/bashrs/discussions</li>
+<li>🔧 <strong>Submit PRs</strong>: See CONTRIBUTING.md</li>
+<li>💰 <strong>Sponsor</strong>: github.com/sponsors/paiml</li>
+</ul>
+<h2 id="summary"><a class="header" href="#summary">Summary</a></h2>
+<p>bashrs roadmap focuses on <strong>safety, quality, and usability</strong>:</p>
+<ul>
+<li>✅ <strong>Today (v6.34.1)</strong>: Production-ready bash purification</li>
+<li>🚧 <strong>2025 Q4 (v7.0.0)</strong>: 800+ rules, formal verification</li>
+<li>📋 <strong>2026 Q2 (v8.0.0)</strong>: Multi-shell, LSP, GitHub App</li>
+<li>📋 <strong>2026 Q4 (v9.0.0)</strong>: Rust → Shell transpilation</li>
+<li>📋 <strong>2027+ (v10.0.0)</strong>: Advanced analysis, AI/ML, enterprise</li>
+</ul>
+<p><strong>Join us in making shell scripts safe!</strong> 🚀</p>
+<p>bashrs is committed to <strong>long-term stability</strong> and <strong>continuous improvement</strong>. We’re in this for the long haul.</p>
+<hr />
+<p><em>Roadmap subject to change based on community feedback and market needs. Last updated: 2025-11-14</em></p>
 
                     </main>
 
@@ -223,8 +648,8 @@
         </script>
 
         <script src="ace.js"></script>
-        <script src="mode-rust.js"></script>
         <script src="editor.js"></script>
+        <script src="mode-rust.js"></script>
         <script src="theme-dawn.js"></script>
         <script src="theme-tomorrow_night.js"></script>
 
@@ -237,7 +662,6 @@
         <script src="book.js"></script>
 
         <!-- Custom JS scripts -->
-
 
 
     </div>

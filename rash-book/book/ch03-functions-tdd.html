@@ -24,41 +24,28 @@
         <link rel="stylesheet" href="fonts/fonts.css">
 
         <!-- Highlight.js Stylesheets -->
-        <link rel="stylesheet" id="highlight-css" href="highlight.css">
-        <link rel="stylesheet" id="tomorrow-night-css" href="tomorrow-night.css">
-        <link rel="stylesheet" id="ayu-highlight-css" href="ayu-highlight.css">
+        <link rel="stylesheet" href="highlight.css">
+        <link rel="stylesheet" href="tomorrow-night.css">
+        <link rel="stylesheet" href="ayu-highlight.css">
 
         <!-- Custom theme stylesheets -->
 
 
-        <!-- Provide site root and default themes to javascript -->
+        <!-- Provide site root to javascript -->
         <script>
-            const path_to_root = "";
-            const default_light_theme = "rust";
-            const default_dark_theme = "coal";
-            window.path_to_searchindex_js = "searchindex.js";
+            var path_to_root = "";
+            var default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "coal" : "rust";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc.js"></script>
     </head>
     <body>
-    <div id="mdbook-help-container">
-        <div id="mdbook-help-popup">
-            <h2 class="mdbook-help-title">Keyboard shortcuts</h2>
-            <div>
-                <p>Press <kbd>←</kbd> or <kbd>→</kbd> to navigate between chapters</p>
-                <p>Press <kbd>S</kbd> or <kbd>/</kbd> to search in the book</p>
-                <p>Press <kbd>?</kbd> to show this help</p>
-                <p>Press <kbd>Esc</kbd> to hide this help</p>
-            </div>
-        </div>
-    </div>
     <div id="body-container">
         <!-- Work around some values being stored in localStorage wrapped in quotes -->
         <script>
             try {
-                let theme = localStorage.getItem('mdbook-theme');
-                let sidebar = localStorage.getItem('mdbook-sidebar');
+                var theme = localStorage.getItem('mdbook-theme');
+                var sidebar = localStorage.getItem('mdbook-sidebar');
 
                 if (theme.startsWith('"') && theme.endsWith('"')) {
                     localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
@@ -72,8 +59,7 @@
 
         <!-- Set the theme before any content is loaded, prevents flash -->
         <script>
-            const default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? default_dark_theme : default_light_theme;
-            let theme;
+            var theme;
             try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
             if (theme === null || theme === undefined) { theme = default_theme; }
             const html = document.documentElement;
@@ -86,20 +72,17 @@
 
         <!-- Hide / unhide sidebar before it is displayed -->
         <script>
-            let sidebar = null;
-            const sidebar_toggle = document.getElementById("sidebar-toggle-anchor");
+            var sidebar = null;
+            var sidebar_toggle = document.getElementById("sidebar-toggle-anchor");
             if (document.body.clientWidth >= 1080) {
                 try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
                 sidebar = sidebar || 'visible';
             } else {
                 sidebar = 'hidden';
-                sidebar_toggle.checked = false;
             }
-            if (sidebar === 'visible') {
-                sidebar_toggle.checked = true;
-            } else {
-                html.classList.remove('sidebar-visible');
-            }
+            sidebar_toggle.checked = sidebar === 'visible';
+            html.classList.remove('sidebar-visible');
+            html.classList.add("sidebar-" + sidebar);
         </script>
 
         <nav id="sidebar" class="sidebar" aria-label="Table of contents">
@@ -126,14 +109,13 @@
                             <i class="fa fa-paint-brush"></i>
                         </button>
                         <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
-                            <li role="none"><button role="menuitem" class="theme" id="default_theme">Auto</button></li>
                             <li role="none"><button role="menuitem" class="theme" id="light">Light</button></li>
                             <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
                             <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
                             <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
                             <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
                         </ul>
-                        <button id="search-toggle" class="icon-button" type="button" title="Search (`/`)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="/ s" aria-controls="searchbar">
+                        <button id="search-toggle" class="icon-button" type="button" title="Search. (Shortkey: s)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="S" aria-controls="searchbar">
                             <i class="fa fa-search"></i>
                         </button>
                     </div>
@@ -147,7 +129,7 @@
                         <a href="https://github.com/paiml/bashrs" title="Git repository" aria-label="Git repository">
                             <i id="git-repository-button" class="fa fa-github"></i>
                         </a>
-                        <a href="https://github.com/paiml/bashrs/edit/main/rash-book/src/ch03-functions-tdd.md" title="Suggest an edit" aria-label="Suggest an edit" rel="edit">
+                        <a href="https://github.com/paiml/bashrs/edit/main/rash-book/src/ch03-functions-tdd.md" title="Suggest an edit" aria-label="Suggest an edit">
                             <i id="git-edit-button" class="fa fa-edit"></i>
                         </a>
 
@@ -156,12 +138,7 @@
 
                 <div id="search-wrapper" class="hidden">
                     <form id="searchbar-outer" class="searchbar-outer">
-                        <div class="search-wrapper">
-                            <input type="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
-                            <div class="spinner-wrapper">
-                                <i class="fa fa-spinner fa-spin"></i>
-                            </div>
-                        </div>
+                        <input type="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
                     </form>
                     <div id="searchresults-outer" class="searchresults-outer hidden">
                         <div id="searchresults-header" class="searchresults-header"></div>
@@ -201,7 +178,7 @@
 <h2 id="test-driven-examples"><a class="header" href="#test-driven-examples">Test-Driven Examples</a></h2>
 <h3 id="example-1-basic-function-no-parameters"><a class="header" href="#example-1-basic-function-no-parameters">Example 1: Basic Function (No Parameters)</a></h3>
 <p>The simplest bashrs function - no parameters, just execution:</p>
-<pre><code class="language-rust">fn main() {
+<pre><code class="language-rust ignore">fn main() {
     greet();
 }
 
@@ -237,7 +214,7 @@ main "$@"
 </ul>
 <h3 id="example-2-function-with-one-parameter"><a class="header" href="#example-2-function-with-one-parameter">Example 2: Function with One Parameter</a></h3>
 <p>Single parameter functions demonstrate type-safe passing:</p>
-<pre><code class="language-rust">fn main() {
+<pre><code class="language-rust ignore">fn main() {
     let name = "Alice";
     greet(name);
 }
@@ -276,7 +253,7 @@ main "$@"
 </ul>
 <h3 id="example-3-multiple-parameters-same-type"><a class="header" href="#example-3-multiple-parameters-same-type">Example 3: Multiple Parameters (Same Type)</a></h3>
 <p>Functions can accept multiple parameters of the same type:</p>
-<pre><code class="language-rust">fn main() {
+<pre><code class="language-rust ignore">fn main() {
     show_info("myapp", "1.0.0", "/usr/local");
 }
 
@@ -319,7 +296,7 @@ main "$@"
 </ul>
 <h3 id="example-4-mixed-type-parameters"><a class="header" href="#example-4-mixed-type-parameters">Example 4: Mixed Type Parameters</a></h3>
 <p>Combining strings, integers, and booleans:</p>
-<pre><code class="language-rust">fn main() {
+<pre><code class="language-rust ignore">fn main() {
     configure("myapp", 8080, true);
 }
 
@@ -372,7 +349,7 @@ main "$@"
 </ul>
 <h3 id="example-5-function-calling-another-function"><a class="header" href="#example-5-function-calling-another-function">Example 5: Function Calling Another Function</a></h3>
 <p>Function composition - the foundation of structured scripts:</p>
-<pre><code class="language-rust">fn main() {
+<pre><code class="language-rust ignore">fn main() {
     install_app("myapp", "1.0.0");
 }
 
@@ -425,7 +402,7 @@ main "$@"
 </ul>
 <h3 id="example-6-multiple-helper-functions"><a class="header" href="#example-6-multiple-helper-functions">Example 6: Multiple Helper Functions</a></h3>
 <p>Organizing code with helper functions:</p>
-<pre><code class="language-rust">fn main() {
+<pre><code class="language-rust ignore">fn main() {
     setup_environment();
     install_dependencies();
     configure_system();
@@ -474,7 +451,7 @@ main "$@"
 </ul>
 <h3 id="example-7-nested-function-calls"><a class="header" href="#example-7-nested-function-calls">Example 7: Nested Function Calls</a></h3>
 <p>Deep function call chains for complex logic:</p>
-<pre><code class="language-rust">fn main() {
+<pre><code class="language-rust ignore">fn main() {
     deploy();
 }
 
@@ -526,7 +503,7 @@ main "$@"
 </ul>
 <h3 id="example-8-bootstrap-installer-pattern"><a class="header" href="#example-8-bootstrap-installer-pattern">Example 8: Bootstrap Installer Pattern</a></h3>
 <p>Real-world installer with multiple stages:</p>
-<pre><code class="language-rust">fn main() {
+<pre><code class="language-rust ignore">fn main() {
     let app = "myapp";
     let version = "1.0.0";
     let prefix = "/usr/local";
@@ -601,7 +578,7 @@ main "$@"
 </ul>
 <h3 id="example-9-many-parameters-complex-functions"><a class="header" href="#example-9-many-parameters-complex-functions">Example 9: Many Parameters (Complex Functions)</a></h3>
 <p>Handling functions with many configuration parameters:</p>
-<pre><code class="language-rust">fn main() {
+<pre><code class="language-rust ignore">fn main() {
     deploy_service(
         "myapp",
         "1.0.0",
@@ -654,7 +631,7 @@ main "$@"
 </ul>
 <h3 id="example-10-parameter-naming-patterns"><a class="header" href="#example-10-parameter-naming-patterns">Example 10: Parameter Naming Patterns</a></h3>
 <p>Clear, descriptive parameter names:</p>
-<pre><code class="language-rust">fn main() {
+<pre><code class="language-rust ignore">fn main() {
     create_database("mydb", "localhost", 5432, "admin", "secure_pass");
 }
 
@@ -717,7 +694,7 @@ main "$@"
 </ul>
 <h3 id="example-11-variadic-style-pattern-fixed-parameters"><a class="header" href="#example-11-variadic-style-pattern-fixed-parameters">Example 11: Variadic-Style Pattern (Fixed Parameters)</a></h3>
 <p>Simulating variadic functions with fixed parameter count:</p>
-<pre><code class="language-rust">fn main() {
+<pre><code class="language-rust ignore">fn main() {
     install_packages("pkg1", "pkg2", "pkg3", "pkg4", "pkg5");
 }
 
@@ -766,7 +743,7 @@ main "$@"
 </ul>
 <h3 id="example-12-two-stage-deployment-pattern"><a class="header" href="#example-12-two-stage-deployment-pattern">Example 12: Two-Stage Deployment Pattern</a></h3>
 <p>Common deployment workflow with separate prepare/execute stages:</p>
-<pre><code class="language-rust">fn main() {
+<pre><code class="language-rust ignore">fn main() {
     let app = "webapp";
     let env = "production";
     let version = "2.1.0";
@@ -870,7 +847,7 @@ main "$@"
 <h2 id="core-concepts"><a class="header" href="#core-concepts">Core Concepts</a></h2>
 <h3 id="function-definitions"><a class="header" href="#function-definitions">Function Definitions</a></h3>
 <p>In bashrs, all functions are defined with <code>fn</code>:</p>
-<pre><code class="language-rust">fn function_name(param1: Type1, param2: Type2) {
+<pre><code class="language-rust ignore">fn function_name(param1: Type1, param2: Type2) {
     // body
 }</code></pre>
 <p>Transpiles to:</p>
@@ -891,7 +868,7 @@ main "$@"
 <p><strong>Important</strong>: All parameters become strings in shell, but Rust type checking ensures correct usage at transpile-time.</p>
 <h3 id="function-calls"><a class="header" href="#function-calls">Function Calls</a></h3>
 <p>Function calls are transpiled with automatic quoting:</p>
-<pre><code class="language-rust">// Rust
+<pre><code class="language-rust ignore">// Rust
 greet(name);
 
 // Shell
@@ -907,7 +884,7 @@ greet "$name"</code></pre>
 </ul>
 <h3 id="empty-functions"><a class="header" href="#empty-functions">Empty Functions</a></h3>
 <p>Functions with no body emit POSIX no-op:</p>
-<pre><code class="language-rust">fn placeholder() {}
+<pre><code class="language-rust ignore">fn placeholder() {}
 
 // Generates:
 placeholder() {
@@ -915,7 +892,7 @@ placeholder() {
 }</code></pre>
 <p>The <code>:</code> is a POSIX built-in that always succeeds.</p>
 <h2 id="how-transpilation-works"><a class="header" href="#how-transpilation-works">How Transpilation Works</a></h2>
-<pre><code>Rust: fn greet(name: &amp;str) { println(name); }
+<pre><code class="language-text">Rust: fn greet(name: &amp;str) { println(name); }
       ↓
 AST: FnDef { name: "greet", params: [(name, &amp;str)], body: [Call(println, [name])] }
       ↓
@@ -956,7 +933,7 @@ greet() {
 </ol>
 <h2 id="common-patterns"><a class="header" href="#common-patterns">Common Patterns</a></h2>
 <h3 id="installer-pipeline"><a class="header" href="#installer-pipeline">Installer Pipeline</a></h3>
-<pre><code class="language-rust">fn main() {
+<pre><code class="language-rust ignore">fn main() {
     let pkg = "myapp";
     check(pkg);
     download(pkg);
@@ -969,7 +946,7 @@ fn download(p: &amp;str) {}
 fn install(p: &amp;str) {}
 fn configure(p: &amp;str) {}</code></pre>
 <h3 id="configuration-wrapper"><a class="header" href="#configuration-wrapper">Configuration Wrapper</a></h3>
-<pre><code class="language-rust">fn main() {
+<pre><code class="language-rust ignore">fn main() {
     setup_app("myapp", "/opt", 8080, true);
 }
 
@@ -979,7 +956,7 @@ fn setup_app(name: &amp;str, prefix: &amp;str, port: i32, ssl: bool) {
     setup_config(name, prefix);
 }</code></pre>
 <h3 id="error-handling-stages"><a class="header" href="#error-handling-stages">Error-Handling Stages</a></h3>
-<pre><code class="language-rust">fn main() {
+<pre><code class="language-rust ignore">fn main() {
     if !validate() {
         return;  // Chapter 4: Control Flow
     }
@@ -1022,7 +999,7 @@ fn execute() {}</code></pre>
 </ul>
 <h2 id="testing-your-examples"><a class="header" href="#testing-your-examples">Testing Your Examples</a></h2>
 <p>Create a test file with multiple functions:</p>
-<pre><code class="language-rust">// test_funcs.rs
+<pre><code class="language-rust ignore">// test_funcs.rs
 fn main() {
     deploy("myapp", "1.0.0");
 }
@@ -1139,8 +1116,8 @@ $ bashrs build funcs.rs --verify paranoid
         </script>
 
         <script src="ace.js"></script>
-        <script src="mode-rust.js"></script>
         <script src="editor.js"></script>
+        <script src="mode-rust.js"></script>
         <script src="theme-dawn.js"></script>
         <script src="theme-tomorrow_night.js"></script>
 
@@ -1153,7 +1130,6 @@ $ bashrs build funcs.rs --verify paranoid
         <script src="book.js"></script>
 
         <!-- Custom JS scripts -->
-
 
 
     </div>

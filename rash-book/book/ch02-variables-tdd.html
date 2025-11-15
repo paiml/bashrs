@@ -24,41 +24,28 @@
         <link rel="stylesheet" href="fonts/fonts.css">
 
         <!-- Highlight.js Stylesheets -->
-        <link rel="stylesheet" id="highlight-css" href="highlight.css">
-        <link rel="stylesheet" id="tomorrow-night-css" href="tomorrow-night.css">
-        <link rel="stylesheet" id="ayu-highlight-css" href="ayu-highlight.css">
+        <link rel="stylesheet" href="highlight.css">
+        <link rel="stylesheet" href="tomorrow-night.css">
+        <link rel="stylesheet" href="ayu-highlight.css">
 
         <!-- Custom theme stylesheets -->
 
 
-        <!-- Provide site root and default themes to javascript -->
+        <!-- Provide site root to javascript -->
         <script>
-            const path_to_root = "";
-            const default_light_theme = "rust";
-            const default_dark_theme = "coal";
-            window.path_to_searchindex_js = "searchindex.js";
+            var path_to_root = "";
+            var default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "coal" : "rust";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc.js"></script>
     </head>
     <body>
-    <div id="mdbook-help-container">
-        <div id="mdbook-help-popup">
-            <h2 class="mdbook-help-title">Keyboard shortcuts</h2>
-            <div>
-                <p>Press <kbd>←</kbd> or <kbd>→</kbd> to navigate between chapters</p>
-                <p>Press <kbd>S</kbd> or <kbd>/</kbd> to search in the book</p>
-                <p>Press <kbd>?</kbd> to show this help</p>
-                <p>Press <kbd>Esc</kbd> to hide this help</p>
-            </div>
-        </div>
-    </div>
     <div id="body-container">
         <!-- Work around some values being stored in localStorage wrapped in quotes -->
         <script>
             try {
-                let theme = localStorage.getItem('mdbook-theme');
-                let sidebar = localStorage.getItem('mdbook-sidebar');
+                var theme = localStorage.getItem('mdbook-theme');
+                var sidebar = localStorage.getItem('mdbook-sidebar');
 
                 if (theme.startsWith('"') && theme.endsWith('"')) {
                     localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
@@ -72,8 +59,7 @@
 
         <!-- Set the theme before any content is loaded, prevents flash -->
         <script>
-            const default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? default_dark_theme : default_light_theme;
-            let theme;
+            var theme;
             try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
             if (theme === null || theme === undefined) { theme = default_theme; }
             const html = document.documentElement;
@@ -86,20 +72,17 @@
 
         <!-- Hide / unhide sidebar before it is displayed -->
         <script>
-            let sidebar = null;
-            const sidebar_toggle = document.getElementById("sidebar-toggle-anchor");
+            var sidebar = null;
+            var sidebar_toggle = document.getElementById("sidebar-toggle-anchor");
             if (document.body.clientWidth >= 1080) {
                 try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
                 sidebar = sidebar || 'visible';
             } else {
                 sidebar = 'hidden';
-                sidebar_toggle.checked = false;
             }
-            if (sidebar === 'visible') {
-                sidebar_toggle.checked = true;
-            } else {
-                html.classList.remove('sidebar-visible');
-            }
+            sidebar_toggle.checked = sidebar === 'visible';
+            html.classList.remove('sidebar-visible');
+            html.classList.add("sidebar-" + sidebar);
         </script>
 
         <nav id="sidebar" class="sidebar" aria-label="Table of contents">
@@ -126,14 +109,13 @@
                             <i class="fa fa-paint-brush"></i>
                         </button>
                         <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
-                            <li role="none"><button role="menuitem" class="theme" id="default_theme">Auto</button></li>
                             <li role="none"><button role="menuitem" class="theme" id="light">Light</button></li>
                             <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
                             <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
                             <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
                             <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
                         </ul>
-                        <button id="search-toggle" class="icon-button" type="button" title="Search (`/`)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="/ s" aria-controls="searchbar">
+                        <button id="search-toggle" class="icon-button" type="button" title="Search. (Shortkey: s)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="S" aria-controls="searchbar">
                             <i class="fa fa-search"></i>
                         </button>
                     </div>
@@ -147,7 +129,7 @@
                         <a href="https://github.com/paiml/bashrs" title="Git repository" aria-label="Git repository">
                             <i id="git-repository-button" class="fa fa-github"></i>
                         </a>
-                        <a href="https://github.com/paiml/bashrs/edit/main/rash-book/src/ch02-variables-tdd.md" title="Suggest an edit" aria-label="Suggest an edit" rel="edit">
+                        <a href="https://github.com/paiml/bashrs/edit/main/rash-book/src/ch02-variables-tdd.md" title="Suggest an edit" aria-label="Suggest an edit">
                             <i id="git-edit-button" class="fa fa-edit"></i>
                         </a>
 
@@ -156,12 +138,7 @@
 
                 <div id="search-wrapper" class="hidden">
                     <form id="searchbar-outer" class="searchbar-outer">
-                        <div class="search-wrapper">
-                            <input type="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
-                            <div class="spinner-wrapper">
-                                <i class="fa fa-spinner fa-spin"></i>
-                            </div>
-                        </div>
+                        <input type="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
                     </form>
                     <div id="searchresults-outer" class="searchresults-outer hidden">
                         <div id="searchresults-header" class="searchresults-header"></div>
@@ -201,7 +178,7 @@
 <h2 id="test-driven-examples"><a class="header" href="#test-driven-examples">Test-Driven Examples</a></h2>
 <h3 id="example-1-basic-string-variable"><a class="header" href="#example-1-basic-string-variable">Example 1: Basic String Variable</a></h3>
 <p>The foundation of bashrs variables - simple string assignment and usage:</p>
-<pre><code class="language-rust">fn main() {
+<pre><code class="language-rust ignore">fn main() {
     let greeting = "Hello, bashrs!";
     println(greeting);
 }
@@ -231,7 +208,7 @@ main "$@"
 </ul>
 <h3 id="example-2-integer-variables"><a class="header" href="#example-2-integer-variables">Example 2: Integer Variables</a></h3>
 <p>bashrs handles numeric literals safely:</p>
-<pre><code class="language-rust">fn main() {
+<pre><code class="language-rust ignore">fn main() {
     let port = 8080;
     let workers = 4;
     let timeout = 30;
@@ -268,7 +245,7 @@ main "$@"
 </ul>
 <h3 id="example-3-boolean-variables"><a class="header" href="#example-3-boolean-variables">Example 3: Boolean Variables</a></h3>
 <p>Boolean values transpile to shell-friendly representations:</p>
-<pre><code class="language-rust">fn main() {
+<pre><code class="language-rust ignore">fn main() {
     let enabled = true;
     let debug = false;
     let force = true;
@@ -305,7 +282,7 @@ main "$@"
 </ul>
 <h3 id="example-4-multiple-variable-types"><a class="header" href="#example-4-multiple-variable-types">Example 4: Multiple Variable Types</a></h3>
 <p>Mixing different variable types in one function:</p>
-<pre><code class="language-rust">fn main() {
+<pre><code class="language-rust ignore">fn main() {
     let app_name = "myapp";
     let version = "1.0.0";
     let port = 3000;
@@ -345,7 +322,7 @@ main "$@"
 </ul>
 <h3 id="example-5-variables-with-special-characters"><a class="header" href="#example-5-variables-with-special-characters">Example 5: Variables with Special Characters</a></h3>
 <p>bashrs automatically escapes special characters in variable values:</p>
-<pre><code class="language-rust">fn main() {
+<pre><code class="language-rust ignore">fn main() {
     let path = "/usr/local/bin";
     let price = "$100";
     let message = "He said \"hello\"";
@@ -386,7 +363,7 @@ main "$@"
 </ul>
 <h3 id="example-6-path-variables"><a class="header" href="#example-6-path-variables">Example 6: Path Variables</a></h3>
 <p>Common pattern for installation scripts:</p>
-<pre><code class="language-rust">fn main() {
+<pre><code class="language-rust ignore">fn main() {
     let prefix = "/usr/local";
     let bin_dir = "/usr/local/bin";
     let lib_dir = "/usr/local/lib";
@@ -426,7 +403,7 @@ main "$@"
 </ul>
 <h3 id="example-7-paths-with-spaces"><a class="header" href="#example-7-paths-with-spaces">Example 7: Paths with Spaces</a></h3>
 <p>bashrs handles the notorious “path with spaces” problem:</p>
-<pre><code class="language-rust">fn main() {
+<pre><code class="language-rust ignore">fn main() {
     let user_dir = "/home/user/My Documents";
     let app_name = "My App";
     let install_path = "/Program Files/MyApp";
@@ -464,7 +441,7 @@ main "$@"
 </ul>
 <h3 id="example-8-configuration-variables"><a class="header" href="#example-8-configuration-variables">Example 8: Configuration Variables</a></h3>
 <p>Bootstrap installer pattern with multiple configuration values:</p>
-<pre><code class="language-rust">fn main() {
+<pre><code class="language-rust ignore">fn main() {
     let repo_url = "https://github.com/user/repo";
     let branch = "main";
     let deploy_user = "appuser";
@@ -525,7 +502,7 @@ main "$@"
 </ul>
 <h3 id="example-9-variable-naming-conventions"><a class="header" href="#example-9-variable-naming-conventions">Example 9: Variable Naming Conventions</a></h3>
 <p>bashrs preserves Rust naming conventions in generated shell:</p>
-<pre><code class="language-rust">fn main() {
+<pre><code class="language-rust ignore">fn main() {
     let user_name = "alice";
     let home_directory = "/home/alice";
     let max_connections = 100;
@@ -566,7 +543,7 @@ main "$@"
 </ul>
 <h3 id="example-10-unicode-in-variable-values"><a class="header" href="#example-10-unicode-in-variable-values">Example 10: Unicode in Variable Values</a></h3>
 <p>bashrs supports Unicode in string values:</p>
-<pre><code class="language-rust">fn main() {
+<pre><code class="language-rust ignore">fn main() {
     let greeting_ja = "こんにちは";
     let greeting_ru = "Привет";
     let greeting_ar = "مرحبا";
@@ -608,7 +585,7 @@ main "$@"
 <h2 id="core-concepts"><a class="header" href="#core-concepts">Core Concepts</a></h2>
 <h3 id="the-let-binding"><a class="header" href="#the-let-binding">The <code>let</code> Binding</a></h3>
 <p>In bashrs, all variables are declared with <code>let</code>:</p>
-<pre><code class="language-rust">let variable_name = value;</code></pre>
+<pre><code class="language-rust ignore">let variable_name = value;</code></pre>
 <p>This transpiles to shell variable assignment:</p>
 <pre><code class="language-sh">variable_name=value    # For literals
 variable_name="value"  # For strings
@@ -644,7 +621,7 @@ variable_name="value"  # For strings
 <li>Function parameters are local variables</li>
 <li>No global variables (by design - safer)</li>
 </ul>
-<pre><code class="language-rust">fn main() {
+<pre><code class="language-rust ignore">fn main() {
     let x = "main scope";
     foo();  // Can't access x
 }
@@ -654,7 +631,7 @@ fn foo() {
 }</code></pre>
 <h3 id="immutability"><a class="header" href="#immutability">Immutability</a></h3>
 <p>All bashrs variables are <strong>immutable</strong> (v1.0):</p>
-<pre><code class="language-rust">let x = 10;
+<pre><code class="language-rust ignore">let x = 10;
 x = 20;  // ❌ ERROR: Cannot mutate immutable variable</code></pre>
 <p>This is intentional:</p>
 <ul>
@@ -664,7 +641,7 @@ x = 20;  // ❌ ERROR: Cannot mutate immutable variable</code></pre>
 </ul>
 <p><strong>Note</strong>: Mutability (<code>let mut</code>) is planned for v1.1+</p>
 <h2 id="how-transpilation-works"><a class="header" href="#how-transpilation-works">How Transpilation Works</a></h2>
-<pre><code>Rust: let name = "value";
+<pre><code class="language-text">Rust: let name = "value";
       ↓
 AST: LetStmt { pat: Ident("name"), init: Lit("value") }
       ↓
@@ -708,7 +685,7 @@ Shell: function_call "$name"
 </ol>
 <h2 id="common-patterns"><a class="header" href="#common-patterns">Common Patterns</a></h2>
 <h3 id="bootstrap-installer-variables"><a class="header" href="#bootstrap-installer-variables">Bootstrap Installer Variables</a></h3>
-<pre><code class="language-rust">fn main() {
+<pre><code class="language-rust ignore">fn main() {
     let version = "1.0.0";
     let binary = "myapp";
     let prefix = "/usr/local";
@@ -717,7 +694,7 @@ Shell: function_call "$name"
     install(version, binary, prefix, download_url);
 }</code></pre>
 <h3 id="configuration-file-paths"><a class="header" href="#configuration-file-paths">Configuration File Paths</a></h3>
-<pre><code class="language-rust">fn main() {
+<pre><code class="language-rust ignore">fn main() {
     let config_file = "/etc/myapp/config.toml";
     let log_dir = "/var/log/myapp";
     let data_dir = "/var/lib/myapp";
@@ -725,7 +702,7 @@ Shell: function_call "$name"
     setup_config(config_file, log_dir, data_dir);
 }</code></pre>
 <h3 id="service-configuration"><a class="header" href="#service-configuration">Service Configuration</a></h3>
-<pre><code class="language-rust">fn main() {
+<pre><code class="language-rust ignore">fn main() {
     let service_name = "myapp";
     let service_user = "myapp";
     let service_port = 8080;
@@ -769,7 +746,7 @@ Shell: function_call "$name"
 </ul>
 <h2 id="testing-your-examples"><a class="header" href="#testing-your-examples">Testing Your Examples</a></h2>
 <p>To verify variable handling, create a test file:</p>
-<pre><code class="language-rust">// test_vars.rs
+<pre><code class="language-rust ignore">// test_vars.rs
 fn main() {
     let name = "test";
     let count = 42;
@@ -876,8 +853,8 @@ $ bashrs build vars.rs --verify paranoid
         </script>
 
         <script src="ace.js"></script>
-        <script src="mode-rust.js"></script>
         <script src="editor.js"></script>
+        <script src="mode-rust.js"></script>
         <script src="theme-dawn.js"></script>
         <script src="theme-tomorrow_night.js"></script>
 
@@ -890,7 +867,6 @@ $ bashrs build vars.rs --verify paranoid
         <script src="book.js"></script>
 
         <!-- Custom JS scripts -->
-
 
 
     </div>

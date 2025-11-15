@@ -24,41 +24,28 @@
         <link rel="stylesheet" href="fonts/fonts.css">
 
         <!-- Highlight.js Stylesheets -->
-        <link rel="stylesheet" id="highlight-css" href="highlight.css">
-        <link rel="stylesheet" id="tomorrow-night-css" href="tomorrow-night.css">
-        <link rel="stylesheet" id="ayu-highlight-css" href="ayu-highlight.css">
+        <link rel="stylesheet" href="highlight.css">
+        <link rel="stylesheet" href="tomorrow-night.css">
+        <link rel="stylesheet" href="ayu-highlight.css">
 
         <!-- Custom theme stylesheets -->
 
 
-        <!-- Provide site root and default themes to javascript -->
+        <!-- Provide site root to javascript -->
         <script>
-            const path_to_root = "";
-            const default_light_theme = "rust";
-            const default_dark_theme = "coal";
-            window.path_to_searchindex_js = "searchindex.js";
+            var path_to_root = "";
+            var default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "coal" : "rust";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc.js"></script>
     </head>
     <body>
-    <div id="mdbook-help-container">
-        <div id="mdbook-help-popup">
-            <h2 class="mdbook-help-title">Keyboard shortcuts</h2>
-            <div>
-                <p>Press <kbd>←</kbd> or <kbd>→</kbd> to navigate between chapters</p>
-                <p>Press <kbd>S</kbd> or <kbd>/</kbd> to search in the book</p>
-                <p>Press <kbd>?</kbd> to show this help</p>
-                <p>Press <kbd>Esc</kbd> to hide this help</p>
-            </div>
-        </div>
-    </div>
     <div id="body-container">
         <!-- Work around some values being stored in localStorage wrapped in quotes -->
         <script>
             try {
-                let theme = localStorage.getItem('mdbook-theme');
-                let sidebar = localStorage.getItem('mdbook-sidebar');
+                var theme = localStorage.getItem('mdbook-theme');
+                var sidebar = localStorage.getItem('mdbook-sidebar');
 
                 if (theme.startsWith('"') && theme.endsWith('"')) {
                     localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
@@ -72,8 +59,7 @@
 
         <!-- Set the theme before any content is loaded, prevents flash -->
         <script>
-            const default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? default_dark_theme : default_light_theme;
-            let theme;
+            var theme;
             try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
             if (theme === null || theme === undefined) { theme = default_theme; }
             const html = document.documentElement;
@@ -86,20 +72,17 @@
 
         <!-- Hide / unhide sidebar before it is displayed -->
         <script>
-            let sidebar = null;
-            const sidebar_toggle = document.getElementById("sidebar-toggle-anchor");
+            var sidebar = null;
+            var sidebar_toggle = document.getElementById("sidebar-toggle-anchor");
             if (document.body.clientWidth >= 1080) {
                 try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
                 sidebar = sidebar || 'visible';
             } else {
                 sidebar = 'hidden';
-                sidebar_toggle.checked = false;
             }
-            if (sidebar === 'visible') {
-                sidebar_toggle.checked = true;
-            } else {
-                html.classList.remove('sidebar-visible');
-            }
+            sidebar_toggle.checked = sidebar === 'visible';
+            html.classList.remove('sidebar-visible');
+            html.classList.add("sidebar-" + sidebar);
         </script>
 
         <nav id="sidebar" class="sidebar" aria-label="Table of contents">
@@ -126,14 +109,13 @@
                             <i class="fa fa-paint-brush"></i>
                         </button>
                         <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
-                            <li role="none"><button role="menuitem" class="theme" id="default_theme">Auto</button></li>
                             <li role="none"><button role="menuitem" class="theme" id="light">Light</button></li>
                             <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
                             <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
                             <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
                             <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
                         </ul>
-                        <button id="search-toggle" class="icon-button" type="button" title="Search (`/`)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="/ s" aria-controls="searchbar">
+                        <button id="search-toggle" class="icon-button" type="button" title="Search. (Shortkey: s)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="S" aria-controls="searchbar">
                             <i class="fa fa-search"></i>
                         </button>
                     </div>
@@ -147,7 +129,7 @@
                         <a href="https://github.com/paiml/bashrs" title="Git repository" aria-label="Git repository">
                             <i id="git-repository-button" class="fa fa-github"></i>
                         </a>
-                        <a href="https://github.com/paiml/bashrs/edit/main/rash-book/src/ch10-security-tdd.md" title="Suggest an edit" aria-label="Suggest an edit" rel="edit">
+                        <a href="https://github.com/paiml/bashrs/edit/main/rash-book/src/ch10-security-tdd.md" title="Suggest an edit" aria-label="Suggest an edit">
                             <i id="git-edit-button" class="fa fa-edit"></i>
                         </a>
 
@@ -156,12 +138,7 @@
 
                 <div id="search-wrapper" class="hidden">
                     <form id="searchbar-outer" class="searchbar-outer">
-                        <div class="search-wrapper">
-                            <input type="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
-                            <div class="spinner-wrapper">
-                                <i class="fa fa-spinner fa-spin"></i>
-                            </div>
-                        </div>
+                        <input type="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
                     </form>
                     <div id="searchresults-outer" class="searchresults-outer hidden">
                         <div id="searchresults-header" class="searchresults-header"></div>
@@ -236,7 +213,7 @@ rm -rf $TARGET_DIR/*  # ❌ CRITICAL VULNERABILITY
 </code></pre>
 <h3 id="bashrs-protection"><a class="header" href="#bashrs-protection">Bashrs Protection</a></h3>
 <p><strong>Rust Version</strong> (Type-Safe):</p>
-<pre><code class="language-rust">// cleanup.rs - SAFE
+<pre><code class="language-rust ignore">// cleanup.rs - SAFE
 fn cleanup(target_dir: &amp;str) -&gt; Result&lt;(), String&gt; {
     // Rust's type system prevents many injection classes
     let target_path = Path::new(target_dir);
@@ -287,7 +264,7 @@ MESSAGE=$1
 printf '%s\n' "$MESSAGE"  # ✅ Safe!
 </code></pre>
 <h3 id="bashrs-protection-1"><a class="header" href="#bashrs-protection-1">Bashrs Protection</a></h3>
-<pre><code class="language-rust">// Rust version - type safe
+<pre><code class="language-rust ignore">// Rust version - type safe
 fn log_message(msg: &amp;str) {
     println!("{}", msg);  // Safe - no format string vuln
 }</code></pre>
@@ -319,7 +296,7 @@ rm -rf *  # Only runs if cd succeeded
 </code></pre>
 <h2 id="security-best-practices"><a class="header" href="#security-best-practices">Security Best Practices</a></h2>
 <h3 id="1-input-validation"><a class="header" href="#1-input-validation">1. Input Validation</a></h3>
-<pre><code class="language-rust">fn validate_filename(name: &amp;str) -&gt; Result&lt;(), String&gt; {
+<pre><code class="language-rust ignore">fn validate_filename(name: &amp;str) -&gt; Result&lt;(), String&gt; {
     // Allow only alphanumeric, dash, underscore
     if !name.chars().all(|c| c.is_alphanumeric() || c == '-' || c == '_') {
         return Err("Invalid filename".to_string());
@@ -327,7 +304,7 @@ rm -rf *  # Only runs if cd succeeded
     Ok(())
 }</code></pre>
 <h3 id="2-path-restrictions"><a class="header" href="#2-path-restrictions">2. Path Restrictions</a></h3>
-<pre><code class="language-rust">fn validate_path(path: &amp;Path) -&gt; Result&lt;(), String&gt; {
+<pre><code class="language-rust ignore">fn validate_path(path: &amp;Path) -&gt; Result&lt;(), String&gt; {
     // Must be within allowed directory
     if !path.starts_with("/tmp/app/") {
         return Err("Path outside allowed directory".to_string());
@@ -339,7 +316,7 @@ rm -rf *  # Only runs if cd succeeded
 chmod 750 /app/config  # rwxr-x---, not 777
 </code></pre>
 <h3 id="4-no-secrets-in-scripts"><a class="header" href="#4-no-secrets-in-scripts">4. No Secrets in Scripts</a></h3>
-<pre><code class="language-rust">// ❌ NEVER hardcode secrets
+<pre><code class="language-rust ignore">// ❌ NEVER hardcode secrets
 const API_KEY: &amp;str = "secret123";  // VULNERABLE!
 
 // ✅ Use environment variables
@@ -364,7 +341,6 @@ fn get_api_key() -&gt; Result&lt;String, String&gt; {
 <li><strong>Check command failures</strong> - <code>cd ... || exit</code></li>
 <li><strong>Protect dangerous operations</strong> - <code>${VAR:?}</code> for required variables</li>
 </ol>
-<p><strong>Next chapter</strong>: <a href="ch11-bootstrap-tdd.html">Chapter 11: Bootstrap Installers →</a></p>
 
                     </main>
 
@@ -406,8 +382,8 @@ fn get_api_key() -&gt; Result&lt;String, String&gt; {
         </script>
 
         <script src="ace.js"></script>
-        <script src="mode-rust.js"></script>
         <script src="editor.js"></script>
+        <script src="mode-rust.js"></script>
         <script src="theme-dawn.js"></script>
         <script src="theme-tomorrow_night.js"></script>
 
@@ -420,7 +396,6 @@ fn get_api_key() -&gt; Result&lt;String, String&gt; {
         <script src="book.js"></script>
 
         <!-- Custom JS scripts -->
-
 
 
     </div>

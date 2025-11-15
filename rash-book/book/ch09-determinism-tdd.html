@@ -24,41 +24,28 @@
         <link rel="stylesheet" href="fonts/fonts.css">
 
         <!-- Highlight.js Stylesheets -->
-        <link rel="stylesheet" id="highlight-css" href="highlight.css">
-        <link rel="stylesheet" id="tomorrow-night-css" href="tomorrow-night.css">
-        <link rel="stylesheet" id="ayu-highlight-css" href="ayu-highlight.css">
+        <link rel="stylesheet" href="highlight.css">
+        <link rel="stylesheet" href="tomorrow-night.css">
+        <link rel="stylesheet" href="ayu-highlight.css">
 
         <!-- Custom theme stylesheets -->
 
 
-        <!-- Provide site root and default themes to javascript -->
+        <!-- Provide site root to javascript -->
         <script>
-            const path_to_root = "";
-            const default_light_theme = "rust";
-            const default_dark_theme = "coal";
-            window.path_to_searchindex_js = "searchindex.js";
+            var path_to_root = "";
+            var default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "coal" : "rust";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc.js"></script>
     </head>
     <body>
-    <div id="mdbook-help-container">
-        <div id="mdbook-help-popup">
-            <h2 class="mdbook-help-title">Keyboard shortcuts</h2>
-            <div>
-                <p>Press <kbd>←</kbd> or <kbd>→</kbd> to navigate between chapters</p>
-                <p>Press <kbd>S</kbd> or <kbd>/</kbd> to search in the book</p>
-                <p>Press <kbd>?</kbd> to show this help</p>
-                <p>Press <kbd>Esc</kbd> to hide this help</p>
-            </div>
-        </div>
-    </div>
     <div id="body-container">
         <!-- Work around some values being stored in localStorage wrapped in quotes -->
         <script>
             try {
-                let theme = localStorage.getItem('mdbook-theme');
-                let sidebar = localStorage.getItem('mdbook-sidebar');
+                var theme = localStorage.getItem('mdbook-theme');
+                var sidebar = localStorage.getItem('mdbook-sidebar');
 
                 if (theme.startsWith('"') && theme.endsWith('"')) {
                     localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
@@ -72,8 +59,7 @@
 
         <!-- Set the theme before any content is loaded, prevents flash -->
         <script>
-            const default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? default_dark_theme : default_light_theme;
-            let theme;
+            var theme;
             try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
             if (theme === null || theme === undefined) { theme = default_theme; }
             const html = document.documentElement;
@@ -86,20 +72,17 @@
 
         <!-- Hide / unhide sidebar before it is displayed -->
         <script>
-            let sidebar = null;
-            const sidebar_toggle = document.getElementById("sidebar-toggle-anchor");
+            var sidebar = null;
+            var sidebar_toggle = document.getElementById("sidebar-toggle-anchor");
             if (document.body.clientWidth >= 1080) {
                 try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
                 sidebar = sidebar || 'visible';
             } else {
                 sidebar = 'hidden';
-                sidebar_toggle.checked = false;
             }
-            if (sidebar === 'visible') {
-                sidebar_toggle.checked = true;
-            } else {
-                html.classList.remove('sidebar-visible');
-            }
+            sidebar_toggle.checked = sidebar === 'visible';
+            html.classList.remove('sidebar-visible');
+            html.classList.add("sidebar-" + sidebar);
         </script>
 
         <nav id="sidebar" class="sidebar" aria-label="Table of contents">
@@ -126,14 +109,13 @@
                             <i class="fa fa-paint-brush"></i>
                         </button>
                         <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
-                            <li role="none"><button role="menuitem" class="theme" id="default_theme">Auto</button></li>
                             <li role="none"><button role="menuitem" class="theme" id="light">Light</button></li>
                             <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
                             <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
                             <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
                             <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
                         </ul>
-                        <button id="search-toggle" class="icon-button" type="button" title="Search (`/`)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="/ s" aria-controls="searchbar">
+                        <button id="search-toggle" class="icon-button" type="button" title="Search. (Shortkey: s)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="S" aria-controls="searchbar">
                             <i class="fa fa-search"></i>
                         </button>
                     </div>
@@ -147,7 +129,7 @@
                         <a href="https://github.com/paiml/bashrs" title="Git repository" aria-label="Git repository">
                             <i id="git-repository-button" class="fa fa-github"></i>
                         </a>
-                        <a href="https://github.com/paiml/bashrs/edit/main/rash-book/src/ch09-determinism-tdd.md" title="Suggest an edit" aria-label="Suggest an edit" rel="edit">
+                        <a href="https://github.com/paiml/bashrs/edit/main/rash-book/src/ch09-determinism-tdd.md" title="Suggest an edit" aria-label="Suggest an edit">
                             <i id="git-edit-button" class="fa fa-edit"></i>
                         </a>
 
@@ -156,12 +138,7 @@
 
                 <div id="search-wrapper" class="hidden">
                     <form id="searchbar-outer" class="searchbar-outer">
-                        <div class="search-wrapper">
-                            <input type="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
-                            <div class="spinner-wrapper">
-                                <i class="fa fa-spinner fa-spin"></i>
-                            </div>
-                        </div>
+                        <input type="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
                     </form>
                     <div id="searchresults-outer" class="searchresults-outer hidden">
                         <div id="searchresults-header" class="searchresults-header"></div>
@@ -231,7 +208,7 @@ echo "Logs: $LOG_FILE"
 <h3 id="the-solution-purification"><a class="header" href="#the-solution-purification">The Solution: Purification</a></h3>
 <p>Rash automatically detects and fixes these issues:</p>
 <p><strong>Stage 1: Bash → Rash</strong> (with validation)</p>
-<pre><code class="language-rust">// deploy.rash
+<pre><code class="language-rust ignore">// deploy.rash
 fun deploy() -&gt; Result&lt;(), String&gt; {
     // Rash enforces determinism
     let port = 8080;  // Fixed port, not random
@@ -272,7 +249,7 @@ deploy() {
 deploy
 </code></pre>
 <p><strong>Purification Report</strong>:</p>
-<pre><code>✅ PURIFIED: 5 issues fixed
+<pre><code class="language-text">✅ PURIFIED: 5 issues fixed
   - Removed $RANDOM (non-deterministic)
   - Removed $(date +%s) (non-deterministic)
   - Added -p to mkdir (idempotency)
@@ -321,7 +298,7 @@ echo "Configuration $CONFIG_ID saved to $BACKUP"
 <li>Random backup filename</li>
 </ol>
 <h3 id="rash-version-with-purification"><a class="header" href="#rash-version-with-purification">Rash Version with Purification</a></h3>
-<pre><code class="language-rust">// configure_system.rash
+<pre><code class="language-rust ignore">// configure_system.rash
 use std::fs;
 use std::path::Path;
 
@@ -477,7 +454,7 @@ set_permissions() {
 configure_system
 </code></pre>
 <h3 id="purification-report"><a class="header" href="#purification-report">Purification Report</a></h3>
-<pre><code>✅ PURIFICATION COMPLETE
+<pre><code class="language-text">✅ PURIFICATION COMPLETE
 
 Issues Fixed: 5
 
@@ -543,7 +520,7 @@ echo "Logs: $LOG_FILE"
 <li><code>ln -s</code> without <code>-f</code> - fails if symlink exists</li>
 </ol>
 <h3 id="rash-version-with-purification-1"><a class="header" href="#rash-version-with-purification-1">Rash Version with Purification</a></h3>
-<pre><code class="language-rust">// deploy_app.rash
+<pre><code class="language-rust ignore">// deploy_app.rash
 use std::fs;
 use std::path::Path;
 use std::os::unix::fs as unix_fs;
@@ -764,7 +741,7 @@ append_to_log() {
 deploy_app "$1"
 </code></pre>
 <h3 id="purification-report-1"><a class="header" href="#purification-report-1">Purification Report</a></h3>
-<pre><code>✅ PURIFICATION COMPLETE
+<pre><code class="language-text">✅ PURIFICATION COMPLETE
 
 Issues Fixed: 7
 
@@ -791,7 +768,7 @@ Quality Metrics:
 <h2 id="94-the-purification-pipeline"><a class="header" href="#94-the-purification-pipeline">9.4 The Purification Pipeline</a></h2>
 <p>Rash’s purification happens in multiple stages:</p>
 <h3 id="stage-1-detection"><a class="header" href="#stage-1-detection">Stage 1: Detection</a></h3>
-<pre><code class="language-rust">// Rash detects non-deterministic constructs
+<pre><code class="language-rust ignore">// Rash detects non-deterministic constructs
 pub struct NonDeterministicDetector {
     issues: Vec&lt;PurificationIssue&gt;,
 }
@@ -818,7 +795,7 @@ impl NonDeterministicDetector {
     }
 }</code></pre>
 <h3 id="stage-2-transformation"><a class="header" href="#stage-2-transformation">Stage 2: Transformation</a></h3>
-<pre><code class="language-rust">// Rash transforms to deterministic equivalents
+<pre><code class="language-rust ignore">// Rash transforms to deterministic equivalents
 pub struct DeterministicTransformer {
     fixes: Vec&lt;PurificationFix&gt;,
 }
@@ -857,7 +834,7 @@ impl DeterministicTransformer {
     }
 }</code></pre>
 <h3 id="stage-3-verification"><a class="header" href="#stage-3-verification">Stage 3: Verification</a></h3>
-<pre><code class="language-rust">// Rash verifies the purified output
+<pre><code class="language-rust ignore">// Rash verifies the purified output
 pub struct PurificationVerifier {
     determinism_tests: usize,
     idempotency_tests: usize,
@@ -955,7 +932,7 @@ work_dir="/tmp/work-space"
 <h2 id="96-purification-quality-metrics"><a class="header" href="#96-purification-quality-metrics">9.6 Purification Quality Metrics</a></h2>
 <h3 id="metrics-tracked"><a class="header" href="#metrics-tracked">Metrics Tracked</a></h3>
 <p>Rash tracks comprehensive purification metrics:</p>
-<pre><code>Purification Report for: deploy_app.rash
+<pre><code class="language-text">Purification Report for: deploy_app.rash
 ========================================
 
 Non-Determinism Removed: 5 issues
@@ -1002,7 +979,7 @@ done
 # All runs should succeed
 </code></pre>
 <h3 id="property-based-testing-for-purification"><a class="header" href="#property-based-testing-for-purification">Property-Based Testing for Purification</a></h3>
-<pre><code class="language-rust">#[cfg(test)]
+<pre><code class="language-rust ignore">#[cfg(test)]
 mod purification_property_tests {
     use super::*;
     use proptest::prelude::*;
@@ -1091,7 +1068,7 @@ echo "Backup ID: $BACKUP_ID"
 echo "File: $BACKUP_FILE"
 </code></pre>
 <h3 id="purified-rash-version"><a class="header" href="#purified-rash-version">Purified Rash Version</a></h3>
-<pre><code class="language-rust">// backup_database.rash
+<pre><code class="language-rust ignore">// backup_database.rash
 use std::fs;
 use std::path::Path;
 
@@ -1289,7 +1266,7 @@ append_to_log() {
 backup_database "$1" "$2"
 </code></pre>
 <h3 id="purification-report-2"><a class="header" href="#purification-report-2">Purification Report</a></h3>
-<pre><code>✅ PURIFICATION COMPLETE: backup_database.rash
+<pre><code class="language-text">✅ PURIFICATION COMPLETE: backup_database.rash
 
 Issues Fixed: 6
 
@@ -1401,8 +1378,8 @@ Property tests verify all guarantees</li>
         </script>
 
         <script src="ace.js"></script>
-        <script src="mode-rust.js"></script>
         <script src="editor.js"></script>
+        <script src="mode-rust.js"></script>
         <script src="theme-dawn.js"></script>
         <script src="theme-tomorrow_night.js"></script>
 
@@ -1415,7 +1392,6 @@ Property tests verify all guarantees</li>
         <script src="book.js"></script>
 
         <!-- Custom JS scripts -->
-
 
 
     </div>

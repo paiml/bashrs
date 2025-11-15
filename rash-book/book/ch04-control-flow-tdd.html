@@ -24,41 +24,28 @@
         <link rel="stylesheet" href="fonts/fonts.css">
 
         <!-- Highlight.js Stylesheets -->
-        <link rel="stylesheet" id="highlight-css" href="highlight.css">
-        <link rel="stylesheet" id="tomorrow-night-css" href="tomorrow-night.css">
-        <link rel="stylesheet" id="ayu-highlight-css" href="ayu-highlight.css">
+        <link rel="stylesheet" href="highlight.css">
+        <link rel="stylesheet" href="tomorrow-night.css">
+        <link rel="stylesheet" href="ayu-highlight.css">
 
         <!-- Custom theme stylesheets -->
 
 
-        <!-- Provide site root and default themes to javascript -->
+        <!-- Provide site root to javascript -->
         <script>
-            const path_to_root = "";
-            const default_light_theme = "rust";
-            const default_dark_theme = "coal";
-            window.path_to_searchindex_js = "searchindex.js";
+            var path_to_root = "";
+            var default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "coal" : "rust";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc.js"></script>
     </head>
     <body>
-    <div id="mdbook-help-container">
-        <div id="mdbook-help-popup">
-            <h2 class="mdbook-help-title">Keyboard shortcuts</h2>
-            <div>
-                <p>Press <kbd>←</kbd> or <kbd>→</kbd> to navigate between chapters</p>
-                <p>Press <kbd>S</kbd> or <kbd>/</kbd> to search in the book</p>
-                <p>Press <kbd>?</kbd> to show this help</p>
-                <p>Press <kbd>Esc</kbd> to hide this help</p>
-            </div>
-        </div>
-    </div>
     <div id="body-container">
         <!-- Work around some values being stored in localStorage wrapped in quotes -->
         <script>
             try {
-                let theme = localStorage.getItem('mdbook-theme');
-                let sidebar = localStorage.getItem('mdbook-sidebar');
+                var theme = localStorage.getItem('mdbook-theme');
+                var sidebar = localStorage.getItem('mdbook-sidebar');
 
                 if (theme.startsWith('"') && theme.endsWith('"')) {
                     localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
@@ -72,8 +59,7 @@
 
         <!-- Set the theme before any content is loaded, prevents flash -->
         <script>
-            const default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? default_dark_theme : default_light_theme;
-            let theme;
+            var theme;
             try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
             if (theme === null || theme === undefined) { theme = default_theme; }
             const html = document.documentElement;
@@ -86,20 +72,17 @@
 
         <!-- Hide / unhide sidebar before it is displayed -->
         <script>
-            let sidebar = null;
-            const sidebar_toggle = document.getElementById("sidebar-toggle-anchor");
+            var sidebar = null;
+            var sidebar_toggle = document.getElementById("sidebar-toggle-anchor");
             if (document.body.clientWidth >= 1080) {
                 try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
                 sidebar = sidebar || 'visible';
             } else {
                 sidebar = 'hidden';
-                sidebar_toggle.checked = false;
             }
-            if (sidebar === 'visible') {
-                sidebar_toggle.checked = true;
-            } else {
-                html.classList.remove('sidebar-visible');
-            }
+            sidebar_toggle.checked = sidebar === 'visible';
+            html.classList.remove('sidebar-visible');
+            html.classList.add("sidebar-" + sidebar);
         </script>
 
         <nav id="sidebar" class="sidebar" aria-label="Table of contents">
@@ -126,14 +109,13 @@
                             <i class="fa fa-paint-brush"></i>
                         </button>
                         <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
-                            <li role="none"><button role="menuitem" class="theme" id="default_theme">Auto</button></li>
                             <li role="none"><button role="menuitem" class="theme" id="light">Light</button></li>
                             <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
                             <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
                             <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
                             <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
                         </ul>
-                        <button id="search-toggle" class="icon-button" type="button" title="Search (`/`)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="/ s" aria-controls="searchbar">
+                        <button id="search-toggle" class="icon-button" type="button" title="Search. (Shortkey: s)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="S" aria-controls="searchbar">
                             <i class="fa fa-search"></i>
                         </button>
                     </div>
@@ -147,7 +129,7 @@
                         <a href="https://github.com/paiml/bashrs" title="Git repository" aria-label="Git repository">
                             <i id="git-repository-button" class="fa fa-github"></i>
                         </a>
-                        <a href="https://github.com/paiml/bashrs/edit/main/rash-book/src/ch04-control-flow-tdd.md" title="Suggest an edit" aria-label="Suggest an edit" rel="edit">
+                        <a href="https://github.com/paiml/bashrs/edit/main/rash-book/src/ch04-control-flow-tdd.md" title="Suggest an edit" aria-label="Suggest an edit">
                             <i id="git-edit-button" class="fa fa-edit"></i>
                         </a>
 
@@ -156,12 +138,7 @@
 
                 <div id="search-wrapper" class="hidden">
                     <form id="searchbar-outer" class="searchbar-outer">
-                        <div class="search-wrapper">
-                            <input type="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
-                            <div class="spinner-wrapper">
-                                <i class="fa fa-spinner fa-spin"></i>
-                            </div>
-                        </div>
+                        <input type="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
                     </form>
                     <div id="searchresults-outer" class="searchresults-outer hidden">
                         <div id="searchresults-header" class="searchresults-header"></div>
@@ -201,7 +178,7 @@
 <h2 id="test-driven-examples"><a class="header" href="#test-driven-examples">Test-Driven Examples</a></h2>
 <h3 id="example-1-basic-if-statement"><a class="header" href="#example-1-basic-if-statement">Example 1: Basic If Statement</a></h3>
 <p>The simplest conditional - check and act:</p>
-<pre><code class="language-rust">fn main() {
+<pre><code class="language-rust ignore">fn main() {
     let x = 10;
     if x &gt; 5 {
         println("x is greater than 5");
@@ -235,7 +212,7 @@ main "$@"
 </ul>
 <h3 id="example-2-if-else"><a class="header" href="#example-2-if-else">Example 2: If-Else</a></h3>
 <p>Basic branching with two paths:</p>
-<pre><code class="language-rust">fn main() {
+<pre><code class="language-rust ignore">fn main() {
     let enabled = true;
     if enabled {
         println("Feature enabled");
@@ -273,7 +250,7 @@ main "$@"
 </ul>
 <h3 id="example-3-if-else-if-else-chain"><a class="header" href="#example-3-if-else-if-else-chain">Example 3: If-Else-If-Else Chain</a></h3>
 <p>Multiple conditions with fallback:</p>
-<pre><code class="language-rust">fn main() {
+<pre><code class="language-rust ignore">fn main() {
     let x = 42;
     if x &lt; 0 {
         println("negative");
@@ -319,7 +296,7 @@ main "$@"
 </ul>
 <h3 id="example-4-integer-comparison-operators"><a class="header" href="#example-4-integer-comparison-operators">Example 4: Integer Comparison Operators</a></h3>
 <p>All numeric comparison operators:</p>
-<pre><code class="language-rust">fn main() {
+<pre><code class="language-rust ignore">fn main() {
     let x = 10;
     let y = 20;
 
@@ -399,7 +376,7 @@ main "$@"
 </ul>
 <h3 id="example-5-string-comparison"><a class="header" href="#example-5-string-comparison">Example 5: String Comparison</a></h3>
 <p>Comparing string values:</p>
-<pre><code class="language-rust">fn main() {
+<pre><code class="language-rust ignore">fn main() {
     let env = "production";
 
     if env == "production" {
@@ -443,7 +420,7 @@ main "$@"
 </ul>
 <h3 id="example-6-logical-and-"><a class="header" href="#example-6-logical-and-">Example 6: Logical AND (&amp;&amp;)</a></h3>
 <p>Multiple conditions must all be true:</p>
-<pre><code class="language-rust">fn main() {
+<pre><code class="language-rust ignore">fn main() {
     let x = 10;
     let y = 20;
 
@@ -480,7 +457,7 @@ main "$@"
 </ul>
 <h3 id="example-7-logical-or-"><a class="header" href="#example-7-logical-or-">Example 7: Logical OR (||)</a></h3>
 <p>At least one condition must be true:</p>
-<pre><code class="language-rust">fn main() {
+<pre><code class="language-rust ignore">fn main() {
     let mode = "debug";
 
     if mode == "debug" || mode == "test" {
@@ -515,7 +492,7 @@ main "$@"
 </ul>
 <h3 id="example-8-not-operator-"><a class="header" href="#example-8-not-operator-">Example 8: NOT Operator (!)</a></h3>
 <p>Negating conditions:</p>
-<pre><code class="language-rust">fn main() {
+<pre><code class="language-rust ignore">fn main() {
     let enabled = false;
 
     if !enabled {
@@ -550,7 +527,7 @@ main "$@"
 </ul>
 <h3 id="example-9-nested-if-statements"><a class="header" href="#example-9-nested-if-statements">Example 9: Nested If Statements</a></h3>
 <p>Conditions within conditions:</p>
-<pre><code class="language-rust">fn main() {
+<pre><code class="language-rust ignore">fn main() {
     let x = 15;
     let y = 20;
 
@@ -600,7 +577,7 @@ main "$@"
 </ul>
 <h3 id="example-10-conditional-function-calls"><a class="header" href="#example-10-conditional-function-calls">Example 10: Conditional Function Calls</a></h3>
 <p>Using if to control which functions execute:</p>
-<pre><code class="language-rust">fn main() {
+<pre><code class="language-rust ignore">fn main() {
     let mode = "install";
 
     if mode == "install" {
@@ -663,7 +640,7 @@ main "$@"
 </ul>
 <h3 id="example-11-early-return-pattern"><a class="header" href="#example-11-early-return-pattern">Example 11: Early Return Pattern</a></h3>
 <p>Exit function early on condition:</p>
-<pre><code class="language-rust">fn main() {
+<pre><code class="language-rust ignore">fn main() {
     validate_and_execute();
 }
 
@@ -728,7 +705,7 @@ main "$@"
 </ul>
 <h3 id="example-12-guard-clauses-pattern"><a class="header" href="#example-12-guard-clauses-pattern">Example 12: Guard Clauses Pattern</a></h3>
 <p>Multiple guard clauses for validation:</p>
-<pre><code class="language-rust">fn main() {
+<pre><code class="language-rust ignore">fn main() {
     deploy("myapp", "production");
 }
 
@@ -795,7 +772,7 @@ main "$@"
 </ul>
 <h3 id="example-13-complex-boolean-logic"><a class="header" href="#example-13-complex-boolean-logic">Example 13: Complex Boolean Logic</a></h3>
 <p>Combining AND, OR, and NOT:</p>
-<pre><code class="language-rust">fn main() {
+<pre><code class="language-rust ignore">fn main() {
     let x = 10;
     let y = 20;
     let z = 30;
@@ -835,7 +812,7 @@ main "$@"
 </ul>
 <h3 id="example-14-boolean-variable-conditions"><a class="header" href="#example-14-boolean-variable-conditions">Example 14: Boolean Variable Conditions</a></h3>
 <p>Using boolean variables directly:</p>
-<pre><code class="language-rust">fn main() {
+<pre><code class="language-rust ignore">fn main() {
     let ssl_enabled = true;
     let debug_mode = false;
 
@@ -889,7 +866,7 @@ main "$@"
 </ul>
 <h3 id="example-15-installer-conditional-logic"><a class="header" href="#example-15-installer-conditional-logic">Example 15: Installer Conditional Logic</a></h3>
 <p>Real-world bootstrap installer pattern:</p>
-<pre><code class="language-rust">fn main() {
+<pre><code class="language-rust ignore">fn main() {
     let mode = "install";
     let force = false;
     let version = "1.0.0";
@@ -980,7 +957,7 @@ main "$@"
 <h2 id="core-concepts"><a class="header" href="#core-concepts">Core Concepts</a></h2>
 <h3 id="if-statements"><a class="header" href="#if-statements">If Statements</a></h3>
 <p>bashrs if statements map directly to shell conditionals:</p>
-<pre><code class="language-rust">if condition {
+<pre><code class="language-rust ignore">if condition {
     // then block
 } else {
     // else block
@@ -1009,17 +986,17 @@ fi
 <li><code>||</code> (OR): At least one condition must be true</li>
 <li><code>!</code> (NOT): Negates condition</li>
 </ul>
-<pre><code class="language-rust">if x &gt; 0 &amp;&amp; y &lt; 100 { }   // AND
+<pre><code class="language-rust ignore">if x &gt; 0 &amp;&amp; y &lt; 100 { }   // AND
 if a == 1 || b == 2 { }   // OR
 if !enabled { }            // NOT</code></pre>
 <h3 id="boolean-values"><a class="header" href="#boolean-values">Boolean Values</a></h3>
 <p>Boolean variables are compared explicitly:</p>
-<pre><code class="language-rust">let flag = true;
+<pre><code class="language-rust ignore">let flag = true;
 if flag { }        // → [ "$flag" = true ]
 if !flag { }       // → [ "$flag" != true ]</code></pre>
 <h3 id="return-statements"><a class="header" href="#return-statements">Return Statements</a></h3>
 <p>Early exit from functions:</p>
-<pre><code class="language-rust">fn validate() {
+<pre><code class="language-rust ignore">fn validate() {
     if error {
         return;  // Exit function early
     }
@@ -1034,7 +1011,7 @@ if !flag { }       // → [ "$flag" != true ]</code></pre>
 </ol>
 <p>Use Rust parentheses <code>()</code> to control precedence (transpiled correctly).</p>
 <h2 id="how-transpilation-works"><a class="header" href="#how-transpilation-works">How Transpilation Works</a></h2>
-<pre><code>Rust: if x &gt; 10 { println("big"); }
+<pre><code class="language-text">Rust: if x &gt; 10 { println("big"); }
       ↓
 AST: If { cond: BinaryOp(Gt, Var(x), Lit(10)), then: [Call(println, ...)] }
       ↓
@@ -1074,7 +1051,7 @@ fi
 </ol>
 <h2 id="common-patterns"><a class="header" href="#common-patterns">Common Patterns</a></h2>
 <h3 id="mode-dispatcher"><a class="header" href="#mode-dispatcher">Mode Dispatcher</a></h3>
-<pre><code class="language-rust">fn main() {
+<pre><code class="language-rust ignore">fn main() {
     let mode = "install";
     if mode == "install" {
         install();
@@ -1083,7 +1060,7 @@ fi
     }
 }</code></pre>
 <h3 id="feature-flags"><a class="header" href="#feature-flags">Feature Flags</a></h3>
-<pre><code class="language-rust">fn main() {
+<pre><code class="language-rust ignore">fn main() {
     let ssl = true;
     let debug = false;
 
@@ -1095,7 +1072,7 @@ fi
     }
 }</code></pre>
 <h3 id="validation-chain"><a class="header" href="#validation-chain">Validation Chain</a></h3>
-<pre><code class="language-rust">fn deploy() {
+<pre><code class="language-rust ignore">fn deploy() {
     if !check_network() {
         return;
     }
@@ -1141,7 +1118,7 @@ fi
 </ul>
 <h2 id="testing-your-examples"><a class="header" href="#testing-your-examples">Testing Your Examples</a></h2>
 <p>Create a test file with conditionals:</p>
-<pre><code class="language-rust">// test_control.rs
+<pre><code class="language-rust ignore">// test_control.rs
 fn main() {
     let x = 10;
 
@@ -1252,8 +1229,8 @@ $ bashrs build control.rs --verify paranoid
         </script>
 
         <script src="ace.js"></script>
-        <script src="mode-rust.js"></script>
         <script src="editor.js"></script>
+        <script src="mode-rust.js"></script>
         <script src="theme-dawn.js"></script>
         <script src="theme-tomorrow_night.js"></script>
 
@@ -1266,7 +1243,6 @@ $ bashrs build control.rs --verify paranoid
         <script src="book.js"></script>
 
         <!-- Custom JS scripts -->
-
 
 
     </div>

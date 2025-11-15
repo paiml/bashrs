@@ -24,41 +24,28 @@
         <link rel="stylesheet" href="fonts/fonts.css">
 
         <!-- Highlight.js Stylesheets -->
-        <link rel="stylesheet" id="highlight-css" href="highlight.css">
-        <link rel="stylesheet" id="tomorrow-night-css" href="tomorrow-night.css">
-        <link rel="stylesheet" id="ayu-highlight-css" href="ayu-highlight.css">
+        <link rel="stylesheet" href="highlight.css">
+        <link rel="stylesheet" href="tomorrow-night.css">
+        <link rel="stylesheet" href="ayu-highlight.css">
 
         <!-- Custom theme stylesheets -->
 
 
-        <!-- Provide site root and default themes to javascript -->
+        <!-- Provide site root to javascript -->
         <script>
-            const path_to_root = "";
-            const default_light_theme = "rust";
-            const default_dark_theme = "coal";
-            window.path_to_searchindex_js = "searchindex.js";
+            var path_to_root = "";
+            var default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "coal" : "rust";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc.js"></script>
     </head>
     <body>
-    <div id="mdbook-help-container">
-        <div id="mdbook-help-popup">
-            <h2 class="mdbook-help-title">Keyboard shortcuts</h2>
-            <div>
-                <p>Press <kbd>←</kbd> or <kbd>→</kbd> to navigate between chapters</p>
-                <p>Press <kbd>S</kbd> or <kbd>/</kbd> to search in the book</p>
-                <p>Press <kbd>?</kbd> to show this help</p>
-                <p>Press <kbd>Esc</kbd> to hide this help</p>
-            </div>
-        </div>
-    </div>
     <div id="body-container">
         <!-- Work around some values being stored in localStorage wrapped in quotes -->
         <script>
             try {
-                let theme = localStorage.getItem('mdbook-theme');
-                let sidebar = localStorage.getItem('mdbook-sidebar');
+                var theme = localStorage.getItem('mdbook-theme');
+                var sidebar = localStorage.getItem('mdbook-sidebar');
 
                 if (theme.startsWith('"') && theme.endsWith('"')) {
                     localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
@@ -72,8 +59,7 @@
 
         <!-- Set the theme before any content is loaded, prevents flash -->
         <script>
-            const default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? default_dark_theme : default_light_theme;
-            let theme;
+            var theme;
             try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
             if (theme === null || theme === undefined) { theme = default_theme; }
             const html = document.documentElement;
@@ -86,20 +72,17 @@
 
         <!-- Hide / unhide sidebar before it is displayed -->
         <script>
-            let sidebar = null;
-            const sidebar_toggle = document.getElementById("sidebar-toggle-anchor");
+            var sidebar = null;
+            var sidebar_toggle = document.getElementById("sidebar-toggle-anchor");
             if (document.body.clientWidth >= 1080) {
                 try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
                 sidebar = sidebar || 'visible';
             } else {
                 sidebar = 'hidden';
-                sidebar_toggle.checked = false;
             }
-            if (sidebar === 'visible') {
-                sidebar_toggle.checked = true;
-            } else {
-                html.classList.remove('sidebar-visible');
-            }
+            sidebar_toggle.checked = sidebar === 'visible';
+            html.classList.remove('sidebar-visible');
+            html.classList.add("sidebar-" + sidebar);
         </script>
 
         <nav id="sidebar" class="sidebar" aria-label="Table of contents">
@@ -126,14 +109,13 @@
                             <i class="fa fa-paint-brush"></i>
                         </button>
                         <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
-                            <li role="none"><button role="menuitem" class="theme" id="default_theme">Auto</button></li>
                             <li role="none"><button role="menuitem" class="theme" id="light">Light</button></li>
                             <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
                             <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
                             <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
                             <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
                         </ul>
-                        <button id="search-toggle" class="icon-button" type="button" title="Search (`/`)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="/ s" aria-controls="searchbar">
+                        <button id="search-toggle" class="icon-button" type="button" title="Search. (Shortkey: s)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="S" aria-controls="searchbar">
                             <i class="fa fa-search"></i>
                         </button>
                     </div>
@@ -147,7 +129,7 @@
                         <a href="https://github.com/paiml/bashrs" title="Git repository" aria-label="Git repository">
                             <i id="git-repository-button" class="fa fa-github"></i>
                         </a>
-                        <a href="https://github.com/paiml/bashrs/edit/main/rash-book/src/ch21-makefile-linting-tdd.md" title="Suggest an edit" aria-label="Suggest an edit" rel="edit">
+                        <a href="https://github.com/paiml/bashrs/edit/main/rash-book/src/ch21-makefile-linting-tdd.md" title="Suggest an edit" aria-label="Suggest an edit">
                             <i id="git-edit-button" class="fa fa-edit"></i>
                         </a>
 
@@ -156,12 +138,7 @@
 
                 <div id="search-wrapper" class="hidden">
                     <form id="searchbar-outer" class="searchbar-outer">
-                        <div class="search-wrapper">
-                            <input type="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
-                            <div class="spinner-wrapper">
-                                <i class="fa fa-spinner fa-spin"></i>
-                            </div>
-                        </div>
+                        <input type="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
                     </form>
                     <div id="searchresults-outer" class="searchresults-outer hidden">
                         <div id="searchresults-header" class="searchresults-header"></div>
@@ -196,7 +173,7 @@
 <p><strong>Problem</strong>: File globbing with <code>$(wildcard)</code> produces system-dependent ordering, causing non-deterministic builds.</p>
 <p><strong>Detection</strong>: Finds <code>$(wildcard ...)</code> without <code>$(sort ...)</code> wrapper.</p>
 <h3 id="example-representing-linting-results"><a class="header" href="#example-representing-linting-results">Example: Representing Linting Results</a></h3>
-<pre><code class="language-rust">#[derive(Debug)]
+<pre><code class="language-rust ignore">#[derive(Debug)]
 struct LintDiagnostic {
     line_number: usize,
     message: String,
@@ -229,7 +206,7 @@ fn main() {
     }
 }</code></pre>
 <h3 id="example-checking-for-wildcard-pattern"><a class="header" href="#example-checking-for-wildcard-pattern">Example: Checking for Wildcard Pattern</a></h3>
-<pre><code class="language-rust">fn has_unsorted_wildcard(line: &amp;str) -&gt; bool {
+<pre><code class="language-rust ignore">fn has_unsorted_wildcard(line: &amp;str) -&gt; bool {
     line.contains("$(wildcard") &amp;&amp; !line.contains("$(sort")
 }
 
@@ -248,7 +225,7 @@ fn main() {
 <p><strong>Problem</strong>: Using <code>mkdir</code> without <code>-p</code> flag fails on second run if directory exists.</p>
 <p><strong>Detection</strong>: Finds <code>mkdir</code> in recipe commands (lines starting with tab).</p>
 <h3 id="example-detecting-mkdir-in-recipes"><a class="header" href="#example-detecting-mkdir-in-recipes">Example: Detecting mkdir in Recipes</a></h3>
-<pre><code class="language-rust">fn is_recipe_line(line: &amp;str) -&gt; bool {
+<pre><code class="language-rust ignore">fn is_recipe_line(line: &amp;str) -&gt; bool {
     line.starts_with('\t')
 }
 
@@ -272,7 +249,7 @@ fn main() {
     }
 }</code></pre>
 <h3 id="example-applying-mkdir-fix"><a class="header" href="#example-applying-mkdir-fix">Example: Applying mkdir Fix</a></h3>
-<pre><code class="language-rust">fn fix_mkdir(line: &amp;str) -&gt; String {
+<pre><code class="language-rust ignore">fn fix_mkdir(line: &amp;str) -&gt; String {
     if line.contains("mkdir") &amp;&amp; !line.contains("mkdir -p") {
         line.replace("mkdir ", "mkdir -p ")
     } else {
@@ -293,7 +270,7 @@ fn main() {
 <p><strong>Problem</strong>: Unquoted variables in dangerous commands (rm, cp, mv) can cause word splitting and security issues.</p>
 <p><strong>Detection</strong>: Finds unquoted <code>$VAR</code> or <code>$(VAR)</code> in rm, cp, mv, chmod, chown commands.</p>
 <h3 id="example-variable-quoting-checker"><a class="header" href="#example-variable-quoting-checker">Example: Variable Quoting Checker</a></h3>
-<pre><code class="language-rust">fn is_dangerous_command(line: &amp;str) -&gt; bool {
+<pre><code class="language-rust ignore">fn is_dangerous_command(line: &amp;str) -&gt; bool {
     let dangerous = ["rm ", "cp ", "mv ", "chmod ", "chown "];
     dangerous.iter().any(|cmd| line.contains(cmd))
 }
@@ -332,7 +309,7 @@ fn main() {
 <p><strong>Problem</strong>: Targets with common names (clean, test, install) conflict with files of the same name.</p>
 <p><strong>Detection</strong>: Checks if common non-file targets are marked as <code>.PHONY</code>.</p>
 <h3 id="example-tracking-phony-targets"><a class="header" href="#example-tracking-phony-targets">Example: Tracking PHONY Targets</a></h3>
-<pre><code class="language-rust">use std::collections::HashSet;
+<pre><code class="language-rust ignore">use std::collections::HashSet;
 
 fn main() {
     let common_phony_targets = vec![
@@ -387,7 +364,7 @@ test:
 <p><strong>Problem</strong>: Using <code>=</code> with <code>$(shell ...)</code> causes command to re-execute every time variable is referenced.</p>
 <p><strong>Detection</strong>: Finds <code>=</code> (not <code>:=</code>, <code>+=</code>, <code>?=</code>, <code>!=</code>) followed by <code>$(shell ...)</code>.</p>
 <h3 id="example-assignment-type-detector"><a class="header" href="#example-assignment-type-detector">Example: Assignment Type Detector</a></h3>
-<pre><code class="language-rust">#[derive(Debug, PartialEq)]
+<pre><code class="language-rust ignore">#[derive(Debug, PartialEq)]
 enum AssignmentType {
     Recursive,      // =
     Immediate,      // :=
@@ -429,7 +406,7 @@ fn main() {
     }
 }</code></pre>
 <h3 id="example-shell-command-impact"><a class="header" href="#example-shell-command-impact">Example: Shell Command Impact</a></h3>
-<pre><code class="language-rust">fn main() {
+<pre><code class="language-rust ignore">fn main() {
     println!("=== Recursive Assignment (=) ===");
     println!("VERSION = $(shell git describe)");
     println!("  - Command runs EVERY time VERSION is referenced");
@@ -454,7 +431,7 @@ fn main() {
 <hr />
 <h2 id="complete-linting-workflow"><a class="header" href="#complete-linting-workflow">Complete Linting Workflow</a></h2>
 <h3 id="example-full-makefile-analyzer"><a class="header" href="#example-full-makefile-analyzer">Example: Full Makefile Analyzer</a></h3>
-<pre><code class="language-rust">use std::collections::HashMap;
+<pre><code class="language-rust ignore">use std::collections::HashMap;
 
 #[derive(Debug)]
 struct LintResults {
@@ -532,7 +509,7 @@ clean:
 <hr />
 <h2 id="quality-enforcement-integration"><a class="header" href="#quality-enforcement-integration">Quality Enforcement Integration</a></h2>
 <h3 id="example-cicd-quality-gate-simulator"><a class="header" href="#example-cicd-quality-gate-simulator">Example: CI/CD Quality Gate Simulator</a></h3>
-<pre><code class="language-rust">fn main() {
+<pre><code class="language-rust ignore">fn main() {
     let makefile_has_issues = true;
     let max_allowed_issues = 0;
     let actual_issues = 4;
@@ -558,7 +535,7 @@ clean:
     }
 }</code></pre>
 <h3 id="example-pre-commit-hook-logic"><a class="header" href="#example-pre-commit-hook-logic">Example: Pre-commit Hook Logic</a></h3>
-<pre><code class="language-rust">use std::process::Command;
+<pre><code class="language-rust ignore">use std::process::Command;
 
 fn simulate_precommit_check() -&gt; Result&lt;(), String&gt; {
     println!("🔒 Running pre-commit checks...");
@@ -664,8 +641,8 @@ fn main() {
         </script>
 
         <script src="ace.js"></script>
-        <script src="mode-rust.js"></script>
         <script src="editor.js"></script>
+        <script src="mode-rust.js"></script>
         <script src="theme-dawn.js"></script>
         <script src="theme-tomorrow_night.js"></script>
 
@@ -678,7 +655,6 @@ fn main() {
         <script src="book.js"></script>
 
         <!-- Custom JS scripts -->
-
 
 
     </div>

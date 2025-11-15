@@ -24,41 +24,28 @@
         <link rel="stylesheet" href="fonts/fonts.css">
 
         <!-- Highlight.js Stylesheets -->
-        <link rel="stylesheet" id="highlight-css" href="highlight.css">
-        <link rel="stylesheet" id="tomorrow-night-css" href="tomorrow-night.css">
-        <link rel="stylesheet" id="ayu-highlight-css" href="ayu-highlight.css">
+        <link rel="stylesheet" href="highlight.css">
+        <link rel="stylesheet" href="tomorrow-night.css">
+        <link rel="stylesheet" href="ayu-highlight.css">
 
         <!-- Custom theme stylesheets -->
 
 
-        <!-- Provide site root and default themes to javascript -->
+        <!-- Provide site root to javascript -->
         <script>
-            const path_to_root = "";
-            const default_light_theme = "rust";
-            const default_dark_theme = "coal";
-            window.path_to_searchindex_js = "searchindex.js";
+            var path_to_root = "";
+            var default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "coal" : "rust";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc.js"></script>
     </head>
     <body>
-    <div id="mdbook-help-container">
-        <div id="mdbook-help-popup">
-            <h2 class="mdbook-help-title">Keyboard shortcuts</h2>
-            <div>
-                <p>Press <kbd>←</kbd> or <kbd>→</kbd> to navigate between chapters</p>
-                <p>Press <kbd>S</kbd> or <kbd>/</kbd> to search in the book</p>
-                <p>Press <kbd>?</kbd> to show this help</p>
-                <p>Press <kbd>Esc</kbd> to hide this help</p>
-            </div>
-        </div>
-    </div>
     <div id="body-container">
         <!-- Work around some values being stored in localStorage wrapped in quotes -->
         <script>
             try {
-                let theme = localStorage.getItem('mdbook-theme');
-                let sidebar = localStorage.getItem('mdbook-sidebar');
+                var theme = localStorage.getItem('mdbook-theme');
+                var sidebar = localStorage.getItem('mdbook-sidebar');
 
                 if (theme.startsWith('"') && theme.endsWith('"')) {
                     localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
@@ -72,8 +59,7 @@
 
         <!-- Set the theme before any content is loaded, prevents flash -->
         <script>
-            const default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? default_dark_theme : default_light_theme;
-            let theme;
+            var theme;
             try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
             if (theme === null || theme === undefined) { theme = default_theme; }
             const html = document.documentElement;
@@ -86,20 +72,17 @@
 
         <!-- Hide / unhide sidebar before it is displayed -->
         <script>
-            let sidebar = null;
-            const sidebar_toggle = document.getElementById("sidebar-toggle-anchor");
+            var sidebar = null;
+            var sidebar_toggle = document.getElementById("sidebar-toggle-anchor");
             if (document.body.clientWidth >= 1080) {
                 try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
                 sidebar = sidebar || 'visible';
             } else {
                 sidebar = 'hidden';
-                sidebar_toggle.checked = false;
             }
-            if (sidebar === 'visible') {
-                sidebar_toggle.checked = true;
-            } else {
-                html.classList.remove('sidebar-visible');
-            }
+            sidebar_toggle.checked = sidebar === 'visible';
+            html.classList.remove('sidebar-visible');
+            html.classList.add("sidebar-" + sidebar);
         </script>
 
         <nav id="sidebar" class="sidebar" aria-label="Table of contents">
@@ -126,14 +109,13 @@
                             <i class="fa fa-paint-brush"></i>
                         </button>
                         <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
-                            <li role="none"><button role="menuitem" class="theme" id="default_theme">Auto</button></li>
                             <li role="none"><button role="menuitem" class="theme" id="light">Light</button></li>
                             <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
                             <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
                             <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
                             <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
                         </ul>
-                        <button id="search-toggle" class="icon-button" type="button" title="Search (`/`)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="/ s" aria-controls="searchbar">
+                        <button id="search-toggle" class="icon-button" type="button" title="Search. (Shortkey: s)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="S" aria-controls="searchbar">
                             <i class="fa fa-search"></i>
                         </button>
                     </div>
@@ -147,7 +129,7 @@
                         <a href="https://github.com/paiml/bashrs" title="Git repository" aria-label="Git repository">
                             <i id="git-repository-button" class="fa fa-github"></i>
                         </a>
-                        <a href="https://github.com/paiml/bashrs/edit/main/rash-book/src/appendix-b-glossary.md" title="Suggest an edit" aria-label="Suggest an edit" rel="edit">
+                        <a href="https://github.com/paiml/bashrs/edit/main/rash-book/src/appendix-b-glossary.md" title="Suggest an edit" aria-label="Suggest an edit">
                             <i id="git-edit-button" class="fa fa-edit"></i>
                         </a>
 
@@ -156,12 +138,7 @@
 
                 <div id="search-wrapper" class="hidden">
                     <form id="searchbar-outer" class="searchbar-outer">
-                        <div class="search-wrapper">
-                            <input type="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
-                            <div class="spinner-wrapper">
-                                <i class="fa fa-spinner fa-spin"></i>
-                            </div>
-                        </div>
+                        <input type="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
                     </form>
                     <div id="searchresults-outer" class="searchresults-outer hidden">
                         <div id="searchresults-header" class="searchresults-header"></div>
@@ -181,7 +158,176 @@
 
                 <div id="content" class="content">
                     <main>
-                        <h1 id="placeholder-appendix-b-glossarymd"><a class="header" href="#placeholder-appendix-b-glossarymd">Placeholder: appendix-b-glossary.md</a></h1>
+                        <h1 id="appendix-b-glossary"><a class="header" href="#appendix-b-glossary">Appendix B: Glossary</a></h1>
+<p>This glossary defines key terms used throughout the bashrs book.</p>
+<hr />
+<h2 id="a"><a class="header" href="#a">A</a></h2>
+<p><strong>Andon Cord</strong>: A Toyota manufacturing principle where any worker can stop the production line when they detect a quality issue. In bashrs development, this means immediately stopping work to fix bugs when discovered during validation.</p>
+<p><strong>ash (Almquist Shell)</strong>: A lightweight POSIX shell used in BusyBox, Alpine Linux, and embedded systems. bashrs generates scripts compatible with ash.</p>
+<p><strong>AST (Abstract Syntax Tree)</strong>: A tree representation of source code structure. bashrs parses bash scripts into an AST for analysis and transformation.</p>
+<p><strong>Auto-fix</strong>: Automatic correction of linting issues. bashrs can automatically fix some shellcheck violations.</p>
+<hr />
+<h2 id="b"><a class="header" href="#b">B</a></h2>
+<p><strong>Bash (Bourne Again Shell)</strong>: The most common Unix shell, featuring extensions beyond POSIX sh. bashrs generates POSIX-compliant scripts that work in bash but don’t require bash-specific features.</p>
+<p><strong>Bashism</strong>: A bash-specific feature that breaks POSIX compatibility (e.g., <code>[[</code>, arrays, <code>$RANDOM</code>). bashrs avoids all bashisms.</p>
+<p><strong>Best Practices</strong>: Production-proven patterns for writing safe, maintainable shell scripts. See Chapter 19.</p>
+<p><strong>Bootstrap Installer</strong>: A minimal, self-contained script that downloads and installs software. See Chapter 11.</p>
+<p><strong>BusyBox</strong>: A single executable containing minimal implementations of common Unix utilities, including ash shell. Used extensively in containers and embedded systems.</p>
+<hr />
+<h2 id="c"><a class="header" href="#c">C</a></h2>
+<p><strong>CI/CD (Continuous Integration/Continuous Deployment)</strong>: Automated pipelines for testing and deploying code. bashrs integrates with GitHub Actions, GitLab CI, Jenkins, CircleCI, etc. See Chapter 15.</p>
+<p><strong>Clippy</strong>: Rust’s linting tool. bashrs uses clippy with <code>-D warnings</code> to enforce code quality.</p>
+<p><strong>Command Substitution</strong>: Capturing command output in a variable using <code>$(command)</code> (POSIX) or <code>`command`</code> (legacy). bashrs uses <code>$(command)</code>.</p>
+<hr />
+<h2 id="d"><a class="header" href="#d">D</a></h2>
+<p><strong>dash (Debian Almquist Shell)</strong>: The default <code>/bin/sh</code> on Debian and Ubuntu systems. dash is strictly POSIX compliant and 4x faster than bash. bashrs generates dash-compatible scripts.</p>
+<p><strong>Determinism</strong>: Property where the same inputs always produce the same outputs. bashrs removes non-deterministic elements like <code>$RANDOM</code>, timestamps, and process IDs.</p>
+<p><strong>Dockerfile</strong>: Configuration file for building Docker images. bashrs can lint Dockerfiles for security and best practices.</p>
+<hr />
+<h2 id="e"><a class="header" href="#e">E</a></h2>
+<p><strong>EXTREME TDD (Test-Driven Development)</strong>: bashrs development methodology: TDD + property testing + mutation testing + fuzzing + PMAT + example verification. See CLAUDE.md for details.</p>
+<p><strong>Error Handling</strong>: Managing operation failures explicitly using <code>Result&lt;T, E&gt;</code> in Rust, which translates to exit codes and error checking in shell scripts. See Chapter 5.</p>
+<hr />
+<h2 id="f"><a class="header" href="#f">F</a></h2>
+<p><strong>False Positive</strong>: A linting warning incorrectly flagged on valid code. bashrs actively fixes false positives (e.g., Issue #24).</p>
+<p><strong>Fish Shell</strong>: A modern, user-friendly shell with different syntax from POSIX sh. Future bashrs versions may support Fish → POSIX transpilation.</p>
+<p><strong>Formal Verification</strong>: Mathematical proof that code behaves correctly. bashrs plans to use Coq/Lean for formal verification of core transformations.</p>
+<p><strong>Fuzzing</strong>: Automated testing technique that generates random inputs to find edge cases and crashes. bashrs uses fuzzing to improve robustness.</p>
+<hr />
+<h2 id="g"><a class="header" href="#g">G</a></h2>
+<p><strong>GitHub Actions</strong>: GitHub’s CI/CD platform. bashrs provides GitHub Actions workflows for automated testing. See Chapter 15.</p>
+<p><strong>GitLab CI</strong>: GitLab’s CI/CD platform. See Chapter 15 for integration examples.</p>
+<p><strong>Glob Pattern</strong>: Wildcard pattern for matching filenames (e.g., <code>*.txt</code>, <code>**/*.sh</code>). bashrs properly handles glob patterns to prevent injection.</p>
+<hr />
+<h2 id="h"><a class="header" href="#h">H</a></h2>
+<p><strong>Heredoc (Here Document)</strong>: Multi-line string literal in shell scripts using <code>&lt;&lt;EOF</code> syntax. bashrs uses heredocs for multi-line content.</p>
+<hr />
+<h2 id="i"><a class="header" href="#i">I</a></h2>
+<p><strong>Idempotent</strong>: Property where running an operation multiple times produces the same result as running it once. bashrs makes operations idempotent by using flags like <code>-p</code>, <code>-f</code>, <code>-sf</code>. See Chapter 9.</p>
+<p><strong>Injection Attack</strong>: Security vulnerability where untrusted input is executed as code. bashrs prevents injection by automatically quoting all variables. See Chapter 6.</p>
+<hr />
+<h2 id="j"><a class="header" href="#j">J</a></h2>
+<p><strong>Jenkins</strong>: Popular CI/CD server. bashrs provides Jenkinsfile examples for integration. See Chapter 15.</p>
+<hr />
+<h2 id="k"><a class="header" href="#k">K</a></h2>
+<p><strong>Kaizen</strong>: Japanese philosophy of continuous improvement. bashrs applies kaizen through incremental quality enhancements and EXTREME TDD.</p>
+<p><strong>ksh (Korn Shell)</strong>: Shell common on enterprise Unix systems (AIX, Solaris). bashrs generates ksh-compatible scripts.</p>
+<hr />
+<h2 id="l"><a class="header" href="#l">L</a></h2>
+<p><strong>Linting</strong>: Static analysis to find bugs and enforce style. bashrs implements shellcheck rules for bash/Makefile linting.</p>
+<p><strong>LSP (Language Server Protocol)</strong>: Standard for IDE integration. bashrs plans to provide an LSP server for real-time linting in editors (v8.0.0).</p>
+<hr />
+<h2 id="m"><a class="header" href="#m">M</a></h2>
+<p><strong>Makefile</strong>: Build automation file. bashrs can parse and purify Makefiles (v1.4.0).</p>
+<p><strong>mdbook</strong>: Tool for creating online books from Markdown. bashrs uses mdbook for documentation.</p>
+<p><strong>Minimal Validation</strong>: Default bashrs validation level with essential safety checks (8 rules). See Chapter 13.</p>
+<p><strong>Mutation Testing</strong>: Testing technique that modifies code to verify test quality. bashrs requires ≥90% mutation kill rate.</p>
+<hr />
+<h2 id="n"><a class="header" href="#n">N</a></h2>
+<p><strong>None Validation</strong>: bashrs validation level with no checks (fastest, for prototyping only). See Chapter 13.</p>
+<hr />
+<h2 id="o"><a class="header" href="#o">O</a></h2>
+<p><strong>Option<T></strong>: Rust type representing optional values (Some or None). bashrs uses Option for values that may be absent.</p>
+<hr />
+<h2 id="p"><a class="header" href="#p">P</a></h2>
+<p><strong>Paranoid Validation</strong>: bashrs’s strictest validation level with 30+ rules for critical systems. See Chapter 13.</p>
+<p><strong>PMAT (paiml-mcp-agent-toolkit)</strong>: Quality analysis tool used in bashrs development for code complexity, quality scoring, and TDG verification.</p>
+<p><strong>POSIX (Portable Operating System Interface)</strong>: Standard for Unix compatibility. bashrs generates pure POSIX sh that works across all POSIX-compliant shells.</p>
+<p><strong>Pre-commit Hook</strong>: Git hook that runs before commits. bashrs provides pre-commit configuration for local validation.</p>
+<p><strong>Property Testing</strong>: Testing technique using generated inputs to verify properties. bashrs uses proptest for 100+ test cases per feature.</p>
+<p><strong>Purification</strong>: bashrs’s process of transforming non-deterministic, non-idempotent bash into safe, POSIX-compliant shell scripts.</p>
+<hr />
+<h2 id="q"><a class="header" href="#q">Q</a></h2>
+<p><strong>Quality Gates</strong>: Automated checks that must pass before code is committed/deployed. bashrs enforces 9 quality gates in pre-commit hooks.</p>
+<hr />
+<h2 id="r"><a class="header" href="#r">R</a></h2>
+<p><strong>Result&lt;T, E&gt;</strong>: Rust type for operations that can fail, containing either Ok(T) or Err(E). bashrs uses Result extensively for error handling. See Chapter 5.</p>
+<p><strong>Roadmap</strong>: Long-term development plan. bashrs publishes a transparent roadmap. See Chapter 20.</p>
+<hr />
+<h2 id="s"><a class="header" href="#s">S</a></h2>
+<p><strong>SC#### (ShellCheck Rule)</strong>: Unique identifier for shellcheck linting rules (e.g., SC2086 = unquoted variable). bashrs implements 20+ shellcheck rules.</p>
+<p><strong>Security Linting</strong>: Static analysis focused on security vulnerabilities (injection, command execution, etc.). bashrs provides 8+ security rules.</p>
+<p><strong>shellcheck</strong>: Popular shell script linter. bashrs integrates shellcheck validation and implements shellcheck-compatible rules.</p>
+<p><strong>Shell Dialect</strong>: Variant of shell with different features (sh, bash, dash, ash, zsh, ksh). bashrs generates scripts compatible with all major dialects. See Chapter 14.</p>
+<p><strong>Shebang</strong>: First line of script specifying interpreter (<code>#!/bin/sh</code>). bashrs uses <code>#!/bin/sh</code> for maximum portability.</p>
+<p><strong>Strict Mode</strong>: bashrs flag (<code>--strict</code>) that treats warnings as errors. Always use in CI/CD.</p>
+<p><strong>Strict Validation</strong>: bashrs validation level recommended for production (18 rules). See Chapter 13.</p>
+<hr />
+<h2 id="t"><a class="header" href="#t">T</a></h2>
+<p><strong>TDD (Test-Driven Development)</strong>: Development practice of writing tests before implementation (RED → GREEN → REFACTOR). bashrs uses EXTREME TDD.</p>
+<p><strong>Toyota Way</strong>: Production system principles from Toyota emphasizing quality, continuous improvement, and stopping production to fix issues. bashrs applies Toyota Way principles.</p>
+<p><strong>Transpilation</strong>: Converting source code from one language to another (e.g., Rust → shell, bash → POSIX sh).</p>
+<hr />
+<h2 id="u"><a class="header" href="#u">U</a></h2>
+<p><strong>Undefined Variable</strong>: Variable referenced before assignment. bashrs detects undefined variables with SC2154 rule.</p>
+<hr />
+<h2 id="v"><a class="header" href="#v">V</a></h2>
+<p><strong>Validation Level</strong>: bashrs setting controlling strictness of checks (None, Minimal, Strict, Paranoid). See Chapter 13.</p>
+<p><strong>Verification</strong>: Process of checking that code meets specifications. bashrs plans formal verification with mathematical proofs.</p>
+<hr />
+<h2 id="w"><a class="header" href="#w">W</a></h2>
+<p><strong>WASM (WebAssembly)</strong>: Binary format for running code in browsers. bashrs has experimental WASM support for browser-based linting.</p>
+<hr />
+<h2 id="z"><a class="header" href="#z">Z</a></h2>
+<p><strong>Zero-Warning Policy</strong>: Development practice of treating all warnings as errors. bashrs enforces this with <code>--strict</code> flag.</p>
+<p><strong>zsh (Z Shell)</strong>: Feature-rich shell, default on macOS since Catalina. bashrs generates zsh-compatible scripts.</p>
+<hr />
+<h2 id="symbols"><a class="header" href="#symbols">Symbols</a></h2>
+<p><strong><code>$@</code></strong>: Special shell parameter containing all positional arguments. bashrs uses <code>"$@"</code> instead of arrays for POSIX compatibility.</p>
+<p><strong><code>$?</code></strong>: Exit code of last command (0 = success, 1+ = error). bashrs uses exit codes for error handling.</p>
+<p><strong><code>$(command)</code></strong>: POSIX command substitution syntax (preferred over backticks).</p>
+<p><strong><code>${var}</code></strong>: Variable expansion with braces. bashrs always uses braces for clarity: <code>"${var}"</code>.</p>
+<p><strong><code>#!/bin/sh</code></strong>: Shebang for POSIX sh. bashrs uses this for maximum portability.</p>
+<p><strong><code>set -e</code></strong>: Shell option to exit on error. bashrs uses <code>set -euo pipefail</code> in strict mode.</p>
+<hr />
+<h2 id="acronyms"><a class="header" href="#acronyms">Acronyms</a></h2>
+<div class="table-wrapper"><table><thead><tr><th>Acronym</th><th>Full Name</th></tr></thead><tbody>
+<tr><td>AFL</td><td>American Fuzzy Lop (fuzzing tool)</td></tr>
+<tr><td>API</td><td>Application Programming Interface</td></tr>
+<tr><td>AST</td><td>Abstract Syntax Tree</td></tr>
+<tr><td>CI/CD</td><td>Continuous Integration/Continuous Deployment</td></tr>
+<tr><td>CLI</td><td>Command-Line Interface</td></tr>
+<tr><td>LSP</td><td>Language Server Protocol</td></tr>
+<tr><td>MCP</td><td>Model Context Protocol</td></tr>
+<tr><td>POSIX</td><td>Portable Operating System Interface</td></tr>
+<tr><td>PR</td><td>Pull Request</td></tr>
+<tr><td>REPL</td><td>Read-Eval-Print Loop</td></tr>
+<tr><td>ROI</td><td>Return on Investment</td></tr>
+<tr><td>SATD</td><td>Self-Admitted Technical Debt</td></tr>
+<tr><td>SC</td><td>ShellCheck (rule prefix)</td></tr>
+<tr><td>TDD</td><td>Test-Driven Development</td></tr>
+<tr><td>TDG</td><td>Test-Driven Generation</td></tr>
+<tr><td>WASM</td><td>WebAssembly</td></tr>
+<tr><td>YAML</td><td>YAML Ain’t Markup Language</td></tr>
+</tbody></table>
+</div>
+<hr />
+<h2 id="common-commands"><a class="header" href="#common-commands">Common Commands</a></h2>
+<div class="table-wrapper"><table><thead><tr><th>Command</th><th>Description</th></tr></thead><tbody>
+<tr><td><code>bashrs build</code></td><td>Transpile Rust to shell with validation</td></tr>
+<tr><td><code>bashrs parse</code></td><td>Parse bash/Makefile to AST</td></tr>
+<tr><td><code>bashrs purify</code></td><td>Transform bash to safe POSIX sh</td></tr>
+<tr><td><code>bashrs lint</code></td><td>Lint bash/Makefile with shellcheck rules</td></tr>
+<tr><td><code>bashrs check</code></td><td>Type-check and validate</td></tr>
+<tr><td><code>bashrs bench</code></td><td>Benchmark performance and memory</td></tr>
+<tr><td><code>cargo test</code></td><td>Run Rust test suite</td></tr>
+<tr><td><code>cargo clippy</code></td><td>Lint Rust code</td></tr>
+<tr><td><code>mdbook test</code></td><td>Test book examples</td></tr>
+<tr><td><code>shellcheck -s sh</code></td><td>Validate POSIX compliance</td></tr>
+</tbody></table>
+</div>
+<hr />
+<h2 id="see-also"><a class="header" href="#see-also">See Also</a></h2>
+<ul>
+<li><strong>Chapter 1</strong>: Getting started with bashrs</li>
+<li><strong>Chapter 13</strong>: Validation levels explained</li>
+<li><strong>Chapter 19</strong>: Best practices for production scripts</li>
+<li><strong>Chapter 20</strong>: Roadmap and future features</li>
+<li><strong>Appendix C</strong>: Shell compatibility matrix</li>
+<li><strong>Appendix D</strong>: Complete API reference</li>
+</ul>
+<hr />
+<p><em>Glossary last updated: 2025-11-14 for bashrs v6.34.1</em></p>
 
                     </main>
 
@@ -223,8 +369,8 @@
         </script>
 
         <script src="ace.js"></script>
-        <script src="mode-rust.js"></script>
         <script src="editor.js"></script>
+        <script src="mode-rust.js"></script>
         <script src="theme-dawn.js"></script>
         <script src="theme-tomorrow_night.js"></script>
 
@@ -237,7 +383,6 @@
         <script src="book.js"></script>
 
         <!-- Custom JS scripts -->
-
 
 
     </div>

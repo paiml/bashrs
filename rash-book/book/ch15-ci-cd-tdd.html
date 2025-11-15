@@ -24,41 +24,28 @@
         <link rel="stylesheet" href="fonts/fonts.css">
 
         <!-- Highlight.js Stylesheets -->
-        <link rel="stylesheet" id="highlight-css" href="highlight.css">
-        <link rel="stylesheet" id="tomorrow-night-css" href="tomorrow-night.css">
-        <link rel="stylesheet" id="ayu-highlight-css" href="ayu-highlight.css">
+        <link rel="stylesheet" href="highlight.css">
+        <link rel="stylesheet" href="tomorrow-night.css">
+        <link rel="stylesheet" href="ayu-highlight.css">
 
         <!-- Custom theme stylesheets -->
 
 
-        <!-- Provide site root and default themes to javascript -->
+        <!-- Provide site root to javascript -->
         <script>
-            const path_to_root = "";
-            const default_light_theme = "rust";
-            const default_dark_theme = "coal";
-            window.path_to_searchindex_js = "searchindex.js";
+            var path_to_root = "";
+            var default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "coal" : "rust";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc.js"></script>
     </head>
     <body>
-    <div id="mdbook-help-container">
-        <div id="mdbook-help-popup">
-            <h2 class="mdbook-help-title">Keyboard shortcuts</h2>
-            <div>
-                <p>Press <kbd>←</kbd> or <kbd>→</kbd> to navigate between chapters</p>
-                <p>Press <kbd>S</kbd> or <kbd>/</kbd> to search in the book</p>
-                <p>Press <kbd>?</kbd> to show this help</p>
-                <p>Press <kbd>Esc</kbd> to hide this help</p>
-            </div>
-        </div>
-    </div>
     <div id="body-container">
         <!-- Work around some values being stored in localStorage wrapped in quotes -->
         <script>
             try {
-                let theme = localStorage.getItem('mdbook-theme');
-                let sidebar = localStorage.getItem('mdbook-sidebar');
+                var theme = localStorage.getItem('mdbook-theme');
+                var sidebar = localStorage.getItem('mdbook-sidebar');
 
                 if (theme.startsWith('"') && theme.endsWith('"')) {
                     localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
@@ -72,8 +59,7 @@
 
         <!-- Set the theme before any content is loaded, prevents flash -->
         <script>
-            const default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? default_dark_theme : default_light_theme;
-            let theme;
+            var theme;
             try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
             if (theme === null || theme === undefined) { theme = default_theme; }
             const html = document.documentElement;
@@ -86,20 +72,17 @@
 
         <!-- Hide / unhide sidebar before it is displayed -->
         <script>
-            let sidebar = null;
-            const sidebar_toggle = document.getElementById("sidebar-toggle-anchor");
+            var sidebar = null;
+            var sidebar_toggle = document.getElementById("sidebar-toggle-anchor");
             if (document.body.clientWidth >= 1080) {
                 try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
                 sidebar = sidebar || 'visible';
             } else {
                 sidebar = 'hidden';
-                sidebar_toggle.checked = false;
             }
-            if (sidebar === 'visible') {
-                sidebar_toggle.checked = true;
-            } else {
-                html.classList.remove('sidebar-visible');
-            }
+            sidebar_toggle.checked = sidebar === 'visible';
+            html.classList.remove('sidebar-visible');
+            html.classList.add("sidebar-" + sidebar);
         </script>
 
         <nav id="sidebar" class="sidebar" aria-label="Table of contents">
@@ -126,14 +109,13 @@
                             <i class="fa fa-paint-brush"></i>
                         </button>
                         <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
-                            <li role="none"><button role="menuitem" class="theme" id="default_theme">Auto</button></li>
                             <li role="none"><button role="menuitem" class="theme" id="light">Light</button></li>
                             <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
                             <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
                             <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
                             <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
                         </ul>
-                        <button id="search-toggle" class="icon-button" type="button" title="Search (`/`)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="/ s" aria-controls="searchbar">
+                        <button id="search-toggle" class="icon-button" type="button" title="Search. (Shortkey: s)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="S" aria-controls="searchbar">
                             <i class="fa fa-search"></i>
                         </button>
                     </div>
@@ -147,7 +129,7 @@
                         <a href="https://github.com/paiml/bashrs" title="Git repository" aria-label="Git repository">
                             <i id="git-repository-button" class="fa fa-github"></i>
                         </a>
-                        <a href="https://github.com/paiml/bashrs/edit/main/rash-book/src/ch15-ci-cd-tdd.md" title="Suggest an edit" aria-label="Suggest an edit" rel="edit">
+                        <a href="https://github.com/paiml/bashrs/edit/main/rash-book/src/ch15-ci-cd-tdd.md" title="Suggest an edit" aria-label="Suggest an edit">
                             <i id="git-edit-button" class="fa fa-edit"></i>
                         </a>
 
@@ -156,12 +138,7 @@
 
                 <div id="search-wrapper" class="hidden">
                     <form id="searchbar-outer" class="searchbar-outer">
-                        <div class="search-wrapper">
-                            <input type="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
-                            <div class="spinner-wrapper">
-                                <i class="fa fa-spinner fa-spin"></i>
-                            </div>
-                        </div>
+                        <input type="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
                     </form>
                     <div id="searchresults-outer" class="searchresults-outer hidden">
                         <div id="searchresults-header" class="searchresults-header"></div>
@@ -181,7 +158,697 @@
 
                 <div id="content" class="content">
                     <main>
-                        <h1 id="placeholder-ch15-ci-cd-tddmd"><a class="header" href="#placeholder-ch15-ci-cd-tddmd">Placeholder: ch15-ci-cd-tdd.md</a></h1>
+                        <h1 id="chapter-15-cicd-integration"><a class="header" href="#chapter-15-cicd-integration">Chapter 15: CI/CD Integration</a></h1>
+<!-- DOC_STATUS_START -->
+<p><strong>Chapter Status</strong>: ✅ 100% Working (8/8 examples)</p>
+<div class="table-wrapper"><table><thead><tr><th>Status</th><th>Count</th><th>Examples</th></tr></thead><tbody>
+<tr><td>✅ Working</td><td>8</td><td>Ready for production use</td></tr>
+<tr><td>⚠️ Partial</td><td>0</td><td>Some edge cases not covered</td></tr>
+<tr><td>❌ Broken</td><td>0</td><td>Known issues, needs fixing</td></tr>
+<tr><td>📋 Planned</td><td>0</td><td>Future roadmap features</td></tr>
+</tbody></table>
+</div>
+<p><em>Last updated: 2025-11-14</em>
+<em>bashrs version: 6.34.1</em></p>
+<!-- DOC_STATUS_END -->
+<hr />
+<h2 id="the-problem"><a class="header" href="#the-problem">The Problem</a></h2>
+<p>Shell scripts often bypass CI/CD quality gates because traditional tools don’t integrate well. bashrs transpiles Rust to shell with built-in validation, making it easy to enforce quality in automated pipelines. From GitHub Actions to GitLab CI, Jenkins, and CircleCI - bashrs works everywhere.</p>
+<p>In this chapter, you’ll learn how to integrate bashrs into your CI/CD pipeline with comprehensive quality gates.</p>
+<h2 id="test-driven-examples"><a class="header" href="#test-driven-examples">Test-Driven Examples</a></h2>
+<h3 id="example-1-github-actions---basic-pipeline"><a class="header" href="#example-1-github-actions---basic-pipeline">Example 1: GitHub Actions - Basic Pipeline</a></h3>
+<p>Minimal CI/CD pipeline with bashrs validation:</p>
+<pre><code class="language-yaml"># .github/workflows/bashrs.yml
+name: Shell Script Quality
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: actions-rust-lang/setup-rust-toolchain@v1
+
+      - name: Install bashrs
+        run: cargo install bashrs
+
+      - name: Transpile Rust to Shell
+        run: |
+          bashrs build src/*.rs \
+            --validation strict \
+            --strict \
+            --output-dir dist/
+
+      - name: Verify Output
+        run: |
+          echo "Generated scripts:"
+          ls -lh dist/
+</code></pre>
+<p><strong>Key Points:</strong></p>
+<ul>
+<li>Fast setup with official actions</li>
+<li>Strict validation enforced</li>
+<li>Zero-warning policy with <code>--strict</code></li>
+<li>Simple artifact generation</li>
+</ul>
+<h3 id="example-2-github-actions---comprehensive-quality-gates"><a class="header" href="#example-2-github-actions---comprehensive-quality-gates">Example 2: GitHub Actions - Comprehensive Quality Gates</a></h3>
+<p>Production-grade pipeline with all quality checks:</p>
+<pre><code class="language-yaml"># .github/workflows/quality.yml
+name: Comprehensive Quality
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Rust
+        uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          components: clippy, rustfmt
+
+      - name: Install Tools
+        run: |
+          cargo install bashrs
+          cargo install cargo-llvm-cov
+          sudo apt-get update &amp;&amp; sudo apt-get install -y shellcheck
+
+      - name: Code Quality - Clippy
+        run: cargo clippy --all-targets -- -D warnings
+
+      - name: Code Quality - Format
+        run: cargo fmt -- --check
+
+      - name: Test Suite
+        run: cargo test --all
+
+      - name: Code Coverage
+        run: |
+          cargo llvm-cov --all-features --workspace --lcov \
+            --output-path lcov.info
+          cargo llvm-cov report
+
+      - name: Transpile with Strict Validation
+        run: |
+          bashrs build examples/*.rs \
+            --validation strict \
+            --strict \
+            --output-dir dist/
+
+      - name: Shellcheck Validation
+        run: |
+          for script in dist/*.sh; do
+            echo "Checking $script..."
+            shellcheck -s sh -S warning "$script"
+          done
+
+      - name: Test Shell Scripts
+        run: |
+          for script in dist/*.sh; do
+            echo "Testing $script..."
+            sh "$script" --dry-run || sh "$script" --help
+          done
+
+      - name: Upload Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: shell-scripts
+          path: dist/*.sh
+
+      - name: Upload Coverage
+        uses: codecov/codecov-action@v4
+        with:
+          files: lcov.info
+</code></pre>
+<p><strong>Key Points:</strong></p>
+<ul>
+<li>Complete quality pipeline</li>
+<li>Clippy + rustfmt + tests + coverage</li>
+<li>bashrs strict validation</li>
+<li>shellcheck verification</li>
+<li>Artifact upload for deployment</li>
+</ul>
+<h3 id="example-3-gitlab-ci---multi-stage-pipeline"><a class="header" href="#example-3-gitlab-ci---multi-stage-pipeline">Example 3: GitLab CI - Multi-Stage Pipeline</a></h3>
+<p>Comprehensive GitLab CI pipeline with caching:</p>
+<pre><code class="language-yaml"># .gitlab-ci.yml
+image: rust:latest
+
+variables:
+  CARGO_HOME: $CI_PROJECT_DIR/.cargo
+
+cache:
+  paths:
+    - .cargo/
+    - target/
+
+stages:
+  - build
+  - test
+  - validate
+  - deploy
+
+before_script:
+  - apt-get update &amp;&amp; apt-get install -y shellcheck
+  - cargo install bashrs
+
+build:
+  stage: build
+  script:
+    - cargo build --release
+  artifacts:
+    paths:
+      - target/release/
+
+test:
+  stage: test
+  script:
+    - cargo test --all
+    - cargo clippy -- -D warnings
+    - cargo fmt -- --check
+
+validate:
+  stage: validate
+  script:
+    # Transpile Rust to Shell
+    - |
+      bashrs build src/*.rs \
+        --validation strict \
+        --strict \
+        --output-dir dist/
+
+    # Validate with shellcheck
+    - |
+      for script in dist/*.sh; do
+        shellcheck -s sh "$script"
+      done
+
+    # Test execution
+    - |
+      for script in dist/*.sh; do
+        sh "$script" --version || true
+      done
+  artifacts:
+    paths:
+      - dist/*.sh
+    expire_in: 1 week
+
+deploy:
+  stage: deploy
+  script:
+    - echo "Deploying shell scripts to production"
+    - cp dist/*.sh /usr/local/bin/ || echo "Would deploy to /usr/local/bin/"
+  only:
+    - main
+</code></pre>
+<p><strong>Key Points:</strong></p>
+<ul>
+<li>Multi-stage pipeline (build → test → validate → deploy)</li>
+<li>Cargo caching for faster builds</li>
+<li>Artifact preservation</li>
+<li>Production deployment on main branch</li>
+</ul>
+<h3 id="example-4-jenkins---declarative-pipeline"><a class="header" href="#example-4-jenkins---declarative-pipeline">Example 4: Jenkins - Declarative Pipeline</a></h3>
+<p>Jenkins pipeline with Docker agents:</p>
+<pre><code class="language-groovy">// Jenkinsfile
+pipeline {
+    agent {
+        docker {
+            image 'rust:latest'
+            args '-v /var/run/docker.sock:/var/run/docker.sock'
+        }
+    }
+
+    environment {
+        CARGO_HOME = "${WORKSPACE}/.cargo"
+    }
+
+    stages {
+        stage('Setup') {
+            steps {
+                sh '''
+                    apt-get update &amp;&amp; apt-get install -y shellcheck
+                    cargo install bashrs
+                '''
+            }
+        }
+
+        stage('Build') {
+            steps {
+                sh 'cargo build --release'
+            }
+        }
+
+        stage('Test') {
+            steps {
+                sh '''
+                    cargo test --all
+                    cargo clippy -- -D warnings
+                    cargo fmt -- --check
+                '''
+            }
+        }
+
+        stage('Transpile') {
+            steps {
+                sh '''
+                    bashrs build src/*.rs \\
+                        --validation strict \\
+                        --strict \\
+                        --output-dir dist/
+                '''
+            }
+        }
+
+        stage('Validate Shell') {
+            steps {
+                sh '''
+                    for script in dist/*.sh; do
+                        echo "Validating $script..."
+                        shellcheck -s sh "$script"
+                    done
+                '''
+            }
+        }
+
+        stage('Test Shell') {
+            steps {
+                sh '''
+                    for script in dist/*.sh; do
+                        echo "Testing $script..."
+                        sh "$script" --help || true
+                    done
+                '''
+            }
+        }
+
+        stage('Archive') {
+            steps {
+                archiveArtifacts artifacts: 'dist/*.sh', fingerprint: true
+            }
+        }
+    }
+
+    post {
+        success {
+            echo 'Pipeline succeeded!'
+        }
+        failure {
+            echo 'Pipeline failed!'
+        }
+        always {
+            cleanWs()
+        }
+    }
+}
+</code></pre>
+<p><strong>Key Points:</strong></p>
+<ul>
+<li>Declarative pipeline syntax</li>
+<li>Docker-based agents</li>
+<li>Comprehensive testing</li>
+<li>Artifact archiving</li>
+<li>Post-build cleanup</li>
+</ul>
+<h3 id="example-5-circleci---parallelized-testing"><a class="header" href="#example-5-circleci---parallelized-testing">Example 5: CircleCI - Parallelized Testing</a></h3>
+<p>CircleCI pipeline with parallel test execution:</p>
+<pre><code class="language-yaml"># .circleci/config.yml
+version: 2.1
+
+orbs:
+  rust: circleci/rust@1.6
+
+executors:
+  rust-executor:
+    docker:
+      - image: cimg/rust:1.75
+
+jobs:
+  build:
+    executor: rust-executor
+    steps:
+      - checkout
+      - rust/install
+      - run:
+          name: Install bashrs
+          command: cargo install bashrs
+      - run:
+          name: Build
+          command: cargo build --release
+      - persist_to_workspace:
+          root: .
+          paths:
+            - target/release
+
+  test:
+    executor: rust-executor
+    parallelism: 4
+    steps:
+      - checkout
+      - rust/install
+      - run:
+          name: Run Tests
+          command: |
+            cargo test --all -- \
+              --test-threads=$(nproc) \
+              $(circleci tests glob "tests/**/*.rs" | \
+                circleci tests split)
+
+  validate:
+    executor: rust-executor
+    steps:
+      - checkout
+      - attach_workspace:
+          at: .
+      - run:
+          name: Install Tools
+          command: |
+            cargo install bashrs
+            sudo apt-get update &amp;&amp; sudo apt-get install -y shellcheck
+      - run:
+          name: Transpile with Validation
+          command: |
+            bashrs build examples/*.rs \
+              --validation strict \
+              --strict \
+              --output-dir dist/
+      - run:
+          name: Shellcheck
+          command: |
+            for script in dist/*.sh; do
+              shellcheck -s sh "$script"
+            done
+      - store_artifacts:
+          path: dist
+          destination: shell-scripts
+
+workflows:
+  build-test-deploy:
+    jobs:
+      - build
+      - test:
+          requires:
+            - build
+      - validate:
+          requires:
+            - test
+</code></pre>
+<p><strong>Key Points:</strong></p>
+<ul>
+<li>Orbs for Rust tooling</li>
+<li>Parallel test execution</li>
+<li>Workspace persistence</li>
+<li>Artifact storage</li>
+</ul>
+<h3 id="example-6-pre-commit-hooks"><a class="header" href="#example-6-pre-commit-hooks">Example 6: Pre-commit Hooks</a></h3>
+<p>Local validation before pushing to CI:</p>
+<pre><code class="language-yaml"># .pre-commit-config.yaml
+repos:
+  - repo: local
+    hooks:
+      - id: cargo-fmt
+        name: Cargo Format
+        entry: cargo fmt --
+        language: system
+        types: [rust]
+        pass_filenames: false
+
+      - id: cargo-clippy
+        name: Cargo Clippy
+        entry: cargo clippy --all-targets -- -D warnings
+        language: system
+        types: [rust]
+        pass_filenames: false
+
+      - id: cargo-test
+        name: Cargo Test
+        entry: cargo test --all
+        language: system
+        types: [rust]
+        pass_filenames: false
+
+      - id: bashrs-validate
+        name: bashrs Validation
+        entry: bash -c 'bashrs build src/*.rs --validation strict --strict --output-dir /tmp/dist/'
+        language: system
+        types: [rust]
+        pass_filenames: false
+
+      - id: shellcheck
+        name: Shellcheck Generated Scripts
+        entry: bash -c 'for f in /tmp/dist/*.sh; do shellcheck -s sh "$f"; done'
+        language: system
+        files: '\\.rs$'
+        pass_filenames: false
+</code></pre>
+<p><strong>Installation:</strong></p>
+<pre><code class="language-bash"># Install pre-commit
+$ pip install pre-commit
+
+# Install hooks
+$ pre-commit install
+
+# Run manually
+$ pre-commit run --all-files
+</code></pre>
+<p><strong>Key Points:</strong></p>
+<ul>
+<li>Catch issues before commit</li>
+<li>Fast local feedback</li>
+<li>Same validation as CI</li>
+<li>Prevents broken commits</li>
+</ul>
+<h3 id="example-7-docker-based-ci"><a class="header" href="#example-7-docker-based-ci">Example 7: Docker-based CI</a></h3>
+<p>Portable CI pipeline using Docker:</p>
+<pre><code class="language-dockerfile"># Dockerfile.ci
+FROM rust:1.75-slim
+
+# Install system dependencies
+RUN apt-get update &amp;&amp; apt-get install -y \
+    shellcheck \
+    git \
+    &amp;&amp; rm -rf /var/lib/apt/lists/*
+
+# Install bashrs
+RUN cargo install bashrs
+
+# Set working directory
+WORKDIR /workspace
+
+# Default command
+CMD ["bash"]
+</code></pre>
+<p><strong>Docker Compose for CI:</strong></p>
+<pre><code class="language-yaml"># docker-compose.ci.yml
+version: '3.8'
+
+services:
+  ci:
+    build:
+      context: .
+      dockerfile: Dockerfile.ci
+    volumes:
+      - .:/workspace
+    command: |
+      bash -c "
+        set -e
+        echo '=== Running CI Pipeline ==='
+
+        echo '--- Step 1: Format Check ---'
+        cargo fmt -- --check
+
+        echo '--- Step 2: Clippy ---'
+        cargo clippy --all-targets -- -D warnings
+
+        echo '--- Step 3: Tests ---'
+        cargo test --all
+
+        echo '--- Step 4: Transpile ---'
+        bashrs build src/*.rs \\
+          --validation strict \\
+          --strict \\
+          --output-dir dist/
+
+        echo '--- Step 5: Shellcheck ---'
+        for script in dist/*.sh; do
+          shellcheck -s sh \$script
+        done
+
+        echo '--- Step 6: Test Scripts ---'
+        for script in dist/*.sh; do
+          sh \$script --help || true
+        done
+
+        echo '=== CI Pipeline Complete ==='
+      "
+</code></pre>
+<p><strong>Usage:</strong></p>
+<pre><code class="language-bash"># Run CI locally
+$ docker-compose -f docker-compose.ci.yml up --build
+
+# Run specific stage
+$ docker-compose -f docker-compose.ci.yml run ci cargo test
+</code></pre>
+<p><strong>Key Points:</strong></p>
+<ul>
+<li>Reproducible CI environment</li>
+<li>Same Docker image for local and remote CI</li>
+<li>Fast iteration with caching</li>
+<li>Works on any platform</li>
+</ul>
+<h3 id="example-8-matrix-testing-across-shells"><a class="header" href="#example-8-matrix-testing-across-shells">Example 8: Matrix Testing Across Shells</a></h3>
+<p>Test generated scripts on multiple shell interpreters:</p>
+<pre><code class="language-yaml"># .github/workflows/matrix.yml
+name: Shell Compatibility Matrix
+
+on: [push, pull_request]
+
+jobs:
+  matrix-test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        shell: [bash, dash, ash, zsh, ksh]
+        validation: [minimal, strict, paranoid]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: actions-rust-lang/setup-rust-toolchain@v1
+
+      - name: Install bashrs
+        run: cargo install bashrs
+
+      - name: Install Shell (${{ matrix.shell }})
+        run: |
+          sudo apt-get update
+          case "${{ matrix.shell }}" in
+            bash) echo "bash already installed" ;;
+            dash) sudo apt-get install -y dash ;;
+            ash) sudo apt-get install -y busybox-static &amp;&amp; sudo ln -sf /bin/busybox /usr/local/bin/ash ;;
+            zsh) sudo apt-get install -y zsh ;;
+            ksh) sudo apt-get install -y ksh ;;
+          esac
+
+      - name: Transpile (validation=${{ matrix.validation }})
+        run: |
+          bashrs build examples/*.rs \
+            --validation ${{ matrix.validation }} \
+            --strict \
+            --output-dir dist/
+
+      - name: Test with ${{ matrix.shell }}
+        run: |
+          for script in dist/*.sh; do
+            echo "Testing $script with ${{ matrix.shell }}..."
+            ${{ matrix.shell }} "$script" --help || \
+            ${{ matrix.shell }} "$script" --version || \
+            echo "Script does not support --help or --version"
+          done
+
+      - name: Verify POSIX Compliance
+        run: |
+          for script in dist/*.sh; do
+            shellcheck -s sh "$script"
+          done
+</code></pre>
+<p><strong>Key Points:</strong></p>
+<ul>
+<li>Matrix testing: 5 shells × 3 validation levels = 15 combinations</li>
+<li>Validates POSIX compliance</li>
+<li>Ensures cross-platform compatibility</li>
+<li>Catches shell-specific bugs</li>
+</ul>
+<h2 id="best-practices"><a class="header" href="#best-practices">Best Practices</a></h2>
+<h3 id="1-always-use-strict-validation-in-ci"><a class="header" href="#1-always-use-strict-validation-in-ci">1. Always Use Strict Validation in CI</a></h3>
+<pre><code class="language-yaml"># ✅ CORRECT: Strict + --strict flag
+- run: bashrs build --validation strict --strict
+
+# ❌ WRONG: Permissive validation
+- run: bashrs build --validation minimal
+</code></pre>
+<h3 id="2-cache-dependencies"><a class="header" href="#2-cache-dependencies">2. Cache Dependencies</a></h3>
+<pre><code class="language-yaml"># GitHub Actions
+- uses: actions/cache@v4
+  with:
+    path: |
+      ~/.cargo/bin/
+      ~/.cargo/registry/
+      target/
+    key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+</code></pre>
+<h3 id="3-fail-fast-on-errors"><a class="header" href="#3-fail-fast-on-errors">3. Fail Fast on Errors</a></h3>
+<pre><code class="language-yaml"># Set strict error handling
+- run: |
+    set -euxo pipefail
+    bashrs build --validation strict --strict
+</code></pre>
+<h3 id="4-test-generated-scripts"><a class="header" href="#4-test-generated-scripts">4. Test Generated Scripts</a></h3>
+<pre><code class="language-yaml"># Don't just generate - test execution!
+- run: |
+    for script in dist/*.sh; do
+      sh "$script" --dry-run
+    done
+</code></pre>
+<h3 id="5-use-matrix-testing"><a class="header" href="#5-use-matrix-testing">5. Use Matrix Testing</a></h3>
+<pre><code class="language-yaml">strategy:
+  matrix:
+    os: [ubuntu-latest, macos-latest]
+    validation: [strict, paranoid]
+</code></pre>
+<h2 id="troubleshooting"><a class="header" href="#troubleshooting">Troubleshooting</a></h2>
+<h3 id="issue-1-bashrs-not-found-in-ci"><a class="header" href="#issue-1-bashrs-not-found-in-ci">Issue 1: bashrs Not Found in CI</a></h3>
+<p><strong>Problem</strong>: <code>cargo install bashrs</code> fails or times out</p>
+<p><strong>Solution</strong>: Use caching or pre-built binaries</p>
+<pre><code class="language-yaml">- uses: actions/cache@v4
+  with:
+    path: ~/.cargo/bin/bashrs
+    key: bashrs-${{ runner.os }}
+- run: cargo install bashrs || echo "Using cached bashrs"
+</code></pre>
+<h3 id="issue-2-shellcheck-warnings-fail-build"><a class="header" href="#issue-2-shellcheck-warnings-fail-build">Issue 2: Shellcheck Warnings Fail Build</a></h3>
+<p><strong>Problem</strong>: Generated scripts have shellcheck warnings</p>
+<p><strong>Solution</strong>: Use <code>--strict</code> flag to catch issues early</p>
+<pre><code class="language-yaml">- run: bashrs build --validation strict --strict
+</code></pre>
+<h3 id="issue-3-slow-ci-builds"><a class="header" href="#issue-3-slow-ci-builds">Issue 3: Slow CI Builds</a></h3>
+<p><strong>Problem</strong>: Transpilation takes too long</p>
+<p><strong>Solution</strong>: Use parallel builds and caching</p>
+<pre><code class="language-yaml">- run: |
+    bashrs build src/*.rs --jobs $(nproc) --output-dir dist/
+</code></pre>
+<h2 id="next-steps"><a class="header" href="#next-steps">Next Steps</a></h2>
+<ul>
+<li><strong>Chapter 16</strong>: Learn about MCP server integration</li>
+<li><strong>Chapter 17</strong>: Comprehensive testing strategies</li>
+<li><strong>Chapter 18</strong>: Understand bashrs limitations</li>
+</ul>
+<h2 id="summary"><a class="header" href="#summary">Summary</a></h2>
+<p>bashrs integrates seamlessly into CI/CD pipelines:</p>
+<ul>
+<li>✅ <strong>GitHub Actions</strong>: Comprehensive quality gates</li>
+<li>✅ <strong>GitLab CI</strong>: Multi-stage pipelines with caching</li>
+<li>✅ <strong>Jenkins</strong>: Declarative pipelines with Docker</li>
+<li>✅ <strong>CircleCI</strong>: Parallelized testing</li>
+<li>✅ <strong>Pre-commit hooks</strong>: Local validation</li>
+<li>✅ <strong>Docker CI</strong>: Reproducible environments</li>
+<li>✅ <strong>Matrix testing</strong>: 5 shells × 3 validation levels</li>
+<li>✅ <strong>Best practices</strong>: Strict validation, caching, fail-fast</li>
+</ul>
+<p><strong>Integration is easy</strong>: Add bashrs to your CI pipeline in minutes, enforce quality automatically! 🚀</p>
 
                     </main>
 
@@ -223,8 +890,8 @@
         </script>
 
         <script src="ace.js"></script>
-        <script src="mode-rust.js"></script>
         <script src="editor.js"></script>
+        <script src="mode-rust.js"></script>
         <script src="theme-dawn.js"></script>
         <script src="theme-tomorrow_night.js"></script>
 
@@ -237,7 +904,6 @@
         <script src="book.js"></script>
 
         <!-- Custom JS scripts -->
-
 
 
     </div>

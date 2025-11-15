@@ -24,41 +24,28 @@
         <link rel="stylesheet" href="fonts/fonts.css">
 
         <!-- Highlight.js Stylesheets -->
-        <link rel="stylesheet" id="highlight-css" href="highlight.css">
-        <link rel="stylesheet" id="tomorrow-night-css" href="tomorrow-night.css">
-        <link rel="stylesheet" id="ayu-highlight-css" href="ayu-highlight.css">
+        <link rel="stylesheet" href="highlight.css">
+        <link rel="stylesheet" href="tomorrow-night.css">
+        <link rel="stylesheet" href="ayu-highlight.css">
 
         <!-- Custom theme stylesheets -->
 
 
-        <!-- Provide site root and default themes to javascript -->
+        <!-- Provide site root to javascript -->
         <script>
-            const path_to_root = "";
-            const default_light_theme = "rust";
-            const default_dark_theme = "coal";
-            window.path_to_searchindex_js = "searchindex.js";
+            var path_to_root = "";
+            var default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "coal" : "rust";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc.js"></script>
     </head>
     <body>
-    <div id="mdbook-help-container">
-        <div id="mdbook-help-popup">
-            <h2 class="mdbook-help-title">Keyboard shortcuts</h2>
-            <div>
-                <p>Press <kbd>←</kbd> or <kbd>→</kbd> to navigate between chapters</p>
-                <p>Press <kbd>S</kbd> or <kbd>/</kbd> to search in the book</p>
-                <p>Press <kbd>?</kbd> to show this help</p>
-                <p>Press <kbd>Esc</kbd> to hide this help</p>
-            </div>
-        </div>
-    </div>
     <div id="body-container">
         <!-- Work around some values being stored in localStorage wrapped in quotes -->
         <script>
             try {
-                let theme = localStorage.getItem('mdbook-theme');
-                let sidebar = localStorage.getItem('mdbook-sidebar');
+                var theme = localStorage.getItem('mdbook-theme');
+                var sidebar = localStorage.getItem('mdbook-sidebar');
 
                 if (theme.startsWith('"') && theme.endsWith('"')) {
                     localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
@@ -72,8 +59,7 @@
 
         <!-- Set the theme before any content is loaded, prevents flash -->
         <script>
-            const default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? default_dark_theme : default_light_theme;
-            let theme;
+            var theme;
             try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
             if (theme === null || theme === undefined) { theme = default_theme; }
             const html = document.documentElement;
@@ -86,20 +72,17 @@
 
         <!-- Hide / unhide sidebar before it is displayed -->
         <script>
-            let sidebar = null;
-            const sidebar_toggle = document.getElementById("sidebar-toggle-anchor");
+            var sidebar = null;
+            var sidebar_toggle = document.getElementById("sidebar-toggle-anchor");
             if (document.body.clientWidth >= 1080) {
                 try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
                 sidebar = sidebar || 'visible';
             } else {
                 sidebar = 'hidden';
-                sidebar_toggle.checked = false;
             }
-            if (sidebar === 'visible') {
-                sidebar_toggle.checked = true;
-            } else {
-                html.classList.remove('sidebar-visible');
-            }
+            sidebar_toggle.checked = sidebar === 'visible';
+            html.classList.remove('sidebar-visible');
+            html.classList.add("sidebar-" + sidebar);
         </script>
 
         <nav id="sidebar" class="sidebar" aria-label="Table of contents">
@@ -126,14 +109,13 @@
                             <i class="fa fa-paint-brush"></i>
                         </button>
                         <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
-                            <li role="none"><button role="menuitem" class="theme" id="default_theme">Auto</button></li>
                             <li role="none"><button role="menuitem" class="theme" id="light">Light</button></li>
                             <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
                             <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
                             <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
                             <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
                         </ul>
-                        <button id="search-toggle" class="icon-button" type="button" title="Search (`/`)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="/ s" aria-controls="searchbar">
+                        <button id="search-toggle" class="icon-button" type="button" title="Search. (Shortkey: s)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="S" aria-controls="searchbar">
                             <i class="fa fa-search"></i>
                         </button>
                     </div>
@@ -147,7 +129,7 @@
                         <a href="https://github.com/paiml/bashrs" title="Git repository" aria-label="Git repository">
                             <i id="git-repository-button" class="fa fa-github"></i>
                         </a>
-                        <a href="https://github.com/paiml/bashrs/edit/main/rash-book/src/appendix-d-api.md" title="Suggest an edit" aria-label="Suggest an edit" rel="edit">
+                        <a href="https://github.com/paiml/bashrs/edit/main/rash-book/src/appendix-d-api.md" title="Suggest an edit" aria-label="Suggest an edit">
                             <i id="git-edit-button" class="fa fa-edit"></i>
                         </a>
 
@@ -156,12 +138,7 @@
 
                 <div id="search-wrapper" class="hidden">
                     <form id="searchbar-outer" class="searchbar-outer">
-                        <div class="search-wrapper">
-                            <input type="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
-                            <div class="spinner-wrapper">
-                                <i class="fa fa-spinner fa-spin"></i>
-                            </div>
-                        </div>
+                        <input type="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
                     </form>
                     <div id="searchresults-outer" class="searchresults-outer hidden">
                         <div id="searchresults-header" class="searchresults-header"></div>
@@ -181,7 +158,783 @@
 
                 <div id="content" class="content">
                     <main>
-                        <h1 id="placeholder-appendix-d-apimd"><a class="header" href="#placeholder-appendix-d-apimd">Placeholder: appendix-d-api.md</a></h1>
+                        <h1 id="appendix-d-complete-api-reference"><a class="header" href="#appendix-d-complete-api-reference">Appendix D: Complete API Reference</a></h1>
+<p>This appendix provides comprehensive API documentation for all bashrs commands, flags, and configuration options.</p>
+<hr />
+<h2 id="command-line-interface"><a class="header" href="#command-line-interface">Command-Line Interface</a></h2>
+<h3 id="bashrs-build"><a class="header" href="#bashrs-build">bashrs build</a></h3>
+<p>Transpile Rust code to shell scripts with validation.</p>
+<pre><code class="language-sh">bashrs build [OPTIONS] &lt;FILES...&gt;
+</code></pre>
+<p><strong>Arguments:</strong></p>
+<ul>
+<li><code>&lt;FILES...&gt;</code> - Rust source files to transpile (<code>.rs</code> extension)</li>
+</ul>
+<p><strong>Options:</strong></p>
+<ul>
+<li><code>--output-dir &lt;DIR&gt;</code> - Output directory for generated scripts (default: <code>./dist</code>)</li>
+<li><code>--validation &lt;LEVEL&gt;</code> - Validation level: <code>none</code>, <code>minimal</code>, <code>strict</code>, <code>paranoid</code> (default: <code>minimal</code>)</li>
+<li><code>--strict</code> - Treat warnings as errors</li>
+<li><code>--no-verify</code> - Skip shellcheck verification</li>
+<li><code>--format &lt;FORMAT&gt;</code> - Output format: <code>shell</code>, <code>json</code>, <code>yaml</code> (default: <code>shell</code>)</li>
+<li><code>--target &lt;SHELL&gt;</code> - Target shell: <code>sh</code>, <code>bash</code>, <code>dash</code>, <code>zsh</code> (default: <code>sh</code>)</li>
+<li><code>--help</code> - Display help information</li>
+<li><code>--version</code> - Display version information</li>
+</ul>
+<p><strong>Examples:</strong></p>
+<pre><code class="language-sh"># Basic transpilation
+bashrs build src/main.rs
+
+# Strict validation with custom output
+bashrs build src/*.rs --validation strict --strict --output-dir build/
+
+# Transpile for specific shell
+bashrs build installer.rs --target bash --output-dir dist/
+</code></pre>
+<p><strong>Exit Codes:</strong></p>
+<ul>
+<li><code>0</code> - Success</li>
+<li><code>1</code> - Compilation error</li>
+<li><code>2</code> - Validation error</li>
+<li><code>3</code> - File I/O error</li>
+</ul>
+<hr />
+<h3 id="bashrs-parse"><a class="header" href="#bashrs-parse">bashrs parse</a></h3>
+<p>Parse bash or Makefile to AST (Abstract Syntax Tree).</p>
+<pre><code class="language-sh">bashrs parse [OPTIONS] &lt;FILE&gt;
+</code></pre>
+<p><strong>Arguments:</strong></p>
+<ul>
+<li><code>&lt;FILE&gt;</code> - Bash script (<code>.sh</code>) or Makefile to parse</li>
+</ul>
+<p><strong>Options:</strong></p>
+<ul>
+<li><code>--format &lt;FORMAT&gt;</code> - Output format: <code>json</code>, <code>yaml</code>, <code>tree</code> (default: <code>tree</code>)</li>
+<li><code>--output &lt;FILE&gt;</code> - Write output to file instead of stdout</li>
+<li><code>--pretty</code> - Pretty-print JSON/YAML output</li>
+<li><code>--help</code> - Display help information</li>
+</ul>
+<p><strong>Examples:</strong></p>
+<pre><code class="language-sh"># Parse bash script to tree view
+bashrs parse deploy.sh
+
+# Parse Makefile to JSON
+bashrs parse Makefile --format json --pretty
+
+# Save AST to file
+bashrs parse script.sh --format yaml --output ast.yaml
+</code></pre>
+<p><strong>Exit Codes:</strong></p>
+<ul>
+<li><code>0</code> - Success</li>
+<li><code>1</code> - Parse error</li>
+<li><code>3</code> - File I/O error</li>
+</ul>
+<hr />
+<h3 id="bashrs-purify"><a class="header" href="#bashrs-purify">bashrs purify</a></h3>
+<p>Transform non-deterministic bash to safe POSIX sh.</p>
+<pre><code class="language-sh">bashrs purify [OPTIONS] &lt;FILE&gt;
+</code></pre>
+<p><strong>Arguments:</strong></p>
+<ul>
+<li><code>&lt;FILE&gt;</code> - Bash script to purify</li>
+</ul>
+<p><strong>Options:</strong></p>
+<ul>
+<li><code>--output &lt;FILE&gt;</code> - Output file (default: stdout)</li>
+<li><code>--in-place</code> - Overwrite input file</li>
+<li><code>--validation &lt;LEVEL&gt;</code> - Validation level (default: <code>strict</code>)</li>
+<li><code>--strict</code> - Treat warnings as errors</li>
+<li><code>--diff</code> - Show diff of changes</li>
+<li><code>--dry-run</code> - Preview changes without writing</li>
+<li><code>--help</code> - Display help information</li>
+</ul>
+<p><strong>Examples:</strong></p>
+<pre><code class="language-sh"># Purify to stdout
+bashrs purify messy.sh
+
+# Purify in-place
+bashrs purify legacy.sh --in-place
+
+# Preview changes
+bashrs purify old-script.sh --dry-run --diff
+
+# Strict purification
+bashrs purify build.sh --validation paranoid --strict --output clean-build.sh
+</code></pre>
+<p><strong>Exit Codes:</strong></p>
+<ul>
+<li><code>0</code> - Success</li>
+<li><code>1</code> - Purification error</li>
+<li><code>2</code> - Validation error</li>
+<li><code>3</code> - File I/O error</li>
+</ul>
+<hr />
+<h3 id="bashrs-lint"><a class="header" href="#bashrs-lint">bashrs lint</a></h3>
+<p>Lint bash scripts or Makefiles with shellcheck rules.</p>
+<pre><code class="language-sh">bashrs lint [OPTIONS] &lt;FILES...&gt;
+</code></pre>
+<p><strong>Arguments:</strong></p>
+<ul>
+<li><code>&lt;FILES...&gt;</code> - Files to lint (bash scripts or Makefiles)</li>
+</ul>
+<p><strong>Options:</strong></p>
+<ul>
+<li><code>--validation &lt;LEVEL&gt;</code> - Validation level (default: <code>strict</code>)</li>
+<li><code>--strict</code> - Treat warnings as errors</li>
+<li><code>--format &lt;FORMAT&gt;</code> - Output format: <code>text</code>, <code>json</code>, <code>checkstyle</code>, <code>gcc</code> (default: <code>text</code>)</li>
+<li><code>--output &lt;FILE&gt;</code> - Write output to file</li>
+<li><code>--fix</code> - Auto-fix issues where possible</li>
+<li><code>--fix-all</code> - Auto-fix all issues (no prompts)</li>
+<li><code>--help</code> - Display help information</li>
+</ul>
+<p><strong>Examples:</strong></p>
+<pre><code class="language-sh"># Lint single file
+bashrs lint deploy.sh
+
+# Lint multiple files
+bashrs lint src/*.sh
+
+# Auto-fix issues
+bashrs lint build.sh --fix
+
+# Strict linting with JSON output
+bashrs lint scripts/ --strict --format json --output lint-report.json
+</code></pre>
+<p><strong>Exit Codes:</strong></p>
+<ul>
+<li><code>0</code> - No issues found</li>
+<li><code>1</code> - Warnings found</li>
+<li><code>2</code> - Errors found</li>
+<li><code>3</code> - File I/O error</li>
+</ul>
+<hr />
+<h3 id="bashrs-check"><a class="header" href="#bashrs-check">bashrs check</a></h3>
+<p>Type-check and validate Rust code before transpilation.</p>
+<pre><code class="language-sh">bashrs check [OPTIONS] &lt;FILES...&gt;
+</code></pre>
+<p><strong>Arguments:</strong></p>
+<ul>
+<li><code>&lt;FILES...&gt;</code> - Rust files to check</li>
+</ul>
+<p><strong>Options:</strong></p>
+<ul>
+<li><code>--validation &lt;LEVEL&gt;</code> - Validation level (default: <code>strict</code>)</li>
+<li><code>--strict</code> - Treat warnings as errors</li>
+<li><code>--help</code> - Display help information</li>
+</ul>
+<p><strong>Examples:</strong></p>
+<pre><code class="language-sh"># Check single file
+bashrs check src/main.rs
+
+# Check all files
+bashrs check src/*.rs --strict
+</code></pre>
+<p><strong>Exit Codes:</strong></p>
+<ul>
+<li><code>0</code> - All checks passed</li>
+<li><code>1</code> - Type errors found</li>
+<li><code>2</code> - Validation errors found</li>
+</ul>
+<hr />
+<h3 id="bashrs-bench"><a class="header" href="#bashrs-bench">bashrs bench</a></h3>
+<p>Benchmark performance and memory usage of generated scripts.</p>
+<pre><code class="language-sh">bashrs bench [OPTIONS] &lt;FILES...&gt;
+</code></pre>
+<p><strong>Arguments:</strong></p>
+<ul>
+<li><code>&lt;FILES...&gt;</code> - Shell scripts to benchmark</li>
+</ul>
+<p><strong>Options:</strong></p>
+<ul>
+<li><code>--iterations &lt;N&gt;</code> - Number of iterations (default: 100)</li>
+<li><code>--measure-memory</code> - Measure RSS memory usage</li>
+<li><code>--format &lt;FORMAT&gt;</code> - Output format: <code>text</code>, <code>json</code>, <code>csv</code> (default: <code>text</code>)</li>
+<li><code>--output &lt;FILE&gt;</code> - Write results to file</li>
+<li><code>--help</code> - Display help information</li>
+</ul>
+<p><strong>Examples:</strong></p>
+<pre><code class="language-sh"># Basic benchmark
+bashrs bench dist/install.sh
+
+# Benchmark with memory profiling
+bashrs bench dist/*.sh --measure-memory --iterations 1000
+
+# Export results to JSON
+bashrs bench build.sh --format json --output bench-results.json
+</code></pre>
+<p><strong>Exit Codes:</strong></p>
+<ul>
+<li><code>0</code> - Benchmark completed</li>
+<li><code>1</code> - Benchmark error</li>
+<li><code>3</code> - File I/O error</li>
+</ul>
+<hr />
+<h3 id="bashrs-mcp"><a class="header" href="#bashrs-mcp">bashrs mcp</a></h3>
+<p>Start MCP (Model Context Protocol) server for AI integration.</p>
+<pre><code class="language-sh">bashrs mcp serve [OPTIONS]
+</code></pre>
+<p><strong>Options:</strong></p>
+<ul>
+<li><code>--port &lt;PORT&gt;</code> - Server port (default: 3000)</li>
+<li><code>--host &lt;HOST&gt;</code> - Server host (default: 127.0.0.1)</li>
+<li><code>--config &lt;FILE&gt;</code> - Configuration file (JSON)</li>
+<li><code>--help</code> - Display help information</li>
+<li><code>--version</code> - Display MCP server version</li>
+</ul>
+<p><strong>Examples:</strong></p>
+<pre><code class="language-sh"># Start server on default port
+bashrs mcp serve
+
+# Start with custom port and config
+bashrs mcp serve --port 8080 --config /etc/bashrs/mcp-config.json
+
+# Check version
+bashrs mcp --version
+</code></pre>
+<p><strong>Exit Codes:</strong></p>
+<ul>
+<li><code>0</code> - Server stopped gracefully</li>
+<li><code>1</code> - Server error</li>
+<li><code>3</code> - Configuration error</li>
+</ul>
+<hr />
+<h2 id="configuration-file"><a class="header" href="#configuration-file">Configuration File</a></h2>
+<p>bashrs can be configured via <code>bashrs.toml</code> in the project root or <code>~/.config/bashrs/config.toml</code> for global settings.</p>
+<h3 id="configuration-schema"><a class="header" href="#configuration-schema">Configuration Schema</a></h3>
+<pre><code class="language-toml"># bashrs.toml
+
+[validation]
+# Validation level: "none", "minimal", "strict", "paranoid"
+level = "strict"
+
+# Treat warnings as errors
+strict = true
+
+# Skip shellcheck verification
+no_verify = false
+
+[output]
+# Output directory for generated scripts
+dir = "dist/"
+
+# Output format: "shell", "json", "yaml"
+format = "shell"
+
+# Target shell: "sh", "bash", "dash", "zsh"
+target = "sh"
+
+[linting]
+# Enable auto-fix
+auto_fix = false
+
+# Auto-fix all issues without prompts
+auto_fix_all = false
+
+# Lint output format: "text", "json", "checkstyle", "gcc"
+format = "text"
+
+[benchmarks]
+# Number of benchmark iterations
+iterations = 100
+
+# Measure memory usage
+measure_memory = true
+
+# Benchmark output format: "text", "json", "csv"
+format = "text"
+
+[mcp]
+# MCP server port
+port = 3000
+
+# MCP server host
+host = "127.0.0.1"
+
+# Max script size for MCP requests (bytes)
+max_script_size = 1048576
+
+# Request timeout (seconds)
+timeout = 30
+
+[logging]
+# Log level: "trace", "debug", "info", "warn", "error"
+level = "info"
+
+# Log file path
+file = "/var/log/bashrs.log"
+</code></pre>
+<p><strong>Configuration Precedence</strong> (highest to lowest):</p>
+<ol>
+<li>Command-line flags</li>
+<li>Project-local <code>bashrs.toml</code></li>
+<li>Global <code>~/.config/bashrs/config.toml</code></li>
+<li>Built-in defaults</li>
+</ol>
+<hr />
+<h2 id="validation-levels"><a class="header" href="#validation-levels">Validation Levels</a></h2>
+<h3 id="none-level--none"><a class="header" href="#none-level--none">None (level = “none”)</a></h3>
+<p><strong>Rules</strong>: 0
+<strong>Speed</strong>: Fastest
+<strong>Use Case</strong>: Prototyping, testing, non-production</p>
+<p>No validation checks. Generates scripts without any safety verification.</p>
+<p><strong>Risks</strong>:</p>
+<ul>
+<li>Injection vulnerabilities</li>
+<li>Non-deterministic behavior</li>
+<li>POSIX violations</li>
+<li>Non-idempotent operations</li>
+</ul>
+<hr />
+<h3 id="minimal-level--minimal-default"><a class="header" href="#minimal-level--minimal-default">Minimal (level = “minimal”) [DEFAULT]</a></h3>
+<p><strong>Rules</strong>: 8 critical rules
+<strong>Speed</strong>: Fast (95% of “none” speed)
+<strong>Use Case</strong>: Development, CI/CD pipelines</p>
+<p>Essential safety checks for production scripts.</p>
+<p><strong>Rules</strong>:</p>
+<ul>
+<li><code>SC2086</code> - Unquoted variables (injection risk)</li>
+<li><code>SC2046</code> - Unquoted command substitution</li>
+<li><code>SC2154</code> - Undefined variables</li>
+<li><code>SEC001</code> - Dangerous rm -rf with unquoted vars</li>
+<li><code>SEC002</code> - curl|sh pattern (insecure download+execute)</li>
+<li><code>DET001</code> - Non-deterministic $RANDOM usage</li>
+<li><code>IDEM001</code> - Non-idempotent mkdir (missing -p)</li>
+<li><code>IDEM002</code> - Non-idempotent rm (missing -f)</li>
+</ul>
+<hr />
+<h3 id="strict-level--strict-recommended-for-production"><a class="header" href="#strict-level--strict-recommended-for-production">Strict (level = “strict”) [RECOMMENDED FOR PRODUCTION]</a></h3>
+<p><strong>Rules</strong>: 18 rules (Minimal + 10 additional)
+<strong>Speed</strong>: Medium (85% of “none” speed)
+<strong>Use Case</strong>: Production deployments, critical systems</p>
+<p>Comprehensive production-ready validation.</p>
+<p><strong>Additional Rules</strong> (beyond Minimal):</p>
+<ul>
+<li><code>SC2004</code> - $/${} unnecessary on arithmetic variables</li>
+<li><code>SC2006</code> - Use $() instead of backticks</li>
+<li><code>SC2034</code> - Unused variables</li>
+<li><code>SC2045</code> - Iterating over ls output</li>
+<li><code>SC2068</code> - Unquoted $@</li>
+<li><code>SC2116</code> - Useless echo</li>
+<li><code>SC2196</code> - egrep deprecated, use grep -E</li>
+<li><code>SC2197</code> - fgrep deprecated, use grep -F</li>
+<li><code>SEC003</code> - eval with user input</li>
+<li><code>POSIX001</code> - Bash-specific [[ ]] syntax</li>
+</ul>
+<hr />
+<h3 id="paranoid-level--paranoid"><a class="header" href="#paranoid-level--paranoid">Paranoid (level = “paranoid”)</a></h3>
+<p><strong>Rules</strong>: 30+ rules (Strict + 12+ additional)
+<strong>Speed</strong>: Slow (70% of “none” speed)
+<strong>Use Case</strong>: Security-critical, compliance-required, finance/healthcare</p>
+<p>Maximum safety with exhaustive checks.</p>
+<p><strong>Additional Rules</strong> (beyond Strict):</p>
+<ul>
+<li><code>SC2015</code> - [[ &amp;&amp; || ]] ordering issues</li>
+<li><code>SC2053</code> - Quote right-hand side of =</li>
+<li><code>SC2066</code> - For loop over a single item</li>
+<li><code>SC2076</code> - Remove quotes from right-hand side of =~</li>
+<li><code>SC2089</code> - Quotes/backslashes in assignments</li>
+<li><code>SC2090</code> - Quotes/backslashes in expansions</li>
+<li><code>SEC004</code> - SSH command injection</li>
+<li><code>SEC005</code> - SQL injection patterns</li>
+<li><code>SEC006</code> - Path traversal patterns</li>
+<li><code>SEC007</code> - Command injection via $()</li>
+<li><code>SEC008</code> - Unvalidated redirects</li>
+<li><code>POSIX002</code> - Arrays (bash-only)</li>
+</ul>
+<hr />
+<h2 id="environment-variables"><a class="header" href="#environment-variables">Environment Variables</a></h2>
+<p>bashrs recognizes these environment variables:</p>
+<h3 id="bashrs_validation"><a class="header" href="#bashrs_validation">BASHRS_VALIDATION</a></h3>
+<p>Override default validation level.</p>
+<pre><code class="language-sh">export BASHRS_VALIDATION=strict
+bashrs build src/main.rs
+</code></pre>
+<p><strong>Values</strong>: <code>none</code>, <code>minimal</code>, <code>strict</code>, <code>paranoid</code></p>
+<hr />
+<h3 id="bashrs_strict_mode"><a class="header" href="#bashrs_strict_mode">BASHRS_STRICT_MODE</a></h3>
+<p>Enable strict mode (warnings as errors).</p>
+<pre><code class="language-sh">export BASHRS_STRICT_MODE=true
+bashrs lint scripts/*.sh
+</code></pre>
+<p><strong>Values</strong>: <code>true</code>, <code>false</code> (default: <code>false</code>)</p>
+<hr />
+<h3 id="bashrs_output_dir"><a class="header" href="#bashrs_output_dir">BASHRS_OUTPUT_DIR</a></h3>
+<p>Override output directory.</p>
+<pre><code class="language-sh">export BASHRS_OUTPUT_DIR=/opt/scripts/dist
+bashrs build src/*.rs
+</code></pre>
+<p><strong>Default</strong>: <code>./dist</code></p>
+<hr />
+<h3 id="bashrs_log_level"><a class="header" href="#bashrs_log_level">BASHRS_LOG_LEVEL</a></h3>
+<p>Set logging verbosity.</p>
+<pre><code class="language-sh">export BASHRS_LOG_LEVEL=debug
+bashrs build src/main.rs
+</code></pre>
+<p><strong>Values</strong>: <code>trace</code>, <code>debug</code>, <code>info</code>, <code>warn</code>, <code>error</code> (default: <code>info</code>)</p>
+<hr />
+<h3 id="bashrs_no_color"><a class="header" href="#bashrs_no_color">BASHRS_NO_COLOR</a></h3>
+<p>Disable colored output.</p>
+<pre><code class="language-sh">export BASHRS_NO_COLOR=1
+bashrs lint script.sh
+</code></pre>
+<p><strong>Values</strong>: <code>1</code> (disable), <code>0</code> (enable)</p>
+<hr />
+<h3 id="bashrs_config"><a class="header" href="#bashrs_config">BASHRS_CONFIG</a></h3>
+<p>Override configuration file path.</p>
+<pre><code class="language-sh">export BASHRS_CONFIG=/etc/bashrs/custom-config.toml
+bashrs build src/*.rs
+</code></pre>
+<p><strong>Default</strong>: <code>./bashrs.toml</code> or <code>~/.config/bashrs/config.toml</code></p>
+<hr />
+<h2 id="exit-codes"><a class="header" href="#exit-codes">Exit Codes</a></h2>
+<p>bashrs uses standard Unix exit codes:</p>
+<div class="table-wrapper"><table><thead><tr><th>Code</th><th>Meaning</th><th>Description</th></tr></thead><tbody>
+<tr><td><code>0</code></td><td>Success</td><td>Operation completed successfully</td></tr>
+<tr><td><code>1</code></td><td>General error</td><td>Compilation, parse, or lint errors</td></tr>
+<tr><td><code>2</code></td><td>Validation error</td><td>Validation checks failed (strict mode)</td></tr>
+<tr><td><code>3</code></td><td>I/O error</td><td>File read/write failed</td></tr>
+<tr><td><code>4</code></td><td>Configuration error</td><td>Invalid config file or options</td></tr>
+<tr><td><code>64</code></td><td>Usage error</td><td>Invalid command-line arguments</td></tr>
+<tr><td><code>130</code></td><td>Interrupted</td><td>User cancelled with Ctrl+C</td></tr>
+</tbody></table>
+</div>
+<p><strong>Examples:</strong></p>
+<pre><code class="language-sh"># Check exit code
+bashrs lint script.sh
+if [ $? -ne 0 ]; then
+    echo "Linting failed"
+    exit 1
+fi
+
+# Use in CI/CD
+bashrs build src/*.rs --strict || exit 1
+</code></pre>
+<hr />
+<h2 id="output-formats"><a class="header" href="#output-formats">Output Formats</a></h2>
+<h3 id="text-format-default"><a class="header" href="#text-format-default">Text Format (default)</a></h3>
+<p>Human-readable output with colors and formatting.</p>
+<pre><code class="language-sh">$ bashrs lint script.sh
+
+Found 2 issues:
+
+1. SC2086 (error): Unquoted variable 'directory'
+   Line 5: rm -rf $directory
+   Fix: rm -rf "${directory}"
+
+2. SEC001 (error): Dangerous rm -rf with unquoted variable
+   Line 5: rm -rf $directory
+   Fix: Add validation before destructive operations
+
+Summary: 2 errors, 0 warnings
+</code></pre>
+<hr />
+<h3 id="json-format"><a class="header" href="#json-format">JSON Format</a></h3>
+<p>Machine-readable JSON for automation.</p>
+<pre><code class="language-sh">$ bashrs lint script.sh --format json
+</code></pre>
+<pre><code class="language-json">{
+  "files": [
+    {
+      "path": "script.sh",
+      "issues": [
+        {
+          "code": "SC2086",
+          "severity": "error",
+          "line": 5,
+          "column": 8,
+          "message": "Unquoted variable 'directory'",
+          "fix": "rm -rf \"${directory}\""
+        },
+        {
+          "code": "SEC001",
+          "severity": "error",
+          "line": 5,
+          "column": 1,
+          "message": "Dangerous rm -rf with unquoted variable",
+          "fix": "Add validation before destructive operations"
+        }
+      ]
+    }
+  ],
+  "summary": {
+    "errors": 2,
+    "warnings": 0,
+    "fixed": 0
+  }
+}
+</code></pre>
+<hr />
+<h3 id="checkstyle-format-xml"><a class="header" href="#checkstyle-format-xml">Checkstyle Format (XML)</a></h3>
+<p>Compatible with Checkstyle-based tools (Jenkins, SonarQube).</p>
+<pre><code class="language-sh">$ bashrs lint script.sh --format checkstyle
+</code></pre>
+<pre><code class="language-xml">&lt;?xml version="1.0" encoding="UTF-8"?&gt;
+&lt;checkstyle version="4.3"&gt;
+  &lt;file name="script.sh"&gt;
+    &lt;error line="5" column="8" severity="error"
+           message="Unquoted variable 'directory'"
+           source="SC2086" /&gt;
+    &lt;error line="5" column="1" severity="error"
+           message="Dangerous rm -rf with unquoted variable"
+           source="SEC001" /&gt;
+  &lt;/file&gt;
+&lt;/checkstyle&gt;
+</code></pre>
+<hr />
+<h3 id="gcc-format"><a class="header" href="#gcc-format">GCC Format</a></h3>
+<p>Compatible with GCC-style error messages (Emacs, Vim).</p>
+<pre><code class="language-sh">$ bashrs lint script.sh --format gcc
+</code></pre>
+<pre><code class="language-text">script.sh:5:8: error: Unquoted variable 'directory' [SC2086]
+script.sh:5:1: error: Dangerous rm -rf with unquoted variable [SEC001]
+</code></pre>
+<hr />
+<h2 id="rule-reference"><a class="header" href="#rule-reference">Rule Reference</a></h2>
+<h3 id="sc2086---unquoted-variables"><a class="header" href="#sc2086---unquoted-variables">SC2086 - Unquoted Variables</a></h3>
+<p><strong>Severity</strong>: Error
+<strong>Category</strong>: Security (Injection)</p>
+<p><strong>Problem</strong>: Variables without quotes can cause word splitting and injection.</p>
+<p><strong>Example</strong>:</p>
+<pre><code class="language-sh"># ❌ Bad
+rm -rf $directory
+
+# ✅ Good
+rm -rf "${directory}"
+</code></pre>
+<p><strong>Auto-fix</strong>: Adds quotes around variables</p>
+<hr />
+<h3 id="sc2046---unquoted-command-substitution"><a class="header" href="#sc2046---unquoted-command-substitution">SC2046 - Unquoted Command Substitution</a></h3>
+<p><strong>Severity</strong>: Error
+<strong>Category</strong>: Security (Injection)</p>
+<p><strong>Problem</strong>: Unquoted command substitution can cause word splitting.</p>
+<p><strong>Example</strong>:</p>
+<pre><code class="language-sh"># ❌ Bad
+files=$(ls *.txt)
+rm $files
+
+# ✅ Good
+files=$(ls *.txt)
+rm "${files}"
+</code></pre>
+<p><strong>Auto-fix</strong>: Adds quotes around command substitution</p>
+<hr />
+<h3 id="sc2154---undefined-variables"><a class="header" href="#sc2154---undefined-variables">SC2154 - Undefined Variables</a></h3>
+<p><strong>Severity</strong>: Warning
+<strong>Category</strong>: Correctness</p>
+<p><strong>Problem</strong>: Variable used but never assigned.</p>
+<p><strong>Example</strong>:</p>
+<pre><code class="language-sh"># ❌ Bad
+echo "${undefined_var}"
+
+# ✅ Good
+undefined_var="value"
+echo "${undefined_var}"
+</code></pre>
+<p><strong>Auto-fix</strong>: Not available (manual fix required)</p>
+<hr />
+<h3 id="sec001---dangerous-rm--rf"><a class="header" href="#sec001---dangerous-rm--rf">SEC001 - Dangerous rm -rf</a></h3>
+<p><strong>Severity</strong>: Error
+<strong>Category</strong>: Security (Destructive)</p>
+<p><strong>Problem</strong>: <code>rm -rf</code> with unquoted variables can delete unexpected files.</p>
+<p><strong>Example</strong>:</p>
+<pre><code class="language-sh"># ❌ Bad
+rm -rf $directory
+
+# ✅ Good
+if [ -d "${directory}" ]; then
+    rm -rf "${directory}"
+fi
+</code></pre>
+<p><strong>Auto-fix</strong>: Adds quotes and validation</p>
+<hr />
+<h3 id="det001---non-deterministic-random"><a class="header" href="#det001---non-deterministic-random">DET001 - Non-deterministic $RANDOM</a></h3>
+<p><strong>Severity</strong>: Warning
+<strong>Category</strong>: Determinism</p>
+<p><strong>Problem</strong>: <code>$RANDOM</code> produces different values on each run.</p>
+<p><strong>Example</strong>:</p>
+<pre><code class="language-sh"># ❌ Bad
+id=$RANDOM
+
+# ✅ Good
+id=$(od -An -N4 -tu4 /dev/urandom | tr -d ' ')
+</code></pre>
+<p><strong>Auto-fix</strong>: Replaces with <code>/dev/urandom</code></p>
+<hr />
+<h3 id="idem001---non-idempotent-mkdir"><a class="header" href="#idem001---non-idempotent-mkdir">IDEM001 - Non-idempotent mkdir</a></h3>
+<p><strong>Severity</strong>: Warning
+<strong>Category</strong>: Idempotency</p>
+<p><strong>Problem</strong>: <code>mkdir</code> without <code>-p</code> fails if directory exists.</p>
+<p><strong>Example</strong>:</p>
+<pre><code class="language-sh"># ❌ Bad
+mkdir /tmp/build
+
+# ✅ Good
+mkdir -p /tmp/build
+</code></pre>
+<p><strong>Auto-fix</strong>: Adds <code>-p</code> flag</p>
+<hr />
+<h2 id="performance-benchmarks"><a class="header" href="#performance-benchmarks">Performance Benchmarks</a></h2>
+<p>bashrs performance characteristics:</p>
+<div class="table-wrapper"><table><thead><tr><th>Operation</th><th>Time</th><th>Memory</th><th>Notes</th></tr></thead><tbody>
+<tr><td>Parse 1KB bash</td><td>&lt;10ms</td><td>&lt;1MB</td><td>Typical script</td></tr>
+<tr><td>Parse 100KB bash</td><td>&lt;100ms</td><td>&lt;5MB</td><td>Large script</td></tr>
+<tr><td>Lint 1KB (minimal)</td><td>&lt;20ms</td><td>&lt;2MB</td><td>8 rules</td></tr>
+<tr><td>Lint 1KB (strict)</td><td>&lt;50ms</td><td>&lt;3MB</td><td>18 rules</td></tr>
+<tr><td>Lint 1KB (paranoid)</td><td>&lt;100ms</td><td>&lt;5MB</td><td>30+ rules</td></tr>
+<tr><td>Purify 1KB</td><td>&lt;30ms</td><td>&lt;2MB</td><td>Determinism + idempotency</td></tr>
+<tr><td>Transpile 100 LOC Rust</td><td>&lt;200ms</td><td>&lt;10MB</td><td>Typical program</td></tr>
+</tbody></table>
+</div>
+<p><strong>Scaling</strong>:</p>
+<ul>
+<li>Linear scaling with file size</li>
+<li>Memory usage: O(n) where n = file size</li>
+<li>Parallelization: Processes multiple files concurrently</li>
+</ul>
+<hr />
+<h2 id="integration-examples"><a class="header" href="#integration-examples">Integration Examples</a></h2>
+<h3 id="github-actions"><a class="header" href="#github-actions">GitHub Actions</a></h3>
+<pre><code class="language-yaml"># .github/workflows/bashrs.yml
+name: Shell Script Quality
+
+on: [push, pull_request]
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install bashrs
+        run: cargo install bashrs
+
+      - name: Lint shell scripts
+        run: bashrs lint scripts/*.sh --strict --format checkstyle --output checkstyle.xml
+
+      - name: Upload results
+        if: always()
+        uses: actions/upload-artifact@v3
+        with:
+          name: lint-results
+          path: checkstyle.xml
+</code></pre>
+<hr />
+<h3 id="gitlab-ci"><a class="header" href="#gitlab-ci">GitLab CI</a></h3>
+<pre><code class="language-yaml"># .gitlab-ci.yml
+bashrs:lint:
+  image: rust:latest
+  stage: test
+  script:
+    - cargo install bashrs
+    - bashrs lint scripts/*.sh --strict --format json --output lint-report.json
+  artifacts:
+    reports:
+      codequality: lint-report.json
+    paths:
+      - lint-report.json
+    expire_in: 1 week
+</code></pre>
+<hr />
+<h3 id="pre-commit-hook"><a class="header" href="#pre-commit-hook">Pre-commit Hook</a></h3>
+<pre><code class="language-yaml"># .pre-commit-config.yaml
+repos:
+  - repo: local
+    hooks:
+      - id: bashrs-lint
+        name: bashrs lint
+        entry: bashrs lint
+        language: system
+        types: [shell]
+        args: [--strict]
+</code></pre>
+<hr />
+<h3 id="makefile-integration"><a class="header" href="#makefile-integration">Makefile Integration</a></h3>
+<pre><code class="language-makefile"># Makefile
+.PHONY: lint
+lint:
+	bashrs lint scripts/*.sh --strict
+
+.PHONY: build
+build:
+	bashrs build src/*.rs --validation strict --output-dir dist/
+
+.PHONY: bench
+bench:
+	bashrs bench dist/*.sh --measure-memory --iterations 1000
+
+.PHONY: ci
+ci: lint build
+	@echo "All checks passed"
+</code></pre>
+<hr />
+<h2 id="troubleshooting"><a class="header" href="#troubleshooting">Troubleshooting</a></h2>
+<h3 id="common-issues"><a class="header" href="#common-issues">Common Issues</a></h3>
+<h4 id="issue-command-not-found-bashrs"><a class="header" href="#issue-command-not-found-bashrs">Issue: “Command not found: bashrs”</a></h4>
+<p><strong>Solution</strong>: Install bashrs with <code>cargo install bashrs</code> or add to PATH</p>
+<h4 id="issue-parse-error-unexpected-token"><a class="header" href="#issue-parse-error-unexpected-token">Issue: “Parse error: unexpected token”</a></h4>
+<p><strong>Solution</strong>: Check syntax with <code>bash -n script.sh</code>, fix syntax errors</p>
+<h4 id="issue-validation-failed-sc2086"><a class="header" href="#issue-validation-failed-sc2086">Issue: “Validation failed: SC2086”</a></h4>
+<p><strong>Solution</strong>: Quote variables: <code>"${var}"</code> instead of <code>$var</code></p>
+<h4 id="issue-permission-denied-etcbashrsconfigtoml"><a class="header" href="#issue-permission-denied-etcbashrsconfigtoml">Issue: “Permission denied: /etc/bashrs/config.toml”</a></h4>
+<p><strong>Solution</strong>: Use user config: <code>~/.config/bashrs/config.toml</code> or run with sudo</p>
+<h4 id="issue-mcp-server-not-starting"><a class="header" href="#issue-mcp-server-not-starting">Issue: “MCP server not starting”</a></h4>
+<p><strong>Solution</strong>: Check port availability with <code>netstat -tlnp | grep 3000</code></p>
+<hr />
+<h2 id="version-compatibility"><a class="header" href="#version-compatibility">Version Compatibility</a></h2>
+<h3 id="bashrs-versions"><a class="header" href="#bashrs-versions">bashrs Versions</a></h3>
+<div class="table-wrapper"><table><thead><tr><th>Version</th><th>Release Date</th><th>Status</th><th>Notes</th></tr></thead><tbody>
+<tr><td>v6.34.1</td><td>2025-11-14</td><td>Current</td><td>False positive fixes</td></tr>
+<tr><td>v6.34.0</td><td>2025-11-13</td><td>Stable</td><td>Issue #1 auto-fix bug fix</td></tr>
+<tr><td>v6.26.0</td><td>2025-10-15</td><td>Stable</td><td>Memory profiling</td></tr>
+<tr><td>v6.0.0</td><td>2025-09-01</td><td>Stable</td><td>Validation levels</td></tr>
+<tr><td>v1.4.0</td><td>2025-04-15</td><td>Stable</td><td>Makefile purification</td></tr>
+<tr><td>v1.0.0</td><td>2025-04-01</td><td>Stable</td><td>Initial release</td></tr>
+</tbody></table>
+</div>
+<h3 id="shell-compatibility"><a class="header" href="#shell-compatibility">Shell Compatibility</a></h3>
+<p>bashrs generates scripts compatible with:</p>
+<div class="table-wrapper"><table><thead><tr><th>Shell</th><th>Version</th><th>Status</th></tr></thead><tbody>
+<tr><td>sh</td><td>POSIX</td><td>✅ Full</td></tr>
+<tr><td>dash</td><td>0.5.12+</td><td>✅ Full</td></tr>
+<tr><td>ash (BusyBox)</td><td>1.35+</td><td>✅ Full</td></tr>
+<tr><td>bash</td><td>3.2+</td><td>✅ Full</td></tr>
+<tr><td>zsh</td><td>5.x</td><td>✅ Full</td></tr>
+<tr><td>ksh</td><td>93u+</td><td>✅ Full</td></tr>
+</tbody></table>
+</div>
+<hr />
+<h2 id="support-and-resources"><a class="header" href="#support-and-resources">Support and Resources</a></h2>
+<h3 id="documentation"><a class="header" href="#documentation">Documentation</a></h3>
+<ul>
+<li><strong>Book</strong>: https://bashrs.com/book</li>
+<li><strong>API Reference</strong>: https://docs.rs/bashrs</li>
+<li><strong>Examples</strong>: https://github.com/paiml/bashrs/tree/main/examples</li>
+</ul>
+<h3 id="community"><a class="header" href="#community">Community</a></h3>
+<ul>
+<li><strong>GitHub Issues</strong>: https://github.com/paiml/bashrs/issues</li>
+<li><strong>Discussions</strong>: https://github.com/paiml/bashrs/discussions</li>
+<li><strong>Discord</strong>: https://discord.gg/bashrs</li>
+</ul>
+<h3 id="contributing"><a class="header" href="#contributing">Contributing</a></h3>
+<ul>
+<li><strong>Contributing Guide</strong>: https://github.com/paiml/bashrs/blob/main/CONTRIBUTING.md</li>
+<li><strong>Development Setup</strong>: See CLAUDE.md in repository</li>
+<li><strong>Code of Conduct</strong>: https://github.com/paiml/bashrs/blob/main/CODE_OF_CONDUCT.md</li>
+</ul>
+<hr />
+<h2 id="see-also"><a class="header" href="#see-also">See Also</a></h2>
+<ul>
+<li><strong>Chapter 1</strong>: Getting started tutorial</li>
+<li><strong>Chapter 13</strong>: Validation levels explained</li>
+<li><strong>Chapter 15</strong>: CI/CD integration patterns</li>
+<li><strong>Chapter 16</strong>: MCP server integration</li>
+<li><strong>Appendix B</strong>: Glossary of terms</li>
+<li><strong>Appendix C</strong>: Shell compatibility matrix</li>
+</ul>
+<hr />
+<p><em>API Reference last updated: 2025-11-14 for bashrs v6.34.1</em></p>
 
                     </main>
 
@@ -217,8 +970,8 @@
         </script>
 
         <script src="ace.js"></script>
-        <script src="mode-rust.js"></script>
         <script src="editor.js"></script>
+        <script src="mode-rust.js"></script>
         <script src="theme-dawn.js"></script>
         <script src="theme-tomorrow_night.js"></script>
 
@@ -231,7 +984,6 @@
         <script src="book.js"></script>
 
         <!-- Custom JS scripts -->
-
 
 
     </div>

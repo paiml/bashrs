@@ -24,41 +24,28 @@
         <link rel="stylesheet" href="fonts/fonts.css">
 
         <!-- Highlight.js Stylesheets -->
-        <link rel="stylesheet" id="highlight-css" href="highlight.css">
-        <link rel="stylesheet" id="tomorrow-night-css" href="tomorrow-night.css">
-        <link rel="stylesheet" id="ayu-highlight-css" href="ayu-highlight.css">
+        <link rel="stylesheet" href="highlight.css">
+        <link rel="stylesheet" href="tomorrow-night.css">
+        <link rel="stylesheet" href="ayu-highlight.css">
 
         <!-- Custom theme stylesheets -->
 
 
-        <!-- Provide site root and default themes to javascript -->
+        <!-- Provide site root to javascript -->
         <script>
-            const path_to_root = "";
-            const default_light_theme = "rust";
-            const default_dark_theme = "coal";
-            window.path_to_searchindex_js = "searchindex.js";
+            var path_to_root = "";
+            var default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "coal" : "rust";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc.js"></script>
     </head>
     <body>
-    <div id="mdbook-help-container">
-        <div id="mdbook-help-popup">
-            <h2 class="mdbook-help-title">Keyboard shortcuts</h2>
-            <div>
-                <p>Press <kbd>←</kbd> or <kbd>→</kbd> to navigate between chapters</p>
-                <p>Press <kbd>S</kbd> or <kbd>/</kbd> to search in the book</p>
-                <p>Press <kbd>?</kbd> to show this help</p>
-                <p>Press <kbd>Esc</kbd> to hide this help</p>
-            </div>
-        </div>
-    </div>
     <div id="body-container">
         <!-- Work around some values being stored in localStorage wrapped in quotes -->
         <script>
             try {
-                let theme = localStorage.getItem('mdbook-theme');
-                let sidebar = localStorage.getItem('mdbook-sidebar');
+                var theme = localStorage.getItem('mdbook-theme');
+                var sidebar = localStorage.getItem('mdbook-sidebar');
 
                 if (theme.startsWith('"') && theme.endsWith('"')) {
                     localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
@@ -72,8 +59,7 @@
 
         <!-- Set the theme before any content is loaded, prevents flash -->
         <script>
-            const default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? default_dark_theme : default_light_theme;
-            let theme;
+            var theme;
             try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
             if (theme === null || theme === undefined) { theme = default_theme; }
             const html = document.documentElement;
@@ -86,20 +72,17 @@
 
         <!-- Hide / unhide sidebar before it is displayed -->
         <script>
-            let sidebar = null;
-            const sidebar_toggle = document.getElementById("sidebar-toggle-anchor");
+            var sidebar = null;
+            var sidebar_toggle = document.getElementById("sidebar-toggle-anchor");
             if (document.body.clientWidth >= 1080) {
                 try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
                 sidebar = sidebar || 'visible';
             } else {
                 sidebar = 'hidden';
-                sidebar_toggle.checked = false;
             }
-            if (sidebar === 'visible') {
-                sidebar_toggle.checked = true;
-            } else {
-                html.classList.remove('sidebar-visible');
-            }
+            sidebar_toggle.checked = sidebar === 'visible';
+            html.classList.remove('sidebar-visible');
+            html.classList.add("sidebar-" + sidebar);
         </script>
 
         <nav id="sidebar" class="sidebar" aria-label="Table of contents">
@@ -126,14 +109,13 @@
                             <i class="fa fa-paint-brush"></i>
                         </button>
                         <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
-                            <li role="none"><button role="menuitem" class="theme" id="default_theme">Auto</button></li>
                             <li role="none"><button role="menuitem" class="theme" id="light">Light</button></li>
                             <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
                             <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
                             <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
                             <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
                         </ul>
-                        <button id="search-toggle" class="icon-button" type="button" title="Search (`/`)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="/ s" aria-controls="searchbar">
+                        <button id="search-toggle" class="icon-button" type="button" title="Search. (Shortkey: s)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="S" aria-controls="searchbar">
                             <i class="fa fa-search"></i>
                         </button>
                     </div>
@@ -147,7 +129,7 @@
                         <a href="https://github.com/paiml/bashrs" title="Git repository" aria-label="Git repository">
                             <i id="git-repository-button" class="fa fa-github"></i>
                         </a>
-                        <a href="https://github.com/paiml/bashrs/edit/main/rash-book/src/ch17-testing-tdd.md" title="Suggest an edit" aria-label="Suggest an edit" rel="edit">
+                        <a href="https://github.com/paiml/bashrs/edit/main/rash-book/src/ch17-testing-tdd.md" title="Suggest an edit" aria-label="Suggest an edit">
                             <i id="git-edit-button" class="fa fa-edit"></i>
                         </a>
 
@@ -156,12 +138,7 @@
 
                 <div id="search-wrapper" class="hidden">
                     <form id="searchbar-outer" class="searchbar-outer">
-                        <div class="search-wrapper">
-                            <input type="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
-                            <div class="spinner-wrapper">
-                                <i class="fa fa-spinner fa-spin"></i>
-                            </div>
-                        </div>
+                        <input type="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
                     </form>
                     <div id="searchresults-outer" class="searchresults-outer hidden">
                         <div id="searchresults-header" class="searchresults-header"></div>
@@ -213,7 +190,7 @@ backup_files "$SOURCE" "$DEST"
 <li>❌ Non-deterministic behavior</li>
 </ul>
 <h3 id="rash--tdd-approach--fully-tested"><a class="header" href="#rash--tdd-approach--fully-tested">Rash + TDD Approach (✅ Fully Tested)</a></h3>
-<pre><code class="language-rust">// backup.rash
+<pre><code class="language-rust ignore">// backup.rash
 // Example: backup_files("/data", "/backup") =&gt; success
 
 fun backup_files(source: &amp;str, dest: &amp;str) -&gt; Result&lt;(), String&gt; {
@@ -245,7 +222,7 @@ fun main() {
 <pre><code class="language-bash">$ bashrs generate-tests backup.sh
 </code></pre>
 <p><strong>Generated Test Suite</strong> (<code>backup_tests.rs</code>):</p>
-<pre><code class="language-rust">#[cfg(test)]
+<pre><code class="language-rust ignore">#[cfg(test)]
 mod tests {
     use super::*;
 
@@ -279,7 +256,7 @@ mod tests {
     }
 }</code></pre>
 <h3 id="property-based-tests"><a class="header" href="#property-based-tests">Property-Based Tests</a></h3>
-<pre><code class="language-rust">#[cfg(test)]
+<pre><code class="language-rust ignore">#[cfg(test)]
 mod property_tests {
     use super::*;
     use proptest::prelude::*;
@@ -326,7 +303,7 @@ mod property_tests {
 <h3 id="run-tests-should-fail---red-"><a class="header" href="#run-tests-should-fail---red-">Run Tests (Should FAIL - RED 🔴)</a></h3>
 <pre><code class="language-bash">$ cargo test
 </code></pre>
-<pre><code>running 7 tests
+<pre><code class="language-text">running 7 tests
 test tests::test_backup_files_success ... FAILED
 test tests::test_backup_files_empty_source ... FAILED
 test tests::test_backup_files_empty_dest ... FAILED
@@ -341,7 +318,7 @@ failures: 7
 <hr />
 <h2 id="173-step-2-implement-green-"><a class="header" href="#173-step-2-implement-green-">17.3 Step 2: Implement (GREEN 🟢)</a></h2>
 <h3 id="write-rash-code"><a class="header" href="#write-rash-code">Write Rash Code</a></h3>
-<pre><code class="language-rust">// backup.rash
+<pre><code class="language-rust ignore">// backup.rash
 use std::fs;
 use std::path::Path;
 
@@ -454,7 +431,7 @@ fi
 <h3 id="run-tests-again-should-pass---green-"><a class="header" href="#run-tests-again-should-pass---green-">Run Tests Again (Should PASS - GREEN 🟢)</a></h3>
 <pre><code class="language-bash">$ cargo test
 </code></pre>
-<pre><code>running 7 tests
+<pre><code class="language-text">running 7 tests
 test tests::test_backup_files_success ... ok
 test tests::test_backup_files_empty_source ... ok
 test tests::test_backup_files_empty_dest ... ok
@@ -471,20 +448,20 @@ test result: ok. 7 passed; 0 failed
 <h3 id="lint-with-clippy"><a class="header" href="#lint-with-clippy">Lint with Clippy</a></h3>
 <pre><code class="language-bash">$ cargo clippy -- -D warnings
 </code></pre>
-<pre><code>Checking bashrs v1.0.0
+<pre><code class="language-text">Checking bashrs v1.0.0
 Finished dev [unoptimized + debuginfo] target(s) in 0.42s
 </code></pre>
 <p>✅ <strong>No warnings!</strong></p>
 <h3 id="shellcheck-validation"><a class="header" href="#shellcheck-validation">ShellCheck Validation</a></h3>
 <pre><code class="language-bash">$ shellcheck -s sh backup.sh
 </code></pre>
-<pre><code>✓ No issues detected!
+<pre><code class="language-text">✓ No issues detected!
 </code></pre>
 <p>✅ <strong>POSIX compliant!</strong></p>
 <h3 id="code-coverage"><a class="header" href="#code-coverage">Code Coverage</a></h3>
 <pre><code class="language-bash">$ cargo llvm-cov --html
 </code></pre>
-<pre><code>Coverage Summary:
+<pre><code class="language-text">Coverage Summary:
   Functions: 100.0% (2/2)
   Lines:     95.5% (42/44)
   Regions:   96.7% (29/30)
@@ -495,7 +472,7 @@ Finished dev [unoptimized + debuginfo] target(s) in 0.42s
 <h3 id="determinism-test"><a class="header" href="#determinism-test">Determinism Test</a></h3>
 <pre><code class="language-bash">$ bashrs verify backup.rash backup.sh
 </code></pre>
-<pre><code>✓ Transpilation deterministic (3/3 runs identical)
+<pre><code class="language-text">✓ Transpilation deterministic (3/3 runs identical)
 ✓ Script idempotent (2/2 runs produce same state)
 ✓ No random sources detected
 ✓ No timestamp dependencies found
@@ -506,7 +483,7 @@ VERIFICATION PASSED
 <h3 id="mutation-testing"><a class="header" href="#mutation-testing">Mutation Testing</a></h3>
 <pre><code class="language-bash">$ cargo mutants --file backup.rs
 </code></pre>
-<pre><code>Mutation Testing Results:
+<pre><code class="language-text">Mutation Testing Results:
   Total mutants:    23
   Caught:          21
   Missed:           2
@@ -544,7 +521,7 @@ create_user "$1" "$2"
 <li>❌ No tests!</li>
 </ul>
 <h3 id="rash-version-fully-tested"><a class="header" href="#rash-version-fully-tested">Rash Version (Fully Tested)</a></h3>
-<pre><code class="language-rust">// create_user.rash
+<pre><code class="language-rust ignore">// create_user.rash
 // Example: create_user("alice", "password123") =&gt; Ok(())
 // Example: create_user("", "pw") =&gt; Err("Username cannot be empty")
 
@@ -652,7 +629,7 @@ fun main() {
     }
 }</code></pre>
 <h3 id="auto-generated-tests"><a class="header" href="#auto-generated-tests">Auto-Generated Tests</a></h3>
-<pre><code class="language-rust">#[cfg(test)]
+<pre><code class="language-rust ignore">#[cfg(test)]
 mod tests {
     use super::*;
 
@@ -722,7 +699,7 @@ mod property_tests {
 <h3 id="test-results"><a class="header" href="#test-results">Test Results</a></h3>
 <pre><code class="language-bash">$ cargo test
 </code></pre>
-<pre><code>running 8 tests
+<pre><code class="language-text">running 8 tests
 test tests::test_validate_username_valid ... ok
 test tests::test_validate_username_empty ... ok
 test tests::test_validate_username_too_long ... ok
@@ -740,7 +717,7 @@ test result: ok. 8 passed; 0 failed; 0 ignored
 <h3 id="project-wide-test-status"><a class="header" href="#project-wide-test-status">Project-Wide Test Status</a></h3>
 <pre><code class="language-bash">$ cargo test --workspace
 </code></pre>
-<pre><code>Test Suite Summary:
+<pre><code class="language-text">Test Suite Summary:
   Total tests:      756
   Passing:         756
   Failed:            0
@@ -755,7 +732,7 @@ Pass rate: 100% ✅
 <h3 id="coverage-report"><a class="header" href="#coverage-report">Coverage Report</a></h3>
 <pre><code class="language-bash">$ make coverage
 </code></pre>
-<pre><code>Coverage Report (Core Modules):
+<pre><code class="language-text">Coverage Report (Core Modules):
   bash_parser:    89.4%  ✅
   transpiler:     92.1%  ✅
   ir:             88.7%  ✅
@@ -767,7 +744,7 @@ Overall: 85.36% ✅ (target: &gt;85%)
 <h3 id="mutation-testing-1"><a class="header" href="#mutation-testing-1">Mutation Testing</a></h3>
 <pre><code class="language-bash">$ cargo mutants --workspace
 </code></pre>
-<pre><code>Mutation Testing Summary:
+<pre><code class="language-text">Mutation Testing Summary:
   Total mutants:   1,247
   Caught:         1,034
   Missed:           213
@@ -779,7 +756,7 @@ Status: GOOD (baseline established)
 <h3 id="shellcheck-validation-1"><a class="header" href="#shellcheck-validation-1">ShellCheck Validation</a></h3>
 <pre><code class="language-bash">$ make test-shellcheck
 </code></pre>
-<pre><code>ShellCheck Validation:
+<pre><code class="language-text">ShellCheck Validation:
   Scripts checked:  24
   Issues found:      0
   Pass rate:      100% ✅
@@ -803,7 +780,7 @@ $ bashrs generate-tests script.sh
 </code></pre>
 <h3 id="3-property-based-testing"><a class="header" href="#3-property-based-testing">3. Property-Based Testing</a></h3>
 <p>✅ <strong>DO</strong>: Test properties, not just examples</p>
-<pre><code class="language-rust">proptest! {
+<pre><code class="language-rust ignore">proptest! {
     // Property: Function should be deterministic
     #[test]
     fun prop_deterministic(input in ".*") {
@@ -846,7 +823,7 @@ $ cargo mutants --file mymodule.rs
 <li>Fully tested</li>
 </ol>
 <h3 id="step-1-write-tests-red-"><a class="header" href="#step-1-write-tests-red-">Step 1: Write Tests (RED 🔴)</a></h3>
-<pre><code class="language-rust">#[cfg(test)]
+<pre><code class="language-rust ignore">#[cfg(test)]
 mod tests {
     use super::*;
 
@@ -878,7 +855,7 @@ failures: 3
 </code></pre>
 <p><strong>Expected</strong>: ❌ Tests fail (no implementation yet)</p>
 <h3 id="step-2-implement-green-"><a class="header" href="#step-2-implement-green-">Step 2: Implement (GREEN 🟢)</a></h3>
-<pre><code class="language-rust">// installer.rash
+<pre><code class="language-rust ignore">// installer.rash
 
 fun detect_distro() -&gt; &amp;'static str {
     if std::path::Path::new("/etc/debian_version").exists() {
@@ -1022,7 +999,7 @@ ALL QUALITY GATES PASSED ✅
 </li>
 </ol>
 <h3 id="test-suite-summary-v100"><a class="header" href="#test-suite-summary-v100">Test Suite Summary (v1.0.0)</a></h3>
-<pre><code>Total Tests:       756 ✅
+<pre><code class="language-text">Total Tests:       756 ✅
   Unit:           752
   Integration:      4
   Property:        52 (26,000+ cases)
@@ -1092,8 +1069,8 @@ Status: PRODUCTION READY 🚀
         </script>
 
         <script src="ace.js"></script>
-        <script src="mode-rust.js"></script>
         <script src="editor.js"></script>
+        <script src="mode-rust.js"></script>
         <script src="theme-dawn.js"></script>
         <script src="theme-tomorrow_night.js"></script>
 
@@ -1106,7 +1083,6 @@ Status: PRODUCTION READY 🚀
         <script src="book.js"></script>
 
         <!-- Custom JS scripts -->
-
 
 
     </div>

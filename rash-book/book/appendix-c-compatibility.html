@@ -24,41 +24,28 @@
         <link rel="stylesheet" href="fonts/fonts.css">
 
         <!-- Highlight.js Stylesheets -->
-        <link rel="stylesheet" id="highlight-css" href="highlight.css">
-        <link rel="stylesheet" id="tomorrow-night-css" href="tomorrow-night.css">
-        <link rel="stylesheet" id="ayu-highlight-css" href="ayu-highlight.css">
+        <link rel="stylesheet" href="highlight.css">
+        <link rel="stylesheet" href="tomorrow-night.css">
+        <link rel="stylesheet" href="ayu-highlight.css">
 
         <!-- Custom theme stylesheets -->
 
 
-        <!-- Provide site root and default themes to javascript -->
+        <!-- Provide site root to javascript -->
         <script>
-            const path_to_root = "";
-            const default_light_theme = "rust";
-            const default_dark_theme = "coal";
-            window.path_to_searchindex_js = "searchindex.js";
+            var path_to_root = "";
+            var default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "coal" : "rust";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc.js"></script>
     </head>
     <body>
-    <div id="mdbook-help-container">
-        <div id="mdbook-help-popup">
-            <h2 class="mdbook-help-title">Keyboard shortcuts</h2>
-            <div>
-                <p>Press <kbd>←</kbd> or <kbd>→</kbd> to navigate between chapters</p>
-                <p>Press <kbd>S</kbd> or <kbd>/</kbd> to search in the book</p>
-                <p>Press <kbd>?</kbd> to show this help</p>
-                <p>Press <kbd>Esc</kbd> to hide this help</p>
-            </div>
-        </div>
-    </div>
     <div id="body-container">
         <!-- Work around some values being stored in localStorage wrapped in quotes -->
         <script>
             try {
-                let theme = localStorage.getItem('mdbook-theme');
-                let sidebar = localStorage.getItem('mdbook-sidebar');
+                var theme = localStorage.getItem('mdbook-theme');
+                var sidebar = localStorage.getItem('mdbook-sidebar');
 
                 if (theme.startsWith('"') && theme.endsWith('"')) {
                     localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
@@ -72,8 +59,7 @@
 
         <!-- Set the theme before any content is loaded, prevents flash -->
         <script>
-            const default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? default_dark_theme : default_light_theme;
-            let theme;
+            var theme;
             try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
             if (theme === null || theme === undefined) { theme = default_theme; }
             const html = document.documentElement;
@@ -86,20 +72,17 @@
 
         <!-- Hide / unhide sidebar before it is displayed -->
         <script>
-            let sidebar = null;
-            const sidebar_toggle = document.getElementById("sidebar-toggle-anchor");
+            var sidebar = null;
+            var sidebar_toggle = document.getElementById("sidebar-toggle-anchor");
             if (document.body.clientWidth >= 1080) {
                 try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
                 sidebar = sidebar || 'visible';
             } else {
                 sidebar = 'hidden';
-                sidebar_toggle.checked = false;
             }
-            if (sidebar === 'visible') {
-                sidebar_toggle.checked = true;
-            } else {
-                html.classList.remove('sidebar-visible');
-            }
+            sidebar_toggle.checked = sidebar === 'visible';
+            html.classList.remove('sidebar-visible');
+            html.classList.add("sidebar-" + sidebar);
         </script>
 
         <nav id="sidebar" class="sidebar" aria-label="Table of contents">
@@ -126,14 +109,13 @@
                             <i class="fa fa-paint-brush"></i>
                         </button>
                         <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
-                            <li role="none"><button role="menuitem" class="theme" id="default_theme">Auto</button></li>
                             <li role="none"><button role="menuitem" class="theme" id="light">Light</button></li>
                             <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
                             <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
                             <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
                             <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
                         </ul>
-                        <button id="search-toggle" class="icon-button" type="button" title="Search (`/`)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="/ s" aria-controls="searchbar">
+                        <button id="search-toggle" class="icon-button" type="button" title="Search. (Shortkey: s)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="S" aria-controls="searchbar">
                             <i class="fa fa-search"></i>
                         </button>
                     </div>
@@ -147,7 +129,7 @@
                         <a href="https://github.com/paiml/bashrs" title="Git repository" aria-label="Git repository">
                             <i id="git-repository-button" class="fa fa-github"></i>
                         </a>
-                        <a href="https://github.com/paiml/bashrs/edit/main/rash-book/src/appendix-c-compatibility.md" title="Suggest an edit" aria-label="Suggest an edit" rel="edit">
+                        <a href="https://github.com/paiml/bashrs/edit/main/rash-book/src/appendix-c-compatibility.md" title="Suggest an edit" aria-label="Suggest an edit">
                             <i id="git-edit-button" class="fa fa-edit"></i>
                         </a>
 
@@ -156,12 +138,7 @@
 
                 <div id="search-wrapper" class="hidden">
                     <form id="searchbar-outer" class="searchbar-outer">
-                        <div class="search-wrapper">
-                            <input type="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
-                            <div class="spinner-wrapper">
-                                <i class="fa fa-spinner fa-spin"></i>
-                            </div>
-                        </div>
+                        <input type="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
                     </form>
                     <div id="searchresults-outer" class="searchresults-outer hidden">
                         <div id="searchresults-header" class="searchresults-header"></div>
@@ -181,7 +158,316 @@
 
                 <div id="content" class="content">
                     <main>
-                        <h1 id="placeholder-appendix-c-compatibilitymd"><a class="header" href="#placeholder-appendix-c-compatibilitymd">Placeholder: appendix-c-compatibility.md</a></h1>
+                        <h1 id="appendix-c-shell-compatibility-matrix"><a class="header" href="#appendix-c-shell-compatibility-matrix">Appendix C: Shell Compatibility Matrix</a></h1>
+<p>This appendix provides comprehensive compatibility information for bashrs-generated scripts across different shells, operating systems, and environments.</p>
+<hr />
+<h2 id="shell-compatibility"><a class="header" href="#shell-compatibility">Shell Compatibility</a></h2>
+<p>bashrs generates pure POSIX sh that works across all major shell implementations.</p>
+<h3 id="tested-shells"><a class="header" href="#tested-shells">Tested Shells</a></h3>
+<div class="table-wrapper"><table><thead><tr><th>Shell</th><th>Version</th><th>OS</th><th>Status</th><th>Notes</th></tr></thead><tbody>
+<tr><td><strong>sh</strong></td><td>POSIX</td><td>All</td><td>✅ Full</td><td>Reference POSIX implementation</td></tr>
+<tr><td><strong>dash</strong></td><td>0.5.12+</td><td>Debian/Ubuntu</td><td>✅ Full</td><td>Default <code>/bin/sh</code>, strictly POSIX</td></tr>
+<tr><td><strong>ash</strong></td><td>BusyBox 1.35+</td><td>Alpine Linux</td><td>✅ Full</td><td>Minimal (&lt;1MB), container standard</td></tr>
+<tr><td><strong>bash</strong></td><td>3.2+</td><td>macOS</td><td>✅ Full</td><td>Backward compatible</td></tr>
+<tr><td><strong>bash</strong></td><td>4.x</td><td>Linux</td><td>✅ Full</td><td>Most common version</td></tr>
+<tr><td><strong>bash</strong></td><td>5.x</td><td>Linux/macOS</td><td>✅ Full</td><td>Latest features (unused by bashrs)</td></tr>
+<tr><td><strong>zsh</strong></td><td>5.x</td><td>macOS 10.15+</td><td>✅ Full</td><td>macOS default since Catalina</td></tr>
+<tr><td><strong>ksh</strong></td><td>93u+</td><td>AIX/Solaris</td><td>✅ Full</td><td>Enterprise Unix standard</td></tr>
+<tr><td><strong>mksh</strong></td><td>R59+</td><td>Android</td><td>✅ Full</td><td>MirBSD Korn Shell</td></tr>
+<tr><td><strong>yash</strong></td><td>2.x</td><td>All</td><td>✅ Full</td><td>Yet Another Shell</td></tr>
+</tbody></table>
+</div>
+<h3 id="untested-but-compatible"><a class="header" href="#untested-but-compatible">Untested but Compatible</a></h3>
+<p>These shells should work based on POSIX compliance claims (not yet tested):</p>
+<ul>
+<li><strong>pdksh</strong> (Public Domain Korn Shell)</li>
+<li><strong>loksh</strong> (Linux port of OpenBSD’s ksh)</li>
+<li><strong>busybox hush</strong> (Alternative BusyBox shell)</li>
+</ul>
+<h3 id="incompatible-shells"><a class="header" href="#incompatible-shells">Incompatible Shells</a></h3>
+<p>bashrs does NOT generate code for these shells (different syntax):</p>
+<ul>
+<li>❌ <strong>fish</strong> (Future: v8.0.0 may add Fish → POSIX transpilation)</li>
+<li>❌ <strong>PowerShell</strong> (Future: v8.0.0 may add PowerShell → bash)</li>
+<li>❌ <strong>csh/tcsh</strong> (C shell family, fundamentally different)</li>
+<li>❌ <strong>rc</strong> (Plan 9 shell, different syntax)</li>
+</ul>
+<hr />
+<h2 id="operating-system-compatibility"><a class="header" href="#operating-system-compatibility">Operating System Compatibility</a></h2>
+<p>bashrs-generated scripts work on all POSIX-compliant operating systems.</p>
+<h3 id="linux-distributions"><a class="header" href="#linux-distributions">Linux Distributions</a></h3>
+<div class="table-wrapper"><table><thead><tr><th>Distribution</th><th>Version</th><th>Default Shell</th><th>Status</th><th>Notes</th></tr></thead><tbody>
+<tr><td><strong>Ubuntu</strong></td><td>20.04+</td><td>dash (<code>/bin/sh</code>)</td><td>✅ Full</td><td>Primary test platform</td></tr>
+<tr><td><strong>Debian</strong></td><td>11+</td><td>dash (<code>/bin/sh</code>)</td><td>✅ Full</td><td>Strict POSIX</td></tr>
+<tr><td><strong>Alpine Linux</strong></td><td>3.15+</td><td>ash (BusyBox)</td><td>✅ Full</td><td>Container standard</td></tr>
+<tr><td><strong>RHEL/CentOS</strong></td><td>8+</td><td>bash (<code>/bin/sh</code>)</td><td>✅ Full</td><td>Enterprise Linux</td></tr>
+<tr><td><strong>Fedora</strong></td><td>35+</td><td>bash (<code>/bin/sh</code>)</td><td>✅ Full</td><td>Bleeding edge</td></tr>
+<tr><td><strong>Arch Linux</strong></td><td>Rolling</td><td>bash (<code>/bin/sh</code>)</td><td>✅ Full</td><td>Latest packages</td></tr>
+<tr><td><strong>openSUSE</strong></td><td>15+</td><td>bash (<code>/bin/sh</code>)</td><td>✅ Full</td><td>Enterprise/community</td></tr>
+<tr><td><strong>Gentoo</strong></td><td>Rolling</td><td>bash (<code>/bin/sh</code>)</td><td>✅ Full</td><td>Source-based</td></tr>
+</tbody></table>
+</div>
+<h3 id="unix-systems"><a class="header" href="#unix-systems">Unix Systems</a></h3>
+<div class="table-wrapper"><table><thead><tr><th>System</th><th>Version</th><th>Default Shell</th><th>Status</th><th>Notes</th></tr></thead><tbody>
+<tr><td><strong>macOS</strong></td><td>10.15+</td><td>zsh</td><td>✅ Full</td><td>Also has bash 3.2</td></tr>
+<tr><td><strong>FreeBSD</strong></td><td>13+</td><td>sh (FreeBSD sh)</td><td>✅ Full</td><td>POSIX-compliant</td></tr>
+<tr><td><strong>OpenBSD</strong></td><td>7+</td><td>ksh (pdksh)</td><td>✅ Full</td><td>Security-focused</td></tr>
+<tr><td><strong>NetBSD</strong></td><td>9+</td><td>sh</td><td>✅ Full</td><td>Portable</td></tr>
+<tr><td><strong>illumos</strong></td><td>OpenIndiana</td><td>ksh93</td><td>✅ Full</td><td>Solaris descendant</td></tr>
+<tr><td><strong>AIX</strong></td><td>7.x</td><td>ksh93</td><td>✅ Full</td><td>Enterprise IBM Unix</td></tr>
+<tr><td><strong>HP-UX</strong></td><td>11i</td><td>POSIX sh</td><td>⚠️ Limited</td><td>Legacy system, not tested</td></tr>
+<tr><td><strong>Solaris</strong></td><td>11</td><td>ksh93</td><td>⚠️ Limited</td><td>Legacy system, not tested</td></tr>
+</tbody></table>
+</div>
+<h3 id="embedded-systems"><a class="header" href="#embedded-systems">Embedded Systems</a></h3>
+<div class="table-wrapper"><table><thead><tr><th>System</th><th>Shell</th><th>Status</th><th>Notes</th></tr></thead><tbody>
+<tr><td><strong>BusyBox</strong></td><td>ash</td><td>✅ Full</td><td>Routers, IoT devices</td></tr>
+<tr><td><strong>Toybox</strong></td><td>sh</td><td>✅ Full</td><td>Android alternative</td></tr>
+<tr><td><strong>Android</strong></td><td>mksh</td><td>✅ Full</td><td>Termux, shell scripts</td></tr>
+<tr><td><strong>OpenWrt</strong></td><td>ash (BusyBox)</td><td>✅ Full</td><td>Router firmware</td></tr>
+</tbody></table>
+</div>
+<hr />
+<h2 id="container-compatibility"><a class="header" href="#container-compatibility">Container Compatibility</a></h2>
+<p>bashrs scripts work in all major container runtimes.</p>
+<h3 id="container-images"><a class="header" href="#container-images">Container Images</a></h3>
+<div class="table-wrapper"><table><thead><tr><th>Base Image</th><th>Shell</th><th>Size</th><th>Status</th><th>Notes</th></tr></thead><tbody>
+<tr><td><strong>alpine:latest</strong></td><td>ash</td><td>5MB</td><td>✅ Full</td><td>Minimal, most common</td></tr>
+<tr><td><strong>debian:slim</strong></td><td>dash</td><td>50MB</td><td>✅ Full</td><td>Balanced</td></tr>
+<tr><td><strong>ubuntu:latest</strong></td><td>dash</td><td>75MB</td><td>✅ Full</td><td>Full featured</td></tr>
+<tr><td><strong>busybox:latest</strong></td><td>ash</td><td>1.5MB</td><td>✅ Full</td><td>Smallest</td></tr>
+<tr><td><strong>scratch</strong></td><td>None</td><td>0MB</td><td>❌ N/A</td><td>No shell available</td></tr>
+<tr><td><strong>distroless</strong></td><td>None</td><td>Varies</td><td>❌ N/A</td><td>No shell (security)</td></tr>
+</tbody></table>
+</div>
+<p><strong>Note</strong>: <code>scratch</code> and <code>distroless</code> images intentionally omit shells for security. bashrs scripts cannot run in these environments.</p>
+<h3 id="container-runtimes"><a class="header" href="#container-runtimes">Container Runtimes</a></h3>
+<div class="table-wrapper"><table><thead><tr><th>Runtime</th><th>Version</th><th>Status</th><th>Notes</th></tr></thead><tbody>
+<tr><td><strong>Docker</strong></td><td>20.10+</td><td>✅ Full</td><td>Most common</td></tr>
+<tr><td><strong>Podman</strong></td><td>3.x+</td><td>✅ Full</td><td>Rootless alternative</td></tr>
+<tr><td><strong>containerd</strong></td><td>1.6+</td><td>✅ Full</td><td>Kubernetes standard</td></tr>
+<tr><td><strong>CRI-O</strong></td><td>1.23+</td><td>✅ Full</td><td>Kubernetes-native</td></tr>
+<tr><td><strong>LXC/LXD</strong></td><td>4.x+</td><td>✅ Full</td><td>System containers</td></tr>
+</tbody></table>
+</div>
+<hr />
+<h2 id="cicd-platform-compatibility"><a class="header" href="#cicd-platform-compatibility">CI/CD Platform Compatibility</a></h2>
+<p>bashrs integrates with all major CI/CD platforms.</p>
+<h3 id="continuous-integration"><a class="header" href="#continuous-integration">Continuous Integration</a></h3>
+<div class="table-wrapper"><table><thead><tr><th>Platform</th><th>Runner OS</th><th>Status</th><th>Notes</th></tr></thead><tbody>
+<tr><td><strong>GitHub Actions</strong></td><td>ubuntu-latest</td><td>✅ Full</td><td>Native support</td></tr>
+<tr><td><strong>GitHub Actions</strong></td><td>macos-latest</td><td>✅ Full</td><td>Native support</td></tr>
+<tr><td><strong>GitHub Actions</strong></td><td>windows-latest</td><td>⚠️ Partial</td><td>Requires Git Bash/WSL</td></tr>
+<tr><td><strong>GitLab CI</strong></td><td>Linux runners</td><td>✅ Full</td><td>Native support</td></tr>
+<tr><td><strong>CircleCI</strong></td><td>Linux/macOS</td><td>✅ Full</td><td>Native support</td></tr>
+<tr><td><strong>Travis CI</strong></td><td>Linux/macOS</td><td>✅ Full</td><td>Native support</td></tr>
+<tr><td><strong>Jenkins</strong></td><td>Any</td><td>✅ Full</td><td>Docker agents recommended</td></tr>
+<tr><td><strong>Azure Pipelines</strong></td><td>Linux/macOS</td><td>✅ Full</td><td>Native support</td></tr>
+<tr><td><strong>Azure Pipelines</strong></td><td>Windows</td><td>⚠️ Partial</td><td>Requires Git Bash/WSL</td></tr>
+<tr><td><strong>Buildkite</strong></td><td>Any</td><td>✅ Full</td><td>Self-hosted agents</td></tr>
+<tr><td><strong>Drone CI</strong></td><td>Docker-based</td><td>✅ Full</td><td>Container-native</td></tr>
+</tbody></table>
+</div>
+<hr />
+<h2 id="feature-compatibility"><a class="header" href="#feature-compatibility">Feature Compatibility</a></h2>
+<h3 id="posix-features-always-available"><a class="header" href="#posix-features-always-available">POSIX Features (Always Available)</a></h3>
+<p>bashrs uses only these POSIX-guaranteed features:</p>
+<ul>
+<li>✅ <code>[ ]</code> test (not <code>[[ ]]</code>)</li>
+<li>✅ <code>$(( ))</code> arithmetic</li>
+<li>✅ <code>$( )</code> command substitution</li>
+<li>✅ <code>${var}</code> parameter expansion</li>
+<li>✅ <code>${var:-default}</code> parameter expansion with default</li>
+<li>✅ <code>${var%pattern}</code> suffix removal</li>
+<li>✅ <code>${var##pattern}</code> prefix removal</li>
+<li>✅ <code>if/then/else/fi</code> conditionals</li>
+<li>✅ <code>for/do/done</code> loops</li>
+<li>✅ <code>while/do/done</code> loops</li>
+<li>✅ <code>case/esac</code> pattern matching</li>
+<li>✅ <code>function()</code> or <code>name()</code> function definition</li>
+<li>✅ <code>printf</code> (not <code>echo -n</code> or <code>echo -e</code>)</li>
+<li>✅ Here documents (<code>&lt;&lt;EOF</code>)</li>
+<li>✅ Pipes (<code>|</code>)</li>
+<li>✅ Redirects (<code>&gt;</code>, <code>&gt;&gt;</code>, <code>&lt;</code>, <code>2&gt;&amp;1</code>)</li>
+</ul>
+<h3 id="bash-specific-features-not-used"><a class="header" href="#bash-specific-features-not-used">Bash-specific Features (NOT Used)</a></h3>
+<p>bashrs avoids these bash-only features:</p>
+<ul>
+<li>❌ Arrays: <code>arr=(1 2 3)</code></li>
+<li>❌ <code>[[ ]]</code> conditional</li>
+<li>❌ <code>$RANDOM</code> variable</li>
+<li>❌ <code>${var:offset:length}</code> substring</li>
+<li>❌ <code>=~</code> regex matching</li>
+<li>❌ Process substitution: <code>&lt;(cmd)</code></li>
+<li>❌ Brace expansion: <code>{1..10}</code></li>
+<li>❌ <code>function name</code> keyword</li>
+<li>❌ <code>local</code> keyword (workaround: prefixed variables)</li>
+<li>❌ <code>source</code> (use <code>.</code> instead)</li>
+<li>❌ <code>[[</code> extended test</li>
+<li>❌ <code>(( ))</code> arithmetic keyword</li>
+</ul>
+<hr />
+<h2 id="external-command-compatibility"><a class="header" href="#external-command-compatibility">External Command Compatibility</a></h2>
+<p>bashrs assumes these POSIX commands are available:</p>
+<h3 id="core-utilities-always-required"><a class="header" href="#core-utilities-always-required">Core Utilities (Always Required)</a></h3>
+<ul>
+<li>✅ <code>cat</code>, <code>cp</code>, <code>mv</code>, <code>rm</code>, <code>mkdir</code>, <code>ln</code></li>
+<li>✅ <code>ls</code>, <code>cd</code>, <code>pwd</code></li>
+<li>✅ <code>grep</code>, <code>sed</code>, <code>awk</code></li>
+<li>✅ <code>printf</code>, <code>test</code></li>
+<li>✅ <code>true</code>, <code>false</code></li>
+<li>✅ <code>command</code>, <code>type</code></li>
+</ul>
+<h3 id="common-utilities-usually-available"><a class="header" href="#common-utilities-usually-available">Common Utilities (Usually Available)</a></h3>
+<ul>
+<li>✅ <code>curl</code> or <code>wget</code> (download)</li>
+<li>✅ <code>tar</code>, <code>gzip</code> (archives)</li>
+<li>✅ <code>git</code> (version control)</li>
+<li>✅ <code>make</code> (build automation)</li>
+<li>✅ <code>shellcheck</code> (linting - optional)</li>
+</ul>
+<h3 id="system-commands-environment-specific"><a class="header" href="#system-commands-environment-specific">System Commands (Environment-Specific)</a></h3>
+<ul>
+<li><code>systemctl</code> (systemd systems only)</li>
+<li><code>service</code> (SysV init systems)</li>
+<li><code>apt</code>/<code>yum</code>/<code>apk</code> (package managers)</li>
+<li><code>docker</code> (container operations)</li>
+</ul>
+<p>bashrs scripts should check for command availability:</p>
+<pre><code class="language-sh">if ! command -v docker &gt;/dev/null 2&gt;&amp;1; then
+    printf 'Error: docker not found\n' &gt;&amp;2
+    exit 1
+fi
+</code></pre>
+<hr />
+<h2 id="filesystem-compatibility"><a class="header" href="#filesystem-compatibility">Filesystem Compatibility</a></h2>
+<h3 id="path-conventions"><a class="header" href="#path-conventions">Path Conventions</a></h3>
+<div class="table-wrapper"><table><thead><tr><th>OS Family</th><th>Path Separator</th><th>Root</th><th>Home</th><th>Temp</th></tr></thead><tbody>
+<tr><td><strong>Linux/Unix</strong></td><td><code>/</code></td><td><code>/</code></td><td><code>$HOME</code></td><td><code>/tmp</code></td></tr>
+<tr><td><strong>macOS</strong></td><td><code>/</code></td><td><code>/</code></td><td><code>$HOME</code></td><td><code>/tmp</code></td></tr>
+<tr><td><strong>Windows (Git Bash)</strong></td><td><code>/</code> or <code>\</code></td><td><code>/c/</code></td><td><code>$HOME</code></td><td><code>/tmp</code></td></tr>
+<tr><td><strong>Windows (WSL)</strong></td><td><code>/</code></td><td><code>/</code></td><td><code>$HOME</code></td><td><code>/tmp</code></td></tr>
+</tbody></table>
+</div>
+<p>bashrs uses POSIX paths (<code>/</code>) which work on all platforms with Git Bash or WSL.</p>
+<h3 id="case-sensitivity"><a class="header" href="#case-sensitivity">Case Sensitivity</a></h3>
+<div class="table-wrapper"><table><thead><tr><th>Filesystem</th><th>Case Sensitive</th><th>Notes</th></tr></thead><tbody>
+<tr><td><strong>Linux (ext4)</strong></td><td>Yes</td><td><code>File.txt</code> ≠ <code>file.txt</code></td></tr>
+<tr><td><strong>macOS (APFS)</strong></td><td>No (default)</td><td><code>File.txt</code> = <code>file.txt</code></td></tr>
+<tr><td><strong>macOS (APFS-CS)</strong></td><td>Yes (optional)</td><td>Can be enabled</td></tr>
+<tr><td><strong>Windows (NTFS)</strong></td><td>No</td><td><code>File.txt</code> = <code>file.txt</code></td></tr>
+</tbody></table>
+</div>
+<p><strong>Best Practice</strong>: Assume case-insensitive filesystems. Never rely on case differences.</p>
+<hr />
+<h2 id="performance-characteristics"><a class="header" href="#performance-characteristics">Performance Characteristics</a></h2>
+<h3 id="transpilation-speed"><a class="header" href="#transpilation-speed">Transpilation Speed</a></h3>
+<div class="table-wrapper"><table><thead><tr><th>Shell</th><th>Startup Time</th><th>Execution Speed</th><th>Notes</th></tr></thead><tbody>
+<tr><td><strong>dash</strong></td><td>1x</td><td>4x</td><td>Fastest, minimal features</td></tr>
+<tr><td><strong>ash</strong></td><td>1x</td><td>4x</td><td>Similar to dash</td></tr>
+<tr><td><strong>bash</strong></td><td>4x</td><td>1x</td><td>Slowest startup, full-featured</td></tr>
+<tr><td><strong>zsh</strong></td><td>5x</td><td>1x</td><td>Slowest, most features</td></tr>
+<tr><td><strong>ksh</strong></td><td>2x</td><td>2x</td><td>Balanced</td></tr>
+</tbody></table>
+</div>
+<p>bashrs-generated scripts benefit from dash/ash speed (4x faster than bash).</p>
+<hr />
+<h2 id="known-limitations"><a class="header" href="#known-limitations">Known Limitations</a></h2>
+<h3 id="unsupported-environments"><a class="header" href="#unsupported-environments">Unsupported Environments</a></h3>
+<p>bashrs-generated scripts do NOT work in:</p>
+<ol>
+<li>
+<p><strong>Windows Command Prompt</strong> (<code>cmd.exe</code>)</p>
+<ul>
+<li>Solution: Use Git Bash or WSL</li>
+</ul>
+</li>
+<li>
+<p><strong>Windows PowerShell</strong> (without WSL)</p>
+<ul>
+<li>Solution: Use WSL or wait for v8.0.0 PowerShell support</li>
+</ul>
+</li>
+<li>
+<p><strong>Containers without shells</strong> (scratch, distroless)</p>
+<ul>
+<li>Solution: Use base images with shells (alpine, debian, ubuntu)</li>
+</ul>
+</li>
+<li>
+<p><strong>Restricted shells</strong> (rbash, rksh)</p>
+<ul>
+<li>May work with limitations (untested)</li>
+</ul>
+</li>
+</ol>
+<h3 id="platform-specific-issues"><a class="header" href="#platform-specific-issues">Platform-Specific Issues</a></h3>
+<ul>
+<li><strong>macOS</strong>: Ships with bash 3.2 (GPL2) which is old but POSIX-compliant</li>
+<li><strong>Windows</strong>: Requires Git Bash, WSL, or Cygwin for POSIX environment</li>
+<li><strong>AIX/Solaris</strong>: Not regularly tested (should work, but report issues)</li>
+</ul>
+<hr />
+<h2 id="testing-matrix"><a class="header" href="#testing-matrix">Testing Matrix</a></h2>
+<p>bashrs tests on this matrix:</p>
+<h3 id="github-actions-matrix"><a class="header" href="#github-actions-matrix">GitHub Actions Matrix</a></h3>
+<pre><code class="language-yaml">strategy:
+  matrix:
+    os: [ubuntu-latest, macos-latest]
+    shell: [sh, dash, bash, zsh]
+</code></pre>
+<h3 id="docker-matrix"><a class="header" href="#docker-matrix">Docker Matrix</a></h3>
+<pre><code class="language-yaml">matrix:
+  image:
+    - alpine:latest      # ash
+    - debian:latest      # dash
+    - ubuntu:latest      # dash
+    - fedora:latest      # bash
+</code></pre>
+<hr />
+<h2 id="version-support-policy"><a class="header" href="#version-support-policy">Version Support Policy</a></h2>
+<h3 id="supported-versions"><a class="header" href="#supported-versions">Supported Versions</a></h3>
+<p>bashrs supports:</p>
+<ul>
+<li>✅ <strong>Latest stable</strong> of each OS/shell</li>
+<li>✅ <strong>LTS versions</strong> (e.g., Ubuntu 20.04, 22.04)</li>
+<li>✅ <strong>N-1 major version</strong> (e.g., Debian 11 and 12)</li>
+</ul>
+<h3 id="unsupported-versions"><a class="header" href="#unsupported-versions">Unsupported Versions</a></h3>
+<p>bashrs does NOT officially support:</p>
+<ul>
+<li>❌ <strong>EOL operating systems</strong> (e.g., Ubuntu 18.04, CentOS 7)</li>
+<li>❌ <strong>Ancient shells</strong> (e.g., bash 2.x)</li>
+<li>❌ <strong>Proprietary Unix</strong> (e.g., HP-UX, Tru64)</li>
+</ul>
+<p><strong>Note</strong>: bashrs MAY work on unsupported versions due to POSIX compliance, but this is not guaranteed.</p>
+<hr />
+<h2 id="reporting-compatibility-issues"><a class="header" href="#reporting-compatibility-issues">Reporting Compatibility Issues</a></h2>
+<p>If bashrs-generated scripts fail on a POSIX-compliant system:</p>
+<ol>
+<li><strong>Check shell</strong>: <code>echo $SHELL</code> and verify POSIX compliance</li>
+<li><strong>Test with dash</strong>: Run script with <code>dash script.sh</code> (strictest)</li>
+<li><strong>Run shellcheck</strong>: <code>shellcheck -s sh script.sh</code></li>
+<li><strong>File issue</strong>: https://github.com/paiml/bashrs/issues</li>
+</ol>
+<p>Include:</p>
+<ul>
+<li>OS and version</li>
+<li>Shell and version</li>
+<li>bashrs version</li>
+<li>Minimal reproduction script</li>
+<li>Error output</li>
+</ul>
+<hr />
+<h2 id="see-also"><a class="header" href="#see-also">See Also</a></h2>
+<ul>
+<li><strong>Chapter 7</strong>: POSIX compliance details</li>
+<li><strong>Chapter 14</strong>: Shell dialects explained</li>
+<li><strong>Chapter 15</strong>: CI/CD integration</li>
+<li><strong>Appendix B</strong>: Glossary of terms</li>
+</ul>
+<hr />
+<p><em>Compatibility matrix last updated: 2025-11-14 for bashrs v6.34.1</em></p>
 
                     </main>
 
@@ -223,8 +509,8 @@
         </script>
 
         <script src="ace.js"></script>
-        <script src="mode-rust.js"></script>
         <script src="editor.js"></script>
+        <script src="mode-rust.js"></script>
         <script src="theme-dawn.js"></script>
         <script src="theme-tomorrow_night.js"></script>
 
@@ -237,7 +523,6 @@
         <script src="book.js"></script>
 
         <!-- Custom JS scripts -->
-
 
 
     </div>
