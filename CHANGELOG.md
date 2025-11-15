@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [6.35.0] - 2025-11-15
+
 ### Added
 
 **📚 bashrs Book - 100% Complete!**
