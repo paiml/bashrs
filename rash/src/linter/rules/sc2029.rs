@@ -27,51 +27,63 @@ static SSH_WITH_VAR: Lazy<Regex> = Lazy::new(|| {
     Regex::new(r"ssh\s+[^\s]+\s+[^']*\$[a-zA-Z_][a-zA-Z0-9_]*").unwrap()
 });
 
+/// Check if a match should be skipped (already properly quoted/escaped)
+fn should_skip_match(matched: &str, line: &str) -> bool {
+    // Skip if the variable is in single quotes
+    if matched.contains("'$") {
+        return true;
+    }
+
+    // Skip if the variable is escaped
+    if matched.contains("\\$") {
+        return true;
+    }
+
+    // Check if we're in single quotes
+    let pos = line.find(matched).unwrap_or(0);
+    let before = &line[..pos];
+    let single_quote_count = before.matches('\'').count();
+    single_quote_count % 2 == 1 // Inside single quotes
+}
+
+/// Create diagnostic for unquoted ssh variable expansion
+fn create_diagnostic(matched: &str, line: &str, line_num: usize) -> Diagnostic {
+    let pos = line.find(matched).unwrap_or(0);
+    let start_col = pos + 1;
+    let end_col = start_col + matched.len();
+
+    Diagnostic::new(
+        "SC2029",
+        Severity::Info,
+        "Note that, unescaped, this expands on the client side. Use single quotes or escape $ for remote expansion".to_string(),
+        Span::new(line_num, start_col, line_num, end_col),
+    )
+}
+
+/// Check if line is a candidate for ssh variable expansion issues
+fn is_ssh_line_with_vars(line: &str) -> bool {
+    !line.trim_start().starts_with('#') && line.contains("ssh ") && line.contains('$')
+}
+
 pub fn check(source: &str) -> LintResult {
     let mut result = LintResult::new();
 
     for (line_num, line) in source.lines().enumerate() {
         let line_num = line_num + 1;
 
-        if line.trim_start().starts_with('#') {
+        if !is_ssh_line_with_vars(line) {
             continue;
         }
 
-        // Look for ssh with unquoted variables
-        if line.contains("ssh ") && line.contains('$') {
-            for m in SSH_WITH_VAR.find_iter(line) {
-                let matched = m.as_str();
+        for m in SSH_WITH_VAR.find_iter(line) {
+            let matched = m.as_str();
 
-                // Skip if the variable is in single quotes
-                if matched.contains("'$") {
-                    continue;
-                }
-
-                // Skip if the variable is escaped
-                if matched.contains("\\$") {
-                    continue;
-                }
-
-                // Check if we're in single quotes
-                let pos = line.find(matched).unwrap_or(0);
-                let before = &line[..pos];
-                let single_quote_count = before.matches('\'').count();
-                if single_quote_count % 2 == 1 {
-                    continue; // Inside single quotes
-                }
-
-                let start_col = pos + 1;
-                let end_col = start_col + matched.len();
-
-                let diagnostic = Diagnostic::new(
-                    "SC2029",
-                    Severity::Info,
-                    "Note that, unescaped, this expands on the client side. Use single quotes or escape $ for remote expansion".to_string(),
-                    Span::new(line_num, start_col, line_num, end_col),
-                );
-
-                result.add(diagnostic);
+            if should_skip_match(matched, line) {
+                continue;
             }
+
+            let diagnostic = create_diagnostic(matched, line, line_num);
+            result.add(diagnostic);
         }
     }
 
