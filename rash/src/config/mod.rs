@@ -45,6 +45,41 @@ pub enum ConfigType {
 
 impl ConfigType {
     /// Detect config type from file path
+    ///
+    /// # Examples
+    ///
+    /// ## Bashrc detection
+    ///
+    /// ```
+    /// use bashrs::config::{ConfigType};
+    /// use std::path::Path;
+    ///
+    /// let path = Path::new("/home/user/.bashrc");
+    /// let config_type = ConfigType::from_path(path);
+    /// assert_eq!(config_type, ConfigType::Bashrc);
+    /// ```
+    ///
+    /// ## Profile detection
+    ///
+    /// ```
+    /// use bashrs::config::{ConfigType};
+    /// use std::path::Path;
+    ///
+    /// let path = Path::new("/etc/profile");
+    /// let config_type = ConfigType::from_path(path);
+    /// assert_eq!(config_type, ConfigType::Profile);
+    /// ```
+    ///
+    /// ## Generic script
+    ///
+    /// ```
+    /// use bashrs::config::{ConfigType};
+    /// use std::path::Path;
+    ///
+    /// let path = Path::new("/tmp/myscript.sh");
+    /// let config_type = ConfigType::from_path(path);
+    /// assert_eq!(config_type, ConfigType::Generic);
+    /// ```
     pub fn from_path(path: &Path) -> Self {
         let filename = path.file_name().and_then(|s| s.to_str()).unwrap_or("");
 
@@ -59,6 +94,26 @@ impl ConfigType {
     }
 
     /// Get expected shell for this config type
+    ///
+    /// # Examples
+    ///
+    /// ## Bash configuration
+    ///
+    /// ```
+    /// use bashrs::config::ConfigType;
+    ///
+    /// assert_eq!(ConfigType::Bashrc.expected_shell(), "bash");
+    /// assert_eq!(ConfigType::BashProfile.expected_shell(), "bash");
+    /// ```
+    ///
+    /// ## POSIX shell
+    ///
+    /// ```
+    /// use bashrs::config::ConfigType;
+    ///
+    /// assert_eq!(ConfigType::Profile.expected_shell(), "sh");
+    /// assert_eq!(ConfigType::Generic.expected_shell(), "sh");
+    /// ```
     pub fn expected_shell(&self) -> &'static str {
         match self {
             ConfigType::Bashrc | ConfigType::BashProfile => "bash",
