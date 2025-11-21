@@ -16,7 +16,7 @@ use crate::bash_parser::{BashAst, BashStmt};
 ///
 /// ```
 /// use bashrs::repl::ast_display::format_ast;
-/// use bashrs::bash_parser::{BashAst, AstMetadata};
+/// use bashrs::bash_parser::{BashAst, ast::AstMetadata};
 ///
 /// let ast = BashAst {
 ///     statements: vec![],

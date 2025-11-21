@@ -83,7 +83,7 @@ impl TraceSignificance {
     ///
     /// # Example
     /// ```
-    /// use rash::tracing::TraceSignificance;
+    /// use bashrs::tracing::TraceSignificance;
     ///
     /// assert!(TraceSignificance::Critical.is_default_visible());
     /// assert!(TraceSignificance::High.is_default_visible());
@@ -100,7 +100,7 @@ impl TraceSignificance {
     ///
     /// # Example
     /// ```
-    /// use rash::tracing::TraceSignificance;
+    /// use bashrs::tracing::TraceSignificance;
     ///
     /// assert!(TraceSignificance::Medium.is_verbose_visible());
     /// assert!(!TraceSignificance::Low.is_verbose_visible());

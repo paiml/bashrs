@@ -50,6 +50,53 @@ pub struct BashParser {
 }
 
 impl BashParser {
+    /// Create a new Bash parser from source code.
+    ///
+    /// Tokenizes the input and prepares the parser for AST generation.
+    ///
+    /// # Arguments
+    ///
+    /// * `input` - Bash script source code as a string
+    ///
+    /// # Returns
+    ///
+    /// * `Ok(BashParser)` - Ready to parse the script
+    /// * `Err(ParseError)` - Lexer error (invalid tokens)
+    ///
+    /// # Examples
+    ///
+    /// ## Basic usage
+    ///
+    /// ```
+    /// use bashrs::bash_parser::BashParser;
+    ///
+    /// let script = "echo hello";
+    /// let parser = BashParser::new(script).unwrap();
+    /// // Parser is ready to call parse()
+    /// ```
+    ///
+    /// ## Variable assignment
+    ///
+    /// ```
+    /// use bashrs::bash_parser::BashParser;
+    ///
+    /// let script = "x=42\ny=hello";
+    /// let mut parser = BashParser::new(script).unwrap();
+    /// let ast = parser.parse().unwrap();
+    /// assert_eq!(ast.statements.len(), 2);
+    /// ```
+    ///
+    /// ## Invalid syntax
+    ///
+    /// ```
+    /// use bashrs::bash_parser::BashParser;
+    ///
+    /// // Unclosed string
+    /// let script = r#"echo "unclosed"#;
+    /// let result = BashParser::new(script);
+    /// // Lexer detects the error
+    /// assert!(result.is_err());
+    /// ```
     pub fn new(input: &str) -> ParseResult<Self> {
         let mut lexer = Lexer::new(input);
         let tokens = lexer.tokenize()?;
@@ -71,6 +118,59 @@ impl BashParser {
         self
     }
 
+    /// Parse the tokenized script into a Bash AST.
+    ///
+    /// Performs recursive descent parsing to build an abstract syntax tree
+    /// representing the structure of the bash script.
+    ///
+    /// # Returns
+    ///
+    /// * `Ok(BashAst)` - Successfully parsed AST
+    /// * `Err(ParseError)` - Syntax error or unexpected token
+    ///
+    /// # Examples
+    ///
+    /// ## Simple command
+    ///
+    /// ```
+    /// use bashrs::bash_parser::BashParser;
+    ///
+    /// let script = "echo hello";
+    /// let mut parser = BashParser::new(script).unwrap();
+    /// let ast = parser.parse().unwrap();
+    /// assert_eq!(ast.statements.len(), 1);
+    /// ```
+    ///
+    /// ## Multiple statements
+    ///
+    /// ```
+    /// use bashrs::bash_parser::BashParser;
+    ///
+    /// let script = r#"
+    /// x=10
+    /// echo $x
+    /// y=20
+    /// "#;
+    /// let mut parser = BashParser::new(script).unwrap();
+    /// let ast = parser.parse().unwrap();
+    /// assert_eq!(ast.statements.len(), 3);
+    /// ```
+    ///
+    /// ## Control flow
+    ///
+    /// ```
+    /// use bashrs::bash_parser::BashParser;
+    ///
+    /// let script = r#"
+    /// if [ "$x" = "5" ]; then
+    ///     echo "five"
+    /// fi
+    /// "#;
+    /// let mut parser = BashParser::new(script).unwrap();
+    /// let ast = parser.parse().unwrap();
+    /// // Should parse the if statement
+    /// assert!(!ast.statements.is_empty());
+    /// ```
     pub fn parse(&mut self) -> ParseResult<BashAst> {
         let start_time = std::time::Instant::now();
 

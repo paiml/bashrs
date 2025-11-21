@@ -187,7 +187,7 @@ pub fn format_purified_lint_result(result: &PurifiedLintResult) -> String {
 /// # Examples
 ///
 /// ```no_run
-/// use bashrs::repl::purifier::format_purified_lint_result_with_context;
+/// use bashrs::repl::purifier::{format_purified_lint_result_with_context, purify_and_lint};
 ///
 /// let input = "echo $RANDOM";
 /// let result = purify_and_lint(input).unwrap();

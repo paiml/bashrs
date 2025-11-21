@@ -50,7 +50,7 @@ impl CircularTraceBuffer {
     ///
     /// # Example
     /// ```
-    /// use rash::tracing::CircularTraceBuffer;
+    /// use bashrs::tracing::CircularTraceBuffer;
     ///
     /// let buffer = CircularTraceBuffer::new();
     /// assert_eq!(buffer.capacity(), 1024);
@@ -71,7 +71,7 @@ impl CircularTraceBuffer {
     ///
     /// # Example
     /// ```
-    /// use rash::tracing::CircularTraceBuffer;
+    /// use bashrs::tracing::CircularTraceBuffer;
     ///
     /// let buffer = CircularTraceBuffer::with_capacity(2048);
     /// assert_eq!(buffer.capacity(), 2048);
@@ -92,7 +92,7 @@ impl CircularTraceBuffer {
     ///
     /// # Example
     /// ```
-    /// use rash::tracing::{CircularTraceBuffer, TraceEvent, ParseEvent, Span};
+    /// use bashrs::tracing::{CircularTraceBuffer, TraceEvent, ParseEvent, Span};
     ///
     /// let mut buffer = CircularTraceBuffer::with_capacity(2);
     /// buffer.push(TraceEvent::Parse(ParseEvent::ParseStart {
@@ -148,7 +148,7 @@ impl CircularTraceBuffer {
     ///
     /// # Example
     /// ```
-    /// use rash::tracing::CircularTraceBuffer;
+    /// use bashrs::tracing::CircularTraceBuffer;
     ///
     /// let buffer = CircularTraceBuffer::new();
     /// assert_eq!(buffer.retention_rate(), 1.0); // Empty buffer, 100%
@@ -170,7 +170,7 @@ impl CircularTraceBuffer {
     ///
     /// # Example
     /// ```
-    /// use rash::tracing::{CircularTraceBuffer, TraceSignificance};
+    /// use bashrs::tracing::{CircularTraceBuffer, TraceSignificance};
     ///
     /// let buffer = CircularTraceBuffer::new();
     /// let high_events: Vec<_> = buffer
