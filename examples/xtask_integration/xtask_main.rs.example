@@ -1,0 +1,78 @@
+// Example xtask/src/main.rs for manual hook transpilation
+//
+// Setup:
+// 1. Create xtask/ directory
+// 2. Copy this file to xtask/src/main.rs
+// 3. Create xtask/Cargo.toml with bashrs dependency
+// 4. Add xtask to workspace members in root Cargo.toml
+// 5. Create .cargo/config.toml with alias
+//
+// Usage:
+//   cargo xtask transpile
+//   cargo xtask transpile-all
+
+use bashrs::{Transpiler, build_rs};
+use std::env;
+
+fn main() {
+    let task = env::args().nth(1);
+    match task.as_deref() {
+        Some("transpile") => transpile_hooks().expect("Transpilation failed"),
+        Some("transpile-all") => transpile_all().expect("Transpilation failed"),
+        _ => print_help(),
+    }
+}
+
+/// Transpile individual hooks with explicit configuration
+fn transpile_hooks() -> bashrs::Result<()> {
+    println!("Transpiling git hooks...");
+
+    let hooks = vec![
+        ("hooks/pre-commit.rs", ".git/hooks/pre-commit"),
+        ("hooks/pre-push.rs", ".git/hooks/pre-push"),
+    ];
+
+    for (input, output) in hooks {
+        print!("  {} -> {} ... ", input, output);
+        match Transpiler::new()
+            .input(input)
+            .output(output)
+            .permissions(0o755)
+            .transpile()
+        {
+            Ok(_) => println!("✓"),
+            Err(e) => {
+                println!("✗");
+                eprintln!("Error: {}", e);
+                return Err(e);
+            }
+        }
+    }
+
+    println!("✓ All hooks transpiled successfully!");
+    Ok(())
+}
+
+/// Transpile all hooks using auto-discovery
+fn transpile_all() -> bashrs::Result<()> {
+    println!("Auto-discovering and transpiling hooks...");
+
+    let count = build_rs::auto_transpile("hooks", ".git/hooks", 0o755)?;
+
+    println!("✓ Transpiled {} hook(s)", count);
+    Ok(())
+}
+
+fn print_help() {
+    eprintln!("xtask - Project automation tasks");
+    eprintln!();
+    eprintln!("Usage: cargo xtask <TASK>");
+    eprintln!();
+    eprintln!("Tasks:");
+    eprintln!("  transpile       Transpile git hooks (explicit list)");
+    eprintln!("  transpile-all   Transpile all hooks (auto-discovery)");
+    eprintln!();
+    eprintln!("Examples:");
+    eprintln!("  cargo xtask transpile");
+    eprintln!("  cargo xtask transpile-all");
+}
