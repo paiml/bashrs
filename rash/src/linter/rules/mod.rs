@@ -378,17 +378,48 @@ pub mod docker006;
 
 use crate::linter::LintResult;
 
-/// Lint a shell script with path-based shell type detection
+/// Lint a shell script with shell-type detection based on file path.
 ///
-/// Detects shell type from file path and content, then lints accordingly.
-/// Shell-specific rules are filtered based on compatibility.
+/// Automatically detects the shell type (POSIX sh, bash, etc.) from the file extension
+/// and shebang, then applies only compatible rules. This prevents false positives when
+/// linting POSIX sh scripts with bash-specific rules.
 ///
 /// # Arguments
-/// * `path` - File path for shell type detection (.zshrc, .bashrc, etc.)
-/// * `source` - Shell script source code
+///
+/// * `path` - File path used for shell type detection (`.sh`, `.bash`, etc.)
+/// * `source` - The shell script source code to lint
 ///
 /// # Returns
-/// LintResult with diagnostics appropriate for the detected shell type
+///
+/// A [`LintResult`] containing diagnostics appropriate for the detected shell type.
+///
+/// # Examples
+///
+/// ## POSIX sh script
+///
+/// ```
+/// use bashrs::linter::lint_shell_with_path;
+/// use std::path::Path;
+///
+/// let path = Path::new("script.sh");
+/// let script = "#!/bin/sh\necho hello";
+/// let result = lint_shell_with_path(path, script);
+/// // Should detect POSIX sh and skip bash-only rules
+/// assert!(result.diagnostics.is_empty());
+/// ```
+///
+/// ## Bash-specific script
+///
+/// ```
+/// use bashrs::linter::lint_shell_with_path;
+/// use std::path::Path;
+///
+/// let path = Path::new("script.bash");
+/// let script = "#!/bin/bash\necho hello";
+/// let result = lint_shell_with_path(path, script);
+/// // Bash-specific rules are applied
+/// assert!(result.diagnostics.is_empty());
+/// ```
 pub fn lint_shell_with_path(path: &std::path::Path, source: &str) -> LintResult {
     use crate::linter::shell_type::detect_shell_type;
 
@@ -600,7 +631,57 @@ fn lint_shell_filtered(
     result
 }
 
-/// Lint a shell script and return all diagnostics
+/// Lint a shell script and return all diagnostics.
+///
+/// Runs all ShellCheck-equivalent rules on the provided shell script source code
+/// and returns a collection of lint diagnostics (errors, warnings, info).
+///
+/// # Arguments
+///
+/// * `source` - The shell script source code to lint
+///
+/// # Returns
+///
+/// A [`LintResult`] containing all detected issues with their locations and severity.
+///
+/// # Examples
+///
+/// ## Basic usage
+///
+/// ```
+/// use bashrs::linter::lint_shell;
+///
+/// let script = "#!/bin/sh\nprintf '%s\\n' 'hello'";
+/// let result = lint_shell(script);
+/// // Linting completes successfully
+/// // (diagnostics may or may not be empty depending on rules)
+/// ```
+///
+/// ## Detecting issues
+///
+/// ```
+/// use bashrs::linter::lint_shell;
+///
+/// // Useless use of cat (SC2002)
+/// let script = "cat file.txt | grep pattern";
+/// let result = lint_shell(script);
+/// // Should detect at least one issue
+/// assert!(!result.diagnostics.is_empty());
+/// ```
+///
+/// ## Multiple diagnostics
+///
+/// ```
+/// use bashrs::linter::lint_shell;
+///
+/// let script = r#"
+/// cat file | grep x
+/// echo `date`
+/// "#;
+/// let result = lint_shell(script);
+/// // Should find multiple issues (useless cat, backticks)
+/// assert!(result.diagnostics.len() >= 2);
+/// ```
 pub fn lint_shell(source: &str) -> LintResult {
     let mut result = LintResult::new();
 
