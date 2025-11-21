@@ -642,6 +642,32 @@ make coverage
   - `test_generator/core.rs`: 54.84% (test generation logic)
   - `wasm/api.rs`: 55.46% (WASM bindings, Phase 0)
 
+### Mutation Testing (EXTREME TDD)
+
+**Status**: Tooling installed and configured, ready for use ✅
+
+```bash
+# Run mutation testing on entire project (30-60 min)
+cargo mutants
+
+# Run on specific file (faster, ~5-10 min)
+cargo mutants --file rash/src/linter/rules/det001.rs
+
+# Run with specific tests only
+cargo mutants --file rash/src/linter/rules/det001.rs -- --test det001
+```
+
+**Configuration**: `.cargo/mutants.toml`
+- Test package: bashrs only (excludes rash-mcp)
+- Timeout multiplier: 2.0x (for property tests)
+- Excludes: tests/*, benches/*, *_test.rs
+
+**Tooling**: cargo-mutants v25.3.1 ✅
+
+**Target**: ≥80% mutation score (EXTREME TDD standard)
+
+**Note**: Full mutation testing is long-running. Use focused mutation tests on modified files during development.
+
 ### Recent Improvements (2025-11-21)
 
 - ✅ **Workspace lints configured**: Rust and Clippy lints enabled
@@ -649,8 +675,9 @@ make coverage
 - ✅ **Quality score improved**: 118.0/134 → 127.0/134 (+9 points, +6.7%)
 - ✅ **Grade improved**: A+ (88.1%) → A+ (94.8%)
 - ✅ **Tooling category**: 52.5/130 → 61.5/130 (+9 points, +6.9%)
-- ✅ **Coverage measured**: 91.22% line coverage (exceeds 85% target)
+- ✅ **Coverage measured**: 91.23% line coverage (exceeds 85% target)
 - ✅ **Coverage tooling**: cargo-llvm-cov v0.6.21 operational
+- ✅ **Mutation testing**: cargo-mutants v25.3.1 installed and configured
 
 ## Quality Standards
 
