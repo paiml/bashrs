@@ -326,8 +326,13 @@ fn test_SPEC_007_unified_spec_document_exists() {
 // ============================================================================
 
 #[test]
+#[cfg_attr(coverage, ignore)] // Skip in coverage mode (cargo nextest --list format differs)
 fn test_SPEC_008_test_count_exceeds_minimum() {
     // Verify we have at least 6000+ tests (per spec: 6517+ tests)
+    //
+    // NOTE: This test is skipped in coverage mode because cargo-llvm-cov uses
+    // cargo nextest which has a different --list format. The actual test count
+    // is validated during coverage runs via the summary output.
 
     let output = Command::new("cargo")
         .args(["test", "--lib", "--", "--list"])

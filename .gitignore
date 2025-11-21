@@ -32,6 +32,7 @@ lcov.info
 # Temporary files
 /tmp/
 *.tmp
+*.bak
 *.log
 
 # Analysis outputs
