@@ -1,0 +1,22 @@
+// Example build.rs for automatic hook transpilation
+//
+// Copy this to your project root as `build.rs` and add bashrs to [build-dependencies]
+//
+// [build-dependencies]
+// bashrs = "7.1"
+
+use bashrs::build_rs::auto_transpile;
+
+fn main() {
+    // Tell Cargo to re-run this build script if hooks/ changes
+    println!("cargo:rerun-if-changed=hooks");
+
+    // Automatically transpile all Rust files in hooks/ to .git/hooks/
+    match auto_transpile("hooks", ".git/hooks", 0o755) {
+        Ok(count) => println!("Transpiled {} hook(s)", count),
+        Err(e) => {
+            eprintln!("Warning: Failed to transpile hooks: {}", e);
+            eprintln!("This is non-fatal - hooks will not be installed");
+        }
+    }
+}

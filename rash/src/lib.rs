@@ -66,6 +66,7 @@ pub mod ast;
 pub mod bash_parser;
 pub mod bash_quality; // NEW: Bash quality tools (test, coverage, format, score)
 pub mod bash_transpiler;
+pub mod build_rs; // NEW: build.rs integration with auto-discovery (v7.1 - Issue #25)
 #[cfg(not(target_arch = "wasm32"))]
 pub mod cli;
 #[cfg(not(target_arch = "wasm32"))]
@@ -85,6 +86,7 @@ pub mod services;
 pub mod stdlib;
 pub mod test_generator;
 pub mod tracing; // NEW: Tracing infrastructure for bash purification/linting (v7.0 - Phase 1)
+pub mod transpiler; // NEW: Builder API for programmatic transpilation (v7.1 - Issue #25)
 pub mod validation;
 pub mod verifier;
 
@@ -96,6 +98,7 @@ pub mod testing;
 pub mod wasm;
 
 pub use models::{Config, Error, Result};
+pub use transpiler::Transpiler;
 
 /// Transpile Rust source code to POSIX shell script.
 ///
