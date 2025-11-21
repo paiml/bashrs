@@ -62,32 +62,56 @@
 //! assert!(result.is_ok());
 //! ```
 
+/// Abstract syntax tree types and validation
 pub mod ast;
+/// Bash script parsing and AST generation
 pub mod bash_parser;
-pub mod bash_quality; // NEW: Bash quality tools (test, coverage, format, score)
+/// Bash quality tools (test generation, coverage, formatting, scoring)
+pub mod bash_quality;
+/// Bash script transpilation and purification
 pub mod bash_transpiler;
-pub mod build_rs; // NEW: build.rs integration with auto-discovery (v7.1 - Issue #25)
+/// build.rs integration with auto-discovery
+pub mod build_rs;
+/// Command-line interface for bashrs
 #[cfg(not(target_arch = "wasm32"))]
 pub mod cli;
+/// Rust compiler integration for transpilation
 #[cfg(not(target_arch = "wasm32"))]
 pub mod compiler;
-pub mod config; // NEW: Shell config file management (v7.0)
+/// Shell configuration file management and analysis
+pub mod config;
+/// Container and sandbox support
 #[cfg(not(target_arch = "wasm32"))]
 pub mod container;
+/// Shell script code emission
 pub mod emitter;
+/// Formal verification and proof generation
 pub mod formal;
+/// Shell script formatting
 pub mod formatter;
+/// Intermediate representation for transpilation
 pub mod ir;
+/// Shell script linting with ShellCheck-equivalent rules
 pub mod linter;
-pub mod make_parser; // NEW: Makefile parsing and purification
+/// Makefile parsing and purification
+pub mod make_parser;
+/// Configuration types and error handling
 pub mod models;
-pub mod repl; // NEW: Interactive REPL with integrated debugger (v7.0 - Phase 0)
+/// Interactive REPL with integrated debugger
+pub mod repl;
+/// Parser and compiler services
 pub mod services;
+/// Standard library function mappings
 pub mod stdlib;
+/// Test case generation from shell scripts
 pub mod test_generator;
-pub mod tracing; // NEW: Tracing infrastructure for bash purification/linting (v7.0 - Phase 1)
-pub mod transpiler; // NEW: Builder API for programmatic transpilation (v7.1 - Issue #25)
+/// Tracing infrastructure for diagnostics and debugging
+pub mod tracing;
+/// Builder API for programmatic transpilation
+pub mod transpiler;
+/// AST and output validation
 pub mod validation;
+/// Output verification and shellcheck integration
 pub mod verifier;
 
 #[cfg(test)]
