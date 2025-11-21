@@ -41,6 +41,69 @@ static COMMAND_VAR_USAGE: Lazy<Regex> = Lazy::new(|| {
     Regex::new(r"^\s*\$(\{)?([a-zA-Z_][a-zA-Z0-9_]*)(\})?").unwrap()
 });
 
+/// Check if line assigns a constant command to a variable
+fn parse_command_assignment(line: &str) -> Option<(String, String)> {
+    COMMAND_VAR_ASSIGNMENT
+        .captures(line.trim())
+        .map(|cap| {
+            let var_name = cap.get(1).unwrap().as_str().to_string();
+            let command_name = cap.get(2).unwrap().as_str().to_string();
+            (var_name, command_name)
+        })
+}
+
+/// Find next non-empty, non-comment line index
+fn find_next_code_line(lines: &[&str], start_idx: usize) -> Option<usize> {
+    for j in (start_idx + 1)..lines.len() {
+        let trimmed = lines[j].trim();
+        if !trimmed.is_empty() && !trimmed.starts_with('#') {
+            return Some(j);
+        }
+    }
+    None
+}
+
+/// Check if line uses a variable as a command and return variable name if matched
+fn check_variable_usage<'a>(line: &'a str, expected_var: &str) -> Option<&'a str> {
+    COMMAND_VAR_USAGE
+        .captures(line.trim())
+        .and_then(|cap| {
+            let used_var = cap.get(2).unwrap().as_str();
+            if used_var == expected_var {
+                Some(cap.get(0).unwrap().as_str())
+            } else {
+                None
+            }
+        })
+}
+
+/// Create diagnostic for constant command variable usage
+fn create_constant_command_diagnostic(
+    var_name: &str,
+    command_name: &str,
+    assign_line: usize,
+    usage_line: &str,
+    usage_line_num: usize,
+) -> Diagnostic {
+    let start_col = usage_line.find('$').unwrap_or(0) + 1;
+    let usage_str = COMMAND_VAR_USAGE
+        .captures(usage_line.trim())
+        .and_then(|cap| cap.get(0))
+        .map(|m| m.as_str())
+        .unwrap_or("$var");
+    let end_col = start_col + usage_str.len();
+
+    Diagnostic::new(
+        "SC2194",
+        Severity::Info,
+        format!(
+            "This variable '{}' is constant (assigned '{}' on line {}). Consider using '{}' directly",
+            var_name, command_name, assign_line, command_name
+        ),
+        Span::new(usage_line_num, start_col, usage_line_num, end_col),
+    )
+}
+
 pub fn check(source: &str) -> LintResult {
     let mut result = LintResult::new();
     let lines: Vec<&str> = source.lines().collect();
@@ -55,44 +118,22 @@ pub fn check(source: &str) -> LintResult {
         }
 
         // Check if this line assigns a constant to a variable
-        if let Some(assign_cap) = COMMAND_VAR_ASSIGNMENT.captures(line.trim()) {
-            let var_name = assign_cap.get(1).unwrap().as_str();
-            let command_name = assign_cap.get(2).unwrap().as_str();
-
+        if let Some((var_name, command_name)) = parse_command_assignment(line) {
             // Look at the next non-empty, non-comment line
-            #[allow(clippy::needless_range_loop)]
-            for j in (i + 1)..lines.len() {
-                let next_line = lines[j];
-                let next_trimmed = next_line.trim();
-
-                if next_trimmed.is_empty() || next_trimmed.starts_with('#') {
-                    continue;
-                }
+            if let Some(next_idx) = find_next_code_line(&lines, i) {
+                let next_line = lines[next_idx];
 
                 // Check if next line uses this variable as a command
-                if let Some(usage_cap) = COMMAND_VAR_USAGE.captures(next_trimmed) {
-                    let used_var = usage_cap.get(2).unwrap().as_str();
-
-                    if used_var == var_name {
-                        let start_col = next_line.find('$').unwrap_or(0) + 1;
-                        let end_col = start_col + usage_cap.get(0).unwrap().as_str().len();
-
-                        let diagnostic = Diagnostic::new(
-                            "SC2194",
-                            Severity::Info,
-                            format!(
-                                "This variable '{}' is constant (assigned '{}' on line {}). Consider using '{}' directly",
-                                var_name, command_name, line_num, command_name
-                            ),
-                            Span::new(j + 1, start_col, j + 1, end_col),
-                        );
-
-                        result.add(diagnostic);
-                    }
+                if check_variable_usage(next_line, &var_name).is_some() {
+                    let diagnostic = create_constant_command_diagnostic(
+                        &var_name,
+                        &command_name,
+                        line_num,
+                        next_line,
+                        next_idx + 1,
+                    );
+                    result.add(diagnostic);
                 }
-
-                // Stop at first non-comment line
-                break;
             }
         }
     }
