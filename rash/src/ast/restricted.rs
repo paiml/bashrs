@@ -1,9 +1,15 @@
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
+/// Restricted AST for transpilable Rust subset
+///
+/// Represents a validated Rust program that can be safely transpiled to shell script.
+/// Only supports a restricted subset of Rust features for shell compatibility.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct RestrictedAst {
+    /// List of functions in the program
     pub functions: Vec<Function>,
+    /// Name of the entry point function (typically "main")
     pub entry_point: String,
 }
 
@@ -86,11 +92,18 @@ impl RestrictedAst {
     }
 }
 
+/// Function declaration in restricted AST
+///
+/// Represents a function with parameters, return type, and body statements.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Function {
+    /// Function name
     pub name: String,
+    /// Function parameters
     pub params: Vec<Parameter>,
+    /// Return type
     pub return_type: Type,
+    /// Function body statements
     pub body: Vec<Stmt>,
 }
 
@@ -139,23 +152,38 @@ impl Function {
     }
 }
 
+/// Function parameter in restricted AST
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Parameter {
+    /// Parameter name
     pub name: String,
+    /// Parameter type
     pub param_type: Type,
 }
 
+/// Type system for restricted AST
+///
+/// Supports basic types that can be mapped to shell script equivalents.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum Type {
+    /// Void type (no return value)
     Void,
+    /// Boolean type
     Bool,
+    /// 32-bit unsigned integer
     U32,
+    /// String type
     Str,
+    /// Result type with ok and error variants
     Result {
+        /// Ok variant type
         ok_type: Box<Type>,
+        /// Error variant type
         err_type: Box<Type>,
     },
+    /// Optional type
     Option {
+        /// Inner type
         inner_type: Box<Type>,
     },
 }
@@ -170,35 +198,61 @@ impl Type {
     }
 }
 
+/// Statement types in restricted AST
+///
+/// Represents the allowed statement types that can be transpiled to shell script.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum Stmt {
+    /// Let binding (variable declaration)
     Let {
+        /// Variable name
         name: String,
+        /// Initial value
         value: Expr,
     },
+    /// Expression statement
     Expr(Expr),
+    /// Return statement with optional value
     Return(Option<Expr>),
+    /// If/else conditional
     If {
+        /// Condition expression
         condition: Expr,
+        /// Statements in then branch
         then_block: Vec<Stmt>,
+        /// Optional statements in else branch
         else_block: Option<Vec<Stmt>>,
     },
+    /// Match expression (pattern matching)
     Match {
+        /// Expression being matched
         scrutinee: Expr,
+        /// Match arms
         arms: Vec<MatchArm>,
     },
+    /// For loop
     For {
+        /// Loop variable pattern
         pattern: Pattern,
+        /// Iterator expression
         iter: Expr,
+        /// Loop body statements
         body: Vec<Stmt>,
+        /// Optional maximum iterations (for safety)
         max_iterations: Option<u32>,
     },
+    /// While loop
     While {
+        /// Loop condition
         condition: Expr,
+        /// Loop body statements
         body: Vec<Stmt>,
+        /// Optional maximum iterations (for safety)
         max_iterations: Option<u32>,
     },
+    /// Break statement
     Break,
+    /// Continue statement
     Continue,
 }
 
