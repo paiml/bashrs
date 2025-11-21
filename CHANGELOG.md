@@ -7,6 +7,68 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+**🔧 xtask Integration - Library API for Build Scripts** (Issue #25)
+
+- **Transpiler Builder API**: Fluent interface for programmatic transpilation
+  - `Transpiler::new().input().output().permissions().transpile()`
+  - File I/O integration (automatic directory creation)
+  - Unix permissions support (e.g., 0o755 for executables)
+  - Custom configuration support
+- **build.rs Integration Module**: Zero-configuration auto-transpilation
+  - `auto_transpile()`: Automatic discovery and transpilation
+  - `discover_sources()`: Manual file discovery with glob patterns
+  - `TranspileJob`: Batch processing support
+  - Cargo rerun-if-changed directives
+- **Use Cases**:
+  - Git hooks in Rust (transpile to `.git/hooks/`)
+  - Installer scripts (write in Rust, distribute as shell)
+  - CI/CD automation (no global bashrs installation needed)
+- **Examples**:
+  - `examples/xtask_integration/`: Complete xtask pattern demonstration
+  - `examples/xtask_custom_build.rs`: Programmatic API examples
+  - `examples/xtask_integration/build.rs.example`: build.rs template
+  - `examples/xtask_integration/xtask_main.rs.example`: xtask command template
+- **Quality**: 27 comprehensive tests (16 transpiler + 11 build_rs)
+  - EXTREME TDD methodology
+  - Test naming: `test_XTASK_XXX_<feature>_<scenario>`
+  - 100% pass rate on new code
+
+### Benefits
+
+- ✅ **No global installation**: bashrs as workspace dependency
+- ✅ **Version locked**: Consistent behavior via Cargo.lock
+- ✅ **Zero setup**: Contributors run `cargo build`, hooks auto-install
+- ✅ **Type-safe**: Write hooks in Rust with full IDE support
+- ✅ **CI/CD ready**: Seamless integration without manual steps
+
+### Migration
+
+**Before** (manual CLI):
+```bash
+cargo install bashrs
+bashrs build hooks/pre-commit.rs .git/hooks/pre-commit
+chmod +x .git/hooks/pre-commit
+```
+
+**After** (automatic xtask):
+```toml
+# Cargo.toml
+[build-dependencies]
+bashrs = "7.1"
+```
+
+```rust
+// build.rs
+use bashrs::build_rs::auto_transpile;
+fn main() {
+    auto_transpile("hooks", ".git/hooks", 0o755).unwrap();
+}
+```
+
+Now `cargo build` automatically transpiles and installs hooks!
+
 ## [6.35.0] - 2025-11-15
 
 ### Added
