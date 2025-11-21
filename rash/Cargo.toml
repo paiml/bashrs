@@ -12,6 +12,9 @@ documentation.workspace = true
 keywords.workspace = true
 categories.workspace = true
 
+[lints]
+workspace = true
+
 [[bin]]
 name = "bashrs"
 path = "src/bin/bashrs.rs"

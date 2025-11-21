@@ -386,12 +386,14 @@ unsafe impl GlobalAlloc for FailingAllocator {
         if *count > self.fail_after {
             std::ptr::null_mut()
         } else {
-            System.alloc(layout)
+            // SAFETY: Delegating to System allocator, which is safe when called properly
+            unsafe { System.alloc(layout) }
         }
     }
 
     unsafe fn dealloc(&self, ptr: *mut u8, layout: Layout) {
-        System.dealloc(ptr, layout)
+        // SAFETY: Delegating to System allocator, ptr comes from alloc()
+        unsafe { System.dealloc(ptr, layout) }
     }
 }
 

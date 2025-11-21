@@ -9,6 +9,9 @@ repository = "https://github.com/paiml/bashrs"
 keywords = ["shell", "bash", "transpiler", "rust", "mcp"]
 categories = ["command-line-utilities", "development-tools"]
 
+[lints]
+workspace = true
+
 [dependencies]
 bashrs = { version = "6.3.0", path = "../rash" }
 pforge-runtime = "0.1.2"

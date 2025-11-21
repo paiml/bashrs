@@ -510,6 +510,148 @@ Before marking any CLI feature as "completed":
 - `pmat` - Quality analysis with paiml-mcp-agent-toolkit
 - `assert_cmd` - **MANDATORY** for all CLI testing
 
+## PMAT Integration (v2.200.0+)
+
+**Status**: Fully integrated with paiml-mcp-agent-toolkit v2.200.0
+
+### Quality Scoring
+
+```bash
+# Rust project quality score (0-134 scale)
+pmat rust-project-score --path . --verbose
+# Current: 127.0/134 (94.8%, Grade A+)
+
+# Repository health score (0-100 scale)
+pmat repo-score --path .
+# Current: 84.5/100 (Grade B+)
+```
+
+### Pre-commit Hooks
+
+**MANDATORY**: Pre-commit hooks are installed for automatic quality enforcement.
+
+```bash
+# Install pre-commit hooks (PMAT-managed)
+pmat hooks install
+
+# Check hook status
+pmat hooks status
+
+# View hook configuration
+cat .git/hooks/pre-commit
+```
+
+**Pre-commit Quality Gates**:
+- Complexity analysis (max cyclomatic: 30, cognitive: 25)
+- SATD (Self-Admitted Technical Debt) detection
+- Auto-enforced on every commit
+
+### Workflow Prompts
+
+PMAT provides pre-configured workflow prompts for EXTREME TDD development:
+
+```bash
+# List available workflow prompts
+pmat prompt show --help
+
+# Code coverage enforcement (>85% target)
+pmat prompt show code-coverage --format text
+
+# Debug with Five Whys root cause analysis
+pmat prompt show debug --format text
+
+# Quality gate enforcement (12 gates)
+pmat prompt show quality-enforcement --format text
+
+# Security audit and fixes
+pmat prompt show security-audit --format text
+```
+
+### Code Quality Analysis
+
+```bash
+# Complexity analysis
+pmat analyze complexity --path rash/src/
+
+# Technical debt grading (TDG)
+pmat analyze tdg --path rash/src/
+
+# Self-admitted technical debt (SATD)
+pmat analyze satd --path .
+
+# Dead code detection
+pmat analyze dead-code --path .
+```
+
+### Quality Gates Configuration
+
+Workspace lints are configured in `Cargo.toml`:
+
+```toml
+[workspace.lints.rust]
+unsafe_op_in_unsafe_fn = "deny"
+unreachable_pub = "warn"
+missing_docs = "warn"
+rust_2018_idioms = "warn"
+
+[workspace.lints.clippy]
+# Cloudflare-class defect prevention (2025-11-18 outage)
+unwrap_used = { level = "deny", priority = 1 }
+expect_used = { level = "warn", priority = 1 }
+checked_conversions = "warn"
+dbg_macro = "warn"
+todo = "warn"
+unimplemented = "warn"
+```
+
+### Known Issues (Tracked)
+
+**CRITICAL** (Cloudflare-class defect):
+- 289 unwrap() calls in production code (detected by rust-project-score)
+- Workspace lints now enforce `unwrap_used = "deny"`
+- Long-term remediation tracked in separate issue
+- See Cloudflare outage 2025-11-18: unwrap() panic caused 3+ hour outage
+
+**Dependency Health**:
+- 2 unmaintained dependencies (fxhash, instant) via pforge-runtime
+- Non-critical warnings, no security vulnerabilities
+
+### Test Coverage Metrics (2025-11-21)
+
+**Current Coverage**: **91.22%** (exceeds 85% target) ✅
+
+```bash
+# Run coverage analysis
+make coverage
+
+# Results (7632 tests, 7631 passed):
+# - Total Lines: 95,758
+# - Covered Lines: 87,351
+# - Coverage: 91.22%
+# - Functions: 95.85% coverage
+# - Regions: 90.66% coverage
+```
+
+**Coverage by Category**:
+- Core linter rules: 95-100% (excellent)
+- REPL modules: 90-99% (excellent)
+- Parser modules: 80-90% (good)
+- Test infrastructure: 95-100% (excellent)
+- Low coverage areas (needs improvement):
+  - `bash_parser/semantic.rs`: 47.06% (complex semantic analysis)
+  - `test_generator/core.rs`: 54.84% (test generation logic)
+  - `wasm/api.rs`: 55.46% (WASM bindings, Phase 0)
+
+### Recent Improvements (2025-11-21)
+
+- ✅ **Workspace lints configured**: Rust and Clippy lints enabled
+- ✅ **Pre-commit hooks installed**: PMAT-managed automatic quality checks
+- ✅ **Quality score improved**: 118.0/134 → 127.0/134 (+9 points, +6.7%)
+- ✅ **Grade improved**: A+ (88.1%) → A+ (94.8%)
+- ✅ **Tooling category**: 52.5/130 → 61.5/130 (+9 points, +6.9%)
+- ✅ **Coverage measured**: 91.22% line coverage (exceeds 85% target)
+- ✅ **Coverage tooling**: cargo-llvm-cov v0.6.21 operational
+
 ## Quality Standards
 
 All outputs must meet:

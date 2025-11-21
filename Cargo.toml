@@ -42,6 +42,27 @@ documentation = "https://docs.rs/bashrs"
 keywords = ["shell", "bash", "transpiler", "rust", "scripting"]
 categories = ["command-line-utilities", "development-tools", "compilers"]
 
+# Workspace-level lints (following pmat rust-project-score recommendations)
+[workspace.lints.rust]
+unsafe_op_in_unsafe_fn = "deny"
+unreachable_pub = "warn"
+missing_docs = "warn"
+rust_2018_idioms = "warn"
+
+[workspace.lints.clippy]
+# Cloudflare-class defect prevention (2025-11-18 outage)
+# CRITICAL: unwrap() causes panics - see Cloudflare 2025-11-18 outage
+unwrap_used = { level = "deny", priority = 1 }  # Ban unwrap() to prevent panics in production
+expect_used = { level = "warn", priority = 1 }  # Allow expect() but warn for review
+# High-value quality lints
+checked_conversions = "warn"
+dbg_macro = "warn"
+todo = "warn"
+unimplemented = "warn"
+# Avoid too many pedantic warnings for now - enable gradually
+module_name_repetitions = "allow"
+must_use_candidate = "allow"
+
 # Performance and size optimizations (following ripgrep/fd practices)
 [profile.release]
 opt-level = 'z'           # Size optimization (not 's')
