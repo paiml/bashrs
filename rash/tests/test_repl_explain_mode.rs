@@ -1,3 +1,4 @@
+#![allow(clippy::unwrap_used)] // Tests can use unwrap() for simplicity
 // Integration tests for REPL Explain Mode (REPL-005-002)
 //
 // Tests the explain mode functionality end-to-end using assert_cmd.

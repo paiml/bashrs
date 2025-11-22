@@ -1,3 +1,4 @@
+#![allow(clippy::unwrap_used)] // Tests can use unwrap() for simplicity
 //! Differential Testing for Bash-to-Rash Transpiler
 //!
 //! Compares execution of bash scripts vs transpiled Rash code

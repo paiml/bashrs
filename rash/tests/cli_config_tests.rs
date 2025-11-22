@@ -1,7 +1,9 @@
+#![allow(clippy::unwrap_used)] // Tests can use unwrap() for simplicity
 //! CLI tests for `bashrs config` commands
 //!
 //! Tests following EXTREME TDD - these tests are written FIRST (RED phase)
 //! before implementing the CLI commands.
+
 
 use assert_cmd::Command;
 use predicates::prelude::*;

@@ -1,3 +1,4 @@
+#![allow(clippy::unwrap_used)] // Tests can use unwrap() for simplicity
 // REPL CLI Integration Tests
 //
 // Task: REPL-003-002 - Basic REPL loop CLI integration

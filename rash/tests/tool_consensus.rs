@@ -1,3 +1,4 @@
+#![allow(clippy::unwrap_used)] // Tests can use unwrap() for simplicity
 //! Integration Test Template - Tool Consensus (Anti-Fraud)
 //!
 //! Task: REPL-002-004 - Create integration test template (anti-fraud)
