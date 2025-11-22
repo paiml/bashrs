@@ -242,7 +242,7 @@ impl NormalizationEngine {
 
     fn normalize_whitespace(
         &mut self,
-        chars: &mut std::iter::Peekable<std::str::CharIndices>,
+        chars: &mut std::iter::Peekable<std::str::CharIndices<'_>>,
         output: &mut String,
         source_map: &mut SourceMapBuilder,
         transform_log: &mut TransformLog,
@@ -312,7 +312,7 @@ impl NormalizationEngine {
 
     fn normalize_expansion(
         &mut self,
-        chars: &mut std::iter::Peekable<std::str::CharIndices>,
+        chars: &mut std::iter::Peekable<std::str::CharIndices<'_>>,
         output: &mut String,
         _source_map: &mut SourceMapBuilder,
         transform_log: &mut TransformLog,
@@ -393,7 +393,7 @@ impl NormalizationEngine {
     fn normalize_quoted_string(
         &mut self,
         quote_char: char,
-        chars: &mut std::iter::Peekable<std::str::CharIndices>,
+        chars: &mut std::iter::Peekable<std::str::CharIndices<'_>>,
         output: &mut String,
         _source_map: &mut SourceMapBuilder,
         _start_pos: usize,
@@ -434,7 +434,7 @@ impl NormalizationEngine {
 
     fn extract_comment(
         &self,
-        chars: &mut std::iter::Peekable<std::str::CharIndices>,
+        chars: &mut std::iter::Peekable<std::str::CharIndices<'_>>,
         start_pos: usize,
         line: &str,
     ) -> crate::Result<String> {
