@@ -47,7 +47,7 @@ categories = ["command-line-utilities", "development-tools", "compilers"]
 unsafe_op_in_unsafe_fn = "deny"
 unreachable_pub = "warn"
 missing_docs = "warn"
-rust_2018_idioms = "warn"
+rust_2018_idioms = { level = "warn", priority = -1 }
 
 [workspace.lints.clippy]
 # Cloudflare-class defect prevention (2025-11-18 outage)
