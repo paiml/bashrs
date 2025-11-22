@@ -547,7 +547,13 @@ mod security_tests {
         fn prop_arithmetic_preserves_types(a in 1i32..100, b in 1i32..100) {
             let source = format!("fn main() {{ let x = {} + {}; }}", a, b);
 
-            if let Ok(shell_code) = transpile(&source, Config::default()) {
+            // Disable optimization to test shell code generation (not optimization)
+            let config = Config {
+                optimize: false,
+                ..Default::default()
+            };
+
+            if let Ok(shell_code) = transpile(&source, config) {
                 // Should use arithmetic expansion
                 prop_assert!(shell_code.contains("$(("), "Should use arithmetic expansion");
                 prop_assert!(shell_code.contains("+"), "Should contain operator");
