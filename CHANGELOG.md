@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+**Clippy Compilation Error - Lint Priority Conflict**
+
+- Fixed clippy compilation failure caused by `rust_2018_idioms` lint group priority conflict
+- **Problem**: `rust_2018_idioms` lint group (priority 0) conflicted with other lints at same priority
+- **Solution**: Set explicit priority -1 for `rust_2018_idioms` to avoid conflict with clippy lints (priority 1)
+- **Result**: Clippy now compiles successfully with zero errors
+- **Quality**: All 6618 tests still passing, no regressions
+
 ### Added
 
 **🔧 xtask Integration - Library API for Build Scripts** (Issue #25)
