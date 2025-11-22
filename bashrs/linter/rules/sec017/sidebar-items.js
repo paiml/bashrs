@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"constant":["DANGEROUS_MODES"],"fn":["check","contains_mode","find_command"]};

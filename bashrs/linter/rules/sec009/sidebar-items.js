@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"constant":["DB_COMMANDS","SQL_KEYWORDS"],"fn":["check","contains_sql_with_variable","find_command"]};
