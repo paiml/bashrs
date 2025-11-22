@@ -54,6 +54,7 @@
 - [Property Testing](./advanced/property-testing.md)
 - [Mutation Testing](./advanced/mutation-testing.md)
 - [Performance Optimization](./advanced/performance.md)
+- [PMAT Integration](./advanced/pmat-integration.md)
 
 ## Reference
 
