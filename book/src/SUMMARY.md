@@ -9,6 +9,11 @@
 - [Your First Purification](./getting-started/first-purification.md)
 - [Interactive REPL](./getting-started/repl.md)
 
+## Interactive REPL
+
+- [Tutorial: Your First REPL Session](./repl/tutorial.md)
+- [REPL User Guide](./repl/user-guide.md)
+
 ## Core Concepts
 
 - [What is Purification?](./concepts/purification.md)
