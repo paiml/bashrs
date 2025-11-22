@@ -102,8 +102,9 @@ pub fn check(source: &str) -> LintResult {
 fn is_function_definition(line: &str) -> bool {
     // Pattern 1: function_name() {
     if line.contains("()") && (line.contains('{') || line.ends_with("()")) {
-        // Exclude common non-function patterns
-        if line.starts_with("if") || line.starts_with("while") || line.starts_with("for") {
+        // Exclude common non-function patterns (control flow statements)
+        // Use word boundaries to avoid excluding function names like "if_", "while_", "for_loop"
+        if line.starts_with("if ") || line.starts_with("while ") || line.starts_with("for ") {
             return false;
         }
         return true;
