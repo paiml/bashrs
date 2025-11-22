@@ -1,3 +1,4 @@
+#![allow(clippy::unwrap_used)] // Benchmarks can use unwrap() for simplicity
 // REPL-016-001: Fast Linting Performance Benchmarks
 //
 // Criterion benchmarks for linting performance

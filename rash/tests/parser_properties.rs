@@ -1,3 +1,4 @@
+#![allow(clippy::unwrap_used)] // Tests can use unwrap() for simplicity
 //! Property-based tests for Makefile parser
 //!
 //! These tests use proptest to generate thousands of test cases automatically,

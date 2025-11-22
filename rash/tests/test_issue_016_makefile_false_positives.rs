@@ -1,3 +1,4 @@
+#![allow(clippy::unwrap_used)] // Tests can use unwrap() for simplicity
 //! Test for Issue #16: Makefile linting false positives
 //!
 //! GitHub Issue: https://github.com/paiml/bashrs/issues/16

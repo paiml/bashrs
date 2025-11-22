@@ -185,7 +185,10 @@ pub fn benchmark_streaming(
     // Find optimal chunk size
     let (optimal_chunk_size, max_throughput_mbps) = results
         .iter()
-        .max_by(|(_, a), (_, b)| a.partial_cmp(b).unwrap())
+        .max_by(|(_, a), (_, b)| {
+            a.partial_cmp(b)
+                .expect("throughput comparison failed (NaN detected)")
+        })
         .map(|(size, throughput)| (*size, *throughput))
         .unwrap_or((1024, 0.0));
 

@@ -1,3 +1,4 @@
+#![allow(clippy::unwrap_used)] // Tests can use unwrap() for simplicity
 //! Tests for Makefile formatting options
 //!
 //! Tests the --preserve-formatting, --max-line-length, and selective transformation flags

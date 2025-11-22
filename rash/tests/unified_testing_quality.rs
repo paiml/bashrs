@@ -1,3 +1,4 @@
+#![allow(clippy::unwrap_used)] // Tests can use unwrap() for simplicity
 //! Unified Testing Quality Compliance Tests
 //!
 //! EXTREME TDD verification of quality standards from:

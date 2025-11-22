@@ -1,3 +1,4 @@
+#![allow(clippy::unwrap_used)] // Tests can use unwrap() for simplicity
 //! Test for fixing Makefile false positives
 //!
 //! This test file ensures that bashrs correctly handles Makefile-specific

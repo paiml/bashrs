@@ -1,3 +1,4 @@
+#![allow(clippy::unwrap_used)] // Tests can use unwrap() for simplicity
 // Integration tests for extended stdlib functions (Sprint 25)
 use bashrs::{transpile, Config};
 

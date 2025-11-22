@@ -1,3 +1,4 @@
+#![allow(clippy::unwrap_used)] // Tests can use unwrap() for simplicity
 //! Canonical Matrix Test - Comprehensive Smoke Test for All File Types
 //!
 //! This test verifies the complete capability matrix for bashrs across all supported file types:

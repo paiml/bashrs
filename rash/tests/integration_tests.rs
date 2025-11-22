@@ -1,3 +1,4 @@
+#![allow(clippy::unwrap_used)] // Tests can use unwrap() for simplicity
 use bashrs::models::config::{ShellDialect, VerificationLevel};
 use bashrs::{check, transpile, Config};
 use std::fs;

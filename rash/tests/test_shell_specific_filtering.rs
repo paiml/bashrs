@@ -1,3 +1,4 @@
+#![allow(clippy::unwrap_used)] // Tests can use unwrap() for simplicity
 // Integration tests for shell-specific rule filtering
 // Tests that rules are filtered based on detected shell type
 
