@@ -339,6 +339,7 @@ pub mod idem003;
 // Best practice rules (bashrs-specific)
 pub mod bash001;
 pub mod bash002;
+pub mod bash003;
 
 // Security rules (bashrs-specific)
 pub mod sec001;
@@ -631,6 +632,7 @@ fn lint_shell_filtered(
     // Best practice rules
     result.merge(bash001::check(source));
     result.merge(bash002::check(source));
+    result.merge(bash003::check(source));
 
     // Security rules (Universal - always apply)
     result.merge(sec001::check(source));
