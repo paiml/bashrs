@@ -55,7 +55,7 @@ fn create_braces_diagnostic(
 
 /// Process a single braced variable capture within arithmetic expression
 fn process_braced_var(
-    var_cap: regex::Captures,
+    var_cap: regex::Captures<'_>,
     arith_start: usize,
     line_num: usize,
     result: &mut LintResult,
