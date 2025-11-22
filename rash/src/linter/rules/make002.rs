@@ -26,47 +26,52 @@
 
 use crate::linter::{Diagnostic, Fix, LintResult, Severity, Span};
 
+/// Check if line is a Makefile recipe line (starts with tab and contains mkdir)
+fn is_recipe_with_mkdir(line: &str) -> bool {
+    line.starts_with('\t') && line.contains("mkdir")
+}
+
+/// Check if mkdir already has -p flag
+fn has_p_flag(line: &str, mkdir_pos: usize) -> bool {
+    let after_mkdir = &line[mkdir_pos + 5..];
+    after_mkdir.trim_start().starts_with("-p")
+}
+
+/// Create diagnostic for non-idempotent mkdir
+fn create_mkdir_diagnostic(line_num: usize, mkdir_pos: usize) -> Diagnostic {
+    let span = Span::new(
+        line_num + 1,
+        mkdir_pos + 1,
+        line_num + 1,
+        mkdir_pos + 6, // length of "mkdir"
+    );
+
+    Diagnostic::new(
+        "MAKE002",
+        Severity::Warning,
+        "Non-idempotent mkdir - will fail if directory exists",
+        span,
+    )
+    .with_fix(Fix::new("mkdir -p"))
+}
+
 /// Check for non-idempotent mkdir usage in Makefile recipes
 pub fn check(source: &str) -> LintResult {
     let mut result = LintResult::new();
 
     for (line_num, line) in source.lines().enumerate() {
-        // Check if line starts with tab (recipe line) and contains mkdir
-        if line.starts_with('\t') && line.contains("mkdir") {
-            // Check if it's mkdir without -p flag
-            if let Some(mkdir_pos) = line.find("mkdir") {
-                let after_mkdir = &line[mkdir_pos + 5..];
+        if !is_recipe_with_mkdir(line) {
+            continue;
+        }
 
-                // Skip if already has -p flag
-                if after_mkdir.trim_start().starts_with("-p") {
-                    continue;
-                }
-
-                // Skip if it's part of another command (like @mkdir)
-                if mkdir_pos > 0 {
-                    let before = &line[..mkdir_pos];
-                    if before.ends_with('@') || before.ends_with('-') {
-                        // Allow @mkdir and -mkdir patterns
-                    }
-                }
-
-                let span = Span::new(
-                    line_num + 1,
-                    mkdir_pos + 1,
-                    line_num + 1,
-                    mkdir_pos + 6, // length of "mkdir"
-                );
-
-                let diag = Diagnostic::new(
-                    "MAKE002",
-                    Severity::Warning,
-                    "Non-idempotent mkdir - will fail if directory exists",
-                    span,
-                )
-                .with_fix(Fix::new("mkdir -p"));
-
-                result.add(diag);
+        if let Some(mkdir_pos) = line.find("mkdir") {
+            // Skip if already has -p flag
+            if has_p_flag(line, mkdir_pos) {
+                continue;
             }
+
+            let diag = create_mkdir_diagnostic(line_num, mkdir_pos);
+            result.add(diag);
         }
     }
 
