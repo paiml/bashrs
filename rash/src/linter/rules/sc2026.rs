@@ -27,6 +27,48 @@ static UNQUOTED_EQUALS: Lazy<Regex> = Lazy::new(|| {
     Regex::new(r"\b([a-zA-Z_][a-zA-Z0-9_]*=[a-zA-Z0-9_/.:-]+=[a-zA-Z0-9_/.:-]+)\b").unwrap()
 });
 
+/// Check if line is a simple assignment (var=value with single =)
+fn is_simple_assignment(line: &str) -> bool {
+    let trimmed = line.trim();
+    if trimmed.contains('=') && !trimmed.contains(' ') {
+        let equals_count = trimmed.matches('=').count();
+        if equals_count == 1 {
+            return true; // Single = is likely a valid assignment
+        }
+    }
+    false
+}
+
+/// Check if match is inside quotes (odd number of quotes before it)
+fn is_quoted(line: &str, match_text: &str) -> bool {
+    let before_match = &line[..line.find(match_text).unwrap_or(0)];
+    let quote_count_double = before_match.matches('"').count();
+    let quote_count_single = before_match.matches('\'').count();
+
+    // If odd number of quotes, we're inside a quoted string
+    quote_count_double % 2 == 1 || quote_count_single % 2 == 1
+}
+
+/// Create diagnostic for unquoted word with multiple = signs
+fn create_unquoted_diagnostic(
+    match_text: &str,
+    line: &str,
+    line_num: usize,
+) -> Diagnostic {
+    let start_col = line.find(match_text).unwrap_or(0) + 1;
+    let end_col = start_col + match_text.len();
+
+    Diagnostic::new(
+        "SC2026",
+        Severity::Warning,
+        format!(
+            "This word '{}' contains multiple '=' signs. Quote it to prevent word splitting",
+            match_text
+        ),
+        Span::new(line_num, start_col, line_num, end_col),
+    )
+}
+
 pub fn check(source: &str) -> LintResult {
     let mut result = LintResult::new();
 
@@ -38,12 +80,8 @@ pub fn check(source: &str) -> LintResult {
         }
 
         // Skip lines that are pure assignments (var=value)
-        let trimmed = line.trim();
-        if trimmed.contains('=') && !trimmed.contains(' ') {
-            let equals_count = trimmed.matches('=').count();
-            if equals_count == 1 {
-                continue; // Single = is likely a valid assignment
-            }
+        if is_simple_assignment(line) {
+            continue;
         }
 
         // Look for patterns like word=value=other
@@ -51,28 +89,11 @@ pub fn check(source: &str) -> LintResult {
             let full_match = cap.get(0).unwrap().as_str();
 
             // Skip if it's in quotes
-            let before_match = &line[..line.find(full_match).unwrap_or(0)];
-            let quote_count_double = before_match.matches('"').count();
-            let quote_count_single = before_match.matches('\'').count();
-
-            // If odd number of quotes, we're inside a quoted string
-            if quote_count_double % 2 == 1 || quote_count_single % 2 == 1 {
+            if is_quoted(line, full_match) {
                 continue;
             }
 
-            let start_col = line.find(full_match).unwrap_or(0) + 1;
-            let end_col = start_col + full_match.len();
-
-            let diagnostic = Diagnostic::new(
-                "SC2026",
-                Severity::Warning,
-                format!(
-                    "This word '{}' contains multiple '=' signs. Quote it to prevent word splitting",
-                    full_match
-                ),
-                Span::new(line_num, start_col, line_num, end_col),
-            );
-
+            let diagnostic = create_unquoted_diagnostic(full_match, line, line_num);
             result.add(diagnostic);
         }
     }
