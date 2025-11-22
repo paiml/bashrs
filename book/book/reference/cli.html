@@ -24,28 +24,41 @@
         <link rel="stylesheet" href="../fonts/fonts.css">
 
         <!-- Highlight.js Stylesheets -->
-        <link rel="stylesheet" href="../highlight.css">
-        <link rel="stylesheet" href="../tomorrow-night.css">
-        <link rel="stylesheet" href="../ayu-highlight.css">
+        <link rel="stylesheet" id="highlight-css" href="../highlight.css">
+        <link rel="stylesheet" id="tomorrow-night-css" href="../tomorrow-night.css">
+        <link rel="stylesheet" id="ayu-highlight-css" href="../ayu-highlight.css">
 
         <!-- Custom theme stylesheets -->
 
 
-        <!-- Provide site root to javascript -->
+        <!-- Provide site root and default themes to javascript -->
         <script>
-            var path_to_root = "../";
-            var default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "navy" : "rust";
+            const path_to_root = "../";
+            const default_light_theme = "rust";
+            const default_dark_theme = "navy";
+            window.path_to_searchindex_js = "../searchindex.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc.js"></script>
     </head>
     <body>
+    <div id="mdbook-help-container">
+        <div id="mdbook-help-popup">
+            <h2 class="mdbook-help-title">Keyboard shortcuts</h2>
+            <div>
+                <p>Press <kbd>←</kbd> or <kbd>→</kbd> to navigate between chapters</p>
+                <p>Press <kbd>S</kbd> or <kbd>/</kbd> to search in the book</p>
+                <p>Press <kbd>?</kbd> to show this help</p>
+                <p>Press <kbd>Esc</kbd> to hide this help</p>
+            </div>
+        </div>
+    </div>
     <div id="body-container">
         <!-- Work around some values being stored in localStorage wrapped in quotes -->
         <script>
             try {
-                var theme = localStorage.getItem('mdbook-theme');
-                var sidebar = localStorage.getItem('mdbook-sidebar');
+                let theme = localStorage.getItem('mdbook-theme');
+                let sidebar = localStorage.getItem('mdbook-sidebar');
 
                 if (theme.startsWith('"') && theme.endsWith('"')) {
                     localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
@@ -59,7 +72,8 @@
 
         <!-- Set the theme before any content is loaded, prevents flash -->
         <script>
-            var theme;
+            const default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? default_dark_theme : default_light_theme;
+            let theme;
             try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
             if (theme === null || theme === undefined) { theme = default_theme; }
             const html = document.documentElement;
@@ -72,17 +86,20 @@
 
         <!-- Hide / unhide sidebar before it is displayed -->
         <script>
-            var sidebar = null;
-            var sidebar_toggle = document.getElementById("sidebar-toggle-anchor");
+            let sidebar = null;
+            const sidebar_toggle = document.getElementById("sidebar-toggle-anchor");
             if (document.body.clientWidth >= 1080) {
                 try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
                 sidebar = sidebar || 'visible';
             } else {
                 sidebar = 'hidden';
+                sidebar_toggle.checked = false;
             }
-            sidebar_toggle.checked = sidebar === 'visible';
-            html.classList.remove('sidebar-visible');
-            html.classList.add("sidebar-" + sidebar);
+            if (sidebar === 'visible') {
+                sidebar_toggle.checked = true;
+            } else {
+                html.classList.remove('sidebar-visible');
+            }
         </script>
 
         <nav id="sidebar" class="sidebar" aria-label="Table of contents">
@@ -109,13 +126,14 @@
                             <i class="fa fa-paint-brush"></i>
                         </button>
                         <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="default_theme">Auto</button></li>
                             <li role="none"><button role="menuitem" class="theme" id="light">Light</button></li>
                             <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
                             <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
                             <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
                             <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
                         </ul>
-                        <button id="search-toggle" class="icon-button" type="button" title="Search. (Shortkey: s)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="S" aria-controls="searchbar">
+                        <button id="search-toggle" class="icon-button" type="button" title="Search (`/`)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="/ s" aria-controls="searchbar">
                             <i class="fa fa-search"></i>
                         </button>
                     </div>
@@ -129,7 +147,7 @@
                         <a href="https://github.com/paiml/bashrs" title="Git repository" aria-label="Git repository">
                             <i id="git-repository-button" class="fa fa-github"></i>
                         </a>
-                        <a href="https://github.com/paiml/bashrs/edit/main/book/src/reference/cli.md" title="Suggest an edit" aria-label="Suggest an edit">
+                        <a href="https://github.com/paiml/bashrs/edit/main/book/src/reference/cli.md" title="Suggest an edit" aria-label="Suggest an edit" rel="edit">
                             <i id="git-edit-button" class="fa fa-edit"></i>
                         </a>
 
@@ -138,7 +156,12 @@
 
                 <div id="search-wrapper" class="hidden">
                     <form id="searchbar-outer" class="searchbar-outer">
-                        <input type="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                        <div class="search-wrapper">
+                            <input type="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                            <div class="spinner-wrapper">
+                                <i class="fa fa-spinner fa-spin"></i>
+                            </div>
+                        </div>
                     </form>
                     <div id="searchresults-outer" class="searchresults-outer hidden">
                         <div id="searchresults-header" class="searchresults-header"></div>
@@ -1140,6 +1163,184 @@ Available commands:
 <pre><code class="language-bash">RASH_STRICT=1 bashrs audit script.sh
 </code></pre>
 <hr />
+<h2 id="cargo-xtask---build-system-integration"><a class="header" href="#cargo-xtask---build-system-integration"><code>cargo xtask</code> - Build System Integration</a></h2>
+<p>bashrs provides <code>cargo xtask</code> integration for build automation, inspired by the <a href="https://github.com/matklad/cargo-xtask">xtask pattern</a>.</p>
+<p>The <code>xtask</code> subdirectory contains a custom build tool that integrates bashrs transpilation into your Cargo workflow.</p>
+<h3 id="available-tasks"><a class="header" href="#available-tasks">Available Tasks</a></h3>
+<h4 id="cargo-xtask-transpile---transpile-rust-to-shell"><a class="header" href="#cargo-xtask-transpile---transpile-rust-to-shell"><code>cargo xtask transpile</code> - Transpile Rust to Shell</a></h4>
+<p>Transpiles Rust code to shell scripts using bashrs Transpiler builder API.</p>
+<p><strong>Usage:</strong></p>
+<pre><code class="language-bash">cargo xtask transpile [OPTIONS]
+</code></pre>
+<p><strong>Options:</strong></p>
+<ul>
+<li><code>--input &lt;FILE&gt;</code> - Input Rust file (default: <code>src/main.rs</code>)</li>
+<li><code>--output &lt;FILE&gt;</code> - Output shell script (default: <code>install.sh</code>)</li>
+<li><code>--verify</code> - Run verification after transpilation</li>
+<li><code>--test</code> - Run tests on generated script</li>
+</ul>
+<p><strong>Examples:</strong></p>
+<p>Basic transpilation:</p>
+<pre><code class="language-bash">cargo xtask transpile
+</code></pre>
+<p>Custom input/output:</p>
+<pre><code class="language-bash">cargo xtask transpile --input src/bootstrap.rs --output bootstrap.sh
+</code></pre>
+<p>With verification:</p>
+<pre><code class="language-bash">cargo xtask transpile --input src/install.rs --output install.sh --verify
+</code></pre>
+<p>With testing:</p>
+<pre><code class="language-bash">cargo xtask transpile --test
+</code></pre>
+<h4 id="cargo-xtask-build---build-everything"><a class="header" href="#cargo-xtask-build---build-everything"><code>cargo xtask build</code> - Build Everything</a></h4>
+<p>Runs full build pipeline: Rust compilation + transpilation + verification.</p>
+<p><strong>Usage:</strong></p>
+<pre><code class="language-bash">cargo xtask build [OPTIONS]
+</code></pre>
+<p><strong>Options:</strong></p>
+<ul>
+<li><code>--release</code> - Build in release mode</li>
+<li><code>--all</code> - Build all targets</li>
+<li><code>--verify</code> - Run verification after build</li>
+<li><code>--test</code> - Run all tests after build</li>
+</ul>
+<p><strong>Examples:</strong></p>
+<p>Development build:</p>
+<pre><code class="language-bash">cargo xtask build
+</code></pre>
+<p>Release build with verification:</p>
+<pre><code class="language-bash">cargo xtask build --release --verify
+</code></pre>
+<p>Build and test everything:</p>
+<pre><code class="language-bash">cargo xtask build --all --test
+</code></pre>
+<h4 id="cargo-xtask-ci---cicd-pipeline"><a class="header" href="#cargo-xtask-ci---cicd-pipeline"><code>cargo xtask ci</code> - CI/CD Pipeline</a></h4>
+<p>Runs complete CI/CD pipeline matching GitHub Actions workflow.</p>
+<p><strong>Usage:</strong></p>
+<pre><code class="language-bash">cargo xtask ci
+</code></pre>
+<p><strong>What it runs:</strong></p>
+<ol>
+<li><code>cargo fmt --check</code> - Verify formatting</li>
+<li><code>cargo clippy -- -D warnings</code> - Lint with clippy</li>
+<li><code>cargo test --all-features</code> - Run all tests</li>
+<li><code>cargo xtask transpile --verify --test</code> - Transpile and verify</li>
+<li>Quality gates (if PMAT installed)</li>
+</ol>
+<p><strong>Example:</strong></p>
+<pre><code class="language-bash"><span class="boring"> Run full CI pipeline locally
+</span>cargo xtask ci
+
+<span class="boring"> Expected output:
+</span><span class="boring"> ✅ Format check passed
+</span><span class="boring"> ✅ Clippy passed
+</span><span class="boring"> ✅ Tests passed (6,618 tests)
+</span><span class="boring"> ✅ Transpilation verified
+</span><span class="boring"> ✅ Quality gates passed
+</span></code></pre>
+<h3 id="transpiler-builder-api"><a class="header" href="#transpiler-builder-api">Transpiler Builder API</a></h3>
+<p>The xtask integration uses the bashrs Transpiler builder API:</p>
+<pre><code class="language-rust ignore">use bashrs::transpiler::Transpiler;
+
+// Build transpiler with options
+let transpiler = Transpiler::builder()
+    .input("src/install.rs")
+    .output("install.sh")
+    .verify(true)
+    .build()?;
+
+// Run transpilation
+transpiler.transpile()?;</code></pre>
+<p><strong>Builder Methods:</strong></p>
+<ul>
+<li><code>.input(path)</code> - Set input Rust file</li>
+<li><code>.output(path)</code> - Set output shell script</li>
+<li><code>.verify(bool)</code> - Enable/disable verification</li>
+<li><code>.optimize(bool)</code> - Enable/disable optimizations</li>
+<li><code>.emit_proof(bool)</code> - Generate verification proof</li>
+<li><code>.build()</code> - Build configured transpiler</li>
+</ul>
+<h3 id="integration-in-buildrs"><a class="header" href="#integration-in-buildrs">Integration in build.rs</a></h3>
+<p>You can integrate transpilation into your build.rs:</p>
+<pre><code class="language-rust ignore">// build.rs
+use bashrs::build_rs::{transpile_to_shell, TranspileConfig};
+
+fn main() {
+    let config = TranspileConfig {
+        input: "src/main.rs",
+        output: "dist/install.sh",
+        verify: true,
+        ..Default::default()
+    };
+
+    transpile_to_shell(config).expect("Transpilation failed");
+
+    // Rerun if source changes
+    println!("cargo:rerun-if-changed=src/main.rs");
+}</code></pre>
+<h3 id="workspace-setup"><a class="header" href="#workspace-setup">Workspace Setup</a></h3>
+<p>The xtask directory structure:</p>
+<pre><code>xtask/
+├── Cargo.toml          # xtask binary configuration
+├── src/
+│   └── main.rs         # Task definitions
+└── README.md           # xtask documentation
+</code></pre>
+<p><strong>xtask/Cargo.toml:</strong></p>
+<pre><code class="language-toml">[package]
+name = "xtask"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+bashrs = { path = "../rash", features = ["transpiler"] }
+anyhow = "1.0"
+</code></pre>
+<h3 id="why-xtask"><a class="header" href="#why-xtask">Why xtask?</a></h3>
+<p><strong>Advantages over build.rs:</strong></p>
+<ul>
+<li>More flexible (not limited to build process)</li>
+<li>Easier to debug (regular Rust binary)</li>
+<li>Can run independently (<code>cargo xtask &lt;task&gt;</code>)</li>
+<li>Better integration with CI/CD</li>
+<li>Cleaner separation of concerns</li>
+</ul>
+<p><strong>When to use xtask vs build.rs:</strong></p>
+<ul>
+<li><strong>xtask</strong>: Complex build workflows, CI integration, multi-step processes</li>
+<li><strong>build.rs</strong>: Simple code generation, compile-time dependencies</li>
+</ul>
+<h3 id="examples-22"><a class="header" href="#examples-22">Examples</a></h3>
+<p><strong>Example 1: Custom Workflow</strong></p>
+<pre><code class="language-bash"><span class="boring"> Transpile, verify, and test in one command
+</span>cargo xtask transpile --input src/bootstrap.rs --output bootstrap.sh --verify --test
+</code></pre>
+<p><strong>Example 2: CI Integration</strong></p>
+<pre><code class="language-yaml"># .github/workflows/ci.yml
+- name: Run CI pipeline
+  run: cargo xtask ci
+</code></pre>
+<p><strong>Example 3: Release Build</strong></p>
+<pre><code class="language-bash"><span class="boring"> Build optimized release
+</span>cargo xtask build --release --verify
+
+<span class="boring"> Result: Rust binary + verified shell script
+</span>ls target/release/bashrs install.sh
+</code></pre>
+<h3 id="troubleshooting"><a class="header" href="#troubleshooting">Troubleshooting</a></h3>
+<p><strong>xtask not found:</strong></p>
+<pre><code class="language-bash">error: no such subcommand: `xtask`
+</code></pre>
+<p><strong>Solution:</strong> Ensure xtask directory exists with valid Cargo.toml</p>
+<p><strong>Transpilation failed:</strong></p>
+<pre><code class="language-bash">error: Transpilation failed: &lt;reason&gt;
+</code></pre>
+<p><strong>Solution:</strong> Check input file compatibility with <code>bashrs check &lt;file&gt;</code></p>
+<p><strong>Verification failed:</strong></p>
+<pre><code class="language-bash">error: Verification failed: outputs differ
+</code></pre>
+<p><strong>Solution:</strong> Review generated script, check for non-deterministic constructs</p>
+<hr />
 <h2 id="see-also"><a class="header" href="#see-also">See Also</a></h2>
 <ul>
 <li><a href="../getting-started/installation.html">Getting Started Guide</a></li>
@@ -1147,13 +1348,14 @@ Available commands:
 <li><a href="../linting/security.html">Security Linting</a></li>
 <li><a href="../config/overview.html">Configuration Management</a></li>
 <li><a href="../getting-started/repl.html">REPL Usage</a></li>
+<li><a href="../advanced/pmat-integration.html">PMAT Integration</a></li>
 </ul>
 
                     </main>
 
                     <nav class="nav-wrapper" aria-label="Page navigation">
                         <!-- Mobile navigation buttons -->
-                            <a rel="prev" href="../advanced/performance.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                            <a rel="prev" href="../advanced/pmat-integration.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                                 <i class="fa fa-angle-left"></i>
                             </a>
 
@@ -1167,7 +1369,7 @@ Available commands:
             </div>
 
             <nav class="nav-wide-wrapper" aria-label="Page navigation">
-                    <a rel="prev" href="../advanced/performance.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                    <a rel="prev" href="../advanced/pmat-integration.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                         <i class="fa fa-angle-left"></i>
                     </a>
 
@@ -1186,8 +1388,8 @@ Available commands:
         </script>
 
         <script src="../ace.js"></script>
-        <script src="../editor.js"></script>
         <script src="../mode-rust.js"></script>
+        <script src="../editor.js"></script>
         <script src="../theme-dawn.js"></script>
         <script src="../theme-tomorrow_night.js"></script>
 
@@ -1200,6 +1402,7 @@ Available commands:
         <script src="../book.js"></script>
 
         <!-- Custom JS scripts -->
+
 
 
     </div>

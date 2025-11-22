@@ -25,28 +25,41 @@
         <link rel="stylesheet" href="fonts/fonts.css">
 
         <!-- Highlight.js Stylesheets -->
-        <link rel="stylesheet" href="highlight.css">
-        <link rel="stylesheet" href="tomorrow-night.css">
-        <link rel="stylesheet" href="ayu-highlight.css">
+        <link rel="stylesheet" id="highlight-css" href="highlight.css">
+        <link rel="stylesheet" id="tomorrow-night-css" href="tomorrow-night.css">
+        <link rel="stylesheet" id="ayu-highlight-css" href="ayu-highlight.css">
 
         <!-- Custom theme stylesheets -->
 
 
-        <!-- Provide site root to javascript -->
+        <!-- Provide site root and default themes to javascript -->
         <script>
-            var path_to_root = "";
-            var default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "navy" : "rust";
+            const path_to_root = "";
+            const default_light_theme = "rust";
+            const default_dark_theme = "navy";
+            window.path_to_searchindex_js = "searchindex.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc.js"></script>
     </head>
     <body>
+    <div id="mdbook-help-container">
+        <div id="mdbook-help-popup">
+            <h2 class="mdbook-help-title">Keyboard shortcuts</h2>
+            <div>
+                <p>Press <kbd>←</kbd> or <kbd>→</kbd> to navigate between chapters</p>
+                <p>Press <kbd>S</kbd> or <kbd>/</kbd> to search in the book</p>
+                <p>Press <kbd>?</kbd> to show this help</p>
+                <p>Press <kbd>Esc</kbd> to hide this help</p>
+            </div>
+        </div>
+    </div>
     <div id="body-container">
         <!-- Work around some values being stored in localStorage wrapped in quotes -->
         <script>
             try {
-                var theme = localStorage.getItem('mdbook-theme');
-                var sidebar = localStorage.getItem('mdbook-sidebar');
+                let theme = localStorage.getItem('mdbook-theme');
+                let sidebar = localStorage.getItem('mdbook-sidebar');
 
                 if (theme.startsWith('"') && theme.endsWith('"')) {
                     localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
@@ -60,7 +73,8 @@
 
         <!-- Set the theme before any content is loaded, prevents flash -->
         <script>
-            var theme;
+            const default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? default_dark_theme : default_light_theme;
+            let theme;
             try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
             if (theme === null || theme === undefined) { theme = default_theme; }
             const html = document.documentElement;
@@ -73,17 +87,20 @@
 
         <!-- Hide / unhide sidebar before it is displayed -->
         <script>
-            var sidebar = null;
-            var sidebar_toggle = document.getElementById("sidebar-toggle-anchor");
+            let sidebar = null;
+            const sidebar_toggle = document.getElementById("sidebar-toggle-anchor");
             if (document.body.clientWidth >= 1080) {
                 try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
                 sidebar = sidebar || 'visible';
             } else {
                 sidebar = 'hidden';
+                sidebar_toggle.checked = false;
             }
-            sidebar_toggle.checked = sidebar === 'visible';
-            html.classList.remove('sidebar-visible');
-            html.classList.add("sidebar-" + sidebar);
+            if (sidebar === 'visible') {
+                sidebar_toggle.checked = true;
+            } else {
+                html.classList.remove('sidebar-visible');
+            }
         </script>
 
         <nav id="sidebar" class="sidebar" aria-label="Table of contents">
@@ -110,13 +127,14 @@
                             <i class="fa fa-paint-brush"></i>
                         </button>
                         <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="default_theme">Auto</button></li>
                             <li role="none"><button role="menuitem" class="theme" id="light">Light</button></li>
                             <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
                             <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
                             <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
                             <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
                         </ul>
-                        <button id="search-toggle" class="icon-button" type="button" title="Search. (Shortkey: s)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="S" aria-controls="searchbar">
+                        <button id="search-toggle" class="icon-button" type="button" title="Search (`/`)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="/ s" aria-controls="searchbar">
                             <i class="fa fa-search"></i>
                         </button>
                     </div>
@@ -136,7 +154,12 @@
 
                 <div id="search-wrapper" class="hidden">
                     <form id="searchbar-outer" class="searchbar-outer">
-                        <input type="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                        <div class="search-wrapper">
+                            <input type="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                            <div class="spinner-wrapper">
+                                <i class="fa fa-spinner fa-spin"></i>
+                            </div>
+                        </div>
                     </form>
                     <div id="searchresults-outer" class="searchresults-outer hidden">
                         <div id="searchresults-header" class="searchresults-header"></div>
@@ -17007,6 +17030,353 @@ pub fn parse(source: &amp;str) -&gt; Result&lt;BashAst, ParseError&gt; {
 </ul>
 <p>bashrs achieves production-grade performance through systematic profiling, targeted optimizations, and continuous performance testing.</p>
 <p>For more on comprehensive quality, see <a href="advanced/./ast-transformation.html">AST Transformation</a>, <a href="advanced/./property-testing.html">Property Testing</a>, and <a href="advanced/./mutation-testing.html">Mutation Testing</a>.</p>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="pmat-integration"><a class="header" href="#pmat-integration">PMAT Integration</a></h1>
+<p>bashrs integrates with <a href="https://github.com/paiml/paiml-mcp-agent-toolkit">paiml-mcp-agent-toolkit (PMAT)</a> v2.200.0+ for comprehensive quality analysis, complexity checking, and project scoring.</p>
+<p>PMAT provides automated quality gates that enforce code standards, detect defects, and measure technical debt.</p>
+<h2 id="what-is-pmat"><a class="header" href="#what-is-pmat">What is PMAT?</a></h2>
+<p><strong>PMAT (Professional MCP Agent Toolkit)</strong> is a quantitative code analysis and project scaffolding toolkit that provides:</p>
+<ul>
+<li><strong>Rust Project Scoring</strong> (0-134 scale): Comprehensive quality metrics</li>
+<li><strong>Complexity Analysis</strong>: Cyclomatic and cognitive complexity detection</li>
+<li><strong>Defect Detection</strong>: Known anti-patterns (unwrap(), eval, etc.)</li>
+<li><strong>Quality Gates</strong>: Pre-commit hooks enforcing standards</li>
+<li><strong>Technical Debt Grading</strong>: TDG scores for refactoring prioritization</li>
+</ul>
+<h2 id="installation-1"><a class="header" href="#installation-1">Installation</a></h2>
+<pre><code class="language-bash"><span class="boring"> Install PMAT globally
+</span>cargo install paiml-mcp-agent-toolkit
+
+<span class="boring"> Verify installation
+</span>pmat --version
+<span class="boring"> Expected: paiml-mcp-agent-toolkit 2.200.0+
+</span>
+<span class="boring"> Check bashrs project score
+</span>pmat rust-project-score
+</code></pre>
+<h2 id="quality-metrics-1"><a class="header" href="#quality-metrics-1">Quality Metrics</a></h2>
+<h3 id="rust-project-score-0-134"><a class="header" href="#rust-project-score-0-134">Rust Project Score (0-134)</a></h3>
+<p>PMAT scores bashrs across 8 categories:</p>
+<pre><code class="language-bash">$ pmat rust-project-score
+
+🦀  Rust Project Score v2.1
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+📌  Summary
+  Score: 127.0/134
+  Percentage: 94.8%
+  Grade: A+
+
+📂  Categories
+  ✅ Code Quality: 20.0/26 (76.9%)
+  ⚠️  Dependency Health: 6.0/12 (50.0%)
+  ⚠️  Documentation: 8.0/15 (53.3%)
+  ⚠️  Formal Verification: 3.0/8 (37.5%)
+  ✅ Known Defects: 20.0/20 (100.0%)
+  ⚠️  Performance &amp; Benchmarking: 3.0/10 (30.0%)
+  ⚠️  Rust Tooling &amp; CI/CD: 61.5/130 (47.3%)
+  ⚠️  Testing Excellence: 5.5/20 (27.5%)
+</code></pre>
+<p><strong>Score Breakdown:</strong></p>
+<ul>
+<li><strong>A+ (95-100%)</strong>: Production-ready, excellent quality</li>
+<li><strong>A (90-94%)</strong>: High quality, minor improvements needed</li>
+<li><strong>B (80-89%)</strong>: Good quality, some gaps</li>
+<li><strong>C (70-79%)</strong>: Acceptable, needs work</li>
+<li><strong>D (&lt;70%)</strong>: Needs significant improvement</li>
+</ul>
+<h3 id="complexity-analysis"><a class="header" href="#complexity-analysis">Complexity Analysis</a></h3>
+<p>PMAT detects functions exceeding complexity thresholds:</p>
+<pre><code class="language-bash"><span class="boring"> Check complexity (default thresholds: cyclomatic 30, cognitive 25)
+</span>pmat analyze complexity --max-cyclomatic 30 --max-cognitive 25
+
+<span class="boring"> Example output
+</span>📊 Files analyzed: 666
+🔧 Total functions: 10
+
+Complexity Metrics:
+- Median Cyclomatic: 9.5
+- Median Cognitive: 27.0
+- Max Cyclomatic: 10
+- Max Cognitive: 29
+
+Top Files by Complexity:
+1. sc2052.rs - Cyclomatic: 9, Cognitive: 29
+2. sc2115.rs - Cyclomatic: 10, Cognitive: 27
+</code></pre>
+<p><strong>Complexity Thresholds:</strong></p>
+<ul>
+<li>
+<p><strong>Cyclomatic &lt; 10</strong>: Simple, easy to test (ideal)</p>
+</li>
+<li>
+<p><strong>Cyclomatic 10-20</strong>: Moderate, acceptable</p>
+</li>
+<li>
+<p><strong>Cyclomatic 20-30</strong>: Complex, consider refactoring</p>
+</li>
+<li>
+<p><strong>Cyclomatic &gt; 30</strong>: Very complex, refactor immediately</p>
+</li>
+<li>
+<p><strong>Cognitive &lt; 15</strong>: Readable, easy to understand (ideal)</p>
+</li>
+<li>
+<p><strong>Cognitive 15-25</strong>: Moderate, acceptable</p>
+</li>
+<li>
+<p><strong>Cognitive 25-35</strong>: Hard to understand, refactor</p>
+</li>
+<li>
+<p><strong>Cognitive &gt; 35</strong>: Very hard to understand, refactor immediately</p>
+</li>
+</ul>
+<h2 id="pre-commit-hooks"><a class="header" href="#pre-commit-hooks">Pre-Commit Hooks</a></h2>
+<p>bashrs uses PMAT pre-commit hooks to enforce quality standards.</p>
+<h3 id="setup"><a class="header" href="#setup">Setup</a></h3>
+<pre><code class="language-bash"><span class="boring"> Install pre-commit framework
+</span>pip install pre-commit
+
+<span class="boring"> Install hooks
+</span>pre-commit install
+
+<span class="boring"> Run hooks manually
+</span>pre-commit run --all-files
+</code></pre>
+<h3 id="pmat-hooks"><a class="header" href="#pmat-hooks">PMAT Hooks</a></h3>
+<p>The <code>.pre-commit-config.yaml</code> includes 3 PMAT hooks:</p>
+<h4 id="1-complexity-check-commit-stage"><a class="header" href="#1-complexity-check-commit-stage">1. Complexity Check (commit stage)</a></h4>
+<pre><code class="language-yaml">- id: pmat-complexity
+  name: pmat analyze complexity
+  entry: pmat analyze complexity --max-cyclomatic 30 --max-cognitive 25
+  stages: [commit]
+</code></pre>
+<p><strong>Blocks commits</strong> if code exceeds complexity thresholds.</p>
+<h4 id="2-tdg-verification-commit-stage"><a class="header" href="#2-tdg-verification-commit-stage">2. TDG Verification (commit stage)</a></h4>
+<pre><code class="language-yaml">- id: pmat-tdg
+  name: pmat tdg
+  entry: pmat tdg --verify
+  stages: [commit]
+</code></pre>
+<p>Verifies test-driven generation compliance.</p>
+<h4 id="3-quality-score-push-stage"><a class="header" href="#3-quality-score-push-stage">3. Quality Score (push stage)</a></h4>
+<pre><code class="language-yaml">- id: pmat-quality
+  name: pmat quality-score
+  entry: pmat quality-score --min 9.0
+  stages: [push]
+</code></pre>
+<p><strong>Blocks pushes</strong> if quality score &lt; 9.0/10.</p>
+<h3 id="bypassing-hooks-not-recommended"><a class="header" href="#bypassing-hooks-not-recommended">Bypassing Hooks (Not Recommended)</a></h3>
+<p>During development, you may need to bypass hooks temporarily:</p>
+<pre><code class="language-bash"><span class="boring"> Skip ALL pre-commit hooks
+</span>git commit --no-verify -m "WIP: refactoring in progress"
+
+<span class="boring"> Skip specific hook
+</span>SKIP=pmat-complexity git commit -m "..."
+</code></pre>
+<p><strong>⚠️ Warning:</strong> Use <code>--no-verify</code> sparingly. Always fix issues before merging.</p>
+<h2 id="complexity-refactoring-workflow"><a class="header" href="#complexity-refactoring-workflow">Complexity Refactoring Workflow</a></h2>
+<p>When PMAT detects high-complexity functions, follow this refactoring workflow:</p>
+<h3 id="1-identify-high-complexity-files"><a class="header" href="#1-identify-high-complexity-files">1. Identify High-Complexity Files</a></h3>
+<pre><code class="language-bash">pmat analyze complexity --max-cognitive 25 --format full
+</code></pre>
+<h3 id="2-refactor-using-helper-functions"><a class="header" href="#2-refactor-using-helper-functions">2. Refactor Using Helper Functions</a></h3>
+<p>Extract nested logic into single-responsibility helper functions:</p>
+<p><strong>Before (complexity 35):</strong></p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub fn check(source: &amp;str) -&gt; LintResult {
+    let mut result = LintResult::new();
+    for (line_num, line) in source.lines().enumerate() {
+        if line.trim_start().starts_with('#') {
+            continue;
+        }
+        for m in REGEX.find_iter(line) {
+            let before = &amp;line[..m.start()];
+            if before.ends_with("'") {
+                continue;
+            }
+            if before.matches('"').count() % 2 == 1 {
+                continue;
+            }
+            let diagnostic = Diagnostic::new(...);
+            result.add(diagnostic);
+        }
+    }
+    result
+}
+<span class="boring">}</span></code></pre></pre>
+<p><strong>After (complexity ~10):</strong></p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>/// Check if match should be skipped (quoted or escaped)
+fn should_skip_match(line: &amp;str, match_start: usize) -&gt; bool {
+    let before = &amp;line[..match_start];
+    before.ends_with("'") || before.matches('"').count() % 2 == 1
+}
+
+/// Create diagnostic for match
+fn create_diagnostic(match_text: &amp;str, line_num: usize) -&gt; Diagnostic {
+    Diagnostic::new(...)
+}
+
+pub fn check(source: &amp;str) -&gt; LintResult {
+    let mut result = LintResult::new();
+
+    for (line_num, line) in source.lines().enumerate() {
+        if line.trim_start().starts_with('#') {
+            continue;
+        }
+
+        for m in REGEX.find_iter(line) {
+            if should_skip_match(line, m.start()) {
+                continue;
+            }
+            result.add(create_diagnostic(m.as_str(), line_num));
+        }
+    }
+
+    result
+}
+<span class="boring">}</span></code></pre></pre>
+<p><strong>Benefits:</strong></p>
+<ul>
+<li>Reduced nesting (4-5 levels → 2-3 levels)</li>
+<li>Single-responsibility functions</li>
+<li>Easier to test</li>
+<li>More maintainable</li>
+</ul>
+<h3 id="3-verify-improvement"><a class="header" href="#3-verify-improvement">3. Verify Improvement</a></h3>
+<pre><code class="language-bash"><span class="boring"> Run tests
+</span>cargo test --lib &lt;module&gt;
+
+<span class="boring"> Check complexity improved
+</span>pmat analyze complexity --files src/path/to/file.rs
+
+<span class="boring"> Commit with descriptive message
+</span>git commit -m "refactor: Reduce complexity in &lt;file&gt; (35→10)"
+</code></pre>
+<h2 id="defect-detection"><a class="header" href="#defect-detection">Defect Detection</a></h2>
+<p>PMAT detects known anti-patterns in Rust code:</p>
+<pre><code class="language-bash"><span class="boring"> Analyze known defects
+</span>pmat analyze defects
+
+<span class="boring"> Example findings
+</span>⚠️  289 unwrap() calls detected
+   - Replace with .expect() or proper error handling
+   - See Cloudflare outage 2025-11-18 (unwrap() panic)
+</code></pre>
+<p><strong>Common Defects:</strong></p>
+<ul>
+<li><code>.unwrap()</code>: Can panic, use <code>.expect()</code> or <code>?</code> operator</li>
+<li><code>.expect("failed")</code>: Better than unwrap, but still panics</li>
+<li><code>eval</code> in shell scripts: Code injection risk</li>
+<li>Hardcoded credentials: Security vulnerability</li>
+</ul>
+<h2 id="quality-gate-integration"><a class="header" href="#quality-gate-integration">Quality Gate Integration</a></h2>
+<p>bashrs enforces quality gates at multiple stages:</p>
+<h3 id="pre-commit-local"><a class="header" href="#pre-commit-local">Pre-Commit (Local)</a></h3>
+<ul>
+<li>✅ Complexity &lt; 30 (cyclomatic), &lt; 25 (cognitive)</li>
+<li>✅ All tests pass</li>
+<li>✅ Code formatted (rustfmt)</li>
+<li>✅ No clippy warnings</li>
+</ul>
+<h3 id="pre-push-local"><a class="header" href="#pre-push-local">Pre-Push (Local)</a></h3>
+<ul>
+<li>✅ Quality score ≥ 9.0/10</li>
+<li>✅ Security audit (cargo audit)</li>
+</ul>
+<h3 id="cicd-github-actions"><a class="header" href="#cicd-github-actions">CI/CD (GitHub Actions)</a></h3>
+<ul>
+<li>✅ All pre-commit hooks</li>
+<li>✅ Coverage ≥ 85%</li>
+<li>✅ Mutation testing ≥ 80%</li>
+<li>✅ Benchmarks pass</li>
+</ul>
+<h2 id="best-practices-15"><a class="header" href="#best-practices-15">Best Practices</a></h2>
+<h3 id="1-run-pmat-before-commits"><a class="header" href="#1-run-pmat-before-commits">1. Run PMAT Before Commits</a></h3>
+<pre><code class="language-bash"><span class="boring"> Check complexity before committing
+</span>pmat analyze complexity --fail-on-violation
+
+<span class="boring"> Check quality score
+</span>pmat rust-project-score
+</code></pre>
+<h3 id="2-monitor-trends"><a class="header" href="#2-monitor-trends">2. Monitor Trends</a></h3>
+<p>Track score improvements over time:</p>
+<pre><code class="language-bash"><span class="boring"> Log score to file
+</span>pmat rust-project-score &gt;&gt; quality-log.txt
+
+<span class="boring"> Compare with previous release
+</span>git diff v6.35.0 quality-log.txt
+</code></pre>
+<h3 id="3-prioritize-low-hanging-fruit"><a class="header" href="#3-prioritize-low-hanging-fruit">3. Prioritize Low-Hanging Fruit</a></h3>
+<p>Focus on high-impact, low-effort improvements:</p>
+<div class="table-wrapper"><table><thead><tr><th>Category</th><th>Current</th><th>Target</th><th>Effort</th><th>Impact</th></tr></thead><tbody>
+<tr><td>Testing Excellence</td><td>5.5/20</td><td>15/20</td><td>Medium</td><td>High</td></tr>
+<tr><td>Documentation</td><td>8.0/15</td><td>13/15</td><td>Low</td><td>Medium</td></tr>
+<tr><td>Performance</td><td>3.0/10</td><td>8/10</td><td>High</td><td>Low</td></tr>
+</tbody></table>
+</div>
+<h2 id="example-complete-quality-workflow"><a class="header" href="#example-complete-quality-workflow">Example: Complete Quality Workflow</a></h2>
+<pre><code class="language-bash"><span class="boring"> 1. Check current quality
+</span>pmat rust-project-score
+
+<span class="boring"> 2. Identify complexity issues
+</span>pmat analyze complexity --max-cognitive 25
+
+<span class="boring"> 3. Refactor high-complexity files
+</span><span class="boring"> (extract helper functions, reduce nesting)
+</span>
+<span class="boring"> 4. Run tests
+</span>cargo test --lib
+
+<span class="boring"> 5. Verify improvement
+</span>pmat analyze complexity --files src/refactored/file.rs
+
+<span class="boring"> 6. Commit (pre-commit hooks run automatically)
+</span>git add src/refactored/file.rs
+git commit -m "refactor: Reduce complexity in file.rs (35→10)"
+
+<span class="boring"> 7. Push (quality gate runs automatically)
+</span>git push
+
+<span class="boring"> 8. Verify score improved
+</span>pmat rust-project-score
+</code></pre>
+<h2 id="troubleshooting-13"><a class="header" href="#troubleshooting-13">Troubleshooting</a></h2>
+<h3 id="pmat-not-installed"><a class="header" href="#pmat-not-installed">PMAT Not Installed</a></h3>
+<pre><code class="language-bash">error: unrecognized subcommand
+</code></pre>
+<p><strong>Solution:</strong></p>
+<pre><code class="language-bash">cargo install paiml-mcp-agent-toolkit
+</code></pre>
+<h3 id="complexity-hook-fails"><a class="header" href="#complexity-hook-fails">Complexity Hook Fails</a></h3>
+<pre><code class="language-bash">❌ Complexity check... FAILED
+Complexity exceeds thresholds
+</code></pre>
+<p><strong>Solution:</strong></p>
+<ol>
+<li>Run <code>pmat analyze complexity</code> to see violations</li>
+<li>Refactor high-complexity functions</li>
+<li>Re-run pre-commit hooks</li>
+</ol>
+<h3 id="quality-score-too-low"><a class="header" href="#quality-score-too-low">Quality Score Too Low</a></h3>
+<pre><code class="language-bash">❌ Quality score: 8.5/10 (minimum: 9.0)
+</code></pre>
+<p><strong>Solution:</strong></p>
+<ol>
+<li>Run <code>pmat rust-project-score</code> to see category breakdown</li>
+<li>Focus on low-scoring categories</li>
+<li>Follow recommendations in output</li>
+</ol>
+<h2 id="further-reading-8"><a class="header" href="#further-reading-8">Further Reading</a></h2>
+<ul>
+<li><a href="https://github.com/paiml/paiml-mcp-agent-toolkit">PMAT Documentation</a></li>
+<li><a href="https://en.wikipedia.org/wiki/Cyclomatic_complexity">Cyclomatic Complexity</a></li>
+<li><a href="https://www.sonarsource.com/resources/cognitive-complexity/">Cognitive Complexity</a></li>
+<li><a href="advanced/../contributing/toyota-way.html">Toyota Way Principles</a></li>
+<li><a href="advanced/../contributing/extreme-tdd.html">EXTREME TDD</a></li>
+</ul>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="cli-commands"><a class="header" href="#cli-commands">CLI Commands</a></h1>
 <p>This is the reference for all bashrs CLI commands.</p>
 <h2 id="bashrs-bench---scientific-benchmarking"><a class="header" href="#bashrs-bench---scientific-benchmarking"><code>bashrs bench</code> - Scientific Benchmarking</a></h2>
@@ -17989,6 +18359,184 @@ Available commands:
 <pre><code class="language-bash">RASH_STRICT=1 bashrs audit script.sh
 </code></pre>
 <hr />
+<h2 id="cargo-xtask---build-system-integration"><a class="header" href="#cargo-xtask---build-system-integration"><code>cargo xtask</code> - Build System Integration</a></h2>
+<p>bashrs provides <code>cargo xtask</code> integration for build automation, inspired by the <a href="https://github.com/matklad/cargo-xtask">xtask pattern</a>.</p>
+<p>The <code>xtask</code> subdirectory contains a custom build tool that integrates bashrs transpilation into your Cargo workflow.</p>
+<h3 id="available-tasks"><a class="header" href="#available-tasks">Available Tasks</a></h3>
+<h4 id="cargo-xtask-transpile---transpile-rust-to-shell"><a class="header" href="#cargo-xtask-transpile---transpile-rust-to-shell"><code>cargo xtask transpile</code> - Transpile Rust to Shell</a></h4>
+<p>Transpiles Rust code to shell scripts using bashrs Transpiler builder API.</p>
+<p><strong>Usage:</strong></p>
+<pre><code class="language-bash">cargo xtask transpile [OPTIONS]
+</code></pre>
+<p><strong>Options:</strong></p>
+<ul>
+<li><code>--input &lt;FILE&gt;</code> - Input Rust file (default: <code>src/main.rs</code>)</li>
+<li><code>--output &lt;FILE&gt;</code> - Output shell script (default: <code>install.sh</code>)</li>
+<li><code>--verify</code> - Run verification after transpilation</li>
+<li><code>--test</code> - Run tests on generated script</li>
+</ul>
+<p><strong>Examples:</strong></p>
+<p>Basic transpilation:</p>
+<pre><code class="language-bash">cargo xtask transpile
+</code></pre>
+<p>Custom input/output:</p>
+<pre><code class="language-bash">cargo xtask transpile --input src/bootstrap.rs --output bootstrap.sh
+</code></pre>
+<p>With verification:</p>
+<pre><code class="language-bash">cargo xtask transpile --input src/install.rs --output install.sh --verify
+</code></pre>
+<p>With testing:</p>
+<pre><code class="language-bash">cargo xtask transpile --test
+</code></pre>
+<h4 id="cargo-xtask-build---build-everything"><a class="header" href="#cargo-xtask-build---build-everything"><code>cargo xtask build</code> - Build Everything</a></h4>
+<p>Runs full build pipeline: Rust compilation + transpilation + verification.</p>
+<p><strong>Usage:</strong></p>
+<pre><code class="language-bash">cargo xtask build [OPTIONS]
+</code></pre>
+<p><strong>Options:</strong></p>
+<ul>
+<li><code>--release</code> - Build in release mode</li>
+<li><code>--all</code> - Build all targets</li>
+<li><code>--verify</code> - Run verification after build</li>
+<li><code>--test</code> - Run all tests after build</li>
+</ul>
+<p><strong>Examples:</strong></p>
+<p>Development build:</p>
+<pre><code class="language-bash">cargo xtask build
+</code></pre>
+<p>Release build with verification:</p>
+<pre><code class="language-bash">cargo xtask build --release --verify
+</code></pre>
+<p>Build and test everything:</p>
+<pre><code class="language-bash">cargo xtask build --all --test
+</code></pre>
+<h4 id="cargo-xtask-ci---cicd-pipeline"><a class="header" href="#cargo-xtask-ci---cicd-pipeline"><code>cargo xtask ci</code> - CI/CD Pipeline</a></h4>
+<p>Runs complete CI/CD pipeline matching GitHub Actions workflow.</p>
+<p><strong>Usage:</strong></p>
+<pre><code class="language-bash">cargo xtask ci
+</code></pre>
+<p><strong>What it runs:</strong></p>
+<ol>
+<li><code>cargo fmt --check</code> - Verify formatting</li>
+<li><code>cargo clippy -- -D warnings</code> - Lint with clippy</li>
+<li><code>cargo test --all-features</code> - Run all tests</li>
+<li><code>cargo xtask transpile --verify --test</code> - Transpile and verify</li>
+<li>Quality gates (if PMAT installed)</li>
+</ol>
+<p><strong>Example:</strong></p>
+<pre><code class="language-bash"><span class="boring"> Run full CI pipeline locally
+</span>cargo xtask ci
+
+<span class="boring"> Expected output:
+</span><span class="boring"> ✅ Format check passed
+</span><span class="boring"> ✅ Clippy passed
+</span><span class="boring"> ✅ Tests passed (6,618 tests)
+</span><span class="boring"> ✅ Transpilation verified
+</span><span class="boring"> ✅ Quality gates passed
+</span></code></pre>
+<h3 id="transpiler-builder-api"><a class="header" href="#transpiler-builder-api">Transpiler Builder API</a></h3>
+<p>The xtask integration uses the bashrs Transpiler builder API:</p>
+<pre><code class="language-rust ignore">use bashrs::transpiler::Transpiler;
+
+// Build transpiler with options
+let transpiler = Transpiler::builder()
+    .input("src/install.rs")
+    .output("install.sh")
+    .verify(true)
+    .build()?;
+
+// Run transpilation
+transpiler.transpile()?;</code></pre>
+<p><strong>Builder Methods:</strong></p>
+<ul>
+<li><code>.input(path)</code> - Set input Rust file</li>
+<li><code>.output(path)</code> - Set output shell script</li>
+<li><code>.verify(bool)</code> - Enable/disable verification</li>
+<li><code>.optimize(bool)</code> - Enable/disable optimizations</li>
+<li><code>.emit_proof(bool)</code> - Generate verification proof</li>
+<li><code>.build()</code> - Build configured transpiler</li>
+</ul>
+<h3 id="integration-in-buildrs"><a class="header" href="#integration-in-buildrs">Integration in build.rs</a></h3>
+<p>You can integrate transpilation into your build.rs:</p>
+<pre><code class="language-rust ignore">// build.rs
+use bashrs::build_rs::{transpile_to_shell, TranspileConfig};
+
+fn main() {
+    let config = TranspileConfig {
+        input: "src/main.rs",
+        output: "dist/install.sh",
+        verify: true,
+        ..Default::default()
+    };
+
+    transpile_to_shell(config).expect("Transpilation failed");
+
+    // Rerun if source changes
+    println!("cargo:rerun-if-changed=src/main.rs");
+}</code></pre>
+<h3 id="workspace-setup"><a class="header" href="#workspace-setup">Workspace Setup</a></h3>
+<p>The xtask directory structure:</p>
+<pre><code>xtask/
+├── Cargo.toml          # xtask binary configuration
+├── src/
+│   └── main.rs         # Task definitions
+└── README.md           # xtask documentation
+</code></pre>
+<p><strong>xtask/Cargo.toml:</strong></p>
+<pre><code class="language-toml">[package]
+name = "xtask"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+bashrs = { path = "../rash", features = ["transpiler"] }
+anyhow = "1.0"
+</code></pre>
+<h3 id="why-xtask"><a class="header" href="#why-xtask">Why xtask?</a></h3>
+<p><strong>Advantages over build.rs:</strong></p>
+<ul>
+<li>More flexible (not limited to build process)</li>
+<li>Easier to debug (regular Rust binary)</li>
+<li>Can run independently (<code>cargo xtask &lt;task&gt;</code>)</li>
+<li>Better integration with CI/CD</li>
+<li>Cleaner separation of concerns</li>
+</ul>
+<p><strong>When to use xtask vs build.rs:</strong></p>
+<ul>
+<li><strong>xtask</strong>: Complex build workflows, CI integration, multi-step processes</li>
+<li><strong>build.rs</strong>: Simple code generation, compile-time dependencies</li>
+</ul>
+<h3 id="examples-39"><a class="header" href="#examples-39">Examples</a></h3>
+<p><strong>Example 1: Custom Workflow</strong></p>
+<pre><code class="language-bash"><span class="boring"> Transpile, verify, and test in one command
+</span>cargo xtask transpile --input src/bootstrap.rs --output bootstrap.sh --verify --test
+</code></pre>
+<p><strong>Example 2: CI Integration</strong></p>
+<pre><code class="language-yaml"># .github/workflows/ci.yml
+- name: Run CI pipeline
+  run: cargo xtask ci
+</code></pre>
+<p><strong>Example 3: Release Build</strong></p>
+<pre><code class="language-bash"><span class="boring"> Build optimized release
+</span>cargo xtask build --release --verify
+
+<span class="boring"> Result: Rust binary + verified shell script
+</span>ls target/release/bashrs install.sh
+</code></pre>
+<h3 id="troubleshooting-14"><a class="header" href="#troubleshooting-14">Troubleshooting</a></h3>
+<p><strong>xtask not found:</strong></p>
+<pre><code class="language-bash">error: no such subcommand: `xtask`
+</code></pre>
+<p><strong>Solution:</strong> Ensure xtask directory exists with valid Cargo.toml</p>
+<p><strong>Transpilation failed:</strong></p>
+<pre><code class="language-bash">error: Transpilation failed: &lt;reason&gt;
+</code></pre>
+<p><strong>Solution:</strong> Check input file compatibility with <code>bashrs check &lt;file&gt;</code></p>
+<p><strong>Verification failed:</strong></p>
+<pre><code class="language-bash">error: Verification failed: outputs differ
+</code></pre>
+<p><strong>Solution:</strong> Review generated script, check for non-deterministic constructs</p>
+<hr />
 <h2 id="see-also-5"><a class="header" href="#see-also-5">See Also</a></h2>
 <ul>
 <li><a href="reference/../getting-started/installation.html">Getting Started Guide</a></li>
@@ -17996,6 +18544,7 @@ Available commands:
 <li><a href="reference/../linting/security.html">Security Linting</a></li>
 <li><a href="reference/../config/overview.html">Configuration Management</a></li>
 <li><a href="reference/../getting-started/repl.html">REPL Usage</a></li>
+<li><a href="reference/../advanced/pmat-integration.html">PMAT Integration</a></li>
 </ul>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="repl-commands-reference"><a class="header" href="#repl-commands-reference">REPL Commands Reference</a></h1>
 <p>Complete reference for all bashrs REPL commands (v6.19.0).</p>
@@ -18303,7 +18852,7 @@ bashrs [normal]&gt; :purify if then fi
 <tr><td><code>--sandboxed</code></td><td>false</td><td>Run in sandboxed mode (restricted operations)</td></tr>
 </tbody></table>
 </div>
-<h3 id="examples-39"><a class="header" href="#examples-39">Examples</a></h3>
+<h3 id="examples-40"><a class="header" href="#examples-40">Examples</a></h3>
 <p><strong>Enable debug mode</strong>:</p>
 <pre><code class="language-bash">$ bashrs repl --debug
 bashrs REPL v6.7.0 (debug mode enabled)
@@ -18854,7 +19403,7 @@ determinism = true
 idempotency = true
 auto_fix = false  # Never auto-fix in CI
 </code></pre>
-<h2 id="examples-40"><a class="header" href="#examples-40">Examples</a></h2>
+<h2 id="examples-41"><a class="header" href="#examples-41">Examples</a></h2>
 <h3 id="example-1-maximum-safety-configuration"><a class="header" href="#example-1-maximum-safety-configuration">Example 1: Maximum Safety Configuration</a></h3>
 <p>For critical production scripts:</p>
 <pre><code class="language-toml"># bashrs.toml
@@ -18949,7 +19498,7 @@ if [ $? -ne 0 ]; then
     exit 1
 fi
 </code></pre>
-<h2 id="best-practices-15"><a class="header" href="#best-practices-15">Best Practices</a></h2>
+<h2 id="best-practices-16"><a class="header" href="#best-practices-16">Best Practices</a></h2>
 <h3 id="1-use-per-project-configuration"><a class="header" href="#1-use-per-project-configuration">1. Use Per-Project Configuration</a></h3>
 <p>Always include <code>bashrs.toml</code> in your repository:</p>
 <pre><code class="language-toml">[bashrs]
@@ -19724,7 +20273,7 @@ workflows:
 <tr><td>78</td><td>EX_CONFIG</td><td>Configuration error</td></tr>
 </tbody></table>
 </div>
-<h2 id="best-practices-16"><a class="header" href="#best-practices-16">Best Practices</a></h2>
+<h2 id="best-practices-17"><a class="header" href="#best-practices-17">Best Practices</a></h2>
 <h3 id="1-always-check-exit-codes"><a class="header" href="#1-always-check-exit-codes">1. Always Check Exit Codes</a></h3>
 <pre><code class="language-bash"><span class="boring">!/bin/bash
 </span>
@@ -20913,7 +21462,7 @@ export RUST_LOG=bashrs=trace  # Only bashrs crate
 <span class="boring"> Run with profiler
 </span>cargo flamegraph --bin bashrs -- lint examples/security/sec001_eval.sh
 </code></pre>
-<h2 id="troubleshooting-13"><a class="header" href="#troubleshooting-13">Troubleshooting</a></h2>
+<h2 id="troubleshooting-15"><a class="header" href="#troubleshooting-15">Troubleshooting</a></h2>
 <h3 id="cargo-command-not-found"><a class="header" href="#cargo-command-not-found">"cargo: command not found"</a></h3>
 <p>Rust toolchain not installed or not in PATH.</p>
 <p><strong>Solution</strong>:</p>
@@ -21967,7 +22516,7 @@ git commit        # Hooks pass automatically
 <pre><code class="language-bash"><span class="boring"> ❌ WRONG: "This should work in POSIX sh" (assumption)
 </span><span class="boring"> ✅ RIGHT: sh purified.sh (empirical validation)
 </span></code></pre>
-<h2 id="further-reading-8"><a class="header" href="#further-reading-8">Further Reading</a></h2>
+<h2 id="further-reading-9"><a class="header" href="#further-reading-9">Further Reading</a></h2>
 <ul>
 <li><a href="https://en.wikipedia.org/wiki/The_Toyota_Way">Toyota Way (Wikipedia)</a></li>
 <li><a href="https://en.wikipedia.org/wiki/Jidoka">Jidoka and Andon</a></li>
@@ -22482,7 +23031,7 @@ categories = ["command-line-utilities", "development-tools"]
 - [ ] docs.rs documentation built
 - [ ] `bashrs --version` shows correct version
 </code></pre>
-<h2 id="troubleshooting-14"><a class="header" href="#troubleshooting-14">Troubleshooting</a></h2>
+<h2 id="troubleshooting-16"><a class="header" href="#troubleshooting-16">Troubleshooting</a></h2>
 <h3 id="publication-failed-crate-name-is-already-taken"><a class="header" href="#publication-failed-crate-name-is-already-taken">Publication Failed: "crate name is already taken"</a></h3>
 <p>This means the version is already published. You cannot republish the same version.</p>
 <p><strong>Solution</strong>: Bump the version number and try again.</p>
@@ -22563,8 +23112,8 @@ fn test_version() {
         </script>
 
         <script src="ace.js"></script>
-        <script src="editor.js"></script>
         <script src="mode-rust.js"></script>
+        <script src="editor.js"></script>
         <script src="theme-dawn.js"></script>
         <script src="theme-tomorrow_night.js"></script>
 
@@ -22583,6 +23132,7 @@ fn test_version() {
             window.setTimeout(window.print, 100);
         });
         </script>
+
 
     </div>
     </body>

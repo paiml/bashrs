@@ -1,0 +1,588 @@
+<!DOCTYPE HTML>
+<html lang="en" class="rust sidebar-visible" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>PMAT Integration - The Rash Book - Shell Safety and Purification</title>
+
+
+        <!-- Custom HTML head -->
+
+        <meta name="description" content="A comprehensive guide to Rash: shell safety, purification, and linting">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="../favicon.svg">
+        <link rel="shortcut icon" href="../favicon.png">
+        <link rel="stylesheet" href="../css/variables.css">
+        <link rel="stylesheet" href="../css/general.css">
+        <link rel="stylesheet" href="../css/chrome.css">
+        <link rel="stylesheet" href="../css/print.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="../FontAwesome/css/font-awesome.css">
+        <link rel="stylesheet" href="../fonts/fonts.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" id="highlight-css" href="../highlight.css">
+        <link rel="stylesheet" id="tomorrow-night-css" href="../tomorrow-night.css">
+        <link rel="stylesheet" id="ayu-highlight-css" href="../ayu-highlight.css">
+
+        <!-- Custom theme stylesheets -->
+
+
+        <!-- Provide site root and default themes to javascript -->
+        <script>
+            const path_to_root = "../";
+            const default_light_theme = "rust";
+            const default_dark_theme = "navy";
+            window.path_to_searchindex_js = "../searchindex.js";
+        </script>
+        <!-- Start loading toc.js asap -->
+        <script src="../toc.js"></script>
+    </head>
+    <body>
+    <div id="mdbook-help-container">
+        <div id="mdbook-help-popup">
+            <h2 class="mdbook-help-title">Keyboard shortcuts</h2>
+            <div>
+                <p>Press <kbd>←</kbd> or <kbd>→</kbd> to navigate between chapters</p>
+                <p>Press <kbd>S</kbd> or <kbd>/</kbd> to search in the book</p>
+                <p>Press <kbd>?</kbd> to show this help</p>
+                <p>Press <kbd>Esc</kbd> to hide this help</p>
+            </div>
+        </div>
+    </div>
+    <div id="body-container">
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                let theme = localStorage.getItem('mdbook-theme');
+                let sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            const default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? default_dark_theme : default_light_theme;
+            let theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            const html = document.documentElement;
+            html.classList.remove('rust')
+            html.classList.add(theme);
+            html.classList.add("js");
+        </script>
+
+        <input type="checkbox" id="sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            let sidebar = null;
+            const sidebar_toggle = document.getElementById("sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+                sidebar_toggle.checked = false;
+            }
+            if (sidebar === 'visible') {
+                sidebar_toggle.checked = true;
+            } else {
+                html.classList.remove('sidebar-visible');
+            }
+        </script>
+
+        <nav id="sidebar" class="sidebar" aria-label="Table of contents">
+            <!-- populated by js -->
+            <mdbook-sidebar-scrollbox class="sidebar-scrollbox"></mdbook-sidebar-scrollbox>
+            <noscript>
+                <iframe class="sidebar-iframe-outer" src="../toc.html"></iframe>
+            </noscript>
+            <div id="sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <div id="page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="menu-bar-hover-placeholder"></div>
+                <div id="menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="sidebar-toggle" class="icon-button" for="sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="sidebar">
+                            <i class="fa fa-bars"></i>
+                        </label>
+                        <button id="theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="theme-list">
+                            <i class="fa fa-paint-brush"></i>
+                        </button>
+                        <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="default_theme">Auto</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
+                        </ul>
+                        <button id="search-toggle" class="icon-button" type="button" title="Search (`/`)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="/ s" aria-controls="searchbar">
+                            <i class="fa fa-search"></i>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">The Rash Book - Shell Safety and Purification</h1>
+
+                    <div class="right-buttons">
+                        <a href="../print.html" title="Print this book" aria-label="Print this book">
+                            <i id="print-button" class="fa fa-print"></i>
+                        </a>
+                        <a href="https://github.com/paiml/bashrs" title="Git repository" aria-label="Git repository">
+                            <i id="git-repository-button" class="fa fa-github"></i>
+                        </a>
+                        <a href="https://github.com/paiml/bashrs/edit/main/book/src/advanced/pmat-integration.md" title="Suggest an edit" aria-label="Suggest an edit" rel="edit">
+                            <i id="git-edit-button" class="fa fa-edit"></i>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="search-wrapper" class="hidden">
+                    <form id="searchbar-outer" class="searchbar-outer">
+                        <div class="search-wrapper">
+                            <input type="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                            <div class="spinner-wrapper">
+                                <i class="fa fa-spinner fa-spin"></i>
+                            </div>
+                        </div>
+                    </form>
+                    <div id="searchresults-outer" class="searchresults-outer hidden">
+                        <div id="searchresults-header" class="searchresults-header"></div>
+                        <ul id="searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="content" class="content">
+                    <main>
+                        <h1 id="pmat-integration"><a class="header" href="#pmat-integration">PMAT Integration</a></h1>
+<p>bashrs integrates with <a href="https://github.com/paiml/paiml-mcp-agent-toolkit">paiml-mcp-agent-toolkit (PMAT)</a> v2.200.0+ for comprehensive quality analysis, complexity checking, and project scoring.</p>
+<p>PMAT provides automated quality gates that enforce code standards, detect defects, and measure technical debt.</p>
+<h2 id="what-is-pmat"><a class="header" href="#what-is-pmat">What is PMAT?</a></h2>
+<p><strong>PMAT (Professional MCP Agent Toolkit)</strong> is a quantitative code analysis and project scaffolding toolkit that provides:</p>
+<ul>
+<li><strong>Rust Project Scoring</strong> (0-134 scale): Comprehensive quality metrics</li>
+<li><strong>Complexity Analysis</strong>: Cyclomatic and cognitive complexity detection</li>
+<li><strong>Defect Detection</strong>: Known anti-patterns (unwrap(), eval, etc.)</li>
+<li><strong>Quality Gates</strong>: Pre-commit hooks enforcing standards</li>
+<li><strong>Technical Debt Grading</strong>: TDG scores for refactoring prioritization</li>
+</ul>
+<h2 id="installation"><a class="header" href="#installation">Installation</a></h2>
+<pre><code class="language-bash"><span class="boring"> Install PMAT globally
+</span>cargo install paiml-mcp-agent-toolkit
+
+<span class="boring"> Verify installation
+</span>pmat --version
+<span class="boring"> Expected: paiml-mcp-agent-toolkit 2.200.0+
+</span>
+<span class="boring"> Check bashrs project score
+</span>pmat rust-project-score
+</code></pre>
+<h2 id="quality-metrics"><a class="header" href="#quality-metrics">Quality Metrics</a></h2>
+<h3 id="rust-project-score-0-134"><a class="header" href="#rust-project-score-0-134">Rust Project Score (0-134)</a></h3>
+<p>PMAT scores bashrs across 8 categories:</p>
+<pre><code class="language-bash">$ pmat rust-project-score
+
+🦀  Rust Project Score v2.1
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+📌  Summary
+  Score: 127.0/134
+  Percentage: 94.8%
+  Grade: A+
+
+📂  Categories
+  ✅ Code Quality: 20.0/26 (76.9%)
+  ⚠️  Dependency Health: 6.0/12 (50.0%)
+  ⚠️  Documentation: 8.0/15 (53.3%)
+  ⚠️  Formal Verification: 3.0/8 (37.5%)
+  ✅ Known Defects: 20.0/20 (100.0%)
+  ⚠️  Performance &amp; Benchmarking: 3.0/10 (30.0%)
+  ⚠️  Rust Tooling &amp; CI/CD: 61.5/130 (47.3%)
+  ⚠️  Testing Excellence: 5.5/20 (27.5%)
+</code></pre>
+<p><strong>Score Breakdown:</strong></p>
+<ul>
+<li><strong>A+ (95-100%)</strong>: Production-ready, excellent quality</li>
+<li><strong>A (90-94%)</strong>: High quality, minor improvements needed</li>
+<li><strong>B (80-89%)</strong>: Good quality, some gaps</li>
+<li><strong>C (70-79%)</strong>: Acceptable, needs work</li>
+<li><strong>D (&lt;70%)</strong>: Needs significant improvement</li>
+</ul>
+<h3 id="complexity-analysis"><a class="header" href="#complexity-analysis">Complexity Analysis</a></h3>
+<p>PMAT detects functions exceeding complexity thresholds:</p>
+<pre><code class="language-bash"><span class="boring"> Check complexity (default thresholds: cyclomatic 30, cognitive 25)
+</span>pmat analyze complexity --max-cyclomatic 30 --max-cognitive 25
+
+<span class="boring"> Example output
+</span>📊 Files analyzed: 666
+🔧 Total functions: 10
+
+Complexity Metrics:
+- Median Cyclomatic: 9.5
+- Median Cognitive: 27.0
+- Max Cyclomatic: 10
+- Max Cognitive: 29
+
+Top Files by Complexity:
+1. sc2052.rs - Cyclomatic: 9, Cognitive: 29
+2. sc2115.rs - Cyclomatic: 10, Cognitive: 27
+</code></pre>
+<p><strong>Complexity Thresholds:</strong></p>
+<ul>
+<li>
+<p><strong>Cyclomatic &lt; 10</strong>: Simple, easy to test (ideal)</p>
+</li>
+<li>
+<p><strong>Cyclomatic 10-20</strong>: Moderate, acceptable</p>
+</li>
+<li>
+<p><strong>Cyclomatic 20-30</strong>: Complex, consider refactoring</p>
+</li>
+<li>
+<p><strong>Cyclomatic &gt; 30</strong>: Very complex, refactor immediately</p>
+</li>
+<li>
+<p><strong>Cognitive &lt; 15</strong>: Readable, easy to understand (ideal)</p>
+</li>
+<li>
+<p><strong>Cognitive 15-25</strong>: Moderate, acceptable</p>
+</li>
+<li>
+<p><strong>Cognitive 25-35</strong>: Hard to understand, refactor</p>
+</li>
+<li>
+<p><strong>Cognitive &gt; 35</strong>: Very hard to understand, refactor immediately</p>
+</li>
+</ul>
+<h2 id="pre-commit-hooks"><a class="header" href="#pre-commit-hooks">Pre-Commit Hooks</a></h2>
+<p>bashrs uses PMAT pre-commit hooks to enforce quality standards.</p>
+<h3 id="setup"><a class="header" href="#setup">Setup</a></h3>
+<pre><code class="language-bash"><span class="boring"> Install pre-commit framework
+</span>pip install pre-commit
+
+<span class="boring"> Install hooks
+</span>pre-commit install
+
+<span class="boring"> Run hooks manually
+</span>pre-commit run --all-files
+</code></pre>
+<h3 id="pmat-hooks"><a class="header" href="#pmat-hooks">PMAT Hooks</a></h3>
+<p>The <code>.pre-commit-config.yaml</code> includes 3 PMAT hooks:</p>
+<h4 id="1-complexity-check-commit-stage"><a class="header" href="#1-complexity-check-commit-stage">1. Complexity Check (commit stage)</a></h4>
+<pre><code class="language-yaml">- id: pmat-complexity
+  name: pmat analyze complexity
+  entry: pmat analyze complexity --max-cyclomatic 30 --max-cognitive 25
+  stages: [commit]
+</code></pre>
+<p><strong>Blocks commits</strong> if code exceeds complexity thresholds.</p>
+<h4 id="2-tdg-verification-commit-stage"><a class="header" href="#2-tdg-verification-commit-stage">2. TDG Verification (commit stage)</a></h4>
+<pre><code class="language-yaml">- id: pmat-tdg
+  name: pmat tdg
+  entry: pmat tdg --verify
+  stages: [commit]
+</code></pre>
+<p>Verifies test-driven generation compliance.</p>
+<h4 id="3-quality-score-push-stage"><a class="header" href="#3-quality-score-push-stage">3. Quality Score (push stage)</a></h4>
+<pre><code class="language-yaml">- id: pmat-quality
+  name: pmat quality-score
+  entry: pmat quality-score --min 9.0
+  stages: [push]
+</code></pre>
+<p><strong>Blocks pushes</strong> if quality score &lt; 9.0/10.</p>
+<h3 id="bypassing-hooks-not-recommended"><a class="header" href="#bypassing-hooks-not-recommended">Bypassing Hooks (Not Recommended)</a></h3>
+<p>During development, you may need to bypass hooks temporarily:</p>
+<pre><code class="language-bash"><span class="boring"> Skip ALL pre-commit hooks
+</span>git commit --no-verify -m "WIP: refactoring in progress"
+
+<span class="boring"> Skip specific hook
+</span>SKIP=pmat-complexity git commit -m "..."
+</code></pre>
+<p><strong>⚠️ Warning:</strong> Use <code>--no-verify</code> sparingly. Always fix issues before merging.</p>
+<h2 id="complexity-refactoring-workflow"><a class="header" href="#complexity-refactoring-workflow">Complexity Refactoring Workflow</a></h2>
+<p>When PMAT detects high-complexity functions, follow this refactoring workflow:</p>
+<h3 id="1-identify-high-complexity-files"><a class="header" href="#1-identify-high-complexity-files">1. Identify High-Complexity Files</a></h3>
+<pre><code class="language-bash">pmat analyze complexity --max-cognitive 25 --format full
+</code></pre>
+<h3 id="2-refactor-using-helper-functions"><a class="header" href="#2-refactor-using-helper-functions">2. Refactor Using Helper Functions</a></h3>
+<p>Extract nested logic into single-responsibility helper functions:</p>
+<p><strong>Before (complexity 35):</strong></p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub fn check(source: &amp;str) -&gt; LintResult {
+    let mut result = LintResult::new();
+    for (line_num, line) in source.lines().enumerate() {
+        if line.trim_start().starts_with('#') {
+            continue;
+        }
+        for m in REGEX.find_iter(line) {
+            let before = &amp;line[..m.start()];
+            if before.ends_with("'") {
+                continue;
+            }
+            if before.matches('"').count() % 2 == 1 {
+                continue;
+            }
+            let diagnostic = Diagnostic::new(...);
+            result.add(diagnostic);
+        }
+    }
+    result
+}
+<span class="boring">}</span></code></pre></pre>
+<p><strong>After (complexity ~10):</strong></p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>/// Check if match should be skipped (quoted or escaped)
+fn should_skip_match(line: &amp;str, match_start: usize) -&gt; bool {
+    let before = &amp;line[..match_start];
+    before.ends_with("'") || before.matches('"').count() % 2 == 1
+}
+
+/// Create diagnostic for match
+fn create_diagnostic(match_text: &amp;str, line_num: usize) -&gt; Diagnostic {
+    Diagnostic::new(...)
+}
+
+pub fn check(source: &amp;str) -&gt; LintResult {
+    let mut result = LintResult::new();
+
+    for (line_num, line) in source.lines().enumerate() {
+        if line.trim_start().starts_with('#') {
+            continue;
+        }
+
+        for m in REGEX.find_iter(line) {
+            if should_skip_match(line, m.start()) {
+                continue;
+            }
+            result.add(create_diagnostic(m.as_str(), line_num));
+        }
+    }
+
+    result
+}
+<span class="boring">}</span></code></pre></pre>
+<p><strong>Benefits:</strong></p>
+<ul>
+<li>Reduced nesting (4-5 levels → 2-3 levels)</li>
+<li>Single-responsibility functions</li>
+<li>Easier to test</li>
+<li>More maintainable</li>
+</ul>
+<h3 id="3-verify-improvement"><a class="header" href="#3-verify-improvement">3. Verify Improvement</a></h3>
+<pre><code class="language-bash"><span class="boring"> Run tests
+</span>cargo test --lib &lt;module&gt;
+
+<span class="boring"> Check complexity improved
+</span>pmat analyze complexity --files src/path/to/file.rs
+
+<span class="boring"> Commit with descriptive message
+</span>git commit -m "refactor: Reduce complexity in &lt;file&gt; (35→10)"
+</code></pre>
+<h2 id="defect-detection"><a class="header" href="#defect-detection">Defect Detection</a></h2>
+<p>PMAT detects known anti-patterns in Rust code:</p>
+<pre><code class="language-bash"><span class="boring"> Analyze known defects
+</span>pmat analyze defects
+
+<span class="boring"> Example findings
+</span>⚠️  289 unwrap() calls detected
+   - Replace with .expect() or proper error handling
+   - See Cloudflare outage 2025-11-18 (unwrap() panic)
+</code></pre>
+<p><strong>Common Defects:</strong></p>
+<ul>
+<li><code>.unwrap()</code>: Can panic, use <code>.expect()</code> or <code>?</code> operator</li>
+<li><code>.expect("failed")</code>: Better than unwrap, but still panics</li>
+<li><code>eval</code> in shell scripts: Code injection risk</li>
+<li>Hardcoded credentials: Security vulnerability</li>
+</ul>
+<h2 id="quality-gate-integration"><a class="header" href="#quality-gate-integration">Quality Gate Integration</a></h2>
+<p>bashrs enforces quality gates at multiple stages:</p>
+<h3 id="pre-commit-local"><a class="header" href="#pre-commit-local">Pre-Commit (Local)</a></h3>
+<ul>
+<li>✅ Complexity &lt; 30 (cyclomatic), &lt; 25 (cognitive)</li>
+<li>✅ All tests pass</li>
+<li>✅ Code formatted (rustfmt)</li>
+<li>✅ No clippy warnings</li>
+</ul>
+<h3 id="pre-push-local"><a class="header" href="#pre-push-local">Pre-Push (Local)</a></h3>
+<ul>
+<li>✅ Quality score ≥ 9.0/10</li>
+<li>✅ Security audit (cargo audit)</li>
+</ul>
+<h3 id="cicd-github-actions"><a class="header" href="#cicd-github-actions">CI/CD (GitHub Actions)</a></h3>
+<ul>
+<li>✅ All pre-commit hooks</li>
+<li>✅ Coverage ≥ 85%</li>
+<li>✅ Mutation testing ≥ 80%</li>
+<li>✅ Benchmarks pass</li>
+</ul>
+<h2 id="best-practices"><a class="header" href="#best-practices">Best Practices</a></h2>
+<h3 id="1-run-pmat-before-commits"><a class="header" href="#1-run-pmat-before-commits">1. Run PMAT Before Commits</a></h3>
+<pre><code class="language-bash"><span class="boring"> Check complexity before committing
+</span>pmat analyze complexity --fail-on-violation
+
+<span class="boring"> Check quality score
+</span>pmat rust-project-score
+</code></pre>
+<h3 id="2-monitor-trends"><a class="header" href="#2-monitor-trends">2. Monitor Trends</a></h3>
+<p>Track score improvements over time:</p>
+<pre><code class="language-bash"><span class="boring"> Log score to file
+</span>pmat rust-project-score &gt;&gt; quality-log.txt
+
+<span class="boring"> Compare with previous release
+</span>git diff v6.35.0 quality-log.txt
+</code></pre>
+<h3 id="3-prioritize-low-hanging-fruit"><a class="header" href="#3-prioritize-low-hanging-fruit">3. Prioritize Low-Hanging Fruit</a></h3>
+<p>Focus on high-impact, low-effort improvements:</p>
+<div class="table-wrapper"><table><thead><tr><th>Category</th><th>Current</th><th>Target</th><th>Effort</th><th>Impact</th></tr></thead><tbody>
+<tr><td>Testing Excellence</td><td>5.5/20</td><td>15/20</td><td>Medium</td><td>High</td></tr>
+<tr><td>Documentation</td><td>8.0/15</td><td>13/15</td><td>Low</td><td>Medium</td></tr>
+<tr><td>Performance</td><td>3.0/10</td><td>8/10</td><td>High</td><td>Low</td></tr>
+</tbody></table>
+</div>
+<h2 id="example-complete-quality-workflow"><a class="header" href="#example-complete-quality-workflow">Example: Complete Quality Workflow</a></h2>
+<pre><code class="language-bash"><span class="boring"> 1. Check current quality
+</span>pmat rust-project-score
+
+<span class="boring"> 2. Identify complexity issues
+</span>pmat analyze complexity --max-cognitive 25
+
+<span class="boring"> 3. Refactor high-complexity files
+</span><span class="boring"> (extract helper functions, reduce nesting)
+</span>
+<span class="boring"> 4. Run tests
+</span>cargo test --lib
+
+<span class="boring"> 5. Verify improvement
+</span>pmat analyze complexity --files src/refactored/file.rs
+
+<span class="boring"> 6. Commit (pre-commit hooks run automatically)
+</span>git add src/refactored/file.rs
+git commit -m "refactor: Reduce complexity in file.rs (35→10)"
+
+<span class="boring"> 7. Push (quality gate runs automatically)
+</span>git push
+
+<span class="boring"> 8. Verify score improved
+</span>pmat rust-project-score
+</code></pre>
+<h2 id="troubleshooting"><a class="header" href="#troubleshooting">Troubleshooting</a></h2>
+<h3 id="pmat-not-installed"><a class="header" href="#pmat-not-installed">PMAT Not Installed</a></h3>
+<pre><code class="language-bash">error: unrecognized subcommand
+</code></pre>
+<p><strong>Solution:</strong></p>
+<pre><code class="language-bash">cargo install paiml-mcp-agent-toolkit
+</code></pre>
+<h3 id="complexity-hook-fails"><a class="header" href="#complexity-hook-fails">Complexity Hook Fails</a></h3>
+<pre><code class="language-bash">❌ Complexity check... FAILED
+Complexity exceeds thresholds
+</code></pre>
+<p><strong>Solution:</strong></p>
+<ol>
+<li>Run <code>pmat analyze complexity</code> to see violations</li>
+<li>Refactor high-complexity functions</li>
+<li>Re-run pre-commit hooks</li>
+</ol>
+<h3 id="quality-score-too-low"><a class="header" href="#quality-score-too-low">Quality Score Too Low</a></h3>
+<pre><code class="language-bash">❌ Quality score: 8.5/10 (minimum: 9.0)
+</code></pre>
+<p><strong>Solution:</strong></p>
+<ol>
+<li>Run <code>pmat rust-project-score</code> to see category breakdown</li>
+<li>Focus on low-scoring categories</li>
+<li>Follow recommendations in output</li>
+</ol>
+<h2 id="further-reading"><a class="header" href="#further-reading">Further Reading</a></h2>
+<ul>
+<li><a href="https://github.com/paiml/paiml-mcp-agent-toolkit">PMAT Documentation</a></li>
+<li><a href="https://en.wikipedia.org/wiki/Cyclomatic_complexity">Cyclomatic Complexity</a></li>
+<li><a href="https://www.sonarsource.com/resources/cognitive-complexity/">Cognitive Complexity</a></li>
+<li><a href="../contributing/toyota-way.html">Toyota Way Principles</a></li>
+<li><a href="../contributing/extreme-tdd.html">EXTREME TDD</a></li>
+</ul>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="../advanced/performance.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <i class="fa fa-angle-left"></i>
+                            </a>
+
+                            <a rel="next prefetch" href="../reference/cli.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <i class="fa fa-angle-right"></i>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="../advanced/performance.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <i class="fa fa-angle-left"></i>
+                    </a>
+
+                    <a rel="next prefetch" href="../reference/cli.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <i class="fa fa-angle-right"></i>
+                    </a>
+            </nav>
+
+        </div>
+
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+        <script src="../ace.js"></script>
+        <script src="../mode-rust.js"></script>
+        <script src="../editor.js"></script>
+        <script src="../theme-dawn.js"></script>
+        <script src="../theme-tomorrow_night.js"></script>
+
+        <script src="../elasticlunr.min.js"></script>
+        <script src="../mark.min.js"></script>
+        <script src="../searcher.js"></script>
+
+        <script src="../clipboard.min.js"></script>
+        <script src="../highlight.js"></script>
+        <script src="../book.js"></script>
+
+        <!-- Custom JS scripts -->
+
+
+
+    </div>
+    </body>
+</html>

@@ -1302,6 +1302,247 @@ RASH_STRICT=1 bashrs audit script.sh
 
 ---
 
+## `cargo xtask` - Build System Integration
+
+bashrs provides `cargo xtask` integration for build automation, inspired by the [xtask pattern](https://github.com/matklad/cargo-xtask).
+
+The `xtask` subdirectory contains a custom build tool that integrates bashrs transpilation into your Cargo workflow.
+
+### Available Tasks
+
+#### `cargo xtask transpile` - Transpile Rust to Shell
+
+Transpiles Rust code to shell scripts using bashrs Transpiler builder API.
+
+**Usage:**
+```bash
+cargo xtask transpile [OPTIONS]
+```
+
+**Options:**
+- `--input <FILE>` - Input Rust file (default: `src/main.rs`)
+- `--output <FILE>` - Output shell script (default: `install.sh`)
+- `--verify` - Run verification after transpilation
+- `--test` - Run tests on generated script
+
+**Examples:**
+
+Basic transpilation:
+```bash
+cargo xtask transpile
+```
+
+Custom input/output:
+```bash
+cargo xtask transpile --input src/bootstrap.rs --output bootstrap.sh
+```
+
+With verification:
+```bash
+cargo xtask transpile --input src/install.rs --output install.sh --verify
+```
+
+With testing:
+```bash
+cargo xtask transpile --test
+```
+
+#### `cargo xtask build` - Build Everything
+
+Runs full build pipeline: Rust compilation + transpilation + verification.
+
+**Usage:**
+```bash
+cargo xtask build [OPTIONS]
+```
+
+**Options:**
+- `--release` - Build in release mode
+- `--all` - Build all targets
+- `--verify` - Run verification after build
+- `--test` - Run all tests after build
+
+**Examples:**
+
+Development build:
+```bash
+cargo xtask build
+```
+
+Release build with verification:
+```bash
+cargo xtask build --release --verify
+```
+
+Build and test everything:
+```bash
+cargo xtask build --all --test
+```
+
+#### `cargo xtask ci` - CI/CD Pipeline
+
+Runs complete CI/CD pipeline matching GitHub Actions workflow.
+
+**Usage:**
+```bash
+cargo xtask ci
+```
+
+**What it runs:**
+1. `cargo fmt --check` - Verify formatting
+2. `cargo clippy -- -D warnings` - Lint with clippy
+3. `cargo test --all-features` - Run all tests
+4. `cargo xtask transpile --verify --test` - Transpile and verify
+5. Quality gates (if PMAT installed)
+
+**Example:**
+```bash
+# Run full CI pipeline locally
+cargo xtask ci
+
+# Expected output:
+# ✅ Format check passed
+# ✅ Clippy passed
+# ✅ Tests passed (6,618 tests)
+# ✅ Transpilation verified
+# ✅ Quality gates passed
+```
+
+### Transpiler Builder API
+
+The xtask integration uses the bashrs Transpiler builder API:
+
+```rust,ignore
+use bashrs::transpiler::Transpiler;
+
+// Build transpiler with options
+let transpiler = Transpiler::builder()
+    .input("src/install.rs")
+    .output("install.sh")
+    .verify(true)
+    .build()?;
+
+// Run transpilation
+transpiler.transpile()?;
+```
+
+**Builder Methods:**
+- `.input(path)` - Set input Rust file
+- `.output(path)` - Set output shell script
+- `.verify(bool)` - Enable/disable verification
+- `.optimize(bool)` - Enable/disable optimizations
+- `.emit_proof(bool)` - Generate verification proof
+- `.build()` - Build configured transpiler
+
+### Integration in build.rs
+
+You can integrate transpilation into your build.rs:
+
+```rust,ignore
+// build.rs
+use bashrs::build_rs::{transpile_to_shell, TranspileConfig};
+
+fn main() {
+    let config = TranspileConfig {
+        input: "src/main.rs",
+        output: "dist/install.sh",
+        verify: true,
+        ..Default::default()
+    };
+
+    transpile_to_shell(config).expect("Transpilation failed");
+
+    // Rerun if source changes
+    println!("cargo:rerun-if-changed=src/main.rs");
+}
+```
+
+### Workspace Setup
+
+The xtask directory structure:
+
+```text
+xtask/
+├── Cargo.toml          # xtask binary configuration
+├── src/
+│   └── main.rs         # Task definitions
+└── README.md           # xtask documentation
+```
+
+**xtask/Cargo.toml:**
+```toml
+[package]
+name = "xtask"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+bashrs = { path = "../rash", features = ["transpiler"] }
+anyhow = "1.0"
+```
+
+### Why xtask?
+
+**Advantages over build.rs:**
+- More flexible (not limited to build process)
+- Easier to debug (regular Rust binary)
+- Can run independently (`cargo xtask <task>`)
+- Better integration with CI/CD
+- Cleaner separation of concerns
+
+**When to use xtask vs build.rs:**
+- **xtask**: Complex build workflows, CI integration, multi-step processes
+- **build.rs**: Simple code generation, compile-time dependencies
+
+### Examples
+
+**Example 1: Custom Workflow**
+```bash
+# Transpile, verify, and test in one command
+cargo xtask transpile --input src/bootstrap.rs --output bootstrap.sh --verify --test
+```
+
+**Example 2: CI Integration**
+```yaml
+# .github/workflows/ci.yml
+- name: Run CI pipeline
+  run: cargo xtask ci
+```
+
+**Example 3: Release Build**
+```bash
+# Build optimized release
+cargo xtask build --release --verify
+
+# Result: Rust binary + verified shell script
+ls target/release/bashrs install.sh
+```
+
+### Troubleshooting
+
+**xtask not found:**
+```bash
+error: no such subcommand: `xtask`
+```
+
+**Solution:** Ensure xtask directory exists with valid Cargo.toml
+
+**Transpilation failed:**
+```bash
+error: Transpilation failed: <reason>
+```
+
+**Solution:** Check input file compatibility with `bashrs check <file>`
+
+**Verification failed:**
+```bash
+error: Verification failed: outputs differ
+```
+
+**Solution:** Review generated script, check for non-deterministic constructs
+
+---
+
 ## See Also
 
 - [Getting Started Guide](../getting-started/installation.md)
@@ -1309,4 +1550,5 @@ RASH_STRICT=1 bashrs audit script.sh
 - [Security Linting](../linting/security.md)
 - [Configuration Management](../config/overview.md)
 - [REPL Usage](../getting-started/repl.md)
+- [PMAT Integration](../advanced/pmat-integration.md)
 
