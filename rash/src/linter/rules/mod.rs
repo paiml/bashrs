@@ -338,6 +338,8 @@ pub mod idem003;
 
 // Best practice rules (bashrs-specific)
 pub mod bash001;
+pub mod bash002;
+pub mod bash003;
 
 // Security rules (bashrs-specific)
 pub mod sec001;
@@ -351,7 +353,9 @@ pub mod sec008;
 pub mod sec009;
 pub mod sec010;
 pub mod sec011;
+pub mod sec012;
 pub mod sec017;
+pub mod sec018;
 
 // Makefile-specific rules (bashrs-specific)
 pub mod make001;
@@ -627,6 +631,8 @@ fn lint_shell_filtered(
 
     // Best practice rules
     result.merge(bash001::check(source));
+    result.merge(bash002::check(source));
+    result.merge(bash003::check(source));
 
     // Security rules (Universal - always apply)
     result.merge(sec001::check(source));
@@ -640,7 +646,9 @@ fn lint_shell_filtered(
     result.merge(sec009::check(source));
     result.merge(sec010::check(source));
     result.merge(sec011::check(source));
+    result.merge(sec012::check(source));
     result.merge(sec017::check(source));
+    result.merge(sec018::check(source));
 
     result
 }
@@ -1044,7 +1052,9 @@ pub fn lint_shell(source: &str) -> LintResult {
     result.merge(sec009::check(source));
     result.merge(sec010::check(source));
     result.merge(sec011::check(source));
+    result.merge(sec012::check(source));
     result.merge(sec017::check(source));
+    result.merge(sec018::check(source));
 
     result
 }
