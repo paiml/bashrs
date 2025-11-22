@@ -1,3 +1,4 @@
+#![allow(clippy::unwrap_used)] // Benchmarks can use unwrap() for simplicity
 // Sprint 84 - Day 1: Makefile Performance Benchmarks
 // Performance targets: <10ms (small), <50ms (medium), <100ms (large)
 

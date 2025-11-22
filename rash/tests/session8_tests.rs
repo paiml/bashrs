@@ -1,3 +1,4 @@
+#![allow(clippy::unwrap_used)] // Tests can use unwrap() for simplicity
 // ============================================================================
 // Session 8: Parameter Expansion and Shell Expansion Features
 // Validation of GNU Bash Manual constructs - RED Phase Tests

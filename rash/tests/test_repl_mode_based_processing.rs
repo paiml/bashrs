@@ -1,3 +1,4 @@
+#![allow(clippy::unwrap_used)] // Tests can use unwrap() for simplicity
 //! REPL Mode-Based Command Processing Tests
 //!
 //! Task: REPL-003-005 - Automatic mode-based command processing

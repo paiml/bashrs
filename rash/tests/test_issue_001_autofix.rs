@@ -1,3 +1,4 @@
+#![allow(clippy::unwrap_used)] // Tests can use unwrap() for simplicity
 // Issue #1: Bash Auto-fix Creates Invalid Syntax
 // Following EXTREME TDD methodology - RED phase
 

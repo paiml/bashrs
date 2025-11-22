@@ -1,3 +1,4 @@
+#![allow(clippy::unwrap_used)] // Tests can use unwrap() for simplicity
 //! Integration tests for CONFIG-004: Non-Deterministic Constructs
 
 use assert_cmd::Command;

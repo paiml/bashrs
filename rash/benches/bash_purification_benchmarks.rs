@@ -1,3 +1,4 @@
+#![allow(clippy::unwrap_used)] // Benchmarks can use unwrap() for simplicity
 // Bash Purification Performance Benchmarks (Task 1 of 10: 70% → 100% Production)
 // Target: <100ms per 1000 lines (scalability verification for production workloads)
 //

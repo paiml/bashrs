@@ -1,3 +1,4 @@
+#![allow(clippy::unwrap_used)] // Tests can use unwrap() for simplicity
 // Integration test for Issue #5: zsh shell type detection
 // Verifies that bashrs correctly detects zsh files
 

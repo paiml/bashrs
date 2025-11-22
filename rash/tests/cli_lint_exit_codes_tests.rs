@@ -1,3 +1,4 @@
+#![allow(clippy::unwrap_used)] // Tests can use unwrap() for simplicity
 // Exit code tests for bashrs lint command (Issue #6)
 //
 // Expected behavior (aligned with make lint):

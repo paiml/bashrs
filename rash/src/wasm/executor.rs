@@ -438,7 +438,11 @@ impl BashExecutor {
                             chars.next(); // consume '}'
                             break;
                         }
-                        content.push(chars.next().unwrap());
+                        content.push(
+                            chars
+                                .next()
+                                .expect("peek() verified char exists"),
+                        );
                     }
 
                     // Parse the content for array access or length
@@ -451,7 +455,11 @@ impl BashExecutor {
                 let mut var_name = String::new();
                 while let Some(&next) = chars.peek() {
                     if next.is_alphanumeric() || next == '_' {
-                        var_name.push(chars.next().unwrap());
+                        var_name.push(
+                            chars
+                                .next()
+                                .expect("peek() verified char exists"),
+                        );
                     } else {
                         break;
                     }
@@ -522,12 +530,17 @@ impl BashExecutor {
                                 .insert(var_part.to_string(), default_val.to_string());
                             default_val.to_string()
                         } else {
-                            var_value.unwrap()
+                            var_value.expect("checked is_some() above")
                         }
                     }
                     "+" => {
                         // ${var:+alternate} - use alternate if set
-                        if var_value.is_some() && !var_value.as_ref().unwrap().is_empty() {
+                        if var_value.is_some()
+                            && !var_value
+                                .as_ref()
+                                .expect("checked is_some() above")
+                                .is_empty()
+                        {
                             default_val.to_string()
                         } else {
                             String::new()
@@ -541,7 +554,7 @@ impl BashExecutor {
                             // In real bash this would exit, but we'll just return the error message
                             default_val.to_string()
                         } else {
-                            var_value.unwrap()
+                            var_value.expect("checked is_some() above")
                         }
                     }
                     _ => String::new(),
@@ -876,7 +889,11 @@ impl BashExecutor {
 
                 while let Some(&next) = chars.peek() {
                     if next.is_alphanumeric() || next == '_' {
-                        var_name.push(chars.next().unwrap());
+                        var_name.push(
+                            chars
+                                .next()
+                                .expect("peek() verified char exists"),
+                        );
                     } else {
                         break;
                     }
@@ -894,7 +911,11 @@ impl BashExecutor {
                 let mut var_name = String::new();
                 while let Some(&next) = chars.peek() {
                     if next.is_alphanumeric() || next == '_' {
-                        var_name.push(chars.next().unwrap());
+                        var_name.push(
+                            chars
+                                .next()
+                                .expect("peek() verified char exists"),
+                        );
                     } else {
                         break;
                     }
@@ -1226,16 +1247,16 @@ impl BashExecutor {
                 let condition = if line.contains("; then") {
                     line.split_once("if ")
                         .or_else(|| line.split_once("elif "))
-                        .unwrap()
+                        .expect("line starts with 'if ' or 'elif '")
                         .1
                         .split("; then")
                         .next()
-                        .unwrap()
+                        .expect("split always returns at least one item")
                         .to_string()
                 } else {
                     line.split_once("if ")
                         .or_else(|| line.split_once("elif "))
-                        .unwrap()
+                        .expect("line starts with 'if ' or 'elif '")
                         .1
                         .to_string()
                 };
@@ -1359,7 +1380,10 @@ impl BashExecutor {
         // Extract variable name and list
         // Format: "for VAR in item1 item2 item3" or "for VAR in item1 item2 item3; do ..."
         let for_part = if first_line.contains("; do") {
-            first_line.split("; do").next().unwrap()
+            first_line
+                .split("; do")
+                .next()
+                .expect("split always returns at least one item")
         } else {
             first_line
         };
@@ -1434,8 +1458,14 @@ impl BashExecutor {
             // Execute loop body
             if first_line.contains("; do") && first_line.contains("; done") {
                 // Single-line loop: for x in ...; do cmd1; cmd2; done
-                let after_do = first_line.split("; do ").nth(1).unwrap();
-                let before_done = after_do.split("; done").next().unwrap();
+                let after_do = first_line
+                    .split("; do ")
+                    .nth(1)
+                    .expect("contains('; do') verified above");
+                let before_done = after_do
+                    .split("; done")
+                    .next()
+                    .expect("split always returns at least one item");
                 let body_lines: Vec<&str> = before_done.split("; ").collect();
                 for body_line in body_lines {
                     if !body_line.is_empty() {
@@ -1463,7 +1493,10 @@ impl BashExecutor {
 
         // Extract condition
         let condition_part = if first_line.contains("; do") {
-            first_line.split("; do").next().unwrap()
+            first_line
+                .split("; do")
+                .next()
+                .expect("split always returns at least one item")
         } else {
             first_line
         };
@@ -1550,8 +1583,14 @@ impl BashExecutor {
                     // Condition true, execute body
                     if first_line.contains("; do") && first_line.contains("; done") {
                         // Single-line loop
-                        let after_do = first_line.split("; do ").nth(1).unwrap();
-                        let before_done = after_do.split("; done").next().unwrap();
+                        let after_do = first_line
+                            .split("; do ")
+                            .nth(1)
+                            .expect("contains('; do') verified above");
+                        let before_done = after_do
+                            .split("; done")
+                            .next()
+                            .expect("split always returns at least one item");
                         let body_lines: Vec<&str> = before_done.split("; ").collect();
                         for body_line in body_lines {
                             if !body_line.is_empty() {
@@ -2064,7 +2103,9 @@ impl BashExecutor {
         // Extract function name
         let func_name = if first_line.starts_with("function ") {
             // Style 1: function greet() {
-            let after_function = first_line.strip_prefix("function ").unwrap();
+            let after_function = first_line
+                .strip_prefix("function ")
+                .expect("starts_with('function ') verified above");
             if let Some(paren_pos) = after_function.find('(') {
                 after_function[..paren_pos].trim().to_string()
             } else {

@@ -1,3 +1,4 @@
+#![allow(clippy::unwrap_used)] // Benchmarks can use unwrap() for simplicity
 //! Performance Benchmarks for Fix Safety Taxonomy
 //!
 //! FAST Validation - Throughput Component:

@@ -1,3 +1,4 @@
+#![allow(clippy::unwrap_used)] // Examples can use unwrap() for simplicity
 //! Example: Makefile Purification with Test Generation
 //!
 //! This example demonstrates the `bashrs make purify --with-tests` feature,

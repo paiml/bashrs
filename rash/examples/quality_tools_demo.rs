@@ -1,3 +1,4 @@
+#![allow(clippy::unwrap_used)] // Examples can use unwrap() for simplicity
 // Quality Tools Demonstration
 // Comprehensive example showing all bashrs quality tools on various shell file styles
 //
