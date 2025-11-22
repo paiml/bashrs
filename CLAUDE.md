@@ -691,6 +691,26 @@ All outputs must meet:
 - ✅ Zero defects policy
 - ✅ **NEW**: All CLI tests use `assert_cmd`
 - ✅ **NEW**: All tests follow `test_<TASK_ID>_<feature>_<scenario>` naming
+- ✅ **NEW**: Zero unwrap() in production code (Cloudflare-class defect prevention)
+
+### unwrap() Policy (Cloudflare-Class Defect Prevention)
+
+**CRITICAL**: unwrap() causes production panics. See Cloudflare outage 2025-11-18.
+
+**Rules**:
+1. **Production code (lib)**: BANNED - use `expect()` with descriptive messages
+2. **Tests**: ALLOWED - use `#![allow(clippy::unwrap_used)]` at module level
+3. **Examples**: ALLOWED - for brevity in educational code
+
+**Enforcement**:
+- Workspace lint: `unwrap_used = { level = "deny", priority = 1 }`
+- Makefile `lint-check`: Explicitly denies `clippy::unwrap_used`
+- Pre-commit: Verified by clippy
+
+**Rationale**:
+- unwrap() panics on None/Err → production crashes
+- expect() provides context → easier debugging
+- Tests can use unwrap() for simplicity (known-valid inputs)
 
 ---
 

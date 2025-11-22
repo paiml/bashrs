@@ -11,77 +11,254 @@
 
 use crate::linter::{Diagnostic, Severity as LintSeverity};
 
-/// Structured error message
+/// Structured error message with source context and actionable suggestions.
+///
+/// `ErrorMessage` provides rich, user-friendly error messages for REPL interactions.
+/// Each error includes:
+/// - **Type and severity**: Categorize the error for appropriate handling
+/// - **Source context**: Show exactly where the error occurred
+/// - **Explanation**: Describe why it's a problem
+/// - **Suggestion**: Provide actionable fixes
+/// - **Help topics**: Link to relevant documentation
+///
+/// # Examples
+///
+/// ## Parse error with source context
+///
+/// ```
+/// use bashrs::repl::errors::{ErrorMessage, ErrorType, Severity, SourceContext};
+///
+/// let error = ErrorMessage {
+///     error_type: ErrorType::Parse,
+///     code: Some("P001".to_string()),
+///     severity: Severity::Error,
+///     message: "Expected 'then' after condition".to_string(),
+///     context: Some(SourceContext {
+///         line: 1,
+///         column: 13,
+///         source_line: "if [ -f file".to_string(),
+///         length: 1,
+///     }),
+///     explanation: None,
+///     suggestion: None,
+///     help_topics: vec![],
+/// };
+///
+/// assert_eq!(error.error_type, ErrorType::Parse);
+/// ```
+///
+/// ## Format error for display
+///
+/// ```
+/// use bashrs::repl::errors::{format_parse_error, format_error};
+///
+/// let error = format_parse_error("Expected 'then'", 1, 13, "if [ -f file");
+/// let formatted = format_error(&error);
+///
+/// assert!(formatted.contains("Parse Error"));
+/// assert!(formatted.contains("if [ -f file"));
+/// ```
 #[derive(Debug, Clone)]
 pub struct ErrorMessage {
-    /// Error type (Parse, Lint, Command, Runtime)
+    /// Error type (Parse, Lint, Command, Runtime).
     pub error_type: ErrorType,
 
-    /// Error code (optional, e.g., "DET001", "E001")
+    /// Error code (e.g., "DET001", "P001").
+    ///
+    /// Codes enable users to search for specific errors in documentation.
     pub code: Option<String>,
 
-    /// Severity level
+    /// Severity level (Error, Warning, Info).
     pub severity: Severity,
 
-    /// Main error message
+    /// Main error message.
+    ///
+    /// Should be concise and describe what went wrong.
     pub message: String,
 
-    /// Source code context (line with error)
+    /// Source code context showing where the error occurred.
+    ///
+    /// Includes line number, column, and the problematic source line.
     pub context: Option<SourceContext>,
 
-    /// Detailed explanation (optional)
+    /// Detailed explanation of why this is a problem.
+    ///
+    /// Helps users understand the underlying issue.
     pub explanation: Option<String>,
 
-    /// Suggested fix (optional)
+    /// Suggested fix with optional corrected code.
     pub suggestion: Option<Suggestion>,
 
-    /// Related help topics (optional)
+    /// Related help topics.
+    ///
+    /// Users can type `:help <topic>` for more information.
     pub help_topics: Vec<String>,
 }
 
+/// Error type categorization for REPL errors.
+///
+/// # Variants
+///
+/// - **Parse**: Syntax errors in bash scripts
+/// - **Lint**: Code quality and safety violations
+/// - **Command**: Unknown or invalid REPL commands
+/// - **Runtime**: Execution failures
+///
+/// # Examples
+///
+/// ```
+/// use bashrs::repl::errors::ErrorType;
+///
+/// let parse_error = ErrorType::Parse;
+/// assert_eq!(parse_error, ErrorType::Parse);
+/// ```
 #[derive(Debug, Clone, PartialEq)]
 pub enum ErrorType {
+    /// Parse error - syntax error in bash script.
     Parse,
+
+    /// Lint error - code quality or safety violation.
     Lint,
+
+    /// Command error - unknown or invalid REPL command.
     Command,
+
+    /// Runtime error - execution failure.
     Runtime,
 }
 
+/// Severity level for errors and warnings.
+///
+/// # Examples
+///
+/// ```
+/// use bashrs::repl::errors::Severity;
+///
+/// let error = Severity::Error;
+/// let warning = Severity::Warning;
+/// let info = Severity::Info;
+///
+/// assert_eq!(error, Severity::Error);
+/// ```
 #[derive(Debug, Clone, PartialEq)]
 pub enum Severity {
+    /// Error - must be fixed.
     Error,
+
+    /// Warning - should be fixed.
     Warning,
+
+    /// Info - informational message.
     Info,
 }
 
+/// Source code context for error messages.
+///
+/// Provides the exact location and excerpt of problematic code.
+///
+/// # Examples
+///
+/// ```
+/// use bashrs::repl::errors::SourceContext;
+///
+/// let context = SourceContext {
+///     line: 5,
+///     column: 10,
+///     source_line: "mkdir /tmp/foo".to_string(),
+///     length: 5,
+/// };
+///
+/// assert_eq!(context.line, 5);
+/// assert_eq!(context.column, 10);
+/// ```
 #[derive(Debug, Clone)]
 pub struct SourceContext {
-    /// Line number (1-indexed)
+    /// Line number (1-indexed).
     pub line: usize,
 
-    /// Column number (1-indexed)
+    /// Column number (1-indexed).
     pub column: usize,
 
-    /// Source code line
+    /// Source code line containing the error.
     pub source_line: String,
 
-    /// Length of problematic section
+    /// Length of the problematic section.
+    ///
+    /// Used to draw caret indicators (^^^) under the error.
     pub length: usize,
 }
 
+/// Suggested fix for an error.
+///
+/// Provides actionable guidance to resolve the issue.
+///
+/// # Examples
+///
+/// ```
+/// use bashrs::repl::errors::Suggestion;
+///
+/// let suggestion = Suggestion {
+///     description: "Use -p flag for idempotent directory creation".to_string(),
+///     fixed_code: Some("mkdir -p /tmp/foo".to_string()),
+///     auto_fixable: true,
+/// };
+///
+/// assert!(suggestion.auto_fixable);
+/// assert!(suggestion.fixed_code.is_some());
+/// ```
 #[derive(Debug, Clone)]
 pub struct Suggestion {
-    /// Description of the fix
+    /// Description of the suggested fix.
     pub description: String,
 
-    /// Fixed code (if applicable)
+    /// Fixed code (if applicable).
+    ///
+    /// Shows the corrected version of the problematic code.
     pub fixed_code: Option<String>,
 
-    /// Auto-fix available flag
+    /// Auto-fix available flag.
+    ///
+    /// If true, bashrs can automatically apply the fix via `:purify`.
     pub auto_fixable: bool,
 }
 
-/// Format error message for display
+/// Formats an error message for display in the terminal.
+///
+/// Produces a user-friendly, color-coded error message with:
+/// - Icon and severity (✗, ⚠, ℹ)
+/// - Error type and code
+/// - Source context with caret indicators
+/// - Explanation and suggestions
+/// - Related help topics
+///
+/// # Arguments
+///
+/// * `error` - The error message to format
+///
+/// # Returns
+///
+/// Formatted string ready for terminal display
+///
+/// # Examples
+///
+/// ```
+/// use bashrs::repl::errors::{ErrorMessage, ErrorType, Severity, format_error};
+///
+/// let error = ErrorMessage {
+///     error_type: ErrorType::Command,
+///     code: None,
+///     severity: Severity::Error,
+///     message: "Unknown command 'foo'".to_string(),
+///     context: None,
+///     explanation: Some("Command not recognized".to_string()),
+///     suggestion: None,
+///     help_topics: vec!["commands".to_string()],
+/// };
+///
+/// let formatted = format_error(&error);
+/// assert!(formatted.contains("Unknown command"));
+/// assert!(formatted.contains(":help commands"));
+/// ```
 pub fn format_error(error: &ErrorMessage) -> String {
     let mut output = String::new();
 
@@ -153,7 +330,38 @@ pub fn format_error(error: &ErrorMessage) -> String {
     output
 }
 
-/// Create error message for parse errors
+/// Creates an error message for parse errors (syntax errors).
+///
+/// Analyzes the parse error and constructs a helpful error message with
+/// source context and common fix suggestions.
+///
+/// # Arguments
+///
+/// * `error_msg` - The parser's error message
+/// * `line` - Line number where error occurred (1-indexed)
+/// * `column` - Column number where error occurred (1-indexed)
+/// * `source` - The source code being parsed
+///
+/// # Returns
+///
+/// Structured `ErrorMessage` with code P001
+///
+/// # Examples
+///
+/// ```
+/// use bashrs::repl::errors::{format_parse_error, ErrorType};
+///
+/// let error = format_parse_error(
+///     "Expected 'then'",
+///     1,
+///     13,
+///     "if [ -f test"
+/// );
+///
+/// assert_eq!(error.error_type, ErrorType::Parse);
+/// assert_eq!(error.code, Some("P001".to_string()));
+/// assert!(error.context.is_some());
+/// ```
 pub fn format_parse_error(
     error_msg: &str,
     line: usize,
@@ -204,7 +412,39 @@ pub fn format_parse_error(
     }
 }
 
-/// Create error message for lint violations
+/// Creates an error message for lint violations (code quality issues).
+///
+/// Converts a linter diagnostic into a user-friendly error message with
+/// explanations and auto-fix suggestions.
+///
+/// # Arguments
+///
+/// * `diagnostic` - The linter diagnostic
+/// * `source` - The source code being linted
+///
+/// # Returns
+///
+/// Structured `ErrorMessage` with lint code (DET*, IDEM*, SEC*)
+///
+/// # Examples
+///
+/// ```
+/// use bashrs::repl::errors::format_lint_error;
+/// use bashrs::linter::{Diagnostic, Severity, Span, Fix};
+///
+/// let diagnostic = Diagnostic {
+///     code: "IDEM001".to_string(),
+///     severity: Severity::Error,
+///     message: "mkdir without -p".to_string(),
+///     span: Span::new(1, 1, 1, 11),
+///     fix: Some(Fix::new("mkdir -p /tmp")),
+/// };
+///
+/// let error = format_lint_error(&diagnostic, "mkdir /tmp");
+///
+/// assert_eq!(error.code, Some("IDEM001".to_string()));
+/// assert!(error.suggestion.is_some());
+/// ```
 pub fn format_lint_error(diagnostic: &Diagnostic, source: &str) -> ErrorMessage {
     let lines: Vec<&str> = source.lines().collect();
     let line_idx = diagnostic.span.start_line.saturating_sub(1);
@@ -273,7 +513,33 @@ pub fn format_lint_error(diagnostic: &Diagnostic, source: &str) -> ErrorMessage 
     }
 }
 
-/// Create error message for unknown commands
+/// Creates an error message for unknown REPL commands.
+///
+/// Uses edit distance to suggest similar commands and lists all available commands.
+///
+/// # Arguments
+///
+/// * `command` - The unknown command entered by the user
+/// * `available_commands` - List of valid command names
+///
+/// # Returns
+///
+/// Structured `ErrorMessage` with command suggestion if similar command found
+///
+/// # Examples
+///
+/// ```
+/// use bashrs::repl::errors::format_command_error;
+///
+/// let error = format_command_error(
+///     "purfy",
+///     &["purify", "lint", "quit", "help"]
+/// );
+///
+/// assert!(error.message.contains("purfy"));
+/// assert!(error.suggestion.is_some());
+/// assert!(error.explanation.is_some());
+/// ```
 pub fn format_command_error(command: &str, available_commands: &[&str]) -> ErrorMessage {
     let message = format!("Unknown command: '{}'", command);
 

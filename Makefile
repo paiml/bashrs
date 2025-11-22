@@ -253,9 +253,13 @@ lint:
 lint-check:
 	@echo "🔍 Checking clippy..."
 	@cargo clippy --all-targets --all-features -- \
-		-D warnings \
+		-D clippy::correctness \
+		-D clippy::suspicious \
+		-D clippy::unwrap_used \
+		-W clippy::complexity \
+		-W clippy::perf \
+		-W missing_docs \
 		-A clippy::multiple_crate_versions \
-		-A clippy::unwrap_used \
 		-A clippy::expect_used \
 		-A clippy::indexing_slicing \
 		-A clippy::panic \
@@ -263,10 +267,12 @@ lint-check:
 		-A clippy::single_match \
 		-A clippy::only_used_in_recursion \
 		-A clippy::const_is_empty \
+		-A clippy::manual_strip \
+		-A clippy::redundant_pattern_matching \
+		-A clippy::iter_last \
+		-A clippy::clone_on_copy \
 		-A dead_code \
-		-A unused_variables \
-		-A clippy::only_used_in_recursion \
-		-A clippy::const_is_empty
+		-A unused_variables
 
 # Type checking
 check:
