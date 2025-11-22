@@ -871,6 +871,130 @@ fn main() {
     );
 }
 
+/// PARAM-SPEC-001: Argument count detection ($#)
+/// Test basic arg_count() → $# transformation
+#[test]
+fn test_param_spec_001_arg_count_basic() {
+    let source = r#"
+fn main() {
+    let count = arg_count();
+    echo("Done");
+}
+
+fn arg_count() -> i32 { 0 }
+fn echo(msg: &str) {}
+"#;
+
+    let config = Config::default();
+    let result = transpile(source, config);
+
+    assert!(
+        result.is_ok(),
+        "Should transpile arg_count() function: {:?}",
+        result.err()
+    );
+
+    let shell = result.unwrap();
+
+    // Verify $# is used for argument count
+    assert!(
+        shell.contains("count=\"$#\""),
+        "Should convert arg_count() to $#, got:\n{}",
+        shell
+    );
+}
+
+/// PARAM-SPEC-001: Argument count in variable usage
+#[test]
+fn test_param_spec_001_arg_count_variable() {
+    let source = r#"
+fn main() {
+    let count = arg_count();
+    let num = count;
+    echo("Done");
+}
+
+fn arg_count() -> i32 { 0 }
+fn echo(msg: &str) {}
+"#;
+
+    let config = Config::default();
+    let result = transpile(source, config);
+
+    assert!(result.is_ok(), "Should handle arg_count in variable assignment");
+
+    let shell = result.unwrap();
+
+    // Verify $# can be assigned to variables
+    assert!(
+        shell.contains("$#"),
+        "Should include $# in shell script, got:\n{}",
+        shell
+    );
+}
+
+/// PARAM-SPEC-001: Argument count with conditional logic
+#[test]
+fn test_param_spec_001_arg_count_conditional() {
+    let source = r#"
+fn main() {
+    let count = arg_count();
+    if count == 0 {
+        echo("No arguments");
+    } else {
+        echo("Has arguments");
+    }
+}
+
+fn arg_count() -> i32 { 0 }
+fn echo(msg: &str) {}
+"#;
+
+    let config = Config::default();
+    let result = transpile(source, config);
+
+    assert!(result.is_ok(), "Should handle arg_count in conditionals");
+
+    let shell = result.unwrap();
+
+    // Verify $# is properly quoted in test expression
+    assert!(
+        shell.contains("$#"),
+        "Should use $# in conditional, got:\n{}",
+        shell
+    );
+}
+
+/// PARAM-SPEC-001: Argument count execution test
+#[test]
+fn test_param_spec_001_arg_count_execution() {
+    let source = r#"
+fn main() {
+    let count = arg_count();
+    wc("-l");
+}
+
+fn arg_count() -> i32 { 0 }
+fn wc(arg: &str) {}
+"#;
+
+    let config = Config::default();
+    let shell_script = transpile(source, config).unwrap();
+
+    // Write to temporary file and execute
+    let temp_dir = TempDir::new().unwrap();
+    let script_path = temp_dir.path().join("test_arg_count.sh");
+    fs::write(&script_path, shell_script).unwrap();
+
+    // Test that script executes without errors
+    let output = Command::new("sh")
+        .arg(&script_path)
+        .output()
+        .expect("Failed to execute shell script");
+
+    assert!(output.status.success(), "Script should execute successfully");
+}
+
 /// REDIR-001: RED Phase
 /// Test that we can call commands that implicitly use input redirection
 /// This is a baseline test - actual File::open → < redirection will be implemented later
@@ -3248,6 +3372,130 @@ fn echo(msg: &str) {}
                 shell.contains("args=\"$@\"") || shell.contains("$@"),
                 "args.collect() should become $@"
             );
+        }
+    }
+}
+
+/// PARAM-SPEC-001: Property-based tests for arg_count() → $# transformation
+mod arg_count_property_tests {
+    use super::*;
+    use proptest::prelude::*;
+
+    proptest! {
+        /// Property: Transpiling arg_count() is deterministic
+        /// Same Rust input always produces same shell output
+        #[test]
+        fn prop_arg_count_deterministic(
+            _seed in 0u32..100
+        ) {
+            let source = r#"
+fn main() {
+    let count = arg_count();
+    echo("Done");
+}
+
+fn arg_count() -> i32 { 0 }
+fn echo(msg: &str) {}
+"#;
+
+            let config = Config::default();
+            let result1 = transpile(source, config.clone());
+            let result2 = transpile(source, config);
+
+            prop_assert!(result1.is_ok());
+            prop_assert!(result2.is_ok());
+            prop_assert_eq!(result1.unwrap(), result2.unwrap());
+        }
+
+        /// Property: arg_count() always generates $# in output
+        #[test]
+        fn prop_arg_count_generates_dollar_hash(
+            _seed in 0u32..100
+        ) {
+            let source = r#"
+fn main() {
+    let count = arg_count();
+    wc("-l");
+}
+
+fn arg_count() -> i32 { 0 }
+fn wc(arg: &str) {}
+"#;
+
+            let config = Config::default();
+            let result = transpile(source, config);
+
+            prop_assert!(result.is_ok(), "Transpilation should succeed");
+
+            let shell = result.unwrap();
+
+            // arg_count() should always generate $# in shell output
+            prop_assert!(
+                shell.contains("$#"),
+                "Shell output must contain $# for arg_count()"
+            );
+        }
+
+        /// Property: arg_count() in conditionals produces valid shell
+        #[test]
+        fn prop_arg_count_in_conditionals_valid(
+            threshold in 0i32..10
+        ) {
+            let source = format!(r#"
+fn main() {{
+    let count = arg_count();
+    if count == {} {{
+        echo("Match");
+    }}
+}}
+
+fn arg_count() -> i32 {{ 0 }}
+fn echo(msg: &str) {{}}
+"#, threshold);
+
+            let config = Config::default();
+            let result = transpile(&source, config);
+
+            prop_assert!(
+                result.is_ok(),
+                "Transpilation should succeed for count == {}", threshold
+            );
+
+            let shell = result.unwrap();
+
+            // Must contain both $# and the threshold value
+            prop_assert!(
+                shell.contains("$#"),
+                "Shell must use $# for arg_count()"
+            );
+        }
+
+        /// Property: Generated shell scripts are syntactically valid
+        #[test]
+        fn prop_arg_count_output_shell_valid(
+            _seed in 0u32..50
+        ) {
+            let source = r#"
+fn main() {
+    let count = arg_count();
+    echo("test");
+}
+
+fn arg_count() -> i32 { 0 }
+fn echo(msg: &str) {}
+"#;
+
+            let config = Config::default();
+            let result = transpile(source, config);
+
+            prop_assert!(result.is_ok(), "Transpilation must succeed");
+
+            let shell = result.unwrap();
+
+            // Basic validity checks
+            prop_assert!(shell.contains("#!/bin/sh"), "Must have shebang");
+            prop_assert!(shell.contains("set -euf"), "Must have safety flags");
+            prop_assert!(shell.contains("$#"), "Must contain arg count");
         }
     }
 }
