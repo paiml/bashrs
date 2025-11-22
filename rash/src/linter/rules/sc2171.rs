@@ -20,35 +20,93 @@ use regex::Regex;
 static TRAILING_BRACKET: Lazy<Regex> = Lazy::new(|| Regex::new(r"^\s*\]").unwrap());
 static HEREDOC_START: Lazy<Regex> = Lazy::new(|| Regex::new(r"<<-?\s*'?(\w+)'?").unwrap());
 
-pub fn check(source: &str) -> LintResult {
-    let mut result = LintResult::new();
-    let lines: Vec<&str> = source.lines().collect();
-    let mut in_heredoc = false;
-    let mut heredoc_marker: Option<String> = None;
+/// Try to enter a heredoc, returning the marker if successful
+fn try_enter_heredoc(line: &str) -> Option<String> {
+    HEREDOC_START
+        .captures(line)
+        .and_then(|caps| caps.get(1))
+        .map(|marker| marker.as_str().to_string())
+}
 
-    for (line_num, line) in lines.iter().enumerate() {
-        let line_num = line_num + 1;
+/// Check if we should exit heredoc (line matches marker)
+fn should_exit_heredoc(line: &str, marker: &str) -> bool {
+    line.trim() == marker
+}
 
+/// Create diagnostic for trailing bracket
+fn create_trailing_bracket_diagnostic(line: &str, line_num: usize) -> Diagnostic {
+    let start_col = line.find(']').map(|i| i + 1).unwrap_or(1);
+    let end_col = start_col + 1;
+
+    Diagnostic::new(
+        "SC2171",
+        Severity::Error,
+        "Found trailing ] without opening [".to_string(),
+        Span::new(line_num, start_col, line_num, end_col),
+    )
+}
+
+/// Heredoc state tracker
+struct HeredocState {
+    in_heredoc: bool,
+    marker: Option<String>,
+}
+
+impl HeredocState {
+    fn new() -> Self {
+        Self {
+            in_heredoc: false,
+            marker: None,
+        }
+    }
+
+    /// Update state for entering heredoc
+    fn enter(&mut self, marker: String) {
+        self.marker = Some(marker);
+        self.in_heredoc = true;
+    }
+
+    /// Update state for exiting heredoc
+    fn exit(&mut self) {
+        self.in_heredoc = false;
+        self.marker = None;
+    }
+
+    /// Process a line and update heredoc state, returning true if line should be skipped
+    fn process_line(&mut self, line: &str) -> bool {
         // Check if entering heredoc
-        if !in_heredoc {
-            if let Some(caps) = HEREDOC_START.captures(line) {
-                if let Some(marker) = caps.get(1) {
-                    heredoc_marker = Some(marker.as_str().to_string());
-                    in_heredoc = true;
-                    continue;
-                }
+        if !self.in_heredoc {
+            if let Some(marker) = try_enter_heredoc(line) {
+                self.enter(marker);
+                return true;
             }
         }
 
         // Check if exiting heredoc
-        if in_heredoc {
-            if let Some(ref marker) = heredoc_marker {
-                if line.trim() == marker {
-                    in_heredoc = false;
-                    heredoc_marker = None;
+        if self.in_heredoc {
+            if let Some(ref marker) = self.marker {
+                if should_exit_heredoc(line, marker) {
+                    self.exit();
                 }
             }
-            continue; // Skip all lines inside heredoc
+            return true; // Skip all lines inside heredoc
+        }
+
+        false
+    }
+}
+
+pub fn check(source: &str) -> LintResult {
+    let mut result = LintResult::new();
+    let lines: Vec<&str> = source.lines().collect();
+    let mut heredoc_state = HeredocState::new();
+
+    for (line_num, line) in lines.iter().enumerate() {
+        let line_num = line_num + 1;
+
+        // Handle heredoc state
+        if heredoc_state.process_line(line) {
+            continue;
         }
 
         // Skip comments
@@ -58,16 +116,7 @@ pub fn check(source: &str) -> LintResult {
 
         // Check for line starting with ]
         if TRAILING_BRACKET.is_match(line) {
-            let start_col = line.find(']').map(|i| i + 1).unwrap_or(1);
-            let end_col = start_col + 1;
-
-            let diagnostic = Diagnostic::new(
-                "SC2171",
-                Severity::Error,
-                "Found trailing ] without opening [".to_string(),
-                Span::new(line_num, start_col, line_num, end_col),
-            );
-
+            let diagnostic = create_trailing_bracket_diagnostic(line, line_num);
             result.add(diagnostic);
         }
     }

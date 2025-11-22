@@ -31,18 +31,76 @@ static VARIABLE_REF: Lazy<Regex> = Lazy::new(|| {
     Regex::new(r"\$\{?([a-zA-Z_][a-zA-Z0-9_]*)\}?").unwrap()
 });
 
+/// Check if a variable is already properly quoted
+fn is_variable_quoted(line: &str, var_start: usize, var_len: usize) -> bool {
+    let before_var = &line[..var_start];
+    let after_var_pos = var_start + var_len;
+
+    // Check for double quotes surrounding the variable
+    if before_var.ends_with('"') && after_var_pos < line.len() {
+        let after = &line[after_var_pos..];
+        after.starts_with('"')
+    } else {
+        false
+    }
+}
+
+/// Create diagnostic for unquoted variable in test
+fn create_word_split_diagnostic(
+    var_str: &str,
+    var_start_in_line: usize,
+    line_num: usize,
+) -> Diagnostic {
+    let start_col = var_start_in_line + 1;
+    let end_col = start_col + var_str.len();
+
+    Diagnostic::new(
+        "SC2047",
+        Severity::Warning,
+        format!(
+            "Quote {} to prevent word splitting, or use [[..]] instead of [..]",
+            var_str
+        ),
+        Span::new(line_num, start_col, line_num, end_col),
+    )
+}
+
+/// Process a single test command for unquoted variables
+fn check_test_command(
+    line: &str,
+    test_str: &str,
+    test_start: usize,
+    line_num: usize,
+    result: &mut LintResult,
+) {
+    // Find all variable references within this test command
+    for var_match in VARIABLE_REF.find_iter(test_str) {
+        let var_str = var_match.as_str();
+        let var_start_in_test = var_match.start();
+        let var_start_in_line = test_start + var_start_in_test;
+
+        // Skip if the variable is already quoted
+        if is_variable_quoted(line, var_start_in_line, var_str.len()) {
+            continue;
+        }
+
+        let diagnostic = create_word_split_diagnostic(var_str, var_start_in_line, line_num);
+        result.add(diagnostic);
+    }
+}
+
+/// Check if line should be skipped (comment or [[ ]] test)
+fn should_skip_line(line: &str) -> bool {
+    line.trim_start().starts_with('#') || line.contains("[[")
+}
+
 pub fn check(source: &str) -> LintResult {
     let mut result = LintResult::new();
 
     for (line_num, line) in source.lines().enumerate() {
         let line_num = line_num + 1;
 
-        if line.trim_start().starts_with('#') {
-            continue;
-        }
-
-        // Skip [[ ]] tests (they don't word split)
-        if line.contains("[[") {
+        if should_skip_line(line) {
             continue;
         }
 
@@ -50,40 +108,7 @@ pub fn check(source: &str) -> LintResult {
         for test_match in TEST_COMMAND.find_iter(line) {
             let test_str = test_match.as_str();
             let test_start = test_match.start();
-
-            // Find all variable references within this test command
-            for var_match in VARIABLE_REF.find_iter(test_str) {
-                let var_str = var_match.as_str();
-                let var_start_in_test = var_match.start();
-                let var_start_in_line = test_start + var_start_in_test;
-
-                // Check if the variable is quoted
-                let before_var = &line[..var_start_in_line];
-                let after_var_pos = var_start_in_line + var_str.len();
-
-                // Check for double quotes surrounding the variable
-                if before_var.ends_with('"') && after_var_pos < line.len() {
-                    let after = &line[after_var_pos..];
-                    if after.starts_with('"') {
-                        continue; // Already quoted
-                    }
-                }
-
-                let start_col = var_start_in_line + 1;
-                let end_col = start_col + var_str.len();
-
-                let diagnostic = Diagnostic::new(
-                    "SC2047",
-                    Severity::Warning,
-                    format!(
-                        "Quote {} to prevent word splitting, or use [[..]] instead of [..]",
-                        var_str
-                    ),
-                    Span::new(line_num, start_col, line_num, end_col),
-                );
-
-                result.add(diagnostic);
-            }
+            check_test_command(line, test_str, test_start, line_num, &mut result);
         }
     }
 
