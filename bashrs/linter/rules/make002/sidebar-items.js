@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"fn":["check"]};
+window.SIDEBAR_ITEMS = {"fn":["check","create_mkdir_diagnostic","has_p_flag","is_recipe_with_mkdir"]};

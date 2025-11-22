@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"fn":["check"],"static":["SSH_WITH_VAR"]};
+window.SIDEBAR_ITEMS = {"fn":["check","create_diagnostic","is_ssh_line_with_vars","should_skip_match"],"static":["SSH_WITH_VAR"]};

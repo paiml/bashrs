@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"fn":["check"],"static":["UPPERCASE_RANGE"]};
+window.SIDEBAR_ITEMS = {"fn":["check","create_character_class_diagnostic","is_part_of_posix_class"],"static":["UPPERCASE_RANGE"]};

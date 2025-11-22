@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"fn":["check"],"static":["ARITH_EXPR","BRACED_VAR"]};
+window.SIDEBAR_ITEMS = {"fn":["check","check_arithmetic_expression","create_braces_diagnostic","process_braced_var","should_skip_braced_var"],"static":["ARITH_EXPR","BRACED_VAR"]};

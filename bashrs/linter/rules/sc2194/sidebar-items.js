@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"fn":["check"],"static":["COMMAND_VAR_ASSIGNMENT","COMMAND_VAR_USAGE"]};
+window.SIDEBAR_ITEMS = {"fn":["check","check_variable_usage","create_constant_command_diagnostic","find_next_code_line","parse_command_assignment"],"static":["COMMAND_VAR_ASSIGNMENT","COMMAND_VAR_USAGE"]};

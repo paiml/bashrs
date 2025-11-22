@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"fn":["check"],"static":["TEST_COMMAND","VARIABLE_REF"]};
+window.SIDEBAR_ITEMS = {"fn":["check","check_test_command","create_word_split_diagnostic","is_variable_quoted","should_skip_line"],"static":["TEST_COMMAND","VARIABLE_REF"]};

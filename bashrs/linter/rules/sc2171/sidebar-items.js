@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"fn":["check"],"static":["HEREDOC_START","TRAILING_BRACKET"]};
+window.SIDEBAR_ITEMS = {"fn":["check","create_trailing_bracket_diagnostic","should_exit_heredoc","try_enter_heredoc"],"static":["HEREDOC_START","TRAILING_BRACKET"],"struct":["HeredocState"]};

@@ -50,7 +50,7 @@
 <a href=#50 id=50 data-nosnippet>50</a>    ///
 <a href=#51 id=51 data-nosnippet>51</a>    /// # Example
 <a href=#52 id=52 data-nosnippet>52</a>    /// ```
-<a href=#53 id=53 data-nosnippet>53</a>    /// use rash::tracing::CircularTraceBuffer;
+<a href=#53 id=53 data-nosnippet>53</a>    /// use bashrs::tracing::CircularTraceBuffer;
 <a href=#54 id=54 data-nosnippet>54</a>    ///
 <a href=#55 id=55 data-nosnippet>55</a>    /// let buffer = CircularTraceBuffer::new();
 <a href=#56 id=56 data-nosnippet>56</a>    /// assert_eq!(buffer.capacity(), 1024);
@@ -71,7 +71,7 @@
 <a href=#71 id=71 data-nosnippet>71</a>    ///
 <a href=#72 id=72 data-nosnippet>72</a>    /// # Example
 <a href=#73 id=73 data-nosnippet>73</a>    /// ```
-<a href=#74 id=74 data-nosnippet>74</a>    /// use rash::tracing::CircularTraceBuffer;
+<a href=#74 id=74 data-nosnippet>74</a>    /// use bashrs::tracing::CircularTraceBuffer;
 <a href=#75 id=75 data-nosnippet>75</a>    ///
 <a href=#76 id=76 data-nosnippet>76</a>    /// let buffer = CircularTraceBuffer::with_capacity(2048);
 <a href=#77 id=77 data-nosnippet>77</a>    /// assert_eq!(buffer.capacity(), 2048);
@@ -92,7 +92,7 @@
 <a href=#92 id=92 data-nosnippet>92</a>    ///
 <a href=#93 id=93 data-nosnippet>93</a>    /// # Example
 <a href=#94 id=94 data-nosnippet>94</a>    /// ```
-<a href=#95 id=95 data-nosnippet>95</a>    /// use rash::tracing::{CircularTraceBuffer, TraceEvent, ParseEvent, Span};
+<a href=#95 id=95 data-nosnippet>95</a>    /// use bashrs::tracing::{CircularTraceBuffer, TraceEvent, ParseEvent, Span};
 <a href=#96 id=96 data-nosnippet>96</a>    ///
 <a href=#97 id=97 data-nosnippet>97</a>    /// let mut buffer = CircularTraceBuffer::with_capacity(2);
 <a href=#98 id=98 data-nosnippet>98</a>    /// buffer.push(TraceEvent::Parse(ParseEvent::ParseStart {
@@ -148,7 +148,7 @@
 <a href=#148 id=148 data-nosnippet>148</a>    ///
 <a href=#149 id=149 data-nosnippet>149</a>    /// # Example
 <a href=#150 id=150 data-nosnippet>150</a>    /// ```
-<a href=#151 id=151 data-nosnippet>151</a>    /// use rash::tracing::CircularTraceBuffer;
+<a href=#151 id=151 data-nosnippet>151</a>    /// use bashrs::tracing::CircularTraceBuffer;
 <a href=#152 id=152 data-nosnippet>152</a>    ///
 <a href=#153 id=153 data-nosnippet>153</a>    /// let buffer = CircularTraceBuffer::new();
 <a href=#154 id=154 data-nosnippet>154</a>    /// assert_eq!(buffer.retention_rate(), 1.0); // Empty buffer, 100%
@@ -170,7 +170,7 @@
 <a href=#170 id=170 data-nosnippet>170</a>    ///
 <a href=#171 id=171 data-nosnippet>171</a>    /// # Example
 <a href=#172 id=172 data-nosnippet>172</a>    /// ```
-<a href=#173 id=173 data-nosnippet>173</a>    /// use rash::tracing::{CircularTraceBuffer, TraceSignificance};
+<a href=#173 id=173 data-nosnippet>173</a>    /// use bashrs::tracing::{CircularTraceBuffer, TraceSignificance};
 <a href=#174 id=174 data-nosnippet>174</a>    ///
 <a href=#175 id=175 data-nosnippet>175</a>    /// let buffer = CircularTraceBuffer::new();
 <a href=#176 id=176 data-nosnippet>176</a>    /// let high_events: Vec&lt;_&gt; = buffer

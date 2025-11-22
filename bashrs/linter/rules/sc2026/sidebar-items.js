@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"fn":["check"],"static":["UNQUOTED_EQUALS"]};
+window.SIDEBAR_ITEMS = {"fn":["check","create_unquoted_diagnostic","is_quoted","is_simple_assignment"],"static":["UNQUOTED_EQUALS"]};

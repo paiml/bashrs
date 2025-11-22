@@ -18,7 +18,7 @@ This maintains constant memory usage while providing recent event history.</p>
 </div><span id="structfield.evicted_count" class="structfield section-header"><a href="#structfield.evicted_count" class="anchor field">§</a><code>evicted_count: <a class="primitive" href="https://doc.rust-lang.org/1.91.1/std/primitive.u64.html">u64</a></code></span><div class="docblock"><p>Number of events evicted due to capacity limit</p>
 </div><h2 id="implementations" class="section-header">Implementations<a href="#implementations" class="anchor">§</a></h2><div id="implementations-list"><details class="toggle implementors-toggle" open><summary><section id="impl-CircularTraceBuffer" class="impl"><a class="src rightside" href="../../../src/bashrs/tracing/buffer.rs.html#48-225">Source</a><a href="#impl-CircularTraceBuffer" class="anchor">§</a><h3 class="code-header">impl <a class="struct" href="struct.CircularTraceBuffer.html" title="struct bashrs::tracing::buffer::CircularTraceBuffer">CircularTraceBuffer</a></h3></section></summary><div class="impl-items"><details class="toggle method-toggle" open><summary><section id="method.new" class="method"><a class="src rightside" href="../../../src/bashrs/tracing/buffer.rs.html#59-61">Source</a><h4 class="code-header">pub fn <a href="#method.new" class="fn">new</a>() -&gt; Self</h4></section></summary><div class="docblock"><p>Create a new circular trace buffer with default capacity (1024)</p>
 <h5 id="example"><a class="doc-anchor" href="#example">§</a>Example</h5>
-<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="kw">use </span>rash::tracing::CircularTraceBuffer;
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="kw">use </span>bashrs::tracing::CircularTraceBuffer;
 
 <span class="kw">let </span>buffer = CircularTraceBuffer::new();
 <span class="macro">assert_eq!</span>(buffer.capacity(), <span class="number">1024</span>);</code></pre></div></div></details><details class="toggle method-toggle" open><summary><section id="method.with_capacity" class="method"><a class="src rightside" href="../../../src/bashrs/tracing/buffer.rs.html#80-87">Source</a><h4 class="code-header">pub fn <a href="#method.with_capacity" class="fn">with_capacity</a>(capacity: <a class="primitive" href="https://doc.rust-lang.org/1.91.1/std/primitive.usize.html">usize</a>) -&gt; Self</h4></section></summary><div class="docblock"><p>Create a new circular trace buffer with custom capacity</p>
@@ -31,13 +31,13 @@ This maintains constant memory usage while providing recent event history.</p>
 <li>4096: Very high memory (~32 MB), ~95% coverage</li>
 </ul>
 <h5 id="example-1"><a class="doc-anchor" href="#example-1">§</a>Example</h5>
-<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="kw">use </span>rash::tracing::CircularTraceBuffer;
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="kw">use </span>bashrs::tracing::CircularTraceBuffer;
 
 <span class="kw">let </span>buffer = CircularTraceBuffer::with_capacity(<span class="number">2048</span>);
 <span class="macro">assert_eq!</span>(buffer.capacity(), <span class="number">2048</span>);</code></pre></div></div></details><details class="toggle method-toggle" open><summary><section id="method.push" class="method"><a class="src rightside" href="../../../src/bashrs/tracing/buffer.rs.html#105-112">Source</a><h4 class="code-header">pub fn <a href="#method.push" class="fn">push</a>(&amp;mut self, event: <a class="enum" href="../events/enum.TraceEvent.html" title="enum bashrs::tracing::events::TraceEvent">TraceEvent</a>)</h4></section></summary><div class="docblock"><p>Push a new event into the buffer</p>
 <p>If buffer is at capacity, the oldest event is evicted (FIFO).</p>
 <h5 id="example-2"><a class="doc-anchor" href="#example-2">§</a>Example</h5>
-<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="kw">use </span>rash::tracing::{CircularTraceBuffer, TraceEvent, ParseEvent, Span};
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="kw">use </span>bashrs::tracing::{CircularTraceBuffer, TraceEvent, ParseEvent, Span};
 
 <span class="kw">let </span><span class="kw-2">mut </span>buffer = CircularTraceBuffer::with_capacity(<span class="number">2</span>);
 buffer.push(TraceEvent::Parse(ParseEvent::ParseStart {
@@ -54,7 +54,7 @@ buffer.push(TraceEvent::Parse(ParseEvent::ParseStart {
 <p>Returns 1.0 (100%) if no events evicted, otherwise ratio of
 retained/total events.</p>
 <h5 id="example-3"><a class="doc-anchor" href="#example-3">§</a>Example</h5>
-<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="kw">use </span>rash::tracing::CircularTraceBuffer;
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="kw">use </span>bashrs::tracing::CircularTraceBuffer;
 
 <span class="kw">let </span>buffer = CircularTraceBuffer::new();
 <span class="macro">assert_eq!</span>(buffer.retention_rate(), <span class="number">1.0</span>); <span class="comment">// Empty buffer, 100%</span></code></pre></div></div></details><details class="toggle method-toggle" open><summary><section id="method.iter" class="method"><a class="src rightside" href="../../../src/bashrs/tracing/buffer.rs.html#165-167">Source</a><h4 class="code-header">pub fn <a href="#method.iter" class="fn">iter</a>(&amp;self) -&gt; impl <a class="trait" href="https://doc.rust-lang.org/1.91.1/core/iter/traits/iterator/trait.Iterator.html" title="trait core::iter::traits::iterator::Iterator">Iterator</a>&lt;Item = &amp;<a class="enum" href="../events/enum.TraceEvent.html" title="enum bashrs::tracing::events::TraceEvent">TraceEvent</a>&gt;</h4></section></summary><div class="docblock"><p>Get an iterator over events in chronological order (oldest first)</p>
@@ -63,7 +63,7 @@ retained/total events.</p>
     min_significance: <a class="enum" href="../significance/enum.TraceSignificance.html" title="enum bashrs::tracing::significance::TraceSignificance">TraceSignificance</a>,
 ) -&gt; impl <a class="trait" href="https://doc.rust-lang.org/1.91.1/core/iter/traits/iterator/trait.Iterator.html" title="trait core::iter::traits::iterator::Iterator">Iterator</a>&lt;Item = &amp;<a class="enum" href="../events/enum.TraceEvent.html" title="enum bashrs::tracing::events::TraceEvent">TraceEvent</a>&gt; + '_</h4></section></summary><div class="docblock"><p>Get events filtered by minimum significance level</p>
 <h5 id="example-4"><a class="doc-anchor" href="#example-4">§</a>Example</h5>
-<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="kw">use </span>rash::tracing::{CircularTraceBuffer, TraceSignificance};
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="kw">use </span>bashrs::tracing::{CircularTraceBuffer, TraceSignificance};
 
 <span class="kw">let </span>buffer = CircularTraceBuffer::new();
 <span class="kw">let </span>high_events: Vec&lt;<span class="kw">_</span>&gt; = buffer

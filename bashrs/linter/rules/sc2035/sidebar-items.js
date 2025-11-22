@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"fn":["check"],"static":["BARE_GLOB","UNSAFE_COMMAND"]};
+window.SIDEBAR_ITEMS = {"fn":["check","create_unsafe_glob_diagnostic","is_glob_safe","should_check_line"],"static":["BARE_GLOB","UNSAFE_COMMAND"]};
