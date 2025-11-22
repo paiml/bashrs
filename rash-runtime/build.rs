@@ -1,3 +1,13 @@
+//! Build script for bashrs-runtime crate.
+//!
+//! This build script:
+//! - Reads the shell runtime library (src/lib.sh)
+//! - Minifies it by removing comments and extra whitespace
+//! - Embeds it as a Rust constant in the compiled binary
+//!
+//! The embedded runtime provides core shell functions and utilities that are
+//! included in all transpiled shell scripts.
+
 use anyhow::Result;
 use std::fs;
 use std::path::Path;
