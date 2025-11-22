@@ -28,18 +28,41 @@ static BARE_GLOB: Lazy<Regex> = Lazy::new(|| {
     Regex::new(r"\*\.[a-zA-Z0-9]+\b").unwrap()
 });
 
+/// Check if glob is safe (prefixed with ./ or / or $)
+fn is_glob_safe(line: &str, glob_start: usize) -> bool {
+    if glob_start == 0 {
+        return false;
+    }
+
+    let before = &line[..glob_start];
+    before.ends_with("./") || before.ends_with('/') || before.ends_with('$')
+}
+
+/// Create diagnostic for unsafe glob pattern
+fn create_unsafe_glob_diagnostic(glob_start: usize, glob_end: usize, line_num: usize) -> Diagnostic {
+    let start_col = glob_start + 1;
+    let end_col = glob_end + 1;
+
+    Diagnostic::new(
+        "SC2035",
+        Severity::Warning,
+        "Use ./* so names with dashes won't become options. Example: rm ./*.txt instead of rm *.txt",
+        Span::new(line_num, start_col, line_num, end_col),
+    )
+}
+
+/// Check if line should be processed (has unsafe command and not a comment)
+fn should_check_line(line: &str) -> bool {
+    !line.trim_start().starts_with('#') && UNSAFE_COMMAND.is_match(line)
+}
+
 pub fn check(source: &str) -> LintResult {
     let mut result = LintResult::new();
 
     for (line_num, line) in source.lines().enumerate() {
         let line_num = line_num + 1;
 
-        if line.trim_start().starts_with('#') {
-            continue;
-        }
-
-        // Check if line has a relevant command
-        if !UNSAFE_COMMAND.is_match(line) {
+        if !should_check_line(line) {
             continue;
         }
 
@@ -47,24 +70,11 @@ pub fn check(source: &str) -> LintResult {
         for mat in BARE_GLOB.find_iter(line) {
             let glob_start = mat.start();
 
-            // Skip if preceded by ./ or / or $
-            if glob_start > 0 {
-                let before = &line[..glob_start];
-                if before.ends_with("./") || before.ends_with('/') || before.ends_with('$') {
-                    continue;
-                }
+            if is_glob_safe(line, glob_start) {
+                continue;
             }
 
-            let start_col = glob_start + 1;
-            let end_col = mat.end() + 1;
-
-            let diagnostic = Diagnostic::new(
-                "SC2035",
-                Severity::Warning,
-                "Use ./* so names with dashes won't become options. Example: rm ./*.txt instead of rm *.txt",
-                Span::new(line_num, start_col, line_num, end_col),
-            );
-
+            let diagnostic = create_unsafe_glob_diagnostic(glob_start, mat.end(), line_num);
             result.add(diagnostic);
         }
     }
