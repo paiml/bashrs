@@ -30,6 +30,71 @@ static BRACED_VAR: Lazy<Regex> = Lazy::new(|| {
     Regex::new(r"\$\{([a-zA-Z_][a-zA-Z0-9_]*)\}").unwrap()
 });
 
+/// Check if a braced variable should be skipped (array or length syntax)
+fn should_skip_braced_var(matched: &str) -> bool {
+    matched.contains('[') || matched.contains('#')
+}
+
+/// Create diagnostic for unnecessary braces in arithmetic
+fn create_braces_diagnostic(
+    var_name: &str,
+    abs_start: usize,
+    abs_end: usize,
+    line_num: usize,
+) -> Diagnostic {
+    Diagnostic::new(
+        "SC2137",
+        Severity::Info,
+        format!(
+            "Braces are unnecessary in arithmetic. Use ${} instead of ${{{}}}",
+            var_name, var_name
+        ),
+        Span::new(line_num, abs_start + 1, line_num, abs_end + 1),
+    )
+}
+
+/// Process a single braced variable capture within arithmetic expression
+fn process_braced_var(
+    var_cap: regex::Captures,
+    arith_start: usize,
+    line_num: usize,
+    result: &mut LintResult,
+) {
+    let full_match = match var_cap.get(0) {
+        Some(m) => m,
+        None => return,
+    };
+
+    let matched = full_match.as_str();
+    if should_skip_braced_var(matched) {
+        return;
+    }
+
+    let var_name = match var_cap.get(1) {
+        Some(m) => m.as_str(),
+        None => return,
+    };
+
+    let var_pos = full_match.start();
+    let abs_start = arith_start + var_pos;
+    let abs_end = abs_start + matched.len();
+
+    let diagnostic = create_braces_diagnostic(var_name, abs_start, abs_end, line_num);
+    result.add(diagnostic);
+}
+
+/// Check a single arithmetic expression for unnecessary braces
+fn check_arithmetic_expression(
+    arith_content: &str,
+    arith_start: usize,
+    line_num: usize,
+    result: &mut LintResult,
+) {
+    for var_cap in BRACED_VAR.captures_iter(arith_content) {
+        process_braced_var(var_cap, arith_start, line_num, result);
+    }
+}
+
 pub fn check(source: &str) -> LintResult {
     let mut result = LintResult::new();
 
@@ -43,38 +108,7 @@ pub fn check(source: &str) -> LintResult {
         // Find all arithmetic expressions
         for arith_mat in ARITH_EXPR.find_iter(line) {
             let arith_content = &line[arith_mat.start()..arith_mat.end()];
-
-            // Find all braced variables within this arithmetic expression
-            for var_cap in BRACED_VAR.captures_iter(arith_content) {
-                if let Some(full_match) = var_cap.get(0) {
-                    let matched = full_match.as_str();
-
-                    // Skip if it's array syntax ${arr[...]} or length ${#var}
-                    if matched.contains('[') || matched.contains('#') {
-                        continue;
-                    }
-
-                    if let Some(var_match) = var_cap.get(1) {
-                        let var_name = var_match.as_str();
-                        let var_pos = full_match.start();
-
-                        let abs_start = arith_mat.start() + var_pos;
-                        let abs_end = abs_start + matched.len();
-
-                        let diagnostic = Diagnostic::new(
-                            "SC2137",
-                            Severity::Info,
-                            format!(
-                                "Braces are unnecessary in arithmetic. Use ${} instead of ${{{}}}",
-                                var_name, var_name
-                            ),
-                            Span::new(line_num, abs_start + 1, line_num, abs_end + 1),
-                        );
-
-                        result.add(diagnostic);
-                    }
-                }
-            }
+            check_arithmetic_expression(arith_content, arith_mat.start(), line_num, &mut result);
         }
     }
 
