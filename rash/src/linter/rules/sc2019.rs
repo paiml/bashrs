@@ -26,6 +26,26 @@ static UPPERCASE_RANGE: Lazy<Regex> = Lazy::new(|| {
     Regex::new(r"\[A-Z\]").unwrap()
 });
 
+/// Check if the match is already part of a POSIX character class like [:upper:]
+fn is_part_of_posix_class(line: &str, match_start: usize, match_end: usize) -> bool {
+    let before = if match_start > 0 { &line[..match_start] } else { "" };
+    let after = &line[match_end..];
+
+    // Skip if it's part of [[:upper:]] or [:upper:]
+    (before.ends_with("[[:") && after.starts_with(":]]"))
+        || (before.ends_with("[:") && after.starts_with(":]"))
+}
+
+/// Create diagnostic for ASCII-only character range
+fn create_character_class_diagnostic(line_num: usize, start_col: usize, end_col: usize) -> Diagnostic {
+    Diagnostic::new(
+        "SC2019",
+        Severity::Info,
+        "Use '[:upper:]' to support accents and foreign alphabets".to_string(),
+        Span::new(line_num, start_col, line_num, end_col),
+    )
+}
+
 pub fn check(source: &str) -> LintResult {
     let mut result = LintResult::new();
 
@@ -38,29 +58,15 @@ pub fn check(source: &str) -> LintResult {
 
         // Look for [A-Z] pattern
         for m in UPPERCASE_RANGE.find_iter(line) {
-            // Check if this is already part of [:upper:]
             let pos = m.start();
-            let before = if pos > 0 { &line[..pos] } else { "" };
-            let after = &line[m.end()..];
 
-            // Skip if it's part of [[:upper:]]
-            if before.ends_with("[[:") && after.starts_with(":]]") {
-                continue;
-            }
-            if before.ends_with("[:") && after.starts_with(":]") {
+            if is_part_of_posix_class(line, pos, m.end()) {
                 continue;
             }
 
             let start_col = pos + 1;
             let end_col = m.end() + 1;
-
-            let diagnostic = Diagnostic::new(
-                "SC2019",
-                Severity::Info,
-                "Use '[:upper:]' to support accents and foreign alphabets".to_string(),
-                Span::new(line_num, start_col, line_num, end_col),
-            );
-
+            let diagnostic = create_character_class_diagnostic(line_num, start_col, end_col);
             result.add(diagnostic);
         }
     }
