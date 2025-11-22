@@ -1,9 +1,99 @@
-// Shell Compatibility Module
-// Defines which shells each linter rule applies to
+//! Shell compatibility rules for linter.
+//!
+//! Defines which shells each linter rule applies to, allowing bashrs to skip
+//! rules that don't apply to a specific shell type.
+//!
+//! # Examples
+//!
+//! ## Checking if a rule applies to a shell
+//!
+//! ```
+//! use bashrs::linter::{ShellCompatibility, ShellType};
+//!
+//! let compat = ShellCompatibility::BashOnly;
+//! assert!(compat.applies_to(ShellType::Bash));
+//! assert!(!compat.applies_to(ShellType::Sh));
+//! ```
+//!
+//! ## Getting human-readable descriptions
+//!
+//! ```
+//! use bashrs::linter::ShellCompatibility;
+//!
+//! let compat = ShellCompatibility::Universal;
+//! assert_eq!(compat.description(), "all shells (bash, zsh, sh, ksh)");
+//! ```
+//!
+//! ## Using with rule registry
+//!
+//! ```
+//! use bashrs::linter::{get_rule_compatibility, ShellType};
+//!
+//! // Check if SEC001 applies to POSIX sh
+//! if let Some(compat) = get_rule_compatibility("SEC001") {
+//!     if compat.applies_to(ShellType::Sh) {
+//!         // Apply SEC001 to this sh script
+//!     }
+//! }
+//! ```
 
 use crate::linter::shell_type::ShellType;
 
-/// Shell compatibility level for linter rules
+/// Shell compatibility level for linter rules.
+///
+/// Specifies which shell types a linter rule applies to. Used by the rule registry
+/// to filter rules based on the detected shell type.
+///
+/// # Variant Descriptions
+///
+/// - **Universal**: Rule applies to all shells (bash, zsh, sh, ksh)
+/// - **BashOnly**: Rule only applies to bash scripts
+/// - **ZshOnly**: Rule only applies to zsh scripts
+/// - **ShOnly**: Rule only applies to POSIX sh scripts (strict)
+/// - **BashZsh**: Rule applies to bash and zsh (modern shells)
+/// - **NotSh**: Rule applies to bash/zsh/ksh but not POSIX sh
+///
+/// # Examples
+///
+/// ## Checking shell compatibility
+///
+/// ```
+/// use bashrs::linter::{ShellCompatibility, ShellType};
+///
+/// let compat = ShellCompatibility::BashZsh;
+/// assert!(compat.applies_to(ShellType::Bash));
+/// assert!(compat.applies_to(ShellType::Zsh));
+/// assert!(!compat.applies_to(ShellType::Sh));
+/// ```
+///
+/// ## Using universal compatibility
+///
+/// ```
+/// use bashrs::linter::{ShellCompatibility, ShellType};
+///
+/// let compat = ShellCompatibility::Universal;
+/// // Universal rules apply to ALL shells
+/// assert!(compat.applies_to(ShellType::Bash));
+/// assert!(compat.applies_to(ShellType::Zsh));
+/// assert!(compat.applies_to(ShellType::Sh));
+/// assert!(compat.applies_to(ShellType::Ksh));
+/// ```
+///
+/// ## Shell-specific rules
+///
+/// ```
+/// use bashrs::linter::{ShellCompatibility, ShellType};
+///
+/// // BashOnly rules only apply to bash
+/// let bash_rule = ShellCompatibility::BashOnly;
+/// assert!(bash_rule.applies_to(ShellType::Bash));
+/// assert!(!bash_rule.applies_to(ShellType::Zsh));
+///
+/// // ShOnly rules only apply to POSIX sh
+/// let sh_rule = ShellCompatibility::ShOnly;
+/// assert!(sh_rule.applies_to(ShellType::Sh));
+/// assert!(!sh_rule.applies_to(ShellType::Bash));
+/// ```
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum ShellCompatibility {
     /// Works in all shells (bash, zsh, sh, ksh)
@@ -21,7 +111,72 @@ pub enum ShellCompatibility {
 }
 
 impl ShellCompatibility {
-    /// Check if this rule applies to the given shell type
+    /// Checks if this compatibility level applies to the given shell type.
+    ///
+    /// Returns `true` if a rule with this compatibility should be applied to the specified shell.
+    ///
+    /// # Arguments
+    ///
+    /// * `shell` - The shell type to check compatibility for
+    ///
+    /// # Returns
+    ///
+    /// `true` if the rule applies to this shell, `false` otherwise
+    ///
+    /// # Special Cases
+    ///
+    /// - `ShellType::Auto` defaults to bash behavior for compatibility purposes
+    /// - `Universal` applies to all shells including `Auto`
+    ///
+    /// # Examples
+    ///
+    /// ## Universal compatibility
+    ///
+    /// ```
+    /// use bashrs::linter::{ShellCompatibility, ShellType};
+    ///
+    /// let compat = ShellCompatibility::Universal;
+    /// assert!(compat.applies_to(ShellType::Bash));
+    /// assert!(compat.applies_to(ShellType::Zsh));
+    /// assert!(compat.applies_to(ShellType::Sh));
+    /// assert!(compat.applies_to(ShellType::Auto));
+    /// ```
+    ///
+    /// ## Bash-only rules
+    ///
+    /// ```
+    /// use bashrs::linter::{ShellCompatibility, ShellType};
+    ///
+    /// let compat = ShellCompatibility::BashOnly;
+    /// assert!(compat.applies_to(ShellType::Bash));
+    /// assert!(!compat.applies_to(ShellType::Zsh));
+    /// assert!(!compat.applies_to(ShellType::Sh));
+    /// // Auto defaults to bash
+    /// assert!(compat.applies_to(ShellType::Auto));
+    /// ```
+    ///
+    /// ## POSIX sh-only rules
+    ///
+    /// ```
+    /// use bashrs::linter::{ShellCompatibility, ShellType};
+    ///
+    /// let compat = ShellCompatibility::ShOnly;
+    /// assert!(!compat.applies_to(ShellType::Bash));
+    /// assert!(compat.applies_to(ShellType::Sh));
+    /// assert!(!compat.applies_to(ShellType::Auto));
+    /// ```
+    ///
+    /// ## NotSh compatibility (bash/zsh/ksh but not sh)
+    ///
+    /// ```
+    /// use bashrs::linter::{ShellCompatibility, ShellType};
+    ///
+    /// let compat = ShellCompatibility::NotSh;
+    /// assert!(compat.applies_to(ShellType::Bash));
+    /// assert!(compat.applies_to(ShellType::Zsh));
+    /// assert!(compat.applies_to(ShellType::Ksh));
+    /// assert!(!compat.applies_to(ShellType::Sh));
+    /// ```
     pub fn applies_to(&self, shell: ShellType) -> bool {
         match (self, shell) {
             (ShellCompatibility::Universal, _) => true,
@@ -37,7 +192,50 @@ impl ShellCompatibility {
         }
     }
 
-    /// Get human-readable description
+    /// Returns a human-readable description of the shell compatibility level.
+    ///
+    /// Provides a concise description of which shells this compatibility level applies to,
+    /// useful for displaying in error messages, documentation, or user interfaces.
+    ///
+    /// # Returns
+    ///
+    /// A static string describing the shell compatibility level
+    ///
+    /// # Examples
+    ///
+    /// ## Display compatibility descriptions
+    ///
+    /// ```
+    /// use bashrs::linter::ShellCompatibility;
+    ///
+    /// assert_eq!(
+    ///     ShellCompatibility::Universal.description(),
+    ///     "all shells (bash, zsh, sh, ksh)"
+    /// );
+    ///
+    /// assert_eq!(
+    ///     ShellCompatibility::BashOnly.description(),
+    ///     "bash only"
+    /// );
+    ///
+    /// assert_eq!(
+    ///     ShellCompatibility::BashZsh.description(),
+    ///     "bash and zsh"
+    /// );
+    /// ```
+    ///
+    /// ## Use in error messages
+    ///
+    /// ```
+    /// use bashrs::linter::ShellCompatibility;
+    ///
+    /// let compat = ShellCompatibility::NotSh;
+    /// let msg = format!(
+    ///     "This rule applies to {}",
+    ///     compat.description()
+    /// );
+    /// assert_eq!(msg, "This rule applies to bash, zsh, ksh (not POSIX sh)");
+    /// ```
     pub fn description(&self) -> &'static str {
         match self {
             ShellCompatibility::Universal => "all shells (bash, zsh, sh, ksh)",
