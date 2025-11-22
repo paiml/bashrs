@@ -242,7 +242,7 @@
 <a href=#242 id=242 data-nosnippet>242</a>
 <a href=#243 id=243 data-nosnippet>243</a>    <span class="kw">fn </span>normalize_whitespace(
 <a href=#244 id=244 data-nosnippet>244</a>        <span class="kw-2">&amp;mut </span><span class="self">self</span>,
-<a href=#245 id=245 data-nosnippet>245</a>        chars: <span class="kw-2">&amp;mut </span>std::iter::Peekable&lt;std::str::CharIndices&gt;,
+<a href=#245 id=245 data-nosnippet>245</a>        chars: <span class="kw-2">&amp;mut </span>std::iter::Peekable&lt;std::str::CharIndices&lt;<span class="lifetime">'_</span>&gt;&gt;,
 <a href=#246 id=246 data-nosnippet>246</a>        output: <span class="kw-2">&amp;mut </span>String,
 <a href=#247 id=247 data-nosnippet>247</a>        source_map: <span class="kw-2">&amp;mut </span>SourceMapBuilder,
 <a href=#248 id=248 data-nosnippet>248</a>        transform_log: <span class="kw-2">&amp;mut </span>TransformLog,
@@ -312,7 +312,7 @@
 <a href=#312 id=312 data-nosnippet>312</a>
 <a href=#313 id=313 data-nosnippet>313</a>    <span class="kw">fn </span>normalize_expansion(
 <a href=#314 id=314 data-nosnippet>314</a>        <span class="kw-2">&amp;mut </span><span class="self">self</span>,
-<a href=#315 id=315 data-nosnippet>315</a>        chars: <span class="kw-2">&amp;mut </span>std::iter::Peekable&lt;std::str::CharIndices&gt;,
+<a href=#315 id=315 data-nosnippet>315</a>        chars: <span class="kw-2">&amp;mut </span>std::iter::Peekable&lt;std::str::CharIndices&lt;<span class="lifetime">'_</span>&gt;&gt;,
 <a href=#316 id=316 data-nosnippet>316</a>        output: <span class="kw-2">&amp;mut </span>String,
 <a href=#317 id=317 data-nosnippet>317</a>        _source_map: <span class="kw-2">&amp;mut </span>SourceMapBuilder,
 <a href=#318 id=318 data-nosnippet>318</a>        transform_log: <span class="kw-2">&amp;mut </span>TransformLog,
@@ -393,7 +393,7 @@
 <a href=#393 id=393 data-nosnippet>393</a>    <span class="kw">fn </span>normalize_quoted_string(
 <a href=#394 id=394 data-nosnippet>394</a>        <span class="kw-2">&amp;mut </span><span class="self">self</span>,
 <a href=#395 id=395 data-nosnippet>395</a>        quote_char: char,
-<a href=#396 id=396 data-nosnippet>396</a>        chars: <span class="kw-2">&amp;mut </span>std::iter::Peekable&lt;std::str::CharIndices&gt;,
+<a href=#396 id=396 data-nosnippet>396</a>        chars: <span class="kw-2">&amp;mut </span>std::iter::Peekable&lt;std::str::CharIndices&lt;<span class="lifetime">'_</span>&gt;&gt;,
 <a href=#397 id=397 data-nosnippet>397</a>        output: <span class="kw-2">&amp;mut </span>String,
 <a href=#398 id=398 data-nosnippet>398</a>        _source_map: <span class="kw-2">&amp;mut </span>SourceMapBuilder,
 <a href=#399 id=399 data-nosnippet>399</a>        _start_pos: usize,
@@ -434,7 +434,7 @@
 <a href=#434 id=434 data-nosnippet>434</a>
 <a href=#435 id=435 data-nosnippet>435</a>    <span class="kw">fn </span>extract_comment(
 <a href=#436 id=436 data-nosnippet>436</a>        <span class="kw-2">&amp;</span><span class="self">self</span>,
-<a href=#437 id=437 data-nosnippet>437</a>        chars: <span class="kw-2">&amp;mut </span>std::iter::Peekable&lt;std::str::CharIndices&gt;,
+<a href=#437 id=437 data-nosnippet>437</a>        chars: <span class="kw-2">&amp;mut </span>std::iter::Peekable&lt;std::str::CharIndices&lt;<span class="lifetime">'_</span>&gt;&gt;,
 <a href=#438 id=438 data-nosnippet>438</a>        start_pos: usize,
 <a href=#439 id=439 data-nosnippet>439</a>        line: <span class="kw-2">&amp;</span>str,
 <a href=#440 id=440 data-nosnippet>440</a>    ) -&gt; <span class="kw">crate</span>::Result&lt;String&gt; {

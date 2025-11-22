@@ -86,7 +86,7 @@
 <a href=#86 id=86 data-nosnippet>86</a>    </span><span class="kw">let </span>braced_re =
 <a href=#87 id=87 data-nosnippet>87</a>        Regex::new(<span class="string">r"\$\{([A-Za-z_][A-Za-z0-9_]*)\}"</span>).expect(<span class="string">"hardcoded regex is valid"</span>);
 <a href=#88 id=88 data-nosnippet>88</a>    result = braced_re
-<a href=#89 id=89 data-nosnippet>89</a>        .replace_all(<span class="kw-2">&amp;</span>result, |caps: <span class="kw-2">&amp;</span>regex::Captures| {
+<a href=#89 id=89 data-nosnippet>89</a>        .replace_all(<span class="kw-2">&amp;</span>result, |caps: <span class="kw-2">&amp;</span>regex::Captures&lt;<span class="lifetime">'_</span>&gt;| {
 <a href=#90 id=90 data-nosnippet>90</a>            <span class="kw">let </span>var_name = <span class="kw-2">&amp;</span>caps[<span class="number">1</span>];
 <a href=#91 id=91 data-nosnippet>91</a>            variables.get(var_name).cloned().unwrap_or_default()
 <a href=#92 id=92 data-nosnippet>92</a>        })
@@ -96,7 +96,7 @@
 <a href=#96 id=96 data-nosnippet>96</a>    </span><span class="attr">#[allow(clippy::expect_used)] </span><span class="comment">// Safe: hardcoded regex pattern is valid
 <a href=#97 id=97 data-nosnippet>97</a>    </span><span class="kw">let </span>simple_re = Regex::new(<span class="string">r"\$([A-Za-z_][A-Za-z0-9_]*)"</span>).expect(<span class="string">"hardcoded regex is valid"</span>);
 <a href=#98 id=98 data-nosnippet>98</a>    result = simple_re
-<a href=#99 id=99 data-nosnippet>99</a>        .replace_all(<span class="kw-2">&amp;</span>result, |caps: <span class="kw-2">&amp;</span>regex::Captures| {
+<a href=#99 id=99 data-nosnippet>99</a>        .replace_all(<span class="kw-2">&amp;</span>result, |caps: <span class="kw-2">&amp;</span>regex::Captures&lt;<span class="lifetime">'_</span>&gt;| {
 <a href=#100 id=100 data-nosnippet>100</a>            <span class="kw">let </span>var_name = <span class="kw-2">&amp;</span>caps[<span class="number">1</span>];
 <a href=#101 id=101 data-nosnippet>101</a>            variables.get(var_name).cloned().unwrap_or_default()
 <a href=#102 id=102 data-nosnippet>102</a>        })
