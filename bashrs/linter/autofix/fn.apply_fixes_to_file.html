@@ -1,14 +1,75 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Apply fixes to a file"><title>apply_fixes_to_file in bashrs::linter::autofix - Rust</title><script>if(window.location.protocol!=="file:")document.head.insertAdjacentHTML("beforeend","SourceSerif4-Regular-6b053e98.ttf.woff2,FiraSans-Italic-81dc35de.woff2,FiraSans-Regular-0fe48ade.woff2,FiraSans-MediumItalic-ccf7e434.woff2,FiraSans-Medium-e1aa3f0a.woff2,SourceCodePro-Regular-8badfe75.ttf.woff2,SourceCodePro-Semibold-aa29a496.ttf.woff2".split(",").map(f=>`<link rel="preload" as="font" type="font/woff2"href="../../../static.files/${f}">`).join(""))</script><link rel="stylesheet" href="../../../static.files/normalize-9960930a.css"><link rel="stylesheet" href="../../../static.files/rustdoc-e56847b5.css"><meta name="rustdoc-vars" data-root-path="../../../" data-static-root-path="../../../static.files/" data-current-crate="bashrs" data-themes="" data-resource-suffix="" data-rustdoc-version="1.91.1 (ed61e7d7e 2025-11-07)" data-channel="1.91.1" data-search-js="search-e256b49e.js" data-stringdex-js="stringdex-c3e638e9.js" data-settings-js="settings-c38705f0.js" ><script src="../../../static.files/storage-e2aeef58.js"></script><script defer src="sidebar-items.js"></script><script defer src="../../../static.files/main-6dc2a7f3.js"></script><noscript><link rel="stylesheet" href="../../../static.files/noscript-263c88ec.css"></noscript><link rel="alternate icon" type="image/png" href="../../../static.files/favicon-32x32-eab170b8.png"><link rel="icon" type="image/svg+xml" href="../../../static.files/favicon-044be391.svg"></head><body class="rustdoc fn"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><rustdoc-topbar><h2><a href="#">apply_fixes_to_file</a></h2></rustdoc-topbar><nav class="sidebar"><div class="sidebar-crate"><h2><a href="../../../bashrs/index.html">bashrs</a><span class="version">6.35.0</span></h2></div><div class="sidebar-elems"><section id="rustdoc-toc"><h2 class="location"><a href="#">apply_<wbr>fixes_<wbr>to_<wbr>file</a></h2><h3><a href="#">Sections</a></h3><ul class="block top-toc"><li><a href="#arguments" title="Arguments">Arguments</a></li><li><a href="#returns" title="Returns">Returns</a></li></ul></section><div id="rustdoc-modnav"><h2><a href="index.html">In bashrs::<wbr>linter::<wbr>autofix</a></h2></div></div></nav><div class="sidebar-resizer" title="Drag to resize sidebar"></div><main><div class="width-limiter"><section id="main-content" class="content"><div class="main-heading"><div class="rustdoc-breadcrumbs"><a href="../../index.html">bashrs</a>::<wbr><a href="../index.html">linter</a>::<wbr><a href="index.html">autofix</a></div><h1>Function <span class="fn">apply_<wbr>fixes_<wbr>to_<wbr>file</span>&nbsp;<button id="copy-path" title="Copy item path to clipboard">Copy item path</button></h1><rustdoc-toolbar></rustdoc-toolbar><span class="sub-heading"><a class="src" href="../../../src/bashrs/linter/autofix.rs.html#198-228">Source</a> </span></div><pre class="rust item-decl"><code>pub fn apply_fixes_to_file(
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Applies fixes from a lint result to a file on disk."><title>apply_fixes_to_file in bashrs::linter::autofix - Rust</title><script>if(window.location.protocol!=="file:")document.head.insertAdjacentHTML("beforeend","SourceSerif4-Regular-6b053e98.ttf.woff2,FiraSans-Italic-81dc35de.woff2,FiraSans-Regular-0fe48ade.woff2,FiraSans-MediumItalic-ccf7e434.woff2,FiraSans-Medium-e1aa3f0a.woff2,SourceCodePro-Regular-8badfe75.ttf.woff2,SourceCodePro-Semibold-aa29a496.ttf.woff2".split(",").map(f=>`<link rel="preload" as="font" type="font/woff2"href="../../../static.files/${f}">`).join(""))</script><link rel="stylesheet" href="../../../static.files/normalize-9960930a.css"><link rel="stylesheet" href="../../../static.files/rustdoc-e56847b5.css"><meta name="rustdoc-vars" data-root-path="../../../" data-static-root-path="../../../static.files/" data-current-crate="bashrs" data-themes="" data-resource-suffix="" data-rustdoc-version="1.91.1 (ed61e7d7e 2025-11-07)" data-channel="1.91.1" data-search-js="search-e256b49e.js" data-stringdex-js="stringdex-c3e638e9.js" data-settings-js="settings-c38705f0.js" ><script src="../../../static.files/storage-e2aeef58.js"></script><script defer src="sidebar-items.js"></script><script defer src="../../../static.files/main-6dc2a7f3.js"></script><noscript><link rel="stylesheet" href="../../../static.files/noscript-263c88ec.css"></noscript><link rel="alternate icon" type="image/png" href="../../../static.files/favicon-32x32-eab170b8.png"><link rel="icon" type="image/svg+xml" href="../../../static.files/favicon-044be391.svg"></head><body class="rustdoc fn"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><rustdoc-topbar><h2><a href="#">apply_fixes_to_file</a></h2></rustdoc-topbar><nav class="sidebar"><div class="sidebar-crate"><h2><a href="../../../bashrs/index.html">bashrs</a><span class="version">6.35.0</span></h2></div><div class="sidebar-elems"><section id="rustdoc-toc"><h2 class="location"><a href="#">apply_<wbr>fixes_<wbr>to_<wbr>file</a></h2><h3><a href="#">Sections</a></h3><ul class="block top-toc"><li><a href="#arguments" title="Arguments">Arguments</a></li><li><a href="#returns" title="Returns">Returns</a></li><li><a href="#backup-behavior" title="Backup Behavior">Backup Behavior</a></li><li><a href="#output-behavior" title="Output Behavior">Output Behavior</a></li><li><a href="#examples" title="Examples">Examples</a><ul><li><a href="#apply-fixes-with-backup" title="Apply fixes with backup">Apply fixes with backup</a></li><li><a href="#dry-run-on-file" title="Dry-run on file">Dry-run on file</a></li><li><a href="#write-to-different-file" title="Write to different file">Write to different file</a></li></ul></li></ul></section><div id="rustdoc-modnav"><h2><a href="index.html">In bashrs::<wbr>linter::<wbr>autofix</a></h2></div></div></nav><div class="sidebar-resizer" title="Drag to resize sidebar"></div><main><div class="width-limiter"><section id="main-content" class="content"><div class="main-heading"><div class="rustdoc-breadcrumbs"><a href="../../index.html">bashrs</a>::<wbr><a href="../index.html">linter</a>::<wbr><a href="index.html">autofix</a></div><h1>Function <span class="fn">apply_<wbr>fixes_<wbr>to_<wbr>file</span>&nbsp;<button id="copy-path" title="Copy item path to clipboard">Copy item path</button></h1><rustdoc-toolbar></rustdoc-toolbar><span class="sub-heading"><a class="src" href="../../../src/bashrs/linter/autofix.rs.html#550-580">Source</a> </span></div><pre class="rust item-decl"><code>pub fn apply_fixes_to_file(
     file_path: &amp;<a class="struct" href="https://doc.rust-lang.org/1.91.1/std/path/struct.Path.html" title="struct std::path::Path">Path</a>,
     result: &amp;<a class="struct" href="../diagnostic/struct.LintResult.html" title="struct bashrs::linter::diagnostic::LintResult">LintResult</a>,
     options: &amp;<a class="struct" href="struct.FixOptions.html" title="struct bashrs::linter::autofix::FixOptions">FixOptions</a>,
-) -&gt; <a class="type" href="https://doc.rust-lang.org/1.91.1/std/io/error/type.Result.html" title="type std::io::error::Result">Result</a>&lt;<a class="struct" href="struct.FixResult.html" title="struct bashrs::linter::autofix::FixResult">FixResult</a>&gt;</code></pre><details class="toggle top-doc" open><summary class="hideme"><span>Expand description</span></summary><div class="docblock"><p>Apply fixes to a file</p>
+) -&gt; <a class="type" href="https://doc.rust-lang.org/1.91.1/std/io/error/type.Result.html" title="type std::io::error::Result">Result</a>&lt;<a class="struct" href="struct.FixResult.html" title="struct bashrs::linter::autofix::FixResult">FixResult</a>&gt;</code></pre><details class="toggle top-doc" open><summary class="hideme"><span>Expand description</span></summary><div class="docblock"><p>Applies fixes from a lint result to a file on disk.</p>
+<p>Reads the file, applies fixes, and writes the result back. Optionally creates
+a backup before modification.</p>
 <h2 id="arguments"><a class="doc-anchor" href="#arguments">§</a>Arguments</h2>
 <ul>
-<li><code>file_path</code> - Path to file to fix</li>
-<li><code>result</code> - Lint result containing diagnostics with fixes</li>
-<li><code>options</code> - Fix application options</li>
+<li><code>file_path</code> - Path to the file to fix</li>
+<li><code>result</code> - Lint result containing diagnostics with suggested fixes</li>
+<li><code>options</code> - Configuration for fix application</li>
 </ul>
 <h2 id="returns"><a class="doc-anchor" href="#returns">§</a>Returns</h2>
-<p>Result containing fix application results</p>
-</div></details></section></div></main></body></html>
+<ul>
+<li><code>Ok(FixResult)</code> - Fix results including count, modified source, and backup path</li>
+<li><code>Err(io::Error)</code> - If file I/O or fix application fails</li>
+</ul>
+<h2 id="backup-behavior"><a class="doc-anchor" href="#backup-behavior">§</a>Backup Behavior</h2>
+<p>If <code>options.create_backup = true</code> and <code>options.dry_run = false</code>:</p>
+<ul>
+<li>Creates backup at <code>&lt;file_path&gt;&lt;backup_suffix&gt;</code></li>
+<li>Backup path returned in <code>FixResult.backup_path</code></li>
+</ul>
+<h2 id="output-behavior"><a class="doc-anchor" href="#output-behavior">§</a>Output Behavior</h2>
+<ul>
+<li><code>options.output_path = None</code>: Modify file in-place (default)</li>
+<li><code>options.output_path = Some(path)</code>: Write to <code>path</code>, leave original unchanged</li>
+</ul>
+<h2 id="examples"><a class="doc-anchor" href="#examples">§</a>Examples</h2><h3 id="apply-fixes-with-backup"><a class="doc-anchor" href="#apply-fixes-with-backup">§</a>Apply fixes with backup</h3>
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="kw">use </span>bashrs::linter::{autofix, LintResult};
+<span class="kw">use </span>std::path::Path;
+
+<span class="kw">let </span>file_path = Path::new(<span class="string">"script.sh"</span>);
+<span class="kw">let </span>result = LintResult::new(); <span class="comment">// Assume populated with diagnostics
+
+</span><span class="kw">let </span>options = autofix::FixOptions {
+    create_backup: <span class="bool-val">true</span>,
+    backup_suffix: <span class="string">".bak"</span>.to_string(),
+    ..Default::default()
+};
+
+<span class="kw">let </span>fix_result = autofix::apply_fixes_to_file(file_path, <span class="kw-2">&amp;</span>result, <span class="kw-2">&amp;</span>options).unwrap();
+<span class="macro">println!</span>(<span class="string">"Applied {} fixes"</span>, fix_result.fixes_applied);
+<span class="kw">if let </span><span class="prelude-val">Some</span>(backup) = fix_result.backup_path {
+    <span class="macro">println!</span>(<span class="string">"Backup created at: {}"</span>, backup);
+}</code></pre></div><h3 id="dry-run-on-file"><a class="doc-anchor" href="#dry-run-on-file">§</a>Dry-run on file</h3>
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="kw">use </span>bashrs::linter::{autofix, LintResult};
+<span class="kw">use </span>std::path::Path;
+
+<span class="kw">let </span>file_path = Path::new(<span class="string">"script.sh"</span>);
+<span class="kw">let </span>result = LintResult::new(); <span class="comment">// Assume populated
+
+</span><span class="kw">let </span>options = autofix::FixOptions {
+    dry_run: <span class="bool-val">true</span>,
+    ..Default::default()
+};
+
+<span class="kw">let </span>fix_result = autofix::apply_fixes_to_file(file_path, <span class="kw-2">&amp;</span>result, <span class="kw-2">&amp;</span>options).unwrap();
+<span class="macro">println!</span>(<span class="string">"Would apply {} fixes (dry-run)"</span>, fix_result.fixes_applied);
+<span class="macro">assert!</span>(fix_result.backup_path.is_none()); <span class="comment">// No backup in dry-run</span></code></pre></div><h3 id="write-to-different-file"><a class="doc-anchor" href="#write-to-different-file">§</a>Write to different file</h3>
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="kw">use </span>bashrs::linter::{autofix, LintResult};
+<span class="kw">use </span>std::path::{Path, PathBuf};
+
+<span class="kw">let </span>input_path = Path::new(<span class="string">"original.sh"</span>);
+<span class="kw">let </span>output_path = PathBuf::from(<span class="string">"fixed.sh"</span>);
+<span class="kw">let </span>result = LintResult::new(); <span class="comment">// Assume populated
+
+</span><span class="kw">let </span>options = autofix::FixOptions {
+    output_path: <span class="prelude-val">Some</span>(output_path),
+    ..Default::default()
+};
+
+<span class="kw">let </span>fix_result = autofix::apply_fixes_to_file(input_path, <span class="kw-2">&amp;</span>result, <span class="kw-2">&amp;</span>options).unwrap();
+<span class="macro">println!</span>(<span class="string">"Wrote fixed version to fixed.sh"</span>);</code></pre></div></div></details></section></div></main></body></html>

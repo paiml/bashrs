@@ -1,22 +1,83 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Apply fixes from lint result to source code"><title>apply_fixes in bashrs::linter::autofix - Rust</title><script>if(window.location.protocol!=="file:")document.head.insertAdjacentHTML("beforeend","SourceSerif4-Regular-6b053e98.ttf.woff2,FiraSans-Italic-81dc35de.woff2,FiraSans-Regular-0fe48ade.woff2,FiraSans-MediumItalic-ccf7e434.woff2,FiraSans-Medium-e1aa3f0a.woff2,SourceCodePro-Regular-8badfe75.ttf.woff2,SourceCodePro-Semibold-aa29a496.ttf.woff2".split(",").map(f=>`<link rel="preload" as="font" type="font/woff2"href="../../../static.files/${f}">`).join(""))</script><link rel="stylesheet" href="../../../static.files/normalize-9960930a.css"><link rel="stylesheet" href="../../../static.files/rustdoc-e56847b5.css"><meta name="rustdoc-vars" data-root-path="../../../" data-static-root-path="../../../static.files/" data-current-crate="bashrs" data-themes="" data-resource-suffix="" data-rustdoc-version="1.91.1 (ed61e7d7e 2025-11-07)" data-channel="1.91.1" data-search-js="search-e256b49e.js" data-stringdex-js="stringdex-c3e638e9.js" data-settings-js="settings-c38705f0.js" ><script src="../../../static.files/storage-e2aeef58.js"></script><script defer src="sidebar-items.js"></script><script defer src="../../../static.files/main-6dc2a7f3.js"></script><noscript><link rel="stylesheet" href="../../../static.files/noscript-263c88ec.css"></noscript><link rel="alternate icon" type="image/png" href="../../../static.files/favicon-32x32-eab170b8.png"><link rel="icon" type="image/svg+xml" href="../../../static.files/favicon-044be391.svg"></head><body class="rustdoc fn"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><rustdoc-topbar><h2><a href="#">apply_fixes</a></h2></rustdoc-topbar><nav class="sidebar"><div class="sidebar-crate"><h2><a href="../../../bashrs/index.html">bashrs</a><span class="version">6.35.0</span></h2></div><div class="sidebar-elems"><section id="rustdoc-toc"><h2 class="location"><a href="#">apply_<wbr>fixes</a></h2><h3><a href="#">Sections</a></h3><ul class="block top-toc"><li><a href="#arguments" title="Arguments">Arguments</a></li><li><a href="#returns" title="Returns">Returns</a></li><li><a href="#conflict-resolution" title="Conflict Resolution">Conflict Resolution</a></li></ul></section><div id="rustdoc-modnav"><h2><a href="index.html">In bashrs::<wbr>linter::<wbr>autofix</a></h2></div></div></nav><div class="sidebar-resizer" title="Drag to resize sidebar"></div><main><div class="width-limiter"><section id="main-content" class="content"><div class="main-heading"><div class="rustdoc-breadcrumbs"><a href="../../index.html">bashrs</a>::<wbr><a href="../index.html">linter</a>::<wbr><a href="index.html">autofix</a></div><h1>Function <span class="fn">apply_<wbr>fixes</span>&nbsp;<button id="copy-path" title="Copy item path to clipboard">Copy item path</button></h1><rustdoc-toolbar></rustdoc-toolbar><span class="sub-heading"><a class="src" href="../../../src/bashrs/linter/autofix.rs.html#111-187">Source</a> </span></div><pre class="rust item-decl"><code>pub fn apply_fixes(
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Applies fixes from a lint result to source code in memory."><title>apply_fixes in bashrs::linter::autofix - Rust</title><script>if(window.location.protocol!=="file:")document.head.insertAdjacentHTML("beforeend","SourceSerif4-Regular-6b053e98.ttf.woff2,FiraSans-Italic-81dc35de.woff2,FiraSans-Regular-0fe48ade.woff2,FiraSans-MediumItalic-ccf7e434.woff2,FiraSans-Medium-e1aa3f0a.woff2,SourceCodePro-Regular-8badfe75.ttf.woff2,SourceCodePro-Semibold-aa29a496.ttf.woff2".split(",").map(f=>`<link rel="preload" as="font" type="font/woff2"href="../../../static.files/${f}">`).join(""))</script><link rel="stylesheet" href="../../../static.files/normalize-9960930a.css"><link rel="stylesheet" href="../../../static.files/rustdoc-e56847b5.css"><meta name="rustdoc-vars" data-root-path="../../../" data-static-root-path="../../../static.files/" data-current-crate="bashrs" data-themes="" data-resource-suffix="" data-rustdoc-version="1.91.1 (ed61e7d7e 2025-11-07)" data-channel="1.91.1" data-search-js="search-e256b49e.js" data-stringdex-js="stringdex-c3e638e9.js" data-settings-js="settings-c38705f0.js" ><script src="../../../static.files/storage-e2aeef58.js"></script><script defer src="sidebar-items.js"></script><script defer src="../../../static.files/main-6dc2a7f3.js"></script><noscript><link rel="stylesheet" href="../../../static.files/noscript-263c88ec.css"></noscript><link rel="alternate icon" type="image/png" href="../../../static.files/favicon-32x32-eab170b8.png"><link rel="icon" type="image/svg+xml" href="../../../static.files/favicon-044be391.svg"></head><body class="rustdoc fn"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><rustdoc-topbar><h2><a href="#">apply_fixes</a></h2></rustdoc-topbar><nav class="sidebar"><div class="sidebar-crate"><h2><a href="../../../bashrs/index.html">bashrs</a><span class="version">6.35.0</span></h2></div><div class="sidebar-elems"><section id="rustdoc-toc"><h2 class="location"><a href="#">apply_<wbr>fixes</a></h2><h3><a href="#">Sections</a></h3><ul class="block top-toc"><li><a href="#arguments" title="Arguments">Arguments</a></li><li><a href="#returns" title="Returns">Returns</a></li><li><a href="#conflict-resolution" title="Conflict Resolution">Conflict Resolution</a></li><li><a href="#safety-level-filtering" title="Safety Level Filtering">Safety Level Filtering</a></li><li><a href="#examples" title="Examples">Examples</a><ul><li><a href="#basic-usage" title="Basic usage">Basic usage</a></li><li><a href="#multiple-fixes" title="Multiple fixes">Multiple fixes</a></li><li><a href="#dry-run-mode" title="Dry-run mode">Dry-run mode</a></li></ul></li></ul></section><div id="rustdoc-modnav"><h2><a href="index.html">In bashrs::<wbr>linter::<wbr>autofix</a></h2></div></div></nav><div class="sidebar-resizer" title="Drag to resize sidebar"></div><main><div class="width-limiter"><section id="main-content" class="content"><div class="main-heading"><div class="rustdoc-breadcrumbs"><a href="../../index.html">bashrs</a>::<wbr><a href="../index.html">linter</a>::<wbr><a href="index.html">autofix</a></div><h1>Function <span class="fn">apply_<wbr>fixes</span>&nbsp;<button id="copy-path" title="Copy item path to clipboard">Copy item path</button></h1><rustdoc-toolbar></rustdoc-toolbar><span class="sub-heading"><a class="src" href="../../../src/bashrs/linter/autofix.rs.html#384-460">Source</a> </span></div><pre class="rust item-decl"><code>pub fn apply_fixes(
     source: &amp;<a class="primitive" href="https://doc.rust-lang.org/1.91.1/std/primitive.str.html">str</a>,
     result: &amp;<a class="struct" href="../diagnostic/struct.LintResult.html" title="struct bashrs::linter::diagnostic::LintResult">LintResult</a>,
     options: &amp;<a class="struct" href="struct.FixOptions.html" title="struct bashrs::linter::autofix::FixOptions">FixOptions</a>,
-) -&gt; <a class="type" href="https://doc.rust-lang.org/1.91.1/std/io/error/type.Result.html" title="type std::io::error::Result">Result</a>&lt;<a class="struct" href="struct.FixResult.html" title="struct bashrs::linter::autofix::FixResult">FixResult</a>&gt;</code></pre><details class="toggle top-doc" open><summary class="hideme"><span>Expand description</span></summary><div class="docblock"><p>Apply fixes from lint result to source code</p>
+) -&gt; <a class="type" href="https://doc.rust-lang.org/1.91.1/std/io/error/type.Result.html" title="type std::io::error::Result">Result</a>&lt;<a class="struct" href="struct.FixResult.html" title="struct bashrs::linter::autofix::FixResult">FixResult</a>&gt;</code></pre><details class="toggle top-doc" open><summary class="hideme"><span>Expand description</span></summary><div class="docblock"><p>Applies fixes from a lint result to source code in memory.</p>
+<p>Processes diagnostics with fixes and applies them to the source code string.
+Fixes are filtered by safety level according to <code>options.apply_assumptions</code>.</p>
 <h2 id="arguments"><a class="doc-anchor" href="#arguments">§</a>Arguments</h2>
 <ul>
-<li><code>source</code> - Original source code</li>
-<li><code>result</code> - Lint result containing diagnostics with fixes</li>
-<li><code>options</code> - Fix application options</li>
+<li><code>source</code> - Original source code as a string</li>
+<li><code>result</code> - Lint result containing diagnostics with suggested fixes</li>
+<li><code>options</code> - Configuration for fix application (dry-run, safety levels, etc.)</li>
 </ul>
 <h2 id="returns"><a class="doc-anchor" href="#returns">§</a>Returns</h2>
-<p>Result containing number of fixes applied and modified source</p>
+<ul>
+<li><code>Ok(FixResult)</code> - Fix results including count and modified source</li>
+<li><code>Err(io::Error)</code> - If fix application fails</li>
+</ul>
 <h2 id="conflict-resolution"><a class="doc-anchor" href="#conflict-resolution">§</a>Conflict Resolution</h2>
 <p>When multiple fixes overlap on the same span, they are applied in priority order:</p>
 <ol>
-<li>SC2116 (remove useless constructs) - Highest priority</li>
-<li>SC2046 (quote command substitutions)</li>
-<li>SC2086 (quote variables) - Lowest priority</li>
+<li><strong>SC2116</strong> (remove useless constructs) - Highest priority</li>
+<li><strong>SC2046</strong> (quote command substitutions)</li>
+<li><strong>SC2086</strong> (quote variables) - Lowest priority</li>
 </ol>
 <p>This ensures correct transformation: <code>$(echo $VAR)</code> → <code>$VAR</code> → <code>"$VAR"</code></p>
-</div></details></section></div></main></body></html>
+<h2 id="safety-level-filtering"><a class="doc-anchor" href="#safety-level-filtering">§</a>Safety Level Filtering</h2>
+<ul>
+<li><code>apply_assumptions = false</code>: Only <strong>Safe</strong> fixes applied</li>
+<li><code>apply_assumptions = true</code>: <strong>Safe</strong> + <strong>SafeWithAssumptions</strong> fixes applied</li>
+<li><strong>Unsafe</strong> fixes are NEVER auto-applied</li>
+</ul>
+<h2 id="examples"><a class="doc-anchor" href="#examples">§</a>Examples</h2><h3 id="basic-usage"><a class="doc-anchor" href="#basic-usage">§</a>Basic usage</h3>
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="kw">use </span>bashrs::linter::{autofix, Diagnostic, Fix, LintResult, Severity, Span};
+
+<span class="kw">let </span>source = <span class="string">"echo $VAR\n"</span>;
+<span class="kw">let </span><span class="kw-2">mut </span>result = LintResult::new();
+result.add(
+    Diagnostic::new(<span class="string">"SC2086"</span>, Severity::Warning, <span class="string">"Quote variable"</span>, Span::new(<span class="number">1</span>, <span class="number">6</span>, <span class="number">1</span>, <span class="number">10</span>))
+        .with_fix(Fix::new(<span class="string">"\"$VAR\""</span>))
+);
+
+<span class="kw">let </span>options = autofix::FixOptions::default();
+<span class="kw">let </span>fix_result = autofix::apply_fixes(source, <span class="kw-2">&amp;</span>result, <span class="kw-2">&amp;</span>options).unwrap();
+
+<span class="macro">assert_eq!</span>(fix_result.fixes_applied, <span class="number">1</span>);
+<span class="macro">assert_eq!</span>(fix_result.modified_source.unwrap(), <span class="string">"echo \"$VAR\"\n"</span>);</code></pre></div><h3 id="multiple-fixes"><a class="doc-anchor" href="#multiple-fixes">§</a>Multiple fixes</h3>
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="kw">use </span>bashrs::linter::{autofix, Diagnostic, Fix, LintResult, Severity, Span};
+
+<span class="kw">let </span>source = <span class="string">"cp $FILE1 $FILE2\n"</span>;
+<span class="kw">let </span><span class="kw-2">mut </span>result = LintResult::new();
+
+result.add(
+    Diagnostic::new(<span class="string">"SC2086"</span>, Severity::Warning, <span class="string">"Quote"</span>, Span::new(<span class="number">1</span>, <span class="number">4</span>, <span class="number">1</span>, <span class="number">10</span>))
+        .with_fix(Fix::new(<span class="string">"\"$FILE1\""</span>))
+);
+result.add(
+    Diagnostic::new(<span class="string">"SC2086"</span>, Severity::Warning, <span class="string">"Quote"</span>, Span::new(<span class="number">1</span>, <span class="number">11</span>, <span class="number">1</span>, <span class="number">17</span>))
+        .with_fix(Fix::new(<span class="string">"\"$FILE2\""</span>))
+);
+
+<span class="kw">let </span>options = autofix::FixOptions::default();
+<span class="kw">let </span>fix_result = autofix::apply_fixes(source, <span class="kw-2">&amp;</span>result, <span class="kw-2">&amp;</span>options).unwrap();
+
+<span class="macro">assert_eq!</span>(fix_result.fixes_applied, <span class="number">2</span>);
+<span class="macro">assert_eq!</span>(fix_result.modified_source.unwrap(), <span class="string">"cp \"$FILE1\" \"$FILE2\"\n"</span>);</code></pre></div><h3 id="dry-run-mode"><a class="doc-anchor" href="#dry-run-mode">§</a>Dry-run mode</h3>
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="kw">use </span>bashrs::linter::{autofix, Diagnostic, Fix, LintResult, Severity, Span};
+
+<span class="kw">let </span>source = <span class="string">"ls $DIR\n"</span>;
+<span class="kw">let </span><span class="kw-2">mut </span>result = LintResult::new();
+result.add(
+    Diagnostic::new(<span class="string">"SC2086"</span>, Severity::Warning, <span class="string">"Quote"</span>, Span::new(<span class="number">1</span>, <span class="number">4</span>, <span class="number">1</span>, <span class="number">8</span>))
+        .with_fix(Fix::new(<span class="string">"\"$DIR\""</span>))
+);
+
+<span class="kw">let </span>options = autofix::FixOptions {
+    dry_run: <span class="bool-val">true</span>,
+    ..Default::default()
+};
+
+<span class="kw">let </span>fix_result = autofix::apply_fixes(source, <span class="kw-2">&amp;</span>result, <span class="kw-2">&amp;</span>options).unwrap();
+<span class="macro">assert_eq!</span>(fix_result.fixes_applied, <span class="number">1</span>);
+<span class="macro">assert!</span>(fix_result.modified_source.is_none()); <span class="comment">// No source in dry-run</span></code></pre></div></div></details></section></div></main></body></html>
