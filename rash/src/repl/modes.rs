@@ -9,30 +9,88 @@
 // - Mutation score: ≥90%
 // - Complexity: <10 per function
 
-/// REPL execution modes
+/// REPL execution modes for different command processing behaviors.
 ///
-/// Different modes provide different behaviors for command processing:
-/// - Normal: Execute bash commands directly
-/// - Purify: Show purified version of bash commands
-/// - Lint: Show linting results for bash commands
-/// - Debug: Debug bash commands with step-by-step execution
-/// - Explain: Explain bash constructs and syntax
+/// `ReplMode` determines how the REPL interprets and processes bash commands.
+/// Each mode provides a specialized view or transformation of the input.
+///
+/// # Modes
+///
+/// - **Normal**: Execute bash commands directly (default)
+/// - **Purify**: Show purified, deterministic version of bash commands
+/// - **Lint**: Display linting results and safety warnings
+/// - **Debug**: Step-by-step execution with breakpoints
+/// - **Explain**: Educational explanations of bash constructs
+///
+/// # Examples
+///
+/// ## Using modes with ReplState
+///
+/// ```
+/// use bashrs::repl::{ReplState, ReplMode};
+///
+/// let mut state = ReplState::new();
+///
+/// // Start in normal mode
+/// assert_eq!(state.mode(), ReplMode::Normal);
+///
+/// // Switch to purify mode
+/// state.set_mode(ReplMode::Purify);
+/// assert_eq!(state.mode(), ReplMode::Purify);
+/// ```
+///
+/// ## Parsing mode from user input
+///
+/// ```
+/// use bashrs::repl::ReplMode;
+///
+/// let mode = ReplMode::parse("lint").unwrap();
+/// assert_eq!(mode, ReplMode::Lint);
+///
+/// // Case-insensitive parsing
+/// let mode2 = ReplMode::parse("PURIFY").unwrap();
+/// assert_eq!(mode2, ReplMode::Purify);
+/// ```
+///
+/// ## Converting mode to string
+///
+/// ```
+/// use bashrs::repl::ReplMode;
+///
+/// let mode = ReplMode::Debug;
+/// assert_eq!(mode.as_str(), "debug");
+/// ```
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum ReplMode {
-    /// Normal mode - execute commands directly
+    /// Normal mode - execute bash commands directly (default).
+    ///
+    /// In Normal mode, commands are executed as-is without transformation.
+    /// This is the standard interactive shell behavior.
     #[default]
     Normal,
 
-    /// Purify mode - show purified version of bash commands
+    /// Purify mode - show purified, deterministic version of bash commands.
+    ///
+    /// In Purify mode, commands are transformed to remove non-deterministic
+    /// constructs ($RANDOM, timestamps, etc.) and ensure idempotency.
     Purify,
 
-    /// Lint mode - show linting results
+    /// Lint mode - show linting results and safety warnings.
+    ///
+    /// In Lint mode, commands are analyzed for potential security issues,
+    /// POSIX compliance, and best practices violations.
     Lint,
 
-    /// Debug mode - step-by-step execution
+    /// Debug mode - step-by-step execution with breakpoints.
+    ///
+    /// In Debug mode, commands can be executed line-by-line with the ability
+    /// to inspect variables and control flow.
     Debug,
 
-    /// Explain mode - explain bash constructs
+    /// Explain mode - educational explanations of bash constructs.
+    ///
+    /// In Explain mode, commands are analyzed and explained in plain language,
+    /// useful for learning bash syntax and semantics.
     Explain,
 }
 
