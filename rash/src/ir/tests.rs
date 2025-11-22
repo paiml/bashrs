@@ -1311,3 +1311,193 @@ fn test_multiple_exit_code_calls() {
         _ => panic!("Expected Sequence"),
     }
 }
+
+// ============= Optimizer Enhancement: Arithmetic Constant Folding - RED PHASE =============
+
+/// RED TEST: Arithmetic addition constant folding
+/// Tests that $((10 + 20)) → "30" at compile time
+#[test]
+fn test_optimizer_arithmetic_addition_folding() {
+    let config = crate::models::Config::default(); // optimize = true
+
+    let ir = ShellIR::Let {
+        name: "sum".to_string(),
+        value: ShellValue::Arithmetic {
+            op: crate::ir::shell_ir::ArithmeticOp::Add,
+            left: Box::new(ShellValue::String("10".to_string())),
+            right: Box::new(ShellValue::String("20".to_string())),
+        },
+        effects: EffectSet::pure(),
+    };
+
+    let optimized = optimize(ir, &config).unwrap();
+
+    // Should fold to constant "30"
+    match optimized {
+        ShellIR::Let {
+            value: ShellValue::String(s),
+            ..
+        } => {
+            assert_eq!(s, "30", "10 + 20 should fold to 30");
+        }
+        _ => panic!("Expected optimized constant string"),
+    }
+}
+
+/// RED TEST: Arithmetic subtraction constant folding
+/// Tests that $((50 - 12)) → "38" at compile time
+#[test]
+fn test_optimizer_arithmetic_subtraction_folding() {
+    let config = crate::models::Config::default();
+
+    let ir = ShellIR::Let {
+        name: "diff".to_string(),
+        value: ShellValue::Arithmetic {
+            op: crate::ir::shell_ir::ArithmeticOp::Sub,
+            left: Box::new(ShellValue::String("50".to_string())),
+            right: Box::new(ShellValue::String("12".to_string())),
+        },
+        effects: EffectSet::pure(),
+    };
+
+    let optimized = optimize(ir, &config).unwrap();
+
+    match optimized {
+        ShellIR::Let {
+            value: ShellValue::String(s),
+            ..
+        } => {
+            assert_eq!(s, "38", "50 - 12 should fold to 38");
+        }
+        _ => panic!("Expected optimized constant string"),
+    }
+}
+
+/// RED TEST: Arithmetic multiplication constant folding
+/// Tests that $((10 * 1024 * 1024)) → "10485760" (10MB) at compile time
+#[test]
+fn test_optimizer_arithmetic_multiplication_folding() {
+    let config = crate::models::Config::default();
+
+    // First multiply: 10 * 1024 = 10240
+    let inner_mul = ShellValue::Arithmetic {
+        op: crate::ir::shell_ir::ArithmeticOp::Mul,
+        left: Box::new(ShellValue::String("10".to_string())),
+        right: Box::new(ShellValue::String("1024".to_string())),
+    };
+
+    // Second multiply: (10 * 1024) * 1024 = 10485760
+    let ir = ShellIR::Let {
+        name: "bytes".to_string(),
+        value: ShellValue::Arithmetic {
+            op: crate::ir::shell_ir::ArithmeticOp::Mul,
+            left: Box::new(inner_mul),
+            right: Box::new(ShellValue::String("1024".to_string())),
+        },
+        effects: EffectSet::pure(),
+    };
+
+    let optimized = optimize(ir, &config).unwrap();
+
+    match optimized {
+        ShellIR::Let {
+            value: ShellValue::String(s),
+            ..
+        } => {
+            assert_eq!(s, "10485760", "10 * 1024 * 1024 should fold to 10485760");
+        }
+        _ => panic!("Expected optimized constant string"),
+    }
+}
+
+/// RED TEST: Arithmetic division constant folding
+/// Tests that $((100 / 5)) → "20" at compile time
+#[test]
+fn test_optimizer_arithmetic_division_folding() {
+    let config = crate::models::Config::default();
+
+    let ir = ShellIR::Let {
+        name: "quotient".to_string(),
+        value: ShellValue::Arithmetic {
+            op: crate::ir::shell_ir::ArithmeticOp::Div,
+            left: Box::new(ShellValue::String("100".to_string())),
+            right: Box::new(ShellValue::String("5".to_string())),
+        },
+        effects: EffectSet::pure(),
+    };
+
+    let optimized = optimize(ir, &config).unwrap();
+
+    match optimized {
+        ShellIR::Let {
+            value: ShellValue::String(s),
+            ..
+        } => {
+            assert_eq!(s, "20", "100 / 5 should fold to 20");
+        }
+        _ => panic!("Expected optimized constant string"),
+    }
+}
+
+/// RED TEST: Arithmetic with non-constant should NOT fold
+/// Tests that $((x + 10)) stays as Arithmetic (cannot fold with variable)
+#[test]
+fn test_optimizer_arithmetic_with_variable_no_fold() {
+    let config = crate::models::Config::default();
+
+    let ir = ShellIR::Let {
+        name: "result".to_string(),
+        value: ShellValue::Arithmetic {
+            op: crate::ir::shell_ir::ArithmeticOp::Add,
+            left: Box::new(ShellValue::Variable("x".to_string())),
+            right: Box::new(ShellValue::String("10".to_string())),
+        },
+        effects: EffectSet::pure(),
+    };
+
+    let optimized = optimize(ir, &config).unwrap();
+
+    // Should NOT fold (variable involved)
+    match optimized {
+        ShellIR::Let {
+            value: ShellValue::Arithmetic { .. },
+            ..
+        } => {
+            // Good - still Arithmetic, not folded
+        }
+        _ => panic!("Expected unoptimized Arithmetic (variable involved)"),
+    }
+}
+
+/// RED TEST: Optimization disabled should preserve arithmetic
+/// Tests that optimize=false keeps Arithmetic unchanged
+#[test]
+fn test_optimizer_disabled_preserves_arithmetic() {
+    let config = crate::models::Config {
+        optimize: false,
+        ..Default::default()
+    };
+
+    let ir = ShellIR::Let {
+        name: "sum".to_string(),
+        value: ShellValue::Arithmetic {
+            op: crate::ir::shell_ir::ArithmeticOp::Add,
+            left: Box::new(ShellValue::String("10".to_string())),
+            right: Box::new(ShellValue::String("20".to_string())),
+        },
+        effects: EffectSet::pure(),
+    };
+
+    let result = optimize(ir, &config).unwrap();
+
+    // Should be unchanged when optimization is disabled
+    match result {
+        ShellIR::Let {
+            value: ShellValue::Arithmetic { .. },
+            ..
+        } => {
+            // Good - preserved
+        }
+        _ => panic!("Expected unoptimized Arithmetic"),
+    }
+}
