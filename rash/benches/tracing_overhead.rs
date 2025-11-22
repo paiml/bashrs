@@ -1,3 +1,4 @@
+#![allow(clippy::unwrap_used)] // Benchmarks can use unwrap() for simplicity
 //! Tracing Overhead Benchmarks
 //!
 //! Week 1 Performance Checkpoint: Verify <10% overhead target

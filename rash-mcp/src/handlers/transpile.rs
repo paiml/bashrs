@@ -53,6 +53,7 @@ impl Handler for TranspileHandler {
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used)] // Tests can use unwrap() for simplicity
 mod tests {
     use super::*;
 

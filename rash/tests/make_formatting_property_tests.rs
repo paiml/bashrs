@@ -1,3 +1,4 @@
+#![allow(clippy::unwrap_used)] // Tests can use unwrap() for simplicity
 //! Property-based tests for Makefile formatting options
 //!
 //! These tests use proptest to verify formatting properties hold across

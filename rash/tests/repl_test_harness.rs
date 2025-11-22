@@ -1,3 +1,4 @@
+#![allow(clippy::unwrap_used)] // Tests can use unwrap() for simplicity
 //! REPL Test Harness
 //!
 //! Task: REPL-002-003 - Create REPL test harness with assert_cmd

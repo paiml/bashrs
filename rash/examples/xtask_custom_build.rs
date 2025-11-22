@@ -1,3 +1,4 @@
+#![allow(clippy::unwrap_used)] // Examples can use unwrap() for simplicity
 // Example: Custom build script with full control
 //
 // This demonstrates the programmatic API for complex build scenarios.

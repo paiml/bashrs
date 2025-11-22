@@ -1,3 +1,4 @@
+#![allow(clippy::unwrap_used)] // Tests can use unwrap() for simplicity
 // CLI Bench Command Tests - EXTREME TDD
 // Testing bashrs bench sub-command with NASA-quality standards
 

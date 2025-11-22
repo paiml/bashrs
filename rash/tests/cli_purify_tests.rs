@@ -1,3 +1,4 @@
+#![allow(clippy::unwrap_used)] // Tests can use unwrap() for simplicity
 // CLI Integration Tests for bashrs purify Command
 // EXTREME TDD: CLI testing with assert_cmd (MANDATORY per CLAUDE.md)
 //

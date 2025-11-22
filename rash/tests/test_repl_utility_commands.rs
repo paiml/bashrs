@@ -1,3 +1,4 @@
+#![allow(clippy::unwrap_used)] // Tests can use unwrap() for simplicity
 //! REPL Utility Commands Tests
 //!
 //! Task: REPL-004-001 - Utility commands (:history, :vars, :clear)

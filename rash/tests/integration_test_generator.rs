@@ -1,3 +1,4 @@
+#![allow(clippy::unwrap_used)] // Tests can use unwrap() for simplicity
 // Integration test for TestGenerator
 // Tests the complete workflow: bash script -> AST -> generated tests
 

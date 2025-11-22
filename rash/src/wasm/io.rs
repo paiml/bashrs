@@ -43,27 +43,36 @@ impl IoStreams {
 
     /// Get captured stdout as UTF-8 string
     pub fn get_stdout(&self) -> String {
-        self.stdout_capture.lock().unwrap().as_string()
+        self.stdout_capture
+            .lock()
+            .expect("stdout capture lock poisoned")
+            .as_string()
     }
 
     /// Get captured stderr as UTF-8 string
     pub fn get_stderr(&self) -> String {
-        self.stderr_capture.lock().unwrap().as_string()
+        self.stderr_capture
+            .lock()
+            .expect("stderr capture lock poisoned")
+            .as_string()
     }
 
     /// Get stdin content
     pub fn get_stdin(&self) -> String {
-        self.stdin.lock().unwrap().clone()
+        self.stdin
+            .lock()
+            .expect("stdin lock poisoned")
+            .clone()
     }
 
     /// Set stdin content (for pipelines)
     pub fn set_stdin(&mut self, content: &str) {
-        *self.stdin.lock().unwrap() = content.to_string();
+        *self.stdin.lock().expect("stdin lock poisoned") = content.to_string();
     }
 
     /// Clear stdin
     pub fn clear_stdin(&mut self) {
-        self.stdin.lock().unwrap().clear();
+        self.stdin.lock().expect("stdin lock poisoned").clear();
     }
 }
 
@@ -84,11 +93,17 @@ struct SharedWriter(Arc<Mutex<CaptureWriter>>);
 
 impl Write for SharedWriter {
     fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
-        self.0.lock().unwrap().write(buf)
+        self.0
+            .lock()
+            .expect("shared writer lock poisoned")
+            .write(buf)
     }
 
     fn flush(&mut self) -> io::Result<()> {
-        self.0.lock().unwrap().flush()
+        self.0
+            .lock()
+            .expect("shared writer lock poisoned")
+            .flush()
     }
 }
 

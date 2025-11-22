@@ -1,3 +1,4 @@
+#![allow(clippy::unwrap_used)] // Benchmarks can use unwrap() for simplicity
 use bashrs::validation::ValidationLevel;
 use bashrs::{transpile, Config};
 use criterion::{criterion_group, criterion_main, BenchmarkId, Criterion};
