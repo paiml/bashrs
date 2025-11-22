@@ -1,4 +1,3 @@
-#![allow(clippy::unwrap_used)] // Tests can use unwrap() for simplicity
 //! Unified Testing Quality Compliance Tests
 //!
 //! EXTREME TDD verification of quality standards from:
@@ -7,8 +6,8 @@
 //! Test Naming Convention: test_SPEC_<ID>_<area>_<requirement>
 
 #![allow(non_snake_case)] // Test naming convention requires uppercase task IDs
-#![allow(clippy::unwrap_used)] // Standard in tests for known-valid patterns
-#![allow(clippy::expect_used)] // Standard in tests for better error messages
+#![allow(clippy::unwrap_used)] // Tests can use unwrap() for known-valid patterns
+#![allow(clippy::expect_used)] // Tests can use expect() for better error messages
 #![allow(clippy::panic)] // Tests intentionally panic on assertion failures
 
 use std::fs;
