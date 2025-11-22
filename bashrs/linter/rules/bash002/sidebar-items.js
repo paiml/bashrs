@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"fn":["check","is_in_string_or_regex"]};
