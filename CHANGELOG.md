@@ -9,6 +9,78 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+**Phase 3: Taint Tracking Type System for Injection Safety (P1 - Toyota Way §6.3)** ✅
+
+- Implemented comprehensive **Taint Tracking Type System** for injection attack prevention
+  - New module: `rash/src/types/taint.rs` (476 lines, 17 tests)
+  - Features:
+    - ✅ **Taint enum**: Safe, Tainted, Sanitized classifications
+    - ✅ **Type enum**: Int, String, Path, Command with taint tracking
+    - ✅ **TypeChecker**: Injection safety validation with variable scoping
+    - ✅ **Safety properties**: Tainted unquoted → UNSAFE, Quoted → Sanitized
+  - Quality: 9 unit tests + 8 property tests (100+ cases each) = 17 tests, 100% pass rate
+  - Addresses: Toyota Way review §6.3 (P1 priority), formal spec §4.1-§4.2
+
+- Implemented **SEC019 Linter Rule** for static injection detection
+  - New rule: `rash/src/linter/rules/sec019.rs` (525 lines, 15 tests)
+  - Detection capabilities:
+    - ✅ Unquoted variable expansions ($var, ${var})
+    - ✅ Special variable filtering ($$, $?, $#, $@, $*)
+    - ✅ Safe context detection ([[ ]], arithmetic $(( )))
+    - ✅ Quoted vs unquoted distinction
+  - Test coverage:
+    - ✅ 10 unit tests (basic detection scenarios)
+    - ✅ 5 integration tests (real-world attack patterns)
+    - ✅ 1 test ignored (future: command substitution scanning)
+  - Severity: Warning (auto-fix suggestion: add quotes)
+  - Addresses: Toyota Way review §6.4 (P1 property tests), injection safety validation
+
+- Property-based testing for taint tracking security properties
+  - 8 property tests with 100+ generated cases each (800+ total test cases)
+  - Properties verified:
+    1. **prop_tainted_unquoted_always_unsafe**: Tainted unquoted variables always rejected
+    2. **prop_quoted_variables_safe**: Quoting sanitizes all variables
+    3. **prop_safe_always_allowed**: Safe variables always allowed
+    4. **prop_sanitized_always_allowed**: Sanitized variables always allowed
+    5. **prop_command_safety_respects_taint**: Command execution respects taint status
+    6. **prop_path_safety_requires_clean**: Paths require Safe or Sanitized
+    7. **prop_sanitize_idempotent**: Sanitization is idempotent
+    8. **prop_type_checker_consistent**: Type checker gives consistent results
+  - Generators: Variable names, taint values, types (proptest strategies)
+  - Addresses: EXTREME TDD property testing requirement
+
+- Integration tests for end-to-end injection detection
+  - 5 real-world scenarios tested:
+    1. **Installer script**: Multi-variable user input handling
+    2. **Injection attack**: eval/rm/echo with malicious input
+    3. **Safe refactoring**: Properly quoted version (0 warnings)
+    4. **Mixed patterns**: Some quoted, some unquoted (partial detection)
+    5. **Dockerfile pattern**: Container deployment scripts
+  - Quality: All integration tests pass, realistic attack patterns verified
+  - Addresses: Toyota Way review §6.3 integration requirements
+
+### Quality Metrics (Phase 3)
+
+- **Test count**: 6738 tests (up from 6706, +32 new tests for taint tracking)
+- **Test pass rate**: 100% (6738 passed, 0 failed, 1 ignored)
+- **Property test coverage**: 800+ generated cases for security properties
+- **Code coverage**: taint.rs fully covered (100% critical paths)
+- **EXTREME TDD compliance**: RED-GREEN-REFACTOR cycle followed for all features
+
+### Security Improvements
+
+- **Injection attack prevention**: Static detection of unquoted variables in dangerous contexts
+- **Taint tracking**: Automatic classification of Safe, Tainted, and Sanitized values
+- **Type safety**: Path vs String vs Command distinction at type level
+- **Property guarantees**: 8 security properties verified with 100+ test cases each
+
+### Known Limitations (Phase 3)
+
+- **Command substitution scanning**: Variables inside $(...) not currently detected (test ignored, future enhancement)
+- **Backquote syntax**: Legacy `...` syntax not yet supported (use $(...) instead)
+- **Complex quoting**: Nested quotes and escape sequences may have edge cases
+- **AST integration**: SEC019 uses string-based detection (future: AST-based analysis)
+
 **Toyota Way Review and Enhanced State Model (Phase 1/2)**
 
 - Completed comprehensive Toyota Way review of formal verification specification
@@ -57,21 +129,53 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Enhanced state model: Fully documented with usage examples
 - Specification warnings: 4 layers (banner, §1.4, inline, appendix)
 
-### Pending (Phase 2)
+- Implemented **Permission-Aware Purification** (Phase 2 of P0 fixes) ✅
+  - New feature: `mkdir` commands now inject permission checks before execution
+  - Prevents "Permission denied" failures at runtime with early validation
+  - Implementation:
+    - Helper function: `generate_permission_check()` for reusable permission validation
+    - Permission check: `[ -w "$(dirname "$TARGET")" ]` before mkdir
+    - Error handling: Exit with descriptive error if permission denied
+    - Idempotency: Maintained `-p` flag on mkdir commands
+  - Test coverage:
+    - ✅ 2 unit tests (RED-GREEN-REFACTOR TDD cycle)
+    - ✅ 4 property tests with 100+ generated cases each
+    - ✅ Integration test validating generated shell code
+  - Quality: 6752 tests passing (excluding shellcheck-dependent tests)
+  - Addresses: Toyota Way review §6.2, formal spec limitation §1.4.2
+  - Location: `rash/src/bash_transpiler/purification.rs` (lines 643-730)
 
-**Permission-Aware Purification** (P0 priority, ~2 weeks effort)
+- Implemented **Missing Property Tests for Security** (P1 - Toyota Way §6.4) ✅
+  - Added 3 new property-based tests for security properties identified in review
+  - Property tests implemented:
+    1. **prop_no_injection_attacks**: Verifies all variable expansions are quoted to prevent injection attacks
+       - Generates 100+ test cases with malicious inputs (`;`, `|`, `&`, `$`, etc.)
+       - Ensures purified output quotes all variable references
+       - Validates both `$var` and `${var}` patterns are properly quoted
+    2. **prop_no_toctou_race_conditions**: Detects check-then-use patterns (TOCTOU)
+       - Tests file existence checks followed by file operations
+       - Logs when check-then-use patterns detected (future: will require warnings)
+       - Prepared for RED → GREEN cycle when TOCTOU detection implemented
+    3. **prop_no_infinite_loops**: Verifies loop termination conditions
+       - Tests while loops have explicit termination conditions
+       - Validates comparison operators present (`-lt`, `-le`, `-gt`, `-ge`, `-eq`, `-ne`)
+       - Ensures `do`/`done` structure preserved
+  - Test coverage:
+    - ✅ 3 new property tests with 100+ generated cases each (300+ total cases)
+    - ✅ All 24 property tests passing (21 existing + 3 new)
+    - ✅ Compilation successful, zero errors
+  - Quality: EXTREME TDD compliant, aligns with formal specification §4.1-§4.2
+  - Addresses: Toyota Way review §6.4 (P1 priority)
+  - Location: `rash/src/bash_transpiler/purification_property_tests.rs` (lines 505-655)
 
-- Requires architectural changes to code generator
-- Must inject permission check wrappers (see review §6.2)
-- Needs integration testing with real filesystem operations
-- Deferred to Phase 2 due to complexity
+### Pending (Phase 3)
 
 **Type System Implementation** (P1 priority, ~3 weeks effort)
 
 - Gradual type system with taint tracking (see review §6.3)
 - Static injection safety verification
 - Path vs. String distinction at type level
-- Deferred pending P0 completion
+- Deferred pending security property tests completion
 
 ## [6.36.0] - 2025-11-23
 
