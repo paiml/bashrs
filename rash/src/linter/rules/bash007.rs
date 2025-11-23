@@ -112,13 +112,36 @@ fn is_acceptable_path(line: &str, pattern: &str) -> bool {
         return true;
     }
 
-    // Allow /bin/bash, /bin/sh in specific contexts (common shebangs)
-    if (pattern == "/bin/" || pattern == "/usr/bin/") &&
-       (line.contains("/bin/bash") || line.contains("/bin/sh") ||
-        line.contains("/usr/bin/env")) {
-        return true;
+    // Allow /bin/bash, /bin/sh, /usr/bin/env in specific contexts (common shebangs)
+    // Use word boundaries to avoid false positives like /bin/sha matching /bin/sh
+    if (pattern == "/bin/" || pattern == "/usr/bin/") {
+        if is_shebang_path(line) {
+            return true;
+        }
     }
 
+    false
+}
+
+/// Check if line contains acceptable shebang paths
+/// Uses word boundaries to avoid false positives (e.g., /bin/sha shouldn't match /bin/sh)
+fn is_shebang_path(line: &str) -> bool {
+    // Check for exact matches with word boundaries
+    for path in &["/bin/bash", "/bin/sh", "/usr/bin/env", "/usr/bin/bash", "/usr/bin/sh"] {
+        if line.contains(path) {
+            // Verify it's a word boundary (followed by space, quote, or end of string)
+            if let Some(pos) = line.find(path) {
+                let after_pos = pos + path.len();
+                if after_pos >= line.len() {
+                    return true; // Path is at end of line
+                }
+                let next_char = line.chars().nth(after_pos);
+                if matches!(next_char, Some(' ') | Some('\t') | Some('"') | Some('\'') | Some(';')) {
+                    return true; // Path is followed by whitespace or quote
+                }
+            }
+        }
+    }
     false
 }
 
