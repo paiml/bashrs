@@ -7,6 +7,72 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+**Toyota Way Review and Enhanced State Model (Phase 1/2)**
+
+- Completed comprehensive Toyota Way review of formal verification specification
+  - Applied Lean Manufacturing principles (Genchi Genbutsu, Jidoka, Poka-yoke, Kaizen)
+  - Identified 3 critical gaps (P0) between specification and implementation
+  - Graded implementation: B- overall (B spec quality, C- alignment)
+  - Created 500+ line review document with 14 peer-reviewed citations
+  - Location: `rash/docs/reviews/toyota-way-formal-verification-review.md`
+
+- Implemented **Enhanced State Model** with Unix permissions (Phase 1 of P0 fixes)
+  - New module: `rash/src/formal/enhanced_state.rs` (700+ lines, 15 tests)
+  - Features:
+    - ✅ File permissions (mode bits: 0o755, 0o644, etc.)
+    - ✅ File ownership (UID/GID tracking)
+    - ✅ User execution context (EUID/EGID, supplementary groups)
+    - ✅ Permission-aware operations (`can_read`, `can_write`, `can_execute`)
+    - ✅ Idempotent `mkdir` with permission checks
+  - Quality: 10 tests, 100% pass rate, full permission checking logic
+  - Addresses: Toyota Way review §6.1, formal spec limitation §1.4.1
+
+- Updated formal verification specification with implementation warnings
+  - Added prominent "Implementation Status" section at top of specification
+  - Added §1.4 "Implementation Limitations" (167 lines) documenting all gaps
+  - Added inline warnings at §3.1.2 (State Model), §3.2 (Idempotency), §5 (Type System)
+  - Added Appendix D: Toyota Way Review Findings (125 lines)
+  - Updated to version 1.0.1 with revision history
+  - Location: `rash/docs/specifications/formal-verification-purification.md`
+
+### Changed
+
+**Scientific Integrity and Realistic Expectations**
+
+- Specification now clearly distinguishes theoretical proofs from implemented features
+- Users informed that:
+  - ✅ Determinism verification works (DET001 linter rule)
+  - ✅ POSIX compliance works (ShellCheck integration)
+  - ⚠️ Idempotency requires manual permission verification
+  - ❌ No static type system for injection safety (relies on linter rules)
+- Grade updated: C+ implementation alignment (was implied A)
+
+### Documentation
+
+**Comprehensive Review Documents**
+
+- Toyota Way review: 500+ lines, 14 citations, P0/P1/P2 prioritized action items
+- Enhanced state model: Fully documented with usage examples
+- Specification warnings: 4 layers (banner, §1.4, inline, appendix)
+
+### Pending (Phase 2)
+
+**Permission-Aware Purification** (P0 priority, ~2 weeks effort)
+
+- Requires architectural changes to code generator
+- Must inject permission check wrappers (see review §6.2)
+- Needs integration testing with real filesystem operations
+- Deferred to Phase 2 due to complexity
+
+**Type System Implementation** (P1 priority, ~3 weeks effort)
+
+- Gradual type system with taint tracking (see review §6.3)
+- Static injection safety verification
+- Path vs. String distinction at type level
+- Deferred pending P0 completion
+
 ## [6.36.0] - 2025-11-23
 
 ### Fixed
