@@ -379,6 +379,128 @@ proptest! {
             }
         }
     }
+
+    /// Property: mkdir commands always get -p flag for idempotency (Phase 2)
+    /// EXTREME TDD: Permission-aware purification (Toyota Way review §6.2)
+    #[test]
+    fn prop_mkdir_always_has_p_flag(
+        dir_name in "/[a-z]{1,10}(/[a-z]{1,10}){0,2}"
+    ) {
+        let bash_code = format!("#!/bin/bash\nmkdir {}", dir_name);
+
+        if let Ok(mut parser) = BashParser::new(&bash_code) {
+            if let Ok(ast) = parser.parse() {
+                let mut purifier = Purifier::new(PurificationOptions::default());
+                if let Ok(purified_ast) = purifier.purify(&ast) {
+                    let output = generate_purified_bash(&purified_ast);
+
+                    // INVARIANT: mkdir must have -p flag
+                    prop_assert!(
+                        output.contains("mkdir -p") || output.contains("mkdir") && output.contains("-p"),
+                        "mkdir command must have -p flag for idempotency, got: {}",
+                        output
+                    );
+                }
+            }
+        }
+    }
+
+    /// Property: mkdir commands always get permission check (Phase 2)
+    /// EXTREME TDD: Permission-aware purification (Toyota Way review §6.2)
+    #[test]
+    fn prop_mkdir_has_permission_check(
+        dir_name in "/[a-z]{1,10}(/[a-z]{1,10}){0,2}"
+    ) {
+        let bash_code = format!("#!/bin/bash\nmkdir {}", dir_name);
+
+        if let Ok(mut parser) = BashParser::new(&bash_code) {
+            if let Ok(ast) = parser.parse() {
+                let mut purifier = Purifier::new(PurificationOptions::default());
+                if let Ok(purified_ast) = purifier.purify(&ast) {
+                    let output = generate_purified_bash(&purified_ast);
+
+                    // INVARIANT: Must contain permission check
+                    prop_assert!(
+                        output.contains("-w") || output.contains("FileWritable"),
+                        "mkdir must have write permission check, got: {}",
+                        output
+                    );
+
+                    // INVARIANT: Must check parent directory
+                    prop_assert!(
+                        output.contains("dirname"),
+                        "mkdir permission check must verify parent directory, got: {}",
+                        output
+                    );
+                }
+            }
+        }
+    }
+
+    /// Property: mkdir permission check has error handling (Phase 2)
+    /// EXTREME TDD: Permission-aware purification (Toyota Way review §6.2)
+    #[test]
+    fn prop_mkdir_permission_error_handling(
+        dir_name in "/[a-z]{1,10}"
+    ) {
+        let bash_code = format!("#!/bin/bash\nmkdir {}", dir_name);
+
+        if let Ok(mut parser) = BashParser::new(&bash_code) {
+            if let Ok(ast) = parser.parse() {
+                let mut purifier = Purifier::new(PurificationOptions::default());
+                if let Ok(purified_ast) = purifier.purify(&ast) {
+                    let output = generate_purified_bash(&purified_ast);
+
+                    // INVARIANT: Must have Permission denied error message
+                    prop_assert!(
+                        output.contains("Permission denied") || output.contains("permission denied"),
+                        "mkdir must have permission denied error message, got: {}",
+                        output
+                    );
+
+                    // INVARIANT: Must exit on permission error
+                    prop_assert!(
+                        output.contains("exit 1") || output.contains("exit"),
+                        "mkdir must exit on permission error, got: {}",
+                        output
+                    );
+                }
+            }
+        }
+    }
+
+    /// Property: mkdir purification is deterministic (Phase 2)
+    /// EXTREME TDD: Same mkdir input → same purified output
+    #[test]
+    fn prop_mkdir_purification_deterministic(
+        dir_name in "/[a-z]{1,10}"
+    ) {
+        let bash_code = format!("#!/bin/bash\nmkdir {}", dir_name);
+
+        if let Ok(mut parser1) = BashParser::new(&bash_code) {
+            if let Ok(ast1) = parser1.parse() {
+                if let Ok(mut parser2) = BashParser::new(&bash_code) {
+                    if let Ok(ast2) = parser2.parse() {
+                        let mut purifier1 = Purifier::new(PurificationOptions::default());
+                        let mut purifier2 = Purifier::new(PurificationOptions::default());
+
+                        if let Ok(purified1) = purifier1.purify(&ast1) {
+                            if let Ok(purified2) = purifier2.purify(&ast2) {
+                                let output1 = generate_purified_bash(&purified1);
+                                let output2 = generate_purified_bash(&purified2);
+
+                                // INVARIANT: Must produce identical output
+                                prop_assert_eq!(
+                                    output1, output2,
+                                    "mkdir purification must be deterministic"
+                                );
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
 }
 
 // Unit tests for property test infrastructure

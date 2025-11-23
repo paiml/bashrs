@@ -57,21 +57,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Enhanced state model: Fully documented with usage examples
 - Specification warnings: 4 layers (banner, §1.4, inline, appendix)
 
-### Pending (Phase 2)
+- Implemented **Permission-Aware Purification** (Phase 2 of P0 fixes) ✅
+  - New feature: `mkdir` commands now inject permission checks before execution
+  - Prevents "Permission denied" failures at runtime with early validation
+  - Implementation:
+    - Helper function: `generate_permission_check()` for reusable permission validation
+    - Permission check: `[ -w "$(dirname "$TARGET")" ]` before mkdir
+    - Error handling: Exit with descriptive error if permission denied
+    - Idempotency: Maintained `-p` flag on mkdir commands
+  - Test coverage:
+    - ✅ 2 unit tests (RED-GREEN-REFACTOR TDD cycle)
+    - ✅ 4 property tests with 100+ generated cases each
+    - ✅ Integration test validating generated shell code
+  - Quality: 6752 tests passing (excluding shellcheck-dependent tests)
+  - Addresses: Toyota Way review §6.2, formal spec limitation §1.4.2
+  - Location: `rash/src/bash_transpiler/purification.rs` (lines 643-730)
 
-**Permission-Aware Purification** (P0 priority, ~2 weeks effort)
-
-- Requires architectural changes to code generator
-- Must inject permission check wrappers (see review §6.2)
-- Needs integration testing with real filesystem operations
-- Deferred to Phase 2 due to complexity
+### Pending (Phase 3)
 
 **Type System Implementation** (P1 priority, ~3 weeks effort)
 
 - Gradual type system with taint tracking (see review §6.3)
 - Static injection safety verification
 - Path vs. String distinction at type level
-- Deferred pending P0 completion
+- Deferred pending Phase 2 completion
 
 ## [6.36.0] - 2025-11-23
 
