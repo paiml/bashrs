@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"mod":["abstract_state","emitter","inspector","semantics","tiny_ast"]};
+window.SIDEBAR_ITEMS = {"mod":["abstract_state","emitter","enhanced_state","inspector","semantics","tiny_ast"]};
