@@ -362,6 +362,7 @@ pub mod sec011;
 pub mod sec012;
 pub mod sec017;
 pub mod sec018;
+pub mod sec019;
 
 // Makefile-specific rules (bashrs-specific)
 pub mod make001;

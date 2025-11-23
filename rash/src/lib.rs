@@ -109,6 +109,8 @@ pub mod test_generator;
 pub mod tracing;
 /// Builder API for programmatic transpilation
 pub mod transpiler;
+/// Type system with taint tracking for injection safety
+pub mod types;
 /// AST and output validation
 pub mod validation;
 /// Output verification and shellcheck integration
