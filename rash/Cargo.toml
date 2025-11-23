@@ -112,6 +112,7 @@ proptest.workspace = true
 rstest.workspace = true
 assert_cmd = "2.0"
 predicates = "3.1"
+renacer = "0.6"  # Golden trace integration - syscall tracing for regression detection
 
 [[bench]]
 name = "transpilation"
