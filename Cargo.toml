@@ -30,7 +30,7 @@ rstest = "0.25"
 rustyline = "17.0"
 
 [workspace.package]
-version = "6.35.0"
+version = "6.36.0"
 edition = "2021"
 authors = ["Pragmatic AI Labs"]
 license = "MIT"

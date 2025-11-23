@@ -223,18 +223,20 @@ fn main() {
         "Subtraction and division should generate different code"
     );
 
-    // Verify operators appear in code
+    // Verify operators appear in code OR constant-folded results
+    // Current behavior: Constant folding (result=15)
+    // Alternative: Arithmetic expansion (result=$((10 + 5)))
     assert!(
-        add_script.contains("+") || add_script.contains("add"),
-        "Addition operator should appear in generated code"
+        add_script.contains("+") || add_script.contains("add") || add_script.contains("result=15"),
+        "Addition operator should appear OR constant-fold to 15"
     );
     assert!(
-        sub_script.contains("-") || sub_script.contains("sub"),
-        "Subtraction operator should appear in generated code"
+        sub_script.contains("-") || sub_script.contains("sub") || sub_script.contains("result=5"),
+        "Subtraction operator should appear OR constant-fold to 5"
     );
     assert!(
-        div_script.contains("/") || div_script.contains("div"),
-        "Division operator should appear in generated code"
+        div_script.contains("/") || div_script.contains("div") || div_script.contains("result=2"),
+        "Division operator should appear OR constant-fold to 2"
     );
 }
 
