@@ -341,6 +341,11 @@ pub mod bash001;
 pub mod bash002;
 pub mod bash003;
 pub mod bash005;
+pub mod bash006;
+pub mod bash007;
+pub mod bash008;
+pub mod bash009;
+pub mod bash010;
 
 // Security rules (bashrs-specific)
 pub mod sec001;
@@ -635,6 +640,11 @@ fn lint_shell_filtered(
     result.merge(bash002::check(source));
     result.merge(bash003::check(source));
     result.merge(bash005::check(source));
+    result.merge(bash006::check(source));
+    result.merge(bash007::check(source));
+    result.merge(bash008::check(source));
+    result.merge(bash009::check(source));
+    result.merge(bash010::check(source));
 
     // Security rules (Universal - always apply)
     result.merge(sec001::check(source));
