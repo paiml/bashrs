@@ -10,6 +10,7 @@
 #![allow(clippy::indexing_slicing)]
 
 pub mod abstract_state;
+pub mod enhanced_state;
 pub mod emitter;
 pub mod inspector;
 pub mod semantics;
@@ -22,6 +23,7 @@ pub mod proofs;
 pub mod kani_harnesses;
 
 pub use abstract_state::*;
+pub use enhanced_state::*;
 pub use emitter::*;
 pub use inspector::*;
 pub use semantics::*;
