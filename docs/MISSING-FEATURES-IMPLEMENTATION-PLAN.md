@@ -15,12 +15,23 @@ The user requested "add all missing features and implement using extreme TDD".
 **Completed Today**:
 - ✅ Fixed 24 failing shellcheck_validation_tests (shellcheck installation issue)
 - ✅ Implemented SEC009: SQL injection detection (11 tests, 100% passing)
+- ✅ Implemented SEC010: Missing Input Validation (11 tests, 100% passing) - **Originally labeled SEC011**
+- ✅ Implemented SEC012: Unsafe Deserialization (11 tests, 100% passing)
 - ✅ Implemented SEC017: Unsafe file permissions (13 tests, 100% passing)
-- ✅ All 6642 tests passing (added 24 new tests)
+- ✅ Implemented SEC018: Race Condition Detection (11 tests, 100% passing)
+- ✅ Implemented BASH002: Missing set -o pipefail (11 tests, 100% passing)
+- ✅ Implemented BASH003: cd && command Anti-pattern (11 tests, 100% passing)
+- ✅ Implemented BASH005: Repeated Tool Dependency Checks (11 tests, 100% passing)
+- ✅ Implemented BASH006: Missing Function Documentation (11 tests, 100% passing)
+- ✅ Implemented BASH007: Hardcoded Absolute Paths (11 tests, 100% passing)
+- ✅ Implemented BASH008: Missing Error Messages (11 tests, 100% passing)
+- ✅ Implemented BASH009: Inefficient Loops (11 tests, 100% passing)
+- ✅ Implemented BASH010: Missing Script Header (11 tests, 100% passing)
+- ✅ All 6795 tests passing (added 153 new tests this session)
 
 **Remaining Work**:
-- 🔲 Additional security rules (SEC010-SEC016, SEC018) - 7 rules
-- 🔲 Best practice rules (BASH001-BASH010) - 10 rules
+- 🔲 Additional security rules (SEC010, SEC013-SEC016) - 5 rules (SEC010 path traversal still needed)
+- 🔲 Best practice rules (BASH001, BASH004) - 2 rules
 - 🔲 Bash quality tools CLI integration verification
 - 🔲 WASM Phase 1 (conditional, lower priority)
 
@@ -38,7 +49,10 @@ The user requested "add all missing features and implement using extreme TDD".
 - ✅ SEC007: Running commands as root without validation
 - ✅ SEC008: Using `curl | sh` pattern
 - ✅ SEC009: SQL injection in database commands (**NEW - completed today**)
+- ✅ SEC011: Missing Input Validation (rm -rf, chmod 777 without validation) (**NEW - completed today**)
+- ✅ SEC012: Unsafe Deserialization (eval with jq, source <(curl)) (**NEW - completed today**)
 - ✅ SEC017: Unsafe file permissions (chmod 777) (**NEW - completed today**)
+- ✅ SEC018: Race Condition Detection (TOCTOU vulnerabilities) (**NEW - completed today**)
 
 ### To Be Implemented
 
@@ -57,64 +71,27 @@ The user requested "add all missing features and implement using extreme TDD".
 - **Tests**: 8 unit + 3 property = 11 tests
 - **Estimated Time**: 2-3 hours (EXTREME TDD)
 
-#### SEC011: Missing Input Validation
-- **Severity**: High
-- **Description**: Detect missing validation before dangerous operations
-- **Examples**:
-  ```bash
-  # Dangerous - no validation
-  rm -rf "$DIR"  # What if DIR is empty or /?
-
-  # Safe - with validation
-  if [ -z "$DIR" ] || [ "$DIR" = "/" ]; then
-    echo "Invalid directory"
-    exit 1
-  fi
-  rm -rf "$DIR"
-  ```
-- **Auto-fix**: Suggest validation patterns
-- **Tests**: 8 unit + 3 property = 11 tests
-- **Estimated Time**: 2-3 hours (EXTREME TDD)
-
-#### SEC012: Unsafe Deserialization
-- **Severity**: High
-- **Description**: Detect unsafe deserialization (eval of JSON/YAML/XML)
-- **Examples**:
-  ```bash
-  # Dangerous
-  eval $(echo "$JSON" | jq -r '. | to_entries[] | "\\(.key)=\\(.value)"')
-  source <(curl https://example.com/config.sh)
-  ```
-- **Auto-fix**: Manual review
-- **Tests**: 8 unit + 3 property = 11 tests
-- **Estimated Time**: 2-3 hours (EXTREME TDD)
-
 #### SEC013-SEC016: Reserved for Future Extensions
 - **Purpose**: Reserved rule IDs for additional security rules as needed
 - **Examples**: LDAP injection, XML injection, command substitution risks, etc.
 
-#### SEC018: Race Condition in File Operations
-- **Severity**: Medium-High
-- **Description**: Detect TOCTOU (Time-of-check, time-of-use) vulnerabilities
-- **Examples**:
-  ```bash
-  # Dangerous
-  if [ -f "$FILE" ]; then
-    cat "$FILE"  # FILE could change between check and use
-  fi
-
-  # Safer
-  cat "$FILE" 2>/dev/null  # Atomic operation
-  ```
-- **Auto-fix**: Suggest atomic operations
-- **Tests**: 8 unit + 3 property = 11 tests
-- **Estimated Time**: 2-3 hours (EXTREME TDD)
-
-**Total Estimated Time for SEC Rules**: 8-12 hours (EXTREME TDD)
+**Total Estimated Time for SEC Rules**: 2-3 hours (EXTREME TDD - only SEC010 remaining)
 
 ---
 
 ## 2. Best Practice Rules (BASH) - 10 Rules
+
+### Already Implemented (Current State)
+- ✅ BASH002: Missing `set -o pipefail` in Pipelines (**NEW - completed today**)
+- ✅ BASH003: `cd && command` Anti-pattern (**NEW - completed today**)
+- ✅ BASH005: Repeated Tool Dependency Checks (DRY Violation) (**NEW - completed today**)
+- ✅ BASH006: Missing Function Documentation (**NEW - completed today**)
+- ✅ BASH007: Hardcoded Absolute Paths (**NEW - completed today**)
+- ✅ BASH008: Missing Error Messages (**NEW - completed today**)
+- ✅ BASH009: Inefficient Loops (Use Builtin Alternatives) (**NEW - completed today**)
+- ✅ BASH010: Missing Script Header (Shebang/Description) (**NEW - completed today**)
+
+### To Be Implemented
 
 ### BASH001: Missing `set -e` in Scripts
 - **Severity**: Warning
@@ -124,79 +101,16 @@ The user requested "add all missing features and implement using extreme TDD".
 - **Tests**: 8 unit + 3 property = 11 tests
 - **Estimated Time**: 1.5-2 hours (EXTREME TDD)
 
-### BASH002: Missing `set -o pipefail` in Pipelines
-- **Severity**: Warning
-- **Description**: Detect pipelines without `set -o pipefail`
-- **Why**: `cmd1 | cmd2` only checks cmd2 exit code without pipefail
-- **Auto-fix**: Add `set -o pipefail` after shebang
-- **Tests**: 8 unit + 3 property = 11 tests
-- **Estimated Time**: 1.5-2 hours (EXTREME TDD)
-
-### BASH003: `cd && command` Anti-pattern
-- **Severity**: Warning
-- **Description**: Detect `cd dir && cmd` pattern (fails silently if cd fails)
-- **Why**: If `cd` fails, `cmd` runs in wrong directory
-- **Auto-fix**: Replace with `cd dir || exit 1; cmd` or `(cd dir && cmd)`
-- **Tests**: 8 unit + 3 property = 11 tests
-- **Estimated Time**: 1.5-2 hours (EXTREME TDD)
-
 ### BASH004: Dangerous `rm -rf` Without Validation
 - **Severity**: Error
 - **Description**: Detect `rm -rf $VAR` without checking if VAR is non-empty
 - **Why**: `rm -rf "$EMPTY_VAR"` becomes `rm -rf /` (catastrophic)
+- **Note**: Overlaps with SEC011 (Missing Input Validation) - may consolidate
 - **Auto-fix**: Add validation: `[ -n "$VAR" ] && [ "$VAR" != "/" ] || exit 1`
 - **Tests**: 8 unit + 3 property = 11 tests
-- **Estimated Time**: 2-3 hours (EXTREME TDD)
+- **Estimated Time**: 1.5-2 hours (EXTREME TDD) - May skip if SEC011 covers it
 
-### BASH005: Repeated Tool Dependency Checks (DRY Violation)
-- **Severity**: Info
-- **Description**: Detect repeated `command -v` or `which` checks
-- **Why**: Violates DRY principle, should use a helper function
-- **Auto-fix**: Suggest creating a `require_command()` function
-- **Tests**: 8 unit + 3 property = 11 tests
-- **Estimated Time**: 1.5-2 hours (EXTREME TDD)
-
-### BASH006: Missing Function Documentation
-- **Severity**: Info
-- **Description**: Detect functions without docstring comments
-- **Why**: Improves maintainability
-- **Auto-fix**: Suggest docstring template
-- **Tests**: 8 unit + 3 property = 11 tests
-- **Estimated Time**: 1.5-2 hours (EXTREME TDD)
-
-### BASH007: Hardcoded Absolute Paths
-- **Severity**: Warning
-- **Description**: Detect hardcoded absolute paths (non-portable)
-- **Why**: `/usr/bin/foo` may not exist on all systems, use `command -v`
-- **Auto-fix**: Suggest using `command -v` or environment variables
-- **Tests**: 8 unit + 3 property = 11 tests
-- **Estimated Time**: 1.5-2 hours (EXTREME TDD)
-
-### BASH008: Missing Error Messages
-- **Severity**: Info
-- **Description**: Detect `exit 1` without preceding error message
-- **Why**: Silent failures are hard to debug
-- **Auto-fix**: Suggest `echo "Error: ..." >&2; exit 1`
-- **Tests**: 8 unit + 3 property = 11 tests
-- **Estimated Time**: 1.5-2 hours (EXTREME TDD)
-
-### BASH009: Inefficient Loops (Use Builtin Alternatives)
-- **Severity**: Info
-- **Description**: Detect loops that could use builtins (e.g., `for` vs. `seq`)
-- **Why**: Builtins are faster and more portable
-- **Auto-fix**: Suggest builtin alternatives
-- **Tests**: 8 unit + 3 property = 11 tests
-- **Estimated Time**: 1.5-2 hours (EXTREME TDD)
-
-### BASH010: Missing Script Header (Shebang/Description)
-- **Severity**: Info
-- **Description**: Detect scripts without shebang or description comment
-- **Why**: Improves maintainability and correctness
-- **Auto-fix**: Add shebang and description template
-- **Tests**: 8 unit + 3 property = 11 tests
-- **Estimated Time**: 1.5-2 hours (EXTREME TDD)
-
-**Total Estimated Time for BASH Rules**: 15-20 hours (EXTREME TDD)
+**Total Estimated Time for BASH Rules**: 1.5-2 hours (EXTREME TDD - only BASH001 remaining, BASH004 may be skipped)
 
 ---
 

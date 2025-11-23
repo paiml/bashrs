@@ -9,14 +9,14 @@ roadmap:
 
   statistics:
     total_tasks: 90
-    completed: 87
+    completed: 89
     partial_support: 0
     pending: 0
-    blocked: 3
-    coverage_percent: 97
-    accuracy_verified: "2025-10-28"
-    total_tests: 5,072
-    notes: "🎉 ALL ACTIVE TASKS COMPLETED! Only 3 tasks blocked by P0-POSITIONAL-PARAMETERS parser feature. 10 tasks in roadmap are placeholders without status."
+    blocked: 1
+    coverage_percent: 99
+    accuracy_verified: "2025-11-23"
+    total_tests: 6,801
+    notes: "🎉🎉 99% COMPLETION! ALL P0-POSITIONAL-PARAMETERS tasks complete! Only 1 task blocked (PARAM-SPEC-006 - $- shell options, LOW priority). Added support for $0 (script name) and $1, $2, etc. (positional parameters) via std::env::args().nth(N) pattern."
     session_update: "Completed PARAM-SPEC-006 (3.4 - $- shell options purification). 6 passing tests document $- as NOT SUPPORTED (LOW priority purification). $- expands to current shell option flags (single letters: e=exit on error, u=unset error, x=xtrace, h=hashall, B=brace expansion, H=history, i=interactive, m=monitor). WHY NOT SUPPORTED (5): Runtime-specific (value depends on invocation), Non-deterministic (different shells = different flags), Shell-dependent (bash himBH vs sh h), Implementation detail (exposes internal state), Not needed (purified scripts explicit, don't rely on shell modes). CRITICAL: $- exposes RUNTIME CONFIGURATION, not SCRIPT LOGIC. Purified scripts should be EXPLICIT about behavior (use set -e, not check for 'e' in $-). POSIX STATUS: $- is POSIX SUPPORTED, but flag letters are IMPLEMENTATION-DEFINED (bash B/H don't exist in sh/dash). LEXER STATUS: $- NOT YET SUPPORTED by lexer (special parameters like $-, $$, $?, $! need implementation). PURIFICATION STRATEGIES (4): (1) Remove $- entirely (RECOMMENDED), (2) Use explicit set commands (set -e, set -u, set -x), (3) Don't detect shell type (write portable code), (4) Don't check interactive mode (scripts always non-interactive). Common uses: Debugging (echo $-), Interactive detection (case $- in *i*), Error mode check (case $- in *e*), Shell identification (check B/H flags). Portability: bash (himBH interactive, hB script) vs sh/dash (hi interactive, h script) vs purified (NO $- references). Comparison table: Bash SUPPORTED vs POSIX SUPPORTED (impl-defined) vs Purified NOT USED (explicit options only). Total tests: 5,072 (100% passing)."
 
 extreme_tdd_workflow:
@@ -719,16 +719,26 @@ chapters:
             tasks:
               - id: "PARAM-POS-001"
                 title: "Document $1, $2, etc."
-                status: "blocked"
-                blocked_by: "P0-POSITIONAL-PARAMETERS"
-                blocked_reason: "Parser does not support std::env::args() pattern"
-                target_version: "v1.3.0"
+                status: "completed"
+                target_version: "v6.35.0"
                 priority: "HIGH"
                 input: "echo \"First: $1, Second: $2\""
-                rust: "fn main(args: Vec<String>) { println!(\"First: {}, Second: {}\", args[0], args[1]); }"
-                purified: "printf '%s %s, %s %s\\n' \"First:\" \"$1\" \"Second:\" \"$2\""
-                test_name: "test_positional_parameters"
-                red_phase_tests: "rash/tests/integration_tests.rs:494-525"
+                rust: "let args: Vec<String> = std::env::args().collect(); let first = args.get(1).unwrap_or(\"default\"); echo(first);"
+                purified: "first=\"${1:-default}\"; echo \"$first\""
+                test_name: "test_positional_parameters_basic"
+                notes: "$1, $2, etc. are FULLY SUPPORTED (POSIX). Uses args.get(N).unwrap_or(default) pattern which transpiles to ${N:-default}. Also supports std::env::args().collect() → $@ for all arguments."
+                implementation:
+                  module: "rash/tests/integration_tests.rs"
+                  functions:
+                    - "test_positional_parameters_basic (passing)"
+                    - "test_positional_parameters_multiple (passing)"
+                    - "test_positional_parameters_execution (passing)"
+                    - "test_positional_parameters_args_assignment (passing)"
+                  emitter: "rash/src/emitter/posix.rs:782-791"
+                  ir: "rash/src/ir/mod.rs:524-569"
+                  parser: "rash/src/services/parser.rs:428-435"
+                  lines_of_code: 180
+                version: "v6.35.0"
 
           - id: "3.4.2"
             name: "Special Parameters"
@@ -830,15 +840,24 @@ chapters:
 
               - id: "PARAM-SPEC-005"
                 title: "Document $0 (script name)"
-                status: "blocked"
-                blocked_by: "P0-POSITIONAL-PARAMETERS"
-                blocked_reason: "Uses std::env::args().nth(0) pattern"
-                target_version: "v1.3.0"
+                status: "completed"
+                target_version: "v6.35.0"
                 priority: "MEDIUM"
                 input: "echo \"Script: $0\""
-                rust: "println!(\"Script: {}\", std::env::args().nth(0).unwrap())"
-                purified: "printf '%s %s\\n' \"Script:\" \"$0\""
-                test_name: "test_script_name_parameter"
+                rust: "let script = std::env::args().nth(0).unwrap_or(\"unknown\"); echo(script);"
+                purified: "script=\"${0:-unknown}\"; echo \"$script\""
+                test_name: "test_param_spec_005_script_name_basic"
+                notes: "$0 is FULLY SUPPORTED (POSIX). Uses std::env::args().nth(0).unwrap_or(default) pattern which transpiles to ${0:-default}. Also supports .unwrap() for $0 without default."
+                implementation:
+                  module: "rash/tests/integration_tests.rs"
+                  functions:
+                    - "test_param_spec_005_script_name_basic (passing)"
+                    - "test_param_spec_005_script_name_with_default (passing)"
+                    - "test_param_spec_005_script_name_unwrap (passing)"
+                  emitter: "rash/src/emitter/posix.rs:782-791"
+                  ir: "rash/src/ir/mod.rs:524-569"
+                  lines_of_code: 140
+                version: "v6.35.0"
 
               - id: "PARAM-SPEC-006"
                 title: "Document $- (shell options) purification"

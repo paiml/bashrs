@@ -995,6 +995,100 @@ fn wc(arg: &str) {}
     assert!(output.status.success(), "Script should execute successfully");
 }
 
+/// PARAM-SPEC-005: Script name detection ($0)
+/// Test std::env::args().nth(0) → $0 transformation
+#[test]
+fn test_param_spec_005_script_name_basic() {
+    let source = r#"
+fn main() {
+    let script = std::env::args().nth(0).unwrap_or("unknown");
+    echo(script);
+}
+
+fn echo(msg: &str) {}
+"#;
+
+    let config = Config::default();
+    let result = transpile(source, config);
+
+    assert!(
+        result.is_ok(),
+        "Should transpile script name access: {:?}",
+        result.err()
+    );
+
+    let shell = result.unwrap();
+
+    // Verify ${0:-unknown} is used for script name with default
+    assert!(
+        shell.contains("${0:-unknown}") || shell.contains("script=\"${0:-unknown}\""),
+        "Should convert std::env::args().nth(0).unwrap_or() to ${{0:-unknown}}, got:\n{}",
+        shell
+    );
+}
+
+/// PARAM-SPEC-005: Script name with default value
+#[test]
+fn test_param_spec_005_script_name_with_default() {
+    let source = r#"
+fn main() {
+    let name = std::env::args().nth(0).unwrap_or("my-script");
+    echo(name);
+}
+
+fn echo(msg: &str) {}
+"#;
+
+    let config = Config::default();
+    let result = transpile(source, config);
+
+    assert!(
+        result.is_ok(),
+        "Should transpile script name with default: {:?}",
+        result.err()
+    );
+
+    let shell = result.unwrap();
+
+    // Verify ${0:-default} syntax
+    assert!(
+        shell.contains("${0:-my-script}") || shell.contains("name=\"${0:-my-script}\""),
+        "Should convert std::env::args().nth(0).unwrap_or() to ${{0:-default}}, got:\n{}",
+        shell
+    );
+}
+
+/// PARAM-SPEC-005: Script name without default (using .unwrap())
+#[test]
+fn test_param_spec_005_script_name_unwrap() {
+    let source = r#"
+fn main() {
+    let script = std::env::args().nth(0).unwrap();
+    echo(script);
+}
+
+fn echo(msg: &str) {}
+"#;
+
+    let config = Config::default();
+    let result = transpile(source, config);
+
+    assert!(
+        result.is_ok(),
+        "Should transpile script name with unwrap: {:?}",
+        result.err()
+    );
+
+    let shell = result.unwrap();
+
+    // Verify $0 is used for script name (without default)
+    assert!(
+        shell.contains("script=\"$0\"") || shell.contains("$0"),
+        "Should convert std::env::args().nth(0).unwrap() to $0, got:\n{}",
+        shell
+    );
+}
+
 /// REDIR-001: RED Phase
 /// Test that we can call commands that implicitly use input redirection
 /// This is a baseline test - actual File::open → < redirection will be implemented later
