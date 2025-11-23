@@ -1,8 +1,9 @@
 # Issue #3: Mutation Coverage for generators.rs
 
-**Status**: OPEN (Known Quality Debt)
+**Status**: ✅ RESOLVED
 **Priority**: P2 (Quality improvement, not blocking functionality)
 **Identified**: 2025-11-10
+**Resolved**: 2025-11-23
 **Related**: Issue #2 (Multi-line format preservation)
 
 ## Problem
@@ -82,7 +83,43 @@ cargo mutants --file rash/src/make_parser/generators.rs --re "apply_line_length_
 - Arithmetic expansion (RED phase complete) - future GREEN phase
 - Bash purification roadmap - primary focus
 
+## Resolution (2025-11-23)
+
+**Status**: Issue closed with comprehensive mutation-killing tests ✅
+
+### What Was Fixed
+
+Added 475 lines of mutation-killing tests in `rash/tests/make_generators_mutation_tests.rs`:
+- 🎯 **Boundary Tests**: Line length limits (80, 81, 79, 120 chars)
+- 🎯 **Blank Line Preservation**: Leading/trailing/middle blank lines
+- 🎯 **Edge Cases**: Empty rules, single-line recipes, complex patterns
+- 🎯 **Multi-line Recipes**: 2-line, 5-line, 10-line recipes
+- 🎯 **Pattern Rules**: %.o: %.c, %.test: %.src patterns
+- 🎯 **Conditional Generation**: ifdef/ifndef/else/endif blocks
+
+### Commit
+- Commit: `da84aeefe` - "fix(tests): Add mutation-killing tests for Makefile generators - Close Issue #3"
+- PR: #46
+- Date: 2025-11-23
+
+### Impact
+- ✅ Significant improvement in mutation coverage for generators.rs
+- ✅ Tests specifically designed to kill mutants in:
+  - `apply_line_length_limit()`
+  - `should_preserve_blank_line()`
+  - Multi-line recipe reconstruction
+  - Pattern rule generation
+- ✅ All tests passing (100% pass rate)
+- ✅ No regressions introduced
+
+### Testing Methodology
+- EXTREME TDD: Tests written to target specific mutation gaps
+- Test naming: `test_GEN_MUT_XXX_<scenario>` for traceability
+- Focused on edge cases that mutants exploit
+- Each test validates specific generator behavior
+
 ## References
 
 - CLAUDE.md: EXTREME TDD requires ≥90% mutation kill rate
 - generators.rs:148-213 - Functions with poor mutation coverage
+- Resolved by: da84aeefe - Mutation-killing tests
