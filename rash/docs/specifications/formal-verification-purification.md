@@ -2,8 +2,43 @@
 
 **Version:** 1.0.0
 **Date:** 2025-11-23
-**Status:** Specification
+**Status:** Specification (Implementation Incomplete - See §1.4)
 **Authors:** bashrs Development Team
+**Review Status:** Toyota Way Review Completed (2025-11-23)
+
+---
+
+## ⚠️ Implementation Status
+
+**CRITICAL:** This specification defines theoretical guarantees that are **not yet fully implemented**. A comprehensive [Toyota Way review](../reviews/toyota-way-formal-verification-review.md) (2025-11-23) identified critical gaps between specification and implementation.
+
+**What This Specification Provides:**
+- ✅ Formal semantics for purified shell operations (§3)
+- ✅ Mathematical proofs of correctness properties (§3.2, §3.3)
+- ✅ Type system design for safety (§5)
+- ✅ Verification methodology (§6)
+- ✅ Peer-reviewed theoretical foundations (10 citations)
+
+**What Is NOT Yet Implemented:**
+- ❌ **Permission-aware state model** (§3.1.2): Current `AbstractState` lacks UID/GID/mode bits
+- ❌ **Type system** (§5): No taint tracking or injection safety proofs
+- ❌ **Permission checks in purifier** (§3.2): Idempotency proofs assume abstract filesystem
+- ❌ **CoLiS integration** (§7.2): Not implemented
+- ❌ **Smoosh integration** (§7.3): Not implemented
+
+**Current Implementation Grade:** C+ (see review for details)
+
+**Users should understand:**
+1. Theoretical proofs in this spec assume an **abstract filesystem** without Unix permissions
+2. Real-world idempotency (e.g., `mkdir -p`) can fail on permission errors
+3. No static type system exists for injection safety (relying on runtime checks only)
+4. Property-based tests validate **some** properties but not all claimed guarantees
+
+**Migration Path:** See [Enhanced State Model](../../src/formal/enhanced_state.rs) for reference implementation addressing these gaps.
+
+**For Production Use:** Treat this as a **research specification** guiding future development, not a guarantee of current capabilities.
+
+---
 
 ## Abstract
 
@@ -20,16 +55,20 @@ This specification defines formal verification techniques for purified shell scr
 
 ## Table of Contents
 
+**⚠️ [Implementation Status](#️-implementation-status)** *(Read this first!)*
+
 1. [Introduction](#1-introduction)
+   - 1.4 [Implementation Limitations](#14-implementation-limitations)
 2. [Background and Related Work](#2-background-and-related-work)
 3. [Formal Semantics](#3-formal-semantics)
 4. [Verification Properties](#4-verification-properties)
-5. [Type System](#5-type-system)
+5. [Type System](#5-type-system) *(Not Yet Implemented)*
 6. [Verification Methodology](#6-verification-methodology)
 7. [Tool Integration](#7-tool-integration)
 8. [Case Studies](#8-case-studies)
 9. [Future Work](#9-future-work)
 10. [References](#10-references)
+11. [Appendix D: Toyota Way Review Findings](#appendix-d-toyota-way-review-findings) *(New)*
 
 ---
 
@@ -62,6 +101,173 @@ This specification provides:
 - **Verification conditions** for key properties (determinism, idempotency, safety)
 - **Property-based testing** framework aligned with formal properties
 - **Tool integration** with CoLiS [1], Smoosh [2], and ShellCheck
+
+### 1.4 Implementation Limitations
+
+**⚠️ IMPORTANT:** This section documents known gaps between the theoretical specification and the current implementation, as identified by a comprehensive Toyota Way review (2025-11-23).
+
+#### 1.4.1 State Model Limitations (§3.1.2)
+
+**Theoretical Specification:**
+```
+σ = (V, F, E)
+F: FileSystem = Path → (Content × Permissions)
+```
+
+**Current Implementation:**
+```rust
+pub enum FileSystemEntry {
+    Directory,        // ❌ No permissions, UID, GID
+    File(String),     // ❌ No metadata
+}
+```
+
+**Impact:**
+- Idempotency proofs (§3.2) assume abstract filesystem without Unix permissions
+- Real-world `mkdir -p` can fail on permission errors despite theoretical guarantees
+- Cannot verify security properties requiring ownership tracking
+
+**Mitigation:**
+- [Enhanced State Model](../../src/formal/enhanced_state.rs) provides reference implementation with full permission tracking
+- Property-based tests verify behavior on **abstract** filesystem only
+- Users must validate permission assumptions manually
+
+#### 1.4.2 Idempotency Limitations (§3.2)
+
+**Theoretical Claim (Theorem 3.1):**
+> `mkdir -p` is idempotent: `⟨mkdir -p /path, σ⟩ ⟹ σ' ⟹ ⟨mkdir -p /path, σ'⟩ ⟹ σ'`
+
+**Practical Reality:**
+```bash
+# User: alice (UID 1000), /app owned by root
+mkdir -p /app  # ❌ FAILS: Permission denied
+```
+
+**Root Cause:**
+- Theorem assumes abstract filesystem where all paths are accessible
+- Real Unix systems have permission constraints (UID/GID checks)
+- Purifier adds `-p` flag but doesn't inject permission precondition checks
+
+**Current Behavior:**
+```rust
+// rash/src/bash_transpiler/purification.rs:127-136
+let (purified_cmd, idempotent_wrapper) =
+    self.make_command_idempotent(name, args)?;  // ⚠️ No permission verification
+```
+
+**Workaround:**
+- Users must ensure proper permissions before running purified scripts
+- Consider adding explicit permission checks in deployment scripts
+- Enhanced state model (§1.4.1) provides permission-aware operations
+
+#### 1.4.3 Type System Not Implemented (§5)
+
+**Specification Proposes:**
+```
+τ ::= Int | String | Path | Command
+Quoted String type for injection safety
+Taint tracking for untrusted input
+```
+
+**Current Implementation:**
+```bash
+$ find rash/src -name "types*"
+# ❌ No results - type system does not exist
+```
+
+**Impact:**
+- No static verification of injection safety
+- Relies on runtime linter checks (DET001, SEC* rules) instead of compile-time guarantees
+- Cannot prove `Γ ⊢ "$x" : Quoted String` (§5.2)
+
+**Current Mitigation:**
+- Linter rules (SEC019, SC2086) detect common injection patterns
+- Property-based tests verify quoting behavior
+- Manual code review required for security-critical scripts
+
+**Future Work:**
+- Gradual type system with taint tracking (see Toyota Way review §6.3)
+- Integration with ShellCheck's type inference
+- Dependent types for file existence preconditions
+
+#### 1.4.4 Tool Integration Gaps (§7)
+
+**Specified:**
+- CoLiS symbolic execution (§7.2)
+- Smoosh verification (§7.3)
+
+**Implemented:**
+- ✅ ShellCheck integration (§7.1)
+- ❌ CoLiS integration (not implemented)
+- ❌ Smoosh integration (not implemented)
+
+**Current Capabilities:**
+```bash
+# ✅ WORKS
+bashrs purify script.sh --output clean.sh
+shellcheck -s sh clean.sh
+
+# ❌ NOT IMPLEMENTED
+bashrs transpile script.sh --backend colis
+colis-symbolic script.colis
+```
+
+**Rationale:**
+- CoLiS and Smoosh require complex AST translation
+- Focus on production-ready purification workflow first
+- Symbolic execution deferred to future releases
+
+#### 1.4.5 Property Testing Coverage
+
+**Implemented Properties** (6/9):
+- ✅ Determinism (§3.3)
+- ✅ Idempotency (§3.2)
+- ✅ POSIX shebang preservation
+- ✅ Variable assignment preservation
+- ✅ No $RANDOM in output
+- ✅ Comment preservation
+
+**Missing Properties:**
+- ❌ Injection safety (§4.1.1)
+- ❌ No race conditions/TOCTOU (§4.1.2)
+- ❌ Termination guarantees (§4.2.1)
+
+**Why Missing:**
+- Injection safety requires type system (§1.4.3)
+- TOCTOU detection requires control-flow analysis (not implemented)
+- Termination proofs require loop invariant analysis (future work)
+
+**Current Testing:**
+```rust
+// rash/src/bash_transpiler/purification_property_tests.rs
+proptest! {
+    #[test]
+    fn prop_purification_is_deterministic(...) { ... }  // ✅ Implemented
+
+    // fn prop_no_injection_attacks(...) { ... }        // ❌ Missing
+    // fn prop_no_toctou_races(...) { ... }             // ❌ Missing
+}
+```
+
+#### 1.4.6 Recommended Actions
+
+**For Specification Users:**
+1. **Read Toyota Way review** ([link](../reviews/toyota-way-formal-verification-review.md)) for detailed analysis
+2. **Treat theoretical proofs as guidelines**, not guarantees of current implementation
+3. **Validate permission assumptions** manually in deployment environments
+4. **Use linter rules** as primary security mechanism (not type system)
+5. **Test purified scripts** in realistic environments with non-root users
+
+**For Contributors:**
+1. **Implement enhanced state model** (P0 priority, §6.1 in review)
+2. **Add permission checks to purifier** (P0 priority, §6.2 in review)
+3. **Implement gradual type system** (P1 priority, §6.3 in review)
+4. **Add missing property tests** (P1 priority, §6.4 in review)
+
+**For Researchers:**
+- This specification provides a **sound theoretical foundation** for shell script verification
+- Implementation gaps represent **engineering challenges**, not theoretical limitations
+- Contributions toward full implementation are welcome
 
 ---
 
@@ -260,6 +466,13 @@ where:
 - E: ExitCode = {0, 1, 2, ..., 255}
 ```
 
+> **⚠️ IMPLEMENTATION LIMITATION (§1.4.1):**
+> The current `AbstractState` implementation **does not include Permissions** (no UID/GID/mode bits).
+> This means idempotency proofs (§3.2) assume an abstract filesystem without Unix permission constraints.
+> See [Enhanced State Model](../../src/formal/enhanced_state.rs) for a permission-aware reference implementation.
+>
+> **Impact:** Real-world operations like `mkdir -p` can fail on permission errors despite theoretical guarantees.
+
 **Determinism Requirement:**
 ```
 ∀ σ₁, σ₂. σ₁ = σ₂ ⟹ ⟦C⟧(σ₁) = ⟦C⟧(σ₂)
@@ -327,6 +540,19 @@ Case 2: /path/to/dir exists
 
 ∴ mkdir -p is idempotent. ∎
 ```
+
+> **⚠️ IMPLEMENTATION LIMITATION (§1.4.2):**
+> This theorem assumes an **abstract filesystem** where all paths are accessible.
+> **In practice**, `mkdir -p /path` can fail with "Permission denied" if the user lacks write access to the parent directory.
+>
+> **Example Failure:**
+> ```bash
+> # User: alice (UID 1000), /app owned by root
+> mkdir -p /app  # ❌ FAILS: Permission denied
+> ```
+>
+> **Current purifier behavior:** Adds `-p` flag but **does not inject permission precondition checks**.
+> See Toyota Way review §6.2 for permission-aware purification implementation.
 
 **Purification Rule:**
 ```
@@ -484,6 +710,23 @@ echo $var        ⟿  echo "$var"       # Quoted expansion
 ---
 
 ## 5. Type System
+
+> **⚠️ NOT YET IMPLEMENTED (§1.4.3)**
+>
+> **CRITICAL:** The type system described in this section is a **theoretical specification only**.
+> **No type checker, taint tracker, or static analyzer currently exists** in the bashrs codebase.
+>
+> **Current Mitigation:**
+> - Linter rules (SEC019, SC2086) detect **common** injection patterns
+> - Property-based tests verify quoting behavior
+> - **No compile-time guarantees** - relies on runtime checks
+>
+> **Impact:**
+> - Cannot prove `Γ ⊢ "$x" : Quoted String` statically
+> - No taint tracking for untrusted input
+> - Injection safety relies on manual code review
+>
+> **Future Work:** See Toyota Way review §6.3 for gradual type system implementation plan.
 
 ### 5.1 Type Grammar
 
@@ -896,12 +1139,143 @@ colis-symbolic script.colis
 
 ---
 
+## Appendix D: Toyota Way Review Findings
+
+**Review Date:** 2025-11-23
+**Methodology:** Lean Manufacturing / Toyota Way (Genchi Genbutsu, Jidoka, Poka-yoke, Kaizen)
+**Full Review:** [toyota-way-formal-verification-review.md](../reviews/toyota-way-formal-verification-review.md)
+
+### Summary of Critical Findings
+
+A comprehensive Toyota Way review identified **3 critical gaps** (P0 - STOP THE LINE) between this specification and the actual implementation:
+
+#### Gap 1: State Model Lacks Permissions 🚨
+
+**Severity:** P0 - STOP THE LINE
+**Location:** `rash/src/formal/abstract_state.rs:34-40`
+
+**Specified:**
+```
+F: FileSystem = Path → (Content × Permissions)
+```
+
+**Implemented:**
+```rust
+pub enum FileSystemEntry {
+    Directory,        // ❌ No permissions, UID, GID
+    File(String),     // ❌ No metadata
+}
+```
+
+**Fix:** [Enhanced State Model](../../src/formal/enhanced_state.rs) (700+ lines, fully tested)
+
+#### Gap 2: Idempotency Not Permission-Aware 🚨
+
+**Severity:** P0 - STOP THE LINE
+**Location:** `rash/src/bash_transpiler/purification.rs:127-136`
+
+**Theoretical Claim:** Theorem 3.1 proves `mkdir -p` is idempotent
+**Practical Reality:** Fails on permission errors (e.g., non-root user, root-owned directory)
+
+**Fix:** Permission-aware purification (§6.2 in review)
+
+#### Gap 3: Type System Not Implemented 🚨
+
+**Severity:** P1 - Major Gap
+**Location:** N/A (missing implementation)
+
+**Specified:** Type system with taint tracking (§5)
+**Implemented:** None - relies on linter rules only
+
+**Fix:** Gradual type system (§6.3 in review)
+
+### Implementation Grade
+
+| Aspect | Grade | Rationale |
+|--------|-------|-----------|
+| **Specification Quality** | B | Academically sound, 10 peer-reviewed citations |
+| **Implementation Alignment** | C- | Critical gaps between spec and code |
+| **Property Testing** | B+ | 6 properties implemented, 3 missing |
+| **Overall** | B- | Good theory, implementation needs work |
+
+### Toyota Way Principles Applied
+
+**Genchi Genbutsu (現地現物)** - "Go and See":
+- Examined actual codebase implementation
+- Verified claims against running code
+- Found gaps by comparing spec to reality
+
+**Jidoka (自働化)** - "Automation with Human Touch":
+- Property-based tests align with formal properties
+- Missing: Mutation testing in CI, TOCTOU detection
+
+**Poka-yoke (ポカヨケ)** - "Mistake Proofing":
+- Identified: Permission mismatch risks, injection vulnerabilities
+- Good: Non-determinism detection (DET001)
+
+**Kaizen (改善)** - "Continuous Improvement":
+- Provided 6 concrete recommendations with implementations
+- Created reference implementation for enhanced state model
+
+### Recommended Actions
+
+**P0 (Must Fix Before Production):**
+1. Implement enhanced state model (§6.1) - **2 weeks**
+2. Add permission checks to purifier (§6.2) - **1 week**
+
+**P1 (Next Sprint):**
+3. Implement taint tracking type system (§6.3) - **3 weeks**
+4. Add missing property tests (§6.4) - **1 week**
+
+**P2 (Future):**
+5. Dockerfile purifier (§6.5) - **2 weeks**
+6. CoLiS integration (§7.2) - **4 weeks**
+
+### Key Insights
+
+1. **Theoretical proofs are sound** but assume an abstract filesystem without Unix permissions
+2. **Real-world idempotency requires permission checks** that aren't currently implemented
+3. **Type system is specification-only** - no static verification exists
+4. **Property tests validate some properties** but not all claimed guarantees
+
+### For Users
+
+**Production Readiness:**
+- ✅ **Safe for determinism** (DET001 works correctly)
+- ✅ **Safe for POSIX compliance** (ShellCheck integration works)
+- ⚠️ **Idempotency requires manual permission verification**
+- ❌ **No static injection safety** (manual code review required)
+
+**Best Practices:**
+1. Read the Implementation Limitations section (§1.4) carefully
+2. Test purified scripts with non-root users in realistic environments
+3. Manually verify permission assumptions before deployment
+4. Use linter rules as primary security mechanism
+5. Consider this a research specification, not a production guarantee
+
+### References
+
+In addition to the 10 citations in this specification, the Toyota Way review adds:
+
+[11] Xu, T., et al. (2013). "Do Not Blame Users for Misconfigurations." *SOSP 2013.*
+
+[12] Gambi, A., et al. (2019). "Automated Testing of Infrastructure as Code." *ISSTA 2019.*
+
+[13] Gallaba, K., et al. (2022). "Use and Misuse of Continuous Integration Features." *IEEE TSE.*
+
+[14] Shu, R., et al. (2017). "A Study of Security Vulnerabilities on Docker Hub." *CODASPY 2017.*
+
+---
+
 ## Revision History
 
 | Version | Date       | Changes                                      |
 |---------|------------|----------------------------------------------|
 | 1.0.0   | 2025-11-23 | Initial specification with 10 peer-reviewed citations |
+| 1.0.1   | 2025-11-23 | Added Implementation Status section, limitations warnings, and Toyota Way review appendix |
 
 ---
 
 **End of Specification**
+
+**⚠️ REMINDER:** This specification contains **theoretical proofs and unimplemented features**. See [Implementation Status](#️-implementation-status) and [Toyota Way Review](../reviews/toyota-way-formal-verification-review.md) for current capabilities.
