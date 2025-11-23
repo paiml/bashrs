@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"fn":["check","check_line","extract_variable_name","find_variable_end","is_in_safe_context","is_variable_quoted","skip_arithmetic","skip_command_substitution"]};
