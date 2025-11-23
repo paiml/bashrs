@@ -18,6 +18,7 @@ SHELL := /bin/bash
 .PHONY: coverage coverage-ci coverage-clean
 .PHONY: kaizen demo-mode
 .PHONY: lint-scripts lint-makefile
+.PHONY: golden-capture golden-compare golden-list golden-clean golden-help
 
 # Kaizen - Continuous Improvement Protocol
 kaizen: ## Continuous improvement cycle: analyze, benchmark, optimize, validate
@@ -898,6 +899,13 @@ help:
 	@echo "  make verify       - Run formal verification"
 	@echo "  make profile-memory - Profile memory usage"
 	@echo ""
+	@echo "Golden Trace (Regression Detection with renacer):"
+	@echo "  make golden-help  - Show golden trace usage guide"
+	@echo "  make golden-capture TRACE=name CMD='cmd' - Capture golden trace"
+	@echo "  make golden-compare TRACE=name CMD='cmd' - Compare against golden"
+	@echo "  make golden-list  - List all golden traces"
+	@echo "  make golden-clean - Remove all golden traces"
+	@echo ""
 	@echo "Other:"
 	@echo "  make docs         - Build documentation"
 	@echo "  make clean        - Clean build artifacts"
@@ -1088,3 +1096,103 @@ lint-makefile: ## Lint Makefile with bashrs
 	@echo "🔍 Linting Makefile..."
 	@bashrs make lint Makefile --format human || true
 	@echo "✅ Makefile linted!"
+
+# Golden Trace Integration (renacer-based regression detection)
+# Following Toyota Way: determinism, regression prevention, EXTREME TDD
+
+golden-help: ## Show golden trace usage guide
+	@echo "=== GOLDEN TRACE INTEGRATION (Renacer) ==="
+	@echo ""
+	@echo "Golden traces capture syscall patterns from known-good executions."
+	@echo "They enable regression detection by comparing future runs against baselines."
+	@echo ""
+	@echo "Available targets:"
+	@echo "  make golden-capture TRACE=name CMD='command args'  - Capture new golden trace"
+	@echo "  make golden-compare TRACE=name CMD='command args'  - Compare against golden"
+	@echo "  make golden-list                                   - List all golden traces"
+	@echo "  make golden-clean                                  - Remove all golden traces"
+	@echo "  make golden-help                                   - Show this help"
+	@echo ""
+	@echo "Examples:"
+	@echo "  make golden-capture TRACE=version CMD='cargo run --bin bashrs -- --version'"
+	@echo "  make golden-compare TRACE=version CMD='cargo run --bin bashrs -- --version'"
+	@echo "  make golden-capture TRACE=parse CMD='cargo run --bin bashrs -- parse examples/hello.rs'"
+	@echo ""
+	@echo "Requirements:"
+	@echo "  - renacer installed (cargo install renacer)"
+	@echo "  - TRACE: name for the golden trace (required)"
+	@echo "  - CMD: command to trace (required)"
+
+golden-capture: ## Capture a golden trace (requires TRACE=name CMD='command')
+	@if [ -z "$(TRACE)" ] || [ -z "$(CMD)" ]; then \
+		echo "❌ Error: TRACE and CMD are required"; \
+		echo "Usage: make golden-capture TRACE=name CMD='command args'"; \
+		echo "Example: make golden-capture TRACE=version CMD='cargo run --bin bashrs -- --version'"; \
+		exit 1; \
+	fi
+	@echo "🔬 Capturing golden trace: $(TRACE)"
+	@echo "   Command: $(CMD)"
+	@mkdir -p rash/tests/golden_traces
+	@if ! command -v renacer >/dev/null 2>&1; then \
+		echo "❌ renacer not found. Installing..."; \
+		cargo install renacer; \
+	fi
+	@echo "   Running under renacer..."
+	@renacer --format json --summary -- $(CMD) > rash/tests/golden_traces/$(TRACE).json 2>&1 || \
+		(echo "❌ Command failed or renacer error" && exit 1)
+	@echo "✅ Golden trace captured: rash/tests/golden_traces/$(TRACE).json"
+	@echo "   Syscalls: $$(cat rash/tests/golden_traces/$(TRACE).json | wc -l) events"
+
+golden-compare: ## Compare execution against golden trace (requires TRACE=name CMD='command')
+	@if [ -z "$(TRACE)" ] || [ -z "$(CMD)" ]; then \
+		echo "❌ Error: TRACE and CMD are required"; \
+		echo "Usage: make golden-compare TRACE=name CMD='command args'"; \
+		exit 1; \
+	fi
+	@if [ ! -f "rash/tests/golden_traces/$(TRACE).json" ]; then \
+		echo "❌ Golden trace not found: rash/tests/golden_traces/$(TRACE).json"; \
+		echo "   Capture it first: make golden-capture TRACE=$(TRACE) CMD='...'"; \
+		exit 1; \
+	fi
+	@echo "🔍 Comparing against golden trace: $(TRACE)"
+	@echo "   Command: $(CMD)"
+	@mkdir -p /tmp/bashrs-golden-compare
+	@renacer --format json --summary -- $(CMD) > /tmp/bashrs-golden-compare/$(TRACE).json 2>&1
+	@echo "   Comparing traces..."
+	@if diff -u rash/tests/golden_traces/$(TRACE).json /tmp/bashrs-golden-compare/$(TRACE).json > /tmp/bashrs-golden-compare/$(TRACE).diff; then \
+		echo "✅ Trace matches golden: $(TRACE)"; \
+		rm -rf /tmp/bashrs-golden-compare; \
+	else \
+		echo "❌ Trace differs from golden: $(TRACE)"; \
+		echo ""; \
+		echo "Differences:"; \
+		cat /tmp/bashrs-golden-compare/$(TRACE).diff | head -50; \
+		echo ""; \
+		echo "💡 Full diff: /tmp/bashrs-golden-compare/$(TRACE).diff"; \
+		echo "💡 If change is intentional, recapture: make golden-capture TRACE=$(TRACE) CMD='...'"; \
+		exit 1; \
+	fi
+
+golden-list: ## List all captured golden traces
+	@echo "=== Golden Traces ==="
+	@if [ -d "rash/tests/golden_traces" ]; then \
+		for trace in rash/tests/golden_traces/*.json; do \
+			if [ -f "$$trace" ]; then \
+				name=$$(basename "$$trace" .json); \
+				size=$$(stat -c%s "$$trace" 2>/dev/null || stat -f%z "$$trace" 2>/dev/null); \
+				events=$$(cat "$$trace" | wc -l); \
+				printf "  %-30s  %10s bytes  %6s events\n" "$$name" "$$size" "$$events"; \
+			fi; \
+		done | sort; \
+		echo ""; \
+		echo "Total: $$(ls -1 rash/tests/golden_traces/*.json 2>/dev/null | wc -l) traces"; \
+	else \
+		echo "No golden traces found."; \
+		echo "Capture one with: make golden-capture TRACE=name CMD='...'"; \
+	fi
+
+golden-clean: ## Remove all golden traces
+	@echo "🧹 Cleaning golden traces..."
+	@rm -rf rash/tests/golden_traces
+	@rm -rf /tmp/bashrs-golden-compare
+	@echo "✅ Golden traces removed"

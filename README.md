@@ -153,7 +153,7 @@ bashrs audit script.sh
 - ✅ Comprehensive coverage of all features
 - ✅ Real-world examples and tutorials
 
-## Quality Metrics (v6.34.0+)
+## Quality Metrics (v6.36.0+)
 
 | Metric | Status |
 |--------|--------|
@@ -164,6 +164,27 @@ bashrs audit script.sh
 | **Property Tests** | **52+ properties** (~26k+ cases) ✅ |
 | **ShellCheck** | **100% compliant** ✅ |
 | **Shell Compatibility** | **sh, dash, bash, ash, zsh, mksh** ✅ |
+| **Golden Traces** | **Renacer integration for regression detection** ✅ |
+
+### Golden Trace Regression Detection (v6.36.0+)
+
+Rash integrates with [renacer](https://github.com/paiml/renacer) to capture and compare syscall patterns for regression detection:
+
+```bash
+# Capture reference trace
+make golden-capture TRACE=version CMD='./target/release/bashrs --version'
+
+# Compare against golden (detect regressions)
+make golden-compare TRACE=version CMD='./target/release/bashrs --version'
+```
+
+**Use cases**:
+- Detect unexpected file access patterns
+- Prevent security regressions
+- Verify performance optimizations reduce syscalls
+- Ensure deterministic behavior across builds
+
+See [Golden Trace Documentation](docs/GOLDEN_TRACE.md) for complete guide.
 
 ## Shell Compatibility
 
