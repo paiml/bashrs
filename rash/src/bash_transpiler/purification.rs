@@ -123,16 +123,27 @@ impl Purifier {
                 })
             }
 
-            BashStmt::Command { name, args, .. } => {
+            BashStmt::Command { name, args, redirects: _, span } => {
                 // Detect and transform non-idempotent operations
-                let (purified_cmd, idempotent_wrapper) =
-                    self.make_command_idempotent(name, args)?;
+                let (purified_cmds, idempotent_wrapper) =
+                    self.make_command_idempotent(name, args, *span)?;
 
                 if let Some(wrapper) = idempotent_wrapper {
                     self.report.idempotency_fixes.push(wrapper);
                 }
 
-                Ok(purified_cmd)
+                // If multiple statements were generated (e.g., permission check + command),
+                // we need to handle this specially
+                if purified_cmds.len() == 1 {
+                    Ok(purified_cmds.into_iter().next().expect("verified length"))
+                } else {
+                    // For now, we'll return a Pipeline to group multiple statements
+                    // This ensures they're executed together
+                    Ok(BashStmt::Pipeline {
+                        commands: purified_cmds,
+                        span: *span,
+                    })
+                }
             }
 
             BashStmt::Function { name, body, span } => {
@@ -629,11 +640,60 @@ impl Purifier {
         }
     }
 
+    /// Generate a permission check for file operations
+    ///
+    /// Creates an If statement that checks if a parent directory is writable
+    /// before attempting to create a subdirectory. If not writable, exits with error.
+    fn generate_permission_check(
+        &self,
+        target_dir: &BashExpr,
+        operation: &str,
+        span: Span,
+    ) -> BashStmt {
+        let error_message = format!(
+            "{}: Permission denied: {}",
+            operation,
+            match target_dir {
+                BashExpr::Literal(s) => s.clone(),
+                _ => "target".to_string(),
+            }
+        );
+
+        BashStmt::If {
+            condition: BashExpr::Test(Box::new(TestExpr::FileWritable(
+                BashExpr::CommandSubst(Box::new(BashStmt::Command {
+                    name: "dirname".to_string(),
+                    args: vec![target_dir.clone()],
+                    redirects: vec![],
+                    span,
+                })),
+            ))),
+            then_block: vec![], // Empty - continue if writable
+            elif_blocks: vec![],
+            else_block: Some(vec![
+                BashStmt::Command {
+                    name: "echo".to_string(),
+                    args: vec![BashExpr::Literal(error_message)],
+                    redirects: vec![],
+                    span,
+                },
+                BashStmt::Command {
+                    name: "exit".to_string(),
+                    args: vec![BashExpr::Literal("1".to_string())],
+                    redirects: vec![],
+                    span,
+                },
+            ]),
+            span,
+        }
+    }
+
     fn make_command_idempotent(
         &mut self,
         name: &str,
         args: &[BashExpr],
-    ) -> PurificationResult<(BashStmt, Option<String>)> {
+        span: Span,
+    ) -> PurificationResult<(Vec<BashStmt>, Option<String>)> {
         // Detect non-idempotent operations and suggest idempotent alternatives
         let fix_msg = match name {
             "echo" | "cat" | "ls" | "grep" => {
@@ -642,29 +702,43 @@ impl Purifier {
             }
 
             "mkdir" => {
-                // mkdir should use -p flag for idempotency
-                if !args
+                // mkdir should use -p flag for idempotency AND check permissions
+                let purified_args: Result<Vec<_>, _> =
+                    args.iter().map(|arg| self.purify_expression(arg)).collect();
+                let purified_args = purified_args?;
+
+                // Extract target directory (last argument)
+                let target_dir = purified_args.last().ok_or_else(|| {
+                    PurificationError::NonIdempotentSideEffect(
+                        "mkdir requires a target directory".to_string(),
+                    )
+                })?;
+
+                // Generate permission check: [ -w "$(dirname "$TARGET")" ] || { echo "error" >&2; exit 1; }
+                let permission_check = self.generate_permission_check(target_dir, "mkdir", span);
+
+                // Build mkdir -p command
+                let mut mkdir_args = if !purified_args
                     .iter()
                     .any(|arg| matches!(arg, BashExpr::Literal(s) if s.contains("-p")))
                 {
-                    // Add -p flag for idempotency
-                    let purified_args: Result<Vec<_>, _> =
-                        args.iter().map(|arg| self.purify_expression(arg)).collect();
-                    let mut new_args = vec![BashExpr::Literal("-p".to_string())];
-                    new_args.extend(purified_args?);
-
-                    return Ok((
-                        BashStmt::Command {
-                            name: name.to_string(),
-                            args: new_args,
-                            redirects: vec![],
-                            span: Span::dummy(),
-                        },
-                        Some("Added -p flag to mkdir for idempotency".to_string()),
-                    ));
+                    vec![BashExpr::Literal("-p".to_string())]
                 } else {
-                    None
-                }
+                    vec![]
+                };
+                mkdir_args.extend(purified_args);
+
+                let mkdir_cmd = BashStmt::Command {
+                    name: name.to_string(),
+                    args: mkdir_args,
+                    redirects: vec![],
+                    span,
+                };
+
+                return Ok((
+                    vec![permission_check, mkdir_cmd],
+                    Some("Added permission check and -p flag to mkdir for safety and idempotency".to_string()),
+                ));
             }
 
             "rm" => {
@@ -680,12 +754,12 @@ impl Purifier {
                     new_args.extend(purified_args?);
 
                     return Ok((
-                        BashStmt::Command {
+                        vec![BashStmt::Command {
                             name: name.to_string(),
                             args: new_args,
                             redirects: vec![],
-                            span: Span::dummy(),
-                        },
+                            span,
+                        }],
                         Some("Added -f flag to rm for idempotency".to_string()),
                     ));
                 } else {
@@ -717,12 +791,12 @@ impl Purifier {
             args.iter().map(|arg| self.purify_expression(arg)).collect();
 
         Ok((
-            BashStmt::Command {
+            vec![BashStmt::Command {
                 name: name.to_string(),
                 args: purified_args?,
                 redirects: vec![],
-                span: Span::dummy(),
-            },
+                span,
+            }],
             fix_msg,
         ))
     }
@@ -815,5 +889,140 @@ mod tests {
         // Deterministic code should be unchanged
         assert_eq!(purified.statements.len(), ast.statements.len());
         assert!(purifier.report().determinism_fixes.is_empty());
+    }
+
+    #[test]
+    fn test_PHASE2_001_permission_aware_mkdir() {
+        // RED PHASE: This test should FAIL initially
+        // Testing permission-aware purification (Toyota Way review §6.2)
+
+        let ast = BashAst {
+            statements: vec![BashStmt::Command {
+                name: "mkdir".to_string(),
+                args: vec![BashExpr::Literal("/app/releases".to_string())],
+                redirects: vec![],
+                span: Span::dummy(),
+            }],
+            metadata: AstMetadata {
+                source_file: None,
+                line_count: 1,
+                parse_time_ms: 0,
+            },
+        };
+
+        let mut purifier = Purifier::new(PurificationOptions::default());
+        let purified = purifier.purify(&ast).unwrap();
+
+        // Should generate 1 Pipeline containing 2 statements:
+        // 1. If statement with permission check
+        // 2. mkdir -p command
+        assert_eq!(
+            purified.statements.len(),
+            1,
+            "Expected single Pipeline statement wrapping permission check + mkdir"
+        );
+
+        // The statement should be a Pipeline
+        match &purified.statements[0] {
+            BashStmt::Pipeline { commands, .. } => {
+                assert_eq!(
+                    commands.len(),
+                    2,
+                    "Expected 2 commands in pipeline: permission check + mkdir"
+                );
+
+                // First command should be If statement with permission check
+                match &commands[0] {
+                    BashStmt::If {
+                        condition,
+                        else_block,
+                        ..
+                    } => {
+                        // Condition should test file writability
+                        let condition_str = format!("{:?}", condition);
+                        assert!(
+                            condition_str.contains("FileWritable")
+                                || condition_str.contains("-w"),
+                            "Expected FileWritable permission check, got: {}",
+                            condition_str
+                        );
+
+                        // Should have else block with error handling
+                        assert!(
+                            else_block.is_some(),
+                            "Expected else block with error handling"
+                        );
+                    }
+                    other => panic!("Expected If statement for permission check, got: {:?}", other),
+                }
+
+                // Second command should be mkdir -p
+                match &commands[1] {
+                    BashStmt::Command { name, args, .. } => {
+                        assert_eq!(name, "mkdir", "Expected mkdir command");
+
+                        // Should have -p flag
+                        let has_p_flag = args.iter().any(|arg| {
+                            matches!(arg, BashExpr::Literal(s) if s.contains("-p"))
+                        });
+                        assert!(has_p_flag, "mkdir should have -p flag for idempotency");
+                    }
+                    other => panic!("Expected mkdir command, got: {:?}", other),
+                }
+            }
+            other => panic!("Expected Pipeline statement, got: {:?}", other),
+        }
+
+        // Report should mention permission check injection
+        assert!(
+            !purifier.report().idempotency_fixes.is_empty(),
+            "Should report idempotency fix"
+        );
+    }
+
+    #[test]
+    fn test_PHASE2_002_permission_aware_mkdir_integration() {
+        // Integration test: Verify generated code is valid shell
+        use crate::bash_parser::codegen::generate_purified_bash;
+
+        let ast = BashAst {
+            statements: vec![BashStmt::Command {
+                name: "mkdir".to_string(),
+                args: vec![BashExpr::Literal("/opt/app".to_string())],
+                redirects: vec![],
+                span: Span::dummy(),
+            }],
+            metadata: AstMetadata {
+                source_file: None,
+                line_count: 1,
+                parse_time_ms: 0,
+            },
+        };
+
+        let mut purifier = Purifier::new(PurificationOptions::default());
+        let purified = purifier.purify(&ast).unwrap();
+        let generated_code = generate_purified_bash(&purified);
+
+        // Generated code should contain permission check
+        assert!(
+            generated_code.contains("-w") || generated_code.contains("writable"),
+            "Generated code should check write permission: {}",
+            generated_code
+        );
+
+        // Generated code should contain error message for permission denied
+        assert!(
+            generated_code.contains("Permission denied")
+                || generated_code.contains("permission denied"),
+            "Generated code should have permission denied error: {}",
+            generated_code
+        );
+
+        // Generated code should have mkdir -p
+        assert!(
+            generated_code.contains("mkdir") && generated_code.contains("-p"),
+            "Generated code should have mkdir -p: {}",
+            generated_code
+        );
     }
 }
