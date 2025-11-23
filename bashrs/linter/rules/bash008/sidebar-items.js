@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"fn":["check","has_error_message_on_line","has_exit_statement"]};

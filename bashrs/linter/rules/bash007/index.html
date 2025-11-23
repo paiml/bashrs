@@ -1,0 +1,43 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="BASH007: Hardcoded Absolute Paths (Non-portable)"><title>bashrs::linter::rules::bash007 - Rust</title><script>if(window.location.protocol!=="file:")document.head.insertAdjacentHTML("beforeend","SourceSerif4-Regular-6b053e98.ttf.woff2,FiraSans-Italic-81dc35de.woff2,FiraSans-Regular-0fe48ade.woff2,FiraSans-MediumItalic-ccf7e434.woff2,FiraSans-Medium-e1aa3f0a.woff2,SourceCodePro-Regular-8badfe75.ttf.woff2,SourceCodePro-Semibold-aa29a496.ttf.woff2".split(",").map(f=>`<link rel="preload" as="font" type="font/woff2"href="../../../../static.files/${f}">`).join(""))</script><link rel="stylesheet" href="../../../../static.files/normalize-9960930a.css"><link rel="stylesheet" href="../../../../static.files/rustdoc-e56847b5.css"><meta name="rustdoc-vars" data-root-path="../../../../" data-static-root-path="../../../../static.files/" data-current-crate="bashrs" data-themes="" data-resource-suffix="" data-rustdoc-version="1.91.1 (ed61e7d7e 2025-11-07)" data-channel="1.91.1" data-search-js="search-e256b49e.js" data-stringdex-js="stringdex-c3e638e9.js" data-settings-js="settings-c38705f0.js" ><script src="../../../../static.files/storage-e2aeef58.js"></script><script defer src="../sidebar-items.js"></script><script defer src="../../../../static.files/main-6dc2a7f3.js"></script><noscript><link rel="stylesheet" href="../../../../static.files/noscript-263c88ec.css"></noscript><link rel="alternate icon" type="image/png" href="../../../../static.files/favicon-32x32-eab170b8.png"><link rel="icon" type="image/svg+xml" href="../../../../static.files/favicon-044be391.svg"></head><body class="rustdoc mod"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><rustdoc-topbar><h2><a href="#">Module bash007</a></h2></rustdoc-topbar><nav class="sidebar"><div class="sidebar-crate"><h2><a href="../../../../bashrs/index.html">bashrs</a><span class="version">6.35.0</span></h2></div><div class="sidebar-elems"><section id="rustdoc-toc"><h2 class="location"><a href="#">Module bash007</a></h2><h3><a href="#">Sections</a></h3><ul class="block top-toc"><li><a href="#detection-logic" title="Detection Logic">Detection Logic</a></li><li><a href="#auto-fix" title="Auto-fix">Auto-fix</a></li></ul><h3><a href="#functions">Module Items</a></h3><ul class="block"><li><a href="#functions" title="Functions">Functions</a></li></ul></section><div id="rustdoc-modnav"><h2><a href="../index.html">In bashrs::<wbr>linter::<wbr>rules</a></h2></div></div></nav><div class="sidebar-resizer" title="Drag to resize sidebar"></div><main><div class="width-limiter"><section id="main-content" class="content"><div class="main-heading"><div class="rustdoc-breadcrumbs"><a href="../../../index.html">bashrs</a>::<wbr><a href="../../index.html">linter</a>::<wbr><a href="../index.html">rules</a></div><h1>Module <span>bash007</span>&nbsp;<button id="copy-path" title="Copy item path to clipboard">Copy item path</button></h1><rustdoc-toolbar></rustdoc-toolbar><span class="sub-heading"><a class="src" href="../../../../src/bashrs/linter/rules/bash007.rs.html#1-307">Source</a> </span></div><details class="toggle top-doc" open><summary class="hideme"><span>Expand description</span></summary><div class="docblock"><p>BASH007: Hardcoded Absolute Paths (Non-portable)</p>
+<p><strong>Rule</strong>: Detect hardcoded absolute paths to executables (non-portable)</p>
+<p><strong>Why this matters</strong>:
+Hardcoded absolute paths reduce script portability:</p>
+<ul>
+<li><code>/usr/bin/python</code> may not exist on all systems</li>
+<li><code>/usr/local/bin/jq</code> varies by installation method</li>
+<li>macOS vs Linux have different standard paths</li>
+<li>Makes scripts brittle and hard to maintain</li>
+</ul>
+<p><strong>Examples</strong>:</p>
+<p>❌ <strong>BAD</strong> (hardcoded paths):</p>
+<div class="example-wrap"><pre class="language-bash"><code>/usr/bin/python3 script.py
+/usr/local/bin/jq &#39;.items[]&#39; data.json
+/opt/custom/bin/tool --flag</code></pre></div>
+<p>✅ <strong>GOOD</strong> (portable):</p>
+<div class="example-wrap"><pre class="language-bash"><code># Use PATH-based execution
+python3 script.py
+jq &#39;.items[]&#39; data.json
+
+# Or use command -v for validation
+PYTHON=$(command -v python3) || exit 1
+&quot;$PYTHON&quot; script.py</code></pre></div><h3 id="detection-logic"><a class="doc-anchor" href="#detection-logic">§</a>Detection Logic</h3>
+<p>This rule detects:</p>
+<ul>
+<li>Absolute paths to binaries: <code>/usr/bin/tool</code>, <code>/usr/local/bin/tool</code></li>
+<li>Paths in <code>/opt/</code>, <code>/usr/</code>, <code>/bin/</code>, <code>/sbin/</code></li>
+</ul>
+<p>Does NOT flag:</p>
+<ul>
+<li>Shebangs: <code>#!/bin/bash</code>, <code>#!/usr/bin/env</code></li>
+<li>Standard system paths: <code>/dev/null</code>, <code>/tmp</code>, <code>/etc</code>, <code>/var</code>, <code>/proc</code>, <code>/sys</code></li>
+<li>Variable references: <code>"$INSTALL_DIR/bin/tool"</code></li>
+</ul>
+<h3 id="auto-fix"><a class="doc-anchor" href="#auto-fix">§</a>Auto-fix</h3>
+<p>Suggests:</p>
+<ul>
+<li>Use <code>command -v tool</code> to find in PATH</li>
+<li>Use environment variables for custom paths</li>
+<li>Remove absolute path and rely on PATH</li>
+</ul>
+</div></details><h2 id="functions" class="section-header">Functions<a href="#functions" class="anchor">§</a></h2><dl class="item-table"><dt><a class="fn" href="fn.check.html" title="fn bashrs::linter::rules::bash007::check">check</a></dt><dd>Check for hardcoded absolute paths to executables</dd><dt><a class="fn" href="fn.is_acceptable_path.html" title="fn bashrs::linter::rules::bash007::is_acceptable_path">is_<wbr>acceptable_<wbr>path</a><span title="Restricted Visibility">&nbsp;🔒</span> </dt><dd>Check if path is acceptable (standard system paths)</dd><dt><a class="fn" href="fn.is_in_variable_context.html" title="fn bashrs::linter::rules::bash007::is_in_variable_context">is_<wbr>in_<wbr>variable_<wbr>context</a><span title="Restricted Visibility">&nbsp;🔒</span> </dt><dd>Check if path is in a variable assignment or reference</dd><dt><a class="fn" href="fn.is_shebang_path.html" title="fn bashrs::linter::rules::bash007::is_shebang_path">is_<wbr>shebang_<wbr>path</a><span title="Restricted Visibility">&nbsp;🔒</span> </dt><dd>Check if line contains acceptable shebang paths
+Uses word boundaries to avoid false positives (e.g., /bin/sha shouldn’t match /bin/sh)</dd></dl></section></div></main></body></html>

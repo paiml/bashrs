@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"fn":["check","extract_function_name","has_documentation_comment","is_function_definition"]};

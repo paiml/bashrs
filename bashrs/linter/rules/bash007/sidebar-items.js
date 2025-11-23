@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"fn":["check","is_acceptable_path","is_in_variable_context","is_shebang_path"]};
