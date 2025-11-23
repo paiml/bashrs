@@ -521,12 +521,37 @@ impl IrConverter {
                 method,
                 args,
             } => {
+                // PARAM-SPEC-005: Detect std::env::args().nth(N).unwrap() pattern (without default)
+                // This becomes $N in shell (e.g., $0 for script name, $1 for first arg)
+                if method == "unwrap" && args.is_empty() {
+                    if let Expr::MethodCall {
+                        receiver: inner_receiver,
+                        method: inner_method,
+                        args: inner_args,
+                    } = &**receiver
+                    {
+                        if inner_method == "nth" && inner_args.len() == 1 {
+                            // Check if inner receiver is std::env::args()
+                            if let Expr::FunctionCall { name, args: fn_args } = &**inner_receiver {
+                                if name == "std::env::args" && fn_args.is_empty() {
+                                    // Extract the position number
+                                    if let Expr::Literal(Literal::U32(n)) = &inner_args[0] {
+                                        return Ok(ShellValue::Arg {
+                                            position: Some(*n as usize),
+                                        });
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
                 // P0-POSITIONAL-PARAMETERS: Detect args.get(N).unwrap_or(default) pattern
                 // This becomes ${N:-default} in shell
                 if method == "unwrap_or" && args.len() == 1 {
                     // Check if receiver is args.get(N)
                     if let Expr::MethodCall {
-                        receiver: _inner_receiver,
+                        receiver: inner_receiver,
                         method: inner_method,
                         args: inner_args,
                     } = &**receiver
@@ -542,6 +567,26 @@ impl IrConverter {
                                         position: *n as usize,
                                         default: default_val.clone(),
                                     });
+                                }
+                            }
+                        }
+
+                        // PARAM-SPEC-005: Detect std::env::args().nth(N).unwrap_or(default) pattern
+                        // This becomes ${N:-default} in shell (e.g., ${0:-default} for script name)
+                        if inner_method == "nth" && inner_args.len() == 1 {
+                            // Check if inner receiver is std::env::args()
+                            if let Expr::FunctionCall { name, args: fn_args } = &**inner_receiver {
+                                if name == "std::env::args" && fn_args.is_empty() {
+                                    // Extract the position number
+                                    if let Expr::Literal(Literal::U32(n)) = &inner_args[0] {
+                                        // Extract the default value
+                                        if let Expr::Literal(Literal::Str(default_val)) = &args[0] {
+                                            return Ok(ShellValue::ArgWithDefault {
+                                                position: *n as usize,
+                                                default: default_val.clone(),
+                                            });
+                                        }
+                                    }
                                 }
                             }
                         }
