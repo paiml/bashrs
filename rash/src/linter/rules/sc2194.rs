@@ -52,13 +52,18 @@ fn parse_command_assignment(line: &str) -> Option<(String, String)> {
 
 /// Find next non-empty, non-comment line index
 fn find_next_code_line(lines: &[&str], start_idx: usize) -> Option<usize> {
-    for j in (start_idx + 1)..lines.len() {
-        let trimmed = lines[j].trim();
-        if !trimmed.is_empty() && !trimmed.starts_with('#') {
-            return Some(j);
-        }
-    }
-    None
+    lines
+        .iter()
+        .enumerate()
+        .skip(start_idx + 1)
+        .find_map(|(j, line)| {
+            let trimmed = line.trim();
+            if !trimmed.is_empty() && !trimmed.starts_with('#') {
+                Some(j)
+            } else {
+                None
+            }
+        })
 }
 
 /// Check if line uses a variable as a command and return variable name if matched
