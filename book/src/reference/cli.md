@@ -390,6 +390,8 @@ bashrs lint <FILE> [OPTIONS]
 - `--fix` - Enable auto-fix suggestions (SAFE fixes only)
 - `--fix-assumptions` - Apply fixes with assumptions (requires `--fix`)
 - `-o, --output <FILE>` - Output file for fixed content
+- `--no-ignore` - Disable `.bashrsignore` file processing
+- `--ignore-file <FILE>` - Path to custom ignore file (default: `.bashrsignore`)
 
 ### Examples
 
@@ -416,6 +418,29 @@ bashrs lint src/install.rs --fix --fix-assumptions -o src/install-fixed.rs
 SARIF output for GitHub Code Scanning:
 ```bash
 bashrs lint script.sh --format sarif > results.sarif
+```
+
+Lint even if file is in .bashrsignore:
+```bash
+bashrs lint vendor/script.sh --no-ignore
+```
+
+Use custom ignore file:
+```bash
+bashrs lint script.sh --ignore-file .lint-ignore
+```
+
+### .bashrsignore Support
+
+bashrs respects `.bashrsignore` files for excluding files from linting. See [.bashrsignore File](./ignore-file.md) for full documentation.
+
+Example `.bashrsignore`:
+```text
+# Vendor scripts - don't lint
+vendor/**/*.sh
+
+# Metrics script - intentional timestamps
+scripts/record-metric.sh
 ```
 
 ### Detected Issues

@@ -7,6 +7,104 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [6.37.0] - 2025-11-24
+
+### Added
+
+**Issue #58: .bashrsignore File Support and False Positive Handling**
+
+This release adds comprehensive support for excluding files from linting and handling false positives.
+
+#### 1. Shellcheck Directive Compatibility
+
+bashrs now respects shellcheck's disable comments:
+
+```bash
+# shellcheck disable=SC2086,DET002
+echo $var  # Both SC2086 and DET002 suppressed on this line
+```
+
+This makes bashrs a drop-in replacement for shellcheck in CI pipelines while maintaining full suppression compatibility.
+
+#### 2. .bashrsignore File Support
+
+New gitignore-style file exclusion with `.bashrsignore`:
+
+```text
+# .bashrsignore example
+# Exclude vendor scripts
+vendor/**/*.sh
+
+# Exclude specific file with documented rationale
+# Rationale: DET002 (timestamps) is intentional for metrics recording
+scripts/record-metric.sh
+
+# Re-include important.sh even if in vendor
+!vendor/important.sh
+```
+
+**CLI Flags:**
+- `--no-ignore` - Disable .bashrsignore processing
+- `--ignore-file <FILE>` - Custom ignore file path
+
+**Features:**
+- Automatic detection in project hierarchy
+- Glob patterns (`**/*.sh`, `vendor/*`)
+- Comments for audit trail
+- Negation patterns (`!file.sh`)
+
+#### 3. Metrics Recording Context for DET002
+
+Added markers for intentional timestamp usage in metrics/telemetry scripts:
+
+```bash
+# Metrics recording script - timestamps are THE PURPOSE
+TIMESTAMP=$(date +%s)  # No DET002 error
+```
+
+**Recognized markers:**
+- "metrics recording", "record metric", "record-metric"
+- "telemetry", "observability"
+- "benchmark recording"
+
+### Quality
+
+- **Tests**: 6881 tests passing (zero regressions)
+- **New Tests**: 54 tests for new features
+  - 31 suppression tests (shellcheck compatibility)
+  - 13 DET002 tests (metrics markers)
+  - 10 ignore_file tests
+- **Clippy**: Clean on production code
+- **Coverage**: Maintained >85%
+
+### Technical Details
+
+**New Files:**
+- `rash/src/linter/ignore_file.rs` - .bashrsignore parser (388 lines)
+
+**Modified Files:**
+- `rash/src/linter/suppression.rs` - Shellcheck directive support
+- `rash/src/linter/rules/det002.rs` - Metrics markers
+- `rash/src/cli/args.rs` - New CLI flags
+- `rash/src/cli/commands.rs` - Ignore file integration
+
+Closes #58
+
+---
+
+## [6.36.1] - 2025-11-23
+
+### Fixed
+
+**Issue #57: Dependency Optimization (Zero Defect Policy)**
+
+- Reduced duplicate dependencies in workspace
+- Optimized build times and binary size
+
+---
+
+## [6.36.0] - Previous Release
+
 ### Added
 
 **Phase 3: Taint Tracking Type System for Injection Safety (P1 - Toyota Way §6.3)** ✅

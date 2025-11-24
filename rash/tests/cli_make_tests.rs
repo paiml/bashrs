@@ -1,4 +1,5 @@
 #![allow(clippy::unwrap_used)] // Tests can use unwrap() for simplicity
+#![allow(clippy::expect_used)] // Tests can use expect() for simplicity
 //! CLI integration tests for Makefile parsing and purification
 //!
 //! These tests verify the `bashrs make` subcommands work correctly.
