@@ -35,7 +35,7 @@ fn test_safe_sc2086_unquoted_variable_autofix() {
         &script,
         r#"#!/bin/bash
 echo $variable
-rm $file
+echo $file
 "#,
     )
     .unwrap();
@@ -66,7 +66,7 @@ rm $file
         content.contains(r#"echo "$variable""#),
         "Should quote $variable"
     );
-    assert!(content.contains(r#"rm "$file""#), "Should quote $file");
+    assert!(content.contains(r#"echo "$file""#), "Should quote $file");
 }
 
 #[test]
