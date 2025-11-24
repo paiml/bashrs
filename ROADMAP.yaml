@@ -268,7 +268,7 @@ releases:
       - "rash/tests/test_fix_safety_taxonomy.rs (rm → echo fix)"
       - "rash/tests/test_audit_command.rs (+274 lines: force-added with -f flag)"
       - "docs/roadmaps/roadmap.yaml.lock (0 bytes: lock file)"
-    notes: "Cleanup work revealed 3 defects, 2 of which were caused by SEC010 rule being too strict for test scenarios. Both tests now pass. The root cause was that 'rm $variable' triggers path traversal ERROR (exit code 2) instead of SC2086 WARNING (exit code 1). Fixed by using 'echo $variable' in tests. Also discovered .gitignore misconfiguration preventing test files from being tracked. Cloudflare-class logic bug found in taint.rs (|| true made condition always true). CRITICAL: Discovered DEFECT #5 (P0) - non-deterministic purification (permission check duplication on second pass), tracked in proptest regression file. Requires dedicated STOP THE LINE fix session."
+    notes: "Cleanup work revealed 3 defects, 2 of which were caused by SEC010 rule being too strict for test scenarios. Both tests now pass. The root cause was that 'rm $variable' triggers path traversal ERROR (exit code 2) instead of SC2086 WARNING (exit code 1). Fixed by using 'echo $variable' in tests. Also discovered .gitignore misconfiguration preventing test files from being tracked. Cloudflare-class logic bug found in taint.rs (|| true made condition always true). CRITICAL: Discovered DEFECT #5 (P0) - non-deterministic purification (permission check duplication on second pass). RESOLVED same session with EXTREME TDD fix (commit 6ebe03c80)."
 
   - version: "6.33.0"
     date: "2025-11-07"
