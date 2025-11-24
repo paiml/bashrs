@@ -666,9 +666,9 @@ fn lint_shell_filtered(
 
     // Apply inline suppression filtering
     let suppression_manager = SuppressionManager::from_source(source);
-    result.diagnostics.retain(|diag| {
-        !suppression_manager.is_suppressed(&diag.code, diag.span.start_line)
-    });
+    result
+        .diagnostics
+        .retain(|diag| !suppression_manager.is_suppressed(&diag.code, diag.span.start_line));
 
     result
 }
@@ -1080,9 +1080,9 @@ pub fn lint_shell(source: &str) -> LintResult {
 
     // Apply inline suppression filtering
     let suppression_manager = SuppressionManager::from_source(source);
-    result.diagnostics.retain(|diag| {
-        !suppression_manager.is_suppressed(&diag.code, diag.span.start_line)
-    });
+    result
+        .diagnostics
+        .retain(|diag| !suppression_manager.is_suppressed(&diag.code, diag.span.start_line));
 
     result
 }

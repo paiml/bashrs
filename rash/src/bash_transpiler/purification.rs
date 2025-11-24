@@ -692,9 +692,9 @@ impl Purifier {
         // Second command should be mkdir -p
         let has_mkdir_p = commands.get(1).is_some_and(|cmd| {
             matches!(cmd, BashStmt::Command { name, args, .. }
-                if name == "mkdir" && args.iter().any(|arg| {
-                    matches!(arg, BashExpr::Literal(s) if s.contains("-p"))
-                }))
+            if name == "mkdir" && args.iter().any(|arg| {
+                matches!(arg, BashExpr::Literal(s) if s.contains("-p"))
+            }))
         });
 
         has_permission_check && has_mkdir_p
