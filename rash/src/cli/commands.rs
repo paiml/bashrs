@@ -113,9 +113,19 @@ pub fn execute_command(cli: Cli) -> Result<()> {
             fix,
             fix_assumptions,
             output,
+            no_ignore,
+            ignore_file,
         } => {
             info!("Linting {}", input.display());
-            lint_command(&input, format, fix, fix_assumptions, output.as_deref())
+            lint_command(
+                &input,
+                format,
+                fix,
+                fix_assumptions,
+                output.as_deref(),
+                no_ignore,
+                ignore_file.as_deref(),
+            )
         }
 
         Commands::Purify {
@@ -653,12 +663,67 @@ fn lint_command(
     fix: bool,
     fix_assumptions: bool,
     output: Option<&Path>,
+    no_ignore: bool,
+    ignore_file_path: Option<&Path>,
 ) -> Result<()> {
     use crate::linter::{
         autofix::{apply_fixes_to_file, FixOptions},
+        ignore_file::{IgnoreFile, IgnoreResult},
         output::{write_results, OutputFormat},
         rules::{lint_makefile, lint_shell},
     };
+
+    // Check .bashrsignore unless --no-ignore is set (Issue #58)
+    if !no_ignore {
+        // Determine ignore file path
+        let ignore_path = ignore_file_path
+            .map(|p| p.to_path_buf())
+            .unwrap_or_else(|| {
+                // Look for .bashrsignore in current directory or parent directories
+                let mut current = input
+                    .parent()
+                    .and_then(|p| p.canonicalize().ok())
+                    .unwrap_or_else(|| std::env::current_dir().unwrap_or_default());
+
+                loop {
+                    let candidate = current.join(".bashrsignore");
+                    if candidate.exists() {
+                        return candidate;
+                    }
+                    if !current.pop() {
+                        break;
+                    }
+                }
+                // Default to current directory
+                PathBuf::from(".bashrsignore")
+            });
+
+        // Load ignore file if it exists
+        match IgnoreFile::load(&ignore_path) {
+            Ok(Some(ignore)) => {
+                // Check if this file should be ignored
+                if let IgnoreResult::Ignored(pattern) = ignore.should_ignore(input) {
+                    info!(
+                        "Skipped {} (matched .bashrsignore pattern: {})",
+                        input.display(),
+                        pattern
+                    );
+                    println!(
+                        "Skipped: {} (matched .bashrsignore pattern: '{}')",
+                        input.display(),
+                        pattern
+                    );
+                    return Ok(());
+                }
+            }
+            Ok(None) => {
+                // No ignore file, continue with linting
+            }
+            Err(e) => {
+                warn!("Failed to load .bashrsignore: {}", e);
+            }
+        }
+    }
 
     // Read input file
     let source = fs::read_to_string(input).map_err(Error::Io)?;

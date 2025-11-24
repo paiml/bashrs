@@ -147,6 +147,14 @@ pub enum Commands {
         /// Output file for fixed content
         #[arg(short, long)]
         output: Option<PathBuf>,
+
+        /// Disable .bashrsignore file processing (Issue #58)
+        #[arg(long)]
+        no_ignore: bool,
+
+        /// Path to ignore file (defaults to .bashrsignore in project root)
+        #[arg(long, value_name = "FILE")]
+        ignore_file: Option<PathBuf>,
     },
 
     /// Purify bash scripts (determinism + idempotency + safety)

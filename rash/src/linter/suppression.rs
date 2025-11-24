@@ -1,12 +1,18 @@
 //! Inline suppression support for bashrs warnings
 //!
 //! Allows users to suppress specific warnings using inline comments.
+//! Supports BOTH bashrs-native syntax AND shellcheck syntax for compatibility.
 //!
-//! # Syntax
+//! # Bashrs Syntax
 //!
 //! - File-level: `# bashrs disable-file=SC2086,DET002`
 //! - Next-line: `# bashrs disable-next-line=SC2086`
 //! - Inline: `command  # bashrs disable-line=SC2086`
+//!
+//! # Shellcheck Syntax (also supported)
+//!
+//! - File-level: `# shellcheck disable=SC2086,SC2046` (at top of file)
+//! - Next-line: `# shellcheck disable=SC2086` (before the line)
 //!
 //! # Examples
 //!
@@ -18,6 +24,9 @@
 //! echo $var  # Won't trigger SC2086
 //!
 //! timestamp=$(date +%s)  # bashrs disable-line=DET002
+//!
+//! # shellcheck disable=SC2086
+//! echo $var  # Also suppressed (shellcheck compatibility)
 //! ```
 
 use std::collections::{HashMap, HashSet};
@@ -152,9 +161,13 @@ impl SuppressionManager {
 }
 
 /// Parse a suppression directive from a line
+/// Supports BOTH bashrs-native syntax AND shellcheck syntax
 fn parse_suppression(line: &str, line_num: usize) -> Option<Suppression> {
     let trimmed = line.trim();
 
+    // =====================================================
+    // Bashrs-native syntax
+    // =====================================================
     // Match patterns: # bashrs disable-file=SC2086,DET002
     // Match patterns: # bashrs disable-next-line=SC2086
     // Match patterns: command  # bashrs disable-line=SC2086
@@ -188,6 +201,25 @@ fn parse_suppression(line: &str, line_num: usize) -> Option<Suppression> {
             rules,
         });
     }
+
+    // =====================================================
+    // Shellcheck syntax (for compatibility)
+    // =====================================================
+    // Match patterns: # shellcheck disable=SC2086,SC2046
+    // Shellcheck directives apply to the NEXT line (like bashrs disable-next-line)
+
+    if let Some(pos) = trimmed.find("# shellcheck disable=") {
+        let rules_str = &trimmed[pos + "# shellcheck disable=".len()..];
+        let rules = parse_rule_list(rules_str);
+        return Some(Suppression {
+            suppression_type: SuppressionType::NextLine,
+            line: line_num,
+            rules,
+        });
+    }
+
+    // Also support shellcheck source directive being ignored (not a suppression)
+    // # shellcheck source=./lib.sh - we don't need to handle this
 
     None
 }
@@ -250,6 +282,57 @@ mod tests {
         let manager = SuppressionManager::from_source(source);
 
         assert!(!manager.is_suppressed("SC2086", 1));
+    }
+
+    // =====================================================
+    // Shellcheck syntax compatibility tests (Issue #58)
+    // =====================================================
+
+    #[test]
+    fn test_shellcheck_disable_next_line() {
+        // Shellcheck disable directives apply to the next line
+        let source = "# shellcheck disable=SC2086\necho $var\n";
+        let manager = SuppressionManager::from_source(source);
+
+        assert!(manager.is_suppressed("SC2086", 2));
+        assert!(!manager.is_suppressed("SC2086", 1));
+        assert!(!manager.is_suppressed("SC2086", 3));
+    }
+
+    #[test]
+    fn test_shellcheck_disable_multiple_rules() {
+        let source = "# shellcheck disable=SC2086,SC2046,DET002\necho $var\n";
+        let manager = SuppressionManager::from_source(source);
+
+        assert!(manager.is_suppressed("SC2086", 2));
+        assert!(manager.is_suppressed("SC2046", 2));
+        assert!(manager.is_suppressed("DET002", 2));
+    }
+
+    #[test]
+    fn test_shellcheck_disable_does_not_affect_other_lines() {
+        let source = "# shellcheck disable=SC2086\necho $var\necho $another\n";
+        let manager = SuppressionManager::from_source(source);
+
+        // Only line 2 should be suppressed
+        assert!(manager.is_suppressed("SC2086", 2));
+        assert!(!manager.is_suppressed("SC2086", 3));
+    }
+
+    #[test]
+    fn test_mixed_bashrs_and_shellcheck_syntax() {
+        let source = r#"
+# shellcheck disable=SC2086
+echo $var
+# bashrs disable-next-line=SC2046
+echo $(cat file)
+"#;
+        let manager = SuppressionManager::from_source(source);
+
+        // SC2086 suppressed on line 3 (after shellcheck directive on line 2)
+        assert!(manager.is_suppressed("SC2086", 3));
+        // SC2046 suppressed on line 5 (after bashrs directive on line 4)
+        assert!(manager.is_suppressed("SC2046", 5));
     }
 }
 
@@ -370,6 +453,76 @@ cat file.txt | grep pattern; result=`date`
         assert!(
             result.diagnostics.iter().any(|d| d.code == "SC2002"),
             "SC2002 should NOT be suppressed (not in suppression list)"
+        );
+    }
+
+    // =====================================================
+    // Shellcheck syntax compatibility integration tests (Issue #58)
+    // =====================================================
+
+    /// Integration test: Verify shellcheck disable works end-to-end with linter
+    #[test]
+    fn test_integration_shellcheck_disable_sc2086() {
+        // Script with unquoted variable (normally triggers SC2086)
+        let script_without_suppression = "echo $var";
+        let result = lint_shell(script_without_suppression);
+
+        // Should detect SC2086 without suppression
+        assert!(
+            result.diagnostics.iter().any(|d| d.code == "SC2086"),
+            "SC2086 should be detected without suppression"
+        );
+
+        // Script with shellcheck disable
+        let script_with_shellcheck = "# shellcheck disable=SC2086\necho $var";
+        let result = lint_shell(script_with_shellcheck);
+
+        // Should NOT detect SC2086 with shellcheck suppression
+        assert!(
+            !result.diagnostics.iter().any(|d| d.code == "SC2086"),
+            "SC2086 should be suppressed with shellcheck disable comment"
+        );
+    }
+
+    /// Integration test: Verify shellcheck disable works for DET002 (Issue #58)
+    #[test]
+    fn test_integration_shellcheck_disable_det002() {
+        // Script with timestamp (normally triggers DET002)
+        let script_without_suppression = "timestamp=$(date +%s)";
+        let result = lint_shell(script_without_suppression);
+
+        // Should detect DET002 without suppression
+        assert!(
+            result.diagnostics.iter().any(|d| d.code == "DET002"),
+            "DET002 should be detected without suppression"
+        );
+
+        // Script with shellcheck disable (should work for DET002 too)
+        let script_with_shellcheck = "# shellcheck disable=DET002\ntimestamp=$(date +%s)";
+        let result = lint_shell(script_with_shellcheck);
+
+        // Should NOT detect DET002 with shellcheck suppression
+        assert!(
+            !result.diagnostics.iter().any(|d| d.code == "DET002"),
+            "DET002 should be suppressed with shellcheck disable comment (Issue #58)"
+        );
+    }
+
+    /// Integration test: Verify shellcheck disable works for multiple rules
+    #[test]
+    fn test_integration_shellcheck_disable_multiple_rules() {
+        // Script with multiple issues
+        let script = "# shellcheck disable=SC2006,SC2086\nresult=`echo $var`";
+        let result = lint_shell(script);
+
+        // Both SC2006 and SC2086 should be suppressed
+        assert!(
+            !result.diagnostics.iter().any(|d| d.code == "SC2006"),
+            "SC2006 should be suppressed by shellcheck disable"
+        );
+        assert!(
+            !result.diagnostics.iter().any(|d| d.code == "SC2086"),
+            "SC2086 should be suppressed by shellcheck disable"
         );
     }
 }
