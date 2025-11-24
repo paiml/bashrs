@@ -46,7 +46,7 @@ categories = ["command-line-utilities", "development-tools", "compilers"]
 [workspace.lints.rust]
 unsafe_op_in_unsafe_fn = "deny"
 unreachable_pub = "warn"
-missing_docs = "warn"
+# missing_docs = "warn"  # Tracked in Issue #52 (1907 items) - incremental fix planned
 rust_2018_idioms = { level = "warn", priority = -1 }
 
 [workspace.lints.clippy]
