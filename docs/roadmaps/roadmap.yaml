@@ -6,11 +6,43 @@ roadmap:
   github_issue: 43
   item_type: task
   title: 'Issue #43'
-  status: inprogress
+  status: completed
   priority: medium
   assigned_to: null
   created: 2025-11-24T13:41:49.003662362+00:00
-  updated: 2025-11-24T13:41:49.003662362+00:00
+  updated: 2025-11-24T14:29:03.206046931+00:00
+  spec: null
+  acceptance_criteria: []
+  phases: []
+  subtasks: []
+  estimated_effort: null
+  labels: []
+  notes: null
+- id: GH-23
+  github_issue: 23
+  item_type: task
+  title: 'Issue #23'
+  status: completed
+  priority: medium
+  assigned_to: null
+  created: 2025-11-24T14:08:11.519337623+00:00
+  updated: 2025-11-24T14:28:57.494924763+00:00
+  spec: null
+  acceptance_criteria: []
+  phases: []
+  subtasks: []
+  estimated_effort: null
+  labels: []
+  notes: null
+- id: GH-13
+  github_issue: 13
+  item_type: task
+  title: 'Issue #13'
+  status: completed
+  priority: medium
+  assigned_to: null
+  created: 2025-11-24T14:18:24.590801649+00:00
+  updated: 2025-11-24T14:29:03.216574354+00:00
   spec: null
   acceptance_criteria: []
   phases: []
