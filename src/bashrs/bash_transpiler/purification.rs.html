@@ -692,9 +692,9 @@
 <a href=#692 id=692 data-nosnippet>692</a>        <span class="comment">// Second command should be mkdir -p
 <a href=#693 id=693 data-nosnippet>693</a>        </span><span class="kw">let </span>has_mkdir_p = commands.get(<span class="number">1</span>).is_some_and(|cmd| {
 <a href=#694 id=694 data-nosnippet>694</a>            <span class="macro">matches!</span>(cmd, BashStmt::Command { name, args, .. }
-<a href=#695 id=695 data-nosnippet>695</a>                <span class="kw">if </span>name == <span class="string">"mkdir" </span>&amp;&amp; args.iter().any(|arg| {
-<a href=#696 id=696 data-nosnippet>696</a>                    <span class="macro">matches!</span>(arg, BashExpr::Literal(s) <span class="kw">if </span>s.contains(<span class="string">"-p"</span>))
-<a href=#697 id=697 data-nosnippet>697</a>                }))
+<a href=#695 id=695 data-nosnippet>695</a>            <span class="kw">if </span>name == <span class="string">"mkdir" </span>&amp;&amp; args.iter().any(|arg| {
+<a href=#696 id=696 data-nosnippet>696</a>                <span class="macro">matches!</span>(arg, BashExpr::Literal(s) <span class="kw">if </span>s.contains(<span class="string">"-p"</span>))
+<a href=#697 id=697 data-nosnippet>697</a>            }))
 <a href=#698 id=698 data-nosnippet>698</a>        });
 <a href=#699 id=699 data-nosnippet>699</a>
 <a href=#700 id=700 data-nosnippet>700</a>        has_permission_check &amp;&amp; has_mkdir_p

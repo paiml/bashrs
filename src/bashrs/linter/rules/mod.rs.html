@@ -666,9 +666,9 @@
 <a href=#666 id=666 data-nosnippet>666</a>
 <a href=#667 id=667 data-nosnippet>667</a>    <span class="comment">// Apply inline suppression filtering
 <a href=#668 id=668 data-nosnippet>668</a>    </span><span class="kw">let </span>suppression_manager = SuppressionManager::from_source(source);
-<a href=#669 id=669 data-nosnippet>669</a>    result.diagnostics.retain(|diag| {
-<a href=#670 id=670 data-nosnippet>670</a>        !suppression_manager.is_suppressed(<span class="kw-2">&amp;</span>diag.code, diag.span.start_line)
-<a href=#671 id=671 data-nosnippet>671</a>    });
+<a href=#669 id=669 data-nosnippet>669</a>    result
+<a href=#670 id=670 data-nosnippet>670</a>        .diagnostics
+<a href=#671 id=671 data-nosnippet>671</a>        .retain(|diag| !suppression_manager.is_suppressed(<span class="kw-2">&amp;</span>diag.code, diag.span.start_line));
 <a href=#672 id=672 data-nosnippet>672</a>
 <a href=#673 id=673 data-nosnippet>673</a>    result
 <a href=#674 id=674 data-nosnippet>674</a>}
@@ -1080,9 +1080,9 @@
 <a href=#1080 id=1080 data-nosnippet>1080</a>
 <a href=#1081 id=1081 data-nosnippet>1081</a>    <span class="comment">// Apply inline suppression filtering
 <a href=#1082 id=1082 data-nosnippet>1082</a>    </span><span class="kw">let </span>suppression_manager = SuppressionManager::from_source(source);
-<a href=#1083 id=1083 data-nosnippet>1083</a>    result.diagnostics.retain(|diag| {
-<a href=#1084 id=1084 data-nosnippet>1084</a>        !suppression_manager.is_suppressed(<span class="kw-2">&amp;</span>diag.code, diag.span.start_line)
-<a href=#1085 id=1085 data-nosnippet>1085</a>    });
+<a href=#1083 id=1083 data-nosnippet>1083</a>    result
+<a href=#1084 id=1084 data-nosnippet>1084</a>        .diagnostics
+<a href=#1085 id=1085 data-nosnippet>1085</a>        .retain(|diag| !suppression_manager.is_suppressed(<span class="kw-2">&amp;</span>diag.code, diag.span.start_line));
 <a href=#1086 id=1086 data-nosnippet>1086</a>
 <a href=#1087 id=1087 data-nosnippet>1087</a>    result
 <a href=#1088 id=1088 data-nosnippet>1088</a>}
