@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"mod":["autofix","diagnostic","make_preprocess","output","rule_registry","rules","shell_compatibility","shell_type"]};
+window.SIDEBAR_ITEMS = {"mod":["autofix","diagnostic","make_preprocess","output","rule_registry","rules","shell_compatibility","shell_type","suppression"]};
