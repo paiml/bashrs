@@ -121,11 +121,9 @@ fn is_function_definition(line: &str) -> bool {
 /// Extract function name from definition
 fn extract_function_name(line: &str) -> String {
     // Remove "function " prefix if present
-    let without_keyword = if line.starts_with("function ") {
-        &line[9..]
-    } else {
-        line
-    };
+    let without_keyword = line
+        .strip_prefix("function ")
+        .unwrap_or(line);
 
     // Extract name before ()
     if let Some(pos) = without_keyword.find('(') {

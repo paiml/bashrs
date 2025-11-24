@@ -75,11 +75,9 @@ use std::path::{Path, PathBuf};
 /// // build.rs
 /// use bashrs::build_rs::auto_transpile;
 ///
-/// fn main() {
-///     // Transpile all hooks/*.rs to .git/hooks/*
-///     auto_transpile("hooks", ".git/hooks", 0o755)
-///         .expect("Failed to transpile git hooks");
-/// }
+/// // Transpile all hooks/*.rs to .git/hooks/*
+/// auto_transpile("hooks", ".git/hooks", 0o755)
+///     .expect("Failed to transpile git hooks");
 /// ```
 ///
 /// ## Custom installer scripts
@@ -88,11 +86,9 @@ use std::path::{Path, PathBuf};
 /// // build.rs
 /// use bashrs::build_rs::auto_transpile;
 ///
-/// fn main() {
-///     // Transpile installer scripts
-///     auto_transpile("install", "dist", 0o755)
-///         .expect("Failed to transpile installers");
-/// }
+/// // Transpile installer scripts
+/// auto_transpile("install", "dist", 0o755)
+///     .expect("Failed to transpile installers");
 /// ```
 pub fn auto_transpile<P: AsRef<Path>>(
     input_dir: P,

@@ -56,23 +56,16 @@ pub enum Type {
 impl Type {
     /// Check if value is safe to use in command
     pub fn is_command_safe(&self) -> bool {
-        match self {
-            Type::Command { taint: Taint::Safe } => true,
-            Type::String {
+        matches!(self, Type::Command { taint: Taint::Safe } | Type::String {
                 taint: Taint::Safe | Taint::Sanitized,
-            } => true,
-            _ => false,
-        }
+            })
     }
 
     /// Check if value is safe to use as path
     pub fn is_path_safe(&self) -> bool {
-        match self {
-            Type::Path {
+        matches!(self, Type::Path {
                 taint: Taint::Safe | Taint::Sanitized,
-            } => true,
-            _ => false,
-        }
+            })
     }
 
     /// Sanitize a tainted value (e.g., by quoting)

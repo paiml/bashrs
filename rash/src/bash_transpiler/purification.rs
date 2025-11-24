@@ -140,7 +140,14 @@ impl Purifier {
                 // If multiple statements were generated (e.g., permission check + command),
                 // we need to handle this specially
                 if purified_cmds.len() == 1 {
-                    Ok(purified_cmds.into_iter().next().expect("verified length"))
+                    // SAFETY: We verified length is 1, so next() will return Some
+                    Ok(purified_cmds.into_iter().next().unwrap_or_else(|| {
+                        // This should never happen given len check above
+                        BashStmt::Comment {
+                            text: "ERROR: empty purified_cmds".to_string(),
+                            span: *span,
+                        }
+                    }))
                 } else {
                     // For now, we'll return a Pipeline to group multiple statements
                     // This ensures they're executed together
@@ -668,23 +675,27 @@ impl Purifier {
         }
 
         // First command should be If statement with permission check
-        let has_permission_check = matches!(&commands[0], BashStmt::If { else_block, .. } if {
-            // Check if else block contains "Permission denied" error message
-            else_block.as_ref().map_or(false, |stmts| {
-                stmts.iter().any(|stmt| {
-                    matches!(stmt, BashStmt::Command { name, args, .. }
-                        if name == "echo" && args.iter().any(|arg| {
-                            matches!(arg, BashExpr::Literal(s) if s.contains("Permission denied"))
-                        }))
+        let has_permission_check = commands.first().is_some_and(|cmd| {
+            matches!(cmd, BashStmt::If { else_block, .. } if {
+                // Check if else block contains "Permission denied" error message
+                else_block.as_ref().is_some_and(|stmts| {
+                    stmts.iter().any(|stmt| {
+                        matches!(stmt, BashStmt::Command { name, args, .. }
+                            if name == "echo" && args.iter().any(|arg| {
+                                matches!(arg, BashExpr::Literal(s) if s.contains("Permission denied"))
+                            }))
+                    })
                 })
             })
         });
 
         // Second command should be mkdir -p
-        let has_mkdir_p = matches!(&commands[1], BashStmt::Command { name, args, .. }
-        if name == "mkdir" && args.iter().any(|arg| {
-            matches!(arg, BashExpr::Literal(s) if s.contains("-p"))
-        }));
+        let has_mkdir_p = commands.get(1).is_some_and(|cmd| {
+            matches!(cmd, BashStmt::Command { name, args, .. }
+                if name == "mkdir" && args.iter().any(|arg| {
+                    matches!(arg, BashExpr::Literal(s) if s.contains("-p"))
+                }))
+        });
 
         has_permission_check && has_mkdir_p
     }

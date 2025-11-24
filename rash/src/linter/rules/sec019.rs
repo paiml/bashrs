@@ -118,8 +118,8 @@ fn is_variable_quoted(chars: &[char], var_pos: usize) -> bool {
     let mut in_double_quotes = false;
     let mut in_single_quotes = false;
 
-    for i in 0..var_pos {
-        match chars[i] {
+    for ch in chars.iter().take(var_pos) {
+        match ch {
             '"' if !in_single_quotes => in_double_quotes = !in_double_quotes,
             '\'' if !in_double_quotes => in_single_quotes = !in_single_quotes,
             _ => {}
