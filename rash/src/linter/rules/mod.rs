@@ -464,6 +464,7 @@ fn lint_shell_filtered(
     shell_type: crate::linter::shell_type::ShellType,
 ) -> LintResult {
     use crate::linter::rule_registry::should_apply_rule;
+    use crate::linter::suppression::SuppressionManager;
 
     let mut result = LintResult::new();
 
@@ -663,6 +664,12 @@ fn lint_shell_filtered(
     result.merge(sec017::check(source));
     result.merge(sec018::check(source));
 
+    // Apply inline suppression filtering
+    let suppression_manager = SuppressionManager::from_source(source);
+    result.diagnostics.retain(|diag| {
+        !suppression_manager.is_suppressed(&diag.code, diag.span.start_line)
+    });
+
     result
 }
 
@@ -718,6 +725,8 @@ fn lint_shell_filtered(
 /// assert!(result.diagnostics.len() >= 2);
 /// ```
 pub fn lint_shell(source: &str) -> LintResult {
+    use crate::linter::suppression::SuppressionManager;
+
     let mut result = LintResult::new();
 
     // Parse the shell script
@@ -1068,6 +1077,12 @@ pub fn lint_shell(source: &str) -> LintResult {
     result.merge(sec012::check(source));
     result.merge(sec017::check(source));
     result.merge(sec018::check(source));
+
+    // Apply inline suppression filtering
+    let suppression_manager = SuppressionManager::from_source(source);
+    result.diagnostics.retain(|diag| {
+        !suppression_manager.is_suppressed(&diag.code, diag.span.start_line)
+    });
 
     result
 }
