@@ -19,6 +19,7 @@
 
 pub mod autofix;
 pub mod diagnostic;
+pub mod ignore_file;
 pub mod make_preprocess;
 pub mod output;
 pub mod rule_registry;
@@ -29,6 +30,7 @@ pub mod suppression;
 
 pub use autofix::{apply_fixes, apply_fixes_to_file, FixOptions, FixResult};
 pub use diagnostic::{Diagnostic, Fix, FixSafetyLevel, LintResult, Severity, Span};
+pub use ignore_file::{IgnoreFile, IgnoreResult};
 pub use rule_registry::{get_rule_compatibility, should_apply_rule, RuleMetadata};
 pub use rules::{lint_shell, lint_shell_with_path};
 pub use shell_compatibility::ShellCompatibility;

@@ -85,16 +85,30 @@ pub fn check(source: &str) -> LintResult {
 }
 
 /// Check if a line contains a marker indicating intentional timestamp usage
+/// Expanded in Issue #58 to support metrics recording scripts
 fn is_intentional_timestamp_marker(line: &str) -> bool {
     let line_lower = line.to_lowercase();
     let markers = [
+        // Intentional markers (explicit)
         "intentional: timestamp",
         "intentional timestamp",
+        // Result tracking markers
         "timestamp for result tracking",
         "timestamp for tracking",
+        // Benchmark markers
         "benchmark result",
+        "benchmark recording",
+        // Logging markers
         "logging timestamp",
         "log timestamp",
+        // Metrics markers (Issue #58)
+        "metrics recording",
+        "record metric",
+        "record-metric",
+        "metrics timestamp",
+        // Telemetry markers
+        "telemetry",
+        "observability",
     ];
 
     markers.iter().any(|marker| line_lower.contains(marker))
@@ -231,6 +245,55 @@ fi
             result.diagnostics.len(),
             1,
             "Timestamp in logic should still be flagged even with marker"
+        );
+    }
+
+    // Issue #58: Metrics recording scripts should not be flagged
+    #[test]
+    fn test_DET002_allows_metrics_recording_marker() {
+        let script = r#"#!/bin/bash
+# Metrics recording script - timestamps are THE PURPOSE
+TIMESTAMP=$(date +%Y-%m-%d_%H-%M-%S)
+METRIC_FILE="metrics_$TIMESTAMP.json"
+"#;
+        let result = check(script);
+
+        assert_eq!(
+            result.diagnostics.len(),
+            0,
+            "Metrics recording script should not flag DET002 (Issue #58)"
+        );
+    }
+
+    #[test]
+    fn test_DET002_allows_record_metric_marker() {
+        let script = r#"#!/bin/bash
+# Record metric to pmat database
+TIMESTAMP=$(date +%s)
+echo "$TIMESTAMP,$VALUE" >> metrics.csv
+"#;
+        let result = check(script);
+
+        assert_eq!(
+            result.diagnostics.len(),
+            0,
+            "Record-metric script should not flag DET002 (Issue #58)"
+        );
+    }
+
+    #[test]
+    fn test_DET002_allows_telemetry_marker() {
+        let script = r#"#!/bin/bash
+# Telemetry collection for observability
+TIMESTAMP=$(date +%s)
+send_metric "$TIMESTAMP"
+"#;
+        let result = check(script);
+
+        assert_eq!(
+            result.diagnostics.len(),
+            0,
+            "Telemetry script should not flag DET002 (Issue #58)"
         );
     }
 }
