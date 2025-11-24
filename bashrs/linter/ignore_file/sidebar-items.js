@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":["IgnoreResult"],"struct":["CompiledPattern","IgnoreFile"]};
