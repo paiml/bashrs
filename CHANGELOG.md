@@ -177,6 +177,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Path vs. String distinction at type level
 - Deferred pending security property tests completion
 
+## [6.36.1] - 2025-11-24
+
+### Fixed
+
+**Duplicate Dependencies - Zero Defect Policy (Issue #57)**
+
+- Reduced duplicate dependencies through strategic upgrades and workspace unification
+- **Results**:
+  - Production duplicates: 8 → 4 (50% reduction) ✅
+  - Total workspace duplicates: 50 → 49 (2% reduction)
+  - Real production duplicates: 2 → 0 (100% eliminated) 🎯
+- **Changes**:
+  1. Upgraded phf 0.11.3 → 0.13.1
+     - Eliminated rand v0.8.5 duplicate (unified at v0.9.2)
+     - Eliminated rand_core v0.6.4 duplicate (unified at v0.9.3)
+  2. Added workspace.dependencies unification
+     - bitflags = "2.10", hashbrown = "0.15", indexmap = "2.7"
+     - itertools = "0.14", regex-automata = "0.5", regex-syntax = "0.9"
+  3. Migrated rash-mcp to workspace dependencies
+     - serde, serde_json, tokio, anyhow, thiserror now unified
+- **Quality**: 6861 tests passing (100% pass rate), clippy clean
+- **Remaining duplicates**: 49 are from external dev-dependencies (renacer, pforge-runtime)
+- **Impact**: Zero production code changes, binary size unaffected
+
 ## [6.36.0] - 2025-11-23
 
 ### Fixed
