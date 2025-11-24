@@ -40,8 +40,8 @@
 //! - Different operations need different validation
 //! - Requires understanding of script intent
 
-use crate::linter::{Diagnostic, Severity, Span};
 use crate::linter::LintResult;
+use crate::linter::{Diagnostic, Severity, Span};
 
 /// Check for missing input validation before dangerous operations
 pub fn check(source: &str) -> LintResult {
@@ -76,17 +76,12 @@ pub fn check(source: &str) -> LintResult {
         if code_only.contains("rm") && code_only.contains("-rf") {
             if let Some(var_name) = extract_variable_from_rm(code_only) {
                 if !validated_vars.contains(&var_name) {
-                    let span = Span::new(
-                        line_num + 1,
-                        1,
-                        line_num + 1,
-                        line.len(),
-                    );
+                    let span = Span::new(line_num + 1, 1, line_num + 1, line.len());
 
                     let diag = Diagnostic::new(
                         "SEC011",
                         Severity::Error,
-                        &format!(
+                        format!(
                             "Missing validation for '{}' before 'rm -rf' - could delete critical files if variable is empty or '/'",
                             var_name
                         ),
@@ -102,17 +97,12 @@ pub fn check(source: &str) -> LintResult {
         if code_only.contains("chmod") && code_only.contains("-R") && code_only.contains("777") {
             if let Some(var_name) = extract_variable_from_chmod(code_only) {
                 if !validated_vars.contains(&var_name) {
-                    let span = Span::new(
-                        line_num + 1,
-                        1,
-                        line_num + 1,
-                        line.len(),
-                    );
+                    let span = Span::new(line_num + 1, 1, line_num + 1, line.len());
 
                     let diag = Diagnostic::new(
                         "SEC011",
                         Severity::Error,
-                        &format!(
+                        format!(
                             "Missing validation for '{}' before 'chmod -R 777' - could expose sensitive files if variable is unset",
                             var_name
                         ),
@@ -128,17 +118,12 @@ pub fn check(source: &str) -> LintResult {
         if code_only.contains("chown") && code_only.contains("-R") {
             if let Some(var_name) = extract_variable_from_chown(code_only) {
                 if !validated_vars.contains(&var_name) {
-                    let span = Span::new(
-                        line_num + 1,
-                        1,
-                        line_num + 1,
-                        line.len(),
-                    );
+                    let span = Span::new(line_num + 1, 1, line_num + 1, line.len());
 
                     let diag = Diagnostic::new(
                         "SEC011",
                         Severity::Error,
-                        &format!(
+                        format!(
                             "Missing validation for '{}' before 'chown -R' - could change ownership of critical files if variable is unset",
                             var_name
                         ),
@@ -322,7 +307,11 @@ fi
 "#;
         let result = check(script);
 
-        assert_eq!(result.diagnostics.len(), 0, "Should recognize -n validation");
+        assert_eq!(
+            result.diagnostics.len(),
+            0,
+            "Should recognize -n validation"
+        );
     }
 }
 

@@ -1,4 +1,5 @@
-#![allow(clippy::unwrap_used)] // Tests can use unwrap() for simplicity
+#![allow(clippy::unwrap_used)]
+// Tests can use unwrap() for simplicity
 // CLI Integration Tests for bashrs purify Command
 // EXTREME TDD: CLI testing with assert_cmd (MANDATORY per CLAUDE.md)
 //
@@ -14,7 +15,6 @@
 // - PURIFY_006: Determinism transformations
 // - PURIFY_007: Idempotency transformations
 // - PURIFY_008: Safety transformations (variable quoting)
-
 #![allow(non_snake_case)] // Test naming convention: test_<TASK_ID>_<feature>_<scenario>
 
 use assert_cmd::Command;

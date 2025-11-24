@@ -1,9 +1,9 @@
 #![allow(clippy::unwrap_used)] // Benchmarks can use unwrap() for simplicity
-// Makefile Parsing Performance Benchmarks
-// Sprint 73 Phase 4: Performance Benchmarking
-//
-// Target: <50ms for typical Makefile parsing
-// Memory: <10MB for typical Makefile
+                               // Makefile Parsing Performance Benchmarks
+                               // Sprint 73 Phase 4: Performance Benchmarking
+                               //
+                               // Target: <50ms for typical Makefile parsing
+                               // Memory: <10MB for typical Makefile
 
 use bashrs::make_parser::parser::parse_makefile;
 use criterion::{criterion_group, criterion_main, BenchmarkId, Criterion, Throughput};

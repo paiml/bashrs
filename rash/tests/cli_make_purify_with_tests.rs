@@ -1,4 +1,5 @@
-#![allow(clippy::unwrap_used)] // Tests can use unwrap() for simplicity
+#![allow(clippy::unwrap_used)]
+// Tests can use unwrap() for simplicity
 // CLI Integration Tests for bashrs make purify --with-tests Command
 // EXTREME TDD: GREEN phase - Feature implemented and tests passing
 //
@@ -11,7 +12,6 @@
 // - MAKE_WITH_TESTS_004: POSIX compliance test generation
 // - MAKE_WITH_TESTS_005: Property-based test generation
 // - MAKE_WITH_TESTS_006: Test execution verification
-
 #![allow(non_snake_case)] // Test naming convention: test_<TASK_ID>_<feature>_<scenario>
 
 use assert_cmd::Command;

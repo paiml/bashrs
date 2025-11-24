@@ -47,9 +47,9 @@ const FILE_OPS: &[&str] = &["cp", "mv", "cat", "tar", "unzip", "rm", "mkdir", "c
 
 /// Patterns that indicate potential path traversal
 const TRAVERSAL_PATTERNS: &[&str] = &[
-    "..",      // Parent directory reference
-    "../",     // Parent directory path
-    "/..",     // Absolute parent reference
+    "..",  // Parent directory reference
+    "../", // Parent directory path
+    "/..", // Absolute parent reference
 ];
 
 /// Check for path traversal vulnerabilities
@@ -72,7 +72,7 @@ pub fn check(source: &str) -> LintResult {
                     let diag = Diagnostic::new(
                         "SEC010",
                         Severity::Error,
-                        &format!(
+                        format!(
                             "Path traversal risk in {} - validate paths don't contain '..' or start with '/'",
                             file_op
                         ),
@@ -121,13 +121,7 @@ fn find_command(line: &str, cmd: &str) -> Option<usize> {
             let char_before = line.chars().nth(pos - 1);
             matches!(
                 char_before,
-                Some(' ')
-                    | Some('\t')
-                    | Some(';')
-                    | Some('&')
-                    | Some('|')
-                    | Some('(')
-                    | Some('\n')
+                Some(' ') | Some('\t') | Some(';') | Some('&') | Some('|') | Some('(') | Some('\n')
             )
         };
 

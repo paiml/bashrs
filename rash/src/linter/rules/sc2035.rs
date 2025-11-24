@@ -39,7 +39,11 @@ fn is_glob_safe(line: &str, glob_start: usize) -> bool {
 }
 
 /// Create diagnostic for unsafe glob pattern
-fn create_unsafe_glob_diagnostic(glob_start: usize, glob_end: usize, line_num: usize) -> Diagnostic {
+fn create_unsafe_glob_diagnostic(
+    glob_start: usize,
+    glob_end: usize,
+    line_num: usize,
+) -> Diagnostic {
     let start_col = glob_start + 1;
     let end_col = glob_end + 1;
 

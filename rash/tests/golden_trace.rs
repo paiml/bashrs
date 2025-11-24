@@ -92,8 +92,8 @@ pub fn capture_golden_trace(
     }
 
     // Parse renacer JSON output
-    let trace_json = String::from_utf8(output.stdout)
-        .context("Renacer output is not valid UTF-8")?;
+    let trace_json =
+        String::from_utf8(output.stdout).context("Renacer output is not valid UTF-8")?;
 
     // For now, create a simplified golden trace from the summary
     // TODO: Enhance with full JSON parsing when renacer stabilizes JSON schema
@@ -102,17 +102,16 @@ pub fn capture_golden_trace(
         workdir: workdir.to_path_buf(),
         syscall_counts: parse_syscall_summary(&trace_json)?,
         file_operations: vec![], // TODO: Parse from detailed JSON
-        total_syscalls: 0, // TODO: Calculate from summary
+        total_syscalls: 0,       // TODO: Calculate from summary
         renacer_version: "0.6.2".to_string(),
         captured_at: chrono::Utc::now().to_rfc3339(),
     };
 
     // Save golden trace
     let golden_path = Path::new(GOLDEN_TRACES_DIR).join(format!("{}.json", name));
-    let golden_json = serde_json::to_string_pretty(&golden)
-        .context("Failed to serialize golden trace")?;
-    std::fs::write(&golden_path, golden_json)
-        .context("Failed to write golden trace")?;
+    let golden_json =
+        serde_json::to_string_pretty(&golden).context("Failed to serialize golden trace")?;
+    std::fs::write(&golden_path, golden_json).context("Failed to write golden trace")?;
 
     eprintln!("✅ Golden trace captured: {}", golden_path.display());
     Ok(golden)
@@ -160,7 +159,10 @@ pub fn compare_against_golden(name: &str, command: &[&str], workdir: Option<&Pat
     // Check for removed syscalls
     for (syscall, golden_count) in &golden.syscall_counts {
         match current_syscalls.get(syscall) {
-            None => differences.push(format!("REMOVED SYSCALL: {} (was: {})", syscall, golden_count)),
+            None => differences.push(format!(
+                "REMOVED SYSCALL: {} (was: {})",
+                syscall, golden_count
+            )),
             Some(current_count) if current_count != golden_count => {
                 differences.push(format!(
                     "CHANGED COUNT: {} (was: {}, now: {})",
@@ -203,7 +205,11 @@ mod tests {
             &["cargo", "run", "--bin", "bashrs", "--", "--version"],
             None,
         );
-        assert!(result.is_ok(), "Failed to capture golden trace: {:?}", result);
+        assert!(
+            result.is_ok(),
+            "Failed to capture golden trace: {:?}",
+            result
+        );
     }
 
     /// Example: Compare bashrs --version against golden
@@ -224,10 +230,22 @@ mod tests {
     fn capture_bashrs_parse_trace() {
         let result = capture_golden_trace(
             "bashrs_parse_hello",
-            &["cargo", "run", "--bin", "bashrs", "--", "parse", "examples/hello.rs"],
+            &[
+                "cargo",
+                "run",
+                "--bin",
+                "bashrs",
+                "--",
+                "parse",
+                "examples/hello.rs",
+            ],
             None,
         );
-        assert!(result.is_ok(), "Failed to capture golden trace: {:?}", result);
+        assert!(
+            result.is_ok(),
+            "Failed to capture golden trace: {:?}",
+            result
+        );
     }
 
     /// Test that golden trace directory is created

@@ -1,13 +1,13 @@
 #![allow(clippy::unwrap_used)] // Benchmarks can use unwrap() for simplicity
-// REPL-016-001: Fast Linting Performance Benchmarks
-//
-// Criterion benchmarks for linting performance
-//
-// Targets:
-// - 1,000 lines: <50ms (current: 91ms)
-// - 10,000 lines: <150ms (current: 306ms)
-//
-// Run with: cargo bench --bench lint_performance
+                               // REPL-016-001: Fast Linting Performance Benchmarks
+                               //
+                               // Criterion benchmarks for linting performance
+                               //
+                               // Targets:
+                               // - 1,000 lines: <50ms (current: 91ms)
+                               // - 10,000 lines: <150ms (current: 306ms)
+                               //
+                               // Run with: cargo bench --bench lint_performance
 
 use bashrs::linter::lint_shell;
 use criterion::{black_box, criterion_group, criterion_main, BenchmarkId, Criterion};

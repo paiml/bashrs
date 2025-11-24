@@ -1,9 +1,9 @@
-#![allow(clippy::unwrap_used)] // Tests can use unwrap() for simplicity
+#![allow(clippy::unwrap_used)]
+// Tests can use unwrap() for simplicity
 // Integration tests for REPL Explain Mode (REPL-005-002)
 //
 // Tests the explain mode functionality end-to-end using assert_cmd.
 // This verifies the user-facing REPL behavior for bash construct explanations.
-
 #![allow(non_snake_case)] // Test naming convention: test_<TASK_ID>_<feature>_<scenario>
 
 use assert_cmd::Command;

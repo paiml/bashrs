@@ -1,6 +1,6 @@
 #![allow(clippy::unwrap_used)] // Tests can use unwrap() for simplicity
-// test_format_command.rs - EXTREME TDD tests for bashrs format command
-// Following ruchy design patterns for formatter
+                               // test_format_command.rs - EXTREME TDD tests for bashrs format command
+                               // Following ruchy design patterns for formatter
 use assert_cmd::Command;
 use predicates::prelude::*;
 use std::fs;

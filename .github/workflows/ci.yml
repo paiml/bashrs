@@ -327,30 +327,93 @@ jobs:
           tests/shellcheck-output/
           *.log
 
+  performance:
+    name: Performance Validation
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Install Rust
+      uses: dtolnay/rust-toolchain@stable
+
+    - name: Cache dependencies
+      uses: actions/cache@v4
+      with:
+        path: |
+          ~/.cargo/registry
+          ~/.cargo/git
+          target
+        key: ${{ runner.os }}-perf-${{ hashFiles('**/Cargo.lock') }}
+        restore-keys: |
+          ${{ runner.os }}-perf-
+
+    - name: Install renacer
+      run: |
+        echo "Installing renacer for syscall tracing..."
+        cargo install renacer --version 0.6.2 || echo "⚠️ Using existing renacer installation"
+
+    - name: Build release binary
+      run: cargo build --release --bin bashrs
+
+    - name: Capture golden traces
+      run: |
+        echo "📊 Capturing golden traces..."
+        chmod +x scripts/capture_all_golden_traces.sh
+        ./scripts/capture_all_golden_traces.sh
+
+    - name: Validate performance baselines
+      run: |
+        echo "🔍 Validating performance against baselines..."
+
+        # Extract runtime for build operation (critical path)
+        BUILD_RUNTIME=$(grep "total" golden_traces/build_summary.txt | tail -1 | awk '{print $2}')
+        echo "Build runtime: ${BUILD_RUNTIME}s"
+
+        # Validate build is under 5ms (huge safety margin from 0.8ms baseline)
+        if command -v bc >/dev/null 2>&1; then
+          if (( $(echo "$BUILD_RUNTIME > 0.005" | bc -l) )); then
+            echo "❌ Build exceeded 5ms budget (baseline: 0.836ms)"
+            exit 1
+          else
+            echo "✅ Build performance acceptable: ${BUILD_RUNTIME}s < 0.005s"
+          fi
+        else
+          echo "⚠️ bc not available, skipping numeric validation"
+        fi
+
+        echo "✅ Performance validation complete"
+
+    - name: Upload golden traces
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: golden-traces
+        path: golden_traces/
+
   quality:
     name: Code Quality Analysis
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v4
-    
+
     - name: Install PAIML toolkit
       run: |
         # This would typically install from release
         # For now, assuming it's available
         echo "PAIML toolkit analysis would run here"
-    
+
     - name: Install Rust
       uses: dtolnay/rust-toolchain@stable
-    
+
     - name: Build project
       run: cargo build --workspace
-    
+
     - name: Run complexity analysis
       run: |
         echo "Running basic complexity analysis..."
         find src -name "*.rs" -exec wc -l {} + | sort -n | tail -20
         echo "✓ Complexity analysis completed"
-    
+
     - name: Generate dependency graph
       run: |
         echo "Checking dependencies..."

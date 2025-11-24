@@ -49,7 +49,7 @@ pub fn check(source: &str) -> LintResult {
                     let diag = Diagnostic::new(
                         "SEC009",
                         Severity::Error,
-                        &format!(
+                        format!(
                             "SQL injection risk in {} command - use parameterized queries",
                             db_cmd
                         ),

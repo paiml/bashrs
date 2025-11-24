@@ -49,8 +49,8 @@
 //! - Use command's built-in error handling (e.g., `rm -f`)
 //! - Use proper file locking mechanisms
 
-use crate::linter::{Diagnostic, Severity, Span};
 use crate::linter::LintResult;
+use crate::linter::{Diagnostic, Severity, Span};
 
 /// Check for TOCTOU race conditions in file operations
 pub fn check(source: &str) -> LintResult {
@@ -70,25 +70,32 @@ pub fn check(source: &str) -> LintResult {
         // Pattern 1: [ -f "$FILE" ] && cat/source "$FILE"
         // Pattern 2: [ -e "$FILE" ] && operation "$FILE"
         // Pattern 3: [ -w "$FILE" ] && write to "$FILE"
-        if (code_only.contains("[ -f") || code_only.contains("[ -e") || code_only.contains("[ -w") ||
-            code_only.contains("test -f") || code_only.contains("test -e") || code_only.contains("test -w"))
-            && code_only.contains("&&") {
-
+        if (code_only.contains("[ -f")
+            || code_only.contains("[ -e")
+            || code_only.contains("[ -w")
+            || code_only.contains("test -f")
+            || code_only.contains("test -e")
+            || code_only.contains("test -w"))
+            && code_only.contains("&&")
+        {
             // Check if same variable appears in test and operation
             if let Some(var_name) = extract_test_variable(code_only) {
                 if code_only[code_only.find("&&").unwrap() + 2..].contains(&var_name) {
                     // Detect specific dangerous operations
                     let after_test = &code_only[code_only.find("&&").unwrap() + 2..];
 
-                    if after_test.contains("cat") || after_test.contains("source") ||
-                       after_test.contains("rm") || after_test.contains(">") ||
-                       after_test.contains("cp") || after_test.contains("mv") {
-
+                    if after_test.contains("cat")
+                        || after_test.contains("source")
+                        || after_test.contains("rm")
+                        || after_test.contains(">")
+                        || after_test.contains("cp")
+                        || after_test.contains("mv")
+                    {
                         let span = Span::new(line_num + 1, 1, line_num + 1, line.len());
                         let diag = Diagnostic::new(
                             "SEC018",
                             Severity::Warning,
-                            &format!(
+                            format!(
                                 "TOCTOU race condition: file '{}' is checked then used - file could change between check and use, use file descriptors or atomic operations",
                                 var_name
                             ),
@@ -218,7 +225,11 @@ rm -f "$TMPFILE"
 "#;
         let result = check(script);
 
-        assert_eq!(result.diagnostics.len(), 0, "Different variables should pass");
+        assert_eq!(
+            result.diagnostics.len(),
+            0,
+            "Different variables should pass"
+        );
     }
 
     /// RED TEST 7: Detect [ -f ] && cp (check then copy)

@@ -59,10 +59,7 @@ impl IoStreams {
 
     /// Get stdin content
     pub fn get_stdin(&self) -> String {
-        self.stdin
-            .lock()
-            .expect("stdin lock poisoned")
-            .clone()
+        self.stdin.lock().expect("stdin lock poisoned").clone()
     }
 
     /// Set stdin content (for pipelines)
@@ -100,10 +97,7 @@ impl Write for SharedWriter {
     }
 
     fn flush(&mut self) -> io::Result<()> {
-        self.0
-            .lock()
-            .expect("shared writer lock poisoned")
-            .flush()
+        self.0.lock().expect("shared writer lock poisoned").flush()
     }
 }
 

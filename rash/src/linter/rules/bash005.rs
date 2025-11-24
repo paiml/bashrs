@@ -55,8 +55,8 @@
 //!
 //! Suggests creating a `require_command()` helper function.
 
-use crate::linter::{Diagnostic, Severity, Span};
 use crate::linter::LintResult;
+use crate::linter::{Diagnostic, Severity, Span};
 
 /// Check for repeated tool dependency checks
 pub fn check(source: &str) -> LintResult {
@@ -110,7 +110,7 @@ pub fn check(source: &str) -> LintResult {
         let diag = Diagnostic::new(
             "BASH005",
             Severity::Info,
-            &format!(
+            format!(
                 "Repeated tool dependency checks ({} occurrences of 'command -v') - violates DRY principle; consider creating a 'require_command()' helper function",
                 command_v_count
             ),
@@ -131,7 +131,7 @@ pub fn check(source: &str) -> LintResult {
         let diag = Diagnostic::new(
             "BASH005",
             Severity::Info,
-            &format!(
+            format!(
                 "Repeated tool dependency checks ({} occurrences of 'which') - violates DRY principle; consider creating a 'require_command()' helper function",
                 which_count
             ),
@@ -176,7 +176,11 @@ if ! command -v docker >/dev/null 2>&1; then exit 1; fi
 "#;
         let result = check(script);
 
-        assert_eq!(result.diagnostics.len(), 0, "2 checks should not trigger warning");
+        assert_eq!(
+            result.diagnostics.len(),
+            0,
+            "2 checks should not trigger warning"
+        );
     }
 
     /// RED TEST 3: Detect 3+ which checks

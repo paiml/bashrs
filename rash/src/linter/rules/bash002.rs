@@ -41,8 +41,8 @@
 //! set -eo pipefail  # Recommended: combine with set -e
 //! ```
 
-use crate::linter::{Diagnostic, Severity, Span};
 use crate::linter::LintResult;
+use crate::linter::{Diagnostic, Severity, Span};
 
 /// Check for missing `set -o pipefail` in scripts with pipelines
 pub fn check(source: &str) -> LintResult {
@@ -71,7 +71,8 @@ pub fn check(source: &str) -> LintResult {
         // Check for pipeline (but not in comments, strings, or certain contexts)
         if code_only.contains('|') &&
            !code_only.contains("||") &&  // Not logical OR
-           !is_in_string_or_regex(code_only) {
+           !is_in_string_or_regex(code_only)
+        {
             if !has_pipeline {
                 first_pipeline_line = line_num;
             }
@@ -108,7 +109,7 @@ fn is_in_string_or_regex(line: &str) -> bool {
     let double_quote_count = line.matches('"').count();
 
     // If odd number of quotes, pipe might be in string
-    (single_quote_count % 2 != 0) || (double_quote_count % 2 != 0)
+    !single_quote_count.is_multiple_of(2) || !double_quote_count.is_multiple_of(2)
 }
 
 #[cfg(test)]
@@ -156,7 +157,11 @@ cat file.txt | grep pattern | sort
 "#;
         let result = check(script);
 
-        assert_eq!(result.diagnostics.len(), 0, "Should pass with set -o pipefail");
+        assert_eq!(
+            result.diagnostics.len(),
+            0,
+            "Should pass with set -o pipefail"
+        );
     }
 
     /// RED TEST 4: Pass when no pipelines exist
@@ -223,7 +228,11 @@ find . -name "*.txt" | xargs grep pattern
 "#;
         let result = check(script);
 
-        assert_eq!(result.diagnostics.len(), 0, "Should pass with combined flags");
+        assert_eq!(
+            result.diagnostics.len(),
+            0,
+            "Should pass with combined flags"
+        );
     }
 }
 

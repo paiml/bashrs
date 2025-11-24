@@ -47,8 +47,8 @@
 //! - Different security requirements per use case
 //! - Requires understanding of data source trust model
 
-use crate::linter::{Diagnostic, Severity, Span};
 use crate::linter::LintResult;
+use crate::linter::{Diagnostic, Severity, Span};
 
 /// Check for unsafe deserialization patterns
 pub fn check(source: &str) -> LintResult {
@@ -78,7 +78,9 @@ pub fn check(source: &str) -> LintResult {
         }
 
         // Pattern 2: source <(curl ...) - Remote code execution
-        if (code_only.contains("source") || code_only.starts_with('.')) && code_only.contains("<(curl") {
+        if (code_only.contains("source") || code_only.starts_with('.'))
+            && code_only.contains("<(curl")
+        {
             let span = Span::new(line_num + 1, 1, line_num + 1, line.len());
             let diag = Diagnostic::new(
                 "SEC012",
@@ -90,7 +92,9 @@ pub fn check(source: &str) -> LintResult {
         }
 
         // Pattern 3: source <(wget ...) - Remote code execution
-        if (code_only.contains("source") || code_only.starts_with('.')) && code_only.contains("<(wget") {
+        if (code_only.contains("source") || code_only.starts_with('.'))
+            && code_only.contains("<(wget")
+        {
             let span = Span::new(line_num + 1, 1, line_num + 1, line.len());
             let diag = Diagnostic::new(
                 "SEC012",

@@ -1,4 +1,5 @@
-#![allow(clippy::unwrap_used)] // Tests can use unwrap() for simplicity
+#![allow(clippy::unwrap_used)]
+// Tests can use unwrap() for simplicity
 // REPL CLI Integration Tests
 //
 // Task: REPL-003-002 - Basic REPL loop CLI integration
@@ -8,7 +9,6 @@
 // - Integration tests: CLI interaction with assert_cmd
 // - Test REPL startup and banner
 // - Test CLI argument parsing
-
 #![allow(non_snake_case)] // Test naming convention: test_<TASK_ID>_<feature>_<scenario>
 
 use assert_cmd::Command;

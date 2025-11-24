@@ -1,11 +1,11 @@
 #![allow(clippy::unwrap_used)] // Examples can use unwrap() for simplicity
-// Example: Custom build script with full control
-//
-// This demonstrates the programmatic API for complex build scenarios.
-// Run with: cargo run --example custom_build
+                               // Example: Custom build script with full control
+                               //
+                               // This demonstrates the programmatic API for complex build scenarios.
+                               // Run with: cargo run --example custom_build
 
-use bashrs::{Transpiler, Config};
 use bashrs::models::{ShellDialect, VerificationLevel};
+use bashrs::{Config, Transpiler};
 
 fn main() -> bashrs::Result<()> {
     println!("Custom Build Script - bashrs xtask integration");

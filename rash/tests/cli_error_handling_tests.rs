@@ -1,4 +1,5 @@
-#![allow(clippy::unwrap_used)] // Tests can use unwrap() for simplicity
+#![allow(clippy::unwrap_used)]
+// Tests can use unwrap() for simplicity
 // Negative testing suite for CLI error handling
 // Testing Spec Section 1.6: Layer 6 - Negative Testing
 //
@@ -7,7 +8,6 @@
 // 2. Error messages include source location, snippet, and suggestions
 // 3. Error message quality score ≥0.7
 // 4. CLI flags work correctly (--help, --version, --check)
-
 #![allow(dead_code)] // score() method reserved for future quality analysis
 
 use assert_cmd::Command;

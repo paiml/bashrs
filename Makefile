@@ -9,7 +9,7 @@ SHELL := /bin/bash
 
 .PHONY: all validate quick-validate release clean help
 .PHONY: format format-check lint lint-check check test test-fast test-quick test-comprehensive test-shells test-determinism test-doc test-property test-property-comprehensive test-all
-.PHONY: quality-gate quality-baseline quality-report analyze-complexity
+.PHONY: quality-gate quality-baseline quality-report analyze-complexity validate-performance
 .PHONY: fuzz fuzz-all fuzz-coverage fuzz-trophies fuzz-differential
 .PHONY: verify verify-smt verify-model verify-specs verify-properties
 .PHONY: shellcheck-install shellcheck-validate shellcheck-test-all
@@ -376,8 +376,8 @@ test-all: test test-shells test-determinism
 	@echo "  - Cross-shell compatibility ✓"
 	@echo "  - Determinism verification ✓"
 
-# Quality metrics (Enhanced with pmat integration)
-quality-gate: quality-baseline analyze-complexity analyze-tdg
+# Quality metrics (Enhanced with pmat integration + performance validation)
+quality-gate: quality-baseline analyze-complexity analyze-tdg validate-performance
 	@echo "🔍 Running comprehensive quality gate checks..."
 	@if command -v pmat >/dev/null 2>&1; then \
 		echo "  📊 Running pmat quality analysis..."; \
@@ -868,9 +868,10 @@ help:
 	@echo "  make shellcheck-test-all - Run comprehensive ShellCheck test suite"
 	@echo ""
 	@echo "Quality:"
-	@echo "  make quality-gate - Run comprehensive quality checks (pmat + custom)"
+	@echo "  make quality-gate - Run comprehensive quality checks (pmat + custom + performance)"
 	@echo "  make analyze-complexity - Analyze code complexity with pmat"
 	@echo "  make analyze-tdg  - Analyze Technical Debt Grade with pmat"
+	@echo "  make validate-performance - Validate performance against baselines (renacer)"
 	@echo "  make validate-readme - Validate README accuracy (zero hallucinations)"
 	@echo "  make quality-report - Generate quality report"
 	@echo "  make audit        - Security audit"
@@ -1096,6 +1097,32 @@ lint-makefile: ## Lint Makefile with bashrs
 	@echo "🔍 Linting Makefile..."
 	@bashrs make lint Makefile --format human || true
 	@echo "✅ Makefile linted!"
+
+# Performance Validation (renacer golden traces)
+validate-performance: ## Validate performance against baselines
+	@echo "🚀 Validating performance against baselines..."
+	@if ! command -v renacer >/dev/null 2>&1; then \
+		echo "📦 Installing renacer..."; \
+		cargo install renacer --version 0.6.2; \
+	fi
+	@echo "📊 Capturing golden traces..."
+	@chmod +x scripts/capture_all_golden_traces.sh
+	@./scripts/capture_all_golden_traces.sh
+	@echo ""
+	@echo "🔍 Validating performance baselines..."
+	@BUILD_RUNTIME=$$(grep "total" golden_traces/build_summary.txt | tail -1 | awk '{print $$2}'); \
+	echo "Build runtime: $${BUILD_RUNTIME}s"; \
+	if command -v bc >/dev/null 2>&1; then \
+		if [ "$$(echo "$$BUILD_RUNTIME > 0.005" | bc -l)" -eq 1 ]; then \
+			echo "❌ Build exceeded 5ms budget (baseline: 0.836ms)"; \
+			exit 1; \
+		else \
+			echo "✅ Build performance acceptable: $${BUILD_RUNTIME}s < 0.005s"; \
+		fi; \
+	else \
+		echo "⚠️  bc not available, skipping numeric validation"; \
+	fi
+	@echo "✅ Performance validation complete"
 
 # Golden Trace Integration (renacer-based regression detection)
 # Following Toyota Way: determinism, regression prevention, EXTREME TDD

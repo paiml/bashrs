@@ -1,6 +1,6 @@
 #![allow(clippy::unwrap_used)] // Benchmarks can use unwrap() for simplicity
-// Sprint 84 - Day 1: Makefile Performance Benchmarks
-// Performance targets: <10ms (small), <50ms (medium), <100ms (large)
+                               // Sprint 84 - Day 1: Makefile Performance Benchmarks
+                               // Performance targets: <10ms (small), <50ms (medium), <100ms (large)
 
 use bashrs::make_parser::{parse_makefile, purify_makefile};
 use criterion::{criterion_group, criterion_main, BenchmarkId, Criterion};

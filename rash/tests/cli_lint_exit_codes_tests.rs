@@ -1,14 +1,14 @@
 #![allow(clippy::unwrap_used)] // Tests can use unwrap() for simplicity
-// Exit code tests for bashrs lint command (Issue #6)
-//
-// Expected behavior (aligned with make lint):
-// - Exit 0: No issues found
-// - Exit 1: Warnings found (no errors)
-// - Exit 2: Errors found
-// - Exit 2: Tool failure (invalid arguments, file not found)
-//
-// EXTREME TDD: Test-driven development for Issue #6
-// https://github.com/paiml/bashrs/issues/6
+                               // Exit code tests for bashrs lint command (Issue #6)
+                               //
+                               // Expected behavior (aligned with make lint):
+                               // - Exit 0: No issues found
+                               // - Exit 1: Warnings found (no errors)
+                               // - Exit 2: Errors found
+                               // - Exit 2: Tool failure (invalid arguments, file not found)
+                               //
+                               // EXTREME TDD: Test-driven development for Issue #6
+                               // https://github.com/paiml/bashrs/issues/6
 
 use assert_cmd::Command;
 use std::io::Write;

@@ -11,8 +11,7 @@
 
 use bashrs::make_parser::ast::{MakeAst, MakeItem, MakeMetadata, RecipeMetadata, Span, VarFlavor};
 use bashrs::make_parser::generators::{
-    generate_purified_makefile, generate_purified_makefile_with_options,
-    MakefileGeneratorOptions,
+    generate_purified_makefile, generate_purified_makefile_with_options, MakefileGeneratorOptions,
 };
 
 // =============================================================================
@@ -42,7 +41,11 @@ fn test_line_length_exact_boundary() {
     let output = generate_purified_makefile_with_options(&makefile, &options);
 
     // Line should NOT be broken (it's exactly at boundary)
-    assert_eq!(output.lines().count(), 1, "Line at exact boundary should not be broken");
+    assert_eq!(
+        output.lines().count(),
+        1,
+        "Line at exact boundary should not be broken"
+    );
     assert!(!output.contains('\\'), "No continuation needed at boundary");
 }
 
@@ -77,7 +80,11 @@ fn test_word_boundary_exact_fit() {
 
     // Recipe line that fits exactly should not be broken
     let recipe_lines: Vec<&str> = output.lines().filter(|l| l.starts_with('\t')).collect();
-    assert_eq!(recipe_lines.len(), 1, "Recipe fitting exactly should not break");
+    assert_eq!(
+        recipe_lines.len(),
+        1,
+        "Recipe fitting exactly should not break"
+    );
 }
 
 // =============================================================================

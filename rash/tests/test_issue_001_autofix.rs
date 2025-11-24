@@ -1,7 +1,7 @@
-#![allow(clippy::unwrap_used)] // Tests can use unwrap() for simplicity
+#![allow(clippy::unwrap_used)]
+// Tests can use unwrap() for simplicity
 // Issue #1: Bash Auto-fix Creates Invalid Syntax
 // Following EXTREME TDD methodology - RED phase
-
 #![allow(non_snake_case)] // Test naming convention: test_<TASK_ID>_<feature>_<scenario>
 
 use assert_cmd::Command;

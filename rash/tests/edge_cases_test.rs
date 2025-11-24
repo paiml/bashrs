@@ -1,6 +1,6 @@
 #![allow(clippy::unwrap_used)] // Tests can use unwrap() for simplicity
-// Edge case tests discovered during book development
-// These tests document known issues that need fixing
+                               // Edge case tests discovered during book development
+                               // These tests document known issues that need fixing
 
 use bashrs::{transpile, Config};
 

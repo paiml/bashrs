@@ -24,8 +24,8 @@
 
 #![allow(non_snake_case)] // Test naming convention uses TASK_ID format
 
-use bashrs::repl::parser::parse_bash;
 use bashrs::repl::linter::lint_bash;
+use bashrs::repl::parser::parse_bash;
 use bashrs::repl::purifier::purify_bash;
 
 /// Test: REPL-002-004-001 - Parser and linter agree on script structure
@@ -40,17 +40,11 @@ echo "Hello, World!"
 
     // Parse the script
     let parse_result = parse_bash(script);
-    assert!(
-        parse_result.is_ok(),
-        "Parser should accept valid script"
-    );
+    assert!(parse_result.is_ok(), "Parser should accept valid script");
 
     // Lint the script
     let lint_result = lint_bash(script);
-    assert!(
-        lint_result.is_ok(),
-        "Linter should analyze valid script"
-    );
+    assert!(lint_result.is_ok(), "Linter should analyze valid script");
 
     // CRITICAL: Both tools must agree that script is valid
     // If parser accepts it, linter must be able to analyze it
@@ -132,18 +126,27 @@ echo $x
 fn test_REPL_002_004_validation_consensus() {
     // Test cases: (script, should_be_valid)
     let test_cases = vec![
-        (r#"#!/bin/bash
+        (
+            r#"#!/bin/bash
 echo "valid"
-"#, true),
-        (r#"#!/bin/bash
+"#,
+            true,
+        ),
+        (
+            r#"#!/bin/bash
 if [ -f /tmp/test ]; then
     echo "valid"
 fi
-"#, true),
+"#,
+            true,
+        ),
         // Invalid: unclosed quote
-        (r#"#!/bin/bash
+        (
+            r#"#!/bin/bash
 echo "unclosed
-"#, false),
+"#,
+            false,
+        ),
     ];
 
     for (script, should_be_valid) in test_cases {

@@ -438,11 +438,7 @@ impl BashExecutor {
                             chars.next(); // consume '}'
                             break;
                         }
-                        content.push(
-                            chars
-                                .next()
-                                .expect("peek() verified char exists"),
-                        );
+                        content.push(chars.next().expect("peek() verified char exists"));
                     }
 
                     // Parse the content for array access or length
@@ -455,11 +451,7 @@ impl BashExecutor {
                 let mut var_name = String::new();
                 while let Some(&next) = chars.peek() {
                     if next.is_alphanumeric() || next == '_' {
-                        var_name.push(
-                            chars
-                                .next()
-                                .expect("peek() verified char exists"),
-                        );
+                        var_name.push(chars.next().expect("peek() verified char exists"));
                     } else {
                         break;
                     }
@@ -889,11 +881,7 @@ impl BashExecutor {
 
                 while let Some(&next) = chars.peek() {
                     if next.is_alphanumeric() || next == '_' {
-                        var_name.push(
-                            chars
-                                .next()
-                                .expect("peek() verified char exists"),
-                        );
+                        var_name.push(chars.next().expect("peek() verified char exists"));
                     } else {
                         break;
                     }
@@ -911,11 +899,7 @@ impl BashExecutor {
                 let mut var_name = String::new();
                 while let Some(&next) = chars.peek() {
                     if next.is_alphanumeric() || next == '_' {
-                        var_name.push(
-                            chars
-                                .next()
-                                .expect("peek() verified char exists"),
-                        );
+                        var_name.push(chars.next().expect("peek() verified char exists"));
                     } else {
                         break;
                     }

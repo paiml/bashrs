@@ -28,11 +28,11 @@ use crate::linter::{Diagnostic, LintResult, Severity, Span};
 
 /// Dangerous file permission modes
 const DANGEROUS_MODES: &[&str] = &[
-    "777",  // rwxrwxrwx - everyone can do everything
-    "666",  // rw-rw-rw- - everyone can read/write
-    "664",  // rw-rw-r-- - group can write (risky for sensitive files)
-    "776",  // rwxrwxrw- - world can write
-    "677",  // rw-rwxrwx - group/world can execute
+    "777", // rwxrwxrwx - everyone can do everything
+    "666", // rw-rw-rw- - everyone can read/write
+    "664", // rw-rw-r-- - group can write (risky for sensitive files)
+    "776", // rwxrwxrw- - world can write
+    "677", // rw-rwxrwx - group/world can execute
 ];
 
 /// Check for unsafe file permissions (chmod 777, 666, etc.)
@@ -49,13 +49,13 @@ pub fn check(source: &str) -> LintResult {
 
                     let severity = match *dangerous_mode {
                         "777" | "666" => Severity::Error, // Critical
-                        _ => Severity::Warning,            // High risk but not always critical
+                        _ => Severity::Warning,           // High risk but not always critical
                     };
 
                     let diag = Diagnostic::new(
                         "SEC017",
                         severity,
-                        &format!(
+                        format!(
                             "Unsafe file permissions: chmod {} grants excessive permissions - use principle of least privilege",
                             dangerous_mode
                         ),
@@ -83,13 +83,7 @@ fn find_command(line: &str, cmd: &str) -> Option<usize> {
             let char_before = line.chars().nth(pos - 1);
             matches!(
                 char_before,
-                Some(' ')
-                    | Some('\t')
-                    | Some(';')
-                    | Some('&')
-                    | Some('|')
-                    | Some('(')
-                    | Some('\n')
+                Some(' ') | Some('\t') | Some(';') | Some('&') | Some('|') | Some('(') | Some('\n')
             )
         };
 

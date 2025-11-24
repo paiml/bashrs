@@ -1,6 +1,6 @@
 #![allow(clippy::unwrap_used)] // Tests can use unwrap() for simplicity
-// Integration test for TestGenerator
-// Tests the complete workflow: bash script -> AST -> generated tests
+                               // Integration test for TestGenerator
+                               // Tests the complete workflow: bash script -> AST -> generated tests
 
 use bashrs::bash_parser::{ast::*, BashParser};
 use bashrs::test_generator::{TestGenOptions, TestGenerator};

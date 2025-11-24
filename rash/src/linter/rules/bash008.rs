@@ -49,8 +49,8 @@
 //! exit 1
 //! ```
 
-use crate::linter::{Diagnostic, Severity, Span};
 use crate::linter::LintResult;
+use crate::linter::{Diagnostic, Severity, Span};
 
 /// Check for exit without error message
 pub fn check(source: &str) -> LintResult {
@@ -87,7 +87,7 @@ pub fn check(source: &str) -> LintResult {
             }
 
             // Check if previous line has error message
-            if line_num > 0 && has_error_message_on_line(&lines[line_num - 1]) {
+            if line_num > 0 && has_error_message_on_line(lines[line_num - 1]) {
                 continue;
             }
 
@@ -171,7 +171,11 @@ fi
 "#;
         let result = check(script);
 
-        assert_eq!(result.diagnostics.len(), 0, "Should pass with error message");
+        assert_eq!(
+            result.diagnostics.len(),
+            0,
+            "Should pass with error message"
+        );
     }
 
     /// RED TEST 3: Pass when exit 0 (success)
@@ -183,7 +187,11 @@ exit 0
 "#;
         let result = check(script);
 
-        assert_eq!(result.diagnostics.len(), 0, "exit 0 doesn't need error message");
+        assert_eq!(
+            result.diagnostics.len(),
+            0,
+            "exit 0 doesn't need error message"
+        );
     }
 
     /// RED TEST 4: Pass when error message on same line
@@ -194,7 +202,11 @@ command || { echo "Error: Command failed" >&2; exit 1; }
 "#;
         let result = check(script);
 
-        assert_eq!(result.diagnostics.len(), 0, "Inline error message should pass");
+        assert_eq!(
+            result.diagnostics.len(),
+            0,
+            "Inline error message should pass"
+        );
     }
 
     /// RED TEST 5: Detect standalone exit

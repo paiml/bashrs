@@ -74,7 +74,7 @@ fn check_line(line: &str, line_num: usize, result: &mut LintResult) {
 
             // Skip $((  (arithmetic expansion - safe)
             if i + 2 < chars.len() && chars[i + 1] == '(' && chars[i + 2] == '(' {
-                i = skip_arithmetic(& chars, i);
+                i = skip_arithmetic(&chars, i);
                 continue;
             }
 
@@ -95,12 +95,7 @@ fn check_line(line: &str, line_num: usize, result: &mut LintResult) {
                 let var_end = find_variable_end(&chars, i);
                 let var_name = extract_variable_name(&chars, i, var_end);
 
-                let span = Span::new(
-                    line_num + 1,
-                    start_col + 1,
-                    line_num + 1,
-                    var_end + 1,
-                );
+                let span = Span::new(line_num + 1, start_col + 1, line_num + 1, var_end + 1);
 
                 let message = format!(
                     "Unquoted variable expansion ${} - injection risk. Use \"${}\" instead",
@@ -302,11 +297,7 @@ mod tests {
         let script = "echo $? $# $$ $@ $*";
         let result = check(script);
 
-        assert_eq!(
-            result.diagnostics.len(),
-            0,
-            "Special variables are safe"
-        );
+        assert_eq!(result.diagnostics.len(), 0, "Special variables are safe");
     }
 
     #[test]
@@ -326,11 +317,7 @@ mod tests {
         let script = "[[ $var == value ]]";
         let result = check(script);
 
-        assert_eq!(
-            result.diagnostics.len(),
-            0,
-            "Variables in [[ ]] are safe"
-        );
+        assert_eq!(result.diagnostics.len(), 0, "Variables in [[ ]] are safe");
     }
 
     #[test]
@@ -377,8 +364,7 @@ rm "$PACKAGE_NAME.tar.gz"
         // Verify at least one detection involves unquoted variables
         let has_injection_warning = result.diagnostics.iter().any(|d| {
             d.code == "SEC019"
-                && (d.message.contains("INSTALL_DIR")
-                    || d.message.contains("PACKAGE_NAME"))
+                && (d.message.contains("INSTALL_DIR") || d.message.contains("PACKAGE_NAME"))
         });
 
         assert!(
@@ -458,8 +444,11 @@ rm $FILE          # WARNING: unquoted
             "Should detect 2 unquoted variables"
         );
 
-        let messages: Vec<String> =
-            result.diagnostics.iter().map(|d| d.message.clone()).collect();
+        let messages: Vec<String> = result
+            .diagnostics
+            .iter()
+            .map(|d| d.message.clone())
+            .collect();
 
         assert!(
             messages.iter().any(|m| m.contains("UNSAFE")),
@@ -516,4 +505,3 @@ wget "$URL" -O /tmp/app.tar.gz
         );
     }
 }
-

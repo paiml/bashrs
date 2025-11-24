@@ -1,4 +1,5 @@
-#![allow(clippy::unwrap_used)] // Tests can use unwrap() for simplicity
+#![allow(clippy::unwrap_used)]
+// Tests can use unwrap() for simplicity
 // CLI Integration Tests for Rash v2.0.0
 // Sprint 73 Phase 3: CLI Integration Tests
 //
@@ -7,7 +8,6 @@
 // - Tests success cases, error cases, and edge cases
 // - Validates all CLI commands and subcommands
 // - End-to-end workflow testing
-
 #![allow(non_snake_case)] // Test naming convention: test_<TASK_ID>_<feature>_<scenario>
 
 use assert_cmd::Command;
