@@ -368,7 +368,7 @@ mod property_tests {
             checker.register_variable(&var_name, Type::String { taint });
 
             // Quoted variables are safe (except tainted commands)
-            if taint != Taint::Tainted || true {  // Strings when quoted are OK
+            if taint != Taint::Tainted {  // Strings when quoted are OK
                 // Note: Commands are special case, tested separately
                 let result = checker.check_injection_safety(&var_name, true);
                 // Quoted strings are always OK

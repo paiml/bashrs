@@ -29,6 +29,7 @@ fn main() -> Result<()> {
         r#"/// Embedded Rash runtime library
 pub const RUNTIME_LIBRARY: &str = "{escaped_runtime}";
 
+/// Returns the embedded runtime library as a string.
 pub fn get_runtime() -> &'static str {{
     RUNTIME_LIBRARY
 }}
