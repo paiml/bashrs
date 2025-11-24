@@ -1,16 +1,16 @@
 #![allow(clippy::unwrap_used)] // Benchmarks can use unwrap() for simplicity
-// Bash Purification Performance Benchmarks (Task 1 of 10: 70% → 100% Production)
-// Target: <100ms per 1000 lines (scalability verification for production workloads)
-//
-// Fixtures:
-// - small.sh: ~50 lines (basic purification opportunities)
-// - medium.sh: ~500 lines (moderate complexity with functions)
-// - large.sh: ~5741 lines (real-world production-scale script)
-//
-// Performance Baselines:
-// - Small (<50 lines): Target <5ms (interactive CLI experience)
-// - Medium (~500 lines): Target <50ms (responsive for CI/CD)
-// - Large (~5000 lines): Target <500ms (<100ms/1000 lines)
+                               // Bash Purification Performance Benchmarks (Task 1 of 10: 70% → 100% Production)
+                               // Target: <100ms per 1000 lines (scalability verification for production workloads)
+                               //
+                               // Fixtures:
+                               // - small.sh: ~50 lines (basic purification opportunities)
+                               // - medium.sh: ~500 lines (moderate complexity with functions)
+                               // - large.sh: ~5741 lines (real-world production-scale script)
+                               //
+                               // Performance Baselines:
+                               // - Small (<50 lines): Target <5ms (interactive CLI experience)
+                               // - Medium (~500 lines): Target <50ms (responsive for CI/CD)
+                               // - Large (~5000 lines): Target <500ms (<100ms/1000 lines)
 
 use bashrs::bash_parser::BashParser;
 use bashrs::bash_transpiler::purification::{PurificationOptions, Purifier};

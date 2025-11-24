@@ -1330,7 +1330,10 @@ mod tests {
         assert_eq!(cmp.original, "mkdir /tmp/test");
         // Phase 2 adds permission checks, so purified is multi-line
         // Line 0 is now the permission check
-        assert!(cmp.purified.contains("dirname"), "Purified should contain permission check");
+        assert!(
+            cmp.purified.contains("dirname"),
+            "Purified should contain permission check"
+        );
         assert!(cmp.differs, "Original and purified should differ");
     }
 
@@ -1382,7 +1385,10 @@ mod tests {
 
         // ASSERT: Phase 2 adds permission checks, so first line is permission check
         // The highlighted output will show the permission check transformation
-        assert!(highlighted.contains("mkdir") || highlighted.contains("dirname"), "Should show mkdir-related content");
+        assert!(
+            highlighted.contains("mkdir") || highlighted.contains("dirname"),
+            "Should show mkdir-related content"
+        );
     }
 
     /// Test: REPL-010-002-002 - Highlight variable quoting
@@ -1527,7 +1533,11 @@ mod tests {
         let text = explanation.unwrap();
         // Phase 2 added permission checks, so explanation may mention permissions or transformations
         assert!(
-            text.contains("transform") || text.contains("permission") || text.contains("idempot") || text.contains("idem") || text.contains("-p"),
+            text.contains("transform")
+                || text.contains("permission")
+                || text.contains("idempot")
+                || text.contains("idem")
+                || text.contains("-p"),
             "Should explain transformation: {}",
             text
         );

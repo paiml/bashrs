@@ -1019,7 +1019,10 @@ fn dockerfile_purify_command(
     dockerfile_purify_command_impl(input, options)
 }
 
-fn dockerfile_purify_command_impl(input: &Path, options: DockerfilePurifyOptions<'_>) -> Result<()> {
+fn dockerfile_purify_command_impl(
+    input: &Path,
+    options: DockerfilePurifyOptions<'_>,
+) -> Result<()> {
     // Read Dockerfile
     let source = fs::read_to_string(input).map_err(Error::Io)?;
 

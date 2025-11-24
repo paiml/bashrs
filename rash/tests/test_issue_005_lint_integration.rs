@@ -1,6 +1,6 @@
 #![allow(clippy::unwrap_used)] // Tests can use unwrap() for simplicity
-// Integration test for Issue #5: zsh linting with shell type detection
-// Verifies that lint_shell() uses detect_shell_type() to correctly lint zsh files
+                               // Integration test for Issue #5: zsh linting with shell type detection
+                               // Verifies that lint_shell() uses detect_shell_type() to correctly lint zsh files
 
 use bashrs::linter::{lint_shell_with_path, LintResult};
 use std::path::PathBuf;

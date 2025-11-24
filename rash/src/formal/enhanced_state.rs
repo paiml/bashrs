@@ -142,8 +142,8 @@ impl Default for EnhancedState {
             stderr: Vec::new(),
             exit_code: 0,
             filesystem,
-            euid: 0,    // Default to root user
-            egid: 0,    // Default to root group
+            euid: 0,         // Default to root user
+            egid: 0,         // Default to root group
             groups: vec![0], // Default to root group only
         }
     }
@@ -186,27 +186,21 @@ impl EnhancedState {
                     self.exit_code = 0;
                     Ok(())
                 } else {
-                    self.stderr.push(format!(
-                        "cd: {}: Permission denied",
-                        path.display()
-                    ));
+                    self.stderr
+                        .push(format!("cd: {}: Permission denied", path.display()));
                     self.exit_code = 1;
                     Err("Permission denied".to_string())
                 }
             }
             Some(_) => {
-                self.stderr.push(format!(
-                    "cd: {}: Not a directory",
-                    path.display()
-                ));
+                self.stderr
+                    .push(format!("cd: {}: Not a directory", path.display()));
                 self.exit_code = 1;
                 Err("Not a directory".to_string())
             }
             None => {
-                self.stderr.push(format!(
-                    "cd: {}: No such file or directory",
-                    path.display()
-                ));
+                self.stderr
+                    .push(format!("cd: {}: No such file or directory", path.display()));
                 self.exit_code = 1;
                 Err("No such file or directory".to_string())
             }
@@ -282,11 +276,7 @@ impl EnhancedState {
     /// Unlike the old `create_directory()`, this method verifies:
     /// 1. User has write permission on parent directory
     /// 2. Existing directory is accessible
-    pub fn create_directory_safe(
-        &mut self,
-        path: PathBuf,
-        mode: u32,
-    ) -> Result<(), String> {
+    pub fn create_directory_safe(&mut self, path: PathBuf, mode: u32) -> Result<(), String> {
         // Check if directory already exists
         match self.filesystem.get(&path) {
             Some(EnhancedFileSystemEntry::Directory { .. }) => {
@@ -341,20 +331,13 @@ impl EnhancedState {
     }
 
     /// Write content to a file with permission checks
-    pub fn write_file(
-        &mut self,
-        path: PathBuf,
-        content: String,
-        mode: u32,
-    ) -> Result<(), String> {
+    pub fn write_file(&mut self, path: PathBuf, content: String, mode: u32) -> Result<(), String> {
         // Check if file exists
         if self.filesystem.contains_key(&path) {
             // File exists, check write permission
             if !self.can_write(&path) {
-                self.stderr.push(format!(
-                    "write: {}: Permission denied",
-                    path.display()
-                ));
+                self.stderr
+                    .push(format!("write: {}: Permission denied", path.display()));
                 self.exit_code = 1;
                 return Err("Permission denied".to_string());
             }
@@ -393,10 +376,8 @@ impl EnhancedState {
     pub fn read_file(&mut self, path: &PathBuf) -> Result<String, String> {
         // Check read permission
         if !self.can_read(path) {
-            self.stderr.push(format!(
-                "cat: {}: Permission denied",
-                path.display()
-            ));
+            self.stderr
+                .push(format!("cat: {}: Permission denied", path.display()));
             self.exit_code = 1;
             return Err("Permission denied".to_string());
         }
@@ -407,10 +388,8 @@ impl EnhancedState {
                 Ok(content.clone())
             }
             Some(EnhancedFileSystemEntry::Directory { .. }) => {
-                self.stderr.push(format!(
-                    "cat: {}: Is a directory",
-                    path.display()
-                ));
+                self.stderr
+                    .push(format!("cat: {}: Is a directory", path.display()));
                 self.exit_code = 1;
                 Err("Is a directory".to_string())
             }

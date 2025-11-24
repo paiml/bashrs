@@ -45,8 +45,8 @@
 //! - Replace `$(seq 1 10)` with `{1..10}`
 //! - Replace `cat file | while read` with `while read; do ... done < file`
 
-use crate::linter::{Diagnostic, Severity, Span};
 use crate::linter::LintResult;
+use crate::linter::{Diagnostic, Severity, Span};
 
 /// Check for inefficient loop patterns
 pub fn check(source: &str) -> LintResult {

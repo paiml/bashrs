@@ -123,7 +123,12 @@ impl Purifier {
                 })
             }
 
-            BashStmt::Command { name, args, redirects: _, span } => {
+            BashStmt::Command {
+                name,
+                args,
+                redirects: _,
+                span,
+            } => {
                 // Detect and transform non-idempotent operations
                 let (purified_cmds, idempotent_wrapper) =
                     self.make_command_idempotent(name, args, *span)?;
@@ -660,14 +665,14 @@ impl Purifier {
         );
 
         BashStmt::If {
-            condition: BashExpr::Test(Box::new(TestExpr::FileWritable(
-                BashExpr::CommandSubst(Box::new(BashStmt::Command {
+            condition: BashExpr::Test(Box::new(TestExpr::FileWritable(BashExpr::CommandSubst(
+                Box::new(BashStmt::Command {
                     name: "dirname".to_string(),
                     args: vec![target_dir.clone()],
                     redirects: vec![],
                     span,
-                })),
-            ))),
+                }),
+            )))),
             then_block: vec![], // Empty - continue if writable
             elif_blocks: vec![],
             else_block: Some(vec![
@@ -737,7 +742,10 @@ impl Purifier {
 
                 return Ok((
                     vec![permission_check, mkdir_cmd],
-                    Some("Added permission check and -p flag to mkdir for safety and idempotency".to_string()),
+                    Some(
+                        "Added permission check and -p flag to mkdir for safety and idempotency"
+                            .to_string(),
+                    ),
                 ));
             }
 
@@ -941,8 +949,7 @@ mod tests {
                         // Condition should test file writability
                         let condition_str = format!("{:?}", condition);
                         assert!(
-                            condition_str.contains("FileWritable")
-                                || condition_str.contains("-w"),
+                            condition_str.contains("FileWritable") || condition_str.contains("-w"),
                             "Expected FileWritable permission check, got: {}",
                             condition_str
                         );
@@ -953,7 +960,10 @@ mod tests {
                             "Expected else block with error handling"
                         );
                     }
-                    other => panic!("Expected If statement for permission check, got: {:?}", other),
+                    other => panic!(
+                        "Expected If statement for permission check, got: {:?}",
+                        other
+                    ),
                 }
 
                 // Second command should be mkdir -p
@@ -962,9 +972,9 @@ mod tests {
                         assert_eq!(name, "mkdir", "Expected mkdir command");
 
                         // Should have -p flag
-                        let has_p_flag = args.iter().any(|arg| {
-                            matches!(arg, BashExpr::Literal(s) if s.contains("-p"))
-                        });
+                        let has_p_flag = args
+                            .iter()
+                            .any(|arg| matches!(arg, BashExpr::Literal(s) if s.contains("-p")));
                         assert!(has_p_flag, "mkdir should have -p flag for idempotency");
                     }
                     other => panic!("Expected mkdir command, got: {:?}", other),

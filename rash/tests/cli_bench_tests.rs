@@ -1,6 +1,6 @@
 #![allow(clippy::unwrap_used)] // Tests can use unwrap() for simplicity
-// CLI Bench Command Tests - EXTREME TDD
-// Testing bashrs bench sub-command with NASA-quality standards
+                               // CLI Bench Command Tests - EXTREME TDD
+                               // Testing bashrs bench sub-command with NASA-quality standards
 
 use assert_cmd::Command;
 use predicates::prelude::*;

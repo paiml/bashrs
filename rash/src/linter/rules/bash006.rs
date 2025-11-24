@@ -49,8 +49,8 @@
 //! #   Description of return value
 //! ```
 
-use crate::linter::{Diagnostic, Severity, Span};
 use crate::linter::LintResult;
+use crate::linter::{Diagnostic, Severity, Span};
 
 /// Check for functions without documentation
 pub fn check(source: &str) -> LintResult {
@@ -84,7 +84,7 @@ pub fn check(source: &str) -> LintResult {
                 let diag = Diagnostic::new(
                     "BASH006",
                     Severity::Info,
-                    &format!(
+                    format!(
                         "Function '{}' lacks documentation - add comment describing purpose, arguments, and return value for better maintainability",
                         function_name
                     ),
@@ -197,7 +197,11 @@ process_data() {
 "#;
         let result = check(script);
 
-        assert_eq!(result.diagnostics.len(), 0, "Should pass with documentation");
+        assert_eq!(
+            result.diagnostics.len(),
+            0,
+            "Should pass with documentation"
+        );
     }
 
     /// RED TEST 3: Detect function keyword syntax

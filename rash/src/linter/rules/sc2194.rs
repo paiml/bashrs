@@ -43,13 +43,11 @@ static COMMAND_VAR_USAGE: Lazy<Regex> = Lazy::new(|| {
 
 /// Check if line assigns a constant command to a variable
 fn parse_command_assignment(line: &str) -> Option<(String, String)> {
-    COMMAND_VAR_ASSIGNMENT
-        .captures(line.trim())
-        .map(|cap| {
-            let var_name = cap.get(1).unwrap().as_str().to_string();
-            let command_name = cap.get(2).unwrap().as_str().to_string();
-            (var_name, command_name)
-        })
+    COMMAND_VAR_ASSIGNMENT.captures(line.trim()).map(|cap| {
+        let var_name = cap.get(1).unwrap().as_str().to_string();
+        let command_name = cap.get(2).unwrap().as_str().to_string();
+        (var_name, command_name)
+    })
 }
 
 /// Find next non-empty, non-comment line index
@@ -65,16 +63,14 @@ fn find_next_code_line(lines: &[&str], start_idx: usize) -> Option<usize> {
 
 /// Check if line uses a variable as a command and return variable name if matched
 fn check_variable_usage<'a>(line: &'a str, expected_var: &str) -> Option<&'a str> {
-    COMMAND_VAR_USAGE
-        .captures(line.trim())
-        .and_then(|cap| {
-            let used_var = cap.get(2).unwrap().as_str();
-            if used_var == expected_var {
-                Some(cap.get(0).unwrap().as_str())
-            } else {
-                None
-            }
-        })
+    COMMAND_VAR_USAGE.captures(line.trim()).and_then(|cap| {
+        let used_var = cap.get(2).unwrap().as_str();
+        if used_var == expected_var {
+            Some(cap.get(0).unwrap().as_str())
+        } else {
+            None
+        }
+    })
 }
 
 /// Create diagnostic for constant command variable usage

@@ -53,8 +53,8 @@
 //! - Use subshell: `(cd dir && command)`
 //! - Use pushd/popd for directory stack management
 
-use crate::linter::{Diagnostic, Severity, Span};
 use crate::linter::LintResult;
+use crate::linter::{Diagnostic, Severity, Span};
 
 /// Check for dangerous `cd && command` pattern
 pub fn check(source: &str) -> LintResult {
@@ -189,7 +189,11 @@ rm -rf *
 "#;
         let result = check(script);
 
-        assert_eq!(result.diagnostics.len(), 0, "cd with error handling is safe");
+        assert_eq!(
+            result.diagnostics.len(),
+            0,
+            "cd with error handling is safe"
+        );
     }
 
     /// RED TEST 7: Detect cd in function

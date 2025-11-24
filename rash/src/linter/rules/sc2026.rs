@@ -50,11 +50,7 @@ fn is_quoted(line: &str, match_text: &str) -> bool {
 }
 
 /// Create diagnostic for unquoted word with multiple = signs
-fn create_unquoted_diagnostic(
-    match_text: &str,
-    line: &str,
-    line_num: usize,
-) -> Diagnostic {
+fn create_unquoted_diagnostic(match_text: &str, line: &str, line_num: usize) -> Diagnostic {
     let start_col = line.find(match_text).unwrap_or(0) + 1;
     let end_col = start_col + match_text.len();
 

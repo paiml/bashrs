@@ -921,7 +921,10 @@ fn echo(msg: &str) {}
     let config = Config::default();
     let result = transpile(source, config);
 
-    assert!(result.is_ok(), "Should handle arg_count in variable assignment");
+    assert!(
+        result.is_ok(),
+        "Should handle arg_count in variable assignment"
+    );
 
     let shell = result.unwrap();
 
@@ -992,7 +995,10 @@ fn wc(arg: &str) {}
         .output()
         .expect("Failed to execute shell script");
 
-    assert!(output.status.success(), "Script should execute successfully");
+    assert!(
+        output.status.success(),
+        "Script should execute successfully"
+    );
 }
 
 /// PARAM-SPEC-005: Script name detection ($0)

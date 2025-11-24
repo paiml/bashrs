@@ -129,14 +129,11 @@ impl TypeChecker {
     /// - Tainted unquoted strings → UNSAFE (injection risk)
     /// - Tainted commands → UNSAFE (arbitrary code execution)
     /// - Safe/Sanitized values → Always OK
-    pub fn check_injection_safety(
-        &self,
-        var_name: &str,
-        is_quoted: bool,
-    ) -> Result<(), String> {
-        let var_type = self.env.get(var_name).ok_or_else(|| {
-            format!("Variable {} not in scope", var_name)
-        })?;
+    pub fn check_injection_safety(&self, var_name: &str, is_quoted: bool) -> Result<(), String> {
+        let var_type = self
+            .env
+            .get(var_name)
+            .ok_or_else(|| format!("Variable {} not in scope", var_name))?;
 
         match var_type {
             Type::String {
@@ -147,10 +144,7 @@ impl TypeChecker {
             )),
             Type::Command {
                 taint: Taint::Tainted,
-            } => Err(format!(
-                "UNSAFE: Command from tainted source: {}",
-                var_name
-            )),
+            } => Err(format!("UNSAFE: Command from tainted source: {}", var_name)),
             _ => Ok(()),
         }
     }
@@ -184,9 +178,7 @@ mod tests {
         );
 
         // ✅ Quoted usage is safe (sanitized)
-        assert!(checker
-            .check_injection_safety("user_input", true)
-            .is_ok());
+        assert!(checker.check_injection_safety("user_input", true).is_ok());
 
         // ❌ Unquoted usage is UNSAFE
         let result = checker.check_injection_safety("user_input", false);
@@ -216,10 +208,7 @@ mod tests {
         let mut checker = TypeChecker::new();
 
         // Safe string literal
-        checker.register_variable(
-            "safe_var",
-            Type::String { taint: Taint::Safe },
-        );
+        checker.register_variable("safe_var", Type::String { taint: Taint::Safe });
 
         // Both quoted and unquoted are OK for safe values
         assert!(checker.check_injection_safety("safe_var", true).is_ok());
@@ -261,8 +250,7 @@ mod tests {
 
         // Even quoted, tainted commands are UNSAFE
         let result_quoted = checker.check_injection_safety("tainted_cmd", true);
-        let result_unquoted =
-            checker.check_injection_safety("tainted_cmd", false);
+        let result_unquoted = checker.check_injection_safety("tainted_cmd", false);
 
         assert!(result_quoted.is_err());
         assert!(result_unquoted.is_err());

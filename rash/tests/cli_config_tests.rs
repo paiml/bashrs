@@ -4,7 +4,6 @@
 //! Tests following EXTREME TDD - these tests are written FIRST (RED phase)
 //! before implementing the CLI commands.
 
-
 use assert_cmd::Command;
 use predicates::prelude::*;
 use std::fs;

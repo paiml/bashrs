@@ -1,11 +1,11 @@
-#![allow(clippy::unwrap_used)] // Tests can use unwrap() for simplicity
+#![allow(clippy::unwrap_used)]
+// Tests can use unwrap() for simplicity
 // Integration Tests for Dockerfile Purification - End-to-End Workflows
 // EXTREME TDD Phase 7: INTEGRATION
 //
 // Test Naming Convention: test_integration_<workflow>_<scenario>
 //
 // Purpose: Verify complete end-to-end workflows combining multiple transformations
-
 #![allow(non_snake_case)] // Test naming convention allows descriptive names
 
 use assert_cmd::Command;

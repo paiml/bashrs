@@ -28,7 +28,11 @@ static LOWERCASE_RANGE: Lazy<Regex> = Lazy::new(|| {
 
 /// Check if the match is already part of a POSIX character class like [:lower:]
 fn is_part_of_posix_class(line: &str, match_start: usize, match_end: usize) -> bool {
-    let before = if match_start > 0 { &line[..match_start] } else { "" };
+    let before = if match_start > 0 {
+        &line[..match_start]
+    } else {
+        ""
+    };
     let after = &line[match_end..];
 
     // Skip if it's part of [[:lower:]] or [:lower:]
@@ -37,7 +41,11 @@ fn is_part_of_posix_class(line: &str, match_start: usize, match_end: usize) -> b
 }
 
 /// Create diagnostic for ASCII-only character range
-fn create_character_class_diagnostic(line_num: usize, start_col: usize, end_col: usize) -> Diagnostic {
+fn create_character_class_diagnostic(
+    line_num: usize,
+    start_col: usize,
+    end_col: usize,
+) -> Diagnostic {
     Diagnostic::new(
         "SC2018",
         Severity::Info,

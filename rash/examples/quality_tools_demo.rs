@@ -1,8 +1,8 @@
 #![allow(clippy::unwrap_used)] // Examples can use unwrap() for simplicity
-// Quality Tools Demonstration
-// Comprehensive example showing all bashrs quality tools on various shell file styles
-//
-// Run with: cargo run --example quality_tools_demo
+                               // Quality Tools Demonstration
+                               // Comprehensive example showing all bashrs quality tools on various shell file styles
+                               //
+                               // Run with: cargo run --example quality_tools_demo
 
 use anyhow::Result;
 use std::fs;

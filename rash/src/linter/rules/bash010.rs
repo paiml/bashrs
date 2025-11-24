@@ -42,8 +42,8 @@
 //! # Usage: [usage instructions]
 //! ```
 
-use crate::linter::{Diagnostic, Severity, Span};
 use crate::linter::LintResult;
+use crate::linter::{Diagnostic, Severity, Span};
 
 /// Check for missing script header
 pub fn check(source: &str) -> LintResult {
@@ -210,7 +210,11 @@ echo "Starting backup"
 "#;
         let result = check(script);
 
-        assert_eq!(result.diagnostics.len(), 0, "Multi-line description should pass");
+        assert_eq!(
+            result.diagnostics.len(),
+            0,
+            "Multi-line description should pass"
+        );
     }
 
     /// RED TEST 8: Empty file passes (no warning)

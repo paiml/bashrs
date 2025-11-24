@@ -532,7 +532,11 @@ impl IrConverter {
                     {
                         if inner_method == "nth" && inner_args.len() == 1 {
                             // Check if inner receiver is std::env::args()
-                            if let Expr::FunctionCall { name, args: fn_args } = &**inner_receiver {
+                            if let Expr::FunctionCall {
+                                name,
+                                args: fn_args,
+                            } = &**inner_receiver
+                            {
                                 if name == "std::env::args" && fn_args.is_empty() {
                                     // Extract the position number
                                     if let Expr::Literal(Literal::U32(n)) = &inner_args[0] {
@@ -575,7 +579,11 @@ impl IrConverter {
                         // This becomes ${N:-default} in shell (e.g., ${0:-default} for script name)
                         if inner_method == "nth" && inner_args.len() == 1 {
                             // Check if inner receiver is std::env::args()
-                            if let Expr::FunctionCall { name, args: fn_args } = &**inner_receiver {
+                            if let Expr::FunctionCall {
+                                name,
+                                args: fn_args,
+                            } = &**inner_receiver
+                            {
                                 if name == "std::env::args" && fn_args.is_empty() {
                                     // Extract the position number
                                     if let Expr::Literal(Literal::U32(n)) = &inner_args[0] {

@@ -285,7 +285,11 @@ impl Transpiler {
                 fs::create_dir_all(parent).map_err(|e| {
                     Error::Io(std::io::Error::new(
                         e.kind(),
-                        format!("Failed to create output directory {}: {}", parent.display(), e),
+                        format!(
+                            "Failed to create output directory {}: {}",
+                            parent.display(),
+                            e
+                        ),
                     ))
                 })?;
             }
@@ -341,10 +345,7 @@ mod tests {
     #[test]
     fn test_XTASK_001_transpiler_builder_sets_input() {
         let transpiler = Transpiler::new().input("src/main.rs");
-        assert_eq!(
-            transpiler.input.unwrap().to_str().unwrap(),
-            "src/main.rs"
-        );
+        assert_eq!(transpiler.input.unwrap().to_str().unwrap(), "src/main.rs");
     }
 
     #[test]
@@ -548,7 +549,11 @@ mod tests {
             .config(config)
             .transpile();
 
-        assert!(result.is_ok(), "Transpilation with config failed: {:?}", result);
+        assert!(
+            result.is_ok(),
+            "Transpilation with config failed: {:?}",
+            result
+        );
         assert!(output_path.exists());
     }
 }

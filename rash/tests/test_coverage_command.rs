@@ -1,6 +1,6 @@
 #![allow(clippy::unwrap_used)] // Tests can use unwrap() for simplicity
-// test_coverage_command.rs - Coverage tracking tests
-// Testing bashrs coverage command (v6.13.0 - Bash Quality Tools)
+                               // test_coverage_command.rs - Coverage tracking tests
+                               // Testing bashrs coverage command (v6.13.0 - Bash Quality Tools)
 
 use assert_cmd::Command;
 use predicates::prelude::*;

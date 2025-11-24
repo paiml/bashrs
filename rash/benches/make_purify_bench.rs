@@ -1,9 +1,9 @@
 #![allow(clippy::unwrap_used)] // Benchmarks can use unwrap() for simplicity
-// Makefile Purification Performance Benchmarks
-// Sprint 73 Phase 4: Performance Benchmarking
-//
-// Target: <100ms for typical Makefile purification
-// Memory: <10MB for purification process
+                               // Makefile Purification Performance Benchmarks
+                               // Sprint 73 Phase 4: Performance Benchmarking
+                               //
+                               // Target: <100ms for typical Makefile purification
+                               // Memory: <10MB for purification process
 
 use bashrs::make_parser::parser::parse_makefile;
 use bashrs::make_parser::purify::purify_makefile;
