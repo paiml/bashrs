@@ -55,6 +55,45 @@ pub struct SuppressionManager {
 
 impl SuppressionManager {
     /// Create a new suppression manager by parsing source code
+    ///
+    /// # Examples
+    ///
+    /// ## File-level suppression
+    ///
+    /// ```
+    /// use bashrs::linter::SuppressionManager;
+    ///
+    /// let script = "# bashrs disable-file=SC2086,DET002\necho $var\ntimestamp=$(date +%s)";
+    ///
+    /// let manager = SuppressionManager::from_source(script);
+    /// assert!(manager.is_suppressed("SC2086", 1));
+    /// assert!(manager.is_suppressed("SC2086", 2));
+    /// assert!(manager.is_suppressed("DET002", 3));
+    /// ```
+    ///
+    /// ## Next-line suppression
+    ///
+    /// ```
+    /// use bashrs::linter::SuppressionManager;
+    ///
+    /// let script = "# bashrs disable-next-line=SC2086\necho $var";
+    ///
+    /// let manager = SuppressionManager::from_source(script);
+    /// assert!(manager.is_suppressed("SC2086", 2));
+    /// assert!(!manager.is_suppressed("SC2086", 1));
+    /// ```
+    ///
+    /// ## Inline suppression
+    ///
+    /// ```
+    /// use bashrs::linter::SuppressionManager;
+    ///
+    /// let script = "echo $var  # bashrs disable-line=SC2086";
+    ///
+    /// let manager = SuppressionManager::from_source(script);
+    /// assert!(manager.is_suppressed("SC2086", 1));
+    /// assert!(!manager.is_suppressed("SC2002", 1));
+    /// ```
     pub fn from_source(source: &str) -> Self {
         let mut manager = Self::default();
         let lines: Vec<&str> = source.lines().collect();
