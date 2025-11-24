@@ -6,6 +6,8 @@
 //! - Rule interactions
 //! - Real-world script analysis
 
+#![allow(clippy::unwrap_used)] // Tests can use unwrap() for simplicity
+
 use bashrs::linter::{lint_shell, Severity};
 
 #[test]
