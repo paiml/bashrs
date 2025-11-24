@@ -66,6 +66,7 @@
 - [CLI Commands](./reference/cli.md)
 - [REPL Commands](./reference/repl-commands.md)
 - [Configuration](./reference/configuration.md)
+- [.bashrsignore File](./reference/ignore-file.md)
 - [Exit Codes](./reference/exit-codes.md)
 - [Linter Rules Reference](./reference/rules.md)
 

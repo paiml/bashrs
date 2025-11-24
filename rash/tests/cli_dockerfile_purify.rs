@@ -1,4 +1,5 @@
 #![allow(clippy::unwrap_used)] // Tests can use unwrap() for simplicity
+#![allow(clippy::expect_used)] // Tests can use expect() for simplicity
 //! Tests for Dockerfile purification (EXTREME TDD)
 //!
 //! Tests the `bashrs dockerfile purify` command for auto-fixing Dockerfile issues.
