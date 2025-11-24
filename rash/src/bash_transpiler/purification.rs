@@ -301,6 +301,16 @@ impl Purifier {
             }
 
             BashStmt::Pipeline { commands, span } => {
+                // Check if this is already a "permission check + mkdir" pipeline
+                // If so, don't re-purify to avoid duplication (idempotency bug fix)
+                if self.is_permission_check_mkdir_pipeline(commands) {
+                    // Already purified - return as-is to maintain idempotency
+                    return Ok(BashStmt::Pipeline {
+                        commands: commands.clone(),
+                        span: *span,
+                    });
+                }
+
                 // Purify each command in the pipeline
                 let mut purified_commands = Vec::new();
                 for cmd in commands {
@@ -643,6 +653,40 @@ impl Purifier {
 
             ArithExpr::Number(_) => Ok(arith.clone()),
         }
+    }
+
+    /// Check if a pipeline is already a "permission check + mkdir" pattern
+    ///
+    /// Returns true if the pipeline contains:
+    /// 1. An If statement with permission check (contains "Permission denied")
+    /// 2. Followed by a mkdir -p command
+    ///
+    /// This prevents re-purification from adding duplicate permission checks.
+    fn is_permission_check_mkdir_pipeline(&self, commands: &[BashStmt]) -> bool {
+        if commands.len() != 2 {
+            return false;
+        }
+
+        // First command should be If statement with permission check
+        let has_permission_check = matches!(&commands[0], BashStmt::If { else_block, .. } if {
+            // Check if else block contains "Permission denied" error message
+            else_block.as_ref().map_or(false, |stmts| {
+                stmts.iter().any(|stmt| {
+                    matches!(stmt, BashStmt::Command { name, args, .. }
+                        if name == "echo" && args.iter().any(|arg| {
+                            matches!(arg, BashExpr::Literal(s) if s.contains("Permission denied"))
+                        }))
+                })
+            })
+        });
+
+        // Second command should be mkdir -p
+        let has_mkdir_p = matches!(&commands[1], BashStmt::Command { name, args, .. }
+        if name == "mkdir" && args.iter().any(|arg| {
+            matches!(arg, BashExpr::Literal(s) if s.contains("-p"))
+        }));
+
+        has_permission_check && has_mkdir_p
     }
 
     /// Generate a permission check for file operations
