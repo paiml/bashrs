@@ -423,723 +423,731 @@
 <a href=#423 id=423 data-nosnippet>423</a>/// let script = "#!/bin/sh\necho hello";
 <a href=#424 id=424 data-nosnippet>424</a>/// let result = lint_shell_with_path(path, script);
 <a href=#425 id=425 data-nosnippet>425</a>/// // Should detect POSIX sh and skip bash-only rules
-<a href=#426 id=426 data-nosnippet>426</a>/// assert!(result.diagnostics.is_empty());
-<a href=#427 id=427 data-nosnippet>427</a>/// ```
-<a href=#428 id=428 data-nosnippet>428</a>///
-<a href=#429 id=429 data-nosnippet>429</a>/// ## Bash-specific script
-<a href=#430 id=430 data-nosnippet>430</a>///
+<a href=#426 id=426 data-nosnippet>426</a>/// // Note: May have style suggestions, but no critical errors
+<a href=#427 id=427 data-nosnippet>427</a>/// let errors = result.diagnostics.iter()
+<a href=#428 id=428 data-nosnippet>428</a>///     .filter(|d| d.severity == bashrs::linter::Severity::Error)
+<a href=#429 id=429 data-nosnippet>429</a>///     .count();
+<a href=#430 id=430 data-nosnippet>430</a>/// assert_eq!(errors, 0);
 <a href=#431 id=431 data-nosnippet>431</a>/// ```
-<a href=#432 id=432 data-nosnippet>432</a>/// use bashrs::linter::lint_shell_with_path;
-<a href=#433 id=433 data-nosnippet>433</a>/// use std::path::Path;
+<a href=#432 id=432 data-nosnippet>432</a>///
+<a href=#433 id=433 data-nosnippet>433</a>/// ## Bash-specific script
 <a href=#434 id=434 data-nosnippet>434</a>///
-<a href=#435 id=435 data-nosnippet>435</a>/// let path = Path::new("script.bash");
-<a href=#436 id=436 data-nosnippet>436</a>/// let script = "#!/bin/bash\necho hello";
-<a href=#437 id=437 data-nosnippet>437</a>/// let result = lint_shell_with_path(path, script);
-<a href=#438 id=438 data-nosnippet>438</a>/// // Bash-specific rules are applied
-<a href=#439 id=439 data-nosnippet>439</a>/// assert!(result.diagnostics.is_empty());
-<a href=#440 id=440 data-nosnippet>440</a>/// ```
-<a href=#441 id=441 data-nosnippet>441</a></span><span class="kw">pub fn </span>lint_shell_with_path(path: <span class="kw-2">&amp;</span>std::path::Path, source: <span class="kw-2">&amp;</span>str) -&gt; LintResult {
-<a href=#442 id=442 data-nosnippet>442</a>    <span class="kw">use </span><span class="kw">crate</span>::linter::shell_type::detect_shell_type;
-<a href=#443 id=443 data-nosnippet>443</a>
-<a href=#444 id=444 data-nosnippet>444</a>    <span class="comment">// Detect shell type from path and content
-<a href=#445 id=445 data-nosnippet>445</a>    </span><span class="kw">let </span>shell_type = detect_shell_type(path, source);
-<a href=#446 id=446 data-nosnippet>446</a>
-<a href=#447 id=447 data-nosnippet>447</a>    <span class="comment">// Run rules with shell-specific filtering
-<a href=#448 id=448 data-nosnippet>448</a>    </span>lint_shell_filtered(source, shell_type)
-<a href=#449 id=449 data-nosnippet>449</a>}
-<a href=#450 id=450 data-nosnippet>450</a>
-<a href=#451 id=451 data-nosnippet>451</a><span class="doccomment">/// Lint a shell script with shell-specific rule filtering
-<a href=#452 id=452 data-nosnippet>452</a>///
-<a href=#453 id=453 data-nosnippet>453</a>/// Conditionally applies rules based on shell type compatibility.
-<a href=#454 id=454 data-nosnippet>454</a>/// For example, bash-only array rules are skipped for POSIX sh files.
-<a href=#455 id=455 data-nosnippet>455</a>///
-<a href=#456 id=456 data-nosnippet>456</a>/// # Arguments
-<a href=#457 id=457 data-nosnippet>457</a>/// * `source` - Shell script source code
-<a href=#458 id=458 data-nosnippet>458</a>/// * `shell_type` - Detected or explicit shell type
-<a href=#459 id=459 data-nosnippet>459</a>///
-<a href=#460 id=460 data-nosnippet>460</a>/// # Returns
-<a href=#461 id=461 data-nosnippet>461</a>/// LintResult with filtered diagnostics
-<a href=#462 id=462 data-nosnippet>462</a></span><span class="kw">fn </span>lint_shell_filtered(
-<a href=#463 id=463 data-nosnippet>463</a>    source: <span class="kw-2">&amp;</span>str,
-<a href=#464 id=464 data-nosnippet>464</a>    shell_type: <span class="kw">crate</span>::linter::shell_type::ShellType,
-<a href=#465 id=465 data-nosnippet>465</a>) -&gt; LintResult {
-<a href=#466 id=466 data-nosnippet>466</a>    <span class="kw">use </span><span class="kw">crate</span>::linter::rule_registry::should_apply_rule;
-<a href=#467 id=467 data-nosnippet>467</a>    <span class="kw">use </span><span class="kw">crate</span>::linter::suppression::SuppressionManager;
-<a href=#468 id=468 data-nosnippet>468</a>
-<a href=#469 id=469 data-nosnippet>469</a>    <span class="kw">let </span><span class="kw-2">mut </span>result = LintResult::new();
-<a href=#470 id=470 data-nosnippet>470</a>
-<a href=#471 id=471 data-nosnippet>471</a>    <span class="comment">// Helper macro to conditionally apply rules
-<a href=#472 id=472 data-nosnippet>472</a>    </span><span class="macro">macro_rules!</span> apply_rule {
-<a href=#473 id=473 data-nosnippet>473</a>        (<span class="macro-nonterminal">$rule_id</span>:expr, <span class="macro-nonterminal">$check_fn</span>:expr) =&gt; {
-<a href=#474 id=474 data-nosnippet>474</a>            <span class="kw">if </span>should_apply_rule(<span class="macro-nonterminal">$rule_id</span>, shell_type) {
-<a href=#475 id=475 data-nosnippet>475</a>                result.merge(<span class="macro-nonterminal">$check_fn</span>(source));
-<a href=#476 id=476 data-nosnippet>476</a>            }
-<a href=#477 id=477 data-nosnippet>477</a>        };
-<a href=#478 id=478 data-nosnippet>478</a>    }
-<a href=#479 id=479 data-nosnippet>479</a>
-<a href=#480 id=480 data-nosnippet>480</a>    <span class="comment">// Run ShellCheck-equivalent rules with filtering
-<a href=#481 id=481 data-nosnippet>481</a>    </span><span class="macro">apply_rule!</span>(<span class="string">"SC2001"</span>, sc2001::check);
-<a href=#482 id=482 data-nosnippet>482</a>    <span class="macro">apply_rule!</span>(<span class="string">"SC2002"</span>, sc2002::check);
-<a href=#483 id=483 data-nosnippet>483</a>    <span class="macro">apply_rule!</span>(<span class="string">"SC2003"</span>, sc2003::check);
-<a href=#484 id=484 data-nosnippet>484</a>    <span class="macro">apply_rule!</span>(<span class="string">"SC2004"</span>, sc2004::check);
-<a href=#485 id=485 data-nosnippet>485</a>    <span class="macro">apply_rule!</span>(<span class="string">"SC2005"</span>, sc2005::check);
-<a href=#486 id=486 data-nosnippet>486</a>    <span class="macro">apply_rule!</span>(<span class="string">"SC2006"</span>, sc2006::check);
-<a href=#487 id=487 data-nosnippet>487</a>    <span class="macro">apply_rule!</span>(<span class="string">"SC2007"</span>, sc2007::check);
-<a href=#488 id=488 data-nosnippet>488</a>    <span class="macro">apply_rule!</span>(<span class="string">"SC2015"</span>, sc2015::check);
-<a href=#489 id=489 data-nosnippet>489</a>    <span class="macro">apply_rule!</span>(<span class="string">"SC2016"</span>, sc2016::check);
-<a href=#490 id=490 data-nosnippet>490</a>    <span class="macro">apply_rule!</span>(<span class="string">"SC2017"</span>, sc2017::check);
-<a href=#491 id=491 data-nosnippet>491</a>    <span class="macro">apply_rule!</span>(<span class="string">"SC2018"</span>, sc2018::check);
-<a href=#492 id=492 data-nosnippet>492</a>    <span class="macro">apply_rule!</span>(<span class="string">"SC2019"</span>, sc2019::check);
-<a href=#493 id=493 data-nosnippet>493</a>    <span class="macro">apply_rule!</span>(<span class="string">"SC2020"</span>, sc2020::check);
-<a href=#494 id=494 data-nosnippet>494</a>    <span class="macro">apply_rule!</span>(<span class="string">"SC2021"</span>, sc2021::check);
-<a href=#495 id=495 data-nosnippet>495</a>    <span class="macro">apply_rule!</span>(<span class="string">"SC2022"</span>, sc2022::check);
-<a href=#496 id=496 data-nosnippet>496</a>    <span class="macro">apply_rule!</span>(<span class="string">"SC2023"</span>, sc2023::check);
-<a href=#497 id=497 data-nosnippet>497</a>    <span class="macro">apply_rule!</span>(<span class="string">"SC2024"</span>, sc2024::check);
-<a href=#498 id=498 data-nosnippet>498</a>    <span class="macro">apply_rule!</span>(<span class="string">"SC2025"</span>, sc2025::check);
-<a href=#499 id=499 data-nosnippet>499</a>    <span class="macro">apply_rule!</span>(<span class="string">"SC2026"</span>, sc2026::check);
-<a href=#500 id=500 data-nosnippet>500</a>    <span class="macro">apply_rule!</span>(<span class="string">"SC2027"</span>, sc2027::check);
-<a href=#501 id=501 data-nosnippet>501</a>    <span class="macro">apply_rule!</span>(<span class="string">"SC2028"</span>, sc2028::check); <span class="comment">// Universal - echo may not expand \\n (use printf)
-<a href=#502 id=502 data-nosnippet>502</a>    </span><span class="macro">apply_rule!</span>(<span class="string">"SC2029"</span>, sc2029::check);
-<a href=#503 id=503 data-nosnippet>503</a>    <span class="macro">apply_rule!</span>(<span class="string">"SC2030"</span>, sc2030::check);
-<a href=#504 id=504 data-nosnippet>504</a>    <span class="macro">apply_rule!</span>(<span class="string">"SC2031"</span>, sc2031::check); <span class="comment">// Universal - subshell scope
-<a href=#505 id=505 data-nosnippet>505</a>    </span><span class="macro">apply_rule!</span>(<span class="string">"SC2032"</span>, sc2032::check); <span class="comment">// Universal - variable in shebang script
-<a href=#506 id=506 data-nosnippet>506</a>
-<a href=#507 id=507 data-nosnippet>507</a>    // Add classified rules (SC2039 and SC2198-2201)
-<a href=#508 id=508 data-nosnippet>508</a>    </span><span class="macro">apply_rule!</span>(<span class="string">"SC2039"</span>, sc2039::check); <span class="comment">// NotSh - bash/zsh features
-<a href=#509 id=509 data-nosnippet>509</a>
-<a href=#510 id=510 data-nosnippet>510</a>    // Batch 2: Arithmetic and quoting rules (Universal)
-<a href=#511 id=511 data-nosnippet>511</a>    </span><span class="macro">apply_rule!</span>(<span class="string">"SC2079"</span>, sc2079::check); <span class="comment">// Universal - decimals in arithmetic
-<a href=#512 id=512 data-nosnippet>512</a>    </span><span class="macro">apply_rule!</span>(<span class="string">"SC2080"</span>, sc2080::check); <span class="comment">// Universal - octal numbers
-<a href=#513 id=513 data-nosnippet>513</a>    </span><span class="macro">apply_rule!</span>(<span class="string">"SC2084"</span>, sc2084::check); <span class="comment">// Universal - arithmetic as command
-<a href=#514 id=514 data-nosnippet>514</a>    </span><span class="macro">apply_rule!</span>(<span class="string">"SC2085"</span>, sc2085::check); <span class="comment">// Universal - local with arithmetic
-<a href=#515 id=515 data-nosnippet>515</a>    </span><span class="macro">apply_rule!</span>(<span class="string">"SC2087"</span>, sc2087::check); <span class="comment">// Universal - quote in sh -c
-<a href=#516 id=516 data-nosnippet>516</a>    </span><span class="macro">apply_rule!</span>(<span class="string">"SC2088"</span>, sc2088::check); <span class="comment">// Universal - tilde expansion
-<a href=#517 id=517 data-nosnippet>517</a>    </span><span class="macro">apply_rule!</span>(<span class="string">"SC2089"</span>, sc2089::check); <span class="comment">// Universal - quotes in assignment
-<a href=#518 id=518 data-nosnippet>518</a>    </span><span class="macro">apply_rule!</span>(<span class="string">"SC2090"</span>, sc2090::check); <span class="comment">// Universal - quotes in expansion
-<a href=#519 id=519 data-nosnippet>519</a>    </span><span class="macro">apply_rule!</span>(<span class="string">"SC2091"</span>, sc2091::check); <span class="comment">// Universal - remove $() execution
-<a href=#520 id=520 data-nosnippet>520</a>    </span><span class="macro">apply_rule!</span>(<span class="string">"SC2092"</span>, sc2092::check); <span class="comment">// Universal - remove backticks execution
-<a href=#521 id=521 data-nosnippet>521</a>    </span><span class="macro">apply_rule!</span>(<span class="string">"SC2093"</span>, sc2093::check); <span class="comment">// Universal - remove exec
-<a href=#522 id=522 data-nosnippet>522</a>
-<a href=#523 id=523 data-nosnippet>523</a>    // Batch 2: [[ ]] test syntax rules (NotSh - bash/zsh/ksh only)
-<a href=#524 id=524 data-nosnippet>524</a>    </span><span class="macro">apply_rule!</span>(<span class="string">"SC2108"</span>, sc2108::check); <span class="comment">// NotSh - [[ ]] use &amp;&amp; not -a
-<a href=#525 id=525 data-nosnippet>525</a>    </span><span class="macro">apply_rule!</span>(<span class="string">"SC2109"</span>, sc2109::check); <span class="comment">// NotSh - [[ ]] use || not -o
-<a href=#526 id=526 data-nosnippet>526</a>    </span><span class="macro">apply_rule!</span>(<span class="string">"SC2110"</span>, sc2110::check); <span class="comment">// NotSh - don't mix &amp;&amp; || with -a -o
-<a href=#527 id=527 data-nosnippet>527</a>
-<a href=#528 id=528 data-nosnippet>528</a>    // Batch 2: function keyword rules (NotSh - bash/ksh only)
-<a href=#529 id=529 data-nosnippet>529</a>    </span><span class="macro">apply_rule!</span>(<span class="string">"SC2111"</span>, sc2111::check); <span class="comment">// NotSh - function keyword in sh
-<a href=#530 id=530 data-nosnippet>530</a>    </span><span class="macro">apply_rule!</span>(<span class="string">"SC2112"</span>, sc2112::check); <span class="comment">// NotSh - function keyword non-standard
-<a href=#531 id=531 data-nosnippet>531</a>    </span><span class="macro">apply_rule!</span>(<span class="string">"SC2113"</span>, sc2113::check); <span class="comment">// NotSh - function with () redundant
-<a href=#532 id=532 data-nosnippet>532</a>
-<a href=#533 id=533 data-nosnippet>533</a>    // Batch 2: More arithmetic rules (Universal)
-<a href=#534 id=534 data-nosnippet>534</a>    </span><span class="macro">apply_rule!</span>(<span class="string">"SC2133"</span>, sc2133::check); <span class="comment">// Universal - unexpected tokens in arithmetic
-<a href=#535 id=535 data-nosnippet>535</a>    </span><span class="macro">apply_rule!</span>(<span class="string">"SC2134"</span>, sc2134::check); <span class="comment">// Universal - use (( )) for numeric tests
-<a href=#536 id=536 data-nosnippet>536</a>    </span><span class="macro">apply_rule!</span>(<span class="string">"SC2137"</span>, sc2137::check); <span class="comment">// Universal - unnecessary braces in arithmetic
-<a href=#537 id=537 data-nosnippet>537</a>
-<a href=#538 id=538 data-nosnippet>538</a>    // Array rules (NotSh)
-<a href=#539 id=539 data-nosnippet>539</a>    </span><span class="macro">apply_rule!</span>(<span class="string">"SC2198"</span>, sc2198::check); <span class="comment">// NotSh - arrays
-<a href=#540 id=540 data-nosnippet>540</a>    </span><span class="macro">apply_rule!</span>(<span class="string">"SC2199"</span>, sc2199::check); <span class="comment">// NotSh - arrays
-<a href=#541 id=541 data-nosnippet>541</a>    </span><span class="macro">apply_rule!</span>(<span class="string">"SC2200"</span>, sc2200::check); <span class="comment">// NotSh - arrays
-<a href=#542 id=542 data-nosnippet>542</a>    </span><span class="macro">apply_rule!</span>(<span class="string">"SC2201"</span>, sc2201::check); <span class="comment">// NotSh - arrays
-<a href=#543 id=543 data-nosnippet>543</a>
-<a href=#544 id=544 data-nosnippet>544</a>    // Batch 3: Loop and iteration safety (Universal - all shells)
-<a href=#545 id=545 data-nosnippet>545</a>    </span><span class="macro">apply_rule!</span>(<span class="string">"SC2038"</span>, sc2038::check); <span class="comment">// Universal - find loop safety
-<a href=#546 id=546 data-nosnippet>546</a>    </span><span class="macro">apply_rule!</span>(<span class="string">"SC2040"</span>, sc2040::check); <span class="comment">// Universal - avoid -o confusion
-<a href=#547 id=547 data-nosnippet>547</a>    </span><span class="macro">apply_rule!</span>(<span class="string">"SC2041"</span>, sc2041::check); <span class="comment">// Universal - read in for loop
-<a href=#548 id=548 data-nosnippet>548</a>    </span><span class="macro">apply_rule!</span>(<span class="string">"SC2042"</span>, sc2042::check); <span class="comment">// Universal - echo vs printf
-<a href=#549 id=549 data-nosnippet>549</a>    </span><span class="macro">apply_rule!</span>(<span class="string">"SC2043"</span>, sc2043::check); <span class="comment">// Universal - loop runs once
-<a href=#550 id=550 data-nosnippet>550</a>
-<a href=#551 id=551 data-nosnippet>551</a>    // Batch 3: Test operators and word splitting (mostly Universal)
-<a href=#552 id=552 data-nosnippet>552</a>    </span><span class="macro">apply_rule!</span>(<span class="string">"SC2044"</span>, sc2044::check); <span class="comment">// NotSh - process substitution suggestion
-<a href=#553 id=553 data-nosnippet>553</a>    </span><span class="macro">apply_rule!</span>(<span class="string">"SC2045"</span>, sc2045::check); <span class="comment">// Universal - iterating over ls
-<a href=#554 id=554 data-nosnippet>554</a>    </span><span class="macro">apply_rule!</span>(<span class="string">"SC2046"</span>, sc2046::check); <span class="comment">// Universal - CRITICAL word splitting
-<a href=#555 id=555 data-nosnippet>555</a>    </span><span class="macro">apply_rule!</span>(<span class="string">"SC2047"</span>, sc2047::check); <span class="comment">// Universal - quote variables in [ ]
-<a href=#556 id=556 data-nosnippet>556</a>    </span><span class="macro">apply_rule!</span>(<span class="string">"SC2048"</span>, sc2048::check); <span class="comment">// Universal - quote "$@"
-<a href=#557 id=557 data-nosnippet>557</a>    </span><span class="macro">apply_rule!</span>(<span class="string">"SC2049"</span>, sc2049::check); <span class="comment">// Universal - =~ for regex
-<a href=#558 id=558 data-nosnippet>558</a>    </span><span class="macro">apply_rule!</span>(<span class="string">"SC2050"</span>, sc2050::check); <span class="comment">// Universal - constant expression
-<a href=#559 id=559 data-nosnippet>559</a>    </span><span class="macro">apply_rule!</span>(<span class="string">"SC2051"</span>, sc2051::check); <span class="comment">// Universal - brace range expansion
-<a href=#560 id=560 data-nosnippet>560</a>
-<a href=#561 id=561 data-nosnippet>561</a>    // Batch 3: Quoting and glob safety (mostly Universal)
-<a href=#562 id=562 data-nosnippet>562</a>    </span><span class="macro">apply_rule!</span>(<span class="string">"SC2052"</span>, sc2052::check); <span class="comment">// NotSh - [[ ]] for glob patterns
-<a href=#563 id=563 data-nosnippet>563</a>    </span><span class="macro">apply_rule!</span>(<span class="string">"SC2053"</span>, sc2053::check); <span class="comment">// Universal - quote RHS in [ ]
-<a href=#564 id=564 data-nosnippet>564</a>    </span><span class="macro">apply_rule!</span>(<span class="string">"SC2054"</span>, sc2054::check); <span class="comment">// Universal - comma in [[ ]]
-<a href=#565 id=565 data-nosnippet>565</a>    </span><span class="macro">apply_rule!</span>(<span class="string">"SC2055"</span>, sc2055::check); <span class="comment">// Universal - deprecated -a
-<a href=#566 id=566 data-nosnippet>566</a>    </span><span class="macro">apply_rule!</span>(<span class="string">"SC2056"</span>, sc2056::check); <span class="comment">// Universal - deprecated -o
-<a href=#567 id=567 data-nosnippet>567</a>    </span><span class="macro">apply_rule!</span>(<span class="string">"SC2057"</span>, sc2057::check); <span class="comment">// Universal - unknown binary operator
-<a href=#568 id=568 data-nosnippet>568</a>                                          // apply_rule!("SC2058", sc2058::check); // Universal - unknown unary operator (TODO: implement)
-<a href=#569 id=569 data-nosnippet>569</a>
-<a href=#570 id=570 data-nosnippet>570</a>    // Batch 3: Command safety and security (Universal - CRITICAL)
-<a href=#571 id=571 data-nosnippet>571</a>    </span><span class="macro">apply_rule!</span>(<span class="string">"SC2059"</span>, sc2059::check); <span class="comment">// Universal - CRITICAL printf format injection
-<a href=#572 id=572 data-nosnippet>572</a>    </span><span class="macro">apply_rule!</span>(<span class="string">"SC2060"</span>, sc2060::check); <span class="comment">// Universal - unquoted tr params
-<a href=#573 id=573 data-nosnippet>573</a>    </span><span class="macro">apply_rule!</span>(<span class="string">"SC2061"</span>, sc2061::check); <span class="comment">// Universal - quote tr params
-<a href=#574 id=574 data-nosnippet>574</a>    </span><span class="macro">apply_rule!</span>(<span class="string">"SC2062"</span>, sc2062::check); <span class="comment">// Universal - grep pattern glob expansion
-<a href=#575 id=575 data-nosnippet>575</a>
-<a href=#576 id=576 data-nosnippet>576</a>    // Batch 3: Trap and signal handling (Universal - CRITICAL)
-<a href=#577 id=577 data-nosnippet>577</a>    </span><span class="macro">apply_rule!</span>(<span class="string">"SC2063"</span>, sc2063::check); <span class="comment">// Universal - grep regex vs literal
-<a href=#578 id=578 data-nosnippet>578</a>    </span><span class="macro">apply_rule!</span>(<span class="string">"SC2064"</span>, sc2064::check); <span class="comment">// Universal - CRITICAL trap timing bug
-<a href=#579 id=579 data-nosnippet>579</a>    </span><span class="macro">apply_rule!</span>(<span class="string">"SC2065"</span>, sc2065::check); <span class="comment">// Universal - shell redirection interpretation
-<a href=#580 id=580 data-nosnippet>580</a>    </span><span class="macro">apply_rule!</span>(<span class="string">"SC2066"</span>, sc2066::check); <span class="comment">// Universal - missing semicolon before done
-<a href=#581 id=581 data-nosnippet>581</a>
-<a href=#582 id=582 data-nosnippet>582</a>    // Batch 4: Variable and parameter safety (Universal - all shells)
-<a href=#583 id=583 data-nosnippet>583</a>    </span><span class="macro">apply_rule!</span>(<span class="string">"SC2067"</span>, sc2067::check); <span class="comment">// Universal - missing $ on array lookup
-<a href=#584 id=584 data-nosnippet>584</a>    </span><span class="macro">apply_rule!</span>(<span class="string">"SC2068"</span>, sc2068::check); <span class="comment">// Universal - quote $@ to prevent word splitting
-<a href=#585 id=585 data-nosnippet>585</a>    </span><span class="macro">apply_rule!</span>(<span class="string">"SC2069"</span>, sc2069::check); <span class="comment">// Universal - redirect stdout+stderr correctly
-<a href=#586 id=586 data-nosnippet>586</a>    </span><span class="macro">apply_rule!</span>(<span class="string">"SC2070"</span>, sc2070::check); <span class="comment">// Universal - -n doesn't work unquoted
-<a href=#587 id=587 data-nosnippet>587</a>    </span><span class="macro">apply_rule!</span>(<span class="string">"SC2071"</span>, sc2071::check); <span class="comment">// Universal - arithmetic operators in [ ]
-<a href=#588 id=588 data-nosnippet>588</a>    </span><span class="macro">apply_rule!</span>(<span class="string">"SC2072"</span>, sc2072::check); <span class="comment">// Universal - lexicographic vs numeric comparison
-<a href=#589 id=589 data-nosnippet>589</a>    </span><span class="macro">apply_rule!</span>(<span class="string">"SC2073"</span>, sc2073::check); <span class="comment">// Universal - escape \\d or use [[:digit:]]
-<a href=#590 id=590 data-nosnippet>590</a>    </span><span class="macro">apply_rule!</span>(<span class="string">"SC2074"</span>, sc2074::check); <span class="comment">// Universal - can't use =~ in [ ]
-<a href=#591 id=591 data-nosnippet>591</a>
-<a href=#592 id=592 data-nosnippet>592</a>    // Batch 4: Quote and expansion safety (Universal)
-<a href=#593 id=593 data-nosnippet>593</a>    </span><span class="macro">apply_rule!</span>(<span class="string">"SC2075"</span>, sc2075::check); <span class="comment">// Universal - escaping quotes in single quotes
-<a href=#594 id=594 data-nosnippet>594</a>    </span><span class="macro">apply_rule!</span>(<span class="string">"SC2076"</span>, sc2076::check); <span class="comment">// Universal - don't quote RHS of =~ in [[ ]]
-<a href=#595 id=595 data-nosnippet>595</a>    </span><span class="macro">apply_rule!</span>(<span class="string">"SC2077"</span>, sc2077::check); <span class="comment">// Universal - quote regex to prevent word splitting
-<a href=#596 id=596 data-nosnippet>596</a>    </span><span class="macro">apply_rule!</span>(<span class="string">"SC2078"</span>, sc2078::check); <span class="comment">// Universal - constant expression (forgot $?)
-<a href=#597 id=597 data-nosnippet>597</a>    </span><span class="macro">apply_rule!</span>(<span class="string">"SC2081"</span>, sc2081::check); <span class="comment">// Universal - escape [ in globs
-<a href=#598 id=598 data-nosnippet>598</a>    </span><span class="macro">apply_rule!</span>(<span class="string">"SC2082"</span>, sc2082::check); <span class="comment">// Universal - variable indirection with $$
-<a href=#599 id=599 data-nosnippet>599</a>    </span><span class="macro">apply_rule!</span>(<span class="string">"SC2083"</span>, sc2083::check); <span class="comment">// Universal - don't add spaces after shebang
-<a href=#600 id=600 data-nosnippet>600</a>
-<a href=#601 id=601 data-nosnippet>601</a>    // Batch 4: Command and redirection safety (Universal - CRITICAL)
-<a href=#602 id=602 data-nosnippet>602</a>    </span><span class="macro">apply_rule!</span>(<span class="string">"SC2094"</span>, sc2094::check); <span class="comment">// Universal - same file for input/output (truncate)
-<a href=#603 id=603 data-nosnippet>603</a>    </span><span class="macro">apply_rule!</span>(<span class="string">"SC2095"</span>, sc2095::check); <span class="comment">// Universal - ssh in loops may consume stdin
-<a href=#604 id=604 data-nosnippet>604</a>    </span><span class="macro">apply_rule!</span>(<span class="string">"SC2096"</span>, sc2096::check); <span class="comment">// Universal - use #! shebang
-<a href=#605 id=605 data-nosnippet>605</a>    </span><span class="macro">apply_rule!</span>(<span class="string">"SC2097"</span>, sc2097::check); <span class="comment">// Universal - assign and use variable separately
-<a href=#606 id=606 data-nosnippet>606</a>    </span><span class="macro">apply_rule!</span>(<span class="string">"SC2098"</span>, sc2098::check); <span class="comment">// Universal - variable assignment vs redirection
-<a href=#607 id=607 data-nosnippet>607</a>    </span><span class="macro">apply_rule!</span>(<span class="string">"SC2103"</span>, sc2103::check); <span class="comment">// Universal - cd without error check
+<a href=#435 id=435 data-nosnippet>435</a>/// ```
+<a href=#436 id=436 data-nosnippet>436</a>/// use bashrs::linter::lint_shell_with_path;
+<a href=#437 id=437 data-nosnippet>437</a>/// use std::path::Path;
+<a href=#438 id=438 data-nosnippet>438</a>///
+<a href=#439 id=439 data-nosnippet>439</a>/// let path = Path::new("script.bash");
+<a href=#440 id=440 data-nosnippet>440</a>/// let script = "#!/bin/bash\necho hello";
+<a href=#441 id=441 data-nosnippet>441</a>/// let result = lint_shell_with_path(path, script);
+<a href=#442 id=442 data-nosnippet>442</a>/// // Bash-specific rules are applied
+<a href=#443 id=443 data-nosnippet>443</a>/// // Should complete successfully with minimal issues
+<a href=#444 id=444 data-nosnippet>444</a>/// let errors = result.diagnostics.iter()
+<a href=#445 id=445 data-nosnippet>445</a>///     .filter(|d| d.severity == bashrs::linter::Severity::Error)
+<a href=#446 id=446 data-nosnippet>446</a>///     .count();
+<a href=#447 id=447 data-nosnippet>447</a>/// assert_eq!(errors, 0);
+<a href=#448 id=448 data-nosnippet>448</a>/// ```
+<a href=#449 id=449 data-nosnippet>449</a></span><span class="kw">pub fn </span>lint_shell_with_path(path: <span class="kw-2">&amp;</span>std::path::Path, source: <span class="kw-2">&amp;</span>str) -&gt; LintResult {
+<a href=#450 id=450 data-nosnippet>450</a>    <span class="kw">use </span><span class="kw">crate</span>::linter::shell_type::detect_shell_type;
+<a href=#451 id=451 data-nosnippet>451</a>
+<a href=#452 id=452 data-nosnippet>452</a>    <span class="comment">// Detect shell type from path and content
+<a href=#453 id=453 data-nosnippet>453</a>    </span><span class="kw">let </span>shell_type = detect_shell_type(path, source);
+<a href=#454 id=454 data-nosnippet>454</a>
+<a href=#455 id=455 data-nosnippet>455</a>    <span class="comment">// Run rules with shell-specific filtering
+<a href=#456 id=456 data-nosnippet>456</a>    </span>lint_shell_filtered(source, shell_type)
+<a href=#457 id=457 data-nosnippet>457</a>}
+<a href=#458 id=458 data-nosnippet>458</a>
+<a href=#459 id=459 data-nosnippet>459</a><span class="doccomment">/// Lint a shell script with shell-specific rule filtering
+<a href=#460 id=460 data-nosnippet>460</a>///
+<a href=#461 id=461 data-nosnippet>461</a>/// Conditionally applies rules based on shell type compatibility.
+<a href=#462 id=462 data-nosnippet>462</a>/// For example, bash-only array rules are skipped for POSIX sh files.
+<a href=#463 id=463 data-nosnippet>463</a>///
+<a href=#464 id=464 data-nosnippet>464</a>/// # Arguments
+<a href=#465 id=465 data-nosnippet>465</a>/// * `source` - Shell script source code
+<a href=#466 id=466 data-nosnippet>466</a>/// * `shell_type` - Detected or explicit shell type
+<a href=#467 id=467 data-nosnippet>467</a>///
+<a href=#468 id=468 data-nosnippet>468</a>/// # Returns
+<a href=#469 id=469 data-nosnippet>469</a>/// LintResult with filtered diagnostics
+<a href=#470 id=470 data-nosnippet>470</a></span><span class="kw">fn </span>lint_shell_filtered(
+<a href=#471 id=471 data-nosnippet>471</a>    source: <span class="kw-2">&amp;</span>str,
+<a href=#472 id=472 data-nosnippet>472</a>    shell_type: <span class="kw">crate</span>::linter::shell_type::ShellType,
+<a href=#473 id=473 data-nosnippet>473</a>) -&gt; LintResult {
+<a href=#474 id=474 data-nosnippet>474</a>    <span class="kw">use </span><span class="kw">crate</span>::linter::rule_registry::should_apply_rule;
+<a href=#475 id=475 data-nosnippet>475</a>    <span class="kw">use </span><span class="kw">crate</span>::linter::suppression::SuppressionManager;
+<a href=#476 id=476 data-nosnippet>476</a>
+<a href=#477 id=477 data-nosnippet>477</a>    <span class="kw">let </span><span class="kw-2">mut </span>result = LintResult::new();
+<a href=#478 id=478 data-nosnippet>478</a>
+<a href=#479 id=479 data-nosnippet>479</a>    <span class="comment">// Helper macro to conditionally apply rules
+<a href=#480 id=480 data-nosnippet>480</a>    </span><span class="macro">macro_rules!</span> apply_rule {
+<a href=#481 id=481 data-nosnippet>481</a>        (<span class="macro-nonterminal">$rule_id</span>:expr, <span class="macro-nonterminal">$check_fn</span>:expr) =&gt; {
+<a href=#482 id=482 data-nosnippet>482</a>            <span class="kw">if </span>should_apply_rule(<span class="macro-nonterminal">$rule_id</span>, shell_type) {
+<a href=#483 id=483 data-nosnippet>483</a>                result.merge(<span class="macro-nonterminal">$check_fn</span>(source));
+<a href=#484 id=484 data-nosnippet>484</a>            }
+<a href=#485 id=485 data-nosnippet>485</a>        };
+<a href=#486 id=486 data-nosnippet>486</a>    }
+<a href=#487 id=487 data-nosnippet>487</a>
+<a href=#488 id=488 data-nosnippet>488</a>    <span class="comment">// Run ShellCheck-equivalent rules with filtering
+<a href=#489 id=489 data-nosnippet>489</a>    </span><span class="macro">apply_rule!</span>(<span class="string">"SC2001"</span>, sc2001::check);
+<a href=#490 id=490 data-nosnippet>490</a>    <span class="macro">apply_rule!</span>(<span class="string">"SC2002"</span>, sc2002::check);
+<a href=#491 id=491 data-nosnippet>491</a>    <span class="macro">apply_rule!</span>(<span class="string">"SC2003"</span>, sc2003::check);
+<a href=#492 id=492 data-nosnippet>492</a>    <span class="macro">apply_rule!</span>(<span class="string">"SC2004"</span>, sc2004::check);
+<a href=#493 id=493 data-nosnippet>493</a>    <span class="macro">apply_rule!</span>(<span class="string">"SC2005"</span>, sc2005::check);
+<a href=#494 id=494 data-nosnippet>494</a>    <span class="macro">apply_rule!</span>(<span class="string">"SC2006"</span>, sc2006::check);
+<a href=#495 id=495 data-nosnippet>495</a>    <span class="macro">apply_rule!</span>(<span class="string">"SC2007"</span>, sc2007::check);
+<a href=#496 id=496 data-nosnippet>496</a>    <span class="macro">apply_rule!</span>(<span class="string">"SC2015"</span>, sc2015::check);
+<a href=#497 id=497 data-nosnippet>497</a>    <span class="macro">apply_rule!</span>(<span class="string">"SC2016"</span>, sc2016::check);
+<a href=#498 id=498 data-nosnippet>498</a>    <span class="macro">apply_rule!</span>(<span class="string">"SC2017"</span>, sc2017::check);
+<a href=#499 id=499 data-nosnippet>499</a>    <span class="macro">apply_rule!</span>(<span class="string">"SC2018"</span>, sc2018::check);
+<a href=#500 id=500 data-nosnippet>500</a>    <span class="macro">apply_rule!</span>(<span class="string">"SC2019"</span>, sc2019::check);
+<a href=#501 id=501 data-nosnippet>501</a>    <span class="macro">apply_rule!</span>(<span class="string">"SC2020"</span>, sc2020::check);
+<a href=#502 id=502 data-nosnippet>502</a>    <span class="macro">apply_rule!</span>(<span class="string">"SC2021"</span>, sc2021::check);
+<a href=#503 id=503 data-nosnippet>503</a>    <span class="macro">apply_rule!</span>(<span class="string">"SC2022"</span>, sc2022::check);
+<a href=#504 id=504 data-nosnippet>504</a>    <span class="macro">apply_rule!</span>(<span class="string">"SC2023"</span>, sc2023::check);
+<a href=#505 id=505 data-nosnippet>505</a>    <span class="macro">apply_rule!</span>(<span class="string">"SC2024"</span>, sc2024::check);
+<a href=#506 id=506 data-nosnippet>506</a>    <span class="macro">apply_rule!</span>(<span class="string">"SC2025"</span>, sc2025::check);
+<a href=#507 id=507 data-nosnippet>507</a>    <span class="macro">apply_rule!</span>(<span class="string">"SC2026"</span>, sc2026::check);
+<a href=#508 id=508 data-nosnippet>508</a>    <span class="macro">apply_rule!</span>(<span class="string">"SC2027"</span>, sc2027::check);
+<a href=#509 id=509 data-nosnippet>509</a>    <span class="macro">apply_rule!</span>(<span class="string">"SC2028"</span>, sc2028::check); <span class="comment">// Universal - echo may not expand \\n (use printf)
+<a href=#510 id=510 data-nosnippet>510</a>    </span><span class="macro">apply_rule!</span>(<span class="string">"SC2029"</span>, sc2029::check);
+<a href=#511 id=511 data-nosnippet>511</a>    <span class="macro">apply_rule!</span>(<span class="string">"SC2030"</span>, sc2030::check);
+<a href=#512 id=512 data-nosnippet>512</a>    <span class="macro">apply_rule!</span>(<span class="string">"SC2031"</span>, sc2031::check); <span class="comment">// Universal - subshell scope
+<a href=#513 id=513 data-nosnippet>513</a>    </span><span class="macro">apply_rule!</span>(<span class="string">"SC2032"</span>, sc2032::check); <span class="comment">// Universal - variable in shebang script
+<a href=#514 id=514 data-nosnippet>514</a>
+<a href=#515 id=515 data-nosnippet>515</a>    // Add classified rules (SC2039 and SC2198-2201)
+<a href=#516 id=516 data-nosnippet>516</a>    </span><span class="macro">apply_rule!</span>(<span class="string">"SC2039"</span>, sc2039::check); <span class="comment">// NotSh - bash/zsh features
+<a href=#517 id=517 data-nosnippet>517</a>
+<a href=#518 id=518 data-nosnippet>518</a>    // Batch 2: Arithmetic and quoting rules (Universal)
+<a href=#519 id=519 data-nosnippet>519</a>    </span><span class="macro">apply_rule!</span>(<span class="string">"SC2079"</span>, sc2079::check); <span class="comment">// Universal - decimals in arithmetic
+<a href=#520 id=520 data-nosnippet>520</a>    </span><span class="macro">apply_rule!</span>(<span class="string">"SC2080"</span>, sc2080::check); <span class="comment">// Universal - octal numbers
+<a href=#521 id=521 data-nosnippet>521</a>    </span><span class="macro">apply_rule!</span>(<span class="string">"SC2084"</span>, sc2084::check); <span class="comment">// Universal - arithmetic as command
+<a href=#522 id=522 data-nosnippet>522</a>    </span><span class="macro">apply_rule!</span>(<span class="string">"SC2085"</span>, sc2085::check); <span class="comment">// Universal - local with arithmetic
+<a href=#523 id=523 data-nosnippet>523</a>    </span><span class="macro">apply_rule!</span>(<span class="string">"SC2087"</span>, sc2087::check); <span class="comment">// Universal - quote in sh -c
+<a href=#524 id=524 data-nosnippet>524</a>    </span><span class="macro">apply_rule!</span>(<span class="string">"SC2088"</span>, sc2088::check); <span class="comment">// Universal - tilde expansion
+<a href=#525 id=525 data-nosnippet>525</a>    </span><span class="macro">apply_rule!</span>(<span class="string">"SC2089"</span>, sc2089::check); <span class="comment">// Universal - quotes in assignment
+<a href=#526 id=526 data-nosnippet>526</a>    </span><span class="macro">apply_rule!</span>(<span class="string">"SC2090"</span>, sc2090::check); <span class="comment">// Universal - quotes in expansion
+<a href=#527 id=527 data-nosnippet>527</a>    </span><span class="macro">apply_rule!</span>(<span class="string">"SC2091"</span>, sc2091::check); <span class="comment">// Universal - remove $() execution
+<a href=#528 id=528 data-nosnippet>528</a>    </span><span class="macro">apply_rule!</span>(<span class="string">"SC2092"</span>, sc2092::check); <span class="comment">// Universal - remove backticks execution
+<a href=#529 id=529 data-nosnippet>529</a>    </span><span class="macro">apply_rule!</span>(<span class="string">"SC2093"</span>, sc2093::check); <span class="comment">// Universal - remove exec
+<a href=#530 id=530 data-nosnippet>530</a>
+<a href=#531 id=531 data-nosnippet>531</a>    // Batch 2: [[ ]] test syntax rules (NotSh - bash/zsh/ksh only)
+<a href=#532 id=532 data-nosnippet>532</a>    </span><span class="macro">apply_rule!</span>(<span class="string">"SC2108"</span>, sc2108::check); <span class="comment">// NotSh - [[ ]] use &amp;&amp; not -a
+<a href=#533 id=533 data-nosnippet>533</a>    </span><span class="macro">apply_rule!</span>(<span class="string">"SC2109"</span>, sc2109::check); <span class="comment">// NotSh - [[ ]] use || not -o
+<a href=#534 id=534 data-nosnippet>534</a>    </span><span class="macro">apply_rule!</span>(<span class="string">"SC2110"</span>, sc2110::check); <span class="comment">// NotSh - don't mix &amp;&amp; || with -a -o
+<a href=#535 id=535 data-nosnippet>535</a>
+<a href=#536 id=536 data-nosnippet>536</a>    // Batch 2: function keyword rules (NotSh - bash/ksh only)
+<a href=#537 id=537 data-nosnippet>537</a>    </span><span class="macro">apply_rule!</span>(<span class="string">"SC2111"</span>, sc2111::check); <span class="comment">// NotSh - function keyword in sh
+<a href=#538 id=538 data-nosnippet>538</a>    </span><span class="macro">apply_rule!</span>(<span class="string">"SC2112"</span>, sc2112::check); <span class="comment">// NotSh - function keyword non-standard
+<a href=#539 id=539 data-nosnippet>539</a>    </span><span class="macro">apply_rule!</span>(<span class="string">"SC2113"</span>, sc2113::check); <span class="comment">// NotSh - function with () redundant
+<a href=#540 id=540 data-nosnippet>540</a>
+<a href=#541 id=541 data-nosnippet>541</a>    // Batch 2: More arithmetic rules (Universal)
+<a href=#542 id=542 data-nosnippet>542</a>    </span><span class="macro">apply_rule!</span>(<span class="string">"SC2133"</span>, sc2133::check); <span class="comment">// Universal - unexpected tokens in arithmetic
+<a href=#543 id=543 data-nosnippet>543</a>    </span><span class="macro">apply_rule!</span>(<span class="string">"SC2134"</span>, sc2134::check); <span class="comment">// Universal - use (( )) for numeric tests
+<a href=#544 id=544 data-nosnippet>544</a>    </span><span class="macro">apply_rule!</span>(<span class="string">"SC2137"</span>, sc2137::check); <span class="comment">// Universal - unnecessary braces in arithmetic
+<a href=#545 id=545 data-nosnippet>545</a>
+<a href=#546 id=546 data-nosnippet>546</a>    // Array rules (NotSh)
+<a href=#547 id=547 data-nosnippet>547</a>    </span><span class="macro">apply_rule!</span>(<span class="string">"SC2198"</span>, sc2198::check); <span class="comment">// NotSh - arrays
+<a href=#548 id=548 data-nosnippet>548</a>    </span><span class="macro">apply_rule!</span>(<span class="string">"SC2199"</span>, sc2199::check); <span class="comment">// NotSh - arrays
+<a href=#549 id=549 data-nosnippet>549</a>    </span><span class="macro">apply_rule!</span>(<span class="string">"SC2200"</span>, sc2200::check); <span class="comment">// NotSh - arrays
+<a href=#550 id=550 data-nosnippet>550</a>    </span><span class="macro">apply_rule!</span>(<span class="string">"SC2201"</span>, sc2201::check); <span class="comment">// NotSh - arrays
+<a href=#551 id=551 data-nosnippet>551</a>
+<a href=#552 id=552 data-nosnippet>552</a>    // Batch 3: Loop and iteration safety (Universal - all shells)
+<a href=#553 id=553 data-nosnippet>553</a>    </span><span class="macro">apply_rule!</span>(<span class="string">"SC2038"</span>, sc2038::check); <span class="comment">// Universal - find loop safety
+<a href=#554 id=554 data-nosnippet>554</a>    </span><span class="macro">apply_rule!</span>(<span class="string">"SC2040"</span>, sc2040::check); <span class="comment">// Universal - avoid -o confusion
+<a href=#555 id=555 data-nosnippet>555</a>    </span><span class="macro">apply_rule!</span>(<span class="string">"SC2041"</span>, sc2041::check); <span class="comment">// Universal - read in for loop
+<a href=#556 id=556 data-nosnippet>556</a>    </span><span class="macro">apply_rule!</span>(<span class="string">"SC2042"</span>, sc2042::check); <span class="comment">// Universal - echo vs printf
+<a href=#557 id=557 data-nosnippet>557</a>    </span><span class="macro">apply_rule!</span>(<span class="string">"SC2043"</span>, sc2043::check); <span class="comment">// Universal - loop runs once
+<a href=#558 id=558 data-nosnippet>558</a>
+<a href=#559 id=559 data-nosnippet>559</a>    // Batch 3: Test operators and word splitting (mostly Universal)
+<a href=#560 id=560 data-nosnippet>560</a>    </span><span class="macro">apply_rule!</span>(<span class="string">"SC2044"</span>, sc2044::check); <span class="comment">// NotSh - process substitution suggestion
+<a href=#561 id=561 data-nosnippet>561</a>    </span><span class="macro">apply_rule!</span>(<span class="string">"SC2045"</span>, sc2045::check); <span class="comment">// Universal - iterating over ls
+<a href=#562 id=562 data-nosnippet>562</a>    </span><span class="macro">apply_rule!</span>(<span class="string">"SC2046"</span>, sc2046::check); <span class="comment">// Universal - CRITICAL word splitting
+<a href=#563 id=563 data-nosnippet>563</a>    </span><span class="macro">apply_rule!</span>(<span class="string">"SC2047"</span>, sc2047::check); <span class="comment">// Universal - quote variables in [ ]
+<a href=#564 id=564 data-nosnippet>564</a>    </span><span class="macro">apply_rule!</span>(<span class="string">"SC2048"</span>, sc2048::check); <span class="comment">// Universal - quote "$@"
+<a href=#565 id=565 data-nosnippet>565</a>    </span><span class="macro">apply_rule!</span>(<span class="string">"SC2049"</span>, sc2049::check); <span class="comment">// Universal - =~ for regex
+<a href=#566 id=566 data-nosnippet>566</a>    </span><span class="macro">apply_rule!</span>(<span class="string">"SC2050"</span>, sc2050::check); <span class="comment">// Universal - constant expression
+<a href=#567 id=567 data-nosnippet>567</a>    </span><span class="macro">apply_rule!</span>(<span class="string">"SC2051"</span>, sc2051::check); <span class="comment">// Universal - brace range expansion
+<a href=#568 id=568 data-nosnippet>568</a>
+<a href=#569 id=569 data-nosnippet>569</a>    // Batch 3: Quoting and glob safety (mostly Universal)
+<a href=#570 id=570 data-nosnippet>570</a>    </span><span class="macro">apply_rule!</span>(<span class="string">"SC2052"</span>, sc2052::check); <span class="comment">// NotSh - [[ ]] for glob patterns
+<a href=#571 id=571 data-nosnippet>571</a>    </span><span class="macro">apply_rule!</span>(<span class="string">"SC2053"</span>, sc2053::check); <span class="comment">// Universal - quote RHS in [ ]
+<a href=#572 id=572 data-nosnippet>572</a>    </span><span class="macro">apply_rule!</span>(<span class="string">"SC2054"</span>, sc2054::check); <span class="comment">// Universal - comma in [[ ]]
+<a href=#573 id=573 data-nosnippet>573</a>    </span><span class="macro">apply_rule!</span>(<span class="string">"SC2055"</span>, sc2055::check); <span class="comment">// Universal - deprecated -a
+<a href=#574 id=574 data-nosnippet>574</a>    </span><span class="macro">apply_rule!</span>(<span class="string">"SC2056"</span>, sc2056::check); <span class="comment">// Universal - deprecated -o
+<a href=#575 id=575 data-nosnippet>575</a>    </span><span class="macro">apply_rule!</span>(<span class="string">"SC2057"</span>, sc2057::check); <span class="comment">// Universal - unknown binary operator
+<a href=#576 id=576 data-nosnippet>576</a>                                          // apply_rule!("SC2058", sc2058::check); // Universal - unknown unary operator (TODO: implement)
+<a href=#577 id=577 data-nosnippet>577</a>
+<a href=#578 id=578 data-nosnippet>578</a>    // Batch 3: Command safety and security (Universal - CRITICAL)
+<a href=#579 id=579 data-nosnippet>579</a>    </span><span class="macro">apply_rule!</span>(<span class="string">"SC2059"</span>, sc2059::check); <span class="comment">// Universal - CRITICAL printf format injection
+<a href=#580 id=580 data-nosnippet>580</a>    </span><span class="macro">apply_rule!</span>(<span class="string">"SC2060"</span>, sc2060::check); <span class="comment">// Universal - unquoted tr params
+<a href=#581 id=581 data-nosnippet>581</a>    </span><span class="macro">apply_rule!</span>(<span class="string">"SC2061"</span>, sc2061::check); <span class="comment">// Universal - quote tr params
+<a href=#582 id=582 data-nosnippet>582</a>    </span><span class="macro">apply_rule!</span>(<span class="string">"SC2062"</span>, sc2062::check); <span class="comment">// Universal - grep pattern glob expansion
+<a href=#583 id=583 data-nosnippet>583</a>
+<a href=#584 id=584 data-nosnippet>584</a>    // Batch 3: Trap and signal handling (Universal - CRITICAL)
+<a href=#585 id=585 data-nosnippet>585</a>    </span><span class="macro">apply_rule!</span>(<span class="string">"SC2063"</span>, sc2063::check); <span class="comment">// Universal - grep regex vs literal
+<a href=#586 id=586 data-nosnippet>586</a>    </span><span class="macro">apply_rule!</span>(<span class="string">"SC2064"</span>, sc2064::check); <span class="comment">// Universal - CRITICAL trap timing bug
+<a href=#587 id=587 data-nosnippet>587</a>    </span><span class="macro">apply_rule!</span>(<span class="string">"SC2065"</span>, sc2065::check); <span class="comment">// Universal - shell redirection interpretation
+<a href=#588 id=588 data-nosnippet>588</a>    </span><span class="macro">apply_rule!</span>(<span class="string">"SC2066"</span>, sc2066::check); <span class="comment">// Universal - missing semicolon before done
+<a href=#589 id=589 data-nosnippet>589</a>
+<a href=#590 id=590 data-nosnippet>590</a>    // Batch 4: Variable and parameter safety (Universal - all shells)
+<a href=#591 id=591 data-nosnippet>591</a>    </span><span class="macro">apply_rule!</span>(<span class="string">"SC2067"</span>, sc2067::check); <span class="comment">// Universal - missing $ on array lookup
+<a href=#592 id=592 data-nosnippet>592</a>    </span><span class="macro">apply_rule!</span>(<span class="string">"SC2068"</span>, sc2068::check); <span class="comment">// Universal - quote $@ to prevent word splitting
+<a href=#593 id=593 data-nosnippet>593</a>    </span><span class="macro">apply_rule!</span>(<span class="string">"SC2069"</span>, sc2069::check); <span class="comment">// Universal - redirect stdout+stderr correctly
+<a href=#594 id=594 data-nosnippet>594</a>    </span><span class="macro">apply_rule!</span>(<span class="string">"SC2070"</span>, sc2070::check); <span class="comment">// Universal - -n doesn't work unquoted
+<a href=#595 id=595 data-nosnippet>595</a>    </span><span class="macro">apply_rule!</span>(<span class="string">"SC2071"</span>, sc2071::check); <span class="comment">// Universal - arithmetic operators in [ ]
+<a href=#596 id=596 data-nosnippet>596</a>    </span><span class="macro">apply_rule!</span>(<span class="string">"SC2072"</span>, sc2072::check); <span class="comment">// Universal - lexicographic vs numeric comparison
+<a href=#597 id=597 data-nosnippet>597</a>    </span><span class="macro">apply_rule!</span>(<span class="string">"SC2073"</span>, sc2073::check); <span class="comment">// Universal - escape \\d or use [[:digit:]]
+<a href=#598 id=598 data-nosnippet>598</a>    </span><span class="macro">apply_rule!</span>(<span class="string">"SC2074"</span>, sc2074::check); <span class="comment">// Universal - can't use =~ in [ ]
+<a href=#599 id=599 data-nosnippet>599</a>
+<a href=#600 id=600 data-nosnippet>600</a>    // Batch 4: Quote and expansion safety (Universal)
+<a href=#601 id=601 data-nosnippet>601</a>    </span><span class="macro">apply_rule!</span>(<span class="string">"SC2075"</span>, sc2075::check); <span class="comment">// Universal - escaping quotes in single quotes
+<a href=#602 id=602 data-nosnippet>602</a>    </span><span class="macro">apply_rule!</span>(<span class="string">"SC2076"</span>, sc2076::check); <span class="comment">// Universal - don't quote RHS of =~ in [[ ]]
+<a href=#603 id=603 data-nosnippet>603</a>    </span><span class="macro">apply_rule!</span>(<span class="string">"SC2077"</span>, sc2077::check); <span class="comment">// Universal - quote regex to prevent word splitting
+<a href=#604 id=604 data-nosnippet>604</a>    </span><span class="macro">apply_rule!</span>(<span class="string">"SC2078"</span>, sc2078::check); <span class="comment">// Universal - constant expression (forgot $?)
+<a href=#605 id=605 data-nosnippet>605</a>    </span><span class="macro">apply_rule!</span>(<span class="string">"SC2081"</span>, sc2081::check); <span class="comment">// Universal - escape [ in globs
+<a href=#606 id=606 data-nosnippet>606</a>    </span><span class="macro">apply_rule!</span>(<span class="string">"SC2082"</span>, sc2082::check); <span class="comment">// Universal - variable indirection with $$
+<a href=#607 id=607 data-nosnippet>607</a>    </span><span class="macro">apply_rule!</span>(<span class="string">"SC2083"</span>, sc2083::check); <span class="comment">// Universal - don't add spaces after shebang
 <a href=#608 id=608 data-nosnippet>608</a>
-<a href=#609 id=609 data-nosnippet>609</a>    // Batch 4: Test and conditional safety (Universal)
-<a href=#610 id=610 data-nosnippet>610</a>    </span><span class="macro">apply_rule!</span>(<span class="string">"SC2104"</span>, sc2104::check); <span class="comment">// Universal - == is literal in [[ ]]
-<a href=#611 id=611 data-nosnippet>611</a>    </span><span class="macro">apply_rule!</span>(<span class="string">"SC2105"</span>, sc2105::check); <span class="comment">// Universal - break outside loop
-<a href=#612 id=612 data-nosnippet>612</a>    </span><span class="macro">apply_rule!</span>(<span class="string">"SC2107"</span>, sc2107::check); <span class="comment">// Universal - use [ a ] || [ b ] not [ a -o b ]
-<a href=#613 id=613 data-nosnippet>613</a>
-<a href=#614 id=614 data-nosnippet>614</a>    // Batch 4: Function and scope safety (Universal - CRITICAL dangerous rm)
-<a href=#615 id=615 data-nosnippet>615</a>    </span><span class="macro">apply_rule!</span>(<span class="string">"SC2114"</span>, sc2114::check); <span class="comment">// Universal - CRITICAL dangerous rm -rf without validation
-<a href=#616 id=616 data-nosnippet>616</a>    </span><span class="macro">apply_rule!</span>(<span class="string">"SC2115"</span>, sc2115::check); <span class="comment">// Universal - CRITICAL use ${var:?} before rm -rf
-<a href=#617 id=617 data-nosnippet>617</a>    </span><span class="macro">apply_rule!</span>(<span class="string">"SC2116"</span>, sc2116::check); <span class="comment">// Universal - useless echo $(cmd)
-<a href=#618 id=618 data-nosnippet>618</a>
-<a href=#619 id=619 data-nosnippet>619</a>    // Batch 4: Bash-specific function analysis (NotSh - bash/zsh/ksh only)
-<a href=#620 id=620 data-nosnippet>620</a>    // apply_rule!("SC2120", sc2120::check); // NotSh - function references $1 but none passed (TODO: has false positives)
-<a href=#621 id=621 data-nosnippet>621</a>    </span><span class="macro">apply_rule!</span>(<span class="string">"SC2128"</span>, sc2128::check); <span class="comment">// NotSh - array expansion without index
-<a href=#622 id=622 data-nosnippet>622</a>
-<a href=#623 id=623 data-nosnippet>623</a>    // Batch 5: CRITICAL word splitting (Universal - HIGHEST PRIORITY)
-<a href=#624 id=624 data-nosnippet>624</a>    </span><span class="macro">apply_rule!</span>(<span class="string">"SC2086"</span>, sc2086::check); <span class="comment">// Universal - CRITICAL: Quote to prevent word splitting and globbing
-<a href=#625 id=625 data-nosnippet>625</a>
-<a href=#626 id=626 data-nosnippet>626</a>    // TODO: Add remaining SC2xxx rules (~237 rules remaining, was ~257)
-<a href=#627 id=627 data-nosnippet>627</a>    // For now, fall back to lint_shell() for unclassified rules
-<a href=#628 id=628 data-nosnippet>628</a>    // This ensures backward compatibility while we incrementally classify
-<a href=#629 id=629 data-nosnippet>629</a>
-<a href=#630 id=630 data-nosnippet>630</a>    // Determinism rules (Universal - always apply)
-<a href=#631 id=631 data-nosnippet>631</a>    </span>result.merge(det001::check(source));
-<a href=#632 id=632 data-nosnippet>632</a>    result.merge(det002::check(source));
-<a href=#633 id=633 data-nosnippet>633</a>    result.merge(det003::check(source));
-<a href=#634 id=634 data-nosnippet>634</a>
-<a href=#635 id=635 data-nosnippet>635</a>    <span class="comment">// Idempotency rules (Universal - always apply)
-<a href=#636 id=636 data-nosnippet>636</a>    </span>result.merge(idem001::check(source));
-<a href=#637 id=637 data-nosnippet>637</a>    result.merge(idem002::check(source));
-<a href=#638 id=638 data-nosnippet>638</a>    result.merge(idem003::check(source));
-<a href=#639 id=639 data-nosnippet>639</a>
-<a href=#640 id=640 data-nosnippet>640</a>    <span class="comment">// Best practice rules
-<a href=#641 id=641 data-nosnippet>641</a>    </span>result.merge(bash001::check(source));
-<a href=#642 id=642 data-nosnippet>642</a>    result.merge(bash002::check(source));
-<a href=#643 id=643 data-nosnippet>643</a>    result.merge(bash003::check(source));
-<a href=#644 id=644 data-nosnippet>644</a>    result.merge(bash005::check(source));
-<a href=#645 id=645 data-nosnippet>645</a>    result.merge(bash006::check(source));
-<a href=#646 id=646 data-nosnippet>646</a>    result.merge(bash007::check(source));
-<a href=#647 id=647 data-nosnippet>647</a>    result.merge(bash008::check(source));
-<a href=#648 id=648 data-nosnippet>648</a>    result.merge(bash009::check(source));
-<a href=#649 id=649 data-nosnippet>649</a>    result.merge(bash010::check(source));
-<a href=#650 id=650 data-nosnippet>650</a>
-<a href=#651 id=651 data-nosnippet>651</a>    <span class="comment">// Security rules (Universal - always apply)
-<a href=#652 id=652 data-nosnippet>652</a>    </span>result.merge(sec001::check(source));
-<a href=#653 id=653 data-nosnippet>653</a>    result.merge(sec002::check(source));
-<a href=#654 id=654 data-nosnippet>654</a>    result.merge(sec003::check(source));
-<a href=#655 id=655 data-nosnippet>655</a>    result.merge(sec004::check(source));
-<a href=#656 id=656 data-nosnippet>656</a>    result.merge(sec005::check(source));
-<a href=#657 id=657 data-nosnippet>657</a>    result.merge(sec006::check(source));
-<a href=#658 id=658 data-nosnippet>658</a>    result.merge(sec007::check(source));
-<a href=#659 id=659 data-nosnippet>659</a>    result.merge(sec008::check(source));
-<a href=#660 id=660 data-nosnippet>660</a>    result.merge(sec009::check(source));
-<a href=#661 id=661 data-nosnippet>661</a>    result.merge(sec010::check(source));
-<a href=#662 id=662 data-nosnippet>662</a>    result.merge(sec011::check(source));
-<a href=#663 id=663 data-nosnippet>663</a>    result.merge(sec012::check(source));
-<a href=#664 id=664 data-nosnippet>664</a>    result.merge(sec017::check(source));
-<a href=#665 id=665 data-nosnippet>665</a>    result.merge(sec018::check(source));
-<a href=#666 id=666 data-nosnippet>666</a>
-<a href=#667 id=667 data-nosnippet>667</a>    <span class="comment">// Apply inline suppression filtering
-<a href=#668 id=668 data-nosnippet>668</a>    </span><span class="kw">let </span>suppression_manager = SuppressionManager::from_source(source);
-<a href=#669 id=669 data-nosnippet>669</a>    result
-<a href=#670 id=670 data-nosnippet>670</a>        .diagnostics
-<a href=#671 id=671 data-nosnippet>671</a>        .retain(|diag| !suppression_manager.is_suppressed(<span class="kw-2">&amp;</span>diag.code, diag.span.start_line));
-<a href=#672 id=672 data-nosnippet>672</a>
-<a href=#673 id=673 data-nosnippet>673</a>    result
-<a href=#674 id=674 data-nosnippet>674</a>}
-<a href=#675 id=675 data-nosnippet>675</a>
-<a href=#676 id=676 data-nosnippet>676</a><span class="doccomment">/// Lint a shell script and return all diagnostics.
-<a href=#677 id=677 data-nosnippet>677</a>///
-<a href=#678 id=678 data-nosnippet>678</a>/// Runs all ShellCheck-equivalent rules on the provided shell script source code
-<a href=#679 id=679 data-nosnippet>679</a>/// and returns a collection of lint diagnostics (errors, warnings, info).
-<a href=#680 id=680 data-nosnippet>680</a>///
-<a href=#681 id=681 data-nosnippet>681</a>/// # Arguments
-<a href=#682 id=682 data-nosnippet>682</a>///
-<a href=#683 id=683 data-nosnippet>683</a>/// * `source` - The shell script source code to lint
-<a href=#684 id=684 data-nosnippet>684</a>///
-<a href=#685 id=685 data-nosnippet>685</a>/// # Returns
-<a href=#686 id=686 data-nosnippet>686</a>///
-<a href=#687 id=687 data-nosnippet>687</a>/// A [`LintResult`] containing all detected issues with their locations and severity.
+<a href=#609 id=609 data-nosnippet>609</a>    // Batch 4: Command and redirection safety (Universal - CRITICAL)
+<a href=#610 id=610 data-nosnippet>610</a>    </span><span class="macro">apply_rule!</span>(<span class="string">"SC2094"</span>, sc2094::check); <span class="comment">// Universal - same file for input/output (truncate)
+<a href=#611 id=611 data-nosnippet>611</a>    </span><span class="macro">apply_rule!</span>(<span class="string">"SC2095"</span>, sc2095::check); <span class="comment">// Universal - ssh in loops may consume stdin
+<a href=#612 id=612 data-nosnippet>612</a>    </span><span class="macro">apply_rule!</span>(<span class="string">"SC2096"</span>, sc2096::check); <span class="comment">// Universal - use #! shebang
+<a href=#613 id=613 data-nosnippet>613</a>    </span><span class="macro">apply_rule!</span>(<span class="string">"SC2097"</span>, sc2097::check); <span class="comment">// Universal - assign and use variable separately
+<a href=#614 id=614 data-nosnippet>614</a>    </span><span class="macro">apply_rule!</span>(<span class="string">"SC2098"</span>, sc2098::check); <span class="comment">// Universal - variable assignment vs redirection
+<a href=#615 id=615 data-nosnippet>615</a>    </span><span class="macro">apply_rule!</span>(<span class="string">"SC2103"</span>, sc2103::check); <span class="comment">// Universal - cd without error check
+<a href=#616 id=616 data-nosnippet>616</a>
+<a href=#617 id=617 data-nosnippet>617</a>    // Batch 4: Test and conditional safety (Universal)
+<a href=#618 id=618 data-nosnippet>618</a>    </span><span class="macro">apply_rule!</span>(<span class="string">"SC2104"</span>, sc2104::check); <span class="comment">// Universal - == is literal in [[ ]]
+<a href=#619 id=619 data-nosnippet>619</a>    </span><span class="macro">apply_rule!</span>(<span class="string">"SC2105"</span>, sc2105::check); <span class="comment">// Universal - break outside loop
+<a href=#620 id=620 data-nosnippet>620</a>    </span><span class="macro">apply_rule!</span>(<span class="string">"SC2107"</span>, sc2107::check); <span class="comment">// Universal - use [ a ] || [ b ] not [ a -o b ]
+<a href=#621 id=621 data-nosnippet>621</a>
+<a href=#622 id=622 data-nosnippet>622</a>    // Batch 4: Function and scope safety (Universal - CRITICAL dangerous rm)
+<a href=#623 id=623 data-nosnippet>623</a>    </span><span class="macro">apply_rule!</span>(<span class="string">"SC2114"</span>, sc2114::check); <span class="comment">// Universal - CRITICAL dangerous rm -rf without validation
+<a href=#624 id=624 data-nosnippet>624</a>    </span><span class="macro">apply_rule!</span>(<span class="string">"SC2115"</span>, sc2115::check); <span class="comment">// Universal - CRITICAL use ${var:?} before rm -rf
+<a href=#625 id=625 data-nosnippet>625</a>    </span><span class="macro">apply_rule!</span>(<span class="string">"SC2116"</span>, sc2116::check); <span class="comment">// Universal - useless echo $(cmd)
+<a href=#626 id=626 data-nosnippet>626</a>
+<a href=#627 id=627 data-nosnippet>627</a>    // Batch 4: Bash-specific function analysis (NotSh - bash/zsh/ksh only)
+<a href=#628 id=628 data-nosnippet>628</a>    // apply_rule!("SC2120", sc2120::check); // NotSh - function references $1 but none passed (TODO: has false positives)
+<a href=#629 id=629 data-nosnippet>629</a>    </span><span class="macro">apply_rule!</span>(<span class="string">"SC2128"</span>, sc2128::check); <span class="comment">// NotSh - array expansion without index
+<a href=#630 id=630 data-nosnippet>630</a>
+<a href=#631 id=631 data-nosnippet>631</a>    // Batch 5: CRITICAL word splitting (Universal - HIGHEST PRIORITY)
+<a href=#632 id=632 data-nosnippet>632</a>    </span><span class="macro">apply_rule!</span>(<span class="string">"SC2086"</span>, sc2086::check); <span class="comment">// Universal - CRITICAL: Quote to prevent word splitting and globbing
+<a href=#633 id=633 data-nosnippet>633</a>
+<a href=#634 id=634 data-nosnippet>634</a>    // TODO: Add remaining SC2xxx rules (~237 rules remaining, was ~257)
+<a href=#635 id=635 data-nosnippet>635</a>    // For now, fall back to lint_shell() for unclassified rules
+<a href=#636 id=636 data-nosnippet>636</a>    // This ensures backward compatibility while we incrementally classify
+<a href=#637 id=637 data-nosnippet>637</a>
+<a href=#638 id=638 data-nosnippet>638</a>    // Determinism rules (Universal - always apply)
+<a href=#639 id=639 data-nosnippet>639</a>    </span>result.merge(det001::check(source));
+<a href=#640 id=640 data-nosnippet>640</a>    result.merge(det002::check(source));
+<a href=#641 id=641 data-nosnippet>641</a>    result.merge(det003::check(source));
+<a href=#642 id=642 data-nosnippet>642</a>
+<a href=#643 id=643 data-nosnippet>643</a>    <span class="comment">// Idempotency rules (Universal - always apply)
+<a href=#644 id=644 data-nosnippet>644</a>    </span>result.merge(idem001::check(source));
+<a href=#645 id=645 data-nosnippet>645</a>    result.merge(idem002::check(source));
+<a href=#646 id=646 data-nosnippet>646</a>    result.merge(idem003::check(source));
+<a href=#647 id=647 data-nosnippet>647</a>
+<a href=#648 id=648 data-nosnippet>648</a>    <span class="comment">// Best practice rules
+<a href=#649 id=649 data-nosnippet>649</a>    </span>result.merge(bash001::check(source));
+<a href=#650 id=650 data-nosnippet>650</a>    result.merge(bash002::check(source));
+<a href=#651 id=651 data-nosnippet>651</a>    result.merge(bash003::check(source));
+<a href=#652 id=652 data-nosnippet>652</a>    result.merge(bash005::check(source));
+<a href=#653 id=653 data-nosnippet>653</a>    result.merge(bash006::check(source));
+<a href=#654 id=654 data-nosnippet>654</a>    result.merge(bash007::check(source));
+<a href=#655 id=655 data-nosnippet>655</a>    result.merge(bash008::check(source));
+<a href=#656 id=656 data-nosnippet>656</a>    result.merge(bash009::check(source));
+<a href=#657 id=657 data-nosnippet>657</a>    result.merge(bash010::check(source));
+<a href=#658 id=658 data-nosnippet>658</a>
+<a href=#659 id=659 data-nosnippet>659</a>    <span class="comment">// Security rules (Universal - always apply)
+<a href=#660 id=660 data-nosnippet>660</a>    </span>result.merge(sec001::check(source));
+<a href=#661 id=661 data-nosnippet>661</a>    result.merge(sec002::check(source));
+<a href=#662 id=662 data-nosnippet>662</a>    result.merge(sec003::check(source));
+<a href=#663 id=663 data-nosnippet>663</a>    result.merge(sec004::check(source));
+<a href=#664 id=664 data-nosnippet>664</a>    result.merge(sec005::check(source));
+<a href=#665 id=665 data-nosnippet>665</a>    result.merge(sec006::check(source));
+<a href=#666 id=666 data-nosnippet>666</a>    result.merge(sec007::check(source));
+<a href=#667 id=667 data-nosnippet>667</a>    result.merge(sec008::check(source));
+<a href=#668 id=668 data-nosnippet>668</a>    result.merge(sec009::check(source));
+<a href=#669 id=669 data-nosnippet>669</a>    result.merge(sec010::check(source));
+<a href=#670 id=670 data-nosnippet>670</a>    result.merge(sec011::check(source));
+<a href=#671 id=671 data-nosnippet>671</a>    result.merge(sec012::check(source));
+<a href=#672 id=672 data-nosnippet>672</a>    result.merge(sec017::check(source));
+<a href=#673 id=673 data-nosnippet>673</a>    result.merge(sec018::check(source));
+<a href=#674 id=674 data-nosnippet>674</a>
+<a href=#675 id=675 data-nosnippet>675</a>    <span class="comment">// Apply inline suppression filtering
+<a href=#676 id=676 data-nosnippet>676</a>    </span><span class="kw">let </span>suppression_manager = SuppressionManager::from_source(source);
+<a href=#677 id=677 data-nosnippet>677</a>    result
+<a href=#678 id=678 data-nosnippet>678</a>        .diagnostics
+<a href=#679 id=679 data-nosnippet>679</a>        .retain(|diag| !suppression_manager.is_suppressed(<span class="kw-2">&amp;</span>diag.code, diag.span.start_line));
+<a href=#680 id=680 data-nosnippet>680</a>
+<a href=#681 id=681 data-nosnippet>681</a>    result
+<a href=#682 id=682 data-nosnippet>682</a>}
+<a href=#683 id=683 data-nosnippet>683</a>
+<a href=#684 id=684 data-nosnippet>684</a><span class="doccomment">/// Lint a shell script and return all diagnostics.
+<a href=#685 id=685 data-nosnippet>685</a>///
+<a href=#686 id=686 data-nosnippet>686</a>/// Runs all ShellCheck-equivalent rules on the provided shell script source code
+<a href=#687 id=687 data-nosnippet>687</a>/// and returns a collection of lint diagnostics (errors, warnings, info).
 <a href=#688 id=688 data-nosnippet>688</a>///
-<a href=#689 id=689 data-nosnippet>689</a>/// # Examples
+<a href=#689 id=689 data-nosnippet>689</a>/// # Arguments
 <a href=#690 id=690 data-nosnippet>690</a>///
-<a href=#691 id=691 data-nosnippet>691</a>/// ## Basic usage
+<a href=#691 id=691 data-nosnippet>691</a>/// * `source` - The shell script source code to lint
 <a href=#692 id=692 data-nosnippet>692</a>///
-<a href=#693 id=693 data-nosnippet>693</a>/// ```
-<a href=#694 id=694 data-nosnippet>694</a>/// use bashrs::linter::lint_shell;
-<a href=#695 id=695 data-nosnippet>695</a>///
-<a href=#696 id=696 data-nosnippet>696</a>/// let script = "#!/bin/sh\nprintf '%s\\n' 'hello'";
-<a href=#697 id=697 data-nosnippet>697</a>/// let result = lint_shell(script);
-<a href=#698 id=698 data-nosnippet>698</a>/// // Linting completes successfully
-<a href=#699 id=699 data-nosnippet>699</a>/// // (diagnostics may or may not be empty depending on rules)
-<a href=#700 id=700 data-nosnippet>700</a>/// ```
-<a href=#701 id=701 data-nosnippet>701</a>///
-<a href=#702 id=702 data-nosnippet>702</a>/// ## Detecting issues
+<a href=#693 id=693 data-nosnippet>693</a>/// # Returns
+<a href=#694 id=694 data-nosnippet>694</a>///
+<a href=#695 id=695 data-nosnippet>695</a>/// A [`LintResult`] containing all detected issues with their locations and severity.
+<a href=#696 id=696 data-nosnippet>696</a>///
+<a href=#697 id=697 data-nosnippet>697</a>/// # Examples
+<a href=#698 id=698 data-nosnippet>698</a>///
+<a href=#699 id=699 data-nosnippet>699</a>/// ## Basic usage
+<a href=#700 id=700 data-nosnippet>700</a>///
+<a href=#701 id=701 data-nosnippet>701</a>/// ```
+<a href=#702 id=702 data-nosnippet>702</a>/// use bashrs::linter::lint_shell;
 <a href=#703 id=703 data-nosnippet>703</a>///
-<a href=#704 id=704 data-nosnippet>704</a>/// ```
-<a href=#705 id=705 data-nosnippet>705</a>/// use bashrs::linter::lint_shell;
-<a href=#706 id=706 data-nosnippet>706</a>///
-<a href=#707 id=707 data-nosnippet>707</a>/// // Useless use of cat (SC2002)
-<a href=#708 id=708 data-nosnippet>708</a>/// let script = "cat file.txt | grep pattern";
-<a href=#709 id=709 data-nosnippet>709</a>/// let result = lint_shell(script);
-<a href=#710 id=710 data-nosnippet>710</a>/// // Should detect at least one issue
-<a href=#711 id=711 data-nosnippet>711</a>/// assert!(!result.diagnostics.is_empty());
+<a href=#704 id=704 data-nosnippet>704</a>/// let script = "#!/bin/sh\nprintf '%s\\n' 'hello'";
+<a href=#705 id=705 data-nosnippet>705</a>/// let result = lint_shell(script);
+<a href=#706 id=706 data-nosnippet>706</a>/// // Linting completes successfully
+<a href=#707 id=707 data-nosnippet>707</a>/// // (diagnostics may or may not be empty depending on rules)
+<a href=#708 id=708 data-nosnippet>708</a>/// ```
+<a href=#709 id=709 data-nosnippet>709</a>///
+<a href=#710 id=710 data-nosnippet>710</a>/// ## Detecting issues
+<a href=#711 id=711 data-nosnippet>711</a>///
 <a href=#712 id=712 data-nosnippet>712</a>/// ```
-<a href=#713 id=713 data-nosnippet>713</a>///
-<a href=#714 id=714 data-nosnippet>714</a>/// ## Multiple diagnostics
-<a href=#715 id=715 data-nosnippet>715</a>///
-<a href=#716 id=716 data-nosnippet>716</a>/// ```
-<a href=#717 id=717 data-nosnippet>717</a>/// use bashrs::linter::lint_shell;
-<a href=#718 id=718 data-nosnippet>718</a>///
-<a href=#719 id=719 data-nosnippet>719</a>/// let script = r#"
-<a href=#720 id=720 data-nosnippet>720</a>/// cat file | grep x
-<a href=#721 id=721 data-nosnippet>721</a>/// echo `date`
-<a href=#722 id=722 data-nosnippet>722</a>/// "#;
-<a href=#723 id=723 data-nosnippet>723</a>/// let result = lint_shell(script);
-<a href=#724 id=724 data-nosnippet>724</a>/// // Should find multiple issues (useless cat, backticks)
-<a href=#725 id=725 data-nosnippet>725</a>/// assert!(result.diagnostics.len() &gt;= 2);
-<a href=#726 id=726 data-nosnippet>726</a>/// ```
-<a href=#727 id=727 data-nosnippet>727</a></span><span class="kw">pub fn </span>lint_shell(source: <span class="kw-2">&amp;</span>str) -&gt; LintResult {
-<a href=#728 id=728 data-nosnippet>728</a>    <span class="kw">use </span><span class="kw">crate</span>::linter::suppression::SuppressionManager;
-<a href=#729 id=729 data-nosnippet>729</a>
-<a href=#730 id=730 data-nosnippet>730</a>    <span class="kw">let </span><span class="kw-2">mut </span>result = LintResult::new();
-<a href=#731 id=731 data-nosnippet>731</a>
-<a href=#732 id=732 data-nosnippet>732</a>    <span class="comment">// Parse the shell script
-<a href=#733 id=733 data-nosnippet>733</a>    // For now, we'll use a simple token-based approach
-<a href=#734 id=734 data-nosnippet>734</a>    // In production, this would use the bash_parser AST
-<a href=#735 id=735 data-nosnippet>735</a>
-<a href=#736 id=736 data-nosnippet>736</a>    // Run ShellCheck-equivalent rules
-<a href=#737 id=737 data-nosnippet>737</a>    </span>result.merge(sc2001::check(source));
-<a href=#738 id=738 data-nosnippet>738</a>    result.merge(sc2002::check(source));
-<a href=#739 id=739 data-nosnippet>739</a>    result.merge(sc2003::check(source));
-<a href=#740 id=740 data-nosnippet>740</a>    result.merge(sc2004::check(source));
-<a href=#741 id=741 data-nosnippet>741</a>    result.merge(sc2005::check(source));
-<a href=#742 id=742 data-nosnippet>742</a>    result.merge(sc2006::check(source));
-<a href=#743 id=743 data-nosnippet>743</a>    result.merge(sc2007::check(source));
-<a href=#744 id=744 data-nosnippet>744</a>    result.merge(sc2015::check(source));
-<a href=#745 id=745 data-nosnippet>745</a>    result.merge(sc2016::check(source));
-<a href=#746 id=746 data-nosnippet>746</a>    result.merge(sc2017::check(source));
-<a href=#747 id=747 data-nosnippet>747</a>    result.merge(sc2018::check(source));
-<a href=#748 id=748 data-nosnippet>748</a>    result.merge(sc2019::check(source));
-<a href=#749 id=749 data-nosnippet>749</a>    result.merge(sc2020::check(source));
-<a href=#750 id=750 data-nosnippet>750</a>    result.merge(sc2021::check(source));
-<a href=#751 id=751 data-nosnippet>751</a>    result.merge(sc2022::check(source));
-<a href=#752 id=752 data-nosnippet>752</a>    result.merge(sc2023::check(source));
-<a href=#753 id=753 data-nosnippet>753</a>    result.merge(sc2024::check(source));
-<a href=#754 id=754 data-nosnippet>754</a>    result.merge(sc2025::check(source));
-<a href=#755 id=755 data-nosnippet>755</a>    result.merge(sc2026::check(source));
-<a href=#756 id=756 data-nosnippet>756</a>    result.merge(sc2027::check(source));
-<a href=#757 id=757 data-nosnippet>757</a>    result.merge(sc2029::check(source));
-<a href=#758 id=758 data-nosnippet>758</a>    result.merge(sc2030::check(source));
-<a href=#759 id=759 data-nosnippet>759</a>    result.merge(sc2031::check(source));
-<a href=#760 id=760 data-nosnippet>760</a>    result.merge(sc2032::check(source));
-<a href=#761 id=761 data-nosnippet>761</a>    result.merge(sc2028::check(source));
-<a href=#762 id=762 data-nosnippet>762</a>    result.merge(sc2033::check(source));
-<a href=#763 id=763 data-nosnippet>763</a>    result.merge(sc2036::check(source));
-<a href=#764 id=764 data-nosnippet>764</a>    result.merge(sc2037::check(source));
-<a href=#765 id=765 data-nosnippet>765</a>    result.merge(sc2038::check(source));
-<a href=#766 id=766 data-nosnippet>766</a>    result.merge(sc2039::check(source));
-<a href=#767 id=767 data-nosnippet>767</a>    result.merge(sc2040::check(source));
-<a href=#768 id=768 data-nosnippet>768</a>    result.merge(sc2041::check(source));
-<a href=#769 id=769 data-nosnippet>769</a>    result.merge(sc2042::check(source));
-<a href=#770 id=770 data-nosnippet>770</a>    result.merge(sc2034::check(source));
-<a href=#771 id=771 data-nosnippet>771</a>    result.merge(sc2035::check(source));
-<a href=#772 id=772 data-nosnippet>772</a>    result.merge(sc2043::check(source));
-<a href=#773 id=773 data-nosnippet>773</a>    result.merge(sc2044::check(source));
-<a href=#774 id=774 data-nosnippet>774</a>    result.merge(sc2045::check(source));
-<a href=#775 id=775 data-nosnippet>775</a>    result.merge(sc2046::check(source));
-<a href=#776 id=776 data-nosnippet>776</a>    result.merge(sc2047::check(source));
-<a href=#777 id=777 data-nosnippet>777</a>    result.merge(sc2048::check(source));
-<a href=#778 id=778 data-nosnippet>778</a>    result.merge(sc2049::check(source));
-<a href=#779 id=779 data-nosnippet>779</a>    result.merge(sc2050::check(source));
-<a href=#780 id=780 data-nosnippet>780</a>    result.merge(sc2051::check(source));
-<a href=#781 id=781 data-nosnippet>781</a>    result.merge(sc2052::check(source));
-<a href=#782 id=782 data-nosnippet>782</a>    result.merge(sc2053::check(source));
-<a href=#783 id=783 data-nosnippet>783</a>    result.merge(sc2054::check(source));
-<a href=#784 id=784 data-nosnippet>784</a>    result.merge(sc2055::check(source));
-<a href=#785 id=785 data-nosnippet>785</a>    result.merge(sc2056::check(source));
-<a href=#786 id=786 data-nosnippet>786</a>    result.merge(sc2057::check(source));
-<a href=#787 id=787 data-nosnippet>787</a>    result.merge(sc2059::check(source));
-<a href=#788 id=788 data-nosnippet>788</a>    result.merge(sc2060::check(source));
-<a href=#789 id=789 data-nosnippet>789</a>    result.merge(sc2062::check(source));
-<a href=#790 id=790 data-nosnippet>790</a>    result.merge(sc2063::check(source));
-<a href=#791 id=791 data-nosnippet>791</a>    result.merge(sc2064::check(source));
-<a href=#792 id=792 data-nosnippet>792</a>    result.merge(sc2065::check(source));
-<a href=#793 id=793 data-nosnippet>793</a>    result.merge(sc2061::check(source));
-<a href=#794 id=794 data-nosnippet>794</a>    result.merge(sc2066::check(source));
-<a href=#795 id=795 data-nosnippet>795</a>    result.merge(sc2067::check(source));
-<a href=#796 id=796 data-nosnippet>796</a>    result.merge(sc2068::check(source));
-<a href=#797 id=797 data-nosnippet>797</a>    result.merge(sc2069::check(source));
-<a href=#798 id=798 data-nosnippet>798</a>    result.merge(sc2070::check(source));
-<a href=#799 id=799 data-nosnippet>799</a>    result.merge(sc2071::check(source));
-<a href=#800 id=800 data-nosnippet>800</a>    result.merge(sc2072::check(source));
-<a href=#801 id=801 data-nosnippet>801</a>    result.merge(sc2073::check(source));
-<a href=#802 id=802 data-nosnippet>802</a>    result.merge(sc2074::check(source));
-<a href=#803 id=803 data-nosnippet>803</a>    result.merge(sc2075::check(source));
-<a href=#804 id=804 data-nosnippet>804</a>    result.merge(sc2076::check(source));
-<a href=#805 id=805 data-nosnippet>805</a>    result.merge(sc2077::check(source));
-<a href=#806 id=806 data-nosnippet>806</a>    result.merge(sc2078::check(source));
-<a href=#807 id=807 data-nosnippet>807</a>    result.merge(sc2079::check(source));
-<a href=#808 id=808 data-nosnippet>808</a>    result.merge(sc2080::check(source));
-<a href=#809 id=809 data-nosnippet>809</a>    result.merge(sc2081::check(source));
-<a href=#810 id=810 data-nosnippet>810</a>    result.merge(sc2082::check(source));
-<a href=#811 id=811 data-nosnippet>811</a>    result.merge(sc2083::check(source));
-<a href=#812 id=812 data-nosnippet>812</a>    result.merge(sc2084::check(source));
-<a href=#813 id=813 data-nosnippet>813</a>    result.merge(sc2085::check(source));
-<a href=#814 id=814 data-nosnippet>814</a>    result.merge(sc2086::check(source));
-<a href=#815 id=815 data-nosnippet>815</a>    result.merge(sc2087::check(source));
-<a href=#816 id=816 data-nosnippet>816</a>    result.merge(sc2088::check(source));
-<a href=#817 id=817 data-nosnippet>817</a>    result.merge(sc2089::check(source));
-<a href=#818 id=818 data-nosnippet>818</a>    result.merge(sc2090::check(source));
-<a href=#819 id=819 data-nosnippet>819</a>    result.merge(sc2091::check(source));
-<a href=#820 id=820 data-nosnippet>820</a>    result.merge(sc2092::check(source));
-<a href=#821 id=821 data-nosnippet>821</a>    result.merge(sc2093::check(source));
-<a href=#822 id=822 data-nosnippet>822</a>    result.merge(sc2094::check(source));
-<a href=#823 id=823 data-nosnippet>823</a>    result.merge(sc2095::check(source));
-<a href=#824 id=824 data-nosnippet>824</a>    result.merge(sc2096::check(source));
-<a href=#825 id=825 data-nosnippet>825</a>    result.merge(sc2097::check(source));
-<a href=#826 id=826 data-nosnippet>826</a>    result.merge(sc2098::check(source));
-<a href=#827 id=827 data-nosnippet>827</a>    result.merge(sc2099::check(source));
-<a href=#828 id=828 data-nosnippet>828</a>    result.merge(sc2100::check(source));
-<a href=#829 id=829 data-nosnippet>829</a>    result.merge(sc2101::check(source));
-<a href=#830 id=830 data-nosnippet>830</a>    result.merge(sc2102::check(source));
-<a href=#831 id=831 data-nosnippet>831</a>    result.merge(sc2103::check(source));
-<a href=#832 id=832 data-nosnippet>832</a>    result.merge(sc2104::check(source));
-<a href=#833 id=833 data-nosnippet>833</a>    result.merge(sc2105::check(source));
-<a href=#834 id=834 data-nosnippet>834</a>    result.merge(sc2106::check(source));
-<a href=#835 id=835 data-nosnippet>835</a>    result.merge(sc2107::check(source));
-<a href=#836 id=836 data-nosnippet>836</a>    result.merge(sc2108::check(source));
-<a href=#837 id=837 data-nosnippet>837</a>    result.merge(sc2109::check(source));
-<a href=#838 id=838 data-nosnippet>838</a>    result.merge(sc2110::check(source));
-<a href=#839 id=839 data-nosnippet>839</a>    result.merge(sc2111::check(source));
-<a href=#840 id=840 data-nosnippet>840</a>    result.merge(sc2112::check(source));
-<a href=#841 id=841 data-nosnippet>841</a>    result.merge(sc2113::check(source));
-<a href=#842 id=842 data-nosnippet>842</a>    result.merge(sc2114::check(source));
-<a href=#843 id=843 data-nosnippet>843</a>    result.merge(sc2115::check(source));
-<a href=#844 id=844 data-nosnippet>844</a>    result.merge(sc2116::check(source));
-<a href=#845 id=845 data-nosnippet>845</a>    result.merge(sc2117::check(source));
-<a href=#846 id=846 data-nosnippet>846</a>    result.merge(sc2118::check(source));
-<a href=#847 id=847 data-nosnippet>847</a>    <span class="comment">// result.merge(sc2119::check(source));  // Deferred: False positives without AST
-<a href=#848 id=848 data-nosnippet>848</a>    // result.merge(sc2120::check(source));  // Deferred: False positives without AST
-<a href=#849 id=849 data-nosnippet>849</a>    </span>result.merge(sc2121::check(source));
-<a href=#850 id=850 data-nosnippet>850</a>    result.merge(sc2122::check(source));
-<a href=#851 id=851 data-nosnippet>851</a>    result.merge(sc2123::check(source));
-<a href=#852 id=852 data-nosnippet>852</a>    result.merge(sc2124::check(source));
-<a href=#853 id=853 data-nosnippet>853</a>    result.merge(sc2125::check(source));
-<a href=#854 id=854 data-nosnippet>854</a>    result.merge(sc2126::check(source));
-<a href=#855 id=855 data-nosnippet>855</a>    result.merge(sc2127::check(source));
-<a href=#856 id=856 data-nosnippet>856</a>    result.merge(sc2128::check(source));
-<a href=#857 id=857 data-nosnippet>857</a>    result.merge(sc2129::check(source));
-<a href=#858 id=858 data-nosnippet>858</a>    result.merge(sc2130::check(source));
-<a href=#859 id=859 data-nosnippet>859</a>    result.merge(sc2131::check(source));
-<a href=#860 id=860 data-nosnippet>860</a>    result.merge(sc2132::check(source));
-<a href=#861 id=861 data-nosnippet>861</a>    result.merge(sc2133::check(source));
-<a href=#862 id=862 data-nosnippet>862</a>    result.merge(sc2134::check(source));
-<a href=#863 id=863 data-nosnippet>863</a>    result.merge(sc2135::check(source));
-<a href=#864 id=864 data-nosnippet>864</a>    result.merge(sc2136::check(source));
-<a href=#865 id=865 data-nosnippet>865</a>    result.merge(sc2137::check(source));
-<a href=#866 id=866 data-nosnippet>866</a>    result.merge(sc2138::check(source));
-<a href=#867 id=867 data-nosnippet>867</a>    result.merge(sc2139::check(source));
-<a href=#868 id=868 data-nosnippet>868</a>    result.merge(sc2140::check(source));
-<a href=#869 id=869 data-nosnippet>869</a>    result.merge(sc2141::check(source));
-<a href=#870 id=870 data-nosnippet>870</a>    result.merge(sc2142::check(source));
-<a href=#871 id=871 data-nosnippet>871</a>    result.merge(sc2143::check(source));
-<a href=#872 id=872 data-nosnippet>872</a>    result.merge(sc2144::check(source));
-<a href=#873 id=873 data-nosnippet>873</a>    result.merge(sc2145::check(source));
-<a href=#874 id=874 data-nosnippet>874</a>    result.merge(sc2146::check(source));
-<a href=#875 id=875 data-nosnippet>875</a>    result.merge(sc2147::check(source));
-<a href=#876 id=876 data-nosnippet>876</a>    result.merge(sc2148::check(source));
-<a href=#877 id=877 data-nosnippet>877</a>    result.merge(sc2149::check(source));
-<a href=#878 id=878 data-nosnippet>878</a>    result.merge(sc2150::check(source));
-<a href=#879 id=879 data-nosnippet>879</a>    result.merge(sc2151::check(source));
-<a href=#880 id=880 data-nosnippet>880</a>    result.merge(sc2152::check(source));
-<a href=#881 id=881 data-nosnippet>881</a>    result.merge(sc2153::check(source));
-<a href=#882 id=882 data-nosnippet>882</a>    result.merge(sc2154::check(source));
-<a href=#883 id=883 data-nosnippet>883</a>    result.merge(sc2155::check(source));
-<a href=#884 id=884 data-nosnippet>884</a>    result.merge(sc2156::check(source));
-<a href=#885 id=885 data-nosnippet>885</a>    result.merge(sc2157::check(source));
-<a href=#886 id=886 data-nosnippet>886</a>    result.merge(sc2158::check(source));
-<a href=#887 id=887 data-nosnippet>887</a>    result.merge(sc2159::check(source));
-<a href=#888 id=888 data-nosnippet>888</a>    result.merge(sc2160::check(source));
-<a href=#889 id=889 data-nosnippet>889</a>    result.merge(sc2161::check(source));
-<a href=#890 id=890 data-nosnippet>890</a>    result.merge(sc2162::check(source));
-<a href=#891 id=891 data-nosnippet>891</a>    result.merge(sc2163::check(source));
-<a href=#892 id=892 data-nosnippet>892</a>    result.merge(sc2164::check(source));
-<a href=#893 id=893 data-nosnippet>893</a>    result.merge(sc2165::check(source));
-<a href=#894 id=894 data-nosnippet>894</a>    result.merge(sc2166::check(source));
-<a href=#895 id=895 data-nosnippet>895</a>    result.merge(sc2167::check(source));
-<a href=#896 id=896 data-nosnippet>896</a>    result.merge(sc2168::check(source));
-<a href=#897 id=897 data-nosnippet>897</a>    result.merge(sc2169::check(source));
-<a href=#898 id=898 data-nosnippet>898</a>    result.merge(sc2170::check(source));
-<a href=#899 id=899 data-nosnippet>899</a>    result.merge(sc2171::check(source));
-<a href=#900 id=900 data-nosnippet>900</a>    result.merge(sc2172::check(source));
-<a href=#901 id=901 data-nosnippet>901</a>    result.merge(sc2173::check(source));
-<a href=#902 id=902 data-nosnippet>902</a>    result.merge(sc2174::check(source));
-<a href=#903 id=903 data-nosnippet>903</a>    result.merge(sc2175::check(source));
-<a href=#904 id=904 data-nosnippet>904</a>    result.merge(sc2176::check(source));
-<a href=#905 id=905 data-nosnippet>905</a>    result.merge(sc2177::check(source));
-<a href=#906 id=906 data-nosnippet>906</a>    result.merge(sc2178::check(source));
-<a href=#907 id=907 data-nosnippet>907</a>    result.merge(sc2179::check(source));
-<a href=#908 id=908 data-nosnippet>908</a>    result.merge(sc2180::check(source));
-<a href=#909 id=909 data-nosnippet>909</a>    result.merge(sc2181::check(source));
-<a href=#910 id=910 data-nosnippet>910</a>    result.merge(sc2182::check(source));
-<a href=#911 id=911 data-nosnippet>911</a>    result.merge(sc2183::check(source));
-<a href=#912 id=912 data-nosnippet>912</a>    result.merge(sc2184::check(source));
-<a href=#913 id=913 data-nosnippet>913</a>    result.merge(sc2185::check(source));
-<a href=#914 id=914 data-nosnippet>914</a>    result.merge(sc2186::check(source));
-<a href=#915 id=915 data-nosnippet>915</a>    result.merge(sc2187::check(source));
-<a href=#916 id=916 data-nosnippet>916</a>    result.merge(sc2188::check(source));
-<a href=#917 id=917 data-nosnippet>917</a>    result.merge(sc2189::check(source));
-<a href=#918 id=918 data-nosnippet>918</a>    result.merge(sc2190::check(source));
-<a href=#919 id=919 data-nosnippet>919</a>    result.merge(sc2191::check(source));
-<a href=#920 id=920 data-nosnippet>920</a>    result.merge(sc2192::check(source));
-<a href=#921 id=921 data-nosnippet>921</a>    result.merge(sc2193::check(source));
-<a href=#922 id=922 data-nosnippet>922</a>    result.merge(sc2194::check(source));
-<a href=#923 id=923 data-nosnippet>923</a>    result.merge(sc2195::check(source));
-<a href=#924 id=924 data-nosnippet>924</a>    result.merge(sc2196::check(source));
-<a href=#925 id=925 data-nosnippet>925</a>    result.merge(sc2197::check(source));
-<a href=#926 id=926 data-nosnippet>926</a>    result.merge(sc2198::check(source));
-<a href=#927 id=927 data-nosnippet>927</a>    result.merge(sc2199::check(source));
-<a href=#928 id=928 data-nosnippet>928</a>    result.merge(sc2200::check(source));
-<a href=#929 id=929 data-nosnippet>929</a>    result.merge(sc2201::check(source));
-<a href=#930 id=930 data-nosnippet>930</a>    result.merge(sc2202::check(source));
-<a href=#931 id=931 data-nosnippet>931</a>    result.merge(sc2203::check(source));
-<a href=#932 id=932 data-nosnippet>932</a>    result.merge(sc2204::check(source));
-<a href=#933 id=933 data-nosnippet>933</a>    result.merge(sc2205::check(source));
-<a href=#934 id=934 data-nosnippet>934</a>    result.merge(sc2206::check(source));
-<a href=#935 id=935 data-nosnippet>935</a>    result.merge(sc2207::check(source));
-<a href=#936 id=936 data-nosnippet>936</a>    result.merge(sc2208::check(source));
-<a href=#937 id=937 data-nosnippet>937</a>    result.merge(sc2209::check(source));
-<a href=#938 id=938 data-nosnippet>938</a>    result.merge(sc2210::check(source));
-<a href=#939 id=939 data-nosnippet>939</a>    result.merge(sc2211::check(source));
-<a href=#940 id=940 data-nosnippet>940</a>    result.merge(sc2212::check(source));
-<a href=#941 id=941 data-nosnippet>941</a>    result.merge(sc2213::check(source));
-<a href=#942 id=942 data-nosnippet>942</a>    result.merge(sc2214::check(source));
-<a href=#943 id=943 data-nosnippet>943</a>    result.merge(sc2215::check(source));
-<a href=#944 id=944 data-nosnippet>944</a>    result.merge(sc2216::check(source));
-<a href=#945 id=945 data-nosnippet>945</a>    result.merge(sc2217::check(source));
-<a href=#946 id=946 data-nosnippet>946</a>    result.merge(sc2218::check(source));
-<a href=#947 id=947 data-nosnippet>947</a>    result.merge(sc2219::check(source));
-<a href=#948 id=948 data-nosnippet>948</a>    result.merge(sc2220::check(source));
-<a href=#949 id=949 data-nosnippet>949</a>    result.merge(sc2221::check(source));
-<a href=#950 id=950 data-nosnippet>950</a>    result.merge(sc2222::check(source));
-<a href=#951 id=951 data-nosnippet>951</a>    result.merge(sc2223::check(source));
-<a href=#952 id=952 data-nosnippet>952</a>    result.merge(sc2224::check(source));
-<a href=#953 id=953 data-nosnippet>953</a>    result.merge(sc2225::check(source));
-<a href=#954 id=954 data-nosnippet>954</a>    result.merge(sc2226::check(source));
-<a href=#955 id=955 data-nosnippet>955</a>    result.merge(sc2227::check(source));
-<a href=#956 id=956 data-nosnippet>956</a>    result.merge(sc2228::check(source));
-<a href=#957 id=957 data-nosnippet>957</a>    result.merge(sc2229::check(source));
-<a href=#958 id=958 data-nosnippet>958</a>    result.merge(sc2230::check(source));
-<a href=#959 id=959 data-nosnippet>959</a>    result.merge(sc2231::check(source));
-<a href=#960 id=960 data-nosnippet>960</a>    result.merge(sc2232::check(source));
-<a href=#961 id=961 data-nosnippet>961</a>    result.merge(sc2233::check(source));
-<a href=#962 id=962 data-nosnippet>962</a>    result.merge(sc2234::check(source));
-<a href=#963 id=963 data-nosnippet>963</a>    result.merge(sc2235::check(source));
-<a href=#964 id=964 data-nosnippet>964</a>    result.merge(sc2236::check(source));
-<a href=#965 id=965 data-nosnippet>965</a>    result.merge(sc2237::check(source));
-<a href=#966 id=966 data-nosnippet>966</a>    result.merge(sc2238::check(source));
-<a href=#967 id=967 data-nosnippet>967</a>    result.merge(sc2239::check(source));
-<a href=#968 id=968 data-nosnippet>968</a>    result.merge(sc2240::check(source));
-<a href=#969 id=969 data-nosnippet>969</a>    result.merge(sc2241::check(source));
-<a href=#970 id=970 data-nosnippet>970</a>    result.merge(sc2242::check(source));
-<a href=#971 id=971 data-nosnippet>971</a>    result.merge(sc2243::check(source));
-<a href=#972 id=972 data-nosnippet>972</a>    result.merge(sc2244::check(source));
-<a href=#973 id=973 data-nosnippet>973</a>    result.merge(sc2245::check(source));
-<a href=#974 id=974 data-nosnippet>974</a>    result.merge(sc2246::check(source));
-<a href=#975 id=975 data-nosnippet>975</a>    result.merge(sc2247::check(source));
-<a href=#976 id=976 data-nosnippet>976</a>    result.merge(sc2248::check(source));
-<a href=#977 id=977 data-nosnippet>977</a>    result.merge(sc2249::check(source));
-<a href=#978 id=978 data-nosnippet>978</a>    result.merge(sc2250::check(source));
-<a href=#979 id=979 data-nosnippet>979</a>    result.merge(sc2251::check(source));
-<a href=#980 id=980 data-nosnippet>980</a>    result.merge(sc2252::check(source));
-<a href=#981 id=981 data-nosnippet>981</a>    result.merge(sc2253::check(source));
-<a href=#982 id=982 data-nosnippet>982</a>    result.merge(sc2254::check(source));
-<a href=#983 id=983 data-nosnippet>983</a>    result.merge(sc2255::check(source));
-<a href=#984 id=984 data-nosnippet>984</a>    result.merge(sc2256::check(source));
-<a href=#985 id=985 data-nosnippet>985</a>    result.merge(sc2257::check(source));
-<a href=#986 id=986 data-nosnippet>986</a>    result.merge(sc2258::check(source));
-<a href=#987 id=987 data-nosnippet>987</a>    result.merge(sc2259::check(source));
-<a href=#988 id=988 data-nosnippet>988</a>    result.merge(sc2260::check(source));
-<a href=#989 id=989 data-nosnippet>989</a>    result.merge(sc2261::check(source));
-<a href=#990 id=990 data-nosnippet>990</a>    result.merge(sc2262::check(source));
-<a href=#991 id=991 data-nosnippet>991</a>    result.merge(sc2263::check(source));
-<a href=#992 id=992 data-nosnippet>992</a>    result.merge(sc2264::check(source));
-<a href=#993 id=993 data-nosnippet>993</a>    result.merge(sc2265::check(source));
-<a href=#994 id=994 data-nosnippet>994</a>    result.merge(sc2266::check(source));
-<a href=#995 id=995 data-nosnippet>995</a>    result.merge(sc2267::check(source));
-<a href=#996 id=996 data-nosnippet>996</a>    result.merge(sc2268::check(source));
-<a href=#997 id=997 data-nosnippet>997</a>    result.merge(sc2269::check(source));
-<a href=#998 id=998 data-nosnippet>998</a>    result.merge(sc2270::check(source));
-<a href=#999 id=999 data-nosnippet>999</a>    result.merge(sc2271::check(source));
-<a href=#1000 id=1000 data-nosnippet>1000</a>    result.merge(sc2272::check(source));
-<a href=#1001 id=1001 data-nosnippet>1001</a>    result.merge(sc2273::check(source));
-<a href=#1002 id=1002 data-nosnippet>1002</a>    result.merge(sc2274::check(source));
-<a href=#1003 id=1003 data-nosnippet>1003</a>    result.merge(sc2275::check(source));
-<a href=#1004 id=1004 data-nosnippet>1004</a>    result.merge(sc2276::check(source));
-<a href=#1005 id=1005 data-nosnippet>1005</a>    result.merge(sc2277::check(source));
-<a href=#1006 id=1006 data-nosnippet>1006</a>    result.merge(sc2278::check(source));
-<a href=#1007 id=1007 data-nosnippet>1007</a>    result.merge(sc2279::check(source));
-<a href=#1008 id=1008 data-nosnippet>1008</a>    result.merge(sc2280::check(source));
-<a href=#1009 id=1009 data-nosnippet>1009</a>    result.merge(sc2281::check(source));
-<a href=#1010 id=1010 data-nosnippet>1010</a>    result.merge(sc2282::check(source));
-<a href=#1011 id=1011 data-nosnippet>1011</a>    result.merge(sc2283::check(source));
-<a href=#1012 id=1012 data-nosnippet>1012</a>    result.merge(sc2284::check(source));
-<a href=#1013 id=1013 data-nosnippet>1013</a>    result.merge(sc2285::check(source));
-<a href=#1014 id=1014 data-nosnippet>1014</a>    result.merge(sc2286::check(source));
-<a href=#1015 id=1015 data-nosnippet>1015</a>    result.merge(sc2287::check(source));
-<a href=#1016 id=1016 data-nosnippet>1016</a>    result.merge(sc2288::check(source));
-<a href=#1017 id=1017 data-nosnippet>1017</a>    result.merge(sc2289::check(source));
-<a href=#1018 id=1018 data-nosnippet>1018</a>    result.merge(sc2290::check(source));
-<a href=#1019 id=1019 data-nosnippet>1019</a>    result.merge(sc2291::check(source));
-<a href=#1020 id=1020 data-nosnippet>1020</a>    result.merge(sc2292::check(source));
-<a href=#1021 id=1021 data-nosnippet>1021</a>    result.merge(sc2293::check(source));
-<a href=#1022 id=1022 data-nosnippet>1022</a>    result.merge(sc2294::check(source));
-<a href=#1023 id=1023 data-nosnippet>1023</a>    result.merge(sc2295::check(source));
-<a href=#1024 id=1024 data-nosnippet>1024</a>    result.merge(sc2296::check(source));
-<a href=#1025 id=1025 data-nosnippet>1025</a>    result.merge(sc2297::check(source));
-<a href=#1026 id=1026 data-nosnippet>1026</a>    result.merge(sc2298::check(source));
-<a href=#1027 id=1027 data-nosnippet>1027</a>    result.merge(sc2299::check(source));
-<a href=#1028 id=1028 data-nosnippet>1028</a>    result.merge(sc2300::check(source));
-<a href=#1029 id=1029 data-nosnippet>1029</a>    result.merge(sc2301::check(source));
-<a href=#1030 id=1030 data-nosnippet>1030</a>    result.merge(sc2302::check(source));
-<a href=#1031 id=1031 data-nosnippet>1031</a>    result.merge(sc2303::check(source));
-<a href=#1032 id=1032 data-nosnippet>1032</a>    result.merge(sc2304::check(source));
-<a href=#1033 id=1033 data-nosnippet>1033</a>    result.merge(sc2305::check(source));
-<a href=#1034 id=1034 data-nosnippet>1034</a>    result.merge(sc2306::check(source));
-<a href=#1035 id=1035 data-nosnippet>1035</a>    result.merge(sc2307::check(source));
-<a href=#1036 id=1036 data-nosnippet>1036</a>    result.merge(sc2308::check(source));
-<a href=#1037 id=1037 data-nosnippet>1037</a>    result.merge(sc2309::check(source));
-<a href=#1038 id=1038 data-nosnippet>1038</a>    result.merge(sc2310::check(source));
-<a href=#1039 id=1039 data-nosnippet>1039</a>    result.merge(sc2311::check(source));
-<a href=#1040 id=1040 data-nosnippet>1040</a>    result.merge(sc2312::check(source));
-<a href=#1041 id=1041 data-nosnippet>1041</a>    result.merge(sc2313::check(source));
-<a href=#1042 id=1042 data-nosnippet>1042</a>    result.merge(sc2314::check(source));
-<a href=#1043 id=1043 data-nosnippet>1043</a>    result.merge(sc2315::check(source));
-<a href=#1044 id=1044 data-nosnippet>1044</a>    result.merge(sc2316::check(source));
-<a href=#1045 id=1045 data-nosnippet>1045</a>    result.merge(sc2317::check(source));
-<a href=#1046 id=1046 data-nosnippet>1046</a>    result.merge(sc2318::check(source));
-<a href=#1047 id=1047 data-nosnippet>1047</a>    result.merge(sc2319::check(source));
-<a href=#1048 id=1048 data-nosnippet>1048</a>    result.merge(sc2320::check(source));
-<a href=#1049 id=1049 data-nosnippet>1049</a>    result.merge(sc2321::check(source));
-<a href=#1050 id=1050 data-nosnippet>1050</a>    result.merge(sc2322::check(source));
-<a href=#1051 id=1051 data-nosnippet>1051</a>    result.merge(sc2323::check(source));
-<a href=#1052 id=1052 data-nosnippet>1052</a>    result.merge(sc2324::check(source));
-<a href=#1053 id=1053 data-nosnippet>1053</a>    result.merge(sc2325::check(source));
-<a href=#1054 id=1054 data-nosnippet>1054</a>
-<a href=#1055 id=1055 data-nosnippet>1055</a>    <span class="comment">// Run determinism rules
-<a href=#1056 id=1056 data-nosnippet>1056</a>    </span>result.merge(det001::check(source));
-<a href=#1057 id=1057 data-nosnippet>1057</a>    result.merge(det002::check(source));
-<a href=#1058 id=1058 data-nosnippet>1058</a>    result.merge(det003::check(source));
-<a href=#1059 id=1059 data-nosnippet>1059</a>
-<a href=#1060 id=1060 data-nosnippet>1060</a>    <span class="comment">// Run idempotency rules
-<a href=#1061 id=1061 data-nosnippet>1061</a>    </span>result.merge(idem001::check(source));
-<a href=#1062 id=1062 data-nosnippet>1062</a>    result.merge(idem002::check(source));
-<a href=#1063 id=1063 data-nosnippet>1063</a>    result.merge(idem003::check(source));
-<a href=#1064 id=1064 data-nosnippet>1064</a>
-<a href=#1065 id=1065 data-nosnippet>1065</a>    <span class="comment">// Run security rules
-<a href=#1066 id=1066 data-nosnippet>1066</a>    </span>result.merge(sec001::check(source));
-<a href=#1067 id=1067 data-nosnippet>1067</a>    result.merge(sec002::check(source));
-<a href=#1068 id=1068 data-nosnippet>1068</a>    result.merge(sec003::check(source));
-<a href=#1069 id=1069 data-nosnippet>1069</a>    result.merge(sec004::check(source));
-<a href=#1070 id=1070 data-nosnippet>1070</a>    result.merge(sec005::check(source));
-<a href=#1071 id=1071 data-nosnippet>1071</a>    result.merge(sec006::check(source));
-<a href=#1072 id=1072 data-nosnippet>1072</a>    result.merge(sec007::check(source));
-<a href=#1073 id=1073 data-nosnippet>1073</a>    result.merge(sec008::check(source));
-<a href=#1074 id=1074 data-nosnippet>1074</a>    result.merge(sec009::check(source));
-<a href=#1075 id=1075 data-nosnippet>1075</a>    result.merge(sec010::check(source));
-<a href=#1076 id=1076 data-nosnippet>1076</a>    result.merge(sec011::check(source));
-<a href=#1077 id=1077 data-nosnippet>1077</a>    result.merge(sec012::check(source));
-<a href=#1078 id=1078 data-nosnippet>1078</a>    result.merge(sec017::check(source));
-<a href=#1079 id=1079 data-nosnippet>1079</a>    result.merge(sec018::check(source));
-<a href=#1080 id=1080 data-nosnippet>1080</a>
-<a href=#1081 id=1081 data-nosnippet>1081</a>    <span class="comment">// Apply inline suppression filtering
-<a href=#1082 id=1082 data-nosnippet>1082</a>    </span><span class="kw">let </span>suppression_manager = SuppressionManager::from_source(source);
-<a href=#1083 id=1083 data-nosnippet>1083</a>    result
-<a href=#1084 id=1084 data-nosnippet>1084</a>        .diagnostics
-<a href=#1085 id=1085 data-nosnippet>1085</a>        .retain(|diag| !suppression_manager.is_suppressed(<span class="kw-2">&amp;</span>diag.code, diag.span.start_line));
-<a href=#1086 id=1086 data-nosnippet>1086</a>
-<a href=#1087 id=1087 data-nosnippet>1087</a>    result
-<a href=#1088 id=1088 data-nosnippet>1088</a>}
-<a href=#1089 id=1089 data-nosnippet>1089</a>
-<a href=#1090 id=1090 data-nosnippet>1090</a><span class="doccomment">/// Lint a Dockerfile and return all diagnostics
-<a href=#1091 id=1091 data-nosnippet>1091</a></span><span class="kw">pub fn </span>lint_dockerfile(source: <span class="kw-2">&amp;</span>str) -&gt; LintResult {
-<a href=#1092 id=1092 data-nosnippet>1092</a>    <span class="kw">let </span><span class="kw-2">mut </span>result = LintResult::new();
-<a href=#1093 id=1093 data-nosnippet>1093</a>
-<a href=#1094 id=1094 data-nosnippet>1094</a>    <span class="comment">// Run Dockerfile-specific rules (inspired by hadolint)
-<a href=#1095 id=1095 data-nosnippet>1095</a>    </span>result.merge(docker001::check(source)); <span class="comment">// Missing USER directive (DL3002)
-<a href=#1096 id=1096 data-nosnippet>1096</a>    </span>result.merge(docker002::check(source)); <span class="comment">// Unpinned base images (DL3006, DL3007)
-<a href=#1097 id=1097 data-nosnippet>1097</a>    </span>result.merge(docker003::check(source)); <span class="comment">// Missing apt cleanup (DL3009)
-<a href=#1098 id=1098 data-nosnippet>1098</a>    </span>result.merge(docker004::check(source)); <span class="comment">// Invalid COPY --from (DL3022)
-<a href=#1099 id=1099 data-nosnippet>1099</a>    </span>result.merge(docker005::check(source)); <span class="comment">// Missing --no-install-recommends (DL3015)
-<a href=#1100 id=1100 data-nosnippet>1100</a>    </span>result.merge(docker006::check(source)); <span class="comment">// Use COPY not ADD (DL3020)
+<a href=#713 id=713 data-nosnippet>713</a>/// use bashrs::linter::lint_shell;
+<a href=#714 id=714 data-nosnippet>714</a>///
+<a href=#715 id=715 data-nosnippet>715</a>/// // Useless use of cat (SC2002)
+<a href=#716 id=716 data-nosnippet>716</a>/// let script = "cat file.txt | grep pattern";
+<a href=#717 id=717 data-nosnippet>717</a>/// let result = lint_shell(script);
+<a href=#718 id=718 data-nosnippet>718</a>/// // Should detect at least one issue
+<a href=#719 id=719 data-nosnippet>719</a>/// assert!(!result.diagnostics.is_empty());
+<a href=#720 id=720 data-nosnippet>720</a>/// ```
+<a href=#721 id=721 data-nosnippet>721</a>///
+<a href=#722 id=722 data-nosnippet>722</a>/// ## Multiple diagnostics
+<a href=#723 id=723 data-nosnippet>723</a>///
+<a href=#724 id=724 data-nosnippet>724</a>/// ```
+<a href=#725 id=725 data-nosnippet>725</a>/// use bashrs::linter::lint_shell;
+<a href=#726 id=726 data-nosnippet>726</a>///
+<a href=#727 id=727 data-nosnippet>727</a>/// let script = r#"
+<a href=#728 id=728 data-nosnippet>728</a>/// cat file | grep x
+<a href=#729 id=729 data-nosnippet>729</a>/// echo `date`
+<a href=#730 id=730 data-nosnippet>730</a>/// "#;
+<a href=#731 id=731 data-nosnippet>731</a>/// let result = lint_shell(script);
+<a href=#732 id=732 data-nosnippet>732</a>/// // Should find multiple issues (useless cat, backticks)
+<a href=#733 id=733 data-nosnippet>733</a>/// assert!(result.diagnostics.len() &gt;= 2);
+<a href=#734 id=734 data-nosnippet>734</a>/// ```
+<a href=#735 id=735 data-nosnippet>735</a></span><span class="kw">pub fn </span>lint_shell(source: <span class="kw-2">&amp;</span>str) -&gt; LintResult {
+<a href=#736 id=736 data-nosnippet>736</a>    <span class="kw">use </span><span class="kw">crate</span>::linter::suppression::SuppressionManager;
+<a href=#737 id=737 data-nosnippet>737</a>
+<a href=#738 id=738 data-nosnippet>738</a>    <span class="kw">let </span><span class="kw-2">mut </span>result = LintResult::new();
+<a href=#739 id=739 data-nosnippet>739</a>
+<a href=#740 id=740 data-nosnippet>740</a>    <span class="comment">// Parse the shell script
+<a href=#741 id=741 data-nosnippet>741</a>    // For now, we'll use a simple token-based approach
+<a href=#742 id=742 data-nosnippet>742</a>    // In production, this would use the bash_parser AST
+<a href=#743 id=743 data-nosnippet>743</a>
+<a href=#744 id=744 data-nosnippet>744</a>    // Run ShellCheck-equivalent rules
+<a href=#745 id=745 data-nosnippet>745</a>    </span>result.merge(sc2001::check(source));
+<a href=#746 id=746 data-nosnippet>746</a>    result.merge(sc2002::check(source));
+<a href=#747 id=747 data-nosnippet>747</a>    result.merge(sc2003::check(source));
+<a href=#748 id=748 data-nosnippet>748</a>    result.merge(sc2004::check(source));
+<a href=#749 id=749 data-nosnippet>749</a>    result.merge(sc2005::check(source));
+<a href=#750 id=750 data-nosnippet>750</a>    result.merge(sc2006::check(source));
+<a href=#751 id=751 data-nosnippet>751</a>    result.merge(sc2007::check(source));
+<a href=#752 id=752 data-nosnippet>752</a>    result.merge(sc2015::check(source));
+<a href=#753 id=753 data-nosnippet>753</a>    result.merge(sc2016::check(source));
+<a href=#754 id=754 data-nosnippet>754</a>    result.merge(sc2017::check(source));
+<a href=#755 id=755 data-nosnippet>755</a>    result.merge(sc2018::check(source));
+<a href=#756 id=756 data-nosnippet>756</a>    result.merge(sc2019::check(source));
+<a href=#757 id=757 data-nosnippet>757</a>    result.merge(sc2020::check(source));
+<a href=#758 id=758 data-nosnippet>758</a>    result.merge(sc2021::check(source));
+<a href=#759 id=759 data-nosnippet>759</a>    result.merge(sc2022::check(source));
+<a href=#760 id=760 data-nosnippet>760</a>    result.merge(sc2023::check(source));
+<a href=#761 id=761 data-nosnippet>761</a>    result.merge(sc2024::check(source));
+<a href=#762 id=762 data-nosnippet>762</a>    result.merge(sc2025::check(source));
+<a href=#763 id=763 data-nosnippet>763</a>    result.merge(sc2026::check(source));
+<a href=#764 id=764 data-nosnippet>764</a>    result.merge(sc2027::check(source));
+<a href=#765 id=765 data-nosnippet>765</a>    result.merge(sc2029::check(source));
+<a href=#766 id=766 data-nosnippet>766</a>    result.merge(sc2030::check(source));
+<a href=#767 id=767 data-nosnippet>767</a>    result.merge(sc2031::check(source));
+<a href=#768 id=768 data-nosnippet>768</a>    result.merge(sc2032::check(source));
+<a href=#769 id=769 data-nosnippet>769</a>    result.merge(sc2028::check(source));
+<a href=#770 id=770 data-nosnippet>770</a>    result.merge(sc2033::check(source));
+<a href=#771 id=771 data-nosnippet>771</a>    result.merge(sc2036::check(source));
+<a href=#772 id=772 data-nosnippet>772</a>    result.merge(sc2037::check(source));
+<a href=#773 id=773 data-nosnippet>773</a>    result.merge(sc2038::check(source));
+<a href=#774 id=774 data-nosnippet>774</a>    result.merge(sc2039::check(source));
+<a href=#775 id=775 data-nosnippet>775</a>    result.merge(sc2040::check(source));
+<a href=#776 id=776 data-nosnippet>776</a>    result.merge(sc2041::check(source));
+<a href=#777 id=777 data-nosnippet>777</a>    result.merge(sc2042::check(source));
+<a href=#778 id=778 data-nosnippet>778</a>    result.merge(sc2034::check(source));
+<a href=#779 id=779 data-nosnippet>779</a>    result.merge(sc2035::check(source));
+<a href=#780 id=780 data-nosnippet>780</a>    result.merge(sc2043::check(source));
+<a href=#781 id=781 data-nosnippet>781</a>    result.merge(sc2044::check(source));
+<a href=#782 id=782 data-nosnippet>782</a>    result.merge(sc2045::check(source));
+<a href=#783 id=783 data-nosnippet>783</a>    result.merge(sc2046::check(source));
+<a href=#784 id=784 data-nosnippet>784</a>    result.merge(sc2047::check(source));
+<a href=#785 id=785 data-nosnippet>785</a>    result.merge(sc2048::check(source));
+<a href=#786 id=786 data-nosnippet>786</a>    result.merge(sc2049::check(source));
+<a href=#787 id=787 data-nosnippet>787</a>    result.merge(sc2050::check(source));
+<a href=#788 id=788 data-nosnippet>788</a>    result.merge(sc2051::check(source));
+<a href=#789 id=789 data-nosnippet>789</a>    result.merge(sc2052::check(source));
+<a href=#790 id=790 data-nosnippet>790</a>    result.merge(sc2053::check(source));
+<a href=#791 id=791 data-nosnippet>791</a>    result.merge(sc2054::check(source));
+<a href=#792 id=792 data-nosnippet>792</a>    result.merge(sc2055::check(source));
+<a href=#793 id=793 data-nosnippet>793</a>    result.merge(sc2056::check(source));
+<a href=#794 id=794 data-nosnippet>794</a>    result.merge(sc2057::check(source));
+<a href=#795 id=795 data-nosnippet>795</a>    result.merge(sc2059::check(source));
+<a href=#796 id=796 data-nosnippet>796</a>    result.merge(sc2060::check(source));
+<a href=#797 id=797 data-nosnippet>797</a>    result.merge(sc2062::check(source));
+<a href=#798 id=798 data-nosnippet>798</a>    result.merge(sc2063::check(source));
+<a href=#799 id=799 data-nosnippet>799</a>    result.merge(sc2064::check(source));
+<a href=#800 id=800 data-nosnippet>800</a>    result.merge(sc2065::check(source));
+<a href=#801 id=801 data-nosnippet>801</a>    result.merge(sc2061::check(source));
+<a href=#802 id=802 data-nosnippet>802</a>    result.merge(sc2066::check(source));
+<a href=#803 id=803 data-nosnippet>803</a>    result.merge(sc2067::check(source));
+<a href=#804 id=804 data-nosnippet>804</a>    result.merge(sc2068::check(source));
+<a href=#805 id=805 data-nosnippet>805</a>    result.merge(sc2069::check(source));
+<a href=#806 id=806 data-nosnippet>806</a>    result.merge(sc2070::check(source));
+<a href=#807 id=807 data-nosnippet>807</a>    result.merge(sc2071::check(source));
+<a href=#808 id=808 data-nosnippet>808</a>    result.merge(sc2072::check(source));
+<a href=#809 id=809 data-nosnippet>809</a>    result.merge(sc2073::check(source));
+<a href=#810 id=810 data-nosnippet>810</a>    result.merge(sc2074::check(source));
+<a href=#811 id=811 data-nosnippet>811</a>    result.merge(sc2075::check(source));
+<a href=#812 id=812 data-nosnippet>812</a>    result.merge(sc2076::check(source));
+<a href=#813 id=813 data-nosnippet>813</a>    result.merge(sc2077::check(source));
+<a href=#814 id=814 data-nosnippet>814</a>    result.merge(sc2078::check(source));
+<a href=#815 id=815 data-nosnippet>815</a>    result.merge(sc2079::check(source));
+<a href=#816 id=816 data-nosnippet>816</a>    result.merge(sc2080::check(source));
+<a href=#817 id=817 data-nosnippet>817</a>    result.merge(sc2081::check(source));
+<a href=#818 id=818 data-nosnippet>818</a>    result.merge(sc2082::check(source));
+<a href=#819 id=819 data-nosnippet>819</a>    result.merge(sc2083::check(source));
+<a href=#820 id=820 data-nosnippet>820</a>    result.merge(sc2084::check(source));
+<a href=#821 id=821 data-nosnippet>821</a>    result.merge(sc2085::check(source));
+<a href=#822 id=822 data-nosnippet>822</a>    result.merge(sc2086::check(source));
+<a href=#823 id=823 data-nosnippet>823</a>    result.merge(sc2087::check(source));
+<a href=#824 id=824 data-nosnippet>824</a>    result.merge(sc2088::check(source));
+<a href=#825 id=825 data-nosnippet>825</a>    result.merge(sc2089::check(source));
+<a href=#826 id=826 data-nosnippet>826</a>    result.merge(sc2090::check(source));
+<a href=#827 id=827 data-nosnippet>827</a>    result.merge(sc2091::check(source));
+<a href=#828 id=828 data-nosnippet>828</a>    result.merge(sc2092::check(source));
+<a href=#829 id=829 data-nosnippet>829</a>    result.merge(sc2093::check(source));
+<a href=#830 id=830 data-nosnippet>830</a>    result.merge(sc2094::check(source));
+<a href=#831 id=831 data-nosnippet>831</a>    result.merge(sc2095::check(source));
+<a href=#832 id=832 data-nosnippet>832</a>    result.merge(sc2096::check(source));
+<a href=#833 id=833 data-nosnippet>833</a>    result.merge(sc2097::check(source));
+<a href=#834 id=834 data-nosnippet>834</a>    result.merge(sc2098::check(source));
+<a href=#835 id=835 data-nosnippet>835</a>    result.merge(sc2099::check(source));
+<a href=#836 id=836 data-nosnippet>836</a>    result.merge(sc2100::check(source));
+<a href=#837 id=837 data-nosnippet>837</a>    result.merge(sc2101::check(source));
+<a href=#838 id=838 data-nosnippet>838</a>    result.merge(sc2102::check(source));
+<a href=#839 id=839 data-nosnippet>839</a>    result.merge(sc2103::check(source));
+<a href=#840 id=840 data-nosnippet>840</a>    result.merge(sc2104::check(source));
+<a href=#841 id=841 data-nosnippet>841</a>    result.merge(sc2105::check(source));
+<a href=#842 id=842 data-nosnippet>842</a>    result.merge(sc2106::check(source));
+<a href=#843 id=843 data-nosnippet>843</a>    result.merge(sc2107::check(source));
+<a href=#844 id=844 data-nosnippet>844</a>    result.merge(sc2108::check(source));
+<a href=#845 id=845 data-nosnippet>845</a>    result.merge(sc2109::check(source));
+<a href=#846 id=846 data-nosnippet>846</a>    result.merge(sc2110::check(source));
+<a href=#847 id=847 data-nosnippet>847</a>    result.merge(sc2111::check(source));
+<a href=#848 id=848 data-nosnippet>848</a>    result.merge(sc2112::check(source));
+<a href=#849 id=849 data-nosnippet>849</a>    result.merge(sc2113::check(source));
+<a href=#850 id=850 data-nosnippet>850</a>    result.merge(sc2114::check(source));
+<a href=#851 id=851 data-nosnippet>851</a>    result.merge(sc2115::check(source));
+<a href=#852 id=852 data-nosnippet>852</a>    result.merge(sc2116::check(source));
+<a href=#853 id=853 data-nosnippet>853</a>    result.merge(sc2117::check(source));
+<a href=#854 id=854 data-nosnippet>854</a>    result.merge(sc2118::check(source));
+<a href=#855 id=855 data-nosnippet>855</a>    <span class="comment">// result.merge(sc2119::check(source));  // Deferred: False positives without AST
+<a href=#856 id=856 data-nosnippet>856</a>    // result.merge(sc2120::check(source));  // Deferred: False positives without AST
+<a href=#857 id=857 data-nosnippet>857</a>    </span>result.merge(sc2121::check(source));
+<a href=#858 id=858 data-nosnippet>858</a>    result.merge(sc2122::check(source));
+<a href=#859 id=859 data-nosnippet>859</a>    result.merge(sc2123::check(source));
+<a href=#860 id=860 data-nosnippet>860</a>    result.merge(sc2124::check(source));
+<a href=#861 id=861 data-nosnippet>861</a>    result.merge(sc2125::check(source));
+<a href=#862 id=862 data-nosnippet>862</a>    result.merge(sc2126::check(source));
+<a href=#863 id=863 data-nosnippet>863</a>    result.merge(sc2127::check(source));
+<a href=#864 id=864 data-nosnippet>864</a>    result.merge(sc2128::check(source));
+<a href=#865 id=865 data-nosnippet>865</a>    result.merge(sc2129::check(source));
+<a href=#866 id=866 data-nosnippet>866</a>    result.merge(sc2130::check(source));
+<a href=#867 id=867 data-nosnippet>867</a>    result.merge(sc2131::check(source));
+<a href=#868 id=868 data-nosnippet>868</a>    result.merge(sc2132::check(source));
+<a href=#869 id=869 data-nosnippet>869</a>    result.merge(sc2133::check(source));
+<a href=#870 id=870 data-nosnippet>870</a>    result.merge(sc2134::check(source));
+<a href=#871 id=871 data-nosnippet>871</a>    result.merge(sc2135::check(source));
+<a href=#872 id=872 data-nosnippet>872</a>    result.merge(sc2136::check(source));
+<a href=#873 id=873 data-nosnippet>873</a>    result.merge(sc2137::check(source));
+<a href=#874 id=874 data-nosnippet>874</a>    result.merge(sc2138::check(source));
+<a href=#875 id=875 data-nosnippet>875</a>    result.merge(sc2139::check(source));
+<a href=#876 id=876 data-nosnippet>876</a>    result.merge(sc2140::check(source));
+<a href=#877 id=877 data-nosnippet>877</a>    result.merge(sc2141::check(source));
+<a href=#878 id=878 data-nosnippet>878</a>    result.merge(sc2142::check(source));
+<a href=#879 id=879 data-nosnippet>879</a>    result.merge(sc2143::check(source));
+<a href=#880 id=880 data-nosnippet>880</a>    result.merge(sc2144::check(source));
+<a href=#881 id=881 data-nosnippet>881</a>    result.merge(sc2145::check(source));
+<a href=#882 id=882 data-nosnippet>882</a>    result.merge(sc2146::check(source));
+<a href=#883 id=883 data-nosnippet>883</a>    result.merge(sc2147::check(source));
+<a href=#884 id=884 data-nosnippet>884</a>    result.merge(sc2148::check(source));
+<a href=#885 id=885 data-nosnippet>885</a>    result.merge(sc2149::check(source));
+<a href=#886 id=886 data-nosnippet>886</a>    result.merge(sc2150::check(source));
+<a href=#887 id=887 data-nosnippet>887</a>    result.merge(sc2151::check(source));
+<a href=#888 id=888 data-nosnippet>888</a>    result.merge(sc2152::check(source));
+<a href=#889 id=889 data-nosnippet>889</a>    result.merge(sc2153::check(source));
+<a href=#890 id=890 data-nosnippet>890</a>    result.merge(sc2154::check(source));
+<a href=#891 id=891 data-nosnippet>891</a>    result.merge(sc2155::check(source));
+<a href=#892 id=892 data-nosnippet>892</a>    result.merge(sc2156::check(source));
+<a href=#893 id=893 data-nosnippet>893</a>    result.merge(sc2157::check(source));
+<a href=#894 id=894 data-nosnippet>894</a>    result.merge(sc2158::check(source));
+<a href=#895 id=895 data-nosnippet>895</a>    result.merge(sc2159::check(source));
+<a href=#896 id=896 data-nosnippet>896</a>    result.merge(sc2160::check(source));
+<a href=#897 id=897 data-nosnippet>897</a>    result.merge(sc2161::check(source));
+<a href=#898 id=898 data-nosnippet>898</a>    result.merge(sc2162::check(source));
+<a href=#899 id=899 data-nosnippet>899</a>    result.merge(sc2163::check(source));
+<a href=#900 id=900 data-nosnippet>900</a>    result.merge(sc2164::check(source));
+<a href=#901 id=901 data-nosnippet>901</a>    result.merge(sc2165::check(source));
+<a href=#902 id=902 data-nosnippet>902</a>    result.merge(sc2166::check(source));
+<a href=#903 id=903 data-nosnippet>903</a>    result.merge(sc2167::check(source));
+<a href=#904 id=904 data-nosnippet>904</a>    result.merge(sc2168::check(source));
+<a href=#905 id=905 data-nosnippet>905</a>    result.merge(sc2169::check(source));
+<a href=#906 id=906 data-nosnippet>906</a>    result.merge(sc2170::check(source));
+<a href=#907 id=907 data-nosnippet>907</a>    result.merge(sc2171::check(source));
+<a href=#908 id=908 data-nosnippet>908</a>    result.merge(sc2172::check(source));
+<a href=#909 id=909 data-nosnippet>909</a>    result.merge(sc2173::check(source));
+<a href=#910 id=910 data-nosnippet>910</a>    result.merge(sc2174::check(source));
+<a href=#911 id=911 data-nosnippet>911</a>    result.merge(sc2175::check(source));
+<a href=#912 id=912 data-nosnippet>912</a>    result.merge(sc2176::check(source));
+<a href=#913 id=913 data-nosnippet>913</a>    result.merge(sc2177::check(source));
+<a href=#914 id=914 data-nosnippet>914</a>    result.merge(sc2178::check(source));
+<a href=#915 id=915 data-nosnippet>915</a>    result.merge(sc2179::check(source));
+<a href=#916 id=916 data-nosnippet>916</a>    result.merge(sc2180::check(source));
+<a href=#917 id=917 data-nosnippet>917</a>    result.merge(sc2181::check(source));
+<a href=#918 id=918 data-nosnippet>918</a>    result.merge(sc2182::check(source));
+<a href=#919 id=919 data-nosnippet>919</a>    result.merge(sc2183::check(source));
+<a href=#920 id=920 data-nosnippet>920</a>    result.merge(sc2184::check(source));
+<a href=#921 id=921 data-nosnippet>921</a>    result.merge(sc2185::check(source));
+<a href=#922 id=922 data-nosnippet>922</a>    result.merge(sc2186::check(source));
+<a href=#923 id=923 data-nosnippet>923</a>    result.merge(sc2187::check(source));
+<a href=#924 id=924 data-nosnippet>924</a>    result.merge(sc2188::check(source));
+<a href=#925 id=925 data-nosnippet>925</a>    result.merge(sc2189::check(source));
+<a href=#926 id=926 data-nosnippet>926</a>    result.merge(sc2190::check(source));
+<a href=#927 id=927 data-nosnippet>927</a>    result.merge(sc2191::check(source));
+<a href=#928 id=928 data-nosnippet>928</a>    result.merge(sc2192::check(source));
+<a href=#929 id=929 data-nosnippet>929</a>    result.merge(sc2193::check(source));
+<a href=#930 id=930 data-nosnippet>930</a>    result.merge(sc2194::check(source));
+<a href=#931 id=931 data-nosnippet>931</a>    result.merge(sc2195::check(source));
+<a href=#932 id=932 data-nosnippet>932</a>    result.merge(sc2196::check(source));
+<a href=#933 id=933 data-nosnippet>933</a>    result.merge(sc2197::check(source));
+<a href=#934 id=934 data-nosnippet>934</a>    result.merge(sc2198::check(source));
+<a href=#935 id=935 data-nosnippet>935</a>    result.merge(sc2199::check(source));
+<a href=#936 id=936 data-nosnippet>936</a>    result.merge(sc2200::check(source));
+<a href=#937 id=937 data-nosnippet>937</a>    result.merge(sc2201::check(source));
+<a href=#938 id=938 data-nosnippet>938</a>    result.merge(sc2202::check(source));
+<a href=#939 id=939 data-nosnippet>939</a>    result.merge(sc2203::check(source));
+<a href=#940 id=940 data-nosnippet>940</a>    result.merge(sc2204::check(source));
+<a href=#941 id=941 data-nosnippet>941</a>    result.merge(sc2205::check(source));
+<a href=#942 id=942 data-nosnippet>942</a>    result.merge(sc2206::check(source));
+<a href=#943 id=943 data-nosnippet>943</a>    result.merge(sc2207::check(source));
+<a href=#944 id=944 data-nosnippet>944</a>    result.merge(sc2208::check(source));
+<a href=#945 id=945 data-nosnippet>945</a>    result.merge(sc2209::check(source));
+<a href=#946 id=946 data-nosnippet>946</a>    result.merge(sc2210::check(source));
+<a href=#947 id=947 data-nosnippet>947</a>    result.merge(sc2211::check(source));
+<a href=#948 id=948 data-nosnippet>948</a>    result.merge(sc2212::check(source));
+<a href=#949 id=949 data-nosnippet>949</a>    result.merge(sc2213::check(source));
+<a href=#950 id=950 data-nosnippet>950</a>    result.merge(sc2214::check(source));
+<a href=#951 id=951 data-nosnippet>951</a>    result.merge(sc2215::check(source));
+<a href=#952 id=952 data-nosnippet>952</a>    result.merge(sc2216::check(source));
+<a href=#953 id=953 data-nosnippet>953</a>    result.merge(sc2217::check(source));
+<a href=#954 id=954 data-nosnippet>954</a>    result.merge(sc2218::check(source));
+<a href=#955 id=955 data-nosnippet>955</a>    result.merge(sc2219::check(source));
+<a href=#956 id=956 data-nosnippet>956</a>    result.merge(sc2220::check(source));
+<a href=#957 id=957 data-nosnippet>957</a>    result.merge(sc2221::check(source));
+<a href=#958 id=958 data-nosnippet>958</a>    result.merge(sc2222::check(source));
+<a href=#959 id=959 data-nosnippet>959</a>    result.merge(sc2223::check(source));
+<a href=#960 id=960 data-nosnippet>960</a>    result.merge(sc2224::check(source));
+<a href=#961 id=961 data-nosnippet>961</a>    result.merge(sc2225::check(source));
+<a href=#962 id=962 data-nosnippet>962</a>    result.merge(sc2226::check(source));
+<a href=#963 id=963 data-nosnippet>963</a>    result.merge(sc2227::check(source));
+<a href=#964 id=964 data-nosnippet>964</a>    result.merge(sc2228::check(source));
+<a href=#965 id=965 data-nosnippet>965</a>    result.merge(sc2229::check(source));
+<a href=#966 id=966 data-nosnippet>966</a>    result.merge(sc2230::check(source));
+<a href=#967 id=967 data-nosnippet>967</a>    result.merge(sc2231::check(source));
+<a href=#968 id=968 data-nosnippet>968</a>    result.merge(sc2232::check(source));
+<a href=#969 id=969 data-nosnippet>969</a>    result.merge(sc2233::check(source));
+<a href=#970 id=970 data-nosnippet>970</a>    result.merge(sc2234::check(source));
+<a href=#971 id=971 data-nosnippet>971</a>    result.merge(sc2235::check(source));
+<a href=#972 id=972 data-nosnippet>972</a>    result.merge(sc2236::check(source));
+<a href=#973 id=973 data-nosnippet>973</a>    result.merge(sc2237::check(source));
+<a href=#974 id=974 data-nosnippet>974</a>    result.merge(sc2238::check(source));
+<a href=#975 id=975 data-nosnippet>975</a>    result.merge(sc2239::check(source));
+<a href=#976 id=976 data-nosnippet>976</a>    result.merge(sc2240::check(source));
+<a href=#977 id=977 data-nosnippet>977</a>    result.merge(sc2241::check(source));
+<a href=#978 id=978 data-nosnippet>978</a>    result.merge(sc2242::check(source));
+<a href=#979 id=979 data-nosnippet>979</a>    result.merge(sc2243::check(source));
+<a href=#980 id=980 data-nosnippet>980</a>    result.merge(sc2244::check(source));
+<a href=#981 id=981 data-nosnippet>981</a>    result.merge(sc2245::check(source));
+<a href=#982 id=982 data-nosnippet>982</a>    result.merge(sc2246::check(source));
+<a href=#983 id=983 data-nosnippet>983</a>    result.merge(sc2247::check(source));
+<a href=#984 id=984 data-nosnippet>984</a>    result.merge(sc2248::check(source));
+<a href=#985 id=985 data-nosnippet>985</a>    result.merge(sc2249::check(source));
+<a href=#986 id=986 data-nosnippet>986</a>    result.merge(sc2250::check(source));
+<a href=#987 id=987 data-nosnippet>987</a>    result.merge(sc2251::check(source));
+<a href=#988 id=988 data-nosnippet>988</a>    result.merge(sc2252::check(source));
+<a href=#989 id=989 data-nosnippet>989</a>    result.merge(sc2253::check(source));
+<a href=#990 id=990 data-nosnippet>990</a>    result.merge(sc2254::check(source));
+<a href=#991 id=991 data-nosnippet>991</a>    result.merge(sc2255::check(source));
+<a href=#992 id=992 data-nosnippet>992</a>    result.merge(sc2256::check(source));
+<a href=#993 id=993 data-nosnippet>993</a>    result.merge(sc2257::check(source));
+<a href=#994 id=994 data-nosnippet>994</a>    result.merge(sc2258::check(source));
+<a href=#995 id=995 data-nosnippet>995</a>    result.merge(sc2259::check(source));
+<a href=#996 id=996 data-nosnippet>996</a>    result.merge(sc2260::check(source));
+<a href=#997 id=997 data-nosnippet>997</a>    result.merge(sc2261::check(source));
+<a href=#998 id=998 data-nosnippet>998</a>    result.merge(sc2262::check(source));
+<a href=#999 id=999 data-nosnippet>999</a>    result.merge(sc2263::check(source));
+<a href=#1000 id=1000 data-nosnippet>1000</a>    result.merge(sc2264::check(source));
+<a href=#1001 id=1001 data-nosnippet>1001</a>    result.merge(sc2265::check(source));
+<a href=#1002 id=1002 data-nosnippet>1002</a>    result.merge(sc2266::check(source));
+<a href=#1003 id=1003 data-nosnippet>1003</a>    result.merge(sc2267::check(source));
+<a href=#1004 id=1004 data-nosnippet>1004</a>    result.merge(sc2268::check(source));
+<a href=#1005 id=1005 data-nosnippet>1005</a>    result.merge(sc2269::check(source));
+<a href=#1006 id=1006 data-nosnippet>1006</a>    result.merge(sc2270::check(source));
+<a href=#1007 id=1007 data-nosnippet>1007</a>    result.merge(sc2271::check(source));
+<a href=#1008 id=1008 data-nosnippet>1008</a>    result.merge(sc2272::check(source));
+<a href=#1009 id=1009 data-nosnippet>1009</a>    result.merge(sc2273::check(source));
+<a href=#1010 id=1010 data-nosnippet>1010</a>    result.merge(sc2274::check(source));
+<a href=#1011 id=1011 data-nosnippet>1011</a>    result.merge(sc2275::check(source));
+<a href=#1012 id=1012 data-nosnippet>1012</a>    result.merge(sc2276::check(source));
+<a href=#1013 id=1013 data-nosnippet>1013</a>    result.merge(sc2277::check(source));
+<a href=#1014 id=1014 data-nosnippet>1014</a>    result.merge(sc2278::check(source));
+<a href=#1015 id=1015 data-nosnippet>1015</a>    result.merge(sc2279::check(source));
+<a href=#1016 id=1016 data-nosnippet>1016</a>    result.merge(sc2280::check(source));
+<a href=#1017 id=1017 data-nosnippet>1017</a>    result.merge(sc2281::check(source));
+<a href=#1018 id=1018 data-nosnippet>1018</a>    result.merge(sc2282::check(source));
+<a href=#1019 id=1019 data-nosnippet>1019</a>    result.merge(sc2283::check(source));
+<a href=#1020 id=1020 data-nosnippet>1020</a>    result.merge(sc2284::check(source));
+<a href=#1021 id=1021 data-nosnippet>1021</a>    result.merge(sc2285::check(source));
+<a href=#1022 id=1022 data-nosnippet>1022</a>    result.merge(sc2286::check(source));
+<a href=#1023 id=1023 data-nosnippet>1023</a>    result.merge(sc2287::check(source));
+<a href=#1024 id=1024 data-nosnippet>1024</a>    result.merge(sc2288::check(source));
+<a href=#1025 id=1025 data-nosnippet>1025</a>    result.merge(sc2289::check(source));
+<a href=#1026 id=1026 data-nosnippet>1026</a>    result.merge(sc2290::check(source));
+<a href=#1027 id=1027 data-nosnippet>1027</a>    result.merge(sc2291::check(source));
+<a href=#1028 id=1028 data-nosnippet>1028</a>    result.merge(sc2292::check(source));
+<a href=#1029 id=1029 data-nosnippet>1029</a>    result.merge(sc2293::check(source));
+<a href=#1030 id=1030 data-nosnippet>1030</a>    result.merge(sc2294::check(source));
+<a href=#1031 id=1031 data-nosnippet>1031</a>    result.merge(sc2295::check(source));
+<a href=#1032 id=1032 data-nosnippet>1032</a>    result.merge(sc2296::check(source));
+<a href=#1033 id=1033 data-nosnippet>1033</a>    result.merge(sc2297::check(source));
+<a href=#1034 id=1034 data-nosnippet>1034</a>    result.merge(sc2298::check(source));
+<a href=#1035 id=1035 data-nosnippet>1035</a>    result.merge(sc2299::check(source));
+<a href=#1036 id=1036 data-nosnippet>1036</a>    result.merge(sc2300::check(source));
+<a href=#1037 id=1037 data-nosnippet>1037</a>    result.merge(sc2301::check(source));
+<a href=#1038 id=1038 data-nosnippet>1038</a>    result.merge(sc2302::check(source));
+<a href=#1039 id=1039 data-nosnippet>1039</a>    result.merge(sc2303::check(source));
+<a href=#1040 id=1040 data-nosnippet>1040</a>    result.merge(sc2304::check(source));
+<a href=#1041 id=1041 data-nosnippet>1041</a>    result.merge(sc2305::check(source));
+<a href=#1042 id=1042 data-nosnippet>1042</a>    result.merge(sc2306::check(source));
+<a href=#1043 id=1043 data-nosnippet>1043</a>    result.merge(sc2307::check(source));
+<a href=#1044 id=1044 data-nosnippet>1044</a>    result.merge(sc2308::check(source));
+<a href=#1045 id=1045 data-nosnippet>1045</a>    result.merge(sc2309::check(source));
+<a href=#1046 id=1046 data-nosnippet>1046</a>    result.merge(sc2310::check(source));
+<a href=#1047 id=1047 data-nosnippet>1047</a>    result.merge(sc2311::check(source));
+<a href=#1048 id=1048 data-nosnippet>1048</a>    result.merge(sc2312::check(source));
+<a href=#1049 id=1049 data-nosnippet>1049</a>    result.merge(sc2313::check(source));
+<a href=#1050 id=1050 data-nosnippet>1050</a>    result.merge(sc2314::check(source));
+<a href=#1051 id=1051 data-nosnippet>1051</a>    result.merge(sc2315::check(source));
+<a href=#1052 id=1052 data-nosnippet>1052</a>    result.merge(sc2316::check(source));
+<a href=#1053 id=1053 data-nosnippet>1053</a>    result.merge(sc2317::check(source));
+<a href=#1054 id=1054 data-nosnippet>1054</a>    result.merge(sc2318::check(source));
+<a href=#1055 id=1055 data-nosnippet>1055</a>    result.merge(sc2319::check(source));
+<a href=#1056 id=1056 data-nosnippet>1056</a>    result.merge(sc2320::check(source));
+<a href=#1057 id=1057 data-nosnippet>1057</a>    result.merge(sc2321::check(source));
+<a href=#1058 id=1058 data-nosnippet>1058</a>    result.merge(sc2322::check(source));
+<a href=#1059 id=1059 data-nosnippet>1059</a>    result.merge(sc2323::check(source));
+<a href=#1060 id=1060 data-nosnippet>1060</a>    result.merge(sc2324::check(source));
+<a href=#1061 id=1061 data-nosnippet>1061</a>    result.merge(sc2325::check(source));
+<a href=#1062 id=1062 data-nosnippet>1062</a>
+<a href=#1063 id=1063 data-nosnippet>1063</a>    <span class="comment">// Run determinism rules
+<a href=#1064 id=1064 data-nosnippet>1064</a>    </span>result.merge(det001::check(source));
+<a href=#1065 id=1065 data-nosnippet>1065</a>    result.merge(det002::check(source));
+<a href=#1066 id=1066 data-nosnippet>1066</a>    result.merge(det003::check(source));
+<a href=#1067 id=1067 data-nosnippet>1067</a>
+<a href=#1068 id=1068 data-nosnippet>1068</a>    <span class="comment">// Run idempotency rules
+<a href=#1069 id=1069 data-nosnippet>1069</a>    </span>result.merge(idem001::check(source));
+<a href=#1070 id=1070 data-nosnippet>1070</a>    result.merge(idem002::check(source));
+<a href=#1071 id=1071 data-nosnippet>1071</a>    result.merge(idem003::check(source));
+<a href=#1072 id=1072 data-nosnippet>1072</a>
+<a href=#1073 id=1073 data-nosnippet>1073</a>    <span class="comment">// Run security rules
+<a href=#1074 id=1074 data-nosnippet>1074</a>    </span>result.merge(sec001::check(source));
+<a href=#1075 id=1075 data-nosnippet>1075</a>    result.merge(sec002::check(source));
+<a href=#1076 id=1076 data-nosnippet>1076</a>    result.merge(sec003::check(source));
+<a href=#1077 id=1077 data-nosnippet>1077</a>    result.merge(sec004::check(source));
+<a href=#1078 id=1078 data-nosnippet>1078</a>    result.merge(sec005::check(source));
+<a href=#1079 id=1079 data-nosnippet>1079</a>    result.merge(sec006::check(source));
+<a href=#1080 id=1080 data-nosnippet>1080</a>    result.merge(sec007::check(source));
+<a href=#1081 id=1081 data-nosnippet>1081</a>    result.merge(sec008::check(source));
+<a href=#1082 id=1082 data-nosnippet>1082</a>    result.merge(sec009::check(source));
+<a href=#1083 id=1083 data-nosnippet>1083</a>    result.merge(sec010::check(source));
+<a href=#1084 id=1084 data-nosnippet>1084</a>    result.merge(sec011::check(source));
+<a href=#1085 id=1085 data-nosnippet>1085</a>    result.merge(sec012::check(source));
+<a href=#1086 id=1086 data-nosnippet>1086</a>    result.merge(sec017::check(source));
+<a href=#1087 id=1087 data-nosnippet>1087</a>    result.merge(sec018::check(source));
+<a href=#1088 id=1088 data-nosnippet>1088</a>
+<a href=#1089 id=1089 data-nosnippet>1089</a>    <span class="comment">// Apply inline suppression filtering
+<a href=#1090 id=1090 data-nosnippet>1090</a>    </span><span class="kw">let </span>suppression_manager = SuppressionManager::from_source(source);
+<a href=#1091 id=1091 data-nosnippet>1091</a>    result
+<a href=#1092 id=1092 data-nosnippet>1092</a>        .diagnostics
+<a href=#1093 id=1093 data-nosnippet>1093</a>        .retain(|diag| !suppression_manager.is_suppressed(<span class="kw-2">&amp;</span>diag.code, diag.span.start_line));
+<a href=#1094 id=1094 data-nosnippet>1094</a>
+<a href=#1095 id=1095 data-nosnippet>1095</a>    result
+<a href=#1096 id=1096 data-nosnippet>1096</a>}
+<a href=#1097 id=1097 data-nosnippet>1097</a>
+<a href=#1098 id=1098 data-nosnippet>1098</a><span class="doccomment">/// Lint a Dockerfile and return all diagnostics
+<a href=#1099 id=1099 data-nosnippet>1099</a></span><span class="kw">pub fn </span>lint_dockerfile(source: <span class="kw-2">&amp;</span>str) -&gt; LintResult {
+<a href=#1100 id=1100 data-nosnippet>1100</a>    <span class="kw">let </span><span class="kw-2">mut </span>result = LintResult::new();
 <a href=#1101 id=1101 data-nosnippet>1101</a>
-<a href=#1102 id=1102 data-nosnippet>1102</a>    </span>result
-<a href=#1103 id=1103 data-nosnippet>1103</a>}
-<a href=#1104 id=1104 data-nosnippet>1104</a>
-<a href=#1105 id=1105 data-nosnippet>1105</a><span class="doccomment">/// Lint a Makefile and return all diagnostics
-<a href=#1106 id=1106 data-nosnippet>1106</a></span><span class="kw">pub fn </span>lint_makefile(source: <span class="kw-2">&amp;</span>str) -&gt; LintResult {
-<a href=#1107 id=1107 data-nosnippet>1107</a>    <span class="kw">let </span><span class="kw-2">mut </span>result = LintResult::new();
-<a href=#1108 id=1108 data-nosnippet>1108</a>
-<a href=#1109 id=1109 data-nosnippet>1109</a>    <span class="comment">// Preprocess Makefile to convert $$ → $ in recipes for shell linting
-<a href=#1110 id=1110 data-nosnippet>1110</a>    </span><span class="kw">use </span><span class="kw">crate</span>::linter::make_preprocess::preprocess_for_linting;
-<a href=#1111 id=1111 data-nosnippet>1111</a>    <span class="kw">let </span>preprocessed = preprocess_for_linting(source);
+<a href=#1102 id=1102 data-nosnippet>1102</a>    <span class="comment">// Run Dockerfile-specific rules (inspired by hadolint)
+<a href=#1103 id=1103 data-nosnippet>1103</a>    </span>result.merge(docker001::check(source)); <span class="comment">// Missing USER directive (DL3002)
+<a href=#1104 id=1104 data-nosnippet>1104</a>    </span>result.merge(docker002::check(source)); <span class="comment">// Unpinned base images (DL3006, DL3007)
+<a href=#1105 id=1105 data-nosnippet>1105</a>    </span>result.merge(docker003::check(source)); <span class="comment">// Missing apt cleanup (DL3009)
+<a href=#1106 id=1106 data-nosnippet>1106</a>    </span>result.merge(docker004::check(source)); <span class="comment">// Invalid COPY --from (DL3022)
+<a href=#1107 id=1107 data-nosnippet>1107</a>    </span>result.merge(docker005::check(source)); <span class="comment">// Missing --no-install-recommends (DL3015)
+<a href=#1108 id=1108 data-nosnippet>1108</a>    </span>result.merge(docker006::check(source)); <span class="comment">// Use COPY not ADD (DL3020)
+<a href=#1109 id=1109 data-nosnippet>1109</a>
+<a href=#1110 id=1110 data-nosnippet>1110</a>    </span>result
+<a href=#1111 id=1111 data-nosnippet>1111</a>}
 <a href=#1112 id=1112 data-nosnippet>1112</a>
-<a href=#1113 id=1113 data-nosnippet>1113</a>    <span class="comment">// Run Makefile-specific rules on original source
-<a href=#1114 id=1114 data-nosnippet>1114</a>    </span>result.merge(make001::check(source));
-<a href=#1115 id=1115 data-nosnippet>1115</a>    result.merge(make002::check(source));
-<a href=#1116 id=1116 data-nosnippet>1116</a>    result.merge(make003::check(source));
-<a href=#1117 id=1117 data-nosnippet>1117</a>    result.merge(make004::check(source));
-<a href=#1118 id=1118 data-nosnippet>1118</a>    result.merge(make005::check(source));
-<a href=#1119 id=1119 data-nosnippet>1119</a>    result.merge(make006::check(source));
-<a href=#1120 id=1120 data-nosnippet>1120</a>    result.merge(make007::check(source));
-<a href=#1121 id=1121 data-nosnippet>1121</a>    result.merge(make008::check(source)); <span class="comment">// CRITICAL: Tab vs spaces
-<a href=#1122 id=1122 data-nosnippet>1122</a>    </span>result.merge(make009::check(source));
-<a href=#1123 id=1123 data-nosnippet>1123</a>    result.merge(make010::check(source));
-<a href=#1124 id=1124 data-nosnippet>1124</a>    result.merge(make011::check(source));
-<a href=#1125 id=1125 data-nosnippet>1125</a>    result.merge(make012::check(source));
-<a href=#1126 id=1126 data-nosnippet>1126</a>    result.merge(make013::check(source));
-<a href=#1127 id=1127 data-nosnippet>1127</a>    result.merge(make014::check(source));
-<a href=#1128 id=1128 data-nosnippet>1128</a>    result.merge(make015::check(source));
-<a href=#1129 id=1129 data-nosnippet>1129</a>    result.merge(make016::check(source));
-<a href=#1130 id=1130 data-nosnippet>1130</a>    result.merge(make017::check(source));
-<a href=#1131 id=1131 data-nosnippet>1131</a>    result.merge(make018::check(source));
-<a href=#1132 id=1132 data-nosnippet>1132</a>    result.merge(make019::check(source));
-<a href=#1133 id=1133 data-nosnippet>1133</a>    result.merge(make020::check(source));
-<a href=#1134 id=1134 data-nosnippet>1134</a>
-<a href=#1135 id=1135 data-nosnippet>1135</a>    <span class="comment">// Run shell linting rules on preprocessed source
-<a href=#1136 id=1136 data-nosnippet>1136</a>    // This prevents false positives from Make's $$ escaping
-<a href=#1137 id=1137 data-nosnippet>1137</a>    </span>result.merge(sc2133::check(<span class="kw-2">&amp;</span>preprocessed));
-<a href=#1138 id=1138 data-nosnippet>1138</a>    result.merge(sc2168::check(<span class="kw-2">&amp;</span>preprocessed));
-<a href=#1139 id=1139 data-nosnippet>1139</a>    result.merge(sc2299::check(<span class="kw-2">&amp;</span>preprocessed));
-<a href=#1140 id=1140 data-nosnippet>1140</a>
-<a href=#1141 id=1141 data-nosnippet>1141</a>    <span class="comment">// For DET002, we want to allow timestamps in Makefiles
-<a href=#1142 id=1142 data-nosnippet>1142</a>    // (they're used for build tracking), so we don't run it
-<a href=#1143 id=1143 data-nosnippet>1143</a>
-<a href=#1144 id=1144 data-nosnippet>1144</a>    </span>result
-<a href=#1145 id=1145 data-nosnippet>1145</a>}</code></pre></div></section></main></body></html>
+<a href=#1113 id=1113 data-nosnippet>1113</a><span class="doccomment">/// Lint a Makefile and return all diagnostics
+<a href=#1114 id=1114 data-nosnippet>1114</a></span><span class="kw">pub fn </span>lint_makefile(source: <span class="kw-2">&amp;</span>str) -&gt; LintResult {
+<a href=#1115 id=1115 data-nosnippet>1115</a>    <span class="kw">let </span><span class="kw-2">mut </span>result = LintResult::new();
+<a href=#1116 id=1116 data-nosnippet>1116</a>
+<a href=#1117 id=1117 data-nosnippet>1117</a>    <span class="comment">// Preprocess Makefile to convert $$ → $ in recipes for shell linting
+<a href=#1118 id=1118 data-nosnippet>1118</a>    </span><span class="kw">use </span><span class="kw">crate</span>::linter::make_preprocess::preprocess_for_linting;
+<a href=#1119 id=1119 data-nosnippet>1119</a>    <span class="kw">let </span>preprocessed = preprocess_for_linting(source);
+<a href=#1120 id=1120 data-nosnippet>1120</a>
+<a href=#1121 id=1121 data-nosnippet>1121</a>    <span class="comment">// Run Makefile-specific rules on original source
+<a href=#1122 id=1122 data-nosnippet>1122</a>    </span>result.merge(make001::check(source));
+<a href=#1123 id=1123 data-nosnippet>1123</a>    result.merge(make002::check(source));
+<a href=#1124 id=1124 data-nosnippet>1124</a>    result.merge(make003::check(source));
+<a href=#1125 id=1125 data-nosnippet>1125</a>    result.merge(make004::check(source));
+<a href=#1126 id=1126 data-nosnippet>1126</a>    result.merge(make005::check(source));
+<a href=#1127 id=1127 data-nosnippet>1127</a>    result.merge(make006::check(source));
+<a href=#1128 id=1128 data-nosnippet>1128</a>    result.merge(make007::check(source));
+<a href=#1129 id=1129 data-nosnippet>1129</a>    result.merge(make008::check(source)); <span class="comment">// CRITICAL: Tab vs spaces
+<a href=#1130 id=1130 data-nosnippet>1130</a>    </span>result.merge(make009::check(source));
+<a href=#1131 id=1131 data-nosnippet>1131</a>    result.merge(make010::check(source));
+<a href=#1132 id=1132 data-nosnippet>1132</a>    result.merge(make011::check(source));
+<a href=#1133 id=1133 data-nosnippet>1133</a>    result.merge(make012::check(source));
+<a href=#1134 id=1134 data-nosnippet>1134</a>    result.merge(make013::check(source));
+<a href=#1135 id=1135 data-nosnippet>1135</a>    result.merge(make014::check(source));
+<a href=#1136 id=1136 data-nosnippet>1136</a>    result.merge(make015::check(source));
+<a href=#1137 id=1137 data-nosnippet>1137</a>    result.merge(make016::check(source));
+<a href=#1138 id=1138 data-nosnippet>1138</a>    result.merge(make017::check(source));
+<a href=#1139 id=1139 data-nosnippet>1139</a>    result.merge(make018::check(source));
+<a href=#1140 id=1140 data-nosnippet>1140</a>    result.merge(make019::check(source));
+<a href=#1141 id=1141 data-nosnippet>1141</a>    result.merge(make020::check(source));
+<a href=#1142 id=1142 data-nosnippet>1142</a>
+<a href=#1143 id=1143 data-nosnippet>1143</a>    <span class="comment">// Run shell linting rules on preprocessed source
+<a href=#1144 id=1144 data-nosnippet>1144</a>    // This prevents false positives from Make's $$ escaping
+<a href=#1145 id=1145 data-nosnippet>1145</a>    </span>result.merge(sc2133::check(<span class="kw-2">&amp;</span>preprocessed));
+<a href=#1146 id=1146 data-nosnippet>1146</a>    result.merge(sc2168::check(<span class="kw-2">&amp;</span>preprocessed));
+<a href=#1147 id=1147 data-nosnippet>1147</a>    result.merge(sc2299::check(<span class="kw-2">&amp;</span>preprocessed));
+<a href=#1148 id=1148 data-nosnippet>1148</a>
+<a href=#1149 id=1149 data-nosnippet>1149</a>    <span class="comment">// For DET002, we want to allow timestamps in Makefiles
+<a href=#1150 id=1150 data-nosnippet>1150</a>    // (they're used for build tracking), so we don't run it
+<a href=#1151 id=1151 data-nosnippet>1151</a>
+<a href=#1152 id=1152 data-nosnippet>1152</a>    </span>result
+<a href=#1153 id=1153 data-nosnippet>1153</a>}</code></pre></div></section></main></body></html>
