@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"fn":["check"]};
+window.SIDEBAR_ITEMS = {"fn":["check","is_intentional_timestamp_marker","is_timestamp_for_tracking","is_variable_assignment"]};
