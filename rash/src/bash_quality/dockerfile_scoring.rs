@@ -437,10 +437,14 @@ fn calculate_determinism_score(source: &str) -> f64 {
 /// - Avoiding ADD (use COPY instead)
 /// - No exposed secrets or credentials
 /// - Reasonable file permissions (not 777)
+/// - FROM scratch detection (Issue #13)
 fn calculate_security_score(source: &str) -> f64 {
     if source.trim().is_empty() {
         return 0.0;
     }
+
+    // Issue #13: Detect if final stage is FROM scratch
+    let is_final_stage_scratch = detect_final_stage_scratch(source);
 
     let mut has_user_directive = false;
     let mut uses_copy_not_add = true;
@@ -477,11 +481,16 @@ fn calculate_security_score(source: &str) -> f64 {
 
     let mut score: f64 = 5.0; // Start at neutral
 
-    // USER directive (4 points)
-    if has_user_directive {
-        score += 4.0;
+    // Issue #13: FROM scratch images get bonus for minimal attack surface
+    if is_final_stage_scratch {
+        score += 4.0; // Scratch = high security (no OS layer)
     } else {
-        score -= 2.0; // Penalty for running as root
+        // Regular images: USER directive (4 points)
+        if has_user_directive {
+            score += 4.0;
+        } else {
+            score -= 2.0; // Penalty for running as root
+        }
     }
 
     // Using COPY instead of ADD (1 point)
@@ -502,6 +511,29 @@ fn calculate_security_score(source: &str) -> f64 {
     score.clamp(0.0, 10.0)
 }
 
+/// Detect if the final stage is FROM scratch (Issue #13)
+fn detect_final_stage_scratch(source: &str) -> bool {
+    let mut last_from_is_scratch = false;
+
+    for line in source.lines() {
+        let trimmed = line.trim();
+
+        // Skip comments and empty lines
+        if trimmed.is_empty() || trimmed.starts_with('#') {
+            continue;
+        }
+
+        // Detect FROM directive
+        if let Some(stripped) = trimmed.strip_prefix("FROM ") {
+            let from_image = stripped.trim();
+            // Check if this FROM is for scratch
+            last_from_is_scratch = from_image.starts_with("scratch");
+        }
+    }
+
+    last_from_is_scratch
+}
+
 /// Calculate grade from numeric score
 fn calculate_grade(score: f64) -> String {
     match score {
@@ -519,6 +551,9 @@ fn calculate_grade(score: f64) -> String {
 /// Generate improvement suggestions
 fn generate_suggestions(source: &str, score: &DockerfileQualityScore) -> Vec<String> {
     let mut suggestions = Vec::new();
+
+    // Issue #13: Detect FROM scratch for appropriate suggestions
+    let is_final_stage_scratch = detect_final_stage_scratch(source);
 
     // Safety suggestions
     if score.safety < 7.0 {
@@ -560,11 +595,12 @@ fn generate_suggestions(source: &str, score: &DockerfileQualityScore) -> Vec<Str
         }
     }
 
-    // Security suggestions
+    // Security suggestions (Issue #13: skip USER directive for FROM scratch)
     if score.security < 7.0 {
         let has_user = source.contains("USER ");
 
-        if !has_user || source.contains("USER root") {
+        // Only suggest USER directive for non-scratch images
+        if !is_final_stage_scratch && (!has_user || source.contains("USER root")) {
             suggestions.push("Add USER directive to run container as non-root user".to_string());
             suggestions.push("Create a dedicated user with adduser/addgroup".to_string());
         }
@@ -728,6 +764,92 @@ RUN apk add curl
         let score_single = score_dockerfile(single_stage).unwrap();
 
         assert!(score_multi.layer_optimization >= score_single.layer_optimization);
+    }
+
+    // Issue #13: FROM scratch images should not be penalized for missing USER directive
+    #[test]
+    fn test_ISSUE_13_scratch_image_security_score() {
+        let scratch_dockerfile = r#"FROM scratch
+COPY --from=builder /build/binary /binary
+ENTRYPOINT ["/binary"]
+"#;
+        let score = score_dockerfile(scratch_dockerfile).unwrap();
+
+        // Scratch images should get high security score (no OS layer = minimal attack surface)
+        assert!(
+            score.security >= 8.0,
+            "FROM scratch should score >= 8.0 security (got {})",
+            score.security
+        );
+
+        // Should NOT suggest adding USER directive for scratch images
+        let has_user_suggestion = score
+            .suggestions
+            .iter()
+            .any(|s| s.contains("USER") || s.contains("non-root"));
+
+        assert!(
+            !has_user_suggestion,
+            "FROM scratch should not suggest USER directive"
+        );
+    }
+
+    #[test]
+    fn test_ISSUE_13_multistage_scratch_final_stage() {
+        let multistage_scratch = r#"FROM alpine:3.18 AS builder
+RUN apk add --no-cache curl && \
+    curl -o /binary https://example.com/binary
+
+FROM scratch
+COPY --from=builder /binary /binary
+ENTRYPOINT ["/binary"]
+"#;
+        let score = score_dockerfile(multistage_scratch).unwrap();
+
+        // Final stage is scratch - should have high security score
+        assert!(
+            score.security >= 8.0,
+            "Multi-stage with FROM scratch final should score >= 8.0 security (got {})",
+            score.security
+        );
+
+        // Should NOT suggest USER directive
+        let has_user_suggestion = score
+            .suggestions
+            .iter()
+            .any(|s| s.contains("USER") || s.contains("non-root"));
+
+        assert!(
+            !has_user_suggestion,
+            "Multi-stage scratch should not suggest USER directive"
+        );
+    }
+
+    #[test]
+    fn test_ISSUE_13_regular_image_still_requires_user() {
+        let regular_dockerfile = r#"FROM alpine:3.18
+RUN apk add curl
+CMD ["/app"]
+"#;
+        let score = score_dockerfile(regular_dockerfile).unwrap();
+
+        // Regular images should still be penalized for missing USER
+        assert!(
+            score.security < 8.0,
+            "Regular image without USER should score < 8.0 security (got {})",
+            score.security
+        );
+
+        // Should suggest USER directive for regular images
+        let has_user_suggestion = score
+            .suggestions
+            .iter()
+            .any(|s| s.contains("USER") || s.contains("non-root"));
+
+        assert!(
+            has_user_suggestion,
+            "Regular image should suggest USER directive"
+        );
     }
 }
 
