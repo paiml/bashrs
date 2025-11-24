@@ -1,0 +1,20 @@
+roadmap_version: '1.0'
+github_enabled: true
+github_repo: null
+roadmap:
+- id: GH-43
+  github_issue: 43
+  item_type: task
+  title: 'Issue #43'
+  status: inprogress
+  priority: medium
+  assigned_to: null
+  created: 2025-11-24T13:41:49.003662362+00:00
+  updated: 2025-11-24T13:41:49.003662362+00:00
+  spec: null
+  acceptance_criteria: []
+  phases: []
+  subtasks: []
+  estimated_effort: null
+  labels: []
+  notes: null
