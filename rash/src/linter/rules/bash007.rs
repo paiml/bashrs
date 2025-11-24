@@ -119,10 +119,9 @@ fn is_acceptable_path(line: &str, pattern: &str) -> bool {
 
     // Allow /bin/bash, /bin/sh, /usr/bin/env in specific contexts (common shebangs)
     // Use word boundaries to avoid false positives like /bin/sha matching /bin/sh
-    if (pattern == "/bin/" || pattern == "/usr/bin/")
-        && is_shebang_path(line) {
-            return true;
-        }
+    if (pattern == "/bin/" || pattern == "/usr/bin/") && is_shebang_path(line) {
+        return true;
+    }
 
     false
 }
