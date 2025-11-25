@@ -218,6 +218,20 @@ impl BashToRashTranspiler {
                 }
                 Ok(result)
             }
+
+            BashStmt::AndList { left, right, .. } => {
+                // Transpile AND list: left && right
+                let left_str = self.transpile_statement(left)?;
+                let right_str = self.transpile_statement(right)?;
+                Ok(format!("{} && {}", left_str, right_str))
+            }
+
+            BashStmt::OrList { left, right, .. } => {
+                // Transpile OR list: left || right
+                let left_str = self.transpile_statement(left)?;
+                let right_str = self.transpile_statement(right)?;
+                Ok(format!("{} || {}", left_str, right_str))
+            }
         }
     }
 

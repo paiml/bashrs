@@ -7,6 +7,83 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [6.38.0] - 2025-11-25
+
+### Fixed
+
+**Issue #59: Parser Fails on Command Substitution with Nested Quotes and || true**
+
+This release fixes two critical parser bugs that prevented common bash patterns from being parsed:
+
+#### Bug 1: Nested Quotes in Command Substitution
+
+Previously, strings with command substitutions containing nested quotes were incorrectly parsed:
+
+```bash
+# Before (BROKEN): Got mangled to OUTPUT='$(echo ' test ' 2>&1)'
+OUTPUT="$(echo "test" 2>&1)"
+
+# After (FIXED): Correctly preserved
+OUTPUT="$(echo "test" 2>&1)"
+```
+
+**Root Cause**: The lexer's `read_string()` function did not track when it was inside a command substitution `$(...)`. Inner quotes were incorrectly treated as string terminators.
+
+**Fix**: Added `cmd_subst_depth` tracking in `read_string()` to properly handle nested parentheses and ignore inner quotes when inside command substitutions.
+
+#### Bug 2: Logical Operators (|| and &&) Not Parsed
+
+The parser failed on `||` and `&&` operators after commands:
+
+```bash
+# Before (BROKEN): "Invalid syntax: Expected expression"
+OUTPUT="$(echo "test" 2>&1)" || true
+echo hello || true
+mkdir -p /tmp/test && echo success
+
+# After (FIXED): All patterns parse correctly
+```
+
+**Root Cause**: Two issues:
+1. The parser's `parse_statement()` handled pipes (`|`) but not logical operators (`||`, `&&`)
+2. The `parse_command()` argument loop didn't stop at `||` or `&&` tokens
+
+**Fix**:
+- Added `AndList` and `OrList` variants to `BashStmt` AST
+- Added logical operator handling in `parse_statement()` after pipeline processing
+- Added `Token::And` and `Token::Or` to `parse_command()` loop termination conditions
+
+### Added
+
+- `BashStmt::AndList` - AST variant for `cmd1 && cmd2` logical AND lists
+- `BashStmt::OrList` - AST variant for `cmd1 || cmd2` logical OR lists
+- Support for chained logical operators: `cmd1 && cmd2 || cmd3`
+- Proper precedence: pipes (`|`) bind tighter than logical operators
+
+### Quality
+
+- **Tests**: 6889 tests passing (4 new for Issue #59, zero regressions)
+- **EXTREME TDD**: Full RED→GREEN→REFACTOR cycle with property testing
+- **Files Modified**: 9 files across parser, codegen, purification, and display modules
+
+### Technical Details
+
+**Modified Files:**
+- `rash/src/bash_parser/lexer.rs` - Nested quote handling in command substitution
+- `rash/src/bash_parser/parser.rs` - Logical operator parsing and loop termination
+- `rash/src/bash_parser/ast.rs` - AndList/OrList variants + Display/Span impls
+- `rash/src/bash_parser/codegen.rs` - Shell code generation for logical operators
+- `rash/src/bash_parser/generators.rs` - Alternative code generation
+- `rash/src/bash_parser/semantic.rs` - Semantic analysis for logical operators
+- `rash/src/bash_transpiler/codegen.rs` - Transpiler support
+- `rash/src/bash_transpiler/purification.rs` - Purification for logical operators
+- `rash/src/bash_quality/formatter.rs` - Formatting support
+- `rash/src/repl/ast_display.rs` - REPL AST display
+
+Closes #59
+
+---
+
 ## [6.37.0] - 2025-11-24
 
 ### Added

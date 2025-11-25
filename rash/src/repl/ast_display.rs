@@ -118,6 +118,12 @@ fn format_statement(stmt: &BashStmt, indent: usize) -> String {
         BashStmt::Pipeline { commands, .. } => {
             format!("{}Pipeline ({} commands)", indent_str, commands.len())
         }
+        BashStmt::AndList { .. } => {
+            format!("{}AndList (&&)", indent_str)
+        }
+        BashStmt::OrList { .. } => {
+            format!("{}OrList (||)", indent_str)
+        }
     }
 }
 

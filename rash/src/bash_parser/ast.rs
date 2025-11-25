@@ -95,6 +95,24 @@ pub enum BashStmt {
     /// Pipeline: cmd1 | cmd2 | cmd3
     /// Chains multiple commands with stdout→stdin data flow
     Pipeline { commands: Vec<BashStmt>, span: Span },
+
+    /// Logical AND list: cmd1 && cmd2
+    /// Execute cmd2 only if cmd1 succeeds (exit code 0)
+    /// Issue #59: Support for && operator after commands
+    AndList {
+        left: Box<BashStmt>,
+        right: Box<BashStmt>,
+        span: Span,
+    },
+
+    /// Logical OR list: cmd1 || cmd2
+    /// Execute cmd2 only if cmd1 fails (non-zero exit code)
+    /// Issue #59: Support for || operator after commands
+    OrList {
+        left: Box<BashStmt>,
+        right: Box<BashStmt>,
+        span: Span,
+    },
 }
 
 /// Case statement arm
@@ -309,6 +327,8 @@ impl BashStmt {
             BashStmt::Return { .. } => "Return",
             BashStmt::Comment { .. } => "Comment",
             BashStmt::Pipeline { .. } => "Pipeline",
+            BashStmt::AndList { .. } => "AndList",
+            BashStmt::OrList { .. } => "OrList",
         }
     }
 
@@ -325,7 +345,9 @@ impl BashStmt {
             | BashStmt::Case { span, .. }
             | BashStmt::Return { span, .. }
             | BashStmt::Comment { span, .. }
-            | BashStmt::Pipeline { span, .. } => *span,
+            | BashStmt::Pipeline { span, .. }
+            | BashStmt::AndList { span, .. }
+            | BashStmt::OrList { span, .. } => *span,
         };
 
         // Convert bash_parser::Span to tracing::Span
@@ -352,6 +374,8 @@ impl fmt::Display for BashStmt {
             BashStmt::Return { .. } => write!(f, "Return"),
             BashStmt::Comment { .. } => write!(f, "Comment"),
             BashStmt::Pipeline { commands, .. } => write!(f, "Pipeline({} cmds)", commands.len()),
+            BashStmt::AndList { .. } => write!(f, "AndList"),
+            BashStmt::OrList { .. } => write!(f, "OrList"),
         }
     }
 }
