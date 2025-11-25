@@ -1,10 +1,11 @@
 # ISSUE-002: SC2299 False Positive on Default Value Expansion
 
-**Status**: Open
+**Status**: RESOLVED ✅
 **Severity**: Low (false positive, not a security issue)
 **Component**: Makefile Linter
 **Found During**: bashrs dogfooding (self-validation)
 **Date**: 2025-11-25
+**Resolved**: 2025-11-25 (commit e6d139c62)
 
 ## Description
 
@@ -75,3 +76,28 @@ Update the SC2299 detection logic to:
 
 **Discovered by**: bashrs dogfooding (self-validation)
 **Related**: docs/dogfooding/BASHRS_DOGFOODING.md
+
+---
+
+## Resolution
+
+**Fixed in commit**: e6d139c62
+
+**Solution**: Updated the SC2299 regex to use alternation that excludes POSIX parameter modifiers:
+
+```rust
+// Old regex (buggy):
+r"\$\{[a-zA-Z_][a-zA-Z0-9_]*:[^}]*\$"
+
+// New regex (fixed):
+r"\$\{[a-zA-Z_][a-zA-Z0-9_]*:(\$|[^-+=?}][^}]*\$)"
+```
+
+The new regex:
+1. Matches `${var:$offset}` - variable directly after colon (invalid)
+2. Matches `${var:0:$len}` - variable in length position (invalid)
+3. Excludes `${var:-...}`, `${var:+...}`, `${var:=...}`, `${var:?...}` (valid POSIX)
+
+**Tests added**: 6 new tests for all POSIX parameter modifiers with variables
+
+**Result**: Makefile now passes with 0 errors (was 2 SC2299 errors)
