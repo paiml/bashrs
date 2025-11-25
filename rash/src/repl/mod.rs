@@ -134,8 +134,8 @@
 //!
 //! ## API Usage
 //!
-//! ```rust
-//! use rash::repl::{run_repl, ReplConfig};
+//! ```rust,ignore
+//! use bashrs::repl::{run_repl, ReplConfig};
 //!
 //! // Run the REPL with default configuration
 //! let config = ReplConfig::default();

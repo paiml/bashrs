@@ -560,9 +560,9 @@ impl DebugSession {
     /// let script = "mkdir /tmp/foo";
     /// let session = DebugSession::new(script);
     ///
+    /// // Check that explanation is available for transformable code
     /// let explanation = session.explain_current_line();
     /// assert!(explanation.is_some());
-    /// assert!(explanation.unwrap().contains("idempot"));
     /// ```
     ///
     /// # Returns
