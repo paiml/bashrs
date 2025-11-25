@@ -499,6 +499,11 @@ impl BashParser {
     fn parse_for(&mut self) -> ParseResult<BashStmt> {
         self.expect(Token::For)?;
 
+        // Issue #68: Check for C-style for loop: for ((init; cond; incr))
+        if self.check(&Token::LeftParen) && self.peek_ahead(1) == Some(&Token::LeftParen) {
+            return self.parse_for_c_style();
+        }
+
         let variable = if let Some(Token::Identifier(name)) = self.peek() {
             let var = name.clone();
             self.advance();
@@ -553,6 +558,131 @@ impl BashParser {
         Ok(BashStmt::For {
             variable,
             items,
+            body,
+            span: Span::dummy(),
+        })
+    }
+
+    /// Issue #68: Parse C-style for loop: for ((init; cond; incr)); do BODY; done
+    /// This is a bash-specific construct that will be purified to a POSIX while loop.
+    fn parse_for_c_style(&mut self) -> ParseResult<BashStmt> {
+        // Consume '(('
+        self.expect(Token::LeftParen)?;
+        self.expect(Token::LeftParen)?;
+
+        // Read the entire arithmetic expression content until '))'
+        // The content is: init; condition; increment
+        let mut content = String::new();
+        let mut paren_depth = 0;
+
+        while !self.is_at_end() {
+            // Check for closing '))'
+            if paren_depth == 0
+                && self.check(&Token::RightParen)
+                && self.peek_ahead(1) == Some(&Token::RightParen)
+            {
+                break;
+            }
+
+            // Handle nested parentheses
+            if self.check(&Token::LeftParen) {
+                paren_depth += 1;
+                content.push('(');
+                self.advance();
+            } else if self.check(&Token::RightParen) {
+                paren_depth -= 1;
+                content.push(')');
+                self.advance();
+            } else {
+                // Append token content
+                match self.peek() {
+                    Some(Token::Identifier(s)) => {
+                        content.push_str(s);
+                        self.advance();
+                    }
+                    Some(Token::Number(n)) => {
+                        content.push_str(&n.to_string());
+                        self.advance();
+                    }
+                    Some(Token::Semicolon) => {
+                        content.push(';');
+                        self.advance();
+                    }
+                    Some(Token::Assign) => {
+                        content.push('=');
+                        self.advance();
+                    }
+                    Some(Token::Lt) => {
+                        content.push('<');
+                        self.advance();
+                    }
+                    Some(Token::Gt) => {
+                        content.push('>');
+                        self.advance();
+                    }
+                    Some(Token::Le) => {
+                        content.push_str("<=");
+                        self.advance();
+                    }
+                    Some(Token::Ge) => {
+                        content.push_str(">=");
+                        self.advance();
+                    }
+                    Some(Token::Eq) => {
+                        content.push_str("==");
+                        self.advance();
+                    }
+                    Some(Token::Ne) => {
+                        content.push_str("!=");
+                        self.advance();
+                    }
+                    Some(Token::Variable(v)) => {
+                        content.push('$');
+                        content.push_str(v);
+                        self.advance();
+                    }
+                    _ => {
+                        // Skip unknown tokens with a space
+                        content.push(' ');
+                        self.advance();
+                    }
+                }
+            }
+        }
+
+        // Consume '))'
+        self.expect(Token::RightParen)?;
+        self.expect(Token::RightParen)?;
+
+        // Parse the three parts: init; condition; increment
+        let parts: Vec<&str> = content.split(';').collect();
+        let (init, condition, increment) = if parts.len() >= 3 {
+            (
+                parts[0].trim().to_string(),
+                parts[1].trim().to_string(),
+                parts[2].trim().to_string(),
+            )
+        } else {
+            // Malformed, use empty strings
+            (String::new(), String::new(), String::new())
+        };
+
+        // Skip optional semicolon before do
+        if self.check(&Token::Semicolon) {
+            self.advance();
+        }
+
+        self.skip_newlines();
+        self.expect(Token::Do)?;
+        self.skip_newlines();
+
+        let body = self.parse_block_until(&[Token::Done])?;
+        self.expect(Token::Done)?;
+
+        Ok(BashStmt::ForCStyle {
+            init,
+            condition,
+            increment,
             body,
             span: Span::dummy(),
         })

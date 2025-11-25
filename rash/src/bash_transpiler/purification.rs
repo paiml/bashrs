@@ -270,6 +270,31 @@ impl Purifier {
                 })
             }
 
+            // Issue #68: Purify C-style for loop (already handled by codegen)
+            BashStmt::ForCStyle {
+                init,
+                condition,
+                increment,
+                body,
+                span,
+            } => {
+                // Purify the body statements
+                let mut purified_body = Vec::new();
+                for stmt in body {
+                    purified_body.push(self.purify_statement(stmt)?);
+                }
+
+                // Return the purified C-style for loop as-is
+                // The codegen will convert it to POSIX while loop
+                Ok(BashStmt::ForCStyle {
+                    init: init.clone(),
+                    condition: condition.clone(),
+                    increment: increment.clone(),
+                    body: purified_body,
+                    span: *span,
+                })
+            }
+
             BashStmt::Return { code, span } => {
                 let purified_code = if let Some(expr) = code {
                     Some(self.purify_expression(expr)?)

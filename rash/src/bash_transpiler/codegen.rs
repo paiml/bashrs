@@ -160,6 +160,20 @@ impl BashToRashTranspiler {
                 Ok(ForPattern::to_rash(variable, &items_rash, &body_rash))
             }
 
+            // Issue #68: C-style for loop (transpile to Rust while loop)
+            BashStmt::ForCStyle { body, .. } => {
+                // For now, transpile C-style loops as a comment + body
+                // Full conversion would need parsing C arithmetic to Rust
+                self.current_indent += 1;
+                let body_rash = self.transpile_block(body)?;
+                self.current_indent -= 1;
+
+                Ok(format!(
+                    "// C-style for loop (not yet fully transpiled)\n{}",
+                    body_rash
+                ))
+            }
+
             BashStmt::Return { code, .. } => {
                 if let Some(expr) = code {
                     let val = self.transpile_expression(expr)?;

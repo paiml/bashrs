@@ -50,3 +50,35 @@ roadmap:
   estimated_effort: null
   labels: []
   notes: null
+- id: GH-64
+  github_issue: 64
+  item_type: task
+  title: 'Issue #64'
+  status: inprogress
+  priority: medium
+  assigned_to: null
+  created: 2025-11-25T09:40:28.897899818+00:00
+  updated: 2025-11-25T09:40:28.897899818+00:00
+  spec: null
+  acceptance_criteria: []
+  phases: []
+  subtasks: []
+  estimated_effort: null
+  labels: []
+  notes: null
+- id: GH-68
+  github_issue: 68
+  item_type: task
+  title: 'Issue #68'
+  status: completed
+  priority: medium
+  assigned_to: null
+  created: 2025-11-25T09:50:14.694239636+00:00
+  updated: 2025-11-25T09:52:09.266528269+00:00
+  spec: null
+  acceptance_criteria: []
+  phases: []
+  subtasks: []
+  estimated_effort: null
+  labels: []
+  notes: null

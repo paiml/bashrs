@@ -210,6 +210,28 @@ impl Formatter {
                 result
             }
 
+            // Issue #68: C-style for loop
+            BashStmt::ForCStyle {
+                init,
+                condition,
+                increment,
+                body,
+                ..
+            } => {
+                let mut result = format!(
+                    "{}for (({}; {}; {})); do\n",
+                    indent_str, init, condition, increment
+                );
+
+                for stmt in body {
+                    result.push_str(&self.format_stmt(stmt, indent + 1));
+                    result.push('\n');
+                }
+
+                result.push_str(&format!("{}done", indent_str));
+                result
+            }
+
             BashStmt::Return { code, .. } => {
                 if let Some(expr) = code {
                     format!("{}return {}", indent_str, self.format_expr(expr))
