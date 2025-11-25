@@ -431,8 +431,22 @@ impl Lexer {
         self.advance(); // skip opening quote
         let mut string = String::new();
 
-        while !self.is_at_end() && self.current_char() != quote {
+        // Track nesting depth for command substitutions $(...)
+        // When inside a command substitution, quotes are part of the command,
+        // not terminators for the outer string.
+        let mut cmd_subst_depth = 0;
+
+        while !self.is_at_end() {
+            let ch = self.current_char();
+
+            // Only treat quote as terminator if we're not inside a command substitution
+            if ch == quote && cmd_subst_depth == 0 {
+                break;
+            }
+
+            // Advance past the character
             let ch = self.advance();
+
             if ch == '\\' && !self.is_at_end() {
                 // Handle escape sequences
                 let escaped = self.advance();
@@ -446,6 +460,20 @@ impl Lexer {
                         string.push(escaped);
                     }
                 }
+            } else if ch == '$' && !self.is_at_end() && self.current_char() == '(' {
+                // Entering command substitution $(...)
+                // Issue #59: Handle nested quotes inside command substitution
+                string.push(ch);
+                string.push(self.advance()); // push '('
+                cmd_subst_depth += 1;
+            } else if ch == '(' && cmd_subst_depth > 0 {
+                // Nested parenthesis inside command substitution
+                string.push(ch);
+                cmd_subst_depth += 1;
+            } else if ch == ')' && cmd_subst_depth > 0 {
+                // Closing parenthesis - might be end of command substitution
+                string.push(ch);
+                cmd_subst_depth -= 1;
             } else {
                 string.push(ch);
             }

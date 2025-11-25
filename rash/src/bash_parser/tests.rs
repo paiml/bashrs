@@ -23331,3 +23331,150 @@ fn test_parse_basic_pipeline() {
         panic!("Expected Pipeline statement");
     }
 }
+
+/// Issue #59: Test parsing nested quotes in command substitution
+/// INPUT: OUTPUT="$(echo "test" 2>&1)"
+/// BUG: Gets mangled to: OUTPUT='$(echo ' test ' 2>&1)'
+/// EXPECTED: String contains command substitution, preserves inner quotes
+#[test]
+fn test_ISSUE_059_001_nested_quotes_in_command_substitution() {
+    // RED PHASE: This test currently fails due to incorrect string parsing
+    //
+    // CRITICAL: Parser MUST handle nested double quotes inside command substitution
+    // This is VALID bash syntax that must be supported for real-world scripts
+    let script = r#"OUTPUT="$(echo "test" 2>&1)""#;
+
+    let mut parser = BashParser::new(script).expect("Lexer should succeed");
+    let result = parser.parse();
+
+    // ASSERT: Parser must accept this valid bash syntax
+    assert!(
+        result.is_ok(),
+        "Parser MUST accept nested quotes in command substitution: {:?}",
+        result.err()
+    );
+
+    let ast = result.expect("Should parse");
+    assert_eq!(ast.statements.len(), 1, "Should have one statement");
+
+    // Verify it's an assignment
+    match &ast.statements[0] {
+        BashStmt::Assignment { name, value, .. } => {
+            assert_eq!(name, "OUTPUT", "Variable name should be OUTPUT");
+            // The value should contain the command substitution
+            // It should NOT be mangled into separate pieces
+            match value {
+                BashExpr::Concat(parts) => {
+                    // Check that we have exactly one command substitution part
+                    let has_cmd_sub = parts.iter().any(|p| matches!(p, BashExpr::CommandSubst(_)));
+                    assert!(
+                        has_cmd_sub,
+                        "Value should contain command substitution, got: {:?}",
+                        parts
+                    );
+                }
+                BashExpr::CommandSubst(_cmd_stmt) => {
+                    // Also acceptable: direct command substitution
+                    // The presence of CommandSubst variant is sufficient
+                }
+                BashExpr::Literal(s) => {
+                    // Also acceptable: Literal containing the command substitution string
+                    // The key point is the string is NOT mangled - it preserves the full
+                    // command substitution including nested quotes
+                    assert!(
+                        s.contains("$(") && s.contains("echo") && s.contains("test"),
+                        "Literal should contain complete command substitution, got: {}",
+                        s
+                    );
+                }
+                other => {
+                    panic!(
+                        "Expected Concat, CommandSubst, or Literal for assignment value, got: {:?}",
+                        other
+                    );
+                }
+            }
+        }
+        other => panic!("Expected Assignment statement, got: {:?}", other),
+    }
+}
+
+/// Issue #59: Test parsing || true after command substitution
+/// INPUT: OUTPUT="$(echo "test" 2>&1)" || true
+/// BUG: Fails with "Invalid syntax: Expected expression"
+/// EXPECTED: Parses as OrList with assignment and 'true' command
+#[test]
+fn test_ISSUE_059_002_or_true_after_command_substitution() {
+    // RED PHASE: This test currently fails because || is not handled after assignment
+    //
+    // CRITICAL: Parser MUST handle || (logical OR) after command substitution
+    // This pattern is EXTREMELY common in real bash scripts for error handling
+    let script = r#"OUTPUT="$(echo "test" 2>&1)" || true"#;
+
+    let mut parser = BashParser::new(script).expect("Lexer should succeed");
+    let result = parser.parse();
+
+    // ASSERT: Parser must accept || after command substitution
+    assert!(
+        result.is_ok(),
+        "Parser MUST accept '|| true' after command substitution: {:?}",
+        result.err()
+    );
+
+    let ast = result.expect("Should parse");
+    assert!(
+        !ast.statements.is_empty(),
+        "Should have at least one statement"
+    );
+
+    // The statement should be some kind of logical OR construct
+    // Either as a dedicated OrList variant or as a wrapper
+    // The exact structure depends on how we choose to implement it
+}
+
+/// Issue #59: Test simpler case - || true after simple command
+/// This helps isolate whether the bug is in || parsing or command substitution
+#[test]
+fn test_ISSUE_059_003_or_true_after_simple_command() {
+    // Simpler case: does || work after a simple command?
+    let script = "echo hello || true";
+
+    let mut parser = BashParser::new(script).expect("Lexer should succeed");
+    let result = parser.parse();
+
+    // ASSERT: Parser must accept || after simple command
+    assert!(
+        result.is_ok(),
+        "Parser MUST accept '|| true' after simple command: {:?}",
+        result.err()
+    );
+
+    let ast = result.expect("Should parse");
+    assert!(
+        !ast.statements.is_empty(),
+        "Should have at least one statement"
+    );
+}
+
+/// Issue #59: Test && operator after command (related to ||)
+/// If || doesn't work, && probably doesn't either
+#[test]
+fn test_ISSUE_059_004_and_operator_after_command() {
+    let script = "mkdir -p /tmp/test && echo success";
+
+    let mut parser = BashParser::new(script).expect("Lexer should succeed");
+    let result = parser.parse();
+
+    // ASSERT: Parser must accept && between commands
+    assert!(
+        result.is_ok(),
+        "Parser MUST accept '&&' between commands: {:?}",
+        result.err()
+    );
+
+    let ast = result.expect("Should parse");
+    assert!(
+        !ast.statements.is_empty(),
+        "Should have at least one statement"
+    );
+}

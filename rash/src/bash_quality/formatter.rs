@@ -251,6 +251,20 @@ impl Formatter {
                     .collect();
                 format!("{}{}", indent_str, formatted_cmds.join(" | "))
             }
+
+            BashStmt::AndList { left, right, .. } => {
+                // Format AND list: cmd1 && cmd2
+                let left_fmt = self.format_stmt(left, 0).trim().to_string();
+                let right_fmt = self.format_stmt(right, 0).trim().to_string();
+                format!("{}{} && {}", indent_str, left_fmt, right_fmt)
+            }
+
+            BashStmt::OrList { left, right, .. } => {
+                // Format OR list: cmd1 || cmd2
+                let left_fmt = self.format_stmt(left, 0).trim().to_string();
+                let right_fmt = self.format_stmt(right, 0).trim().to_string();
+                format!("{}{} || {}", indent_str, left_fmt, right_fmt)
+            }
         }
     }
 

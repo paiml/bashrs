@@ -169,6 +169,24 @@ fn generate_statement(stmt: &BashStmt) -> String {
             }
             pipeline
         }
+
+        BashStmt::AndList { left, right, .. } => {
+            // Generate AND list: cmd1 && cmd2
+            format!(
+                "{} && {}",
+                generate_statement(left),
+                generate_statement(right)
+            )
+        }
+
+        BashStmt::OrList { left, right, .. } => {
+            // Generate OR list: cmd1 || cmd2
+            format!(
+                "{} || {}",
+                generate_statement(left),
+                generate_statement(right)
+            )
+        }
     }
 }
 

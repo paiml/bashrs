@@ -322,7 +322,7 @@ impl BashParser {
         }?;
 
         // Check for pipeline: cmd1 | cmd2 | cmd3
-        if self.check(&Token::Pipe) {
+        let stmt = if self.check(&Token::Pipe) {
             let mut commands = vec![first_stmt];
 
             // Collect all piped commands
@@ -338,14 +338,47 @@ impl BashParser {
             }
 
             // Return pipeline with all collected commands
-            return Ok(BashStmt::Pipeline {
+            BashStmt::Pipeline {
                 commands,
+                span: Span::dummy(),
+            }
+        } else {
+            first_stmt
+        };
+
+        // Issue #59: Check for logical AND (&&) or OR (||) operators
+        // These have lower precedence than pipes, so we check after pipeline handling
+        // cmd1 | cmd2 && cmd3 parses as (cmd1 | cmd2) && cmd3
+        if self.check(&Token::And) {
+            self.advance(); // consume '&&'
+            self.skip_newlines(); // allow newlines after &&
+
+            // Parse right side (which could itself be a pipeline or logical list)
+            let right = self.parse_statement()?;
+
+            return Ok(BashStmt::AndList {
+                left: Box::new(stmt),
+                right: Box::new(right),
                 span: Span::dummy(),
             });
         }
 
-        // Not a pipeline, return the single statement
-        Ok(first_stmt)
+        if self.check(&Token::Or) {
+            self.advance(); // consume '||'
+            self.skip_newlines(); // allow newlines after ||
+
+            // Parse right side (which could itself be a pipeline or logical list)
+            let right = self.parse_statement()?;
+
+            return Ok(BashStmt::OrList {
+                left: Box::new(stmt),
+                right: Box::new(right),
+                span: Span::dummy(),
+            });
+        }
+
+        // Not a pipeline or logical list, return the statement
+        Ok(stmt)
     }
 
     fn parse_if(&mut self) -> ParseResult<BashStmt> {
@@ -769,10 +802,13 @@ impl BashParser {
 
         // Parse arguments and redirections until newline or special token
         // Also stop at comments (BUILTIN-001: colon no-op with comments)
+        // Issue #59: Also stop at && and || for logical operator support
         while !self.is_at_end()
             && !self.check(&Token::Newline)
             && !self.check(&Token::Semicolon)
             && !self.check(&Token::Pipe)
+            && !self.check(&Token::And)
+            && !self.check(&Token::Or)
             && !matches!(self.peek(), Some(Token::Comment(_)))
         {
             // Check for file descriptor duplication FIRST: 2>&1

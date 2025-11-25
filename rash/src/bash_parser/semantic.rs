@@ -269,6 +269,18 @@ impl SemanticAnalyzer {
                     self.analyze_statement(cmd, scope)?;
                 }
             }
+
+            BashStmt::AndList { left, right, .. } => {
+                // Analyze both sides of the AND list
+                self.analyze_statement(left, scope)?;
+                self.analyze_statement(right, scope)?;
+            }
+
+            BashStmt::OrList { left, right, .. } => {
+                // Analyze both sides of the OR list
+                self.analyze_statement(left, scope)?;
+                self.analyze_statement(right, scope)?;
+            }
         }
 
         Ok(())

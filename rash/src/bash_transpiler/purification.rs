@@ -329,6 +329,30 @@ impl Purifier {
                     span: *span,
                 })
             }
+
+            BashStmt::AndList { left, right, span } => {
+                // Purify both sides of the AND list
+                let purified_left = self.purify_statement(left)?;
+                let purified_right = self.purify_statement(right)?;
+
+                Ok(BashStmt::AndList {
+                    left: Box::new(purified_left),
+                    right: Box::new(purified_right),
+                    span: *span,
+                })
+            }
+
+            BashStmt::OrList { left, right, span } => {
+                // Purify both sides of the OR list
+                let purified_left = self.purify_statement(left)?;
+                let purified_right = self.purify_statement(right)?;
+
+                Ok(BashStmt::OrList {
+                    left: Box::new(purified_left),
+                    right: Box::new(purified_right),
+                    span: *span,
+                })
+            }
         }
     }
 
