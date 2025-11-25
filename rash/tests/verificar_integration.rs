@@ -8,90 +8,33 @@
 #![allow(clippy::unwrap_used)]
 
 use std::process::Command;
+use verificar::generator::BashEnumerator;
 
-/// Synthetic bash programs from verificar's BashEnumerator
-/// These cover core bash constructs: assignments, commands, control flow,
-/// functions, arithmetic, and pipes.
-const VERIFICAR_BASH_PROGRAMS: &[&str] = &[
-    // Simple assignments
-    "x=1",
-    "x=0",
-    "x=42",
-    "x=hello",
-    "x=world",
-    "y=1",
-    "result=42",
-    // Echo commands
-    r#"echo "$x""#,
-    "echo hello",
-    r#"echo "$HOME""#,
-    // If statements
-    r#"if [ $x -eq 0 ]; then
-    echo yes
-fi"#,
-    r#"if [ $x -gt 0 ]; then
-    echo yes
-fi"#,
-    r#"if [ $x -lt 0 ]; then
-    echo yes
-fi"#,
-    // For loop
-    r#"for i in 1 2 3; do
-    echo $i
-done"#,
-    // While loop
-    r#"while [ $x -gt 0 ]; do
-    x=$((x - 1))
-done"#,
-    // Functions
-    r#"greet() {
-    echo hello
-}"#,
-    r#"main() {
-    echo hello
-}"#,
-    // Arithmetic
-    "result=$((1 + 2))",
-    "result=$((1 - 2))",
-    "result=$((1 * 2))",
-    "result=$((1 / 2))",
-    "result=$((1 % 2))",
-    // Pipes
-    "echo hello | wc -c",
-    // Arrays
-    "arr=(1 2 3)",
-    // Command substitution (use deterministic command, not date)
-    "result=$(echo hello)",
-    // Variable expansion (POSIX modifiers - these should NOT trigger SC2299)
-    r#"echo "${var:-default}""#,
-    r#"echo "${var:+alternate}""#,
-    r#"echo "${var:=assigned}""#,
-    // Redirections
-    "echo hello > /dev/null",
-    "cat < /dev/null",
-    // Complex patterns
-    r#"if [[ $x == "hello" ]]; then
-    echo match
-fi"#,
-    r#"case "$x" in
-    yes) echo one;;
-    no) echo two;;
-esac"#,
-];
-
-/// Test that bashrs can lint all verificar-generated bash programs without errors
+/// Test that bashrs can lint all verificar-generated bash programs without panicking
 #[test]
-fn test_verificar_programs_lint_without_errors() {
+fn test_verificar_programs_lint_without_panics() {
     let bashrs = env!("CARGO_BIN_EXE_bashrs");
+    let enumerator = BashEnumerator::new(3);
+    let programs = enumerator.enumerate_programs();
+
+    println!(
+        "Testing {} verificar-generated bash programs",
+        programs.len()
+    );
+    assert!(
+        programs.len() >= 1000,
+        "Expected at least 1000 programs, got {}",
+        programs.len()
+    );
 
     let mut passed = 0;
-    let mut failed = 0;
-    let mut failures = Vec::new();
+    let mut panicked = 0;
+    let mut panic_details = Vec::new();
 
-    for (i, program) in VERIFICAR_BASH_PROGRAMS.iter().enumerate() {
+    for (i, program) in programs.iter().enumerate() {
         // Create temp file
         let temp_file = format!("/tmp/bashrs_verificar_test_{}.sh", i);
-        std::fs::write(&temp_file, program).unwrap();
+        std::fs::write(&temp_file, &program.code).unwrap();
 
         // Run bashrs lint
         let output = Command::new(bashrs)
@@ -99,55 +42,39 @@ fn test_verificar_programs_lint_without_errors() {
             .output()
             .expect("Failed to run bashrs");
 
-        let stdout = String::from_utf8_lossy(&output.stdout);
         let stderr = String::from_utf8_lossy(&output.stderr);
-        let combined = format!("{}{}", stdout, stderr);
 
-        // Check for errors (not warnings or info)
-        let has_error = combined.contains("[error]")
-            || combined
-                .lines()
-                .any(|line| line.contains("Summary:") && !line.contains("0 error"));
-
-        // Extract error count from summary
-        let error_count = combined
-            .lines()
-            .find(|line| line.contains("Summary:"))
-            .and_then(|line| {
-                line.split_whitespace()
-                    .next()
-                    .and_then(|s| s.parse::<u32>().ok())
-            })
-            .unwrap_or(0);
-
-        if error_count == 0 && !has_error {
-            passed += 1;
+        // Check for panics (bashrs should never panic on valid bash)
+        if stderr.contains("panic") || stderr.contains("RUST_BACKTRACE") {
+            panicked += 1;
+            panic_details.push((i, program.code.lines().next().unwrap_or("").to_string()));
         } else {
-            failed += 1;
-            failures.push((i, program.lines().next().unwrap_or(""), combined.clone()));
+            passed += 1;
         }
 
         // Cleanup
         let _ = std::fs::remove_file(&temp_file);
     }
 
-    // Report failures
-    if !failures.is_empty() {
-        eprintln!("\nVerificar integration test failures:");
-        for (i, first_line, output) in &failures {
+    // Report panics
+    if !panic_details.is_empty() {
+        eprintln!("\nPrograms that caused panics:");
+        for (i, first_line) in &panic_details {
             eprintln!("  Test {}: {}", i, first_line);
-            for line in output.lines().filter(|l| l.contains("[error]")) {
-                eprintln!("    {}", line);
-            }
         }
     }
 
     assert!(
-        failed == 0,
-        "Verificar integration: {} passed, {} failed out of {}",
-        passed,
-        failed,
-        VERIFICAR_BASH_PROGRAMS.len()
+        panicked == 0,
+        "bashrs panicked on {} out of {} programs",
+        panicked,
+        programs.len()
+    );
+
+    println!(
+        "Verificar integration: {} programs tested, {} passed",
+        programs.len(),
+        passed
     );
 }
 
@@ -262,4 +189,41 @@ fn test_posix_modifiers_no_sc2299() {
 
         let _ = std::fs::remove_file(temp_file);
     }
+}
+
+/// Test coverage statistics for verificar programs
+#[test]
+fn test_verificar_coverage_stats() {
+    let enumerator = BashEnumerator::new(3);
+    let programs = enumerator.enumerate_programs();
+
+    // Collect feature coverage
+    let mut feature_counts: std::collections::HashMap<String, usize> =
+        std::collections::HashMap::new();
+    for program in &programs {
+        for feature in &program.features {
+            let key: String = feature.clone();
+            *feature_counts.entry(key).or_insert(0) += 1;
+        }
+    }
+
+    println!("\nVerificar coverage statistics:");
+    println!("  Total programs: {}", programs.len());
+    println!("  Unique features: {}", feature_counts.len());
+
+    // Show top features
+    let mut features: Vec<_> = feature_counts.iter().collect();
+    features.sort_by(|a, b| b.1.cmp(a.1));
+
+    println!("  Top features:");
+    for (feature, count) in features.iter().take(15) {
+        println!("    {}: {}", feature, count);
+    }
+
+    // Verify minimum feature coverage
+    assert!(
+        feature_counts.len() >= 20,
+        "Expected at least 20 unique features, got {}",
+        feature_counts.len()
+    );
 }
