@@ -320,6 +320,8 @@ impl BashParser {
             }
             // Issue #60: Brace group { cmd1; cmd2; } - compound command
             Some(Token::LeftBrace) => self.parse_brace_group(),
+            // Issue #62: Standalone [[ ]] extended test as command
+            Some(Token::DoubleLeftBracket) => self.parse_extended_test_command(),
             _ => self.parse_command(),
         }?;
 
@@ -473,6 +475,23 @@ impl BashParser {
 
         Ok(BashStmt::BraceGroup {
             body,
+            span: Span::dummy(),
+        })
+    }
+
+    /// Issue #62: Parse standalone [[ ]] extended test command
+    /// Used as a command that returns 0 (true) or 1 (false)
+    /// Example: [[ -d /tmp ]] && echo "exists"
+    fn parse_extended_test_command(&mut self) -> ParseResult<BashStmt> {
+        self.expect(Token::DoubleLeftBracket)?;
+        let test_expr = self.parse_test_condition()?;
+        self.expect(Token::DoubleRightBracket)?;
+
+        // Return as a Command with name "[[" containing the test as an argument
+        Ok(BashStmt::Command {
+            name: "[[".to_string(),
+            args: vec![BashExpr::Test(Box::new(test_expr))],
+            redirects: vec![],
             span: Span::dummy(),
         })
     }
@@ -1213,6 +1232,13 @@ impl BashParser {
     }
 
     fn parse_test_condition(&mut self) -> ParseResult<TestExpr> {
+        // Issue #62: Handle negation operator ! at the start of test condition
+        if self.check(&Token::Not) {
+            self.advance(); // consume '!'
+            let inner = self.parse_test_condition()?;
+            return Ok(TestExpr::Not(Box::new(inner)));
+        }
+
         // Check for unary test operators first (operators are tokenized as Identifier)
         if let Some(Token::Identifier(op)) = self.peek() {
             let operator = op.clone();
@@ -1228,7 +1254,11 @@ impl BashParser {
                     let expr = self.parse_expression()?;
                     return Ok(TestExpr::StringEmpty(expr));
                 }
-                "-f" | "-e" => {
+                "-f" | "-e" | "-s" => {
+                    // -f: file exists and is regular file
+                    // -e: file exists (any type)
+                    // -s: file exists and has size > 0
+                    // Issue #62: Added -s support
                     self.advance();
                     let expr = self.parse_expression()?;
                     return Ok(TestExpr::FileExists(expr));
