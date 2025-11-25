@@ -17,7 +17,7 @@ SHELL := /bin/bash
 .PHONY: update-deps update-deps-aggressive update-deps-check update-deps-workspace
 .PHONY: coverage coverage-ci coverage-clean
 .PHONY: kaizen demo-mode
-.PHONY: lint-scripts lint-makefile
+.PHONY: lint-scripts lint-makefile dogfood dogfood-quick
 .PHONY: golden-capture golden-compare golden-list golden-clean golden-help
 
 # Kaizen - Continuous Improvement Protocol
@@ -1097,6 +1097,50 @@ lint-makefile: ## Lint Makefile with bashrs
 	@echo "🔍 Linting Makefile..."
 	@bashrs make lint Makefile --format human || true
 	@echo "✅ Makefile linted!"
+
+# Dogfooding (Self-Validation)
+dogfood: ## Run comprehensive self-validation (bashrs on bashrs)
+	@echo "🐕 bashrs Dogfooding - Self-Validation"
+	@echo "======================================="
+	@echo ""
+	@echo "=== Phase 1: Makefile Validation ==="
+	@./target/release/bashrs make lint Makefile --format human 2>&1 | tee /tmp/dogfood-makefile.txt || true
+	@echo ""
+	@echo "=== Phase 2: Shell Script Validation ==="
+	@TOTAL=0; ERRORS=0; WARNINGS=0; INFOS=0; \
+	for script in $$(find . -name "*.sh" -type f ! -path "*/node_modules/*" ! -path "*/target/*"); do \
+		TOTAL=$$((TOTAL + 1)); \
+		RESULT=$$(./target/release/bashrs lint "$$script" --format human 2>&1 | grep "^Summary:" | tail -1); \
+		if echo "$$RESULT" | grep -qE "([0-9]+) error"; then \
+			E=$$(echo "$$RESULT" | grep -oE "([0-9]+) error" | grep -oE "[0-9]+"); \
+			ERRORS=$$((ERRORS + E)); \
+		fi; \
+		if echo "$$RESULT" | grep -qE "([0-9]+) warning"; then \
+			W=$$(echo "$$RESULT" | grep -oE "([0-9]+) warning" | grep -oE "[0-9]+"); \
+			WARNINGS=$$((WARNINGS + W)); \
+		fi; \
+		if echo "$$RESULT" | grep -qE "([0-9]+) info"; then \
+			I=$$(echo "$$RESULT" | grep -oE "([0-9]+) info" | grep -oE "[0-9]+"); \
+			INFOS=$$((INFOS + I)); \
+		fi; \
+	done; \
+	echo ""; \
+	echo "=== Dogfooding Summary ==="; \
+	echo "Shell scripts scanned: $$TOTAL"; \
+	echo "Total errors: $$ERRORS"; \
+	echo "Total warnings: $$WARNINGS"; \
+	echo "Total infos: $$INFOS"; \
+	echo ""; \
+	echo "✅ Dogfooding complete - bashrs validated its own codebase!"
+	@echo ""
+	@echo "📊 Full report: docs/dogfooding/BASHRS_DOGFOODING.md"
+
+dogfood-quick: ## Quick dogfood check (Makefile + key scripts only)
+	@echo "🐕 Quick Dogfood Check"
+	@./target/release/bashrs make lint Makefile --format human 2>&1 | grep "^Summary:" || true
+	@./target/release/bashrs lint install.sh --format human 2>&1 | grep "^Summary:" || true
+	@./target/release/bashrs lint scripts/validate-book.sh --format human 2>&1 | grep "^Summary:" || true
+	@echo "✅ Quick dogfood check complete"
 
 # Performance Validation (renacer golden traces)
 validate-performance: ## Validate performance against baselines
