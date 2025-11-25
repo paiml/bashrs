@@ -2124,7 +2124,6 @@ bashrs [explain]&gt; [[ -f file ]]
 <ol>
 <li><strong><a href="repl/./user-guide.html">REPL User Guide</a></strong> - Comprehensive reference for all features</li>
 <li><strong><a href="repl/../reference/repl-commands.html">REPL Commands Reference</a></strong> - Complete command documentation</li>
-<li><strong><a href="repl/../../examples/repl/">Examples</a></strong> - Real-world REPL usage examples</li>
 <li><strong><a href="repl/../concepts/purification.html">Purification Concepts</a></strong> - Deep dive into transformations</li>
 <li><strong><a href="repl/../linting/security.html">Linting Rules</a></strong> - Understanding security rules</li>
 </ol>
@@ -3445,7 +3444,7 @@ deploy "${1}"
 <li><a href="concepts/./purification.html">Purification Overview</a> - Complete purification process</li>
 <li><a href="concepts/./idempotency.html">Idempotency Concept</a> - Safe re-run operations</li>
 <li><a href="concepts/./posix.html">POSIX Compliance</a> - Portable shell scripts</li>
-<li><a href="concepts/../linting/README.html">DET Rules</a> - Linter rules for determinism</li>
+<li><a href="concepts/../linting/determinism.html">DET Rules</a> - Linter rules for determinism</li>
 </ul>
 <hr />
 <p><strong>Key Takeaway</strong>: Determinism makes scripts predictable and reproducible. Always use input parameters instead of random values, timestamps, or runtime queries.</p>
@@ -3931,7 +3930,7 @@ deploy() {
 <li><a href="concepts/./purification.html">Purification Overview</a> - Complete purification process</li>
 <li><a href="concepts/./determinism.html">Determinism Concept</a> - Predictable script behavior</li>
 <li><a href="concepts/./posix.html">POSIX Compliance</a> - Portable shell scripts</li>
-<li><a href="concepts/../linting/README.html">IDEM Rules</a> - Linter rules for idempotency</li>
+<li><a href="concepts/../linting/idempotency.html">IDEM Rules</a> - Linter rules for idempotency</li>
 </ul>
 <hr />
 <p><strong>Key Takeaway</strong>: Idempotency makes scripts safe to re-run. Always use <code>-p</code> for mkdir, <code>-f</code> for rm, cleanup before creating symlinks, and check before appending to files.</p>
@@ -5209,7 +5208,7 @@ done
 <ul>
 <li><a href="https://owasp.org/www-community/attacks/Command_Injection">OWASP Shell Injection</a></li>
 <li><a href="https://cwe.mitre.org/data/definitions/78.html">CWE-78: OS Command Injection</a></li>
-<li><a href="https://csrc.nist.gov/publications/detail/sp/800-218/final">NIST SP 800-218: Secure Software Development Framework</a></li>
+<li><a href="https://csrc.nist.gov/pubs/sp/800/218/final">NIST SP 800-218: Secure Software Development Framework</a></li>
 </ul>
 <hr />
 <p><strong>Quality Guarantee</strong>: All SEC rules undergo mutation testing with 81.2% average baseline kill rate, ensuring high-quality vulnerability detection.</p>
@@ -7488,20 +7487,12 @@ fi
     eval "$(pyenv init -)"
 fi
 </code></pre>
-<h2 id="examples-15"><a class="header" href="#examples-15">Examples</a></h2>
-<p>See detailed examples:</p>
-<ul>
-<li><a href="config/./examples/bashrc.html">.bashrc Purification</a></li>
-<li><a href="config/./examples/zshrc.html">.zshrc Analysis</a></li>
-<li><a href="config/./examples/multi-machine.html">Multi-Machine Setup</a></li>
-</ul>
 <h2 id="rules-reference"><a class="header" href="#rules-reference">Rules Reference</a></h2>
 <p>See complete rule documentation:</p>
 <ul>
 <li><a href="config/./rules/config-001.html">CONFIG-001: Duplicate PATH Entry</a></li>
 <li><a href="config/./rules/config-002.html">CONFIG-002: Non-Existent PATH Entry</a></li>
 <li><a href="config/./rules/config-003.html">CONFIG-003: Non-Deterministic Environment Variable</a></li>
-<li><a href="config/./rules/config-004.html">CONFIG-004: Conflicting Environment Variable</a></li>
 </ul>
 <h2 id="next-steps-4"><a class="header" href="#next-steps-4">Next Steps</a></h2>
 <ul>
@@ -8460,7 +8451,7 @@ fi
 <li><code>--shellcheck</code> - Validate output with shellcheck</li>
 <li><code>--shell &lt;sh|bash|zsh&gt;</code> - Target shell (default: auto-detect)</li>
 </ul>
-<h3 id="examples-16"><a class="header" href="#examples-16">Examples</a></h3>
+<h3 id="examples-15"><a class="header" href="#examples-15">Examples</a></h3>
 <p><strong>Purify and print to stdout</strong>:</p>
 <pre><code class="language-bash">bashrs config purify ~/.bashrc
 </code></pre>
@@ -12236,7 +12227,7 @@ mkdir -p "${install_dir}"
 <p><strong>Next Steps</strong>:</p>
 <ul>
 <li><a href="examples/./ci-cd-integration.html">CI/CD Integration Example</a></li>
-<li><a href="examples/./config-files.html">Configuration Management</a></li>
+<li><a href="examples/./config-management.html">Configuration Management</a></li>
 <li><a href="examples/./deployment-script.html">Deployment Script Example</a></li>
 <li><a href="examples/../reference/cli.html">CLI Reference</a></li>
 </ul>
@@ -12866,7 +12857,7 @@ jobs:
 <ul>
 <li><a href="examples/./bootstrap-installer.html">Bootstrap Installer Example</a></li>
 <li><a href="examples/./ci-cd-integration.html">CI/CD Integration Example</a></li>
-<li><a href="examples/./config-files.html">Configuration Management</a></li>
+<li><a href="examples/./config-management.html">Configuration Management</a></li>
 <li><a href="examples/../concepts/purification.html">Purification Concepts</a></li>
 </ul>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="configuration-management"><a class="header" href="#configuration-management">Configuration Management</a></h1>
@@ -13909,8 +13900,8 @@ Well documented</li>
 <li><a href="examples/./deployment-script.html">Deployment Script Example</a></li>
 <li><a href="examples/./bootstrap-installer.html">Bootstrap Installer Example</a></li>
 <li><a href="examples/./ci-cd-integration.html">CI/CD Integration</a></li>
-<li><a href="examples/../linting/overview.html">Linting Concepts</a></li>
-<li><a href="examples/../reference/config.html">Configuration Reference</a></li>
+<li><a href="examples/../linting/security.html">Linting Concepts</a></li>
+<li><a href="examples/../reference/configuration.html">Configuration Reference</a></li>
 </ul>
 <hr />
 <p><strong>Production Success Story</strong>:</p>
@@ -14905,7 +14896,7 @@ Monitor quality metrics over time</li>
 </ul>
 <p><strong>Next Steps</strong>:</p>
 <ul>
-<li>Review <a href="examples/config-files.html">Configuration Files Example</a> for shell config validation</li>
+<li>Review <a href="examples/config-management.html">Configuration Files Example</a> for shell config validation</li>
 <li>Learn <a href="examples/../linting/security.html">Security Linting</a> for SEC rules</li>
 <li>Explore <a href="examples/../concepts/determinism.html">Determinism</a> and <a href="examples/../concepts/idempotency.html">Idempotency</a></li>
 <li>Read <a href="examples/../reference/cli.html">CLI Reference</a> for all bashrs commands</li>
@@ -17886,7 +17877,7 @@ fn test_optimizer_disabled_preserves_arithmetic() { ... }   // ✅</code></pre>
 <span class="boring"> Explicitly disable for debugging
 </span>$ bashrs compile --no-optimize script.sh
 </code></pre>
-<p><strong>Documentation</strong>: See <a href="advanced/../../docs/OPTIMIZER.html">docs/OPTIMIZER.md</a> for complete details.</p>
+<p><strong>Documentation</strong>: See the optimization configuration in <code>bashrs.toml</code> for complete details.</p>
 <h2 id="real-world-bashrs-optimizations"><a class="header" href="#real-world-bashrs-optimizations">Real-World bashrs Optimizations</a></h2>
 <h3 id="optimization-1-tokenizer-speedup-25-faster"><a class="header" href="#optimization-1-tokenizer-speedup-25-faster">Optimization 1: Tokenizer Speedup (2.5× faster)</a></h3>
 <p><strong>Before</strong> (naive character-by-character):</p>
@@ -18640,6 +18631,264 @@ Complexity exceeds thresholds
 <li><a href="advanced/../contributing/toyota-way.html">Toyota Way Principles</a></li>
 <li><a href="advanced/../contributing/extreme-tdd.html">EXTREME TDD</a></li>
 </ul>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="dogfooding-self-validation"><a class="header" href="#dogfooding-self-validation">Dogfooding (Self-Validation)</a></h1>
+<p>bashrs validates its own codebase using its own linting tools - a practice known as "dogfooding." This ensures the tool works correctly on real-world scripts and demonstrates confidence in its own quality.</p>
+<h2 id="what-is-dogfooding"><a class="header" href="#what-is-dogfooding">What is Dogfooding?</a></h2>
+<p><strong>Dogfooding</strong> (or "eating your own dog food") means using your own product internally. For bashrs, this means:</p>
+<ul>
+<li>Linting bashrs's own Makefile with <code>bashrs make lint</code></li>
+<li>Linting all shell scripts in the repository with <code>bashrs lint</code></li>
+<li>Running purification on example scripts</li>
+<li>Validating synthetic test corpora</li>
+</ul>
+<p>This practice ensures bashrs can handle real-world complexity and catches regressions early.</p>
+<h2 id="quick-start-3"><a class="header" href="#quick-start-3">Quick Start</a></h2>
+<pre><code class="language-bash"><span class="boring"> Quick dogfood check (Makefile + key scripts)
+</span>make dogfood-quick
+
+<span class="boring"> Full self-validation (all 75+ scripts)
+</span>make dogfood
+
+<span class="boring"> Lint just the Makefile
+</span>make lint-makefile
+
+<span class="boring"> Lint all shell scripts
+</span>make lint-scripts
+</code></pre>
+<h2 id="dogfooding-results"><a class="header" href="#dogfooding-results">Dogfooding Results</a></h2>
+<p>bashrs self-validation produces comprehensive metrics:</p>
+<pre><code class="language-bash">$ make dogfood
+
+🐕 bashrs Dogfooding - Self-Validation
+=======================================
+
+=== Phase 1: Makefile Validation ===
+Summary: 2 error(s), 51 warning(s), 0 info(s)
+
+=== Phase 2: Shell Script Validation ===
+
+=== Dogfooding Summary ===
+Shell scripts scanned: 75
+Total errors: 2515
+Total warnings: 5914
+Total infos: 1963
+
+✅ Dogfooding complete - bashrs validated its own codebase!
+
+📊 Full report: docs/dogfooding/BASHRS_DOGFOODING.md
+</code></pre>
+<h3 id="metrics-breakdown"><a class="header" href="#metrics-breakdown">Metrics Breakdown</a></h3>
+<div class="table-wrapper"><table><thead><tr><th>Metric</th><th>Value</th><th>Notes</th></tr></thead><tbody>
+<tr><td>Shell scripts scanned</td><td>75</td><td>All <code>.sh</code> files in repo</td></tr>
+<tr><td>Total errors</td><td>2,515</td><td>Mostly in test fixtures</td></tr>
+<tr><td>Total warnings</td><td>5,914</td><td>Quoting, variables</td></tr>
+<tr><td>Total infos</td><td>1,963</td><td>Best practice suggestions</td></tr>
+<tr><td>Makefile errors</td><td>2</td><td>SC2299 false positives</td></tr>
+<tr><td>Makefile warnings</td><td>51</td><td>MAKE003 unquoted vars</td></tr>
+</tbody></table>
+</div>
+<h3 id="top-error-categories"><a class="header" href="#top-error-categories">Top Error Categories</a></h3>
+<pre><code class="language-bash"><span class="boring"> Error distribution (from dogfooding)
+</span>SEC010 (Path traversal risk):     1,187
+DET001 ($RANDOM usage):             424
+SC2111 (ksh function syntax):       359
+DET002 (Timestamp usage):           352
+SC2086 (Unquoted variable):       2,199  # warning
+</code></pre>
+<h2 id="make-targets"><a class="header" href="#make-targets">Make Targets</a></h2>
+<h3 id="make-dogfood"><a class="header" href="#make-dogfood"><code>make dogfood</code></a></h3>
+<p>Full self-validation of all scripts:</p>
+<pre><code class="language-bash">make dogfood
+</code></pre>
+<p><strong>What it does:</strong></p>
+<ol>
+<li>Builds bashrs in release mode</li>
+<li>Lints the Makefile with <code>bashrs make lint</code></li>
+<li>Scans all <code>.sh</code> files (excluding node_modules, target)</li>
+<li>Aggregates error/warning/info counts</li>
+<li>Reports summary statistics</li>
+</ol>
+<p><strong>Runtime:</strong> ~2 minutes (depends on script count)</p>
+<h3 id="make-dogfood-quick"><a class="header" href="#make-dogfood-quick"><code>make dogfood-quick</code></a></h3>
+<p>Quick validation of key files only:</p>
+<pre><code class="language-bash">make dogfood-quick
+</code></pre>
+<p><strong>What it does:</strong></p>
+<ol>
+<li>Lints Makefile</li>
+<li>Lints <code>install.sh</code></li>
+<li>Lints <code>scripts/validate-book.sh</code></li>
+</ol>
+<p><strong>Runtime:</strong> ~5 seconds</p>
+<h3 id="make-lint-scripts"><a class="header" href="#make-lint-scripts"><code>make lint-scripts</code></a></h3>
+<p>Lint all shell scripts:</p>
+<pre><code class="language-bash">make lint-scripts
+</code></pre>
+<h3 id="make-lint-makefile"><a class="header" href="#make-lint-makefile"><code>make lint-makefile</code></a></h3>
+<p>Lint just the Makefile:</p>
+<pre><code class="language-bash">make lint-makefile
+</code></pre>
+<h2 id="cicd-integration-4"><a class="header" href="#cicd-integration-4">CI/CD Integration</a></h2>
+<p>bashrs includes a GitHub Actions workflow for automated dogfooding:</p>
+<pre><code class="language-yaml"># .github/workflows/dogfooding.yml
+name: Dogfooding (Self-Validation)
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  schedule:
+    - cron: '0 0 * * 1'  # Weekly on Monday
+
+jobs:
+  dogfood:
+    name: bashrs Self-Validation
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - name: Build bashrs
+      run: cargo build --release --bin bashrs
+    - name: Dogfood - Lint Makefile
+      run: ./target/release/bashrs make lint Makefile
+    - name: Dogfood - Lint Shell Scripts
+      run: |
+        for script in $(find . -name "*.sh" -type f); do
+          ./target/release/bashrs lint "$script" || true
+        done
+</code></pre>
+<p><strong>Features:</strong></p>
+<ul>
+<li>Runs on every push/PR to main</li>
+<li>Weekly scheduled runs catch regressions</li>
+<li>Generates GitHub Actions summary with metrics</li>
+<li>Synthetic test corpus validation</li>
+</ul>
+<h2 id="understanding-the-results"><a class="header" href="#understanding-the-results">Understanding the Results</a></h2>
+<h3 id="why-so-many-issues"><a class="header" href="#why-so-many-issues">Why So Many Issues?</a></h3>
+<p>Most issues come from <strong>intentional test fixtures</strong> that demonstrate bashrs's detection capabilities:</p>
+<pre><code class="language-bash"><span class="boring"> examples/backup-messy.sh - Intentionally non-deterministic
+</span>SESSION_ID="backup-$RANDOM-$(date +%s)"  # DET001, DET002
+
+<span class="boring"> tests/purification_examples/legacy-deploy.sh - Shows before/after
+</span>TIMESTAMP=$(date +%s)  # Intentional for demonstration
+</code></pre>
+<p>These files exist to:</p>
+<ol>
+<li>Test that bashrs detects issues correctly</li>
+<li>Demonstrate purification transformations</li>
+<li>Provide before/after examples in documentation</li>
+</ol>
+<h3 id="real-issues-vs-test-fixtures"><a class="header" href="#real-issues-vs-test-fixtures">Real Issues vs Test Fixtures</a></h3>
+<div class="table-wrapper"><table><thead><tr><th>Category</th><th>Real Issues</th><th>Test Fixtures</th></tr></thead><tbody>
+<tr><td>SEC010</td><td>~10</td><td>~1,177</td></tr>
+<tr><td>DET001/DET002</td><td>~5</td><td>~771</td></tr>
+<tr><td>SC2086</td><td>~200</td><td>~1,999</td></tr>
+</tbody></table>
+</div>
+<p><strong>Real issues</strong> are in production scripts like <code>install.sh</code> and <code>Makefile</code>.</p>
+<h2 id="synthetic-testing-with-verificar"><a class="header" href="#synthetic-testing-with-verificar">Synthetic Testing with verificar</a></h2>
+<p>bashrs integrates with <a href="https://github.com/paiml/verificar">verificar</a> for synthetic bash test generation:</p>
+<pre><code class="language-bash"><span class="boring"> Generate synthetic bash programs
+</span>cd ../verificar
+cargo run -- generate --language bash --count 1000 --output json &gt; corpus.json
+
+<span class="boring"> Test with bashrs
+</span>cd ../bashrs
+for prog in corpus/*.sh; do
+  bashrs lint "$prog" --format human
+done
+</code></pre>
+<h3 id="current-capabilities"><a class="header" href="#current-capabilities">Current Capabilities</a></h3>
+<p>verificar generates 33 unique bash programs covering:</p>
+<div class="table-wrapper"><table><thead><tr><th>Feature</th><th>Example</th><th>Tested</th></tr></thead><tbody>
+<tr><td>Assignments</td><td><code>x=1</code>, <code>y=hello</code></td><td>✅</td></tr>
+<tr><td>Echo</td><td><code>echo "$x"</code></td><td>✅</td></tr>
+<tr><td>Environment</td><td><code>echo "$HOME"</code></td><td>✅</td></tr>
+<tr><td>Conditionals</td><td><code>if [ $x -eq 0 ]; then</code></td><td>✅</td></tr>
+<tr><td>Loops</td><td><code>for i in 1 2 3; do</code></td><td>✅</td></tr>
+<tr><td>Functions</td><td><code>greet() { echo hello }</code></td><td>✅</td></tr>
+<tr><td>Arithmetic</td><td><code>result=$((1 + 2))</code></td><td>✅</td></tr>
+<tr><td>Pipes</td><td><code>echo hello | wc -c</code></td><td>✅</td></tr>
+</tbody></table>
+</div>
+<p><strong>Results:</strong> 100% of synthetic programs parse without errors.</p>
+<h2 id="best-practices-17"><a class="header" href="#best-practices-17">Best Practices</a></h2>
+<h3 id="1-run-dogfood-before-prs"><a class="header" href="#1-run-dogfood-before-prs">1. Run Dogfood Before PRs</a></h3>
+<pre><code class="language-bash"><span class="boring"> Quick check before committing
+</span>make dogfood-quick
+
+<span class="boring"> Full validation before PR
+</span>make dogfood
+</code></pre>
+<h3 id="2-investigate-new-errors"><a class="header" href="#2-investigate-new-errors">2. Investigate New Errors</a></h3>
+<p>If dogfooding reveals new errors, investigate:</p>
+<pre><code class="language-bash"><span class="boring"> Check specific file
+</span>bashrs lint path/to/script.sh --format human
+
+<span class="boring"> Get JSON for analysis
+</span>bashrs lint path/to/script.sh --format json
+</code></pre>
+<h3 id="3-document-false-positives"><a class="header" href="#3-document-false-positives">3. Document False Positives</a></h3>
+<p>If bashrs incorrectly flags valid code, document it:</p>
+<pre><code class="language-bash"><span class="boring"> Example: SC2299 false positive in Makefile
+</span><span class="boring"> ${var:-default} is valid POSIX, but bashrs flags it
+</span><span class="boring"> See: docs/issues/ISSUE-002-SC2299-FALSE-POSITIVE.md
+</span></code></pre>
+<h3 id="4-track-metrics-over-time"><a class="header" href="#4-track-metrics-over-time">4. Track Metrics Over Time</a></h3>
+<p>Monitor dogfooding metrics to catch regressions:</p>
+<pre><code class="language-bash"><span class="boring"> Weekly tracking
+</span>date &gt;&gt; dogfood-metrics.log
+make dogfood-quick | grep "Summary:" &gt;&gt; dogfood-metrics.log
+</code></pre>
+<h2 id="known-issues"><a class="header" href="#known-issues">Known Issues</a></h2>
+<h3 id="sc2299-false-positive"><a class="header" href="#sc2299-false-positive">SC2299 False Positive</a></h3>
+<p>bashrs incorrectly flags <code>${var:-default}</code> as SC2299:</p>
+<pre><code class="language-makefile"># This is VALID POSIX syntax
+THREADS=$${PROPTEST_THREADS:-$$(nproc)}
+</code></pre>
+<p><strong>Status:</strong> Documented in <code>docs/issues/ISSUE-002-SC2299-FALSE-POSITIVE.md</code></p>
+<p><strong>Impact:</strong> 2 false positive errors in Makefile</p>
+<p><strong>Workaround:</strong> None needed - the Makefile works correctly</p>
+<h2 id="example-complete-dogfooding-workflow"><a class="header" href="#example-complete-dogfooding-workflow">Example: Complete Dogfooding Workflow</a></h2>
+<pre><code class="language-bash"><span class="boring"> 1. Build bashrs
+</span>cargo build --release
+
+<span class="boring"> 2. Quick sanity check
+</span>make dogfood-quick
+
+<span class="boring"> 3. Full validation
+</span>make dogfood
+
+<span class="boring"> 4. Check specific script
+</span>bashrs lint install.sh --format human
+
+<span class="boring"> 5. Fix issues
+</span><span class="boring"> Edit script to address warnings
+</span>
+<span class="boring"> 6. Verify fix
+</span>bashrs lint install.sh --format human
+
+<span class="boring"> 7. Commit
+</span>git add install.sh
+git commit -m "fix: Address SC2086 warnings in install.sh"
+</code></pre>
+<h2 id="comparison-with-other-projects"><a class="header" href="#comparison-with-other-projects">Comparison with Other Projects</a></h2>
+<div class="table-wrapper"><table><thead><tr><th>Project</th><th>Self-Validates</th><th>Automated</th><th>Synthetic Tests</th></tr></thead><tbody>
+<tr><td>bashrs</td><td>✅ 75+ scripts</td><td>✅ Weekly CI</td><td>✅ 33 programs</td></tr>
+<tr><td>ShellCheck</td><td>❌</td><td>❌</td><td>❌</td></tr>
+<tr><td>depyler</td><td>✅ 27 files</td><td>✅ CI</td><td>❌</td></tr>
+</tbody></table>
+</div>
+<p>bashrs is the <strong>first shell linting tool with comprehensive automated dogfooding</strong>.</p>
+<h2 id="further-reading-9"><a class="header" href="#further-reading-9">Further Reading</a></h2>
+<ul>
+<li><a href="https://github.com/paiml/bashrs/blob/main/docs/dogfooding/BASHRS_DOGFOODING.md">BASHRS_DOGFOODING.md</a> - Full report</li>
+<li><a href="https://github.com/paiml/bashrs/blob/main/docs/dogfooding/QUALITY_METRICS.md">QUALITY_METRICS.md</a> - Metrics dashboard</li>
+<li><a href="https://github.com/paiml/bashrs/blob/main/docs/dogfooding/VERIFICAR_INTEGRATION.md">VERIFICAR_INTEGRATION.md</a> - Synthetic testing</li>
+<li><a href="advanced/../contributing/toyota-way.html">Toyota Way Principles</a> - Quality philosophy</li>
+<li><a href="advanced/../contributing/extreme-tdd.html">EXTREME TDD</a> - Testing methodology</li>
+</ul>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="cli-commands"><a class="header" href="#cli-commands">CLI Commands</a></h1>
 <p>This is the reference for all bashrs CLI commands.</p>
 <h2 id="bashrs-bench---scientific-benchmarking"><a class="header" href="#bashrs-bench---scientific-benchmarking"><code>bashrs bench</code> - Scientific Benchmarking</a></h2>
@@ -18662,7 +18911,7 @@ Complexity exceeds thresholds
 <li><code>-q, --quiet</code> - Suppress progress output</li>
 <li><code>-m, --measure-memory</code> - Measure memory usage (requires <code>/usr/bin/time</code>)</li>
 </ul>
-<h3 id="examples-17"><a class="header" href="#examples-17">Examples</a></h3>
+<h3 id="examples-16"><a class="header" href="#examples-16">Examples</a></h3>
 <p>Basic benchmark:</p>
 <pre><code class="language-bash">bashrs bench script.sh
 </code></pre>
@@ -18732,7 +18981,7 @@ Complexity exceeds thresholds
 <li><code>--emit-proof</code> - Generate formal verification proof file</li>
 <li><code>--no-optimize</code> - Disable code optimizations</li>
 </ul>
-<h3 id="examples-18"><a class="header" href="#examples-18">Examples</a></h3>
+<h3 id="examples-17"><a class="header" href="#examples-17">Examples</a></h3>
 <p>Basic transpilation:</p>
 <pre><code class="language-bash">bashrs build src/main.rs -o install.sh
 </code></pre>
@@ -18760,7 +19009,7 @@ Complexity exceeds thresholds
 <ul>
 <li><code>&lt;INPUT&gt;</code> - Input Rust file to check</li>
 </ul>
-<h3 id="examples-19"><a class="header" href="#examples-19">Examples</a></h3>
+<h3 id="examples-18"><a class="header" href="#examples-18">Examples</a></h3>
 <p>Check compatibility:</p>
 <pre><code class="language-bash">bashrs check src/install.rs
 </code></pre>
@@ -18787,7 +19036,7 @@ Complexity exceeds thresholds
 <ul>
 <li><code>--name &lt;NAME&gt;</code> - Project name (defaults to directory name)</li>
 </ul>
-<h3 id="examples-20"><a class="header" href="#examples-20">Examples</a></h3>
+<h3 id="examples-19"><a class="header" href="#examples-19">Examples</a></h3>
 <p>Initialize in current directory:</p>
 <pre><code class="language-bash">bashrs init
 </code></pre>
@@ -18816,7 +19065,7 @@ bashrs init --name deployment-tool
 <li><code>&lt;RUST_SOURCE&gt;</code> - Original Rust source file</li>
 <li><code>&lt;SHELL_SCRIPT&gt;</code> - Generated shell script to verify</li>
 </ul>
-<h3 id="examples-21"><a class="header" href="#examples-21">Examples</a></h3>
+<h3 id="examples-20"><a class="header" href="#examples-20">Examples</a></h3>
 <p>Verify generated script:</p>
 <pre><code class="language-bash">bashrs build src/install.rs -o install.sh
 bashrs verify src/install.rs install.sh
@@ -18848,7 +19097,7 @@ bashrs verify src/install.rs install.sh
 <li><code>-o, --output &lt;FILE&gt;</code> - Output file (defaults to stdout)</li>
 <li><code>--detailed</code> - Include detailed trace information</li>
 </ul>
-<h3 id="examples-22"><a class="header" href="#examples-22">Examples</a></h3>
+<h3 id="examples-21"><a class="header" href="#examples-21">Examples</a></h3>
 <p>Inspect AST:</p>
 <pre><code class="language-bash">bashrs build src/install.rs --emit-proof
 bashrs inspect ast.json --format html -o report.html
@@ -18885,7 +19134,7 @@ bashrs inspect ast.json --format html -o report.html
 <li><code>--container</code> - Build distroless container</li>
 <li><code>--container-format &lt;FORMAT&gt;</code> - Container format: <code>oci</code>, <code>docker</code> (default: <code>oci</code>)</li>
 </ul>
-<h3 id="examples-23"><a class="header" href="#examples-23">Examples</a></h3>
+<h3 id="examples-22"><a class="header" href="#examples-22">Examples</a></h3>
 <p>Compile to binary with dash runtime:</p>
 <pre><code class="language-bash">bashrs compile src/install.rs -o my-installer --runtime dash
 </code></pre>
@@ -18931,7 +19180,7 @@ bashrs inspect ast.json --format html -o report.html
 <li><code>--no-ignore</code> - Disable <code>.bashrsignore</code> file processing</li>
 <li><code>--ignore-file &lt;FILE&gt;</code> - Path to custom ignore file (default: <code>.bashrsignore</code>)</li>
 </ul>
-<h3 id="examples-24"><a class="header" href="#examples-24">Examples</a></h3>
+<h3 id="examples-23"><a class="header" href="#examples-23">Examples</a></h3>
 <p>Basic linting:</p>
 <pre><code class="language-bash">bashrs lint deploy.sh
 </code></pre>
@@ -19012,7 +19261,7 @@ scripts/record-metric.sh
 <li><code>--with-tests</code> - Generate test suite for purified script</li>
 <li><code>--property-tests</code> - Generate property-based tests (100+ cases)</li>
 </ul>
-<h3 id="examples-25"><a class="header" href="#examples-25">Examples</a></h3>
+<h3 id="examples-24"><a class="header" href="#examples-24">Examples</a></h3>
 <p>Basic purification:</p>
 <pre><code class="language-bash">bashrs purify deploy.sh -o deploy-purified.sh
 </code></pre>
@@ -19076,7 +19325,7 @@ scripts/record-metric.sh
 <ul>
 <li><code>--format &lt;FORMAT&gt;</code> - Output format: <code>text</code>, <code>json</code>, <code>debug</code> (default: <code>text</code>)</li>
 </ul>
-<h3 id="examples-26"><a class="header" href="#examples-26">Examples</a></h3>
+<h3 id="examples-25"><a class="header" href="#examples-25">Examples</a></h3>
 <p>Parse Makefile to text:</p>
 <pre><code class="language-bash">bashrs make parse Makefile
 </code></pre>
@@ -19109,7 +19358,7 @@ scripts/record-metric.sh
 <li><code>--with-tests</code> - Generate test suite</li>
 <li><code>--property-tests</code> - Generate property-based tests (100+ cases)</li>
 </ul>
-<h3 id="examples-27"><a class="header" href="#examples-27">Examples</a></h3>
+<h3 id="examples-26"><a class="header" href="#examples-26">Examples</a></h3>
 <p>Purify Makefile:</p>
 <pre><code class="language-bash">bashrs make purify Makefile -o Makefile.purified
 </code></pre>
@@ -19143,7 +19392,7 @@ scripts/record-metric.sh
 <li><code>-o, --output &lt;FILE&gt;</code> - Output file (defaults to in-place with <code>--fix</code>)</li>
 <li><code>--rules &lt;RULES&gt;</code> - Filter by specific rules (comma-separated: <code>MAKE001,MAKE003</code>)</li>
 </ul>
-<h3 id="examples-28"><a class="header" href="#examples-28">Examples</a></h3>
+<h3 id="examples-27"><a class="header" href="#examples-27">Examples</a></h3>
 <p>Lint Makefile:</p>
 <pre><code class="language-bash">bashrs make lint Makefile
 </code></pre>
@@ -19178,7 +19427,7 @@ scripts/record-metric.sh
 <ul>
 <li><code>--format &lt;FORMAT&gt;</code> - Output format: <code>human</code>, <code>json</code> (default: <code>human</code>)</li>
 </ul>
-<h3 id="examples-29"><a class="header" href="#examples-29">Examples</a></h3>
+<h3 id="examples-28"><a class="header" href="#examples-28">Examples</a></h3>
 <p>Analyze .bashrc:</p>
 <pre><code class="language-bash">bashrs config analyze ~/.bashrc
 </code></pre>
@@ -19227,7 +19476,7 @@ scripts/record-metric.sh
 <ul>
 <li><code>--format &lt;FORMAT&gt;</code> - Output format: <code>human</code>, <code>json</code> (default: <code>human</code>)</li>
 </ul>
-<h3 id="examples-30"><a class="header" href="#examples-30">Examples</a></h3>
+<h3 id="examples-29"><a class="header" href="#examples-29">Examples</a></h3>
 <p>Lint .bashrc:</p>
 <pre><code class="language-bash">bashrs config lint ~/.bashrc
 </code></pre>
@@ -19259,7 +19508,7 @@ scripts/record-metric.sh
 <li><code>--no-backup</code> - Don't create backup (dangerous!)</li>
 <li><code>--dry-run</code> - Show what would be changed without applying</li>
 </ul>
-<h3 id="examples-31"><a class="header" href="#examples-31">Examples</a></h3>
+<h3 id="examples-30"><a class="header" href="#examples-30">Examples</a></h3>
 <p>Dry run (preview changes):</p>
 <pre><code class="language-bash">bashrs config purify ~/.bashrc --dry-run
 </code></pre>
@@ -19293,7 +19542,7 @@ scripts/record-metric.sh
 <li><code>--timeout &lt;SECS&gt;</code> - Timeout in seconds (default: 30)</li>
 <li><code>--max-depth &lt;DEPTH&gt;</code> - Maximum recursion depth (default: 100)</li>
 </ul>
-<h3 id="examples-32"><a class="header" href="#examples-32">Examples</a></h3>
+<h3 id="examples-31"><a class="header" href="#examples-31">Examples</a></h3>
 <p>Start REPL:</p>
 <pre><code class="language-bash">bashrs repl
 </code></pre>
@@ -19349,7 +19598,7 @@ Available commands:
 <li><code>--detailed</code> - Show detailed test results</li>
 <li><code>--pattern &lt;PATTERN&gt;</code> - Run only tests matching pattern</li>
 </ul>
-<h3 id="examples-33"><a class="header" href="#examples-33">Examples</a></h3>
+<h3 id="examples-32"><a class="header" href="#examples-32">Examples</a></h3>
 <p>Run all tests:</p>
 <pre><code class="language-bash">bashrs test script.sh
 </code></pre>
@@ -19374,7 +19623,7 @@ Available commands:
 <li><code>--format &lt;FORMAT&gt;</code> - Output format: <code>human</code>, <code>json</code>, <code>markdown</code> (default: <code>human</code>)</li>
 <li><code>--detailed</code> - Show detailed dimension scores</li>
 </ul>
-<h3 id="examples-34"><a class="header" href="#examples-34">Examples</a></h3>
+<h3 id="examples-33"><a class="header" href="#examples-33">Examples</a></h3>
 <p>Score script:</p>
 <pre><code class="language-bash">bashrs score deploy.sh
 </code></pre>
@@ -19410,7 +19659,7 @@ Available commands:
 <li><code>--detailed</code> - Show detailed check results</li>
 <li><code>--min-grade &lt;GRADE&gt;</code> - Minimum required grade (A+, A, B+, B, C+, C, D, F)</li>
 </ul>
-<h3 id="examples-35"><a class="header" href="#examples-35">Examples</a></h3>
+<h3 id="examples-34"><a class="header" href="#examples-34">Examples</a></h3>
 <p>Full audit:</p>
 <pre><code class="language-bash">bashrs audit script.sh --detailed
 </code></pre>
@@ -19448,7 +19697,7 @@ Available commands:
 <li><code>--detailed</code> - Show detailed coverage breakdown</li>
 <li><code>-o, --output &lt;FILE&gt;</code> - Output file for HTML/LCOV format</li>
 </ul>
-<h3 id="examples-36"><a class="header" href="#examples-36">Examples</a></h3>
+<h3 id="examples-35"><a class="header" href="#examples-35">Examples</a></h3>
 <p>Terminal coverage:</p>
 <pre><code class="language-bash">bashrs coverage script.sh
 </code></pre>
@@ -19477,7 +19726,7 @@ Available commands:
 <li><code>--dry-run</code> - Show diff without applying changes</li>
 <li><code>-o, --output &lt;FILE&gt;</code> - Output file (for single input file)</li>
 </ul>
-<h3 id="examples-37"><a class="header" href="#examples-37">Examples</a></h3>
+<h3 id="examples-36"><a class="header" href="#examples-36">Examples</a></h3>
 <p>Format single file:</p>
 <pre><code class="language-bash">bashrs format script.sh -o script-formatted.sh
 </code></pre>
@@ -19537,7 +19786,7 @@ Available commands:
 <li><code>--strict</code> - Fail on warnings</li>
 <li><code>-v, --verbose</code> - Enable verbose debug output</li>
 </ul>
-<h3 id="examples-38"><a class="header" href="#examples-38">Examples</a></h3>
+<h3 id="examples-37"><a class="header" href="#examples-37">Examples</a></h3>
 <p>Paranoid verification:</p>
 <pre><code class="language-bash">bashrs build src/install.rs --verify paranoid --target posix
 </code></pre>
@@ -19786,7 +20035,7 @@ anyhow = "1.0"
 <li><strong>xtask</strong>: Complex build workflows, CI integration, multi-step processes</li>
 <li><strong>build.rs</strong>: Simple code generation, compile-time dependencies</li>
 </ul>
-<h3 id="examples-39"><a class="header" href="#examples-39">Examples</a></h3>
+<h3 id="examples-38"><a class="header" href="#examples-38">Examples</a></h3>
 <p><strong>Example 1: Custom Workflow</strong></p>
 <pre><code class="language-bash"><span class="boring"> Transpile, verify, and test in one command
 </span>cargo xtask transpile --input src/bootstrap.rs --output bootstrap.sh --verify --test
@@ -20132,7 +20381,7 @@ bashrs [normal]&gt; :purify if then fi
 <tr><td><code>--sandboxed</code></td><td>false</td><td>Run in sandboxed mode (restricted operations)</td></tr>
 </tbody></table>
 </div>
-<h3 id="examples-40"><a class="header" href="#examples-40">Examples</a></h3>
+<h3 id="examples-39"><a class="header" href="#examples-39">Examples</a></h3>
 <p><strong>Enable debug mode</strong>:</p>
 <pre><code class="language-bash">$ bashrs repl --debug
 bashrs REPL v6.7.0 (debug mode enabled)
@@ -20683,7 +20932,7 @@ determinism = true
 idempotency = true
 auto_fix = false  # Never auto-fix in CI
 </code></pre>
-<h2 id="examples-41"><a class="header" href="#examples-41">Examples</a></h2>
+<h2 id="examples-40"><a class="header" href="#examples-40">Examples</a></h2>
 <h3 id="example-1-maximum-safety-configuration"><a class="header" href="#example-1-maximum-safety-configuration">Example 1: Maximum Safety Configuration</a></h3>
 <p>For critical production scripts:</p>
 <pre><code class="language-toml"># bashrs.toml
@@ -20778,7 +21027,7 @@ if [ $? -ne 0 ]; then
     exit 1
 fi
 </code></pre>
-<h2 id="best-practices-17"><a class="header" href="#best-practices-17">Best Practices</a></h2>
+<h2 id="best-practices-18"><a class="header" href="#best-practices-18">Best Practices</a></h2>
 <h3 id="1-use-per-project-configuration"><a class="header" href="#1-use-per-project-configuration">1. Use Per-Project Configuration</a></h3>
 <p>Always include <code>bashrs.toml</code> in your repository:</p>
 <pre><code class="language-toml">[bashrs]
@@ -21015,7 +21264,7 @@ dist/**/*.sh
 # Test fixtures (intentionally contain violations)
 tests/fixtures/bad-*.sh
 </code></pre>
-<h2 id="best-practices-18"><a class="header" href="#best-practices-18">Best Practices</a></h2>
+<h2 id="best-practices-19"><a class="header" href="#best-practices-19">Best Practices</a></h2>
 <h3 id="1-document-rationale"><a class="header" href="#1-document-rationale">1. Document Rationale</a></h3>
 <p>Always include comments explaining WHY a file is excluded:</p>
 <pre><code class="language-text"># .bashrsignore
@@ -21568,7 +21817,7 @@ done
 echo "Max retries exceeded"
 exit 75
 </code></pre>
-<h2 id="cicd-integration-4"><a class="header" href="#cicd-integration-4">CI/CD Integration</a></h2>
+<h2 id="cicd-integration-5"><a class="header" href="#cicd-integration-5">CI/CD Integration</a></h2>
 <h3 id="github-actions-3"><a class="header" href="#github-actions-3">GitHub Actions</a></h3>
 <pre><code class="language-yaml">name: Shell Script Quality Check
 
@@ -21754,7 +22003,7 @@ workflows:
 <tr><td>78</td><td>EX_CONFIG</td><td>Configuration error</td></tr>
 </tbody></table>
 </div>
-<h2 id="best-practices-19"><a class="header" href="#best-practices-19">Best Practices</a></h2>
+<h2 id="best-practices-20"><a class="header" href="#best-practices-20">Best Practices</a></h2>
 <h3 id="1-always-check-exit-codes"><a class="header" href="#1-always-check-exit-codes">1. Always Check Exit Codes</a></h3>
 <pre><code class="language-bash"><span class="boring">!/bin/bash
 </span>
@@ -23997,7 +24246,7 @@ git commit        # Hooks pass automatically
 <pre><code class="language-bash"><span class="boring"> ❌ WRONG: "This should work in POSIX sh" (assumption)
 </span><span class="boring"> ✅ RIGHT: sh purified.sh (empirical validation)
 </span></code></pre>
-<h2 id="further-reading-9"><a class="header" href="#further-reading-9">Further Reading</a></h2>
+<h2 id="further-reading-10"><a class="header" href="#further-reading-10">Further Reading</a></h2>
 <ul>
 <li><a href="https://en.wikipedia.org/wiki/The_Toyota_Way">Toyota Way (Wikipedia)</a></li>
 <li><a href="https://en.wikipedia.org/wiki/Jidoka">Jidoka and Andon</a></li>
