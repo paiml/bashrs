@@ -569,7 +569,7 @@ lazy_static::lazy_static! {
             compatibility: ShellCompatibility::Universal,
         });
 
-        // Trap and signal handling (Universal - including CRITICAL timing bug)
+        // Trap and signal handling (Universal - P0 timing issue)
         registry.insert("SC2063", RuleMetadata {
             id: "SC2063",
             name: "Grep regex vs literal string matching",
@@ -577,7 +577,7 @@ lazy_static::lazy_static! {
         });
         registry.insert("SC2064", RuleMetadata {
             id: "SC2064",
-            name: "Trap command quoting (CRITICAL - timing bug)",
+            name: "Trap command quoting (P0 - timing issue)",
             compatibility: ShellCompatibility::Universal,
         });
         registry.insert("SC2065", RuleMetadata {
