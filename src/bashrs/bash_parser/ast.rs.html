@@ -247,182 +247,187 @@
 <a href=#247 id=247 data-nosnippet>247</a>    <span class="doccomment">/// File descriptor duplication: 2&gt;&amp;1
 <a href=#248 id=248 data-nosnippet>248</a>    /// Duplicates from_fd to to_fd
 <a href=#249 id=249 data-nosnippet>249</a>    </span>Duplicate { from_fd: i32, to_fd: i32 },
-<a href=#250 id=250 data-nosnippet>250</a>}
-<a href=#251 id=251 data-nosnippet>251</a>
-<a href=#252 id=252 data-nosnippet>252</a><span class="doccomment">/// Arithmetic expression
-<a href=#253 id=253 data-nosnippet>253</a></span><span class="attr">#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-<a href=#254 id=254 data-nosnippet>254</a></span><span class="kw">pub enum </span>ArithExpr {
-<a href=#255 id=255 data-nosnippet>255</a>    Number(i64),
-<a href=#256 id=256 data-nosnippet>256</a>    Variable(String),
-<a href=#257 id=257 data-nosnippet>257</a>    Add(Box&lt;ArithExpr&gt;, Box&lt;ArithExpr&gt;),
-<a href=#258 id=258 data-nosnippet>258</a>    Sub(Box&lt;ArithExpr&gt;, Box&lt;ArithExpr&gt;),
-<a href=#259 id=259 data-nosnippet>259</a>    Mul(Box&lt;ArithExpr&gt;, Box&lt;ArithExpr&gt;),
-<a href=#260 id=260 data-nosnippet>260</a>    Div(Box&lt;ArithExpr&gt;, Box&lt;ArithExpr&gt;),
-<a href=#261 id=261 data-nosnippet>261</a>    Mod(Box&lt;ArithExpr&gt;, Box&lt;ArithExpr&gt;),
-<a href=#262 id=262 data-nosnippet>262</a>}
-<a href=#263 id=263 data-nosnippet>263</a>
-<a href=#264 id=264 data-nosnippet>264</a><span class="doccomment">/// Test expression (conditional)
-<a href=#265 id=265 data-nosnippet>265</a></span><span class="attr">#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-<a href=#266 id=266 data-nosnippet>266</a></span><span class="kw">pub enum </span>TestExpr {
-<a href=#267 id=267 data-nosnippet>267</a>    <span class="doccomment">/// String comparison
-<a href=#268 id=268 data-nosnippet>268</a>    </span>StringEq(BashExpr, BashExpr),
-<a href=#269 id=269 data-nosnippet>269</a>    StringNe(BashExpr, BashExpr),
-<a href=#270 id=270 data-nosnippet>270</a>
-<a href=#271 id=271 data-nosnippet>271</a>    <span class="doccomment">/// Integer comparison
-<a href=#272 id=272 data-nosnippet>272</a>    </span>IntEq(BashExpr, BashExpr),
-<a href=#273 id=273 data-nosnippet>273</a>    IntNe(BashExpr, BashExpr),
-<a href=#274 id=274 data-nosnippet>274</a>    IntLt(BashExpr, BashExpr),
-<a href=#275 id=275 data-nosnippet>275</a>    IntLe(BashExpr, BashExpr),
-<a href=#276 id=276 data-nosnippet>276</a>    IntGt(BashExpr, BashExpr),
-<a href=#277 id=277 data-nosnippet>277</a>    IntGe(BashExpr, BashExpr),
-<a href=#278 id=278 data-nosnippet>278</a>
-<a href=#279 id=279 data-nosnippet>279</a>    <span class="doccomment">/// File tests
-<a href=#280 id=280 data-nosnippet>280</a>    </span>FileExists(BashExpr),
-<a href=#281 id=281 data-nosnippet>281</a>    FileReadable(BashExpr),
-<a href=#282 id=282 data-nosnippet>282</a>    FileWritable(BashExpr),
-<a href=#283 id=283 data-nosnippet>283</a>    FileExecutable(BashExpr),
-<a href=#284 id=284 data-nosnippet>284</a>    FileDirectory(BashExpr),
-<a href=#285 id=285 data-nosnippet>285</a>
-<a href=#286 id=286 data-nosnippet>286</a>    <span class="doccomment">/// String tests
-<a href=#287 id=287 data-nosnippet>287</a>    </span>StringEmpty(BashExpr),
-<a href=#288 id=288 data-nosnippet>288</a>    StringNonEmpty(BashExpr),
-<a href=#289 id=289 data-nosnippet>289</a>
-<a href=#290 id=290 data-nosnippet>290</a>    <span class="doccomment">/// Logical operations
-<a href=#291 id=291 data-nosnippet>291</a>    </span>And(Box&lt;TestExpr&gt;, Box&lt;TestExpr&gt;),
-<a href=#292 id=292 data-nosnippet>292</a>    Or(Box&lt;TestExpr&gt;, Box&lt;TestExpr&gt;),
-<a href=#293 id=293 data-nosnippet>293</a>    Not(Box&lt;TestExpr&gt;),
-<a href=#294 id=294 data-nosnippet>294</a>}
-<a href=#295 id=295 data-nosnippet>295</a>
-<a href=#296 id=296 data-nosnippet>296</a><span class="doccomment">/// Source code span for error reporting
-<a href=#297 id=297 data-nosnippet>297</a></span><span class="attr">#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-<a href=#298 id=298 data-nosnippet>298</a></span><span class="kw">pub struct </span>Span {
-<a href=#299 id=299 data-nosnippet>299</a>    <span class="kw">pub </span>start_line: usize,
-<a href=#300 id=300 data-nosnippet>300</a>    <span class="kw">pub </span>start_col: usize,
-<a href=#301 id=301 data-nosnippet>301</a>    <span class="kw">pub </span>end_line: usize,
-<a href=#302 id=302 data-nosnippet>302</a>    <span class="kw">pub </span>end_col: usize,
-<a href=#303 id=303 data-nosnippet>303</a>}
-<a href=#304 id=304 data-nosnippet>304</a>
-<a href=#305 id=305 data-nosnippet>305</a><span class="kw">impl </span>Span {
-<a href=#306 id=306 data-nosnippet>306</a>    <span class="kw">pub fn </span>new(start_line: usize, start_col: usize, end_line: usize, end_col: usize) -&gt; <span class="self">Self </span>{
-<a href=#307 id=307 data-nosnippet>307</a>        <span class="self">Self </span>{
-<a href=#308 id=308 data-nosnippet>308</a>            start_line,
-<a href=#309 id=309 data-nosnippet>309</a>            start_col,
-<a href=#310 id=310 data-nosnippet>310</a>            end_line,
-<a href=#311 id=311 data-nosnippet>311</a>            end_col,
-<a href=#312 id=312 data-nosnippet>312</a>        }
-<a href=#313 id=313 data-nosnippet>313</a>    }
-<a href=#314 id=314 data-nosnippet>314</a>
-<a href=#315 id=315 data-nosnippet>315</a>    <span class="kw">pub fn </span>dummy() -&gt; <span class="self">Self </span>{
-<a href=#316 id=316 data-nosnippet>316</a>        <span class="self">Self</span>::new(<span class="number">0</span>, <span class="number">0</span>, <span class="number">0</span>, <span class="number">0</span>)
-<a href=#317 id=317 data-nosnippet>317</a>    }
-<a href=#318 id=318 data-nosnippet>318</a>}
+<a href=#250 id=250 data-nosnippet>250</a>
+<a href=#251 id=251 data-nosnippet>251</a>    <span class="doccomment">/// Here-string: &lt;&lt;&lt; "string" (Issue #61)
+<a href=#252 id=252 data-nosnippet>252</a>    /// Provides a string to stdin without needing a heredoc
+<a href=#253 id=253 data-nosnippet>253</a>    /// Note: This is a bash-specific feature, not POSIX
+<a href=#254 id=254 data-nosnippet>254</a>    </span>HereString { content: String },
+<a href=#255 id=255 data-nosnippet>255</a>}
+<a href=#256 id=256 data-nosnippet>256</a>
+<a href=#257 id=257 data-nosnippet>257</a><span class="doccomment">/// Arithmetic expression
+<a href=#258 id=258 data-nosnippet>258</a></span><span class="attr">#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+<a href=#259 id=259 data-nosnippet>259</a></span><span class="kw">pub enum </span>ArithExpr {
+<a href=#260 id=260 data-nosnippet>260</a>    Number(i64),
+<a href=#261 id=261 data-nosnippet>261</a>    Variable(String),
+<a href=#262 id=262 data-nosnippet>262</a>    Add(Box&lt;ArithExpr&gt;, Box&lt;ArithExpr&gt;),
+<a href=#263 id=263 data-nosnippet>263</a>    Sub(Box&lt;ArithExpr&gt;, Box&lt;ArithExpr&gt;),
+<a href=#264 id=264 data-nosnippet>264</a>    Mul(Box&lt;ArithExpr&gt;, Box&lt;ArithExpr&gt;),
+<a href=#265 id=265 data-nosnippet>265</a>    Div(Box&lt;ArithExpr&gt;, Box&lt;ArithExpr&gt;),
+<a href=#266 id=266 data-nosnippet>266</a>    Mod(Box&lt;ArithExpr&gt;, Box&lt;ArithExpr&gt;),
+<a href=#267 id=267 data-nosnippet>267</a>}
+<a href=#268 id=268 data-nosnippet>268</a>
+<a href=#269 id=269 data-nosnippet>269</a><span class="doccomment">/// Test expression (conditional)
+<a href=#270 id=270 data-nosnippet>270</a></span><span class="attr">#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+<a href=#271 id=271 data-nosnippet>271</a></span><span class="kw">pub enum </span>TestExpr {
+<a href=#272 id=272 data-nosnippet>272</a>    <span class="doccomment">/// String comparison
+<a href=#273 id=273 data-nosnippet>273</a>    </span>StringEq(BashExpr, BashExpr),
+<a href=#274 id=274 data-nosnippet>274</a>    StringNe(BashExpr, BashExpr),
+<a href=#275 id=275 data-nosnippet>275</a>
+<a href=#276 id=276 data-nosnippet>276</a>    <span class="doccomment">/// Integer comparison
+<a href=#277 id=277 data-nosnippet>277</a>    </span>IntEq(BashExpr, BashExpr),
+<a href=#278 id=278 data-nosnippet>278</a>    IntNe(BashExpr, BashExpr),
+<a href=#279 id=279 data-nosnippet>279</a>    IntLt(BashExpr, BashExpr),
+<a href=#280 id=280 data-nosnippet>280</a>    IntLe(BashExpr, BashExpr),
+<a href=#281 id=281 data-nosnippet>281</a>    IntGt(BashExpr, BashExpr),
+<a href=#282 id=282 data-nosnippet>282</a>    IntGe(BashExpr, BashExpr),
+<a href=#283 id=283 data-nosnippet>283</a>
+<a href=#284 id=284 data-nosnippet>284</a>    <span class="doccomment">/// File tests
+<a href=#285 id=285 data-nosnippet>285</a>    </span>FileExists(BashExpr),
+<a href=#286 id=286 data-nosnippet>286</a>    FileReadable(BashExpr),
+<a href=#287 id=287 data-nosnippet>287</a>    FileWritable(BashExpr),
+<a href=#288 id=288 data-nosnippet>288</a>    FileExecutable(BashExpr),
+<a href=#289 id=289 data-nosnippet>289</a>    FileDirectory(BashExpr),
+<a href=#290 id=290 data-nosnippet>290</a>
+<a href=#291 id=291 data-nosnippet>291</a>    <span class="doccomment">/// String tests
+<a href=#292 id=292 data-nosnippet>292</a>    </span>StringEmpty(BashExpr),
+<a href=#293 id=293 data-nosnippet>293</a>    StringNonEmpty(BashExpr),
+<a href=#294 id=294 data-nosnippet>294</a>
+<a href=#295 id=295 data-nosnippet>295</a>    <span class="doccomment">/// Logical operations
+<a href=#296 id=296 data-nosnippet>296</a>    </span>And(Box&lt;TestExpr&gt;, Box&lt;TestExpr&gt;),
+<a href=#297 id=297 data-nosnippet>297</a>    Or(Box&lt;TestExpr&gt;, Box&lt;TestExpr&gt;),
+<a href=#298 id=298 data-nosnippet>298</a>    Not(Box&lt;TestExpr&gt;),
+<a href=#299 id=299 data-nosnippet>299</a>}
+<a href=#300 id=300 data-nosnippet>300</a>
+<a href=#301 id=301 data-nosnippet>301</a><span class="doccomment">/// Source code span for error reporting
+<a href=#302 id=302 data-nosnippet>302</a></span><span class="attr">#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+<a href=#303 id=303 data-nosnippet>303</a></span><span class="kw">pub struct </span>Span {
+<a href=#304 id=304 data-nosnippet>304</a>    <span class="kw">pub </span>start_line: usize,
+<a href=#305 id=305 data-nosnippet>305</a>    <span class="kw">pub </span>start_col: usize,
+<a href=#306 id=306 data-nosnippet>306</a>    <span class="kw">pub </span>end_line: usize,
+<a href=#307 id=307 data-nosnippet>307</a>    <span class="kw">pub </span>end_col: usize,
+<a href=#308 id=308 data-nosnippet>308</a>}
+<a href=#309 id=309 data-nosnippet>309</a>
+<a href=#310 id=310 data-nosnippet>310</a><span class="kw">impl </span>Span {
+<a href=#311 id=311 data-nosnippet>311</a>    <span class="kw">pub fn </span>new(start_line: usize, start_col: usize, end_line: usize, end_col: usize) -&gt; <span class="self">Self </span>{
+<a href=#312 id=312 data-nosnippet>312</a>        <span class="self">Self </span>{
+<a href=#313 id=313 data-nosnippet>313</a>            start_line,
+<a href=#314 id=314 data-nosnippet>314</a>            start_col,
+<a href=#315 id=315 data-nosnippet>315</a>            end_line,
+<a href=#316 id=316 data-nosnippet>316</a>            end_col,
+<a href=#317 id=317 data-nosnippet>317</a>        }
+<a href=#318 id=318 data-nosnippet>318</a>    }
 <a href=#319 id=319 data-nosnippet>319</a>
-<a href=#320 id=320 data-nosnippet>320</a><span class="kw">impl </span>BashStmt {
-<a href=#321 id=321 data-nosnippet>321</a>    <span class="doccomment">/// Get the node type as a string (for tracing/debugging)
-<a href=#322 id=322 data-nosnippet>322</a>    </span><span class="kw">pub fn </span>node_type(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;</span>str {
-<a href=#323 id=323 data-nosnippet>323</a>        <span class="kw">match </span><span class="self">self </span>{
-<a href=#324 id=324 data-nosnippet>324</a>            BashStmt::Assignment { .. } =&gt; <span class="string">"Assignment"</span>,
-<a href=#325 id=325 data-nosnippet>325</a>            BashStmt::Command { .. } =&gt; <span class="string">"Command"</span>,
-<a href=#326 id=326 data-nosnippet>326</a>            BashStmt::Function { .. } =&gt; <span class="string">"Function"</span>,
-<a href=#327 id=327 data-nosnippet>327</a>            BashStmt::If { .. } =&gt; <span class="string">"If"</span>,
-<a href=#328 id=328 data-nosnippet>328</a>            BashStmt::While { .. } =&gt; <span class="string">"While"</span>,
-<a href=#329 id=329 data-nosnippet>329</a>            BashStmt::Until { .. } =&gt; <span class="string">"Until"</span>,
-<a href=#330 id=330 data-nosnippet>330</a>            BashStmt::For { .. } =&gt; <span class="string">"For"</span>,
-<a href=#331 id=331 data-nosnippet>331</a>            BashStmt::Case { .. } =&gt; <span class="string">"Case"</span>,
-<a href=#332 id=332 data-nosnippet>332</a>            BashStmt::Return { .. } =&gt; <span class="string">"Return"</span>,
-<a href=#333 id=333 data-nosnippet>333</a>            BashStmt::Comment { .. } =&gt; <span class="string">"Comment"</span>,
-<a href=#334 id=334 data-nosnippet>334</a>            BashStmt::Pipeline { .. } =&gt; <span class="string">"Pipeline"</span>,
-<a href=#335 id=335 data-nosnippet>335</a>            BashStmt::AndList { .. } =&gt; <span class="string">"AndList"</span>,
-<a href=#336 id=336 data-nosnippet>336</a>            BashStmt::OrList { .. } =&gt; <span class="string">"OrList"</span>,
-<a href=#337 id=337 data-nosnippet>337</a>            BashStmt::BraceGroup { .. } =&gt; <span class="string">"BraceGroup"</span>,
-<a href=#338 id=338 data-nosnippet>338</a>        }
-<a href=#339 id=339 data-nosnippet>339</a>    }
-<a href=#340 id=340 data-nosnippet>340</a>
-<a href=#341 id=341 data-nosnippet>341</a>    <span class="doccomment">/// Get the source span for this statement
-<a href=#342 id=342 data-nosnippet>342</a>    </span><span class="kw">pub fn </span>span(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw">crate</span>::tracing::Span {
-<a href=#343 id=343 data-nosnippet>343</a>        <span class="kw">let </span>ast_span = <span class="kw">match </span><span class="self">self </span>{
-<a href=#344 id=344 data-nosnippet>344</a>            BashStmt::Assignment { span, .. }
-<a href=#345 id=345 data-nosnippet>345</a>            | BashStmt::Command { span, .. }
-<a href=#346 id=346 data-nosnippet>346</a>            | BashStmt::Function { span, .. }
-<a href=#347 id=347 data-nosnippet>347</a>            | BashStmt::If { span, .. }
-<a href=#348 id=348 data-nosnippet>348</a>            | BashStmt::While { span, .. }
-<a href=#349 id=349 data-nosnippet>349</a>            | BashStmt::Until { span, .. }
-<a href=#350 id=350 data-nosnippet>350</a>            | BashStmt::For { span, .. }
-<a href=#351 id=351 data-nosnippet>351</a>            | BashStmt::Case { span, .. }
-<a href=#352 id=352 data-nosnippet>352</a>            | BashStmt::Return { span, .. }
-<a href=#353 id=353 data-nosnippet>353</a>            | BashStmt::Comment { span, .. }
-<a href=#354 id=354 data-nosnippet>354</a>            | BashStmt::Pipeline { span, .. }
-<a href=#355 id=355 data-nosnippet>355</a>            | BashStmt::AndList { span, .. }
-<a href=#356 id=356 data-nosnippet>356</a>            | BashStmt::OrList { span, .. }
-<a href=#357 id=357 data-nosnippet>357</a>            | BashStmt::BraceGroup { span, .. } =&gt; <span class="kw-2">*</span>span,
-<a href=#358 id=358 data-nosnippet>358</a>        };
-<a href=#359 id=359 data-nosnippet>359</a>
-<a href=#360 id=360 data-nosnippet>360</a>        <span class="comment">// Convert bash_parser::Span to tracing::Span
-<a href=#361 id=361 data-nosnippet>361</a>        </span><span class="kw">crate</span>::tracing::Span::new(
-<a href=#362 id=362 data-nosnippet>362</a>            ast_span.start_line,
-<a href=#363 id=363 data-nosnippet>363</a>            ast_span.start_col,
-<a href=#364 id=364 data-nosnippet>364</a>            ast_span.end_line,
-<a href=#365 id=365 data-nosnippet>365</a>            ast_span.end_col,
-<a href=#366 id=366 data-nosnippet>366</a>        )
-<a href=#367 id=367 data-nosnippet>367</a>    }
-<a href=#368 id=368 data-nosnippet>368</a>}
-<a href=#369 id=369 data-nosnippet>369</a>
-<a href=#370 id=370 data-nosnippet>370</a><span class="kw">impl </span>fmt::Display <span class="kw">for </span>BashStmt {
-<a href=#371 id=371 data-nosnippet>371</a>    <span class="kw">fn </span>fmt(<span class="kw-2">&amp;</span><span class="self">self</span>, f: <span class="kw-2">&amp;mut </span>fmt::Formatter&lt;<span class="lifetime">'_</span>&gt;) -&gt; fmt::Result {
-<a href=#372 id=372 data-nosnippet>372</a>        <span class="kw">match </span><span class="self">self </span>{
-<a href=#373 id=373 data-nosnippet>373</a>            BashStmt::Assignment { name, .. } =&gt; <span class="macro">write!</span>(f, <span class="string">"Assignment({})"</span>, name),
-<a href=#374 id=374 data-nosnippet>374</a>            BashStmt::Command { name, .. } =&gt; <span class="macro">write!</span>(f, <span class="string">"Command({})"</span>, name),
-<a href=#375 id=375 data-nosnippet>375</a>            BashStmt::Function { name, .. } =&gt; <span class="macro">write!</span>(f, <span class="string">"Function({})"</span>, name),
-<a href=#376 id=376 data-nosnippet>376</a>            BashStmt::If { .. } =&gt; <span class="macro">write!</span>(f, <span class="string">"If"</span>),
-<a href=#377 id=377 data-nosnippet>377</a>            BashStmt::While { .. } =&gt; <span class="macro">write!</span>(f, <span class="string">"While"</span>),
-<a href=#378 id=378 data-nosnippet>378</a>            BashStmt::Until { .. } =&gt; <span class="macro">write!</span>(f, <span class="string">"Until"</span>),
-<a href=#379 id=379 data-nosnippet>379</a>            BashStmt::For { variable, .. } =&gt; <span class="macro">write!</span>(f, <span class="string">"For({})"</span>, variable),
-<a href=#380 id=380 data-nosnippet>380</a>            BashStmt::Case { .. } =&gt; <span class="macro">write!</span>(f, <span class="string">"Case"</span>),
-<a href=#381 id=381 data-nosnippet>381</a>            BashStmt::Return { .. } =&gt; <span class="macro">write!</span>(f, <span class="string">"Return"</span>),
-<a href=#382 id=382 data-nosnippet>382</a>            BashStmt::Comment { .. } =&gt; <span class="macro">write!</span>(f, <span class="string">"Comment"</span>),
-<a href=#383 id=383 data-nosnippet>383</a>            BashStmt::Pipeline { commands, .. } =&gt; <span class="macro">write!</span>(f, <span class="string">"Pipeline({} cmds)"</span>, commands.len()),
-<a href=#384 id=384 data-nosnippet>384</a>            BashStmt::AndList { .. } =&gt; <span class="macro">write!</span>(f, <span class="string">"AndList"</span>),
-<a href=#385 id=385 data-nosnippet>385</a>            BashStmt::OrList { .. } =&gt; <span class="macro">write!</span>(f, <span class="string">"OrList"</span>),
-<a href=#386 id=386 data-nosnippet>386</a>            BashStmt::BraceGroup { body, .. } =&gt; <span class="macro">write!</span>(f, <span class="string">"BraceGroup({} stmts)"</span>, body.len()),
-<a href=#387 id=387 data-nosnippet>387</a>        }
-<a href=#388 id=388 data-nosnippet>388</a>    }
-<a href=#389 id=389 data-nosnippet>389</a>}
-<a href=#390 id=390 data-nosnippet>390</a>
-<a href=#391 id=391 data-nosnippet>391</a><span class="doccomment">/// Wrapper type for AST nodes
-<a href=#392 id=392 data-nosnippet>392</a></span><span class="attr">#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-<a href=#393 id=393 data-nosnippet>393</a></span><span class="kw">pub struct </span>BashNode&lt;T&gt; {
-<a href=#394 id=394 data-nosnippet>394</a>    <span class="kw">pub </span>node: T,
-<a href=#395 id=395 data-nosnippet>395</a>    <span class="kw">pub </span>span: Span,
-<a href=#396 id=396 data-nosnippet>396</a>}
-<a href=#397 id=397 data-nosnippet>397</a>
-<a href=#398 id=398 data-nosnippet>398</a><span class="kw">impl</span>&lt;T&gt; BashNode&lt;T&gt; {
-<a href=#399 id=399 data-nosnippet>399</a>    <span class="kw">pub fn </span>new(node: T, span: Span) -&gt; <span class="self">Self </span>{
-<a href=#400 id=400 data-nosnippet>400</a>        <span class="self">Self </span>{ node, span }
-<a href=#401 id=401 data-nosnippet>401</a>    }
-<a href=#402 id=402 data-nosnippet>402</a>}
-<a href=#403 id=403 data-nosnippet>403</a>
-<a href=#404 id=404 data-nosnippet>404</a><span class="attr">#[cfg(test)]
-<a href=#405 id=405 data-nosnippet>405</a></span><span class="kw">mod </span>tests {
-<a href=#406 id=406 data-nosnippet>406</a>    <span class="kw">use super</span>::<span class="kw-2">*</span>;
-<a href=#407 id=407 data-nosnippet>407</a>
-<a href=#408 id=408 data-nosnippet>408</a>    <span class="attr">#[test]
-<a href=#409 id=409 data-nosnippet>409</a>    </span><span class="kw">fn </span>test_ast_construction() {
-<a href=#410 id=410 data-nosnippet>410</a>        <span class="kw">let </span>stmt = BashStmt::Assignment {
-<a href=#411 id=411 data-nosnippet>411</a>            name: <span class="string">"FOO"</span>.to_string(),
-<a href=#412 id=412 data-nosnippet>412</a>            value: BashExpr::Literal(<span class="string">"bar"</span>.to_string()),
-<a href=#413 id=413 data-nosnippet>413</a>            exported: <span class="bool-val">false</span>,
-<a href=#414 id=414 data-nosnippet>414</a>            span: Span::dummy(),
-<a href=#415 id=415 data-nosnippet>415</a>        };
-<a href=#416 id=416 data-nosnippet>416</a>
-<a href=#417 id=417 data-nosnippet>417</a>        <span class="macro">assert!</span>(<span class="macro">matches!</span>(stmt, BashStmt::Assignment { .. }));
-<a href=#418 id=418 data-nosnippet>418</a>    }
-<a href=#419 id=419 data-nosnippet>419</a>
-<a href=#420 id=420 data-nosnippet>420</a>    <span class="attr">#[test]
-<a href=#421 id=421 data-nosnippet>421</a>    </span><span class="kw">fn </span>test_span_creation() {
-<a href=#422 id=422 data-nosnippet>422</a>        <span class="kw">let </span>span = Span::new(<span class="number">1</span>, <span class="number">5</span>, <span class="number">1</span>, <span class="number">10</span>);
-<a href=#423 id=423 data-nosnippet>423</a>        <span class="macro">assert_eq!</span>(span.start_line, <span class="number">1</span>);
-<a href=#424 id=424 data-nosnippet>424</a>        <span class="macro">assert_eq!</span>(span.start_col, <span class="number">5</span>);
-<a href=#425 id=425 data-nosnippet>425</a>        <span class="macro">assert_eq!</span>(span.end_line, <span class="number">1</span>);
-<a href=#426 id=426 data-nosnippet>426</a>        <span class="macro">assert_eq!</span>(span.end_col, <span class="number">10</span>);
-<a href=#427 id=427 data-nosnippet>427</a>    }
-<a href=#428 id=428 data-nosnippet>428</a>}</code></pre></div></section></main></body></html>
+<a href=#320 id=320 data-nosnippet>320</a>    <span class="kw">pub fn </span>dummy() -&gt; <span class="self">Self </span>{
+<a href=#321 id=321 data-nosnippet>321</a>        <span class="self">Self</span>::new(<span class="number">0</span>, <span class="number">0</span>, <span class="number">0</span>, <span class="number">0</span>)
+<a href=#322 id=322 data-nosnippet>322</a>    }
+<a href=#323 id=323 data-nosnippet>323</a>}
+<a href=#324 id=324 data-nosnippet>324</a>
+<a href=#325 id=325 data-nosnippet>325</a><span class="kw">impl </span>BashStmt {
+<a href=#326 id=326 data-nosnippet>326</a>    <span class="doccomment">/// Get the node type as a string (for tracing/debugging)
+<a href=#327 id=327 data-nosnippet>327</a>    </span><span class="kw">pub fn </span>node_type(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;</span>str {
+<a href=#328 id=328 data-nosnippet>328</a>        <span class="kw">match </span><span class="self">self </span>{
+<a href=#329 id=329 data-nosnippet>329</a>            BashStmt::Assignment { .. } =&gt; <span class="string">"Assignment"</span>,
+<a href=#330 id=330 data-nosnippet>330</a>            BashStmt::Command { .. } =&gt; <span class="string">"Command"</span>,
+<a href=#331 id=331 data-nosnippet>331</a>            BashStmt::Function { .. } =&gt; <span class="string">"Function"</span>,
+<a href=#332 id=332 data-nosnippet>332</a>            BashStmt::If { .. } =&gt; <span class="string">"If"</span>,
+<a href=#333 id=333 data-nosnippet>333</a>            BashStmt::While { .. } =&gt; <span class="string">"While"</span>,
+<a href=#334 id=334 data-nosnippet>334</a>            BashStmt::Until { .. } =&gt; <span class="string">"Until"</span>,
+<a href=#335 id=335 data-nosnippet>335</a>            BashStmt::For { .. } =&gt; <span class="string">"For"</span>,
+<a href=#336 id=336 data-nosnippet>336</a>            BashStmt::Case { .. } =&gt; <span class="string">"Case"</span>,
+<a href=#337 id=337 data-nosnippet>337</a>            BashStmt::Return { .. } =&gt; <span class="string">"Return"</span>,
+<a href=#338 id=338 data-nosnippet>338</a>            BashStmt::Comment { .. } =&gt; <span class="string">"Comment"</span>,
+<a href=#339 id=339 data-nosnippet>339</a>            BashStmt::Pipeline { .. } =&gt; <span class="string">"Pipeline"</span>,
+<a href=#340 id=340 data-nosnippet>340</a>            BashStmt::AndList { .. } =&gt; <span class="string">"AndList"</span>,
+<a href=#341 id=341 data-nosnippet>341</a>            BashStmt::OrList { .. } =&gt; <span class="string">"OrList"</span>,
+<a href=#342 id=342 data-nosnippet>342</a>            BashStmt::BraceGroup { .. } =&gt; <span class="string">"BraceGroup"</span>,
+<a href=#343 id=343 data-nosnippet>343</a>        }
+<a href=#344 id=344 data-nosnippet>344</a>    }
+<a href=#345 id=345 data-nosnippet>345</a>
+<a href=#346 id=346 data-nosnippet>346</a>    <span class="doccomment">/// Get the source span for this statement
+<a href=#347 id=347 data-nosnippet>347</a>    </span><span class="kw">pub fn </span>span(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw">crate</span>::tracing::Span {
+<a href=#348 id=348 data-nosnippet>348</a>        <span class="kw">let </span>ast_span = <span class="kw">match </span><span class="self">self </span>{
+<a href=#349 id=349 data-nosnippet>349</a>            BashStmt::Assignment { span, .. }
+<a href=#350 id=350 data-nosnippet>350</a>            | BashStmt::Command { span, .. }
+<a href=#351 id=351 data-nosnippet>351</a>            | BashStmt::Function { span, .. }
+<a href=#352 id=352 data-nosnippet>352</a>            | BashStmt::If { span, .. }
+<a href=#353 id=353 data-nosnippet>353</a>            | BashStmt::While { span, .. }
+<a href=#354 id=354 data-nosnippet>354</a>            | BashStmt::Until { span, .. }
+<a href=#355 id=355 data-nosnippet>355</a>            | BashStmt::For { span, .. }
+<a href=#356 id=356 data-nosnippet>356</a>            | BashStmt::Case { span, .. }
+<a href=#357 id=357 data-nosnippet>357</a>            | BashStmt::Return { span, .. }
+<a href=#358 id=358 data-nosnippet>358</a>            | BashStmt::Comment { span, .. }
+<a href=#359 id=359 data-nosnippet>359</a>            | BashStmt::Pipeline { span, .. }
+<a href=#360 id=360 data-nosnippet>360</a>            | BashStmt::AndList { span, .. }
+<a href=#361 id=361 data-nosnippet>361</a>            | BashStmt::OrList { span, .. }
+<a href=#362 id=362 data-nosnippet>362</a>            | BashStmt::BraceGroup { span, .. } =&gt; <span class="kw-2">*</span>span,
+<a href=#363 id=363 data-nosnippet>363</a>        };
+<a href=#364 id=364 data-nosnippet>364</a>
+<a href=#365 id=365 data-nosnippet>365</a>        <span class="comment">// Convert bash_parser::Span to tracing::Span
+<a href=#366 id=366 data-nosnippet>366</a>        </span><span class="kw">crate</span>::tracing::Span::new(
+<a href=#367 id=367 data-nosnippet>367</a>            ast_span.start_line,
+<a href=#368 id=368 data-nosnippet>368</a>            ast_span.start_col,
+<a href=#369 id=369 data-nosnippet>369</a>            ast_span.end_line,
+<a href=#370 id=370 data-nosnippet>370</a>            ast_span.end_col,
+<a href=#371 id=371 data-nosnippet>371</a>        )
+<a href=#372 id=372 data-nosnippet>372</a>    }
+<a href=#373 id=373 data-nosnippet>373</a>}
+<a href=#374 id=374 data-nosnippet>374</a>
+<a href=#375 id=375 data-nosnippet>375</a><span class="kw">impl </span>fmt::Display <span class="kw">for </span>BashStmt {
+<a href=#376 id=376 data-nosnippet>376</a>    <span class="kw">fn </span>fmt(<span class="kw-2">&amp;</span><span class="self">self</span>, f: <span class="kw-2">&amp;mut </span>fmt::Formatter&lt;<span class="lifetime">'_</span>&gt;) -&gt; fmt::Result {
+<a href=#377 id=377 data-nosnippet>377</a>        <span class="kw">match </span><span class="self">self </span>{
+<a href=#378 id=378 data-nosnippet>378</a>            BashStmt::Assignment { name, .. } =&gt; <span class="macro">write!</span>(f, <span class="string">"Assignment({})"</span>, name),
+<a href=#379 id=379 data-nosnippet>379</a>            BashStmt::Command { name, .. } =&gt; <span class="macro">write!</span>(f, <span class="string">"Command({})"</span>, name),
+<a href=#380 id=380 data-nosnippet>380</a>            BashStmt::Function { name, .. } =&gt; <span class="macro">write!</span>(f, <span class="string">"Function({})"</span>, name),
+<a href=#381 id=381 data-nosnippet>381</a>            BashStmt::If { .. } =&gt; <span class="macro">write!</span>(f, <span class="string">"If"</span>),
+<a href=#382 id=382 data-nosnippet>382</a>            BashStmt::While { .. } =&gt; <span class="macro">write!</span>(f, <span class="string">"While"</span>),
+<a href=#383 id=383 data-nosnippet>383</a>            BashStmt::Until { .. } =&gt; <span class="macro">write!</span>(f, <span class="string">"Until"</span>),
+<a href=#384 id=384 data-nosnippet>384</a>            BashStmt::For { variable, .. } =&gt; <span class="macro">write!</span>(f, <span class="string">"For({})"</span>, variable),
+<a href=#385 id=385 data-nosnippet>385</a>            BashStmt::Case { .. } =&gt; <span class="macro">write!</span>(f, <span class="string">"Case"</span>),
+<a href=#386 id=386 data-nosnippet>386</a>            BashStmt::Return { .. } =&gt; <span class="macro">write!</span>(f, <span class="string">"Return"</span>),
+<a href=#387 id=387 data-nosnippet>387</a>            BashStmt::Comment { .. } =&gt; <span class="macro">write!</span>(f, <span class="string">"Comment"</span>),
+<a href=#388 id=388 data-nosnippet>388</a>            BashStmt::Pipeline { commands, .. } =&gt; <span class="macro">write!</span>(f, <span class="string">"Pipeline({} cmds)"</span>, commands.len()),
+<a href=#389 id=389 data-nosnippet>389</a>            BashStmt::AndList { .. } =&gt; <span class="macro">write!</span>(f, <span class="string">"AndList"</span>),
+<a href=#390 id=390 data-nosnippet>390</a>            BashStmt::OrList { .. } =&gt; <span class="macro">write!</span>(f, <span class="string">"OrList"</span>),
+<a href=#391 id=391 data-nosnippet>391</a>            BashStmt::BraceGroup { body, .. } =&gt; <span class="macro">write!</span>(f, <span class="string">"BraceGroup({} stmts)"</span>, body.len()),
+<a href=#392 id=392 data-nosnippet>392</a>        }
+<a href=#393 id=393 data-nosnippet>393</a>    }
+<a href=#394 id=394 data-nosnippet>394</a>}
+<a href=#395 id=395 data-nosnippet>395</a>
+<a href=#396 id=396 data-nosnippet>396</a><span class="doccomment">/// Wrapper type for AST nodes
+<a href=#397 id=397 data-nosnippet>397</a></span><span class="attr">#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+<a href=#398 id=398 data-nosnippet>398</a></span><span class="kw">pub struct </span>BashNode&lt;T&gt; {
+<a href=#399 id=399 data-nosnippet>399</a>    <span class="kw">pub </span>node: T,
+<a href=#400 id=400 data-nosnippet>400</a>    <span class="kw">pub </span>span: Span,
+<a href=#401 id=401 data-nosnippet>401</a>}
+<a href=#402 id=402 data-nosnippet>402</a>
+<a href=#403 id=403 data-nosnippet>403</a><span class="kw">impl</span>&lt;T&gt; BashNode&lt;T&gt; {
+<a href=#404 id=404 data-nosnippet>404</a>    <span class="kw">pub fn </span>new(node: T, span: Span) -&gt; <span class="self">Self </span>{
+<a href=#405 id=405 data-nosnippet>405</a>        <span class="self">Self </span>{ node, span }
+<a href=#406 id=406 data-nosnippet>406</a>    }
+<a href=#407 id=407 data-nosnippet>407</a>}
+<a href=#408 id=408 data-nosnippet>408</a>
+<a href=#409 id=409 data-nosnippet>409</a><span class="attr">#[cfg(test)]
+<a href=#410 id=410 data-nosnippet>410</a></span><span class="kw">mod </span>tests {
+<a href=#411 id=411 data-nosnippet>411</a>    <span class="kw">use super</span>::<span class="kw-2">*</span>;
+<a href=#412 id=412 data-nosnippet>412</a>
+<a href=#413 id=413 data-nosnippet>413</a>    <span class="attr">#[test]
+<a href=#414 id=414 data-nosnippet>414</a>    </span><span class="kw">fn </span>test_ast_construction() {
+<a href=#415 id=415 data-nosnippet>415</a>        <span class="kw">let </span>stmt = BashStmt::Assignment {
+<a href=#416 id=416 data-nosnippet>416</a>            name: <span class="string">"FOO"</span>.to_string(),
+<a href=#417 id=417 data-nosnippet>417</a>            value: BashExpr::Literal(<span class="string">"bar"</span>.to_string()),
+<a href=#418 id=418 data-nosnippet>418</a>            exported: <span class="bool-val">false</span>,
+<a href=#419 id=419 data-nosnippet>419</a>            span: Span::dummy(),
+<a href=#420 id=420 data-nosnippet>420</a>        };
+<a href=#421 id=421 data-nosnippet>421</a>
+<a href=#422 id=422 data-nosnippet>422</a>        <span class="macro">assert!</span>(<span class="macro">matches!</span>(stmt, BashStmt::Assignment { .. }));
+<a href=#423 id=423 data-nosnippet>423</a>    }
+<a href=#424 id=424 data-nosnippet>424</a>
+<a href=#425 id=425 data-nosnippet>425</a>    <span class="attr">#[test]
+<a href=#426 id=426 data-nosnippet>426</a>    </span><span class="kw">fn </span>test_span_creation() {
+<a href=#427 id=427 data-nosnippet>427</a>        <span class="kw">let </span>span = Span::new(<span class="number">1</span>, <span class="number">5</span>, <span class="number">1</span>, <span class="number">10</span>);
+<a href=#428 id=428 data-nosnippet>428</a>        <span class="macro">assert_eq!</span>(span.start_line, <span class="number">1</span>);
+<a href=#429 id=429 data-nosnippet>429</a>        <span class="macro">assert_eq!</span>(span.start_col, <span class="number">5</span>);
+<a href=#430 id=430 data-nosnippet>430</a>        <span class="macro">assert_eq!</span>(span.end_line, <span class="number">1</span>);
+<a href=#431 id=431 data-nosnippet>431</a>        <span class="macro">assert_eq!</span>(span.end_col, <span class="number">10</span>);
+<a href=#432 id=432 data-nosnippet>432</a>    }
+<a href=#433 id=433 data-nosnippet>433</a>}</code></pre></div></section></main></body></html>
