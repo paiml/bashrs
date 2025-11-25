@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"fn":["generate_arith_expr","generate_condition","generate_expr","generate_purified_bash","generate_statement","generate_test_condition","generate_test_expr","negate_condition"]};
+window.SIDEBAR_ITEMS = {"fn":["convert_c_condition_to_posix","convert_c_increment_to_posix","convert_c_init_to_posix","extract_var_name","generate_arith_expr","generate_condition","generate_expr","generate_purified_bash","generate_statement","generate_test_condition","generate_test_expr","negate_condition","strip_quotes"]};
