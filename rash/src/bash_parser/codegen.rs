@@ -341,11 +341,22 @@ fn generate_condition(expr: &BashExpr) -> String {
 fn generate_expr(expr: &BashExpr) -> String {
     match expr {
         BashExpr::Literal(s) => {
-            // Quote string literals
-            if s.contains(' ') || s.contains('$') {
-                format!("'{}'", s)
-            } else {
+            // Issue #64: Quote string literals for safety
+            // Only skip quoting for simple alphanumeric words (commands, filenames)
+            // that don't need protection
+
+            // Check if this is a simple "safe" identifier that doesn't need quotes
+            let is_simple_word = !s.is_empty()
+                && s.chars()
+                    .all(|c| c.is_alphanumeric() || c == '_' || c == '-' || c == '.' || c == '/');
+
+            if is_simple_word {
                 s.clone()
+            } else {
+                // Use single quotes for literals (they don't expand variables)
+                // Escape any single quotes in the string
+                let escaped = s.replace('\'', "'\\''");
+                format!("'{}'", escaped)
             }
         }
         BashExpr::Variable(name) => {
@@ -368,17 +379,27 @@ fn generate_expr(expr: &BashExpr) -> String {
         BashExpr::DefaultValue { variable, default } => {
             // Generate ${VAR:-default} syntax
             let default_val = generate_expr(default);
-            format!("\"${{{}:-{}}}\"", variable, default_val.trim_matches('"'))
+            let default_unquoted = strip_quotes(&default_val);
+            format!("\"${{{}:-{}}}\"", variable, default_unquoted)
         }
         BashExpr::AssignDefault { variable, default } => {
             // Generate ${VAR:=default} syntax
             let default_val = generate_expr(default);
-            format!("\"${{{}:={}}}\"", variable, default_val.trim_matches('"'))
+            let default_unquoted = strip_quotes(&default_val);
+            format!("\"${{{}:={}}}\"", variable, default_unquoted)
         }
         BashExpr::ErrorIfUnset { variable, message } => {
             // Generate ${VAR:?message} syntax
+            // Note: Quotes in error messages ARE significant - they show in output
+            // So we preserve them (don't strip)
             let msg_val = generate_expr(message);
-            format!("\"${{{}:?{}}}\"", variable, msg_val.trim_matches('"'))
+            // Only strip outer double quotes (from the overall ${} quoting), keep single quotes
+            let msg_for_expansion = if msg_val.starts_with('"') && msg_val.ends_with('"') {
+                msg_val.trim_start_matches('"').trim_end_matches('"')
+            } else {
+                &msg_val
+            };
+            format!("\"${{{}:?{}}}\"", variable, msg_for_expansion)
         }
         BashExpr::AlternativeValue {
             variable,
@@ -386,7 +407,8 @@ fn generate_expr(expr: &BashExpr) -> String {
         } => {
             // Generate ${VAR:+alt_value} syntax
             let alt_val = generate_expr(alternative);
-            format!("\"${{{}:+{}}}\"", variable, alt_val.trim_matches('"'))
+            let alt_unquoted = strip_quotes(&alt_val);
+            format!("\"${{{}:+{}}}\"", variable, alt_unquoted)
         }
         BashExpr::StringLength { variable } => {
             // Generate ${#VAR} syntax
@@ -395,24 +417,33 @@ fn generate_expr(expr: &BashExpr) -> String {
         BashExpr::RemoveSuffix { variable, pattern } => {
             // Generate ${VAR%pattern} syntax
             let pattern_val = generate_expr(pattern);
-            format!("\"${{{}%{}}}\"", variable, pattern_val.trim_matches('"'))
+            let pattern_unquoted = strip_quotes(&pattern_val);
+            format!("\"${{{}%{}}}\"", variable, pattern_unquoted)
         }
         BashExpr::RemovePrefix { variable, pattern } => {
             // Generate ${VAR#pattern} syntax
             let pattern_val = generate_expr(pattern);
-            format!("\"${{{}#{}}}\"", variable, pattern_val.trim_matches('"'))
+            let pattern_unquoted = strip_quotes(&pattern_val);
+            format!("\"${{{}#{}}}\"", variable, pattern_unquoted)
         }
         BashExpr::RemoveLongestPrefix { variable, pattern } => {
             // Generate ${VAR##pattern} syntax (greedy prefix removal)
             let pattern_val = generate_expr(pattern);
-            format!("\"${{{}##{}}}\"", variable, pattern_val.trim_matches('"'))
+            let pattern_unquoted = strip_quotes(&pattern_val);
+            format!("\"${{{}##{}}}\"", variable, pattern_unquoted)
         }
         BashExpr::RemoveLongestSuffix { variable, pattern } => {
             // Generate ${VAR%%pattern} syntax (greedy suffix removal)
             let pattern_val = generate_expr(pattern);
-            format!("\"${{{}%%{}}}\"", variable, pattern_val.trim_matches('"'))
+            let pattern_unquoted = strip_quotes(&pattern_val);
+            format!("\"${{{}%%{}}}\"", variable, pattern_unquoted)
         }
     }
+}
+
+/// Strip surrounding quotes (both single and double) from a string
+fn strip_quotes(s: &str) -> &str {
+    s.trim_matches(|c| c == '"' || c == '\'')
 }
 
 /// Generate arithmetic expression
@@ -632,5 +663,58 @@ fn extract_var_name(s: &str) -> String {
         stripped.to_string()
     } else {
         s.to_string()
+    }
+}
+#[cfg(test)]
+mod test_issue_64 {
+    use crate::bash_parser::codegen::generate_purified_bash;
+    use crate::bash_parser::BashParser;
+
+    #[test]
+    fn test_ISSUE_64_single_quoted_ansi_codes() {
+        // RED phase: Test single-quoted ANSI escape sequences
+        let input = r#"RED='\033[0;31m'"#;
+        let mut parser = BashParser::new(input).expect("Failed to parse");
+        let ast = parser.parse().expect("Failed to parse");
+        let output = generate_purified_bash(&ast);
+
+        // Single quotes should be preserved for escape sequences
+        assert!(
+            output.contains("RED='\\033[0;31m'"),
+            "Output should preserve single quotes around escape sequences: {}",
+            output
+        );
+    }
+
+    #[test]
+    fn test_ISSUE_64_single_quoted_literal() {
+        let input = "echo 'Hello World'";
+        let mut parser = BashParser::new(input).expect("Failed to parse");
+        let ast = parser.parse().expect("Failed to parse");
+        let output = generate_purified_bash(&ast);
+
+        // Single quotes should be preserved
+        assert!(
+            output.contains("'Hello World'"),
+            "Output should preserve single quotes: {}",
+            output
+        );
+    }
+
+    #[test]
+    fn test_ISSUE_64_assignment_with_single_quotes() {
+        let input = "x='value'";
+        let mut parser = BashParser::new(input).expect("Failed to parse");
+        let ast = parser.parse().expect("Failed to parse");
+        let output = generate_purified_bash(&ast);
+
+        // For simple alphanumeric strings, quotes are optional in purified output
+        // Both x=value and x='value' are correct POSIX shell
+        // The important thing is it parses without error
+        assert!(
+            output.contains("x=value") || output.contains("x='value'"),
+            "Output should contain valid assignment: {}",
+            output
+        );
     }
 }
