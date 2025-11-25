@@ -1,6 +1,9 @@
 #!/bin/bash
+# bashrs disable-file=DET002,SEC010
 # Run full mutation testing baseline for Sprint 26
 # Usage: ./scripts/mutants-run.sh
+# Note: DET002 disabled - timestamps are intentional for logging
+# Note: SEC010 disabled - paths are internal/controlled
 
 set -euo pipefail
 
