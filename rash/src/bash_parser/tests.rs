@@ -23650,3 +23650,83 @@ fn test_ISSUE_062_004_extended_test_standalone() {
         result.err()
     );
 }
+
+// ============================================================================
+// Issue #61: Parser error with here-strings (<<<)
+// ============================================================================
+// Here-strings are a bash feature that provide a string to a command's stdin.
+// Syntax: cmd <<< "string"
+// This is NOT a heredoc (<<), it's a simpler single-line input mechanism.
+//
+// Master Ticket: #63 (Bash Syntax Coverage Gaps)
+// ============================================================================
+
+/// Test: Issue #61 - Basic here-string with variable
+/// Input: `read line <<< "$data"`
+/// Expected: Parser accepts here-string redirection
+#[test]
+fn test_ISSUE_061_001_herestring_basic() {
+    let script = r#"data="hello world"
+read line <<< "$data"
+echo "$line""#;
+
+    let mut parser = BashParser::new(script).expect("Lexer should succeed");
+    let result = parser.parse();
+
+    assert!(
+        result.is_ok(),
+        "Parser MUST accept here-string <<<: {:?}",
+        result.err()
+    );
+}
+
+/// Test: Issue #61 - Here-string with literal string
+/// Input: `cat <<< "hello world"`
+/// Expected: Parser accepts here-string with literal
+#[test]
+fn test_ISSUE_061_002_herestring_literal() {
+    let script = r#"cat <<< "hello world""#;
+
+    let mut parser = BashParser::new(script).expect("Lexer should succeed");
+    let result = parser.parse();
+
+    assert!(
+        result.is_ok(),
+        "Parser MUST accept here-string with literal: {:?}",
+        result.err()
+    );
+}
+
+/// Test: Issue #61 - Here-string with unquoted word
+/// Input: `read word <<< hello`
+/// Expected: Parser accepts here-string with unquoted word
+#[test]
+fn test_ISSUE_061_003_herestring_unquoted() {
+    let script = r#"read word <<< hello"#;
+
+    let mut parser = BashParser::new(script).expect("Lexer should succeed");
+    let result = parser.parse();
+
+    assert!(
+        result.is_ok(),
+        "Parser MUST accept here-string with unquoted word: {:?}",
+        result.err()
+    );
+}
+
+/// Test: Issue #61 - Here-string in pipeline
+/// Input: `cat <<< "test" | grep t`
+/// Expected: Parser accepts here-string in pipeline
+#[test]
+fn test_ISSUE_061_004_herestring_pipeline() {
+    let script = r#"cat <<< "test" | grep t"#;
+
+    let mut parser = BashParser::new(script).expect("Lexer should succeed");
+    let result = parser.parse();
+
+    assert!(
+        result.is_ok(),
+        "Parser MUST accept here-string in pipeline: {:?}",
+        result.err()
+    );
+}

@@ -61,6 +61,7 @@ pub enum Token {
     ArithmeticExpansion(String),                    // $((expr))
     CommandSubstitution(String),                    // $(command)
     Heredoc { delimiter: String, content: String }, // <<DELIMITER
+    HereString(String),                             // <<< string (Issue #61)
     Comment(String),
     Newline,
     Eof,
@@ -424,6 +425,64 @@ impl Lexer {
         Ok(Token::Heredoc { delimiter, content })
     }
 
+    /// Issue #61: Read a here-string (<<< word)
+    /// Here-strings provide a single word/string to stdin
+    /// Examples:
+    ///   cat <<< "hello world"
+    ///   read word <<< hello
+    ///   cmd <<< "$variable"
+    fn read_herestring(&mut self) -> Result<Token, LexerError> {
+        // Skip whitespace after <<<
+        while !self.is_at_end() && (self.current_char() == ' ' || self.current_char() == '\t') {
+            self.advance();
+        }
+
+        if self.is_at_end() {
+            return Err(LexerError::UnexpectedChar('\0', self.line, self.column));
+        }
+
+        let ch = self.current_char();
+
+        // Handle quoted strings
+        if ch == '"' || ch == '\'' {
+            let quote = ch;
+            self.advance(); // skip opening quote
+            let mut content = String::new();
+
+            while !self.is_at_end() {
+                let c = self.current_char();
+                if c == quote {
+                    self.advance(); // skip closing quote
+                    break;
+                } else if c == '\\' && quote == '"' {
+                    // Handle escape sequences in double quotes
+                    self.advance();
+                    if !self.is_at_end() {
+                        content.push(self.advance());
+                    }
+                } else {
+                    content.push(self.advance());
+                }
+            }
+
+            return Ok(Token::HereString(content));
+        }
+
+        // Handle unquoted word (or $variable)
+        let mut content = String::new();
+
+        while !self.is_at_end() {
+            let c = self.current_char();
+            // Stop at whitespace, newline, pipe, or other shell metacharacters
+            if c.is_whitespace() || c == '\n' || c == '|' || c == ';' || c == '&' {
+                break;
+            }
+            content.push(self.advance());
+        }
+
+        Ok(Token::HereString(content))
+    }
+
     fn read_string(&mut self, quote: char) -> Result<Token, LexerError> {
         let start_line = self.line;
         let start_col = self.column;
@@ -588,10 +647,20 @@ impl Lexer {
                 Token::Ne
             }
             ('<', Some('<')) => {
-                // Heredoc: <<DELIMITER
-                self.advance(); // skip first '<'
-                self.advance(); // skip second '<'
-                return self.read_heredoc();
+                // Check for here-string (<<<) vs heredoc (<<)
+                // Issue #61: Here-strings must be checked before heredocs
+                if self.peek_char(2) == Some('<') {
+                    // Here-string: <<< "string"
+                    self.advance(); // skip first '<'
+                    self.advance(); // skip second '<'
+                    self.advance(); // skip third '<'
+                    return self.read_herestring();
+                } else {
+                    // Heredoc: <<DELIMITER
+                    self.advance(); // skip first '<'
+                    self.advance(); // skip second '<'
+                    return self.read_heredoc();
+                }
             }
             ('<', Some('=')) => {
                 self.advance();
