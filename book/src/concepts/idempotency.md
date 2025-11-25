@@ -602,7 +602,7 @@ deploy() {
 - [Purification Overview](./purification.md) - Complete purification process
 - [Determinism Concept](./determinism.md) - Predictable script behavior
 - [POSIX Compliance](./posix.md) - Portable shell scripts
-- [IDEM Rules](../linting/README.md) - Linter rules for idempotency
+- [IDEM Rules](../linting/idempotency.md) - Linter rules for idempotency
 
 ---
 

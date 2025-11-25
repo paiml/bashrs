@@ -1092,7 +1092,7 @@ bashrs score fixed-script.sh
 - [ ] Monitor quality metrics over time
 
 **Next Steps**:
-- Review [Configuration Files Example](config-files.md) for shell config validation
+- Review [Configuration Files Example](config-management.md) for shell config validation
 - Learn [Security Linting](../linting/security.md) for SEC rules
 - Explore [Determinism](../concepts/determinism.md) and [Idempotency](../concepts/idempotency.md)
 - Read [CLI Reference](../reference/cli.md) for all bashrs commands

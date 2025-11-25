@@ -379,20 +379,12 @@ if command -v pyenv >/dev/null; then
 fi
 ```
 
-## Examples
-
-See detailed examples:
-- [.bashrc Purification](./examples/bashrc.md)
-- [.zshrc Analysis](./examples/zshrc.md)
-- [Multi-Machine Setup](./examples/multi-machine.md)
-
 ## Rules Reference
 
 See complete rule documentation:
 - [CONFIG-001: Duplicate PATH Entry](./rules/config-001.md)
 - [CONFIG-002: Non-Existent PATH Entry](./rules/config-002.md)
 - [CONFIG-003: Non-Deterministic Environment Variable](./rules/config-003.md)
-- [CONFIG-004: Conflicting Environment Variable](./rules/config-004.md)
 
 ## Next Steps
 

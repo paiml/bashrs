@@ -621,7 +621,7 @@ $ bashrs compile script.sh       # Optimized
 $ bashrs compile --no-optimize script.sh
 ```
 
-**Documentation**: See [docs/OPTIMIZER.md](../../docs/OPTIMIZER.md) for complete details.
+**Documentation**: See the optimization configuration in `bashrs.toml` for complete details.
 
 ## Real-World bashrs Optimizations
 

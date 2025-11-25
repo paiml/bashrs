@@ -414,7 +414,7 @@ deploy "${1}"
 - [Purification Overview](./purification.md) - Complete purification process
 - [Idempotency Concept](./idempotency.md) - Safe re-run operations
 - [POSIX Compliance](./posix.md) - Portable shell scripts
-- [DET Rules](../linting/README.md) - Linter rules for determinism
+- [DET Rules](../linting/determinism.md) - Linter rules for determinism
 
 ---
 

@@ -300,7 +300,7 @@ A: The current integration compares full JSON output. For production use, consid
 
 - [Renacer GitHub](https://github.com/paiml/renacer)
 - [Renacer Documentation](https://docs.rs/renacer)
-- [EXTREME TDD Guidelines](CLAUDE.md)
+- [EXTREME TDD Guidelines](../CLAUDE.md)
 - [Toyota Way Principles](https://en.wikipedia.org/wiki/The_Toyota_Way)
 
 ## Future Enhancements

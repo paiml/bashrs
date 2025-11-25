@@ -1179,8 +1179,8 @@ alias ll="ls -la"
 - [Deployment Script Example](./deployment-script.md)
 - [Bootstrap Installer Example](./bootstrap-installer.md)
 - [CI/CD Integration](./ci-cd-integration.md)
-- [Linting Concepts](../linting/overview.md)
-- [Configuration Reference](../reference/config.md)
+- [Linting Concepts](../linting/security.md)
+- [Configuration Reference](../reference/configuration.md)
 
 ---
 
