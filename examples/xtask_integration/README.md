@@ -209,12 +209,12 @@ fn main() -> bashrs::Result<()> {
 | CI/CD friendly | Yes | Yes | Yes |
 | Custom logic | Limited | Good | Excellent |
 
-## Real-World Example: Trueno Project
+## Real-World Example
 
-The [trueno](https://github.com/example/trueno) project uses this pattern to maintain git hooks in Rust:
+Projects using this pattern can maintain git hooks in Rust:
 
 ```rust
-// trueno/build.rs
+// build.rs
 use bashrs::build_rs::auto_transpile;
 
 fn main() {
@@ -285,7 +285,7 @@ fn main() -> bashrs::Result<()> {
 
 ### Watch Mode (Development)
 
-For development, combine with [cargo-watch](https://crates.io/crates/cargo-watch):
+For development, combine with [cargo-watch](https://github.com/watchexec/cargo-watch):
 
 ```bash
 $ cargo watch -x "xtask transpile"

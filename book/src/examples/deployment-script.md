@@ -729,5 +729,5 @@ bashrs purify deploy.sh --target posix
 **Next Steps**:
 - [Bootstrap Installer Example](./bootstrap-installer.md)
 - [CI/CD Integration Example](./ci-cd-integration.md)
-- [Configuration Management](./config-files.md)
+- [Configuration Management](./config-management.md)
 - [Purification Concepts](../concepts/purification.md)

@@ -7,6 +7,82 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [6.39.0] - 2025-11-25
+
+### Fixed
+
+**Master Ticket #63: Bash Syntax Coverage Gaps**
+
+This release closes three parser issues that were blocking common bash patterns:
+
+#### Issue #60: Brace Groups { ... }
+
+Added support for brace group compound commands:
+
+```bash
+# Now parses correctly
+{ echo "one"; echo "two"; }
+
+# With redirections
+{ grep pattern file || echo "not found"; } > output.txt
+```
+
+**Implementation**: Added `BashStmt::BraceGroup` variant with full parser, codegen, and purification support.
+
+#### Issue #61: Here-strings <<<
+
+Added support for here-string redirections:
+
+```bash
+# Now parses correctly
+read line <<< "$data"
+cat <<< "inline text"
+while read -r line; do echo "$line"; done <<< "$multiline"
+```
+
+**Implementation**: Added `Token::HereString` to lexer and `Redirect::HereString` to AST.
+
+#### Issue #62: Extended Test Conditionals [[ ]]
+
+Added support for standalone `[[ ]]` extended test commands:
+
+```bash
+# Now parses correctly
+[[ -f "$file" ]]
+[[ "$string" == pattern* ]]
+[[ ! -z "$var" ]]
+[[ -s "$file" ]]
+```
+
+**Implementation**: Added `parse_extended_test_command()` and enhanced condition parsing with negation and `-s` operator support.
+
+### Added
+
+- `BashStmt::BraceGroup` - AST variant for `{ cmd1; cmd2; }` compound commands
+- `Redirect::HereString` - AST variant for `<<< "string"` here-string redirections
+- `Token::HereString` - Lexer token for here-string content
+- `-s` operator support in test conditions (file exists and not empty)
+- `!` negation support in extended test conditionals
+- PMAT v2.205.0 compliance integration (`pmat comply init`)
+
+### Documentation
+
+- Added `MUTATION_BASELINE.md` - Mutation testing workflow documentation
+- Fixed 22 broken documentation links across book and examples
+- Updated book with tested examples for new features
+
+### Quality
+
+- **Tests**: 6004+ tests passing (zero regressions)
+- **EXTREME TDD**: Full RED→GREEN→REFACTOR cycle for all three issues
+- **Clippy**: Clean (zero warnings)
+- **Coverage**: 91.22% line coverage maintained
+- **PMAT**: Rust project score 127/134 (94.8%, Grade A+)
+
+Closes #60, #61, #62, #63
+
+---
+
 ## [6.38.0] - 2025-11-25
 
 ### Fixed

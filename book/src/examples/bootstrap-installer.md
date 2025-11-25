@@ -704,6 +704,6 @@ sudo ./install.sh --prefix /usr/local
 
 **Next Steps**:
 - [CI/CD Integration Example](./ci-cd-integration.md)
-- [Configuration Management](./config-files.md)
+- [Configuration Management](./config-management.md)
 - [Deployment Script Example](./deployment-script.md)
 - [CLI Reference](../reference/cli.md)

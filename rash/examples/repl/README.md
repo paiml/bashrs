@@ -166,10 +166,10 @@ bashrs [explain]> ${var:-default}
 
 ## 🔗 Related Documentation
 
-- **[Tutorial: Your First REPL Session](../../book/src/repl/tutorial.md)** - Step-by-step beginner tutorial
-- **[REPL User Guide](../../book/src/repl/user-guide.md)** - Comprehensive feature reference
-- **[REPL Commands Reference](../../book/src/reference/repl-commands.md)** - Complete command documentation
-- **[Interactive REPL (Getting Started)](../../book/src/getting-started/repl.md)** - Quick start guide
+- **[Tutorial: Your First REPL Session](../../../book/src/repl/tutorial.md)** - Step-by-step beginner tutorial
+- **[REPL User Guide](../../../book/src/repl/user-guide.md)** - Comprehensive feature reference
+- **[REPL Commands Reference](../../../book/src/reference/repl-commands.md)** - Complete command documentation
+- **[Interactive REPL (Getting Started)](../../../book/src/getting-started/repl.md)** - Quick start guide
 
 ## 🛠 Development
 

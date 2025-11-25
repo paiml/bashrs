@@ -650,9 +650,8 @@ Now that you've mastered the basics:
 
 1. **[REPL User Guide](./user-guide.md)** - Comprehensive reference for all features
 2. **[REPL Commands Reference](../reference/repl-commands.md)** - Complete command documentation
-3. **[Examples](../../examples/repl/)** - Real-world REPL usage examples
-4. **[Purification Concepts](../concepts/purification.md)** - Deep dive into transformations
-5. **[Linting Rules](../linting/security.md)** - Understanding security rules
+3. **[Purification Concepts](../concepts/purification.md)** - Deep dive into transformations
+4. **[Linting Rules](../linting/security.md)** - Understanding security rules
 
 ## Tips for Success
 
