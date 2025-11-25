@@ -23575,3 +23575,78 @@ fn test_ISSUE_060_003_brace_group_after_and() {
         result.err()
     );
 }
+
+// ============================================================================
+// Issue #62: Extended test [[ ]] conditionals
+// ============================================================================
+// Bug: Parser fails on bash [[ ]] extended test syntax
+// Root cause: Parser only handles POSIX [ ] tests, not bash [[ ]] tests
+
+/// Issue #62: Test basic [[ ]] conditional in if statement
+/// INPUT: if [[ -f file ]]; then echo exists; fi
+/// EXPECTED: Parse successfully with ExtendedTest expression
+#[test]
+fn test_ISSUE_062_001_extended_test_file_exists() {
+    let script = r#"if [[ -f /tmp/test.txt ]]; then echo exists; fi"#;
+
+    let mut parser = BashParser::new(script).expect("Lexer should succeed");
+    let result = parser.parse();
+
+    // ASSERT: Parser must accept [[ ]] extended test syntax
+    assert!(
+        result.is_ok(),
+        "Parser MUST accept [[ ]] extended test: {:?}",
+        result.err()
+    );
+}
+
+/// Issue #62: Test [[ ]] with negation
+/// INPUT: if [[ ! -s file ]]; then echo empty; fi
+/// EXPECTED: Parse successfully with negated test
+#[test]
+fn test_ISSUE_062_002_extended_test_negation() {
+    let script = r#"if [[ ! -s /tmp/file.txt ]]; then echo "File is empty"; exit 1; fi"#;
+
+    let mut parser = BashParser::new(script).expect("Lexer should succeed");
+    let result = parser.parse();
+
+    assert!(
+        result.is_ok(),
+        "Parser MUST accept [[ ! ... ]] negated test: {:?}",
+        result.err()
+    );
+}
+
+/// Issue #62: Test [[ ]] with string comparison
+/// INPUT: if [[ "$var" == "value" ]]; then ...; fi
+/// EXPECTED: Parse successfully
+#[test]
+fn test_ISSUE_062_003_extended_test_string_comparison() {
+    let script = r#"if [[ "$total" -eq 0 ]]; then echo "No data"; exit 1; fi"#;
+
+    let mut parser = BashParser::new(script).expect("Lexer should succeed");
+    let result = parser.parse();
+
+    assert!(
+        result.is_ok(),
+        "Parser MUST accept [[ ]] string comparison: {:?}",
+        result.err()
+    );
+}
+
+/// Issue #62: Test standalone [[ ]] as condition
+/// INPUT: [[ -d /tmp ]] && echo "exists"
+/// EXPECTED: Parse successfully
+#[test]
+fn test_ISSUE_062_004_extended_test_standalone() {
+    let script = r#"[[ -d /tmp ]] && echo "directory exists""#;
+
+    let mut parser = BashParser::new(script).expect("Lexer should succeed");
+    let result = parser.parse();
+
+    assert!(
+        result.is_ok(),
+        "Parser MUST accept standalone [[ ]] test: {:?}",
+        result.err()
+    );
+}
