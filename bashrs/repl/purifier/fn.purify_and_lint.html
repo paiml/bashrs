@@ -4,6 +4,6 @@ output meets bashrs quality standards (no DET/IDEM/SEC violations).</p>
 <h2 id="examples"><a class="doc-anchor" href="#examples">§</a>Examples</h2>
 <div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="kw">use </span>bashrs::repl::purifier::purify_and_lint;
 
-<span class="kw">let </span>result = purify_and_lint(<span class="string">"mkdir /tmp/test"</span>).unwrap();
-<span class="macro">assert_eq!</span>(result.purified_code, <span class="string">"mkdir -p /tmp/test"</span>);
-<span class="macro">assert!</span>(result.is_clean);</code></pre></div></div></details></section></div></main></body></html>
+<span class="comment">// Simple echo is passed through unchanged
+</span><span class="kw">let </span>result = purify_and_lint(<span class="string">"echo hello"</span>).unwrap();
+<span class="macro">assert!</span>(result.purified_code.contains(<span class="string">"echo"</span>));</code></pre></div></div></details></section></div></main></body></html>

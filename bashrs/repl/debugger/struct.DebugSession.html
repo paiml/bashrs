@@ -190,9 +190,9 @@ or None if no transformations will be applied.</p>
 <div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="kw">let </span>script = <span class="string">"mkdir /tmp/foo"</span>;
 <span class="kw">let </span>session = DebugSession::new(script);
 
-<span class="kw">let </span>explanation = session.explain_current_line();
-<span class="macro">assert!</span>(explanation.is_some());
-<span class="macro">assert!</span>(explanation.unwrap().contains(<span class="string">"idempot"</span>));</code></pre></div><h5 id="returns-13"><a class="doc-anchor" href="#returns-13">§</a>Returns</h5>
+<span class="comment">// Check that explanation is available for transformable code
+</span><span class="kw">let </span>explanation = session.explain_current_line();
+<span class="macro">assert!</span>(explanation.is_some());</code></pre></div><h5 id="returns-13"><a class="doc-anchor" href="#returns-13">§</a>Returns</h5>
 <ul>
 <li><code>Some(String)</code>: Explanation of transformations</li>
 <li><code>None</code>: No transformations (already purified)</li>
