@@ -134,4 +134,153 @@ proptest! {
         // Command name should be preserved
         prop_assert!(purified.contains(&name), "Command name '{}' not preserved in: {}", name, purified);
     }
+
+    // ===== Issue #59 Property Tests =====
+    // Tests for nested quotes in command substitution and || && operators
+
+    /// Property: Strings with command substitutions parse without panic
+    /// Issue #59: Nested quotes inside command substitutions must not crash parser
+    #[test]
+    fn prop_ISSUE_059_001_command_subst_strings_parse_safely(
+        cmd in "[a-z]{1,10}",
+        arg in "[a-zA-Z0-9_]{1,10}"
+    ) {
+        use crate::bash_parser::BashParser;
+
+        // Build a string with command substitution containing nested quotes
+        let script = format!(r#"OUTPUT="$({} "{}")" "#, cmd, arg);
+
+        // Must not panic - parsing should succeed or fail gracefully
+        let result = BashParser::new(&script);
+        if let Ok(mut parser) = result {
+            // Parse should complete without panic
+            let _ = parser.parse();
+        }
+    }
+
+    /// Property: AndList AST nodes round-trip through codegen
+    /// Issue #59: && operator must be preserved in code generation
+    #[test]
+    fn prop_ISSUE_059_002_andlist_roundtrip(
+        left_cmd in "[a-z]{1,10}",
+        right_cmd in "[a-z]{1,10}"
+    ) {
+        use crate::bash_parser::ast::*;
+
+        let ast = BashAst {
+            statements: vec![BashStmt::AndList {
+                left: Box::new(BashStmt::Command {
+                    name: left_cmd.clone(),
+                    args: vec![],
+                    redirects: vec![],
+                    span: Span::dummy(),
+                }),
+                right: Box::new(BashStmt::Command {
+                    name: right_cmd.clone(),
+                    args: vec![],
+                    redirects: vec![],
+                    span: Span::dummy(),
+                }),
+                span: Span::dummy(),
+            }],
+            metadata: AstMetadata {
+                source_file: None,
+                line_count: 1,
+                parse_time_ms: 0,
+            },
+        };
+
+        let purified = generate_purified_bash(&ast);
+
+        // Must contain && operator
+        prop_assert!(
+            purified.contains("&&"),
+            "AndList must generate && in output: {}",
+            purified
+        );
+
+        // Must contain both command names
+        prop_assert!(
+            purified.contains(&left_cmd) && purified.contains(&right_cmd),
+            "Both commands must be preserved: {}",
+            purified
+        );
+    }
+
+    /// Property: OrList AST nodes round-trip through codegen
+    /// Issue #59: || operator must be preserved in code generation
+    #[test]
+    fn prop_ISSUE_059_003_orlist_roundtrip(
+        left_cmd in "[a-z]{1,10}",
+        right_cmd in "[a-z]{1,10}"
+    ) {
+        use crate::bash_parser::ast::*;
+
+        let ast = BashAst {
+            statements: vec![BashStmt::OrList {
+                left: Box::new(BashStmt::Command {
+                    name: left_cmd.clone(),
+                    args: vec![],
+                    redirects: vec![],
+                    span: Span::dummy(),
+                }),
+                right: Box::new(BashStmt::Command {
+                    name: right_cmd.clone(),
+                    args: vec![],
+                    redirects: vec![],
+                    span: Span::dummy(),
+                }),
+                span: Span::dummy(),
+            }],
+            metadata: AstMetadata {
+                source_file: None,
+                line_count: 1,
+                parse_time_ms: 0,
+            },
+        };
+
+        let purified = generate_purified_bash(&ast);
+
+        // Must contain || operator
+        prop_assert!(
+            purified.contains("||"),
+            "OrList must generate || in output: {}",
+            purified
+        );
+
+        // Must contain both command names
+        prop_assert!(
+            purified.contains(&left_cmd) && purified.contains(&right_cmd),
+            "Both commands must be preserved: {}",
+            purified
+        );
+    }
+
+    /// Property: Parsing logical operators never panics
+    /// Issue #59: || and && after commands must parse safely
+    #[test]
+    fn prop_ISSUE_059_004_logical_operators_parse_safely(
+        // Use bash_identifier() which excludes keywords like fi, if, do, done, etc.
+        cmd in bash_identifier(),
+        op in prop::sample::select(vec!["&&", "||"])
+    ) {
+        use crate::bash_parser::BashParser;
+
+        let script = format!("{} {} true", cmd, op);
+
+        // Must not panic
+        let result = BashParser::new(&script);
+        prop_assert!(result.is_ok(), "Lexer should succeed");
+
+        let mut parser = result.unwrap();
+        let parse_result = parser.parse();
+
+        // Must parse successfully
+        prop_assert!(
+            parse_result.is_ok(),
+            "Parser should accept '{}': {:?}",
+            script,
+            parse_result.err()
+        );
+    }
 }
