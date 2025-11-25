@@ -113,6 +113,11 @@ pub enum BashStmt {
         right: Box<BashStmt>,
         span: Span,
     },
+
+    /// Brace group: { cmd1; cmd2; }
+    /// Groups commands together as a compound command
+    /// Issue #60: Support for brace groups in || and && contexts
+    BraceGroup { body: Vec<BashStmt>, span: Span },
 }
 
 /// Case statement arm
@@ -329,6 +334,7 @@ impl BashStmt {
             BashStmt::Pipeline { .. } => "Pipeline",
             BashStmt::AndList { .. } => "AndList",
             BashStmt::OrList { .. } => "OrList",
+            BashStmt::BraceGroup { .. } => "BraceGroup",
         }
     }
 
@@ -347,7 +353,8 @@ impl BashStmt {
             | BashStmt::Comment { span, .. }
             | BashStmt::Pipeline { span, .. }
             | BashStmt::AndList { span, .. }
-            | BashStmt::OrList { span, .. } => *span,
+            | BashStmt::OrList { span, .. }
+            | BashStmt::BraceGroup { span, .. } => *span,
         };
 
         // Convert bash_parser::Span to tracing::Span
@@ -376,6 +383,7 @@ impl fmt::Display for BashStmt {
             BashStmt::Pipeline { commands, .. } => write!(f, "Pipeline({} cmds)", commands.len()),
             BashStmt::AndList { .. } => write!(f, "AndList"),
             BashStmt::OrList { .. } => write!(f, "OrList"),
+            BashStmt::BraceGroup { body, .. } => write!(f, "BraceGroup({} stmts)", body.len()),
         }
     }
 }

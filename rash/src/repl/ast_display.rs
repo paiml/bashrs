@@ -124,6 +124,9 @@ fn format_statement(stmt: &BashStmt, indent: usize) -> String {
         BashStmt::OrList { .. } => {
             format!("{}OrList (||)", indent_str)
         }
+        BashStmt::BraceGroup { body, .. } => {
+            format!("{}BraceGroup ({} statements)", indent_str, body.len())
+        }
     }
 }
 

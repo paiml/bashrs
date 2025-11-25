@@ -353,6 +353,19 @@ impl Purifier {
                     span: *span,
                 })
             }
+
+            BashStmt::BraceGroup { body, span } => {
+                // Purify all statements in the brace group
+                let mut purified_body = Vec::new();
+                for stmt in body {
+                    purified_body.push(self.purify_statement(stmt)?);
+                }
+
+                Ok(BashStmt::BraceGroup {
+                    body: purified_body,
+                    span: *span,
+                })
+            }
         }
     }
 

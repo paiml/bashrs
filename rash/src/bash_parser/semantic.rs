@@ -281,6 +281,13 @@ impl SemanticAnalyzer {
                 self.analyze_statement(left, scope)?;
                 self.analyze_statement(right, scope)?;
             }
+
+            BashStmt::BraceGroup { body, .. } => {
+                // Analyze all statements in the brace group
+                for stmt in body {
+                    self.analyze_statement(stmt, scope)?;
+                }
+            }
         }
 
         Ok(())

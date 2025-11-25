@@ -232,6 +232,14 @@ impl BashToRashTranspiler {
                 let right_str = self.transpile_statement(right)?;
                 Ok(format!("{} || {}", left_str, right_str))
             }
+
+            BashStmt::BraceGroup { body, .. } => {
+                // Transpile brace group as a block
+                self.current_indent += 1;
+                let body_rash = self.transpile_block(body)?;
+                self.current_indent -= 1;
+                Ok(format!("{{\n{}\n}}", body_rash))
+            }
         }
     }
 
