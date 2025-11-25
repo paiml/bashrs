@@ -5,14 +5,14 @@
 // add an escaped quote, and start a new string.
 //
 // Examples:
-// Bad:
+// Incorrect:
 //   echo 'can\'t'              // Won't work - backslash is literal
-//   msg='it\'s broken'         // Syntax error
+//   msg='it\'s wrong'          // Syntax error
 //
-// Good:
+// Correct:
 //   echo 'can'\''t'            // End string, escaped quote, new string
 //   echo "can't"               // Use double quotes instead
-//   msg='it'"'"'s broken'      // End, quote in double quotes, continue
+//   msg='it'"'"'s fixed'       // End, quote in double quotes, continue
 //
 // Impact: Syntax errors, incorrect string values
 
