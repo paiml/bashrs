@@ -79,6 +79,19 @@ pub enum BashStmt {
         span: Span,
     },
 
+    /// C-style for loop: for ((init; cond; incr)); do BODY; done
+    /// Issue #68: Bash-specific construct, purified to POSIX while loop
+    ForCStyle {
+        /// Initialization expression (e.g., "i=0")
+        init: String,
+        /// Condition expression (e.g., "i<10")
+        condition: String,
+        /// Increment expression (e.g., "i++")
+        increment: String,
+        body: Vec<BashStmt>,
+        span: Span,
+    },
+
     /// Return statement
     Return { code: Option<BashExpr>, span: Span },
 
@@ -333,6 +346,7 @@ impl BashStmt {
             BashStmt::While { .. } => "While",
             BashStmt::Until { .. } => "Until",
             BashStmt::For { .. } => "For",
+            BashStmt::ForCStyle { .. } => "ForCStyle",
             BashStmt::Case { .. } => "Case",
             BashStmt::Return { .. } => "Return",
             BashStmt::Comment { .. } => "Comment",
@@ -353,6 +367,7 @@ impl BashStmt {
             | BashStmt::While { span, .. }
             | BashStmt::Until { span, .. }
             | BashStmt::For { span, .. }
+            | BashStmt::ForCStyle { span, .. }
             | BashStmt::Case { span, .. }
             | BashStmt::Return { span, .. }
             | BashStmt::Comment { span, .. }
@@ -382,6 +397,7 @@ impl fmt::Display for BashStmt {
             BashStmt::While { .. } => write!(f, "While"),
             BashStmt::Until { .. } => write!(f, "Until"),
             BashStmt::For { variable, .. } => write!(f, "For({})", variable),
+            BashStmt::ForCStyle { .. } => write!(f, "ForCStyle"),
             BashStmt::Case { .. } => write!(f, "Case"),
             BashStmt::Return { .. } => write!(f, "Return"),
             BashStmt::Comment { .. } => write!(f, "Comment"),

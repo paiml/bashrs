@@ -91,6 +91,22 @@ fn format_statement(stmt: &BashStmt, indent: usize) -> String {
                 body.len()
             )
         }
+        BashStmt::ForCStyle {
+            init,
+            condition,
+            increment,
+            body,
+            ..
+        } => {
+            format!(
+                "{}C-style for loop: {}; {}; {} ({} statements)",
+                indent_str,
+                init,
+                condition,
+                increment,
+                body.len()
+            )
+        }
         BashStmt::Function { name, body, .. } => {
             format!(
                 "{}Function: {} ({} statements)",

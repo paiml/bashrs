@@ -243,6 +243,15 @@ impl SemanticAnalyzer {
                 }
             }
 
+            // Issue #68: C-style for loop
+            BashStmt::ForCStyle { body, .. } => {
+                // For C-style loops, we don't analyze the init/condition/increment strings
+                // as they are raw C-style expressions that will be converted to POSIX
+                for stmt in body {
+                    self.analyze_statement(stmt, scope)?;
+                }
+            }
+
             BashStmt::Return { code, .. } => {
                 if let Some(expr) = code {
                     self.analyze_expression(expr, scope)?;

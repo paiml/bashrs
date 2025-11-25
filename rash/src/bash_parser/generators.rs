@@ -108,6 +108,23 @@ fn generate_statement(stmt: &BashStmt) -> String {
             for_stmt.push_str("done");
             for_stmt
         }
+        // Issue #68: C-style for loop generator
+        BashStmt::ForCStyle {
+            init,
+            condition,
+            increment,
+            body,
+            ..
+        } => {
+            let mut for_stmt = format!("for (({}; {}; {})); do\n", init, condition, increment);
+            for stmt in body {
+                for_stmt.push_str("    ");
+                for_stmt.push_str(&generate_statement(stmt));
+                for_stmt.push('\n');
+            }
+            for_stmt.push_str("done");
+            for_stmt
+        }
         BashStmt::While {
             condition, body, ..
         } => {

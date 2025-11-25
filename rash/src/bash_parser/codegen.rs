@@ -111,6 +111,51 @@ fn generate_statement(stmt: &BashStmt) -> String {
             for_stmt.push_str("done");
             for_stmt
         }
+        // Issue #68: C-style for loop → POSIX while loop transformation
+        BashStmt::ForCStyle {
+            init,
+            condition,
+            increment,
+            body,
+            ..
+        } => {
+            // Convert C-style for loop to POSIX while loop:
+            // for ((i=0; i<10; i++)); do ... done
+            // →
+            // i=0
+            // while [ "$i" -lt 10 ]; do
+            //     ...
+            //     i=$((i + 1))
+            // done
+            let mut output = String::new();
+
+            // Emit initialization (e.g., i=0)
+            if !init.is_empty() {
+                output.push_str(&convert_c_init_to_posix(init));
+                output.push('\n');
+            }
+
+            // Emit while loop with condition
+            let posix_condition = convert_c_condition_to_posix(condition);
+            output.push_str(&format!("while {}; do\n", posix_condition));
+
+            // Emit body
+            for stmt in body {
+                output.push_str("    ");
+                output.push_str(&generate_statement(stmt));
+                output.push('\n');
+            }
+
+            // Emit increment at end of loop body
+            if !increment.is_empty() {
+                output.push_str("    ");
+                output.push_str(&convert_c_increment_to_posix(increment));
+                output.push('\n');
+            }
+
+            output.push_str("done");
+            output
+        }
         BashStmt::While {
             condition, body, ..
         } => {
@@ -478,5 +523,114 @@ fn generate_test_expr(expr: &TestExpr) -> String {
         TestExpr::Not(expr) => {
             format!("! {}", generate_test_expr(expr))
         }
+    }
+}
+
+/// Issue #68: Convert C-style for loop initialization to POSIX
+/// Example: "i=0" → "i=0"
+fn convert_c_init_to_posix(init: &str) -> String {
+    // Most initializations are already valid POSIX (e.g., i=0)
+    init.to_string()
+}
+
+/// Issue #68: Convert C-style for loop condition to POSIX test
+/// Example: "i<10" → "[ \"$i\" -lt 10 ]"
+fn convert_c_condition_to_posix(condition: &str) -> String {
+    let condition = condition.trim();
+
+    // Handle common comparison operators
+    if let Some(pos) = condition.find("<=") {
+        let (left, right) = condition.split_at(pos);
+        let right = &right[2..]; // skip "<="
+        let var = extract_var_name(left.trim());
+        return format!("[ \"${}\" -le {} ]", var, right.trim());
+    }
+    if let Some(pos) = condition.find(">=") {
+        let (left, right) = condition.split_at(pos);
+        let right = &right[2..]; // skip ">="
+        let var = extract_var_name(left.trim());
+        return format!("[ \"${}\" -ge {} ]", var, right.trim());
+    }
+    if let Some(pos) = condition.find("!=") {
+        let (left, right) = condition.split_at(pos);
+        let right = &right[2..]; // skip "!="
+        let var = extract_var_name(left.trim());
+        return format!("[ \"${}\" -ne {} ]", var, right.trim());
+    }
+    if let Some(pos) = condition.find("==") {
+        let (left, right) = condition.split_at(pos);
+        let right = &right[2..]; // skip "=="
+        let var = extract_var_name(left.trim());
+        return format!("[ \"${}\" -eq {} ]", var, right.trim());
+    }
+    if let Some(pos) = condition.find('<') {
+        let (left, right) = condition.split_at(pos);
+        let right = &right[1..]; // skip "<"
+        let var = extract_var_name(left.trim());
+        return format!("[ \"${}\" -lt {} ]", var, right.trim());
+    }
+    if let Some(pos) = condition.find('>') {
+        let (left, right) = condition.split_at(pos);
+        let right = &right[1..]; // skip ">"
+        let var = extract_var_name(left.trim());
+        return format!("[ \"${}\" -gt {} ]", var, right.trim());
+    }
+
+    // Fallback: wrap as-is in test brackets
+    format!("[ {} ]", condition)
+}
+
+/// Issue #68: Convert C-style increment/decrement to POSIX arithmetic
+/// Example: "i++" → "i=$((i + 1))"
+fn convert_c_increment_to_posix(increment: &str) -> String {
+    let increment = increment.trim();
+
+    // Handle i++
+    if let Some(var) = increment.strip_suffix("++") {
+        return format!("{}=$(({}+1))", var, var);
+    }
+
+    // Handle ++i
+    if let Some(var) = increment.strip_prefix("++") {
+        return format!("{}=$(({}+1))", var, var);
+    }
+
+    // Handle i--
+    if let Some(var) = increment.strip_suffix("--") {
+        return format!("{}=$(({}-1))", var, var);
+    }
+
+    // Handle --i
+    if let Some(var) = increment.strip_prefix("--") {
+        return format!("{}=$(({}-1))", var, var);
+    }
+
+    // Handle i+=n or i-=n
+    if let Some(pos) = increment.find("+=") {
+        let var = increment[..pos].trim();
+        let val = increment[pos + 2..].trim();
+        return format!("{}=$(({}+{}))", var, var, val);
+    }
+    if let Some(pos) = increment.find("-=") {
+        let var = increment[..pos].trim();
+        let val = increment[pos + 2..].trim();
+        return format!("{}=$(({}-{}))", var, var, val);
+    }
+
+    // Handle i=i+1 style
+    if increment.contains('=') {
+        return increment.to_string();
+    }
+
+    // Fallback: wrap in arithmetic expansion
+    format!(":{}", increment) // No-op fallback
+}
+
+/// Extract variable name from an expression (strip $ prefix if present)
+fn extract_var_name(s: &str) -> String {
+    if let Some(stripped) = s.strip_prefix('$') {
+        stripped.to_string()
+    } else {
+        s.to_string()
     }
 }
