@@ -247,6 +247,11 @@ pub enum Redirect {
     /// File descriptor duplication: 2>&1
     /// Duplicates from_fd to to_fd
     Duplicate { from_fd: i32, to_fd: i32 },
+
+    /// Here-string: <<< "string" (Issue #61)
+    /// Provides a string to stdin without needing a heredoc
+    /// Note: This is a bash-specific feature, not POSIX
+    HereString { content: String },
 }
 
 /// Arithmetic expression

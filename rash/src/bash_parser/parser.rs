@@ -889,6 +889,11 @@ impl BashParser {
                 self.advance(); // consume '>>'
                 let target = self.parse_redirect_target()?;
                 redirects.push(Redirect::AppendError { target });
+            } else if let Some(Token::HereString(content)) = self.peek() {
+                // Issue #61: Here-string: <<< "string"
+                let content = content.clone();
+                self.advance(); // consume HereString token
+                redirects.push(Redirect::HereString { content });
             } else if matches!(self.peek(), Some(Token::Lt)) {
                 // Input redirection: < file
                 self.advance(); // consume '<'
