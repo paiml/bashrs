@@ -187,6 +187,18 @@ fn generate_statement(stmt: &BashStmt) -> String {
                 generate_statement(right)
             )
         }
+        BashStmt::BraceGroup { body, .. } => {
+            // Generate brace group: { cmd1; cmd2; }
+            let mut brace = String::from("{ ");
+            for (i, stmt) in body.iter().enumerate() {
+                if i > 0 {
+                    brace.push_str("; ");
+                }
+                brace.push_str(&generate_statement(stmt));
+            }
+            brace.push_str("; }");
+            brace
+        }
     }
 }
 

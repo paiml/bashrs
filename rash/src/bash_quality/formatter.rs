@@ -265,6 +265,15 @@ impl Formatter {
                 let right_fmt = self.format_stmt(right, 0).trim().to_string();
                 format!("{}{} || {}", indent_str, left_fmt, right_fmt)
             }
+
+            BashStmt::BraceGroup { body, .. } => {
+                // Format brace group: { cmd1; cmd2; }
+                let stmts: Vec<String> = body
+                    .iter()
+                    .map(|s| self.format_stmt(s, 0).trim().to_string())
+                    .collect();
+                format!("{}{{ {}; }}", indent_str, stmts.join("; "))
+            }
         }
     }
 

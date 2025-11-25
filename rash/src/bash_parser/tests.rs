@@ -23478,3 +23478,100 @@ fn test_ISSUE_059_004_and_operator_after_command() {
         "Should have at least one statement"
     );
 }
+
+/// Issue #60: Test parsing brace groups after || operator
+/// INPUT: cargo fmt --check || { echo "error"; exit 1; }
+/// BUG: Fails with "Invalid syntax: Expected command name"
+/// EXPECTED: Parses as OrList with command and brace group
+#[test]
+fn test_ISSUE_060_001_brace_group_after_or() {
+    // RED PHASE: This test currently fails because brace groups aren't parsed
+    let script = r#"cargo fmt --check || { echo "error"; exit 1; }"#;
+
+    let mut parser = BashParser::new(script).expect("Lexer should succeed");
+    let result = parser.parse();
+
+    // ASSERT: Parser must accept brace groups after ||
+    assert!(
+        result.is_ok(),
+        "Parser MUST accept brace group after ||: {:?}",
+        result.err()
+    );
+
+    let ast = result.expect("Should parse");
+    assert!(
+        !ast.statements.is_empty(),
+        "Should have at least one statement"
+    );
+
+    // Should be an OrList
+    match &ast.statements[0] {
+        BashStmt::OrList { left, right, .. } => {
+            // Left should be a command
+            assert!(
+                matches!(**left, BashStmt::Command { .. }),
+                "Left side should be a command, got: {:?}",
+                left
+            );
+            // Right should be a brace group
+            assert!(
+                matches!(**right, BashStmt::BraceGroup { .. }),
+                "Right side should be a brace group, got: {:?}",
+                right
+            );
+        }
+        other => panic!("Expected OrList statement, got: {:?}", other),
+    }
+}
+
+/// Issue #60: Test parsing standalone brace group
+/// INPUT: { echo "hello"; echo "world"; }
+#[test]
+fn test_ISSUE_060_002_standalone_brace_group() {
+    let script = r#"{ echo "hello"; echo "world"; }"#;
+
+    let mut parser = BashParser::new(script).expect("Lexer should succeed");
+    let result = parser.parse();
+
+    // ASSERT: Parser must accept standalone brace groups
+    assert!(
+        result.is_ok(),
+        "Parser MUST accept standalone brace group: {:?}",
+        result.err()
+    );
+
+    let ast = result.expect("Should parse");
+    assert!(
+        !ast.statements.is_empty(),
+        "Should have at least one statement"
+    );
+
+    // Should be a BraceGroup
+    match &ast.statements[0] {
+        BashStmt::BraceGroup { body, .. } => {
+            assert!(
+                body.len() >= 2,
+                "Brace group should have at least 2 statements, got: {}",
+                body.len()
+            );
+        }
+        other => panic!("Expected BraceGroup statement, got: {:?}", other),
+    }
+}
+
+/// Issue #60: Test parsing brace group after && operator
+/// INPUT: test -f file && { echo "exists"; cat file; }
+#[test]
+fn test_ISSUE_060_003_brace_group_after_and() {
+    let script = r#"test -f file && { echo "exists"; cat file; }"#;
+
+    let mut parser = BashParser::new(script).expect("Lexer should succeed");
+    let result = parser.parse();
+
+    // ASSERT: Parser must accept brace groups after &&
+    assert!(
+        result.is_ok(),
+        "Parser MUST accept brace group after &&: {:?}",
+        result.err()
+    );
+}

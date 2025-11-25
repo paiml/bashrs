@@ -318,6 +318,8 @@ impl BashParser {
                     self.parse_command()
                 }
             }
+            // Issue #60: Brace group { cmd1; cmd2; } - compound command
+            Some(Token::LeftBrace) => self.parse_brace_group(),
             _ => self.parse_command(),
         }?;
 
@@ -453,6 +455,23 @@ impl BashParser {
 
         Ok(BashStmt::While {
             condition,
+            body,
+            span: Span::dummy(),
+        })
+    }
+
+    /// Parse a brace group: { cmd1; cmd2; }
+    /// Issue #60: Brace groups are compound commands that can appear after || and &&
+    fn parse_brace_group(&mut self) -> ParseResult<BashStmt> {
+        self.expect(Token::LeftBrace)?;
+        self.skip_newlines();
+
+        // Parse statements until we hit the closing brace
+        let body = self.parse_block_until(&[Token::RightBrace])?;
+
+        self.expect(Token::RightBrace)?;
+
+        Ok(BashStmt::BraceGroup {
             body,
             span: Span::dummy(),
         })
@@ -1291,7 +1310,11 @@ impl BashParser {
         let mut statements = Vec::new();
 
         while !self.is_at_end() {
-            self.skip_newlines();
+            // Skip newlines and semicolons between statements
+            // Issue #60: Brace groups use semicolons as statement separators
+            while self.check(&Token::Newline) || self.check(&Token::Semicolon) {
+                self.advance();
+            }
 
             if terminators.iter().any(|t| self.check(t)) {
                 break;
