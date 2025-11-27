@@ -47,7 +47,7 @@ glob = "0.3"    # For .bashrsignore pattern matching (Issue #58)
 rustyline.workspace = true  # REPL terminal line editing
 sysinfo = "0.31"  # For bench command - CPU/RAM/OS detection
 schemars = "0.8"  # For JSON schema generation (Issue #12)
-# bashrs-oracle = { path = "../bashrs-oracle", optional = true }  # ML-powered error classification (publish separately)
+bashrs-oracle = { version = "6.40", optional = true }  # ML-powered error classification
 
 # Compile mode dependencies (optional - not needed for WASM)
 zstd = { version = "0.13", optional = true }
@@ -102,7 +102,7 @@ pretty-errors = []
 lsp = []
 completions = []
 watch = []
-# oracle = ["bashrs-oracle"]  # ML-powered error classification and fix suggestions (publish separately)
+oracle = ["bashrs-oracle"]  # ML-powered error classification and fix suggestions
 wasm = ["wasm-bindgen", "wasm-bindgen-futures", "js-sys", "web-sys", "console_error_panic_hook", "getrandom"]  # Phase 0: WASM feasibility study
 # playground = ["ratatui", "ropey", "tree-sitter", "tree-sitter-rust", "crossbeam", "dashmap", "petgraph", "rayon", "brotli", "simdutf8", "bit-vec", "lru"]  # Removed from v1.0 - move to separate crate
 # mutation-testing = ["mutagen"] when available
