@@ -1,0 +1,475 @@
+<!DOCTYPE HTML>
+<html lang="en" class="rust sidebar-visible" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>Dogfooding (Self-Validation) - The Rash Book - Shell Safety and Purification</title>
+
+
+        <!-- Custom HTML head -->
+
+        <meta name="description" content="A comprehensive guide to Rash: shell safety, purification, and linting">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="../favicon.svg">
+        <link rel="shortcut icon" href="../favicon.png">
+        <link rel="stylesheet" href="../css/variables.css">
+        <link rel="stylesheet" href="../css/general.css">
+        <link rel="stylesheet" href="../css/chrome.css">
+        <link rel="stylesheet" href="../css/print.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="../FontAwesome/css/font-awesome.css">
+        <link rel="stylesheet" href="../fonts/fonts.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" href="../highlight.css">
+        <link rel="stylesheet" href="../tomorrow-night.css">
+        <link rel="stylesheet" href="../ayu-highlight.css">
+
+        <!-- Custom theme stylesheets -->
+
+
+        <!-- Provide site root to javascript -->
+        <script>
+            var path_to_root = "../";
+            var default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "navy" : "rust";
+        </script>
+        <!-- Start loading toc.js asap -->
+        <script src="../toc.js"></script>
+    </head>
+    <body>
+    <div id="body-container">
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                var theme = localStorage.getItem('mdbook-theme');
+                var sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            var theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            const html = document.documentElement;
+            html.classList.remove('rust')
+            html.classList.add(theme);
+            html.classList.add("js");
+        </script>
+
+        <input type="checkbox" id="sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            var sidebar = null;
+            var sidebar_toggle = document.getElementById("sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+            }
+            sidebar_toggle.checked = sidebar === 'visible';
+            html.classList.remove('sidebar-visible');
+            html.classList.add("sidebar-" + sidebar);
+        </script>
+
+        <nav id="sidebar" class="sidebar" aria-label="Table of contents">
+            <!-- populated by js -->
+            <mdbook-sidebar-scrollbox class="sidebar-scrollbox"></mdbook-sidebar-scrollbox>
+            <noscript>
+                <iframe class="sidebar-iframe-outer" src="../toc.html"></iframe>
+            </noscript>
+            <div id="sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <div id="page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="menu-bar-hover-placeholder"></div>
+                <div id="menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="sidebar-toggle" class="icon-button" for="sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="sidebar">
+                            <i class="fa fa-bars"></i>
+                        </label>
+                        <button id="theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="theme-list">
+                            <i class="fa fa-paint-brush"></i>
+                        </button>
+                        <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
+                        </ul>
+                        <button id="search-toggle" class="icon-button" type="button" title="Search. (Shortkey: s)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="S" aria-controls="searchbar">
+                            <i class="fa fa-search"></i>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">The Rash Book - Shell Safety and Purification</h1>
+
+                    <div class="right-buttons">
+                        <a href="../print.html" title="Print this book" aria-label="Print this book">
+                            <i id="print-button" class="fa fa-print"></i>
+                        </a>
+                        <a href="https://github.com/paiml/bashrs" title="Git repository" aria-label="Git repository">
+                            <i id="git-repository-button" class="fa fa-github"></i>
+                        </a>
+                        <a href="https://github.com/paiml/bashrs/edit/main/book/src/advanced/dogfooding.md" title="Suggest an edit" aria-label="Suggest an edit">
+                            <i id="git-edit-button" class="fa fa-edit"></i>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="search-wrapper" class="hidden">
+                    <form id="searchbar-outer" class="searchbar-outer">
+                        <input type="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                    </form>
+                    <div id="searchresults-outer" class="searchresults-outer hidden">
+                        <div id="searchresults-header" class="searchresults-header"></div>
+                        <ul id="searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="content" class="content">
+                    <main>
+                        <h1 id="dogfooding-self-validation"><a class="header" href="#dogfooding-self-validation">Dogfooding (Self-Validation)</a></h1>
+<p>bashrs validates its own codebase using its own linting tools - a practice known as "dogfooding." This ensures the tool works correctly on real-world scripts and demonstrates confidence in its own quality.</p>
+<h2 id="what-is-dogfooding"><a class="header" href="#what-is-dogfooding">What is Dogfooding?</a></h2>
+<p><strong>Dogfooding</strong> (or "eating your own dog food") means using your own product internally. For bashrs, this means:</p>
+<ul>
+<li>Linting bashrs's own Makefile with <code>bashrs make lint</code></li>
+<li>Linting all shell scripts in the repository with <code>bashrs lint</code></li>
+<li>Running purification on example scripts</li>
+<li>Validating synthetic test corpora</li>
+</ul>
+<p>This practice ensures bashrs can handle real-world complexity and catches regressions early.</p>
+<h2 id="quick-start"><a class="header" href="#quick-start">Quick Start</a></h2>
+<pre><code class="language-bash"><span class="boring"> Quick dogfood check (Makefile + key scripts)
+</span>make dogfood-quick
+
+<span class="boring"> Full self-validation (all 75+ scripts)
+</span>make dogfood
+
+<span class="boring"> Lint just the Makefile
+</span>make lint-makefile
+
+<span class="boring"> Lint all shell scripts
+</span>make lint-scripts
+</code></pre>
+<h2 id="dogfooding-results"><a class="header" href="#dogfooding-results">Dogfooding Results</a></h2>
+<p>bashrs self-validation produces comprehensive metrics:</p>
+<pre><code class="language-bash">$ make dogfood
+
+🐕 bashrs Dogfooding - Self-Validation
+=======================================
+
+=== Phase 1: Makefile Validation ===
+Summary: 2 error(s), 51 warning(s), 0 info(s)
+
+=== Phase 2: Shell Script Validation ===
+
+=== Dogfooding Summary ===
+Shell scripts scanned: 75
+Total errors: 2515
+Total warnings: 5914
+Total infos: 1963
+
+✅ Dogfooding complete - bashrs validated its own codebase!
+
+📊 Full report: docs/dogfooding/BASHRS_DOGFOODING.md
+</code></pre>
+<h3 id="metrics-breakdown"><a class="header" href="#metrics-breakdown">Metrics Breakdown</a></h3>
+<div class="table-wrapper"><table><thead><tr><th>Metric</th><th>Value</th><th>Notes</th></tr></thead><tbody>
+<tr><td>Shell scripts scanned</td><td>75</td><td>All <code>.sh</code> files in repo</td></tr>
+<tr><td>Total errors</td><td>2,515</td><td>Mostly in test fixtures</td></tr>
+<tr><td>Total warnings</td><td>5,914</td><td>Quoting, variables</td></tr>
+<tr><td>Total infos</td><td>1,963</td><td>Best practice suggestions</td></tr>
+<tr><td>Makefile errors</td><td>2</td><td>SC2299 false positives</td></tr>
+<tr><td>Makefile warnings</td><td>51</td><td>MAKE003 unquoted vars</td></tr>
+</tbody></table>
+</div>
+<h3 id="top-error-categories"><a class="header" href="#top-error-categories">Top Error Categories</a></h3>
+<pre><code class="language-bash"><span class="boring"> Error distribution (from dogfooding)
+</span>SEC010 (Path traversal risk):     1,187
+DET001 ($RANDOM usage):             424
+SC2111 (ksh function syntax):       359
+DET002 (Timestamp usage):           352
+SC2086 (Unquoted variable):       2,199  # warning
+</code></pre>
+<h2 id="make-targets"><a class="header" href="#make-targets">Make Targets</a></h2>
+<h3 id="make-dogfood"><a class="header" href="#make-dogfood"><code>make dogfood</code></a></h3>
+<p>Full self-validation of all scripts:</p>
+<pre><code class="language-bash">make dogfood
+</code></pre>
+<p><strong>What it does:</strong></p>
+<ol>
+<li>Builds bashrs in release mode</li>
+<li>Lints the Makefile with <code>bashrs make lint</code></li>
+<li>Scans all <code>.sh</code> files (excluding node_modules, target)</li>
+<li>Aggregates error/warning/info counts</li>
+<li>Reports summary statistics</li>
+</ol>
+<p><strong>Runtime:</strong> ~2 minutes (depends on script count)</p>
+<h3 id="make-dogfood-quick"><a class="header" href="#make-dogfood-quick"><code>make dogfood-quick</code></a></h3>
+<p>Quick validation of key files only:</p>
+<pre><code class="language-bash">make dogfood-quick
+</code></pre>
+<p><strong>What it does:</strong></p>
+<ol>
+<li>Lints Makefile</li>
+<li>Lints <code>install.sh</code></li>
+<li>Lints <code>scripts/validate-book.sh</code></li>
+</ol>
+<p><strong>Runtime:</strong> ~5 seconds</p>
+<h3 id="make-lint-scripts"><a class="header" href="#make-lint-scripts"><code>make lint-scripts</code></a></h3>
+<p>Lint all shell scripts:</p>
+<pre><code class="language-bash">make lint-scripts
+</code></pre>
+<h3 id="make-lint-makefile"><a class="header" href="#make-lint-makefile"><code>make lint-makefile</code></a></h3>
+<p>Lint just the Makefile:</p>
+<pre><code class="language-bash">make lint-makefile
+</code></pre>
+<h2 id="cicd-integration"><a class="header" href="#cicd-integration">CI/CD Integration</a></h2>
+<p>bashrs includes a GitHub Actions workflow for automated dogfooding:</p>
+<pre><code class="language-yaml"># .github/workflows/dogfooding.yml
+name: Dogfooding (Self-Validation)
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  schedule:
+    - cron: '0 0 * * 1'  # Weekly on Monday
+
+jobs:
+  dogfood:
+    name: bashrs Self-Validation
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - name: Build bashrs
+      run: cargo build --release --bin bashrs
+    - name: Dogfood - Lint Makefile
+      run: ./target/release/bashrs make lint Makefile
+    - name: Dogfood - Lint Shell Scripts
+      run: |
+        for script in $(find . -name "*.sh" -type f); do
+          ./target/release/bashrs lint "$script" || true
+        done
+</code></pre>
+<p><strong>Features:</strong></p>
+<ul>
+<li>Runs on every push/PR to main</li>
+<li>Weekly scheduled runs catch regressions</li>
+<li>Generates GitHub Actions summary with metrics</li>
+<li>Synthetic test corpus validation</li>
+</ul>
+<h2 id="understanding-the-results"><a class="header" href="#understanding-the-results">Understanding the Results</a></h2>
+<h3 id="why-so-many-issues"><a class="header" href="#why-so-many-issues">Why So Many Issues?</a></h3>
+<p>Most issues come from <strong>intentional test fixtures</strong> that demonstrate bashrs's detection capabilities:</p>
+<pre><code class="language-bash"><span class="boring"> examples/backup-messy.sh - Intentionally non-deterministic
+</span>SESSION_ID="backup-$RANDOM-$(date +%s)"  # DET001, DET002
+
+<span class="boring"> tests/purification_examples/legacy-deploy.sh - Shows before/after
+</span>TIMESTAMP=$(date +%s)  # Intentional for demonstration
+</code></pre>
+<p>These files exist to:</p>
+<ol>
+<li>Test that bashrs detects issues correctly</li>
+<li>Demonstrate purification transformations</li>
+<li>Provide before/after examples in documentation</li>
+</ol>
+<h3 id="real-issues-vs-test-fixtures"><a class="header" href="#real-issues-vs-test-fixtures">Real Issues vs Test Fixtures</a></h3>
+<div class="table-wrapper"><table><thead><tr><th>Category</th><th>Real Issues</th><th>Test Fixtures</th></tr></thead><tbody>
+<tr><td>SEC010</td><td>~10</td><td>~1,177</td></tr>
+<tr><td>DET001/DET002</td><td>~5</td><td>~771</td></tr>
+<tr><td>SC2086</td><td>~200</td><td>~1,999</td></tr>
+</tbody></table>
+</div>
+<p><strong>Real issues</strong> are in production scripts like <code>install.sh</code> and <code>Makefile</code>.</p>
+<h2 id="synthetic-testing-with-verificar"><a class="header" href="#synthetic-testing-with-verificar">Synthetic Testing with verificar</a></h2>
+<p>bashrs integrates with <a href="https://github.com/paiml/verificar">verificar</a> for synthetic bash test generation:</p>
+<pre><code class="language-bash"><span class="boring"> Generate synthetic bash programs
+</span>cd ../verificar
+cargo run -- generate --language bash --count 1000 --output json &gt; corpus.json
+
+<span class="boring"> Test with bashrs
+</span>cd ../bashrs
+for prog in corpus/*.sh; do
+  bashrs lint "$prog" --format human
+done
+</code></pre>
+<h3 id="current-capabilities"><a class="header" href="#current-capabilities">Current Capabilities</a></h3>
+<p>verificar generates 33 unique bash programs covering:</p>
+<div class="table-wrapper"><table><thead><tr><th>Feature</th><th>Example</th><th>Tested</th></tr></thead><tbody>
+<tr><td>Assignments</td><td><code>x=1</code>, <code>y=hello</code></td><td>✅</td></tr>
+<tr><td>Echo</td><td><code>echo "$x"</code></td><td>✅</td></tr>
+<tr><td>Environment</td><td><code>echo "$HOME"</code></td><td>✅</td></tr>
+<tr><td>Conditionals</td><td><code>if [ $x -eq 0 ]; then</code></td><td>✅</td></tr>
+<tr><td>Loops</td><td><code>for i in 1 2 3; do</code></td><td>✅</td></tr>
+<tr><td>Functions</td><td><code>greet() { echo hello }</code></td><td>✅</td></tr>
+<tr><td>Arithmetic</td><td><code>result=$((1 + 2))</code></td><td>✅</td></tr>
+<tr><td>Pipes</td><td><code>echo hello | wc -c</code></td><td>✅</td></tr>
+</tbody></table>
+</div>
+<p><strong>Results:</strong> 100% of synthetic programs parse without errors.</p>
+<h2 id="best-practices"><a class="header" href="#best-practices">Best Practices</a></h2>
+<h3 id="1-run-dogfood-before-prs"><a class="header" href="#1-run-dogfood-before-prs">1. Run Dogfood Before PRs</a></h3>
+<pre><code class="language-bash"><span class="boring"> Quick check before committing
+</span>make dogfood-quick
+
+<span class="boring"> Full validation before PR
+</span>make dogfood
+</code></pre>
+<h3 id="2-investigate-new-errors"><a class="header" href="#2-investigate-new-errors">2. Investigate New Errors</a></h3>
+<p>If dogfooding reveals new errors, investigate:</p>
+<pre><code class="language-bash"><span class="boring"> Check specific file
+</span>bashrs lint path/to/script.sh --format human
+
+<span class="boring"> Get JSON for analysis
+</span>bashrs lint path/to/script.sh --format json
+</code></pre>
+<h3 id="3-document-false-positives"><a class="header" href="#3-document-false-positives">3. Document False Positives</a></h3>
+<p>If bashrs incorrectly flags valid code, document it:</p>
+<pre><code class="language-bash"><span class="boring"> Example: SC2299 false positive in Makefile
+</span><span class="boring"> ${var:-default} is valid POSIX, but bashrs flags it
+</span><span class="boring"> See: docs/issues/ISSUE-002-SC2299-FALSE-POSITIVE.md
+</span></code></pre>
+<h3 id="4-track-metrics-over-time"><a class="header" href="#4-track-metrics-over-time">4. Track Metrics Over Time</a></h3>
+<p>Monitor dogfooding metrics to catch regressions:</p>
+<pre><code class="language-bash"><span class="boring"> Weekly tracking
+</span>date &gt;&gt; dogfood-metrics.log
+make dogfood-quick | grep "Summary:" &gt;&gt; dogfood-metrics.log
+</code></pre>
+<h2 id="known-issues"><a class="header" href="#known-issues">Known Issues</a></h2>
+<h3 id="sc2299-false-positive"><a class="header" href="#sc2299-false-positive">SC2299 False Positive</a></h3>
+<p>bashrs incorrectly flags <code>${var:-default}</code> as SC2299:</p>
+<pre><code class="language-makefile"># This is VALID POSIX syntax
+THREADS=$${PROPTEST_THREADS:-$$(nproc)}
+</code></pre>
+<p><strong>Status:</strong> Documented in <code>docs/issues/ISSUE-002-SC2299-FALSE-POSITIVE.md</code></p>
+<p><strong>Impact:</strong> 2 false positive errors in Makefile</p>
+<p><strong>Workaround:</strong> None needed - the Makefile works correctly</p>
+<h2 id="example-complete-dogfooding-workflow"><a class="header" href="#example-complete-dogfooding-workflow">Example: Complete Dogfooding Workflow</a></h2>
+<pre><code class="language-bash"><span class="boring"> 1. Build bashrs
+</span>cargo build --release
+
+<span class="boring"> 2. Quick sanity check
+</span>make dogfood-quick
+
+<span class="boring"> 3. Full validation
+</span>make dogfood
+
+<span class="boring"> 4. Check specific script
+</span>bashrs lint install.sh --format human
+
+<span class="boring"> 5. Fix issues
+</span><span class="boring"> Edit script to address warnings
+</span>
+<span class="boring"> 6. Verify fix
+</span>bashrs lint install.sh --format human
+
+<span class="boring"> 7. Commit
+</span>git add install.sh
+git commit -m "fix: Address SC2086 warnings in install.sh"
+</code></pre>
+<h2 id="comparison-with-other-projects"><a class="header" href="#comparison-with-other-projects">Comparison with Other Projects</a></h2>
+<div class="table-wrapper"><table><thead><tr><th>Project</th><th>Self-Validates</th><th>Automated</th><th>Synthetic Tests</th></tr></thead><tbody>
+<tr><td>bashrs</td><td>✅ 75+ scripts</td><td>✅ Weekly CI</td><td>✅ 33 programs</td></tr>
+<tr><td>ShellCheck</td><td>❌</td><td>❌</td><td>❌</td></tr>
+<tr><td>depyler</td><td>✅ 27 files</td><td>✅ CI</td><td>❌</td></tr>
+</tbody></table>
+</div>
+<p>bashrs is the <strong>first shell linting tool with comprehensive automated dogfooding</strong>.</p>
+<h2 id="further-reading"><a class="header" href="#further-reading">Further Reading</a></h2>
+<ul>
+<li><a href="https://github.com/paiml/bashrs/blob/main/docs/dogfooding/BASHRS_DOGFOODING.md">BASHRS_DOGFOODING.md</a> - Full report</li>
+<li><a href="https://github.com/paiml/bashrs/blob/main/docs/dogfooding/QUALITY_METRICS.md">QUALITY_METRICS.md</a> - Metrics dashboard</li>
+<li><a href="https://github.com/paiml/bashrs/blob/main/docs/dogfooding/VERIFICAR_INTEGRATION.md">VERIFICAR_INTEGRATION.md</a> - Synthetic testing</li>
+<li><a href="../contributing/toyota-way.html">Toyota Way Principles</a> - Quality philosophy</li>
+<li><a href="../contributing/extreme-tdd.html">EXTREME TDD</a> - Testing methodology</li>
+</ul>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="../advanced/pmat-integration.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <i class="fa fa-angle-left"></i>
+                            </a>
+
+                            <a rel="next prefetch" href="../reference/cli.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <i class="fa fa-angle-right"></i>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="../advanced/pmat-integration.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <i class="fa fa-angle-left"></i>
+                    </a>
+
+                    <a rel="next prefetch" href="../reference/cli.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <i class="fa fa-angle-right"></i>
+                    </a>
+            </nav>
+
+        </div>
+
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+        <script src="../ace.js"></script>
+        <script src="../editor.js"></script>
+        <script src="../mode-rust.js"></script>
+        <script src="../theme-dawn.js"></script>
+        <script src="../theme-tomorrow_night.js"></script>
+
+        <script src="../elasticlunr.min.js"></script>
+        <script src="../mark.min.js"></script>
+        <script src="../searcher.js"></script>
+
+        <script src="../clipboard.min.js"></script>
+        <script src="../highlight.js"></script>
+        <script src="../book.js"></script>
+
+        <!-- Custom JS scripts -->
+
+
+    </div>
+    </body>
+</html>

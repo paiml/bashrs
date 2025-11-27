@@ -19179,6 +19179,10 @@ bashrs inspect ast.json --format html -o report.html
 <li><code>-o, --output &lt;FILE&gt;</code> - Output file for fixed content</li>
 <li><code>--no-ignore</code> - Disable <code>.bashrsignore</code> file processing</li>
 <li><code>--ignore-file &lt;FILE&gt;</code> - Path to custom ignore file (default: <code>.bashrsignore</code>)</li>
+<li><code>-q, --quiet</code> - Suppress info-level messages, show only warnings and errors</li>
+<li><code>--level &lt;LEVEL&gt;</code> - Minimum severity level: <code>info</code>, <code>warning</code>, <code>error</code> (default: <code>info</code>)</li>
+<li><code>--ignore &lt;RULES&gt;</code> - Ignore specific rule codes (comma-separated: <code>SEC010,DET002</code>)</li>
+<li><code>-e &lt;CODE&gt;</code> - Exclude specific rule (shellcheck-compatible, can be repeated)</li>
 </ul>
 <h3 id="examples-23"><a class="header" href="#examples-23">Examples</a></h3>
 <p>Basic linting:</p>
@@ -19201,6 +19205,17 @@ bashrs inspect ast.json --format html -o report.html
 </code></pre>
 <p>Use custom ignore file:</p>
 <pre><code class="language-bash">bashrs lint script.sh --ignore-file .lint-ignore
+</code></pre>
+<p>Ignore specific rules:</p>
+<pre><code class="language-bash"><span class="boring"> Ignore SEC010 (path traversal) and DET002 (timestamps)
+</span>bashrs lint script.sh --ignore SEC010,DET002
+
+<span class="boring"> Shellcheck-compatible syntax (can repeat -e)
+</span>bashrs lint script.sh -e SEC010 -e DET002
+</code></pre>
+<p>Show only warnings and errors:</p>
+<pre><code class="language-bash">bashrs lint script.sh --quiet
+bashrs lint script.sh --level warning
 </code></pre>
 <h3 id="bashrsignore-support"><a class="header" href="#bashrsignore-support">.bashrsignore Support</a></h3>
 <p>bashrs respects <code>.bashrsignore</code> files for excluding files from linting. See <a href="reference/./ignore-file.html">.bashrsignore File</a> for full documentation.</p>
@@ -19711,22 +19726,127 @@ Available commands:
 <pre><code class="language-bash">bashrs coverage script.sh --format lcov -o coverage.lcov
 </code></pre>
 <hr />
-<h2 id="bashrs-format---format-bash-scripts"><a class="header" href="#bashrs-format---format-bash-scripts"><code>bashrs format</code> - Format Bash Scripts</a></h2>
-<p>Formats bash scripts according to style guidelines.</p>
+<h2 id="bashrs-explain-error---ml-error-classification"><a class="header" href="#bashrs-explain-error---ml-error-classification"><code>bashrs explain-error</code> - ML Error Classification</a></h2>
+<p>Classifies shell errors using machine learning and suggests fixes. Uses a Random Forest classifier trained on 24 error categories.</p>
 <h3 id="usage-20"><a class="header" href="#usage-20">Usage</a></h3>
-<pre><code class="language-bash">bashrs format &lt;FILE&gt;... [OPTIONS]
+<pre><code class="language-bash">bashrs explain-error &lt;ERROR&gt; [OPTIONS]
 </code></pre>
 <h3 id="arguments-19"><a class="header" href="#arguments-19">Arguments</a></h3>
 <ul>
-<li><code>&lt;FILE&gt;...</code> - Input bash script file(s) (one or more)</li>
+<li><code>&lt;ERROR&gt;</code> - Error message to classify</li>
 </ul>
 <h3 id="options-19"><a class="header" href="#options-19">Options</a></h3>
+<ul>
+<li><code>-c, --command &lt;CMD&gt;</code> - Command that produced the error (improves accuracy)</li>
+<li><code>--shell &lt;SHELL&gt;</code> - Shell type: <code>bash</code>, <code>sh</code>, <code>zsh</code> (default: <code>bash</code>)</li>
+<li><code>--format &lt;FORMAT&gt;</code> - Output format: <code>human</code>, <code>json</code> (default: <code>human</code>)</li>
+<li><code>--detailed</code> - Show confidence scores and related patterns</li>
+</ul>
+<h3 id="examples-36"><a class="header" href="#examples-36">Examples</a></h3>
+<p>Basic error classification:</p>
+<pre><code class="language-bash">bashrs explain-error "bash: git: command not found"
+</code></pre>
+<p>Output:</p>
+<pre><code class="language-text">Category: Command: Not Found
+Confidence: 85.0%
+
+Suggested Fix:
+  Check PATH or install the missing command
+</code></pre>
+<p>With command context:</p>
+<pre><code class="language-bash">bashrs explain-error "Permission denied" -c "cat /etc/shadow"
+</code></pre>
+<p>JSON output for automation:</p>
+<pre><code class="language-bash">bashrs explain-error "unbound variable: FOO" --format json
+</code></pre>
+<p>Output:</p>
+<pre><code class="language-json">{
+  "category": "Variable: Unbound",
+  "confidence": 0.85,
+  "suggested_fix": "Initialize variable or use ${VAR:-default}",
+  "related_patterns": [
+    "Use ${VAR:-default} for default values",
+    "Check for typos in variable name"
+  ],
+  "exit_code": 1,
+  "command": null
+}
+</code></pre>
+<p>Detailed analysis:</p>
+<pre><code class="language-bash">bashrs explain-error "syntax error near unexpected token" --detailed
+</code></pre>
+<h3 id="error-categories"><a class="header" href="#error-categories">Error Categories</a></h3>
+<p>The ML oracle classifies errors into 24 categories:</p>
+<p><strong>Syntax Errors (0-3)</strong>:</p>
+<ul>
+<li><code>SyntaxQuoteMismatch</code> - Unmatched quotes (' or ")</li>
+<li><code>SyntaxBracketMismatch</code> - Unmatched brackets ([], {}, ())</li>
+<li><code>SyntaxUnexpectedToken</code> - Unexpected token in input</li>
+<li><code>SyntaxMissingOperand</code> - Missing operand in expression</li>
+</ul>
+<p><strong>Command Errors (10-13)</strong>:</p>
+<ul>
+<li><code>CommandNotFound</code> - Command not found (exit 127)</li>
+<li><code>CommandPermissionDenied</code> - Permission denied (exit 126)</li>
+<li><code>CommandInvalidOption</code> - Invalid option specified</li>
+<li><code>CommandMissingArgument</code> - Required argument missing</li>
+</ul>
+<p><strong>File Errors (20-24)</strong>:</p>
+<ul>
+<li><code>FileNotFound</code> - No such file or directory</li>
+<li><code>FilePermissionDenied</code> - Permission denied for file</li>
+<li><code>FileIsDirectory</code> - Expected file, got directory</li>
+<li><code>FileNotDirectory</code> - Expected directory, got file</li>
+<li><code>FileTooManyOpen</code> - Too many open files</li>
+</ul>
+<p><strong>Variable Errors (30-32)</strong>:</p>
+<ul>
+<li><code>VariableUnbound</code> - Unbound variable</li>
+<li><code>VariableReadonly</code> - Readonly variable modification</li>
+<li><code>VariableBadSubstitution</code> - Bad parameter substitution</li>
+</ul>
+<p><strong>Process Errors (40-42)</strong>:</p>
+<ul>
+<li><code>ProcessSignaled</code> - Process killed by signal</li>
+<li><code>ProcessExitNonZero</code> - Non-zero exit code</li>
+<li><code>ProcessTimeout</code> - Process timeout</li>
+</ul>
+<p><strong>Pipe/Redirect Errors (50-52)</strong>:</p>
+<ul>
+<li><code>PipeBroken</code> - Broken pipe (SIGPIPE)</li>
+<li><code>RedirectFailed</code> - Redirect operation failed</li>
+<li><code>HereDocUnterminated</code> - Unterminated here-doc</li>
+</ul>
+<h3 id="how-it-works-3"><a class="header" href="#how-it-works-3">How It Works</a></h3>
+<ol>
+<li><strong>Feature Extraction</strong>: Extracts features from error message (keywords, exit code, patterns)</li>
+<li><strong>ML Classification</strong>: Random Forest classifier predicts category with confidence score</li>
+<li><strong>Fix Suggestion</strong>: Returns actionable fix based on error category</li>
+<li><strong>Caching</strong>: Model is trained once and cached for fast subsequent queries</li>
+</ol>
+<h3 id="performance-2"><a class="header" href="#performance-2">Performance</a></h3>
+<ul>
+<li>Model training: ~2 seconds (first run only)</li>
+<li>Classification: &lt;10ms per error</li>
+<li>Model size: ~1MB (with zstd compression)</li>
+</ul>
+<hr />
+<h2 id="bashrs-format---format-bash-scripts"><a class="header" href="#bashrs-format---format-bash-scripts"><code>bashrs format</code> - Format Bash Scripts</a></h2>
+<p>Formats bash scripts according to style guidelines.</p>
+<h3 id="usage-21"><a class="header" href="#usage-21">Usage</a></h3>
+<pre><code class="language-bash">bashrs format &lt;FILE&gt;... [OPTIONS]
+</code></pre>
+<h3 id="arguments-20"><a class="header" href="#arguments-20">Arguments</a></h3>
+<ul>
+<li><code>&lt;FILE&gt;...</code> - Input bash script file(s) (one or more)</li>
+</ul>
+<h3 id="options-20"><a class="header" href="#options-20">Options</a></h3>
 <ul>
 <li><code>--check</code> - Check if files are formatted without applying changes</li>
 <li><code>--dry-run</code> - Show diff without applying changes</li>
 <li><code>-o, --output &lt;FILE&gt;</code> - Output file (for single input file)</li>
 </ul>
-<h3 id="examples-36"><a class="header" href="#examples-36">Examples</a></h3>
+<h3 id="examples-37"><a class="header" href="#examples-37">Examples</a></h3>
 <p>Format single file:</p>
 <pre><code class="language-bash">bashrs format script.sh -o script-formatted.sh
 </code></pre>
@@ -19786,7 +19906,7 @@ Available commands:
 <li><code>--strict</code> - Fail on warnings</li>
 <li><code>-v, --verbose</code> - Enable verbose debug output</li>
 </ul>
-<h3 id="examples-37"><a class="header" href="#examples-37">Examples</a></h3>
+<h3 id="examples-38"><a class="header" href="#examples-38">Examples</a></h3>
 <p>Paranoid verification:</p>
 <pre><code class="language-bash">bashrs build src/install.rs --verify paranoid --target posix
 </code></pre>
@@ -20035,7 +20155,7 @@ anyhow = "1.0"
 <li><strong>xtask</strong>: Complex build workflows, CI integration, multi-step processes</li>
 <li><strong>build.rs</strong>: Simple code generation, compile-time dependencies</li>
 </ul>
-<h3 id="examples-38"><a class="header" href="#examples-38">Examples</a></h3>
+<h3 id="examples-39"><a class="header" href="#examples-39">Examples</a></h3>
 <p><strong>Example 1: Custom Workflow</strong></p>
 <pre><code class="language-bash"><span class="boring"> Transpile, verify, and test in one command
 </span>cargo xtask transpile --input src/bootstrap.rs --output bootstrap.sh --verify --test
@@ -20381,7 +20501,7 @@ bashrs [normal]&gt; :purify if then fi
 <tr><td><code>--sandboxed</code></td><td>false</td><td>Run in sandboxed mode (restricted operations)</td></tr>
 </tbody></table>
 </div>
-<h3 id="examples-39"><a class="header" href="#examples-39">Examples</a></h3>
+<h3 id="examples-40"><a class="header" href="#examples-40">Examples</a></h3>
 <p><strong>Enable debug mode</strong>:</p>
 <pre><code class="language-bash">$ bashrs repl --debug
 bashrs REPL v6.7.0 (debug mode enabled)
@@ -20932,7 +21052,7 @@ determinism = true
 idempotency = true
 auto_fix = false  # Never auto-fix in CI
 </code></pre>
-<h2 id="examples-40"><a class="header" href="#examples-40">Examples</a></h2>
+<h2 id="examples-41"><a class="header" href="#examples-41">Examples</a></h2>
 <h3 id="example-1-maximum-safety-configuration"><a class="header" href="#example-1-maximum-safety-configuration">Example 1: Maximum Safety Configuration</a></h3>
 <p>For critical production scripts:</p>
 <pre><code class="language-toml"># bashrs.toml

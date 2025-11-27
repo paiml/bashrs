@@ -269,3 +269,71 @@ fn test_validation_error_reporting() {
     assert!(display.contains("Unquoted variable"));
     assert!(display.contains("Add quotes"));
 }
+
+// ===== COVERAGE IMPROVEMENT TESTS =====
+
+#[test]
+fn test_severity_as_str() {
+    assert_eq!(Severity::Error.as_str(), "error");
+    assert_eq!(Severity::Warning.as_str(), "warning");
+    assert_eq!(Severity::Style.as_str(), "style");
+}
+
+#[test]
+fn test_validation_level_default() {
+    let level: ValidationLevel = Default::default();
+    assert_eq!(level, ValidationLevel::Minimal);
+}
+
+#[test]
+fn test_validation_level_ordering() {
+    assert!(ValidationLevel::None < ValidationLevel::Minimal);
+    assert!(ValidationLevel::Minimal < ValidationLevel::Strict);
+    assert!(ValidationLevel::Strict < ValidationLevel::Paranoid);
+}
+
+#[test]
+fn test_validation_error_without_suggestion() {
+    let error = ValidationError {
+        rule: "SC2006",
+        severity: Severity::Warning,
+        message: "Use $(...) notation".to_string(),
+        suggestion: None,
+        auto_fix: None,
+        line: None,
+        column: None,
+    };
+
+    let display = format!("{error}");
+    assert!(display.contains("SC2006"));
+    assert!(display.contains("warning"));
+    assert!(!display.contains("Suggestion:"));
+}
+
+#[test]
+fn test_validate_shell_snippet_valid() {
+    use super::validate_shell_snippet;
+
+    // Valid shell snippets should pass
+    let result = validate_shell_snippet("echo \"hello world\"");
+    assert!(result.is_ok());
+}
+
+#[test]
+fn test_validate_shell_snippet_invalid() {
+    use super::validate_shell_snippet;
+
+    // Backticks should fail
+    let result = validate_shell_snippet("echo `date`");
+    assert!(result.is_err());
+}
+
+#[test]
+fn test_implemented_rules_count() {
+    use super::IMPLEMENTED_RULES;
+
+    // Ensure we have at least 20 rules implemented
+    assert!(IMPLEMENTED_RULES.len() >= 20);
+    assert!(IMPLEMENTED_RULES.contains(&"SC2086"));
+    assert!(IMPLEMENTED_RULES.contains(&"SC2164"));
+}

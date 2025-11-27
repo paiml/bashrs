@@ -631,6 +631,146 @@ impl Lexer {
         Token::Identifier(word)
     }
 
+    /// Issue #69: Check if current position starts a brace expansion
+    /// Brace expansion: {a,b,c} or {1..10}
+    fn is_brace_expansion(&self) -> bool {
+        // Look ahead to see if there's a comma or .. inside the braces
+        // Must skip quoted strings to avoid false positives like { echo "a,b" }
+        let mut i = self.position + 1; // Skip the '{'
+        let mut depth = 1;
+        let mut in_single_quote = false;
+        let mut in_double_quote = false;
+
+        while i < self.input.len() && depth > 0 {
+            let ch = self.input[i];
+
+            // Handle quote state
+            if ch == '\'' && !in_double_quote {
+                in_single_quote = !in_single_quote;
+                i += 1;
+                continue;
+            }
+            if ch == '"' && !in_single_quote {
+                in_double_quote = !in_double_quote;
+                i += 1;
+                continue;
+            }
+
+            // Skip content inside quotes
+            if in_single_quote || in_double_quote {
+                i += 1;
+                continue;
+            }
+
+            // Check for newlines - function bodies have newlines, brace expansion doesn't
+            if ch == '\n' {
+                return false; // Not brace expansion - likely function body
+            }
+
+            match ch {
+                '{' => depth += 1,
+                '}' => {
+                    depth -= 1;
+                    if depth == 0 {
+                        return false; // No expansion marker found before closing brace
+                    }
+                }
+                ',' => return true, // Found comma - it's brace expansion
+                '.' if i + 1 < self.input.len() && self.input[i + 1] == '.' => {
+                    return true; // Found .. - it's sequence expansion
+                }
+                _ => {}
+            }
+            i += 1;
+        }
+        false
+    }
+
+    /// Issue #67: Read process substitution <(cmd) or >(cmd)
+    fn read_process_substitution(&mut self, direction: char) -> Result<Token, LexerError> {
+        self.advance(); // skip '<' or '>'
+        self.advance(); // skip '('
+
+        let mut content = String::new();
+        let mut depth = 1;
+
+        while !self.is_at_end() && depth > 0 {
+            let ch = self.current_char();
+            if ch == '(' {
+                depth += 1;
+            } else if ch == ')' {
+                depth -= 1;
+                if depth == 0 {
+                    self.advance();
+                    break;
+                }
+            }
+            content.push(self.advance());
+        }
+
+        // Return as identifier for now - proper AST support would need a new variant
+        Ok(Token::Identifier(format!("{}({})", direction, content)))
+    }
+
+    /// Issue #67: Read standalone arithmetic ((expr))
+    fn read_standalone_arithmetic(&mut self) -> Result<Token, LexerError> {
+        self.advance(); // skip first '('
+        self.advance(); // skip second '('
+
+        let mut content = String::new();
+        let mut depth = 2; // Started with ((
+
+        while !self.is_at_end() && depth > 0 {
+            let ch = self.current_char();
+            if ch == '(' {
+                depth += 1;
+                content.push(self.advance());
+            } else if ch == ')' {
+                depth -= 1;
+                if depth <= 1 {
+                    // depth <= 1 means we've seen the first ) of ))
+                    // Don't push it, just advance past both closing parens
+                    self.advance(); // skip first ')'
+                    if !self.is_at_end() && self.current_char() == ')' {
+                        self.advance(); // skip second ')'
+                    }
+                    break;
+                }
+                content.push(self.advance());
+            } else {
+                content.push(self.advance());
+            }
+        }
+
+        // Return as arithmetic expansion token
+        Ok(Token::ArithmeticExpansion(content))
+    }
+
+    /// Issue #69: Read brace expansion as a single identifier token
+    /// {a,b,c} -> Token::Identifier("{a,b,c}")
+    fn read_brace_expansion(&mut self) -> Result<Token, LexerError> {
+        let mut expansion = String::new();
+        let mut depth = 0;
+
+        while !self.is_at_end() {
+            let ch = self.current_char();
+
+            if ch == '{' {
+                depth += 1;
+            } else if ch == '}' {
+                depth -= 1;
+                if depth == 0 {
+                    expansion.push(self.advance());
+                    break;
+                }
+            }
+
+            expansion.push(self.advance());
+        }
+
+        Ok(Token::Identifier(expansion))
+    }
+
     fn read_operator(&mut self) -> Result<Token, LexerError> {
         let ch = self.current_char();
         let next_ch = self.peek_char(1);
@@ -661,6 +801,14 @@ impl Lexer {
                     self.advance(); // skip second '<'
                     return self.read_heredoc();
                 }
+            }
+            ('<', Some('(')) => {
+                // Issue #67: Process substitution <(cmd)
+                return self.read_process_substitution('<');
+            }
+            ('>', Some('(')) => {
+                // Issue #67: Process substitution >(cmd) (output redirection variant)
+                return self.read_process_substitution('>');
             }
             ('<', Some('=')) => {
                 self.advance();
@@ -726,6 +874,10 @@ impl Lexer {
                 self.advance();
                 Token::Ampersand
             }
+            ('(', Some('(')) => {
+                // Issue #67: Standalone arithmetic ((expr))
+                return self.read_standalone_arithmetic();
+            }
             ('(', _) => {
                 self.advance();
                 Token::LeftParen
@@ -735,6 +887,10 @@ impl Lexer {
                 Token::RightParen
             }
             ('{', _) => {
+                // Issue #69: Check for brace expansion {a,b,c} or {1..10}
+                if self.is_brace_expansion() {
+                    return self.read_brace_expansion();
+                }
                 self.advance();
                 Token::LeftBrace
             }

@@ -155,6 +155,22 @@ pub enum Commands {
         /// Path to ignore file (defaults to .bashrsignore in project root)
         #[arg(long, value_name = "FILE")]
         ignore_file: Option<PathBuf>,
+
+        /// Suppress info-level messages, show only warnings and errors (Issue #75)
+        #[arg(short = 'q', long)]
+        quiet: bool,
+
+        /// Minimum severity level to display (info, warning, error)
+        #[arg(long, value_enum, default_value = "info")]
+        level: LintLevel,
+
+        /// Ignore specific rule codes (comma-separated: SEC010,DET002)
+        #[arg(long, value_name = "RULES")]
+        ignore: Option<String>,
+
+        /// Exclude specific rule (shellcheck-compatible, can be repeated)
+        #[arg(short = 'e', value_name = "CODE", action = clap::ArgAction::Append)]
+        exclude: Option<Vec<String>>,
     },
 
     /// Purify bash scripts (determinism + idempotency + safety)
@@ -361,7 +377,49 @@ pub enum Commands {
         /// Measure memory usage (requires /usr/bin/time)
         #[arg(short = 'm', long)]
         measure_memory: bool,
+
+        /// Output results in CSV format (Issue #77)
+        #[arg(long)]
+        csv: bool,
+
+        /// Disable ANSI colors in output (Issue #77)
+        #[arg(long)]
+        no_color: bool,
     },
+
+    /// Explain shell error using ML classification (NEW in v6.40.0)
+    #[cfg(feature = "oracle")]
+    ExplainError {
+        /// Error message to classify
+        #[arg(value_name = "ERROR")]
+        error: String,
+
+        /// Command that produced the error (optional, improves accuracy)
+        #[arg(short = 'c', long)]
+        command: Option<String>,
+
+        /// Shell type (bash, sh, zsh)
+        #[arg(long, default_value = "bash")]
+        shell: String,
+
+        /// Output format
+        #[arg(long, value_enum, default_value = "human")]
+        format: ExplainErrorFormat,
+
+        /// Show confidence scores and related patterns
+        #[arg(long)]
+        detailed: bool,
+    },
+}
+
+/// Output format for explain-error command
+#[derive(Clone, Debug, Default, ValueEnum)]
+pub enum ExplainErrorFormat {
+    /// Human-readable output
+    #[default]
+    Human,
+    /// JSON output
+    Json,
 }
 
 #[derive(Subcommand)]
@@ -670,6 +728,18 @@ pub enum CoverageOutputFormat {
     Html,
     /// LCOV format
     Lcov,
+}
+
+/// Minimum severity level for lint output (Issue #75)
+#[derive(Clone, Debug, Default, ValueEnum, PartialEq, Eq, PartialOrd, Ord)]
+pub enum LintLevel {
+    /// Show info, warning, and error messages
+    #[default]
+    Info,
+    /// Show only warning and error messages
+    Warning,
+    /// Show only error messages
+    Error,
 }
 
 impl ValueEnum for VerificationLevel {

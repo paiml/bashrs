@@ -499,9 +499,22 @@ fn generate_test_expr(expr: &TestExpr) -> String {
     }
 }
 
-/// Generate valid bash identifiers
+/// Bash reserved keywords that cannot be used as standalone command names
+const BASH_KEYWORDS: &[&str] = &[
+    "if", "then", "elif", "else", "fi", "case", "esac", "for", "while", "until", "do", "done",
+    "in", "function", "select", "time", "coproc",
+];
+
+/// Generate valid bash identifiers (excluding reserved keywords)
 pub fn bash_identifier() -> impl Strategy<Value = String> {
-    "[a-zA-Z_][a-zA-Z0-9_]{0,15}".prop_map(|s| s.to_string())
+    "[a-zA-Z_][a-zA-Z0-9_]{0,15}".prop_filter_map("filter out keywords", |s| {
+        let lower = s.to_lowercase();
+        if BASH_KEYWORDS.contains(&lower.as_str()) {
+            None // Filter out keywords
+        } else {
+            Some(s)
+        }
+    })
 }
 
 /// Generate bash string literals

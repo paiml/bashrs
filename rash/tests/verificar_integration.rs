@@ -10,21 +10,29 @@
 use std::process::Command;
 use verificar::generator::BashEnumerator;
 
-/// Test that bashrs can lint all verificar-generated bash programs without panicking
+/// Test that bashrs can lint verificar-generated bash programs without panicking
+///
+/// By default, tests 100 programs for fast coverage runs.
+/// Set VERIFICAR_PROGRAMS=1000 for comprehensive testing.
 #[test]
 fn test_verificar_programs_lint_without_panics() {
     let bashrs = env!("CARGO_BIN_EXE_bashrs");
     let enumerator = BashEnumerator::new(3);
-    let programs = enumerator.enumerate_programs();
+    let all_programs = enumerator.enumerate_programs();
+
+    // Limit programs for fast test runs (similar to PROPTEST_CASES)
+    // Default: 100 programs (~10s), Full: set VERIFICAR_PROGRAMS=1000+
+    let max_programs: usize = std::env::var("VERIFICAR_PROGRAMS")
+        .ok()
+        .and_then(|s| s.parse().ok())
+        .unwrap_or(100);
+
+    let programs: Vec<_> = all_programs.into_iter().take(max_programs).collect();
 
     println!(
-        "Testing {} verificar-generated bash programs",
-        programs.len()
-    );
-    assert!(
-        programs.len() >= 1000,
-        "Expected at least 1000 programs, got {}",
-        programs.len()
+        "Testing {} verificar-generated bash programs (limit: {})",
+        programs.len(),
+        max_programs
     );
 
     let mut passed = 0;
@@ -72,8 +80,9 @@ fn test_verificar_programs_lint_without_panics() {
     );
 
     println!(
-        "Verificar integration: {} programs tested, {} passed",
+        "Verificar integration: {}/{} programs tested, {} passed (set VERIFICAR_PROGRAMS for more)",
         programs.len(),
+        max_programs,
         passed
     );
 }

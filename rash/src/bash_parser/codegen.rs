@@ -32,11 +32,21 @@ pub fn generate_purified_bash(ast: &BashAst) -> String {
 /// Generate a single statement
 fn generate_statement(stmt: &BashStmt) -> String {
     match stmt {
-        BashStmt::Command { name, args, .. } => {
+        BashStmt::Command {
+            name,
+            args,
+            redirects,
+            ..
+        } => {
             let mut cmd = name.clone();
             for arg in args {
                 cmd.push(' ');
                 cmd.push_str(&generate_expr(arg));
+            }
+            // Issue #72: Emit redirects
+            for redirect in redirects {
+                cmd.push(' ');
+                cmd.push_str(&generate_redirect(redirect));
             }
             cmd
         }
@@ -342,6 +352,7 @@ fn generate_expr(expr: &BashExpr) -> String {
     match expr {
         BashExpr::Literal(s) => {
             // Issue #64: Quote string literals for safety
+            // Issue #72: Use double quotes if string contains command substitution or variables
             // Only skip quoting for simple alphanumeric words (commands, filenames)
             // that don't need protection
 
@@ -350,10 +361,18 @@ fn generate_expr(expr: &BashExpr) -> String {
                 && s.chars()
                     .all(|c| c.is_alphanumeric() || c == '_' || c == '-' || c == '.' || c == '/');
 
+            // Check if string contains expansions that require double quotes
+            let needs_double_quotes = s.contains("$(") || s.contains("${") || s.contains('$');
+
             if is_simple_word {
                 s.clone()
+            } else if needs_double_quotes {
+                // Issue #72: Use double quotes to preserve command substitution and variable expansion
+                // Escape any double quotes in the string
+                let escaped = s.replace('"', "\\\"");
+                format!("\"{}\"", escaped)
             } else {
-                // Use single quotes for literals (they don't expand variables)
+                // Use single quotes for literals without expansions
                 // Escape any single quotes in the string
                 let escaped = s.replace('\'', "'\\''");
                 format!("'{}'", escaped)
@@ -485,6 +504,40 @@ fn generate_arith_expr(expr: &ArithExpr) -> String {
                 generate_arith_expr(left),
                 generate_arith_expr(right)
             )
+        }
+    }
+}
+
+/// Generate redirect
+/// Issue #72: Properly emit redirects in purified output
+fn generate_redirect(redirect: &Redirect) -> String {
+    match redirect {
+        Redirect::Output { target } => {
+            format!("> {}", generate_expr(target))
+        }
+        Redirect::Append { target } => {
+            format!(">> {}", generate_expr(target))
+        }
+        Redirect::Input { target } => {
+            format!("< {}", generate_expr(target))
+        }
+        Redirect::Error { target } => {
+            format!("2> {}", generate_expr(target))
+        }
+        Redirect::AppendError { target } => {
+            format!("2>> {}", generate_expr(target))
+        }
+        Redirect::Combined { target } => {
+            // Bash &> → POSIX: >file 2>&1
+            format!("> {} 2>&1", generate_expr(target))
+        }
+        Redirect::Duplicate { from_fd, to_fd } => {
+            format!("{from_fd}>&{to_fd}")
+        }
+        Redirect::HereString { content } => {
+            // Here-string: <<< "string"
+            // Note: Not POSIX, but preserve for bash compatibility
+            format!("<<< \"{}\"", content.replace('"', "\\\""))
         }
     }
 }

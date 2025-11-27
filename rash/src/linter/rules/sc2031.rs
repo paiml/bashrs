@@ -160,6 +160,40 @@ pub fn check(source: &str) -> LintResult {
 mod tests {
     use super::*;
 
+    // Issue #76: FALSE POSITIVE - command substitution assignment is NOT a subshell assignment
+    #[test]
+    fn test_sc2031_command_subst_assignment_is_not_subshell() {
+        // This is VAR=$(cmd) - the variable is assigned in the CURRENT shell
+        // The command runs in a subshell but output is captured to current shell variable
+        let code = r#"
+py_mean="$(jq -r '.benchmarks[0].statistics.mean_ms' "$json")"
+echo "$py_mean"
+"#;
+        let result = check(code);
+        // NO warning - this is a valid assignment in current shell
+        assert_eq!(
+            result.diagnostics.len(),
+            0,
+            "Command substitution assignment VAR=$(cmd) should NOT trigger SC2031. Got: {:?}",
+            result.diagnostics
+        );
+    }
+
+    #[test]
+    fn test_sc2031_command_subst_multiple_vars() {
+        let code = r#"
+output="$(command arg1 arg2)"
+count="$(wc -l < file.txt)"
+echo "$output $count"
+"#;
+        let result = check(code);
+        assert_eq!(
+            result.diagnostics.len(),
+            0,
+            "Multiple command substitution assignments should not trigger SC2031"
+        );
+    }
+
     #[test]
     fn test_sc2031_usage_after_subshell_assignment() {
         let code = r#"

@@ -1,0 +1,45 @@
+[package]
+name = "bashrs-oracle"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "ML-powered error classification oracle for bashrs using aprender (GPU-accelerated)"
+readme = "README.md"
+keywords = ["shell", "bash", "linter", "machine-learning", "error-classification"]
+categories = ["command-line-utilities", "development-tools", "science::ml"]
+
+[features]
+default = ["gpu", "compressed-models"]
+gpu = ["aprender/gpu"]  # RTX 4090 via wgpu/trueno
+compressed-models = ["aprender/format-compression"]  # zstd lossless (14x smaller)
+
+[dependencies]
+# ML models from aprender (crates.io v0.10.0)
+# Features: parallel (rayon), gpu (wgpu via trueno)
+aprender = { version = "0.10.0", default-features = true }
+
+# Serialization
+serde = { workspace = true }
+serde_json = { workspace = true }
+
+# Error handling
+thiserror = { workspace = true }
+anyhow = "1.0"
+
+# Logging
+tracing = { workspace = true }
+
+# Regex for pattern matching
+regex = "1.11"
+
+[dev-dependencies]
+proptest = { workspace = true }
+tempfile = { workspace = true }
+
+# Synthetic data factory for corpus generation
+verificar = "0.3"
+
+[lints]
+workspace = true

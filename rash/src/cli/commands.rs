@@ -1,7 +1,9 @@
+#[cfg(feature = "oracle")]
+use crate::cli::args::ExplainErrorFormat;
 use crate::cli::args::{
     CompileRuntime, ConfigCommands, ConfigOutputFormat, ContainerFormatArg, DockerfileCommands,
-    InspectionFormat, LintFormat, MakeCommands, MakeOutputFormat, ReportFormat, ScoreOutputFormat,
-    TestOutputFormat,
+    InspectionFormat, LintFormat, LintLevel, MakeCommands, MakeOutputFormat, ReportFormat,
+    ScoreOutputFormat, TestOutputFormat,
 };
 use crate::cli::{Cli, Commands};
 use crate::models::{Config, Error, Result};
@@ -115,6 +117,10 @@ pub fn execute_command(cli: Cli) -> Result<()> {
             output,
             no_ignore,
             ignore_file,
+            quiet,
+            level,
+            ignore,
+            exclude,
         } => {
             info!("Linting {}", input.display());
             lint_command(
@@ -125,6 +131,10 @@ pub fn execute_command(cli: Cli) -> Result<()> {
                 output.as_deref(),
                 no_ignore,
                 ignore_file.as_deref(),
+                quiet,
+                level,
+                ignore.as_deref(),
+                exclude.as_deref(),
             )
         }
 
@@ -224,6 +234,8 @@ pub fn execute_command(cli: Cli) -> Result<()> {
             show_raw,
             quiet,
             measure_memory,
+            csv,
+            no_color,
         } => {
             info!("Benchmarking script(s)");
             use crate::cli::bench::{bench_command, BenchOptions};
@@ -238,11 +250,136 @@ pub fn execute_command(cli: Cli) -> Result<()> {
                 show_raw,
                 quiet,
                 measure_memory,
+                csv,
+                no_color,
             };
 
             bench_command(options)
         }
+
+        #[cfg(feature = "oracle")]
+        Commands::ExplainError {
+            error,
+            command,
+            shell,
+            format,
+            detailed,
+        } => {
+            info!("Explaining error using ML oracle");
+            explain_error_command(&error, command.as_deref(), &shell, format, detailed)
+        }
     }
+}
+
+/// Explain shell error using ML classification (v6.40.0)
+#[cfg(feature = "oracle")]
+fn explain_error_command(
+    error: &str,
+    command: Option<&str>,
+    _shell: &str,
+    format: ExplainErrorFormat,
+    detailed: bool,
+) -> Result<()> {
+    use bashrs_oracle::{ErrorFeatures, Oracle};
+
+    // Load or train the oracle (cached model for performance)
+    let oracle = Oracle::load_or_train()
+        .map_err(|e| Error::Internal(format!("Failed to load ML oracle: {e}")))?;
+
+    // Extract exit code from error message if present (e.g., "exit code 127")
+    let exit_code = extract_exit_code(error);
+
+    // Classify the error
+    let features = ErrorFeatures::extract(exit_code, error, command);
+    let result = oracle
+        .classify(&features)
+        .map_err(|e| Error::Internal(format!("Classification failed: {e}")))?;
+
+    match format {
+        ExplainErrorFormat::Human => {
+            println!("Category: {}", result.category.name());
+            println!("Confidence: {:.1}%", result.confidence * 100.0);
+            println!();
+            if let Some(fix) = &result.suggested_fix {
+                println!("Suggested Fix:");
+                println!("  {fix}");
+            } else {
+                println!("Suggested Fix:");
+                println!("  {}", result.category.fix_suggestion());
+            }
+
+            if detailed && !result.related_patterns.is_empty() {
+                println!();
+                println!("Related Patterns:");
+                for pattern in &result.related_patterns {
+                    println!("  - {pattern}");
+                }
+            }
+
+            if detailed {
+                println!();
+                println!("Error Analysis:");
+                println!("  Exit code: {exit_code}");
+                if let Some(cmd) = command {
+                    println!("  Command: {cmd}");
+                }
+            }
+        }
+        ExplainErrorFormat::Json => {
+            let output = serde_json::json!({
+                "category": result.category.name(),
+                "confidence": result.confidence,
+                "suggested_fix": result.suggested_fix.as_deref()
+                    .unwrap_or_else(|| result.category.fix_suggestion()),
+                "related_patterns": result.related_patterns,
+                "exit_code": exit_code,
+                "command": command,
+            });
+            println!(
+                "{}",
+                serde_json::to_string_pretty(&output)
+                    .map_err(|e| Error::Internal(format!("JSON serialization failed: {e}")))?
+            );
+        }
+    }
+
+    Ok(())
+}
+
+/// Extract exit code from error message text
+#[cfg(feature = "oracle")]
+fn extract_exit_code(error: &str) -> i32 {
+    // Common patterns for exit codes in error messages
+    let patterns = [
+        ("exit code ", 10),
+        ("exited with ", 12),
+        ("returned ", 9),
+        ("status ", 7),
+    ];
+
+    for (pattern, prefix_len) in patterns {
+        if let Some(idx) = error.to_lowercase().find(pattern) {
+            let start = idx + prefix_len;
+            let code_str: String = error[start..]
+                .chars()
+                .take_while(|c| c.is_ascii_digit())
+                .collect();
+            if let Ok(code) = code_str.parse::<i32>() {
+                return code;
+            }
+        }
+    }
+
+    // Check for well-known exit codes in error messages
+    if error.contains("command not found") {
+        return 127;
+    }
+    if error.contains("Permission denied") || error.contains("permission denied") {
+        return 126;
+    }
+
+    // Default to generic failure
+    1
 }
 
 fn build_command(input: &Path, output: &Path, config: Config) -> Result<()> {
@@ -657,6 +794,7 @@ fn handle_compile(
     Ok(())
 }
 
+#[allow(clippy::too_many_arguments)]
 fn lint_command(
     input: &Path,
     format: LintFormat,
@@ -665,12 +803,67 @@ fn lint_command(
     output: Option<&Path>,
     no_ignore: bool,
     ignore_file_path: Option<&Path>,
+    quiet: bool,
+    level: LintLevel,
+    ignore_rules: Option<&str>,
+    exclude_rules: Option<&[String]>,
 ) -> Result<()> {
+    use crate::linter::rules::lint_shell;
     use crate::linter::{
         autofix::{apply_fixes_to_file, FixOptions},
         ignore_file::{IgnoreFile, IgnoreResult},
         output::{write_results, OutputFormat},
-        rules::{lint_makefile, lint_shell},
+        rules::lint_makefile,
+        LintResult, Severity,
+    };
+    use std::collections::HashSet;
+
+    // Build set of ignored rule codes from --ignore and -e flags (Issue #82)
+    let ignored_rules: HashSet<String> = {
+        let mut rules = HashSet::new();
+        // Add from --ignore (comma-separated)
+        if let Some(ignore_str) = ignore_rules {
+            for code in ignore_str.split(',') {
+                let code = code.trim().to_uppercase();
+                if !code.is_empty() {
+                    rules.insert(code);
+                }
+            }
+        }
+        // Add from -e (can be repeated)
+        if let Some(excludes) = exclude_rules {
+            for code in excludes {
+                let code = code.trim().to_uppercase();
+                if !code.is_empty() {
+                    rules.insert(code);
+                }
+            }
+        }
+        rules
+    };
+
+    // Determine minimum severity based on --quiet and --level flags (Issue #75)
+    let min_severity = if quiet {
+        Severity::Warning // --quiet suppresses info
+    } else {
+        match level {
+            LintLevel::Info => Severity::Info,
+            LintLevel::Warning => Severity::Warning,
+            LintLevel::Error => Severity::Error,
+        }
+    };
+
+    // Helper to filter diagnostics by severity and ignored rules (Issue #75, #82)
+    let filter_diagnostics = |result: LintResult| -> LintResult {
+        let filtered = result
+            .diagnostics
+            .into_iter()
+            .filter(|d| d.severity >= min_severity)
+            .filter(|d| !ignored_rules.contains(&d.code.to_uppercase()))
+            .collect();
+        LintResult {
+            diagnostics: filtered,
+        }
     };
 
     // Check .bashrsignore unless --no-ignore is set (Issue #58)
@@ -743,14 +936,17 @@ fn lint_command(
         .unwrap_or(false);
 
     // Run linter
-    let result = if is_makefile {
+    let result_raw = if is_makefile {
         lint_makefile(&source)
     } else {
         lint_shell(&source)
     };
 
-    // Apply fixes if requested
-    if fix && result.diagnostics.iter().any(|d| d.fix.is_some()) {
+    // Apply severity filter (Issue #75: --quiet and --level flags)
+    let result = filter_diagnostics(result_raw.clone());
+
+    // Apply fixes if requested (use raw result to find all fixable issues)
+    if fix && result_raw.diagnostics.iter().any(|d| d.fix.is_some()) {
         let options = FixOptions {
             create_backup: true,
             dry_run: false,
@@ -759,7 +955,7 @@ fn lint_command(
             output_path: output.map(|p| p.to_path_buf()), // NEW: Optional output path
         };
 
-        match apply_fixes_to_file(input, &result, &options) {
+        match apply_fixes_to_file(input, &result_raw, &options) {
             Ok(fix_result) => {
                 info!(
                     "Applied {} fix(es) to {}",
@@ -772,11 +968,12 @@ fn lint_command(
 
                 // Re-lint to show remaining issues
                 let source_after = fs::read_to_string(input).map_err(Error::Io)?;
-                let result_after = if is_makefile {
+                let result_after_raw = if is_makefile {
                     lint_makefile(&source_after)
                 } else {
                     lint_shell(&source_after)
                 };
+                let result_after = filter_diagnostics(result_after_raw);
 
                 if result_after.diagnostics.is_empty() {
                     info!("✓ All issues fixed!");
@@ -1371,11 +1568,119 @@ fn pin_base_image_version(line: &str) -> String {
     }
 }
 
-fn dockerfile_lint_command(_input: &Path, _format: LintFormat, _rules: Option<&str>) -> Result<()> {
-    // TODO: Wire up existing Dockerfile linter
-    Err(Error::Internal(
-        "Dockerfile linting via 'dockerfile lint' is not yet implemented. Use 'bashrs lint' for now.".to_string()
-    ))
+fn dockerfile_lint_command(input: &Path, format: LintFormat, rules: Option<&str>) -> Result<()> {
+    use crate::linter::rules::lint_dockerfile;
+
+    info!("Linting {} for Dockerfile issues", input.display());
+
+    let source = fs::read_to_string(input).map_err(Error::Io)?;
+    let result = lint_dockerfile(&source);
+
+    // Filter by rules if specified
+    let filtered_diagnostics: Vec<_> = if let Some(rule_filter) = rules {
+        let allowed_rules: std::collections::HashSet<&str> = rule_filter.split(',').collect();
+        result
+            .diagnostics
+            .into_iter()
+            .filter(|d| allowed_rules.contains(d.code.as_str()))
+            .collect()
+    } else {
+        result.diagnostics
+    };
+
+    // Output based on format
+    match format {
+        LintFormat::Human => {
+            if filtered_diagnostics.is_empty() {
+                println!("No Dockerfile issues found");
+            } else {
+                println!("Dockerfile Issues:");
+                println!("==================\n");
+                for diag in &filtered_diagnostics {
+                    let severity_icon = match diag.severity {
+                        crate::linter::Severity::Error => "❌",
+                        crate::linter::Severity::Warning => "⚠",
+                        crate::linter::Severity::Info => "ℹ",
+                        _ => "ℹ",
+                    };
+                    println!(
+                        "{} Line {}: [{}] {}",
+                        severity_icon, diag.span.start_line, diag.code, diag.message
+                    );
+                    if let Some(ref fix) = diag.fix {
+                        println!("   Fix: {}", fix.replacement);
+                    }
+                    println!();
+                }
+                println!("Summary: {} issue(s) found", filtered_diagnostics.len());
+            }
+        }
+        LintFormat::Json => {
+            let output = serde_json::json!({
+                "file": input.display().to_string(),
+                "diagnostics": filtered_diagnostics.iter().map(|d| {
+                    serde_json::json!({
+                        "code": d.code,
+                        "severity": format!("{:?}", d.severity),
+                        "message": d.message,
+                        "line": d.span.start_line,
+                        "column": d.span.start_col,
+                        "fix": d.fix.as_ref().map(|f| &f.replacement)
+                    })
+                }).collect::<Vec<_>>()
+            });
+            println!(
+                "{}",
+                serde_json::to_string_pretty(&output).unwrap_or_default()
+            );
+        }
+        LintFormat::Sarif => {
+            // Basic SARIF output
+            let sarif = serde_json::json!({
+                "$schema": "https://raw.githubusercontent.com/oasis-tcs/sarif-spec/master/Schemata/sarif-schema-2.1.0.json",
+                "version": "2.1.0",
+                "runs": [{
+                    "tool": {
+                        "driver": {
+                            "name": "bashrs dockerfile lint",
+                            "version": env!("CARGO_PKG_VERSION")
+                        }
+                    },
+                    "results": filtered_diagnostics.iter().map(|d| {
+                        serde_json::json!({
+                            "ruleId": d.code,
+                            "message": { "text": d.message },
+                            "level": match d.severity {
+                                crate::linter::Severity::Error => "error",
+                                crate::linter::Severity::Warning => "warning",
+                                _ => "note"
+                            },
+                            "locations": [{
+                                "physicalLocation": {
+                                    "artifactLocation": { "uri": input.display().to_string() },
+                                    "region": { "startLine": d.span.start_line }
+                                }
+                            }]
+                        })
+                    }).collect::<Vec<_>>()
+                }]
+            });
+            println!(
+                "{}",
+                serde_json::to_string_pretty(&sarif).unwrap_or_default()
+            );
+        }
+    }
+
+    // Exit with error if there are errors
+    if filtered_diagnostics
+        .iter()
+        .any(|d| matches!(d.severity, crate::linter::Severity::Error))
+    {
+        std::process::exit(2);
+    }
+
+    Ok(())
 }
 
 fn make_parse_command(input: &Path, format: MakeOutputFormat) -> Result<()> {
