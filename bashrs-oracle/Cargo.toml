@@ -8,7 +8,7 @@ repository.workspace = true
 description = "ML-powered error classification oracle for bashrs using aprender (GPU-accelerated)"
 readme = "README.md"
 keywords = ["shell", "bash", "linter", "machine-learning", "error-classification"]
-categories = ["command-line-utilities", "development-tools", "science::ml"]
+categories = ["command-line-utilities", "development-tools"]
 
 [features]
 default = ["gpu", "compressed-models"]
