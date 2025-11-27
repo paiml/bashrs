@@ -126,12 +126,13 @@ impl Purifier {
             BashStmt::Command {
                 name,
                 args,
-                redirects: _,
+                redirects,
                 span,
             } => {
                 // Detect and transform non-idempotent operations
+                // Issue #72: Pass redirects through to preserve them
                 let (purified_cmds, idempotent_wrapper) =
-                    self.make_command_idempotent(name, args, *span)?;
+                    self.make_command_idempotent(name, args, redirects, *span)?;
 
                 if let Some(wrapper) = idempotent_wrapper {
                     self.report.idempotency_fixes.push(wrapper);
@@ -814,6 +815,7 @@ impl Purifier {
         &mut self,
         name: &str,
         args: &[BashExpr],
+        redirects: &[Redirect],
         span: Span,
     ) -> PurificationResult<(Vec<BashStmt>, Option<String>)> {
         // Detect non-idempotent operations and suggest idempotent alternatives
@@ -853,7 +855,7 @@ impl Purifier {
                 let mkdir_cmd = BashStmt::Command {
                     name: name.to_string(),
                     args: mkdir_args,
-                    redirects: vec![],
+                    redirects: redirects.to_vec(), // Issue #72: Preserve redirects
                     span,
                 };
 
@@ -882,7 +884,7 @@ impl Purifier {
                         vec![BashStmt::Command {
                             name: name.to_string(),
                             args: new_args,
-                            redirects: vec![],
+                            redirects: redirects.to_vec(), // Issue #72: Preserve redirects
                             span,
                         }],
                         Some("Added -f flag to rm for idempotency".to_string()),
@@ -919,7 +921,7 @@ impl Purifier {
             vec![BashStmt::Command {
                 name: name.to_string(),
                 args: purified_args?,
-                redirects: vec![],
+                redirects: redirects.to_vec(), // Issue #72: Preserve redirects
                 span,
             }],
             fix_msg,

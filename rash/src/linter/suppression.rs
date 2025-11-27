@@ -1,4 +1,4 @@
-//! Inline suppression support for bashrs warnings
+//! Inline suppression support for bashrs warnings (Issue #70)
 //!
 //! Allows users to suppress specific warnings using inline comments.
 //! Supports BOTH bashrs-native syntax AND shellcheck syntax for compatibility.
@@ -7,6 +7,7 @@
 //!
 //! - File-level: `# bashrs disable-file=SC2086,DET002`
 //! - Next-line: `# bashrs disable-next-line=SC2086`
+//! - Shorthand: `# bashrs disable=SEC010` (alias for disable-next-line)
 //! - Inline: `command  # bashrs disable-line=SC2086`
 //!
 //! # Shellcheck Syntax (also supported)
@@ -22,6 +23,9 @@
 //!
 //! # bashrs disable-next-line=SC2086
 //! echo $var  # Won't trigger SC2086
+//!
+//! # bashrs disable=SEC010  # Shorthand syntax (Issue #70)
+//! mkdir -p "${BASELINE_DIR}"
 //!
 //! timestamp=$(date +%s)  # bashrs disable-line=DET002
 //!
@@ -202,6 +206,24 @@ fn parse_suppression(line: &str, line_num: usize) -> Option<Suppression> {
         });
     }
 
+    // Shorthand syntax: # bashrs disable=RULE (alias for disable-next-line)
+    // Must check AFTER the more specific patterns to avoid matching them
+    if let Some(pos) = trimmed.find("# bashrs disable=") {
+        // Make sure it's not one of the more specific patterns
+        if !trimmed.contains("disable-file=")
+            && !trimmed.contains("disable-next-line=")
+            && !trimmed.contains("disable-line=")
+        {
+            let rules_str = &trimmed[pos + "# bashrs disable=".len()..];
+            let rules = parse_rule_list(rules_str);
+            return Some(Suppression {
+                suppression_type: SuppressionType::NextLine,
+                line: line_num,
+                rules,
+            });
+        }
+    }
+
     // =====================================================
     // Shellcheck syntax (for compatibility)
     // =====================================================
@@ -225,12 +247,36 @@ fn parse_suppression(line: &str, line_num: usize) -> Option<Suppression> {
 }
 
 /// Parse comma-separated rule list
+/// Stops at parentheses and validates rule codes
 fn parse_rule_list(rules_str: &str) -> HashSet<String> {
-    rules_str
+    // Strip trailing explanation text like "(validated via case statement)"
+    // Only split by '(' since rules don't contain parentheses
+    let rules_part = rules_str.split('(').next().unwrap_or(rules_str);
+
+    rules_part
         .split(',')
         .map(|s| s.trim().to_string())
-        .filter(|s| !s.is_empty())
+        .filter(|s| !s.is_empty() && is_valid_rule_code(s))
         .collect()
+}
+
+/// Check if string looks like a valid rule code (e.g., SC2086, DET002, SEC010)
+fn is_valid_rule_code(code: &str) -> bool {
+    // Valid codes are uppercase letters followed by digits (e.g., SC2086, DET002)
+    let code = code.trim();
+    if code.len() < 3 || code.len() > 10 {
+        return false;
+    }
+
+    // Must start with 1-6 uppercase letters
+    let letter_count = code.chars().take_while(|c| c.is_ascii_uppercase()).count();
+    if letter_count == 0 || letter_count > 6 {
+        return false;
+    }
+
+    // Must end with 1-5 digits
+    let digit_part = &code[letter_count..];
+    !digit_part.is_empty() && digit_part.chars().all(|c| c.is_ascii_digit())
 }
 
 #[cfg(test)]
@@ -282,6 +328,42 @@ mod tests {
         let manager = SuppressionManager::from_source(source);
 
         assert!(!manager.is_suppressed("SC2086", 1));
+    }
+
+    // =====================================================
+    // Shorthand syntax tests (Issue #70)
+    // =====================================================
+
+    #[test]
+    fn test_shorthand_disable_syntax() {
+        // Issue #70: Support shorthand # bashrs disable=RULE
+        let source = "# bashrs disable=SEC010\nmkdir -p \"${BASELINE_DIR}\"\n";
+        let manager = SuppressionManager::from_source(source);
+
+        assert!(manager.is_suppressed("SEC010", 2));
+        assert!(!manager.is_suppressed("SEC010", 1));
+        assert!(!manager.is_suppressed("SEC010", 3));
+    }
+
+    #[test]
+    fn test_shorthand_disable_multiple_rules() {
+        let source = "# bashrs disable=SEC010,DET002\nmkdir -p \"${BASELINE_DIR}\"\n";
+        let manager = SuppressionManager::from_source(source);
+
+        assert!(manager.is_suppressed("SEC010", 2));
+        assert!(manager.is_suppressed("DET002", 2));
+    }
+
+    #[test]
+    fn test_shorthand_does_not_match_specific_patterns() {
+        // Ensure shorthand doesn't interfere with specific patterns
+        let source = "# bashrs disable-file=SEC010\nline2\nline3\n";
+        let manager = SuppressionManager::from_source(source);
+
+        // File-level should suppress all lines
+        assert!(manager.is_suppressed("SEC010", 1));
+        assert!(manager.is_suppressed("SEC010", 2));
+        assert!(manager.is_suppressed("SEC010", 3));
     }
 
     // =====================================================
@@ -523,6 +605,48 @@ cat file.txt | grep pattern; result=`date`
         assert!(
             !result.diagnostics.iter().any(|d| d.code == "SC2086"),
             "SC2086 should be suppressed by shellcheck disable"
+        );
+    }
+
+    // =====================================================
+    // Shorthand syntax integration tests (Issue #70)
+    // =====================================================
+
+    /// Integration test: Verify shorthand # bashrs disable=RULE works (Issue #70)
+    #[test]
+    fn test_integration_shorthand_disable_sec010() {
+        // Script with path expansion (normally triggers SEC010)
+        let script_without_suppression = r#"mkdir -p "${BASELINE_DIR}""#;
+        let result = lint_shell(script_without_suppression);
+
+        // Should detect SEC010 without suppression
+        assert!(
+            result.diagnostics.iter().any(|d| d.code == "SEC010"),
+            "SEC010 should be detected without suppression"
+        );
+
+        // Script with shorthand suppression (Issue #70 requested syntax)
+        let script_with_suppression = "# bashrs disable=SEC010\nmkdir -p \"${BASELINE_DIR}\"";
+        let result = lint_shell(script_with_suppression);
+
+        // Should NOT detect SEC010 with shorthand suppression
+        assert!(
+            !result.diagnostics.iter().any(|d| d.code == "SEC010"),
+            "SEC010 should be suppressed with shorthand # bashrs disable=RULE (Issue #70)"
+        );
+    }
+
+    /// Integration test: Shorthand syntax with explanation comment (Issue #70 use case)
+    #[test]
+    fn test_integration_shorthand_with_explanation() {
+        // Simplified test case from Issue #70 - explanation text in suppression comment
+        let script = "# bashrs disable=SEC010 (validated via case statement above)\nmkdir -p \"${BASELINE_DIR}\"";
+        let result = lint_shell(script);
+
+        // SEC010 should be suppressed on line 2
+        assert!(
+            !result.diagnostics.iter().any(|d| d.code == "SEC010"),
+            "SEC010 should be suppressed with explanation comment (Issue #70 use case)"
         );
     }
 }

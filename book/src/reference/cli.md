@@ -392,6 +392,10 @@ bashrs lint <FILE> [OPTIONS]
 - `-o, --output <FILE>` - Output file for fixed content
 - `--no-ignore` - Disable `.bashrsignore` file processing
 - `--ignore-file <FILE>` - Path to custom ignore file (default: `.bashrsignore`)
+- `-q, --quiet` - Suppress info-level messages, show only warnings and errors
+- `--level <LEVEL>` - Minimum severity level: `info`, `warning`, `error` (default: `info`)
+- `--ignore <RULES>` - Ignore specific rule codes (comma-separated: `SEC010,DET002`)
+- `-e <CODE>` - Exclude specific rule (shellcheck-compatible, can be repeated)
 
 ### Examples
 
@@ -428,6 +432,21 @@ bashrs lint vendor/script.sh --no-ignore
 Use custom ignore file:
 ```bash
 bashrs lint script.sh --ignore-file .lint-ignore
+```
+
+Ignore specific rules:
+```bash
+# Ignore SEC010 (path traversal) and DET002 (timestamps)
+bashrs lint script.sh --ignore SEC010,DET002
+
+# Shellcheck-compatible syntax (can repeat -e)
+bashrs lint script.sh -e SEC010 -e DET002
+```
+
+Show only warnings and errors:
+```bash
+bashrs lint script.sh --quiet
+bashrs lint script.sh --level warning
 ```
 
 ### .bashrsignore Support
@@ -1099,6 +1118,126 @@ LCOV for CI integration:
 ```bash
 bashrs coverage script.sh --format lcov -o coverage.lcov
 ```
+
+---
+
+## `bashrs explain-error` - ML Error Classification
+
+Classifies shell errors using machine learning and suggests fixes. Uses a Random Forest classifier trained on 24 error categories.
+
+### Usage
+
+```bash
+bashrs explain-error <ERROR> [OPTIONS]
+```
+
+### Arguments
+
+- `<ERROR>` - Error message to classify
+
+### Options
+
+- `-c, --command <CMD>` - Command that produced the error (improves accuracy)
+- `--shell <SHELL>` - Shell type: `bash`, `sh`, `zsh` (default: `bash`)
+- `--format <FORMAT>` - Output format: `human`, `json` (default: `human`)
+- `--detailed` - Show confidence scores and related patterns
+
+### Examples
+
+Basic error classification:
+```bash
+bashrs explain-error "bash: git: command not found"
+```
+
+Output:
+```text
+Category: Command: Not Found
+Confidence: 85.0%
+
+Suggested Fix:
+  Check PATH or install the missing command
+```
+
+With command context:
+```bash
+bashrs explain-error "Permission denied" -c "cat /etc/shadow"
+```
+
+JSON output for automation:
+```bash
+bashrs explain-error "unbound variable: FOO" --format json
+```
+
+Output:
+```json
+{
+  "category": "Variable: Unbound",
+  "confidence": 0.85,
+  "suggested_fix": "Initialize variable or use ${VAR:-default}",
+  "related_patterns": [
+    "Use ${VAR:-default} for default values",
+    "Check for typos in variable name"
+  ],
+  "exit_code": 1,
+  "command": null
+}
+```
+
+Detailed analysis:
+```bash
+bashrs explain-error "syntax error near unexpected token" --detailed
+```
+
+### Error Categories
+
+The ML oracle classifies errors into 24 categories:
+
+**Syntax Errors (0-3)**:
+- `SyntaxQuoteMismatch` - Unmatched quotes (' or ")
+- `SyntaxBracketMismatch` - Unmatched brackets ([], {}, ())
+- `SyntaxUnexpectedToken` - Unexpected token in input
+- `SyntaxMissingOperand` - Missing operand in expression
+
+**Command Errors (10-13)**:
+- `CommandNotFound` - Command not found (exit 127)
+- `CommandPermissionDenied` - Permission denied (exit 126)
+- `CommandInvalidOption` - Invalid option specified
+- `CommandMissingArgument` - Required argument missing
+
+**File Errors (20-24)**:
+- `FileNotFound` - No such file or directory
+- `FilePermissionDenied` - Permission denied for file
+- `FileIsDirectory` - Expected file, got directory
+- `FileNotDirectory` - Expected directory, got file
+- `FileTooManyOpen` - Too many open files
+
+**Variable Errors (30-32)**:
+- `VariableUnbound` - Unbound variable
+- `VariableReadonly` - Readonly variable modification
+- `VariableBadSubstitution` - Bad parameter substitution
+
+**Process Errors (40-42)**:
+- `ProcessSignaled` - Process killed by signal
+- `ProcessExitNonZero` - Non-zero exit code
+- `ProcessTimeout` - Process timeout
+
+**Pipe/Redirect Errors (50-52)**:
+- `PipeBroken` - Broken pipe (SIGPIPE)
+- `RedirectFailed` - Redirect operation failed
+- `HereDocUnterminated` - Unterminated here-doc
+
+### How It Works
+
+1. **Feature Extraction**: Extracts features from error message (keywords, exit code, patterns)
+2. **ML Classification**: Random Forest classifier predicts category with confidence score
+3. **Fix Suggestion**: Returns actionable fix based on error category
+4. **Caching**: Model is trained once and cached for fast subsequent queries
+
+### Performance
+
+- Model training: ~2 seconds (first run only)
+- Classification: <10ms per error
+- Model size: ~1MB (with zstd compression)
 
 ---
 

@@ -790,6 +790,80 @@ fn test_codegen_028_remove_longest_suffix() {
     );
 }
 
+/// Issue #72 - Test that redirects are preserved in codegen
+#[test]
+fn test_codegen_029_redirect_output() {
+    let ast = BashAst {
+        statements: vec![BashStmt::Command {
+            name: "sort".to_string(),
+            args: vec![],
+            redirects: vec![Redirect::Output {
+                target: BashExpr::Literal("/tmp/out.txt".to_string()),
+            }],
+            span: Span::new(1, 1, 1, 20),
+        }],
+        metadata: AstMetadata {
+            source_file: None,
+            line_count: 1,
+            parse_time_ms: 0,
+        },
+    };
+
+    let output = generate_purified_bash(&ast);
+
+    assert!(
+        output.contains("> /tmp/out.txt"),
+        "Should preserve output redirect. Got: {}",
+        output
+    );
+}
+
+/// Issue #72 - End-to-end test: parse → generate preserves redirects
+#[test]
+fn test_codegen_030_redirect_roundtrip() {
+    use super::parser::BashParser;
+
+    let input = "sort > /tmp/out.txt";
+    let mut parser = BashParser::new(input).expect("Failed to create parser");
+    let ast = parser.parse().expect("Failed to parse");
+
+    let output = generate_purified_bash(&ast);
+
+    assert!(
+        output.contains("> /tmp/out.txt") || output.contains(">/tmp/out.txt"),
+        "Redirect should be preserved after parse→generate. Got: {}",
+        output
+    );
+}
+
+/// Issue #72 - Test that input redirects are preserved
+#[test]
+fn test_codegen_031_redirect_input() {
+    let ast = BashAst {
+        statements: vec![BashStmt::Command {
+            name: "wc".to_string(),
+            args: vec![BashExpr::Literal("-l".to_string())],
+            redirects: vec![Redirect::Input {
+                target: BashExpr::Literal("/tmp/input.txt".to_string()),
+            }],
+            span: Span::new(1, 1, 1, 20),
+        }],
+        metadata: AstMetadata {
+            source_file: None,
+            line_count: 1,
+            parse_time_ms: 0,
+        },
+    };
+
+    let output = generate_purified_bash(&ast);
+
+    assert!(
+        output.contains("< /tmp/input.txt"),
+        "Should preserve input redirect. Got: {}",
+        output
+    );
+}
+
 // Property test placeholder - will expand in GREEN phase
 #[cfg(test)]
 mod property_tests {

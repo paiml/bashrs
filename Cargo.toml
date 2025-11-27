@@ -3,6 +3,7 @@ members = [
     "rash",
     "rash-runtime",
     "rash-mcp",
+    "bashrs-oracle",
 ]
 exclude = ["fuzz"]
 resolver = "2"
@@ -39,7 +40,7 @@ regex-automata = "0.5"
 regex-syntax = "0.9"
 
 [workspace.package]
-version = "6.39.0"
+version = "6.40.0"
 edition = "2021"
 authors = ["Pragmatic AI Labs"]
 license = "MIT"

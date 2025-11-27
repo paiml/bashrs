@@ -250,6 +250,20 @@ impl BashParser {
             });
         }
 
+        // Issue #67: Handle standalone arithmetic ((expr)) as a command
+        if let Some(Token::ArithmeticExpansion(expr)) = self.peek() {
+            let arith_expr = expr.clone();
+            self.advance();
+            // Emit as a literal since we can't fully parse all bash arithmetic
+            // The user can review and adjust if needed
+            return Ok(BashStmt::Command {
+                name: ":".to_string(), // POSIX no-op
+                args: vec![BashExpr::Literal(format!("$(({}))", arith_expr))],
+                redirects: vec![],
+                span: Span::dummy(),
+            });
+        }
+
         // Parse first statement (could be part of pipeline)
         let first_stmt = match self.peek() {
             // Bash allows keywords as variable names (e.g., fi=1, for=2, while=3)
@@ -848,10 +862,36 @@ impl BashParser {
     fn parse_local(&mut self) -> ParseResult<BashStmt> {
         self.expect(Token::Local)?;
 
-        // Check if there's an assignment after local
+        // Check if there's content after local
         if !self.is_at_end() && !self.check(&Token::Newline) && !self.check(&Token::Semicolon) {
-            // Parse as assignment with local scoping
-            self.parse_assignment(false)
+            // Check if it's an assignment (identifier followed by =) or just declaration
+            // `local x=1` vs `local x y z` vs `local x`
+            if self.peek_ahead(1) == Some(&Token::Assign) {
+                // It's an assignment: local x=1
+                self.parse_assignment(false)
+            } else {
+                // It's a declaration without value: local x y z
+                // Collect all variable names as Literal expressions
+                let mut args = Vec::new();
+                while !self.is_at_end()
+                    && !self.check(&Token::Newline)
+                    && !self.check(&Token::Semicolon)
+                {
+                    match self.peek() {
+                        Some(Token::Identifier(name)) => {
+                            args.push(BashExpr::Literal(name.clone()));
+                            self.advance();
+                        }
+                        _ => break,
+                    }
+                }
+                Ok(BashStmt::Command {
+                    name: "local".to_string(),
+                    args,
+                    redirects: vec![],
+                    span: Span::dummy(),
+                })
+            }
         } else {
             // Just "local" by itself - treat as command
             Ok(BashStmt::Command {

@@ -31,6 +31,10 @@ pub struct BenchOptions {
     pub show_raw: bool,
     pub quiet: bool,
     pub measure_memory: bool,
+    /// Output results in CSV format (Issue #77)
+    pub csv: bool,
+    /// Disable ANSI colors (Issue #77)
+    pub no_color: bool,
 }
 
 impl BenchOptions {
@@ -45,6 +49,8 @@ impl BenchOptions {
             show_raw: false,
             quiet: false,
             measure_memory: false,
+            csv: false,
+            no_color: false,
         }
     }
 }
@@ -283,7 +289,10 @@ pub fn bench_command(options: BenchOptions) -> Result<()> {
     };
 
     // Display results
-    if !options.quiet {
+    if options.csv {
+        // Issue #77: CSV output
+        display_csv_results(&results)?;
+    } else if !options.quiet {
         display_results(&results, &output.environment, &options)?;
     }
 
@@ -576,6 +585,63 @@ fn display_results(
     println!("  RAM:     {}", environment.ram);
     println!("  OS:      {}", environment.os);
     println!("  Date:    {}", Utc::now().to_rfc3339());
+
+    Ok(())
+}
+
+/// Display results in CSV format (Issue #77)
+fn display_csv_results(results: &[BenchmarkResult]) -> Result<()> {
+    // Check if any result has memory statistics
+    let has_memory = results.iter().any(|r| r.statistics.memory.is_some());
+
+    // Print CSV header
+    if has_memory {
+        println!("script,mean_ms,stddev_ms,median_ms,min_ms,max_ms,memory_mean_kb,memory_max_kb,iterations");
+    } else {
+        println!("script,mean_ms,stddev_ms,median_ms,min_ms,max_ms,iterations");
+    }
+
+    // Find slowest for speedup calculation
+    let baseline_mean = results
+        .iter()
+        .map(|r| r.statistics.mean_ms)
+        .fold(0.0f64, |a, b| a.max(b));
+
+    // Print each result as CSV row
+    for result in results {
+        let _speedup = if baseline_mean > 0.0 {
+            baseline_mean / result.statistics.mean_ms
+        } else {
+            1.0
+        };
+
+        if has_memory {
+            let mem = result.statistics.memory.as_ref();
+            println!(
+                "{},{:.4},{:.4},{:.4},{:.4},{:.4},{:.2},{:.2},{}",
+                result.script,
+                result.statistics.mean_ms,
+                result.statistics.stddev_ms,
+                result.statistics.median_ms,
+                result.statistics.min_ms,
+                result.statistics.max_ms,
+                mem.map(|m| m.mean_kb).unwrap_or(0.0),
+                mem.map(|m| m.peak_kb).unwrap_or(0.0),
+                result.iterations,
+            );
+        } else {
+            println!(
+                "{},{:.4},{:.4},{:.4},{:.4},{:.4},{}",
+                result.script,
+                result.statistics.mean_ms,
+                result.statistics.stddev_ms,
+                result.statistics.median_ms,
+                result.statistics.min_ms,
+                result.statistics.max_ms,
+                result.iterations,
+            );
+        }
+    }
 
     Ok(())
 }

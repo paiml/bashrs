@@ -4,7 +4,8 @@
 **Category**: Transpiler - Expression Conversion
 **Found During**: GNU Bash Manual validation (Task ID: EXP-PARAM-001)
 **Date**: 2025-10-11
-**Status**: 🔴 OPEN
+**Status**: ⏸️ DEFERRED to v3.0+ (Rust → Shell transpiler)
+**Note**: This is for Workflow 2 (Rust → Shell), which is planned for v3.0+. Not blocking current releases.
 
 ---
 

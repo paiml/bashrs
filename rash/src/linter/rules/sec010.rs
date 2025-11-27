@@ -89,6 +89,11 @@ pub fn check(source: &str) -> LintResult {
         // Also check for explicit traversal patterns in paths (even if not in variables)
         for pattern in TRAVERSAL_PATTERNS {
             if line.contains(pattern) && contains_file_operation(line) {
+                // Issue #73: Skip BASH_SOURCE parent directory pattern - this is intentional
+                if line.contains("BASH_SOURCE") || line.contains("dirname") {
+                    continue;
+                }
+
                 // Check if it's in a validation context (e.g., if statement checking for ..)
                 if !is_validation_context(line) {
                     if let Some(pos) = line.find(pattern) {
@@ -143,6 +148,20 @@ fn find_command(line: &str, cmd: &str) -> Option<usize> {
     None
 }
 
+/// Issue #73: Known-safe patterns that should not trigger SEC010
+// These are checked as exact variable names (with $ or ${} wrapper)
+const SAFE_VAR_PATTERNS: &[&str] = &[
+    "$PWD",        // Current directory is intentional
+    "${PWD}",      // Current directory is intentional
+    "$HOME",       // User's home directory is safe
+    "${HOME}",     // User's home directory is safe
+    "$TMPDIR",     // Temp directory is safe
+    "${TMPDIR}",   // Temp directory is safe
+    "BASH_SOURCE", // Script's own directory is safe
+    "dirname",     // dirname of script is safe
+    "XDG_",        // XDG directories are safe
+];
+
 /// Check if line contains unvalidated variable in file operation
 fn contains_unvalidated_variable(line: &str, _cmd: &str) -> bool {
     // Look for variable usage: $VAR, ${VAR}, "$VAR"
@@ -150,21 +169,57 @@ fn contains_unvalidated_variable(line: &str, _cmd: &str) -> bool {
         return false;
     }
 
+    // Issue #73: Skip known-safe patterns
+    for safe_pattern in SAFE_VAR_PATTERNS {
+        if line.contains(safe_pattern) {
+            return false;
+        }
+    }
+
+    // Issue #73: Script directory parent (..) with BASH_SOURCE is intentional
+    // Pattern: cd "$(dirname "${BASH_SOURCE[0]}")/.."
+    if line.contains("dirname") && line.contains("..") {
+        return false;
+    }
+
     // Check if this looks like user input (common patterns)
+    // These patterns suggest untrusted or user-provided input
     let user_input_patterns = [
-        "USER", "INPUT", "FILE", "PATH", "DIR", "ARCHIVE", "NAME", "ARG",
+        "USER",      // USER_FILE, USER_PATH, etc.
+        "INPUT",     // INPUT_PATH, INPUT_FILE, etc.
+        "UPLOAD",    // Uploaded files
+        "ARCHIVE",   // Archive files (could be user-provided)
+        "UNTRUSTED", // Explicitly untrusted
+        "EXTERNAL",  // External input
+        "REMOTE",    // Remote data
+        "ARG",       // Command line arguments
+        "NAME",      // Could be user-provided name
+        "FILE",      // Generic file variables
+        "PATH",      // Generic path variables (but not PATH env var)
+        "DIR",       // Generic directory variables
     ];
 
     let line_upper = line.to_uppercase();
+
+    // Don't flag the PATH environment variable itself
+    if line.contains("$PATH") || line.contains("${PATH}") {
+        // This is the PATH env var, not a user path
+        let path_count = line.matches("PATH").count();
+        let dollar_path_count = line.matches("$PATH").count() + line.matches("${PATH}").count();
+        if path_count == dollar_path_count {
+            return false; // All PATH references are the env var
+        }
+    }
+
     for pattern in &user_input_patterns {
         if line_upper.contains(pattern) {
             return true;
         }
     }
 
-    // Also flag any variable in file operations as potentially risky
-    // (conservative approach for security)
-    true
+    // If no suspicious pattern found, assume it's safe
+    // This reduces false positives for common scripts
+    false
 }
 
 /// Check if line contains any file operation

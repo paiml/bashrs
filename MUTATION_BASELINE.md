@@ -1,88 +1,155 @@
 # Mutation Testing Baseline
 
-**Last Updated**: 2025-11-25
+**Status**: Infrastructure Complete (Issue #54)
+**Target**: ≥80% mutation score
 **Tool**: cargo-mutants v25.3.1
-**Target**: ≥80% mutation score (EXTREME TDD standard)
 
-## Overview
-
-Mutation testing verifies test quality by introducing small code changes (mutants) and checking if tests catch them. A high mutation score indicates effective tests.
-
-## Running Mutation Tests
+## Quick Start
 
 ```bash
-# Full mutation testing (slow, ~30-60 minutes)
+# Full mutation testing (30-60 minutes)
 make mutants
 
-# Test specific module
+# Single file mutation testing (5-10 minutes)
 make mutation-file FILE=rash/src/linter/rules/det001.rs
 
-# Quick test on recent changes
+# Changed files only (quick, <10 minutes)
 make mutants-quick
 
 # View results
 make mutants-report
 ```
 
-## Baseline Scores
+## Baseline Measurement Process
 
-| Module | Mutants | Killed | Timeout | Missed | Score | Status |
-|--------|---------|--------|---------|--------|-------|--------|
-| `linter/rules/det001.rs` | 9 | TBD | TBD | TBD | TBD | Pending |
-| `linter/rules/sc2086.rs` | TBD | TBD | TBD | TBD | TBD | Pending |
-| `linter/autofix.rs` | TBD | TBD | TBD | TBD | TBD | Pending |
-| `bash_transpiler/purification.rs` | TBD | TBD | TBD | TBD | TBD | Pending |
+### Step 1: Core Module Testing
 
-### Status Legend
-- **Pass**: ≥80% mutation score
-- **Warning**: 60-79% mutation score
-- **Fail**: <60% mutation score
-- **Pending**: Not yet measured
+Test these modules first (highest impact):
 
-## Interpreting Results
+```bash
+# Determinism rules (DET001-DET003)
+make mutation-file FILE=rash/src/linter/rules/det001.rs
+make mutation-file FILE=rash/src/linter/rules/det002.rs
+make mutation-file FILE=rash/src/linter/rules/det003.rs
 
-### Killed Mutants (Good)
-Tests detected the code change and failed appropriately.
+# Word splitting (SC2086)
+make mutation-file FILE=rash/src/linter/rules/sc2086.rs
 
-### Missed Mutants (Needs Improvement)
-Code changed but no test failed - indicates weak assertions or missing test coverage.
+# Autofix engine
+make mutation-file FILE=rash/src/linter/autofix.rs
 
-### Timeout Mutants (Neutral)
-Mutant caused infinite loop - typically acceptable.
+# Purification
+make mutation-file FILE=rash/src/bash_transpiler/purification.rs
+```
 
-### Unviable Mutants (Ignore)
-Mutant created code that doesn't compile - not counted.
+### Step 2: Recording Results
 
-## Improving Low Scores
+After each run, record in this table:
 
-1. **Review missed mutants**: `cat mutants.out/missed.txt`
-2. **Add property tests**: Cover edge cases with proptest
-3. **Strengthen assertions**: Ensure tests verify return values
-4. **Test error paths**: Ensure error conditions are tested
+| Module | Total Mutants | Killed | Timeout | Missed | Score | Date |
+|--------|--------------|--------|---------|--------|-------|------|
+| det001 | TBD | TBD | TBD | TBD | TBD | - |
+| det002 | TBD | TBD | TBD | TBD | TBD | - |
+| det003 | TBD | TBD | TBD | TBD | TBD | - |
+| sc2086 | TBD | TBD | TBD | TBD | TBD | - |
+| autofix | TBD | TBD | TBD | TBD | TBD | - |
+| purification | TBD | TBD | TBD | TBD | TBD | - |
+
+### Step 3: Analyzing Missed Mutants
+
+```bash
+# View missed mutants
+cat mutants.out/missed.txt
+
+# Analyze specific mutations
+cat mutants.out/mutants.json | jq '.mutants[] | select(.outcome == "Missed")'
+```
 
 ## Configuration
 
-See `.cargo/mutants.toml` for mutation testing configuration.
+Configuration file: `.cargo/mutants.toml`
 
 ```toml
-# Current configuration
-test_package = "bashrs"
+# Test only the main bashrs package
+test_package = ["bashrs"]
+
+# Timeout multiplier for property tests
 timeout_multiplier = 2.0
-exclude_re = ["tests/", "benches/", "*_test.rs"]
+
+# Files to skip
+exclude_globs = [
+    "**/tests/**",
+    "**/benches/**",
+    "**/*_test.rs",
+]
+```
+
+## Known Issues
+
+### Path Dependency (verificar)
+
+The `verificar` crate uses a relative path dependency that breaks `cargo mutants` default mode.
+
+**Workaround**: Use `--in-place` flag or the Makefile targets which handle this automatically.
+
+### Long Running Tests
+
+Full mutation testing takes 30-60 minutes. Use `make mutants-quick` for faster feedback.
+
+## Improving Mutation Score
+
+If mutation score is below 80%:
+
+1. **Add property tests** to cover edge cases
+2. **Strengthen assertions** (check error types, not just success)
+3. **Add boundary tests** for numeric operations
+4. **Test error paths** not just happy paths
+
+Example improvement:
+
+```rust
+// Before: Weak assertion
+#[test]
+fn test_det001() {
+    let result = check("echo $RANDOM");
+    assert!(!result.diagnostics.is_empty());
+}
+
+// After: Strong assertion (kills more mutants)
+#[test]
+fn test_det001_detects_random() {
+    let result = check("echo $RANDOM");
+    assert_eq!(result.diagnostics.len(), 1);
+    assert_eq!(result.diagnostics[0].code, "DET001");
+    assert!(result.diagnostics[0].message.contains("non-deterministic"));
+}
 ```
 
 ## CI/CD Integration
 
-Mutation testing is NOT run in CI due to long execution time.
-Run manually before major releases:
+Future enhancement: Add mutation testing to GitHub Actions
 
-```bash
-make mutants  # Full analysis
-make mutants-report  # View summary
+```yaml
+# .github/workflows/mutation.yml
+name: Mutation Testing
+on:
+  schedule:
+    - cron: '0 4 * * 0'  # Weekly on Sunday 4am
+jobs:
+  mutants:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: cargo install cargo-mutants
+      - run: make mutants-quick
+      - uses: actions/upload-artifact@v4
+        with:
+          name: mutation-report
+          path: mutants.out/
 ```
 
 ## References
 
-- [cargo-mutants documentation](https://github.com/sourcefrog/cargo-mutants)
-- [EXTREME TDD methodology](./CLAUDE.md)
-- [Issue #54](https://github.com/paiml/bashrs/issues/54)
+- [CLAUDE.md](./CLAUDE.md): EXTREME TDD methodology
+- [cargo-mutants documentation](https://mutants.rs/)
+- [EXTREME TDD](https://claude.ai/docs/extreme-tdd): Mutation testing as quality verification

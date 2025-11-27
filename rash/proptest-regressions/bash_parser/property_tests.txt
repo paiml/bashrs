@@ -6,3 +6,4 @@
 # everyone who runs the test benefits from these saved cases.
 cc d3bb0f8c95bae6bf09d859260baddce5e58428096512cb2c9cf25dba096f33f6 # shrinks to script = BashAst { statements: [Function { name: "_", body: [Assignment { name: "FOO", value: Literal(""), exported: false, span: Span { start_line: 0, start_col: 0, end_line: 0, end_col: 0 } }], span: Span { start_line: 0, start_col: 0, end_line: 0, end_col: 0 } }, Function { name: "_", body: [Assignment { name: "FOO", value: Literal(""), exported: false, span: Span { start_line: 0, start_col: 0, end_line: 0, end_col: 0 } }], span: Span { start_line: 0, start_col: 0, end_line: 0, end_col: 0 } }], metadata: AstMetadata { source_file: None, line_count: 0, parse_time_ms: 0 } }
 cc 4dc7a6e13c88a899a7aabc8766a11839e7a84e58550f005df5a67a6529b180ae # shrinks to cmd = "fi", op = "&&"
+cc 32154531bf1a8a280058b69f8f950d09af666b683a9d798bee7eea986fdaf454 # shrinks to cmd = "do", op = "&&"

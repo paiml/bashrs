@@ -1106,3 +1106,157 @@ fn test_generate_diff_lines_preserves_whitespace() {
     assert_eq!(orig, "  line1  ", "Should preserve original whitespace");
     assert_eq!(pure, "line1", "Should preserve purified whitespace");
 }
+
+// =============================================================================
+// explain-error command tests (v6.40.0 - Oracle integration)
+// =============================================================================
+
+#[cfg(feature = "oracle")]
+mod explain_error_tests {
+    use super::super::extract_exit_code;
+
+    #[test]
+    fn test_extract_exit_code_explicit_patterns() {
+        // "exit code X" pattern
+        assert_eq!(extract_exit_code("Process exited with exit code 127"), 127);
+        assert_eq!(extract_exit_code("Error: exit code 1"), 1);
+
+        // "exited with X" pattern
+        assert_eq!(extract_exit_code("Command exited with 126"), 126);
+
+        // "returned X" pattern
+        assert_eq!(extract_exit_code("Script returned 2"), 2);
+
+        // "status X" pattern
+        assert_eq!(extract_exit_code("Exit status 128"), 128);
+    }
+
+    #[test]
+    fn test_extract_exit_code_wellknown_messages() {
+        // Command not found -> 127
+        assert_eq!(extract_exit_code("bash: foo: command not found"), 127);
+
+        // Permission denied -> 126
+        assert_eq!(extract_exit_code("/bin/script.sh: Permission denied"), 126);
+        assert_eq!(
+            extract_exit_code("Error: permission denied for file.txt"),
+            126
+        );
+    }
+
+    #[test]
+    fn test_extract_exit_code_default() {
+        // Unknown error -> 1 (default)
+        assert_eq!(extract_exit_code("Some random error message"), 1);
+        assert_eq!(extract_exit_code(""), 1);
+    }
+
+    #[test]
+    fn test_extract_exit_code_case_insensitive() {
+        // Should match case-insensitively
+        assert_eq!(extract_exit_code("EXIT CODE 42"), 42);
+        assert_eq!(extract_exit_code("Exit Code 5"), 5);
+    }
+}
+
+// =============================================================================
+// --ignore and -e flag tests (Issue #82)
+// =============================================================================
+
+mod ignore_flag_tests {
+    use std::collections::HashSet;
+
+    /// Helper to build ignored rules set (mirrors lint_command logic)
+    fn build_ignored_rules(
+        ignore_rules: Option<&str>,
+        exclude_rules: Option<&[String]>,
+    ) -> HashSet<String> {
+        let mut rules = HashSet::new();
+        if let Some(ignore_str) = ignore_rules {
+            for code in ignore_str.split(',') {
+                let code = code.trim().to_uppercase();
+                if !code.is_empty() {
+                    rules.insert(code);
+                }
+            }
+        }
+        if let Some(excludes) = exclude_rules {
+            for code in excludes {
+                let code = code.trim().to_uppercase();
+                if !code.is_empty() {
+                    rules.insert(code);
+                }
+            }
+        }
+        rules
+    }
+
+    #[test]
+    fn test_ignore_flag_single_rule() {
+        let ignored = build_ignored_rules(Some("SEC010"), None);
+        assert!(ignored.contains("SEC010"));
+        assert_eq!(ignored.len(), 1);
+    }
+
+    #[test]
+    fn test_ignore_flag_multiple_rules() {
+        let ignored = build_ignored_rules(Some("SEC010,DET002,SC2086"), None);
+        assert!(ignored.contains("SEC010"));
+        assert!(ignored.contains("DET002"));
+        assert!(ignored.contains("SC2086"));
+        assert_eq!(ignored.len(), 3);
+    }
+
+    #[test]
+    fn test_ignore_flag_case_insensitive() {
+        let ignored = build_ignored_rules(Some("sec010,Det002"), None);
+        assert!(ignored.contains("SEC010"));
+        assert!(ignored.contains("DET002"));
+    }
+
+    #[test]
+    fn test_ignore_flag_with_whitespace() {
+        let ignored = build_ignored_rules(Some(" SEC010 , DET002 "), None);
+        assert!(ignored.contains("SEC010"));
+        assert!(ignored.contains("DET002"));
+    }
+
+    #[test]
+    fn test_exclude_flag_single() {
+        let excludes = vec!["SEC010".to_string()];
+        let ignored = build_ignored_rules(None, Some(&excludes));
+        assert!(ignored.contains("SEC010"));
+    }
+
+    #[test]
+    fn test_exclude_flag_multiple() {
+        let excludes = vec!["SEC010".to_string(), "DET002".to_string()];
+        let ignored = build_ignored_rules(None, Some(&excludes));
+        assert!(ignored.contains("SEC010"));
+        assert!(ignored.contains("DET002"));
+    }
+
+    #[test]
+    fn test_combined_ignore_and_exclude() {
+        let excludes = vec!["SEC008".to_string()];
+        let ignored = build_ignored_rules(Some("SEC010,DET002"), Some(&excludes));
+        assert!(ignored.contains("SEC010"));
+        assert!(ignored.contains("DET002"));
+        assert!(ignored.contains("SEC008"));
+        assert_eq!(ignored.len(), 3);
+    }
+
+    #[test]
+    fn test_empty_ignore() {
+        let ignored = build_ignored_rules(None, None);
+        assert!(ignored.is_empty());
+    }
+
+    #[test]
+    fn test_ignore_flag_empty_entries() {
+        let ignored = build_ignored_rules(Some("SEC010,,DET002,"), None);
+        assert!(ignored.contains("SEC010"));
+        assert!(ignored.contains("DET002"));
+        assert_eq!(ignored.len(), 2);
+    }
+}

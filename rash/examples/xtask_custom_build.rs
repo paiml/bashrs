@@ -96,7 +96,7 @@ fn batch_transpilation() -> bashrs::Result<()> {
         files.push(file);
     }
 
-    let outputs = vec![
+    let outputs = [
         "target/examples/batch/hook1",
         "target/examples/batch/hook2",
         "target/examples/batch/hook3",
