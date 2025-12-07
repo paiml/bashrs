@@ -52,6 +52,78 @@ fn test_check_command() {
     assert!(result.is_err());
 }
 
+/// Issue #84: check command should detect shell scripts and provide helpful guidance
+#[test]
+fn test_issue_84_check_detects_shell_script_by_extension() {
+    let temp_dir = TempDir::new().unwrap();
+    let input_path = temp_dir.path().join("script.sh");
+
+    // Write a valid bash script
+    fs::write(&input_path, "#!/bin/bash\necho 'Hello, World!'").unwrap();
+
+    let result = check_command(&input_path);
+    assert!(result.is_err());
+
+    let err_msg = format!("{}", result.unwrap_err());
+    // Should mention it's a shell script
+    assert!(err_msg.contains("shell script"));
+    // Should suggest using lint command
+    assert!(err_msg.contains("bashrs lint"));
+}
+
+/// Issue #84: check command should detect shell scripts by shebang
+#[test]
+fn test_issue_84_check_detects_shell_script_by_shebang() {
+    let temp_dir = TempDir::new().unwrap();
+    let input_path = temp_dir.path().join("script"); // No extension
+
+    // Write a bash script with shebang (no .sh extension)
+    fs::write(&input_path, "#!/bin/bash\necho 'Hello, World!'").unwrap();
+
+    let result = check_command(&input_path);
+    assert!(result.is_err());
+
+    let err_msg = format!("{}", result.unwrap_err());
+    assert!(err_msg.contains("shell script"));
+    assert!(err_msg.contains("bashrs lint"));
+}
+
+/// Issue #84: check command should detect sh scripts
+#[test]
+fn test_issue_84_check_detects_posix_sh_shebang() {
+    let temp_dir = TempDir::new().unwrap();
+    let input_path = temp_dir.path().join("script");
+
+    // Write a POSIX sh script
+    fs::write(&input_path, "#!/bin/sh\necho 'Hello'").unwrap();
+
+    let result = check_command(&input_path);
+    assert!(result.is_err());
+
+    let err_msg = format!("{}", result.unwrap_err());
+    assert!(err_msg.contains("shell script"));
+}
+
+/// Issue #84: check command should still work for .rs files
+#[test]
+fn test_issue_84_check_allows_rs_files() {
+    let temp_dir = TempDir::new().unwrap();
+    let input_path = temp_dir.path().join("test.rs");
+
+    // Write valid Rash code
+    fs::write(&input_path, "fn main() { let x = 42; }").unwrap();
+
+    let result = check_command(&input_path);
+    // Should not return the "shell script" error
+    if let Err(ref e) = result {
+        let err_msg = format!("{}", e);
+        assert!(
+            !err_msg.contains("shell script"),
+            "Should not detect .rs as shell script"
+        );
+    }
+}
+
 #[test]
 fn test_init_command() {
     let temp_dir = TempDir::new().unwrap();

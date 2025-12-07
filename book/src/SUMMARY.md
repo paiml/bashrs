@@ -62,6 +62,14 @@
 - [PMAT Integration](./advanced/pmat-integration.md)
 - [Dogfooding (Self-Validation)](./advanced/dogfooding.md)
 
+## Quality Gates (ML-Powered)
+
+- [Quality Gates Overview](./quality/overview.md)
+- [SBFL Fault Localization](./quality/sbfl.md)
+- [ML Error Classification](./quality/ml-classification.md)
+- [Control Flow Analysis](./quality/cfg.md)
+- [Rich ASCII Reporting](./quality/rich-reporting.md)
+
 ## Reference
 
 - [CLI Commands](./reference/cli.md)

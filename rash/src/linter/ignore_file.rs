@@ -1,18 +1,33 @@
-//! `.bashrsignore` file support for excluding files from linting
+//! `.bashrsignore` file support for excluding files and rules from linting
 //!
-//! Implements gitignore-style pattern matching for file exclusion.
+//! Implements gitignore-style pattern matching for file exclusion,
+//! plus rule code ignoring (Issue #85).
 //!
 //! # Syntax
 //!
-//! - `pattern` - Glob pattern to match files
+//! - `pattern` - Glob pattern to match files (e.g., `vendor/**/*.sh`)
+//! - `RULE_CODE` - Rule code to ignore (e.g., `SEC010`, `SC2031`, `DET001`)
 //! - `# comment` - Comments (lines starting with #)
 //! - Empty lines are ignored
-//! - `!pattern` - Negation (re-include a previously excluded pattern)
+//! - `!pattern` - Negation (re-include a previously excluded file pattern)
+//!
+//! # Rule Code Format
+//!
+//! Rule codes are automatically detected when a line matches:
+//! - SEC followed by digits (e.g., `SEC001`, `SEC010`)
+//! - SC followed by digits (e.g., `SC2031`, `SC2046`)
+//! - DET followed by digits (e.g., `DET001`, `DET002`)
+//! - IDEM followed by digits (e.g., `IDEM001`, `IDEM002`)
 //!
 //! # Examples
 //!
 //! ```text
 //! # .bashrsignore example
+//!
+//! # Ignore specific lint rules (Issue #85)
+//! SEC010
+//! SC2031
+//! SC2046
 //!
 //! # Exclude vendor scripts
 //! vendor/**/*.sh
@@ -29,6 +44,7 @@
 //! ```
 
 use glob::Pattern;
+use std::collections::HashSet;
 use std::fs;
 use std::path::Path;
 
@@ -48,6 +64,9 @@ pub struct IgnoreFile {
     include_patterns: Vec<CompiledPattern>,
     /// Exclude patterns (files to NOT ignore, even if matched by include)
     exclude_patterns: Vec<CompiledPattern>,
+    /// Rule codes to ignore (Issue #85)
+    /// Stored in uppercase for case-insensitive matching
+    ignored_rule_codes: HashSet<String>,
 }
 
 #[derive(Debug)]
@@ -56,6 +75,40 @@ struct CompiledPattern {
     original: String,
     /// Compiled glob pattern
     pattern: Pattern,
+}
+
+/// Check if a string looks like a rule code (Issue #85)
+///
+/// Rule codes follow patterns like:
+/// - SEC001, SEC010 (security rules)
+/// - SC2031, SC2046 (shellcheck rules)
+/// - DET001, DET002 (determinism rules)
+/// - IDEM001, IDEM002 (idempotency rules)
+fn is_rule_code(s: &str) -> bool {
+    let s = s.trim().to_uppercase();
+
+    // Check for common rule code patterns
+    // SEC followed by digits
+    if s.starts_with("SEC") && s.len() >= 4 && s[3..].chars().all(|c| c.is_ascii_digit()) {
+        return true;
+    }
+
+    // SC followed by digits (shellcheck)
+    if s.starts_with("SC") && s.len() >= 3 && s[2..].chars().all(|c| c.is_ascii_digit()) {
+        return true;
+    }
+
+    // DET followed by digits
+    if s.starts_with("DET") && s.len() >= 4 && s[3..].chars().all(|c| c.is_ascii_digit()) {
+        return true;
+    }
+
+    // IDEM followed by digits
+    if s.starts_with("IDEM") && s.len() >= 5 && s[4..].chars().all(|c| c.is_ascii_digit()) {
+        return true;
+    }
+
+    false
 }
 
 impl IgnoreFile {
@@ -92,6 +145,8 @@ impl IgnoreFile {
 
     /// Parse ignore patterns from string content
     ///
+    /// Supports both file patterns (glob syntax) and rule codes (Issue #85).
+    ///
     /// # Examples
     ///
     /// ```
@@ -103,9 +158,14 @@ impl IgnoreFile {
     ///
     /// # Generated files
     /// **/generated/*.sh
+    ///
+    /// # Ignore specific rules (Issue #85)
+    /// SEC010
+    /// SC2031
     /// "#;
     ///
     /// let ignore = IgnoreFile::parse(content).expect("valid patterns");
+    /// assert!(ignore.should_ignore_rule("SEC010"));
     /// ```
     pub fn parse(content: &str) -> Result<Self, String> {
         let mut ignore = Self::default();
@@ -118,14 +178,21 @@ impl IgnoreFile {
                 continue;
             }
 
-            // Check for negation pattern
+            // Check for negation pattern (only applies to file patterns)
             let (is_negation, pattern_str) = if let Some(stripped) = trimmed.strip_prefix('!') {
                 (true, stripped.trim())
             } else {
                 (false, trimmed)
             };
 
-            // Compile the pattern
+            // Issue #85: Check if this is a rule code (e.g., SEC010, SC2031)
+            if !is_negation && is_rule_code(pattern_str) {
+                // Store rule code in uppercase for case-insensitive matching
+                ignore.ignored_rule_codes.insert(pattern_str.to_uppercase());
+                continue;
+            }
+
+            // Otherwise, treat as a file pattern
             let pattern = Pattern::new(pattern_str).map_err(|e| {
                 format!(
                     "Invalid pattern on line {}: '{}' - {}",
@@ -208,11 +275,162 @@ impl IgnoreFile {
     pub fn pattern_count(&self) -> usize {
         self.include_patterns.len() + self.exclude_patterns.len()
     }
+
+    /// Check if a rule code should be ignored (Issue #85)
+    ///
+    /// Rule codes are matched case-insensitively.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use bashrs::linter::IgnoreFile;
+    ///
+    /// let content = "SEC010\nSC2031";
+    /// let ignore = IgnoreFile::parse(content).expect("valid patterns");
+    ///
+    /// assert!(ignore.should_ignore_rule("SEC010"));
+    /// assert!(ignore.should_ignore_rule("sec010")); // Case-insensitive
+    /// assert!(ignore.should_ignore_rule("SC2031"));
+    /// assert!(!ignore.should_ignore_rule("SEC001")); // Not in file
+    /// ```
+    pub fn should_ignore_rule(&self, rule_code: &str) -> bool {
+        self.ignored_rule_codes.contains(&rule_code.to_uppercase())
+    }
+
+    /// Get all ignored rule codes (Issue #85)
+    ///
+    /// Returns a vector of all rule codes that should be ignored,
+    /// in uppercase form.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use bashrs::linter::IgnoreFile;
+    ///
+    /// let content = "SEC010\nSC2031\nDET001";
+    /// let ignore = IgnoreFile::parse(content).expect("valid patterns");
+    ///
+    /// let rules = ignore.ignored_rules();
+    /// assert_eq!(rules.len(), 3);
+    /// assert!(rules.contains(&"SEC010".to_string()));
+    /// ```
+    pub fn ignored_rules(&self) -> Vec<String> {
+        self.ignored_rule_codes.iter().cloned().collect()
+    }
+
+    /// Check if there are any ignored rule codes (Issue #85)
+    pub fn has_ignored_rules(&self) -> bool {
+        !self.ignored_rule_codes.is_empty()
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    // ============================================================
+    // Issue #85: Rule code support in .bashrsignore
+    // ============================================================
+
+    #[test]
+    fn test_issue_85_rule_codes_parsed() {
+        // Issue #85: .bashrsignore should support rule codes like SEC010, SC2031
+        let content = r#"
+SEC010
+SC2031
+SC2032
+SC2046
+"#;
+        let ignore = IgnoreFile::parse(content).expect("valid patterns");
+
+        // Rule codes should be stored separately from file patterns
+        assert!(ignore.should_ignore_rule("SEC010"));
+        assert!(ignore.should_ignore_rule("SC2031"));
+        assert!(ignore.should_ignore_rule("SC2032"));
+        assert!(ignore.should_ignore_rule("SC2046"));
+        assert!(!ignore.should_ignore_rule("SEC001")); // Not in file
+    }
+
+    #[test]
+    fn test_issue_85_rule_codes_case_insensitive() {
+        let content = "sec010\nSC2031";
+        let ignore = IgnoreFile::parse(content).expect("valid patterns");
+
+        // Rule codes should be case-insensitive
+        assert!(ignore.should_ignore_rule("SEC010"));
+        assert!(ignore.should_ignore_rule("sec010"));
+        assert!(ignore.should_ignore_rule("SC2031"));
+        assert!(ignore.should_ignore_rule("sc2031"));
+    }
+
+    #[test]
+    fn test_issue_85_mixed_content() {
+        // .bashrsignore can contain both file patterns and rule codes
+        let content = r#"
+# Ignore vendor scripts
+vendor/**/*.sh
+
+# Ignore specific rules (Issue #85)
+SEC010
+SC2031
+
+# Exclude specific file
+scripts/record-metric.sh
+"#;
+        let ignore = IgnoreFile::parse(content).expect("valid patterns");
+
+        // File patterns work
+        assert!(matches!(
+            ignore.should_ignore(Path::new("vendor/foo.sh")),
+            IgnoreResult::Ignored(_)
+        ));
+
+        // Rule codes work
+        assert!(ignore.should_ignore_rule("SEC010"));
+        assert!(ignore.should_ignore_rule("SC2031"));
+        assert!(!ignore.should_ignore_rule("DET001"));
+    }
+
+    #[test]
+    fn test_issue_85_rule_code_patterns() {
+        // Test various rule code formats that should be recognized
+        let content = r#"
+SEC001
+SEC010
+SC2031
+SC2046
+DET001
+DET002
+IDEM001
+IDEM002
+"#;
+        let ignore = IgnoreFile::parse(content).expect("valid patterns");
+
+        assert!(ignore.should_ignore_rule("SEC001"));
+        assert!(ignore.should_ignore_rule("SEC010"));
+        assert!(ignore.should_ignore_rule("SC2031"));
+        assert!(ignore.should_ignore_rule("SC2046"));
+        assert!(ignore.should_ignore_rule("DET001"));
+        assert!(ignore.should_ignore_rule("DET002"));
+        assert!(ignore.should_ignore_rule("IDEM001"));
+        assert!(ignore.should_ignore_rule("IDEM002"));
+    }
+
+    #[test]
+    fn test_issue_85_get_ignored_rules() {
+        let content = "SEC010\nSC2031\nDET001";
+        let ignore = IgnoreFile::parse(content).expect("valid patterns");
+
+        let rules = ignore.ignored_rules();
+        assert_eq!(rules.len(), 3);
+        assert!(rules.contains(&"SEC010".to_string()));
+        assert!(rules.contains(&"SC2031".to_string()));
+        assert!(rules.contains(&"DET001".to_string()));
+    }
+
+    // ============================================================
+    // Original tests
+    // ============================================================
 
     #[test]
     fn test_empty_ignore_file() {

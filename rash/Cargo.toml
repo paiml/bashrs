@@ -115,8 +115,8 @@ proptest.workspace = true
 rstest.workspace = true
 assert_cmd = "2.0"
 predicates = "3.1"
-renacer = "0.6"  # Golden trace integration - syscall tracing for regression detection
-verificar = { path = "../../verificar" }  # Synthetic bash program generation for comprehensive testing
+renacer = "0.7"  # Golden trace integration - syscall tracing for regression detection
+verificar = "0.5"  # Synthetic bash program generation for comprehensive testing
 
 [[bench]]
 name = "transpilation"
