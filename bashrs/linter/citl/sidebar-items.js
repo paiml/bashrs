@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"fn":["classify_shellcheck_category"],"struct":["CitlDiagnostic","CitlExport","CitlSpan","CitlSuggestion","CitlSummary"]};

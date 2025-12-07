@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":["Grade","ReportItem"],"fn":["format_duration","gate_report","progress_bar","sparkline"],"mod":["chars"],"struct":["ReportBuilder","ReportSection","RichReport"]};

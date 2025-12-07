@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"enum":["SuppressionType"],"fn":["parse_rule_list","parse_suppression"],"struct":["Suppression","SuppressionManager"]};
+window.SIDEBAR_ITEMS = {"enum":["SuppressionType"],"fn":["is_valid_rule_code","parse_rule_list","parse_suppression"],"struct":["Suppression","SuppressionManager"]};

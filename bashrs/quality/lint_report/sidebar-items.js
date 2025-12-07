@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"fn":["histogram_bar","sbfl_report"],"mod":["box_chars"],"struct":["ErrorCluster","RichLintReport"]};

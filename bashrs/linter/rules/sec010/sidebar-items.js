@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"constant":["FILE_OPS","TRAVERSAL_PATTERNS"],"fn":["check","contains_file_operation","contains_unvalidated_variable","find_command","is_validation_context"]};
+window.SIDEBAR_ITEMS = {"constant":["FILE_OPS","SAFE_VAR_PATTERNS","TRAVERSAL_PATTERNS"],"fn":["check","contains_file_operation","contains_unvalidated_variable","find_command","is_validation_context"]};

@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":["SbflFormula"],"fn":["localize_faults"],"struct":["CoverageData","FaultLocalizer","SuspiciousnessRanking"]};

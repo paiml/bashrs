@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":["DriftStatus","ShellErrorCategory"],"fn":["bootstrap_patterns"],"struct":["ClassificationResult","DriftDetector","FeatureVector","FixPattern","KnnClassifier","Oracle"]};

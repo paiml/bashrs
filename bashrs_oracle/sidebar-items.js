@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"constant":["DEFAULT_MODEL_NAME"],"enum":["OracleError"],"mod":["categories","classifier","corpus","features"],"struct":["ClassificationResult","Oracle","OracleConfig"],"type":["Result"]};
