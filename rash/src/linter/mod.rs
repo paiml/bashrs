@@ -18,6 +18,7 @@
 #![allow(unused_variables)]
 
 pub mod autofix;
+pub mod citl;
 pub mod diagnostic;
 pub mod ignore_file;
 pub mod make_preprocess;
@@ -29,6 +30,7 @@ pub mod shell_type;
 pub mod suppression;
 
 pub use autofix::{apply_fixes, apply_fixes_to_file, FixOptions, FixResult};
+pub use citl::{CitlDiagnostic, CitlExport, CitlSpan, CitlSuggestion, CitlSummary};
 pub use diagnostic::{Diagnostic, Fix, FixSafetyLevel, LintResult, Severity, Span};
 pub use ignore_file::{IgnoreFile, IgnoreResult};
 pub use rule_registry::{get_rule_compatibility, should_apply_rule, RuleMetadata};

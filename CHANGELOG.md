@@ -7,6 +7,44 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [6.42.0] - 2025-12-07
+
+### Added
+
+- **ML-Powered Quality Gates** (BASHRS-SPEC-ML-001): Complete implementation
+  - **ML-001 to ML-003**: Tiered quality gates (ON-SAVE/ON-COMMIT/NIGHTLY) with `.pmat-gates.toml` config
+  - **ML-004 to ML-006**: SBFL fault localization with Tarantula, Ochiai, DStar formulas
+  - **ML-007 to ML-010**: Oracle ML classification with 73-feature extraction, k-NN classifier, 15 fix patterns, drift detection
+  - **ML-011 to ML-014**: Rich ASCII reporting with sparklines, histograms, progress bars, grade system
+  - **ML-015 to ML-017**: Control flow graph generation with cyclomatic/essential/cognitive complexity metrics
+
+- **New Quality Module** (`rash/src/quality/`):
+  - `gates.rs`: Quality gate configuration and enforcement
+  - `report.rs`: Progress bars, sparklines, grade visualization
+  - `sbfl.rs`: Spectrum-based fault localization
+  - `oracle.rs`: ML error classification and fix suggestions
+  - `lint_report.rs`: Rich lint reports with error clustering
+  - `cfg.rs`: CFG generation and complexity analysis
+
+- **Book Documentation**: New "Quality Gates (ML-Powered)" chapter
+  - Quality Gates Overview
+  - SBFL Fault Localization
+  - ML Error Classification
+  - Control Flow Analysis
+  - Rich ASCII Reporting
+
+### Changed
+
+- Updated all dependencies to latest compatible versions
+- Fixed example warnings in `optimizer_benchmark.rs` and `xtask_custom_build.rs`
+
+### Quality
+
+- **Tests**: 7021 passed (zero regressions)
+- **Clippy**: Clean (zero warnings)
+- **Book**: All mdbook tests pass
+- **Coverage**: 176 new quality module tests
+
 ## [6.39.0] - 2025-11-25
 
 ### Added

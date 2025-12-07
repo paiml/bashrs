@@ -89,6 +89,8 @@ pub mod emitter;
 pub mod formal;
 /// Shell script formatting
 pub mod formatter;
+/// Quality gate configuration and enforcement
+pub mod gates;
 /// Intermediate representation for transpilation
 pub mod ir;
 /// Shell script linting with ShellCheck-equivalent rules
@@ -97,6 +99,8 @@ pub mod linter;
 pub mod make_parser;
 /// Configuration types and error handling
 pub mod models;
+/// Quality gates with rich reporting and fault localization (ML-001 to ML-012)
+pub mod quality;
 /// Interactive REPL with integrated debugger
 pub mod repl;
 /// Parser and compiler services

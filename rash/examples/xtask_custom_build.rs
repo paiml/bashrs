@@ -30,7 +30,6 @@ fn main() -> bashrs::Result<()> {
 /// Example 1: Basic transpilation with default settings
 fn basic_transpilation() -> bashrs::Result<()> {
     // Use a temporary file for the example
-    use std::fs;
     use std::io::Write;
     use tempfile::NamedTempFile;
 

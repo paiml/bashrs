@@ -13,8 +13,8 @@ categories = ["command-line-utilities", "development-tools"]
 workspace = true
 
 [dependencies]
-bashrs = { version = "6.3.0", path = "../rash" }
-pforge-runtime = "0.1.2"
+bashrs = { version = "6.42", path = "../rash" }  # Use path for workspace dev, version for publish
+pforge-runtime = "0.1.4"
 # Use workspace dependencies for version unification (Issue #57)
 serde.workspace = true
 serde_json.workspace = true

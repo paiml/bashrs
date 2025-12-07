@@ -171,6 +171,10 @@ pub enum Commands {
         /// Exclude specific rule (shellcheck-compatible, can be repeated)
         #[arg(short = 'e', value_name = "CODE", action = clap::ArgAction::Append)]
         exclude: Option<Vec<String>>,
+
+        /// Export diagnostics in CITL format for OIP integration (Issue #83)
+        #[arg(long, value_name = "FILE")]
+        citl_export: Option<PathBuf>,
     },
 
     /// Purify bash scripts (determinism + idempotency + safety)
@@ -235,6 +239,17 @@ pub enum Commands {
         /// Maximum recursion depth (default: 100)
         #[arg(long)]
         max_depth: Option<usize>,
+    },
+
+    /// Enforce quality gates (NEW in v6.42.0)
+    Gate {
+        /// Quality gate tier (1=fast, 2=pre-commit, 3=nightly)
+        #[arg(long, default_value = "1")]
+        tier: u8,
+
+        /// Report format
+        #[arg(long, value_enum, default_value = "human")]
+        report: ReportFormat,
     },
 
     /// Run bash script tests (NEW in v6.10.0 - Bash Quality Tools)

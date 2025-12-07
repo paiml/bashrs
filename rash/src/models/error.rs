@@ -42,4 +42,8 @@ pub enum Error {
 
     #[error("Unsupported feature: {0}")]
     Unsupported(String),
+
+    /// Issue #84: Command failed with helpful message
+    #[error("{message}")]
+    CommandFailed { message: String },
 }

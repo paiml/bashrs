@@ -5,7 +5,7 @@
 //!
 //! Run with: cargo run --example optimizer_benchmark --release
 
-use bashrs::ir::{optimize, shell_ir::*, Command, EffectSet, ShellIR, ShellValue};
+use bashrs::ir::{optimize, shell_ir::*, EffectSet, ShellIR, ShellValue};
 use bashrs::models::Config;
 use std::time::Instant;
 
