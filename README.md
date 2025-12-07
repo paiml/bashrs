@@ -1,3 +1,5 @@
+<div align="center">
+
 # Rash - Bidirectional Shell Safety Tool
 
 [![Crates.io](https://img.shields.io/crates/v/bashrs.svg)](https://crates.io/crates/bashrs)
@@ -9,6 +11,24 @@
 [![Coverage](https://img.shields.io/badge/coverage-88.71%25-green)](https://github.com/paiml/bashrs/actions)
 
 **Rash** (v6.34.0) is a bidirectional shell safety tool that purifies legacy bash scripts and lets you write shell scripts in REAL Rust with automatic safety guarantees.
+
+</div>
+
+## Table of Contents
+
+- [What's New](#-whats-new-in-v6340)
+- [Why Rash?](#why-rash)
+- [Quick Start](#quick-start)
+- [Features](#features)
+- [Core Commands](#core-commands)
+- [Documentation](#-documentation)
+- [Quality Metrics](#quality-metrics-v6360)
+- [Shell Compatibility](#shell-compatibility)
+- [Performance](#performance)
+- [MCP Server](#mcp-server)
+- [Contributing](#contributing)
+- [License](#license)
+- [Acknowledgments](#acknowledgments)
 
 ## 🚀 What's New in v6.34.0+
 
@@ -29,6 +49,8 @@
 See [CHANGELOG.md](CHANGELOG.md) for complete release notes.
 
 ## Why Rash?
+
+## Features
 
 - 🛡️ **Automatic Safety**: Protection against shell injection, word splitting, glob expansion
 - 🔍 **Beyond Linting**: Full AST semantic understanding - **transforms** code, doesn't just warn
