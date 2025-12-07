@@ -1,28 +1,34 @@
 <div align="center">
 
-# Rash - Bidirectional Shell Safety Tool
+<p align="center">
+  <img src=".github/bashrs-hero.svg" alt="bashrs" width="800">
+</p>
 
-[![Crates.io](https://img.shields.io/crates/v/bashrs.svg)](https://crates.io/crates/bashrs)
-[![Documentation](https://docs.rs/bashrs/badge.svg)](https://docs.rs/bashrs)
-[![Book](https://img.shields.io/badge/book-The%20Rash%20Book-blue)](https://paiml.github.io/bashrs/)
-[![License](https://img.shields.io/crates/l/bashrs.svg)](LICENSE)
-[![CI](https://github.com/paiml/bashrs/workflows/CI/badge.svg)](https://github.com/paiml/bashrs/actions)
-[![Tests](https://img.shields.io/badge/tests-6583%20passing-brightgreen)](https://github.com/paiml/bashrs/actions)
-[![Coverage](https://img.shields.io/badge/coverage-88.71%25-green)](https://github.com/paiml/bashrs/actions)
+<h1 align="center">Rash - Bidirectional Shell Safety Tool</h1>
 
-**Rash** (v6.34.0) is a bidirectional shell safety tool that purifies legacy bash scripts and lets you write shell scripts in REAL Rust with automatic safety guarantees.
+<p align="center">
+  <a href="https://crates.io/crates/bashrs"><img src="https://img.shields.io/crates/v/bashrs.svg" alt="Crates.io"></a>
+  <a href="https://docs.rs/bashrs"><img src="https://docs.rs/bashrs/badge.svg" alt="Documentation"></a>
+  <a href="https://paiml.github.io/bashrs/"><img src="https://img.shields.io/badge/book-The%20Rash%20Book-blue" alt="Book"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/crates/l/bashrs.svg" alt="License"></a>
+  <a href="https://github.com/paiml/bashrs/actions"><img src="https://github.com/paiml/bashrs/workflows/CI/badge.svg" alt="CI"></a>
+</p>
+
+<p align="center">
+  <b>Bidirectional shell safety tool that purifies legacy bash scripts and lets you write shell scripts in REAL Rust with automatic safety guarantees.</b>
+</p>
 
 </div>
 
 ## Table of Contents
 
-- [What's New](#-whats-new-in-v6340)
+- [What's New](#-whats-new-in-v6410)
 - [Why Rash?](#why-rash)
 - [Quick Start](#quick-start)
 - [Features](#features)
 - [Core Commands](#core-commands)
 - [Documentation](#-documentation)
-- [Quality Metrics](#quality-metrics-v6360)
+- [Quality Metrics](#quality-metrics-v6410)
 - [Shell Compatibility](#shell-compatibility)
 - [Performance](#performance)
 - [MCP Server](#mcp-server)
@@ -30,7 +36,7 @@
 - [License](#license)
 - [Acknowledgments](#acknowledgments)
 
-## 🚀 What's New in v6.34.0+
+## 🚀 What's New in v6.41.0
 
 **Latest Updates** - 2025-11-12
 
@@ -175,7 +181,7 @@ bashrs audit script.sh
 - ✅ Comprehensive coverage of all features
 - ✅ Real-world examples and tutorials
 
-## Quality Metrics (v6.36.0+)
+## Quality Metrics (v6.41.0)
 
 | Metric | Status |
 |--------|--------|
