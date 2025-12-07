@@ -97,6 +97,13 @@ rash_fs_exists() {
 
 rash_fs_read_file() {
     path="$1"
+    # SEC010: Validate path to prevent traversal
+    case "$path" in
+        *..* | /*)
+            echo "ERROR: Invalid path (traversal attempt): $path" >&2
+            return 1
+            ;;
+    esac
     if [ ! -f "$path" ]; then
         echo "ERROR: File not found: $path" >&2
         return 1
@@ -122,6 +129,13 @@ rash_fs_copy() {
 
 rash_fs_remove() {
     path="$1"
+    # SEC010: Validate path to prevent traversal
+    case "$path" in
+        *..* | /*)
+            echo "ERROR: Invalid path (traversal attempt): $path" >&2
+            return 1
+            ;;
+    esac
     if [ ! -e "$path" ]; then
         echo "ERROR: Path not found: $path" >&2
         return 1
@@ -183,8 +197,19 @@ main() {
         echo "$script"
 }
 
-# Cleanup on exit
-trap 'rm -rf "${TMPDIR:-/tmp}/rash.$$"' EXIT
+# Cleanup on exit (SEC011: validate temp path before rm -rf)
+_rash_cleanup() {
+    _tmpdir="${TMPDIR:-/tmp}"
+    # Validate TMPDIR is not empty or root
+    case "$_tmpdir" in
+        "" | "/" | "//" )
+            echo "ERROR: Invalid TMPDIR for cleanup" >&2
+            return 1
+            ;;
+    esac
+    rm -rf "${_tmpdir}/rash.$$"
+}
+trap '_rash_cleanup' EXIT
 
 # Execute main function
 main "$@"
