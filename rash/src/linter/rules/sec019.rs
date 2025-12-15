@@ -356,7 +356,7 @@ rm "$PACKAGE_NAME.tar.gz"
 
         // Should detect at least 1 unquoted variable
         assert!(
-            result.diagnostics.len() >= 1,
+            !result.diagnostics.is_empty(),
             "Should detect at least 1 injection risk (found: {})",
             result.diagnostics.len()
         );
@@ -476,7 +476,7 @@ UNSAFE=$(cat $filename)
         // Should detect at least 1 unquoted variable
         // Note: Detection in command substitution is a future enhancement
         assert!(
-            result.diagnostics.len() >= 1,
+            !result.diagnostics.is_empty(),
             "Should detect at least 1 unquoted variable (found: {})",
             result.diagnostics.len()
         );

@@ -120,12 +120,14 @@ pub mod validation;
 /// Output verification and shellcheck integration
 pub mod verifier;
 
+/// Terminal User Interface (TUI) with ratatui
+#[cfg(feature = "tui")]
+pub mod tui;
+
 #[cfg(test)]
 pub mod testing;
 
-// WebAssembly support (Phase 0: Feasibility Study)
-#[cfg(feature = "wasm")]
-pub mod wasm;
+// WebAssembly support removed - use probar/simular/jugar instead
 
 pub use models::{Config, Error, Result};
 pub use transpiler::Transpiler;

@@ -1,4 +1,5 @@
 #![allow(clippy::unwrap_used)] // Tests can use unwrap() for simplicity
+#![allow(clippy::expect_used)]
 //! Integration Test Template - Tool Consensus (Anti-Fraud)
 //!
 //! Task: REPL-002-004 - Create integration test template (anti-fraud)
@@ -109,7 +110,7 @@ echo $x
     // Original has non-deterministic $RANDOM and non-idempotent mkdir
     // Purified should fix both
     assert!(
-        original_diagnostics.len() > 0,
+        !original_diagnostics.is_empty(),
         "Original script should have diagnostics (has $RANDOM and mkdir without -p)"
     );
 
@@ -260,6 +261,32 @@ echo "Deployment ID: $x"
     );
 }
 
+// ===== Documentation Examples =====
+
+/// Example: Complete anti-fraud check
+///
+/// ```no_run
+/// use bashrs::repl::parser::parse_bash;
+/// use bashrs::repl::linter::lint_bash;
+/// use bashrs::repl::purifier::purify_bash;
+///
+/// #[test]
+/// fn test_example_complete_consensus() {
+///     let script = "#!/bin/bash\nmkdir /tmp/test\n";
+///
+///     // All tools must agree
+///     let ast = parse_bash(script);
+///     let lint = lint_bash(script);
+///     let purified = purify_bash(script);
+///
+///     assert!(ast.is_ok());
+///     assert!(lint.is_ok());
+///     assert!(purified.is_ok());
+/// }
+/// ```
+#[allow(dead_code)]
+fn example_complete_consensus_test() {}
+
 // ===== Property Tests =====
 
 #[cfg(test)]
@@ -332,29 +359,3 @@ mod property_tests {
         }
     }
 }
-
-// ===== Documentation Examples =====
-
-/// Example: Complete anti-fraud check
-///
-/// ```no_run
-/// use bashrs::repl::parser::parse_bash;
-/// use bashrs::repl::linter::lint_bash;
-/// use bashrs::repl::purifier::purify_bash;
-///
-/// #[test]
-/// fn test_example_complete_consensus() {
-///     let script = "#!/bin/bash\nmkdir /tmp/test\n";
-///
-///     // All tools must agree
-///     let ast = parse_bash(script);
-///     let lint = lint_bash(script);
-///     let purified = purify_bash(script);
-///
-///     assert!(ast.is_ok());
-///     assert!(lint.is_ok());
-///     assert!(purified.is_ok());
-/// }
-/// ```
-#[allow(dead_code)]
-fn example_complete_consensus_test() {}

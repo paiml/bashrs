@@ -516,7 +516,7 @@ mod tests {
         // Restore original directory
         std::env::set_current_dir(original_dir).unwrap();
 
-        assert!(completions.len() > 0);
+        assert!(!completions.is_empty());
         assert!(completions.iter().any(|p| p.replacement == "test.sh"));
     }
 
@@ -536,7 +536,7 @@ mod tests {
         let path_str = format!("{}/scr", sub_dir.display());
         let completions = completer.complete_file_path(&path_str);
 
-        assert!(completions.len() > 0);
+        assert!(!completions.is_empty());
         assert!(completions.iter().any(|p| p.display.contains("script.sh")));
     }
 
@@ -595,7 +595,7 @@ mod tests {
         let (start, completions) = completer.complete(&line, line.len(), &ctx).unwrap();
 
         assert_eq!(start, 6); // Position after ":load "
-        assert!(completions.len() > 0);
+        assert!(!completions.is_empty());
         assert!(completions.iter().any(|p| p.display.contains("example.sh")));
     }
 
@@ -618,7 +618,7 @@ mod tests {
         let (start, completions) = completer.complete(&line, line.len(), &ctx).unwrap();
 
         assert_eq!(start, 8); // Position after ":source "
-        assert!(completions.len() > 0);
+        assert!(!completions.is_empty());
         assert!(completions.iter().any(|p| p.display.contains("script.sh")));
     }
 

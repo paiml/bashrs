@@ -1,4 +1,5 @@
 #![allow(clippy::unwrap_used)]
+#![allow(clippy::expect_used)]
 // Tests can use unwrap() for simplicity
 // CLI Integration Tests for bashrs make purify --with-tests Command
 // EXTREME TDD: GREEN phase - Feature implemented and tests passing

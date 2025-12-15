@@ -105,6 +105,48 @@ fn collect_variable_info(
             assigned.insert(var_name);
         }
 
+        // REQ-FP-003: Find read command variable assignments
+        // Handle: read var, read -r var, read var1 var2 var3
+        if let Some(read_pos) = line.find("read ") {
+            let after_read = &line[read_pos + 5..];
+            let parts: Vec<&str> = after_read.split_whitespace().collect();
+            let mut i = 0;
+            // Skip flags like -r, -p, -a, etc.
+            while i < parts.len() {
+                let part = parts[i];
+                if part.starts_with('-') {
+                    i += 1;
+                    // Skip argument for flags that take one (e.g., -p "prompt")
+                    if part == "-p"
+                        || part == "-a"
+                        || part == "-d"
+                        || part == "-n"
+                        || part == "-t"
+                        || part == "-u"
+                    {
+                        i += 1;
+                    }
+                } else {
+                    break;
+                }
+            }
+            // Remaining parts are variable names (until ; or end)
+            while i < parts.len() {
+                let var_name = parts[i].trim_end_matches(';');
+                if var_name
+                    .chars()
+                    .next()
+                    .is_some_and(|c| c.is_alphabetic() || c == '_')
+                    && var_name.chars().all(|c| c.is_alphanumeric() || c == '_')
+                {
+                    assigned.insert(var_name.to_string());
+                    i += 1;
+                } else {
+                    break; // Stop at non-variable (e.g., ; do)
+                }
+            }
+        }
+
         // Find uses
         for cap in patterns.use_.captures_iter(line) {
             let var_name = cap.get(1).unwrap().as_str();
@@ -267,6 +309,68 @@ echo "$defined"
 "#;
         let result = check(script);
         assert_eq!(result.diagnostics.len(), 0);
+    }
+
+    // REQ-FP-003: SC2154 MUST track variables assigned by read in pipelines
+    #[test]
+    fn test_REQ_FP_003_read_in_pipeline() {
+        let script = r#"#!/bin/bash
+cat file.txt | while read line; do
+  echo "$line"
+done
+"#;
+        let result = check(script);
+        // No SC2154 warning for 'line' - it's assigned by read
+        let has_line_warning = result
+            .diagnostics
+            .iter()
+            .any(|d| d.code == "SC2154" && d.message.contains("'line'"));
+        assert!(
+            !has_line_warning,
+            "SC2154 must NOT flag 'line' - it's assigned by read"
+        );
+    }
+
+    #[test]
+    fn test_read_simple_assignment() {
+        let script = r#"#!/bin/bash
+read name
+echo "$name"
+"#;
+        let result = check(script);
+        let has_name_warning = result
+            .diagnostics
+            .iter()
+            .any(|d| d.code == "SC2154" && d.message.contains("'name'"));
+        assert!(!has_name_warning, "read should assign variable");
+    }
+
+    #[test]
+    fn test_read_with_r_flag() {
+        let script = r#"#!/bin/bash
+read -r line
+echo "$line"
+"#;
+        let result = check(script);
+        let has_line_warning = result
+            .diagnostics
+            .iter()
+            .any(|d| d.code == "SC2154" && d.message.contains("'line'"));
+        assert!(!has_line_warning, "read -r should assign variable");
+    }
+
+    #[test]
+    fn test_read_multiple_variables() {
+        let script = r#"#!/bin/bash
+read first second third
+echo "$first $second $third"
+"#;
+        let result = check(script);
+        assert_eq!(
+            result.diagnostics.len(),
+            0,
+            "read with multiple vars should assign all"
+        );
     }
 
     // Issue #20: Loop variable tests

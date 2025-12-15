@@ -1,1 +1,1 @@
-pub mod transpile;
+pub(crate) mod transpile;

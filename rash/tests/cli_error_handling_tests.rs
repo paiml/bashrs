@@ -1,4 +1,5 @@
 #![allow(clippy::unwrap_used)]
+#![allow(clippy::expect_used)]
 // Tests can use unwrap() for simplicity
 // Negative testing suite for CLI error handling
 // Testing Spec Section 1.6: Layer 6 - Negative Testing

@@ -1,4 +1,5 @@
 #![allow(clippy::unwrap_used)]
+#![allow(clippy::expect_used)]
 // Tests can use unwrap() for simplicity
 // Integration tests for REPL Explain Mode (REPL-005-002)
 //

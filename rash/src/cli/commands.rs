@@ -1,9 +1,9 @@
 #[cfg(feature = "oracle")]
 use crate::cli::args::ExplainErrorFormat;
 use crate::cli::args::{
-    CompileRuntime, ConfigCommands, ConfigOutputFormat, ContainerFormatArg, DockerfileCommands,
-    InspectionFormat, LintFormat, LintLevel, MakeCommands, MakeOutputFormat, ReportFormat,
-    ScoreOutputFormat, TestOutputFormat,
+    CompileRuntime, ConfigCommands, ConfigOutputFormat, ContainerFormatArg, DevContainerCommands,
+    DockerfileCommands, InspectionFormat, LintFormat, LintLevel, LintProfileArg, MakeCommands,
+    MakeOutputFormat, ReportFormat, ScoreOutputFormat, TestOutputFormat,
 };
 use crate::cli::{Cli, Commands};
 use crate::models::{Config, Error, Result};
@@ -122,6 +122,8 @@ pub fn execute_command(cli: Cli) -> Result<()> {
             ignore,
             exclude,
             citl_export,
+            profile,
+            graded,
         } => {
             info!("Linting {}", input.display());
             lint_command(
@@ -137,6 +139,8 @@ pub fn execute_command(cli: Cli) -> Result<()> {
                 ignore.as_deref(),
                 exclude.as_deref(),
                 citl_export.as_deref(),
+                profile,
+                graded,
             )
         }
 
@@ -161,6 +165,8 @@ pub fn execute_command(cli: Cli) -> Result<()> {
 
         Commands::Dockerfile { command } => handle_dockerfile_command(command),
 
+        Commands::Devcontainer { command } => handle_devcontainer_command(command),
+
         Commands::Config { command } => handle_config_command(command),
 
         Commands::Repl {
@@ -172,6 +178,13 @@ pub fn execute_command(cli: Cli) -> Result<()> {
         } => {
             info!("Starting interactive REPL");
             handle_repl_command(debug, sandboxed, max_memory, timeout, max_depth)
+        }
+
+        #[cfg(feature = "tui")]
+        Commands::Tui => {
+            info!("Starting TUI");
+            crate::tui::run()
+                .map_err(|e| crate::models::Error::Io(std::io::Error::other(e.to_string())))
         }
 
         Commands::Test {
@@ -189,9 +202,14 @@ pub fn execute_command(cli: Cli) -> Result<()> {
             format,
             detailed,
             dockerfile,
+            runtime,
+            grade,
+            profile,
         } => {
             info!("Scoring {}", input.display());
-            score_command(&input, format, detailed, dockerfile)
+            score_command(
+                &input, format, detailed, dockerfile, runtime, grade, profile,
+            )
         }
 
         Commands::Audit {
@@ -1052,6 +1070,8 @@ fn lint_command(
     ignore_rules: Option<&str>,
     exclude_rules: Option<&[String]>,
     citl_export_path: Option<&Path>,
+    profile: LintProfileArg,
+    _graded: bool, // TODO: Implement graded scoring output
 ) -> Result<()> {
     use crate::linter::rules::lint_shell;
     use crate::linter::{
@@ -1059,7 +1079,7 @@ fn lint_command(
         citl::CitlExport,
         ignore_file::{IgnoreFile, IgnoreResult},
         output::{write_results, OutputFormat},
-        rules::lint_makefile,
+        rules::{lint_dockerfile_with_profile, lint_makefile, LintProfile},
         LintResult, Severity,
     };
     use std::collections::HashSet;
@@ -1175,26 +1195,42 @@ fn lint_command(
     // Read input file
     let source = fs::read_to_string(input).map_err(Error::Io)?;
 
-    // Detect if this is a Makefile and use appropriate linter
+    // Detect file type and use appropriate linter
     // Check both filename and file extension
-    let is_makefile = input
-        .file_name()
-        .and_then(|n| n.to_str())
-        .map(|n| {
-            n == "Makefile"
-                || n == "makefile"
-                || n == "GNUmakefile"
-                || n.ends_with(".mk")
-                || n.ends_with(".make")
-        })
-        .unwrap_or(false);
+    let filename = input.file_name().and_then(|n| n.to_str()).unwrap_or("");
 
-    // Run linter
+    let is_makefile = filename == "Makefile"
+        || filename == "makefile"
+        || filename == "GNUmakefile"
+        || filename.ends_with(".mk")
+        || filename.ends_with(".make");
+
+    let filename_lower = filename.to_lowercase();
+    let is_dockerfile = filename_lower == "dockerfile"
+        || filename_lower.starts_with("dockerfile.")
+        || filename_lower.ends_with(".dockerfile");
+
+    // Convert CLI profile arg to linter profile
+    use crate::cli::args::LintProfileArg;
+    let lint_profile = match profile {
+        LintProfileArg::Standard => LintProfile::Standard,
+        LintProfileArg::Coursera => LintProfile::Coursera,
+        LintProfileArg::DevContainer => LintProfile::DevContainer,
+    };
+
+    // Run linter based on file type
     let result_raw = if is_makefile {
         lint_makefile(&source)
+    } else if is_dockerfile {
+        lint_dockerfile_with_profile(&source, lint_profile)
     } else {
         lint_shell(&source)
     };
+
+    // Display profile info if using non-standard profile
+    if is_dockerfile && lint_profile != LintProfile::Standard {
+        info!("Using lint profile: {}", lint_profile);
+    }
 
     // Apply severity filter (Issue #75: --quiet and --level flags)
     let result = filter_diagnostics(result_raw.clone());
@@ -1523,7 +1559,212 @@ fn handle_dockerfile_command(command: DockerfileCommands) -> Result<()> {
             // Delegate to existing Dockerfile lint functionality
             dockerfile_lint_command(&input, format, rules.as_deref())
         }
+        DockerfileCommands::Profile {
+            input,
+            build,
+            layers,
+            startup,
+            memory,
+            cpu,
+            workload,
+            duration,
+            profile,
+            simulate_limits,
+            full,
+            format,
+        } => {
+            info!("Profiling {}", input.display());
+            dockerfile_profile_command(
+                &input,
+                build,
+                layers,
+                startup,
+                memory,
+                cpu,
+                workload.as_deref(),
+                &duration,
+                profile,
+                simulate_limits,
+                full,
+                format,
+            )
+        }
+        DockerfileCommands::SizeCheck {
+            input,
+            verbose,
+            layers,
+            detect_bloat,
+            verify,
+            docker_verify,
+            profile,
+            strict,
+            max_size,
+            compression_analysis,
+            format,
+        } => {
+            info!("Checking size of {}", input.display());
+            dockerfile_size_check_command(
+                &input,
+                verbose,
+                layers,
+                detect_bloat,
+                verify,
+                docker_verify,
+                profile,
+                strict,
+                max_size.as_deref(),
+                compression_analysis,
+                format,
+            )
+        }
+        DockerfileCommands::FullValidate {
+            input,
+            profile,
+            size_check,
+            graded,
+            runtime,
+            strict,
+            format,
+        } => {
+            info!("Full validation of {}", input.display());
+            dockerfile_full_validate_command(
+                &input, profile, size_check, graded, runtime, strict, format,
+            )
+        }
     }
+}
+
+fn handle_devcontainer_command(command: DevContainerCommands) -> Result<()> {
+    use crate::linter::output::{write_results, OutputFormat};
+    use crate::linter::rules::devcontainer::{list_devcontainer_rules, validate_devcontainer};
+
+    match command {
+        DevContainerCommands::Validate {
+            path,
+            format,
+            lint_dockerfile,
+            list_rules,
+        } => {
+            // Handle --list-rules flag
+            if list_rules {
+                println!("Available DEVCONTAINER rules:\n");
+                for (code, desc) in list_devcontainer_rules() {
+                    println!("  {}: {}", code, desc);
+                }
+                return Ok(());
+            }
+
+            info!("Validating devcontainer at {}", path.display());
+
+            // Find devcontainer.json file
+            let devcontainer_path = find_devcontainer_json(&path)?;
+            info!("Found devcontainer.json at {}", devcontainer_path.display());
+
+            // Read and validate devcontainer.json
+            let content = fs::read_to_string(&devcontainer_path).map_err(Error::Io)?;
+            let result = validate_devcontainer(&content)
+                .map_err(|e| Error::Validation(format!("Invalid devcontainer.json: {}", e)))?;
+
+            // Output results
+            let output_format = match format {
+                LintFormat::Human => OutputFormat::Human,
+                LintFormat::Json => OutputFormat::Json,
+                LintFormat::Sarif => OutputFormat::Sarif,
+            };
+
+            let mut stdout = std::io::stdout();
+            write_results(
+                &mut stdout,
+                &result,
+                output_format,
+                devcontainer_path.to_str().unwrap_or("devcontainer.json"),
+            )
+            .map_err(Error::Io)?;
+
+            // Optionally lint referenced Dockerfile
+            if lint_dockerfile {
+                if let Ok(json) = crate::linter::rules::devcontainer::parse_jsonc(&content) {
+                    if let Some(build) = json.get("build") {
+                        if let Some(dockerfile) = build.get("dockerfile").and_then(|v| v.as_str()) {
+                            let dockerfile_path = devcontainer_path
+                                .parent()
+                                .unwrap_or(Path::new("."))
+                                .join(dockerfile);
+                            if dockerfile_path.exists() {
+                                info!(
+                                    "Linting referenced Dockerfile: {}",
+                                    dockerfile_path.display()
+                                );
+                                dockerfile_lint_command(&dockerfile_path, format, None)?;
+                            } else {
+                                warn!(
+                                    "Referenced Dockerfile not found: {}",
+                                    dockerfile_path.display()
+                                );
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Return error if there are errors
+            let has_errors = result
+                .diagnostics
+                .iter()
+                .any(|d| d.severity == crate::linter::Severity::Error);
+            if has_errors {
+                Err(Error::Validation(
+                    "devcontainer.json validation failed".to_string(),
+                ))
+            } else {
+                Ok(())
+            }
+        }
+    }
+}
+
+/// Find devcontainer.json in standard locations
+fn find_devcontainer_json(path: &Path) -> Result<PathBuf> {
+    // If path is a file, use it directly
+    if path.is_file() {
+        return Ok(path.to_path_buf());
+    }
+
+    // If path is a directory, search standard locations
+    let candidates = [
+        path.join(".devcontainer/devcontainer.json"),
+        path.join(".devcontainer.json"),
+    ];
+
+    for candidate in &candidates {
+        if candidate.exists() {
+            return Ok(candidate.clone());
+        }
+    }
+
+    // Check for .devcontainer/<folder>/devcontainer.json
+    let devcontainer_dir = path.join(".devcontainer");
+    if devcontainer_dir.is_dir() {
+        if let Ok(entries) = fs::read_dir(&devcontainer_dir) {
+            for entry in entries.flatten() {
+                let subdir = entry.path();
+                if subdir.is_dir() {
+                    let candidate = subdir.join("devcontainer.json");
+                    if candidate.exists() {
+                        return Ok(candidate);
+                    }
+                }
+            }
+        }
+    }
+
+    Err(Error::Validation(format!(
+        "No devcontainer.json found in {}. Expected locations:\n  \
+         - .devcontainer/devcontainer.json\n  \
+         - .devcontainer.json\n  \
+         - .devcontainer/<folder>/devcontainer.json",
+        path.display()
+    )))
 }
 
 struct DockerfilePurifyOptions<'a> {
@@ -1953,6 +2194,553 @@ fn dockerfile_lint_command(input: &Path, format: LintFormat, rules: Option<&str>
         .any(|d| matches!(d.severity, crate::linter::Severity::Error))
     {
         std::process::exit(2);
+    }
+
+    Ok(())
+}
+
+#[allow(clippy::too_many_arguments)]
+fn dockerfile_profile_command(
+    input: &Path,
+    build: bool,
+    layers: bool,
+    startup: bool,
+    memory: bool,
+    cpu: bool,
+    _workload: Option<&Path>,
+    _duration: &str,
+    profile: Option<LintProfileArg>,
+    simulate_limits: bool,
+    full: bool,
+    format: ReportFormat,
+) -> Result<()> {
+    use crate::linter::docker_profiler::{
+        estimate_size, format_size_estimate, is_docker_available, PlatformProfile,
+    };
+
+    info!("Profiling {} for runtime performance", input.display());
+
+    // Check if Docker is available
+    if !is_docker_available() {
+        println!("⚠️  Docker daemon not available");
+        println!("Runtime profiling requires Docker. Falling back to static analysis.\n");
+    }
+
+    let source = fs::read_to_string(input).map_err(Error::Io)?;
+
+    // Determine platform profile
+    let platform = match profile {
+        Some(LintProfileArg::Coursera) => PlatformProfile::Coursera,
+        _ => PlatformProfile::Standard,
+    };
+
+    // Static analysis: size estimation
+    let estimate = estimate_size(&source);
+
+    // Output profile information
+    match format {
+        ReportFormat::Human => {
+            println!("Docker Image Profile");
+            println!("====================\n");
+
+            // Build profiling (simulated without Docker)
+            if build || full {
+                println!("Build Analysis:");
+                println!("  Layers: {}", estimate.layer_estimates.len());
+                println!(
+                    "  Estimated build time: {} (based on layer complexity)",
+                    estimate_build_time(&estimate)
+                );
+
+                if layers {
+                    println!("\n  Layer Details:");
+                    for layer in &estimate.layer_estimates {
+                        let cached = if layer.cached { " (cached)" } else { "" };
+                        println!(
+                            "    [{}] {}{} - line {}",
+                            layer.layer_num, layer.instruction, cached, layer.line
+                        );
+                        if let Some(ref notes) = layer.notes {
+                            println!("        {}", notes);
+                        }
+                    }
+                }
+                println!();
+            }
+
+            // Size analysis
+            println!("{}", format_size_estimate(&estimate, layers));
+
+            // Startup analysis
+            if startup || full {
+                println!("Startup Analysis:");
+                println!("  Requires Docker daemon for actual measurement");
+                if platform == PlatformProfile::Coursera {
+                    println!("  Coursera limit: 60 seconds");
+                    println!("  Recommendation: Target <30s startup time");
+                }
+                println!();
+            }
+
+            // Memory analysis
+            if memory || full {
+                println!("Memory Analysis:");
+                println!("  Requires Docker daemon for actual measurement");
+                if platform == PlatformProfile::Coursera {
+                    println!("  Coursera limit: 4GB");
+                }
+                println!();
+            }
+
+            // CPU analysis
+            if cpu || full {
+                println!("CPU Analysis:");
+                println!("  Requires Docker daemon for actual measurement");
+                if platform == PlatformProfile::Coursera {
+                    println!("  Coursera limit: 2 CPUs");
+                }
+                println!();
+            }
+
+            // Platform validation
+            if platform == PlatformProfile::Coursera {
+                println!("Coursera Platform Validation:");
+                let max_size_gb = platform.max_size_bytes() as f64 / 1_000_000_000.0;
+                let estimated_gb = estimate.total_estimated as f64 / 1_000_000_000.0;
+                let size_ok = estimate.total_estimated < platform.max_size_bytes();
+                let size_icon = if size_ok { "✓" } else { "✗" };
+
+                println!(
+                    "  {} Image size: {:.2}GB (limit: {:.0}GB)",
+                    size_icon, estimated_gb, max_size_gb
+                );
+
+                if simulate_limits {
+                    println!("\n  Simulation flags for docker run:");
+                    println!("    --memory=4g --cpus=2");
+                }
+                println!();
+            }
+        }
+        ReportFormat::Json => {
+            let json = serde_json::json!({
+                "file": input.display().to_string(),
+                "profile": format!("{:?}", platform),
+                "build": {
+                    "layers": estimate.layer_estimates.len(),
+                    "estimated_build_time": estimate_build_time(&estimate),
+                },
+                "size": {
+                    "base_image": estimate.base_image,
+                    "base_image_bytes": estimate.base_image_size,
+                    "total_estimated_bytes": estimate.total_estimated,
+                    "bloat_patterns": estimate.bloat_patterns.len(),
+                },
+                "docker_available": is_docker_available(),
+                "platform_limits": {
+                    "max_size_bytes": platform.max_size_bytes(),
+                    "max_memory_bytes": platform.max_memory_bytes(),
+                    "max_startup_ms": platform.max_startup_ms(),
+                }
+            });
+            println!(
+                "{}",
+                serde_json::to_string_pretty(&json).unwrap_or_default()
+            );
+        }
+        ReportFormat::Markdown => {
+            println!("# Docker Image Profile\n");
+            println!("**File**: {}\n", input.display());
+            println!("## Build Analysis\n");
+            println!("- **Layers**: {}", estimate.layer_estimates.len());
+            println!(
+                "- **Estimated build time**: {}\n",
+                estimate_build_time(&estimate)
+            );
+            println!("## Size Analysis\n");
+            println!("- **Base image**: {}", estimate.base_image);
+            println!(
+                "- **Estimated total**: {:.2}GB\n",
+                estimate.total_estimated as f64 / 1_000_000_000.0
+            );
+        }
+    }
+
+    Ok(())
+}
+
+/// Estimate build time based on layer complexity
+fn estimate_build_time(estimate: &crate::linter::docker_profiler::SizeEstimate) -> String {
+    // Rough heuristic: 1 second per 100MB + base times
+    let mut total_seconds = 0u64;
+
+    for layer in &estimate.layer_estimates {
+        // Base time for each layer
+        total_seconds += 1;
+
+        // Add time based on size
+        total_seconds += layer.estimated_size / 100_000_000;
+
+        // Add extra time for known slow operations
+        let content_lower = layer.content.to_lowercase();
+        if content_lower.contains("apt-get install") {
+            total_seconds += 10;
+        }
+        if content_lower.contains("pip install") {
+            total_seconds += 5;
+        }
+        if content_lower.contains("npm install") {
+            total_seconds += 5;
+        }
+    }
+
+    if total_seconds < 60 {
+        format!("~{}s", total_seconds)
+    } else {
+        format!("~{}m {}s", total_seconds / 60, total_seconds % 60)
+    }
+}
+
+#[allow(clippy::too_many_arguments)]
+fn dockerfile_size_check_command(
+    input: &Path,
+    verbose: bool,
+    layers: bool,
+    detect_bloat: bool,
+    verify: bool,
+    docker_verify: bool,
+    profile: Option<LintProfileArg>,
+    strict: bool,
+    max_size: Option<&str>,
+    compression_analysis: bool,
+    format: ReportFormat,
+) -> Result<()> {
+    use crate::linter::docker_profiler::{
+        estimate_size, format_size_estimate, format_size_estimate_json, is_docker_available,
+        PlatformProfile,
+    };
+
+    info!("Checking size of {}", input.display());
+
+    let source = fs::read_to_string(input).map_err(Error::Io)?;
+    let estimate = estimate_size(&source);
+
+    // Determine platform profile and custom limits
+    let platform = match profile {
+        Some(LintProfileArg::Coursera) => PlatformProfile::Coursera,
+        _ => PlatformProfile::Standard,
+    };
+
+    // Parse custom max size if specified
+    let custom_limit: Option<u64> = max_size.and_then(|s| {
+        let s = s.to_uppercase();
+        if s.ends_with("GB") {
+            s[..s.len() - 2]
+                .trim()
+                .parse::<f64>()
+                .ok()
+                .map(|n| (n * 1_000_000_000.0) as u64)
+        } else if s.ends_with("MB") {
+            s[..s.len() - 2]
+                .trim()
+                .parse::<f64>()
+                .ok()
+                .map(|n| (n * 1_000_000.0) as u64)
+        } else {
+            None
+        }
+    });
+
+    match format {
+        ReportFormat::Human => {
+            // Show size estimate
+            println!("{}", format_size_estimate(&estimate, verbose || layers));
+
+            // Show bloat patterns if requested
+            if detect_bloat && !estimate.bloat_patterns.is_empty() {
+                println!("Bloat Detection Results:");
+                for pattern in &estimate.bloat_patterns {
+                    println!(
+                        "  {} [line {}]: {}",
+                        pattern.code, pattern.line, pattern.description
+                    );
+                    println!("    Wasted: ~{}MB", pattern.wasted_bytes / 1_000_000);
+                    println!("    Fix: {}", pattern.remediation);
+                    println!();
+                }
+            }
+
+            // Docker verification
+            if (verify || docker_verify) && is_docker_available() {
+                println!("Docker Verification:");
+                // Would need to build and check - placeholder
+                println!("  Requires docker build to verify actual size\n");
+            }
+
+            // Compression analysis
+            if compression_analysis {
+                println!("Compression Opportunities:");
+                println!("  - Use multi-stage builds to reduce final image size");
+                println!("  - Compress large data files with gzip (~70% reduction)");
+                println!("  - Use .dockerignore to exclude unnecessary files\n");
+            }
+
+            // Platform limit check
+            let effective_limit = custom_limit.unwrap_or(platform.max_size_bytes());
+            if effective_limit != u64::MAX {
+                let limit_gb = effective_limit as f64 / 1_000_000_000.0;
+                let estimated_gb = estimate.total_estimated as f64 / 1_000_000_000.0;
+
+                println!("Size Limit Check:");
+                if estimate.total_estimated > effective_limit {
+                    println!(
+                        "  ✗ EXCEEDS LIMIT: {:.2}GB > {:.0}GB",
+                        estimated_gb, limit_gb
+                    );
+                    if strict {
+                        return Err(Error::Validation(format!(
+                            "Image size ({:.2}GB) exceeds limit ({:.0}GB)",
+                            estimated_gb, limit_gb
+                        )));
+                    }
+                } else {
+                    let percentage =
+                        (estimate.total_estimated as f64 / effective_limit as f64) * 100.0;
+                    println!(
+                        "  ✓ Within limit: {:.2}GB / {:.0}GB ({:.0}%)",
+                        estimated_gb, limit_gb, percentage
+                    );
+                }
+                println!();
+            }
+        }
+        ReportFormat::Json => {
+            println!("{}", format_size_estimate_json(&estimate));
+        }
+        ReportFormat::Markdown => {
+            println!("# Image Size Analysis\n");
+            println!("**File**: {}\n", input.display());
+            println!("## Summary\n");
+            println!("- **Base image**: {}", estimate.base_image);
+            println!(
+                "- **Estimated total**: {:.2}GB\n",
+                estimate.total_estimated as f64 / 1_000_000_000.0
+            );
+
+            if !estimate.bloat_patterns.is_empty() {
+                println!("## Bloat Patterns\n");
+                for pattern in &estimate.bloat_patterns {
+                    println!(
+                        "- **{}** (line {}): {}",
+                        pattern.code, pattern.line, pattern.description
+                    );
+                }
+                println!();
+            }
+        }
+    }
+
+    Ok(())
+}
+
+fn dockerfile_full_validate_command(
+    input: &Path,
+    profile: Option<LintProfileArg>,
+    size_check: bool,
+    _graded: bool,
+    runtime: bool,
+    strict: bool,
+    format: ReportFormat,
+) -> Result<()> {
+    use crate::linter::docker_profiler::{estimate_size, is_docker_available, PlatformProfile};
+    use crate::linter::rules::{lint_dockerfile_with_profile, LintProfile};
+
+    info!("Full validation of {}", input.display());
+
+    let source = fs::read_to_string(input).map_err(Error::Io)?;
+    let mut all_passed = true;
+
+    // Determine profiles
+    let lint_profile = match profile {
+        Some(LintProfileArg::Coursera) => LintProfile::Coursera,
+        Some(LintProfileArg::DevContainer) => LintProfile::DevContainer,
+        _ => LintProfile::Standard,
+    };
+
+    let platform_profile = match profile {
+        Some(LintProfileArg::Coursera) => PlatformProfile::Coursera,
+        _ => PlatformProfile::Standard,
+    };
+
+    match format {
+        ReportFormat::Human => {
+            println!("Full Dockerfile Validation");
+            println!("==========================\n");
+
+            // Step 1: Syntax and lint validation
+            println!("1. Linting Dockerfile...");
+            let lint_result = lint_dockerfile_with_profile(&source, lint_profile);
+
+            let error_count = lint_result
+                .diagnostics
+                .iter()
+                .filter(|d| d.severity == crate::linter::Severity::Error)
+                .count();
+            let warning_count = lint_result
+                .diagnostics
+                .iter()
+                .filter(|d| d.severity == crate::linter::Severity::Warning)
+                .count();
+
+            if error_count == 0 && warning_count == 0 {
+                println!("   ✓ No lint issues found\n");
+            } else {
+                println!("   {} errors, {} warnings\n", error_count, warning_count);
+                for diag in &lint_result.diagnostics {
+                    let icon = match diag.severity {
+                        crate::linter::Severity::Error => "✗",
+                        crate::linter::Severity::Warning => "⚠",
+                        _ => "ℹ",
+                    };
+                    println!(
+                        "   {} [{}] Line {}: {}",
+                        icon, diag.code, diag.span.start_line, diag.message
+                    );
+                }
+                println!();
+                if error_count > 0 {
+                    all_passed = false;
+                }
+            }
+
+            // Step 2: Size validation
+            if size_check {
+                println!("2. Checking image size...");
+                let estimate = estimate_size(&source);
+
+                let size_gb = estimate.total_estimated as f64 / 1_000_000_000.0;
+                let limit_gb = platform_profile.max_size_bytes() as f64 / 1_000_000_000.0;
+
+                if estimate.total_estimated < platform_profile.max_size_bytes() {
+                    println!(
+                        "   ✓ Size OK: {:.2}GB (limit: {:.0}GB)\n",
+                        size_gb, limit_gb
+                    );
+                } else {
+                    println!(
+                        "   ✗ Size exceeds limit: {:.2}GB > {:.0}GB\n",
+                        size_gb, limit_gb
+                    );
+                    all_passed = false;
+                }
+
+                // Show bloat patterns
+                if !estimate.bloat_patterns.is_empty() {
+                    println!("   Optimization opportunities:");
+                    for pattern in &estimate.bloat_patterns {
+                        println!("   - {}: {}", pattern.code, pattern.description);
+                    }
+                    println!();
+                }
+            }
+
+            // Step 3: Runtime validation (requires Docker)
+            if runtime {
+                println!("3. Runtime validation...");
+                if is_docker_available() {
+                    println!("   Requires docker build - skipping in static analysis mode\n");
+                } else {
+                    println!("   ⚠ Docker not available - skipping runtime checks\n");
+                }
+            }
+
+            // Summary
+            println!("Validation Result:");
+            if all_passed {
+                println!("✓ All checks passed");
+                if lint_profile == LintProfile::Coursera {
+                    println!("✓ Ready for Coursera Labs upload");
+                }
+            } else {
+                println!("✗ Validation failed - see issues above");
+                if strict {
+                    return Err(Error::Validation("Full validation failed".to_string()));
+                }
+            }
+        }
+        ReportFormat::Json => {
+            let lint_result = lint_dockerfile_with_profile(&source, lint_profile);
+            let estimate = estimate_size(&source);
+
+            let json = serde_json::json!({
+                "file": input.display().to_string(),
+                "profile": format!("{:?}", lint_profile),
+                "lint": {
+                    "errors": lint_result.diagnostics.iter()
+                        .filter(|d| d.severity == crate::linter::Severity::Error).count(),
+                    "warnings": lint_result.diagnostics.iter()
+                        .filter(|d| d.severity == crate::linter::Severity::Warning).count(),
+                    "diagnostics": lint_result.diagnostics.iter().map(|d| {
+                        serde_json::json!({
+                            "code": d.code,
+                            "severity": format!("{:?}", d.severity),
+                            "message": d.message,
+                            "line": d.span.start_line
+                        })
+                    }).collect::<Vec<_>>()
+                },
+                "size": {
+                    "estimated_bytes": estimate.total_estimated,
+                    "estimated_gb": estimate.total_estimated as f64 / 1_000_000_000.0,
+                    "limit_bytes": platform_profile.max_size_bytes(),
+                    "within_limit": estimate.total_estimated < platform_profile.max_size_bytes(),
+                    "bloat_patterns": estimate.bloat_patterns.len()
+                },
+                "passed": all_passed
+            });
+            println!(
+                "{}",
+                serde_json::to_string_pretty(&json).unwrap_or_default()
+            );
+        }
+        ReportFormat::Markdown => {
+            println!("# Full Dockerfile Validation\n");
+            println!("**File**: {}\n", input.display());
+
+            let lint_result = lint_dockerfile_with_profile(&source, lint_profile);
+            let error_count = lint_result
+                .diagnostics
+                .iter()
+                .filter(|d| d.severity == crate::linter::Severity::Error)
+                .count();
+
+            println!("## Lint Results\n");
+            println!("- **Errors**: {}", error_count);
+            println!(
+                "- **Warnings**: {}\n",
+                lint_result
+                    .diagnostics
+                    .iter()
+                    .filter(|d| d.severity == crate::linter::Severity::Warning)
+                    .count()
+            );
+
+            if size_check {
+                let estimate = estimate_size(&source);
+                println!("## Size Analysis\n");
+                println!(
+                    "- **Estimated size**: {:.2}GB\n",
+                    estimate.total_estimated as f64 / 1_000_000_000.0
+                );
+            }
+
+            println!("## Result\n");
+            if error_count == 0 {
+                println!("✓ **PASSED**");
+            } else {
+                println!("✗ **FAILED**");
+            }
+        }
     }
 
     Ok(())
@@ -3035,28 +3823,66 @@ fn score_command(
     format: ScoreOutputFormat,
     detailed: bool,
     dockerfile: bool,
+    runtime: bool,
+    show_grade: bool,
+    profile: Option<LintProfileArg>,
 ) -> Result<()> {
     // Read input file
     let source = fs::read_to_string(input)
         .map_err(|e| Error::Internal(format!("Failed to read {}: {}", input.display(), e)))?;
 
-    if dockerfile {
-        // Use Dockerfile-specific scoring
+    // Detect if file is a Dockerfile
+    let filename = input.file_name().and_then(|n| n.to_str()).unwrap_or("");
+    let is_dockerfile = dockerfile
+        || filename.eq_ignore_ascii_case("dockerfile")
+        || filename.to_lowercase().ends_with(".dockerfile");
+
+    if is_dockerfile {
+        // Use Dockerfile-specific scoring with optional runtime analysis
         use crate::bash_quality::dockerfile_scoring::score_dockerfile;
+        use crate::linter::docker_profiler::{estimate_size, is_docker_available, PlatformProfile};
 
         let score = score_dockerfile(&source)
             .map_err(|e| Error::Internal(format!("Failed to score Dockerfile: {}", e)))?;
+
+        // Determine platform profile
+        let platform_profile = match profile {
+            Some(LintProfileArg::Coursera) => PlatformProfile::Coursera,
+            _ => PlatformProfile::Standard,
+        };
+
+        // Runtime analysis if requested
+        let runtime_score = if runtime {
+            let estimate = estimate_size(&source);
+            let docker_available = is_docker_available();
+            Some(RuntimeScore::new(
+                &estimate,
+                platform_profile,
+                docker_available,
+            ))
+        } else {
+            None
+        };
 
         // Output results
         match format {
             ScoreOutputFormat::Human => {
                 print_human_dockerfile_score_results(&score, detailed);
+                if let Some(ref rt) = runtime_score {
+                    print_human_runtime_score(rt, platform_profile);
+                }
+                if show_grade {
+                    print_combined_grade(&score, runtime_score.as_ref());
+                }
             }
             ScoreOutputFormat::Json => {
-                print_json_dockerfile_score_results(&score);
+                print_json_dockerfile_score_with_runtime(&score, runtime_score.as_ref());
             }
             ScoreOutputFormat::Markdown => {
                 print_markdown_dockerfile_score_results(&score, input);
+                if let Some(ref rt) = runtime_score {
+                    print_markdown_runtime_score(rt);
+                }
             }
         }
     } else {
@@ -3081,6 +3907,290 @@ fn score_command(
     }
 
     Ok(())
+}
+
+/// Runtime performance score for Docker images
+#[derive(Debug)]
+struct RuntimeScore {
+    /// Overall runtime score (0-100)
+    score: f64,
+    /// Image size in bytes
+    estimated_size: u64,
+    /// Size score component (0-100)
+    size_score: f64,
+    /// Layer optimization score (0-100)
+    layer_score: f64,
+    /// Number of bloat patterns detected
+    bloat_count: usize,
+    /// Whether Docker is available for actual measurement
+    docker_available: bool,
+    /// Suggestions for improvement
+    suggestions: Vec<String>,
+}
+
+impl RuntimeScore {
+    fn new(
+        estimate: &crate::linter::docker_profiler::SizeEstimate,
+        profile: crate::linter::docker_profiler::PlatformProfile,
+        docker_available: bool,
+    ) -> Self {
+        let max_size = profile.max_size_bytes();
+        let mut suggestions = Vec::new();
+
+        // Calculate size score
+        let size_score = if max_size == u64::MAX {
+            // No limit - base on reasonable defaults (5GB good, 10GB average)
+            let five_gb = 5_000_000_000u64;
+            if estimate.total_estimated < five_gb {
+                100.0
+            } else {
+                let ratio = estimate.total_estimated as f64 / five_gb as f64;
+                (100.0 / ratio).clamp(0.0, 100.0)
+            }
+        } else {
+            let ratio = estimate.total_estimated as f64 / max_size as f64;
+            if ratio > 1.0 {
+                0.0 // Over limit
+            } else if ratio > 0.8 {
+                (1.0 - ratio) * 500.0 // 0-100 for 80-100% of limit
+            } else {
+                100.0 - (ratio * 50.0) // 50-100 for under 80%
+            }
+        };
+
+        // Calculate layer score (penalize many layers and bloat)
+        let layer_count = estimate.layer_estimates.len();
+        let bloat_count = estimate.bloat_patterns.len();
+
+        let layer_score = if layer_count <= 5 {
+            100.0 - (bloat_count as f64 * 20.0)
+        } else if layer_count <= 10 {
+            80.0 - (bloat_count as f64 * 20.0)
+        } else {
+            60.0 - (bloat_count as f64 * 20.0)
+        }
+        .max(0.0);
+
+        // Add suggestions based on analysis
+        for pattern in &estimate.bloat_patterns {
+            suggestions.push(format!("{}: {}", pattern.code, pattern.remediation));
+        }
+
+        if layer_count > 10 {
+            suggestions.push("Consider combining RUN commands to reduce layer count".to_string());
+        }
+
+        if estimate.total_estimated > max_size {
+            suggestions.push(format!(
+                "Image size ({:.1}GB) exceeds limit ({:.1}GB) - use smaller base image or multi-stage build",
+                estimate.total_estimated as f64 / 1_000_000_000.0,
+                max_size as f64 / 1_000_000_000.0
+            ));
+        }
+
+        // Overall score is weighted average
+        let score = (size_score * 0.6 + layer_score * 0.4).clamp(0.0, 100.0);
+
+        Self {
+            score,
+            estimated_size: estimate.total_estimated,
+            size_score,
+            layer_score,
+            bloat_count,
+            docker_available,
+            suggestions,
+        }
+    }
+
+    fn grade(&self) -> &'static str {
+        match self.score as u32 {
+            95..=100 => "A+",
+            90..=94 => "A",
+            85..=89 => "A-",
+            80..=84 => "B+",
+            75..=79 => "B",
+            70..=74 => "B-",
+            65..=69 => "C+",
+            60..=64 => "C",
+            55..=59 => "C-",
+            50..=54 => "D",
+            _ => "F",
+        }
+    }
+}
+
+/// Print human-readable runtime score
+fn print_human_runtime_score(
+    rt: &RuntimeScore,
+    profile: crate::linter::docker_profiler::PlatformProfile,
+) {
+    println!();
+    println!("Runtime Performance Score");
+    println!("=========================");
+    println!();
+    println!("Runtime Score: {:.0}/100 ({})", rt.score, rt.grade());
+    println!();
+    println!("  Size Analysis:");
+    println!(
+        "    - Estimated size: {:.2}GB",
+        rt.estimated_size as f64 / 1_000_000_000.0
+    );
+    println!("    - Size score: {:.0}/100", rt.size_score);
+    println!();
+    println!("  Layer Optimization:");
+    println!("    - Bloat patterns: {}", rt.bloat_count);
+    println!("    - Layer score: {:.0}/100", rt.layer_score);
+    println!();
+
+    // Show platform limits if not standard
+    if !matches!(
+        profile,
+        crate::linter::docker_profiler::PlatformProfile::Standard
+    ) {
+        let max_size_gb = profile.max_size_bytes() as f64 / 1_000_000_000.0;
+        let size_pct = (rt.estimated_size as f64 / profile.max_size_bytes() as f64) * 100.0;
+        println!("  Platform Limits ({:?}):", profile);
+        println!("    - Max size: {:.0}GB", max_size_gb);
+        println!("    - Usage: {:.1}%", size_pct);
+        println!();
+    }
+
+    if !rt.docker_available {
+        println!("  Note: Docker not available - using static analysis only");
+        println!();
+    }
+
+    if !rt.suggestions.is_empty() {
+        println!("  Improvement Suggestions:");
+        for (i, suggestion) in rt.suggestions.iter().enumerate() {
+            println!("    {}. {}", i + 1, suggestion);
+        }
+        println!();
+    }
+}
+
+/// Print combined grade summary
+fn print_combined_grade(
+    score: &crate::bash_quality::dockerfile_scoring::DockerfileQualityScore,
+    runtime: Option<&RuntimeScore>,
+) {
+    println!();
+    println!("Combined Quality Assessment");
+    println!("===========================");
+    println!();
+    println!(
+        "Static Analysis: {} ({:.0}/100)",
+        score.grade,
+        score.score * 10.0
+    );
+
+    if let Some(rt) = runtime {
+        println!("Runtime Performance: {} ({:.0}/100)", rt.grade(), rt.score);
+
+        // Combined grade (weighted 60% static, 40% runtime)
+        let combined_score = score.score * 10.0 * 0.6 + rt.score * 0.4;
+        let combined_grade = match combined_score as u32 {
+            95..=100 => "A+",
+            90..=94 => "A",
+            85..=89 => "A-",
+            80..=84 => "B+",
+            75..=79 => "B",
+            70..=74 => "B-",
+            65..=69 => "C+",
+            60..=64 => "C",
+            55..=59 => "C-",
+            50..=54 => "D",
+            _ => "F",
+        };
+        println!();
+        println!(
+            "Overall Grade: {} ({:.0}/100)",
+            combined_grade, combined_score
+        );
+    }
+    println!();
+}
+
+/// Print JSON score with runtime data
+fn print_json_dockerfile_score_with_runtime(
+    score: &crate::bash_quality::dockerfile_scoring::DockerfileQualityScore,
+    runtime: Option<&RuntimeScore>,
+) {
+    use serde_json::json;
+
+    let mut json_score = json!({
+        "grade": score.grade,
+        "score": score.score,
+        "score_100": score.score * 10.0,
+        "dimensions": {
+            "safety": score.safety,
+            "complexity": score.complexity,
+            "layer_optimization": score.layer_optimization,
+            "determinism": score.determinism,
+            "security": score.security,
+        },
+        "suggestions": score.suggestions,
+    });
+
+    if let Some(rt) = runtime {
+        if let Some(obj) = json_score.as_object_mut() {
+            obj.insert(
+                "runtime".to_string(),
+                json!({
+                    "score": rt.score,
+                    "grade": rt.grade(),
+                    "estimated_size_bytes": rt.estimated_size,
+                    "estimated_size_gb": rt.estimated_size as f64 / 1_000_000_000.0,
+                    "size_score": rt.size_score,
+                    "layer_score": rt.layer_score,
+                    "bloat_count": rt.bloat_count,
+                    "docker_available": rt.docker_available,
+                    "suggestions": rt.suggestions,
+                }),
+            );
+
+            // Add combined score
+            let combined = score.score * 10.0 * 0.6 + rt.score * 0.4;
+            obj.insert("combined_score".to_string(), json!(combined));
+        }
+    }
+
+    match serde_json::to_string_pretty(&json_score) {
+        Ok(json) => println!("{}", json),
+        Err(e) => {
+            eprintln!("Error serializing JSON: {}", e);
+            std::process::exit(1);
+        }
+    }
+}
+
+/// Print markdown runtime score section
+fn print_markdown_runtime_score(rt: &RuntimeScore) {
+    println!();
+    println!("## Runtime Performance");
+    println!();
+    println!("**Score**: {} ({:.0}/100)", rt.grade(), rt.score);
+    println!();
+    println!("| Metric | Value | Score |");
+    println!("| --- | --- | --- |");
+    println!(
+        "| Image Size | {:.2}GB | {:.0}/100 |",
+        rt.estimated_size as f64 / 1_000_000_000.0,
+        rt.size_score
+    );
+    println!(
+        "| Layer Optimization | {} bloat patterns | {:.0}/100 |",
+        rt.bloat_count, rt.layer_score
+    );
+
+    if !rt.suggestions.is_empty() {
+        println!();
+        println!("### Runtime Improvement Suggestions");
+        println!();
+        for suggestion in &rt.suggestions {
+            println!("- {}", suggestion);
+        }
+    }
 }
 
 /// Print human-readable score results
@@ -4050,41 +5160,6 @@ fn print_human_dockerfile_score_results(
         _ => println!("Unknown grade."),
     }
     println!();
-}
-
-/// Print JSON Dockerfile score results
-fn print_json_dockerfile_score_results(
-    score: &crate::bash_quality::dockerfile_scoring::DockerfileQualityScore,
-) {
-    use serde_json::json;
-
-    let json_score = json!({
-        "grade": score.grade,
-        "score": score.score,
-        "dimensions": {
-            "safety": score.safety,
-            "complexity": score.complexity,
-            "layer_optimization": score.layer_optimization,
-            "determinism": score.determinism,
-            "security": score.security,
-        },
-        "weights": {
-            "safety": 0.30,
-            "complexity": 0.25,
-            "layer_optimization": 0.20,
-            "determinism": 0.15,
-            "security": 0.10,
-        },
-        "suggestions": score.suggestions,
-    });
-
-    match serde_json::to_string_pretty(&json_score) {
-        Ok(json) => println!("{}", json),
-        Err(e) => {
-            eprintln!("Error serializing JSON: {}", e);
-            std::process::exit(1);
-        }
-    }
 }
 
 /// Print Markdown Dockerfile score results

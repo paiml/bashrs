@@ -252,7 +252,7 @@ mod tests {
     #[test]
     fn test_REPL_003_004_mode_clone() {
         let mode1 = ReplMode::Purify;
-        let mode2 = mode1.clone();
+        let mode2 = mode1;
         assert_eq!(mode1, mode2);
     }
 

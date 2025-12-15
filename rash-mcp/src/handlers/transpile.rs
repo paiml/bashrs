@@ -4,7 +4,7 @@ use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Deserialize, JsonSchema)]
-pub struct TranspileInput {
+pub(crate) struct TranspileInput {
     /// Rust source code to transpile
     pub source: String,
     /// Whether to optimize the output (default: false)
@@ -16,7 +16,7 @@ pub struct TranspileInput {
 }
 
 #[derive(Debug, Serialize, JsonSchema)]
-pub struct TranspileOutput {
+pub(crate) struct TranspileOutput {
     /// Generated POSIX shell script
     pub shell_script: String,
     /// Any warnings during transpilation
@@ -24,7 +24,7 @@ pub struct TranspileOutput {
     pub warnings: Vec<String>,
 }
 
-pub struct TranspileHandler;
+pub(crate) struct TranspileHandler;
 
 #[async_trait::async_trait]
 impl Handler for TranspileHandler {

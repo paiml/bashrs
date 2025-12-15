@@ -472,7 +472,7 @@ fn run_quality_gates(script: &Path, options: &BenchOptions) -> Result<Quality> {
                 eprintln!("  {} [{}]", diag.message, diag.code);
             }
             eprintln!("\nRun 'bashrs lint {}' for details.", script.display());
-            quality.lint_passed = false;
+            // Note: Don't need to set quality.lint_passed = false here since we return early
             return Err(Error::Validation("Linting failed".to_string()));
         }
         quality.lint_passed = true;

@@ -2238,8 +2238,7 @@ mod purify_and_lint_tests {
             let result = purify_and_validate(input);
 
             // If purifier can't fix it, should fail validation
-            if result.is_err() {
-                let err = result.unwrap_err();
+            if let Err(err) = result {
                 let purif_err = err.downcast_ref::<PurificationError>();
 
                 // Should have detailed error

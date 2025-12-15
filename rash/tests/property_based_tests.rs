@@ -1,4 +1,5 @@
 #![allow(clippy::unwrap_used)] // Tests can use unwrap() for simplicity
+#![allow(clippy::expect_used)]
 //! Property-Based Tests for Bash-to-Rash Transpiler
 //!
 //! Implements properties from the specification:

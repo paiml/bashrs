@@ -1,4 +1,5 @@
 #![allow(clippy::unwrap_used)] // Tests can use unwrap() for simplicity
+#![allow(clippy::expect_used)]
 //! Property-Based Tests for Fix Safety Taxonomy
 //!
 //! EXTREME TDD + FAST Validation:

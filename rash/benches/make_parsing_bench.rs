@@ -1,3 +1,4 @@
+#![allow(clippy::expect_used)]
 #![allow(clippy::unwrap_used)] // Benchmarks can use unwrap() for simplicity
                                // Makefile Parsing Performance Benchmarks
                                // Sprint 73 Phase 4: Performance Benchmarking

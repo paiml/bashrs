@@ -1,4 +1,5 @@
 #![allow(clippy::unwrap_used)] // Tests can use unwrap() for simplicity
+#![allow(clippy::expect_used)]
 //! REPL Command Execution Tests
 //!
 //! Task: REPL-008-001 - Normal mode command execution

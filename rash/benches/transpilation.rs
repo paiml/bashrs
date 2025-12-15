@@ -1,3 +1,4 @@
+#![allow(clippy::expect_used)]
 #![allow(clippy::unwrap_used)] // Benchmarks can use unwrap() for simplicity
 use bashrs::{ir, services::parser, transpile, Config};
 use criterion::{criterion_group, criterion_main, BenchmarkId, Criterion, Throughput};

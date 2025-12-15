@@ -1,6 +1,7 @@
 #![allow(clippy::unwrap_used)] // Tests can use unwrap() for simplicity
-                               // While loop tests (TICKET-6001)
-                               // RED phase: These tests should fail initially
+#![allow(clippy::expect_used)]
+// While loop tests (TICKET-6001)
+// RED phase: These tests should fail initially
 
 use bashrs::{transpile, Config};
 

@@ -1,4 +1,5 @@
 #![allow(clippy::unwrap_used)] // Tests can use unwrap() for simplicity
+#![allow(clippy::expect_used)]
 //! Test for Issue #10: Dockerfile-specific quality scoring
 //!
 //! RED PHASE: These tests should FAIL initially

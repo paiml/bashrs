@@ -49,6 +49,9 @@ pub mod lint_report;
 // Control flow graph and complexity
 pub mod cfg;
 
+// Mock command executor for testing gates
+pub mod mock_executor;
+
 // Re-exports for convenience
 pub use cfg::{
     render_cfg_ascii, CfgBuilder, CfgEdge, CfgNode, ComplexityGrade, ComplexityMetrics,
@@ -56,6 +59,7 @@ pub use cfg::{
 };
 pub use gates::{GateConfig, GateResult, GateSummary, QualityGate, Tier};
 pub use lint_report::{histogram_bar, sbfl_report, ErrorCluster, RichLintReport};
+pub use mock_executor::{CommandExecutor, CommandResult, MockCommandExecutor, RealCommandExecutor};
 pub use oracle::{
     bootstrap_patterns, ClassificationResult, DriftDetector, DriftStatus, FeatureVector,
     FixPattern, KnnClassifier, Oracle, ShellErrorCategory,

@@ -1,3 +1,4 @@
+#![allow(clippy::expect_used)]
 #![allow(clippy::unwrap_used)] // Benchmarks can use unwrap() for simplicity
 //! Tracing Overhead Benchmarks
 //!

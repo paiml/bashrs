@@ -310,7 +310,7 @@ mod property_tests {
             // (some generated commands may not be valid syntax)
             match result {
                 Ok(ast) => {
-                    prop_assert!(ast.statements.len() >= 1, "Should have at least 1 statement");
+                    prop_assert!(!ast.statements.is_empty(), "Should have at least 1 statement");
                 }
                 Err(error) => {
                     let formatted = format_parse_error(&error);

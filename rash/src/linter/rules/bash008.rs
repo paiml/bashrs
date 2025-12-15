@@ -292,7 +292,7 @@ mod property_tests {
             _x in 0..100,
         ) {
             let script = "exit 0";
-            let result = check(&script);
+            let result = check(script);
 
             prop_assert_eq!(result.diagnostics.len(), 0);
         }

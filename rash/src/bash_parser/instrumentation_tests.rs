@@ -30,7 +30,7 @@ mod tests {
         let _ast = parser.parse().expect("Parse failed");
 
         let snapshot = tracer.snapshot();
-        assert!(snapshot.len() > 0, "Expected trace events");
+        assert!(!snapshot.is_empty(), "Expected trace events");
 
         // First event should be ParseStart
         let events: Vec<_> = snapshot.iter().collect();

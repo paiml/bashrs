@@ -1,4 +1,5 @@
 #![allow(clippy::unwrap_used)] // Tests can use unwrap() for simplicity
+#![allow(clippy::expect_used)]
 //! Canonical Matrix Test - Comprehensive Smoke Test for All File Types
 //!
 //! This test verifies the complete capability matrix for bashrs across all supported file types:
@@ -121,7 +122,7 @@ echo $UNDEFINED_VAR
 
     // Verify linting produces output (detects issues)
     assert!(
-        stdout.contains("SC2086") || stdout.contains("SC2154") || stdout.len() > 0,
+        stdout.contains("SC2086") || stdout.contains("SC2154") || !stdout.is_empty(),
         "Lint should detect issues or produce output"
     );
 }

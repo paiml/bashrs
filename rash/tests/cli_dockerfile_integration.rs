@@ -1,4 +1,5 @@
 #![allow(clippy::unwrap_used)]
+#![allow(clippy::expect_used)]
 // Tests can use unwrap() for simplicity
 // Integration Tests for Dockerfile Purification - End-to-End Workflows
 // EXTREME TDD Phase 7: INTEGRATION

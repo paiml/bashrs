@@ -412,14 +412,14 @@ echo "$VAR3"
         let bash_code1 = "echo $(( $VAR"; // Missing closing ))
         let result1 = check(bash_code1);
         assert!(
-            result1.diagnostics.len() > 0,
+            !result1.diagnostics.is_empty(),
             "Should flag incomplete arithmetic (missing closing)"
         );
 
         let bash_code2 = "echo $VAR ))"; // Missing opening $((
         let result2 = check(bash_code2);
         assert!(
-            result2.diagnostics.len() > 0,
+            !result2.diagnostics.is_empty(),
             "Should flag incomplete arithmetic (missing opening)"
         );
     }
@@ -759,7 +759,7 @@ fi
         let bash_code = "VAR =value\necho $VAR"; // Space before =
         let result = check(bash_code);
         // Should detect $VAR in both lines (not a valid assignment)
-        assert!(result.diagnostics.len() >= 1);
+        assert!(!result.diagnostics.is_empty());
     }
 
     #[test]
@@ -781,7 +781,7 @@ fi
         let bash_code = "if [ test ]; then echo ok; fi\necho $VAR";
         let result = check(bash_code);
         // Should detect $VAR in echo line
-        assert!(result.diagnostics.len() >= 1);
+        assert!(!result.diagnostics.is_empty());
     }
 
     #[test]
@@ -824,7 +824,7 @@ fi
         let bash_code_partial = r#"echo " $VAR"#; // Quote before but not after
         let result_partial = check(bash_code_partial);
         // Should detect (not fully quoted)
-        assert!(result_partial.diagnostics.len() >= 1);
+        assert!(!result_partial.diagnostics.is_empty());
     }
 
     // Test for is_in_arithmetic_context() mutation (1 missed mutant)
@@ -916,7 +916,7 @@ fi
         let result = check(bash_code);
         // Should detect $X in if condition (not skipped as assignment)
         assert!(
-            result.diagnostics.len() >= 1,
+            !result.diagnostics.is_empty(),
             "Should detect $X in test condition"
         );
     }
@@ -1070,7 +1070,7 @@ fi
                 let bash_code = format!("{}echo ${}", spaces, var_name);
                 let result = check(&bash_code);
 
-                if result.diagnostics.len() > 0 {
+                if !result.diagnostics.is_empty() {
                     let span = &result.diagnostics[0].span;
                     // INVARIANT: Columns are 1-indexed, never 0 or negative
                     prop_assert!(span.start_col >= 1, "Start column must be >= 1, got {}", span.start_col);
@@ -1095,7 +1095,7 @@ fi
                 bash_code.push_str(&format!("echo ${}", var_name));
 
                 let result = check(&bash_code);
-                if result.diagnostics.len() > 0 {
+                if !result.diagnostics.is_empty() {
                     let span = &result.diagnostics[0].span;
                     // INVARIANT: Lines are 1-indexed, never 0 or negative
                     prop_assert!(span.start_line >= 1, "Line number must be >= 1, got {}", span.start_line);
@@ -1112,7 +1112,7 @@ fi
                 let bash_code = format!("echo ${}", var_name);
                 let result = check(&bash_code);
 
-                if result.diagnostics.len() > 0 {
+                if !result.diagnostics.is_empty() {
                     let span = &result.diagnostics[0].span;
                     let span_length = span.end_col.saturating_sub(span.start_col);
                     // INVARIANT: Span length must be positive and reasonable
@@ -1130,7 +1130,7 @@ fi
                 let bash_code = format!("echo ${{{}}}", var_name);
                 let result = check(&bash_code);
 
-                if result.diagnostics.len() > 0 {
+                if !result.diagnostics.is_empty() {
                     let span = &result.diagnostics[0].span;
                     // INVARIANT: Span for ${VAR} must be at least length of ${VAR}
                     let expected_min_length = var_name.len() + 3; // ${}
@@ -1152,7 +1152,7 @@ fi
 
                 // INVARIANT: Should only detect $VAR in echo, not in assignment
                 // Assignment is line 1, echo is line 2
-                if result.diagnostics.len() > 0 {
+                if !result.diagnostics.is_empty() {
                     prop_assert_eq!(result.diagnostics.len(), 1, "Should only flag echo line");
                     prop_assert_eq!(result.diagnostics[0].span.start_line, 2,
                         "Should flag line 2 (echo), not line 1 (assignment)");

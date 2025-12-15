@@ -1,6 +1,7 @@
 #![allow(clippy::unwrap_used)] // Tests can use unwrap() for simplicity
-                               // Integration test for Issue #5: zsh shell type detection
-                               // Verifies that bashrs correctly detects zsh files
+#![allow(clippy::expect_used)]
+// Integration test for Issue #5: zsh shell type detection
+// Verifies that bashrs correctly detects zsh files
 
 use bashrs::linter::{detect_shell_type, ShellType};
 use std::path::PathBuf;

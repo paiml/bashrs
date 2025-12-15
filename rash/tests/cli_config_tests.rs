@@ -1,4 +1,5 @@
 #![allow(clippy::unwrap_used)] // Tests can use unwrap() for simplicity
+#![allow(clippy::expect_used)]
 //! CLI tests for `bashrs config` commands
 //!
 //! Tests following EXTREME TDD - these tests are written FIRST (RED phase)

@@ -278,7 +278,7 @@ mod property_tests {
             let cmd = format!("chmod {} {}", mode, file);
             let result = check(&cmd);
             // Dangerous modes should always be detected
-            prop_assert!(result.diagnostics.len() >= 1);
+            prop_assert!(!result.diagnostics.is_empty());
             prop_assert_eq!(result.diagnostics[0].code.as_str(), "SEC017");
         }
     }
