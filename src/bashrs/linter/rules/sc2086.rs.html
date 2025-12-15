@@ -1,4 +1,4 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `rash/src/linter/rules/sc2086.rs`."><title>sc2086.rs - source</title><script>if(window.location.protocol!=="file:")document.head.insertAdjacentHTML("beforeend","SourceSerif4-Regular-6b053e98.ttf.woff2,FiraSans-Italic-81dc35de.woff2,FiraSans-Regular-0fe48ade.woff2,FiraSans-MediumItalic-ccf7e434.woff2,FiraSans-Medium-e1aa3f0a.woff2,SourceCodePro-Regular-8badfe75.ttf.woff2,SourceCodePro-Semibold-aa29a496.ttf.woff2".split(",").map(f=>`<link rel="preload" as="font" type="font/woff2"href="../../../../static.files/${f}">`).join(""))</script><link rel="stylesheet" href="../../../../static.files/normalize-9960930a.css"><link rel="stylesheet" href="../../../../static.files/rustdoc-e56847b5.css"><meta name="rustdoc-vars" data-root-path="../../../../" data-static-root-path="../../../../static.files/" data-current-crate="bashrs" data-themes="" data-resource-suffix="" data-rustdoc-version="1.91.1 (ed61e7d7e 2025-11-07)" data-channel="1.91.1" data-search-js="search-e256b49e.js" data-stringdex-js="stringdex-c3e638e9.js" data-settings-js="settings-c38705f0.js" ><script src="../../../../static.files/storage-e2aeef58.js"></script><script defer src="../../../../static.files/src-script-813739b1.js"></script><script defer src="../../../../src-files.js"></script><script defer src="../../../../static.files/main-6dc2a7f3.js"></script><noscript><link rel="stylesheet" href="../../../../static.files/noscript-263c88ec.css"></noscript><link rel="alternate icon" type="image/png" href="../../../../static.files/favicon-32x32-eab170b8.png"><link rel="icon" type="image/svg+xml" href="../../../../static.files/favicon-044be391.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"><div class="src-sidebar-title"><h2>Files</h2></div></nav><div class="sidebar-resizer" title="Drag to resize sidebar"></div><main><section id="main-content" class="content"><div class="main-heading"><h1><div class="sub-heading">bashrs/linter/rules/</div>sc2086.rs</h1><rustdoc-toolbar></rustdoc-toolbar></div><div class="example-wrap digits-4"><pre class="rust"><code><a href=#1 id=1 data-nosnippet>1</a><span class="doccomment">//! SC2086: Double quote to prevent globbing and word splitting
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `rash/src/linter/rules/sc2086.rs`."><title>sc2086.rs - source</title><script>if(window.location.protocol!=="file:")document.head.insertAdjacentHTML("beforeend","SourceSerif4-Regular-6b053e98.ttf.woff2,FiraSans-Italic-81dc35de.woff2,FiraSans-Regular-0fe48ade.woff2,FiraSans-MediumItalic-ccf7e434.woff2,FiraSans-Medium-e1aa3f0a.woff2,SourceCodePro-Regular-8badfe75.ttf.woff2,SourceCodePro-Semibold-aa29a496.ttf.woff2".split(",").map(f=>`<link rel="preload" as="font" type="font/woff2"href="../../../../static.files/${f}">`).join(""))</script><link rel="stylesheet" href="../../../../static.files/normalize-9960930a.css"><link rel="stylesheet" href="../../../../static.files/rustdoc-ca0dd0c4.css"><meta name="rustdoc-vars" data-root-path="../../../../" data-static-root-path="../../../../static.files/" data-current-crate="bashrs" data-themes="" data-resource-suffix="" data-rustdoc-version="1.92.0 (ded5c06cf 2025-12-08)" data-channel="1.92.0" data-search-js="search-d69d8955.js" data-stringdex-js="stringdex-c3e638e9.js" data-settings-js="settings-c38705f0.js" ><script src="../../../../static.files/storage-e2aeef58.js"></script><script defer src="../../../../static.files/src-script-813739b1.js"></script><script defer src="../../../../src-files.js"></script><script defer src="../../../../static.files/main-ce535bd0.js"></script><noscript><link rel="stylesheet" href="../../../../static.files/noscript-263c88ec.css"></noscript><link rel="alternate icon" type="image/png" href="../../../../static.files/favicon-32x32-eab170b8.png"><link rel="icon" type="image/svg+xml" href="../../../../static.files/favicon-044be391.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"><div class="src-sidebar-title"><h2>Files</h2></div></nav><div class="sidebar-resizer" title="Drag to resize sidebar"></div><main><section id="main-content" class="content"><div class="main-heading"><h1><div class="sub-heading">bashrs/linter/rules/</div>sc2086.rs</h1><rustdoc-toolbar></rustdoc-toolbar></div><div class="example-wrap digits-4"><pre class="rust"><code><a href=#1 id=1 data-nosnippet>1</a><span class="doccomment">//! SC2086: Double quote to prevent globbing and word splitting
 <a href=#2 id=2 data-nosnippet>2</a>//!
 <a href=#3 id=3 data-nosnippet>3</a>//! Detects unquoted variable expansions that could cause:
 <a href=#4 id=4 data-nosnippet>4</a>//! - Word splitting on IFS characters (space, tab, newline)
@@ -412,14 +412,14 @@
 <a href=#412 id=412 data-nosnippet>412</a>        </span><span class="kw">let </span>bash_code1 = <span class="string">"echo $(( $VAR"</span>; <span class="comment">// Missing closing ))
 <a href=#413 id=413 data-nosnippet>413</a>        </span><span class="kw">let </span>result1 = check(bash_code1);
 <a href=#414 id=414 data-nosnippet>414</a>        <span class="macro">assert!</span>(
-<a href=#415 id=415 data-nosnippet>415</a>            result1.diagnostics.len() &gt; <span class="number">0</span>,
+<a href=#415 id=415 data-nosnippet>415</a>            !result1.diagnostics.is_empty(),
 <a href=#416 id=416 data-nosnippet>416</a>            <span class="string">"Should flag incomplete arithmetic (missing closing)"
 <a href=#417 id=417 data-nosnippet>417</a>        </span>);
 <a href=#418 id=418 data-nosnippet>418</a>
 <a href=#419 id=419 data-nosnippet>419</a>        <span class="kw">let </span>bash_code2 = <span class="string">"echo $VAR ))"</span>; <span class="comment">// Missing opening $((
 <a href=#420 id=420 data-nosnippet>420</a>        </span><span class="kw">let </span>result2 = check(bash_code2);
 <a href=#421 id=421 data-nosnippet>421</a>        <span class="macro">assert!</span>(
-<a href=#422 id=422 data-nosnippet>422</a>            result2.diagnostics.len() &gt; <span class="number">0</span>,
+<a href=#422 id=422 data-nosnippet>422</a>            !result2.diagnostics.is_empty(),
 <a href=#423 id=423 data-nosnippet>423</a>            <span class="string">"Should flag incomplete arithmetic (missing opening)"
 <a href=#424 id=424 data-nosnippet>424</a>        </span>);
 <a href=#425 id=425 data-nosnippet>425</a>    }
@@ -759,7 +759,7 @@
 <a href=#759 id=759 data-nosnippet>759</a>        </span><span class="kw">let </span>bash_code = <span class="string">"VAR =value\necho $VAR"</span>; <span class="comment">// Space before =
 <a href=#760 id=760 data-nosnippet>760</a>        </span><span class="kw">let </span>result = check(bash_code);
 <a href=#761 id=761 data-nosnippet>761</a>        <span class="comment">// Should detect $VAR in both lines (not a valid assignment)
-<a href=#762 id=762 data-nosnippet>762</a>        </span><span class="macro">assert!</span>(result.diagnostics.len() &gt;= <span class="number">1</span>);
+<a href=#762 id=762 data-nosnippet>762</a>        </span><span class="macro">assert!</span>(!result.diagnostics.is_empty());
 <a href=#763 id=763 data-nosnippet>763</a>    }
 <a href=#764 id=764 data-nosnippet>764</a>
 <a href=#765 id=765 data-nosnippet>765</a>    <span class="attr">#[test]
@@ -781,7 +781,7 @@
 <a href=#781 id=781 data-nosnippet>781</a>        </span><span class="kw">let </span>bash_code = <span class="string">"if [ test ]; then echo ok; fi\necho $VAR"</span>;
 <a href=#782 id=782 data-nosnippet>782</a>        <span class="kw">let </span>result = check(bash_code);
 <a href=#783 id=783 data-nosnippet>783</a>        <span class="comment">// Should detect $VAR in echo line
-<a href=#784 id=784 data-nosnippet>784</a>        </span><span class="macro">assert!</span>(result.diagnostics.len() &gt;= <span class="number">1</span>);
+<a href=#784 id=784 data-nosnippet>784</a>        </span><span class="macro">assert!</span>(!result.diagnostics.is_empty());
 <a href=#785 id=785 data-nosnippet>785</a>    }
 <a href=#786 id=786 data-nosnippet>786</a>
 <a href=#787 id=787 data-nosnippet>787</a>    <span class="attr">#[test]
@@ -824,7 +824,7 @@
 <a href=#824 id=824 data-nosnippet>824</a>        </span><span class="kw">let </span>bash_code_partial = <span class="string">r#"echo " $VAR"#</span>; <span class="comment">// Quote before but not after
 <a href=#825 id=825 data-nosnippet>825</a>        </span><span class="kw">let </span>result_partial = check(bash_code_partial);
 <a href=#826 id=826 data-nosnippet>826</a>        <span class="comment">// Should detect (not fully quoted)
-<a href=#827 id=827 data-nosnippet>827</a>        </span><span class="macro">assert!</span>(result_partial.diagnostics.len() &gt;= <span class="number">1</span>);
+<a href=#827 id=827 data-nosnippet>827</a>        </span><span class="macro">assert!</span>(!result_partial.diagnostics.is_empty());
 <a href=#828 id=828 data-nosnippet>828</a>    }
 <a href=#829 id=829 data-nosnippet>829</a>
 <a href=#830 id=830 data-nosnippet>830</a>    <span class="comment">// Test for is_in_arithmetic_context() mutation (1 missed mutant)
@@ -916,7 +916,7 @@
 <a href=#916 id=916 data-nosnippet>916</a>        <span class="kw">let </span>result = check(bash_code);
 <a href=#917 id=917 data-nosnippet>917</a>        <span class="comment">// Should detect $X in if condition (not skipped as assignment)
 <a href=#918 id=918 data-nosnippet>918</a>        </span><span class="macro">assert!</span>(
-<a href=#919 id=919 data-nosnippet>919</a>            result.diagnostics.len() &gt;= <span class="number">1</span>,
+<a href=#919 id=919 data-nosnippet>919</a>            !result.diagnostics.is_empty(),
 <a href=#920 id=920 data-nosnippet>920</a>            <span class="string">"Should detect $X in test condition"
 <a href=#921 id=921 data-nosnippet>921</a>        </span>);
 <a href=#922 id=922 data-nosnippet>922</a>    }
@@ -1070,7 +1070,7 @@
 <a href=#1070 id=1070 data-nosnippet>1070</a>                <span class="kw">let </span>bash_code = <span class="macro">format!</span>(<span class="string">"{}echo ${}"</span>, spaces, var_name);
 <a href=#1071 id=1071 data-nosnippet>1071</a>                <span class="kw">let </span>result = check(<span class="kw-2">&amp;</span>bash_code);
 <a href=#1072 id=1072 data-nosnippet>1072</a>
-<a href=#1073 id=1073 data-nosnippet>1073</a>                <span class="kw">if </span>result.diagnostics.len() &gt; <span class="number">0 </span>{
+<a href=#1073 id=1073 data-nosnippet>1073</a>                <span class="kw">if </span>!result.diagnostics.is_empty() {
 <a href=#1074 id=1074 data-nosnippet>1074</a>                    <span class="kw">let </span>span = <span class="kw-2">&amp;</span>result.diagnostics[<span class="number">0</span>].span;
 <a href=#1075 id=1075 data-nosnippet>1075</a>                    <span class="comment">// INVARIANT: Columns are 1-indexed, never 0 or negative
 <a href=#1076 id=1076 data-nosnippet>1076</a>                    </span><span class="macro">prop_assert!</span>(span.start_col &gt;= <span class="number">1</span>, <span class="string">"Start column must be &gt;= 1, got {}"</span>, span.start_col);
@@ -1095,7 +1095,7 @@
 <a href=#1095 id=1095 data-nosnippet>1095</a>                bash_code.push_str(<span class="kw-2">&amp;</span><span class="macro">format!</span>(<span class="string">"echo ${}"</span>, var_name));
 <a href=#1096 id=1096 data-nosnippet>1096</a>
 <a href=#1097 id=1097 data-nosnippet>1097</a>                <span class="kw">let </span>result = check(<span class="kw-2">&amp;</span>bash_code);
-<a href=#1098 id=1098 data-nosnippet>1098</a>                <span class="kw">if </span>result.diagnostics.len() &gt; <span class="number">0 </span>{
+<a href=#1098 id=1098 data-nosnippet>1098</a>                <span class="kw">if </span>!result.diagnostics.is_empty() {
 <a href=#1099 id=1099 data-nosnippet>1099</a>                    <span class="kw">let </span>span = <span class="kw-2">&amp;</span>result.diagnostics[<span class="number">0</span>].span;
 <a href=#1100 id=1100 data-nosnippet>1100</a>                    <span class="comment">// INVARIANT: Lines are 1-indexed, never 0 or negative
 <a href=#1101 id=1101 data-nosnippet>1101</a>                    </span><span class="macro">prop_assert!</span>(span.start_line &gt;= <span class="number">1</span>, <span class="string">"Line number must be &gt;= 1, got {}"</span>, span.start_line);
@@ -1112,7 +1112,7 @@
 <a href=#1112 id=1112 data-nosnippet>1112</a>                </span><span class="kw">let </span>bash_code = <span class="macro">format!</span>(<span class="string">"echo ${}"</span>, var_name);
 <a href=#1113 id=1113 data-nosnippet>1113</a>                <span class="kw">let </span>result = check(<span class="kw-2">&amp;</span>bash_code);
 <a href=#1114 id=1114 data-nosnippet>1114</a>
-<a href=#1115 id=1115 data-nosnippet>1115</a>                <span class="kw">if </span>result.diagnostics.len() &gt; <span class="number">0 </span>{
+<a href=#1115 id=1115 data-nosnippet>1115</a>                <span class="kw">if </span>!result.diagnostics.is_empty() {
 <a href=#1116 id=1116 data-nosnippet>1116</a>                    <span class="kw">let </span>span = <span class="kw-2">&amp;</span>result.diagnostics[<span class="number">0</span>].span;
 <a href=#1117 id=1117 data-nosnippet>1117</a>                    <span class="kw">let </span>span_length = span.end_col.saturating_sub(span.start_col);
 <a href=#1118 id=1118 data-nosnippet>1118</a>                    <span class="comment">// INVARIANT: Span length must be positive and reasonable
@@ -1130,7 +1130,7 @@
 <a href=#1130 id=1130 data-nosnippet>1130</a>                </span><span class="kw">let </span>bash_code = <span class="macro">format!</span>(<span class="string">"echo ${{{}}}"</span>, var_name);
 <a href=#1131 id=1131 data-nosnippet>1131</a>                <span class="kw">let </span>result = check(<span class="kw-2">&amp;</span>bash_code);
 <a href=#1132 id=1132 data-nosnippet>1132</a>
-<a href=#1133 id=1133 data-nosnippet>1133</a>                <span class="kw">if </span>result.diagnostics.len() &gt; <span class="number">0 </span>{
+<a href=#1133 id=1133 data-nosnippet>1133</a>                <span class="kw">if </span>!result.diagnostics.is_empty() {
 <a href=#1134 id=1134 data-nosnippet>1134</a>                    <span class="kw">let </span>span = <span class="kw-2">&amp;</span>result.diagnostics[<span class="number">0</span>].span;
 <a href=#1135 id=1135 data-nosnippet>1135</a>                    <span class="comment">// INVARIANT: Span for ${VAR} must be at least length of ${VAR}
 <a href=#1136 id=1136 data-nosnippet>1136</a>                    </span><span class="kw">let </span>expected_min_length = var_name.len() + <span class="number">3</span>; <span class="comment">// ${}
@@ -1152,7 +1152,7 @@
 <a href=#1152 id=1152 data-nosnippet>1152</a>
 <a href=#1153 id=1153 data-nosnippet>1153</a>                <span class="comment">// INVARIANT: Should only detect $VAR in echo, not in assignment
 <a href=#1154 id=1154 data-nosnippet>1154</a>                // Assignment is line 1, echo is line 2
-<a href=#1155 id=1155 data-nosnippet>1155</a>                </span><span class="kw">if </span>result.diagnostics.len() &gt; <span class="number">0 </span>{
+<a href=#1155 id=1155 data-nosnippet>1155</a>                </span><span class="kw">if </span>!result.diagnostics.is_empty() {
 <a href=#1156 id=1156 data-nosnippet>1156</a>                    <span class="macro">prop_assert_eq!</span>(result.diagnostics.len(), <span class="number">1</span>, <span class="string">"Should only flag echo line"</span>);
 <a href=#1157 id=1157 data-nosnippet>1157</a>                    <span class="macro">prop_assert_eq!</span>(result.diagnostics[<span class="number">0</span>].span.start_line, <span class="number">2</span>,
 <a href=#1158 id=1158 data-nosnippet>1158</a>                        <span class="string">"Should flag line 2 (echo), not line 1 (assignment)"</span>);

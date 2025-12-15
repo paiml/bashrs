@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":["AppMode","AppState","Event","PanelKind"],"fn":["render","run"],"mod":["app","events","panels","ui"],"struct":["App","Panel"],"trait":["EventHandler"]};

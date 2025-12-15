@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"fn":["centered_rect","progress_bar","render","render_editor_panel","render_help_overlay","render_lint_panel","render_main_content","render_purified_panel","render_quality_panel","render_quit_dialog","render_status_bar","render_title_bar"]};

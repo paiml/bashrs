@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"struct":["CommandKey","CommandResult","MockCommandExecutor","RealCommandExecutor"],"trait":["CommandExecutor"]};

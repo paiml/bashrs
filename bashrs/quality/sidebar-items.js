@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"mod":["cfg","gates","lint_report","oracle","report","sbfl"]};
+window.SIDEBAR_ITEMS = {"mod":["cfg","gates","lint_report","mock_executor","oracle","report","sbfl"]};
