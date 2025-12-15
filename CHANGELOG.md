@@ -7,6 +7,37 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [6.43.0] - 2025-12-15
+
+### Added
+
+- **TUI Module** (`--features tui`): Terminal User Interface for interactive shell analysis
+  - 4-panel layout: Editor, Lint Results, Purified Output, Quality Metrics
+  - 6 operating modes: Normal, Purify, Lint, Debug, Explain, Fuzz
+  - Full state machine with keyboard navigation (Tab, F-keys, number keys)
+  - Help overlay (F1) and quit confirmation dialog
+  - Integrated with existing linter and purifier infrastructure
+  - 14 unit tests covering all TUI components
+
+### Removed
+
+- **WASM Module**: Removed experimental Phase 0 WASM code
+  - WebAssembly support was incomplete and deferred to future release
+  - Reduces build size and compilation time
+  - All WASM examples and documentation removed
+
+### Fixed
+
+- Fixed all clippy warnings in test files (added `#![allow(...)]` attributes)
+- Fixed `unreachable_pub` warnings in rash-mcp handlers
+- Fixed formatting issues across codebase
+
+### Quality
+
+- **Tests**: 7305 passed (zero regressions)
+- **Clippy**: Clean (zero warnings in lib, tests use targeted allows)
+- **Coverage**: TUI module has 14 dedicated tests
+
 ## [6.42.0] - 2025-12-07
 
 ### Added

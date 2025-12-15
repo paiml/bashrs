@@ -1,3 +1,4 @@
+#![allow(clippy::expect_used)]
 //! Optimizer Benchmark
 //!
 //! Demonstrates the performance impact of constant folding optimizations.

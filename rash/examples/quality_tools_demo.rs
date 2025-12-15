@@ -1,3 +1,4 @@
+#![allow(clippy::expect_used)]
 #![allow(clippy::unwrap_used)] // Examples can use unwrap() for simplicity
                                // Quality Tools Demonstration
                                // Comprehensive example showing all bashrs quality tools on various shell file styles
@@ -11,13 +12,13 @@ use std::process::Command;
 
 /// ANSI color codes for output
 mod colors {
-    pub const RESET: &str = "\x1b[0m";
-    pub const BOLD: &str = "\x1b[1m";
-    pub const GREEN: &str = "\x1b[32m";
-    pub const BLUE: &str = "\x1b[34m";
-    pub const YELLOW: &str = "\x1b[33m";
-    pub const CYAN: &str = "\x1b[36m";
-    pub const MAGENTA: &str = "\x1b[35m";
+    pub(crate) const RESET: &str = "\x1b[0m";
+    pub(crate) const BOLD: &str = "\x1b[1m";
+    pub(crate) const GREEN: &str = "\x1b[32m";
+    pub(crate) const BLUE: &str = "\x1b[34m";
+    pub(crate) const YELLOW: &str = "\x1b[33m";
+    pub(crate) const CYAN: &str = "\x1b[36m";
+    pub(crate) const MAGENTA: &str = "\x1b[35m";
 }
 
 /// Sample shell files to test

@@ -77,7 +77,7 @@ pub fn capture_golden_trace(
 
     // Run command under renacer with JSON output
     let output = Command::new("renacer")
-        .args(&["--format", "json", "--summary", "--"])
+        .args(["--format", "json", "--summary", "--"])
         .args(command)
         .current_dir(workdir)
         .output()
@@ -133,7 +133,7 @@ pub fn compare_against_golden(name: &str, command: &[&str], workdir: Option<&Pat
     // Run command under renacer
     let workdir = workdir.unwrap_or_else(|| Path::new("."));
     let output = Command::new("renacer")
-        .args(&["--format", "json", "--summary", "--"])
+        .args(["--format", "json", "--summary", "--"])
         .args(command)
         .current_dir(workdir)
         .output()
@@ -186,7 +186,7 @@ pub fn compare_against_golden(name: &str, command: &[&str], workdir: Option<&Pat
 }
 
 /// Parse syscall summary from renacer JSON output
-fn parse_syscall_summary(json: &str) -> Result<HashMap<String, u64>> {
+fn parse_syscall_summary(_json: &str) -> Result<HashMap<String, u64>> {
     // TODO: Implement proper JSON parsing when renacer stabilizes its schema
     // For now, return empty map as a placeholder
     Ok(HashMap::new())

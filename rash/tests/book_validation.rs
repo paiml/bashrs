@@ -1,4 +1,5 @@
 #![allow(clippy::unwrap_used)] // Tests can use unwrap() for simplicity
+#![allow(clippy::expect_used)]
 //! Book Accuracy Enforcement Tests
 //!
 //! This module enforces the SACRED RULE: The book can NEVER document features that don't work.

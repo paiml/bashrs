@@ -869,7 +869,7 @@ mod proptest_generative {
             // Check format: must start with $, contain var name, and be braced
             prop_assert!(text.len() >= 3);  // At least ${X}
             prop_assert_eq!(text.chars().next(), Some('$'));
-            let has_braces = text.contains(|c| c == '{') && text.contains(|c| c == '}');
+            let has_braces = text.contains('{') && text.contains('}');
             prop_assert!(has_braces);
         }
 

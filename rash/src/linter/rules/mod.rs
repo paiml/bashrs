@@ -394,6 +394,12 @@ pub mod docker004;
 pub mod docker005;
 pub mod docker006;
 
+// Coursera Lab Image rules (profile-based)
+pub mod coursera;
+
+// Dev Container validation rules
+pub mod devcontainer;
+
 use crate::linter::LintResult;
 
 /// Lint a shell script with shell-type detection based on file path.
@@ -1095,17 +1101,75 @@ pub fn lint_shell(source: &str) -> LintResult {
     result
 }
 
+/// Lint profiles for specialized validation
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum LintProfile {
+    /// Standard Dockerfile linting (default)
+    #[default]
+    Standard,
+    /// Coursera Labs image validation
+    Coursera,
+    /// Dev Container validation (devcontainer.json + Dockerfile)
+    DevContainer,
+}
+
+impl std::str::FromStr for LintProfile {
+    type Err = String;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s.to_lowercase().as_str() {
+            "standard" | "default" => Ok(LintProfile::Standard),
+            "coursera" | "coursera-labs" => Ok(LintProfile::Coursera),
+            "devcontainer" | "dev-container" => Ok(LintProfile::DevContainer),
+            _ => Err(format!(
+                "Unknown profile: {}. Valid profiles: standard, coursera, devcontainer",
+                s
+            )),
+        }
+    }
+}
+
+impl std::fmt::Display for LintProfile {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            LintProfile::Standard => write!(f, "standard"),
+            LintProfile::Coursera => write!(f, "coursera"),
+            LintProfile::DevContainer => write!(f, "devcontainer"),
+        }
+    }
+}
+
 /// Lint a Dockerfile and return all diagnostics
 pub fn lint_dockerfile(source: &str) -> LintResult {
+    lint_dockerfile_with_profile(source, LintProfile::Standard)
+}
+
+/// Lint a Dockerfile with a specific profile
+pub fn lint_dockerfile_with_profile(source: &str, profile: LintProfile) -> LintResult {
     let mut result = LintResult::new();
 
-    // Run Dockerfile-specific rules (inspired by hadolint)
+    // Run standard Dockerfile rules (inspired by hadolint)
     result.merge(docker001::check(source)); // Missing USER directive (DL3002)
     result.merge(docker002::check(source)); // Unpinned base images (DL3006, DL3007)
     result.merge(docker003::check(source)); // Missing apt cleanup (DL3009)
     result.merge(docker004::check(source)); // Invalid COPY --from (DL3022)
     result.merge(docker005::check(source)); // Missing --no-install-recommends (DL3015)
     result.merge(docker006::check(source)); // Use COPY not ADD (DL3020)
+
+    // Run profile-specific rules
+    match profile {
+        LintProfile::Standard => {
+            // Standard rules only (already added above)
+        }
+        LintProfile::Coursera => {
+            // Coursera Labs-specific rules
+            result.merge(coursera::lint_dockerfile_coursera(source));
+        }
+        LintProfile::DevContainer => {
+            // Dev Container rules (to be implemented)
+            // result.merge(devcontainer::lint_dockerfile_devcontainer(source));
+        }
+    }
 
     result
 }

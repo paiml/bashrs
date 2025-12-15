@@ -1,4 +1,5 @@
 #![allow(clippy::unwrap_used)] // Tests can use unwrap() for simplicity
+#![allow(clippy::expect_used)]
 //! Property-Based Tests for Dockerfile Purification (EXTREME TDD Phase 2)
 //!
 //! Tests invariant properties that MUST hold for ALL valid Dockerfiles:

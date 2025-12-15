@@ -1,4 +1,5 @@
 #![allow(clippy::unwrap_used)] // Tests can use unwrap() for simplicity
+#![allow(clippy::expect_used)]
 //! # SPRINT 35: Multi-Shell Execution Tests
 //!
 //! Validates that generated shell scripts execute correctly across different

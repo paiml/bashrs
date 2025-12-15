@@ -1,4 +1,5 @@
 #![allow(clippy::unwrap_used)] // Tests can use unwrap() for simplicity
+#![allow(clippy::expect_used)]
 //! REPL Test Harness
 //!
 //! Task: REPL-002-003 - Create REPL test harness with assert_cmd
@@ -152,42 +153,6 @@ fn test_REPL_002_003_help_command() {
         .stdout(predicate::str::contains("OVERVIEW"));
 }
 
-// ===== Property Tests (using example from roadmap) =====
-
-#[cfg(test)]
-mod property_tests {
-    use super::*;
-    use proptest::prelude::*;
-
-    // Property test: REPL always exits cleanly with valid quit commands
-    proptest! {
-        #[test]
-        fn prop_REPL_002_003_quit_commands_always_work(
-            quit_cmd in prop::sample::select(vec!["quit", "exit", ":quit", ":exit"])
-        ) {
-            let cmd_with_newline = format!("{}\n", quit_cmd);
-            bashrs_repl()
-                .write_stdin(cmd_with_newline.as_str())
-                .assert()
-                .success();
-        }
-    }
-
-    // Property test: REPL handles empty lines gracefully
-    proptest! {
-        #[test]
-        fn prop_REPL_002_003_empty_input_handled(
-            empty_count in 1usize..10
-        ) {
-            let empty_input = "\n".repeat(empty_count) + "quit\n";
-            bashrs_repl()
-                .write_stdin(empty_input.as_str())
-                .assert()
-                .success();
-        }
-    }
-}
-
 // ===== Documentation Examples =====
 
 /// Example: Basic REPL test
@@ -228,3 +193,39 @@ fn example_basic_repl_test() {}
 /// ```
 #[allow(dead_code)]
 fn example_mode_switching_test() {}
+
+// ===== Property Tests (using example from roadmap) =====
+
+#[cfg(test)]
+mod property_tests {
+    use super::*;
+    use proptest::prelude::*;
+
+    // Property test: REPL always exits cleanly with valid quit commands
+    proptest! {
+        #[test]
+        fn prop_REPL_002_003_quit_commands_always_work(
+            quit_cmd in prop::sample::select(vec!["quit", "exit", ":quit", ":exit"])
+        ) {
+            let cmd_with_newline = format!("{}\n", quit_cmd);
+            bashrs_repl()
+                .write_stdin(cmd_with_newline.as_str())
+                .assert()
+                .success();
+        }
+    }
+
+    // Property test: REPL handles empty lines gracefully
+    proptest! {
+        #[test]
+        fn prop_REPL_002_003_empty_input_handled(
+            empty_count in 1usize..10
+        ) {
+            let empty_input = "\n".repeat(empty_count) + "quit\n";
+            bashrs_repl()
+                .write_stdin(empty_input.as_str())
+                .assert()
+                .success();
+        }
+    }
+}

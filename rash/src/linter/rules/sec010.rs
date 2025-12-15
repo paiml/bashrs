@@ -304,7 +304,7 @@ mod tests {
         let result = check(script);
 
         // Should warn about explicit ../ usage
-        assert!(result.diagnostics.len() >= 1);
+        assert!(!result.diagnostics.is_empty());
     }
 
     #[test]
@@ -389,7 +389,7 @@ mod property_tests {
             let cmd = format!(r#"{} "${{{}}}""#, file_op, var_name);
             let result = check(&cmd);
             // Should detect path traversal risk with user variables
-            prop_assert!(result.diagnostics.len() >= 1);
+            prop_assert!(!result.diagnostics.is_empty());
             prop_assert_eq!(result.diagnostics[0].code.as_str(), "SEC010");
         }
     }

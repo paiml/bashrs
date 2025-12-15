@@ -1,4 +1,5 @@
 #![allow(clippy::unwrap_used)] // Tests can use unwrap() for simplicity
+#![allow(clippy::expect_used)]
 //! Integration tests for Makefile parsing workflows
 //!
 //! These tests verify end-to-end parsing scenarios with real-world Makefiles.

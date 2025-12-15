@@ -155,7 +155,7 @@ proptest! {
     #[test]
     fn prop_empty_script_valid(_input in "#!/bin/bash\n") {
         let bash_code = "#!/bin/bash\n";
-        let mut parser = BashParser::new(&bash_code).unwrap();
+        let mut parser = BashParser::new(bash_code).unwrap();
         let ast = parser.parse().unwrap();
         let mut purifier = Purifier::new(PurificationOptions::default());
         let purified_ast = purifier.purify(&ast).unwrap();
@@ -671,14 +671,14 @@ mod tests {
         let bash_code = "#!/bin/bash\nx=42";
 
         // First run
-        let mut parser1 = BashParser::new(&bash_code).unwrap();
+        let mut parser1 = BashParser::new(bash_code).unwrap();
         let ast1 = parser1.parse().unwrap();
         let mut purifier1 = Purifier::new(PurificationOptions::default());
         let purified_ast1 = purifier1.purify(&ast1).unwrap();
         let output1 = generate_purified_bash(&purified_ast1);
 
         // Second run
-        let mut parser2 = BashParser::new(&bash_code).unwrap();
+        let mut parser2 = BashParser::new(bash_code).unwrap();
         let ast2 = parser2.parse().unwrap();
         let mut purifier2 = Purifier::new(PurificationOptions::default());
         let purified_ast2 = purifier2.purify(&ast2).unwrap();
@@ -692,7 +692,7 @@ mod tests {
         let bash_code = "#!/bin/bash\nx=42";
 
         // First purification
-        let mut parser1 = BashParser::new(&bash_code).unwrap();
+        let mut parser1 = BashParser::new(bash_code).unwrap();
         let ast1 = parser1.parse().unwrap();
         let mut purifier1 = Purifier::new(PurificationOptions::default());
         let purified_ast1 = purifier1.purify(&ast1).unwrap();
@@ -711,7 +711,7 @@ mod tests {
     #[test]
     fn test_purified_output_has_posix_shebang() {
         let bash_code = "#!/bin/bash\nx=42";
-        let mut parser = BashParser::new(&bash_code).unwrap();
+        let mut parser = BashParser::new(bash_code).unwrap();
         let ast = parser.parse().unwrap();
         let mut purifier = Purifier::new(PurificationOptions::default());
         let purified_ast = purifier.purify(&ast).unwrap();
@@ -727,7 +727,7 @@ mod tests {
     #[test]
     fn test_variable_assignment_preserved() {
         let bash_code = "#!/bin/bash\nfoo=123";
-        let mut parser = BashParser::new(&bash_code).unwrap();
+        let mut parser = BashParser::new(bash_code).unwrap();
         let ast = parser.parse().unwrap();
         let mut purifier = Purifier::new(PurificationOptions::default());
         let purified_ast = purifier.purify(&ast).unwrap();
@@ -743,7 +743,7 @@ mod tests {
     #[test]
     fn test_comments_preserved() {
         let bash_code = "#!/bin/bash\n# Important comment\nx=42";
-        let mut parser = BashParser::new(&bash_code).unwrap();
+        let mut parser = BashParser::new(bash_code).unwrap();
         let ast = parser.parse().unwrap();
         let mut purifier = Purifier::new(PurificationOptions::default());
         let purified_ast = purifier.purify(&ast).unwrap();

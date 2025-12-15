@@ -2844,7 +2844,7 @@ fn test_BUILTIN_018_trap_signal_handling() {
 
     // Should be recognized as a Command statement with name "trap"
     let has_trap_command = ast.statements.iter().any(
-        |s| matches!(s, BashStmt::Command { name, args, .. } if name == "trap" && args.len() >= 1),
+        |s| matches!(s, BashStmt::Command { name, args, .. } if name == "trap" && !args.is_empty()),
     );
 
     assert!(
@@ -5376,15 +5376,12 @@ printf '%s %s\n' "Deploying version" "$VERSION"
 "#;
 
     let result = BashParser::new(script_mode);
-    match result {
-        Ok(mut parser) => {
-            let parse_result = parser.parse();
-            assert!(
-                parse_result.is_ok() || parse_result.is_err(),
-                "Script mode is the ONLY supported mode"
-            );
-        }
-        Err(_) => {}
+    if let Ok(mut parser) = result {
+        let parse_result = parser.parse();
+        assert!(
+            parse_result.is_ok() || parse_result.is_err(),
+            "Script mode is the ONLY supported mode"
+        );
     }
 
     // POSIX: ✅ Script mode is POSIX-compliant
@@ -5418,16 +5415,13 @@ fn test_TASK_1_2_interactive_mode_not_supported() {
     let interactive_script = r#"read -p "Enter name: " NAME"#;
     let result = BashParser::new(interactive_script);
 
-    match result {
-        Ok(mut parser) => {
-            let parse_result = parser.parse();
-            // Interactive features should not be generated
-            assert!(
-                parse_result.is_ok() || parse_result.is_err(),
-                "Interactive mode NOT SUPPORTED - use command-line args"
-            );
-        }
-        Err(_) => {}
+    if let Ok(mut parser) = result {
+        let parse_result = parser.parse();
+        // Interactive features should not be generated
+        assert!(
+            parse_result.is_ok() || parse_result.is_err(),
+            "Interactive mode NOT SUPPORTED - use command-line args"
+        );
     }
 
     // Refactoring strategy:
@@ -5463,15 +5457,12 @@ fn test_TASK_1_2_deterministic_script_transformation() {
     let deterministic_script = r#"VERSION="$1""#;
     let result = BashParser::new(deterministic_script);
 
-    match result {
-        Ok(mut parser) => {
-            let parse_result = parser.parse();
-            assert!(
-                parse_result.is_ok() || parse_result.is_err(),
-                "Deterministic scripts are fully supported"
-            );
-        }
-        Err(_) => {}
+    if let Ok(mut parser) = result {
+        let parse_result = parser.parse();
+        assert!(
+            parse_result.is_ok() || parse_result.is_err(),
+            "Deterministic scripts are fully supported"
+        );
     }
 
     // Quality benefits:
@@ -5510,15 +5501,12 @@ ln -sf "/releases/$VERSION" "/deployments/$ENV/current"
 "#;
 
     let result = BashParser::new(automation_script);
-    match result {
-        Ok(mut parser) => {
-            let parse_result = parser.parse();
-            assert!(
-                parse_result.is_ok() || parse_result.is_err(),
-                "Automation-friendly scripts fully supported"
-            );
-        }
-        Err(_) => {}
+    if let Ok(mut parser) = result {
+        let parse_result = parser.parse();
+        assert!(
+            parse_result.is_ok() || parse_result.is_err(),
+            "Automation-friendly scripts fully supported"
+        );
     }
 
     // Automation-friendly features:
@@ -5604,15 +5592,12 @@ fi
 "#;
 
     let result = BashParser::new(bash_script);
-    match result {
-        Ok(mut parser) => {
-            let parse_result = parser.parse();
-            assert!(
-                parse_result.is_ok() || parse_result.is_err(),
-                "POSIX-only purification policy documented"
-            );
-        }
-        Err(_) => {}
+    if let Ok(mut parser) = result {
+        let parse_result = parser.parse();
+        assert!(
+            parse_result.is_ok() || parse_result.is_err(),
+            "POSIX-only purification policy documented"
+        );
     }
 
     // POSIX sh characteristics:
@@ -5656,15 +5641,12 @@ fn test_TASK_2_1_bash_extensions_not_generated() {
     let posix_script = r#"x=$((5 + 3))"#;
     let result = BashParser::new(posix_script);
 
-    match result {
-        Ok(mut parser) => {
-            let parse_result = parser.parse();
-            assert!(
-                parse_result.is_ok() || parse_result.is_err(),
-                "POSIX constructs fully supported"
-            );
-        }
-        Err(_) => {}
+    if let Ok(mut parser) = result {
+        let parse_result = parser.parse();
+        assert!(
+            parse_result.is_ok() || parse_result.is_err(),
+            "POSIX constructs fully supported"
+        );
     }
 
     // Purification guarantee:
@@ -5697,12 +5679,9 @@ fn test_TASK_2_1_posix_constructs_always_generated() {
 
     for example in posix_examples {
         let result = BashParser::new(example);
-        match result {
-            Ok(mut parser) => {
-                let _parse_result = parser.parse();
-                // POSIX constructs should parse successfully
-            }
-            Err(_) => {}
+        if let Ok(mut parser) = result {
+            let _parse_result = parser.parse();
+            // POSIX constructs should parse successfully
         }
     }
 
@@ -5753,15 +5732,12 @@ printf '%s %s\n' "Result:" "$result"
 "#;
 
     let result = BashParser::new(portable_script);
-    match result {
-        Ok(mut parser) => {
-            let parse_result = parser.parse();
-            assert!(
-                parse_result.is_ok() || parse_result.is_err(),
-                "Portable POSIX script documented"
-            );
-        }
-        Err(_) => {}
+    if let Ok(mut parser) = result {
+        let parse_result = parser.parse();
+        assert!(
+            parse_result.is_ok() || parse_result.is_err(),
+            "Portable POSIX script documented"
+        );
     }
 
     // Portability verification commands:
@@ -5829,15 +5805,12 @@ fi
 "#;
 
     let result = BashParser::new(quality_script);
-    match result {
-        Ok(mut parser) => {
-            let parse_result = parser.parse();
-            assert!(
-                parse_result.is_ok() || parse_result.is_err(),
-                "Quality gates documented"
-            );
-        }
-        Err(_) => {}
+    if let Ok(mut parser) = result {
+        let parse_result = parser.parse();
+        assert!(
+            parse_result.is_ok() || parse_result.is_err(),
+            "Quality gates documented"
+        );
     }
 
     // Automated quality verification:
@@ -5951,15 +5924,12 @@ done < file.txt
 "#;
 
     let result = BashParser::new(posix_while_read);
-    match result {
-        Ok(mut parser) => {
-            let parse_result = parser.parse();
-            assert!(
-                parse_result.is_ok() || parse_result.is_err(),
-                "while read is POSIX-compliant"
-            );
-        }
-        Err(_) => {}
+    if let Ok(mut parser) = result {
+        let parse_result = parser.parse();
+        assert!(
+            parse_result.is_ok() || parse_result.is_err(),
+            "while read is POSIX-compliant"
+        );
     }
 
     // IFS= prevents word splitting
@@ -6017,12 +5987,9 @@ done < file.txt
 "#;
 
     let result = BashParser::new(transformation_example);
-    match result {
-        Ok(mut parser) => {
-            let _parse_result = parser.parse();
-            // POSIX while read loop documented
-        }
-        Err(_) => {}
+    if let Ok(mut parser) = result {
+        let _parse_result = parser.parse();
+        // POSIX while read loop documented
     }
 
     // Key transformations:
@@ -6049,15 +6016,12 @@ fn test_BASH_BUILTIN_006_mapfile_alias_not_supported() {
     let mapfile_script = r#"mapfile -t array < input.txt"#;
     let result = BashParser::new(mapfile_script);
 
-    match result {
-        Ok(mut parser) => {
-            let parse_result = parser.parse();
-            assert!(
-                parse_result.is_ok() || parse_result.is_err(),
-                "mapfile is Bash-specific alias, NOT SUPPORTED"
-            );
-        }
-        Err(_) => {}
+    if let Ok(mut parser) = result {
+        let parse_result = parser.parse();
+        assert!(
+            parse_result.is_ok() || parse_result.is_err(),
+            "mapfile is Bash-specific alias, NOT SUPPORTED"
+        );
     }
 
     // mapfile = readarray (exact same functionality)
@@ -6098,12 +6062,9 @@ done < /var/log/huge.log
 "#;
 
     let result = BashParser::new(efficient_posix);
-    match result {
-        Ok(mut parser) => {
-            let _parse_result = parser.parse();
-            // Memory-efficient POSIX pattern documented
-        }
-        Err(_) => {}
+    if let Ok(mut parser) = result {
+        let _parse_result = parser.parse();
+        // Memory-efficient POSIX pattern documented
     }
 
     // Memory comparison:
@@ -6169,15 +6130,12 @@ fn test_BASH_VAR_001_bash_version_not_supported() {
     let bash_version_script = r#"echo "Version: $BASH_VERSION""#;
     let result = BashParser::new(bash_version_script);
 
-    match result {
-        Ok(mut parser) => {
-            let parse_result = parser.parse();
-            assert!(
-                parse_result.is_ok() || parse_result.is_err(),
-                "BASH_VERSION is Bash-specific, NOT SUPPORTED"
-            );
-        }
-        Err(_) => {}
+    if let Ok(mut parser) = result {
+        let parse_result = parser.parse();
+        assert!(
+            parse_result.is_ok() || parse_result.is_err(),
+            "BASH_VERSION is Bash-specific, NOT SUPPORTED"
+        );
     }
 
     // NOT SUPPORTED because:
@@ -6217,15 +6175,12 @@ done < file.txt
 "#;
 
     let result = BashParser::new(posix_no_version_check);
-    match result {
-        Ok(mut parser) => {
-            let parse_result = parser.parse();
-            assert!(
-                parse_result.is_ok() || parse_result.is_err(),
-                "POSIX code needs no version checks"
-            );
-        }
-        Err(_) => {}
+    if let Ok(mut parser) = result {
+        let parse_result = parser.parse();
+        assert!(
+            parse_result.is_ok() || parse_result.is_err(),
+            "POSIX code needs no version checks"
+        );
     }
 
     // Purification removes:
@@ -6256,15 +6211,12 @@ fn test_BASH_VAR_001_bash_versinfo_not_supported() {
     let bash_versinfo_script = r#"echo "Major version: ${BASH_VERSINFO[0]}""#;
     let result = BashParser::new(bash_versinfo_script);
 
-    match result {
-        Ok(mut parser) => {
-            let parse_result = parser.parse();
-            assert!(
-                parse_result.is_ok() || parse_result.is_err(),
-                "BASH_VERSINFO is Bash-specific array, NOT SUPPORTED"
-            );
-        }
-        Err(_) => {}
+    if let Ok(mut parser) = result {
+        let parse_result = parser.parse();
+        assert!(
+            parse_result.is_ok() || parse_result.is_err(),
+            "BASH_VERSINFO is Bash-specific array, NOT SUPPORTED"
+        );
     }
 
     // NOT SUPPORTED because:
@@ -6312,15 +6264,12 @@ done < file.txt
 "#;
 
     let result = BashParser::new(portable_posix);
-    match result {
-        Ok(mut parser) => {
-            let parse_result = parser.parse();
-            assert!(
-                parse_result.is_ok() || parse_result.is_err(),
-                "Portable POSIX code needs no version detection"
-            );
-        }
-        Err(_) => {}
+    if let Ok(mut parser) = result {
+        let parse_result = parser.parse();
+        assert!(
+            parse_result.is_ok() || parse_result.is_err(),
+            "Portable POSIX code needs no version detection"
+        );
     }
 
     // bashrs philosophy:
@@ -6370,12 +6319,9 @@ done < file.txt
 "#;
 
     let result = BashParser::new(purified_posix);
-    match result {
-        Ok(mut parser) => {
-            let _parse_result = parser.parse();
-            // Purified code has no BASH_VERSION references
-        }
-        Err(_) => {}
+    if let Ok(mut parser) = result {
+        let _parse_result = parser.parse();
+        // Purified code has no BASH_VERSION references
     }
 
     // Purification guarantee:
@@ -6432,15 +6378,12 @@ fn test_VAR_004_ps1_prompt_not_supported() {
     let ps1_script = r#"PS1='$ '"#;
     let result = BashParser::new(ps1_script);
 
-    match result {
-        Ok(mut parser) => {
-            let parse_result = parser.parse();
-            assert!(
-                parse_result.is_ok() || parse_result.is_err(),
-                "PS1 is interactive only, NOT SUPPORTED in scripts"
-            );
-        }
-        Err(_) => {}
+    if let Ok(mut parser) = result {
+        let parse_result = parser.parse();
+        assert!(
+            parse_result.is_ok() || parse_result.is_err(),
+            "PS1 is interactive only, NOT SUPPORTED in scripts"
+        );
     }
 
     // NOT SUPPORTED because:
@@ -6467,15 +6410,12 @@ fn test_VAR_004_ps2_continuation_prompt_not_supported() {
     let ps2_script = r#"PS2='... '"#;
     let result = BashParser::new(ps2_script);
 
-    match result {
-        Ok(mut parser) => {
-            let parse_result = parser.parse();
-            assert!(
-                parse_result.is_ok() || parse_result.is_err(),
-                "PS2 is interactive only, NOT SUPPORTED in scripts"
-            );
-        }
-        Err(_) => {}
+    if let Ok(mut parser) = result {
+        let parse_result = parser.parse();
+        assert!(
+            parse_result.is_ok() || parse_result.is_err(),
+            "PS2 is interactive only, NOT SUPPORTED in scripts"
+        );
     }
 
     // NOT SUPPORTED because:
@@ -6502,15 +6442,12 @@ fn test_VAR_004_ps3_select_prompt_not_supported() {
     let ps3_script = r#"PS3="Choose: ""#;
     let result = BashParser::new(ps3_script);
 
-    match result {
-        Ok(mut parser) => {
-            let parse_result = parser.parse();
-            assert!(
-                parse_result.is_ok() || parse_result.is_err(),
-                "PS3 is interactive only, NOT SUPPORTED in scripts"
-            );
-        }
-        Err(_) => {}
+    if let Ok(mut parser) = result {
+        let parse_result = parser.parse();
+        assert!(
+            parse_result.is_ok() || parse_result.is_err(),
+            "PS3 is interactive only, NOT SUPPORTED in scripts"
+        );
     }
 
     // NOT SUPPORTED because:
@@ -6541,15 +6478,12 @@ fn test_VAR_004_ps4_debug_prompt_not_production() {
     let ps4_script = r#"PS4='DEBUG: '"#;
     let result = BashParser::new(ps4_script);
 
-    match result {
-        Ok(mut parser) => {
-            let parse_result = parser.parse();
-            assert!(
-                parse_result.is_ok() || parse_result.is_err(),
-                "PS4 is debugging only, not production code"
-            );
-        }
-        Err(_) => {}
+    if let Ok(mut parser) = result {
+        let parse_result = parser.parse();
+        assert!(
+            parse_result.is_ok() || parse_result.is_err(),
+            "PS4 is debugging only, not production code"
+        );
     }
 
     // NOT PRODUCTION because:
@@ -6586,15 +6520,12 @@ printf '%s\n' "Hello World"
 "#;
 
     let result = BashParser::new(purified_no_prompts);
-    match result {
-        Ok(mut parser) => {
-            let parse_result = parser.parse();
-            assert!(
-                parse_result.is_ok() || parse_result.is_err(),
-                "Purified scripts have no prompt variables"
-            );
-        }
-        Err(_) => {}
+    if let Ok(mut parser) = result {
+        let parse_result = parser.parse();
+        assert!(
+            parse_result.is_ok() || parse_result.is_err(),
+            "Purified scripts have no prompt variables"
+        );
     }
 
     // Purification removes:
@@ -6641,15 +6572,12 @@ printf '%s\n' "Done"
 "#;
 
     let result = BashParser::new(script_mode);
-    match result {
-        Ok(mut parser) => {
-            let parse_result = parser.parse();
-            assert!(
-                parse_result.is_ok() || parse_result.is_err(),
-                "Script mode has no interactive prompts"
-            );
-        }
-        Err(_) => {}
+    if let Ok(mut parser) = result {
+        let parse_result = parser.parse();
+        assert!(
+            parse_result.is_ok() || parse_result.is_err(),
+            "Script mode has no interactive prompts"
+        );
     }
 
     // Script mode characteristics:
@@ -6754,15 +6682,12 @@ fn test_PROMPT_001_prompt_command_array_form() {
     let prompt_command_array = r#"PROMPT_COMMAND=('date' 'pwd' 'echo "ready"')"#;
 
     let result = BashParser::new(prompt_command_array);
-    match result {
-        Ok(mut parser) => {
-            let parse_result = parser.parse();
-            assert!(
-                parse_result.is_ok() || parse_result.is_err(),
-                "PROMPT_COMMAND array form is interactive only, NOT SUPPORTED"
-            );
-        }
-        Err(_) => {}
+    if let Ok(mut parser) = result {
+        let parse_result = parser.parse();
+        assert!(
+            parse_result.is_ok() || parse_result.is_err(),
+            "PROMPT_COMMAND array form is interactive only, NOT SUPPORTED"
+        );
     }
 
     // Array form allows multiple hooks:
@@ -6809,15 +6734,12 @@ do_work
 "#;
 
     let result = BashParser::new(purified_no_prompt_command);
-    match result {
-        Ok(mut parser) => {
-            let parse_result = parser.parse();
-            assert!(
-                parse_result.is_ok() || parse_result.is_err(),
-                "Purified scripts have no PROMPT_COMMAND"
-            );
-        }
-        Err(_) => {}
+    if let Ok(mut parser) = result {
+        let parse_result = parser.parse();
+        assert!(
+            parse_result.is_ok() || parse_result.is_err(),
+            "Purified scripts have no PROMPT_COMMAND"
+        );
     }
 
     // Purification strategy:
@@ -6857,15 +6779,12 @@ fn test_PROMPT_001_common_prompt_command_patterns() {
     // None of these work in script mode:
     for prompt_cmd in [window_title, git_status, timing, history_sync, multiple] {
         let result = BashParser::new(prompt_cmd);
-        match result {
-            Ok(mut parser) => {
-                let parse_result = parser.parse();
-                assert!(
-                    parse_result.is_ok() || parse_result.is_err(),
-                    "PROMPT_COMMAND patterns are interactive only"
-                );
-            }
-            Err(_) => {}
+        if let Ok(mut parser) = result {
+            let parse_result = parser.parse();
+            assert!(
+                parse_result.is_ok() || parse_result.is_err(),
+                "PROMPT_COMMAND patterns are interactive only"
+            );
         }
     }
 
@@ -6916,15 +6835,12 @@ printf 'Total duration: %d seconds\n' "$duration"
 "#;
 
     let result = BashParser::new(timing_alternative);
-    match result {
-        Ok(mut parser) => {
-            let parse_result = parser.parse();
-            assert!(
-                parse_result.is_ok() || parse_result.is_err(),
-                "Scripts use explicit timing instead of PROMPT_COMMAND"
-            );
-        }
-        Err(_) => {}
+    if let Ok(mut parser) = result {
+        let parse_result = parser.parse();
+        assert!(
+            parse_result.is_ok() || parse_result.is_err(),
+            "Scripts use explicit timing instead of PROMPT_COMMAND"
+        );
     }
 
     // Key principle:
@@ -6969,15 +6885,12 @@ printf '%s\n' "Done"
 "#;
 
     let result = BashParser::new(script_mode_hooks);
-    match result {
-        Ok(mut parser) => {
-            let parse_result = parser.parse();
-            assert!(
-                parse_result.is_ok() || parse_result.is_err(),
-                "Scripts support EXIT trap, not PROMPT_COMMAND"
-            );
-        }
-        Err(_) => {}
+    if let Ok(mut parser) = result {
+        let parse_result = parser.parse();
+        assert!(
+            parse_result.is_ok() || parse_result.is_err(),
+            "Scripts support EXIT trap, not PROMPT_COMMAND"
+        );
     }
 
     // Summary:
@@ -7107,15 +7020,12 @@ jobs -s  # Stopped jobs only
 "#;
 
     let result = BashParser::new(jobs_with_options);
-    match result {
-        Ok(mut parser) => {
-            let parse_result = parser.parse();
-            assert!(
-                parse_result.is_ok() || parse_result.is_err(),
-                "jobs command with options is interactive only"
-            );
-        }
-        Err(_) => {}
+    if let Ok(mut parser) = result {
+        let parse_result = parser.parse();
+        assert!(
+            parse_result.is_ok() || parse_result.is_err(),
+            "jobs command with options is interactive only"
+        );
     }
 
     // Job status tracking is interactive-only:
@@ -7158,15 +7068,12 @@ printf '%s\n' "Waiting..."
 "#;
 
     let result = BashParser::new(purified_no_jobs);
-    match result {
-        Ok(mut parser) => {
-            let parse_result = parser.parse();
-            assert!(
-                parse_result.is_ok() || parse_result.is_err(),
-                "Purified scripts have no jobs command"
-            );
-        }
-        Err(_) => {}
+    if let Ok(mut parser) = result {
+        let parse_result = parser.parse();
+        assert!(
+            parse_result.is_ok() || parse_result.is_err(),
+            "Purified scripts have no jobs command"
+        );
     }
 
     // Purification strategy:
@@ -7209,15 +7116,12 @@ fg %1           # Foreground job
 "#;
 
     let result = BashParser::new(job_control_script);
-    match result {
-        Ok(mut parser) => {
-            let parse_result = parser.parse();
-            assert!(
-                parse_result.is_ok() || parse_result.is_err(),
-                "Job control requires interactive shell"
-            );
-        }
-        Err(_) => {}
+    if let Ok(mut parser) = result {
+        let parse_result = parser.parse();
+        assert!(
+            parse_result.is_ok() || parse_result.is_err(),
+            "Job control requires interactive shell"
+        );
     }
 
     // bashrs philosophy:
@@ -7263,15 +7167,12 @@ printf '%s\n' "All tasks complete"
 "#;
 
     let result = BashParser::new(sequential_alternative);
-    match result {
-        Ok(mut parser) => {
-            let parse_result = parser.parse();
-            assert!(
-                parse_result.is_ok() || parse_result.is_err(),
-                "Scripts use sequential execution instead of job control"
-            );
-        }
-        Err(_) => {}
+    if let Ok(mut parser) = result {
+        let parse_result = parser.parse();
+        assert!(
+            parse_result.is_ok() || parse_result.is_err(),
+            "Scripts use sequential execution instead of job control"
+        );
     }
 
     // Key principle:
@@ -7317,15 +7218,12 @@ printf 'Process exited with status: %d\n' "$exit_status"
 "#;
 
     let result = BashParser::new(script_process_management);
-    match result {
-        Ok(mut parser) => {
-            let parse_result = parser.parse();
-            assert!(
-                parse_result.is_ok() || parse_result.is_err(),
-                "Scripts use PIDs and wait, not job control"
-            );
-        }
-        Err(_) => {}
+    if let Ok(mut parser) = result {
+        let parse_result = parser.parse();
+        assert!(
+            parse_result.is_ok() || parse_result.is_err(),
+            "Scripts use PIDs and wait, not job control"
+        );
     }
 
     // Summary:
@@ -7444,15 +7342,12 @@ bg %1
 "#;
 
     let result = BashParser::new(bg_script);
-    match result {
-        Ok(mut parser) => {
-            let parse_result = parser.parse();
-            assert!(
-                parse_result.is_ok() || parse_result.is_err(),
-                "bg command is interactive only, NOT SUPPORTED in scripts"
-            );
-        }
-        Err(_) => {}
+    if let Ok(mut parser) = result {
+        let parse_result = parser.parse();
+        assert!(
+            parse_result.is_ok() || parse_result.is_err(),
+            "bg command is interactive only, NOT SUPPORTED in scripts"
+        );
     }
 
     // bg command syntax (all interactive):
@@ -7498,15 +7393,12 @@ fg %-         # Previous job
 "#;
 
     let result = BashParser::new(job_spec_script);
-    match result {
-        Ok(mut parser) => {
-            let parse_result = parser.parse();
-            assert!(
-                parse_result.is_ok() || parse_result.is_err(),
-                "Job specifications are interactive only"
-            );
-        }
-        Err(_) => {}
+    if let Ok(mut parser) = result {
+        let parse_result = parser.parse();
+        assert!(
+            parse_result.is_ok() || parse_result.is_err(),
+            "Job specifications are interactive only"
+        );
     }
 
     // Job specs require job control:
@@ -7547,15 +7439,12 @@ sleep 20
 "#;
 
     let result = BashParser::new(purified_no_fg_bg);
-    match result {
-        Ok(mut parser) => {
-            let parse_result = parser.parse();
-            assert!(
-                parse_result.is_ok() || parse_result.is_err(),
-                "Purified scripts have no fg/bg commands"
-            );
-        }
-        Err(_) => {}
+    if let Ok(mut parser) = result {
+        let parse_result = parser.parse();
+        assert!(
+            parse_result.is_ok() || parse_result.is_err(),
+            "Purified scripts have no fg/bg commands"
+        );
     }
 
     // Purification strategy:
@@ -7607,15 +7496,12 @@ jobs             # Check again
 "#;
 
     let result = BashParser::new(interactive_workflow);
-    match result {
-        Ok(mut parser) => {
-            let parse_result = parser.parse();
-            assert!(
-                parse_result.is_ok() || parse_result.is_err(),
-                "Interactive fg/bg workflow not supported in scripts"
-            );
-        }
-        Err(_) => {}
+    if let Ok(mut parser) = result {
+        let parse_result = parser.parse();
+        assert!(
+            parse_result.is_ok() || parse_result.is_err(),
+            "Interactive fg/bg workflow not supported in scripts"
+        );
     }
 
     // Why not supported:
@@ -7662,15 +7548,12 @@ printf '%s\n' "All tasks complete"
 "#;
 
     let result = BashParser::new(script_sequential);
-    match result {
-        Ok(mut parser) => {
-            let parse_result = parser.parse();
-            assert!(
-                parse_result.is_ok() || parse_result.is_err(),
-                "Scripts use sequential execution instead of fg/bg"
-            );
-        }
-        Err(_) => {}
+    if let Ok(mut parser) = result {
+        let parse_result = parser.parse();
+        assert!(
+            parse_result.is_ok() || parse_result.is_err(),
+            "Scripts use sequential execution instead of fg/bg"
+        );
     }
 
     // Key principle:
@@ -7724,15 +7607,12 @@ printf '%s\n' "Complete"
 "#;
 
     let result = BashParser::new(script_execution_model);
-    match result {
-        Ok(mut parser) => {
-            let parse_result = parser.parse();
-            assert!(
-                parse_result.is_ok() || parse_result.is_err(),
-                "Scripts use sequential execution model"
-            );
-        }
-        Err(_) => {}
+    if let Ok(mut parser) = result {
+        let parse_result = parser.parse();
+        assert!(
+            parse_result.is_ok() || parse_result.is_err(),
+            "Scripts use sequential execution model"
+        );
     }
 
     // Summary:
@@ -7853,15 +7733,12 @@ fn test_EDIT_001_emacs_vi_modes() {
 
     for mode in [emacs_mode, vi_mode] {
         let result = BashParser::new(mode);
-        match result {
-            Ok(mut parser) => {
-                let parse_result = parser.parse();
-                assert!(
-                    parse_result.is_ok() || parse_result.is_err(),
-                    "Editing modes are interactive only"
-                );
-            }
-            Err(_) => {}
+        if let Ok(mut parser) = result {
+            let parse_result = parser.parse();
+            assert!(
+                parse_result.is_ok() || parse_result.is_err(),
+                "Editing modes are interactive only"
+            );
         }
     }
 
@@ -7906,15 +7783,12 @@ git checkout main
 "#;
 
     let result = BashParser::new(script_no_completion);
-    match result {
-        Ok(mut parser) => {
-            let parse_result = parser.parse();
-            assert!(
-                parse_result.is_ok() || parse_result.is_err(),
-                "Scripts execute full commands without completion"
-            );
-        }
-        Err(_) => {}
+    if let Ok(mut parser) = result {
+        let parse_result = parser.parse();
+        assert!(
+            parse_result.is_ok() || parse_result.is_err(),
+            "Scripts execute full commands without completion"
+        );
     }
 
     // Why completion doesn't apply to scripts:
@@ -7950,15 +7824,12 @@ bind '"\C-x": "exit"'        # Custom binding
 "#;
 
     let result = BashParser::new(bind_script);
-    match result {
-        Ok(mut parser) => {
-            let parse_result = parser.parse();
-            assert!(
-                parse_result.is_ok() || parse_result.is_err(),
-                "bind command is interactive only, NOT SUPPORTED in scripts"
-            );
-        }
-        Err(_) => {}
+    if let Ok(mut parser) = result {
+        let parse_result = parser.parse();
+        assert!(
+            parse_result.is_ok() || parse_result.is_err(),
+            "bind command is interactive only, NOT SUPPORTED in scripts"
+        );
     }
 
     // bind command options (all interactive):
@@ -8005,15 +7876,12 @@ command3
 "#;
 
     let result = BashParser::new(script_no_history_navigation);
-    match result {
-        Ok(mut parser) => {
-            let parse_result = parser.parse();
-            assert!(
-                parse_result.is_ok() || parse_result.is_err(),
-                "Scripts execute commands sequentially without history navigation"
-            );
-        }
-        Err(_) => {}
+    if let Ok(mut parser) = result {
+        let parse_result = parser.parse();
+        assert!(
+            parse_result.is_ok() || parse_result.is_err(),
+            "Scripts execute commands sequentially without history navigation"
+        );
     }
 
     // Why history navigation doesn't apply:
@@ -8052,15 +7920,12 @@ printf '%s\n' "Scripts run without readline"
 "#;
 
     let result = BashParser::new(script_no_inputrc);
-    match result {
-        Ok(mut parser) => {
-            let parse_result = parser.parse();
-            assert!(
-                parse_result.is_ok() || parse_result.is_err(),
-                "Scripts don't use ~/.inputrc configuration"
-            );
-        }
-        Err(_) => {}
+    if let Ok(mut parser) = result {
+        let parse_result = parser.parse();
+        assert!(
+            parse_result.is_ok() || parse_result.is_err(),
+            "Scripts don't use ~/.inputrc configuration"
+        );
     }
 
     // ~/.inputrc settings (all interactive):
@@ -8111,15 +7976,12 @@ command2
 "#;
 
     let result = BashParser::new(script_input_model);
-    match result {
-        Ok(mut parser) => {
-            let parse_result = parser.parse();
-            assert!(
-                parse_result.is_ok() || parse_result.is_err(),
-                "Scripts use predefined commands without readline"
-            );
-        }
-        Err(_) => {}
+    if let Ok(mut parser) = result {
+        let parse_result = parser.parse();
+        assert!(
+            parse_result.is_ok() || parse_result.is_err(),
+            "Scripts use predefined commands without readline"
+        );
     }
 
     // Summary:
@@ -8240,15 +8102,12 @@ echo !$
 "#;
 
     let result = BashParser::new(bang_dollar_script);
-    match result {
-        Ok(mut parser) => {
-            let parse_result = parser.parse();
-            assert!(
-                parse_result.is_ok() || parse_result.is_err(),
-                "!$ is interactive only, NOT SUPPORTED in scripts"
-            );
-        }
-        Err(_) => {}
+    if let Ok(mut parser) = result {
+        let parse_result = parser.parse();
+        assert!(
+            parse_result.is_ok() || parse_result.is_err(),
+            "!$ is interactive only, NOT SUPPORTED in scripts"
+        );
     }
 
     // Alternative: Use explicit variables
@@ -8301,15 +8160,12 @@ echo !:1-2      # Args 1-2
 "#;
 
     let result = BashParser::new(history_syntax);
-    match result {
-        Ok(mut parser) => {
-            let parse_result = parser.parse();
-            assert!(
-                parse_result.is_ok() || parse_result.is_err(),
-                "History expansion syntax is interactive only"
-            );
-        }
-        Err(_) => {}
+    if let Ok(mut parser) = result {
+        let parse_result = parser.parse();
+        assert!(
+            parse_result.is_ok() || parse_result.is_err(),
+            "History expansion syntax is interactive only"
+        );
     }
 
     // All history expansion requires:
@@ -8356,15 +8212,12 @@ printf 'Backed up to %s\n' "$archive"
 "#;
 
     let result = BashParser::new(purified_no_history);
-    match result {
-        Ok(mut parser) => {
-            let parse_result = parser.parse();
-            assert!(
-                parse_result.is_ok() || parse_result.is_err(),
-                "Purified scripts have no history expansion"
-            );
-        }
-        Err(_) => {}
+    if let Ok(mut parser) = result {
+        let parse_result = parser.parse();
+        assert!(
+            parse_result.is_ok() || parse_result.is_err(),
+            "Purified scripts have no history expansion"
+        );
     }
 
     // Purification strategy:
@@ -8403,15 +8256,12 @@ history -c      # Clear
 "#;
 
     let result = BashParser::new(history_cmd_script);
-    match result {
-        Ok(mut parser) => {
-            let parse_result = parser.parse();
-            assert!(
-                parse_result.is_ok() || parse_result.is_err(),
-                "history command is interactive only, NOT SUPPORTED in scripts"
-            );
-        }
-        Err(_) => {}
+    if let Ok(mut parser) = result {
+        let parse_result = parser.parse();
+        assert!(
+            parse_result.is_ok() || parse_result.is_err(),
+            "history command is interactive only, NOT SUPPORTED in scripts"
+        );
     }
 
     // history command options (all interactive):
@@ -8457,15 +8307,12 @@ fc -s hello=world  # Quick substitution
 "#;
 
     let result = BashParser::new(fc_script);
-    match result {
-        Ok(mut parser) => {
-            let parse_result = parser.parse();
-            assert!(
-                parse_result.is_ok() || parse_result.is_err(),
-                "fc command is interactive only, NOT SUPPORTED in scripts"
-            );
-        }
-        Err(_) => {}
+    if let Ok(mut parser) = result {
+        let parse_result = parser.parse();
+        assert!(
+            parse_result.is_ok() || parse_result.is_err(),
+            "fc command is interactive only, NOT SUPPORTED in scripts"
+        );
     }
 
     // fc command options (all interactive):
@@ -8510,15 +8357,12 @@ export HISTIGNORE="ls:cd:pwd"
 "#;
 
     let result = BashParser::new(history_vars);
-    match result {
-        Ok(mut parser) => {
-            let parse_result = parser.parse();
-            assert!(
-                parse_result.is_ok() || parse_result.is_err(),
-                "History variables configure interactive behavior"
-            );
-        }
-        Err(_) => {}
+    if let Ok(mut parser) = result {
+        let parse_result = parser.parse();
+        assert!(
+            parse_result.is_ok() || parse_result.is_err(),
+            "History variables configure interactive behavior"
+        );
     }
 
     // Why history variables don't apply to scripts:
@@ -8571,15 +8415,12 @@ command2
 "#;
 
     let result = BashParser::new(script_no_history);
-    match result {
-        Ok(mut parser) => {
-            let parse_result = parser.parse();
-            assert!(
-                parse_result.is_ok() || parse_result.is_err(),
-                "Scripts execute without history"
-            );
-        }
-        Err(_) => {}
+    if let Ok(mut parser) = result {
+        let parse_result = parser.parse();
+        assert!(
+            parse_result.is_ok() || parse_result.is_err(),
+            "Scripts execute without history"
+        );
     }
 
     // Summary:
@@ -8705,15 +8546,12 @@ popd
 "#;
 
     let result = BashParser::new(popd_script);
-    match result {
-        Ok(mut parser) => {
-            let parse_result = parser.parse();
-            assert!(
-                parse_result.is_ok() || parse_result.is_err(),
-                "popd uses implicit directory stack, NOT SUPPORTED in scripts"
-            );
-        }
-        Err(_) => {}
+    if let Ok(mut parser) = result {
+        let parse_result = parser.parse();
+        assert!(
+            parse_result.is_ok() || parse_result.is_err(),
+            "popd uses implicit directory stack, NOT SUPPORTED in scripts"
+        );
     }
 
     // popd issues:
@@ -8750,15 +8588,12 @@ dirs -v
 "#;
 
     let result = BashParser::new(dirs_script);
-    match result {
-        Ok(mut parser) => {
-            let parse_result = parser.parse();
-            assert!(
-                parse_result.is_ok() || parse_result.is_err(),
-                "dirs command displays directory stack, NOT SUPPORTED"
-            );
-        }
-        Err(_) => {}
+    if let Ok(mut parser) = result {
+        let parse_result = parser.parse();
+        assert!(
+            parse_result.is_ok() || parse_result.is_err(),
+            "dirs command displays directory stack, NOT SUPPORTED"
+        );
     }
 
     // dirs command options (all NOT SUPPORTED):
@@ -8805,15 +8640,12 @@ printf '%s\n' "Backup complete"
 "#;
 
     let result = BashParser::new(purified_explicit_cd);
-    match result {
-        Ok(mut parser) => {
-            let parse_result = parser.parse();
-            assert!(
-                parse_result.is_ok() || parse_result.is_err(),
-                "Purified scripts use explicit cd with variables"
-            );
-        }
-        Err(_) => {}
+    if let Ok(mut parser) = result {
+        let parse_result = parser.parse();
+        assert!(
+            parse_result.is_ok() || parse_result.is_err(),
+            "Purified scripts use explicit cd with variables"
+        );
     }
 
     // Purification strategy:
@@ -8850,15 +8682,12 @@ pushd +1        # Rotate
 "#;
 
     let result = BashParser::new(pushd_options);
-    match result {
-        Ok(mut parser) => {
-            let parse_result = parser.parse();
-            assert!(
-                parse_result.is_ok() || parse_result.is_err(),
-                "pushd/popd options manipulate directory stack"
-            );
-        }
-        Err(_) => {}
+    if let Ok(mut parser) = result {
+        let parse_result = parser.parse();
+        assert!(
+            parse_result.is_ok() || parse_result.is_err(),
+            "pushd/popd options manipulate directory stack"
+        );
     }
 
     // Why options don't help:
@@ -8894,15 +8723,12 @@ echo "${DIRSTACK[0]}"
 "#;
 
     let result = BashParser::new(dirstack_var);
-    match result {
-        Ok(mut parser) => {
-            let parse_result = parser.parse();
-            assert!(
-                parse_result.is_ok() || parse_result.is_err(),
-                "DIRSTACK variable is Bash-specific array"
-            );
-        }
-        Err(_) => {}
+    if let Ok(mut parser) = result {
+        let parse_result = parser.parse();
+        assert!(
+            parse_result.is_ok() || parse_result.is_err(),
+            "DIRSTACK variable is Bash-specific array"
+        );
     }
 
     // DIRSTACK is read-only:
@@ -8939,15 +8765,12 @@ cd -     # Return to previous directory
 "#;
 
     let result = BashParser::new(cd_minus);
-    match result {
-        Ok(mut parser) => {
-            let parse_result = parser.parse();
-            assert!(
-                parse_result.is_ok() || parse_result.is_err(),
-                "cd - uses OLDPWD, simpler than popd"
-            );
-        }
-        Err(_) => {}
+    if let Ok(mut parser) = result {
+        let parse_result = parser.parse();
+        assert!(
+            parse_result.is_ok() || parse_result.is_err(),
+            "cd - uses OLDPWD, simpler than popd"
+        );
     }
 
     // cd - advantages over pushd/popd:
@@ -8998,15 +8821,12 @@ printf '%s\n' "Back to $start_dir"
 "#;
 
     let result = BashParser::new(script_navigation);
-    match result {
-        Ok(mut parser) => {
-            let parse_result = parser.parse();
-            assert!(
-                parse_result.is_ok() || parse_result.is_err(),
-                "Scripts use explicit cd with error checking"
-            );
-        }
-        Err(_) => {}
+    if let Ok(mut parser) = result {
+        let parse_result = parser.parse();
+        assert!(
+            parse_result.is_ok() || parse_result.is_err(),
+            "Scripts use explicit cd with error checking"
+        );
     }
 
     // Summary:
@@ -9128,15 +8948,12 @@ map[age]="30"
 "#;
 
     let result = BashParser::new(declare_a);
-    match result {
-        Ok(mut parser) => {
-            let parse_result = parser.parse();
-            assert!(
-                parse_result.is_ok() || parse_result.is_err(),
-                "declare -A is Bash 4.0+ only, NOT SUPPORTED"
-            );
-        }
-        Err(_) => {}
+    if let Ok(mut parser) = result {
+        let parse_result = parser.parse();
+        assert!(
+            parse_result.is_ok() || parse_result.is_err(),
+            "declare -A is Bash 4.0+ only, NOT SUPPORTED"
+        );
     }
 
     // Note: declare -a (lowercase) is for indexed arrays (supported)
@@ -9171,15 +8988,12 @@ unset data[x]               # Delete key
 "#;
 
     let result = BashParser::new(assoc_operations);
-    match result {
-        Ok(mut parser) => {
-            let parse_result = parser.parse();
-            assert!(
-                parse_result.is_ok() || parse_result.is_err(),
-                "Associative array operations are Bash 4.0+ only"
-            );
-        }
-        Err(_) => {}
+    if let Ok(mut parser) = result {
+        let parse_result = parser.parse();
+        assert!(
+            parse_result.is_ok() || parse_result.is_err(),
+            "Associative array operations are Bash 4.0+ only"
+        );
     }
 
     // All these operations require:
@@ -9222,15 +9036,12 @@ printf '%s\n' "Connecting to ${config_host}:${config_port}"
 "#;
 
     let result = BashParser::new(purified_separate_vars);
-    match result {
-        Ok(mut parser) => {
-            let parse_result = parser.parse();
-            assert!(
-                parse_result.is_ok() || parse_result.is_err(),
-                "Purified scripts use separate variables"
-            );
-        }
-        Err(_) => {}
+    if let Ok(mut parser) = result {
+        let parse_result = parser.parse();
+        assert!(
+            parse_result.is_ok() || parse_result.is_err(),
+            "Purified scripts use separate variables"
+        );
     }
 
     // Purification strategy:
@@ -9277,15 +9088,12 @@ done
 "#;
 
     let result = BashParser::new(indexed_alternative);
-    match result {
-        Ok(mut parser) => {
-            let parse_result = parser.parse();
-            assert!(
-                parse_result.is_ok() || parse_result.is_err(),
-                "Indexed arrays or space-separated values work as alternatives"
-            );
-        }
-        Err(_) => {}
+    if let Ok(mut parser) = result {
+        let parse_result = parser.parse();
+        assert!(
+            parse_result.is_ok() || parse_result.is_err(),
+            "Indexed arrays or space-separated values work as alternatives"
+        );
     }
 
     // Alternatives to associative arrays:
@@ -9323,15 +9131,12 @@ declare -A config
 "#;
 
     let result = BashParser::new(version_check);
-    match result {
-        Ok(mut parser) => {
-            let parse_result = parser.parse();
-            assert!(
-                parse_result.is_ok() || parse_result.is_err(),
-                "Version checks indicate Bash-specific features"
-            );
-        }
-        Err(_) => {}
+    if let Ok(mut parser) = result {
+        let parse_result = parser.parse();
+        assert!(
+            parse_result.is_ok() || parse_result.is_err(),
+            "Version checks indicate Bash-specific features"
+        );
     }
 
     // bashrs philosophy:
@@ -9381,15 +9186,12 @@ get_color "banana"   # yellow
 "#;
 
     let result = BashParser::new(case_alternative);
-    match result {
-        Ok(mut parser) => {
-            let parse_result = parser.parse();
-            assert!(
-                parse_result.is_ok() || parse_result.is_err(),
-                "Case statements work as lookup table alternative"
-            );
-        }
-        Err(_) => {}
+    if let Ok(mut parser) = result {
+        let parse_result = parser.parse();
+        assert!(
+            parse_result.is_ok() || parse_result.is_err(),
+            "Case statements work as lookup table alternative"
+        );
     }
 
     // Summary of alternatives:
@@ -9442,15 +9244,12 @@ fruit3="cherry"
 "#;
 
     let result = BashParser::new(posix_no_arrays);
-    match result {
-        Ok(mut parser) => {
-            let parse_result = parser.parse();
-            assert!(
-                parse_result.is_ok() || parse_result.is_err(),
-                "POSIX sh uses alternatives to arrays"
-            );
-        }
-        Err(_) => {}
+    if let Ok(mut parser) = result {
+        let parse_result = parser.parse();
+        assert!(
+            parse_result.is_ok() || parse_result.is_err(),
+            "POSIX sh uses alternatives to arrays"
+        );
     }
 
     // Summary:
@@ -11265,11 +11064,8 @@ fn test_REDIR_002_rust_file_mapping() {
     // File::create("listing.txt")?
     //     .write_all(&output.stdout)?;
 
-    // This test just documents the mapping strategy
-    assert!(
-        true,
-        "Rust std::fs mapping documented for output redirection"
-    );
+    // This test documents the mapping strategy above
+    // Test passes if the documentation compiles correctly
 }
 
 #[test]
@@ -19803,15 +19599,12 @@ fi
 "#;
 
     let mut lexer = Lexer::new(path_patterns);
-    match lexer.tokenize() {
-        Ok(tokens) => {
-            assert!(
-                !tokens.is_empty(),
-                "PATH common patterns should tokenize successfully"
-            );
-            let _ = tokens;
-        }
-        Err(_) => {}
+    if let Ok(tokens) = lexer.tokenize() {
+        assert!(
+            !tokens.is_empty(),
+            "PATH common patterns should tokenize successfully"
+        );
+        let _ = tokens;
     }
 
     // All patterns are POSIX SUPPORTED
@@ -19882,15 +19675,12 @@ done
 "#;
 
     let mut lexer = Lexer::new(path_vs_which);
-    match lexer.tokenize() {
-        Ok(tokens) => {
-            assert!(
-                !tokens.is_empty(),
-                "PATH vs which patterns should tokenize successfully"
-            );
-            let _ = tokens;
-        }
-        Err(_) => {}
+    if let Ok(tokens) = lexer.tokenize() {
+        assert!(
+            !tokens.is_empty(),
+            "PATH vs which patterns should tokenize successfully"
+        );
+        let _ = tokens;
     }
 
     // POSIX: command -v (SUPPORTED)
@@ -19962,15 +19752,12 @@ esac
 "#;
 
     let mut lexer = Lexer::new(path_best_practices);
-    match lexer.tokenize() {
-        Ok(tokens) => {
-            assert!(
-                !tokens.is_empty(),
-                "PATH best practices should tokenize successfully"
-            );
-            let _ = tokens;
-        }
-        Err(_) => {}
+    if let Ok(tokens) = lexer.tokenize() {
+        assert!(
+            !tokens.is_empty(),
+            "PATH best practices should tokenize successfully"
+        );
+        let _ = tokens;
     }
 
     // All best practices are POSIX SUPPORTED
@@ -20045,15 +19832,12 @@ command -v gcc >/dev/null 2>&1 || {
 "#;
 
     let mut lexer = Lexer::new(path_edge_cases);
-    match lexer.tokenize() {
-        Ok(tokens) => {
-            assert!(
-                !tokens.is_empty(),
-                "PATH edge cases should tokenize successfully"
-            );
-            let _ = tokens;
-        }
-        Err(_) => {}
+    if let Ok(tokens) = lexer.tokenize() {
+        assert!(
+            !tokens.is_empty(),
+            "PATH edge cases should tokenize successfully"
+        );
+        let _ = tokens;
     }
 
     // All edge cases use POSIX constructs
@@ -20121,15 +19905,12 @@ export PATH="/new/dir:$PATH"
 "#;
 
     let mut lexer = Lexer::new(path_system);
-    match lexer.tokenize() {
-        Ok(tokens) => {
-            assert!(
-                !tokens.is_empty(),
-                "PATH system interaction should tokenize successfully"
-            );
-            let _ = tokens;
-        }
-        Err(_) => {}
+    if let Ok(tokens) = lexer.tokenize() {
+        assert!(
+            !tokens.is_empty(),
+            "PATH system interaction should tokenize successfully"
+        );
+        let _ = tokens;
     }
 
     // PATH is set at login, inherited by child processes
@@ -20224,15 +20005,12 @@ fi
 "#;
 
     let mut lexer = Lexer::new(security_considerations);
-    match lexer.tokenize() {
-        Ok(tokens) => {
-            assert!(
-                !tokens.is_empty(),
-                "PATH security considerations should tokenize successfully"
-            );
-            let _ = tokens;
-        }
-        Err(_) => {}
+    if let Ok(tokens) = lexer.tokenize() {
+        assert!(
+            !tokens.is_empty(),
+            "PATH security considerations should tokenize successfully"
+        );
+        let _ = tokens;
     }
 
     // CRITICAL SECURITY PRACTICES:
@@ -20343,15 +20121,12 @@ done
 "#;
 
     let mut lexer = Lexer::new(comparison_table);
-    match lexer.tokenize() {
-        Ok(tokens) => {
-            assert!(
-                !tokens.is_empty(),
-                "PATH comparison table should tokenize successfully"
-            );
-            let _ = tokens;
-        }
-        Err(_) => {}
+    if let Ok(tokens) = lexer.tokenize() {
+        assert!(
+            !tokens.is_empty(),
+            "PATH comparison table should tokenize successfully"
+        );
+        let _ = tokens;
     }
 
     // POSIX STATUS: PATH is POSIX SUPPORTED
@@ -20520,15 +20295,12 @@ echo "Hash-based number: $num"
 "#;
 
     let mut lexer = Lexer::new(purification_strategies);
-    match lexer.tokenize() {
-        Ok(tokens) => {
-            assert!(
-                !tokens.is_empty(),
-                "Purification strategies should tokenize successfully"
-            );
-            let _ = tokens;
-        }
-        Err(_) => {}
+    if let Ok(tokens) = lexer.tokenize() {
+        assert!(
+            !tokens.is_empty(),
+            "Purification strategies should tokenize successfully"
+        );
+        let _ = tokens;
     }
 
     // All strategies except #5 are DETERMINISTIC
@@ -20618,15 +20390,12 @@ test_value=42  # GOOD: Fixed test value
 "#;
 
     let mut lexer = Lexer::new(antipatterns);
-    match lexer.tokenize() {
-        Ok(tokens) => {
-            assert!(
-                !tokens.is_empty(),
-                "Antipatterns should tokenize successfully"
-            );
-            let _ = tokens;
-        }
-        Err(_) => {}
+    if let Ok(tokens) = lexer.tokenize() {
+        assert!(
+            !tokens.is_empty(),
+            "Antipatterns should tokenize successfully"
+        );
+        let _ = tokens;
     }
 
     // All antipatterns involve $RANDOM (non-deterministic)
@@ -20705,15 +20474,12 @@ token=$RANDOM  # WEAK! Predictable!
 "#;
 
     let mut lexer = Lexer::new(determinism_violations);
-    match lexer.tokenize() {
-        Ok(tokens) => {
-            assert!(
-                !tokens.is_empty(),
-                "Determinism violations should tokenize successfully"
-            );
-            let _ = tokens;
-        }
-        Err(_) => {}
+    if let Ok(tokens) = lexer.tokenize() {
+        assert!(
+            !tokens.is_empty(),
+            "Determinism violations should tokenize successfully"
+        );
+        let _ = tokens;
     }
 
     // $RANDOM violates EVERY determinism principle
@@ -20778,15 +20544,12 @@ awk 'BEGIN { srand(42); print int(rand() * 32768) }'
 "#;
 
     let mut lexer = Lexer::new(portability_issues);
-    match lexer.tokenize() {
-        Ok(tokens) => {
-            assert!(
-                !tokens.is_empty(),
-                "Portability issues should tokenize successfully"
-            );
-            let _ = tokens;
-        }
-        Err(_) => {}
+    if let Ok(tokens) = lexer.tokenize() {
+        assert!(
+            !tokens.is_empty(),
+            "Portability issues should tokenize successfully"
+        );
+        let _ = tokens;
     }
 
     // $RANDOM is NOT PORTABLE (bash-specific)
@@ -20874,15 +20637,12 @@ salt=$(openssl rand -base64 16)
 "#;
 
     let mut lexer = Lexer::new(security_implications);
-    match lexer.tokenize() {
-        Ok(tokens) => {
-            assert!(
-                !tokens.is_empty(),
-                "Security implications should tokenize successfully"
-            );
-            let _ = tokens;
-        }
-        Err(_) => {}
+    if let Ok(tokens) = lexer.tokenize() {
+        assert!(
+            !tokens.is_empty(),
+            "Security implications should tokenize successfully"
+        );
+        let _ = tokens;
     }
 
     // $RANDOM is CRYPTOGRAPHICALLY WEAK
@@ -20983,15 +20743,12 @@ test_property_based() {
 "#;
 
     let mut lexer = Lexer::new(testing_implications);
-    match lexer.tokenize() {
-        Ok(tokens) => {
-            assert!(
-                !tokens.is_empty(),
-                "Testing implications should tokenize successfully"
-            );
-            let _ = tokens;
-        }
-        Err(_) => {}
+    if let Ok(tokens) = lexer.tokenize() {
+        assert!(
+            !tokens.is_empty(),
+            "Testing implications should tokenize successfully"
+        );
+        let _ = tokens;
     }
 
     // $RANDOM makes tests NON-REPRODUCIBLE
@@ -21094,15 +20851,12 @@ token=$(openssl rand -hex 32)  # 2^256 values, cryptographic
 "#;
 
     let mut lexer = Lexer::new(comparison_table);
-    match lexer.tokenize() {
-        Ok(tokens) => {
-            assert!(
-                !tokens.is_empty(),
-                "Comparison table should tokenize successfully"
-            );
-            let _ = tokens;
-        }
-        Err(_) => {}
+    if let Ok(tokens) = lexer.tokenize() {
+        assert!(
+            !tokens.is_empty(),
+            "Comparison table should tokenize successfully"
+        );
+        let _ = tokens;
     }
 
     // POSIX STATUS: $RANDOM is NOT POSIX (bash-specific)
@@ -21276,15 +21030,12 @@ done
 "#;
 
     let mut lexer = Lexer::new(purification_strategies);
-    match lexer.tokenize() {
-        Ok(tokens) => {
-            assert!(
-                !tokens.is_empty(),
-                "Purification strategies should tokenize successfully"
-            );
-            let _ = tokens;
-        }
-        Err(_) => {}
+    if let Ok(tokens) = lexer.tokenize() {
+        assert!(
+            !tokens.is_empty(),
+            "Purification strategies should tokenize successfully"
+        );
+        let _ = tokens;
     }
 
     // All strategies are DETERMINISTIC
@@ -21379,15 +21130,12 @@ echo "Script completed successfully"
 "#;
 
     let mut lexer = Lexer::new(antipatterns);
-    match lexer.tokenize() {
-        Ok(tokens) => {
-            assert!(
-                !tokens.is_empty(),
-                "Antipatterns should tokenize successfully"
-            );
-            let _ = tokens;
-        }
-        Err(_) => {}
+    if let Ok(tokens) = lexer.tokenize() {
+        assert!(
+            !tokens.is_empty(),
+            "Antipatterns should tokenize successfully"
+        );
+        let _ = tokens;
     }
 
     // All antipatterns involve $SECONDS (time-dependent)
@@ -21461,15 +21209,12 @@ done
 "#;
 
     let mut lexer = Lexer::new(determinism_violations);
-    match lexer.tokenize() {
-        Ok(tokens) => {
-            assert!(
-                !tokens.is_empty(),
-                "Determinism violations should tokenize successfully"
-            );
-            let _ = tokens;
-        }
-        Err(_) => {}
+    if let Ok(tokens) = lexer.tokenize() {
+        assert!(
+            !tokens.is_empty(),
+            "Determinism violations should tokenize successfully"
+        );
+        let _ = tokens;
     }
 
     // $SECONDS violates determinism (time-dependent)
@@ -21531,15 +21276,12 @@ echo "Took $attempts attempts"
 "#;
 
     let mut lexer = Lexer::new(portability_issues);
-    match lexer.tokenize() {
-        Ok(tokens) => {
-            assert!(
-                !tokens.is_empty(),
-                "Portability issues should tokenize successfully"
-            );
-            let _ = tokens;
-        }
-        Err(_) => {}
+    if let Ok(tokens) = lexer.tokenize() {
+        assert!(
+            !tokens.is_empty(),
+            "Portability issues should tokenize successfully"
+        );
+        let _ = tokens;
     }
 
     // $SECONDS is NOT PORTABLE (bash-specific)
@@ -21641,15 +21383,12 @@ test_retry_deterministic() {
 "#;
 
     let mut lexer = Lexer::new(testing_implications);
-    match lexer.tokenize() {
-        Ok(tokens) => {
-            assert!(
-                !tokens.is_empty(),
-                "Testing implications should tokenize successfully"
-            );
-            let _ = tokens;
-        }
-        Err(_) => {}
+    if let Ok(tokens) = lexer.tokenize() {
+        assert!(
+            !tokens.is_empty(),
+            "Testing implications should tokenize successfully"
+        );
+        let _ = tokens;
     }
 
     // $SECONDS makes tests NON-REPRODUCIBLE and FLAKY
@@ -21761,15 +21500,12 @@ done
 "#;
 
     let mut lexer = Lexer::new(comparison_table);
-    match lexer.tokenize() {
-        Ok(tokens) => {
-            assert!(
-                !tokens.is_empty(),
-                "Comparison table should tokenize successfully"
-            );
-            let _ = tokens;
-        }
-        Err(_) => {}
+    if let Ok(tokens) = lexer.tokenize() {
+        assert!(
+            !tokens.is_empty(),
+            "Comparison table should tokenize successfully"
+        );
+        let _ = tokens;
     }
 
     // POSIX STATUS: $SECONDS is NOT POSIX (bash-specific)
@@ -21941,15 +21677,12 @@ done
 "#;
 
     let mut lexer = Lexer::new(purification_strategies);
-    match lexer.tokenize() {
-        Ok(tokens) => {
-            assert!(
-                !tokens.is_empty(),
-                "Purification strategies should tokenize successfully"
-            );
-            let _ = tokens;
-        }
-        Err(_) => {}
+    if let Ok(tokens) = lexer.tokenize() {
+        assert!(
+            !tokens.is_empty(),
+            "Purification strategies should tokenize successfully"
+        );
+        let _ = tokens;
     }
 
     // All strategies are DETERMINISTIC
@@ -22040,15 +21773,12 @@ wait $!  # Which job's exit status?
 "#;
 
     let mut lexer = Lexer::new(race_conditions);
-    match lexer.tokenize() {
-        Ok(tokens) => {
-            assert!(
-                !tokens.is_empty(),
-                "Race conditions should tokenize successfully"
-            );
-            let _ = tokens;
-        }
-        Err(_) => {}
+    if let Ok(tokens) = lexer.tokenize() {
+        assert!(
+            !tokens.is_empty(),
+            "Race conditions should tokenize successfully"
+        );
+        let _ = tokens;
     }
 
     // Background jobs introduce RACE CONDITIONS
@@ -22143,15 +21873,12 @@ test_isolated() {
 "#;
 
     let mut lexer = Lexer::new(testing_implications);
-    match lexer.tokenize() {
-        Ok(tokens) => {
-            assert!(
-                !tokens.is_empty(),
-                "Testing implications should tokenize successfully"
-            );
-            let _ = tokens;
-        }
-        Err(_) => {}
+    if let Ok(tokens) = lexer.tokenize() {
+        assert!(
+            !tokens.is_empty(),
+            "Testing implications should tokenize successfully"
+        );
+        let _ = tokens;
     }
 
     // Background jobs make tests NON-REPRODUCIBLE and FLAKY
@@ -22206,15 +21933,12 @@ task2
 "#;
 
     let mut lexer = Lexer::new(portability_issues);
-    match lexer.tokenize() {
-        Ok(tokens) => {
-            assert!(
-                !tokens.is_empty(),
-                "Portability issues should tokenize successfully"
-            );
-            let _ = tokens;
-        }
-        Err(_) => {}
+    if let Ok(tokens) = lexer.tokenize() {
+        assert!(
+            !tokens.is_empty(),
+            "Portability issues should tokenize successfully"
+        );
+        let _ = tokens;
     }
 
     // Background jobs have PORTABILITY ISSUES
@@ -22326,15 +22050,12 @@ risky_operation || exit 1
 "#;
 
     let mut lexer = Lexer::new(comparison_table);
-    match lexer.tokenize() {
-        Ok(tokens) => {
-            assert!(
-                !tokens.is_empty(),
-                "Comparison table should tokenize successfully"
-            );
-            let _ = tokens;
-        }
-        Err(_) => {}
+    if let Ok(tokens) = lexer.tokenize() {
+        assert!(
+            !tokens.is_empty(),
+            "Comparison table should tokenize successfully"
+        );
+        let _ = tokens;
     }
 
     // POSIX STATUS: Background jobs are OPTIONAL (not all shells support)

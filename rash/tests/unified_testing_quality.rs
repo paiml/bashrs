@@ -326,7 +326,7 @@ fn test_SPEC_007_unified_spec_document_exists() {
 // ============================================================================
 
 #[test]
-#[cfg_attr(coverage, ignore)] // Skip in coverage mode (cargo nextest --list format differs)
+#[ignore] // Skip: cargo nextest has different --list format than cargo test
 fn test_SPEC_008_test_count_exceeds_minimum() {
     // Verify we have at least 6000+ tests (per spec: 6517+ tests)
     //

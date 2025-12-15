@@ -152,7 +152,7 @@ mod tests {
         "#;
         let config: Result<GateConfig> = toml::from_str::<GateConfig>(toml)
             .map_err(|e| Error::Internal(e.to_string()))
-            .and_then(|mut c| {
+            .and_then(|c| {
                 if c.gates.min_coverage > 100.0 {
                     Err(Error::Validation("Coverage too high".into()))
                 } else {

@@ -1,6 +1,7 @@
 #![allow(clippy::unwrap_used)] // Tests can use unwrap() for simplicity
-                               // Mutation Testing Coverage Tests
-                               // Tests designed to catch specific mutations that were MISSED in Sprint 24
+#![allow(clippy::expect_used)]
+// Mutation Testing Coverage Tests
+// Tests designed to catch specific mutations that were MISSED in Sprint 24
 
 use bashrs::{transpile, Config};
 

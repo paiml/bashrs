@@ -20,6 +20,7 @@
 pub mod autofix;
 pub mod citl;
 pub mod diagnostic;
+pub mod docker_profiler;
 pub mod ignore_file;
 pub mod make_preprocess;
 pub mod output;
@@ -34,7 +35,7 @@ pub use citl::{CitlDiagnostic, CitlExport, CitlSpan, CitlSuggestion, CitlSummary
 pub use diagnostic::{Diagnostic, Fix, FixSafetyLevel, LintResult, Severity, Span};
 pub use ignore_file::{IgnoreFile, IgnoreResult};
 pub use rule_registry::{get_rule_compatibility, should_apply_rule, RuleMetadata};
-pub use rules::{lint_shell, lint_shell_with_path};
+pub use rules::{lint_dockerfile_with_profile, lint_shell, lint_shell_with_path, LintProfile};
 pub use shell_compatibility::ShellCompatibility;
 pub use shell_type::{detect_shell_type, ShellType};
 pub use suppression::{Suppression, SuppressionManager, SuppressionType};

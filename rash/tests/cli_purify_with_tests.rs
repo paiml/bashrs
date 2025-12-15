@@ -1,4 +1,5 @@
 #![allow(clippy::unwrap_used)]
+#![allow(clippy::expect_used)]
 // Tests can use unwrap() for simplicity
 // CLI Integration Tests for bashrs purify --with-tests Command
 // EXTREME TDD: RED phase - These tests will FAIL until feature is implemented

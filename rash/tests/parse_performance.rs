@@ -1,4 +1,5 @@
 #![allow(clippy::unwrap_used)] // Tests can use unwrap() for simplicity
+#![allow(clippy::expect_used)]
 //! Performance benchmarks for Makefile parser
 //!
 //! Following SQLite principles: Detect performance regressions early

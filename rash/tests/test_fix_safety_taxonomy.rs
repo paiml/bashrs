@@ -1,4 +1,5 @@
 #![allow(clippy::unwrap_used)] // Tests can use unwrap() for simplicity
+#![allow(clippy::expect_used)]
 //! EXTREME TDD: Fix Safety Taxonomy Validation Tests
 //!
 //! RED PHASE: These tests WILL FAIL until we classify existing rules.

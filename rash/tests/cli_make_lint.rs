@@ -1,4 +1,5 @@
 #![allow(clippy::unwrap_used)] // Tests can use unwrap() for simplicity
+#![allow(clippy::expect_used)]
 //! CLI Integration Tests for `bashrs make lint` command
 //!
 //! Tests the Makefile linting CLI with assert_cmd

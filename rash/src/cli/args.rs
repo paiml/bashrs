@@ -175,6 +175,14 @@ pub enum Commands {
         /// Export diagnostics in CITL format for OIP integration (Issue #83)
         #[arg(long, value_name = "FILE")]
         citl_export: Option<PathBuf>,
+
+        /// Lint profile for specialized validation (standard, coursera, devcontainer)
+        #[arg(long, value_enum, default_value = "standard")]
+        profile: LintProfileArg,
+
+        /// Enable graded output mode (educational scoring with pass/fail criteria)
+        #[arg(long)]
+        graded: bool,
     },
 
     /// Purify bash scripts (determinism + idempotency + safety)
@@ -212,6 +220,12 @@ pub enum Commands {
         command: DockerfileCommands,
     },
 
+    /// Dev Container validation (devcontainer.json) (NEW in v6.43.0)
+    Devcontainer {
+        #[command(subcommand)]
+        command: DevContainerCommands,
+    },
+
     /// Shell configuration file management (NEW in v7.0)
     Config {
         #[command(subcommand)]
@@ -240,6 +254,10 @@ pub enum Commands {
         #[arg(long)]
         max_depth: Option<usize>,
     },
+
+    /// Terminal User Interface with multi-panel layout (NEW)
+    #[cfg(feature = "tui")]
+    Tui,
 
     /// Enforce quality gates (NEW in v6.42.0)
     Gate {
@@ -288,6 +306,18 @@ pub enum Commands {
         /// Use Dockerfile-specific quality scoring
         #[arg(long)]
         dockerfile: bool,
+
+        /// Include runtime performance metrics in score (requires Docker daemon for Dockerfiles)
+        #[arg(long)]
+        runtime: bool,
+
+        /// Show letter grade (A+, A, B+, B, C+, C, D, F)
+        #[arg(long)]
+        grade: bool,
+
+        /// Apply platform-specific scoring profile (coursera)
+        #[arg(long, value_enum)]
+        profile: Option<LintProfileArg>,
     },
 
     /// Run comprehensive quality audit (NEW in v6.12.0 - Bash Quality Tools)
@@ -576,6 +606,157 @@ pub enum DockerfileCommands {
         #[arg(long)]
         rules: Option<String>,
     },
+
+    /// Profile Docker image runtime performance (requires Docker daemon)
+    Profile {
+        /// Input Dockerfile
+        #[arg(value_name = "FILE")]
+        input: PathBuf,
+
+        /// Measure build time and layer cache efficiency
+        #[arg(long)]
+        build: bool,
+
+        /// Show layer-by-layer timing analysis
+        #[arg(long)]
+        layers: bool,
+
+        /// Measure container startup time to healthy state
+        #[arg(long)]
+        startup: bool,
+
+        /// Measure container memory usage during runtime
+        #[arg(long)]
+        memory: bool,
+
+        /// Measure container CPU usage during runtime
+        #[arg(long)]
+        cpu: bool,
+
+        /// Run custom workload script for profiling
+        #[arg(long, value_name = "SCRIPT")]
+        workload: Option<PathBuf>,
+
+        /// Duration for runtime profiling (e.g., "30s", "1m")
+        #[arg(long, default_value = "30s")]
+        duration: String,
+
+        /// Apply platform-specific constraints (coursera)
+        #[arg(long, value_enum)]
+        profile: Option<LintProfileArg>,
+
+        /// Simulate platform resource limits during profiling
+        #[arg(long)]
+        simulate_limits: bool,
+
+        /// Run full runtime validation suite
+        #[arg(long)]
+        full: bool,
+
+        /// Output format
+        #[arg(long, value_enum, default_value = "human")]
+        format: ReportFormat,
+    },
+
+    /// Check Docker image size and detect bloat patterns
+    SizeCheck {
+        /// Input Dockerfile
+        #[arg(value_name = "FILE")]
+        input: PathBuf,
+
+        /// Show verbose size breakdown by layer
+        #[arg(long)]
+        verbose: bool,
+
+        /// Show per-layer size analysis
+        #[arg(long)]
+        layers: bool,
+
+        /// Detect common size bloat patterns
+        #[arg(long)]
+        detect_bloat: bool,
+
+        /// Verify estimate against actual built image
+        #[arg(long)]
+        verify: bool,
+
+        /// Build image and verify size (requires Docker)
+        #[arg(long)]
+        docker_verify: bool,
+
+        /// Apply platform-specific size constraints (coursera = 10GB)
+        #[arg(long, value_enum)]
+        profile: Option<LintProfileArg>,
+
+        /// Exit with error if estimated size exceeds limit
+        #[arg(long)]
+        strict: bool,
+
+        /// Custom maximum size limit (e.g., "5GB", "500MB")
+        #[arg(long, value_name = "SIZE")]
+        max_size: Option<String>,
+
+        /// Show compression opportunities
+        #[arg(long)]
+        compression_analysis: bool,
+
+        /// Output format
+        #[arg(long, value_enum, default_value = "human")]
+        format: ReportFormat,
+    },
+
+    /// Run full validation pipeline (lint + size + optional runtime profiling)
+    FullValidate {
+        /// Input Dockerfile
+        #[arg(value_name = "FILE")]
+        input: PathBuf,
+
+        /// Apply platform-specific validation (coursera)
+        #[arg(long, value_enum)]
+        profile: Option<LintProfileArg>,
+
+        /// Include size verification
+        #[arg(long)]
+        size_check: bool,
+
+        /// Include graded lab validation (for Coursera)
+        #[arg(long)]
+        graded: bool,
+
+        /// Include runtime profiling (requires Docker daemon)
+        #[arg(long)]
+        runtime: bool,
+
+        /// Exit with error on any warning
+        #[arg(long)]
+        strict: bool,
+
+        /// Output format
+        #[arg(long, value_enum, default_value = "human")]
+        format: ReportFormat,
+    },
+}
+
+#[derive(Subcommand)]
+pub enum DevContainerCommands {
+    /// Validate devcontainer.json file (JSONC support)
+    Validate {
+        /// Path to devcontainer.json or directory containing .devcontainer
+        #[arg(value_name = "PATH")]
+        path: PathBuf,
+
+        /// Output format
+        #[arg(long, value_enum, default_value = "human")]
+        format: LintFormat,
+
+        /// Also lint referenced Dockerfile (if build.dockerfile specified)
+        #[arg(long)]
+        lint_dockerfile: bool,
+
+        /// List all available DEVCONTAINER rules
+        #[arg(long)]
+        list_rules: bool,
+    },
 }
 
 #[derive(Subcommand)]
@@ -755,6 +936,18 @@ pub enum LintLevel {
     Warning,
     /// Show only error messages
     Error,
+}
+
+/// Lint profile for specialized validation rules
+#[derive(Clone, Debug, Default, ValueEnum, PartialEq, Eq)]
+pub enum LintProfileArg {
+    /// Standard Dockerfile linting (default)
+    #[default]
+    Standard,
+    /// Coursera Labs image validation (single port, 10GB limit, HEALTHCHECK required)
+    Coursera,
+    /// Dev Container validation (devcontainer.json + Dockerfile compatibility)
+    DevContainer,
 }
 
 impl ValueEnum for VerificationLevel {

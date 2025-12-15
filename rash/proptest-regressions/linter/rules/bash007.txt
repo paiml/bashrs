@@ -5,3 +5,4 @@
 # It is recommended to check this file in to source control so that
 # everyone who runs the test benefits from these saved cases.
 cc 8e53cc713389dc53ad507fc354c950e78390772a562c781b2554beecfa57c7f3 # shrinks to tool = "sha"
+cc 2d6b88bd9a288085a1f8c4170bfbd699b2c5a1a095dd8da4ad09b9984f57d8b2 # shrinks to tool = "env"

@@ -809,7 +809,7 @@ mod tests {
     /// Test: All AstNodePatch variants
     #[test]
     fn test_ast_node_patch_all_variants() {
-        let patches = vec![
+        let patches = [
             AstNodePatch::AddedFlag {
                 flag: "-p".to_string(),
             },
@@ -843,7 +843,7 @@ mod tests {
     /// Test: Severity enum
     #[test]
     fn test_severity_variants() {
-        let severities = vec![
+        let severities = [
             Severity::Error,
             Severity::Warning,
             Severity::Info,

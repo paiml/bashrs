@@ -1,4 +1,5 @@
 #![allow(clippy::unwrap_used)] // Tests can use unwrap() for simplicity
+#![allow(clippy::expect_used)]
 //! REPL Variable Assignment Tests
 //!
 //! Task: REPL-007-001 - Variable assignment and expansion

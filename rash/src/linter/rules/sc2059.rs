@@ -291,7 +291,7 @@ mod tests {
                 let bash_code = format!("{}printf ${}", spaces, var_name);
                 let result = check(&bash_code);
 
-                if result.diagnostics.len() > 0 {
+                if !result.diagnostics.is_empty() {
                     let span = &result.diagnostics[0].span;
                     // INVARIANT: Columns are 1-indexed, never 0 or negative
                     prop_assert!(span.start_col >= 1, "Start column must be >= 1, got {}", span.start_col);
@@ -315,7 +315,7 @@ mod tests {
                 bash_code.push_str(&format!("printf ${}", var_name));
 
                 let result = check(&bash_code);
-                if result.diagnostics.len() > 0 {
+                if !result.diagnostics.is_empty() {
                     let span = &result.diagnostics[0].span;
                     // INVARIANT: Lines are 1-indexed, never 0 or negative
                     prop_assert!(span.start_line >= 1, "Line number must be >= 1, got {}", span.start_line);
@@ -331,7 +331,7 @@ mod tests {
                 let bash_code = format!("printf ${}", var_name);
                 let result = check(&bash_code);
 
-                if result.diagnostics.len() > 0 {
+                if !result.diagnostics.is_empty() {
                     let span = &result.diagnostics[0].span;
                     let span_length = span.end_col.saturating_sub(span.start_col);
                     // INVARIANT: Span length must be positive and reasonable
@@ -349,7 +349,7 @@ mod tests {
                 let bash_code = format!("printf \"{}${}\"", prefix, var_name);
                 let result = check(&bash_code);
 
-                if result.diagnostics.len() > 0 {
+                if !result.diagnostics.is_empty() {
                     let span = &result.diagnostics[0].span;
                     // INVARIANT: Columns are 1-indexed and ordered correctly
                     prop_assert!(span.start_col >= 1);

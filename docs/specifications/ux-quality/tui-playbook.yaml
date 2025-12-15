@@ -1,0 +1,376 @@
+# TUI State Machine Playbook for Probar Validation
+# Usage: probador playbook tui-playbook.yaml --validate
+
+name: bashrs-tui-states
+version: "1.0.0"
+description: State machine for bashrs TUI application
+
+# Initial state when TUI starts
+initial: idle
+
+# State definitions
+states:
+  # Idle state - waiting for user input
+  idle:
+    description: "TUI initialized, waiting for user action"
+    on_enter:
+      - action: render_frame
+      - action: show_status_bar
+    transitions:
+      - event: focus_editor
+        target: editing
+        guard: editor_visible
+      - event: press_f1
+        target: help_screen
+      - event: press_f5
+        target: fuzzing
+      - event: press_q
+        target: confirming_quit
+      - event: press_1
+        target: idle
+        action: set_mode_normal
+      - event: press_2
+        target: idle
+        action: set_mode_purify
+      - event: press_3
+        target: idle
+        action: set_mode_lint
+      - event: press_4
+        target: idle
+        action: set_mode_debug
+      - event: press_5
+        target: idle
+        action: set_mode_explain
+
+  # Editing state - user is typing in editor
+  editing:
+    description: "User editing script in editor panel"
+    on_enter:
+      - action: focus_editor_panel
+      - action: enable_syntax_highlighting
+    transitions:
+      - event: text_input
+        target: editing
+        action: update_editor_content
+      - event: press_f2
+        target: linting
+      - event: press_f3
+        target: purifying
+      - event: press_f4
+        target: showing_quality
+      - event: press_escape
+        target: idle
+      - event: press_tab
+        target: editing
+        action: cycle_panel_focus
+
+  # Linting state - running lint analysis
+  linting:
+    description: "Running lint analysis on script"
+    on_enter:
+      - action: show_linting_indicator
+      - action: run_lint_async
+    transitions:
+      - event: lint_complete
+        target: showing_lint_results
+        action: update_lint_panel
+      - event: lint_error
+        target: error_state
+        action: show_lint_error
+      - event: press_escape
+        target: editing
+        action: cancel_lint
+
+  # Showing lint results
+  showing_lint_results:
+    description: "Displaying lint diagnostics"
+    on_enter:
+      - action: render_lint_panel
+      - action: highlight_issues_in_editor
+    transitions:
+      - event: select_diagnostic
+        target: showing_lint_results
+        action: show_diagnostic_detail
+      - event: press_enter
+        target: editing
+        action: jump_to_diagnostic
+      - event: press_escape
+        target: idle
+      - event: press_f3
+        target: purifying
+
+  # Purifying state - generating purified output
+  purifying:
+    description: "Generating purified (deterministic/idempotent) script"
+    on_enter:
+      - action: show_purifying_indicator
+      - action: run_purify_async
+    transitions:
+      - event: purify_complete
+        target: showing_purified
+        action: update_purify_panel
+      - event: purify_error
+        target: error_state
+        action: show_purify_error
+      - event: press_escape
+        target: editing
+        action: cancel_purify
+
+  # Showing purified output
+  showing_purified:
+    description: "Displaying purified script output"
+    on_enter:
+      - action: render_purify_panel
+      - action: show_diff_highlights
+    transitions:
+      - event: press_enter
+        target: editing
+        action: apply_purification
+      - event: press_escape
+        target: idle
+      - event: press_c
+        target: showing_purified
+        action: copy_to_clipboard
+
+  # Showing quality metrics
+  showing_quality:
+    description: "Displaying quality metrics dashboard"
+    on_enter:
+      - action: calculate_metrics
+      - action: render_quality_panel
+    transitions:
+      - event: press_escape
+        target: idle
+      - event: press_r
+        target: showing_quality
+        action: refresh_metrics
+
+  # Fuzzing state - Monte Carlo edge case detection
+  fuzzing:
+    description: "Running Monte Carlo fuzzing for edge cases"
+    on_enter:
+      - action: show_fuzzing_indicator
+      - action: start_fuzzer
+    transitions:
+      - event: edge_case_found
+        target: fuzzing
+        action: log_edge_case
+      - event: fuzzing_complete
+        target: showing_edge_cases
+        action: show_fuzzing_summary
+      - event: press_escape
+        target: idle
+        action: stop_fuzzer
+
+  # Showing edge cases
+  showing_edge_cases:
+    description: "Displaying discovered edge cases"
+    on_enter:
+      - action: render_edge_cases_panel
+    transitions:
+      - event: select_edge_case
+        target: showing_edge_cases
+        action: show_edge_case_detail
+      - event: press_enter
+        target: editing
+        action: load_edge_case_input
+      - event: press_escape
+        target: idle
+
+  # Help screen
+  help_screen:
+    description: "Showing help documentation"
+    on_enter:
+      - action: render_help_overlay
+    transitions:
+      - event: press_escape
+        target: idle
+      - event: press_any
+        target: idle
+
+  # Confirming quit
+  confirming_quit:
+    description: "Confirming quit action"
+    on_enter:
+      - action: show_quit_dialog
+    transitions:
+      - event: press_y
+        target: terminated
+        action: cleanup
+      - event: press_n
+        target: idle
+      - event: press_escape
+        target: idle
+
+  # Error state
+  error_state:
+    description: "An error occurred"
+    on_enter:
+      - action: show_error_dialog
+    transitions:
+      - event: acknowledge
+        target: idle
+        action: clear_error
+      - event: press_escape
+        target: idle
+        action: clear_error
+      - event: press_enter
+        target: idle
+        action: clear_error
+
+  # Terminated state (final)
+  terminated:
+    description: "TUI has been terminated"
+    final: true
+    on_enter:
+      - action: restore_terminal
+      - action: exit_application
+
+# Guards (conditions for transitions)
+guards:
+  editor_visible:
+    description: "Check if editor panel is visible"
+    condition: "panels.editor.visible == true"
+
+# Actions
+actions:
+  render_frame:
+    description: "Render the full TUI frame"
+  show_status_bar:
+    description: "Update status bar with current state"
+  focus_editor_panel:
+    description: "Set focus to editor panel"
+  enable_syntax_highlighting:
+    description: "Enable bash syntax highlighting in editor"
+  update_editor_content:
+    description: "Update editor with new text input"
+  cycle_panel_focus:
+    description: "Move focus to next panel"
+  show_linting_indicator:
+    description: "Show spinner/indicator during lint"
+  run_lint_async:
+    description: "Start async lint operation"
+  cancel_lint:
+    description: "Cancel ongoing lint operation"
+  update_lint_panel:
+    description: "Update lint panel with results"
+  show_lint_error:
+    description: "Display lint error message"
+  render_lint_panel:
+    description: "Render lint diagnostics list"
+  highlight_issues_in_editor:
+    description: "Highlight lint issues in editor"
+  show_diagnostic_detail:
+    description: "Show detailed info for selected diagnostic"
+  jump_to_diagnostic:
+    description: "Jump to diagnostic location in editor"
+  show_purifying_indicator:
+    description: "Show spinner during purification"
+  run_purify_async:
+    description: "Start async purify operation"
+  cancel_purify:
+    description: "Cancel ongoing purify operation"
+  update_purify_panel:
+    description: "Update purify panel with results"
+  show_purify_error:
+    description: "Display purify error message"
+  render_purify_panel:
+    description: "Render purified output panel"
+  show_diff_highlights:
+    description: "Highlight differences from original"
+  apply_purification:
+    description: "Apply purified script to editor"
+  copy_to_clipboard:
+    description: "Copy purified output to clipboard"
+  calculate_metrics:
+    description: "Calculate quality metrics"
+  render_quality_panel:
+    description: "Render quality metrics dashboard"
+  refresh_metrics:
+    description: "Refresh quality metrics"
+  show_fuzzing_indicator:
+    description: "Show fuzzing progress"
+  start_fuzzer:
+    description: "Start Monte Carlo fuzzer"
+  stop_fuzzer:
+    description: "Stop fuzzer"
+  log_edge_case:
+    description: "Log discovered edge case"
+  show_fuzzing_summary:
+    description: "Show fuzzing results summary"
+  render_edge_cases_panel:
+    description: "Render edge cases list"
+  show_edge_case_detail:
+    description: "Show detail for selected edge case"
+  load_edge_case_input:
+    description: "Load edge case input into editor"
+  render_help_overlay:
+    description: "Render help screen overlay"
+  show_quit_dialog:
+    description: "Show quit confirmation dialog"
+  cleanup:
+    description: "Cleanup before exit"
+  restore_terminal:
+    description: "Restore terminal state"
+  exit_application:
+    description: "Exit the application"
+  show_error_dialog:
+    description: "Show error dialog"
+  clear_error:
+    description: "Clear error state"
+  set_mode_normal:
+    description: "Set mode to Normal"
+  set_mode_purify:
+    description: "Set mode to Purify"
+  set_mode_lint:
+    description: "Set mode to Lint"
+  set_mode_debug:
+    description: "Set mode to Debug"
+  set_mode_explain:
+    description: "Set mode to Explain"
+
+# Test scenarios for probar validation
+test_scenarios:
+  - name: "Basic navigation flow"
+    steps:
+      - event: focus_editor
+      - event: text_input
+      - event: press_f2
+      - event: lint_complete
+      - event: press_escape
+    expected_final_state: idle
+
+  - name: "Full lint and purify cycle"
+    steps:
+      - event: focus_editor
+      - event: text_input
+      - event: press_f2
+      - event: lint_complete
+      - event: press_f3
+      - event: purify_complete
+      - event: press_enter
+    expected_final_state: editing
+
+  - name: "Edge case discovery"
+    steps:
+      - event: press_f5
+      - event: edge_case_found
+      - event: edge_case_found
+      - event: fuzzing_complete
+      - event: select_edge_case
+      - event: press_escape
+    expected_final_state: idle
+
+  - name: "Error recovery"
+    steps:
+      - event: focus_editor
+      - event: press_f2
+      - event: lint_error
+      - event: acknowledge
+    expected_final_state: idle
+
+  - name: "Quit flow"
+    steps:
+      - event: press_q
+      - event: press_y
+    expected_final_state: terminated

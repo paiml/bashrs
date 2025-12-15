@@ -242,7 +242,7 @@ mod property_tests {
             let query = format!(r#"{} -e "SELECT * FROM users WHERE id=${}_ID""#, db_cmd, var_name);
             let result = check(&query);
             // Should detect SQL injection in all database commands
-            prop_assert!(result.diagnostics.len() >= 1);
+            prop_assert!(!result.diagnostics.is_empty());
             prop_assert_eq!(result.diagnostics[0].code.as_str(), "SEC009");
         }
     }

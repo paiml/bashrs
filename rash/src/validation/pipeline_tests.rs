@@ -3,7 +3,10 @@ mod tests {
     use super::super::*;
     use crate::ast::restricted::Literal;
     use crate::ast::{Expr, Function, RestrictedAst, Stmt};
-    use crate::ir::{Command, ShellIR, ShellValue};
+    use crate::ir::{
+        shell_ir::{CaseArm, CasePattern},
+        Command, ShellIR, ShellValue,
+    };
     use crate::models::config::Config;
 
     fn create_test_pipeline(level: ValidationLevel, strict: bool) -> pipeline::ValidationPipeline {
@@ -524,6 +527,603 @@ mod tests {
             }],
             entry_point: "main".to_string(),
         };
+        assert!(pipeline.validate_ast(&ast).is_ok());
+    }
+
+    // Test dangerous string patterns - each must be rejected
+    #[test]
+    fn test_validate_string_shellshock() {
+        let pipeline = create_test_pipeline(ValidationLevel::Minimal, false);
+        let ast = RestrictedAst {
+            functions: vec![Function {
+                name: "main".to_string(),
+                params: vec![],
+                return_type: crate::ast::Type::Void,
+                body: vec![Stmt::Let {
+                    name: "x".to_string(),
+                    value: Expr::Literal(Literal::Str("() { :; } ; echo attack".to_string())),
+                }],
+            }],
+            entry_point: "main".to_string(),
+        };
+        let result = pipeline.validate_ast(&ast);
+        assert!(result.is_err());
+        assert!(result.unwrap_err().to_string().contains("Shellshock"));
+    }
+
+    #[test]
+    fn test_validate_string_semicolon_injection() {
+        let pipeline = create_test_pipeline(ValidationLevel::Minimal, false);
+        let ast = RestrictedAst {
+            functions: vec![Function {
+                name: "main".to_string(),
+                params: vec![],
+                return_type: crate::ast::Type::Void,
+                body: vec![Stmt::Let {
+                    name: "x".to_string(),
+                    value: Expr::Literal(Literal::Str("safe; rm -rf /".to_string())),
+                }],
+            }],
+            entry_point: "main".to_string(),
+        };
+        let result = pipeline.validate_ast(&ast);
+        assert!(result.is_err());
+        assert!(result.unwrap_err().to_string().contains("Semicolon"));
+    }
+
+    #[test]
+    fn test_validate_string_pipe_injection() {
+        let pipeline = create_test_pipeline(ValidationLevel::Minimal, false);
+        let ast = RestrictedAst {
+            functions: vec![Function {
+                name: "main".to_string(),
+                params: vec![],
+                return_type: crate::ast::Type::Void,
+                body: vec![Stmt::Let {
+                    name: "x".to_string(),
+                    value: Expr::Literal(Literal::Str("data| cat /etc/passwd".to_string())),
+                }],
+            }],
+            entry_point: "main".to_string(),
+        };
+        let result = pipeline.validate_ast(&ast);
+        assert!(result.is_err());
+        assert!(result.unwrap_err().to_string().contains("Pipe"));
+    }
+
+    #[test]
+    fn test_validate_string_command_substitution() {
+        let pipeline = create_test_pipeline(ValidationLevel::Minimal, false);
+        let ast = RestrictedAst {
+            functions: vec![Function {
+                name: "main".to_string(),
+                params: vec![],
+                return_type: crate::ast::Type::Void,
+                body: vec![Stmt::Let {
+                    name: "x".to_string(),
+                    value: Expr::Literal(Literal::Str("data$(whoami)".to_string())),
+                }],
+            }],
+            entry_point: "main".to_string(),
+        };
+        let result = pipeline.validate_ast(&ast);
+        assert!(result.is_err());
+        assert!(result.unwrap_err().to_string().contains("substitution"));
+    }
+
+    #[test]
+    fn test_validate_string_backtick() {
+        let pipeline = create_test_pipeline(ValidationLevel::Minimal, false);
+        let ast = RestrictedAst {
+            functions: vec![Function {
+                name: "main".to_string(),
+                params: vec![],
+                return_type: crate::ast::Type::Void,
+                body: vec![Stmt::Let {
+                    name: "x".to_string(),
+                    value: Expr::Literal(Literal::Str("data`whoami`".to_string())),
+                }],
+            }],
+            entry_point: "main".to_string(),
+        };
+        let result = pipeline.validate_ast(&ast);
+        assert!(result.is_err());
+        assert!(result.unwrap_err().to_string().contains("Backtick"));
+    }
+
+    #[test]
+    fn test_validate_string_and_operator() {
+        let pipeline = create_test_pipeline(ValidationLevel::Minimal, false);
+        let ast = RestrictedAst {
+            functions: vec![Function {
+                name: "main".to_string(),
+                params: vec![],
+                return_type: crate::ast::Type::Void,
+                body: vec![Stmt::Let {
+                    name: "x".to_string(),
+                    value: Expr::Literal(Literal::Str("true&& rm -rf /".to_string())),
+                }],
+            }],
+            entry_point: "main".to_string(),
+        };
+        let result = pipeline.validate_ast(&ast);
+        assert!(result.is_err());
+        assert!(result.unwrap_err().to_string().contains("AND"));
+    }
+
+    #[test]
+    fn test_validate_string_or_operator() {
+        // Note: "|| " is checked after "| " in the pattern list
+        // Since "|| " contains "| " as a substring, pipe detection fires first
+        // This test verifies that potentially dangerous patterns are caught
+        let pipeline = create_test_pipeline(ValidationLevel::Minimal, false);
+        let ast = RestrictedAst {
+            functions: vec![Function {
+                name: "main".to_string(),
+                params: vec![],
+                return_type: crate::ast::Type::Void,
+                body: vec![Stmt::Let {
+                    name: "x".to_string(),
+                    value: Expr::Literal(Literal::Str("false || rm -rf /".to_string())),
+                }],
+            }],
+            entry_point: "main".to_string(),
+        };
+        let result = pipeline.validate_ast(&ast);
+        // Should catch the dangerous pattern (either Pipe or OR depending on order)
+        assert!(result.is_err());
+        let err_msg = result.unwrap_err().to_string();
+        assert!(
+            err_msg.contains("detected"),
+            "Expected detection but got: {}",
+            err_msg
+        );
+    }
+
+    #[test]
+    fn test_validate_string_heredoc() {
+        let pipeline = create_test_pipeline(ValidationLevel::Minimal, false);
+        let ast = RestrictedAst {
+            functions: vec![Function {
+                name: "main".to_string(),
+                params: vec![],
+                return_type: crate::ast::Type::Void,
+                body: vec![Stmt::Let {
+                    name: "x".to_string(),
+                    value: Expr::Literal(Literal::Str("<<EOF\nmalicious\nEOF".to_string())),
+                }],
+            }],
+            entry_point: "main".to_string(),
+        };
+        let result = pipeline.validate_ast(&ast);
+        assert!(result.is_err());
+        assert!(result.unwrap_err().to_string().contains("Here-doc"));
+    }
+
+    #[test]
+    fn test_validate_string_eval_command() {
+        let pipeline = create_test_pipeline(ValidationLevel::Minimal, false);
+        let ast = RestrictedAst {
+            functions: vec![Function {
+                name: "main".to_string(),
+                params: vec![],
+                return_type: crate::ast::Type::Void,
+                body: vec![Stmt::Let {
+                    name: "x".to_string(),
+                    value: Expr::Literal(Literal::Str("eval rm -rf /".to_string())),
+                }],
+            }],
+            entry_point: "main".to_string(),
+        };
+        let result = pipeline.validate_ast(&ast);
+        assert!(result.is_err());
+        assert!(result.unwrap_err().to_string().contains("eval"));
+    }
+
+    #[test]
+    fn test_validate_string_exec_command() {
+        let pipeline = create_test_pipeline(ValidationLevel::Minimal, false);
+        let ast = RestrictedAst {
+            functions: vec![Function {
+                name: "main".to_string(),
+                params: vec![],
+                return_type: crate::ast::Type::Void,
+                body: vec![Stmt::Let {
+                    name: "x".to_string(),
+                    value: Expr::Literal(Literal::Str("exec rm -rf /".to_string())),
+                }],
+            }],
+            entry_point: "main".to_string(),
+        };
+        let result = pipeline.validate_ast(&ast);
+        assert!(result.is_err());
+        assert!(result.unwrap_err().to_string().contains("exec"));
+    }
+
+    #[test]
+    fn test_validate_string_newline_with_dangerous_command() {
+        let pipeline = create_test_pipeline(ValidationLevel::Minimal, false);
+        let ast = RestrictedAst {
+            functions: vec![Function {
+                name: "main".to_string(),
+                params: vec![],
+                return_type: crate::ast::Type::Void,
+                body: vec![Stmt::Let {
+                    name: "x".to_string(),
+                    value: Expr::Literal(Literal::Str("safe data\nrm -rf /".to_string())),
+                }],
+            }],
+            entry_point: "main".to_string(),
+        };
+        let result = pipeline.validate_ast(&ast);
+        assert!(result.is_err());
+        assert!(result.unwrap_err().to_string().contains("Newline"));
+    }
+
+    #[test]
+    fn test_validate_string_safe_newline() {
+        let pipeline = create_test_pipeline(ValidationLevel::Minimal, false);
+        let ast = RestrictedAst {
+            functions: vec![Function {
+                name: "main".to_string(),
+                params: vec![],
+                return_type: crate::ast::Type::Void,
+                body: vec![Stmt::Let {
+                    name: "x".to_string(),
+                    value: Expr::Literal(Literal::Str(
+                        "line one\nline two\nline three".to_string(),
+                    )),
+                }],
+            }],
+            entry_point: "main".to_string(),
+        };
+        // Safe multi-line string should pass
+        assert!(pipeline.validate_ast(&ast).is_ok());
+    }
+
+    // Test reserved function names
+    #[test]
+    fn test_validate_reserved_function_break() {
+        let pipeline = create_test_pipeline(ValidationLevel::Minimal, false);
+        let ast = RestrictedAst {
+            functions: vec![Function {
+                name: "break".to_string(),
+                params: vec![],
+                return_type: crate::ast::Type::Void,
+                body: vec![],
+            }],
+            entry_point: "main".to_string(),
+        };
+        let result = pipeline.validate_ast(&ast);
+        assert!(result.is_err());
+        assert!(result.unwrap_err().to_string().contains("reserved"));
+    }
+
+    #[test]
+    fn test_validate_reserved_function_exit() {
+        let pipeline = create_test_pipeline(ValidationLevel::Minimal, false);
+        let ast = RestrictedAst {
+            functions: vec![Function {
+                name: "exit".to_string(),
+                params: vec![],
+                return_type: crate::ast::Type::Void,
+                body: vec![],
+            }],
+            entry_point: "main".to_string(),
+        };
+        let result = pipeline.validate_ast(&ast);
+        assert!(result.is_err());
+        assert!(result.unwrap_err().to_string().contains("reserved"));
+    }
+
+    #[test]
+    fn test_validate_reserved_function_eval() {
+        let pipeline = create_test_pipeline(ValidationLevel::Minimal, false);
+        let ast = RestrictedAst {
+            functions: vec![Function {
+                name: "eval".to_string(),
+                params: vec![],
+                return_type: crate::ast::Type::Void,
+                body: vec![],
+            }],
+            entry_point: "main".to_string(),
+        };
+        let result = pipeline.validate_ast(&ast);
+        assert!(result.is_err());
+        assert!(result.unwrap_err().to_string().contains("reserved"));
+    }
+
+    #[test]
+    fn test_validate_empty_function_name() {
+        let pipeline = create_test_pipeline(ValidationLevel::Minimal, false);
+        let ast = RestrictedAst {
+            functions: vec![Function {
+                name: "".to_string(),
+                params: vec![],
+                return_type: crate::ast::Type::Void,
+                body: vec![],
+            }],
+            entry_point: "main".to_string(),
+        };
+        let result = pipeline.validate_ast(&ast);
+        assert!(result.is_err());
+        assert!(result.unwrap_err().to_string().contains("Empty"));
+    }
+
+    // Test IR for loop validation
+    #[test]
+    fn test_validate_ir_for_loop() {
+        let pipeline = create_test_pipeline(ValidationLevel::Minimal, false);
+        let ir = ShellIR::For {
+            var: "i".to_string(),
+            start: ShellValue::String("1".to_string()),
+            end: ShellValue::String("10".to_string()),
+            body: Box::new(ShellIR::Echo {
+                value: ShellValue::Variable("i".to_string()),
+            }),
+        };
+        assert!(pipeline.validate_ir(&ir).is_ok());
+    }
+
+    #[test]
+    fn test_validate_ir_for_loop_empty_var() {
+        let pipeline = create_test_pipeline(ValidationLevel::Minimal, false);
+        let ir = ShellIR::For {
+            var: "".to_string(),
+            start: ShellValue::String("1".to_string()),
+            end: ShellValue::String("10".to_string()),
+            body: Box::new(ShellIR::Noop),
+        };
+        let result = pipeline.validate_ir(&ir);
+        assert!(result.is_err());
+        assert!(result.unwrap_err().to_string().contains("empty"));
+    }
+
+    // Test IR while loop validation
+    #[test]
+    fn test_validate_ir_while_loop() {
+        let pipeline = create_test_pipeline(ValidationLevel::Minimal, false);
+        let ir = ShellIR::While {
+            condition: ShellValue::String("true".to_string()),
+            body: Box::new(ShellIR::Noop),
+        };
+        assert!(pipeline.validate_ir(&ir).is_ok());
+    }
+
+    // Test IR case/match validation
+    #[test]
+    fn test_validate_ir_case_statement() {
+        let pipeline = create_test_pipeline(ValidationLevel::Minimal, false);
+        let ir = ShellIR::Case {
+            scrutinee: ShellValue::Variable("choice".to_string()),
+            arms: vec![CaseArm {
+                pattern: CasePattern::Literal("yes".to_string()),
+                guard: None,
+                body: Box::new(ShellIR::Echo {
+                    value: ShellValue::String("Confirmed".to_string()),
+                }),
+            }],
+        };
+        assert!(pipeline.validate_ir(&ir).is_ok());
+    }
+
+    #[test]
+    fn test_validate_ir_case_with_guard() {
+        let pipeline = create_test_pipeline(ValidationLevel::Minimal, false);
+        let ir = ShellIR::Case {
+            scrutinee: ShellValue::Variable("x".to_string()),
+            arms: vec![CaseArm {
+                pattern: CasePattern::Literal("*".to_string()),
+                guard: Some(ShellValue::String("test -n \"$x\"".to_string())),
+                body: Box::new(ShellIR::Noop),
+            }],
+        };
+        assert!(pipeline.validate_ir(&ir).is_ok());
+    }
+
+    #[test]
+    fn test_validate_ir_case_empty_arms() {
+        let pipeline = create_test_pipeline(ValidationLevel::Minimal, false);
+        let ir = ShellIR::Case {
+            scrutinee: ShellValue::Variable("x".to_string()),
+            arms: vec![],
+        };
+        let result = pipeline.validate_ir(&ir);
+        assert!(result.is_err());
+        assert!(result.unwrap_err().to_string().contains("at least one arm"));
+    }
+
+    // Test break and continue
+    #[test]
+    fn test_validate_ir_break() {
+        let pipeline = create_test_pipeline(ValidationLevel::Minimal, false);
+        let ir = ShellIR::Break;
+        assert!(pipeline.validate_ir(&ir).is_ok());
+    }
+
+    #[test]
+    fn test_validate_ir_continue() {
+        let pipeline = create_test_pipeline(ValidationLevel::Minimal, false);
+        let ir = ShellIR::Continue;
+        assert!(pipeline.validate_ir(&ir).is_ok());
+    }
+
+    // Test function body validation
+    #[test]
+    fn test_validate_ir_function() {
+        let pipeline = create_test_pipeline(ValidationLevel::Minimal, false);
+        let ir = ShellIR::Function {
+            name: "helper".to_string(),
+            params: vec!["arg1".to_string(), "arg2".to_string()],
+            body: Box::new(ShellIR::Echo {
+                value: ShellValue::Variable("arg1".to_string()),
+            }),
+        };
+        assert!(pipeline.validate_ir(&ir).is_ok());
+    }
+
+    // Test Echo IR
+    #[test]
+    fn test_validate_ir_echo() {
+        let pipeline = create_test_pipeline(ValidationLevel::Minimal, false);
+        let ir = ShellIR::Echo {
+            value: ShellValue::String("Hello World".to_string()),
+        };
+        assert!(pipeline.validate_ir(&ir).is_ok());
+    }
+
+    // Test array validation
+    #[test]
+    fn test_validate_expr_array() {
+        let pipeline = create_test_pipeline(ValidationLevel::Minimal, false);
+        let ast = RestrictedAst {
+            functions: vec![Function {
+                name: "main".to_string(),
+                params: vec![],
+                return_type: crate::ast::Type::Void,
+                body: vec![Stmt::Let {
+                    name: "arr".to_string(),
+                    value: Expr::Array(vec![
+                        Expr::Literal(Literal::U32(1)),
+                        Expr::Literal(Literal::U32(2)),
+                        Expr::Variable("x".to_string()),
+                    ]),
+                }],
+            }],
+            entry_point: "main".to_string(),
+        };
+        assert!(pipeline.validate_ast(&ast).is_ok());
+    }
+
+    // Test index expression validation
+    #[test]
+    fn test_validate_expr_index() {
+        let pipeline = create_test_pipeline(ValidationLevel::Minimal, false);
+        let ast = RestrictedAst {
+            functions: vec![Function {
+                name: "main".to_string(),
+                params: vec![],
+                return_type: crate::ast::Type::Void,
+                body: vec![Stmt::Expr(Expr::Index {
+                    object: Box::new(Expr::Variable("arr".to_string())),
+                    index: Box::new(Expr::Literal(Literal::U32(0))),
+                })],
+            }],
+            entry_point: "main".to_string(),
+        };
+        assert!(pipeline.validate_ast(&ast).is_ok());
+    }
+
+    // Test try expression validation
+    #[test]
+    fn test_validate_expr_try() {
+        let pipeline = create_test_pipeline(ValidationLevel::Minimal, false);
+        let ast = RestrictedAst {
+            functions: vec![Function {
+                name: "main".to_string(),
+                params: vec![],
+                return_type: crate::ast::Type::Void,
+                body: vec![Stmt::Expr(Expr::Try {
+                    expr: Box::new(Expr::FunctionCall {
+                        name: "might_fail".to_string(),
+                        args: vec![],
+                    }),
+                })],
+            }],
+            entry_point: "main".to_string(),
+        };
+        assert!(pipeline.validate_ast(&ast).is_ok());
+    }
+
+    // Test block expression validation
+    #[test]
+    fn test_validate_expr_block() {
+        let pipeline = create_test_pipeline(ValidationLevel::Minimal, false);
+        let ast = RestrictedAst {
+            functions: vec![Function {
+                name: "main".to_string(),
+                params: vec![],
+                return_type: crate::ast::Type::Void,
+                body: vec![Stmt::Expr(Expr::Block(vec![
+                    Stmt::Let {
+                        name: "x".to_string(),
+                        value: Expr::Literal(Literal::U32(1)),
+                    },
+                    Stmt::Let {
+                        name: "y".to_string(),
+                        value: Expr::Literal(Literal::U32(2)),
+                    },
+                ]))],
+            }],
+            entry_point: "main".to_string(),
+        };
+        assert!(pipeline.validate_ast(&ast).is_ok());
+    }
+
+    // Test range expression validation
+    #[test]
+    fn test_validate_expr_range() {
+        let pipeline = create_test_pipeline(ValidationLevel::Minimal, false);
+        let ast = RestrictedAst {
+            functions: vec![Function {
+                name: "main".to_string(),
+                params: vec![],
+                return_type: crate::ast::Type::Void,
+                body: vec![Stmt::Let {
+                    name: "r".to_string(),
+                    value: Expr::Range {
+                        start: Box::new(Expr::Literal(Literal::U32(0))),
+                        end: Box::new(Expr::Literal(Literal::U32(10))),
+                        inclusive: false,
+                    },
+                }],
+            }],
+            entry_point: "main".to_string(),
+        };
+        assert!(pipeline.validate_ast(&ast).is_ok());
+    }
+
+    // Test positional args validation
+    #[test]
+    fn test_validate_expr_positional_args() {
+        let pipeline = create_test_pipeline(ValidationLevel::Minimal, false);
+        let ast = RestrictedAst {
+            functions: vec![Function {
+                name: "main".to_string(),
+                params: vec![],
+                return_type: crate::ast::Type::Void,
+                body: vec![Stmt::Expr(Expr::PositionalArgs)],
+            }],
+            entry_point: "main".to_string(),
+        };
+        assert!(pipeline.validate_ast(&ast).is_ok());
+    }
+
+    // Test arithmetic expression
+    #[test]
+    fn test_validate_expression_arithmetic() {
+        let pipeline = create_test_pipeline(ValidationLevel::Minimal, false);
+        let expr = crate::ir::ShellExpression::Arithmetic("1 + 2".to_string());
+        assert!(pipeline.validate_expression(&expr).is_ok());
+    }
+
+    // Test none validation level passes everything
+    #[test]
+    fn test_none_level_passes_dangerous_string() {
+        let pipeline = create_test_pipeline(ValidationLevel::None, false);
+        let ast = RestrictedAst {
+            functions: vec![Function {
+                name: "main".to_string(),
+                params: vec![],
+                return_type: crate::ast::Type::Void,
+                body: vec![Stmt::Let {
+                    name: "x".to_string(),
+                    value: Expr::Literal(Literal::Str("$(rm -rf /)".to_string())),
+                }],
+            }],
+            entry_point: "main".to_string(),
+        };
+        // None level should skip all validation
         assert!(pipeline.validate_ast(&ast).is_ok());
     }
 }

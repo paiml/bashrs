@@ -300,11 +300,14 @@ mod property_tests {
             let _ = check(&s);
         }
 
-        /// PROPERTY TEST 2: Always detects /usr/bin/ paths
+        /// PROPERTY TEST 2: Always detects /usr/bin/ paths (except allowed ones)
         #[test]
         fn prop_bash007_detects_usr_bin(
             tool in "[a-z]{3,10}",
         ) {
+            // Skip known allowed paths (env, bash, sh are allowed for shebang compatibility)
+            prop_assume!(tool != "env" && tool != "bash" && tool != "sh");
+
             let script = format!("/usr/bin/{} --flag", tool);
             let result = check(&script);
 

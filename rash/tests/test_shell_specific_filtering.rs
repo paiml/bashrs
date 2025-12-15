@@ -1,6 +1,7 @@
 #![allow(clippy::unwrap_used)] // Tests can use unwrap() for simplicity
-                               // Integration tests for shell-specific rule filtering
-                               // Tests that rules are filtered based on detected shell type
+#![allow(clippy::expect_used)]
+// Integration tests for shell-specific rule filtering
+// Tests that rules are filtered based on detected shell type
 
 use bashrs::linter::{lint_shell_with_path, Severity};
 use std::path::PathBuf;

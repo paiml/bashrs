@@ -1,4 +1,5 @@
 #![allow(clippy::unwrap_used)]
+#![allow(clippy::expect_used)]
 
 // test_audit_command.rs - Comprehensive quality audit tests
 // Testing bashrs audit command (v6.12.0 - Bash Quality Tools)

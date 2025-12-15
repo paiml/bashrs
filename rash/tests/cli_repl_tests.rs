@@ -1,4 +1,5 @@
 #![allow(clippy::unwrap_used)] // Tests can use unwrap() for simplicity
+#![allow(clippy::expect_used)]
 //! CLI REPL Integration Tests
 //!
 //! Task: REPL-003-002 - Basic REPL loop with rustyline integration

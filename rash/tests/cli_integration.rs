@@ -1,4 +1,5 @@
 #![allow(clippy::unwrap_used)]
+#![allow(clippy::expect_used)]
 // Tests can use unwrap() for simplicity
 // CLI Integration Tests for Rash v2.0.0
 // Sprint 73 Phase 3: CLI Integration Tests

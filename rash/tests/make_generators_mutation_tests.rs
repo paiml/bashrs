@@ -11,7 +11,7 @@
 
 use bashrs::make_parser::ast::{MakeAst, MakeItem, MakeMetadata, RecipeMetadata, Span, VarFlavor};
 use bashrs::make_parser::generators::{
-    generate_purified_makefile, generate_purified_makefile_with_options, MakefileGeneratorOptions,
+    generate_purified_makefile_with_options, MakefileGeneratorOptions,
 };
 
 // =============================================================================
@@ -427,7 +427,7 @@ fn test_empty_line_handling() {
 
     let output = generate_purified_makefile_with_options(&makefile, &options);
 
-    assert!(output.len() > 0, "Should handle empty lines");
+    assert!(!output.is_empty(), "Should handle empty lines");
 }
 
 #[test]
@@ -451,7 +451,7 @@ fn test_very_short_max_length() {
     let output = generate_purified_makefile_with_options(&makefile, &options);
 
     // Should handle gracefully without panic
-    assert!(output.len() > 0, "Should handle very short max_length");
+    assert!(!output.is_empty(), "Should handle very short max_length");
 }
 
 #[test]
