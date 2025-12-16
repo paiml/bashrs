@@ -1,0 +1,29 @@
+# Auto detect text files and perform LF normalization
+* text=auto eol=lf
+
+# Rust source files always LF
+*.rs text eol=lf
+*.toml text eol=lf
+
+# Shell scripts always LF
+*.sh text eol=lf
+*.bash text eol=lf
+
+# YAML/JSON config files
+*.yml text eol=lf
+*.yaml text eol=lf
+*.json text eol=lf
+
+# Markdown/docs
+*.md text eol=lf
+
+# Git config
+.gitignore text eol=lf
+.gitattributes text eol=lf
+
+# Binary files (don't touch)
+*.png binary
+*.jpg binary
+*.gif binary
+*.ico binary
+*.wasm binary
