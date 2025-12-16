@@ -57,6 +57,18 @@ coverage.json
 coverage-summary.txt
 cobertura.xml
 tarpaulin-report.json
+*.profraw
+coverage_output.log
+
+# Binary artifacts
+*.apr
+
+# Test artifacts (Makefile tested)
+Makefile.tested
+Makefile.tested.test.sh
+
+# Old book directory (canonical is book/)
+rash-book/
 
 # Build artifacts
 installer.sh
