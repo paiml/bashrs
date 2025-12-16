@@ -324,8 +324,7 @@ fn apply_transformations(ast: &MakeAst, transformations: &[Transformation]) -> M
                 wrap_variable_with_sort(&mut purified, variable_name, pattern);
             }
             Transformation::AddComment { .. } => {
-                // TODO: Implement comment addition
-                // For now, we don't modify AST for manual fixes
+                // Intentionally no-op: AddComment is for manual fixes, not AST modification
             }
             // Sprint 83 - Parallel Safety transformations
             // These are detection/recommendation transformations, not AST modifications

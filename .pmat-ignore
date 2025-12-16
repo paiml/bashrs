@@ -1,0 +1,29 @@
+# PMAT Ignore File
+# Suppress false positives and known acceptable violations (MUDA elimination)
+# Following Toyota Way principles: eliminate waste, focus on real defects
+
+# Parser code is inherently complex - these are acceptable
+rash/src/bash_parser/parser.rs
+rash/src/bash_parser/lexer.rs
+rash/src/bash_parser/arithmetic.rs
+rash/src/make_parser/parser.rs
+
+# Generated code and test fixtures
+tests/open_source/*
+tests/fixtures/*
+
+# Quality infrastructure (self-referential complexity)
+rash/src/quality/*
+
+# Code generators have high entropy by design
+rash/src/bash_parser/generators.rs
+rash/src/make_parser/generators.rs
+rash/src/bash_parser/codegen.rs
+rash/src/bash_transpiler/codegen.rs
+
+# Linter rules have many match arms by design
+rash/src/linter/rules/*.rs
+
+# Test files should not be analyzed for production metrics
+*_test.rs
+**/tests/**

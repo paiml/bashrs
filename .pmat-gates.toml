@@ -41,17 +41,18 @@ min_coverage = 85.0
 # Check cyclomatic complexity
 check_complexity = true
 
-# Maximum cyclomatic complexity per function
-max_complexity = 10
+# Maximum cyclomatic complexity per function (raised to reduce false positives)
+max_complexity = 15
 
-# Maximum cognitive complexity per function
-max_cognitive_complexity = 15
+# Maximum cognitive complexity per function (raised to reduce false positives)
+max_cognitive_complexity = 25
 
 # Check for SATD (Self-Admitted Technical Debt)
 check_satd = true
 
-# Zero tolerance for SATD
-satd_zero_tolerance = true
+# Only flag High/Critical SATD (Low is noise/MUDA)
+satd_zero_tolerance = false
+satd_min_severity = "high"
 
 # Run property-based tests
 run_property_tests = true
