@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"fn":["check"],"static":["ASSIGNMENT_WITH_BRACES"]};
+window.SIDEBAR_ITEMS = {"fn":["check","has_brace_expansion"],"static":["ASSIGNMENT_WITH_BRACES","BRACE_EXPANSION"]};

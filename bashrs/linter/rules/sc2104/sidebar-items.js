@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"fn":["check"],"static":["MISSING_SPACE_BEFORE_BRACKET","TEST_COMMAND"]};
+window.SIDEBAR_ITEMS = {"fn":["check","is_inside_param_expansion"],"static":["MISSING_SPACE_BEFORE_BRACKET","TEST_COMMAND"]};

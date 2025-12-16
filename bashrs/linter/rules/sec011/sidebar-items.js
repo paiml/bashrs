@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"fn":["check","extract_validated_variable","extract_variable_from_chmod","extract_variable_from_chown","extract_variable_from_rm"]};
+window.SIDEBAR_ITEMS = {"fn":["check","extract_inline_validated_vars","extract_validated_variable","extract_variable_from_chmod","extract_variable_from_chown","extract_variable_from_rm"]};

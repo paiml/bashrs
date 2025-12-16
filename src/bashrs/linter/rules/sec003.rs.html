@@ -294,4 +294,26 @@
 <a href=#294 id=294 data-nosnippet>294</a>        <span class="kw">let </span>result = check(bash_code);
 <a href=#295 id=295 data-nosnippet>295</a>        <span class="macro">assert_eq!</span>(result.diagnostics.len(), <span class="number">0</span>);
 <a href=#296 id=296 data-nosnippet>296</a>    }
-<a href=#297 id=297 data-nosnippet>297</a>}</code></pre></div></section></main></body></html>
+<a href=#297 id=297 data-nosnippet>297</a>
+<a href=#298 id=298 data-nosnippet>298</a>    <span class="comment">// Issue #87: SEC003 should NOT flag standard find -exec with {} as separate arg
+<a href=#299 id=299 data-nosnippet>299</a>    </span><span class="attr">#[test]
+<a href=#300 id=300 data-nosnippet>300</a>    </span><span class="kw">fn </span>test_SEC003_issue_87_no_false_positive_dirname() {
+<a href=#301 id=301 data-nosnippet>301</a>        <span class="comment">// From issue #87 reproduction case
+<a href=#302 id=302 data-nosnippet>302</a>        </span><span class="kw">let </span>script = <span class="string">r#"DIRS=$(find "$CORPUS" -name "Cargo.toml" -exec dirname {} \; 2&gt;/dev/null | sort -u)"#</span>;
+<a href=#303 id=303 data-nosnippet>303</a>        <span class="kw">let </span>result = check(script);
+<a href=#304 id=304 data-nosnippet>304</a>
+<a href=#305 id=305 data-nosnippet>305</a>        <span class="macro">assert_eq!</span>(
+<a href=#306 id=306 data-nosnippet>306</a>            result.diagnostics.len(),
+<a href=#307 id=307 data-nosnippet>307</a>            <span class="number">0</span>,
+<a href=#308 id=308 data-nosnippet>308</a>            <span class="string">"SEC003 must NOT flag {{}} in 'find -exec dirname {{}} \\;' - it's a separate argument, not embedded in shell string"
+<a href=#309 id=309 data-nosnippet>309</a>        </span>);
+<a href=#310 id=310 data-nosnippet>310</a>    }
+<a href=#311 id=311 data-nosnippet>311</a>
+<a href=#312 id=312 data-nosnippet>312</a>    <span class="attr">#[test]
+<a href=#313 id=313 data-nosnippet>313</a>    </span><span class="kw">fn </span>test_SEC003_issue_87_no_false_positive_command_substitution() {
+<a href=#314 id=314 data-nosnippet>314</a>        <span class="comment">// Another common pattern from issue
+<a href=#315 id=315 data-nosnippet>315</a>        </span><span class="kw">let </span>script = <span class="string">"FILES=$(find /path -type f -exec basename {} \\;)"</span>;
+<a href=#316 id=316 data-nosnippet>316</a>        <span class="kw">let </span>result = check(script);
+<a href=#317 id=317 data-nosnippet>317</a>        <span class="macro">assert_eq!</span>(result.diagnostics.len(), <span class="number">0</span>);
+<a href=#318 id=318 data-nosnippet>318</a>    }
+<a href=#319 id=319 data-nosnippet>319</a>}</code></pre></div></section></main></body></html>

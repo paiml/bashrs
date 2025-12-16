@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"fn":["check"],"static":["RANGE_WITH_PLUS"]};
+window.SIDEBAR_ITEMS = {"fn":["check","has_ere_flag","is_ere_context"],"static":["RANGE_WITH_PLUS"]};
