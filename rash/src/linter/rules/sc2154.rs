@@ -663,7 +663,9 @@ func() {
     fn test_issue_95_has_source_commands_chained() {
         assert!(has_source_commands("test -f config.sh && source config.sh"));
         assert!(has_source_commands("test -f config.sh && . config.sh"));
-        assert!(has_source_commands("test -f config.sh || source defaults.sh"));
+        assert!(has_source_commands(
+            "test -f config.sh || source defaults.sh"
+        ));
         assert!(has_source_commands("echo 'loading'; source config.sh"));
     }
 

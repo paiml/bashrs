@@ -137,10 +137,7 @@ impl ValidationPipeline {
 
         // Issue #94: Skip pipe check for table/formatting strings
         // Strings that look like table borders (multiple |) are not command injection
-        let is_formatting_string = s
-            .chars()
-            .filter(|c| *c == '|')
-            .count() > 1
+        let is_formatting_string = s.chars().filter(|c| *c == '|').count() > 1
             && !s.contains(";")
             && !s.contains("$(")
             && !s.contains("&&");
@@ -499,7 +496,8 @@ mod tests {
     fn test_issue_94_table_formatting_ok() {
         let pipeline = create_test_pipeline();
         // Table formatting with multiple pipes is NOT a command injection
-        let result = pipeline.validate_string_literal("|     whisper.apr      |     whisper.cpp      |");
+        let result =
+            pipeline.validate_string_literal("|     whisper.apr      |     whisper.cpp      |");
         assert!(
             result.is_ok(),
             "Table formatting with pipes should NOT be flagged: {:?}",
@@ -528,10 +526,7 @@ mod tests {
         let pipeline = create_test_pipeline();
         // Actual command pipe should still be flagged
         let result = pipeline.validate_string_literal("cat file | rm -rf /");
-        assert!(
-            result.is_err(),
-            "Actual command pipe should be flagged"
-        );
+        assert!(result.is_err(), "Actual command pipe should be flagged");
     }
 
     #[test]
@@ -539,7 +534,10 @@ mod tests {
         let pipeline = create_test_pipeline();
         // Semicolon should still be flagged
         let result = pipeline.validate_string_literal("cmd1; cmd2");
-        assert!(result.is_err(), "Semicolon command separator should be flagged");
+        assert!(
+            result.is_err(),
+            "Semicolon command separator should be flagged"
+        );
     }
 
     #[test]

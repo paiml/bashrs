@@ -38,7 +38,7 @@ fn assert_fails(input: &str) {
 fn test_deeply_nested_command_substitution() {
     // Bug hunt: deep nesting should work
     assert_parses("echo $(echo $(echo $(echo hi)))");
-    assert_parses("echo $(echo $(echo $(echo $(echo $(echo hi)))))");  // 6 levels deep
+    assert_parses("echo $(echo $(echo $(echo $(echo $(echo hi)))))"); // 6 levels deep
 
     // Very deep nesting - might overflow
     let mut nested = "echo hi".to_string();
@@ -395,7 +395,8 @@ fn test_control_flow_edge_cases() {
     }
 
     // Chained elif
-    let code2 = "if false; then :; elif false; then :; elif false; then :; elif true; then echo yes; fi";
+    let code2 =
+        "if false; then :; elif false; then :; elif false; then :; elif true; then echo yes; fi";
     let (ok2, err2) = parse_result(code2);
     if !ok2 {
         println!("BUG FOUND: Chained elif fails: {}", err2);
@@ -585,7 +586,11 @@ fn test_generate_bug_report() {
     // Test categories with expected failures
     let edge_cases = vec![
         // (input, description, should_pass)
-        ("echo ${foo:-${bar:-default}}", "Nested parameter expansion", true),
+        (
+            "echo ${foo:-${bar:-default}}",
+            "Nested parameter expansion",
+            true,
+        ),
         ("echo ${var##*[/]}", "Pattern with brackets", true),
         ("echo ${var^^}", "Case modification ^^", true),
         ("echo ${var,,}", "Case modification ,,", true),
@@ -601,14 +606,26 @@ fn test_generate_bug_report() {
         ("cmd 3>&-", "Close fd syntax", true),
         ("cmd >| file", "Noclobber redirect", true),
         ("cmd <> file", "Read-write redirect", true),
-        ("case $x in a) echo a;& b) echo b;; esac", "Case fall-through ;&", true),
-        ("case $x in a) echo a;;& b) echo b;; esac", "Case resume ;;&", true),
+        (
+            "case $x in a) echo a;& b) echo b;; esac",
+            "Case fall-through ;&",
+            true,
+        ),
+        (
+            "case $x in a) echo a;;& b) echo b;; esac",
+            "Case resume ;;&",
+            true,
+        ),
         ("coproc myproc { cat; }", "Coproc syntax", true),
         ("declare -A myarray", "Associative array declaration", true),
         ("arr=([0]=a [5]=b)", "Sparse array assignment", true),
         ("arr+=(newval)", "Array append", true),
         ("my-func() { echo hi; }", "Function with dash", true),
-        ("myfunc() ( echo subshell )", "Function with subshell body", true),
+        (
+            "myfunc() ( echo subshell )",
+            "Function with subshell body",
+            true,
+        ),
         ("echo @(foo|bar)", "Extended glob @()", true),
         ("echo !(foo)", "Extended glob !()", true),
         ("echo \"Hello 世界\"", "Unicode in strings", true),

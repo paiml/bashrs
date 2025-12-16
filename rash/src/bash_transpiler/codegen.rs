@@ -267,7 +267,10 @@ impl BashToRashTranspiler {
                         n, body_rash
                     ))
                 } else {
-                    Ok(format!("// coproc - async subprocess\n{{\n{}\n}}", body_rash))
+                    Ok(format!(
+                        "// coproc - async subprocess\n{{\n{}\n}}",
+                        body_rash
+                    ))
                 }
             }
         }

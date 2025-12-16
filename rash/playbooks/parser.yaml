@@ -1,0 +1,238 @@
+# Bashrs Parser Playbook - State Machine Definition
+# Tests parser state transitions and invariants
+#
+# Usage: Used by parser_probar_testing.rs for validation
+
+version: "1.0"
+name: "Bashrs Parser State Machine"
+description: "Verify correct parsing of bash constructs through state transitions"
+
+machine:
+  id: "bash_parser"
+  initial: "idle"
+
+  states:
+    idle:
+      id: "idle"
+      description: "Parser ready to accept input"
+      invariants:
+        - description: "Parser is initialized"
+          condition: "parser.is_ready()"
+        - description: "No pending tokens"
+          condition: "parser.tokens.is_empty()"
+
+    tokenizing:
+      id: "tokenizing"
+      description: "Lexer breaking input into tokens"
+      on_entry:
+        - type: log
+          message: "Starting tokenization"
+      invariants:
+        - description: "Input buffer is set"
+          condition: "parser.input.len() > 0"
+
+    parsing:
+      id: "parsing"
+      description: "Building AST from tokens"
+      invariants:
+        - description: "Tokens available"
+          condition: "parser.tokens.len() > 0"
+        - description: "AST construction in progress"
+          condition: "parser.ast.is_some() || parser.current_node.is_some()"
+
+    ast_complete:
+      id: "ast_complete"
+      description: "AST successfully constructed"
+      final_state: true
+      invariants:
+        - description: "AST is complete"
+          condition: "parser.ast.is_some()"
+        - description: "No syntax errors"
+          condition: "parser.errors.is_empty()"
+
+    error:
+      id: "error"
+      description: "Parser encountered error"
+      final_state: true
+      invariants:
+        - description: "Error is recorded"
+          condition: "parser.errors.len() > 0"
+
+  transitions:
+    - id: "start_tokenize"
+      from: "idle"
+      to: "tokenizing"
+      event: "input_received"
+      description: "Begin tokenizing input"
+      actions:
+        - type: call
+          method: "parser.set_input(input)"
+
+    - id: "tokens_ready"
+      from: "tokenizing"
+      to: "parsing"
+      event: "tokenization_complete"
+      description: "Tokens ready for parsing"
+      guard: "tokens.len() > 0"
+
+    - id: "parse_complete"
+      from: "parsing"
+      to: "ast_complete"
+      event: "ast_built"
+      description: "AST construction successful"
+      guard: "errors.is_empty()"
+
+    - id: "tokenize_error"
+      from: "tokenizing"
+      to: "error"
+      event: "lex_error"
+      description: "Tokenization failed"
+
+    - id: "parse_error"
+      from: "parsing"
+      to: "error"
+      event: "syntax_error"
+      description: "Parsing failed"
+
+  forbidden:
+    - from: "idle"
+      to: "ast_complete"
+      reason: "Cannot complete AST without tokenizing and parsing"
+
+    - from: "idle"
+      to: "parsing"
+      reason: "Cannot parse without tokenizing first"
+
+    - from: "tokenizing"
+      to: "ast_complete"
+      reason: "Cannot complete AST without parsing"
+
+# Parser Feature Coverage Requirements
+coverage:
+  features:
+    variables:
+      - simple_assignment      # x=5
+      - default_value          # ${x:-default}
+      - assign_default         # ${x:=default}
+      - alternate_value        # ${x:+alt}
+      - error_value            # ${x:?error}
+      - length                 # ${#x}
+      - substring              # ${x:0:5}
+      - pattern_removal        # ${x%pattern}
+      - array_access           # ${arr[0]}
+      - indirect_reference     # ${!ref}
+
+    command_substitution:
+      - dollar_parens          # $(cmd)
+      - backtick               # `cmd`
+      - nested                 # $($(inner))
+      - in_string              # "$(cmd)"
+      - in_arithmetic          # $(($(echo 1)))
+
+    conditionals:
+      - if_simple              # if ...; then; fi
+      - if_else                # if ...; then; else; fi
+      - if_elif                # if ...; elif; fi
+      - if_nested              # if ...; then if; fi; fi
+      - test_single_bracket    # [ ... ]
+      - test_double_bracket    # [[ ... ]]
+      - test_arithmetic        # (( ... ))
+      - case_simple            # case ... in ...) ;; esac
+      - case_multiple          # case ... in a|b) ;; esac
+      - case_default           # case ... in *) ;; esac
+
+    loops:
+      - for_simple             # for i in ...; do; done
+      - for_c_style            # for ((;;)); do; done
+      - for_brace_expansion    # for i in {1..10}
+      - while_simple           # while ...; do; done
+      - while_read             # while read line
+      - until_simple           # until ...; do; done
+      - select_simple          # select opt in ...
+      - break_statement        # break
+      - continue_statement     # continue
+
+    functions:
+      - keyword_syntax         # function name { }
+      - parens_syntax          # name() { }
+      - with_body              # multi-statement body
+      - local_variables        # local var=value
+      - return_statement       # return N
+      - recursive              # self-calling
+
+    quoting:
+      - single_quote           # 'string'
+      - double_quote           # "string"
+      - escape_sequences       # \"
+      - dollar_single          # $'string'
+      - ansi_c                 # $'\x41'
+      - mixed                  # 'a'"b"
+
+    arithmetic:
+      - addition               # +
+      - subtraction            # -
+      - multiplication         # *
+      - division               # /
+      - modulo                 # %
+      - exponentiation         # **
+      - parentheses            # (...)
+      - assignment             # =
+      - increment              # ++/--
+      - comparison             # < > <= >=
+
+    redirection:
+      - output                 # >
+      - append                 # >>
+      - input                  # <
+      - stderr                 # 2>
+      - both                   # &>
+      - heredoc                # <<EOF
+      - herestring             # <<<
+      - fd_duplication         # 2>&1
+
+    pipeline:
+      - simple_pipe            # |
+      - pipe_chain             # | |
+      - and_list               # &&
+      - or_list                # ||
+      - subshell               # (...)
+      - brace_group            # { ...; }
+      - process_substitution   # <(...) >(...)
+
+  thresholds:
+    minimum_coverage: 85
+    target_coverage: 95
+
+# Performance Requirements
+performance:
+  tokenize:
+    max_duration_ms: 10
+    max_memory_kb: 100
+  parse:
+    max_duration_ms: 50
+    max_memory_kb: 500
+  total:
+    max_duration_ms: 100
+    max_memory_kb: 1000
+
+# Determinism Requirements
+determinism:
+  enabled: true
+  iterations: 3
+  description: "Same input must produce identical AST"
+
+assertions:
+  path:
+    must_visit:
+      - "idle"
+      - "tokenizing"
+      - "parsing"
+      - "ast_complete"
+    must_not_visit:
+      - "error"  # For valid inputs
+
+  output:
+    - var: "ast"
+      not_empty: true
+    - var: "errors"
+      empty: true  # For valid inputs
