@@ -33,15 +33,40 @@ static ASSIGNMENT: Lazy<Regex> = Lazy::new(|| Regex::new(r"([a-zA-Z_][a-zA-Z0-9_
 static VAR_USAGE: Lazy<Regex> =
     Lazy::new(|| Regex::new(r"\$\{?([a-zA-Z_][a-zA-Z0-9_]*)\}?").unwrap());
 
-/// Check if line contains a subshell (standalone parentheses, not command substitution)
+/// Check if line contains a subshell (standalone parentheses, not command substitution or arithmetic)
 fn has_subshell(line: &str) -> bool {
     let chars: Vec<char> = line.chars().collect();
     for i in 0..chars.len() {
         if chars[i] == '(' {
-            // Check if previous char is NOT $ (would be command substitution)
-            if i == 0 || chars[i - 1] != '$' {
+            // Check if previous char is NOT $ (would be command substitution $())
+            if i > 0 && chars[i - 1] == '$' {
+                continue;
+            }
+            // Issue #86: Check if this is arithmetic expansion $((...))
+            // The second ( in $(( is not preceded by $ but is still arithmetic, not subshell
+            if i > 1 && chars[i - 1] == '(' && chars[i - 2] == '$' {
+                continue;
+            }
+            // Issue #86: Skip case statement patterns like "1)" or "pattern)"
+            // These are not subshells, they're case patterns
+            if i + 1 < chars.len() && chars[i + 1] == ')' {
+                continue; // Empty subshell () - skip
+            }
+            // Check for case patterns: digits or identifiers followed by )
+            // but skip actual subshells that start with (
+            if i == 0 {
+                return true; // Line starts with ( - likely subshell
+            }
+            // Check what's before the ( - convert char index to byte position safely
+            // Collect chars up to index i and reconstruct the string
+            let before: String = chars[..i].iter().collect();
+            let trimmed_before = before.trim();
+            // If before is empty or ends with whitespace/operator, it's likely a subshell
+            if trimmed_before.is_empty() || trimmed_before.ends_with(';') {
                 return true;
             }
+            // For other cases, it might be a grouping in an expression - need more context
+            return true;
         }
     }
     false
@@ -298,5 +323,71 @@ echo "$foo"
         let result = check(code);
         // Still a subshell assignment
         assert_eq!(result.diagnostics.len(), 1);
+    }
+
+    // Issue #86: SC2031 should NOT flag arithmetic expansion $((
+    #[test]
+    fn test_sc2031_issue_86_arithmetic_expansion_not_subshell() {
+        // From issue #86 reproduction case
+        let code = r#"
+S1_SCORE=0
+add_points() {
+    local section="$1"
+    case "$section" in
+        1) S1_SCORE=$((S1_SCORE + 1)) ;;
+    esac
+}
+get_score() {
+    local section="$1"
+    case "$section" in
+        1) echo "$S1_SCORE" ;;
+    esac
+}
+"#;
+        let result = check(code);
+        // NO SC2031 - arithmetic expansion $((...)) is NOT a subshell
+        let has_s1_score_warning = result
+            .diagnostics
+            .iter()
+            .any(|d| d.code == "SC2031" && d.message.contains("S1_SCORE"));
+        assert!(
+            !has_s1_score_warning,
+            "SC2031 must NOT flag arithmetic expansion $((...)) as subshell assignment"
+        );
+    }
+
+    #[test]
+    fn test_sc2031_issue_86_simple_arithmetic_expansion() {
+        let code = r#"
+count=$((count + 1))
+echo "$count"
+"#;
+        let result = check(code);
+        assert_eq!(
+            result.diagnostics.len(),
+            0,
+            "Arithmetic expansion should not trigger SC2031"
+        );
+    }
+
+    #[test]
+    fn test_sc2031_issue_86_local_variable_ok() {
+        let code = r#"
+get_grade() {
+    local pct="$1"
+    if [[ $pct -ge 93 ]]; then echo "A+"
+    elif [[ $pct -ge 90 ]]; then echo "A"
+    fi
+}
+"#;
+        let result = check(code);
+        let has_pct_warning = result
+            .diagnostics
+            .iter()
+            .any(|d| d.code == "SC2031" && d.message.contains("pct"));
+        assert!(
+            !has_pct_warning,
+            "SC2031 must NOT flag local variable assignments"
+        );
     }
 }

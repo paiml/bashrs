@@ -12,6 +12,8 @@
 //   files=(a.txt b.txt c.txt)  # Array assignment
 //   for dir in /path/{foo,bar}; do ... done  # Loop with expansion
 //   files="a.txt b.txt c.txt"  # Space-separated if appropriate
+//
+// Note: ${VAR} is parameter expansion, NOT brace expansion
 
 use crate::linter::{Diagnostic, LintResult, Severity, Span};
 use once_cell::sync::Lazy;
@@ -21,6 +23,32 @@ static ASSIGNMENT_WITH_BRACES: Lazy<Regex> = Lazy::new(|| {
     // Match: var={...} or var=.../...{...}
     Regex::new(r"^([A-Za-z_][A-Za-z0-9_]*)=([^=\s]*\{[a-zA-Z0-9_,./\-]+\}[^\s]*)").unwrap()
 });
+
+// Brace expansion patterns: {a,b,c} or {1..10}
+static BRACE_EXPANSION: Lazy<Regex> = Lazy::new(|| {
+    // Match brace expansion: {item,item} or {start..end}
+    // Must contain comma or .. to be brace expansion
+    Regex::new(r"\{[a-zA-Z0-9_./\-]+[,.]\.?[a-zA-Z0-9_./\-,]+\}").unwrap()
+});
+
+/// Check if a value contains actual brace expansion (not just ${VAR} parameter expansion)
+fn has_brace_expansion(value: &str) -> bool {
+    // Find all { positions and check if they're brace expansion or parameter expansion
+    for mat in BRACE_EXPANSION.find_iter(value) {
+        let start = mat.start();
+        // Check if this brace is preceded by $ (making it parameter expansion)
+        if start > 0 {
+            let chars: Vec<char> = value.chars().collect();
+            // If preceded by $, it's ${VAR} parameter expansion, skip it
+            if chars.get(start - 1) == Some(&'$') {
+                continue;
+            }
+        }
+        // Found a brace expansion that's NOT parameter expansion
+        return true;
+    }
+    false
+}
 
 pub fn check(source: &str) -> LintResult {
     let mut result = LintResult::new();
@@ -41,6 +69,12 @@ pub fn check(source: &str) -> LintResult {
         if let Some(cap) = ASSIGNMENT_WITH_BRACES.captures(trimmed) {
             let var_name = cap.get(1).unwrap().as_str();
             let value = cap.get(2).unwrap().as_str();
+
+            // Issue #90: Skip if all braces are parameter expansions ${VAR}
+            if !has_brace_expansion(value) {
+                continue;
+            }
+
             let start_col = cap.get(0).unwrap().start() + 1;
             let end_col = cap.get(0).unwrap().end() + 1;
 
@@ -139,6 +173,50 @@ b={1,2,3}
     #[test]
     fn test_sc2201_path_expansion() {
         let code = r#"backup=/backup/{daily,weekly}"#;
+        let result = check(code);
+        assert_eq!(result.diagnostics.len(), 1);
+    }
+
+    // Issue #90: SC2201 should NOT flag parameter expansion ${VAR}
+    #[test]
+    fn test_sc2201_issue_90_param_expansion_ok() {
+        // From issue #90 reproduction case
+        let code = r#"RS_FILE="${WORK_DIR}/${BASENAME}.rs""#;
+        let result = check(code);
+        assert_eq!(
+            result.diagnostics.len(),
+            0,
+            "SC2201 must NOT flag ${{VAR}} parameter expansion"
+        );
+    }
+
+    #[test]
+    fn test_sc2201_issue_90_multiple_param_expansions() {
+        let code = r#"PATH="${HOME}/${PROJECT}/${FILE}""#;
+        let result = check(code);
+        assert_eq!(result.diagnostics.len(), 0);
+    }
+
+    #[test]
+    fn test_sc2201_issue_90_mixed_param_expansion() {
+        // Param expansion at start, but brace expansion in middle
+        let code = r#"FILE="${DIR}/{a,b}.txt""#;
+        let result = check(code);
+        // This SHOULD be flagged - {a,b} is brace expansion
+        assert_eq!(result.diagnostics.len(), 1);
+    }
+
+    #[test]
+    fn test_sc2201_issue_90_param_expansion_with_default() {
+        let code = r#"VAR="${OTHER:-default}""#;
+        let result = check(code);
+        assert_eq!(result.diagnostics.len(), 0);
+    }
+
+    #[test]
+    fn test_sc2201_issue_90_still_detects_real_brace_expansion() {
+        // Should still detect actual brace expansion
+        let code = r#"files={a,b,c}.txt"#;
         let result = check(code);
         assert_eq!(result.diagnostics.len(), 1);
     }

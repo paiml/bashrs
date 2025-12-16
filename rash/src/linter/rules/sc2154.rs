@@ -331,6 +331,26 @@ done
         );
     }
 
+    // Issue #91: SC2154 should NOT flag variables assigned by read with IFS=
+    #[test]
+    fn test_sc2154_issue_91_read_with_ifs() {
+        // From issue #91 reproduction case
+        let script = r#"grep -oE "pattern" "$FILE" | while IFS= read -r loc; do
+    line_num="${loc##*:}"
+    echo "$line_num"
+done"#;
+        let result = check(script);
+        // loc is assigned by read -r loc
+        let has_loc_warning = result
+            .diagnostics
+            .iter()
+            .any(|d| d.code == "SC2154" && d.message.contains("'loc'"));
+        assert!(
+            !has_loc_warning,
+            "SC2154 must NOT flag 'loc' - it's assigned by 'read -r loc'"
+        );
+    }
+
     #[test]
     fn test_read_simple_assignment() {
         let script = r#"#!/bin/bash
