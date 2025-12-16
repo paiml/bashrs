@@ -254,6 +254,23 @@ fn generate_statement(stmt: &BashStmt) -> String {
             brace.push_str("; }");
             brace
         }
+        BashStmt::Coproc { name, body, .. } => {
+            // Generate coproc: coproc NAME { cmd; }
+            let mut coproc = String::from("coproc ");
+            if let Some(n) = name {
+                coproc.push_str(n);
+                coproc.push(' ');
+            }
+            coproc.push_str("{ ");
+            for (i, stmt) in body.iter().enumerate() {
+                if i > 0 {
+                    coproc.push_str("; ");
+                }
+                coproc.push_str(&generate_statement(stmt));
+            }
+            coproc.push_str("; }");
+            coproc
+        }
     }
 }
 
@@ -456,6 +473,11 @@ fn generate_expr(expr: &BashExpr) -> String {
             let pattern_val = generate_expr(pattern);
             let pattern_unquoted = strip_quotes(&pattern_val);
             format!("\"${{{}%%{}}}\"", variable, pattern_unquoted)
+        }
+        BashExpr::CommandCondition(cmd) => {
+            // Issue #93: Command condition - generate the command directly
+            // The command's exit code determines the condition result
+            generate_statement(cmd)
         }
     }
 }

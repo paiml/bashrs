@@ -254,6 +254,22 @@ impl BashToRashTranspiler {
                 self.current_indent -= 1;
                 Ok(format!("{{\n{}\n}}", body_rash))
             }
+
+            BashStmt::Coproc { name, body, .. } => {
+                // Coproc is bash-specific, transpile as async block
+                // Note: This is a placeholder - coproc has no direct Rust equivalent
+                self.current_indent += 1;
+                let body_rash = self.transpile_block(body)?;
+                self.current_indent -= 1;
+                if let Some(n) = name {
+                    Ok(format!(
+                        "// coproc {} - async subprocess\n{{\n{}\n}}",
+                        n, body_rash
+                    ))
+                } else {
+                    Ok(format!("// coproc - async subprocess\n{{\n{}\n}}", body_rash))
+                }
+            }
         }
     }
 
@@ -382,6 +398,12 @@ impl BashToRashTranspiler {
                     "{}.split_once({}).map_or(&{}, |(prefix, _)| prefix)",
                     variable, pattern_rash, variable
                 ))
+            }
+
+            BashExpr::CommandCondition(cmd) => {
+                // Issue #93: Command condition - transpile as command that returns exit code
+                let cmd_rash = self.transpile_statement(cmd)?;
+                Ok(format!("{{ {} }}.success()", cmd_rash))
             }
         }
     }

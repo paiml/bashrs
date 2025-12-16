@@ -43,6 +43,51 @@ fn contains_command_substitution(value: &str) -> bool {
     value.contains("$(") || value.contains("`")
 }
 
+/// Issue #93: Check if braces in value are only parameter expansion (not brace expansion)
+/// Parameter expansion: ${VAR}, ${VAR:-default}, ${VAR:+alt}, ${#VAR}, ${VAR%pattern}, etc.
+/// Brace expansion: {a,b,c}, {1..10} (NOT preceded by $)
+/// Returns true only if the value contains braces AND all braces are parameter expansion
+fn has_brace_expansion(value: &str) -> bool {
+    // If no braces at all, this is NOT a brace issue (might be glob like *.txt)
+    if !value.contains('{') {
+        return false;
+    }
+
+    // Find all braces and check if any are brace expansion
+    let chars: Vec<char> = value.chars().collect();
+    for i in 0..chars.len() {
+        if chars[i] == '{' {
+            // Check if preceded by $ (parameter expansion)
+            if i == 0 || chars[i - 1] != '$' {
+                // Found a brace not preceded by $ - check if it's brace expansion
+                // Look for comma or .. inside braces (brace expansion patterns)
+                let mut depth = 1;
+                let mut j = i + 1;
+                while j < chars.len() && depth > 0 {
+                    if chars[j] == '{' {
+                        depth += 1;
+                    } else if chars[j] == '}' {
+                        depth -= 1;
+                    } else if depth == 1 && chars[j] == ',' {
+                        // Found comma at depth 1 - this is brace expansion
+                        return true;
+                    } else if depth == 1
+                        && j + 1 < chars.len()
+                        && chars[j] == '.'
+                        && chars[j + 1] == '.'
+                    {
+                        // Found .. at depth 1 - this is brace expansion range
+                        return true;
+                    }
+                    j += 1;
+                }
+            }
+        }
+    }
+    // No brace expansion patterns found (all braces are parameter expansion)
+    false
+}
+
 /// Create diagnostic for glob in assignment
 fn create_glob_assignment_diagnostic(
     line_num: usize,
@@ -74,6 +119,16 @@ pub fn check(source: &str) -> LintResult {
                 let val_text = value.as_str();
 
                 if contains_command_substitution(val_text) {
+                    continue;
+                }
+
+                // Issue #93: Check what was matched
+                // The regex matches: glob (*) OR brace expansion ({...})
+                let has_glob = val_text.contains('*');
+                let has_brace = has_brace_expansion(val_text);
+
+                // Skip if no glob and no brace expansion (only parameter expansion like ${VAR:-default})
+                if !has_glob && !has_brace {
                     continue;
                 }
 
@@ -297,5 +352,66 @@ mod tests {
         let code = r#"configs=/etc/{a,b,c}/config"#;
         let result = check(code);
         assert_eq!(result.diagnostics.len(), 1);
+    }
+
+    // Issue #93: Parameter expansion ${VAR:-default} should NOT be flagged
+    #[test]
+    fn test_issue_93_param_expansion_default_ok() {
+        // From issue #93: ${VAR:-default} is parameter expansion, not brace expansion
+        let code = r#"TEST_LINE=${TEST_LINE:-99999}"#;
+        let result = check(code);
+        assert_eq!(
+            result.diagnostics.len(),
+            0,
+            "SC2125 must NOT flag parameter expansion ${{VAR:-default}}"
+        );
+    }
+
+    #[test]
+    fn test_issue_93_param_expansion_multiple_ok() {
+        let code = r#"PROBAR_COUNT=${PROBAR_COUNT:-0}"#;
+        let result = check(code);
+        assert_eq!(result.diagnostics.len(), 0);
+    }
+
+    #[test]
+    fn test_issue_93_param_expansion_alt_value_ok() {
+        let code = r#"VALUE=${OTHER:+replacement}"#;
+        let result = check(code);
+        assert_eq!(result.diagnostics.len(), 0);
+    }
+
+    #[test]
+    fn test_issue_93_param_expansion_error_ok() {
+        let code = r#"REQUIRED=${VAR:?error message}"#;
+        let result = check(code);
+        assert_eq!(result.diagnostics.len(), 0);
+    }
+
+    #[test]
+    fn test_issue_93_param_expansion_assign_default_ok() {
+        let code = r#"VAR=${VAR:=default}"#;
+        let result = check(code);
+        assert_eq!(result.diagnostics.len(), 0);
+    }
+
+    #[test]
+    fn test_issue_93_param_expansion_length_ok() {
+        let code = r#"LEN=${#VAR}"#;
+        let result = check(code);
+        assert_eq!(result.diagnostics.len(), 0);
+    }
+
+    #[test]
+    fn test_issue_93_mixed_param_and_brace_flagged() {
+        // Parameter expansion at start, but brace expansion in middle - should be flagged
+        let code = r#"FILE=${DIR}/{a,b}.txt"#;
+        let result = check(code);
+        // The {a,b} part is brace expansion and SHOULD be flagged
+        assert_eq!(
+            result.diagnostics.len(),
+            1,
+            "Mixed param expansion + brace expansion should be flagged"
+        );
     }
 }

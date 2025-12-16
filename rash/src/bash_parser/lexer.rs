@@ -25,6 +25,7 @@ pub enum Token {
     Return,
     Export,
     Local,
+    Coproc, // BUG-018: coproc keyword
 
     // Identifiers and literals
     Identifier(String),
@@ -179,15 +180,18 @@ impl Lexer {
         // Note: ':' is included for bash builtin no-op command (BUILTIN-001)
         // Note: '+' and '%' are included for flags like date +%FORMAT (PARSER-ENH-001)
         // Note: '\\' is included for escaped chars like \\; in find -exec
-        if ch == '/'
-            || ch == '.'
-            || ch == '-'
-            || ch == '*'
-            || ch == '~'
-            || ch == ':'
-            || ch == '+'
-            || ch == '%'
-            || ch == '\\'
+        // BUG-012 FIX: Don't treat '+=' as bare word - it's the append operator
+        let is_append_op = ch == '+' && self.peek_char(1) == Some('=');
+        if !is_append_op
+            && (ch == '/'
+                || ch == '.'
+                || ch == '-'
+                || ch == '*'
+                || ch == '~'
+                || ch == ':'
+                || ch == '+'
+                || ch == '%'
+                || ch == '\\')
         {
             return Ok(self.read_bare_word());
         }
@@ -273,13 +277,32 @@ impl Lexer {
         let mut var_name = String::new();
 
         // Handle ${VAR} syntax
+        // BUG-001 FIX: Handle nested parameter expansion like ${foo:-${bar:-default}}
         if !self.is_at_end() && self.current_char() == '{' {
             self.advance();
-            while !self.is_at_end() && self.current_char() != '}' {
-                var_name.push(self.advance());
-            }
-            if !self.is_at_end() {
-                self.advance(); // skip '}'
+            let mut brace_depth = 1;
+            while !self.is_at_end() && brace_depth > 0 {
+                let ch = self.current_char();
+                if ch == '{' {
+                    brace_depth += 1;
+                    var_name.push(self.advance());
+                } else if ch == '}' {
+                    brace_depth -= 1;
+                    if brace_depth > 0 {
+                        var_name.push(self.advance());
+                    } else {
+                        self.advance(); // skip final '}'
+                    }
+                } else if ch == '$' && !self.is_at_end() {
+                    // Handle nested ${...} or $(...)
+                    var_name.push(self.advance());
+                    if !self.is_at_end() && self.current_char() == '{' {
+                        brace_depth += 1;
+                        var_name.push(self.advance());
+                    }
+                } else {
+                    var_name.push(self.advance());
+                }
             }
         } else {
             // Handle $VAR syntax
@@ -361,20 +384,40 @@ impl Lexer {
     }
 
     fn read_heredoc(&mut self) -> Result<Token, LexerError> {
-        // Read the delimiter (alphanumeric + underscore, or quoted for special delimiters)
+        // BUG-006 FIX: Handle quoted delimiters <<'EOF' or <<"EOF"
         // Skip any leading whitespace
         while !self.is_at_end() && (self.current_char() == ' ' || self.current_char() == '\t') {
             self.advance();
         }
 
-        // Read delimiter
+        // Check for quoted delimiter
         let mut delimiter = String::new();
+        let quote_char =
+            if !self.is_at_end() && (self.current_char() == '\'' || self.current_char() == '"') {
+                let q = self.current_char();
+                self.advance(); // skip opening quote
+                Some(q)
+            } else {
+                None
+            };
+
+        // Read delimiter
         while !self.is_at_end() {
             let ch = self.current_char();
-            if ch.is_alphanumeric() || ch == '_' {
+            if let Some(q) = quote_char {
+                // Quoted delimiter - read until closing quote
+                if ch == q {
+                    self.advance(); // skip closing quote
+                    break;
+                }
                 delimiter.push(self.advance());
             } else {
-                break;
+                // Unquoted delimiter - alphanumeric and underscore
+                if ch.is_alphanumeric() || ch == '_' {
+                    delimiter.push(self.advance());
+                } else {
+                    break;
+                }
             }
         }
 
@@ -417,6 +460,89 @@ impl Lexer {
                 current_line.clear();
 
                 self.advance(); // skip newline
+            } else {
+                current_line.push(self.advance());
+            }
+        }
+
+        Ok(Token::Heredoc { delimiter, content })
+    }
+
+    /// BUG-007 FIX: Read indented heredoc (<<-DELIMITER)
+    /// In indented heredocs, leading tabs are stripped from content lines
+    /// and the delimiter can be indented with tabs
+    fn read_heredoc_indented(&mut self) -> Result<Token, LexerError> {
+        // Skip any leading whitespace
+        while !self.is_at_end() && (self.current_char() == ' ' || self.current_char() == '\t') {
+            self.advance();
+        }
+
+        // Check for quoted delimiter
+        let mut delimiter = String::new();
+        let quote_char =
+            if !self.is_at_end() && (self.current_char() == '\'' || self.current_char() == '"') {
+                let q = self.current_char();
+                self.advance();
+                Some(q)
+            } else {
+                None
+            };
+
+        // Read delimiter
+        while !self.is_at_end() {
+            let ch = self.current_char();
+            if let Some(q) = quote_char {
+                if ch == q {
+                    self.advance();
+                    break;
+                }
+                delimiter.push(self.advance());
+            } else if ch.is_alphanumeric() || ch == '_' {
+                delimiter.push(self.advance());
+            } else {
+                break;
+            }
+        }
+
+        if delimiter.is_empty() {
+            return Err(LexerError::UnexpectedChar(
+                self.current_char(),
+                self.line,
+                self.column,
+            ));
+        }
+
+        // Skip to end of line
+        while !self.is_at_end() && self.current_char() != '\n' {
+            self.advance();
+        }
+        if !self.is_at_end() {
+            self.advance();
+        }
+
+        // Read heredoc content - strip leading tabs
+        let mut content = String::new();
+        let mut current_line = String::new();
+
+        while !self.is_at_end() {
+            let ch = self.current_char();
+
+            if ch == '\n' {
+                // Strip leading tabs and check for delimiter
+                let trimmed = current_line.trim_start_matches('\t');
+                if trimmed == delimiter {
+                    self.advance();
+                    break;
+                }
+
+                // Add stripped line to content
+                if !content.is_empty() {
+                    content.push('\n');
+                }
+                content.push_str(trimmed);
+                current_line.clear();
+
+                self.advance();
             } else {
                 current_line.push(self.advance());
             }
@@ -564,33 +690,51 @@ impl Lexer {
 
         while !self.is_at_end() {
             let ch = self.current_char();
+            // BUG-010 FIX: Allow dashes in identifiers for function names like my-func
+            // Dashes are allowed if followed by alphanumeric (not at end, not before operator)
             if ch.is_alphanumeric() || ch == '_' {
                 ident.push(self.advance());
+            } else if ch == '-' || ch == '.' || ch == ':' {
+                // Allow dash/dot/colon in identifiers for function names
+                // But only if followed by alphanumeric (not operators like -eq)
+                if let Some(next) = self.peek_char(1) {
+                    if next.is_alphanumeric() {
+                        ident.push(self.advance());
+                    } else {
+                        break;
+                    }
+                } else {
+                    break;
+                }
             } else {
                 break;
             }
         }
 
-        // Check for keywords
-        match ident.as_str() {
-            "if" => Token::If,
-            "then" => Token::Then,
-            "elif" => Token::Elif,
-            "else" => Token::Else,
-            "fi" => Token::Fi,
-            "for" => Token::For,
-            "while" => Token::While,
-            "do" => Token::Do,
-            "done" => Token::Done,
-            "case" => Token::Case,
-            "esac" => Token::Esac,
-            "in" => Token::In,
-            "function" => Token::Function,
-            "return" => Token::Return,
-            "export" => Token::Export,
-            "local" => Token::Local,
-            _ => Token::Identifier(ident),
+        // Check for keywords (only if no special chars in identifier)
+        if !ident.contains('-') && !ident.contains('.') && !ident.contains(':') {
+            match ident.as_str() {
+                "if" => return Token::If,
+                "then" => return Token::Then,
+                "elif" => return Token::Elif,
+                "else" => return Token::Else,
+                "fi" => return Token::Fi,
+                "for" => return Token::For,
+                "while" => return Token::While,
+                "do" => return Token::Do,
+                "done" => return Token::Done,
+                "case" => return Token::Case,
+                "esac" => return Token::Esac,
+                "in" => return Token::In,
+                "function" => return Token::Function,
+                "return" => return Token::Return,
+                "export" => return Token::Export,
+                "local" => return Token::Local,
+                "coproc" => return Token::Coproc, // BUG-018
+                _ => {}
+            }
         }
+        Token::Identifier(ident)
     }
 
     fn read_bare_word(&mut self) -> Token {
@@ -787,7 +931,7 @@ impl Lexer {
                 Token::Ne
             }
             ('<', Some('<')) => {
-                // Check for here-string (<<<) vs heredoc (<<)
+                // Check for here-string (<<<) vs heredoc (<<) vs indented heredoc (<<-)
                 // Issue #61: Here-strings must be checked before heredocs
                 if self.peek_char(2) == Some('<') {
                     // Here-string: <<< "string"
@@ -795,8 +939,14 @@ impl Lexer {
                     self.advance(); // skip second '<'
                     self.advance(); // skip third '<'
                     return self.read_herestring();
+                } else if self.peek_char(2) == Some('-') {
+                    // BUG-007 FIX: Indented heredoc: <<-DELIMITER
+                    self.advance(); // skip first '<'
+                    self.advance(); // skip second '<'
+                    self.advance(); // skip '-'
+                    return self.read_heredoc_indented();
                 } else {
-                    // Heredoc: <<DELIMITER
+                    // Heredoc: <<DELIMITER or <<'DELIMITER' or <<"DELIMITER"
                     self.advance(); // skip first '<'
                     self.advance(); // skip second '<'
                     return self.read_heredoc();
@@ -809,6 +959,18 @@ impl Lexer {
             ('>', Some('(')) => {
                 // Issue #67: Process substitution >(cmd) (output redirection variant)
                 return self.read_process_substitution('>');
+            }
+            ('>', Some('|')) => {
+                // BUG-016 FIX: Noclobber redirect >|
+                self.advance(); // skip '>'
+                self.advance(); // skip '|'
+                Token::Identifier(">|".to_string())
+            }
+            ('<', Some('>')) => {
+                // BUG-017 FIX: Read-write redirect <>
+                self.advance(); // skip '<'
+                self.advance(); // skip '>'
+                Token::Identifier("<>".to_string())
             }
             ('<', Some('=')) => {
                 self.advance();
@@ -846,6 +1008,12 @@ impl Lexer {
                 self.advance();
                 Token::DoubleRightBracket
             }
+            ('+', Some('=')) => {
+                // BUG-012 FIX: Array append +=
+                self.advance(); // skip '+'
+                self.advance(); // skip '='
+                Token::Identifier("+=".to_string())
+            }
             ('=', _) => {
                 self.advance();
                 Token::Assign
@@ -858,6 +1026,27 @@ impl Lexer {
                 self.advance();
                 Token::Gt
             }
+            ('!', Some('(')) => {
+                // BUG-020 FIX: Extended glob: !(...)
+                self.advance(); // consume !
+                self.advance(); // consume (
+                let mut pattern = String::new();
+                let mut depth = 1;
+                while !self.is_at_end() && depth > 0 {
+                    let c = self.current_char();
+                    if c == '(' {
+                        depth += 1;
+                    } else if c == ')' {
+                        depth -= 1;
+                        if depth == 0 {
+                            self.advance();
+                            break;
+                        }
+                    }
+                    pattern.push(self.advance());
+                }
+                Token::Identifier(format!("!({})", pattern))
+            }
             ('!', _) => {
                 self.advance();
                 Token::Not
@@ -865,6 +1054,23 @@ impl Lexer {
             ('|', _) => {
                 self.advance();
                 Token::Pipe
+            }
+            (';', Some(';')) => {
+                // BUG-008, BUG-009 FIX: Check for ;;& (case resume) before ;;
+                self.advance(); // skip first ';'
+                self.advance(); // skip second ';'
+                if self.peek_char(0) == Some('&') {
+                    self.advance(); // skip '&'
+                    Token::Identifier(";;&".to_string()) // Case resume
+                } else {
+                    Token::Identifier(";;".to_string()) // Case terminator
+                }
+            }
+            (';', Some('&')) => {
+                // BUG-008 FIX: Case fall-through ;&
+                self.advance(); // skip ';'
+                self.advance(); // skip '&'
+                Token::Identifier(";&".to_string())
             }
             (';', _) => {
                 self.advance();
@@ -905,6 +1111,56 @@ impl Lexer {
             (']', _) => {
                 self.advance();
                 Token::RightBracket
+            }
+            // BUG-019, BUG-020, BUG-021 FIX: Extended globs and glob patterns
+            // @(pattern|pattern), !(pattern), +(pattern), *(pattern), ?(pattern)
+            // and ? as single-char glob
+            ('@', Some('(')) | ('+', Some('(')) => {
+                // Extended glob: @(...) or +(...)
+                let glob_type = self.advance(); // consume @ or +
+                self.advance(); // consume (
+                let mut pattern = String::new();
+                let mut depth = 1;
+                while !self.is_at_end() && depth > 0 {
+                    let c = self.current_char();
+                    if c == '(' {
+                        depth += 1;
+                    } else if c == ')' {
+                        depth -= 1;
+                        if depth == 0 {
+                            self.advance();
+                            break;
+                        }
+                    }
+                    pattern.push(self.advance());
+                }
+                Token::Identifier(format!("{}({})", glob_type, pattern))
+            }
+            ('?', Some('(')) => {
+                // Extended glob: ?(...)
+                self.advance(); // consume ?
+                self.advance(); // consume (
+                let mut pattern = String::new();
+                let mut depth = 1;
+                while !self.is_at_end() && depth > 0 {
+                    let c = self.current_char();
+                    if c == '(' {
+                        depth += 1;
+                    } else if c == ')' {
+                        depth -= 1;
+                        if depth == 0 {
+                            self.advance();
+                            break;
+                        }
+                    }
+                    pattern.push(self.advance());
+                }
+                Token::Identifier(format!("?({})", pattern))
+            }
+            ('?', _) => {
+                // Single-char glob: file?.txt
+                self.advance();
+                Token::Identifier("?".to_string())
             }
             _ => {
                 return Err(LexerError::UnexpectedChar(ch, self.line, self.column));

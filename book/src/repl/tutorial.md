@@ -30,7 +30,7 @@ $ bashrs repl
 You should see:
 
 ```text
-bashrs REPL v6.32.1
+bashrs REPL v6.44.0
 Type 'quit' or 'exit' to exit, 'help' for commands
 Current mode: normal - Execute bash commands directly
 bashrs [normal]>

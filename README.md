@@ -36,21 +36,18 @@
 - [License](#license)
 - [Acknowledgments](#acknowledgments)
 
-## 🚀 What's New in v6.41.0
+## 🚀 What's New in v6.44.0
 
-**Latest Updates** - 2025-11-12
+**Latest Updates** - 2025-12-16
 
-- **Issue #21 FIXED**: SC2171 false positive with JSON brackets in heredocs (now correctly handles heredoc contexts)
-- **Issue #22 FIXED**: SC2247 false positive with math operations in awk/bc (context-aware math detection)
-- **Test Suite**: 6,583 tests, 100% pass rate, zero regressions
-- **Quality**: All fixes implemented using EXTREME TDD (unit tests, property tests, mutation tests, integration tests)
-
-**v6.34.0 Feature Completions** - Released 2025-11-12
-
-- **Issue #2 RESOLVED**: Makefile multi-line format preservation with `--preserve-formatting` and `--skip-consolidation` flags
-- **Issue #4 RESOLVED**: Complete bash parser - all 9 phases including redirection operators, heredocs, pipelines, special variables
-- **Dockerfile Purification**: 6 comprehensive transformations (DOCKER001-006) for production-ready Docker images
-- **Dogfooding Complete**: Fixed all P0 errors in bashrs's own infrastructure (0 errors found by self-analysis)
+- **Complete Parser Bug Fixes**: All 23 parser bugs found via probar TUI testing have been fixed (100%)
+  - P0 Critical (5/5): Nested parameter expansion, negative arithmetic, ternary, bitwise, empty assignment
+  - P1 High (8/8): Heredocs, case fall-through/resume, function names with dashes, array operations
+  - P2 Medium (10/10): Coproc, extended globs, redirect operators, deep nesting
+- **New `coproc` Keyword**: Full coprocess syntax support (`coproc NAME { cmd; }`)
+- **Function Subshell Bodies**: `myfunc() ( cmd )` syntax now works
+- **Glob Pattern Fixes**: `[abc].txt`, `[!abc]` character class globs now parse correctly
+- **Test Suite**: 7,365 tests, 100% pass rate, zero regressions
 
 See [CHANGELOG.md](CHANGELOG.md) for complete release notes.
 

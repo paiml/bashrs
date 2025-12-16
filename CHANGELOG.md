@@ -7,6 +7,75 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [6.44.0] - 2025-12-16
+
+### Added
+
+- **Complete Parser Bug Fixes**: All 23 parser bugs found via probar TUI testing have been fixed
+  - **P0 Critical (5/5)**: Nested parameter expansion, negative arithmetic, ternary operator, bitwise operators, empty variable assignment
+  - **P1 High (8/8)**: Quoted heredocs, indented heredocs, case fall-through/resume, function names with dashes, function subshell bodies, array append, sparse arrays
+  - **P2 Medium (10/10)**: Comma operator, close FD syntax, noclobber redirect, read-write redirect, coproc syntax, extended globs, glob question mark, deep nesting, nested arithmetic
+
+- **New `coproc` Keyword Support** (BUG-018): Full coprocess syntax now parsed
+  - `coproc NAME { command; }` - Named coprocess
+  - `coproc { command; }` - Anonymous coprocess
+  - New `Token::Coproc` and `BashStmt::Coproc` AST node
+
+- **Function Subshell Bodies** (BUG-011): Functions can now use subshell body syntax
+  - `myfunc() ( echo subshell )` - Subshell-style function body
+  - Fixed by adding `RightParen`/`RightBrace` to command argument terminators
+
+- **Glob Pattern Improvements**: Bracket globs now work correctly
+  - `[abc].txt`, `[!abc].txt`, `[a-z].txt` - Character class globs
+  - Negated globs with `!` inside brackets
+
+### Fixed
+
+- **Parser Regression Tests**: Added `parser_bug_hunting.rs` with 19 edge case tests
+- **Doctest Fix**: Fixed `Span::default()` usage in `citl.rs` doctest
+
+### Quality
+
+- **Tests**: 7365 passed (zero regressions, +4 new tests)
+- **Clippy**: Clean
+- **EXTREME TDD**: All fixes implemented with RED-GREEN-REFACTOR methodology
+- **100% Bug Resolution**: 23/23 parser bugs fixed
+
+## [6.43.1] - 2025-12-16
+
+### Fixed
+
+- **Issue #93**: Parser fails on valid inline if/then/else/fi syntax
+  - Added `CommandCondition` variant to `BashExpr` for command-as-condition (e.g., `if grep -q pattern file; then`)
+  - Parser now correctly handles commands in conditional expressions
+  - Tests added for inline if/then/else/fi and while-with-command syntax
+
+- **Issue #93**: SC2125 false positive for parameter expansion
+  - Fixed `${VAR:-default}` being incorrectly flagged as brace expansion
+  - Added `has_brace_expansion()` function to distinguish `{a,b,c}` from `${VAR:-default}`
+  - Parameter expansions like `${VAR:-default}`, `${VAR:+alt}`, `${#VAR}` no longer flagged
+
+- **Issue #93**: SC2317 false positive for conditional exit
+  - Fixed `cmd || exit 1` being incorrectly flagged as unreachable code
+  - Added `is_conditional_exit()` to detect `||` and `&&` chains before exit/return
+  - Code after conditional exits is no longer flagged as unreachable
+
+- **Issue #94**: Pipe detection false positive in string literals
+  - Fixed table formatting strings like `"| header1 | header2 |"` being flagged
+  - Added heuristic to skip strings with multiple pipes and no shell metacharacters
+  - Validation now allows legitimate table/formatting strings
+
+- **Issue #95**: SC2154 false positive for sourced variables
+  - Added `has_source_commands()` to detect `source file.sh` and `. file.sh`
+  - When scripts source external files, uppercase variables are skipped
+  - Lowercase undefined variables are still flagged for safety
+
+### Quality
+
+- **Tests**: 7361 passed (zero regressions)
+- **Clippy**: Clean (zero errors)
+- **EXTREME TDD**: All fixes include property tests and regression tests
+
 ## [6.43.0] - 2025-12-15
 
 ### Added

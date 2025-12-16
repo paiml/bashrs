@@ -143,6 +143,18 @@ fn format_statement(stmt: &BashStmt, indent: usize) -> String {
         BashStmt::BraceGroup { body, .. } => {
             format!("{}BraceGroup ({} statements)", indent_str, body.len())
         }
+        BashStmt::Coproc { name, body, .. } => {
+            if let Some(n) = name {
+                format!(
+                    "{}Coproc: {} ({} statements)",
+                    indent_str,
+                    n,
+                    body.len()
+                )
+            } else {
+                format!("{}Coproc ({} statements)", indent_str, body.len())
+            }
+        }
     }
 }
 

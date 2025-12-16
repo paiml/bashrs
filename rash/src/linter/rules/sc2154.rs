@@ -78,6 +78,32 @@ fn get_builtins() -> HashSet<&'static str> {
     .collect()
 }
 
+/// Issue #95: Check if script sources external files
+/// If source/. commands are found, we're more lenient with undefined variables
+fn has_source_commands(source: &str) -> bool {
+    for line in source.lines() {
+        let trimmed = line.trim();
+        if trimmed.starts_with('#') {
+            continue;
+        }
+        // Match: source file, . file, source "file", . "file"
+        if trimmed.starts_with("source ") || trimmed.starts_with(". ") {
+            return true;
+        }
+        // Also check for source/. after semicolon or &&/||
+        if trimmed.contains("; source ")
+            || trimmed.contains("; . ")
+            || trimmed.contains("&& source ")
+            || trimmed.contains("&& . ")
+            || trimmed.contains("|| source ")
+            || trimmed.contains("|| . ")
+        {
+            return true;
+        }
+    }
+    false
+}
+
 /// Collect variable assignments and uses from source
 fn collect_variable_info(
     source: &str,
@@ -85,6 +111,9 @@ fn collect_variable_info(
 ) -> (HashSet<String>, Vec<(String, usize, usize)>) {
     let mut assigned: HashSet<String> = HashSet::new();
     let mut used_vars: Vec<(String, usize, usize)> = Vec::new();
+
+    // Issue #95: Track if we have source commands - be lenient with uppercase vars
+    let has_sources = has_source_commands(source);
 
     for (line_num, line) in source.lines().enumerate() {
         let line_num = line_num + 1;
@@ -147,10 +176,17 @@ fn collect_variable_info(
             }
         }
 
-        // Find uses
+        // Find uses - but skip uppercase vars if script has source commands
         for cap in patterns.use_.captures_iter(line) {
             let var_name = cap.get(1).unwrap().as_str();
             let col = cap.get(0).unwrap().start() + 1;
+
+            // Issue #95: If script sources external files, skip uppercase variables
+            // (they likely come from the sourced file)
+            if has_sources && var_name.chars().all(|c| c.is_uppercase() || c == '_') {
+                continue;
+            }
+
             used_vars.push((var_name.to_string(), line_num, col));
         }
     }
@@ -611,6 +647,105 @@ func() {
             result.diagnostics.len(),
             0,
             "declare/local with flags (-i, -r) should be recognized"
+        );
+    }
+
+    // Issue #95: Source command detection tests
+    #[test]
+    fn test_issue_95_has_source_commands_basic() {
+        assert!(has_source_commands("source config.sh"));
+        assert!(has_source_commands(". config.sh"));
+        assert!(has_source_commands("  source /etc/profile"));
+        assert!(has_source_commands("  . /etc/profile"));
+    }
+
+    #[test]
+    fn test_issue_95_has_source_commands_chained() {
+        assert!(has_source_commands("test -f config.sh && source config.sh"));
+        assert!(has_source_commands("test -f config.sh && . config.sh"));
+        assert!(has_source_commands("test -f config.sh || source defaults.sh"));
+        assert!(has_source_commands("echo 'loading'; source config.sh"));
+    }
+
+    #[test]
+    fn test_issue_95_no_source_commands() {
+        assert!(!has_source_commands("echo hello"));
+        assert!(!has_source_commands("echo 'source code'"));
+        assert!(!has_source_commands("# source config.sh"));
+        assert!(!has_source_commands("echo sourcefile"));
+    }
+
+    #[test]
+    fn test_issue_95_uppercase_vars_with_source_ok() {
+        // From issue #95: When script sources files, uppercase vars should be skipped
+        let script = r#"
+source config.sh
+echo "$WAPR_MODEL"
+echo "$CONFIG_VALUE"
+"#;
+        let result = check(script);
+        // WAPR_MODEL and CONFIG_VALUE should NOT be flagged (they come from sourced file)
+        let has_uppercase_warning = result.diagnostics.iter().any(|d| {
+            d.code == "SC2154"
+                && (d.message.contains("'WAPR_MODEL'") || d.message.contains("'CONFIG_VALUE'"))
+        });
+        assert!(
+            !has_uppercase_warning,
+            "SC2154 must NOT flag uppercase vars when script sources files"
+        );
+    }
+
+    #[test]
+    fn test_issue_95_uppercase_vars_without_source_flagged() {
+        // Without source commands, uppercase vars should still be flagged (if not in builtins)
+        let script = r#"
+echo "$CUSTOM_VAR"
+"#;
+        let result = check(script);
+        // CUSTOM_VAR should be flagged (no source, not builtin)
+        let has_custom_warning = result
+            .diagnostics
+            .iter()
+            .any(|d| d.code == "SC2154" && d.message.contains("'CUSTOM_VAR'"));
+        assert!(
+            has_custom_warning,
+            "SC2154 should flag uppercase vars when no source commands"
+        );
+    }
+
+    #[test]
+    fn test_issue_95_lowercase_vars_with_source_still_flagged() {
+        // Even with source commands, lowercase undefined vars should be flagged
+        let script = r#"
+source config.sh
+echo "$lowercase_undefined"
+"#;
+        let result = check(script);
+        let has_lowercase_warning = result
+            .diagnostics
+            .iter()
+            .any(|d| d.code == "SC2154" && d.message.contains("'lowercase_undefined'"));
+        assert!(
+            has_lowercase_warning,
+            "SC2154 should still flag lowercase undefined vars even with source"
+        );
+    }
+
+    #[test]
+    fn test_issue_95_dot_source_syntax() {
+        // Test with . syntax instead of source
+        let script = r#"
+. /etc/profile
+echo "$PROFILE_VAR"
+"#;
+        let result = check(script);
+        let has_profile_warning = result
+            .diagnostics
+            .iter()
+            .any(|d| d.code == "SC2154" && d.message.contains("'PROFILE_VAR'"));
+        assert!(
+            !has_profile_warning,
+            "SC2154 must NOT flag uppercase vars when script uses . syntax"
         );
     }
 

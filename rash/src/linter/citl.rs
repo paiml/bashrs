@@ -22,7 +22,7 @@
 //!             code: "SEC010".to_string(),
 //!             severity: Severity::Error,
 //!             message: "Security issue".to_string(),
-//!             span: Span::default(),
+//!             span: Span::new(1, 1, 1, 10),
 //!             fix: None,
 //!         }
 //!     ],

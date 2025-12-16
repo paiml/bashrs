@@ -131,6 +131,15 @@ pub enum BashStmt {
     /// Groups commands together as a compound command
     /// Issue #60: Support for brace groups in || and && contexts
     BraceGroup { body: Vec<BashStmt>, span: Span },
+
+    /// Coprocess: coproc NAME { COMMAND; } or coproc { COMMAND; }
+    /// Runs command asynchronously in a subprocess with bidirectional pipes
+    /// BUG-018: Added coproc keyword support
+    Coproc {
+        name: Option<String>,
+        body: Vec<BashStmt>,
+        span: Span,
+    },
 }
 
 /// Case statement arm
@@ -166,6 +175,11 @@ pub enum BashExpr {
 
     /// Glob pattern: *.txt
     Glob(String),
+
+    /// Command condition: a command used as a condition in if/while
+    /// The exit code of the command determines the condition result (0=true, non-zero=false)
+    /// Example: `if grep -q pattern file; then ...`
+    CommandCondition(Box<BashStmt>),
 
     /// Default value expansion: ${VAR:-default}
     /// If variable is unset or null, use default value
@@ -354,6 +368,7 @@ impl BashStmt {
             BashStmt::AndList { .. } => "AndList",
             BashStmt::OrList { .. } => "OrList",
             BashStmt::BraceGroup { .. } => "BraceGroup",
+            BashStmt::Coproc { .. } => "Coproc",
         }
     }
 
@@ -374,7 +389,8 @@ impl BashStmt {
             | BashStmt::Pipeline { span, .. }
             | BashStmt::AndList { span, .. }
             | BashStmt::OrList { span, .. }
-            | BashStmt::BraceGroup { span, .. } => *span,
+            | BashStmt::BraceGroup { span, .. }
+            | BashStmt::Coproc { span, .. } => *span,
         };
 
         // Convert bash_parser::Span to tracing::Span
@@ -405,6 +421,13 @@ impl fmt::Display for BashStmt {
             BashStmt::AndList { .. } => write!(f, "AndList"),
             BashStmt::OrList { .. } => write!(f, "OrList"),
             BashStmt::BraceGroup { body, .. } => write!(f, "BraceGroup({} stmts)", body.len()),
+            BashStmt::Coproc { name, body, .. } => {
+                if let Some(n) = name {
+                    write!(f, "Coproc({}, {} stmts)", n, body.len())
+                } else {
+                    write!(f, "Coproc({} stmts)", body.len())
+                }
+            }
         }
     }
 }
