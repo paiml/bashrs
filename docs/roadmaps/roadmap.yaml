@@ -82,3 +82,19 @@ roadmap:
   estimated_effort: null
   labels: []
   notes: null
+- id: PARSER-TUI-001
+  github_issue: null
+  item_type: task
+  title: 'New task: PARSER-TUI-001'
+  status: completed
+  priority: medium
+  assigned_to: null
+  created: 2025-12-16T17:17:45.428462627+00:00
+  updated: 2025-12-16T17:20:16.186514197+00:00
+  spec: null
+  acceptance_criteria: []
+  phases: []
+  subtasks: []
+  estimated_effort: null
+  labels: []
+  notes: null

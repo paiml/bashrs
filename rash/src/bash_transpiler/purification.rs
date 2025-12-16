@@ -392,6 +392,20 @@ impl Purifier {
                     span: *span,
                 })
             }
+
+            BashStmt::Coproc { name, body, span } => {
+                // Purify all statements in the coproc body
+                let mut purified_body = Vec::new();
+                for stmt in body {
+                    purified_body.push(self.purify_statement(stmt)?);
+                }
+
+                Ok(BashStmt::Coproc {
+                    name: name.clone(),
+                    body: purified_body,
+                    span: *span,
+                })
+            }
         }
     }
 
@@ -601,6 +615,12 @@ impl Purifier {
                     variable: variable.clone(),
                     pattern: purified_pattern,
                 })
+            }
+
+            BashExpr::CommandCondition(cmd) => {
+                // Issue #93: Purify command condition (command used as condition in if/while)
+                let purified_cmd = self.purify_statement(cmd)?;
+                Ok(BashExpr::CommandCondition(Box::new(purified_cmd)))
             }
         }
     }

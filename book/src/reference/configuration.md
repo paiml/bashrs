@@ -1,6 +1,6 @@
 # Configuration
 
-This chapter provides a complete reference for configuring bashrs v6.32.1 using configuration files, environment variables, and CLI options.
+This chapter provides a complete reference for configuring bashrs v6.44.0 using configuration files, environment variables, and CLI options.
 
 ## Table of Contents
 

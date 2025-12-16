@@ -296,6 +296,19 @@ impl Formatter {
                     .collect();
                 format!("{}{{ {}; }}", indent_str, stmts.join("; "))
             }
+
+            BashStmt::Coproc { name, body, .. } => {
+                // Format coproc: coproc NAME { cmd; }
+                let stmts: Vec<String> = body
+                    .iter()
+                    .map(|s| self.format_stmt(s, 0).trim().to_string())
+                    .collect();
+                if let Some(n) = name {
+                    format!("{}coproc {} {{ {}; }}", indent_str, n, stmts.join("; "))
+                } else {
+                    format!("{}coproc {{ {}; }}", indent_str, stmts.join("; "))
+                }
+            }
         }
     }
 
@@ -386,6 +399,11 @@ impl Formatter {
 
             BashExpr::RemoveLongestSuffix { variable, pattern } => {
                 format!("${{{}%%{}}}", variable, self.format_expr(pattern))
+            }
+
+            BashExpr::CommandCondition(cmd) => {
+                // Issue #93: Format command condition (command used as condition in if/while)
+                self.format_stmt(cmd, 0).trim().to_string()
             }
         }
     }

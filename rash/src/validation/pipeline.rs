@@ -135,13 +135,22 @@ impl ValidationPipeline {
             ));
         }
 
+        // Issue #94: Skip pipe check for table/formatting strings
+        // Strings that look like table borders (multiple |) are not command injection
+        let is_formatting_string = s
+            .chars()
+            .filter(|c| *c == '|')
+            .count() > 1
+            && !s.contains(";")
+            && !s.contains("$(")
+            && !s.contains("&&");
+
         // Check for command injection patterns
         let dangerous_patterns = [
             (
                 "; ",
                 "Semicolon command separator detected in string literal",
             ),
-            ("| ", "Pipe operator detected in string literal"),
             ("$(", "Command substitution detected in string literal"),
             (
                 "`",
@@ -169,6 +178,29 @@ impl ValidationPipeline {
                     message,
                     s.chars().take(50).collect::<String>()
                 )));
+            }
+        }
+
+        // Issue #94: Only check for pipe operator if not a formatting string
+        // Pipes in table formatting (like "| col1 | col2 |") are not command injection
+        if !is_formatting_string && s.contains("| ") {
+            // Check if this looks like a command pipe (e.g., "| cmd" pattern)
+            // Skip if it's at the start or end (likely table border)
+            let trimmed = s.trim();
+            if !trimmed.starts_with('|') && !trimmed.ends_with('|') {
+                // Only flag if there's a command-like word after the pipe
+                if let Some(pos) = s.find("| ") {
+                    let after_pipe = &s[pos + 2..].trim_start();
+                    // Check if what follows looks like a command (alphanumeric word)
+                    if !after_pipe.is_empty()
+                        && after_pipe.chars().next().is_some_and(|c| c.is_alphabetic())
+                    {
+                        return Err(RashError::ValidationError(format!(
+                            "Pipe operator detected in string literal: '{}'",
+                            s.chars().take(50).collect::<String>()
+                        )));
+                    }
+                }
             }
         }
 
@@ -448,5 +480,73 @@ impl ValidationPipeline {
         } else {
             errors.iter().any(|e| e.severity == super::Severity::Error)
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn create_test_pipeline() -> ValidationPipeline {
+        ValidationPipeline {
+            level: ValidationLevel::Strict,
+            strict_mode: true,
+        }
+    }
+
+    // Issue #94: Table formatting strings should not be flagged
+    #[test]
+    fn test_issue_94_table_formatting_ok() {
+        let pipeline = create_test_pipeline();
+        // Table formatting with multiple pipes is NOT a command injection
+        let result = pipeline.validate_string_literal("|     whisper.apr      |     whisper.cpp      |");
+        assert!(
+            result.is_ok(),
+            "Table formatting with pipes should NOT be flagged: {:?}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_issue_94_pipe_border_ok() {
+        let pipeline = create_test_pipeline();
+        // Table borders are OK
+        let result = pipeline.validate_string_literal("| col1 | col2 | col3 |");
+        assert!(result.is_ok(), "Table border should not be flagged");
+    }
+
+    #[test]
+    fn test_issue_94_single_pipe_border_ok() {
+        let pipeline = create_test_pipeline();
+        // Single pipe at start or end is OK (table border)
+        let result = pipeline.validate_string_literal("| some content");
+        assert!(result.is_ok(), "Leading pipe should not be flagged");
+    }
+
+    #[test]
+    fn test_issue_94_pipe_to_command_flagged() {
+        let pipeline = create_test_pipeline();
+        // Actual command pipe should still be flagged
+        let result = pipeline.validate_string_literal("cat file | rm -rf /");
+        assert!(
+            result.is_err(),
+            "Actual command pipe should be flagged"
+        );
+    }
+
+    #[test]
+    fn test_issue_94_semicolon_still_flagged() {
+        let pipeline = create_test_pipeline();
+        // Semicolon should still be flagged
+        let result = pipeline.validate_string_literal("cmd1; cmd2");
+        assert!(result.is_err(), "Semicolon command separator should be flagged");
+    }
+
+    #[test]
+    fn test_issue_94_command_substitution_still_flagged() {
+        let pipeline = create_test_pipeline();
+        // Command substitution should still be flagged
+        let result = pipeline.validate_string_literal("$(dangerous_command)");
+        assert!(result.is_err(), "Command substitution should be flagged");
     }
 }

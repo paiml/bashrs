@@ -5,6 +5,26 @@ use regex::Regex;
 
 static EXIT_OR_RETURN: Lazy<Regex> = Lazy::new(|| Regex::new(r"(?:exit|return)\s+\d+").unwrap());
 
+/// Issue #93: Check if exit/return is conditional (part of || or && chain)
+/// `cmd || exit 1` - exit only runs if cmd fails, code after IS reachable
+/// `cmd && exit 1` - exit only runs if cmd succeeds, code after IS reachable
+fn is_conditional_exit(line: &str) -> bool {
+    // Check if exit/return is preceded by || or &&
+    if let Some(pos) = line.find("exit") {
+        let before = &line[..pos];
+        if before.contains("||") || before.contains("&&") {
+            return true;
+        }
+    }
+    if let Some(pos) = line.find("return") {
+        let before = &line[..pos];
+        if before.contains("||") || before.contains("&&") {
+            return true;
+        }
+    }
+    false
+}
+
 pub fn check(source: &str) -> LintResult {
     let mut result = LintResult::new();
     let lines: Vec<&str> = source.lines().collect();
@@ -26,7 +46,12 @@ pub fn check(source: &str) -> LintResult {
             continue;
         }
 
+        // Issue #93: Check for exit/return
         if !found_exit && EXIT_OR_RETURN.is_match(trimmed) {
+            // Skip if exit/return is conditional (part of || or && chain)
+            if is_conditional_exit(trimmed) {
+                continue;
+            }
             found_exit = true;
             exit_line = line_num;
         } else if found_exit {
@@ -135,5 +160,53 @@ cmd2
 "#;
         // Only warns once
         assert_eq!(check(code).diagnostics.len(), 1);
+    }
+
+    // Issue #93: Conditional exit (cmd || exit) should NOT flag subsequent code
+    #[test]
+    fn test_issue_93_conditional_exit_or_ok() {
+        // From issue #93: cd /tmp || exit 1 followed by code
+        let code = r#"
+cd /tmp || exit 1
+echo "reachable"
+"#;
+        assert_eq!(
+            check(code).diagnostics.len(),
+            0,
+            "SC2317 must NOT flag code after cmd || exit 1"
+        );
+    }
+
+    #[test]
+    fn test_issue_93_conditional_exit_and_ok() {
+        // cmd && exit 1 - exit only on success, code after is reachable
+        let code = r#"
+test -f /nonexistent && exit 1
+echo "reachable"
+"#;
+        assert_eq!(check(code).diagnostics.len(), 0);
+    }
+
+    #[test]
+    fn test_issue_93_conditional_return_ok() {
+        let code = r#"
+check_something || return 1
+echo "continue"
+"#;
+        assert_eq!(check(code).diagnostics.len(), 0);
+    }
+
+    #[test]
+    fn test_issue_93_standalone_exit_still_flags() {
+        // Standalone exit 1 (not conditional) SHOULD flag subsequent code
+        let code = r#"
+exit 1
+echo "unreachable"
+"#;
+        assert_eq!(
+            check(code).diagnostics.len(),
+            1,
+            "Standalone exit should still flag unreachable code"
+        );
     }
 }

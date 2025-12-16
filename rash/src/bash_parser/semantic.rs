@@ -297,6 +297,13 @@ impl SemanticAnalyzer {
                     self.analyze_statement(stmt, scope)?;
                 }
             }
+
+            BashStmt::Coproc { body, .. } => {
+                // Analyze coproc body - runs asynchronously
+                for stmt in body {
+                    self.analyze_statement(stmt, scope)?;
+                }
+            }
         }
 
         Ok(())
@@ -436,6 +443,11 @@ impl SemanticAnalyzer {
                 }
                 // Analyze the pattern expression
                 self.analyze_expression(pattern, scope)?;
+            }
+
+            BashExpr::CommandCondition(cmd) => {
+                // Issue #93: Command condition - analyze the command
+                self.analyze_statement(cmd, scope)?;
             }
         }
 
