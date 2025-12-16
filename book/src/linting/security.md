@@ -111,35 +111,47 @@ cd "${HOME}/my projects"    # Quoted - handles spaces
 
 Automatically quotes unquoted variables.
 
-## SEC003: Unquoted find -exec
+## SEC003: Command Injection via find -exec sh -c
 
 **Severity**: Error (Critical)
 
 ### What it Detects
 
-`find -exec` with unquoted `{}` placeholder.
+`find -exec sh -c` or `find -exec bash -c` with `{}` embedded inside the shell command string.
 
 ### Why This Matters
 
-Unquoted `{}` in find -exec can lead to word splitting and injection attacks on filenames with spaces or special characters.
+When `{}` appears inside a shell command string (`sh -c '...{}...'`), filenames with special characters can lead to command injection. The `{}` is expanded by `find` BEFORE the shell parses the string, allowing malicious filenames to inject arbitrary commands.
+
+**Important**: Unquoted `{}` as a **separate argument** (`find -exec rm {} \;`) is **SAFE** because `find` passes the filename as a single argument to the command. The shell never interprets it.
 
 ### Examples
 
-❌ **VULNERABILITY**:
+❌ **VULNERABILITY** (command injection via embedded `{}`):
 ```bash
 #!/bin/bash
-find . -name "*.sh" -exec chmod +x {} \;  # SEC003: Unquoted {}
+find . -exec sh -c 'echo {}' \;          # SEC003: {} embedded in shell string
+find . -exec bash -c "rm {}" \;          # SEC003: {} embedded in shell string
 ```
 
-✅ **SAFE**:
+✅ **SAFE** (use positional parameters):
 ```bash
 #!/bin/bash
-find . -name "*.sh" -exec chmod +x "{}" \;  # Quoted - safe
+find . -exec sh -c 'echo "$1"' _ {} \;   # Safe: use positional params
+find . -exec bash -c 'rm "$1"' _ {} \;   # Safe: $1 is properly quoted
+```
+
+✅ **SAFE** (`{}` as separate argument - NOT in shell string):
+```bash
+#!/bin/bash
+find . -name "*.sh" -exec chmod +x {} \; # Safe: {} handled by find
+find . -type f -exec rm {} +             # Safe: batch mode
+find . -execdir mv {} {}.bak \;          # Safe: {} is separate argument
 ```
 
 ### Auto-fix
 
-Automatically quotes the `{}` placeholder.
+Suggests using positional parameters: `sh -c 'cmd "$1"' _ {}`
 
 ## SEC004: TLS Verification Disabled
 

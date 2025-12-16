@@ -93,28 +93,34 @@ git clone "${REPO}"
 
 **Auto-fix:** Wraps variable in double quotes: `"${VAR}"`
 
-### SEC003: Unquoted {} in find -exec
+### SEC003: Command Injection via find -exec sh -c
 
 **Severity:** Error
-**Auto-fix:** Yes (safe)
+**Auto-fix:** Yes (suggests positional params)
 
-Detects unquoted `{}` placeholder in `find -exec` commands.
+Detects `{}` embedded inside shell command strings in `find -exec sh -c` or `find -exec bash -c`.
 
-**Bad:**
+**Bad (command injection risk):**
 ```bash
-find . -name "*.sh" -exec chmod +x {} \;
-find /tmp -type f -exec rm {} \;
+find . -exec sh -c 'echo {}' \;
+find . -exec bash -c "rm {}" \;
 ```
 
-**Good:**
+**Good (use positional parameters):**
 ```bash
-find . -name "*.sh" -exec chmod +x "{}" \;
-find /tmp -type f -exec rm "{}" \;
+find . -exec sh -c 'echo "$1"' _ {} \;
+find . -exec bash -c 'rm "$1"' _ {} \;
 ```
 
-**Why it matters:** Filenames with spaces or special characters will break without quotes.
+**Safe (these do NOT trigger SEC003):**
+```bash
+find . -name "*.sh" -exec chmod +x {} \;  # Safe: {} is separate argument
+find /tmp -type f -exec rm {} +           # Safe: batch mode
+```
 
-**Auto-fix:** Changes `{}` to `"{}"`
+**Why it matters:** When `{}` is embedded in a shell command string, `find` expands it BEFORE the shell parses the string. Malicious filenames can inject arbitrary commands.
+
+**Auto-fix:** Suggests using `"$1"` with positional parameters
 
 ### SEC004: Hardcoded Credentials
 

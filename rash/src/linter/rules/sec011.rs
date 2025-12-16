@@ -71,11 +71,16 @@ pub fn check(source: &str) -> LintResult {
             }
         }
 
+        // Issue #89: Detect inline validation with && chains
+        // Pattern: [ -n "$VAR" ] && [ -d "$VAR" ] && rm -rf "$VAR"
+        let inline_validated = extract_inline_validated_vars(code_only);
+
         // Detect dangerous operations
         // Pattern: rm -rf "$VAR"
         if code_only.contains("rm") && code_only.contains("-rf") {
             if let Some(var_name) = extract_variable_from_rm(code_only) {
-                if !validated_vars.contains(&var_name) {
+                // Check if variable is validated (either from previous lines or inline)
+                if !validated_vars.contains(&var_name) && !inline_validated.contains(&var_name) {
                     let span = Span::new(line_num + 1, 1, line_num + 1, line.len());
 
                     let diag = Diagnostic::new(
@@ -96,7 +101,7 @@ pub fn check(source: &str) -> LintResult {
         // Pattern: chmod -R 777 "$VAR"
         if code_only.contains("chmod") && code_only.contains("-R") && code_only.contains("777") {
             if let Some(var_name) = extract_variable_from_chmod(code_only) {
-                if !validated_vars.contains(&var_name) {
+                if !validated_vars.contains(&var_name) && !inline_validated.contains(&var_name) {
                     let span = Span::new(line_num + 1, 1, line_num + 1, line.len());
 
                     let diag = Diagnostic::new(
@@ -117,7 +122,7 @@ pub fn check(source: &str) -> LintResult {
         // Pattern: chown -R user:group "$VAR"
         if code_only.contains("chown") && code_only.contains("-R") {
             if let Some(var_name) = extract_variable_from_chown(code_only) {
-                if !validated_vars.contains(&var_name) {
+                if !validated_vars.contains(&var_name) && !inline_validated.contains(&var_name) {
                     let span = Span::new(line_num + 1, 1, line_num + 1, line.len());
 
                     let diag = Diagnostic::new(
@@ -139,6 +144,39 @@ pub fn check(source: &str) -> LintResult {
     result
 }
 
+/// Issue #89: Extract variables validated inline with && chains
+/// Example: `[ -n "$VAR" ] && [ -d "$VAR" ] && rm -rf "$VAR"` → {"VAR"}
+fn extract_inline_validated_vars(line: &str) -> std::collections::HashSet<String> {
+    let mut validated = std::collections::HashSet::new();
+
+    // Look for [ -n "$VAR" ] or [ -d "$VAR" ] patterns before && rm/chmod/chown
+    // This validates the variable is non-empty or is a directory
+
+    // Find all [ -n "$VAR" ] patterns
+    for pattern in ["[ -n \"$", "[ -d \"$", "[ -e \"$", "[ -f \"$"] {
+        let mut search_start = 0;
+        while let Some(start) = line[search_start..].find(pattern) {
+            let abs_start = search_start + start + pattern.len();
+            if let Some(end) = line[abs_start..].find('"') {
+                let var_name = &line[abs_start..abs_start + end];
+                // Only count as validated if this test precedes a dangerous operation via &&
+                // Check if there's && after this test and before the dangerous operation
+                let after_test = &line[abs_start + end..];
+                if after_test.contains("&&")
+                    && (after_test.contains("rm ")
+                        || after_test.contains("chmod ")
+                        || after_test.contains("chown "))
+                {
+                    validated.insert(var_name.to_string());
+                }
+            }
+            search_start = abs_start;
+        }
+    }
+
+    validated
+}
+
 /// Extract variable name from validation pattern
 /// Example: `if [ -z "$VAR" ]` → Some("VAR")
 fn extract_validated_variable(line: &str) -> Option<String> {
@@ -155,10 +193,23 @@ fn extract_validated_variable(line: &str) -> Option<String> {
 /// Extract variable name from rm command
 /// Example: `rm -rf "$BUILD_DIR"` → Some("BUILD_DIR")
 fn extract_variable_from_rm(line: &str) -> Option<String> {
-    // Find "$VAR" pattern after rm -rf
-    if let Some(start) = line.find("\"$") {
-        if let Some(end) = line[start + 2..].find('"') {
-            let var_name = &line[start + 2..start + 2 + end];
+    // Find "$VAR" pattern specifically after rm -rf
+    // First find rm -rf or rm -r or rm --recursive
+    let rm_pos = if let Some(pos) = line.find("rm -rf") {
+        pos
+    } else if let Some(pos) = line.find("rm -r ") {
+        pos
+    } else if let Some(pos) = line.find("rm --recursive") {
+        pos
+    } else {
+        return None;
+    };
+
+    // Search for "$VAR" after the rm command
+    let after_rm = &line[rm_pos..];
+    if let Some(start) = after_rm.find("\"$") {
+        if let Some(end) = after_rm[start + 2..].find('"') {
+            let var_name = &after_rm[start + 2..start + 2 + end];
             return Some(var_name.to_string());
         }
     }
@@ -168,9 +219,13 @@ fn extract_variable_from_rm(line: &str) -> Option<String> {
 /// Extract variable name from chmod command
 /// Example: `chmod -R 777 "$DIR"` → Some("DIR")
 fn extract_variable_from_chmod(line: &str) -> Option<String> {
-    if let Some(start) = line.find("\"$") {
-        if let Some(end) = line[start + 2..].find('"') {
-            let var_name = &line[start + 2..start + 2 + end];
+    // Find chmod command position first
+    let chmod_pos = line.find("chmod")?;
+    let after_chmod = &line[chmod_pos..];
+
+    if let Some(start) = after_chmod.find("\"$") {
+        if let Some(end) = after_chmod[start + 2..].find('"') {
+            let var_name = &after_chmod[start + 2..start + 2 + end];
             return Some(var_name.to_string());
         }
     }
@@ -180,9 +235,13 @@ fn extract_variable_from_chmod(line: &str) -> Option<String> {
 /// Extract variable name from chown command
 /// Example: `chown -R user:group "$DIR"` → Some("DIR")
 fn extract_variable_from_chown(line: &str) -> Option<String> {
-    if let Some(start) = line.find("\"$") {
-        if let Some(end) = line[start + 2..].find('"') {
-            let var_name = &line[start + 2..start + 2 + end];
+    // Find chown command position first
+    let chown_pos = line.find("chown")?;
+    let after_chown = &line[chown_pos..];
+
+    if let Some(start) = after_chown.find("\"$") {
+        if let Some(end) = after_chown[start + 2..].find('"') {
+            let var_name = &after_chown[start + 2..start + 2 + end];
             return Some(var_name.to_string());
         }
     }
@@ -311,6 +370,85 @@ fi
             result.diagnostics.len(),
             0,
             "Should recognize -n validation"
+        );
+    }
+
+    // Issue #89: Inline validation with && chains
+    #[test]
+    fn test_SEC011_issue_89_inline_validation_with_and_chain() {
+        // From issue #89 reproduction case
+        let script = r#"[ -n "$TEMP_DIR" ] && [ -d "$TEMP_DIR" ] && rm -rf "$TEMP_DIR""#;
+        let result = check(script);
+
+        assert_eq!(
+            result.diagnostics.len(),
+            0,
+            "SEC011 should recognize inline validation with && chains"
+        );
+    }
+
+    #[test]
+    fn test_SEC011_issue_89_inline_n_validation() {
+        let script = r#"[ -n "$VAR" ] && rm -rf "$VAR""#;
+        let result = check(script);
+
+        assert_eq!(
+            result.diagnostics.len(),
+            0,
+            "SEC011 should recognize [ -n ] inline validation"
+        );
+    }
+
+    #[test]
+    fn test_SEC011_issue_89_inline_d_validation() {
+        let script = r#"[ -d "$DIR" ] && rm -rf "$DIR""#;
+        let result = check(script);
+
+        assert_eq!(
+            result.diagnostics.len(),
+            0,
+            "SEC011 should recognize [ -d ] inline validation"
+        );
+    }
+
+    #[test]
+    fn test_SEC011_issue_89_inline_if_block_validation() {
+        // Another valid pattern from issue #89
+        let script = r#"if [ -n "$VAR" ] && [ -d "$VAR" ]; then
+    rm -rf "$VAR"
+fi"#;
+        let result = check(script);
+
+        assert_eq!(
+            result.diagnostics.len(),
+            0,
+            "SEC011 should recognize if-block validation"
+        );
+    }
+
+    #[test]
+    fn test_SEC011_issue_89_still_detects_unvalidated() {
+        // Should still detect rm -rf without validation
+        let script = r#"rm -rf "$TEMP_DIR""#;
+        let result = check(script);
+
+        assert_eq!(
+            result.diagnostics.len(),
+            1,
+            "SEC011 should still detect unvalidated rm -rf"
+        );
+    }
+
+    #[test]
+    fn test_SEC011_issue_89_validation_wrong_var() {
+        // Validation of different variable shouldn't count
+        let script = r#"[ -n "$OTHER" ] && rm -rf "$TARGET""#;
+        let result = check(script);
+
+        assert_eq!(
+            result.diagnostics.len(),
+            1,
+            "SEC011 should flag when different variable is validated"
         );
     }
 }

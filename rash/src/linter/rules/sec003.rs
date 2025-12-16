@@ -294,4 +294,26 @@ find . -type f -exec chmod 644 {} +"#;
         let result = check(bash_code);
         assert_eq!(result.diagnostics.len(), 0);
     }
+
+    // Issue #87: SEC003 should NOT flag standard find -exec with {} as separate arg
+    #[test]
+    fn test_SEC003_issue_87_no_false_positive_dirname() {
+        // From issue #87 reproduction case
+        let script = r#"DIRS=$(find "$CORPUS" -name "Cargo.toml" -exec dirname {} \; 2>/dev/null | sort -u)"#;
+        let result = check(script);
+
+        assert_eq!(
+            result.diagnostics.len(),
+            0,
+            "SEC003 must NOT flag {{}} in 'find -exec dirname {{}} \\;' - it's a separate argument, not embedded in shell string"
+        );
+    }
+
+    #[test]
+    fn test_SEC003_issue_87_no_false_positive_command_substitution() {
+        // Another common pattern from issue
+        let script = "FILES=$(find /path -type f -exec basename {} \\;)";
+        let result = check(script);
+        assert_eq!(result.diagnostics.len(), 0);
+    }
 }
