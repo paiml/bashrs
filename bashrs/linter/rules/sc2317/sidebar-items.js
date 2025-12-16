@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"fn":["check"],"static":["EXIT_OR_RETURN"]};
+window.SIDEBAR_ITEMS = {"fn":["check","is_conditional_exit"],"static":["EXIT_OR_RETURN"]};

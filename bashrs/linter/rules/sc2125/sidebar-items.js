@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"fn":["check","contains_command_substitution","create_glob_assignment_diagnostic","is_array_assignment","is_comment_line","is_quoted_assignment"],"static":["GLOB_IN_ASSIGNMENT"]};
+window.SIDEBAR_ITEMS = {"fn":["check","contains_command_substitution","create_glob_assignment_diagnostic","has_brace_expansion","is_array_assignment","is_comment_line","is_quoted_assignment"],"static":["GLOB_IN_ASSIGNMENT"]};
