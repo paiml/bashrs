@@ -75,10 +75,11 @@ determinism_iterations = 10
 # Check POSIX compliance
 check_posix_compliance = true
 
-# Run mutation testing (on critical modules)
-run_mutation_tests = false  # Expensive, run manually
+# Mutation testing - LOCAL ONLY (too slow for GitHub Actions)
+# Run manually: make mutants OR make mutation-file FILE=path.rs
+run_mutation_tests = false
 
-# Minimum mutation kill rate when enabled
+# Minimum mutation kill rate when running locally
 min_mutation_kill_rate = 0.90
 
 # Performance benchmarks

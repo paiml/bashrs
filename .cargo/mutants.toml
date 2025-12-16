@@ -1,5 +1,10 @@
 # Mutation Testing Configuration for Rash
 # See: https://mutants.rs/config.html
+#
+# IMPORTANT: Run LOCALLY only - too slow for GitHub Actions CI
+# Usage: make mutants           (full ~60min)
+#        make mutation-file FILE=path/to/file.rs (single file ~5min)
+#        make mutants-quick     (changed files ~10min)
 
 # Test only the main rash package (exclude rash-mcp which has external deps)
 test_package = ["bashrs"]
