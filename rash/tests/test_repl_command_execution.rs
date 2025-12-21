@@ -1,3 +1,4 @@
+#![allow(deprecated)]
 #![allow(clippy::unwrap_used)] // Tests can use unwrap() for simplicity
 #![allow(clippy::expect_used)]
 //! REPL Command Execution Tests

@@ -27,6 +27,7 @@
 - [Security Rules (SEC001-SEC008)](./linting/security.md)
 - [Determinism Rules (DET001-DET003)](./linting/determinism.md)
 - [Idempotency Rules (IDEM001-IDEM003)](./linting/idempotency.md)
+- [False Positive Testing](./linting/false-positives.md)
 - [Writing Custom Rules](./linting/custom-rules.md)
 
 ## Shell Configuration Management

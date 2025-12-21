@@ -1,3 +1,4 @@
+#![allow(deprecated)]
 #![allow(clippy::unwrap_used)] // Tests can use unwrap() for simplicity
 #![allow(clippy::expect_used)]
 //! EXTREME TDD: Fix Safety Taxonomy Validation Tests
@@ -17,6 +18,7 @@ use std::fs;
 use tempfile::TempDir;
 
 /// Helper to create bashrs command
+#[allow(deprecated)]
 fn rash_cmd() -> Command {
     Command::cargo_bin("bashrs").expect("Failed to find bashrs binary")
 }

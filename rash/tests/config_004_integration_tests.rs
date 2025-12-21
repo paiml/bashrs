@@ -1,3 +1,4 @@
+#![allow(deprecated)]
 #![allow(clippy::unwrap_used)] // Tests can use unwrap() for simplicity
 #![allow(clippy::expect_used)]
 //! Integration tests for CONFIG-004: Non-Deterministic Constructs
@@ -9,6 +10,7 @@ use std::path::PathBuf;
 use tempfile::TempDir;
 
 /// Helper to create bashrs command
+#[allow(deprecated)]
 fn bashrs_cmd() -> Command {
     Command::cargo_bin("bashrs").expect("Failed to find bashrs binary")
 }

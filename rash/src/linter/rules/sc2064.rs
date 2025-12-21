@@ -116,7 +116,11 @@ mod tests {
         // F082: Double quotes in trap is intentional - no warning
         let code = r#"trap "rm $tmpfile" EXIT"#;
         let result = check(code);
-        assert_eq!(result.diagnostics.len(), 0, "SC2064 should not fire - double quotes are intentional");
+        assert_eq!(
+            result.diagnostics.len(),
+            0,
+            "SC2064 should not fire - double quotes are intentional"
+        );
     }
 
     #[test]

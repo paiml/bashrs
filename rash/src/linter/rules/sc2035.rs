@@ -34,8 +34,7 @@ static BARE_GLOB: Lazy<Regex> = Lazy::new(|| {
 /// Matches: -name 'pattern', -iname "pattern", -path 'pattern'
 #[allow(clippy::expect_used)] // Compile-time regex, panic on invalid pattern is acceptable
 static FIND_PATTERN_ARG: Lazy<Regex> = Lazy::new(|| {
-    Regex::new(r#"-(name|iname|path)\s+['"]([^'"]+)['"]"#)
-        .expect("valid find pattern regex")
+    Regex::new(r#"-(name|iname|path)\s+['"]([^'"]+)['"]"#).expect("valid find pattern regex")
 });
 
 /// Issue #104: Regex to detect grep/egrep/fgrep pattern arguments that are quoted
@@ -47,6 +46,12 @@ static GREP_PATTERN_ARG: Lazy<Regex> = Lazy::new(|| {
     Regex::new(r#"\b[ef]?grep\s+(?:-[a-zA-Z0-9]+\s+)*['"]([^'"]+)['"]"#)
         .expect("valid grep pattern regex")
 });
+
+/// FP018: Regex to detect stderr redirect to /dev/null
+/// Matches: 2>/dev/null, 2> /dev/null, &>/dev/null, &> /dev/null
+#[allow(clippy::expect_used)] // Compile-time regex, panic on invalid pattern is acceptable
+static STDERR_REDIRECT_DEVNULL: Lazy<Regex> =
+    Lazy::new(|| Regex::new(r"(?:2|&)>\s*/dev/null").expect("valid stderr redirect regex"));
 
 /// Check if glob is safe (prefixed with ./ or / or $)
 fn is_glob_safe(line: &str, glob_start: usize) -> bool {
@@ -88,6 +93,12 @@ fn is_inside_grep_pattern(line: &str, glob_start: usize, glob_end: usize) -> boo
     false
 }
 
+/// FP018: Check if stderr is redirected to /dev/null
+/// When stderr is redirected, user is handling the "no files match" case
+fn has_stderr_redirect_to_devnull(line: &str) -> bool {
+    STDERR_REDIRECT_DEVNULL.is_match(line)
+}
+
 /// Create diagnostic for unsafe glob pattern
 fn create_unsafe_glob_diagnostic(
     glob_start: usize,
@@ -117,6 +128,12 @@ pub fn check(source: &str) -> LintResult {
         let line_num = line_num + 1;
 
         if !should_check_line(line) {
+            continue;
+        }
+
+        // FP018: Skip if stderr is redirected to /dev/null
+        // User is already handling the "no files match" case
+        if has_stderr_redirect_to_devnull(line) {
             continue;
         }
 
@@ -341,5 +358,146 @@ mod tests {
             1,
             "SC2035 SHOULD flag unquoted globs as file args to grep"
         );
+    }
+
+    // ===== FP018: Stderr redirect handling =====
+    // When stderr is redirected to /dev/null, user is handling "no match" case
+
+    #[test]
+    fn test_FP018_glob_with_stderr_redirect_not_flagged() {
+        // User redirects stderr - they're handling "no files match" scenario
+        let code = r#"ls *.txt 2>/dev/null"#;
+        let result = check(code);
+        assert_eq!(
+            result.diagnostics.len(),
+            0,
+            "SC2035 must NOT flag globs when stderr is redirected to /dev/null"
+        );
+    }
+
+    #[test]
+    fn test_FP018_glob_with_stderr_redirect_space_not_flagged() {
+        let code = r#"ls *.txt 2> /dev/null"#;
+        let result = check(code);
+        assert_eq!(
+            result.diagnostics.len(),
+            0,
+            "SC2035 must NOT flag globs with spaced stderr redirect"
+        );
+    }
+
+    #[test]
+    fn test_FP018_glob_with_stderr_ampersand_redirect_not_flagged() {
+        // &>/dev/null redirects both stdout and stderr
+        let code = r#"ls *.txt &>/dev/null"#;
+        let result = check(code);
+        assert_eq!(
+            result.diagnostics.len(),
+            0,
+            "SC2035 must NOT flag globs with &>/dev/null"
+        );
+    }
+
+    #[test]
+    fn test_FP018_glob_with_stderr_redirect_or_not_flagged() {
+        // cmd || true also handles errors
+        let code = r#"ls *.txt 2>/dev/null || true"#;
+        let result = check(code);
+        assert_eq!(
+            result.diagnostics.len(),
+            0,
+            "SC2035 must NOT flag globs with stderr redirect and || true"
+        );
+    }
+
+    #[test]
+    fn test_FP018_glob_without_redirect_still_flagged() {
+        // Without redirect, should still flag
+        let code = r#"ls *.txt"#;
+        let result = check(code);
+        assert_eq!(
+            result.diagnostics.len(),
+            1,
+            "SC2035 SHOULD flag globs without error handling"
+        );
+    }
+}
+
+#[cfg(test)]
+mod property_tests {
+    use super::*;
+    use proptest::prelude::*;
+
+    // Property: Any command with 2>/dev/null should NOT trigger SC2035
+    proptest! {
+        #[test]
+        fn prop_stderr_redirect_never_flags(
+            cmd in "(ls|cat|rm|mv|cp|chmod|grep)",
+            ext in "[a-z]{1,4}"
+        ) {
+            let code = format!("{} *.{} 2>/dev/null", cmd, ext);
+            let result = check(&code);
+            prop_assert!(
+                result.diagnostics.is_empty(),
+                "SC2035 must NOT flag with stderr redirect: {}",
+                code
+            );
+        }
+
+        #[test]
+        fn prop_ampersand_redirect_never_flags(
+            cmd in "(ls|cat|rm|mv|cp|chmod|grep)",
+            ext in "[a-z]{1,4}"
+        ) {
+            let code = format!("{} *.{} &>/dev/null", cmd, ext);
+            let result = check(&code);
+            prop_assert!(
+                result.diagnostics.is_empty(),
+                "SC2035 must NOT flag with &>/dev/null: {}",
+                code
+            );
+        }
+
+        #[test]
+        fn prop_stderr_redirect_with_space_never_flags(
+            cmd in "(ls|cat|rm|mv|cp|chmod|grep)",
+            ext in "[a-z]{1,4}"
+        ) {
+            let code = format!("{} *.{} 2> /dev/null", cmd, ext);
+            let result = check(&code);
+            prop_assert!(
+                result.diagnostics.is_empty(),
+                "SC2035 must NOT flag with spaced stderr redirect: {}",
+                code
+            );
+        }
+
+        #[test]
+        fn prop_no_redirect_still_flags(
+            cmd in "(ls|cat|rm|mv|cp|chmod|grep)",
+            ext in "[a-z]{1,4}"
+        ) {
+            let code = format!("{} *.{}", cmd, ext);
+            let result = check(&code);
+            prop_assert!(
+                !result.diagnostics.is_empty(),
+                "SC2035 SHOULD flag without redirect: {}",
+                code
+            );
+        }
+
+        #[test]
+        fn prop_safe_prefix_never_flags(
+            cmd in "(ls|cat|rm|mv|cp|chmod|grep)",
+            ext in "[a-z]{1,4}"
+        ) {
+            let code = format!("{} ./*.{}", cmd, ext);
+            let result = check(&code);
+            prop_assert!(
+                result.diagnostics.is_empty(),
+                "SC2035 must NOT flag with ./ prefix: {}",
+                code
+            );
+        }
     }
 }

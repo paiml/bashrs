@@ -69,9 +69,7 @@ fn is_redirect_to_user_writable(line: &str) -> bool {
     if let Some(redirect_pos) = line.find('>') {
         let after_redirect = &line[redirect_pos..];
         // Skip the > or >> and any whitespace
-        let target = after_redirect
-            .trim_start_matches('>')
-            .trim_start();
+        let target = after_redirect.trim_start_matches('>').trim_start();
 
         // Check if target starts with any user-writable path
         for path in USER_WRITABLE_PATHS {

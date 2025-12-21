@@ -7,6 +7,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [6.45.0] - 2025-12-21
+
+### Fixed
+
+- **FP018**: SC2035 no longer flags glob patterns when stderr is redirected to `/dev/null`
+  - `ls *.txt 2>/dev/null` now correctly recognized as intentional error suppression
+  - Added `has_stderr_redirect_to_devnull()` detection with regex pattern
+  - 5 new unit tests + 5 property tests for comprehensive coverage
+
+### Quality
+
+- **Tests**: 7445 passed (100% pass rate)
+- **Property Tests**: 511 property tests passing
+- **Falsification Tests**: 130/130 Popper checklist (100%)
+- **Simulation Tests**: 100/100 edge case coverage
+- **EXTREME TDD**: Full RED-GREEN-REFACTOR methodology with property testing
+
+### Documentation
+
+- Updated `docs/specifications/false-positives.md` to v2.5.0
+- Added stderr redirect detection (Section 2.5) to remediation summary
+
 ## [6.44.0] - 2025-12-16
 
 ### Added

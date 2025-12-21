@@ -1,3 +1,4 @@
+#![allow(deprecated)]
 #![allow(clippy::unwrap_used)]
 #![allow(clippy::expect_used)]
 
@@ -10,6 +11,7 @@ use std::fs;
 use tempfile::TempDir;
 
 /// Helper function to create rash command
+#[allow(deprecated)]
 fn rash_cmd() -> Command {
     Command::cargo_bin("bashrs").expect("Failed to find bashrs binary")
 }

@@ -1,3 +1,4 @@
+#![allow(deprecated)]
 #![allow(clippy::unwrap_used)]
 #![allow(clippy::expect_used)]
 // Tests can use unwrap() for simplicity
@@ -9,6 +10,7 @@ use assert_cmd::Command;
 use std::fs;
 use tempfile::TempDir;
 
+#[allow(deprecated)]
 fn rash_cmd() -> Command {
     Command::cargo_bin("bashrs").expect("Failed to find bashrs binary")
 }

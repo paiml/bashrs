@@ -1,3 +1,4 @@
+#![allow(deprecated)]
 #![allow(clippy::unwrap_used)] // Tests can use unwrap() for simplicity
 #![allow(clippy::expect_used)]
 // test_format_command.rs - EXTREME TDD tests for bashrs format command
@@ -8,6 +9,7 @@ use std::fs;
 use tempfile::TempDir;
 
 /// Helper function to create rash command
+#[allow(deprecated)]
 fn rash_cmd() -> Command {
     Command::cargo_bin("bashrs").expect("Failed to find bashrs binary")
 }

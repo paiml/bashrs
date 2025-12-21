@@ -1,3 +1,4 @@
+#![allow(deprecated)]
 #![allow(clippy::unwrap_used)] // Tests can use unwrap() for simplicity
 #![allow(clippy::expect_used)]
 //! Test for Issue #10: Dockerfile-specific quality scoring
@@ -8,6 +9,7 @@ use assert_cmd::Command;
 use predicates::prelude::*;
 use std::fs;
 
+#[allow(deprecated)]
 fn rash_cmd() -> Command {
     Command::cargo_bin("bashrs").expect("Failed to find bashrs binary")
 }

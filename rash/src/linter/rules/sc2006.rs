@@ -32,15 +32,13 @@ use std::collections::HashSet;
 
 /// Regex to detect single-quoted heredoc: << 'DELIM' or <<- 'DELIM'
 #[allow(clippy::expect_used)] // Compile-time regex, panic on invalid pattern is acceptable
-static HEREDOC_SINGLE_QUOTED: Lazy<Regex> = Lazy::new(|| {
-    Regex::new(r#"<<-?\s*'(\w+)'"#).expect("valid single-quoted heredoc regex")
-});
+static HEREDOC_SINGLE_QUOTED: Lazy<Regex> =
+    Lazy::new(|| Regex::new(r#"<<-?\s*'(\w+)'"#).expect("valid single-quoted heredoc regex"));
 
 /// Regex to detect double-quoted heredoc: << "DELIM" or <<- "DELIM"
 #[allow(clippy::expect_used)] // Compile-time regex, panic on invalid pattern is acceptable
-static HEREDOC_DOUBLE_QUOTED: Lazy<Regex> = Lazy::new(|| {
-    Regex::new(r#"<<-?\s*"(\w+)""#).expect("valid double-quoted heredoc regex")
-});
+static HEREDOC_DOUBLE_QUOTED: Lazy<Regex> =
+    Lazy::new(|| Regex::new(r#"<<-?\s*"(\w+)""#).expect("valid double-quoted heredoc regex"));
 
 /// Regex to detect backtick command substitution: `command`
 #[allow(clippy::expect_used)] // Compile-time regex, panic on invalid pattern is acceptable
@@ -50,8 +48,10 @@ static BACKTICK_PATTERN: Lazy<Regex> =
 /// F080: Regex to detect assignment context: var=`cmd` or local/export/readonly var=`cmd`
 #[allow(clippy::expect_used)] // Compile-time regex, panic on invalid pattern is acceptable
 static ASSIGNMENT_BACKTICK: Lazy<Regex> = Lazy::new(|| {
-    Regex::new(r"(?:^|;|\s)(?:local|export|readonly|declare|typeset)?\s*[A-Za-z_][A-Za-z0-9_]*=`[^`]+`")
-        .expect("valid assignment backtick regex")
+    Regex::new(
+        r"(?:^|;|\s)(?:local|export|readonly|declare|typeset)?\s*[A-Za-z_][A-Za-z0-9_]*=`[^`]+`",
+    )
+    .expect("valid assignment backtick regex")
 });
 
 /// Issue #96: Parse heredoc regions and return line numbers inside quoted heredocs
