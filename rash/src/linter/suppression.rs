@@ -449,8 +449,9 @@ mod integration_tests {
     /// Integration test: Verify next-line suppression works end-to-end
     #[test]
     fn test_integration_next_line_suppression_sc2006() {
-        // Script with backticks (normally triggers SC2006)
-        let script_without_suppression = "result=`date`";
+        // Script with backticks in non-assignment context (triggers SC2006)
+        // Note: F080 fix means assignments don't trigger SC2006, so use echo
+        let script_without_suppression = "echo `date`";
         let result = lint_shell(script_without_suppression);
 
         // Should detect SC2006 without suppression
@@ -460,7 +461,7 @@ mod integration_tests {
         );
 
         // Script with next-line suppression
-        let script_with_suppression = "# bashrs disable-next-line=SC2006\nresult=`date`";
+        let script_with_suppression = "# bashrs disable-next-line=SC2006\necho `date`";
         let result = lint_shell(script_with_suppression);
 
         // Should NOT detect SC2006 with suppression

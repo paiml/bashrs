@@ -51,11 +51,60 @@ fn calculate_end_column(line: &str, var_end: usize, is_braced: bool) -> usize {
     }
 }
 
-/// Check if variable is in arithmetic context (inside $(( )))
+/// Check if variable is in arithmetic context (inside $(( )) or (( )))
+/// Issue #107: Also handles C-style for loops, standalone (( )), while/if (( ))
 fn is_in_arithmetic_context(line: &str, dollar_pos: usize, var_end: usize) -> bool {
     let before = &line[..dollar_pos];
     let after = &line[var_end..];
-    before.contains("$((") && after.contains("))")
+
+    // Case 1: Command substitution arithmetic $(( ))
+    if before.contains("$((") && after.contains("))") {
+        return true;
+    }
+
+    // Case 2: Standalone arithmetic (( )) - for loops, while, if, statements
+    // Look for (( that is NOT preceded by $ (to distinguish from $(( ))
+    if let Some(paren_pos) = before.rfind("((") {
+        // Verify it's standalone (( not $((
+        let is_standalone = if paren_pos > 0 {
+            !before[..paren_pos].ends_with('$')
+        } else {
+            true
+        };
+
+        if is_standalone && after.contains("))") {
+            return true;
+        }
+    }
+
+    false
+}
+
+/// Issue #105: Check if variable is inside [[ ]] (bash extended test)
+/// In [[ ]], word splitting and glob expansion do NOT occur on unquoted variables
+/// This is safe: [[ -n $var ]] (no word splitting inside [[ ]])
+/// This is NOT safe: [ -n $var ] (word splitting occurs in [ ])
+fn is_in_double_bracket_context(line: &str, dollar_pos: usize, var_end: usize) -> bool {
+    let before = &line[..dollar_pos];
+    let after = &line[var_end..];
+
+    // Check for [[ before and ]] after
+    // Must be [[ not [ (single bracket still has word splitting)
+    if let Some(open_pos) = before.rfind("[[") {
+        // Make sure it's not a single bracket by checking the character before
+        let is_double = if open_pos > 0 {
+            // Check there's no [ immediately before (would be [[[)
+            !before[..open_pos].ends_with('[')
+        } else {
+            true
+        };
+
+        if is_double && after.contains("]]") {
+            return true;
+        }
+    }
+
+    false
 }
 
 /// Check if variable is already quoted
@@ -162,7 +211,8 @@ pub fn check(source: &str) -> LintResult {
             continue;
         }
 
-        let is_arithmetic = line.contains("$((") || line.contains("(( ");
+        // Issue #107: Check for any arithmetic context - $(( )) or standalone (( ))
+        let is_arithmetic = line.contains("$((") || line.contains("((");
 
         for cap in var_pattern.captures_iter(line) {
             let var_capture = match cap.name("brace").or_else(|| cap.name("simple")) {
@@ -183,6 +233,11 @@ pub fn check(source: &str) -> LintResult {
             }
 
             if is_already_quoted(line, dollar_pos, var_capture.end()) {
+                continue;
+            }
+
+            // Issue #105: Skip if in [[ ]] context (no word splitting in bash extended test)
+            if is_in_double_bracket_context(line, dollar_pos, var_capture.end()) {
                 continue;
             }
 
@@ -1205,5 +1260,140 @@ fi
                     "Variables inside quoted strings should not be flagged. Code: '{}'", bash_code);
             }
         }
+    }
+
+    // ===== Issue #105: Safe [[ ]] context tests =====
+    // Variables in [[ ]] are safe - no word splitting or glob expansion
+
+    #[test]
+    fn test_FP_105_double_bracket_n_test_not_flagged() {
+        let code = r#"[[ -n $var ]]"#;
+        let result = check(code);
+        assert_eq!(
+            result.diagnostics.len(),
+            0,
+            "SC2086 must NOT flag unquoted variable in [[ -n $var ]]"
+        );
+    }
+
+    #[test]
+    fn test_FP_105_double_bracket_z_test_not_flagged() {
+        let code = r#"[[ -z $var ]]"#;
+        let result = check(code);
+        assert_eq!(
+            result.diagnostics.len(),
+            0,
+            "SC2086 must NOT flag unquoted variable in [[ -z $var ]]"
+        );
+    }
+
+    #[test]
+    fn test_FP_105_double_bracket_equality_not_flagged() {
+        let code = r#"[[ $var = "value" ]]"#;
+        let result = check(code);
+        assert_eq!(
+            result.diagnostics.len(),
+            0,
+            "SC2086 must NOT flag unquoted variable in [[ $var = ... ]]"
+        );
+    }
+
+    #[test]
+    fn test_FP_105_double_bracket_comparison_not_flagged() {
+        let code = r#"[[ $x -eq $y ]]"#;
+        let result = check(code);
+        assert_eq!(
+            result.diagnostics.len(),
+            0,
+            "SC2086 must NOT flag unquoted variables in [[ $x -eq $y ]]"
+        );
+    }
+
+    #[test]
+    fn test_FP_105_double_bracket_regex_not_flagged() {
+        let code = r#"[[ $var =~ ^[0-9]+$ ]]"#;
+        let result = check(code);
+        assert_eq!(
+            result.diagnostics.len(),
+            0,
+            "SC2086 must NOT flag unquoted variable in regex match"
+        );
+    }
+
+    #[test]
+    fn test_FP_105_single_bracket_still_flagged() {
+        // Single brackets DO need quoting
+        let code = r#"[ -n $var ]"#;
+        let result = check(code);
+        assert_eq!(
+            result.diagnostics.len(),
+            1,
+            "SC2086 SHOULD flag unquoted variable in single bracket [ ]"
+        );
+    }
+
+    // ===== Issue #107: C-style for loop arithmetic context =====
+    // Variables inside (( )) are in arithmetic context and don't need quoting
+
+    #[test]
+    fn test_FP_107_cstyle_for_loop_not_flagged() {
+        // C-style for loop is arithmetic context
+        let code = r#"for ((i=0; i<$n; i++)); do echo "loop"; done"#;
+        let result = check(code);
+        // Should not flag $n inside (( ))
+        assert_eq!(
+            result.diagnostics.len(),
+            0,
+            "SC2086 must NOT flag variables inside C-style for (( )) loop"
+        );
+    }
+
+    #[test]
+    fn test_FP_107_double_paren_arithmetic_not_flagged() {
+        // Standalone (( )) is arithmetic context
+        let code = r#"(( count = $x + $y ))"#;
+        let result = check(code);
+        assert_eq!(
+            result.diagnostics.len(),
+            0,
+            "SC2086 must NOT flag variables inside standalone (( )) arithmetic"
+        );
+    }
+
+    #[test]
+    fn test_FP_107_while_arithmetic_not_flagged() {
+        // while (( )) is arithmetic context
+        let code = r#"while (( $i < $max )); do echo $i; done"#;
+        let result = check(code);
+        // Should flag echo $i but NOT the ones inside (( ))
+        assert_eq!(
+            result.diagnostics.len(),
+            1,
+            "SC2086 should only flag echo $i, not variables in (( ))"
+        );
+    }
+
+    #[test]
+    fn test_FP_107_if_arithmetic_not_flagged() {
+        // if (( )) is arithmetic context
+        let code = r#"if (( $x > 0 )); then echo yes; fi"#;
+        let result = check(code);
+        assert_eq!(
+            result.diagnostics.len(),
+            0,
+            "SC2086 must NOT flag variables inside if (( )) condition"
+        );
+    }
+
+    #[test]
+    fn test_FP_107_arithmetic_increment_not_flagged() {
+        // (( i++ )) and (( i+=1 )) are arithmetic
+        let code = r#"(( $count++ ))"#;
+        let result = check(code);
+        assert_eq!(
+            result.diagnostics.len(),
+            0,
+            "SC2086 must NOT flag variable in arithmetic increment"
+        );
     }
 }

@@ -18,14 +18,34 @@ use crate::linter::{Diagnostic, LintResult, Severity, Span};
 use once_cell::sync::Lazy;
 use regex::Regex;
 
+#[allow(clippy::unwrap_used)] // Compile-time regex, panic on invalid pattern is acceptable
 static UNSAFE_COMMAND: Lazy<Regex> = Lazy::new(|| {
     // Match commands that take file arguments
     Regex::new(r"^(?:.*\s+)?(rm|cat|grep|ls|mv|cp|chmod|chown|find|xargs|echo)\b").unwrap()
 });
 
+#[allow(clippy::expect_used)] // Compile-time regex, panic on invalid pattern is acceptable
 static BARE_GLOB: Lazy<Regex> = Lazy::new(|| {
     // Match bare globs (*.ext) that aren't prefixed with ./ or / or $
-    Regex::new(r"\*\.[a-zA-Z0-9]+\b").unwrap()
+    Regex::new(r"\*\.[a-zA-Z0-9]+\b").expect("valid bare glob regex")
+});
+
+/// Issue #96: Regex to detect find pattern arguments that are quoted
+/// Matches: -name 'pattern', -iname "pattern", -path 'pattern'
+#[allow(clippy::expect_used)] // Compile-time regex, panic on invalid pattern is acceptable
+static FIND_PATTERN_ARG: Lazy<Regex> = Lazy::new(|| {
+    Regex::new(r#"-(name|iname|path)\s+['"]([^'"]+)['"]"#)
+        .expect("valid find pattern regex")
+});
+
+/// Issue #104: Regex to detect grep/egrep/fgrep pattern arguments that are quoted
+/// Matches: grep 'pattern', grep -e 'pattern', grep -E 'pattern', egrep 'pattern'
+#[allow(clippy::expect_used)] // Compile-time regex, panic on invalid pattern is acceptable
+static GREP_PATTERN_ARG: Lazy<Regex> = Lazy::new(|| {
+    // Match grep/egrep/fgrep followed by optional flags then a quoted pattern
+    // Pattern: (e|f)?grep ... ['"]pattern['"]
+    Regex::new(r#"\b[ef]?grep\s+(?:-[a-zA-Z0-9]+\s+)*['"]([^'"]+)['"]"#)
+        .expect("valid grep pattern regex")
 });
 
 /// Check if glob is safe (prefixed with ./ or / or $)
@@ -36,6 +56,36 @@ fn is_glob_safe(line: &str, glob_start: usize) -> bool {
 
     let before = &line[..glob_start];
     before.ends_with("./") || before.ends_with('/') || before.ends_with('$')
+}
+
+/// Issue #96: Check if glob position is inside a quoted find -name/-iname/-path argument
+/// These patterns are for find, not shell expansion, so they're safe when quoted
+fn is_inside_find_pattern(line: &str, glob_start: usize, glob_end: usize) -> bool {
+    // Check if this line has a find command with quoted pattern arguments
+    for cap in FIND_PATTERN_ARG.captures_iter(line) {
+        if let Some(pattern_match) = cap.get(2) {
+            // Check if the glob falls within this pattern match
+            if glob_start >= pattern_match.start() && glob_end <= pattern_match.end() {
+                return true;
+            }
+        }
+    }
+    false
+}
+
+/// Issue #104: Check if glob position is inside a quoted grep pattern argument
+/// These patterns are regex patterns, not shell globs, so they're safe when quoted
+fn is_inside_grep_pattern(line: &str, glob_start: usize, glob_end: usize) -> bool {
+    // Check if this line has a grep command with quoted pattern arguments
+    for cap in GREP_PATTERN_ARG.captures_iter(line) {
+        if let Some(pattern_match) = cap.get(1) {
+            // Check if the glob falls within this pattern match
+            if glob_start >= pattern_match.start() && glob_end <= pattern_match.end() {
+                return true;
+            }
+        }
+    }
+    false
 }
 
 /// Create diagnostic for unsafe glob pattern
@@ -73,12 +123,24 @@ pub fn check(source: &str) -> LintResult {
         // Find all bare globs on this line
         for mat in BARE_GLOB.find_iter(line) {
             let glob_start = mat.start();
+            let glob_end = mat.end();
 
+            // Skip if glob is safe (prefixed with ./ or / or $)
             if is_glob_safe(line, glob_start) {
                 continue;
             }
 
-            let diagnostic = create_unsafe_glob_diagnostic(glob_start, mat.end(), line_num);
+            // Issue #96: Skip if glob is inside a quoted find -name/-iname/-path argument
+            if is_inside_find_pattern(line, glob_start, glob_end) {
+                continue;
+            }
+
+            // Issue #104: Skip if glob is inside a quoted grep pattern argument
+            if is_inside_grep_pattern(line, glob_start, glob_end) {
+                continue;
+            }
+
+            let diagnostic = create_unsafe_glob_diagnostic(glob_start, glob_end, line_num);
             result.add(diagnostic);
         }
     }
@@ -161,5 +223,123 @@ mod tests {
         let code = r#"rm file.txt"#;
         let result = check(code);
         assert_eq!(result.diagnostics.len(), 0);
+    }
+
+    // ===== Issue #96: find -name pattern tests =====
+    // Patterns after find -name/-iname/-path are for find, not shell expansion
+
+    #[test]
+    fn test_FP_096_find_name_not_flagged() {
+        let code = r#"find . -name '*.json'"#;
+        let result = check(code);
+        assert_eq!(
+            result.diagnostics.len(),
+            0,
+            "SC2035 must NOT flag find -name patterns"
+        );
+    }
+
+    #[test]
+    fn test_FP_096_find_iname_not_flagged() {
+        let code = r#"find /tmp -iname '*.TXT'"#;
+        let result = check(code);
+        assert_eq!(
+            result.diagnostics.len(),
+            0,
+            "SC2035 must NOT flag find -iname patterns"
+        );
+    }
+
+    #[test]
+    fn test_FP_096_find_path_not_flagged() {
+        let code = r#"find . -path '*.log'"#;
+        let result = check(code);
+        assert_eq!(
+            result.diagnostics.len(),
+            0,
+            "SC2035 must NOT flag find -path patterns"
+        );
+    }
+
+    #[test]
+    fn test_FP_096_find_name_unquoted_still_flagged() {
+        // Unquoted glob after find -name IS dangerous (shell expands before find sees it)
+        let code = r#"find . -name *.json"#;
+        let result = check(code);
+        assert_eq!(
+            result.diagnostics.len(),
+            1,
+            "SC2035 SHOULD flag unquoted find -name patterns"
+        );
+    }
+
+    #[test]
+    fn test_FP_096_find_name_double_quoted_not_flagged() {
+        let code = r#"find . -name "*.json""#;
+        let result = check(code);
+        assert_eq!(
+            result.diagnostics.len(),
+            0,
+            "SC2035 must NOT flag double-quoted find -name patterns"
+        );
+    }
+
+    // ===== Issue #104: grep pattern tests =====
+    // Patterns after grep are regex patterns, not shell globs
+
+    #[test]
+    fn test_FP_104_grep_quoted_pattern_not_flagged() {
+        let code = r#"grep -r '*.c' ."#;
+        let result = check(code);
+        assert_eq!(
+            result.diagnostics.len(),
+            0,
+            "SC2035 must NOT flag quoted grep patterns"
+        );
+    }
+
+    #[test]
+    fn test_FP_104_grep_e_pattern_not_flagged() {
+        let code = r#"grep -e '*.log' files.txt"#;
+        let result = check(code);
+        assert_eq!(
+            result.diagnostics.len(),
+            0,
+            "SC2035 must NOT flag grep -e patterns"
+        );
+    }
+
+    #[test]
+    fn test_FP_104_grep_E_pattern_not_flagged() {
+        let code = r#"grep -E '.*\.txt' ."#;
+        let result = check(code);
+        assert_eq!(
+            result.diagnostics.len(),
+            0,
+            "SC2035 must NOT flag grep -E patterns"
+        );
+    }
+
+    #[test]
+    fn test_FP_104_egrep_pattern_not_flagged() {
+        let code = r#"egrep '*.json' file"#;
+        let result = check(code);
+        assert_eq!(
+            result.diagnostics.len(),
+            0,
+            "SC2035 must NOT flag egrep patterns"
+        );
+    }
+
+    #[test]
+    fn test_FP_104_grep_unquoted_still_flagged() {
+        // Unquoted glob after grep IS a shell glob
+        let code = r#"grep pattern *.txt"#;
+        let result = check(code);
+        assert_eq!(
+            result.diagnostics.len(),
+            1,
+            "SC2035 SHOULD flag unquoted globs as file args to grep"
+        );
     }
 }

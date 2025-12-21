@@ -22,10 +22,28 @@ use crate::linter::{Diagnostic, LintResult, Severity, Span};
 use once_cell::sync::Lazy;
 use regex::Regex;
 
+#[allow(clippy::unwrap_used)] // Compile-time regex, panic on invalid pattern is acceptable
 static SINGLE_QUOTE_WITH_VAR: Lazy<Regex> = Lazy::new(|| {
     // Match: '...$var...' or '...${var}...' or '...$(cmd)...'
     Regex::new(r"'[^']*(\$[a-zA-Z_][a-zA-Z0-9_]*|\$\{[^}]+\}|\$\([^)]+\))[^']*'").unwrap()
 });
+
+/// F025: Check if the variable in single quotes is wrapped in double quotes
+/// Pattern: '"$var"' or '${var}' inside quotes means it's likely documentation/example
+fn is_documentation_pattern(matched: &str) -> bool {
+    // Check if the variable is wrapped in double quotes (e.g., '"$var"')
+    // This is a common pattern for showing shell syntax as literal text
+    if matched.contains("\"$") || matched.contains("\"${") || matched.contains("\"$(") {
+        return true;
+    }
+
+    // Check for JSON-like patterns (e.g., '{"key": "$val"}')
+    if matched.contains("{") && matched.contains(":") && matched.contains("\"$") {
+        return true;
+    }
+
+    false
+}
 
 pub fn check(source: &str) -> LintResult {
     let mut result = LintResult::new();
@@ -46,6 +64,12 @@ pub fn check(source: &str) -> LintResult {
             // Skip some common false positives
             // Skip if it's clearly a price/money (like '$50')
             if matched.contains("$0") || matched.contains("$1") && matched.len() < 10 {
+                continue;
+            }
+
+            // F025: Skip if variable is in double quotes (documentation pattern)
+            // e.g., 'Value: "$var"' or 'Use "$(cmd)"' are intentional literals
+            if is_documentation_pattern(matched) {
                 continue;
             }
 
@@ -143,5 +167,69 @@ msg2='Today is $(date)'
         let code = r#"VAR='Current path: $PWD'"#;
         let result = check(code);
         assert_eq!(result.diagnostics.len(), 1);
+    }
+
+    // ===== F025: Literal quotes in single-quoted strings =====
+    // When single-quoted string contains quoted variables like "$var",
+    // it's likely documentation or intentional literal output
+
+    #[test]
+    fn test_FP_025_literal_quoted_var_not_flagged() {
+        // User wants to output literal '"$var"' - documentation pattern
+        let code = r#"echo 'Value: "$var"'"#;
+        let result = check(code);
+        assert_eq!(
+            result.diagnostics.len(),
+            0,
+            "SC2016 must NOT flag quotes inside literal (documentation pattern)"
+        );
+    }
+
+    #[test]
+    fn test_FP_025_syntax_example_not_flagged() {
+        // Common pattern: showing shell syntax as literal text
+        let code = r#"echo 'The syntax is: "$variable"'"#;
+        let result = check(code);
+        assert_eq!(
+            result.diagnostics.len(),
+            0,
+            "SC2016 must NOT flag syntax examples in single quotes"
+        );
+    }
+
+    #[test]
+    fn test_FP_025_json_pattern_not_flagged() {
+        // JSON-like patterns with quoted variables
+        let code = r#"echo '{"name": "$name"}'"#;
+        let result = check(code);
+        assert_eq!(
+            result.diagnostics.len(),
+            0,
+            "SC2016 must NOT flag JSON-like patterns"
+        );
+    }
+
+    #[test]
+    fn test_FP_025_bare_var_still_flagged() {
+        // Bare variable without quotes should still be flagged (likely mistake)
+        let code = r#"echo 'Value: $var'"#;
+        let result = check(code);
+        assert_eq!(
+            result.diagnostics.len(),
+            1,
+            "SC2016 SHOULD flag bare variable in single quotes"
+        );
+    }
+
+    #[test]
+    fn test_FP_025_command_subst_in_quotes_not_flagged() {
+        // Documentation showing command substitution syntax
+        let code = r#"echo 'Use "$(command)" for substitution'"#;
+        let result = check(code);
+        assert_eq!(
+            result.diagnostics.len(),
+            0,
+            "SC2016 must NOT flag quoted command substitution in docs"
+        );
     }
 }

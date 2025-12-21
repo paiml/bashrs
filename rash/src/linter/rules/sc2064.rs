@@ -27,10 +27,61 @@ use crate::linter::{Diagnostic, LintResult, Severity, Span};
 use once_cell::sync::Lazy;
 use regex::Regex;
 
+#[allow(clippy::unwrap_used)] // Compile-time regex, panic on invalid pattern is acceptable
 static TRAP_DOUBLE_QUOTED: Lazy<Regex> = Lazy::new(|| {
     // Match: trap "command with $var" SIGNAL
     Regex::new(r#"\btrap\s+"[^"]*\$[a-zA-Z_][a-zA-Z0-9_]*"#).unwrap()
 });
+
+#[allow(clippy::unwrap_used)] // Compile-time regex, panic on invalid pattern is acceptable
+static TRAP_VAR_PATTERN: Lazy<Regex> = Lazy::new(|| {
+    // Extract variable names from trap command
+    Regex::new(r#"\$([a-zA-Z_][a-zA-Z0-9_]*)"#).unwrap()
+});
+
+/// F082: Check if variables in trap are intentionally expanded early
+/// If variables are assigned immediately before the trap, user likely wants
+/// to capture the current value (intentional early expansion)
+fn is_intentional_early_expansion(source: &str, trap_line_num: usize, trap_line: &str) -> bool {
+    // Extract variable names from the trap command
+    let trap_vars: Vec<&str> = TRAP_VAR_PATTERN
+        .captures_iter(trap_line)
+        .filter_map(|cap| cap.get(1).map(|m| m.as_str()))
+        .collect();
+
+    if trap_vars.is_empty() {
+        return false;
+    }
+
+    let lines: Vec<&str> = source.lines().collect();
+
+    // Look for assignments on the same line (v="val"; trap "echo $v" EXIT)
+    for var in &trap_vars {
+        let assign_pattern = format!("{}=", var);
+        if trap_line.contains(&assign_pattern) {
+            // Variable assigned on same line as trap - intentional
+            return true;
+        }
+    }
+
+    // Look for assignments in the 3 lines before the trap
+    let start_line = trap_line_num.saturating_sub(3);
+
+    for i in start_line..trap_line_num.saturating_sub(1) {
+        let prev_line = lines.get(i).unwrap_or(&"");
+        for var in &trap_vars {
+            // Check for assignment patterns: var=, readonly var=, local var=
+            let assign_pattern = format!("{}=", var);
+            let readonly_pattern = format!("readonly {}=", var);
+            if prev_line.contains(&assign_pattern) || prev_line.contains(&readonly_pattern) {
+                // Variable was assigned recently - likely intentional early expansion
+                return true;
+            }
+        }
+    }
+
+    false
+}
 
 pub fn check(source: &str) -> LintResult {
     let mut result = LintResult::new();
@@ -44,6 +95,11 @@ pub fn check(source: &str) -> LintResult {
 
         // Look for trap commands with double-quoted strings containing variables
         if let Some(mat) = TRAP_DOUBLE_QUOTED.find(line) {
+            // F082: Skip if this appears to be intentional early expansion
+            if is_intentional_early_expansion(source, line_num, line) {
+                continue;
+            }
+
             let start_col = mat.start() + 1;
             let end_col = mat.end() + 1;
 
@@ -140,6 +196,69 @@ mod tests {
         let result = check(code);
         // Braced variables also expand early
         assert_eq!(result.diagnostics.len(), 0); // Our simplified regex
+    }
+
+    // ===== F082: Intentional early expansion tests =====
+    // When variables are assigned immediately before trap, early expansion is intentional
+
+    #[test]
+    fn test_FP_082_intentional_early_expansion_same_line() {
+        // Variable assigned on same line - intentional
+        let code = r#"v="value"; trap "echo $v" INT"#;
+        let result = check(code);
+        assert_eq!(
+            result.diagnostics.len(),
+            0,
+            "SC2064 must NOT flag intentional early expansion (same line assignment)"
+        );
+    }
+
+    #[test]
+    fn test_FP_082_intentional_early_expansion_prev_line() {
+        // Variable assigned on previous line - intentional
+        let code = "v=\"value\"\ntrap \"echo $v\" INT";
+        let result = check(code);
+        assert_eq!(
+            result.diagnostics.len(),
+            0,
+            "SC2064 must NOT flag intentional early expansion (previous line assignment)"
+        );
+    }
+
+    #[test]
+    fn test_FP_082_intentional_early_expansion_readonly() {
+        // Readonly variable - definitely intentional
+        let code = "readonly v=\"value\"\ntrap \"echo $v\" INT";
+        let result = check(code);
+        assert_eq!(
+            result.diagnostics.len(),
+            0,
+            "SC2064 must NOT flag intentional early expansion (readonly variable)"
+        );
+    }
+
+    #[test]
+    fn test_FP_082_unintentional_still_flagged() {
+        // Variable not assigned recently - likely unintentional
+        let code = "trap \"echo $var\" INT";
+        let result = check(code);
+        assert_eq!(
+            result.diagnostics.len(),
+            1,
+            "SC2064 SHOULD flag likely unintentional early expansion"
+        );
+    }
+
+    #[test]
+    fn test_FP_082_distant_assignment_still_flagged() {
+        // Variable assigned too far back - might have changed
+        let code = "v=\"value\"\necho a\necho b\necho c\necho d\ntrap \"echo $v\" INT";
+        let result = check(code);
+        assert_eq!(
+            result.diagnostics.len(),
+            1,
+            "SC2064 SHOULD flag when variable assigned too far back"
+        );
     }
 
     // ===== Mutation Coverage Tests - Exact Column Positions =====
