@@ -22,36 +22,43 @@
 
 ## Table of Contents
 
-- [What's New](#-whats-new-in-v6410)
+- [What's New](#-whats-new-in-v6460)
 - [Why Rash?](#why-rash)
 - [Quick Start](#quick-start)
 - [Features](#features)
 - [Core Commands](#core-commands)
+- [Advanced Testing](#advanced-testing)
 - [Documentation](#-documentation)
-- [Quality Metrics](#quality-metrics-v6410)
+- [Quality Metrics](#quality-metrics)
 - [Shell Compatibility](#shell-compatibility)
 - [Performance](#performance)
 - [MCP Server](#mcp-server)
 - [Contributing](#contributing)
 - [License](#license)
-- [Acknowledgments](#acknowledgments)
 
-## 🚀 What's New in v6.44.0
+## 🚀 What's New in v6.46.0
 
-**Latest Updates** - 2025-12-16
+**Latest Release** - 2025-12-21
 
-- **Complete Parser Bug Fixes**: All 23 parser bugs found via probar TUI testing have been fixed (100%)
-  - P0 Critical (5/5): Nested parameter expansion, negative arithmetic, ternary, bitwise, empty assignment
-  - P1 High (8/8): Heredocs, case fall-through/resume, function names with dashes, array operations
-  - P2 Medium (10/10): Coproc, extended globs, redirect operators, deep nesting
-- **New `coproc` Keyword**: Full coprocess syntax support (`coproc NAME { cmd; }`)
-- **Function Subshell Bodies**: `myfunc() ( cmd )` syntax now works
-- **Glob Pattern Fixes**: `[abc].txt`, `[!abc]` character class globs now parse correctly
-- **Test Suite**: 7,365 tests, 100% pass rate, zero regressions
+- **Probar Integration**: Three new CLI commands for advanced testing
+  - `bashrs playbook` - State machine testing for shell scripts
+  - `bashrs mutate` - Mutation testing with 10 mutation operators
+  - `bashrs simulate` - Deterministic simulation replay with seed control
+- **Transpiler Bug Hunt**: 130-point Popper Falsification Checklist (T001-T130)
+- **Dockerfile Linting**: 30-point D-code validation (D001-D030)
+- **Test Suite**: 7,445 tests passing (100% pass rate)
+- **PMAT Score**: 133/134 (Grade A+)
 
 See [CHANGELOG.md](CHANGELOG.md) for complete release notes.
 
 ## Why Rash?
+
+Shell scripts are everywhere—CI/CD pipelines, deployment automation, system configuration—but they're notoriously difficult to write safely. Rash solves this by providing:
+
+1. **Bidirectional Safety**: Write in Rust and transpile to shell, or purify existing bash scripts
+2. **Automatic Transformation**: Don't just detect problems—fix them automatically
+3. **Deterministic Guarantees**: Same input always produces identical, reproducible output
+4. **Zero Runtime Dependencies**: Generated scripts run on any POSIX-compliant system
 
 ## Features
 
@@ -146,7 +153,7 @@ bashrs purify messy.sh -o clean.sh
 # Interactive REPL with debugging
 bashrs repl
 
-# Lint shell scripts
+# Lint shell scripts (including Dockerfiles)
 bashrs lint script.sh
 
 # Test bash scripts
@@ -158,6 +165,23 @@ bashrs score script.sh
 # Comprehensive audit
 bashrs audit script.sh
 ```
+
+## Advanced Testing
+
+Rash includes Probar integration for comprehensive quality assurance:
+
+```bash
+# State machine testing with playbooks
+bashrs playbook install.playbook.yaml --run
+
+# Mutation testing (goal: >90% kill rate)
+bashrs mutate script.sh --count 10
+
+# Deterministic simulation replay
+bashrs simulate script.sh --seed 42 --verify
+```
+
+**Mutation Operators**: Rash applies 10 mutation operators including string mutations, command substitutions, conditional inversions, and redirect modifications to verify test quality.
 
 ## 📚 Documentation
 
@@ -178,38 +202,31 @@ bashrs audit script.sh
 - ✅ Comprehensive coverage of all features
 - ✅ Real-world examples and tutorials
 
-## Quality Metrics (v6.41.0)
+## Quality Metrics
 
-| Metric | Status |
-|--------|--------|
-| **Quality Grade** | **A+ (Near Perfect)** ✅ |
-| **Tests** | **6,583 passing** (0 failures) ✅ |
-| **Coverage** | **88.71%** (exceeds 85% target) ✅ |
-| **Mutation Testing** | **92% kill rate** ✅ |
-| **Property Tests** | **52+ properties** (~26k+ cases) ✅ |
-| **ShellCheck** | **100% compliant** ✅ |
-| **Shell Compatibility** | **sh, dash, bash, ash, zsh, mksh** ✅ |
-| **Golden Traces** | **Renacer integration for regression detection** ✅ |
+| Metric | Value | Status |
+|--------|-------|--------|
+| **PMAT Score** | 133/134 (99.3%) | ✅ Grade A+ |
+| **Tests** | 7,445 passing | ✅ 100% pass rate |
+| **Coverage** | 91.22% | ✅ Exceeds 85% target |
+| **T-code Falsification** | 142/142 | ✅ 130-point checklist |
+| **D-code Falsification** | 31/31 | ✅ Dockerfile validation |
+| **ShellCheck** | 100% compliant | ✅ All output passes |
+| **Shell Compatibility** | 6 shells | ✅ sh, dash, bash, ash, zsh, mksh |
 
-### Golden Trace Regression Detection (v6.36.0+)
+### Falsification Testing (Popper Methodology)
 
-Rash integrates with [renacer](https://github.com/paiml/renacer) to capture and compare syscall patterns for regression detection:
+Rash uses Popperian falsification—tests attempt to **disprove** functionality rather than prove it works:
 
 ```bash
-# Capture reference trace
-make golden-capture TRACE=version CMD='./target/release/bashrs --version'
+# Run 130-point transpiler falsification checklist
+cargo test -p bashrs --test transpiler_tcode_tests
 
-# Compare against golden (detect regressions)
-make golden-compare TRACE=version CMD='./target/release/bashrs --version'
+# Run 30-point Dockerfile falsification checklist
+cargo test -p bashrs --test dockerfile_dcode_tests
 ```
 
-**Use cases**:
-- Detect unexpected file access patterns
-- Prevent security regressions
-- Verify performance optimizations reduce syscalls
-- Ensure deterministic behavior across builds
-
-See [Golden Trace Documentation](docs/GOLDEN_TRACE.md) for complete guide.
+A passing test means the falsification attempt **failed**—the feature works correctly.
 
 ## Shell Compatibility
 
@@ -262,15 +279,10 @@ make validate
 
 ## License
 
-Rash is licensed under the MIT License. See [LICENSE](LICENSE) for details.
-
-## Acknowledgments
-
-Rash is built with safety principles inspired by:
-- [ShellCheck](https://www.shellcheck.net/) for shell script analysis
-- [Oil Shell](https://www.oilshell.org/) for shell language design
-- The Rust community for memory safety practices
+MIT License. See [LICENSE](LICENSE) for details.
 
 ---
 
-**For comprehensive documentation, tutorials, and examples, visit [The Rash Book](https://paiml.github.io/bashrs/).**
+<div align="center">
+<b>For comprehensive documentation, visit <a href="https://paiml.github.io/bashrs/">The Rash Book</a></b>
+</div>
