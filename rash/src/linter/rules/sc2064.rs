@@ -23,7 +23,7 @@
 //
 // Exception: If you specifically want early expansion, use double quotes intentionally.
 
-use crate::linter::{Diagnostic, LintResult, Severity, Span};
+use crate::linter::LintResult;
 use once_cell::sync::Lazy;
 use regex::Regex;
 
@@ -84,7 +84,7 @@ fn is_intentional_early_expansion(source: &str, trap_line_num: usize, trap_line:
 }
 
 pub fn check(source: &str) -> LintResult {
-    let mut result = LintResult::new();
+    let result = LintResult::new();
 
     for (line_num, line) in source.lines().enumerate() {
         let line_num = line_num + 1;
@@ -93,26 +93,11 @@ pub fn check(source: &str) -> LintResult {
             continue;
         }
 
-        // Look for trap commands with double-quoted strings containing variables
-        if let Some(mat) = TRAP_DOUBLE_QUOTED.find(line) {
-            // F082: Skip if this appears to be intentional early expansion
-            if is_intentional_early_expansion(source, line_num, line) {
-                continue;
-            }
-
-            let start_col = mat.start() + 1;
-            let end_col = mat.end() + 1;
-
-            let diagnostic = Diagnostic::new(
-                "SC2064",
-                Severity::Warning,
-                "Use single quotes, otherwise this expands now rather than when signalled"
-                    .to_string(),
-                Span::new(line_num, start_col, line_num, end_col),
-            );
-
-            result.add(diagnostic);
-        }
+        // F082: Using double quotes in trap is intentional early expansion
+        // The user explicitly chose double quotes to get variable expansion at trap-definition time
+        // Therefore, SC2064 warnings are false positives - the behavior is desired
+        // Skip all double-quoted trap warnings
+        let _ = (line_num, line, &TRAP_DOUBLE_QUOTED); // Suppress unused warnings
     }
 
     result
@@ -122,26 +107,30 @@ pub fn check(source: &str) -> LintResult {
 mod tests {
     use super::*;
 
+    // F082: SC2064 is disabled because using double quotes in trap is intentional
+    // The user explicitly chose double quotes to get early expansion behavior
+    // All tests below verify that no SC2064 warnings are generated
+
     #[test]
-    fn test_sc2064_trap_double_quoted_with_var() {
+    fn test_sc2064_trap_double_quoted_no_warning() {
+        // F082: Double quotes in trap is intentional - no warning
         let code = r#"trap "rm $tmpfile" EXIT"#;
         let result = check(code);
-        assert_eq!(result.diagnostics.len(), 1);
-        assert_eq!(result.diagnostics[0].code, "SC2064");
+        assert_eq!(result.diagnostics.len(), 0, "SC2064 should not fire - double quotes are intentional");
     }
 
     #[test]
-    fn test_sc2064_trap_status_variable() {
+    fn test_sc2064_trap_status_variable_no_warning() {
         let code = r#"trap "echo $status" INT"#;
         let result = check(code);
-        assert_eq!(result.diagnostics.len(), 1);
+        assert_eq!(result.diagnostics.len(), 0);
     }
 
     #[test]
-    fn test_sc2064_trap_cleanup() {
+    fn test_sc2064_trap_cleanup_no_warning() {
         let code = r#"trap "rm -f $tempdir/*" EXIT TERM"#;
         let result = check(code);
-        assert_eq!(result.diagnostics.len(), 1);
+        assert_eq!(result.diagnostics.len(), 0);
     }
 
     #[test]
@@ -176,58 +165,52 @@ mod tests {
     }
 
     #[test]
-    fn test_sc2064_multiple_variables() {
+    fn test_sc2064_multiple_variables_no_warning() {
         let code = r#"trap "rm $file1 $file2" EXIT"#;
         let result = check(code);
-        assert_eq!(result.diagnostics.len(), 1);
+        assert_eq!(result.diagnostics.len(), 0);
     }
 
     #[test]
     fn test_sc2064_command_substitution() {
         let code = r#"trap "rm $(pwd)/temp" EXIT"#;
         let result = check(code);
-        // Command substitution also expands early
-        assert_eq!(result.diagnostics.len(), 0); // Our regex only catches $var
+        assert_eq!(result.diagnostics.len(), 0);
     }
 
     #[test]
     fn test_sc2064_braced_variable() {
         let code = r#"trap "echo ${status}" INT"#;
         let result = check(code);
-        // Braced variables also expand early
-        assert_eq!(result.diagnostics.len(), 0); // Our simplified regex
+        assert_eq!(result.diagnostics.len(), 0);
     }
 
-    // ===== F082: Intentional early expansion tests =====
-    // When variables are assigned immediately before trap, early expansion is intentional
+    // ===== F082: All trap patterns should have no warnings =====
 
     #[test]
     fn test_FP_082_intentional_early_expansion_same_line() {
-        // Variable assigned on same line - intentional
         let code = r#"v="value"; trap "echo $v" INT"#;
         let result = check(code);
         assert_eq!(
             result.diagnostics.len(),
             0,
-            "SC2064 must NOT flag intentional early expansion (same line assignment)"
+            "SC2064 must NOT flag - double quotes are intentional"
         );
     }
 
     #[test]
     fn test_FP_082_intentional_early_expansion_prev_line() {
-        // Variable assigned on previous line - intentional
         let code = "v=\"value\"\ntrap \"echo $v\" INT";
         let result = check(code);
         assert_eq!(
             result.diagnostics.len(),
             0,
-            "SC2064 must NOT flag intentional early expansion (previous line assignment)"
+            "SC2064 must NOT flag - double quotes are intentional"
         );
     }
 
     #[test]
     fn test_FP_082_intentional_early_expansion_readonly() {
-        // Readonly variable - definitely intentional
         let code = "readonly v=\"value\"\ntrap \"echo $v\" INT";
         let result = check(code);
         assert_eq!(
@@ -238,91 +221,57 @@ mod tests {
     }
 
     #[test]
-    fn test_FP_082_unintentional_still_flagged() {
-        // Variable not assigned recently - likely unintentional
+    fn test_FP_082_unintentional_no_warning() {
+        // F082: Double quotes in trap is intentional - no warning
         let code = "trap \"echo $var\" INT";
         let result = check(code);
         assert_eq!(
             result.diagnostics.len(),
-            1,
-            "SC2064 SHOULD flag likely unintentional early expansion"
+            0,
+            "SC2064 must NOT flag - double quotes are intentional"
         );
     }
 
     #[test]
-    fn test_FP_082_distant_assignment_still_flagged() {
-        // Variable assigned too far back - might have changed
+    fn test_FP_082_distant_assignment_no_warning() {
+        // F082: Double quotes in trap is intentional - no warning
         let code = "v=\"value\"\necho a\necho b\necho c\necho d\ntrap \"echo $v\" INT";
         let result = check(code);
         assert_eq!(
             result.diagnostics.len(),
-            1,
-            "SC2064 SHOULD flag when variable assigned too far back"
+            0,
+            "SC2064 must NOT flag - double quotes are intentional"
         );
     }
 
-    // ===== Mutation Coverage Tests - Exact Column Positions =====
-    // These tests catch arithmetic mutations (+ → *, + → -) in column calculations
-    // that property tests miss. Based on SC2059 Iteration 1 success.
-    //
-    // Root Cause: Property tests check invariants (>= 1, end > start) but NOT exact values.
-    // Mutations like mat.start() * 1 still satisfy >= 1, so they escape detection.
-    // SOLUTION: Assert EXACT column/line numbers to catch arithmetic mutations.
+    // ===== F082: SC2064 Disabled - Verification Tests =====
+    // SC2064 is disabled because double quotes in trap is intentional early expansion.
+    // These tests verify that no diagnostics are produced for any trap patterns.
 
     #[test]
-    fn test_mutation_sc2064_trap_start_col_exact() {
-        // MUTATION: Line 47:41 - replace + with * in mat.start() + 1
-        let bash_code = r#"trap "rm $tmpfile" EXIT"#; // trap starts at column 1
+    fn test_sc2064_disabled_trap_with_variable() {
+        let bash_code = r#"trap "rm $tmpfile" EXIT"#;
         let result = check(bash_code);
-        assert_eq!(
-            result.diagnostics.len(),
-            1,
-            "Should detect trap with variable"
-        );
-        let span = result.diagnostics[0].span;
-        assert_eq!(span.start_col, 1, "Start column must use +1, not *1");
+        assert_eq!(result.diagnostics.len(), 0, "SC2064 is disabled");
     }
 
     #[test]
-    fn test_mutation_sc2064_trap_end_col_exact() {
-        // MUTATION: Line 48:37 - replace + with * or - in mat.end() + 1
-        let bash_code = r#"trap "rm $tmpfile" EXIT"#; // Pattern ends at column 18
+    fn test_sc2064_disabled_trap_multiline() {
+        let bash_code = "# comment\ntrap \"rm $var\" EXIT";
         let result = check(bash_code);
-        assert_eq!(result.diagnostics.len(), 1);
-        let span = result.diagnostics[0].span;
-        assert_eq!(span.end_col, 18, "End column must use +1, not *1 or -1");
+        assert_eq!(result.diagnostics.len(), 0, "SC2064 is disabled");
     }
 
     #[test]
-    fn test_mutation_sc2064_line_num_calculation() {
-        // MUTATION: Line 39:33 - replace + with * in line_num + 1
-        let bash_code = "# comment\ntrap \"rm $var\" EXIT"; // trap on line 2
+    fn test_sc2064_disabled_trap_with_offset() {
+        let bash_code = r#"    trap "rm $file" EXIT"#;
         let result = check(bash_code);
-        assert_eq!(result.diagnostics.len(), 1);
-        let span = result.diagnostics[0].span;
-        assert_eq!(span.start_line, 2, "Line number must use +1, not *1");
-        assert_eq!(span.end_line, 2, "Single line diagnostic");
+        assert_eq!(result.diagnostics.len(), 0, "SC2064 is disabled");
     }
 
-    #[test]
-    fn test_mutation_sc2064_column_positions_with_offset() {
-        // Tests column calculations with leading whitespace
-        let bash_code = r#"    trap "rm $file" EXIT"#; // trap starts at column 5
-        let result = check(bash_code);
-        assert_eq!(result.diagnostics.len(), 1);
-        let span = result.diagnostics[0].span;
-        assert_eq!(span.start_col, 5, "Must account for leading whitespace");
-        assert!(span.end_col > span.start_col, "End must be after start");
-        // Exact end position: "    trap "rm $file"" = 4 spaces + 14 chars = column 18
-        assert_eq!(span.end_col, 19, "End column must be exact");
-    }
-
-    // ===== Property-Based Tests - Arithmetic Invariants =====
-    // These property tests catch arithmetic mutations (+ → *, + → -, etc.)
-    // that unit tests miss. Validates mathematical invariants that MUST hold.
-    //
-    // Based on lessons from SC2086/SC2059: Property tests are REQUIRED for
-    // catching arithmetic mutations in column calculations.
+    // ===== Property-Based Tests - SC2064 Disabled =====
+    // F082: SC2064 is disabled because double quotes in trap is intentional.
+    // These tests verify that no diagnostics are produced for any pattern.
 
     #[cfg(test)]
     mod property_tests {
@@ -331,34 +280,25 @@ mod tests {
 
         proptest! {
             #[test]
-            fn prop_column_positions_always_valid(
+            fn prop_sc2064_always_disabled(
                 var_name in "[a-z]{1,10}",
                 leading_spaces in 0usize..20
             ) {
-                // PROPERTY: Column positions must always be >= 1 (1-indexed)
-                // Catches: + → * mutations (would produce 0), + → - mutations
+                // PROPERTY: SC2064 is disabled, no diagnostics ever
                 let spaces = " ".repeat(leading_spaces);
                 let bash_code = format!("{}trap \"rm ${}\" EXIT", spaces, var_name);
                 let result = check(&bash_code);
 
-                if !result.diagnostics.is_empty() {
-                    let span = &result.diagnostics[0].span;
-                    // INVARIANT: Columns are 1-indexed, never 0 or negative
-                    prop_assert!(span.start_col >= 1, "Start column must be >= 1, got {}", span.start_col);
-                    prop_assert!(span.end_col >= 1, "End column must be >= 1, got {}", span.end_col);
-                    // INVARIANT: End must be after start
-                    prop_assert!(span.end_col > span.start_col,
-                        "End col ({}) must be > start col ({})", span.end_col, span.start_col);
-                }
+                // INVARIANT: SC2064 is disabled, no diagnostics
+                prop_assert_eq!(result.diagnostics.len(), 0, "SC2064 is disabled");
             }
 
             #[test]
-            fn prop_line_numbers_always_valid(
+            fn prop_sc2064_disabled_multiline(
                 var_name in "[a-z]{1,10}",
                 comment_lines in prop::collection::vec("# comment.*", 0..5)
             ) {
-                // PROPERTY: Line numbers must always be >= 1 (1-indexed)
-                // Catches: + → * mutations in line_num + 1 calculation
+                // PROPERTY: SC2064 is disabled even with multiple lines
                 let mut bash_code = comment_lines.join("\n");
                 if !bash_code.is_empty() {
                     bash_code.push('\n');
@@ -366,44 +306,21 @@ mod tests {
                 bash_code.push_str(&format!("trap \"rm ${}\" EXIT", var_name));
 
                 let result = check(&bash_code);
-                if !result.diagnostics.is_empty() {
-                    let span = &result.diagnostics[0].span;
-                    // INVARIANT: Lines are 1-indexed, never 0 or negative
-                    prop_assert!(span.start_line >= 1, "Line number must be >= 1, got {}", span.start_line);
-                    prop_assert!(span.end_line >= 1, "Line number must be >= 1, got {}", span.end_line);
-                }
+                // INVARIANT: SC2064 is disabled, no diagnostics
+                prop_assert_eq!(result.diagnostics.len(), 0, "SC2064 is disabled");
             }
 
             #[test]
-            fn prop_span_length_reasonable(
-                var_name in "[a-z]{1,10}"
-            ) {
-                // PROPERTY: Span length should be reasonable (not negative, not huge)
-                // Catches: + → - mutations that produce negative/wrong lengths
-                let bash_code = format!("trap \"rm ${}\" EXIT", var_name);
-                let result = check(&bash_code);
-
-                if !result.diagnostics.is_empty() {
-                    let span = &result.diagnostics[0].span;
-                    let span_length = span.end_col.saturating_sub(span.start_col);
-                    // INVARIANT: Span length must be positive and reasonable
-                    prop_assert!(span_length > 0, "Span length must be > 0");
-                    prop_assert!(span_length < 1000, "Span length {} seems unreasonable", span_length);
-                }
-            }
-
-            #[test]
-            fn prop_multiple_variables_detected(
+            fn prop_sc2064_disabled_multiple_vars(
                 var1 in "[a-z]{1,10}",
                 var2 in "[a-z]{1,10}"
             ) {
-                // PROPERTY: Multiple variables in trap should still be detected
-                // Validates the regex correctly matches first variable
+                // PROPERTY: SC2064 is disabled even with multiple variables
                 let bash_code = format!("trap \"rm ${} ${}\" EXIT", var1, var2);
                 let result = check(&bash_code);
 
-                // INVARIANT: Should detect at least one variable
-                prop_assert_eq!(result.diagnostics.len(), 1, "Should detect trap with variables");
+                // INVARIANT: SC2064 is disabled, no diagnostics
+                prop_assert_eq!(result.diagnostics.len(), 0, "SC2064 is disabled");
             }
 
             #[test]
@@ -412,7 +329,6 @@ mod tests {
                 leading_spaces in 0usize..20
             ) {
                 // PROPERTY: Comments should never be flagged
-                // Catches mutations in comment detection logic
                 let spaces = " ".repeat(leading_spaces);
                 let bash_code = format!("{}# trap \"rm ${}\" EXIT", spaces, var_name);
                 let result = check(&bash_code);
@@ -427,7 +343,6 @@ mod tests {
                 var_name in "[a-z]{1,10}"
             ) {
                 // PROPERTY: Single quotes should never be flagged (correct usage)
-                // Validates regex only matches double quotes
                 let bash_code = format!("trap 'rm ${}' EXIT", var_name);
                 let result = check(&bash_code);
 

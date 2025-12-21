@@ -54,9 +54,12 @@ struct Patterns {
     assign: Regex,
     use_: Regex,
     for_loop: Regex,
+    c_style_for: Regex,
+    case_expr: Regex,
 }
 
 /// Create regex patterns for variable detection
+#[allow(clippy::unwrap_used)] // Compile-time regex, panic on invalid pattern is acceptable
 fn create_patterns() -> Patterns {
     Patterns {
         // Issue #20: Allow leading whitespace for indented assignments
@@ -70,6 +73,10 @@ fn create_patterns() -> Patterns {
         use_: Regex::new(r"\$\{?([A-Za-z_][A-Za-z0-9_]*)\}?").unwrap(),
         // Issue #20: Detect loop variables (for var in ...)
         for_loop: Regex::new(r"\bfor\s+([A-Za-z_][A-Za-z0-9_]*)\s+in\b").unwrap(),
+        // F048: C-style for loop variables: for ((i=0; ...))
+        c_style_for: Regex::new(r"\bfor\s*\(\(\s*([A-Za-z_][A-Za-z0-9_]*)\s*=").unwrap(),
+        // F047: Case expression variables: case $var in - skip these from undefined check
+        case_expr: Regex::new(r"\bcase\s+\$\{?([A-Za-z_][A-Za-z0-9_]*)\}?\s+in\b").unwrap(),
     }
 }
 
@@ -241,6 +248,19 @@ fn collect_variable_info(
 
         // Issue #20: Find loop variables (for var in ...)
         for cap in patterns.for_loop.captures_iter(line) {
+            let var_name = cap.get(1).unwrap().as_str().to_string();
+            assigned.insert(var_name);
+        }
+
+        // F048: Find C-style for loop variables (for ((i=0; ...)))
+        for cap in patterns.c_style_for.captures_iter(line) {
+            let var_name = cap.get(1).unwrap().as_str().to_string();
+            assigned.insert(var_name);
+        }
+
+        // F047: Find case expression variables - treat them as assigned
+        // Case expressions often use external variables ($1, env vars, etc.)
+        for cap in patterns.case_expr.captures_iter(line) {
             let var_name = cap.get(1).unwrap().as_str().to_string();
             assigned.insert(var_name);
         }

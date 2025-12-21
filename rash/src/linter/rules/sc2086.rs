@@ -80,6 +80,26 @@ fn is_in_arithmetic_context(line: &str, dollar_pos: usize, var_end: usize) -> bo
     false
 }
 
+/// F048: Extract C-style for loop variable names from source
+/// C-style for loops: for ((i=0; i<n; i++)) define numeric loop variables
+/// These variables are always numeric, so SC2086 should not flag them
+fn get_cstyle_for_loop_vars(source: &str) -> std::collections::HashSet<String> {
+    use once_cell::sync::Lazy;
+    use regex::Regex;
+
+    #[allow(clippy::unwrap_used)] // Compile-time regex
+    static CSTYLE_FOR: Lazy<Regex> =
+        Lazy::new(|| Regex::new(r"\bfor\s*\(\(\s*([A-Za-z_][A-Za-z0-9_]*)\s*=").unwrap());
+
+    let mut vars = std::collections::HashSet::new();
+    for cap in CSTYLE_FOR.captures_iter(source) {
+        if let Some(m) = cap.get(1) {
+            vars.insert(m.as_str().to_string());
+        }
+    }
+    vars
+}
+
 /// Issue #105: Check if variable is inside [[ ]] (bash extended test)
 /// In [[ ]], word splitting and glob expansion do NOT occur on unquoted variables
 /// This is safe: [[ -n $var ]] (no word splitting inside [[ ]])
@@ -201,6 +221,9 @@ fn build_diagnostic(
 pub fn check(source: &str) -> LintResult {
     let mut result = LintResult::new();
 
+    // F048: Get C-style for loop variables (always numeric, skip quoting check)
+    let cstyle_loop_vars = get_cstyle_for_loop_vars(source);
+
     // Regex to find unquoted variables in command contexts
     let var_pattern = Regex::new(r#"(?m)(?P<pre>[^"']|^)\$(?:\{(?P<brace>[A-Za-z_][A-Za-z0-9_]*)\}|(?P<simple>[A-Za-z_][A-Za-z0-9_]*))"#).unwrap();
 
@@ -238,6 +261,11 @@ pub fn check(source: &str) -> LintResult {
 
             // Issue #105: Skip if in [[ ]] context (no word splitting in bash extended test)
             if is_in_double_bracket_context(line, dollar_pos, var_capture.end()) {
+                continue;
+            }
+
+            // F048: Skip C-style for loop variables (always numeric)
+            if cstyle_loop_vars.contains(var_name) {
                 continue;
             }
 
@@ -1394,6 +1422,46 @@ fi
             result.diagnostics.len(),
             0,
             "SC2086 must NOT flag variable in arithmetic increment"
+        );
+    }
+
+    // ===== F048: C-style for loop variable in body =====
+    // Loop variables from C-style for loops are always numeric
+    // SC2086 should not flag them even in the loop body
+
+    #[test]
+    fn test_FP_048_cstyle_for_loop_var_in_body() {
+        // F048: C-style for loop variable used in body
+        let code = r#"for ((i=0;i<10;i++)); do echo $i; done"#;
+        let result = check(code);
+        assert_eq!(
+            result.diagnostics.len(),
+            0,
+            "SC2086 must NOT flag C-style for loop variable $i in loop body"
+        );
+    }
+
+    #[test]
+    fn test_FP_048_cstyle_for_multiple_uses() {
+        // Multiple uses of loop variable in body
+        let code = r#"for ((n=1;n<=5;n++)); do echo $n; printf "%d\n" $n; done"#;
+        let result = check(code);
+        assert_eq!(
+            result.diagnostics.len(),
+            0,
+            "SC2086 must NOT flag any uses of C-style for loop variable"
+        );
+    }
+
+    #[test]
+    fn test_FP_048_non_loop_var_still_flagged() {
+        // Other variables should still be flagged
+        let code = r#"for ((i=0;i<10;i++)); do echo $other; done"#;
+        let result = check(code);
+        assert_eq!(
+            result.diagnostics.len(),
+            1,
+            "SC2086 SHOULD flag non-loop variable $other"
         );
     }
 }

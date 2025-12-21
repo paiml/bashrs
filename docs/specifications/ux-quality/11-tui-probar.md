@@ -456,7 +456,99 @@ cargo test --lib | grep "edge_cases"
 
 ---
 
-## 9. References
+---
+
+## 9. Simulation Testing (Edge Case Discovery)
+
+### 9.1 Overview
+
+Simulation testing uses structured test cases to surface edge cases across 10 categories.
+Each test validates that bashrs handles the input without panicking.
+
+**Location**: `tests/simulation/run.py`
+
+### 9.2 Test Categories
+
+| Category | S-Codes | Count | Description |
+|----------|---------|-------|-------------|
+| Unicode | S101-S110 | 10 | Non-ASCII, emoji, RTL, combining chars |
+| Boundary | S201-S210 | 10 | Large inputs, 10KB vars, 500-line heredocs |
+| Nesting | S301-S310 | 10 | Deep nesting (10+ levels of if/while/for) |
+| Special | S401-S410 | 10 | Control chars, tabs, CR, escape sequences |
+| Malformed | S501-S510 | 10 | Unclosed braces, missing fi/done/esac |
+| Timing | S601-S610 | 10 | PIDs, RANDOM, trap, eval, FD manipulation |
+| Resource | S701-S710 | 10 | Long names (100+ chars), many args |
+| Escape | S801-S810 | 10 | Hex, octal, unicode, ANSI-C escapes |
+| Quoting | S901-S910 | 10 | Empty quotes, mixed quotes, escapes |
+| Stress | S1001-S1010 | 10 | Combined edge cases, unicode + arrays |
+
+**Total**: 100 simulation tests
+
+### 9.3 Test Expectations
+
+Each test has an expected outcome:
+- **pass**: Must not panic, may produce warnings
+- **error**: Must handle gracefully (exit code may be non-zero)
+- **parse**: Parser must handle without crashing
+
+### 9.4 Running Simulation Tests
+
+```bash
+# Run all simulation tests
+python3 tests/simulation/run.py
+
+# Expected output:
+# Total: 100
+# Passed: 100
+# Failed: 0
+```
+
+### 9.5 Adding New Simulation Tests
+
+```python
+# In tests/simulation/run.py
+SimulationCase("S1011", "your_code_here", "pass", "Description", "category"),
+```
+
+### 9.6 Edge Case Examples
+
+**S101 - Unicode Latin Extended**:
+```bash
+echo 'héllo wörld'
+```
+
+**S208 - 20 Nested Expansions**:
+```bash
+echo ${x:-${x:-${x:-...default...}}}
+```
+
+**S501 - Unclosed Brace (Graceful Error)**:
+```bash
+echo ${
+```
+
+**S1003 - Emoji Array**:
+```bash
+arr=(🚀 🔥 💻); echo ${arr[@]}
+```
+
+---
+
+## 10. Quality Gate Summary
+
+| Test Suite | Location | Count | Target |
+|------------|----------|-------|--------|
+| Falsification | `tests/falsification/run.py` | 120 | 100% pass |
+| Simulation | `tests/simulation/run.py` | 100 | 100% pass |
+| Unit Tests | `cargo test --lib` | 7400+ | 100% pass |
+| Property Tests | proptest | 100+/feature | All pass |
+| TUI Coverage | probar | N/A | ≥95% |
+
+**Combined Edge Case Coverage**: 220 structured tests
+
+---
+
+## 11. References
 
 - [Probar Documentation](https://github.com/paiml/probar)
 - [jugar-probar crate](https://crates.io/crates/jugar-probar)
