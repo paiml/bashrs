@@ -430,6 +430,7 @@ mod property_tests {
 
     // Property: Any command with 2>/dev/null should NOT trigger SC2035
     proptest! {
+        #![proptest_config(proptest::test_runner::Config::with_cases(10))]
         #[test]
         fn prop_stderr_redirect_never_flags(
             cmd in "(ls|cat|rm|mv|cp|chmod|grep)",

@@ -607,6 +607,7 @@ pub enum BinaryOp {
     Sub,
     Mul,
     Div,
+    Rem, // Modulo operator (%)
     Eq,
     Ne,
     Lt,

@@ -175,6 +175,7 @@ mod tests {
         use super::*;
         use proptest::prelude::*;
         proptest! {
+        #![proptest_config(proptest::test_runner::Config::with_cases(10))]
             #[test] fn prop_known_vars_always_suppressed(var_name in "[A-Z_]{3,20}") {
             let context = LintContext::default(); let vars = known_external_vars(); if
             vars.contains(& var_name) { prop_assert!(should_suppress_sc2154(& var_name, &

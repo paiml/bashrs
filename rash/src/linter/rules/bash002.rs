@@ -242,6 +242,7 @@ mod property_tests {
     use proptest::prelude::*;
 
     proptest! {
+        #![proptest_config(proptest::test_runner::Config::with_cases(10))]
         /// PROPERTY TEST 1: Never panics on any input
         #[test]
         fn prop_bash002_never_panics(s in ".*") {

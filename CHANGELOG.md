@@ -7,6 +7,40 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [6.46.0] - 2025-12-21
+
+### Added
+
+- **Probar Integration**: Three new CLI commands for advanced testing
+  - `bashrs playbook <file>` - Execute playbook-driven state machine tests
+  - `bashrs mutate <file>` - Mutation testing for shell scripts (10 mutation operators)
+  - `bashrs simulate <file>` - Deterministic simulation replay with seed control
+
+- **Transpiler Bug Hunt Specification** (SPEC-TB-2025-001 v2.5.0)
+  - 130-point Popper Falsification Checklist (T001-T130)
+  - 30-point Dockerfile Falsification Checklist (D001-D030)
+  - Zero Python Policy enforcement
+  - Full acceptance criteria with examples verification
+
+### Fixed
+
+- Fixed malformed string literals in `test_generator/core.rs` and `property_tests.rs`
+- Fixed book tests in `linting/false-positives.md` (added `rust,ignore` to code blocks)
+
+### Quality
+
+- **Tests**: 7445 passed (100% pass rate)
+- **T-code Tests**: 142/142 passed (130 T-codes + 10 property + 2 summary)
+- **D-code Tests**: 31/31 passed (30 D-codes + 1 summary)
+- **Examples**: All 5 cargo examples pass
+- **Book Tests**: `mdbook test book` passes
+- **PMAT Score**: 133/134 (Grade A+)
+
+### Documentation
+
+- Added `docs/specifications/transpiler-bug-hunt.md` (v2.5.0)
+- Updated book with `rust,ignore` for non-compilable code examples
+
 ## [6.45.0] - 2025-12-21
 
 ### Fixed

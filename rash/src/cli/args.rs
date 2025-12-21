@@ -455,6 +455,119 @@ pub enum Commands {
         #[arg(long)]
         detailed: bool,
     },
+
+    /// Execute playbook-driven state machine tests (NEW in v6.46.0 - Probar Integration)
+    Playbook {
+        /// Playbook YAML file
+        #[arg(value_name = "FILE")]
+        input: PathBuf,
+
+        /// Run the playbook (default: validate only)
+        #[arg(long)]
+        run: bool,
+
+        /// Output format
+        #[arg(long, value_enum, default_value = "human")]
+        format: PlaybookFormat,
+
+        /// Verbose output showing state transitions
+        #[arg(long)]
+        verbose: bool,
+
+        /// Dry run (show what would be executed)
+        #[arg(long)]
+        dry_run: bool,
+    },
+
+    /// Mutation testing for shell scripts (NEW in v6.46.0 - Probar Integration)
+    Mutate {
+        /// Shell script to mutate
+        #[arg(value_name = "FILE")]
+        input: PathBuf,
+
+        /// Mutation configuration file
+        #[arg(long)]
+        config: Option<PathBuf>,
+
+        /// Output format
+        #[arg(long, value_enum, default_value = "human")]
+        format: MutateFormat,
+
+        /// Number of mutants to generate
+        #[arg(long, default_value = "10")]
+        count: usize,
+
+        /// Show surviving mutants (test quality issues)
+        #[arg(long)]
+        show_survivors: bool,
+
+        /// Output directory for mutant files
+        #[arg(short, long)]
+        output: Option<PathBuf>,
+    },
+
+    /// Deterministic simulation replay (NEW in v6.46.0 - Probar Integration)
+    Simulate {
+        /// Shell script to simulate
+        #[arg(value_name = "FILE")]
+        input: PathBuf,
+
+        /// Random seed for deterministic replay
+        #[arg(long, default_value = "42")]
+        seed: u64,
+
+        /// Verify determinism (run twice, compare outputs)
+        #[arg(long)]
+        verify: bool,
+
+        /// Mock external commands
+        #[arg(long)]
+        mock_externals: bool,
+
+        /// Output format
+        #[arg(long, value_enum, default_value = "human")]
+        format: SimulateFormat,
+
+        /// Record execution trace
+        #[arg(long)]
+        trace: bool,
+    },
+}
+
+/// Output format for playbook command
+#[derive(Clone, Debug, Default, ValueEnum)]
+pub enum PlaybookFormat {
+    /// Human-readable output
+    #[default]
+    Human,
+    /// JSON output
+    Json,
+    /// JUnit XML for CI integration
+    Junit,
+}
+
+/// Output format for mutate command
+#[derive(Clone, Debug, Default, ValueEnum)]
+pub enum MutateFormat {
+    /// Human-readable output
+    #[default]
+    Human,
+    /// JSON output
+    Json,
+    /// CSV for analysis
+    Csv,
+}
+
+/// Output format for simulate command
+#[derive(Clone, Debug, Default, ValueEnum)]
+pub enum SimulateFormat {
+    /// Human-readable output
+    #[default]
+    Human,
+    /// JSON output
+    Json,
+    /// Detailed trace format
+    Trace,
 }
 
 /// Output format for explain-error command

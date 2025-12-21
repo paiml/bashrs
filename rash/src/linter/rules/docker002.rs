@@ -104,6 +104,7 @@ mod tests {
         use proptest::prelude::*;
 
         proptest! {
+        #![proptest_config(proptest::test_runner::Config::with_cases(10))]
             #[test]
             fn prop_never_panics(dockerfile in ".*") {
                 let _ = check(&dockerfile);

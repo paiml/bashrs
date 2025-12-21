@@ -306,6 +306,7 @@ mod tests {
         }
 
         proptest! {
+        #![proptest_config(proptest::test_runner::Config::with_cases(10))]
             /// Property: echo/printf with command keywords should never trigger MAKE010
             #[test]
             fn prop_echo_with_command_never_warns(

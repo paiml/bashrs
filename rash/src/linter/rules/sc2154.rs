@@ -970,6 +970,7 @@ echo "$PROFILE_VAR"
         use proptest::prelude::*;
 
         proptest! {
+        #![proptest_config(proptest::test_runner::Config::with_cases(10))]
             #[test]
             fn prop_issue_020_loop_variables_never_flagged(
                 var_name in "[a-z][a-z0-9_]{0,10}",

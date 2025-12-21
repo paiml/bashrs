@@ -270,7 +270,7 @@ if true; then
 
 ### Adding a Falsification Test
 
-```rust
+```rust,ignore
 // In rash/tests/falsification_probar_testing.rs
 // Add to the appropriate category test function
 ("F131", "your_code_here", "SC2086"),  // Must NOT trigger SC2086
@@ -278,7 +278,7 @@ if true; then
 
 ### Adding a Simulation Test
 
-```rust
+```rust,ignore
 // In rash/tests/simulation_probar_testing.rs
 // Add to the appropriate category test function
 ("S1011", "code_here", "Description"),  // Must NOT panic

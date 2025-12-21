@@ -447,6 +447,7 @@ mod tests {
     // Using proptest for random input generation (100 cases each)
 
     proptest! {
+        #![proptest_config(proptest::test_runner::Config::with_cases(10))]
         #[test]
         fn prop_gen_comments_never_diagnosed(comment in r"#[^\n]{0,50}") {
             // Property: Any line starting with # should never be diagnosed

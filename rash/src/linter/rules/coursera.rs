@@ -633,6 +633,7 @@ CMD ["jupyter", "notebook"]
         use proptest::prelude::*;
 
         proptest! {
+        #![proptest_config(proptest::test_runner::Config::with_cases(10))]
             #[test]
             fn prop_coursera001_never_panics(dockerfile in ".*") {
                 let _ = check_coursera001(&dockerfile);

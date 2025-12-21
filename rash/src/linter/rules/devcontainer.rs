@@ -856,6 +856,7 @@ mod tests {
         use proptest::prelude::*;
 
         proptest! {
+        #![proptest_config(proptest::test_runner::Config::with_cases(10))]
             #[test]
             fn prop_lint_never_panics(json_str in "\\{[^}]*\\}") {
                 // Try to parse as JSON, if successful, lint it

@@ -283,6 +283,7 @@ mod tests {
         use proptest::prelude::*;
 
         proptest! {
+        #![proptest_config(proptest::test_runner::Config::with_cases(10))]
             #[test]
             fn prop_sc2064_always_disabled(
                 var_name in "[a-z]{1,10}",

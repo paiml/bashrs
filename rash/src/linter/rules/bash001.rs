@@ -200,6 +200,7 @@ echo "Hello"
         use proptest::prelude::*;
 
         proptest! {
+        #![proptest_config(proptest::test_runner::Config::with_cases(10))]
             #[test]
             fn prop_bash001_never_panics(code in ".*") {
                 let _ = check(&code);

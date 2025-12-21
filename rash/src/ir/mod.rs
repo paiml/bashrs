@@ -505,6 +505,11 @@ impl IrConverter {
                         left: Box::new(left_val),
                         right: Box::new(right_val),
                     }),
+                    BinaryOp::Rem => Ok(ShellValue::Arithmetic {
+                        op: shell_ir::ArithmeticOp::Mod,
+                        left: Box::new(left_val),
+                        right: Box::new(right_val),
+                    }),
                     // Logical operators
                     BinaryOp::And => Ok(ShellValue::LogicalAnd {
                         left: Box::new(left_val),

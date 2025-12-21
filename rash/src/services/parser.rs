@@ -477,6 +477,7 @@ fn convert_binary_op(op: &BinOp) -> Result<BinaryOp> {
         BinOp::Sub(_) => Ok(BinaryOp::Sub),
         BinOp::Mul(_) => Ok(BinaryOp::Mul),
         BinOp::Div(_) => Ok(BinaryOp::Div),
+        BinOp::Rem(_) => Ok(BinaryOp::Rem),
         BinOp::Eq(_) => Ok(BinaryOp::Eq),
         BinOp::Ne(_) => Ok(BinaryOp::Ne),
         BinOp::Lt(_) => Ok(BinaryOp::Lt),

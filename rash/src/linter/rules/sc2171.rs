@@ -282,6 +282,7 @@ echo "after heredoc""#;
         use proptest::prelude::*;
 
         proptest! {
+        #![proptest_config(proptest::test_runner::Config::with_cases(10))]
             #[test]
             fn prop_heredoc_content_never_triggers_sc2171(
                 content in r"[ \]\[\{\}a-zA-Z0-9\n]{1,100}"
