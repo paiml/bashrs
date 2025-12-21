@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"fn":["check","create_unsafe_glob_diagnostic","is_glob_safe","should_check_line"],"static":["BARE_GLOB","UNSAFE_COMMAND"]};
+window.SIDEBAR_ITEMS = {"fn":["check","create_unsafe_glob_diagnostic","is_glob_safe","is_inside_find_pattern","is_inside_grep_pattern","should_check_line"],"static":["BARE_GLOB","FIND_PATTERN_ARG","GREP_PATTERN_ARG","UNSAFE_COMMAND"]};

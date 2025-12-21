@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"fn":["check"]};
+window.SIDEBAR_ITEMS = {"fn":["check","get_quoted_heredoc_lines"],"static":["ASSIGNMENT_BACKTICK","BACKTICK_PATTERN","HEREDOC_DOUBLE_QUOTED","HEREDOC_SINGLE_QUOTED"]};

@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"fn":["check","collect_variable_info","create_patterns","get_builtins","has_source_commands","is_special_or_builtin","validate_undefined_variables"],"struct":["Patterns"]};
+window.SIDEBAR_ITEMS = {"fn":["check","collect_case_statement_variables","collect_variable_info","create_patterns","get_builtins","has_source_commands","is_special_or_builtin","validate_undefined_variables"],"struct":["Patterns"]};

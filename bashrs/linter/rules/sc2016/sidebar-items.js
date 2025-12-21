@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"fn":["check"],"static":["SINGLE_QUOTE_WITH_VAR"]};
+window.SIDEBAR_ITEMS = {"fn":["check","is_documentation_pattern"],"static":["SINGLE_QUOTE_WITH_VAR"]};

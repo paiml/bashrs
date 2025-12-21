@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"fn":["check","create_sudo_redirect_diagnostic","get_tee_flag","has_sudo_with_redirect","is_comment_line","is_inside_quotes"],"static":["SUDO_WITH_REDIRECT"]};
+window.SIDEBAR_ITEMS = {"fn":["check","create_sudo_redirect_diagnostic","get_tee_flag","has_sudo_with_redirect","is_comment_line","is_inside_quotes","is_piped_sudo_tee","is_redirect_to_user_writable","is_sudo_shell_wrapper"],"static":["SUDO_SHELL_WRAPPER","SUDO_WITH_REDIRECT"]};

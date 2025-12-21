@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"fn":["check"],"static":["TRAP_DOUBLE_QUOTED"]};
+window.SIDEBAR_ITEMS = {"fn":["check","is_intentional_early_expansion"],"static":["TRAP_DOUBLE_QUOTED","TRAP_VAR_PATTERN"]};
