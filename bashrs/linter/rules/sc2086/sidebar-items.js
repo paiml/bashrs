@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"fn":["build_diagnostic","calculate_end_column","check","find_dollar_position","is_already_quoted","is_in_arithmetic_context","is_in_double_bracket_context","should_skip_line"]};
+window.SIDEBAR_ITEMS = {"fn":["build_diagnostic","calculate_end_column","check","find_dollar_position","get_cstyle_for_loop_vars","is_already_quoted","is_in_arithmetic_context","is_in_double_bracket_context","should_skip_line"]};
