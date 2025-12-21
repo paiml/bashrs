@@ -57,6 +57,7 @@
 ## Advanced Topics
 
 - [AST-Level Transformation](./advanced/ast-transformation.md)
+- [Probar Testing (playbook/mutate/simulate)](./advanced/probar-testing.md)
 - [Property Testing](./advanced/property-testing.md)
 - [Mutation Testing](./advanced/mutation-testing.md)
 - [Performance Optimization](./advanced/performance.md)
