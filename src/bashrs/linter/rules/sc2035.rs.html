@@ -430,74 +430,75 @@
 <a href=#430 id=430 data-nosnippet>430</a>
 <a href=#431 id=431 data-nosnippet>431</a>    <span class="comment">// Property: Any command with 2&gt;/dev/null should NOT trigger SC2035
 <a href=#432 id=432 data-nosnippet>432</a>    </span><span class="macro">proptest!</span> {
-<a href=#433 id=433 data-nosnippet>433</a>        <span class="attr">#[test]
-<a href=#434 id=434 data-nosnippet>434</a>        </span><span class="kw">fn </span>prop_stderr_redirect_never_flags(
-<a href=#435 id=435 data-nosnippet>435</a>            cmd <span class="kw">in </span><span class="string">"(ls|cat|rm|mv|cp|chmod|grep)"</span>,
-<a href=#436 id=436 data-nosnippet>436</a>            ext <span class="kw">in </span><span class="string">"[a-z]{1,4}"
-<a href=#437 id=437 data-nosnippet>437</a>        </span>) {
-<a href=#438 id=438 data-nosnippet>438</a>            <span class="kw">let </span>code = <span class="macro">format!</span>(<span class="string">"{} *.{} 2&gt;/dev/null"</span>, cmd, ext);
-<a href=#439 id=439 data-nosnippet>439</a>            <span class="kw">let </span>result = check(<span class="kw-2">&amp;</span>code);
-<a href=#440 id=440 data-nosnippet>440</a>            <span class="macro">prop_assert!</span>(
-<a href=#441 id=441 data-nosnippet>441</a>                result.diagnostics.is_empty(),
-<a href=#442 id=442 data-nosnippet>442</a>                <span class="string">"SC2035 must NOT flag with stderr redirect: {}"</span>,
-<a href=#443 id=443 data-nosnippet>443</a>                code
-<a href=#444 id=444 data-nosnippet>444</a>            );
-<a href=#445 id=445 data-nosnippet>445</a>        }
-<a href=#446 id=446 data-nosnippet>446</a>
-<a href=#447 id=447 data-nosnippet>447</a>        <span class="attr">#[test]
-<a href=#448 id=448 data-nosnippet>448</a>        </span><span class="kw">fn </span>prop_ampersand_redirect_never_flags(
-<a href=#449 id=449 data-nosnippet>449</a>            cmd <span class="kw">in </span><span class="string">"(ls|cat|rm|mv|cp|chmod|grep)"</span>,
-<a href=#450 id=450 data-nosnippet>450</a>            ext <span class="kw">in </span><span class="string">"[a-z]{1,4}"
-<a href=#451 id=451 data-nosnippet>451</a>        </span>) {
-<a href=#452 id=452 data-nosnippet>452</a>            <span class="kw">let </span>code = <span class="macro">format!</span>(<span class="string">"{} *.{} &amp;&gt;/dev/null"</span>, cmd, ext);
-<a href=#453 id=453 data-nosnippet>453</a>            <span class="kw">let </span>result = check(<span class="kw-2">&amp;</span>code);
-<a href=#454 id=454 data-nosnippet>454</a>            <span class="macro">prop_assert!</span>(
-<a href=#455 id=455 data-nosnippet>455</a>                result.diagnostics.is_empty(),
-<a href=#456 id=456 data-nosnippet>456</a>                <span class="string">"SC2035 must NOT flag with &amp;&gt;/dev/null: {}"</span>,
-<a href=#457 id=457 data-nosnippet>457</a>                code
-<a href=#458 id=458 data-nosnippet>458</a>            );
-<a href=#459 id=459 data-nosnippet>459</a>        }
-<a href=#460 id=460 data-nosnippet>460</a>
-<a href=#461 id=461 data-nosnippet>461</a>        <span class="attr">#[test]
-<a href=#462 id=462 data-nosnippet>462</a>        </span><span class="kw">fn </span>prop_stderr_redirect_with_space_never_flags(
-<a href=#463 id=463 data-nosnippet>463</a>            cmd <span class="kw">in </span><span class="string">"(ls|cat|rm|mv|cp|chmod|grep)"</span>,
-<a href=#464 id=464 data-nosnippet>464</a>            ext <span class="kw">in </span><span class="string">"[a-z]{1,4}"
-<a href=#465 id=465 data-nosnippet>465</a>        </span>) {
-<a href=#466 id=466 data-nosnippet>466</a>            <span class="kw">let </span>code = <span class="macro">format!</span>(<span class="string">"{} *.{} 2&gt; /dev/null"</span>, cmd, ext);
-<a href=#467 id=467 data-nosnippet>467</a>            <span class="kw">let </span>result = check(<span class="kw-2">&amp;</span>code);
-<a href=#468 id=468 data-nosnippet>468</a>            <span class="macro">prop_assert!</span>(
-<a href=#469 id=469 data-nosnippet>469</a>                result.diagnostics.is_empty(),
-<a href=#470 id=470 data-nosnippet>470</a>                <span class="string">"SC2035 must NOT flag with spaced stderr redirect: {}"</span>,
-<a href=#471 id=471 data-nosnippet>471</a>                code
-<a href=#472 id=472 data-nosnippet>472</a>            );
-<a href=#473 id=473 data-nosnippet>473</a>        }
-<a href=#474 id=474 data-nosnippet>474</a>
-<a href=#475 id=475 data-nosnippet>475</a>        <span class="attr">#[test]
-<a href=#476 id=476 data-nosnippet>476</a>        </span><span class="kw">fn </span>prop_no_redirect_still_flags(
-<a href=#477 id=477 data-nosnippet>477</a>            cmd <span class="kw">in </span><span class="string">"(ls|cat|rm|mv|cp|chmod|grep)"</span>,
-<a href=#478 id=478 data-nosnippet>478</a>            ext <span class="kw">in </span><span class="string">"[a-z]{1,4}"
-<a href=#479 id=479 data-nosnippet>479</a>        </span>) {
-<a href=#480 id=480 data-nosnippet>480</a>            <span class="kw">let </span>code = <span class="macro">format!</span>(<span class="string">"{} *.{}"</span>, cmd, ext);
-<a href=#481 id=481 data-nosnippet>481</a>            <span class="kw">let </span>result = check(<span class="kw-2">&amp;</span>code);
-<a href=#482 id=482 data-nosnippet>482</a>            <span class="macro">prop_assert!</span>(
-<a href=#483 id=483 data-nosnippet>483</a>                !result.diagnostics.is_empty(),
-<a href=#484 id=484 data-nosnippet>484</a>                <span class="string">"SC2035 SHOULD flag without redirect: {}"</span>,
-<a href=#485 id=485 data-nosnippet>485</a>                code
-<a href=#486 id=486 data-nosnippet>486</a>            );
-<a href=#487 id=487 data-nosnippet>487</a>        }
-<a href=#488 id=488 data-nosnippet>488</a>
-<a href=#489 id=489 data-nosnippet>489</a>        <span class="attr">#[test]
-<a href=#490 id=490 data-nosnippet>490</a>        </span><span class="kw">fn </span>prop_safe_prefix_never_flags(
-<a href=#491 id=491 data-nosnippet>491</a>            cmd <span class="kw">in </span><span class="string">"(ls|cat|rm|mv|cp|chmod|grep)"</span>,
-<a href=#492 id=492 data-nosnippet>492</a>            ext <span class="kw">in </span><span class="string">"[a-z]{1,4}"
-<a href=#493 id=493 data-nosnippet>493</a>        </span>) {
-<a href=#494 id=494 data-nosnippet>494</a>            <span class="kw">let </span>code = <span class="macro">format!</span>(<span class="string">"{} ./*.{}"</span>, cmd, ext);
-<a href=#495 id=495 data-nosnippet>495</a>            <span class="kw">let </span>result = check(<span class="kw-2">&amp;</span>code);
-<a href=#496 id=496 data-nosnippet>496</a>            <span class="macro">prop_assert!</span>(
-<a href=#497 id=497 data-nosnippet>497</a>                result.diagnostics.is_empty(),
-<a href=#498 id=498 data-nosnippet>498</a>                <span class="string">"SC2035 must NOT flag with ./ prefix: {}"</span>,
-<a href=#499 id=499 data-nosnippet>499</a>                code
-<a href=#500 id=500 data-nosnippet>500</a>            );
-<a href=#501 id=501 data-nosnippet>501</a>        }
-<a href=#502 id=502 data-nosnippet>502</a>    }
-<a href=#503 id=503 data-nosnippet>503</a>}</code></pre></div></section></main></body></html>
+<a href=#433 id=433 data-nosnippet>433</a>        <span class="attr">#![proptest_config(proptest::test_runner::Config::with_cases(<span class="number">10</span>))]
+<a href=#434 id=434 data-nosnippet>434</a>        #[test]
+<a href=#435 id=435 data-nosnippet>435</a>        </span><span class="kw">fn </span>prop_stderr_redirect_never_flags(
+<a href=#436 id=436 data-nosnippet>436</a>            cmd <span class="kw">in </span><span class="string">"(ls|cat|rm|mv|cp|chmod|grep)"</span>,
+<a href=#437 id=437 data-nosnippet>437</a>            ext <span class="kw">in </span><span class="string">"[a-z]{1,4}"
+<a href=#438 id=438 data-nosnippet>438</a>        </span>) {
+<a href=#439 id=439 data-nosnippet>439</a>            <span class="kw">let </span>code = <span class="macro">format!</span>(<span class="string">"{} *.{} 2&gt;/dev/null"</span>, cmd, ext);
+<a href=#440 id=440 data-nosnippet>440</a>            <span class="kw">let </span>result = check(<span class="kw-2">&amp;</span>code);
+<a href=#441 id=441 data-nosnippet>441</a>            <span class="macro">prop_assert!</span>(
+<a href=#442 id=442 data-nosnippet>442</a>                result.diagnostics.is_empty(),
+<a href=#443 id=443 data-nosnippet>443</a>                <span class="string">"SC2035 must NOT flag with stderr redirect: {}"</span>,
+<a href=#444 id=444 data-nosnippet>444</a>                code
+<a href=#445 id=445 data-nosnippet>445</a>            );
+<a href=#446 id=446 data-nosnippet>446</a>        }
+<a href=#447 id=447 data-nosnippet>447</a>
+<a href=#448 id=448 data-nosnippet>448</a>        <span class="attr">#[test]
+<a href=#449 id=449 data-nosnippet>449</a>        </span><span class="kw">fn </span>prop_ampersand_redirect_never_flags(
+<a href=#450 id=450 data-nosnippet>450</a>            cmd <span class="kw">in </span><span class="string">"(ls|cat|rm|mv|cp|chmod|grep)"</span>,
+<a href=#451 id=451 data-nosnippet>451</a>            ext <span class="kw">in </span><span class="string">"[a-z]{1,4}"
+<a href=#452 id=452 data-nosnippet>452</a>        </span>) {
+<a href=#453 id=453 data-nosnippet>453</a>            <span class="kw">let </span>code = <span class="macro">format!</span>(<span class="string">"{} *.{} &amp;&gt;/dev/null"</span>, cmd, ext);
+<a href=#454 id=454 data-nosnippet>454</a>            <span class="kw">let </span>result = check(<span class="kw-2">&amp;</span>code);
+<a href=#455 id=455 data-nosnippet>455</a>            <span class="macro">prop_assert!</span>(
+<a href=#456 id=456 data-nosnippet>456</a>                result.diagnostics.is_empty(),
+<a href=#457 id=457 data-nosnippet>457</a>                <span class="string">"SC2035 must NOT flag with &amp;&gt;/dev/null: {}"</span>,
+<a href=#458 id=458 data-nosnippet>458</a>                code
+<a href=#459 id=459 data-nosnippet>459</a>            );
+<a href=#460 id=460 data-nosnippet>460</a>        }
+<a href=#461 id=461 data-nosnippet>461</a>
+<a href=#462 id=462 data-nosnippet>462</a>        <span class="attr">#[test]
+<a href=#463 id=463 data-nosnippet>463</a>        </span><span class="kw">fn </span>prop_stderr_redirect_with_space_never_flags(
+<a href=#464 id=464 data-nosnippet>464</a>            cmd <span class="kw">in </span><span class="string">"(ls|cat|rm|mv|cp|chmod|grep)"</span>,
+<a href=#465 id=465 data-nosnippet>465</a>            ext <span class="kw">in </span><span class="string">"[a-z]{1,4}"
+<a href=#466 id=466 data-nosnippet>466</a>        </span>) {
+<a href=#467 id=467 data-nosnippet>467</a>            <span class="kw">let </span>code = <span class="macro">format!</span>(<span class="string">"{} *.{} 2&gt; /dev/null"</span>, cmd, ext);
+<a href=#468 id=468 data-nosnippet>468</a>            <span class="kw">let </span>result = check(<span class="kw-2">&amp;</span>code);
+<a href=#469 id=469 data-nosnippet>469</a>            <span class="macro">prop_assert!</span>(
+<a href=#470 id=470 data-nosnippet>470</a>                result.diagnostics.is_empty(),
+<a href=#471 id=471 data-nosnippet>471</a>                <span class="string">"SC2035 must NOT flag with spaced stderr redirect: {}"</span>,
+<a href=#472 id=472 data-nosnippet>472</a>                code
+<a href=#473 id=473 data-nosnippet>473</a>            );
+<a href=#474 id=474 data-nosnippet>474</a>        }
+<a href=#475 id=475 data-nosnippet>475</a>
+<a href=#476 id=476 data-nosnippet>476</a>        <span class="attr">#[test]
+<a href=#477 id=477 data-nosnippet>477</a>        </span><span class="kw">fn </span>prop_no_redirect_still_flags(
+<a href=#478 id=478 data-nosnippet>478</a>            cmd <span class="kw">in </span><span class="string">"(ls|cat|rm|mv|cp|chmod|grep)"</span>,
+<a href=#479 id=479 data-nosnippet>479</a>            ext <span class="kw">in </span><span class="string">"[a-z]{1,4}"
+<a href=#480 id=480 data-nosnippet>480</a>        </span>) {
+<a href=#481 id=481 data-nosnippet>481</a>            <span class="kw">let </span>code = <span class="macro">format!</span>(<span class="string">"{} *.{}"</span>, cmd, ext);
+<a href=#482 id=482 data-nosnippet>482</a>            <span class="kw">let </span>result = check(<span class="kw-2">&amp;</span>code);
+<a href=#483 id=483 data-nosnippet>483</a>            <span class="macro">prop_assert!</span>(
+<a href=#484 id=484 data-nosnippet>484</a>                !result.diagnostics.is_empty(),
+<a href=#485 id=485 data-nosnippet>485</a>                <span class="string">"SC2035 SHOULD flag without redirect: {}"</span>,
+<a href=#486 id=486 data-nosnippet>486</a>                code
+<a href=#487 id=487 data-nosnippet>487</a>            );
+<a href=#488 id=488 data-nosnippet>488</a>        }
+<a href=#489 id=489 data-nosnippet>489</a>
+<a href=#490 id=490 data-nosnippet>490</a>        <span class="attr">#[test]
+<a href=#491 id=491 data-nosnippet>491</a>        </span><span class="kw">fn </span>prop_safe_prefix_never_flags(
+<a href=#492 id=492 data-nosnippet>492</a>            cmd <span class="kw">in </span><span class="string">"(ls|cat|rm|mv|cp|chmod|grep)"</span>,
+<a href=#493 id=493 data-nosnippet>493</a>            ext <span class="kw">in </span><span class="string">"[a-z]{1,4}"
+<a href=#494 id=494 data-nosnippet>494</a>        </span>) {
+<a href=#495 id=495 data-nosnippet>495</a>            <span class="kw">let </span>code = <span class="macro">format!</span>(<span class="string">"{} ./*.{}"</span>, cmd, ext);
+<a href=#496 id=496 data-nosnippet>496</a>            <span class="kw">let </span>result = check(<span class="kw-2">&amp;</span>code);
+<a href=#497 id=497 data-nosnippet>497</a>            <span class="macro">prop_assert!</span>(
+<a href=#498 id=498 data-nosnippet>498</a>                result.diagnostics.is_empty(),
+<a href=#499 id=499 data-nosnippet>499</a>                <span class="string">"SC2035 must NOT flag with ./ prefix: {}"</span>,
+<a href=#500 id=500 data-nosnippet>500</a>                code
+<a href=#501 id=501 data-nosnippet>501</a>            );
+<a href=#502 id=502 data-nosnippet>502</a>        }
+<a href=#503 id=503 data-nosnippet>503</a>    }
+<a href=#504 id=504 data-nosnippet>504</a>}</code></pre></div></section></main></body></html>

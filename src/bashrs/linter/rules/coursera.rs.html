@@ -633,60 +633,61 @@
 <a href=#633 id=633 data-nosnippet>633</a>        <span class="kw">use </span>proptest::prelude::<span class="kw-2">*</span>;
 <a href=#634 id=634 data-nosnippet>634</a>
 <a href=#635 id=635 data-nosnippet>635</a>        <span class="macro">proptest!</span> {
-<a href=#636 id=636 data-nosnippet>636</a>            <span class="attr">#[test]
-<a href=#637 id=637 data-nosnippet>637</a>            </span><span class="kw">fn </span>prop_coursera001_never_panics(dockerfile <span class="kw">in </span><span class="string">".*"</span>) {
-<a href=#638 id=638 data-nosnippet>638</a>                <span class="kw">let _ </span>= check_coursera001(<span class="kw-2">&amp;</span>dockerfile);
-<a href=#639 id=639 data-nosnippet>639</a>            }
-<a href=#640 id=640 data-nosnippet>640</a>
-<a href=#641 id=641 data-nosnippet>641</a>            <span class="attr">#[test]
-<a href=#642 id=642 data-nosnippet>642</a>            </span><span class="kw">fn </span>prop_coursera003_never_panics(dockerfile <span class="kw">in </span><span class="string">".*"</span>) {
-<a href=#643 id=643 data-nosnippet>643</a>                <span class="kw">let _ </span>= check_coursera003(<span class="kw-2">&amp;</span>dockerfile);
-<a href=#644 id=644 data-nosnippet>644</a>            }
-<a href=#645 id=645 data-nosnippet>645</a>
-<a href=#646 id=646 data-nosnippet>646</a>            <span class="attr">#[test]
-<a href=#647 id=647 data-nosnippet>647</a>            </span><span class="kw">fn </span>prop_coursera006_never_panics(dockerfile <span class="kw">in </span><span class="string">".*"</span>) {
-<a href=#648 id=648 data-nosnippet>648</a>                <span class="kw">let _ </span>= check_coursera006(<span class="kw-2">&amp;</span>dockerfile);
-<a href=#649 id=649 data-nosnippet>649</a>            }
-<a href=#650 id=650 data-nosnippet>650</a>
-<a href=#651 id=651 data-nosnippet>651</a>            <span class="attr">#[test]
-<a href=#652 id=652 data-nosnippet>652</a>            </span><span class="kw">fn </span>prop_coursera014_never_panics(dockerfile <span class="kw">in </span><span class="string">".*"</span>) {
-<a href=#653 id=653 data-nosnippet>653</a>                <span class="kw">let _ </span>= check_coursera014(<span class="kw-2">&amp;</span>dockerfile);
-<a href=#654 id=654 data-nosnippet>654</a>            }
-<a href=#655 id=655 data-nosnippet>655</a>
-<a href=#656 id=656 data-nosnippet>656</a>            <span class="attr">#[test]
-<a href=#657 id=657 data-nosnippet>657</a>            </span><span class="kw">fn </span>prop_coursera020_never_panics(dockerfile <span class="kw">in </span><span class="string">".*"</span>) {
-<a href=#658 id=658 data-nosnippet>658</a>                <span class="kw">let _ </span>= check_coursera020(<span class="kw-2">&amp;</span>dockerfile);
-<a href=#659 id=659 data-nosnippet>659</a>            }
-<a href=#660 id=660 data-nosnippet>660</a>
-<a href=#661 id=661 data-nosnippet>661</a>            <span class="attr">#[test]
-<a href=#662 id=662 data-nosnippet>662</a>            </span><span class="kw">fn </span>prop_valid_port_range_80(port <span class="kw">in </span><span class="number">80u16</span>..=<span class="number">80u16</span>) {
-<a href=#663 id=663 data-nosnippet>663</a>                <span class="macro">prop_assert!</span>(is_valid_coursera_port(port));
-<a href=#664 id=664 data-nosnippet>664</a>            }
-<a href=#665 id=665 data-nosnippet>665</a>
-<a href=#666 id=666 data-nosnippet>666</a>            <span class="attr">#[test]
-<a href=#667 id=667 data-nosnippet>667</a>            </span><span class="kw">fn </span>prop_valid_port_range_443(port <span class="kw">in </span><span class="number">443u16</span>..=<span class="number">443u16</span>) {
-<a href=#668 id=668 data-nosnippet>668</a>                <span class="macro">prop_assert!</span>(is_valid_coursera_port(port));
-<a href=#669 id=669 data-nosnippet>669</a>            }
-<a href=#670 id=670 data-nosnippet>670</a>
-<a href=#671 id=671 data-nosnippet>671</a>            <span class="attr">#[test]
-<a href=#672 id=672 data-nosnippet>672</a>            </span><span class="kw">fn </span>prop_valid_port_range_high(port <span class="kw">in </span><span class="number">1025u16</span>..=<span class="number">65535u16</span>) {
-<a href=#673 id=673 data-nosnippet>673</a>                <span class="macro">prop_assert!</span>(is_valid_coursera_port(port));
-<a href=#674 id=674 data-nosnippet>674</a>            }
-<a href=#675 id=675 data-nosnippet>675</a>
-<a href=#676 id=676 data-nosnippet>676</a>            <span class="attr">#[test]
-<a href=#677 id=677 data-nosnippet>677</a>            </span><span class="kw">fn </span>prop_invalid_port_range_privileged(port <span class="kw">in </span><span class="number">1u16</span>..=<span class="number">79u16</span>) {
-<a href=#678 id=678 data-nosnippet>678</a>                <span class="macro">prop_assert!</span>(!is_valid_coursera_port(port));
-<a href=#679 id=679 data-nosnippet>679</a>            }
-<a href=#680 id=680 data-nosnippet>680</a>
-<a href=#681 id=681 data-nosnippet>681</a>            <span class="attr">#[test]
-<a href=#682 id=682 data-nosnippet>682</a>            </span><span class="kw">fn </span>prop_invalid_port_range_privileged_mid(port <span class="kw">in </span><span class="number">81u16</span>..=<span class="number">442u16</span>) {
-<a href=#683 id=683 data-nosnippet>683</a>                <span class="macro">prop_assert!</span>(!is_valid_coursera_port(port));
-<a href=#684 id=684 data-nosnippet>684</a>            }
-<a href=#685 id=685 data-nosnippet>685</a>
-<a href=#686 id=686 data-nosnippet>686</a>            <span class="attr">#[test]
-<a href=#687 id=687 data-nosnippet>687</a>            </span><span class="kw">fn </span>prop_invalid_port_range_privileged_high(port <span class="kw">in </span><span class="number">444u16</span>..=<span class="number">1024u16</span>) {
-<a href=#688 id=688 data-nosnippet>688</a>                <span class="macro">prop_assert!</span>(!is_valid_coursera_port(port));
-<a href=#689 id=689 data-nosnippet>689</a>            }
-<a href=#690 id=690 data-nosnippet>690</a>        }
-<a href=#691 id=691 data-nosnippet>691</a>    }
-<a href=#692 id=692 data-nosnippet>692</a>}</code></pre></div></section></main></body></html>
+<a href=#636 id=636 data-nosnippet>636</a>        <span class="attr">#![proptest_config(proptest::test_runner::Config::with_cases(<span class="number">10</span>))]
+<a href=#637 id=637 data-nosnippet>637</a>            #[test]
+<a href=#638 id=638 data-nosnippet>638</a>            </span><span class="kw">fn </span>prop_coursera001_never_panics(dockerfile <span class="kw">in </span><span class="string">".*"</span>) {
+<a href=#639 id=639 data-nosnippet>639</a>                <span class="kw">let _ </span>= check_coursera001(<span class="kw-2">&amp;</span>dockerfile);
+<a href=#640 id=640 data-nosnippet>640</a>            }
+<a href=#641 id=641 data-nosnippet>641</a>
+<a href=#642 id=642 data-nosnippet>642</a>            <span class="attr">#[test]
+<a href=#643 id=643 data-nosnippet>643</a>            </span><span class="kw">fn </span>prop_coursera003_never_panics(dockerfile <span class="kw">in </span><span class="string">".*"</span>) {
+<a href=#644 id=644 data-nosnippet>644</a>                <span class="kw">let _ </span>= check_coursera003(<span class="kw-2">&amp;</span>dockerfile);
+<a href=#645 id=645 data-nosnippet>645</a>            }
+<a href=#646 id=646 data-nosnippet>646</a>
+<a href=#647 id=647 data-nosnippet>647</a>            <span class="attr">#[test]
+<a href=#648 id=648 data-nosnippet>648</a>            </span><span class="kw">fn </span>prop_coursera006_never_panics(dockerfile <span class="kw">in </span><span class="string">".*"</span>) {
+<a href=#649 id=649 data-nosnippet>649</a>                <span class="kw">let _ </span>= check_coursera006(<span class="kw-2">&amp;</span>dockerfile);
+<a href=#650 id=650 data-nosnippet>650</a>            }
+<a href=#651 id=651 data-nosnippet>651</a>
+<a href=#652 id=652 data-nosnippet>652</a>            <span class="attr">#[test]
+<a href=#653 id=653 data-nosnippet>653</a>            </span><span class="kw">fn </span>prop_coursera014_never_panics(dockerfile <span class="kw">in </span><span class="string">".*"</span>) {
+<a href=#654 id=654 data-nosnippet>654</a>                <span class="kw">let _ </span>= check_coursera014(<span class="kw-2">&amp;</span>dockerfile);
+<a href=#655 id=655 data-nosnippet>655</a>            }
+<a href=#656 id=656 data-nosnippet>656</a>
+<a href=#657 id=657 data-nosnippet>657</a>            <span class="attr">#[test]
+<a href=#658 id=658 data-nosnippet>658</a>            </span><span class="kw">fn </span>prop_coursera020_never_panics(dockerfile <span class="kw">in </span><span class="string">".*"</span>) {
+<a href=#659 id=659 data-nosnippet>659</a>                <span class="kw">let _ </span>= check_coursera020(<span class="kw-2">&amp;</span>dockerfile);
+<a href=#660 id=660 data-nosnippet>660</a>            }
+<a href=#661 id=661 data-nosnippet>661</a>
+<a href=#662 id=662 data-nosnippet>662</a>            <span class="attr">#[test]
+<a href=#663 id=663 data-nosnippet>663</a>            </span><span class="kw">fn </span>prop_valid_port_range_80(port <span class="kw">in </span><span class="number">80u16</span>..=<span class="number">80u16</span>) {
+<a href=#664 id=664 data-nosnippet>664</a>                <span class="macro">prop_assert!</span>(is_valid_coursera_port(port));
+<a href=#665 id=665 data-nosnippet>665</a>            }
+<a href=#666 id=666 data-nosnippet>666</a>
+<a href=#667 id=667 data-nosnippet>667</a>            <span class="attr">#[test]
+<a href=#668 id=668 data-nosnippet>668</a>            </span><span class="kw">fn </span>prop_valid_port_range_443(port <span class="kw">in </span><span class="number">443u16</span>..=<span class="number">443u16</span>) {
+<a href=#669 id=669 data-nosnippet>669</a>                <span class="macro">prop_assert!</span>(is_valid_coursera_port(port));
+<a href=#670 id=670 data-nosnippet>670</a>            }
+<a href=#671 id=671 data-nosnippet>671</a>
+<a href=#672 id=672 data-nosnippet>672</a>            <span class="attr">#[test]
+<a href=#673 id=673 data-nosnippet>673</a>            </span><span class="kw">fn </span>prop_valid_port_range_high(port <span class="kw">in </span><span class="number">1025u16</span>..=<span class="number">65535u16</span>) {
+<a href=#674 id=674 data-nosnippet>674</a>                <span class="macro">prop_assert!</span>(is_valid_coursera_port(port));
+<a href=#675 id=675 data-nosnippet>675</a>            }
+<a href=#676 id=676 data-nosnippet>676</a>
+<a href=#677 id=677 data-nosnippet>677</a>            <span class="attr">#[test]
+<a href=#678 id=678 data-nosnippet>678</a>            </span><span class="kw">fn </span>prop_invalid_port_range_privileged(port <span class="kw">in </span><span class="number">1u16</span>..=<span class="number">79u16</span>) {
+<a href=#679 id=679 data-nosnippet>679</a>                <span class="macro">prop_assert!</span>(!is_valid_coursera_port(port));
+<a href=#680 id=680 data-nosnippet>680</a>            }
+<a href=#681 id=681 data-nosnippet>681</a>
+<a href=#682 id=682 data-nosnippet>682</a>            <span class="attr">#[test]
+<a href=#683 id=683 data-nosnippet>683</a>            </span><span class="kw">fn </span>prop_invalid_port_range_privileged_mid(port <span class="kw">in </span><span class="number">81u16</span>..=<span class="number">442u16</span>) {
+<a href=#684 id=684 data-nosnippet>684</a>                <span class="macro">prop_assert!</span>(!is_valid_coursera_port(port));
+<a href=#685 id=685 data-nosnippet>685</a>            }
+<a href=#686 id=686 data-nosnippet>686</a>
+<a href=#687 id=687 data-nosnippet>687</a>            <span class="attr">#[test]
+<a href=#688 id=688 data-nosnippet>688</a>            </span><span class="kw">fn </span>prop_invalid_port_range_privileged_high(port <span class="kw">in </span><span class="number">444u16</span>..=<span class="number">1024u16</span>) {
+<a href=#689 id=689 data-nosnippet>689</a>                <span class="macro">prop_assert!</span>(!is_valid_coursera_port(port));
+<a href=#690 id=690 data-nosnippet>690</a>            }
+<a href=#691 id=691 data-nosnippet>691</a>        }
+<a href=#692 id=692 data-nosnippet>692</a>    }
+<a href=#693 id=693 data-nosnippet>693</a>}</code></pre></div></section></main></body></html>

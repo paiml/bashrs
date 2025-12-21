@@ -856,29 +856,30 @@
 <a href=#856 id=856 data-nosnippet>856</a>        <span class="kw">use </span>proptest::prelude::<span class="kw-2">*</span>;
 <a href=#857 id=857 data-nosnippet>857</a>
 <a href=#858 id=858 data-nosnippet>858</a>        <span class="macro">proptest!</span> {
-<a href=#859 id=859 data-nosnippet>859</a>            <span class="attr">#[test]
-<a href=#860 id=860 data-nosnippet>860</a>            </span><span class="kw">fn </span>prop_lint_never_panics(json_str <span class="kw">in </span><span class="string">"\\{[^}]*\\}"</span>) {
-<a href=#861 id=861 data-nosnippet>861</a>                <span class="comment">// Try to parse as JSON, if successful, lint it
-<a href=#862 id=862 data-nosnippet>862</a>                </span><span class="kw">if let </span><span class="prelude-val">Ok</span>(json) = serde_json::from_str::&lt;Value&gt;(<span class="kw-2">&amp;</span>json_str) {
-<a href=#863 id=863 data-nosnippet>863</a>                    <span class="kw">let _ </span>= lint_devcontainer(<span class="kw-2">&amp;</span>json);
-<a href=#864 id=864 data-nosnippet>864</a>                }
-<a href=#865 id=865 data-nosnippet>865</a>            }
-<a href=#866 id=866 data-nosnippet>866</a>
-<a href=#867 id=867 data-nosnippet>867</a>            <span class="attr">#[test]
-<a href=#868 id=868 data-nosnippet>868</a>            </span><span class="kw">fn </span>prop_jsonc_strip_never_panics(content <span class="kw">in </span><span class="string">".*"</span>) {
-<a href=#869 id=869 data-nosnippet>869</a>                <span class="kw">let _ </span>= strip_json_comments(<span class="kw-2">&amp;</span>content);
-<a href=#870 id=870 data-nosnippet>870</a>            }
-<a href=#871 id=871 data-nosnippet>871</a>
-<a href=#872 id=872 data-nosnippet>872</a>            <span class="attr">#[test]
-<a href=#873 id=873 data-nosnippet>873</a>            </span><span class="kw">fn </span>prop_valid_image_passes_001(
-<a href=#874 id=874 data-nosnippet>874</a>                image <span class="kw">in </span><span class="string">"[a-z]+/[a-z]+:[a-z0-9.-]+"
-<a href=#875 id=875 data-nosnippet>875</a>            </span>) {
-<a href=#876 id=876 data-nosnippet>876</a>                <span class="kw">let </span>json: Value = serde_json::from_str(<span class="kw-2">&amp;</span><span class="macro">format!</span>(
-<a href=#877 id=877 data-nosnippet>877</a>                    <span class="string">r#"{{"image": "{}"}}"#</span>, image
-<a href=#878 id=878 data-nosnippet>878</a>                )).unwrap();
-<a href=#879 id=879 data-nosnippet>879</a>                <span class="kw">let </span>result = check_devcontainer001(<span class="kw-2">&amp;</span>json);
-<a href=#880 id=880 data-nosnippet>880</a>                <span class="macro">prop_assert!</span>(result.diagnostics.is_empty());
-<a href=#881 id=881 data-nosnippet>881</a>            }
-<a href=#882 id=882 data-nosnippet>882</a>        }
-<a href=#883 id=883 data-nosnippet>883</a>    }
-<a href=#884 id=884 data-nosnippet>884</a>}</code></pre></div></section></main></body></html>
+<a href=#859 id=859 data-nosnippet>859</a>        <span class="attr">#![proptest_config(proptest::test_runner::Config::with_cases(<span class="number">10</span>))]
+<a href=#860 id=860 data-nosnippet>860</a>            #[test]
+<a href=#861 id=861 data-nosnippet>861</a>            </span><span class="kw">fn </span>prop_lint_never_panics(json_str <span class="kw">in </span><span class="string">"\\{[^}]*\\}"</span>) {
+<a href=#862 id=862 data-nosnippet>862</a>                <span class="comment">// Try to parse as JSON, if successful, lint it
+<a href=#863 id=863 data-nosnippet>863</a>                </span><span class="kw">if let </span><span class="prelude-val">Ok</span>(json) = serde_json::from_str::&lt;Value&gt;(<span class="kw-2">&amp;</span>json_str) {
+<a href=#864 id=864 data-nosnippet>864</a>                    <span class="kw">let _ </span>= lint_devcontainer(<span class="kw-2">&amp;</span>json);
+<a href=#865 id=865 data-nosnippet>865</a>                }
+<a href=#866 id=866 data-nosnippet>866</a>            }
+<a href=#867 id=867 data-nosnippet>867</a>
+<a href=#868 id=868 data-nosnippet>868</a>            <span class="attr">#[test]
+<a href=#869 id=869 data-nosnippet>869</a>            </span><span class="kw">fn </span>prop_jsonc_strip_never_panics(content <span class="kw">in </span><span class="string">".*"</span>) {
+<a href=#870 id=870 data-nosnippet>870</a>                <span class="kw">let _ </span>= strip_json_comments(<span class="kw-2">&amp;</span>content);
+<a href=#871 id=871 data-nosnippet>871</a>            }
+<a href=#872 id=872 data-nosnippet>872</a>
+<a href=#873 id=873 data-nosnippet>873</a>            <span class="attr">#[test]
+<a href=#874 id=874 data-nosnippet>874</a>            </span><span class="kw">fn </span>prop_valid_image_passes_001(
+<a href=#875 id=875 data-nosnippet>875</a>                image <span class="kw">in </span><span class="string">"[a-z]+/[a-z]+:[a-z0-9.-]+"
+<a href=#876 id=876 data-nosnippet>876</a>            </span>) {
+<a href=#877 id=877 data-nosnippet>877</a>                <span class="kw">let </span>json: Value = serde_json::from_str(<span class="kw-2">&amp;</span><span class="macro">format!</span>(
+<a href=#878 id=878 data-nosnippet>878</a>                    <span class="string">r#"{{"image": "{}"}}"#</span>, image
+<a href=#879 id=879 data-nosnippet>879</a>                )).unwrap();
+<a href=#880 id=880 data-nosnippet>880</a>                <span class="kw">let </span>result = check_devcontainer001(<span class="kw-2">&amp;</span>json);
+<a href=#881 id=881 data-nosnippet>881</a>                <span class="macro">prop_assert!</span>(result.diagnostics.is_empty());
+<a href=#882 id=882 data-nosnippet>882</a>            }
+<a href=#883 id=883 data-nosnippet>883</a>        }
+<a href=#884 id=884 data-nosnippet>884</a>    }
+<a href=#885 id=885 data-nosnippet>885</a>}</code></pre></div></section></main></body></html>

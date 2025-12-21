@@ -104,47 +104,48 @@
 <a href=#104 id=104 data-nosnippet>104</a>        <span class="kw">use </span>proptest::prelude::<span class="kw-2">*</span>;
 <a href=#105 id=105 data-nosnippet>105</a>
 <a href=#106 id=106 data-nosnippet>106</a>        <span class="macro">proptest!</span> {
-<a href=#107 id=107 data-nosnippet>107</a>            <span class="attr">#[test]
-<a href=#108 id=108 data-nosnippet>108</a>            </span><span class="kw">fn </span>prop_never_panics(dockerfile <span class="kw">in </span><span class="string">".*"</span>) {
-<a href=#109 id=109 data-nosnippet>109</a>                <span class="kw">let _ </span>= check(<span class="kw-2">&amp;</span>dockerfile);
-<a href=#110 id=110 data-nosnippet>110</a>            }
-<a href=#111 id=111 data-nosnippet>111</a>
-<a href=#112 id=112 data-nosnippet>112</a>            <span class="attr">#[test]
-<a href=#113 id=113 data-nosnippet>113</a>            </span><span class="kw">fn </span>prop_scratch_never_warns(
-<a href=#114 id=114 data-nosnippet>114</a>                commands <span class="kw">in </span>prop::collection::vec(<span class="string">"(RUN|COPY|CMD) .*"</span>, <span class="number">0</span>..<span class="number">10</span>)
-<a href=#115 id=115 data-nosnippet>115</a>            ) {
-<a href=#116 id=116 data-nosnippet>116</a>                <span class="kw">let </span>dockerfile = <span class="macro">format!</span>(<span class="string">"FROM scratch\n{}"</span>, commands.join(<span class="string">"\n"</span>));
-<a href=#117 id=117 data-nosnippet>117</a>                <span class="kw">let </span>result = check(<span class="kw-2">&amp;</span>dockerfile);
-<a href=#118 id=118 data-nosnippet>118</a>                <span class="macro">prop_assert_eq!</span>(result.diagnostics.len(), <span class="number">0</span>);
-<a href=#119 id=119 data-nosnippet>119</a>            }
-<a href=#120 id=120 data-nosnippet>120</a>
-<a href=#121 id=121 data-nosnippet>121</a>            <span class="attr">#[test]
-<a href=#122 id=122 data-nosnippet>122</a>            </span><span class="kw">fn </span>prop_pinned_never_warns(
-<a href=#123 id=123 data-nosnippet>123</a>                image <span class="kw">in </span><span class="string">"[a-z]+:[a-z0-9.-]+"</span>,
-<a href=#124 id=124 data-nosnippet>124</a>                hash <span class="kw">in </span><span class="string">"[a-f0-9]{64}"
-<a href=#125 id=125 data-nosnippet>125</a>            </span>) {
-<a href=#126 id=126 data-nosnippet>126</a>                <span class="kw">let </span>dockerfile = <span class="macro">format!</span>(<span class="string">"FROM {}@sha256:{}"</span>, image, hash);
-<a href=#127 id=127 data-nosnippet>127</a>                <span class="kw">let </span>result = check(<span class="kw-2">&amp;</span>dockerfile);
-<a href=#128 id=128 data-nosnippet>128</a>                <span class="macro">prop_assert_eq!</span>(result.diagnostics.len(), <span class="number">0</span>);
-<a href=#129 id=129 data-nosnippet>129</a>            }
-<a href=#130 id=130 data-nosnippet>130</a>
-<a href=#131 id=131 data-nosnippet>131</a>            <span class="attr">#[test]
-<a href=#132 id=132 data-nosnippet>132</a>            </span><span class="kw">fn </span>prop_latest_always_warns(
-<a href=#133 id=133 data-nosnippet>133</a>                image <span class="kw">in </span><span class="string">"[a-z]+"
-<a href=#134 id=134 data-nosnippet>134</a>            </span>) {
-<a href=#135 id=135 data-nosnippet>135</a>                <span class="kw">let </span>dockerfile = <span class="macro">format!</span>(<span class="string">"FROM {}:latest"</span>, image);
-<a href=#136 id=136 data-nosnippet>136</a>                <span class="kw">let </span>result = check(<span class="kw-2">&amp;</span>dockerfile);
-<a href=#137 id=137 data-nosnippet>137</a>                <span class="macro">prop_assert_eq!</span>(result.diagnostics.len(), <span class="number">1</span>);
-<a href=#138 id=138 data-nosnippet>138</a>            }
-<a href=#139 id=139 data-nosnippet>139</a>
-<a href=#140 id=140 data-nosnippet>140</a>            <span class="attr">#[test]
-<a href=#141 id=141 data-nosnippet>141</a>            </span><span class="kw">fn </span>prop_unpinned_warns(
-<a href=#142 id=142 data-nosnippet>142</a>                image <span class="kw">in </span><span class="string">"[a-z]+:[0-9.]+"
-<a href=#143 id=143 data-nosnippet>143</a>            </span>) {
-<a href=#144 id=144 data-nosnippet>144</a>                <span class="kw">let </span>dockerfile = <span class="macro">format!</span>(<span class="string">"FROM {}"</span>, image);
-<a href=#145 id=145 data-nosnippet>145</a>                <span class="kw">let </span>result = check(<span class="kw-2">&amp;</span>dockerfile);
-<a href=#146 id=146 data-nosnippet>146</a>                <span class="macro">prop_assert_eq!</span>(result.diagnostics.len(), <span class="number">1</span>);
-<a href=#147 id=147 data-nosnippet>147</a>            }
-<a href=#148 id=148 data-nosnippet>148</a>        }
-<a href=#149 id=149 data-nosnippet>149</a>    }
-<a href=#150 id=150 data-nosnippet>150</a>}</code></pre></div></section></main></body></html>
+<a href=#107 id=107 data-nosnippet>107</a>        <span class="attr">#![proptest_config(proptest::test_runner::Config::with_cases(<span class="number">10</span>))]
+<a href=#108 id=108 data-nosnippet>108</a>            #[test]
+<a href=#109 id=109 data-nosnippet>109</a>            </span><span class="kw">fn </span>prop_never_panics(dockerfile <span class="kw">in </span><span class="string">".*"</span>) {
+<a href=#110 id=110 data-nosnippet>110</a>                <span class="kw">let _ </span>= check(<span class="kw-2">&amp;</span>dockerfile);
+<a href=#111 id=111 data-nosnippet>111</a>            }
+<a href=#112 id=112 data-nosnippet>112</a>
+<a href=#113 id=113 data-nosnippet>113</a>            <span class="attr">#[test]
+<a href=#114 id=114 data-nosnippet>114</a>            </span><span class="kw">fn </span>prop_scratch_never_warns(
+<a href=#115 id=115 data-nosnippet>115</a>                commands <span class="kw">in </span>prop::collection::vec(<span class="string">"(RUN|COPY|CMD) .*"</span>, <span class="number">0</span>..<span class="number">10</span>)
+<a href=#116 id=116 data-nosnippet>116</a>            ) {
+<a href=#117 id=117 data-nosnippet>117</a>                <span class="kw">let </span>dockerfile = <span class="macro">format!</span>(<span class="string">"FROM scratch\n{}"</span>, commands.join(<span class="string">"\n"</span>));
+<a href=#118 id=118 data-nosnippet>118</a>                <span class="kw">let </span>result = check(<span class="kw-2">&amp;</span>dockerfile);
+<a href=#119 id=119 data-nosnippet>119</a>                <span class="macro">prop_assert_eq!</span>(result.diagnostics.len(), <span class="number">0</span>);
+<a href=#120 id=120 data-nosnippet>120</a>            }
+<a href=#121 id=121 data-nosnippet>121</a>
+<a href=#122 id=122 data-nosnippet>122</a>            <span class="attr">#[test]
+<a href=#123 id=123 data-nosnippet>123</a>            </span><span class="kw">fn </span>prop_pinned_never_warns(
+<a href=#124 id=124 data-nosnippet>124</a>                image <span class="kw">in </span><span class="string">"[a-z]+:[a-z0-9.-]+"</span>,
+<a href=#125 id=125 data-nosnippet>125</a>                hash <span class="kw">in </span><span class="string">"[a-f0-9]{64}"
+<a href=#126 id=126 data-nosnippet>126</a>            </span>) {
+<a href=#127 id=127 data-nosnippet>127</a>                <span class="kw">let </span>dockerfile = <span class="macro">format!</span>(<span class="string">"FROM {}@sha256:{}"</span>, image, hash);
+<a href=#128 id=128 data-nosnippet>128</a>                <span class="kw">let </span>result = check(<span class="kw-2">&amp;</span>dockerfile);
+<a href=#129 id=129 data-nosnippet>129</a>                <span class="macro">prop_assert_eq!</span>(result.diagnostics.len(), <span class="number">0</span>);
+<a href=#130 id=130 data-nosnippet>130</a>            }
+<a href=#131 id=131 data-nosnippet>131</a>
+<a href=#132 id=132 data-nosnippet>132</a>            <span class="attr">#[test]
+<a href=#133 id=133 data-nosnippet>133</a>            </span><span class="kw">fn </span>prop_latest_always_warns(
+<a href=#134 id=134 data-nosnippet>134</a>                image <span class="kw">in </span><span class="string">"[a-z]+"
+<a href=#135 id=135 data-nosnippet>135</a>            </span>) {
+<a href=#136 id=136 data-nosnippet>136</a>                <span class="kw">let </span>dockerfile = <span class="macro">format!</span>(<span class="string">"FROM {}:latest"</span>, image);
+<a href=#137 id=137 data-nosnippet>137</a>                <span class="kw">let </span>result = check(<span class="kw-2">&amp;</span>dockerfile);
+<a href=#138 id=138 data-nosnippet>138</a>                <span class="macro">prop_assert_eq!</span>(result.diagnostics.len(), <span class="number">1</span>);
+<a href=#139 id=139 data-nosnippet>139</a>            }
+<a href=#140 id=140 data-nosnippet>140</a>
+<a href=#141 id=141 data-nosnippet>141</a>            <span class="attr">#[test]
+<a href=#142 id=142 data-nosnippet>142</a>            </span><span class="kw">fn </span>prop_unpinned_warns(
+<a href=#143 id=143 data-nosnippet>143</a>                image <span class="kw">in </span><span class="string">"[a-z]+:[0-9.]+"
+<a href=#144 id=144 data-nosnippet>144</a>            </span>) {
+<a href=#145 id=145 data-nosnippet>145</a>                <span class="kw">let </span>dockerfile = <span class="macro">format!</span>(<span class="string">"FROM {}"</span>, image);
+<a href=#146 id=146 data-nosnippet>146</a>                <span class="kw">let </span>result = check(<span class="kw-2">&amp;</span>dockerfile);
+<a href=#147 id=147 data-nosnippet>147</a>                <span class="macro">prop_assert_eq!</span>(result.diagnostics.len(), <span class="number">1</span>);
+<a href=#148 id=148 data-nosnippet>148</a>            }
+<a href=#149 id=149 data-nosnippet>149</a>        }
+<a href=#150 id=150 data-nosnippet>150</a>    }
+<a href=#151 id=151 data-nosnippet>151</a>}</code></pre></div></section></main></body></html>

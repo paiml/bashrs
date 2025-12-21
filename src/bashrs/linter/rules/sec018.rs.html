@@ -267,33 +267,34 @@
 <a href=#267 id=267 data-nosnippet>267</a>    <span class="kw">use </span>proptest::prelude::<span class="kw-2">*</span>;
 <a href=#268 id=268 data-nosnippet>268</a>
 <a href=#269 id=269 data-nosnippet>269</a>    <span class="macro">proptest!</span> {
-<a href=#270 id=270 data-nosnippet>270</a>        <span class="doccomment">/// PROPERTY TEST 1: Never panics on any input
-<a href=#271 id=271 data-nosnippet>271</a>        </span><span class="attr">#[test]
-<a href=#272 id=272 data-nosnippet>272</a>        </span><span class="kw">fn </span>prop_sec018_never_panics(s <span class="kw">in </span><span class="string">".*"</span>) {
-<a href=#273 id=273 data-nosnippet>273</a>            <span class="kw">let _ </span>= check(<span class="kw-2">&amp;</span>s);
-<a href=#274 id=274 data-nosnippet>274</a>        }
-<a href=#275 id=275 data-nosnippet>275</a>
-<a href=#276 id=276 data-nosnippet>276</a>        <span class="doccomment">/// PROPERTY TEST 2: Always detects [ -f ] &amp;&amp; cat pattern
-<a href=#277 id=277 data-nosnippet>277</a>        </span><span class="attr">#[test]
-<a href=#278 id=278 data-nosnippet>278</a>        </span><span class="kw">fn </span>prop_sec018_detects_check_then_cat(
-<a href=#279 id=279 data-nosnippet>279</a>            var_name <span class="kw">in </span><span class="string">"[A-Z_]{1,20}"</span>,
-<a href=#280 id=280 data-nosnippet>280</a>        ) {
-<a href=#281 id=281 data-nosnippet>281</a>            <span class="kw">let </span>script = <span class="macro">format!</span>(<span class="string">"[ -f \"${}\" ] &amp;&amp; cat \"${}\""</span>, var_name, var_name);
-<a href=#282 id=282 data-nosnippet>282</a>            <span class="kw">let </span>result = check(<span class="kw-2">&amp;</span>script);
-<a href=#283 id=283 data-nosnippet>283</a>
-<a href=#284 id=284 data-nosnippet>284</a>            <span class="macro">prop_assert_eq!</span>(result.diagnostics.len(), <span class="number">1</span>);
-<a href=#285 id=285 data-nosnippet>285</a>            <span class="macro">prop_assert_eq!</span>(result.diagnostics[<span class="number">0</span>].code.as_str(), <span class="string">"SEC018"</span>);
-<a href=#286 id=286 data-nosnippet>286</a>        }
-<a href=#287 id=287 data-nosnippet>287</a>
-<a href=#288 id=288 data-nosnippet>288</a>        <span class="doccomment">/// PROPERTY TEST 3: Passes when no &amp;&amp; operator
-<a href=#289 id=289 data-nosnippet>289</a>        </span><span class="attr">#[test]
-<a href=#290 id=290 data-nosnippet>290</a>        </span><span class="kw">fn </span>prop_sec018_passes_without_and(
-<a href=#291 id=291 data-nosnippet>291</a>            var_name <span class="kw">in </span><span class="string">"[A-Z_]{1,20}"</span>,
-<a href=#292 id=292 data-nosnippet>292</a>        ) {
-<a href=#293 id=293 data-nosnippet>293</a>            <span class="kw">let </span>script = <span class="macro">format!</span>(<span class="string">"cat \"${}\""</span>, var_name);
-<a href=#294 id=294 data-nosnippet>294</a>            <span class="kw">let </span>result = check(<span class="kw-2">&amp;</span>script);
-<a href=#295 id=295 data-nosnippet>295</a>
-<a href=#296 id=296 data-nosnippet>296</a>            <span class="macro">prop_assert_eq!</span>(result.diagnostics.len(), <span class="number">0</span>);
-<a href=#297 id=297 data-nosnippet>297</a>        }
-<a href=#298 id=298 data-nosnippet>298</a>    }
-<a href=#299 id=299 data-nosnippet>299</a>}</code></pre></div></section></main></body></html>
+<a href=#270 id=270 data-nosnippet>270</a>        <span class="attr">#![proptest_config(proptest::test_runner::Config::with_cases(<span class="number">10</span>))]
+<a href=#271 id=271 data-nosnippet>271</a>        </span><span class="doccomment">/// PROPERTY TEST 1: Never panics on any input
+<a href=#272 id=272 data-nosnippet>272</a>        </span><span class="attr">#[test]
+<a href=#273 id=273 data-nosnippet>273</a>        </span><span class="kw">fn </span>prop_sec018_never_panics(s <span class="kw">in </span><span class="string">".*"</span>) {
+<a href=#274 id=274 data-nosnippet>274</a>            <span class="kw">let _ </span>= check(<span class="kw-2">&amp;</span>s);
+<a href=#275 id=275 data-nosnippet>275</a>        }
+<a href=#276 id=276 data-nosnippet>276</a>
+<a href=#277 id=277 data-nosnippet>277</a>        <span class="doccomment">/// PROPERTY TEST 2: Always detects [ -f ] &amp;&amp; cat pattern
+<a href=#278 id=278 data-nosnippet>278</a>        </span><span class="attr">#[test]
+<a href=#279 id=279 data-nosnippet>279</a>        </span><span class="kw">fn </span>prop_sec018_detects_check_then_cat(
+<a href=#280 id=280 data-nosnippet>280</a>            var_name <span class="kw">in </span><span class="string">"[A-Z_]{1,20}"</span>,
+<a href=#281 id=281 data-nosnippet>281</a>        ) {
+<a href=#282 id=282 data-nosnippet>282</a>            <span class="kw">let </span>script = <span class="macro">format!</span>(<span class="string">"[ -f \"${}\" ] &amp;&amp; cat \"${}\""</span>, var_name, var_name);
+<a href=#283 id=283 data-nosnippet>283</a>            <span class="kw">let </span>result = check(<span class="kw-2">&amp;</span>script);
+<a href=#284 id=284 data-nosnippet>284</a>
+<a href=#285 id=285 data-nosnippet>285</a>            <span class="macro">prop_assert_eq!</span>(result.diagnostics.len(), <span class="number">1</span>);
+<a href=#286 id=286 data-nosnippet>286</a>            <span class="macro">prop_assert_eq!</span>(result.diagnostics[<span class="number">0</span>].code.as_str(), <span class="string">"SEC018"</span>);
+<a href=#287 id=287 data-nosnippet>287</a>        }
+<a href=#288 id=288 data-nosnippet>288</a>
+<a href=#289 id=289 data-nosnippet>289</a>        <span class="doccomment">/// PROPERTY TEST 3: Passes when no &amp;&amp; operator
+<a href=#290 id=290 data-nosnippet>290</a>        </span><span class="attr">#[test]
+<a href=#291 id=291 data-nosnippet>291</a>        </span><span class="kw">fn </span>prop_sec018_passes_without_and(
+<a href=#292 id=292 data-nosnippet>292</a>            var_name <span class="kw">in </span><span class="string">"[A-Z_]{1,20}"</span>,
+<a href=#293 id=293 data-nosnippet>293</a>        ) {
+<a href=#294 id=294 data-nosnippet>294</a>            <span class="kw">let </span>script = <span class="macro">format!</span>(<span class="string">"cat \"${}\""</span>, var_name);
+<a href=#295 id=295 data-nosnippet>295</a>            <span class="kw">let </span>result = check(<span class="kw-2">&amp;</span>script);
+<a href=#296 id=296 data-nosnippet>296</a>
+<a href=#297 id=297 data-nosnippet>297</a>            <span class="macro">prop_assert_eq!</span>(result.diagnostics.len(), <span class="number">0</span>);
+<a href=#298 id=298 data-nosnippet>298</a>        }
+<a href=#299 id=299 data-nosnippet>299</a>    }
+<a href=#300 id=300 data-nosnippet>300</a>}</code></pre></div></section></main></body></html>

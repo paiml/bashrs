@@ -304,33 +304,34 @@
 <a href=#304 id=304 data-nosnippet>304</a>    <span class="kw">use </span>proptest::prelude::<span class="kw-2">*</span>;
 <a href=#305 id=305 data-nosnippet>305</a>
 <a href=#306 id=306 data-nosnippet>306</a>    <span class="macro">proptest!</span> {
-<a href=#307 id=307 data-nosnippet>307</a>        <span class="doccomment">/// PROPERTY TEST 1: Never panics on any input
-<a href=#308 id=308 data-nosnippet>308</a>        </span><span class="attr">#[test]
-<a href=#309 id=309 data-nosnippet>309</a>        </span><span class="kw">fn </span>prop_bash006_never_panics(s <span class="kw">in </span><span class="string">".*"</span>) {
-<a href=#310 id=310 data-nosnippet>310</a>            <span class="kw">let _ </span>= check(<span class="kw-2">&amp;</span>s);
-<a href=#311 id=311 data-nosnippet>311</a>        }
-<a href=#312 id=312 data-nosnippet>312</a>
-<a href=#313 id=313 data-nosnippet>313</a>        <span class="doccomment">/// PROPERTY TEST 2: Always detects undocumented function
-<a href=#314 id=314 data-nosnippet>314</a>        </span><span class="attr">#[test]
-<a href=#315 id=315 data-nosnippet>315</a>        </span><span class="kw">fn </span>prop_bash006_detects_undocumented(
-<a href=#316 id=316 data-nosnippet>316</a>            func_name <span class="kw">in </span><span class="string">"[a-z_]{3,15}"</span>,
-<a href=#317 id=317 data-nosnippet>317</a>        ) {
-<a href=#318 id=318 data-nosnippet>318</a>            <span class="kw">let </span>script = <span class="macro">format!</span>(<span class="string">"{}() {{\n  echo test\n}}"</span>, func_name);
-<a href=#319 id=319 data-nosnippet>319</a>            <span class="kw">let </span>result = check(<span class="kw-2">&amp;</span>script);
-<a href=#320 id=320 data-nosnippet>320</a>
-<a href=#321 id=321 data-nosnippet>321</a>            <span class="macro">prop_assert_eq!</span>(result.diagnostics.len(), <span class="number">1</span>);
-<a href=#322 id=322 data-nosnippet>322</a>            <span class="macro">prop_assert_eq!</span>(result.diagnostics[<span class="number">0</span>].code.as_str(), <span class="string">"BASH006"</span>);
-<a href=#323 id=323 data-nosnippet>323</a>        }
-<a href=#324 id=324 data-nosnippet>324</a>
-<a href=#325 id=325 data-nosnippet>325</a>        <span class="doccomment">/// PROPERTY TEST 3: Passes with documentation
-<a href=#326 id=326 data-nosnippet>326</a>        </span><span class="attr">#[test]
-<a href=#327 id=327 data-nosnippet>327</a>        </span><span class="kw">fn </span>prop_bash006_passes_with_doc(
-<a href=#328 id=328 data-nosnippet>328</a>            func_name <span class="kw">in </span><span class="string">"[a-z_]{3,15}"</span>,
-<a href=#329 id=329 data-nosnippet>329</a>        ) {
-<a href=#330 id=330 data-nosnippet>330</a>            <span class="kw">let </span>script = <span class="macro">format!</span>(<span class="string">"# Function doc\n{}() {{\n  echo test\n}}"</span>, func_name);
-<a href=#331 id=331 data-nosnippet>331</a>            <span class="kw">let </span>result = check(<span class="kw-2">&amp;</span>script);
-<a href=#332 id=332 data-nosnippet>332</a>
-<a href=#333 id=333 data-nosnippet>333</a>            <span class="macro">prop_assert_eq!</span>(result.diagnostics.len(), <span class="number">0</span>);
-<a href=#334 id=334 data-nosnippet>334</a>        }
-<a href=#335 id=335 data-nosnippet>335</a>    }
-<a href=#336 id=336 data-nosnippet>336</a>}</code></pre></div></section></main></body></html>
+<a href=#307 id=307 data-nosnippet>307</a>        <span class="attr">#![proptest_config(proptest::test_runner::Config::with_cases(<span class="number">10</span>))]
+<a href=#308 id=308 data-nosnippet>308</a>        </span><span class="doccomment">/// PROPERTY TEST 1: Never panics on any input
+<a href=#309 id=309 data-nosnippet>309</a>        </span><span class="attr">#[test]
+<a href=#310 id=310 data-nosnippet>310</a>        </span><span class="kw">fn </span>prop_bash006_never_panics(s <span class="kw">in </span><span class="string">".*"</span>) {
+<a href=#311 id=311 data-nosnippet>311</a>            <span class="kw">let _ </span>= check(<span class="kw-2">&amp;</span>s);
+<a href=#312 id=312 data-nosnippet>312</a>        }
+<a href=#313 id=313 data-nosnippet>313</a>
+<a href=#314 id=314 data-nosnippet>314</a>        <span class="doccomment">/// PROPERTY TEST 2: Always detects undocumented function
+<a href=#315 id=315 data-nosnippet>315</a>        </span><span class="attr">#[test]
+<a href=#316 id=316 data-nosnippet>316</a>        </span><span class="kw">fn </span>prop_bash006_detects_undocumented(
+<a href=#317 id=317 data-nosnippet>317</a>            func_name <span class="kw">in </span><span class="string">"[a-z_]{3,15}"</span>,
+<a href=#318 id=318 data-nosnippet>318</a>        ) {
+<a href=#319 id=319 data-nosnippet>319</a>            <span class="kw">let </span>script = <span class="macro">format!</span>(<span class="string">"{}() {{\n  echo test\n}}"</span>, func_name);
+<a href=#320 id=320 data-nosnippet>320</a>            <span class="kw">let </span>result = check(<span class="kw-2">&amp;</span>script);
+<a href=#321 id=321 data-nosnippet>321</a>
+<a href=#322 id=322 data-nosnippet>322</a>            <span class="macro">prop_assert_eq!</span>(result.diagnostics.len(), <span class="number">1</span>);
+<a href=#323 id=323 data-nosnippet>323</a>            <span class="macro">prop_assert_eq!</span>(result.diagnostics[<span class="number">0</span>].code.as_str(), <span class="string">"BASH006"</span>);
+<a href=#324 id=324 data-nosnippet>324</a>        }
+<a href=#325 id=325 data-nosnippet>325</a>
+<a href=#326 id=326 data-nosnippet>326</a>        <span class="doccomment">/// PROPERTY TEST 3: Passes with documentation
+<a href=#327 id=327 data-nosnippet>327</a>        </span><span class="attr">#[test]
+<a href=#328 id=328 data-nosnippet>328</a>        </span><span class="kw">fn </span>prop_bash006_passes_with_doc(
+<a href=#329 id=329 data-nosnippet>329</a>            func_name <span class="kw">in </span><span class="string">"[a-z_]{3,15}"</span>,
+<a href=#330 id=330 data-nosnippet>330</a>        ) {
+<a href=#331 id=331 data-nosnippet>331</a>            <span class="kw">let </span>script = <span class="macro">format!</span>(<span class="string">"# Function doc\n{}() {{\n  echo test\n}}"</span>, func_name);
+<a href=#332 id=332 data-nosnippet>332</a>            <span class="kw">let </span>result = check(<span class="kw-2">&amp;</span>script);
+<a href=#333 id=333 data-nosnippet>333</a>
+<a href=#334 id=334 data-nosnippet>334</a>            <span class="macro">prop_assert_eq!</span>(result.diagnostics.len(), <span class="number">0</span>);
+<a href=#335 id=335 data-nosnippet>335</a>        }
+<a href=#336 id=336 data-nosnippet>336</a>    }
+<a href=#337 id=337 data-nosnippet>337</a>}</code></pre></div></section></main></body></html>

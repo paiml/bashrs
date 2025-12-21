@@ -306,110 +306,111 @@
 <a href=#306 id=306 data-nosnippet>306</a>        }
 <a href=#307 id=307 data-nosnippet>307</a>
 <a href=#308 id=308 data-nosnippet>308</a>        <span class="macro">proptest!</span> {
-<a href=#309 id=309 data-nosnippet>309</a>            <span class="doccomment">/// Property: echo/printf with command keywords should never trigger MAKE010
-<a href=#310 id=310 data-nosnippet>310</a>            </span><span class="attr">#[test]
-<a href=#311 id=311 data-nosnippet>311</a>            </span><span class="kw">fn </span>prop_echo_with_command_never_warns(
-<a href=#312 id=312 data-nosnippet>312</a>                cmd <span class="kw">in </span>command_keyword(),
-<a href=#313 id=313 data-nosnippet>313</a>                prefix <span class="kw">in </span>prop::sample::select(<span class="macro">vec!</span>[<span class="string">"echo"</span>, <span class="string">"printf"</span>]),
-<a href=#314 id=314 data-nosnippet>314</a>                text <span class="kw">in </span><span class="string">"[a-zA-Z0-9 ]+"</span>,
-<a href=#315 id=315 data-nosnippet>315</a>            ) {
-<a href=#316 id=316 data-nosnippet>316</a>                <span class="kw">let </span>recipe = <span class="macro">format!</span>(<span class="string">"\t@{} \"{}. Use: {} here\""</span>, prefix, text, cmd);
-<a href=#317 id=317 data-nosnippet>317</a>                <span class="kw">let </span>makefile = <span class="macro">format!</span>(<span class="string">"target:\n{}"</span>, recipe);
-<a href=#318 id=318 data-nosnippet>318</a>                <span class="kw">let </span>result = check(<span class="kw-2">&amp;</span>makefile);
-<a href=#319 id=319 data-nosnippet>319</a>
-<a href=#320 id=320 data-nosnippet>320</a>                <span class="comment">// Should NOT trigger MAKE010 for command in echo/printf
-<a href=#321 id=321 data-nosnippet>321</a>                </span><span class="kw">let </span>make010_count = result.diagnostics.iter()
-<a href=#322 id=322 data-nosnippet>322</a>                    .filter(|d| d.code == <span class="string">"MAKE010"</span>)
-<a href=#323 id=323 data-nosnippet>323</a>                    .count();
-<a href=#324 id=324 data-nosnippet>324</a>
-<a href=#325 id=325 data-nosnippet>325</a>                <span class="macro">prop_assert_eq!</span>(make010_count, <span class="number">0</span>,
-<a href=#326 id=326 data-nosnippet>326</a>                    <span class="string">"echo/printf with '{}' in string should not trigger MAKE010"</span>, cmd);
-<a href=#327 id=327 data-nosnippet>327</a>            }
-<a href=#328 id=328 data-nosnippet>328</a>
-<a href=#329 id=329 data-nosnippet>329</a>            <span class="doccomment">/// Property: Variable assignments with command keywords should never trigger MAKE010
-<a href=#330 id=330 data-nosnippet>330</a>            </span><span class="attr">#[test]
-<a href=#331 id=331 data-nosnippet>331</a>            </span><span class="kw">fn </span>prop_variable_assignment_never_warns(
-<a href=#332 id=332 data-nosnippet>332</a>                cmd <span class="kw">in </span>command_keyword(),
-<a href=#333 id=333 data-nosnippet>333</a>                var_name <span class="kw">in </span><span class="string">"[A-Z][A-Z0-9_]{0,10}"</span>,
-<a href=#334 id=334 data-nosnippet>334</a>                text <span class="kw">in </span><span class="string">"[a-zA-Z0-9 ]+"</span>,
-<a href=#335 id=335 data-nosnippet>335</a>            ) {
-<a href=#336 id=336 data-nosnippet>336</a>                <span class="kw">let </span>recipe = <span class="macro">format!</span>(<span class="string">"\t@{}=\"{} {}\""</span>, var_name, text, cmd);
-<a href=#337 id=337 data-nosnippet>337</a>                <span class="kw">let </span>makefile = <span class="macro">format!</span>(<span class="string">"target:\n{}"</span>, recipe);
-<a href=#338 id=338 data-nosnippet>338</a>                <span class="kw">let </span>result = check(<span class="kw-2">&amp;</span>makefile);
-<a href=#339 id=339 data-nosnippet>339</a>
-<a href=#340 id=340 data-nosnippet>340</a>                <span class="comment">// Should NOT trigger MAKE010 for command in variable assignment
-<a href=#341 id=341 data-nosnippet>341</a>                </span><span class="kw">let </span>make010_count = result.diagnostics.iter()
-<a href=#342 id=342 data-nosnippet>342</a>                    .filter(|d| d.code == <span class="string">"MAKE010"</span>)
-<a href=#343 id=343 data-nosnippet>343</a>                    .count();
-<a href=#344 id=344 data-nosnippet>344</a>
-<a href=#345 id=345 data-nosnippet>345</a>                <span class="macro">prop_assert_eq!</span>(make010_count, <span class="number">0</span>,
-<a href=#346 id=346 data-nosnippet>346</a>                    <span class="string">"Variable assignment with '{}' in value should not trigger MAKE010"</span>, cmd);
-<a href=#347 id=347 data-nosnippet>347</a>            }
-<a href=#348 id=348 data-nosnippet>348</a>
-<a href=#349 id=349 data-nosnippet>349</a>            <span class="doccomment">/// Property: Actual commands without error handling should always trigger MAKE010
-<a href=#350 id=350 data-nosnippet>350</a>            </span><span class="attr">#[test]
-<a href=#351 id=351 data-nosnippet>351</a>            </span><span class="kw">fn </span>prop_actual_command_always_warns(
-<a href=#352 id=352 data-nosnippet>352</a>                cmd <span class="kw">in </span>command_keyword(),
-<a href=#353 id=353 data-nosnippet>353</a>                args <span class="kw">in </span><span class="string">"[a-zA-Z0-9/._-]+"</span>,
-<a href=#354 id=354 data-nosnippet>354</a>            ) {
-<a href=#355 id=355 data-nosnippet>355</a>                <span class="kw">let </span>recipe = <span class="macro">format!</span>(<span class="string">"\t{} {}"</span>, cmd, args);
-<a href=#356 id=356 data-nosnippet>356</a>                <span class="kw">let </span>makefile = <span class="macro">format!</span>(<span class="string">"target:\n{}"</span>, recipe);
-<a href=#357 id=357 data-nosnippet>357</a>                <span class="kw">let </span>result = check(<span class="kw-2">&amp;</span>makefile);
-<a href=#358 id=358 data-nosnippet>358</a>
-<a href=#359 id=359 data-nosnippet>359</a>                <span class="comment">// SHOULD trigger MAKE010 for actual command
-<a href=#360 id=360 data-nosnippet>360</a>                </span><span class="kw">let </span>make010_count = result.diagnostics.iter()
-<a href=#361 id=361 data-nosnippet>361</a>                    .filter(|d| d.code == <span class="string">"MAKE010"</span>)
-<a href=#362 id=362 data-nosnippet>362</a>                    .count();
-<a href=#363 id=363 data-nosnippet>363</a>
-<a href=#364 id=364 data-nosnippet>364</a>                <span class="macro">prop_assert_eq!</span>(make010_count, <span class="number">1</span>,
-<a href=#365 id=365 data-nosnippet>365</a>                    <span class="string">"Actual '{}' command without error handling should trigger MAKE010"</span>, cmd);
-<a href=#366 id=366 data-nosnippet>366</a>            }
-<a href=#367 id=367 data-nosnippet>367</a>
-<a href=#368 id=368 data-nosnippet>368</a>            <span class="doccomment">/// Property: Commands with || exit 1 should never trigger MAKE010
-<a href=#369 id=369 data-nosnippet>369</a>            </span><span class="attr">#[test]
-<a href=#370 id=370 data-nosnippet>370</a>            </span><span class="kw">fn </span>prop_command_with_error_handling_never_warns(
-<a href=#371 id=371 data-nosnippet>371</a>                cmd <span class="kw">in </span>command_keyword(),
-<a href=#372 id=372 data-nosnippet>372</a>                args <span class="kw">in </span><span class="string">"[a-zA-Z0-9/._-]+"</span>,
-<a href=#373 id=373 data-nosnippet>373</a>            ) {
-<a href=#374 id=374 data-nosnippet>374</a>                <span class="kw">let </span>recipe = <span class="macro">format!</span>(<span class="string">"\t{} {} || exit 1"</span>, cmd, args);
-<a href=#375 id=375 data-nosnippet>375</a>                <span class="kw">let </span>makefile = <span class="macro">format!</span>(<span class="string">"target:\n{}"</span>, recipe);
-<a href=#376 id=376 data-nosnippet>376</a>                <span class="kw">let </span>result = check(<span class="kw-2">&amp;</span>makefile);
-<a href=#377 id=377 data-nosnippet>377</a>
-<a href=#378 id=378 data-nosnippet>378</a>                <span class="comment">// Should NOT trigger MAKE010 when error handling present
-<a href=#379 id=379 data-nosnippet>379</a>                </span><span class="kw">let </span>make010_count = result.diagnostics.iter()
-<a href=#380 id=380 data-nosnippet>380</a>                    .filter(|d| d.code == <span class="string">"MAKE010"</span>)
-<a href=#381 id=381 data-nosnippet>381</a>                    .count();
-<a href=#382 id=382 data-nosnippet>382</a>
-<a href=#383 id=383 data-nosnippet>383</a>                <span class="macro">prop_assert_eq!</span>(make010_count, <span class="number">0</span>,
-<a href=#384 id=384 data-nosnippet>384</a>                    <span class="string">"Command '{}' with || exit 1 should not trigger MAKE010"</span>, cmd);
-<a href=#385 id=385 data-nosnippet>385</a>            }
-<a href=#386 id=386 data-nosnippet>386</a>
-<a href=#387 id=387 data-nosnippet>387</a>            <span class="doccomment">/// Property: is_variable_assignment is deterministic
-<a href=#388 id=388 data-nosnippet>388</a>            </span><span class="attr">#[test]
-<a href=#389 id=389 data-nosnippet>389</a>            </span><span class="kw">fn </span>prop_is_variable_assignment_deterministic(line <span class="kw">in </span><span class="string">".*"</span>) {
-<a href=#390 id=390 data-nosnippet>390</a>                <span class="kw">let </span>result1 = is_variable_assignment(<span class="kw-2">&amp;</span>line);
-<a href=#391 id=391 data-nosnippet>391</a>                <span class="kw">let </span>result2 = is_variable_assignment(<span class="kw-2">&amp;</span>line);
-<a href=#392 id=392 data-nosnippet>392</a>                <span class="macro">prop_assert_eq!</span>(result1, result2,
-<a href=#393 id=393 data-nosnippet>393</a>                    <span class="string">"is_variable_assignment should be deterministic"</span>);
-<a href=#394 id=394 data-nosnippet>394</a>            }
-<a href=#395 id=395 data-nosnippet>395</a>
-<a href=#396 id=396 data-nosnippet>396</a>            <span class="doccomment">/// Property: is_variable_assignment only accepts quoted values
-<a href=#397 id=397 data-nosnippet>397</a>            </span><span class="attr">#[test]
-<a href=#398 id=398 data-nosnippet>398</a>            </span><span class="kw">fn </span>prop_is_variable_assignment_requires_quotes(
-<a href=#399 id=399 data-nosnippet>399</a>                var_name <span class="kw">in </span><span class="string">"[A-Z][A-Z0-9_]{0,10}"</span>,
-<a href=#400 id=400 data-nosnippet>400</a>                value <span class="kw">in </span><span class="string">"[a-zA-Z0-9 ]+"</span>,
-<a href=#401 id=401 data-nosnippet>401</a>            ) {
-<a href=#402 id=402 data-nosnippet>402</a>                <span class="kw">let </span>unquoted = <span class="macro">format!</span>(<span class="string">"{}={}"</span>, var_name, value);
-<a href=#403 id=403 data-nosnippet>403</a>                <span class="kw">let </span>double_quoted = <span class="macro">format!</span>(<span class="string">"{}=\"{}\""</span>, var_name, value);
-<a href=#404 id=404 data-nosnippet>404</a>                <span class="kw">let </span>single_quoted = <span class="macro">format!</span>(<span class="string">"{}='{}'"</span>, var_name, value);
-<a href=#405 id=405 data-nosnippet>405</a>
-<a href=#406 id=406 data-nosnippet>406</a>                <span class="macro">prop_assert!</span>(!is_variable_assignment(<span class="kw-2">&amp;</span>unquoted),
-<a href=#407 id=407 data-nosnippet>407</a>                    <span class="string">"Unquoted assignment should return false"</span>);
-<a href=#408 id=408 data-nosnippet>408</a>                <span class="macro">prop_assert!</span>(is_variable_assignment(<span class="kw-2">&amp;</span>double_quoted),
-<a href=#409 id=409 data-nosnippet>409</a>                    <span class="string">"Double-quoted assignment should return true"</span>);
-<a href=#410 id=410 data-nosnippet>410</a>                <span class="macro">prop_assert!</span>(is_variable_assignment(<span class="kw-2">&amp;</span>single_quoted),
-<a href=#411 id=411 data-nosnippet>411</a>                    <span class="string">"Single-quoted assignment should return true"</span>);
-<a href=#412 id=412 data-nosnippet>412</a>            }
-<a href=#413 id=413 data-nosnippet>413</a>        }
-<a href=#414 id=414 data-nosnippet>414</a>    }
-<a href=#415 id=415 data-nosnippet>415</a>}</code></pre></div></section></main></body></html>
+<a href=#309 id=309 data-nosnippet>309</a>        <span class="attr">#![proptest_config(proptest::test_runner::Config::with_cases(<span class="number">10</span>))]
+<a href=#310 id=310 data-nosnippet>310</a>            </span><span class="doccomment">/// Property: echo/printf with command keywords should never trigger MAKE010
+<a href=#311 id=311 data-nosnippet>311</a>            </span><span class="attr">#[test]
+<a href=#312 id=312 data-nosnippet>312</a>            </span><span class="kw">fn </span>prop_echo_with_command_never_warns(
+<a href=#313 id=313 data-nosnippet>313</a>                cmd <span class="kw">in </span>command_keyword(),
+<a href=#314 id=314 data-nosnippet>314</a>                prefix <span class="kw">in </span>prop::sample::select(<span class="macro">vec!</span>[<span class="string">"echo"</span>, <span class="string">"printf"</span>]),
+<a href=#315 id=315 data-nosnippet>315</a>                text <span class="kw">in </span><span class="string">"[a-zA-Z0-9 ]+"</span>,
+<a href=#316 id=316 data-nosnippet>316</a>            ) {
+<a href=#317 id=317 data-nosnippet>317</a>                <span class="kw">let </span>recipe = <span class="macro">format!</span>(<span class="string">"\t@{} \"{}. Use: {} here\""</span>, prefix, text, cmd);
+<a href=#318 id=318 data-nosnippet>318</a>                <span class="kw">let </span>makefile = <span class="macro">format!</span>(<span class="string">"target:\n{}"</span>, recipe);
+<a href=#319 id=319 data-nosnippet>319</a>                <span class="kw">let </span>result = check(<span class="kw-2">&amp;</span>makefile);
+<a href=#320 id=320 data-nosnippet>320</a>
+<a href=#321 id=321 data-nosnippet>321</a>                <span class="comment">// Should NOT trigger MAKE010 for command in echo/printf
+<a href=#322 id=322 data-nosnippet>322</a>                </span><span class="kw">let </span>make010_count = result.diagnostics.iter()
+<a href=#323 id=323 data-nosnippet>323</a>                    .filter(|d| d.code == <span class="string">"MAKE010"</span>)
+<a href=#324 id=324 data-nosnippet>324</a>                    .count();
+<a href=#325 id=325 data-nosnippet>325</a>
+<a href=#326 id=326 data-nosnippet>326</a>                <span class="macro">prop_assert_eq!</span>(make010_count, <span class="number">0</span>,
+<a href=#327 id=327 data-nosnippet>327</a>                    <span class="string">"echo/printf with '{}' in string should not trigger MAKE010"</span>, cmd);
+<a href=#328 id=328 data-nosnippet>328</a>            }
+<a href=#329 id=329 data-nosnippet>329</a>
+<a href=#330 id=330 data-nosnippet>330</a>            <span class="doccomment">/// Property: Variable assignments with command keywords should never trigger MAKE010
+<a href=#331 id=331 data-nosnippet>331</a>            </span><span class="attr">#[test]
+<a href=#332 id=332 data-nosnippet>332</a>            </span><span class="kw">fn </span>prop_variable_assignment_never_warns(
+<a href=#333 id=333 data-nosnippet>333</a>                cmd <span class="kw">in </span>command_keyword(),
+<a href=#334 id=334 data-nosnippet>334</a>                var_name <span class="kw">in </span><span class="string">"[A-Z][A-Z0-9_]{0,10}"</span>,
+<a href=#335 id=335 data-nosnippet>335</a>                text <span class="kw">in </span><span class="string">"[a-zA-Z0-9 ]+"</span>,
+<a href=#336 id=336 data-nosnippet>336</a>            ) {
+<a href=#337 id=337 data-nosnippet>337</a>                <span class="kw">let </span>recipe = <span class="macro">format!</span>(<span class="string">"\t@{}=\"{} {}\""</span>, var_name, text, cmd);
+<a href=#338 id=338 data-nosnippet>338</a>                <span class="kw">let </span>makefile = <span class="macro">format!</span>(<span class="string">"target:\n{}"</span>, recipe);
+<a href=#339 id=339 data-nosnippet>339</a>                <span class="kw">let </span>result = check(<span class="kw-2">&amp;</span>makefile);
+<a href=#340 id=340 data-nosnippet>340</a>
+<a href=#341 id=341 data-nosnippet>341</a>                <span class="comment">// Should NOT trigger MAKE010 for command in variable assignment
+<a href=#342 id=342 data-nosnippet>342</a>                </span><span class="kw">let </span>make010_count = result.diagnostics.iter()
+<a href=#343 id=343 data-nosnippet>343</a>                    .filter(|d| d.code == <span class="string">"MAKE010"</span>)
+<a href=#344 id=344 data-nosnippet>344</a>                    .count();
+<a href=#345 id=345 data-nosnippet>345</a>
+<a href=#346 id=346 data-nosnippet>346</a>                <span class="macro">prop_assert_eq!</span>(make010_count, <span class="number">0</span>,
+<a href=#347 id=347 data-nosnippet>347</a>                    <span class="string">"Variable assignment with '{}' in value should not trigger MAKE010"</span>, cmd);
+<a href=#348 id=348 data-nosnippet>348</a>            }
+<a href=#349 id=349 data-nosnippet>349</a>
+<a href=#350 id=350 data-nosnippet>350</a>            <span class="doccomment">/// Property: Actual commands without error handling should always trigger MAKE010
+<a href=#351 id=351 data-nosnippet>351</a>            </span><span class="attr">#[test]
+<a href=#352 id=352 data-nosnippet>352</a>            </span><span class="kw">fn </span>prop_actual_command_always_warns(
+<a href=#353 id=353 data-nosnippet>353</a>                cmd <span class="kw">in </span>command_keyword(),
+<a href=#354 id=354 data-nosnippet>354</a>                args <span class="kw">in </span><span class="string">"[a-zA-Z0-9/._-]+"</span>,
+<a href=#355 id=355 data-nosnippet>355</a>            ) {
+<a href=#356 id=356 data-nosnippet>356</a>                <span class="kw">let </span>recipe = <span class="macro">format!</span>(<span class="string">"\t{} {}"</span>, cmd, args);
+<a href=#357 id=357 data-nosnippet>357</a>                <span class="kw">let </span>makefile = <span class="macro">format!</span>(<span class="string">"target:\n{}"</span>, recipe);
+<a href=#358 id=358 data-nosnippet>358</a>                <span class="kw">let </span>result = check(<span class="kw-2">&amp;</span>makefile);
+<a href=#359 id=359 data-nosnippet>359</a>
+<a href=#360 id=360 data-nosnippet>360</a>                <span class="comment">// SHOULD trigger MAKE010 for actual command
+<a href=#361 id=361 data-nosnippet>361</a>                </span><span class="kw">let </span>make010_count = result.diagnostics.iter()
+<a href=#362 id=362 data-nosnippet>362</a>                    .filter(|d| d.code == <span class="string">"MAKE010"</span>)
+<a href=#363 id=363 data-nosnippet>363</a>                    .count();
+<a href=#364 id=364 data-nosnippet>364</a>
+<a href=#365 id=365 data-nosnippet>365</a>                <span class="macro">prop_assert_eq!</span>(make010_count, <span class="number">1</span>,
+<a href=#366 id=366 data-nosnippet>366</a>                    <span class="string">"Actual '{}' command without error handling should trigger MAKE010"</span>, cmd);
+<a href=#367 id=367 data-nosnippet>367</a>            }
+<a href=#368 id=368 data-nosnippet>368</a>
+<a href=#369 id=369 data-nosnippet>369</a>            <span class="doccomment">/// Property: Commands with || exit 1 should never trigger MAKE010
+<a href=#370 id=370 data-nosnippet>370</a>            </span><span class="attr">#[test]
+<a href=#371 id=371 data-nosnippet>371</a>            </span><span class="kw">fn </span>prop_command_with_error_handling_never_warns(
+<a href=#372 id=372 data-nosnippet>372</a>                cmd <span class="kw">in </span>command_keyword(),
+<a href=#373 id=373 data-nosnippet>373</a>                args <span class="kw">in </span><span class="string">"[a-zA-Z0-9/._-]+"</span>,
+<a href=#374 id=374 data-nosnippet>374</a>            ) {
+<a href=#375 id=375 data-nosnippet>375</a>                <span class="kw">let </span>recipe = <span class="macro">format!</span>(<span class="string">"\t{} {} || exit 1"</span>, cmd, args);
+<a href=#376 id=376 data-nosnippet>376</a>                <span class="kw">let </span>makefile = <span class="macro">format!</span>(<span class="string">"target:\n{}"</span>, recipe);
+<a href=#377 id=377 data-nosnippet>377</a>                <span class="kw">let </span>result = check(<span class="kw-2">&amp;</span>makefile);
+<a href=#378 id=378 data-nosnippet>378</a>
+<a href=#379 id=379 data-nosnippet>379</a>                <span class="comment">// Should NOT trigger MAKE010 when error handling present
+<a href=#380 id=380 data-nosnippet>380</a>                </span><span class="kw">let </span>make010_count = result.diagnostics.iter()
+<a href=#381 id=381 data-nosnippet>381</a>                    .filter(|d| d.code == <span class="string">"MAKE010"</span>)
+<a href=#382 id=382 data-nosnippet>382</a>                    .count();
+<a href=#383 id=383 data-nosnippet>383</a>
+<a href=#384 id=384 data-nosnippet>384</a>                <span class="macro">prop_assert_eq!</span>(make010_count, <span class="number">0</span>,
+<a href=#385 id=385 data-nosnippet>385</a>                    <span class="string">"Command '{}' with || exit 1 should not trigger MAKE010"</span>, cmd);
+<a href=#386 id=386 data-nosnippet>386</a>            }
+<a href=#387 id=387 data-nosnippet>387</a>
+<a href=#388 id=388 data-nosnippet>388</a>            <span class="doccomment">/// Property: is_variable_assignment is deterministic
+<a href=#389 id=389 data-nosnippet>389</a>            </span><span class="attr">#[test]
+<a href=#390 id=390 data-nosnippet>390</a>            </span><span class="kw">fn </span>prop_is_variable_assignment_deterministic(line <span class="kw">in </span><span class="string">".*"</span>) {
+<a href=#391 id=391 data-nosnippet>391</a>                <span class="kw">let </span>result1 = is_variable_assignment(<span class="kw-2">&amp;</span>line);
+<a href=#392 id=392 data-nosnippet>392</a>                <span class="kw">let </span>result2 = is_variable_assignment(<span class="kw-2">&amp;</span>line);
+<a href=#393 id=393 data-nosnippet>393</a>                <span class="macro">prop_assert_eq!</span>(result1, result2,
+<a href=#394 id=394 data-nosnippet>394</a>                    <span class="string">"is_variable_assignment should be deterministic"</span>);
+<a href=#395 id=395 data-nosnippet>395</a>            }
+<a href=#396 id=396 data-nosnippet>396</a>
+<a href=#397 id=397 data-nosnippet>397</a>            <span class="doccomment">/// Property: is_variable_assignment only accepts quoted values
+<a href=#398 id=398 data-nosnippet>398</a>            </span><span class="attr">#[test]
+<a href=#399 id=399 data-nosnippet>399</a>            </span><span class="kw">fn </span>prop_is_variable_assignment_requires_quotes(
+<a href=#400 id=400 data-nosnippet>400</a>                var_name <span class="kw">in </span><span class="string">"[A-Z][A-Z0-9_]{0,10}"</span>,
+<a href=#401 id=401 data-nosnippet>401</a>                value <span class="kw">in </span><span class="string">"[a-zA-Z0-9 ]+"</span>,
+<a href=#402 id=402 data-nosnippet>402</a>            ) {
+<a href=#403 id=403 data-nosnippet>403</a>                <span class="kw">let </span>unquoted = <span class="macro">format!</span>(<span class="string">"{}={}"</span>, var_name, value);
+<a href=#404 id=404 data-nosnippet>404</a>                <span class="kw">let </span>double_quoted = <span class="macro">format!</span>(<span class="string">"{}=\"{}\""</span>, var_name, value);
+<a href=#405 id=405 data-nosnippet>405</a>                <span class="kw">let </span>single_quoted = <span class="macro">format!</span>(<span class="string">"{}='{}'"</span>, var_name, value);
+<a href=#406 id=406 data-nosnippet>406</a>
+<a href=#407 id=407 data-nosnippet>407</a>                <span class="macro">prop_assert!</span>(!is_variable_assignment(<span class="kw-2">&amp;</span>unquoted),
+<a href=#408 id=408 data-nosnippet>408</a>                    <span class="string">"Unquoted assignment should return false"</span>);
+<a href=#409 id=409 data-nosnippet>409</a>                <span class="macro">prop_assert!</span>(is_variable_assignment(<span class="kw-2">&amp;</span>double_quoted),
+<a href=#410 id=410 data-nosnippet>410</a>                    <span class="string">"Double-quoted assignment should return true"</span>);
+<a href=#411 id=411 data-nosnippet>411</a>                <span class="macro">prop_assert!</span>(is_variable_assignment(<span class="kw-2">&amp;</span>single_quoted),
+<a href=#412 id=412 data-nosnippet>412</a>                    <span class="string">"Single-quoted assignment should return true"</span>);
+<a href=#413 id=413 data-nosnippet>413</a>            }
+<a href=#414 id=414 data-nosnippet>414</a>        }
+<a href=#415 id=415 data-nosnippet>415</a>    }
+<a href=#416 id=416 data-nosnippet>416</a>}</code></pre></div></section></main></body></html>

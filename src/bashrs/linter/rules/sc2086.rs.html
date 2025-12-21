@@ -1142,326 +1142,327 @@
 <a href=#1142 id=1142 data-nosnippet>1142</a>        <span class="kw">use </span>proptest::prelude::<span class="kw-2">*</span>;
 <a href=#1143 id=1143 data-nosnippet>1143</a>
 <a href=#1144 id=1144 data-nosnippet>1144</a>        <span class="macro">proptest!</span> {
-<a href=#1145 id=1145 data-nosnippet>1145</a>            <span class="attr">#[test]
-<a href=#1146 id=1146 data-nosnippet>1146</a>            </span><span class="kw">fn </span>prop_column_positions_always_valid(
-<a href=#1147 id=1147 data-nosnippet>1147</a>                var_name <span class="kw">in </span><span class="string">"[a-z]{1,10}"</span>,
-<a href=#1148 id=1148 data-nosnippet>1148</a>                leading_spaces <span class="kw">in </span><span class="number">0usize</span>..<span class="number">20
-<a href=#1149 id=1149 data-nosnippet>1149</a>            </span>) {
-<a href=#1150 id=1150 data-nosnippet>1150</a>                <span class="comment">// PROPERTY: Column positions must always be &gt;= 1 (1-indexed)
-<a href=#1151 id=1151 data-nosnippet>1151</a>                // Catches: + → * mutations (would produce 0), + → - mutations
-<a href=#1152 id=1152 data-nosnippet>1152</a>                </span><span class="kw">let </span>spaces = <span class="string">" "</span>.repeat(leading_spaces);
-<a href=#1153 id=1153 data-nosnippet>1153</a>                <span class="kw">let </span>bash_code = <span class="macro">format!</span>(<span class="string">"{}echo ${}"</span>, spaces, var_name);
-<a href=#1154 id=1154 data-nosnippet>1154</a>                <span class="kw">let </span>result = check(<span class="kw-2">&amp;</span>bash_code);
-<a href=#1155 id=1155 data-nosnippet>1155</a>
-<a href=#1156 id=1156 data-nosnippet>1156</a>                <span class="kw">if </span>!result.diagnostics.is_empty() {
-<a href=#1157 id=1157 data-nosnippet>1157</a>                    <span class="kw">let </span>span = <span class="kw-2">&amp;</span>result.diagnostics[<span class="number">0</span>].span;
-<a href=#1158 id=1158 data-nosnippet>1158</a>                    <span class="comment">// INVARIANT: Columns are 1-indexed, never 0 or negative
-<a href=#1159 id=1159 data-nosnippet>1159</a>                    </span><span class="macro">prop_assert!</span>(span.start_col &gt;= <span class="number">1</span>, <span class="string">"Start column must be &gt;= 1, got {}"</span>, span.start_col);
-<a href=#1160 id=1160 data-nosnippet>1160</a>                    <span class="macro">prop_assert!</span>(span.end_col &gt;= <span class="number">1</span>, <span class="string">"End column must be &gt;= 1, got {}"</span>, span.end_col);
-<a href=#1161 id=1161 data-nosnippet>1161</a>                    <span class="comment">// INVARIANT: End must be after start
-<a href=#1162 id=1162 data-nosnippet>1162</a>                    </span><span class="macro">prop_assert!</span>(span.end_col &gt; span.start_col,
-<a href=#1163 id=1163 data-nosnippet>1163</a>                        <span class="string">"End col ({}) must be &gt; start col ({})"</span>, span.end_col, span.start_col);
-<a href=#1164 id=1164 data-nosnippet>1164</a>                }
-<a href=#1165 id=1165 data-nosnippet>1165</a>            }
-<a href=#1166 id=1166 data-nosnippet>1166</a>
-<a href=#1167 id=1167 data-nosnippet>1167</a>            <span class="attr">#[test]
-<a href=#1168 id=1168 data-nosnippet>1168</a>            </span><span class="kw">fn </span>prop_line_numbers_always_valid(
-<a href=#1169 id=1169 data-nosnippet>1169</a>                var_name <span class="kw">in </span><span class="string">"[a-z]{1,10}"</span>,
-<a href=#1170 id=1170 data-nosnippet>1170</a>                comment_lines <span class="kw">in </span>prop::collection::vec(<span class="string">"# comment.*"</span>, <span class="number">0</span>..<span class="number">5</span>)
-<a href=#1171 id=1171 data-nosnippet>1171</a>            ) {
-<a href=#1172 id=1172 data-nosnippet>1172</a>                <span class="comment">// PROPERTY: Line numbers must always be &gt;= 1 (1-indexed)
-<a href=#1173 id=1173 data-nosnippet>1173</a>                // Catches: + → * mutations in line_num + 1 calculation
-<a href=#1174 id=1174 data-nosnippet>1174</a>                </span><span class="kw">let </span><span class="kw-2">mut </span>bash_code = comment_lines.join(<span class="string">"\n"</span>);
-<a href=#1175 id=1175 data-nosnippet>1175</a>                <span class="kw">if </span>!bash_code.is_empty() {
-<a href=#1176 id=1176 data-nosnippet>1176</a>                    bash_code.push(<span class="string">'\n'</span>);
-<a href=#1177 id=1177 data-nosnippet>1177</a>                }
-<a href=#1178 id=1178 data-nosnippet>1178</a>                bash_code.push_str(<span class="kw-2">&amp;</span><span class="macro">format!</span>(<span class="string">"echo ${}"</span>, var_name));
-<a href=#1179 id=1179 data-nosnippet>1179</a>
-<a href=#1180 id=1180 data-nosnippet>1180</a>                <span class="kw">let </span>result = check(<span class="kw-2">&amp;</span>bash_code);
-<a href=#1181 id=1181 data-nosnippet>1181</a>                <span class="kw">if </span>!result.diagnostics.is_empty() {
-<a href=#1182 id=1182 data-nosnippet>1182</a>                    <span class="kw">let </span>span = <span class="kw-2">&amp;</span>result.diagnostics[<span class="number">0</span>].span;
-<a href=#1183 id=1183 data-nosnippet>1183</a>                    <span class="comment">// INVARIANT: Lines are 1-indexed, never 0 or negative
-<a href=#1184 id=1184 data-nosnippet>1184</a>                    </span><span class="macro">prop_assert!</span>(span.start_line &gt;= <span class="number">1</span>, <span class="string">"Line number must be &gt;= 1, got {}"</span>, span.start_line);
-<a href=#1185 id=1185 data-nosnippet>1185</a>                    <span class="macro">prop_assert!</span>(span.end_line &gt;= <span class="number">1</span>, <span class="string">"Line number must be &gt;= 1, got {}"</span>, span.end_line);
-<a href=#1186 id=1186 data-nosnippet>1186</a>                }
-<a href=#1187 id=1187 data-nosnippet>1187</a>            }
-<a href=#1188 id=1188 data-nosnippet>1188</a>
-<a href=#1189 id=1189 data-nosnippet>1189</a>            <span class="attr">#[test]
-<a href=#1190 id=1190 data-nosnippet>1190</a>            </span><span class="kw">fn </span>prop_span_length_reasonable(
-<a href=#1191 id=1191 data-nosnippet>1191</a>                var_name <span class="kw">in </span><span class="string">"[a-z]{1,10}"
-<a href=#1192 id=1192 data-nosnippet>1192</a>            </span>) {
-<a href=#1193 id=1193 data-nosnippet>1193</a>                <span class="comment">// PROPERTY: Span length should be reasonable (not negative, not huge)
-<a href=#1194 id=1194 data-nosnippet>1194</a>                // Catches: + → - mutations that produce negative/wrong lengths
-<a href=#1195 id=1195 data-nosnippet>1195</a>                </span><span class="kw">let </span>bash_code = <span class="macro">format!</span>(<span class="string">"echo ${}"</span>, var_name);
-<a href=#1196 id=1196 data-nosnippet>1196</a>                <span class="kw">let </span>result = check(<span class="kw-2">&amp;</span>bash_code);
-<a href=#1197 id=1197 data-nosnippet>1197</a>
-<a href=#1198 id=1198 data-nosnippet>1198</a>                <span class="kw">if </span>!result.diagnostics.is_empty() {
-<a href=#1199 id=1199 data-nosnippet>1199</a>                    <span class="kw">let </span>span = <span class="kw-2">&amp;</span>result.diagnostics[<span class="number">0</span>].span;
-<a href=#1200 id=1200 data-nosnippet>1200</a>                    <span class="kw">let </span>span_length = span.end_col.saturating_sub(span.start_col);
-<a href=#1201 id=1201 data-nosnippet>1201</a>                    <span class="comment">// INVARIANT: Span length must be positive and reasonable
-<a href=#1202 id=1202 data-nosnippet>1202</a>                    </span><span class="macro">prop_assert!</span>(span_length &gt; <span class="number">0</span>, <span class="string">"Span length must be &gt; 0"</span>);
-<a href=#1203 id=1203 data-nosnippet>1203</a>                    <span class="macro">prop_assert!</span>(span_length &lt; <span class="number">1000</span>, <span class="string">"Span length {} seems unreasonable"</span>, span_length);
-<a href=#1204 id=1204 data-nosnippet>1204</a>                }
-<a href=#1205 id=1205 data-nosnippet>1205</a>            }
-<a href=#1206 id=1206 data-nosnippet>1206</a>
-<a href=#1207 id=1207 data-nosnippet>1207</a>            <span class="attr">#[test]
-<a href=#1208 id=1208 data-nosnippet>1208</a>            </span><span class="kw">fn </span>prop_braced_variable_span_includes_braces(
-<a href=#1209 id=1209 data-nosnippet>1209</a>                var_name <span class="kw">in </span><span class="string">"[a-z]{1,10}"
-<a href=#1210 id=1210 data-nosnippet>1210</a>            </span>) {
-<a href=#1211 id=1211 data-nosnippet>1211</a>                <span class="comment">// PROPERTY: ${VAR} span must cover entire expression including braces
-<a href=#1212 id=1212 data-nosnippet>1212</a>                // Catches: arithmetic mutations in calculate_end_column
-<a href=#1213 id=1213 data-nosnippet>1213</a>                </span><span class="kw">let </span>bash_code = <span class="macro">format!</span>(<span class="string">"echo ${{{}}}"</span>, var_name);
-<a href=#1214 id=1214 data-nosnippet>1214</a>                <span class="kw">let </span>result = check(<span class="kw-2">&amp;</span>bash_code);
-<a href=#1215 id=1215 data-nosnippet>1215</a>
-<a href=#1216 id=1216 data-nosnippet>1216</a>                <span class="kw">if </span>!result.diagnostics.is_empty() {
-<a href=#1217 id=1217 data-nosnippet>1217</a>                    <span class="kw">let </span>span = <span class="kw-2">&amp;</span>result.diagnostics[<span class="number">0</span>].span;
-<a href=#1218 id=1218 data-nosnippet>1218</a>                    <span class="comment">// INVARIANT: Span for ${VAR} must be at least length of ${VAR}
-<a href=#1219 id=1219 data-nosnippet>1219</a>                    </span><span class="kw">let </span>expected_min_length = var_name.len() + <span class="number">3</span>; <span class="comment">// ${}
-<a href=#1220 id=1220 data-nosnippet>1220</a>                    </span><span class="kw">let </span>span_length = span.end_col.saturating_sub(span.start_col);
-<a href=#1221 id=1221 data-nosnippet>1221</a>                    <span class="macro">prop_assert!</span>(span_length &gt;= expected_min_length,
-<a href=#1222 id=1222 data-nosnippet>1222</a>                        <span class="string">"Span length {} must be &gt;= {} for ${{{}}}"</span>, span_length, expected_min_length, var_name);
-<a href=#1223 id=1223 data-nosnippet>1223</a>                }
-<a href=#1224 id=1224 data-nosnippet>1224</a>            }
-<a href=#1225 id=1225 data-nosnippet>1225</a>
-<a href=#1226 id=1226 data-nosnippet>1226</a>            <span class="attr">#[test]
-<a href=#1227 id=1227 data-nosnippet>1227</a>            </span><span class="kw">fn </span>prop_skip_assignments_correctly(
-<a href=#1228 id=1228 data-nosnippet>1228</a>                var_name <span class="kw">in </span><span class="string">"[a-z]{1,10}"</span>,
-<a href=#1229 id=1229 data-nosnippet>1229</a>                value <span class="kw">in </span><span class="string">"[a-z0-9]{1,10}"
-<a href=#1230 id=1230 data-nosnippet>1230</a>            </span>) {
-<a href=#1231 id=1231 data-nosnippet>1231</a>                <span class="comment">// PROPERTY: Variable assignments should be skipped correctly
-<a href=#1232 id=1232 data-nosnippet>1232</a>                // Catches: &lt; → &gt;, &lt; → ==, &lt; → &lt;= mutations in should_skip_line
-<a href=#1233 id=1233 data-nosnippet>1233</a>                </span><span class="kw">let </span>bash_code = <span class="macro">format!</span>(<span class="string">"{}={}\necho ${}"</span>, var_name, value, var_name);
-<a href=#1234 id=1234 data-nosnippet>1234</a>                <span class="kw">let </span>result = check(<span class="kw-2">&amp;</span>bash_code);
-<a href=#1235 id=1235 data-nosnippet>1235</a>
-<a href=#1236 id=1236 data-nosnippet>1236</a>                <span class="comment">// INVARIANT: Should only detect $VAR in echo, not in assignment
-<a href=#1237 id=1237 data-nosnippet>1237</a>                // Assignment is line 1, echo is line 2
-<a href=#1238 id=1238 data-nosnippet>1238</a>                </span><span class="kw">if </span>!result.diagnostics.is_empty() {
-<a href=#1239 id=1239 data-nosnippet>1239</a>                    <span class="macro">prop_assert_eq!</span>(result.diagnostics.len(), <span class="number">1</span>, <span class="string">"Should only flag echo line"</span>);
-<a href=#1240 id=1240 data-nosnippet>1240</a>                    <span class="macro">prop_assert_eq!</span>(result.diagnostics[<span class="number">0</span>].span.start_line, <span class="number">2</span>,
-<a href=#1241 id=1241 data-nosnippet>1241</a>                        <span class="string">"Should flag line 2 (echo), not line 1 (assignment)"</span>);
-<a href=#1242 id=1242 data-nosnippet>1242</a>                }
-<a href=#1243 id=1243 data-nosnippet>1243</a>            }
-<a href=#1244 id=1244 data-nosnippet>1244</a>
-<a href=#1245 id=1245 data-nosnippet>1245</a>            <span class="attr">#[test]
-<a href=#1246 id=1246 data-nosnippet>1246</a>            </span><span class="kw">fn </span>prop_arithmetic_context_never_flagged(
-<a href=#1247 id=1247 data-nosnippet>1247</a>                x_val <span class="kw">in </span><span class="number">0i32</span>..<span class="number">100</span>,
-<a href=#1248 id=1248 data-nosnippet>1248</a>                y_val <span class="kw">in </span><span class="number">0i32</span>..<span class="number">100
-<a href=#1249 id=1249 data-nosnippet>1249</a>            </span>) {
-<a href=#1250 id=1250 data-nosnippet>1250</a>                <span class="comment">// PROPERTY: Variables in $(( )) should never be flagged
-<a href=#1251 id=1251 data-nosnippet>1251</a>                // Catches: return value mutations in is_in_arithmetic_context
-<a href=#1252 id=1252 data-nosnippet>1252</a>                </span><span class="kw">let </span>bash_code = <span class="macro">format!</span>(<span class="string">"result=$(( {} + {} ))"</span>, x_val, y_val);
-<a href=#1253 id=1253 data-nosnippet>1253</a>                <span class="kw">let </span>result = check(<span class="kw-2">&amp;</span>bash_code);
-<a href=#1254 id=1254 data-nosnippet>1254</a>
-<a href=#1255 id=1255 data-nosnippet>1255</a>                <span class="comment">// INVARIANT: Arithmetic context should never produce diagnostics
-<a href=#1256 id=1256 data-nosnippet>1256</a>                </span><span class="macro">prop_assert_eq!</span>(result.diagnostics.len(), <span class="number">0</span>,
-<a href=#1257 id=1257 data-nosnippet>1257</a>                    <span class="string">"Variables in $(( )) should not be flagged"</span>);
-<a href=#1258 id=1258 data-nosnippet>1258</a>            }
-<a href=#1259 id=1259 data-nosnippet>1259</a>
-<a href=#1260 id=1260 data-nosnippet>1260</a>            <span class="attr">#[test]
-<a href=#1261 id=1261 data-nosnippet>1261</a>            </span><span class="kw">fn </span>prop_quoted_variables_never_flagged(
-<a href=#1262 id=1262 data-nosnippet>1262</a>                var_name <span class="kw">in </span><span class="string">"[a-z]{1,10}"
-<a href=#1263 id=1263 data-nosnippet>1263</a>            </span>) {
-<a href=#1264 id=1264 data-nosnippet>1264</a>                <span class="comment">// PROPERTY: Already-quoted variables should never be flagged
-<a href=#1265 id=1265 data-nosnippet>1265</a>                // Catches: &amp;&amp; → || mutations in is_already_quoted
-<a href=#1266 id=1266 data-nosnippet>1266</a>                </span><span class="kw">let </span>bash_code = <span class="macro">format!</span>(<span class="string">"echo \"${}\""</span>, var_name);
-<a href=#1267 id=1267 data-nosnippet>1267</a>                <span class="kw">let </span>result = check(<span class="kw-2">&amp;</span>bash_code);
-<a href=#1268 id=1268 data-nosnippet>1268</a>
-<a href=#1269 id=1269 data-nosnippet>1269</a>                <span class="comment">// INVARIANT: Quoted variables should not produce diagnostics
-<a href=#1270 id=1270 data-nosnippet>1270</a>                </span><span class="macro">prop_assert_eq!</span>(result.diagnostics.len(), <span class="number">0</span>,
-<a href=#1271 id=1271 data-nosnippet>1271</a>                    <span class="string">"Already-quoted variables should not be flagged"</span>);
-<a href=#1272 id=1272 data-nosnippet>1272</a>            }
-<a href=#1273 id=1273 data-nosnippet>1273</a>
-<a href=#1274 id=1274 data-nosnippet>1274</a>            <span class="attr">#[test]
-<a href=#1275 id=1275 data-nosnippet>1275</a>            </span><span class="kw">fn </span>prop_braced_variables_in_quotes_never_flagged(
-<a href=#1276 id=1276 data-nosnippet>1276</a>                var1 <span class="kw">in </span><span class="string">"[a-z]{1,10}"</span>,
-<a href=#1277 id=1277 data-nosnippet>1277</a>                var2 <span class="kw">in </span><span class="string">"[a-z]{1,10}"</span>,
-<a href=#1278 id=1278 data-nosnippet>1278</a>                text <span class="kw">in </span><span class="string">"[a-z ]{0,20}"
-<a href=#1279 id=1279 data-nosnippet>1279</a>            </span>) {
-<a href=#1280 id=1280 data-nosnippet>1280</a>                <span class="comment">// PROPERTY: Variables inside quoted strings should never be flagged
-<a href=#1281 id=1281 data-nosnippet>1281</a>                // Issue #1: Fixes auto-fix creating invalid syntax
-<a href=#1282 id=1282 data-nosnippet>1282</a>                // Catches: quote-counting logic errors in is_already_quoted
-<a href=#1283 id=1283 data-nosnippet>1283</a>                </span><span class="kw">let </span>bash_code = <span class="macro">format!</span>(<span class="string">"echo \"${{{}}}{}${{{}}}\""</span>, var1, text, var2);
-<a href=#1284 id=1284 data-nosnippet>1284</a>                <span class="kw">let </span>result = check(<span class="kw-2">&amp;</span>bash_code);
-<a href=#1285 id=1285 data-nosnippet>1285</a>
-<a href=#1286 id=1286 data-nosnippet>1286</a>                <span class="comment">// INVARIANT: Variables inside quoted strings should not produce diagnostics
-<a href=#1287 id=1287 data-nosnippet>1287</a>                </span><span class="macro">prop_assert_eq!</span>(result.diagnostics.len(), <span class="number">0</span>,
-<a href=#1288 id=1288 data-nosnippet>1288</a>                    <span class="string">"Variables inside quoted strings should not be flagged. Code: '{}'"</span>, bash_code);
-<a href=#1289 id=1289 data-nosnippet>1289</a>            }
-<a href=#1290 id=1290 data-nosnippet>1290</a>        }
-<a href=#1291 id=1291 data-nosnippet>1291</a>    }
-<a href=#1292 id=1292 data-nosnippet>1292</a>
-<a href=#1293 id=1293 data-nosnippet>1293</a>    <span class="comment">// ===== Issue #105: Safe [[ ]] context tests =====
-<a href=#1294 id=1294 data-nosnippet>1294</a>    // Variables in [[ ]] are safe - no word splitting or glob expansion
-<a href=#1295 id=1295 data-nosnippet>1295</a>
-<a href=#1296 id=1296 data-nosnippet>1296</a>    </span><span class="attr">#[test]
-<a href=#1297 id=1297 data-nosnippet>1297</a>    </span><span class="kw">fn </span>test_FP_105_double_bracket_n_test_not_flagged() {
-<a href=#1298 id=1298 data-nosnippet>1298</a>        <span class="kw">let </span>code = <span class="string">r#"[[ -n $var ]]"#</span>;
-<a href=#1299 id=1299 data-nosnippet>1299</a>        <span class="kw">let </span>result = check(code);
-<a href=#1300 id=1300 data-nosnippet>1300</a>        <span class="macro">assert_eq!</span>(
-<a href=#1301 id=1301 data-nosnippet>1301</a>            result.diagnostics.len(),
-<a href=#1302 id=1302 data-nosnippet>1302</a>            <span class="number">0</span>,
-<a href=#1303 id=1303 data-nosnippet>1303</a>            <span class="string">"SC2086 must NOT flag unquoted variable in [[ -n $var ]]"
-<a href=#1304 id=1304 data-nosnippet>1304</a>        </span>);
-<a href=#1305 id=1305 data-nosnippet>1305</a>    }
-<a href=#1306 id=1306 data-nosnippet>1306</a>
-<a href=#1307 id=1307 data-nosnippet>1307</a>    <span class="attr">#[test]
-<a href=#1308 id=1308 data-nosnippet>1308</a>    </span><span class="kw">fn </span>test_FP_105_double_bracket_z_test_not_flagged() {
-<a href=#1309 id=1309 data-nosnippet>1309</a>        <span class="kw">let </span>code = <span class="string">r#"[[ -z $var ]]"#</span>;
-<a href=#1310 id=1310 data-nosnippet>1310</a>        <span class="kw">let </span>result = check(code);
-<a href=#1311 id=1311 data-nosnippet>1311</a>        <span class="macro">assert_eq!</span>(
-<a href=#1312 id=1312 data-nosnippet>1312</a>            result.diagnostics.len(),
-<a href=#1313 id=1313 data-nosnippet>1313</a>            <span class="number">0</span>,
-<a href=#1314 id=1314 data-nosnippet>1314</a>            <span class="string">"SC2086 must NOT flag unquoted variable in [[ -z $var ]]"
-<a href=#1315 id=1315 data-nosnippet>1315</a>        </span>);
-<a href=#1316 id=1316 data-nosnippet>1316</a>    }
-<a href=#1317 id=1317 data-nosnippet>1317</a>
-<a href=#1318 id=1318 data-nosnippet>1318</a>    <span class="attr">#[test]
-<a href=#1319 id=1319 data-nosnippet>1319</a>    </span><span class="kw">fn </span>test_FP_105_double_bracket_equality_not_flagged() {
-<a href=#1320 id=1320 data-nosnippet>1320</a>        <span class="kw">let </span>code = <span class="string">r#"[[ $var = "value" ]]"#</span>;
-<a href=#1321 id=1321 data-nosnippet>1321</a>        <span class="kw">let </span>result = check(code);
-<a href=#1322 id=1322 data-nosnippet>1322</a>        <span class="macro">assert_eq!</span>(
-<a href=#1323 id=1323 data-nosnippet>1323</a>            result.diagnostics.len(),
-<a href=#1324 id=1324 data-nosnippet>1324</a>            <span class="number">0</span>,
-<a href=#1325 id=1325 data-nosnippet>1325</a>            <span class="string">"SC2086 must NOT flag unquoted variable in [[ $var = ... ]]"
-<a href=#1326 id=1326 data-nosnippet>1326</a>        </span>);
-<a href=#1327 id=1327 data-nosnippet>1327</a>    }
-<a href=#1328 id=1328 data-nosnippet>1328</a>
-<a href=#1329 id=1329 data-nosnippet>1329</a>    <span class="attr">#[test]
-<a href=#1330 id=1330 data-nosnippet>1330</a>    </span><span class="kw">fn </span>test_FP_105_double_bracket_comparison_not_flagged() {
-<a href=#1331 id=1331 data-nosnippet>1331</a>        <span class="kw">let </span>code = <span class="string">r#"[[ $x -eq $y ]]"#</span>;
-<a href=#1332 id=1332 data-nosnippet>1332</a>        <span class="kw">let </span>result = check(code);
-<a href=#1333 id=1333 data-nosnippet>1333</a>        <span class="macro">assert_eq!</span>(
-<a href=#1334 id=1334 data-nosnippet>1334</a>            result.diagnostics.len(),
-<a href=#1335 id=1335 data-nosnippet>1335</a>            <span class="number">0</span>,
-<a href=#1336 id=1336 data-nosnippet>1336</a>            <span class="string">"SC2086 must NOT flag unquoted variables in [[ $x -eq $y ]]"
-<a href=#1337 id=1337 data-nosnippet>1337</a>        </span>);
-<a href=#1338 id=1338 data-nosnippet>1338</a>    }
-<a href=#1339 id=1339 data-nosnippet>1339</a>
-<a href=#1340 id=1340 data-nosnippet>1340</a>    <span class="attr">#[test]
-<a href=#1341 id=1341 data-nosnippet>1341</a>    </span><span class="kw">fn </span>test_FP_105_double_bracket_regex_not_flagged() {
-<a href=#1342 id=1342 data-nosnippet>1342</a>        <span class="kw">let </span>code = <span class="string">r#"[[ $var =~ ^[0-9]+$ ]]"#</span>;
-<a href=#1343 id=1343 data-nosnippet>1343</a>        <span class="kw">let </span>result = check(code);
-<a href=#1344 id=1344 data-nosnippet>1344</a>        <span class="macro">assert_eq!</span>(
-<a href=#1345 id=1345 data-nosnippet>1345</a>            result.diagnostics.len(),
-<a href=#1346 id=1346 data-nosnippet>1346</a>            <span class="number">0</span>,
-<a href=#1347 id=1347 data-nosnippet>1347</a>            <span class="string">"SC2086 must NOT flag unquoted variable in regex match"
-<a href=#1348 id=1348 data-nosnippet>1348</a>        </span>);
-<a href=#1349 id=1349 data-nosnippet>1349</a>    }
-<a href=#1350 id=1350 data-nosnippet>1350</a>
-<a href=#1351 id=1351 data-nosnippet>1351</a>    <span class="attr">#[test]
-<a href=#1352 id=1352 data-nosnippet>1352</a>    </span><span class="kw">fn </span>test_FP_105_single_bracket_still_flagged() {
-<a href=#1353 id=1353 data-nosnippet>1353</a>        <span class="comment">// Single brackets DO need quoting
-<a href=#1354 id=1354 data-nosnippet>1354</a>        </span><span class="kw">let </span>code = <span class="string">r#"[ -n $var ]"#</span>;
-<a href=#1355 id=1355 data-nosnippet>1355</a>        <span class="kw">let </span>result = check(code);
-<a href=#1356 id=1356 data-nosnippet>1356</a>        <span class="macro">assert_eq!</span>(
-<a href=#1357 id=1357 data-nosnippet>1357</a>            result.diagnostics.len(),
-<a href=#1358 id=1358 data-nosnippet>1358</a>            <span class="number">1</span>,
-<a href=#1359 id=1359 data-nosnippet>1359</a>            <span class="string">"SC2086 SHOULD flag unquoted variable in single bracket [ ]"
-<a href=#1360 id=1360 data-nosnippet>1360</a>        </span>);
-<a href=#1361 id=1361 data-nosnippet>1361</a>    }
-<a href=#1362 id=1362 data-nosnippet>1362</a>
-<a href=#1363 id=1363 data-nosnippet>1363</a>    <span class="comment">// ===== Issue #107: C-style for loop arithmetic context =====
-<a href=#1364 id=1364 data-nosnippet>1364</a>    // Variables inside (( )) are in arithmetic context and don't need quoting
-<a href=#1365 id=1365 data-nosnippet>1365</a>
-<a href=#1366 id=1366 data-nosnippet>1366</a>    </span><span class="attr">#[test]
-<a href=#1367 id=1367 data-nosnippet>1367</a>    </span><span class="kw">fn </span>test_FP_107_cstyle_for_loop_not_flagged() {
-<a href=#1368 id=1368 data-nosnippet>1368</a>        <span class="comment">// C-style for loop is arithmetic context
-<a href=#1369 id=1369 data-nosnippet>1369</a>        </span><span class="kw">let </span>code = <span class="string">r#"for ((i=0; i&lt;$n; i++)); do echo "loop"; done"#</span>;
-<a href=#1370 id=1370 data-nosnippet>1370</a>        <span class="kw">let </span>result = check(code);
-<a href=#1371 id=1371 data-nosnippet>1371</a>        <span class="comment">// Should not flag $n inside (( ))
-<a href=#1372 id=1372 data-nosnippet>1372</a>        </span><span class="macro">assert_eq!</span>(
-<a href=#1373 id=1373 data-nosnippet>1373</a>            result.diagnostics.len(),
-<a href=#1374 id=1374 data-nosnippet>1374</a>            <span class="number">0</span>,
-<a href=#1375 id=1375 data-nosnippet>1375</a>            <span class="string">"SC2086 must NOT flag variables inside C-style for (( )) loop"
-<a href=#1376 id=1376 data-nosnippet>1376</a>        </span>);
-<a href=#1377 id=1377 data-nosnippet>1377</a>    }
-<a href=#1378 id=1378 data-nosnippet>1378</a>
-<a href=#1379 id=1379 data-nosnippet>1379</a>    <span class="attr">#[test]
-<a href=#1380 id=1380 data-nosnippet>1380</a>    </span><span class="kw">fn </span>test_FP_107_double_paren_arithmetic_not_flagged() {
-<a href=#1381 id=1381 data-nosnippet>1381</a>        <span class="comment">// Standalone (( )) is arithmetic context
-<a href=#1382 id=1382 data-nosnippet>1382</a>        </span><span class="kw">let </span>code = <span class="string">r#"(( count = $x + $y ))"#</span>;
-<a href=#1383 id=1383 data-nosnippet>1383</a>        <span class="kw">let </span>result = check(code);
-<a href=#1384 id=1384 data-nosnippet>1384</a>        <span class="macro">assert_eq!</span>(
-<a href=#1385 id=1385 data-nosnippet>1385</a>            result.diagnostics.len(),
-<a href=#1386 id=1386 data-nosnippet>1386</a>            <span class="number">0</span>,
-<a href=#1387 id=1387 data-nosnippet>1387</a>            <span class="string">"SC2086 must NOT flag variables inside standalone (( )) arithmetic"
-<a href=#1388 id=1388 data-nosnippet>1388</a>        </span>);
-<a href=#1389 id=1389 data-nosnippet>1389</a>    }
-<a href=#1390 id=1390 data-nosnippet>1390</a>
-<a href=#1391 id=1391 data-nosnippet>1391</a>    <span class="attr">#[test]
-<a href=#1392 id=1392 data-nosnippet>1392</a>    </span><span class="kw">fn </span>test_FP_107_while_arithmetic_not_flagged() {
-<a href=#1393 id=1393 data-nosnippet>1393</a>        <span class="comment">// while (( )) is arithmetic context
-<a href=#1394 id=1394 data-nosnippet>1394</a>        </span><span class="kw">let </span>code = <span class="string">r#"while (( $i &lt; $max )); do echo $i; done"#</span>;
-<a href=#1395 id=1395 data-nosnippet>1395</a>        <span class="kw">let </span>result = check(code);
-<a href=#1396 id=1396 data-nosnippet>1396</a>        <span class="comment">// Should flag echo $i but NOT the ones inside (( ))
-<a href=#1397 id=1397 data-nosnippet>1397</a>        </span><span class="macro">assert_eq!</span>(
-<a href=#1398 id=1398 data-nosnippet>1398</a>            result.diagnostics.len(),
-<a href=#1399 id=1399 data-nosnippet>1399</a>            <span class="number">1</span>,
-<a href=#1400 id=1400 data-nosnippet>1400</a>            <span class="string">"SC2086 should only flag echo $i, not variables in (( ))"
-<a href=#1401 id=1401 data-nosnippet>1401</a>        </span>);
-<a href=#1402 id=1402 data-nosnippet>1402</a>    }
-<a href=#1403 id=1403 data-nosnippet>1403</a>
-<a href=#1404 id=1404 data-nosnippet>1404</a>    <span class="attr">#[test]
-<a href=#1405 id=1405 data-nosnippet>1405</a>    </span><span class="kw">fn </span>test_FP_107_if_arithmetic_not_flagged() {
-<a href=#1406 id=1406 data-nosnippet>1406</a>        <span class="comment">// if (( )) is arithmetic context
-<a href=#1407 id=1407 data-nosnippet>1407</a>        </span><span class="kw">let </span>code = <span class="string">r#"if (( $x &gt; 0 )); then echo yes; fi"#</span>;
-<a href=#1408 id=1408 data-nosnippet>1408</a>        <span class="kw">let </span>result = check(code);
-<a href=#1409 id=1409 data-nosnippet>1409</a>        <span class="macro">assert_eq!</span>(
-<a href=#1410 id=1410 data-nosnippet>1410</a>            result.diagnostics.len(),
-<a href=#1411 id=1411 data-nosnippet>1411</a>            <span class="number">0</span>,
-<a href=#1412 id=1412 data-nosnippet>1412</a>            <span class="string">"SC2086 must NOT flag variables inside if (( )) condition"
-<a href=#1413 id=1413 data-nosnippet>1413</a>        </span>);
-<a href=#1414 id=1414 data-nosnippet>1414</a>    }
-<a href=#1415 id=1415 data-nosnippet>1415</a>
-<a href=#1416 id=1416 data-nosnippet>1416</a>    <span class="attr">#[test]
-<a href=#1417 id=1417 data-nosnippet>1417</a>    </span><span class="kw">fn </span>test_FP_107_arithmetic_increment_not_flagged() {
-<a href=#1418 id=1418 data-nosnippet>1418</a>        <span class="comment">// (( i++ )) and (( i+=1 )) are arithmetic
-<a href=#1419 id=1419 data-nosnippet>1419</a>        </span><span class="kw">let </span>code = <span class="string">r#"(( $count++ ))"#</span>;
-<a href=#1420 id=1420 data-nosnippet>1420</a>        <span class="kw">let </span>result = check(code);
-<a href=#1421 id=1421 data-nosnippet>1421</a>        <span class="macro">assert_eq!</span>(
-<a href=#1422 id=1422 data-nosnippet>1422</a>            result.diagnostics.len(),
-<a href=#1423 id=1423 data-nosnippet>1423</a>            <span class="number">0</span>,
-<a href=#1424 id=1424 data-nosnippet>1424</a>            <span class="string">"SC2086 must NOT flag variable in arithmetic increment"
-<a href=#1425 id=1425 data-nosnippet>1425</a>        </span>);
-<a href=#1426 id=1426 data-nosnippet>1426</a>    }
-<a href=#1427 id=1427 data-nosnippet>1427</a>
-<a href=#1428 id=1428 data-nosnippet>1428</a>    <span class="comment">// ===== F048: C-style for loop variable in body =====
-<a href=#1429 id=1429 data-nosnippet>1429</a>    // Loop variables from C-style for loops are always numeric
-<a href=#1430 id=1430 data-nosnippet>1430</a>    // SC2086 should not flag them even in the loop body
-<a href=#1431 id=1431 data-nosnippet>1431</a>
-<a href=#1432 id=1432 data-nosnippet>1432</a>    </span><span class="attr">#[test]
-<a href=#1433 id=1433 data-nosnippet>1433</a>    </span><span class="kw">fn </span>test_FP_048_cstyle_for_loop_var_in_body() {
-<a href=#1434 id=1434 data-nosnippet>1434</a>        <span class="comment">// F048: C-style for loop variable used in body
-<a href=#1435 id=1435 data-nosnippet>1435</a>        </span><span class="kw">let </span>code = <span class="string">r#"for ((i=0;i&lt;10;i++)); do echo $i; done"#</span>;
-<a href=#1436 id=1436 data-nosnippet>1436</a>        <span class="kw">let </span>result = check(code);
-<a href=#1437 id=1437 data-nosnippet>1437</a>        <span class="macro">assert_eq!</span>(
-<a href=#1438 id=1438 data-nosnippet>1438</a>            result.diagnostics.len(),
-<a href=#1439 id=1439 data-nosnippet>1439</a>            <span class="number">0</span>,
-<a href=#1440 id=1440 data-nosnippet>1440</a>            <span class="string">"SC2086 must NOT flag C-style for loop variable $i in loop body"
-<a href=#1441 id=1441 data-nosnippet>1441</a>        </span>);
-<a href=#1442 id=1442 data-nosnippet>1442</a>    }
-<a href=#1443 id=1443 data-nosnippet>1443</a>
-<a href=#1444 id=1444 data-nosnippet>1444</a>    <span class="attr">#[test]
-<a href=#1445 id=1445 data-nosnippet>1445</a>    </span><span class="kw">fn </span>test_FP_048_cstyle_for_multiple_uses() {
-<a href=#1446 id=1446 data-nosnippet>1446</a>        <span class="comment">// Multiple uses of loop variable in body
-<a href=#1447 id=1447 data-nosnippet>1447</a>        </span><span class="kw">let </span>code = <span class="string">r#"for ((n=1;n&lt;=5;n++)); do echo $n; printf "%d\n" $n; done"#</span>;
-<a href=#1448 id=1448 data-nosnippet>1448</a>        <span class="kw">let </span>result = check(code);
-<a href=#1449 id=1449 data-nosnippet>1449</a>        <span class="macro">assert_eq!</span>(
-<a href=#1450 id=1450 data-nosnippet>1450</a>            result.diagnostics.len(),
-<a href=#1451 id=1451 data-nosnippet>1451</a>            <span class="number">0</span>,
-<a href=#1452 id=1452 data-nosnippet>1452</a>            <span class="string">"SC2086 must NOT flag any uses of C-style for loop variable"
-<a href=#1453 id=1453 data-nosnippet>1453</a>        </span>);
-<a href=#1454 id=1454 data-nosnippet>1454</a>    }
-<a href=#1455 id=1455 data-nosnippet>1455</a>
-<a href=#1456 id=1456 data-nosnippet>1456</a>    <span class="attr">#[test]
-<a href=#1457 id=1457 data-nosnippet>1457</a>    </span><span class="kw">fn </span>test_FP_048_non_loop_var_still_flagged() {
-<a href=#1458 id=1458 data-nosnippet>1458</a>        <span class="comment">// Other variables should still be flagged
-<a href=#1459 id=1459 data-nosnippet>1459</a>        </span><span class="kw">let </span>code = <span class="string">r#"for ((i=0;i&lt;10;i++)); do echo $other; done"#</span>;
-<a href=#1460 id=1460 data-nosnippet>1460</a>        <span class="kw">let </span>result = check(code);
-<a href=#1461 id=1461 data-nosnippet>1461</a>        <span class="macro">assert_eq!</span>(
-<a href=#1462 id=1462 data-nosnippet>1462</a>            result.diagnostics.len(),
-<a href=#1463 id=1463 data-nosnippet>1463</a>            <span class="number">1</span>,
-<a href=#1464 id=1464 data-nosnippet>1464</a>            <span class="string">"SC2086 SHOULD flag non-loop variable $other"
-<a href=#1465 id=1465 data-nosnippet>1465</a>        </span>);
-<a href=#1466 id=1466 data-nosnippet>1466</a>    }
-<a href=#1467 id=1467 data-nosnippet>1467</a>}</code></pre></div></section></main></body></html>
+<a href=#1145 id=1145 data-nosnippet>1145</a>        <span class="attr">#![proptest_config(proptest::test_runner::Config::with_cases(<span class="number">10</span>))]
+<a href=#1146 id=1146 data-nosnippet>1146</a>            #[test]
+<a href=#1147 id=1147 data-nosnippet>1147</a>            </span><span class="kw">fn </span>prop_column_positions_always_valid(
+<a href=#1148 id=1148 data-nosnippet>1148</a>                var_name <span class="kw">in </span><span class="string">"[a-z]{1,10}"</span>,
+<a href=#1149 id=1149 data-nosnippet>1149</a>                leading_spaces <span class="kw">in </span><span class="number">0usize</span>..<span class="number">20
+<a href=#1150 id=1150 data-nosnippet>1150</a>            </span>) {
+<a href=#1151 id=1151 data-nosnippet>1151</a>                <span class="comment">// PROPERTY: Column positions must always be &gt;= 1 (1-indexed)
+<a href=#1152 id=1152 data-nosnippet>1152</a>                // Catches: + → * mutations (would produce 0), + → - mutations
+<a href=#1153 id=1153 data-nosnippet>1153</a>                </span><span class="kw">let </span>spaces = <span class="string">" "</span>.repeat(leading_spaces);
+<a href=#1154 id=1154 data-nosnippet>1154</a>                <span class="kw">let </span>bash_code = <span class="macro">format!</span>(<span class="string">"{}echo ${}"</span>, spaces, var_name);
+<a href=#1155 id=1155 data-nosnippet>1155</a>                <span class="kw">let </span>result = check(<span class="kw-2">&amp;</span>bash_code);
+<a href=#1156 id=1156 data-nosnippet>1156</a>
+<a href=#1157 id=1157 data-nosnippet>1157</a>                <span class="kw">if </span>!result.diagnostics.is_empty() {
+<a href=#1158 id=1158 data-nosnippet>1158</a>                    <span class="kw">let </span>span = <span class="kw-2">&amp;</span>result.diagnostics[<span class="number">0</span>].span;
+<a href=#1159 id=1159 data-nosnippet>1159</a>                    <span class="comment">// INVARIANT: Columns are 1-indexed, never 0 or negative
+<a href=#1160 id=1160 data-nosnippet>1160</a>                    </span><span class="macro">prop_assert!</span>(span.start_col &gt;= <span class="number">1</span>, <span class="string">"Start column must be &gt;= 1, got {}"</span>, span.start_col);
+<a href=#1161 id=1161 data-nosnippet>1161</a>                    <span class="macro">prop_assert!</span>(span.end_col &gt;= <span class="number">1</span>, <span class="string">"End column must be &gt;= 1, got {}"</span>, span.end_col);
+<a href=#1162 id=1162 data-nosnippet>1162</a>                    <span class="comment">// INVARIANT: End must be after start
+<a href=#1163 id=1163 data-nosnippet>1163</a>                    </span><span class="macro">prop_assert!</span>(span.end_col &gt; span.start_col,
+<a href=#1164 id=1164 data-nosnippet>1164</a>                        <span class="string">"End col ({}) must be &gt; start col ({})"</span>, span.end_col, span.start_col);
+<a href=#1165 id=1165 data-nosnippet>1165</a>                }
+<a href=#1166 id=1166 data-nosnippet>1166</a>            }
+<a href=#1167 id=1167 data-nosnippet>1167</a>
+<a href=#1168 id=1168 data-nosnippet>1168</a>            <span class="attr">#[test]
+<a href=#1169 id=1169 data-nosnippet>1169</a>            </span><span class="kw">fn </span>prop_line_numbers_always_valid(
+<a href=#1170 id=1170 data-nosnippet>1170</a>                var_name <span class="kw">in </span><span class="string">"[a-z]{1,10}"</span>,
+<a href=#1171 id=1171 data-nosnippet>1171</a>                comment_lines <span class="kw">in </span>prop::collection::vec(<span class="string">"# comment.*"</span>, <span class="number">0</span>..<span class="number">5</span>)
+<a href=#1172 id=1172 data-nosnippet>1172</a>            ) {
+<a href=#1173 id=1173 data-nosnippet>1173</a>                <span class="comment">// PROPERTY: Line numbers must always be &gt;= 1 (1-indexed)
+<a href=#1174 id=1174 data-nosnippet>1174</a>                // Catches: + → * mutations in line_num + 1 calculation
+<a href=#1175 id=1175 data-nosnippet>1175</a>                </span><span class="kw">let </span><span class="kw-2">mut </span>bash_code = comment_lines.join(<span class="string">"\n"</span>);
+<a href=#1176 id=1176 data-nosnippet>1176</a>                <span class="kw">if </span>!bash_code.is_empty() {
+<a href=#1177 id=1177 data-nosnippet>1177</a>                    bash_code.push(<span class="string">'\n'</span>);
+<a href=#1178 id=1178 data-nosnippet>1178</a>                }
+<a href=#1179 id=1179 data-nosnippet>1179</a>                bash_code.push_str(<span class="kw-2">&amp;</span><span class="macro">format!</span>(<span class="string">"echo ${}"</span>, var_name));
+<a href=#1180 id=1180 data-nosnippet>1180</a>
+<a href=#1181 id=1181 data-nosnippet>1181</a>                <span class="kw">let </span>result = check(<span class="kw-2">&amp;</span>bash_code);
+<a href=#1182 id=1182 data-nosnippet>1182</a>                <span class="kw">if </span>!result.diagnostics.is_empty() {
+<a href=#1183 id=1183 data-nosnippet>1183</a>                    <span class="kw">let </span>span = <span class="kw-2">&amp;</span>result.diagnostics[<span class="number">0</span>].span;
+<a href=#1184 id=1184 data-nosnippet>1184</a>                    <span class="comment">// INVARIANT: Lines are 1-indexed, never 0 or negative
+<a href=#1185 id=1185 data-nosnippet>1185</a>                    </span><span class="macro">prop_assert!</span>(span.start_line &gt;= <span class="number">1</span>, <span class="string">"Line number must be &gt;= 1, got {}"</span>, span.start_line);
+<a href=#1186 id=1186 data-nosnippet>1186</a>                    <span class="macro">prop_assert!</span>(span.end_line &gt;= <span class="number">1</span>, <span class="string">"Line number must be &gt;= 1, got {}"</span>, span.end_line);
+<a href=#1187 id=1187 data-nosnippet>1187</a>                }
+<a href=#1188 id=1188 data-nosnippet>1188</a>            }
+<a href=#1189 id=1189 data-nosnippet>1189</a>
+<a href=#1190 id=1190 data-nosnippet>1190</a>            <span class="attr">#[test]
+<a href=#1191 id=1191 data-nosnippet>1191</a>            </span><span class="kw">fn </span>prop_span_length_reasonable(
+<a href=#1192 id=1192 data-nosnippet>1192</a>                var_name <span class="kw">in </span><span class="string">"[a-z]{1,10}"
+<a href=#1193 id=1193 data-nosnippet>1193</a>            </span>) {
+<a href=#1194 id=1194 data-nosnippet>1194</a>                <span class="comment">// PROPERTY: Span length should be reasonable (not negative, not huge)
+<a href=#1195 id=1195 data-nosnippet>1195</a>                // Catches: + → - mutations that produce negative/wrong lengths
+<a href=#1196 id=1196 data-nosnippet>1196</a>                </span><span class="kw">let </span>bash_code = <span class="macro">format!</span>(<span class="string">"echo ${}"</span>, var_name);
+<a href=#1197 id=1197 data-nosnippet>1197</a>                <span class="kw">let </span>result = check(<span class="kw-2">&amp;</span>bash_code);
+<a href=#1198 id=1198 data-nosnippet>1198</a>
+<a href=#1199 id=1199 data-nosnippet>1199</a>                <span class="kw">if </span>!result.diagnostics.is_empty() {
+<a href=#1200 id=1200 data-nosnippet>1200</a>                    <span class="kw">let </span>span = <span class="kw-2">&amp;</span>result.diagnostics[<span class="number">0</span>].span;
+<a href=#1201 id=1201 data-nosnippet>1201</a>                    <span class="kw">let </span>span_length = span.end_col.saturating_sub(span.start_col);
+<a href=#1202 id=1202 data-nosnippet>1202</a>                    <span class="comment">// INVARIANT: Span length must be positive and reasonable
+<a href=#1203 id=1203 data-nosnippet>1203</a>                    </span><span class="macro">prop_assert!</span>(span_length &gt; <span class="number">0</span>, <span class="string">"Span length must be &gt; 0"</span>);
+<a href=#1204 id=1204 data-nosnippet>1204</a>                    <span class="macro">prop_assert!</span>(span_length &lt; <span class="number">1000</span>, <span class="string">"Span length {} seems unreasonable"</span>, span_length);
+<a href=#1205 id=1205 data-nosnippet>1205</a>                }
+<a href=#1206 id=1206 data-nosnippet>1206</a>            }
+<a href=#1207 id=1207 data-nosnippet>1207</a>
+<a href=#1208 id=1208 data-nosnippet>1208</a>            <span class="attr">#[test]
+<a href=#1209 id=1209 data-nosnippet>1209</a>            </span><span class="kw">fn </span>prop_braced_variable_span_includes_braces(
+<a href=#1210 id=1210 data-nosnippet>1210</a>                var_name <span class="kw">in </span><span class="string">"[a-z]{1,10}"
+<a href=#1211 id=1211 data-nosnippet>1211</a>            </span>) {
+<a href=#1212 id=1212 data-nosnippet>1212</a>                <span class="comment">// PROPERTY: ${VAR} span must cover entire expression including braces
+<a href=#1213 id=1213 data-nosnippet>1213</a>                // Catches: arithmetic mutations in calculate_end_column
+<a href=#1214 id=1214 data-nosnippet>1214</a>                </span><span class="kw">let </span>bash_code = <span class="macro">format!</span>(<span class="string">"echo ${{{}}}"</span>, var_name);
+<a href=#1215 id=1215 data-nosnippet>1215</a>                <span class="kw">let </span>result = check(<span class="kw-2">&amp;</span>bash_code);
+<a href=#1216 id=1216 data-nosnippet>1216</a>
+<a href=#1217 id=1217 data-nosnippet>1217</a>                <span class="kw">if </span>!result.diagnostics.is_empty() {
+<a href=#1218 id=1218 data-nosnippet>1218</a>                    <span class="kw">let </span>span = <span class="kw-2">&amp;</span>result.diagnostics[<span class="number">0</span>].span;
+<a href=#1219 id=1219 data-nosnippet>1219</a>                    <span class="comment">// INVARIANT: Span for ${VAR} must be at least length of ${VAR}
+<a href=#1220 id=1220 data-nosnippet>1220</a>                    </span><span class="kw">let </span>expected_min_length = var_name.len() + <span class="number">3</span>; <span class="comment">// ${}
+<a href=#1221 id=1221 data-nosnippet>1221</a>                    </span><span class="kw">let </span>span_length = span.end_col.saturating_sub(span.start_col);
+<a href=#1222 id=1222 data-nosnippet>1222</a>                    <span class="macro">prop_assert!</span>(span_length &gt;= expected_min_length,
+<a href=#1223 id=1223 data-nosnippet>1223</a>                        <span class="string">"Span length {} must be &gt;= {} for ${{{}}}"</span>, span_length, expected_min_length, var_name);
+<a href=#1224 id=1224 data-nosnippet>1224</a>                }
+<a href=#1225 id=1225 data-nosnippet>1225</a>            }
+<a href=#1226 id=1226 data-nosnippet>1226</a>
+<a href=#1227 id=1227 data-nosnippet>1227</a>            <span class="attr">#[test]
+<a href=#1228 id=1228 data-nosnippet>1228</a>            </span><span class="kw">fn </span>prop_skip_assignments_correctly(
+<a href=#1229 id=1229 data-nosnippet>1229</a>                var_name <span class="kw">in </span><span class="string">"[a-z]{1,10}"</span>,
+<a href=#1230 id=1230 data-nosnippet>1230</a>                value <span class="kw">in </span><span class="string">"[a-z0-9]{1,10}"
+<a href=#1231 id=1231 data-nosnippet>1231</a>            </span>) {
+<a href=#1232 id=1232 data-nosnippet>1232</a>                <span class="comment">// PROPERTY: Variable assignments should be skipped correctly
+<a href=#1233 id=1233 data-nosnippet>1233</a>                // Catches: &lt; → &gt;, &lt; → ==, &lt; → &lt;= mutations in should_skip_line
+<a href=#1234 id=1234 data-nosnippet>1234</a>                </span><span class="kw">let </span>bash_code = <span class="macro">format!</span>(<span class="string">"{}={}\necho ${}"</span>, var_name, value, var_name);
+<a href=#1235 id=1235 data-nosnippet>1235</a>                <span class="kw">let </span>result = check(<span class="kw-2">&amp;</span>bash_code);
+<a href=#1236 id=1236 data-nosnippet>1236</a>
+<a href=#1237 id=1237 data-nosnippet>1237</a>                <span class="comment">// INVARIANT: Should only detect $VAR in echo, not in assignment
+<a href=#1238 id=1238 data-nosnippet>1238</a>                // Assignment is line 1, echo is line 2
+<a href=#1239 id=1239 data-nosnippet>1239</a>                </span><span class="kw">if </span>!result.diagnostics.is_empty() {
+<a href=#1240 id=1240 data-nosnippet>1240</a>                    <span class="macro">prop_assert_eq!</span>(result.diagnostics.len(), <span class="number">1</span>, <span class="string">"Should only flag echo line"</span>);
+<a href=#1241 id=1241 data-nosnippet>1241</a>                    <span class="macro">prop_assert_eq!</span>(result.diagnostics[<span class="number">0</span>].span.start_line, <span class="number">2</span>,
+<a href=#1242 id=1242 data-nosnippet>1242</a>                        <span class="string">"Should flag line 2 (echo), not line 1 (assignment)"</span>);
+<a href=#1243 id=1243 data-nosnippet>1243</a>                }
+<a href=#1244 id=1244 data-nosnippet>1244</a>            }
+<a href=#1245 id=1245 data-nosnippet>1245</a>
+<a href=#1246 id=1246 data-nosnippet>1246</a>            <span class="attr">#[test]
+<a href=#1247 id=1247 data-nosnippet>1247</a>            </span><span class="kw">fn </span>prop_arithmetic_context_never_flagged(
+<a href=#1248 id=1248 data-nosnippet>1248</a>                x_val <span class="kw">in </span><span class="number">0i32</span>..<span class="number">100</span>,
+<a href=#1249 id=1249 data-nosnippet>1249</a>                y_val <span class="kw">in </span><span class="number">0i32</span>..<span class="number">100
+<a href=#1250 id=1250 data-nosnippet>1250</a>            </span>) {
+<a href=#1251 id=1251 data-nosnippet>1251</a>                <span class="comment">// PROPERTY: Variables in $(( )) should never be flagged
+<a href=#1252 id=1252 data-nosnippet>1252</a>                // Catches: return value mutations in is_in_arithmetic_context
+<a href=#1253 id=1253 data-nosnippet>1253</a>                </span><span class="kw">let </span>bash_code = <span class="macro">format!</span>(<span class="string">"result=$(( {} + {} ))"</span>, x_val, y_val);
+<a href=#1254 id=1254 data-nosnippet>1254</a>                <span class="kw">let </span>result = check(<span class="kw-2">&amp;</span>bash_code);
+<a href=#1255 id=1255 data-nosnippet>1255</a>
+<a href=#1256 id=1256 data-nosnippet>1256</a>                <span class="comment">// INVARIANT: Arithmetic context should never produce diagnostics
+<a href=#1257 id=1257 data-nosnippet>1257</a>                </span><span class="macro">prop_assert_eq!</span>(result.diagnostics.len(), <span class="number">0</span>,
+<a href=#1258 id=1258 data-nosnippet>1258</a>                    <span class="string">"Variables in $(( )) should not be flagged"</span>);
+<a href=#1259 id=1259 data-nosnippet>1259</a>            }
+<a href=#1260 id=1260 data-nosnippet>1260</a>
+<a href=#1261 id=1261 data-nosnippet>1261</a>            <span class="attr">#[test]
+<a href=#1262 id=1262 data-nosnippet>1262</a>            </span><span class="kw">fn </span>prop_quoted_variables_never_flagged(
+<a href=#1263 id=1263 data-nosnippet>1263</a>                var_name <span class="kw">in </span><span class="string">"[a-z]{1,10}"
+<a href=#1264 id=1264 data-nosnippet>1264</a>            </span>) {
+<a href=#1265 id=1265 data-nosnippet>1265</a>                <span class="comment">// PROPERTY: Already-quoted variables should never be flagged
+<a href=#1266 id=1266 data-nosnippet>1266</a>                // Catches: &amp;&amp; → || mutations in is_already_quoted
+<a href=#1267 id=1267 data-nosnippet>1267</a>                </span><span class="kw">let </span>bash_code = <span class="macro">format!</span>(<span class="string">"echo \"${}\""</span>, var_name);
+<a href=#1268 id=1268 data-nosnippet>1268</a>                <span class="kw">let </span>result = check(<span class="kw-2">&amp;</span>bash_code);
+<a href=#1269 id=1269 data-nosnippet>1269</a>
+<a href=#1270 id=1270 data-nosnippet>1270</a>                <span class="comment">// INVARIANT: Quoted variables should not produce diagnostics
+<a href=#1271 id=1271 data-nosnippet>1271</a>                </span><span class="macro">prop_assert_eq!</span>(result.diagnostics.len(), <span class="number">0</span>,
+<a href=#1272 id=1272 data-nosnippet>1272</a>                    <span class="string">"Already-quoted variables should not be flagged"</span>);
+<a href=#1273 id=1273 data-nosnippet>1273</a>            }
+<a href=#1274 id=1274 data-nosnippet>1274</a>
+<a href=#1275 id=1275 data-nosnippet>1275</a>            <span class="attr">#[test]
+<a href=#1276 id=1276 data-nosnippet>1276</a>            </span><span class="kw">fn </span>prop_braced_variables_in_quotes_never_flagged(
+<a href=#1277 id=1277 data-nosnippet>1277</a>                var1 <span class="kw">in </span><span class="string">"[a-z]{1,10}"</span>,
+<a href=#1278 id=1278 data-nosnippet>1278</a>                var2 <span class="kw">in </span><span class="string">"[a-z]{1,10}"</span>,
+<a href=#1279 id=1279 data-nosnippet>1279</a>                text <span class="kw">in </span><span class="string">"[a-z ]{0,20}"
+<a href=#1280 id=1280 data-nosnippet>1280</a>            </span>) {
+<a href=#1281 id=1281 data-nosnippet>1281</a>                <span class="comment">// PROPERTY: Variables inside quoted strings should never be flagged
+<a href=#1282 id=1282 data-nosnippet>1282</a>                // Issue #1: Fixes auto-fix creating invalid syntax
+<a href=#1283 id=1283 data-nosnippet>1283</a>                // Catches: quote-counting logic errors in is_already_quoted
+<a href=#1284 id=1284 data-nosnippet>1284</a>                </span><span class="kw">let </span>bash_code = <span class="macro">format!</span>(<span class="string">"echo \"${{{}}}{}${{{}}}\""</span>, var1, text, var2);
+<a href=#1285 id=1285 data-nosnippet>1285</a>                <span class="kw">let </span>result = check(<span class="kw-2">&amp;</span>bash_code);
+<a href=#1286 id=1286 data-nosnippet>1286</a>
+<a href=#1287 id=1287 data-nosnippet>1287</a>                <span class="comment">// INVARIANT: Variables inside quoted strings should not produce diagnostics
+<a href=#1288 id=1288 data-nosnippet>1288</a>                </span><span class="macro">prop_assert_eq!</span>(result.diagnostics.len(), <span class="number">0</span>,
+<a href=#1289 id=1289 data-nosnippet>1289</a>                    <span class="string">"Variables inside quoted strings should not be flagged. Code: '{}'"</span>, bash_code);
+<a href=#1290 id=1290 data-nosnippet>1290</a>            }
+<a href=#1291 id=1291 data-nosnippet>1291</a>        }
+<a href=#1292 id=1292 data-nosnippet>1292</a>    }
+<a href=#1293 id=1293 data-nosnippet>1293</a>
+<a href=#1294 id=1294 data-nosnippet>1294</a>    <span class="comment">// ===== Issue #105: Safe [[ ]] context tests =====
+<a href=#1295 id=1295 data-nosnippet>1295</a>    // Variables in [[ ]] are safe - no word splitting or glob expansion
+<a href=#1296 id=1296 data-nosnippet>1296</a>
+<a href=#1297 id=1297 data-nosnippet>1297</a>    </span><span class="attr">#[test]
+<a href=#1298 id=1298 data-nosnippet>1298</a>    </span><span class="kw">fn </span>test_FP_105_double_bracket_n_test_not_flagged() {
+<a href=#1299 id=1299 data-nosnippet>1299</a>        <span class="kw">let </span>code = <span class="string">r#"[[ -n $var ]]"#</span>;
+<a href=#1300 id=1300 data-nosnippet>1300</a>        <span class="kw">let </span>result = check(code);
+<a href=#1301 id=1301 data-nosnippet>1301</a>        <span class="macro">assert_eq!</span>(
+<a href=#1302 id=1302 data-nosnippet>1302</a>            result.diagnostics.len(),
+<a href=#1303 id=1303 data-nosnippet>1303</a>            <span class="number">0</span>,
+<a href=#1304 id=1304 data-nosnippet>1304</a>            <span class="string">"SC2086 must NOT flag unquoted variable in [[ -n $var ]]"
+<a href=#1305 id=1305 data-nosnippet>1305</a>        </span>);
+<a href=#1306 id=1306 data-nosnippet>1306</a>    }
+<a href=#1307 id=1307 data-nosnippet>1307</a>
+<a href=#1308 id=1308 data-nosnippet>1308</a>    <span class="attr">#[test]
+<a href=#1309 id=1309 data-nosnippet>1309</a>    </span><span class="kw">fn </span>test_FP_105_double_bracket_z_test_not_flagged() {
+<a href=#1310 id=1310 data-nosnippet>1310</a>        <span class="kw">let </span>code = <span class="string">r#"[[ -z $var ]]"#</span>;
+<a href=#1311 id=1311 data-nosnippet>1311</a>        <span class="kw">let </span>result = check(code);
+<a href=#1312 id=1312 data-nosnippet>1312</a>        <span class="macro">assert_eq!</span>(
+<a href=#1313 id=1313 data-nosnippet>1313</a>            result.diagnostics.len(),
+<a href=#1314 id=1314 data-nosnippet>1314</a>            <span class="number">0</span>,
+<a href=#1315 id=1315 data-nosnippet>1315</a>            <span class="string">"SC2086 must NOT flag unquoted variable in [[ -z $var ]]"
+<a href=#1316 id=1316 data-nosnippet>1316</a>        </span>);
+<a href=#1317 id=1317 data-nosnippet>1317</a>    }
+<a href=#1318 id=1318 data-nosnippet>1318</a>
+<a href=#1319 id=1319 data-nosnippet>1319</a>    <span class="attr">#[test]
+<a href=#1320 id=1320 data-nosnippet>1320</a>    </span><span class="kw">fn </span>test_FP_105_double_bracket_equality_not_flagged() {
+<a href=#1321 id=1321 data-nosnippet>1321</a>        <span class="kw">let </span>code = <span class="string">r#"[[ $var = "value" ]]"#</span>;
+<a href=#1322 id=1322 data-nosnippet>1322</a>        <span class="kw">let </span>result = check(code);
+<a href=#1323 id=1323 data-nosnippet>1323</a>        <span class="macro">assert_eq!</span>(
+<a href=#1324 id=1324 data-nosnippet>1324</a>            result.diagnostics.len(),
+<a href=#1325 id=1325 data-nosnippet>1325</a>            <span class="number">0</span>,
+<a href=#1326 id=1326 data-nosnippet>1326</a>            <span class="string">"SC2086 must NOT flag unquoted variable in [[ $var = ... ]]"
+<a href=#1327 id=1327 data-nosnippet>1327</a>        </span>);
+<a href=#1328 id=1328 data-nosnippet>1328</a>    }
+<a href=#1329 id=1329 data-nosnippet>1329</a>
+<a href=#1330 id=1330 data-nosnippet>1330</a>    <span class="attr">#[test]
+<a href=#1331 id=1331 data-nosnippet>1331</a>    </span><span class="kw">fn </span>test_FP_105_double_bracket_comparison_not_flagged() {
+<a href=#1332 id=1332 data-nosnippet>1332</a>        <span class="kw">let </span>code = <span class="string">r#"[[ $x -eq $y ]]"#</span>;
+<a href=#1333 id=1333 data-nosnippet>1333</a>        <span class="kw">let </span>result = check(code);
+<a href=#1334 id=1334 data-nosnippet>1334</a>        <span class="macro">assert_eq!</span>(
+<a href=#1335 id=1335 data-nosnippet>1335</a>            result.diagnostics.len(),
+<a href=#1336 id=1336 data-nosnippet>1336</a>            <span class="number">0</span>,
+<a href=#1337 id=1337 data-nosnippet>1337</a>            <span class="string">"SC2086 must NOT flag unquoted variables in [[ $x -eq $y ]]"
+<a href=#1338 id=1338 data-nosnippet>1338</a>        </span>);
+<a href=#1339 id=1339 data-nosnippet>1339</a>    }
+<a href=#1340 id=1340 data-nosnippet>1340</a>
+<a href=#1341 id=1341 data-nosnippet>1341</a>    <span class="attr">#[test]
+<a href=#1342 id=1342 data-nosnippet>1342</a>    </span><span class="kw">fn </span>test_FP_105_double_bracket_regex_not_flagged() {
+<a href=#1343 id=1343 data-nosnippet>1343</a>        <span class="kw">let </span>code = <span class="string">r#"[[ $var =~ ^[0-9]+$ ]]"#</span>;
+<a href=#1344 id=1344 data-nosnippet>1344</a>        <span class="kw">let </span>result = check(code);
+<a href=#1345 id=1345 data-nosnippet>1345</a>        <span class="macro">assert_eq!</span>(
+<a href=#1346 id=1346 data-nosnippet>1346</a>            result.diagnostics.len(),
+<a href=#1347 id=1347 data-nosnippet>1347</a>            <span class="number">0</span>,
+<a href=#1348 id=1348 data-nosnippet>1348</a>            <span class="string">"SC2086 must NOT flag unquoted variable in regex match"
+<a href=#1349 id=1349 data-nosnippet>1349</a>        </span>);
+<a href=#1350 id=1350 data-nosnippet>1350</a>    }
+<a href=#1351 id=1351 data-nosnippet>1351</a>
+<a href=#1352 id=1352 data-nosnippet>1352</a>    <span class="attr">#[test]
+<a href=#1353 id=1353 data-nosnippet>1353</a>    </span><span class="kw">fn </span>test_FP_105_single_bracket_still_flagged() {
+<a href=#1354 id=1354 data-nosnippet>1354</a>        <span class="comment">// Single brackets DO need quoting
+<a href=#1355 id=1355 data-nosnippet>1355</a>        </span><span class="kw">let </span>code = <span class="string">r#"[ -n $var ]"#</span>;
+<a href=#1356 id=1356 data-nosnippet>1356</a>        <span class="kw">let </span>result = check(code);
+<a href=#1357 id=1357 data-nosnippet>1357</a>        <span class="macro">assert_eq!</span>(
+<a href=#1358 id=1358 data-nosnippet>1358</a>            result.diagnostics.len(),
+<a href=#1359 id=1359 data-nosnippet>1359</a>            <span class="number">1</span>,
+<a href=#1360 id=1360 data-nosnippet>1360</a>            <span class="string">"SC2086 SHOULD flag unquoted variable in single bracket [ ]"
+<a href=#1361 id=1361 data-nosnippet>1361</a>        </span>);
+<a href=#1362 id=1362 data-nosnippet>1362</a>    }
+<a href=#1363 id=1363 data-nosnippet>1363</a>
+<a href=#1364 id=1364 data-nosnippet>1364</a>    <span class="comment">// ===== Issue #107: C-style for loop arithmetic context =====
+<a href=#1365 id=1365 data-nosnippet>1365</a>    // Variables inside (( )) are in arithmetic context and don't need quoting
+<a href=#1366 id=1366 data-nosnippet>1366</a>
+<a href=#1367 id=1367 data-nosnippet>1367</a>    </span><span class="attr">#[test]
+<a href=#1368 id=1368 data-nosnippet>1368</a>    </span><span class="kw">fn </span>test_FP_107_cstyle_for_loop_not_flagged() {
+<a href=#1369 id=1369 data-nosnippet>1369</a>        <span class="comment">// C-style for loop is arithmetic context
+<a href=#1370 id=1370 data-nosnippet>1370</a>        </span><span class="kw">let </span>code = <span class="string">r#"for ((i=0; i&lt;$n; i++)); do echo "loop"; done"#</span>;
+<a href=#1371 id=1371 data-nosnippet>1371</a>        <span class="kw">let </span>result = check(code);
+<a href=#1372 id=1372 data-nosnippet>1372</a>        <span class="comment">// Should not flag $n inside (( ))
+<a href=#1373 id=1373 data-nosnippet>1373</a>        </span><span class="macro">assert_eq!</span>(
+<a href=#1374 id=1374 data-nosnippet>1374</a>            result.diagnostics.len(),
+<a href=#1375 id=1375 data-nosnippet>1375</a>            <span class="number">0</span>,
+<a href=#1376 id=1376 data-nosnippet>1376</a>            <span class="string">"SC2086 must NOT flag variables inside C-style for (( )) loop"
+<a href=#1377 id=1377 data-nosnippet>1377</a>        </span>);
+<a href=#1378 id=1378 data-nosnippet>1378</a>    }
+<a href=#1379 id=1379 data-nosnippet>1379</a>
+<a href=#1380 id=1380 data-nosnippet>1380</a>    <span class="attr">#[test]
+<a href=#1381 id=1381 data-nosnippet>1381</a>    </span><span class="kw">fn </span>test_FP_107_double_paren_arithmetic_not_flagged() {
+<a href=#1382 id=1382 data-nosnippet>1382</a>        <span class="comment">// Standalone (( )) is arithmetic context
+<a href=#1383 id=1383 data-nosnippet>1383</a>        </span><span class="kw">let </span>code = <span class="string">r#"(( count = $x + $y ))"#</span>;
+<a href=#1384 id=1384 data-nosnippet>1384</a>        <span class="kw">let </span>result = check(code);
+<a href=#1385 id=1385 data-nosnippet>1385</a>        <span class="macro">assert_eq!</span>(
+<a href=#1386 id=1386 data-nosnippet>1386</a>            result.diagnostics.len(),
+<a href=#1387 id=1387 data-nosnippet>1387</a>            <span class="number">0</span>,
+<a href=#1388 id=1388 data-nosnippet>1388</a>            <span class="string">"SC2086 must NOT flag variables inside standalone (( )) arithmetic"
+<a href=#1389 id=1389 data-nosnippet>1389</a>        </span>);
+<a href=#1390 id=1390 data-nosnippet>1390</a>    }
+<a href=#1391 id=1391 data-nosnippet>1391</a>
+<a href=#1392 id=1392 data-nosnippet>1392</a>    <span class="attr">#[test]
+<a href=#1393 id=1393 data-nosnippet>1393</a>    </span><span class="kw">fn </span>test_FP_107_while_arithmetic_not_flagged() {
+<a href=#1394 id=1394 data-nosnippet>1394</a>        <span class="comment">// while (( )) is arithmetic context
+<a href=#1395 id=1395 data-nosnippet>1395</a>        </span><span class="kw">let </span>code = <span class="string">r#"while (( $i &lt; $max )); do echo $i; done"#</span>;
+<a href=#1396 id=1396 data-nosnippet>1396</a>        <span class="kw">let </span>result = check(code);
+<a href=#1397 id=1397 data-nosnippet>1397</a>        <span class="comment">// Should flag echo $i but NOT the ones inside (( ))
+<a href=#1398 id=1398 data-nosnippet>1398</a>        </span><span class="macro">assert_eq!</span>(
+<a href=#1399 id=1399 data-nosnippet>1399</a>            result.diagnostics.len(),
+<a href=#1400 id=1400 data-nosnippet>1400</a>            <span class="number">1</span>,
+<a href=#1401 id=1401 data-nosnippet>1401</a>            <span class="string">"SC2086 should only flag echo $i, not variables in (( ))"
+<a href=#1402 id=1402 data-nosnippet>1402</a>        </span>);
+<a href=#1403 id=1403 data-nosnippet>1403</a>    }
+<a href=#1404 id=1404 data-nosnippet>1404</a>
+<a href=#1405 id=1405 data-nosnippet>1405</a>    <span class="attr">#[test]
+<a href=#1406 id=1406 data-nosnippet>1406</a>    </span><span class="kw">fn </span>test_FP_107_if_arithmetic_not_flagged() {
+<a href=#1407 id=1407 data-nosnippet>1407</a>        <span class="comment">// if (( )) is arithmetic context
+<a href=#1408 id=1408 data-nosnippet>1408</a>        </span><span class="kw">let </span>code = <span class="string">r#"if (( $x &gt; 0 )); then echo yes; fi"#</span>;
+<a href=#1409 id=1409 data-nosnippet>1409</a>        <span class="kw">let </span>result = check(code);
+<a href=#1410 id=1410 data-nosnippet>1410</a>        <span class="macro">assert_eq!</span>(
+<a href=#1411 id=1411 data-nosnippet>1411</a>            result.diagnostics.len(),
+<a href=#1412 id=1412 data-nosnippet>1412</a>            <span class="number">0</span>,
+<a href=#1413 id=1413 data-nosnippet>1413</a>            <span class="string">"SC2086 must NOT flag variables inside if (( )) condition"
+<a href=#1414 id=1414 data-nosnippet>1414</a>        </span>);
+<a href=#1415 id=1415 data-nosnippet>1415</a>    }
+<a href=#1416 id=1416 data-nosnippet>1416</a>
+<a href=#1417 id=1417 data-nosnippet>1417</a>    <span class="attr">#[test]
+<a href=#1418 id=1418 data-nosnippet>1418</a>    </span><span class="kw">fn </span>test_FP_107_arithmetic_increment_not_flagged() {
+<a href=#1419 id=1419 data-nosnippet>1419</a>        <span class="comment">// (( i++ )) and (( i+=1 )) are arithmetic
+<a href=#1420 id=1420 data-nosnippet>1420</a>        </span><span class="kw">let </span>code = <span class="string">r#"(( $count++ ))"#</span>;
+<a href=#1421 id=1421 data-nosnippet>1421</a>        <span class="kw">let </span>result = check(code);
+<a href=#1422 id=1422 data-nosnippet>1422</a>        <span class="macro">assert_eq!</span>(
+<a href=#1423 id=1423 data-nosnippet>1423</a>            result.diagnostics.len(),
+<a href=#1424 id=1424 data-nosnippet>1424</a>            <span class="number">0</span>,
+<a href=#1425 id=1425 data-nosnippet>1425</a>            <span class="string">"SC2086 must NOT flag variable in arithmetic increment"
+<a href=#1426 id=1426 data-nosnippet>1426</a>        </span>);
+<a href=#1427 id=1427 data-nosnippet>1427</a>    }
+<a href=#1428 id=1428 data-nosnippet>1428</a>
+<a href=#1429 id=1429 data-nosnippet>1429</a>    <span class="comment">// ===== F048: C-style for loop variable in body =====
+<a href=#1430 id=1430 data-nosnippet>1430</a>    // Loop variables from C-style for loops are always numeric
+<a href=#1431 id=1431 data-nosnippet>1431</a>    // SC2086 should not flag them even in the loop body
+<a href=#1432 id=1432 data-nosnippet>1432</a>
+<a href=#1433 id=1433 data-nosnippet>1433</a>    </span><span class="attr">#[test]
+<a href=#1434 id=1434 data-nosnippet>1434</a>    </span><span class="kw">fn </span>test_FP_048_cstyle_for_loop_var_in_body() {
+<a href=#1435 id=1435 data-nosnippet>1435</a>        <span class="comment">// F048: C-style for loop variable used in body
+<a href=#1436 id=1436 data-nosnippet>1436</a>        </span><span class="kw">let </span>code = <span class="string">r#"for ((i=0;i&lt;10;i++)); do echo $i; done"#</span>;
+<a href=#1437 id=1437 data-nosnippet>1437</a>        <span class="kw">let </span>result = check(code);
+<a href=#1438 id=1438 data-nosnippet>1438</a>        <span class="macro">assert_eq!</span>(
+<a href=#1439 id=1439 data-nosnippet>1439</a>            result.diagnostics.len(),
+<a href=#1440 id=1440 data-nosnippet>1440</a>            <span class="number">0</span>,
+<a href=#1441 id=1441 data-nosnippet>1441</a>            <span class="string">"SC2086 must NOT flag C-style for loop variable $i in loop body"
+<a href=#1442 id=1442 data-nosnippet>1442</a>        </span>);
+<a href=#1443 id=1443 data-nosnippet>1443</a>    }
+<a href=#1444 id=1444 data-nosnippet>1444</a>
+<a href=#1445 id=1445 data-nosnippet>1445</a>    <span class="attr">#[test]
+<a href=#1446 id=1446 data-nosnippet>1446</a>    </span><span class="kw">fn </span>test_FP_048_cstyle_for_multiple_uses() {
+<a href=#1447 id=1447 data-nosnippet>1447</a>        <span class="comment">// Multiple uses of loop variable in body
+<a href=#1448 id=1448 data-nosnippet>1448</a>        </span><span class="kw">let </span>code = <span class="string">r#"for ((n=1;n&lt;=5;n++)); do echo $n; printf "%d\n" $n; done"#</span>;
+<a href=#1449 id=1449 data-nosnippet>1449</a>        <span class="kw">let </span>result = check(code);
+<a href=#1450 id=1450 data-nosnippet>1450</a>        <span class="macro">assert_eq!</span>(
+<a href=#1451 id=1451 data-nosnippet>1451</a>            result.diagnostics.len(),
+<a href=#1452 id=1452 data-nosnippet>1452</a>            <span class="number">0</span>,
+<a href=#1453 id=1453 data-nosnippet>1453</a>            <span class="string">"SC2086 must NOT flag any uses of C-style for loop variable"
+<a href=#1454 id=1454 data-nosnippet>1454</a>        </span>);
+<a href=#1455 id=1455 data-nosnippet>1455</a>    }
+<a href=#1456 id=1456 data-nosnippet>1456</a>
+<a href=#1457 id=1457 data-nosnippet>1457</a>    <span class="attr">#[test]
+<a href=#1458 id=1458 data-nosnippet>1458</a>    </span><span class="kw">fn </span>test_FP_048_non_loop_var_still_flagged() {
+<a href=#1459 id=1459 data-nosnippet>1459</a>        <span class="comment">// Other variables should still be flagged
+<a href=#1460 id=1460 data-nosnippet>1460</a>        </span><span class="kw">let </span>code = <span class="string">r#"for ((i=0;i&lt;10;i++)); do echo $other; done"#</span>;
+<a href=#1461 id=1461 data-nosnippet>1461</a>        <span class="kw">let </span>result = check(code);
+<a href=#1462 id=1462 data-nosnippet>1462</a>        <span class="macro">assert_eq!</span>(
+<a href=#1463 id=1463 data-nosnippet>1463</a>            result.diagnostics.len(),
+<a href=#1464 id=1464 data-nosnippet>1464</a>            <span class="number">1</span>,
+<a href=#1465 id=1465 data-nosnippet>1465</a>            <span class="string">"SC2086 SHOULD flag non-loop variable $other"
+<a href=#1466 id=1466 data-nosnippet>1466</a>        </span>);
+<a href=#1467 id=1467 data-nosnippet>1467</a>    }
+<a href=#1468 id=1468 data-nosnippet>1468</a>}</code></pre></div></section></main></body></html>

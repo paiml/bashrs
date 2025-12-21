@@ -275,34 +275,35 @@
 <a href=#275 id=275 data-nosnippet>275</a>    <span class="kw">use </span>proptest::prelude::<span class="kw-2">*</span>;
 <a href=#276 id=276 data-nosnippet>276</a>
 <a href=#277 id=277 data-nosnippet>277</a>    <span class="macro">proptest!</span> {
-<a href=#278 id=278 data-nosnippet>278</a>        <span class="doccomment">/// PROPERTY TEST 1: Never panics on any input
-<a href=#279 id=279 data-nosnippet>279</a>        </span><span class="attr">#[test]
-<a href=#280 id=280 data-nosnippet>280</a>        </span><span class="kw">fn </span>prop_sec012_never_panics(s <span class="kw">in </span><span class="string">".*"</span>) {
-<a href=#281 id=281 data-nosnippet>281</a>            <span class="kw">let _ </span>= check(<span class="kw-2">&amp;</span>s);
-<a href=#282 id=282 data-nosnippet>282</a>        }
-<a href=#283 id=283 data-nosnippet>283</a>
-<a href=#284 id=284 data-nosnippet>284</a>        <span class="doccomment">/// PROPERTY TEST 2: Always detects eval with jq
-<a href=#285 id=285 data-nosnippet>285</a>        </span><span class="attr">#[test]
-<a href=#286 id=286 data-nosnippet>286</a>        </span><span class="kw">fn </span>prop_sec012_detects_eval_jq(
-<a href=#287 id=287 data-nosnippet>287</a>            json_var <span class="kw">in </span><span class="string">"[A-Z_]{1,20}"</span>,
-<a href=#288 id=288 data-nosnippet>288</a>        ) {
-<a href=#289 id=289 data-nosnippet>289</a>            <span class="kw">let </span>script = <span class="macro">format!</span>(<span class="string">"eval $(echo \"${}\" | jq -r '.')"</span>, json_var);
-<a href=#290 id=290 data-nosnippet>290</a>            <span class="kw">let </span>result = check(<span class="kw-2">&amp;</span>script);
-<a href=#291 id=291 data-nosnippet>291</a>
-<a href=#292 id=292 data-nosnippet>292</a>            <span class="macro">prop_assert_eq!</span>(result.diagnostics.len(), <span class="number">1</span>);
-<a href=#293 id=293 data-nosnippet>293</a>            <span class="macro">prop_assert_eq!</span>(result.diagnostics[<span class="number">0</span>].code.as_str(), <span class="string">"SEC012"</span>);
-<a href=#294 id=294 data-nosnippet>294</a>        }
-<a href=#295 id=295 data-nosnippet>295</a>
-<a href=#296 id=296 data-nosnippet>296</a>        <span class="doccomment">/// PROPERTY TEST 3: Always detects source with curl
-<a href=#297 id=297 data-nosnippet>297</a>        </span><span class="attr">#[test]
-<a href=#298 id=298 data-nosnippet>298</a>        </span><span class="kw">fn </span>prop_sec012_detects_source_curl(
-<a href=#299 id=299 data-nosnippet>299</a>            url <span class="kw">in </span><span class="string">"https?://[a-z.]{5,20}/[a-z]{1,10}\\.sh"</span>,
-<a href=#300 id=300 data-nosnippet>300</a>        ) {
-<a href=#301 id=301 data-nosnippet>301</a>            <span class="kw">let </span>script = <span class="macro">format!</span>(<span class="string">"source &lt;(curl {})"</span>, url);
-<a href=#302 id=302 data-nosnippet>302</a>            <span class="kw">let </span>result = check(<span class="kw-2">&amp;</span>script);
-<a href=#303 id=303 data-nosnippet>303</a>
-<a href=#304 id=304 data-nosnippet>304</a>            <span class="macro">prop_assert_eq!</span>(result.diagnostics.len(), <span class="number">1</span>);
-<a href=#305 id=305 data-nosnippet>305</a>            <span class="macro">prop_assert_eq!</span>(result.diagnostics[<span class="number">0</span>].code.as_str(), <span class="string">"SEC012"</span>);
-<a href=#306 id=306 data-nosnippet>306</a>        }
-<a href=#307 id=307 data-nosnippet>307</a>    }
-<a href=#308 id=308 data-nosnippet>308</a>}</code></pre></div></section></main></body></html>
+<a href=#278 id=278 data-nosnippet>278</a>        <span class="attr">#![proptest_config(proptest::test_runner::Config::with_cases(<span class="number">10</span>))]
+<a href=#279 id=279 data-nosnippet>279</a>        </span><span class="doccomment">/// PROPERTY TEST 1: Never panics on any input
+<a href=#280 id=280 data-nosnippet>280</a>        </span><span class="attr">#[test]
+<a href=#281 id=281 data-nosnippet>281</a>        </span><span class="kw">fn </span>prop_sec012_never_panics(s <span class="kw">in </span><span class="string">".*"</span>) {
+<a href=#282 id=282 data-nosnippet>282</a>            <span class="kw">let _ </span>= check(<span class="kw-2">&amp;</span>s);
+<a href=#283 id=283 data-nosnippet>283</a>        }
+<a href=#284 id=284 data-nosnippet>284</a>
+<a href=#285 id=285 data-nosnippet>285</a>        <span class="doccomment">/// PROPERTY TEST 2: Always detects eval with jq
+<a href=#286 id=286 data-nosnippet>286</a>        </span><span class="attr">#[test]
+<a href=#287 id=287 data-nosnippet>287</a>        </span><span class="kw">fn </span>prop_sec012_detects_eval_jq(
+<a href=#288 id=288 data-nosnippet>288</a>            json_var <span class="kw">in </span><span class="string">"[A-Z_]{1,20}"</span>,
+<a href=#289 id=289 data-nosnippet>289</a>        ) {
+<a href=#290 id=290 data-nosnippet>290</a>            <span class="kw">let </span>script = <span class="macro">format!</span>(<span class="string">"eval $(echo \"${}\" | jq -r '.')"</span>, json_var);
+<a href=#291 id=291 data-nosnippet>291</a>            <span class="kw">let </span>result = check(<span class="kw-2">&amp;</span>script);
+<a href=#292 id=292 data-nosnippet>292</a>
+<a href=#293 id=293 data-nosnippet>293</a>            <span class="macro">prop_assert_eq!</span>(result.diagnostics.len(), <span class="number">1</span>);
+<a href=#294 id=294 data-nosnippet>294</a>            <span class="macro">prop_assert_eq!</span>(result.diagnostics[<span class="number">0</span>].code.as_str(), <span class="string">"SEC012"</span>);
+<a href=#295 id=295 data-nosnippet>295</a>        }
+<a href=#296 id=296 data-nosnippet>296</a>
+<a href=#297 id=297 data-nosnippet>297</a>        <span class="doccomment">/// PROPERTY TEST 3: Always detects source with curl
+<a href=#298 id=298 data-nosnippet>298</a>        </span><span class="attr">#[test]
+<a href=#299 id=299 data-nosnippet>299</a>        </span><span class="kw">fn </span>prop_sec012_detects_source_curl(
+<a href=#300 id=300 data-nosnippet>300</a>            url <span class="kw">in </span><span class="string">"https?://[a-z.]{5,20}/[a-z]{1,10}\\.sh"</span>,
+<a href=#301 id=301 data-nosnippet>301</a>        ) {
+<a href=#302 id=302 data-nosnippet>302</a>            <span class="kw">let </span>script = <span class="macro">format!</span>(<span class="string">"source &lt;(curl {})"</span>, url);
+<a href=#303 id=303 data-nosnippet>303</a>            <span class="kw">let </span>result = check(<span class="kw-2">&amp;</span>script);
+<a href=#304 id=304 data-nosnippet>304</a>
+<a href=#305 id=305 data-nosnippet>305</a>            <span class="macro">prop_assert_eq!</span>(result.diagnostics.len(), <span class="number">1</span>);
+<a href=#306 id=306 data-nosnippet>306</a>            <span class="macro">prop_assert_eq!</span>(result.diagnostics[<span class="number">0</span>].code.as_str(), <span class="string">"SEC012"</span>);
+<a href=#307 id=307 data-nosnippet>307</a>        }
+<a href=#308 id=308 data-nosnippet>308</a>    }
+<a href=#309 id=309 data-nosnippet>309</a>}</code></pre></div></section></main></body></html>

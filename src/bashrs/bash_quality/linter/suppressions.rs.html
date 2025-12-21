@@ -175,26 +175,27 @@
 <a href=#175 id=175 data-nosnippet>175</a>        <span class="kw">use super</span>::<span class="kw-2">*</span>;
 <a href=#176 id=176 data-nosnippet>176</a>        <span class="kw">use </span>proptest::prelude::<span class="kw-2">*</span>;
 <a href=#177 id=177 data-nosnippet>177</a>        <span class="macro">proptest!</span> {
-<a href=#178 id=178 data-nosnippet>178</a>            <span class="attr">#[test] </span><span class="kw">fn </span>prop_known_vars_always_suppressed(var_name <span class="kw">in </span><span class="string">"[A-Z_]{3,20}"</span>) {
-<a href=#179 id=179 data-nosnippet>179</a>            <span class="kw">let </span>context = LintContext::default(); <span class="kw">let </span>vars = known_external_vars(); <span class="kw">if
-<a href=#180 id=180 data-nosnippet>180</a>            </span>vars.contains(&amp; var_name) { <span class="macro">prop_assert!</span>(should_suppress_sc2154(&amp; var_name, &amp;
-<a href=#181 id=181 data-nosnippet>181</a>            context)); } } <span class="attr">#[test] </span><span class="kw">fn </span>prop_test_functions_suppress_all_vars(var_name <span class="kw">in
-<a href=#182 id=182 data-nosnippet>182</a>            </span><span class="string">"[a-z_]{3,20}"</span>, func_name <span class="kw">in </span><span class="string">"test_[a-z_]{3,20}"</span>) { <span class="kw">let </span>context = LintContext
-<a href=#183 id=183 data-nosnippet>183</a>            { current_function : <span class="prelude-val">Some</span>(func_name), ..Default::default() };
-<a href=#184 id=184 data-nosnippet>184</a>            <span class="macro">prop_assert!</span>(should_suppress_sc2154(&amp; var_name, &amp; context)); } <span class="attr">#[test] </span><span class="kw">fn
-<a href=#185 id=185 data-nosnippet>185</a>            </span>prop_uppercase_vars_always_suppressed(var_name <span class="kw">in </span><span class="string">"[A-Z][A-Z_]{0,29}"</span>) { <span class="kw">let
-<a href=#186 id=186 data-nosnippet>186</a>            </span>context = LintContext::default(); <span class="macro">prop_assert!</span>(should_suppress_sc2154(&amp;
-<a href=#187 id=187 data-nosnippet>187</a>            var_name, &amp; context)); } <span class="attr">#[test] </span><span class="kw">fn
-<a href=#188 id=188 data-nosnippet>188</a>            </span>prop_lowercase_vars_not_suppressed_by_default(var_name <span class="kw">in </span><span class="string">"[a-z_]{3,20}"</span>) {
-<a href=#189 id=189 data-nosnippet>189</a>            <span class="kw">let </span>context = LintContext::default(); <span class="kw">if </span>! known_external_vars().contains(&amp;
-<a href=#190 id=190 data-nosnippet>190</a>            var_name.to_uppercase()) { <span class="macro">prop_assert!</span>(! should_suppress_sc2154(&amp; var_name,
-<a href=#191 id=191 data-nosnippet>191</a>            &amp; context)); } } <span class="attr">#[test] </span><span class="kw">fn </span>prop_file_type_detection_consistent(filename <span class="kw">in
-<a href=#192 id=192 data-nosnippet>192</a>            </span><span class="string">"[a-z]{1,10}\\.(sh|bash|zsh)"</span>) { <span class="kw">let </span>path = Path::new(&amp; filename); <span class="kw">let
-<a href=#193 id=193 data-nosnippet>193</a>            </span>file_type = FileType::from_path(path); <span class="kw">if </span>filename.ends_with(<span class="string">".sh"</span>) {
-<a href=#194 id=194 data-nosnippet>194</a>            <span class="macro">prop_assert_eq!</span>(file_type, FileType::Script); } } <span class="attr">#[test] </span><span class="kw">fn
-<a href=#195 id=195 data-nosnippet>195</a>            </span>prop_config_files_detected(suffix <span class="kw">in </span><span class="string">"rc|profile"</span>) { <span class="kw">let </span>filename =
-<a href=#196 id=196 data-nosnippet>196</a>            <span class="macro">format!</span>(<span class="string">".{}"</span>, suffix); <span class="kw">let </span>path = Path::new(&amp; filename); <span class="kw">let </span>file_type =
-<a href=#197 id=197 data-nosnippet>197</a>            FileType::from_path(path); <span class="macro">prop_assert_eq!</span>(file_type, FileType::Config); }
-<a href=#198 id=198 data-nosnippet>198</a>        }
-<a href=#199 id=199 data-nosnippet>199</a>    }
-<a href=#200 id=200 data-nosnippet>200</a>}</code></pre></div></section></main></body></html>
+<a href=#178 id=178 data-nosnippet>178</a>        <span class="attr">#![proptest_config(proptest::test_runner::Config::with_cases(<span class="number">10</span>))]
+<a href=#179 id=179 data-nosnippet>179</a>            #[test] </span><span class="kw">fn </span>prop_known_vars_always_suppressed(var_name <span class="kw">in </span><span class="string">"[A-Z_]{3,20}"</span>) {
+<a href=#180 id=180 data-nosnippet>180</a>            <span class="kw">let </span>context = LintContext::default(); <span class="kw">let </span>vars = known_external_vars(); <span class="kw">if
+<a href=#181 id=181 data-nosnippet>181</a>            </span>vars.contains(&amp; var_name) { <span class="macro">prop_assert!</span>(should_suppress_sc2154(&amp; var_name, &amp;
+<a href=#182 id=182 data-nosnippet>182</a>            context)); } } <span class="attr">#[test] </span><span class="kw">fn </span>prop_test_functions_suppress_all_vars(var_name <span class="kw">in
+<a href=#183 id=183 data-nosnippet>183</a>            </span><span class="string">"[a-z_]{3,20}"</span>, func_name <span class="kw">in </span><span class="string">"test_[a-z_]{3,20}"</span>) { <span class="kw">let </span>context = LintContext
+<a href=#184 id=184 data-nosnippet>184</a>            { current_function : <span class="prelude-val">Some</span>(func_name), ..Default::default() };
+<a href=#185 id=185 data-nosnippet>185</a>            <span class="macro">prop_assert!</span>(should_suppress_sc2154(&amp; var_name, &amp; context)); } <span class="attr">#[test] </span><span class="kw">fn
+<a href=#186 id=186 data-nosnippet>186</a>            </span>prop_uppercase_vars_always_suppressed(var_name <span class="kw">in </span><span class="string">"[A-Z][A-Z_]{0,29}"</span>) { <span class="kw">let
+<a href=#187 id=187 data-nosnippet>187</a>            </span>context = LintContext::default(); <span class="macro">prop_assert!</span>(should_suppress_sc2154(&amp;
+<a href=#188 id=188 data-nosnippet>188</a>            var_name, &amp; context)); } <span class="attr">#[test] </span><span class="kw">fn
+<a href=#189 id=189 data-nosnippet>189</a>            </span>prop_lowercase_vars_not_suppressed_by_default(var_name <span class="kw">in </span><span class="string">"[a-z_]{3,20}"</span>) {
+<a href=#190 id=190 data-nosnippet>190</a>            <span class="kw">let </span>context = LintContext::default(); <span class="kw">if </span>! known_external_vars().contains(&amp;
+<a href=#191 id=191 data-nosnippet>191</a>            var_name.to_uppercase()) { <span class="macro">prop_assert!</span>(! should_suppress_sc2154(&amp; var_name,
+<a href=#192 id=192 data-nosnippet>192</a>            &amp; context)); } } <span class="attr">#[test] </span><span class="kw">fn </span>prop_file_type_detection_consistent(filename <span class="kw">in
+<a href=#193 id=193 data-nosnippet>193</a>            </span><span class="string">"[a-z]{1,10}\\.(sh|bash|zsh)"</span>) { <span class="kw">let </span>path = Path::new(&amp; filename); <span class="kw">let
+<a href=#194 id=194 data-nosnippet>194</a>            </span>file_type = FileType::from_path(path); <span class="kw">if </span>filename.ends_with(<span class="string">".sh"</span>) {
+<a href=#195 id=195 data-nosnippet>195</a>            <span class="macro">prop_assert_eq!</span>(file_type, FileType::Script); } } <span class="attr">#[test] </span><span class="kw">fn
+<a href=#196 id=196 data-nosnippet>196</a>            </span>prop_config_files_detected(suffix <span class="kw">in </span><span class="string">"rc|profile"</span>) { <span class="kw">let </span>filename =
+<a href=#197 id=197 data-nosnippet>197</a>            <span class="macro">format!</span>(<span class="string">".{}"</span>, suffix); <span class="kw">let </span>path = Path::new(&amp; filename); <span class="kw">let </span>file_type =
+<a href=#198 id=198 data-nosnippet>198</a>            FileType::from_path(path); <span class="macro">prop_assert_eq!</span>(file_type, FileType::Config); }
+<a href=#199 id=199 data-nosnippet>199</a>        }
+<a href=#200 id=200 data-nosnippet>200</a>    }
+<a href=#201 id=201 data-nosnippet>201</a>}</code></pre></div></section></main></body></html>
