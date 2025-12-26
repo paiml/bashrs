@@ -46,6 +46,14 @@
 - [Makefile Best Practices](./makefile/best-practices.md)
 - [Makefile Testing](./makefile/testing.md)
 
+## TDD-First Installer Framework
+
+- [Installer Overview](./installer/overview.md)
+- [Getting Started](./installer/getting-started.md)
+- [Step Types](./installer/step-types.md)
+- [Checkpointing](./installer/checkpointing.md)
+- [Container Testing](./installer/testing.md)
+
 ## Examples
 
 - [Bootstrap Installer](./examples/bootstrap-installer.md)
