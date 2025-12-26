@@ -532,6 +532,12 @@ pub enum Commands {
         #[arg(long)]
         trace: bool,
     },
+
+    /// TDD-first installer framework (NEW in v7.0 - Issue #104)
+    Installer {
+        #[command(subcommand)]
+        command: InstallerCommands,
+    },
 }
 
 /// Output format for playbook command
@@ -918,6 +924,194 @@ pub enum ConfigCommands {
         #[arg(long)]
         dry_run: bool,
     },
+}
+
+/// Installer subcommands (NEW in v7.0 - Issue #104)
+#[derive(Subcommand)]
+pub enum InstallerCommands {
+    /// Initialize new installer project with TDD-first test harness
+    Init {
+        /// Project name/directory
+        #[arg(value_name = "NAME")]
+        name: PathBuf,
+
+        /// Project description
+        #[arg(long)]
+        description: Option<String>,
+    },
+
+    /// Convert bash script to installer.toml format
+    FromBash {
+        /// Input bash script
+        #[arg(value_name = "FILE")]
+        input: PathBuf,
+
+        /// Output directory
+        #[arg(short, long)]
+        output: Option<PathBuf>,
+    },
+
+    /// Run installer (with optional resume, dry-run, etc.)
+    Run {
+        /// Installer directory or installer.toml path
+        #[arg(value_name = "PATH")]
+        path: PathBuf,
+
+        /// Checkpoint directory for resuming
+        #[arg(long)]
+        checkpoint_dir: Option<PathBuf>,
+
+        /// Dry-run without making changes
+        #[arg(long)]
+        dry_run: bool,
+
+        /// Show unified diff of changes
+        #[arg(long)]
+        diff: bool,
+
+        /// Enable hermetic mode (reproducible builds)
+        #[arg(long)]
+        hermetic: bool,
+
+        /// Verify artifact signatures
+        #[arg(long)]
+        verify_signatures: bool,
+
+        /// Enable parallel execution
+        #[arg(long)]
+        parallel: bool,
+    },
+
+    /// Resume installer from checkpoint
+    Resume {
+        /// Installer directory
+        #[arg(value_name = "PATH")]
+        path: PathBuf,
+
+        /// Step to resume from
+        #[arg(long)]
+        from: Option<String>,
+    },
+
+    /// Validate installer without executing
+    Validate {
+        /// Installer directory or installer.toml path
+        #[arg(value_name = "PATH")]
+        path: PathBuf,
+    },
+
+    /// Run installer test suite
+    Test {
+        /// Installer directory
+        #[arg(value_name = "PATH")]
+        path: PathBuf,
+
+        /// Test matrix (platforms to test, comma-separated)
+        #[arg(long)]
+        matrix: Option<String>,
+
+        /// Enable coverage reporting
+        #[arg(long)]
+        coverage: bool,
+    },
+
+    /// Generate lockfile for hermetic builds
+    Lock {
+        /// Installer directory
+        #[arg(value_name = "PATH")]
+        path: PathBuf,
+
+        /// Update existing lockfile
+        #[arg(long)]
+        update: bool,
+
+        /// Verify lockfile matches current state
+        #[arg(long)]
+        verify: bool,
+    },
+
+    /// Visualize installer build graph
+    Graph {
+        /// Installer directory
+        #[arg(value_name = "PATH")]
+        path: PathBuf,
+
+        /// Output format (mermaid, dot, json)
+        #[arg(long, value_enum, default_value = "mermaid")]
+        format: InstallerGraphFormat,
+    },
+
+    /// Capture golden trace baseline
+    GoldenCapture {
+        /// Installer directory
+        #[arg(value_name = "PATH")]
+        path: PathBuf,
+
+        /// Trace name
+        #[arg(long)]
+        trace: String,
+    },
+
+    /// Compare execution against golden trace
+    GoldenCompare {
+        /// Installer directory
+        #[arg(value_name = "PATH")]
+        path: PathBuf,
+
+        /// Trace name to compare against
+        #[arg(long)]
+        trace: String,
+    },
+
+    /// Initialize or manage keyring for artifact verification
+    Keyring {
+        #[command(subcommand)]
+        command: KeyringCommands,
+    },
+}
+
+/// Keyring management subcommands
+#[derive(Subcommand)]
+pub enum KeyringCommands {
+    /// Initialize a new keyring
+    Init {
+        /// Import keys from files
+        #[arg(long, action = clap::ArgAction::Append)]
+        import: Vec<PathBuf>,
+    },
+
+    /// Add a key to the keyring
+    Add {
+        /// Key file to add
+        #[arg(value_name = "FILE")]
+        key: PathBuf,
+
+        /// Key ID
+        #[arg(long)]
+        id: String,
+    },
+
+    /// List keys in the keyring
+    List,
+
+    /// Remove a key from the keyring
+    Remove {
+        /// Key ID to remove
+        #[arg(value_name = "ID")]
+        id: String,
+    },
+}
+
+/// Output format for installer graph command
+#[derive(Clone, Debug, Default, ValueEnum)]
+pub enum InstallerGraphFormat {
+    /// Mermaid diagram
+    #[default]
+    Mermaid,
+    /// Graphviz DOT format
+    Dot,
+    /// JSON format
+    Json,
 }
 
 /// Output format for config commands

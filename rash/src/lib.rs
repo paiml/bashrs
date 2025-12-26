@@ -91,6 +91,9 @@ pub mod formal;
 pub mod formatter;
 /// Quality gate configuration and enforcement
 pub mod gates;
+/// TDD-first installer framework
+#[cfg(not(target_arch = "wasm32"))]
+pub mod installer;
 /// Intermediate representation for transpilation
 pub mod ir;
 /// Shell script linting with ShellCheck-equivalent rules
