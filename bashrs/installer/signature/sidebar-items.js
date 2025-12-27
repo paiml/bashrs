@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":["TrustDecision","VerificationResult"],"fn":["compute_sha256","create_test_signature","current_timestamp","hex_decode","hex_encode","verify_sha256","verify_signature"],"struct":["ArtifactSpec","Keyring","KeyringData","TrustedKey"],"type":["PublicKey","Sha256Hash","Signature"]};

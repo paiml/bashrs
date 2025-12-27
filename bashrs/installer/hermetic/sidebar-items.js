@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"constant":["LOCKFILE_VERSION"],"fn":["current_timestamp","parse_toml_line"],"struct":["HermeticContext","LockedArtifact","Lockfile","LockfileEnvironment"]};
