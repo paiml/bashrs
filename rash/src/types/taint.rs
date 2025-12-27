@@ -163,6 +163,7 @@ impl Default for TypeChecker {
 
 #[cfg(test)]
 mod tests {
+    #![allow(clippy::expect_used)]
     use super::*;
 
     #[test]
@@ -314,6 +315,7 @@ mod tests {
 /// Property-based tests for taint tracking
 #[cfg(test)]
 mod property_tests {
+    #![allow(clippy::expect_used)]
     use super::*;
     use proptest::prelude::*;
 

@@ -328,6 +328,7 @@ impl Default for Transpiler {
 
 #[cfg(test)]
 mod tests {
+    #![allow(clippy::panic)]
     use super::*;
     use tempfile::TempDir;
 

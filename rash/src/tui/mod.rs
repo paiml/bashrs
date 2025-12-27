@@ -83,6 +83,7 @@ pub fn run() -> anyhow::Result<()> {
 #[cfg(test)]
 #[cfg(feature = "tui")]
 mod tests {
+    #![allow(clippy::assertions_on_constants)]
     #[test]
     fn test_tui_module_compiles() {
         // Verify module structure compiles

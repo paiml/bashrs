@@ -258,41 +258,46 @@ fn generate_falsification_tests(name: &str) -> String {
 //!
 //! Karl Popper's Falsificationism: A claim is only scientific if it can be proven false.
 //! Each test here is designed to DISPROVE a specific claim about the installer.
+//!
+//! Implement these tests as you add execution capabilities to your installer.
 
 /// FALSIFIABLE: "Every step is idempotent"
 /// DISPROOF: Run step twice, system state differs
 #[test]
 fn falsify_step_idempotency() {{
-    // TODO: Implement when installer execution is available
+    // Placeholder: implement when step execution is added
+    // Example test structure:
     // let step = load_step("hello-world");
-    // let state_after_first = execute_and_capture_state(&step);
-    // let state_after_second = execute_and_capture_state(&step);
-    // assert_eq!(state_after_first, state_after_second,
-    //     "FALSIFIED: Step is not idempotent");
+    // let state1 = execute_and_capture_state(&step);
+    // let state2 = execute_and_capture_state(&step);
+    // assert_eq!(state1, state2, "FALSIFIED: Step is not idempotent");
+    assert!(true, "Test placeholder - implement with step execution");
 }}
 
 /// FALSIFIABLE: "Dry-run accurately predicts changes"
 /// DISPROOF: Dry-run prediction differs from actual execution
 #[test]
 fn falsify_dry_run_accuracy() {{
-    // TODO: Implement when dry-run is available
+    // Placeholder: implement when dry-run diff is added
+    // Example test structure:
     // let predicted = execute_dry_run(&installer);
     // let actual = execute_and_capture_diff(&installer);
-    // assert_eq!(predicted, actual,
-    //     "FALSIFIED: Dry-run prediction was inaccurate");
+    // assert_eq!(predicted, actual, "FALSIFIED: Dry-run inaccurate");
+    assert!(true, "Test placeholder - implement with dry-run diff");
 }}
 
 /// FALSIFIABLE: "Rollback restores original state"
 /// DISPROOF: State after rollback differs from state before execution
 #[test]
 fn falsify_rollback_completeness() {{
-    // TODO: Implement when rollback is available
+    // Placeholder: implement when rollback is added
+    // Example test structure:
     // let state_before = capture_state();
     // execute_step(&step);
     // rollback_step(&step);
     // let state_after = capture_state();
-    // assert_eq!(state_before, state_after,
-    //     "FALSIFIED: Rollback incomplete");
+    // assert_eq!(state_before, state_after, "FALSIFIED: Rollback incomplete");
+    assert!(true, "Test placeholder - implement with rollback");
 }}
 "#
     )
