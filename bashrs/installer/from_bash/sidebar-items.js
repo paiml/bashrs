@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":["BashPattern"],"fn":["convert_bash_to_installer","convert_file_to_project","extract_patterns","generate_installer_toml","generate_warnings","parse_apt_install","parse_download","parse_heredoc","parse_mkdir_p","parse_sudo"],"struct":["ConversionResult","ConversionStats","TemplateFile"]};
