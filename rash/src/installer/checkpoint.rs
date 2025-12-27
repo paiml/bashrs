@@ -38,7 +38,8 @@ impl RunStatus {
         }
     }
 
-    pub fn from_str(s: &str) -> Option<Self> {
+    /// Parse from string
+    pub fn parse(s: &str) -> Option<Self> {
         match s {
             "running" => Some(Self::Running),
             "completed" => Some(Self::Completed),
@@ -70,7 +71,8 @@ impl StepStatus {
         }
     }
 
-    pub fn from_str(s: &str) -> Option<Self> {
+    /// Parse from string
+    pub fn parse(s: &str) -> Option<Self> {
         match s {
             "pending" => Some(Self::Pending),
             "running" => Some(Self::Running),
@@ -540,7 +542,7 @@ impl<'de> serde::Deserialize<'de> for InstallerRun {
         }
 
         let helper = RunHelper::deserialize(deserializer)?;
-        let status = RunStatus::from_str(&helper.status)
+        let status = RunStatus::parse(&helper.status)
             .ok_or_else(|| serde::de::Error::custom("Invalid status"))?;
 
         Ok(InstallerRun {
@@ -595,7 +597,7 @@ impl<'de> serde::Deserialize<'de> for StepCheckpoint {
         }
 
         let helper = StepHelper::deserialize(deserializer)?;
-        let status = StepStatus::from_str(&helper.status)
+        let status = StepStatus::parse(&helper.status)
             .ok_or_else(|| serde::de::Error::custom("Invalid status"))?;
 
         Ok(StepCheckpoint {
@@ -828,7 +830,7 @@ mod tests {
     fn test_CHECKPOINT_106_run_status_roundtrip() {
         for status in [RunStatus::Running, RunStatus::Completed, RunStatus::Failed, RunStatus::Aborted] {
             let s = status.as_str();
-            assert_eq!(RunStatus::from_str(s), Some(status));
+            assert_eq!(RunStatus::parse(s), Some(status));
         }
     }
 
@@ -842,7 +844,7 @@ mod tests {
             StepStatus::Skipped,
         ] {
             let s = status.as_str();
-            assert_eq!(StepStatus::from_str(s), Some(status));
+            assert_eq!(StepStatus::parse(s), Some(status));
         }
     }
 }
