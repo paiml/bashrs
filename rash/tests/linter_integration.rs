@@ -57,12 +57,13 @@ fn test_file_level_suppression() {
 # bashrs disable-file=SC2086,DET002
 timestamp=$(date +%s)
 echo $var
-result=`echo test`
+echo `echo test`
     "#;
 
     let result = lint_shell(script);
 
     // SC2086 and DET002 should be suppressed, but SC2006 (backticks) should still trigger
+    // Note: SC2006 only triggers in non-assignment context (F080 design)
     assert!(
         !result.diagnostics.iter().any(|d| d.code == "SC2086"),
         "SC2086 should be suppressed"
@@ -180,8 +181,8 @@ echo $var
 # SC2002: Useless cat
 cat file | grep pattern
 
-# SC2006: Backticks
-result=`date`
+# SC2006: Backticks (non-assignment context, F080 allows assignments)
+echo `date`
 
 # SC2046: Unquoted command substitution
 for file in $(ls *.txt); do
