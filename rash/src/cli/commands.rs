@@ -3618,7 +3618,9 @@ fn handle_keyring_command(command: KeyringCommands) -> Result<()> {
     }
 }
 
-fn installer_from_bash_command(input: &Path, _output: Option<&Path>) -> Result<()> {
+fn installer_from_bash_command(input: &Path, output: Option<&Path>) -> Result<()> {
+    use crate::installer;
+
     // Validate file exists
     if !input.exists() {
         return Err(Error::Io(std::io::Error::new(
@@ -3627,9 +3629,55 @@ fn installer_from_bash_command(input: &Path, _output: Option<&Path>) -> Result<(
         )));
     }
 
-    Err(Error::Validation(
-        "from-bash conversion not yet implemented - use 'bashrs installer init' instead".to_string(),
-    ))
+    // Determine output directory
+    let output_dir = match output {
+        Some(path) => path.to_path_buf(),
+        None => {
+            // Default: same name as input file without extension, or "converted-installer"
+            let stem = input.file_stem()
+                .and_then(|s| s.to_str())
+                .unwrap_or("converted-installer");
+            std::path::PathBuf::from(format!("{}-installer", stem))
+        }
+    };
+
+    println!("Converting bash script to installer format...");
+    println!("  Input: {}", input.display());
+    println!("  Output: {}", output_dir.display());
+
+    let result = installer::convert_file_to_project(input, &output_dir)?;
+
+    println!();
+    println!("Conversion complete!");
+    println!("  Steps generated: {}", result.stats.steps_generated);
+    println!("  Apt installs: {}", result.stats.apt_installs);
+    println!("  Heredocs converted: {}", result.stats.heredocs_converted);
+    println!("  Sudo patterns: {}", result.stats.sudo_patterns);
+    println!("  Conditionals converted: {}", result.stats.conditionals_converted);
+
+    if !result.templates.is_empty() {
+        println!();
+        println!("Templates extracted:");
+        for template in &result.templates {
+            println!("  - templates/{}", template.name);
+        }
+    }
+
+    if !result.warnings.is_empty() {
+        println!();
+        println!("Warnings (review manually):");
+        for warning in &result.warnings {
+            println!("  ⚠ {}", warning);
+        }
+    }
+
+    println!();
+    println!("Next steps:");
+    println!("  1. Review: {}/installer.toml", output_dir.display());
+    println!("  2. Validate: bashrs installer validate {}", output_dir.display());
+    println!("  3. Test: bashrs installer run {} --dry-run", output_dir.display());
+
+    Ok(())
 }
 
 #[allow(clippy::fn_params_excessive_bools)]

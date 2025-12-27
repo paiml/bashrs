@@ -25,12 +25,14 @@
 //! bashrs installer run ./my-installer --dry-run --diff
 //! ```
 
+mod from_bash;
 mod plan;
 mod spec;
 
 #[cfg(test)]
 mod tests;
 
+pub use from_bash::{convert_bash_to_installer, convert_file_to_project, ConversionResult, ConversionStats};
 pub use plan::InstallerPlan;
 pub use spec::{
     Action, Artifact, Environment, InstallerSpec, InstallerSecurity, Postcondition, Precondition,

@@ -364,3 +364,73 @@ fn test_INSTALLER_CLI_008_init_help() {
         .success()
         .stdout(predicate::str::contains("TDD-first test harness"));
 }
+
+// =============================================================================
+// INSTALLER_CLI_009: From-bash command tests (#115)
+// =============================================================================
+
+#[test]
+fn test_INSTALLER_CLI_009_from_bash_converts_script() {
+    let temp_dir = TempDir::new().unwrap();
+    let script_path = temp_dir.path().join("install.sh");
+    let output_path = temp_dir.path().join("my-installer");
+
+    // Write a test bash script
+    fs::write(&script_path, r#"#!/bin/bash
+apt-get update
+apt-get install -y docker-ce nginx
+mkdir -p /opt/myapp
+"#).unwrap();
+
+    bashrs_cmd()
+        .arg("installer")
+        .arg("from-bash")
+        .arg(&script_path)
+        .arg("--output")
+        .arg(&output_path)
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("Conversion complete"))
+        .stdout(predicate::str::contains("Steps generated"));
+
+    // Verify output structure
+    assert!(output_path.join("installer.toml").exists());
+    assert!(output_path.join("templates").exists());
+
+    // Verify installer.toml content
+    let content = fs::read_to_string(output_path.join("installer.toml")).unwrap();
+    assert!(content.contains("[installer]"));
+    assert!(content.contains("[[step]]"));
+}
+
+#[test]
+fn test_INSTALLER_CLI_009_from_bash_missing_file() {
+    let temp_dir = TempDir::new().unwrap();
+    let nonexistent = temp_dir.path().join("nonexistent.sh");
+
+    bashrs_cmd()
+        .arg("installer")
+        .arg("from-bash")
+        .arg(&nonexistent)
+        .assert()
+        .failure();
+}
+
+#[test]
+fn test_INSTALLER_CLI_009_from_bash_default_output() {
+    let temp_dir = TempDir::new().unwrap();
+    let script_path = temp_dir.path().join("docker-setup.sh");
+
+    // Write a minimal test script
+    fs::write(&script_path, "apt-get update").unwrap();
+
+    // Run from the temp directory so output goes there
+    bashrs_cmd()
+        .current_dir(temp_dir.path())
+        .arg("installer")
+        .arg("from-bash")
+        .arg(&script_path)
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("docker-setup-installer"));
+}
