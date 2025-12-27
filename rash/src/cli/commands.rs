@@ -3725,21 +3725,74 @@ fn installer_run_command(
 }
 
 fn installer_resume_command(path: &Path, from: Option<&str>) -> Result<()> {
-    use crate::installer;
+    use crate::installer::{self, CheckpointStore};
 
     // Validate installer exists
-    let _ = installer::validate_installer(path)?;
+    let validation = installer::validate_installer(path)?;
 
-    let msg = if let Some(step) = from {
-        format!(
-            "checkpoint resume from step '{}' not yet implemented - no checkpoint found",
-            step
-        )
+    // Check for checkpoint directory
+    let checkpoint_dir = path.join(".checkpoint");
+
+    if !checkpoint_dir.exists() {
+        return Err(Error::Validation(format!(
+            "No checkpoint found at {} - run 'bashrs installer run {}' first",
+            checkpoint_dir.display(),
+            path.display()
+        )));
+    }
+
+    // Load checkpoint
+    let store = CheckpointStore::load(&checkpoint_dir)?;
+
+    println!("Resume installer: {}", path.display());
+    println!();
+
+    // Show checkpoint status
+    if let Some(run_id) = store.current_run_id() {
+        println!("Checkpoint found: {}", run_id);
+        println!("  Hermetic mode: {}", if store.is_hermetic() { "yes" } else { "no" });
+
+        let steps = store.steps();
+        let completed = steps.iter().filter(|s| s.status == installer::StepStatus::Completed).count();
+        let failed = steps.iter().filter(|s| s.status == installer::StepStatus::Failed).count();
+        let pending = steps.iter().filter(|s| s.status == installer::StepStatus::Pending).count();
+
+        println!("  Steps: {} total, {} completed, {} failed, {} pending",
+            steps.len(), completed, failed, pending);
+
+        if let Some(last) = store.last_successful_step() {
+            println!("  Last successful: {}", last.step_id);
+        }
+
+        // Determine resume point
+        let resume_from = match from {
+            Some(step_id) => {
+                if store.get_step(step_id).is_none() {
+                    return Err(Error::Validation(format!(
+                        "Step '{}' not found in checkpoint",
+                        step_id
+                    )));
+                }
+                step_id.to_string()
+            }
+            None => {
+                store.last_successful_step()
+                    .map(|s| s.step_id.clone())
+                    .ok_or_else(|| Error::Validation("No successful steps to resume from".to_string()))?
+            }
+        };
+
+        println!();
+        println!("Would resume from step: {}", resume_from);
+        println!();
+        println!("Note: Full execution not yet implemented.");
+        println!("  Steps in spec: {}", validation.steps);
+        println!("  Run with --dry-run to validate: bashrs installer run {} --dry-run", path.display());
     } else {
-        "checkpoint resume not yet implemented - no checkpoint found".to_string()
-    };
+        return Err(Error::Validation("Checkpoint exists but has no active run".to_string()));
+    }
 
-    Err(Error::Validation(msg))
+    Ok(())
 }
 
 fn installer_test_command(path: &Path, matrix: Option<&str>, coverage: bool) -> Result<()> {

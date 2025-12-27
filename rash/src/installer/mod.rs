@@ -25,6 +25,7 @@
 //! bashrs installer run ./my-installer --dry-run --diff
 //! ```
 
+mod checkpoint;
 mod from_bash;
 mod plan;
 mod spec;
@@ -32,6 +33,7 @@ mod spec;
 #[cfg(test)]
 mod tests;
 
+pub use checkpoint::{CheckpointStore, InstallerRun, RunStatus, StateFile, StepCheckpoint as CheckpointEntry, StepStatus};
 pub use from_bash::{convert_bash_to_installer, convert_file_to_project, ConversionResult, ConversionStats};
 pub use plan::InstallerPlan;
 pub use spec::{
