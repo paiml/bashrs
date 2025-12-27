@@ -258,42 +258,47 @@
 <a href=#258 id=258 data-nosnippet>258</a>//!
 <a href=#259 id=259 data-nosnippet>259</a>//! Karl Popper's Falsificationism: A claim is only scientific if it can be proven false.
 <a href=#260 id=260 data-nosnippet>260</a>//! Each test here is designed to DISPROVE a specific claim about the installer.
-<a href=#261 id=261 data-nosnippet>261</a>
-<a href=#262 id=262 data-nosnippet>262</a>/// FALSIFIABLE: "Every step is idempotent"
-<a href=#263 id=263 data-nosnippet>263</a>/// DISPROOF: Run step twice, system state differs
-<a href=#264 id=264 data-nosnippet>264</a>#[test]
-<a href=#265 id=265 data-nosnippet>265</a>fn falsify_step_idempotency() {{
-<a href=#266 id=266 data-nosnippet>266</a>    // TODO: Implement when installer execution is available
-<a href=#267 id=267 data-nosnippet>267</a>    // let step = load_step("hello-world");
-<a href=#268 id=268 data-nosnippet>268</a>    // let state_after_first = execute_and_capture_state(&amp;step);
-<a href=#269 id=269 data-nosnippet>269</a>    // let state_after_second = execute_and_capture_state(&amp;step);
-<a href=#270 id=270 data-nosnippet>270</a>    // assert_eq!(state_after_first, state_after_second,
-<a href=#271 id=271 data-nosnippet>271</a>    //     "FALSIFIED: Step is not idempotent");
-<a href=#272 id=272 data-nosnippet>272</a>}}
-<a href=#273 id=273 data-nosnippet>273</a>
-<a href=#274 id=274 data-nosnippet>274</a>/// FALSIFIABLE: "Dry-run accurately predicts changes"
-<a href=#275 id=275 data-nosnippet>275</a>/// DISPROOF: Dry-run prediction differs from actual execution
-<a href=#276 id=276 data-nosnippet>276</a>#[test]
-<a href=#277 id=277 data-nosnippet>277</a>fn falsify_dry_run_accuracy() {{
-<a href=#278 id=278 data-nosnippet>278</a>    // TODO: Implement when dry-run is available
-<a href=#279 id=279 data-nosnippet>279</a>    // let predicted = execute_dry_run(&amp;installer);
-<a href=#280 id=280 data-nosnippet>280</a>    // let actual = execute_and_capture_diff(&amp;installer);
-<a href=#281 id=281 data-nosnippet>281</a>    // assert_eq!(predicted, actual,
-<a href=#282 id=282 data-nosnippet>282</a>    //     "FALSIFIED: Dry-run prediction was inaccurate");
-<a href=#283 id=283 data-nosnippet>283</a>}}
-<a href=#284 id=284 data-nosnippet>284</a>
-<a href=#285 id=285 data-nosnippet>285</a>/// FALSIFIABLE: "Rollback restores original state"
-<a href=#286 id=286 data-nosnippet>286</a>/// DISPROOF: State after rollback differs from state before execution
-<a href=#287 id=287 data-nosnippet>287</a>#[test]
-<a href=#288 id=288 data-nosnippet>288</a>fn falsify_rollback_completeness() {{
-<a href=#289 id=289 data-nosnippet>289</a>    // TODO: Implement when rollback is available
-<a href=#290 id=290 data-nosnippet>290</a>    // let state_before = capture_state();
-<a href=#291 id=291 data-nosnippet>291</a>    // execute_step(&amp;step);
-<a href=#292 id=292 data-nosnippet>292</a>    // rollback_step(&amp;step);
-<a href=#293 id=293 data-nosnippet>293</a>    // let state_after = capture_state();
-<a href=#294 id=294 data-nosnippet>294</a>    // assert_eq!(state_before, state_after,
-<a href=#295 id=295 data-nosnippet>295</a>    //     "FALSIFIED: Rollback incomplete");
-<a href=#296 id=296 data-nosnippet>296</a>}}
-<a href=#297 id=297 data-nosnippet>297</a>"#
-<a href=#298 id=298 data-nosnippet>298</a>    </span>)
-<a href=#299 id=299 data-nosnippet>299</a>}</code></pre></div></section></main></body></html>
+<a href=#261 id=261 data-nosnippet>261</a>//!
+<a href=#262 id=262 data-nosnippet>262</a>//! Implement these tests as you add execution capabilities to your installer.
+<a href=#263 id=263 data-nosnippet>263</a>
+<a href=#264 id=264 data-nosnippet>264</a>/// FALSIFIABLE: "Every step is idempotent"
+<a href=#265 id=265 data-nosnippet>265</a>/// DISPROOF: Run step twice, system state differs
+<a href=#266 id=266 data-nosnippet>266</a>#[test]
+<a href=#267 id=267 data-nosnippet>267</a>fn falsify_step_idempotency() {{
+<a href=#268 id=268 data-nosnippet>268</a>    // Placeholder: implement when step execution is added
+<a href=#269 id=269 data-nosnippet>269</a>    // Example test structure:
+<a href=#270 id=270 data-nosnippet>270</a>    // let step = load_step("hello-world");
+<a href=#271 id=271 data-nosnippet>271</a>    // let state1 = execute_and_capture_state(&amp;step);
+<a href=#272 id=272 data-nosnippet>272</a>    // let state2 = execute_and_capture_state(&amp;step);
+<a href=#273 id=273 data-nosnippet>273</a>    // assert_eq!(state1, state2, "FALSIFIED: Step is not idempotent");
+<a href=#274 id=274 data-nosnippet>274</a>    assert!(true, "Test placeholder - implement with step execution");
+<a href=#275 id=275 data-nosnippet>275</a>}}
+<a href=#276 id=276 data-nosnippet>276</a>
+<a href=#277 id=277 data-nosnippet>277</a>/// FALSIFIABLE: "Dry-run accurately predicts changes"
+<a href=#278 id=278 data-nosnippet>278</a>/// DISPROOF: Dry-run prediction differs from actual execution
+<a href=#279 id=279 data-nosnippet>279</a>#[test]
+<a href=#280 id=280 data-nosnippet>280</a>fn falsify_dry_run_accuracy() {{
+<a href=#281 id=281 data-nosnippet>281</a>    // Placeholder: implement when dry-run diff is added
+<a href=#282 id=282 data-nosnippet>282</a>    // Example test structure:
+<a href=#283 id=283 data-nosnippet>283</a>    // let predicted = execute_dry_run(&amp;installer);
+<a href=#284 id=284 data-nosnippet>284</a>    // let actual = execute_and_capture_diff(&amp;installer);
+<a href=#285 id=285 data-nosnippet>285</a>    // assert_eq!(predicted, actual, "FALSIFIED: Dry-run inaccurate");
+<a href=#286 id=286 data-nosnippet>286</a>    assert!(true, "Test placeholder - implement with dry-run diff");
+<a href=#287 id=287 data-nosnippet>287</a>}}
+<a href=#288 id=288 data-nosnippet>288</a>
+<a href=#289 id=289 data-nosnippet>289</a>/// FALSIFIABLE: "Rollback restores original state"
+<a href=#290 id=290 data-nosnippet>290</a>/// DISPROOF: State after rollback differs from state before execution
+<a href=#291 id=291 data-nosnippet>291</a>#[test]
+<a href=#292 id=292 data-nosnippet>292</a>fn falsify_rollback_completeness() {{
+<a href=#293 id=293 data-nosnippet>293</a>    // Placeholder: implement when rollback is added
+<a href=#294 id=294 data-nosnippet>294</a>    // Example test structure:
+<a href=#295 id=295 data-nosnippet>295</a>    // let state_before = capture_state();
+<a href=#296 id=296 data-nosnippet>296</a>    // execute_step(&amp;step);
+<a href=#297 id=297 data-nosnippet>297</a>    // rollback_step(&amp;step);
+<a href=#298 id=298 data-nosnippet>298</a>    // let state_after = capture_state();
+<a href=#299 id=299 data-nosnippet>299</a>    // assert_eq!(state_before, state_after, "FALSIFIED: Rollback incomplete");
+<a href=#300 id=300 data-nosnippet>300</a>    assert!(true, "Test placeholder - implement with rollback");
+<a href=#301 id=301 data-nosnippet>301</a>}}
+<a href=#302 id=302 data-nosnippet>302</a>"#
+<a href=#303 id=303 data-nosnippet>303</a>    </span>)
+<a href=#304 id=304 data-nosnippet>304</a>}</code></pre></div></section></main></body></html>

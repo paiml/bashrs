@@ -83,9 +83,10 @@
 <a href=#83 id=83 data-nosnippet>83</a><span class="attr">#[cfg(test)]
 <a href=#84 id=84 data-nosnippet>84</a>#[cfg(feature = <span class="string">"tui"</span>)]
 <a href=#85 id=85 data-nosnippet>85</a></span><span class="kw">mod </span>tests {
-<a href=#86 id=86 data-nosnippet>86</a>    <span class="attr">#[test]
-<a href=#87 id=87 data-nosnippet>87</a>    </span><span class="kw">fn </span>test_tui_module_compiles() {
-<a href=#88 id=88 data-nosnippet>88</a>        <span class="comment">// Verify module structure compiles
-<a href=#89 id=89 data-nosnippet>89</a>        </span><span class="macro">assert!</span>(<span class="bool-val">true</span>);
-<a href=#90 id=90 data-nosnippet>90</a>    }
-<a href=#91 id=91 data-nosnippet>91</a>}</code></pre></div></section></main></body></html>
+<a href=#86 id=86 data-nosnippet>86</a>    <span class="attr">#![allow(clippy::assertions_on_constants)]
+<a href=#87 id=87 data-nosnippet>87</a>    #[test]
+<a href=#88 id=88 data-nosnippet>88</a>    </span><span class="kw">fn </span>test_tui_module_compiles() {
+<a href=#89 id=89 data-nosnippet>89</a>        <span class="comment">// Verify module structure compiles
+<a href=#90 id=90 data-nosnippet>90</a>        </span><span class="macro">assert!</span>(<span class="bool-val">true</span>);
+<a href=#91 id=91 data-nosnippet>91</a>    }
+<a href=#92 id=92 data-nosnippet>92</a>}</code></pre></div></section></main></body></html>
