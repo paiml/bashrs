@@ -43,6 +43,49 @@
 use crate::linter::LintResult;
 use crate::linter::{Diagnostic, Severity, Span};
 
+/// Issue #105: Known-safe environment variables that don't need validation
+/// These are system-provided or set by the shell, not user input
+const SAFE_ENV_VARS: &[&str] = &[
+    // User and system info (set by shell/OS)
+    "USER",
+    "LOGNAME",
+    "HOME",
+    "SHELL",
+    "PWD",
+    "OLDPWD",
+    "UID",
+    "EUID",
+    "PPID",
+    "HOSTNAME",
+    // Temp directories (controlled system paths)
+    "TMPDIR",
+    "TEMP",
+    "TMP",
+    // XDG directories (standard locations)
+    "XDG_DATA_HOME",
+    "XDG_CONFIG_HOME",
+    "XDG_CACHE_HOME",
+    "XDG_RUNTIME_DIR",
+    // Common safe paths
+    "PATH",
+    "MANPATH",
+    "LANG",
+    "LC_ALL",
+];
+
+/// Issue #105: Check if a variable is a known-safe environment variable
+fn is_safe_env_var(var_name: &str) -> bool {
+    // Direct match
+    if SAFE_ENV_VARS.contains(&var_name) {
+        return true;
+    }
+    // XDG_* variables are generally safe (standard locations)
+    if var_name.starts_with("XDG_") {
+        return true;
+    }
+    false
+}
+
 /// Check for missing input validation before dangerous operations
 pub fn check(source: &str) -> LintResult {
     let mut result = LintResult::new();
@@ -79,6 +122,10 @@ pub fn check(source: &str) -> LintResult {
         // Pattern: rm -rf "$VAR"
         if code_only.contains("rm") && code_only.contains("-rf") {
             if let Some(var_name) = extract_variable_from_rm(code_only) {
+                // Issue #105: Skip known-safe environment variables
+                if is_safe_env_var(&var_name) {
+                    continue;
+                }
                 // Check if variable is validated (either from previous lines or inline)
                 if !validated_vars.contains(&var_name) && !inline_validated.contains(&var_name) {
                     let span = Span::new(line_num + 1, 1, line_num + 1, line.len());
@@ -101,6 +148,10 @@ pub fn check(source: &str) -> LintResult {
         // Pattern: chmod -R 777 "$VAR"
         if code_only.contains("chmod") && code_only.contains("-R") && code_only.contains("777") {
             if let Some(var_name) = extract_variable_from_chmod(code_only) {
+                // Issue #105: Skip known-safe environment variables
+                if is_safe_env_var(&var_name) {
+                    continue;
+                }
                 if !validated_vars.contains(&var_name) && !inline_validated.contains(&var_name) {
                     let span = Span::new(line_num + 1, 1, line_num + 1, line.len());
 
@@ -122,6 +173,10 @@ pub fn check(source: &str) -> LintResult {
         // Pattern: chown -R user:group "$VAR"
         if code_only.contains("chown") && code_only.contains("-R") {
             if let Some(var_name) = extract_variable_from_chown(code_only) {
+                // Issue #105: Skip known-safe environment variables
+                if is_safe_env_var(&var_name) {
+                    continue;
+                }
                 if !validated_vars.contains(&var_name) && !inline_validated.contains(&var_name) {
                     let span = Span::new(line_num + 1, 1, line_num + 1, line.len());
 
@@ -190,8 +245,17 @@ fn extract_validated_variable(line: &str) -> Option<String> {
     None
 }
 
+/// Extract just the variable name (stop at first non-var character)
+/// Example: "HOME/.cache" → "HOME"
+fn extract_var_name_only(s: &str) -> String {
+    s.chars()
+        .take_while(|c| c.is_alphanumeric() || *c == '_')
+        .collect()
+}
+
 /// Extract variable name from rm command
 /// Example: `rm -rf "$BUILD_DIR"` → Some("BUILD_DIR")
+/// Example: `rm -rf "$HOME/.cache"` → Some("HOME")
 fn extract_variable_from_rm(line: &str) -> Option<String> {
     // Find "$VAR" pattern specifically after rm -rf
     // First find rm -rf or rm -r or rm --recursive
@@ -208,9 +272,11 @@ fn extract_variable_from_rm(line: &str) -> Option<String> {
     // Search for "$VAR" after the rm command
     let after_rm = &line[rm_pos..];
     if let Some(start) = after_rm.find("\"$") {
-        if let Some(end) = after_rm[start + 2..].find('"') {
-            let var_name = &after_rm[start + 2..start + 2 + end];
-            return Some(var_name.to_string());
+        let var_start = start + 2;
+        let rest = &after_rm[var_start..];
+        let var_name = extract_var_name_only(rest);
+        if !var_name.is_empty() {
+            return Some(var_name);
         }
     }
     None
@@ -218,15 +284,18 @@ fn extract_variable_from_rm(line: &str) -> Option<String> {
 
 /// Extract variable name from chmod command
 /// Example: `chmod -R 777 "$DIR"` → Some("DIR")
+/// Example: `chmod -R 777 "$HOME/.local"` → Some("HOME")
 fn extract_variable_from_chmod(line: &str) -> Option<String> {
     // Find chmod command position first
     let chmod_pos = line.find("chmod")?;
     let after_chmod = &line[chmod_pos..];
 
     if let Some(start) = after_chmod.find("\"$") {
-        if let Some(end) = after_chmod[start + 2..].find('"') {
-            let var_name = &after_chmod[start + 2..start + 2 + end];
-            return Some(var_name.to_string());
+        let var_start = start + 2;
+        let rest = &after_chmod[var_start..];
+        let var_name = extract_var_name_only(rest);
+        if !var_name.is_empty() {
+            return Some(var_name);
         }
     }
     None
@@ -240,9 +309,11 @@ fn extract_variable_from_chown(line: &str) -> Option<String> {
     let after_chown = &line[chown_pos..];
 
     if let Some(start) = after_chown.find("\"$") {
-        if let Some(end) = after_chown[start + 2..].find('"') {
-            let var_name = &after_chown[start + 2..start + 2 + end];
-            return Some(var_name.to_string());
+        let var_start = start + 2;
+        let rest = &after_chown[var_start..];
+        let var_name = extract_var_name_only(rest);
+        if !var_name.is_empty() {
+            return Some(var_name);
         }
     }
     None
@@ -449,6 +520,127 @@ fi"#;
             result.diagnostics.len(),
             1,
             "SEC011 should flag when different variable is validated"
+        );
+    }
+
+    // Issue #105: Safe environment variables tests
+
+    #[test]
+    fn test_SEC011_105_user_env_var_safe() {
+        // Issue #105: $USER is a safe environment variable
+        let script = r#"rm -rf "/home/$USER/cache""#;
+        let result = check(script);
+
+        assert_eq!(
+            result.diagnostics.len(),
+            0,
+            "SEC011 should not flag $USER - it's a safe env var"
+        );
+    }
+
+    #[test]
+    fn test_SEC011_105_home_env_var_safe() {
+        // Issue #105: $HOME is a safe environment variable
+        let script = r#"rm -rf "$HOME/.cache""#;
+        let result = check(script);
+
+        assert_eq!(
+            result.diagnostics.len(),
+            0,
+            "SEC011 should not flag $HOME - it's a safe env var"
+        );
+    }
+
+    #[test]
+    fn test_SEC011_105_tmpdir_env_var_safe() {
+        // Issue #105: $TMPDIR is a safe environment variable
+        let script = r#"rm -rf "$TMPDIR/build""#;
+        let result = check(script);
+
+        assert_eq!(
+            result.diagnostics.len(),
+            0,
+            "SEC011 should not flag $TMPDIR - it's a safe env var"
+        );
+    }
+
+    #[test]
+    fn test_SEC011_105_xdg_cache_safe() {
+        // Issue #105: XDG_* variables are safe
+        let script = r#"rm -rf "$XDG_CACHE_HOME/myapp""#;
+        let result = check(script);
+
+        assert_eq!(
+            result.diagnostics.len(),
+            0,
+            "SEC011 should not flag XDG_CACHE_HOME - it's a safe env var"
+        );
+    }
+
+    #[test]
+    fn test_SEC011_105_custom_xdg_safe() {
+        // Issue #105: Any XDG_* variable should be safe
+        let script = r#"rm -rf "$XDG_CUSTOM_DIR/data""#;
+        let result = check(script);
+
+        assert_eq!(
+            result.diagnostics.len(),
+            0,
+            "SEC011 should not flag XDG_* vars - they're safe env vars"
+        );
+    }
+
+    #[test]
+    fn test_SEC011_105_pwd_env_var_safe() {
+        // Issue #105: $PWD is a safe environment variable
+        let script = r#"rm -rf "$PWD/build""#;
+        let result = check(script);
+
+        assert_eq!(
+            result.diagnostics.len(),
+            0,
+            "SEC011 should not flag $PWD - it's a safe env var"
+        );
+    }
+
+    #[test]
+    fn test_SEC011_105_unknown_var_still_flagged() {
+        // Issue #105: Unknown variables should still be flagged
+        let script = r#"rm -rf "$UNKNOWN_VAR""#;
+        let result = check(script);
+
+        assert_eq!(
+            result.diagnostics.len(),
+            1,
+            "SEC011 should still flag unknown variables"
+        );
+    }
+
+    #[test]
+    fn test_SEC011_105_chmod_with_home() {
+        // Issue #105: chmod with $HOME should be safe
+        let script = r#"chmod -R 777 "$HOME/.local""#;
+        let result = check(script);
+
+        assert_eq!(
+            result.diagnostics.len(),
+            0,
+            "SEC011 should not flag chmod with $HOME"
+        );
+    }
+
+    #[test]
+    fn test_SEC011_105_chown_with_user() {
+        // Issue #105: chown with $USER should be safe
+        let script = r#"chown -R "$USER":staff "/shared/docs""#;
+        let result = check(script);
+
+        // Note: USER is in the chown user:group part, not the path
+        // The path is hardcoded "/shared/docs" - should be safe
+        assert_eq!(
+            result.diagnostics.len(),
+            0,
+            "SEC011 should not flag chown with hardcoded path"
         );
     }
 }

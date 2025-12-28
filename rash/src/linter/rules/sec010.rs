@@ -56,15 +56,64 @@ const TRAVERSAL_PATTERNS: &[&str] = &[
 pub fn check(source: &str) -> LintResult {
     let mut result = LintResult::new();
 
+    // Issue #104: Track validated variables across the script
+    // Variables that have been validated with checks like `if [[ "$var" == *".."* ]]`
+    let mut validated_vars: Vec<String> = Vec::new();
+
+    // Also track if we're in a validation block that exits on invalid input
+    let mut in_validation_block = false;
+
     for (line_num, line) in source.lines().enumerate() {
+        let trimmed = line.trim();
+
         // Skip comments
-        if line.trim_start().starts_with('#') {
+        if trimmed.starts_with('#') {
+            continue;
+        }
+
+        // Issue #106: Skip heredoc patterns - cat <<EOF is not a file read
+        if is_heredoc_pattern(line) {
+            continue;
+        }
+
+        // Issue #104: Detect path validation patterns
+        // Pattern: if [[ "$VAR" == *".."* ]] or if [[ "$VAR" == /* ]]
+        if is_path_validation_check(trimmed) {
+            // Extract variable name being validated
+            if let Some(var) = extract_validated_variable(trimmed) {
+                validated_vars.push(var);
+            }
+            in_validation_block = true;
+            continue;
+        }
+
+        // Issue #104: Check for realpath validation
+        // Pattern: SAFE_PATH=$(realpath -m "$VAR") or similar
+        if trimmed.contains("realpath") || trimmed.contains("readlink -f") {
+            if let Some(var) = extract_assigned_variable(trimmed) {
+                validated_vars.push(var);
+            }
+            continue;
+        }
+
+        // Track end of validation blocks
+        if trimmed == "fi" || trimmed.starts_with("fi ") || trimmed.starts_with("fi;") {
+            in_validation_block = false;
+        }
+
+        // Issue #104: Skip validation guard bodies (exit/return after check)
+        if in_validation_block && (trimmed.contains("exit") || trimmed.contains("return")) {
             continue;
         }
 
         // Look for file operation commands with variables
         for file_op in FILE_OPS {
             if let Some(cmd_col) = find_command(line, file_op) {
+                // Issue #104: Check if variable has been validated
+                if is_variable_validated(line, &validated_vars) {
+                    continue;
+                }
+
                 // Check if line contains unvalidated user input (variables)
                 if contains_unvalidated_variable(line, file_op) {
                     let span = Span::new(line_num + 1, cmd_col + 1, line_num + 1, line.len());
@@ -235,6 +284,143 @@ fn is_validation_context(line: &str) -> bool {
     validation_keywords.iter().any(|kw| line.contains(kw))
 }
 
+/// Issue #104: Check if line is a path validation check
+/// Patterns: if [[ "$VAR" == *".."* ]] or [[ "$VAR" == /* ]]
+fn is_path_validation_check(line: &str) -> bool {
+    // Must be an if/test statement
+    if !line.contains("if") && !line.starts_with("[[") && !line.starts_with("[") {
+        return false;
+    }
+
+    // Must check for path traversal patterns
+    let validation_patterns = [
+        "*\"..\"/",  // *".."*
+        "*..*",      // *..*
+        "/*",        // /* (absolute path check)
+        "\"/\"*",    // starts with /
+        "=~ \\.\\.", // regex match for ..
+    ];
+
+    // Check for ".." in the condition
+    if line.contains("..") && (line.contains("==") || line.contains("=~") || line.contains("!=")) {
+        return true;
+    }
+
+    // Check for absolute path validation
+    if (line.contains("== /*") || line.contains("== \"/\""))
+        && (line.contains("==") || line.contains("!="))
+    {
+        return true;
+    }
+
+    validation_patterns.iter().any(|p| line.contains(p))
+}
+
+/// Issue #104: Extract variable name being validated from a check
+fn extract_validated_variable(line: &str) -> Option<String> {
+    // Look for $VAR or ${VAR} patterns
+    let patterns = ["$", "${"];
+
+    for pattern in patterns {
+        if let Some(start) = line.find(pattern) {
+            let rest = &line[start..];
+
+            // Handle ${VAR} format
+            if rest.starts_with("${") {
+                if let Some(end) = rest.find('}') {
+                    let var_name = &rest[2..end];
+                    // Remove array index if present: VAR[0] -> VAR
+                    let var_name = var_name.split('[').next().unwrap_or(var_name);
+                    return Some(var_name.to_string());
+                }
+            }
+            // Handle $VAR format
+            else if rest.starts_with('$') {
+                let var_chars: String = rest[1..]
+                    .chars()
+                    .take_while(|c| c.is_alphanumeric() || *c == '_')
+                    .collect();
+                if !var_chars.is_empty() {
+                    return Some(var_chars);
+                }
+            }
+        }
+    }
+
+    None
+}
+
+/// Issue #104: Extract variable being assigned (left side of =)
+fn extract_assigned_variable(line: &str) -> Option<String> {
+    // Pattern: VAR=$(realpath ...) or VAR=`realpath ...`
+    if let Some(eq_pos) = line.find('=') {
+        let before_eq = line[..eq_pos].trim();
+        // Get the last word before = (in case of export VAR= etc.)
+        let var_name = before_eq.split_whitespace().last()?;
+        // Validate it's a valid variable name
+        if var_name
+            .chars()
+            .all(|c| c.is_alphanumeric() || c == '_')
+        {
+            return Some(var_name.to_string());
+        }
+    }
+    None
+}
+
+/// Issue #104: Check if any variable on the line has been validated
+fn is_variable_validated(line: &str, validated_vars: &[String]) -> bool {
+    for var in validated_vars {
+        // Check for $VAR, ${VAR}, or "${VAR}"
+        let patterns = [
+            format!("${}", var),
+            format!("${{{}}}", var),
+            format!("\"${}\"", var),
+            format!("\"${{{}}}\"", var),
+        ];
+
+        for pattern in &patterns {
+            if line.contains(pattern) {
+                return true;
+            }
+        }
+    }
+    false
+}
+
+/// Issue #106: Check if this is a heredoc pattern
+/// Heredocs like `cat <<EOF` or `cat <<'EOF'` are not file reads
+fn is_heredoc_pattern(line: &str) -> bool {
+    // Check for heredoc operators: << or <<<
+    if line.contains("<<") {
+        // Common heredoc patterns with file commands
+        // cat <<EOF, cat <<'EOF', cat <<"EOF", cat <<-EOF
+        // Also handles here-string: cat <<<
+        let heredoc_patterns = [
+            "cat <<",
+            "cat<<<",
+            "cat <<-",
+            "echo <<",
+            "read <<",
+            "tee <<",
+        ];
+
+        for pattern in &heredoc_patterns {
+            if line.contains(pattern) {
+                return true;
+            }
+        }
+
+        // Also check for $(...) containing heredoc
+        // e.g., content=$(cat <<EOF ... EOF)
+        if line.contains("$(cat <<") || line.contains("$(cat<<") {
+            return true;
+        }
+    }
+
+    false
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -345,6 +531,159 @@ cat "$INPUT_PATH"
 
         // Comments should not trigger the rule
         assert_eq!(result.diagnostics.len(), 0);
+    }
+
+    #[test]
+    fn test_SEC010_106_heredoc_not_file_read() {
+        // Issue #106: cat <<EOF is not a file read, it's a heredoc
+        let script = r#"content=$(cat <<EOF
+some content here
+EOF
+)"#;
+        let result = check(script);
+
+        // Heredocs should not trigger the rule
+        assert_eq!(result.diagnostics.len(), 0);
+    }
+
+    #[test]
+    fn test_SEC010_106_heredoc_multiline() {
+        // Issue #106: Heredoc with quoted delimiter
+        let script = r#"cargo_content=$(cat <<'EOF'
+[build]
+jobs = 4
+EOF
+)"#;
+        let result = check(script);
+
+        // Heredocs should not trigger the rule
+        assert_eq!(result.diagnostics.len(), 0);
+    }
+
+    #[test]
+    fn test_SEC010_106_heredoc_with_tee() {
+        // tee with heredoc
+        let script = r#"tee /etc/config <<EOF
+config here
+EOF"#;
+        let result = check(script);
+
+        // The tee has a path but it's a heredoc input
+        assert_eq!(result.diagnostics.len(), 0);
+    }
+
+    #[test]
+    fn test_SEC010_real_cat_still_flagged() {
+        // Real cat with user file should still be flagged
+        let script = r#"cat "$USER_FILE""#;
+        let result = check(script);
+
+        assert_eq!(result.diagnostics.len(), 1);
+        assert_eq!(result.diagnostics[0].code, "SEC010");
+    }
+
+    // Issue #104 tests: Path validation guards
+
+    #[test]
+    fn test_SEC010_104_validated_path_not_flagged() {
+        // Issue #104: If a path is validated with if [[ "$VAR" == *".."* ]], skip subsequent use
+        let script = r#"
+if [[ "$USER_FILE" == *".."* ]]; then
+    echo "Invalid path" >&2
+    exit 1
+fi
+cp "$USER_FILE" /destination/
+"#;
+        let result = check(script);
+
+        // Should NOT flag because USER_FILE was validated
+        assert_eq!(
+            result.diagnostics.len(),
+            0,
+            "Expected no diagnostics for validated path, got: {:?}",
+            result.diagnostics
+        );
+    }
+
+    #[test]
+    fn test_SEC010_104_realpath_validated() {
+        // Issue #104: Variables assigned from realpath are considered validated
+        let script = r#"
+SAFE_PATH=$(realpath -m "$USER_INPUT")
+cp "$SAFE_PATH" /destination/
+"#;
+        let result = check(script);
+
+        // SAFE_PATH is derived from realpath, so it's validated
+        assert_eq!(
+            result.diagnostics.len(),
+            0,
+            "Expected no diagnostics for realpath-validated path"
+        );
+    }
+
+    #[test]
+    fn test_SEC010_104_readlink_validated() {
+        // Issue #104: Variables assigned from readlink -f are validated
+        let script = r#"
+RESOLVED=$(readlink -f "$USER_PATH")
+cat "$RESOLVED"
+"#;
+        let result = check(script);
+
+        assert_eq!(
+            result.diagnostics.len(),
+            0,
+            "Expected no diagnostics for readlink-f-validated path"
+        );
+    }
+
+    #[test]
+    fn test_SEC010_104_unvalidated_still_flagged() {
+        // Issue #104: Variables that are NOT validated should still be flagged
+        let script = r#"
+echo "Processing file..."
+cp "$USER_FILE" /destination/
+"#;
+        let result = check(script);
+
+        assert_eq!(result.diagnostics.len(), 1);
+        assert_eq!(result.diagnostics[0].code, "SEC010");
+    }
+
+    #[test]
+    fn test_SEC010_104_different_var_still_flagged() {
+        // Issue #104: Validating one variable doesn't validate others
+        let script = r#"
+if [[ "$SAFE_VAR" == *".."* ]]; then
+    exit 1
+fi
+cp "$USER_FILE" /destination/
+"#;
+        let result = check(script);
+
+        // USER_FILE was not validated, only SAFE_VAR was
+        assert_eq!(result.diagnostics.len(), 1);
+        assert_eq!(result.diagnostics[0].code, "SEC010");
+    }
+
+    #[test]
+    fn test_SEC010_104_absolute_path_check() {
+        // Issue #104: Check for absolute path validation
+        let script = r#"
+if [[ "$INPUT_PATH" == /* ]]; then
+    echo "Absolute paths not allowed" >&2
+    exit 1
+fi
+cp "$INPUT_PATH" /destination/
+"#;
+        let result = check(script);
+
+        assert_eq!(
+            result.diagnostics.len(),
+            0,
+            "Expected no diagnostics after absolute path validation"
+        );
     }
 }
 

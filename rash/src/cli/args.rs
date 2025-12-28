@@ -1088,6 +1088,11 @@ pub enum InstallerCommands {
         /// Minimum severity to report (info, suggestion, warning, error, critical)
         #[arg(long)]
         min_severity: Option<String>,
+
+        /// Issue #110: Ignore specific rules (can be specified multiple times)
+        /// Example: --ignore SEC001 --ignore QUAL002
+        #[arg(long, value_name = "RULE")]
+        ignore: Vec<String>,
     },
 
     /// Initialize or manage keyring for artifact verification

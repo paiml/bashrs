@@ -34,6 +34,19 @@ scripts/legacy/**
 
 # Negation (re-include previously excluded)
 !vendor/important.sh
+
+# Rule codes to ignore globally (Issue #85)
+SEC010
+SC2031
+DET002
+
+# Ignore rule only in specific file (Issue #109)
+SEC010:scripts/install.sh
+DET001:scripts/metrics.sh
+
+# Ignore rule only on specific line (Issue #109)
+SEC010:scripts/install.sh:42
+DET002:scripts/record.sh:15
 ```
 
 ## Syntax Reference
@@ -46,6 +59,9 @@ scripts/legacy/**
 | `dir/*` | Directory contents | Matches files in `dir/` |
 | `!pattern` | Negation | Re-includes previously excluded files |
 | `# comment` | Comment | Ignored by parser |
+| `SEC010` | Ignore rule globally | Ignores SEC010 in all files |
+| `SEC010:file.sh` | Ignore rule in file | Ignores SEC010 only in `file.sh` |
+| `SEC010:file.sh:42` | Ignore rule on line | Ignores SEC010 only on line 42 |
 
 ## CLI Flags
 
@@ -122,6 +138,56 @@ dist/**/*.sh
 # Test fixtures (intentionally contain violations)
 tests/fixtures/bad-*.sh
 ```
+
+## Rule Ignoring (Issue #85, #109)
+
+### Global Rule Ignoring
+
+Ignore a rule across all files in the project:
+
+```text
+# .bashrsignore
+
+# These rules are known false positives for our project
+SEC010   # Path traversal - we validate paths in our wrapper
+SC2031   # Variable modification in subshell - intentional design
+DET002   # Timestamps - metrics collection is intentional
+```
+
+### File-Specific Rule Ignoring (Issue #109)
+
+Ignore a rule only in specific files:
+
+```text
+# .bashrsignore
+
+# Only ignore SEC010 in the installer script
+SEC010:scripts/install.sh
+
+# Only ignore DET001 in metrics scripts
+DET001:scripts/collect-metrics.sh
+DET001:scripts/report-stats.sh
+```
+
+### Line-Specific Rule Ignoring (Issue #109)
+
+Ignore a rule only on specific lines (most granular):
+
+```text
+# .bashrsignore
+
+# Ignore SEC010 on line 42 where we intentionally use unvalidated path
+SEC010:scripts/install.sh:42
+
+# Ignore DET002 on lines 15 and 30 for timestamp usage
+DET002:scripts/record.sh:15
+DET002:scripts/record.sh:30
+```
+
+This is useful when:
+- You cannot modify the source file
+- You want centralized ignore management
+- You need to track ignores across the project
 
 ## Best Practices
 

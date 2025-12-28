@@ -40,8 +40,23 @@ pub fn check(source: &str) -> LintResult {
             continue;
         }
 
+        // Issue #108: Skip case statement terminators - ;; is syntax, not code
+        // Also skip ;& and ;;& (fall-through terminators)
+        if trimmed == ";;" || trimmed == ";&" || trimmed == ";;&" {
+            continue;
+        }
+
         // Reset found_exit when encountering block closers
-        if trimmed.starts_with('}') || trimmed.starts_with("fi") || trimmed.starts_with("done") {
+        // Also reset on esac (end of case statement)
+        if trimmed.starts_with('}') || trimmed.starts_with("fi") || trimmed.starts_with("done") || trimmed.starts_with("esac") {
+            found_exit = false;
+            continue;
+        }
+
+        // Issue #108: Reset on case clause patterns (lines ending with ))
+        // e.g., --help|-h) or *) or a) patterns start new reachability context
+        // Exclude subshell syntax: $(...) or standalone (...)
+        if trimmed.ends_with(')') && !trimmed.contains("$(") && !trimmed.starts_with('(') {
             found_exit = false;
             continue;
         }
@@ -208,5 +223,74 @@ echo "unreachable"
             1,
             "Standalone exit should still flag unreachable code"
         );
+    }
+
+    // Issue #108: Case statement ;; after exit should NOT be flagged
+    #[test]
+    fn test_issue_108_case_terminator_after_exit() {
+        // The ;; is required syntax, not unreachable code
+        let code = r#"
+case "$1" in
+    --help|-h)
+        show_help
+        exit 0
+        ;;
+    --dry-run)
+        DRY_RUN=true
+        ;;
+esac
+echo "reachable"
+"#;
+        assert_eq!(
+            check(code).diagnostics.len(),
+            0,
+            "SC2317 must NOT flag ;; after exit in case statement"
+        );
+    }
+
+    #[test]
+    fn test_issue_108_case_clause_resets_context() {
+        // Each case clause is a new reachability context
+        let code = r#"
+case "$1" in
+    a)
+        exit 1
+        ;;
+    b)
+        echo "reachable in different clause"
+        ;;
+esac
+"#;
+        assert_eq!(check(code).diagnostics.len(), 0);
+    }
+
+    #[test]
+    fn test_issue_108_esac_resets_context() {
+        // Code after esac should be reachable
+        let code = r#"
+case "$1" in
+    *)
+        exit 1
+        ;;
+esac
+echo "reachable after case"
+"#;
+        assert_eq!(check(code).diagnostics.len(), 0);
+    }
+
+    #[test]
+    fn test_issue_108_fallthrough_terminators() {
+        // ;& and ;;& are also valid case terminators
+        let code = r#"
+case "$1" in
+    a)
+        exit 1
+        ;&
+    b)
+        echo "fallthrough"
+        ;;&
+esac
+"#;
+        assert_eq!(check(code).diagnostics.len(), 0);
     }
 }
