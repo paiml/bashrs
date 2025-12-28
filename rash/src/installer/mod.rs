@@ -26,6 +26,7 @@
 //! ```
 
 mod checkpoint;
+mod dry_run;
 mod from_bash;
 mod hermetic;
 mod plan;
@@ -37,6 +38,10 @@ mod spec;
 mod tests;
 
 pub use checkpoint::{CheckpointStore, InstallerRun, RunStatus, StateFile, StepCheckpoint as CheckpointEntry, StepStatus};
+pub use dry_run::{
+    DiffPreview, DryRunContext, DryRunSummary, FileChange, FileChangeType,
+    PackageOperation, ServiceOperation, SimulationEntry, UserGroupOperation,
+};
 pub use from_bash::{convert_bash_to_installer, convert_file_to_project, ConversionResult, ConversionStats};
 pub use hermetic::{HermeticContext, Lockfile, LockedArtifact, LockfileEnvironment, LOCKFILE_VERSION};
 pub use plan::InstallerPlan;
