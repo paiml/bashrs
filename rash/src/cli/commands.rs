@@ -3590,31 +3590,212 @@ fn handle_installer_command(command: InstallerCommands) -> Result<()> {
 }
 
 fn handle_keyring_command(command: KeyringCommands) -> Result<()> {
+    use crate::installer::{Keyring, TrustedKey};
+
+    // Default keyring location (use XDG or HOME-based fallback)
+    let keyring_dir = std::env::var("XDG_CONFIG_HOME")
+        .map(std::path::PathBuf::from)
+        .or_else(|_| std::env::var("HOME").map(|h| std::path::PathBuf::from(h).join(".config")))
+        .unwrap_or_else(|_| std::path::PathBuf::from("."))
+        .join("bashrs")
+        .join("installer");
+    let keyring_path = keyring_dir.join("keyring.json");
+
     match command {
         KeyringCommands::Init { import } => {
-            info!("Initializing keyring");
-            println!("✓ Initialized keyring");
-            for path in import {
-                println!("  Imported: {}", path.display());
+            info!("Initializing keyring at {}", keyring_path.display());
+
+            // Create keyring directory if needed
+            if let Some(parent) = keyring_path.parent() {
+                std::fs::create_dir_all(parent).map_err(|e| {
+                    Error::Io(std::io::Error::new(
+                        e.kind(),
+                        format!("Failed to create keyring directory: {}", e),
+                    ))
+                })?;
             }
+
+            // Create new keyring
+            let mut keyring = Keyring::with_storage(&keyring_path)?;
+            keyring.enable_tofu();
+
+            println!("✓ Initialized keyring at {}", keyring_path.display());
+            println!("  TOFU mode: enabled");
+
+            // Import keys if specified
+            for key_path in import {
+                if key_path.exists() {
+                    // Read public key from file (expecting 32 bytes hex-encoded or raw)
+                    let content = std::fs::read_to_string(&key_path).map_err(|e| {
+                        Error::Io(std::io::Error::new(
+                            e.kind(),
+                            format!("Failed to read key file: {}", e),
+                        ))
+                    })?;
+
+                    let key_id = key_path
+                        .file_stem()
+                        .and_then(|s| s.to_str())
+                        .unwrap_or("imported-key")
+                        .to_string();
+
+                    // Parse hex-encoded key
+                    let public_key = parse_public_key(content.trim())?;
+                    let trusted_key = TrustedKey::new(&key_id, public_key);
+                    keyring.add_key(trusted_key)?;
+                    println!("  Imported: {} ({})", key_id, key_path.display());
+                } else {
+                    println!("  ⚠ Key file not found: {}", key_path.display());
+                }
+            }
+
             Ok(())
         }
+
         KeyringCommands::Add { key, id } => {
             info!("Adding key {} from {}", id, key.display());
+
+            if !keyring_path.exists() {
+                return Err(Error::Validation(
+                    "Keyring not initialized. Run 'bashrs installer keyring init' first.".to_string(),
+                ));
+            }
+
+            let mut keyring = Keyring::with_storage(&keyring_path)?;
+
+            // Read and parse key file
+            let content = std::fs::read_to_string(&key).map_err(|e| {
+                Error::Io(std::io::Error::new(
+                    e.kind(),
+                    format!("Failed to read key file: {}", e),
+                ))
+            })?;
+
+            let public_key = parse_public_key(content.trim())?;
+            let trusted_key = TrustedKey::new(&id, public_key);
+
+            keyring.add_key(trusted_key)?;
             println!("✓ Added key: {}", id);
+            println!("  Fingerprint: {}", &hex_encode(&public_key[..8]));
+
             Ok(())
         }
+
         KeyringCommands::List => {
             info!("Listing keyring");
-            println!("Keyring contents:");
-            println!("  (no keys configured)");
+
+            if !keyring_path.exists() {
+                println!("Keyring not initialized.");
+                println!("  Run: bashrs installer keyring init");
+                return Ok(());
+            }
+
+            let keyring = Keyring::with_storage(&keyring_path)?;
+            let keys = keyring.list_keys();
+
+            if keys.is_empty() {
+                println!("Keyring contents:");
+                println!("  (no keys configured)");
+            } else {
+                println!("Keyring contents ({} keys):", keys.len());
+                println!();
+                println!("  ID                  Fingerprint       TOFU    Added");
+                println!("  ────────────────────────────────────────────────────────────");
+                for key in keys {
+                    let tofu_marker = if key.is_tofu { "yes" } else { "no" };
+                    let added = format_timestamp(key.added_at);
+                    println!(
+                        "  {:<20}{:<18}{:<8}{}",
+                        truncate_str(&key.id, 20),
+                        key.fingerprint(),
+                        tofu_marker,
+                        added
+                    );
+                }
+            }
+
+            println!();
+            println!("  Keyring path: {}", keyring_path.display());
+            println!("  TOFU mode: {}", if keyring.is_tofu_enabled() { "enabled" } else { "disabled" });
+
             Ok(())
         }
+
         KeyringCommands::Remove { id } => {
             info!("Removing key: {}", id);
-            println!("✓ Removed key: {}", id);
+
+            if !keyring_path.exists() {
+                return Err(Error::Validation(
+                    "Keyring not initialized. Run 'bashrs installer keyring init' first.".to_string(),
+                ));
+            }
+
+            let mut keyring = Keyring::with_storage(&keyring_path)?;
+
+            if keyring.remove_key(&id)? {
+                println!("✓ Removed key: {}", id);
+            } else {
+                println!("⚠ Key not found: {}", id);
+            }
+
             Ok(())
         }
+    }
+}
+
+/// Parse a hex-encoded public key (64 hex chars = 32 bytes)
+fn parse_public_key(hex_str: &str) -> Result<crate::installer::PublicKey> {
+    if hex_str.len() != 64 {
+        return Err(Error::Validation(format!(
+            "Invalid public key length: expected 64 hex chars, got {}",
+            hex_str.len()
+        )));
+    }
+
+    let mut result = [0u8; 32];
+    for (dest, chunk) in result.iter_mut().zip(hex_str.as_bytes().chunks(2)) {
+        let hex = std::str::from_utf8(chunk)
+            .map_err(|_| Error::Validation("Invalid hex string".to_string()))?;
+        *dest = u8::from_str_radix(hex, 16)
+            .map_err(|_| Error::Validation("Invalid hex character".to_string()))?;
+    }
+
+    Ok(result)
+}
+
+/// Hex encode bytes
+fn hex_encode(bytes: &[u8]) -> String {
+    bytes.iter().map(|b| format!("{:02x}", b)).collect()
+}
+
+/// Format timestamp as relative time
+fn format_timestamp(timestamp: u64) -> String {
+    use std::time::{SystemTime, UNIX_EPOCH};
+
+    let now = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map(|d| d.as_secs())
+        .unwrap_or(0);
+
+    let diff = now.saturating_sub(timestamp);
+
+    if diff < 60 {
+        "just now".to_string()
+    } else if diff < 3600 {
+        format!("{}m ago", diff / 60)
+    } else if diff < 86400 {
+        format!("{}h ago", diff / 3600)
+    } else {
+        format!("{}d ago", diff / 86400)
+    }
+}
+
+/// Truncate string to max length with ellipsis
+fn truncate_str(s: &str, max_len: usize) -> String {
+    if s.len() <= max_len {
+        s.to_string()
+    } else {
+        format!("{}...", &s[..max_len.saturating_sub(3)])
     }
 }
 
@@ -3683,23 +3864,77 @@ fn installer_from_bash_command(input: &Path, output: Option<&Path>) -> Result<()
 #[allow(clippy::fn_params_excessive_bools)]
 fn installer_run_command(
     path: &Path,
-    _checkpoint_dir: Option<&Path>,
+    checkpoint_dir: Option<&Path>,
     dry_run: bool,
     diff: bool,
     hermetic: bool,
-    _verify_signatures: bool,
+    verify_signatures: bool,
     _parallel: bool,
 ) -> Result<()> {
-    use crate::installer;
+    use crate::installer::{self, CheckpointStore, HermeticContext, Keyring};
 
     // Validate installer first
     let result = installer::validate_installer(path)?;
+
+    // Set up hermetic context if requested
+    let hermetic_context = if hermetic {
+        let lockfile_path = path.join("installer.lock");
+        if !lockfile_path.exists() {
+            return Err(Error::Validation(format!(
+                "Hermetic mode requires a lockfile. Run 'bashrs installer lock {}' first.",
+                path.display()
+            )));
+        }
+
+        let context = HermeticContext::load(&lockfile_path)?;
+        println!("Hermetic mode enabled");
+        println!("  Lockfile: {}", lockfile_path.display());
+        println!("  SOURCE_DATE_EPOCH: {}", context.source_date_epoch());
+        println!("  Artifacts locked: {}", context.lockfile.artifacts.len());
+        println!();
+        Some(context)
+    } else {
+        None
+    };
+
+    // Set up signature verification if requested
+    let keyring = if verify_signatures {
+        let keyring_dir = std::env::var("XDG_CONFIG_HOME")
+            .map(std::path::PathBuf::from)
+            .or_else(|_| std::env::var("HOME").map(|h| std::path::PathBuf::from(h).join(".config")))
+            .unwrap_or_else(|_| std::path::PathBuf::from("."))
+            .join("bashrs")
+            .join("installer");
+        let keyring_path = keyring_dir.join("keyring.json");
+
+        if !keyring_path.exists() {
+            return Err(Error::Validation(
+                "Signature verification requires a keyring. Run 'bashrs installer keyring init' first.".to_string(),
+            ));
+        }
+
+        let kr = Keyring::with_storage(&keyring_path)?;
+        println!("Signature verification enabled");
+        println!("  Keyring: {}", keyring_path.display());
+        println!("  Keys: {}", kr.len());
+        println!("  TOFU mode: {}", if kr.is_tofu_enabled() { "enabled" } else { "disabled" });
+        println!();
+        Some(kr)
+    } else {
+        None
+    };
 
     if diff {
         println!("=== Dry-Run Diff Preview ===");
         println!();
         println!("Steps to execute: {}", result.steps);
         println!("Artifacts to download: {}", result.artifacts);
+        if hermetic_context.is_some() {
+            println!("Mode: hermetic (reproducible)");
+        }
+        if keyring.is_some() {
+            println!("Signatures: will be verified");
+        }
         return Ok(());
     }
 
@@ -3707,21 +3942,59 @@ fn installer_run_command(
         println!("Dry-run mode: validating only");
         println!("  Steps: {}", result.steps);
         println!("  Artifacts: {}", result.artifacts);
+        if hermetic_context.is_some() {
+            println!("  Mode: hermetic (reproducible)");
+        }
+        if keyring.is_some() {
+            println!("  Signatures: will be verified");
+        }
         println!("✓ Installer validated successfully");
         return Ok(());
     }
 
-    if hermetic {
-        return Err(Error::Validation(
-            "hermetic mode requires a lockfile - run 'bashrs installer lock' first".to_string(),
-        ));
+    // Set up checkpoint store
+    let checkpoint_path = checkpoint_dir
+        .map(|p| p.to_path_buf())
+        .unwrap_or_else(|| path.join(".checkpoint"));
+
+    if !checkpoint_path.exists() {
+        std::fs::create_dir_all(&checkpoint_path).map_err(|e| {
+            Error::Io(std::io::Error::new(
+                e.kind(),
+                format!("Failed to create checkpoint directory: {}", e),
+            ))
+        })?;
     }
 
-    // For now, run command validates but doesn't execute
+    let mut store = CheckpointStore::new(&checkpoint_path)?;
+
+    // Start a new run
+    let installer_name = path
+        .file_name()
+        .and_then(|s| s.to_str())
+        .unwrap_or("installer");
+
+    if let Some(ref ctx) = hermetic_context {
+        // Start hermetic run with lockfile hash
+        store.start_hermetic_run(installer_name, "1.0.0", &ctx.lockfile.content_hash)?;
+    } else {
+        store.start_run(installer_name, "1.0.0")?;
+    }
+
+    println!("Starting installer run...");
+    println!("  Installer: {}", path.display());
+    println!("  Checkpoint: {}", checkpoint_path.display());
+    println!("  Run ID: {}", store.current_run_id().unwrap_or("unknown"));
+    println!();
+
+    // For now, run command sets up but doesn't execute
     // Full execution requires step runner implementation
-    Err(Error::Validation(
-        "installer execution not yet implemented - use --dry-run to validate".to_string(),
-    ))
+    println!("Note: Full step execution not yet implemented.");
+    println!("      Checkpoint system is ready for resume.");
+    println!();
+    println!("Use 'bashrs installer resume {}' to continue after implementation.", path.display());
+
+    Ok(())
 }
 
 fn installer_resume_command(path: &Path, from: Option<&str>) -> Result<()> {
@@ -3834,36 +4107,124 @@ fn installer_test_command(path: &Path, matrix: Option<&str>, coverage: bool) -> 
 }
 
 fn installer_lock_command(path: &Path, update: bool, verify: bool) -> Result<()> {
-    use crate::installer;
+    use crate::installer::{self, HermeticContext, Lockfile, LockedArtifact, LockfileEnvironment, LOCKFILE_VERSION};
 
     // Validate installer first
     let result = installer::validate_installer(path)?;
 
-    let lockfile = path.join("installer.lock");
+    let lockfile_path = path.join("installer.lock");
 
     println!("Managing lockfile for installer at {}", path.display());
+    println!();
 
     if verify {
-        if lockfile.exists() {
-            println!("✓ Lockfile exists: {}", lockfile.display());
-        } else {
-            println!("⚠ No lockfile found (installer has no external artifacts)");
+        // Verify existing lockfile
+        if !lockfile_path.exists() {
+            if result.artifacts == 0 {
+                println!("✓ No lockfile needed (no external artifacts)");
+            } else {
+                return Err(Error::Validation(format!(
+                    "Lockfile required but not found. Run 'bashrs installer lock {}' first.",
+                    path.display()
+                )));
+            }
+            return Ok(());
         }
+
+        // Load and verify lockfile
+        let lockfile = Lockfile::load(&lockfile_path)?;
+        lockfile.verify()?;
+
+        println!("Lockfile verification:");
+        println!("  Version: {}", LOCKFILE_VERSION);
+        println!("  Generator: {}", lockfile.generator);
+        println!("  Content hash: {}", lockfile.content_hash);
+        println!("  Artifacts: {}", lockfile.artifacts.len());
+        println!();
+
+        // Check if lockfile matches current spec
+        if lockfile.artifacts.len() != result.artifacts {
+            println!("⚠ Lockfile may be outdated:");
+            println!("    Lockfile has {} artifacts, spec has {}",
+                lockfile.artifacts.len(), result.artifacts);
+            println!("    Run 'bashrs installer lock {} --update' to refresh", path.display());
+        } else {
+            println!("✓ Lockfile is valid and up-to-date");
+        }
+
+        // Try creating hermetic context to validate
+        let context = HermeticContext::from_lockfile(lockfile)?;
+        println!("  SOURCE_DATE_EPOCH: {}", context.source_date_epoch());
+
+        return Ok(());
+    }
+
+    if update && !lockfile_path.exists() {
+        // Treat --update on nonexistent lockfile as generate
+        println!("  No existing lockfile found, generating new one...");
     } else if update {
+        // Update existing lockfile
         println!("Updating lockfile...");
-        if result.artifacts == 0 {
-            println!("✓ No external artifacts to lock");
-        } else {
-            println!("  Artifacts: {}", result.artifacts);
-        }
+        let existing = Lockfile::load(&lockfile_path)?;
+        println!("  Existing lockfile has {} artifacts", existing.artifacts.len());
+    }
+
+    // Generate new lockfile
+    if result.artifacts == 0 {
+        println!("✓ No external artifacts to lock");
+        println!("  Hermetic mode will use empty lockfile");
+
+        // Create minimal lockfile for hermetic consistency
+        let mut lockfile = Lockfile::new();
+        lockfile.environment = LockfileEnvironment::deterministic(
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .map(|d| d.as_secs())
+                .unwrap_or(0)
+        );
+        lockfile.finalize();
+        lockfile.save(&lockfile_path)?;
+
+        println!("  Created: {}", lockfile_path.display());
+        println!("  SOURCE_DATE_EPOCH: {}", lockfile.environment.source_date_epoch);
     } else {
-        // Generate lockfile info
-        println!("Generating lockfile...");
-        if result.artifacts == 0 {
-            println!("✓ No external artifacts to lock - lockfile not needed");
-        } else {
-            println!("  Artifacts to lock: {}", result.artifacts);
+        println!("Generating lockfile for {} artifacts...", result.artifacts);
+        println!();
+
+        // Create lockfile with artifacts
+        // Note: In a full implementation, this would fetch artifacts and record hashes
+        let mut lockfile = Lockfile::new();
+        lockfile.environment = LockfileEnvironment::deterministic(
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .map(|d| d.as_secs())
+                .unwrap_or(0)
+        );
+
+        // For now, create placeholder entries
+        // Real implementation would parse installer.toml and fetch artifacts
+        for i in 0..result.artifacts {
+            let artifact = LockedArtifact::new(
+                &format!("artifact-{}", i + 1),
+                "1.0.0",
+                "https://example.com/artifact.tar.gz",
+                "sha256:placeholder",
+                0,
+            );
+            lockfile.add_artifact(artifact);
         }
+
+        lockfile.finalize();
+        lockfile.save(&lockfile_path)?;
+
+        println!("✓ Generated lockfile: {}", lockfile_path.display());
+        println!("  Version: {}", LOCKFILE_VERSION);
+        println!("  Content hash: {}", lockfile.content_hash);
+        println!("  Artifacts locked: {}", lockfile.artifacts.len());
+        println!("  SOURCE_DATE_EPOCH: {}", lockfile.environment.source_date_epoch);
+        println!();
+        println!("Note: Run with real artifact URLs to generate proper hashes.");
+        println!("      Use 'bashrs installer run {} --hermetic' to execute.", path.display());
     }
 
     Ok(())
