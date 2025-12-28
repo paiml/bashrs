@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"enum":["IgnoreResult"],"fn":["is_rule_code"],"struct":["CompiledPattern","IgnoreFile"]};
+window.SIDEBAR_ITEMS = {"enum":["IgnoreResult"],"fn":["is_rule_code","normalize_path","parse_rule_specifier"],"struct":["CompiledPattern","IgnoreFile"]};

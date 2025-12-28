@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"fn":["check","extract_inline_validated_vars","extract_validated_variable","extract_variable_from_chmod","extract_variable_from_chown","extract_variable_from_rm"]};
+window.SIDEBAR_ITEMS = {"constant":["SAFE_ENV_VARS"],"fn":["check","extract_inline_validated_vars","extract_validated_variable","extract_var_name_only","extract_variable_from_chmod","extract_variable_from_chown","extract_variable_from_rm","is_safe_env_var"]};

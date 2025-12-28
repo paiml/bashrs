@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"fn":["default_max_parallel","estimate_step_duration","extract_capabilities","format_execution_plan","parse_duration_secs"],"struct":["CacheStats","DistributedConfig","ExecutionPlan","ExecutionWave","GraphNode","InstallerGraph","OptimizationConfig","RemoteExecutor","SccacheClient"]};

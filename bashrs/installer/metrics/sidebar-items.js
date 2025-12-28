@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":["StepOutcome"],"fn":["current_timestamp","detect_environment","format_metrics_report","generate_run_id"],"struct":["AggregatedMetrics","EnvironmentInfo","InstallerMetrics","KaizenReport","MetricsAggregator","MetricsCollector","StepAggregate","StepMetrics"]};

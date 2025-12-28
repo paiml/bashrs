@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"mod":["transpile"]};
+window.SIDEBAR_ITEMS = {"mod":["installer","transpile"]};

@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":["TraceEventType","TraceResult"],"fn":["default_capture_categories","default_ignore_paths","default_trace_dir"],"struct":["ComparisonMetadata","GoldenTrace","GoldenTraceConfig","GoldenTraceManager","SimulatedTraceCollector","TraceComparison","TraceEvent"]};
