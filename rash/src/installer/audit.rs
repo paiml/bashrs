@@ -448,6 +448,8 @@ pub struct AuditContext {
     pub check_best_practices: bool,
     /// Minimum severity to report
     pub min_severity: AuditSeverity,
+    /// Issue #110: Rules to ignore
+    pub ignored_rules: HashSet<String>,
 }
 
 impl Default for AuditContext {
@@ -458,6 +460,7 @@ impl Default for AuditContext {
             check_hermetic: true,
             check_best_practices: true,
             min_severity: AuditSeverity::Info,
+            ignored_rules: HashSet::new(),
         }
     }
 }
@@ -476,6 +479,7 @@ impl AuditContext {
             check_hermetic: false,
             check_best_practices: false,
             min_severity: AuditSeverity::Warning,
+            ignored_rules: HashSet::new(),
         }
     }
 
@@ -483,6 +487,17 @@ impl AuditContext {
     pub fn with_min_severity(mut self, severity: AuditSeverity) -> Self {
         self.min_severity = severity;
         self
+    }
+
+    /// Issue #110: Add a rule to ignore
+    pub fn with_ignored_rule(mut self, rule: impl Into<String>) -> Self {
+        self.ignored_rules.insert(rule.into().to_uppercase());
+        self
+    }
+
+    /// Issue #110: Check if a rule should be ignored
+    fn should_ignore_rule(&self, rule_id: &str) -> bool {
+        self.ignored_rules.contains(&rule_id.to_uppercase())
     }
 
     /// Audit an installer from a parsed InstallerSpec
@@ -515,6 +530,13 @@ impl AuditContext {
 
         // Filter by minimum severity
         report.findings.retain(|f| f.severity >= self.min_severity);
+
+        // Issue #110: Filter out ignored rules
+        if !self.ignored_rules.is_empty() {
+            report
+                .findings
+                .retain(|f| !self.should_ignore_rule(&f.rule_id));
+        }
 
         // Update metadata
         report.metadata.audited_at = chrono_timestamp();
@@ -641,10 +663,19 @@ impl AuditContext {
     /// Audit quality configuration from parsed spec
     fn audit_quality_parsed(&self, spec: &super::spec::InstallerSpec, report: &mut AuditReport) {
         // QUAL001: Check for postconditions (non-empty postcondition indicates presence)
+        // Issue #112: Check ALL postcondition fields and verification.commands
         for step in &spec.step {
             let has_postconditions = step.postconditions.file_exists.is_some()
+                || step.postconditions.file_mode.is_some()
                 || step.postconditions.command_succeeds.is_some()
-                || !step.postconditions.packages_absent.is_empty();
+                || !step.postconditions.packages_absent.is_empty()
+                || step.postconditions.service_active.is_some()
+                || step.postconditions.user_in_group.is_some()
+                || !step.postconditions.env_matches.is_empty()
+                || step
+                    .verification
+                    .as_ref()
+                    .is_some_and(|v| !v.commands.is_empty());
 
             if !has_postconditions {
                 report.add_finding(
@@ -1643,6 +1674,194 @@ mod tests {
                 prop_assert!(ends_correct, "JSON should end with closing brace");
                 prop_assert!(contains_name, "JSON should contain installer name");
             }
+        }
+    }
+
+    /// Tests for Issue #112: audit postconditions not recognized with commands format
+    mod issue_112_tests {
+        use super::*;
+        use crate::installer::spec::InstallerSpec;
+
+        #[test]
+        fn test_112_postconditions_verification_commands_recognized() {
+            // Issue #112: Step with verification.commands should NOT trigger QUAL001
+            let toml = r#"
+[installer]
+name = "test-installer"
+version = "1.0.0"
+description = "Test installer"
+
+[[step]]
+id = "install-app"
+name = "Install Application"
+action = "script"
+
+[step.script]
+content = "apt-get install app"
+
+[step.verification]
+commands = [
+    { cmd = "which app", expect = "/usr/bin/app" }
+]
+"#;
+            let spec = InstallerSpec::parse(toml).expect("Valid TOML");
+            let ctx = AuditContext::new();
+            let report = ctx.audit_parsed_spec(&spec, &PathBuf::from("/test.toml"));
+
+            // Should NOT have QUAL001 finding - verification.commands counts as postconditions
+            let qual001 = report.findings.iter().find(|f| f.rule_id == "QUAL001");
+            assert!(
+                qual001.is_none(),
+                "QUAL001 should not be raised when verification.commands is present"
+            );
+        }
+
+        #[test]
+        fn test_112_postconditions_file_mode_recognized() {
+            // Issue #112: Step with file_mode postcondition should NOT trigger QUAL001
+            let toml = r#"
+[installer]
+name = "test-installer"
+version = "1.0.0"
+
+[[step]]
+id = "set-perms"
+name = "Set Permissions"
+action = "script"
+
+[step.script]
+content = "chmod 755 /app"
+
+[step.postconditions]
+file_mode = "/app:755"
+"#;
+            let spec = InstallerSpec::parse(toml).expect("Valid TOML");
+            let ctx = AuditContext::new();
+            let report = ctx.audit_parsed_spec(&spec, &PathBuf::from("/test.toml"));
+
+            let qual001 = report.findings.iter().find(|f| f.rule_id == "QUAL001");
+            assert!(
+                qual001.is_none(),
+                "QUAL001 should not be raised when file_mode postcondition is present"
+            );
+        }
+
+        #[test]
+        fn test_112_postconditions_service_active_recognized() {
+            // Issue #112: Step with service_active postcondition should NOT trigger QUAL001
+            let toml = r#"
+[installer]
+name = "test-installer"
+version = "1.0.0"
+
+[[step]]
+id = "start-service"
+name = "Start Service"
+action = "script"
+
+[step.script]
+content = "systemctl start myapp"
+
+[step.postconditions]
+service_active = "myapp"
+"#;
+            let spec = InstallerSpec::parse(toml).expect("Valid TOML");
+            let ctx = AuditContext::new();
+            let report = ctx.audit_parsed_spec(&spec, &PathBuf::from("/test.toml"));
+
+            let qual001 = report.findings.iter().find(|f| f.rule_id == "QUAL001");
+            assert!(
+                qual001.is_none(),
+                "QUAL001 should not be raised when service_active postcondition is present"
+            );
+        }
+
+        #[test]
+        fn test_112_postconditions_env_matches_recognized() {
+            // Issue #112: Step with env_matches postcondition should NOT trigger QUAL001
+            let toml = r#"
+[installer]
+name = "test-installer"
+version = "1.0.0"
+
+[[step]]
+id = "setup-env"
+name = "Setup Environment"
+action = "script"
+
+[step.script]
+content = "export PATH=/app/bin:$PATH"
+
+[step.postconditions.env_matches]
+PATH = "/app/bin"
+"#;
+            let spec = InstallerSpec::parse(toml).expect("Valid TOML");
+            let ctx = AuditContext::new();
+            let report = ctx.audit_parsed_spec(&spec, &PathBuf::from("/test.toml"));
+
+            let qual001 = report.findings.iter().find(|f| f.rule_id == "QUAL001");
+            assert!(
+                qual001.is_none(),
+                "QUAL001 should not be raised when env_matches postcondition is present"
+            );
+        }
+
+        #[test]
+        fn test_112_postconditions_user_in_group_recognized() {
+            // Issue #112: Step with user_in_group postcondition should NOT trigger QUAL001
+            let toml = r#"
+[installer]
+name = "test-installer"
+version = "1.0.0"
+
+[[step]]
+id = "add-group"
+name = "Add User to Group"
+action = "script"
+
+[step.script]
+content = "usermod -aG docker $USER"
+
+[step.postconditions.user_in_group]
+user = "deploy"
+group = "docker"
+"#;
+            let spec = InstallerSpec::parse(toml).expect("Valid TOML");
+            let ctx = AuditContext::new();
+            let report = ctx.audit_parsed_spec(&spec, &PathBuf::from("/test.toml"));
+
+            let qual001 = report.findings.iter().find(|f| f.rule_id == "QUAL001");
+            assert!(
+                qual001.is_none(),
+                "QUAL001 should not be raised when user_in_group postcondition is present"
+            );
+        }
+
+        #[test]
+        fn test_112_no_postconditions_triggers_qual001() {
+            // Sanity check: Step with NO postconditions SHOULD trigger QUAL001
+            let toml = r#"
+[installer]
+name = "test-installer"
+version = "1.0.0"
+
+[[step]]
+id = "no-post"
+name = "Step Without Postconditions"
+action = "script"
+
+[step.script]
+content = "echo hello"
+"#;
+            let spec = InstallerSpec::parse(toml).expect("Valid TOML");
+            let ctx = AuditContext::new();
+            let report = ctx.audit_parsed_spec(&spec, &PathBuf::from("/test.toml"));
+
+            let qual001 = report.findings.iter().find(|f| f.rule_id == "QUAL001");
+            assert!(
+                qual001.is_some(),
+                "QUAL001 should be raised when no postconditions are present"
+            );
         }
     }
 }

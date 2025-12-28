@@ -29,6 +29,7 @@ mod audit;
 mod checkpoint;
 mod container;
 mod dry_run;
+mod executor;
 mod from_bash;
 mod hermetic;
 mod plan;
@@ -74,6 +75,9 @@ pub use tracing::{
 };
 pub use audit::{
     AuditCategory, AuditContext, AuditFinding, AuditMetadata, AuditReport, AuditSeverity,
+};
+pub use executor::{
+    ExecutorConfig, PostconditionResult, StepExecutionResult, StepExecutor,
 };
 
 use crate::models::{Error, Result};

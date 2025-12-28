@@ -3594,9 +3594,10 @@ fn handle_installer_command(command: InstallerCommands) -> Result<()> {
             format,
             security_only,
             min_severity,
+            ignore,
         } => {
             info!("Auditing installer at {}", path.display());
-            installer_audit_command(&path, format, security_only, min_severity.as_deref())
+            installer_audit_command(&path, format, security_only, min_severity.as_deref(), &ignore)
         }
 
         InstallerCommands::Keyring { command } => handle_keyring_command(command),
@@ -3888,12 +3889,23 @@ fn installer_run_command(
     trace_file: Option<&Path>,
 ) -> Result<()> {
     use crate::installer::{
-        self, CheckpointStore, ExecutionMode, HermeticContext, InstallerProgress, Keyring,
-        TerminalRenderer, ProgressRenderer, TracingContext, generate_summary,
+        self, CheckpointStore, ExecutionMode, ExecutorConfig, HermeticContext, InstallerProgress,
+        InstallerSpec, Keyring, StepExecutor, TerminalRenderer, ProgressRenderer, TracingContext,
+        generate_summary,
     };
 
     // Validate installer first
     let result = installer::validate_installer(path)?;
+
+    // Parse the full spec for execution
+    let installer_toml = path.join("installer.toml");
+    let spec_content = std::fs::read_to_string(&installer_toml).map_err(|e| {
+        Error::Io(std::io::Error::new(
+            e.kind(),
+            format!("Failed to read installer.toml: {}", e),
+        ))
+    })?;
+    let spec = InstallerSpec::parse(&spec_content)?;
 
     // Set up hermetic context if requested
     let hermetic_context = if hermetic {
@@ -4033,9 +4045,9 @@ fn installer_run_command(
         None
     };
 
-    // Add steps to progress tracker (simulated for now)
-    for i in 0..result.steps {
-        progress.add_step(&format!("step-{}", i + 1), &format!("Step {}", i + 1));
+    // Add steps to progress tracker from actual spec
+    for step in &spec.step {
+        progress.add_step(&step.id, &step.name);
     }
 
     // Render initial progress
@@ -4047,30 +4059,85 @@ fn installer_run_command(
     println!("  Mode: {}", execution_mode.label());
     println!();
 
-    // Simulate step execution (placeholder for actual execution)
-    for i in 0..result.steps {
-        let step_id = format!("step-{}", i + 1);
-        let step_name = format!("Step {}", i + 1);
+    // Create executor with appropriate config (Issue #113)
+    let executor_config = ExecutorConfig {
+        dry_run,
+        use_sudo: false, // Will be set per-step based on privileges
+        environment: std::collections::HashMap::new(),
+        working_dir: Some(path.display().to_string()),
+        timeout_secs: 300, // 5 minute default timeout
+    };
+    let executor = StepExecutor::with_config(executor_config);
 
+    // Execute each step (Issue #113: Real step execution)
+    let mut all_succeeded = true;
+    for step in &spec.step {
         // Start tracing span for this step
         if let Some(ref mut ctx) = tracing_ctx {
-            ctx.start_step_span(&step_id, &step_name);
+            ctx.start_step_span(&step.id, &step.name);
         }
 
-        progress.start_step(&step_id, "Executing...");
+        progress.start_step(&step.id, "Executing...");
 
-        // Simulate progress updates
-        progress.update_step(&step_id, 50, "In progress...");
-        progress.complete_step(&step_id);
+        // Execute the step
+        let exec_result = executor.execute_step(step);
 
-        // End tracing span
-        if let Some(ref mut ctx) = tracing_ctx {
-            ctx.end_span_ok();
+        match exec_result {
+            Ok(result) => {
+                if result.success {
+                    progress.update_step(&step.id, 100, "Completed");
+                    progress.complete_step(&step.id);
+
+                    // End tracing span successfully
+                    if let Some(ref mut ctx) = tracing_ctx {
+                        ctx.end_span_ok();
+                    }
+
+                    // Show output if any
+                    if !result.stdout.trim().is_empty() {
+                        println!("  Output: {}", result.stdout.trim().lines().next().unwrap_or(""));
+                    }
+                } else {
+                    all_succeeded = false;
+                    progress.update_step(&step.id, 0, "Failed");
+
+                    // End tracing span with error
+                    if let Some(ref mut ctx) = tracing_ctx {
+                        ctx.end_span_error(&result.stderr);
+                    }
+
+                    println!("  ❌ Step '{}' failed:", step.id);
+                    if !result.stderr.is_empty() {
+                        for line in result.stderr.lines().take(3) {
+                            println!("     {}", line);
+                        }
+                    }
+
+                    // Check postcondition failures
+                    for postcond in &result.postcondition_results {
+                        if !postcond.passed {
+                            println!("     Postcondition failed: {}", postcond.details);
+                        }
+                    }
+
+                    // Stop on first failure (unless configured otherwise)
+                    break;
+                }
+            }
+            Err(e) => {
+                all_succeeded = false;
+                println!("  ❌ Step '{}' error: {}", step.id, e);
+
+                if let Some(ref mut ctx) = tracing_ctx {
+                    ctx.end_span_error(&e.to_string());
+                }
+                break;
+            }
         }
 
         // Render step progress
-        if let Some(step) = progress.get_step(&step_id) {
-            println!("{}", renderer.render_step(step, result.steps));
+        if let Some(step_info) = progress.get_step(&step.id) {
+            println!("{}", renderer.render_step(step_info, spec.step.len()));
         }
     }
 
@@ -4102,12 +4169,12 @@ fn installer_run_command(
         }
     }
 
-    // For now, run command sets up but doesn't fully execute
-    // Full execution requires step runner implementation
-    println!("\nNote: Full step execution not yet implemented.");
-    println!("      Progress tracking, tracing, and checkpoint system are ready.");
-    println!();
-    println!("Use 'bashrs installer resume {}' to continue after implementation.", path.display());
+    // Report final status
+    if all_succeeded {
+        println!("\n✅ Installation completed successfully!");
+    } else {
+        println!("\n❌ Installation failed. Use 'bashrs installer resume {}' to retry.", path.display());
+    }
 
     Ok(())
 }
@@ -4449,6 +4516,7 @@ fn installer_audit_command(
     format: AuditOutputFormat,
     security_only: bool,
     min_severity: Option<&str>,
+    ignore: &[String],
 ) -> Result<()> {
     use crate::installer::{AuditContext, AuditSeverity, InstallerSpec};
 
@@ -4499,6 +4567,11 @@ fn installer_audit_command(
             }
         };
         ctx = ctx.with_min_severity(severity);
+    }
+
+    // Issue #110: Add ignored rules
+    for rule in ignore {
+        ctx = ctx.with_ignored_rule(rule);
     }
 
     // Run audit

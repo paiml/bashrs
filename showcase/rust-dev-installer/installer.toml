@@ -1,0 +1,309 @@
+# Rust Development Environment Installer
+#
+# This installer sets up a complete Rust development environment including:
+# - Rustup toolchain manager
+# - Rust stable and nightly toolchains
+# - Essential cargo tools (clippy, rustfmt, cargo-watch, cargo-nextest)
+# - Development dependencies (build-essential, pkg-config, etc.)
+#
+# Usage:
+#   bashrs installer run ./showcase/rust-dev-installer --dry-run
+#   bashrs installer run ./showcase/rust-dev-installer
+
+[installer]
+name = "rust-dev-installer"
+version = "1.0.0"
+description = "Complete Rust development environment setup"
+author = "bashrs team"
+
+[installer.requirements]
+os = ["ubuntu >= 20.04", "debian >= 11"]
+arch = ["x86_64", "aarch64"]
+privileges = "user"
+network = true
+
+[installer.security]
+trust_model = "keyring"
+require_signatures = false
+
+[installer.hermetic]
+enabled = true
+source_date_epoch = "2025-01-01T00:00:00Z"
+
+# Artifacts to download
+[[artifact]]
+id = "rustup-init"
+url = "https://sh.rustup.rs"
+description = "Rustup installer script"
+# Note: rustup.rs serves a dynamic script, so we verify via TLS and content checks
+# In production, you would pin to a specific version with a hash
+sha256 = "DYNAMIC_SCRIPT"  # Placeholder - actual script content varies
+
+# Step 1: Install system dependencies
+[[step]]
+id = "install-deps"
+name = "Install System Dependencies"
+action = "apt-install"
+packages = ["build-essential", "pkg-config", "libssl-dev", "curl"]
+
+[step.postconditions]
+command_succeeds = "pkg-config --exists openssl"
+
+[step.checkpoint]
+enabled = true
+
+[step.timing]
+timeout = "10m"
+
+# Step 2: Download and install rustup
+[[step]]
+id = "install-rustup"
+name = "Install Rustup"
+action = "script"
+depends_on = ["install-deps"]
+
+[step.script]
+interpreter = "sh"
+content = """
+# Check if rustup is already installed
+if command -v rustup >/dev/null 2>&1; then
+    echo "Rustup already installed, updating..."
+    rustup self update
+else
+    echo "Installing rustup..."
+    curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain stable
+fi
+
+# Source cargo environment
+. "$HOME/.cargo/env"
+"""
+
+[step.postconditions]
+file_exists = "$HOME/.cargo/bin/rustup"
+command_succeeds = "rustup --version"
+
+[step.checkpoint]
+enabled = true
+
+[step.timing]
+timeout = "5m"
+
+# Step 3: Install Rust stable toolchain
+[[step]]
+id = "install-stable"
+name = "Install Rust Stable Toolchain"
+action = "script"
+depends_on = ["install-rustup"]
+
+[step.script]
+interpreter = "sh"
+content = """
+. "$HOME/.cargo/env"
+rustup install stable
+rustup default stable
+rustup component add clippy rustfmt
+"""
+
+[step.postconditions]
+command_succeeds = "rustc --version"
+
+[step.verification]
+commands = [
+    { cmd = "cargo --version", expect = "cargo" },
+    { cmd = "rustfmt --version", expect = "rustfmt" },
+    { cmd = "cargo clippy --version", expect = "clippy" }
+]
+
+[step.checkpoint]
+enabled = true
+
+[step.timing]
+timeout = "15m"
+
+# Step 4: Install Rust nightly toolchain (optional)
+[[step]]
+id = "install-nightly"
+name = "Install Rust Nightly Toolchain"
+action = "script"
+depends_on = ["install-stable"]
+
+[step.script]
+interpreter = "sh"
+content = """
+. "$HOME/.cargo/env"
+rustup install nightly
+rustup component add --toolchain nightly clippy rustfmt miri
+"""
+
+[step.postconditions]
+command_succeeds = "rustup run nightly rustc --version"
+
+[step.checkpoint]
+enabled = true
+
+[step.timing]
+timeout = "10m"
+
+# Step 5: Install cargo tools
+[[step]]
+id = "install-cargo-tools"
+name = "Install Cargo Development Tools"
+action = "script"
+depends_on = ["install-stable"]
+
+[step.script]
+interpreter = "sh"
+content = """
+. "$HOME/.cargo/env"
+
+# Install essential cargo tools
+cargo install cargo-watch --locked 2>/dev/null || cargo install cargo-watch
+cargo install cargo-nextest --locked 2>/dev/null || cargo install cargo-nextest
+cargo install cargo-audit --locked 2>/dev/null || cargo install cargo-audit
+cargo install cargo-deny --locked 2>/dev/null || cargo install cargo-deny
+cargo install cargo-llvm-cov --locked 2>/dev/null || cargo install cargo-llvm-cov
+cargo install cargo-mutants --locked 2>/dev/null || cargo install cargo-mutants
+
+echo "Cargo tools installed successfully"
+"""
+
+[step.postconditions]
+command_succeeds = "cargo nextest --version"
+
+[step.verification]
+commands = [
+    { cmd = "cargo watch --version", expect = "watch" },
+    { cmd = "cargo nextest --version", expect = "nextest" },
+    { cmd = "cargo audit --version", expect = "audit" }
+]
+
+[step.checkpoint]
+enabled = true
+
+[step.timing]
+timeout = "20m"
+
+# Step 6: Install sccache for faster builds
+[[step]]
+id = "install-sccache"
+name = "Install sccache (Build Cache)"
+action = "script"
+depends_on = ["install-stable"]
+
+[step.script]
+interpreter = "sh"
+content = """
+. "$HOME/.cargo/env"
+
+# Install sccache
+cargo install sccache --locked 2>/dev/null || cargo install sccache
+
+# Configure cargo to use sccache
+mkdir -p "$HOME/.cargo"
+if ! grep -q 'RUSTC_WRAPPER' "$HOME/.cargo/env" 2>/dev/null; then
+    echo 'export RUSTC_WRAPPER="sccache"' >> "$HOME/.cargo/env"
+fi
+
+echo "sccache installed and configured"
+"""
+
+[step.postconditions]
+command_succeeds = "sccache --version"
+file_exists = "$HOME/.cargo/env"
+
+[step.checkpoint]
+enabled = true
+
+[step.timing]
+timeout = "10m"
+
+# Step 7: Configure shell environment
+[[step]]
+id = "configure-shell"
+name = "Configure Shell Environment"
+action = "script"
+depends_on = ["install-rustup"]
+
+[step.script]
+interpreter = "sh"
+content = """
+# Add cargo to PATH if not already there
+CARGO_ENV='[ -f "$HOME/.cargo/env" ] && . "$HOME/.cargo/env"'
+
+# Check for bashrc
+if [ -f "$HOME/.bashrc" ]; then
+    if ! grep -q '.cargo/env' "$HOME/.bashrc" 2>/dev/null; then
+        echo "" >> "$HOME/.bashrc"
+        echo "# Rust/Cargo environment" >> "$HOME/.bashrc"
+        echo "$CARGO_ENV" >> "$HOME/.bashrc"
+        echo "Configured .bashrc"
+    else
+        echo ".bashrc already configured"
+    fi
+fi
+
+# Check for zshrc
+if [ -f "$HOME/.zshrc" ]; then
+    if ! grep -q '.cargo/env' "$HOME/.zshrc" 2>/dev/null; then
+        echo "" >> "$HOME/.zshrc"
+        echo "# Rust/Cargo environment" >> "$HOME/.zshrc"
+        echo "$CARGO_ENV" >> "$HOME/.zshrc"
+        echo "Configured .zshrc"
+    else
+        echo ".zshrc already configured"
+    fi
+fi
+
+echo "Shell environment configured"
+"""
+
+[step.verification]
+commands = [
+    { cmd = "grep -q cargo \"$HOME/.bashrc\" 2>/dev/null || grep -q cargo \"$HOME/.zshrc\" 2>/dev/null && echo configured || echo skipped", expect = "" }
+]
+
+[step.checkpoint]
+enabled = true
+
+[step.timing]
+timeout = "2m"
+
+# Step 8: Verify installation
+[[step]]
+id = "verify-installation"
+name = "Verify Installation"
+action = "script"
+depends_on = ["install-stable", "install-cargo-tools", "configure-shell"]
+
+[step.script]
+interpreter = "sh"
+content = """
+. "$HOME/.cargo/env"
+
+echo "=== Rust Development Environment ==="
+echo ""
+echo "Rust Toolchains:"
+rustup show
+echo ""
+echo "Cargo Tools:"
+echo "  - cargo-watch: $(cargo watch --version 2>/dev/null || echo 'not installed')"
+echo "  - cargo-nextest: $(cargo nextest --version 2>/dev/null || echo 'not installed')"
+echo "  - cargo-audit: $(cargo audit --version 2>/dev/null || echo 'not installed')"
+echo "  - cargo-deny: $(cargo deny --version 2>/dev/null || echo 'not installed')"
+echo "  - cargo-llvm-cov: $(cargo llvm-cov --version 2>/dev/null || echo 'not installed')"
+echo "  - sccache: $(sccache --version 2>/dev/null || echo 'not installed')"
+echo ""
+echo "Installation complete!"
+"""
+
+[step.verification]
+commands = [
+    { cmd = "rustc --version", expect = "rustc" },
+    { cmd = "cargo --version", expect = "cargo" }
+]
+
+[step.checkpoint]
+enabled = true
+
+[step.timing]
+timeout = "2m"
