@@ -26,6 +26,7 @@
 //! ```
 
 mod checkpoint;
+mod container;
 mod dry_run;
 mod from_bash;
 mod hermetic;
@@ -38,6 +39,11 @@ mod spec;
 mod tests;
 
 pub use checkpoint::{CheckpointStore, InstallerRun, RunStatus, StateFile, StepCheckpoint as CheckpointEntry, StepStatus};
+pub use container::{
+    Architecture, ContainerConfig, ContainerRuntime, ContainerTestMatrix,
+    MatrixConfig, MatrixSummary, Platform, PlatformResult, ResourceLimits,
+    StepTestResult, TestStatus,
+};
 pub use dry_run::{
     DiffPreview, DryRunContext, DryRunSummary, FileChange, FileChangeType,
     PackageOperation, ServiceOperation, SimulationEntry, UserGroupOperation,

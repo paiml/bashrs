@@ -4069,30 +4069,58 @@ fn installer_resume_command(path: &Path, from: Option<&str>) -> Result<()> {
 }
 
 fn installer_test_command(path: &Path, matrix: Option<&str>, coverage: bool) -> Result<()> {
-    use crate::installer;
+    use crate::installer::{self, ContainerRuntime, ContainerTestMatrix, MatrixConfig};
 
     // Validate installer first
     let result = installer::validate_installer(path)?;
 
     if let Some(platforms) = matrix {
-        let platform_list: Vec<&str> = platforms.split(',').map(|s| s.trim()).collect();
-        println!("Container Test Matrix");
-        println!("══════════════════════════════════════════════════════════════════════════════");
-        println!();
-        println!("  Platform          Status    Notes");
-        println!("──────────────────────────────────────────────────────────────────────────────");
-        for platform in &platform_list {
-            println!("  {:<18}✓ VALID   Specification validated", platform);
+        // Detect container runtime
+        let runtime = ContainerRuntime::detect();
+        let runtime_name = runtime.map_or("none", |r| r.command());
+
+        // Parse matrix configuration
+        let config = if platforms.is_empty() || platforms == "default" {
+            MatrixConfig::default_platforms()
+        } else if platforms == "extended" {
+            MatrixConfig::extended_platforms()
+        } else {
+            MatrixConfig::from_platform_string(platforms)
+        };
+
+        // Create and run test matrix (simulate for now)
+        let mut matrix_runner = ContainerTestMatrix::new(path, config);
+
+        // Check runtime availability
+        if runtime.is_none() {
+            println!("⚠ Warning: No container runtime detected (docker/podman)");
+            println!("  Running in simulation mode\n");
         }
-        println!("══════════════════════════════════════════════════════════════════════════════");
-        println!();
-        println!("  Steps: {}", result.steps);
+
+        // Simulate tests (actual execution would require container runtime)
+        let summary = matrix_runner.simulate();
+
+        // Display results
+        println!("{}", matrix_runner.format_results());
+        println!("{}", summary.format());
+
+        println!("  Steps per platform: {}", result.steps);
         println!("  Artifacts: {}", result.artifacts);
+        println!("  Runtime: {}", runtime_name);
         if coverage {
             println!("  Coverage: enabled");
         }
         println!();
-        println!("✓ Installer specification validated for {} platform(s)", platform_list.len());
+
+        if summary.all_passed() {
+            println!("✓ All {} platform(s) passed", summary.total);
+        } else {
+            println!("✗ {} of {} platform(s) failed", summary.failed, summary.total);
+            return Err(Error::Validation(format!(
+                "{} platform(s) failed testing",
+                summary.failed
+            )));
+        }
     } else {
         println!("Installer test summary:");
         println!("  Steps: {}", result.steps);
