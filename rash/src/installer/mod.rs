@@ -31,9 +31,11 @@ mod container;
 mod distributed;
 mod dry_run;
 mod executor;
+mod falsification;
 mod from_bash;
 mod golden_trace;
 mod hermetic;
+mod metrics;
 mod plan;
 mod progress;
 mod rollback;
@@ -89,6 +91,16 @@ pub use distributed::{
 pub use golden_trace::{
     ComparisonMetadata, GoldenTrace, GoldenTraceConfig, GoldenTraceManager,
     SimulatedTraceCollector, TraceComparison, TraceEvent, TraceEventType, TraceResult,
+};
+pub use metrics::{
+    AggregatedMetrics, EnvironmentInfo, InstallerMetrics, KaizenReport, MetricsAggregator,
+    MetricsCollector, StepAggregate, StepMetrics, StepOutcome, format_metrics_report,
+};
+pub use falsification::{
+    CategorySummary, Evidence, FalsificationConfig, FalsificationGenerator, FalsificationHypothesis,
+    FalsificationReport, FalsificationResult, FalsificationTest, HypothesisCategory,
+    InstallerInfo as FalsificationInstallerInfo, StepInfo as FalsificationStepInfo,
+    TestAction, Verification,
 };
 
 use crate::models::{Error, Result};
