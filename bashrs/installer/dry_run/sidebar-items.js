@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":["FileChangeType","PackageOperation","ServiceOperation","UserGroupOperation"],"struct":["DiffPreview","DryRunContext","DryRunSummary","FileChange","SimulationEntry"]};
