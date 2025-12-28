@@ -1,7 +1,7 @@
 #[cfg(feature = "oracle")]
 use crate::cli::args::ExplainErrorFormat;
 use crate::cli::args::{
-    CompileRuntime, ConfigCommands, ConfigOutputFormat, ContainerFormatArg, DevContainerCommands,
+    AuditOutputFormat, CompileRuntime, ConfigCommands, ConfigOutputFormat, ContainerFormatArg, DevContainerCommands,
     DockerfileCommands, InstallerCommands, InstallerGraphFormat, InspectionFormat, KeyringCommands,
     LintFormat, LintLevel, LintProfileArg, MakeCommands, MakeOutputFormat, MutateFormat,
     PlaybookFormat, ReportFormat, ScoreOutputFormat, SimulateFormat, TestOutputFormat,
@@ -3589,6 +3589,16 @@ fn handle_installer_command(command: InstallerCommands) -> Result<()> {
             installer_golden_compare_command(&path, &trace)
         }
 
+        InstallerCommands::Audit {
+            path,
+            format,
+            security_only,
+            min_severity,
+        } => {
+            info!("Auditing installer at {}", path.display());
+            installer_audit_command(&path, format, security_only, min_severity.as_deref())
+        }
+
         InstallerCommands::Keyring { command } => handle_keyring_command(command),
     }
 }
@@ -4432,6 +4442,94 @@ fn installer_golden_compare_command(path: &Path, trace: &str) -> Result<()> {
         "golden trace comparison '{}' requires renacer integration - not yet available",
         trace
     )))
+}
+
+fn installer_audit_command(
+    path: &Path,
+    format: AuditOutputFormat,
+    security_only: bool,
+    min_severity: Option<&str>,
+) -> Result<()> {
+    use crate::installer::{AuditContext, AuditSeverity, InstallerSpec};
+
+    // Find installer.toml
+    let installer_toml = if path.is_dir() {
+        path.join("installer.toml")
+    } else {
+        path.to_path_buf()
+    };
+
+    if !installer_toml.exists() {
+        return Err(Error::Validation(format!(
+            "installer.toml not found at {}",
+            installer_toml.display()
+        )));
+    }
+
+    // Parse the TOML
+    let content = std::fs::read_to_string(&installer_toml).map_err(|e| {
+        Error::Io(std::io::Error::new(
+            e.kind(),
+            format!("Failed to read installer.toml: {e}"),
+        ))
+    })?;
+
+    let spec = InstallerSpec::parse(&content)?;
+
+    // Set up audit context
+    let mut ctx = if security_only {
+        AuditContext::security_only()
+    } else {
+        AuditContext::new()
+    };
+
+    // Set minimum severity if specified
+    if let Some(sev) = min_severity {
+        let severity = match sev.to_lowercase().as_str() {
+            "info" => AuditSeverity::Info,
+            "suggestion" => AuditSeverity::Suggestion,
+            "warning" => AuditSeverity::Warning,
+            "error" => AuditSeverity::Error,
+            "critical" => AuditSeverity::Critical,
+            _ => {
+                return Err(Error::Validation(format!(
+                    "Invalid severity '{}'. Valid values: info, suggestion, warning, error, critical",
+                    sev
+                )));
+            }
+        };
+        ctx = ctx.with_min_severity(severity);
+    }
+
+    // Run audit
+    let report = ctx.audit_parsed_spec(&spec, &installer_toml);
+
+    // Output report
+    match format {
+        AuditOutputFormat::Human => {
+            println!("{}", report.format());
+        }
+        AuditOutputFormat::Json => {
+            println!("{}", report.to_json());
+        }
+        AuditOutputFormat::Sarif => {
+            // SARIF format not yet implemented for installer audit
+            println!("{}", report.to_json());
+        }
+    }
+
+    // Return error if there are errors or critical issues
+    if report.has_errors() {
+        Err(Error::Validation(format!(
+            "Audit found {} error(s). Score: {}/100 (Grade: {})",
+            report.findings_by_severity(AuditSeverity::Error).len()
+                + report.findings_by_severity(AuditSeverity::Critical).len(),
+            report.score(),
+            report.grade()
+        )))
+    } else {
+        Ok(())
+    }
 }
 
 // ============================================================================
@@ -5657,8 +5755,6 @@ fn score_status(score: f64) -> &'static str {
 // ============================================================================
 // Audit Command (v6.12.0 - Bash Quality Tools)
 // ============================================================================
-
-use crate::cli::args::AuditOutputFormat;
 
 /// Comprehensive quality audit results
 #[derive(Debug)]

@@ -1071,6 +1071,25 @@ pub enum InstallerCommands {
         trace: String,
     },
 
+    /// Audit installer for security, quality, and best practices
+    Audit {
+        /// Installer directory or installer.toml path
+        #[arg(value_name = "PATH")]
+        path: PathBuf,
+
+        /// Output format (human, json)
+        #[arg(long, value_enum, default_value = "human")]
+        format: AuditOutputFormat,
+
+        /// Security-only audit
+        #[arg(long)]
+        security_only: bool,
+
+        /// Minimum severity to report (info, suggestion, warning, error, critical)
+        #[arg(long)]
+        min_severity: Option<String>,
+    },
+
     /// Initialize or manage keyring for artifact verification
     Keyring {
         #[command(subcommand)]

@@ -25,6 +25,7 @@
 //! bashrs installer run ./my-installer --dry-run --diff
 //! ```
 
+mod audit;
 mod checkpoint;
 mod container;
 mod dry_run;
@@ -70,6 +71,9 @@ pub use spec::{
 pub use tracing::{
     AttributeValue, LogEntry, Logger, Span, SpanEvent, SpanKind, SpanStatus,
     TraceExporter, TraceLevel, TraceSummary, TracingContext,
+};
+pub use audit::{
+    AuditCategory, AuditContext, AuditFinding, AuditMetadata, AuditReport, AuditSeverity,
 };
 
 use crate::models::{Error, Result};
