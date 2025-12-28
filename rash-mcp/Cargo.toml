@@ -24,5 +24,6 @@ thiserror.workspace = true
 # MCP-specific dependencies
 schemars = "0.8"
 async-trait = "0.1"
+toml = "0.8"
 
 [dev-dependencies]
