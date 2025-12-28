@@ -28,9 +28,11 @@
 mod audit;
 mod checkpoint;
 mod container;
+mod distributed;
 mod dry_run;
 mod executor;
 mod from_bash;
+mod golden_trace;
 mod hermetic;
 mod plan;
 mod progress;
@@ -78,6 +80,15 @@ pub use audit::{
 };
 pub use executor::{
     ExecutorConfig, PostconditionResult, StepExecutionResult, StepExecutor,
+};
+pub use distributed::{
+    CacheStats, DistributedConfig, ExecutionPlan, ExecutionWave, GraphNode,
+    InstallerGraph, OptimizationConfig, RemoteExecutor, SccacheClient,
+    format_execution_plan,
+};
+pub use golden_trace::{
+    ComparisonMetadata, GoldenTrace, GoldenTraceConfig, GoldenTraceManager,
+    SimulatedTraceCollector, TraceComparison, TraceEvent, TraceEventType, TraceResult,
 };
 
 use crate::models::{Error, Result};
