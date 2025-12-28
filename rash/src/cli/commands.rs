@@ -3871,7 +3871,10 @@ fn installer_run_command(
     verify_signatures: bool,
     _parallel: bool,
 ) -> Result<()> {
-    use crate::installer::{self, CheckpointStore, HermeticContext, Keyring};
+    use crate::installer::{
+        self, CheckpointStore, ExecutionMode, HermeticContext, InstallerProgress, Keyring,
+        TerminalRenderer, ProgressRenderer, generate_summary,
+    };
 
     // Validate installer first
     let result = installer::validate_installer(path)?;
@@ -3981,16 +3984,59 @@ fn installer_run_command(
         store.start_run(installer_name, "1.0.0")?;
     }
 
-    println!("Starting installer run...");
+    // Set up progress tracking (#107 trueno-viz integration)
+    let execution_mode = if hermetic {
+        ExecutionMode::Hermetic
+    } else if dry_run {
+        ExecutionMode::DryRun
+    } else {
+        ExecutionMode::Normal
+    };
+
+    let mut progress = InstallerProgress::new(installer_name, "1.0.0")
+        .with_mode(execution_mode)
+        .with_artifacts(0, result.artifacts)
+        .with_signatures(keyring.is_some());
+
+    // Add steps to progress tracker (simulated for now)
+    for i in 0..result.steps {
+        progress.add_step(&format!("step-{}", i + 1), &format!("Step {}", i + 1));
+    }
+
+    // Render initial progress
+    let renderer = TerminalRenderer::new();
+    println!("{}", renderer.render_header(&progress));
     println!("  Installer: {}", path.display());
     println!("  Checkpoint: {}", checkpoint_path.display());
     println!("  Run ID: {}", store.current_run_id().unwrap_or("unknown"));
+    println!("  Mode: {}", execution_mode.label());
     println!();
 
-    // For now, run command sets up but doesn't execute
+    // Simulate step execution (placeholder for actual execution)
+    for i in 0..result.steps {
+        let step_id = format!("step-{}", i + 1);
+        progress.start_step(&step_id, "Executing...");
+
+        // Simulate progress updates
+        progress.update_step(&step_id, 50, "In progress...");
+        progress.complete_step(&step_id);
+
+        // Render step progress
+        if let Some(step) = progress.get_step(&step_id) {
+            println!("{}", renderer.render_step(step, result.steps));
+        }
+    }
+
+    // Render footer and summary
+    println!("{}", renderer.render_footer(&progress));
+
+    let summary = generate_summary(&progress);
+    println!("\n{}", summary.format());
+
+    // For now, run command sets up but doesn't fully execute
     // Full execution requires step runner implementation
-    println!("Note: Full step execution not yet implemented.");
-    println!("      Checkpoint system is ready for resume.");
+    println!("\nNote: Full step execution not yet implemented.");
+    println!("      Progress tracking and checkpoint system are ready.");
     println!();
     println!("Use 'bashrs installer resume {}' to continue after implementation.", path.display());
 

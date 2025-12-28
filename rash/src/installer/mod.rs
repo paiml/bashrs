@@ -31,6 +31,7 @@ mod dry_run;
 mod from_bash;
 mod hermetic;
 mod plan;
+mod progress;
 mod rollback;
 mod signature;
 mod spec;
@@ -51,6 +52,11 @@ pub use dry_run::{
 pub use from_bash::{convert_bash_to_installer, convert_file_to_project, ConversionResult, ConversionStats};
 pub use hermetic::{HermeticContext, Lockfile, LockedArtifact, LockfileEnvironment, LOCKFILE_VERSION};
 pub use plan::InstallerPlan;
+pub use progress::{
+    ExecutionMode, InstallationSummary, InstallerProgress, JsonRenderer, LiveProgress,
+    ProgressRenderer, ProgressStyle, StepInfo, StepResult, StepState, TerminalRenderer,
+    generate_summary,
+};
 pub use rollback::{RollbackAction, RollbackManager, RollbackPlan, StateFileBackup, StepRollback};
 pub use signature::{
     compute_sha256, create_test_signature, verify_sha256, verify_signature,
