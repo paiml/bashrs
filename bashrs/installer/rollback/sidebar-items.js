@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":["RollbackAction"],"fn":["compute_hash","current_timestamp","truncate"],"struct":["RollbackManager","RollbackPlan","StateFileBackup","StepRollback"]};
