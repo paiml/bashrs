@@ -35,6 +35,7 @@ mod progress;
 mod rollback;
 mod signature;
 mod spec;
+mod tracing;
 
 #[cfg(test)]
 mod tests;
@@ -65,6 +66,10 @@ pub use signature::{
 pub use spec::{
     Action, Artifact, Environment, InstallerSpec, InstallerSecurity, Postcondition, Precondition,
     Requirements, Step, StepCheckpoint, StepTiming,
+};
+pub use tracing::{
+    AttributeValue, LogEntry, Logger, Span, SpanEvent, SpanKind, SpanStatus,
+    TraceExporter, TraceLevel, TraceSummary, TracingContext,
 };
 
 use crate::models::{Error, Result};

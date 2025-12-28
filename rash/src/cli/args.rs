@@ -980,6 +980,14 @@ pub enum InstallerCommands {
         /// Enable parallel execution
         #[arg(long)]
         parallel: bool,
+
+        /// Enable OpenTelemetry tracing
+        #[arg(long)]
+        trace: bool,
+
+        /// Export traces to file (JSON format)
+        #[arg(long)]
+        trace_file: Option<PathBuf>,
     },
 
     /// Resume installer from checkpoint

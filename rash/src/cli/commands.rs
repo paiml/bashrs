@@ -3526,6 +3526,8 @@ fn handle_installer_command(command: InstallerCommands) -> Result<()> {
             hermetic,
             verify_signatures,
             parallel,
+            trace,
+            trace_file,
         } => {
             info!("Running installer from: {}", path.display());
             installer_run_command(
@@ -3536,6 +3538,8 @@ fn handle_installer_command(command: InstallerCommands) -> Result<()> {
                 hermetic,
                 verify_signatures,
                 parallel,
+                trace,
+                trace_file.as_deref(),
             )
         }
 
@@ -3870,10 +3874,12 @@ fn installer_run_command(
     hermetic: bool,
     verify_signatures: bool,
     _parallel: bool,
+    trace: bool,
+    trace_file: Option<&Path>,
 ) -> Result<()> {
     use crate::installer::{
         self, CheckpointStore, ExecutionMode, HermeticContext, InstallerProgress, Keyring,
-        TerminalRenderer, ProgressRenderer, generate_summary,
+        TerminalRenderer, ProgressRenderer, TracingContext, generate_summary,
     };
 
     // Validate installer first
@@ -3996,7 +4002,26 @@ fn installer_run_command(
     let mut progress = InstallerProgress::new(installer_name, "1.0.0")
         .with_mode(execution_mode)
         .with_artifacts(0, result.artifacts)
-        .with_signatures(keyring.is_some());
+        .with_signatures(keyring.is_some())
+        .with_trace(trace);
+
+    // Set up tracing context (#117 OpenTelemetry integration)
+    let mut tracing_ctx = if trace {
+        let mut ctx = TracingContext::new(installer_name, "1.0.0");
+        ctx.start_root("installer_run");
+        ctx.set_attribute("installer.path", crate::installer::AttributeValue::string(path.display().to_string()));
+        ctx.set_attribute("installer.steps", crate::installer::AttributeValue::int(result.steps as i64));
+        ctx.set_attribute("installer.hermetic", crate::installer::AttributeValue::bool(hermetic));
+        println!("Tracing enabled");
+        println!("  Trace ID: {}", ctx.trace_id());
+        if let Some(f) = trace_file {
+            println!("  Trace file: {}", f.display());
+        }
+        println!();
+        Some(ctx)
+    } else {
+        None
+    };
 
     // Add steps to progress tracker (simulated for now)
     for i in 0..result.steps {
@@ -4015,16 +4040,33 @@ fn installer_run_command(
     // Simulate step execution (placeholder for actual execution)
     for i in 0..result.steps {
         let step_id = format!("step-{}", i + 1);
+        let step_name = format!("Step {}", i + 1);
+
+        // Start tracing span for this step
+        if let Some(ref mut ctx) = tracing_ctx {
+            ctx.start_step_span(&step_id, &step_name);
+        }
+
         progress.start_step(&step_id, "Executing...");
 
         // Simulate progress updates
         progress.update_step(&step_id, 50, "In progress...");
         progress.complete_step(&step_id);
 
+        // End tracing span
+        if let Some(ref mut ctx) = tracing_ctx {
+            ctx.end_span_ok();
+        }
+
         // Render step progress
         if let Some(step) = progress.get_step(&step_id) {
             println!("{}", renderer.render_step(step, result.steps));
         }
+    }
+
+    // End root span
+    if let Some(ref mut ctx) = tracing_ctx {
+        ctx.end_root_ok();
     }
 
     // Render footer and summary
@@ -4033,10 +4075,27 @@ fn installer_run_command(
     let summary = generate_summary(&progress);
     println!("\n{}", summary.format());
 
+    // Export traces if requested
+    if let Some(ref ctx) = tracing_ctx {
+        let trace_summary = ctx.summary();
+        println!("\n{}", trace_summary.format());
+
+        if let Some(file_path) = trace_file {
+            let trace_json = ctx.export();
+            std::fs::write(file_path, &trace_json).map_err(|e| {
+                Error::Io(std::io::Error::new(
+                    e.kind(),
+                    format!("Failed to write trace file: {}", e),
+                ))
+            })?;
+            println!("Traces exported to: {}", file_path.display());
+        }
+    }
+
     // For now, run command sets up but doesn't fully execute
     // Full execution requires step runner implementation
     println!("\nNote: Full step execution not yet implemented.");
-    println!("      Progress tracking and checkpoint system are ready.");
+    println!("      Progress tracking, tracing, and checkpoint system are ready.");
     println!();
     println!("Use 'bashrs installer resume {}' to continue after implementation.", path.display());
 
