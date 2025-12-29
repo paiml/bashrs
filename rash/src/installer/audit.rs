@@ -978,6 +978,7 @@ fn chrono_timestamp() -> String {
 }
 
 #[cfg(test)]
+#[allow(dead_code)] // Test helper structs may have unused fields
 mod tests {
     use super::*;
 

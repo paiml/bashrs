@@ -17,7 +17,7 @@ use predicates::prelude::*;
 
 /// Helper function to create bashrs REPL command
 fn bashrs_repl() -> Command {
-    let mut cmd = Command::cargo_bin("bashrs").expect("Failed to find bashrs binary");
+    let mut cmd = assert_cmd::cargo_bin_cmd!("bashrs");
     cmd.arg("repl");
     cmd
 }

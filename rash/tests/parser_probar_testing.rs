@@ -7,6 +7,9 @@
 //!
 //! Run: cargo test -p bashrs --test parser_probar_testing
 
+#![allow(clippy::indexing_slicing)]
+#![allow(clippy::panic)]
+#![allow(clippy::expect_used)]
 #![allow(clippy::unwrap_used)]
 
 use bashrs::bash_parser::ast::BashAst;

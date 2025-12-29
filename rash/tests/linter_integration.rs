@@ -1,3 +1,7 @@
+#![allow(clippy::indexing_slicing)]
+#![allow(clippy::panic)]
+#![allow(clippy::expect_used)]
+#![allow(clippy::unwrap_used)]
 //! Integration tests for bashrs linting workflow
 //!
 //! Tests end-to-end linting behavior including:

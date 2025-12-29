@@ -211,6 +211,7 @@ impl InstallerGraph {
     }
 
     /// Compute execution waves (steps that can run in parallel)
+    #[allow(clippy::indexing_slicing)] // Indices are from 0..self.nodes.len(), guaranteed valid
     pub fn compute_waves(&self) -> Vec<ExecutionWave> {
         if self.nodes.is_empty() {
             return Vec::new();
@@ -323,6 +324,7 @@ impl InstallerGraph {
     }
 
     /// Generate Mermaid diagram of build graph
+    #[allow(clippy::indexing_slicing)] // Edge indices come from validated add_edge calls
     pub fn to_mermaid(&self) -> String {
         let mut mermaid = String::from("graph TD\n");
 
@@ -344,6 +346,7 @@ impl InstallerGraph {
     }
 
     /// Generate DOT format for graphviz
+    #[allow(clippy::indexing_slicing)] // Edge indices come from validated add_edge calls
     pub fn to_dot(&self) -> String {
         let mut dot = String::from("digraph InstallerGraph {\n");
         dot.push_str("    rankdir=TB;\n");
@@ -403,12 +406,12 @@ fn estimate_step_duration(step: &super::spec::Step) -> f64 {
 /// Parse duration string (e.g., "5m", "30s") to seconds
 fn parse_duration_secs(s: &str) -> Option<f64> {
     let s = s.trim();
-    if s.ends_with('s') {
-        s[..s.len() - 1].parse().ok()
-    } else if s.ends_with('m') {
-        s[..s.len() - 1].parse::<f64>().ok().map(|m| m * 60.0)
-    } else if s.ends_with('h') {
-        s[..s.len() - 1].parse::<f64>().ok().map(|h| h * 3600.0)
+    if let Some(num) = s.strip_suffix('s') {
+        num.parse().ok()
+    } else if let Some(num) = s.strip_suffix('m') {
+        num.parse::<f64>().ok().map(|m| m * 60.0)
+    } else if let Some(num) = s.strip_suffix('h') {
+        num.parse::<f64>().ok().map(|h| h * 3600.0)
     } else {
         s.parse().ok()
     }

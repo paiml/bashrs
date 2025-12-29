@@ -28,7 +28,7 @@ use tempfile::{NamedTempFile, TempDir};
 /// Create bashrs command (MANDATORY pattern per CLAUDE.md)
 #[allow(deprecated)]
 fn bashrs_cmd() -> Command {
-    Command::cargo_bin("bashrs").expect("Failed to find bashrs binary")
+    assert_cmd::cargo_bin_cmd!("bashrs")
 }
 
 /// Create temporary bash script

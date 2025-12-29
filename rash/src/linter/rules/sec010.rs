@@ -335,8 +335,8 @@ fn extract_validated_variable(line: &str) -> Option<String> {
                 }
             }
             // Handle $VAR format
-            else if rest.starts_with('$') {
-                let var_chars: String = rest[1..]
+            else if let Some(after_dollar) = rest.strip_prefix('$') {
+                let var_chars: String = after_dollar
                     .chars()
                     .take_while(|c| c.is_alphanumeric() || *c == '_')
                     .collect();

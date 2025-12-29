@@ -18,7 +18,7 @@ use predicates::prelude::*;
 
 /// Helper function to create bashrs REPL command
 fn bashrs_repl() -> Command {
-    let mut cmd = Command::cargo_bin("bashrs").expect("Failed to find bashrs binary");
+    let mut cmd = assert_cmd::cargo_bin_cmd!("bashrs");
     cmd.arg("repl");
     cmd
 }
@@ -81,7 +81,7 @@ fn test_REPL_003_002_repl_accepts_exit() {
 /// Test: REPL-003-002-006 - REPL with debug mode
 #[test]
 fn test_REPL_003_002_repl_debug_mode() {
-    let mut cmd = Command::cargo_bin("bashrs").unwrap();
+    let mut cmd = assert_cmd::cargo_bin_cmd!("bashrs");
     cmd.arg("repl")
         .arg("--debug")
         .write_stdin("quit\n")
@@ -93,7 +93,7 @@ fn test_REPL_003_002_repl_debug_mode() {
 /// Test: REPL-003-002-007 - REPL with custom configuration
 #[test]
 fn test_REPL_003_002_repl_custom_config() {
-    let mut cmd = Command::cargo_bin("bashrs").unwrap();
+    let mut cmd = assert_cmd::cargo_bin_cmd!("bashrs");
     cmd.arg("repl")
         .arg("--max-memory")
         .arg("200")
@@ -109,7 +109,7 @@ fn test_REPL_003_002_repl_custom_config() {
 /// Test: REPL-003-002-008 - REPL with sandboxed mode
 #[test]
 fn test_REPL_003_002_repl_sandboxed() {
-    let mut cmd = Command::cargo_bin("bashrs").unwrap();
+    let mut cmd = assert_cmd::cargo_bin_cmd!("bashrs");
     cmd.arg("repl")
         .arg("--sandboxed")
         .write_stdin("quit\n")

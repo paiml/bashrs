@@ -707,7 +707,7 @@ mod tests {
 
     #[test]
     fn test_113_execute_step_script() {
-        use super::super::spec::{InstallerSpec, Step, StepScript};
+        use super::super::spec::InstallerSpec;
 
         let toml = r#"
 [installer]

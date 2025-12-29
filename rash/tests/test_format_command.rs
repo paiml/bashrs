@@ -11,7 +11,7 @@ use tempfile::TempDir;
 /// Helper function to create rash command
 #[allow(deprecated)]
 fn rash_cmd() -> Command {
-    Command::cargo_bin("bashrs").expect("Failed to find bashrs binary")
+    assert_cmd::cargo_bin_cmd!("bashrs")
 }
 
 /// Helper to create test bash script

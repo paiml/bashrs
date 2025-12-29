@@ -24,7 +24,7 @@ use tempfile::TempDir;
 /// Helper to create test command
 #[allow(deprecated)]
 fn bashrs_cmd() -> Command {
-    Command::cargo_bin("bashrs").expect("Failed to find bashrs binary")
+    assert_cmd::cargo_bin_cmd!("bashrs")
 }
 
 /// Sample Makefile with formatting issues
