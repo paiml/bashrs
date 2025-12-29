@@ -1,0 +1,763 @@
+// CLI Logic Module - Extracted for testability
+//
+// This module contains pure functions that return structured results
+// instead of printing directly. The commands.rs file acts as a thin shim
+// that calls these functions and handles I/O.
+
+use crate::cli::args::{LintLevel, LintProfileArg};
+use crate::linter::{LintResult, Severity};
+use crate::models::{Error, Result};
+use std::collections::HashSet;
+use std::path::Path;
+
+// ===== SHELL SCRIPT DETECTION =====
+
+/// Detect if a file is a shell script based on extension and shebang (Issue #84)
+///
+/// Returns true if the file:
+/// - Has a shell extension (.sh, .bash, .ksh, .zsh)
+/// - Has a shell shebang (#!/bin/sh, #!/bin/bash, etc.)
+pub fn is_shell_script_file(path: &Path, content: &str) -> bool {
+    // Check file extension
+    if let Some(ext) = path.extension().and_then(|e| e.to_str()) {
+        let ext_lower = ext.to_lowercase();
+        if matches!(ext_lower.as_str(), "sh" | "bash" | "ksh" | "zsh" | "ash") {
+            return true;
+        }
+    }
+
+    // Check shebang
+    let first_line = content.lines().next().unwrap_or("");
+    if first_line.starts_with("#!") {
+        let shebang_lower = first_line.to_lowercase();
+        // Check for common shell interpreters
+        if shebang_lower.contains("/sh")
+            || shebang_lower.contains("/bash")
+            || shebang_lower.contains("/zsh")
+            || shebang_lower.contains("/ksh")
+            || shebang_lower.contains("/ash")
+            || shebang_lower.contains("/dash")
+            || shebang_lower.contains("env sh")
+            || shebang_lower.contains("env bash")
+        {
+            return true;
+        }
+    }
+
+    false
+}
+
+/// Normalize a shell script for comparison
+/// Removes comments and normalizes whitespace
+pub fn normalize_shell_script(script: &str) -> String {
+    script
+        .lines()
+        .filter(|line| !line.trim().starts_with('#'))
+        .map(|line| line.trim())
+        .filter(|line| !line.is_empty())
+        .collect::<Vec<_>>()
+        .join("\n")
+}
+
+// ===== LINT FILTERING =====
+
+/// Build set of ignored rule codes from various sources
+pub fn build_ignored_rules(
+    ignore_rules_str: Option<&str>,
+    exclude_rules: Option<&[String]>,
+    ignore_file_rules: &[String],
+) -> HashSet<String> {
+    let mut rules = HashSet::new();
+
+    // Add from --ignore (comma-separated)
+    if let Some(ignore_str) = ignore_rules_str {
+        for code in ignore_str.split(',') {
+            let code = code.trim().to_uppercase();
+            if !code.is_empty() {
+                rules.insert(code);
+            }
+        }
+    }
+
+    // Add from -e (can be repeated)
+    if let Some(excludes) = exclude_rules {
+        for code in excludes {
+            let code = code.trim().to_uppercase();
+            if !code.is_empty() {
+                rules.insert(code);
+            }
+        }
+    }
+
+    // Add rule codes from .bashrsignore file
+    for code in ignore_file_rules {
+        rules.insert(code.clone());
+    }
+
+    rules
+}
+
+/// Determine minimum severity based on --quiet and --level flags
+pub fn determine_min_severity(quiet: bool, level: LintLevel) -> Severity {
+    if quiet {
+        Severity::Warning // --quiet suppresses info
+    } else {
+        match level {
+            LintLevel::Info => Severity::Info,
+            LintLevel::Warning => Severity::Warning,
+            LintLevel::Error => Severity::Error,
+        }
+    }
+}
+
+/// Filter diagnostics by severity and ignored rules
+pub fn filter_diagnostics(
+    result: LintResult,
+    min_severity: Severity,
+    ignored_rules: &HashSet<String>,
+) -> LintResult {
+    let filtered = result
+        .diagnostics
+        .into_iter()
+        .filter(|d| d.severity >= min_severity)
+        .filter(|d| !ignored_rules.contains(&d.code.to_uppercase()))
+        .collect();
+    LintResult {
+        diagnostics: filtered,
+    }
+}
+
+// ===== FILE TYPE DETECTION =====
+
+/// Detect if a file is a Makefile
+pub fn is_makefile(filename: &str) -> bool {
+    filename == "Makefile"
+        || filename == "makefile"
+        || filename == "GNUmakefile"
+        || filename.ends_with(".mk")
+        || filename.ends_with(".make")
+}
+
+/// Detect if a file is a Dockerfile
+pub fn is_dockerfile(filename: &str) -> bool {
+    let filename_lower = filename.to_lowercase();
+    filename_lower == "dockerfile"
+        || filename_lower.starts_with("dockerfile.")
+        || filename_lower.ends_with(".dockerfile")
+}
+
+/// Convert CLI lint profile arg to linter profile
+pub fn convert_lint_profile(profile: LintProfileArg) -> crate::linter::rules::LintProfile {
+    use crate::linter::rules::LintProfile;
+
+    match profile {
+        LintProfileArg::Standard => LintProfile::Standard,
+        LintProfileArg::Coursera => LintProfile::Coursera,
+        LintProfileArg::DevContainer => LintProfile::DevContainer,
+    }
+}
+
+// ===== GATE EXECUTION LOGIC =====
+
+/// Result of a gate check
+#[derive(Debug, Clone, PartialEq)]
+pub enum GateResult {
+    /// Gate passed
+    Pass,
+    /// Gate failed
+    Fail,
+    /// Gate skipped (tool not found)
+    Skipped(String),
+    /// Unknown gate
+    Unknown,
+}
+
+impl GateResult {
+    pub fn is_success(&self) -> bool {
+        matches!(self, Self::Pass | Self::Skipped(_))
+    }
+
+    pub fn format(&self) -> &'static str {
+        match self {
+            Self::Pass => "✅ PASS",
+            Self::Fail => "❌ FAIL",
+            Self::Skipped(_) => "⚠️  SKIP",
+            Self::Unknown => "⚠️  Unknown gate",
+        }
+    }
+}
+
+/// Validate gate tier
+pub fn validate_gate_tier(tier: u8) -> Result<()> {
+    if tier < 1 || tier > 3 {
+        Err(Error::Validation(format!(
+            "Invalid tier: {}. Must be 1, 2, or 3.",
+            tier
+        )))
+    } else {
+        Ok(())
+    }
+}
+
+// ===== BUILD/CHECK COMMAND LOGIC =====
+
+/// Result of check command
+#[derive(Debug, Clone)]
+pub enum CheckResult {
+    /// File is compatible
+    Compatible,
+    /// File is a shell script (not Rash source)
+    IsShellScript { path: String },
+    /// Check failed
+    Error(String),
+}
+
+impl CheckResult {
+    pub fn format(&self) -> String {
+        match self {
+            Self::Compatible => "✓ File is compatible with Rash".to_string(),
+            Self::IsShellScript { path } => {
+                format!(
+                    "File '{}' appears to be a shell script, not Rash source.\n\n\
+                     The 'check' command is for verifying Rash (.rs) source files that will be\n\
+                     transpiled to shell scripts.\n\n\
+                     For linting existing shell scripts, use:\n\
+                       bashrs lint {}\n\n\
+                     For purifying shell scripts (adding determinism/idempotency):\n\
+                       bashrs purify {}",
+                    path, path, path
+                )
+            }
+            Self::Error(e) => format!("Error: {}", e),
+        }
+    }
+}
+
+/// Process check command logic
+pub fn process_check(path: &Path, content: &str) -> CheckResult {
+    if is_shell_script_file(path, content) {
+        return CheckResult::IsShellScript {
+            path: path.display().to_string(),
+        };
+    }
+
+    // Actual check logic would go here
+    CheckResult::Compatible
+}
+
+// ===== VERIFY COMMAND LOGIC =====
+
+/// Result of verification
+#[derive(Debug, Clone, PartialEq)]
+pub enum VerifyResult {
+    /// Scripts match
+    Match,
+    /// Scripts don't match
+    Mismatch,
+}
+
+impl VerifyResult {
+    pub fn format(&self) -> &'static str {
+        match self {
+            Self::Match => "✓ Shell script matches Rust source",
+            Self::Mismatch => "✗ Shell script does not match Rust source",
+        }
+    }
+}
+
+/// Compare generated shell script with expected
+pub fn verify_scripts(generated: &str, expected: &str) -> VerifyResult {
+    if normalize_shell_script(generated) == normalize_shell_script(expected) {
+        VerifyResult::Match
+    } else {
+        VerifyResult::Mismatch
+    }
+}
+
+// ===== PURIFICATION REPORT LOGIC =====
+
+/// Purification statistics
+#[derive(Debug, Clone)]
+pub struct PurificationStats {
+    pub input_lines: usize,
+    pub input_bytes: usize,
+    pub output_lines: usize,
+    pub output_bytes: usize,
+    pub read_time_ns: u64,
+    pub parse_time_ns: u64,
+    pub purify_time_ns: u64,
+    pub codegen_time_ns: u64,
+    pub write_time_ns: u64,
+    pub total_time_ns: u64,
+}
+
+impl PurificationStats {
+    pub fn throughput_mb_s(&self) -> f64 {
+        let total_secs = self.total_time_ns as f64 / 1_000_000_000.0;
+        (self.input_bytes as f64) / total_secs / 1024.0 / 1024.0
+    }
+
+    pub fn format_report(&self, input_path: &str, output_path: Option<&str>) -> String {
+        let mut report = String::new();
+        report.push_str("\n=== Purification Report ===\n");
+        report.push_str(&format!("Input: {}\n", input_path));
+        if let Some(output) = output_path {
+            report.push_str(&format!("Output: {}\n", output));
+        }
+        report.push_str(&format!(
+            "\nInput size: {} lines, {} bytes\n",
+            self.input_lines, self.input_bytes
+        ));
+        report.push_str(&format!(
+            "Output size: {} lines, {} bytes\n",
+            self.output_lines, self.output_bytes
+        ));
+
+        report.push_str("\nTransformations Applied:\n");
+        report.push_str("- Shebang: #!/bin/bash → #!/bin/sh\n");
+        report.push_str("- Determinism: Removed $RANDOM, timestamps\n");
+        report.push_str("- Idempotency: mkdir → mkdir -p, rm → rm -f\n");
+        report.push_str("- Safety: All variables quoted\n");
+
+        report.push_str("\nPerformance:\n");
+        report.push_str(&format!(
+            "  Read:     {:>8.2?}\n",
+            std::time::Duration::from_nanos(self.read_time_ns)
+        ));
+        report.push_str(&format!(
+            "  Parse:    {:>8.2?}\n",
+            std::time::Duration::from_nanos(self.parse_time_ns)
+        ));
+        report.push_str(&format!(
+            "  Purify:   {:>8.2?}\n",
+            std::time::Duration::from_nanos(self.purify_time_ns)
+        ));
+        report.push_str(&format!(
+            "  Codegen:  {:>8.2?}\n",
+            std::time::Duration::from_nanos(self.codegen_time_ns)
+        ));
+        report.push_str(&format!(
+            "  Write:    {:>8.2?}\n",
+            std::time::Duration::from_nanos(self.write_time_ns)
+        ));
+        report.push_str("  ─────────────────\n");
+        report.push_str(&format!(
+            "  Total:    {:>8.2?}\n",
+            std::time::Duration::from_nanos(self.total_time_ns)
+        ));
+
+        report.push_str(&format!("\nThroughput: {:.2} MB/s\n", self.throughput_mb_s()));
+        report
+    }
+}
+
+// ===== SCORE/AUDIT LOGIC =====
+
+/// Grade calculation based on score
+/// Note: Higher grades (A) are "better" than lower grades (F)
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Grade {
+    A,
+    B,
+    C,
+    D,
+    F,
+}
+
+impl PartialOrd for Grade {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl Ord for Grade {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        // A is the best (highest), F is the worst (lowest)
+        // So A > B > C > D > F
+        let self_val = match self {
+            Grade::A => 4,
+            Grade::B => 3,
+            Grade::C => 2,
+            Grade::D => 1,
+            Grade::F => 0,
+        };
+        let other_val = match other {
+            Grade::A => 4,
+            Grade::B => 3,
+            Grade::C => 2,
+            Grade::D => 1,
+            Grade::F => 0,
+        };
+        self_val.cmp(&other_val)
+    }
+}
+
+impl Grade {
+    pub fn from_score(score: f64) -> Self {
+        if score >= 90.0 {
+            Grade::A
+        } else if score >= 80.0 {
+            Grade::B
+        } else if score >= 70.0 {
+            Grade::C
+        } else if score >= 60.0 {
+            Grade::D
+        } else {
+            Grade::F
+        }
+    }
+
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Grade::A => "A",
+            Grade::B => "B",
+            Grade::C => "C",
+            Grade::D => "D",
+            Grade::F => "F",
+        }
+    }
+
+    pub fn meets_minimum(&self, min: &str) -> bool {
+        let min_grade = match min.to_uppercase().as_str() {
+            "A" => Grade::A,
+            "B" => Grade::B,
+            "C" => Grade::C,
+            "D" => Grade::D,
+            _ => Grade::F,
+        };
+        *self >= min_grade
+    }
+}
+
+// ===== FORMAT COMMAND LOGIC =====
+
+/// Result of format check
+#[derive(Debug, Clone)]
+pub struct FormatCheckResult {
+    pub files_checked: usize,
+    pub files_formatted: usize,
+    pub files_unchanged: usize,
+}
+
+impl FormatCheckResult {
+    pub fn all_formatted(&self) -> bool {
+        self.files_formatted == 0
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    // ===== SHELL SCRIPT DETECTION TESTS =====
+
+    #[test]
+    fn test_is_shell_script_by_extension() {
+        assert!(is_shell_script_file(Path::new("script.sh"), "echo hello"));
+        assert!(is_shell_script_file(Path::new("script.bash"), "echo hello"));
+        assert!(is_shell_script_file(Path::new("script.zsh"), "echo hello"));
+        assert!(is_shell_script_file(Path::new("script.ksh"), "echo hello"));
+        assert!(is_shell_script_file(Path::new("script.ash"), "echo hello"));
+        assert!(!is_shell_script_file(Path::new("script.rs"), "fn main() {}"));
+        assert!(!is_shell_script_file(Path::new("script.py"), "print('hello')"));
+    }
+
+    #[test]
+    fn test_is_shell_script_by_shebang() {
+        assert!(is_shell_script_file(
+            Path::new("script"),
+            "#!/bin/sh\necho hello"
+        ));
+        assert!(is_shell_script_file(
+            Path::new("script"),
+            "#!/bin/bash\necho hello"
+        ));
+        assert!(is_shell_script_file(
+            Path::new("script"),
+            "#!/usr/bin/env bash\necho hello"
+        ));
+        assert!(is_shell_script_file(
+            Path::new("script"),
+            "#!/usr/bin/env sh\necho hello"
+        ));
+        assert!(!is_shell_script_file(
+            Path::new("script"),
+            "#!/usr/bin/python\nprint('hello')"
+        ));
+    }
+
+    #[test]
+    fn test_is_shell_script_case_insensitive() {
+        assert!(is_shell_script_file(Path::new("script.SH"), "echo hello"));
+        assert!(is_shell_script_file(Path::new("script.BASH"), "echo hello"));
+    }
+
+    // ===== NORMALIZE SHELL SCRIPT TESTS =====
+
+    #[test]
+    fn test_normalize_shell_script_removes_comments() {
+        let script = "# comment\necho hello\n# another comment\necho world";
+        let normalized = normalize_shell_script(script);
+        assert_eq!(normalized, "echo hello\necho world");
+    }
+
+    #[test]
+    fn test_normalize_shell_script_trims_whitespace() {
+        let script = "  echo hello  \n  echo world  ";
+        let normalized = normalize_shell_script(script);
+        assert_eq!(normalized, "echo hello\necho world");
+    }
+
+    #[test]
+    fn test_normalize_shell_script_removes_empty_lines() {
+        let script = "echo hello\n\n\necho world";
+        let normalized = normalize_shell_script(script);
+        assert_eq!(normalized, "echo hello\necho world");
+    }
+
+    // ===== BUILD IGNORED RULES TESTS =====
+
+    #[test]
+    fn test_build_ignored_rules_from_ignore_str() {
+        let rules = build_ignored_rules(Some("SEC001,DET002"), None, &[]);
+        assert!(rules.contains("SEC001"));
+        assert!(rules.contains("DET002"));
+        assert_eq!(rules.len(), 2);
+    }
+
+    #[test]
+    fn test_build_ignored_rules_from_exclude() {
+        let excludes = vec!["sec003".to_string(), "det004".to_string()];
+        let rules = build_ignored_rules(None, Some(&excludes), &[]);
+        assert!(rules.contains("SEC003"));
+        assert!(rules.contains("DET004"));
+    }
+
+    #[test]
+    fn test_build_ignored_rules_from_file() {
+        let file_rules = vec!["IDEM001".to_string(), "IDEM002".to_string()];
+        let rules = build_ignored_rules(None, None, &file_rules);
+        assert!(rules.contains("IDEM001"));
+        assert!(rules.contains("IDEM002"));
+    }
+
+    #[test]
+    fn test_build_ignored_rules_combined() {
+        let excludes = vec!["det001".to_string()];
+        let file_rules = vec!["IDEM001".to_string()];
+        let rules = build_ignored_rules(Some("SEC001"), Some(&excludes), &file_rules);
+        assert!(rules.contains("SEC001"));
+        assert!(rules.contains("DET001"));
+        assert!(rules.contains("IDEM001"));
+        assert_eq!(rules.len(), 3);
+    }
+
+    #[test]
+    fn test_build_ignored_rules_handles_whitespace() {
+        let rules = build_ignored_rules(Some(" SEC001 , DET002 "), None, &[]);
+        assert!(rules.contains("SEC001"));
+        assert!(rules.contains("DET002"));
+    }
+
+    // ===== DETERMINE MIN SEVERITY TESTS =====
+
+    #[test]
+    fn test_determine_min_severity_quiet() {
+        let severity = determine_min_severity(true, LintLevel::Info);
+        assert_eq!(severity, Severity::Warning);
+    }
+
+    #[test]
+    fn test_determine_min_severity_level_info() {
+        let severity = determine_min_severity(false, LintLevel::Info);
+        assert_eq!(severity, Severity::Info);
+    }
+
+    #[test]
+    fn test_determine_min_severity_level_warning() {
+        let severity = determine_min_severity(false, LintLevel::Warning);
+        assert_eq!(severity, Severity::Warning);
+    }
+
+    #[test]
+    fn test_determine_min_severity_level_error() {
+        let severity = determine_min_severity(false, LintLevel::Error);
+        assert_eq!(severity, Severity::Error);
+    }
+
+    // ===== FILE TYPE DETECTION TESTS =====
+
+    #[test]
+    fn test_is_makefile() {
+        assert!(is_makefile("Makefile"));
+        assert!(is_makefile("makefile"));
+        assert!(is_makefile("GNUmakefile"));
+        assert!(is_makefile("rules.mk"));
+        assert!(is_makefile("build.make"));
+        assert!(!is_makefile("script.sh"));
+        assert!(!is_makefile("Makefile.md"));
+    }
+
+    #[test]
+    fn test_is_dockerfile() {
+        assert!(is_dockerfile("Dockerfile"));
+        assert!(is_dockerfile("dockerfile"));
+        assert!(is_dockerfile("DOCKERFILE"));
+        assert!(is_dockerfile("Dockerfile.dev"));
+        assert!(is_dockerfile("app.dockerfile"));
+        assert!(!is_dockerfile("Makefile"));
+        assert!(!is_dockerfile("script.sh"));
+    }
+
+    // ===== GATE RESULT TESTS =====
+
+    #[test]
+    fn test_gate_result_is_success() {
+        assert!(GateResult::Pass.is_success());
+        assert!(GateResult::Skipped("tool not found".to_string()).is_success());
+        assert!(!GateResult::Fail.is_success());
+        assert!(!GateResult::Unknown.is_success());
+    }
+
+    #[test]
+    fn test_validate_gate_tier() {
+        assert!(validate_gate_tier(1).is_ok());
+        assert!(validate_gate_tier(2).is_ok());
+        assert!(validate_gate_tier(3).is_ok());
+        assert!(validate_gate_tier(0).is_err());
+        assert!(validate_gate_tier(4).is_err());
+    }
+
+    // ===== VERIFY SCRIPTS TESTS =====
+
+    #[test]
+    fn test_verify_scripts_match() {
+        let script1 = "#!/bin/sh\necho hello";
+        let script2 = "#!/bin/sh\necho hello";
+        assert_eq!(verify_scripts(script1, script2), VerifyResult::Match);
+    }
+
+    #[test]
+    fn test_verify_scripts_match_ignores_comments() {
+        let script1 = "# comment\necho hello";
+        let script2 = "echo hello";
+        assert_eq!(verify_scripts(script1, script2), VerifyResult::Match);
+    }
+
+    #[test]
+    fn test_verify_scripts_match_ignores_whitespace() {
+        let script1 = "  echo hello  ";
+        let script2 = "echo hello";
+        assert_eq!(verify_scripts(script1, script2), VerifyResult::Match);
+    }
+
+    #[test]
+    fn test_verify_scripts_mismatch() {
+        let script1 = "echo hello";
+        let script2 = "echo world";
+        assert_eq!(verify_scripts(script1, script2), VerifyResult::Mismatch);
+    }
+
+    // ===== CHECK RESULT TESTS =====
+
+    #[test]
+    fn test_check_result_shell_script() {
+        let result = process_check(Path::new("script.sh"), "echo hello");
+        assert!(matches!(result, CheckResult::IsShellScript { .. }));
+    }
+
+    #[test]
+    fn test_check_result_rust_file() {
+        let result = process_check(Path::new("main.rs"), "fn main() {}");
+        assert!(matches!(result, CheckResult::Compatible));
+    }
+
+    // ===== GRADE TESTS =====
+
+    #[test]
+    fn test_grade_from_score() {
+        assert_eq!(Grade::from_score(95.0), Grade::A);
+        assert_eq!(Grade::from_score(90.0), Grade::A);
+        assert_eq!(Grade::from_score(85.0), Grade::B);
+        assert_eq!(Grade::from_score(80.0), Grade::B);
+        assert_eq!(Grade::from_score(75.0), Grade::C);
+        assert_eq!(Grade::from_score(65.0), Grade::D);
+        assert_eq!(Grade::from_score(55.0), Grade::F);
+    }
+
+    #[test]
+    fn test_grade_meets_minimum() {
+        assert!(Grade::A.meets_minimum("A"));
+        assert!(Grade::A.meets_minimum("B"));
+        assert!(Grade::A.meets_minimum("C"));
+        assert!(!Grade::B.meets_minimum("A"));
+        assert!(Grade::B.meets_minimum("B"));
+        assert!(Grade::C.meets_minimum("D"));
+        assert!(!Grade::D.meets_minimum("C"));
+    }
+
+    // ===== PURIFICATION STATS TESTS =====
+
+    #[test]
+    fn test_purification_stats_throughput() {
+        let stats = PurificationStats {
+            input_lines: 100,
+            input_bytes: 1024 * 1024, // 1 MB
+            output_lines: 90,
+            output_bytes: 900 * 1024,
+            read_time_ns: 1_000_000,
+            parse_time_ns: 5_000_000,
+            purify_time_ns: 3_000_000,
+            codegen_time_ns: 2_000_000,
+            write_time_ns: 1_000_000,
+            total_time_ns: 1_000_000_000, // 1 second
+        };
+
+        let throughput = stats.throughput_mb_s();
+        assert!((throughput - 1.0).abs() < 0.01); // ~1 MB/s
+    }
+
+    #[test]
+    fn test_purification_stats_format_report() {
+        let stats = PurificationStats {
+            input_lines: 10,
+            input_bytes: 100,
+            output_lines: 8,
+            output_bytes: 80,
+            read_time_ns: 1_000,
+            parse_time_ns: 2_000,
+            purify_time_ns: 3_000,
+            codegen_time_ns: 4_000,
+            write_time_ns: 5_000,
+            total_time_ns: 15_000,
+        };
+
+        let report = stats.format_report("input.sh", Some("output.sh"));
+        assert!(report.contains("input.sh"));
+        assert!(report.contains("output.sh"));
+        assert!(report.contains("10 lines"));
+        assert!(report.contains("100 bytes"));
+    }
+
+    // ===== FORMAT CHECK RESULT TESTS =====
+
+    #[test]
+    fn test_format_check_result_all_formatted() {
+        let result = FormatCheckResult {
+            files_checked: 5,
+            files_formatted: 0,
+            files_unchanged: 5,
+        };
+        assert!(result.all_formatted());
+    }
+
+    #[test]
+    fn test_format_check_result_needs_formatting() {
+        let result = FormatCheckResult {
+            files_checked: 5,
+            files_formatted: 2,
+            files_unchanged: 3,
+        };
+        assert!(!result.all_formatted());
+    }
+}

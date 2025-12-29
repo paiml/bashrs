@@ -11,15 +11,17 @@
 
 use crate::repl::{
     completion::ReplCompleter,
-    executor::execute_command,
-    explain_bash, format_lint_results, format_parse_error,
     help::show_help,
-    lint_bash,
-    loader::{format_functions, load_script, LoadResult},
+    loader::LoadResult,
+    logic::{
+        get_history_path, process_command_by_mode, process_functions_command,
+        process_history_command, process_lint_command, process_load_command,
+        process_mode_command, process_parse_command, process_purify_command,
+        process_reload_command, process_source_command, process_vars_command,
+    },
     multiline::is_incomplete,
-    parse_bash, purify_bash,
-    variables::{expand_variables, parse_assignment},
-    ReplConfig, ReplMode, ReplState,
+    variables::parse_assignment,
+    ReplConfig, ReplState,
 };
 use anyhow::Result;
 use rustyline::config::Config;
@@ -229,209 +231,56 @@ pub fn run_repl(config: ReplConfig) -> Result<()> {
     Ok(())
 }
 
-/// Handle mode switching command
+/// Handle mode switching command (thin shim over logic module)
 fn handle_mode_command(line: &str, state: &mut ReplState) {
-    let parts: Vec<&str> = line.split_whitespace().collect();
-
-    if parts.len() == 1 {
-        // Show current mode
-        println!(
-            "Current mode: {} - {}",
-            state.mode(),
-            state.mode().description()
-        );
-        println!();
-        println!("Available modes:");
-        println!("  normal  - Execute bash commands directly");
-        println!("  purify  - Show purified version of bash commands");
-        println!("  lint    - Show linting results for bash commands");
-        println!("  debug   - Debug bash commands with step-by-step execution");
-        println!("  explain - Explain bash constructs and syntax");
-        println!();
-        println!("Usage: :mode <mode_name>");
-    } else if parts.len() == 2 {
-        // Switch mode - use .get() to avoid clippy::indexing_slicing warning
-        if let Some(mode_name) = parts.get(1) {
-            match mode_name.parse::<ReplMode>() {
-                Ok(mode) => {
-                    state.set_mode(mode);
-                    println!("Switched to {} mode - {}", mode, mode.description());
-                }
-                Err(err) => {
-                    println!("Error: {}", err);
-                }
-            }
-        }
-    } else {
-        println!("Usage: :mode [<mode_name>]");
-        println!("Valid modes: normal, purify, lint, debug, explain");
+    let (result, new_mode) = process_mode_command(line, state);
+    println!("{}", result.format());
+    if let Some(mode) = new_mode {
+        state.set_mode(mode);
     }
 }
 
-/// Handle parse command
+/// Handle parse command (thin shim over logic module)
 fn handle_parse_command(line: &str) {
-    let parts: Vec<&str> = line.splitn(2, ' ').collect();
-
-    if parts.len() == 1 {
-        println!("Usage: :parse <bash_code>");
-        println!("Example: :parse echo hello");
-        return;
-    }
-
-    let bash_code = parts.get(1).unwrap_or(&"");
-
-    match parse_bash(bash_code) {
-        Ok(ast) => {
-            println!("✓ Parse successful!");
-            println!("Statements: {}", ast.statements.len());
-            println!("Parse time: {}ms", ast.metadata.parse_time_ms);
-            println!("\nAST:");
-            for (i, stmt) in ast.statements.iter().enumerate() {
-                println!("  [{}] {:?}", i, stmt);
-            }
-        }
-        Err(e) => {
-            println!("✗ {}", format_parse_error(&e));
-        }
-    }
+    let result = process_parse_command(line);
+    println!("{}", result.format());
 }
 
-/// Handle purify command
+/// Handle purify command (thin shim over logic module)
 fn handle_purify_command(line: &str) {
-    let parts: Vec<&str> = line.splitn(2, ' ').collect();
-
-    if parts.len() == 1 {
-        println!("Usage: :purify <bash_code>");
-        println!("Example: :purify mkdir /tmp/test");
-        return;
-    }
-
-    let bash_code = parts.get(1).unwrap_or(&"");
-
-    match purify_bash(bash_code) {
-        Ok(result) => {
-            println!("✓ Purification successful!");
-            println!("{}", result);
-        }
-        Err(e) => {
-            println!("✗ Purification error: {}", e);
-        }
-    }
+    let result = process_purify_command(line);
+    println!("{}", result.format());
 }
 
-/// Handle lint command
+/// Handle lint command (thin shim over logic module)
 fn handle_lint_command(line: &str) {
-    let parts: Vec<&str> = line.splitn(2, ' ').collect();
-
-    if parts.len() == 1 {
-        println!("Usage: :lint <bash_code>");
-        println!("Example: :lint cat file.txt | grep pattern");
-        return;
-    }
-
-    let bash_code = parts.get(1).unwrap_or(&"");
-
-    match lint_bash(bash_code) {
-        Ok(result) => {
-            println!("{}", format_lint_results(&result));
-        }
-        Err(e) => {
-            println!("✗ Lint error: {}", e);
-        }
-    }
+    let result = process_lint_command(line);
+    println!("{}", result.format());
 }
 
-/// Handle command processing based on current mode
+/// Handle command processing based on current mode (thin shim over logic module)
 fn handle_command_by_mode(line: &str, state: &ReplState) {
-    // Expand variables in the command
-    let expanded_line = expand_variables(line, state.variables());
-
-    match state.mode() {
-        ReplMode::Normal => {
-            // Normal mode - execute the command
-            let result = execute_command(&expanded_line);
-            let output = result.format();
-
-            // Print output if any
-            if !output.is_empty() {
-                print!("{}", output);
-            }
-        }
-        ReplMode::Purify => {
-            // Purify mode - automatically purify the command
-            match purify_bash(&expanded_line) {
-                Ok(result) => {
-                    println!("✓ Purified:");
-                    println!("{}", result);
-                }
-                Err(e) => {
-                    println!("✗ Purification error: {}", e);
-                }
-            }
-        }
-        ReplMode::Lint => {
-            // Lint mode - automatically lint the command
-            match lint_bash(&expanded_line) {
-                Ok(result) => {
-                    println!("{}", format_lint_results(&result));
-                }
-                Err(e) => {
-                    println!("✗ Lint error: {}", e);
-                }
-            }
-        }
-        ReplMode::Debug => {
-            // Debug mode - show that debug mode is not yet implemented
-            println!("Debug mode: {}", expanded_line);
-            println!("(Note: Debug mode not yet implemented)");
-        }
-        ReplMode::Explain => {
-            // Explain mode - explain the bash construct
-            // Note: Use original line for explaining syntax, not expanded
-            match explain_bash(line) {
-                Some(explanation) => {
-                    println!("{}", explanation.format());
-                }
-                None => {
-                    println!("No explanation available for: {}", line);
-                    println!("Try parameter expansions (${{var:-default}}), control flow (for, if, while), or redirections (>, <, |)");
-                }
-            }
+    let result = process_command_by_mode(line, state);
+    let output = result.format();
+    if !output.is_empty() {
+        print!("{}", output);
+        // Ensure newline for non-executed outputs
+        if !output.ends_with('\n') {
+            println!();
         }
     }
 }
 
-/// Handle history command
+/// Handle history command (thin shim over logic module)
 fn handle_history_command(state: &ReplState) {
-    let history = state.history();
-
-    if history.is_empty() {
-        println!("No commands in history");
-        return;
-    }
-
-    println!("Command History ({} commands):", history.len());
-    for (i, cmd) in history.iter().enumerate() {
-        println!("  {} {}", i + 1, cmd);
-    }
+    let result = process_history_command(state);
+    println!("{}", result.format());
 }
 
-/// Handle vars command
+/// Handle vars command (thin shim over logic module)
 fn handle_vars_command(state: &ReplState) {
-    let variables = state.variables();
-
-    if variables.is_empty() {
-        println!("No session variables set");
-        return;
-    }
-
-    println!("Session Variables ({} variables):", variables.len());
-    let mut vars: Vec<_> = variables.iter().collect();
-    vars.sort_by_key(|(k, _)| *k);
-
-    for (name, value) in vars {
-        println!("  {} = {}", name, value);
-    }
+    let result = process_vars_command(state);
+    println!("{}", result.format());
 }
 
 /// Handle clear command
@@ -442,158 +291,64 @@ fn handle_clear_command() {
     print!("\x1B[2J\x1B[H");
 }
 
-/// Handle load command
+/// Handle load command (thin shim over logic module)
 fn handle_load_command(line: &str, state: &mut ReplState) {
-    let parts: Vec<&str> = line.splitn(2, ' ').collect();
+    let (result, load_result) = process_load_command(line);
+    println!("{}", result.format());
 
-    if parts.len() == 1 {
-        println!("Usage: :load <file>");
-        println!("Example: :load examples/functions.sh");
-        return;
-    }
-
-    let file_path = parts.get(1).unwrap_or(&"");
-
-    let result = load_script(file_path);
-
-    match &result {
-        LoadResult::Success(script) => {
-            // Update state with loaded script
-            state.set_last_loaded_script(script.path.clone());
-
-            // Add functions to state
-            state.clear_functions();
-            for func in &script.functions {
-                state.add_function(func.clone());
-            }
-
-            // Print success message
-            println!("{}", result.format());
-        }
-        LoadResult::FileError(_) | LoadResult::ParseError(_) => {
-            // Print error message
-            println!("{}", result.format());
+    // Update state if load was successful
+    if let Some(LoadResult::Success(script)) = load_result {
+        state.set_last_loaded_script(script.path.clone());
+        state.clear_functions();
+        for func in &script.functions {
+            state.add_function(func.clone());
         }
     }
 }
 
-/// Handle source command
+/// Handle source command (thin shim over logic module)
 fn handle_source_command(line: &str, state: &mut ReplState) {
-    let parts: Vec<&str> = line.splitn(2, ' ').collect();
+    let (result, load_result) = process_source_command(line);
+    println!("{}", result.format());
 
-    if parts.len() == 1 {
-        println!("Usage: :source <file>");
-        println!("Example: :source examples/functions.sh");
-        return;
-    }
-
-    let file_path = parts.get(1).unwrap_or(&"");
-
-    let result = load_script(file_path);
-
-    match &result {
-        LoadResult::Success(script) => {
-            // Update state with loaded script
-            state.set_last_loaded_script(script.path.clone());
-
-            // Add functions to state
-            for func in &script.functions {
-                state.add_function(func.clone());
-            }
-
-            // Print sourced message
-            println!(
-                "✓ Sourced: {} ({} functions)",
-                script.path.display(),
-                script.functions.len()
-            );
-
-            // Note: Actual execution of script would happen here in a real shell
-            // For now, we just load the functions into the session
-        }
-        LoadResult::FileError(_) | LoadResult::ParseError(_) => {
-            // Print error message
-            println!("{}", result.format());
+    // Update state if source was successful
+    if let Some(LoadResult::Success(script)) = load_result {
+        state.set_last_loaded_script(script.path.clone());
+        for func in &script.functions {
+            state.add_function(func.clone());
         }
     }
 }
 
-/// Handle functions command
+/// Handle functions command (thin shim over logic module)
 fn handle_functions_command(state: &ReplState) {
-    let functions = state.loaded_functions();
-    println!("{}", format_functions(functions));
+    let result = process_functions_command(state);
+    println!("{}", result.format());
 }
 
-/// Handle reload command
+/// Handle reload command (thin shim over logic module)
 fn handle_reload_command(state: &mut ReplState) {
-    if let Some(last_script) = state.last_loaded_script() {
-        let path = last_script.clone();
-        println!("Reloading: {}", path.display());
+    let (result, load_result) = process_reload_command(state);
+    println!("{}", result.format());
 
-        let result = load_script(&path);
-
-        match &result {
-            LoadResult::Success(script) => {
-                // Update functions
-                state.clear_functions();
-                for func in &script.functions {
-                    state.add_function(func.clone());
-                }
-
-                // Print success message
-                println!(
-                    "✓ Reloaded: {} ({} functions)",
-                    script.path.display(),
-                    script.functions.len()
-                );
-            }
-            LoadResult::FileError(_) | LoadResult::ParseError(_) => {
-                println!("{}", result.format());
-            }
+    // Update state if reload was successful
+    if let Some(LoadResult::Success(script)) = load_result {
+        state.clear_functions();
+        for func in &script.functions {
+            state.add_function(func.clone());
         }
-    } else {
-        println!("No script to reload. Use :load <file> first.");
     }
 }
 
-/// Get history file path
-///
-/// Returns the path to the REPL history file.
-/// Default location: ~/.bashrs_history
-///
-/// Priority:
-/// 1. BASHRS_HISTORY_PATH environment variable (for testing)
-/// 2. $HOME/.bashrs_history (Unix)
-/// 3. %USERPROFILE%/.bashrs_history (Windows)
-/// 4. ./.bashrs_history (fallback)
-///
-/// # Examples
-///
-/// ```rust,ignore
-/// let history_path = get_history_path()?;
-/// println!("History at: {:?}", history_path);
-/// ```
-fn get_history_path() -> Result<PathBuf> {
-    // Check for BASHRS_HISTORY_PATH environment variable first (for testing)
-    if let Ok(custom_path) = std::env::var("BASHRS_HISTORY_PATH") {
-        return Ok(PathBuf::from(custom_path));
-    }
-
-    // Use home directory for history file
-    let home = std::env::var("HOME")
-        .or_else(|_| std::env::var("USERPROFILE"))
-        .unwrap_or_else(|_| ".".to_string());
-
-    let history_path = PathBuf::from(home).join(".bashrs_history");
-    Ok(history_path)
-}
+// Note: Tests for REPL logic have been moved to logic.rs
+// This file (loop.rs) is now a thin shim that handles I/O only
 
 #[cfg(test)]
 mod tests {
     use super::*;
     use std::time::Duration;
 
-    // ===== UNIT TESTS (RED PHASE) =====
+    // ===== INTEGRATION TESTS FOR run_repl =====
 
     /// Test: REPL-003-002-001 - ReplConfig validation is called
     #[test]
@@ -627,34 +382,5 @@ mod tests {
         assert!(config.validate().is_ok());
     }
 
-    // ===== REPL-003-003: HISTORY PERSISTENCE TESTS =====
-
-    /// Test: REPL-003-003-001 - Get history path returns valid path
-    #[test]
-    fn test_REPL_003_003_history_path() {
-        let path = get_history_path();
-        assert!(path.is_ok());
-
-        let path = path.unwrap();
-        assert!(path.to_string_lossy().contains(".bashrs_history"));
-    }
-
-    /// Test: REPL-003-003-002 - History path uses HOME directory
-    #[test]
-    fn test_REPL_003_003_history_path_uses_home() {
-        let path = get_history_path().unwrap();
-        let home = std::env::var("HOME")
-            .or_else(|_| std::env::var("USERPROFILE"))
-            .unwrap_or_else(|_| ".".to_string());
-
-        assert!(path.starts_with(home));
-    }
-
-    /// Test: REPL-003-003-003 - History path is deterministic
-    #[test]
-    fn test_REPL_003_003_history_path_deterministic() {
-        let path1 = get_history_path().unwrap();
-        let path2 = get_history_path().unwrap();
-        assert_eq!(path1, path2);
-    }
+    // History path tests are now in logic.rs module
 }
