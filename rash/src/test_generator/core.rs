@@ -239,6 +239,18 @@ impl GeneratedTestSuite {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::bash_parser::ast::{AstMetadata, BashExpr, BashStmt, Span};
+
+    fn make_ast(statements: Vec<BashStmt>) -> BashAst {
+        BashAst {
+            statements,
+            metadata: AstMetadata {
+                source_file: None,
+                line_count: 1,
+                parse_time_ms: 0,
+            },
+        }
+    }
 
     #[test]
     fn test_generator_creation() {
@@ -250,8 +262,47 @@ mod tests {
     }
 
     #[test]
+    fn test_options_default() {
+        let options = TestGenOptions::default();
+        assert!(options.generate_unit_tests);
+        assert!(options.generate_property_tests);
+        assert!(options.generate_mutation_config);
+        assert!(options.generate_doctests);
+        assert_eq!(options.target_coverage, 80.0);
+        assert_eq!(options.target_mutation_score, 85.0);
+        assert_eq!(options.property_test_cases, 1000);
+        assert!(options.use_runtime);
+    }
+
+    #[test]
+    fn test_options_custom() {
+        let options = TestGenOptions {
+            generate_unit_tests: false,
+            generate_property_tests: false,
+            generate_mutation_config: false,
+            generate_doctests: false,
+            target_coverage: 95.0,
+            target_mutation_score: 90.0,
+            property_test_cases: 500,
+            use_runtime: false,
+        };
+        assert!(!options.generate_unit_tests);
+        assert_eq!(options.target_coverage, 95.0);
+        assert_eq!(options.property_test_cases, 500);
+    }
+
+    #[test]
     fn test_empty_suite() {
         let suite = GeneratedTestSuite::new();
+        assert!(suite.unit_tests.is_empty());
+        assert!(suite.property_tests.is_empty());
+        assert!(suite.doctests.is_empty());
+        assert!(suite.mutation_config.is_empty());
+    }
+
+    #[test]
+    fn test_suite_default() {
+        let suite = GeneratedTestSuite::default();
         assert!(suite.unit_tests.is_empty());
         assert!(suite.property_tests.is_empty());
     }
@@ -263,5 +314,131 @@ mod tests {
 
         // Empty suite should produce no test code
         assert_eq!(code, "");
+    }
+
+    #[test]
+    fn test_suite_to_rust_code_with_unit_tests() {
+        let mut suite = GeneratedTestSuite::new();
+        suite.unit_tests.push(super::super::unit_tests::UnitTest {
+            name: "test_example".to_string(),
+            test_fn: "example()".to_string(),
+            assertions: vec![super::super::unit_tests::Assertion::Comment(
+                "Test comment".to_string(),
+            )],
+        });
+
+        let code = suite.to_rust_code();
+        assert!(code.contains("#[cfg(test)]"));
+        assert!(code.contains("mod tests"));
+        assert!(code.contains("use super::*;"));
+    }
+
+    #[test]
+    fn test_suite_to_rust_code_with_property_tests() {
+        use super::super::property_tests::{Generator, Property, PropertyTest};
+
+        let mut suite = GeneratedTestSuite::new();
+        suite.property_tests.push(PropertyTest {
+            name: "prop_test".to_string(),
+            property: Property::Determinism,
+            generators: vec![Generator::String {
+                pattern: "[a-zA-Z0-9]{1,20}".to_string(),
+            }],
+            test_cases: 100,
+        });
+
+        let code = suite.to_rust_code();
+        assert!(code.contains("#[cfg(test)]"));
+        assert!(code.contains("mod property_tests"));
+        assert!(code.contains("proptest!"));
+    }
+
+    #[test]
+    fn test_suite_mutation_config_content() {
+        let mut suite = GeneratedTestSuite::new();
+        suite.mutation_config = "# Mutation config".to_string();
+        assert_eq!(suite.mutation_config_content(), "# Mutation config");
+    }
+
+    #[test]
+    fn test_coverage_report() {
+        let options = TestGenOptions::default();
+        let gen = TestGenerator::new(options);
+        let _report = gen.coverage_report();
+        // Just verify it doesn't panic
+    }
+
+    #[test]
+    fn test_test_gen_error_display() {
+        let err = TestGenError::ParseError("test error".to_string());
+        assert_eq!(format!("{}", err), "Parse error: test error");
+
+        let err = TestGenError::TranspileError("transpile issue".to_string());
+        assert_eq!(format!("{}", err), "Transpile error: transpile issue");
+
+        let err = TestGenError::CoverageInsufficient {
+            actual: 70.0,
+            target: 80.0,
+        };
+        assert!(format!("{}", err).contains("70.0%"));
+        assert!(format!("{}", err).contains("80.0%"));
+
+        let err = TestGenError::MutationScoreLow {
+            actual: 60.0,
+            target: 85.0,
+        };
+        assert!(format!("{}", err).contains("60.0%"));
+
+        let err = TestGenError::GenerationFailed("failed".to_string());
+        assert_eq!(format!("{}", err), "Test generation failed: failed");
+    }
+
+    #[test]
+    fn test_generator_with_function_ast() {
+        let mut options = TestGenOptions::default();
+        // Disable checks that require actual coverage tracking
+        options.target_coverage = 0.0;
+
+        let mut gen = TestGenerator::new(options);
+        let ast = make_ast(vec![BashStmt::Function {
+            name: "my_func".to_string(),
+            body: vec![BashStmt::Command {
+                name: "echo".to_string(),
+                args: vec![BashExpr::Literal("hello".to_string())],
+                redirects: vec![],
+                span: Span::dummy(),
+            }],
+            span: Span::dummy(),
+        }]);
+
+        let result = gen.generate(&ast);
+        assert!(result.is_ok());
+        let suite = result.unwrap();
+        // Should have generated some unit tests for the function
+        assert!(!suite.unit_tests.is_empty());
+    }
+
+    #[test]
+    fn test_generator_disabled_options() {
+        let options = TestGenOptions {
+            generate_unit_tests: false,
+            generate_property_tests: false,
+            generate_mutation_config: false,
+            generate_doctests: false,
+            target_coverage: 0.0,
+            target_mutation_score: 0.0,
+            property_test_cases: 0,
+            use_runtime: false,
+        };
+
+        let mut gen = TestGenerator::new(options);
+        let ast = make_ast(vec![]);
+
+        let result = gen.generate(&ast);
+        assert!(result.is_ok());
+        let suite = result.unwrap();
+        assert!(suite.unit_tests.is_empty());
+        assert!(suite.property_tests.is_empty());
+        assert!(suite.doctests.is_empty());
     }
 }
