@@ -1,0 +1,396 @@
+<!DOCTYPE HTML>
+<html lang="en" class="rust sidebar-visible" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>Getting Started - The Rash Book - Shell Safety and Purification</title>
+
+
+        <!-- Custom HTML head -->
+
+        <meta name="description" content="A comprehensive guide to Rash: shell safety, purification, and linting">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="../favicon.svg">
+        <link rel="shortcut icon" href="../favicon.png">
+        <link rel="stylesheet" href="../css/variables.css">
+        <link rel="stylesheet" href="../css/general.css">
+        <link rel="stylesheet" href="../css/chrome.css">
+        <link rel="stylesheet" href="../css/print.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="../FontAwesome/css/font-awesome.css">
+        <link rel="stylesheet" href="../fonts/fonts.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" id="highlight-css" href="../highlight.css">
+        <link rel="stylesheet" id="tomorrow-night-css" href="../tomorrow-night.css">
+        <link rel="stylesheet" id="ayu-highlight-css" href="../ayu-highlight.css">
+
+        <!-- Custom theme stylesheets -->
+
+
+        <!-- Provide site root and default themes to javascript -->
+        <script>
+            const path_to_root = "../";
+            const default_light_theme = "rust";
+            const default_dark_theme = "navy";
+            window.path_to_searchindex_js = "../searchindex.js";
+        </script>
+        <!-- Start loading toc.js asap -->
+        <script src="../toc.js"></script>
+    </head>
+    <body>
+    <div id="mdbook-help-container">
+        <div id="mdbook-help-popup">
+            <h2 class="mdbook-help-title">Keyboard shortcuts</h2>
+            <div>
+                <p>Press <kbd>←</kbd> or <kbd>→</kbd> to navigate between chapters</p>
+                <p>Press <kbd>S</kbd> or <kbd>/</kbd> to search in the book</p>
+                <p>Press <kbd>?</kbd> to show this help</p>
+                <p>Press <kbd>Esc</kbd> to hide this help</p>
+            </div>
+        </div>
+    </div>
+    <div id="body-container">
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                let theme = localStorage.getItem('mdbook-theme');
+                let sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            const default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? default_dark_theme : default_light_theme;
+            let theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            const html = document.documentElement;
+            html.classList.remove('rust')
+            html.classList.add(theme);
+            html.classList.add("js");
+        </script>
+
+        <input type="checkbox" id="sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            let sidebar = null;
+            const sidebar_toggle = document.getElementById("sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+                sidebar_toggle.checked = false;
+            }
+            if (sidebar === 'visible') {
+                sidebar_toggle.checked = true;
+            } else {
+                html.classList.remove('sidebar-visible');
+            }
+        </script>
+
+        <nav id="sidebar" class="sidebar" aria-label="Table of contents">
+            <!-- populated by js -->
+            <mdbook-sidebar-scrollbox class="sidebar-scrollbox"></mdbook-sidebar-scrollbox>
+            <noscript>
+                <iframe class="sidebar-iframe-outer" src="../toc.html"></iframe>
+            </noscript>
+            <div id="sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <div id="page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="menu-bar-hover-placeholder"></div>
+                <div id="menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="sidebar-toggle" class="icon-button" for="sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="sidebar">
+                            <i class="fa fa-bars"></i>
+                        </label>
+                        <button id="theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="theme-list">
+                            <i class="fa fa-paint-brush"></i>
+                        </button>
+                        <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="default_theme">Auto</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
+                        </ul>
+                        <button id="search-toggle" class="icon-button" type="button" title="Search (`/`)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="/ s" aria-controls="searchbar">
+                            <i class="fa fa-search"></i>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">The Rash Book - Shell Safety and Purification</h1>
+
+                    <div class="right-buttons">
+                        <a href="../print.html" title="Print this book" aria-label="Print this book">
+                            <i id="print-button" class="fa fa-print"></i>
+                        </a>
+                        <a href="https://github.com/paiml/bashrs" title="Git repository" aria-label="Git repository">
+                            <i id="git-repository-button" class="fa fa-github"></i>
+                        </a>
+                        <a href="https://github.com/paiml/bashrs/edit/main/book/src/installer/getting-started.md" title="Suggest an edit" aria-label="Suggest an edit" rel="edit">
+                            <i id="git-edit-button" class="fa fa-edit"></i>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="search-wrapper" class="hidden">
+                    <form id="searchbar-outer" class="searchbar-outer">
+                        <div class="search-wrapper">
+                            <input type="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                            <div class="spinner-wrapper">
+                                <i class="fa fa-spinner fa-spin"></i>
+                            </div>
+                        </div>
+                    </form>
+                    <div id="searchresults-outer" class="searchresults-outer hidden">
+                        <div id="searchresults-header" class="searchresults-header"></div>
+                        <ul id="searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="content" class="content">
+                    <main>
+                        <h1 id="getting-started-with-installers"><a class="header" href="#getting-started-with-installers">Getting Started with Installers</a></h1>
+<p>This guide walks you through creating your first TDD-first installer.</p>
+<h2 id="prerequisites"><a class="header" href="#prerequisites">Prerequisites</a></h2>
+<ul>
+<li>bashrs installed (<code>cargo install bashrs</code>)</li>
+<li>Basic understanding of shell scripting</li>
+</ul>
+<h2 id="step-1-initialize-project"><a class="header" href="#step-1-initialize-project">Step 1: Initialize Project</a></h2>
+<p>Create a new installer project:</p>
+<pre><code class="language-bash">bashrs installer init my-app-installer --description "My application installer"
+</code></pre>
+<p>Output:</p>
+<pre><code>✓ Initialized installer project: my-app-installer
+  Path: /path/to/my-app-installer
+
+  Created:
+    - installer.toml (installer specification)
+    - tests/mod.rs (test harness)
+    - tests/falsification.rs (Popper-style tests)
+    - templates/ (template files)
+
+Next steps:
+  1. Edit installer.toml to define steps
+  2. Run: bashrs installer validate my-app-installer
+  3. Run: bashrs installer run my-app-installer --dry-run
+</code></pre>
+<h2 id="step-2-edit-installertoml"><a class="header" href="#step-2-edit-installertoml">Step 2: Edit installer.toml</a></h2>
+<p>Open <code>installer.toml</code> and customize it for your application:</p>
+<pre><code class="language-toml">[installer]
+name = "my-app"
+version = "1.0.0"
+description = "Installs My Application"
+author = "Your Name &lt;you@example.com&gt;"
+
+[installer.requirements]
+os = ["ubuntu &gt;= 20.04", "debian &gt;= 11", "fedora &gt;= 38"]
+arch = ["x86_64", "aarch64"]
+privileges = "user"  # or "root"
+network = true
+
+# Step 1: Create directories
+[[step]]
+id = "create-dirs"
+name = "Create Installation Directories"
+action = "script"
+
+[step.script]
+interpreter = "sh"
+content = '''
+mkdir -p ~/.local/bin
+mkdir -p ~/.config/my-app
+'''
+
+[step.postconditions]
+file_exists = "~/.local/bin"
+
+[step.checkpoint]
+enabled = true
+rollback = "rm -rf ~/.local/bin ~/.config/my-app"
+
+# Step 2: Download binary
+[[step]]
+id = "download-binary"
+name = "Download Application Binary"
+action = "script"
+depends_on = ["create-dirs"]
+
+[step.script]
+content = '''
+curl -fsSL https://github.com/example/my-app/releases/latest/download/my-app-linux-amd64 \
+  -o ~/.local/bin/my-app
+chmod +x ~/.local/bin/my-app
+'''
+
+[step.postconditions]
+file_exists = "~/.local/bin/my-app"
+file_mode = "755"
+
+# Step 3: Create config
+[[step]]
+id = "create-config"
+name = "Create Default Configuration"
+action = "script"
+depends_on = ["download-binary"]
+
+[step.script]
+content = '''
+cat &gt; ~/.config/my-app/config.toml &lt;&lt; 'EOF'
+[settings]
+log_level = "info"
+data_dir = "~/.local/share/my-app"
+EOF
+'''
+
+# Step 4: Verify installation
+[[step]]
+id = "verify"
+name = "Verify Installation"
+action = "script"
+depends_on = ["create-config"]
+
+[step.script]
+content = '''
+~/.local/bin/my-app --version
+'''
+
+[step.verification]
+commands = [
+    { cmd = "~/.local/bin/my-app --version", expect = "my-app" }
+]
+</code></pre>
+<h2 id="step-3-validate"><a class="header" href="#step-3-validate">Step 3: Validate</a></h2>
+<p>Check that your installer is valid:</p>
+<pre><code class="language-bash">bashrs installer validate my-app-installer
+</code></pre>
+<p>Output:</p>
+<pre><code>✓ Installer is valid
+  Steps: 4
+  Artifacts: 0
+</code></pre>
+<h2 id="step-4-preview-with-dry-run"><a class="header" href="#step-4-preview-with-dry-run">Step 4: Preview with Dry-Run</a></h2>
+<p>See what changes will be made without executing:</p>
+<pre><code class="language-bash">bashrs installer run my-app-installer --dry-run --diff
+</code></pre>
+<h2 id="step-5-visualize-dependencies"><a class="header" href="#step-5-visualize-dependencies">Step 5: Visualize Dependencies</a></h2>
+<p>Generate a dependency graph:</p>
+<pre><code class="language-bash">bashrs installer graph my-app-installer --format mermaid
+</code></pre>
+<p>Output:</p>
+<pre><code class="language-mermaid">graph TD
+    A[create-dirs] --&gt; B[download-binary]
+    B --&gt; C[create-config]
+    C --&gt; D[verify]
+</code></pre>
+<h2 id="step-6-test-across-platforms"><a class="header" href="#step-6-test-across-platforms">Step 6: Test Across Platforms</a></h2>
+<p>Test your installer on multiple platforms:</p>
+<pre><code class="language-bash">bashrs installer test my-app-installer --matrix "ubuntu:22.04,debian:12,fedora:39"
+</code></pre>
+<h2 id="step-7-execute"><a class="header" href="#step-7-execute">Step 7: Execute</a></h2>
+<p>Run the installer:</p>
+<pre><code class="language-bash">bashrs installer run my-app-installer
+</code></pre>
+<h2 id="resuming-from-failures"><a class="header" href="#resuming-from-failures">Resuming from Failures</a></h2>
+<p>If a step fails, the installer checkpoints progress. Resume with:</p>
+<pre><code class="language-bash">bashrs installer resume my-app-installer
+</code></pre>
+<p>Or restart from a specific step:</p>
+<pre><code class="language-bash">bashrs installer resume my-app-installer --from download-binary
+</code></pre>
+<h2 id="next-steps"><a class="header" href="#next-steps">Next Steps</a></h2>
+<ul>
+<li>Learn about <a href="./step-types.html">Step Types</a></li>
+<li>Configure <a href="./checkpointing.html">Checkpointing</a></li>
+<li>Set up <a href="./artifacts.html">Artifact Verification</a></li>
+</ul>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="../installer/overview.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <i class="fa fa-angle-left"></i>
+                            </a>
+
+                            <a rel="next prefetch" href="../installer/step-types.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <i class="fa fa-angle-right"></i>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="../installer/overview.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <i class="fa fa-angle-left"></i>
+                    </a>
+
+                    <a rel="next prefetch" href="../installer/step-types.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <i class="fa fa-angle-right"></i>
+                    </a>
+            </nav>
+
+        </div>
+
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+        <script src="../ace.js"></script>
+        <script src="../mode-rust.js"></script>
+        <script src="../editor.js"></script>
+        <script src="../theme-dawn.js"></script>
+        <script src="../theme-tomorrow_night.js"></script>
+
+        <script src="../elasticlunr.min.js"></script>
+        <script src="../mark.min.js"></script>
+        <script src="../searcher.js"></script>
+
+        <script src="../clipboard.min.js"></script>
+        <script src="../highlight.js"></script>
+        <script src="../book.js"></script>
+
+        <!-- Custom JS scripts -->
+
+
+
+    </div>
+    </body>
+</html>

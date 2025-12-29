@@ -1,0 +1,875 @@
+<!DOCTYPE HTML>
+<html lang="en" class="rust sidebar-visible" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>Mutation Testing - The Rash Book - Shell Safety and Purification</title>
+
+
+        <!-- Custom HTML head -->
+
+        <meta name="description" content="A comprehensive guide to Rash: shell safety, purification, and linting">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="../favicon.svg">
+        <link rel="shortcut icon" href="../favicon.png">
+        <link rel="stylesheet" href="../css/variables.css">
+        <link rel="stylesheet" href="../css/general.css">
+        <link rel="stylesheet" href="../css/chrome.css">
+        <link rel="stylesheet" href="../css/print.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="../FontAwesome/css/font-awesome.css">
+        <link rel="stylesheet" href="../fonts/fonts.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" id="highlight-css" href="../highlight.css">
+        <link rel="stylesheet" id="tomorrow-night-css" href="../tomorrow-night.css">
+        <link rel="stylesheet" id="ayu-highlight-css" href="../ayu-highlight.css">
+
+        <!-- Custom theme stylesheets -->
+
+
+        <!-- Provide site root and default themes to javascript -->
+        <script>
+            const path_to_root = "../";
+            const default_light_theme = "rust";
+            const default_dark_theme = "navy";
+            window.path_to_searchindex_js = "../searchindex.js";
+        </script>
+        <!-- Start loading toc.js asap -->
+        <script src="../toc.js"></script>
+    </head>
+    <body>
+    <div id="mdbook-help-container">
+        <div id="mdbook-help-popup">
+            <h2 class="mdbook-help-title">Keyboard shortcuts</h2>
+            <div>
+                <p>Press <kbd>←</kbd> or <kbd>→</kbd> to navigate between chapters</p>
+                <p>Press <kbd>S</kbd> or <kbd>/</kbd> to search in the book</p>
+                <p>Press <kbd>?</kbd> to show this help</p>
+                <p>Press <kbd>Esc</kbd> to hide this help</p>
+            </div>
+        </div>
+    </div>
+    <div id="body-container">
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                let theme = localStorage.getItem('mdbook-theme');
+                let sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            const default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? default_dark_theme : default_light_theme;
+            let theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            const html = document.documentElement;
+            html.classList.remove('rust')
+            html.classList.add(theme);
+            html.classList.add("js");
+        </script>
+
+        <input type="checkbox" id="sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            let sidebar = null;
+            const sidebar_toggle = document.getElementById("sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+                sidebar_toggle.checked = false;
+            }
+            if (sidebar === 'visible') {
+                sidebar_toggle.checked = true;
+            } else {
+                html.classList.remove('sidebar-visible');
+            }
+        </script>
+
+        <nav id="sidebar" class="sidebar" aria-label="Table of contents">
+            <!-- populated by js -->
+            <mdbook-sidebar-scrollbox class="sidebar-scrollbox"></mdbook-sidebar-scrollbox>
+            <noscript>
+                <iframe class="sidebar-iframe-outer" src="../toc.html"></iframe>
+            </noscript>
+            <div id="sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <div id="page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="menu-bar-hover-placeholder"></div>
+                <div id="menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="sidebar-toggle" class="icon-button" for="sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="sidebar">
+                            <i class="fa fa-bars"></i>
+                        </label>
+                        <button id="theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="theme-list">
+                            <i class="fa fa-paint-brush"></i>
+                        </button>
+                        <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="default_theme">Auto</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
+                        </ul>
+                        <button id="search-toggle" class="icon-button" type="button" title="Search (`/`)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="/ s" aria-controls="searchbar">
+                            <i class="fa fa-search"></i>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">The Rash Book - Shell Safety and Purification</h1>
+
+                    <div class="right-buttons">
+                        <a href="../print.html" title="Print this book" aria-label="Print this book">
+                            <i id="print-button" class="fa fa-print"></i>
+                        </a>
+                        <a href="https://github.com/paiml/bashrs" title="Git repository" aria-label="Git repository">
+                            <i id="git-repository-button" class="fa fa-github"></i>
+                        </a>
+                        <a href="https://github.com/paiml/bashrs/edit/main/book/src/advanced/mutation-testing.md" title="Suggest an edit" aria-label="Suggest an edit" rel="edit">
+                            <i id="git-edit-button" class="fa fa-edit"></i>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="search-wrapper" class="hidden">
+                    <form id="searchbar-outer" class="searchbar-outer">
+                        <div class="search-wrapper">
+                            <input type="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                            <div class="spinner-wrapper">
+                                <i class="fa fa-spinner fa-spin"></i>
+                            </div>
+                        </div>
+                    </form>
+                    <div id="searchresults-outer" class="searchresults-outer hidden">
+                        <div id="searchresults-header" class="searchresults-header"></div>
+                        <ul id="searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="content" class="content">
+                    <main>
+                        <h1 id="mutation-testing"><a class="header" href="#mutation-testing">Mutation Testing</a></h1>
+<p>Mutation testing is the gold standard for measuring test quality. While code coverage tells you which lines are executed, mutation testing tells you whether your tests actually catch bugs. bashrs uses <code>cargo-mutants</code> to achieve 80-90%+ kill rates on security-critical code.</p>
+<h2 id="what-is-mutation-testing"><a class="header" href="#what-is-mutation-testing">What is Mutation Testing?</a></h2>
+<p>Mutation testing works by introducing small bugs (mutations) into your code and checking if your tests catch them:</p>
+<pre><code class="language-rust ignore">// Original code
+fn is_safe_command(cmd: &amp;str) -&gt; bool {
+    !cmd.contains("eval")
+}
+
+// Mutant 1: Negate condition
+fn is_safe_command(cmd: &amp;str) -&gt; bool {
+    cmd.contains("eval")  // Bug: inverted logic
+}
+
+// Mutant 2: Change constant
+fn is_safe_command(cmd: &amp;str) -&gt; bool {
+    !cmd.contains("")  // Bug: empty string always matches
+}</code></pre>
+<p><strong>If your tests pass</strong> with the mutant, the mutant <strong>survived</strong> (bad - your tests missed a bug).</p>
+<p><strong>If your tests fail</strong> with the mutant, the mutant was <strong>killed</strong> (good - your tests caught the bug).</p>
+<h3 id="mutation-score-kill-rate"><a class="header" href="#mutation-score-kill-rate">Mutation Score (Kill Rate)</a></h3>
+<pre><code class="language-text">Mutation Score = (Killed Mutants / Total Viable Mutants) × 100%
+</code></pre>
+<p>bashrs targets:</p>
+<ul>
+<li><strong>90%+</strong> for CRITICAL security rules (SEC001-SEC008, SC2064, SC2059)</li>
+<li><strong>80%+</strong> for core infrastructure (shell_type, rule_registry)</li>
+<li><strong>70%+</strong> for high-priority linter rules</li>
+</ul>
+<h2 id="how-bashrs-achieves-high-mutation-scores"><a class="header" href="#how-bashrs-achieves-high-mutation-scores">How bashrs Achieves High Mutation Scores</a></h2>
+<h3 id="example-sec001-command-injection-via-eval"><a class="header" href="#example-sec001-command-injection-via-eval">Example: SEC001 (Command Injection via eval)</a></h3>
+<p><strong>Current stats</strong>: 16 mutants, 16 killed, <strong>100% kill rate</strong></p>
+<p>Let's trace how this was achieved:</p>
+<h4 id="initial-implementation-naive"><a class="header" href="#initial-implementation-naive">Initial Implementation (Naive)</a></h4>
+<pre><code class="language-rust ignore">pub fn check(source: &amp;str) -&gt; LintResult {
+    let mut result = LintResult::new();
+
+    for (line_num, line) in source.lines().enumerate() {
+        if line.contains("eval") {
+            result.add_diagnostic(Diagnostic {
+                rule_code: "SEC001".to_string(),
+                severity: Severity::Error,
+                message: "Use of eval detected".to_string(),
+                line: line_num + 1,
+                column: 0,
+                suggestion: None,
+            });
+        }
+    }
+
+    result
+}</code></pre>
+<h4 id="baseline-mutation-test"><a class="header" href="#baseline-mutation-test">Baseline Mutation Test</a></h4>
+<pre><code class="language-bash">$ cargo mutants --file rash/src/linter/rules/sec001.rs -- --lib
+</code></pre>
+<p><strong>Results</strong>: 10 mutants generated, <strong>3 survived</strong> (70% kill rate)</p>
+<p><strong>Surviving mutants</strong>:</p>
+<ol>
+<li>Changed <code>line.contains("eval")</code> to <code>line.contains("")</code> - Test passed!</li>
+<li>Changed <code>line_num + 1</code> to <code>line_num</code> - Test passed!</li>
+<li>Removed <code>if</code> condition guard - Test passed!</li>
+</ol>
+<h4 id="iteration-1-kill-surviving-mutants"><a class="header" href="#iteration-1-kill-surviving-mutants">Iteration 1: Kill Surviving Mutants</a></h4>
+<p>Add targeted tests:</p>
+<pre><code class="language-rust ignore">#[test]
+fn test_sec001_word_boundary_before() {
+    // Kill mutant: "eval" → "" (empty string always matches)
+    let safe = "# evaluation is not eval";
+    let result = check(safe);
+    assert_eq!(result.diagnostics.len(), 0,
+        "Should not flag 'eval' within another word");
+}
+
+#[test]
+fn test_sec001_correct_line_number() {
+    // Kill mutant: line_num + 1 → line_num
+    let script = "\n\neval \"$cmd\"\n";  // Line 3
+    let result = check(script);
+    assert_eq!(result.diagnostics[0].line, 3,
+        "Should report correct line number");
+}
+
+#[test]
+fn test_sec001_requires_eval_presence() {
+    // Kill mutant: removed if condition
+    let safe = "echo hello";
+    let result = check(safe);
+    assert_eq!(result.diagnostics.len(), 0,
+        "Should not flag commands without eval");
+}</code></pre>
+<h4 id="iteration-2-add-edge-cases"><a class="header" href="#iteration-2-add-edge-cases">Iteration 2: Add Edge Cases</a></h4>
+<pre><code class="language-rust ignore">#[test]
+fn test_sec001_eval_at_line_start() {
+    // Edge case: eval at beginning of line
+    let script = "eval \"$cmd\"";
+    let result = check(script);
+    assert_eq!(result.diagnostics.len(), 1);
+}
+
+#[test]
+fn test_sec001_eval_at_line_end() {
+    // Edge case: eval at end of line
+    let script = "  eval";
+    let result = check(script);
+    assert_eq!(result.diagnostics.len(), 1);
+}
+
+#[test]
+fn test_sec001_eval_with_quotes() {
+    // Edge case: eval in various quote contexts
+    let script = r#"eval "$cmd""#;
+    let result = check(script);
+    assert_eq!(result.diagnostics.len(), 1);
+}</code></pre>
+<h4 id="final-implementation-robust"><a class="header" href="#final-implementation-robust">Final Implementation (Robust)</a></h4>
+<pre><code class="language-rust ignore">pub fn check(source: &amp;str) -&gt; LintResult {
+    let mut result = LintResult::new();
+
+    for (line_num, line) in source.lines().enumerate() {
+        // Look for eval usage as a command (not part of another word)
+        if let Some(col) = line.find("eval") {
+            // Check if it's a standalone command (word boundary)
+            let before_ok = if col == 0 {
+                true
+            } else {
+                let char_before = line.chars().nth(col - 1);
+                matches!(
+                    char_before,
+                    Some(' ') | Some('\t') | Some(';') | Some('&amp;') | Some('|') | Some('(')
+                )
+            };
+
+            let after_idx = col + 4; // "eval" is 4 chars
+            let after_ok = if after_idx &gt;= line.len() {
+                true
+            } else {
+                let char_after = line.chars().nth(after_idx);
+                matches!(
+                    char_after,
+                    Some(' ') | Some('\t') | Some('\n') | Some(';') | Some('&amp;')
+                        | Some('|') | Some(')') | Some('"') | Some('\'')
+                )
+            };
+
+            if before_ok &amp;&amp; after_ok {
+                result.add_diagnostic(Diagnostic {
+                    rule_code: "SEC001".to_string(),
+                    severity: Severity::Error,
+                    message: "Use of eval with user input can lead to command injection"
+                        .to_string(),
+                    line: line_num + 1,  // 1-indexed for user display
+                    column: col,
+                    suggestion: Some(
+                        "Avoid eval or validate input strictly. Consider using arrays \
+                         and proper quoting instead."
+                            .to_string(),
+                    ),
+                });
+            }
+        }
+    }
+
+    result
+}</code></pre>
+<h4 id="final-mutation-test"><a class="header" href="#final-mutation-test">Final Mutation Test</a></h4>
+<pre><code class="language-bash">$ cargo mutants --file rash/src/linter/rules/sec001.rs -- --lib
+</code></pre>
+<p><strong>Results</strong>: 16 mutants generated, <strong>16 killed</strong>, <strong>100% kill rate</strong></p>
+<h2 id="examples-from-bashrs-sec-rules"><a class="header" href="#examples-from-bashrs-sec-rules">Examples from bashrs SEC Rules</a></h2>
+<h3 id="sec002-unquoted-variables-75--875-improvement"><a class="header" href="#sec002-unquoted-variables-75--875-improvement">SEC002: Unquoted Variables (75% → 87.5% improvement)</a></h3>
+<p><strong>Baseline</strong>: 24/32 mutants killed (75%)</p>
+<p><strong>Surviving mutants identified</strong>:</p>
+<pre><code class="language-rust ignore">// Mutant 1: Changed `contains("$")` to `contains("")`
+// Mutant 2: Changed `!is_quoted()` to `is_quoted()`
+// Mutant 3: Removed `if !var.is_empty()` guard
+// ... 8 total survivors</code></pre>
+<p><strong>Iteration 1</strong>: Add 8 targeted tests:</p>
+<pre><code class="language-rust ignore">#[test]
+fn test_sec002_empty_variable_not_flagged() {
+    // Kill mutant: removed is_empty() guard
+    let script = "echo ''";  // Empty string, not a variable
+    let result = check(script);
+    assert_eq!(result.diagnostics.len(), 0);
+}
+
+#[test]
+fn test_sec002_dollar_sign_requires_variable() {
+    // Kill mutant: contains("$") → contains("")
+    let script = "echo 'price is $5'";  // $ but not a variable
+    let result = check(script);
+    assert_eq!(result.diagnostics.len(), 0);
+}
+
+#[test]
+fn test_sec002_quoted_variable_not_flagged() {
+    // Kill mutant: !is_quoted() → is_quoted()
+    let script = r#"echo "$VAR""#;  // Properly quoted
+    let result = check(script);
+    assert_eq!(result.diagnostics.len(), 0);
+}
+
+// ... 5 more tests targeting remaining mutants</code></pre>
+<p><strong>Result</strong>: 28/32 killed (87.5%) - 12.5 percentage point improvement</p>
+<h3 id="sec006-unsafe-temporary-files-857-baseline"><a class="header" href="#sec006-unsafe-temporary-files-857-baseline">SEC006: Unsafe Temporary Files (85.7% baseline)</a></h3>
+<p><strong>Baseline</strong>: 12/14 mutants killed</p>
+<p><strong>Key insight</strong>: High baseline score indicates good initial test coverage.</p>
+<p><strong>Surviving mutants</strong>:</p>
+<pre><code class="language-rust ignore">// Mutant 1: Changed `mktemp` to `mktmp` (typo)
+// Mutant 2: Changed severity Error → Warning</code></pre>
+<p><strong>Iteration 1</strong>: Add tests for edge cases:</p>
+<pre><code class="language-rust ignore">#[test]
+fn test_sec006_exact_command_name() {
+    // Kill mutant: mktemp → mktmp
+    let typo = "mktmp";  // Common typo
+    let result = check(typo);
+    assert_eq!(result.diagnostics.len(), 0,
+        "Should only flag actual mktemp command");
+
+    let correct = "mktemp";
+    let result = check(correct);
+    assert!(result.diagnostics.len() &gt; 0,
+        "Should flag mktemp command");
+}
+
+#[test]
+fn test_sec006_severity_is_error() {
+    // Kill mutant: Error → Warning
+    let script = "FILE=$(mktemp)";
+    let result = check(script);
+    assert_eq!(result.diagnostics[0].severity, Severity::Error,
+        "Unsafe temp files must be Error severity");
+}</code></pre>
+<p><strong>Result</strong>: 14/14 killed (100%)</p>
+<h3 id="sc2064-trap-command-timing-100-from-start"><a class="header" href="#sc2064-trap-command-timing-100-from-start">SC2064: Trap Command Timing (100% from start)</a></h3>
+<p><strong>What made this rule perfect?</strong></p>
+<ol>
+<li><strong>Property-based tests</strong> for all trap timing scenarios</li>
+<li><strong>Mutation-driven test design</strong> - wrote tests anticipating mutations</li>
+<li><strong>Edge case enumeration</strong> - tested all quote/expansion combinations</li>
+</ol>
+<pre><code class="language-rust ignore">#[test]
+fn test_sc2064_double_quotes_immediate_expansion() {
+    let script = r#"trap "echo $VAR" EXIT"#;  // Expands immediately
+    let result = check(script);
+    assert_eq!(result.diagnostics.len(), 1);
+}
+
+#[test]
+fn test_sc2064_single_quotes_delayed_expansion() {
+    let script = r#"trap 'echo $VAR' EXIT"#;  // Expands on signal
+    let result = check(script);
+    assert_eq!(result.diagnostics.len(), 0);
+}
+
+#[test]
+fn test_sc2064_escaped_dollar_delayed_expansion() {
+    let script = r#"trap "echo \$VAR" EXIT"#;  // Escaped = delayed
+    let result = check(script);
+    assert_eq!(result.diagnostics.len(), 0);
+}
+
+#[test]
+fn test_sc2064_mixed_expansion() {
+    let script = r#"trap "cleanup $PID; rm \$TMPFILE" EXIT"#;
+    // $PID expands immediately, \$TMPFILE expands on signal
+    let result = check(script);
+    assert_eq!(result.diagnostics.len(), 1);
+}
+
+// ... 16 more tests covering all combinations</code></pre>
+<p><strong>Result</strong>: 7 mutants, 7 killed, 100% kill rate</p>
+<h2 id="writing-effective-tests-for-high-mutation-scores"><a class="header" href="#writing-effective-tests-for-high-mutation-scores">Writing Effective Tests for High Mutation Scores</a></h2>
+<h3 id="pattern-1-boundary-testing"><a class="header" href="#pattern-1-boundary-testing">Pattern 1: Boundary Testing</a></h3>
+<p>Test both sides of every condition:</p>
+<pre><code class="language-rust ignore">// Original code
+if cmd.len() &gt; 0 {
+    process(cmd);
+}
+
+// Mutation: &gt; → &gt;=
+if cmd.len() &gt;= 0 {  // Always true!
+    process(cmd);
+}</code></pre>
+<p><strong>Kill this mutant</strong>:</p>
+<pre><code class="language-rust ignore">#[test]
+fn test_empty_command_not_processed() {
+    let cmd = "";
+    let result = process_if_nonempty(cmd);
+    assert_eq!(result, None, "Empty command should not be processed");
+}
+
+#[test]
+fn test_nonempty_command_processed() {
+    let cmd = "ls";
+    let result = process_if_nonempty(cmd);
+    assert!(result.is_some(), "Non-empty command should be processed");
+}</code></pre>
+<h3 id="pattern-2-assertion-strengthening"><a class="header" href="#pattern-2-assertion-strengthening">Pattern 2: Assertion Strengthening</a></h3>
+<p>Weak assertions let mutants survive:</p>
+<pre><code class="language-rust ignore">// ❌ WEAK: Only checks presence
+#[test]
+fn test_diagnostic_exists() {
+    let result = check("eval cmd");
+    assert!(!result.diagnostics.is_empty());  // Mutants can survive
+}
+
+// ✅ STRONG: Checks all properties
+#[test]
+fn test_diagnostic_complete() {
+    let result = check("eval cmd");
+    assert_eq!(result.diagnostics.len(), 1);
+    assert_eq!(result.diagnostics[0].rule_code, "SEC001");
+    assert_eq!(result.diagnostics[0].severity, Severity::Error);
+    assert_eq!(result.diagnostics[0].line, 1);
+    assert!(result.diagnostics[0].message.contains("eval"));
+}</code></pre>
+<h3 id="pattern-3-negation-testing"><a class="header" href="#pattern-3-negation-testing">Pattern 3: Negation Testing</a></h3>
+<p>Test both positive and negative cases:</p>
+<pre><code class="language-rust ignore">#[test]
+fn test_detects_vulnerability() {
+    let vulnerable = "eval \"$USER_INPUT\"";
+    let result = check(vulnerable);
+    assert!(result.diagnostics.len() &gt; 0,
+        "Should flag vulnerable code");
+}
+
+#[test]
+fn test_ignores_safe_code() {
+    let safe = "echo hello";
+    let result = check(safe);
+    assert_eq!(result.diagnostics.len(), 0,
+        "Should not flag safe code");
+}</code></pre>
+<h3 id="pattern-4-value-testing"><a class="header" href="#pattern-4-value-testing">Pattern 4: Value Testing</a></h3>
+<p>Test specific values, not just presence:</p>
+<pre><code class="language-rust ignore">// ❌ WEAK
+#[test]
+fn test_line_number_set() {
+    let result = check("\n\neval cmd");
+    assert!(result.diagnostics[0].line &gt; 0);  // Mutants: could be wrong value
+}
+
+// ✅ STRONG
+#[test]
+fn test_line_number_exact() {
+    let result = check("\n\neval cmd");
+    assert_eq!(result.diagnostics[0].line, 3,  // Exact value
+        "Should report line 3");
+}</code></pre>
+<h3 id="pattern-5-composition-testing"><a class="header" href="#pattern-5-composition-testing">Pattern 5: Composition Testing</a></h3>
+<p>Test how components work together:</p>
+<pre><code class="language-rust ignore">#[test]
+fn test_multiple_violations() {
+    let script = r#"
+eval "$cmd1"
+echo safe
+eval "$cmd2"
+"#;
+    let result = check(script);
+
+    assert_eq!(result.diagnostics.len(), 2,
+        "Should flag both eval statements");
+
+    assert_eq!(result.diagnostics[0].line, 2);
+    assert_eq!(result.diagnostics[1].line, 4);
+}</code></pre>
+<h2 id="iterative-mutation-testing-workflow"><a class="header" href="#iterative-mutation-testing-workflow">Iterative Mutation Testing Workflow</a></h2>
+<p>bashrs follows a systematic process:</p>
+<h3 id="step-1-baseline-mutation-test"><a class="header" href="#step-1-baseline-mutation-test">Step 1: Baseline Mutation Test</a></h3>
+<pre><code class="language-bash">cargo mutants --file rash/src/linter/rules/sec001.rs -- --lib
+</code></pre>
+<p><strong>Output</strong>:</p>
+<pre><code class="language-text">sec001.rs: 16 mutants tested in 2m 31s
+  caught: 13
+  missed: 3
+  unviable: 0
+
+Kill rate: 81.25%
+</code></pre>
+<h3 id="step-2-analyze-surviving-mutants"><a class="header" href="#step-2-analyze-surviving-mutants">Step 2: Analyze Surviving Mutants</a></h3>
+<pre><code class="language-bash">cargo mutants --file rash/src/linter/rules/sec001.rs \
+    --list-mutants -- --lib
+```text
+
+**Surviving mutants**:
+```text
+src/linter/rules/sec001.rs:34: replace contains -&gt; is_empty
+src/linter/rules/sec001.rs:42: replace line_num + 1 -&gt; line_num
+src/linter/rules/sec001.rs:50: replace Error -&gt; Warning
+</code></pre>
+<h3 id="step-3-write-tests-to-kill-survivors"><a class="header" href="#step-3-write-tests-to-kill-survivors">Step 3: Write Tests to Kill Survivors</a></h3>
+<p>For each surviving mutant, write a test that would fail if that mutation existed:</p>
+<pre><code class="language-rust ignore">// Kill: contains → is_empty
+#[test]
+fn test_sec001_requires_eval_keyword() {
+    let without_eval = "echo safe";
+    assert_eq!(check(without_eval).diagnostics.len(), 0);
+
+    let with_eval = "eval cmd";
+    assert!(check(with_eval).diagnostics.len() &gt; 0);
+}
+
+// Kill: line_num + 1 → line_num
+#[test]
+fn test_sec001_reports_correct_line() {
+    let script = "\n\neval cmd\n";  // Line 3
+    let diag = &amp;check(script).diagnostics[0];
+    assert_eq!(diag.line, 3);  // Not 2!
+}
+
+// Kill: Error → Warning
+#[test]
+fn test_sec001_is_error_severity() {
+    let script = "eval cmd";
+    let diag = &amp;check(script).diagnostics[0];
+    assert_eq!(diag.severity, Severity::Error);
+}</code></pre>
+<h3 id="step-4-verify-kill-rate-improvement"><a class="header" href="#step-4-verify-kill-rate-improvement">Step 4: Verify Kill Rate Improvement</a></h3>
+<pre><code class="language-bash">cargo mutants --file rash/src/linter/rules/sec001.rs -- --lib
+</code></pre>
+<p><strong>Output</strong>:</p>
+<pre><code class="language-text">sec001.rs: 16 mutants tested in 2m 45s
+  caught: 16
+  missed: 0
+  unviable: 0
+
+Kill rate: 100.0%  ✓ Target achieved!
+</code></pre>
+<h3 id="step-5-document-and-commit"><a class="header" href="#step-5-document-and-commit">Step 5: Document and Commit</a></h3>
+<pre><code class="language-bash">git add rash/src/linter/rules/sec001.rs rash/tests/test_sec001_mutation.rs
+git commit -m "feat: SEC001 mutation testing - 100% kill rate (16/16)
+
+- Added 8 mutation-targeted tests
+- Strengthened boundary checking
+- Validated exact line numbers and severity
+- Perfect mutation score achieved
+
+Mutation results:
+- Caught: 16/16
+- Kill rate: 100%
+- Test suite: 18 tests (10 original + 8 mutation-driven)
+"
+```text
+
+<span class="boring"># Analyzing Mutation Testing Results
+</span>
+<span class="boring">## Understanding cargo-mutants Output
+</span>
+```text
+cargo-mutants auto_tested 71 mutants in 35m 5s:
+  16 caught
+   3 missed
+   2 unviable
+</code></pre>
+<p><strong>Caught</strong>: Tests detected the mutation (good)
+<strong>Missed</strong>: Mutation survived, tests didn't catch it (bad)
+<strong>Unviable</strong>: Mutation doesn't compile (ignored in score)</p>
+<p><strong>Kill Rate</strong> = 16 / (16 + 3) = 84.2%</p>
+<h3 id="common-mutation-types"><a class="header" href="#common-mutation-types">Common Mutation Types</a></h3>
+<p><code>cargo-mutants</code> generates these mutation types:</p>
+<ol>
+<li><strong>Replace Binary Operator</strong>: <code>&gt;</code> → <code>&gt;=</code>, <code>==</code> → <code>!=</code></li>
+<li><strong>Replace Function</strong>: <code>contains()</code> → <code>is_empty()</code></li>
+<li><strong>Replace Constant</strong>: <code>1</code> → <code>0</code>, <code>true</code> → <code>false</code></li>
+<li><strong>Delete Statement</strong>: Remove function calls</li>
+<li><strong>Replace Return Value</strong>: <code>Ok(x)</code> → <code>Err(x)</code></li>
+</ol>
+<h3 id="reading-mutation-reports"><a class="header" href="#reading-mutation-reports">Reading Mutation Reports</a></h3>
+<pre><code class="language-bash">$ cargo mutants --file rash/src/linter/rules/sec002.rs \
+    --list-mutants -- --lib &gt; mutations.txt
+```text
+
+**Sample output**:
+```text
+src/linter/rules/sec002.rs:15:17: replace contains("$") -&gt; is_empty()
+src/linter/rules/sec002.rs:23:12: replace !is_quoted -&gt; is_quoted
+src/linter/rules/sec002.rs:34:20: replace line_num + 1 -&gt; line_num + 0
+src/linter/rules/sec002.rs:45:28: replace Error -&gt; Warning
+</code></pre>
+<p>Each line shows:</p>
+<ul>
+<li>File and line number</li>
+<li>Type of mutation</li>
+<li>Original → Mutated code</li>
+</ul>
+<h2 id="best-practices"><a class="header" href="#best-practices">Best Practices</a></h2>
+<h3 id="1-run-mutations-early-and-often"><a class="header" href="#1-run-mutations-early-and-often">1. Run Mutations Early and Often</a></h3>
+<pre><code class="language-bash"><span class="boring"> During development
+</span>cargo mutants --file rash/src/linter/rules/sec001.rs -- --lib
+
+<span class="boring"> Before commit
+</span>cargo mutants --file rash/src/linter/rules/sec001.rs \
+    --timeout 300 -- --lib
+
+<span class="boring"> In CI (comprehensive)
+</span>cargo mutants --workspace -- --lib
+</code></pre>
+<h3 id="2-target-90-for-security-critical-code"><a class="header" href="#2-target-90-for-security-critical-code">2. Target 90%+ for Security-Critical Code</a></h3>
+<p>bashrs quality tiers:</p>
+<ul>
+<li><strong>CRITICAL (SEC rules)</strong>: 90%+ required</li>
+<li><strong>Important (core infrastructure)</strong>: 80%+ required</li>
+<li><strong>Standard (linter rules)</strong>: 70%+ target</li>
+</ul>
+<h3 id="3-use-timeouts-for-slow-tests"><a class="header" href="#3-use-timeouts-for-slow-tests">3. Use Timeouts for Slow Tests</a></h3>
+<pre><code class="language-bash"><span class="boring"> Default: 300s timeout per mutant
+</span>cargo mutants --timeout 300 -- --lib
+
+<span class="boring"> For slower tests
+</span>cargo mutants --timeout 600 -- --lib
+</code></pre>
+<h3 id="4-parallelize-in-ci"><a class="header" href="#4-parallelize-in-ci">4. Parallelize in CI</a></h3>
+<pre><code class="language-bash"><span class="boring"> Run mutation tests in parallel
+</span>cargo mutants --jobs 4 -- --lib
+</code></pre>
+<h3 id="5-focus-on-changed-code"><a class="header" href="#5-focus-on-changed-code">5. Focus on Changed Code</a></h3>
+<pre><code class="language-bash"><span class="boring"> Only test files changed in current branch
+</span>git diff --name-only main | grep '\.rs$' | \
+    xargs -I {} cargo mutants --file {} -- --lib
+</code></pre>
+<h3 id="6-integrate-with-extreme-tdd"><a class="header" href="#6-integrate-with-extreme-tdd">6. Integrate with EXTREME TDD</a></h3>
+<pre><code class="language-rust ignore">RED → GREEN → REFACTOR → MUTATION
+
+1. RED: Write failing test
+2. GREEN: Implement feature
+3. REFACTOR: Clean up code
+4. MUTATION: Verify tests catch bugs (90%+ kill rate)</code></pre>
+<h2 id="real-world-bashrs-mutation-results"><a class="header" href="#real-world-bashrs-mutation-results">Real-World bashrs Mutation Results</a></h2>
+<h3 id="sec-rules-error-severity---final-results"><a class="header" href="#sec-rules-error-severity---final-results">SEC Rules (Error Severity) - Final Results</a></h3>
+<div class="table-wrapper"><table><thead><tr><th>Rule</th><th>Tests</th><th>Mutants</th><th>Caught</th><th>Kill Rate</th><th>Status</th></tr></thead><tbody>
+<tr><td>SEC001</td><td>18</td><td>16</td><td>16</td><td>100.0%</td><td>PERFECT</td></tr>
+<tr><td>SEC002</td><td>16</td><td>32</td><td>28</td><td>87.5%</td><td>IMPROVED</td></tr>
+<tr><td>SEC003</td><td>14</td><td>11</td><td>9</td><td>81.8%</td><td>GOOD</td></tr>
+<tr><td>SEC004</td><td>15</td><td>26</td><td>20</td><td>76.9%</td><td>BASELINE</td></tr>
+<tr><td>SEC005</td><td>13</td><td>26</td><td>19</td><td>73.1%</td><td>BASELINE</td></tr>
+<tr><td>SEC006</td><td>12</td><td>14</td><td>12</td><td>85.7%</td><td>BASELINE</td></tr>
+<tr><td>SEC007</td><td>11</td><td>9</td><td>8</td><td>88.9%</td><td>BASELINE</td></tr>
+<tr><td>SEC008</td><td>14</td><td>23</td><td>20</td><td>87.0%</td><td>BASELINE</td></tr>
+</tbody></table>
+</div>
+<p><strong>Average</strong>: 81.2% (exceeds 80% target)</p>
+<h3 id="core-infrastructure"><a class="header" href="#core-infrastructure">Core Infrastructure</a></h3>
+<div class="table-wrapper"><table><thead><tr><th>Module</th><th>Tests</th><th>Mutants</th><th>Caught</th><th>Kill Rate</th></tr></thead><tbody>
+<tr><td>shell_compatibility.rs</td><td>13</td><td>13</td><td>13</td><td>100%</td></tr>
+<tr><td>rule_registry.rs</td><td>3</td><td>3</td><td>3</td><td>100%</td></tr>
+<tr><td>shell_type.rs</td><td>34</td><td>21</td><td>19</td><td>90.5%</td></tr>
+</tbody></table>
+</div>
+<h3 id="shellcheck-critical-rules"><a class="header" href="#shellcheck-critical-rules">ShellCheck CRITICAL Rules</a></h3>
+<div class="table-wrapper"><table><thead><tr><th>Rule</th><th>Tests</th><th>Mutants</th><th>Caught</th><th>Kill Rate</th></tr></thead><tbody>
+<tr><td>SC2064 (trap timing)</td><td>20</td><td>7</td><td>7</td><td>100%</td></tr>
+<tr><td>SC2059 (format injection)</td><td>21</td><td>12</td><td>12</td><td>100%</td></tr>
+<tr><td>SC2086 (word splitting)</td><td>68</td><td>35</td><td>21</td><td>58.8%</td></tr>
+</tbody></table>
+</div>
+<p><strong>Pattern</strong>: Rules with comprehensive property tests achieve 100% scores.</p>
+<h2 id="common-pitfalls"><a class="header" href="#common-pitfalls">Common Pitfalls</a></h2>
+<h3 id="pitfall-1-testing-implementation-instead-of-behavior"><a class="header" href="#pitfall-1-testing-implementation-instead-of-behavior">Pitfall 1: Testing Implementation Instead of Behavior</a></h3>
+<pre><code class="language-rust ignore">// ❌ BAD: Tests internal implementation
+#[test]
+fn test_uses_regex() {
+    let checker = Checker::new();
+    assert!(checker.regex.is_some());  // Implementation detail
+}
+
+// ✅ GOOD: Tests observable behavior
+#[test]
+fn test_detects_pattern() {
+    let result = check("eval cmd");
+    assert!(result.diagnostics.len() &gt; 0);  // Behavior
+}</code></pre>
+<h3 id="pitfall-2-weak-assertions"><a class="header" href="#pitfall-2-weak-assertions">Pitfall 2: Weak Assertions</a></h3>
+<pre><code class="language-rust ignore">// ❌ WEAK: Mutants can survive
+assert!(result.is_ok());
+assert!(!diagnostics.is_empty());
+
+// ✅ STRONG: Kills more mutants
+assert_eq!(result.unwrap().len(), 1);
+assert_eq!(diagnostics[0].rule_code, "SEC001");
+assert_eq!(diagnostics[0].severity, Severity::Error);</code></pre>
+<h3 id="pitfall-3-not-testing-edge-cases"><a class="header" href="#pitfall-3-not-testing-edge-cases">Pitfall 3: Not Testing Edge Cases</a></h3>
+<pre><code class="language-rust ignore">// ❌ INCOMPLETE: Only tests happy path
+#[test]
+fn test_basic_case() {
+    let result = check("eval cmd");
+    assert_eq!(result.diagnostics.len(), 1);
+}
+
+// ✅ COMPLETE: Tests boundaries
+#[test]
+fn test_all_cases() {
+    // Empty input
+    assert_eq!(check("").diagnostics.len(), 0);
+
+    // eval at start
+    assert_eq!(check("eval").diagnostics.len(), 1);
+
+    // eval at end
+    assert_eq!(check("  eval").diagnostics.len(), 1);
+
+    // eval in middle
+    assert_eq!(check("x; eval; y").diagnostics.len(), 1);
+
+    // Not eval (contains but not standalone)
+    assert_eq!(check("evaluation").diagnostics.len(), 0);
+}</code></pre>
+<h2 id="summary"><a class="header" href="#summary">Summary</a></h2>
+<p>Mutation testing is essential for bashrs's NASA-level quality:</p>
+<p><strong>Key Benefits</strong>:</p>
+<ul>
+<li>Validates test effectiveness mathematically</li>
+<li>Catches weak tests that miss bugs</li>
+<li>Provides objective quality metric</li>
+<li>Complements property testing and TDD</li>
+</ul>
+<p><strong>bashrs Mutation Strategy</strong>:</p>
+<ol>
+<li>Baseline test (identify surviving mutants)</li>
+<li>Write targeted tests (kill survivors)</li>
+<li>Verify improvement (90%+ for critical code)</li>
+<li>Document results (track kill rates)</li>
+<li>Integrate with CI/CD (continuous validation)</li>
+</ol>
+<p><strong>Quality Tiers</strong>:</p>
+<ul>
+<li><strong>90%+</strong>: CRITICAL security rules (SEC, SC2064, SC2059)</li>
+<li><strong>80%+</strong>: Core infrastructure (shell_type, registry)</li>
+<li><strong>70%+</strong>: Standard linter rules</li>
+</ul>
+<p><strong>Integration with EXTREME TDD</strong>:</p>
+<pre><code class="language-text">EXTREME TDD = TDD + Property Testing + Mutation Testing + PMAT + Examples
+</code></pre>
+<p>Mutation testing provides empirical validation that tests actually catch bugs, ensuring bashrs maintains world-class quality.</p>
+<p>For more on comprehensive testing, see <a href="./property-testing.html">Property Testing</a> and <a href="./performance.html">Performance Optimization</a>.</p>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="../advanced/property-testing.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <i class="fa fa-angle-left"></i>
+                            </a>
+
+                            <a rel="next prefetch" href="../advanced/performance.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <i class="fa fa-angle-right"></i>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="../advanced/property-testing.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <i class="fa fa-angle-left"></i>
+                    </a>
+
+                    <a rel="next prefetch" href="../advanced/performance.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <i class="fa fa-angle-right"></i>
+                    </a>
+            </nav>
+
+        </div>
+
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+        <script src="../ace.js"></script>
+        <script src="../mode-rust.js"></script>
+        <script src="../editor.js"></script>
+        <script src="../theme-dawn.js"></script>
+        <script src="../theme-tomorrow_night.js"></script>
+
+        <script src="../elasticlunr.min.js"></script>
+        <script src="../mark.min.js"></script>
+        <script src="../searcher.js"></script>
+
+        <script src="../clipboard.min.js"></script>
+        <script src="../highlight.js"></script>
+        <script src="../book.js"></script>
+
+        <!-- Custom JS scripts -->
+
+
+
+    </div>
+    </body>
+</html>

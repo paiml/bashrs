@@ -395,9 +395,10 @@ impl SpanEvent {
 }
 
 /// Trace exporter configuration
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub enum TraceExporter {
     /// Export to stdout
+    #[default]
     Stdout,
     /// Export to file
     File(PathBuf),
@@ -405,12 +406,6 @@ pub enum TraceExporter {
     Otlp(String),
     /// In-memory (for testing)
     Memory,
-}
-
-impl Default for TraceExporter {
-    fn default() -> Self {
-        Self::Stdout
-    }
 }
 
 /// Tracing context for an installer run
@@ -472,6 +467,7 @@ impl TracingContext {
     }
 
     /// Start root span
+    #[allow(clippy::expect_used)] // We just set root_span = Some, so it's guaranteed to be Some
     pub fn start_root(&mut self, name: &str) -> &Span {
         let mut span = Span::new(name, &self.trace_id);
         span.set_string("service.name", &self.service_name);
@@ -1164,7 +1160,7 @@ mod tests {
     fn test_TRACING_020_attribute_value_json() {
         assert_eq!(AttributeValue::string("test").to_json(), "\"test\"");
         assert_eq!(AttributeValue::int(42).to_json(), "42");
-        assert_eq!(AttributeValue::float(3.14).to_json(), "3.14");
+        assert_eq!(AttributeValue::float(2.5).to_json(), "2.5");
         assert_eq!(AttributeValue::bool(true).to_json(), "true");
     }
 }

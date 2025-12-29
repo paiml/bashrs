@@ -4,6 +4,7 @@
 //! - Numeric features normalized to [0, 1]
 //! - Categorical features one-hot encoded
 //! - Text features converted to bag-of-words indicators
+#![allow(clippy::indexing_slicing)] // Test assertions use direct indexing for clarity
 
 /// Feature vector for ML model (64 features).
 #[derive(Debug, Clone)]

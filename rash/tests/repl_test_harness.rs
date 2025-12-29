@@ -31,7 +31,7 @@ use predicates::prelude::*;
 /// use assert_cmd::Command;
 ///
 /// fn bashrs_repl() -> Command {
-///     Command::cargo_bin("bashrs").expect("Failed to find bashrs binary").arg("repl")
+///     assert_cmd::cargo_bin_cmd!("bashrs").arg("repl")
 /// }
 ///
 /// #[test]
@@ -43,21 +43,21 @@ use predicates::prelude::*;
 /// }
 /// ```
 pub fn bashrs_repl() -> Command {
-    let mut cmd = Command::cargo_bin("bashrs").expect("Failed to find bashrs binary");
+    let mut cmd = assert_cmd::cargo_bin_cmd!("bashrs");
     cmd.arg("repl");
     cmd
 }
 
 /// Helper function to create bashrs REPL with debug mode
 pub fn bashrs_repl_debug() -> Command {
-    let mut cmd = Command::cargo_bin("bashrs").expect("Failed to find bashrs binary");
+    let mut cmd = assert_cmd::cargo_bin_cmd!("bashrs");
     cmd.arg("repl").arg("--debug");
     cmd
 }
 
 /// Helper function to create bashrs REPL with custom config
 pub fn bashrs_repl_custom(max_memory: &str, timeout: &str, max_depth: &str) -> Command {
-    let mut cmd = Command::cargo_bin("bashrs").expect("Failed to find bashrs binary");
+    let mut cmd = assert_cmd::cargo_bin_cmd!("bashrs");
     cmd.arg("repl")
         .arg("--max-memory")
         .arg(max_memory)
@@ -164,7 +164,7 @@ fn test_REPL_002_003_help_command() {
 ///
 /// #[test]
 /// fn test_example_basic_repl() {
-///     let mut cmd = Command::cargo_bin("bashrs").unwrap();
+///     let mut cmd = assert_cmd::cargo_bin_cmd!("bashrs");
 ///     cmd.arg("repl")
 ///         .write_stdin("quit\n")
 ///         .assert()
@@ -183,7 +183,7 @@ fn example_basic_repl_test() {}
 ///
 /// #[test]
 /// fn test_example_mode_switching() {
-///     let mut cmd = Command::cargo_bin("bashrs").unwrap();
+///     let mut cmd = assert_cmd::cargo_bin_cmd!("bashrs");
 ///     cmd.arg("repl")
 ///         .write_stdin(":mode purify\nmkdir /tmp/test\nquit\n")
 ///         .assert()

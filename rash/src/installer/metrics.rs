@@ -346,11 +346,14 @@ impl MetricsAggregator {
         let mut sorted_durations = durations.clone();
         sorted_durations.sort_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal));
 
+        #[allow(clippy::manual_is_multiple_of)]
         let median_duration = if sorted_durations.len() % 2 == 0 {
             let mid = sorted_durations.len() / 2;
-            (sorted_durations[mid - 1] + sorted_durations[mid]) / 2.0
+            let a = sorted_durations.get(mid - 1).copied().unwrap_or(0.0);
+            let b = sorted_durations.get(mid).copied().unwrap_or(0.0);
+            (a + b) / 2.0
         } else {
-            sorted_durations[sorted_durations.len() / 2]
+            sorted_durations.get(sorted_durations.len() / 2).copied().unwrap_or(0.0)
         };
 
         let p95_idx = (sorted_durations.len() as f64 * 0.95) as usize;

@@ -1,0 +1,767 @@
+<!DOCTYPE HTML>
+<html lang="en" class="rust sidebar-visible" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>Development Setup - The Rash Book - Shell Safety and Purification</title>
+
+
+        <!-- Custom HTML head -->
+
+        <meta name="description" content="A comprehensive guide to Rash: shell safety, purification, and linting">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="../favicon.svg">
+        <link rel="shortcut icon" href="../favicon.png">
+        <link rel="stylesheet" href="../css/variables.css">
+        <link rel="stylesheet" href="../css/general.css">
+        <link rel="stylesheet" href="../css/chrome.css">
+        <link rel="stylesheet" href="../css/print.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="../FontAwesome/css/font-awesome.css">
+        <link rel="stylesheet" href="../fonts/fonts.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" id="highlight-css" href="../highlight.css">
+        <link rel="stylesheet" id="tomorrow-night-css" href="../tomorrow-night.css">
+        <link rel="stylesheet" id="ayu-highlight-css" href="../ayu-highlight.css">
+
+        <!-- Custom theme stylesheets -->
+
+
+        <!-- Provide site root and default themes to javascript -->
+        <script>
+            const path_to_root = "../";
+            const default_light_theme = "rust";
+            const default_dark_theme = "navy";
+            window.path_to_searchindex_js = "../searchindex.js";
+        </script>
+        <!-- Start loading toc.js asap -->
+        <script src="../toc.js"></script>
+    </head>
+    <body>
+    <div id="mdbook-help-container">
+        <div id="mdbook-help-popup">
+            <h2 class="mdbook-help-title">Keyboard shortcuts</h2>
+            <div>
+                <p>Press <kbd>←</kbd> or <kbd>→</kbd> to navigate between chapters</p>
+                <p>Press <kbd>S</kbd> or <kbd>/</kbd> to search in the book</p>
+                <p>Press <kbd>?</kbd> to show this help</p>
+                <p>Press <kbd>Esc</kbd> to hide this help</p>
+            </div>
+        </div>
+    </div>
+    <div id="body-container">
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                let theme = localStorage.getItem('mdbook-theme');
+                let sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            const default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? default_dark_theme : default_light_theme;
+            let theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            const html = document.documentElement;
+            html.classList.remove('rust')
+            html.classList.add(theme);
+            html.classList.add("js");
+        </script>
+
+        <input type="checkbox" id="sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            let sidebar = null;
+            const sidebar_toggle = document.getElementById("sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+                sidebar_toggle.checked = false;
+            }
+            if (sidebar === 'visible') {
+                sidebar_toggle.checked = true;
+            } else {
+                html.classList.remove('sidebar-visible');
+            }
+        </script>
+
+        <nav id="sidebar" class="sidebar" aria-label="Table of contents">
+            <!-- populated by js -->
+            <mdbook-sidebar-scrollbox class="sidebar-scrollbox"></mdbook-sidebar-scrollbox>
+            <noscript>
+                <iframe class="sidebar-iframe-outer" src="../toc.html"></iframe>
+            </noscript>
+            <div id="sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <div id="page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="menu-bar-hover-placeholder"></div>
+                <div id="menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="sidebar-toggle" class="icon-button" for="sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="sidebar">
+                            <i class="fa fa-bars"></i>
+                        </label>
+                        <button id="theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="theme-list">
+                            <i class="fa fa-paint-brush"></i>
+                        </button>
+                        <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="default_theme">Auto</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
+                        </ul>
+                        <button id="search-toggle" class="icon-button" type="button" title="Search (`/`)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="/ s" aria-controls="searchbar">
+                            <i class="fa fa-search"></i>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">The Rash Book - Shell Safety and Purification</h1>
+
+                    <div class="right-buttons">
+                        <a href="../print.html" title="Print this book" aria-label="Print this book">
+                            <i id="print-button" class="fa fa-print"></i>
+                        </a>
+                        <a href="https://github.com/paiml/bashrs" title="Git repository" aria-label="Git repository">
+                            <i id="git-repository-button" class="fa fa-github"></i>
+                        </a>
+                        <a href="https://github.com/paiml/bashrs/edit/main/book/src/contributing/setup.md" title="Suggest an edit" aria-label="Suggest an edit" rel="edit">
+                            <i id="git-edit-button" class="fa fa-edit"></i>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="search-wrapper" class="hidden">
+                    <form id="searchbar-outer" class="searchbar-outer">
+                        <div class="search-wrapper">
+                            <input type="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                            <div class="spinner-wrapper">
+                                <i class="fa fa-spinner fa-spin"></i>
+                            </div>
+                        </div>
+                    </form>
+                    <div id="searchresults-outer" class="searchresults-outer hidden">
+                        <div id="searchresults-header" class="searchresults-header"></div>
+                        <ul id="searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="content" class="content">
+                    <main>
+                        <h1 id="development-setup"><a class="header" href="#development-setup">Development Setup</a></h1>
+<p>This guide covers setting up your development environment for contributing to Rash (bashrs). Following these steps ensures you have all tools needed for EXTREME TDD development.</p>
+<h2 id="prerequisites"><a class="header" href="#prerequisites">Prerequisites</a></h2>
+<h3 id="required-software"><a class="header" href="#required-software">Required Software</a></h3>
+<p><strong>Rust Toolchain</strong> (version 1.70+):</p>
+<pre><code class="language-bash"><span class="boring"> Install Rust via rustup (if not already installed)
+</span>curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+
+<span class="boring"> Verify installation
+</span>rustc --version  # Should be 1.70.0 or higher
+cargo --version
+</code></pre>
+<p><strong>Git</strong>:</p>
+<pre><code class="language-bash"><span class="boring"> Check if git is installed
+</span>git --version
+
+<span class="boring"> If not installed:
+</span><span class="boring"> Ubuntu/Debian
+</span>sudo apt-get install git
+
+<span class="boring"> macOS
+</span>brew install git
+</code></pre>
+<h3 id="optional-recommended-software"><a class="header" href="#optional-recommended-software">Optional (Recommended) Software</a></h3>
+<p><strong>shellcheck</strong> - For POSIX compliance verification:</p>
+<pre><code class="language-bash"><span class="boring"> macOS
+</span>brew install shellcheck
+
+<span class="boring"> Ubuntu/Debian
+</span>sudo apt-get install shellcheck
+
+<span class="boring"> Arch Linux
+</span>sudo pacman -S shellcheck
+
+<span class="boring"> Verify installation
+</span>shellcheck --version
+</code></pre>
+<p><strong>mdbook</strong> - For building documentation:</p>
+<pre><code class="language-bash"><span class="boring"> Install from crates.io
+</span>cargo install mdbook
+
+<span class="boring"> Verify installation
+</span>mdbook --version
+</code></pre>
+<p><strong>cargo-mutants</strong> - For mutation testing (NASA-level quality):</p>
+<pre><code class="language-bash"><span class="boring"> Install from crates.io
+</span>cargo install cargo-mutants
+
+<span class="boring"> Verify installation
+</span>cargo mutants --version
+</code></pre>
+<p><strong>cargo-llvm-cov</strong> - For code coverage measurement:</p>
+<pre><code class="language-bash"><span class="boring"> Install from crates.io
+</span>cargo install cargo-llvm-cov
+
+<span class="boring"> Verify installation
+</span>cargo llvm-cov --version
+</code></pre>
+<p><strong>wasm-pack</strong> - For WebAssembly development (if working on WASM features):</p>
+<pre><code class="language-bash"><span class="boring"> Install from crates.io
+</span>cargo install wasm-pack
+
+<span class="boring"> Verify installation
+</span>wasm-pack --version
+</code></pre>
+<h2 id="clone-the-repository"><a class="header" href="#clone-the-repository">Clone the Repository</a></h2>
+<pre><code class="language-bash"><span class="boring"> Clone from GitHub
+</span>git clone https://github.com/paiml/bashrs.git
+cd bashrs
+
+<span class="boring"> Verify you're on main branch
+</span>git status
+<span class="boring"> Should show: On branch main
+</span></code></pre>
+<h2 id="project-structure"><a class="header" href="#project-structure">Project Structure</a></h2>
+<p>Rash uses a Cargo workspace with multiple crates:</p>
+<pre><code class="language-text">bashrs/
+├── rash/              # Core library (parser, linter, transpiler)
+├── rash-runtime/      # Runtime library for generated scripts
+├── rash-mcp/          # Model Context Protocol server
+├── book/              # mdbook documentation
+├── examples/          # Example scripts and usage
+├── scripts/           # Development scripts
+│   └── hooks/         # Git pre-commit hooks
+└── Cargo.toml         # Workspace configuration
+</code></pre>
+<h3 id="workspace-members"><a class="header" href="#workspace-members">Workspace Members</a></h3>
+<ul>
+<li>
+<p><strong>rash</strong> - Main crate containing:</p>
+<ul>
+<li>Bash parser</li>
+<li>Makefile parser</li>
+<li>Security linter (SEC001-SEC008)</li>
+<li>Transpilation engine</li>
+<li>CLI tool (<code>bashrs</code> binary)</li>
+</ul>
+</li>
+<li>
+<p><strong>rash-runtime</strong> - Runtime support library:</p>
+<ul>
+<li>POSIX-compliant shell functions</li>
+<li>Helper utilities for generated scripts</li>
+</ul>
+</li>
+<li>
+<p><strong>rash-mcp</strong> - MCP server for AI integration:</p>
+<ul>
+<li>Model Context Protocol implementation</li>
+<li>AI-assisted shell script generation</li>
+</ul>
+</li>
+</ul>
+<h2 id="initial-build"><a class="header" href="#initial-build">Initial Build</a></h2>
+<h3 id="build-the-project"><a class="header" href="#build-the-project">Build the Project</a></h3>
+<pre><code class="language-bash"><span class="boring"> Build all workspace members
+</span>cargo build
+
+<span class="boring"> Or build in release mode (optimized)
+</span>cargo build --release
+</code></pre>
+<h3 id="run-tests"><a class="header" href="#run-tests">Run Tests</a></h3>
+<pre><code class="language-bash"><span class="boring"> Run all library tests (6321+ tests)
+</span>cargo test --lib
+
+<span class="boring"> Expected output:
+</span><span class="boring"> test result: ok. 6321 passed; 0 failed; 0 ignored
+</span>
+<span class="boring"> Run tests with output
+</span>cargo test --lib -- --nocapture
+
+<span class="boring"> Run specific test
+</span>cargo test --lib test_sec001
+</code></pre>
+<h3 id="install-development-version"><a class="header" href="#install-development-version">Install Development Version</a></h3>
+<pre><code class="language-bash"><span class="boring"> Install from local source
+</span>cargo install --path rash
+
+<span class="boring"> Verify installation
+</span>bashrs --version
+<span class="boring"> Should output: bashrs 6.30.1
+</span>
+<span class="boring"> Test CLI
+</span>bashrs lint examples/security/sec001_eval.sh
+</code></pre>
+<h2 id="development-workflow"><a class="header" href="#development-workflow">Development Workflow</a></h2>
+<h3 id="extreme-tdd-cycle"><a class="header" href="#extreme-tdd-cycle">EXTREME TDD Cycle</a></h3>
+<p>Rash follows <strong>EXTREME TDD</strong> methodology:</p>
+<p><strong>Formula</strong>: EXTREME TDD = TDD + Property Testing + Mutation Testing + Fuzz Testing + PMAT + Examples</p>
+<h4 id="phase-1-red---write-failing-test"><a class="header" href="#phase-1-red---write-failing-test">Phase 1: RED - Write Failing Test</a></h4>
+<pre><code class="language-bash"><span class="boring"> 1. Create test file or add test to existing file
+</span><span class="boring"> Example: rash/src/linter/rules/tests.rs
+</span>
+<span class="boring"> 2. Run test (should FAIL)
+</span>cargo test --lib test_new_feature
+
+<span class="boring"> Expected: Test FAILS (RED) ✅
+</span></code></pre>
+<h4 id="phase-2-green---implement-feature"><a class="header" href="#phase-2-green---implement-feature">Phase 2: GREEN - Implement Feature</a></h4>
+<pre><code class="language-bash"><span class="boring"> 1. Implement the feature
+</span><span class="boring"> 2. Run test again (should PASS)
+</span>cargo test --lib test_new_feature
+
+<span class="boring"> Expected: Test PASSES (GREEN) ✅
+</span></code></pre>
+<h4 id="phase-3-refactor---clean-up-code"><a class="header" href="#phase-3-refactor---clean-up-code">Phase 3: REFACTOR - Clean Up Code</a></h4>
+<pre><code class="language-bash"><span class="boring"> 1. Refactor code (extract helpers, improve readability)
+</span><span class="boring"> 2. Verify all tests still pass
+</span>cargo test --lib
+
+<span class="boring"> 3. Check code formatting
+</span>cargo fmt
+
+<span class="boring"> 4. Run clippy for lint warnings
+</span>cargo clippy --all-targets -- -D warnings
+
+<span class="boring"> Expected: Zero warnings ✅
+</span></code></pre>
+<h4 id="phase-4-quality---comprehensive-validation"><a class="header" href="#phase-4-quality---comprehensive-validation">Phase 4: QUALITY - Comprehensive Validation</a></h4>
+<pre><code class="language-bash"><span class="boring"> 1. Run property-based tests
+</span>cargo test --lib prop_
+
+<span class="boring"> 2. Run mutation testing (for critical code)
+</span>cargo mutants --file rash/src/linter/rules/sec001.rs --timeout 300 -- --lib
+
+<span class="boring"> Expected: 90%+ mutation kill rate ✅
+</span>
+<span class="boring"> 3. Measure code coverage
+</span>cargo llvm-cov --lib
+
+<span class="boring"> Expected: &gt;85% coverage ✅
+</span>
+<span class="boring"> 4. Verify examples work
+</span>cargo run --example quality_tools_demo
+</code></pre>
+<h2 id="common-development-tasks"><a class="header" href="#common-development-tasks">Common Development Tasks</a></h2>
+<h3 id="running-tests"><a class="header" href="#running-tests">Running Tests</a></h3>
+<pre><code class="language-bash"><span class="boring"> Run all tests
+</span>cargo test --lib
+
+<span class="boring"> Run tests for specific module
+</span>cargo test --lib linter::
+
+<span class="boring"> Run tests matching pattern
+</span>cargo test --lib sec00
+
+<span class="boring"> Run property tests with more cases
+</span>env PROPTEST_CASES=10000 cargo test --lib prop_
+
+<span class="boring"> Run tests with timing info
+</span>cargo test --lib -- --test-threads=1
+</code></pre>
+<h3 id="code-quality-checks"><a class="header" href="#code-quality-checks">Code Quality Checks</a></h3>
+<pre><code class="language-bash"><span class="boring"> Format code
+</span>cargo fmt
+
+<span class="boring"> Check formatting without modifying files
+</span>cargo fmt -- --check
+
+<span class="boring"> Run clippy (Rust linter)
+</span>cargo clippy --all-targets
+
+<span class="boring"> Run clippy with strict warnings
+</span>cargo clippy --all-targets -- -D warnings
+</code></pre>
+<h3 id="measuring-coverage"><a class="header" href="#measuring-coverage">Measuring Coverage</a></h3>
+<pre><code class="language-bash"><span class="boring"> Generate coverage report
+</span>cargo llvm-cov --lib
+
+<span class="boring"> Generate HTML coverage report
+</span>cargo llvm-cov --lib --html
+<span class="boring"> Opens report in browser
+</span>
+<span class="boring"> Generate JSON coverage report
+</span>cargo llvm-cov --lib --json --output-path coverage.json
+</code></pre>
+<h3 id="mutation-testing"><a class="header" href="#mutation-testing">Mutation Testing</a></h3>
+<pre><code class="language-bash"><span class="boring"> Test specific file
+</span>cargo mutants --file rash/src/linter/rules/sec001.rs --timeout 300 -- --lib
+
+<span class="boring"> Test with longer timeout (for complex files)
+</span>cargo mutants --file rash/src/bash_parser/parser.rs --timeout 600 -- --lib
+
+<span class="boring"> Run in background and monitor
+</span>cargo mutants --file rash/src/linter/rules/sec002.rs --timeout 300 -- --lib 2&gt;&amp;1 | tee mutation.log &amp;
+tail -f mutation.log
+</code></pre>
+<h3 id="building-documentation"><a class="header" href="#building-documentation">Building Documentation</a></h3>
+<pre><code class="language-bash"><span class="boring"> Build the book
+</span>cd book
+mdbook build
+
+<span class="boring"> Serve book locally (with live reload)
+</span>mdbook serve
+<span class="boring"> Opens at http://localhost:3000
+</span>
+<span class="boring"> Test code examples in book
+</span>mdbook test
+</code></pre>
+<h3 id="running-examples"><a class="header" href="#running-examples">Running Examples</a></h3>
+<pre><code class="language-bash"><span class="boring"> List available examples
+</span>ls examples/*.rs
+
+<span class="boring"> Run specific example
+</span>cargo run --example quality_tools_demo
+
+<span class="boring"> Run example with arguments
+</span>cargo run --example database_migration -- --dry-run
+</code></pre>
+<h2 id="git-pre-commit-hooks"><a class="header" href="#git-pre-commit-hooks">Git Pre-Commit Hooks</a></h2>
+<p>Rash uses pre-commit hooks to enforce quality standards.</p>
+<h3 id="install-hooks"><a class="header" href="#install-hooks">Install Hooks</a></h3>
+<pre><code class="language-bash"><span class="boring"> Run installation script
+</span>./scripts/hooks/install-hooks.sh
+
+<span class="boring"> Verify installation
+</span>ls -la .git/hooks/pre-commit
+</code></pre>
+<h3 id="what-hooks-check"><a class="header" href="#what-hooks-check">What Hooks Check</a></h3>
+<p>Pre-commit hooks verify:</p>
+<ol>
+<li><strong>Tests pass</strong>: <code>cargo test --lib</code></li>
+<li><strong>No clippy warnings</strong>: <code>cargo clippy --all-targets -- -D warnings</code></li>
+<li><strong>Code formatted</strong>: <code>cargo fmt -- --check</code></li>
+<li><strong>Complexity &lt;10</strong>: Checks function complexity</li>
+</ol>
+<p>If any check fails, the commit is <strong>rejected</strong>. Fix the issues before committing.</p>
+<h3 id="skipping-hooks-emergency-only"><a class="header" href="#skipping-hooks-emergency-only">Skipping Hooks (Emergency Only)</a></h3>
+<pre><code class="language-bash"><span class="boring"> Skip hooks (NOT RECOMMENDED)
+</span>git commit --no-verify -m "Emergency fix"
+
+<span class="boring"> Better: Fix the issues properly
+</span>cargo fmt
+cargo clippy --all-targets --fix
+cargo test --lib
+git commit -m "Fix: Proper fix with all checks passing"
+</code></pre>
+<h2 id="environment-variables"><a class="header" href="#environment-variables">Environment Variables</a></h2>
+<h3 id="development-configuration"><a class="header" href="#development-configuration">Development Configuration</a></h3>
+<pre><code class="language-bash"><span class="boring"> Increase property test cases for thorough testing
+</span>export PROPTEST_CASES=10000
+
+<span class="boring"> Enable detailed test output
+</span>export RUST_TEST_THREADS=1
+
+<span class="boring"> Enable backtrace on panic
+</span>export RUST_BACKTRACE=1
+export RUST_BACKTRACE=full  # Even more detail
+
+<span class="boring"> Set log level for tracing
+</span>export RUST_LOG=debug
+export RUST_LOG=bashrs=trace  # Only bashrs crate
+</code></pre>
+<h3 id="performance-profiling"><a class="header" href="#performance-profiling">Performance Profiling</a></h3>
+<pre><code class="language-bash"><span class="boring"> Build with profiling symbols
+</span>cargo build --profile profiling
+
+<span class="boring"> Run with profiler
+</span>cargo flamegraph --bin bashrs -- lint examples/security/sec001_eval.sh
+</code></pre>
+<h2 id="troubleshooting"><a class="header" href="#troubleshooting">Troubleshooting</a></h2>
+<h3 id="cargo-command-not-found"><a class="header" href="#cargo-command-not-found">"cargo: command not found"</a></h3>
+<p>Rust toolchain not installed or not in PATH.</p>
+<p><strong>Solution</strong>:</p>
+<pre><code class="language-bash"><span class="boring"> Install Rust
+</span>curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+
+<span class="boring"> Add to PATH (usually automatic, but manual if needed)
+</span>source $HOME/.cargo/env
+</code></pre>
+<h3 id="tests-failing-after-pull"><a class="header" href="#tests-failing-after-pull">Tests Failing After Pull</a></h3>
+<p>Dependency changes or API breaking changes.</p>
+<p><strong>Solution</strong>:</p>
+<pre><code class="language-bash"><span class="boring"> Clean build artifacts
+</span>cargo clean
+
+<span class="boring"> Update dependencies
+</span>cargo update
+
+<span class="boring"> Rebuild
+</span>cargo build
+
+<span class="boring"> Run tests
+</span>cargo test --lib
+</code></pre>
+<h3 id="clippy-warnings-wont-fix"><a class="header" href="#clippy-warnings-wont-fix">Clippy Warnings Won't Fix</a></h3>
+<p>Old clippy version or caching issues.</p>
+<p><strong>Solution</strong>:</p>
+<pre><code class="language-bash"><span class="boring"> Update Rust toolchain
+</span>rustup update
+
+<span class="boring"> Clean clippy cache
+</span>cargo clean
+cargo clippy --all-targets -- -D warnings
+</code></pre>
+<h3 id="slow-test-execution"><a class="header" href="#slow-test-execution">Slow Test Execution</a></h3>
+<p>Too many tests running in parallel.</p>
+<p><strong>Solution</strong>:</p>
+<pre><code class="language-bash"><span class="boring"> Run tests single-threaded
+</span>cargo test --lib -- --test-threads=1
+
+<span class="boring"> Or limit parallel tests
+</span>cargo test --lib -- --test-threads=4
+</code></pre>
+<h3 id="shellcheck-command-not-found"><a class="header" href="#shellcheck-command-not-found">"shellcheck: command not found"</a></h3>
+<p>shellcheck not installed.</p>
+<p><strong>Solution</strong>:</p>
+<pre><code class="language-bash"><span class="boring"> macOS
+</span>brew install shellcheck
+
+<span class="boring"> Ubuntu/Debian
+</span>sudo apt-get install shellcheck
+
+<span class="boring"> Verify
+</span>shellcheck --version
+</code></pre>
+<h3 id="mutation-testing-takes-too-long"><a class="header" href="#mutation-testing-takes-too-long">Mutation Testing Takes Too Long</a></h3>
+<p>Default timeout may be insufficient for complex files.</p>
+<p><strong>Solution</strong>:</p>
+<pre><code class="language-bash"><span class="boring"> Increase timeout
+</span>cargo mutants --file rash/src/module.rs --timeout 600 -- --lib
+
+<span class="boring"> Run overnight for comprehensive testing
+</span>cargo mutants --timeout 600 -- --lib 2&gt;&amp;1 | tee mutation_full.log &amp;
+</code></pre>
+<h2 id="development-best-practices"><a class="header" href="#development-best-practices">Development Best Practices</a></h2>
+<h3 id="before-making-changes"><a class="header" href="#before-making-changes">Before Making Changes</a></h3>
+<ol>
+<li>
+<p><strong>Pull latest changes</strong>:</p>
+<pre><code class="language-bash">git pull origin main
+</code></pre>
+</li>
+<li>
+<p><strong>Verify tests pass</strong>:</p>
+<pre><code class="language-bash">cargo test --lib
+</code></pre>
+</li>
+<li>
+<p><strong>Check clean state</strong>:</p>
+<pre><code class="language-bash">git status  # Should be clean
+</code></pre>
+</li>
+</ol>
+<h3 id="while-developing"><a class="header" href="#while-developing">While Developing</a></h3>
+<ol>
+<li>
+<p><strong>Run tests frequently</strong>:</p>
+<pre><code class="language-bash">cargo test --lib test_your_feature
+</code></pre>
+</li>
+<li>
+<p><strong>Keep tests passing</strong>: Never commit broken tests</p>
+</li>
+<li>
+<p><strong>Format code regularly</strong>:</p>
+<pre><code class="language-bash">cargo fmt
+</code></pre>
+</li>
+</ol>
+<h3 id="before-committing"><a class="header" href="#before-committing">Before Committing</a></h3>
+<ol>
+<li>
+<p><strong>Run all tests</strong>:</p>
+<pre><code class="language-bash">cargo test --lib
+</code></pre>
+</li>
+<li>
+<p><strong>Format code</strong>:</p>
+<pre><code class="language-bash">cargo fmt
+</code></pre>
+</li>
+<li>
+<p><strong>Check clippy</strong>:</p>
+<pre><code class="language-bash">cargo clippy --all-targets -- -D warnings
+</code></pre>
+</li>
+<li>
+<p><strong>Verify hooks will pass</strong>:</p>
+<pre><code class="language-bash">./scripts/hooks/pre-commit
+</code></pre>
+</li>
+</ol>
+<h2 id="editor-setup"><a class="header" href="#editor-setup">Editor Setup</a></h2>
+<h3 id="vs-code"><a class="header" href="#vs-code">VS Code</a></h3>
+<p>Recommended extensions:</p>
+<pre><code class="language-json">{
+  "recommendations": [
+    "rust-lang.rust-analyzer",
+    "tamasfe.even-better-toml",
+    "serayuzgur.crates",
+    "vadimcn.vscode-lldb"
+  ]
+}
+</code></pre>
+<p>Settings (<code>.vscode/settings.json</code>):</p>
+<pre><code class="language-json">{
+  "rust-analyzer.check.command": "clippy",
+  "rust-analyzer.check.allTargets": true,
+  "editor.formatOnSave": true,
+  "editor.defaultFormatter": "rust-lang.rust-analyzer"
+}
+</code></pre>
+<h3 id="vimneovim"><a class="header" href="#vimneovim">Vim/Neovim</a></h3>
+<p>Install rust-analyzer and configure your plugin manager:</p>
+<pre><code class="language-lua">-- For nvim-lspconfig
+require('lspconfig').rust_analyzer.setup({
+  settings = {
+    ['rust-analyzer'] = {
+      checkOnSave = {
+        command = 'clippy',
+      },
+    },
+  },
+})
+</code></pre>
+<h3 id="intellij-idea--clion"><a class="header" href="#intellij-idea--clion">IntelliJ IDEA / CLion</a></h3>
+<ol>
+<li>Install "Rust" plugin</li>
+<li>Open project root</li>
+<li>IntelliJ will auto-detect Cargo workspace</li>
+<li>Configure "On Save" actions:
+<ul>
+<li>Format with rustfmt</li>
+<li>Run clippy</li>
+</ul>
+</li>
+</ol>
+<h2 id="performance-tips"><a class="header" href="#performance-tips">Performance Tips</a></h2>
+<h3 id="fast-incremental-builds"><a class="header" href="#fast-incremental-builds">Fast Incremental Builds</a></h3>
+<pre><code class="language-bash"><span class="boring"> Use dev-fast profile for faster compilation
+</span>cargo build --profile dev-fast
+
+<span class="boring"> Enable shared target directory (across projects)
+</span>export CARGO_TARGET_DIR=~/.cargo-target
+</code></pre>
+<h3 id="parallel-testing"><a class="header" href="#parallel-testing">Parallel Testing</a></h3>
+<pre><code class="language-bash"><span class="boring"> Let cargo use optimal thread count
+</span>cargo test --lib
+
+<span class="boring"> Or specify explicitly
+</span>cargo test --lib -- --test-threads=8
+</code></pre>
+<h3 id="caching-dependencies"><a class="header" href="#caching-dependencies">Caching Dependencies</a></h3>
+<pre><code class="language-bash"><span class="boring"> Use sccache for faster rebuilds
+</span>cargo install sccache
+export RUSTC_WRAPPER=sccache
+</code></pre>
+<h2 id="next-steps"><a class="header" href="#next-steps">Next Steps</a></h2>
+<p>Now that your environment is set up:</p>
+<ol>
+<li>Read <a href="./extreme-tdd.html">EXTREME TDD</a> methodology</li>
+<li>Check <a href="./release.html">Release Process</a> for releasing</li>
+<li>Review <a href="./toyota-way.html">Toyota Way</a> principles</li>
+<li>Browse <a href="../examples/">Examples</a> for practical usage</li>
+</ol>
+<h2 id="getting-help"><a class="header" href="#getting-help">Getting Help</a></h2>
+<p>If you encounter issues:</p>
+<ol>
+<li>Check <a href="#troubleshooting">Troubleshooting</a> section above</li>
+<li>Search existing GitHub issues: https://github.com/paiml/bashrs/issues</li>
+<li>Ask in discussions: https://github.com/paiml/bashrs/discussions</li>
+<li>Read the <a href="https://docs.claude.com/en/docs/claude-code/">Book</a></li>
+</ol>
+<hr />
+<p><strong>Quality Reminder</strong>: Rash follows <strong>zero-defect policy</strong>. All tests must pass, clippy must be clean, and code must be formatted before committing. The pre-commit hooks enforce this automatically.</p>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="../reference/rules.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <i class="fa fa-angle-left"></i>
+                            </a>
+
+                            <a rel="next prefetch" href="../contributing/extreme-tdd.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <i class="fa fa-angle-right"></i>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="../reference/rules.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <i class="fa fa-angle-left"></i>
+                    </a>
+
+                    <a rel="next prefetch" href="../contributing/extreme-tdd.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <i class="fa fa-angle-right"></i>
+                    </a>
+            </nav>
+
+        </div>
+
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+        <script src="../ace.js"></script>
+        <script src="../mode-rust.js"></script>
+        <script src="../editor.js"></script>
+        <script src="../theme-dawn.js"></script>
+        <script src="../theme-tomorrow_night.js"></script>
+
+        <script src="../elasticlunr.min.js"></script>
+        <script src="../mark.min.js"></script>
+        <script src="../searcher.js"></script>
+
+        <script src="../clipboard.min.js"></script>
+        <script src="../highlight.js"></script>
+        <script src="../book.js"></script>
+
+        <!-- Custom JS scripts -->
+
+
+
+    </div>
+    </body>
+</html>

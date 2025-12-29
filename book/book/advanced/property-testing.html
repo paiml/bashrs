@@ -1,0 +1,878 @@
+<!DOCTYPE HTML>
+<html lang="en" class="rust sidebar-visible" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>Property Testing - The Rash Book - Shell Safety and Purification</title>
+
+
+        <!-- Custom HTML head -->
+
+        <meta name="description" content="A comprehensive guide to Rash: shell safety, purification, and linting">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="../favicon.svg">
+        <link rel="shortcut icon" href="../favicon.png">
+        <link rel="stylesheet" href="../css/variables.css">
+        <link rel="stylesheet" href="../css/general.css">
+        <link rel="stylesheet" href="../css/chrome.css">
+        <link rel="stylesheet" href="../css/print.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="../FontAwesome/css/font-awesome.css">
+        <link rel="stylesheet" href="../fonts/fonts.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" id="highlight-css" href="../highlight.css">
+        <link rel="stylesheet" id="tomorrow-night-css" href="../tomorrow-night.css">
+        <link rel="stylesheet" id="ayu-highlight-css" href="../ayu-highlight.css">
+
+        <!-- Custom theme stylesheets -->
+
+
+        <!-- Provide site root and default themes to javascript -->
+        <script>
+            const path_to_root = "../";
+            const default_light_theme = "rust";
+            const default_dark_theme = "navy";
+            window.path_to_searchindex_js = "../searchindex.js";
+        </script>
+        <!-- Start loading toc.js asap -->
+        <script src="../toc.js"></script>
+    </head>
+    <body>
+    <div id="mdbook-help-container">
+        <div id="mdbook-help-popup">
+            <h2 class="mdbook-help-title">Keyboard shortcuts</h2>
+            <div>
+                <p>Press <kbd>←</kbd> or <kbd>→</kbd> to navigate between chapters</p>
+                <p>Press <kbd>S</kbd> or <kbd>/</kbd> to search in the book</p>
+                <p>Press <kbd>?</kbd> to show this help</p>
+                <p>Press <kbd>Esc</kbd> to hide this help</p>
+            </div>
+        </div>
+    </div>
+    <div id="body-container">
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                let theme = localStorage.getItem('mdbook-theme');
+                let sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            const default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? default_dark_theme : default_light_theme;
+            let theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            const html = document.documentElement;
+            html.classList.remove('rust')
+            html.classList.add(theme);
+            html.classList.add("js");
+        </script>
+
+        <input type="checkbox" id="sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            let sidebar = null;
+            const sidebar_toggle = document.getElementById("sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+                sidebar_toggle.checked = false;
+            }
+            if (sidebar === 'visible') {
+                sidebar_toggle.checked = true;
+            } else {
+                html.classList.remove('sidebar-visible');
+            }
+        </script>
+
+        <nav id="sidebar" class="sidebar" aria-label="Table of contents">
+            <!-- populated by js -->
+            <mdbook-sidebar-scrollbox class="sidebar-scrollbox"></mdbook-sidebar-scrollbox>
+            <noscript>
+                <iframe class="sidebar-iframe-outer" src="../toc.html"></iframe>
+            </noscript>
+            <div id="sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <div id="page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="menu-bar-hover-placeholder"></div>
+                <div id="menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="sidebar-toggle" class="icon-button" for="sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="sidebar">
+                            <i class="fa fa-bars"></i>
+                        </label>
+                        <button id="theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="theme-list">
+                            <i class="fa fa-paint-brush"></i>
+                        </button>
+                        <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="default_theme">Auto</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
+                        </ul>
+                        <button id="search-toggle" class="icon-button" type="button" title="Search (`/`)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="/ s" aria-controls="searchbar">
+                            <i class="fa fa-search"></i>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">The Rash Book - Shell Safety and Purification</h1>
+
+                    <div class="right-buttons">
+                        <a href="../print.html" title="Print this book" aria-label="Print this book">
+                            <i id="print-button" class="fa fa-print"></i>
+                        </a>
+                        <a href="https://github.com/paiml/bashrs" title="Git repository" aria-label="Git repository">
+                            <i id="git-repository-button" class="fa fa-github"></i>
+                        </a>
+                        <a href="https://github.com/paiml/bashrs/edit/main/book/src/advanced/property-testing.md" title="Suggest an edit" aria-label="Suggest an edit" rel="edit">
+                            <i id="git-edit-button" class="fa fa-edit"></i>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="search-wrapper" class="hidden">
+                    <form id="searchbar-outer" class="searchbar-outer">
+                        <div class="search-wrapper">
+                            <input type="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                            <div class="spinner-wrapper">
+                                <i class="fa fa-spinner fa-spin"></i>
+                            </div>
+                        </div>
+                    </form>
+                    <div id="searchresults-outer" class="searchresults-outer hidden">
+                        <div id="searchresults-header" class="searchresults-header"></div>
+                        <ul id="searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="content" class="content">
+                    <main>
+                        <h1 id="property-testing"><a class="header" href="#property-testing">Property Testing</a></h1>
+<p>Property-based testing is a powerful technique that tests code against mathematical properties rather than specific examples. bashrs uses the <code>proptest</code> crate to generate hundreds of test cases automatically, catching edge cases that manual tests miss.</p>
+<h2 id="what-is-property-based-testing"><a class="header" href="#what-is-property-based-testing">What is Property-Based Testing?</a></h2>
+<p>Traditional unit tests use specific examples:</p>
+<pre><code class="language-rust ignore">#[test]
+fn test_addition() {
+    assert_eq!(add(2, 3), 5);
+    assert_eq!(add(0, 0), 0);
+    assert_eq!(add(-1, 1), 0);
+}</code></pre>
+<p>Property-based tests specify <strong>properties</strong> that should hold for <strong>all</strong> inputs:</p>
+<pre><code class="language-rust ignore">proptest! {
+    #[test]
+    fn prop_addition_is_commutative(a: i32, b: i32) {
+        assert_eq!(add(a, b), add(b, a));  // Property: a + b == b + a
+    }
+}</code></pre>
+<p>The framework generates 100-1000+ test cases automatically, including edge cases like:</p>
+<ul>
+<li>Maximum/minimum values</li>
+<li>Zero and negative numbers</li>
+<li>Random combinations</li>
+<li>Boundary conditions</li>
+</ul>
+<h3 id="why-property-testing-matters-for-shell-scripts"><a class="header" href="#why-property-testing-matters-for-shell-scripts">Why Property Testing Matters for Shell Scripts</a></h3>
+<p>Shell scripts have <strong>complex input spaces</strong>:</p>
+<ul>
+<li>Variable names: <code>[a-zA-Z_][a-zA-Z0-9_]*</code></li>
+<li>Strings: arbitrary Unicode with quotes, escapes, newlines</li>
+<li>Commands: any valid command name + arguments</li>
+<li>Expansions: <code>$VAR</code>, <code>${VAR:-default}</code>, <code>$(cmd)</code>, etc.</li>
+</ul>
+<p>Manual testing can't cover all combinations. Property testing generates thousands of valid inputs automatically.</p>
+<h2 id="how-bashrs-uses-property-tests"><a class="header" href="#how-bashrs-uses-property-tests">How bashrs Uses Property Tests</a></h2>
+<p>bashrs property tests validate three critical properties:</p>
+<h3 id="property-1-determinism"><a class="header" href="#property-1-determinism">Property 1: Determinism</a></h3>
+<p><strong>Property</strong>: Purification is deterministic - same input always produces same output.</p>
+<pre><code class="language-rust ignore">proptest! {
+    #[test]
+    fn prop_purification_is_deterministic(script in bash_script_strategy()) {
+        let purified1 = purify(&amp;script).unwrap();
+        let purified2 = purify(&amp;script).unwrap();
+
+        // Property: Multiple runs produce identical output
+        assert_eq!(purified1, purified2);
+    }
+}</code></pre>
+<p><strong>Why this matters</strong>: Build systems and CI/CD pipelines depend on reproducible outputs. Non-determinism breaks caching and verification.</p>
+<h3 id="property-2-idempotency"><a class="header" href="#property-2-idempotency">Property 2: Idempotency</a></h3>
+<p><strong>Property</strong>: Purification is idempotent - purifying already-purified code changes nothing.</p>
+<pre><code class="language-rust ignore">proptest! {
+    #[test]
+    fn prop_purification_is_idempotent(script in bash_script_strategy()) {
+        let purified1 = purify(&amp;script).unwrap();
+        let purified2 = purify(&amp;purified1).unwrap();
+
+        // Property: Purify(Purify(x)) == Purify(x)
+        assert_eq!(purified1, purified2);
+    }
+}</code></pre>
+<p><strong>Why this matters</strong>: Users should be able to run bashrs multiple times without changing the output. This is essential for version control and diffing.</p>
+<h3 id="property-3-semantic-preservation"><a class="header" href="#property-3-semantic-preservation">Property 3: Semantic Preservation</a></h3>
+<p><strong>Property</strong>: Purification preserves behavior - purified scripts behave identically to originals.</p>
+<pre><code class="language-rust ignore">proptest! {
+    #[test]
+    fn prop_purification_preserves_semantics(script in bash_script_strategy()) {
+        let original_output = execute_bash(&amp;script);
+        let purified = purify(&amp;script).unwrap();
+        let purified_output = execute_sh(&amp;purified);
+
+        // Property: Same behavior (modulo determinism)
+        assert_eq!(original_output, purified_output);
+    }
+}</code></pre>
+<p><strong>Why this matters</strong>: Purification must not break existing scripts. Users need confidence that bashrs won't introduce bugs.</p>
+<h2 id="writing-property-tests-for-shell-transformations"><a class="header" href="#writing-property-tests-for-shell-transformations">Writing Property Tests for Shell Transformations</a></h2>
+<h3 id="step-1-define-input-strategies"><a class="header" href="#step-1-define-input-strategies">Step 1: Define Input Strategies</a></h3>
+<p>Strategies generate random valid inputs. bashrs uses domain-specific strategies for shell constructs:</p>
+<pre><code class="language-rust ignore">use proptest::prelude::*;
+
+/// Generate valid bash identifiers: [a-zA-Z_][a-zA-Z0-9_]{0,15}
+fn bash_identifier() -&gt; impl Strategy&lt;Value = String&gt; {
+    "[a-zA-Z_][a-zA-Z0-9_]{0,15}"
+}
+
+/// Generate safe strings (no shell metacharacters)
+fn bash_string() -&gt; impl Strategy&lt;Value = String&gt; {
+    prop::string::string_regex("[a-zA-Z0-9_ ]{0,50}").unwrap()
+}
+
+/// Generate common variable names
+fn bash_variable_name() -&gt; impl Strategy&lt;Value = String&gt; {
+    prop::sample::select(vec![
+        "PATH".to_string(),
+        "HOME".to_string(),
+        "USER".to_string(),
+        "foo".to_string(),
+        "result".to_string(),
+    ])
+}
+
+/// Generate integers in reasonable range
+fn bash_integer() -&gt; impl Strategy&lt;Value = i64&gt; {
+    -1000i64..1000i64
+}</code></pre>
+<h3 id="step-2-compose-strategies-for-complex-structures"><a class="header" href="#step-2-compose-strategies-for-complex-structures">Step 2: Compose Strategies for Complex Structures</a></h3>
+<p>Build AST nodes from primitive strategies:</p>
+<pre><code class="language-rust ignore">use bashrs::bash_parser::ast::*;
+
+/// Generate variable assignments
+fn bash_assignment() -&gt; impl Strategy&lt;Value = BashStmt&gt; {
+    (bash_identifier(), bash_string()).prop_map(|(name, value)| {
+        BashStmt::Assignment {
+            name,
+            value: BashExpr::Literal(value),
+            exported: false,
+            span: Span::dummy(),
+        }
+    })
+}
+
+/// Generate commands
+fn bash_command() -&gt; impl Strategy&lt;Value = BashStmt&gt; {
+    (
+        bash_identifier(),
+        prop::collection::vec(bash_string(), 0..4)
+    ).prop_map(|(name, args)| {
+        BashStmt::Command {
+            name,
+            args: args.into_iter().map(BashExpr::Literal).collect(),
+            span: Span::dummy(),
+        }
+    })
+}
+
+/// Generate complete bash scripts
+fn bash_script() -&gt; impl Strategy&lt;Value = BashAst&gt; {
+    prop::collection::vec(
+        prop_oneof![
+            bash_assignment(),
+            bash_command(),
+        ],
+        1..10
+    ).prop_map(|statements| {
+        BashAst {
+            statements,
+            metadata: AstMetadata {
+                source_file: None,
+                line_count: statements.len(),
+                parse_time_ms: 0,
+            },
+        }
+    })
+}</code></pre>
+<h3 id="step-3-write-property-tests"><a class="header" href="#step-3-write-property-tests">Step 3: Write Property Tests</a></h3>
+<p>Test properties using generated inputs:</p>
+<pre><code class="language-rust ignore">proptest! {
+    #![proptest_config(ProptestConfig {
+        cases: 1000,  // Generate 1000 test cases
+        max_shrink_iters: 1000,
+        .. ProptestConfig::default()
+    })]
+
+    /// Property: All valid assignments can be purified
+    #[test]
+    fn prop_assignments_can_be_purified(stmt in bash_assignment()) {
+        let ast = BashAst {
+            statements: vec![stmt],
+            metadata: AstMetadata::default(),
+        };
+
+        // Should not panic
+        let result = purify(ast);
+        prop_assert!(result.is_ok());
+    }
+
+    /// Property: Commands with safe arguments are preserved
+    #[test]
+    fn prop_safe_commands_preserved(stmt in bash_command()) {
+        let ast = BashAst {
+            statements: vec![stmt.clone()],
+            metadata: AstMetadata::default(),
+        };
+
+        let purified = purify(ast).unwrap();
+
+        // Command name should be preserved
+        match (&amp;stmt, &amp;purified.statements[0]) {
+            (
+                BashStmt::Command { name: orig_name, .. },
+                BashStmt::Command { name: purified_name, .. }
+            ) =&gt; {
+                prop_assert_eq!(orig_name, purified_name);
+            }
+            _ =&gt; prop_assert!(false, "Expected commands"),
+        }
+    }
+}</code></pre>
+<h2 id="examples-from-bashrs"><a class="header" href="#examples-from-bashrs">Examples from bashrs</a></h2>
+<h3 id="example-1-variable-quoting-property"><a class="header" href="#example-1-variable-quoting-property">Example 1: Variable Quoting Property</a></h3>
+<p><strong>Property</strong>: All variable references in purified output should be quoted.</p>
+<pre><code class="language-rust ignore">proptest! {
+    #[test]
+    fn prop_variables_are_quoted(
+        var_name in bash_identifier(),
+        value in bash_string()
+    ) {
+        let script = format!(r#"
+#!/bin/bash
+{}="{}"
+echo ${}
+"#, var_name, value, var_name);
+
+        let purified = purify_bash(&amp;script).unwrap();
+
+        // Property: Variable usage should be quoted
+        let expected = format!(r#"echo "${{{}}}"#, var_name);
+        prop_assert!(purified.contains(&amp;expected),
+            "Expected quoted variable ${{{}}}, got:\n{}",
+            var_name, purified);
+    }
+}</code></pre>
+<p><strong>Real-world bug caught</strong>: This test discovered that variables in command substitutions weren't being quoted:</p>
+<pre><code class="language-bash"><span class="boring"> Original (vulnerable)
+</span>RESULT=$(command $UNQUOTED)
+
+<span class="boring"> After fix (safe)
+</span>RESULT=$(command "$UNQUOTED")
+</code></pre>
+<h3 id="example-2-idempotency-of-mkdir--p"><a class="header" href="#example-2-idempotency-of-mkdir--p">Example 2: Idempotency of mkdir -p</a></h3>
+<p><strong>Property</strong>: Adding <code>-p</code> to <code>mkdir</code> is idempotent - doing it twice doesn't add it again.</p>
+<pre><code class="language-rust ignore">proptest! {
+    #[test]
+    fn prop_mkdir_p_idempotent(dir in "[/a-z]{1,20}") {
+        let script = format!("mkdir {}", dir);
+
+        let purified1 = purify_bash(&amp;script).unwrap();
+        let purified2 = purify_bash(&amp;purified1).unwrap();
+
+        // Property: Second purification doesn't add another -p
+        prop_assert_eq!(purified1, purified2);
+
+        // Verify -p appears exactly once
+        let p_count = purified1.matches("-p").count();
+        prop_assert_eq!(p_count, 1, "Expected exactly one -p, got {}", p_count);
+    }
+}</code></pre>
+<h3 id="example-3-posix-compatibility"><a class="header" href="#example-3-posix-compatibility">Example 3: POSIX Compatibility</a></h3>
+<p><strong>Property</strong>: All purified scripts pass shellcheck in POSIX mode.</p>
+<pre><code class="language-rust ignore">proptest! {
+    #[test]
+    fn prop_purified_is_posix_compliant(script in bash_script()) {
+        let purified = purify(script).unwrap();
+        let shell_output = generate_shell(&amp;purified).unwrap();
+
+        // Property: Passes shellcheck -s sh
+        let result = std::process::Command::new("shellcheck")
+            .arg("-s").arg("sh")
+            .arg("-")
+            .stdin(std::process::Stdio::piped())
+            .stdout(std::process::Stdio::piped())
+            .stderr(std::process::Stdio::piped())
+            .spawn()
+            .unwrap();
+
+        let mut stdin = result.stdin.unwrap();
+        stdin.write_all(shell_output.as_bytes()).unwrap();
+        drop(stdin);
+
+        let output = result.wait_with_output().unwrap();
+        prop_assert!(output.status.success(),
+            "Shellcheck failed:\n{}",
+            String::from_utf8_lossy(&amp;output.stderr));
+    }
+}</code></pre>
+<h3 id="example-4-parameter-expansion-preservation"><a class="header" href="#example-4-parameter-expansion-preservation">Example 4: Parameter Expansion Preservation</a></h3>
+<p><strong>Property</strong>: Valid parameter expansions are preserved (not broken).</p>
+<pre><code class="language-rust ignore">proptest! {
+    #[test]
+    fn prop_parameter_expansion_preserved(
+        var in bash_identifier(),
+        default in bash_string()
+    ) {
+        let script = format!(r#"echo "${{{var}:-{default}}}"#,
+            var = var, default = default);
+
+        let purified = purify_bash(&amp;script).unwrap();
+
+        // Property: Parameter expansion syntax is preserved
+        prop_assert!(
+            purified.contains(&amp;format!("${{{}:-", var)),
+            "Expected parameter expansion preserved, got:\n{}",
+            purified
+        );
+    }
+}</code></pre>
+<p><strong>Real bug caught</strong>: Initial implementation would incorrectly transform:</p>
+<pre><code class="language-bash"><span class="boring"> Before: ${VAR:-default}
+</span><span class="boring"> After:  $VARdefault  # BROKEN!
+</span></code></pre>
+<p>Property test caught this immediately with 100+ generated test cases.</p>
+<h2 id="shrinking-and-edge-case-discovery"><a class="header" href="#shrinking-and-edge-case-discovery">Shrinking and Edge Case Discovery</a></h2>
+<p>When a property test fails, <code>proptest</code> <strong>shrinks</strong> the input to find the minimal failing case.</p>
+<h3 id="example-shrinking-in-action"><a class="header" href="#example-shrinking-in-action">Example: Shrinking in Action</a></h3>
+<pre><code class="language-rust ignore">proptest! {
+    #[test]
+    fn prop_commands_dont_panic(cmd in bash_command()) {
+        // Bug: panics on empty command name
+        process_command(&amp;cmd);
+    }
+}</code></pre>
+<p><strong>Initial failure</strong> (random):</p>
+<pre><code class="language-text">thread 'prop_commands_dont_panic' panicked at 'assertion failed'
+  cmd = BashStmt::Command {
+      name: "",
+      args: ["foo", "bar", "baz", "qux"],
+      span: Span { ... }
+  }
+</code></pre>
+<p><strong>After shrinking</strong>:</p>
+<pre><code class="language-text">Minimal failing case:
+  cmd = BashStmt::Command {
+      name: "",        // Empty name causes panic
+      args: [],        // Irrelevant args removed
+      span: Span::dummy()
+  }
+</code></pre>
+<p>Shrinking makes debugging trivial - you immediately see the root cause.</p>
+<h3 id="configuring-shrinking"><a class="header" href="#configuring-shrinking">Configuring Shrinking</a></h3>
+<pre><code class="language-rust ignore">proptest! {
+    #![proptest_config(ProptestConfig {
+        cases: 1000,              // Try 1000 random inputs
+        max_shrink_iters: 10000,  // Spend up to 10k iterations shrinking
+        max_shrink_time: 60000,   // Or 60 seconds
+        .. ProptestConfig::default()
+    })]
+
+    #[test]
+    fn prop_complex_test(input in complex_strategy()) {
+        // Test code
+    }
+}</code></pre>
+<h2 id="integration-with-extreme-tdd"><a class="header" href="#integration-with-extreme-tdd">Integration with EXTREME TDD</a></h2>
+<p>Property tests are a key component of bashrs's EXTREME TDD methodology:</p>
+<pre><code class="language-rust ignore">EXTREME TDD = TDD + Property Testing + Mutation Testing + PMAT + Examples</code></pre>
+<h3 id="red--green--refactor--property"><a class="header" href="#red--green--refactor--property">RED → GREEN → REFACTOR → PROPERTY</a></h3>
+<ol>
+<li><strong>RED</strong>: Write failing unit test</li>
+<li><strong>GREEN</strong>: Implement minimal fix</li>
+<li><strong>REFACTOR</strong>: Clean up implementation</li>
+<li><strong>PROPERTY</strong>: Add property test to prevent regressions</li>
+</ol>
+<p>Example workflow:</p>
+<pre><code class="language-rust ignore">// Step 1: RED - Failing unit test
+#[test]
+fn test_mkdir_adds_dash_p() {
+    let input = "mkdir /tmp/foo";
+    let output = purify_bash(input).unwrap();
+    assert!(output.contains("mkdir -p"));
+}
+
+// Step 2: GREEN - Implement
+fn make_mkdir_idempotent(stmt: BashStmt) -&gt; BashStmt {
+    match stmt {
+        BashStmt::Command { name, mut args, span } if name == "mkdir" =&gt; {
+            args.insert(0, BashExpr::Literal("-p".to_string()));
+            BashStmt::Command { name, args, span }
+        }
+        _ =&gt; stmt,
+    }
+}
+
+// Step 3: REFACTOR - Clean up
+fn make_mkdir_idempotent(stmt: BashStmt) -&gt; BashStmt {
+    match stmt {
+        BashStmt::Command { name, mut args, span } if name == "mkdir" =&gt; {
+            if !has_flag(&amp;args, "-p") {
+                args.insert(0, BashExpr::Literal("-p".to_string()));
+            }
+            BashStmt::Command { name, args, span }
+        }
+        _ =&gt; stmt,
+    }
+}
+
+// Step 4: PROPERTY - Prevent regressions
+proptest! {
+    #[test]
+    fn prop_mkdir_always_gets_dash_p(dir in "[/a-z]{1,20}") {
+        let script = format!("mkdir {}", dir);
+        let purified = purify_bash(&amp;script).unwrap();
+
+        // Property: All mkdir commands get -p
+        prop_assert!(purified.contains("mkdir -p"),
+            "Expected 'mkdir -p', got: {}", purified);
+    }
+
+    #[test]
+    fn prop_mkdir_dash_p_idempotent(dir in "[/a-z]{1,20}") {
+        let script = format!("mkdir {}", dir);
+        let purified1 = purify_bash(&amp;script).unwrap();
+        let purified2 = purify_bash(&amp;purified1).unwrap();
+
+        // Property: Idempotent
+        prop_assert_eq!(purified1, purified2);
+    }
+}</code></pre>
+<h3 id="property-tests-complement-mutation-testing"><a class="header" href="#property-tests-complement-mutation-testing">Property Tests Complement Mutation Testing</a></h3>
+<p>Property tests catch bugs mutation tests miss:</p>
+<p><strong>Mutation test</strong>: Changes <code>if !has_flag</code> to <code>if has_flag</code></p>
+<ul>
+<li>Unit tests: May pass if they don't cover all flag combinations</li>
+<li>Property tests: <strong>Fail immediately</strong> across 1000+ generated cases</li>
+</ul>
+<p><strong>Property test</strong>: Catches missing edge case</p>
+<ul>
+<li>Mutation tests: Only test what you wrote</li>
+<li>Property tests: Test what you <strong>didn't think of</strong></li>
+</ul>
+<h2 id="best-practices"><a class="header" href="#best-practices">Best Practices</a></h2>
+<h3 id="1-start-with-simple-properties"><a class="header" href="#1-start-with-simple-properties">1. Start with Simple Properties</a></h3>
+<p>Don't try to test everything at once:</p>
+<pre><code class="language-rust ignore">// ✅ GOOD: Simple, focused property
+proptest! {
+    #[test]
+    fn prop_parse_never_panics(input in ".*{0,1000}") {
+        // Should handle any input without crashing
+        let _ = parse_bash(&amp;input);
+    }
+}
+
+// ❌ TOO COMPLEX: Testing too much
+proptest! {
+    #[test]
+    fn prop_everything_works(input in ".*{0,1000}") {
+        let ast = parse_bash(&amp;input).unwrap();  // Assumes parse succeeds
+        let purified = purify(ast).unwrap();    // Assumes purify succeeds
+        let output = generate(purified).unwrap();
+        assert!(shellcheck_passes(&amp;output));    // Too many assumptions
+    }
+}</code></pre>
+<h3 id="2-use-domain-specific-strategies"><a class="header" href="#2-use-domain-specific-strategies">2. Use Domain-Specific Strategies</a></h3>
+<p>Generate <strong>valid</strong> inputs, not random garbage:</p>
+<pre><code class="language-rust ignore">// ❌ BAD: Random strings aren't valid bash
+proptest! {
+    #[test]
+    fn prop_parse_succeeds(input in ".*") {
+        parse_bash(&amp;input).unwrap();  // Will fail on invalid syntax
+    }
+}
+
+// ✅ GOOD: Generate valid bash constructs
+fn valid_bash_script() -&gt; impl Strategy&lt;Value = String&gt; {
+    prop::collection::vec(
+        prop_oneof![
+            bash_assignment_string(),
+            bash_command_string(),
+            bash_if_statement_string(),
+        ],
+        1..20
+    ).prop_map(|lines| lines.join("\n"))
+}
+
+proptest! {
+    #[test]
+    fn prop_valid_bash_parses(script in valid_bash_script()) {
+        parse_bash(&amp;script).unwrap();  // Should always succeed
+    }
+}</code></pre>
+<h3 id="3-test-properties-not-implementation"><a class="header" href="#3-test-properties-not-implementation">3. Test Properties, Not Implementation</a></h3>
+<p>Focus on <strong>what</strong> should be true, not <strong>how</strong> it's implemented:</p>
+<pre><code class="language-rust ignore">// ❌ BAD: Tests implementation details
+proptest! {
+    #[test]
+    fn prop_uses_regex_to_find_variables(input in ".*") {
+        let result = purify(&amp;input);
+        assert!(result.internal_regex.is_some());  // Implementation detail
+    }
+}
+
+// ✅ GOOD: Tests observable behavior
+proptest! {
+    #[test]
+    fn prop_all_variables_are_quoted(script in bash_script()) {
+        let purified = purify(&amp;script).unwrap();
+
+        // Observable: No unquoted variables in output
+        let unquoted_vars = find_unquoted_variables(&amp;purified);
+        prop_assert!(unquoted_vars.is_empty(),
+            "Found unquoted variables: {:?}", unquoted_vars);
+    }
+}</code></pre>
+<h3 id="4-use-preconditions-with-prop_assume"><a class="header" href="#4-use-preconditions-with-prop_assume">4. Use Preconditions with <code>prop_assume</code></a></h3>
+<p>Filter out invalid cases instead of failing:</p>
+<pre><code class="language-rust ignore">proptest! {
+    #[test]
+    fn prop_division_works(a: i32, b: i32) {
+        prop_assume!(b != 0);  // Skip division by zero
+
+        let result = divide(a, b);
+        prop_assert_eq!(result * b, a);
+    }
+}</code></pre>
+<p>For bashrs:</p>
+<pre><code class="language-rust ignore">proptest! {
+    #[test]
+    fn prop_safe_eval_works(cmd in bash_command_string()) {
+        // Only test safe commands (no eval)
+        prop_assume!(!cmd.contains("eval"));
+
+        let result = execute_safely(&amp;cmd);
+        prop_assert!(result.is_ok());
+    }
+}</code></pre>
+<h3 id="5-balance-test-cases-vs-runtime"><a class="header" href="#5-balance-test-cases-vs-runtime">5. Balance Test Cases vs Runtime</a></h3>
+<p>More cases = better coverage, but slower tests:</p>
+<pre><code class="language-rust ignore">proptest! {
+    #![proptest_config(ProptestConfig {
+        cases: 100,  // Quick smoke test (CI)
+        .. ProptestConfig::default()
+    })]
+
+    #[test]
+    fn prop_fast_smoke_test(input in bash_script()) {
+        // Runs 100 times, finishes in seconds
+    }
+}
+
+proptest! {
+    #![proptest_config(ProptestConfig {
+        cases: 10000,  // Thorough test (nightly)
+        .. ProptestConfig::default()
+    })]
+
+    #[test]
+    #[ignore]  // Only run with --ignored
+    fn prop_exhaustive_test(input in bash_script()) {
+        // Runs 10k times, may take minutes
+    }
+}</code></pre>
+<h3 id="6-document-expected-failures"><a class="header" href="#6-document-expected-failures">6. Document Expected Failures</a></h3>
+<p>Some properties have known limitations:</p>
+<pre><code class="language-rust ignore">proptest! {
+    #[test]
+    fn prop_parse_all_bash(input in ".*") {
+        match parse_bash(&amp;input) {
+            Ok(_) =&gt; {},
+            Err(e) =&gt; {
+                // Document known limitations
+                if input.contains("$($(nested))") {
+                    // Known: Nested command substitution not supported
+                    return Ok(());
+                }
+                prop_assert!(false, "Unexpected parse error: {}", e);
+            }
+        }
+    }
+}</code></pre>
+<h2 id="advanced-techniques"><a class="header" href="#advanced-techniques">Advanced Techniques</a></h2>
+<h3 id="regression-testing-with-proptest-regressions"><a class="header" href="#regression-testing-with-proptest-regressions">Regression Testing with <code>proptest-regressions</code></a></h3>
+<p>Save failing cases for permanent regression tests:</p>
+<pre><code class="language-toml"># proptest-regressions/prop_test_name.txt
+cc 0123456789abcdef  # Hex seed for failing case
+</code></pre>
+<pre><code class="language-rust ignore">proptest! {
+    #[test]
+    fn prop_no_regressions(input in bash_script()) {
+        // Failed cases automatically become permanent tests
+        purify(input).unwrap();
+    }
+}</code></pre>
+<h3 id="stateful-property-testing"><a class="header" href="#stateful-property-testing">Stateful Property Testing</a></h3>
+<p>Test sequences of operations:</p>
+<pre><code class="language-rust ignore">#[derive(Debug, Clone)]
+enum Operation {
+    AddVariable(String, String),
+    UseVariable(String),
+    DefineFunction(String),
+    CallFunction(String),
+}
+
+fn operation_strategy() -&gt; impl Strategy&lt;Value = Operation&gt; {
+    prop_oneof![
+        (bash_identifier(), bash_string())
+            .prop_map(|(k, v)| Operation::AddVariable(k, v)),
+        bash_identifier()
+            .prop_map(Operation::UseVariable),
+        // ... other operations
+    ]
+}
+
+proptest! {
+    #[test]
+    fn prop_stateful_execution(ops in prop::collection::vec(operation_strategy(), 1..20)) {
+        let mut state = BashState::new();
+
+        for op in ops {
+            match op {
+                Operation::AddVariable(k, v) =&gt; state.set_var(&amp;k, &amp;v),
+                Operation::UseVariable(k) =&gt; {
+                    // Should never panic
+                    let _ = state.get_var(&amp;k);
+                }
+                // ... handle other operations
+            }
+        }
+
+        // Property: State should always be consistent
+        prop_assert!(state.is_consistent());
+    }
+}</code></pre>
+<h2 id="summary"><a class="header" href="#summary">Summary</a></h2>
+<p>Property-based testing is essential for bashrs quality:</p>
+<p><strong>Benefits</strong>:</p>
+<ul>
+<li>Catches edge cases manual tests miss</li>
+<li>Tests thousands of cases automatically</li>
+<li>Shrinks failures to minimal examples</li>
+<li>Validates mathematical properties (determinism, idempotency)</li>
+<li>Integrates with EXTREME TDD workflow</li>
+</ul>
+<p><strong>When to use</strong>:</p>
+<ul>
+<li>Functions with large input spaces (parsers, transformations)</li>
+<li>Properties that should hold universally (idempotency, commutativity)</li>
+<li>Complex algorithms with many edge cases</li>
+<li>Complementing mutation testing</li>
+</ul>
+<p><strong>bashrs uses property tests for</strong>:</p>
+<ol>
+<li>Parser robustness (never panics)</li>
+<li>Transformation determinism (same input → same output)</li>
+<li>Purification idempotency (purify twice = purify once)</li>
+<li>POSIX compliance (shellcheck always passes)</li>
+<li>Semantic preservation (behavior unchanged)</li>
+</ol>
+<p>For more on testing quality, see <a href="./mutation-testing.html">Mutation Testing</a> and <a href="./performance.html">Performance Optimization</a>.</p>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="../advanced/probar-testing.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <i class="fa fa-angle-left"></i>
+                            </a>
+
+                            <a rel="next prefetch" href="../advanced/mutation-testing.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <i class="fa fa-angle-right"></i>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="../advanced/probar-testing.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <i class="fa fa-angle-left"></i>
+                    </a>
+
+                    <a rel="next prefetch" href="../advanced/mutation-testing.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <i class="fa fa-angle-right"></i>
+                    </a>
+            </nav>
+
+        </div>
+
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+        <script src="../ace.js"></script>
+        <script src="../mode-rust.js"></script>
+        <script src="../editor.js"></script>
+        <script src="../theme-dawn.js"></script>
+        <script src="../theme-tomorrow_night.js"></script>
+
+        <script src="../elasticlunr.min.js"></script>
+        <script src="../mark.min.js"></script>
+        <script src="../searcher.js"></script>
+
+        <script src="../clipboard.min.js"></script>
+        <script src="../highlight.js"></script>
+        <script src="../book.js"></script>
+
+        <!-- Custom JS scripts -->
+
+
+
+    </div>
+    </body>
+</html>

@@ -17,8 +17,7 @@ fn transpile(rust_code: &str) -> (bool, String) {
 
     fs::write(tmp_rs, rust_code).unwrap();
 
-    let output = Command::cargo_bin("bashrs")
-        .unwrap()
+    let output = assert_cmd::cargo_bin_cmd!("bashrs")
         .args(["build", tmp_rs, "-o", tmp_sh])
         .output()
         .unwrap();
@@ -365,8 +364,7 @@ fn test_transpiler_bug_hunt_execution() {
 
         fs::write(tmp_rs, rust_code).unwrap();
 
-        let compile = Command::cargo_bin("bashrs")
-            .unwrap()
+        let compile = assert_cmd::cargo_bin_cmd!("bashrs")
             .args(["build", tmp_rs, "-o", tmp_sh])
             .output()
             .unwrap();

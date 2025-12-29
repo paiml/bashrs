@@ -246,7 +246,7 @@ impl InstallerProgress {
 
     /// Get step by ID
     pub fn get_step(&self, id: &str) -> Option<&StepInfo> {
-        self.step_index.get(id).map(|&i| &self.steps[i])
+        self.step_index.get(id).and_then(|&i| self.steps.get(i))
     }
 
     /// Get mutable step by ID
@@ -445,7 +445,7 @@ impl TerminalRenderer {
         let filled = (progress as usize * width) / 100;
         let empty = width.saturating_sub(filled);
 
-        let filled_char = if progress >= 100 { '━' } else { '━' };
+        let filled_char = '━';
         let partial_char = if progress < 100 && filled < width {
             '╸'
         } else {
@@ -512,7 +512,7 @@ impl ProgressRenderer for TerminalRenderer {
         let elapsed = Self::format_duration(progress.elapsed());
         let remaining = progress
             .estimated_remaining()
-            .map(|d| Self::format_duration(d))
+            .map(Self::format_duration)
             .unwrap_or_else(|| "calculating...".to_string());
 
         let checkpoint = progress

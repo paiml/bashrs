@@ -1,0 +1,499 @@
+<!DOCTYPE HTML>
+<html lang="en" class="rust sidebar-visible" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>False Positive Testing - The Rash Book - Shell Safety and Purification</title>
+
+
+        <!-- Custom HTML head -->
+
+        <meta name="description" content="A comprehensive guide to Rash: shell safety, purification, and linting">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="../favicon.svg">
+        <link rel="shortcut icon" href="../favicon.png">
+        <link rel="stylesheet" href="../css/variables.css">
+        <link rel="stylesheet" href="../css/general.css">
+        <link rel="stylesheet" href="../css/chrome.css">
+        <link rel="stylesheet" href="../css/print.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="../FontAwesome/css/font-awesome.css">
+        <link rel="stylesheet" href="../fonts/fonts.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" id="highlight-css" href="../highlight.css">
+        <link rel="stylesheet" id="tomorrow-night-css" href="../tomorrow-night.css">
+        <link rel="stylesheet" id="ayu-highlight-css" href="../ayu-highlight.css">
+
+        <!-- Custom theme stylesheets -->
+
+
+        <!-- Provide site root and default themes to javascript -->
+        <script>
+            const path_to_root = "../";
+            const default_light_theme = "rust";
+            const default_dark_theme = "navy";
+            window.path_to_searchindex_js = "../searchindex.js";
+        </script>
+        <!-- Start loading toc.js asap -->
+        <script src="../toc.js"></script>
+    </head>
+    <body>
+    <div id="mdbook-help-container">
+        <div id="mdbook-help-popup">
+            <h2 class="mdbook-help-title">Keyboard shortcuts</h2>
+            <div>
+                <p>Press <kbd>←</kbd> or <kbd>→</kbd> to navigate between chapters</p>
+                <p>Press <kbd>S</kbd> or <kbd>/</kbd> to search in the book</p>
+                <p>Press <kbd>?</kbd> to show this help</p>
+                <p>Press <kbd>Esc</kbd> to hide this help</p>
+            </div>
+        </div>
+    </div>
+    <div id="body-container">
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                let theme = localStorage.getItem('mdbook-theme');
+                let sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            const default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? default_dark_theme : default_light_theme;
+            let theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            const html = document.documentElement;
+            html.classList.remove('rust')
+            html.classList.add(theme);
+            html.classList.add("js");
+        </script>
+
+        <input type="checkbox" id="sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            let sidebar = null;
+            const sidebar_toggle = document.getElementById("sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+                sidebar_toggle.checked = false;
+            }
+            if (sidebar === 'visible') {
+                sidebar_toggle.checked = true;
+            } else {
+                html.classList.remove('sidebar-visible');
+            }
+        </script>
+
+        <nav id="sidebar" class="sidebar" aria-label="Table of contents">
+            <!-- populated by js -->
+            <mdbook-sidebar-scrollbox class="sidebar-scrollbox"></mdbook-sidebar-scrollbox>
+            <noscript>
+                <iframe class="sidebar-iframe-outer" src="../toc.html"></iframe>
+            </noscript>
+            <div id="sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <div id="page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="menu-bar-hover-placeholder"></div>
+                <div id="menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="sidebar-toggle" class="icon-button" for="sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="sidebar">
+                            <i class="fa fa-bars"></i>
+                        </label>
+                        <button id="theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="theme-list">
+                            <i class="fa fa-paint-brush"></i>
+                        </button>
+                        <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="default_theme">Auto</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
+                        </ul>
+                        <button id="search-toggle" class="icon-button" type="button" title="Search (`/`)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="/ s" aria-controls="searchbar">
+                            <i class="fa fa-search"></i>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">The Rash Book - Shell Safety and Purification</h1>
+
+                    <div class="right-buttons">
+                        <a href="../print.html" title="Print this book" aria-label="Print this book">
+                            <i id="print-button" class="fa fa-print"></i>
+                        </a>
+                        <a href="https://github.com/paiml/bashrs" title="Git repository" aria-label="Git repository">
+                            <i id="git-repository-button" class="fa fa-github"></i>
+                        </a>
+                        <a href="https://github.com/paiml/bashrs/edit/main/book/src/linting/false-positives.md" title="Suggest an edit" aria-label="Suggest an edit" rel="edit">
+                            <i id="git-edit-button" class="fa fa-edit"></i>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="search-wrapper" class="hidden">
+                    <form id="searchbar-outer" class="searchbar-outer">
+                        <div class="search-wrapper">
+                            <input type="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                            <div class="spinner-wrapper">
+                                <i class="fa fa-spinner fa-spin"></i>
+                            </div>
+                        </div>
+                    </form>
+                    <div id="searchresults-outer" class="searchresults-outer hidden">
+                        <div id="searchresults-header" class="searchresults-header"></div>
+                        <ul id="searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="content" class="content">
+                    <main>
+                        <h1 id="false-positive-testing"><a class="header" href="#false-positive-testing">False Positive Testing</a></h1>
+<p>This chapter documents bashrs's comprehensive false positive testing framework, which ensures the linter doesn't flag valid bash patterns as errors.</p>
+<h2 id="overview"><a class="header" href="#overview">Overview</a></h2>
+<p>bashrs uses a <strong>Popper Falsification</strong> methodology - every valid bash pattern must pass the linter without triggering false positives. The test suite currently covers <strong>230 structured tests</strong> across two categories:</p>
+<ul>
+<li><strong>Falsification Tests (F-codes)</strong>: 130 tests for valid patterns that must NOT trigger warnings</li>
+<li><strong>Simulation Tests (S-codes)</strong>: 100 tests for edge cases that must NOT cause panics</li>
+</ul>
+<h2 id="running-the-tests"><a class="header" href="#running-the-tests">Running the Tests</a></h2>
+<pre><code class="language-bash"><span class="boring"> Run falsification tests (130 F-code tests)
+</span>cargo test -p bashrs --test falsification_probar_testing
+
+<span class="boring"> Run simulation tests (100 S-code tests)
+</span>cargo test -p bashrs --test simulation_probar_testing
+
+<span class="boring"> Run bug hunt tests (aggressive edge case discovery)
+</span>cargo test -p bashrs --test linter_bug_hunting -- --nocapture
+
+<span class="boring"> Run all
+</span>cargo test -p bashrs --test falsification_probar_testing --test simulation_probar_testing --test linter_bug_hunting
+</code></pre>
+<h2 id="falsification-test-categories-f-codes"><a class="header" href="#falsification-test-categories-f-codes">Falsification Test Categories (F-codes)</a></h2>
+<h3 id="61-sudo-and-permissions-f001-f010"><a class="header" href="#61-sudo-and-permissions-f001-f010">6.1 Sudo and Permissions (F001-F010)</a></h3>
+<p>These tests ensure sudo patterns don't trigger SC2024 false positives:</p>
+<pre><code class="language-bash"><span class="boring"> F001: Sudo redirect wrapped - MUST NOT trigger SC2024
+</span>sudo sh -c 'echo 1 &gt; /etc/file'
+
+<span class="boring"> F002: Sudo tee pattern - MUST NOT trigger SC2024
+</span>echo 1 | sudo tee /etc/file
+
+<span class="boring"> F003: Sudo tee with output redirect
+</span>echo 1 | sudo tee /etc/file &gt;/dev/null
+</code></pre>
+<h3 id="62-redirection-and-pipes-f011-f020"><a class="header" href="#62-redirection-and-pipes-f011-f020">6.2 Redirection and Pipes (F011-F020)</a></h3>
+<p>Valid redirect patterns that must not trigger SC2069:</p>
+<pre><code class="language-bash"><span class="boring"> F011: Stdout/stderr order
+</span>cmd 2&gt;&amp;1 | other
+
+<span class="boring"> F012: Silence pattern
+</span>cmd &gt;/dev/null 2&gt;&amp;1
+
+<span class="boring"> F013: Bash shorthand
+</span>cmd &amp;&gt; file
+</code></pre>
+<h3 id="63-quoting-and-heredocs-f021-f030"><a class="header" href="#63-quoting-and-heredocs-f021-f030">6.3 Quoting and Heredocs (F021-F030)</a></h3>
+<p>Quoting patterns that must not trigger SC2016 or SC2035:</p>
+<pre><code class="language-bash"><span class="boring"> F021: Single quote heredoc is literal
+</span>cat &lt;&lt; 'EOF'
+$var  # This is literal, not expanded
+EOF
+
+<span class="boring"> F029: Find name glob - MUST NOT trigger SC2035
+</span>find . -name '*.json'
+
+<span class="boring"> F030: Grep regex pattern
+</span>grep -r '*.c' .
+</code></pre>
+<h3 id="64-variables-and-parameters-f031-f045"><a class="header" href="#64-variables-and-parameters-f031-f045">6.4 Variables and Parameters (F031-F045)</a></h3>
+<p>Safe parameter expansion patterns:</p>
+<pre><code class="language-bash"><span class="boring"> F031: Safe parameter expansion - MUST NOT trigger SC2086
+</span>echo "${var:-default}"
+
+<span class="boring"> F035: Array count is numeric
+</span>echo ${#arr[@]}
+
+<span class="boring"> F036: Arithmetic context
+</span>(( var++ ))
+
+<span class="boring"> F037: Test context - no word splitting in [[ ]]
+</span>[[ -n $var ]]
+</code></pre>
+<h3 id="65-control-flow-f046-f060"><a class="header" href="#65-control-flow-f046-f060">6.5 Control Flow (F046-F060)</a></h3>
+<p>Control structure patterns:</p>
+<pre><code class="language-bash"><span class="boring"> F046: Inline if
+</span>if true; then echo yes; fi
+
+<span class="boring"> F047: Case with default - variable is defined in all branches
+</span>case $x in
+  a) y=1 ;;
+  *) y=2 ;;
+esac
+echo $y  # y is always defined
+
+<span class="boring"> F048: C-style for loop - i is numeric
+</span>for ((i=0; i&lt;10; i++)); do
+  echo $i  # MUST NOT trigger SC2086
+done
+</code></pre>
+<h3 id="66-builtins-and-environment-f061-f070"><a class="header" href="#66-builtins-and-environment-f061-f070">6.6 Builtins and Environment (F061-F070)</a></h3>
+<p>Bash builtin variables that must not trigger SC2154:</p>
+<pre><code class="language-bash"><span class="boring"> F061: EUID is a bash builtin
+</span>echo $EUID
+
+<span class="boring"> F063: BASH_VERSION is builtin
+</span>echo $BASH_VERSION
+
+<span class="boring"> F065: RANDOM is builtin
+</span>echo $RANDOM
+</code></pre>
+<h3 id="67-subshells-and-command-substitution-f071-f080"><a class="header" href="#67-subshells-and-command-substitution-f071-f080">6.7 Subshells and Command Substitution (F071-F080)</a></h3>
+<pre><code class="language-bash"><span class="boring"> F071: Subshell scope
+</span>( cd dir &amp;&amp; cmd )
+
+<span class="boring"> F079: Block inside command substitution
+</span>x=$( { cmd; } )
+
+<span class="boring"> F080: Backticks in assignment context
+</span>x=`cmd`  # Legacy but valid in assignments
+</code></pre>
+<h3 id="68-traps-and-signals-f081-f090"><a class="header" href="#68-traps-and-signals-f081-f090">6.8 Traps and Signals (F081-F090)</a></h3>
+<pre><code class="language-bash"><span class="boring"> F081: Trap with single quotes (correct usage)
+</span>trap 'rm $tmpfile' EXIT
+
+<span class="boring"> F082: Trap with double quotes (intentional early expansion)
+</span>trap "echo $v" INT  # User chose double quotes intentionally
+</code></pre>
+<h3 id="69-parsing-and-formatting-f091-f100"><a class="header" href="#69-parsing-and-formatting-f091-f100">6.9 Parsing and Formatting (F091-F100)</a></h3>
+<pre><code class="language-bash"><span class="boring"> F096: Regex operator
+</span>[[ $x =~ ^[a-z]+$ ]]
+
+<span class="boring"> F098: Brace expansion
+</span>echo {1..10}
+
+<span class="boring"> F100: ANSI-C quoting
+</span>echo $'\t'
+</code></pre>
+<h3 id="610-arrays-f101-f110"><a class="header" href="#610-arrays-f101-f110">6.10 Arrays (F101-F110)</a></h3>
+<pre><code class="language-bash"><span class="boring"> F101: Array index access
+</span>arr=(a b c); echo ${arr[0]}
+
+<span class="boring"> F103: Associative array
+</span>declare -A map; map[key]=val
+
+<span class="boring"> F106: Array iteration (properly quoted)
+</span>for i in "${arr[@]}"; do echo "$i"; done
+
+<span class="boring"> F109: Array indices
+</span>echo ${!arr[@]}
+</code></pre>
+<h3 id="611-string-operations-f111-f120"><a class="header" href="#611-string-operations-f111-f120">6.11 String Operations (F111-F120)</a></h3>
+<pre><code class="language-bash"><span class="boring"> F111: Substring extraction
+</span>echo ${var:0:5}
+
+<span class="boring"> F112: Pattern substitution
+</span>echo ${var/old/new}
+
+<span class="boring"> F114: Lowercase transform
+</span>echo ${var,,}
+
+<span class="boring"> F116: String length
+</span>echo ${#var}
+</code></pre>
+<h3 id="612-arithmetic-f121-f130"><a class="header" href="#612-arithmetic-f121-f130">6.12 Arithmetic (F121-F130)</a></h3>
+<pre><code class="language-bash"><span class="boring"> F121: Basic arithmetic
+</span>echo $((1+2))
+
+<span class="boring"> F123: Increment operator
+</span>(( i++ ))
+
+<span class="boring"> F128: Hex literal
+</span>echo $((16#FF))
+
+<span class="boring"> F130: Ternary operator
+</span>echo $((x&lt;y ? x : y))
+</code></pre>
+<h2 id="simulation-test-categories-s-codes"><a class="header" href="#simulation-test-categories-s-codes">Simulation Test Categories (S-codes)</a></h2>
+<p>Simulation tests verify that bashrs handles edge cases without panicking.</p>
+<h3 id="s1xx-unicode-and-encoding"><a class="header" href="#s1xx-unicode-and-encoding">S1xx: Unicode and Encoding</a></h3>
+<pre><code class="language-bash"><span class="boring"> S101: Latin extended
+</span>echo 'héllo wörld'
+
+<span class="boring"> S103: Emoji
+</span>echo '🚀🔥💻'
+
+<span class="boring"> S104: RTL Arabic
+</span>var='مرحبا'; echo $var
+</code></pre>
+<h3 id="s2xx-boundary-conditions"><a class="header" href="#s2xx-boundary-conditions">S2xx: Boundary Conditions</a></h3>
+<pre><code class="language-bash"><span class="boring"> S201: 10KB variable
+</span>x=aaaa...  # 10,000 characters
+
+<span class="boring"> S207: 500-line heredoc
+</span>cat &lt;&lt; EOF
+line 1
+...
+line 500
+EOF
+
+<span class="boring"> S208: 20 nested expansions
+</span>echo ${x:-${x:-${x:-...}}}
+</code></pre>
+<h3 id="s3xx-deep-nesting"><a class="header" href="#s3xx-deep-nesting">S3xx: Deep Nesting</a></h3>
+<pre><code class="language-bash"><span class="boring"> S301: 10 nested ifs
+</span>if true; then if true; then ... fi; fi
+
+<span class="boring"> S307: 10 nested command substitutions
+</span>$($($(...)))
+</code></pre>
+<h3 id="s5xx-malformed-syntax-graceful-errors"><a class="header" href="#s5xx-malformed-syntax-graceful-errors">S5xx: Malformed Syntax (Graceful Errors)</a></h3>
+<pre><code class="language-bash"><span class="boring"> S501: Unclosed brace - should error gracefully
+</span>echo ${
+
+<span class="boring"> S503: Missing fi - should error gracefully
+</span>if true; then
+</code></pre>
+<h2 id="adding-new-tests"><a class="header" href="#adding-new-tests">Adding New Tests</a></h2>
+<h3 id="adding-a-falsification-test"><a class="header" href="#adding-a-falsification-test">Adding a Falsification Test</a></h3>
+<pre><code class="language-rust ignore">// In rash/tests/falsification_probar_testing.rs
+// Add to the appropriate category test function
+("F131", "your_code_here", "SC2086"),  // Must NOT trigger SC2086</code></pre>
+<h3 id="adding-a-simulation-test"><a class="header" href="#adding-a-simulation-test">Adding a Simulation Test</a></h3>
+<pre><code class="language-rust ignore">// In rash/tests/simulation_probar_testing.rs
+// Add to the appropriate category test function
+("S1011", "code_here", "Description"),  // Must NOT panic</code></pre>
+<h2 id="bug-hunt-tests"><a class="header" href="#bug-hunt-tests">Bug Hunt Tests</a></h2>
+<p>Bug hunt tests aggressively probe edge cases and <strong>report</strong> bugs without failing tests.
+This allows continuous discovery of potential issues.</p>
+<h3 id="core-bug-hunt"><a class="header" href="#core-bug-hunt">Core Bug Hunt</a></h3>
+<pre><code class="language-bash">cargo test -p bashrs --test linter_bug_hunting -- --nocapture
+</code></pre>
+<p>Categories:</p>
+<ul>
+<li><strong>Unicode Edge Cases</strong>: Japanese, emoji, RTL, combining diacriticals</li>
+<li><strong>Extreme Nesting</strong>: 5-100 levels of command/param substitution</li>
+<li><strong>Large Inputs</strong>: 100-50000 character variables, arrays</li>
+<li><strong>False Positives</strong>: Edge cases that might trigger false warnings</li>
+<li><strong>Malformed Syntax</strong>: Graceful error recovery testing</li>
+<li><strong>Escape Sequences</strong>: Hex, octal, ANSI-C escapes</li>
+</ul>
+<h3 id="tuipixel-bug-hunt"><a class="header" href="#tuipixel-bug-hunt">TUI/Pixel Bug Hunt</a></h3>
+<pre><code class="language-bash">cargo test -p bashrs --test linter_tui_bug_hunting -- --nocapture
+</code></pre>
+<p>Categories:</p>
+<ul>
+<li><strong>Frame Rendering</strong>: TUI frame construction and box drawing</li>
+<li><strong>Unicode Rendering</strong>: Width consistency with unicode content</li>
+<li><strong>Snapshot Stability</strong>: Deterministic output verification</li>
+<li><strong>Frame Sequences</strong>: Multi-frame transition testing</li>
+<li><strong>Pixel Alignment</strong>: Vertical character alignment</li>
+<li><strong>Diagnostic Formatting</strong>: Warning/error message display</li>
+<li><strong>Frame Assertions</strong>: expect_frame() validation</li>
+<li><strong>Content Truncation</strong>: Long content handling</li>
+</ul>
+<h2 id="quality-gates"><a class="header" href="#quality-gates">Quality Gates</a></h2>
+<div class="table-wrapper"><table><thead><tr><th>Test Suite</th><th>Count</th><th>Target</th></tr></thead><tbody>
+<tr><td>Falsification</td><td>130</td><td>100% pass</td></tr>
+<tr><td>Simulation</td><td>100</td><td>100% pass</td></tr>
+<tr><td>Core Bug Hunt</td><td>6 categories</td><td>Report bugs</td></tr>
+<tr><td>TUI Bug Hunt</td><td>8 categories</td><td>Report bugs</td></tr>
+<tr><td><strong>Total</strong></td><td><strong>230+</strong></td><td><strong>100%</strong></td></tr>
+</tbody></table>
+</div>
+<p>All tests must pass before any release.</p>
+<h2 id="see-also"><a class="header" href="#see-also">See Also</a></h2>
+<ul>
+<li><a href="../reference/false-positives-spec.html">Specification: False Positives</a></li>
+<li><a href="../reference/shellcheck.html">ShellCheck Compatibility</a></li>
+</ul>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="../linting/idempotency.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <i class="fa fa-angle-left"></i>
+                            </a>
+
+                            <a rel="next prefetch" href="../linting/custom-rules.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <i class="fa fa-angle-right"></i>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="../linting/idempotency.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <i class="fa fa-angle-left"></i>
+                    </a>
+
+                    <a rel="next prefetch" href="../linting/custom-rules.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <i class="fa fa-angle-right"></i>
+                    </a>
+            </nav>
+
+        </div>
+
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+        <script src="../ace.js"></script>
+        <script src="../mode-rust.js"></script>
+        <script src="../editor.js"></script>
+        <script src="../theme-dawn.js"></script>
+        <script src="../theme-tomorrow_night.js"></script>
+
+        <script src="../elasticlunr.min.js"></script>
+        <script src="../mark.min.js"></script>
+        <script src="../searcher.js"></script>
+
+        <script src="../clipboard.min.js"></script>
+        <script src="../highlight.js"></script>
+        <script src="../book.js"></script>
+
+        <!-- Custom JS scripts -->
+
+
+
+    </div>
+    </body>
+</html>

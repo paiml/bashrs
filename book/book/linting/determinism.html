@@ -1,0 +1,841 @@
+<!DOCTYPE HTML>
+<html lang="en" class="rust sidebar-visible" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>Determinism Rules (DET001-DET003) - The Rash Book - Shell Safety and Purification</title>
+
+
+        <!-- Custom HTML head -->
+
+        <meta name="description" content="A comprehensive guide to Rash: shell safety, purification, and linting">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="../favicon.svg">
+        <link rel="shortcut icon" href="../favicon.png">
+        <link rel="stylesheet" href="../css/variables.css">
+        <link rel="stylesheet" href="../css/general.css">
+        <link rel="stylesheet" href="../css/chrome.css">
+        <link rel="stylesheet" href="../css/print.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="../FontAwesome/css/font-awesome.css">
+        <link rel="stylesheet" href="../fonts/fonts.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" id="highlight-css" href="../highlight.css">
+        <link rel="stylesheet" id="tomorrow-night-css" href="../tomorrow-night.css">
+        <link rel="stylesheet" id="ayu-highlight-css" href="../ayu-highlight.css">
+
+        <!-- Custom theme stylesheets -->
+
+
+        <!-- Provide site root and default themes to javascript -->
+        <script>
+            const path_to_root = "../";
+            const default_light_theme = "rust";
+            const default_dark_theme = "navy";
+            window.path_to_searchindex_js = "../searchindex.js";
+        </script>
+        <!-- Start loading toc.js asap -->
+        <script src="../toc.js"></script>
+    </head>
+    <body>
+    <div id="mdbook-help-container">
+        <div id="mdbook-help-popup">
+            <h2 class="mdbook-help-title">Keyboard shortcuts</h2>
+            <div>
+                <p>Press <kbd>←</kbd> or <kbd>→</kbd> to navigate between chapters</p>
+                <p>Press <kbd>S</kbd> or <kbd>/</kbd> to search in the book</p>
+                <p>Press <kbd>?</kbd> to show this help</p>
+                <p>Press <kbd>Esc</kbd> to hide this help</p>
+            </div>
+        </div>
+    </div>
+    <div id="body-container">
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                let theme = localStorage.getItem('mdbook-theme');
+                let sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            const default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? default_dark_theme : default_light_theme;
+            let theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            const html = document.documentElement;
+            html.classList.remove('rust')
+            html.classList.add(theme);
+            html.classList.add("js");
+        </script>
+
+        <input type="checkbox" id="sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            let sidebar = null;
+            const sidebar_toggle = document.getElementById("sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+                sidebar_toggle.checked = false;
+            }
+            if (sidebar === 'visible') {
+                sidebar_toggle.checked = true;
+            } else {
+                html.classList.remove('sidebar-visible');
+            }
+        </script>
+
+        <nav id="sidebar" class="sidebar" aria-label="Table of contents">
+            <!-- populated by js -->
+            <mdbook-sidebar-scrollbox class="sidebar-scrollbox"></mdbook-sidebar-scrollbox>
+            <noscript>
+                <iframe class="sidebar-iframe-outer" src="../toc.html"></iframe>
+            </noscript>
+            <div id="sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <div id="page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="menu-bar-hover-placeholder"></div>
+                <div id="menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="sidebar-toggle" class="icon-button" for="sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="sidebar">
+                            <i class="fa fa-bars"></i>
+                        </label>
+                        <button id="theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="theme-list">
+                            <i class="fa fa-paint-brush"></i>
+                        </button>
+                        <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="default_theme">Auto</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
+                        </ul>
+                        <button id="search-toggle" class="icon-button" type="button" title="Search (`/`)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="/ s" aria-controls="searchbar">
+                            <i class="fa fa-search"></i>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">The Rash Book - Shell Safety and Purification</h1>
+
+                    <div class="right-buttons">
+                        <a href="../print.html" title="Print this book" aria-label="Print this book">
+                            <i id="print-button" class="fa fa-print"></i>
+                        </a>
+                        <a href="https://github.com/paiml/bashrs" title="Git repository" aria-label="Git repository">
+                            <i id="git-repository-button" class="fa fa-github"></i>
+                        </a>
+                        <a href="https://github.com/paiml/bashrs/edit/main/book/src/linting/determinism.md" title="Suggest an edit" aria-label="Suggest an edit" rel="edit">
+                            <i id="git-edit-button" class="fa fa-edit"></i>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="search-wrapper" class="hidden">
+                    <form id="searchbar-outer" class="searchbar-outer">
+                        <div class="search-wrapper">
+                            <input type="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                            <div class="spinner-wrapper">
+                                <i class="fa fa-spinner fa-spin"></i>
+                            </div>
+                        </div>
+                    </form>
+                    <div id="searchresults-outer" class="searchresults-outer hidden">
+                        <div id="searchresults-header" class="searchresults-header"></div>
+                        <ul id="searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="content" class="content">
+                    <main>
+                        <h1 id="determinism-rules-det001-det006"><a class="header" href="#determinism-rules-det001-det006">Determinism Rules (DET001-DET006)</a></h1>
+<p>Rash includes determinism rules designed to detect non-deterministic patterns in shell scripts. Deterministic scripts produce <strong>identical output</strong> given identical inputs, making them testable, reproducible, and debuggable.</p>
+<h2 id="overview"><a class="header" href="#overview">Overview</a></h2>
+<p>Determinism linting in Rash focuses on patterns that break reproducibility:</p>
+<ul>
+<li>Random number generation (<code>$RANDOM</code>)</li>
+<li>Timestamp dependencies (<code>date</code>, <code>$(date)</code>)</li>
+<li>Unordered file glob operations (wildcards without sorting)</li>
+<li>Process ID usage (<code>$$</code>, <code>$PPID</code>)</li>
+<li>Hostname dependencies (<code>hostname</code>)</li>
+<li>Network queries for dynamic data</li>
+</ul>
+<p>All DET rules are <strong>Error or Warning severity</strong> and should be addressed for production scripts.</p>
+<h2 id="why-determinism-matters"><a class="header" href="#why-determinism-matters">Why Determinism Matters</a></h2>
+<p>Non-deterministic scripts cause:</p>
+<ul>
+<li><strong>Unreproducible builds</strong>: Different outputs on each run</li>
+<li><strong>Flaky tests</strong>: Tests pass sometimes, fail other times</li>
+<li><strong>Debugging nightmares</strong>: Issues can't be reproduced</li>
+<li><strong>Security risks</strong>: Unpredictable behavior in production</li>
+<li><strong>Compliance failures</strong>: Builds can't be audited or verified</li>
+</ul>
+<p><strong>Deterministic = Testable = Reliable</strong></p>
+<h2 id="implemented-rules-det001-det003"><a class="header" href="#implemented-rules-det001-det003">Implemented Rules (DET001-DET003)</a></h2>
+<p>bashrs currently implements 3 determinism rules with comprehensive testing. The remaining rules (DET004-DET006) are planned for future releases.</p>
+<h2 id="det001-non-deterministic-random-usage"><a class="header" href="#det001-non-deterministic-random-usage">DET001: Non-deterministic $RANDOM Usage</a></h2>
+<p><strong>Severity</strong>: Error (Critical)</p>
+<h3 id="what-it-detects"><a class="header" href="#what-it-detects">What it Detects</a></h3>
+<p>Use of <code>$RANDOM</code> which produces different values on each script execution.</p>
+<h3 id="why-this-matters"><a class="header" href="#why-this-matters">Why This Matters</a></h3>
+<p>Scripts using <code>$RANDOM</code> will produce different output on each run, breaking determinism and making testing/debugging impossible. Reproducible builds require deterministic inputs.</p>
+<h3 id="examples"><a class="header" href="#examples">Examples</a></h3>
+<p>❌ <strong>CRITICAL ISSUE</strong>:</p>
+<pre><code class="language-bash"><span class="boring">!/bin/bash
+</span><span class="boring"> Non-deterministic - different SESSION_ID every run
+</span>SESSION_ID=$RANDOM
+echo "Session: $SESSION_ID"
+
+<span class="boring"> Deploy script that changes every time
+</span>RELEASE="release-$RANDOM"
+mkdir "/releases/$RELEASE"
+</code></pre>
+<p><strong>Output varies</strong>:</p>
+<pre><code class="language-text">Run 1: Session: 12847
+Run 2: Session: 29103  # Different!
+Run 3: Session: 5721   # Still different!
+</code></pre>
+<p>✅ <strong>GOOD - DETERMINISTIC</strong>:</p>
+<pre><code class="language-bash"><span class="boring">!/bin/bash
+</span><span class="boring"> Deterministic - same VERSION produces same SESSION_ID
+</span>VERSION="${1:-1.0.0}"
+SESSION_ID="session-${VERSION}"
+echo "Session: $SESSION_ID"
+
+<span class="boring"> Or use hash for pseudo-randomness from input
+</span>SESSION_ID=$(echo "${VERSION}" | sha256sum | cut -c1-8)
+
+<span class="boring"> Or use timestamp as explicit input
+</span>TIMESTAMP="$1"
+RELEASE="release-${TIMESTAMP}"
+mkdir -p "/releases/$RELEASE"
+</code></pre>
+<p><strong>Output is predictable</strong>:</p>
+<pre><code class="language-text">Run 1 with VERSION=1.0.0: Session: session-1.0.0
+Run 2 with VERSION=1.0.0: Session: session-1.0.0  # Same!
+Run 3 with VERSION=1.0.0: Session: session-1.0.0  # Consistent!
+</code></pre>
+<h3 id="auto-fix"><a class="header" href="#auto-fix">Auto-fix</a></h3>
+<p><strong>Not auto-fixable</strong> - requires manual decision about deterministic alternative.</p>
+<p><strong>Fix suggestions</strong>:</p>
+<ol>
+<li><strong>Version-based ID</strong>: <code>SESSION_ID="session-${VERSION}"</code></li>
+<li><strong>Argument-based</strong>: <code>SESSION_ID="$1"</code> (pass as parameter)</li>
+<li><strong>Hash-based</strong>: <code>SESSION_ID=$(echo "$INPUT" | sha256sum | cut -c1-8)</code></li>
+<li><strong>Build ID</strong>: Use CI/CD build number: <code>SESSION_ID="${CI_BUILD_ID}"</code></li>
+</ol>
+<h3 id="testing-for-random"><a class="header" href="#testing-for-random">Testing for $RANDOM</a></h3>
+<p>Property-based test to verify determinism:</p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>#[cfg(test)]
+mod tests {
+    use proptest::prelude::*;
+
+    proptest! {
+        #[test]
+        fn test_deterministic_session_id(version in "[0-9]+\\.[0-9]+\\.[0-9]+") {
+            // Deterministic: same input → same output
+            let session_id_1 = generate_session_id(&amp;version);
+            let session_id_2 = generate_session_id(&amp;version);
+
+            // Must be identical
+            assert_eq!(session_id_1, session_id_2);
+        }
+    }
+}
+<span class="boring">}</span></code></pre></pre>
+<h3 id="real-world-example-deployment-script"><a class="header" href="#real-world-example-deployment-script">Real-world Example: Deployment Script</a></h3>
+<p>❌ <strong>NON-DETERMINISTIC (BAD)</strong>:</p>
+<pre><code class="language-bash"><span class="boring">!/bin/bash
+</span><span class="boring"> deploy.sh - PROBLEMATIC
+</span>
+<span class="boring"> Different deploy ID every time - can't reproduce!
+</span>DEPLOY_ID=$RANDOM
+LOG_FILE="/var/log/deploy-${DEPLOY_ID}.log"
+
+echo "Deploying with ID: $DEPLOY_ID" | tee "$LOG_FILE"
+./install.sh
+
+<span class="boring"> Can't find the log file later - which DEPLOY_ID was it?
+</span></code></pre>
+<p>✅ <strong>DETERMINISTIC (GOOD)</strong>:</p>
+<pre><code class="language-bash"><span class="boring">!/bin/bash
+</span><span class="boring"> deploy.sh - REPRODUCIBLE
+</span>
+<span class="boring"> Deterministic deploy ID from version
+</span>VERSION="${1:?Error: VERSION required}"
+DEPLOY_ID="deploy-${VERSION}"
+LOG_FILE="/var/log/deploy-${DEPLOY_ID}.log"
+
+echo "Deploying version: $VERSION" | tee "$LOG_FILE"
+./install.sh
+
+<span class="boring"> Log file is predictable: /var/log/deploy-1.0.0.log
+</span><span class="boring"> Can re-run with same VERSION and get same behavior
+</span></code></pre>
+<h2 id="det002-non-deterministic-timestamp-usage"><a class="header" href="#det002-non-deterministic-timestamp-usage">DET002: Non-deterministic Timestamp Usage</a></h2>
+<p><strong>Severity</strong>: Error (Critical)</p>
+<h3 id="what-it-detects-1"><a class="header" href="#what-it-detects-1">What it Detects</a></h3>
+<p>Use of <code>date</code> commands that produce timestamps:</p>
+<ul>
+<li><code>$(date +%s)</code> - Unix epoch</li>
+<li><code>$(date +%Y%m%d)</code> - Date formatting</li>
+<li><code>`date`</code> - Backtick date command</li>
+<li><code>date +%H%M%S</code> - Time formatting</li>
+</ul>
+<h3 id="why-this-matters-1"><a class="header" href="#why-this-matters-1">Why This Matters</a></h3>
+<p>Scripts using timestamps produce different output on each run, breaking:</p>
+<ul>
+<li><strong>Reproducible builds</strong>: Can't recreate exact build artifact</li>
+<li><strong>Testing</strong>: Tests depend on execution time</li>
+<li><strong>Debugging</strong>: Can't reproduce issues</li>
+<li><strong>Auditing</strong>: Can't verify build provenance</li>
+</ul>
+<h3 id="examples-1"><a class="header" href="#examples-1">Examples</a></h3>
+<p>❌ <strong>CRITICAL ISSUE</strong>:</p>
+<pre><code class="language-bash"><span class="boring">!/bin/bash
+</span><span class="boring"> Non-deterministic - different every second!
+</span>RELEASE="release-$(date +%s)"
+echo "Creating release: $RELEASE"
+
+<span class="boring"> Build artifact name changes constantly
+</span>BUILD_ID=$(date +%Y%m%d%H%M%S)
+ARTIFACT="myapp-${BUILD_ID}.tar.gz"
+tar czf "$ARTIFACT" ./dist/
+
+<span class="boring"> Can't reproduce this exact build later!
+</span></code></pre>
+<p><strong>Output varies by time</strong>:</p>
+<pre><code class="language-text">Run at 2025-01-15 14:30:00: release-1736951400
+Run at 2025-01-15 14:30:01: release-1736951401  # Different!
+Run at 2025-01-15 14:30:02: release-1736951402  # Still changing!
+</code></pre>
+<p>✅ <strong>GOOD - DETERMINISTIC</strong>:</p>
+<pre><code class="language-bash"><span class="boring">!/bin/bash
+</span><span class="boring"> Deterministic - same VERSION produces same RELEASE
+</span>VERSION="${1:?Error: VERSION required}"
+RELEASE="release-${VERSION}"
+echo "Creating release: $RELEASE"
+
+<span class="boring"> Build artifact is reproducible
+</span>ARTIFACT="myapp-${VERSION}.tar.gz"
+tar czf "$ARTIFACT" ./dist/
+
+<span class="boring"> Same VERSION always produces same ARTIFACT
+</span><span class="boring"> Can reproduce exact build at any time
+</span></code></pre>
+<p><strong>Output is predictable</strong>:</p>
+<pre><code class="language-text">With VERSION=1.0.0: release-1.0.0, myapp-1.0.0.tar.gz
+With VERSION=1.0.0: release-1.0.0, myapp-1.0.0.tar.gz  # Same!
+</code></pre>
+<h3 id="auto-fix-1"><a class="header" href="#auto-fix-1">Auto-fix</a></h3>
+<p><strong>Not auto-fixable</strong> - requires manual decision about deterministic alternative.</p>
+<p><strong>Fix suggestions</strong>:</p>
+<ol>
+<li><strong>Version-based</strong>: <code>RELEASE="release-${VERSION}"</code></li>
+<li><strong>Git commit</strong>: <code>RELEASE="release-$(git rev-parse --short HEAD)"</code></li>
+<li><strong>Argument-based</strong>: <code>RELEASE="release-$1"</code> (pass as parameter)</li>
+<li><strong>SOURCE_DATE_EPOCH</strong>: For reproducible builds (see below)</li>
+</ol>
+<h3 id="reproducible-builds-source_date_epoch"><a class="header" href="#reproducible-builds-source_date_epoch">Reproducible Builds: SOURCE_DATE_EPOCH</a></h3>
+<p>For builds that MUST include a timestamp (e.g., packaging), use <code>SOURCE_DATE_EPOCH</code>:</p>
+<p>✅ <strong>REPRODUCIBLE BUILD TIMESTAMP</strong>:</p>
+<pre><code class="language-bash"><span class="boring">!/bin/bash
+</span><span class="boring"> build.sh - Reproducible timestamp
+</span>
+<span class="boring"> SOURCE_DATE_EPOCH is a standard for reproducible builds
+</span><span class="boring"> Set to git commit timestamp for determinism
+</span>if [ -z "$SOURCE_DATE_EPOCH" ]; then
+    SOURCE_DATE_EPOCH=$(git log -1 --format=%ct)
+fi
+
+<span class="boring"> This timestamp is now deterministic (same commit → same timestamp)
+</span>BUILD_DATE=$(date -u -d "@$SOURCE_DATE_EPOCH" +%Y-%m-%d)
+VERSION="${VERSION:-1.0.0}"
+RELEASE="release-${VERSION}-${BUILD_DATE}"
+
+echo "Reproducible release: $RELEASE"
+<span class="boring"> Same commit always produces same RELEASE
+</span></code></pre>
+<p><strong>Reproducibility achieved</strong>:</p>
+<pre><code class="language-text">Build from commit abc123: release-1.0.0-2025-01-10
+Build from commit abc123: release-1.0.0-2025-01-10  # Identical!
+Build from commit abc123: release-1.0.0-2025-01-10  # Still identical!
+</code></pre>
+<h3 id="testing-for-timestamps"><a class="header" href="#testing-for-timestamps">Testing for Timestamps</a></h3>
+<p>Verify determinism with property tests:</p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>#[cfg(test)]
+mod tests {
+    use proptest::prelude::*;
+
+    proptest! {
+        #[test]
+        fn test_deterministic_release(version in "[0-9]+\\.[0-9]+\\.[0-9]+") {
+            // Set environment for reproducibility
+            std::env::set_var("SOURCE_DATE_EPOCH", "1736899200");
+
+            // Deterministic: same input → same output
+            let release_1 = generate_release(&amp;version);
+            let release_2 = generate_release(&amp;version);
+
+            // Must be identical
+            assert_eq!(release_1, release_2);
+        }
+    }
+}
+<span class="boring">}</span></code></pre></pre>
+<h3 id="real-world-example-cicd-pipeline"><a class="header" href="#real-world-example-cicd-pipeline">Real-world Example: CI/CD Pipeline</a></h3>
+<p>❌ <strong>NON-DETERMINISTIC (BAD)</strong>:</p>
+<pre><code class="language-bash"><span class="boring">!/bin/bash
+</span><span class="boring"> ci-build.sh - PROBLEMATIC
+</span>
+<span class="boring"> Different artifact name every build run
+</span>TIMESTAMP=$(date +%s)
+ARTIFACT="app-${TIMESTAMP}.tar.gz"
+
+./build.sh
+tar czf "$ARTIFACT" ./dist/
+
+<span class="boring"> Can't reproduce exact artifact - timestamp always changes!
+</span><span class="boring"> Security audits fail - can't verify provenance
+</span></code></pre>
+<p>✅ <strong>DETERMINISTIC (GOOD)</strong>:</p>
+<pre><code class="language-bash"><span class="boring">!/bin/bash
+</span><span class="boring"> ci-build.sh - REPRODUCIBLE
+</span>
+<span class="boring"> Use git commit for deterministic artifact name
+</span>GIT_COMMIT=$(git rev-parse --short HEAD)
+VERSION="${CI_BUILD_TAG:-dev}"
+ARTIFACT="app-${VERSION}-${GIT_COMMIT}.tar.gz"
+
+<span class="boring"> Reproducible build with SOURCE_DATE_EPOCH
+</span>export SOURCE_DATE_EPOCH=$(git log -1 --format=%ct)
+
+./build.sh
+tar czf "$ARTIFACT" ./dist/
+
+<span class="boring"> Same commit always produces same artifact
+</span><span class="boring"> Security audits pass - provenance is verifiable!
+</span></code></pre>
+<h2 id="det003-unordered-wildcard-usage"><a class="header" href="#det003-unordered-wildcard-usage">DET003: Unordered Wildcard Usage</a></h2>
+<p><strong>Severity</strong>: Warning</p>
+<h3 id="what-it-detects-2"><a class="header" href="#what-it-detects-2">What it Detects</a></h3>
+<p>File glob wildcards without sorting:</p>
+<ul>
+<li><code>$(ls *.txt)</code> - Unsorted file list</li>
+<li><code>for f in *.c; do ... done</code> - Order varies by filesystem</li>
+</ul>
+<h3 id="why-this-matters-2"><a class="header" href="#why-this-matters-2">Why This Matters</a></h3>
+<p>File glob results vary by:</p>
+<ul>
+<li><strong>Filesystem implementation</strong>: ext4, btrfs, xfs have different ordering</li>
+<li><strong>Directory entry order</strong>: Can change between runs</li>
+<li><strong>Locale settings</strong>: Different sorting on different systems</li>
+</ul>
+<p>This breaks determinism and causes flaky tests.</p>
+<h3 id="examples-2"><a class="header" href="#examples-2">Examples</a></h3>
+<p>❌ <strong>NON-DETERMINISTIC</strong>:</p>
+<pre><code class="language-bash"><span class="boring">!/bin/bash
+</span><span class="boring"> Order varies by filesystem!
+</span>FILES=$(ls *.txt)
+echo "Processing files: $FILES"
+
+<span class="boring"> Loop order is unpredictable
+</span>for f in *.c; do
+    echo "Compiling: $f"
+    gcc -c "$f"
+done
+
+<span class="boring"> Output varies:
+</span><span class="boring"> Run 1: file1.c, file2.c, file3.c
+</span><span class="boring"> Run 2: file2.c, file1.c, file3.c  # Different order!
+</span></code></pre>
+<p>✅ <strong>DETERMINISTIC</strong>:</p>
+<pre><code class="language-bash"><span class="boring">!/bin/bash
+</span><span class="boring"> Explicit sorting for consistent order
+</span>FILES=$(ls *.txt | sort)
+echo "Processing files: $FILES"
+
+<span class="boring"> Loop with sorted glob
+</span>for f in $(ls *.c | sort); do
+    echo "Compiling: $f"
+    gcc -c "$f"
+done
+
+<span class="boring"> Output is consistent:
+</span><span class="boring"> Run 1: file1.c, file2.c, file3.c
+</span><span class="boring"> Run 2: file1.c, file2.c, file3.c  # Same order!
+</span></code></pre>
+<h3 id="auto-fix-2"><a class="header" href="#auto-fix-2">Auto-fix</a></h3>
+<p><strong>Auto-fixable</strong> - adds <code>| sort</code> to wildcard expressions.</p>
+<h3 id="better-alternative-explicit-arrays"><a class="header" href="#better-alternative-explicit-arrays">Better Alternative: Explicit Arrays</a></h3>
+<p>For bash scripts, use sorted arrays:</p>
+<p>✅ <strong>BASH ARRAY WITH SORTING</strong>:</p>
+<pre><code class="language-bash"><span class="boring">!/bin/bash
+</span><span class="boring"> More robust: explicit array with sorting
+</span>mapfile -t FILES &lt; &lt;(ls *.txt | sort)
+
+echo "Processing ${#FILES[@]} files"
+
+for file in "${FILES[@]}"; do
+    echo "Processing: $file"
+    process_file "$file"
+done
+</code></pre>
+<h3 id="testing-for-determinism"><a class="header" href="#testing-for-determinism">Testing for Determinism</a></h3>
+<p>Verify ordering consistency:</p>
+<pre><code class="language-bash"><span class="boring">!/bin/bash
+</span><span class="boring"> test-determinism.sh
+</span>
+<span class="boring"> Run multiple times and compare output
+</span>OUTPUT1=$(./process-files.sh)
+OUTPUT2=$(./process-files.sh)
+OUTPUT3=$(./process-files.sh)
+
+<span class="boring"> All outputs should be identical
+</span>if [ "$OUTPUT1" = "$OUTPUT2" ] &amp;&amp; [ "$OUTPUT2" = "$OUTPUT3" ]; then
+    echo "✅ DETERMINISTIC: All runs produced identical output"
+else
+    echo "❌ NON-DETERMINISTIC: Outputs differ between runs"
+    diff &lt;(echo "$OUTPUT1") &lt;(echo "$OUTPUT2")
+    exit 1
+fi
+</code></pre>
+<h3 id="real-world-example-build-system"><a class="header" href="#real-world-example-build-system">Real-world Example: Build System</a></h3>
+<p>❌ <strong>NON-DETERMINISTIC (BAD)</strong>:</p>
+<pre><code class="language-bash"><span class="boring">!/bin/bash
+</span><span class="boring"> build-all.sh - PROBLEMATIC
+</span>
+<span class="boring"> Order varies by filesystem
+</span>for src in src/*.c; do
+    gcc -c "$src"
+done
+
+<span class="boring"> Link order affects final binary (on some linkers)
+</span>gcc -o myapp *.o
+
+<span class="boring"> Binary may differ between builds due to link order!
+</span><span class="boring"> Reproducible builds FAIL
+</span></code></pre>
+<p>✅ <strong>DETERMINISTIC (GOOD)</strong>:</p>
+<pre><code class="language-bash"><span class="boring">!/bin/bash
+</span><span class="boring"> build-all.sh - REPRODUCIBLE
+</span>
+<span class="boring"> Explicit sorting for consistent order
+</span>mapfile -t SOURCES &lt; &lt;(ls src/*.c | sort)
+
+for src in "${SOURCES[@]}"; do
+    gcc -c "$src"
+done
+
+<span class="boring"> Deterministic link order
+</span>mapfile -t OBJECTS &lt; &lt;(ls *.o | sort)
+gcc -o myapp "${OBJECTS[@]}"
+
+<span class="boring"> Binary is identical between builds
+</span><span class="boring"> Reproducible builds PASS ✅
+</span></code></pre>
+<h2 id="det004-process-id-usage-planned"><a class="header" href="#det004-process-id-usage-planned">DET004: Process ID Usage (Planned)</a></h2>
+<p><strong>Status</strong>: Not yet implemented</p>
+<h3 id="what-it-will-detect"><a class="header" href="#what-it-will-detect">What it Will Detect</a></h3>
+<p>Use of process IDs that change on each execution:</p>
+<ul>
+<li><code>$$</code> - Current process ID</li>
+<li><code>$PPID</code> - Parent process ID</li>
+<li><code>$BASHPID</code> - Bash-specific process ID</li>
+</ul>
+<h3 id="why-this-will-matter"><a class="header" href="#why-this-will-matter">Why This Will Matter</a></h3>
+<p>Process IDs are assigned sequentially by the kernel and vary unpredictably:</p>
+<pre><code class="language-bash"><span class="boring"> Non-deterministic
+</span>LOCKFILE="/tmp/myapp-$$.lock"
+<span class="boring"> Creates /tmp/myapp-12847.lock, then /tmp/myapp-29103.lock, etc.
+</span></code></pre>
+<h3 id="planned-fix"><a class="header" href="#planned-fix">Planned Fix</a></h3>
+<p>Replace with deterministic alternatives:</p>
+<pre><code class="language-bash"><span class="boring"> Deterministic
+</span>LOCKFILE="/tmp/myapp-${USER}-${VERSION}.lock"
+</code></pre>
+<h2 id="det005-hostname-dependencies-planned"><a class="header" href="#det005-hostname-dependencies-planned">DET005: Hostname Dependencies (Planned)</a></h2>
+<p><strong>Status</strong>: Not yet implemented</p>
+<h3 id="what-it-will-detect-1"><a class="header" href="#what-it-will-detect-1">What it Will Detect</a></h3>
+<p>Scripts that depend on <code>hostname</code> command:</p>
+<pre><code class="language-bash"><span class="boring"> Non-deterministic across hosts
+</span>SERVER_ID=$(hostname)
+LOG_FILE="/var/log/app-${SERVER_ID}.log"
+</code></pre>
+<h3 id="why-this-will-matter-1"><a class="header" href="#why-this-will-matter-1">Why This Will Matter</a></h3>
+<p>Scripts that depend on hostname break when:</p>
+<ul>
+<li>Moving between environments (dev, staging, prod)</li>
+<li>Running in containers with random hostnames</li>
+<li>Hostname changes during system reconfiguration</li>
+</ul>
+<h3 id="planned-fix-1"><a class="header" href="#planned-fix-1">Planned Fix</a></h3>
+<p>Use explicit configuration:</p>
+<pre><code class="language-bash"><span class="boring"> Deterministic - passed as parameter
+</span>SERVER_ID="${1:?Error: SERVER_ID required}"
+LOG_FILE="/var/log/app-${SERVER_ID}.log"
+</code></pre>
+<h2 id="det006-network-queries-for-dynamic-data-planned"><a class="header" href="#det006-network-queries-for-dynamic-data-planned">DET006: Network Queries for Dynamic Data (Planned)</a></h2>
+<p><strong>Status</strong>: Not yet implemented</p>
+<h3 id="what-it-will-detect-2"><a class="header" href="#what-it-will-detect-2">What it Will Detect</a></h3>
+<p>Scripts that query external services for dynamic data:</p>
+<pre><code class="language-bash"><span class="boring"> Non-deterministic - result changes over time
+</span>LATEST_VERSION=$(curl -s https://api.example.com/latest)
+IP_ADDRESS=$(curl -s ifconfig.me)
+</code></pre>
+<h3 id="why-this-will-matter-2"><a class="header" href="#why-this-will-matter-2">Why This Will Matter</a></h3>
+<p>Network-dependent scripts break determinism because:</p>
+<ul>
+<li>API responses change over time</li>
+<li>Network failures cause flakiness</li>
+<li>Different results in different networks</li>
+</ul>
+<h3 id="planned-fix-2"><a class="header" href="#planned-fix-2">Planned Fix</a></h3>
+<p>Cache or pin dependencies:</p>
+<pre><code class="language-bash"><span class="boring"> Deterministic - explicit version
+</span>LATEST_VERSION="1.2.3"
+
+<span class="boring"> Or use vendored/cached data
+</span>LATEST_VERSION=$(cat .version-cache)
+</code></pre>
+<h2 id="running-determinism-linting"><a class="header" href="#running-determinism-linting">Running Determinism Linting</a></h2>
+<h3 id="lint-a-single-file"><a class="header" href="#lint-a-single-file">Lint a Single File</a></h3>
+<pre><code class="language-bash">bashrs lint script.sh
+</code></pre>
+<h3 id="lint-all-scripts-in-project"><a class="header" href="#lint-all-scripts-in-project">Lint All Scripts in Project</a></h3>
+<pre><code class="language-bash">find . -name "*.sh" -exec bashrs lint {} \;
+</code></pre>
+<h3 id="filter-only-determinism-rules"><a class="header" href="#filter-only-determinism-rules">Filter Only Determinism Rules</a></h3>
+<pre><code class="language-bash">bashrs lint --rules DET script.sh
+</code></pre>
+<h3 id="cicd-integration"><a class="header" href="#cicd-integration">CI/CD Integration</a></h3>
+<pre><code class="language-yaml"># .github/workflows/lint.yml
+name: Determinism Lint
+on: [push, pull_request]
+jobs:
+  determinism:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Install bashrs
+        run: cargo install bashrs
+      - name: Check determinism
+        run: |
+          find . -name "*.sh" -exec bashrs lint --rules DET {} \;
+</code></pre>
+<h2 id="testing-determinism"><a class="header" href="#testing-determinism">Testing Determinism</a></h2>
+<h3 id="property-based-testing"><a class="header" href="#property-based-testing">Property-Based Testing</a></h3>
+<p>Use proptest to verify deterministic properties:</p>
+<pre><code class="language-rust ignore">use proptest::prelude::*;
+
+proptest! {
+    #[test]
+    fn test_script_deterministic(input in "[a-z]{1,10}") {
+        // Run script twice with same input
+        let output1 = run_script(&amp;input);
+        let output2 = run_script(&amp;input);
+
+        // Outputs MUST be identical
+        prop_assert_eq!(output1, output2);
+    }
+}</code></pre>
+<h3 id="manual-testing"><a class="header" href="#manual-testing">Manual Testing</a></h3>
+<p>Run scripts multiple times and verify identical output:</p>
+<pre><code class="language-bash"><span class="boring">!/bin/bash
+</span><span class="boring"> test-determinism.sh
+</span>
+SCRIPT="$1"
+RUNS=10
+
+echo "Testing determinism of: $SCRIPT"
+
+<span class="boring"> Capture first run output
+</span>EXPECTED=$("$SCRIPT")
+
+<span class="boring"> Run multiple times and compare
+</span>for i in $(seq 2 $RUNS); do
+    ACTUAL=$("$SCRIPT")
+
+    if [ "$EXPECTED" != "$ACTUAL" ]; then
+        echo "❌ FAIL: Run $i produced different output"
+        echo "Expected: $EXPECTED"
+        echo "Actual: $ACTUAL"
+        exit 1
+    fi
+done
+
+echo "✅ PASS: All $RUNS runs produced identical output"
+</code></pre>
+<h2 id="common-patterns"><a class="header" href="#common-patterns">Common Patterns</a></h2>
+<h3 id="pattern-1-version-based-identifiers"><a class="header" href="#pattern-1-version-based-identifiers">Pattern 1: Version-Based Identifiers</a></h3>
+<p>Replace random/timestamp with version:</p>
+<pre><code class="language-bash"><span class="boring">!/bin/bash
+</span><span class="boring"> Deterministic deployment
+</span>VERSION="${1:?Error: VERSION required}"
+RELEASE="release-${VERSION}"
+ARTIFACT="app-${VERSION}.tar.gz"
+
+echo "Deploying: $RELEASE"
+</code></pre>
+<h3 id="pattern-2-git-based-identifiers"><a class="header" href="#pattern-2-git-based-identifiers">Pattern 2: Git-Based Identifiers</a></h3>
+<p>Use git commit for reproducibility:</p>
+<pre><code class="language-bash"><span class="boring">!/bin/bash
+</span><span class="boring"> Reproducible with git
+</span>COMMIT=$(git rev-parse --short HEAD)
+BUILD_ID="build-${COMMIT}"
+
+echo "Building: $BUILD_ID"
+</code></pre>
+<h3 id="pattern-3-explicit-input"><a class="header" href="#pattern-3-explicit-input">Pattern 3: Explicit Input</a></h3>
+<p>Pass all varying data as arguments:</p>
+<pre><code class="language-bash"><span class="boring">!/bin/bash
+</span><span class="boring"> Deterministic - all inputs explicit
+</span>SESSION_ID="$1"
+TIMESTAMP="$2"
+RELEASE="release-${SESSION_ID}-${TIMESTAMP}"
+
+echo "Release: $RELEASE"
+</code></pre>
+<h3 id="pattern-4-sorted-operations"><a class="header" href="#pattern-4-sorted-operations">Pattern 4: Sorted Operations</a></h3>
+<p>Always sort when order matters:</p>
+<pre><code class="language-bash"><span class="boring">!/bin/bash
+</span><span class="boring"> Deterministic file processing
+</span>mapfile -t FILES &lt; &lt;(find . -name "*.txt" | sort)
+
+for file in "${FILES[@]}"; do
+    process "$file"
+done
+</code></pre>
+<h2 id="benefits-of-determinism"><a class="header" href="#benefits-of-determinism">Benefits of Determinism</a></h2>
+<h3 id="reproducible-builds"><a class="header" href="#reproducible-builds">Reproducible Builds</a></h3>
+<p>Same inputs always produce same outputs:</p>
+<ul>
+<li>Security auditing</li>
+<li>Build verification</li>
+<li>Compliance (SLSA, SBOM)</li>
+</ul>
+<h3 id="reliable-testing"><a class="header" href="#reliable-testing">Reliable Testing</a></h3>
+<p>Tests produce consistent results:</p>
+<ul>
+<li>No flaky tests</li>
+<li>Reliable CI/CD</li>
+<li>Faster debugging</li>
+</ul>
+<h3 id="easier-debugging"><a class="header" href="#easier-debugging">Easier Debugging</a></h3>
+<p>Issues can be reproduced:</p>
+<ul>
+<li>Same inputs recreate bugs</li>
+<li>Log files are predictable</li>
+<li>Bisection works reliably</li>
+</ul>
+<h3 id="better-collaboration"><a class="header" href="#better-collaboration">Better Collaboration</a></h3>
+<p>Team members get consistent results:</p>
+<ul>
+<li>Same build artifacts</li>
+<li>Predictable behavior</li>
+<li>Reduced "works on my machine"</li>
+</ul>
+<h2 id="further-reading"><a class="header" href="#further-reading">Further Reading</a></h2>
+<ul>
+<li><a href="https://reproducible-builds.org/">Reproducible Builds</a></li>
+<li><a href="https://reproducible-builds.org/docs/source-date-epoch/">SOURCE_DATE_EPOCH</a></li>
+<li><a href="https://slsa.dev/">SLSA Framework</a></li>
+<li><a href="https://en.wikipedia.org/wiki/Deterministic_algorithm">Deterministic Algorithms</a></li>
+</ul>
+<hr />
+<p><strong>Quality Guarantee</strong>: All DET rules undergo mutation testing and property-based testing to ensure reliable detection of non-deterministic patterns.</p>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="../linting/security.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <i class="fa fa-angle-left"></i>
+                            </a>
+
+                            <a rel="next prefetch" href="../linting/idempotency.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <i class="fa fa-angle-right"></i>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="../linting/security.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <i class="fa fa-angle-left"></i>
+                    </a>
+
+                    <a rel="next prefetch" href="../linting/idempotency.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <i class="fa fa-angle-right"></i>
+                    </a>
+            </nav>
+
+        </div>
+
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+        <script src="../ace.js"></script>
+        <script src="../mode-rust.js"></script>
+        <script src="../editor.js"></script>
+        <script src="../theme-dawn.js"></script>
+        <script src="../theme-tomorrow_night.js"></script>
+
+        <script src="../elasticlunr.min.js"></script>
+        <script src="../mark.min.js"></script>
+        <script src="../searcher.js"></script>
+
+        <script src="../clipboard.min.js"></script>
+        <script src="../highlight.js"></script>
+        <script src="../book.js"></script>
+
+        <!-- Custom JS scripts -->
+
+
+
+    </div>
+    </body>
+</html>

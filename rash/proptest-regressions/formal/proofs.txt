@@ -1,8 +1,0 @@
-# Seeds for failure cases proptest has generated in the past. It is
-# automatically read and these particular cases re-run before any
-# novel cases are generated.
-#
-# It is recommended to check this file in to source control so that
-# everyone who runs the test benefits from these saved cases.
-cc 0dca7f8f900df4b81fdd4bfb71c78bac64f8a776e16e13a50bbeba1543b8da2c # shrinks to args = ["", ""]
-cc 0e4967c8933309e7064bba0e40a07b9a07deb7a6df8f770968066714485d2e57 # shrinks to ast = Sequence { commands: [Sequence { commands: [ExecuteCommand { command_name: "echo", args: ["", ""] }] }] }

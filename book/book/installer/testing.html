@@ -1,0 +1,409 @@
+<!DOCTYPE HTML>
+<html lang="en" class="rust sidebar-visible" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>Container Testing - The Rash Book - Shell Safety and Purification</title>
+
+
+        <!-- Custom HTML head -->
+
+        <meta name="description" content="A comprehensive guide to Rash: shell safety, purification, and linting">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="../favicon.svg">
+        <link rel="shortcut icon" href="../favicon.png">
+        <link rel="stylesheet" href="../css/variables.css">
+        <link rel="stylesheet" href="../css/general.css">
+        <link rel="stylesheet" href="../css/chrome.css">
+        <link rel="stylesheet" href="../css/print.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="../FontAwesome/css/font-awesome.css">
+        <link rel="stylesheet" href="../fonts/fonts.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" id="highlight-css" href="../highlight.css">
+        <link rel="stylesheet" id="tomorrow-night-css" href="../tomorrow-night.css">
+        <link rel="stylesheet" id="ayu-highlight-css" href="../ayu-highlight.css">
+
+        <!-- Custom theme stylesheets -->
+
+
+        <!-- Provide site root and default themes to javascript -->
+        <script>
+            const path_to_root = "../";
+            const default_light_theme = "rust";
+            const default_dark_theme = "navy";
+            window.path_to_searchindex_js = "../searchindex.js";
+        </script>
+        <!-- Start loading toc.js asap -->
+        <script src="../toc.js"></script>
+    </head>
+    <body>
+    <div id="mdbook-help-container">
+        <div id="mdbook-help-popup">
+            <h2 class="mdbook-help-title">Keyboard shortcuts</h2>
+            <div>
+                <p>Press <kbd>←</kbd> or <kbd>→</kbd> to navigate between chapters</p>
+                <p>Press <kbd>S</kbd> or <kbd>/</kbd> to search in the book</p>
+                <p>Press <kbd>?</kbd> to show this help</p>
+                <p>Press <kbd>Esc</kbd> to hide this help</p>
+            </div>
+        </div>
+    </div>
+    <div id="body-container">
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                let theme = localStorage.getItem('mdbook-theme');
+                let sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            const default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? default_dark_theme : default_light_theme;
+            let theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            const html = document.documentElement;
+            html.classList.remove('rust')
+            html.classList.add(theme);
+            html.classList.add("js");
+        </script>
+
+        <input type="checkbox" id="sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            let sidebar = null;
+            const sidebar_toggle = document.getElementById("sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+                sidebar_toggle.checked = false;
+            }
+            if (sidebar === 'visible') {
+                sidebar_toggle.checked = true;
+            } else {
+                html.classList.remove('sidebar-visible');
+            }
+        </script>
+
+        <nav id="sidebar" class="sidebar" aria-label="Table of contents">
+            <!-- populated by js -->
+            <mdbook-sidebar-scrollbox class="sidebar-scrollbox"></mdbook-sidebar-scrollbox>
+            <noscript>
+                <iframe class="sidebar-iframe-outer" src="../toc.html"></iframe>
+            </noscript>
+            <div id="sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <div id="page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="menu-bar-hover-placeholder"></div>
+                <div id="menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="sidebar-toggle" class="icon-button" for="sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="sidebar">
+                            <i class="fa fa-bars"></i>
+                        </label>
+                        <button id="theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="theme-list">
+                            <i class="fa fa-paint-brush"></i>
+                        </button>
+                        <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="default_theme">Auto</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
+                        </ul>
+                        <button id="search-toggle" class="icon-button" type="button" title="Search (`/`)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="/ s" aria-controls="searchbar">
+                            <i class="fa fa-search"></i>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">The Rash Book - Shell Safety and Purification</h1>
+
+                    <div class="right-buttons">
+                        <a href="../print.html" title="Print this book" aria-label="Print this book">
+                            <i id="print-button" class="fa fa-print"></i>
+                        </a>
+                        <a href="https://github.com/paiml/bashrs" title="Git repository" aria-label="Git repository">
+                            <i id="git-repository-button" class="fa fa-github"></i>
+                        </a>
+                        <a href="https://github.com/paiml/bashrs/edit/main/book/src/installer/testing.md" title="Suggest an edit" aria-label="Suggest an edit" rel="edit">
+                            <i id="git-edit-button" class="fa fa-edit"></i>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="search-wrapper" class="hidden">
+                    <form id="searchbar-outer" class="searchbar-outer">
+                        <div class="search-wrapper">
+                            <input type="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                            <div class="spinner-wrapper">
+                                <i class="fa fa-spinner fa-spin"></i>
+                            </div>
+                        </div>
+                    </form>
+                    <div id="searchresults-outer" class="searchresults-outer hidden">
+                        <div id="searchresults-header" class="searchresults-header"></div>
+                        <ul id="searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="content" class="content">
+                    <main>
+                        <h1 id="container-based-testing"><a class="header" href="#container-based-testing">Container-Based Testing</a></h1>
+<p>The installer framework supports testing across multiple platforms using containers.</p>
+<h2 id="test-matrix"><a class="header" href="#test-matrix">Test Matrix</a></h2>
+<p>Run your installer across multiple platforms:</p>
+<pre><code class="language-bash">bashrs installer test my-installer --matrix "ubuntu:22.04,debian:12,fedora:39,alpine:3.19"
+</code></pre>
+<h2 id="configuring-test-matrix"><a class="header" href="#configuring-test-matrix">Configuring Test Matrix</a></h2>
+<p>Define the test matrix in <code>installer.toml</code>:</p>
+<pre><code class="language-toml">[installer]
+name = "my-app"
+version = "1.0.0"
+
+[installer.test_matrix]
+platforms = [
+    "ubuntu:22.04",
+    "ubuntu:20.04",
+    "debian:12",
+    "debian:11",
+    "fedora:39",
+    "alpine:3.19"
+]
+architectures = ["amd64", "arm64"]
+parallelism = 4  # Run 4 containers in parallel
+runtime = "docker"  # or "podman"
+</code></pre>
+<h2 id="running-tests"><a class="header" href="#running-tests">Running Tests</a></h2>
+<pre><code class="language-bash"><span class="boring"> Run full test matrix
+</span>bashrs installer test my-installer
+
+<span class="boring"> Run specific platforms
+</span>bashrs installer test my-installer --matrix "ubuntu:22.04,debian:12"
+
+<span class="boring"> Enable coverage reporting
+</span>bashrs installer test my-installer --coverage
+</code></pre>
+<h2 id="test-output"><a class="header" href="#test-output">Test Output</a></h2>
+<pre><code>Container Test Matrix
+══════════════════════════════════════════════════════════════════════════════
+  Platform          Arch    Status    Duration    Notes
+──────────────────────────────────────────────────────────────────────────────
+  ubuntu:22.04      amd64   ✓ PASS    12.3s
+  ubuntu:22.04      arm64   ✓ PASS    14.1s
+  debian:12         amd64   ✓ PASS    11.8s
+  debian:12         arm64   ✓ PASS    13.2s
+  fedora:39         amd64   ✓ PASS    15.4s
+  alpine:3.19       amd64   ✗ FAIL    8.2s        Missing libc
+══════════════════════════════════════════════════════════════════════════════
+  Results: 5/6 passed (83.3%)
+</code></pre>
+<h2 id="tdd-first-testing"><a class="header" href="#tdd-first-testing">TDD-First Testing</a></h2>
+<p>The generated test harness includes falsification tests:</p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>// tests/falsification.rs
+
+/// FALSIFIABLE: "Every step is idempotent"
+/// DISPROOF: Run step twice, system state differs
+#[test]
+fn falsify_step_idempotency() {
+    let step = load_step("install-app");
+    let state_after_first = execute_and_capture_state(&amp;step);
+    let state_after_second = execute_and_capture_state(&amp;step);
+    assert_eq!(state_after_first, state_after_second,
+        "FALSIFIED: Step is not idempotent");
+}
+
+/// FALSIFIABLE: "Dry-run accurately predicts changes"
+#[test]
+fn falsify_dry_run_accuracy() {
+    let predicted = execute_dry_run(&amp;installer);
+    let actual = execute_and_capture_diff(&amp;installer);
+    assert_eq!(predicted, actual,
+        "FALSIFIED: Dry-run prediction was inaccurate");
+}
+<span class="boring">}</span></code></pre></pre>
+<h2 id="custom-test-scripts"><a class="header" href="#custom-test-scripts">Custom Test Scripts</a></h2>
+<p>Add custom test scripts:</p>
+<pre><code class="language-toml">[[step]]
+id = "install-app"
+name = "Install Application"
+action = "script"
+
+[step.verification]
+commands = [
+    { cmd = "my-app --version", expect = "1.0" },
+    { cmd = "my-app self-test" },
+    { cmd = "test -f ~/.config/my-app/config.toml" }
+]
+
+[step.script]
+content = '''
+# Installation commands
+'''
+</code></pre>
+<h2 id="integration-with-cicd"><a class="header" href="#integration-with-cicd">Integration with CI/CD</a></h2>
+<h3 id="github-actions"><a class="header" href="#github-actions">GitHub Actions</a></h3>
+<pre><code class="language-yaml">name: Test Installer
+
+on: [push, pull_request]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        platform: [ubuntu:22.04, debian:12, fedora:39]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install bashrs
+        run: cargo install bashrs
+
+      - name: Test Installer
+        run: |
+          bashrs installer test my-installer \
+            --matrix "${{ matrix.platform }}"
+</code></pre>
+<h3 id="gitlab-ci"><a class="header" href="#gitlab-ci">GitLab CI</a></h3>
+<pre><code class="language-yaml">test-installer:
+  image: rust:latest
+  script:
+    - cargo install bashrs
+    - bashrs installer test my-installer --matrix "ubuntu:22.04,debian:12"
+</code></pre>
+<h2 id="coverage-reporting"><a class="header" href="#coverage-reporting">Coverage Reporting</a></h2>
+<p>Generate test coverage reports:</p>
+<pre><code class="language-bash">bashrs installer test my-installer --coverage
+</code></pre>
+<p>Output:</p>
+<pre><code>Coverage Report
+══════════════════════════════════════════════════════════════════════════════
+  Step                    Executed    Verified    Coverage
+──────────────────────────────────────────────────────────────────────────────
+  create-dirs             ✓           ✓           100%
+  download-app            ✓           ✓           100%
+  install-app             ✓           ✓           100%
+  configure               ✓           ✗           50%
+  verify                  ✓           ✓           100%
+══════════════════════════════════════════════════════════════════════════════
+  Total Coverage: 90%
+</code></pre>
+<h2 id="debugging-failed-tests"><a class="header" href="#debugging-failed-tests">Debugging Failed Tests</a></h2>
+<p>When a test fails:</p>
+<pre><code class="language-bash"><span class="boring"> Run with verbose output
+</span>bashrs installer test my-installer --matrix "alpine:3.19" --verbose
+
+<span class="boring"> Keep container running for inspection
+</span>bashrs installer test my-installer --matrix "alpine:3.19" --keep-container
+
+<span class="boring"> Attach to failed container
+</span>docker exec -it bashrs-test-alpine-3.19 /bin/sh
+</code></pre>
+<h2 id="best-practices"><a class="header" href="#best-practices">Best Practices</a></h2>
+<ol>
+<li><strong>Test all target platforms</strong>: Include every platform in your requirements</li>
+<li><strong>Test both architectures</strong>: If supporting arm64, test it</li>
+<li><strong>Use realistic base images</strong>: Don't use custom images with pre-installed deps</li>
+<li><strong>Test idempotency</strong>: Run installer twice, verify same result</li>
+<li><strong>Test rollback</strong>: Verify rollback actually works</li>
+<li><strong>Run tests in CI</strong>: Catch regressions early</li>
+</ol>
+<h2 id="next-steps"><a class="header" href="#next-steps">Next Steps</a></h2>
+<ul>
+<li><a href="./hermetic.html">Hermetic Builds</a> - Reproducible installations</li>
+<li><a href="./artifacts.html">Artifacts</a> - Download and verify files</li>
+<li><a href="./cli-reference.html">CLI Reference</a> - All command options</li>
+</ul>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="../installer/checkpointing.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <i class="fa fa-angle-left"></i>
+                            </a>
+
+                            <a rel="next prefetch" href="../examples/bootstrap-installer.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <i class="fa fa-angle-right"></i>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="../installer/checkpointing.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <i class="fa fa-angle-left"></i>
+                    </a>
+
+                    <a rel="next prefetch" href="../examples/bootstrap-installer.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <i class="fa fa-angle-right"></i>
+                    </a>
+            </nav>
+
+        </div>
+
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+        <script src="../ace.js"></script>
+        <script src="../mode-rust.js"></script>
+        <script src="../editor.js"></script>
+        <script src="../theme-dawn.js"></script>
+        <script src="../theme-tomorrow_night.js"></script>
+
+        <script src="../elasticlunr.min.js"></script>
+        <script src="../mark.min.js"></script>
+        <script src="../searcher.js"></script>
+
+        <script src="../clipboard.min.js"></script>
+        <script src="../highlight.js"></script>
+        <script src="../book.js"></script>
+
+        <!-- Custom JS scripts -->
+
+
+
+    </div>
+    </body>
+</html>

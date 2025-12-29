@@ -1,0 +1,1099 @@
+<!DOCTYPE HTML>
+<html lang="en" class="rust sidebar-visible" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>Purifying .bashrc and .zshrc - The Rash Book - Shell Safety and Purification</title>
+
+
+        <!-- Custom HTML head -->
+
+        <meta name="description" content="A comprehensive guide to Rash: shell safety, purification, and linting">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="../favicon.svg">
+        <link rel="shortcut icon" href="../favicon.png">
+        <link rel="stylesheet" href="../css/variables.css">
+        <link rel="stylesheet" href="../css/general.css">
+        <link rel="stylesheet" href="../css/chrome.css">
+        <link rel="stylesheet" href="../css/print.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="../FontAwesome/css/font-awesome.css">
+        <link rel="stylesheet" href="../fonts/fonts.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" id="highlight-css" href="../highlight.css">
+        <link rel="stylesheet" id="tomorrow-night-css" href="../tomorrow-night.css">
+        <link rel="stylesheet" id="ayu-highlight-css" href="../ayu-highlight.css">
+
+        <!-- Custom theme stylesheets -->
+
+
+        <!-- Provide site root and default themes to javascript -->
+        <script>
+            const path_to_root = "../";
+            const default_light_theme = "rust";
+            const default_dark_theme = "navy";
+            window.path_to_searchindex_js = "../searchindex.js";
+        </script>
+        <!-- Start loading toc.js asap -->
+        <script src="../toc.js"></script>
+    </head>
+    <body>
+    <div id="mdbook-help-container">
+        <div id="mdbook-help-popup">
+            <h2 class="mdbook-help-title">Keyboard shortcuts</h2>
+            <div>
+                <p>Press <kbd>←</kbd> or <kbd>→</kbd> to navigate between chapters</p>
+                <p>Press <kbd>S</kbd> or <kbd>/</kbd> to search in the book</p>
+                <p>Press <kbd>?</kbd> to show this help</p>
+                <p>Press <kbd>Esc</kbd> to hide this help</p>
+            </div>
+        </div>
+    </div>
+    <div id="body-container">
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                let theme = localStorage.getItem('mdbook-theme');
+                let sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            const default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? default_dark_theme : default_light_theme;
+            let theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            const html = document.documentElement;
+            html.classList.remove('rust')
+            html.classList.add(theme);
+            html.classList.add("js");
+        </script>
+
+        <input type="checkbox" id="sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            let sidebar = null;
+            const sidebar_toggle = document.getElementById("sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+                sidebar_toggle.checked = false;
+            }
+            if (sidebar === 'visible') {
+                sidebar_toggle.checked = true;
+            } else {
+                html.classList.remove('sidebar-visible');
+            }
+        </script>
+
+        <nav id="sidebar" class="sidebar" aria-label="Table of contents">
+            <!-- populated by js -->
+            <mdbook-sidebar-scrollbox class="sidebar-scrollbox"></mdbook-sidebar-scrollbox>
+            <noscript>
+                <iframe class="sidebar-iframe-outer" src="../toc.html"></iframe>
+            </noscript>
+            <div id="sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <div id="page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="menu-bar-hover-placeholder"></div>
+                <div id="menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="sidebar-toggle" class="icon-button" for="sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="sidebar">
+                            <i class="fa fa-bars"></i>
+                        </label>
+                        <button id="theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="theme-list">
+                            <i class="fa fa-paint-brush"></i>
+                        </button>
+                        <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="default_theme">Auto</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
+                        </ul>
+                        <button id="search-toggle" class="icon-button" type="button" title="Search (`/`)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="/ s" aria-controls="searchbar">
+                            <i class="fa fa-search"></i>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">The Rash Book - Shell Safety and Purification</h1>
+
+                    <div class="right-buttons">
+                        <a href="../print.html" title="Print this book" aria-label="Print this book">
+                            <i id="print-button" class="fa fa-print"></i>
+                        </a>
+                        <a href="https://github.com/paiml/bashrs" title="Git repository" aria-label="Git repository">
+                            <i id="git-repository-button" class="fa fa-github"></i>
+                        </a>
+                        <a href="https://github.com/paiml/bashrs/edit/main/book/src/config/purifying.md" title="Suggest an edit" aria-label="Suggest an edit" rel="edit">
+                            <i id="git-edit-button" class="fa fa-edit"></i>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="search-wrapper" class="hidden">
+                    <form id="searchbar-outer" class="searchbar-outer">
+                        <div class="search-wrapper">
+                            <input type="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                            <div class="spinner-wrapper">
+                                <i class="fa fa-spinner fa-spin"></i>
+                            </div>
+                        </div>
+                    </form>
+                    <div id="searchresults-outer" class="searchresults-outer hidden">
+                        <div id="searchresults-header" class="searchresults-header"></div>
+                        <ul id="searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="content" class="content">
+                    <main>
+                        <h1 id="purifying-bashrc-and-zshrc"><a class="header" href="#purifying-bashrc-and-zshrc">Purifying .bashrc and .zshrc</a></h1>
+<p>Shell configuration files like <code>.bashrc</code> and <code>.zshrc</code> accumulate cruft over time. Duplicate PATH entries, redundant exports, non-idempotent operations, and unquoted variables create fragile, unpredictable environments. The <code>bashrs config purify</code> command transforms messy configuration files into clean, safe, deterministic shell scripts.</p>
+<p>This chapter covers how to use <code>bashrs</code> to purify your shell configuration files, with comprehensive examples, best practices, and troubleshooting guidance.</p>
+<h2 id="what-purification-does"><a class="header" href="#what-purification-does">What Purification Does</a></h2>
+<p>The <code>bashrs config purify</code> command applies four critical transformations:</p>
+<h3 id="1-deduplication"><a class="header" href="#1-deduplication">1. Deduplication</a></h3>
+<p>Removes duplicate entries that accumulate from repeatedly sourcing configuration files or copy-pasting snippets.</p>
+<p><strong>Before</strong>:</p>
+<pre><code class="language-bash">export PATH="/usr/local/bin:$PATH"
+export PATH="/usr/local/bin:$PATH"
+export PATH="/opt/bin:$PATH"
+export PATH="/opt/bin:$PATH"
+</code></pre>
+<p><strong>After</strong>:</p>
+<pre><code class="language-bash">export PATH="/usr/local/bin:/opt/bin:$PATH"
+</code></pre>
+<h3 id="2-idempotency"><a class="header" href="#2-idempotency">2. Idempotency</a></h3>
+<p>Ensures operations can be safely re-run without side effects. Critical for configuration files that may be sourced multiple times.</p>
+<p><strong>Before</strong>:</p>
+<pre><code class="language-bash">export PATH="/usr/local/bin:$PATH"  # Grows every time .bashrc is sourced
+alias ll='ls -la'
+alias ll='ls -lah'  # Duplicate alias
+</code></pre>
+<p><strong>After</strong>:</p>
+<pre><code class="language-bash"><span class="boring"> Idempotent PATH management
+</span>add_to_path() {
+    case ":$PATH:" in
+        *":$1:"*) ;;
+        *) export PATH="$1:$PATH" ;;
+    esac
+}
+
+add_to_path "/usr/local/bin"
+
+<span class="boring"> Single alias definition
+</span>alias ll='ls -lah'
+</code></pre>
+<h3 id="3-determinism"><a class="header" href="#3-determinism">3. Determinism</a></h3>
+<p>Eliminates non-deterministic constructs like <code>$RANDOM</code>, timestamps, and process IDs that cause inconsistent behavior.</p>
+<p><strong>Before</strong>:</p>
+<pre><code class="language-bash">export SESSION_ID=$RANDOM
+export LOG_FILE="/tmp/session-$(date +%s).log"
+export PROMPT_PID=$$
+</code></pre>
+<p><strong>After</strong>:</p>
+<pre><code class="language-bash"><span class="boring"> Deterministic session identifier based on user and hostname
+</span>export SESSION_ID="${USER}-${HOSTNAME}"
+export LOG_FILE="${HOME}/.logs/session.log"
+export PROMPT_PID="${USER}"
+</code></pre>
+<h3 id="4-safety-variable-quoting"><a class="header" href="#4-safety-variable-quoting">4. Safety (Variable Quoting)</a></h3>
+<p>Quotes all variable expansions to prevent word splitting and glob expansion vulnerabilities.</p>
+<p><strong>Before</strong>:</p>
+<pre><code class="language-bash">export JAVA_HOME=/usr/lib/jvm/java-11
+export PATH=$JAVA_HOME/bin:$PATH
+if [ -d $HOME/.cargo/bin ]; then
+    export PATH=$HOME/.cargo/bin:$PATH
+fi
+</code></pre>
+<p><strong>After</strong>:</p>
+<pre><code class="language-bash">export JAVA_HOME="/usr/lib/jvm/java-11"
+export PATH="${JAVA_HOME}/bin:${PATH}"
+if [ -d "${HOME}/.cargo/bin" ]; then
+    export PATH="${HOME}/.cargo/bin:${PATH}"
+fi
+</code></pre>
+<h2 id="command-usage"><a class="header" href="#command-usage">Command Usage</a></h2>
+<h3 id="basic-syntax"><a class="header" href="#basic-syntax">Basic Syntax</a></h3>
+<pre><code class="language-bash">bashrs config purify &lt;input-file&gt; [options]
+</code></pre>
+<h3 id="options"><a class="header" href="#options">Options</a></h3>
+<ul>
+<li><code>--output &lt;file&gt;</code> - Write purified output to specified file (default: stdout)</li>
+<li><code>--backup</code> - Create backup of original file (<code>.bak</code> extension)</li>
+<li><code>--check</code> - Dry-run mode, report issues without modifying</li>
+<li><code>--shellcheck</code> - Validate output with shellcheck</li>
+<li><code>--shell &lt;sh|bash|zsh&gt;</code> - Target shell (default: auto-detect)</li>
+</ul>
+<h3 id="examples"><a class="header" href="#examples">Examples</a></h3>
+<p><strong>Purify and print to stdout</strong>:</p>
+<pre><code class="language-bash">bashrs config purify ~/.bashrc
+</code></pre>
+<p><strong>Purify to new file</strong>:</p>
+<pre><code class="language-bash">bashrs config purify ~/.bashrc --output ~/.bashrc.purified
+</code></pre>
+<p><strong>Purify with automatic backup</strong>:</p>
+<pre><code class="language-bash">bashrs config purify ~/.bashrc --output ~/.bashrc --backup
+<span class="boring"> Creates ~/.bashrc.bak before overwriting
+</span></code></pre>
+<p><strong>Check what would be purified</strong>:</p>
+<pre><code class="language-bash">bashrs config purify ~/.bashrc --check
+</code></pre>
+<p><strong>Purify and validate</strong>:</p>
+<pre><code class="language-bash">bashrs config purify ~/.bashrc --output ~/.bashrc.purified --shellcheck
+</code></pre>
+<h2 id="complete-example-purifying-a-messy-bashrc"><a class="header" href="#complete-example-purifying-a-messy-bashrc">Complete Example: Purifying a Messy .bashrc</a></h2>
+<h3 id="before-messy-bashrc"><a class="header" href="#before-messy-bashrc">Before: Messy .bashrc</a></h3>
+<p>This configuration file has accumulated common problems over years of use:</p>
+<pre><code class="language-bash"><span class="boring">!/bin/bash
+</span><span class="boring"> .bashrc - Accumulated over 5 years
+</span>
+<span class="boring"> PATH modifications (duplicates and non-idempotent)
+</span>export PATH="/usr/local/bin:$PATH"
+export PATH="/usr/local/bin:$PATH"
+export PATH="$HOME/.cargo/bin:$PATH"
+export PATH="/opt/homebrew/bin:$PATH"
+export PATH="$HOME/.cargo/bin:$PATH"
+export PATH="/opt/homebrew/bin:$PATH"
+
+<span class="boring"> Environment variables (unquoted, some duplicated)
+</span>export EDITOR=vim
+export EDITOR=nvim
+export VISUAL=$EDITOR
+export GOPATH=$HOME/go
+export GOROOT=/usr/local/go
+export PATH=$GOPATH/bin:$PATH
+export PATH=$GOROOT/bin:$PATH
+
+<span class="boring"> Non-deterministic values
+</span>export SESSION_ID=$RANDOM
+export BUILD_TIMESTAMP=$(date +%s)
+export TEMP_DIR="/tmp/build-$$"
+
+<span class="boring"> Aliases (duplicates)
+</span>alias ll='ls -l'
+alias ll='ls -la'
+alias ll='ls -lah'
+alias gs='git status'
+alias gs='git status -sb'
+
+<span class="boring"> Functions (non-idempotent)
+</span>mkcd() {
+    mkdir $1
+    cd $1
+}
+
+<span class="boring"> Conditional PATH additions (unquoted)
+</span>if [ -d $HOME/.local/bin ]; then
+    export PATH=$HOME/.local/bin:$PATH
+fi
+
+if [ -d /usr/local/opt/ruby/bin ]; then
+    export PATH=/usr/local/opt/ruby/bin:$PATH
+fi
+
+<span class="boring"> Non-idempotent operations
+</span>mkdir ~/.config/myapp
+touch ~/.config/myapp/config.ini
+</code></pre>
+<h3 id="purification-command"><a class="header" href="#purification-command">Purification Command</a></h3>
+<pre><code class="language-bash">bashrs config purify ~/.bashrc --output ~/.bashrc.purified --backup --shellcheck
+</code></pre>
+<h3 id="after-purified-bashrc"><a class="header" href="#after-purified-bashrc">After: Purified .bashrc</a></h3>
+<p>The purified version is clean, safe, and idempotent:</p>
+<pre><code class="language-bash"><span class="boring">!/bin/sh
+</span><span class="boring"> .bashrc - Purified by bashrs v6.32.1
+</span><span class="boring"> Original backed up to ~/.bashrc.bak
+</span>
+<span class="boring"> Idempotent PATH management helper
+</span>add_to_path() {
+    case ":${PATH}:" in
+        *":$1:"*) ;;
+        *) export PATH="$1:${PATH}" ;;
+    esac
+}
+
+<span class="boring"> Deduplicated and idempotent PATH modifications
+</span>add_to_path "/usr/local/bin"
+add_to_path "${HOME}/.cargo/bin"
+add_to_path "/opt/homebrew/bin"
+add_to_path "${GOPATH}/bin"
+add_to_path "${GOROOT}/bin"
+
+<span class="boring"> Environment variables (deduplicated, properly quoted)
+</span>export EDITOR="nvim"
+export VISUAL="${EDITOR}"
+export GOPATH="${HOME}/go"
+export GOROOT="/usr/local/go"
+
+<span class="boring"> Deterministic values (replaced non-deterministic constructs)
+</span>export SESSION_ID="${USER}-${HOSTNAME}"
+export BUILD_TIMESTAMP="static"
+export TEMP_DIR="${HOME}/.cache/build"
+
+<span class="boring"> Aliases (deduplicated, kept most recent)
+</span>alias ll='ls -lah'
+alias gs='git status -sb'
+
+<span class="boring"> Functions (idempotent, properly quoted)
+</span>mkcd() {
+    mkdir -p "$1" || return 1
+    cd "$1" || return 1
+}
+
+<span class="boring"> Conditional PATH additions (properly quoted, idempotent)
+</span>if [ -d "${HOME}/.local/bin" ]; then
+    add_to_path "${HOME}/.local/bin"
+fi
+
+if [ -d "/usr/local/opt/ruby/bin" ]; then
+    add_to_path "/usr/local/opt/ruby/bin"
+fi
+
+<span class="boring"> Idempotent directory creation
+</span>mkdir -p "${HOME}/.config/myapp"
+touch "${HOME}/.config/myapp/config.ini"
+</code></pre>
+<h3 id="purification-report"><a class="header" href="#purification-report">Purification Report</a></h3>
+<pre><code class="language-text">bashrs config purify v6.32.1
+
+Input:  /home/user/.bashrc (42 lines)
+Output: /home/user/.bashrc.purified (45 lines)
+Backup: /home/user/.bashrc.bak
+
+Transformations Applied:
+  - Deduplicated 6 PATH entries → 5 unique entries
+  - Removed 2 duplicate aliases
+  - Removed 1 duplicate export
+  - Added idempotent add_to_path() helper
+  - Replaced 3 non-deterministic values
+  - Quoted 12 unquoted variable expansions
+  - Made 3 operations idempotent (mkdir, cd)
+
+Shellcheck: PASSED (0 issues)
+
+Safety: 100% (all variables quoted)
+Idempotency: 100% (safe to re-source)
+Determinism: 100% (no random/timestamp values)
+</code></pre>
+<h2 id="idempotent-path-management"><a class="header" href="#idempotent-path-management">Idempotent PATH Management</a></h2>
+<p>The <code>add_to_path()</code> helper function is the cornerstone of idempotent configuration. It prevents duplicate PATH entries even when <code>.bashrc</code> is sourced multiple times.</p>
+<h3 id="the-helper-function"><a class="header" href="#the-helper-function">The Helper Function</a></h3>
+<pre><code class="language-bash">add_to_path() {
+    case ":${PATH}:" in
+        *":$1:"*) ;;  # Already in PATH, do nothing
+        *) export PATH="$1:${PATH}" ;;  # Not in PATH, prepend it
+    esac
+}
+</code></pre>
+<h3 id="how-it-works"><a class="header" href="#how-it-works">How It Works</a></h3>
+<p>The function uses shell pattern matching to check if the directory is already in <code>$PATH</code>:</p>
+<ol>
+<li>Wraps <code>$PATH</code> in colons: <code>:${PATH}:</code></li>
+<li>Checks if <code>":$1:"</code> exists in the wrapped path</li>
+<li>If found, does nothing (already present)</li>
+<li>If not found, prepends to <code>$PATH</code></li>
+</ol>
+<h3 id="usage-examples"><a class="header" href="#usage-examples">Usage Examples</a></h3>
+<pre><code class="language-bash"><span class="boring"> Add single directory
+</span>add_to_path "/usr/local/bin"
+
+<span class="boring"> Add multiple directories
+</span>add_to_path "${HOME}/.cargo/bin"
+add_to_path "${HOME}/.local/bin"
+add_to_path "/opt/homebrew/bin"
+
+<span class="boring"> Conditional additions
+</span>if [ -d "${HOME}/.rbenv/bin" ]; then
+    add_to_path "${HOME}/.rbenv/bin"
+fi
+</code></pre>
+<h3 id="testing-idempotency"><a class="header" href="#testing-idempotency">Testing Idempotency</a></h3>
+<pre><code class="language-bash"><span class="boring"> Source .bashrc multiple times
+</span>$ echo "$PATH"
+/home/user/.cargo/bin:/usr/local/bin:/usr/bin:/bin
+
+$ source ~/.bashrc
+$ echo "$PATH"
+/home/user/.cargo/bin:/usr/local/bin:/usr/bin:/bin
+
+$ source ~/.bashrc
+$ echo "$PATH"
+/home/user/.cargo/bin:/usr/local/bin:/usr/bin:/bin
+</code></pre>
+<p>The PATH remains identical after multiple sourcing operations.</p>
+<h3 id="variant-append-instead-of-prepend"><a class="header" href="#variant-append-instead-of-prepend">Variant: Append Instead of Prepend</a></h3>
+<pre><code class="language-bash">add_to_path_append() {
+    case ":${PATH}:" in
+        *":$1:"*) ;;
+        *) export PATH="${PATH}:$1" ;;
+    esac
+}
+</code></pre>
+<p>Use this variant when you want to add directories to the end of PATH (lower priority).</p>
+<h2 id="shell-specific-considerations"><a class="header" href="#shell-specific-considerations">Shell-Specific Considerations</a></h2>
+<h3 id="bash-vs-zsh-differences"><a class="header" href="#bash-vs-zsh-differences">Bash vs Zsh Differences</a></h3>
+<p>While <code>bashrs</code> generates POSIX-compliant output that works in both shells, there are considerations:</p>
+<h4 id="bash-specific-features"><a class="header" href="#bash-specific-features">Bash-Specific Features</a></h4>
+<p><strong>Arrays</strong> (not POSIX):</p>
+<pre><code class="language-bash"><span class="boring"> Before (.bashrc)
+</span>declare -a my_array=(one two three)
+
+<span class="boring"> After (purified, POSIX-compliant)
+</span>my_array="one two three"
+</code></pre>
+<p><strong>Bash completion</strong>:</p>
+<pre><code class="language-bash"><span class="boring"> Bash-specific completion files
+</span>if [ -f /etc/bash_completion ]; then
+    . /etc/bash_completion
+fi
+</code></pre>
+<p>Purified output preserves bash-specific features but adds shell detection:</p>
+<pre><code class="language-bash"><span class="boring"> Purified with shell detection
+</span>if [ -n "${BASH_VERSION}" ] &amp;&amp; [ -f /etc/bash_completion ]; then
+    . /etc/bash_completion
+fi
+</code></pre>
+<h4 id="zsh-specific-features"><a class="header" href="#zsh-specific-features">Zsh-Specific Features</a></h4>
+<p><strong>oh-my-zsh</strong> integration:</p>
+<pre><code class="language-bash"><span class="boring"> Before (.zshrc)
+</span>export ZSH="$HOME/.oh-my-zsh"
+ZSH_THEME="robbyrussell"
+plugins=(git docker kubectl)
+source $ZSH/oh-my-zsh.sh
+
+<span class="boring"> After (purified)
+</span>export ZSH="${HOME}/.oh-my-zsh"
+ZSH_THEME="robbyrussell"
+plugins=(git docker kubectl)
+<span class="boring"> shellcheck source=/dev/null
+</span>. "${ZSH}/oh-my-zsh.sh"
+</code></pre>
+<p><strong>Zsh arrays</strong>:</p>
+<pre><code class="language-bash"><span class="boring"> Zsh uses different array syntax
+</span>typeset -U path  # Zsh-specific: unique PATH entries
+path=(/usr/local/bin $path)
+</code></pre>
+<p>Purified output converts to POSIX-compatible syntax or adds shell detection.</p>
+<h3 id="shell-detection-pattern"><a class="header" href="#shell-detection-pattern">Shell Detection Pattern</a></h3>
+<p>For features that only work in specific shells:</p>
+<pre><code class="language-bash"><span class="boring"> Detect bash
+</span>if [ -n "${BASH_VERSION}" ]; then
+<span class="boring">     Bash-specific configuration
+</span>    shopt -s histappend
+fi
+
+<span class="boring"> Detect zsh
+</span>if [ -n "${ZSH_VERSION}" ]; then
+<span class="boring">     Zsh-specific configuration
+</span>    setopt HIST_IGNORE_DUPS
+fi
+</code></pre>
+<h2 id="verification-steps"><a class="header" href="#verification-steps">Verification Steps</a></h2>
+<p>After purifying your configuration, follow these steps to verify correctness:</p>
+<h3 id="step-1-syntax-validation"><a class="header" href="#step-1-syntax-validation">Step 1: Syntax Validation</a></h3>
+<pre><code class="language-bash"><span class="boring"> Validate with shellcheck
+</span>shellcheck -s sh ~/.bashrc.purified
+
+<span class="boring"> Check syntax with shell parser
+</span>sh -n ~/.bashrc.purified
+bash -n ~/.bashrc.purified
+```text
+
+Expected output:
+```text
+<span class="boring"> No output = success
+</span></code></pre>
+<h3 id="step-2-source-multiple-times"><a class="header" href="#step-2-source-multiple-times">Step 2: Source Multiple Times</a></h3>
+<p>Test idempotency by sourcing multiple times:</p>
+<pre><code class="language-bash"><span class="boring"> Start fresh shell
+</span>bash --norc --noprofile
+
+<span class="boring"> Source purified config
+</span>source ~/.bashrc.purified
+echo "PATH after 1st source: $PATH"
+
+<span class="boring"> Source again
+</span>source ~/.bashrc.purified
+echo "PATH after 2nd source: $PATH"
+
+<span class="boring"> Source third time
+</span>source ~/.bashrc.purified
+echo "PATH after 3rd source: $PATH"
+</code></pre>
+<p><strong>Expected</strong>: PATH should be identical after each sourcing.</p>
+<h3 id="step-3-environment-comparison"><a class="header" href="#step-3-environment-comparison">Step 3: Environment Comparison</a></h3>
+<p>Compare environment before and after:</p>
+<pre><code class="language-bash"><span class="boring"> Capture original environment
+</span>env &gt; /tmp/env-before.txt
+
+<span class="boring"> Source purified config in new shell
+</span>bash --norc --noprofile -c 'source ~/.bashrc.purified &amp;&amp; env' &gt; /tmp/env-after.txt
+
+<span class="boring"> Compare
+</span>diff /tmp/env-before.txt /tmp/env-after.txt
+</code></pre>
+<p>Review differences to ensure expected variables are set.</p>
+<h3 id="step-4-function-testing"><a class="header" href="#step-4-function-testing">Step 4: Function Testing</a></h3>
+<p>Test all functions defined in config:</p>
+<pre><code class="language-bash"><span class="boring"> Source config
+</span>source ~/.bashrc.purified
+
+<span class="boring"> Test mkcd function
+</span>mkcd /tmp/test-dir
+pwd  # Should be /tmp/test-dir
+
+<span class="boring"> Test again (idempotency)
+</span>mkcd /tmp/test-dir
+pwd  # Should still work
+</code></pre>
+<h3 id="step-5-alias-verification"><a class="header" href="#step-5-alias-verification">Step 5: Alias Verification</a></h3>
+<pre><code class="language-bash"><span class="boring"> Check aliases are defined
+</span>alias ll
+alias gs
+
+<span class="boring"> Test aliases work
+</span>ll /tmp
+gs  # If in git repo
+</code></pre>
+<h3 id="step-6-path-verification"><a class="header" href="#step-6-path-verification">Step 6: PATH Verification</a></h3>
+<pre><code class="language-bash"><span class="boring"> Check PATH entries are unique
+</span>echo "$PATH" | tr ':' '\n' | sort | uniq -d
+<span class="boring"> No output = no duplicates
+</span></code></pre>
+<h3 id="step-7-integration-testing"><a class="header" href="#step-7-integration-testing">Step 7: Integration Testing</a></h3>
+<p>Test with real tools:</p>
+<pre><code class="language-bash"><span class="boring"> Test language tooling
+</span>which python
+which ruby
+which go
+
+<span class="boring"> Test custom binaries
+</span>which custom-tool
+
+<span class="boring"> Test completions (if any)
+</span>kubectl &lt;TAB&gt;
+git &lt;TAB&gt;
+</code></pre>
+<h2 id="rollback-strategy"><a class="header" href="#rollback-strategy">Rollback Strategy</a></h2>
+<p>Always have a rollback plan when modifying critical configuration files.</p>
+<h3 id="1-create-backup"><a class="header" href="#1-create-backup">1. Create Backup</a></h3>
+<pre><code class="language-bash"><span class="boring"> Manual backup
+</span>cp ~/.bashrc ~/.bashrc.backup-$(date +%Y%m%d)
+
+<span class="boring"> Automatic backup with bashrs
+</span>bashrs config purify ~/.bashrc --output ~/.bashrc --backup
+<span class="boring"> Creates ~/.bashrc.bak
+</span></code></pre>
+<h3 id="2-test-in-isolated-environment"><a class="header" href="#2-test-in-isolated-environment">2. Test in Isolated Environment</a></h3>
+<pre><code class="language-bash"><span class="boring"> Test in new shell session (doesn't affect current shell)
+</span>bash --rcfile ~/.bashrc.purified
+
+<span class="boring"> Test in Docker container
+</span>docker run -it --rm -v ~/.bashrc.purified:/root/.bashrc ubuntu bash
+
+<span class="boring"> Test in subshell
+</span>(source ~/.bashrc.purified; env; alias)
+</code></pre>
+<h3 id="3-gradual-deployment"><a class="header" href="#3-gradual-deployment">3. Gradual Deployment</a></h3>
+<p><strong>Phase 1</strong>: Test for one session</p>
+<pre><code class="language-bash"><span class="boring"> Use purified config for current session only
+</span>source ~/.bashrc.purified
+<span class="boring"> Test thoroughly
+</span><span class="boring"> If issues arise, close terminal
+</span></code></pre>
+<p><strong>Phase 2</strong>: Deploy for one day</p>
+<pre><code class="language-bash"><span class="boring"> Replace config
+</span>mv ~/.bashrc ~/.bashrc.old
+mv ~/.bashrc.purified ~/.bashrc
+
+<span class="boring"> Use for a day, monitor for issues
+</span></code></pre>
+<p><strong>Phase 3</strong>: Full deployment</p>
+<pre><code class="language-bash"><span class="boring"> After successful testing period
+</span>rm ~/.bashrc.old
+<span class="boring"> Purified config is now the primary
+</span></code></pre>
+<h3 id="4-quick-rollback"><a class="header" href="#4-quick-rollback">4. Quick Rollback</a></h3>
+<p>If issues arise:</p>
+<pre><code class="language-bash"><span class="boring"> Restore from backup
+</span>cp ~/.bashrc.bak ~/.bashrc
+source ~/.bashrc
+
+<span class="boring"> Or restore from timestamped backup
+</span>cp ~/.bashrc.backup-20250104 ~/.bashrc
+source ~/.bashrc
+</code></pre>
+<h3 id="5-emergency-recovery"><a class="header" href="#5-emergency-recovery">5. Emergency Recovery</a></h3>
+<p>If you're locked out (e.g., broken PATH):</p>
+<pre><code class="language-bash"><span class="boring"> Start shell without config
+</span>bash --norc --noprofile
+
+<span class="boring"> Fix PATH manually
+</span>export PATH="/usr/local/bin:/usr/bin:/bin"
+
+<span class="boring"> Restore backup
+</span>cp ~/.bashrc.bak ~/.bashrc
+
+<span class="boring"> Restart shell
+</span>exec bash
+</code></pre>
+<h2 id="common-purification-patterns"><a class="header" href="#common-purification-patterns">Common Purification Patterns</a></h2>
+<h3 id="pattern-1-deduplicating-exports"><a class="header" href="#pattern-1-deduplicating-exports">Pattern 1: Deduplicating Exports</a></h3>
+<p><strong>Before</strong>:</p>
+<pre><code class="language-bash">export LANG=en_US.UTF-8
+export LC_ALL=en_US.UTF-8
+export LANG=en_US.UTF-8  # Duplicate
+</code></pre>
+<p><strong>After</strong>:</p>
+<pre><code class="language-bash">export LANG="en_US.UTF-8"
+export LC_ALL="en_US.UTF-8"
+</code></pre>
+<h3 id="pattern-2-consolidating-conditionals"><a class="header" href="#pattern-2-consolidating-conditionals">Pattern 2: Consolidating Conditionals</a></h3>
+<p><strong>Before</strong>:</p>
+<pre><code class="language-bash">if [ -f ~/.bash_aliases ]; then
+    source ~/.bash_aliases
+fi
+
+if [ -f ~/.bash_functions ]; then
+    source ~/.bash_functions
+fi
+
+if [ -f ~/.bash_local ]; then
+    source ~/.bash_local
+fi
+</code></pre>
+<p><strong>After</strong>:</p>
+<pre><code class="language-bash"><span class="boring"> Source additional config files if they exist
+</span>for config_file in "${HOME}/.bash_aliases" \
+                   "${HOME}/.bash_functions" \
+                   "${HOME}/.bash_local"; do
+    if [ -f "${config_file}" ]; then
+<span class="boring">         shellcheck source=/dev/null
+</span>        . "${config_file}"
+    fi
+done
+</code></pre>
+<h3 id="pattern-3-idempotent-sourcing"><a class="header" href="#pattern-3-idempotent-sourcing">Pattern 3: Idempotent Sourcing</a></h3>
+<p><strong>Before</strong>:</p>
+<pre><code class="language-bash">source ~/.nvm/nvm.sh
+source ~/.nvm/nvm.sh  # Sourced twice
+</code></pre>
+<p><strong>After</strong>:</p>
+<pre><code class="language-bash"><span class="boring"> Source only if not already loaded
+</span>if [ -z "${NVM_DIR}" ] &amp;&amp; [ -f "${HOME}/.nvm/nvm.sh" ]; then
+<span class="boring">     shellcheck source=/dev/null
+</span>    . "${HOME}/.nvm/nvm.sh"
+fi
+</code></pre>
+<h3 id="pattern-4-safe-command-availability-checks"><a class="header" href="#pattern-4-safe-command-availability-checks">Pattern 4: Safe Command Availability Checks</a></h3>
+<p><strong>Before</strong>:</p>
+<pre><code class="language-bash">eval "$(rbenv init -)"
+eval "$(pyenv init -)"
+</code></pre>
+<p><strong>After</strong>:</p>
+<pre><code class="language-bash"><span class="boring"> Initialize rbenv if available
+</span>if command -v rbenv &gt;/dev/null 2&gt;&amp;1; then
+    eval "$(rbenv init -)"
+fi
+
+<span class="boring"> Initialize pyenv if available
+</span>if command -v pyenv &gt;/dev/null 2&gt;&amp;1; then
+    eval "$(pyenv init -)"
+fi
+</code></pre>
+<h3 id="pattern-5-history-management"><a class="header" href="#pattern-5-history-management">Pattern 5: History Management</a></h3>
+<p><strong>Before</strong>:</p>
+<pre><code class="language-bash">export HISTSIZE=10000
+export HISTSIZE=50000
+export HISTFILESIZE=20000
+export HISTCONTROL=ignoreboth
+export HISTCONTROL=ignoredups
+</code></pre>
+<p><strong>After</strong>:</p>
+<pre><code class="language-bash">export HISTSIZE="50000"
+export HISTFILESIZE="50000"
+export HISTCONTROL="ignoreboth"
+</code></pre>
+<h3 id="pattern-6-prompt-customization"><a class="header" href="#pattern-6-prompt-customization">Pattern 6: Prompt Customization</a></h3>
+<p><strong>Before</strong>:</p>
+<pre><code class="language-bash">export PS1='\u@\h:\w\$ '
+export PS1='[\u@\h \W]\$ '  # Overrides previous
+</code></pre>
+<p><strong>After</strong>:</p>
+<pre><code class="language-bash"><span class="boring"> Customized prompt (last definition wins)
+</span>export PS1='[\u@\h \W]\$ '
+</code></pre>
+<h2 id="best-practices"><a class="header" href="#best-practices">Best Practices</a></h2>
+<h3 id="1-always-create-backups"><a class="header" href="#1-always-create-backups">1. Always Create Backups</a></h3>
+<pre><code class="language-bash"><span class="boring"> Before purification
+</span>cp ~/.bashrc ~/.bashrc.backup-$(date +%Y%m%d-%H%M%S)
+
+<span class="boring"> Or use --backup flag
+</span>bashrs config purify ~/.bashrc --output ~/.bashrc --backup
+</code></pre>
+<h3 id="2-test-in-isolated-environment-1"><a class="header" href="#2-test-in-isolated-environment-1">2. Test in Isolated Environment</a></h3>
+<pre><code class="language-bash"><span class="boring"> Test in subshell first
+</span>bash --rcfile ~/.bashrc.purified -i
+
+<span class="boring"> Or test specific sections
+</span>(source ~/.bashrc.purified; which python; echo "$PATH")
+</code></pre>
+<h3 id="3-use-version-control"><a class="header" href="#3-use-version-control">3. Use Version Control</a></h3>
+<pre><code class="language-bash"><span class="boring"> Initialize git repo for dotfiles
+</span>cd ~
+git init
+git add .bashrc .zshrc
+git commit -m "Initial commit before purification"
+
+<span class="boring"> After purification
+</span>git add .bashrc.purified
+git commit -m "Purified .bashrc with bashrs v6.32.1"
+</code></pre>
+<h3 id="4-separate-concerns"><a class="header" href="#4-separate-concerns">4. Separate Concerns</a></h3>
+<p>Organize configuration into modular files:</p>
+<pre><code class="language-bash"><span class="boring"> ~/.bashrc (main config)
+</span><span class="boring"> Source modular configs
+</span>for config in "${HOME}/.config/bash"/*.sh; do
+    [ -f "${config}" ] &amp;&amp; . "${config}"
+done
+
+<span class="boring"> ~/.config/bash/path.sh (PATH management)
+</span>add_to_path "/usr/local/bin"
+add_to_path "${HOME}/.cargo/bin"
+
+<span class="boring"> ~/.config/bash/aliases.sh (aliases)
+</span>alias ll='ls -lah'
+alias gs='git status -sb'
+
+<span class="boring"> ~/.config/bash/functions.sh (functions)
+</span>mkcd() { mkdir -p "$1" &amp;&amp; cd "$1"; }
+</code></pre>
+<p>Purify each file separately:</p>
+<pre><code class="language-bash">bashrs config purify ~/.config/bash/path.sh --output ~/.config/bash/path.sh --backup
+bashrs config purify ~/.config/bash/aliases.sh --output ~/.config/bash/aliases.sh --backup
+bashrs config purify ~/.config/bash/functions.sh --output ~/.config/bash/functions.sh --backup
+</code></pre>
+<h3 id="5-document-customizations"><a class="header" href="#5-document-customizations">5. Document Customizations</a></h3>
+<p>Add comments to explain non-obvious configurations:</p>
+<pre><code class="language-bash"><span class="boring"> Custom PATH for local development
+</span><span class="boring"> Prepend local bin directories (higher priority)
+</span>add_to_path "${HOME}/.local/bin"
+add_to_path "${HOME}/bin"
+
+<span class="boring"> Language-specific tooling
+</span>add_to_path "${HOME}/.cargo/bin"     # Rust
+add_to_path "${GOPATH}/bin"          # Go
+add_to_path "${HOME}/.rbenv/bin"     # Ruby
+</code></pre>
+<h3 id="6-regular-purification"><a class="header" href="#6-regular-purification">6. Regular Purification</a></h3>
+<p>Schedule periodic purification to prevent cruft accumulation:</p>
+<pre><code class="language-bash"><span class="boring"> Monthly purification check
+</span>0 0 1 * * /usr/local/bin/bashrs config purify ~/.bashrc --check | mail -s "bashrc purification report" user@example.com
+</code></pre>
+<h3 id="7-validate-after-changes"><a class="header" href="#7-validate-after-changes">7. Validate After Changes</a></h3>
+<p>Always validate after manual edits:</p>
+<pre><code class="language-bash"><span class="boring"> After editing .bashrc
+</span>bashrs config purify ~/.bashrc --check --shellcheck
+</code></pre>
+<h2 id="troubleshooting"><a class="header" href="#troubleshooting">Troubleshooting</a></h2>
+<h3 id="issue-1-path-still-has-duplicates"><a class="header" href="#issue-1-path-still-has-duplicates">Issue 1: PATH Still Has Duplicates</a></h3>
+<p><strong>Symptom</strong>:</p>
+<pre><code class="language-bash">$ echo "$PATH" | tr ':' '\n' | sort | uniq -d
+/usr/local/bin
+/usr/local/bin
+</code></pre>
+<p><strong>Cause</strong>: Sourcing other scripts that modify PATH.</p>
+<p><strong>Solution</strong>: Audit all sourced files:</p>
+<pre><code class="language-bash"><span class="boring"> Find all sourced files
+</span>grep -E '^\s*(source|\.)' ~/.bashrc
+
+<span class="boring"> Purify each one
+</span>bashrs config purify ~/.bash_aliases --output ~/.bash_aliases --backup
+bashrs config purify ~/.bash_functions --output ~/.bash_functions --backup
+</code></pre>
+<h3 id="issue-2-aliases-not-working"><a class="header" href="#issue-2-aliases-not-working">Issue 2: Aliases Not Working</a></h3>
+<p><strong>Symptom</strong>:</p>
+<pre><code class="language-bash">$ ll
+bash: ll: command not found
+</code></pre>
+<p><strong>Cause</strong>: Aliases defined in non-interactive shell.</p>
+<p><strong>Solution</strong>: Check if running in interactive mode:</p>
+<pre><code class="language-bash"><span class="boring"> Add to .bashrc
+</span>case $- in
+    *i*)
+<span class="boring">         Interactive shell, define aliases
+</span>        alias ll='ls -lah'
+        ;;
+esac
+</code></pre>
+<h3 id="issue-3-functions-lost-after-purification"><a class="header" href="#issue-3-functions-lost-after-purification">Issue 3: Functions Lost After Purification</a></h3>
+<p><strong>Symptom</strong>: Functions work before purification but not after.</p>
+<p><strong>Cause</strong>: bashrs may have converted bash-specific functions to POSIX.</p>
+<p><strong>Solution</strong>: Check purified function syntax:</p>
+<pre><code class="language-bash"><span class="boring"> Before (bash-specific)
+</span>function my_func() {
+    local var=$1
+    echo $var
+}
+
+<span class="boring"> After (POSIX-compliant)
+</span>my_func() {
+    _var="$1"
+    echo "${_var}"
+}
+</code></pre>
+<h3 id="issue-4-environment-variables-not-set"><a class="header" href="#issue-4-environment-variables-not-set">Issue 4: Environment Variables Not Set</a></h3>
+<p><strong>Symptom</strong>: <code>$GOPATH</code> is empty after sourcing purified config.</p>
+<p><strong>Cause</strong>: Variable depends on another variable that's not set.</p>
+<p><strong>Solution</strong>: Check dependency order:</p>
+<pre><code class="language-bash"><span class="boring"> Wrong order
+</span>export PATH="${GOPATH}/bin:${PATH}"
+export GOPATH="${HOME}/go"
+
+<span class="boring"> Correct order (purified)
+</span>export GOPATH="${HOME}/go"
+add_to_path "${GOPATH}/bin"
+</code></pre>
+<h3 id="issue-5-slow-shell-startup"><a class="header" href="#issue-5-slow-shell-startup">Issue 5: Slow Shell Startup</a></h3>
+<p><strong>Symptom</strong>: Shell takes 5+ seconds to start after purification.</p>
+<p><strong>Cause</strong>: Purified config may have added expensive operations.</p>
+<p><strong>Solution</strong>: Profile the config:</p>
+<pre><code class="language-bash"><span class="boring"> Add to top of .bashrc
+</span>PS4='+ $(date "+%s.%N")\011 '
+set -x
+
+<span class="boring"> Add to bottom
+</span>set +x
+</code></pre>
+<p>Check timestamps to identify slow operations, then optimize or lazy-load them.</p>
+<h3 id="issue-6-shellcheck-warnings"><a class="header" href="#issue-6-shellcheck-warnings">Issue 6: Shellcheck Warnings</a></h3>
+<p><strong>Symptom</strong>:</p>
+<pre><code class="language-bash">$ bashrs config purify ~/.bashrc --shellcheck
+SC2034: UNUSED_VAR appears unused. Verify use (or export if used externally).
+</code></pre>
+<p><strong>Solution</strong>: Export used variables or remove unused ones:</p>
+<pre><code class="language-bash"><span class="boring"> If used by external programs
+</span>export UNUSED_VAR="value"
+
+<span class="boring"> If truly unused
+</span><span class="boring"> Remove it
+</span></code></pre>
+<h3 id="issue-7-non-posix-constructs"><a class="header" href="#issue-7-non-posix-constructs">Issue 7: Non-POSIX Constructs</a></h3>
+<p><strong>Symptom</strong>: Purified config doesn't work in <code>sh</code>.</p>
+<p><strong>Cause</strong>: bashrs detected shell-specific features.</p>
+<p><strong>Solution</strong>: Use shell detection:</p>
+<pre><code class="language-bash"><span class="boring"> Bash-specific features
+</span>if [ -n "${BASH_VERSION}" ]; then
+    shopt -s histappend
+    shopt -s checkwinsize
+fi
+
+<span class="boring"> Zsh-specific features
+</span>if [ -n "${ZSH_VERSION}" ]; then
+    setopt HIST_IGNORE_DUPS
+fi
+</code></pre>
+<h3 id="issue-8-broken-sourcing-chain"><a class="header" href="#issue-8-broken-sourcing-chain">Issue 8: Broken Sourcing Chain</a></h3>
+<p><strong>Symptom</strong>: Scripts that source other scripts fail.</p>
+<p><strong>Cause</strong>: Relative paths broken after purification.</p>
+<p><strong>Solution</strong>: Use absolute paths:</p>
+<pre><code class="language-bash"><span class="boring"> Before
+</span>source ../lib/helpers.sh
+
+<span class="boring"> After (purified)
+</span><span class="boring"> shellcheck source=/dev/null
+</span>. "${HOME}/.config/bash/lib/helpers.sh"
+</code></pre>
+<h2 id="real-world-example-full-workflow"><a class="header" href="#real-world-example-full-workflow">Real-World Example: Full Workflow</a></h2>
+<p>Here's a complete workflow for purifying a production <code>.bashrc</code>:</p>
+<h3 id="step-1-backup"><a class="header" href="#step-1-backup">Step 1: Backup</a></h3>
+<pre><code class="language-bash"><span class="boring"> Create timestamped backup
+</span>cp ~/.bashrc ~/.bashrc.backup-$(date +%Y%m%d-%H%M%S)
+
+<span class="boring"> Verify backup
+</span>diff ~/.bashrc ~/.bashrc.backup-*
+</code></pre>
+<h3 id="step-2-analyze-current-state"><a class="header" href="#step-2-analyze-current-state">Step 2: Analyze Current State</a></h3>
+<pre><code class="language-bash"><span class="boring"> Check current config
+</span>wc -l ~/.bashrc
+<span class="boring"> 234 lines
+</span>
+<span class="boring"> Count PATH modifications
+</span>grep -c 'export PATH' ~/.bashrc
+<span class="boring"> 18 (likely duplicates)
+</span>
+<span class="boring"> Check for non-deterministic constructs
+</span>grep -E '\$RANDOM|\$\$|date \+' ~/.bashrc
+<span class="boring"> 3 matches (need fixing)
+</span></code></pre>
+<h3 id="step-3-purify"><a class="header" href="#step-3-purify">Step 3: Purify</a></h3>
+<pre><code class="language-bash">bashrs config purify ~/.bashrc \
+    --output ~/.bashrc.purified \
+    --shellcheck
+</code></pre>
+<p>Output:</p>
+<pre><code class="language-text">bashrs config purify v6.32.1
+
+Transformations Applied:
+  - Deduplicated 18 PATH entries → 9 unique
+  - Added add_to_path() helper
+  - Replaced 3 non-deterministic values
+  - Quoted 47 variable expansions
+  - Made 8 operations idempotent
+
+Shellcheck: PASSED
+</code></pre>
+<h3 id="step-4-test-in-subshell"><a class="header" href="#step-4-test-in-subshell">Step 4: Test in Subshell</a></h3>
+<pre><code class="language-bash"><span class="boring"> Test in isolated environment
+</span>bash --rcfile ~/.bashrc.purified -i
+
+<span class="boring"> Verify PATH
+</span>echo "$PATH"
+
+<span class="boring"> Test aliases
+</span>ll
+gs
+
+<span class="boring"> Test functions
+</span>mkcd /tmp/test
+pwd
+
+<span class="boring"> Exit test shell
+</span>exit
+</code></pre>
+<h3 id="step-5-deploy-gradually"><a class="header" href="#step-5-deploy-gradually">Step 5: Deploy Gradually</a></h3>
+<pre><code class="language-bash"><span class="boring"> Day 1: Use in current session only
+</span>source ~/.bashrc.purified
+
+<span class="boring"> Day 2: Use as default for new shells
+</span>mv ~/.bashrc ~/.bashrc.old
+ln -s ~/.bashrc.purified ~/.bashrc
+
+<span class="boring"> Day 7: Commit to version control
+</span>git add ~/.bashrc.purified
+git commit -m "Purified .bashrc with bashrs v6.32.1"
+git push
+
+<span class="boring"> Day 30: Remove old backup
+</span>rm ~/.bashrc.old
+</code></pre>
+<h3 id="step-6-verify-production"><a class="header" href="#step-6-verify-production">Step 6: Verify Production</a></h3>
+<pre><code class="language-bash"><span class="boring"> Source multiple times
+</span>for i in 1 2 3; do
+    bash -c 'source ~/.bashrc &amp;&amp; echo "PATH: $PATH"'
+done
+
+<span class="boring"> All outputs should be identical
+</span></code></pre>
+<h2 id="summary"><a class="header" href="#summary">Summary</a></h2>
+<p>The <code>bashrs config purify</code> command transforms messy shell configuration files into clean, safe, deterministic scripts by:</p>
+<ol>
+<li><strong>Deduplicating</strong> repeated exports, aliases, and PATH entries</li>
+<li><strong>Enforcing idempotency</strong> with helper functions like <code>add_to_path()</code></li>
+<li><strong>Eliminating non-determinism</strong> by replacing <code>$RANDOM</code>, timestamps, and process IDs</li>
+<li><strong>Ensuring safety</strong> by quoting all variable expansions</li>
+</ol>
+<p><strong>Key takeaways</strong>:</p>
+<ul>
+<li>Always backup before purifying</li>
+<li>Test in isolated environments before deploying</li>
+<li>Use the <code>add_to_path()</code> helper for idempotent PATH management</li>
+<li>Validate with shellcheck and manual testing</li>
+<li>Deploy gradually with rollback plan</li>
+<li>Organize configs into modular files</li>
+<li>Purify regularly to prevent cruft accumulation</li>
+</ul>
+<p>With purified configuration files, you can confidently source your <code>.bashrc</code> or <code>.zshrc</code> multiple times without side effects, ensuring consistent, predictable shell environments across all your systems.</p>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="../config/analyzing.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <i class="fa fa-angle-left"></i>
+                            </a>
+
+                            <a rel="next prefetch" href="../config/rules/config-001.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <i class="fa fa-angle-right"></i>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="../config/analyzing.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <i class="fa fa-angle-left"></i>
+                    </a>
+
+                    <a rel="next prefetch" href="../config/rules/config-001.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <i class="fa fa-angle-right"></i>
+                    </a>
+            </nav>
+
+        </div>
+
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+        <script src="../ace.js"></script>
+        <script src="../mode-rust.js"></script>
+        <script src="../editor.js"></script>
+        <script src="../theme-dawn.js"></script>
+        <script src="../theme-tomorrow_night.js"></script>
+
+        <script src="../elasticlunr.min.js"></script>
+        <script src="../mark.min.js"></script>
+        <script src="../searcher.js"></script>
+
+        <script src="../clipboard.min.js"></script>
+        <script src="../highlight.js"></script>
+        <script src="../book.js"></script>
+
+        <!-- Custom JS scripts -->
+
+
+
+    </div>
+    </body>
+</html>

@@ -1,4 +1,3 @@
-#![allow(deprecated)]
 #![allow(clippy::unwrap_used)]
 #![allow(clippy::expect_used)]
 // Tests can use unwrap() for simplicity
@@ -100,8 +99,7 @@ fn test_async_syntax_error_message() {
     let mut file = NamedTempFile::new().unwrap();
     file.write_all(rust_code.as_bytes()).unwrap();
 
-    let output = Command::cargo_bin("bashrs")
-        .unwrap()
+    let output = assert_cmd::cargo_bin_cmd!("bashrs")
         .arg("build")
         .arg(file.path())
         .output()
@@ -138,8 +136,7 @@ fn test_trait_definition_error_message() {
     let mut file = NamedTempFile::new().unwrap();
     file.write_all(rust_code.as_bytes()).unwrap();
 
-    let output = Command::cargo_bin("bashrs")
-        .unwrap()
+    let output = assert_cmd::cargo_bin_cmd!("bashrs")
         .arg("build")
         .arg(file.path())
         .output()
@@ -173,8 +170,7 @@ fn test_impl_block_error_message() {
     let mut file = NamedTempFile::new().unwrap();
     file.write_all(rust_code.as_bytes()).unwrap();
 
-    let output = Command::cargo_bin("bashrs")
-        .unwrap()
+    let output = assert_cmd::cargo_bin_cmd!("bashrs")
         .arg("build")
         .arg(file.path())
         .output()
@@ -207,8 +203,7 @@ fn test_unsafe_block_error_message() {
     let mut file = NamedTempFile::new().unwrap();
     file.write_all(rust_code.as_bytes()).unwrap();
 
-    let output = Command::cargo_bin("bashrs")
-        .unwrap()
+    let output = assert_cmd::cargo_bin_cmd!("bashrs")
         .arg("build")
         .arg(file.path())
         .output()
@@ -238,8 +233,7 @@ fn test_generic_type_error_message() {
     let mut file = NamedTempFile::new().unwrap();
     file.write_all(rust_code.as_bytes()).unwrap();
 
-    let output = Command::cargo_bin("bashrs")
-        .unwrap()
+    let output = assert_cmd::cargo_bin_cmd!("bashrs")
         .arg("build")
         .arg(file.path())
         .output()
@@ -270,8 +264,7 @@ fn test_macro_definition_error_message() {
     let mut file = NamedTempFile::new().unwrap();
     file.write_all(rust_code.as_bytes()).unwrap();
 
-    let output = Command::cargo_bin("bashrs")
-        .unwrap()
+    let output = assert_cmd::cargo_bin_cmd!("bashrs")
         .arg("build")
         .arg(file.path())
         .output()
@@ -301,8 +294,7 @@ fn test_loop_statement_error_message() {
     let mut file = NamedTempFile::new().unwrap();
     file.write_all(rust_code.as_bytes()).unwrap();
 
-    let output = Command::cargo_bin("bashrs")
-        .unwrap()
+    let output = assert_cmd::cargo_bin_cmd!("bashrs")
         .arg("build")
         .arg(file.path())
         .output()
@@ -330,8 +322,7 @@ fn test_use_statement_error_message() {
     let mut file = NamedTempFile::new().unwrap();
     file.write_all(rust_code.as_bytes()).unwrap();
 
-    let output = Command::cargo_bin("bashrs")
-        .unwrap()
+    let output = assert_cmd::cargo_bin_cmd!("bashrs")
         .arg("build")
         .arg(file.path())
         .output()
@@ -358,8 +349,7 @@ fn test_syntax_error_diagnostic() {
     let mut file = NamedTempFile::new().unwrap();
     file.write_all(rust_code.as_bytes()).unwrap();
 
-    let output = Command::cargo_bin("bashrs")
-        .unwrap()
+    let output = assert_cmd::cargo_bin_cmd!("bashrs")
         .arg("build")
         .arg(file.path())
         .output()
@@ -383,8 +373,7 @@ fn test_syntax_error_diagnostic() {
 
 #[test]
 fn test_help_flag() {
-    Command::cargo_bin("bashrs")
-        .unwrap()
+    assert_cmd::cargo_bin_cmd!("bashrs")
         .arg("--help")
         .assert()
         .success()
@@ -394,8 +383,7 @@ fn test_help_flag() {
 
 #[test]
 fn test_version_flag() {
-    Command::cargo_bin("bashrs")
-        .unwrap()
+    assert_cmd::cargo_bin_cmd!("bashrs")
         .arg("--version")
         .assert()
         .success()
@@ -414,8 +402,7 @@ fn test_check_subcommand_valid_file() {
     let mut file = NamedTempFile::new().unwrap();
     file.write_all(rust_code.as_bytes()).unwrap();
 
-    Command::cargo_bin("bashrs")
-        .unwrap()
+    assert_cmd::cargo_bin_cmd!("bashrs")
         .arg("check")
         .arg(file.path())
         .assert()
@@ -433,8 +420,7 @@ fn test_check_subcommand_invalid_file() {
     let mut file = NamedTempFile::new().unwrap();
     file.write_all(rust_code.as_bytes()).unwrap();
 
-    Command::cargo_bin("bashrs")
-        .unwrap()
+    assert_cmd::cargo_bin_cmd!("bashrs")
         .arg("check")
         .arg(file.path())
         .assert()
@@ -447,8 +433,7 @@ fn test_check_subcommand_invalid_file() {
 
 #[test]
 fn test_missing_input_file_error() {
-    Command::cargo_bin("bashrs")
-        .unwrap()
+    assert_cmd::cargo_bin_cmd!("bashrs")
         .arg("build")
         .arg("nonexistent_file.rs")
         .assert()
@@ -475,8 +460,7 @@ fn test_error_message_quality_baseline() {
         let mut file = NamedTempFile::new().unwrap();
         file.write_all(full_code.as_bytes()).unwrap();
 
-        let output = Command::cargo_bin("bashrs")
-            .unwrap()
+        let output = assert_cmd::cargo_bin_cmd!("bashrs")
             .arg("build")
             .arg(file.path())
             .output()
@@ -514,8 +498,7 @@ fn test_multiple_errors_detected() {
     let mut file = NamedTempFile::new().unwrap();
     file.write_all(rust_code.as_bytes()).unwrap();
 
-    let output = Command::cargo_bin("bashrs")
-        .unwrap()
+    let output = assert_cmd::cargo_bin_cmd!("bashrs")
         .arg("build")
         .arg(file.path())
         .output()

@@ -3876,7 +3876,7 @@ fn installer_from_bash_command(input: &Path, output: Option<&Path>) -> Result<()
     Ok(())
 }
 
-#[allow(clippy::fn_params_excessive_bools)]
+#[allow(clippy::fn_params_excessive_bools, clippy::too_many_arguments)]
 fn installer_run_command(
     path: &Path,
     checkpoint_dir: Option<&Path>,

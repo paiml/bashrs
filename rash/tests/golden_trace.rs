@@ -1,3 +1,7 @@
+#![allow(clippy::indexing_slicing)]
+#![allow(clippy::panic)]
+#![allow(clippy::expect_used)]
+#![allow(clippy::unwrap_used)]
 //! Golden Trace Integration Tests for bashrs
 //!
 //! This module provides golden trace functionality using the renacer syscall tracer.

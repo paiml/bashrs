@@ -1,4 +1,5 @@
 //! Training corpus management for ML model.
+#![allow(clippy::indexing_slicing, clippy::expect_used)] // Test code uses expect and indexing
 
 use crate::categories::ErrorCategory;
 use crate::features::ErrorFeatures;

@@ -1,5 +1,7 @@
 #![allow(clippy::expect_used)]
 #![allow(clippy::unwrap_used)] // Benchmarks can use unwrap() for simplicity
+#![allow(clippy::indexing_slicing)] // Benchmarks use direct indexing
+#![allow(clippy::panic)] // Benchmarks may panic on invalid data
 //! Performance Benchmarks for Fix Safety Taxonomy
 //!
 //! FAST Validation - Throughput Component:

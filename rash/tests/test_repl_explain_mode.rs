@@ -12,7 +12,7 @@ use assert_cmd::Command;
 
 #[allow(dead_code)] // Reserved for future REPL integration tests
 fn bashrs_repl() -> Command {
-    Command::cargo_bin("bashrs").expect("Failed to find bashrs binary")
+    assert_cmd::cargo_bin_cmd!("bashrs")
 }
 
 // ===== INTEGRATION TESTS =====

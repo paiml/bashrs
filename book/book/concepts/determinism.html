@@ -1,0 +1,552 @@
+<!DOCTYPE HTML>
+<html lang="en" class="rust sidebar-visible" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>Determinism - The Rash Book - Shell Safety and Purification</title>
+
+
+        <!-- Custom HTML head -->
+
+        <meta name="description" content="A comprehensive guide to Rash: shell safety, purification, and linting">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="../favicon.svg">
+        <link rel="shortcut icon" href="../favicon.png">
+        <link rel="stylesheet" href="../css/variables.css">
+        <link rel="stylesheet" href="../css/general.css">
+        <link rel="stylesheet" href="../css/chrome.css">
+        <link rel="stylesheet" href="../css/print.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="../FontAwesome/css/font-awesome.css">
+        <link rel="stylesheet" href="../fonts/fonts.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" id="highlight-css" href="../highlight.css">
+        <link rel="stylesheet" id="tomorrow-night-css" href="../tomorrow-night.css">
+        <link rel="stylesheet" id="ayu-highlight-css" href="../ayu-highlight.css">
+
+        <!-- Custom theme stylesheets -->
+
+
+        <!-- Provide site root and default themes to javascript -->
+        <script>
+            const path_to_root = "../";
+            const default_light_theme = "rust";
+            const default_dark_theme = "navy";
+            window.path_to_searchindex_js = "../searchindex.js";
+        </script>
+        <!-- Start loading toc.js asap -->
+        <script src="../toc.js"></script>
+    </head>
+    <body>
+    <div id="mdbook-help-container">
+        <div id="mdbook-help-popup">
+            <h2 class="mdbook-help-title">Keyboard shortcuts</h2>
+            <div>
+                <p>Press <kbd>←</kbd> or <kbd>→</kbd> to navigate between chapters</p>
+                <p>Press <kbd>S</kbd> or <kbd>/</kbd> to search in the book</p>
+                <p>Press <kbd>?</kbd> to show this help</p>
+                <p>Press <kbd>Esc</kbd> to hide this help</p>
+            </div>
+        </div>
+    </div>
+    <div id="body-container">
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                let theme = localStorage.getItem('mdbook-theme');
+                let sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            const default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? default_dark_theme : default_light_theme;
+            let theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            const html = document.documentElement;
+            html.classList.remove('rust')
+            html.classList.add(theme);
+            html.classList.add("js");
+        </script>
+
+        <input type="checkbox" id="sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            let sidebar = null;
+            const sidebar_toggle = document.getElementById("sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+                sidebar_toggle.checked = false;
+            }
+            if (sidebar === 'visible') {
+                sidebar_toggle.checked = true;
+            } else {
+                html.classList.remove('sidebar-visible');
+            }
+        </script>
+
+        <nav id="sidebar" class="sidebar" aria-label="Table of contents">
+            <!-- populated by js -->
+            <mdbook-sidebar-scrollbox class="sidebar-scrollbox"></mdbook-sidebar-scrollbox>
+            <noscript>
+                <iframe class="sidebar-iframe-outer" src="../toc.html"></iframe>
+            </noscript>
+            <div id="sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <div id="page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="menu-bar-hover-placeholder"></div>
+                <div id="menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="sidebar-toggle" class="icon-button" for="sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="sidebar">
+                            <i class="fa fa-bars"></i>
+                        </label>
+                        <button id="theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="theme-list">
+                            <i class="fa fa-paint-brush"></i>
+                        </button>
+                        <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="default_theme">Auto</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
+                        </ul>
+                        <button id="search-toggle" class="icon-button" type="button" title="Search (`/`)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="/ s" aria-controls="searchbar">
+                            <i class="fa fa-search"></i>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">The Rash Book - Shell Safety and Purification</h1>
+
+                    <div class="right-buttons">
+                        <a href="../print.html" title="Print this book" aria-label="Print this book">
+                            <i id="print-button" class="fa fa-print"></i>
+                        </a>
+                        <a href="https://github.com/paiml/bashrs" title="Git repository" aria-label="Git repository">
+                            <i id="git-repository-button" class="fa fa-github"></i>
+                        </a>
+                        <a href="https://github.com/paiml/bashrs/edit/main/book/src/concepts/determinism.md" title="Suggest an edit" aria-label="Suggest an edit" rel="edit">
+                            <i id="git-edit-button" class="fa fa-edit"></i>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="search-wrapper" class="hidden">
+                    <form id="searchbar-outer" class="searchbar-outer">
+                        <div class="search-wrapper">
+                            <input type="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                            <div class="spinner-wrapper">
+                                <i class="fa fa-spinner fa-spin"></i>
+                            </div>
+                        </div>
+                    </form>
+                    <div id="searchresults-outer" class="searchresults-outer hidden">
+                        <div id="searchresults-header" class="searchresults-header"></div>
+                        <ul id="searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="content" class="content">
+                    <main>
+                        <h1 id="determinism"><a class="header" href="#determinism">Determinism</a></h1>
+<p><strong>Determinism</strong> means that a script produces the same output given the same input, every time it runs. There are no surprises, no randomness, and no dependence on when or where the script executes.</p>
+<h2 id="definition"><a class="header" href="#definition">Definition</a></h2>
+<p>A script is <strong>deterministic</strong> if and only if:</p>
+<p><strong>Given the same input → Always produces the same output</strong></p>
+<p><strong>Formula</strong>: <code>f(input) = output</code> (consistently, every time)</p>
+<h2 id="why-determinism-matters"><a class="header" href="#why-determinism-matters">Why Determinism Matters</a></h2>
+<h3 id="the-problem-non-deterministic-scripts"><a class="header" href="#the-problem-non-deterministic-scripts">The Problem: Non-Deterministic Scripts</a></h3>
+<p>Non-deterministic scripts are unpredictable and hard to debug:</p>
+<pre><code class="language-bash"><span class="boring">!/bin/bash
+</span><span class="boring"> Non-deterministic deployment
+</span>
+RELEASE_ID=$RANDOM                    # Random number (different each run)
+TIMESTAMP=$(date +%s)                 # Unix timestamp (changes every second)
+HOSTNAME=$(hostname)                  # Varies by machine
+PID=$$                                # Process ID (different each run)
+
+echo "Deploying release: $RELEASE_ID-$TIMESTAMP"
+mkdir /tmp/deploy-$PID
+</code></pre>
+<p><strong>Problems</strong>:</p>
+<ul>
+<li><code>$RANDOM</code> generates different values: <code>12345</code>, <code>67890</code>, <code>24680</code>...</li>
+<li><code>$(date +%s)</code> changes every second: <code>1699564800</code>, <code>1699564801</code>, <code>1699564802</code>...</li>
+<li><code>$(hostname)</code> varies: <code>server1</code>, <code>server2</code>, <code>server3</code>...</li>
+<li><code>$$</code> differs: <code>12345</code>, <code>12346</code>, <code>12347</code>...</li>
+</ul>
+<p><strong>Impact</strong>:</p>
+<ul>
+<li>Can't reproduce issues (bug happened once, can't recreate)</li>
+<li>Can't verify deployments (different ID each time)</li>
+<li>Can't test reliably (tests pass/fail randomly)</li>
+<li>Can't rollback (which version was deployed?)</li>
+</ul>
+<h3 id="the-solution-deterministic-scripts"><a class="header" href="#the-solution-deterministic-scripts">The Solution: Deterministic Scripts</a></h3>
+<p>Deterministic scripts are predictable and reliable:</p>
+<pre><code class="language-bash"><span class="boring">!/bin/sh
+</span><span class="boring"> Deterministic deployment
+</span>
+release_version="${1}"                # Input parameter (controlled)
+release_id="${2}"                     # Input parameter (controlled)
+
+echo "Deploying release: ${release_id}-${release_version}"
+mkdir -p "/tmp/deploy-${release_version}"
+</code></pre>
+<p><strong>Benefits</strong>:</p>
+<ul>
+<li>✅ Same input → Same output: <code>v1.0.0</code> always deploys <code>v1.0.0</code></li>
+<li>✅ Reproducible: Can recreate exact same deployment</li>
+<li>✅ Testable: Tests always produce same results</li>
+<li>✅ Debuggable: Issues can be reproduced reliably</li>
+</ul>
+<h2 id="sources-of-non-determinism"><a class="header" href="#sources-of-non-determinism">Sources of Non-Determinism</a></h2>
+<p>Rash detects and eliminates these common sources:</p>
+<h3 id="1-random-det001"><a class="header" href="#1-random-det001">1. $RANDOM (DET001)</a></h3>
+<p><strong>Problem</strong>: Generates random numbers</p>
+<pre><code class="language-bash"><span class="boring"> Non-deterministic
+</span>SESSION_ID=$RANDOM
+<span class="boring"> Output: 12345 (first run), 67890 (second run), 24680 (third run)
+</span></code></pre>
+<p><strong>Solution</strong>: Pass value as parameter or use fixed seed</p>
+<pre><code class="language-bash"><span class="boring"> Deterministic
+</span>session_id="${1:-default-session}"
+<span class="boring"> Output: "default-session" (every run)
+</span></code></pre>
+<h3 id="2-timestamps-det002"><a class="header" href="#2-timestamps-det002">2. Timestamps (DET002)</a></h3>
+<p><strong>Problem</strong>: Time-based values change constantly</p>
+<pre><code class="language-bash"><span class="boring"> Non-deterministic
+</span>BUILD_TIME=$(date +%s)                # Unix timestamp
+BUILD_DATE=$(date +%Y%m%d)            # YYYYMMDD format
+START_TIME=$(date)                    # Human-readable
+
+<span class="boring"> Different each second/day
+</span>echo "Built at: $BUILD_TIME"  # 1699564800, 1699564801, 1699564802...
+</code></pre>
+<p><strong>Solution</strong>: Pass timestamp as parameter or use version</p>
+<pre><code class="language-bash"><span class="boring"> Deterministic
+</span>build_version="${1}"
+build_timestamp="${2}"
+
+echo "Built at: ${build_timestamp}"  # Same value each run
+</code></pre>
+<h3 id="3-process-ids-det003"><a class="header" href="#3-process-ids-det003">3. Process IDs (DET003)</a></h3>
+<p><strong>Problem</strong>: $$ changes for each process</p>
+<pre><code class="language-bash"><span class="boring"> Non-deterministic
+</span>LOCK_FILE="/var/run/deploy.$$"
+<span class="boring"> Output: /var/run/deploy.12345 (first run), /var/run/deploy.12346 (second run)
+</span></code></pre>
+<p><strong>Solution</strong>: Use predictable names or parameters</p>
+<pre><code class="language-bash"><span class="boring"> Deterministic
+</span>lock_file="/var/run/deploy-${1}.lock"
+<span class="boring"> Output: /var/run/deploy-v1.0.0.lock (same each run with same input)
+</span></code></pre>
+<h3 id="4-hostnames-det004"><a class="header" href="#4-hostnames-det004">4. Hostnames (DET004)</a></h3>
+<p><strong>Problem</strong>: $(hostname) varies by machine</p>
+<pre><code class="language-bash"><span class="boring"> Non-deterministic
+</span>SERVER=$(hostname)
+echo "Deploying on: $SERVER"
+<span class="boring"> Output: server1 (on server1), server2 (on server2), server3 (on server3)
+</span></code></pre>
+<p><strong>Solution</strong>: Pass hostname as parameter or use configuration</p>
+<pre><code class="language-bash"><span class="boring"> Deterministic
+</span>server="${1}"
+echo "Deploying on: ${server}"
+<span class="boring"> Output: Predictable based on input parameter
+</span></code></pre>
+<h3 id="5-uuidsguids-det005"><a class="header" href="#5-uuidsguids-det005">5. UUIDs/GUIDs (DET005)</a></h3>
+<p><strong>Problem</strong>: Universally unique identifiers are... unique</p>
+<pre><code class="language-bash"><span class="boring"> Non-deterministic
+</span>DEPLOY_ID=$(uuidgen)
+<span class="boring"> Output: 550e8400-e29b-41d4-a716-446655440000 (different every time)
+</span></code></pre>
+<p><strong>Solution</strong>: Derive IDs from input or use version</p>
+<pre><code class="language-bash"><span class="boring"> Deterministic
+</span>deploy_id="deploy-${1}-${2}"  # Constructed from version + timestamp
+<span class="boring"> Output: deploy-v1.0.0-20231109 (predictable)
+</span></code></pre>
+<h3 id="6-network-queries-det006"><a class="header" href="#6-network-queries-det006">6. Network Queries (DET006)</a></h3>
+<p><strong>Problem</strong>: DNS, API calls return different results</p>
+<pre><code class="language-bash"><span class="boring"> Non-deterministic
+</span>CURRENT_IP=$(curl -s https://api.ipify.org)
+<span class="boring"> Output: 192.0.2.1 (changes based on network, time, location)
+</span></code></pre>
+<p><strong>Solution</strong>: Pass values as parameters</p>
+<pre><code class="language-bash"><span class="boring"> Deterministic
+</span>current_ip="${1}"
+<span class="boring"> Output: Controlled by input
+</span></code></pre>
+<h2 id="testing-determinism"><a class="header" href="#testing-determinism">Testing Determinism</a></h2>
+<h3 id="property-test-same-input--same-output"><a class="header" href="#property-test-same-input--same-output">Property Test: Same Input → Same Output</a></h3>
+<pre><code class="language-bash"><span class="boring">!/bin/sh
+</span><span class="boring"> Test: Run script twice with same input, verify identical output
+</span>
+<span class="boring"> Run 1
+</span>sh deploy.sh v1.0.0 session-123 &gt; output1.txt
+
+<span class="boring"> Run 2
+</span>sh deploy.sh v1.0.0 session-123 &gt; output2.txt
+
+<span class="boring"> Verify identical
+</span>diff output1.txt output2.txt
+<span class="boring"> Expected: No differences (deterministic ✅)
+</span></code></pre>
+<h3 id="property-test-different-input--different-output"><a class="header" href="#property-test-different-input--different-output">Property Test: Different Input → Different Output</a></h3>
+<pre><code class="language-bash"><span class="boring">!/bin/sh
+</span><span class="boring"> Test: Run script with different input, verify different output
+</span>
+<span class="boring"> Run with version 1.0.0
+</span>sh deploy.sh v1.0.0 &gt; output_v1.txt
+
+<span class="boring"> Run with version 2.0.0
+</span>sh deploy.sh v2.0.0 &gt; output_v2.txt
+
+<span class="boring"> Verify different
+</span>if diff output_v1.txt output_v2.txt &gt; /dev/null; then
+    echo "FAIL: Different inputs produced same output (not deterministic)"
+else
+    echo "PASS: Different inputs produced different outputs (deterministic ✅)"
+fi
+</code></pre>
+<h3 id="repeatability-test"><a class="header" href="#repeatability-test">Repeatability Test</a></h3>
+<pre><code class="language-bash"><span class="boring">!/bin/sh
+</span><span class="boring"> Test: Run script 100 times, verify all outputs identical
+</span>
+sh deploy.sh v1.0.0 &gt; baseline.txt
+
+for i in $(seq 1 100); do
+    sh deploy.sh v1.0.0 &gt; run_$i.txt
+    if ! diff baseline.txt run_$i.txt &gt; /dev/null; then
+        echo "FAIL: Run $i produced different output"
+        exit 1
+    fi
+done
+
+echo "PASS: All 100 runs produced identical output (deterministic ✅)"
+</code></pre>
+<h2 id="linter-detection"><a class="header" href="#linter-detection">Linter Detection</a></h2>
+<p>Rash linter detects non-determinism:</p>
+<pre><code class="language-bash">bashrs lint deploy.sh
+</code></pre>
+<p>Output:</p>
+<pre><code class="language-text">deploy.sh:3:12: DET001 [Error] Non-deterministic: $RANDOM detected
+deploy.sh:4:14: DET002 [Error] Non-deterministic: timestamp $(date +%s)
+deploy.sh:5:12: DET003 [Error] Non-deterministic: process ID $$ detected
+deploy.sh:6:10: DET004 [Error] Non-deterministic: hostname command detected
+</code></pre>
+<h2 id="purification-transforms"><a class="header" href="#purification-transforms">Purification Transforms</a></h2>
+<p>Rash purification automatically fixes determinism issues:</p>
+<h3 id="before-non-deterministic"><a class="header" href="#before-non-deterministic">Before: Non-Deterministic</a></h3>
+<pre><code class="language-bash"><span class="boring">!/bin/bash
+</span>SESSION_ID=$RANDOM
+RELEASE="release-$(date +%s)"
+LOCK="/var/run/deploy.$$"
+
+echo "Deploying $RELEASE (session $SESSION_ID, lock $LOCK)"
+</code></pre>
+<h3 id="after-deterministic"><a class="header" href="#after-deterministic">After: Deterministic</a></h3>
+<pre><code class="language-bash"><span class="boring">!/bin/sh
+</span><span class="boring"> Purified by Rash v6.30.1
+</span>
+deploy() {
+    _version="${1}"
+    _session="${2:-default-session}"
+
+    release="release-${_version}"
+    lock="/var/run/deploy-${_version}.lock"
+
+    echo "Deploying ${release} (session ${_session}, lock ${lock})"
+}
+
+deploy "${1}" "${2}"
+</code></pre>
+<p><strong>Transformations</strong>:</p>
+<ul>
+<li>✅ $RANDOM → parameter <code>_session</code></li>
+<li>✅ $(date +%s) → parameter <code>_version</code></li>
+<li>✅ $$ → version-based <code>_version</code></li>
+</ul>
+<h2 id="best-practices"><a class="header" href="#best-practices">Best Practices</a></h2>
+<h3 id="1-always-use-input-parameters"><a class="header" href="#1-always-use-input-parameters">1. Always Use Input Parameters</a></h3>
+<pre><code class="language-bash"><span class="boring"> ❌ BAD: Non-deterministic
+</span>SESSION_ID=$RANDOM
+
+<span class="boring"> ✅ GOOD: Deterministic
+</span>session_id="${1}"
+</code></pre>
+<h3 id="2-avoid-time-based-values"><a class="header" href="#2-avoid-time-based-values">2. Avoid Time-Based Values</a></h3>
+<pre><code class="language-bash"><span class="boring"> ❌ BAD: Changes every second
+</span>BACKUP_NAME="backup-$(date +%s).tar.gz"
+
+<span class="boring"> ✅ GOOD: Based on version
+</span>backup_name="backup-${1}.tar.gz"
+</code></pre>
+<h3 id="3-derive-values-from-inputs"><a class="header" href="#3-derive-values-from-inputs">3. Derive Values from Inputs</a></h3>
+<pre><code class="language-bash"><span class="boring"> ❌ BAD: Random UUID
+</span>DEPLOY_ID=$(uuidgen)
+
+<span class="boring"> ✅ GOOD: Constructed from inputs
+</span>deploy_id="deploy-${VERSION}-${ENVIRONMENT}"
+</code></pre>
+<h3 id="4-use-configuration-files"><a class="header" href="#4-use-configuration-files">4. Use Configuration Files</a></h3>
+<pre><code class="language-bash"><span class="boring"> ❌ BAD: Query at runtime
+</span>CURRENT_IP=$(curl -s https://api.ipify.org)
+
+<span class="boring"> ✅ GOOD: Read from config
+</span>current_ip=$(cat /etc/myapp/ip.conf)
+</code></pre>
+<h3 id="5-seed-randomness-explicitly"><a class="header" href="#5-seed-randomness-explicitly">5. Seed Randomness Explicitly</a></h3>
+<p>If you MUST use randomness:</p>
+<pre><code class="language-bash"><span class="boring"> ❌ BAD: Unseeded random
+</span>echo $RANDOM
+
+<span class="boring"> ✅ GOOD: Seeded with parameter
+</span>seed="${1}"
+RANDOM=$seed  # Set seed explicitly
+echo $RANDOM  # Now deterministic for given seed
+</code></pre>
+<h2 id="common-patterns"><a class="header" href="#common-patterns">Common Patterns</a></h2>
+<h3 id="pattern-1-version-based-naming"><a class="header" href="#pattern-1-version-based-naming">Pattern 1: Version-Based Naming</a></h3>
+<pre><code class="language-bash"><span class="boring"> Non-deterministic
+</span>RELEASE_DIR="/app/releases/$(date +%Y%m%d-%H%M%S)"
+
+<span class="boring"> Deterministic
+</span>release_dir="/app/releases/${VERSION}"
+</code></pre>
+<h3 id="pattern-2-environment-configuration"><a class="header" href="#pattern-2-environment-configuration">Pattern 2: Environment Configuration</a></h3>
+<pre><code class="language-bash"><span class="boring"> Non-deterministic
+</span>SERVER=$(hostname)
+
+<span class="boring"> Deterministic (read from config)
+</span>server=$(cat /etc/environment)
+</code></pre>
+<h3 id="pattern-3-input-based-ids"><a class="header" href="#pattern-3-input-based-ids">Pattern 3: Input-Based IDs</a></h3>
+<pre><code class="language-bash"><span class="boring"> Non-deterministic
+</span>BUILD_ID=$(uuidgen)
+
+<span class="boring"> Deterministic
+</span>build_id="build-${GIT_COMMIT}-${BUILD_NUMBER}"
+</code></pre>
+<h2 id="integration-with-idempotency"><a class="header" href="#integration-with-idempotency">Integration with Idempotency</a></h2>
+<p>Determinism and idempotency work together:</p>
+<pre><code class="language-bash"><span class="boring">!/bin/sh
+</span><span class="boring"> Both deterministic AND idempotent
+</span>
+deploy() {
+    version="${1}"  # Deterministic: same input always
+
+<span class="boring">     Idempotent: safe to re-run
+</span>    mkdir -p "/app/releases/${version}"
+    rm -f "/app/current"
+    ln -sf "/app/releases/${version}" "/app/current"
+
+    echo "Deployed ${version}"  # Deterministic output
+}
+
+deploy "${1}"
+</code></pre>
+<p><strong>Properties</strong>:</p>
+<ul>
+<li>✅ Deterministic: Same version always produces same output</li>
+<li>✅ Idempotent: Running twice with same version is safe</li>
+</ul>
+<h2 id="further-reading"><a class="header" href="#further-reading">Further Reading</a></h2>
+<ul>
+<li><a href="./purification.html">Purification Overview</a> - Complete purification process</li>
+<li><a href="./idempotency.html">Idempotency Concept</a> - Safe re-run operations</li>
+<li><a href="./posix.html">POSIX Compliance</a> - Portable shell scripts</li>
+<li><a href="../linting/determinism.html">DET Rules</a> - Linter rules for determinism</li>
+</ul>
+<hr />
+<p><strong>Key Takeaway</strong>: Determinism makes scripts predictable and reproducible. Always use input parameters instead of random values, timestamps, or runtime queries.</p>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="../concepts/purification.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <i class="fa fa-angle-left"></i>
+                            </a>
+
+                            <a rel="next prefetch" href="../concepts/idempotency.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <i class="fa fa-angle-right"></i>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="../concepts/purification.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <i class="fa fa-angle-left"></i>
+                    </a>
+
+                    <a rel="next prefetch" href="../concepts/idempotency.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <i class="fa fa-angle-right"></i>
+                    </a>
+            </nav>
+
+        </div>
+
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+        <script src="../ace.js"></script>
+        <script src="../mode-rust.js"></script>
+        <script src="../editor.js"></script>
+        <script src="../theme-dawn.js"></script>
+        <script src="../theme-tomorrow_night.js"></script>
+
+        <script src="../elasticlunr.min.js"></script>
+        <script src="../mark.min.js"></script>
+        <script src="../searcher.js"></script>
+
+        <script src="../clipboard.min.js"></script>
+        <script src="../highlight.js"></script>
+        <script src="../book.js"></script>
+
+        <!-- Custom JS scripts -->
+
+
+
+    </div>
+    </body>
+</html>

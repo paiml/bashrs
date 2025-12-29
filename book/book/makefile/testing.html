@@ -1,0 +1,548 @@
+<!DOCTYPE HTML>
+<html lang="en" class="rust sidebar-visible" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>Makefile Testing - The Rash Book - Shell Safety and Purification</title>
+
+
+        <!-- Custom HTML head -->
+
+        <meta name="description" content="A comprehensive guide to Rash: shell safety, purification, and linting">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="../favicon.svg">
+        <link rel="shortcut icon" href="../favicon.png">
+        <link rel="stylesheet" href="../css/variables.css">
+        <link rel="stylesheet" href="../css/general.css">
+        <link rel="stylesheet" href="../css/chrome.css">
+        <link rel="stylesheet" href="../css/print.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="../FontAwesome/css/font-awesome.css">
+        <link rel="stylesheet" href="../fonts/fonts.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" id="highlight-css" href="../highlight.css">
+        <link rel="stylesheet" id="tomorrow-night-css" href="../tomorrow-night.css">
+        <link rel="stylesheet" id="ayu-highlight-css" href="../ayu-highlight.css">
+
+        <!-- Custom theme stylesheets -->
+
+
+        <!-- Provide site root and default themes to javascript -->
+        <script>
+            const path_to_root = "../";
+            const default_light_theme = "rust";
+            const default_dark_theme = "navy";
+            window.path_to_searchindex_js = "../searchindex.js";
+        </script>
+        <!-- Start loading toc.js asap -->
+        <script src="../toc.js"></script>
+    </head>
+    <body>
+    <div id="mdbook-help-container">
+        <div id="mdbook-help-popup">
+            <h2 class="mdbook-help-title">Keyboard shortcuts</h2>
+            <div>
+                <p>Press <kbd>←</kbd> or <kbd>→</kbd> to navigate between chapters</p>
+                <p>Press <kbd>S</kbd> or <kbd>/</kbd> to search in the book</p>
+                <p>Press <kbd>?</kbd> to show this help</p>
+                <p>Press <kbd>Esc</kbd> to hide this help</p>
+            </div>
+        </div>
+    </div>
+    <div id="body-container">
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                let theme = localStorage.getItem('mdbook-theme');
+                let sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            const default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? default_dark_theme : default_light_theme;
+            let theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            const html = document.documentElement;
+            html.classList.remove('rust')
+            html.classList.add(theme);
+            html.classList.add("js");
+        </script>
+
+        <input type="checkbox" id="sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            let sidebar = null;
+            const sidebar_toggle = document.getElementById("sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+                sidebar_toggle.checked = false;
+            }
+            if (sidebar === 'visible') {
+                sidebar_toggle.checked = true;
+            } else {
+                html.classList.remove('sidebar-visible');
+            }
+        </script>
+
+        <nav id="sidebar" class="sidebar" aria-label="Table of contents">
+            <!-- populated by js -->
+            <mdbook-sidebar-scrollbox class="sidebar-scrollbox"></mdbook-sidebar-scrollbox>
+            <noscript>
+                <iframe class="sidebar-iframe-outer" src="../toc.html"></iframe>
+            </noscript>
+            <div id="sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <div id="page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="menu-bar-hover-placeholder"></div>
+                <div id="menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="sidebar-toggle" class="icon-button" for="sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="sidebar">
+                            <i class="fa fa-bars"></i>
+                        </label>
+                        <button id="theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="theme-list">
+                            <i class="fa fa-paint-brush"></i>
+                        </button>
+                        <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="default_theme">Auto</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
+                        </ul>
+                        <button id="search-toggle" class="icon-button" type="button" title="Search (`/`)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="/ s" aria-controls="searchbar">
+                            <i class="fa fa-search"></i>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">The Rash Book - Shell Safety and Purification</h1>
+
+                    <div class="right-buttons">
+                        <a href="../print.html" title="Print this book" aria-label="Print this book">
+                            <i id="print-button" class="fa fa-print"></i>
+                        </a>
+                        <a href="https://github.com/paiml/bashrs" title="Git repository" aria-label="Git repository">
+                            <i id="git-repository-button" class="fa fa-github"></i>
+                        </a>
+                        <a href="https://github.com/paiml/bashrs/edit/main/book/src/makefile/testing.md" title="Suggest an edit" aria-label="Suggest an edit" rel="edit">
+                            <i id="git-edit-button" class="fa fa-edit"></i>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="search-wrapper" class="hidden">
+                    <form id="searchbar-outer" class="searchbar-outer">
+                        <div class="search-wrapper">
+                            <input type="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                            <div class="spinner-wrapper">
+                                <i class="fa fa-spinner fa-spin"></i>
+                            </div>
+                        </div>
+                    </form>
+                    <div id="searchresults-outer" class="searchresults-outer hidden">
+                        <div id="searchresults-header" class="searchresults-header"></div>
+                        <ul id="searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="content" class="content">
+                    <main>
+                        <h1 id="makefile-testing"><a class="header" href="#makefile-testing">Makefile Testing</a></h1>
+<p>Bashrs provides comprehensive test generation for purified Makefiles, ensuring your build scripts are deterministic, idempotent, and POSIX-compliant.</p>
+<h2 id="overview"><a class="header" href="#overview">Overview</a></h2>
+<p>When purifying Makefiles with the <code>--with-tests</code> flag, bashrs automatically generates a complete test suite that validates:</p>
+<ul>
+<li><strong>Determinism</strong>: Same input produces same output every time</li>
+<li><strong>Idempotency</strong>: Safe to run multiple times without errors</li>
+<li><strong>POSIX Compliance</strong>: Works with POSIX make implementations</li>
+</ul>
+<h2 id="basic-usage"><a class="header" href="#basic-usage">Basic Usage</a></h2>
+<h3 id="generate-tests-with-purification"><a class="header" href="#generate-tests-with-purification">Generate Tests with Purification</a></h3>
+<pre><code class="language-bash"><span class="boring"> Purify Makefile and generate test suite
+</span>bashrs make purify Makefile --with-tests -o Makefile.purified
+
+<span class="boring"> This creates two files:
+</span><span class="boring"> - Makefile.purified         # Purified Makefile
+</span><span class="boring"> - Makefile.purified.test.sh # Test suite
+</span></code></pre>
+<h3 id="run-the-generated-tests"><a class="header" href="#run-the-generated-tests">Run the Generated Tests</a></h3>
+<pre><code class="language-bash"><span class="boring"> Make test executable and run
+</span>chmod +x Makefile.purified.test.sh
+./Makefile.purified.test.sh
+
+<span class="boring"> Or run with sh directly
+</span>sh Makefile.purified.test.sh
+</code></pre>
+<h2 id="test-suite-components"><a class="header" href="#test-suite-components">Test Suite Components</a></h2>
+<p>The generated test suite includes three core tests:</p>
+<h3 id="1-determinism-test"><a class="header" href="#1-determinism-test">1. Determinism Test</a></h3>
+<p>Verifies that running make multiple times with the same input produces identical output:</p>
+<pre><code class="language-bash">test_determinism() {
+<span class="boring">     Run make twice
+</span>    make -f "Makefile.purified" &gt; /tmp/output1.txt 2&gt;&amp;1
+    make -f "Makefile.purified" &gt; /tmp/output2.txt 2&gt;&amp;1
+
+<span class="boring">     Compare outputs (sorted to handle parallel execution)
+</span>    if diff &lt;(sort /tmp/output1.txt) &lt;(sort /tmp/output2.txt); then
+        echo "✓ Determinism test passed"
+    else
+        echo "✗ Determinism test failed"
+        return 1
+    fi
+}
+</code></pre>
+<p><strong>What it catches:</strong></p>
+<ul>
+<li>Timestamps in build outputs</li>
+<li>Random number generation (<code>$RANDOM</code>)</li>
+<li>Process IDs (<code>$$</code>)</li>
+<li>Unpredictable command ordering</li>
+</ul>
+<h3 id="2-idempotency-test"><a class="header" href="#2-idempotency-test">2. Idempotency Test</a></h3>
+<p>Ensures the Makefile can be run multiple times safely:</p>
+<pre><code class="language-bash">test_idempotency() {
+<span class="boring">     Run make three times
+</span>    make -f "Makefile.purified" || true
+    make -f "Makefile.purified" || exit_code1=$?
+    make -f "Makefile.purified" || exit_code2=$?
+
+<span class="boring">     Second and third runs should succeed
+</span>    if [ "${exit_code1:-0}" -eq 0 ] &amp;&amp; [ "${exit_code2:-0}" -eq 0 ]; then
+        echo "✓ Idempotency test passed"
+    else
+        echo "✗ Idempotency test failed"
+        return 1
+    fi
+}
+</code></pre>
+<p><strong>What it catches:</strong></p>
+<ul>
+<li>Missing <code>-p</code> flag on <code>mkdir</code> (fails on second run)</li>
+<li>Missing <code>-f</code> flag on <code>cp</code> (fails if file exists)</li>
+<li>Non-idempotent operations that break on re-run</li>
+</ul>
+<h3 id="3-posix-compliance-test"><a class="header" href="#3-posix-compliance-test">3. POSIX Compliance Test</a></h3>
+<p>Verifies the Makefile works with POSIX make implementations:</p>
+<pre><code class="language-bash">test_posix_compliance() {
+<span class="boring">     Test with different make implementations
+</span>    for make_cmd in make pmake bmake; do
+        if command -v "$make_cmd" &gt; /dev/null 2&gt;&amp;1; then
+            echo "Testing with $make_cmd..."
+            if "$make_cmd" -f "Makefile.purified" &gt; /dev/null 2&gt;&amp;1; then
+                echo "✓ Works with $make_cmd"
+            else
+                echo "✗ Failed with $make_cmd"
+                return 1
+            fi
+        fi
+    done
+}
+</code></pre>
+<p><strong>What it catches:</strong></p>
+<ul>
+<li>GNU make-specific extensions</li>
+<li>Non-portable shell constructs</li>
+<li>Platform-specific commands</li>
+</ul>
+<h2 id="example-workflow"><a class="header" href="#example-workflow">Example Workflow</a></h2>
+<h3 id="starting-with-a-non-deterministic-makefile"><a class="header" href="#starting-with-a-non-deterministic-makefile">Starting with a Non-Deterministic Makefile</a></h3>
+<pre><code class="language-makefile"># Original Makefile with issues
+.PHONY: build
+
+build:
+    mkdir build
+    echo "Build time: $(shell date)" &gt; build/timestamp.txt
+    echo "Build ID: $$RANDOM" &gt;&gt; build/timestamp.txt
+    gcc -o build/myapp src/main.c
+</code></pre>
+<p><strong>Problems:</strong></p>
+<ul>
+<li><code>mkdir build</code> - Not idempotent (fails on second run)</li>
+<li><code>$(shell date)</code> - Non-deterministic timestamp</li>
+<li><code>$$RANDOM</code> - Non-deterministic random number</li>
+</ul>
+<h3 id="purify-with-test-generation"><a class="header" href="#purify-with-test-generation">Purify with Test Generation</a></h3>
+<pre><code class="language-bash">bashrs make purify Makefile --with-tests -o Makefile.purified
+</code></pre>
+<h3 id="purified-output"><a class="header" href="#purified-output">Purified Output</a></h3>
+<pre><code class="language-makefile"># Purified Makefile
+.PHONY: build
+
+build:
+    mkdir -p build
+    echo "Build info" &gt; build/timestamp.txt
+    gcc -o build/myapp src/main.c
+</code></pre>
+<p><strong>Improvements:</strong></p>
+<ul>
+<li>✅ <code>mkdir -p</code> - Idempotent (safe to re-run)</li>
+<li>✅ Removed <code>$(shell date)</code> - Deterministic</li>
+<li>✅ Removed <code>$$RANDOM</code> - Deterministic</li>
+</ul>
+<h3 id="run-tests"><a class="header" href="#run-tests">Run Tests</a></h3>
+<pre><code class="language-bash">sh Makefile.purified.test.sh
+</code></pre>
+<p><strong>Output:</strong></p>
+<pre><code class="language-text">Testing determinism for Makefile.purified...
+✓ Determinism test passed
+
+Testing idempotency for Makefile.purified...
+✓ Idempotency test passed
+
+Testing POSIX compliance for Makefile.purified...
+Testing with make...
+✓ Works with make
+
+============================================
+Test Results Summary
+============================================
+Total Tests: 3
+Passed: 3
+Failed: 0
+
+Status: ✓ All tests passed!
+</code></pre>
+<h2 id="advanced-testing-features"><a class="header" href="#advanced-testing-features">Advanced Testing Features</a></h2>
+<h3 id="property-based-testing-future"><a class="header" href="#property-based-testing-future">Property-Based Testing (Future)</a></h3>
+<pre><code class="language-bash"><span class="boring"> Generate property-based tests (planned)
+</span>bashrs make purify Makefile --with-tests --property-tests -o Makefile.purified
+</code></pre>
+<p>This will generate tests with:</p>
+<ul>
+<li>Randomized input variations</li>
+<li>Edge case exploration</li>
+<li>Fuzz testing for robustness</li>
+</ul>
+<h3 id="custom-test-assertions"><a class="header" href="#custom-test-assertions">Custom Test Assertions</a></h3>
+<p>You can extend the generated test suite with custom assertions:</p>
+<pre><code class="language-bash"><span class="boring"> Add custom test after generation
+</span>cat &gt;&gt; Makefile.purified.test.sh &lt;&lt;'EOF'
+
+<span class="boring"> Custom test: Check build artifacts
+</span>test_artifacts() {
+    make -f "Makefile.purified" build
+
+    if [ -f build/myapp ]; then
+        echo "✓ Build artifact exists"
+    else
+        echo "✗ Build artifact missing"
+        return 1
+    fi
+}
+EOF
+</code></pre>
+<h2 id="integration-with-cicd"><a class="header" href="#integration-with-cicd">Integration with CI/CD</a></h2>
+<h3 id="github-actions-example"><a class="header" href="#github-actions-example">GitHub Actions Example</a></h3>
+<pre><code class="language-yaml">name: Makefile Tests
+
+on: [push, pull_request]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install bashrs
+        run: cargo install bashrs
+
+      - name: Purify Makefile with tests
+        run: bashrs make purify Makefile --with-tests -o Makefile.purified
+
+      - name: Run test suite
+        run: sh Makefile.purified.test.sh
+
+      - name: Verify purified Makefile works
+        run: make -f Makefile.purified all
+</code></pre>
+<h3 id="gitlab-ci-example"><a class="header" href="#gitlab-ci-example">GitLab CI Example</a></h3>
+<pre><code class="language-yaml">makefile-tests:
+  stage: test
+  script:
+    - cargo install bashrs
+    - bashrs make purify Makefile --with-tests -o Makefile.purified
+    - sh Makefile.purified.test.sh
+    - make -f Makefile.purified all
+</code></pre>
+<h2 id="troubleshooting"><a class="header" href="#troubleshooting">Troubleshooting</a></h2>
+<h3 id="test-failures"><a class="header" href="#test-failures">Test Failures</a></h3>
+<h4 id="determinism-test-fails"><a class="header" href="#determinism-test-fails">Determinism Test Fails</a></h4>
+<p><strong>Symptom:</strong> Outputs differ between runs</p>
+<p><strong>Common Causes:</strong></p>
+<ul>
+<li>Timestamps in output</li>
+<li>Random numbers</li>
+<li>Process IDs</li>
+<li>System-dependent paths</li>
+</ul>
+<p><strong>Solution:</strong></p>
+<pre><code class="language-bash"><span class="boring"> Check what's different
+</span>bashrs make purify Makefile --with-tests -o Makefile.purified
+sh Makefile.purified.test.sh
+
+<span class="boring"> Review the diff output to identify non-deterministic sources
+</span></code></pre>
+<h4 id="idempotency-test-fails"><a class="header" href="#idempotency-test-fails">Idempotency Test Fails</a></h4>
+<p><strong>Symptom:</strong> Second or third run fails</p>
+<p><strong>Common Causes:</strong></p>
+<ul>
+<li><code>mkdir</code> without <code>-p</code></li>
+<li><code>cp</code> without <code>-f</code></li>
+<li>Operations that fail on existing files</li>
+</ul>
+<p><strong>Solution:</strong></p>
+<pre><code class="language-bash"><span class="boring"> Bashrs should auto-fix these, but verify:
+</span>grep -E 'mkdir[^-]' Makefile.purified  # Should have -p flag
+grep -E 'cp[^-]' Makefile.purified     # Should have -f flag
+</code></pre>
+<h4 id="posix-compliance-test-fails"><a class="header" href="#posix-compliance-test-fails">POSIX Compliance Test Fails</a></h4>
+<p><strong>Symptom:</strong> Works with GNU make but fails with other implementations</p>
+<p><strong>Common Causes:</strong></p>
+<ul>
+<li>GNU-specific extensions (<code>:=</code>, <code>+=</code>, etc.)</li>
+<li>Bash-specific syntax in recipes</li>
+<li>Non-portable commands</li>
+</ul>
+<p><strong>Solution:</strong></p>
+<pre><code class="language-bash"><span class="boring"> Use POSIX-only features
+</span><span class="boring"> bashrs should warn about non-portable constructs
+</span>bashrs make lint Makefile
+</code></pre>
+<h2 id="best-practices"><a class="header" href="#best-practices">Best Practices</a></h2>
+<h3 id="1-always-generate-tests"><a class="header" href="#1-always-generate-tests">1. Always Generate Tests</a></h3>
+<pre><code class="language-bash"><span class="boring"> Good: Generate tests with every purification
+</span>bashrs make purify Makefile --with-tests -o Makefile.purified
+
+<span class="boring"> Bad: Purify without tests
+</span>bashrs make purify Makefile -o Makefile.purified  # No tests!
+</code></pre>
+<h3 id="2-run-tests-before-deployment"><a class="header" href="#2-run-tests-before-deployment">2. Run Tests Before Deployment</a></h3>
+<pre><code class="language-bash"><span class="boring"> Ensure tests pass before using purified Makefile
+</span>bashrs make purify Makefile --with-tests -o Makefile.purified
+sh Makefile.purified.test.sh || exit 1
+cp Makefile.purified Makefile
+</code></pre>
+<h3 id="3-version-control-test-suites"><a class="header" href="#3-version-control-test-suites">3. Version Control Test Suites</a></h3>
+<pre><code class="language-bash"><span class="boring"> Keep test suites in version control
+</span>git add Makefile.purified Makefile.purified.test.sh
+git commit -m "Add purified Makefile with test suite"
+</code></pre>
+<h3 id="4-test-on-multiple-platforms"><a class="header" href="#4-test-on-multiple-platforms">4. Test on Multiple Platforms</a></h3>
+<pre><code class="language-bash"><span class="boring"> Run tests on different OSes and make implementations
+</span><span class="boring"> - Linux (GNU make)
+</span><span class="boring"> - macOS (BSD make)
+</span><span class="boring"> - FreeBSD (BSD make)
+</span></code></pre>
+<h2 id="example-complete-workflow"><a class="header" href="#example-complete-workflow">Example: Complete Workflow</a></h2>
+<p>Try the complete workflow with the provided example:</p>
+<pre><code class="language-bash"><span class="boring"> Run the comprehensive example
+</span>cargo run --example makefile_purify_with_tests
+
+<span class="boring"> This demonstrates:
+</span><span class="boring"> - Creating a problematic Makefile
+</span><span class="boring"> - Running purification with test generation
+</span><span class="boring"> - Showing purified output
+</span><span class="boring"> - Displaying generated tests
+</span><span class="boring"> - Validating syntax
+</span><span class="boring"> - Explaining improvements
+</span></code></pre>
+<p>The example provides a 10-step walkthrough of the entire process, showing exactly what bashrs does and how the tests work.</p>
+<h2 id="see-also"><a class="header" href="#see-also">See Also</a></h2>
+<ul>
+<li><a href="./overview.html">Makefile Overview</a> - Basic Makefile purification</li>
+<li><a href="./security.html">Makefile Security</a> - Security-focused purification</li>
+<li><a href="./best-practices.html">Makefile Best Practices</a> - Writing better Makefiles</li>
+<li><a href="../advanced/property-testing.html">Property Testing</a> - Advanced testing techniques</li>
+</ul>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="../makefile/best-practices.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <i class="fa fa-angle-left"></i>
+                            </a>
+
+                            <a rel="next prefetch" href="../installer/overview.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <i class="fa fa-angle-right"></i>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="../makefile/best-practices.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <i class="fa fa-angle-left"></i>
+                    </a>
+
+                    <a rel="next prefetch" href="../installer/overview.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <i class="fa fa-angle-right"></i>
+                    </a>
+            </nav>
+
+        </div>
+
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+        <script src="../ace.js"></script>
+        <script src="../mode-rust.js"></script>
+        <script src="../editor.js"></script>
+        <script src="../theme-dawn.js"></script>
+        <script src="../theme-tomorrow_night.js"></script>
+
+        <script src="../elasticlunr.min.js"></script>
+        <script src="../mark.min.js"></script>
+        <script src="../searcher.js"></script>
+
+        <script src="../clipboard.min.js"></script>
+        <script src="../highlight.js"></script>
+        <script src="../book.js"></script>
+
+        <!-- Custom JS scripts -->
+
+
+
+    </div>
+    </body>
+</html>

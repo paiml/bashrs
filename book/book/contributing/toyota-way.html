@@ -1,0 +1,777 @@
+<!DOCTYPE HTML>
+<html lang="en" class="rust sidebar-visible" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>Toyota Way Principles - The Rash Book - Shell Safety and Purification</title>
+
+
+        <!-- Custom HTML head -->
+
+        <meta name="description" content="A comprehensive guide to Rash: shell safety, purification, and linting">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="../favicon.svg">
+        <link rel="shortcut icon" href="../favicon.png">
+        <link rel="stylesheet" href="../css/variables.css">
+        <link rel="stylesheet" href="../css/general.css">
+        <link rel="stylesheet" href="../css/chrome.css">
+        <link rel="stylesheet" href="../css/print.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="../FontAwesome/css/font-awesome.css">
+        <link rel="stylesheet" href="../fonts/fonts.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" id="highlight-css" href="../highlight.css">
+        <link rel="stylesheet" id="tomorrow-night-css" href="../tomorrow-night.css">
+        <link rel="stylesheet" id="ayu-highlight-css" href="../ayu-highlight.css">
+
+        <!-- Custom theme stylesheets -->
+
+
+        <!-- Provide site root and default themes to javascript -->
+        <script>
+            const path_to_root = "../";
+            const default_light_theme = "rust";
+            const default_dark_theme = "navy";
+            window.path_to_searchindex_js = "../searchindex.js";
+        </script>
+        <!-- Start loading toc.js asap -->
+        <script src="../toc.js"></script>
+    </head>
+    <body>
+    <div id="mdbook-help-container">
+        <div id="mdbook-help-popup">
+            <h2 class="mdbook-help-title">Keyboard shortcuts</h2>
+            <div>
+                <p>Press <kbd>←</kbd> or <kbd>→</kbd> to navigate between chapters</p>
+                <p>Press <kbd>S</kbd> or <kbd>/</kbd> to search in the book</p>
+                <p>Press <kbd>?</kbd> to show this help</p>
+                <p>Press <kbd>Esc</kbd> to hide this help</p>
+            </div>
+        </div>
+    </div>
+    <div id="body-container">
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                let theme = localStorage.getItem('mdbook-theme');
+                let sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            const default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? default_dark_theme : default_light_theme;
+            let theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            const html = document.documentElement;
+            html.classList.remove('rust')
+            html.classList.add(theme);
+            html.classList.add("js");
+        </script>
+
+        <input type="checkbox" id="sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            let sidebar = null;
+            const sidebar_toggle = document.getElementById("sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+                sidebar_toggle.checked = false;
+            }
+            if (sidebar === 'visible') {
+                sidebar_toggle.checked = true;
+            } else {
+                html.classList.remove('sidebar-visible');
+            }
+        </script>
+
+        <nav id="sidebar" class="sidebar" aria-label="Table of contents">
+            <!-- populated by js -->
+            <mdbook-sidebar-scrollbox class="sidebar-scrollbox"></mdbook-sidebar-scrollbox>
+            <noscript>
+                <iframe class="sidebar-iframe-outer" src="../toc.html"></iframe>
+            </noscript>
+            <div id="sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <div id="page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="menu-bar-hover-placeholder"></div>
+                <div id="menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="sidebar-toggle" class="icon-button" for="sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="sidebar">
+                            <i class="fa fa-bars"></i>
+                        </label>
+                        <button id="theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="theme-list">
+                            <i class="fa fa-paint-brush"></i>
+                        </button>
+                        <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="default_theme">Auto</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
+                        </ul>
+                        <button id="search-toggle" class="icon-button" type="button" title="Search (`/`)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="/ s" aria-controls="searchbar">
+                            <i class="fa fa-search"></i>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">The Rash Book - Shell Safety and Purification</h1>
+
+                    <div class="right-buttons">
+                        <a href="../print.html" title="Print this book" aria-label="Print this book">
+                            <i id="print-button" class="fa fa-print"></i>
+                        </a>
+                        <a href="https://github.com/paiml/bashrs" title="Git repository" aria-label="Git repository">
+                            <i id="git-repository-button" class="fa fa-github"></i>
+                        </a>
+                        <a href="https://github.com/paiml/bashrs/edit/main/book/src/contributing/toyota-way.md" title="Suggest an edit" aria-label="Suggest an edit" rel="edit">
+                            <i id="git-edit-button" class="fa fa-edit"></i>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="search-wrapper" class="hidden">
+                    <form id="searchbar-outer" class="searchbar-outer">
+                        <div class="search-wrapper">
+                            <input type="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                            <div class="spinner-wrapper">
+                                <i class="fa fa-spinner fa-spin"></i>
+                            </div>
+                        </div>
+                    </form>
+                    <div id="searchresults-outer" class="searchresults-outer hidden">
+                        <div id="searchresults-header" class="searchresults-header"></div>
+                        <ul id="searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="content" class="content">
+                    <main>
+                        <h1 id="toyota-way-principles"><a class="header" href="#toyota-way-principles">Toyota Way Principles</a></h1>
+<p>Rash (bashrs) follows the <strong>Toyota Way</strong> manufacturing philosophy, adapted for software development. These principles ensure <strong>NASA-level quality</strong> through rigorous quality gates, zero-defect policies, and continuous improvement.</p>
+<h2 id="philosophy-overview"><a class="header" href="#philosophy-overview">Philosophy Overview</a></h2>
+<p>The Toyota Way emphasizes building quality into the development process, not testing it in afterward. This translates to:</p>
+<ul>
+<li><strong>Zero tolerance for defects</strong> - All tests must pass before committing</li>
+<li><strong>Stop the line</strong> - Immediately halt work when bugs are discovered</li>
+<li><strong>Continuous improvement</strong> - Every iteration should improve quality metrics</li>
+<li><strong>Direct observation</strong> - Validate against real-world usage, not just theory</li>
+</ul>
+<p>These principles are embedded in <strong>EXTREME TDD methodology</strong> and enforced through automated quality gates.</p>
+<h2 id="core-principles"><a class="header" href="#core-principles">Core Principles</a></h2>
+<h3 id="-jidoka-自働化---build-quality-in"><a class="header" href="#-jidoka-自働化---build-quality-in">🚨 Jidoka (自働化) - Build Quality In</a></h3>
+<p><strong>Japanese</strong>: 自働化 (Jidoka)
+<strong>English</strong>: "Automation with a human touch" or "Build quality in"</p>
+<p><strong>Definition</strong>: Build quality into the development process from the start. Don't rely on testing to find defects - prevent them through design.</p>
+<h4 id="how-rash-applies-jidoka"><a class="header" href="#how-rash-applies-jidoka">How Rash Applies Jidoka</a></h4>
+<ol>
+<li>
+<p><strong>Automated Quality Gates</strong></p>
+<pre><code class="language-bash"><span class="boring"> Pre-commit hooks enforce quality automatically
+</span>git commit
+<span class="boring"> → Runs tests (6321+ tests)
+</span><span class="boring"> → Runs clippy (zero warnings required)
+</span><span class="boring"> → Checks formatting
+</span><span class="boring"> → Verifies complexity &lt;10
+</span><span class="boring"> → REJECTS commit if any check fails
+</span></code></pre>
+</li>
+<li>
+<p><strong>Bash Purification Validation</strong></p>
+<pre><code class="language-bash"><span class="boring"> Every purified script MUST pass shellcheck
+</span>bashrs purify script.sh --output purified.sh
+shellcheck -s sh purified.sh  # Automatic POSIX validation
+</code></pre>
+</li>
+<li>
+<p><strong>Test Coverage Requirements</strong></p>
+<ul>
+<li><strong>Target</strong>: &gt;85% coverage on all modules</li>
+<li><strong>Current</strong>: 6321+ tests passing (100% pass rate)</li>
+<li><strong>Enforcement</strong>: CI/CD fails if coverage drops below threshold</li>
+</ul>
+</li>
+<li>
+<p><strong>Never Ship Incomplete Code</strong></p>
+<ul>
+<li>All purifier outputs must be fully safe</li>
+<li>All generated shell must pass quality gates</li>
+<li>All linter rules must have &gt;80% mutation kill rate</li>
+</ul>
+</li>
+</ol>
+<h4 id="real-example-sec001-mutation-testing"><a class="header" href="#real-example-sec001-mutation-testing">Real Example: SEC001 Mutation Testing</a></h4>
+<p><strong>Jidoka Applied</strong>:</p>
+<pre><code class="language-bash"><span class="boring"> Before committing SEC001 rule, verify quality
+</span>cargo mutants --file rash/src/linter/rules/sec001.rs --timeout 300 -- --lib
+
+<span class="boring"> Result: 100% mutation kill rate (16/16 mutants caught)
+</span><span class="boring"> Quality built in - not tested in afterward
+</span></code></pre>
+<p><strong>If mutation testing had failed</strong> (&lt;90% kill rate):</p>
+<pre><code class="language-text">🚨 STOP THE LINE - Quality Gate Failed 🚨
+
+Mutation kill rate: 75% (below 90% threshold)
+Action: Add targeted tests to catch missed mutants
+Status: COMMIT REJECTED until quality gate passes
+</code></pre>
+<p>This is Jidoka - <strong>build quality in from the start</strong>.</p>
+<h3 id="-genchi-genbutsu-現地現物---go-and-see"><a class="header" href="#-genchi-genbutsu-現地現物---go-and-see">🎯 Genchi Genbutsu (現地現物) - Go and See</a></h3>
+<p><strong>Japanese</strong>: 現地現物 (Genchi Genbutsu)
+<strong>English</strong>: "Go and see for yourself" - Direct observation at the source</p>
+<p><strong>Definition</strong>: Understand problems and validate solutions through direct observation of real-world usage, not assumptions or theory.</p>
+<h4 id="how-rash-applies-genchi-genbutsu"><a class="header" href="#how-rash-applies-genchi-genbutsu">How Rash Applies Genchi Genbutsu</a></h4>
+<ol>
+<li>
+<p><strong>Test Against Real Shells</strong></p>
+<pre><code class="language-bash"><span class="boring"> Don't assume - test on actual target shells
+</span>for shell in sh dash ash bash busybox; do
+    echo "Testing with: $shell"
+    $shell purified_script.sh
+done
+</code></pre>
+</li>
+<li>
+<p><strong>Profile Actual Scenarios</strong></p>
+<pre><code class="language-bash"><span class="boring"> Test real-world use cases in production-like environments
+</span>docker run -it alpine:latest sh
+<span class="boring"> Install bashrs and test bootstrap installers
+</span>wget https://example.com/install.sh
+bashrs purify install.sh --output safe_install.sh
+sh safe_install.sh  # Verify it works in minimal environment
+</code></pre>
+</li>
+<li>
+<p><strong>Verify Purification Preserves Behavior</strong></p>
+<pre><code class="language-bash"><span class="boring"> Original bash script
+</span>bash original.sh &gt; original_output.txt
+
+<span class="boring"> Purified POSIX sh
+</span>sh purified.sh &gt; purified_output.txt
+
+<span class="boring"> VERIFY: Outputs must be identical
+</span>diff original_output.txt purified_output.txt
+<span class="boring"> Expected: No differences (behavioral equivalence)
+</span></code></pre>
+</li>
+<li>
+<p><strong>Property-Based Testing with Real Inputs</strong></p>
+<pre><code class="language-rust ignore">// Generate thousands of real-world test cases
+proptest! {
+    #[test]
+    fn prop_purification_preserves_behavior(
+        bash_code in r"[a-z0-9_=\s]{1,100}"
+    ) {
+        let original_result = execute_bash(&amp;bash_code);
+        let purified = purify(&amp;bash_code);
+        let purified_result = execute_sh(&amp;purified);
+
+        // VERIFY: Same behavior on real inputs
+        prop_assert_eq!(original_result, purified_result);
+    }
+}</code></pre>
+</li>
+</ol>
+<h4 id="real-example-v6301-parser-bug-discovery"><a class="header" href="#real-example-v6301-parser-bug-discovery">Real Example: v6.30.1 Parser Bug Discovery</a></h4>
+<p><strong>Genchi Genbutsu in Action</strong>:</p>
+<p>Property tests discovered a critical parser bug:</p>
+<pre><code class="language-bash"><span class="boring"> Property test generated this real-world test case:
+</span>fi=1
+
+<span class="boring"> Parser ERROR: InvalidSyntax("Expected command name")
+</span><span class="boring"> This is VALID bash - keywords can be variable names!
+</span></code></pre>
+<p><strong>Direct Observation</strong> revealed the problem:</p>
+<pre><code class="language-bash"><span class="boring"> Go and see for yourself
+</span>$ bash
+bash$ fi=1
+bash$ echo $fi
+1              # Works in real bash!
+
+$ sh
+sh$ fi=1
+sh$ echo $fi
+1              # Works in real POSIX sh too!
+</code></pre>
+<p><strong>Root Cause</strong>: Parser theory was wrong - bash keywords are only special in specific syntactic positions. Direct observation with real shells revealed the specification gap.</p>
+<p><strong>Fix</strong>: Updated parser to match actual bash behavior, not assumed behavior.</p>
+<p>This is Genchi Genbutsu - <strong>verify against reality, not assumptions</strong>.</p>
+<h3 id="-hansei-反省---reflection-and-learning"><a class="header" href="#-hansei-反省---reflection-and-learning">🔍 Hansei (反省) - Reflection and Learning</a></h3>
+<p><strong>Japanese</strong>: 反省 (Hansei)
+<strong>English</strong>: "Reflection" - Learn from problems and fix root causes</p>
+<p><strong>Definition</strong>: Reflect on what went wrong, identify root causes, and implement systematic fixes to prevent recurrence.</p>
+<h4 id="how-rash-applies-hansei"><a class="header" href="#how-rash-applies-hansei">How Rash Applies Hansei</a></h4>
+<ol>
+<li>
+<p><strong>Fix Before Adding Features</strong></p>
+<ul>
+<li><strong>Current priorities</strong> (v6.30+ focus):
+<ol>
+<li>Fix all SEC rules to &gt;90% mutation kill rate (Phase 2 IN PROGRESS)</li>
+<li>Complete book documentation (3/3 critical chapters now fixed)</li>
+<li>Performance optimization (&lt;100ms for typical scripts)</li>
+<li>THEN add new features (SEC009-SEC045 deferred to v2.x)</li>
+</ol>
+</li>
+</ul>
+</li>
+<li>
+<p><strong>Root Cause Analysis</strong></p>
+<pre><code class="language-markdown">When property tests fail, don't just fix the symptom - understand WHY.
+
+Example: v6.30.1 Parser Bug
+- Symptom: Property test failed on "fi=1"
+- Root Cause: Parser treated keywords as special in all contexts
+- Fix: Added assignment pattern detection before keyword routing
+- Prevention: Added 14 tests for all keyword assignments
+</code></pre>
+</li>
+<li>
+<p><strong>Systematic Improvement</strong></p>
+<pre><code class="language-bash"><span class="boring"> After fixing a bug, ensure it can't happen again
+</span>
+<span class="boring"> Step 1: Add regression test
+</span><span class="boring">[test]
+</span>fn test_issue_001_keyword_assignments() {
+    // Prevent this bug from recurring
+}
+
+<span class="boring"> Step 2: Document in CHANGELOG
+</span><span class="boring"> "Fixed: Parser now handles keyword assignments (fi=1, for=2, etc.)"
+</span>
+<span class="boring"> Step 3: Update roadmap
+</span><span class="boring"> Mark PARAM-KEYWORD-001 as completed
+</span></code></pre>
+</li>
+<li>
+<p><strong>Learn from Metrics</strong></p>
+<pre><code class="language-bash"><span class="boring"> SEC002 baseline: 75.0% mutation kill rate
+</span><span class="boring"> Reflection: Why not 90%+?
+</span><span class="boring"> Analysis: Missing tests for edge cases
+</span><span class="boring"> Action: Add 8 mutation coverage tests
+</span><span class="boring"> Result: Expected 87-91% after iteration
+</span></code></pre>
+</li>
+</ol>
+<h4 id="real-example-sec-batch-mutation-testing-reflection"><a class="header" href="#real-example-sec-batch-mutation-testing-reflection">Real Example: SEC Batch Mutation Testing Reflection</a></h4>
+<p><strong>Hansei Applied</strong>:</p>
+<p>After SEC001 achieved 100% mutation kill rate, we reflected:</p>
+<p><strong>Question</strong>: Why did SEC001 succeed perfectly?
+<strong>Analysis</strong>: Universal mutation pattern discovered (arithmetic mutations in <code>Span::new()</code>)
+<strong>Learning</strong>: This pattern should work for ALL SEC rules
+<strong>Action</strong>: Pre-wrote 45 tests for SEC002-SEC008 using same pattern
+<strong>Result</strong>: 81.2% baseline average (exceeding 80% target before iteration!)</p>
+<p><strong>Further Reflection</strong>:</p>
+<p><strong>Question</strong>: Why did baseline average exceed 80% target?
+<strong>Answer</strong>: High-quality existing tests + pattern recognition
+<strong>Learning</strong>: Batch processing with pre-written tests saves 6-8 hours
+<strong>Action</strong>: Apply batch approach to future rule development</p>
+<p>This is Hansei - <strong>reflect on success and failure, learn patterns, improve systematically</strong>.</p>
+<h3 id="-kaizen-改善---continuous-improvement"><a class="header" href="#-kaizen-改善---continuous-improvement">📈 Kaizen (改善) - Continuous Improvement</a></h3>
+<p><strong>Japanese</strong>: 改善 (Kaizen)
+<strong>English</strong>: "Continuous improvement" - Small, incremental enhancements</p>
+<p><strong>Definition</strong>: Continuously improve processes, code quality, and efficiency through small, measurable iterations.</p>
+<h4 id="how-rash-applies-kaizen"><a class="header" href="#how-rash-applies-kaizen">How Rash Applies Kaizen</a></h4>
+<ol>
+<li>
+<p><strong>Quality Baselines</strong></p>
+<pre><code class="language-bash"><span class="boring"> Establish baseline, then improve incrementally
+</span>
+<span class="boring"> SEC002 Baseline: 75.0% mutation kill rate (24/32 mutants caught)
+</span><span class="boring"> Iteration 1: Add 8 targeted tests
+</span><span class="boring"> Expected: 87-91% kill rate (28-29/32 mutants caught)
+</span><span class="boring"> Improvement: +12-16 percentage points
+</span></code></pre>
+</li>
+<li>
+<p><strong>Performance Optimization</strong></p>
+<pre><code class="language-bash"><span class="boring"> Continuous performance improvement
+</span>
+<span class="boring"> Baseline: 200ms transpilation time
+</span><span class="boring"> Target: &lt;100ms for typical scripts
+</span><span class="boring"> Approach: Profile, optimize hot paths incrementally
+</span><span class="boring"> Measure: Benchmark after each optimization
+</span></code></pre>
+</li>
+<li>
+<p><strong>Test Coverage Improvement</strong></p>
+<pre><code class="language-bash"><span class="boring"> Incremental coverage increases
+</span>
+<span class="boring"> v6.24.0: 6164 tests
+</span><span class="boring"> v6.25.0: 6260 tests (+96 tests)
+</span><span class="boring"> v6.30.0: 6321 tests (+61 tests)
+</span><span class="boring"> Trend: Continuous growth, never regression
+</span></code></pre>
+</li>
+<li>
+<p><strong>Code Complexity Reduction</strong></p>
+<pre><code class="language-bash"><span class="boring"> v6.24.3 Complexity Reduction
+</span>
+<span class="boring"> Before refactoring:
+</span><span class="boring"> - SC2178: complexity 10
+</span><span class="boring"> - SEC008: complexity 12
+</span><span class="boring"> - SC2168: complexity 12
+</span>
+<span class="boring"> After refactoring (v6.24.3):
+</span><span class="boring"> - SC2178: complexity 9 (-1 point)
+</span><span class="boring"> - SEC008: complexity 7 (-5 points, 42% reduction)
+</span><span class="boring"> - SC2168: complexity 5 (-7 points, 58% reduction)
+</span>
+<span class="boring"> Total improvement: -13 points (~42% average reduction)
+</span></code></pre>
+</li>
+<li>
+<p><strong>Process Automation</strong></p>
+<pre><code class="language-bash"><span class="boring"> Automate repetitive quality checks
+</span>
+<span class="boring"> Manual (slow):
+</span>cargo test --lib
+cargo clippy --all-targets
+cargo fmt
+
+<span class="boring"> Automated (fast):
+</span>git commit  # Pre-commit hook runs all checks automatically
+</code></pre>
+</li>
+</ol>
+<h4 id="real-example-batch-processing-efficiency-kaizen"><a class="header" href="#real-example-batch-processing-efficiency-kaizen">Real Example: Batch Processing Efficiency (Kaizen)</a></h4>
+<p><strong>Continuous Improvement Applied</strong>:</p>
+<p><strong>Iteration 1</strong>: Sequential mutation testing</p>
+<ul>
+<li>SEC001 baseline: 45 minutes</li>
+<li>Analyze results: 15 minutes</li>
+<li>Write tests: 30 minutes</li>
+<li>SEC001 iteration: 45 minutes</li>
+<li><strong>Total per rule</strong>: ~2.25 hours</li>
+</ul>
+<p><strong>Kaizen Improvement</strong>: Batch processing</p>
+<ul>
+<li>Run ALL baselines in parallel</li>
+<li>Pre-write tests during baseline execution</li>
+<li>Queue iterations efficiently</li>
+<li><strong>Time saved</strong>: 6-8 hours for 8 rules</li>
+</ul>
+<p><strong>Measurement</strong>:</p>
+<pre><code class="language-bash"><span class="boring"> Old approach: ~18 hours (8 rules × 2.25h)
+</span><span class="boring"> New approach: ~10-12 hours (parallel execution + batch processing)
+</span><span class="boring"> Improvement: 33-44% time savings
+</span></code></pre>
+<p>This is Kaizen - <strong>continuously improve efficiency through small, measurable changes</strong>.</p>
+<h2 id="integration-with-extreme-tdd"><a class="header" href="#integration-with-extreme-tdd">Integration with EXTREME TDD</a></h2>
+<p>The Toyota Way principles are embedded in the <strong>EXTREME TDD methodology</strong>:</p>
+<h3 id="extreme-tdd-formula"><a class="header" href="#extreme-tdd-formula">EXTREME TDD Formula</a></h3>
+<p><strong>EXTREME TDD = TDD + Property Testing + Mutation Testing + Fuzz Testing + PMAT + Examples</strong></p>
+<div class="table-wrapper"><table><thead><tr><th>Phase</th><th>Toyota Way Principle</th><th>Application</th></tr></thead><tbody>
+<tr><td><strong>RED</strong> (Write failing test)</td><td><strong>Jidoka</strong></td><td>Build quality in - test written first</td></tr>
+<tr><td><strong>GREEN</strong> (Implement)</td><td><strong>Genchi Genbutsu</strong></td><td>Verify against real shells</td></tr>
+<tr><td><strong>REFACTOR</strong> (Clean up)</td><td><strong>Kaizen</strong></td><td>Continuous improvement</td></tr>
+<tr><td><strong>QUALITY</strong> (Mutation test)</td><td><strong>Hansei</strong></td><td>Reflect on test effectiveness</td></tr>
+</tbody></table>
+</div>
+<h3 id="example-sec001-extreme-tdd-with-toyota-way"><a class="header" href="#example-sec001-extreme-tdd-with-toyota-way">Example: SEC001 EXTREME TDD with Toyota Way</a></h3>
+<pre><code class="language-bash"><span class="boring"> Phase 1: RED (Jidoka - Build Quality In)
+</span><span class="boring">[test]
+</span>fn test_sec001_eval_with_variable() {
+    let bash_code = r#"eval "$user_input""#;
+    let result = check(bash_code);
+    assert_eq!(result.diagnostics.len(), 1);  # Test FAILS - good!
+}
+
+<span class="boring"> Phase 2: GREEN (Genchi Genbutsu - Verify Reality)
+</span><span class="boring"> Implement SEC001 rule detection
+</span><span class="boring"> Test against real bash: bash -c 'eval "$user_input"' (verify it's dangerous)
+</span><span class="boring"> Test PASSES now
+</span>
+<span class="boring"> Phase 3: REFACTOR (Kaizen - Continuous Improvement)
+</span><span class="boring"> Extract helper: is_dangerous_eval()
+</span><span class="boring"> Reduce complexity: 12 → 7 (42% reduction)
+</span><span class="boring"> All tests still PASS
+</span>
+<span class="boring"> Phase 4: QUALITY (Hansei - Reflect on Effectiveness)
+</span>cargo mutants --file rash/src/linter/rules/sec001.rs --timeout 300 -- --lib
+<span class="boring"> Result: 100% mutation kill rate (16/16 caught)
+</span><span class="boring"> Reflection: Universal pattern discovered - apply to other rules
+</span></code></pre>
+<h2 id="stop-the-line-protocol-andon-cord"><a class="header" href="#stop-the-line-protocol-andon-cord">STOP THE LINE Protocol (Andon Cord)</a></h2>
+<p>The <strong>Andon Cord</strong> is a Toyota manufacturing concept - any worker can pull a cord to stop the production line when they discover a defect. In Rash, this translates to <strong>STOP THE LINE when bugs are discovered</strong>.</p>
+<h3 id="when-to-pull-the-andon-cord"><a class="header" href="#when-to-pull-the-andon-cord">When to Pull the Andon Cord</a></h3>
+<p><strong>STOP IMMEDIATELY</strong> if you discover:</p>
+<ol>
+<li>❌ <strong>Test failure</strong> - Any test fails (RED without GREEN)</li>
+<li>❌ <strong>Quality gate failure</strong> - Mutation kill rate &lt;90%, complexity &gt;10, coverage &lt;85%</li>
+<li>❌ <strong>Missing implementation</strong> - Bash construct not parsed correctly</li>
+<li>❌ <strong>Incorrect transformation</strong> - Purified output is wrong</li>
+<li>❌ <strong>Non-deterministic output</strong> - Contains $RANDOM, $$, timestamps</li>
+<li>❌ <strong>Non-idempotent output</strong> - Not safe to re-run</li>
+<li>❌ <strong>POSIX violation</strong> - Generated shell fails <code>shellcheck -s sh</code></li>
+</ol>
+<h3 id="stop-the-line-procedure"><a class="header" href="#stop-the-line-procedure">STOP THE LINE Procedure</a></h3>
+<pre><code class="language-text">🚨 STOP THE LINE - P0 BUG DETECTED 🚨
+
+1. HALT all current work
+2. Document the bug clearly
+3. Create P0 ticket
+4. Fix with EXTREME TDD (RED → GREEN → REFACTOR → QUALITY)
+5. Verify fix with comprehensive testing
+6. Update CHANGELOG and roadmap
+7. ONLY THEN resume previous work
+</code></pre>
+<h3 id="example-v6301-parser-bug-stop-the-line-event"><a class="header" href="#example-v6301-parser-bug-stop-the-line-event">Example: v6.30.1 Parser Bug (STOP THE LINE Event)</a></h3>
+<p><strong>Trigger</strong>: Property tests failed during v6.30.0 mutation testing verification</p>
+<pre><code class="language-bash">cargo test --lib bash_transpiler::purification_property_tests
+
+<span class="boring"> FAILED: 5/17 tests
+</span><span class="boring"> - prop_no_bashisms_in_output
+</span><span class="boring"> - prop_purification_is_deterministic
+</span><span class="boring"> - prop_purification_is_idempotent
+</span><span class="boring"> - prop_purified_has_posix_shebang
+</span><span class="boring"> - prop_variable_assignments_preserved
+</span>
+<span class="boring"> Minimal failing case: fi=1
+</span><span class="boring"> Error: InvalidSyntax("Expected command name")
+</span></code></pre>
+<p><strong>STOP THE LINE Decision</strong>:</p>
+<ul>
+<li>✅ Immediately halted v6.30.0 mutation testing work</li>
+<li>✅ Created P0 ticket: "Parser rejects valid bash keyword assignments"</li>
+<li>✅ Fixed with EXTREME TDD (added 14 keyword assignment tests)</li>
+<li>✅ Verified all 6260 tests passing (100%)</li>
+<li>✅ Updated CHANGELOG.md</li>
+<li>✅ Released as v6.30.1 (patch release - critical bug fix)</li>
+<li>✅ ONLY THEN resumed v6.30.0 mutation testing work</li>
+</ul>
+<p><strong>Result</strong>: Zero defects in production. Bug caught and fixed before release.</p>
+<p>This is <strong>Jidoka + Hansei</strong> - stop the line when defects are found, fix root cause, resume only after quality is restored.</p>
+<h2 id="toyota-way-in-practice"><a class="header" href="#toyota-way-in-practice">Toyota Way in Practice</a></h2>
+<h3 id="daily-development-workflow"><a class="header" href="#daily-development-workflow">Daily Development Workflow</a></h3>
+<ol>
+<li>
+<p><strong>Before starting work</strong> (Genchi Genbutsu):</p>
+<pre><code class="language-bash"><span class="boring"> Verify current state is good
+</span>git pull origin main
+cargo test --lib  # All tests passing?
+git status        # Clean working directory?
+</code></pre>
+</li>
+<li>
+<p><strong>While developing</strong> (Jidoka):</p>
+<pre><code class="language-bash"><span class="boring"> Build quality in from the start
+</span><span class="boring"> Write test first (RED)
+</span><span class="boring"> Implement feature (GREEN)
+</span><span class="boring"> Run tests frequently
+</span>cargo test --lib test_your_feature
+</code></pre>
+</li>
+<li>
+<p><strong>Before committing</strong> (Kaizen):</p>
+<pre><code class="language-bash"><span class="boring"> Continuous improvement
+</span>cargo fmt                              # Format code
+cargo clippy --all-targets -- -D warnings  # Zero warnings
+cargo test --lib                       # All tests pass
+<span class="boring"> Pre-commit hooks enforce these automatically
+</span></code></pre>
+</li>
+<li>
+<p><strong>After commit</strong> (Hansei):</p>
+<pre><code class="language-bash"><span class="boring"> Reflect on the change
+</span><span class="boring"> - Did tests catch all edge cases?
+</span><span class="boring"> - Could this be done more efficiently?
+</span><span class="boring"> - What did we learn?
+</span><span class="boring"> Document learnings in commit message
+</span></code></pre>
+</li>
+</ol>
+<h3 id="release-process-toyota-way-applied"><a class="header" href="#release-process-toyota-way-applied">Release Process (Toyota Way Applied)</a></h3>
+<p>Every release applies all four principles:</p>
+<ul>
+<li>
+<p><strong>Jidoka</strong>: All quality gates MUST pass before release</p>
+<pre><code class="language-bash">cargo test --lib                    # 6321+ tests passing
+cargo clippy --all-targets -- -D warnings  # Zero warnings
+cargo fmt -- --check                 # Formatted
+./scripts/check-book-updated.sh      # Book updated
+</code></pre>
+</li>
+<li>
+<p><strong>Genchi Genbutsu</strong>: Verify release works for real users</p>
+<pre><code class="language-bash">cargo publish --dry-run              # Test the package
+cargo install bashrs --version X.Y.Z # Test installation
+bashrs --version                     # Verify version
+bashrs lint examples/security/sec001_eval.sh  # Test real usage
+</code></pre>
+</li>
+<li>
+<p><strong>Kaizen</strong>: Continuously improve release automation</p>
+<pre><code class="language-bash"><span class="boring"> v1.0: Manual release checklist
+</span><span class="boring"> v2.0: Automated quality gates
+</span><span class="boring"> v3.0: One-command release script (future)
+</span></code></pre>
+</li>
+<li>
+<p><strong>Hansei</strong>: Reflect on release process</p>
+<pre><code class="language-markdown">After each release:
+- What went well?
+- What could be improved?
+- How can we automate more?
+- Document improvements in CHANGELOG
+</code></pre>
+</li>
+</ul>
+<h2 id="quality-metrics-toyota-way-evidence"><a class="header" href="#quality-metrics-toyota-way-evidence">Quality Metrics (Toyota Way Evidence)</a></h2>
+<p>The Toyota Way principles produce measurable quality improvements:</p>
+<h3 id="test-quality-jidoka--kaizen"><a class="header" href="#test-quality-jidoka--kaizen">Test Quality (Jidoka + Kaizen)</a></h3>
+<div class="table-wrapper"><table><thead><tr><th>Metric</th><th>Target</th><th>Current</th><th>Status</th></tr></thead><tbody>
+<tr><td>Test count</td><td>Growing</td><td>6321+</td><td>✅ Continuous growth</td></tr>
+<tr><td>Pass rate</td><td>100%</td><td>100%</td><td>✅ Zero defects</td></tr>
+<tr><td>Coverage</td><td>&gt;85%</td><td>87.3%</td><td>✅ Exceeds target</td></tr>
+<tr><td>Mutation kill rate</td><td>&gt;90%</td><td>81.2% baseline → 87-91% expected</td><td>🔄 Improving</td></tr>
+</tbody></table>
+</div>
+<h3 id="code-quality-kaizen--hansei"><a class="header" href="#code-quality-kaizen--hansei">Code Quality (Kaizen + Hansei)</a></h3>
+<div class="table-wrapper"><table><thead><tr><th>Metric</th><th>Target</th><th>Current</th><th>Status</th></tr></thead><tbody>
+<tr><td>Complexity</td><td>&lt;10</td><td>&lt;10 (all functions)</td><td>✅ Maintained</td></tr>
+<tr><td>Clippy warnings</td><td>0</td><td>0</td><td>✅ Zero tolerance</td></tr>
+<tr><td>POSIX compliance</td><td>100%</td><td>100%</td><td>✅ All purified scripts pass shellcheck</td></tr>
+</tbody></table>
+</div>
+<h3 id="process-quality-genchi-genbutsu--jidoka"><a class="header" href="#process-quality-genchi-genbutsu--jidoka">Process Quality (Genchi Genbutsu + Jidoka)</a></h3>
+<div class="table-wrapper"><table><thead><tr><th>Metric</th><th>Target</th><th>Current</th><th>Status</th></tr></thead><tbody>
+<tr><td>Pre-commit hooks</td><td>100% enforcement</td><td>100%</td><td>✅ Automated</td></tr>
+<tr><td>Shellcheck validation</td><td>All purified scripts</td><td>All purified scripts</td><td>✅ Automatic</td></tr>
+<tr><td>Real shell testing</td><td>dash, ash, bash, busybox</td><td>dash, ash, bash, busybox</td><td>✅ Multi-shell validation</td></tr>
+</tbody></table>
+</div>
+<h3 id="efficiency-gains-kaizen"><a class="header" href="#efficiency-gains-kaizen">Efficiency Gains (Kaizen)</a></h3>
+<div class="table-wrapper"><table><thead><tr><th>Improvement</th><th>Before</th><th>After</th><th>Gain</th></tr></thead><tbody>
+<tr><td>Batch mutation testing</td><td>18h (sequential)</td><td>10-12h (parallel)</td><td>33-44% faster</td></tr>
+<tr><td>Complexity reduction</td><td>12 avg (3 rules)</td><td>7 avg (3 rules)</td><td>42% reduction</td></tr>
+<tr><td>Test count growth</td><td>6164 (v6.24)</td><td>6321 (v6.30)</td><td>+157 tests</td></tr>
+</tbody></table>
+</div>
+<h2 id="common-patterns"><a class="header" href="#common-patterns">Common Patterns</a></h2>
+<h3 id="pattern-1-fix-first-philosophy-hansei"><a class="header" href="#pattern-1-fix-first-philosophy-hansei">Pattern 1: Fix-First Philosophy (Hansei)</a></h3>
+<p><strong>Don't add features when bugs exist</strong>:</p>
+<pre><code class="language-bash"><span class="boring"> ❌ WRONG: Add SEC009 while SEC002 is at 75% mutation kill rate
+</span><span class="boring"> ✅ RIGHT: Fix SEC002 to 90%+ THEN add SEC009
+</span></code></pre>
+<h3 id="pattern-2-zero-defect-policy-jidoka"><a class="header" href="#pattern-2-zero-defect-policy-jidoka">Pattern 2: Zero-Defect Policy (Jidoka)</a></h3>
+<p><strong>All tests must pass before committing</strong>:</p>
+<pre><code class="language-bash"><span class="boring"> ❌ WRONG: git commit --no-verify (skip pre-commit hooks)
+</span><span class="boring"> ✅ RIGHT: Fix issues, then commit normally
+</span>cargo test --lib  # Fix failures first
+cargo fmt         # Format code
+git commit        # Hooks pass automatically
+</code></pre>
+<h3 id="pattern-3-incremental-improvement-kaizen"><a class="header" href="#pattern-3-incremental-improvement-kaizen">Pattern 3: Incremental Improvement (Kaizen)</a></h3>
+<p><strong>Small, measurable improvements</strong>:</p>
+<pre><code class="language-bash"><span class="boring"> ❌ WRONG: "Rewrite entire linter to be 100% perfect"
+</span><span class="boring"> ✅ RIGHT: "Improve SEC002 from 75% to 87% mutation kill rate"
+</span></code></pre>
+<h3 id="pattern-4-empirical-validation-genchi-genbutsu"><a class="header" href="#pattern-4-empirical-validation-genchi-genbutsu">Pattern 4: Empirical Validation (Genchi Genbutsu)</a></h3>
+<p><strong>Test on real shells, not assumptions</strong>:</p>
+<pre><code class="language-bash"><span class="boring"> ❌ WRONG: "This should work in POSIX sh" (assumption)
+</span><span class="boring"> ✅ RIGHT: sh purified.sh (empirical validation)
+</span></code></pre>
+<h2 id="further-reading"><a class="header" href="#further-reading">Further Reading</a></h2>
+<ul>
+<li><a href="https://en.wikipedia.org/wiki/The_Toyota_Way">Toyota Way (Wikipedia)</a></li>
+<li><a href="https://en.wikipedia.org/wiki/Jidoka">Jidoka and Andon</a></li>
+<li><a href="https://en.wikipedia.org/wiki/Kaizen">Kaizen</a></li>
+<li><a href="https://en.wikipedia.org/wiki/Genchi_Genbutsu">Genchi Genbutsu</a></li>
+<li><a href="./extreme-tdd.html">EXTREME TDD Chapter</a></li>
+<li><a href="./release.html">Release Process Chapter</a></li>
+</ul>
+<hr />
+<p><strong>Quality Guarantee</strong>: Rash follows Toyota Way principles to ensure NASA-level quality. Every commit, every release, and every feature is built with zero-defect philosophy and continuous improvement mindset.</p>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="../contributing/extreme-tdd.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <i class="fa fa-angle-left"></i>
+                            </a>
+
+                            <a rel="next prefetch" href="../contributing/release.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <i class="fa fa-angle-right"></i>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="../contributing/extreme-tdd.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <i class="fa fa-angle-left"></i>
+                    </a>
+
+                    <a rel="next prefetch" href="../contributing/release.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <i class="fa fa-angle-right"></i>
+                    </a>
+            </nav>
+
+        </div>
+
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+        <script src="../ace.js"></script>
+        <script src="../mode-rust.js"></script>
+        <script src="../editor.js"></script>
+        <script src="../theme-dawn.js"></script>
+        <script src="../theme-tomorrow_night.js"></script>
+
+        <script src="../elasticlunr.min.js"></script>
+        <script src="../mark.min.js"></script>
+        <script src="../searcher.js"></script>
+
+        <script src="../clipboard.min.js"></script>
+        <script src="../highlight.js"></script>
+        <script src="../book.js"></script>
+
+        <!-- Custom JS scripts -->
+
+
+
+    </div>
+    </body>
+</html>

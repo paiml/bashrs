@@ -12,7 +12,7 @@ use tempfile::TempDir;
 
 #[allow(deprecated)]
 fn rash_cmd() -> Command {
-    Command::cargo_bin("bashrs").expect("Failed to find bashrs binary")
+    assert_cmd::cargo_bin_cmd!("bashrs")
 }
 
 /// Test that auto-fix preserves bash syntax validity

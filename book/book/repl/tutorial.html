@@ -1,0 +1,791 @@
+<!DOCTYPE HTML>
+<html lang="en" class="rust sidebar-visible" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>Tutorial: Your First REPL Session - The Rash Book - Shell Safety and Purification</title>
+
+
+        <!-- Custom HTML head -->
+
+        <meta name="description" content="A comprehensive guide to Rash: shell safety, purification, and linting">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="../favicon.svg">
+        <link rel="shortcut icon" href="../favicon.png">
+        <link rel="stylesheet" href="../css/variables.css">
+        <link rel="stylesheet" href="../css/general.css">
+        <link rel="stylesheet" href="../css/chrome.css">
+        <link rel="stylesheet" href="../css/print.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="../FontAwesome/css/font-awesome.css">
+        <link rel="stylesheet" href="../fonts/fonts.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" id="highlight-css" href="../highlight.css">
+        <link rel="stylesheet" id="tomorrow-night-css" href="../tomorrow-night.css">
+        <link rel="stylesheet" id="ayu-highlight-css" href="../ayu-highlight.css">
+
+        <!-- Custom theme stylesheets -->
+
+
+        <!-- Provide site root and default themes to javascript -->
+        <script>
+            const path_to_root = "../";
+            const default_light_theme = "rust";
+            const default_dark_theme = "navy";
+            window.path_to_searchindex_js = "../searchindex.js";
+        </script>
+        <!-- Start loading toc.js asap -->
+        <script src="../toc.js"></script>
+    </head>
+    <body>
+    <div id="mdbook-help-container">
+        <div id="mdbook-help-popup">
+            <h2 class="mdbook-help-title">Keyboard shortcuts</h2>
+            <div>
+                <p>Press <kbd>←</kbd> or <kbd>→</kbd> to navigate between chapters</p>
+                <p>Press <kbd>S</kbd> or <kbd>/</kbd> to search in the book</p>
+                <p>Press <kbd>?</kbd> to show this help</p>
+                <p>Press <kbd>Esc</kbd> to hide this help</p>
+            </div>
+        </div>
+    </div>
+    <div id="body-container">
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                let theme = localStorage.getItem('mdbook-theme');
+                let sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            const default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? default_dark_theme : default_light_theme;
+            let theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            const html = document.documentElement;
+            html.classList.remove('rust')
+            html.classList.add(theme);
+            html.classList.add("js");
+        </script>
+
+        <input type="checkbox" id="sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            let sidebar = null;
+            const sidebar_toggle = document.getElementById("sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+                sidebar_toggle.checked = false;
+            }
+            if (sidebar === 'visible') {
+                sidebar_toggle.checked = true;
+            } else {
+                html.classList.remove('sidebar-visible');
+            }
+        </script>
+
+        <nav id="sidebar" class="sidebar" aria-label="Table of contents">
+            <!-- populated by js -->
+            <mdbook-sidebar-scrollbox class="sidebar-scrollbox"></mdbook-sidebar-scrollbox>
+            <noscript>
+                <iframe class="sidebar-iframe-outer" src="../toc.html"></iframe>
+            </noscript>
+            <div id="sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <div id="page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="menu-bar-hover-placeholder"></div>
+                <div id="menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="sidebar-toggle" class="icon-button" for="sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="sidebar">
+                            <i class="fa fa-bars"></i>
+                        </label>
+                        <button id="theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="theme-list">
+                            <i class="fa fa-paint-brush"></i>
+                        </button>
+                        <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="default_theme">Auto</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
+                        </ul>
+                        <button id="search-toggle" class="icon-button" type="button" title="Search (`/`)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="/ s" aria-controls="searchbar">
+                            <i class="fa fa-search"></i>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">The Rash Book - Shell Safety and Purification</h1>
+
+                    <div class="right-buttons">
+                        <a href="../print.html" title="Print this book" aria-label="Print this book">
+                            <i id="print-button" class="fa fa-print"></i>
+                        </a>
+                        <a href="https://github.com/paiml/bashrs" title="Git repository" aria-label="Git repository">
+                            <i id="git-repository-button" class="fa fa-github"></i>
+                        </a>
+                        <a href="https://github.com/paiml/bashrs/edit/main/book/src/repl/tutorial.md" title="Suggest an edit" aria-label="Suggest an edit" rel="edit">
+                            <i id="git-edit-button" class="fa fa-edit"></i>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="search-wrapper" class="hidden">
+                    <form id="searchbar-outer" class="searchbar-outer">
+                        <div class="search-wrapper">
+                            <input type="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                            <div class="spinner-wrapper">
+                                <i class="fa fa-spinner fa-spin"></i>
+                            </div>
+                        </div>
+                    </form>
+                    <div id="searchresults-outer" class="searchresults-outer hidden">
+                        <div id="searchresults-header" class="searchresults-header"></div>
+                        <ul id="searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="content" class="content">
+                    <main>
+                        <h1 id="tutorial-your-first-repl-session"><a class="header" href="#tutorial-your-first-repl-session">Tutorial: Your First REPL Session</a></h1>
+<p>This hands-on tutorial will guide you through your first bashrs REPL session, teaching you the fundamentals through practical exercises.</p>
+<p><strong>Time</strong>: 15-20 minutes
+<strong>Skill Level</strong>: Beginner
+<strong>Prerequisites</strong>: bashrs installed (<code>cargo install bashrs</code>)</p>
+<h2 id="what-youll-learn"><a class="header" href="#what-youll-learn">What You'll Learn</a></h2>
+<p>By the end of this tutorial, you'll be able to:</p>
+<ol>
+<li>Start and navigate the REPL</li>
+<li>Use all 5 interactive modes</li>
+<li>Parse, lint, and purify bash code</li>
+<li>Work with variables and functions</li>
+<li>Load and analyze scripts</li>
+<li>Use tab completion and multi-line input</li>
+</ol>
+<p>Let's get started!</p>
+<h2 id="step-1-starting-the-repl"><a class="header" href="#step-1-starting-the-repl">Step 1: Starting the REPL</a></h2>
+<p>Open your terminal and start the REPL:</p>
+<pre><code class="language-bash">$ bashrs repl
+</code></pre>
+<p>You should see:</p>
+<pre><code class="language-text">bashrs REPL v6.44.0
+Type 'quit' or 'exit' to exit, 'help' for commands
+Current mode: normal - Execute bash commands directly
+bashrs [normal]&gt;
+</code></pre>
+<p><strong>What just happened?</strong></p>
+<ul>
+<li>The REPL initialized successfully</li>
+<li>You're in <code>normal</code> mode (shown in the prompt)</li>
+<li>The cursor is ready for your first command</li>
+</ul>
+<p><strong>Try it</strong>: Type <code>help</code> and press Enter to see all available commands:</p>
+<pre><code class="language-bash">bashrs [normal]&gt; help
+</code></pre>
+<h2 id="step-2-your-first-command"><a class="header" href="#step-2-your-first-command">Step 2: Your First Command</a></h2>
+<p>Let's try a simple bash command:</p>
+<pre><code class="language-bash">bashrs [normal]&gt; echo "Hello, REPL!"
+Hello, REPL!
+</code></pre>
+<p><strong>What happened?</strong></p>
+<ul>
+<li>In normal mode, the REPL executes bash commands directly</li>
+<li>The output is displayed immediately</li>
+</ul>
+<p><strong>Try it</strong>: Experiment with a few more commands:</p>
+<pre><code class="language-bash">bashrs [normal]&gt; pwd
+/home/user/projects
+
+bashrs [normal]&gt; ls -la
+<span class="boring"> Lists files in current directory
+</span>
+bashrs [normal]&gt; date
+Fri Nov 22 10:30:00 UTC 2024
+</code></pre>
+<h2 id="step-3-parsing-bash-code"><a class="header" href="#step-3-parsing-bash-code">Step 3: Parsing Bash Code</a></h2>
+<p>Now let's see how bash interprets your code. Use the <code>:parse</code> command:</p>
+<pre><code class="language-bash">bashrs [normal]&gt; :parse echo "Hello, World!"
+✓ Parse successful!
+Statements: 1
+Parse time: 0ms
+
+AST:
+  [0] SimpleCommand {
+    name: "echo",
+    args: ["Hello, World!"]
+  }
+</code></pre>
+<p><strong>What happened?</strong></p>
+<ul>
+<li>The <code>:parse</code> command shows you the Abstract Syntax Tree (AST)</li>
+<li>This reveals how bash understands your command</li>
+<li>Useful for debugging complex syntax</li>
+</ul>
+<p><strong>Try it</strong>: Parse a more complex command:</p>
+<pre><code class="language-bash">bashrs [normal]&gt; :parse if [ -f /etc/passwd ]; then echo "File exists"; fi
+✓ Parse successful!
+Statements: 1
+
+AST:
+  [0] If {
+    condition: Test {
+      operator: "-f",
+      args: ["/etc/passwd"]
+    },
+    then_body: [
+      SimpleCommand {
+        name: "echo",
+        args: ["File exists"]
+      }
+    ],
+    else_body: None
+  }
+</code></pre>
+<h2 id="step-4-linting-for-security-issues"><a class="header" href="#step-4-linting-for-security-issues">Step 4: Linting for Security Issues</a></h2>
+<p>Let's check some bash code for problems. Use the <code>:lint</code> command:</p>
+<pre><code class="language-bash">bashrs [normal]&gt; :lint cat file.txt | grep $PATTERN
+Found 1 issue(s):
+  ⚠ 1 warning(s)
+
+[1] ⚠ SC2086 - Double quote to prevent globbing and word splitting
+    Line 1
+    Variable: PATTERN
+
+Fix: cat file.txt | grep "$PATTERN"
+</code></pre>
+<p><strong>What happened?</strong></p>
+<ul>
+<li>The linter found an unquoted variable (<code>$PATTERN</code>)</li>
+<li>This could cause security issues or unexpected behavior</li>
+<li>The linter suggests adding quotes: <code>"$PATTERN"</code></li>
+</ul>
+<p><strong>Try it</strong>: Test some problematic code:</p>
+<pre><code class="language-bash">bashrs [normal]&gt; :lint rm -rf $DIR &amp;&amp; mkdir $DIR
+Found 2 issue(s):
+  ⚠ 2 warning(s)
+
+[1] ⚠ SC2086 - Double quote to prevent globbing and word splitting
+    Variable: DIR
+
+[2] ⚠ SC2086 - Double quote to prevent globbing and word splitting
+    Variable: DIR
+</code></pre>
+<h2 id="step-5-switching-to-lint-mode"><a class="header" href="#step-5-switching-to-lint-mode">Step 5: Switching to Lint Mode</a></h2>
+<p>Instead of typing <code>:lint</code> before every command, switch to lint mode:</p>
+<pre><code class="language-bash">bashrs [normal]&gt; :mode lint
+Switched to lint mode - Show linting results for bash commands
+bashrs [lint]&gt;
+</code></pre>
+<p><strong>What happened?</strong></p>
+<ul>
+<li>The prompt changed to <code>[lint]</code></li>
+<li>Now all commands are automatically linted</li>
+</ul>
+<p><strong>Try it</strong>: Type commands without the <code>:lint</code> prefix:</p>
+<pre><code class="language-bash">bashrs [lint]&gt; cat $FILE | grep pattern
+Found 1 issue(s):
+  ⚠ 1 warning(s)
+
+[1] ⚠ SC2086 - Double quote to prevent globbing and word splitting
+    Variable: FILE
+
+bashrs [lint]&gt; echo "Hello, World!"
+✓ No issues found!
+</code></pre>
+<p><strong>Key Point</strong>: Automatic mode-based processing saves you 50% typing!</p>
+<h2 id="step-6-purifying-non-idempotent-code"><a class="header" href="#step-6-purifying-non-idempotent-code">Step 6: Purifying Non-Idempotent Code</a></h2>
+<p>Switch to purify mode to fix idempotency issues:</p>
+<pre><code class="language-bash">bashrs [lint]&gt; :mode purify
+Switched to purify mode - Show purified version of bash commands
+bashrs [purify]&gt;
+</code></pre>
+<p>Now try some non-idempotent commands:</p>
+<pre><code class="language-bash">bashrs [purify]&gt; mkdir /tmp/myapp
+✓ Purified:
+mkdir -p "/tmp/myapp"
+
+bashrs [purify]&gt; rm /tmp/old_file
+✓ Purified:
+rm -f "/tmp/old_file"
+
+bashrs [purify]&gt; ln -s /tmp/source /tmp/link
+✓ Purified:
+ln -sf "/tmp/source" "/tmp/link"
+</code></pre>
+<p><strong>What happened?</strong></p>
+<ul>
+<li><code>mkdir</code> became <code>mkdir -p</code> (won't fail if directory exists)</li>
+<li><code>rm</code> became <code>rm -f</code> (won't fail if file doesn't exist)</li>
+<li><code>ln -s</code> became <code>ln -sf</code> (won't fail if link already exists)</li>
+<li>All paths are quoted for safety</li>
+</ul>
+<p><strong>Try it</strong>: Test non-deterministic code:</p>
+<pre><code class="language-bash">bashrs [purify]&gt; SESSION_ID=$RANDOM
+✓ Purified:
+SESSION_ID="$(date +%s)-$$"
+</code></pre>
+<p>The purifier replaced <code>$RANDOM</code> (non-deterministic) with a timestamp-based ID (deterministic).</p>
+<h2 id="step-7-learning-with-explain-mode"><a class="header" href="#step-7-learning-with-explain-mode">Step 7: Learning with Explain Mode</a></h2>
+<p>Switch to explain mode to learn bash constructs:</p>
+<pre><code class="language-bash">bashrs [purify]&gt; :mode explain
+Switched to explain mode - Explain bash constructs and syntax
+bashrs [explain]&gt;
+</code></pre>
+<p>Try some bash constructs:</p>
+<pre><code class="language-bash">bashrs [explain]&gt; ${var:-default}
+📖 Parameter Expansion: ${parameter:-word}
+   Use Default Value
+
+If parameter is unset or null, expand to 'word'.
+The original parameter remains unchanged.
+
+Example:
+  $ var=""
+  $ echo "${var:-fallback}"  # Outputs: fallback
+  $ echo "$var"               # Still empty
+
+bashrs [explain]&gt; for i in *.txt
+📖 For Loop: for name in words
+   Iterate Over List
+
+Loop variable 'name' takes each value from the word list.
+Executes commands for each iteration.
+
+Example:
+  for file in *.txt; do
+    echo "Processing: $file"
+  done
+
+bashrs [explain]&gt; if [ -f file ]
+📖 If Statement: if condition; then commands; fi
+   Conditional Execution
+
+Execute commands only if condition succeeds (exit status 0).
+Optional elif and else clauses for alternatives.
+
+Example:
+  if [ -f file.txt ]; then
+    echo "File exists"
+  fi
+</code></pre>
+<p><strong>What happened?</strong></p>
+<ul>
+<li>Each bash construct gets a detailed explanation</li>
+<li>You see the syntax, purpose, and examples</li>
+<li>Perfect for learning new bash patterns</li>
+</ul>
+<h2 id="step-8-working-with-variables"><a class="header" href="#step-8-working-with-variables">Step 8: Working with Variables</a></h2>
+<p>Switch back to normal mode and create some variables:</p>
+<pre><code class="language-bash">bashrs [explain]&gt; :mode normal
+Switched to normal mode
+bashrs [normal]&gt;
+</code></pre>
+<p>Set variables like in bash:</p>
+<pre><code class="language-bash">bashrs [normal]&gt; app_name="myapp"
+✓ Variable set: app_name = myapp
+
+bashrs [normal]&gt; version=1.0.0
+✓ Variable set: version = 1.0.0
+
+bashrs [normal]&gt; env=production
+✓ Variable set: env = production
+</code></pre>
+<p>Use variables in commands:</p>
+<pre><code class="language-bash">bashrs [normal]&gt; echo "Deploying $app_name version $version to $env"
+Deploying myapp version 1.0.0 to production
+</code></pre>
+<p>View all session variables:</p>
+<pre><code class="language-bash">bashrs [normal]&gt; :vars
+Session Variables (3 variables):
+  app_name = myapp
+  env = production
+  version = 1.0.0
+</code></pre>
+<p><strong>Key Point</strong>: Variables persist across mode switches and throughout your session.</p>
+<h2 id="step-9-multi-line-input"><a class="header" href="#step-9-multi-line-input">Step 9: Multi-line Input</a></h2>
+<p>The REPL supports complex multi-line constructs. Try defining a function:</p>
+<pre><code class="language-bash">bashrs [normal]&gt; function greet() {
+... &gt;   echo "Hello, $1"
+... &gt;   echo "Welcome to bashrs!"
+... &gt; }
+✓ Function 'greet' defined
+</code></pre>
+<p><strong>What happened?</strong></p>
+<ul>
+<li>The REPL detected incomplete input after the opening <code>{</code></li>
+<li>It switched to continuation mode with the <code>... &gt;</code> prompt</li>
+<li>After the closing <code>}</code>, the function was defined</li>
+</ul>
+<p><strong>Try it</strong>: Create a for loop:</p>
+<pre><code class="language-bash">bashrs [normal]&gt; for i in 1 2 3; do
+... &gt;   echo "Processing item $i"
+... &gt; done
+Processing item 1
+Processing item 2
+Processing item 3
+</code></pre>
+<p>Create an if statement:</p>
+<pre><code class="language-bash">bashrs [normal]&gt; if [ -f /etc/passwd ]; then
+... &gt;   echo "File exists"
+... &gt; else
+... &gt;   echo "File not found"
+... &gt; fi
+File exists
+</code></pre>
+<p><strong>Tip</strong>: Press <code>Ctrl-C</code> to cancel multi-line input if you make a mistake:</p>
+<pre><code class="language-bash">bashrs [normal]&gt; for i in 1 2 3; do
+... &gt;   echo "This is wrong"
+... &gt; ^C (multi-line input cancelled)
+bashrs [normal]&gt;
+</code></pre>
+<h2 id="step-10-tab-completion"><a class="header" href="#step-10-tab-completion">Step 10: Tab Completion</a></h2>
+<p>Tab completion speeds up your workflow. Try these:</p>
+<pre><code class="language-bash"><span class="boring"> Command completion
+</span>bashrs [normal]&gt; :mo&lt;TAB&gt;
+<span class="boring"> Completes to: :mode
+</span>
+<span class="boring"> Mode completion
+</span>bashrs [normal]&gt; :mode pur&lt;TAB&gt;
+<span class="boring"> Completes to: :mode purify
+</span>
+<span class="boring"> View all commands
+</span>bashrs [normal]&gt; :&lt;TAB&gt;
+<span class="boring"> Shows: :clear :functions :history :lint :load :mode :parse :purify :reload :source :vars
+</span></code></pre>
+<p><strong>Key Point</strong>: Use Tab liberally to discover commands and reduce typos.</p>
+<h2 id="step-11-loading-scripts"><a class="header" href="#step-11-loading-scripts">Step 11: Loading Scripts</a></h2>
+<p>Create a simple test script first:</p>
+<pre><code class="language-bash">$ cat &gt; /tmp/test_script.sh &lt;&lt; 'EOF'
+<span class="boring">!/bin/bash
+</span>
+function log_info() {
+  echo "[INFO] $1"
+}
+
+function log_error() {
+  echo "[ERROR] $1" &gt;&amp;2
+}
+
+function deploy() {
+  log_info "Starting deployment..."
+  log_info "Deployment complete"
+}
+
+log_info "Script loaded"
+EOF
+</code></pre>
+<p>Now load it in the REPL:</p>
+<pre><code class="language-bash">bashrs [normal]&gt; :load /tmp/test_script.sh
+✓ Loaded: /tmp/test_script.sh (3 functions, 15 lines)
+</code></pre>
+<p>View the extracted functions:</p>
+<pre><code class="language-bash">bashrs [normal]&gt; :functions
+Available functions (3 total):
+  1 log_info
+  2 log_error
+  3 deploy
+</code></pre>
+<p>Edit the script externally, then reload:</p>
+<pre><code class="language-bash"><span class="boring"> Edit /tmp/test_script.sh in your editor
+</span><span class="boring"> Add a new function...
+</span>
+bashrs [normal]&gt; :reload
+Reloading: /tmp/test_script.sh
+✓ Reloaded: /tmp/test_script.sh (4 functions, 20 lines)
+
+bashrs [normal]&gt; :functions
+Available functions (4 total):
+  1 log_info
+  2 log_error
+  3 deploy
+  4 rollback
+</code></pre>
+<h2 id="step-12-viewing-history"><a class="header" href="#step-12-viewing-history">Step 12: Viewing History</a></h2>
+<p>See all commands you've executed:</p>
+<pre><code class="language-bash">bashrs [normal]&gt; :history
+Command History (25 commands):
+  1 help
+  2 echo "Hello, REPL!"
+  3 pwd
+  4 :parse echo "Hello, World!"
+  5 :lint cat file.txt | grep $PATTERN
+  6 :mode lint
+  7 cat $FILE | grep pattern
+  ... (truncated)
+  25 :history
+</code></pre>
+<p><strong>Tip</strong>: Use the up/down arrow keys to navigate history:</p>
+<pre><code class="language-bash">bashrs [normal]&gt; # Press ↑ to recall previous commands
+</code></pre>
+<p><strong>Tip</strong>: Use <code>Ctrl-R</code> for reverse search:</p>
+<pre><code class="language-bash"><span class="boring"> Press Ctrl-R, then type "parse"
+</span>(reverse-i-search)'parse': :parse echo "Hello, World!"
+</code></pre>
+<h2 id="step-13-clearing-the-screen"><a class="header" href="#step-13-clearing-the-screen">Step 13: Clearing the Screen</a></h2>
+<p>When your terminal gets cluttered:</p>
+<pre><code class="language-bash">bashrs [normal]&gt; :clear
+<span class="boring"> Screen cleared, fresh prompt
+</span>bashrs [normal]&gt;
+</code></pre>
+<p>Or use the keyboard shortcut <code>Ctrl-L</code>.</p>
+<h2 id="step-14-practical-workflow-example"><a class="header" href="#step-14-practical-workflow-example">Step 14: Practical Workflow Example</a></h2>
+<p>Let's put it all together with a real-world workflow. Imagine you're writing a deployment script.</p>
+<p><strong>Step 14.1</strong>: Set up your environment variables:</p>
+<pre><code class="language-bash">bashrs [normal]&gt; env=staging
+✓ Variable set: env = staging
+
+bashrs [normal]&gt; region=us-west-2
+✓ Variable set: region = us-west-2
+
+bashrs [normal]&gt; app_version=v2.1.0
+✓ Variable set: app_version = v2.1.0
+</code></pre>
+<p><strong>Step 14.2</strong>: Test a command in lint mode:</p>
+<pre><code class="language-bash">bashrs [normal]&gt; :mode lint
+Switched to lint mode
+
+bashrs [lint]&gt; docker build -t $app_version .
+Found 1 issue(s):
+  ⚠ 1 warning(s)
+
+[1] ⚠ SC2086 - Double quote to prevent globbing and word splitting
+    Variable: app_version
+</code></pre>
+<p><strong>Step 14.3</strong>: Get the purified version:</p>
+<pre><code class="language-bash">bashrs [lint]&gt; :mode purify
+Switched to purify mode
+
+bashrs [purify]&gt; docker build -t $app_version .
+✓ Purified:
+docker build -t "$app_version" .
+</code></pre>
+<p><strong>Step 14.4</strong>: Build up your script incrementally:</p>
+<pre><code class="language-bash">bashrs [purify]&gt; docker build -t "$app_version" .
+✓ Purified: docker build -t "$app_version" .
+
+bashrs [purify]&gt; docker tag "$app_version" "registry.example.com/$app_version"
+✓ Purified: docker tag "$app_version" "registry.example.com/$app_version"
+
+bashrs [purify]&gt; docker push "registry.example.com/$app_version"
+✓ Purified: docker push "registry.example.com/$app_version"
+</code></pre>
+<p><strong>Step 14.5</strong>: Review your history:</p>
+<pre><code class="language-bash">bashrs [purify]&gt; :history
+Command History (10 commands):
+  ...
+  7 docker build -t "$app_version" .
+  8 docker tag "$app_version" "registry.example.com/$app_version"
+  9 docker push "registry.example.com/$app_version"
+  10 :history
+</code></pre>
+<p><strong>Step 14.6</strong>: Copy the successful commands to your deploy script!</p>
+<h2 id="step-15-exiting-the-repl"><a class="header" href="#step-15-exiting-the-repl">Step 15: Exiting the REPL</a></h2>
+<p>When you're done, exit the REPL:</p>
+<pre><code class="language-bash">bashrs [normal]&gt; quit
+Goodbye!
+$
+</code></pre>
+<p>Or use the <code>exit</code> command, or press <code>Ctrl-D</code>.</p>
+<p><strong>What happened?</strong></p>
+<ul>
+<li>Your command history was saved to <code>~/.bashrs_history</code></li>
+<li>Next time you start the REPL, you can use ↑ to recall these commands</li>
+</ul>
+<h2 id="congratulations"><a class="header" href="#congratulations">Congratulations!</a></h2>
+<p>You've completed your first REPL session and learned:</p>
+<p>✅ How to start and exit the REPL
+✅ Using all 5 interactive modes (normal, purify, lint, debug, explain)
+✅ Parsing bash code to see the AST
+✅ Linting for security issues
+✅ Purifying non-idempotent code
+✅ Learning bash constructs with explain mode
+✅ Working with variables and functions
+✅ Multi-line input for complex constructs
+✅ Tab completion for faster typing
+✅ Loading and reloading scripts
+✅ Viewing and searching command history
+✅ Practical workflow for script development</p>
+<h2 id="practice-exercises"><a class="header" href="#practice-exercises">Practice Exercises</a></h2>
+<p>Ready to practice? Try these exercises:</p>
+<h3 id="exercise-1-security-audit"><a class="header" href="#exercise-1-security-audit">Exercise 1: Security Audit</a></h3>
+<p>Lint this problematic script and identify all issues:</p>
+<pre><code class="language-bash">bashrs [normal]&gt; :mode lint
+bashrs [lint]&gt; rm -rf $TEMP_DIR
+bashrs [lint]&gt; cat $CONFIG_FILE | grep $SEARCH_TERM
+bashrs [lint]&gt; eval $COMMAND
+</code></pre>
+<h3 id="exercise-2-purification"><a class="header" href="#exercise-2-purification">Exercise 2: Purification</a></h3>
+<p>Purify these non-idempotent commands:</p>
+<pre><code class="language-bash">bashrs [normal]&gt; :mode purify
+bashrs [purify]&gt; mkdir /var/log/myapp
+bashrs [purify]&gt; ln -s /opt/myapp/current /usr/local/bin/myapp
+bashrs [purify]&gt; cp config.txt config.txt.bak
+</code></pre>
+<h3 id="exercise-3-learning-bash"><a class="header" href="#exercise-3-learning-bash">Exercise 3: Learning Bash</a></h3>
+<p>Use explain mode to understand these constructs:</p>
+<pre><code class="language-bash">bashrs [normal]&gt; :mode explain
+bashrs [explain]&gt; ${var:=default}
+bashrs [explain]&gt; case $option in
+bashrs [explain]&gt; [[ -f file ]]
+</code></pre>
+<h3 id="exercise-4-script-development"><a class="header" href="#exercise-4-script-development">Exercise 4: Script Development</a></h3>
+<p>Create a simple script with 2 functions, load it in the REPL, lint it, purify it, and reload after making changes.</p>
+<h3 id="exercise-5-real-world-workflow"><a class="header" href="#exercise-5-real-world-workflow">Exercise 5: Real-World Workflow</a></h3>
+<p>Build a complete CI/CD deployment command using:</p>
+<ol>
+<li>Variables for environment settings</li>
+<li>Linting to check for issues</li>
+<li>Purification to ensure idempotency</li>
+<li>History to review and save your work</li>
+</ol>
+<h2 id="next-steps"><a class="header" href="#next-steps">Next Steps</a></h2>
+<p>Now that you've mastered the basics:</p>
+<ol>
+<li><strong><a href="./user-guide.html">REPL User Guide</a></strong> - Comprehensive reference for all features</li>
+<li><strong><a href="../reference/repl-commands.html">REPL Commands Reference</a></strong> - Complete command documentation</li>
+<li><strong><a href="../concepts/purification.html">Purification Concepts</a></strong> - Deep dive into transformations</li>
+<li><strong><a href="../linting/security.html">Linting Rules</a></strong> - Understanding security rules</li>
+</ol>
+<h2 id="tips-for-success"><a class="header" href="#tips-for-success">Tips for Success</a></h2>
+<h3 id="tip-1-start-every-session-with-variables"><a class="header" href="#tip-1-start-every-session-with-variables">Tip 1: Start Every Session with Variables</a></h3>
+<p>Build your context first:</p>
+<pre><code class="language-bash">bashrs [normal]&gt; env=production
+bashrs [normal]&gt; region=us-east-1
+bashrs [normal]&gt; # Now use these throughout your session
+</code></pre>
+<h3 id="tip-2-use-modes-strategically"><a class="header" href="#tip-2-use-modes-strategically">Tip 2: Use Modes Strategically</a></h3>
+<ul>
+<li>Start in <strong>normal</strong> to set up</li>
+<li>Switch to <strong>lint</strong> to find issues</li>
+<li>Switch to <strong>purify</strong> to fix them</li>
+<li>Use <strong>explain</strong> to learn</li>
+<li>Return to <strong>normal</strong> to test</li>
+</ul>
+<h3 id="tip-3-leverage-history"><a class="header" href="#tip-3-leverage-history">Tip 3: Leverage History</a></h3>
+<p>Your history is a goldmine:</p>
+<pre><code class="language-bash">bashrs [normal]&gt; :history
+<span class="boring"> Find working commands and build scripts from them
+</span></code></pre>
+<h3 id="tip-4-combine-with-external-editors"><a class="header" href="#tip-4-combine-with-external-editors">Tip 4: Combine with External Editors</a></h3>
+<p>Edit scripts in your favorite editor, reload in the REPL:</p>
+<pre><code class="language-bash"><span class="boring"> Terminal 1: Your editor
+</span>$ vim deploy.sh
+
+<span class="boring"> Terminal 2: REPL
+</span>bashrs [normal]&gt; :load deploy.sh
+bashrs [normal]&gt; # Make changes in vim
+bashrs [normal]&gt; :reload
+</code></pre>
+<h3 id="tip-5-use-tab-completion-everywhere"><a class="header" href="#tip-5-use-tab-completion-everywhere">Tip 5: Use Tab Completion Everywhere</a></h3>
+<p>Press Tab liberally to:</p>
+<ul>
+<li>Discover commands</li>
+<li>Complete mode names</li>
+<li>Find files quickly</li>
+<li>Reduce typos</li>
+</ul>
+<h2 id="getting-help"><a class="header" href="#getting-help">Getting Help</a></h2>
+<p>If you get stuck:</p>
+<pre><code class="language-bash"><span class="boring"> In the REPL
+</span>bashrs [normal]&gt; help
+
+<span class="boring"> View current mode
+</span>bashrs [normal]&gt; :mode
+
+<span class="boring"> For specific commands
+</span>bashrs [normal]&gt; :parse
+Usage: :parse &lt;bash_code&gt;
+</code></pre>
+<p>Happy scripting! 🚀</p>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="../getting-started/repl.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <i class="fa fa-angle-left"></i>
+                            </a>
+
+                            <a rel="next prefetch" href="../repl/user-guide.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <i class="fa fa-angle-right"></i>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="../getting-started/repl.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <i class="fa fa-angle-left"></i>
+                    </a>
+
+                    <a rel="next prefetch" href="../repl/user-guide.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <i class="fa fa-angle-right"></i>
+                    </a>
+            </nav>
+
+        </div>
+
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+        <script src="../ace.js"></script>
+        <script src="../mode-rust.js"></script>
+        <script src="../editor.js"></script>
+        <script src="../theme-dawn.js"></script>
+        <script src="../theme-tomorrow_night.js"></script>
+
+        <script src="../elasticlunr.min.js"></script>
+        <script src="../mark.min.js"></script>
+        <script src="../searcher.js"></script>
+
+        <script src="../clipboard.min.js"></script>
+        <script src="../highlight.js"></script>
+        <script src="../book.js"></script>
+
+        <!-- Custom JS scripts -->
+
+
+
+    </div>
+    </body>
+</html>
