@@ -175,6 +175,7 @@ pub mod help;
 pub mod highlighting;
 pub mod linter;
 pub mod loader;
+pub mod logic;
 mod r#loop;
 pub mod modes;
 pub mod multiline;

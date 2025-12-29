@@ -1,6 +1,7 @@
 pub mod args;
 pub mod bench;
 pub mod commands;
+pub mod logic;
 
 #[cfg(test)]
 mod tests;
