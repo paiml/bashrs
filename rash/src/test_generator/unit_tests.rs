@@ -371,10 +371,27 @@ impl Assertion {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::test_generator::coverage::{BranchId, BranchType, UncoveredPath};
 
     #[test]
     fn test_unit_test_generator_creation() {
         let gen = UnitTestGenerator::new();
+        let empty_ast = BashAst {
+            statements: vec![],
+            metadata: AstMetadata {
+                source_file: None,
+                line_count: 0,
+                parse_time_ms: 0,
+            },
+        };
+
+        let tests = gen.generate_tests(&empty_ast).unwrap();
+        assert!(tests.is_empty());
+    }
+
+    #[test]
+    fn test_unit_test_generator_default() {
+        let gen = UnitTestGenerator::default();
         let empty_ast = BashAst {
             statements: vec![],
             metadata: AstMetadata {
@@ -426,6 +443,55 @@ mod tests {
     }
 
     #[test]
+    fn test_assertion_not_equals_to_rust_code() {
+        let assertion = Assertion::NotEquals {
+            actual: "result".to_string(),
+            expected: "0".to_string(),
+        };
+
+        let code = assertion.to_rust_code();
+        assert_eq!(code, "assert_ne!(result, 0);");
+    }
+
+    #[test]
+    fn test_assertion_true_to_rust_code() {
+        let assertion = Assertion::True {
+            condition: "x > 0".to_string(),
+        };
+
+        let code = assertion.to_rust_code();
+        assert_eq!(code, "assert!(x > 0);");
+    }
+
+    #[test]
+    fn test_assertion_false_to_rust_code() {
+        let assertion = Assertion::False {
+            condition: "x == 0".to_string(),
+        };
+
+        let code = assertion.to_rust_code();
+        assert_eq!(code, "assert!(!x == 0);");
+    }
+
+    #[test]
+    fn test_assertion_should_panic_to_rust_code() {
+        let assertion = Assertion::ShouldPanic {
+            expected_message: Some("error message".to_string()),
+        };
+
+        let code = assertion.to_rust_code();
+        assert_eq!(code, "// Should panic test");
+    }
+
+    #[test]
+    fn test_assertion_comment_to_rust_code() {
+        let assertion = Assertion::Comment("Test comment".to_string());
+
+        let code = assertion.to_rust_code();
+        assert_eq!(code, "// Test comment");
+    }
+
+    #[test]
     fn test_unit_test_to_rust_code() {
         let test = UnitTest {
             name: "test_example".to_string(),
@@ -443,5 +509,439 @@ mod tests {
         assert!(code.contains("#[test]"));
         assert!(code.contains("fn test_example()"));
         assert!(code.contains("assert_eq!(result, 42);"));
+    }
+
+    #[test]
+    fn test_unit_test_with_should_panic() {
+        let test = UnitTest {
+            name: "test_panics".to_string(),
+            test_fn: "panic_func()".to_string(),
+            assertions: vec![Assertion::ShouldPanic {
+                expected_message: Some("expected panic".to_string()),
+            }],
+        };
+
+        let code = test.to_rust_code();
+        assert!(code.contains("#[test]"));
+        assert!(code.contains("#[should_panic(expected = \"expected panic\")]"));
+        assert!(code.contains("fn test_panics()"));
+    }
+
+    #[test]
+    fn test_unit_test_with_should_panic_no_message() {
+        let test = UnitTest {
+            name: "test_panics".to_string(),
+            test_fn: "panic_func()".to_string(),
+            assertions: vec![Assertion::ShouldPanic {
+                expected_message: None,
+            }],
+        };
+
+        let code = test.to_rust_code();
+        assert!(code.contains("#[test]"));
+        assert!(code.contains("#[should_panic]"));
+        assert!(!code.contains("expected ="));
+    }
+
+    #[test]
+    fn test_branch_tests_for_if_statement() {
+        let gen = UnitTestGenerator::new();
+        let ast = BashAst {
+            statements: vec![BashStmt::Function {
+                name: "test_if".to_string(),
+                body: vec![BashStmt::If {
+                    condition: BashExpr::Literal("true".to_string()),
+                    then_block: vec![],
+                    elif_blocks: vec![(BashExpr::Literal("false".to_string()), vec![])],
+                    else_block: Some(vec![]),
+                    span: Span::dummy(),
+                }],
+                span: Span::dummy(),
+            }],
+            metadata: AstMetadata {
+                source_file: None,
+                line_count: 1,
+                parse_time_ms: 0,
+            },
+        };
+
+        let tests = gen.generate_tests(&ast).unwrap();
+
+        // Should generate tests for if-then, elif, and else branches
+        assert!(tests.iter().any(|t| t.name.contains("if_then_branch")));
+        assert!(tests.iter().any(|t| t.name.contains("elif")));
+        assert!(tests.iter().any(|t| t.name.contains("else_branch")));
+    }
+
+    #[test]
+    fn test_branch_tests_for_while_loop() {
+        let gen = UnitTestGenerator::new();
+        let ast = BashAst {
+            statements: vec![BashStmt::Function {
+                name: "test_while".to_string(),
+                body: vec![BashStmt::While {
+                    condition: BashExpr::Literal("true".to_string()),
+                    body: vec![],
+                    span: Span::dummy(),
+                }],
+                span: Span::dummy(),
+            }],
+            metadata: AstMetadata {
+                source_file: None,
+                line_count: 1,
+                parse_time_ms: 0,
+            },
+        };
+
+        let tests = gen.generate_tests(&ast).unwrap();
+
+        // Should generate test for while loop
+        assert!(tests.iter().any(|t| t.name.contains("while_loop")));
+    }
+
+    #[test]
+    fn test_branch_tests_for_for_loop() {
+        let gen = UnitTestGenerator::new();
+        let ast = BashAst {
+            statements: vec![BashStmt::Function {
+                name: "test_for".to_string(),
+                body: vec![BashStmt::For {
+                    variable: "i".to_string(),
+                    items: BashExpr::Literal("1 2 3".to_string()),
+                    body: vec![],
+                    span: Span::dummy(),
+                }],
+                span: Span::dummy(),
+            }],
+            metadata: AstMetadata {
+                source_file: None,
+                line_count: 1,
+                parse_time_ms: 0,
+            },
+        };
+
+        let tests = gen.generate_tests(&ast).unwrap();
+
+        // Should generate test for for loop
+        assert!(tests.iter().any(|t| t.name.contains("for_loop")));
+    }
+
+    #[test]
+    fn test_targeted_tests_for_line() {
+        let gen = UnitTestGenerator::new();
+        let uncovered = vec![UncoveredPath::Line(42)];
+
+        let tests = gen.generate_targeted_tests(&uncovered).unwrap();
+        assert_eq!(tests.len(), 1);
+        assert!(tests[0].name.contains("line_42"));
+    }
+
+    #[test]
+    fn test_targeted_tests_for_branch() {
+        let gen = UnitTestGenerator::new();
+        let uncovered = vec![UncoveredPath::Branch(BranchId {
+            function: "my_func".to_string(),
+            branch_type: BranchType::IfThen,
+            line: 10,
+        })];
+
+        let tests = gen.generate_targeted_tests(&uncovered).unwrap();
+        assert_eq!(tests.len(), 1);
+        assert!(tests[0].name.contains("branch_my_func"));
+    }
+
+    #[test]
+    fn test_targeted_tests_for_function() {
+        let gen = UnitTestGenerator::new();
+        let uncovered = vec![UncoveredPath::Function("uncovered_fn".to_string())];
+
+        let tests = gen.generate_targeted_tests(&uncovered).unwrap();
+        assert_eq!(tests.len(), 1);
+        assert!(tests[0].name.contains("function_uncovered_fn"));
+    }
+
+    #[test]
+    fn test_uses_file_operations_with_cat() {
+        let gen = UnitTestGenerator::new();
+        let body = vec![BashStmt::Command {
+            name: "cat".to_string(),
+            args: vec![BashExpr::Literal("file.txt".to_string())],
+            redirects: vec![],
+            span: Span::dummy(),
+        }];
+
+        assert!(gen.uses_file_operations(&body));
+    }
+
+    #[test]
+    fn test_uses_file_operations_with_ls() {
+        let gen = UnitTestGenerator::new();
+        let body = vec![BashStmt::Command {
+            name: "ls".to_string(),
+            args: vec![],
+            redirects: vec![],
+            span: Span::dummy(),
+        }];
+
+        assert!(gen.uses_file_operations(&body));
+    }
+
+    #[test]
+    fn test_uses_file_operations_with_mkdir() {
+        let gen = UnitTestGenerator::new();
+        let body = vec![BashStmt::Command {
+            name: "mkdir".to_string(),
+            args: vec![BashExpr::Literal("dir".to_string())],
+            redirects: vec![],
+            span: Span::dummy(),
+        }];
+
+        assert!(gen.uses_file_operations(&body));
+    }
+
+    #[test]
+    fn test_uses_file_operations_with_rm() {
+        let gen = UnitTestGenerator::new();
+        let body = vec![BashStmt::Command {
+            name: "rm".to_string(),
+            args: vec![BashExpr::Literal("file.txt".to_string())],
+            redirects: vec![],
+            span: Span::dummy(),
+        }];
+
+        assert!(gen.uses_file_operations(&body));
+    }
+
+    #[test]
+    fn test_uses_file_operations_with_cp() {
+        let gen = UnitTestGenerator::new();
+        let body = vec![BashStmt::Command {
+            name: "cp".to_string(),
+            args: vec![
+                BashExpr::Literal("src".to_string()),
+                BashExpr::Literal("dst".to_string()),
+            ],
+            redirects: vec![],
+            span: Span::dummy(),
+        }];
+
+        assert!(gen.uses_file_operations(&body));
+    }
+
+    #[test]
+    fn test_uses_file_operations_with_mv() {
+        let gen = UnitTestGenerator::new();
+        let body = vec![BashStmt::Command {
+            name: "mv".to_string(),
+            args: vec![
+                BashExpr::Literal("src".to_string()),
+                BashExpr::Literal("dst".to_string()),
+            ],
+            redirects: vec![],
+            span: Span::dummy(),
+        }];
+
+        assert!(gen.uses_file_operations(&body));
+    }
+
+    #[test]
+    fn test_uses_file_operations_without_file_commands() {
+        let gen = UnitTestGenerator::new();
+        let body = vec![BashStmt::Command {
+            name: "echo".to_string(),
+            args: vec![BashExpr::Literal("hello".to_string())],
+            redirects: vec![],
+            span: Span::dummy(),
+        }];
+
+        assert!(!gen.uses_file_operations(&body));
+    }
+
+    #[test]
+    fn test_uses_arithmetic_with_arithmetic_expr() {
+        let gen = UnitTestGenerator::new();
+        let body = vec![BashStmt::Assignment {
+            name: "x".to_string(),
+            value: BashExpr::Arithmetic(Box::new(ArithExpr::Add(
+                Box::new(ArithExpr::Number(1)),
+                Box::new(ArithExpr::Number(2)),
+            ))),
+            exported: false,
+            span: Span::dummy(),
+        }];
+
+        assert!(gen.uses_arithmetic(&body));
+    }
+
+    #[test]
+    fn test_uses_arithmetic_without_arithmetic() {
+        let gen = UnitTestGenerator::new();
+        let body = vec![BashStmt::Assignment {
+            name: "x".to_string(),
+            value: BashExpr::Literal("hello".to_string()),
+            exported: false,
+            span: Span::dummy(),
+        }];
+
+        assert!(!gen.uses_arithmetic(&body));
+    }
+
+    #[test]
+    fn test_error_case_tests_with_file_operations() {
+        let gen = UnitTestGenerator::new();
+        let ast = BashAst {
+            statements: vec![BashStmt::Function {
+                name: "file_func".to_string(),
+                body: vec![BashStmt::Command {
+                    name: "cat".to_string(),
+                    args: vec![BashExpr::Literal("file.txt".to_string())],
+                    redirects: vec![],
+                    span: Span::dummy(),
+                }],
+                span: Span::dummy(),
+            }],
+            metadata: AstMetadata {
+                source_file: None,
+                line_count: 1,
+                parse_time_ms: 0,
+            },
+        };
+
+        let tests = gen.generate_tests(&ast).unwrap();
+
+        // Should generate error test for file not found
+        assert!(tests.iter().any(|t| t.name.contains("file_not_found")));
+    }
+
+    #[test]
+    fn test_error_case_tests_with_arithmetic() {
+        let gen = UnitTestGenerator::new();
+        let ast = BashAst {
+            statements: vec![BashStmt::Function {
+                name: "arith_func".to_string(),
+                body: vec![BashStmt::Assignment {
+                    name: "x".to_string(),
+                    value: BashExpr::Arithmetic(Box::new(ArithExpr::Add(
+                        Box::new(ArithExpr::Number(1)),
+                        Box::new(ArithExpr::Number(2)),
+                    ))),
+                    exported: false,
+                    span: Span::dummy(),
+                }],
+                span: Span::dummy(),
+            }],
+            metadata: AstMetadata {
+                source_file: None,
+                line_count: 1,
+                parse_time_ms: 0,
+            },
+        };
+
+        let tests = gen.generate_tests(&ast).unwrap();
+
+        // Should generate error test for invalid input
+        assert!(tests.iter().any(|t| t.name.contains("invalid_input")));
+    }
+
+    #[test]
+    fn test_multiple_elif_branches() {
+        let gen = UnitTestGenerator::new();
+        let ast = BashAst {
+            statements: vec![BashStmt::Function {
+                name: "multi_elif".to_string(),
+                body: vec![BashStmt::If {
+                    condition: BashExpr::Literal("cond1".to_string()),
+                    then_block: vec![],
+                    elif_blocks: vec![
+                        (BashExpr::Literal("cond2".to_string()), vec![]),
+                        (BashExpr::Literal("cond3".to_string()), vec![]),
+                        (BashExpr::Literal("cond4".to_string()), vec![]),
+                    ],
+                    else_block: None,
+                    span: Span::dummy(),
+                }],
+                span: Span::dummy(),
+            }],
+            metadata: AstMetadata {
+                source_file: None,
+                line_count: 1,
+                parse_time_ms: 0,
+            },
+        };
+
+        let tests = gen.generate_tests(&ast).unwrap();
+
+        // Should generate tests for all elif branches
+        assert!(tests.iter().any(|t| t.name.contains("elif_0")));
+        assert!(tests.iter().any(|t| t.name.contains("elif_1")));
+        assert!(tests.iter().any(|t| t.name.contains("elif_2")));
+    }
+
+    #[test]
+    fn test_if_without_else() {
+        let gen = UnitTestGenerator::new();
+        let ast = BashAst {
+            statements: vec![BashStmt::Function {
+                name: "no_else".to_string(),
+                body: vec![BashStmt::If {
+                    condition: BashExpr::Literal("cond".to_string()),
+                    then_block: vec![],
+                    elif_blocks: vec![],
+                    else_block: None,
+                    span: Span::dummy(),
+                }],
+                span: Span::dummy(),
+            }],
+            metadata: AstMetadata {
+                source_file: None,
+                line_count: 1,
+                parse_time_ms: 0,
+            },
+        };
+
+        let tests = gen.generate_tests(&ast).unwrap();
+
+        // Should generate test for if-then but not else
+        assert!(tests.iter().any(|t| t.name.contains("if_then")));
+        assert!(!tests.iter().any(|t| t.name.contains("else_branch")));
+    }
+
+    #[test]
+    fn test_empty_body_no_branch_tests() {
+        let gen = UnitTestGenerator::new();
+        let body: Vec<BashStmt> = vec![];
+
+        let tests = gen.generate_branch_tests("empty_func", &body).unwrap();
+        assert!(tests.is_empty());
+    }
+
+    #[test]
+    fn test_multiple_functions() {
+        let gen = UnitTestGenerator::new();
+        let ast = BashAst {
+            statements: vec![
+                BashStmt::Function {
+                    name: "func1".to_string(),
+                    body: vec![],
+                    span: Span::dummy(),
+                },
+                BashStmt::Function {
+                    name: "func2".to_string(),
+                    body: vec![],
+                    span: Span::dummy(),
+                },
+            ],
+            metadata: AstMetadata {
+                source_file: None,
+                line_count: 2,
+                parse_time_ms: 0,
+            },
+        };
+
+        let tests = gen.generate_tests(&ast).unwrap();
+
+        // Should generate edge case tests for both functions
+        assert!(tests.iter().any(|t| t.name.contains("func1")));
+        assert!(tests.iter().any(|t| t.name.contains("func2")));
     }
 }
