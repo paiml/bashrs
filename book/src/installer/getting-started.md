@@ -16,7 +16,7 @@ bashrs installer init my-app-installer --description "My application installer"
 ```
 
 Output:
-```
+```text
 ✓ Initialized installer project: my-app-installer
   Path: /path/to/my-app-installer
 
@@ -130,7 +130,7 @@ bashrs installer validate my-app-installer
 ```
 
 Output:
-```
+```text
 ✓ Installer is valid
   Steps: 4
   Artifacts: 0
