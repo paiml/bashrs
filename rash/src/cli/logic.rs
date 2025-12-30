@@ -8,7 +8,7 @@ use crate::cli::args::{LintLevel, LintProfileArg};
 use crate::linter::{LintResult, Severity};
 use crate::models::{Error, Result};
 use std::collections::HashSet;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 // ===== SHELL SCRIPT DETECTION =====
 
@@ -445,6 +445,302 @@ impl FormatCheckResult {
     }
 }
 
+// ===== DOCKERFILE PURIFICATION LOGIC =====
+
+/// Convert ADD to COPY for local files (DOCKER006)
+///
+/// Keep ADD for:
+/// - URLs (http://, https://)
+/// - Tarballs (.tar, .tar.gz, .tgz, .tar.bz2, .tar.xz) which ADD auto-extracts
+pub fn convert_add_to_copy_if_local(line: &str) -> String {
+    let trimmed = line.trim();
+
+    // Skip comment lines
+    if trimmed.starts_with('#') {
+        return line.to_string();
+    }
+
+    // Must be an ADD directive
+    if !trimmed.starts_with("ADD ") {
+        return line.to_string();
+    }
+
+    // Extract the source path (first argument after ADD)
+    let parts: Vec<&str> = trimmed.split_whitespace().collect();
+    let source = match parts.get(1) {
+        Some(s) => *s,
+        None => return line.to_string(), // Malformed ADD directive
+    };
+
+    // Check if source is a URL
+    if source.starts_with("http://") || source.starts_with("https://") {
+        return line.to_string(); // Keep ADD for URLs
+    }
+
+    // Check if source is a tarball (which ADD auto-extracts)
+    let is_tarball = source.ends_with(".tar")
+        || source.ends_with(".tar.gz")
+        || source.ends_with(".tgz")
+        || source.ends_with(".tar.bz2")
+        || source.ends_with(".tar.xz")
+        || source.ends_with(".tar.Z");
+
+    if is_tarball {
+        return line.to_string(); // Keep ADD for tarballs
+    }
+
+    // It's a local file - convert ADD to COPY
+    line.replacen("ADD ", "COPY ", 1)
+}
+
+/// Add --no-install-recommends flag to apt-get install commands (DOCKER005)
+pub fn add_no_install_recommends(line: &str) -> String {
+    let trimmed = line.trim();
+
+    // Skip comment lines
+    if trimmed.starts_with('#') {
+        return line.to_string();
+    }
+
+    // Check if already has --no-install-recommends
+    if line.contains("--no-install-recommends") {
+        return line.to_string();
+    }
+
+    // Must contain apt-get install
+    if !line.contains("apt-get install") {
+        return line.to_string();
+    }
+
+    let mut result = line.to_string();
+
+    // Replace "apt-get install -y " (with -y flag)
+    result = result.replace(
+        "apt-get install -y ",
+        "apt-get install -y --no-install-recommends ",
+    );
+
+    // Replace remaining "apt-get install "
+    if !result.contains("--no-install-recommends") {
+        result = result.replace(
+            "apt-get install ",
+            "apt-get install --no-install-recommends ",
+        );
+    }
+
+    // Handle edge case: "apt-get install" at end of line (no trailing space)
+    if !result.contains("--no-install-recommends") && result.trim_end().ends_with("apt-get install")
+    {
+        result = result.trim_end().to_string() + " --no-install-recommends ";
+    }
+
+    result
+}
+
+/// Add cleanup commands for package managers (DOCKER003)
+pub fn add_package_manager_cleanup(line: &str) -> String {
+    let trimmed = line.trim();
+
+    // Skip comment lines
+    if trimmed.starts_with('#') {
+        return line.to_string();
+    }
+
+    // Check if cleanup already present
+    if line.contains("/var/lib/apt/lists") || line.contains("/var/cache/apk") {
+        return line.to_string();
+    }
+
+    // Detect apt/apt-get commands
+    if line.contains("apt-get install") || line.contains("apt install") {
+        return format!("{} && rm -rf /var/lib/apt/lists/*", line.trim_end());
+    }
+
+    // Detect apk commands
+    if line.contains("apk add") {
+        return format!("{} && rm -rf /var/cache/apk/*", line.trim_end());
+    }
+
+    line.to_string()
+}
+
+/// Pin unpinned base images to stable versions (DOCKER002)
+pub fn pin_base_image_version(line: &str) -> String {
+    let trimmed = line.trim();
+
+    // Must be a FROM line
+    if !trimmed.starts_with("FROM ") {
+        return line.to_string();
+    }
+
+    // Parse FROM line
+    let parts: Vec<&str> = trimmed.split_whitespace().collect();
+    let image_part = match parts.get(1) {
+        Some(img) => *img,
+        None => return line.to_string(), // Malformed FROM line
+    };
+
+    // Parse registry prefix
+    let (registry_prefix, image_with_tag) = if let Some(slash_pos) = image_part.find('/') {
+        let prefix_part = &image_part[..slash_pos];
+        if prefix_part.contains('.') || prefix_part == "localhost" {
+            (Some(prefix_part), &image_part[slash_pos + 1..])
+        } else {
+            (None, image_part)
+        }
+    } else {
+        (None, image_part)
+    };
+
+    // Split image into name and tag
+    let (image_name, tag) = if let Some(colon_pos) = image_with_tag.find(':') {
+        let name = &image_with_tag[..colon_pos];
+        let tag = &image_with_tag[colon_pos + 1..];
+        (name, Some(tag))
+    } else {
+        (image_with_tag, None)
+    };
+
+    // Determine if pinning is needed
+    let needs_pinning = tag.is_none() || tag == Some("latest");
+
+    if !needs_pinning {
+        return line.to_string(); // Already has specific version
+    }
+
+    // Map common images to stable versions
+    let pinned_tag = match image_name {
+        "ubuntu" => "22.04",
+        "debian" => "12-slim",
+        "alpine" => "3.19",
+        "node" => "20-alpine",
+        "python" => "3.11-slim",
+        "rust" => "1.75-alpine",
+        "nginx" => "1.25-alpine",
+        "postgres" => "16-alpine",
+        "redis" => "7-alpine",
+        _ => return line.to_string(), // Unknown image
+    };
+
+    // Reconstruct FROM line with pinned version
+    let pinned_image = if let Some(prefix) = registry_prefix {
+        format!("{}/{}:{}", prefix, image_name, pinned_tag)
+    } else {
+        format!("{}:{}", image_name, pinned_tag)
+    };
+
+    // Preserve "AS <name>" if present
+    if parts.len() > 2 {
+        let rest = parts.get(2..).map(|s| s.join(" ")).unwrap_or_default();
+        format!("FROM {} {}", pinned_image, rest)
+    } else {
+        format!("FROM {}", pinned_image)
+    }
+}
+
+/// Find devcontainer.json in standard locations
+pub fn find_devcontainer_json(path: &Path) -> Result<PathBuf> {
+    // If path is a file, use it directly
+    if path.is_file() {
+        return Ok(path.to_path_buf());
+    }
+
+    // If path is a directory, search standard locations
+    let candidates = [
+        path.join(".devcontainer/devcontainer.json"),
+        path.join(".devcontainer.json"),
+    ];
+
+    for candidate in &candidates {
+        if candidate.exists() {
+            return Ok(candidate.clone());
+        }
+    }
+
+    // Check for .devcontainer/<folder>/devcontainer.json
+    let devcontainer_dir = path.join(".devcontainer");
+    if devcontainer_dir.is_dir() {
+        if let Ok(entries) = std::fs::read_dir(&devcontainer_dir) {
+            for entry in entries.flatten() {
+                let subdir = entry.path();
+                if subdir.is_dir() {
+                    let candidate = subdir.join("devcontainer.json");
+                    if candidate.exists() {
+                        return Ok(candidate);
+                    }
+                }
+            }
+        }
+    }
+
+    Err(Error::Validation(format!(
+        "No devcontainer.json found in {}. Expected locations:\n  \
+         - .devcontainer/devcontainer.json\n  \
+         - .devcontainer.json\n  \
+         - .devcontainer/<folder>/devcontainer.json",
+        path.display()
+    )))
+}
+
+/// Parse custom size limit from string (e.g., "2GB", "500MB")
+pub fn parse_size_limit(s: &str) -> Option<u64> {
+    let s = s.to_uppercase();
+    if s.ends_with("GB") {
+        s[..s.len() - 2]
+            .trim()
+            .parse::<f64>()
+            .ok()
+            .map(|n| (n * 1_000_000_000.0) as u64)
+    } else if s.ends_with("MB") {
+        s[..s.len() - 2]
+            .trim()
+            .parse::<f64>()
+            .ok()
+            .map(|n| (n * 1_000_000.0) as u64)
+    } else if s.ends_with("KB") {
+        s[..s.len() - 2]
+            .trim()
+            .parse::<f64>()
+            .ok()
+            .map(|n| (n * 1_000.0) as u64)
+    } else {
+        s.parse::<u64>().ok()
+    }
+}
+
+/// Estimate build time based on layer complexity
+pub fn estimate_build_time_seconds(layer_count: usize, total_size: u64, has_apt: bool, has_pip: bool, has_npm: bool) -> u64 {
+    let mut total_seconds = 0u64;
+
+    // Base time for each layer
+    total_seconds += layer_count as u64;
+
+    // Add time based on size (1 second per 100MB)
+    total_seconds += total_size / 100_000_000;
+
+    // Add extra time for known slow operations
+    if has_apt {
+        total_seconds += 10;
+    }
+    if has_pip {
+        total_seconds += 5;
+    }
+    if has_npm {
+        total_seconds += 5;
+    }
+
+    total_seconds
+}
+
+/// Format build time as human-readable string
+pub fn format_build_time(seconds: u64) -> String {
+    if seconds < 60 {
+        format!("~{}s", seconds)
+    } else {
+        format!("~{}m {}s", seconds / 60, seconds % 60)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -759,5 +1055,222 @@ mod tests {
             files_unchanged: 3,
         };
         assert!(!result.all_formatted());
+    }
+
+    // ===== DOCKERFILE LOGIC TESTS =====
+
+    #[test]
+    fn test_convert_add_to_copy_local_file() {
+        assert_eq!(
+            convert_add_to_copy_if_local("ADD file.txt /app/"),
+            "COPY file.txt /app/"
+        );
+    }
+
+    #[test]
+    fn test_convert_add_to_copy_preserves_url() {
+        let line = "ADD https://example.com/file.tar.gz /app/";
+        assert_eq!(convert_add_to_copy_if_local(line), line);
+    }
+
+    #[test]
+    fn test_convert_add_to_copy_preserves_tarball() {
+        let line = "ADD archive.tar.gz /app/";
+        assert_eq!(convert_add_to_copy_if_local(line), line);
+
+        let line2 = "ADD data.tgz /app/";
+        assert_eq!(convert_add_to_copy_if_local(line2), line2);
+    }
+
+    #[test]
+    fn test_convert_add_to_copy_preserves_comment() {
+        let line = "# ADD file.txt /app/";
+        assert_eq!(convert_add_to_copy_if_local(line), line);
+    }
+
+    #[test]
+    fn test_convert_add_to_copy_non_add_line() {
+        let line = "COPY file.txt /app/";
+        assert_eq!(convert_add_to_copy_if_local(line), line);
+    }
+
+    #[test]
+    fn test_add_no_install_recommends() {
+        assert_eq!(
+            add_no_install_recommends("RUN apt-get install -y curl"),
+            "RUN apt-get install -y --no-install-recommends curl"
+        );
+    }
+
+    #[test]
+    fn test_add_no_install_recommends_already_present() {
+        let line = "RUN apt-get install -y --no-install-recommends curl";
+        assert_eq!(add_no_install_recommends(line), line);
+    }
+
+    #[test]
+    fn test_add_no_install_recommends_without_y() {
+        assert_eq!(
+            add_no_install_recommends("RUN apt-get install curl"),
+            "RUN apt-get install --no-install-recommends curl"
+        );
+    }
+
+    #[test]
+    fn test_add_no_install_recommends_comment() {
+        let line = "# apt-get install curl";
+        assert_eq!(add_no_install_recommends(line), line);
+    }
+
+    #[test]
+    fn test_add_no_install_recommends_non_apt() {
+        let line = "RUN yum install curl";
+        assert_eq!(add_no_install_recommends(line), line);
+    }
+
+    #[test]
+    fn test_add_package_manager_cleanup_apt() {
+        assert_eq!(
+            add_package_manager_cleanup("RUN apt-get install -y curl"),
+            "RUN apt-get install -y curl && rm -rf /var/lib/apt/lists/*"
+        );
+    }
+
+    #[test]
+    fn test_add_package_manager_cleanup_apk() {
+        assert_eq!(
+            add_package_manager_cleanup("RUN apk add curl"),
+            "RUN apk add curl && rm -rf /var/cache/apk/*"
+        );
+    }
+
+    #[test]
+    fn test_add_package_manager_cleanup_already_present() {
+        let line = "RUN apt-get install curl && rm -rf /var/lib/apt/lists/*";
+        assert_eq!(add_package_manager_cleanup(line), line);
+    }
+
+    #[test]
+    fn test_add_package_manager_cleanup_comment() {
+        let line = "# apt-get install curl";
+        assert_eq!(add_package_manager_cleanup(line), line);
+    }
+
+    #[test]
+    fn test_add_package_manager_cleanup_other_command() {
+        let line = "RUN echo hello";
+        assert_eq!(add_package_manager_cleanup(line), line);
+    }
+
+    #[test]
+    fn test_pin_base_image_ubuntu() {
+        assert_eq!(
+            pin_base_image_version("FROM ubuntu"),
+            "FROM ubuntu:22.04"
+        );
+    }
+
+    #[test]
+    fn test_pin_base_image_latest() {
+        assert_eq!(
+            pin_base_image_version("FROM alpine:latest"),
+            "FROM alpine:3.19"
+        );
+    }
+
+    #[test]
+    fn test_pin_base_image_already_pinned() {
+        let line = "FROM python:3.9";
+        assert_eq!(pin_base_image_version(line), line);
+    }
+
+    #[test]
+    fn test_pin_base_image_with_as() {
+        assert_eq!(
+            pin_base_image_version("FROM node AS builder"),
+            "FROM node:20-alpine AS builder"
+        );
+    }
+
+    #[test]
+    fn test_pin_base_image_with_registry() {
+        assert_eq!(
+            pin_base_image_version("FROM docker.io/ubuntu"),
+            "FROM docker.io/ubuntu:22.04"
+        );
+    }
+
+    #[test]
+    fn test_pin_base_image_unknown() {
+        let line = "FROM mycompany/myimage";
+        assert_eq!(pin_base_image_version(line), line);
+    }
+
+    #[test]
+    fn test_pin_base_image_non_from_line() {
+        let line = "RUN echo hello";
+        assert_eq!(pin_base_image_version(line), line);
+    }
+
+    #[test]
+    fn test_parse_size_limit_gb() {
+        assert_eq!(parse_size_limit("2GB"), Some(2_000_000_000));
+        assert_eq!(parse_size_limit("1.5gb"), Some(1_500_000_000));
+    }
+
+    #[test]
+    fn test_parse_size_limit_mb() {
+        assert_eq!(parse_size_limit("500MB"), Some(500_000_000));
+        assert_eq!(parse_size_limit("100mb"), Some(100_000_000));
+    }
+
+    #[test]
+    fn test_parse_size_limit_kb() {
+        assert_eq!(parse_size_limit("1000KB"), Some(1_000_000));
+    }
+
+    #[test]
+    fn test_parse_size_limit_invalid() {
+        assert_eq!(parse_size_limit("invalid"), None);
+        assert_eq!(parse_size_limit(""), None);
+    }
+
+    #[test]
+    fn test_estimate_build_time_basic() {
+        let seconds = estimate_build_time_seconds(5, 0, false, false, false);
+        assert_eq!(seconds, 5); // 1 second per layer
+    }
+
+    #[test]
+    fn test_estimate_build_time_with_size() {
+        let seconds = estimate_build_time_seconds(2, 500_000_000, false, false, false);
+        assert_eq!(seconds, 2 + 5); // 2 layers + 5 seconds for 500MB
+    }
+
+    #[test]
+    fn test_estimate_build_time_with_package_managers() {
+        let seconds = estimate_build_time_seconds(1, 0, true, true, true);
+        assert_eq!(seconds, 1 + 10 + 5 + 5); // 1 layer + apt + pip + npm
+    }
+
+    #[test]
+    fn test_format_build_time_seconds() {
+        assert_eq!(format_build_time(30), "~30s");
+        assert_eq!(format_build_time(59), "~59s");
+    }
+
+    #[test]
+    fn test_format_build_time_minutes() {
+        assert_eq!(format_build_time(60), "~1m 0s");
+        assert_eq!(format_build_time(90), "~1m 30s");
+        assert_eq!(format_build_time(125), "~2m 5s");
+    }
+
+    #[test]
+    fn test_find_devcontainer_json_not_found() {
+        let result = find_devcontainer_json(Path::new("/nonexistent/path"));
+        assert!(result.is_err());
+        let err = result.unwrap_err();
+        assert!(err.to_string().contains("No devcontainer.json found"));
     }
 }
