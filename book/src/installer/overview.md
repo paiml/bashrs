@@ -42,7 +42,7 @@ bashrs installer run my-app-installer
 
 When you run `bashrs installer init`, the following structure is created:
 
-```
+```text
 my-app-installer/
 ├── installer.toml          # Declarative specification
 ├── tests/

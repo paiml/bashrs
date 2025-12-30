@@ -64,7 +64,7 @@ bashrs installer resume my-installer --list
 
 Checkpoints are stored in the checkpoint directory:
 
-```
+```text
 ~/.local/share/bashrs/checkpoints/
 └── my-installer/
     ├── checkpoint.db        # SQLite database

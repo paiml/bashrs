@@ -7,6 +7,36 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [6.48.0] - 2025-12-30
+
+### Added
+
+- **Comprehensive Test Coverage**: Added ~140 new tests across low-coverage modules
+  - `compiler/mod.rs`: 20+ tests for CompressionLevel, RuntimeType, StripLevel, BinaryCompiler
+  - `compiler/optimize.rs`: 15+ tests for BinaryOptimizer, size estimation, optimization flags
+  - `gates.rs`: 24+ tests for gate types, serialization, cloning, Config with optional gates
+  - `formal/enhanced_state.rs`: 35 tests for file system entries, permissions, operations
+  - `formatter/transforms.rs`: 47+ tests for Transform variants, SemanticDelta, IntervalSet
+
+### Fixed
+
+- **Book Code Blocks**: Fixed unmarked code blocks that were being interpreted as Rust
+  - Added `text` language specifier to ASCII art directory trees and output examples
+  - Fixes in `installer/overview.md`, `installer/testing.md`, `installer/checkpointing.md`, `installer/getting-started.md`
+
+### Changed
+
+- **CLI Refactoring**: Extracted testable logic from `cli/commands.rs` to `cli/logic.rs`
+  - Separates I/O operations from pure business logic for better testability
+  - Added comprehensive unit tests for CLI logic functions
+
+### Quality
+
+- **Tests**: 8490 passed (100% pass rate)
+- **Coverage**: Improved coverage on previously low-coverage modules (68-79% → ~90%+)
+- **Book Tests**: `mdbook test book` passes
+- **Examples**: All 6 cargo examples build and run
+
 ## [6.46.0] - 2025-12-21
 
 ### Added

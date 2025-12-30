@@ -48,7 +48,7 @@ bashrs installer test my-installer --coverage
 
 ## Test Output
 
-```
+```text
 Container Test Matrix
 ══════════════════════════════════════════════════════════════════════════════
   Platform          Arch    Status    Duration    Notes
@@ -161,7 +161,7 @@ bashrs installer test my-installer --coverage
 ```
 
 Output:
-```
+```text
 Coverage Report
 ══════════════════════════════════════════════════════════════════════════════
   Step                    Executed    Verified    Coverage
