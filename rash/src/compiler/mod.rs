@@ -197,3 +197,195 @@ fn compress_gzip(data: &[u8]) -> Vec<u8> {
     encoder.write_all(data).unwrap();
     encoder.finish().unwrap()
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    // ===== CompressionLevel Tests =====
+
+    #[test]
+    fn test_compression_level_fast() {
+        assert_eq!(CompressionLevel::Fast.level(), 3);
+    }
+
+    #[test]
+    fn test_compression_level_balanced() {
+        assert_eq!(CompressionLevel::Balanced.level(), 11);
+    }
+
+    #[test]
+    fn test_compression_level_best() {
+        assert_eq!(CompressionLevel::Best.level(), 19);
+    }
+
+    // ===== RuntimeType Tests =====
+
+    #[test]
+    fn test_runtime_type_debug() {
+        let dash = RuntimeType::Dash;
+        let busybox = RuntimeType::Busybox;
+        let minimal = RuntimeType::Minimal;
+
+        // Just test that Debug trait is implemented
+        let _ = format!("{:?}", dash);
+        let _ = format!("{:?}", busybox);
+        let _ = format!("{:?}", minimal);
+    }
+
+    #[test]
+    fn test_runtime_type_clone() {
+        let dash = RuntimeType::Dash;
+        let cloned = dash;
+        assert!(matches!(cloned, RuntimeType::Dash));
+    }
+
+    // ===== StripLevel Tests =====
+
+    #[test]
+    fn test_strip_level_debug() {
+        let none = StripLevel::None;
+        let debug = StripLevel::Debug;
+        let all = StripLevel::All;
+
+        let _ = format!("{:?}", none);
+        let _ = format!("{:?}", debug);
+        let _ = format!("{:?}", all);
+    }
+
+    // ===== BinaryCompiler Tests =====
+
+    #[test]
+    fn test_binary_compiler_new() {
+        let compiler = BinaryCompiler::new(RuntimeType::Dash);
+        assert!(matches!(compiler.runtime, RuntimeType::Dash));
+        assert!(matches!(compiler.compression, CompressionLevel::Balanced));
+        assert!(matches!(compiler.strip_level, StripLevel::All));
+    }
+
+    #[test]
+    fn test_binary_compiler_with_compression() {
+        let compiler = BinaryCompiler::new(RuntimeType::Dash)
+            .with_compression(CompressionLevel::Best);
+        assert!(matches!(compiler.compression, CompressionLevel::Best));
+    }
+
+    #[test]
+    fn test_binary_compiler_with_strip_level() {
+        let compiler = BinaryCompiler::new(RuntimeType::Dash)
+            .with_strip_level(StripLevel::None);
+        assert!(matches!(compiler.strip_level, StripLevel::None));
+    }
+
+    #[test]
+    fn test_binary_compiler_builder_chain() {
+        let compiler = BinaryCompiler::new(RuntimeType::Busybox)
+            .with_compression(CompressionLevel::Fast)
+            .with_strip_level(StripLevel::Debug);
+
+        assert!(matches!(compiler.runtime, RuntimeType::Busybox));
+        assert!(matches!(compiler.compression, CompressionLevel::Fast));
+        assert!(matches!(compiler.strip_level, StripLevel::Debug));
+    }
+
+    #[test]
+    fn test_binary_compiler_minimal_runtime_error() {
+        let compiler = BinaryCompiler::new(RuntimeType::Minimal);
+        let result = compiler.compile("echo hello");
+        assert!(result.is_err());
+        let err = result.unwrap_err();
+        assert!(err.to_string().contains("Minimal runtime not yet implemented"));
+    }
+
+    #[test]
+    fn test_inject_section() {
+        let compiler = BinaryCompiler::new(RuntimeType::Dash);
+        let mut binary = vec![0u8; 100];
+        let data = b"test data";
+
+        let offset = compiler.inject_section(&mut binary, ".test", data).unwrap();
+        assert_eq!(offset, 100); // Should append at the end
+
+        // Binary should be extended with header (8 bytes) + data
+        assert_eq!(binary.len(), 100 + 8 + data.len());
+    }
+
+    #[test]
+    fn test_patch_entrypoint() {
+        let compiler = BinaryCompiler::new(RuntimeType::Dash);
+        let mut binary = vec![0u8; 100];
+
+        let result = compiler.patch_entrypoint(&mut binary, 50);
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_strip_binary_none() {
+        let compiler = BinaryCompiler::new(RuntimeType::Dash)
+            .with_strip_level(StripLevel::None);
+        let mut binary = vec![0u8; 100];
+
+        let result = compiler.strip_binary(&mut binary);
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_strip_binary_debug() {
+        let compiler = BinaryCompiler::new(RuntimeType::Dash)
+            .with_strip_level(StripLevel::Debug);
+        let mut binary = vec![0u8; 100];
+
+        let result = compiler.strip_binary(&mut binary);
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_strip_binary_all() {
+        let compiler = BinaryCompiler::new(RuntimeType::Dash)
+            .with_strip_level(StripLevel::All);
+        let mut binary = vec![0u8; 100];
+
+        let result = compiler.strip_binary(&mut binary);
+        assert!(result.is_ok());
+    }
+
+    // ===== compress_gzip Tests =====
+
+    #[test]
+    fn test_compress_gzip_empty() {
+        let result = compress_gzip(&[]);
+        // Gzip header is at least 10 bytes
+        assert!(result.len() >= 10);
+    }
+
+    #[test]
+    fn test_compress_gzip_small_data() {
+        let data = b"hello world";
+        let compressed = compress_gzip(data);
+        // Compressed data should exist
+        assert!(!compressed.is_empty());
+    }
+
+    #[test]
+    fn test_compress_gzip_large_data() {
+        let data = vec![b'A'; 10000];
+        let compressed = compress_gzip(&data);
+        // Highly repetitive data should compress well
+        assert!(compressed.len() < data.len());
+    }
+
+    #[test]
+    fn test_compress_gzip_decompresses_correctly() {
+        use flate2::read::GzDecoder;
+        use std::io::Read;
+
+        let original = b"test data for compression";
+        let compressed = compress_gzip(original);
+
+        let mut decoder = GzDecoder::new(&compressed[..]);
+        let mut decompressed = Vec::new();
+        decoder.read_to_end(&mut decompressed).unwrap();
+
+        assert_eq!(decompressed, original);
+    }
+}
