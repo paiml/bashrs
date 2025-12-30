@@ -6,6 +6,11 @@ use crate::cli::args::{
     LintFormat, LintLevel, LintProfileArg, MakeCommands, MakeOutputFormat, MutateFormat,
     PlaybookFormat, ReportFormat, ScoreOutputFormat, SimulateFormat, TestOutputFormat,
 };
+use crate::cli::logic::{
+    add_no_install_recommends, add_package_manager_cleanup, convert_add_to_copy_if_local,
+    find_devcontainer_json as logic_find_devcontainer_json, is_dockerfile, is_makefile,
+    is_shell_script_file, normalize_shell_script, pin_base_image_version,
+};
 use crate::cli::{Cli, Commands};
 use crate::models::{Config, Error, Result};
 use crate::{check, transpile};
@@ -683,41 +688,6 @@ fn check_command(input: &Path) -> Result<()> {
     Ok(())
 }
 
-/// Detect if a file is a shell script based on extension and shebang (Issue #84)
-///
-/// Returns true if the file:
-/// - Has a shell extension (.sh, .bash, .ksh, .zsh)
-/// - Has a shell shebang (#!/bin/sh, #!/bin/bash, etc.)
-fn is_shell_script_file(path: &Path, content: &str) -> bool {
-    // Check file extension
-    if let Some(ext) = path.extension().and_then(|e| e.to_str()) {
-        let ext_lower = ext.to_lowercase();
-        if matches!(ext_lower.as_str(), "sh" | "bash" | "ksh" | "zsh" | "ash") {
-            return true;
-        }
-    }
-
-    // Check shebang
-    let first_line = content.lines().next().unwrap_or("");
-    if first_line.starts_with("#!") {
-        let shebang_lower = first_line.to_lowercase();
-        // Check for common shell interpreters
-        if shebang_lower.contains("/sh")
-            || shebang_lower.contains("/bash")
-            || shebang_lower.contains("/zsh")
-            || shebang_lower.contains("/ksh")
-            || shebang_lower.contains("/ash")
-            || shebang_lower.contains("/dash")
-            || shebang_lower.contains("env sh")
-            || shebang_lower.contains("env bash")
-        {
-            return true;
-        }
-    }
-
-    false
-}
-
 fn init_command(path: &Path, name: Option<&str>) -> Result<()> {
     // Create directory if it doesn't exist
     if !path.exists() {
@@ -912,17 +882,6 @@ fn generate_proof(source: &str, proof_path: &Path, config: &Config) -> Result<()
     fs::write(proof_path, proof).map_err(Error::Io)?;
 
     Ok(())
-}
-
-fn normalize_shell_script(script: &str) -> String {
-    // Remove comments and normalize whitespace for comparison
-    script
-        .lines()
-        .filter(|line| !line.trim().starts_with('#'))
-        .map(|line| line.trim())
-        .filter(|line| !line.is_empty())
-        .collect::<Vec<_>>()
-        .join("\n")
 }
 
 fn inspect_command(
@@ -1235,40 +1194,26 @@ fn lint_command(
     // Read input file
     let source = fs::read_to_string(input).map_err(Error::Io)?;
 
-    // Detect file type and use appropriate linter
-    // Check both filename and file extension
+    // Detect file type and use appropriate linter (using logic module)
     let filename = input.file_name().and_then(|n| n.to_str()).unwrap_or("");
-
-    let is_makefile = filename == "Makefile"
-        || filename == "makefile"
-        || filename == "GNUmakefile"
-        || filename.ends_with(".mk")
-        || filename.ends_with(".make");
-
-    let filename_lower = filename.to_lowercase();
-    let is_dockerfile = filename_lower == "dockerfile"
-        || filename_lower.starts_with("dockerfile.")
-        || filename_lower.ends_with(".dockerfile");
+    let file_is_makefile = is_makefile(filename);
+    let file_is_dockerfile = is_dockerfile(filename);
 
     // Convert CLI profile arg to linter profile
-    use crate::cli::args::LintProfileArg;
-    let lint_profile = match profile {
-        LintProfileArg::Standard => LintProfile::Standard,
-        LintProfileArg::Coursera => LintProfile::Coursera,
-        LintProfileArg::DevContainer => LintProfile::DevContainer,
-    };
+    use crate::cli::logic::convert_lint_profile;
+    let lint_profile = convert_lint_profile(profile);
 
     // Run linter based on file type
-    let result_raw = if is_makefile {
+    let result_raw = if file_is_makefile {
         lint_makefile(&source)
-    } else if is_dockerfile {
+    } else if file_is_dockerfile {
         lint_dockerfile_with_profile(&source, lint_profile)
     } else {
         lint_shell(&source)
     };
 
     // Display profile info if using non-standard profile
-    if is_dockerfile && lint_profile != LintProfile::Standard {
+    if file_is_dockerfile && lint_profile != LintProfile::Standard {
         info!("Using lint profile: {}", lint_profile);
     }
 
@@ -1319,7 +1264,7 @@ fn lint_command(
 
                 // Re-lint to show remaining issues
                 let source_after = fs::read_to_string(input).map_err(Error::Io)?;
-                let result_after_raw = if is_makefile {
+                let result_after_raw = if file_is_makefile {
                     lint_makefile(&source_after)
                 } else {
                     lint_shell(&source_after)
@@ -1697,7 +1642,7 @@ fn handle_devcontainer_command(command: DevContainerCommands) -> Result<()> {
             info!("Validating devcontainer at {}", path.display());
 
             // Find devcontainer.json file
-            let devcontainer_path = find_devcontainer_json(&path)?;
+            let devcontainer_path = logic_find_devcontainer_json(&path)?;
             info!("Found devcontainer.json at {}", devcontainer_path.display());
 
             // Read and validate devcontainer.json
@@ -1761,50 +1706,6 @@ fn handle_devcontainer_command(command: DevContainerCommands) -> Result<()> {
             }
         }
     }
-}
-
-/// Find devcontainer.json in standard locations
-fn find_devcontainer_json(path: &Path) -> Result<PathBuf> {
-    // If path is a file, use it directly
-    if path.is_file() {
-        return Ok(path.to_path_buf());
-    }
-
-    // If path is a directory, search standard locations
-    let candidates = [
-        path.join(".devcontainer/devcontainer.json"),
-        path.join(".devcontainer.json"),
-    ];
-
-    for candidate in &candidates {
-        if candidate.exists() {
-            return Ok(candidate.clone());
-        }
-    }
-
-    // Check for .devcontainer/<folder>/devcontainer.json
-    let devcontainer_dir = path.join(".devcontainer");
-    if devcontainer_dir.is_dir() {
-        if let Ok(entries) = fs::read_dir(&devcontainer_dir) {
-            for entry in entries.flatten() {
-                let subdir = entry.path();
-                if subdir.is_dir() {
-                    let candidate = subdir.join("devcontainer.json");
-                    if candidate.exists() {
-                        return Ok(candidate);
-                    }
-                }
-            }
-        }
-    }
-
-    Err(Error::Validation(format!(
-        "No devcontainer.json found in {}. Expected locations:\n  \
-         - .devcontainer/devcontainer.json\n  \
-         - .devcontainer.json\n  \
-         - .devcontainer/<folder>/devcontainer.json",
-        path.display()
-    )))
 }
 
 struct DockerfilePurifyOptions<'a> {
@@ -1926,202 +1827,6 @@ fn purify_dockerfile(source: &str, skip_user: bool) -> Result<String> {
     }
 
     Ok(purified.join("\n"))
-}
-
-/// Convert ADD to COPY for local files (DOCKER006)
-///
-/// Keep ADD for:
-/// - URLs (http://, https://)
-/// - Tarballs (.tar, .tar.gz, .tgz, .tar.bz2, .tar.xz) which ADD auto-extracts
-fn convert_add_to_copy_if_local(line: &str) -> String {
-    let trimmed = line.trim();
-
-    // Skip comment lines (don't transform comments)
-    if trimmed.starts_with('#') {
-        return line.to_string();
-    }
-
-    // Extract the source path (first argument after ADD)
-    let parts: Vec<&str> = trimmed.split_whitespace().collect();
-    let source = match parts.get(1) {
-        Some(s) => *s,
-        None => return line.to_string(), // Malformed ADD directive, keep as-is
-    };
-
-    // Check if source is a URL
-    if source.starts_with("http://") || source.starts_with("https://") {
-        return line.to_string(); // Keep ADD for URLs
-    }
-
-    // Check if source is a tarball (which ADD auto-extracts)
-    let is_tarball = source.ends_with(".tar")
-        || source.ends_with(".tar.gz")
-        || source.ends_with(".tgz")
-        || source.ends_with(".tar.bz2")
-        || source.ends_with(".tar.xz")
-        || source.ends_with(".tar.Z");
-
-    if is_tarball {
-        return line.to_string(); // Keep ADD for tarballs (auto-extraction feature)
-    }
-
-    // It's a local file - convert ADD to COPY
-    line.replacen("ADD ", "COPY ", 1)
-}
-
-/// Add --no-install-recommends flag to apt-get install commands (DOCKER005)
-///
-/// This reduces image size by not installing recommended packages.
-/// Only adds the flag if it's not already present.
-/// Handles multiple apt-get install commands in one RUN line.
-fn add_no_install_recommends(line: &str) -> String {
-    let trimmed = line.trim();
-
-    // Skip comment lines (don't transform comments)
-    if trimmed.starts_with('#') {
-        return line.to_string();
-    }
-
-    // Check if already has --no-install-recommends
-    if line.contains("--no-install-recommends") {
-        return line.to_string();
-    }
-
-    // Process all occurrences of "apt-get install"
-    let mut result = line.to_string();
-
-    // Replace all "apt-get install -y " (with -y flag)
-    result = result.replace(
-        "apt-get install -y ",
-        "apt-get install -y --no-install-recommends ",
-    );
-
-    // Replace remaining "apt-get install " (without -y flag or with flag already handled)
-    // We need to be careful not to replace if we already added the flag
-    if !result.contains("--no-install-recommends") {
-        result = result.replace(
-            "apt-get install ",
-            "apt-get install --no-install-recommends ",
-        );
-    }
-
-    // Handle edge case: "apt-get install" at end of line (no trailing space)
-    if !result.contains("--no-install-recommends") && result.trim_end().ends_with("apt-get install")
-    {
-        result = result.trim_end().to_string() + " --no-install-recommends ";
-    }
-
-    result
-}
-
-/// Add cleanup commands for package managers (DOCKER003)
-///
-/// Reduces image size by cleaning up package manager caches.
-/// - apt/apt-get: adds `&& rm -rf /var/lib/apt/lists/*`
-/// - apk: adds `&& rm -rf /var/cache/apk/*`
-fn add_package_manager_cleanup(line: &str) -> String {
-    let trimmed = line.trim();
-
-    // Skip comment lines (don't transform comments)
-    if trimmed.starts_with('#') {
-        return line.to_string();
-    }
-
-    // Check if cleanup already present
-    if line.contains("/var/lib/apt/lists") || line.contains("/var/cache/apk") {
-        return line.to_string();
-    }
-
-    // Detect apt/apt-get commands
-    if line.contains("apt-get install") || line.contains("apt install") {
-        return format!("{} && rm -rf /var/lib/apt/lists/*", line.trim_end());
-    }
-
-    // Detect apk commands
-    if line.contains("apk add") {
-        return format!("{} && rm -rf /var/cache/apk/*", line.trim_end());
-    }
-
-    line.to_string()
-}
-
-/// Pin unpinned base images to stable versions (DOCKER002)
-///
-/// Prevents breaking changes from using :latest or untagged images.
-/// Pins common images to stable/LTS versions:
-/// - ubuntu → ubuntu:22.04 (LTS)
-/// - debian → debian:12-slim
-/// - alpine → alpine:3.19
-/// - etc.
-fn pin_base_image_version(line: &str) -> String {
-    let trimmed = line.trim();
-
-    // Parse FROM line: "FROM <image>[:<tag>] [AS <name>]"
-    let parts: Vec<&str> = trimmed.split_whitespace().collect();
-    let image_part = match parts.get(1) {
-        Some(img) => *img,
-        None => return line.to_string(), // Malformed FROM line
-    };
-
-    // Parse registry prefix (e.g., docker.io/, quay.io/, gcr.io/)
-    let (registry_prefix, image_with_tag) = if let Some(slash_pos) = image_part.find('/') {
-        // Check if this looks like a registry (has domain-like structure before /)
-        let prefix_part = &image_part[..slash_pos];
-        if prefix_part.contains('.') || prefix_part == "localhost" {
-            // It's a registry prefix
-            (Some(prefix_part), &image_part[slash_pos + 1..])
-        } else {
-            // It's an organization/namespace (e.g., library/ubuntu), not a registry
-            (None, image_part)
-        }
-    } else {
-        (None, image_part)
-    };
-
-    // Split image into name and tag
-    let (image_name, tag) = if let Some(colon_pos) = image_with_tag.find(':') {
-        let name = &image_with_tag[..colon_pos];
-        let tag = &image_with_tag[colon_pos + 1..];
-        (name, Some(tag))
-    } else {
-        (image_with_tag, None)
-    };
-
-    // Determine if pinning is needed
-    let needs_pinning = tag.is_none() || tag == Some("latest");
-
-    if !needs_pinning {
-        return line.to_string(); // Already has specific version
-    }
-
-    // Map common images to stable versions
-    let pinned_tag = match image_name {
-        "ubuntu" => "22.04", // LTS
-        "debian" => "12-slim",
-        "alpine" => "3.19",
-        "node" => "20-alpine",
-        "python" => "3.11-slim",
-        "rust" => "1.75-alpine",
-        "nginx" => "1.25-alpine",
-        "postgres" => "16-alpine",
-        "redis" => "7-alpine",
-        _ => return line.to_string(), // Unknown image, keep as-is
-    };
-
-    // Reconstruct FROM line with pinned version, preserving registry prefix
-    let pinned_image = if let Some(prefix) = registry_prefix {
-        format!("{}/{}:{}", prefix, image_name, pinned_tag)
-    } else {
-        format!("{}:{}", image_name, pinned_tag)
-    };
-
-    // Preserve "AS <name>" if present
-    if parts.len() > 2 {
-        let rest = parts.get(2..).map(|s| s.join(" ")).unwrap_or_default();
-        format!("FROM {} {}", pinned_image, rest)
-    } else {
-        format!("FROM {}", pinned_image)
-    }
 }
 
 fn dockerfile_lint_command(input: &Path, format: LintFormat, rules: Option<&str>) -> Result<()> {
