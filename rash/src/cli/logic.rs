@@ -3,12 +3,364 @@
 // This module contains pure functions that return structured results
 // instead of printing directly. The commands.rs file acts as a thin shim
 // that calls these functions and handles I/O.
+//
+// Architecture:
+// - logic.rs: Pure functions (no I/O, no printing, no file access)
+// - commands.rs: Thin I/O shim (reads files, calls logic, prints output)
+//
+// This separation enables:
+// - Unit testing of all business logic
+// - High test coverage (95%+ target)
+// - Clear separation of concerns
 
 use crate::cli::args::{LintLevel, LintProfileArg};
 use crate::linter::{LintResult, Severity};
 use crate::models::{Error, Result};
 use std::collections::HashSet;
 use std::path::{Path, PathBuf};
+
+// =============================================================================
+// LINT COMMAND LOGIC
+// =============================================================================
+
+/// Options for lint processing
+#[derive(Debug, Clone)]
+pub struct LintOptions {
+    pub quiet: bool,
+    pub level: LintLevel,
+    pub ignore_rules: HashSet<String>,
+    pub profile: LintProfileArg,
+    pub fix: bool,
+    pub fix_assumptions: bool,
+}
+
+impl Default for LintOptions {
+    fn default() -> Self {
+        Self {
+            quiet: false,
+            level: LintLevel::Info,
+            ignore_rules: HashSet::new(),
+            profile: LintProfileArg::Standard,
+            fix: false,
+            fix_assumptions: false,
+        }
+    }
+}
+
+/// Result of lint processing
+#[derive(Debug, Clone)]
+pub struct LintProcessResult {
+    pub diagnostics: Vec<LintDiagnostic>,
+    pub error_count: usize,
+    pub warning_count: usize,
+    pub info_count: usize,
+    pub file_type: FileType,
+    pub fixes_applied: usize,
+}
+
+/// A single lint diagnostic
+#[derive(Debug, Clone)]
+pub struct LintDiagnostic {
+    pub code: String,
+    pub message: String,
+    pub severity: Severity,
+    pub line: usize,
+    pub column: usize,
+    pub suggestion: Option<String>,
+}
+
+/// Detected file type
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum FileType {
+    Shell,
+    Makefile,
+    Dockerfile,
+    Unknown,
+}
+
+impl FileType {
+    pub fn from_filename(filename: &str) -> Self {
+        if is_makefile(filename) {
+            FileType::Makefile
+        } else if is_dockerfile(filename) {
+            FileType::Dockerfile
+        } else {
+            FileType::Shell
+        }
+    }
+}
+
+/// Process lint on source content (pure function - no I/O)
+pub fn process_lint(source: &str, filename: &str, options: &LintOptions) -> LintProcessResult {
+    use crate::linter::rules::{lint_dockerfile_with_profile, lint_makefile, lint_shell};
+
+    let file_type = FileType::from_filename(filename);
+    let profile = convert_lint_profile(options.profile);
+
+    // Run appropriate linter
+    let raw_result = match file_type {
+        FileType::Makefile => lint_makefile(source),
+        FileType::Dockerfile => lint_dockerfile_with_profile(source, profile),
+        FileType::Shell => lint_shell(source),
+        FileType::Unknown => lint_shell(source),
+    };
+
+    // Determine minimum severity
+    let min_severity = determine_min_severity(options.quiet, options.level);
+
+    // Filter diagnostics
+    let filtered = filter_diagnostics(raw_result, min_severity, &options.ignore_rules);
+
+    // Convert to our diagnostic type and count by severity
+    let mut error_count = 0;
+    let mut warning_count = 0;
+    let mut info_count = 0;
+
+    let diagnostics: Vec<LintDiagnostic> = filtered
+        .diagnostics
+        .iter()
+        .map(|d| {
+            match d.severity {
+                Severity::Error => error_count += 1,
+                Severity::Warning => warning_count += 1,
+                Severity::Info | Severity::Note | Severity::Perf | Severity::Risk => {
+                    info_count += 1
+                }
+            }
+            LintDiagnostic {
+                code: d.code.clone(),
+                message: d.message.clone(),
+                severity: d.severity,
+                line: d.span.start_line,
+                column: d.span.start_col,
+                suggestion: d.fix.as_ref().map(|f| f.replacement.clone()),
+            }
+        })
+        .collect();
+
+    LintProcessResult {
+        diagnostics,
+        error_count,
+        warning_count,
+        info_count,
+        file_type,
+        fixes_applied: 0, // Set by caller if fixes are applied
+    }
+}
+
+// =============================================================================
+// PURIFY COMMAND LOGIC
+// =============================================================================
+
+/// Result of purification processing
+#[derive(Debug, Clone)]
+pub struct PurifyProcessResult {
+    pub purified_source: String,
+    pub transformations: Vec<Transformation>,
+    pub stats: PurificationStats,
+}
+
+/// A single transformation applied during purification
+#[derive(Debug, Clone)]
+pub struct Transformation {
+    pub line: usize,
+    pub original: String,
+    pub purified: String,
+    pub rule: String,
+}
+
+/// Process purify on bash source content (pure function - no I/O)
+pub fn process_purify_bash(source: &str) -> Result<PurifyProcessResult> {
+    use crate::bash_parser::codegen::generate_purified_bash;
+    use crate::bash_parser::BashParser;
+    use std::time::Instant;
+
+    let start = Instant::now();
+    let input_lines = source.lines().count();
+    let input_bytes = source.len();
+
+    // Parse and purify
+    let mut parser =
+        BashParser::new(source).map_err(|e| Error::Internal(format!("Parse: {}", e)))?;
+    let ast = parser
+        .parse()
+        .map_err(|e| Error::Internal(format!("Parse: {}", e)))?;
+    let purified_source = generate_purified_bash(&ast);
+
+    let total_time = start.elapsed();
+
+    // Calculate transformations
+    let transformations = generate_diff_lines(source, &purified_source)
+        .into_iter()
+        .map(|(line, original, purified)| {
+            let rule = detect_transformation_rule(&original, &purified);
+            Transformation {
+                line,
+                original,
+                purified,
+                rule,
+            }
+        })
+        .collect();
+
+    let stats = PurificationStats {
+        input_lines,
+        input_bytes,
+        output_lines: purified_source.lines().count(),
+        output_bytes: purified_source.len(),
+        read_time_ns: 0,  // Set by caller
+        parse_time_ns: 0, // Included in total
+        purify_time_ns: total_time.as_nanos() as u64,
+        codegen_time_ns: 0,
+        write_time_ns: 0, // Set by caller
+        total_time_ns: total_time.as_nanos() as u64,
+    };
+
+    Ok(PurifyProcessResult {
+        purified_source,
+        transformations,
+        stats,
+    })
+}
+
+/// Detect which transformation rule was applied
+fn detect_transformation_rule(original: &str, purified: &str) -> String {
+    if original.contains("mkdir ") && purified.contains("mkdir -p") {
+        "IDEM001: mkdir → mkdir -p".to_string()
+    } else if original.contains("rm ") && purified.contains("rm -f") {
+        "IDEM002: rm → rm -f".to_string()
+    } else if original.contains("ln ") && purified.contains("ln -sf") {
+        "IDEM003: ln → ln -sf".to_string()
+    } else if original.contains("$RANDOM") {
+        "DET001: Remove $RANDOM".to_string()
+    } else if original.contains("$$") && !purified.contains("$$") {
+        "DET002: Remove $$".to_string()
+    } else if original.contains("#!/bin/bash") && purified.contains("#!/bin/sh") {
+        "POSIX: bash → sh shebang".to_string()
+    } else {
+        "TRANSFORM: general".to_string()
+    }
+}
+
+// =============================================================================
+// TEST COMMAND LOGIC
+// =============================================================================
+
+/// Result of test processing
+#[derive(Debug, Clone)]
+pub struct TestProcessResult {
+    pub passed: usize,
+    pub failed: usize,
+    pub skipped: usize,
+    pub total: usize,
+    pub test_results: Vec<TestCaseResult>,
+    pub duration_ms: u64,
+}
+
+/// Result of a single test case
+#[derive(Debug, Clone)]
+pub struct TestCaseResult {
+    pub name: String,
+    pub passed: bool,
+    pub message: Option<String>,
+    pub duration_ms: u64,
+}
+
+impl TestProcessResult {
+    pub fn success_rate(&self) -> f64 {
+        if self.total == 0 {
+            100.0
+        } else {
+            (self.passed as f64 / self.total as f64) * 100.0
+        }
+    }
+
+    pub fn all_passed(&self) -> bool {
+        self.failed == 0
+    }
+}
+
+// =============================================================================
+// SCORE COMMAND LOGIC
+// =============================================================================
+
+/// Result of score processing
+#[derive(Debug, Clone)]
+pub struct ScoreProcessResult {
+    pub overall_score: f64,
+    pub grade: Grade,
+    pub dimensions: Vec<ScoreDimension>,
+}
+
+/// A dimension of the quality score
+#[derive(Debug, Clone)]
+pub struct ScoreDimension {
+    pub name: String,
+    pub score: f64,
+    pub max_score: f64,
+    pub status: &'static str,
+}
+
+// =============================================================================
+// AUDIT COMMAND LOGIC
+// =============================================================================
+
+/// Result of audit processing
+#[derive(Debug, Clone)]
+pub struct AuditProcessResult {
+    pub parse_success: bool,
+    pub parse_error: Option<String>,
+    pub lint_errors: usize,
+    pub lint_warnings: usize,
+    pub test_passed: usize,
+    pub test_failed: usize,
+    pub test_total: usize,
+    pub score: Option<ScoreProcessResult>,
+    pub overall_pass: bool,
+    pub failure_reason: Option<String>,
+}
+
+impl AuditProcessResult {
+    pub fn passed(&self) -> bool {
+        self.overall_pass
+    }
+}
+
+// =============================================================================
+// COVERAGE COMMAND LOGIC
+// =============================================================================
+
+/// Result of coverage processing
+#[derive(Debug, Clone)]
+pub struct CoverageProcessResult {
+    pub line_coverage: f64,
+    pub function_coverage: f64,
+    pub total_lines: usize,
+    pub covered_lines: usize,
+    pub total_functions: usize,
+    pub covered_functions: usize,
+    pub uncovered_lines: Vec<usize>,
+    pub uncovered_functions: Vec<String>,
+}
+
+impl CoverageProcessResult {
+    pub fn meets_threshold(&self, min_percent: f64) -> bool {
+        self.line_coverage >= min_percent
+    }
+}
+
+// =============================================================================
+// FORMAT COMMAND LOGIC
+// =============================================================================
+
+/// Result of format processing
+#[derive(Debug, Clone)]
+pub struct FormatProcessResult {
+    pub original: String,
+    pub formatted: String,
+    pub changed: bool,
+    pub diff_lines: Vec<(usize, String, String)>,
+}
 
 // ===== SHELL SCRIPT DETECTION =====
 
@@ -1539,5 +1891,221 @@ mod tests {
     fn test_coverage_class_poor() {
         assert_eq!(coverage_class(49.0), "poor");
         assert_eq!(coverage_class(0.0), "poor");
+    }
+
+    // ===== LINT PROCESS TESTS =====
+
+    #[test]
+    fn test_file_type_from_filename_shell() {
+        assert_eq!(FileType::from_filename("script.sh"), FileType::Shell);
+        assert_eq!(FileType::from_filename("test.bash"), FileType::Shell);
+        assert_eq!(FileType::from_filename("run"), FileType::Shell);
+    }
+
+    #[test]
+    fn test_file_type_from_filename_makefile() {
+        assert_eq!(FileType::from_filename("Makefile"), FileType::Makefile);
+        assert_eq!(FileType::from_filename("makefile"), FileType::Makefile);
+        assert_eq!(FileType::from_filename("GNUmakefile"), FileType::Makefile);
+    }
+
+    #[test]
+    fn test_file_type_from_filename_dockerfile() {
+        assert_eq!(FileType::from_filename("Dockerfile"), FileType::Dockerfile);
+        assert_eq!(
+            FileType::from_filename("Dockerfile.prod"),
+            FileType::Dockerfile
+        );
+    }
+
+    #[test]
+    fn test_lint_options_default() {
+        let options = LintOptions::default();
+        assert!(!options.quiet);
+        assert_eq!(options.level, LintLevel::Info);
+        assert!(options.ignore_rules.is_empty());
+        assert!(!options.fix);
+    }
+
+    #[test]
+    fn test_process_lint_basic() {
+        let source = "echo hello world";
+        let options = LintOptions::default();
+        let result = process_lint(source, "test.sh", &options);
+
+        assert_eq!(result.file_type, FileType::Shell);
+        // Results depend on what the linter finds
+    }
+
+    #[test]
+    fn test_process_lint_with_ignored_rules() {
+        let source = "echo hello world";
+        let mut options = LintOptions::default();
+        options.ignore_rules.insert("SC2086".to_string());
+        let result = process_lint(source, "test.sh", &options);
+
+        // Verify ignored rules are filtered out
+        for diag in &result.diagnostics {
+            assert_ne!(diag.code, "SC2086");
+        }
+    }
+
+    #[test]
+    fn test_process_lint_quiet_mode() {
+        let source = "echo hello world";
+        let mut options = LintOptions::default();
+        options.quiet = true;
+        let result = process_lint(source, "test.sh", &options);
+
+        // Info-level diagnostics should be filtered
+        for diag in &result.diagnostics {
+            assert!(diag.severity >= crate::linter::Severity::Warning);
+        }
+    }
+
+    // ===== PURIFY PROCESS TESTS =====
+
+    #[test]
+    fn test_process_purify_bash_simple() {
+        let source = "echo hello";
+        let result = process_purify_bash(source);
+        assert!(result.is_ok());
+
+        let result = result.unwrap();
+        assert!(!result.purified_source.is_empty());
+    }
+
+    #[test]
+    fn test_process_purify_bash_mkdir() {
+        let source = "mkdir /tmp/test";
+        let result = process_purify_bash(source).unwrap();
+
+        // Purification should output something with mkdir
+        assert!(result.purified_source.contains("mkdir"));
+        // The output should be valid
+        assert!(!result.purified_source.is_empty());
+    }
+
+    #[test]
+    fn test_process_purify_bash_stats() {
+        let source = "echo hello\necho world";
+        let result = process_purify_bash(source).unwrap();
+
+        assert_eq!(result.stats.input_lines, 2);
+        assert!(result.stats.input_bytes > 0);
+        assert!(result.stats.total_time_ns > 0);
+    }
+
+    #[test]
+    fn test_transformation_rule_detection() {
+        assert!(detect_transformation_rule("mkdir /tmp", "mkdir -p /tmp").contains("IDEM001"));
+        assert!(detect_transformation_rule("rm /tmp/file", "rm -f /tmp/file").contains("IDEM002"));
+        assert!(detect_transformation_rule("ln file link", "ln -sf file link").contains("IDEM003"));
+        assert!(detect_transformation_rule("echo $RANDOM", "echo 42").contains("DET001"));
+    }
+
+    // ===== TEST PROCESS RESULT TESTS =====
+
+    #[test]
+    fn test_test_process_result_success_rate() {
+        let result = TestProcessResult {
+            passed: 8,
+            failed: 2,
+            skipped: 0,
+            total: 10,
+            test_results: vec![],
+            duration_ms: 100,
+        };
+
+        assert_eq!(result.success_rate(), 80.0);
+        assert!(!result.all_passed());
+    }
+
+    #[test]
+    fn test_test_process_result_all_passed() {
+        let result = TestProcessResult {
+            passed: 10,
+            failed: 0,
+            skipped: 0,
+            total: 10,
+            test_results: vec![],
+            duration_ms: 100,
+        };
+
+        assert_eq!(result.success_rate(), 100.0);
+        assert!(result.all_passed());
+    }
+
+    #[test]
+    fn test_test_process_result_empty() {
+        let result = TestProcessResult {
+            passed: 0,
+            failed: 0,
+            skipped: 0,
+            total: 0,
+            test_results: vec![],
+            duration_ms: 0,
+        };
+
+        assert_eq!(result.success_rate(), 100.0);
+        assert!(result.all_passed());
+    }
+
+    // ===== COVERAGE PROCESS RESULT TESTS =====
+
+    #[test]
+    fn test_coverage_process_result_threshold() {
+        let result = CoverageProcessResult {
+            line_coverage: 85.0,
+            function_coverage: 90.0,
+            total_lines: 100,
+            covered_lines: 85,
+            total_functions: 10,
+            covered_functions: 9,
+            uncovered_lines: vec![1, 2, 3],
+            uncovered_functions: vec!["foo".to_string()],
+        };
+
+        assert!(result.meets_threshold(80.0));
+        assert!(result.meets_threshold(85.0));
+        assert!(!result.meets_threshold(90.0));
+    }
+
+    // ===== AUDIT PROCESS RESULT TESTS =====
+
+    #[test]
+    fn test_audit_process_result_passed() {
+        let result = AuditProcessResult {
+            parse_success: true,
+            parse_error: None,
+            lint_errors: 0,
+            lint_warnings: 2,
+            test_passed: 10,
+            test_failed: 0,
+            test_total: 10,
+            score: None,
+            overall_pass: true,
+            failure_reason: None,
+        };
+
+        assert!(result.passed());
+    }
+
+    #[test]
+    fn test_audit_process_result_failed() {
+        let result = AuditProcessResult {
+            parse_success: true,
+            parse_error: None,
+            lint_errors: 5,
+            lint_warnings: 2,
+            test_passed: 8,
+            test_failed: 2,
+            test_total: 10,
+            score: None,
+            overall_pass: false,
+            failure_reason: Some("Lint errors found".to_string()),
+        };
+
+        assert!(!result.passed());
     }
 }
