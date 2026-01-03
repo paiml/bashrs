@@ -600,4 +600,122 @@ deploy
             "Top-level call after nested function definitions should be detected"
         );
     }
+
+    // ============================================================================
+    // CoverageReport Method Tests
+    // ============================================================================
+
+    #[test]
+    fn test_coverage_report_new() {
+        let report = CoverageReport::new();
+        assert_eq!(report.total_lines, 0);
+        assert!(report.covered_lines.is_empty());
+        assert!(report.all_functions.is_empty());
+        assert!(report.covered_functions.is_empty());
+        assert!(report.line_coverage.is_empty());
+    }
+
+    #[test]
+    fn test_coverage_report_default() {
+        let report = CoverageReport::default();
+        assert_eq!(report.total_lines, 0);
+        assert!(report.covered_lines.is_empty());
+    }
+
+    #[test]
+    fn test_line_coverage_percent_empty() {
+        let report = CoverageReport::new();
+        assert_eq!(report.line_coverage_percent(), 0.0);
+    }
+
+    #[test]
+    fn test_line_coverage_percent_full() {
+        let mut report = CoverageReport::new();
+        report.total_lines = 10;
+        for i in 1..=10 {
+            report.covered_lines.insert(i);
+        }
+        assert_eq!(report.line_coverage_percent(), 100.0);
+    }
+
+    #[test]
+    fn test_line_coverage_percent_partial() {
+        let mut report = CoverageReport::new();
+        report.total_lines = 10;
+        for i in 1..=5 {
+            report.covered_lines.insert(i);
+        }
+        assert_eq!(report.line_coverage_percent(), 50.0);
+    }
+
+    #[test]
+    fn test_function_coverage_percent_empty() {
+        let report = CoverageReport::new();
+        assert_eq!(report.function_coverage_percent(), 0.0);
+    }
+
+    #[test]
+    fn test_function_coverage_percent_full() {
+        let mut report = CoverageReport::new();
+        report.all_functions = vec!["foo".to_string(), "bar".to_string()];
+        report.covered_functions.insert("foo".to_string());
+        report.covered_functions.insert("bar".to_string());
+        assert_eq!(report.function_coverage_percent(), 100.0);
+    }
+
+    #[test]
+    fn test_function_coverage_percent_partial() {
+        let mut report = CoverageReport::new();
+        report.all_functions = vec!["foo".to_string(), "bar".to_string()];
+        report.covered_functions.insert("foo".to_string());
+        assert_eq!(report.function_coverage_percent(), 50.0);
+    }
+
+    #[test]
+    fn test_uncovered_lines_empty() {
+        let report = CoverageReport::new();
+        assert!(report.uncovered_lines().is_empty());
+    }
+
+    #[test]
+    fn test_uncovered_lines_sorted() {
+        let mut report = CoverageReport::new();
+        report.line_coverage.insert(5, false);
+        report.line_coverage.insert(2, true);
+        report.line_coverage.insert(8, false);
+        report.line_coverage.insert(1, false);
+
+        let uncovered = report.uncovered_lines();
+        assert_eq!(uncovered, vec![1, 5, 8]);
+    }
+
+    #[test]
+    fn test_uncovered_functions_empty() {
+        let report = CoverageReport::new();
+        assert!(report.uncovered_functions().is_empty());
+    }
+
+    #[test]
+    fn test_uncovered_functions() {
+        let mut report = CoverageReport::new();
+        report.all_functions = vec!["foo".to_string(), "bar".to_string(), "baz".to_string()];
+        report.covered_functions.insert("bar".to_string());
+
+        let uncovered = report.uncovered_functions();
+        assert_eq!(uncovered.len(), 2);
+        assert!(uncovered.contains(&"foo".to_string()));
+        assert!(uncovered.contains(&"baz".to_string()));
+    }
+
+    #[test]
+    fn test_generate_coverage_no_tests() {
+        let source = r#"#!/bin/bash
+echo "No tests here"
+"#;
+        let result = generate_coverage(source);
+        assert!(result.is_ok());
+        let report = result.unwrap();
+        // No tests = zero covered lines
+        assert_eq!(report.covered_lines.len(), 0);
+    }
 }
