@@ -17,7 +17,7 @@ Thank you for your interest in contributing to Rash!
 
 - **EXTREME TDD**: Write failing tests first (RED), implement (GREEN), refactor
 - **POSIX Compliance**: All generated shell scripts must pass `shellcheck -s sh`
-- **Test Coverage**: Maintain >85% code coverage
+- **Test Coverage**: Maintain >95% code coverage
 - **Property Tests**: Add property-based tests for new features
 - **Documentation**: Update docs and examples for new features
 

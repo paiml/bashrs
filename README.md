@@ -208,7 +208,7 @@ bashrs simulate script.sh --seed 42 --verify
 |--------|-------|--------|
 | **PMAT Score** | 133/134 (99.3%) | ✅ Grade A+ |
 | **Tests** | 7,445 passing | ✅ 100% pass rate |
-| **Coverage** | 91.22% | ✅ Exceeds 85% target |
+| **Coverage** | 91.22% | ⚠️ Target: 95% |
 | **T-code Falsification** | 142/142 | ✅ 130-point checklist |
 | **D-code Falsification** | 31/31 | ✅ Dockerfile validation |
 | **ShellCheck** | 100% compliant | ✅ All output passes |
