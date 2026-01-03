@@ -80,7 +80,7 @@ Transforms non-deterministic bash ($RANDOM, timestamps) into safe, idempotent PO
 
 
 ### Quality Targets
-- Test coverage >85%, complexity <10
+- Test coverage >95%, complexity <10
 - Purified scripts pass shellcheck
 - Performance: <100ms transpilation, <10MB memory
 
@@ -618,7 +618,7 @@ unimplemented = "warn"
 
 ### Test Coverage Metrics (2025-11-21)
 
-**Current Coverage**: **91.22%** (exceeds 85% target) ✅
+**Current Coverage**: **91.22%** (target: 95%) ⚠️
 
 ```bash
 # Run coverage analysis
@@ -685,7 +685,7 @@ All outputs must meet:
 - ✅ 100% shellcheck compliance (POSIX)
 - ✅ 100% determinism tests pass
 - ✅ 100% idempotency tests pass
-- ✅ >85% code coverage
+- ✅ >95% code coverage
 - ✅ Complexity <10
 - ✅ Mutation score >90% (updated target)
 - ✅ Zero defects policy
