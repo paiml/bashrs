@@ -750,6 +750,96 @@ pub fn format_build_time(seconds: u64) -> String {
     }
 }
 
+// ===== UTILITY FUNCTIONS =====
+
+/// Hex encode bytes to string
+pub fn hex_encode(bytes: &[u8]) -> String {
+    bytes.iter().map(|b| format!("{:02x}", b)).collect()
+}
+
+/// Format timestamp as relative time
+pub fn format_timestamp(timestamp: u64) -> String {
+    use std::time::{SystemTime, UNIX_EPOCH};
+
+    let now = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map(|d| d.as_secs())
+        .unwrap_or(0);
+
+    let diff = now.saturating_sub(timestamp);
+
+    if diff < 60 {
+        "just now".to_string()
+    } else if diff < 3600 {
+        format!("{}m ago", diff / 60)
+    } else if diff < 86400 {
+        format!("{}h ago", diff / 3600)
+    } else {
+        format!("{}d ago", diff / 86400)
+    }
+}
+
+/// Truncate string to max length with ellipsis
+pub fn truncate_str(s: &str, max_len: usize) -> String {
+    if s.len() <= max_len {
+        s.to_string()
+    } else {
+        format!("{}...", &s[..max_len.saturating_sub(3)])
+    }
+}
+
+/// Generate diff lines between original and purified content
+pub fn generate_diff_lines(original: &str, purified: &str) -> Vec<(usize, String, String)> {
+    let original_lines: Vec<&str> = original.lines().collect();
+    let purified_lines: Vec<&str> = purified.lines().collect();
+
+    original_lines
+        .iter()
+        .zip(purified_lines.iter())
+        .enumerate()
+        .filter_map(|(i, (orig, pure))| {
+            if orig != pure {
+                Some((i + 1, orig.to_string(), pure.to_string()))
+            } else {
+                None
+            }
+        })
+        .collect()
+}
+
+/// Helper to get status emoji for dimension score
+pub fn score_status(score: f64) -> &'static str {
+    if score >= 8.0 {
+        "✅"
+    } else if score >= 6.0 {
+        "⚠️"
+    } else {
+        "❌"
+    }
+}
+
+/// Helper to get status emoji for coverage percent
+pub fn coverage_status(percent: f64) -> &'static str {
+    if percent >= 80.0 {
+        "✅"
+    } else if percent >= 50.0 {
+        "⚠️"
+    } else {
+        "❌"
+    }
+}
+
+/// Helper to get CSS class for coverage percent
+pub fn coverage_class(percent: f64) -> &'static str {
+    if percent >= 80.0 {
+        "good"
+    } else if percent >= 50.0 {
+        "medium"
+    } else {
+        "poor"
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -1284,5 +1374,170 @@ mod tests {
         assert!(result.is_err());
         let err = result.unwrap_err();
         assert!(err.to_string().contains("No devcontainer.json found"));
+    }
+
+    // ===== UTILITY FUNCTION TESTS =====
+
+    #[test]
+    fn test_hex_encode_empty() {
+        assert_eq!(hex_encode(&[]), "");
+    }
+
+    #[test]
+    fn test_hex_encode_single_byte() {
+        assert_eq!(hex_encode(&[0x00]), "00");
+        assert_eq!(hex_encode(&[0xff]), "ff");
+        assert_eq!(hex_encode(&[0x0a]), "0a");
+    }
+
+    #[test]
+    fn test_hex_encode_multiple_bytes() {
+        assert_eq!(hex_encode(&[0xde, 0xad, 0xbe, 0xef]), "deadbeef");
+        assert_eq!(hex_encode(&[0x01, 0x23, 0x45, 0x67]), "01234567");
+    }
+
+    #[test]
+    fn test_format_timestamp_just_now() {
+        use std::time::{SystemTime, UNIX_EPOCH};
+        let now = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_secs();
+        let result = format_timestamp(now - 30);
+        assert_eq!(result, "just now");
+    }
+
+    #[test]
+    fn test_format_timestamp_minutes_ago() {
+        use std::time::{SystemTime, UNIX_EPOCH};
+        let now = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_secs();
+        let result = format_timestamp(now - 120);
+        assert_eq!(result, "2m ago");
+    }
+
+    #[test]
+    fn test_format_timestamp_hours_ago() {
+        use std::time::{SystemTime, UNIX_EPOCH};
+        let now = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_secs();
+        let result = format_timestamp(now - 7200);
+        assert_eq!(result, "2h ago");
+    }
+
+    #[test]
+    fn test_format_timestamp_days_ago() {
+        use std::time::{SystemTime, UNIX_EPOCH};
+        let now = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_secs();
+        let result = format_timestamp(now - 172800);
+        assert_eq!(result, "2d ago");
+    }
+
+    #[test]
+    fn test_truncate_str_short() {
+        assert_eq!(truncate_str("hello", 10), "hello");
+    }
+
+    #[test]
+    fn test_truncate_str_exact() {
+        assert_eq!(truncate_str("hello", 5), "hello");
+    }
+
+    #[test]
+    fn test_truncate_str_long() {
+        assert_eq!(truncate_str("hello world", 8), "hello...");
+    }
+
+    #[test]
+    fn test_truncate_str_empty() {
+        assert_eq!(truncate_str("", 10), "");
+    }
+
+    #[test]
+    fn test_generate_diff_lines_identical() {
+        let diff = generate_diff_lines("a\nb\nc", "a\nb\nc");
+        assert!(diff.is_empty());
+    }
+
+    #[test]
+    fn test_generate_diff_lines_one_change() {
+        let diff = generate_diff_lines("a\nb\nc", "a\nB\nc");
+        assert_eq!(diff.len(), 1);
+        assert_eq!(diff[0], (2, "b".to_string(), "B".to_string()));
+    }
+
+    #[test]
+    fn test_generate_diff_lines_multiple_changes() {
+        let diff = generate_diff_lines("a\nb\nc", "A\nb\nC");
+        assert_eq!(diff.len(), 2);
+        assert_eq!(diff[0], (1, "a".to_string(), "A".to_string()));
+        assert_eq!(diff[1], (3, "c".to_string(), "C".to_string()));
+    }
+
+    #[test]
+    fn test_generate_diff_lines_empty() {
+        let diff = generate_diff_lines("", "");
+        assert!(diff.is_empty());
+    }
+
+    #[test]
+    fn test_score_status_excellent() {
+        assert_eq!(score_status(10.0), "✅");
+        assert_eq!(score_status(8.0), "✅");
+    }
+
+    #[test]
+    fn test_score_status_warning() {
+        assert_eq!(score_status(7.0), "⚠️");
+        assert_eq!(score_status(6.0), "⚠️");
+    }
+
+    #[test]
+    fn test_score_status_poor() {
+        assert_eq!(score_status(5.0), "❌");
+        assert_eq!(score_status(0.0), "❌");
+    }
+
+    #[test]
+    fn test_coverage_status_good() {
+        assert_eq!(coverage_status(90.0), "✅");
+        assert_eq!(coverage_status(80.0), "✅");
+    }
+
+    #[test]
+    fn test_coverage_status_medium() {
+        assert_eq!(coverage_status(75.0), "⚠️");
+        assert_eq!(coverage_status(50.0), "⚠️");
+    }
+
+    #[test]
+    fn test_coverage_status_poor() {
+        assert_eq!(coverage_status(49.0), "❌");
+        assert_eq!(coverage_status(0.0), "❌");
+    }
+
+    #[test]
+    fn test_coverage_class_good() {
+        assert_eq!(coverage_class(90.0), "good");
+        assert_eq!(coverage_class(80.0), "good");
+    }
+
+    #[test]
+    fn test_coverage_class_medium() {
+        assert_eq!(coverage_class(75.0), "medium");
+        assert_eq!(coverage_class(50.0), "medium");
+    }
+
+    #[test]
+    fn test_coverage_class_poor() {
+        assert_eq!(coverage_class(49.0), "poor");
+        assert_eq!(coverage_class(0.0), "poor");
     }
 }
