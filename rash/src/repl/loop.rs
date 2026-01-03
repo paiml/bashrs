@@ -15,9 +15,9 @@ use crate::repl::{
     loader::LoadResult,
     logic::{
         get_history_path, process_command_by_mode, process_functions_command,
-        process_history_command, process_lint_command, process_load_command,
-        process_mode_command, process_parse_command, process_purify_command,
-        process_reload_command, process_source_command, process_vars_command,
+        process_history_command, process_lint_command, process_load_command, process_mode_command,
+        process_parse_command, process_purify_command, process_reload_command,
+        process_source_command, process_vars_command,
     },
     multiline::is_incomplete,
     variables::parse_assignment,

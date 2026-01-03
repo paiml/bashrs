@@ -682,7 +682,11 @@ mod tests {
             }]);
 
             let report = analyzer.analyze(&ast).unwrap();
-            assert!(report.effects.network_access, "Command {} should enable network_access", cmd);
+            assert!(
+                report.effects.network_access,
+                "Command {} should enable network_access",
+                cmd
+            );
         }
     }
 
@@ -690,9 +694,9 @@ mod tests {
     fn test_if_statement() {
         let mut analyzer = SemanticAnalyzer::new();
         let ast = make_ast(vec![BashStmt::If {
-            condition: BashExpr::Test(Box::new(TestExpr::StringNonEmpty(
-                BashExpr::Variable("VAR".to_string()),
-            ))),
+            condition: BashExpr::Test(Box::new(TestExpr::StringNonEmpty(BashExpr::Variable(
+                "VAR".to_string(),
+            )))),
             then_block: vec![BashStmt::Command {
                 name: "echo".to_string(),
                 args: vec![BashExpr::Literal("yes".to_string())],
@@ -700,9 +704,9 @@ mod tests {
                 span: Span::dummy(),
             }],
             elif_blocks: vec![(
-                BashExpr::Test(Box::new(TestExpr::StringEmpty(
-                    BashExpr::Literal("".to_string()),
-                ))),
+                BashExpr::Test(Box::new(TestExpr::StringEmpty(BashExpr::Literal(
+                    "".to_string(),
+                )))),
                 vec![BashStmt::Command {
                     name: "echo".to_string(),
                     args: vec![BashExpr::Literal("elif".to_string())],
@@ -968,7 +972,10 @@ mod tests {
         ]);
 
         let result = analyzer.analyze(&ast);
-        assert!(matches!(result, Err(SemanticError::FunctionRedefinition(_))));
+        assert!(matches!(
+            result,
+            Err(SemanticError::FunctionRedefinition(_))
+        ));
     }
 
     #[test]
@@ -1470,12 +1477,20 @@ mod tests {
             condition: BashExpr::Test(Box::new(TestExpr::And(
                 Box::new(TestExpr::FileExists(BashExpr::Literal("/tmp".to_string()))),
                 Box::new(TestExpr::And(
-                    Box::new(TestExpr::FileReadable(BashExpr::Literal("/tmp".to_string()))),
+                    Box::new(TestExpr::FileReadable(BashExpr::Literal(
+                        "/tmp".to_string(),
+                    ))),
                     Box::new(TestExpr::And(
-                        Box::new(TestExpr::FileWritable(BashExpr::Literal("/tmp".to_string()))),
+                        Box::new(TestExpr::FileWritable(BashExpr::Literal(
+                            "/tmp".to_string(),
+                        ))),
                         Box::new(TestExpr::And(
-                            Box::new(TestExpr::FileExecutable(BashExpr::Literal("/tmp".to_string()))),
-                            Box::new(TestExpr::FileDirectory(BashExpr::Literal("/tmp".to_string()))),
+                            Box::new(TestExpr::FileExecutable(BashExpr::Literal(
+                                "/tmp".to_string(),
+                            ))),
+                            Box::new(TestExpr::FileDirectory(BashExpr::Literal(
+                                "/tmp".to_string(),
+                            ))),
                         )),
                     )),
                 )),

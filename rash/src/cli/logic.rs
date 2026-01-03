@@ -189,7 +189,7 @@ impl GateResult {
 
 /// Validate gate tier
 pub fn validate_gate_tier(tier: u8) -> Result<()> {
-    if tier < 1 || tier > 3 {
+    if !(1..=3).contains(&tier) {
         Err(Error::Validation(format!(
             "Invalid tier: {}. Must be 1, 2, or 3.",
             tier
@@ -346,7 +346,10 @@ impl PurificationStats {
             std::time::Duration::from_nanos(self.total_time_ns)
         ));
 
-        report.push_str(&format!("\nThroughput: {:.2} MB/s\n", self.throughput_mb_s()));
+        report.push_str(&format!(
+            "\nThroughput: {:.2} MB/s\n",
+            self.throughput_mb_s()
+        ));
         report
     }
 }
@@ -709,7 +712,13 @@ pub fn parse_size_limit(s: &str) -> Option<u64> {
 }
 
 /// Estimate build time based on layer complexity
-pub fn estimate_build_time_seconds(layer_count: usize, total_size: u64, has_apt: bool, has_pip: bool, has_npm: bool) -> u64 {
+pub fn estimate_build_time_seconds(
+    layer_count: usize,
+    total_size: u64,
+    has_apt: bool,
+    has_pip: bool,
+    has_npm: bool,
+) -> u64 {
     let mut total_seconds = 0u64;
 
     // Base time for each layer
@@ -754,8 +763,14 @@ mod tests {
         assert!(is_shell_script_file(Path::new("script.zsh"), "echo hello"));
         assert!(is_shell_script_file(Path::new("script.ksh"), "echo hello"));
         assert!(is_shell_script_file(Path::new("script.ash"), "echo hello"));
-        assert!(!is_shell_script_file(Path::new("script.rs"), "fn main() {}"));
-        assert!(!is_shell_script_file(Path::new("script.py"), "print('hello')"));
+        assert!(!is_shell_script_file(
+            Path::new("script.rs"),
+            "fn main() {}"
+        ));
+        assert!(!is_shell_script_file(
+            Path::new("script.py"),
+            "print('hello')"
+        ));
     }
 
     #[test]
@@ -1164,10 +1179,7 @@ mod tests {
 
     #[test]
     fn test_pin_base_image_ubuntu() {
-        assert_eq!(
-            pin_base_image_version("FROM ubuntu"),
-            "FROM ubuntu:22.04"
-        );
+        assert_eq!(pin_base_image_version("FROM ubuntu"), "FROM ubuntu:22.04");
     }
 
     #[test]

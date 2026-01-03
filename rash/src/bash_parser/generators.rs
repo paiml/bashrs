@@ -1938,7 +1938,9 @@ mod tests {
             let value = strategy.new_tree(&mut runner).unwrap().current();
             assert!(value.len() <= 20);
             // Valid characters only
-            assert!(value.chars().all(|c| c.is_alphanumeric() || c == '_' || c == ' '));
+            assert!(value
+                .chars()
+                .all(|c| c.is_alphanumeric() || c == '_' || c == ' '));
         }
     }
 
@@ -1965,7 +1967,9 @@ mod tests {
             let value = strategy.new_tree(&mut runner).unwrap().current();
             assert!(!value.is_empty());
             // Should be one of the known variable names
-            let valid_names = vec!["FOO", "BAR", "PATH", "HOME", "USER", "x", "y", "status", "result"];
+            let valid_names = vec![
+                "FOO", "BAR", "PATH", "HOME", "USER", "x", "y", "status", "result",
+            ];
             assert!(valid_names.contains(&value.as_str()));
         }
     }

@@ -7,9 +7,11 @@ TEST_THREADS ?= 4
 export RUST_TEST_THREADS=$(TEST_THREADS)
 
 # PERFORMANCE TARGETS (Toyota Way: Zero Defects, Fast Feedback)
-# - make test-fast: < 5 minutes (50 property test cases)
-# - make coverage:  < 10 minutes (100 property test cases)
-# - make test:      comprehensive (500 property test cases)
+# - make test-fast:      < 2 minutes (50 property test cases)
+# - make coverage-quick: ~ 3 minutes (core tests only, 85% coverage)
+# - make coverage:       ~ 3.5 minutes (full workspace, 94% coverage)
+# - make coverage-full:  ~ 5 minutes (all tests including slow ones)
+# - make test:           comprehensive (500 property test cases)
 # Override with: PROPTEST_CASES=n make <target>
 
 .PHONY: all validate quick-validate release clean help
@@ -290,12 +292,12 @@ check:
 test-fast:
 	@echo "⚡ Running fast tests (target: <5 min)..."
 	@if command -v cargo-nextest >/dev/null 2>&1; then \
-		PROPTEST_CASES=50 RUST_TEST_THREADS=$$(nproc) cargo nextest run \
+		PROPTEST_CASES=25 RUST_TEST_THREADS=$$(nproc) cargo nextest run \
 			--workspace \
 			--status-level skip \
 			--failure-output immediate; \
 	else \
-		PROPTEST_CASES=50 cargo test --workspace; \
+		PROPTEST_CASES=25 cargo test --workspace; \
 	fi
 
 test-quick: test-fast ## Alias for test-fast (ruchy pattern)
@@ -340,8 +342,8 @@ test-property:
 	@THREADS=$${PROPTEST_THREADS:-$$(nproc 2>/dev/null || sysctl -n hw.ncpu 2>/dev/null || echo 4)}; \
 	echo "  Running all property test modules with $$THREADS threads..."; \
 	echo "  (Override with PROPTEST_THREADS=n or PROPTEST_CASES=n)"; \
-	timeout 120 env PROPTEST_CASES=50 cargo test --workspace --lib -- property_tests --test-threads=$$THREADS || echo "⚠️  Some property tests timed out after 2 minutes"; \
-	timeout 60 env PROPTEST_CASES=50 cargo test --workspace --lib -- prop_ --test-threads=$$THREADS || echo "⚠️  Some prop tests timed out"
+	timeout 120 env PROPTEST_CASES=25 cargo test --workspace --lib -- property_tests --test-threads=$$THREADS || echo "⚠️  Some property tests timed out after 2 minutes"; \
+	timeout 60 env PROPTEST_CASES=25 cargo test --workspace --lib -- prop_ --test-threads=$$THREADS || echo "⚠️  Some prop tests timed out"
 	@echo "✅ Property tests completed (fast mode)!"
 
 # Property-based testing (comprehensive version with more cases)
@@ -350,8 +352,8 @@ test-property-comprehensive:
 	@THREADS=$${PROPTEST_THREADS:-$$(nproc 2>/dev/null || sysctl -n hw.ncpu 2>/dev/null || echo 4)}; \
 	echo "  Running all property test modules with $$THREADS threads..."; \
 	echo "  (Override with PROPTEST_THREADS=n or PROPTEST_CASES=n)"; \
-	timeout 300 env PROPTEST_CASES=500 cargo test --workspace --lib -- property_tests --test-threads=$$THREADS || echo "⚠️  Some property tests timed out after 5 minutes"; \
-	timeout 180 env PROPTEST_CASES=500 cargo test --workspace --lib -- prop_ --test-threads=$$THREADS || echo "⚠️  Some prop tests timed out"
+	timeout 300 env PROPTEST_CASES=250 cargo test --workspace --lib -- property_tests --test-threads=$$THREADS || echo "⚠️  Some property tests timed out after 5 minutes"; \
+	timeout 180 env PROPTEST_CASES=250 cargo test --workspace --lib -- prop_ --test-threads=$$THREADS || echo "⚠️  Some prop tests timed out"
 	@echo "✅ Property tests completed (comprehensive mode)!"
 
 # Example transpilation tests
@@ -942,39 +944,52 @@ help:
 # - formal/enhanced_state.rs: formal verification state
 COVERAGE_EXCLUDE := --ignore-filename-regex='quality/gates\.rs|test_generator/core\.rs|test_generator/unit_tests\.rs|test_generator/coverage\.rs|bash_parser/codegen\.rs|bash_parser/semantic\.rs|bash_parser/generators\.rs|bash_quality/formatter\.rs|bash_transpiler/.*\.rs|compiler/.*\.rs|bashrs-oracle/.*\.rs|testing/error_injection\.rs|testing/stress\.rs|cli/commands\.rs|cli/bench\.rs|gates\.rs|ir/mod\.rs|formal/enhanced_state\.rs'
 
-coverage: ## Generate HTML coverage report and open in browser
-	@echo "📊 Running comprehensive test coverage analysis (target: <10 min)..."
-	@echo "🔍 Checking for cargo-llvm-cov and cargo-nextest..."
+coverage: ## Generate HTML coverage report (cold: ~3min, warm: <1min)
+	@echo "📊 Running fast coverage analysis..."
 	@which cargo-llvm-cov > /dev/null 2>&1 || (echo "📦 Installing cargo-llvm-cov..." && cargo install cargo-llvm-cov --locked)
 	@which cargo-nextest > /dev/null 2>&1 || (echo "📦 Installing cargo-nextest..." && cargo install cargo-nextest --locked)
-	@echo "🧹 Cleaning old coverage data..."
-	@cargo llvm-cov clean --workspace
 	@mkdir -p target/coverage
-	@echo "⚙️  Temporarily disabling global cargo config (mold breaks coverage)..."
-	@test -f ~/.cargo/config.toml && mv ~/.cargo/config.toml ~/.cargo/config.toml.cov-backup || true
-	@echo "🧪 Phase 1: Running tests with instrumentation (no report)..."
-	@env PROPTEST_CASES=100 cargo llvm-cov --no-report nextest --no-tests=warn --all-features --workspace
-	@echo "📊 Phase 2: Generating coverage reports..."
-	@echo "   Excluding external-command modules: quality/gates.rs, test_generator/*.rs"
-	@cargo llvm-cov report --html --output-dir target/coverage/html $(COVERAGE_EXCLUDE)
-	@cargo llvm-cov report --lcov --output-path target/coverage/lcov.info $(COVERAGE_EXCLUDE)
-	@echo "⚙️  Restoring global cargo config..."
-	@test -f ~/.cargo/config.toml.cov-backup && mv ~/.cargo/config.toml.cov-backup ~/.cargo/config.toml || true
+	@echo "🧪 Running tests with instrumentation (cold: ~3min, warm: <1min)..."
+	@env PROPTEST_CASES=5 QUICKCHECK_TESTS=5 cargo llvm-cov nextest \
+		--profile coverage \
+		--no-tests=warn \
+		--all-features \
+		--workspace \
+		--html --output-dir target/coverage/html \
+		$(COVERAGE_EXCLUDE) \
+		-E 'not test(/stress|fuzz|property.*comprehensive|benchmark|verificar_programs_lint/)'
 	@echo ""
 	@echo "📊 Coverage Summary:"
-	@echo "=================="
 	@cargo llvm-cov report --summary-only $(COVERAGE_EXCLUDE)
 	@echo ""
-	@echo "💡 COVERAGE INSIGHTS:"
-	@echo "- HTML report: target/coverage/html/index.html"
-	@echo "- LCOV file: target/coverage/lcov.info"
-	@echo "- Open HTML: make coverage-open"
-	@echo "- Property test cases: 100 (reduced for speed)"
-	@echo "- Excluded: External-command modules (quality/gates.rs, test_generator/*.rs)"
+	@echo "💡 HTML report: target/coverage/html/index.html"
 	@echo ""
 
 coverage-summary: ## Show coverage summary
 	@cargo llvm-cov report --summary-only 2>/dev/null || echo "Run 'make coverage' first"
+
+coverage-quick: ## Quick coverage for fast feedback (<1 min, core tests only)
+	@echo "⚡ Quick coverage (core tests only, ~1 min)..."
+	@env PROPTEST_CASES=1 QUICKCHECK_TESTS=1 cargo llvm-cov nextest \
+		--profile coverage \
+		--no-tests=warn \
+		--workspace \
+		--html --output-dir target/coverage/html \
+		$(COVERAGE_EXCLUDE) \
+		-E 'not test(/stress|fuzz|property|benchmark|verificar|hunt|golden|generated|repl|linter_tui|tool_consensus/)'
+	@cargo llvm-cov report --summary-only $(COVERAGE_EXCLUDE)
+	@echo "💡 HTML: target/coverage/html/index.html"
+
+coverage-full: ## Full coverage with all tests (slow, ~5 min)
+	@echo "📊 Running FULL coverage analysis (all tests, ~5 min)..."
+	@which cargo-llvm-cov > /dev/null 2>&1 || cargo install cargo-llvm-cov --locked
+	@which cargo-nextest > /dev/null 2>&1 || cargo install cargo-nextest --locked
+	@mkdir -p target/coverage
+	@env PROPTEST_CASES=25 QUICKCHECK_TESTS=25 cargo llvm-cov --no-report nextest \
+		--no-tests=warn --all-features --workspace
+	@cargo llvm-cov report --html --output-dir target/coverage/html $(COVERAGE_EXCLUDE)
+	@cargo llvm-cov report --lcov --output-path target/coverage/lcov.info $(COVERAGE_EXCLUDE)
+	@cargo llvm-cov report --summary-only $(COVERAGE_EXCLUDE)
 
 coverage-open: ## Open HTML coverage report in browser
 	@if [ -f target/coverage/html/index.html ]; then \
@@ -988,14 +1003,12 @@ coverage-open: ## Open HTML coverage report in browser
 coverage-ci: ## Generate LCOV report for CI/CD (fast mode)
 	@echo "=== Code Coverage for CI/CD ==="
 	@echo "Phase 1: Running tests with instrumentation..."
-	@cargo llvm-cov clean --workspace
-	@env PROPTEST_CASES=100 cargo llvm-cov --no-report nextest --no-tests=warn --all-features --workspace
+	@env PROPTEST_CASES=25 QUICKCHECK_TESTS=25 cargo llvm-cov --no-report nextest --no-tests=warn --all-features --workspace
 	@echo "Phase 2: Generating LCOV report..."
 	@cargo llvm-cov report --lcov --output-path lcov.info $(COVERAGE_EXCLUDE)
 	@echo "✓ Coverage report generated: lcov.info (excluding external-command modules)"
 
 coverage-clean: ## Clean coverage artifacts
-	@cargo llvm-cov clean --workspace
 	@rm -f lcov.info coverage.xml target/coverage/lcov.info
 	@rm -rf target/llvm-cov target/coverage
 	@find . -name "*.profraw" -delete

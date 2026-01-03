@@ -124,7 +124,11 @@ impl InstallerRun {
     }
 
     /// Create a new hermetic installer run
-    pub fn new_hermetic(installer_name: &str, installer_version: &str, lockfile_hash: &str) -> Self {
+    pub fn new_hermetic(
+        installer_name: &str,
+        installer_version: &str,
+        lockfile_hash: &str,
+    ) -> Self {
         let mut run = Self::new(installer_name, installer_version);
         run.hermetic_mode = true;
         run.lockfile_hash = Some(lockfile_hash.to_string());
@@ -399,7 +403,12 @@ impl CheckpointStore {
     }
 
     /// Track a state file
-    pub fn track_file(&mut self, step_id: &str, file_path: &Path, content_hash: &str) -> Result<()> {
+    pub fn track_file(
+        &mut self,
+        step_id: &str,
+        file_path: &Path,
+        content_hash: &str,
+    ) -> Result<()> {
         let run_id = self
             .current_run
             .as_ref()
@@ -456,9 +465,8 @@ impl CheckpointStore {
             state_files: self.state_files.clone(),
         };
 
-        let json = serde_json::to_string_pretty(&data).map_err(|e| {
-            Error::Validation(format!("Failed to serialize checkpoint: {}", e))
-        })?;
+        let json = serde_json::to_string_pretty(&data)
+            .map_err(|e| Error::Validation(format!("Failed to serialize checkpoint: {}", e)))?;
 
         std::fs::write(&checkpoint_file, json).map_err(|e| {
             Error::Io(std::io::Error::new(
@@ -483,9 +491,8 @@ impl CheckpointStore {
             ))
         })?;
 
-        let data: CheckpointData = serde_json::from_str(&json).map_err(|e| {
-            Error::Validation(format!("Failed to parse checkpoint: {}", e))
-        })?;
+        let data: CheckpointData = serde_json::from_str(&json)
+            .map_err(|e| Error::Validation(format!("Failed to parse checkpoint: {}", e)))?;
 
         Ok(Self {
             checkpoint_dir: checkpoint_dir.to_path_buf(),
@@ -726,10 +733,15 @@ mod tests {
 
         // Start
         store.start_step("step-1").unwrap();
-        assert_eq!(store.get_step("step-1").unwrap().status, StepStatus::Running);
+        assert_eq!(
+            store.get_step("step-1").unwrap().status,
+            StepStatus::Running
+        );
 
         // Complete
-        store.complete_step("step-1", Some("output".to_string())).unwrap();
+        store
+            .complete_step("step-1", Some("output".to_string()))
+            .unwrap();
         let step = store.get_step("step-1").unwrap();
         assert_eq!(step.status, StepStatus::Completed);
         assert_eq!(step.output_log, Some("output".to_string()));
@@ -778,7 +790,9 @@ mod tests {
         let temp_dir = TempDir::new().unwrap();
         let mut store = CheckpointStore::new(temp_dir.path()).unwrap();
 
-        store.start_hermetic_run("my-installer", "1.0.0", "abc123").unwrap();
+        store
+            .start_hermetic_run("my-installer", "1.0.0", "abc123")
+            .unwrap();
         assert!(store.is_hermetic());
 
         // Verify consistency with same hash
@@ -797,7 +811,9 @@ mod tests {
         store.start_run("my-installer", "1.0.0").unwrap();
         store.add_step("step-1").unwrap();
 
-        store.track_file("step-1", Path::new("/etc/config.txt"), "sha256:abc").unwrap();
+        store
+            .track_file("step-1", Path::new("/etc/config.txt"), "sha256:abc")
+            .unwrap();
 
         let files = store.state_files_for_step("step-1");
         assert_eq!(files.len(), 1);
@@ -814,7 +830,9 @@ mod tests {
             store.start_run("my-installer", "1.0.0").unwrap();
             store.add_step("step-1").unwrap();
             store.start_step("step-1").unwrap();
-            store.complete_step("step-1", Some("done".to_string())).unwrap();
+            store
+                .complete_step("step-1", Some("done".to_string()))
+                .unwrap();
         }
 
         // Load from disk
@@ -828,7 +846,12 @@ mod tests {
 
     #[test]
     fn test_CHECKPOINT_106_run_status_roundtrip() {
-        for status in [RunStatus::Running, RunStatus::Completed, RunStatus::Failed, RunStatus::Aborted] {
+        for status in [
+            RunStatus::Running,
+            RunStatus::Completed,
+            RunStatus::Failed,
+            RunStatus::Aborted,
+        ] {
             let s = status.as_str();
             assert_eq!(RunStatus::parse(s), Some(status));
         }

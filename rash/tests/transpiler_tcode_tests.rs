@@ -11,8 +11,8 @@
 #![allow(clippy::unwrap_used)]
 #![allow(deprecated)]
 #![allow(dead_code)] // Test helper functions may not be used in all configurations
-// Note: These tests are for Rust→Shell transpilation which is PLANNED (v3.0+)
-// They have race conditions when run in parallel. Run with --test-threads=1 if needed.
+                     // Note: These tests are for Rust→Shell transpilation which is PLANNED (v3.0+)
+                     // They have race conditions when run in parallel. Run with --test-threads=1 if needed.
 
 use assert_cmd::Command;
 use std::fs;
@@ -66,10 +66,7 @@ fn transpile_prog(code: &str) -> (bool, String) {
 
 /// Transpile a statement fragment (STMT type) wrapped in harness
 fn transpile_stmt(code: &str) -> (bool, String) {
-    let full_prog = format!(
-        "fn main() {{\n{}\n    {}\n}}",
-        STMT_PREAMBLE, code
-    );
+    let full_prog = format!("fn main() {{\n{}\n    {}\n}}", STMT_PREAMBLE, code);
     transpile_prog(&full_prog)
 }
 
@@ -92,11 +89,19 @@ struct TCodeResult {
 
 impl TCodeResult {
     fn pass(id: &'static str) -> Self {
-        Self { id, passed: true, reason: String::new() }
+        Self {
+            id,
+            passed: true,
+            reason: String::new(),
+        }
     }
 
     fn fail(id: &'static str, reason: &str) -> Self {
-        Self { id, passed: false, reason: reason.to_string() }
+        Self {
+            id,
+            passed: false,
+            reason: reason.to_string(),
+        }
     }
 }
 
@@ -109,7 +114,10 @@ fn test_t001_empty_main() {
     // PROG: fn main() {} - should produce main() function
     let (ok, output) = transpile_prog("fn main() {}");
     assert!(ok, "T001: Should compile");
-    assert!(output.contains("main()"), "T001: Output should contain main()");
+    assert!(
+        output.contains("main()"),
+        "T001: Output should contain main()"
+    );
 }
 
 #[test]
@@ -117,7 +125,10 @@ fn test_t002_integer_assignment() {
     // STMT: let a = 1; - should NOT produce "unknown"
     let (ok, output) = transpile_stmt("let a = 1;");
     assert!(ok, "T002: Should compile");
-    assert!(!output.contains("unknown"), "T002: Should not contain 'unknown'");
+    assert!(
+        !output.contains("unknown"),
+        "T002: Should not contain 'unknown'"
+    );
 }
 
 #[test]
@@ -125,7 +136,10 @@ fn test_t003_negative_integer() {
     // STMT: let a = -1; - should NOT produce "unknown"
     let (ok, output) = transpile_stmt("let a = -1;");
     assert!(ok, "T003: Should compile");
-    assert!(!output.contains("unknown"), "T003: Should not contain 'unknown'");
+    assert!(
+        !output.contains("unknown"),
+        "T003: Should not contain 'unknown'"
+    );
 }
 
 #[test]
@@ -145,7 +159,10 @@ fn test_t005_boolean_true() {
     // STMT: let a = true; - should NOT produce "unknown"
     let (ok, output) = transpile_stmt("let a = true;");
     if ok {
-        assert!(!output.contains("unknown"), "T005: Should not contain 'unknown'");
+        assert!(
+            !output.contains("unknown"),
+            "T005: Should not contain 'unknown'"
+        );
     }
 }
 
@@ -154,7 +171,10 @@ fn test_t006_boolean_false() {
     // STMT: let a = false; - should NOT produce "unknown"
     let (ok, output) = transpile_stmt("let a = false;");
     if ok {
-        assert!(!output.contains("unknown"), "T006: Should not contain 'unknown'");
+        assert!(
+            !output.contains("unknown"),
+            "T006: Should not contain 'unknown'"
+        );
     }
 }
 
@@ -163,7 +183,10 @@ fn test_t007_zero_literal() {
     // STMT: let a = 0; - should NOT produce "unknown"
     let (ok, output) = transpile_stmt("let a = 0;");
     assert!(ok, "T007: Should compile");
-    assert!(!output.contains("unknown"), "T007: Should not contain 'unknown'");
+    assert!(
+        !output.contains("unknown"),
+        "T007: Should not contain 'unknown'"
+    );
 }
 
 // T008-T015: Additional Literals
@@ -173,7 +196,10 @@ fn test_t008_large_integer() {
     // STMT: let a = 999999; - should NOT produce "Overflow"
     let (ok, output) = transpile_stmt("let a = 999999;");
     assert!(ok, "T008: Should compile");
-    assert!(!output.to_lowercase().contains("overflow"), "T008: Should not overflow");
+    assert!(
+        !output.to_lowercase().contains("overflow"),
+        "T008: Should not overflow"
+    );
 }
 
 #[test]
@@ -191,7 +217,10 @@ fn test_t010_explicit_type() {
     // STMT: let a: i32 = 1; - explicit type annotation
     let (ok, output) = transpile_stmt("let a: i32 = 1;");
     if ok {
-        assert!(!output.contains("error"), "T010: Explicit types should work");
+        assert!(
+            !output.contains("error"),
+            "T010: Explicit types should work"
+        );
     }
 }
 
@@ -212,7 +241,10 @@ fn test_t012_char_literal() {
     // STMT: let a = 'a'; - char literal
     let (ok, output) = transpile_stmt("let a = 'a';");
     if ok {
-        assert!(!output.contains("unknown"), "T012: Char should not produce 'unknown'");
+        assert!(
+            !output.contains("unknown"),
+            "T012: Char should not produce 'unknown'"
+        );
     }
 }
 
@@ -613,7 +645,8 @@ fn test_t048_if_let() {
 #[test]
 fn test_t049_while_let() {
     // STMT: while let Some(_) = opt { break; }
-    let (ok, output) = transpile_stmt("let mut opt = Some(1); while let Some(_) = opt { opt = None; break; }");
+    let (ok, output) =
+        transpile_stmt("let mut opt = Some(1); while let Some(_) = opt { opt = None; break; }");
     if !ok {
         println!("T049: while-let unsupported: {}", output);
     }
@@ -1047,7 +1080,8 @@ fn test_t089_println_macro() {
     // STMT: println!("{}", x); - should produce echo
     let (ok, output) = transpile_stmt(r#"println!("{}", x);"#);
     if ok {
-        let has_print = output.contains("echo") || output.contains("printf") || output.contains("rash_println");
+        let has_print =
+            output.contains("echo") || output.contains("printf") || output.contains("rash_println");
         if !has_print {
             println!("T089: WARNING - println! should produce echo/printf");
         }
@@ -1397,7 +1431,10 @@ fn test_t121_thread_spawn() {
         println!("T121: Thread spawn should NOT be supported in shell");
     } else {
         // Expected to fail - threads are not available in shell
-        println!("T121: Correctly rejects thread::spawn: {}", output.lines().next().unwrap_or(""));
+        println!(
+            "T121: Correctly rejects thread::spawn: {}",
+            output.lines().next().unwrap_or("")
+        );
     }
 }
 
@@ -1406,7 +1443,10 @@ fn test_t122_print_no_newline() {
     // STMT: print!("no newline") - should produce printf without newline
     let (ok, output) = transpile_stmt("print!(\"no newline\");");
     if !ok {
-        println!("T122: print! unsupported: {}", output.lines().next().unwrap_or(""));
+        println!(
+            "T122: print! unsupported: {}",
+            output.lines().next().unwrap_or("")
+        );
     } else if !output.contains("printf") && !output.contains("-n") {
         println!("T122: WARNING - print! should use printf or echo -n (no trailing newline)");
     }
@@ -1417,7 +1457,10 @@ fn test_t123_setvar_spaces() {
     // STMT: std::env::set_var("A", "b c") - value with spaces needs quoting
     let (ok, output) = transpile_stmt("std::env::set_var(\"A\", \"b c\");");
     if !ok {
-        println!("T123: set_var unsupported: {}", output.lines().next().unwrap_or(""));
+        println!(
+            "T123: set_var unsupported: {}",
+            output.lines().next().unwrap_or("")
+        );
     } else if !output.contains("\"") && !output.contains("'") {
         println!("T123: WARNING - export with spaces needs quoting");
     }
@@ -1428,7 +1471,10 @@ fn test_t124_hard_link() {
     // STMT: std::fs::hard_link("a", "b") - should produce ln (without -s)
     let (ok, output) = transpile_stmt("std::fs::hard_link(\"a\", \"b\");");
     if !ok {
-        println!("T124: hard_link unsupported: {}", output.lines().next().unwrap_or(""));
+        println!(
+            "T124: hard_link unsupported: {}",
+            output.lines().next().unwrap_or("")
+        );
     } else if !output.contains("ln ") || output.contains("-s") {
         println!("T124: WARNING - hard_link should use 'ln' without -s flag");
     }
@@ -1439,7 +1485,10 @@ fn test_t125_copy_file() {
     // STMT: std::fs::copy("a", "b") - should produce cp
     let (ok, output) = transpile_stmt("std::fs::copy(\"a\", \"b\");");
     if !ok {
-        println!("T125: copy unsupported: {}", output.lines().next().unwrap_or(""));
+        println!(
+            "T125: copy unsupported: {}",
+            output.lines().next().unwrap_or("")
+        );
     } else if !output.contains("cp ") && !output.contains("cp\n") {
         println!("T125: WARNING - fs::copy should produce 'cp' command");
     }
@@ -1450,7 +1499,10 @@ fn test_t126_rename_file() {
     // STMT: std::fs::rename("a", "b") - should produce mv
     let (ok, output) = transpile_stmt("std::fs::rename(\"a\", \"b\");");
     if !ok {
-        println!("T126: rename unsupported: {}", output.lines().next().unwrap_or(""));
+        println!(
+            "T126: rename unsupported: {}",
+            output.lines().next().unwrap_or("")
+        );
     } else if !output.contains("mv ") && !output.contains("mv\n") {
         println!("T126: WARNING - fs::rename should produce 'mv' command");
     }
@@ -1461,7 +1513,10 @@ fn test_t127_raw_string() {
     // STMT: let s = r"a\b"; - raw string preserves backslash
     let (ok, output) = transpile_stmt("let s = r\"a\\b\";");
     if !ok {
-        println!("T127: raw string unsupported: {}", output.lines().next().unwrap_or(""));
+        println!(
+            "T127: raw string unsupported: {}",
+            output.lines().next().unwrap_or("")
+        );
     } else {
         // Raw string should preserve the literal backslash
         println!("T127: Raw string handled");
@@ -1473,7 +1528,10 @@ fn test_t128_format_macro() {
     // STMT: let _ = format!("x: {}", 1); - string formatting
     let (ok, output) = transpile_stmt("let _ = format!(\"x: {}\", 1);");
     if !ok {
-        println!("T128: format! unsupported: {}", output.lines().next().unwrap_or(""));
+        println!(
+            "T128: format! unsupported: {}",
+            output.lines().next().unwrap_or("")
+        );
     } else {
         // format! should produce some string construction
         println!("T128: format! handled");
@@ -1485,7 +1543,10 @@ fn test_t129_iterator_map() {
     // STMT: vec![1, 2].iter().map(|x| x+1) - functional map
     let (ok, output) = transpile_stmt("let _ = vec![1, 2].iter().map(|x| x + 1);");
     if !ok {
-        println!("T129: iterator map unsupported: {}", output.lines().next().unwrap_or(""));
+        println!(
+            "T129: iterator map unsupported: {}",
+            output.lines().next().unwrap_or("")
+        );
     } else if !output.contains("for") && !output.to_lowercase().contains("loop") {
         println!("T129: WARNING - iter().map() should produce a loop");
     }
@@ -1496,7 +1557,10 @@ fn test_t130_iterator_filter() {
     // STMT: vec![1].iter().filter(|x| *x>0) - functional filter
     let (ok, output) = transpile_stmt("let _ = vec![1, 2, 3].iter().filter(|x| *x > 1);");
     if !ok {
-        println!("T130: iterator filter unsupported: {}", output.lines().next().unwrap_or(""));
+        println!(
+            "T130: iterator filter unsupported: {}",
+            output.lines().next().unwrap_or("")
+        );
     } else if !output.contains("if") {
         println!("T130: WARNING - iter().filter() should produce conditional logic");
     }
@@ -1566,7 +1630,10 @@ fn test_tcode_baseline_verification() {
     if ok && output.contains("foo()") {
         results.push(TCodeResult::pass("T071"));
     } else {
-        results.push(TCodeResult::fail("T071", "TB-001: Functions not transpiled"));
+        results.push(TCodeResult::fail(
+            "T071",
+            "TB-001: Functions not transpiled",
+        ));
     }
 
     // Count results
@@ -1584,7 +1651,11 @@ fn test_tcode_baseline_verification() {
         if r.passed {
             println!("║  ✅ {}                                   ║", r.id);
         } else {
-            println!("║  ❌ {} - {}  ║", r.id, r.reason.chars().take(20).collect::<String>());
+            println!(
+                "║  ❌ {} - {}  ║",
+                r.id,
+                r.reason.chars().take(20).collect::<String>()
+            );
         }
     }
 

@@ -340,7 +340,11 @@ impl MetricsAggregator {
             .count() as u64;
         let failed_runs = total_runs - successful_runs;
 
-        let durations: Vec<f64> = self.runs.iter().map(|r| r.total_duration_ms as f64).collect();
+        let durations: Vec<f64> = self
+            .runs
+            .iter()
+            .map(|r| r.total_duration_ms as f64)
+            .collect();
         let avg_duration = durations.iter().sum::<f64>() / durations.len() as f64;
 
         let mut sorted_durations = durations.clone();
@@ -353,7 +357,10 @@ impl MetricsAggregator {
             let b = sorted_durations.get(mid).copied().unwrap_or(0.0);
             (a + b) / 2.0
         } else {
-            sorted_durations.get(sorted_durations.len() / 2).copied().unwrap_or(0.0)
+            sorted_durations
+                .get(sorted_durations.len() / 2)
+                .copied()
+                .unwrap_or(0.0)
         };
 
         let p95_idx = (sorted_durations.len() as f64 * 0.95) as usize;

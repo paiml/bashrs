@@ -32,3 +32,7 @@ xclippy = "clippy --all-targets --all-features -- -D warnings"
 xtest = "test --all-features"
 xbuild = "build --all-features"
 xcheck = "check --all-features"
+
+# RAM disk acceleration (auto-generated)
+[build]
+target-dir = "/mnt/zram/targets/bashrs"

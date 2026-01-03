@@ -958,11 +958,7 @@ mod tests {
             0o644,
         );
         assert!(result.is_err());
-        assert!(state
-            .stderr
-            .last()
-            .unwrap()
-            .contains("Permission denied"));
+        assert!(state.stderr.last().unwrap().contains("Permission denied"));
     }
 
     // ===== EnhancedState stdout/stderr Tests =====

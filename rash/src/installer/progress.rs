@@ -355,7 +355,10 @@ impl InstallerProgress {
             return None;
         }
 
-        let remaining = self.steps.len().saturating_sub(completed + self.skipped_count());
+        let remaining = self
+            .steps
+            .len()
+            .saturating_sub(completed + self.skipped_count());
         if remaining == 0 {
             return Some(Duration::ZERO);
         }
@@ -471,10 +474,7 @@ impl TerminalRenderer {
 impl ProgressRenderer for TerminalRenderer {
     fn render_header(&self, progress: &InstallerProgress) -> String {
         let line = "═".repeat(self.width);
-        format!(
-            "{} v{}\n{}\n\n",
-            progress.name, progress.version, line
-        )
+        format!("{} v{}\n{}\n\n", progress.name, progress.version, line)
     }
 
     fn render_step(&self, step: &StepInfo, total: usize) -> String {
@@ -515,10 +515,7 @@ impl ProgressRenderer for TerminalRenderer {
             .map(Self::format_duration)
             .unwrap_or_else(|| "calculating...".to_string());
 
-        let checkpoint = progress
-            .checkpoint
-            .as_deref()
-            .unwrap_or("none");
+        let checkpoint = progress.checkpoint.as_deref().unwrap_or("none");
 
         let mut footer = format!("{}\n", line);
         footer.push_str(&format!(
@@ -731,7 +728,11 @@ pub struct InstallationSummary {
 impl InstallationSummary {
     /// Format as text
     pub fn format(&self) -> String {
-        let status = if self.success { "✓ SUCCESS" } else { "✗ FAILED" };
+        let status = if self.success {
+            "✓ SUCCESS"
+        } else {
+            "✗ FAILED"
+        };
         let duration = if self.total_duration.as_secs() >= 60 {
             format!(
                 "{}m {:02}s",
@@ -929,7 +930,10 @@ mod tests {
         progress.update_step("step-1", 50, "Halfway");
 
         let step = progress.get_step("step-1").unwrap();
-        if let StepState::Running { progress, message, .. } = &step.state {
+        if let StepState::Running {
+            progress, message, ..
+        } = &step.state
+        {
             assert_eq!(*progress, 50);
             assert_eq!(message, "Halfway");
         } else {

@@ -104,8 +104,8 @@ fn test_d004_http_url() {
 RUN curl -O http://example.com/file.tar.gz
 "#;
     let (_, output) = lint_dockerfile(dockerfile);
-    let has_warning = output.to_lowercase().contains("http")
-        || output.to_lowercase().contains("insecure");
+    let has_warning =
+        output.to_lowercase().contains("http") || output.to_lowercase().contains("insecure");
     if !has_warning {
         println!("D004: INFO - Could warn about insecure HTTP downloads");
     }
@@ -199,8 +199,8 @@ fn test_d010_add_http() {
 ADD http://example.com/file.tar.gz /app/
 "#;
     let (_, output) = lint_dockerfile(dockerfile);
-    let has_warning = output.to_lowercase().contains("add")
-        || output.to_lowercase().contains("copy");
+    let has_warning =
+        output.to_lowercase().contains("add") || output.to_lowercase().contains("copy");
     if !has_warning {
         println!("D010: INFO - Could suggest COPY + curl instead of ADD http://");
     }
@@ -260,8 +260,7 @@ HEALTHCHECK NONE
 CMD ["bash"]
 "#;
     let (_, output) = lint_dockerfile(dockerfile);
-    let has_warning = output.to_lowercase().contains("healthcheck")
-        || has_rule(&output, "DF004");
+    let has_warning = output.to_lowercase().contains("healthcheck") || has_rule(&output, "DF004");
     if !has_warning {
         println!("D014: INFO - Could warn about HEALTHCHECK NONE");
     }
@@ -275,8 +274,8 @@ RUN echo hello
 CMD ["bash"]
 "#;
     let (_, output) = lint_dockerfile(dockerfile);
-    let has_warning = output.to_lowercase().contains("label")
-        || output.to_lowercase().contains("maintainer");
+    let has_warning =
+        output.to_lowercase().contains("label") || output.to_lowercase().contains("maintainer");
     if !has_warning {
         println!("D015: INFO - Could suggest adding LABEL for metadata");
     }
@@ -392,8 +391,7 @@ fn test_d022_apt_recommends() {
 RUN apt-get update && apt-get install -y curl
 "#;
     let (_, output) = lint_dockerfile(dockerfile);
-    let has_warning = output.to_lowercase().contains("recommend")
-        || has_rule(&output, "DF005");
+    let has_warning = output.to_lowercase().contains("recommend") || has_rule(&output, "DF005");
     if !has_warning {
         println!("D022: INFO - Could suggest --no-install-recommends");
     }
@@ -419,8 +417,8 @@ fn test_d024_apk_no_cache() {
 RUN apk add curl
 "#;
     let (_, output) = lint_dockerfile(dockerfile);
-    let has_warning = output.to_lowercase().contains("cache")
-        || output.to_lowercase().contains("apk");
+    let has_warning =
+        output.to_lowercase().contains("cache") || output.to_lowercase().contains("apk");
     if !has_warning {
         println!("D024: INFO - Could suggest 'apk add --no-cache' for Alpine");
     }
@@ -433,8 +431,8 @@ fn test_d025_pip_no_cache() {
 RUN pip install requests
 "#;
     let (_, output) = lint_dockerfile(dockerfile);
-    let has_warning = output.to_lowercase().contains("cache")
-        || output.to_lowercase().contains("pip");
+    let has_warning =
+        output.to_lowercase().contains("cache") || output.to_lowercase().contains("pip");
     if !has_warning {
         println!("D025: INFO - Could suggest 'pip install --no-cache-dir'");
     }
@@ -480,8 +478,8 @@ CMD ["echo", "first"]
 CMD ["echo", "second"]
 "#;
     let (_, output) = lint_dockerfile(dockerfile);
-    let has_warning = output.to_lowercase().contains("cmd")
-        || output.to_lowercase().contains("override");
+    let has_warning =
+        output.to_lowercase().contains("cmd") || output.to_lowercase().contains("override");
     if !has_warning {
         println!("D028: INFO - Could warn about multiple CMD instructions");
     }

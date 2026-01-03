@@ -298,10 +298,7 @@ impl AuditReport {
     pub fn format(&self) -> String {
         let mut output = String::new();
 
-        output.push_str(&format!(
-            "Installer Audit Report\n{}\n\n",
-            "═".repeat(60)
-        ));
+        output.push_str(&format!("Installer Audit Report\n{}\n\n", "═".repeat(60)));
 
         output.push_str(&format!(
             "Installer: {} v{}\n",
@@ -310,9 +307,7 @@ impl AuditReport {
         output.push_str(&format!("Path: {}\n", self.installer_path.display()));
         output.push_str(&format!(
             "Audited: {} ({} steps, {} artifacts)\n\n",
-            self.metadata.audited_at,
-            self.metadata.steps_audited,
-            self.metadata.artifacts_audited
+            self.metadata.audited_at, self.metadata.steps_audited, self.metadata.artifacts_audited
         ));
 
         // Score summary
@@ -588,7 +583,10 @@ impl AuditContext {
                         AuditSeverity::Warning,
                         AuditCategory::Security,
                         "Unsigned artifact",
-                        format!("Artifact '{}' has no signature or signer specified.", artifact.id),
+                        format!(
+                            "Artifact '{}' has no signature or signer specified.",
+                            artifact.id
+                        ),
                     )
                     .with_location(&artifact.id)
                     .with_suggestion("Add signature and signed_by fields to artifact"),
@@ -603,7 +601,10 @@ impl AuditContext {
                         AuditSeverity::Error,
                         AuditCategory::Security,
                         "Missing artifact hash",
-                        format!("Artifact '{}' has no SHA256 hash for integrity verification.", artifact.id),
+                        format!(
+                            "Artifact '{}' has no SHA256 hash for integrity verification.",
+                            artifact.id
+                        ),
                     )
                     .with_location(&artifact.id)
                     .with_suggestion("Add sha256 field with the artifact's content hash"),
@@ -684,7 +685,10 @@ impl AuditContext {
                         AuditSeverity::Warning,
                         AuditCategory::Quality,
                         "Missing postconditions",
-                        format!("Step '{}' has no postconditions to verify success.", step.id),
+                        format!(
+                            "Step '{}' has no postconditions to verify success.",
+                            step.id
+                        ),
                     )
                     .with_location(&step.id)
                     .with_suggestion("Add postconditions to verify step completed successfully"),
@@ -844,7 +848,11 @@ impl AuditContext {
     }
 
     /// Audit best practices from parsed spec
-    fn audit_best_practices_parsed(&self, spec: &super::spec::InstallerSpec, report: &mut AuditReport) {
+    fn audit_best_practices_parsed(
+        &self,
+        spec: &super::spec::InstallerSpec,
+        report: &mut AuditReport,
+    ) {
         // BP001: Check for description
         if spec.installer.description.is_empty() {
             report.add_finding(
@@ -1037,17 +1045,17 @@ mod tests {
                 require_signatures: true,
             }),
             artifacts: vec![],
-            steps: vec![
-                TestStep {
-                    id: "step-1".to_string(),
-                    name: "First Step".to_string(),
-                    action: TestAction::Script { content: "echo hello".to_string() },
-                    depends_on: vec![],
-                    has_postconditions: true,
-                    has_checkpoint: true,
-                    has_timing: true,
+            steps: vec![TestStep {
+                id: "step-1".to_string(),
+                name: "First Step".to_string(),
+                action: TestAction::Script {
+                    content: "echo hello".to_string(),
                 },
-            ],
+                depends_on: vec![],
+                has_postconditions: true,
+                has_checkpoint: true,
+                has_timing: true,
+            }],
         }
     }
 
@@ -1088,85 +1096,107 @@ mod tests {
         // Artifact checks
         for artifact in &spec.artifacts {
             if artifact.signature.is_none() && artifact.signed_by.is_none() {
-                report.add_finding(AuditFinding::new(
-                    "SEC004",
-                    AuditSeverity::Warning,
-                    AuditCategory::Security,
-                    "Unsigned artifact",
-                    format!("Artifact '{}' has no signature.", artifact.id),
-                ).with_location(&artifact.id));
+                report.add_finding(
+                    AuditFinding::new(
+                        "SEC004",
+                        AuditSeverity::Warning,
+                        AuditCategory::Security,
+                        "Unsigned artifact",
+                        format!("Artifact '{}' has no signature.", artifact.id),
+                    )
+                    .with_location(&artifact.id),
+                );
             }
             if artifact.sha256.is_none() {
-                report.add_finding(AuditFinding::new(
-                    "SEC005",
-                    AuditSeverity::Error,
-                    AuditCategory::Security,
-                    "Missing artifact hash",
-                    format!("Artifact '{}' has no SHA256.", artifact.id),
-                ).with_location(&artifact.id));
+                report.add_finding(
+                    AuditFinding::new(
+                        "SEC005",
+                        AuditSeverity::Error,
+                        AuditCategory::Security,
+                        "Missing artifact hash",
+                        format!("Artifact '{}' has no SHA256.", artifact.id),
+                    )
+                    .with_location(&artifact.id),
+                );
             }
             if artifact.url.contains("latest") {
-                report.add_finding(AuditFinding::new(
-                    "HERM002",
-                    AuditSeverity::Warning,
-                    AuditCategory::Hermetic,
-                    "Unpinned artifact version",
-                    format!("Artifact '{}' uses unpinned version.", artifact.id),
-                ).with_location(&artifact.id));
+                report.add_finding(
+                    AuditFinding::new(
+                        "HERM002",
+                        AuditSeverity::Warning,
+                        AuditCategory::Hermetic,
+                        "Unpinned artifact version",
+                        format!("Artifact '{}' uses unpinned version.", artifact.id),
+                    )
+                    .with_location(&artifact.id),
+                );
             }
         }
 
         // Step checks
-        let step_ids: std::collections::HashSet<&str> = spec.steps.iter().map(|s| s.id.as_str()).collect();
+        let step_ids: std::collections::HashSet<&str> =
+            spec.steps.iter().map(|s| s.id.as_str()).collect();
         let mut seen_ids: std::collections::HashSet<&str> = std::collections::HashSet::new();
 
         for step in &spec.steps {
             // Check for duplicates
             if seen_ids.contains(step.id.as_str()) {
-                report.add_finding(AuditFinding::new(
-                    "QUAL004",
-                    AuditSeverity::Error,
-                    AuditCategory::Quality,
-                    "Duplicate step ID",
-                    format!("Step ID '{}' is duplicated.", step.id),
-                ).with_location(&step.id));
+                report.add_finding(
+                    AuditFinding::new(
+                        "QUAL004",
+                        AuditSeverity::Error,
+                        AuditCategory::Quality,
+                        "Duplicate step ID",
+                        format!("Step ID '{}' is duplicated.", step.id),
+                    )
+                    .with_location(&step.id),
+                );
             }
             seen_ids.insert(&step.id);
 
             // Check dependencies
             for dep in &step.depends_on {
                 if !step_ids.contains(dep.as_str()) {
-                    report.add_finding(AuditFinding::new(
-                        "QUAL005",
-                        AuditSeverity::Error,
-                        AuditCategory::Quality,
-                        "Invalid dependency reference",
-                        format!("Step '{}' depends on non-existent '{}'.", step.id, dep),
-                    ).with_location(&step.id));
+                    report.add_finding(
+                        AuditFinding::new(
+                            "QUAL005",
+                            AuditSeverity::Error,
+                            AuditCategory::Quality,
+                            "Invalid dependency reference",
+                            format!("Step '{}' depends on non-existent '{}'.", step.id, dep),
+                        )
+                        .with_location(&step.id),
+                    );
                 }
             }
 
             // Check postconditions
             if !step.has_postconditions {
-                report.add_finding(AuditFinding::new(
-                    "QUAL001",
-                    AuditSeverity::Warning,
-                    AuditCategory::Quality,
-                    "Missing postconditions",
-                    format!("Step '{}' has no postconditions.", step.id),
-                ).with_location(&step.id));
+                report.add_finding(
+                    AuditFinding::new(
+                        "QUAL001",
+                        AuditSeverity::Warning,
+                        AuditCategory::Quality,
+                        "Missing postconditions",
+                        format!("Step '{}' has no postconditions.", step.id),
+                    )
+                    .with_location(&step.id),
+                );
             }
 
             // Check script patterns
             if let TestAction::Script { ref content } = step.action {
                 if content.contains("curl") && content.contains("| bash") {
-                    report.add_finding(AuditFinding::new(
-                        "SEC007",
-                        AuditSeverity::Critical,
-                        AuditCategory::Security,
-                        "Unsafe curl pipe to bash",
-                        "Step contains 'curl ... | bash' pattern.",
-                    ).with_location(&step.id));
+                    report.add_finding(
+                        AuditFinding::new(
+                            "SEC007",
+                            AuditSeverity::Critical,
+                            AuditCategory::Security,
+                            "Unsafe curl pipe to bash",
+                            "Step contains 'curl ... | bash' pattern.",
+                        )
+                        .with_location(&step.id),
+                    );
                 }
             }
         }
@@ -1520,7 +1550,9 @@ mod tests {
         spec.steps.push(TestStep {
             id: "step-1".to_string(), // Duplicate!
             name: "Duplicate Step".to_string(),
-            action: TestAction::Script { content: "echo dup".to_string() },
+            action: TestAction::Script {
+                content: "echo dup".to_string(),
+            },
             depends_on: vec![],
             has_postconditions: true,
             has_checkpoint: true,
@@ -1584,7 +1616,9 @@ mod tests {
         let mut report = audit_test_spec(&spec, &PathBuf::from("/test"));
 
         // Filter findings by minimum severity
-        report.findings.retain(|f| f.severity >= AuditSeverity::Warning);
+        report
+            .findings
+            .retain(|f| f.severity >= AuditSeverity::Warning);
 
         // Should not have suggestions, only warnings and above
         assert!(report

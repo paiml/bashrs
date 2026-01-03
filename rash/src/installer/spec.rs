@@ -599,7 +599,10 @@ sha256 = "abc123"
     fn test_action_parse() {
         assert_eq!(Action::parse("script"), Action::Script);
         assert_eq!(Action::parse("apt-install"), Action::AptInstall);
-        assert_eq!(Action::parse("custom-action"), Action::Custom("custom-action".to_string()));
+        assert_eq!(
+            Action::parse("custom-action"),
+            Action::Custom("custom-action".to_string())
+        );
     }
 
     #[test]

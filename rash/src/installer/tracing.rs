@@ -168,7 +168,10 @@ impl AttributeValue {
             Self::Float(f) => f.to_string(),
             Self::Bool(b) => b.to_string(),
             Self::StringArray(arr) => {
-                let items: Vec<String> = arr.iter().map(|s| format!("\"{}\"", escape_json(s))).collect();
+                let items: Vec<String> = arr
+                    .iter()
+                    .map(|s| format!("\"{}\"", escape_json(s)))
+                    .collect();
                 format!("[{}]", items.join(", "))
             }
             Self::IntArray(arr) => {
@@ -311,17 +314,25 @@ impl Span {
 
         json.push_str(&format!("  \"name\": \"{}\",\n", escape_json(&self.name)));
         json.push_str(&format!("  \"kind\": \"{}\",\n", self.kind.name()));
-        json.push_str(&format!("  \"startTimeUnixNano\": {},\n", time_to_nanos(self.start_time)));
+        json.push_str(&format!(
+            "  \"startTimeUnixNano\": {},\n",
+            time_to_nanos(self.start_time)
+        ));
 
         if let Some(end) = self.end_time {
             json.push_str(&format!("  \"endTimeUnixNano\": {},\n", time_to_nanos(end)));
         }
 
-        json.push_str(&format!("  \"status\": {{\n    \"code\": \"{}\"\n  }}", self.status.name()));
+        json.push_str(&format!(
+            "  \"status\": {{\n    \"code\": \"{}\"\n  }}",
+            self.status.name()
+        ));
 
         if !self.attributes.is_empty() {
             json.push_str(",\n  \"attributes\": {\n");
-            let attrs: Vec<String> = self.attributes.iter()
+            let attrs: Vec<String> = self
+                .attributes
+                .iter()
                 .map(|(k, v)| format!("    \"{}\": {}", escape_json(k), v.to_json()))
                 .collect();
             json.push_str(&attrs.join(",\n"));
@@ -330,7 +341,9 @@ impl Span {
 
         if !self.events.is_empty() {
             json.push_str(",\n  \"events\": [\n");
-            let events: Vec<String> = self.events.iter()
+            let events: Vec<String> = self
+                .events
+                .iter()
                 .map(|e| format!("    {}", e.to_json()))
                 .collect();
             json.push_str(&events.join(",\n"));
@@ -382,7 +395,9 @@ impl SpanEvent {
 
         if !self.attributes.is_empty() {
             json.push_str(", \"attributes\": {");
-            let attrs: Vec<String> = self.attributes.iter()
+            let attrs: Vec<String> = self
+                .attributes
+                .iter()
                 .map(|(k, v)| format!("\"{}\": {}", escape_json(k), v.to_json()))
                 .collect();
             json.push_str(&attrs.join(", "));
@@ -528,7 +543,9 @@ impl TracingContext {
 
     /// Get current span ID
     pub fn current_span_id(&self) -> Option<String> {
-        self.span_stack.last().map(|s| s.span_id.clone())
+        self.span_stack
+            .last()
+            .map(|s| s.span_id.clone())
             .or_else(|| self.root_span.as_ref().map(|s| s.span_id.clone()))
     }
 
@@ -602,8 +619,14 @@ impl TracingContext {
         json.push_str("  \"resourceSpans\": [{\n");
         json.push_str("    \"resource\": {\n");
         json.push_str("      \"attributes\": {\n");
-        json.push_str(&format!("        \"service.name\": \"{}\",\n", escape_json(&self.service_name)));
-        json.push_str(&format!("        \"service.version\": \"{}\"\n", escape_json(&self.service_version)));
+        json.push_str(&format!(
+            "        \"service.name\": \"{}\",\n",
+            escape_json(&self.service_name)
+        ));
+        json.push_str(&format!(
+            "        \"service.version\": \"{}\"\n",
+            escape_json(&self.service_version)
+        ));
         json.push_str("      }\n");
         json.push_str("    },\n");
         json.push_str("    \"scopeSpans\": [{\n");
@@ -613,7 +636,8 @@ impl TracingContext {
         json.push_str("      },\n");
         json.push_str("      \"spans\": [\n");
 
-        let span_jsons: Vec<String> = spans.iter()
+        let span_jsons: Vec<String> = spans
+            .iter()
             .map(|s| format!("        {}", s.to_json().replace('\n', "\n        ")))
             .collect();
         json.push_str(&span_jsons.join(",\n"));
@@ -631,9 +655,14 @@ impl TracingContext {
         let spans = self.all_spans();
         let total = spans.len();
         let ok_count = spans.iter().filter(|s| s.status == SpanStatus::Ok).count();
-        let error_count = spans.iter().filter(|s| s.status == SpanStatus::Error).count();
+        let error_count = spans
+            .iter()
+            .filter(|s| s.status == SpanStatus::Error)
+            .count();
 
-        let total_duration = self.root_span.as_ref()
+        let total_duration = self
+            .root_span
+            .as_ref()
             .and_then(|s| s.duration())
             .unwrap_or(Duration::ZERO);
 
@@ -753,7 +782,9 @@ impl LogEntry {
 
         if !self.attributes.is_empty() {
             json.push_str(", \"attributes\": {");
-            let attrs: Vec<String> = self.attributes.iter()
+            let attrs: Vec<String> = self
+                .attributes
+                .iter()
                 .map(|(k, v)| format!("\"{}\": {}", escape_json(k), v.to_json()))
                 .collect();
             json.push_str(&attrs.join(", "));
@@ -972,9 +1003,17 @@ mod tests {
         span.set_bool("key3", true);
 
         assert_eq!(span.attributes.len(), 3);
-        assert!(matches!(span.attributes.get("key1"), Some(AttributeValue::String(s)) if s == "value1"));
-        assert!(matches!(span.attributes.get("key2"), Some(AttributeValue::Int(42))));
-        assert!(matches!(span.attributes.get("key3"), Some(AttributeValue::Bool(true))));
+        assert!(
+            matches!(span.attributes.get("key1"), Some(AttributeValue::String(s)) if s == "value1")
+        );
+        assert!(matches!(
+            span.attributes.get("key2"),
+            Some(AttributeValue::Int(42))
+        ));
+        assert!(matches!(
+            span.attributes.get("key3"),
+            Some(AttributeValue::Bool(true))
+        ));
     }
 
     #[test]

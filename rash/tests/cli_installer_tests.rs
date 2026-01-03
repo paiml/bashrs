@@ -332,7 +332,7 @@ fn test_INSTALLER_CLI_007_keyring_list() {
         .arg("list")
         .assert()
         .success()
-        .stdout(predicate::str::contains("Keyring"));  // Outputs "Keyring not initialized" or "Keyring contents"
+        .stdout(predicate::str::contains("Keyring")); // Outputs "Keyring not initialized" or "Keyring contents"
 }
 
 // =============================================================================
@@ -375,11 +375,15 @@ fn test_INSTALLER_CLI_009_from_bash_converts_script() {
     let output_path = temp_dir.path().join("my-installer");
 
     // Write a test bash script
-    fs::write(&script_path, r#"#!/bin/bash
+    fs::write(
+        &script_path,
+        r#"#!/bin/bash
 apt-get update
 apt-get install -y docker-ce nginx
 mkdir -p /opt/myapp
-"#).unwrap();
+"#,
+    )
+    .unwrap();
 
     bashrs_cmd()
         .arg("installer")

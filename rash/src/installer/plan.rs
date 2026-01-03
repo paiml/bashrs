@@ -337,16 +337,15 @@ fn topological_sort(
 }
 
 /// Validate artifacts and track which steps use them
-fn validate_artifacts(
-    artifacts: &[Artifact],
-    steps: &[Step],
-) -> Result<Vec<ValidatedArtifact>> {
+fn validate_artifacts(artifacts: &[Artifact], steps: &[Step]) -> Result<Vec<ValidatedArtifact>> {
     // Build artifact ID set
     let artifact_ids: HashSet<&str> = artifacts.iter().map(|a| a.id.as_str()).collect();
 
     // Check for duplicate artifact IDs
     if artifact_ids.len() != artifacts.len() {
-        return Err(Error::Validation("Duplicate artifact IDs found".to_string()));
+        return Err(Error::Validation(
+            "Duplicate artifact IDs found".to_string(),
+        ));
     }
 
     // Track which steps use each artifact
@@ -474,7 +473,11 @@ depends_on = ["nonexistent"]
         let result = InstallerPlan::from_spec(spec);
         assert!(result.is_err());
         let err = result.unwrap_err().to_string();
-        assert!(err.contains("unknown step"), "Expected unknown step error, got: {}", err);
+        assert!(
+            err.contains("unknown step"),
+            "Expected unknown step error, got: {}",
+            err
+        );
     }
 
     #[test]
@@ -529,6 +532,10 @@ artifacts = ["nonexistent"]
         let result = InstallerPlan::from_spec(spec);
         assert!(result.is_err());
         let err = result.unwrap_err().to_string();
-        assert!(err.contains("unknown artifact"), "Expected unknown artifact error, got: {}", err);
+        assert!(
+            err.contains("unknown artifact"),
+            "Expected unknown artifact error, got: {}",
+            err
+        );
     }
 }
