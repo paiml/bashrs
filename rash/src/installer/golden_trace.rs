@@ -203,9 +203,8 @@ pub struct GoldenTrace {
 impl GoldenTrace {
     /// Save trace to file
     pub fn save(&self, path: &Path) -> Result<()> {
-        let content = serde_json::to_string_pretty(self).map_err(|e| {
-            Error::Validation(format!("Failed to serialize golden trace: {}", e))
-        })?;
+        let content = serde_json::to_string_pretty(self)
+            .map_err(|e| Error::Validation(format!("Failed to serialize golden trace: {}", e)))?;
         std::fs::write(path, content).map_err(|e| {
             Error::Io(std::io::Error::new(
                 e.kind(),
@@ -223,9 +222,8 @@ impl GoldenTrace {
                 format!("Failed to read golden trace: {}", e),
             ))
         })?;
-        serde_json::from_str(&content).map_err(|e| {
-            Error::Validation(format!("Failed to parse golden trace: {}", e))
-        })
+        serde_json::from_str(&content)
+            .map_err(|e| Error::Validation(format!("Failed to parse golden trace: {}", e)))
     }
 }
 
@@ -340,10 +338,8 @@ impl TraceComparison {
         };
 
         // Build sets of event signatures for quick lookup
-        let golden_sigs: HashSet<String> =
-            golden.events.iter().map(|e| e.summary()).collect();
-        let current_sigs: HashSet<String> =
-            current.events.iter().map(|e| e.summary()).collect();
+        let golden_sigs: HashSet<String> = golden.events.iter().map(|e| e.summary()).collect();
+        let current_sigs: HashSet<String> = current.events.iter().map(|e| e.summary()).collect();
 
         // Find added events (in current but not in golden)
         for event in &current.events {

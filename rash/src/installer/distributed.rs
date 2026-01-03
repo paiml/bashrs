@@ -301,11 +301,7 @@ impl InstallerGraph {
     pub fn create_plan(&self) -> ExecutionPlan {
         let waves = self.compute_waves();
 
-        let total_sequential: f64 = self
-            .nodes
-            .iter()
-            .map(|n| n.estimated_duration_secs)
-            .sum();
+        let total_sequential: f64 = self.nodes.iter().map(|n| n.estimated_duration_secs).sum();
 
         let total_parallel: f64 = waves.iter().map(|w| w.estimated_duration_secs).sum();
 
@@ -521,7 +517,9 @@ pub fn format_execution_plan(plan: &ExecutionPlan, max_parallel: usize) -> Strin
         plan.waves.len(),
         max_parallel
     ));
-    output.push_str("══════════════════════════════════════════════════════════════════════════════\n\n");
+    output.push_str(
+        "══════════════════════════════════════════════════════════════════════════════\n\n",
+    );
 
     for wave in &plan.waves {
         let wave_type = if wave.is_sequential {
@@ -533,11 +531,7 @@ pub fn format_execution_plan(plan: &ExecutionPlan, max_parallel: usize) -> Strin
             "parallel".to_string()
         };
 
-        output.push_str(&format!(
-            "Wave {} ({}):\n",
-            wave.wave_number + 1,
-            wave_type
-        ));
+        output.push_str(&format!("Wave {} ({}):\n", wave.wave_number + 1, wave_type));
 
         for step_id in &wave.step_ids {
             output.push_str(&format!("  • {}\n", step_id));
@@ -555,7 +549,9 @@ pub fn format_execution_plan(plan: &ExecutionPlan, max_parallel: usize) -> Strin
         plan.total_duration_sequential_secs,
         plan.speedup_percent
     ));
-    output.push_str("══════════════════════════════════════════════════════════════════════════════\n");
+    output.push_str(
+        "══════════════════════════════════════════════════════════════════════════════\n",
+    );
 
     output
 }

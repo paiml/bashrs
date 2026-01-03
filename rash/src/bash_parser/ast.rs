@@ -870,14 +870,12 @@ mod tests {
     #[test]
     fn test_bracegroup_display() {
         let stmt = BashStmt::BraceGroup {
-            body: vec![
-                BashStmt::Command {
-                    name: "echo".to_string(),
-                    args: vec![],
-                    redirects: vec![],
-                    span: Span::dummy(),
-                },
-            ],
+            body: vec![BashStmt::Command {
+                name: "echo".to_string(),
+                args: vec![],
+                redirects: vec![],
+                span: Span::dummy(),
+            }],
             span: Span::dummy(),
         };
         assert_eq!(format!("{}", stmt), "BraceGroup(1 stmts)");
@@ -887,14 +885,12 @@ mod tests {
     fn test_coproc_display_with_name() {
         let stmt = BashStmt::Coproc {
             name: Some("mycoproc".to_string()),
-            body: vec![
-                BashStmt::Command {
-                    name: "cat".to_string(),
-                    args: vec![],
-                    redirects: vec![],
-                    span: Span::dummy(),
-                },
-            ],
+            body: vec![BashStmt::Command {
+                name: "cat".to_string(),
+                args: vec![],
+                redirects: vec![],
+                span: Span::dummy(),
+            }],
             span: Span::dummy(),
         };
         assert_eq!(format!("{}", stmt), "Coproc(mycoproc, 1 stmts)");
@@ -904,14 +900,12 @@ mod tests {
     fn test_coproc_display_without_name() {
         let stmt = BashStmt::Coproc {
             name: None,
-            body: vec![
-                BashStmt::Command {
-                    name: "cat".to_string(),
-                    args: vec![],
-                    redirects: vec![],
-                    span: Span::dummy(),
-                },
-            ],
+            body: vec![BashStmt::Command {
+                name: "cat".to_string(),
+                args: vec![],
+                redirects: vec![],
+                span: Span::dummy(),
+            }],
             span: Span::dummy(),
         };
         assert_eq!(format!("{}", stmt), "Coproc(1 stmts)");
@@ -1139,7 +1133,9 @@ mod tests {
     fn test_and_test_expr() {
         let expr = TestExpr::And(
             Box::new(TestExpr::FileExists(BashExpr::Literal("/tmp".to_string()))),
-            Box::new(TestExpr::FileDirectory(BashExpr::Literal("/tmp".to_string()))),
+            Box::new(TestExpr::FileDirectory(BashExpr::Literal(
+                "/tmp".to_string(),
+            ))),
         );
         assert!(matches!(expr, TestExpr::And(_, _)));
     }
@@ -1148,16 +1144,18 @@ mod tests {
     fn test_or_test_expr() {
         let expr = TestExpr::Or(
             Box::new(TestExpr::FileExists(BashExpr::Literal("/tmp".to_string()))),
-            Box::new(TestExpr::FileDirectory(BashExpr::Literal("/var".to_string()))),
+            Box::new(TestExpr::FileDirectory(BashExpr::Literal(
+                "/var".to_string(),
+            ))),
         );
         assert!(matches!(expr, TestExpr::Or(_, _)));
     }
 
     #[test]
     fn test_not_test_expr() {
-        let expr = TestExpr::Not(Box::new(TestExpr::FileExists(
-            BashExpr::Literal("/nonexistent".to_string()),
-        )));
+        let expr = TestExpr::Not(Box::new(TestExpr::FileExists(BashExpr::Literal(
+            "/nonexistent".to_string(),
+        ))));
         assert!(matches!(expr, TestExpr::Not(_)));
     }
 
@@ -1270,7 +1268,10 @@ mod tests {
 
     #[test]
     fn test_redirect_duplicate() {
-        let redirect = Redirect::Duplicate { from_fd: 2, to_fd: 1 };
+        let redirect = Redirect::Duplicate {
+            from_fd: 2,
+            to_fd: 1,
+        };
         assert!(matches!(redirect, Redirect::Duplicate { .. }));
     }
 

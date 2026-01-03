@@ -230,9 +230,8 @@ impl Keyring {
                 tofu_enabled: self.tofu_enabled,
             };
 
-            let json = serde_json::to_string_pretty(&data).map_err(|e| {
-                Error::Validation(format!("Failed to serialize keyring: {}", e))
-            })?;
+            let json = serde_json::to_string_pretty(&data)
+                .map_err(|e| Error::Validation(format!("Failed to serialize keyring: {}", e)))?;
 
             std::fs::write(path, json).map_err(|e| {
                 Error::Io(std::io::Error::new(
@@ -254,9 +253,8 @@ impl Keyring {
                 ))
             })?;
 
-            let data: KeyringData = serde_json::from_str(&json).map_err(|e| {
-                Error::Validation(format!("Failed to parse keyring: {}", e))
-            })?;
+            let data: KeyringData = serde_json::from_str(&json)
+                .map_err(|e| Error::Validation(format!("Failed to parse keyring: {}", e)))?;
 
             self.keys = data.keys.into_iter().map(|k| (k.id.clone(), k)).collect();
             self.tofu_enabled = data.tofu_enabled;
@@ -543,8 +541,12 @@ mod tests {
         {
             let mut keyring = Keyring::with_storage(&keyring_path).unwrap();
             keyring.enable_tofu();
-            keyring.add_key(TrustedKey::new("key-1", [1u8; 32])).unwrap();
-            keyring.add_key(TrustedKey::new("key-2", [2u8; 32])).unwrap();
+            keyring
+                .add_key(TrustedKey::new("key-1", [1u8; 32]))
+                .unwrap();
+            keyring
+                .add_key(TrustedKey::new("key-2", [2u8; 32]))
+                .unwrap();
         }
 
         // Load and verify
@@ -591,10 +593,14 @@ mod tests {
 
     #[test]
     fn test_SIGNATURE_108_key_fingerprint() {
-        let key = TrustedKey::new("test", [0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08,
-            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]);
+        let key = TrustedKey::new(
+            "test",
+            [
+                0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+                0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+                0x00, 0x00, 0x00, 0x00,
+            ],
+        );
 
         assert_eq!(key.fingerprint(), "0102030405060708");
     }

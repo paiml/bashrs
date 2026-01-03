@@ -1558,7 +1558,9 @@ mod tests {
         let ast = BashAst {
             statements: vec![BashStmt::Command {
                 name: "echo".to_string(),
-                args: vec![BashExpr::Arithmetic(Box::new(ArithExpr::Variable("x".to_string())))],
+                args: vec![BashExpr::Arithmetic(Box::new(ArithExpr::Variable(
+                    "x".to_string(),
+                )))],
                 redirects: vec![],
                 span: Span::dummy(),
             }],
@@ -1643,32 +1645,36 @@ mod tests {
     #[test]
     fn test_format_test_file_readable() {
         let formatter = Formatter::new();
-        let result =
-            formatter.format_test(&TestExpr::FileReadable(BashExpr::Literal("/tmp".to_string())));
+        let result = formatter.format_test(&TestExpr::FileReadable(BashExpr::Literal(
+            "/tmp".to_string(),
+        )));
         assert!(result.contains("-r "));
     }
 
     #[test]
     fn test_format_test_file_writable() {
         let formatter = Formatter::new();
-        let result =
-            formatter.format_test(&TestExpr::FileWritable(BashExpr::Literal("/tmp".to_string())));
+        let result = formatter.format_test(&TestExpr::FileWritable(BashExpr::Literal(
+            "/tmp".to_string(),
+        )));
         assert!(result.contains("-w "));
     }
 
     #[test]
     fn test_format_test_file_executable() {
         let formatter = Formatter::new();
-        let result = formatter
-            .format_test(&TestExpr::FileExecutable(BashExpr::Literal("/bin/sh".to_string())));
+        let result = formatter.format_test(&TestExpr::FileExecutable(BashExpr::Literal(
+            "/bin/sh".to_string(),
+        )));
         assert!(result.contains("-x "));
     }
 
     #[test]
     fn test_format_test_file_directory() {
         let formatter = Formatter::new();
-        let result = formatter
-            .format_test(&TestExpr::FileDirectory(BashExpr::Literal("/tmp".to_string())));
+        let result = formatter.format_test(&TestExpr::FileDirectory(BashExpr::Literal(
+            "/tmp".to_string(),
+        )));
         assert!(result.contains("-d "));
     }
 
@@ -1683,8 +1689,9 @@ mod tests {
     #[test]
     fn test_format_test_string_non_empty() {
         let formatter = Formatter::new();
-        let result = formatter
-            .format_test(&TestExpr::StringNonEmpty(BashExpr::Variable("x".to_string())));
+        let result = formatter.format_test(&TestExpr::StringNonEmpty(BashExpr::Variable(
+            "x".to_string(),
+        )));
         assert!(result.contains("-n "));
     }
 

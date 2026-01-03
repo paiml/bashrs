@@ -298,7 +298,11 @@ impl PlatformResult {
         };
 
         let duration_str = if self.duration.as_secs() > 0 {
-            format!("{}m {:02}s", self.duration.as_secs() / 60, self.duration.as_secs() % 60)
+            format!(
+                "{}m {:02}s",
+                self.duration.as_secs() / 60,
+                self.duration.as_secs() % 60
+            )
         } else {
             "-".to_string()
         };
@@ -507,10 +511,7 @@ impl MatrixConfig {
 
     /// Parse platforms from comma-separated string
     pub fn from_platform_string(s: &str) -> Self {
-        let platforms: Vec<Platform> = s
-            .split(',')
-            .map(|p| Platform::parse(p.trim()))
-            .collect();
+        let platforms: Vec<Platform> = s.split(',').map(|p| Platform::parse(p.trim())).collect();
 
         Self {
             platforms,
@@ -624,10 +625,7 @@ impl ContainerTestMatrix {
 
         // Alpine might have compatibility issues
         if platform.image.contains("alpine") {
-            return PlatformResult::skipped(
-                platform.clone(),
-                "musl libc may be incompatible",
-            );
+            return PlatformResult::skipped(platform.clone(), "musl libc may be incompatible");
         }
 
         // Simulate step count based on installer
@@ -638,9 +636,21 @@ impl ContainerTestMatrix {
 
     /// Generate summary from results
     pub fn generate_summary(&self, total_duration: Duration) -> MatrixSummary {
-        let passed = self.results.iter().filter(|r| r.status == TestStatus::Passed).count();
-        let failed = self.results.iter().filter(|r| r.status == TestStatus::Failed).count();
-        let skipped = self.results.iter().filter(|r| r.status == TestStatus::Skipped).count();
+        let passed = self
+            .results
+            .iter()
+            .filter(|r| r.status == TestStatus::Passed)
+            .count();
+        let failed = self
+            .results
+            .iter()
+            .filter(|r| r.status == TestStatus::Failed)
+            .count();
+        let skipped = self
+            .results
+            .iter()
+            .filter(|r| r.status == TestStatus::Skipped)
+            .count();
 
         MatrixSummary {
             total: self.results.len(),
@@ -657,9 +667,13 @@ impl ContainerTestMatrix {
         let mut output = String::new();
 
         output.push_str("Container Test Matrix\n");
-        output.push_str("══════════════════════════════════════════════════════════════════════════════\n\n");
+        output.push_str(
+            "══════════════════════════════════════════════════════════════════════════════\n\n",
+        );
         output.push_str("  Platform               Arch     Status    Duration    Steps\n");
-        output.push_str("  ────────────────────────────────────────────────────────────────────────────\n");
+        output.push_str(
+            "  ────────────────────────────────────────────────────────────────────────────\n",
+        );
 
         for result in &self.results {
             let steps_str = if result.steps_total > 0 {
@@ -669,7 +683,11 @@ impl ContainerTestMatrix {
             };
 
             let duration_str = if result.duration.as_secs() > 0 {
-                format!("{}m {:02}s", result.duration.as_secs() / 60, result.duration.as_secs() % 60)
+                format!(
+                    "{}m {:02}s",
+                    result.duration.as_secs() / 60,
+                    result.duration.as_secs() % 60
+                )
             } else {
                 "-".to_string()
             };
@@ -696,7 +714,9 @@ impl ContainerTestMatrix {
             ));
         }
 
-        output.push_str("══════════════════════════════════════════════════════════════════════════════\n");
+        output.push_str(
+            "══════════════════════════════════════════════════════════════════════════════\n",
+        );
 
         output
     }
@@ -708,11 +728,26 @@ impl ContainerTestMatrix {
 
         for (i, result) in self.results.iter().enumerate() {
             json.push_str("    {\n");
-            json.push_str(&format!("      \"image\": \"{}\",\n", result.platform.image));
-            json.push_str(&format!("      \"arch\": \"{}\",\n", result.platform.arch.display_name()));
-            json.push_str(&format!("      \"status\": \"{}\",\n", result.status.text().to_lowercase()));
-            json.push_str(&format!("      \"duration_secs\": {},\n", result.duration.as_secs()));
-            json.push_str(&format!("      \"steps_passed\": {},\n", result.steps_passed));
+            json.push_str(&format!(
+                "      \"image\": \"{}\",\n",
+                result.platform.image
+            ));
+            json.push_str(&format!(
+                "      \"arch\": \"{}\",\n",
+                result.platform.arch.display_name()
+            ));
+            json.push_str(&format!(
+                "      \"status\": \"{}\",\n",
+                result.status.text().to_lowercase()
+            ));
+            json.push_str(&format!(
+                "      \"duration_secs\": {},\n",
+                result.duration.as_secs()
+            ));
+            json.push_str(&format!(
+                "      \"steps_passed\": {},\n",
+                result.steps_passed
+            ));
             json.push_str(&format!("      \"steps_total\": {}", result.steps_total));
 
             if let Some(ref err) = result.error {
@@ -760,10 +795,7 @@ impl MatrixSummary {
     pub fn format(&self) -> String {
         let mut output = String::new();
 
-        output.push_str(&format!(
-            "  Summary: {}/{} passed",
-            self.passed, self.total
-        ));
+        output.push_str(&format!("  Summary: {}/{} passed", self.passed, self.total));
 
         if self.failed > 0 {
             output.push_str(&format!(", {} failed", self.failed));

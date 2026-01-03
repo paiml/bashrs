@@ -281,8 +281,8 @@ impl FalsificationGenerator {
                     id: format!("DET-{}", step.id),
                     claim: format!("Step '{}' is deterministic", step.name),
                     category: HypothesisCategory::Determinism,
-                    falsification_method:
-                        "Execute step with same inputs twice, compare outputs".to_string(),
+                    falsification_method: "Execute step with same inputs twice, compare outputs"
+                        .to_string(),
                     step_ids: vec![step.id.clone()],
                     expected_evidence: "Outputs are byte-identical across runs".to_string(),
                     falsifying_evidence: "Outputs differ between runs with same inputs".to_string(),
@@ -373,7 +373,10 @@ impl FalsificationGenerator {
                         category: HypothesisCategory::PerformanceBound,
                         falsification_method: "Execute step, measure duration".to_string(),
                         step_ids: vec![step.id.clone()],
-                        expected_evidence: format!("Execution completes in under {}ms", max_duration),
+                        expected_evidence: format!(
+                            "Execution completes in under {}ms",
+                            max_duration
+                        ),
                         falsifying_evidence: format!("Execution exceeds {}ms", max_duration),
                         priority: 5,
                     });
@@ -395,7 +398,10 @@ impl FalsificationGenerator {
     }
 
     /// Generate a test for a specific hypothesis
-    fn generate_test_for_hypothesis(&self, hypothesis: &FalsificationHypothesis) -> FalsificationTest {
+    fn generate_test_for_hypothesis(
+        &self,
+        hypothesis: &FalsificationHypothesis,
+    ) -> FalsificationTest {
         let step_id = hypothesis
             .step_ids
             .first()
@@ -412,12 +418,10 @@ impl FalsificationGenerator {
                 action: TestAction::ExecuteStep {
                     step_id: step_id.clone(),
                 },
-                verification: vec![
-                    Verification::StatesEqual {
-                        state_a: "after_first".to_string(),
-                        state_b: "after_second".to_string(),
-                    },
-                ],
+                verification: vec![Verification::StatesEqual {
+                    state_a: "after_first".to_string(),
+                    state_b: "after_second".to_string(),
+                }],
                 cleanup: vec![],
             },
             HypothesisCategory::Determinism => FalsificationTest {
@@ -429,12 +433,10 @@ impl FalsificationGenerator {
                 action: TestAction::ExecuteStep {
                     step_id: step_id.clone(),
                 },
-                verification: vec![
-                    Verification::StatesEqual {
-                        state_a: "output_1".to_string(),
-                        state_b: "output_2".to_string(),
-                    },
-                ],
+                verification: vec![Verification::StatesEqual {
+                    state_a: "output_1".to_string(),
+                    state_b: "output_2".to_string(),
+                }],
                 cleanup: vec![],
             },
             HypothesisCategory::RollbackCompleteness => FalsificationTest {
@@ -446,12 +448,10 @@ impl FalsificationGenerator {
                 action: TestAction::ExecuteStep {
                     step_id: step_id.clone(),
                 },
-                verification: vec![
-                    Verification::StatesEqual {
-                        state_a: "before".to_string(),
-                        state_b: "after_rollback".to_string(),
-                    },
-                ],
+                verification: vec![Verification::StatesEqual {
+                    state_a: "before".to_string(),
+                    state_b: "after_rollback".to_string(),
+                }],
                 cleanup: vec![TestAction::Rollback {
                     step_id: step_id.clone(),
                 }],
@@ -531,24 +531,15 @@ impl FalsificationGenerator {
 
         for h in hypotheses {
             code.push_str(&format!("    /// FALSIFIABLE: \"{}\"\n", h.claim));
-            code.push_str(&format!(
-                "    /// DISPROOF: {}\n",
-                h.falsifying_evidence
-            ));
+            code.push_str(&format!("    /// DISPROOF: {}\n", h.falsifying_evidence));
             code.push_str("    #[test]\n");
             code.push_str(&format!(
                 "    fn test_falsify_{}() {{\n",
                 h.id.to_lowercase().replace('-', "_")
             ));
             code.push_str("        // Placeholder: implement with step execution\n");
-            code.push_str(&format!(
-                "        // Method: {}\n",
-                h.falsification_method
-            ));
-            code.push_str(&format!(
-                "        // Expected: {}\n",
-                h.expected_evidence
-            ));
+            code.push_str(&format!("        // Method: {}\n", h.falsification_method));
+            code.push_str(&format!("        // Expected: {}\n", h.expected_evidence));
             code.push_str("        assert!(true, \"Implement falsification test\");\n");
             code.push_str("    }\n\n");
         }
@@ -669,14 +660,14 @@ impl FalsificationReport {
     pub fn format(&self) -> String {
         let mut report = String::new();
 
-        report.push_str(&format!(
-            "Falsification Report: {}\n",
-            self.installer_name
-        ));
+        report.push_str(&format!("Falsification Report: {}\n", self.installer_name));
         report.push_str(&"=".repeat(50));
         report.push('\n');
 
-        report.push_str(&format!("Total hypotheses tested: {}\n", self.total_hypotheses));
+        report.push_str(&format!(
+            "Total hypotheses tested: {}\n",
+            self.total_hypotheses
+        ));
         report.push_str(&format!(
             "  ✓ Validated: {} (no bugs found)\n",
             self.validated_count
@@ -693,9 +684,7 @@ impl FalsificationReport {
         for (cat, summary) in &self.by_category {
             report.push_str(&format!(
                 "  {}: {}/{} validated\n",
-                cat,
-                summary.validated,
-                summary.total
+                cat, summary.validated, summary.total
             ));
         }
 

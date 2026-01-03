@@ -368,9 +368,10 @@ impl HermeticContext {
 
     /// Verify an artifact matches the lockfile
     pub fn verify_artifact(&self, id: &str, sha256: &str) -> Result<()> {
-        let expected = self.artifact_cache.get(id).ok_or_else(|| {
-            Error::Validation(format!("Artifact '{}' not found in lockfile", id))
-        })?;
+        let expected = self
+            .artifact_cache
+            .get(id)
+            .ok_or_else(|| Error::Validation(format!("Artifact '{}' not found in lockfile", id)))?;
 
         if expected != sha256 {
             return Err(Error::Validation(format!(
@@ -529,7 +530,13 @@ mod tests {
     #[test]
     fn test_HERMETIC_109_context_verify_artifact() {
         let mut lockfile = Lockfile::new();
-        lockfile.add_artifact(LockedArtifact::new("test", "1.0", "url", "correct-hash", 100));
+        lockfile.add_artifact(LockedArtifact::new(
+            "test",
+            "1.0",
+            "url",
+            "correct-hash",
+            100,
+        ));
         lockfile.finalize();
 
         let context = HermeticContext::from_lockfile(lockfile).unwrap();

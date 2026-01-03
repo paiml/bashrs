@@ -265,15 +265,14 @@ mod tests {
 
     #[test]
     fn test_binary_compiler_with_compression() {
-        let compiler = BinaryCompiler::new(RuntimeType::Dash)
-            .with_compression(CompressionLevel::Best);
+        let compiler =
+            BinaryCompiler::new(RuntimeType::Dash).with_compression(CompressionLevel::Best);
         assert!(matches!(compiler.compression, CompressionLevel::Best));
     }
 
     #[test]
     fn test_binary_compiler_with_strip_level() {
-        let compiler = BinaryCompiler::new(RuntimeType::Dash)
-            .with_strip_level(StripLevel::None);
+        let compiler = BinaryCompiler::new(RuntimeType::Dash).with_strip_level(StripLevel::None);
         assert!(matches!(compiler.strip_level, StripLevel::None));
     }
 
@@ -294,7 +293,9 @@ mod tests {
         let result = compiler.compile("echo hello");
         assert!(result.is_err());
         let err = result.unwrap_err();
-        assert!(err.to_string().contains("Minimal runtime not yet implemented"));
+        assert!(err
+            .to_string()
+            .contains("Minimal runtime not yet implemented"));
     }
 
     #[test]
@@ -321,8 +322,7 @@ mod tests {
 
     #[test]
     fn test_strip_binary_none() {
-        let compiler = BinaryCompiler::new(RuntimeType::Dash)
-            .with_strip_level(StripLevel::None);
+        let compiler = BinaryCompiler::new(RuntimeType::Dash).with_strip_level(StripLevel::None);
         let mut binary = vec![0u8; 100];
 
         let result = compiler.strip_binary(&mut binary);
@@ -331,8 +331,7 @@ mod tests {
 
     #[test]
     fn test_strip_binary_debug() {
-        let compiler = BinaryCompiler::new(RuntimeType::Dash)
-            .with_strip_level(StripLevel::Debug);
+        let compiler = BinaryCompiler::new(RuntimeType::Dash).with_strip_level(StripLevel::Debug);
         let mut binary = vec![0u8; 100];
 
         let result = compiler.strip_binary(&mut binary);
@@ -341,8 +340,7 @@ mod tests {
 
     #[test]
     fn test_strip_binary_all() {
-        let compiler = BinaryCompiler::new(RuntimeType::Dash)
-            .with_strip_level(StripLevel::All);
+        let compiler = BinaryCompiler::new(RuntimeType::Dash).with_strip_level(StripLevel::All);
         let mut binary = vec![0u8; 100];
 
         let result = compiler.strip_binary(&mut binary);

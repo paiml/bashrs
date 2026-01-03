@@ -1,10 +1,11 @@
 #[cfg(feature = "oracle")]
 use crate::cli::args::ExplainErrorFormat;
 use crate::cli::args::{
-    AuditOutputFormat, CompileRuntime, ConfigCommands, ConfigOutputFormat, ContainerFormatArg, DevContainerCommands,
-    DockerfileCommands, InstallerCommands, InstallerGraphFormat, InspectionFormat, KeyringCommands,
-    LintFormat, LintLevel, LintProfileArg, MakeCommands, MakeOutputFormat, MutateFormat,
-    PlaybookFormat, ReportFormat, ScoreOutputFormat, SimulateFormat, TestOutputFormat,
+    AuditOutputFormat, CompileRuntime, ConfigCommands, ConfigOutputFormat, ContainerFormatArg,
+    DevContainerCommands, DockerfileCommands, InspectionFormat, InstallerCommands,
+    InstallerGraphFormat, KeyringCommands, LintFormat, LintLevel, LintProfileArg, MakeCommands,
+    MakeOutputFormat, MutateFormat, PlaybookFormat, ReportFormat, ScoreOutputFormat,
+    SimulateFormat, TestOutputFormat,
 };
 use crate::cli::logic::{
     add_no_install_recommends, add_package_manager_cleanup, convert_add_to_copy_if_local,
@@ -320,7 +321,14 @@ pub fn execute_command(cli: Cli) -> Result<()> {
             output,
         } => {
             info!("Mutation testing: {}", input.display());
-            mutate_command(&input, config.as_deref(), format, count, show_survivors, output.as_deref())
+            mutate_command(
+                &input,
+                config.as_deref(),
+                format,
+                count,
+                show_survivors,
+                output.as_deref(),
+            )
         }
 
         Commands::Simulate {
@@ -3214,12 +3222,18 @@ fn handle_installer_command(command: InstallerCommands) -> Result<()> {
             println!("Next steps:");
             println!("  1. Edit installer.toml to define steps");
             println!("  2. Run: bashrs installer validate {}", name.display());
-            println!("  3. Run: bashrs installer run {} --dry-run", name.display());
+            println!(
+                "  3. Run: bashrs installer run {} --dry-run",
+                name.display()
+            );
             Ok(())
         }
 
         InstallerCommands::FromBash { input, output } => {
-            info!("Converting bash script to installer format: {}", input.display());
+            info!(
+                "Converting bash script to installer format: {}",
+                input.display()
+            );
             installer_from_bash_command(&input, output.as_deref())
         }
 
@@ -3269,12 +3283,20 @@ fn handle_installer_command(command: InstallerCommands) -> Result<()> {
             Ok(())
         }
 
-        InstallerCommands::Test { path, matrix, coverage } => {
+        InstallerCommands::Test {
+            path,
+            matrix,
+            coverage,
+        } => {
             info!("Testing installer: {}", path.display());
             installer_test_command(&path, matrix.as_deref(), coverage)
         }
 
-        InstallerCommands::Lock { path, update, verify } => {
+        InstallerCommands::Lock {
+            path,
+            update,
+            verify,
+        } => {
             info!("Managing lockfile for: {}", path.display());
             installer_lock_command(&path, update, verify)
         }
@@ -3302,7 +3324,13 @@ fn handle_installer_command(command: InstallerCommands) -> Result<()> {
             ignore,
         } => {
             info!("Auditing installer at {}", path.display());
-            installer_audit_command(&path, format, security_only, min_severity.as_deref(), &ignore)
+            installer_audit_command(
+                &path,
+                format,
+                security_only,
+                min_severity.as_deref(),
+                &ignore,
+            )
         }
 
         InstallerCommands::Keyring { command } => handle_keyring_command(command),
@@ -3377,7 +3405,8 @@ fn handle_keyring_command(command: KeyringCommands) -> Result<()> {
 
             if !keyring_path.exists() {
                 return Err(Error::Validation(
-                    "Keyring not initialized. Run 'bashrs installer keyring init' first.".to_string(),
+                    "Keyring not initialized. Run 'bashrs installer keyring init' first."
+                        .to_string(),
                 ));
             }
 
@@ -3436,7 +3465,14 @@ fn handle_keyring_command(command: KeyringCommands) -> Result<()> {
 
             println!();
             println!("  Keyring path: {}", keyring_path.display());
-            println!("  TOFU mode: {}", if keyring.is_tofu_enabled() { "enabled" } else { "disabled" });
+            println!(
+                "  TOFU mode: {}",
+                if keyring.is_tofu_enabled() {
+                    "enabled"
+                } else {
+                    "disabled"
+                }
+            );
 
             Ok(())
         }
@@ -3446,7 +3482,8 @@ fn handle_keyring_command(command: KeyringCommands) -> Result<()> {
 
             if !keyring_path.exists() {
                 return Err(Error::Validation(
-                    "Keyring not initialized. Run 'bashrs installer keyring init' first.".to_string(),
+                    "Keyring not initialized. Run 'bashrs installer keyring init' first."
+                        .to_string(),
                 ));
             }
 
@@ -3535,7 +3572,8 @@ fn installer_from_bash_command(input: &Path, output: Option<&Path>) -> Result<()
         Some(path) => path.to_path_buf(),
         None => {
             // Default: same name as input file without extension, or "converted-installer"
-            let stem = input.file_stem()
+            let stem = input
+                .file_stem()
                 .and_then(|s| s.to_str())
                 .unwrap_or("converted-installer");
             std::path::PathBuf::from(format!("{}-installer", stem))
@@ -3554,7 +3592,10 @@ fn installer_from_bash_command(input: &Path, output: Option<&Path>) -> Result<()
     println!("  Apt installs: {}", result.stats.apt_installs);
     println!("  Heredocs converted: {}", result.stats.heredocs_converted);
     println!("  Sudo patterns: {}", result.stats.sudo_patterns);
-    println!("  Conditionals converted: {}", result.stats.conditionals_converted);
+    println!(
+        "  Conditionals converted: {}",
+        result.stats.conditionals_converted
+    );
 
     if !result.templates.is_empty() {
         println!();
@@ -3575,8 +3616,14 @@ fn installer_from_bash_command(input: &Path, output: Option<&Path>) -> Result<()
     println!();
     println!("Next steps:");
     println!("  1. Review: {}/installer.toml", output_dir.display());
-    println!("  2. Validate: bashrs installer validate {}", output_dir.display());
-    println!("  3. Test: bashrs installer run {} --dry-run", output_dir.display());
+    println!(
+        "  2. Validate: bashrs installer validate {}",
+        output_dir.display()
+    );
+    println!(
+        "  3. Test: bashrs installer run {} --dry-run",
+        output_dir.display()
+    );
 
     Ok(())
 }
@@ -3594,9 +3641,9 @@ fn installer_run_command(
     trace_file: Option<&Path>,
 ) -> Result<()> {
     use crate::installer::{
-        self, CheckpointStore, ExecutionMode, ExecutorConfig, HermeticContext, InstallerProgress,
-        InstallerSpec, Keyring, StepExecutor, TerminalRenderer, ProgressRenderer, TracingContext,
-        generate_summary,
+        self, generate_summary, CheckpointStore, ExecutionMode, ExecutorConfig, HermeticContext,
+        InstallerProgress, InstallerSpec, Keyring, ProgressRenderer, StepExecutor,
+        TerminalRenderer, TracingContext,
     };
 
     // Validate installer first
@@ -3653,7 +3700,14 @@ fn installer_run_command(
         println!("Signature verification enabled");
         println!("  Keyring: {}", keyring_path.display());
         println!("  Keys: {}", kr.len());
-        println!("  TOFU mode: {}", if kr.is_tofu_enabled() { "enabled" } else { "disabled" });
+        println!(
+            "  TOFU mode: {}",
+            if kr.is_tofu_enabled() {
+                "enabled"
+            } else {
+                "disabled"
+            }
+        );
         println!();
         Some(kr)
     } else {
@@ -3736,9 +3790,18 @@ fn installer_run_command(
     let mut tracing_ctx = if trace {
         let mut ctx = TracingContext::new(installer_name, "1.0.0");
         ctx.start_root("installer_run");
-        ctx.set_attribute("installer.path", crate::installer::AttributeValue::string(path.display().to_string()));
-        ctx.set_attribute("installer.steps", crate::installer::AttributeValue::int(result.steps as i64));
-        ctx.set_attribute("installer.hermetic", crate::installer::AttributeValue::bool(hermetic));
+        ctx.set_attribute(
+            "installer.path",
+            crate::installer::AttributeValue::string(path.display().to_string()),
+        );
+        ctx.set_attribute(
+            "installer.steps",
+            crate::installer::AttributeValue::int(result.steps as i64),
+        );
+        ctx.set_attribute(
+            "installer.hermetic",
+            crate::installer::AttributeValue::bool(hermetic),
+        );
         println!("Tracing enabled");
         println!("  Trace ID: {}", ctx.trace_id());
         if let Some(f) = trace_file {
@@ -3800,7 +3863,10 @@ fn installer_run_command(
 
                     // Show output if any
                     if !result.stdout.trim().is_empty() {
-                        println!("  Output: {}", result.stdout.trim().lines().next().unwrap_or(""));
+                        println!(
+                            "  Output: {}",
+                            result.stdout.trim().lines().next().unwrap_or("")
+                        );
                     }
                 } else {
                     all_succeeded = false;
@@ -3878,7 +3944,10 @@ fn installer_run_command(
     if all_succeeded {
         println!("\n✅ Installation completed successfully!");
     } else {
-        println!("\n❌ Installation failed. Use 'bashrs installer resume {}' to retry.", path.display());
+        println!(
+            "\n❌ Installation failed. Use 'bashrs installer resume {}' to retry.",
+            path.display()
+        );
     }
 
     Ok(())
@@ -3910,15 +3979,32 @@ fn installer_resume_command(path: &Path, from: Option<&str>) -> Result<()> {
     // Show checkpoint status
     if let Some(run_id) = store.current_run_id() {
         println!("Checkpoint found: {}", run_id);
-        println!("  Hermetic mode: {}", if store.is_hermetic() { "yes" } else { "no" });
+        println!(
+            "  Hermetic mode: {}",
+            if store.is_hermetic() { "yes" } else { "no" }
+        );
 
         let steps = store.steps();
-        let completed = steps.iter().filter(|s| s.status == installer::StepStatus::Completed).count();
-        let failed = steps.iter().filter(|s| s.status == installer::StepStatus::Failed).count();
-        let pending = steps.iter().filter(|s| s.status == installer::StepStatus::Pending).count();
+        let completed = steps
+            .iter()
+            .filter(|s| s.status == installer::StepStatus::Completed)
+            .count();
+        let failed = steps
+            .iter()
+            .filter(|s| s.status == installer::StepStatus::Failed)
+            .count();
+        let pending = steps
+            .iter()
+            .filter(|s| s.status == installer::StepStatus::Pending)
+            .count();
 
-        println!("  Steps: {} total, {} completed, {} failed, {} pending",
-            steps.len(), completed, failed, pending);
+        println!(
+            "  Steps: {} total, {} completed, {} failed, {} pending",
+            steps.len(),
+            completed,
+            failed,
+            pending
+        );
 
         if let Some(last) = store.last_successful_step() {
             println!("  Last successful: {}", last.step_id);
@@ -3935,11 +4021,12 @@ fn installer_resume_command(path: &Path, from: Option<&str>) -> Result<()> {
                 }
                 step_id.to_string()
             }
-            None => {
-                store.last_successful_step()
-                    .map(|s| s.step_id.clone())
-                    .ok_or_else(|| Error::Validation("No successful steps to resume from".to_string()))?
-            }
+            None => store
+                .last_successful_step()
+                .map(|s| s.step_id.clone())
+                .ok_or_else(|| {
+                    Error::Validation("No successful steps to resume from".to_string())
+                })?,
         };
 
         println!();
@@ -3947,9 +4034,14 @@ fn installer_resume_command(path: &Path, from: Option<&str>) -> Result<()> {
         println!();
         println!("Note: Full execution not yet implemented.");
         println!("  Steps in spec: {}", validation.steps);
-        println!("  Run with --dry-run to validate: bashrs installer run {} --dry-run", path.display());
+        println!(
+            "  Run with --dry-run to validate: bashrs installer run {} --dry-run",
+            path.display()
+        );
     } else {
-        return Err(Error::Validation("Checkpoint exists but has no active run".to_string()));
+        return Err(Error::Validation(
+            "Checkpoint exists but has no active run".to_string(),
+        ));
     }
 
     Ok(())
@@ -4002,7 +4094,10 @@ fn installer_test_command(path: &Path, matrix: Option<&str>, coverage: bool) -> 
         if summary.all_passed() {
             println!("✓ All {} platform(s) passed", summary.total);
         } else {
-            println!("✗ {} of {} platform(s) failed", summary.failed, summary.total);
+            println!(
+                "✗ {} of {} platform(s) failed",
+                summary.failed, summary.total
+            );
             return Err(Error::Validation(format!(
                 "{} platform(s) failed testing",
                 summary.failed
@@ -4022,7 +4117,9 @@ fn installer_test_command(path: &Path, matrix: Option<&str>, coverage: bool) -> 
 }
 
 fn installer_lock_command(path: &Path, update: bool, verify: bool) -> Result<()> {
-    use crate::installer::{self, HermeticContext, Lockfile, LockedArtifact, LockfileEnvironment, LOCKFILE_VERSION};
+    use crate::installer::{
+        self, HermeticContext, LockedArtifact, Lockfile, LockfileEnvironment, LOCKFILE_VERSION,
+    };
 
     // Validate installer first
     let result = installer::validate_installer(path)?;
@@ -4060,9 +4157,15 @@ fn installer_lock_command(path: &Path, update: bool, verify: bool) -> Result<()>
         // Check if lockfile matches current spec
         if lockfile.artifacts.len() != result.artifacts {
             println!("⚠ Lockfile may be outdated:");
-            println!("    Lockfile has {} artifacts, spec has {}",
-                lockfile.artifacts.len(), result.artifacts);
-            println!("    Run 'bashrs installer lock {} --update' to refresh", path.display());
+            println!(
+                "    Lockfile has {} artifacts, spec has {}",
+                lockfile.artifacts.len(),
+                result.artifacts
+            );
+            println!(
+                "    Run 'bashrs installer lock {} --update' to refresh",
+                path.display()
+            );
         } else {
             println!("✓ Lockfile is valid and up-to-date");
         }
@@ -4081,7 +4184,10 @@ fn installer_lock_command(path: &Path, update: bool, verify: bool) -> Result<()>
         // Update existing lockfile
         println!("Updating lockfile...");
         let existing = Lockfile::load(&lockfile_path)?;
-        println!("  Existing lockfile has {} artifacts", existing.artifacts.len());
+        println!(
+            "  Existing lockfile has {} artifacts",
+            existing.artifacts.len()
+        );
     }
 
     // Generate new lockfile
@@ -4095,13 +4201,16 @@ fn installer_lock_command(path: &Path, update: bool, verify: bool) -> Result<()>
             std::time::SystemTime::now()
                 .duration_since(std::time::UNIX_EPOCH)
                 .map(|d| d.as_secs())
-                .unwrap_or(0)
+                .unwrap_or(0),
         );
         lockfile.finalize();
         lockfile.save(&lockfile_path)?;
 
         println!("  Created: {}", lockfile_path.display());
-        println!("  SOURCE_DATE_EPOCH: {}", lockfile.environment.source_date_epoch);
+        println!(
+            "  SOURCE_DATE_EPOCH: {}",
+            lockfile.environment.source_date_epoch
+        );
     } else {
         println!("Generating lockfile for {} artifacts...", result.artifacts);
         println!();
@@ -4113,7 +4222,7 @@ fn installer_lock_command(path: &Path, update: bool, verify: bool) -> Result<()>
             std::time::SystemTime::now()
                 .duration_since(std::time::UNIX_EPOCH)
                 .map(|d| d.as_secs())
-                .unwrap_or(0)
+                .unwrap_or(0),
         );
 
         // For now, create placeholder entries
@@ -4136,17 +4245,23 @@ fn installer_lock_command(path: &Path, update: bool, verify: bool) -> Result<()>
         println!("  Version: {}", LOCKFILE_VERSION);
         println!("  Content hash: {}", lockfile.content_hash);
         println!("  Artifacts locked: {}", lockfile.artifacts.len());
-        println!("  SOURCE_DATE_EPOCH: {}", lockfile.environment.source_date_epoch);
+        println!(
+            "  SOURCE_DATE_EPOCH: {}",
+            lockfile.environment.source_date_epoch
+        );
         println!();
         println!("Note: Run with real artifact URLs to generate proper hashes.");
-        println!("      Use 'bashrs installer run {} --hermetic' to execute.", path.display());
+        println!(
+            "      Use 'bashrs installer run {} --hermetic' to execute.",
+            path.display()
+        );
     }
 
     Ok(())
 }
 
 fn installer_graph_command(path: &Path, format: InstallerGraphFormat) -> Result<()> {
-    use crate::installer::{InstallerGraph, InstallerSpec, format_execution_plan};
+    use crate::installer::{format_execution_plan, InstallerGraph, InstallerSpec};
 
     // Find installer.toml
     let installer_toml = if path.is_dir() {
@@ -4156,8 +4271,12 @@ fn installer_graph_command(path: &Path, format: InstallerGraphFormat) -> Result<
     };
 
     // Parse spec and build graph
-    let content = std::fs::read_to_string(&installer_toml)
-        .map_err(|e| Error::Io(std::io::Error::new(e.kind(), format!("Failed to read installer.toml: {}", e))))?;
+    let content = std::fs::read_to_string(&installer_toml).map_err(|e| {
+        Error::Io(std::io::Error::new(
+            e.kind(),
+            format!("Failed to read installer.toml: {}", e),
+        ))
+    })?;
     let spec = InstallerSpec::parse(&content)?;
     let graph = InstallerGraph::from_spec(&spec)?;
 
@@ -4196,7 +4315,10 @@ fn installer_graph_command(path: &Path, format: InstallerGraphFormat) -> Result<
                     "speedup_percent": plan.speedup_percent,
                 }
             });
-            println!("{}", serde_json::to_string_pretty(&json_output).unwrap_or_default());
+            println!(
+                "{}",
+                serde_json::to_string_pretty(&json_output).unwrap_or_default()
+            );
         }
     }
 
@@ -4212,8 +4334,7 @@ fn installer_graph_command(path: &Path, format: InstallerGraphFormat) -> Result<
 
 fn installer_golden_capture_command(path: &Path, trace_name: &str) -> Result<()> {
     use crate::installer::{
-        GoldenTrace, GoldenTraceManager, InstallerSpec, SimulatedTraceCollector,
-        TraceResult,
+        GoldenTrace, GoldenTraceManager, InstallerSpec, SimulatedTraceCollector, TraceResult,
     };
 
     // Find installer.toml
@@ -4224,8 +4345,12 @@ fn installer_golden_capture_command(path: &Path, trace_name: &str) -> Result<()>
     };
 
     // Parse spec
-    let content = std::fs::read_to_string(&installer_toml)
-        .map_err(|e| Error::Io(std::io::Error::new(e.kind(), format!("Failed to read installer.toml: {}", e))))?;
+    let content = std::fs::read_to_string(&installer_toml).map_err(|e| {
+        Error::Io(std::io::Error::new(
+            e.kind(),
+            format!("Failed to read installer.toml: {}", e),
+        ))
+    })?;
     let spec = InstallerSpec::parse(&content)?;
 
     // Create trace manager
@@ -4284,7 +4409,9 @@ fn installer_golden_capture_command(path: &Path, trace_name: &str) -> Result<()>
     }
 
     // Create golden trace
-    let events = collector.into_trace(trace_name, &spec.installer.version).events;
+    let events = collector
+        .into_trace(trace_name, &spec.installer.version)
+        .events;
     let trace = GoldenTrace {
         name: trace_name.to_string(),
         captured_at: chrono::Utc::now().to_rfc3339(),
@@ -4312,15 +4439,19 @@ fn installer_golden_capture_command(path: &Path, trace_name: &str) -> Result<()>
     println!("  Steps: {}", trace.steps_executed);
     println!();
     println!("To compare against this trace later:");
-    println!("  bashrs installer golden-compare {} --trace {}", path.display(), trace_name);
+    println!(
+        "  bashrs installer golden-compare {} --trace {}",
+        path.display(),
+        trace_name
+    );
 
     Ok(())
 }
 
 fn installer_golden_compare_command(path: &Path, trace_name: &str) -> Result<()> {
     use crate::installer::{
-        GoldenTrace, GoldenTraceManager, InstallerSpec, SimulatedTraceCollector,
-        TraceComparison, TraceResult,
+        GoldenTrace, GoldenTraceManager, InstallerSpec, SimulatedTraceCollector, TraceComparison,
+        TraceResult,
     };
 
     // Find installer.toml
@@ -4331,8 +4462,12 @@ fn installer_golden_compare_command(path: &Path, trace_name: &str) -> Result<()>
     };
 
     // Parse spec
-    let content = std::fs::read_to_string(&installer_toml)
-        .map_err(|e| Error::Io(std::io::Error::new(e.kind(), format!("Failed to read installer.toml: {}", e))))?;
+    let content = std::fs::read_to_string(&installer_toml).map_err(|e| {
+        Error::Io(std::io::Error::new(
+            e.kind(),
+            format!("Failed to read installer.toml: {}", e),
+        ))
+    })?;
     let spec = InstallerSpec::parse(&content)?;
 
     // Create trace manager
@@ -4393,7 +4528,9 @@ fn installer_golden_compare_command(path: &Path, trace_name: &str) -> Result<()>
         name: format!("{}-current", trace_name),
         captured_at: chrono::Utc::now().to_rfc3339(),
         installer_version: spec.installer.version.clone(),
-        events: collector.into_trace(trace_name, &spec.installer.version).events,
+        events: collector
+            .into_trace(trace_name, &spec.installer.version)
+            .events,
         result_hash: String::new(),
         steps_executed: spec.step.len(),
         duration_ms: 0,
@@ -4595,14 +4732,20 @@ fn playbook_command(
             println!("  \"version\": \"{}\",", version);
             println!("  \"machine_id\": \"{}\",", machine_id);
             println!("  \"initial_state\": \"{}\",", initial_state);
-            println!("  \"mode\": \"{}\",", if run { "execute" } else { "validate" });
+            println!(
+                "  \"mode\": \"{}\",",
+                if run { "execute" } else { "validate" }
+            );
             println!("  \"dry_run\": {},", dry_run);
             println!("  \"status\": \"success\"");
             println!("}}");
         }
         PlaybookFormat::Junit => {
             println!("<?xml version=\"1.0\" encoding=\"UTF-8\"?>");
-            println!("<testsuite name=\"{}\" tests=\"1\" failures=\"0\">", machine_id);
+            println!(
+                "<testsuite name=\"{}\" tests=\"1\" failures=\"0\">",
+                machine_id
+            );
             println!("  <testcase name=\"playbook_validation\" time=\"0.001\"/>");
             println!("</testsuite>");
         }
@@ -4772,7 +4915,10 @@ fn simulate_command(
             println!("║  Script: {:<52} ║", input.display());
             println!("║  Seed: {:<54} ║", seed);
             println!("║  Lines: {:<53} ║", lines.len());
-            println!("║  Non-deterministic patterns: {:<32} ║", nondeterministic_count);
+            println!(
+                "║  Non-deterministic patterns: {:<32} ║",
+                nondeterministic_count
+            );
             println!("╠══════════════════════════════════════════════════════════════╣");
 
             if mock_externals {
@@ -4788,7 +4934,10 @@ fn simulate_command(
             if is_deterministic {
                 println!("║  ✓ DETERMINISTIC: Script produces identical output          ║");
             } else {
-                println!("║  ✗ NON-DETERMINISTIC: {} pattern(s) found              ║", nondeterministic_count);
+                println!(
+                    "║  ✗ NON-DETERMINISTIC: {} pattern(s) found              ║",
+                    nondeterministic_count
+                );
             }
             println!("╚══════════════════════════════════════════════════════════════╝");
 
@@ -4797,10 +4946,20 @@ fn simulate_command(
                 println!("  1. Initialize environment");
                 println!("  2. Set RANDOM seed to {}", seed);
                 println!("  3. Execute script");
-                println!("  4. Capture output hash: 0x{:08x}", seed.wrapping_mul(0x5DEECE66D));
+                println!(
+                    "  4. Capture output hash: 0x{:08x}",
+                    seed.wrapping_mul(0x5DEECE66D)
+                );
                 if verify {
                     println!("  5. Re-execute with same seed");
-                    println!("  6. Compare output hashes: {}", if is_deterministic { "MATCH" } else { "MISMATCH" });
+                    println!(
+                        "  6. Compare output hashes: {}",
+                        if is_deterministic {
+                            "MATCH"
+                        } else {
+                            "MISMATCH"
+                        }
+                    );
                 }
             }
         }
@@ -4809,7 +4968,10 @@ fn simulate_command(
             println!("  \"script\": \"{}\",", input.display());
             println!("  \"seed\": {},", seed);
             println!("  \"lines\": {},", lines.len());
-            println!("  \"nondeterministic_patterns\": {},", nondeterministic_count);
+            println!(
+                "  \"nondeterministic_patterns\": {},",
+                nondeterministic_count
+            );
             println!("  \"is_deterministic\": {},", is_deterministic);
             println!("  \"mock_externals\": {},", mock_externals);
             println!("  \"verify\": {}", verify);
@@ -4827,7 +4989,14 @@ fn simulate_command(
                 }
             }
             println!();
-            println!("# Result: {}", if is_deterministic { "DETERMINISTIC" } else { "NON-DETERMINISTIC" });
+            println!(
+                "# Result: {}",
+                if is_deterministic {
+                    "DETERMINISTIC"
+                } else {
+                    "NON-DETERMINISTIC"
+                }
+            );
         }
     }
 

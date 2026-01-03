@@ -36,8 +36,14 @@ fn test_INSTALLER_001_init_creates_installer_toml() {
     assert!(installer_toml.exists(), "installer.toml was not created");
 
     let content = std::fs::read_to_string(&installer_toml).unwrap();
-    assert!(content.contains("[installer]"), "Missing [installer] section");
-    assert!(content.contains("name = \"test-installer\""), "Missing name field");
+    assert!(
+        content.contains("[installer]"),
+        "Missing [installer] section"
+    );
+    assert!(
+        content.contains("name = \"test-installer\""),
+        "Missing name field"
+    );
 }
 
 #[test]
@@ -55,7 +61,10 @@ fn test_INSTALLER_001_init_creates_tests_directory() {
     assert!(mod_rs.exists(), "tests/mod.rs was not created");
 
     let falsification_rs = tests_dir.join("falsification.rs");
-    assert!(falsification_rs.exists(), "tests/falsification.rs was not created");
+    assert!(
+        falsification_rs.exists(),
+        "tests/falsification.rs was not created"
+    );
 }
 
 #[test]
@@ -66,7 +75,10 @@ fn test_INSTALLER_001_init_creates_templates_directory() {
     init_project(&project_path, None).unwrap();
 
     let templates_dir = project_path.join("templates");
-    assert!(templates_dir.exists(), "templates/ directory was not created");
+    assert!(
+        templates_dir.exists(),
+        "templates/ directory was not created"
+    );
 }
 
 #[test]
@@ -75,10 +87,16 @@ fn test_INSTALLER_001_init_with_description() {
     let project_path = temp_dir.path().join("test-installer");
 
     let result = init_project(&project_path, Some("My custom description")).unwrap();
-    assert_eq!(result.description, Some("My custom description".to_string()));
+    assert_eq!(
+        result.description,
+        Some("My custom description".to_string())
+    );
 
     let content = std::fs::read_to_string(project_path.join("installer.toml")).unwrap();
-    assert!(content.contains("My custom description"), "Description not in TOML");
+    assert!(
+        content.contains("My custom description"),
+        "Description not in TOML"
+    );
 }
 
 #[test]
@@ -119,7 +137,11 @@ fn test_INSTALLER_002_validate_valid_installer() {
 
     // Validate it
     let result = validate_installer(&project_path);
-    assert!(result.is_ok(), "Valid installer should pass validation: {:?}", result);
+    assert!(
+        result.is_ok(),
+        "Valid installer should pass validation: {:?}",
+        result
+    );
 
     let validation = result.unwrap();
     assert!(validation.valid, "Validation should report valid=true");
@@ -132,9 +154,15 @@ fn test_INSTALLER_002_validate_missing_installer_toml() {
     std::fs::create_dir_all(&project_path).unwrap();
 
     let result = validate_installer(&project_path);
-    assert!(result.is_err(), "Should fail when installer.toml is missing");
+    assert!(
+        result.is_err(),
+        "Should fail when installer.toml is missing"
+    );
     let err = result.unwrap_err().to_string();
-    assert!(err.contains("not found"), "Error should mention file not found");
+    assert!(
+        err.contains("not found"),
+        "Error should mention file not found"
+    );
 }
 
 #[test]

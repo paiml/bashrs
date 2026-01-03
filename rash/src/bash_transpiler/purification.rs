@@ -1370,7 +1370,10 @@ mod tests {
 
         assert!(result.is_err());
         let err = result.unwrap_err();
-        assert!(matches!(err, PurificationError::NonDeterministicConstruct(_)));
+        assert!(matches!(
+            err,
+            PurificationError::NonDeterministicConstruct(_)
+        ));
     }
 
     // ============== Command purification tests ==============
@@ -1397,7 +1400,9 @@ mod tests {
         match &purified.statements[0] {
             BashStmt::Command { name, args, .. } => {
                 assert_eq!(name, "rm");
-                assert!(args.iter().any(|a| matches!(a, BashExpr::Literal(s) if s == "-f")));
+                assert!(args
+                    .iter()
+                    .any(|a| matches!(a, BashExpr::Literal(s) if s == "-f")));
             }
             _ => panic!("Expected command"),
         }
@@ -2661,7 +2666,9 @@ mod tests {
         let ast = BashAst {
             statements: vec![BashStmt::If {
                 condition: BashExpr::Test(Box::new(TestExpr::And(
-                    Box::new(TestExpr::StringNonEmpty(BashExpr::Variable("x".to_string()))),
+                    Box::new(TestExpr::StringNonEmpty(BashExpr::Variable(
+                        "x".to_string(),
+                    ))),
                     Box::new(TestExpr::Or(
                         Box::new(TestExpr::IntGt(
                             BashExpr::Variable("y".to_string()),

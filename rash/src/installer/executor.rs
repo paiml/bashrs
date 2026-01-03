@@ -97,7 +97,10 @@ impl StepExecutor {
                 step_id: step_id.to_string(),
                 success: true,
                 exit_code: Some(0),
-                stdout: format!("[DRY-RUN] Would execute script with {}:\n{}", interpreter, content),
+                stdout: format!(
+                    "[DRY-RUN] Would execute script with {}:\n{}",
+                    interpreter, content
+                ),
                 stderr: String::new(),
                 duration_ms: 0,
                 postcondition_results: vec![],
@@ -375,52 +378,40 @@ impl StepExecutor {
                     }
                 }
             }
-            "apt-install" => {
-                self.execute_apt_install(&step.id, &step.packages)?
-            }
-            "file-write" => {
-                match (&step.path, &step.content) {
-                    (Some(path), Some(content)) => {
-                        self.execute_file_write(&step.id, path, content)?
-                    }
-                    _ => StepExecutionResult {
-                        step_id: step.id.clone(),
-                        success: false,
-                        exit_code: None,
-                        stdout: String::new(),
-                        stderr: "file-write action requires path and content".to_string(),
-                        duration_ms: 0,
-                        postcondition_results: vec![],
-                    },
-                }
-            }
-            "user-add-to-group" => {
-                match (&step.user, &step.group) {
-                    (Some(user), Some(group)) => {
-                        self.execute_user_group(&step.id, user, group)?
-                    }
-                    _ => StepExecutionResult {
-                        step_id: step.id.clone(),
-                        success: false,
-                        exit_code: None,
-                        stdout: String::new(),
-                        stderr: "user-add-to-group action requires user and group".to_string(),
-                        duration_ms: 0,
-                        postcondition_results: vec![],
-                    },
-                }
-            }
-            other => {
-                StepExecutionResult {
+            "apt-install" => self.execute_apt_install(&step.id, &step.packages)?,
+            "file-write" => match (&step.path, &step.content) {
+                (Some(path), Some(content)) => self.execute_file_write(&step.id, path, content)?,
+                _ => StepExecutionResult {
                     step_id: step.id.clone(),
                     success: false,
                     exit_code: None,
                     stdout: String::new(),
-                    stderr: format!("Unknown action type: {}", other),
+                    stderr: "file-write action requires path and content".to_string(),
                     duration_ms: 0,
                     postcondition_results: vec![],
-                }
-            }
+                },
+            },
+            "user-add-to-group" => match (&step.user, &step.group) {
+                (Some(user), Some(group)) => self.execute_user_group(&step.id, user, group)?,
+                _ => StepExecutionResult {
+                    step_id: step.id.clone(),
+                    success: false,
+                    exit_code: None,
+                    stdout: String::new(),
+                    stderr: "user-add-to-group action requires user and group".to_string(),
+                    duration_ms: 0,
+                    postcondition_results: vec![],
+                },
+            },
+            other => StepExecutionResult {
+                step_id: step.id.clone(),
+                success: false,
+                exit_code: None,
+                stdout: String::new(),
+                stderr: format!("Unknown action type: {}", other),
+                duration_ms: 0,
+                postcondition_results: vec![],
+            },
         };
 
         // Check postconditions if step succeeded
@@ -440,7 +431,10 @@ impl StepExecutor {
     }
 
     /// Check all postconditions for a step
-    fn check_postconditions(&self, postconditions: &super::spec::Postcondition) -> Vec<PostconditionResult> {
+    fn check_postconditions(
+        &self,
+        postconditions: &super::spec::Postcondition,
+    ) -> Vec<PostconditionResult> {
         let mut results = Vec::new();
 
         if let Some(ref path) = postconditions.file_exists {
@@ -479,9 +473,7 @@ impl StepExecutor {
     /// Run a command with the executor's configuration
     fn run_command(&self, program: &str, args: &[&str]) -> Result<Output> {
         let mut cmd = Command::new(program);
-        cmd.args(args)
-            .stdout(Stdio::piped())
-            .stderr(Stdio::piped());
+        cmd.args(args).stdout(Stdio::piped()).stderr(Stdio::piped());
 
         // Set environment variables
         for (key, value) in &self.config.environment {
@@ -727,7 +719,9 @@ content = "echo 'step executed'"
         let spec = InstallerSpec::parse(toml).expect("Valid TOML");
         let executor = StepExecutor::new();
 
-        let result = executor.execute_step(&spec.step[0]).expect("Should execute");
+        let result = executor
+            .execute_step(&spec.step[0])
+            .expect("Should execute");
 
         assert!(result.success);
         assert!(result.stdout.contains("step executed"));
@@ -740,7 +734,8 @@ content = "echo 'step executed'"
         let test_path = "/tmp/bashrs_test_113_step_file.txt";
         let _ = std::fs::remove_file(test_path);
 
-        let toml = format!(r#"
+        let toml = format!(
+            r#"
 [installer]
 name = "test"
 version = "1.0.0"
@@ -751,12 +746,16 @@ name = "Test File Write"
 action = "file-write"
 path = "{}"
 content = "step file content"
-"#, test_path);
+"#,
+            test_path
+        );
 
         let spec = InstallerSpec::parse(&toml).expect("Valid TOML");
         let executor = StepExecutor::new();
 
-        let result = executor.execute_step(&spec.step[0]).expect("Should execute");
+        let result = executor
+            .execute_step(&spec.step[0])
+            .expect("Should execute");
 
         assert!(result.success);
         assert!(Path::new(test_path).exists());
@@ -785,7 +784,9 @@ action = "invalid-action"
         let spec = InstallerSpec::parse(toml).expect("Valid TOML");
         let executor = StepExecutor::new();
 
-        let result = executor.execute_step(&spec.step[0]).expect("Should not error");
+        let result = executor
+            .execute_step(&spec.step[0])
+            .expect("Should not error");
 
         assert!(!result.success);
         assert!(result.stderr.contains("Unknown action"));
@@ -800,7 +801,8 @@ action = "invalid-action"
         // Create the file first
         std::fs::write(test_path, "test").expect("Should write");
 
-        let toml = format!(r#"
+        let toml = format!(
+            r#"
 [installer]
 name = "test"
 version = "1.0.0"
@@ -815,12 +817,16 @@ content = "echo 'done'"
 
 [step.postconditions]
 file_exists = "{}"
-"#, test_path);
+"#,
+            test_path
+        );
 
         let spec = InstallerSpec::parse(&toml).expect("Valid TOML");
         let executor = StepExecutor::new();
 
-        let result = executor.execute_step(&spec.step[0]).expect("Should execute");
+        let result = executor
+            .execute_step(&spec.step[0])
+            .expect("Should execute");
 
         assert!(result.success);
         assert!(!result.postcondition_results.is_empty());
@@ -853,7 +859,9 @@ file_exists = "/nonexistent/file/that/does/not/exist"
         let spec = InstallerSpec::parse(toml).expect("Valid TOML");
         let executor = StepExecutor::new();
 
-        let result = executor.execute_step(&spec.step[0]).expect("Should execute");
+        let result = executor
+            .execute_step(&spec.step[0])
+            .expect("Should execute");
 
         // Step should fail because postcondition fails
         assert!(!result.success);

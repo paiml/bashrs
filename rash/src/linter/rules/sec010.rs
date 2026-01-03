@@ -358,10 +358,7 @@ fn extract_assigned_variable(line: &str) -> Option<String> {
         // Get the last word before = (in case of export VAR= etc.)
         let var_name = before_eq.split_whitespace().last()?;
         // Validate it's a valid variable name
-        if var_name
-            .chars()
-            .all(|c| c.is_alphanumeric() || c == '_')
-        {
+        if var_name.chars().all(|c| c.is_alphanumeric() || c == '_') {
             return Some(var_name.to_string());
         }
     }
@@ -397,12 +394,7 @@ fn is_heredoc_pattern(line: &str) -> bool {
         // cat <<EOF, cat <<'EOF', cat <<"EOF", cat <<-EOF
         // Also handles here-string: cat <<<
         let heredoc_patterns = [
-            "cat <<",
-            "cat<<<",
-            "cat <<-",
-            "echo <<",
-            "read <<",
-            "tee <<",
+            "cat <<", "cat<<<", "cat <<-", "echo <<", "read <<", "tee <<",
         ];
 
         for pattern in &heredoc_patterns {

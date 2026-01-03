@@ -31,31 +31,48 @@ mod colors {
 fn print_header(text: &str) {
     println!(
         "\n{}{}═══════════════════════════════════════════════════════════════{}",
-        colors::BOLD, colors::BLUE, colors::RESET
+        colors::BOLD,
+        colors::BLUE,
+        colors::RESET
     );
     println!(
         "{}{}  {}  {}",
-        colors::BOLD, colors::BLUE, text, colors::RESET
+        colors::BOLD,
+        colors::BLUE,
+        text,
+        colors::RESET
     );
     println!(
         "{}{}═══════════════════════════════════════════════════════════════{}",
-        colors::BOLD, colors::BLUE, colors::RESET
+        colors::BOLD,
+        colors::BLUE,
+        colors::RESET
     );
 }
 
 fn print_section(text: &str) {
     println!(
         "\n{}{}▸ {}{}",
-        colors::BOLD, colors::CYAN, text, colors::RESET
+        colors::BOLD,
+        colors::CYAN,
+        text,
+        colors::RESET
     );
     println!(
         "{}───────────────────────────────────────────{}",
-        colors::CYAN, colors::RESET
+        colors::CYAN,
+        colors::RESET
     );
 }
 
 fn print_success(text: &str) {
-    println!("{}{}✓ {}{}", colors::BOLD, colors::GREEN, text, colors::RESET);
+    println!(
+        "{}{}✓ {}{}",
+        colors::BOLD,
+        colors::GREEN,
+        text,
+        colors::RESET
+    );
 }
 
 fn print_info(text: &str) {
@@ -357,7 +374,8 @@ fn main() -> Result<()> {
 
     println!(
         "\n{}Documentation:{} https://paiml.github.io/bashrs/installer/",
-        colors::BOLD, colors::RESET
+        colors::BOLD,
+        colors::RESET
     );
 
     Ok(())

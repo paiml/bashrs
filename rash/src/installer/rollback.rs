@@ -328,16 +328,18 @@ impl RollbackManager {
     }
 
     /// Backup a file before modification
-    pub fn backup_file(&mut self, step_id: &str, path: impl AsRef<Path>) -> Result<StateFileBackup> {
+    pub fn backup_file(
+        &mut self,
+        step_id: &str,
+        path: impl AsRef<Path>,
+    ) -> Result<StateFileBackup> {
         let path = path.as_ref();
         let existed = path.exists();
 
         let backup_name = format!(
             "{}-{}-{}",
             step_id,
-            path.file_name()
-                .and_then(|n| n.to_str())
-                .unwrap_or("file"),
+            path.file_name().and_then(|n| n.to_str()).unwrap_or("file"),
             current_timestamp()
         );
         let backup_path = self.backup_dir.join(&backup_name);
@@ -393,7 +395,10 @@ impl RollbackManager {
     /// Generate a rollback plan from a specific step
     pub fn plan_rollback_from(&self, from_step: &str) -> Result<RollbackPlan> {
         let from_idx = self.step_index.get(from_step).ok_or_else(|| {
-            Error::Validation(format!("Step '{}' not found in rollback manager", from_step))
+            Error::Validation(format!(
+                "Step '{}' not found in rollback manager",
+                from_step
+            ))
         })?;
 
         // Collect steps from the specified step back to the beginning
@@ -441,7 +446,10 @@ impl RollbackManager {
 
     /// Get count of failed steps
     pub fn failed_count(&self) -> usize {
-        self.steps.iter().filter(|s| !s.completed && s.error.is_some()).count()
+        self.steps
+            .iter()
+            .filter(|s| !s.completed && s.error.is_some())
+            .count()
     }
 }
 
@@ -475,7 +483,10 @@ impl RollbackPlan {
             self.steps.len(),
             self.action_count()
         ));
-        summary.push_str(&format!("Backup directory: {}\n\n", self.backup_dir.display()));
+        summary.push_str(&format!(
+            "Backup directory: {}\n\n",
+            self.backup_dir.display()
+        ));
 
         for (i, step) in self.steps.iter().enumerate() {
             summary.push_str(&format!(
@@ -615,7 +626,10 @@ mod tests {
         let step = manager.get_step("step-1").unwrap();
         assert!(!step.completed);
         assert!(step.needs_rollback());
-        assert_eq!(step.error, Some("Command failed with exit code 1".to_string()));
+        assert_eq!(
+            step.error,
+            Some("Command failed with exit code 1".to_string())
+        );
     }
 
     #[test]
@@ -640,7 +654,10 @@ mod tests {
         // Verify rollback action was added
         let step = manager.get_step("step-1").unwrap();
         assert_eq!(step.actions.len(), 1);
-        assert!(matches!(&step.actions[0], RollbackAction::RestoreFile { .. }));
+        assert!(matches!(
+            &step.actions[0],
+            RollbackAction::RestoreFile { .. }
+        ));
     }
 
     #[test]

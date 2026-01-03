@@ -17,15 +17,9 @@ use std::path::PathBuf;
 #[derive(Debug, Clone, PartialEq)]
 pub enum ModeCommandResult {
     /// Show current mode with description
-    ShowCurrent {
-        mode: ReplMode,
-        description: String,
-    },
+    ShowCurrent { mode: ReplMode, description: String },
     /// Successfully switched to new mode
-    Switched {
-        mode: ReplMode,
-        description: String,
-    },
+    Switched { mode: ReplMode, description: String },
     /// Invalid mode name provided
     InvalidMode(String),
     /// Invalid usage (wrong number of args)
@@ -195,7 +189,10 @@ impl ModeProcessResult {
             Self::Executed(output) => output.clone(),
             Self::Purified(result) => format!("✓ Purified:\n{}", result),
             Self::Linted(result) => result.clone(),
-            Self::Debug(line) => format!("Debug mode: {}\n(Note: Debug mode not yet implemented)", line),
+            Self::Debug(line) => format!(
+                "Debug mode: {}\n(Note: Debug mode not yet implemented)",
+                line
+            ),
             Self::Explained(explanation) => explanation.clone(),
             Self::NoExplanation(line) => {
                 format!(
@@ -270,7 +267,10 @@ impl FunctionsResult {
 #[derive(Debug, Clone)]
 pub enum ReloadResult {
     /// Successfully reloaded
-    Success { path: PathBuf, function_count: usize },
+    Success {
+        path: PathBuf,
+        function_count: usize,
+    },
     /// Error during reload
     Error(String),
     /// No script to reload
@@ -283,7 +283,11 @@ impl ReloadResult {
             Self::Success {
                 path,
                 function_count,
-            } => format!("✓ Reloaded: {} ({} functions)", path.display(), function_count),
+            } => format!(
+                "✓ Reloaded: {} ({} functions)",
+                path.display(),
+                function_count
+            ),
             Self::Error(e) => e.clone(),
             Self::NoScript => "No script to reload. Use :load <file> first.".to_string(),
         }
@@ -293,7 +297,10 @@ impl ReloadResult {
 // ===== PURE LOGIC FUNCTIONS =====
 
 /// Process mode command and return result
-pub fn process_mode_command(line: &str, state: &ReplState) -> (ModeCommandResult, Option<ReplMode>) {
+pub fn process_mode_command(
+    line: &str,
+    state: &ReplState,
+) -> (ModeCommandResult, Option<ReplMode>) {
     let parts: Vec<&str> = line.split_whitespace().collect();
 
     if parts.len() == 1 {
@@ -488,7 +495,10 @@ pub fn process_vars_command(state: &ReplState) -> VarsResult {
     if variables.is_empty() {
         VarsResult::Empty
     } else {
-        let mut vars: Vec<_> = variables.iter().map(|(k, v)| (k.clone(), v.clone())).collect();
+        let mut vars: Vec<_> = variables
+            .iter()
+            .map(|(k, v)| (k.clone(), v.clone()))
+            .collect();
         vars.sort_by(|(a, _), (b, _)| a.cmp(b));
         VarsResult::Variables(vars)
     }
@@ -768,7 +778,12 @@ mod tests {
         let result = process_functions_command(&state);
 
         let formatted = result.format();
-        assert!(formatted.contains("No functions") || formatted.contains("0 functions") || formatted.is_empty() || formatted.contains("functions"));
+        assert!(
+            formatted.contains("No functions")
+                || formatted.contains("0 functions")
+                || formatted.is_empty()
+                || formatted.contains("functions")
+        );
     }
 
     // ===== RELOAD COMMAND TESTS =====

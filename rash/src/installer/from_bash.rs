@@ -184,7 +184,9 @@ fn extract_patterns(script: &str) -> Result<Vec<BashPattern>> {
         }
 
         // Default: treat as generic script line
-        patterns.push(BashPattern::Script { content: line.to_string() });
+        patterns.push(BashPattern::Script {
+            content: line.to_string(),
+        });
         i += 1;
     }
 
@@ -201,7 +203,8 @@ fn parse_apt_install(line: &str) -> Option<Vec<String>> {
 
     if line.starts_with("apt-get install") || line.starts_with("apt install") {
         let parts: Vec<&str> = line.split_whitespace().collect();
-        let packages: Vec<String> = parts.iter()
+        let packages: Vec<String> = parts
+            .iter()
             .skip(2) // Skip "apt-get" and "install" or "apt" and "install"
             .filter(|p| !p.starts_with('-')) // Skip flags like -y
             .map(|p| p.to_string())
@@ -239,7 +242,8 @@ fn parse_download(line: &str) -> Option<(String, Option<String>)> {
             if part.starts_with("http://") || part.starts_with("https://") {
                 let url = part.to_string();
                 // Check for -o flag
-                let output = parts.get(i + 2)
+                let output = parts
+                    .get(i + 2)
                     .filter(|_| parts.get(i + 1) == Some(&"-o"))
                     .map(|s| s.to_string());
                 return Some((url, output));
@@ -253,7 +257,8 @@ fn parse_download(line: &str) -> Option<(String, Option<String>)> {
         for (i, part) in parts.iter().enumerate() {
             if part.starts_with("http://") || part.starts_with("https://") {
                 let url = part.to_string();
-                let output = parts.get(i + 2)
+                let output = parts
+                    .get(i + 2)
                     .filter(|_| parts.get(i + 1) == Some(&"-O"))
                     .map(|s| s.to_string());
                 return Some((url, output));
@@ -275,7 +280,8 @@ fn parse_heredoc(lines: &[&str], start: usize) -> Option<(String, String, usize)
 
     // Extract delimiter
     let after_heredoc = line.split("<<").nth(1)?;
-    let delimiter = after_heredoc.trim()
+    let delimiter = after_heredoc
+        .trim()
         .trim_start_matches('-')
         .trim()
         .trim_matches('\'')
@@ -498,10 +504,7 @@ fn generate_warnings(patterns: &[BashPattern]) -> Vec<String> {
     for pattern in patterns {
         match pattern {
             BashPattern::SudoCommand { command } => {
-                warnings.push(format!(
-                    "Sudo command may need manual review: {}",
-                    command
-                ));
+                warnings.push(format!("Sudo command may need manual review: {}", command));
             }
             BashPattern::Script { content } => {
                 if content.contains("eval") {
@@ -511,10 +514,7 @@ fn generate_warnings(patterns: &[BashPattern]) -> Vec<String> {
                     ));
                 }
                 if content.contains("$RANDOM") || content.contains("$$") {
-                    warnings.push(format!(
-                        "Non-deterministic pattern detected: {}",
-                        content
-                    ));
+                    warnings.push(format!("Non-deterministic pattern detected: {}", content));
                 }
             }
             _ => {}
@@ -525,13 +525,14 @@ fn generate_warnings(patterns: &[BashPattern]) -> Vec<String> {
 }
 
 /// Convert a bash script file to installer project
-pub fn convert_file_to_project(
-    input: &Path,
-    output_dir: &Path,
-) -> Result<ConversionResult> {
+pub fn convert_file_to_project(input: &Path, output_dir: &Path) -> Result<ConversionResult> {
     // Read the bash script
-    let script = std::fs::read_to_string(input)
-        .map_err(|e| Error::Io(std::io::Error::new(e.kind(), format!("Failed to read {}: {}", input.display(), e))))?;
+    let script = std::fs::read_to_string(input).map_err(|e| {
+        Error::Io(std::io::Error::new(
+            e.kind(),
+            format!("Failed to read {}: {}", input.display(), e),
+        ))
+    })?;
 
     // Get project name from output directory
     let name = output_dir
@@ -543,18 +544,34 @@ pub fn convert_file_to_project(
     let result = convert_bash_to_installer(&script, name)?;
 
     // Create output directory structure
-    std::fs::create_dir_all(output_dir)
-        .map_err(|e| Error::Io(std::io::Error::new(e.kind(), format!("Failed to create output directory: {}", e))))?;
+    std::fs::create_dir_all(output_dir).map_err(|e| {
+        Error::Io(std::io::Error::new(
+            e.kind(),
+            format!("Failed to create output directory: {}", e),
+        ))
+    })?;
 
-    std::fs::create_dir_all(output_dir.join("templates"))
-        .map_err(|e| Error::Io(std::io::Error::new(e.kind(), format!("Failed to create templates directory: {}", e))))?;
+    std::fs::create_dir_all(output_dir.join("templates")).map_err(|e| {
+        Error::Io(std::io::Error::new(
+            e.kind(),
+            format!("Failed to create templates directory: {}", e),
+        ))
+    })?;
 
-    std::fs::create_dir_all(output_dir.join("tests"))
-        .map_err(|e| Error::Io(std::io::Error::new(e.kind(), format!("Failed to create tests directory: {}", e))))?;
+    std::fs::create_dir_all(output_dir.join("tests")).map_err(|e| {
+        Error::Io(std::io::Error::new(
+            e.kind(),
+            format!("Failed to create tests directory: {}", e),
+        ))
+    })?;
 
     // Write installer.toml
-    std::fs::write(output_dir.join("installer.toml"), &result.installer_toml)
-        .map_err(|e| Error::Io(std::io::Error::new(e.kind(), format!("Failed to write installer.toml: {}", e))))?;
+    std::fs::write(output_dir.join("installer.toml"), &result.installer_toml).map_err(|e| {
+        Error::Io(std::io::Error::new(
+            e.kind(),
+            format!("Failed to write installer.toml: {}", e),
+        ))
+    })?;
 
     // Write template files
     for template in &result.templates {
@@ -562,7 +579,12 @@ pub fn convert_file_to_project(
             output_dir.join("templates").join(&template.name),
             &template.content,
         )
-        .map_err(|e| Error::Io(std::io::Error::new(e.kind(), format!("Failed to write template {}: {}", template.name, e))))?;
+        .map_err(|e| {
+            Error::Io(std::io::Error::new(
+                e.kind(),
+                format!("Failed to write template {}: {}", template.name, e),
+            ))
+        })?;
     }
 
     Ok(result)
@@ -711,7 +733,9 @@ apt-get install -y docker-ce
 
         // Should generate valid TOML
         assert!(result.installer_toml.contains("[installer]"));
-        assert!(result.installer_toml.contains("name = \"docker-installer\""));
+        assert!(result
+            .installer_toml
+            .contains("name = \"docker-installer\""));
         assert!(result.installer_toml.contains("privileges = \"root\""));
         assert!(result.installer_toml.contains("[[step]]"));
     }
@@ -726,7 +750,10 @@ EOF
 "#;
         let result = convert_bash_to_installer(script, "config-installer").unwrap();
 
-        assert!(!result.templates.is_empty(), "Should extract heredoc as template");
+        assert!(
+            !result.templates.is_empty(),
+            "Should extract heredoc as template"
+        );
         assert!(result.templates[0].content.contains("key=value"));
     }
 

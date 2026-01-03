@@ -48,7 +48,11 @@ pub fn check(source: &str) -> LintResult {
 
         // Reset found_exit when encountering block closers
         // Also reset on esac (end of case statement)
-        if trimmed.starts_with('}') || trimmed.starts_with("fi") || trimmed.starts_with("done") || trimmed.starts_with("esac") {
+        if trimmed.starts_with('}')
+            || trimmed.starts_with("fi")
+            || trimmed.starts_with("done")
+            || trimmed.starts_with("esac")
+        {
             found_exit = false;
             continue;
         }

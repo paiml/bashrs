@@ -46,61 +46,64 @@ mod tracing;
 #[cfg(test)]
 mod tests;
 
-pub use checkpoint::{CheckpointStore, InstallerRun, RunStatus, StateFile, StepCheckpoint as CheckpointEntry, StepStatus};
-pub use container::{
-    Architecture, ContainerConfig, ContainerRuntime, ContainerTestMatrix,
-    MatrixConfig, MatrixSummary, Platform, PlatformResult, ResourceLimits,
-    StepTestResult, TestStatus,
-};
-pub use dry_run::{
-    DiffPreview, DryRunContext, DryRunSummary, FileChange, FileChangeType,
-    PackageOperation, ServiceOperation, SimulationEntry, UserGroupOperation,
-};
-pub use from_bash::{convert_bash_to_installer, convert_file_to_project, ConversionResult, ConversionStats};
-pub use hermetic::{HermeticContext, Lockfile, LockedArtifact, LockfileEnvironment, LOCKFILE_VERSION};
-pub use plan::InstallerPlan;
-pub use progress::{
-    ExecutionMode, InstallationSummary, InstallerProgress, JsonRenderer, LiveProgress,
-    ProgressRenderer, ProgressStyle, StepInfo, StepResult, StepState, TerminalRenderer,
-    generate_summary,
-};
-pub use rollback::{RollbackAction, RollbackManager, RollbackPlan, StateFileBackup, StepRollback};
-pub use signature::{
-    compute_sha256, create_test_signature, verify_sha256, verify_signature,
-    ArtifactSpec, Keyring, PublicKey, Sha256Hash, Signature, TrustDecision, TrustedKey, VerificationResult,
-};
-pub use spec::{
-    Action, Artifact, Environment, InstallerSpec, InstallerSecurity, Postcondition, Precondition,
-    Requirements, Step, StepCheckpoint, StepTiming,
-};
-pub use tracing::{
-    AttributeValue, LogEntry, Logger, Span, SpanEvent, SpanKind, SpanStatus,
-    TraceExporter, TraceLevel, TraceSummary, TracingContext,
-};
 pub use audit::{
     AuditCategory, AuditContext, AuditFinding, AuditMetadata, AuditReport, AuditSeverity,
 };
-pub use executor::{
-    ExecutorConfig, PostconditionResult, StepExecutionResult, StepExecutor,
+pub use checkpoint::{
+    CheckpointStore, InstallerRun, RunStatus, StateFile, StepCheckpoint as CheckpointEntry,
+    StepStatus,
+};
+pub use container::{
+    Architecture, ContainerConfig, ContainerRuntime, ContainerTestMatrix, MatrixConfig,
+    MatrixSummary, Platform, PlatformResult, ResourceLimits, StepTestResult, TestStatus,
 };
 pub use distributed::{
-    CacheStats, DistributedConfig, ExecutionPlan, ExecutionWave, GraphNode,
+    format_execution_plan, CacheStats, DistributedConfig, ExecutionPlan, ExecutionWave, GraphNode,
     InstallerGraph, OptimizationConfig, RemoteExecutor, SccacheClient,
-    format_execution_plan,
+};
+pub use dry_run::{
+    DiffPreview, DryRunContext, DryRunSummary, FileChange, FileChangeType, PackageOperation,
+    ServiceOperation, SimulationEntry, UserGroupOperation,
+};
+pub use executor::{ExecutorConfig, PostconditionResult, StepExecutionResult, StepExecutor};
+pub use falsification::{
+    CategorySummary, Evidence, FalsificationConfig, FalsificationGenerator,
+    FalsificationHypothesis, FalsificationReport, FalsificationResult, FalsificationTest,
+    HypothesisCategory, InstallerInfo as FalsificationInstallerInfo,
+    StepInfo as FalsificationStepInfo, TestAction, Verification,
+};
+pub use from_bash::{
+    convert_bash_to_installer, convert_file_to_project, ConversionResult, ConversionStats,
 };
 pub use golden_trace::{
     ComparisonMetadata, GoldenTrace, GoldenTraceConfig, GoldenTraceManager,
     SimulatedTraceCollector, TraceComparison, TraceEvent, TraceEventType, TraceResult,
 };
-pub use metrics::{
-    AggregatedMetrics, EnvironmentInfo, InstallerMetrics, KaizenReport, MetricsAggregator,
-    MetricsCollector, StepAggregate, StepMetrics, StepOutcome, format_metrics_report,
+pub use hermetic::{
+    HermeticContext, LockedArtifact, Lockfile, LockfileEnvironment, LOCKFILE_VERSION,
 };
-pub use falsification::{
-    CategorySummary, Evidence, FalsificationConfig, FalsificationGenerator, FalsificationHypothesis,
-    FalsificationReport, FalsificationResult, FalsificationTest, HypothesisCategory,
-    InstallerInfo as FalsificationInstallerInfo, StepInfo as FalsificationStepInfo,
-    TestAction, Verification,
+pub use metrics::{
+    format_metrics_report, AggregatedMetrics, EnvironmentInfo, InstallerMetrics, KaizenReport,
+    MetricsAggregator, MetricsCollector, StepAggregate, StepMetrics, StepOutcome,
+};
+pub use plan::InstallerPlan;
+pub use progress::{
+    generate_summary, ExecutionMode, InstallationSummary, InstallerProgress, JsonRenderer,
+    LiveProgress, ProgressRenderer, ProgressStyle, StepInfo, StepResult, StepState,
+    TerminalRenderer,
+};
+pub use rollback::{RollbackAction, RollbackManager, RollbackPlan, StateFileBackup, StepRollback};
+pub use signature::{
+    compute_sha256, create_test_signature, verify_sha256, verify_signature, ArtifactSpec, Keyring,
+    PublicKey, Sha256Hash, Signature, TrustDecision, TrustedKey, VerificationResult,
+};
+pub use spec::{
+    Action, Artifact, Environment, InstallerSecurity, InstallerSpec, Postcondition, Precondition,
+    Requirements, Step, StepCheckpoint, StepTiming,
+};
+pub use tracing::{
+    AttributeValue, LogEntry, Logger, Span, SpanEvent, SpanKind, SpanStatus, TraceExporter,
+    TraceLevel, TraceSummary, TracingContext,
 };
 
 use crate::models::{Error, Result};
@@ -125,34 +128,64 @@ pub fn init_project(name: &Path, description: Option<&str>) -> Result<InstallerP
         .ok_or_else(|| Error::Validation("Invalid project name".to_string()))?;
 
     if project_name.is_empty() {
-        return Err(Error::Validation("Project name cannot be empty".to_string()));
+        return Err(Error::Validation(
+            "Project name cannot be empty".to_string(),
+        ));
     }
 
     // Create project directory
-    std::fs::create_dir_all(name)
-        .map_err(|e| Error::Io(std::io::Error::new(e.kind(), format!("Failed to create project directory: {e}"))))?;
+    std::fs::create_dir_all(name).map_err(|e| {
+        Error::Io(std::io::Error::new(
+            e.kind(),
+            format!("Failed to create project directory: {e}"),
+        ))
+    })?;
 
     // Create tests directory
-    std::fs::create_dir_all(name.join("tests"))
-        .map_err(|e| Error::Io(std::io::Error::new(e.kind(), format!("Failed to create tests directory: {e}"))))?;
+    std::fs::create_dir_all(name.join("tests")).map_err(|e| {
+        Error::Io(std::io::Error::new(
+            e.kind(),
+            format!("Failed to create tests directory: {e}"),
+        ))
+    })?;
 
     // Create templates directory
-    std::fs::create_dir_all(name.join("templates"))
-        .map_err(|e| Error::Io(std::io::Error::new(e.kind(), format!("Failed to create templates directory: {e}"))))?;
+    std::fs::create_dir_all(name.join("templates")).map_err(|e| {
+        Error::Io(std::io::Error::new(
+            e.kind(),
+            format!("Failed to create templates directory: {e}"),
+        ))
+    })?;
 
     // Generate installer.toml
     let installer_toml = generate_installer_toml(project_name, description);
-    std::fs::write(name.join("installer.toml"), installer_toml)
-        .map_err(|e| Error::Io(std::io::Error::new(e.kind(), format!("Failed to write installer.toml: {e}"))))?;
+    std::fs::write(name.join("installer.toml"), installer_toml).map_err(|e| {
+        Error::Io(std::io::Error::new(
+            e.kind(),
+            format!("Failed to write installer.toml: {e}"),
+        ))
+    })?;
 
     // Generate test files
     let test_mod = generate_test_mod(project_name);
-    std::fs::write(name.join("tests").join("mod.rs"), test_mod)
-        .map_err(|e| Error::Io(std::io::Error::new(e.kind(), format!("Failed to write tests/mod.rs: {e}"))))?;
+    std::fs::write(name.join("tests").join("mod.rs"), test_mod).map_err(|e| {
+        Error::Io(std::io::Error::new(
+            e.kind(),
+            format!("Failed to write tests/mod.rs: {e}"),
+        ))
+    })?;
 
     let falsification_tests = generate_falsification_tests(project_name);
-    std::fs::write(name.join("tests").join("falsification.rs"), falsification_tests)
-        .map_err(|e| Error::Io(std::io::Error::new(e.kind(), format!("Failed to write tests/falsification.rs: {e}"))))?;
+    std::fs::write(
+        name.join("tests").join("falsification.rs"),
+        falsification_tests,
+    )
+    .map_err(|e| {
+        Error::Io(std::io::Error::new(
+            e.kind(),
+            format!("Failed to write tests/falsification.rs: {e}"),
+        ))
+    })?;
 
     Ok(InstallerProject {
         name: project_name.to_string(),
@@ -185,8 +218,12 @@ pub fn validate_installer(path: &Path) -> Result<ValidationResult> {
     }
 
     // Parse the TOML
-    let content = std::fs::read_to_string(&installer_toml)
-        .map_err(|e| Error::Io(std::io::Error::new(e.kind(), format!("Failed to read installer.toml: {e}"))))?;
+    let content = std::fs::read_to_string(&installer_toml).map_err(|e| {
+        Error::Io(std::io::Error::new(
+            e.kind(),
+            format!("Failed to read installer.toml: {e}"),
+        ))
+    })?;
 
     let spec = InstallerSpec::parse(&content)?;
 

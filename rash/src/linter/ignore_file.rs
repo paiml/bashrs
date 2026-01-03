@@ -163,7 +163,11 @@ fn parse_rule_specifier(s: &str) -> Option<(String, Option<String>, Option<usize
                 return None;
             }
             let line_num = line_str.parse::<usize>().ok()?;
-            Some((rule_code.to_string(), Some(path.to_string()), Some(line_num)))
+            Some((
+                rule_code.to_string(),
+                Some(path.to_string()),
+                Some(line_num),
+            ))
         }
         _ => None,
     }
@@ -254,9 +258,7 @@ impl IgnoreFile {
             // Issue #85/#109: Check if this is a rule code (with optional file:line specifier)
             // Format: RULE_CODE or RULE_CODE:path or RULE_CODE:path:line
             if !is_negation {
-                if let Some((rule_code, file_path, line_num)) =
-                    parse_rule_specifier(pattern_str)
-                {
+                if let Some((rule_code, file_path, line_num)) = parse_rule_specifier(pattern_str) {
                     let rule_upper = rule_code.to_uppercase();
 
                     match (file_path, line_num) {
@@ -594,11 +596,7 @@ IDEM002
         let ignore = IgnoreFile::parse(content).expect("valid patterns");
 
         // Should be ignored in the specific file
-        assert!(ignore.should_ignore_rule_at(
-            "SEC010",
-            Path::new("scripts/install.sh"),
-            1
-        ));
+        assert!(ignore.should_ignore_rule_at("SEC010", Path::new("scripts/install.sh"), 1));
 
         // Should NOT be ignored in other files
         assert!(!ignore.should_ignore_rule_at("SEC010", Path::new("other/file.sh"), 1));
@@ -614,18 +612,10 @@ IDEM002
         let ignore = IgnoreFile::parse(content).expect("valid patterns");
 
         // Should be ignored on line 42
-        assert!(ignore.should_ignore_rule_at(
-            "DET001",
-            Path::new("scripts/metrics.sh"),
-            42
-        ));
+        assert!(ignore.should_ignore_rule_at("DET001", Path::new("scripts/metrics.sh"), 42));
 
         // Should NOT be ignored on other lines
-        assert!(!ignore.should_ignore_rule_at(
-            "DET001",
-            Path::new("scripts/metrics.sh"),
-            43
-        ));
+        assert!(!ignore.should_ignore_rule_at("DET001", Path::new("scripts/metrics.sh"), 43));
 
         // Should NOT be ignored in other files
         assert!(!ignore.should_ignore_rule_at("DET001", Path::new("other/file.sh"), 42));
@@ -638,16 +628,8 @@ IDEM002
         let ignore = IgnoreFile::parse(content).expect("valid patterns");
 
         // Global ignore applies everywhere
-        assert!(ignore.should_ignore_rule_at(
-            "SEC010",
-            Path::new("any/file.sh"),
-            1
-        ));
-        assert!(ignore.should_ignore_rule_at(
-            "SEC010",
-            Path::new("other/path.sh"),
-            999
-        ));
+        assert!(ignore.should_ignore_rule_at("SEC010", Path::new("any/file.sh"), 1));
+        assert!(ignore.should_ignore_rule_at("SEC010", Path::new("other/path.sh"), 999));
     }
 
     #[test]
@@ -664,24 +646,12 @@ DET001:scripts/metrics.sh:42
         assert!(ignore.should_ignore_rule_at("SEC010", Path::new("any/file.sh"), 1));
 
         // SC2031 is file-specific - only in scripts/install.sh
-        assert!(ignore.should_ignore_rule_at(
-            "SC2031",
-            Path::new("scripts/install.sh"),
-            1
-        ));
+        assert!(ignore.should_ignore_rule_at("SC2031", Path::new("scripts/install.sh"), 1));
         assert!(!ignore.should_ignore_rule_at("SC2031", Path::new("other.sh"), 1));
 
         // DET001 is line-specific - only on line 42 of scripts/metrics.sh
-        assert!(ignore.should_ignore_rule_at(
-            "DET001",
-            Path::new("scripts/metrics.sh"),
-            42
-        ));
-        assert!(!ignore.should_ignore_rule_at(
-            "DET001",
-            Path::new("scripts/metrics.sh"),
-            41
-        ));
+        assert!(ignore.should_ignore_rule_at("DET001", Path::new("scripts/metrics.sh"), 42));
+        assert!(!ignore.should_ignore_rule_at("DET001", Path::new("scripts/metrics.sh"), 41));
     }
 
     #[test]
@@ -691,16 +661,8 @@ DET001:scripts/metrics.sh:42
         let ignore = IgnoreFile::parse(content).expect("valid patterns");
 
         // Both with and without ./ should match
-        assert!(ignore.should_ignore_rule_at(
-            "SEC010",
-            Path::new("scripts/install.sh"),
-            1
-        ));
-        assert!(ignore.should_ignore_rule_at(
-            "SEC010",
-            Path::new("./scripts/install.sh"),
-            1
-        ));
+        assert!(ignore.should_ignore_rule_at("SEC010", Path::new("scripts/install.sh"), 1));
+        assert!(ignore.should_ignore_rule_at("SEC010", Path::new("./scripts/install.sh"), 1));
     }
 
     #[test]
@@ -709,16 +671,8 @@ DET001:scripts/metrics.sh:42
         let ignore = IgnoreFile::parse(content).expect("valid patterns");
 
         // Rule codes should be case-insensitive
-        assert!(ignore.should_ignore_rule_at(
-            "SEC010",
-            Path::new("scripts/install.sh"),
-            1
-        ));
-        assert!(ignore.should_ignore_rule_at(
-            "sec010",
-            Path::new("scripts/install.sh"),
-            1
-        ));
+        assert!(ignore.should_ignore_rule_at("SEC010", Path::new("scripts/install.sh"), 1));
+        assert!(ignore.should_ignore_rule_at("sec010", Path::new("scripts/install.sh"), 1));
     }
 
     #[test]
@@ -731,28 +685,12 @@ DET001:scripts/install.sh
 "#;
         let ignore = IgnoreFile::parse(content).expect("valid patterns");
 
-        assert!(ignore.should_ignore_rule_at(
-            "SEC010",
-            Path::new("scripts/install.sh"),
-            1
-        ));
-        assert!(ignore.should_ignore_rule_at(
-            "SC2031",
-            Path::new("scripts/install.sh"),
-            1
-        ));
-        assert!(ignore.should_ignore_rule_at(
-            "DET001",
-            Path::new("scripts/install.sh"),
-            1
-        ));
+        assert!(ignore.should_ignore_rule_at("SEC010", Path::new("scripts/install.sh"), 1));
+        assert!(ignore.should_ignore_rule_at("SC2031", Path::new("scripts/install.sh"), 1));
+        assert!(ignore.should_ignore_rule_at("DET001", Path::new("scripts/install.sh"), 1));
 
         // Other rules should NOT be ignored
-        assert!(!ignore.should_ignore_rule_at(
-            "IDEM001",
-            Path::new("scripts/install.sh"),
-            1
-        ));
+        assert!(!ignore.should_ignore_rule_at("IDEM001", Path::new("scripts/install.sh"), 1));
     }
 
     #[test]
@@ -765,28 +703,12 @@ SEC010:scripts/install.sh:30
 "#;
         let ignore = IgnoreFile::parse(content).expect("valid patterns");
 
-        assert!(ignore.should_ignore_rule_at(
-            "SEC010",
-            Path::new("scripts/install.sh"),
-            10
-        ));
-        assert!(ignore.should_ignore_rule_at(
-            "SEC010",
-            Path::new("scripts/install.sh"),
-            20
-        ));
-        assert!(ignore.should_ignore_rule_at(
-            "SEC010",
-            Path::new("scripts/install.sh"),
-            30
-        ));
+        assert!(ignore.should_ignore_rule_at("SEC010", Path::new("scripts/install.sh"), 10));
+        assert!(ignore.should_ignore_rule_at("SEC010", Path::new("scripts/install.sh"), 20));
+        assert!(ignore.should_ignore_rule_at("SEC010", Path::new("scripts/install.sh"), 30));
 
         // Other lines should NOT be ignored
-        assert!(!ignore.should_ignore_rule_at(
-            "SEC010",
-            Path::new("scripts/install.sh"),
-            15
-        ));
+        assert!(!ignore.should_ignore_rule_at("SEC010", Path::new("scripts/install.sh"), 15));
     }
 
     // ============================================================

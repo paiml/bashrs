@@ -158,12 +158,8 @@ impl FileChange {
         let before_end = before_lines.len().saturating_sub(common_suffix);
         let after_end = after_lines.len().saturating_sub(common_suffix);
 
-        let before_changed = before_lines
-            .get(common_prefix..before_end)
-            .unwrap_or(&[]);
-        let after_changed = after_lines
-            .get(common_prefix..after_end)
-            .unwrap_or(&[]);
+        let before_changed = before_lines.get(common_prefix..before_end).unwrap_or(&[]);
+        let after_changed = after_lines.get(common_prefix..after_end).unwrap_or(&[]);
 
         if before_changed.is_empty() && after_changed.is_empty() {
             return diff;
@@ -368,12 +364,7 @@ impl DryRunContext {
     }
 
     /// Simulate a file modification
-    pub fn simulate_file_modify(
-        &mut self,
-        path: impl AsRef<Path>,
-        before: &str,
-        after: &str,
-    ) {
+    pub fn simulate_file_modify(&mut self, path: impl AsRef<Path>, before: &str, after: &str) {
         let path = path.as_ref().to_path_buf();
         let change = FileChange::modified(&path, before, after);
         self.fs_changes.insert(path, change);
@@ -388,7 +379,8 @@ impl DryRunContext {
 
     /// Simulate package installation
     pub fn simulate_package_install(&mut self, name: &str, version: Option<&str>) {
-        self.package_ops.push(PackageOperation::install(name, version));
+        self.package_ops
+            .push(PackageOperation::install(name, version));
     }
 
     /// Simulate package removal
@@ -557,9 +549,18 @@ impl DryRunSummary {
         text.push_str(&format!("  Files created:      {}\n", self.files_created));
         text.push_str(&format!("  Files modified:     {}\n", self.files_modified));
         text.push_str(&format!("  Files deleted:      {}\n", self.files_deleted));
-        text.push_str(&format!("  Packages installed: {}\n", self.packages_installed));
-        text.push_str(&format!("  Packages removed:   {}\n", self.packages_removed));
-        text.push_str(&format!("  Services enabled:   {}\n", self.services_enabled));
+        text.push_str(&format!(
+            "  Packages installed: {}\n",
+            self.packages_installed
+        ));
+        text.push_str(&format!(
+            "  Packages removed:   {}\n",
+            self.packages_removed
+        ));
+        text.push_str(&format!(
+            "  Services enabled:   {}\n",
+            self.services_enabled
+        ));
         text.push_str(&format!("  Users modified:     {}\n", self.users_modified));
 
         if self.steps_would_fail > 0 {
@@ -748,7 +749,11 @@ mod tests {
     fn test_DRYRUN_008_generate_diff() {
         let mut ctx = DryRunContext::new();
 
-        ctx.simulate_file_write("/etc/docker/daemon.json", "{\n  \"storage-driver\": \"overlay2\"\n}\n", None);
+        ctx.simulate_file_write(
+            "/etc/docker/daemon.json",
+            "{\n  \"storage-driver\": \"overlay2\"\n}\n",
+            None,
+        );
         ctx.simulate_package_install("docker-ce", Some("24.0.7"));
         ctx.simulate_package_remove("docker.io");
         ctx.simulate_service_enable("docker");
