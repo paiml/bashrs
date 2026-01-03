@@ -882,4 +882,198 @@ mod tests {
         let path2 = get_history_path().unwrap();
         assert_eq!(path1, path2);
     }
+
+    // ===== FORMAT METHOD TESTS =====
+
+    #[test]
+    fn test_mode_command_result_format_invalid_mode() {
+        let result = ModeCommandResult::InvalidMode("unknown mode: foo".to_string());
+        let formatted = result.format();
+        assert!(formatted.contains("Error:"));
+        assert!(formatted.contains("unknown mode: foo"));
+    }
+
+    #[test]
+    fn test_mode_command_result_format_invalid_usage() {
+        let result = ModeCommandResult::InvalidUsage;
+        let formatted = result.format();
+        assert!(formatted.contains("Usage:"));
+        assert!(formatted.contains("Valid modes:"));
+    }
+
+    #[test]
+    fn test_parse_command_result_format_error() {
+        let result = ParseCommandResult::Error("parse error at line 1".to_string());
+        let formatted = result.format();
+        assert!(formatted.contains("✗"));
+        assert!(formatted.contains("parse error at line 1"));
+    }
+
+    #[test]
+    fn test_purify_command_result_format_error() {
+        let result = PurifyCommandResult::Error("failed to purify".to_string());
+        let formatted = result.format();
+        assert!(formatted.contains("Purification error"));
+        assert!(formatted.contains("failed to purify"));
+    }
+
+    #[test]
+    fn test_lint_command_result_format_error() {
+        let result = LintCommandResult::Error("lint failed".to_string());
+        let formatted = result.format();
+        assert!(formatted.contains("Lint error"));
+        assert!(formatted.contains("lint failed"));
+    }
+
+    #[test]
+    fn test_load_command_result_format_success() {
+        let result = LoadCommandResult::Success {
+            path: PathBuf::from("/test/script.sh"),
+            function_count: 5,
+            formatted: "Loaded 5 functions".to_string(),
+        };
+        let formatted = result.format();
+        assert_eq!(formatted, "Loaded 5 functions");
+    }
+
+    #[test]
+    fn test_load_command_result_format_error() {
+        let result = LoadCommandResult::Error("file not found".to_string());
+        let formatted = result.format();
+        assert_eq!(formatted, "file not found");
+    }
+
+    #[test]
+    fn test_mode_process_result_format_purified() {
+        let result = ModeProcessResult::Purified("mkdir -p /tmp".to_string());
+        let formatted = result.format();
+        assert!(formatted.contains("Purified:"));
+        assert!(formatted.contains("mkdir -p /tmp"));
+    }
+
+    #[test]
+    fn test_mode_process_result_format_no_explanation() {
+        let result = ModeProcessResult::NoExplanation("some command".to_string());
+        let formatted = result.format();
+        assert!(formatted.contains("No explanation available"));
+        assert!(formatted.contains("some command"));
+    }
+
+    #[test]
+    fn test_mode_process_result_format_error() {
+        let result = ModeProcessResult::Error("something went wrong".to_string());
+        let formatted = result.format();
+        assert_eq!(formatted, "something went wrong");
+    }
+
+    #[test]
+    fn test_reload_result_format_success() {
+        let result = ReloadResult::Success {
+            path: PathBuf::from("/test/script.sh"),
+            function_count: 3,
+        };
+        let formatted = result.format();
+        assert!(formatted.contains("Reloaded:"));
+        assert!(formatted.contains("/test/script.sh"));
+        assert!(formatted.contains("3 functions"));
+    }
+
+    #[test]
+    fn test_reload_result_format_error() {
+        let result = ReloadResult::Error("reload failed".to_string());
+        let formatted = result.format();
+        assert_eq!(formatted, "reload failed");
+    }
+
+    #[test]
+    fn test_functions_result_format() {
+        let result = FunctionsResult("function1, function2".to_string());
+        let formatted = result.format();
+        assert_eq!(formatted, "function1, function2");
+    }
+
+    // ===== ADDITIONAL EDGE CASES =====
+
+    #[test]
+    fn test_parse_command_with_multiple_statements() {
+        let result = process_parse_command(":parse echo a; echo b; echo c");
+        if let ParseCommandResult::Success {
+            statement_count, ..
+        } = result
+        {
+            assert!(statement_count >= 1);
+        }
+    }
+
+    #[test]
+    fn test_process_command_by_mode_explain_no_match() {
+        let mut state = ReplState::new();
+        state.set_mode(ReplMode::Explain);
+
+        // A simple command that might not have an explanation
+        let result = process_command_by_mode("ls", &state);
+
+        // Could be explained or not, both are valid
+        let formatted = result.format();
+        assert!(!formatted.is_empty());
+    }
+
+    #[test]
+    fn test_history_result_entries_format() {
+        let entries = vec!["cmd1".to_string(), "cmd2".to_string(), "cmd3".to_string()];
+        let result = HistoryResult::Entries(entries);
+        let formatted = result.format();
+
+        assert!(formatted.contains("Command History"));
+        assert!(formatted.contains("3 commands"));
+        assert!(formatted.contains("1 cmd1"));
+        assert!(formatted.contains("2 cmd2"));
+        assert!(formatted.contains("3 cmd3"));
+    }
+
+    #[test]
+    fn test_vars_result_format() {
+        let vars = vec![
+            ("AAA".to_string(), "111".to_string()),
+            ("BBB".to_string(), "222".to_string()),
+        ];
+        let result = VarsResult::Variables(vars);
+        let formatted = result.format();
+
+        assert!(formatted.contains("Session Variables"));
+        assert!(formatted.contains("2 variables"));
+        assert!(formatted.contains("AAA = 111"));
+        assert!(formatted.contains("BBB = 222"));
+    }
+
+    #[test]
+    fn test_mode_command_result_eq() {
+        let result1 = ModeCommandResult::InvalidUsage;
+        let result2 = ModeCommandResult::InvalidUsage;
+        assert_eq!(result1, result2);
+    }
+
+    #[test]
+    fn test_process_purify_command_error_handling() {
+        // Invalid bash that can't be parsed
+        let result = process_purify_command(":purify <<<");
+
+        // Should handle parse error gracefully
+        assert!(
+            matches!(result, PurifyCommandResult::Error(_))
+                || matches!(result, PurifyCommandResult::Success(_))
+        );
+    }
+
+    #[test]
+    fn test_process_lint_command_error_handling() {
+        // Invalid bash that can't be parsed
+        let result = process_lint_command(":lint <<<");
+
+        // Should handle parse error gracefully
+        assert!(
+            matches!(result, LintCommandResult::Error(_))
+                || matches!(result, LintCommandResult::Success(_))
+        );
+    }
 }

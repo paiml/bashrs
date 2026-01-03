@@ -9,8 +9,10 @@ use crate::cli::args::{
 };
 use crate::cli::logic::{
     add_no_install_recommends, add_package_manager_cleanup, convert_add_to_copy_if_local,
-    find_devcontainer_json as logic_find_devcontainer_json, is_dockerfile, is_makefile,
-    is_shell_script_file, normalize_shell_script, pin_base_image_version,
+    coverage_class, coverage_status, find_devcontainer_json as logic_find_devcontainer_json,
+    format_timestamp, generate_diff_lines, hex_encode, is_dockerfile, is_makefile,
+    is_shell_script_file, normalize_shell_script, pin_base_image_version, score_status,
+    truncate_str,
 };
 use crate::cli::{Cli, Commands};
 use crate::models::{Config, Error, Result};
@@ -3055,24 +3057,7 @@ fn count_duplicate_path_entries(analysis: &crate::config::ConfigAnalysis) -> usi
         .count()
 }
 
-/// Generate diff lines between original and purified content
-fn generate_diff_lines(original: &str, purified: &str) -> Vec<(usize, String, String)> {
-    let original_lines: Vec<&str> = original.lines().collect();
-    let purified_lines: Vec<&str> = purified.lines().collect();
-
-    original_lines
-        .iter()
-        .zip(purified_lines.iter())
-        .enumerate()
-        .filter_map(|(i, (orig, pure))| {
-            if orig != pure {
-                Some((i + 1, orig.to_string(), pure.to_string()))
-            } else {
-                None
-            }
-        })
-        .collect()
-}
+// generate_diff_lines moved to cli/logic.rs
 
 /// Handle output to specific file or stdout
 fn handle_output_to_file(output_path: &Path, purified: &str) -> Result<()> {
@@ -3520,41 +3505,7 @@ fn parse_public_key(hex_str: &str) -> Result<crate::installer::PublicKey> {
     Ok(result)
 }
 
-/// Hex encode bytes
-fn hex_encode(bytes: &[u8]) -> String {
-    bytes.iter().map(|b| format!("{:02x}", b)).collect()
-}
-
-/// Format timestamp as relative time
-fn format_timestamp(timestamp: u64) -> String {
-    use std::time::{SystemTime, UNIX_EPOCH};
-
-    let now = SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .map(|d| d.as_secs())
-        .unwrap_or(0);
-
-    let diff = now.saturating_sub(timestamp);
-
-    if diff < 60 {
-        "just now".to_string()
-    } else if diff < 3600 {
-        format!("{}m ago", diff / 60)
-    } else if diff < 86400 {
-        format!("{}h ago", diff / 3600)
-    } else {
-        format!("{}d ago", diff / 86400)
-    }
-}
-
-/// Truncate string to max length with ellipsis
-fn truncate_str(s: &str, max_len: usize) -> String {
-    if s.len() <= max_len {
-        s.to_string()
-    } else {
-        format!("{}...", &s[..max_len.saturating_sub(3)])
-    }
-}
+// hex_encode, format_timestamp, truncate_str moved to cli/logic.rs
 
 fn installer_from_bash_command(input: &Path, output: Option<&Path>) -> Result<()> {
     use crate::installer;
@@ -5889,16 +5840,7 @@ fn print_markdown_score_results(score: &crate::bash_quality::scoring::QualitySco
     }
 }
 
-/// Helper to get status emoji for dimension score
-fn score_status(score: f64) -> &'static str {
-    if score >= 8.0 {
-        "✅"
-    } else if score >= 6.0 {
-        "⚠️"
-    } else {
-        "❌"
-    }
-}
+// score_status moved to cli/logic.rs
 
 // ============================================================================
 // Audit Command (v6.12.0 - Bash Quality Tools)
@@ -6417,15 +6359,7 @@ fn print_terminal_coverage(
     }
 }
 
-fn coverage_status(percent: f64) -> &'static str {
-    if percent >= 80.0 {
-        "✅"
-    } else if percent >= 50.0 {
-        "⚠️"
-    } else {
-        "❌"
-    }
-}
+// coverage_status moved to cli/logic.rs
 
 /// Print JSON coverage output
 fn print_json_coverage(coverage: &crate::bash_quality::coverage::CoverageReport) {
@@ -6529,15 +6463,7 @@ fn print_html_coverage(
     }
 }
 
-fn coverage_class(percent: f64) -> &'static str {
-    if percent >= 80.0 {
-        "good"
-    } else if percent >= 50.0 {
-        "medium"
-    } else {
-        "poor"
-    }
-}
+// coverage_class moved to cli/logic.rs
 
 /// Print LCOV coverage output
 fn print_lcov_coverage(coverage: &crate::bash_quality::coverage::CoverageReport, input: &Path) {
