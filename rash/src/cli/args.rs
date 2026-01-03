@@ -1266,7 +1266,7 @@ pub enum CoverageOutputFormat {
 }
 
 /// Minimum severity level for lint output (Issue #75)
-#[derive(Clone, Debug, Default, ValueEnum, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Clone, Copy, Debug, Default, ValueEnum, PartialEq, Eq, PartialOrd, Ord)]
 pub enum LintLevel {
     /// Show info, warning, and error messages
     #[default]
@@ -1278,7 +1278,7 @@ pub enum LintLevel {
 }
 
 /// Lint profile for specialized validation rules
-#[derive(Clone, Debug, Default, ValueEnum, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, Default, ValueEnum, PartialEq, Eq)]
 pub enum LintProfileArg {
     /// Standard Dockerfile linting (default)
     #[default]
