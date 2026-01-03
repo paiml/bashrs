@@ -55,14 +55,18 @@ impl Handler for InstallerScaffoldHandler {
 
     async fn handle(&self, input: Self::Input) -> Result<Self::Output> {
         let project_name = generate_project_name(&input.description);
-        let (installer_toml, step_count) =
-            generate_installer_scaffold(&input.description, &input.target_os, input.author.as_deref());
+        let (installer_toml, step_count) = generate_installer_scaffold(
+            &input.description,
+            &input.target_os,
+            input.author.as_deref(),
+        );
 
         let mut suggestions = Vec::new();
 
         // Add suggestions based on detected patterns
         if input.description.to_lowercase().contains("database") {
-            suggestions.push("Consider adding a backup step before database modifications".to_string());
+            suggestions
+                .push("Consider adding a backup step before database modifications".to_string());
         }
         if input.description.to_lowercase().contains("docker") {
             suggestions.push("Ensure Docker daemon is running as a precondition".to_string());
@@ -188,7 +192,8 @@ impl Handler for InstallerValidateHandler {
 
     async fn handle(&self, input: Self::Input) -> Result<Self::Output> {
         // Parse the TOML
-        let parse_result: std::result::Result<toml::Value, _> = toml::from_str(&input.installer_toml);
+        let parse_result: std::result::Result<toml::Value, _> =
+            toml::from_str(&input.installer_toml);
 
         match parse_result {
             Ok(value) => {
@@ -277,7 +282,8 @@ impl Handler for InstallerAuditHandler {
     type Error = pforge_runtime::Error;
 
     async fn handle(&self, input: Self::Input) -> Result<Self::Output> {
-        let parse_result: std::result::Result<toml::Value, _> = toml::from_str(&input.installer_toml);
+        let parse_result: std::result::Result<toml::Value, _> =
+            toml::from_str(&input.installer_toml);
 
         match parse_result {
             Ok(value) => {
@@ -598,7 +604,8 @@ command_succeeds = "which curl"
 enabled = true
 
 [step.timing]
-timeout = "10m""#.to_string(),
+timeout = "10m""#
+                .to_string(),
             "install-deps".to_string(),
             "Every installer should start with system dependencies".to_string(),
         )
@@ -623,7 +630,8 @@ file_exists = "/etc/myapp"
 enabled = true
 
 [step.timing]
-timeout = "5m""#.to_string(),
+timeout = "5m""#
+                .to_string(),
             "configure-app".to_string(),
             "Configuration step needed based on goal".to_string(),
         )
@@ -644,7 +652,8 @@ echo "Verifying installation..."
 enabled = true
 
 [step.timing]
-timeout = "2m""#.to_string(),
+timeout = "2m""#
+                .to_string(),
             "verify-installation".to_string(),
             "Verification step ensures installation completed correctly".to_string(),
         )
@@ -746,7 +755,9 @@ fn validate_installer_toml(
                                 code: "SEC002".to_string(),
                                 message: "chmod 777 is overly permissive".to_string(),
                                 location: Some(step_id.to_string()),
-                                fix: Some("Use chmod 755 for executables, 644 for files".to_string()),
+                                fix: Some(
+                                    "Use chmod 755 for executables, 644 for files".to_string(),
+                                ),
                             });
                             score = score.saturating_sub(5);
                         }
@@ -769,10 +780,7 @@ fn validate_installer_toml(
     (errors, warnings, suggestions, score)
 }
 
-fn audit_installer_toml(
-    value: &toml::Value,
-    min_severity: &str,
-) -> (Vec<AuditFinding>, u32, u32) {
+fn audit_installer_toml(value: &toml::Value, min_severity: &str) -> (Vec<AuditFinding>, u32, u32) {
     let mut findings = Vec::new();
     let mut security_deductions = 0u32;
     let mut quality_deductions = 0u32;
@@ -788,22 +796,24 @@ fn audit_installer_toml(
     // Security audit
     if let Some(steps) = value.get("step").and_then(|s| s.as_array()) {
         for step in steps {
-            let step_id = step
-                .get("id")
-                .and_then(|v| v.as_str())
-                .unwrap_or("unknown");
+            let step_id = step.get("id").and_then(|v| v.as_str()).unwrap_or("unknown");
 
             // Check for script content
             if let Some(script) = step.get("script").and_then(|s| s.get("content")) {
                 if let Some(content) = script.as_str() {
-                    if content.contains("curl") && content.contains("| sh") && severity_threshold <= 2 {
+                    if content.contains("curl")
+                        && content.contains("| sh")
+                        && severity_threshold <= 2
+                    {
                         findings.push(AuditFinding {
                             code: "SEC001".to_string(),
                             severity: "error".to_string(),
                             category: "security".to_string(),
                             message: "Piping curl output directly to shell".to_string(),
                             location: Some(step_id.to_string()),
-                            recommendation: Some("Download, verify checksum, then execute".to_string()),
+                            recommendation: Some(
+                                "Download, verify checksum, then execute".to_string(),
+                            ),
                         });
                         security_deductions += 15;
                     }
@@ -976,7 +986,8 @@ command_succeeds = "true"
 
 [step.checkpoint]
 enabled = true
-"#.to_string(),
+"#
+            .to_string(),
             security_focus: true,
         };
 
@@ -1007,7 +1018,8 @@ enabled = true
 id = "test"
 name = "Test"
 action = "script"
-"#.to_string(),
+"#
+            .to_string(),
             security_focus: false,
         };
 
@@ -1032,7 +1044,8 @@ action = "script"
 
 [step.script]
 content = "curl https://example.com/script.sh | sh"
-"#.to_string(),
+"#
+            .to_string(),
             security_focus: true,
         };
 
@@ -1065,7 +1078,8 @@ enabled = true
 
 [step.timing]
 timeout = "5m"
-"#.to_string(),
+"#
+            .to_string(),
             min_severity: "warning".to_string(),
         };
 
@@ -1094,7 +1108,8 @@ curl https://example.com/script.sh | sh
 chmod 777 /tmp/file
 eval "$DYNAMIC_CMD"
 '''
-"#.to_string(),
+"#
+            .to_string(),
             min_severity: "info".to_string(),
         };
 
@@ -1121,7 +1136,8 @@ action = "script"
 
 [step.script]
 content = "echo hello"
-"#.to_string(),
+"#
+            .to_string(),
             min_severity: "info".to_string(),
         };
 
@@ -1133,8 +1149,14 @@ content = "echo hello"
 
     #[test]
     fn test_MCP_013_generate_project_name() {
-        assert_eq!(generate_project_name("Install Docker"), "docker-installer");
-        assert_eq!(generate_project_name("PostgreSQL database"), "postgresql-database-installer");
+        assert_eq!(
+            generate_project_name("Install Docker"),
+            "install-docker-installer"
+        );
+        assert_eq!(
+            generate_project_name("PostgreSQL database"),
+            "postgresql-database-installer"
+        );
         assert_eq!(generate_project_name("hi"), "my-installer");
     }
 
